@@ -145,9 +145,11 @@ describe("canonical team bundle", () => {
       extractableStatuses: ["published", "draft"],
     });
     expect(pluginConfig(resolved, "conversation-memory")).toMatchObject({
-      enableProjection: true,
       memoryVisibility: "shared",
     });
+    expect(pluginConfig(resolved, "conversation-memory")).not.toHaveProperty(
+      "enableProjection",
+    );
     expect(resolved.agentInstructions).toEqual(
       teamBundle.agentInstructions ?? [],
     );

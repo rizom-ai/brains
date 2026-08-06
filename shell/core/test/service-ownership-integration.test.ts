@@ -67,6 +67,19 @@ async function migrateTestDatabases(dir: string): Promise<void> {
   await migrateRuntimeState({ url: `file:${dir}/runtime-state.db` });
 }
 
+const OWNERSHIP_JOB_TYPE = "test:ownership";
+
+function registerOwnershipHandler(shell: Shell): void {
+  shell.getJobQueueService().registerHandler(
+    OWNERSHIP_JOB_TYPE,
+    {
+      validateAndParse: (data) => data,
+      process: (data) => Promise.resolve(data),
+    },
+    "service-ownership-integration",
+  );
+}
+
 async function writeAndReadShellState(
   shell: Shell,
   label: string,
@@ -108,17 +121,8 @@ async function writeAndReadShellState(
   });
   await runtimeState.set(runtimeKey, `${label} runtime value`);
 
-  const jobType = `test:ownership:${label}`;
-  shell.getJobQueueService().registerHandler(
-    jobType,
-    {
-      validateAndParse: (data) => data,
-      process: (data) => Promise.resolve(data),
-    },
-    "service-ownership-integration",
-  );
   const jobId = await shell.getJobQueueService().enqueue({
-    type: jobType,
+    type: OWNERSHIP_JOB_TYPE,
     data: { label },
     options: {
       delayMs: 3_600_000,
@@ -206,6 +210,8 @@ describe("Shell service ownership integration", () => {
     const shellA = Shell.createFresh(configA, defaultDependencies());
     const shellB = Shell.createFresh(configB, defaultDependencies());
     shells.push(shellA, shellB);
+    registerOwnershipHandler(shellA);
+    registerOwnershipHandler(shellB);
 
     await shellA.initialize();
     await shellB.initialize();
@@ -287,6 +293,7 @@ describe("Shell service ownership integration", () => {
       defaultDependencies(),
     );
     shells.push(shellA);
+    registerOwnershipHandler(shellA);
     await shellA.initialize();
     await writeAndReadShellState(shellA, "before-failures");
 

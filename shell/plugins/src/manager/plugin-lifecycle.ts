@@ -8,6 +8,7 @@ import type { PluginInfo } from "./types";
 import { PluginStatus, PluginEvent } from "./types";
 import { PluginError } from "../errors";
 import { Exit } from "@brains/utils/effect";
+import type { IProjectionRegistry } from "../entity/projection-registry";
 import {
   createPluginScopedShell,
   PluginResourceScope,
@@ -22,6 +23,7 @@ export class PluginLifecycle {
   private events: EventEmitter;
   private daemonRegistry: IDaemonRegistry;
   private logger: Logger;
+  private readonly projectionRegistry: IProjectionRegistry;
   private readonly resourceScopes = new Map<string, PluginResourceScope>();
   private readonly releasePromises = new Map<string, Promise<void>>();
 
@@ -29,11 +31,13 @@ export class PluginLifecycle {
     plugins: Map<string, PluginInfo>,
     events: EventEmitter,
     daemonRegistry: IDaemonRegistry,
+    projectionRegistry: IProjectionRegistry,
     logger: Logger,
   ) {
     this.plugins = plugins;
     this.events = events;
     this.daemonRegistry = daemonRegistry;
+    this.projectionRegistry = projectionRegistry;
     this.logger = logger.child("PluginLifecycle");
   }
 
@@ -60,6 +64,9 @@ export class PluginLifecycle {
     );
     resources.addFinalizer(() =>
       shell.getJobQueueService().unregisterPluginHandlers(pluginId),
+    );
+    resources.addFinalizer(() =>
+      this.projectionRegistry.unregisterPlugin(pluginId),
     );
     this.resourceScopes.set(pluginId, resources);
     this.releasePromises.delete(pluginId);

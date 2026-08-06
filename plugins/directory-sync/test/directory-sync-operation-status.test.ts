@@ -79,6 +79,13 @@ describe("DirectorySyncOperationStatusService", () => {
       scheduledFor: Date.now(),
       startedAt: Date.now(),
       completedAt: Date.now(),
+      attemptId: "attempt-1",
+      workerSlotId: "worker-a",
+      workerSessionId: "session-a",
+      leaseExpiresAt: Date.now(),
+      attemptHeartbeatAt: Date.now(),
+      runtimeUpdatedAt: Date.now(),
+      progress: null,
       metadata: {
         rootJobId: "job-1",
         operationType: "file_operations",

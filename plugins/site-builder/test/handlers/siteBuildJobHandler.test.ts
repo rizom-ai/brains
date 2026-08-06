@@ -160,6 +160,63 @@ describe("SiteBuildJobHandler", () => {
     });
   });
 
+  it("reports dirty-generation build lifecycle around execution", async () => {
+    const lifecycle: string[] = [];
+    const lifecycleBuilder: ISiteBuilder = {
+      build: mock(async () => {
+        lifecycle.push("build");
+        return {
+          success: true,
+          outputDir: "/tmp/output",
+          filesGenerated: 1,
+          routesBuilt: 1,
+        };
+      }),
+    };
+    const { sendMessage } = createMockMessageSender();
+    const lifecycleHandler = new SiteBuildJobHandler(
+      createSilentLogger("test"),
+      sendMessage,
+      {
+        siteBuilder: lifecycleBuilder,
+        layouts: {},
+        defaultSiteConfig: {
+          title: "Test Site",
+          description: "Test Description",
+        },
+        sharedImagesDir: "./dist/images",
+        onBuildStarted: (environment, jobId, generation): void => {
+          lifecycle.push(`start:${environment}:${jobId}:${generation}`);
+        },
+        onBuildFinished: async (
+          environment,
+          jobId,
+          generation,
+        ): Promise<void> => {
+          lifecycle.push(`finish:${environment}:${jobId}:${generation}`);
+        },
+      },
+    );
+    const progressReporter = ProgressReporter.from(async () => {});
+    if (!progressReporter) throw new Error("Expected progress reporter");
+
+    await lifecycleHandler.process(
+      {
+        outputDir: "/tmp/output",
+        environment: "preview",
+        inputGeneration: 4,
+      },
+      "job-generation",
+      progressReporter,
+    );
+
+    expect(lifecycle).toEqual([
+      "start:preview:job-generation:4",
+      "build",
+      "finish:preview:job-generation:4",
+    ]);
+  });
+
   it("records a cancelled build without emitting completion", async () => {
     const markCancelled = mock(async () => undefined);
     const statusService = {

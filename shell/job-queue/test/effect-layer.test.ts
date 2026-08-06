@@ -76,6 +76,7 @@ describe("job queue Effect layers", () => {
         activeJobs: 0,
         uptime: 0,
         isRunning: false,
+        isHealthy: true,
       }),
       isWorkerRunning: (): boolean => false,
     } satisfies IJobQueueWorker;

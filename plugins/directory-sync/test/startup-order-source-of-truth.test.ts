@@ -1,5 +1,12 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { mkdirSync, rmSync, writeFileSync, readFileSync, existsSync } from "fs";
+import {
+  mkdirSync,
+  rmSync,
+  writeFileSync,
+  readFileSync,
+  existsSync,
+  mkdtempSync,
+} from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
 
@@ -413,8 +420,7 @@ describe("Entity Event Flow: Changes After Startup", () => {
 
   describe("File Content After Update", () => {
     it("should have correct content in file after entity:updated", async () => {
-      const testDir = join(tmpdir(), `test-update-${Date.now()}`);
-      mkdirSync(testDir, { recursive: true });
+      const testDir = mkdtempSync(join(tmpdir(), "test-update-"));
 
       try {
         const postDir = join(testDir, "post");

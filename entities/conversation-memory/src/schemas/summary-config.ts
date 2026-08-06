@@ -13,10 +13,8 @@ export const summaryMemoryVisibilitySchema: z.ZodType<
   });
 
 export interface SummaryConfig {
-  enableProjection: boolean;
   maxSourceMessages: number;
   maxMessagesPerChunk: number;
-  projectionDelayMs: number;
   maxEntries: number;
   maxEntryLength: number;
   includeKeyPoints: boolean;
@@ -25,10 +23,8 @@ export interface SummaryConfig {
 }
 
 export interface SummaryConfigInput {
-  enableProjection?: boolean | undefined;
   maxSourceMessages?: number | undefined;
   maxMessagesPerChunk?: number | undefined;
-  projectionDelayMs?: number | undefined;
   maxEntries?: number | undefined;
   maxEntryLength?: number | undefined;
   includeKeyPoints?: boolean | undefined;
@@ -38,10 +34,6 @@ export interface SummaryConfigInput {
 
 export const summaryConfigSchema: z.ZodType<SummaryConfig, SummaryConfigInput> =
   z.object({
-    enableProjection: z
-      .boolean()
-      .default(true)
-      .describe("Project summaries from stored conversation messages"),
     maxSourceMessages: z
       .number()
       .int()
@@ -54,12 +46,6 @@ export const summaryConfigSchema: z.ZodType<SummaryConfig, SummaryConfigInput> =
       .min(1)
       .default(40)
       .describe("Maximum messages sent to one summary extraction call"),
-    projectionDelayMs: z
-      .number()
-      .int()
-      .min(0)
-      .default(90_000)
-      .describe("Delay after the first new eligible message before projecting"),
     maxEntries: z
       .number()
       .int()

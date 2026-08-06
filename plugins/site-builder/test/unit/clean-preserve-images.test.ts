@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { createPreactBuilder } from "../../src/lib/preact-builder";
 import { createSilentLogger } from "@brains/test-utils";
-import { promises as fs } from "fs";
+import { promises as fs, mkdtempSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
 import { MockCSSProcessor } from "../mocks/mock-css-processor";
@@ -12,7 +12,7 @@ describe("PreactBuilder clean (preserve images)", () => {
   let workingDir: string;
 
   beforeEach(async () => {
-    testDir = join(tmpdir(), `clean-test-${Date.now()}`);
+    testDir = mkdtempSync(join(tmpdir(), "clean-test-"));
     outputDir = join(testDir, "output");
     workingDir = join(testDir, "working");
   });

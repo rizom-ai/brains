@@ -102,9 +102,12 @@ export async function initializeConfiguredPlugins(options: {
 }): Promise<void> {
   const { plugins, pluginManager, logger, initOptions } = options;
 
-  logger.debug(`Found ${plugins.length} plugins to register`);
+  const configuredPlugins = initOptions?.registrationContext?.executionOnly
+    ? plugins.filter((plugin) => plugin.type !== "interface")
+    : plugins;
+  logger.debug(`Found ${configuredPlugins.length} plugins to register`);
 
-  for (const plugin of plugins) {
+  for (const plugin of configuredPlugins) {
     logger.debug(`Registering plugin: ${plugin.id}`);
     pluginManager.registerPlugin(plugin);
   }

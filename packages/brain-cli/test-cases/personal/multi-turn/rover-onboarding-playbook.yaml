@@ -124,9 +124,6 @@ turns:
 
   - userMessage: "Find that saved note now."
     successCriteria:
-      expectedTools:
-        - toolName: system_extract
-          shouldBeCalled: false
       expectedAnyTool:
         - toolNames:
             - system_get

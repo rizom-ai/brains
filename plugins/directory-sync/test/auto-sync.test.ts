@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { DirectorySyncPlugin } from "../src/plugin";
 import { createPluginHarness } from "@brains/plugins/test";
-import { rmSync, existsSync, readFileSync, mkdirSync, unlinkSync } from "fs";
+import { rmSync, existsSync, readFileSync, unlinkSync, mkdtempSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
 import { createTestEntity } from "@brains/test-utils";
@@ -13,8 +13,7 @@ describe("DirectorySync AutoSync", () => {
   let testDir: string;
 
   beforeEach(async () => {
-    testDir = join(tmpdir(), `test-auto-sync-${Date.now()}`);
-    mkdirSync(testDir, { recursive: true });
+    testDir = mkdtempSync(join(tmpdir(), "test-auto-sync-"));
 
     harness = createPluginHarness({ dataDir: testDir });
 

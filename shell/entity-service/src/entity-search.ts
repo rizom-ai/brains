@@ -1,4 +1,4 @@
-import type { EntityDB } from "./db";
+import type { EntitySearchDB } from "./db";
 import {
   getVisibleContentVisibilities,
   type BaseEntity,
@@ -68,13 +68,13 @@ const entityMetadataSchema = z.preprocess(
  * Extracted from EntityService for single responsibility
  */
 export class EntitySearch {
-  private db: EntityDB;
+  private db: EntitySearchDB;
   private embeddingService: IEmbeddingService;
   private serializer: EntitySerializer;
   private logger: Logger;
 
   constructor(
-    db: EntityDB,
+    db: EntitySearchDB,
     embeddingService: IEmbeddingService,
     serializer: EntitySerializer,
     logger: Logger,

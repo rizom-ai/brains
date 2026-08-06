@@ -101,7 +101,6 @@ The first public release of `brains`, after roughly a year of private developmen
 - `system_update` — modify an entity with confirmation flow
 - `system_delete` — delete an entity with confirmation flow
 - `system_get` / `system_list` / `system_search` — read access
-- `system_extract` — derive entities from existing content; batch extraction also supports a confirmed topic rebuild mode
 - `system_status` / `system_insights` — runtime introspection
 
 #### Sites and layouts

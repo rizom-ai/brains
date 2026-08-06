@@ -7,6 +7,8 @@ import {
   collectRouteAssets,
   collectRouteScripts,
   createPreparedSiteBuildSnapshot,
+  jsonObjectSchema,
+  normalizeJsonValue,
   type PreparedRoute,
   type PreparedSection,
   type PreparedSiteBuild,
@@ -238,15 +240,25 @@ async function prepareSection(
     options.signal.throwIfAborted();
   } catch (error) {
     options.signal.throwIfAborted();
+    const resolution = formatValidationError(error);
     const diagnostic: SiteBuildDiagnostic = {
       severity: "error",
       code: "section-content-resolution-failed",
-      message: `Failed to resolve content for route "${options.route.id}" section "${section.id}": ${getErrorMessage(error)}`,
+      message: `Failed to resolve content for route "${options.route.id}" section "${section.id}": ${resolution.summary}`,
       routeId: options.route.id,
       sectionId: section.id,
       template: section.template,
     };
-    options.pipelineContext.logger.error(diagnostic.message, { error });
+    options.pipelineContext.logger.error(
+      "Failed to resolve site section content",
+      {
+        routeId: options.route.id,
+        sectionId: section.id,
+        template: section.template,
+        ...(resolution.issues ? { issues: resolution.issues } : {}),
+        ...(!resolution.issues ? { error: resolution.summary } : {}),
+      },
+    );
     return { diagnostic };
   }
 
@@ -255,33 +267,67 @@ async function prepareSection(
   options.signal.throwIfAborted();
   try {
     const contentObject = sectionContentSchema.parse(content);
-    const validatedContent = template.schema.parse({
+    const templateContent = template.schema.parse({
       ...contentObject,
       pageTitle: options.route.title || options.siteTitle,
       ...(options.route.pageLabel !== undefined && {
         pageLabel: options.route.pageLabel,
       }),
     });
+    const normalizedContent = normalizeJsonValue(templateContent);
+    const validatedContent = sectionContentSchema.parse(normalizedContent);
 
     return {
       section: {
         id: section.id,
         template: section.template,
-        // The layout-template schema is JSON-bound; snapshot validation below
-        // remains the final assertion rather than the first enforcement point.
-        data: validatedContent,
+        data: jsonObjectSchema.parse(validatedContent),
       },
     };
   } catch (error) {
+    const validation = formatValidationError(error);
     const diagnostic: SiteBuildDiagnostic = {
       severity: "warning",
       code: "invalid-section-content",
-      message: `Route "${options.route.id}" section "${section.id}" has invalid content for template "${section.template}": ${getErrorMessage(error)}`,
+      message: `Route "${options.route.id}" section "${section.id}" has invalid content for template "${section.template}": ${validation.summary}`,
       routeId: options.route.id,
       sectionId: section.id,
       template: section.template,
     };
-    options.pipelineContext.logger.error(diagnostic.message, { error });
+    options.pipelineContext.logger.error("Invalid site section content", {
+      routeId: options.route.id,
+      sectionId: section.id,
+      template: section.template,
+      ...(validation.issues ? { issues: validation.issues } : {}),
+      ...(!validation.issues ? { error: validation.summary } : {}),
+    });
     return { diagnostic };
   }
+}
+
+interface ValidationIssueSummary {
+  code: string;
+  path: string;
+  message: string;
+}
+
+function formatValidationError(error: unknown): {
+  summary: string;
+  issues?: ValidationIssueSummary[];
+} {
+  if (!(error instanceof z.ZodError)) {
+    return { summary: getErrorMessage(error) };
+  }
+
+  const issues = error.issues.map((issue) => ({
+    code: issue.code,
+    path: issue.path.map(String).join("."),
+    message: issue.message,
+  }));
+  return {
+    summary: issues
+      .map((issue) => `${issue.path || "<root>"}: ${issue.message}`)
+      .join("; "),
+    issues,
+  };
 }

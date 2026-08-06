@@ -32,6 +32,7 @@ registerPackage("@brains/theme-rizom", rizomTheme);
 // ─── Register boot function ───────────────────────────────────────────────
 
 import { setBootFn } from "../src/lib/boot";
+import { startWorkerHeartbeat } from "../src/lib/process-supervisor";
 import { readFileSync } from "fs";
 import { join } from "path";
 
@@ -78,6 +79,12 @@ setBootFn(async (cwd, definition, flags) => {
 
   const config = resolve(definition, process.env, effectiveOverrides);
 
+  if (flags.operation === "migrate") {
+    const app = App.create(config);
+    await app.migrate();
+    return;
+  }
+
   if (flags.mode) {
     const app = App.create(config);
     await app.initialize({ mode: flags.mode });
@@ -87,7 +94,33 @@ setBootFn(async (cwd, definition, flags) => {
   if (flags.chat) {
     await handleCLI({ ...config, args: ["--cli"] });
   } else {
-    await handleCLI(config);
+    await handleCLI(config, {
+      ...(flags.migrationsCompleted && { migrationsCompleted: true }),
+      ...(flags.childRole && { processRole: flags.childRole }),
+      ...(flags.childRole && {
+        onRuntimeReady: (): void => {
+          const sendSupervisorMessage = (
+            type: "runtime-ready" | "worker-ready" | "worker-heartbeat",
+          ): void => {
+            if (!process.send) {
+              throw new Error(
+                `Supervised Brain ${flags.childRole} child has no IPC channel`,
+              );
+            }
+            process.send({ type });
+          };
+
+          sendSupervisorMessage(
+            flags.childRole === "web" ? "runtime-ready" : "worker-ready",
+          );
+          if (flags.childRole === "worker") {
+            startWorkerHeartbeat((): void =>
+              sendSupervisorMessage("worker-heartbeat"),
+            );
+          }
+        },
+      }),
+    });
   }
 });
 
@@ -131,7 +164,7 @@ const result = await runCommand(parsed, cwd);
 
 if (!result.success) {
   console.error(result.message);
-  process.exit(1);
+  process.exit(result.exitCode ?? 1);
 }
 
 if (result.message) {

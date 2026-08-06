@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { mkdirSync, rmSync, existsSync } from "fs";
+import { rmSync, existsSync, mkdtempSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
 import { generatePinPackageJson } from "../src/commands/pin";
@@ -8,8 +8,7 @@ describe("brain pin", () => {
   let testDir: string;
 
   beforeEach(() => {
-    testDir = join(tmpdir(), `brain-pin-test-${Date.now()}`);
-    mkdirSync(testDir, { recursive: true });
+    testDir = mkdtempSync(join(tmpdir(), "brain-pin-test-"));
   });
 
   afterEach(() => {

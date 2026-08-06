@@ -63,6 +63,8 @@ export interface ExtractTopicsBatchedResult {
   merged: number;
   skipped: number;
   batches: number;
+  failedBatches?: number;
+  failedItems?: number;
 }
 
 const DEFAULT_SOURCE_ROLE_POLICIES: Record<
@@ -142,14 +144,38 @@ export async function extractTopicsBatched(
   );
   const inBatch = new Map<string, TopicEntity>();
 
-  let created = 0;
-  let merged = 0;
-  let skipped = 0;
+  interface ExtractionOutcome {
+    created: number;
+    merged: number;
+    skipped: number;
+    batches: number;
+    failedBatches: number;
+    failedItems: number;
+  }
+  const emptyOutcome = (): ExtractionOutcome => ({
+    created: 0,
+    merged: 0,
+    skipped: 0,
+    batches: 0,
+    failedBatches: 0,
+    failedItems: 0,
+  });
+  const combineOutcomes = (
+    left: ExtractionOutcome,
+    right: ExtractionOutcome,
+  ): ExtractionOutcome => ({
+    created: left.created + right.created,
+    merged: left.merged + right.merged,
+    skipped: left.skipped + right.skipped,
+    batches: left.batches + right.batches,
+    failedBatches: left.failedBatches + right.failedBatches,
+    failedItems: left.failedItems + right.failedItems,
+  });
 
-  for (const batch of batches) {
+  const processBatch = async (
+    batch: BaseEntity[],
+  ): Promise<ExtractionOutcome> => {
     logger.info(`Processing batch of ${batch.length} entities`);
-
-    const batchContent = buildBatchPrompt(batch);
     const sourcePolicy = getBatchSourcePolicy({
       batch,
       getEntityTypeConfig: (entityType) =>
@@ -162,7 +188,7 @@ export async function extractTopicsBatched(
     const prompt = buildTopicExtractionPrompt({
       entityTitle: `Batch of ${batch.length} entities`,
       entityType: "batch",
-      content: batchContent,
+      content: buildBatchPrompt(batch),
       existingTopicTitles,
     });
 
@@ -174,112 +200,129 @@ export async function extractTopicsBatched(
         templateName: "topics:extraction",
         representedIdentity: "none",
       });
-
       const topics = result.topics.filter(
         (topic) => topic.relevanceScore >= minRelevanceScore,
       );
 
-      for (const topic of topics) {
-        try {
-          const weightedRelevance = topic.relevanceScore * sourcePolicy.weight;
-          if (weightedRelevance < reinforceRelevanceThreshold) {
-            skipped++;
-            continue;
-          }
-
-          if (autoMerge) {
-            const candidate = await topicService.findMergeCandidate({
-              incoming: topic,
-              threshold,
-              additionalCandidates: Array.from(inBatch.values()),
-              targetVisibility,
-            });
-
-            if (candidate) {
-              const synthesized = await synthesizer.synthesize({
-                existingTopic: candidate.topic,
-                incomingTopic: topic,
+      return await topics.reduce<Promise<ExtractionOutcome>>(
+        async (previous, topic) => {
+          const accumulated = await previous;
+          try {
+            const weightedRelevance =
+              topic.relevanceScore * sourcePolicy.weight;
+            if (weightedRelevance < reinforceRelevanceThreshold) {
+              return combineOutcomes(accumulated, {
+                ...emptyOutcome(),
+                skipped: 1,
               });
-
-              if (synthesized.verdict !== "distinct") {
-                const mergedTopic = await topicService.applySynthesizedMerge({
-                  existingId: candidate.topic.id,
-                  synthesized: { ...synthesized, title: candidate.title },
-                  visibility: targetVisibility,
-                });
-
-                if (!mergedTopic) {
-                  throw new Error(`Failed to merge topic: ${topic.title}`);
-                }
-
-                inBatch.set(mergedTopic.id, mergedTopic);
-                merged++;
-                continue;
-              }
-              // The semantic index found a close neighbor, but the final merge
-              // judge ruled this is a separate durable domain. Creation still
-              // must respect the corpus soft ceiling; above the ceiling we only
-              // reinforce/merge existing topics.
             }
-          }
 
-          const atSoftCeiling =
-            existingTopicTitles.length + inBatch.size >= topicSoftCeiling;
-          const mayCreate =
-            sourcePolicy.canMint &&
-            weightedRelevance >= createRelevanceThreshold &&
-            !atSoftCeiling;
-          if (!mayCreate) {
-            skipped++;
-            continue;
-          }
+            if (autoMerge) {
+              const candidate = await topicService.findMergeCandidate({
+                incoming: topic,
+                threshold,
+                additionalCandidates: Array.from(inBatch.values()),
+                targetVisibility,
+              });
+              if (candidate) {
+                const synthesized = await synthesizer.synthesize({
+                  existingTopic: candidate.topic,
+                  incomingTopic: topic,
+                });
+                if (synthesized.verdict !== "distinct") {
+                  const mergedTopic = await topicService.applySynthesizedMerge({
+                    existingId: candidate.topic.id,
+                    synthesized: { ...synthesized, title: candidate.title },
+                    visibility: targetVisibility,
+                  });
+                  if (!mergedTopic) {
+                    throw new Error(`Failed to merge topic: ${topic.title}`);
+                  }
+                  inBatch.set(mergedTopic.id, mergedTopic);
+                  return combineOutcomes(accumulated, {
+                    ...emptyOutcome(),
+                    merged: 1,
+                  });
+                }
+              }
+            }
 
-          const slug = topicService.getTopicIdForTitle(
-            topic.title,
-            targetVisibility,
-          );
-          if (inBatch.has(slug)) {
-            skipped++;
-            continue;
-          }
+            const atSoftCeiling =
+              existingTopicTitles.length + inBatch.size >= topicSoftCeiling;
+            const mayCreate =
+              sourcePolicy.canMint &&
+              weightedRelevance >= createRelevanceThreshold &&
+              !atSoftCeiling;
+            if (!mayCreate) {
+              return combineOutcomes(accumulated, {
+                ...emptyOutcome(),
+                skipped: 1,
+              });
+            }
 
-          const createResult = await topicService.createTopicOptimistic({
-            title: topic.title,
-            content: topic.content,
-            visibility: targetVisibility,
-          });
-          if (createResult.topic) {
-            inBatch.set(createResult.topic.id, createResult.topic);
+            const slug = topicService.getTopicIdForTitle(
+              topic.title,
+              targetVisibility,
+            );
+            if (inBatch.has(slug)) {
+              return combineOutcomes(accumulated, {
+                ...emptyOutcome(),
+                skipped: 1,
+              });
+            }
+
+            const createResult = await topicService.createTopicOptimistic({
+              title: topic.title,
+              content: topic.content,
+              visibility: targetVisibility,
+            });
+            if (createResult.topic) {
+              inBatch.set(createResult.topic.id, createResult.topic);
+            }
+            return combineOutcomes(accumulated, {
+              ...emptyOutcome(),
+              ...(createResult.created ? { created: 1 } : { skipped: 1 }),
+            });
+          } catch (error) {
+            logger.error("Topic batch item failed", {
+              title: topic.title,
+              error: getErrorMessage(error),
+            });
+            return combineOutcomes(accumulated, {
+              ...emptyOutcome(),
+              failedItems: 1,
+            });
           }
-          if (createResult.created) {
-            created++;
-          } else {
-            skipped++;
-          }
-        } catch (error) {
-          logger.error("Topic batch item failed", {
-            title: topic.title,
-            error: getErrorMessage(error),
-          });
-        }
-      }
+        },
+        Promise.resolve({ ...emptyOutcome(), batches: 1 }),
+      );
     } catch (error) {
       logger.error("Batch topic extraction failed", {
         batchSize: batch.length,
         promptChars: prompt.length,
         error: getErrorMessage(error),
       });
+      return { ...emptyOutcome(), batches: 1, failedBatches: 1 };
     }
-  }
-
-  const summary: ExtractTopicsBatchedResult = {
-    created,
-    merged,
-    skipped,
-    batches: batches.length,
   };
 
-  if (created > 0 || merged > 0) {
+  const outcome = await batches.reduce<Promise<ExtractionOutcome>>(
+    async (previous, batch) =>
+      combineOutcomes(await previous, await processBatch(batch)),
+    Promise.resolve(emptyOutcome()),
+  );
+  const summary: ExtractTopicsBatchedResult = {
+    created: outcome.created,
+    merged: outcome.merged,
+    skipped: outcome.skipped,
+    batches: outcome.batches,
+    ...(outcome.failedBatches > 0 && {
+      failedBatches: outcome.failedBatches,
+    }),
+    ...(outcome.failedItems > 0 && { failedItems: outcome.failedItems }),
+  };
+
+  if (outcome.created > 0 || outcome.merged > 0) {
     await context.messaging.send({
       type: TOPICS_BATCH_COMPLETED_EVENT,
       payload: summary,

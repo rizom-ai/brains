@@ -138,7 +138,7 @@ export interface IJobProgressMonitor {
   /**
    * Create a ProgressReporter for a specific job
    */
-  createProgressReporter(jobId: string): ProgressReporter;
+  createProgressReporter(jobId: string, attemptId?: string): ProgressReporter;
 
   /**
    * Emit job completion event

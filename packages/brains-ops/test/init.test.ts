@@ -167,6 +167,9 @@ describe("initPilotRepo", () => {
       true,
     );
     expect(
+      existsSync(join(repo, "deploy", "scripts", "install-health-watchdog.ts")),
+    ).toBe(true);
+    expect(
       existsSync(join(repo, "deploy", "scripts", "provision-server.ts")),
     ).toBe(true);
     expect(existsSync(join(repo, "deploy", "scripts", "update-dns.ts"))).toBe(
@@ -366,6 +369,9 @@ describe("initPilotRepo", () => {
     );
     expect(deployWorkflow).toContain("bun deploy/scripts/sync-content-repo.ts");
     expect(deployWorkflow).toContain("bun deploy/scripts/provision-server.ts");
+    expect(deployWorkflow).toContain(
+      "bun deploy/scripts/install-health-watchdog.ts",
+    );
     expect(deployWorkflow).toContain("bun deploy/scripts/update-dns.ts");
     expect(deployWorkflow).toContain(
       "PREVIEW_DOMAIN: ${{ steps.user_config.outputs.preview_domain }}",
@@ -563,7 +569,11 @@ describe("initPilotRepo", () => {
     expect(dockerfile).toContain("bun add @rizom/brain@$BRAIN_VERSION");
     expect(dockerfile).toContain("$SITE_PACKAGES");
     expect(dockerfile).toContain("EXPOSE 8080");
-    expect(dockerfile).toContain('CMD ["./node_modules/.bin/brain", "start"]');
+    expect(dockerfile).toContain('ENTRYPOINT ["/usr/bin/tini", "--"]');
+    expect(dockerfile).toContain("http://127.0.0.1:8080/health/live");
+    expect(dockerfile).toContain(
+      'CMD ["bun", "./node_modules/@rizom/brain/dist/brain.js", "start"]',
+    );
 
     const deployConfig = await readFile(
       join(repo, "deploy", "kamal", "deploy.yml"),
@@ -575,7 +585,7 @@ describe("initPilotRepo", () => {
     expect(deployConfig).not.toContain("primary_role:");
     expect(deployConfig).not.toContain("mcp:");
     expect(deployConfig).toContain("app_port: 8080");
-    expect(deployConfig).toContain("path: /health");
+    expect(deployConfig).toContain("path: /health/ready");
     expect(deployConfig).toContain("- <%= ENV['PREVIEW_DOMAIN'] %>");
     expect(deployConfig).toContain("- <%= ENV['WWW_DOMAIN'] %>");
     expect(deployConfig).toContain("/opt/brain-state:/data");
@@ -659,6 +669,17 @@ describe("initPilotRepo", () => {
       join(repo, "deploy", "kamal", "deploy.yml"),
       legacyDeployYml,
     );
+    const dockerfilePath = join(repo, "deploy", "Dockerfile");
+    await writeFile(
+      dockerfilePath,
+      (await readFile(dockerfilePath, "utf8"))
+        .replace("curl ca-certificates git tini", "curl ca-certificates git")
+        .replace('ENTRYPOINT ["/usr/bin/tini", "--"]\n', "")
+        .replace(
+          'CMD ["bun", "./node_modules/@rizom/brain/dist/brain.js", "start"]',
+          'CMD ["./node_modules/.bin/brain", "start"]',
+        ),
+    );
 
     await initPilotRepo(repo);
 
@@ -671,6 +692,9 @@ describe("initPilotRepo", () => {
     expect(deployConfig).toContain("/opt/brain-config:/config");
     expect(deployConfig).toContain("/opt/brain-dist:/app/dist");
     expect(deployConfig).not.toContain("\n  app_port: 80\n");
+    expect(await readFile(dockerfilePath, "utf8")).toContain(
+      'ENTRYPOINT ["/usr/bin/tini", "--"]',
+    );
   });
 
   it("reconciles generated ATProto deploy env artifacts on rerun", async () => {

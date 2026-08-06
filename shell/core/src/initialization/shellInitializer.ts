@@ -13,24 +13,32 @@ import type { ShellDependencies, ShellServices } from "../types/shell-types";
 import { createShellServices } from "./service-factory";
 import type { ShellLifecycle } from "./shell-lifecycle";
 import * as shellRegistration from "./shell-registration";
+import type { RuntimeProcessRole } from "../runtime-process-role";
 
 export type { ShellServices } from "../types/shell-types";
 export type { PluginInitializeOptions } from "./shell-registration";
 
 export class ShellInitializer {
-  private logger: Logger;
-  private config: ShellConfig;
+  private readonly logger: Logger;
+  private readonly config: ShellConfig;
+  private readonly processRole: RuntimeProcessRole | undefined;
 
   public static createFresh(
     logger: Logger,
     config: ShellConfig,
+    processRole?: RuntimeProcessRole,
   ): ShellInitializer {
-    return new ShellInitializer(logger, config);
+    return new ShellInitializer(logger, config, processRole);
   }
 
-  private constructor(logger: Logger, config: ShellConfig) {
+  private constructor(
+    logger: Logger,
+    config: ShellConfig,
+    processRole?: RuntimeProcessRole,
+  ) {
     this.logger = logger.child("ShellInitializer");
     this.config = config;
+    this.processRole = processRole;
   }
 
   public registerShellTemplates(templateRegistry: TemplateRegistry): void {
@@ -86,6 +94,7 @@ export class ShellInitializer {
       dependencies,
       initializerLogger: this.logger,
       lifecycle,
+      ...(this.processRole && { processRole: this.processRole }),
     });
   }
 

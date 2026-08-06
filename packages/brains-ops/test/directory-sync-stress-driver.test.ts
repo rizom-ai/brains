@@ -81,12 +81,67 @@ class ScriptedStressSystem {
 
   now = (): Date => new Date(this.clockMs);
 
-  sleep = async (milliseconds: number): Promise<void> => {
-    this.clockMs += milliseconds;
-    await Bun.sleep(0);
+  // Virtual-time scheduler. The driver runs concurrent loops (settle polling,
+  // health monitor, runtime monitor) that share this clock; advancing it at
+  // sleep() call time would let event-loop scheduling decide which loop gets
+  // the settle window's virtual time. Instead sleepers park with a wake time
+  // and a single advancer wakes them in wake-time order, pausing while any
+  // scripted fetch or command is in flight so I/O takes zero virtual time.
+  private sleepers: Array<{
+    wakeAt: number;
+    seq: number;
+    resolve: () => void;
+  }> = [];
+  private sleeperSeq = 0;
+  private advancing = false;
+  private inflight = 0;
+
+  sleep = (milliseconds: number): Promise<void> => {
+    return new Promise<void>((resolve) => {
+      this.sleepers.push({
+        wakeAt: this.clockMs + milliseconds,
+        seq: this.sleeperSeq++,
+        resolve,
+      });
+      void this.advanceClock();
+    });
   };
 
+  private async advanceClock(): Promise<void> {
+    if (this.advancing) return;
+    this.advancing = true;
+    try {
+      while (this.sleepers.length > 0) {
+        // Let every runnable continuation execute and park before time moves.
+        await Bun.sleep(0);
+        if (this.inflight > 0) continue;
+        const next = this.sleepers.reduce((a, b) =>
+          b.wakeAt < a.wakeAt || (b.wakeAt === a.wakeAt && b.seq < a.seq)
+            ? b
+            : a,
+        );
+        this.sleepers.splice(this.sleepers.indexOf(next), 1);
+        this.clockMs = Math.max(this.clockMs, next.wakeAt);
+        next.resolve();
+      }
+    } finally {
+      this.advancing = false;
+    }
+  }
+
   fetchImpl = async (
+    input: string | URL | Request,
+    init?: RequestInit,
+  ): Promise<Response> => {
+    this.inflight += 1;
+    try {
+      return await this.fetchScripted(input, init);
+    } finally {
+      this.inflight -= 1;
+    }
+  };
+
+  private fetchScripted = async (
     input: string | URL | Request,
     init?: RequestInit,
   ): Promise<Response> => {
@@ -145,6 +200,19 @@ class ScriptedStressSystem {
   };
 
   commandRunner: StressCommandRunner = async (
+    command: string,
+    args: readonly string[],
+    commandOptions?: StressCommandOptions,
+  ): Promise<StressCommandResult> => {
+    this.inflight += 1;
+    try {
+      return await this.runScriptedCommand(command, args, commandOptions);
+    } finally {
+      this.inflight -= 1;
+    }
+  };
+
+  private runScriptedCommand = async (
     command: string,
     args: readonly string[],
     commandOptions?: StressCommandOptions,

@@ -1,6 +1,6 @@
 import { describe, test, expect, beforeEach, afterEach } from "bun:test";
 import { markdownToHtml } from "@brains/ui-library";
-import { promises as fs } from "fs";
+import { promises as fs, mkdtempSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
 import sharp from "sharp";
@@ -34,7 +34,7 @@ describe("ImageBuildService", () => {
   let imagesDir: string;
 
   beforeEach(async () => {
-    outputDir = join(tmpdir(), `image-build-service-test-${Date.now()}`);
+    outputDir = mkdtempSync(join(tmpdir(), "image-build-service-test-"));
     imagesDir = join(outputDir, "images");
     await fs.mkdir(imagesDir, { recursive: true });
   });

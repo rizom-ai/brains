@@ -1,12 +1,19 @@
 import { JobContextSchema } from "./schema/types";
-import type { JobOptions, JobContext } from "./schema/types";
+import type {
+  JobOptions,
+  JobContext,
+  ProjectionJobContext,
+} from "./schema/types";
 import type { BatchOperation, BatchJobStatus, Batch } from "./batch-schemas";
 import type { DbConfig } from "@brains/contracts";
-import type { ProgressReporter } from "@brains/utils/progress";
+import type {
+  ProgressNotification,
+  ProgressReporter,
+} from "@brains/utils/progress";
 import { z } from "@brains/utils/zod";
 
 // Re-export types that are used internally
-export type { JobOptions, JobContext, BatchOperation };
+export type { JobOptions, JobContext, ProjectionJobContext, BatchOperation };
 
 /**
  * Request for enqueueing a job in the core job queue service.
@@ -34,8 +41,23 @@ export interface JobInfo {
   scheduledFor: number;
   startedAt: number | null;
   completedAt: number | null;
+  attemptId: string | null;
+  workerSlotId: string | null;
+  workerSessionId: string | null;
+  leaseExpiresAt: number | null;
+  attemptHeartbeatAt: number | null;
+  runtimeUpdatedAt: number | null;
   metadata: JobContext;
+  progress: ProgressNotification | null;
   result?: unknown;
+}
+
+/** Ownership attached atomically when a worker dequeues a job. */
+export interface JobClaimOptions {
+  workerSlotId: string;
+  workerSessionId: string;
+  leaseDurationMs: number;
+  workerSessionTimeoutMs: number;
 }
 
 /**
@@ -56,9 +78,38 @@ export const JobInfoSchema: z.ZodType<JobInfo, unknown> = z.object({
   scheduledFor: z.number(),
   startedAt: z.number().nullable(),
   completedAt: z.number().nullable(),
+  attemptId: z.string().nullable(),
+  workerSlotId: z.string().nullable(),
+  workerSessionId: z.string().nullable(),
+  leaseExpiresAt: z.number().nullable(),
+  attemptHeartbeatAt: z.number().nullable(),
+  runtimeUpdatedAt: z.number().nullable(),
   metadata: JobContextSchema,
+  progress: z
+    .custom<ProgressNotification>(
+      (value) =>
+        typeof value === "object" &&
+        value !== null &&
+        "progress" in value &&
+        typeof value.progress === "number",
+    )
+    .nullable(),
   result: z.unknown().nullable().optional(), // Job result (type varies by job type)
 });
+
+export type JobHandlerRegistrationMode =
+  "combined" | "validation-only" | "execution-only";
+
+export interface JobValidator<TInput = unknown> {
+  /** Validate and parse job data before durable enqueue. */
+  validateAndParse(data: unknown): TInput | null;
+}
+
+/** Immutable declaration derived from a registered durable handler. */
+export interface JobExecutionRegistration {
+  readonly type: string;
+  readonly pluginId: string | undefined;
+}
 
 /**
  * Job handler interface for processing specific job types
@@ -71,7 +122,10 @@ export interface JobHandler<
   _TJobType extends string = string,
   TInput = unknown,
   TOutput = unknown,
-> {
+> extends JobValidator<TInput> {
+  /** Per-type execution deadline; falls back to the worker default. */
+  readonly executionTimeoutMs?: number | undefined;
+
   /**
    * Process a job of this type
    * @param data - The job input data
@@ -82,6 +136,7 @@ export interface JobHandler<
     data: TInput,
     jobId: string,
     progressReporter: ProgressReporter,
+    signal: AbortSignal,
   ): Promise<TOutput>;
 
   /**
@@ -92,13 +147,55 @@ export interface JobHandler<
     data: TInput,
     jobId: string,
     progressReporter: ProgressReporter,
+    signal: AbortSignal,
   ): Promise<void>;
 
-  /**
-   * Validate and parse job data
-   * Returns parsed data if valid, null if invalid
-   */
-  validateAndParse(data: unknown): TInput | null;
+  /** Runs once after the queue exhausts retries and persists terminal failure. */
+  onTerminalError?(
+    error: Error,
+    data: TInput,
+    jobId: string,
+    progressReporter: ProgressReporter,
+    signal: AbortSignal,
+  ): Promise<void>;
+}
+
+export interface JobQueueStats {
+  pending: number;
+  processing: number;
+  failed: number;
+  completed: number;
+  total: number;
+}
+
+export interface JobRuntimeUpdateCursor {
+  readonly updatedAt: number;
+  readonly jobId: string;
+}
+
+export interface JobRuntimeUpdate {
+  readonly job: JobInfo;
+  readonly cursor: JobRuntimeUpdateCursor;
+}
+
+export interface JobWorkerSessionDiagnostics {
+  total: number;
+  active: number;
+  stale: number;
+  latestHeartbeatAgeMs: number | null;
+}
+
+export interface JobQueueDiagnostics {
+  totals: Omit<JobQueueStats, "total">;
+  byType: Array<{
+    type: string;
+    status: JobInfo["status"];
+    count: number;
+  }>;
+  oldestPendingAgeMs: number | null;
+  oldestProcessingAgeMs: number | null;
+  staleLeaseCount: number;
+  workerSessions: JobWorkerSessionDiagnostics;
 }
 
 /**
@@ -128,30 +225,64 @@ export interface IJobQueueService {
    */
   getHandler(type: string): JobHandler | undefined;
 
+  /** Freeze handler declarations before runtime services can admit work. */
+  finalizeHandlerRegistrations(): readonly JobExecutionRegistration[];
+
+  /** Read the immutable handler declarations derived during boot. */
+  getExecutionRegistrations(): readonly JobExecutionRegistration[];
+
   /**
    * Enqueue a job for processing
    */
   enqueue(request: JobQueueEnqueueRequest): Promise<string>;
 
-  /**
-   * Dequeue the next available job for processing
-   */
-  dequeue(): Promise<JobInfo | null>;
+  /** Dequeue and attach explicit attempt ownership. */
+  dequeue(claim?: JobClaimOptions): Promise<JobInfo | null>;
 
-  /**
-   * Mark job as completed
-   */
-  complete(jobId: string, result: unknown): Promise<void>;
+  /** Register or supersede the live session for a stable worker slot. */
+  startWorkerSession(
+    workerSlotId: string,
+    workerSessionId: string,
+  ): Promise<void>;
 
-  /**
-   * Mark job as failed and handle retry
-   */
-  fail(jobId: string, error: Error): Promise<void>;
+  /** Persist worker liveness only while the session still owns its slot. */
+  heartbeatWorkerSession(
+    workerSlotId: string,
+    workerSessionId: string,
+  ): Promise<boolean>;
 
-  /**
-   * Update job data
-   */
-  update(jobId: string, data: unknown): Promise<void>;
+  /** Remove a normally stopped worker session. */
+  endWorkerSession(
+    workerSlotId: string,
+    workerSessionId: string,
+  ): Promise<boolean>;
+
+  /** Renew a processing attempt's fenced lease. */
+  renewAttemptLease(
+    jobId: string,
+    attemptId: string,
+    leaseDurationMs: number,
+  ): Promise<boolean>;
+
+  /** Fence and persist a progress snapshot without extending the lease. */
+  recordAttemptProgress(
+    jobId: string,
+    attemptId: string,
+    progress: ProgressNotification,
+  ): Promise<boolean>;
+
+  /** Mark job as completed, fenced when an attempt token is supplied. */
+  complete(
+    jobId: string,
+    result: unknown,
+    attemptId?: string,
+  ): Promise<boolean>;
+
+  /** Mark job as failed, fenced when an attempt token is supplied. */
+  fail(jobId: string, error: Error, attemptId?: string): Promise<boolean>;
+
+  /** Update job data, fenced when an attempt token is supplied. */
+  update(jobId: string, data: unknown, attemptId?: string): Promise<boolean>;
 
   /**
    * Get job status by job ID
@@ -166,13 +297,16 @@ export interface IJobQueueService {
   /**
    * Get queue statistics
    */
-  getStats(): Promise<{
-    pending: number;
-    processing: number;
-    failed: number;
-    completed: number;
-    total: number;
-  }>;
+  getStats(): Promise<JobQueueStats>;
+
+  /** Get bounded operational diagnostics without loading queue rows. */
+  getDiagnostics(now?: number): Promise<JobQueueDiagnostics>;
+
+  /** Read durable processing and terminal updates for web-owned publication. */
+  getRuntimeUpdates(
+    cursor: JobRuntimeUpdateCursor,
+    limit?: number,
+  ): Promise<JobRuntimeUpdate[]>;
 
   /**
    * Clean up old completed jobs
@@ -215,11 +349,13 @@ export type { DbConfig as JobQueueDbConfig } from "@brains/contracts";
  */
 export type JobQueueServiceConfig = DbConfig & {
   /**
-   * Reclaim a processing job whose startedAt timestamp is older than this.
-   * Defaults to 300_000 ms.
+   * Legacy fallback lease/session duration for direct dequeue() callers.
+   * Worker-owned claims pass explicit lease and liveness settings.
    */
   claimTimeoutMs?: number;
 };
+
+export const DEFAULT_WORKER_SESSION_TIMEOUT_MS = 15_000;
 
 /**
  * Configuration for the JobQueueWorker
@@ -233,6 +369,24 @@ export interface JobQueueWorkerConfig {
   maxJobs?: number;
   /** Whether to start the worker automatically */
   autoStart?: boolean;
+  /** Stable identity for this worker process across restarts. */
+  workerSlotId?: string;
+  /** Default deadline when a handler has no per-type override. */
+  defaultExecutionTimeoutMs?: number;
+  /** Time allowed for a handler to settle after cancellation. */
+  cancellationGraceMs?: number;
+  /** Deadline for an optional handler failure callback. */
+  errorCallbackTimeoutMs?: number;
+  /** Duration granted by each attempt lease renewal. */
+  leaseDurationMs?: number;
+  /** Attempt lease renewal cadence. */
+  attemptHeartbeatIntervalMs?: number;
+  /** Worker-session heartbeat cadence. */
+  workerHeartbeatIntervalMs?: number;
+  /** Liveness timeout used to reclaim another worker's attempts. */
+  workerSessionTimeoutMs?: number;
+  /** Called once when this process can no longer safely execute queue work. */
+  onUnhealthy?: (reason: string) => void;
 }
 
 /**
@@ -249,6 +403,10 @@ export interface JobQueueWorkerStats {
   uptime: number;
   /** Whether the worker is currently running */
   isRunning: boolean;
+  /** Whether this process can safely claim additional work. */
+  isHealthy: boolean;
+  /** Why the worker stopped accepting work. */
+  unhealthyReason?: string;
   /** Last error encountered */
   lastError?: string;
 }

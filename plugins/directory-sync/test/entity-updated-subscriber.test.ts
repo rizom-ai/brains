@@ -10,7 +10,7 @@ import {
 import { createTestEntity } from "@brains/test-utils";
 import { join } from "path";
 import { tmpdir } from "os";
-import { existsSync, rmSync, readFileSync, mkdirSync } from "fs";
+import { existsSync, rmSync, readFileSync, mkdirSync, mkdtempSync } from "fs";
 
 // Series adapter that preserves coverImageId in frontmatter
 class SeriesTestAdapter extends BaseEntityAdapter<BaseEntity> {
@@ -64,7 +64,7 @@ describe("entity:updated subscriber", () => {
   let syncPath: string;
 
   beforeEach(async () => {
-    syncPath = join(tmpdir(), `test-entity-subscriber-${Date.now()}`);
+    syncPath = mkdtempSync(join(tmpdir(), "test-entity-subscriber-"));
 
     harness = createPluginHarness<DirectorySyncPlugin>({
       dataDir: syncPath,

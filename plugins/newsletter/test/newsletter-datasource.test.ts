@@ -201,6 +201,26 @@ describe("NewsletterDataSource", () => {
       expect(result.content).toBe("Full newsletter content here");
     });
 
+    it("normalizes absent draft detail fields to JSON nulls", async () => {
+      const newsletter = createMockNewsletter(
+        "draft-1",
+        "Draft newsletter",
+        "draft",
+      );
+      spyOn(mockEntityService, "getEntity").mockResolvedValueOnce(newsletter);
+      spyOn(mockEntityService, "listEntities").mockResolvedValueOnce([]);
+
+      const result = await datasource.fetch(
+        { entityType: "newsletter", query: { id: "draft-1" } },
+        newsletterDetailSchema,
+        mockContext,
+      );
+
+      expect(result.sentAt).toBeNull();
+      expect(result.scheduledFor).toBeNull();
+      expect(result.sourceEntities).toBeNull();
+    });
+
     it("should throw error when newsletter not found", async () => {
       spyOn(mockEntityService, "getEntity").mockResolvedValue(null);
 

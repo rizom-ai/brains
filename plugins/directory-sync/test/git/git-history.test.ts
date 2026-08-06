@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { mkdirSync, writeFileSync, existsSync, rmSync } from "fs";
+import { mkdirSync, writeFileSync, existsSync, rmSync, mkdtempSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
 import { GitSync } from "../../src/lib/git-sync";
@@ -19,7 +19,7 @@ describe("GitSync history", () => {
   let gitSync: GitSync;
 
   beforeEach(() => {
-    testDir = join(tmpdir(), `test-git-history-${Date.now()}`);
+    testDir = mkdtempSync(join(tmpdir(), "test-git-history-"));
     dataDir = join(testDir, "brain-data");
     mkdirSync(dataDir, { recursive: true });
 
@@ -31,8 +31,8 @@ describe("GitSync history", () => {
     });
   });
 
-  afterEach(() => {
-    gitSync.cleanup();
+  afterEach(async () => {
+    await gitSync.cleanup();
     if (existsSync(testDir)) {
       rmSync(testDir, { recursive: true, force: true });
     }

@@ -1,9 +1,17 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { mkdirSync, existsSync, readFileSync, rmSync, writeFileSync } from "fs";
+import {
+  mkdirSync,
+  mkdtempSync,
+  existsSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "fs";
 import { basename, join } from "path";
 import { tmpdir } from "os";
 import { scaffold } from "../src/commands/init";
 import { buildInstanceEnvSchema } from "../src/lib/env-schema";
+import { renderDockerfile } from "@brains/deploy-support";
 
 const legacyEnvExample = `# Required
 AI_API_KEY=
@@ -112,8 +120,7 @@ describe("brain init", () => {
   let testDir: string;
 
   beforeEach(() => {
-    testDir = join(tmpdir(), `brain-init-test-${Date.now()}`);
-    mkdirSync(testDir, { recursive: true });
+    testDir = mkdtempSync(join(tmpdir(), "brain-init-test-"));
   });
 
   afterEach(() => {
@@ -587,6 +594,17 @@ describe("brain init", () => {
         join(testDir, "config", "deploy.yml"),
         legacyStandaloneDeployYml,
       );
+      mkdirSync(join(testDir, "deploy"), { recursive: true });
+      writeFileSync(
+        join(testDir, "deploy", "Dockerfile"),
+        renderDockerfile()
+          .replace("curl ca-certificates git tini", "curl ca-certificates git")
+          .replace('ENTRYPOINT ["/usr/bin/tini", "--"]\n', "")
+          .replace(
+            'CMD ["bun", "./node_modules/@rizom/brain/dist/brain.js", "start"]',
+            'CMD ["./node_modules/.bin/brain", "start"]',
+          ),
+      );
 
       scaffold(testDir, { recipe: "personal", deploy: true });
 
@@ -613,8 +631,10 @@ describe("brain init", () => {
         "utf-8",
       );
       expect(dockerfile).toContain("EXPOSE 8080");
+      expect(dockerfile).toContain("curl ca-certificates git tini");
+      expect(dockerfile).toContain('ENTRYPOINT ["/usr/bin/tini", "--"]');
       expect(dockerfile).toContain(
-        'CMD ["./node_modules/.bin/brain", "start"]',
+        'CMD ["bun", "./node_modules/@rizom/brain/dist/brain.js", "start"]',
       );
 
       const workflow = readFileSync(
@@ -833,7 +853,7 @@ describe("brain init", () => {
       expect(deploy).not.toContain(":80");
       expect(deploy).not.toContain(":81");
       expect(deploy).toContain("healthcheck:");
-      expect(deploy).toContain("path: /health");
+      expect(deploy).toContain("path: /health/ready");
       expect(deploy).not.toMatch(/^healthcheck:/m);
       expect(deploy).toContain("builder:");
       expect(deploy).toContain("arch: amd64");
@@ -940,6 +960,10 @@ describe("brain init", () => {
       expect(workflow).toContain("Release stale Kamal deploy lock");
       expect(workflow).toContain("kamal lock release || true");
       expect(workflow).toContain("kamal setup --skip-push");
+      expect(workflow).toContain("Install container health watchdog");
+      expect(workflow).toContain(
+        "bun deploy/scripts/install-health-watchdog.ts",
+      );
       expect(workflow).toContain("PREVIEW_DOMAIN: ${{ env.PREVIEW_DOMAIN }}");
       expect(workflow).toContain(
         "VERSION: ${{ github.event.workflow_run.head_sha || github.sha }}",
@@ -971,6 +995,11 @@ describe("brain init", () => {
       expect(existsSync(join(testDir, "deploy", "scripts", "helpers.ts"))).toBe(
         true,
       );
+      expect(
+        existsSync(
+          join(testDir, "deploy", "scripts", "install-health-watchdog.ts"),
+        ),
+      ).toBe(true);
       expect(
         existsSync(join(testDir, "deploy", "scripts", "provision-server.ts")),
       ).toBe(true);

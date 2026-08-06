@@ -28,8 +28,8 @@ Entity packages do not expose CRUD tools.
 
 - `schema`: validate the entity shape
 - `adapter`: serialize and deserialize markdown
-- `getDerivedEntityProjections()`: maintain derived entities with explicit projection jobs
-- `generation handler`: only for AI-generated content types
+- `getProjectionRules()`: declare scheduler-owned derived-entity rules
+- `generation handler`: only for command-owned AI-generated content types
 - `templates` / `data sources`: only when the entity needs them
 
 ## Do not

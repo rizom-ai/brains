@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { mkdirSync, writeFileSync, existsSync, rmSync } from "fs";
+import { mkdirSync, writeFileSync, existsSync, rmSync, mkdtempSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
 import { execSync } from "child_process";
@@ -17,7 +17,7 @@ describe("Git-aware initial sync", () => {
   let dataDir: string;
 
   beforeEach(() => {
-    testDir = join(tmpdir(), `test-git-init-sync-${Date.now()}`);
+    testDir = mkdtempSync(join(tmpdir(), "test-git-init-sync-"));
     remoteDir = join(testDir, "remote.git");
     dataDir = join(testDir, "brain-data");
     mkdirSync(remoteDir, { recursive: true });
@@ -69,7 +69,7 @@ describe("Git-aware initial sync", () => {
     const result = await gs.pull();
     expect(result.files).toEqual([]);
 
-    gs.cleanup();
+    await gs.cleanup();
   });
 
   it("should return only changed files on subsequent pull", async () => {
@@ -105,7 +105,7 @@ describe("Git-aware initial sync", () => {
     expect(result.files).toContain("new-file.md");
     expect(result.files).not.toContain("existing.md");
 
-    gs.cleanup();
+    await gs.cleanup();
   });
 
   it("should handle first startup with no remote content", async () => {
@@ -122,6 +122,6 @@ describe("Git-aware initial sync", () => {
     const result = await gs.pull();
     expect(result.files).toEqual([]);
 
-    gs.cleanup();
+    await gs.cleanup();
   });
 });

@@ -74,7 +74,12 @@ describe("ImagePlugin", () => {
     if (!job) throw new Error("upload promotion job not queued");
     const reporter = ProgressReporter.from(async () => {});
     if (!reporter) throw new Error("progress reporter not created");
-    await handler.process(job.data, "queued-image-job", reporter);
+    await handler.process(
+      job.data,
+      "queued-image-job",
+      reporter,
+      new AbortController().signal,
+    );
   }
 
   it("queues uploaded image promotion into a durable image entity", async () => {
@@ -239,6 +244,7 @@ describe("ImagePlugin", () => {
       job.data,
       "queued-image-job",
       reporter,
+      new AbortController().signal,
     );
 
     expect(result).toMatchObject({ success: false });

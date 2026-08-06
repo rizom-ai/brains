@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from "bun:test";
+import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
 import { JobQueueService } from "../src/job-queue-service";
 import type { JobHandler, JobQueueDbConfig } from "../src/types";
 import type { JobOptions } from "../src/schema/types";
@@ -7,6 +7,7 @@ import { createSilentLogger } from "@brains/test-utils";
 import { createId } from "@brains/utils/id";
 import type { ProgressReporter } from "@brains/utils/progress";
 import { z } from "@brains/utils/zod";
+import { OperationContext } from "@brains/operation-context";
 interface EntityWithoutEmbedding {
   id: string;
   entityType: string;
@@ -60,6 +61,8 @@ describe("JobQueueService", () => {
   let config: JobQueueDbConfig;
   let cleanup: () => Promise<void>;
   let testHandler: TestJobHandler;
+  let operationContext: OperationContext;
+  let assertJobAdmission: ReturnType<typeof mock>;
   const testEntity: EntityWithoutEmbedding = {
     id: "test-123",
     entityType: "note",
@@ -73,7 +76,12 @@ describe("JobQueueService", () => {
     const testDb = await createTestJobQueueDatabase();
     config = testDb.config;
     cleanup = testDb.cleanup;
-    service = JobQueueService.createFresh(config, createSilentLogger());
+    operationContext = OperationContext.createFresh();
+    assertJobAdmission = mock(async () => {});
+    service = JobQueueService.createFresh(config, createSilentLogger(), {
+      operationContext,
+      projectionAdmission: { assertJobAdmission },
+    });
     testHandler = new TestJobHandler();
   });
   afterEach(async () => {
@@ -134,6 +142,44 @@ describe("JobQueueService", () => {
         }),
       ).rejects.toThrow("No handler registered for job type: shell:embedding");
     });
+
+    it("freezes validation-only execution declarations without exposing handlers", async () => {
+      const validationService = JobQueueService.createFresh(
+        config,
+        createSilentLogger(),
+        { handlerRegistrationMode: "validation-only" },
+      );
+      try {
+        validationService.registerHandler(
+          "shell:embedding",
+          testHandler,
+          "shell",
+        );
+        const registrations = validationService.finalizeHandlerRegistrations();
+
+        expect(Object.isFrozen(registrations)).toBe(true);
+        expect(registrations).toEqual([
+          { type: "shell:embedding", pluginId: "shell" },
+        ]);
+        expect(validationService.getRegisteredTypes()).toEqual([]);
+        expect(validationService.getHandler("shell:embedding")).toBeUndefined();
+        const jobId = await validationService.enqueue({
+          type: "shell:embedding",
+          data: testEntity,
+          options: defaultEnqueueOptions,
+        });
+        expect(jobId).toBeString();
+        expect(() =>
+          validationService.registerHandler(
+            "shell:content-generation",
+            testHandler,
+            "shell",
+          ),
+        ).toThrow("Job handler registrations are finalized");
+      } finally {
+        validationService.close();
+      }
+    });
   });
   describe("Job enqueueing", () => {
     beforeEach(() => {
@@ -167,8 +213,111 @@ describe("JobQueueService", () => {
       expect(job?.metadata).toEqual({
         rootJobId,
         operationType: "data_processing",
+        provenance: {
+          rootJobId,
+          causationId: jobId,
+          projectionLineage: [],
+          derivationDepth: 0,
+        },
       });
     });
+    it("inherits causal provenance and advances projection lineage", async () => {
+      const parentProvenance = {
+        rootJobId: "root-job",
+        causationId: "topic-job",
+        projectionId: "topics-projection",
+        projectionLineage: ["topics-projection"],
+        derivationDepth: 1,
+      };
+
+      const jobId = await operationContext.run(
+        parentProvenance,
+        "topics-message",
+        () =>
+          service.enqueue({
+            type: "shell:embedding",
+            data: testEntity,
+            options: enqueueOpts({
+              projection: {
+                id: "skill-derivation",
+                sourceEntity: {
+                  entityType: "topic",
+                  entityId: "runtime-resilience",
+                  contentHash: "hash-1",
+                },
+              },
+            }),
+          }),
+      );
+
+      expect((await service.getStatus(jobId))?.metadata.provenance).toEqual({
+        rootJobId: "root-job",
+        causationId: "topics-message",
+        projectionId: "skill-derivation",
+        projectionLineage: ["topics-projection", "skill-derivation"],
+        sourceEntity: {
+          entityType: "topic",
+          entityId: "runtime-resilience",
+          contentHash: "hash-1",
+        },
+        derivationDepth: 2,
+      });
+    });
+
+    it("starts a fresh projection lineage when the root changes", async () => {
+      const parentProvenance = {
+        rootJobId: "wave-1",
+        causationId: "series-job-1",
+        projectionId: "series-projection",
+        projectionLineage: ["series-projection"],
+        derivationDepth: 1,
+      };
+
+      const jobId = await operationContext.run(
+        parentProvenance,
+        "complete-wave-1",
+        () =>
+          service.enqueue({
+            type: "shell:embedding",
+            data: testEntity,
+            options: enqueueOpts({
+              rootJobId: "projection-wave:wave-2",
+              projection: { id: "series-projection" },
+            }),
+          }),
+      );
+
+      expect((await service.getStatus(jobId))?.metadata.provenance).toEqual({
+        rootJobId: "projection-wave:wave-2",
+        causationId: jobId,
+        projectionId: "series-projection",
+        projectionLineage: ["series-projection"],
+        derivationDepth: 1,
+      });
+    });
+
+    it("creates provenance for a root projection job", async () => {
+      const jobId = await service.enqueue({
+        type: "shell:embedding",
+        data: testEntity,
+        options: enqueueOpts({
+          projection: { id: "topics-projection" },
+        }),
+      });
+
+      const expectedProvenance = {
+        rootJobId: jobId,
+        causationId: jobId,
+        projectionId: "topics-projection",
+        projectionLineage: ["topics-projection"],
+        derivationDepth: 1,
+      };
+      expect((await service.getStatus(jobId))?.metadata.provenance).toEqual(
+        expectedProvenance,
+      );
+      expect(assertJobAdmission).toHaveBeenCalledWith(expectedProvenance);
+    });
+
     it("should store source and metadata correctly", async () => {
       const jobId = await service.enqueue({
         type: "shell:embedding",
@@ -243,6 +392,78 @@ describe("JobQueueService", () => {
     beforeEach(() => {
       service.registerHandler("shell:embedding", testHandler);
     });
+
+    it("claims work for an explicitly registered worker session", async () => {
+      const jobId = await service.enqueue({
+        type: "shell:embedding",
+        data: testEntity,
+        options: defaultEnqueueOptions,
+      });
+      await service.startWorkerSession("worker-a", "session-a");
+
+      const job = await service.dequeue({
+        workerSlotId: "worker-a",
+        workerSessionId: "session-a",
+        leaseDurationMs: 10_000,
+        workerSessionTimeoutMs: 30_000,
+      });
+
+      expect(job).toMatchObject({
+        id: jobId,
+        status: "processing",
+        workerSlotId: "worker-a",
+        workerSessionId: "session-a",
+      });
+      expect(job?.attemptId).toBeString();
+      expect(job?.leaseExpiresAt).toBeGreaterThan(Date.now());
+    });
+
+    it("fences an old service attempt after startup supersedes its stable slot", async () => {
+      const jobId = await service.enqueue({
+        type: "shell:embedding",
+        data: testEntity,
+        options: defaultEnqueueOptions,
+      });
+      const claim = {
+        workerSlotId: "worker-a",
+        workerSessionId: "session-a",
+        leaseDurationMs: 60_000,
+        workerSessionTimeoutMs: 30_000,
+      };
+      await service.startWorkerSession(
+        claim.workerSlotId,
+        claim.workerSessionId,
+      );
+      const first = await service.dequeue(claim);
+
+      await service.startWorkerSession("worker-a", "session-b");
+      const second = await service.dequeue({
+        ...claim,
+        workerSessionId: "session-b",
+      });
+
+      expect(second?.id).toBe(jobId);
+      expect(second?.attemptId).not.toBe(first?.attemptId);
+      expect(
+        await service.complete(
+          jobId,
+          { stale: true },
+          first?.attemptId ?? undefined,
+        ),
+      ).toBe(false);
+      expect(
+        await service.complete(
+          jobId,
+          { current: true },
+          second?.attemptId ?? undefined,
+        ),
+      ).toBe(true);
+      expect(await service.getStatus(jobId)).toMatchObject({
+        status: "completed",
+        result: { current: true },
+      });
+    });
+
     it("should dequeue next pending job", async () => {
       const jobId = await service.enqueue({
         type: "shell:embedding",
@@ -276,13 +497,7 @@ describe("JobQueueService", () => {
         secondService.close();
       }
     });
-    it("should thread claimTimeoutMs into dequeue claim behavior", async () => {
-      service.close();
-      service = JobQueueService.createFresh(
-        { ...config, claimTimeoutMs: 0 },
-        createSilentLogger(),
-      );
-      service.registerHandler("shell:embedding", testHandler);
+    it("does not reclaim a direct caller's claim while its fallback session is live", async () => {
       const jobId = await service.enqueue({
         type: "shell:embedding",
         data: testEntity,
@@ -291,9 +506,7 @@ describe("JobQueueService", () => {
       const firstClaim = await service.dequeue();
       const reclaimed = await service.dequeue();
       expect(firstClaim?.id).toBe(jobId);
-      expect(reclaimed?.id).toBe(jobId);
-      expect(reclaimed?.retryCount).toBe(1);
-      expect(reclaimed?.lastError).toBe("Claim expired");
+      expect(reclaimed).toBeNull();
     });
     it("should return null when no jobs are available", async () => {
       const job = await service.dequeue();
@@ -392,6 +605,21 @@ describe("JobQueueService", () => {
       await service.fail(jobId, new Error("Test error"));
       const job = await service.getStatus(jobId);
       expect(job?.scheduledFor).toBeGreaterThan(originalTime);
+    });
+
+    it("does not allow an unfenced caller to overwrite a terminal job", async () => {
+      const jobId = await service.enqueue({
+        type: "shell:embedding",
+        data: testEntity,
+        options: enqueueOpts({ maxRetries: 0 }),
+      });
+      await service.fail(jobId, new Error("Terminal failure"));
+
+      expect(await service.complete(jobId, { stale: true })).toBe(false);
+      expect(await service.getStatus(jobId)).toMatchObject({
+        status: "failed",
+        lastError: "Terminal failure",
+      });
     });
   });
   describe("Queue statistics", () => {

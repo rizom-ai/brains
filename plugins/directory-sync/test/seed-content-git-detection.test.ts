@@ -5,7 +5,14 @@ import { createPluginHarness } from "@brains/plugins/test";
 import { baseEntitySchema } from "@brains/plugins/test";
 import { join } from "path";
 import { tmpdir } from "os";
-import { existsSync, rmSync, mkdirSync, writeFileSync, readFileSync } from "fs";
+import {
+  existsSync,
+  rmSync,
+  mkdirSync,
+  writeFileSync,
+  readFileSync,
+  mkdtempSync,
+} from "fs";
 import { execSync } from "child_process";
 import { MockEntityAdapter } from "./fixtures";
 
@@ -16,7 +23,7 @@ describe("Seed Content Git Detection", () => {
   let originalCwd: string;
 
   beforeEach(() => {
-    testDir = join(tmpdir(), `test-seed-git-${Date.now()}`);
+    testDir = mkdtempSync(join(tmpdir(), "test-seed-git-"));
     brainDataPath = join(testDir, "brain-data");
     seedContentPath = join(testDir, "seed-content");
     mkdirSync(testDir, { recursive: true });

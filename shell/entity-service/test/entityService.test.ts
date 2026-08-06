@@ -1,5 +1,6 @@
 import { describe, expect, test, beforeEach, afterEach, mock } from "bun:test";
 import { chmod, writeFile } from "node:fs/promises";
+import { createClient } from "@libsql/client";
 import { dirname, join } from "node:path";
 import { z } from "@brains/utils/zod";
 import { EntityService } from "../src/entityService";
@@ -72,17 +73,24 @@ describe("EntityService", (): void => {
   let entityRegistry: EntityRegistry;
   let entityService: EntityService;
   let cleanup: () => Promise<void>;
+  let entityDbUrl: string;
+  let assertMutationAdmission: ReturnType<typeof mock>;
+  let enqueueJob: ReturnType<typeof mock>;
 
   beforeEach(async (): Promise<void> => {
     const testDb = await createTestEntityDatabase();
     cleanup = testDb.cleanup;
+    entityDbUrl = testDb.config.url;
 
     const mockJobQueueService = createMockJobQueueService({
       returns: { enqueue: "mock-job-id" },
     });
+    enqueueJob = mock(async () => "mock-job-id");
+    mockJobQueueService.enqueue = enqueueJob;
 
     logger = createSilentLogger();
     entityRegistry = EntityRegistry.createFresh(logger);
+    assertMutationAdmission = mock(async () => {});
     entityService = EntityService.createFresh({
       embeddingService: mockEmbeddingService,
       entityRegistry,
@@ -90,11 +98,168 @@ describe("EntityService", (): void => {
       jobQueueService: mockJobQueueService,
       dbConfig: testDb.config,
       embeddingDbConfig: testDb.embeddingConfig,
+      mutationAdmission: { assertMutationAdmission },
     });
   });
 
   afterEach(async (): Promise<void> => {
     await cleanup();
+  });
+
+  test("reconciles projection output embeddings after atomic writes", async () => {
+    entityRegistry.registerEntityType(
+      "note",
+      noteSchema,
+      new NoteSerializerAdapter(),
+    );
+
+    await entityService.reconcileProjectionTargets([
+      {
+        entityType: "note",
+        entityId: "projected-note",
+        operation: "upsert",
+        contentHash: "projected-hash",
+      },
+    ]);
+
+    expect(enqueueJob).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "shell:embedding",
+        data: {
+          id: "projected-note",
+          entityType: "note",
+          contentHash: "projected-hash",
+          operation: "update",
+        },
+      }),
+    );
+  });
+
+  test("checks projection admission only for persisted mutations", async () => {
+    entityRegistry.registerEntityType(
+      "note",
+      noteSchema,
+      new NoteSerializerAdapter(),
+    );
+    const entity = createNote({ id: "admission-note", content: "first" });
+
+    await entityService.createEntity({ entity });
+    await entityService.updateEntity({
+      entity: { ...entity, content: "second" },
+    });
+    await entityService.deleteEntity({ entityType: "note", id: entity.id });
+
+    expect(assertMutationAdmission).toHaveBeenNthCalledWith(1, {
+      operation: "create",
+      entityType: "note",
+      entityId: entity.id,
+    });
+    expect(assertMutationAdmission).toHaveBeenNthCalledWith(2, {
+      operation: "update",
+      entityType: "note",
+      entityId: entity.id,
+    });
+    expect(assertMutationAdmission).toHaveBeenNthCalledWith(3, {
+      operation: "delete",
+      entityType: "note",
+      entityId: entity.id,
+    });
+  });
+
+  test("journals persisted mutations for scheduler waves", async () => {
+    entityRegistry.registerEntityType(
+      "note",
+      noteSchema,
+      new NoteSerializerAdapter(),
+    );
+    const first = createNote({ id: "journal-first", content: "first" });
+    const updated = createNote({ id: "journal-updated", content: "before" });
+    const deleted = createNote({ id: "journal-deleted", content: "delete" });
+
+    await entityService.createEntity({ entity: first });
+    await entityService.createEntity({ entity: updated });
+    await entityService.createEntity({ entity: deleted });
+    const initialUpdatedInput = (
+      await entityService.getProjectionStore().listPendingInputs()
+    ).find((input) => input.sourceId === updated.id);
+
+    await entityService.updateEntity({
+      entity: { ...updated, content: "after" },
+    });
+    await entityService.deleteEntity({
+      entityType: "note",
+      id: deleted.id,
+    });
+
+    const pending = await entityService
+      .getProjectionStore()
+      .listPendingInputs();
+    expect(pending).toHaveLength(3);
+    expect(pending).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          sourceType: "note",
+          sourceId: first.id,
+          operation: "upsert",
+        }),
+        expect.objectContaining({
+          sourceType: "note",
+          sourceId: updated.id,
+          operation: "upsert",
+        }),
+        expect.objectContaining({
+          sourceType: "note",
+          sourceId: deleted.id,
+          operation: "delete",
+        }),
+      ]),
+    );
+    expect(
+      pending.find((input) => input.sourceId === updated.id)?.revision,
+    ).not.toBe(initialUpdatedInput?.revision);
+  });
+
+  test("does not journal skipped no-op updates", async () => {
+    entityRegistry.registerEntityType(
+      "note",
+      noteSchema,
+      new NoteSerializerAdapter(),
+    );
+    const entity = createNote({ id: "journal-no-op", content: "same" });
+
+    await entityService.createEntity({ entity });
+    const before = (
+      await entityService.getProjectionStore().listPendingInputs()
+    ).find((input) => input.sourceId === entity.id);
+    await entityService.updateEntity({ entity });
+    const after = (
+      await entityService.getProjectionStore().listPendingInputs()
+    ).find((input) => input.sourceId === entity.id);
+
+    expect(after?.generation).toBe(before?.generation);
+  });
+
+  test("rolls back entity persistence when dirty journaling fails", async () => {
+    entityRegistry.registerEntityType(
+      "note",
+      noteSchema,
+      new NoteSerializerAdapter(),
+    );
+    const client = createClient({ url: entityDbUrl });
+    await client.execute("DROP TABLE projection_dirty_inputs");
+    client.close();
+
+    const entity = createNote({ id: "journal-rollback", content: "rollback" });
+    let rejected = false;
+    try {
+      await entityService.createEntity({ entity });
+    } catch {
+      rejected = true;
+    }
+    expect(rejected).toBe(true);
+    expect(
+      await entityService.getEntity({ entityType: "note", id: entity.id }),
+    ).toBeNull();
   });
 
   test("getEntityTypes returns empty array when no types registered", (): void => {

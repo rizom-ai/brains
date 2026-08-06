@@ -146,7 +146,7 @@ export function parseA2AResponse(data: unknown): A2AResult {
       data: {
         state: status.state,
         response: extractText(parts),
-        taskId: id,
+        ...(id ? { taskId: id } : {}),
       },
     };
   }

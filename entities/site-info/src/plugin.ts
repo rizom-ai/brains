@@ -70,10 +70,13 @@ export class SiteInfoPlugin extends EntityPlugin<
       },
     );
 
-    context.messaging.subscribe(SITE_METADATA_GET_CHANNEL, async () => {
-      const siteInfo = await service.getSiteInfo();
-      return { success: true, data: siteInfo };
-    });
+    context.messaging.subscribeExecution(
+      SITE_METADATA_GET_CHANNEL,
+      async () => {
+        const siteInfo = await service.getSiteInfo();
+        return { success: true, data: siteInfo };
+      },
+    );
 
     context.messaging.subscribe(ENTITY_CHANNELS.updated, async (message) => {
       const payload = message.payload as { entityType: string };

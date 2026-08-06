@@ -58,7 +58,7 @@ The table describes built-in defaults. `add` and `remove` can adjust individual 
 
 You can create and update entities through several paths:
 
-- chat or MCP clients using `system_create`, `system_update`, `system_delete`, `system_get`, `system_list`, `system_search`, `system_extract`, and `system_insights`
+- chat or MCP clients using `system_create`, `system_update`, `system_delete`, `system_get`, `system_list`, `system_search`, and `system_insights`
 - the generated CMS when the CMS plugin is active
 - direct edits to markdown files in `brain-data/` when `directory-sync` is active
 - generation jobs owned by entity plugins, for example link capture, image generation, newsletter generation, and social-post generation

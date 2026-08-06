@@ -4,6 +4,7 @@ import { mkdir, mkdtemp, readFile, rename, rm, writeFile } from "fs/promises";
 import { basename, join } from "path";
 import type { Logger } from "@brains/utils/logger";
 import { pathExists } from "./fs-utils";
+import { runGitWithStallTimeout } from "./git-stall";
 
 export interface PrepareGitRepositoryOptions {
   logger: Logger;
@@ -11,12 +12,22 @@ export interface PrepareGitRepositoryOptions {
   remoteUrl: string;
   authenticatedUrl: string;
   branch: string;
+  timeoutMs: number;
+  signal?: AbortSignal | undefined;
 }
 
 export async function prepareGitRepository(
   options: PrepareGitRepositoryOptions,
 ): Promise<SimpleGit> {
-  const { logger, dataDir, remoteUrl, authenticatedUrl, branch } = options;
+  const {
+    logger,
+    dataDir,
+    remoteUrl,
+    authenticatedUrl,
+    branch,
+    timeoutMs,
+    signal,
+  } = options;
   const gitDir = join(dataDir, ".git");
 
   await mkdir(dataDir, { recursive: true });
@@ -29,6 +40,8 @@ export async function prepareGitRepository(
         remoteUrl,
         authenticatedUrl,
         branch,
+        timeoutMs,
+        signal,
       });
     } else {
       await gitInit(dataDir, branch);
@@ -52,8 +65,18 @@ async function prepareRepositoryFromRemote(options: {
   remoteUrl: string;
   authenticatedUrl: string;
   branch: string;
+  timeoutMs: number;
+  signal?: AbortSignal | undefined;
 }): Promise<void> {
-  const { logger, dataDir, remoteUrl, authenticatedUrl, branch } = options;
+  const {
+    logger,
+    dataDir,
+    remoteUrl,
+    authenticatedUrl,
+    branch,
+    timeoutMs,
+    signal,
+  } = options;
 
   const initLocally = async (
     reason: string,
@@ -68,12 +91,14 @@ async function prepareRepositoryFromRemote(options: {
 
   let remoteHasHistory: boolean;
   try {
-    const refs = await simpleGit(dataDir).listRemote([
-      "--heads",
-      authenticatedUrl,
-    ]);
+    const refs = await runGitWithStallTimeout(
+      { baseDir: dataDir, timeoutMs },
+      (git) => git.listRemote(["--heads", authenticatedUrl]),
+      signal,
+    );
     remoteHasHistory = refs.trim().length > 0;
   } catch {
+    if (signal?.aborted) throw signal.reason;
     return initLocally("ls-remote failed, initializing locally");
   }
 
@@ -88,10 +113,18 @@ async function prepareRepositoryFromRemote(options: {
   );
 
   try {
-    await simpleGit(parentDir).clone(authenticatedUrl, cloneDir);
+    await runGitWithStallTimeout(
+      { baseDir: parentDir, timeoutMs },
+      (git) => git.clone(authenticatedUrl, cloneDir),
+      signal,
+    );
     await rm(dataDir, { recursive: true, force: true });
     await rename(cloneDir, dataDir);
   } catch {
+    if (signal?.aborted) {
+      await rm(cloneDir, { recursive: true, force: true });
+      throw signal.reason;
+    }
     await initLocally("Clone failed, initializing locally", cloneDir);
   }
 }

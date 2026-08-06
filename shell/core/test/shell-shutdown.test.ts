@@ -164,6 +164,7 @@ describe("Shell shutdown", () => {
           activeJobs: 0,
           uptime: 0,
           isRunning: true,
+          isHealthy: true,
         }),
         isWorkerRunning: () => true,
       },

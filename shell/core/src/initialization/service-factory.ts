@@ -38,11 +38,14 @@ import {
 } from "@brains/templates";
 import { Clock, Context } from "@brains/utils/effect";
 import type { Logger } from "@brains/utils/logger";
+import { OperationContext } from "@brains/operation-context";
 
 import { DaemonRegistry } from "../daemon-registry";
+import { ProjectionRuntimeSupervisor } from "../projection-runtime-supervisor";
 import type { ShellConfig } from "../config";
 import type { ShellDependencies, ShellServices } from "../types/shell-types";
 import type { ShellLifecycle } from "./shell-lifecycle";
+import type { RuntimeProcessRole } from "../runtime-process-role";
 import { initializeIdentityAndAgentServices } from "./identity-agent-services";
 import { initializeJobServices } from "./job-services";
 import {
@@ -56,11 +59,15 @@ export function createShellServices(options: {
   dependencies: ShellDependencies | undefined;
   initializerLogger: Logger;
   lifecycle: ShellLifecycle;
+  processRole?: RuntimeProcessRole;
 }): ShellServices {
-  const { config, dependencies, initializerLogger, lifecycle } = options;
+  const { config, dependencies, initializerLogger, lifecycle, processRole } =
+    options;
   initializerLogger.debug("Initializing Shell services");
 
   const logger = createServiceLogger(config, dependencies?.logger);
+  const operationContext =
+    dependencies?.operationContext ?? OperationContext.createFresh();
   const disposables: Array<() => void> = [];
 
   const embeddingService =
@@ -74,7 +81,9 @@ export function createShellServices(options: {
     AIService.createFresh(createAIModelConfig(config), logger);
   const entityRegistry =
     dependencies?.entityRegistry ?? EntityRegistry.createFresh(logger);
-  const messageBus = dependencies?.messageBus ?? MessageBus.createFresh(logger);
+  const messageBus =
+    dependencies?.messageBus ??
+    MessageBus.createFresh(logger, operationContext);
   const templateRegistry =
     dependencies?.templateRegistry ?? TemplateRegistry.createFresh(logger);
   const dataSourceRegistry =
@@ -113,6 +122,11 @@ export function createShellServices(options: {
     runtimeStateContext,
     RuntimeStateServiceTag,
   );
+  const projectionRuntimeSupervisor =
+    dependencies?.projectionRuntimeSupervisor ??
+    ProjectionRuntimeSupervisor.createFresh(operationContext, {
+      runtimeState: runtimeStateService,
+    });
 
   const mcpService =
     dependencies?.mcpService ?? MCPService.createFresh(messageBus, logger);
@@ -121,6 +135,20 @@ export function createShellServices(options: {
     dependencies,
     jobQueueConfig: createDatabaseConfig(config.jobQueueDatabase),
     messageBus,
+    operationContext,
+    projectionAdmission: projectionRuntimeSupervisor,
+    handlerRegistrationMode:
+      processRole === "web"
+        ? "validation-only"
+        : processRole === "worker"
+          ? "execution-only"
+          : "combined",
+    progressMonitorMode:
+      processRole === "web"
+        ? "durable-reader"
+        : processRole === "worker"
+          ? "durable-writer"
+          : "combined",
     logger,
   });
   const {
@@ -167,16 +195,20 @@ export function createShellServices(options: {
     });
   lifecycle.addSyncFinalizer(() => recurringCheckService.abandon());
 
-  const recurringDaemonName = "shell:recurring-checks";
-  daemonRegistry.register(
-    recurringDaemonName,
-    {
-      start: () => recurringCheckService.start(),
-      stop: () => recurringCheckService.stop(),
-    },
-    "shell",
-  );
-  lifecycle.addSyncFinalizer(() => daemonRegistry.abandon(recurringDaemonName));
+  if (processRole !== "worker") {
+    const recurringDaemonName = "shell:recurring-checks";
+    daemonRegistry.register(
+      recurringDaemonName,
+      {
+        start: () => recurringCheckService.start(),
+        stop: () => recurringCheckService.stop(),
+      },
+      "shell",
+    );
+    lifecycle.addSyncFinalizer(() =>
+      daemonRegistry.abandon(recurringDaemonName),
+    );
+  }
 
   const entityContext = lifecycle.buildLayer(
     createEntityServiceLayer({
@@ -185,6 +217,7 @@ export function createShellServices(options: {
       logger,
       jobQueueService,
       messageBus,
+      mutationAdmission: projectionRuntimeSupervisor,
       dbConfig: createDatabaseConfig(config.database),
       embeddingDbConfig: createDatabaseConfig(config.embeddingDatabase),
       ...(dependencies?.entityService && {
@@ -245,10 +278,13 @@ export function createShellServices(options: {
     conversationService,
     runtimeUploadRegistry,
     disposables,
+    executionOnly: processRole === "worker",
   });
 
   return {
     logger,
+    operationContext,
+    projectionRuntimeSupervisor,
     disposables,
     entityRegistry,
     messageBus,

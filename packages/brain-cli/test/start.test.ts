@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
-import { existsSync, mkdirSync, writeFileSync, rmSync } from "fs";
+import { existsSync, mkdirSync, writeFileSync, rmSync, mkdtempSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
 import { EventEmitter } from "events";
@@ -116,12 +116,171 @@ describe("start subprocess lifecycle", () => {
   });
 });
 
+describe("builtin process supervision", () => {
+  let testDir: string;
+  let previousApiKey: string | undefined;
+
+  beforeEach(() => {
+    testDir = join(
+      tmpdir(),
+      `brain-supervisor-test-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    );
+    mkdirSync(testDir, { recursive: true });
+    writeFileSync(
+      join(testDir, "brain.yaml"),
+      "brain: brain\nbundles: [core]\n",
+    );
+    previousApiKey = process.env["AI_API_KEY"];
+    process.env["AI_API_KEY"] = "test-key";
+    setCanonicalDefinition(definition);
+  });
+
+  afterEach(() => {
+    if (previousApiKey === undefined) {
+      delete process.env["AI_API_KEY"];
+    } else {
+      process.env["AI_API_KEY"] = previousApiKey;
+    }
+    rmSync(testDir, { recursive: true, force: true });
+    resetBootFn();
+    resetCanonicalDefinition();
+  });
+
+  it("spawns web then worker children instead of booting the parent runtime", async () => {
+    const fakeProcess = new EventEmitter() as EventEmitter & {
+      env: NodeJS.ProcessEnv;
+    };
+    fakeProcess.env = process.env;
+    const child = new EventEmitter() as EventEmitter & {
+      kill: ReturnType<typeof mock>;
+      exitCode: number | null;
+      killed: boolean;
+    };
+    child.exitCode = null;
+    child.killed = false;
+    child.kill = mock(() => true);
+    const workerChild = Object.assign(new EventEmitter(), {
+      kill: mock((_signal?: number | NodeJS.Signals) => true),
+      exitCode: null,
+      killed: false,
+    });
+    const order: string[] = [];
+    let admitSpawn = (): void => {};
+    const spawned = new Promise<void>((resolve) => {
+      admitSpawn = resolve;
+    });
+    let spawnCount = 0;
+    const spawnImpl = mock(() => {
+      order.push("spawn");
+      admitSpawn();
+      spawnCount += 1;
+      return spawnCount === 1 ? child : workerChild;
+    });
+    const boot = mock(async (): Promise<void> => {
+      order.push("migrate");
+    });
+    setBootFn(boot);
+
+    const resultPromise = start(
+      testDir,
+      { chat: false },
+      {
+        argv: ["start"],
+        entrypointPath: "/tmp/brain.js",
+        spawnImpl,
+        processImpl: fakeProcess,
+      },
+    );
+
+    await spawned;
+    expect(spawnImpl).toHaveBeenCalledWith(
+      "bun",
+      ["/tmp/brain.js", "start", "--child=web"],
+      expect.objectContaining({
+        cwd: testDir,
+        stdio: ["inherit", "inherit", "inherit", "ipc"],
+      }),
+    );
+    expect(boot).toHaveBeenCalledWith(testDir, definition, {
+      chat: false,
+      operation: "migrate",
+    });
+    expect(order).toEqual(["migrate", "spawn"]);
+
+    child.emit("message", { type: "runtime-ready" });
+    expect(spawnImpl).toHaveBeenLastCalledWith(
+      "bun",
+      ["/tmp/brain.js", "start", "--child=worker"],
+      expect.objectContaining({ cwd: testDir }),
+    );
+    expect(order).toEqual(["migrate", "spawn", "spawn"]);
+
+    workerChild.emit("message", { type: "worker-ready" });
+    fakeProcess.emit("SIGTERM");
+    workerChild.emit("close", null, "SIGTERM");
+    child.emit("close", null, "SIGTERM");
+    expect(await resultPromise).toEqual({ success: true });
+  });
+
+  it("does not spawn the web child when parent migrations fail", async () => {
+    const spawnImpl = mock(() => {
+      throw new Error("must not spawn");
+    });
+    setBootFn(async () => {
+      throw new Error("migration failed");
+    });
+
+    const result = await start(
+      testDir,
+      { chat: false },
+      {
+        argv: ["start"],
+        entrypointPath: "/tmp/brain.js",
+        spawnImpl,
+      },
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.message).toContain("migration failed");
+    expect(spawnImpl).not.toHaveBeenCalled();
+  });
+
+  const childRoles: Array<"web" | "worker"> = ["web", "worker"];
+  it.each(childRoles)(
+    "boots the %s child without recursively spawning another child",
+    async (childRole) => {
+      const spawnImpl = mock(() => {
+        throw new Error("nested supervisor");
+      });
+      const boot = mock(async (): Promise<void> => {});
+      setBootFn(boot);
+
+      const result = await start(
+        testDir,
+        { chat: false },
+        {
+          argv: ["start", `--child=${childRole}`],
+          entrypointPath: "/tmp/brain.js",
+          spawnImpl,
+        },
+      );
+
+      expect(result).toEqual({ success: true });
+      expect(spawnImpl).not.toHaveBeenCalled();
+      expect(boot).toHaveBeenCalledWith(testDir, definition, {
+        chat: false,
+        childRole,
+        migrationsCompleted: true,
+      });
+    },
+  );
+});
+
 describe("resolveRunnerType", () => {
   let testDir: string;
 
   beforeEach(() => {
-    testDir = join(tmpdir(), `brain-start-test-${Date.now()}`);
-    mkdirSync(testDir, { recursive: true });
+    testDir = mkdtempSync(join(tmpdir(), "brain-start-test-"));
     resetCanonicalDefinition();
   });
 

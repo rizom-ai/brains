@@ -66,7 +66,6 @@ Common tools:
 | `system_get`      | Fetch one entity by id, slug, or title.                                                                                                  |
 | `system_list`     | List entities by type, optionally filtered by status.                                                                                    |
 | `system_search`   | Search across entities, optionally filtered by type.                                                                                     |
-| `system_extract`  | Run derivation/extraction for entity types that support it.                                                                              |
 | `system_insights` | Return aggregate insights registered by the runtime or plugins.                                                                          |
 
 Examples:

@@ -5,18 +5,20 @@ import { createPluginHarness } from "@brains/plugins/test";
 import { baseEntitySchema } from "@brains/plugins/test";
 import { join } from "path";
 import { tmpdir } from "os";
-import { existsSync, rmSync, mkdirSync, writeFileSync } from "fs";
+import { existsSync, rmSync, mkdirSync, writeFileSync, mkdtempSync } from "fs";
 import { MockEntityAdapter } from "./fixtures";
 
 describe("DirectorySyncPlugin - Initial Sync Completion", () => {
   let harness: ReturnType<typeof createPluginHarness<DirectorySyncPlugin>>;
+  let testRoot: string;
   let syncPath: string;
   let seedContentPath: string;
 
   beforeEach(async () => {
-    syncPath = join(tmpdir(), `test-directory-sync-${Date.now()}`);
-    seedContentPath = join(syncPath, "..", "seed-content");
-    mkdirSync(seedContentPath, { recursive: true });
+    testRoot = mkdtempSync(join(tmpdir(), "test-directory-sync-"));
+    syncPath = join(testRoot, "brain-data");
+    seedContentPath = join(testRoot, "seed-content");
+    mkdirSync(syncPath, { recursive: true });
     mkdirSync(join(seedContentPath, "note"), { recursive: true });
 
     harness = createPluginHarness<DirectorySyncPlugin>({ dataDir: syncPath });
@@ -31,11 +33,8 @@ describe("DirectorySyncPlugin - Initial Sync Completion", () => {
 
   afterEach(() => {
     harness.reset();
-    if (existsSync(syncPath)) {
-      rmSync(syncPath, { recursive: true, force: true });
-    }
-    if (existsSync(seedContentPath)) {
-      rmSync(seedContentPath, { recursive: true, force: true });
+    if (existsSync(testRoot)) {
+      rmSync(testRoot, { recursive: true, force: true });
     }
   });
 

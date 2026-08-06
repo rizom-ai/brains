@@ -5,9 +5,20 @@ import {
   type SqliteDatabase,
 } from "@brains/db";
 import { entities } from "../schema/entities";
+import {
+  projectionDirtyInputs,
+  projectionRuleMemos,
+  projectionWaveInputs,
+  projectionWaveRules,
+  projectionWaves,
+} from "../schema/projection-state";
 import type { EntityDbConfig } from "../types";
 
 export type EntityDB = SqliteDatabase;
+
+/** Search-only entity database surface. It cannot start a transaction and
+ * therefore cannot replace the connection that owns the `emb` attachment. */
+export type EntitySearchDB = Pick<EntityDB, "select">;
 
 /**
  * Create an entity database connection
@@ -16,7 +27,14 @@ export type EntityDB = SqliteDatabase;
 export function createEntityDatabase(config: EntityDbConfig): SqliteConnection {
   return createSqliteDatabase({
     url: config.url,
-    schema: { entities },
+    schema: {
+      entities,
+      projectionDirtyInputs,
+      projectionWaves,
+      projectionWaveInputs,
+      projectionWaveRules,
+      projectionRuleMemos,
+    },
     authToken: config.authToken,
     authTokenEnv: "DATABASE_AUTH_TOKEN",
   });

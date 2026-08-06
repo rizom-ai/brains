@@ -147,7 +147,6 @@ All content types use one consistent tool surface.
 | `system_generate`   | Generate content, images, covers, or derived media artifacts |
 | `system_update`     | Change fields, visibility, status, or full content           |
 | `system_delete`     | Delete an item when the caller has permission                |
-| `system_extract`    | Run supported derivation workflows                           |
 | `system_insights`   | Return aggregate content or plugin-provided insights         |
 | `system_job_status` | Check progress and results for a background job              |
 | `system_status`     | Report brain and service status                              |

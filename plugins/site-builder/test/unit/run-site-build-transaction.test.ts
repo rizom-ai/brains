@@ -162,6 +162,59 @@ describe("runSiteBuild transactional output", () => {
     expect(generations).toHaveLength(1);
   });
 
+  it("skips rendering when the prepared site input fingerprint is unchanged", async () => {
+    let renderCount = 0;
+    const factory: StaticSiteBuilderFactory = (options) => ({
+      clean: mock(async () => undefined),
+      build: mock(async () => {
+        renderCount += 1;
+        await fs.mkdir(join(options.outputDir, "styles"), { recursive: true });
+        await fs.writeFile(join(options.outputDir, "index.html"), "stable");
+        await fs.writeFile(
+          join(options.outputDir, "styles/main.css"),
+          "body{}",
+        );
+      }),
+    });
+    const buildOptions = {
+      environment: "preview" as const,
+      outputDir,
+      sharedImagesDir: join(testDir, "images"),
+      enableContentGeneration: false,
+      cleanBeforeBuild: true,
+      siteConfig: {
+        title: "Fingerprint Site",
+        description: "Fingerprint fixture",
+      },
+      siteUrl: "https://fingerprint.example",
+      layouts: { default: TestLayout },
+    };
+
+    const first = await runSiteBuild({
+      buildOptions,
+      progress: undefined,
+      pipelineContext: createPipelineContext(),
+      staticSiteBuilderFactory: factory,
+      signal: new AbortController().signal,
+    });
+    const second = await runSiteBuild({
+      buildOptions,
+      progress: undefined,
+      pipelineContext: createPipelineContext(),
+      staticSiteBuilderFactory: factory,
+      signal: new AbortController().signal,
+    });
+
+    expect(first.success).toBe(true);
+    expect(second).toMatchObject({ success: true, skipped: true });
+    expect(renderCount).toBe(1);
+    expect(
+      JSON.parse(
+        await fs.readFile(join(outputDir, ".site-build-manifest.json"), "utf8"),
+      ).inputFingerprint,
+    ).toMatch(/^[a-f0-9]{64}$/);
+  });
+
   it("treats the bounded output commit section as non-interruptible", async () => {
     const controller = new AbortController();
     const lifecycle = createTestSiteBuildOutputLifecycle();

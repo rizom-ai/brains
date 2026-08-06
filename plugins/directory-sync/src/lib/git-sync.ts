@@ -40,13 +40,20 @@ export class GitSync implements IGitSync {
   private readonly dataDir: string;
   private readonly timeoutMs: number;
   private readonly lock = new GitOperationLock();
+  private readonly lifecycleController = new AbortController();
+  private readonly activeOperations = new Set<Promise<unknown>>();
+  private acceptingOperations = true;
+  private cleanupPromise: Promise<void> | null = null;
 
   /**
    * Serialize git operations — prevents auto-commit and periodic-sync
    * from racing each other on commit/push/pull.
    */
   withLock<T>(fn: () => Promise<T>, signal?: AbortSignal): Promise<T> {
-    return this.lock.run(fn, signal);
+    if (!this.acceptingOperations) {
+      return Promise.reject(new Error("Git sync is shutting down"));
+    }
+    return this.lock.run(fn, this.getOperationSignal(signal));
   }
 
   constructor(options: GitSyncOptions) {
@@ -72,15 +79,22 @@ export class GitSync implements IGitSync {
   /**
    * Initialize git repository — clone, init, or update remote.
    */
-  async initialize(): Promise<void> {
-    this._git = await initializeGitRepository({
-      logger: this.logger,
-      dataDir: this.dataDir,
-      remoteUrl: this.remoteUrl,
-      authenticatedUrl: getAuthenticatedGitUrl(this.remoteUrl, this.authToken),
-      branch: this.branch,
-      authorName: this.authorName,
-      authorEmail: this.authorEmail,
+  initialize(): Promise<void> {
+    return this.runOperation(async () => {
+      this._git = await initializeGitRepository({
+        logger: this.logger,
+        dataDir: this.dataDir,
+        remoteUrl: this.remoteUrl,
+        authenticatedUrl: getAuthenticatedGitUrl(
+          this.remoteUrl,
+          this.authToken,
+        ),
+        branch: this.branch,
+        timeoutMs: this.timeoutMs,
+        signal: this.lifecycleController.signal,
+        authorName: this.authorName,
+        authorEmail: this.authorEmail,
+      });
     });
   }
 
@@ -88,38 +102,90 @@ export class GitSync implements IGitSync {
     return !!this.remoteUrl;
   }
 
-  async getStatus(): Promise<GitSyncStatus> {
-    return getGitStatus(this.git, this.logger, this.branch, this.remoteUrl);
+  getStatus(): Promise<GitSyncStatus> {
+    return this.runOperation(() =>
+      getGitStatus(this.git, this.logger, this.branch, this.remoteUrl),
+    );
   }
 
   /**
    * Check if there are uncommitted local changes.
    */
-  async hasLocalChanges(): Promise<boolean> {
-    return hasGitLocalChanges(this.git);
+  hasLocalChanges(): Promise<boolean> {
+    return this.runOperation(() => hasGitLocalChanges(this.git));
   }
 
-  async commit(message?: string): Promise<void> {
-    await commitGitChanges(this.git, this.logger, message);
+  commit(message?: string): Promise<void> {
+    return this.runOperation(() =>
+      commitGitChanges(this.git, this.logger, message),
+    );
   }
 
-  async push(signal?: AbortSignal): Promise<void> {
-    await pushGitChanges(this.logger, this.branch, this.net, signal);
+  push(signal?: AbortSignal): Promise<void> {
+    return this.runOperation(() =>
+      pushGitChanges(
+        this.logger,
+        this.branch,
+        this.net,
+        this.getOperationSignal(signal),
+      ),
+    );
   }
 
-  async pull(signal?: AbortSignal): Promise<PullResult> {
-    return pullGitChanges(this.git, this.logger, this.branch, this.net, signal);
+  pull(signal?: AbortSignal): Promise<PullResult> {
+    return this.runOperation(() =>
+      pullGitChanges(
+        this.git,
+        this.logger,
+        this.branch,
+        this.net,
+        this.getOperationSignal(signal),
+      ),
+    );
   }
 
-  async log(filePath: string, limit?: number): Promise<GitLogEntry[]> {
-    return getFileHistory(this.git, filePath, limit);
+  log(filePath: string, limit?: number): Promise<GitLogEntry[]> {
+    return this.runOperation(() => getFileHistory(this.git, filePath, limit));
   }
 
-  async show(sha: string, filePath: string): Promise<string> {
-    return showFileAtCommit(this.git, sha, filePath);
+  show(sha: string, filePath: string): Promise<string> {
+    return this.runOperation(() => showFileAtCommit(this.git, sha, filePath));
   }
 
-  cleanup(): void {
-    this._git = null;
+  cleanup(): Promise<void> {
+    if (this.cleanupPromise) return this.cleanupPromise;
+
+    this.acceptingOperations = false;
+    this.lifecycleController.abort(new Error("Git sync is shutting down"));
+    this.cleanupPromise = (async (): Promise<void> => {
+      while (this.activeOperations.size > 0) {
+        await Promise.allSettled([...this.activeOperations]);
+      }
+      this._git = null;
+    })();
+    return this.cleanupPromise;
+  }
+
+  private getOperationSignal(signal?: AbortSignal): AbortSignal {
+    return signal
+      ? AbortSignal.any([this.lifecycleController.signal, signal])
+      : this.lifecycleController.signal;
+  }
+
+  private runOperation<T>(operation: () => Promise<T>): Promise<T> {
+    if (!this.acceptingOperations) {
+      return Promise.reject(new Error("Git sync is shutting down"));
+    }
+
+    let tracked: Promise<T>;
+    try {
+      tracked = Promise.resolve(operation()).finally(() => {
+        this.activeOperations.delete(tracked);
+      });
+    } catch (error) {
+      return Promise.reject(error);
+    }
+    this.activeOperations.add(tracked);
+    return tracked;
   }
 }

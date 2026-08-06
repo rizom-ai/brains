@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, spyOn } from "bun:test";
 import { DirectorySync } from "../src/lib/directory-sync";
-import { mkdirSync, rmSync, writeFileSync, existsSync } from "fs";
+import { mkdirSync, rmSync, writeFileSync, existsSync, mkdtempSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
 import type { BaseEntity, EntityMutationResult } from "@brains/plugins";
@@ -17,8 +17,7 @@ describe("Image Import - Regression Tests", () => {
   let upsertedEntities: Array<{ entityType: string; id: string }>;
 
   beforeEach(() => {
-    testDir = join(tmpdir(), `test-image-import-${Date.now()}`);
-    mkdirSync(testDir, { recursive: true });
+    testDir = mkdtempSync(join(tmpdir(), "test-image-import-"));
 
     upsertedEntities = [];
     mockEntityService = createMockEntityService({

@@ -20,6 +20,7 @@ import { generateSiteRoutes } from "./generate-site-routes";
 import { prepareSiteBuild } from "./prepare-site-build";
 import { prepareSiteImages } from "./prepare-site-images";
 import { runStaticSiteBuild } from "./run-static-site-build";
+import { computeSiteInputFingerprint } from "./site-input-fingerprint";
 import type { BuildPipelineContext } from "./build-pipeline-context";
 import {
   createCancelledBuildResult,
@@ -161,6 +162,40 @@ export async function runSiteBuild(
     }
 
     options.signal.throwIfAborted();
+    const inputFingerprint = computeSiteInputFingerprint({
+      preparedBuild: preparation.preparedBuild,
+      layouts: parsedOptions.layouts,
+      getViewTemplate: options.pipelineContext.services.getViewTemplate,
+      staticSiteBuilderFactory: options.staticSiteBuilderFactory,
+      sendMessage: options.pipelineContext.services.sendMessage,
+    });
+    const currentManifest = await outputLifecycle.getCurrentManifest?.(
+      parsedOptions.outputDir,
+    );
+    options.signal.throwIfAborted();
+    if (currentManifest?.inputFingerprint === inputFingerprint) {
+      options.pipelineContext.logger.info(
+        "Skipping site render because inputs are unchanged",
+        {
+          environment: parsedOptions.environment,
+          inputFingerprint,
+        },
+      );
+      await reporter?.report({
+        message: "Site inputs unchanged",
+        progress: 100,
+        total: 100,
+      });
+      return createSuccessfulBuildResult({
+        outputDir: parsedOptions.outputDir,
+        filesGenerated: currentManifest.files.length + 1,
+        routesBuilt: routes.length,
+        warnings,
+        diagnostics,
+        skipped: true,
+      });
+    }
+
     const buildContext = createBuildContext({
       preparedBuild: preparation.preparedBuild,
       layouts: parsedOptions.layouts,
@@ -248,6 +283,7 @@ export async function runSiteBuild(
     const commitResult = await outputLifecycle.commit({
       target: outputTarget,
       preparedBuild: preparation.preparedBuild,
+      inputFingerprint,
       warnings,
     });
     outputTarget = undefined;

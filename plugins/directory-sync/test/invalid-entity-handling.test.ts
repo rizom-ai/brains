@@ -1,6 +1,13 @@
 import { describe, it, expect, beforeEach, afterEach, spyOn } from "bun:test";
 import { DirectorySync } from "../src/lib/directory-sync";
-import { mkdirSync, rmSync, writeFileSync, existsSync, readFileSync } from "fs";
+import {
+  mkdirSync,
+  rmSync,
+  writeFileSync,
+  existsSync,
+  readFileSync,
+  mkdtempSync,
+} from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
 import {
@@ -24,8 +31,7 @@ describe("Invalid Entity Handling", () => {
   let deserializeError: Error | null = null;
 
   beforeEach(() => {
-    testDir = join(tmpdir(), `test-invalid-entity-${Date.now()}`);
-    mkdirSync(testDir, { recursive: true });
+    testDir = mkdtempSync(join(tmpdir(), "test-invalid-entity-"));
 
     mockEntityService = createMockEntityService({
       entityTypes: ["note", "summary", "topic"],

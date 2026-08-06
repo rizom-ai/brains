@@ -216,7 +216,13 @@ describe("BaseJobHandler", () => {
       const error = new Error("Something went wrong");
       const data: TestJobData = { title: "Test", count: 0 };
 
-      await handler.onError(error, data, "job-123", mockProgressReporter);
+      await handler.onError(
+        error,
+        data,
+        "job-123",
+        mockProgressReporter,
+        new AbortController().signal,
+      );
 
       expect(mockLogger.error).toHaveBeenCalledWith(
         "test-job job error handler triggered",
@@ -237,7 +243,13 @@ describe("BaseJobHandler", () => {
         count: 5,
       };
 
-      await handler.onError(error, data, "job-456", mockProgressReporter);
+      await handler.onError(
+        error,
+        data,
+        "job-456",
+        mockProgressReporter,
+        new AbortController().signal,
+      );
 
       expect(mockLogger.error).toHaveBeenCalledWith(
         "custom-job job error handler triggered",

@@ -221,6 +221,13 @@ jobs:
           BRAIN_YAML_PATH: ${{ steps.user_config.outputs.brain_yaml_path }}
         run: kamal setup --skip-push -c deploy/kamal/deploy.yml
 
+      - name: Install container health watchdog
+        env:
+          SERVER_IP: ${{ steps.provision.outputs.server_ip }}
+        run: |
+          SSH_USER="$(ruby -e 'require "yaml"; config = YAML.load_file("deploy/kamal/deploy.yml") || {}; puts(config.dig("ssh", "user") || "root")')" \
+            bun deploy/scripts/install-health-watchdog.ts
+
       - name: Verify origin TLS
         env:
           SERVER_IP: ${{ steps.provision.outputs.server_ip }}

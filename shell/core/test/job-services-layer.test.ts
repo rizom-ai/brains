@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it, mock, spyOn } from "bun:test";
 import type { IJobQueueWorker, JobQueueWorkerStats } from "@brains/job-queue";
 import { MessageBus } from "@brains/messaging-service";
 import {
@@ -11,7 +11,10 @@ import type {
   IJobProgressMonitor,
   ProgressReporter,
 } from "@brains/utils/progress";
-import { initializeJobServices } from "../src/initialization/job-services";
+import {
+  createFatalJobWorkerHandler,
+  initializeJobServices,
+} from "../src/initialization/job-services";
 import type { ShellDependencies } from "../src/types/shell-types";
 
 const logger = createSilentLogger("job-services-layer-test");
@@ -72,6 +75,7 @@ function createInjectedDependencies(options: {
       activeJobs: 0,
       uptime: 0,
       isRunning: false,
+      isHealthy: true,
     }),
     isWorkerRunning: (): boolean => false,
   } satisfies IJobQueueWorker;
@@ -91,6 +95,21 @@ function createInjectedDependencies(options: {
 }
 
 describe("job service layers", () => {
+  it("records an unrecoverable worker incident before terminating the process", () => {
+    const fatalLogger = createSilentLogger("fatal-worker-test");
+    const logError = spyOn(fatalLogger, "error");
+    const exitProcess = mock((_code: number) => undefined);
+    const onUnhealthy = createFatalJobWorkerHandler(fatalLogger, exitProcess);
+
+    onUnhealthy("handler ignored cancellation");
+
+    expect(logError).toHaveBeenCalledWith(
+      "Job queue worker requires process restart",
+      { reason: "handler ignored cancellation", exitCode: 1 },
+    );
+    expect(exitProcess).toHaveBeenCalledWith(1);
+  });
+
   it("constructs fresh production services without singleton resets", async () => {
     const messageBus = MessageBus.createFresh(logger);
     const first = initializeJobServices({

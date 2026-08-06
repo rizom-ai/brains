@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { mkdirSync, writeFileSync, existsSync, rmSync } from "fs";
+import { mkdirSync, writeFileSync, existsSync, rmSync, mkdtempSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
 import { execSync } from "child_process";
@@ -15,11 +15,17 @@ import { createSilentLogger } from "@brains/test-utils";
  */
 async function startUnresponsiveServer(): Promise<{
   port: number;
+  connected: Promise<void>;
   close: () => Promise<void>;
 }> {
   const sockets: Socket[] = [];
+  let resolveConnected = (): void => {};
+  const connected = new Promise<void>((resolve) => {
+    resolveConnected = resolve;
+  });
   const server = createServer((socket) => {
     sockets.push(socket);
+    resolveConnected();
     socket.on("error", () => {});
   });
   await new Promise<void>((resolve) =>
@@ -28,6 +34,7 @@ async function startUnresponsiveServer(): Promise<{
   const port = (server.address() as AddressInfo).port;
   return {
     port,
+    connected,
     close: () =>
       new Promise<void>((resolve) => {
         for (const s of sockets) s.destroy();
@@ -43,7 +50,7 @@ describe("GitSync (simplified)", () => {
   let gitSync: GitSync;
 
   beforeEach(() => {
-    testDir = join(tmpdir(), `test-git-sync-${Date.now()}`);
+    testDir = mkdtempSync(join(tmpdir(), "test-git-sync-"));
     remoteDir = join(testDir, "remote.git");
     dataDir = join(testDir, "brain-data");
     mkdirSync(testDir, { recursive: true });
@@ -57,21 +64,26 @@ describe("GitSync (simplified)", () => {
     });
   });
 
-  afterEach(() => {
-    gitSync.cleanup();
+  afterEach(async () => {
+    await gitSync.cleanup();
     if (existsSync(testDir)) {
       rmSync(testDir, { recursive: true, force: true });
     }
   });
 
   function createGitSync(
-    opts: { repo?: string; authToken?: string; timeoutMs?: number } = {},
+    opts: {
+      repo?: string;
+      gitUrl?: string;
+      authToken?: string;
+      timeoutMs?: number;
+    } = {},
   ): GitSync {
     gitSync = new GitSync({
       logger: createSilentLogger(),
       dataDir,
       repo: opts.repo,
-      gitUrl: remoteDir,
+      gitUrl: opts.gitUrl ?? remoteDir,
       authorName: "Test",
       authorEmail: "test@example.com",
       authToken: opts.authToken,
@@ -299,6 +311,25 @@ describe("GitSync (simplified)", () => {
   describe("network stall timeout", () => {
     const STALL_MS = 1000;
 
+    it("bounds the initial remote probe and reaps it before local fallback", async () => {
+      const { port, connected, close } = await startUnresponsiveServer();
+      try {
+        const start = performance.now();
+        const gs = createGitSync({
+          gitUrl: `git://127.0.0.1:${port}/repo.git`,
+          timeoutMs: STALL_MS,
+        });
+        await Promise.all([gs.initialize(), connected]);
+        const elapsed = performance.now() - start;
+
+        expect(existsSync(join(dataDir, ".git"))).toBe(true);
+        expect(elapsed).toBeGreaterThanOrEqual(STALL_MS * 0.8);
+        expect(elapsed).toBeLessThan(10_000);
+      } finally {
+        await close();
+      }
+    }, 20_000);
+
     it("pull still succeeds and returns changes when a timeout is configured", async () => {
       const gs = createGitSync({ timeoutMs: 10_000 });
       await gs.initialize();
@@ -422,6 +453,34 @@ describe("GitSync (simplified)", () => {
         expect(error).toBe(reason);
       }
     });
+
+    it("cleanup aborts and drains an active Git child", async () => {
+      const { port, connected, close } = await startUnresponsiveServer();
+      try {
+        const gs = createGitSync({ timeoutMs: 10_000 });
+        await gs.initialize();
+        writeFileSync(join(dataDir, ".gitkeep"), "");
+        await gs.commit("initial");
+        execSync(`git remote set-url origin git://127.0.0.1:${port}/repo.git`, {
+          cwd: dataDir,
+          stdio: "ignore",
+        });
+
+        const pulling = gs.pull();
+        await connected;
+        await gs.cleanup();
+
+        const error = await pulling.catch((reason: unknown) => reason);
+        expect(error).toBeInstanceOf(Error);
+        if (!(error instanceof Error)) throw new Error("Expected pull to fail");
+        expect(error.message).toBe("Git sync is shutting down");
+        void expect(gs.getStatus()).rejects.toThrow(
+          "Git sync is shutting down",
+        );
+      } finally {
+        await close();
+      }
+    }, 20_000);
 
     it("does not wedge: operations recover after a stalled pull", async () => {
       const { port, close } = await startUnresponsiveServer();

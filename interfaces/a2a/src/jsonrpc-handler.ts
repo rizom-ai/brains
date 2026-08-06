@@ -175,7 +175,7 @@ async function handleSendMessage(
   // Create task and move to working
   const record = context.taskManager.createTask(messageText, contextId, {
     callerDomain,
-    messageId,
+    ...(messageId ? { messageId } : {}),
   });
   const taskId = record.task.id;
   context.taskManager.updateState(taskId, "working");
@@ -329,7 +329,7 @@ export function handleStreamMessage(
     message.contextId,
     {
       callerDomain,
-      messageId,
+      ...(messageId ? { messageId } : {}),
     },
   );
   const taskId = record.task.id;

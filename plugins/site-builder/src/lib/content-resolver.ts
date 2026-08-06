@@ -1,5 +1,5 @@
 import type { SectionDefinition } from "@brains/site-composition";
-import type { SiteImageLookup } from "@brains/site-engine";
+import { normalizeJsonValue, type SiteImageLookup } from "@brains/site-engine";
 import { EntityUrlGenerator } from "@brains/site-composition";
 import type { ContentVisibility } from "@brains/plugins";
 import { enrichWithUrls } from "./content-enrichment";
@@ -55,7 +55,8 @@ export async function resolveSiteSectionContent(
     return null;
   }
 
-  return enrichWithUrls(content, {
+  const normalizedContent = normalizeJsonValue(content);
+  return enrichWithUrls(normalizedContent, {
     pipelineContext: options.pipelineContext,
     imageBuildService: options.imageBuildService,
     siteUrl: options.siteUrl,

@@ -11,6 +11,7 @@ import { fileURLToPath } from "url";
 import { stringify } from "yaml";
 import pkg from "../../package.json" with { type: "json" };
 import {
+  isStaleDeployDockerfile,
   legacyStandaloneDeployYmlContents,
   matchesLegacyStandaloneDeployYml,
   renderDeployWorkflow,
@@ -460,6 +461,7 @@ function writeDeployDockerfile(dir: string, regen = false): void {
   writeReconcilableScaffoldFile({
     path: join(dir, "deploy", "Dockerfile"),
     content,
+    shouldReconcile: isStaleDeployDockerfile,
     regen,
   });
 }
@@ -473,6 +475,7 @@ function writeDeployWorkflow(dir: string, regen = false): void {
 }
 
 const SHARED_DEPLOY_SCRIPTS = [
+  "install-health-watchdog.ts",
   "provision-server.ts",
   "update-dns.ts",
   "write-ssh-key.ts",

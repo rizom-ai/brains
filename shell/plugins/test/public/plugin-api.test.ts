@@ -12,7 +12,9 @@ import type {
   MessageInterfacePluginContext,
   ServicePluginContext,
   Tool,
+  ProjectionRule,
 } from "../../src/public/types";
+import { defineProjectionRule } from "../../src/entity/projection-rule";
 import type { WebRouteDefinition } from "../../src/types/web-routes";
 import {
   BaseEntityAdapter,
@@ -219,15 +221,32 @@ describe("public plugin API", () => {
       protected override async onRegister(
         _context: EntityPluginContext,
       ): Promise<void> {}
+
+      protected override getProjectionRules(): ProjectionRule[] {
+        return [
+          defineProjectionRule({
+            id: "test-entity-generation",
+            version: "1",
+            targetType: this.entityType,
+            sources: [{ kind: "entity", types: ["note"] }],
+            inputSchema: z.object({}),
+            selectInput: async () => ({}),
+            derive: async () => [],
+          }),
+        ];
+      }
     }
 
     const plugin = new TestEntityPlugin();
     const harness = createPluginHarness<TestEntityPlugin>();
-    await harness.installPlugin(plugin);
+    const capabilities = await harness.installPlugin(plugin);
 
     expect(plugin.type).toBe("entity");
     expect(
       harness.getMockShell().getEntityRegistry().hasEntityType("test-entity"),
     ).toBe(true);
+    expect(capabilities.projectionRules?.map(({ id }) => id)).toEqual([
+      "test-entity-generation",
+    ]);
   });
 });

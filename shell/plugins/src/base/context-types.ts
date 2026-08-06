@@ -73,6 +73,12 @@ export interface IMessagingNamespace {
       handler: TypedMessageHandler<TPayload, TResponse>,
     ): () => void;
   };
+
+  /** Register an internal subscription required by durable job execution. */
+  subscribeExecution: <T = unknown, R = unknown>(
+    channel: string,
+    handler: MessageHandler<T, R>,
+  ) => () => void;
 }
 
 /**

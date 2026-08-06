@@ -3,7 +3,7 @@ import {
   type SqliteConnection,
   type SqliteDatabase,
 } from "@brains/db";
-import { jobQueue } from "../schema/job-queue";
+import { jobQueue, jobWorkerSessions } from "../schema/job-queue";
 import type { JobQueueDbConfig } from "../types";
 
 export type JobQueueDB = SqliteDatabase;
@@ -17,7 +17,7 @@ export function createJobQueueDatabase(
 ): SqliteConnection {
   return createSqliteDatabase({
     url: config.url,
-    schema: { jobQueue },
+    schema: { jobQueue, jobWorkerSessions },
     authToken: config.authToken,
     authTokenEnv: "JOB_QUEUE_DATABASE_AUTH_TOKEN",
   });

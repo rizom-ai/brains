@@ -85,6 +85,7 @@ export { createTestEntity, createTestEntities } from "./fixtures";
 
 // Mock shell
 export {
+  createMemoryRuntimeStateNamespace,
   createMockShell,
   type MockShell,
   type MockShellOptions,

@@ -3,6 +3,7 @@ import type {
   IJobQueueService,
   JobInfo,
   JobHandler,
+  JobQueueDiagnostics,
   JobQueueEnqueueRequest,
 } from "@brains/job-queue";
 
@@ -22,6 +23,7 @@ export interface MockJobQueueServiceReturns {
     completed: number;
     total: number;
   };
+  getDiagnostics?: JobQueueDiagnostics;
   getActiveJobs?: JobInfo[];
   getFailedJobs?: JobInfo[];
   getRegisteredTypes?: string[];
@@ -85,6 +87,13 @@ export function createMockJobQueueService(
         : now,
       startedAt: null,
       completedAt: null,
+      attemptId: null,
+      workerSlotId: null,
+      workerSessionId: null,
+      leaseExpiresAt: null,
+      attemptHeartbeatAt: null,
+      runtimeUpdatedAt: null,
+      progress: null,
       metadata: {
         operationType:
           request.options?.metadata.operationType ?? "data_processing",
@@ -117,12 +126,19 @@ export function createMockJobQueueService(
     unregisterHandler: mock(() => {}),
     unregisterPluginHandlers: mock(() => {}),
     getHandler: mock(() => returns.getHandler),
+    finalizeHandlerRegistrations: mock(() => []),
+    getExecutionRegistrations: mock(() => []),
     enqueue: mock((request: JobQueueEnqueueRequest) => {
       const id = returns.enqueue ?? `mock-job-id-${++generatedJobCount}`;
       jobs.set(id, createJobInfo(request, id));
       return Promise.resolve(id);
     }),
     dequeue: mock(() => Promise.resolve(returns.dequeue ?? null)),
+    startWorkerSession: mock(() => Promise.resolve()),
+    heartbeatWorkerSession: mock(() => Promise.resolve(true)),
+    endWorkerSession: mock(() => Promise.resolve(true)),
+    renewAttemptLease: mock(() => Promise.resolve(true)),
+    recordAttemptProgress: mock(() => Promise.resolve(true)),
     complete: mock((jobId: string, result: unknown) => {
       const job = jobs.get(jobId);
       if (job) {
@@ -134,7 +150,7 @@ export function createMockJobQueueService(
           completedAt: Date.now(),
         });
       }
-      return Promise.resolve();
+      return Promise.resolve(true);
     }),
     fail: mock((jobId: string, error: Error) => {
       const job = jobs.get(jobId);
@@ -146,14 +162,37 @@ export function createMockJobQueueService(
           completedAt: Date.now(),
         });
       }
-      return Promise.resolve();
+      return Promise.resolve(true);
     }),
-    update: mock(() => Promise.resolve()),
+    update: mock(() => Promise.resolve(true)),
     getStatus: mock(() => Promise.resolve(returns.getStatus ?? null)),
     getStatusByEntityId: mock(() =>
       Promise.resolve(returns.getStatusByEntityId ?? null),
     ),
     getStats: mock(() => Promise.resolve(returns.getStats ?? defaultStats)),
+    getDiagnostics: mock(() =>
+      Promise.resolve(
+        returns.getDiagnostics ?? {
+          totals: {
+            pending: defaultStats.pending,
+            processing: defaultStats.processing,
+            failed: defaultStats.failed,
+            completed: defaultStats.completed,
+          },
+          byType: [],
+          oldestPendingAgeMs: null,
+          oldestProcessingAgeMs: null,
+          staleLeaseCount: 0,
+          workerSessions: {
+            total: 1,
+            active: 1,
+            stale: 0,
+            latestHeartbeatAgeMs: 0,
+          },
+        },
+      ),
+    ),
+    getRuntimeUpdates: mock(() => Promise.resolve([])),
     cleanup: mock(() => Promise.resolve(returns.cleanup ?? 0)),
     getActiveJobs: mock(() =>
       Promise.resolve(

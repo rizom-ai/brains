@@ -4,6 +4,7 @@ import type {
   BatchOperation,
   JobHandler,
   JobInfo,
+  ProjectionJobContext,
 } from "./types";
 import type { Batch, BatchJobStatus } from "./batch-schemas";
 import { authenticatedUserId } from "@brains/contracts";
@@ -22,6 +23,8 @@ export interface EnqueueJobRequest {
   toolContext?: ToolContext | null;
   /** Optional queue behavior, routing metadata, and retry settings. */
   options?: JobOptions;
+  /** Projection framework identity used for causal lineage propagation. */
+  projection?: ProjectionJobContext;
 }
 
 export type EnqueueJobFn = (request: EnqueueJobRequest) => Promise<string>;
@@ -76,7 +79,7 @@ export function createEnqueueJobFn(
   scopeJobType: boolean,
 ): EnqueueJobFn {
   return async (request): Promise<string> => {
-    const { type, data, toolContext = null, options } = request;
+    const { type, data, toolContext = null, options, projection } = request;
     const requestedByUserId = toolContext
       ? authenticatedUserId(toolContext)
       : undefined;
@@ -106,6 +109,7 @@ export function createEnqueueJobFn(
       // Only set rootJobId if explicitly provided (for batch children)
       // For standalone jobs, let JobQueueService default to the job's own ID
       ...(options?.rootJobId && { rootJobId: options.rootJobId }),
+      ...(projection && { projection }),
       metadata,
     };
 

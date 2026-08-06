@@ -9,14 +9,22 @@ import {
 import type { MessageBus } from "@brains/messaging-service";
 import type { Logger } from "@brains/utils/logger";
 import type { IJobProgressMonitor } from "@brains/utils/progress";
+import type { OperationContext } from "@brains/operation-context";
 import { BatchJobManager } from "./batch-job-manager";
-import { JobProgressMonitor } from "./job-progress-monitor";
-import { JobQueueService } from "./job-queue-service";
+import {
+  JobProgressMonitor,
+  type JobProgressMonitorMode,
+} from "./job-progress-monitor";
+import {
+  JobQueueService,
+  type ProjectionJobAdmission,
+} from "./job-queue-service";
 import { JobQueueWorker } from "./job-queue-worker";
 import type {
   IBatchJobManager,
   IJobQueueService,
   IJobQueueWorker,
+  JobHandlerRegistrationMode,
   JobQueueServiceConfig,
 } from "./types";
 
@@ -58,6 +66,9 @@ export type JobQueueRuntimeContext =
 export interface JobQueueServiceLayerOptions {
   config: JobQueueServiceConfig;
   logger: Logger;
+  operationContext?: OperationContext;
+  projectionAdmission?: ProjectionJobAdmission;
+  handlerRegistrationMode?: JobHandlerRegistrationMode;
   service?: IJobQueueService;
 }
 
@@ -67,6 +78,9 @@ export interface JobQueueRuntimeLayerOptions {
   batchJobManager?: IBatchJobManager;
   jobProgressMonitor?: IJobProgressMonitor;
   jobQueueWorker?: IJobQueueWorker;
+  onWorkerUnhealthy?: (reason: string) => void;
+  operationContext?: OperationContext;
+  progressMonitorMode?: JobProgressMonitorMode;
 }
 
 export interface JobQueueRuntimeLayerHandle {
@@ -82,7 +96,17 @@ export function createJobQueueServiceLayer(
   return scopedServiceLayer(JobQueueServiceTag, () => {
     const service =
       options.service ??
-      JobQueueService.createFresh(options.config, options.logger);
+      JobQueueService.createFresh(options.config, options.logger, {
+        ...(options.operationContext && {
+          operationContext: options.operationContext,
+        }),
+        ...(options.projectionAdmission && {
+          projectionAdmission: options.projectionAdmission,
+        }),
+        ...(options.handlerRegistrationMode && {
+          handlerRegistrationMode: options.handlerRegistrationMode,
+        }),
+      });
     return { service, close: () => service.close() };
   });
 }
@@ -109,6 +133,7 @@ export function createJobQueueRuntimeLayer(
         options.messageBus,
         batchJobManager,
         options.logger,
+        options.progressMonitorMode,
       );
     const jobQueueWorker =
       options.jobQueueWorker ??
@@ -120,6 +145,14 @@ export function createJobQueueRuntimeLayer(
           pollInterval: 100,
           concurrency: 1,
           autoStart: false,
+          ...(options.onWorkerUnhealthy && {
+            onUnhealthy: options.onWorkerUnhealthy,
+          }),
+        },
+        {
+          ...(options.operationContext && {
+            operationContext: options.operationContext,
+          }),
         },
       );
 

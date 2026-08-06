@@ -37,29 +37,14 @@ function sortVocabulary(a: TagVocabularyEntry, b: TagVocabularyEntry): number {
   return a.tag.localeCompare(b.tag);
 }
 
-export async function collectTagVocabulary(
-  context: EntityPluginContext,
-  opts: {
-    minCount?: number;
-    topN?: number;
-    visibilityScope?: ContentVisibility;
-  } = {},
-): Promise<TagVocabularyEntry[]> {
+export function buildTagVocabulary(
+  skills: readonly SkillEntity[],
+  agents: readonly AgentEntity[],
+  opts: { minCount?: number; topN?: number } = {},
+): TagVocabularyEntry[] {
   const minCount = opts.minCount ?? 1;
   const topN = opts.topN ?? 12;
-  const visibilityScope: ContentVisibility = opts.visibilityScope ?? "public";
   const counts = new Map<string, number>();
-
-  const [skills, agents] = await Promise.all([
-    context.entityService.listEntities<SkillEntity>({
-      entityType: SKILL_ENTITY_TYPE,
-      options: { filter: { visibilityScope } },
-    }),
-    context.entityService.listEntities<AgentEntity>({
-      entityType: AGENT_ENTITY_TYPE,
-      options: { filter: { visibilityScope } },
-    }),
-  ]);
 
   const bump = (tags: string[]): void => {
     for (const tag of normalizeTags(tags)) {
@@ -78,6 +63,32 @@ export async function collectTagVocabulary(
     .filter((entry) => entry.count >= minCount)
     .sort(sortVocabulary)
     .slice(0, topN);
+}
+
+export async function collectTagVocabulary(
+  context: EntityPluginContext,
+  opts: {
+    minCount?: number;
+    topN?: number;
+    visibilityScope?: ContentVisibility;
+    includeSkills?: boolean;
+  } = {},
+): Promise<TagVocabularyEntry[]> {
+  const visibilityScope: ContentVisibility = opts.visibilityScope ?? "public";
+  const [skills, agents] = await Promise.all([
+    opts.includeSkills === false
+      ? Promise.resolve([])
+      : context.entityService.listEntities<SkillEntity>({
+          entityType: SKILL_ENTITY_TYPE,
+          options: { filter: { visibilityScope } },
+        }),
+    context.entityService.listEntities<AgentEntity>({
+      entityType: AGENT_ENTITY_TYPE,
+      options: { filter: { visibilityScope } },
+    }),
+  ]);
+
+  return buildTagVocabulary(skills, agents, opts);
 }
 
 export function formatVocabularyForPrompt(vocab: TagVocabularyEntry[]): string {

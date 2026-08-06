@@ -22,6 +22,9 @@ describe("@rizom/brain package metadata", () => {
   });
 
   it("publishes package-owned deploy scripts with expected runtime hooks", () => {
+    const installHealthWatchdog = readPackageFile(
+      "templates/deploy/scripts/install-health-watchdog.ts",
+    );
     const provisionServer = readPackageFile(
       "templates/deploy/scripts/provision-server.ts",
     );
@@ -30,6 +33,9 @@ describe("@rizom/brain package metadata", () => {
       "templates/deploy/scripts/write-ssh-key.ts",
     );
 
+    expect(installHealthWatchdog).toContain(
+      "/usr/local/sbin/brains-health-watchdog",
+    );
     expect(provisionServer).toContain('requireEnv("HCLOUD_TOKEN")');
     expect(provisionServer).toContain("https://api.hetzner.cloud/v1");
     expect(updateDns).toContain('requireEnv("CF_API_TOKEN")');
@@ -42,6 +48,7 @@ describe("@rizom/brain package metadata", () => {
     // templates/deploy/scripts is regenerated from @brains/deploy-support by
     // scripts/build.ts (copyDeployScripts); this guards against hand-edits.
     const scripts = [
+      "install-health-watchdog.ts",
       "provision-server.ts",
       "update-dns.ts",
       "write-ssh-key.ts",
@@ -120,6 +127,7 @@ describe("@rizom/brain package metadata", () => {
     expect(packageJson.files).toContain("tsconfig.instance.json");
 
     for (const relativePath of [
+      "templates/deploy/scripts/install-health-watchdog.ts",
       "templates/deploy/scripts/provision-server.ts",
       "templates/deploy/scripts/update-dns.ts",
       "templates/deploy/scripts/write-ssh-key.ts",

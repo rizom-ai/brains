@@ -109,14 +109,15 @@ describe("Separate embedding database", () => {
     embClient.close();
   });
 
-  test("search works across both databases", async () => {
-    // Create entity
+  test("transactional entity mutation preserves the search attachment", async () => {
+    // The first search initializes and proves the dedicated search connection
+    // can join the attached embedding database before any mutation transaction.
+    expect(await entityService.search({ query: "TypeScript" })).toEqual([]);
+
     const testEntity = createTestEntity("test", {
       content: "TypeScript programming guide",
     });
     await entityService.createEntity({ entity: testEntity });
-
-    // Store embedding
     await entityService.storeEmbedding({
       entityId: testEntity.id,
       entityType: "test",
@@ -124,7 +125,8 @@ describe("Separate embedding database", () => {
       contentHash: testEntity.contentHash,
     });
 
-    // Search should join across entity DB and embedding DB
+    // createEntity commits through ProjectionStore.withDirtyInput(). Search
+    // must retain its connection-local `emb` attachment after that transaction.
     const results = await entityService.search({ query: "TypeScript" });
     expect(results.length).toBeGreaterThan(0);
     expect(results[0]?.entity.id).toBe(testEntity.id);

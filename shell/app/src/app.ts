@@ -6,9 +6,16 @@ import { preferLocalUrlsForRuntime } from "./runtime-env";
 import { resolveStandardConfig } from "./standard-paths";
 import { Effect, Exit, Scope } from "@brains/utils/effect";
 import type { Fiber } from "@brains/utils/effect";
+import type { RuntimeProcessRole } from "@brains/core";
 
 type ShellConfig = NonNullable<Parameters<typeof Shell.createFresh>[0]>;
 type InitializeOptions = Parameters<Shell["initialize"]>[0];
+
+export interface AppRuntimeOptions {
+  migrationsCompleted?: boolean;
+  processRole?: RuntimeProcessRole;
+  onRuntimeReady?: () => void;
+}
 
 /**
  * Sentinel API key injected when `--startup-check` runs without a real key
@@ -53,7 +60,7 @@ export class App {
     }
   }
 
-  private async runMigrations(): Promise<void> {
+  public async migrate(): Promise<void> {
     const logger = Logger.getInstance();
     const migrationManager = new MigrationManager(logger);
     // Pass database URL overrides from shellConfig or simple config
@@ -65,11 +72,16 @@ export class App {
     });
   }
 
-  private createShell(options?: InitializeOptions): void {
+  private createShell(
+    options?: InitializeOptions,
+    processRole?: RuntimeProcessRole,
+  ): void {
     // Let shellInitializer build the logger from shellConfig.logging so
     // logFile, format, and level take effect. Logger.getInstance() ignores
     // options on a pre-existing singleton.
-    this.shell = Shell.createFresh(this.buildShellConfig(options));
+    this.shell = Shell.createFresh(this.buildShellConfig(options), undefined, {
+      ...(processRole && { processRole }),
+    });
   }
 
   private buildShellConfig(options?: InitializeOptions): ShellConfig {
@@ -206,11 +218,15 @@ export class App {
     pluginManager.registerPlugin(plugin);
   }
 
-  public async initialize(options?: InitializeOptions): Promise<void> {
-    // Only run migrations when we're creating a shell (not when using mock shell for tests)
+  public async initialize(
+    options?: InitializeOptions,
+    runtimeOptions?: AppRuntimeOptions,
+  ): Promise<void> {
+    // A supervised child starts only after the parent has completed migrations.
+    // Injected shells remain migration-free for tests and embedding applications.
     if (!this.shell) {
-      await this.runMigrations();
-      this.createShell(options);
+      if (!runtimeOptions?.migrationsCompleted) await this.migrate();
+      this.createShell(options, runtimeOptions?.processRole);
     }
 
     await this.registerCLIInterface();
@@ -238,7 +254,7 @@ export class App {
    * Run the app - handles initialization, startup, and keeps process alive
    * This is the simplest way to start an app
    */
-  public async run(): Promise<void> {
+  public async run(runtimeOptions?: AppRuntimeOptions): Promise<void> {
     // Create logger for run output
     const logLevelMap: Record<string, LogLevel> = {
       debug: LogLevel.DEBUG,
@@ -261,8 +277,9 @@ export class App {
     }
 
     try {
-      await this.initialize();
+      await this.initialize(undefined, runtimeOptions);
       await this.start();
+      runtimeOptions?.onRuntimeReady?.();
 
       logger.info(`✅ ${this.config.name} v${this.config.version} ready`);
 
@@ -280,9 +297,10 @@ export class App {
   public static async run(
     config?: AppConfigInput,
     shell?: Shell,
+    runtimeOptions?: AppRuntimeOptions,
   ): Promise<void> {
     const app = App.create(config, shell);
-    await app.run();
+    await app.run(runtimeOptions);
   }
 
   private setupSignalHandlers(): void {

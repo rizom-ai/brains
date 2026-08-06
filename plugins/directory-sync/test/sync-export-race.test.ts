@@ -7,7 +7,14 @@ import {
 } from "@brains/test-utils";
 import { join } from "path";
 import { tmpdir } from "os";
-import { existsSync, rmSync, mkdirSync, writeFileSync, readFileSync } from "fs";
+import {
+  existsSync,
+  rmSync,
+  mkdirSync,
+  writeFileSync,
+  readFileSync,
+  mkdtempSync,
+} from "fs";
 import type { BaseEntity } from "@brains/plugins";
 
 /**
@@ -22,8 +29,7 @@ describe("sync() should not export (regression)", () => {
   let directorySync: DirectorySync;
 
   beforeEach(() => {
-    syncPath = join(tmpdir(), `test-sync-no-export-${Date.now()}`);
-    mkdirSync(syncPath, { recursive: true });
+    syncPath = mkdtempSync(join(tmpdir(), "test-sync-no-export-"));
     mkdirSync(join(syncPath, "series"), { recursive: true });
   });
 

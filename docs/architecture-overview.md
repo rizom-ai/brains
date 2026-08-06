@@ -22,6 +22,27 @@ canonical definition + explicit brain.yaml bundles = running brain
 5. **Definition / instance separation** — the reusable definition owns catalog policy; lightweight instances own explicit selection and deployment settings in `brain.yaml`.
 6. **Public API first** — external code should use the published `@rizom/brain/*` authoring APIs. Internal packages may use workspace packages, but should still avoid reaching into shell internals unless there is no supported boundary yet.
 
+## Supervised runtime topology
+
+The published Brain remains one Bun package, bundle, image, and container. Its
+entrypoint owns two children from that same bundle: a web process for
+interfaces, ingress, daemons, scheduling, and enqueue validation, and a worker
+process for durable queue execution. The parent runs migrations once, admits
+the worker only after the web process reports runtime readiness, and respawns a
+failed worker under a bounded rolling budget without taking web serving down.
+After worker readiness, a five-second IPC heartbeat lets the parent kill and
+replace a stuck worker after three missed beats under that same budget.
+Routing readiness remains independent of worker health: `/health/ready` fails
+only for web-critical dependencies, while `/health/operate` fails for stale
+worker sessions, queue leases, projection circuits, or unhealthy daemons.
+
+Job-handler registrations are finalized into an immutable inventory during
+boot. Web retains their validation side for durable enqueue, while the worker
+constructs every executable handler and only the internal message subscriptions
+explicitly marked as execution dependencies. Worker progress and terminal
+status cross the process boundary through the shared indexed queue database,
+not through a second message bus or deployment unit.
+
 ## Effect runtime boundary
 
 The shell uses Effect for internal control-plane concerns where ownership and structured concurrency matter: transactional shell and plugin startup rollback, scoped resource finalization, daemon lifecycle, background monitors, worker and agent-turn fibers, cancellation, and concurrent lifecycle barriers.
@@ -194,9 +215,11 @@ Brains uses three primary plugin categories:
 
 ### Static site build boundary
 
-`plugins/site-builder` owns site-build jobs, tools, rebuild policy, status, CMS actions, SEO/RSS staging hooks, and publication events. A build first resolves routes, content, metadata, images, scripts, and app `public/` files into a deeply frozen, JSON-serializable `PreparedSiteBuild`. Renderers consume that snapshot and do not read entity or datasource services while writing output. Preact remains the default renderer and existing site/theme authoring APIs are unchanged.
+`plugins/site-builder` owns site-build jobs, tools, rebuild policy, status, CMS actions, SEO/RSS staging hooks, and publication events. A build first resolves routes, content, metadata, images, scripts, and app `public/` files into a deeply frozen, JSON-serializable `PreparedSiteBuild`. At that boundary, undefined object properties are recursively omitted while unsupported JSON values remain errors with route, section, template, and field-path diagnostics. Renderers consume the validated snapshot and do not read entity or datasource services while writing output. Preact remains the default renderer and existing site/theme authoring APIs are unchanged.
 
-Each build renders into an immutable generation under `dist/.site-builds/<environment>/<build-id>/`. The builder validates a manifest that accounts for and hashes every produced artifact, then publishes the generation by atomically replacing the preview or production output symlink. Preparation and rendering honor an `AbortSignal`; once a validated generation enters the bounded commit section, publication is non-interruptible. Failed or cancelled builds remove their staging generation and leave the previously published output active. Completion events run only after commit and must not mutate committed output.
+Automatic builds are requested only after a scheduler wave has committed its derived outputs. Environment-scoped queue deduplication and dirty generations ensure changes during an active build produce at most one necessary successor; preview and production never suppress each other. The prepared route/content/template/layout/theme/asset input is fingerprinted, and a fingerprint matching the active successful manifest skips rendering.
+
+Each non-skipped build renders into an immutable generation under `dist/.site-builds/<environment>/<build-id>/`. The builder validates a manifest that accounts for and hashes every produced artifact, then publishes the generation by atomically replacing the preview or production output symlink. Preparation and rendering honor an `AbortSignal`; once a validated generation enters the bounded commit section, publication is non-interruptible. Failed or cancelled builds remove their staging generation and leave the previously published output active. Completion events run only after commit and must not mutate committed output.
 
 Shared renderer-neutral contracts live in `shared/site-engine`; shell-dependent preparation, Preact bindings, operational policy, and commit orchestration remain in `plugins/site-builder`.
 
@@ -210,9 +233,9 @@ They can automatically register:
 - generation handlers (`{entityType}:generation`)
 - templates
 - site datasources
-- explicit projection jobs declared by entity plugins
+- executable derived projections and immutable projection graph declarations
 
-Entity plugins intentionally do **not** expose their own CRUD tools. Creation, update, deletion, and extraction flow through shared system tools like `system_create`, `system_update`, `system_delete`, and `system_extract`.
+Entity plugins intentionally do **not** expose their own CRUD tools. Creation, update, and deletion flow through shared system tools like `system_create`, `system_update`, and `system_delete`. Derived entities are maintained automatically by scheduler-owned projection rules.
 
 For creation, the standard pattern is:
 
@@ -225,6 +248,26 @@ For creation, the standard pattern is:
 5. otherwise shared flow performs a direct entity create
 
 This is the canonical place for entity-specific create behavior such as URL capture, target resolution, deduplicating wishes, or enriching required metadata.
+
+### Projection graph and causal runtime
+
+Projection declarations are plugin capabilities registered centrally by the
+plugin manager; plugins do not receive a mutable graph registry through the
+shell API. After all entity types and capabilities register, composition
+finalization expands wildcard entity sources, resolves entity and semantic-event
+edges, rejects undeclared cycles, and freezes the graph before initial sync or
+workers start. Custom projection execution declares the same static source,
+target, event, and bounded-feedback contract as the standard derived projection
+runner.
+
+A shared app-scoped operation context carries schema-validated provenance across
+message handlers and job attempts. Projection enqueue appends its projection ID,
+source reference, and derivation depth; job workers restore the persisted
+lineage only for the claimed attempt. Entity events inherit the same lineage.
+A separate core projection supervisor consumes the frozen graph and enforces
+per-root job and mutation budgets, depth limits, repeated-lineage rules, and
+repeated-target circuits. The static registry never owns runtime counters, and
+plugins cannot mutate or reset circuit state.
 
 ### ServicePlugin behavior
 
@@ -265,9 +308,10 @@ A typical boot sequence looks like this:
 2. `shell/app` loads the canonical definition (or an explicitly scoped external definition) and resolves explicit bundles
 3. The shell constructs core services (entities, jobs, MCP, identity, messaging, AI)
 4. Plugins are instantiated and registered in dependency order
-5. Entity types, tools, resources, prompts, datasources, and daemons are registered
-6. Interfaces start their long-lived processes
-7. The brain begins serving MCP, web, Discord, A2A, or local chat traffic
+5. Entity types, tools, resources, prompts, datasources, daemons, and projection declarations are registered
+6. Profile/channel composition and the complete projection graph are finalized
+7. Interfaces start their long-lived processes
+8. The brain begins serving MCP, web, Discord, A2A, or local chat traffic
 
 ## Entity model
 
@@ -328,6 +372,17 @@ Current deployment paths:
 - **Kamal-based self-hosted deployments** as the default deploy path, including app-local deploy artifacts, env-schema generation, Cloudflare Origin CA bootstrap, and (optionally) `@rizom/ops`-managed multi-user fleets
 
 Each deployed instance stays lightweight: a package centered on explicit `brain.yaml` bundles plus instance-owned content, site/theme choices, and deployment artifacts.
+
+The shared webserver separates dependency-free liveness (`/health/live`) from
+web routing readiness (`/health/ready`) and full operational health
+(`/health/operate`). Routing readiness covers web-critical database access.
+Operational health additionally covers durable worker sessions, stale attempt
+leases, daemon health, and projection circuit state; both reports include
+bounded process, queue, and causal-work resource signals. `/health` remains a
+routing-readiness legacy surface. Generated containers probe liveness, while
+generated host deployment artifacts install a restart-budgeted systemd
+watchdog that preserves container diagnostics before restarting a persistently
+unhealthy Brain container.
 
 ## Where to read next
 

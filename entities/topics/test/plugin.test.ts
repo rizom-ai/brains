@@ -89,12 +89,20 @@ describe("TopicsPlugin", () => {
 
     it("should register topic entity type with projectionSource: false", async () => {
       const harness = createPluginHarness<TopicsPlugin>({});
-      await harness.installPlugin(new TopicsPlugin());
+      const capabilities = await harness.installPlugin(new TopicsPlugin());
 
       expect(
         harness.getEntityRegistry().getEntityTypeConfig("topic")
           .projectionSource,
       ).toBe(false);
+      expect("projections" in capabilities).toBe(false);
+      expect(capabilities.projectionRules).toHaveLength(1);
+      expect(capabilities.projectionRules?.[0]).toMatchObject({
+        id: "topics-projection",
+        version: "1",
+        targetType: "topic",
+        sources: [{ kind: "entity", types: ["*"], excludeTypes: ["topic"] }],
+      });
     });
 
     it("should process registered projection sources by default", () => {

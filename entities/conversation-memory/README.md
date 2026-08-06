@@ -1,6 +1,6 @@
 # Conversation Memory Plugin
 
-`@brains/conversation-memory` derives durable team memory from stored conversation messages.
+`@brains/conversation-memory` reads and evaluates durable team memory entities.
 
 ## Model
 
@@ -10,7 +10,7 @@ The package owns three conversation-derived entity types:
 - `decision` — first-class decisions with provenance and status
 - `action-item` — first-class follow-up work with provenance and lifecycle status
 
-Digest events are not the source of truth. Conversation message events trigger `DerivedEntityProjection` jobs; the projector rereads stored messages before writing memory entities. Initial sync can rebuild memory for existing conversations via `context.conversations.list()`.
+Automatic conversation-to-entity projection is disabled. Conversation messages live outside the entity database, and no second projection ingress or cross-database bridge is provided. Existing memory entities remain available to retrieval, agent context, dashboards, templates, datasources, and evaluation utilities.
 
 ## Summary schema
 

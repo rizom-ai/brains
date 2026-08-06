@@ -1,10 +1,19 @@
-import { materializePrompts, SYSTEM_CHANNELS } from "@brains/plugins";
+import { PROJECTION_CHANNELS } from "@brains/contracts";
+import {
+  materializePrompts,
+  SYSTEM_CHANNELS,
+  type ProjectionExecutionContext,
+  type ProjectionInputContext,
+} from "@brains/plugins";
 import type { ShellConfig } from "../config";
 import type { ShellInitializer } from "./shellInitializer";
 import type { ShellServices } from "../types/shell-types";
 import type { ShellLifecycle } from "./shell-lifecycle";
 import { runConcurrentPhase } from "../effect-runtime";
 import { Effect } from "@brains/utils/effect";
+import { createId } from "@brains/utils/id";
+import { activateProjectionRuntime } from "../projection-runtime";
+import type { RuntimeProcessRole } from "../runtime-process-role";
 
 const INDEX_READINESS_POLL_INTERVAL_MS = 250;
 
@@ -29,6 +38,8 @@ export interface ShellBootloaderOptions {
 export interface ShellBootloaderHooks {
   registerCoreDataSources(): void;
   registerSystemCapabilities(): void;
+  createProjectionInputContext(): ProjectionInputContext;
+  createProjectionExecutionContext(): ProjectionExecutionContext;
 }
 
 /**
@@ -42,18 +53,21 @@ export class ShellBootloader {
   private readonly services: ShellServices;
   private readonly lifecycle: ShellLifecycle;
   private readonly initializer: ShellInitializer;
+  private readonly processRole: RuntimeProcessRole | undefined;
   private readonly hooks: ShellBootloaderHooks;
   constructor(
     config: ShellConfig,
     services: ShellServices,
     lifecycle: ShellLifecycle,
     initializer: ShellInitializer,
+    processRole: RuntimeProcessRole | undefined,
     hooks: ShellBootloaderHooks,
   ) {
     this.config = config;
     this.services = services;
     this.lifecycle = lifecycle;
     this.initializer = initializer;
+    this.processRole = processRole;
     this.hooks = hooks;
   }
 
@@ -73,14 +87,20 @@ export class ShellBootloader {
         this.services.conversationService.initialize?.() ?? Promise.resolve(),
     ]);
 
+    const registrationContext = {
+      ...(this.config.entityDisplay !== undefined && {
+        entityDisplay: this.config.entityDisplay,
+      }),
+      ...(this.processRole === "worker" && { executionOnly: true }),
+    };
     await shellInitializer.initializeAll(
       this.services.templateRegistry,
       this.services.entityRegistry,
       this.services.pluginManager,
       {
         ...(options?.mode === "register-only" && { registerOnly: true }),
-        ...(this.config.entityDisplay !== undefined && {
-          registrationContext: { entityDisplay: this.config.entityDisplay },
+        ...(Object.keys(registrationContext).length > 0 && {
+          registrationContext,
         }),
       },
     );
@@ -90,6 +110,9 @@ export class ShellBootloader {
     this.services.channelRegistry.finalize();
     this.services.inboxRegistry.finalize();
     await this.services.pluginManager.finalizePluginRegistrations();
+    await this.services.projectionRuntimeSupervisor.initialize(
+      this.services.pluginManager.getProjectionGraphSnapshot(),
+    );
 
     // Register job handlers for content operations before any ready signals.
     shellInitializer.registerJobHandlers(
@@ -98,11 +121,66 @@ export class ShellBootloader {
       this.services.entityService,
     );
 
+    if (options?.mode === undefined) {
+      const projectionRuntime = await activateProjectionRuntime({
+        store: this.services.entityService.getProjectionStore(),
+        queue: this.services.jobQueueService,
+        setWakeup: (wakeup) =>
+          this.services.entityService.setProjectionWakeup(wakeup),
+        graph: this.services.pluginManager.getProjectionGraphSnapshot(),
+        rules: this.services.pluginManager.getProjectionRulesSnapshot(),
+        inputContext: this.hooks.createProjectionInputContext(),
+        executionContext: this.hooks.createProjectionExecutionContext(),
+        reconcileTargets: (targets) =>
+          this.services.entityService.reconcileProjectionTargets(targets),
+        beforeWaveCompletion: async (summary): Promise<void> => {
+          if (
+            !this.services.messageBus.hasHandlers(PROJECTION_CHANNELS.waveReady)
+          ) {
+            return;
+          }
+          const responses = await this.services.messageBus.collect({
+            type: PROJECTION_CHANNELS.waveReady,
+            payload: summary,
+            sender: "shell",
+          });
+          if (
+            responses.length === 0 ||
+            responses.some(
+              (response) => "noop" in response || !response.success,
+            )
+          ) {
+            throw new Error(
+              `Projection wave ${summary.waveId} completion was not acknowledged`,
+            );
+          }
+        },
+        logger: this.services.logger,
+        createWaveId: createId,
+        now: Date.now,
+        activationMode:
+          this.processRole === "worker" ? "executor" : "scheduler",
+      });
+      this.services.disposables.push(() => projectionRuntime.dispose());
+    }
+
+    this.services.jobQueueService.finalizeHandlerRegistrations();
+
     this.hooks.registerCoreDataSources();
-    this.hooks.registerSystemCapabilities();
+    if (this.processRole !== "worker") {
+      this.hooks.registerSystemCapabilities();
+    }
 
     if (options?.mode === "register-only") {
       this.services.logger.debug("Shell boot complete (register-only mode)");
+      return;
+    }
+
+    if (this.processRole === "worker") {
+      await this.initializeIdentityServices();
+      this.services.jobProgressMonitor.start();
+      await this.services.jobQueueWorker.start();
+      this.services.logger.debug("Shell boot complete (worker process)");
       return;
     }
 
@@ -159,7 +237,7 @@ export class ShellBootloader {
     this.services.logger.debug("Emitted plugins registered event");
   }
 
-  private async prepareReadyState(): Promise<void> {
+  private async initializeIdentityServices(): Promise<void> {
     await runConcurrentPhase([
       (): Promise<void> => this.services.identityService.initialize(),
       (): Promise<void> => this.services.profileService.initialize(),
@@ -167,6 +245,10 @@ export class ShellBootloader {
         this.services.canonicalIdentityService.refreshCache(),
     ]);
     this.services.logger.debug("Identity services initialized");
+  }
+
+  private async prepareReadyState(): Promise<void> {
+    await this.initializeIdentityServices();
 
     const count = await materializePrompts(
       this.services.templateRegistry,
@@ -183,7 +265,9 @@ export class ShellBootloader {
       await this.services.daemonRegistry.start(recurringDaemonName);
     }
     await this.services.pluginManager.startPluginDaemons();
-    await this.services.jobQueueWorker.start();
+    if (this.processRole !== "web") {
+      await this.services.jobQueueWorker.start();
+    }
     this.services.jobProgressMonitor.start();
     await this.services.batchJobManager.start();
   }

@@ -8,22 +8,45 @@ export {
   EntityPlugin,
   emptyEntityPluginConfigSchema,
 } from "./entity/entity-plugin";
+export { computeProjectionInputFingerprint } from "./entity/projection-input-fingerprint";
 export {
-  hasPersistedTargets,
-  reconcileDerivedEntities,
-  registerDerivedEntityProjection,
-  type DerivedEntityProjection,
-  type DerivedEntityProjectionController,
-  type EntityChangePayload,
-  type ReconcileDerivedEntitiesResult,
-} from "./entity/derived-entity-projection";
+  reconcileEntities,
+  type ReconcileEntitiesOptions,
+  type ReconcileEntitiesResult,
+} from "./entity/entity-reconciler";
+export {
+  ProjectionJsonObjectSchema,
+  ProjectionJsonValueSchema,
+  ProjectionWriteIntentSchema,
+  defineProjectionRule,
+  type ProjectionEntityReader,
+  type ProjectionEntityWrite,
+  type ProjectionExecutionContext,
+  type ProjectionInputContext,
+  type ProjectionJsonObject,
+  type ProjectionJsonValue,
+  type ProjectionRule,
+  type ProjectionRuleDefinition,
+  type ProjectionRuleEntitySource,
+  type ProjectionWaveInput,
+  type ProjectionWaveTrigger,
+  type ProjectionWriteIntent,
+} from "./entity/projection-rule";
+export {
+  type ProjectionEntitySource,
+  type ProjectionEntityType,
+  type ProjectionGraph,
+  type ProjectionGraphEdge,
+  type ProjectionUnknownSourceTypes,
+  type RegisteredProjection,
+} from "./entity/projection-registry";
 export type {
   EntityPluginContext,
   IEntitiesNamespace,
   IEntityAINamespace,
   IPromptsNamespace,
 } from "./entity/context";
-export { createEntityPluginContext } from "./entity/context";
+export { createAINamespace, createEntityPluginContext } from "./entity/context";
 export {
   resolvePrompt,
   resetPromptCache,
@@ -360,6 +383,19 @@ export {
   type ToolResultData,
 } from "./contracts/agent";
 export { AppInfoSchema, type AppInfo } from "./contracts/app-info";
+export {
+  RuntimeHealthCheckSchema,
+  RuntimeQueueSignalsSchema,
+  RuntimeReadinessSchema,
+  RuntimeResourceSignalsSchema,
+  type RuntimeHealthCheck,
+  type RuntimeProjectionCircuitSignal,
+  type RuntimeProjectionSignals,
+  type RuntimeQueueSignals,
+  type RuntimeReadiness,
+  type RuntimeResourceSignals,
+  type RuntimeWorkerSignals,
+} from "./contracts/runtime-health";
 export {
   ConversationSchema,
   MessageSchema,

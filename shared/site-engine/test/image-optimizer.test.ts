@@ -1,5 +1,5 @@
 import { describe, test, expect, beforeEach, afterEach } from "bun:test";
-import { promises as fs } from "fs";
+import { promises as fs, mkdtempSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
 import sharp from "sharp";
@@ -25,7 +25,7 @@ describe("ImageOptimizer", () => {
   let imagesDir: string;
 
   beforeEach(async () => {
-    const testDir = join(tmpdir(), `image-optimizer-test-${Date.now()}`);
+    const testDir = mkdtempSync(join(tmpdir(), "image-optimizer-test-"));
     imagesDir = join(testDir, "images");
     await fs.mkdir(imagesDir, { recursive: true });
   });

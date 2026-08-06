@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, spyOn, type Mock } from "bun:test";
 import { SingletonEntityService } from "../src/singleton-entity-service";
 import type { EntityService, BaseEntity } from "../src/types";
+import type { ProjectionStore } from "../src/projection-store";
 import { createSilentLogger, createTestEntity } from "@brains/test-utils";
 
 interface TestBody {
@@ -24,6 +25,11 @@ class TestSingletonService extends SingletonEntityService<TestBody> {
 
 function createMockEntityService(): EntityService {
   return {
+    getProjectionStore: (): ProjectionStore => {
+      throw new Error("Projection store is not used by singleton tests");
+    },
+    setProjectionWakeup: (): (() => void) => () => {},
+    reconcileProjectionTargets: async (): Promise<void> => {},
     getEntity: async () => null,
     getEntityRaw: async () => null,
     listEntities: async () => [],

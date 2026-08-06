@@ -675,7 +675,7 @@ export class LinkPlugin extends EntityPlugin<LinkEntity, LinkConfig> {
   // - Generation handler (if createGenerationHandler() returns one)
   // - Templates (if getTemplates() returns any)
   // - DataSources (if getDataSources() returns any)
-  // - Projection jobs (if getDerivedEntityProjections() declares them)
+  // - Scheduler-owned projection rules (if getProjectionRules() declares them)
 }
 ```
 

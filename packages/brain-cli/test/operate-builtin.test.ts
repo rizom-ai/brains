@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { existsSync, mkdirSync, rmSync, writeFileSync } from "fs";
+import { existsSync, rmSync, writeFileSync, mkdtempSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
 import { createTool } from "@brains/mcp-service";
@@ -23,8 +23,7 @@ describe("operate with the builtin canonical definition", () => {
   let testDir: string;
 
   beforeEach(() => {
-    testDir = join(tmpdir(), `brain-operate-test-${Date.now()}`);
-    mkdirSync(testDir, { recursive: true });
+    testDir = mkdtempSync(join(tmpdir(), "brain-operate-test-"));
     writeFileSync(
       join(testDir, "brain.yaml"),
       "brain: brain\nbundles: [core]\n",

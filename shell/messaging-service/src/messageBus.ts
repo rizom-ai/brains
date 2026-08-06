@@ -14,6 +14,8 @@ import {
   type MessageValidationResult,
   type MessageValidationSchema,
 } from "./message-validator";
+import { OperationProvenanceSchema } from "@brains/contracts";
+import { OperationContext } from "@brains/operation-context";
 
 /**
  * Message bus for handling messages between components
@@ -22,13 +24,18 @@ export class MessageBus implements IMessageBus {
   private readonly registry = new HandlerRegistry();
   private readonly publisher: MessagePublisher;
   private readonly logger: Logger;
+  private readonly operationContext: OperationContext;
 
-  public static createFresh(logger: Logger): MessageBus {
-    return new MessageBus(logger);
+  public static createFresh(
+    logger: Logger,
+    operationContext?: OperationContext,
+  ): MessageBus {
+    return new MessageBus(logger, operationContext);
   }
 
-  private constructor(logger: Logger) {
+  private constructor(logger: Logger, operationContext?: OperationContext) {
     this.logger = logger;
+    this.operationContext = operationContext ?? OperationContext.createFresh();
     this.publisher = new MessagePublisher(this.registry, logger);
   }
 
@@ -60,8 +67,35 @@ export class MessageBus implements IMessageBus {
     request: MessageBusSendRequest<T>,
   ): Promise<MessageResponse<R>> {
     const { type, payload, sender, target, metadata, broadcast } = request;
-    const message = createMessage(type, payload, sender, target, metadata);
-    const response = await this.publisher.publish(message, broadcast);
+    const draft = createMessage(type, payload, sender, target, metadata);
+    const current = this.operationContext.current();
+    const provided = metadata?.["provenance"];
+    const inherited =
+      provided === undefined
+        ? current?.provenance
+        : OperationProvenanceSchema.parse(provided);
+    const provenance = OperationProvenanceSchema.parse(
+      inherited
+        ? {
+            ...inherited,
+            causationId: current?.operationId ?? inherited.causationId,
+          }
+        : {
+            rootJobId: draft.id,
+            causationId: draft.id,
+            projectionLineage: [],
+            derivationDepth: 0,
+          },
+    );
+    const message = {
+      ...draft,
+      metadata: { ...metadata, provenance },
+    };
+    const response = await this.operationContext.run(
+      provenance,
+      message.id,
+      () => this.publisher.publish(message, broadcast),
+    );
     return toMessageResponse<R>(type, response);
   }
 

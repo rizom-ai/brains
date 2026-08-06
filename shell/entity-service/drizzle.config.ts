@@ -2,7 +2,11 @@ import type { Config } from "drizzle-kit";
 import { defineSqliteDrizzleConfig } from "@brains/db/drizzle-config";
 
 const config: Config = defineSqliteDrizzleConfig({
-  schema: ["./src/schema/entities.ts", "./src/schema/embeddings.ts"],
+  schema: [
+    "./src/schema/entities.ts",
+    "./src/schema/embeddings.ts",
+    "./src/schema/projection-state.ts",
+  ],
   urlEnv: "DATABASE_URL",
   authTokenEnv: "DATABASE_AUTH_TOKEN",
   defaultUrl: "file:./brain.db",

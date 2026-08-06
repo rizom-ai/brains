@@ -21,6 +21,7 @@ import type {
   ToolInfo,
   IMCPTransport,
   RuntimeAppInfo,
+  RuntimeReadiness,
   Daemon,
   EndpointInfo,
   EndpointInfoInput,
@@ -125,7 +126,7 @@ function createDefaultMockAgentService(): IAgentService {
   };
 }
 
-function createMemoryRuntimeStateNamespace(): IRuntimeStateNamespace {
+export function createMemoryRuntimeStateNamespace(): IRuntimeStateNamespace {
   const namespaces = new Map<
     string,
     Map<string, { value: unknown; createdAt: Date; updatedAt: Date }>
@@ -741,11 +742,14 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
           total: 0,
         }),
         cleanup: async () => 0,
+        getRuntimeUpdates: async () => [],
         registerHandler: () => {},
         unregisterHandler: () => {},
         unregisterPluginHandlers: () => {},
         getRegisteredTypes: () => [],
         getHandler: () => undefined,
+        finalizeHandlerRegistrations: () => [],
+        getExecutionRegistrations: () => [],
         update: async () => {},
         getActiveJobs: async () => [],
         getFailedJobs: async () => [],
@@ -824,6 +828,41 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
       interactions: [...interactions].sort(
         (a, b) => a.priority - b.priority || a.label.localeCompare(b.label),
       ),
+    }),
+    getRuntimeReadiness: async (): Promise<RuntimeReadiness> => ({
+      status: "ready",
+      operationalStatus: "operational",
+      checkedAt: new Date().toISOString(),
+      checks: [],
+      resources: {
+        memory: { rssBytes: 0, heapUsedBytes: 0, heapTotalBytes: 0 },
+        fileDescriptors: null,
+        processes: { total: null, zombies: null },
+        queue: {
+          totals: { pending: 0, processing: 0, completed: 0, failed: 0 },
+          byType: [],
+          oldestPendingAgeMs: null,
+          oldestProcessingAgeMs: null,
+          staleLeaseCount: 0,
+          workerSessions: {
+            total: 1,
+            active: 1,
+            stale: 0,
+            latestHeartbeatAgeMs: 0,
+          },
+        },
+        projection: {
+          initialized: true,
+          trackedRoots: 0,
+          openCircuits: [],
+        },
+        worker: {
+          total: 1,
+          active: 1,
+          stale: 0,
+          latestHeartbeatAgeMs: 0,
+        },
+      },
     }),
 
     // High-level operations

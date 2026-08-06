@@ -1,6 +1,12 @@
-import type { EntityPluginContext, JobHandler } from "@brains/plugins";
+import {
+  computeProjectionInputFingerprint,
+  type BaseEntity,
+  type EntityPluginContext,
+  type JobHandler,
+} from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import type { ProgressReporter } from "@brains/utils/progress";
+import { z } from "@brains/utils/zod";
 import { SwotAdapter } from "../adapters/swot-adapter";
 import { type SwotEntity, type SwotItem } from "../schemas/swot";
 import {
@@ -11,7 +17,13 @@ import {
   type SwotDraftGeneration,
   type SwotGeneration,
 } from "../schemas/swot-generation";
-import { buildSwotContext, type SwotContext } from "../lib/swot-context";
+import {
+  buildSwotContextFromEntities,
+  type SwotContext,
+} from "../lib/swot-context";
+
+const SWOT_INPUT_FINGERPRINT_VERSION = "swot-input-v1";
+const SWOT_INPUT_FINGERPRINT_KEY = "last-successful";
 
 function normalizeSkillText(value: string): string {
   return value.trim().toLowerCase();
@@ -67,28 +79,34 @@ function getMatchSignals(
   };
 }
 
-function buildPromptContext(contextData: SwotContext): Record<string, unknown> {
+export function buildPromptContext(
+  contextData: SwotContext,
+): Record<string, unknown> {
   const dependableNetworkSkills = contextData.approvedAgents.flatMap((agent) =>
     agent.skills.map((skill) => ({
       agent: agent.brainName,
-      agentDescription: agent.description,
-      agentNotes: agent.notes,
+      ...(agent.description !== undefined
+        ? { agentDescription: agent.description }
+        : {}),
+      ...(agent.notes !== undefined ? { agentNotes: agent.notes } : {}),
       name: skill.name,
       description: skill.description,
       tags: skill.tags,
-      examples: skill.examples,
+      ...(skill.examples !== undefined ? { examples: skill.examples } : {}),
       signal: "dependable",
     })),
   );
   const tentativeNetworkSkills = contextData.discoveredAgents.flatMap((agent) =>
     agent.skills.map((skill) => ({
       agent: agent.brainName,
-      agentDescription: agent.description,
-      agentNotes: agent.notes,
+      ...(agent.description !== undefined
+        ? { agentDescription: agent.description }
+        : {}),
+      ...(agent.notes !== undefined ? { agentNotes: agent.notes } : {}),
       name: skill.name,
       description: skill.description,
       tags: skill.tags,
-      examples: skill.examples,
+      ...(skill.examples !== undefined ? { examples: skill.examples } : {}),
       signal: "tentative",
     })),
   );
@@ -110,7 +128,7 @@ function buildPromptContext(contextData: SwotContext): Record<string, unknown> {
         name: skill.name,
         description: skill.description,
         tags: skill.tags,
-        examples: skill.examples,
+        ...(skill.examples !== undefined ? { examples: skill.examples } : {}),
         candidateMatches: allNetworkSkills
           .map((networkSkill) => {
             const matchSignals = getMatchSignals(skill, networkSkill);
@@ -147,7 +165,7 @@ function buildPromptContext(contextData: SwotContext): Record<string, unknown> {
   };
 }
 
-function buildDraftPromptFallback(): string {
+export function buildDraftPromptFallback(): string {
   return `You are writing a concise SWOT assessment for a brain's capability profile and agent network.
 
 Use ONLY the supplied capability-profile context.
@@ -209,15 +227,11 @@ Output style:
 - Do not use generic threat themes like review quality, decision quality, or process discipline when a more concrete missing or tentative skill is available in the context`;
 }
 
-async function buildDraftPrompt(
-  context: EntityPluginContext,
+export function buildDraftPrompt(
   contextData: SwotContext,
-): Promise<string> {
+  basePrompt: string,
+): string {
   const promptContext = buildPromptContext(contextData);
-  const basePrompt = await context.prompts.resolve(
-    "assessment:swot-derivation",
-    buildDraftPromptFallback(),
-  );
 
   return `${basePrompt}
 
@@ -225,7 +239,7 @@ Grounded directory context:
 ${JSON.stringify(promptContext, null, 2)}`;
 }
 
-function buildRefinementPromptFallback(): string {
+export function buildRefinementPromptFallback(): string {
   return `You are refining a SWOT draft for a brain owner.
 
 Goal:
@@ -258,22 +272,17 @@ Output rules:
 - detail: one sentence with the practical implication or recommendation, grounded in the specific capability contrast`;
 }
 
-async function buildRefinementPrompt(
-  context: EntityPluginContext,
-  contextData: SwotContext,
+export function buildRefinementPromptFromContext(
+  promptContext: Record<string, unknown>,
   draft: SwotDraftGeneration,
-): Promise<string> {
-  const promptContext = buildPromptContext(contextData);
+  basePrompt: string,
+): string {
   const allowedThemes = {
     strengths: draft.strengths.map((item) => item.theme),
     weaknesses: draft.weaknesses.map((item) => item.theme),
     opportunities: draft.opportunities.map((item) => item.theme),
     threats: draft.threats.map((item) => item.theme),
   };
-  const basePrompt = await context.prompts.resolve(
-    "assessment:swot-refinement",
-    buildRefinementPromptFallback(),
-  );
 
   return `${basePrompt}
 
@@ -287,15 +296,71 @@ Draft SWOT:
 ${JSON.stringify(draft, null, 2)}`;
 }
 
-function normalizeItems(items: SwotGeneration["strengths"]): SwotItem[] {
-  return items.map((item) =>
-    item.detail === null
-      ? { title: item.title }
-      : { title: item.title, detail: item.detail },
+export function buildRefinementPrompt(
+  contextData: SwotContext,
+  draft: SwotDraftGeneration,
+  basePrompt: string,
+): string {
+  return buildRefinementPromptFromContext(
+    buildPromptContext(contextData),
+    draft,
+    basePrompt,
   );
 }
 
-function validateRefinement(
+function normalizeItems(items: SwotGeneration["strengths"]): SwotItem[] {
+  return items
+    .map((item): SwotItem => {
+      const title = item.title.trim();
+      const detail = item.detail?.trim();
+      return detail ? { title, detail } : { title };
+    })
+    .sort(
+      (left, right) =>
+        left.title.localeCompare(right.title) ||
+        (left.detail ?? "").localeCompare(right.detail ?? ""),
+    );
+}
+
+interface SwotSemanticContent {
+  strengths: SwotItem[];
+  weaknesses: SwotItem[];
+  opportunities: SwotItem[];
+  threats: SwotItem[];
+}
+
+export function getSemanticContent(
+  generated: SwotGeneration,
+): SwotSemanticContent {
+  return {
+    strengths: normalizeItems(generated.strengths),
+    weaknesses: normalizeItems(generated.weaknesses),
+    opportunities: normalizeItems(generated.opportunities),
+    threats: normalizeItems(generated.threats),
+  };
+}
+
+function hasSameSemanticContent(
+  adapter: SwotAdapter,
+  existing: SwotEntity,
+  semantic: SwotSemanticContent,
+): boolean {
+  try {
+    const current = adapter.parseSwotContent(existing.content).frontmatter;
+    return (
+      JSON.stringify({
+        strengths: current.strengths,
+        weaknesses: current.weaknesses,
+        opportunities: current.opportunities,
+        threats: current.threats,
+      }) === JSON.stringify(semantic)
+    );
+  } catch {
+    return false;
+  }
+}
+
+export function validateRefinement(
   draft: SwotDraftGeneration,
   refined: SwotGeneration,
 ): void {
@@ -350,7 +415,25 @@ export class SwotDerivationHandler implements JobHandler<
       progress: 0.2,
       message: "Building SWOT context",
     });
-    const contextData = await buildSwotContext(this.context);
+    const input = await this.buildProjectionInput();
+    const { contextData, fingerprint } = input;
+    const fingerprintStore = this.context.runtimeState.scoped<string>({
+      namespace: "assessment.swot-input-fingerprint",
+      schema: z.string(),
+    });
+    const existing = await this.context.entityService.getEntity<SwotEntity>({
+      entityType: "swot",
+      id: "swot",
+    });
+    if (
+      existing &&
+      (await fingerprintStore.get(SWOT_INPUT_FINGERPRINT_KEY)) === fingerprint
+    ) {
+      this.logger.info("Skipping unchanged SWOT derivation inputs", {
+        inputFingerprint: fingerprint,
+      });
+      return { entityId: "swot" };
+    }
 
     let generated: SwotGeneration;
     const totalInputs =
@@ -371,7 +454,7 @@ export class SwotDerivationHandler implements JobHandler<
         message: "Synthesizing SWOT analysis",
       });
       const { object } = await this.context.ai.generateObject(
-        await buildDraftPrompt(this.context, contextData),
+        buildDraftPrompt(contextData, input.draftPrompt),
         swotDraftGenerationSchema,
       );
       const draft = swotDraftGenerationSchema.parse(object);
@@ -382,30 +465,31 @@ export class SwotDerivationHandler implements JobHandler<
       });
 
       const refined = await this.context.ai.generateObject(
-        await buildRefinementPrompt(this.context, contextData, draft),
+        buildRefinementPrompt(contextData, draft, input.refinementPrompt),
         swotGenerationSchema,
       );
       generated = swotGenerationSchema.parse(refined.object);
       validateRefinement(draft, generated);
     }
 
+    const semantic = getSemanticContent(generated);
+    if (existing && hasSameSemanticContent(this.adapter, existing, semantic)) {
+      await fingerprintStore.set(SWOT_INPUT_FINGERPRINT_KEY, fingerprint);
+      this.logger.info("Skipping semantically unchanged SWOT update", {
+        inputFingerprint: fingerprint,
+      });
+      return { entityId: "swot" };
+    }
+
     const derivedAt = new Date().toISOString();
     const content = this.adapter.createSwotContent({
-      strengths: normalizeItems(generated.strengths),
-      weaknesses: normalizeItems(generated.weaknesses),
-      opportunities: normalizeItems(generated.opportunities),
-      threats: normalizeItems(generated.threats),
+      ...semantic,
       derivedAt,
     });
 
     await progressReporter.report({
       progress: 0.9,
       message: "Saving SWOT entity",
-    });
-
-    const existing = await this.context.entityService.getEntity<SwotEntity>({
-      entityType: "swot",
-      id: "swot",
     });
 
     if (existing) {
@@ -426,6 +510,7 @@ export class SwotDerivationHandler implements JobHandler<
         },
       });
     }
+    await fingerprintStore.set(SWOT_INPUT_FINGERPRINT_KEY, fingerprint);
 
     this.logger.info("SWOT derivation complete", {
       derivedAt,
@@ -435,5 +520,71 @@ export class SwotDerivationHandler implements JobHandler<
     });
 
     return { entityId: "swot" };
+  }
+
+  private async buildProjectionInput(): Promise<{
+    contextData: SwotContext;
+    draftPrompt: string;
+    refinementPrompt: string;
+    fingerprint: string;
+  }> {
+    const [agents, skills, draftPrompt, refinementPrompt, appInfo] =
+      await Promise.all([
+        this.context.entityService.listEntities<BaseEntity>({
+          entityType: "agent",
+          options: { limit: 1000 },
+        }),
+        this.context.entityService.listEntities<BaseEntity>({
+          entityType: "skill",
+          options: { limit: 1000 },
+        }),
+        this.context.prompts.resolve(
+          "assessment:swot-derivation",
+          buildDraftPromptFallback(),
+        ),
+        this.context.prompts.resolve(
+          "assessment:swot-refinement",
+          buildRefinementPromptFallback(),
+        ),
+        this.context.appInfo(),
+      ]);
+    const sourceEntities = [...agents, ...skills].sort(
+      (left, right) =>
+        left.entityType.localeCompare(right.entityType) ||
+        left.id.localeCompare(right.id),
+    );
+    const character = this.context.identity.get();
+    const profile = this.context.identity.getProfile();
+    const profileSelection = this.context.profileKinds.getResolved();
+    const contextData = buildSwotContextFromEntities({
+      agents: sourceEntities.filter((entity) => entity.entityType === "agent"),
+      skills: sourceEntities.filter((entity) => entity.entityType === "skill"),
+      identity: {
+        brainName: character.name,
+        role: character.role,
+        purpose: character.purpose,
+        profileName: profile.name,
+        ...(profile.description && {
+          profileDescription: profile.description,
+        }),
+        ...(profileSelection && {
+          profileCategory: profileSelection.category,
+        }),
+      },
+    });
+    const fingerprint = computeProjectionInputFingerprint({
+      version: SWOT_INPUT_FINGERPRINT_VERSION,
+      sources: sourceEntities.map((entity) => ({
+        id: entity.id,
+        entityType: entity.entityType,
+        contentHash: entity.contentHash,
+        visibility: entity.visibility,
+      })),
+      context: contextData,
+      prompts: { draft: draftPrompt, refinement: refinementPrompt },
+      model: appInfo.ai.model,
+    });
+
+    return { contextData, draftPrompt, refinementPrompt, fingerprint };
   }
 }

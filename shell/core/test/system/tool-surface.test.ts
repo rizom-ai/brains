@@ -7,6 +7,7 @@ describe("system tool surface", () => {
     const tools = createSystemTools(createMockSystemServices());
     const toolNames = tools.map((tool) => tool.name);
 
+    expect(toolNames).not.toContain("system_extract");
     expect(toolNames).not.toContain("system_get-conversation");
     expect(toolNames).not.toContain("system_list-conversations");
     expect(toolNames).not.toContain("system_get-messages");

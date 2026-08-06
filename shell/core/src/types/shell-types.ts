@@ -34,9 +34,11 @@ import type {
   RuntimeUploadRegistry,
 } from "@brains/plugins";
 import type { RecurringCheckService } from "@brains/recurring-checks";
-import type { RuntimeStateService } from "@brains/runtime-state";
+import type { IRuntimeStateService } from "@brains/runtime-state";
 import type { Logger } from "@brains/utils/logger";
 import type { IJobProgressMonitor } from "@brains/utils/progress";
+import type { ProjectionRuntimeSupervisor } from "../projection-runtime-supervisor";
+import type { OperationContext } from "@brains/operation-context";
 
 export interface JobServicesLifecycle {
   closeRuntime(): Promise<void>;
@@ -44,6 +46,8 @@ export interface JobServicesLifecycle {
 
 export interface ShellServices {
   logger: Logger;
+  operationContext: OperationContext;
+  projectionRuntimeSupervisor: ProjectionRuntimeSupervisor;
   disposables: Array<() => void>;
   entityRegistry: IEntityRegistry;
   messageBus: MessageBus;
@@ -73,12 +77,14 @@ export interface ShellServices {
   agentService: IAgentService;
   attachmentRegistry: AttachmentRegistry;
   runtimeUploadRegistry: RuntimeUploadRegistry;
-  runtimeStateService: RuntimeStateService;
+  runtimeStateService: IRuntimeStateService;
   recurringCheckService: RecurringCheckService;
 }
 
 export interface ShellDependencies {
   logger?: Logger;
+  operationContext?: OperationContext;
+  projectionRuntimeSupervisor?: ProjectionRuntimeSupervisor;
   embeddingService?: IEmbeddingService;
   aiService?: IAIService;
   entityService?: IEntityService;
@@ -99,7 +105,7 @@ export interface ShellDependencies {
   dataSourceRegistry?: DataSourceRegistry;
   attachmentRegistry?: AttachmentRegistry;
   runtimeUploadRegistry?: RuntimeUploadRegistry;
-  runtimeStateService?: RuntimeStateService;
+  runtimeStateService?: IRuntimeStateService;
   recurringCheckService?: RecurringCheckService;
   profileKindRegistry?: ProfileKindRegistry;
   channelRegistry?: ChannelRegistry;

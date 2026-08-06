@@ -1,12 +1,13 @@
 import { describe, it, expect, afterEach } from "bun:test";
-import { mkdirSync, writeFileSync, rmSync, existsSync } from "fs";
+import { mkdirSync, writeFileSync, rmSync, existsSync, mkdtempSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
 import { createSilentLogger } from "@brains/test-utils";
-import type { RegisteredWebRoute } from "@brains/plugins";
+import type { RegisteredWebRoute, RuntimeReadiness } from "@brains/plugins";
 import { createMockMessageBus, type IMessageBus } from "@brains/plugins/test";
 import {
   ServerManager,
+  type ServerManagerOptions,
   WEBSERVER_IDLE_TIMEOUT_SECONDS,
   isPathContained,
 } from "../src/server-manager";
@@ -25,8 +26,44 @@ describe("ServerManager (in-process)", () => {
     }
   });
 
-  function setup(options?: { preview?: boolean }): ServerManager {
-    testDir = join(tmpdir(), `webserver-test-${Date.now()}`);
+  function testResourceSignals(): RuntimeReadiness["resources"] {
+    return {
+      memory: { rssBytes: 1, heapUsedBytes: 1, heapTotalBytes: 1 },
+      fileDescriptors: 1,
+      processes: { total: 1, zombies: 0 },
+      queue: {
+        totals: { pending: 0, processing: 0, completed: 0, failed: 0 },
+        byType: [],
+        oldestPendingAgeMs: null,
+        oldestProcessingAgeMs: null,
+        staleLeaseCount: 0,
+        workerSessions: {
+          total: 1,
+          active: 1,
+          stale: 0,
+          latestHeartbeatAgeMs: 1,
+        },
+      },
+      projection: {
+        initialized: true,
+        trackedRoots: 0,
+        openCircuits: [],
+      },
+      worker: {
+        total: 1,
+        active: 1,
+        stale: 0,
+        latestHeartbeatAgeMs: 1,
+      },
+    };
+  }
+
+  function setup(options?: {
+    preview?: boolean;
+    getHealthData?: ServerManagerOptions["getHealthData"];
+    getReadinessData?: () => Promise<RuntimeReadiness>;
+  }): ServerManager {
+    testDir = mkdtempSync(join(tmpdir(), "webserver-test-"));
     const prodDir = join(testDir, "dist", "production");
     const imagesDir = join(testDir, "dist", "images");
     mkdirSync(prodDir, { recursive: true });
@@ -38,6 +75,12 @@ describe("ServerManager (in-process)", () => {
       productionDistDir: prodDir,
       sharedImagesDir: imagesDir,
       productionPort: 0, // random port
+      ...(options?.getHealthData && {
+        getHealthData: options.getHealthData,
+      }),
+      ...(options?.getReadinessData && {
+        getReadinessData: options.getReadinessData,
+      }),
     };
 
     if (options?.preview) {
@@ -180,6 +223,20 @@ describe("ServerManager (in-process)", () => {
     expect(text).toContain("Preview");
   });
 
+  it("serves health endpoints on the production control plane for preview hosts", async () => {
+    const m = setup({ preview: true });
+    await m.start();
+
+    const url = m.getStatus().productionUrl;
+    if (!url) return;
+    const res = await fetch(`${url}/health/live`, {
+      headers: { Host: "preview.localhost" },
+    });
+
+    expect(res.status).toBe(200);
+    expect(await res.json()).toMatchObject({ status: "alive" });
+  });
+
   it("should serve preview content on the shared host when the request host matches preview", async () => {
     const m = setup({ preview: true });
     await m.start();
@@ -195,21 +252,161 @@ describe("ServerManager (in-process)", () => {
     expect(text).toContain("Preview");
   });
 
-  it("should handle /health endpoint", async () => {
-    const m = setup();
+  it("serves dependency-free liveness without invoking readiness", async () => {
+    let readinessCalls = 0;
+    const m = setup({
+      getReadinessData: async () => {
+        readinessCalls++;
+        throw new Error("readiness must not run for liveness");
+      },
+    });
     await m.start();
 
-    const status = m.getStatus();
-    const url = status.productionUrl;
+    const url = m.getStatus().productionUrl;
+    if (!url) return;
+    const res = await fetch(`${url}/health/live`);
+
+    expect(res.status).toBe(200);
+    expect(await res.json()).toMatchObject({ status: "alive" });
+    expect(readinessCalls).toBe(0);
+  });
+
+  it("returns 503 readiness details when routing dependencies are unhealthy", async () => {
+    const report: RuntimeReadiness = {
+      status: "not_ready",
+      operationalStatus: "degraded",
+      checkedAt: "2026-07-30T12:00:00.000Z",
+      checks: [
+        {
+          name: "entity-database",
+          status: "unhealthy",
+          message: "entity database offline",
+        },
+      ],
+      resources: testResourceSignals(),
+    };
+    const m = setup({ getReadinessData: async () => report });
+    await m.start();
+
+    const url = m.getStatus().productionUrl;
+    if (!url) return;
+    const res = await fetch(`${url}/health/ready`);
+
+    expect(res.status).toBe(503);
+    expect(await res.json()).toEqual(report);
+  });
+
+  it("keeps routing ready while operational health reports worker degradation", async () => {
+    const report: RuntimeReadiness = {
+      status: "ready",
+      operationalStatus: "degraded",
+      checkedAt: "2026-07-30T12:00:00.000Z",
+      checks: [
+        {
+          name: "job-worker",
+          status: "degraded",
+          message: "No live worker session",
+        },
+      ],
+      resources: testResourceSignals(),
+    };
+    const m = setup({ getReadinessData: async () => report });
+    await m.start();
+
+    const url = m.getStatus().productionUrl;
+    if (!url) return;
+    const ready = await fetch(`${url}/health/ready`);
+    const operate = await fetch(`${url}/health/operate`);
+
+    expect(ready.status).toBe(200);
+    expect(await ready.json()).toEqual(report);
+    expect(operate.status).toBe(503);
+    expect(await operate.json()).toEqual(report);
+  });
+
+  it("returns 200 operational health when every check is healthy", async () => {
+    const report: RuntimeReadiness = {
+      status: "ready",
+      operationalStatus: "operational",
+      checkedAt: "2026-07-30T12:00:00.000Z",
+      checks: [{ name: "job-worker", status: "healthy" }],
+      resources: testResourceSignals(),
+    };
+    const m = setup({ getReadinessData: async () => report });
+    await m.start();
+
+    const url = m.getStatus().productionUrl;
+    if (!url) return;
+    const operate = await fetch(`${url}/health/operate`);
+
+    expect(operate.status).toBe(200);
+    expect(await operate.json()).toEqual(report);
+  });
+
+  it("returns structured legacy health when app metadata collection fails", async () => {
+    const m = setup({
+      getReadinessData: async () => ({
+        status: "ready",
+        operationalStatus: "operational",
+        checkedAt: "2026-07-30T12:00:00.000Z",
+        checks: [],
+        resources: testResourceSignals(),
+      }),
+      getHealthData: async () => {
+        throw new Error("entity summary failed");
+      },
+    });
+    await m.start();
+
+    const url = m.getStatus().productionUrl;
     if (!url) return;
     const res = await fetch(`${url}/health`);
-    expect(res.status).toBe(200);
-    const body = await res.json();
-    expect(body.status).toBe("healthy");
+
+    expect(res.status).toBe(503);
+    expect(await res.json()).toMatchObject({
+      status: "unhealthy",
+      readiness: {
+        status: "not_ready",
+        checks: [
+          {
+            name: "app-info",
+            status: "unhealthy",
+            message: "entity summary failed",
+          },
+        ],
+      },
+    });
+  });
+
+  it("keeps /health as a readiness-aware compatibility endpoint", async () => {
+    const report: RuntimeReadiness = {
+      status: "not_ready",
+      operationalStatus: "degraded",
+      checkedAt: "2026-07-30T12:00:00.000Z",
+      checks: [
+        {
+          name: "entity-database",
+          status: "unhealthy",
+        },
+      ],
+      resources: testResourceSignals(),
+    };
+    const m = setup({ getReadinessData: async () => report });
+    await m.start();
+
+    const url = m.getStatus().productionUrl;
+    if (!url) return;
+    const res = await fetch(`${url}/health`);
+
+    expect(res.status).toBe(503);
+    expect(await res.json()).toMatchObject({
+      status: "unhealthy",
+      readiness: report,
+    });
   });
 
   it("should serve plugin-contributed web routes when configured", async () => {
-    testDir = join(tmpdir(), `webserver-cms-test-${Date.now()}`);
+    testDir = mkdtempSync(join(tmpdir(), "webserver-cms-test-"));
     const prodDir = join(testDir, "dist", "production");
     const imagesDir = join(testDir, "dist", "images");
     mkdirSync(prodDir, { recursive: true });
@@ -250,7 +447,7 @@ describe("ServerManager (in-process)", () => {
   });
 
   it("matches contributed prefix routes by segment with exact and longest-prefix precedence", async () => {
-    testDir = join(tmpdir(), `webserver-prefix-routes-${Date.now()}`);
+    testDir = mkdtempSync(join(tmpdir(), "webserver-prefix-routes-"));
     const prodDir = join(testDir, "dist", "production");
     const imagesDir = join(testDir, "dist", "images");
     mkdirSync(prodDir, { recursive: true });
@@ -305,7 +502,7 @@ describe("ServerManager (in-process)", () => {
   });
 
   it("should reject non-public web routes with 401", async () => {
-    testDir = join(tmpdir(), `webserver-nonpublic-${Date.now()}`);
+    testDir = mkdtempSync(join(tmpdir(), "webserver-nonpublic-"));
     const prodDir = join(testDir, "dist", "production");
     const imagesDir = join(testDir, "dist", "images");
     mkdirSync(prodDir, { recursive: true });
@@ -357,7 +554,7 @@ describe("ServerManager (in-process)", () => {
   });
 
   it("should serve web routes registered after the webserver starts", async () => {
-    testDir = join(tmpdir(), `webserver-late-web-routes-${Date.now()}`);
+    testDir = mkdtempSync(join(tmpdir(), "webserver-late-web-routes-"));
     const prodDir = join(testDir, "dist", "production");
     const imagesDir = join(testDir, "dist", "images");
     mkdirSync(prodDir, { recursive: true });
@@ -408,7 +605,7 @@ describe("ServerManager (in-process)", () => {
   });
 
   it("should serve plugin-contributed OPTIONS routes when configured", async () => {
-    testDir = join(tmpdir(), `webserver-options-test-${Date.now()}`);
+    testDir = mkdtempSync(join(tmpdir(), "webserver-options-test-"));
     const prodDir = join(testDir, "dist", "production");
     const imagesDir = join(testDir, "dist", "images");
     mkdirSync(prodDir, { recursive: true });
@@ -455,7 +652,7 @@ describe("ServerManager (in-process)", () => {
   });
 
   it("should serve plugin-contributed API routes on the shared host", async () => {
-    testDir = join(tmpdir(), `webserver-api-test-${Date.now()}`);
+    testDir = mkdtempSync(join(tmpdir(), "webserver-api-test-"));
     const prodDir = join(testDir, "dist", "production");
     const imagesDir = join(testDir, "dist", "images");
     mkdirSync(prodDir, { recursive: true });
@@ -513,7 +710,7 @@ describe("ServerManager (in-process)", () => {
   });
 
   it("should serve API routes registered after the webserver starts", async () => {
-    testDir = join(tmpdir(), `webserver-late-api-routes-${Date.now()}`);
+    testDir = mkdtempSync(join(tmpdir(), "webserver-late-api-routes-"));
     const prodDir = join(testDir, "dist", "production");
     const imagesDir = join(testDir, "dist", "images");
     mkdirSync(prodDir, { recursive: true });
@@ -619,7 +816,7 @@ describe("ServerManager (in-process)", () => {
       serve: typeof Bun.serve,
       idleTimeout?: number,
     ): ServerManager {
-      testDir = join(tmpdir(), `webserver-idle-${Date.now()}`);
+      testDir = mkdtempSync(join(tmpdir(), "webserver-idle-"));
       const prodDir = join(testDir, "dist", "production");
       const imagesDir = join(testDir, "dist", "images");
       mkdirSync(prodDir, { recursive: true });

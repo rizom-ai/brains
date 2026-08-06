@@ -5,6 +5,10 @@ import { createSilentLogger } from "@brains/test-utils";
 import { createTestDirectory } from "./helpers/test-db";
 import type { Plugin, Daemon } from "@brains/plugins";
 import { InterfacePlugin, SYSTEM_CHANNELS } from "@brains/plugins";
+import { migrateEntities } from "@brains/entity-service/migrate";
+import { migrateJobQueue } from "@brains/job-queue/migrate";
+import { migrateConversations } from "@brains/conversation-service/migrate";
+import { migrateRuntimeState } from "@brains/runtime-state/migrate";
 import { z } from "@brains/utils/zod";
 
 interface TestDir {
@@ -33,6 +37,12 @@ describe("Shell register-only mode", () => {
 
   beforeEach(async () => {
     testDir = await createTestDirectory();
+    await migrateEntities({ url: `file:${testDir.dir}/test.db` });
+    await migrateJobQueue({ url: `file:${testDir.dir}/test-jobs.db` });
+    await migrateConversations({ url: `file:${testDir.dir}/test-conv.db` });
+    await migrateRuntimeState({
+      url: `file:${testDir.dir}/test-runtime-state.db`,
+    });
   });
 
   afterEach(async () => {

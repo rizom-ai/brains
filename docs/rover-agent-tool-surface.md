@@ -24,8 +24,8 @@ Maintenance operations `content-pipeline_ensure-assets` and `obsidian-vault_sync
 
 ## Core preset
 
-- Agent tools: 18
-- Asserted tools: 18
+- Agent tools: 17
+- Asserted tools: 17
 - Missing assertions: 0
 - Stale assertions: 0
 
@@ -39,7 +39,6 @@ directory_sync
 playbook_manage
 system_create
 system_delete
-system_extract
 system_generate
 system_get
 system_insights
@@ -52,8 +51,8 @@ system_update
 
 ## Default preset
 
-- Agent tools: 19
-- Asserted tools: 19
+- Agent tools: 18
+- Asserted tools: 18
 - Missing assertions: 0
 - Stale assertions: 0
 
@@ -68,7 +67,6 @@ playbook_manage
 site-builder_build-site
 system_create
 system_delete
-system_extract
 system_generate
 system_get
 system_insights
@@ -81,8 +79,8 @@ system_update
 
 ## Full preset
 
-- Agent tools: 20
-- Asserted tools: 20
+- Agent tools: 19
+- Asserted tools: 19
 - Missing assertions: 0
 - Stale assertions: 0
 
@@ -98,7 +96,6 @@ publishing_manage
 site-builder_build-site
 system_create
 system_delete
-system_extract
 system_generate
 system_get
 system_insights

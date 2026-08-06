@@ -5,7 +5,7 @@ import {
   runPackageMigrations,
 } from "@brains/db";
 import type { Logger } from "@brains/utils/logger";
-import { jobQueue } from "./schema/job-queue";
+import { jobQueue, jobWorkerSessions } from "./schema/job-queue";
 import type { JobQueueDbConfig } from "./types";
 
 export async function migrateJobQueue(
@@ -15,7 +15,7 @@ export async function migrateJobQueue(
   await runPackageMigrations({
     label: "job-queue",
     config,
-    schema: { jobQueue },
+    schema: { jobQueue, jobWorkerSessions },
     migrationsFolder: resolveMigrationsFolder(import.meta.url, "job-queue"),
     authTokenEnv: "JOB_QUEUE_DATABASE_AUTH_TOKEN",
     logger,

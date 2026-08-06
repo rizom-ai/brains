@@ -8,7 +8,7 @@ import { z } from "@brains/utils/zod";
 import type { ToolResponse } from "@brains/mcp-service";
 import { join } from "path";
 import { tmpdir } from "os";
-import { existsSync, rmSync } from "fs";
+import { existsSync, rmSync, mkdtempSync } from "fs";
 import { MockEntityAdapter } from "./fixtures";
 
 const syncResponseData = z.object({ jobId: z.string() });
@@ -21,7 +21,7 @@ describe("DirectorySyncPlugin", () => {
   let workspaceRegistration: CmsWorkspaceRegistration | undefined;
 
   beforeEach(async () => {
-    syncPath = join(tmpdir(), `test-directory-sync-${Date.now()}`);
+    syncPath = mkdtempSync(join(tmpdir(), "test-directory-sync-"));
 
     harness = createPluginHarness<DirectorySyncPlugin>({ dataDir: syncPath });
     workspaceRegistration = undefined;
@@ -167,7 +167,7 @@ describe("DirectorySyncPlugin", () => {
     });
 
     it("should respond to configuration requests", async () => {
-      const newPath = join(tmpdir(), `test-directory-sync-new-${Date.now()}`);
+      const newPath = mkdtempSync(join(tmpdir(), "test-directory-sync-new-"));
 
       const response = await harness.sendMessage<
         { syncPath: string },
@@ -196,7 +196,7 @@ describe("DirectorySyncPlugin", () => {
     };
 
     it("should not enable git when git block has no repo and no gitUrl", async () => {
-      const path = join(tmpdir(), `test-no-git-${Date.now()}`);
+      const path = mkdtempSync(join(tmpdir(), "test-no-git-"));
       const localHarness = createPluginHarness<DirectorySyncPlugin>({
         dataDir: path,
       });
@@ -218,7 +218,7 @@ describe("DirectorySyncPlugin", () => {
     });
 
     it("should not enable git when git block has only authToken (no repo/gitUrl)", async () => {
-      const path = join(tmpdir(), `test-no-git-token-${Date.now()}`);
+      const path = mkdtempSync(join(tmpdir(), "test-no-git-token-"));
       const localHarness = createPluginHarness<DirectorySyncPlugin>({
         dataDir: path,
       });

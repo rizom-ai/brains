@@ -1,6 +1,7 @@
 // Plugin framework types
 import type {
   RuntimeAppInfo,
+  RuntimeReadiness,
   ContentGenerationConfig,
   EndpointInfo,
   EndpointInfoInput,
@@ -16,12 +17,18 @@ import type {
   QueryContext,
   RegisteredApiRoute,
   RegisteredWebRoute,
+  ProjectionExecutionContext,
+  ProjectionInputContext,
+  ProjectionJsonObject,
 } from "@brains/plugins";
 
 // Plugin manager
 import {
+  createAINamespace,
   createAttachmentsNamespace,
   createRuntimeUploadsNamespace,
+  ProjectionJsonObjectSchema,
+  resolvePrompt,
   type IAttachmentsNamespace,
   type IChannelRegistry,
   type IInboxRegistry,
@@ -77,6 +84,7 @@ import { Logger } from "@brains/utils/logger";
 import type { DefaultQueryResponse } from "@brains/contracts";
 
 import { getRuntimeAppInfo } from "./app-info";
+import { getRuntimeReadiness } from "./runtime-health";
 import type { ShellConfig, ShellConfigInput } from "./config";
 import { createShellConfig } from "./config";
 import { SHELL_TEMPLATE_NAMES } from "./constants";
@@ -101,6 +109,7 @@ import { registerShellSystemCapabilities } from "./shell-system-capabilities";
 import type { ShellDependencies, ShellServices } from "./types/shell-types";
 import { ShellLifecycle } from "./initialization/shell-lifecycle";
 import { Exit } from "@brains/utils/effect";
+import type { ShellRuntimeOptions } from "./runtime-process-role";
 
 export type { ShellDependencies };
 
@@ -127,17 +136,23 @@ export class Shell implements IShell {
   public static createFresh(
     config?: ShellConfigInput,
     dependencies?: ShellDependencies,
+    runtimeOptions?: ShellRuntimeOptions,
   ): Shell {
-    return new Shell(createShellConfig(config), dependencies);
+    return new Shell(createShellConfig(config), dependencies, runtimeOptions);
   }
 
-  private constructor(config: ShellConfig, dependencies?: ShellDependencies) {
+  private constructor(
+    config: ShellConfig,
+    dependencies?: ShellDependencies,
+    runtimeOptions?: ShellRuntimeOptions,
+  ) {
     this.config = config;
     this.lifecycle = new ShellLifecycle();
     const constructionLogger = dependencies?.logger ?? Logger.getInstance();
     const shellInitializer = ShellInitializer.createFresh(
       constructionLogger,
       this.config,
+      runtimeOptions?.processRole,
     );
 
     try {
@@ -157,6 +172,7 @@ export class Shell implements IShell {
         this.services,
         this.lifecycle,
         shellInitializer,
+        runtimeOptions?.processRole,
         {
           registerCoreDataSources: (): void =>
             registerCoreDataSources(this.services, this.config),
@@ -168,6 +184,33 @@ export class Shell implements IShell {
               query: (prompt, context) => this.query(prompt, context),
               getAppInfo: () => this.getAppInfo(),
             }),
+          createProjectionInputContext: (): ProjectionInputContext => ({
+            entities: this.services.entityService,
+            resolvePrompt: (reference, fallback): Promise<string> =>
+              resolvePrompt(this.services.entityService, reference, fallback),
+            appInfo: (): Promise<RuntimeAppInfo> => this.getAppInfo(),
+            identityInput: (): ProjectionJsonObject => {
+              const identity = this.getIdentity();
+              const profile = this.getProfile();
+              return ProjectionJsonObjectSchema.parse({
+                brainName: identity.name,
+                role: identity.role,
+                purpose: identity.purpose,
+                values: identity.values,
+                profileName: profile.name,
+                ...(profile.description !== undefined
+                  ? { profileDescription: profile.description }
+                  : {}),
+                ...(profile.organization !== undefined
+                  ? { profileOrganization: profile.organization }
+                  : {}),
+              });
+            },
+          }),
+          createProjectionExecutionContext: (): ProjectionExecutionContext => ({
+            ai: createAINamespace(this),
+            logger: this.services.logger.child("ProjectionRuntime"),
+          }),
         },
       );
 
@@ -677,5 +720,9 @@ export class Shell implements IShell {
       endpoints: () => this.listEndpoints(),
       interactions: () => this.listInteractions(),
     });
+  }
+
+  public getRuntimeReadiness(): Promise<RuntimeReadiness> {
+    return getRuntimeReadiness(this.services);
   }
 }

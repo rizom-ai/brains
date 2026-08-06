@@ -1,6 +1,8 @@
+import { getErrorMessage } from "@brains/utils/error";
 import type { Logger } from "@brains/utils/logger";
 import type {
   AppInfo,
+  RuntimeReadiness,
   RegisteredApiRoute,
   RegisteredWebRoute,
   IMessageBus,
@@ -25,8 +27,10 @@ export interface ServerManagerOptions {
   /** @deprecated Preview is served on the shared host; kept for config compatibility. */
   previewPort?: number;
   productionPort: number;
-  /** Returns app info for the /health endpoint. */
+  /** Returns app info for the legacy /health endpoint. */
   getHealthData?: () => Promise<AppInfo>;
+  /** Returns dependency and resource state for readiness checks. */
+  getReadinessData?: () => Promise<RuntimeReadiness>;
   /** Plugin-contributed web routes mounted on the shared host. */
   webRoutes?: RegisteredWebRoute[];
   /** Dynamic accessor for plugin-contributed web routes on the shared host. */
@@ -142,6 +146,11 @@ export class ServerManager {
           const fastResponse = await this.serveImageFastPath(req);
           if (fastResponse) return fastResponse;
 
+          const requestPath = new URL(req.url).pathname;
+          if (requestPath === "/health" || requestPath.startsWith("/health/")) {
+            return productionApp.fetch(req);
+          }
+
           if (previewApp && this.isPreviewHost(req.headers.get("host"))) {
             return previewApp.fetch(req);
           }
@@ -199,12 +208,57 @@ export class ServerManager {
     const app = new Hono();
 
     if (opts.healthEndpoint) {
+      app.get("/health/live", (c) =>
+        c.json(
+          {
+            status: "alive",
+            uptime: Math.floor(process.uptime()),
+            checkedAt: new Date().toISOString(),
+          },
+          200,
+        ),
+      );
+      app.get("/health/ready", async (c) => {
+        const readiness = await this.getReadinessData();
+        return c.json(readiness, readiness.status === "ready" ? 200 : 503);
+      });
+      app.get("/health/operate", async (c) => {
+        const readiness = await this.getReadinessData();
+        return c.json(
+          readiness,
+          readiness.operationalStatus === "operational" ? 200 : 503,
+        );
+      });
       app.get("/health", async (c) => {
+        let readiness = await this.getReadinessData();
+        let info: AppInfo | undefined;
         if (this.options.getHealthData) {
-          const info = await this.options.getHealthData();
-          return c.json({ status: "healthy", ...info }, 200);
+          try {
+            info = await this.options.getHealthData();
+          } catch (error) {
+            readiness = {
+              ...readiness,
+              status: "not_ready",
+              operationalStatus: "degraded",
+              checks: [
+                ...readiness.checks,
+                {
+                  name: "app-info",
+                  status: "unhealthy",
+                  message: getErrorMessage(error),
+                },
+              ],
+            };
+          }
         }
-        return c.json({ status: "healthy" }, 200);
+        return c.json(
+          {
+            status: readiness.status === "ready" ? "healthy" : "unhealthy",
+            ...info,
+            readiness,
+          },
+          readiness.status === "ready" ? 200 : 503,
+        );
       });
     }
 
@@ -257,6 +311,61 @@ export class ServerManager {
   }
 
   // ─── Helpers ─────────────────────────────────────────────────────────────
+
+  private async getReadinessData(): Promise<RuntimeReadiness> {
+    if (!this.options.getReadinessData) {
+      return {
+        status: "ready",
+        operationalStatus: "degraded",
+        checkedAt: new Date().toISOString(),
+        checks: [],
+        resources: this.getUnavailableResourceSignals(),
+      };
+    }
+
+    try {
+      return await this.options.getReadinessData();
+    } catch (error) {
+      return {
+        status: "not_ready",
+        operationalStatus: "degraded",
+        checkedAt: new Date().toISOString(),
+        checks: [
+          {
+            name: "runtime-readiness",
+            status: "unhealthy",
+            message: getErrorMessage(error),
+          },
+        ],
+        resources: this.getUnavailableResourceSignals(),
+      };
+    }
+  }
+
+  private getUnavailableResourceSignals(): RuntimeReadiness["resources"] {
+    const memory = process.memoryUsage();
+    return {
+      memory: {
+        rssBytes: memory.rss,
+        heapUsedBytes: memory.heapUsed,
+        heapTotalBytes: memory.heapTotal,
+      },
+      fileDescriptors: null,
+      processes: { total: null, zombies: null },
+      queue: null,
+      projection: {
+        initialized: false,
+        trackedRoots: 0,
+        openCircuits: [],
+      },
+      worker: {
+        total: 0,
+        active: 0,
+        stale: 0,
+        latestHeartbeatAgeMs: null,
+      },
+    };
+  }
 
   private getCurrentWebRoutes(): RegisteredWebRoute[] {
     return this.options.getWebRoutes?.() ?? this.options.webRoutes ?? [];

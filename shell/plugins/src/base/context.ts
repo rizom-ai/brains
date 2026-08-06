@@ -8,6 +8,7 @@ import type {
 } from "@brains/entity-service";
 import type { JudgeInput, PluginRegistrationContext } from "../interfaces";
 import type { AppInfo } from "../contracts/app-info";
+import type { RuntimeReadiness } from "../contracts/runtime-health";
 import type { EntityDisplayEntry } from "@brains/site-composition";
 import type { JobsNamespace } from "@brains/job-queue";
 import type { IRecurringChecksNamespace } from "@brains/recurring-checks";
@@ -84,6 +85,9 @@ export interface BasePluginContext {
   /** Unique plugin identifier */
   readonly pluginId: string;
 
+  /** Whether this context may register only durable execution dependencies. */
+  readonly executionOnly: boolean;
+
   /** Logger instance for this plugin */
   readonly logger: Logger;
 
@@ -119,6 +123,9 @@ export interface BasePluginContext {
 
   /** App metadata (version, model, plugins) */
   readonly appInfo: () => Promise<AppInfo>;
+
+  /** Runtime dependency readiness and bounded resource signals. */
+  readonly readiness: () => Promise<RuntimeReadiness>;
 
   /** Bounded model-as-judge capability; schema-constrained verdicts only. */
   readonly judge: <T>(input: JudgeInput<T>) => Promise<{
@@ -278,10 +285,17 @@ export function createBasePluginContext(
   const attachments = shell.getAttachmentRegistry();
   const uploads = shell.getRuntimeUploadRegistry();
   const runtimeState = shell.getRuntimeState();
-  const messaging = createMessagingNamespace(shell, pluginId, logger);
+  const executionOnly = registrationContext?.executionOnly === true;
+  const messaging = createMessagingNamespace(
+    shell,
+    pluginId,
+    logger,
+    executionOnly,
+  );
 
   return {
     pluginId,
+    executionOnly,
     logger,
     entityService,
 
@@ -295,6 +309,7 @@ export function createBasePluginContext(
     inbox: createInboxNamespace(shell, pluginId),
 
     appInfo: getAppInfo,
+    readiness: () => shell.getRuntimeReadiness(),
     judge: (input) => shell.judge(input),
 
     domain,
@@ -325,13 +340,21 @@ export function createBasePluginContext(
 
     dataDir: shell.getDataDir(),
 
-    eval: createEvalNamespace(shell, pluginId),
+    eval: executionOnly
+      ? { registerHandler: (): void => {} }
+      : createEvalNamespace(shell, pluginId),
 
-    insights: createInsightsNamespace(shell),
+    insights: executionOnly
+      ? { register: (): void => {} }
+      : createInsightsNamespace(shell),
 
     plugins: createPluginsNamespace(shell),
 
-    endpoints: createEndpointsNamespace(shell, pluginId),
-    interactions: createInteractionsNamespace(shell, pluginId),
+    endpoints: executionOnly
+      ? { register: (): void => {} }
+      : createEndpointsNamespace(shell, pluginId),
+    interactions: executionOnly
+      ? { register: (): void => {} }
+      : createInteractionsNamespace(shell, pluginId),
   };
 }

@@ -15,6 +15,20 @@
       "when": 1781822400000,
       "tag": "0001_rename_base_note_jobs",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1785479579800,
+      "tag": "0002_special_captain_midlands",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1785909473922,
+      "tag": "0003_stiff_husk",
+      "breakpoints": true
     }
   ]
 }

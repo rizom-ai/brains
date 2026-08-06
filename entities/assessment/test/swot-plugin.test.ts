@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "bun:test";
+import { beforeEach, describe, expect, it, mock } from "bun:test";
 import { randomUUID } from "node:crypto";
 import { SYSTEM_CHANNELS } from "@brains/plugins";
 import { createPluginHarness } from "@brains/plugins/test";
@@ -19,12 +19,26 @@ describe("SwotAssessmentPlugin", () => {
     expect(swotWidgetStyles).toContain("@container dashboard-card");
   });
 
-  it("registers the swot entity type", async () => {
+  it("registers SWOT as a terminal scheduler-owned projection", async () => {
     const plugin = new SwotAssessmentPlugin();
-    await harness.installPlugin(plugin);
+    const capabilities = await harness.installPlugin(plugin);
 
     expect(plugin.type).toBe("entity");
     expect(harness.getEntityService().getEntityTypes()).toContain("swot");
+    expect(
+      harness.getEntityRegistry().getEntityTypeConfig("swot"),
+    ).toMatchObject({
+      projectionSource: false,
+      projectionSourceRole: "excluded",
+    });
+    expect("projections" in capabilities).toBe(false);
+    expect(capabilities.projectionRules).toHaveLength(1);
+    expect(capabilities.projectionRules?.[0]).toMatchObject({
+      id: "swot-derivation",
+      version: "1",
+      targetType: "swot",
+      sources: [{ kind: "entity", types: ["agent", "skill"] }],
+    });
   });
 
   it("registers deriveSwot eval handler", async () => {
@@ -81,124 +95,29 @@ describe("SwotAssessmentPlugin", () => {
     ]);
   });
 
-  it("does not enqueue derivation before initial sync completes", async () => {
-    const plugin = new SwotAssessmentPlugin();
-    const mockShell = harness.getMockShell();
-    const origJobQueue = mockShell.getJobQueueService();
-    const enqueued: string[] = [];
+  it("does not register or enqueue an event-driven SWOT job", async () => {
+    const enqueue = mock(async () => "job-1");
+    const registerHandler = mock(() => {});
+    const jobQueue = harness.getMockShell().getJobQueueService();
+    harness.getMockShell().getJobQueueService = (): typeof jobQueue => ({
+      ...jobQueue,
+      enqueue,
+      registerHandler,
+    });
 
-    mockShell.getJobQueueService = (): ReturnType<
-      typeof mockShell.getJobQueueService
-    > =>
-      ({
-        ...origJobQueue,
-        enqueue: async (request) => {
-          enqueued.push(request.type);
-          return origJobQueue.enqueue(request);
-        },
-      }) as ReturnType<typeof mockShell.getJobQueueService>;
-
-    await harness.installPlugin(plugin);
-    await harness.sendMessage(
-      "entity:created",
-      { entityType: "agent" },
-      "test",
-    );
-
-    expect(enqueued).toEqual([]);
-  });
-
-  it("coalesces first-run and follow-up derive requests through the job queue", async () => {
-    const plugin = new SwotAssessmentPlugin();
-    const mockShell = harness.getMockShell();
-    const origJobQueue = mockShell.getJobQueueService();
-    const enqueued: Array<{
-      type: string;
-      data: unknown;
-      options: unknown;
-      jobId: string;
-    }> = [];
-
-    const coalescedJobs = new Map<string, string>();
-    let nextJobId = 0;
-
-    mockShell.getJobQueueService = (): ReturnType<
-      typeof mockShell.getJobQueueService
-    > =>
-      ({
-        ...origJobQueue,
-        enqueue: async (request) => {
-          const dedupeKey = request.options?.deduplicationKey;
-          const coalesceKey =
-            request.options?.deduplication === "coalesce" && dedupeKey
-              ? `${request.type}:${dedupeKey}`
-              : undefined;
-          const jobId = coalesceKey
-            ? (coalescedJobs.get(coalesceKey) ?? `job-${++nextJobId}`)
-            : `job-${++nextJobId}`;
-          if (coalesceKey) {
-            coalescedJobs.set(coalesceKey, jobId);
-          }
-          enqueued.push({
-            type: request.type,
-            data: request.data,
-            options: request.options,
-            jobId,
-          });
-          return jobId;
-        },
-      }) as ReturnType<typeof mockShell.getJobQueueService>;
-
-    await harness.installPlugin(plugin);
+    await harness.installPlugin(new SwotAssessmentPlugin());
     await harness.sendMessage("sync:initial:completed", {}, "directory-sync");
     await harness.sendMessage(
       "entity:updated",
-      { entityType: "skill" },
+      { entityType: "skill", entityId: "skill-1" },
       "test",
     );
 
-    expect(enqueued).toHaveLength(2);
-    expect(enqueued[0]?.type).toBe("swot:derive");
-    expect(enqueued[0]?.data).toEqual({ reason: "initial-missing-entity" });
-    expect(enqueued[1]?.type).toBe("swot:derive");
-    expect(enqueued[1]?.data).toEqual({ reason: "entity-change" });
-    expect(enqueued[0]?.jobId).toBe(enqueued[1]?.jobId);
-    expect(enqueued[0]?.options).toEqual(
-      expect.objectContaining({
-        deduplication: "coalesce",
-        deduplicationKey: "swot",
-      }),
+    expect(enqueue).not.toHaveBeenCalled();
+    expect(registerHandler).not.toHaveBeenCalledWith(
+      "swot:derive",
+      expect.anything(),
+      expect.anything(),
     );
-    expect(enqueued[1]?.options).toEqual(
-      expect.objectContaining({
-        deduplication: "coalesce",
-        deduplicationKey: "swot",
-      }),
-    );
-  });
-
-  it("enqueues derive on initial sync when swot is missing", async () => {
-    const plugin = new SwotAssessmentPlugin();
-    const mockShell = harness.getMockShell();
-    const origJobQueue = mockShell.getJobQueueService();
-    const enqueued: Array<{ type: string; data: unknown }> = [];
-
-    mockShell.getJobQueueService = (): ReturnType<
-      typeof mockShell.getJobQueueService
-    > =>
-      ({
-        ...origJobQueue,
-        enqueue: async (request) => {
-          enqueued.push({ type: request.type, data: request.data });
-          return origJobQueue.enqueue(request);
-        },
-      }) as ReturnType<typeof mockShell.getJobQueueService>;
-
-    await harness.installPlugin(plugin);
-    await harness.sendMessage("sync:initial:completed", {}, "directory-sync");
-
-    expect(enqueued).toEqual([
-      { type: "swot:derive", data: { reason: "initial-missing-entity" } },
-    ]);
   });
 });

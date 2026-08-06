@@ -65,6 +65,8 @@ import type { IAttachmentsNamespace } from "./service/attachment-registry";
 import type { IRecurringChecksNamespace } from "@brains/recurring-checks";
 import type { IRuntimeStateNamespace } from "@brains/runtime-state";
 import type { IRuntimeUploadsNamespace } from "./service/upload-registry";
+import type { RuntimeReadiness } from "./contracts/runtime-health";
+import type { ProjectionRule } from "./entity/projection-rule";
 import type {
   AIGenerationSchema,
   ImageGenerationOptions,
@@ -286,7 +288,9 @@ export interface IInsightsRegistry {
 
 export interface PluginRegistrationContext {
   /** Site/entity display metadata derived from the active site package. */
-  entityDisplay?: Record<string, EntityDisplayEntry>;
+  readonly entityDisplay?: Record<string, EntityDisplayEntry>;
+  /** Internal registration boundary for the supervised worker process. */
+  readonly executionOnly?: boolean;
 }
 
 export interface IShell {
@@ -329,8 +333,9 @@ export interface IShell {
   // Default: ./brain-data, can be overridden for evals or custom deployments
   getDataDir(): string;
 
-  // App metadata
+  // App metadata and runtime health
   getAppInfo(): Promise<RuntimeAppInfo>;
+  getRuntimeReadiness(): Promise<RuntimeReadiness>;
 
   // High-level operations
   generateContent<T = unknown>(config: ContentGenerationConfig): Promise<T>;
@@ -468,6 +473,8 @@ export interface PluginCapabilities {
   tools: Tool[];
   resources: Resource[];
   instructions?: string;
+  /** Immutable scheduler-owned executable projection capabilities. */
+  projectionRules?: ProjectionRule[];
 }
 
 /**

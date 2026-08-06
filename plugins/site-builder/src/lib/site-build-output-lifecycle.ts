@@ -1,6 +1,7 @@
-import type {
-  PreparedSiteBuild,
-  SiteBuildArtifactManifest,
+import {
+  siteBuildArtifactManifestSchema,
+  type PreparedSiteBuild,
+  type SiteBuildArtifactManifest,
 } from "@brains/site-engine";
 import type { Logger } from "@brains/utils/logger";
 import { promises as nodeFs } from "fs";
@@ -28,6 +29,7 @@ export interface BeginSiteBuildOutputOptions {
 export interface CommitSiteBuildOutputOptions {
   target: SiteBuildOutputTarget;
   preparedBuild: PreparedSiteBuild;
+  inputFingerprint?: string | undefined;
   warnings: string[];
 }
 
@@ -38,6 +40,9 @@ export interface SiteBuildOutputCommitResult {
 }
 
 export interface SiteBuildOutputLifecycle {
+  getCurrentManifest?(
+    outputDir: string,
+  ): Promise<SiteBuildArtifactManifest | null>;
   begin(options: BeginSiteBuildOutputOptions): Promise<SiteBuildOutputTarget>;
   commit(
     options: CommitSiteBuildOutputOptions,
@@ -83,6 +88,7 @@ export interface SiteBuildOutputFs {
   rename(oldPath: string, newPath: string): Promise<void>;
   readlink(path: string): Promise<string>;
   lstat(path: string): Promise<SiteBuildFileType>;
+  readFile(path: string, encoding: "utf8"): Promise<string>;
 }
 
 /** Default adapter delegating to `fs.promises`. */
@@ -96,6 +102,7 @@ export const nodeSiteBuildOutputFs: SiteBuildOutputFs = {
   rename: (oldPath, newPath) => nodeFs.rename(oldPath, newPath),
   readlink: (path) => nodeFs.readlink(path),
   lstat: (path) => nodeFs.lstat(path),
+  readFile: (path, encoding) => nodeFs.readFile(path, encoding),
 };
 
 /** Filesystem-backed generation staging and active-output publication. */
@@ -115,6 +122,24 @@ export class TransactionalSiteBuildOutput implements SiteBuildOutputLifecycle {
     this.retainedGenerations = Math.max(1, retainedGenerations);
     this.staleGenerationAgeMs = Math.max(0, staleGenerationAgeMs);
     this.fs = fs;
+  }
+
+  async getCurrentManifest(
+    outputDir: string,
+  ): Promise<SiteBuildArtifactManifest | null> {
+    try {
+      const manifest = await this.fs.readFile(
+        join(resolve(outputDir), SITE_BUILD_MANIFEST_FILE),
+        "utf8",
+      );
+      return siteBuildArtifactManifestSchema.parse(JSON.parse(manifest));
+    } catch (error) {
+      if (isNotFoundError(error)) return null;
+      this.logger.warn("Ignoring unreadable active site build manifest", {
+        error,
+      });
+      return null;
+    }
   }
 
   async begin(
@@ -168,6 +193,7 @@ export class TransactionalSiteBuildOutput implements SiteBuildOutputLifecycle {
     const manifest = await createSiteBuildArtifactManifest({
       generationDir: options.target.generationDir,
       preparedBuild: options.preparedBuild,
+      inputFingerprint: options.inputFingerprint,
       warnings: options.warnings,
     });
 

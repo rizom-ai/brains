@@ -1,25 +1,26 @@
 import type {
-  Plugin,
   EntityPluginContext,
   EntityTypeConfig,
+  Plugin,
+  ProjectionRule,
 } from "@brains/plugins";
 import {
   EntityPlugin,
   SYSTEM_CHANNELS,
   emptyEntityPluginConfigSchema,
 } from "@brains/plugins";
-import { ENTITY_CHANNELS, DIRECTORY_SYNC_CHANNELS } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 import { swotEntitySchema, type SwotEntity } from "./schemas/swot";
 
 const swotDigestSourceSchema = z.object({
   status: z.enum(["ready", "generating"]),
 });
-import type { SwotDerivationJobData } from "./schemas/swot-generation";
+
 import { SwotAdapter } from "./adapters/swot-adapter";
 import { SwotDerivationHandler } from "./handlers/swot-derivation-handler";
 import { SwotWidget, swotWidgetStyles } from "./widgets/swot-widget";
 import { ProgressReporter } from "@brains/utils/progress";
+import { createSwotProjectionRule } from "./lib/swot-projection";
 import packageJson from "../package.json";
 
 const swotAdapter = new SwotAdapter();
@@ -33,33 +34,39 @@ export class SwotAssessmentPlugin extends EntityPlugin<
   readonly schema: typeof swotEntitySchema = swotEntitySchema;
   readonly adapter: SwotAdapter = swotAdapter;
 
-  private initialSyncComplete = false;
+  private derivationHandler: SwotDerivationHandler | undefined;
 
   constructor() {
     super("swot", packageJson, {}, emptyEntityPluginConfigSchema);
   }
 
   protected override getEntityTypeConfig(): EntityTypeConfig | undefined {
-    return { projectionSourceRole: "supporting" };
+    return {
+      projectionSource: false,
+      projectionSourceRole: "excluded",
+    };
+  }
+
+  protected override getProjectionRules(
+    _context: EntityPluginContext,
+  ): ProjectionRule[] {
+    return [createSwotProjectionRule()];
   }
 
   protected override async onRegister(
     context: EntityPluginContext,
   ): Promise<void> {
-    const derivationHandler = new SwotDerivationHandler(
+    this.derivationHandler = new SwotDerivationHandler(
       this.logger.child("SwotDerivationHandler"),
       context,
     );
-
-    context.jobs.registerHandler("derive", derivationHandler);
-
     context.eval.registerHandler("deriveSwot", async () => {
       const progressReporter = ProgressReporter.from(async () => {});
       if (!progressReporter) {
         throw new Error("Expected progress reporter to be created");
       }
 
-      await derivationHandler.process(
+      await this.requireDerivationHandler().process(
         { reason: "eval" },
         "eval-swot-derive",
         progressReporter,
@@ -75,47 +82,6 @@ export class SwotAssessmentPlugin extends EntityPlugin<
 
       return swotAdapter.parseSwotContent(entity.content).frontmatter;
     });
-
-    const enqueueDerive = async (reason: string): Promise<string | null> => {
-      try {
-        return await context.jobs.enqueue({
-          type: "derive",
-          data: { reason } satisfies SwotDerivationJobData,
-          options: {
-            source: this.id,
-            priority: 10,
-            deduplication: "coalesce",
-            deduplicationKey: "swot",
-            metadata: {
-              operationType: "data_processing",
-              operationTarget: `swot:${reason}`,
-            },
-          },
-        });
-      } catch (error) {
-        this.logger.error("Failed to queue SWOT derivation", { error, reason });
-        return null;
-      }
-    };
-
-    const ensureDerived = async (reason: string): Promise<void> => {
-      const existing = await context.entityService.getEntity<SwotEntity>({
-        entityType: "swot",
-        id: "swot",
-      });
-      if (!existing) {
-        await enqueueDerive(reason);
-      }
-    };
-
-    context.messaging.subscribe(
-      DIRECTORY_SYNC_CHANNELS.initialCompleted,
-      async () => {
-        this.initialSyncComplete = true;
-        await ensureDerived("initial-missing-entity");
-        return { success: true };
-      },
-    );
 
     context.messaging.subscribe(
       SYSTEM_CHANNELS.pluginsRegistered,
@@ -157,24 +123,13 @@ export class SwotAssessmentPlugin extends EntityPlugin<
         return { success: true };
       },
     );
+  }
 
-    const handleEntityChange = async (message: {
-      payload: { entityType: string };
-    }): Promise<{ success: boolean }> => {
-      const { entityType } = message.payload;
-
-      if (!this.initialSyncComplete) return { success: true };
-      if (entityType !== "agent" && entityType !== "skill") {
-        return { success: true };
-      }
-
-      await enqueueDerive("entity-change");
-      return { success: true };
-    };
-
-    context.messaging.subscribe(ENTITY_CHANNELS.created, handleEntityChange);
-    context.messaging.subscribe(ENTITY_CHANNELS.updated, handleEntityChange);
-    context.messaging.subscribe(ENTITY_CHANNELS.deleted, handleEntityChange);
+  private requireDerivationHandler(): SwotDerivationHandler {
+    if (!this.derivationHandler) {
+      throw new Error("SWOT derivation handler is not registered");
+    }
+    return this.derivationHandler;
   }
 }
 

@@ -113,14 +113,64 @@ export const preparedSiteBuildSchema: z.ZodType<PreparedSiteBuild> = z.object({
   globalHeadScripts: z.array(z.string()),
 });
 
+/**
+ * Normalize a value for the prepared-site JSON boundary.
+ * Undefined object properties are omitted; every other non-JSON value fails.
+ */
+export function normalizeJsonValue(
+  value: unknown,
+  path: string = "$",
+  ancestors: Set<object> = new Set(),
+): JsonValue {
+  if (
+    value === null ||
+    typeof value === "string" ||
+    typeof value === "boolean"
+  ) {
+    return value;
+  }
+  if (typeof value === "number") {
+    return jsonValueSchema.parse(value);
+  }
+  if (typeof value !== "object") {
+    throw new Error(`Unsupported JSON value at ${path}: ${typeof value}`);
+  }
+  if (ancestors.has(value)) {
+    throw new Error(`Circular JSON value at ${path}`);
+  }
+
+  const nextAncestors = new Set(ancestors).add(value);
+  if (Array.isArray(value)) {
+    return value.map((item, index) =>
+      normalizeJsonValue(item, `${path}[${index}]`, nextAncestors),
+    );
+  }
+  if (!isPlainRecord(value)) {
+    const name = value.constructor.name;
+    throw new Error(`Unsupported non-JSON value at ${path}: ${name}`);
+  }
+
+  return Object.fromEntries(
+    Object.entries(value)
+      .filter(([, child]) => child !== undefined)
+      .map(([key, child]) => [
+        key,
+        normalizeJsonValue(child, `${path}.${key}`, nextAncestors),
+      ]),
+  );
+}
+
+function isPlainRecord(value: object): value is Record<string, unknown> {
+  const prototype: unknown = Object.getPrototypeOf(value);
+  return prototype === Object.prototype || prototype === null;
+}
+
 /** Validate, JSON-normalize, and freeze renderer input as one snapshot. */
 export function createPreparedSiteBuildSnapshot(
   input: unknown,
 ): PreparedSiteBuild {
-  const parsed = preparedSiteBuildSchema.parse(input);
-  const json = JSON.stringify(parsed);
-  const normalized = preparedSiteBuildSchema.parse(JSON.parse(json));
-  return freezePreparedSiteBuild(normalized);
+  const normalized = normalizeJsonValue(input);
+  return freezePreparedSiteBuild(preparedSiteBuildSchema.parse(normalized));
 }
 
 /** Deep-freeze the serializable snapshot before handing it to a renderer. */

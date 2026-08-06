@@ -91,6 +91,8 @@ export class WebserverInterface extends InterfacePlugin<
         this.config.previewPort && { previewPort: this.config.previewPort }),
       getHealthData: (): Promise<Awaited<ReturnType<typeof context.appInfo>>> =>
         context.appInfo(),
+      getReadinessData: (): ReturnType<typeof context.readiness> =>
+        context.readiness(),
       getWebRoutes: (): ReturnType<typeof context.webRoutes.getRoutes> =>
         context.webRoutes.getRoutes(),
       getApiRoutes: (): ReturnType<typeof context.apiRoutes.getRoutes> =>

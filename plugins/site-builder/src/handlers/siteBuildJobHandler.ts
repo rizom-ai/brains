@@ -33,6 +33,20 @@ export interface SiteBuildJobHandlerConfig {
   /** Inline static assets supplied by the SitePackage (e.g. canvas scripts) */
   staticAssets?: Record<string, string> | undefined;
   statusService?: SiteBuildStatusService | undefined;
+  onBuildStarted?:
+    | ((
+        environment: "preview" | "production",
+        jobId: string,
+        inputGeneration: number,
+      ) => void | Promise<void>)
+    | undefined;
+  onBuildFinished?:
+    | ((
+        environment: "preview" | "production",
+        jobId: string,
+        inputGeneration: number,
+      ) => void | Promise<void>)
+    | undefined;
 }
 
 /**
@@ -66,10 +80,17 @@ export class SiteBuildJobHandler extends BaseJobHandler<
     // Apply defaults for optional fields
     const environment = data.environment ?? "preview";
     const enableContentGeneration = data.enableContentGeneration ?? false;
+    const inputGeneration = data.inputGeneration ?? 0;
 
     await this.recordStatus(
       () => this.cfg.statusService?.markBuilding(environment, jobId),
       "building",
+    );
+    await this.recordLifecycle(
+      () =>
+        this.cfg.onBuildStarted?.(environment, jobId, inputGeneration) ??
+        Promise.resolve(),
+      "started",
     );
 
     try {
@@ -201,6 +222,7 @@ export class SiteBuildJobHandler extends BaseJobHandler<
       return {
         success: result.success,
         ...(result.cancelled && { cancelled: true }),
+        ...(result.skipped && { skipped: true }),
         routesBuilt: result.routesBuilt,
         outputDir: data.outputDir,
         environment,
@@ -220,6 +242,26 @@ export class SiteBuildJobHandler extends BaseJobHandler<
       );
       this.logger.error("Site build job failed", error);
       throw error;
+    } finally {
+      await this.recordLifecycle(
+        () =>
+          this.cfg.onBuildFinished?.(environment, jobId, inputGeneration) ??
+          Promise.resolve(),
+        "finished",
+      );
+    }
+  }
+
+  private async recordLifecycle(
+    update: () => void | Promise<void>,
+    state: string,
+  ): Promise<void> {
+    try {
+      await update();
+    } catch (error) {
+      this.logger.warn(`Failed to record site build ${state} lifecycle`, {
+        error,
+      });
     }
   }
 

@@ -1,4 +1,6 @@
 import type { Plugin, PluginRegistrationContext } from "../interfaces";
+import type { ProjectionGraph } from "../entity/projection-registry";
+import type { ProjectionRule } from "../entity/projection-rule";
 
 /**
  * Plugin Manager interface for managing plugin lifecycle
@@ -9,6 +11,10 @@ export interface PluginManager {
   initializePlugins(context?: PluginRegistrationContext): Promise<void>;
 
   finalizePluginRegistrations(): Promise<void>;
+
+  getProjectionGraphSnapshot(): ProjectionGraph;
+
+  getProjectionRulesSnapshot(): readonly ProjectionRule[];
 
   readyPlugins(): Promise<void>;
 

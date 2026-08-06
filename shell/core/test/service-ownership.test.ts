@@ -41,6 +41,8 @@ interface DependencyAuditEntry {
 
 const dependencyAudit: Record<keyof ShellDependencies, DependencyAuditEntry> = {
   logger: { honoredByCore: true, cleanup: "none" },
+  operationContext: { honoredByCore: true, cleanup: "none" },
+  projectionRuntimeSupervisor: { honoredByCore: true, cleanup: "none" },
   embeddingService: { honoredByCore: true, cleanup: "none" },
   aiService: { honoredByCore: true, cleanup: "none" },
   entityService: { honoredByCore: true, cleanup: "close" },
@@ -432,6 +434,7 @@ describe("Shell service ownership", () => {
         activeJobs: 0,
         uptime: 0,
         isRunning: false,
+        isHealthy: true,
       }),
       isWorkerRunning: (): boolean => false,
     } satisfies IJobQueueWorker;

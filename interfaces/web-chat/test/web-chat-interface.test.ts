@@ -61,6 +61,13 @@ function makeJobStatus(
     startedAt: status === "pending" ? null : Date.now(),
     completedAt:
       status === "completed" || status === "failed" ? Date.now() : null,
+    attemptId: status === "pending" ? null : `attempt-${jobId}`,
+    workerSlotId: status === "pending" ? null : "worker-a",
+    workerSessionId: status === "pending" ? null : "session-a",
+    leaseExpiresAt: status === "pending" ? null : Date.now() + 30_000,
+    attemptHeartbeatAt: status === "pending" ? null : Date.now(),
+    runtimeUpdatedAt: status === "pending" ? null : Date.now(),
+    progress: null,
     metadata: {
       operationType: "content_operations",
       rootJobId: jobId,

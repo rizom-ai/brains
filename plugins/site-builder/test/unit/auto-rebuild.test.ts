@@ -6,7 +6,7 @@ import type { ServicePluginContext } from "@brains/plugins";
 function createMockContext(): ServicePluginContext {
   return {
     messaging: {
-      subscribe: mock(() => () => {}),
+      subscribeExecution: mock(() => () => {}),
       send: mock(() => Promise.resolve()),
     },
     jobs: {
@@ -26,6 +26,164 @@ describe("RebuildManager", () => {
 
   beforeEach(() => {
     context = createMockContext();
+  });
+
+  test("successful projection waves enqueue a build before acknowledgment", async () => {
+    let waveReadyHandler:
+      | ((message: {
+          payload: {
+            waveId: string;
+            sourceTypes: string[];
+            changedTargetTypes: string[];
+          };
+        }) => Promise<{ success: boolean }>)
+      | undefined;
+    context.messaging.subscribeExecution = mock(
+      (_type, handler): (() => void) => {
+        waveReadyHandler = handler as typeof waveReadyHandler;
+        return () => {};
+      },
+    );
+    const manager = new RebuildManager(
+      createTestConfig({ rebuildDebounce: 1 }),
+      context,
+      "site-builder",
+      context.logger,
+    );
+    manager.setupAutoRebuild();
+    if (!waveReadyHandler) throw new Error("Expected wave subscription");
+
+    await waveReadyHandler({
+      payload: {
+        waveId: "wave-1",
+        sourceTypes: ["post"],
+        changedTargetTypes: ["topic"],
+      },
+    });
+
+    expect(context.jobs.enqueue).toHaveBeenCalledTimes(1);
+    await manager.dispose();
+  });
+
+  test("does not rebuild for note-only waves", async () => {
+    let waveReadyHandler:
+      | ((message: {
+          payload: {
+            waveId: string;
+            sourceTypes: string[];
+            changedTargetTypes: string[];
+          };
+        }) => Promise<{ success: boolean }>)
+      | undefined;
+    context.messaging.subscribeExecution = mock(
+      (_type, handler): (() => void) => {
+        waveReadyHandler = handler as typeof waveReadyHandler;
+        return () => {};
+      },
+    );
+    const manager = new RebuildManager(
+      createTestConfig(),
+      context,
+      "site-builder",
+      context.logger,
+    );
+    manager.setupAutoRebuild();
+    if (!waveReadyHandler) throw new Error("Expected wave subscription");
+
+    await waveReadyHandler({
+      payload: {
+        waveId: "wave-note",
+        sourceTypes: ["note"],
+        changedTargetTypes: [],
+      },
+    });
+
+    expect(context.jobs.enqueue).not.toHaveBeenCalled();
+    await manager.dispose();
+  });
+
+  test("enqueues one dirty-generation successor after an active build", async () => {
+    let waveReadyHandler:
+      | ((message: {
+          payload: {
+            waveId: string;
+            sourceTypes: string[];
+            changedTargetTypes: string[];
+          };
+        }) => Promise<{ success: boolean }>)
+      | undefined;
+    context.messaging.subscribeExecution = mock(
+      (_type, handler): (() => void) => {
+        waveReadyHandler = handler as typeof waveReadyHandler;
+        return () => {};
+      },
+    );
+    let nextJob = 0;
+    context.jobs.enqueue = mock(async () => {
+      nextJob += 1;
+      return `job-${nextJob}`;
+    });
+    const manager = new RebuildManager(
+      createTestConfig({ rebuildDebounce: 1 }),
+      context,
+      "site-builder",
+      context.logger,
+    );
+    manager.setupAutoRebuild();
+    if (!waveReadyHandler) throw new Error("Expected wave subscription");
+
+    await waveReadyHandler({
+      payload: {
+        waveId: "wave-1",
+        sourceTypes: ["post"],
+        changedTargetTypes: [],
+      },
+    });
+    manager.markBuildStarted("preview", "job-1", 1);
+
+    await waveReadyHandler({
+      payload: {
+        waveId: "wave-2",
+        sourceTypes: ["post"],
+        changedTargetTypes: [],
+      },
+    });
+    await waveReadyHandler({
+      payload: {
+        waveId: "wave-3",
+        sourceTypes: ["page"],
+        changedTargetTypes: [],
+      },
+    });
+    await manager.markBuildFinished("preview", "job-1", 1);
+
+    const enqueue = context.jobs.enqueue as ReturnType<typeof mock>;
+    expect(enqueue).toHaveBeenCalledTimes(2);
+    expect(enqueue.mock.calls[0]?.[0]?.data.inputGeneration).toBe(1);
+    expect(enqueue.mock.calls[1]?.[0]?.data.inputGeneration).toBe(3);
+    await manager.dispose();
+  });
+
+  test("uses environment-specific job deduplication keys", async () => {
+    const manager = new RebuildManager(
+      createTestConfig(),
+      context,
+      "site-builder",
+      context.logger,
+    );
+
+    manager.requestBuild("preview");
+    manager.requestBuild("production");
+    await Promise.resolve();
+
+    const enqueue = context.jobs.enqueue as ReturnType<typeof mock>;
+    expect(enqueue.mock.calls[0]?.[0]?.options.deduplicationKey).toBe(
+      "site-build:preview",
+    );
+    expect(enqueue.mock.calls[1]?.[0]?.options.deduplicationKey).toBe(
+      "site-build:production",
+    );
+    await manager.dispose();
   });
 
   test("requestBuild defaults to preview when previewOutputDir is set", async () => {

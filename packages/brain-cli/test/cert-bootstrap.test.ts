@@ -2,11 +2,11 @@ import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { createPublicKey, verify } from "crypto";
 import {
   existsSync,
-  mkdirSync,
   readFileSync,
   rmSync,
   statSync,
   writeFileSync,
+  mkdtempSync,
 } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
@@ -36,8 +36,7 @@ describe("origin CA bootstrap", () => {
   let testDir: string;
 
   beforeEach(() => {
-    testDir = join(tmpdir(), `brain-cert-bootstrap-${Date.now()}`);
-    mkdirSync(testDir, { recursive: true });
+    testDir = mkdtempSync(join(tmpdir(), "brain-cert-bootstrap-"));
     writeFileSync(
       join(testDir, "brain.yaml"),
       [

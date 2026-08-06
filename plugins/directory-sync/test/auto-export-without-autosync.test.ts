@@ -10,7 +10,7 @@ import type { BaseEntity } from "@brains/plugins/test";
 import { createTestEntity } from "@brains/test-utils";
 import { join } from "path";
 import { tmpdir } from "os";
-import { existsSync, rmSync, writeFileSync } from "fs";
+import { existsSync, rmSync, writeFileSync, mkdtempSync } from "fs";
 
 class TestAdapter extends BaseEntityAdapter<BaseEntity> {
   constructor() {
@@ -46,7 +46,7 @@ describe("auto-export without autoSync", () => {
 
   beforeEach(async () => {
     replacementPath = undefined;
-    syncPath = join(tmpdir(), `test-auto-export-${Date.now()}`);
+    syncPath = mkdtempSync(join(tmpdir(), "test-auto-export-"));
     harness = createPluginHarness<DirectorySyncPlugin>({ dataDir: syncPath });
 
     const entityRegistry = harness.getEntityRegistry();
@@ -121,9 +121,8 @@ describe("auto-export without autoSync", () => {
   });
 
   it("resolves the replacement path after reconfiguration", async () => {
-    replacementPath = join(
-      tmpdir(),
-      `test-auto-export-replacement-${Date.now()}`,
+    replacementPath = mkdtempSync(
+      join(tmpdir(), "test-auto-export-replacement-"),
     );
     await plugin.configure({ syncPath: replacementPath });
     const entity = createTestEntity("note", {

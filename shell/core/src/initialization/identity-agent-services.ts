@@ -51,6 +51,7 @@ export interface IdentityAndAgentServiceOptions {
   conversationService: IConversationService;
   runtimeUploadRegistry: RuntimeUploadRegistry;
   disposables: Array<() => void>;
+  executionOnly?: boolean;
 }
 
 /**
@@ -162,6 +163,7 @@ export function initializeIdentityAndAgentServices(
     conversationService,
     runtimeUploadRegistry,
     disposables,
+    executionOnly = false,
   } = options;
 
   const identityService = BrainCharacterService.createFresh(
@@ -170,15 +172,17 @@ export function initializeIdentityAndAgentServices(
     config.identity,
   );
 
-  disposables.push(
-    ...subscribeToEntityCacheInvalidation(
-      messageBus,
-      SHELL_ENTITY_TYPES.BRAIN_CHARACTER,
-      SHELL_ENTITY_TYPES.BRAIN_CHARACTER,
-      () => identityService.refreshCache(),
-      logger,
-    ),
-  );
+  if (!executionOnly) {
+    disposables.push(
+      ...subscribeToEntityCacheInvalidation(
+        messageBus,
+        SHELL_ENTITY_TYPES.BRAIN_CHARACTER,
+        SHELL_ENTITY_TYPES.BRAIN_CHARACTER,
+        () => identityService.refreshCache(),
+        logger,
+      ),
+    );
+  }
 
   const profileService = AnchorProfileService.createFresh(
     entityService,
@@ -248,31 +252,33 @@ export function initializeIdentityAndAgentServices(
     },
   );
 
-  disposables.push(
-    ...subscribeToEntityCacheInvalidation(
-      messageBus,
-      SHELL_ENTITY_TYPES.ANCHOR_PROFILE,
-      SHELL_ENTITY_TYPES.ANCHOR_PROFILE,
-      () => profileService.refreshCache(),
-      logger,
-    ),
-  );
-
-  // Invalidate cached agent when identity or profile changes.
-  // Next conversation will rebuild with fresh data.
-  for (const entityType of [
-    SHELL_ENTITY_TYPES.BRAIN_CHARACTER,
-    SHELL_ENTITY_TYPES.ANCHOR_PROFILE,
-  ]) {
+  if (!executionOnly) {
     disposables.push(
       ...subscribeToEntityCacheInvalidation(
         messageBus,
-        entityType,
-        entityType,
-        async () => agentService.invalidateAgent(),
+        SHELL_ENTITY_TYPES.ANCHOR_PROFILE,
+        SHELL_ENTITY_TYPES.ANCHOR_PROFILE,
+        () => profileService.refreshCache(),
         logger,
       ),
     );
+
+    // Invalidate cached agent when identity or profile changes.
+    // Next conversation will rebuild with fresh data.
+    for (const entityType of [
+      SHELL_ENTITY_TYPES.BRAIN_CHARACTER,
+      SHELL_ENTITY_TYPES.ANCHOR_PROFILE,
+    ]) {
+      disposables.push(
+        ...subscribeToEntityCacheInvalidation(
+          messageBus,
+          entityType,
+          entityType,
+          async () => agentService.invalidateAgent(),
+          logger,
+        ),
+      );
+    }
   }
 
   return {

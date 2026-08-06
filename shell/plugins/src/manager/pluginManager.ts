@@ -14,6 +14,11 @@ import { PluginLifecycle } from "./plugin-lifecycle";
 import { DependencyResolver } from "./dependency-resolver";
 import { CapabilityRegistrar } from "./capability-registrar";
 import { Effect, Either } from "@brains/utils/effect";
+import {
+  ProjectionRegistry,
+  type ProjectionGraph,
+} from "../entity/projection-registry";
+import type { ProjectionRule } from "../entity/projection-rule";
 
 async function runConcurrentPhase(
   operations: Array<() => Promise<void>>,
@@ -51,6 +56,8 @@ export class PluginManager implements IPluginManager {
   private pluginLifecycle: PluginLifecycle;
   private dependencyResolver: DependencyResolver;
   private capabilityRegistrar: CapabilityRegistrar;
+  private readonly projectionRegistry = ProjectionRegistry.createFresh();
+  private projectionGraph: ProjectionGraph | undefined;
 
   public static createFresh(
     logger: Logger,
@@ -76,6 +83,7 @@ export class PluginManager implements IPluginManager {
       this.plugins,
       this.events,
       this.daemonRegistry,
+      this.projectionRegistry,
       logger,
     );
     this.dependencyResolver = new DependencyResolver(
@@ -83,7 +91,10 @@ export class PluginManager implements IPluginManager {
       this.events,
       logger,
     );
-    this.capabilityRegistrar = new CapabilityRegistrar(logger);
+    this.capabilityRegistrar = new CapabilityRegistrar(
+      logger,
+      this.projectionRegistry,
+    );
   }
 
   /**
@@ -177,6 +188,7 @@ export class PluginManager implements IPluginManager {
         shell,
         pluginId,
         capabilities,
+        { executionOnly: registrationContext?.executionOnly },
       );
 
       this.initializedPluginIds.push(pluginId);
@@ -195,6 +207,49 @@ export class PluginManager implements IPluginManager {
     for (const id of this.initializedPluginIds) {
       await this.pluginLifecycle.finalizePluginRegistration(id);
     }
+
+    if (!this.shell) {
+      throw new Error("Cannot validate projections before the shell is set");
+    }
+    const entityRegistry = this.shell.getEntityRegistry();
+    const graph = this.projectionRegistry.validate(
+      entityRegistry.getAllEntityTypes().map((type) => {
+        const config = entityRegistry.getEntityTypeConfig(type);
+        return {
+          type,
+          projectionSource:
+            config.projectionSource !== false &&
+            config.projectionSourceRole !== "excluded",
+        };
+      }),
+    );
+    this.projectionGraph = graph;
+    for (const entry of graph.unknownSourceTypes) {
+      this.logger.warn(
+        "Projection declares entity source types no installed plugin registers",
+        { projectionId: entry.projectionId, types: entry.types },
+      );
+    }
+    this.logger.debug("Validated projection graph", {
+      projections: graph.projections.length,
+      edges: graph.edges.length,
+    });
+  }
+
+  /** Internal read-only composition output for core runtime services. */
+  public getProjectionGraphSnapshot(): ProjectionGraph {
+    if (!this.projectionGraph) {
+      throw new Error("Projection graph has not been finalized");
+    }
+    return this.projectionGraph;
+  }
+
+  /** Internal executable capabilities for the projection scheduler. */
+  public getProjectionRulesSnapshot(): readonly ProjectionRule[] {
+    if (!this.projectionGraph) {
+      throw new Error("Projection graph has not been finalized");
+    }
+    return Object.freeze(this.projectionRegistry.listRules());
   }
 
   /**

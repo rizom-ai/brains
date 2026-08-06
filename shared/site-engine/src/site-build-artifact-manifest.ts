@@ -22,6 +22,8 @@ export interface SiteBuildArtifactManifest {
   version: 1;
   buildId: string;
   environment: "preview" | "production";
+  /** Hash of effective renderer inputs; absent on manifests from older releases. */
+  inputFingerprint?: string | undefined;
   routes: SiteBuildRouteArtifact[];
   files: SiteBuildArtifactFile[];
   images: SiteImageMap;
@@ -60,6 +62,10 @@ export const siteBuildArtifactManifestSchema: z.ZodType<SiteBuildArtifactManifes
     version: z.literal(1),
     buildId: z.string().min(1),
     environment: z.enum(["preview", "production"]),
+    inputFingerprint: z
+      .string()
+      .regex(/^[a-f0-9]{64}$/)
+      .optional(),
     routes: z.array(routeArtifactSchema),
     files: z.array(artifactFileSchema),
     images: z.record(z.string(), resolvedSiteImageSchema),

@@ -4,13 +4,13 @@ import { applySqlitePragmas } from "@brains/db";
 import { createRuntimeStateDatabase, type RuntimeStateDB } from "./db";
 import { RuntimeStateStore } from "./runtime-state-store";
 import type {
-  IRuntimeStateNamespace,
+  IRuntimeStateService,
   IRuntimeStateStore,
   RuntimeStateScopeOptions,
   RuntimeStateServiceConfig,
 } from "./types";
 
-export class RuntimeStateService implements IRuntimeStateNamespace {
+export class RuntimeStateService implements IRuntimeStateService {
   private readonly db: RuntimeStateDB;
   private readonly client: Client;
   private readonly logger: Logger;
