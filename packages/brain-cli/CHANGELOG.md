@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.254
+
+### Minor Changes
+
+- [`757c902`](https://github.com/rizom-ai/brains/commit/757c90211ca9f263f879b458fdea7647789181e4) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Retire the private `@brains/rizom-ecosystem` package and remove its `rizom-ecosystem` capability from the canonical catalog. Rizom sites now own their ecosystem or faces content through their site section packages, and existing instances must remove `rizom-ecosystem` from `add` and any `rizom-ecosystem:ecosystem` template references.
+
 ## 0.2.0-alpha.253
 
 ## 0.2.0-alpha.252

@@ -1,5 +1,27 @@
 # @brains/core
 
+## 0.2.0-alpha.254
+
+### Patch Changes
+
+- [`a7e1a8f`](https://github.com/rizom-ai/brains/commit/a7e1a8f9d467ad7d04aafa5c49b50aa4cae2ca99) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Stop silently publishing restricted entities when replacement content omits `visibility`.
+
+  `extractVisibilityFromMarkdown` used to collapse "the file declares no visibility" into `"public"`. Because export deliberately omits the key for public entities, absence is the ordinary shape of content rather than a demotion request — so any write path that merged parsed markdown over an existing entity would reset a restricted entity to public. It now returns `undefined` when the key is absent, and `deserializeEntity` leaves `visibility` unset in that case.
+
+  Directory-sync import and `system_update` content replacement both keep the stored visibility when the file declares none. Moving an entity between tiers now requires an explicit `visibility:` value in frontmatter; entities created from markdown with no visibility still default to public.
+
+- Updated dependencies []:
+  - @brains/image@0.2.0-alpha.254
+  - @brains/plugins@0.2.0-alpha.254
+  - @brains/contracts@0.2.0-alpha.254
+  - @brains/notification-contracts@0.2.0-alpha.254
+  - @brains/site-composition@0.2.0-alpha.254
+  - @brains/utils@0.2.0-alpha.254
+  - @brains/recurring-checks@0.2.0-alpha.254
+  - @brains/runtime-state@0.2.0-alpha.254
+  - @brains/scheduler@0.2.0-alpha.254
+  - @brains/templates@0.2.0-alpha.254
+
 ## 0.2.0-alpha.253
 
 ### Patch Changes
