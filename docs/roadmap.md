@@ -91,6 +91,7 @@ Plans:
 - [web-search-tool.md](./plans/web-search-tool.md) — provider-neutral `web_search` capability (Tavily first), permission-gated and audited; Phase 0 removes the verified-dead `webSearch` config flag.
 - [system-analytics-tool.md](./plans/system-analytics-tool.md) — rename/reframe `system_insights` as an extensible typed analytics/reporting surface, folding plugin reports such as Cloudflare traffic into one LLM-facing tool.
 - [agent-tool-surface-consolidation.md](./plans/agent-tool-surface-consolidation.md) — separate agent/protocol/CLI exposure, remove maintenance and MCP adapters from model context, and consolidate playbook, directory-sync, and publishing lifecycle tools behind typed canonical surfaces.
+- [system-create-visibility.md](./plans/system-create-visibility.md) — add first-class `public` / `shared` / `restricted` visibility to the canonical create command so agent-backed interfaces can save non-public content without rewriting supplied material.
 
 ### 2. The collective posture (active POC)
 
