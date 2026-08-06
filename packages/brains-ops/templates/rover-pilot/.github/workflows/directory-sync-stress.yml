@@ -1,0 +1,100 @@
+name: Directory Sync Stress
+
+on:
+  workflow_dispatch:
+    inputs:
+      handle:
+        description: Smoke handle only
+        required: true
+        type: string
+        default: smoke
+      profile:
+        description: Workload profile
+        required: true
+        type: choice
+        default: regression
+        options:
+          - regression
+          - load
+          - stress
+      confirm:
+        description: Type stress:<handle> to confirm reversible content writes
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: directory-sync-stress-${{ inputs.handle }}
+  cancel-in-progress: false
+
+jobs:
+  stress:
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Install operator tooling
+        run: bun install
+
+      - name: Load Bitwarden environment through Varlock
+        uses: ./.github/actions/varlock-env
+        env:
+          BWS_ACCESS_TOKEN: ${{ secrets.BWS_ACCESS_TOKEN }}
+
+      - name: Run smoke directory-sync stress profile
+        env:
+          HANDLE_INPUT: ${{ inputs.handle }}
+          CONFIRM_INPUT: ${{ inputs.confirm }}
+        run: |
+          bunx brains-ops stress:directory-sync "$GITHUB_WORKSPACE" "$HANDLE_INPUT" \
+            --profile "${{ inputs.profile }}" \
+            --confirm "$CONFIRM_INPUT" \
+            --artifacts-dir "$RUNNER_TEMP/directory-sync-stress"
+
+      - name: Upload stress evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: directory-sync-stress-${{ inputs.handle }}-${{ inputs.profile }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/directory-sync-stress
+          if-no-files-found: warn
+
+  cleanup:
+    needs: stress
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Install operator tooling
+        run: bun install
+
+      - name: Load Bitwarden environment through Varlock
+        uses: ./.github/actions/varlock-env
+        env:
+          BWS_ACCESS_TOKEN: ${{ secrets.BWS_ACCESS_TOKEN }}
+
+      - name: Remove residual stress probes
+        env:
+          HANDLE_INPUT: ${{ inputs.handle }}
+          CONFIRM_INPUT: ${{ inputs.confirm }}
+        run: |
+          bunx brains-ops stress:directory-sync:cleanup "$GITHUB_WORKSPACE" "$HANDLE_INPUT" \
+            --confirm "$CONFIRM_INPUT" \
+            --artifacts-dir "$RUNNER_TEMP/directory-sync-stress-cleanup"
+
+      - name: Upload cleanup evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: directory-sync-stress-cleanup-${{ inputs.handle }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/directory-sync-stress-cleanup
+          if-no-files-found: warn

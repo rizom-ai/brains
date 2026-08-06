@@ -104,6 +104,16 @@ describe("@rizom/ops package metadata", () => {
 
     expect(filePaths.has("dist/deploy.js")).toBeTrue();
     expect(filePaths.has("dist/deploy.d.ts")).toBeTrue();
+    expect(
+      filePaths.has(
+        "templates/rover-pilot/.github/actions/varlock-env/action.yml",
+      ),
+    ).toBeTrue();
+    expect(
+      filePaths.has(
+        "templates/rover-pilot/.github/workflows/directory-sync-stress.yml",
+      ),
+    ).toBeTrue();
     // Timeout: cold `bun run build` + `npm pack --dry-run` exceeds bun's
     // 20s default on shared CI runners.
   }, 60000);

@@ -134,6 +134,27 @@ describe("brains-ops parseArgs", () => {
     expect(result.args).toEqual(["/tmp/rover-pilot", "alice"]);
   });
 
+  it("parses smoke-only directory-sync stress options", () => {
+    const result = parseArgs([
+      "stress:directory-sync",
+      "/tmp/rover-pilot",
+      "smoke",
+      "--profile",
+      "load",
+      "--confirm",
+      "stress:smoke",
+      "--artifacts-dir",
+      "/tmp/artifacts",
+    ]);
+    expect(result.command).toBe("stress:directory-sync");
+    expect(result.args).toEqual(["/tmp/rover-pilot", "smoke"]);
+    expect(result.flags).toMatchObject({
+      profile: "load",
+      confirm: "stress:smoke",
+      "artifacts-dir": "/tmp/artifacts",
+    });
+  });
+
   it("defaults to help when no args", () => {
     const result = parseArgs([]);
     expect(result.command).toBe("help");
@@ -337,6 +358,65 @@ discord:
     expect(result.message).toContain(
       "Usage: brains-ops onboard <repo> <handle>",
     );
+  });
+
+  it("runs an injected directory-sync stress driver", async () => {
+    const result = await runCommand(
+      {
+        command: "stress:directory-sync",
+        args: ["/tmp/rover-pilot", "smoke"],
+        flags: {
+          profile: "regression",
+          confirm: "stress:smoke",
+          "artifacts-dir": "/tmp/artifacts",
+        },
+      },
+      {
+        async directorySyncStressRunner(options) {
+          expect(options).toMatchObject({
+            rootDir: "/tmp/rover-pilot",
+            handle: "smoke",
+            profile: "regression",
+            confirmation: "stress:smoke",
+            artifactsDir: "/tmp/artifacts",
+          });
+          return {
+            runId: "20260805170000",
+            artifactsDir: "/tmp/artifacts",
+            target: {
+              handle: "smoke",
+              domain: "smoke.rizom.ai",
+              contentRepo: "rizom-ai/rover-smoke-content",
+            },
+            startedAt: "2026-08-05T17:00:00.000Z",
+            completedAt: "2026-08-05T17:05:00.000Z",
+            report: {
+              profile: "regression",
+              success: true,
+              baseline: {
+                entities: 41,
+                notes: 7,
+                version: "0.2.0-alpha.253",
+              },
+              phases: [],
+              cleanup: {
+                success: true,
+                probesRemaining: 0,
+                finalEntities: 41,
+                finalNotes: 7,
+              },
+              metrics: { health: [], runtime: [] },
+            },
+          };
+        },
+      },
+    );
+
+    expect(result).toEqual({
+      success: true,
+      message:
+        "Passed regression directory-sync stress for smoke; artifacts: /tmp/artifacts",
+    });
   });
 
   it("verifies a site-enabled user from the CLI", async () => {

@@ -87,60 +87,10 @@ jobs:
       - name: Install operator tooling
         run: bun install
 
-      - name: Load shared env via varlock
+      - name: Load shared env via Varlock
+        uses: ./.github/actions/varlock-env
         env:
           BWS_ACCESS_TOKEN: ${{ secrets.BWS_ACCESS_TOKEN }}
-        run: |
-          for attempt in 1 2 3; do
-            if bunx varlock@1.1.0 load --path .env.schema --format json --compact > /tmp/varlock-env.json; then
-              break
-            fi
-            if [ "$attempt" = "3" ]; then
-              exit 1
-            fi
-            echo "Varlock load failed (attempt $attempt/3); retrying in 5s..."
-            sleep 5
-          done
-          node <<'NODE'
-          import { appendFileSync, readFileSync } from "node:fs";
-          const env = JSON.parse(readFileSync('/tmp/varlock-env.json', 'utf8'));
-          const githubEnvPath = process.env.GITHUB_ENV;
-          if (!githubEnvPath) {
-            throw new Error('Missing GITHUB_ENV');
-          }
-
-          const newline = String.fromCharCode(10);
-          const carriageReturn = String.fromCharCode(13);
-          const chunks = [];
-          for (const [key, value] of Object.entries(env)) {
-            if (key === 'BWS_ACCESS_TOKEN' || value === null || value === undefined) {
-              continue;
-            }
-
-            const text = String(value)
-              .split(carriageReturn + newline)
-              .join(newline);
-            const escapedMask = text
-              .replace(/%/g, '%25')
-              .replace(/\r/g, '%0D')
-              .replace(/\n/g, '%0A');
-            if (escapedMask.length > 0) {
-              process.stdout.write('::add-mask::' + escapedMask + newline);
-            }
-
-            if (text.includes(newline)) {
-              let delimiter = `VARLOCK_${key}_EOF`;
-              while (text.includes(delimiter)) {
-                delimiter += '_X';
-              }
-              chunks.push(`${key}<<${delimiter}${newline}${text}${newline}${delimiter}`);
-            } else {
-              chunks.push(`${key}=${text}`);
-            }
-          }
-
-          appendFileSync(githubEnvPath, chunks.join(newline) + newline);
-          NODE
 
       - name: Decrypt user secrets
         id: user_secrets

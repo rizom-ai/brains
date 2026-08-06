@@ -40,6 +40,29 @@ export {
 export { encryptPilotSecrets } from "./secrets-encrypt";
 export { pushPilotSecrets } from "./secrets-push";
 export { verifyPilotUser } from "./verify-user";
+export {
+  assertDirectorySyncStressTarget,
+  directorySyncStressPlanSchema,
+  directorySyncStressProfileSchema,
+  directorySyncStressReportSchema,
+  resolveDirectorySyncStressPlan,
+  runDirectorySyncStressPlan,
+  sampleStressHealth,
+  stressMetricsFailure,
+  type DirectorySyncStressDriver,
+  type DirectorySyncStressPhase,
+  type DirectorySyncStressPlan,
+  type DirectorySyncStressProfile,
+  type DirectorySyncStressReport,
+} from "./directory-sync-stress";
+export {
+  cleanupDirectorySyncStress,
+  runDeployedDirectorySyncStress,
+  type CleanupDirectorySyncStressOptions,
+  type CleanupDirectorySyncStressResult,
+  type DeployedDirectorySyncStressOptions,
+  type DeployedDirectorySyncStressResult,
+} from "./directory-sync-stress-system";
 export { runCommand, type CommandResult } from "./run-command";
 export {
   pilotSchema,
