@@ -121,9 +121,8 @@ describe("auto-export without autoSync", () => {
   });
 
   it("resolves the replacement path after reconfiguration", async () => {
-    replacementPath = join(
-      tmpdir(),
-      `test-auto-export-replacement-${Date.now()}`,
+    replacementPath = mkdtempSync(
+      join(tmpdir(), "test-auto-export-replacement-"),
     );
     await plugin.configure({ syncPath: replacementPath });
     const entity = createTestEntity("note", {
