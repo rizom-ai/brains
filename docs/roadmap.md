@@ -43,7 +43,7 @@ Priority is explicit; an existing worktree does not automatically outrank releas
 | Priority | Outcome                            | Current execution                                                                                                                                                                                            |
 | -------- | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | **P0**   | One brain composed from bundles    | The runtime is published; fix ops view ownership, regenerate exact-tip pilot staging, then repeat canary crossover only in an approved freeze window with coherent config/image pairs and paired rollback.   |
-| **P0**   | Stable `v0.2.0` release candidate  | Complete clean canary convergence and soak on the corrected ops release, validate `yeehaa.io`, then exit prerelease mode.                                                                                    |
+| **P0**   | Stable `v0.2.0` release candidate  | Freeze and prove the four public authoring use cases, complete clean canary convergence and soak on the corrected release, validate `yeehaa.io`, then exit prerelease mode.                                  |
 | **P1**   | Real runtime identity boundary     | Implementation is complete on `main`: runtime auth storage, multi-user boundaries, People/Admin surfaces, invitations, connected delivery channels, and obsolete compatibility-path removal are implemented. |
 | **P1**   | Finish Rizom consolidation tail    | Production cutover, redirects, and staging retirement are complete; retire old Work/Foundation origins, archive superseded repos, and remove obsolete deployment paths after the rollback window.            |
 | **P2**   | Opportunity-prioritization dogfood | Finish and merge the in-flight capture/ranking/focus slice without adding it to a default bundle. Recurring stale alerts adopt the shared recurring-check service once that slice merges.                    |
@@ -188,6 +188,7 @@ This includes:
 
 Plans:
 
+- [public-authoring-api-0.2.md](./plans/public-authoring-api-0.2.md) — **P0 stable-release gate**: freeze and prove packed external authoring for custom entity types, service plugins, sites, and interfaces before nominating `v0.2.0`.
 - [npm-package-boundaries.md](./plans/npm-package-boundaries.md) — narrow official publishable plugin/entity dependencies; the utils grab-bag has been broken up (ops, contracts, content-formatters, image, ui-library, site-composition) so remaining work is curation of public surfaces and one official plugin proof.
 - [site-package-independent-versioning.md](./plans/site-package-independent-versioning.md) — give deployable site and theme packages independent npm releases, published brain-compatibility metadata, and reviewed exact hosted pins that remain valid when packages move to external repositories.
 - [atproto-integration.md](./plans/atproto-integration.md) — active prototype for distribution/discovery; outbound publishing, registry contracts/routes, and the first bounded discovery slice are implemented. Remaining work is OAuth hardening, configurable discovery/Jetstream, and later ingestion/feed work.
