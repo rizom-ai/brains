@@ -1,0 +1,156 @@
+name: Directory Sync Stress
+
+on:
+  workflow_dispatch:
+    inputs:
+      handle:
+        description: Smoke handle only
+        required: true
+        type: string
+        default: smoke
+      profile:
+        description: Workload profile
+        required: true
+        type: choice
+        default: regression
+        options:
+          - regression
+          - load
+          - stress
+      confirm:
+        description: Type stress:<handle> to confirm reversible content writes
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: directory-sync-stress-${{ inputs.handle }}
+  cancel-in-progress: false
+
+jobs:
+  stress:
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Install operator tooling
+        run: bun install
+
+      - name: Load Bitwarden environment through Varlock
+        env:
+          BWS_ACCESS_TOKEN: ${{ secrets.BWS_ACCESS_TOKEN }}
+        run: |
+          for attempt in 1 2 3; do
+            if bunx varlock@1.1.0 load --path .env.schema --format json --compact > /tmp/varlock-env.json; then
+              break
+            fi
+            if [ "$attempt" = "3" ]; then
+              exit 1
+            fi
+            sleep 5
+          done
+          node <<'NODE'
+          import { appendFileSync, readFileSync, rmSync } from "node:fs";
+          const env = JSON.parse(readFileSync("/tmp/varlock-env.json", "utf8"));
+          const output = process.env.GITHUB_ENV;
+          if (!output) throw new Error("Missing GITHUB_ENV");
+          const newline = "\n";
+          const chunks = [];
+          for (const [key, value] of Object.entries(env)) {
+            if (key === "BWS_ACCESS_TOKEN" || value === null || value === undefined) continue;
+            const text = String(value).replace(/\r\n/g, newline);
+            process.stdout.write(`::add-mask::${text.replace(/%/g, "%25").replace(/\r/g, "%0D").replace(/\n/g, "%0A")}${newline}`);
+            if (text.includes(newline)) {
+              let delimiter = `VARLOCK_${key}_EOF`;
+              while (text.includes(delimiter)) delimiter += "_X";
+              chunks.push(`${key}<<${delimiter}${newline}${text}${newline}${delimiter}`);
+            } else {
+              chunks.push(`${key}=${text}`);
+            }
+          }
+          appendFileSync(output, `${chunks.join(newline)}${newline}`);
+          rmSync("/tmp/varlock-env.json", { force: true });
+          NODE
+
+      - name: Run smoke directory-sync stress profile
+        run: |
+          bunx brains-ops stress:directory-sync "$GITHUB_WORKSPACE" "${{ inputs.handle }}" \
+            --profile "${{ inputs.profile }}" \
+            --confirm "${{ inputs.confirm }}" \
+            --artifacts-dir "$RUNNER_TEMP/directory-sync-stress"
+
+      - name: Upload stress evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: directory-sync-stress-${{ inputs.handle }}-${{ inputs.profile }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/directory-sync-stress
+          if-no-files-found: warn
+
+  cleanup:
+    needs: stress
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Install operator tooling
+        run: bun install
+
+      - name: Load Bitwarden environment through Varlock
+        env:
+          BWS_ACCESS_TOKEN: ${{ secrets.BWS_ACCESS_TOKEN }}
+        run: |
+          for attempt in 1 2 3; do
+            if bunx varlock@1.1.0 load --path .env.schema --format json --compact > /tmp/varlock-env.json; then
+              break
+            fi
+            if [ "$attempt" = "3" ]; then
+              exit 1
+            fi
+            sleep 5
+          done
+          node <<'NODE'
+          import { appendFileSync, readFileSync, rmSync } from "node:fs";
+          const env = JSON.parse(readFileSync("/tmp/varlock-env.json", "utf8"));
+          const output = process.env.GITHUB_ENV;
+          if (!output) throw new Error("Missing GITHUB_ENV");
+          const newline = "\n";
+          const chunks = [];
+          for (const [key, value] of Object.entries(env)) {
+            if (key === "BWS_ACCESS_TOKEN" || value === null || value === undefined) continue;
+            const text = String(value).replace(/\r\n/g, newline);
+            process.stdout.write(`::add-mask::${text.replace(/%/g, "%25").replace(/\r/g, "%0D").replace(/\n/g, "%0A")}${newline}`);
+            if (text.includes(newline)) {
+              let delimiter = `VARLOCK_${key}_EOF`;
+              while (text.includes(delimiter)) delimiter += "_X";
+              chunks.push(`${key}<<${delimiter}${newline}${text}${newline}${delimiter}`);
+            } else {
+              chunks.push(`${key}=${text}`);
+            }
+          }
+          appendFileSync(output, `${chunks.join(newline)}${newline}`);
+          rmSync("/tmp/varlock-env.json", { force: true });
+          NODE
+
+      - name: Remove residual stress probes
+        run: |
+          bunx brains-ops stress:directory-sync:cleanup "$GITHUB_WORKSPACE" "${{ inputs.handle }}" \
+            --confirm "${{ inputs.confirm }}" \
+            --artifacts-dir "$RUNNER_TEMP/directory-sync-stress-cleanup"
+
+      - name: Upload cleanup evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: directory-sync-stress-cleanup-${{ inputs.handle }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/directory-sync-stress-cleanup
+          if-no-files-found: warn

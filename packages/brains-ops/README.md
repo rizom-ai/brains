@@ -15,11 +15,23 @@ Operator CLI package for managing pilot brain fleet registry repos.
 - `brains-ops secrets:push <repo>`
 - `brains-ops secrets:encrypt <repo> <handle>`
 - `brains-ops verify-user <repo> <handle>` — checks `/health`, unauthenticated `/mcp`, and site-enabled browser/CMS routes
+- `brains-ops stress:directory-sync <repo> <handle> --profile <regression|load|stress> --confirm stress:<handle>` — runs a smoke-only, reversible directory-sync workload and writes structured evidence
+- `brains-ops stress:directory-sync:cleanup <repo> <handle> --confirm stress:<handle>` — idempotently removes residual stress probes
 - `brains-ops reconcile-cohort <repo> <cohort>`
 - `brains-ops reconcile-all <repo>`
 - `brains-ops reconcile-all <repo> --dry-run` — reconciles an isolated copy twice with external content-repository access blocked, lists both passes' changed files, and requires second-pass zero drift
 
 `render` owns the observational `views/users.md` projection. Onboard and reconcile commands own generated per-user config and never rewrite live observed status in that view.
+
+## Directory-sync stress profiles
+
+Directory-sync stress is deliberately smoke-only. The handle, domain, and content repository must each identify smoke, and the operator must pass the exact `stress:<handle>` confirmation. The runner refuses production-like targets.
+
+- `regression`: add 20 files, update all 20, then delete them;
+- `load`: ramp through 50, 150, and 350 files, update 350, rename 100, update again, then delete all probes;
+- `stress`: continue the same deterministic ramp to 700 files and 200 renames.
+
+Each run creates a rollback branch, records health timeouts as failed samples rather than crashing the harness, samples container CPU/memory/PIDs, waits for Git and entity persistence, and always attempts cleanup. JSON, Markdown, runtime logs, and samples are written under `.brains-ops/stress/` unless `--artifacts-dir` is supplied. The scaffolded `Directory Sync Stress` workflow is manual-only and has a separate `always()` cleanup job. It never deploys or targets a non-smoke user.
 
 ## Scope
 

@@ -21,6 +21,7 @@ const starterFilePaths = [
   "users/alice.yaml",
   ".github/workflows/build.yml",
   ".github/workflows/deploy.yml",
+  ".github/workflows/directory-sync-stress.yml",
   ".github/workflows/reconcile.yml",
   "deploy/Dockerfile",
   "deploy/kamal/deploy.yml",

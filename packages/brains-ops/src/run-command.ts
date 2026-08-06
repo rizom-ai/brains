@@ -34,6 +34,10 @@ import { runPilotSshKeyBootstrap, type SshKeygen } from "./ssh-key-bootstrap";
 import { addPilotUser } from "./user-add";
 import type { UserRunner } from "./user-runner";
 import { verifyPilotUser } from "./verify-user";
+import type {
+  cleanupDirectorySyncStress,
+  runDeployedDirectorySyncStress,
+} from "./directory-sync-stress-system";
 
 export interface CommandResult {
   success: boolean;
@@ -48,6 +52,9 @@ export interface CommandDependencies extends LoadPilotRegistryOptions {
   lookupHost?: LookupHost | undefined;
   bootstrapRunCommand?: OpsRunCommand | undefined;
   sshKeygen?: SshKeygen | undefined;
+  directorySyncStressRunner?: typeof runDeployedDirectorySyncStress | undefined;
+  directorySyncStressCleanupRunner?:
+    typeof cleanupDirectorySyncStress | undefined;
 }
 
 type OpsCommand = CommandDefinition<CommandDependencies, CommandResult>;
@@ -329,6 +336,108 @@ const secretsEncrypt: OpsCommand = defineCommand({
   },
 });
 
+const directorySyncStress: OpsCommand = defineCommand({
+  name: "stress:directory-sync",
+  usage:
+    "<repo> <handle> --profile <regression|load|stress> --confirm stress:<handle> [--artifacts-dir <path>]",
+  description: "Run a smoke-only directory-sync stress profile",
+  flags: {
+    profile: {
+      type: "string",
+      placeholder: "<profile>",
+      description: "Stress profile (`regression`, `load`, or `stress`)",
+    },
+    confirm: {
+      type: "string",
+      placeholder: "stress:<handle>",
+      description: "Explicit smoke target confirmation",
+    },
+    "artifacts-dir": {
+      type: "string",
+      placeholder: "<path>",
+      description: "Directory for JSON, Markdown, samples, and logs",
+    },
+  },
+  run: async ({ args, flags }, dependencies): Promise<CommandResult> => {
+    const repo = args[0];
+    const handle = args[1];
+    const profile = getStringFlag(flags, "profile");
+    const confirmation = getStringFlag(flags, "confirm");
+    if (
+      !repo ||
+      !handle ||
+      !confirmation ||
+      (profile !== "regression" && profile !== "load" && profile !== "stress")
+    ) {
+      return usageFailure(directorySyncStress);
+    }
+
+    const runner =
+      dependencies.directorySyncStressRunner ??
+      (await import("./directory-sync-stress-system"))
+        .runDeployedDirectorySyncStress;
+    const artifactsDir = getStringFlag(flags, "artifacts-dir");
+    const result = await runner({
+      rootDir: repo,
+      handle,
+      profile,
+      confirmation,
+      ...(artifactsDir ? { artifactsDir } : {}),
+      ...(dependencies.env ? { env: dependencies.env } : {}),
+      ...(dependencies.fetchImpl ? { fetchImpl: dependencies.fetchImpl } : {}),
+      ...(dependencies.logger ? { logger: dependencies.logger } : {}),
+    });
+    return {
+      success: result.report.success,
+      message: `${result.report.success ? "Passed" : "Failed"} ${profile} directory-sync stress for ${handle}; artifacts: ${result.artifactsDir}`,
+    };
+  },
+});
+
+const directorySyncStressCleanup: OpsCommand = defineCommand({
+  name: "stress:directory-sync:cleanup",
+  usage: "<repo> <handle> --confirm stress:<handle> [--artifacts-dir <path>]",
+  description: "Remove residual smoke directory-sync stress probes",
+  flags: {
+    confirm: {
+      type: "string",
+      placeholder: "stress:<handle>",
+      description: "Explicit smoke target confirmation",
+    },
+    "artifacts-dir": {
+      type: "string",
+      placeholder: "<path>",
+      description: "Directory for the cleanup result",
+    },
+  },
+  run: async ({ args, flags }, dependencies): Promise<CommandResult> => {
+    const repo = args[0];
+    const handle = args[1];
+    const confirmation = getStringFlag(flags, "confirm");
+    if (!repo || !handle || !confirmation) {
+      return usageFailure(directorySyncStressCleanup);
+    }
+
+    const runner =
+      dependencies.directorySyncStressCleanupRunner ??
+      (await import("./directory-sync-stress-system"))
+        .cleanupDirectorySyncStress;
+    const artifactsDir = getStringFlag(flags, "artifacts-dir");
+    const result = await runner({
+      rootDir: repo,
+      handle,
+      confirmation,
+      ...(artifactsDir ? { artifactsDir } : {}),
+      ...(dependencies.env ? { env: dependencies.env } : {}),
+      ...(dependencies.logger ? { logger: dependencies.logger } : {}),
+    });
+    return {
+      success: result.success,
+      message: `${result.success ? "Cleaned" : "Failed to clean"} directory-sync stress probes for ${handle}; removed ${result.probesRemoved}, remaining ${result.probesRemaining}`,
+    };
+  },
+});
+
 const verifyUser: OpsCommand = defineCommand({
   name: "verify-user",
   usage: "<repo> <handle>",
@@ -476,6 +585,8 @@ export const commands: readonly CommandDefinition<
   certBootstrap,
   secretsPush,
   secretsEncrypt,
+  directorySyncStress,
+  directorySyncStressCleanup,
   verifyUser,
   reconcileCohortCommand,
   reconcileAllCommand,

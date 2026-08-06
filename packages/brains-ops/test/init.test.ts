@@ -145,6 +145,11 @@ describe("initPilotRepo", () => {
       true,
     );
     expect(
+      existsSync(
+        join(repo, ".github", "workflows", "directory-sync-stress.yml"),
+      ),
+    ).toBe(true);
+    expect(
       existsSync(join(repo, ".github", "workflows", "reconcile.yml")),
     ).toBe(true);
     expect(existsSync(join(repo, "deploy", "kamal", "deploy.yml"))).toBe(true);
@@ -259,6 +264,20 @@ describe("initPilotRepo", () => {
     expect(buildWorkflow).toContain("type=raw,value=${{ matrix.image.tag }}");
     expect(buildWorkflow).not.toContain("resolve-build-config");
     expect(buildWorkflow).not.toContain("TODO:");
+
+    const stressWorkflow = await readFile(
+      join(repo, ".github", "workflows", "directory-sync-stress.yml"),
+      "utf8",
+    );
+    expect(stressWorkflow).toContain("workflow_dispatch:");
+    expect(stressWorkflow).toContain("type: choice");
+    expect(stressWorkflow).toContain("stress:directory-sync");
+    expect(stressWorkflow).toContain("stress:directory-sync:cleanup");
+    expect(stressWorkflow).toContain("BWS_ACCESS_TOKEN");
+    expect(stressWorkflow).toContain("needs: stress");
+    expect(stressWorkflow).toContain("if: always()");
+    expect(stressWorkflow).toContain("actions/upload-artifact@v4");
+    expect(stressWorkflow).not.toContain("push:");
 
     const deployWorkflow = await readFile(
       join(repo, ".github", "workflows", "deploy.yml"),

@@ -9,6 +9,7 @@ Treat these as checked-in deploy artifacts in the pilot repo:
 - `deploy/scripts/`
 - `.github/workflows/build.yml`
 - `.github/workflows/deploy.yml`
+- `.github/workflows/directory-sync-stress.yml`
 - `.github/workflows/reconcile.yml`
 
 `.env.schema` is the single source of truth for required and sensitive deploy vars.
@@ -65,6 +66,20 @@ During the approved window:
 7. Run Reconcile a second time. Require no reconciler-owned generated diff and no deploy work before re-enabling normal automation and lifting the merge/release freeze. Observed status rendering remains separate from this convergence gate.
 
 If any gate fails, disable all three workflows again. Restore the prior pilot desired-state and dependency revision, reconcile with the prior ops version, and redeploy the prior image tag/digest as one rollback pair. Verify the prior `/health` version and identity/content/site checks before re-enabling automation. Never restore only config or only an image.
+
+## Directory-sync stress gate
+
+Use the manual `Directory Sync Stress` workflow only against a disposable smoke user. It refuses a target unless the handle, domain, and content repository all identify smoke and the confirmation input exactly matches `stress:<handle>`.
+
+Profiles are deterministic and reversible:
+
+- `regression`: 20 probes;
+- `load`: ramps to 350 probes, updates all, renames 100, updates again, then deletes all;
+- `stress`: ramps to 700 probes and renames 200 before cleanup.
+
+The workflow loads operator credentials through Bitwarden/Varlock, but it is separate from Deploy and cannot deploy an image. It creates a rollback branch before the first content write, records health timeouts as evidence, uploads JSON/Markdown/runtime artifacts, and runs an independent idempotent cleanup job with `if: always()`.
+
+Treat any health failure, restart, OOM, residual probe, or entity-baseline drift as a failed gate. Do not restart the target during measurement. Recovery is a separate operator action after evidence collection.
 
 ## Stale deploy lock recovery
 
