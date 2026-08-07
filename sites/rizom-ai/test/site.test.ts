@@ -104,8 +104,7 @@ describe("@rizom/site-rizom-ai", () => {
     expect(head).toContain("/boot.js");
     expect(head.split("/boot.js").length - 1).toBe(1);
     // The rev-5 design draws its own motifs (mycelium rail, growth diagram);
-    // the profile-driven background canvas and data-theme-profile attribute
-    // are products-era machinery and must not ship.
+    // no background canvas or profile attribute may ship in the head.
     expect(head).not.toContain("data-theme-profile");
     expect(head).not.toContain("canvas");
   });

@@ -120,6 +120,46 @@ export function assertReleasePlanMatchesLane(
   }
 }
 
+export interface ReleaseConfigPackageNames {
+  /** Repository-relative file the names were read from. */
+  source: string;
+  /** Raw entries, which may carry a `!` exclusion prefix or be globs. */
+  names: readonly string[];
+}
+
+/**
+ * Release and dependency config name packages directly. When a package leaves
+ * the workspace its entries go inert rather than failing, so they survive as
+ * rot until a release breaks on them. Glob entries match whatever exists and
+ * are skipped here; only exact names are held to the workspace.
+ */
+export function assertReleaseConfigReferencesWorkspacePackages(
+  workspacePackageNames: readonly string[],
+  configs: readonly ReleaseConfigPackageNames[],
+): void {
+  const workspace = new Set(workspacePackageNames);
+  const stale = configs
+    .map(({ source, names }) => {
+      const missing = [
+        ...new Set(
+          names
+            .map((name) => name.replace(/^!/, "").trim())
+            .filter((name) => name.length > 0 && !name.includes("*"))
+            .filter((name) => !workspace.has(name)),
+        ),
+      ].sort();
+      return { source, missing };
+    })
+    .filter(({ missing }) => missing.length > 0)
+    .map(({ source, missing }) => `${source}: ${missing.join(", ")}`);
+
+  if (stale.length > 0) {
+    throw new Error(
+      `Release config names packages that are no longer in the workspace:\n${stale.join("\n")}`,
+    );
+  }
+}
+
 /** A prerelease exit is one intentional global plan and must target stable versions. */
 export function assertCoordinatedStableReleasePlan(
   releases: readonly ReleasePlanPackage[],

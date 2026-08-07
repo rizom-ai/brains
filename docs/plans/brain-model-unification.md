@@ -448,7 +448,7 @@ filtering by active member, and repeated-resolution isolation.
 Exit gate: the pure kernel has no import from auth-service and no production caller;
 Phase 1A does not modify the checked-in characterization fixture or preset runtime path.
 
-### Phase 1B — Integrate bundles behind presets (complete, unmerged)
+### Phase 1B — Integrate bundles behind presets (complete)
 
 Implemented on `feature/brain-model-unification-phase-1b` in the brain definition,
 instance parser, shared resolver, bundle-permission composer, public authoring contracts,
@@ -597,11 +597,11 @@ reviewed deterministic preview, generated output is stable on a second dry run, 
 active runtime/ops paths still use only the legacy contract. The private pilot is not
 edited in Phase 6.
 
-### Phase 7 — Stage the single crossover and remove compatibility
+### Phase 7 — Stage the single crossover and remove compatibility (complete)
 
-Build the complete crossover as reviewable, unmerged repository and private-pilot staging
-changes. Do not merge, publish, reconcile, or deploy either change without explicit
-operator authorization.
+The repository half is merged. The private-pilot staging half stays staged: do not
+publish, reconcile, or deploy it without explicit operator authorization — that is
+Phase 8.
 
 Repository crossover change:
 

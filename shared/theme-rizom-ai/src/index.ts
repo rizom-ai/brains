@@ -12,8 +12,7 @@ import themeCSSOnly from "./theme.css" with { type: "text" };
  * Sans/Mono.
  *
  * Rooms switch accents via `[data-room="work"]` / `[data-room="foundation"]`
- * attributes that the site layout sets per route — replacing the
- * per-site `data-theme-profile` machinery in @brains/theme-rizom.
+ * attributes that the site layout sets per route.
  */
 /**
  * The base theme's Google-font imports (Barlow, JetBrains Mono, a partial

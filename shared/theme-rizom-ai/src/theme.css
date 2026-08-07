@@ -10,7 +10,7 @@
  *   :root                → dark mode (indigo ground)
  *   [data-theme="light"] → warm off-white paper, ink text
  *
- * Room handling (replaces theme-rizom's data-theme-profile):
+ * Room handling:
  *   [data-room="work"]        → ruby accent (the practice)
  *   [data-room="foundation"]  → moss accent (the research arm)
  *   anything else             → brass (the platform)

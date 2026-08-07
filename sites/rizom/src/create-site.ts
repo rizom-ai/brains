@@ -10,7 +10,6 @@ import rizomBaseSite from ".";
 import type {
   RizomPluginCapabilities,
   RizomSiteShell,
-  RizomThemeProfile,
   SitePackage,
 } from "./contracts";
 import { buildRizomHeadScript, RizomRuntimePlugin } from "./runtime/plugin";
@@ -57,15 +56,6 @@ class RizomVariantPlugin extends RizomRuntimePlugin {
 
 export interface CreateRizomSiteOptions {
   packageName: string;
-  /**
-   * Optional profile-driven chrome: sets `data-theme-profile` on the document
-   * and loads the matching background canvas (product→tree, editorial→roots,
-   * studio→constellation). Omit for sites that draw their own motifs — the
-   * boot.js animation runtime always loads regardless. Only the retiring
-   * rizom-work/rizom-foundation variants still use profiles; the machinery
-   * goes with them at consolidation Phase 6.
-   */
-  themeProfile?: RizomThemeProfile;
   layout: unknown;
   routes: RouteDefinitionInput[];
   content?: SiteContentDefinition | SiteContentDefinition[];
@@ -109,10 +99,7 @@ function createRuntimePlugin(
   return (config?: Record<string, unknown>): RizomRuntimePlugin =>
     new RizomVariantPlugin(
       options.packageName,
-      {
-        ...(options.themeProfile ? { themeProfile: options.themeProfile } : {}),
-        ...(config ?? {}),
-      },
+      config ?? {},
       buildTemplateGroups(options),
       options.runtime?.dataSources,
     );
@@ -129,7 +116,7 @@ export function createRizomSite(
     ...(options.entityDisplay ? { entityDisplay: options.entityDisplay } : {}),
     ...(options.content ? { content: options.content } : {}),
     ...(options.sections ? { sections: options.sections } : {}),
-    headScripts: [buildRizomHeadScript(options.themeProfile)],
+    headScripts: [buildRizomHeadScript()],
     ...(plugin ? { plugin } : {}),
     ...(options.themeOverride ? { themeOverride: options.themeOverride } : {}),
   });

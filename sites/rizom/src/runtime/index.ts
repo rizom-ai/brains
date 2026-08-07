@@ -5,4 +5,4 @@ export {
   buildRizomHeadScript,
   rizomRuntimeStaticAssets,
 } from "./plugin";
-export type { RizomRuntimeConfig, RizomThemeProfile } from "./plugin";
+export type { RizomRuntimeConfig } from "./plugin";

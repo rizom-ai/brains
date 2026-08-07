@@ -8,8 +8,6 @@
         "@rizom/site-docs",
         "@rizom/site-rizom",
         "@rizom/site-rizom-ai",
-        "@rizom/site-rizom-foundation",
-        "@rizom/site-rizom-work",
         "@rizom/site-sections",
         "@rizom/theme-rizom-ai"
       ],
@@ -59,8 +57,6 @@
         "@rizom/site-docs",
         "@rizom/site-rizom",
         "@rizom/site-rizom-ai",
-        "@rizom/site-rizom-foundation",
-        "@rizom/site-rizom-work",
         "@rizom/site-sections",
         "@rizom/theme-rizom-ai"
       ],

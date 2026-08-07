@@ -1,21 +1,11 @@
 /*
  * Rizom brand theme — amber + purple bioluminescent palette.
  *
- * Shared by the Rizom site family. The site runtime sets
- * `data-theme-profile="..."` on <html> during head init, and the selectors
- * below switch accent shade + secondary purple per profile.
+ * Shared by the Rizom site family.
  *
  * Mode handling:
  *   :root                      → dark mode (designed default)
  *   [data-theme="light"]       → light mode fallback
- *
- * Theme profile handling:
- *   [data-theme-profile="product"]   → amber-light accent (#FFA366)
- *   [data-theme-profile="editorial"] → amber-dark accent  (#C45A08)
- *   [data-theme-profile="studio"]    → amber accent       (#E87722)
- *
- * Light mode collapses all profiles to amber-dark for contrast, per
- * brand guide A2.
  */
 
 /* Font imports come from @rizom/theme-default, which this package layers
@@ -458,88 +448,6 @@
     /* Warning tokens inherited from theme-base light-mode block. */
   }
 
-  /* ============================================
-     THEME PROFILE OVERRIDES — accent + secondary + typography
-     per shared visual profile. Apply in dark mode; light mode
-     collapses per above.
-     ============================================ */
-  [data-theme-profile="product"] {
-    --color-accent: var(--palette-amber-light);
-    --color-accent-dark: var(--palette-amber);
-    --color-secondary: var(--palette-purple-muted);
-    --color-brand: var(--color-accent);
-    --color-brand-dark: var(--color-accent-dark);
-  }
-
-  [data-theme-profile="editorial"] {
-    --color-accent: var(--palette-amber-dark);
-    --color-accent-dark: #8b3a05;
-    --color-secondary: var(--palette-purple);
-    --color-brand: var(--color-accent);
-    --color-brand-dark: var(--color-accent-dark);
-
-    --rizom-btn-font-family: var(--font-display);
-    --rizom-btn-font-style: italic;
-    --rizom-btn-letter-spacing: -0.2px;
-    --rizom-btn-md-padding: 10px 2px 8px;
-    --rizom-btn-lg-padding-mobile: 10px 2px 8px;
-    --rizom-btn-lg-padding-desktop: 10px 2px 8px;
-    --rizom-btn-radius: 0px;
-
-    --rizom-btn-primary-font-weight: 400;
-    --rizom-btn-primary-color: var(--color-accent);
-    --rizom-btn-primary-bg: transparent;
-    --rizom-btn-primary-border-color: var(--color-accent);
-    --rizom-btn-primary-border-width: 0 0 1px 0;
-    --rizom-btn-primary-hover-color: var(--color-accent);
-    --rizom-btn-primary-hover-bg: transparent;
-    --rizom-btn-primary-hover-border-color: var(--color-accent);
-    --rizom-btn-primary-hover-border-width: 0 0 2px 0;
-    --rizom-btn-primary-hover-shadow: none;
-    --rizom-btn-primary-hover-transform: translateY(-1px);
-
-    --rizom-btn-primary-strong-font-weight: 400;
-    --rizom-btn-primary-strong-color: var(--color-accent);
-    --rizom-btn-primary-strong-bg: transparent;
-    --rizom-btn-primary-strong-border-color: var(--color-accent);
-    --rizom-btn-primary-strong-border-width: 0 0 1px 0;
-    --rizom-btn-primary-strong-shadow: none;
-    --rizom-btn-primary-strong-hover-color: var(--color-accent);
-    --rizom-btn-primary-strong-hover-bg: transparent;
-    --rizom-btn-primary-strong-hover-border-color: var(--color-accent);
-    --rizom-btn-primary-strong-hover-border-width: 0 0 2px 0;
-    --rizom-btn-primary-strong-hover-shadow: none;
-    --rizom-btn-primary-strong-hover-transform: translateY(-1px);
-
-    --rizom-btn-secondary-font-weight: 400;
-    --rizom-btn-secondary-color: var(--color-text);
-    --rizom-btn-secondary-bg: transparent;
-    --rizom-btn-secondary-border-color: rgb(from var(--color-accent) r g b / 0.35);
-    --rizom-btn-secondary-border-width: 0 0 1px 0;
-    --rizom-btn-secondary-hover-color: var(--color-text);
-    --rizom-btn-secondary-hover-bg: transparent;
-    --rizom-btn-secondary-hover-border-color: rgb(from var(--color-accent) r g b / 0.55);
-    --rizom-btn-secondary-hover-border-width: 0 0 1px 0;
-    --rizom-btn-secondary-hover-shadow: none;
-    --rizom-btn-secondary-hover-transform: translateY(-1px);
-  }
-
-  [data-theme-profile="studio"] {
-    --color-accent: var(--palette-amber);
-    --color-accent-dark: var(--palette-amber-dark);
-    --color-secondary: var(--palette-purple-light);
-    --color-brand: var(--color-accent);
-    --color-brand-dark: var(--color-accent-dark);
-  }
-
-  /* In light mode, ALL profiles use amber-dark */
-  [data-theme="light"][data-theme-profile],
-  [data-theme="light"] [data-theme-profile] {
-    --color-accent: var(--palette-amber-dark);
-    --color-accent-dark: #8b3a05;
-    --color-brand: var(--color-accent);
-    --color-brand-dark: var(--color-accent-dark);
-  }
 }
 
 /* ============================================
@@ -662,11 +570,6 @@
   }
 
   /* Warning utilities live in theme-base. */
-
-  .rizom-frame-canvas-wrap {
-    z-index: 0;
-    opacity: 0.6;
-  }
 
   .rizom-diagnostic-panel {
     background-image: var(--color-work-diagnostic-bg);

@@ -5,33 +5,16 @@ import type {
   RizomPluginCapabilities,
   RizomRuntimeConfig,
   RizomSiteShell,
-  RizomThemeProfile,
 } from "../contracts";
-import canvasPrelude from "./canvases/prelude.canvas.js" with { type: "text" };
-import treeCanvas from "./canvases/tree.canvas.js" with { type: "text" };
-import constellationCanvas from "./canvases/constellation.canvas.js" with { type: "text" };
-import rootsCanvas from "./canvases/roots.canvas.js" with { type: "text" };
 import bootScript from "./boot/boot.boot.js" with { type: "text" };
 
-export type { RizomRuntimeConfig, RizomThemeProfile } from "../contracts";
-
-const THEME_PROFILES = new Set<string>(["product", "editorial", "studio"]);
-
-function isRizomThemeProfile(value: unknown): value is RizomThemeProfile {
-  return typeof value === "string" && THEME_PROFILES.has(value);
-}
+export type { RizomRuntimeConfig } from "../contracts";
 
 function parseRuntimeConfig(
   config: Record<string, unknown>,
 ): RizomRuntimeConfig {
-  const themeProfile = config["themeProfile"];
   const theme = config["theme"];
 
-  if (themeProfile !== undefined && !isRizomThemeProfile(themeProfile)) {
-    throw new Error(
-      `Invalid rizom site themeProfile ${JSON.stringify(themeProfile)}; expected one of: ${[...THEME_PROFILES].join(", ")}`,
-    );
-  }
   if (theme !== undefined && typeof theme !== "string") {
     throw new Error(
       `Invalid rizom site theme ${JSON.stringify(theme)}; expected a package name string`,
@@ -39,40 +22,12 @@ function parseRuntimeConfig(
   }
 
   return {
-    ...(themeProfile !== undefined ? { themeProfile } : {}),
     ...(theme !== undefined ? { theme } : {}),
   };
 }
 
-const CANVAS_BY_THEME_PROFILE: Record<RizomThemeProfile, string> = {
-  product: "/canvases/tree.canvas.js",
-  editorial: "/canvases/roots.canvas.js",
-  studio: "/canvases/constellation.canvas.js",
-};
-
-function getRizomCanvasPath(
-  themeProfile?: RizomThemeProfile,
-): string | undefined {
-  return themeProfile ? CANVAS_BY_THEME_PROFILE[themeProfile] : undefined;
-}
-
-export function buildRizomHeadScript(themeProfile?: RizomThemeProfile): string {
-  const canvasPath = getRizomCanvasPath(themeProfile);
-  const scripts = [`<script src="/boot.js" defer></script>`];
-
-  if (themeProfile) {
-    const themeProfileJson = JSON.stringify(themeProfile);
-    scripts.unshift(
-      `<script>document.documentElement.setAttribute("data-theme-profile", ${themeProfileJson});</script>`,
-    );
-  }
-
-  if (canvasPath) {
-    scripts.push(`<script src="/canvases/prelude.canvas.js" defer></script>`);
-    scripts.push(`<script src="${canvasPath}" defer></script>`);
-  }
-
-  return scripts.join("");
+export function buildRizomHeadScript(): string {
+  return `<script src="/boot.js" defer></script>`;
 }
 
 export const RIZOM_ATPROTO_LEXICON_BASE_PATH = "/atproto/lexicons";
@@ -91,10 +46,6 @@ export const rizomAtprotoLexiconStaticAssets: Record<string, string> =
 
 export const rizomRuntimeStaticAssets: Record<string, string> = {
   ...rizomAtprotoLexiconStaticAssets,
-  "/canvases/prelude.canvas.js": canvasPrelude,
-  "/canvases/tree.canvas.js": treeCanvas,
-  "/canvases/constellation.canvas.js": constellationCanvas,
-  "/canvases/roots.canvas.js": rootsCanvas,
   "/boot.js": bootScript,
 };
 
@@ -121,7 +72,6 @@ export class RizomRuntimePlugin {
   }
 
   protected async onRegister(shell: RizomSiteShell): Promise<void> {
-    const themeProfile = this.getThemeProfile();
     const messaging = shell.getMessageBus();
 
     messaging.subscribe(SYSTEM_CHANNELS.pluginsRegistered, async () => {
@@ -130,20 +80,12 @@ export class RizomRuntimePlugin {
         sender: this.id,
         payload: {
           pluginId: this.id,
-          script: buildRizomHeadScript(themeProfile),
+          script: buildRizomHeadScript(),
         },
       });
       return { success: true };
     });
 
-    shell
-      .getLogger()
-      .info(
-        `Rizom runtime plugin registered${themeProfile ? ` (theme profile: ${themeProfile})` : ""}`,
-      );
-  }
-
-  protected getThemeProfile(): RizomThemeProfile | undefined {
-    return this.config.themeProfile;
+    shell.getLogger().info("Rizom runtime plugin registered");
   }
 }

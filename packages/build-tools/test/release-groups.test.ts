@@ -1,12 +1,13 @@
 import assembleReleasePlan from "@changesets/assemble-release-plan";
 import { read as readChangesetsConfig } from "@changesets/config";
 import { getPackages } from "@manypkg/get-packages";
-import { expect, test } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   assertCoordinatedStableReleasePlan,
+  assertReleaseConfigReferencesWorkspacePackages,
   assertReleasePlanMatchesLane,
   inferReleaseLane,
   isSiteReleasePackage,
@@ -391,4 +392,45 @@ test("normal dependency propagation still applies across release groups", async 
 
   expect(releases.has("@rizom/theme-default")).toBe(true);
   expect(releases.has("@rizom/theme-rizom-ai")).toBe(true);
+});
+
+describe("assertReleaseConfigReferencesWorkspacePackages", () => {
+  const workspace = ["@brains/core", "@rizom/site", "@rizom/site-rizom"];
+
+  test("accepts entries that name live workspace packages", () => {
+    expect(() =>
+      assertReleaseConfigReferencesWorkspacePackages(workspace, [
+        {
+          source: ".changeset/config.json",
+          names: ["@brains/core", "!@brains/core"],
+        },
+        { source: ".syncpackrc.json", names: ["@rizom/site"] },
+      ]),
+    ).not.toThrow();
+  });
+
+  test("ignores globs and empty entries, which name no single package", () => {
+    expect(() =>
+      assertReleaseConfigReferencesWorkspacePackages(workspace, [
+        {
+          source: ".changeset/config.json",
+          names: ["@brains/*", "!@rizom/site-*", ""],
+        },
+      ]),
+    ).not.toThrow();
+  });
+
+  test("rejects entries naming packages that left the workspace", () => {
+    expect(() =>
+      assertReleaseConfigReferencesWorkspacePackages(workspace, [
+        {
+          source: ".changeset/config.json",
+          names: ["!@brains/rover", "!@brains/relay"],
+        },
+        { source: ".syncpackrc.json", names: ["@rizom/site-rizom-work"] },
+      ]),
+    ).toThrow(
+      /\.changeset\/config\.json: @brains\/relay, @brains\/rover[\s\S]*\.syncpackrc\.json: @rizom\/site-rizom-work/,
+    );
+  });
 });

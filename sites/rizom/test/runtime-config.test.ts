@@ -2,18 +2,11 @@ import { describe, expect, test } from "bun:test";
 import { RizomRuntimePlugin } from "../src/runtime/plugin";
 
 describe("RizomRuntimePlugin config validation", () => {
-  test("accepts a valid themeProfile", () => {
+  test("accepts a theme package name", () => {
     const plugin = new RizomRuntimePlugin("@rizom/site-rizom", {
-      themeProfile: "studio",
+      theme: "@brains/theme-rizom",
     });
-    expect(plugin.config.themeProfile).toBe("studio");
-  });
-
-  test("rejects an invalid themeProfile instead of dropping it", () => {
-    expect(
-      () =>
-        new RizomRuntimePlugin("@rizom/site-rizom", { themeProfile: "Studio" }),
-    ).toThrow(/themeProfile/);
+    expect(plugin.config.theme).toBe("@brains/theme-rizom");
   });
 
   test("rejects a non-string theme instead of dropping it", () => {
