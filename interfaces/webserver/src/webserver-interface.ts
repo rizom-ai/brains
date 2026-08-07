@@ -87,16 +87,13 @@ export class WebserverInterface extends InterfacePlugin<
         this.config.previewDistDir && {
           previewDistDir: this.config.previewDistDir,
         }),
-      ...(this.config.enablePreview &&
-        this.config.previewPort && { previewPort: this.config.previewPort }),
-      getHealthData: (): Promise<Awaited<ReturnType<typeof context.appInfo>>> =>
-        context.appInfo(),
+      getOperationalInfo: (): Promise<
+        Awaited<ReturnType<typeof context.appInfo>>
+      > => context.appInfo(),
       getReadinessData: (): ReturnType<typeof context.readiness> =>
         context.readiness(),
-      getWebRoutes: (): ReturnType<typeof context.webRoutes.getRoutes> =>
-        context.webRoutes.getRoutes(),
-      getApiRoutes: (): ReturnType<typeof context.apiRoutes.getRoutes> =>
-        context.apiRoutes.getRoutes(),
+      getRoutes: (): ReturnType<typeof context.httpRoutes.getRoutes> =>
+        context.httpRoutes.getRoutes(),
       messageBus: context.apiRoutes.getMessageBus(),
     });
   }

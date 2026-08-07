@@ -641,7 +641,6 @@ export type {
   ApiRouteDefinition,
   RegisteredApiRoute,
 } from "./types/api-routes";
-
 // ============================================================================
 // Identity & Configuration
 // ============================================================================

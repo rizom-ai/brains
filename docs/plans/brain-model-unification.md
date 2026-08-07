@@ -734,7 +734,7 @@ Then execute only in an explicitly authorized maintenance window:
 5. Deploy each approved instance as one coherent config/image unit. Existing instances
    remain on the old config and old image until their turn; never pair either side with
    the other contract.
-6. Verify `/health` version/status, expected unauthenticated MCP `401`, identity,
+6. Verify `/health/operate` version/status, expected unauthenticated MCP `401`, identity,
    repository/secret selectors, and application-managed site output after each deploy.
    Site evidence must come from a fresh rebuild on the running app rather than a
    persisted pre-deploy `dist`; local `src/site.ts` overrides must retain the selected

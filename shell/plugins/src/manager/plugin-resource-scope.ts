@@ -2,6 +2,7 @@ import type { IMessageBus, MessageHandler } from "@brains/messaging-service";
 import type { IAttachmentsNamespace } from "../service/attachment-registry";
 import { Cause, Effect, Exit, Scope } from "@brains/utils/effect";
 import type { IShell } from "../interfaces";
+import { forwardHttpRouteSnapshot } from "@brains/plugins/internal/http-route-snapshot";
 
 interface PluginIngress {
   stopAdmission(): void;
@@ -323,7 +324,7 @@ export function createPluginScopedShell(
     },
   });
 
-  return new Proxy(shell, {
+  const scopedShell = new Proxy(shell, {
     get(target, property): unknown {
       if (property === "getMessageBus") {
         return (): IMessageBus => scopedMessageBus;
@@ -353,4 +354,6 @@ export function createPluginScopedShell(
       return typeof value === "function" ? value.bind(target) : value;
     },
   });
+  forwardHttpRouteSnapshot(shell, scopedShell);
+  return scopedShell;
 }

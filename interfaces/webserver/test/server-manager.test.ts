@@ -3,7 +3,17 @@ import { mkdirSync, writeFileSync, rmSync, existsSync, mkdtempSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
 import { createSilentLogger } from "@brains/test-utils";
-import type { RegisteredWebRoute, RuntimeReadiness } from "@brains/plugins";
+import type {
+  ApiRouteDefinition,
+  RuntimeReadiness,
+  WebRouteHandler,
+  WebRouteMatch,
+  WebRouteMethod,
+} from "@brains/plugins";
+import type {
+  RegisteredHttpRoute,
+  SharedHostAdmission,
+} from "@brains/plugins/internal/http-routes";
 import { createMockMessageBus, type IMessageBus } from "@brains/plugins/test";
 import {
   ServerManager,
@@ -15,6 +25,44 @@ import {
 describe("ServerManager (in-process)", () => {
   let testDir: string;
   let manager: ServerManager | null = null;
+
+  function handlerRoute(
+    ownerPluginId: string,
+    fullPath: string,
+    handler: WebRouteHandler,
+    options: {
+      method?: WebRouteMethod;
+      match?: WebRouteMatch;
+      admission?: SharedHostAdmission;
+    } = {},
+  ): RegisteredHttpRoute {
+    return {
+      kind: "handler",
+      ownerPluginId,
+      fullPath,
+      method: options.method ?? "GET",
+      match: options.match ?? "exact",
+      sharedHostAdmission: options.admission ?? "admit",
+      handler,
+    };
+  }
+
+  function toolRoute(
+    ownerPluginId: string,
+    fullPath: string,
+    definition: ApiRouteDefinition,
+    admission: SharedHostAdmission = "admit",
+  ): RegisteredHttpRoute {
+    return {
+      kind: "tool",
+      ownerPluginId,
+      fullPath,
+      method: definition.method,
+      match: "exact",
+      sharedHostAdmission: admission,
+      definition,
+    };
+  }
 
   afterEach(async () => {
     if (manager) {
@@ -60,7 +108,7 @@ describe("ServerManager (in-process)", () => {
 
   function setup(options?: {
     preview?: boolean;
-    getHealthData?: ServerManagerOptions["getHealthData"];
+    getOperationalInfo?: ServerManagerOptions["getOperationalInfo"];
     getReadinessData?: () => Promise<RuntimeReadiness>;
   }): ServerManager {
     testDir = mkdtempSync(join(tmpdir(), "webserver-test-"));
@@ -75,8 +123,8 @@ describe("ServerManager (in-process)", () => {
       productionDistDir: prodDir,
       sharedImagesDir: imagesDir,
       productionPort: 0, // random port
-      ...(options?.getHealthData && {
-        getHealthData: options.getHealthData,
+      ...(options?.getOperationalInfo && {
+        getOperationalInfo: options.getOperationalInfo,
       }),
       ...(options?.getReadinessData && {
         getReadinessData: options.getReadinessData,
@@ -88,7 +136,6 @@ describe("ServerManager (in-process)", () => {
       mkdirSync(previewDir, { recursive: true });
       writeFileSync(join(previewDir, "index.html"), "<h1>Preview</h1>");
       opts.previewDistDir = previewDir;
-      opts.previewPort = 0;
     }
 
     manager = new ServerManager(opts);
@@ -343,7 +390,7 @@ describe("ServerManager (in-process)", () => {
     expect(await operate.json()).toEqual(report);
   });
 
-  it("returns structured legacy health when app metadata collection fails", async () => {
+  it("reports operational metadata failures without changing routing readiness", async () => {
     const m = setup({
       getReadinessData: async () => ({
         status: "ready",
@@ -352,7 +399,7 @@ describe("ServerManager (in-process)", () => {
         checks: [],
         resources: testResourceSignals(),
       }),
-      getHealthData: async () => {
+      getOperationalInfo: async () => {
         throw new Error("entity summary failed");
       },
     });
@@ -360,49 +407,81 @@ describe("ServerManager (in-process)", () => {
 
     const url = m.getStatus().productionUrl;
     if (!url) return;
-    const res = await fetch(`${url}/health`);
+    const res = await fetch(`${url}/health/operate`);
 
     expect(res.status).toBe(503);
     expect(await res.json()).toMatchObject({
-      status: "unhealthy",
-      readiness: {
-        status: "not_ready",
-        checks: [
-          {
-            name: "app-info",
-            status: "unhealthy",
-            message: "entity summary failed",
-          },
-        ],
-      },
+      status: "ready",
+      operationalStatus: "degraded",
+      checks: [
+        {
+          name: "app-info",
+          status: "unhealthy",
+          message: "entity summary failed",
+        },
+      ],
     });
   });
 
-  it("keeps /health as a readiness-aware compatibility endpoint", async () => {
-    const report: RuntimeReadiness = {
-      status: "not_ready",
-      operationalStatus: "degraded",
-      checkedAt: "2026-07-30T12:00:00.000Z",
-      checks: [
-        {
-          name: "entity-database",
-          status: "unhealthy",
-        },
-      ],
-      resources: testResourceSignals(),
-    };
-    const m = setup({ getReadinessData: async () => report });
+  it("includes app metadata in operational health", async () => {
+    const m = setup({
+      getReadinessData: async () => ({
+        status: "ready",
+        operationalStatus: "operational",
+        checkedAt: "2026-07-30T12:00:00.000Z",
+        checks: [],
+        resources: testResourceSignals(),
+      }),
+      getOperationalInfo: async () => ({
+        model: "test",
+        version: "0.2.0-test",
+        uptime: 10,
+        entities: 4,
+        entityCounts: [{ entityType: "note", count: 4 }],
+        embeddings: 4,
+        ai: { model: "test", embeddingModel: "test" },
+        daemons: [],
+        endpoints: [],
+        interactions: [],
+      }),
+    });
     await m.start();
 
     const url = m.getStatus().productionUrl;
     if (!url) return;
-    const res = await fetch(`${url}/health`);
+    const res = await fetch(`${url}/health/operate`);
 
-    expect(res.status).toBe(503);
+    expect(res.status).toBe(200);
     expect(await res.json()).toMatchObject({
-      status: "unhealthy",
-      readiness: report,
+      status: "ready",
+      operationalStatus: "operational",
+      app: {
+        version: "0.2.0-test",
+        entities: 4,
+        entityCounts: [{ entityType: "note", count: 4 }],
+      },
     });
+  });
+
+  it("does not serve an aggregate health endpoint", async () => {
+    const m = setup({ preview: true });
+    for (const surface of ["production", "preview"]) {
+      const staticHealthDir = join(testDir, "dist", surface, "health");
+      mkdirSync(staticHealthDir, { recursive: true });
+      writeFileSync(join(staticHealthDir, "index.html"), "stale health page");
+    }
+    await m.start();
+
+    const url = m.getStatus().productionUrl;
+    if (!url) return;
+    expect((await fetch(`${url}/health`)).status).toBe(404);
+    expect(
+      (
+        await fetch(`${url}/health`, {
+          headers: { host: "preview.example.com" },
+        })
+      ).status,
+    ).toBe(404);
   });
 
   it("should serve plugin-contributed web routes when configured", async () => {
@@ -418,20 +497,15 @@ describe("ServerManager (in-process)", () => {
       productionDistDir: prodDir,
       sharedImagesDir: imagesDir,
       productionPort: 0,
-      webRoutes: [
-        {
-          pluginId: "admin",
-          fullPath: "/cms-config",
-          definition: {
-            path: "/cms-config",
-            method: "GET",
-            public: true,
-            handler: async (): Promise<Response> =>
-              new Response("backend:\n  repo: owner/repo\n", {
-                headers: { "Content-Type": "text/yaml; charset=utf-8" },
-              }),
-          },
-        },
+      getRoutes: (): readonly RegisteredHttpRoute[] => [
+        handlerRoute(
+          "admin",
+          "/cms-config",
+          async (): Promise<Response> =>
+            new Response("backend:\n  repo: owner/repo\n", {
+              headers: { "Content-Type": "text/yaml; charset=utf-8" },
+            }),
+        ),
       ],
     });
 
@@ -446,6 +520,37 @@ describe("ServerManager (in-process)", () => {
     expect(await res.text()).toContain("owner/repo");
   });
 
+  it("serves dynamic routes before generated static pages", async () => {
+    testDir = mkdtempSync(join(tmpdir(), "webserver-dynamic-shadow-"));
+    const prodDir = join(testDir, "dist", "production");
+    const staticRouteDir = join(prodDir, "dynamic");
+    const imagesDir = join(testDir, "dist", "images");
+    mkdirSync(staticRouteDir, { recursive: true });
+    mkdirSync(imagesDir, { recursive: true });
+    writeFileSync(join(staticRouteDir, "index.html"), "static page");
+
+    manager = new ServerManager({
+      logger: createSilentLogger("test"),
+      productionDistDir: prodDir,
+      sharedImagesDir: imagesDir,
+      productionPort: 0,
+      getRoutes: (): readonly RegisteredHttpRoute[] => [
+        handlerRoute(
+          "dashboard",
+          "/dynamic",
+          (): Response => new Response("dynamic handler"),
+        ),
+      ],
+    });
+
+    await manager.start();
+    const url = manager.getStatus().productionUrl;
+    if (!url) return;
+
+    const response = await fetch(`${url}/dynamic`);
+    expect(await response.text()).toBe("dynamic handler");
+  });
+
   it("matches contributed prefix routes by segment with exact and longest-prefix precedence", async () => {
     testDir = mkdtempSync(join(tmpdir(), "webserver-prefix-routes-"));
     const prodDir = join(testDir, "dist", "production");
@@ -457,24 +562,20 @@ describe("ServerManager (in-process)", () => {
       path: string,
       body: string,
       match: "exact" | "prefix" = "exact",
-    ): RegisteredWebRoute => ({
-      pluginId: "cms",
-      fullPath: path,
-      definition: {
+    ): RegisteredHttpRoute =>
+      handlerRoute(
+        "cms",
         path,
-        match,
-        method: "GET" as const,
-        public: true,
-        handler: async (): Promise<Response> => new Response(body),
-      },
-    });
+        async (): Promise<Response> => new Response(body),
+        { match },
+      );
 
     manager = new ServerManager({
       logger: createSilentLogger("test"),
       productionDistDir: prodDir,
       sharedImagesDir: imagesDir,
       productionPort: 0,
-      webRoutes: [
+      getRoutes: (): readonly RegisteredHttpRoute[] => [
         route("/cms/entities", "entities-shell", "prefix"),
         route("/cms/entities/post", "post-shell", "prefix"),
         route("/cms/entities/post/featured", "featured-exact"),
@@ -515,20 +616,16 @@ describe("ServerManager (in-process)", () => {
       productionDistDir: prodDir,
       sharedImagesDir: imagesDir,
       productionPort: 0,
-      webRoutes: [
-        {
-          pluginId: "admin",
-          fullPath: "/private",
-          definition: {
-            path: "/private",
-            method: "GET",
-            public: false,
-            handler: async (): Promise<Response> => {
-              handlerCalled = true;
-              return new Response("secret");
-            },
+      getRoutes: (): readonly RegisteredHttpRoute[] => [
+        handlerRoute(
+          "admin",
+          "/private",
+          async (): Promise<Response> => {
+            handlerCalled = true;
+            return new Response("secret");
           },
-        },
+          { admission: "deny" },
+        ),
       ],
     });
 
@@ -553,7 +650,74 @@ describe("ServerManager (in-process)", () => {
     );
   });
 
-  it("should serve web routes registered after the webserver starts", async () => {
+  it("resolves the normalized route snapshot once at startup", async () => {
+    testDir = mkdtempSync(join(tmpdir(), "webserver-route-discovery-"));
+    const prodDir = join(testDir, "dist", "production");
+    const imagesDir = join(testDir, "dist", "images");
+    mkdirSync(prodDir, { recursive: true });
+    mkdirSync(imagesDir, { recursive: true });
+
+    let routeReads = 0;
+    manager = new ServerManager({
+      logger: createSilentLogger("test"),
+      productionDistDir: prodDir,
+      sharedImagesDir: imagesDir,
+      productionPort: 0,
+      getRoutes: (): readonly RegisteredHttpRoute[] => {
+        routeReads += 1;
+        return [];
+      },
+    });
+
+    await manager.start();
+    const url = manager.getStatus().productionUrl;
+    if (!url) return;
+
+    await fetch(`${url}/first`);
+    await fetch(`${url}/second`);
+
+    expect(routeReads).toBe(1);
+  });
+
+  it("keeps dynamic routes off the preview host", async () => {
+    testDir = mkdtempSync(join(tmpdir(), "webserver-preview-routes-"));
+    const prodDir = join(testDir, "dist", "production");
+    const previewDir = join(testDir, "dist", "preview");
+    const imagesDir = join(testDir, "dist", "images");
+    mkdirSync(prodDir, { recursive: true });
+    mkdirSync(previewDir, { recursive: true });
+    mkdirSync(imagesDir, { recursive: true });
+
+    manager = new ServerManager({
+      logger: createSilentLogger("test"),
+      productionDistDir: prodDir,
+      previewDistDir: previewDir,
+      sharedImagesDir: imagesDir,
+      productionPort: 0,
+      getRoutes: (): readonly RegisteredHttpRoute[] => [
+        handlerRoute(
+          "fixture",
+          "/dynamic",
+          (): Response => new Response("production route"),
+        ),
+      ],
+    });
+
+    await manager.start();
+    const url = manager.getStatus().productionUrl;
+    if (!url) return;
+
+    expect((await fetch(`${url}/dynamic`)).status).toBe(200);
+    expect(
+      (
+        await fetch(`${url}/dynamic`, {
+          headers: { host: "preview.example.com" },
+        })
+      ).status,
+    ).toBe(404);
+  });
+
+  it("does not observe handler routes added after startup", async () => {
     testDir = mkdtempSync(join(tmpdir(), "webserver-late-web-routes-"));
     const prodDir = join(testDir, "dist", "production");
     const imagesDir = join(testDir, "dist", "images");
@@ -561,47 +725,32 @@ describe("ServerManager (in-process)", () => {
     mkdirSync(imagesDir, { recursive: true });
     writeFileSync(join(prodDir, "index.html"), "<h1>Hello</h1>");
 
-    let currentWebRoutes: Array<{
-      pluginId: string;
-      fullPath: string;
-      definition: {
-        path: string;
-        method: "GET";
-        public: true;
-        handler: () => Promise<Response>;
-      };
-    }> = [];
+    let currentRoutes: RegisteredHttpRoute[] = [];
 
     manager = new ServerManager({
       logger: createSilentLogger("test"),
       productionDistDir: prodDir,
       sharedImagesDir: imagesDir,
       productionPort: 0,
-      getWebRoutes: () => currentWebRoutes,
-    } as ConstructorParameters<typeof ServerManager>[0]);
+      getRoutes: (): readonly RegisteredHttpRoute[] => currentRoutes,
+    });
 
     await manager.start();
 
-    currentWebRoutes = [
-      {
-        pluginId: "a2a",
-        fullPath: "/.well-known/agent-card.json",
-        definition: {
-          path: "/.well-known/agent-card.json",
-          method: "GET",
-          public: true,
-          handler: async (): Promise<Response> =>
-            Response.json({ name: "Late Agent Card" }),
-        },
-      },
+    currentRoutes = [
+      handlerRoute(
+        "a2a",
+        "/.well-known/agent-card.json",
+        async (): Promise<Response> =>
+          Response.json({ name: "Late Agent Card" }),
+      ),
     ];
 
     const status = manager.getStatus();
     const url = status.productionUrl;
     if (!url) return;
     const res = await fetch(`${url}/.well-known/agent-card.json`);
-    expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ name: "Late Agent Card" });
+    expect(res.status).toBe(404);
   });
 
   it("should serve plugin-contributed OPTIONS routes when configured", async () => {
@@ -617,24 +766,20 @@ describe("ServerManager (in-process)", () => {
       productionDistDir: prodDir,
       sharedImagesDir: imagesDir,
       productionPort: 0,
-      webRoutes: [
-        {
-          pluginId: "mcp",
-          fullPath: "/mcp",
-          definition: {
-            path: "/mcp",
-            method: "OPTIONS",
-            public: true,
-            handler: async (): Promise<Response> =>
-              new Response(null, {
-                status: 204,
-                headers: {
-                  "Access-Control-Allow-Origin": "*",
-                  "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
-                },
-              }),
-          },
-        },
+      getRoutes: (): readonly RegisteredHttpRoute[] => [
+        handlerRoute(
+          "mcp",
+          "/mcp",
+          async (): Promise<Response> =>
+            new Response(null, {
+              status: 204,
+              headers: {
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
+              },
+            }),
+          { method: "OPTIONS" },
+        ),
       ],
     });
 
@@ -673,17 +818,13 @@ describe("ServerManager (in-process)", () => {
       productionDistDir: prodDir,
       sharedImagesDir: imagesDir,
       productionPort: 0,
-      apiRoutes: [
-        {
-          pluginId: "newsletter",
-          fullPath: "/api/newsletter/subscribe",
-          definition: {
-            path: "/subscribe",
-            method: "POST",
-            tool: "subscribe",
-            public: true,
-          },
-        },
+      getRoutes: (): readonly RegisteredHttpRoute[] => [
+        toolRoute("newsletter", "/api/newsletter/subscribe", {
+          path: "/subscribe",
+          method: "POST",
+          tool: "subscribe",
+          public: true,
+        }),
       ],
       messageBus,
     });
@@ -709,7 +850,133 @@ describe("ServerManager (in-process)", () => {
     });
   });
 
-  it("should serve API routes registered after the webserver starts", async () => {
+  it("fails loudly when a tool route has no message bus", async () => {
+    testDir = mkdtempSync(join(tmpdir(), "webserver-api-no-bus-"));
+    const prodDir = join(testDir, "dist", "production");
+    const imagesDir = join(testDir, "dist", "images");
+    mkdirSync(prodDir, { recursive: true });
+    mkdirSync(imagesDir, { recursive: true });
+
+    manager = new ServerManager({
+      logger: createSilentLogger("test"),
+      productionDistDir: prodDir,
+      sharedImagesDir: imagesDir,
+      productionPort: 0,
+      getRoutes: (): readonly RegisteredHttpRoute[] => [
+        toolRoute("example", "/api/example/run", {
+          path: "/run",
+          method: "POST",
+          tool: "run",
+          public: true,
+        }),
+      ],
+    });
+
+    await manager.start();
+    const url = manager.getStatus().productionUrl;
+    if (!url) return;
+
+    const response = await fetch(`${url}/api/example/run`, { method: "POST" });
+    expect(response.status).toBe(500);
+    expect(await response.text()).toBe("HTTP tool route unavailable");
+  });
+
+  it("preserves handler prefixes ahead of exact tool routes", async () => {
+    testDir = mkdtempSync(join(tmpdir(), "webserver-route-precedence-"));
+    const prodDir = join(testDir, "dist", "production");
+    const imagesDir = join(testDir, "dist", "images");
+    mkdirSync(prodDir, { recursive: true });
+    mkdirSync(imagesDir, { recursive: true });
+
+    const messageBus = createMockMessageBus({
+      returns: {
+        send: {
+          success: true,
+          data: { success: true, data: { source: "tool" } },
+        },
+      },
+    });
+    manager = new ServerManager({
+      logger: createSilentLogger("test"),
+      productionDistDir: prodDir,
+      sharedImagesDir: imagesDir,
+      productionPort: 0,
+      getRoutes: (): readonly RegisteredHttpRoute[] => [
+        handlerRoute(
+          "handler-owner",
+          "/api/example",
+          (): Response => new Response("handler prefix"),
+          { method: "POST", match: "prefix" },
+        ),
+        toolRoute("example", "/api/example/run", {
+          path: "/run",
+          method: "POST",
+          tool: "run",
+          public: true,
+        }),
+      ],
+      messageBus,
+    });
+
+    await manager.start();
+    const url = manager.getStatus().productionUrl;
+    if (!url) return;
+
+    const response = await fetch(`${url}/api/example/run`, { method: "POST" });
+    expect(await response.text()).toBe("handler prefix");
+    expect(messageBus.send).not.toHaveBeenCalled();
+  });
+
+  it("rejects non-public API routes before tool execution", async () => {
+    testDir = mkdtempSync(join(tmpdir(), "webserver-private-api-"));
+    const prodDir = join(testDir, "dist", "production");
+    const imagesDir = join(testDir, "dist", "images");
+    mkdirSync(prodDir, { recursive: true });
+    mkdirSync(imagesDir, { recursive: true });
+
+    const messageBus = createMockMessageBus({
+      returns: {
+        send: {
+          success: true,
+          data: { success: true, data: { invoked: true } },
+        },
+      },
+    });
+    manager = new ServerManager({
+      logger: createSilentLogger("test"),
+      productionDistDir: prodDir,
+      sharedImagesDir: imagesDir,
+      productionPort: 0,
+      getRoutes: (): readonly RegisteredHttpRoute[] => [
+        toolRoute(
+          "private-api",
+          "/api/private-api/run",
+          {
+            path: "/run",
+            method: "POST",
+            tool: "run",
+            public: false,
+          },
+          "deny",
+        ),
+      ],
+      messageBus,
+    });
+
+    await manager.start();
+    const url = manager.getStatus().productionUrl;
+    if (!url) return;
+
+    const response = await fetch(`${url}/api/private-api/run`, {
+      method: "POST",
+      headers: { accept: "application/json" },
+    });
+    expect(response.status).toBe(401);
+    expect(await response.text()).toBe("Unauthorized");
+    expect(messageBus.send).not.toHaveBeenCalled();
+  });
+
+  it("does not observe tool routes added after startup", async () => {
     testDir = mkdtempSync(join(tmpdir(), "webserver-late-api-routes-"));
     const prodDir = join(testDir, "dist", "production");
     const imagesDir = join(testDir, "dist", "images");
@@ -717,16 +984,7 @@ describe("ServerManager (in-process)", () => {
     mkdirSync(imagesDir, { recursive: true });
     writeFileSync(join(prodDir, "index.html"), "<h1>Hello</h1>");
 
-    let currentApiRoutes: Array<{
-      pluginId: string;
-      fullPath: string;
-      definition: {
-        path: string;
-        method: "POST";
-        tool: string;
-        public: true;
-      };
-    }> = [];
+    let currentRoutes: RegisteredHttpRoute[] = [];
 
     const messageBus = createMockMessageBus({
       returns: {
@@ -742,23 +1000,19 @@ describe("ServerManager (in-process)", () => {
       productionDistDir: prodDir,
       sharedImagesDir: imagesDir,
       productionPort: 0,
-      getApiRoutes: () => currentApiRoutes,
+      getRoutes: (): readonly RegisteredHttpRoute[] => currentRoutes,
       messageBus,
-    } as ConstructorParameters<typeof ServerManager>[0]);
+    });
 
     await manager.start();
 
-    currentApiRoutes = [
-      {
-        pluginId: "newsletter",
-        fullPath: "/api/newsletter/subscribe",
-        definition: {
-          path: "/subscribe",
-          method: "POST",
-          tool: "subscribe",
-          public: true,
-        },
-      },
+    currentRoutes = [
+      toolRoute("newsletter", "/api/newsletter/subscribe", {
+        path: "/subscribe",
+        method: "POST",
+        tool: "subscribe",
+        public: true,
+      }),
     ];
 
     const status = manager.getStatus();
@@ -773,11 +1027,8 @@ describe("ServerManager (in-process)", () => {
       body: JSON.stringify({ email: "late@example.com" }),
     });
 
-    expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({
-      success: true,
-      data: { registeredLate: true },
-    });
+    expect(res.status).toBe(404);
+    expect(messageBus.send).not.toHaveBeenCalled();
   });
 
   it("should not start preview server when preview is not configured", async () => {

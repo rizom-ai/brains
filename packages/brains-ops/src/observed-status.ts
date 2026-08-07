@@ -57,7 +57,7 @@ async function probeHealth(
   try {
     const response = await fetchWithTimeout(
       fetchImpl,
-      `https://${hostname}/health`,
+      `https://${hostname}/health/ready`,
       {
         method: "GET",
       },

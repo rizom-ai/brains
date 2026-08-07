@@ -6,6 +6,7 @@ import {
   createAttachmentsNamespace,
   createRuntimeUploadsNamespace,
 } from "@brains/plugins";
+import { bindHttpRouteSnapshot } from "@brains/plugins/internal/http-route-snapshot";
 import type {
   IShell,
   Plugin,
@@ -31,6 +32,7 @@ import type {
   IInsightsRegistry,
   InsightHandler,
 } from "@brains/plugins";
+import type { RegisteredHttpRoute } from "@brains/plugins/internal/http-routes";
 import type { Template } from "@brains/templates";
 import { PermissionService } from "@brains/templates";
 import type {
@@ -721,6 +723,35 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
   };
 
   // --- The MockShell object ---
+  const getPluginHttpRoutes = (): readonly RegisteredHttpRoute[] => {
+    const routes: RegisteredHttpRoute[] = [];
+    for (const [pluginId, plugin] of plugins) {
+      for (const definition of plugin.getWebRoutes?.() ?? []) {
+        routes.push({
+          kind: "handler",
+          ownerPluginId: pluginId,
+          fullPath: definition.path,
+          method: definition.method ?? "GET",
+          match: definition.match ?? "exact",
+          sharedHostAdmission: definition.public ? "admit" : "deny",
+          handler: definition.handler,
+        });
+      }
+      for (const definition of plugin.getApiRoutes?.() ?? []) {
+        routes.push({
+          kind: "tool",
+          ownerPluginId: pluginId,
+          fullPath: `/api/${pluginId}${definition.path}`,
+          method: definition.method,
+          match: "exact",
+          sharedHostAdmission: definition.public ? "admit" : "deny",
+          definition,
+        });
+      }
+    }
+    return routes;
+  };
+
   const shell: MockShell = {
     // Core services
     getMessageBus: () => messageBus,
@@ -1033,7 +1064,6 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
       }
       return routes;
     },
-
     // --- Test helpers ---
     addEntities: (ents: BaseEntity[]) => {
       for (const entity of ents) {
@@ -1061,5 +1091,6 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
     getDaemonRegistry: () => daemonRegistry,
   };
 
+  bindHttpRouteSnapshot(shell, getPluginHttpRoutes);
   return shell;
 }

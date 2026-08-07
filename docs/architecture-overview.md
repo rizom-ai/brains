@@ -186,15 +186,15 @@ Service plugins live in `plugins/` and provide tools, handlers, routes, orchestr
 
 Interface packages live in `interfaces/`. Some chat-style interfaces use `MessageInterfacePlugin`, which is a specialized interface base class for conversational transports.
 
-| Package                | Purpose                                                                                     |
-| ---------------------- | ------------------------------------------------------------------------------------------- |
-| `interfaces/a2a`       | Agent-to-agent protocol, Agent Card, async tasks                                            |
-| `interfaces/chat-repl` | Local chat REPL / development chat interface                                                |
-| `interfaces/chat`      | Discord + Slack bot interface via the Chat SDK                                              |
-| `interfaces/email`     | Outbound-first Email interface with configurable Resend transport                           |
-| `interfaces/mcp`       | MCP transport over stdio and HTTP                                                           |
-| `interfaces/web-chat`  | Bundled in-browser chat surface (default route `/chat`)                                     |
-| `interfaces/webserver` | Browser-facing HTTP surface for site pages, dashboard/CMS routes, API routes, and `/health` |
+| Package                | Purpose                                                                                                  |
+| ---------------------- | -------------------------------------------------------------------------------------------------------- |
+| `interfaces/a2a`       | Agent-to-agent protocol, Agent Card, async tasks                                                         |
+| `interfaces/chat-repl` | Local chat REPL / development chat interface                                                             |
+| `interfaces/chat`      | Discord + Slack bot interface via the Chat SDK                                                           |
+| `interfaces/email`     | Outbound-first Email interface with configurable Resend transport                                        |
+| `interfaces/mcp`       | MCP transport over stdio and HTTP                                                                        |
+| `interfaces/web-chat`  | Bundled in-browser chat surface (default route `/chat`)                                                  |
+| `interfaces/webserver` | Browser-facing HTTP surface for site pages, dashboard/CMS routes, API routes, and split health endpoints |
 
 ### Sites, themes, and the canonical definition
 
@@ -378,9 +378,10 @@ web routing readiness (`/health/ready`) and full operational health
 (`/health/operate`). Routing readiness covers web-critical database access.
 Operational health additionally covers durable worker sessions, stale attempt
 leases, daemon health, and projection circuit state; both reports include
-bounded process, queue, and causal-work resource signals. `/health` remains a
-routing-readiness legacy surface. Generated containers probe liveness, while
-generated host deployment artifacts install a restart-budgeted systemd
+bounded process, queue, and causal-work resource signals. Operational health
+also carries app version, entity counts, and daemon metadata for operator
+diagnostics. Generated containers probe liveness, while generated host
+deployment artifacts install a restart-budgeted systemd
 watchdog that preserves container diagnostics before restarting a persistently
 unhealthy Brain container.
 

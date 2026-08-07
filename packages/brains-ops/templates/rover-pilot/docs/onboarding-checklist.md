@@ -24,7 +24,7 @@
 11. Commit and push `users/<handle>.secrets.yaml.age`.
 12. Run `bunx brains-ops onboard <repo> <handle>`.
 13. Verify the deployed canonical contract:
-    - `https://<handle>.rizom.ai/health` returns `200`
+    - `https://<handle>.rizom.ai/health/operate` returns `200`
     - `https://<handle>.rizom.ai/chat` loads the web chat and accepts passkey sign-in
     - unauthenticated `POST https://<handle>.rizom.ai/mcp` returns the expected auth failure
     - content repo exists and runtime sync is healthy

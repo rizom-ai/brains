@@ -1,0 +1,9 @@
+{
+  "name": "packed-external-route-consumer",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@rizom/brain": "file:__RIZOM_BRAIN_TARBALL__",
+    "@rizom/brain-plugin-http-route-fixture": "file:__EXTERNAL_ROUTE_TARBALL__"
+  }
+}

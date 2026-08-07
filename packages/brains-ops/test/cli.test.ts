@@ -243,7 +243,7 @@ discord:
         fetchImpl(input, init) {
           const url = typeof input === "string" ? input : input.toString();
 
-          if (url === "https://alice.rizom.ai/health") {
+          if (url === "https://alice.rizom.ai/health/ready") {
             expect(init?.method).toBe("GET");
             return Promise.resolve(new Response("ok", { status: 200 }));
           }
@@ -448,11 +448,14 @@ members:
           const url = typeof input === "string" ? input : input.toString();
           requestedUrls.push(`${init?.method ?? "GET"} ${url}`);
 
-          if (url === "https://alice.rizom.ai/health") {
+          if (url === "https://alice.rizom.ai/health/operate") {
             return Promise.resolve(
               Response.json({
-                status: "healthy",
-                daemons: [{ name: "webserver", status: "running" }],
+                status: "ready",
+                operationalStatus: "operational",
+                app: {
+                  daemons: [{ name: "webserver", status: "running" }],
+                },
               }),
             );
           }
@@ -480,7 +483,7 @@ members:
       "Verified alice (core,site,publishing) at https://alice.rizom.ai: health, mcp-auth-gate, site, cms",
     );
     expect(requestedUrls).toEqual([
-      "GET https://alice.rizom.ai/health",
+      "GET https://alice.rizom.ai/health/operate",
       "POST https://alice.rizom.ai/mcp",
       "GET https://alice.rizom.ai/",
       "GET https://alice.rizom.ai/cms",
@@ -515,17 +518,23 @@ members:
       {
         fetchImpl(input) {
           const url = typeof input === "string" ? input : input.toString();
-          if (url === "https://alice.rizom.ai/health") {
+          if (url === "https://alice.rizom.ai/health/operate") {
             return Promise.resolve(
               Response.json({
-                status: "healthy",
-                daemons: [
-                  {
-                    name: "site-builder",
-                    status: "error",
-                    health: { status: "unhealthy", message: "build failed" },
-                  },
-                ],
+                status: "ready",
+                operationalStatus: "operational",
+                app: {
+                  daemons: [
+                    {
+                      name: "site-builder",
+                      status: "error",
+                      health: {
+                        status: "unhealthy",
+                        message: "build failed",
+                      },
+                    },
+                  ],
+                },
               }),
             );
           }
@@ -559,8 +568,14 @@ members:
       {
         fetchImpl(input) {
           const url = typeof input === "string" ? input : input.toString();
-          if (url === "https://alice.rizom.ai/health") {
-            return Promise.resolve(Response.json({ status: "healthy" }));
+          if (url === "https://alice.rizom.ai/health/operate") {
+            return Promise.resolve(
+              Response.json({
+                status: "ready",
+                operationalStatus: "operational",
+                app: { daemons: [] },
+              }),
+            );
           }
           if (url === "https://alice.rizom.ai/mcp") {
             return Promise.resolve(new Response("ok", { status: 200 }));

@@ -21,6 +21,7 @@ import type {
   ProjectionInputContext,
   ProjectionJsonObject,
 } from "@brains/plugins";
+import { bindHttpRouteSnapshot } from "@brains/plugins/internal/http-route-snapshot";
 
 // Plugin manager
 import {
@@ -97,13 +98,14 @@ import {
 } from "./initialization/shellBootloader";
 import { createInsightsRegistry } from "./system/insights";
 import type { IInsightsRegistry } from "@brains/plugins";
+import type { HttpRouteManifestEntry } from "@brains/plugins/internal/http-routes";
 import { EndpointRegistry } from "./endpoint-registry";
 import { InteractionRegistry } from "./interaction-registry";
 import { createJobsNamespace } from "./jobs-namespace";
 import {
-  collectPluginApiRoutes,
-  collectPluginWebRoutes,
-} from "./plugin-routes";
+  collectHttpRouteContributors,
+  HttpRouteRegistry,
+} from "./http-route-registry";
 import { registerShellRuntimeFinalizers } from "./shell-shutdown";
 import { registerShellSystemCapabilities } from "./shell-system-capabilities";
 import type { ShellDependencies, ShellServices } from "./types/shell-types";
@@ -130,6 +132,7 @@ export class Shell implements IShell {
   private readonly bootTime = Date.now();
   private readonly endpointRegistry = new EndpointRegistry();
   private readonly interactionRegistry = new InteractionRegistry();
+  private readonly httpRouteRegistry = HttpRouteRegistry.createFresh();
 
   public readonly jobs: IJobsNamespace;
 
@@ -148,6 +151,7 @@ export class Shell implements IShell {
   ) {
     this.config = config;
     this.lifecycle = new ShellLifecycle();
+    bindHttpRouteSnapshot(this, () => this.httpRouteRegistry.getSnapshot());
     const constructionLogger = dependencies?.logger ?? Logger.getInstance();
     const shellInitializer = ShellInitializer.createFresh(
       constructionLogger,
@@ -176,6 +180,11 @@ export class Shell implements IShell {
         {
           registerCoreDataSources: (): void =>
             registerCoreDataSources(this.services, this.config),
+          finalizeHttpRoutes: (): void => {
+            this.httpRouteRegistry.finalize(
+              collectHttpRouteContributors(this.services.pluginManager),
+            );
+          },
           registerSystemCapabilities: (): void =>
             registerShellSystemCapabilities({
               services: this.services,
@@ -592,12 +601,16 @@ export class Shell implements IShell {
     return this.services.pluginManager.hasPlugin(id);
   }
 
+  public getPluginHttpRouteManifest(): readonly HttpRouteManifestEntry[] {
+    return this.httpRouteRegistry.getManifest();
+  }
+
   public getPluginApiRoutes(): RegisteredApiRoute[] {
-    return collectPluginApiRoutes(this.services.pluginManager);
+    return this.httpRouteRegistry.getApiRoutes();
   }
 
   public getPluginWebRoutes(): RegisteredWebRoute[] {
-    return collectPluginWebRoutes(this.services.pluginManager);
+    return this.httpRouteRegistry.getWebRoutes();
   }
 
   public registerDaemon(name: string, daemon: Daemon, pluginId: string): void {

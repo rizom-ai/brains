@@ -42,7 +42,7 @@ Core is the posture-independent foundation. It provides the knowledge system, AI
 | `notifications`    | A shared notification layer for setup and operational messages                                                                           |
 | `email`            | Outbound Email message interface with transactional Resend delivery when configured                                                      |
 | `mcp`              | MCP tools, resources, prompts, and resource templates over HTTP or stdio                                                                 |
-| `webserver`        | Shared HTTP host for browser routes, APIs, MCP, A2A, static output, and `/health`                                                        |
+| `webserver`        | Shared HTTP host for browser routes, APIs, MCP, A2A, static output, and split health endpoints                                           |
 | `web-chat`         | Operator browser chat with sessions, uploads, confirmations, sources, attachments, action cards, and job progress                        |
 | `chat`             | One multi-platform Chat SDK interface for Discord and Slack adapters                                                                     |
 | `a2a`              | Agent Card discovery, inbound A2A tasks, and outbound calls to peer agents                                                               |
@@ -361,7 +361,7 @@ The `brain` CLI can:
 - scaffold Docker, Kamal, and GitHub Actions deployment files;
 - bootstrap Hetzner SSH keys and Cloudflare Origin CA certificates;
 - push secrets to GitHub Actions or Bitwarden Secrets Manager;
-- expose `/health` for containers and zero-downtime deployment checks.
+- expose `/health/live` for container liveness and `/health/ready` for zero-downtime deployment checks.
 
 Brains can run locally with Bun, in a container, or through the documented Kamal-based self-hosted deployment flow.
 

@@ -130,8 +130,8 @@ describe("public plugin API", () => {
 
     expect(plugin.registered).toBe(true);
     expect(plugin.type).toBe("interface");
-    // shell/core's plugin-routes reads these off the plugin object itself, so
-    // the public wrapper — not the delegate — is what has to answer.
+    // Shell route finalization reads these once from the plugin object itself,
+    // so the public wrapper — not the delegate — is what has to answer.
     expect(plugin.getWebRoutes()).toEqual(routes);
     expect(plugin.requiresDaemonStartup()).toBe(true);
   });

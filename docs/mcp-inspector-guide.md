@@ -102,7 +102,7 @@ Always use HTTPS in production. Preserve the deployment volume that backs `/app/
 
 ### Connection refused
 
-- Check the server is running: `curl http://localhost:8080/health`
+- Check the server is ready: `curl http://localhost:8080/health/ready`
 - Verify port 8080 is not blocked
 
 ### OAuth loop or authorization failed

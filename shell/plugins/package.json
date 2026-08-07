@@ -45,6 +45,8 @@
     "./message-interface/upload-selection": "./src/message-interface/upload-selection.ts",
     "./contracts/api-routes": "./src/types/api-routes.ts",
     "./contracts/web-routes": "./src/types/web-routes.ts",
+    "./internal/http-routes": "./src/types/http-routes.ts",
+    "./internal/http-route-snapshot": "./src/internal/http-route-snapshot.ts",
     "./contracts/daemons": "./src/manager/daemon-types.ts",
     "./services/base-entity-datasource": "./src/service/base-entity-datasource.ts",
     "./public/plugin-api": "./src/public/plugin-api.ts",

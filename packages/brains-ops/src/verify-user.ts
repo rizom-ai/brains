@@ -23,22 +23,25 @@ export interface VerifyPilotUserResult {
   failedChecks: FailedCheck[];
 }
 
-const healthResponseSchema = z.looseObject({
-  status: z.string().optional(),
-  daemons: z
-    .array(
-      z.looseObject({
-        name: z.string().optional(),
-        status: z.string().optional(),
-        health: z
-          .looseObject({
-            status: z.string().optional(),
-            message: z.string().optional(),
-          })
-          .optional(),
-      }),
-    )
-    .optional(),
+const operationalHealthResponseSchema = z.looseObject({
+  status: z.string(),
+  operationalStatus: z.string(),
+  app: z.looseObject({
+    daemons: z
+      .array(
+        z.looseObject({
+          name: z.string().optional(),
+          status: z.string().optional(),
+          health: z
+            .looseObject({
+              status: z.string().optional(),
+              message: z.string().optional(),
+            })
+            .optional(),
+        }),
+      )
+      .default([]),
+  }),
 });
 
 export async function verifyPilotUser(
@@ -119,26 +122,34 @@ async function verifyHealth(
   fetchImpl: FetchLike,
   baseUrl: string,
 ): Promise<void> {
-  const response = await fetchWithTimeout(fetchImpl, `${baseUrl}/health`, {
+  const endpoint = "/health/operate";
+  const response = await fetchWithTimeout(fetchImpl, `${baseUrl}${endpoint}`, {
     method: "GET",
   });
   if (!response.ok) {
-    throw new Error(`/health returned ${response.status}, expected 200`);
+    throw new Error(`${endpoint} returned ${response.status}, expected 200`);
   }
 
-  const parsed = healthResponseSchema.safeParse(await response.json());
+  const parsed = operationalHealthResponseSchema.safeParse(
+    await response.json(),
+  );
   if (!parsed.success) {
     throw new Error(
-      `/health response did not match expected shape: ${parsed.error.message}`,
+      `${endpoint} response did not match expected shape: ${parsed.error.message}`,
     );
   }
   const health = parsed.data;
 
-  if (health.status && health.status !== "healthy") {
-    throw new Error(`/health status is ${health.status}, expected healthy`);
+  if (health.status !== "ready") {
+    throw new Error(`${endpoint} status is ${health.status}, expected ready`);
+  }
+  if (health.operationalStatus !== "operational") {
+    throw new Error(
+      `${endpoint} operationalStatus is ${health.operationalStatus}, expected operational`,
+    );
   }
 
-  for (const daemon of health.daemons ?? []) {
+  for (const daemon of health.app.daemons) {
     const daemonStatus = daemon.status ?? "unknown";
     const healthStatus = daemon.health?.status;
     if (daemonStatus === "error" || healthStatus === "unhealthy") {
