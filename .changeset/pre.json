@@ -455,6 +455,7 @@
     "shell-lifecycle-registration-rollback",
     "shell-lifecycle-transitions",
     "show-account-contact-details",
+    "site--drop-rizom-theme-profiles",
     "site--first-party-preact-peer",
     "site--json-native-section-content",
     "site--relicense-agpl-apache-split",

@@ -1,5 +1,11 @@
 # @brains/site-rizom
 
+## 0.2.0-alpha.237
+
+### Minor Changes
+
+- [`8066c33`](https://github.com/rizom-ai/brains/commit/8066c33f8b091d3f4192ff4f355229eea1a1601a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Remove the profile-driven chrome subsystem. `createRizomSite` no longer accepts `themeProfile`, the `RizomThemeProfile` type is gone, `RizomFrame` no longer renders the background canvas mount, and the profile canvas assets are dropped. The retiring rizom-work/rizom-foundation variants were its only users and no longer exist; every surviving site draws its own motifs.
+
 ## 0.2.0-alpha.236
 
 ### Patch Changes
