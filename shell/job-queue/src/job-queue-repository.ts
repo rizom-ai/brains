@@ -34,6 +34,7 @@ export interface JobAttemptClaim {
   workerSessionId: string;
   leaseDurationMs: number;
   workerSessionTimeoutMs: number;
+  executableTypes: readonly string[];
 }
 
 /**
@@ -489,7 +490,7 @@ export class JobQueueRepository {
   }
 
   /**
-   * Atomically claim the highest-priority pending or safely reclaimable job.
+   * Atomically claim the highest-priority executable pending or reclaimable job.
    * A superseded session is reclaimable immediately. Another slot's attempt
    * requires both an expired lease and an expired owner-session heartbeat.
    */
@@ -503,6 +504,7 @@ export class JobQueueRepository {
       workerSessionId,
       leaseDurationMs,
       workerSessionTimeoutMs,
+      executableTypes,
     } = claim;
     const sessionExpiredBefore = now - workerSessionTimeoutMs;
 
@@ -549,12 +551,15 @@ export class JobQueueRepository {
       .select({ id: jobQueue.id })
       .from(jobQueue)
       .where(
-        or(
-          and(
-            eq(jobQueue.status, JOB_STATUS.PENDING),
-            lte(jobQueue.scheduledFor, now),
+        and(
+          inArray(jobQueue.type, executableTypes),
+          or(
+            and(
+              eq(jobQueue.status, JOB_STATUS.PENDING),
+              lte(jobQueue.scheduledFor, now),
+            ),
+            processingReclaimable,
           ),
-          processingReclaimable,
         ),
       )
       .orderBy(asc(jobQueue.priority), asc(jobQueue.createdAt))

@@ -212,6 +212,7 @@ describe("activateProjectionRuntime", () => {
           requests.push(request);
           return "job-1";
         },
+        getStatus: async () => null,
         registerHandler: (type, handler): void => {
           order.push(`register:${type}`);
           registeredHandler = handler;

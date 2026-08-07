@@ -1,6 +1,10 @@
 import { readdir, readFile } from "node:fs/promises";
 import { internalFullScope } from "@brains/entity-service";
-import type { JobQueueDiagnostics } from "@brains/job-queue";
+import type {
+  ProjectionWave,
+  ProjectionWaveRule,
+} from "@brains/entity-service";
+import type { JobInfo, JobQueueDiagnostics } from "@brains/job-queue";
 import type {
   DaemonStatusInfo,
   RuntimeHealthCheck,
@@ -22,9 +26,30 @@ interface RuntimeMemoryUsage {
   heapTotal: number;
 }
 
+interface ProjectionWaveReader {
+  getActiveWave(): Promise<ProjectionWave | null>;
+  listWaveRules(waveId: string): Promise<ProjectionWaveRule[]>;
+}
+
+interface StrandedProjectionRule {
+  ruleId: string;
+  jobId: string | null;
+  jobStatus: JobInfo["status"] | "missing";
+}
+
+interface ProjectionWaveDiagnostics {
+  waveId: string | null;
+  strandedRules: StrandedProjectionRule[];
+}
+
 export interface RuntimeReadinessOptions {
-  entityService: Pick<ShellServices["entityService"], "getEntityCounts">;
-  jobQueueService: Pick<ShellServices["jobQueueService"], "getDiagnostics">;
+  entityService: Pick<ShellServices["entityService"], "getEntityCounts"> & {
+    getProjectionStore(): ProjectionWaveReader;
+  };
+  jobQueueService: Pick<
+    ShellServices["jobQueueService"],
+    "getDiagnostics" | "getStatus"
+  >;
   daemonRegistry: Pick<ShellServices["daemonRegistry"], "getStatuses">;
   projectionRuntimeSupervisor: Pick<
     ShellServices["projectionRuntimeSupervisor"],
@@ -175,6 +200,70 @@ function projectionCheck(
   };
 }
 
+async function getProjectionWaveDiagnostics(
+  options: RuntimeReadinessOptions,
+): Promise<ProjectionWaveDiagnostics> {
+  const store = options.entityService.getProjectionStore();
+  const activeWave = await store.getActiveWave();
+  if (!activeWave) return { waveId: null, strandedRules: [] };
+
+  const rules = await store.listWaveRules(activeWave.id);
+  const candidates = rules.filter(
+    (rule) => rule.status === "queued" || rule.status === "failed",
+  );
+  const strandedRules = (
+    await Promise.all(
+      candidates.map(async (rule): Promise<StrandedProjectionRule | null> => {
+        const job = rule.jobId
+          ? await options.jobQueueService.getStatus(rule.jobId)
+          : null;
+        if (
+          rule.status !== "failed" &&
+          job &&
+          (job.status === "pending" || job.status === "processing")
+        ) {
+          return null;
+        }
+        return {
+          ruleId: rule.ruleId,
+          jobId: rule.jobId,
+          jobStatus: job?.status ?? "missing",
+        };
+      }),
+    )
+  ).filter((rule): rule is StrandedProjectionRule => rule !== null);
+
+  return { waveId: activeWave.id, strandedRules };
+}
+
+function projectionWaveCheck(
+  diagnostics: ProjectionWaveDiagnostics,
+): RuntimeHealthCheck {
+  if (!diagnostics.waveId) {
+    return {
+      name: "projection-waves",
+      status: "healthy",
+      message: "No active projection wave",
+    };
+  }
+  if (diagnostics.strandedRules.length === 0) {
+    return {
+      name: "projection-waves",
+      status: "healthy",
+      message: `Projection wave ${diagnostics.waveId} is progressing`,
+    };
+  }
+  return {
+    name: "projection-waves",
+    status: "degraded",
+    message: `Projection wave ${diagnostics.waveId} has ${diagnostics.strandedRules.length} stranded rule job(s)`,
+    details: {
+      waveId: diagnostics.waveId,
+      strandedRules: diagnostics.strandedRules,
+    },
+  };
+}
+
 function daemonCheck(statuses: DaemonStatusInfo[]): RuntimeHealthCheck {
   const unhealthy = statuses.filter(
     (daemon) =>
@@ -212,6 +301,7 @@ export async function getRuntimeReadiness(
     daemonResult,
     processResult,
     projectionResult,
+    projectionWaveResult,
   ] = await Promise.allSettled([
     options.entityService.getEntityCounts(
       internalFullScope("runtime readiness database probe"),
@@ -220,6 +310,7 @@ export async function getRuntimeReadiness(
     options.daemonRegistry.getStatuses(),
     (options.readProcessSignals ?? readLinuxProcessSignals)(),
     options.projectionRuntimeSupervisor.getDiagnostics(),
+    getProjectionWaveDiagnostics(options),
   ]);
 
   const diagnostics =
@@ -262,6 +353,13 @@ export async function getRuntimeReadiness(
           name: "projection-circuits",
           status: "degraded",
           message: getErrorMessage(projectionResult.reason),
+        },
+    projectionWaveResult.status === "fulfilled"
+      ? projectionWaveCheck(projectionWaveResult.value)
+      : {
+          name: "projection-waves",
+          status: "degraded",
+          message: getErrorMessage(projectionWaveResult.reason),
         },
     daemonResult.status === "fulfilled"
       ? daemonCheck(daemonStatuses)

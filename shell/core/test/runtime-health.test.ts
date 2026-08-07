@@ -1,4 +1,9 @@
 import { describe, expect, it } from "bun:test";
+import type {
+  ProjectionWave,
+  ProjectionWaveRule,
+} from "@brains/entity-service";
+import type { JobInfo, JobQueueDiagnostics } from "@brains/job-queue";
 import {
   getRuntimeReadiness,
   type RuntimeReadinessOptions,
@@ -13,25 +18,32 @@ type RuntimeDependencies = Pick<
 >;
 
 function createDependencies(): RuntimeDependencies {
+  const entityService: RuntimeDependencies["entityService"] = {
+    getEntityCounts: async () => [{ entityType: "note", count: 2 }],
+    getProjectionStore: () => ({
+      getActiveWave: async (): Promise<ProjectionWave | null> => null,
+      listWaveRules: async (): Promise<ProjectionWaveRule[]> => [],
+    }),
+  };
+  const jobQueueService = {
+    getDiagnostics: async (): Promise<JobQueueDiagnostics> => ({
+      totals: { pending: 1, processing: 0, completed: 3, failed: 0 },
+      byType: [{ type: "note:embedding", status: "pending", count: 1 }],
+      oldestPendingAgeMs: 25,
+      oldestProcessingAgeMs: null,
+      staleLeaseCount: 0,
+      workerSessions: {
+        total: 1,
+        active: 1,
+        stale: 0,
+        latestHeartbeatAgeMs: 1_000,
+      },
+    }),
+    getStatus: async (): Promise<JobInfo | null> => null,
+  };
   return {
-    entityService: {
-      getEntityCounts: async () => [{ entityType: "note", count: 2 }],
-    },
-    jobQueueService: {
-      getDiagnostics: async () => ({
-        totals: { pending: 1, processing: 0, completed: 3, failed: 0 },
-        byType: [{ type: "note:embedding", status: "pending", count: 1 }],
-        oldestPendingAgeMs: 25,
-        oldestProcessingAgeMs: null,
-        staleLeaseCount: 0,
-        workerSessions: {
-          total: 1,
-          active: 1,
-          stale: 0,
-          latestHeartbeatAgeMs: 1_000,
-        },
-      }),
-    },
+    entityService,
+    jobQueueService,
     projectionRuntimeSupervisor: {
       getDiagnostics: async () => ({
         status: "healthy",
@@ -185,6 +197,90 @@ describe("getRuntimeReadiness", () => {
         expect.objectContaining({ name: "daemons", status: "degraded" }),
       ]),
     );
+  });
+
+  it("degrades operation when an active projection wave has a terminal queued job", async () => {
+    const dependencies = createDependencies();
+    const entityService: RuntimeDependencies["entityService"] = {
+      ...dependencies.entityService,
+      getProjectionStore: () => ({
+        getActiveWave: async (): Promise<ProjectionWave> => ({
+          id: "wave-1",
+          cutoffGeneration: 42,
+          graphFingerprint: "graph-1",
+          status: "running",
+          startedAt: 100,
+          completedAt: null,
+        }),
+        listWaveRules: async (): Promise<ProjectionWaveRule[]> => [
+          {
+            waveId: "wave-1",
+            ruleId: "topics-projection",
+            targetType: "topic",
+            level: 0,
+            jobId: "job-terminal",
+            status: "queued",
+            inputFingerprint: null,
+            changedTargets: [],
+          },
+        ],
+      }),
+    };
+    const jobQueueService = {
+      ...dependencies.jobQueueService,
+      getStatus: async (): Promise<JobInfo> => ({
+        id: "job-terminal",
+        type: "shell:projection-rule",
+        data: "{}",
+        status: "failed",
+        source: "projection-scheduler",
+        priority: 0,
+        retryCount: 3,
+        maxRetries: 3,
+        lastError: "No handler registered",
+        createdAt: 100,
+        scheduledFor: 100,
+        startedAt: 100,
+        completedAt: 200,
+        attemptId: null,
+        workerSlotId: null,
+        workerSessionId: null,
+        leaseExpiresAt: null,
+        attemptHeartbeatAt: null,
+        runtimeUpdatedAt: 200,
+        metadata: {
+          rootJobId: "projection-wave:wave-1",
+          operationType: "data_processing",
+        },
+        progress: null,
+        result: null,
+      }),
+    };
+
+    const readiness = await getRuntimeReadiness({
+      ...dependencies,
+      entityService,
+      jobQueueService,
+      ...runtimeOptions,
+    });
+
+    expect(readiness.status).toBe("ready");
+    expect(readiness.operationalStatus).toBe("degraded");
+    expect(readiness.checks).toContainEqual({
+      name: "projection-waves",
+      status: "degraded",
+      message: "Projection wave wave-1 has 1 stranded rule job(s)",
+      details: {
+        waveId: "wave-1",
+        strandedRules: [
+          {
+            ruleId: "topics-projection",
+            jobId: "job-terminal",
+            jobStatus: "failed",
+          },
+        ],
+      },
+    });
   });
 
   it("degrades operation while a projection circuit is open", async () => {

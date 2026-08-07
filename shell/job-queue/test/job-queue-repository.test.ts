@@ -49,6 +49,7 @@ function claimOptions(
     workerSessionId: "session-a",
     leaseDurationMs: 1_000,
     workerSessionTimeoutMs: 2_000,
+    executableTypes: ["test:job", "type:a", "type:b"],
     ...overrides,
   };
 }

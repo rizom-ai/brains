@@ -476,6 +476,54 @@ describe("JobQueueService", () => {
       expect(job?.status).toBe("processing");
       expect(job?.type).toBe("shell:embedding");
     });
+
+    it("does not claim work without a local execution handler", async () => {
+      const scheduler = JobQueueService.createFresh(
+        config,
+        createSilentLogger(),
+        { handlerRegistrationMode: "validation-only" },
+      );
+      const successorWorker = JobQueueService.createFresh(
+        config,
+        createSilentLogger(),
+        { handlerRegistrationMode: "execution-only" },
+      );
+      const projectionHandler =
+        testHandler as unknown as JobHandler<"shell:projection-rule">;
+      scheduler.registerHandler(
+        "shell:projection-rule",
+        projectionHandler,
+        "shell",
+      );
+      successorWorker.registerHandler(
+        "shell:projection-rule",
+        projectionHandler,
+        "shell",
+      );
+
+      try {
+        const jobId = await scheduler.enqueue({
+          type: "shell:projection-rule",
+          data: testEntity,
+          options: defaultEnqueueOptions,
+        });
+
+        expect(await service.dequeue()).toBeNull();
+        expect(await service.getStatus(jobId)).toMatchObject({
+          status: "pending",
+          retryCount: 0,
+        });
+        expect(await successorWorker.dequeue()).toMatchObject({
+          id: jobId,
+          type: "shell:projection-rule",
+          status: "processing",
+        });
+      } finally {
+        scheduler.close();
+        successorWorker.close();
+      }
+    });
+
     it("should not allow concurrent dequeue calls to claim the same job", async () => {
       const secondService = JobQueueService.createFresh(
         config,

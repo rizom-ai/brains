@@ -341,16 +341,21 @@ export class JobQueueService implements IJobQueueService {
   }
 
   /**
-   * Dequeue the next job for processing. Workers provide explicit ownership;
+   * Dequeue the next executable job. Workers provide explicit ownership;
    * direct administrative callers receive one service-local fallback session.
+   * Jobs without a local execution handler remain pending.
    */
   public async dequeue(claim?: JobClaimOptions): Promise<JobQueue | null> {
+    const executableTypes = this.handlerRegistry.getRegisteredTypes();
+    if (executableTypes.length === 0) return null;
+
     const ownership = claim ?? (await this.getDirectClaimOptions());
     const now = Date.now();
     const job = await this.repository.claimNextReady({
       ...ownership,
       now,
       attemptId: createId(),
+      executableTypes,
     });
     if (!job) return null;
 
