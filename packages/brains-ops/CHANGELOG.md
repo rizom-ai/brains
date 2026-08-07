@@ -1,5 +1,11 @@
 # @brains/ops
 
+## 0.2.0-alpha.260
+
+### Patch Changes
+
+- [#87](https://github.com/rizom-ai/brains/pull/87) [`46f31a0`](https://github.com/rizom-ai/brains/commit/46f31a0b72c4c8a4efe35d63eb31caaae3515027) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Scope the host health watchdog to unhealthy containers carrying the explicit Brain ownership label, and label generated standalone and fleet runtime images accordingly.
+
 ## 0.2.0-alpha.259
 
 ### Patch Changes

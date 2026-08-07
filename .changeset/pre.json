@@ -244,6 +244,7 @@
     "core--fenced-job-attempts",
     "core--fix-professional-profile-view-schema",
     "core--git-child-lifecycle",
+    "core--health-watchdog-container-scope",
     "core--inbound-email-daemon",
     "core--json-native-section-content",
     "core--media-provider-factories",
