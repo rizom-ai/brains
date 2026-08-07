@@ -1,0 +1,66 @@
+name: Architecture CI
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["main"]
+    paths:
+      - "**/*.ts"
+      - "**/*.tsx"
+      - "**/*.js"
+      - "**/*.jsx"
+      - "**/*.mjs"
+      - "**/*.cjs"
+      - "**/package.json"
+      - "**/tsconfig*.json"
+      - ".dependency-cruiser.js"
+      - "bun.lock"
+      - ".node-version"
+      - "scripts/architecture-*"
+      - "scripts/dependency-cruiser-typescript-*"
+      - ".github/workflows/architecture-ci.yml"
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "**/*.ts"
+      - "**/*.tsx"
+      - "**/*.js"
+      - "**/*.jsx"
+      - "**/*.mjs"
+      - "**/*.cjs"
+      - "**/package.json"
+      - "**/tsconfig*.json"
+      - ".dependency-cruiser.js"
+      - "bun.lock"
+      - ".node-version"
+      - "scripts/architecture-*"
+      - "scripts/dependency-cruiser-typescript-*"
+      - ".github/workflows/architecture-ci.yml"
+
+jobs:
+  architecture:
+    name: Dependency architecture
+    timeout-minutes: 15
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v5
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version-file: .node-version
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Test architecture inventory and toolchain
+        run: bun run arch:test
+
+      - name: Check dependency architecture
+        run: bun run arch:check

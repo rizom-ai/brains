@@ -18,7 +18,7 @@ import {
 } from "@brains/contracts";
 import { BUTTONDOWN_CHANNELS } from "../buttondown-channels";
 import { h } from "preact";
-import { fetchStyleGuide, formatVoiceGuidance } from "@brains/style-guide";
+import { fetchVoiceGuidance } from "./style-guide";
 import { NewsletterSignup } from "@brains/ui-library";
 import { newsletterSchema, type Newsletter } from "./schemas/newsletter";
 import {
@@ -238,9 +238,7 @@ export class NewsletterPlugin extends EntityPlugin<
         ? `Create an engaging newsletter based on this content:\n\n${parsed.content}`
         : (parsed.prompt ?? "Write an engaging newsletter");
 
-      const voiceGuidance = formatVoiceGuidance(
-        await fetchStyleGuide(context.entityService),
-      );
+      const voiceGuidance = await fetchVoiceGuidance(context.entityService);
       return context.ai.generate<{ subject: string; content: string }>({
         prompt: generationPrompt,
         templateName: NEWSLETTER_CHANNELS.generation,

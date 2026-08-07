@@ -305,7 +305,7 @@ The Brains project uses a modern, TypeScript-based stack optimized for building 
 
 - **Bun**: >=1.3.3
 - **TypeScript**: >=5.3.3
-- **Node.js**: >=20.0.0 (runtime compatibility checks for CLI)
+- **Node.js**: >=24.18.0 (repository tooling; application runtime remains Bun)
 
 ## Key Features
 

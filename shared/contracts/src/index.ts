@@ -130,6 +130,23 @@ export {
   type ProjectionWaveReady,
 } from "./projection-wave";
 export {
+  DEFAULT_STYLE_GUIDE,
+  formatStyleGuidance,
+  formatVisualGuidance,
+  formatVoiceGuidance,
+  parseStyleGuideContent,
+  styleGuideFrontmatterSchema,
+  styleGuideMessagingSchema,
+  styleGuideVisualSchema,
+  styleGuideVoiceSchema,
+  type FormattedStyleGuidance,
+  type StyleGuide,
+  type StyleGuideFrontmatter,
+  type StyleGuideMessaging,
+  type StyleGuideVisual,
+  type StyleGuideVoice,
+} from "./style-guide";
+export {
   PLAYBOOKS_REGISTER_LIFECYCLE_STARTER,
   lifecycleStarterRegistrationSchema,
   type LifecycleStarterRegistration,

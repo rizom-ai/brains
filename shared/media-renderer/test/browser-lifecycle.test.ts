@@ -2,7 +2,11 @@ import { describe, expect, it } from "bun:test";
 import { Effect } from "@brains/utils/effect";
 import { TestClock, TestContext } from "@brains/utils/effect/test";
 import { withBrowser } from "../src/browser-lifecycle";
-import type { BrowserFactory, MediaBrowser, MediaPage } from "../src/renderer";
+import type {
+  BrowserFactory,
+  MediaBrowser,
+  MediaPage,
+} from "../src/browser-types";
 
 interface Deferred<T> {
   promise: Promise<T>;

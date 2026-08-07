@@ -12,7 +12,7 @@ import {
   projectionWaveRules,
   projectionWaves,
 } from "../schema/projection-state";
-import type { EntityDbConfig } from "../types";
+import type { DbConfig as EntityDbConfig } from "@brains/contracts";
 
 export type EntityDB = SqliteDatabase;
 

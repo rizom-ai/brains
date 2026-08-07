@@ -1,35 +1,28 @@
 import type { BasePluginContext, IPermissionsNamespace } from "../base/context";
 import { createBasePluginContext } from "../base/context";
+import type { IShell, PluginRegistrationContext } from "../interfaces";
+import type { ContentGenerationConfig } from "../contracts/generation";
 import type {
-  IShell,
-  ContentGenerationConfig,
-  PluginRegistrationContext,
-} from "../interfaces";
+  AIGenerationSchema,
+  IEntityAINamespace,
+  ImageGenerationOptions,
+  ImageGenerationResult,
+} from "./ai-types";
 import type {
   IEntityService,
   IEntitiesNamespace,
 } from "@brains/entity-service";
 import { createEntitiesNamespace, createPromptsNamespace } from "./namespaces";
 import type { IPromptsNamespace } from "./namespaces";
-import type { DefaultQueryResponse } from "@brains/contracts";
-import type { ZodType } from "@brains/utils/zod";
-
 export type { IEntitiesNamespace };
 export type { IPromptsNamespace };
-
-export type AIGenerationSchema<T> = ZodType<T>;
-
-export type AspectRatio = "1:1" | "16:9" | "9:16" | "4:3" | "3:4";
-
-export interface ImageGenerationOptions {
-  aspectRatio?: AspectRatio;
-  signal?: AbortSignal;
-}
-
-export interface ImageGenerationResult {
-  base64: string;
-  dataUrl: string;
-}
+export type {
+  AIGenerationSchema,
+  AspectRatio,
+  IEntityAINamespace,
+  ImageGenerationOptions,
+  ImageGenerationResult,
+} from "./ai-types";
 
 export interface FrontmatterSchemaParser {
   parse(data: unknown): unknown;
@@ -42,36 +35,6 @@ export interface EntityPluginEntitiesNamespace extends Omit<
   getEffectiveFrontmatterSchema(
     type: string,
   ): FrontmatterSchemaParser | undefined;
-}
-
-/**
- * AI namespace for entity plugins — includes generation capabilities
- */
-export interface IEntityAINamespace {
-  /** Query the AI with optional context */
-  query: (
-    prompt: string,
-    context?: Record<string, unknown>,
-  ) => Promise<DefaultQueryResponse>;
-
-  /** Generate content using AI with template */
-  generate: <T = unknown>(config: ContentGenerationConfig) => Promise<T>;
-
-  /** Generate a structured object using AI with a schema parser */
-  generateObject: <T>(
-    prompt: string,
-    schema: AIGenerationSchema<T>,
-    signal?: AbortSignal,
-  ) => Promise<{ object: T }>;
-
-  /** Generate an image using AI (requires AI_API_KEY) */
-  generateImage: (
-    prompt: string,
-    options?: ImageGenerationOptions,
-  ) => Promise<ImageGenerationResult>;
-
-  /** Check if image generation is available */
-  canGenerateImages: () => boolean;
 }
 
 /**

@@ -165,6 +165,33 @@ export type { BreadcrumbProps, BreadcrumbItem } from "./Breadcrumb";
 export { NewsletterSignup, newsletterSignupVariants } from "./NewsletterSignup";
 export type { NewsletterSignupProps } from "./NewsletterSignup";
 
+// Shared SSR primitives for dashboard widgets
+export {
+  createWidgetInstanceId,
+  CardHeader,
+  EmptyState as WidgetPrimitiveEmptyState,
+  KeyValueList,
+  WidgetActionLink,
+  WidgetActions,
+  WidgetEmptyState,
+  WidgetFilter,
+  WidgetList,
+  WidgetListItem,
+  WidgetMetaLine,
+  WidgetStatusPill,
+  WidgetTabs,
+  WidgetTags,
+} from "./WidgetPrimitives";
+export type {
+  KeyValueItem,
+  WidgetComponent,
+  WidgetComponentProps,
+  WidgetDataAttributes,
+  WidgetElementProps,
+  WidgetFilterOption,
+  WidgetTabDefinition,
+} from "./WidgetPrimitives";
+
 // Widget renderers for dashboard
 export {
   StatsWidget,

@@ -1,5 +1,5 @@
 /** @jsxImportSource preact */
-import type { WidgetComponentProps } from "@brains/dashboard";
+import type { WidgetComponentProps } from "@brains/ui-library";
 import type { JSX } from "preact";
 import proximityMapWidgetStyles from "./proximity-map-widget.css" with { type: "text" };
 import {

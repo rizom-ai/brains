@@ -5,7 +5,7 @@ import {
   type SqliteDatabase,
 } from "@brains/db";
 import { embeddings } from "../schema/embeddings";
-import type { EntityDbConfig } from "../types";
+import type { DbConfig as EntityDbConfig } from "@brains/contracts";
 
 export type EmbeddingDB = SqliteDatabase;
 

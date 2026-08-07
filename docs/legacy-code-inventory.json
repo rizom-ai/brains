@@ -245,7 +245,11 @@
   "exemptions": [
     {
       "id": "typescript-compat-package-alias",
-      "paths": ["scripts/eslint-typescript-compat.cjs"],
+      "paths": [
+        "scripts/dependency-cruiser-typescript-compat.cjs",
+        "scripts/dependency-cruiser-typescript-loader.mjs",
+        "scripts/eslint-typescript-compat.cjs"
+      ],
       "class": "third-party-naming",
       "reason": "typescript-legacy is an npm alias used to isolate the compatibility compiler; it is not a persisted or runtime legacy contract."
     },

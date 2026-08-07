@@ -6,14 +6,14 @@ import type { RenderableWidgetData } from "./types";
 import {
   CardHeader,
   createWidgetInstanceId,
-  EmptyState,
+  WidgetPrimitiveEmptyState as EmptyState,
   KeyValueList,
   WidgetActionLink,
   WidgetActions,
   WidgetList,
   WidgetListItem,
   WidgetStatusPill,
-} from "../widget-ui";
+} from "@brains/ui-library";
 
 const KV_SKIP_KEYS = new Set(["rendered", "version"]);
 const COMPACT_WIDGET_RENDERERS = new Set(["StatsWidget", "SystemWidget"]);

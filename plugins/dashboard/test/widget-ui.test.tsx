@@ -9,7 +9,7 @@ import {
   WidgetList,
   WidgetListItem,
   WidgetTabs,
-} from "../src/widget-ui";
+} from "@brains/ui-library";
 
 describe("widget UI primitives", () => {
   it("creates stable DOM-safe widget instance ids", () => {

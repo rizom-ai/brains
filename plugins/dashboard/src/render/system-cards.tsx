@@ -2,11 +2,11 @@
 import type { JSX } from "preact";
 import {
   CardHeader,
-  EmptyState,
+  WidgetPrimitiveEmptyState as EmptyState,
   KeyValueList,
   WidgetActionLink,
   WidgetActions,
-} from "../widget-ui";
+} from "@brains/ui-library";
 import { formatClock, formatTimestamp } from "./format";
 import type { DashboardJobProgressItem, DashboardRenderInput } from "./types";
 

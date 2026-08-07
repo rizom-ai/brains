@@ -6,7 +6,7 @@ import type {
   SiteDefinition,
   SiteSectionGroup,
 } from "@rizom/site";
-import rizomBaseSite from ".";
+import { rizomBaseSite } from "./runtime";
 import type {
   RizomPluginCapabilities,
   RizomSiteShell,

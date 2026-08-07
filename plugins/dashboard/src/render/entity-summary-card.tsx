@@ -2,7 +2,10 @@
 import { formatLabel } from "@brains/utils/string-utils";
 import type { JSX } from "preact";
 import type { EntityCount } from "./types";
-import { CardHeader, EmptyState } from "../widget-ui";
+import {
+  CardHeader,
+  WidgetPrimitiveEmptyState as EmptyState,
+} from "@brains/ui-library";
 
 function BreakdownRow({
   entityType,

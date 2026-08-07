@@ -1,6 +1,9 @@
 /** @jsxImportSource preact */
 import type { JSX } from "preact";
-import { CardHeader, EmptyState } from "../widget-ui";
+import {
+  CardHeader,
+  WidgetPrimitiveEmptyState as EmptyState,
+} from "@brains/ui-library";
 import {
   countTabWidgets,
   getTabWidgets,

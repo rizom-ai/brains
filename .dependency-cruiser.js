@@ -12,6 +12,16 @@ module.exports = {
       },
     },
     {
+      name: "not-to-unresolvable",
+      severity: "error",
+      comment:
+        "Unresolved imports hide dependencies and make boundary checks incomplete",
+      from: {},
+      to: {
+        couldNotResolve: true,
+      },
+    },
+    {
       name: "no-orphans",
       severity: "warn",
       comment: "Orphaned files are unused and should be removed",
@@ -21,12 +31,13 @@ module.exports = {
           "(^|/)\\.[^/]+\\.(js|cjs|mjs|ts|json)$", // dot files
           "\\.d\\.ts$", // TypeScript declaration files
           "(^|/)tsconfig\\.json$", // TypeScript config
-          "(^|/)(babel|webpack|tailwind)\\.config\\.(js|cjs|mjs|ts|json)$", // Build configs
+          "(^|/)(babel|postcss|webpack|tailwind)\\.config\\.(js|cjs|mjs|ts|json)$", // Build configs
           "^shared/eslint-config/index\\.js$", // ESLint config entry
           "/dist/.*\\.(js|mjs)$", // Build output files
           "/test/fixtures/", // Test fixture files
           "hydration\\.js$", // Client-side hydration entry points
           "^docs/design/", // Design mockups; scripts are loaded by the sibling .html files
+          "^scripts/dependency-cruiser-typescript-loader\\.mjs$", // Loaded through node:module.register by the compatibility preload
           "/test-apps/", // Dev fixture apps; src/site.ts is convention-loaded by shell/app
         ],
       },
@@ -46,17 +57,6 @@ module.exports = {
       },
     },
     {
-      name: "no-plugin-to-layout-imports",
-      severity: "error",
-      comment: "Plugins must not depend on layout compositions",
-      from: {
-        path: "^plugins/",
-      },
-      to: {
-        path: "^layouts/",
-      },
-    },
-    {
       name: "no-interface-to-interface-imports",
       severity: "error",
       comment:
@@ -69,17 +69,6 @@ module.exports = {
       },
     },
     {
-      name: "no-app-to-app-imports",
-      severity: "error",
-      comment: "Apps should not import from other apps",
-      from: {
-        path: "^apps/([^/]+)/",
-      },
-      to: {
-        path: "^apps/(?!$1/)",
-      },
-    },
-    {
       name: "plugins-can-only-import-shell-and-shared",
       severity: "error",
       comment: "Plugins can only import from shell/* and shared/* packages",
@@ -88,6 +77,7 @@ module.exports = {
         // Covered by the companion rule below with a wider builtin allowlist
         pathNot: [
           "^plugins/directory-sync/(test/|src/lib/content-remote-bootstrap\\.ts$)",
+          "^plugins/(admin|cms)/scripts/",
         ],
       },
       to: {
@@ -114,6 +104,20 @@ module.exports = {
           "\\.(test|spec)\\.(ts|tsx|js|jsx)$", // Allow test files
           "^(bun:test|path|fs|fs/promises|crypto|os|url|child_process|net)$", // Allow Node.js/Bun builtins
         ],
+      },
+    },
+    {
+      name: "plugin-build-scripts-can-use-module-builtin",
+      severity: "error",
+      comment:
+        "admin and CMS build scripts use createRequire from the module builtin; " +
+        "otherwise they follow the standard plugin boundary",
+      from: {
+        path: "^plugins/(admin|cms)/scripts/",
+      },
+      to: {
+        path: "^((?!shell/|shared/|plugins/|node_modules/).)*$",
+        pathNot: ["^(bun:test|path|fs|fs/promises|crypto|os|url|module)$"],
       },
     },
     {
@@ -188,14 +192,15 @@ module.exports = {
     },
     enhancedResolveOptions: {
       exportsFields: ["exports"],
-      conditionNames: ["import", "require", "node", "default"],
+      conditionNames: ["bun", "types", "import", "require", "node", "default"],
     },
     reporterOptions: {
       dot: {
         collapsePattern: "node_modules/(@[^/]+/[^/]+|[^/]+)",
       },
       archi: {
-        collapsePattern: "^(shell|plugins|interfaces|shared|apps)/[^/]+",
+        collapsePattern:
+          "^(shell|shared|plugins|entities|interfaces|sites|packages)/[^/]+",
       },
       text: {
         highlightFocused: true,
