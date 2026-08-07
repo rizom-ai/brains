@@ -36,6 +36,13 @@ describe("@rizom/brain package metadata", () => {
     expect(installHealthWatchdog).toContain(
       "/usr/local/sbin/brains-health-watchdog",
     );
+    expect(installHealthWatchdog).toContain(
+      'BRAIN_WATCHDOG_LABEL = "ai.rizom.brain.watchdog"',
+    );
+    expect(installHealthWatchdog).toContain(
+      "--filter label=${BRAIN_WATCHDOG_LABEL_FILTER}",
+    );
+    expect(installHealthWatchdog).not.toContain("--filter label=service ");
     expect(provisionServer).toContain('requireEnv("HCLOUD_TOKEN")');
     expect(provisionServer).toContain("https://api.hetzner.cloud/v1");
     expect(updateDns).toContain('requireEnv("CF_API_TOKEN")');

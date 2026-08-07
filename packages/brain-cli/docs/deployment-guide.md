@@ -315,4 +315,7 @@ image's Docker `HEALTHCHECK` uses `/health/live`. Generated deploy workflows
 install a host systemd watchdog that restarts containers only after Docker's
 consecutive liveness failures, saves inspect output and recent logs under
 `/var/log/brains-health-watchdog`, and limits automatic recovery to three
-restarts per hour for each container.
+restarts per hour for each container. On shared Docker hosts, the watchdog
+only manages containers carrying the image label
+`ai.rizom.brain.watchdog=true`; unrelated Kamal services are not inspected,
+logged, state-tracked, or restarted.

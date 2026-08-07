@@ -959,11 +959,13 @@ describe("brain init", () => {
       );
       expect(workflow).toContain("Release stale Kamal deploy lock");
       expect(workflow).toContain("kamal lock release || true");
-      expect(workflow).toContain("kamal setup --skip-push");
-      expect(workflow).toContain("Install container health watchdog");
-      expect(workflow).toContain(
+      const deployIndex = workflow.indexOf("kamal setup --skip-push");
+      const watchdogIndex = workflow.indexOf(
         "bun deploy/scripts/install-health-watchdog.ts",
       );
+      expect(deployIndex).toBeGreaterThan(-1);
+      expect(workflow).toContain("Install container health watchdog");
+      expect(watchdogIndex).toBeGreaterThan(deployIndex);
       expect(workflow).toContain("PREVIEW_DOMAIN: ${{ env.PREVIEW_DOMAIN }}");
       expect(workflow).toContain(
         "VERSION: ${{ github.event.workflow_run.head_sha || github.sha }}",

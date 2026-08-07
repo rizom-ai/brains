@@ -128,6 +128,7 @@ export function renderDockerfile(): string {
 /** Match the previously generated shared runtime image without claiming custom Dockerfiles. */
 export function isStaleDeployDockerfile(content: string): boolean {
   const hasCurrentRuntime =
+    content.includes('LABEL ai.rizom.brain.watchdog="true"') &&
     content.includes("http://127.0.0.1:8080/health/live") &&
     content.includes('ENTRYPOINT ["/usr/bin/tini", "--"]') &&
     content.includes(

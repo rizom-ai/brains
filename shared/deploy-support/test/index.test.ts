@@ -30,18 +30,29 @@ afterEach(() => {
 
 describe("deploy templates", () => {
   it("renders shared Docker and Kamal templates", () => {
-    expect(renderDockerfile()).toContain("EXPOSE 8080");
-    expect(renderDockerfile()).toContain(
+    const dockerfile = renderDockerfile();
+    expect(dockerfile).toContain("EXPOSE 8080");
+    const labelIndex = dockerfile.indexOf(
+      'LABEL ai.rizom.brain.watchdog="true"',
+    );
+    expect(labelIndex).toBeGreaterThan(-1);
+    expect(dockerfile.indexOf("FROM runtime AS standalone")).toBeGreaterThan(
+      labelIndex,
+    );
+    expect(dockerfile.indexOf("FROM runtime AS fleet")).toBeGreaterThan(
+      labelIndex,
+    );
+    expect(dockerfile).toContain(
       "bunx playwright-core install --with-deps chromium-headless-shell",
     );
-    expect(renderDockerfile()).toContain('ENTRYPOINT ["/usr/bin/tini", "--"]');
-    expect(renderDockerfile()).toContain(
+    expect(dockerfile).toContain('ENTRYPOINT ["/usr/bin/tini", "--"]');
+    expect(dockerfile).toContain(
       'CMD ["bun", "./node_modules/@rizom/brain/dist/brain.js", "start"]',
     );
-    expect(renderDockerfile()).toContain(
+    expect(dockerfile).toContain(
       "HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3",
     );
-    expect(renderDockerfile()).toContain("http://127.0.0.1:8080/health/live");
+    expect(dockerfile).toContain("http://127.0.0.1:8080/health/live");
     const deploy = renderKamalDeploy({ serviceName: "brain" });
     expect(deploy).toContain("service: brain");
     expect(deploy).toContain("path: /health/ready");
@@ -50,6 +61,10 @@ describe("deploy templates", () => {
   });
 
   it("recognizes only the previous generated Docker runtime", () => {
+    const priorUnscopedRuntime = renderDockerfile().replace(
+      '\nLABEL ai.rizom.brain.watchdog="true"\n',
+      "\n",
+    );
     const priorHealthlessRuntime = renderDockerfile().replace(
       /\nHEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \\\n {2}CMD curl --fail --silent --show-error http:\/\/127\.0\.0\.1:8080\/health\/live \|\| exit 1\n/,
       "\n",
@@ -62,6 +77,7 @@ describe("deploy templates", () => {
         'CMD ["./node_modules/.bin/brain", "start"]',
       );
 
+    expect(isStaleDeployDockerfile(priorUnscopedRuntime)).toBe(true);
     expect(isStaleDeployDockerfile(priorHealthlessRuntime)).toBe(true);
     expect(isStaleDeployDockerfile(legacy)).toBe(true);
     expect(isStaleDeployDockerfile(renderDockerfile())).toBe(false);
@@ -91,7 +107,14 @@ describe("deploy templates", () => {
 
     expect(installer).toContain("/usr/local/sbin/brains-health-watchdog");
     expect(installer).toContain("--filter health=unhealthy");
-    expect(installer).toContain("--filter label=service");
+    expect(installer).toContain(
+      'BRAIN_WATCHDOG_LABEL = "ai.rizom.brain.watchdog"',
+    );
+    expect(installer).toContain(
+      "--filter label=${BRAIN_WATCHDOG_LABEL_FILTER}",
+    );
+    expect(installer).not.toContain("--filter label=service ");
+    expect(installer).toContain("no running Brain containers found");
     expect(installer).toContain("brains-health-watchdog.timer");
     expect(installer).toContain("MAX_RESTARTS=3");
     expect(installer).toContain("WINDOW_SECONDS=3600");
@@ -101,9 +124,16 @@ describe("deploy templates", () => {
     );
     expect(logIndex).toBeGreaterThan(-1);
     expect(restartIndex).toBeGreaterThan(logIndex);
-    expect(
-      renderDeployWorkflow({ secretNames: [], bootstrapSecrets: [] }),
-    ).toContain("bun deploy/scripts/install-health-watchdog.ts");
+    const workflow = renderDeployWorkflow({
+      secretNames: [],
+      bootstrapSecrets: [],
+    });
+    const deployIndex = workflow.indexOf("kamal setup --skip-push");
+    const watchdogIndex = workflow.indexOf(
+      "bun deploy/scripts/install-health-watchdog.ts",
+    );
+    expect(deployIndex).toBeGreaterThan(-1);
+    expect(watchdogIndex).toBeGreaterThan(deployIndex);
   });
 
   it("exports deploy env schema fragments", () => {

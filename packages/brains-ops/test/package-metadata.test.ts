@@ -52,12 +52,32 @@ describe("@rizom/ops package metadata", () => {
     expect(deployTemplate).toContain("/opt/brain-dist:/app/dist");
     expect(dockerfile).toContain("ENV XDG_DATA_HOME=/data");
     expect(dockerfile).toContain("ENV XDG_CONFIG_HOME=/config");
+    expect(dockerfile).toContain('LABEL ai.rizom.brain.watchdog="true"');
   });
 
   it("keeps committed deploy script templates identical to @brains/deploy-support", () => {
     // templates/rover-pilot/deploy/scripts is regenerated from
     // @brains/deploy-support by scripts/build.ts (copyDeployScripts); this
     // guards against hand-edits.
+    const installHealthWatchdog = readFileSync(
+      join(
+        packageDir,
+        "templates",
+        "rover-pilot",
+        "deploy",
+        "scripts",
+        "install-health-watchdog.ts",
+      ),
+      "utf8",
+    );
+    expect(installHealthWatchdog).toContain(
+      'BRAIN_WATCHDOG_LABEL = "ai.rizom.brain.watchdog"',
+    );
+    expect(installHealthWatchdog).toContain(
+      "--filter label=${BRAIN_WATCHDOG_LABEL_FILTER}",
+    );
+    expect(installHealthWatchdog).not.toContain("--filter label=service ");
+
     for (const script of deployScriptNames) {
       const committed = readFileSync(
         join(
