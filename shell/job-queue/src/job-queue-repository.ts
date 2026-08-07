@@ -14,9 +14,11 @@ import {
 } from "drizzle-orm";
 import { jobQueue, jobWorkerSessions } from "./schema/job-queue";
 import type { InsertJobQueue, JobQueue } from "./schema/job-queue";
+import { getErrorMessage } from "@brains/utils/error";
 import type { Logger } from "@brains/utils/logger";
 import { JOB_STATUS } from "./schemas";
 import type { LibSQLDatabase } from "drizzle-orm/libsql";
+import type { Row, Transaction } from "@libsql/client";
 import {
   DEFAULT_WORKER_SESSION_TIMEOUT_MS,
   type JobInfo,
@@ -26,6 +28,11 @@ import {
   type JobRuntimeUpdateCursor,
 } from "./types";
 import type { ProgressNotification } from "@brains/utils/progress";
+import type { DeduplicationStrategy } from "./schema/types";
+import {
+  JobDeduplicator,
+  type DeduplicationCandidate,
+} from "./job-deduplicator";
 
 export interface JobAttemptClaim {
   now: number;
@@ -37,21 +44,340 @@ export interface JobAttemptClaim {
   executableTypes: readonly string[];
 }
 
+export type EnqueueDecision =
+  | { kind: "inserted"; jobId: string }
+  | { kind: "skipped"; jobId: string }
+  | { kind: "coalesced"; jobId: string }
+  | { kind: "replaced"; jobId: string; replacedJobId: string };
+
+export interface AtomicJobData {
+  id: string;
+  type: string;
+  data: string;
+  status: "pending";
+  priority: number;
+  retryCount: number;
+  maxRetries: number;
+  lastError: string | null;
+  createdAt: number;
+  scheduledFor: number;
+  startedAt: number | null;
+  completedAt: number | null;
+  source: string | null;
+  metadata: JobInfo["metadata"];
+  result: unknown;
+}
+
+export interface AtomicEnqueueRequest {
+  jobData: AtomicJobData;
+  strategy?: DeduplicationStrategy | undefined;
+  deduplicationKey?: string | undefined;
+  beforeInsert?: (() => Promise<void>) | undefined;
+}
+
+export interface JobQueueWriteTransactionClient {
+  transaction(mode: "write"): Promise<Transaction>;
+}
+
+const WRITE_TRANSACTION_ATTEMPTS = 3;
+
+// Local libSQL begins a write transaction synchronously and can block the event
+// loop on busy_timeout when two clients in one process share a file. This turn
+// queue prevents that self-deadlock; the explicit database write transaction is
+// still the correctness boundary across processes.
+const writeTransactionTails = new Map<string, Promise<void>>();
+
 /**
  * Database-backed job queue operations.
  * Keeps persistence details out of JobQueueService orchestration logic.
  */
 export class JobQueueRepository {
   private db: LibSQLDatabase<Record<string, unknown>>;
+  private transactionClient: JobQueueWriteTransactionClient;
+  private databaseUrl: string;
   private logger: Logger;
+  private deduplicator = new JobDeduplicator();
 
-  constructor(db: LibSQLDatabase<Record<string, unknown>>, logger: Logger) {
+  constructor(
+    db: LibSQLDatabase<Record<string, unknown>>,
+    transactionClient: JobQueueWriteTransactionClient,
+    databaseUrl: string,
+    logger: Logger,
+  ) {
     this.db = db;
+    this.transactionClient = transactionClient;
+    this.databaseUrl = databaseUrl;
     this.logger = logger.child("JobQueueRepository");
   }
 
   public async insert(jobData: InsertJobQueue): Promise<void> {
     await this.db.insert(jobQueue).values(jobData);
+  }
+
+  public async enqueueAtomic(
+    request: AtomicEnqueueRequest,
+  ): Promise<EnqueueDecision> {
+    const previous = writeTransactionTails.get(this.databaseUrl);
+    let release = (): void => {};
+    const current = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    writeTransactionTails.set(this.databaseUrl, current);
+    await previous;
+
+    try {
+      const transaction = await this.acquireWriteTransaction(request);
+
+      try {
+        const decision = await this.decideEnqueue(transaction, request);
+        await this.commitWriteTransaction(transaction, request);
+        return decision;
+      } catch (error) {
+        if (!transaction.closed) {
+          try {
+            await transaction.rollback();
+          } catch (rollbackError) {
+            this.logger.error("Failed to roll back atomic enqueue", {
+              type: request.jobData.type,
+              rollbackError,
+            });
+          }
+        }
+        throw error;
+      } finally {
+        transaction.close();
+      }
+    } finally {
+      release();
+      if (writeTransactionTails.get(this.databaseUrl) === current) {
+        writeTransactionTails.delete(this.databaseUrl);
+      }
+    }
+  }
+
+  private async decideEnqueue(
+    transaction: Transaction,
+    request: AtomicEnqueueRequest,
+  ): Promise<EnqueueDecision> {
+    const { jobData, strategy, deduplicationKey, beforeInsert } = request;
+    const effectiveStrategy = strategy ?? "none";
+    const insert = async (): Promise<void> => {
+      await beforeInsert?.();
+      await this.insertJob(transaction, jobData);
+    };
+
+    if (effectiveStrategy === "none") {
+      await insert();
+      return { kind: "inserted", jobId: jobData.id };
+    }
+
+    const activeJobs = await this.getActiveDeduplicationCandidates(
+      transaction,
+      jobData.type,
+    );
+    const duplicate = this.deduplicator.findDuplicate(
+      activeJobs,
+      effectiveStrategy,
+      deduplicationKey,
+    );
+
+    if (!duplicate) {
+      await insert();
+      return { kind: "inserted", jobId: jobData.id };
+    }
+
+    if (effectiveStrategy === "skip") {
+      return { kind: "skipped", jobId: duplicate.id };
+    }
+
+    if (effectiveStrategy === "coalesce") {
+      const updated = await transaction.execute({
+        sql: "UPDATE `job_queue` SET `scheduledFor` = ? WHERE `id` = ? AND `status` = ?",
+        args: [Date.now(), duplicate.id, duplicate.status],
+      });
+      if (updated.rowsAffected !== 1) {
+        throw new Error(`Atomic coalesce lost selected job ${duplicate.id}`);
+      }
+      return { kind: "coalesced", jobId: duplicate.id };
+    }
+
+    await beforeInsert?.();
+    const now = Date.now();
+    const replaced = await transaction.execute({
+      sql: `UPDATE \`job_queue\`
+            SET \`status\` = ?,
+                \`lastError\` = ?,
+                \`completedAt\` = ?,
+                \`runtimeUpdatedAt\` = max(?, coalesce((SELECT max(\`runtimeUpdatedAt\`) FROM \`job_queue\`), 0) + 1)
+            WHERE \`id\` = ? AND \`status\` = ?`,
+      args: [
+        JOB_STATUS.FAILED,
+        "Replaced by newer job",
+        now,
+        now,
+        duplicate.id,
+        JOB_STATUS.PENDING,
+      ],
+    });
+    if (replaced.rowsAffected !== 1) {
+      throw new Error(`Atomic replace lost selected job ${duplicate.id}`);
+    }
+    await this.insertJob(transaction, jobData);
+    return {
+      kind: "replaced",
+      jobId: jobData.id,
+      replacedJobId: duplicate.id,
+    };
+  }
+
+  private async getActiveDeduplicationCandidates(
+    transaction: Transaction,
+    type: string,
+  ): Promise<DeduplicationCandidate[]> {
+    const result = await transaction.execute({
+      sql: `SELECT \`id\`, \`status\`, \`createdAt\`, \`metadata\`
+            FROM \`job_queue\`
+            WHERE \`type\` = ? AND \`status\` IN (?, ?)`,
+      args: [type, JOB_STATUS.PENDING, JOB_STATUS.PROCESSING],
+    });
+    return result.rows.map((row) => this.parseDeduplicationCandidate(row));
+  }
+
+  private parseDeduplicationCandidate(row: Row): DeduplicationCandidate {
+    const id = row["id"];
+    const status = row["status"];
+    const createdAt = row["createdAt"];
+    const rawMetadata = row["metadata"];
+    if (
+      typeof id !== "string" ||
+      (status !== JOB_STATUS.PENDING && status !== JOB_STATUS.PROCESSING) ||
+      (typeof createdAt !== "number" && typeof createdAt !== "bigint") ||
+      typeof rawMetadata !== "string"
+    ) {
+      throw new Error("Invalid active job row returned during atomic enqueue");
+    }
+
+    const metadata: unknown = JSON.parse(rawMetadata);
+    return {
+      id,
+      status,
+      createdAt: Number(createdAt),
+      metadata,
+    };
+  }
+
+  private async insertJob(
+    transaction: Transaction,
+    jobData: AtomicJobData,
+  ): Promise<void> {
+    const inserted = await transaction.execute({
+      sql: `INSERT INTO \`job_queue\` (
+              \`id\`, \`type\`, \`data\`, \`result\`, \`source\`, \`metadata\`,
+              \`status\`, \`priority\`, \`retryCount\`, \`maxRetries\`,
+              \`lastError\`, \`createdAt\`, \`scheduledFor\`, \`startedAt\`,
+              \`completedAt\`
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      args: [
+        jobData.id,
+        jobData.type,
+        jobData.data,
+        this.serializeJson(jobData.result),
+        jobData.source,
+        JSON.stringify(jobData.metadata),
+        jobData.status,
+        jobData.priority,
+        jobData.retryCount,
+        jobData.maxRetries,
+        jobData.lastError,
+        jobData.createdAt,
+        jobData.scheduledFor,
+        jobData.startedAt,
+        jobData.completedAt,
+      ],
+    });
+    if (inserted.rowsAffected !== 1) {
+      throw new Error(`Atomic enqueue did not insert job ${jobData.id}`);
+    }
+  }
+
+  private serializeJson(value: unknown): string | null {
+    if (value === undefined || value === null) return null;
+    return JSON.stringify(value);
+  }
+
+  private async commitWriteTransaction(
+    transaction: Transaction,
+    request: AtomicEnqueueRequest,
+  ): Promise<void> {
+    let lastConflict: unknown;
+    for (let attempt = 1; attempt <= WRITE_TRANSACTION_ATTEMPTS; attempt++) {
+      try {
+        await transaction.commit();
+        return;
+      } catch (error) {
+        if (!this.isSerializationConflict(error) || transaction.closed) {
+          throw error;
+        }
+        lastConflict = error;
+        if (attempt < WRITE_TRANSACTION_ATTEMPTS) {
+          await new Promise((resolve) => setTimeout(resolve, attempt * 5));
+        }
+      }
+    }
+
+    throw this.transactionConflictError("commit", request, lastConflict);
+  }
+
+  private async acquireWriteTransaction(
+    request: AtomicEnqueueRequest,
+  ): Promise<Transaction> {
+    let lastConflict: unknown;
+    for (let attempt = 1; attempt <= WRITE_TRANSACTION_ATTEMPTS; attempt++) {
+      try {
+        return await this.transactionClient.transaction("write");
+      } catch (error) {
+        if (!this.isSerializationConflict(error)) throw error;
+        lastConflict = error;
+        if (attempt < WRITE_TRANSACTION_ATTEMPTS) {
+          await new Promise((resolve) => setTimeout(resolve, attempt * 5));
+        }
+      }
+    }
+
+    throw this.transactionConflictError("acquire", request, lastConflict);
+  }
+
+  private transactionConflictError(
+    phase: "acquire" | "commit",
+    request: AtomicEnqueueRequest,
+    cause: unknown,
+  ): Error {
+    const strategy = request.strategy ?? "none";
+    const keyPresence = request.deduplicationKey ? "present" : "absent";
+    return new Error(
+      `Failed to ${phase} atomic enqueue transaction for type "${request.jobData.type}" after ${WRITE_TRANSACTION_ATTEMPTS} attempts (strategy: ${strategy}, key: ${keyPresence})`,
+      { cause },
+    );
+  }
+
+  private isSerializationConflict(error: unknown): boolean {
+    for (let current = error; current !== undefined;) {
+      const code =
+        typeof current === "object" && current !== null && "code" in current
+          ? String(current.code)
+          : "";
+      const message = getErrorMessage(current, "");
+      if (
+        /SQLITE_(?:BUSY|LOCKED)/u.test(code) ||
+        /SQLITE_(?:BUSY|LOCKED)|database is locked|transaction (?:busy|conflict)/iu.test(
+          message,
+        )
+      ) {
+        return true;
+      }
+      current = current instanceof Error ? current.cause : undefined;
+    }
+    return false;
   }
 
   /** Atomically register a new session, superseding the slot's prior session. */
@@ -112,39 +438,6 @@ export class JobQueueRepository {
       )
       .returning({ slotId: jobWorkerSessions.slotId });
     return result.length === 1;
-  }
-
-  /**
-   * Mark a job as terminally failed (no retry). Use `fail()` for the normal
-   * retry-aware failure path; this primitive exists for callers (like the
-   * dedup-replace strategy) that need to abort a pending job outright.
-   */
-  public async markTerminallyFailed(
-    jobId: string,
-    errorMessage: string,
-  ): Promise<void> {
-    const now = Date.now();
-    await this.db
-      .update(jobQueue)
-      .set({
-        status: JOB_STATUS.FAILED,
-        lastError: errorMessage,
-        completedAt: now,
-        runtimeUpdatedAt: this.nextRuntimeUpdatedAt(now),
-      })
-      .where(
-        and(eq(jobQueue.id, jobId), eq(jobQueue.status, JOB_STATUS.PENDING)),
-      );
-  }
-
-  public async setScheduledFor(
-    jobId: string,
-    scheduledFor: number,
-  ): Promise<void> {
-    await this.db
-      .update(jobQueue)
-      .set({ scheduledFor })
-      .where(eq(jobQueue.id, jobId));
   }
 
   /** Mark a job completed only if the supplied attempt still owns it. */

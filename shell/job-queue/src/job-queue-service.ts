@@ -1,5 +1,5 @@
 import type { JobQueue } from "./schema/job-queue";
-import type { DeduplicationStrategy } from "./schema/types";
+import type { JobContextInput } from "./schema/types";
 import { createId } from "@brains/utils/id";
 import { Logger } from "@brains/utils/logger";
 import type {
@@ -22,8 +22,7 @@ import { applySqlitePragmas } from "@brains/db";
 import { createJobQueueDatabase } from "./db";
 import type { Client } from "@libsql/client";
 import { HandlerRegistry } from "./handler-registry";
-import { JobQueueRepository } from "./job-queue-repository";
-import { JobDeduplicator } from "./job-deduplicator";
+import { JobQueueRepository, type AtomicJobData } from "./job-queue-repository";
 import { getErrorMessage } from "@brains/utils/error";
 import {
   OperationProvenanceSchema,
@@ -32,8 +31,15 @@ import {
 import { OperationContext } from "@brains/operation-context";
 import type { ProgressNotification } from "@brains/utils/progress";
 
+export interface ProjectionJobAdmissionReservation {
+  commit(): void;
+  rollback(): void;
+}
+
 export interface ProjectionJobAdmission {
-  assertJobAdmission(provenance: OperationProvenance): Promise<void>;
+  reserveJobAdmission(
+    provenance: OperationProvenance,
+  ): Promise<ProjectionJobAdmissionReservation>;
 }
 
 export interface JobQueueServiceRuntimeOptions {
@@ -52,11 +58,11 @@ export class JobQueueService implements IJobQueueService {
 
   private handlerRegistry: HandlerRegistry;
   private repository: JobQueueRepository;
-  private deduplicator: JobDeduplicator;
   private walInitialization: Promise<void> | null = null;
   private walInitializationSettled = false;
   private closeRequested = false;
   private clientClosed = false;
+  private inFlightEnqueues = 0;
   private readonly databaseUrl: string;
   private readonly operationContext: OperationContext;
   private readonly projectionAdmission: ProjectionJobAdmission | undefined;
@@ -70,9 +76,7 @@ export class JobQueueService implements IJobQueueService {
    */
   public close(): void {
     this.closeRequested = true;
-    if (!this.walInitialization || this.walInitializationSettled) {
-      this.closeClient();
-    }
+    this.closeClientWhenReady();
   }
 
   public static createFresh(
@@ -104,9 +108,8 @@ export class JobQueueService implements IJobQueueService {
       this.logger,
       runtimeOptions?.handlerRegistrationMode ?? "combined",
     );
-    this.repository = new JobQueueRepository(db, this.logger);
+    this.repository = new JobQueueRepository(db, client, url, this.logger);
     this.directLeaseDurationMs = config.claimTimeoutMs ?? 300_000;
-    this.deduplicator = new JobDeduplicator();
   }
 
   /** Settle non-fatal database readiness work before the shell becomes ready. */
@@ -123,8 +126,19 @@ export class JobQueueService implements IJobQueueService {
       this.logger.warn("Failed to enable WAL mode (non-fatal)", error);
     } finally {
       this.walInitializationSettled = true;
-      if (this.closeRequested) this.closeClient();
+      this.closeClientWhenReady();
     }
+  }
+
+  private closeClientWhenReady(): void {
+    if (
+      !this.closeRequested ||
+      this.inFlightEnqueues > 0 ||
+      (this.walInitialization !== null && !this.walInitializationSettled)
+    ) {
+      return;
+    }
+    this.closeClient();
   }
 
   private closeClient(): void {
@@ -185,63 +199,26 @@ export class JobQueueService implements IJobQueueService {
   }
 
   /**
-   * Check for duplicate jobs based on deduplication strategy
-   * Returns the duplicate job if one should block this enqueue, null otherwise
-   */
-  private async checkForDuplicate(
-    type: string,
-    deduplicationStrategy?: DeduplicationStrategy,
-    deduplicationKey?: string,
-  ): Promise<JobInfo | null> {
-    const activeJobs = await this.getActiveJobs([type]);
-    return this.deduplicator.findDuplicate(
-      activeJobs,
-      deduplicationStrategy,
-      deduplicationKey,
-    );
-  }
-
-  /**
    * Enqueue a job for processing
    */
   public async enqueue(request: JobQueueEnqueueRequest): Promise<string> {
-    const { type, data, options } = request;
-    const duplicate = await this.checkForDuplicate(
-      type,
-      options?.deduplication,
-      options?.deduplicationKey,
-    );
-
-    if (duplicate) {
-      if (options?.deduplication === "skip") {
-        this.logger.debug("Skipping duplicate job (already pending)", {
-          type,
-          existingJobId: duplicate.id,
-        });
-        return duplicate.id;
-      }
-
-      if (options?.deduplication === "replace") {
-        this.logger.debug("Replacing duplicate job", {
-          type,
-          oldJobId: duplicate.id,
-        });
-        await this.repository.markTerminallyFailed(
-          duplicate.id,
-          "Replaced by newer job",
-        );
-      }
-
-      if (options?.deduplication === "coalesce") {
-        this.logger.debug("Coalescing with existing job", {
-          type,
-          existingJobId: duplicate.id,
-        });
-        await this.repository.setScheduledFor(duplicate.id, Date.now());
-        return duplicate.id;
-      }
+    if (this.closeRequested) {
+      throw new Error("Cannot enqueue a job after the queue service is closed");
     }
 
+    this.inFlightEnqueues++;
+    try {
+      return await this.enqueueValidated(request);
+    } finally {
+      this.inFlightEnqueues--;
+      this.closeClientWhenReady();
+    }
+  }
+
+  private async enqueueValidated(
+    request: JobQueueEnqueueRequest,
+  ): Promise<string> {
+    const { type, data, options } = request;
     const validator = this.handlerRegistry.getValidator(type);
     if (!validator) {
       throw new Error(`No job type declared: ${type}`);
@@ -254,17 +231,18 @@ export class JobQueueService implements IJobQueueService {
 
     const now = Date.now();
     const id = createId();
-
     const rootJobId =
       options?.rootJobId ??
       this.operationContext.current()?.provenance.rootJobId ??
       id;
     const provenance = this.createJobProvenance(id, rootJobId, options);
-    await this.projectionAdmission?.assertJobAdmission(provenance);
+    const metadataInput: JobContextInput = options?.metadata ?? {
+      operationType: "data_processing",
+    };
     const { provenance: _providedProvenance, ...providedMetadata } =
-      options?.metadata ?? { operationType: "data_processing" as const };
+      metadataInput;
 
-    const jobData = {
+    const jobData: AtomicJobData = {
       id,
       type,
       data: JSON.stringify(parsedData),
@@ -289,18 +267,47 @@ export class JobQueueService implements IJobQueueService {
       completedAt: null,
     };
 
+    let admissionReservation: ProjectionJobAdmissionReservation | undefined;
     try {
-      await this.repository.insert(jobData);
-
-      this.logger.debug("Job enqueued", {
-        id,
-        type,
-        priority: jobData.priority,
-        rootJobId: jobData.metadata.rootJobId,
+      const decision = await this.repository.enqueueAtomic({
+        jobData,
+        strategy: options?.deduplication,
+        deduplicationKey: options?.deduplicationKey,
+        beforeInsert: async () => {
+          admissionReservation =
+            await this.projectionAdmission?.reserveJobAdmission(provenance);
+        },
       });
+      admissionReservation?.commit();
 
-      return id;
+      if (decision.kind === "skipped") {
+        this.logger.debug("Skipping duplicate job (already pending)", {
+          type,
+          existingJobId: decision.jobId,
+        });
+      } else if (decision.kind === "coalesced") {
+        this.logger.debug("Coalescing with existing job", {
+          type,
+          existingJobId: decision.jobId,
+        });
+      } else {
+        if (decision.kind === "replaced") {
+          this.logger.debug("Replacing duplicate job", {
+            type,
+            oldJobId: decision.replacedJobId,
+          });
+        }
+        this.logger.debug("Job enqueued", {
+          id: decision.jobId,
+          type,
+          priority: jobData.priority,
+          rootJobId: jobData.metadata.rootJobId,
+        });
+      }
+
+      return decision.jobId;
     } catch (error) {
+      admissionReservation?.rollback();
       this.logger.error("Failed to enqueue job", {
         type,
         error: getErrorMessage(error),

@@ -93,6 +93,36 @@ fatal: it records the reason and exits so the container restart policy can
 replace the process. A bounded host watchdog separately handles event-loop
 liveness failures that prevent the process from exiting itself.
 
+## Deduplication
+
+Deduplicating enqueue decisions are serialized in a database write transaction,
+so separate web and worker processes sharing one queue database observe the same
+result. Validation runs before the transaction; invalid input is rejected even
+when an active job already matches.
+
+| Strategy   | Pending match                                   | Processing-only match                 | No match |
+| ---------- | ----------------------------------------------- | ------------------------------------- | -------- |
+| `none`     | insert                                          | insert                                | insert   |
+| `skip`     | return the pending ID                           | insert one pending successor          | insert   |
+| `replace`  | fail the pending row and insert its replacement | insert one pending successor          | insert   |
+| `coalesce` | advance and return the pending row              | advance and return the processing row | insert   |
+
+A non-empty `deduplicationKey` limits matching to jobs with the same metadata
+key. An absent or empty key matches every active job of the same type. Candidate
+selection is deterministic: the newest pending row by `(createdAt, id)` wins;
+`coalesce` considers processing rows only when no pending row matches.
+Pre-existing duplicate pending rows are not repaired implicitly.
+
+Skipped and coalesced requests do not reserve projection job budget. Processing
+attempt status, payload, ownership, and fencing fields are left unchanged.
+
+The optional remote contract test uses `JOB_QUEUE_REMOTE_TEST_URL` and, when
+required, `JOB_QUEUE_REMOTE_TEST_AUTH_TOKEN`:
+
+```bash
+bun test test/job-queue-remote-contract.test.ts
+```
+
 ## Workers
 
 Workers poll for queued jobs and dispatch them to registered handlers.

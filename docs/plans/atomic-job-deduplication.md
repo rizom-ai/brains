@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed correctness hardening. This is independent of the public job-authoring API: the existing queue remains the implementation, but its current read-then-write deduplication is not atomic. Land this before relying on `skip`, `replace`, or `coalesce` as a cross-process admission guarantee.
+Implemented in the `feat/atomic-job-deduplication` worktree and pending merge. This is independent of the public job-authoring API: the existing queue remains the implementation, with `skip`, `replace`, and `coalesce` serialized in explicit database write transactions.
 
 ## Problem
 
@@ -104,7 +104,7 @@ The reservation callback must not enqueue recursively. Because admission may con
 
 ### 6. Treat conflicts and busy errors explicitly
 
-The transaction operation has a small bounded retry only for recognized serialization/busy conflicts encountered before the write transaction is acquired. Once the insert branch reserves projection admission, the transaction is never automatically replayed. A later transaction/commit failure rolls back the reservation and propagates for caller-level recovery. The implementation must not retry validation, arbitrary handler code, or unknown database errors. Exhaustion returns an actionable queue error with type, key presence, strategy, and retry count but never payload contents.
+The transaction operation has a small bounded retry only for recognized serialization/busy conflicts encountered before the write transaction is acquired. Once the insert branch reserves projection admission, the transaction body is never replayed. A recognized busy error from `commit()` may retry that same commit while the transaction remains open; this does not replay admission or mutation. Any other later transaction/commit failure rolls back the reservation and propagates for caller-level recovery. The implementation must not retry validation, arbitrary handler code, or unknown database errors. Exhaustion returns an actionable queue error with type, key presence, strategy, and retry count but never payload contents.
 
 ## Implementation phases
 
@@ -193,7 +193,7 @@ Gate:
 - **Holding a write transaction across projection admission increases contention.** Keep reservation bounded and measure it without exposing unadmitted jobs.
 - **Queue persistence fails after admission reservation.** Roll back the idempotent reservation on every insert or commit failure; test budget availability after an injected persistence failure.
 - **Replace semantics lose the newest request.** Serialize fail-plus-insert and use deterministic transaction order; concurrent tests assert only the last committed replacement remains pending.
-- **Busy retries duplicate side effects.** Validation and provenance preparation are pure; admission is not reserved until after the non-retried write transaction is acquired.
+- **Busy retries duplicate side effects.** Validation and provenance preparation are pure; admission is not reserved until after the non-retried write transaction is acquired. A bounded commit retry repeats only `commit()` on the same open transaction, never the transaction body.
 - **Remote libSQL differs from local SQLite.** Keep explicit write mode behind the repository and maintain an opt-in remote two-client contract test alongside the required local contract.
 
 ## Acceptance criteria
