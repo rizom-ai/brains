@@ -3,6 +3,7 @@ import type {
   IJobQueueService,
   JobInfo,
   JobHandler,
+  JobValidator,
   JobQueueDiagnostics,
   JobQueueEnqueueRequest,
 } from "@brains/job-queue";
@@ -16,6 +17,7 @@ export interface MockJobQueueServiceReturns {
   getStatus?: JobInfo | null;
   getStatusByEntityId?: JobInfo | null;
   getHandler?: JobHandler | undefined;
+  getValidator?: JobValidator | undefined;
   getStats?: {
     pending: number;
     processing: number;
@@ -126,6 +128,7 @@ export function createMockJobQueueService(
     unregisterHandler: mock(() => {}),
     unregisterPluginHandlers: mock(() => {}),
     getHandler: mock(() => returns.getHandler),
+    getValidator: mock(() => returns.getValidator ?? returns.getHandler),
     finalizeHandlerRegistrations: mock(() => []),
     getExecutionRegistrations: mock(() => []),
     enqueue: mock((request: JobQueueEnqueueRequest) => {

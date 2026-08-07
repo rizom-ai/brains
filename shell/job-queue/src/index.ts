@@ -14,6 +14,7 @@ export type {
 export type {
   IJobQueueService,
   JobHandler,
+  JobValidator,
   EnqueueJob,
   JobInfo,
   JobClaimOptions,

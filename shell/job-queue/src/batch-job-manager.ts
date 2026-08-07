@@ -238,14 +238,16 @@ export class BatchJobManager {
 
   private validateOperations(operations: BatchOperation[]): void {
     for (const operation of operations) {
-      const handler = this.jobQueue.getHandler(operation.type);
-      if (!handler) {
+      // Enqueue-side preflight uses the declared validator, not an executable
+      // handler — web processes register validation-only and hold no handlers.
+      const validator = this.jobQueue.getValidator(operation.type);
+      if (!validator) {
         throw new Error(
           `No handler registered for job type: ${operation.type}`,
         );
       }
 
-      if (handler.validateAndParse(operation.data) === null) {
+      if (validator.validateAndParse(operation.data) === null) {
         throw new Error(`Invalid job data for type: ${operation.type}`);
       }
     }

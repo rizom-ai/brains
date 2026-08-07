@@ -225,6 +225,12 @@ export interface IJobQueueService {
    */
   getHandler(type: string): JobHandler | undefined;
 
+  /**
+   * Get the validator for a declared job type. Present in every registration
+   * mode, including validation-only processes that hold no executable handler.
+   */
+  getValidator(type: string): JobValidator | undefined;
+
   /** Freeze handler declarations before runtime services can admit work. */
   finalizeHandlerRegistrations(): readonly JobExecutionRegistration[];
 

@@ -233,6 +233,66 @@ describe("BatchJobManager", () => {
     });
   });
 
+  describe("validation-only registration mode (web process)", () => {
+    let webService: JobQueueService;
+    let webBatchManager: BatchJobManager;
+
+    beforeEach(() => {
+      const logger = createSilentLogger();
+      webService = JobQueueService.createFresh(config, logger, {
+        handlerRegistrationMode: "validation-only",
+      });
+      webBatchManager = BatchJobManager.createFresh(webService, logger);
+      webService.registerHandler(
+        "embedding",
+        new MockEmbeddingHandler() as unknown as JobHandler,
+      );
+    });
+
+    afterEach(async () => {
+      await webBatchManager.stop();
+      webService.close();
+    });
+
+    it("should enqueue a batch for a declared job type", async () => {
+      const batchId = createId();
+      const returnedBatchId = await webBatchManager.enqueueBatch(
+        [{ type: "embedding", data: { entityId: "entity-1" } }],
+        defaultBatchOptions,
+        batchId,
+      );
+
+      expect(returnedBatchId).toBe(batchId);
+      const status = await webBatchManager.getBatchStatus(batchId);
+      expect(status?.totalOperations).toBe(1);
+    });
+
+    it("should still reject undeclared job types", async () => {
+      expect(async () => {
+        await webBatchManager.enqueueBatch(
+          [{ type: "missing-handler", data: { entityId: "entity-1" } }],
+          defaultBatchOptions,
+          createId(),
+        );
+      }).toThrow("No handler registered for job type: missing-handler");
+    });
+
+    it("should still preflight data validation", async () => {
+      webService.registerHandler("invalid", {
+        process: async () => undefined,
+        validateAndParse: () => null,
+      });
+
+      expect(async () => {
+        await webBatchManager.enqueueBatch(
+          [{ type: "invalid", data: { entityId: "entity-1" } }],
+          defaultBatchOptions,
+          createId(),
+        );
+      }).toThrow("Invalid job data for type: invalid");
+    });
+  });
+
   describe("getBatchStatus", () => {
     it("should return null for non-existent batch", async () => {
       const status = await batchManager.getBatchStatus("non-existent");

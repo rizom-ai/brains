@@ -15,6 +15,7 @@ import type {
   JobQueueStats,
   JobRuntimeUpdate,
   JobRuntimeUpdateCursor,
+  JobValidator,
 } from "./types";
 import { JOB_STATUS } from "./schemas";
 import { applySqlitePragmas } from "@brains/db";
@@ -169,6 +170,10 @@ export class JobQueueService implements IJobQueueService {
    */
   public getHandler(type: string): JobHandler | undefined {
     return this.handlerRegistry.getHandler(type);
+  }
+
+  public getValidator(type: string): JobValidator | undefined {
+    return this.handlerRegistry.getValidator(type);
   }
 
   public finalizeHandlerRegistrations(): readonly JobExecutionRegistration[] {

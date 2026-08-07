@@ -94,6 +94,7 @@ describe("JobProgressMonitor", () => {
       unregisterPluginHandlers: mock(() => {}),
       getRegisteredTypes: mock(() => []),
       getHandler: mock(() => undefined),
+      getValidator: mock(() => undefined),
       finalizeHandlerRegistrations: mock(() => []),
       getExecutionRegistrations: mock(() => []),
       update: mock(() => Promise.resolve(true)),
