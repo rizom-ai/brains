@@ -3,7 +3,11 @@ import { mkdirSync, writeFileSync, rmSync, existsSync, mkdtempSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
 import { createSilentLogger } from "@brains/test-utils";
-import type { RegisteredWebRoute, RuntimeReadiness } from "@brains/plugins";
+import type {
+  RegisteredApiRoute,
+  RegisteredWebRoute,
+  RuntimeReadiness,
+} from "@brains/plugins";
 import { createMockMessageBus, type IMessageBus } from "@brains/plugins/test";
 import {
   ServerManager,
@@ -446,6 +450,41 @@ describe("ServerManager (in-process)", () => {
     expect(await res.text()).toContain("owner/repo");
   });
 
+  it("serves dynamic routes before generated static pages", async () => {
+    testDir = mkdtempSync(join(tmpdir(), "webserver-dynamic-shadow-"));
+    const prodDir = join(testDir, "dist", "production");
+    const staticRouteDir = join(prodDir, "dynamic");
+    const imagesDir = join(testDir, "dist", "images");
+    mkdirSync(staticRouteDir, { recursive: true });
+    mkdirSync(imagesDir, { recursive: true });
+    writeFileSync(join(staticRouteDir, "index.html"), "static page");
+
+    manager = new ServerManager({
+      logger: createSilentLogger("test"),
+      productionDistDir: prodDir,
+      sharedImagesDir: imagesDir,
+      productionPort: 0,
+      webRoutes: [
+        {
+          pluginId: "dashboard",
+          fullPath: "/dynamic",
+          definition: {
+            path: "/dynamic",
+            public: true,
+            handler: (): Response => new Response("dynamic handler"),
+          },
+        },
+      ],
+    });
+
+    await manager.start();
+    const url = manager.getStatus().productionUrl;
+    if (!url) return;
+
+    const response = await fetch(`${url}/dynamic`);
+    expect(await response.text()).toBe("dynamic handler");
+  });
+
   it("matches contributed prefix routes by segment with exact and longest-prefix precedence", async () => {
     testDir = mkdtempSync(join(tmpdir(), "webserver-prefix-routes-"));
     const prodDir = join(testDir, "dist", "production");
@@ -551,6 +590,83 @@ describe("ServerManager (in-process)", () => {
     expect(isPathContained(`${imagesDir}-secret/leak.png`, imagesDir)).toBe(
       false,
     );
+  });
+
+  it("characterizes route getters as request-time discovery", async () => {
+    testDir = mkdtempSync(join(tmpdir(), "webserver-route-discovery-"));
+    const prodDir = join(testDir, "dist", "production");
+    const imagesDir = join(testDir, "dist", "images");
+    mkdirSync(prodDir, { recursive: true });
+    mkdirSync(imagesDir, { recursive: true });
+
+    let webRouteReads = 0;
+    let apiRouteReads = 0;
+    manager = new ServerManager({
+      logger: createSilentLogger("test"),
+      productionDistDir: prodDir,
+      sharedImagesDir: imagesDir,
+      productionPort: 0,
+      getWebRoutes: (): RegisteredWebRoute[] => {
+        webRouteReads += 1;
+        return [];
+      },
+      getApiRoutes: (): RegisteredApiRoute[] => {
+        apiRouteReads += 1;
+        return [];
+      },
+    });
+
+    await manager.start();
+    const url = manager.getStatus().productionUrl;
+    if (!url) return;
+
+    await fetch(`${url}/first`);
+    await fetch(`${url}/second`);
+
+    expect(webRouteReads).toBe(2);
+    expect(apiRouteReads).toBe(2);
+  });
+
+  it("keeps dynamic routes off the preview host", async () => {
+    testDir = mkdtempSync(join(tmpdir(), "webserver-preview-routes-"));
+    const prodDir = join(testDir, "dist", "production");
+    const previewDir = join(testDir, "dist", "preview");
+    const imagesDir = join(testDir, "dist", "images");
+    mkdirSync(prodDir, { recursive: true });
+    mkdirSync(previewDir, { recursive: true });
+    mkdirSync(imagesDir, { recursive: true });
+
+    manager = new ServerManager({
+      logger: createSilentLogger("test"),
+      productionDistDir: prodDir,
+      previewDistDir: previewDir,
+      sharedImagesDir: imagesDir,
+      productionPort: 0,
+      webRoutes: [
+        {
+          pluginId: "fixture",
+          fullPath: "/dynamic",
+          definition: {
+            path: "/dynamic",
+            public: true,
+            handler: (): Response => new Response("production route"),
+          },
+        },
+      ],
+    });
+
+    await manager.start();
+    const url = manager.getStatus().productionUrl;
+    if (!url) return;
+
+    expect((await fetch(`${url}/dynamic`)).status).toBe(200);
+    expect(
+      (
+        await fetch(`${url}/dynamic`, {
+          headers: { host: "preview.example.com" },
+        })
+      ).status,
+    ).toBe(404);
   });
 
   it("should serve web routes registered after the webserver starts", async () => {
@@ -707,6 +823,114 @@ describe("ServerManager (in-process)", () => {
       success: true,
       data: { subscribed: true },
     });
+  });
+
+  it("preserves handler prefixes ahead of exact tool routes", async () => {
+    testDir = mkdtempSync(join(tmpdir(), "webserver-route-precedence-"));
+    const prodDir = join(testDir, "dist", "production");
+    const imagesDir = join(testDir, "dist", "images");
+    mkdirSync(prodDir, { recursive: true });
+    mkdirSync(imagesDir, { recursive: true });
+
+    const messageBus = createMockMessageBus({
+      returns: {
+        send: {
+          success: true,
+          data: { success: true, data: { source: "tool" } },
+        },
+      },
+    });
+    manager = new ServerManager({
+      logger: createSilentLogger("test"),
+      productionDistDir: prodDir,
+      sharedImagesDir: imagesDir,
+      productionPort: 0,
+      webRoutes: [
+        {
+          pluginId: "handler-owner",
+          fullPath: "/api/example",
+          definition: {
+            path: "/api/example",
+            match: "prefix",
+            method: "POST",
+            public: true,
+            handler: (): Response => new Response("handler prefix"),
+          },
+        },
+      ],
+      apiRoutes: [
+        {
+          pluginId: "example",
+          fullPath: "/api/example/run",
+          definition: {
+            path: "/run",
+            method: "POST",
+            tool: "run",
+            public: true,
+          },
+        },
+      ],
+      messageBus,
+    });
+
+    await manager.start();
+    const url = manager.getStatus().productionUrl;
+    if (!url) return;
+
+    const response = await fetch(`${url}/api/example/run`, { method: "POST" });
+    expect(await response.text()).toBe("handler prefix");
+    expect(messageBus.send).not.toHaveBeenCalled();
+  });
+
+  it("characterizes legacy non-public API routes as admitted", async () => {
+    testDir = mkdtempSync(join(tmpdir(), "webserver-private-api-"));
+    const prodDir = join(testDir, "dist", "production");
+    const imagesDir = join(testDir, "dist", "images");
+    mkdirSync(prodDir, { recursive: true });
+    mkdirSync(imagesDir, { recursive: true });
+
+    const messageBus = createMockMessageBus({
+      returns: {
+        send: {
+          success: true,
+          data: { success: true, data: { invoked: true } },
+        },
+      },
+    });
+    manager = new ServerManager({
+      logger: createSilentLogger("test"),
+      productionDistDir: prodDir,
+      sharedImagesDir: imagesDir,
+      productionPort: 0,
+      apiRoutes: [
+        {
+          pluginId: "private-api",
+          fullPath: "/api/private-api/run",
+          definition: {
+            path: "/run",
+            method: "POST",
+            tool: "run",
+            public: false,
+          },
+        },
+      ],
+      messageBus,
+    });
+
+    await manager.start();
+    const url = manager.getStatus().productionUrl;
+    if (!url) return;
+
+    const response = await fetch(`${url}/api/private-api/run`, {
+      method: "POST",
+      headers: { accept: "application/json" },
+    });
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      success: true,
+      data: { invoked: true },
+    });
+    expect(messageBus.send).toHaveBeenCalledTimes(1);
   });
 
   it("should serve API routes registered after the webserver starts", async () => {

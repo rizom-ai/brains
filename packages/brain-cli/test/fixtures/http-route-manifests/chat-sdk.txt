@@ -1,0 +1,4 @@
+chat|handler|GET|/api/webhooks/chat/discord/uploads|exact|true
+chat|handler|GET|/api/webhooks/chat/slack/uploads|exact|true
+chat|handler|POST|/api/webhooks/chat/discord|exact|true
+chat|handler|POST|/api/webhooks/chat/slack|exact|true

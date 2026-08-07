@@ -1,0 +1,18 @@
+brain: brain
+anchor: person
+kind: professional
+bundles:
+  - core
+remove:
+  - a2a
+  - chat
+  - directory-sync
+  - email
+  - mcp
+  - onboarding
+  - web-chat
+plugins:
+  webserver:
+    productionPort: __PRODUCTION_PORT__
+  route-fixture:
+    package: "@rizom/brain-plugin-http-route-fixture"
