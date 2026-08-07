@@ -4,12 +4,15 @@ import { fileURLToPath } from "node:url";
 
 import packageJson from "../package.json";
 import {
+  deployScriptNames,
   isStaleDeployDockerfile,
   isStaleDeployMounts,
+  isStaleDeployScript,
   renderDockerfile,
   stripDeployVolumes,
   renderKamalDeploy,
   renderPreDeployHook,
+  type DeployScriptName,
 } from "@brains/deploy-support";
 import { writeUsersTable } from "./render-users-table";
 
@@ -100,6 +103,29 @@ const reconcilableStarterFiles: Partial<
 > = {
   "deploy/kamal/deploy.yml": legacyDeployYmlContents,
 };
+
+/**
+ * Fingerprints for the ops-owned generated deploy scripts, mirroring the
+ * shared deployScriptFingerprints in @brains/deploy-support: a committed copy
+ * that still contains its fingerprint but differs from the rendered template
+ * is a prior generated vintage and gets rewritten on rerun.
+ */
+const opsDeployScriptFingerprints: Partial<
+  Record<(typeof starterFilePaths)[number], string>
+> = {
+  "deploy/scripts/helpers.ts": '"@rizom/ops/deploy"',
+  "deploy/scripts/resolve-user-config.ts": "loadPilotRegistry",
+  "deploy/scripts/resolve-missing-images.ts": "runResolveMissingImages",
+  "deploy/scripts/sync-content-repo.ts": "GIT_SYNC_TOKEN",
+};
+
+function sharedDeployScriptName(
+  relativePath: (typeof starterFilePaths)[number],
+): DeployScriptName | undefined {
+  return deployScriptNames.find(
+    (script) => relativePath === `deploy/scripts/${script}`,
+  );
+}
 
 function normalizePilotDeploySecretList(content: string): string {
   return content.replace(
@@ -234,7 +260,13 @@ async function writeStarterFileIfMissing(
 
   const legacyContents = reconcilableStarterFiles[relativePath] ?? [];
   const matchesLegacyContent = legacyContents.includes(current);
+  const sharedScript = sharedDeployScriptName(relativePath);
+  const opsScriptFingerprint = opsDeployScriptFingerprints[relativePath];
   const matchesLegacyPredicate =
+    (sharedScript !== undefined &&
+      isStaleDeployScript(sharedScript, current, content)) ||
+    (opsScriptFingerprint !== undefined &&
+      current.includes(opsScriptFingerprint)) ||
     (relativePath === "deploy/Dockerfile" &&
       isStaleDeployDockerfile(current)) ||
     (relativePath === ".env.schema" &&

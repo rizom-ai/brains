@@ -649,6 +649,55 @@ describe("brain init", () => {
       expect(workflow).not.toContain("SERVER_IP: ${{ secrets.SERVER_IP }}");
     });
 
+    it("should reconcile prior generated deploy scripts when --deploy is used", () => {
+      writeFileSync(
+        join(testDir, "brain.yaml"),
+        [
+          "brain: brain",
+          "bundles: [core, site, publishing]",
+          "domain: mylittlephoney.com",
+          "",
+        ].join("\n"),
+      );
+
+      scaffold(testDir, { recipe: "personal", deploy: true });
+
+      const watchdogPath = join(
+        testDir,
+        "deploy",
+        "scripts",
+        "install-health-watchdog.ts",
+      );
+      const helpersPath = join(testDir, "deploy", "scripts", "helpers.ts");
+      const canonicalWatchdog = readFileSync(watchdogPath, "utf-8");
+      const canonicalHelpers = readFileSync(helpersPath, "utf-8");
+
+      // The pre-alpha.260 installer: no ownership-label constants, generic
+      // service-label selection.
+      const preLabelWatchdog = canonicalWatchdog
+        .replace(/export const BRAIN_WATCHDOG_LABEL[^]*?\n\n/, "")
+        .replace(
+          "--filter label=${BRAIN_WATCHDOG_LABEL_FILTER}",
+          "--filter label=service",
+        );
+      expect(preLabelWatchdog).toContain("--filter label=service");
+      writeFileSync(watchdogPath, preLabelWatchdog);
+      writeFileSync(
+        helpersPath,
+        `${canonicalHelpers}\n// prior generated vintage\n`,
+      );
+
+      const customScript = '#!/usr/bin/env bun\nconsole.log("custom");\n';
+      const dnsPath = join(testDir, "deploy", "scripts", "update-dns.ts");
+      writeFileSync(dnsPath, customScript);
+
+      scaffold(testDir, { recipe: "personal", deploy: true });
+
+      expect(readFileSync(watchdogPath, "utf-8")).toBe(canonicalWatchdog);
+      expect(readFileSync(helpersPath, "utf-8")).toBe(canonicalHelpers);
+      expect(readFileSync(dnsPath, "utf-8")).toBe(customScript);
+    });
+
     it("should reconcile stale standalone deploy mounts when --deploy is used", () => {
       writeFileSync(
         join(testDir, "brain.yaml"),

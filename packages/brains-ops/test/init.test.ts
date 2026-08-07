@@ -702,6 +702,68 @@ describe("initPilotRepo", () => {
     );
   });
 
+  it("reconciles prior generated deploy scripts on rerun", async () => {
+    const root = await mkdtemp(join(tmpdir(), "brains-ops-init-"));
+    const repo = join(root, "rover-pilot");
+
+    await initPilotRepo(repo);
+
+    const watchdogPath = join(
+      repo,
+      "deploy",
+      "scripts",
+      "install-health-watchdog.ts",
+    );
+    const syncScriptPath = join(
+      repo,
+      "deploy",
+      "scripts",
+      "sync-content-repo.ts",
+    );
+    const canonicalWatchdog = await readFile(watchdogPath, "utf8");
+    const canonicalSyncScript = await readFile(syncScriptPath, "utf8");
+
+    // The pre-alpha.260 installer: no ownership-label constants, generic
+    // service-label selection.
+    const preLabelWatchdog = canonicalWatchdog
+      .replace(/export const BRAIN_WATCHDOG_LABEL[^]*?\n\n/, "")
+      .replace(
+        "--filter label=${BRAIN_WATCHDOG_LABEL_FILTER}",
+        "--filter label=service",
+      );
+    expect(preLabelWatchdog).toContain("--filter label=service");
+    await writeFile(watchdogPath, preLabelWatchdog);
+    await writeFile(
+      syncScriptPath,
+      `${canonicalSyncScript}\n// prior generated vintage\n`,
+    );
+
+    await initPilotRepo(repo);
+
+    expect(await readFile(watchdogPath, "utf8")).toBe(canonicalWatchdog);
+    expect(await readFile(syncScriptPath, "utf8")).toBe(canonicalSyncScript);
+  });
+
+  it("keeps operator-owned deploy script content on rerun", async () => {
+    const root = await mkdtemp(join(tmpdir(), "brains-ops-init-"));
+    const repo = join(root, "rover-pilot");
+
+    await initPilotRepo(repo);
+
+    const watchdogPath = join(
+      repo,
+      "deploy",
+      "scripts",
+      "install-health-watchdog.ts",
+    );
+    const operatorOwned = '#!/usr/bin/env bun\nconsole.log("custom");\n';
+    await writeFile(watchdogPath, operatorOwned);
+
+    await initPilotRepo(repo);
+
+    expect(await readFile(watchdogPath, "utf8")).toBe(operatorOwned);
+  });
+
   it("reconciles generated ATProto deploy env artifacts on rerun", async () => {
     const root = await mkdtemp(join(tmpdir(), "brains-ops-init-"));
     const repo = join(root, "rover-pilot");

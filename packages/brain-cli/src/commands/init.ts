@@ -12,6 +12,7 @@ import { stringify } from "yaml";
 import pkg from "../../package.json" with { type: "json" };
 import {
   isStaleDeployDockerfile,
+  isStaleDeployScript,
   legacyStandaloneDeployYmlContents,
   matchesLegacyStandaloneDeployYml,
   renderDeployWorkflow,
@@ -20,6 +21,7 @@ import {
   renderKamalDeploy,
   renderPreDeployHook,
   renderPublishImageWorkflow,
+  type DeployScriptName,
 } from "@brains/deploy-support";
 import { parseEnvSchema } from "@brains/deploy-support";
 import { parseBrainYaml } from "../lib/brain-yaml";
@@ -474,7 +476,7 @@ function writeDeployWorkflow(dir: string, regen = false): void {
   });
 }
 
-const SHARED_DEPLOY_SCRIPTS = [
+const SHARED_DEPLOY_SCRIPTS: readonly DeployScriptName[] = [
   "install-health-watchdog.ts",
   "provision-server.ts",
   "update-dns.ts",
@@ -496,21 +498,22 @@ export type { EnvSchemaEntry } from "@rizom/brain/deploy";
 function writeSharedDeployScripts(dir: string, regen = false): void {
   const scriptsDir = packageDeployScriptsDir;
 
-  writeScaffoldFile(
-    join(dir, "deploy", "scripts", "helpers.ts"),
-    DEPLOY_HELPERS_SHIM,
-    false,
+  writeReconcilableScaffoldFile({
+    path: join(dir, "deploy", "scripts", "helpers.ts"),
+    content: DEPLOY_HELPERS_SHIM,
+    shouldReconcile: (current) => current.includes('"@rizom/brain/deploy"'),
     regen,
-  );
+  });
 
   for (const script of SHARED_DEPLOY_SCRIPTS) {
     const content = readFileSync(join(scriptsDir, script), "utf-8");
-    writeScaffoldFile(
-      join(dir, "deploy", "scripts", script),
+    writeReconcilableScaffoldFile({
+      path: join(dir, "deploy", "scripts", script),
       content,
-      false,
+      shouldReconcile: (current) =>
+        isStaleDeployScript(script, current, content),
       regen,
-    );
+    });
   }
 }
 
