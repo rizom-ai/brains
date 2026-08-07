@@ -1,6 +1,4 @@
-import { Hono, type Context } from "hono";
-import type { Server } from "bun";
-import type { Logger } from "@brains/utils/logger";
+import type { Context } from "hono";
 import { createExternalActorId } from "@brains/contracts";
 import { toolResultSchema } from "@brains/plugins";
 import { PLUGIN_CHANNELS } from "@brains/contracts";
@@ -77,76 +75,4 @@ export function createApiRouteHandler(
     // Default JSON response if no redirect configured
     return c.json(toolResult, success ? 200 : 400);
   };
-}
-
-export interface ApiServerOptions {
-  logger: Logger;
-  port: number;
-  routes: RegisteredApiRoute[];
-  messageBus: IMessageBus;
-}
-
-/**
- * Shared-host API route handler utilities.
- *
- * Plugin API routes now run on the main webserver surface, but this helper
- * remains as the adapter from registered API routes to Hono handlers.
- */
-export class ApiServer {
-  private server: Server<unknown> | null = null;
-  private logger: Logger;
-  private port: number;
-  private routes: RegisteredApiRoute[];
-  private messageBus: IMessageBus;
-
-  constructor(options: ApiServerOptions) {
-    this.logger = options.logger;
-    this.port = options.port;
-    this.routes = options.routes;
-    this.messageBus = options.messageBus;
-  }
-
-  async start(): Promise<string> {
-    if (this.server) {
-      this.logger.warn("API server already running");
-      return `http://localhost:${this.port}`;
-    }
-
-    if (this.routes.length === 0) {
-      this.logger.debug("No API routes registered, skipping API server");
-      return "";
-    }
-
-    const app = new Hono();
-
-    // Mount each route
-    for (const route of this.routes) {
-      const handler = createApiRouteHandler(route, this.messageBus);
-      const method = route.definition.method.toLowerCase() as
-        "get" | "post" | "put" | "delete";
-
-      app[method](route.fullPath, handler);
-      this.logger.debug(
-        `Mounted API route: ${route.definition.method} ${route.fullPath} -> ${route.pluginId}_${route.definition.tool}`,
-      );
-    }
-
-    this.server = Bun.serve({
-      port: this.port,
-      fetch: app.fetch,
-    });
-
-    const url = `http://localhost:${this.port}`;
-    this.logger.info(
-      `API server started at ${url} (${this.routes.length} routes)`,
-    );
-    return url;
-  }
-
-  async stop(): Promise<void> {
-    if (!this.server) return;
-    await this.server.stop();
-    this.server = null;
-    this.logger.debug("API server stopped");
-  }
 }

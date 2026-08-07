@@ -25,6 +25,8 @@ import type {
 } from "@brains/conversation-service";
 import type { RegisteredApiRoute } from "../types/api-routes";
 import type { RegisteredWebRoute } from "../types/web-routes";
+import type { RegisteredHttpRoute } from "../types/http-routes";
+import { getHttpRouteSnapshot } from "@brains/plugins/internal/http-route-snapshot";
 import type { IMessageBus } from "@brains/messaging-service";
 import type { ToolInfo } from "@brains/mcp-service";
 
@@ -75,6 +77,11 @@ export interface IApiRoutesNamespace {
 export interface IWebRoutesNamespace {
   /** Get all registered web routes from plugins */
   getRoutes: () => RegisteredWebRoute[];
+}
+
+export interface IHttpRoutesNamespace {
+  /** Get the finalized normalized HTTP route snapshot. */
+  getRoutes: () => readonly RegisteredHttpRoute[];
 }
 
 export interface IPluginsNamespace {
@@ -185,6 +192,9 @@ export interface InterfacePluginContext extends BasePluginContext {
   /** Plugin-contributed web routes for the shared HTTP surface */
   readonly webRoutes: IWebRoutesNamespace;
 
+  /** Finalized normalized routes for the shared HTTP server. */
+  readonly httpRoutes: IHttpRoutesNamespace;
+
   /** Plugin registry visibility for interface coordination */
   readonly plugins: IPluginsNamespace;
 }
@@ -293,6 +303,11 @@ export function createInterfacePluginContext(
       getRoutes: (): RegisteredWebRoute[] => {
         return shell.getPluginWebRoutes();
       },
+    },
+
+    httpRoutes: {
+      getRoutes: (): readonly RegisteredHttpRoute[] =>
+        getHttpRouteSnapshot(shell),
     },
 
     plugins: {

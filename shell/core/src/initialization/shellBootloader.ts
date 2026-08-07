@@ -37,6 +37,7 @@ export interface ShellBootloaderOptions {
 
 export interface ShellBootloaderHooks {
   registerCoreDataSources(): void;
+  finalizeHttpRoutes(): void;
   registerSystemCapabilities(): void;
   createProjectionInputContext(): ProjectionInputContext;
   createProjectionExecutionContext(): ProjectionExecutionContext;
@@ -110,6 +111,7 @@ export class ShellBootloader {
     this.services.channelRegistry.finalize();
     this.services.inboxRegistry.finalize();
     await this.services.pluginManager.finalizePluginRegistrations();
+    this.hooks.finalizeHttpRoutes();
     await this.services.projectionRuntimeSupervisor.initialize(
       this.services.pluginManager.getProjectionGraphSnapshot(),
     );

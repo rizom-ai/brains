@@ -165,6 +165,14 @@ describe("@rizom/brain public plugin API surface", () => {
     }
   });
 
+  it("keeps internal HTTP route registry types out of public declarations", () => {
+    for (const publicExport of listTypedPublicExports()) {
+      const types = readFileSync(join(pkgDir, publicExport.types), "utf-8");
+      expect(types).not.toContain("RegisteredHttpRoute");
+      expect(types).not.toContain("HttpRouteManifestEntry");
+    }
+  });
+
   it("keeps Effect and private /effect imports out of public declarations", () => {
     for (const publicExport of listTypedPublicExports()) {
       const types = readFileSync(join(pkgDir, publicExport.types), "utf-8");

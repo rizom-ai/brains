@@ -94,7 +94,7 @@ The Brains project uses a modern, TypeScript-based stack optimized for building 
 
 - **CLI** — in-process REPL via `interfaces/chat-repl` (Ink)
 - **MCP** — stdio + HTTP transports via `interfaces/mcp`
-- **Webserver** — in-process Hono via `Bun.serve`, serving site pages, dashboard/CMS routes, browser-facing APIs, and `/health`
+- **Webserver** — in-process Hono via `Bun.serve`, serving site pages, dashboard/CMS routes, browser-facing APIs, and split health endpoints
 - **Chat** — Discord and Slack bot interface via `interfaces/chat` (Chat SDK)
 - **A2A** — agent-to-agent JSON-RPC via `interfaces/a2a` (Agent Card, non-blocking tasks)
 
@@ -220,7 +220,7 @@ The Brains project uses a modern, TypeScript-based stack optimized for building 
 - **[Kamal](https://kamal-deploy.org/)** — default deploy tool
   - Hetzner Cloud as the default provider
   - Per-instance `config/deploy.yml` scaffolded by `brain init <dir> --deploy`
-  - App serves production and preview hosts directly; `/health` endpoint for healthchecks
+  - App serves production and preview hosts directly; `/health/live`, `/health/ready`, and `/health/operate` provide distinct health signals
   - Cloudflare Origin CA via `brain cert:bootstrap`; secrets via `brain secrets:push` (GitHub Actions or Bitwarden Secrets Manager)
   - Multi-user fleets via `@rizom/ops`
 
@@ -285,7 +285,7 @@ The Brains project uses a modern, TypeScript-based stack optimized for building 
 
 - `@brains/chat-repl` — interactive Ink-based REPL
 - `@brains/mcp` — MCP transport (stdio + HTTP)
-- `@brains/webserver` — in-process Hono webserver for site pages, dashboard/CMS routes, browser-facing APIs, and `/health`
+- `@brains/webserver` — in-process Hono webserver for site pages, dashboard/CMS routes, browser-facing APIs, and split health endpoints
 - `@brains/chat` — Discord and Slack bot interface (Chat SDK)
 - `@brains/a2a` — agent-to-agent JSON-RPC interface (Agent Card, non-blocking tasks)
 
@@ -315,5 +315,5 @@ The Brains project uses a modern, TypeScript-based stack optimized for building 
 - **AI-powered** — single `AI_API_KEY`, provider auto-detected from model name (OpenAI / Anthropic / Google)
 - **Extensible** — EntityPlugin / ServicePlugin / InterfacePlugin + composite factories
 - **Type-safe** — end-to-end TypeScript with Zod validation
-- **Observable** — structured JSON logs, enriched `/health` endpoint, `ai:usage` tracking
+- **Observable** — structured JSON logs, operational diagnostics at `/health/operate`, `ai:usage` tracking
 - **Lightweight instance packages** — deployments are centered on `brain.yaml`, with minimal per-instance support files (`.env`, `.env.example`, `.gitignore`, `tsconfig.json`, `package.json`, optional deploy artifacts) rather than full custom apps

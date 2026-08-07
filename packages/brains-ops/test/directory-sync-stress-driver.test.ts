@@ -163,7 +163,11 @@ class ScriptedStressSystem {
         ],
       });
     }
-    if (url.pathname !== "/health") {
+    if (
+      url.pathname !== "/health/live" &&
+      url.pathname !== "/health/ready" &&
+      url.pathname !== "/health/operate"
+    ) {
       return new Response("not found", { status: 404 });
     }
 
@@ -192,10 +196,13 @@ class ScriptedStressSystem {
         probes.length;
     }
     return Response.json({
-      status: "ok",
-      version: "0.2.0-alpha.253",
-      entities: 41 + probeNotes,
-      entityCounts: [{ entityType: "note", count: 7 + probeNotes }],
+      status: "ready",
+      operationalStatus: "operational",
+      app: {
+        version: "0.2.0-alpha.253",
+        entities: 41 + probeNotes,
+        entityCounts: [{ entityType: "note", count: 7 + probeNotes }],
+      },
     });
   };
 

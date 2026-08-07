@@ -1,12 +1,11 @@
 import { getErrorMessage } from "@brains/utils/error";
 import type { Logger } from "@brains/utils/logger";
+import type { AppInfo, RuntimeReadiness, IMessageBus } from "@brains/plugins";
 import type {
-  AppInfo,
-  RuntimeReadiness,
-  RegisteredApiRoute,
-  RegisteredWebRoute,
-  IMessageBus,
-} from "@brains/plugins";
+  RegisteredHandlerHttpRoute,
+  RegisteredHttpRoute,
+  RegisteredToolHttpRoute,
+} from "@brains/plugins/internal/http-routes";
 import { resolve, join, sep } from "path";
 import { Hono, type Context as HonoContext, type Next as HonoNext } from "hono";
 import { serveStatic } from "hono/bun";
@@ -24,21 +23,13 @@ export interface ServerManagerOptions {
   previewDistDir?: string;
   productionDistDir: string;
   sharedImagesDir: string;
-  /** @deprecated Preview is served on the shared host; kept for config compatibility. */
-  previewPort?: number;
   productionPort: number;
-  /** Returns app info for the legacy /health endpoint. */
-  getHealthData?: () => Promise<AppInfo>;
+  /** Returns app metadata for operational diagnostics. */
+  getOperationalInfo?: () => Promise<AppInfo>;
   /** Returns dependency and resource state for readiness checks. */
   getReadinessData?: () => Promise<RuntimeReadiness>;
-  /** Plugin-contributed web routes mounted on the shared host. */
-  webRoutes?: RegisteredWebRoute[];
-  /** Dynamic accessor for plugin-contributed web routes on the shared host. */
-  getWebRoutes?: () => RegisteredWebRoute[];
-  /** Plugin-contributed API routes mounted on the shared host. */
-  apiRoutes?: RegisteredApiRoute[];
-  /** Dynamic accessor for plugin-contributed API routes on the shared host. */
-  getApiRoutes?: () => RegisteredApiRoute[];
+  /** Resolve finalized routes when the server starts. Invoked exactly once. */
+  getRoutes?: () => readonly RegisteredHttpRoute[];
   /** Message bus used to execute plugin API routes. */
   messageBus?: IMessageBus;
   /**
@@ -50,6 +41,12 @@ export interface ServerManagerOptions {
 }
 
 const CACHE_IMMUTABLE = "public, max-age=31536000, immutable";
+
+function resolveConfiguredRoutes(
+  options: ServerManagerOptions,
+): readonly RegisteredHttpRoute[] {
+  return options.getRoutes?.() ?? [];
+}
 
 /**
  * Idle timeout (seconds) for the shared Bun server.
@@ -90,6 +87,7 @@ interface AppOptions {
 export class ServerManager {
   private logger: Logger;
   private options: ServerManagerOptions;
+  private routes: readonly RegisteredHttpRoute[] = Object.freeze([]);
   private productionServer: ReturnType<typeof Bun.serve> | null = null;
 
   private isPreviewHost(host: string | null): boolean {
@@ -118,6 +116,8 @@ export class ServerManager {
       this.logger.warn("Webserver already running");
       return;
     }
+
+    this.routes = Object.freeze([...resolveConfiguredRoutes(this.options)]);
 
     const productionApp = this.createApp({
       distDir: this.options.productionDistDir,
@@ -208,6 +208,7 @@ export class ServerManager {
     const app = new Hono();
 
     if (opts.healthEndpoint) {
+      app.all("/health", (c) => c.notFound());
       app.get("/health/live", (c) =>
         c.json(
           {
@@ -223,22 +224,14 @@ export class ServerManager {
         return c.json(readiness, readiness.status === "ready" ? 200 : 503);
       });
       app.get("/health/operate", async (c) => {
-        const readiness = await this.getReadinessData();
-        return c.json(
-          readiness,
-          readiness.operationalStatus === "operational" ? 200 : 503,
-        );
-      });
-      app.get("/health", async (c) => {
         let readiness = await this.getReadinessData();
         let info: AppInfo | undefined;
-        if (this.options.getHealthData) {
+        if (this.options.getOperationalInfo) {
           try {
-            info = await this.options.getHealthData();
+            info = await this.options.getOperationalInfo();
           } catch (error) {
             readiness = {
               ...readiness,
-              status: "not_ready",
               operationalStatus: "degraded",
               checks: [
                 ...readiness.checks,
@@ -252,12 +245,8 @@ export class ServerManager {
           }
         }
         return c.json(
-          {
-            status: readiness.status === "ready" ? "healthy" : "unhealthy",
-            ...info,
-            readiness,
-          },
-          readiness.status === "ready" ? 200 : 503,
+          { ...readiness, ...(info && { app: info }) },
+          readiness.operationalStatus === "operational" ? 200 : 503,
         );
       });
     }
@@ -367,14 +356,6 @@ export class ServerManager {
     };
   }
 
-  private getCurrentWebRoutes(): RegisteredWebRoute[] {
-    return this.options.getWebRoutes?.() ?? this.options.webRoutes ?? [];
-  }
-
-  private getCurrentApiRoutes(): RegisteredApiRoute[] {
-    return this.options.getApiRoutes?.() ?? this.options.apiRoutes ?? [];
-  }
-
   private async handleDynamicRoute(
     c: HonoContext,
     opts: AppOptions,
@@ -386,40 +367,50 @@ export class ServerManager {
     const requestMethod = c.req.method.toUpperCase();
     const requestPath = c.req.path;
 
-    const methodRoutes = this.getCurrentWebRoutes().filter((route) => {
-      const routeMethod = route.definition.method ?? "GET";
-      return routeMethod === requestMethod;
-    });
-    const webRoute =
-      methodRoutes.find(
-        (route) =>
-          (route.definition.match ?? "exact") === "exact" &&
-          route.fullPath === requestPath,
+    const handlerRoutes = this.routes.filter(
+      (route): route is RegisteredHandlerHttpRoute =>
+        route.kind === "handler" && route.method === requestMethod,
+    );
+    const handlerRoute =
+      handlerRoutes.find(
+        (route) => route.match === "exact" && route.fullPath === requestPath,
       ) ??
-      methodRoutes
+      handlerRoutes
         .filter(
           (route) =>
-            route.definition.match === "prefix" &&
+            route.match === "prefix" &&
             (requestPath === route.fullPath ||
               requestPath.startsWith(`${route.fullPath.replace(/\/$/, "")}/`)),
         )
         .sort((left, right) => right.fullPath.length - left.fullPath.length)[0];
-    if (webRoute) {
-      // `public` is the only auth signal wired for web routes today. Until
-      // real auth exists, non-public routes fail closed rather than serve
-      // their handler unauthenticated.
-      if (webRoute.definition.public !== true) {
+    if (handlerRoute) {
+      if (handlerRoute.sharedHostAdmission === "deny") {
         return c.text("Unauthorized", 401);
       }
-      return webRoute.definition.handler(c.req.raw);
+      return handlerRoute.handler(c.req.raw);
     }
 
-    const apiRoute = this.getCurrentApiRoutes().find((route) => {
-      const routeMethod = route.definition.method;
-      return route.fullPath === requestPath && routeMethod === requestMethod;
-    });
-    if (apiRoute && this.options.messageBus) {
-      return createApiRouteHandler(apiRoute, this.options.messageBus)(c);
+    const toolRoute = this.routes.find(
+      (route): route is RegisteredToolHttpRoute =>
+        route.kind === "tool" &&
+        route.fullPath === requestPath &&
+        route.method === requestMethod,
+    );
+    if (toolRoute) {
+      if (toolRoute.sharedHostAdmission === "deny") {
+        return c.text("Unauthorized", 401);
+      }
+      if (!this.options.messageBus) {
+        return c.text("HTTP tool route unavailable", 500);
+      }
+      return createApiRouteHandler(
+        {
+          pluginId: toolRoute.ownerPluginId,
+          fullPath: toolRoute.fullPath,
+          definition: toolRoute.definition,
+        },
+        this.options.messageBus,
+      )(c);
     }
 
     return null;
@@ -479,6 +470,3 @@ export class ServerManager {
     };
   }
 }
-
-// Re-export API server components for backward compatibility with tests
-export { createApiRouteHandler } from "./api-server";

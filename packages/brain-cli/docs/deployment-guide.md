@@ -113,7 +113,7 @@ proxy:
     - <%= ENV['PREVIEW_DOMAIN'] %>
   app_port: 8080
   healthcheck:
-    path: /health
+    path: /health/ready
 
 registry:
   server: ghcr.io
@@ -300,13 +300,12 @@ docker run -d \
 
 ## Health checks and recovery
 
-The webserver exposes four health surfaces:
+The webserver exposes three health surfaces:
 
 - `/health/live` is a dependency-free event-loop liveness probe;
 - `/health/ready` checks web-critical database and routing readiness;
 - `/health/operate` checks worker sessions, queue leases, projection circuits,
-  and daemons in addition to routing dependencies;
-- `/health` is the routing-readiness compatibility response.
+  daemons, and operational app metadata in addition to routing dependencies.
 
 Kamal uses `/health/ready` for zero-downtime rollout, so worker-only degradation
 does not replace a web-serving container. Configure the deployment's external

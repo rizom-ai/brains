@@ -190,17 +190,20 @@ describe("directory-sync stress observations", () => {
   });
 
   it("records a health timeout as a failed sample instead of throwing", async () => {
-    const sample = await sampleStressHealth("https://smoke.rizom.ai/health", {
-      fetchImpl() {
-        return Promise.reject(new DOMException("timed out", "AbortError"));
+    const sample = await sampleStressHealth(
+      "https://smoke.rizom.ai/health/ready",
+      {
+        fetchImpl() {
+          return Promise.reject(new DOMException("timed out", "AbortError"));
+        },
+        now: () => new Date("2026-08-05T17:00:00.000Z"),
+        timeoutMs: 10,
       },
-      now: () => new Date("2026-08-05T17:00:00.000Z"),
-      timeoutMs: 10,
-    });
+    );
 
     expect(sample).toEqual({
       timestamp: "2026-08-05T17:00:00.000Z",
-      endpoint: "/health",
+      endpoint: "/health/ready",
       status: 0,
       durationMs: 0,
       ok: false,
@@ -271,7 +274,7 @@ describe("directory-sync stress orchestration", () => {
           health: [
             {
               timestamp: "2026-08-05T17:00:00.000Z",
-              endpoint: "/health",
+              endpoint: "/health/ready",
               status: 0,
               durationMs: 20_000,
               ok: false,
@@ -289,7 +292,7 @@ describe("directory-sync stress orchestration", () => {
     );
 
     expect(report.success).toBe(false);
-    expect(report.failure).toBe("health: /health unavailable");
+    expect(report.failure).toBe("health: /health/ready unavailable");
   });
 
   it("stops applying load and always cleans up after a failed phase", async () => {

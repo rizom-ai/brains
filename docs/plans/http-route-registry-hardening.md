@@ -2,11 +2,11 @@
 
 ## Status
 
-**Proposed.** This is correctness, security, and maintainability work for the shared HTTP surface. No live vulnerability or collision exists today: the only first-party API route is intentionally public, and no current composition declares a duplicate method/path pair.
+**Proposed — revalidated on 2026-08-07; Phases 0 and 1 complete.** The normalized registry, startup conflict detection, immutable dispatch snapshot, internal manifest, and fail-closed shared-host admission are implemented. The documented handler-backed getter remains the canonical stable `0.2` authoring contract; there is no secondary route path. Remaining security, matcher, advertising, and cleanup phases require separate approval and do not gate stable `v0.2.0`.
 
-Sequencing against `0.2.0` runs the other way from a release gate. Every package sits on the `0.2.0-alpha` line, and the [public authoring API plan](./public-authoring-api-0.2.md) excludes alpha signatures from the compatibility window — route-contract changes are free now and frozen once `0.2.0` stable ships. The contract surface of Phases 1–3 (the `security` field and `context.http.register()`) should therefore land before stable; enforcement internals and compiled matching can follow at any time.
+The [public-authoring release gate](./public-authoring-api-0.2.md) deliberately freezes only the existing handler-backed web-route contract. It excludes tool-backed API routes, non-public shared-host admission, centralized operator authentication, and `context.http.register()` from the `0.2` stable ledger. This plan must not widen that ledger accidentally.
 
-Phase 1 can proceed independently. Central operator authorization should align with the shipped [`auth-service` boundary](../../shell/auth-service/README.md), which owns the multi-user and permission model; this plan must not create a second user or identity system.
+Characterization is green against current canonical compositions and a packed external handler route. The current registry slice changes no stable public authoring declarations. If Phase 2 is approved later, central operator authorization must use the shipped [`auth-service` boundary](../../shell/auth-service/README.md), which owns runtime principals, roles, statuses, sessions, and Anchor identity; this plan must not create a second user or identity system.
 
 ## Goal
 
@@ -16,7 +16,7 @@ Make every runtime HTTP route part of one deterministic, inspectable, lifecycle-
 - startup-time conflict detection;
 - consistent authorization semantics;
 - one dispatch pipeline for handler-backed and tool-backed routes;
-- stable compatibility for existing first-party and external plugins;
+- patch-stable behavior for the documented handler-backed `0.2` contract;
 - explicit production/preview exposure; and
 - route-backed endpoint advertising that cannot silently drift.
 
@@ -24,41 +24,27 @@ The shared webserver remains the canonical HTTP listener.
 
 ## Current baseline
 
-HTTP behavior is distributed across five related mechanisms:
+HTTP behavior now has one finalized composition boundary:
 
-1. Service and interface plugins expose `getWebRoutes()` and, for services, `getApiRoutes()`. Collection is duck-typed (`"getApiRoutes" in plugin`), so the service-only scope of API routes is convention, not an enforced contract.
-2. `shell/core/src/plugin-routes.ts` asks every plugin for those arrays. Web routes keep their absolute path; API routes receive `/api/{pluginId}` prefixes.
-3. `interfaces/webserver/src/server-manager.ts` asks for the arrays during each request and resolves web routes in two tiers: exact method/path match first, then `match: "prefix"` routes sorted longest-path-first (CMS depends on the prefix tier for `/cms/entities` and `/cms/workspaces`). API dispatch is exact-only.
-4. Plugins separately call `context.endpoints.register()` to advertise important URLs through `appInfo` and Dashboard: webserver's own Site and Preview, Chat, A2A, MCP, CMS, Admin, Account, and Dashboard.
-5. `deriveConsoleSurfaces(...)` re-reads the live web-route list to build console navigation in dashboard, CMS, admin, account, and web-chat — a second consumer of the route getters beyond dispatch.
+1. Internal service and interface plugins expose `getWebRoutes()`; service plugins may also expose `getApiRoutes()`. The stable external `0.2` authoring path remains narrower and covers handler-backed web routes only.
+2. `shell/core/src/http-route-registry.ts` invokes each route getter once after plugin registration-complete hooks, validates canonical paths, route-kind methods, reserved namespaces, and duplicate `(method, fullPath)` keys, then freezes one normalized snapshot plus a handler-free diagnostic manifest.
+3. `interfaces/webserver/src/server-manager.ts` resolves a normalized route snapshot once when the early webserver starts. Dispatch order remains exact handler, longest matching handler prefix, then exact tool-backed API route. Prefix matching respects segment boundaries; API routes remain exact-only.
+4. Routes with `public: false` now fail closed for both handlers and tools. `public: true` remains admission-only: protocol and session handlers still authenticate internally.
+5. Plugins separately call `context.endpoints.register()` to advertise important URLs through `appInfo` and Dashboard.
 
-The shared server also owns `/health*`, `/images/*`, static files, clean URLs, and production-versus-preview host selection outside the plugin route collectors. The `/images/*` fast path and `/health*` force-routing run in the `Bun.serve` fetch before any Hono app, so they preempt plugin routes in those namespaces even on preview hosts, and `/.site-build-manifest.json` is unconditionally 404'd.
+The shared server also owns `/health/*`, `/images/*`, the blocked `/.site-build-manifest.json`, static files, clean URLs, and production-versus-preview host selection. Health is split across `/health/live`, `/health/ready`, and `/health/operate`; the aggregate `/health` endpoint is absent. Dynamic routes run only on the production surface; preview remains static-only. MCP HTTP mounts on the shared host, and production rejects configurations without the webserver. The unused standalone `ApiServer` export is absent; the MCP transport's test-only listener method remains cleanup work.
 
-This baseline has useful properties: route behavior remains plugin-owned, the webserver is in-process, tool routes reuse tool execution, and static output needs no controller registration. The hardening work should preserve those properties.
+Canonical minimal, personal, publishing, team, commerce, docs, and Rizom manifests are checked and currently contain no method/path collisions. Configured Chat SDK routes and the newsletter tool route have focused inventory coverage. The packed external handler-route fixture installs and serves outside the monorepo through documented `@rizom/brain/*` entry points.
 
 ## Problems to solve
 
-### Silent conflicts
-
-Two plugins can declare the same method/path. Collection preserves plugin iteration order and dispatch uses the first match, so one route silently shadows the other. No composition collides today, but namespace pressure is real: auth-service declares many bare top-level paths (`/login`, `/logout`, `/setup`, `/authorize`, `/register`, `/token`, `/revoke`, `/webauthn/*`, parts of `/.well-known/*`), dashboard mounts at `/` in core-only compositions, CMS owns `/cms`, and MCP owns `/status`. Registration order is the only tiebreaker — which also means adding detection now is a non-breaking change.
-
 ### Ambiguous authorization
 
-`WebRouteDefinition.public` currently controls whether the shared server will invoke a handler; it does not describe the route's actual security protocol. Consequently, operator-gated CMS and web-chat routes declare `public: true` and enforce sessions inside handlers. MCP, A2A, OAuth, and webhooks also declare `public: true` while implementing protocol-specific authentication themselves.
+`public` now fails closed consistently, but it still describes only shared-host admission rather than the route's actual security protocol. Consequently, operator-gated CMS and web-chat routes declare `public: true` and enforce sessions inside handlers. MCP, A2A, OAuth, and webhooks also declare `public: true` while implementing protocol-specific authentication themselves.
 
-`ApiRouteDefinition.public` is present in the contract (defaulting to `false`) but is never read by shared-host API dispatch, so any future private tool route is fail-open by default. The only current first-party API route is intentionally public. Tool execution also receives no request principal at all: the invocation omits `userPermissionLevel` and `isAnchor` rather than passing an explicit anonymous level.
+### Limited matcher contract
 
-### Pull-based route discovery
-
-The webserver repeatedly calls plugin route getters through the shell. This makes route ownership less explicit, prevents a stable manifest, repeats allocation/work per request, and leaves no natural registration handle for plugin unload. Console navigation (`deriveConsoleSurfaces`) is a second live consumer of the getters, so the registry must serve navigation as well as dispatch.
-
-### Split dispatch behavior
-
-Handler-backed web routes and tool-backed API routes have different contracts and security behavior even though both become method/path entries on the same host.
-
-### String-comparison routing
-
-The dispatcher compares raw strings (exact, then longest-prefix). There is no explicit path-parameter contract, route-specific middleware, compiled matcher, or path normalization: `GET /cms/` misses the exact `/cms` route and falls through to static serving. Existing APIs therefore lean on query parameters and fixed endpoint names. A matched API route also degrades silently into a static 404 when the message bus is absent instead of failing loudly.
+Handler routes support exact and typed prefix matching, including segment-boundary and longest-prefix precedence. API routes remain exact-only. There is no path-parameter contract, route-specific middleware, or compiled ambiguity check, so existing APIs still lean on query parameters, fixed endpoint names, and handler-local parsing.
 
 ### Endpoint-advertisement drift
 
@@ -68,9 +54,9 @@ The endpoint registry is intentionally broader than routes because Site and Prev
 
 Dynamic-route dispatch is coupled to the `healthEndpoint` option. Preview currently receives static output only, but that policy is not represented directly.
 
-### Transitional server paths
+### Transitional server path
 
-The standalone `ApiServer` and standalone MCP HTTP listener remain in source even though production composition uses the shared webserver. The consumer audit is complete: `ApiServer`'s only consumer outside its own package is its own test, the `apiPort` config option is referenced nowhere, and the standalone MCP `start()` path is test-only (production MCP hard-errors when the shared webserver is absent). They are dead code that multiplies the HTTP architectures maintainers must understand, and the alpha line permits removing them without a deprecation period.
+The unused standalone `ApiServer` class is removed. Production MCP composition uses the shared webserver, but the MCP transport still carries a test-only standalone listener method. That dead method and its listener-specific tests remain Phase 5 cleanup; they are not a production startup path.
 
 ## Non-goals
 
@@ -81,7 +67,9 @@ The standalone `ApiServer` and standalone MCP HTTP listener remain in source eve
 - Generating OpenAPI for arbitrary handler routes in the first implementation.
 - Introducing another network listener.
 - Making preview expose operator or protocol routes by default.
-- Breaking the published `getWebRoutes()` or `getApiRoutes()` plugin contracts after `0.2.0` stable ships. Before stable, contract changes are permitted under the alpha policy; the legacy getters persist as a documented migration path, not a compatibility obligation.
+- Breaking the documented handler-backed `getWebRoutes()` contract during `0.2` patch releases.
+- Adding tool-backed APIs, private shared-host admission, centralized operator auth, or lifecycle route registration to the stable `0.2` public-authoring ledger.
+- Completing post-baseline security, lifecycle, parameter-routing, advertising, or cleanup phases merely to nominate stable `0.2.0`.
 
 ## Architecture decisions
 
@@ -91,24 +79,31 @@ The standalone `ApiServer` and standalone MCP HTTP listener remain in source eve
 
 ### 2. Add one normalized internal route model
 
-Keep the public route contracts initially, but normalize both into an internal shape before dispatch:
+Normalize the canonical route declarations into one internal shape before dispatch:
 
 ```ts
-type RegisteredHttpRoute = {
-  ownerPluginId: string;
-  kind: "handler" | "tool";
-  method: WebRouteMethod;
-  fullPath: string;
-  match: "exact" | "prefix";
-  security: HttpRouteSecurity;
-  handler: (request: Request, context: HttpRequestContext) => Promise<Response>;
-  advertise?: HttpRouteAdvertisement;
-};
+type RegisteredHttpRoute =
+  | {
+      ownerPluginId: string;
+      kind: "handler";
+      method: WebRouteMethod;
+      fullPath: string;
+      match: "exact" | "prefix";
+      sharedHostAdmission: "admit" | "deny";
+      handler: WebRouteHandler;
+    }
+  | {
+      ownerPluginId: string;
+      kind: "tool";
+      method: ApiRouteDefinition["method"];
+      fullPath: string;
+      match: "exact";
+      sharedHostAdmission: "admit" | "deny";
+      definition: ApiRouteDefinition;
+    };
 ```
 
-Tool routes receive an adapter that parses the request, invokes the tool through the message bus, and creates the response. The normalized table is the only input consumed by `ServerManager`, and it preserves the existing exact-then-longest-prefix resolution.
-
-Normalization must resolve the current contract asymmetries explicitly: web routes default to `GET` (today applied at dispatch time, unvalidated), API routes default to `POST` via Zod, and `OPTIONS` is only legal on web routes. The tool adapter must preserve the existing tool-name resolution rule — a `tool` string containing `_` is used verbatim, otherwise it is prefixed `{pluginId}_` — which the newsletter route depends on. A tool route dispatched without a message bus becomes a loud `500`, not a fall-through to static serving.
+The shape above is internal, and declaration tests prevent it from leaking through `@rizom/brain`. The existing `public` field maps directly to shared-host admission; it is not a second security model or an adapter path. Tool routes receive an internal handler that parses the request, invokes the tool through the message bus, and creates the response. A matched tool route without a message bus returns `500` instead of falling through to static serving. The normalized table is the only dynamic-route input used during dispatch.
 
 ### 3. Make route security explicit
 
@@ -120,7 +115,6 @@ type HttpRouteSecurity =
   | {
       kind: "operator";
       minimumLevel: "public" | "trusted" | "admin";
-      requireAnchor?: boolean;
       csrf?: "required" | "not-required";
     }
   | { kind: "protocol" };
@@ -129,22 +123,18 @@ type HttpRouteSecurity =
 Semantics:
 
 - `none`: no transport-level authentication is required.
-- `operator`: the shared host resolves an authenticated runtime principal and enforces the minimum level before invoking the handler. `minimumLevel: "public"` still requires an authenticated principal (`401` when absent) but sets no level floor — that requirement is what distinguishes it from `none`. `requireAnchor` gates on `AuthPrincipal.isAnchor`, which is orthogonal to permission level (Admin does not imply Anchor); there is no "anchor" permission level.
+- `operator`: the shared host resolves an authenticated runtime principal and enforces the minimum level before invoking the handler.
 - `protocol`: MCP, A2A, OAuth/WebAuthn, or a webhook adapter owns authentication because generic operator-session handling is not the protocol.
 
-CSRF defaults fail safe: for `operator` routes using cookie authentication on unsafe methods, an unset `csrf` means `required`; `"not-required"` is an explicit opt-out.
+Explicit route security is not part of the implemented `0.2` contract. `public: true` means only that the shared host admits the request; it does **not** imply `security: { kind: "none" }`, because many admitted handlers perform protocol or session authentication themselves. `public: false` fails closed for both handler and tool routes; tool execution is never reached. A future explicit security contract must replace this field at a declared breaking boundary rather than coexist through a parallel variant.
 
-During compatibility migration, routes without `security` retain their exact current `public` behavior. Do not infer that `public: true` means `security: { kind: "none" }`.
-
-The resolver already exists: `AuthService.resolveSession(request)` returns an `AuthPrincipal`, with `resolveBearerGrant(request)` for token auth. The webserver consumes it through a small injected interface and must not grow a separate user store or infer users from cookies itself.
+The auth service should supply a small injected request-principal resolver backed by its existing active-session and bearer-principal services. The webserver must not grow a separate user store, parse auth cookies itself, or treat Anchor identity as a permission level. Operator minimum levels are `public`, `trusted`, and `admin`; any future Anchor requirement is an independent policy facet.
 
 ### 4. Fail closed on conflicts
 
-The route registry rejects duplicate `(method, fullPath)` keys with an error naming both owners, including an exact route that duplicates another route's prefix root. It rejects non-absolute and non-canonical paths — one canonical form: no trailing slash, no percent-encoded segments, case-sensitive — and plugin routes in the webserver-owned namespaces `/health*`, `/images/*`, and `/.site-build-manifest.json`. auth-service's `AuthRouteTable`, which already throws on duplicate `METHOD path` keys, is the in-repo precedent to build from.
+The route registry rejects duplicate `(method, fullPath)` keys with an error naming both owners, including collisions between exact and prefix declarations at the same base path. It also rejects non-absolute or non-canonical paths (including trailing slashes, doubled slashes, and percent-encoded segments) and plugin routes in webserver-owned namespaces such as `/health/*`, `/images/*`, and `/.site-build-manifest.json`.
 
-Dynamic routes may intentionally shadow generated static pages — dashboard mounted at `/` in core-only compositions is the live example. That remains allowed, but the route manifest should report the shadow when the static output is available for inspection.
-
-Conflict detection stops at declared routes: A2A, MCP, and auth-service forward declared paths into internal routers, and the registry does not inspect that inner surface.
+Dynamic routes may intentionally shadow generated static pages—the root Dashboard is one example. That remains allowed, but the route manifest should report the shadow when the static output is available for inspection.
 
 ### 5. Finalize routes before the early webserver starts
 
@@ -152,21 +142,15 @@ The shell already completes plugin registration before `ShellBootloader.startEar
 
 Route declarations must therefore be stable by the end of `onRegister`. `onReady` may initialize data used by handlers, but must not be required to make the route itself discoverable.
 
-### 6. Move toward lifecycle registration without an immediate breaking change
+### 6. Keep one authoring ingress
 
-The target API is ownership-explicit:
+The documented handler-backed `getWebRoutes()` contract is the only stable `0.2` authoring ingress. The shell records ownership while collecting each plugin's declarations and finalizes one registry after registration completes.
 
-```ts
-const unregister = context.http.register(route);
-```
+Do not add `context.http.register()` or another declaration API alongside it. Any future replacement requires separate approval, a declared breaking boundary, first-party migration, and a packed external proof in the same change. It must remove the superseded ingress rather than retain an adapter.
 
-The registry records the calling plugin automatically and removes its routes during plugin teardown. Existing getter-based plugins continue through an adapter; the getters can be removed any time before `0.2.0` stable, or at `0.3.0` after.
+### 7. Preserve exact and prefix matching
 
-First-party migration should prove this API before exposing it as the preferred external-plugin contract.
-
-### 7. Keep exact-then-prefix matching during the compatibility slice
-
-The first registry implementation preserves the current exact-then-longest-prefix method/path behavior. Once the normalized registry is stable, add compiled parameter matching as an additive feature. Existing routes do not need to migrate merely to demonstrate parameters.
+The registry preserves current exact-before-prefix, longest-prefix, and segment-boundary behavior for handler routes; API routes remain exact. A later compiled matcher may add path parameters as an additive feature. Existing routes do not need to migrate merely to demonstrate parameters.
 
 ### 8. Keep endpoint advertising broader than routes
 
@@ -184,53 +168,24 @@ Replace the `healthEndpoint` proxy with independent server options:
 }
 ```
 
-The compatibility default remains production-only dynamic routes and static-only preview.
+The current default remains production-only dynamic routes and static-only preview.
 
-## Implementation phases
-
-### Phase 0 — Characterization and contract tests
-
-1. Add focused tests that inventory normalized route keys for representative Rover, Relay, and Ranger compositions, including optional ATProto registry, newsletter, and Chat SDK routes where configured.
-2. Add an external-plugin fixture that supplies one web route and one tool-backed API route through the existing public contracts.
-3. Record current production/preview behavior, exact and prefix matching (including the trailing-slash miss on exact routes), API redirects, console-surface derivation, and handler-owned authentication behavior.
-4. Pin the completed transitional-server audit with tests: nothing outside their own packages consumes `ApiServer`, `apiPort`, or standalone MCP `start()`.
-
-Gate:
-
-- Existing route behavior is captured without changing runtime semantics.
-- The external-plugin fixture passes from a packed/public authoring boundary, not only workspace imports.
-
-### Phase 1 — Normalized registry and conflict detection
-
-1. Add a shell-owned `HttpRouteRegistry` using plugin route contracts from `@brains/plugins`.
-2. Normalize current web and API definitions into one immutable snapshot, including `match` kind and unified method defaults.
-3. Validate canonical path form, methods, reserved namespaces, duplicate method/path keys, and exact/prefix overlap.
-4. Finalize the snapshot after plugin registration and before early webserver startup in every boot mode that initializes plugins.
-5. Replace per-request plugin getter traversal with registry lookup, and point `deriveConsoleSurfaces` at the same snapshot.
-6. Expose a read-only route manifest to shell diagnostics and tests; do not expose private route details publicly through Dashboard by default.
-7. Preserve exact-then-prefix routing and response behavior, except that a tool route dispatched without a message bus now fails loudly instead of falling through to static serving.
-
-Gate:
-
-- A duplicate route fails boot with both plugin ids and the conflicting key.
-- Route getters are not called per request.
-- Register-only, startup-check, and normal boot all detect invalid route tables.
-- Console navigation renders identically from the registry snapshot.
-- All existing route tests and packed external-plugin smoke tests pass.
+## Remaining implementation phases
 
 ### Phase 2 — Explicit security policy
 
-1. Add optional `security` to web and API route contracts while retaining `public` as deprecated compatibility input.
-2. Add an injected `HttpRequestPrincipalResolver` backed by the existing `AuthService.resolveSession()` and `resolveBearerGrant()`.
+1. Approve a breaking contract boundary that replaces `public` with explicit `security`; do not accept both inputs.
+2. Add an injected `HttpRequestPrincipalResolver` backed by auth-service runtime principals.
 3. Enforce `operator` routes centrally, returning `401` when unauthenticated and `403` when authenticated below the minimum level.
-4. Enforce the same policy before tool-backed API execution and propagate the resolved principal into tool execution context instead of omitting the permission fields entirely.
-5. Migrate first-party routes deliberately:
-   - public/static metadata and ATProto registry: `none`;
-   - CMS and private web-chat operations: `operator` with `"trusted"` minimum, matching today's in-handler checks; use `requireAnchor` only where a handler genuinely gates on the anchor flag today;
-   - MCP, A2A, OAuth/WebAuthn, and verified webhooks: `protocol`;
-   - mixed public Dashboard rendering remains `none`, while `/api/console/jump` becomes `operator`.
-6. Add CSRF protection for state-changing cookie-authenticated `operator` routes. Protocol routes retain their protocol-specific replay/origin protections.
-7. Keep handler-level checks during migration, then remove duplicated checks only after centralized tests cover each route.
+4. Enforce the same policy before tool-backed API execution and propagate the resolved principal into tool execution context instead of always using `anonymous`.
+5. Migrate first-party routes deliberately from observed handler behavior rather than from their current boolean:
+   - genuinely public metadata and ATProto registry reads: `none`;
+   - routes that require a normal browser session and have one minimum permission, such as CMS or operator-console mutations: `operator` with `trusted` or `admin` as appropriate;
+   - auth-service OAuth/WebAuthn/account flows, MCP, A2A, Chat SDK, web-chat mixed-access flows, and verified webhooks: `protocol` while those handlers own protocol/session semantics;
+   - mixed public Dashboard rendering remains `none`; classify `/api/console/jump` from its actual session and permission requirement before migration.
+6. Keep Admin permission and Anchor identity independent. A route may require one, both, or neither; `admin` must never be inferred to mean Anchor.
+7. Add CSRF protection for state-changing cookie-authenticated `operator` routes. Protocol routes retain their existing same-origin, replay, token, signature, or webhook protections.
+8. Migrate every first-party owner atomically at the approved boundary and remove duplicated handler checks only after centralized tests cover each route.
 
 Gate:
 
@@ -239,24 +194,23 @@ Gate:
 - MCP bearer, signed/unsigned A2A, OAuth, WebAuthn, and webhook tests remain unchanged at the protocol boundary.
 - CMS and web-chat mutation tests cover CSRF failure and success.
 
-### Phase 3 — Lifecycle-owned registration
+### Phase 3 — Authoring contract replacement
 
-1. Add `context.http.register()` to service and interface plugin contexts.
-2. Return idempotent unregister handles and remove all owned routes during plugin teardown.
-3. Make registry updates atomic so requests see either the old or new complete snapshot.
-4. Adapt legacy `getWebRoutes()` and `getApiRoutes()` once during plugin registration.
-5. Migrate first-party route owners package-by-package:
-   - Dashboard and ATProto registry as the walking skeleton;
-   - CMS and web-chat;
-   - auth-service, MCP, and A2A;
-   - Chat SDK, ATProto DID, Sveltia CMS, and Buttondown.
-6. Publish the new API only after the packed external-plugin proof passes; retain legacy getters as the documented migration path through the alpha line.
+This phase requires separate approval and a declared breaking release. It is not part of stable `0.2`.
+
+1. Decide whether lifecycle registration materially improves the canonical getter contract.
+2. If approved, define one ownership-explicit replacement rather than a second ingress.
+3. Return idempotent unregister handles and remove all owned routes during plugin teardown.
+4. Make registry updates atomic so requests see either the old or new complete snapshot.
+5. Migrate every first-party route owner and the packed external fixture in the same change.
+6. Remove the superseded getter ingress when publishing the replacement; do not retain an adapter.
 
 Gate:
 
+- Exactly one route-authoring ingress exists.
 - Loading and unloading a test plugin adds and removes exactly its routes.
 - No first-party route depends on repeated getter introspection.
-- Legacy external plugins continue to mount unchanged.
+- The packed external fixture proves the replacement contract before publication.
 
 ### Phase 4 — Compiled matching and explicit surfaces
 
@@ -268,18 +222,18 @@ Gate:
 
 Gate:
 
-- Exact-route behavior remains byte-compatible for current endpoints.
+- Existing exact, prefix, and handler/tool precedence remains unchanged for current endpoints unless a separately reviewed ambiguity test justifies a correction.
 - Parameter precedence and ambiguity have focused tests.
 - Preview remains static-only by default, and enabling preview routes requires explicit configuration.
 
 ### Phase 5 — Advertising, diagnostics, and cleanup
 
-1. Add optional route advertisement metadata for Dashboard, Chat, CMS, Admin, Account, MCP, and A2A.
+1. Add optional route advertisement metadata for Dashboard, Chat, CMS, MCP, and A2A.
 2. Keep manual endpoint registration for external/static URLs such as Site and Preview.
 3. Diagnose route-backed advertised URLs that do not resolve to a registered route.
 4. Document the route manifest and ownership model in architecture and external-plugin authoring docs.
-5. Remove the standalone `ApiServer`, the dead `apiPort` option, and the standalone MCP listener path before `0.2.0` stable. The audit found only same-package test consumers, and the alpha line permits removal without a deprecation period.
-6. Remove the legacy `public` route field once first-party migration completes — before `0.2.0` stable if the migration lands in time, otherwise at `0.3.0`.
+5. Remove the MCP transport's test-only standalone listener method and listener-specific tests; retain shared-host tests that prevent production listener startup from returning.
+6. Remove `public` only as part of the separately approved explicit-security replacement; never support both route-security inputs.
 
 Gate:
 
@@ -292,13 +246,13 @@ Gate:
 ### Registry
 
 - duplicate exact routes;
-- duplicate routes contributed through web/API legacy adapters;
-- exact routes overlapping prefix roots;
+- duplicate routes contributed through handler and tool declarations;
+- exact/prefix collisions at one base path;
 - same path with different methods;
-- malformed, non-canonical (trailing slash, encoded segments), and reserved paths;
-- method-default normalization for web and API contracts;
-- console-surface derivation from the snapshot;
+- malformed and reserved paths;
 - deterministic ordering and diagnostics;
+- exact-handler, longest handler-prefix, then exact-tool precedence;
+- longest-prefix and segment-boundary behavior;
 - plugin teardown and atomic replacement.
 
 ### Authorization
@@ -312,30 +266,29 @@ Gate:
 ### Host behavior
 
 - production and preview host selection;
-- `/health*` and `/images/*` ownership, including their pre-Hono preemption;
-- dynamic-before-static precedence, exact-then-longest-prefix resolution;
-- tool route without a message bus fails loudly;
+- `/health/*` and `/images/*` ownership;
+- dynamic-before-static precedence;
 - clean URLs and 404 fallback;
 - streaming MCP, A2A, and web-chat responses under the existing idle timeout.
 
-### Compatibility
+### Contract stability
 
-- all model presets through startup-check;
+- canonical minimal, personal, publishing, team, commerce, docs, and Rizom compositions through register-only or startup-check as appropriate;
 - focused package tests for every route owner;
-- packed external plugin with legacy getters;
-- packed external plugin with `context.http.register()` once public;
+- packed external interface with the stable handler-backed web-route contract;
+- package-local tool-route getter coverage without adding it to the stable `0.2` ledger;
+- packed external lifecycle registration only if and when its public authoring shape is approved;
 - app-managed site rebuild followed by production and preview smoke when host behavior changes.
 
 ## Risks and mitigations
 
-- **Boot failures reveal future collisions.** No composition collides today, so detection lands cleanly. Keep a diagnostic command to inspect conflicts, but do not retain first-wins behavior as an escape hatch; resolve each collision explicitly.
-- **Central auth changes protocol behavior.** Use the `protocol` security kind and migrate operator routes first. Do not place MCP/A2A/OAuth behind generic session auth.
-- **Auth-runtime work changes principal APIs concurrently.** Depend on a small resolver interface and land the implementation against the final auth-service principal contract.
-- **External plugins rely on getter timing.** Characterize the packed contract first, invoke legacy getters only after `onRegister`, and document that route shape must be stable by then.
-- **Early webserver startup sees a partial table.** Finalize the initial snapshot before `startEarlyWebserver()` and make later replacements atomic.
+- **Boot failures reveal external or newly composed collisions.** The startup error names both owners and the conflicting key. Resolve each collision explicitly; do not restore first-wins behavior as an escape hatch.
+- **Central auth changes protocol behavior.** Use the `protocol` security kind and migrate operator routes first. Do not place auth-service, MCP, A2A, Chat SDK, mixed-access web chat, OAuth, or WebAuthn behind generic session admission without a protocol-specific proof.
+- **The webserver duplicates shipped auth behavior.** Depend on a small resolver interface backed by auth-service active principals; do not parse cookies, query auth storage, duplicate status rules, or conflate Admin and Anchor.
+- **External plugins rely on getter timing.** Route getters run once after registration-complete hooks. Keep the packed contract proof and document that getter output must be stable by that boundary.
 - **Parameterized routes introduce precedence bugs.** Defer them until exact normalized dispatch is stable; reject ambiguous patterns instead of relying on registration order.
 - **Endpoint derivation hides external URLs.** Keep manual registration for Site, Preview, and other non-route endpoints.
-- **Removing transitional servers breaks an unknown external consumer.** The in-repo audit found only same-package test consumers, but `ApiServer` is a published export; remove it before `0.2.0` stable and note the removal in release notes.
+- **Standalone listeners regress the deployment topology.** Remove the remaining MCP test listener in Phase 5 and keep regression tests that prevent production listener startup from returning.
 
 ## Success criteria
 
@@ -347,11 +300,12 @@ Gate:
 - Protocol routes retain their existing authentication semantics.
 - Preview route exposure is explicit.
 - Route-backed endpoint advertising cannot silently point at an unmounted path.
-- Existing external plugins keep working across the alpha line; the getter contracts freeze only at `0.2.0` stable.
+- The documented external handler-route contract remains patch-stable throughout `0.2`.
 - Static site generation and clean-URL serving remain outside the dynamic route registry.
 
 ## Related plans
 
+- [Public authoring API contract for `v0.2.0`](./public-authoring-api-0.2.md) — the stable external ledger this plan must not widen accidentally
 - [`shell/auth-service` implementation guide](../../shell/auth-service/README.md) — the shipped multi-user and permission model
 - [Operator runtime database](./operator-runtime-db.md)
 - [Installable operator-console PWA](./operator-console-pwa.md)

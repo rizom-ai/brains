@@ -72,8 +72,14 @@ import type {
   ImageGenerationOptions,
   ImageGenerationResult,
 } from "@brains/ai-service";
-import type { RegisteredApiRoute } from "./types/api-routes";
-import type { RegisteredWebRoute } from "./types/web-routes";
+import type {
+  ApiRouteDefinition,
+  RegisteredApiRoute,
+} from "./types/api-routes";
+import type {
+  RegisteredWebRoute,
+  WebRouteDefinition,
+} from "./types/web-routes";
 import type { EntityDisplayEntry } from "@brains/site-composition";
 
 /**
@@ -490,6 +496,8 @@ export type Plugin = z.output<typeof pluginMetadataSchema> & {
   ready?(): Promise<void>;
   shutdown?(): Promise<void>;
   requiresDaemonStartup?(): boolean;
+  getApiRoutes?(): ApiRouteDefinition[];
+  getWebRoutes?(): WebRouteDefinition[];
 };
 
 /**

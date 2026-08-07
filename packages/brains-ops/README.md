@@ -6,7 +6,7 @@ Operator CLI package for managing pilot brain fleet registry repos.
 
 - `brains-ops init <repo>`
 - `brains-ops crossover:stage <source-repo> <output-dir> [site-pins.yaml]` — creates a separate secret-free canonical review copy without mutating the source; a reviewed pins file is required when hosted site overrides exist
-- `brains-ops render <repo>` — regenerates `views/users.md` and fills status columns from built-in live probes (`DNS`, `/health`, unauthenticated `/mcp`)
+- `brains-ops render <repo>` — regenerates `views/users.md` and fills status columns from built-in live probes (`DNS`, `/health/ready`, unauthenticated `/mcp`)
 - `brains-ops user:add <repo> <handle> --cohort <cohort>` — scaffolds a user file, per-user secrets template, and cohort membership
 - `brains-ops onboard <repo> <handle>` — creates/seeds the user's content repo using `CONTENT_REPO_ADMIN_TOKEN` for GitHub repo administration and `GIT_SYNC_TOKEN` for git clone/push
 - `brains-ops age-key:bootstrap <repo>`
@@ -14,7 +14,7 @@ Operator CLI package for managing pilot brain fleet registry repos.
 - `brains-ops cert:bootstrap <repo>`
 - `brains-ops secrets:push <repo>`
 - `brains-ops secrets:encrypt <repo> <handle>`
-- `brains-ops verify-user <repo> <handle>` — checks `/health`, unauthenticated `/mcp`, and site-enabled browser/CMS routes
+- `brains-ops verify-user <repo> <handle>` — checks `/health/operate`, unauthenticated `/mcp`, and site-enabled browser/CMS routes
 - `brains-ops stress:directory-sync <repo> <handle> --profile <regression|load|stress> --confirm stress:<handle>` — runs a smoke-only, reversible directory-sync workload and writes structured evidence
 - `brains-ops stress:directory-sync:cleanup <repo> <handle> --confirm stress:<handle>` — idempotently removes residual stress probes
 - `brains-ops reconcile-cohort <repo> <cohort>`

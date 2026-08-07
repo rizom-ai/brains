@@ -230,18 +230,6 @@
       "targetRelease": "0.3.0-or-later"
     },
     {
-      "id": "webserver-health-endpoint-alias",
-      "paths": ["interfaces/webserver/src/server-manager.ts"],
-      "symbol": "/health endpoint alias",
-      "owner": "@brains/webserver",
-      "class": "runtime-compatibility",
-      "behavior": "Serves the pre-split health endpoint alongside canonical liveness and readiness endpoints.",
-      "currentConsumers": "Older deployment probes and operators that still request /health.",
-      "removalPrerequisite": "Migrate supported probes to /health/live or /health/ready and observe zero /health requests.",
-      "rollbackDependency": "Older deployment configurations require /health during their support window.",
-      "targetRelease": "0.3.0-or-later"
-    },
-    {
       "id": "job-queue-direct-dequeue-timeout",
       "paths": ["shell/job-queue/src/types.ts"],
       "symbol": "claimTimeoutMs direct-dequeue fallback",

@@ -51,7 +51,7 @@ Before the window, record and review:
 - the exact unified `@rizom/brain` and `@rizom/ops` versions;
 - every unified image tag and immutable digest;
 - canary-first rollout order, followed by the remaining cohorts;
-- expected `/health` version, unauthenticated MCP response, site marker, and content repository identity for each posture.
+- expected `/health/operate` version, unauthenticated MCP response, site marker, and content repository identity for each posture.
 
 Run `bunx brains-ops reconcile-all <canonical-review-copy> --dry-run` against the isolated review copy. The command blocks external content-repository access, leaves the review copy untouched, lists both passes' changed files, and must report second-pass zero drift. Reconciliation owns generated per-user config; only `render` owns the observational `views/users.md` projection.
 
@@ -65,7 +65,7 @@ During the approved window:
 6. Enable Deploy and deploy one handle at a time in the approved order. After each deploy, run `bunx brains-ops verify-user . <handle>`, render observed fleet status, and complete the manual identity, content-sync, and app-managed site checks.
 7. Run Reconcile a second time. Require no reconciler-owned generated diff and no deploy work before re-enabling normal automation and lifting the merge/release freeze. Observed status rendering remains separate from this convergence gate.
 
-If any gate fails, disable all three workflows again. Restore the prior pilot desired-state and dependency revision, reconcile with the prior ops version, and redeploy the prior image tag/digest as one rollback pair. Verify the prior `/health` version and identity/content/site checks before re-enabling automation. Never restore only config or only an image.
+If any gate fails, disable all three workflows again. Restore the prior pilot desired-state and dependency revision, reconcile with the prior ops version, and redeploy the prior image tag/digest as one rollback pair. Verify the prior `/health/operate` version and identity/content/site checks before re-enabling automation. Never restore only config or only an image.
 
 ## Directory-sync stress gate
 
@@ -130,7 +130,7 @@ bunx brains-ops verify-user . <handle>
 
 For every bundle posture it checks:
 
-- `https://<handle>.rizom.ai/health` returns `200`;
+- `https://<handle>.rizom.ai/health/operate` returns `200`;
 - unauthenticated `POST https://<handle>.rizom.ai/mcp` returns the expected auth failure;
 - background jobs are not repeatedly failing, except for missing optional integrations.
 

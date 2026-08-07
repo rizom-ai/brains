@@ -55,21 +55,24 @@ const hetznerServersSchema = z.object({
   ),
 });
 
-const healthPayloadSchema = z.object({
-  status: z.string(),
-  version: z.string(),
-  entities: z.number().int().nonnegative(),
-  entityCounts: z
-    .array(
-      z.object({
-        entityType: z.string(),
-        count: z.number().int().nonnegative(),
-      }),
-    )
-    .default([]),
+const operationalHealthPayloadSchema = z.object({
+  status: z.literal("ready"),
+  operationalStatus: z.literal("operational"),
+  app: z.object({
+    version: z.string(),
+    entities: z.number().int().nonnegative(),
+    entityCounts: z
+      .array(
+        z.object({
+          entityType: z.string(),
+          count: z.number().int().nonnegative(),
+        }),
+      )
+      .default([]),
+  }),
 });
 
-type HealthPayload = z.infer<typeof healthPayloadSchema>;
+type HealthPayload = z.infer<typeof operationalHealthPayloadSchema>["app"];
 
 export interface StressCommandOptions {
   cwd?: string;
@@ -315,7 +318,7 @@ class SystemDirectorySyncStressDriver implements DirectorySyncStressDriver {
   readonly #options: SystemDriverOptions;
   readonly #healthSamples: StressHealthSample[] = [];
   readonly #runtimeSamples: StressRuntimeSample[] = [];
-  readonly #activeHealthEndpoints = new Set<string>(["/health"]);
+  readonly #activeHealthEndpoints = new Set<string>(["/health/ready"]);
   #temporaryRoot: string | undefined;
   #checkoutDir: string | undefined;
   #sshKeyPath: string | undefined;
@@ -743,11 +746,7 @@ class SystemDirectorySyncStressDriver implements DirectorySyncStressDriver {
   }
 
   async #discoverHealthEndpoints(): Promise<void> {
-    for (const endpoint of [
-      "/health/live",
-      "/health/ready",
-      "/health/operate",
-    ]) {
+    for (const endpoint of ["/health/live", "/health/operate"]) {
       const sample = await sampleStressHealth(
         `https://${this.#options.user.domain}${endpoint}`,
         {
@@ -905,13 +904,13 @@ class SystemDirectorySyncStressDriver implements DirectorySyncStressDriver {
     const timeout = setTimeout(() => controller.abort(), 20_000);
     try {
       const response = await this.#options.fetchImpl(
-        `https://${this.#options.user.domain}/health`,
+        `https://${this.#options.user.domain}/health/operate`,
         { signal: controller.signal },
       );
       const body = await response.text();
       this.#healthSamples.push({
         timestamp: started.toISOString(),
-        endpoint: "/health",
+        endpoint: "/health/operate",
         status: response.status,
         durationMs: Math.max(
           0,
@@ -920,11 +919,11 @@ class SystemDirectorySyncStressDriver implements DirectorySyncStressDriver {
         ok: response.ok,
       });
       if (!response.ok) return undefined;
-      return healthPayloadSchema.parse(JSON.parse(body));
+      return operationalHealthPayloadSchema.parse(JSON.parse(body)).app;
     } catch (error) {
       this.#healthSamples.push({
         timestamp: started.toISOString(),
-        endpoint: "/health",
+        endpoint: "/health/operate",
         status: 0,
         durationMs: Math.max(
           0,

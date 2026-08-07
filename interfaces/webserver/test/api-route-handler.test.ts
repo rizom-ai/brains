@@ -3,9 +3,14 @@ import { Hono } from "hono";
 import { createExternalActorId } from "@brains/contracts";
 import type { RegisteredApiRoute } from "@brains/plugins";
 import { createApiRouteHandler } from "../src/api-server";
-import { createSilentLogger } from "@brains/test-utils";
 import { createMockMessageBus, type IMessageBus } from "@brains/plugins/test";
-import { ApiServer } from "../src/api-server";
+
+describe("webserver exports", () => {
+  it("does not export a standalone API server", async () => {
+    const exports = await import("../src");
+    expect(Object.keys(exports)).not.toContain("ApiServer");
+  });
+});
 
 describe("createApiRouteHandler", () => {
   let mockMessageBus: IMessageBus;
@@ -204,32 +209,5 @@ describe("createApiRouteHandler", () => {
       expect(response.status).toBe(302);
       expect(response.headers.get("location")).toBe("/subscribe/error");
     });
-  });
-});
-
-describe("ApiServer", () => {
-  let mockMessageBus: IMessageBus;
-
-  beforeEach(() => {
-    mockMessageBus = createMockMessageBus({
-      returns: {
-        send: {
-          success: true,
-          data: { success: true, data: { subscribed: true } },
-        },
-      },
-    }) as unknown as IMessageBus;
-  });
-
-  it("should skip starting when no routes are registered", async () => {
-    const server = new ApiServer({
-      logger: createSilentLogger("test-api"),
-      port: 0,
-      routes: [],
-      messageBus: mockMessageBus,
-    });
-
-    const url = await server.start();
-    expect(url).toBe("");
   });
 });

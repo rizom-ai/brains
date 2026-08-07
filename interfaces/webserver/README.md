@@ -92,16 +92,16 @@ GET    /api/commands          # List available commands
 ```
 GET    /health/live           # Event-loop liveness; no dependency traversal
 GET    /health/ready          # Web routing readiness and resource signals
-GET    /health/operate        # Full worker, queue, projection, and daemon health
-GET    /health                # Routing-readiness compatibility response
+GET    /health/operate        # Full worker, queue, projection, daemon, and app health
 ```
 
 `/health/ready` returns HTTP 503 only when web-critical database probes make
 routing or enqueue admission unsafe. Worker-session, attempt-lease, projection
 circuit, and daemon failures remain visible as `degraded` checks while routing
 readiness stays 200. `/health/operate` returns 503 for any such degradation and
-is the endpoint for operator alerting. Responses include memory, file
-descriptor, process/zombie, queue, and durable worker-session signals.
+is the endpoint for operator alerting. Responses include app version and entity
+counts plus memory, file descriptor, process/zombie, queue, and durable
+worker-session signals.
 `/health/live` remains minimal so external supervision can still observe a
 process when dependency checks are unavailable.
 
