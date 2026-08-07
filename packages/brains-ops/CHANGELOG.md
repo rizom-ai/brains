@@ -1,5 +1,11 @@
 # @brains/ops
 
+## 0.2.0-alpha.259
+
+### Patch Changes
+
+- [#86](https://github.com/rizom-ai/brains/pull/86) [`29ea44e`](https://github.com/rizom-ai/brains/commit/29ea44eaff353984ac470dec6c5aab90900344db) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Clone directory-sync stress targets directly with Git so fine-grained content tokens do not require GitHub GraphQL metadata access.
+
 ## 0.2.0-alpha.258
 
 ## 0.2.0-alpha.257
