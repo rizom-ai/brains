@@ -1,5 +1,11 @@
 # @brains/ops
 
+## 0.2.0-alpha.261
+
+### Patch Changes
+
+- [#88](https://github.com/rizom-ai/brains/pull/88) [`d2ee712`](https://github.com/rizom-ai/brains/commit/d2ee71207bf8f60d66136bcc1e86b21fa787f28c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Probe routing readiness at `/health/ready` and use `/health/operate` for operational verification and directory-sync diagnostics after removal of the aggregate `/health` endpoint.
+
 ## 0.2.0-alpha.260
 
 ### Patch Changes

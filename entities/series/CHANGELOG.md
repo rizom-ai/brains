@@ -1,5 +1,19 @@
 # @brains/series
 
+## 0.2.0-alpha.261
+
+### Patch Changes
+
+- Updated dependencies [[`58b614a`](https://github.com/rizom-ai/brains/commit/58b614a7f0dfc47b80ebaa63bc337bc9eef20676)]:
+  - @brains/job-queue@0.2.0-alpha.261
+  - @brains/entity-service@0.2.0-alpha.261
+  - @brains/plugins@0.2.0-alpha.261
+  - @brains/atproto-contracts@0.2.0-alpha.261
+  - @brains/content-formatters@0.2.0-alpha.261
+  - @brains/contracts@0.2.0-alpha.261
+  - @brains/utils@0.2.0-alpha.261
+  - @brains/templates@0.2.0-alpha.261
+
 ## 0.2.0-alpha.260
 
 ### Patch Changes

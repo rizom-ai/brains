@@ -1,5 +1,18 @@
 # @brains/job-queue
 
+## 0.2.0-alpha.261
+
+### Patch Changes
+
+- [#88](https://github.com/rizom-ai/brains/pull/88) [`58b614a`](https://github.com/rizom-ai/brains/commit/58b614a7f0dfc47b80ebaa63bc337bc9eef20676) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Fix batch enqueueing from validation-only processes: BatchJobManager preflight now checks the declared validator instead of requiring an executable handler. Since the web/worker runtime split, the web process registers job handlers in validation-only mode, so every enqueueBatch from web (directory-sync imports, deletes, cleanups via periodic git sync and the file watcher) threw "No handler registered for job type" and pulled git content was never imported.
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.261
+  - @brains/db@0.2.0-alpha.261
+  - @brains/operation-context@0.2.0-alpha.261
+  - @brains/utils@0.2.0-alpha.261
+  - @brains/mcp-service@0.2.0-alpha.261
+
 ## 0.2.0-alpha.260
 
 ### Patch Changes

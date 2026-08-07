@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.261
+
+### Patch Changes
+
+- [#88](https://github.com/rizom-ai/brains/pull/88) [`d2ee712`](https://github.com/rizom-ai/brains/commit/d2ee71207bf8f60d66136bcc1e86b21fa787f28c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Finalize plugin HTTP routes into one immutable, collision-checked shell registry before the shared webserver starts. Preserve existing handler and tool precedence while rejecting malformed or reserved routes, avoiding per-request getter traversal, and failing closed before non-public tool routes execute. Remove the unused standalone API server so all routes continue through the shared host. Remove the aggregate `/health` endpoint after migrating probes to `/health/ready`; operational app metadata is now reported by `/health/operate`.
+
 ## 0.2.0-alpha.260
 
 ### Patch Changes
