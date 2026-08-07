@@ -227,8 +227,8 @@ class ScriptedStressSystem {
     if (command === "ssh-keyscan") {
       return ok("smoke ssh-ed25519 AAAATEST\n");
     }
-    if (command === "gh" && args[0] === "repo" && args[1] === "clone") {
-      const checkoutDir = args[3];
+    if (command === "git" && args.includes("clone")) {
+      const checkoutDir = args.at(-1);
       if (!checkoutDir) throw new Error("Missing scripted checkout path");
       this.checkoutDir = checkoutDir;
       await mkdir(checkoutDir, { recursive: true });
@@ -353,6 +353,15 @@ describe("deployed directory-sync stress driver", () => {
       '"success": true',
     );
 
+    expect(system.calls.some((call) => call.command === "gh")).toBe(false);
+    const clone = system.calls.find(
+      (call) => call.command === "git" && call.args.includes("clone"),
+    );
+    expect(clone?.args).toContain(
+      "https://github.com/rizom-ai/rover-smoke-content.git",
+    );
+    expect(clone?.args.join(" ")).not.toContain("test-content-token");
+
     const commands = relevantGitAndSshCalls(system.calls);
     expect(commands).toContain(
       "git push origin HEAD:refs/heads/ops/directory-sync-stress-backup-20260806060000",
@@ -476,8 +485,8 @@ describe("directory-sync stress cleanup", () => {
         args: [...args],
         ...(options?.cwd ? { cwd: options.cwd } : {}),
       });
-      if (command === "gh") {
-        checkoutDir = args[3] ?? "";
+      if (command === "git" && args.includes("clone")) {
+        checkoutDir = args.at(-1) ?? "";
         await mkdir(checkoutDir, { recursive: true });
         await writeFile(join(checkoutDir, "keep.md"), "baseline\n");
         return ok();
@@ -521,8 +530,8 @@ describe("directory-sync stress cleanup", () => {
         args: [...args],
         ...(options?.cwd ? { cwd: options.cwd } : {}),
       });
-      if (command === "gh") {
-        checkoutDir = args[3] ?? "";
+      if (command === "git" && args.includes("clone")) {
+        checkoutDir = args.at(-1) ?? "";
         await mkdir(checkoutDir, { recursive: true });
         await writeFile(
           join(checkoutDir, "directory-sync-stress-001.md"),

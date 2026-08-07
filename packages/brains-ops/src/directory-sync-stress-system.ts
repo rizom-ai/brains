@@ -1194,6 +1194,9 @@ export function parseStressRuntimeSample(
   return { timestamp, cpuPercent, memoryPercent, pids };
 }
 
+const gitCredentialHelper =
+  '!f() { test "$1" = get && echo username=x-access-token && echo "password=$GH_TOKEN"; }; f';
+
 async function cloneContentRepo(
   runner: StressCommandRunner,
   repository: string,
@@ -1202,19 +1205,25 @@ async function cloneContentRepo(
 ): Promise<void> {
   await requireCommand(
     runner,
-    "gh",
-    ["repo", "clone", repository, checkoutDir, "--", "--branch", "main"],
+    "git",
+    [
+      "-c",
+      "credential.helper=",
+      "-c",
+      `credential.helper=${gitCredentialHelper}`,
+      "clone",
+      "--branch",
+      "main",
+      "--single-branch",
+      `https://github.com/${repository}.git`,
+      checkoutDir,
+    ],
     { env: gitEnvironment(token) },
   );
   await requireCommand(
     runner,
     "git",
-    [
-      "config",
-      "--local",
-      "credential.helper",
-      '!f() { test "$1" = get && echo username=x-access-token && echo "password=$GH_TOKEN"; }; f',
-    ],
+    ["config", "--local", "credential.helper", gitCredentialHelper],
     { cwd: checkoutDir, env: gitEnvironment(token) },
   );
   await requireCommand(runner, "git", ["reset", "--hard", "origin/main"], {
