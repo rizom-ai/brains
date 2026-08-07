@@ -6,7 +6,7 @@ import type {
   ProjectionWaveRule,
   ProjectionWaveRuleInput,
 } from "@brains/entity-service";
-import type { JobQueueEnqueueRequest } from "@brains/job-queue";
+import type { JobInfo, JobQueueEnqueueRequest } from "@brains/job-queue";
 import {
   computeProjectionInputFingerprint,
   type ProjectionGraph,
@@ -36,6 +36,7 @@ export interface ProjectionWaveStore {
 
 export interface ProjectionWaveQueue {
   enqueue(request: JobQueueEnqueueRequest): Promise<string>;
+  getStatus(jobId: string): Promise<JobInfo | null>;
 }
 
 export interface ProjectionWaveSchedulerOptions {
@@ -87,7 +88,7 @@ export class ProjectionWaveScheduler {
         throw new Error(`Projection wave "${waveId}" is not active`);
       }
       const advanced = await this.advanceWave(activeWave);
-      if (advanced.status === "completed") {
+      if (advanced.status !== "running") {
         await this.startNextWaveInternal();
       }
       return advanced;
@@ -112,7 +113,7 @@ export class ProjectionWaveScheduler {
     const activeWave = await this.store.getActiveWave();
     if (activeWave) {
       const advanced = await this.advanceWave(activeWave);
-      if (advanced.status === "completed") {
+      if (advanced.status !== "running") {
         await this.startNextWaveInternal();
       }
       return advanced;
@@ -179,9 +180,11 @@ export class ProjectionWaveScheduler {
     }
     const failedRule = rules.find((rule) => rule.status === "failed");
     if (failedRule) {
-      throw new Error(
-        `Projection rule "${failedRule.ruleId}" failed for wave "${wave.id}"`,
-      );
+      return this.store.failWave(wave.id, this.now());
+    }
+    const strandedRule = await this.findStrandedQueuedRule(rules);
+    if (strandedRule) {
+      return this.store.failWave(wave.id, this.now());
     }
 
     const incompleteLevel = Math.min(
@@ -196,6 +199,20 @@ export class ProjectionWaveScheduler {
       pendingRules.map((rule) => this.enqueueRule(wave.id, rule)),
     );
     return wave;
+  }
+
+  private async findStrandedQueuedRule(
+    rules: readonly ProjectionWaveRule[],
+  ): Promise<ProjectionWaveRule | null> {
+    for (const rule of rules) {
+      if (rule.status !== "queued") continue;
+      if (!rule.jobId) return rule;
+      const job = await this.queue.getStatus(rule.jobId);
+      if (!job || job.status === "completed" || job.status === "failed") {
+        return rule;
+      }
+    }
+    return null;
   }
 
   private async completeWave(

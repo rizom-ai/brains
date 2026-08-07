@@ -6,7 +6,7 @@ import type {
   ProjectionWaveRule,
   ProjectionWaveRuleInput,
 } from "@brains/entity-service";
-import type { JobQueueEnqueueRequest } from "@brains/job-queue";
+import type { JobInfo, JobQueueEnqueueRequest } from "@brains/job-queue";
 import {
   computeProjectionInputFingerprint,
   defineProjectionRule,
@@ -35,6 +35,7 @@ class MemoryProjectionStore implements ProjectionWaveStore {
   active = false;
   pending = true;
   readonly completedRuleIds = new Set<string>();
+  readonly failedWaveIds: string[] = [];
 
   constructor(inputs: ProjectionWaveInput[]) {
     this.inputs = inputs;
@@ -49,6 +50,7 @@ class MemoryProjectionStore implements ProjectionWaveStore {
   ): Promise<ProjectionWave | null> {
     if (!this.pending) return Promise.resolve(null);
     this.pending = false;
+    this.claimedWave.id = input.waveId;
     this.claimedWave.graphFingerprint = input.graphFingerprint;
     this.active = true;
     return Promise.resolve(this.claimedWave);
@@ -96,9 +98,13 @@ class MemoryProjectionStore implements ProjectionWaveStore {
     return Promise.resolve();
   }
 
-  failWave(_waveId: string, failedAt: number): Promise<ProjectionWave> {
+  failWave(waveId: string, failedAt: number): Promise<ProjectionWave> {
+    this.failedWaveIds.push(waveId);
     this.active = false;
     this.pending = true;
+    this.storedRules = [];
+    this.queuedRules = [];
+    this.completedRuleIds.clear();
     return Promise.resolve({
       ...this.claimedWave,
       status: "failed",
@@ -119,11 +125,52 @@ class MemoryProjectionStore implements ProjectionWaveStore {
 
 class MemoryProjectionQueue implements ProjectionWaveQueue {
   readonly requests: JobQueueEnqueueRequest[] = [];
+  readonly statuses = new Map<string, JobInfo>();
 
   enqueue(request: JobQueueEnqueueRequest): Promise<string> {
     this.requests.push(request);
-    return Promise.resolve(`job-${this.requests.length}`);
+    const jobId = `job-${this.requests.length}`;
+    this.statuses.set(jobId, queueJob(jobId, "pending"));
+    return Promise.resolve(jobId);
   }
+
+  getStatus(jobId: string): Promise<JobInfo | null> {
+    return Promise.resolve(this.statuses.get(jobId) ?? null);
+  }
+
+  setStatus(jobId: string, status: JobInfo["status"]): void {
+    this.statuses.set(jobId, queueJob(jobId, status));
+  }
+}
+
+function queueJob(id: string, status: JobInfo["status"]): JobInfo {
+  return {
+    id,
+    type: "shell:projection-rule",
+    data: "{}",
+    status,
+    source: "projection-scheduler",
+    priority: 0,
+    retryCount: status === "failed" ? 3 : 0,
+    maxRetries: 3,
+    lastError: status === "failed" ? "No handler registered" : null,
+    createdAt: 10,
+    scheduledFor: 10,
+    startedAt: status === "pending" ? null : 10,
+    completedAt: status === "completed" || status === "failed" ? 20 : null,
+    attemptId: null,
+    workerSlotId: null,
+    workerSessionId: null,
+    leaseExpiresAt: null,
+    attemptHeartbeatAt: null,
+    runtimeUpdatedAt: null,
+    metadata: {
+      rootJobId: "projection-wave:wave-1",
+      operationType: "data_processing",
+    },
+    progress: null,
+    result: null,
+  };
 }
 
 const topicRule = defineProjectionRule({
@@ -324,6 +371,39 @@ describe("ProjectionWaveScheduler", () => {
       ruleId: "skills",
       jobId: "job-1",
     });
+  });
+
+  it("fails and replays a wave whose queued job is terminal", async () => {
+    const store = new MemoryProjectionStore(documentInputs(1));
+    store.active = true;
+    store.claimedWave.graphFingerprint = graphFingerprint;
+    store.storedRules = [
+      { ruleId: "topics", targetType: "topic", level: 0 },
+      { ruleId: "skills", targetType: "skill", level: 1 },
+    ];
+    store.queuedRules.push({
+      waveId: "wave-1",
+      ruleId: "topics",
+      jobId: "job-terminal",
+    });
+    const queue = new MemoryProjectionQueue();
+    queue.setStatus("job-terminal", "failed");
+    const scheduler = new ProjectionWaveScheduler({
+      store,
+      queue,
+      graph,
+      rules: [topicRule, skillRule],
+      createWaveId: (): string => "wave-2",
+      now: (): number => 30,
+    });
+
+    await scheduler.startNextWave();
+
+    expect(store.failedWaveIds).toEqual(["wave-1"]);
+    expect(store.claimedWave.id).toBe("wave-2");
+    expect(queue.requests.map(({ data }) => data)).toEqual([
+      { waveId: "wave-2", ruleId: "topics" },
+    ]);
   });
 
   it("fails an active wave after a terminal rule failure", async () => {
