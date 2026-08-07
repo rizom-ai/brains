@@ -1,0 +1,13 @@
+{
+  "name": "public-authoring-phase1-consumer",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "brain": "brain"
+  },
+  "dependencies": {
+    "@fixture/reading-entities": "file:__ENTITY_TARBALL__",
+    "@rizom/brain": "file:__RIZOM_BRAIN_TARBALL__",
+    "@rizom/brain-definition-fixture": "file:__BRAIN_DEFINITION_TARBALL__"
+  }
+}

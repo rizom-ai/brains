@@ -1,6 +1,11 @@
 import { existsSync } from "fs";
 import { relative, sep } from "path";
 import { resolveBrainPackageName } from "./brain-package";
+import {
+  resolveBrainDefinitionDependencies,
+  resolveInstalledPackageManifest,
+  type InstalledPackageManifest,
+} from "./installed-package-metadata";
 import { collectOverridePackageRefs } from "./override-package-refs";
 import {
   CONVENTIONAL_SITE_CONTENT_PACKAGE_REF,
@@ -23,18 +28,51 @@ function packageImportLine(pkg: string, index: number): string {
   return `import * as __pkg${index} from "${pkg}";`;
 }
 
-function packageRegistrationLine(pkg: string, index: number): string {
-  return `registerPackage("${pkg}", __pkg${index}.default ?? __pkg${index});`;
+interface PackageRefMetadata {
+  ref: string;
+  version?: string | undefined;
 }
 
-function buildPackageRefLines(packageRefs: string[]): {
+function packageRegistrationLine(
+  pkg: PackageRefMetadata,
+  index: number,
+): string {
+  const options = pkg.version
+    ? `, { version: ${JSON.stringify(pkg.version)} }`
+    : "";
+  return `registerPackage("${pkg.ref}", __pkg${index}.default ?? __pkg${index}${options});`;
+}
+
+function buildPackageRefLines(packageRefs: PackageRefMetadata[]): {
   importLines: string[];
   registrationLines: string[];
 } {
   return {
-    importLines: packageRefs.map(packageImportLine),
+    importLines: packageRefs.map(({ ref }, index) =>
+      packageImportLine(ref, index),
+    ),
     registrationLines: packageRefs.map(packageRegistrationLine),
   };
+}
+
+function tryResolvePackageManifest(
+  packageRef: string,
+  cwd: string | undefined,
+): InstalledPackageManifest | undefined {
+  if (!cwd) return undefined;
+  try {
+    return resolveInstalledPackageManifest(packageRef, cwd);
+  } catch {
+    return undefined;
+  }
+}
+
+function collectDefinitionDependencies(
+  brainPackage: string,
+  cwd: string | undefined,
+): InstalledPackageManifest[] {
+  if (!cwd || brainPackage === "@rizom/brain/model") return [];
+  return resolveBrainDefinitionDependencies(brainPackage, cwd);
 }
 
 function buildAppImports(options: {
@@ -58,6 +96,7 @@ function buildAppImports(options: {
 
 interface EntrypointSourceOptions {
   brainPackage: string;
+  brainRegistrationLine?: string | undefined;
   appImports: string[];
   packageImportLines: string[];
   registrationLines: string[];
@@ -73,6 +112,7 @@ function buildEntrypointSource(options: EntrypointSourceOptions): string {
     `import { join } from "path";`,
     ...options.packageImportLines,
     "",
+    ...(options.brainRegistrationLine ? [options.brainRegistrationLine] : []),
     ...options.registrationLines,
     "",
     `const yaml = readFileSync(join(process.cwd(), "brain.yaml"), "utf-8");`,
@@ -195,10 +235,33 @@ export function generateEntrypoint(
   ) {
     return null;
   }
-  const extraImports = collectOverridePackageRefs(overrides).filter(
-    (ref) => ref !== brainPackage,
+  const dependencyManifests = collectDefinitionDependencies(
+    brainPackage,
+    options.cwd,
   );
-  const packageRefs = buildPackageRefLines(extraImports);
+  const dependencyMetadata = new Map(
+    dependencyManifests.map((manifest) => [manifest.name, manifest]),
+  );
+  const extraImports = [
+    ...new Set([
+      ...dependencyManifests.map(({ name }) => name),
+      ...collectOverridePackageRefs(overrides).filter(
+        (ref) => ref !== brainPackage,
+      ),
+    ]),
+  ];
+  const packageRefs = buildPackageRefLines(
+    extraImports.map((ref) => ({
+      ref,
+      version:
+        dependencyMetadata.get(ref)?.version ??
+        tryResolvePackageManifest(ref, options.cwd)?.version,
+    })),
+  );
+  const brainManifest = tryResolvePackageManifest(brainPackage, options.cwd);
+  const brainRegistrationLine = brainManifest
+    ? `registerPackage(${JSON.stringify(brainManifest.name)}, definition, { version: ${JSON.stringify(brainManifest.version)} });`
+    : undefined;
   const conventions = collectConventionalEntrypointParts(
     options.cwd,
     overrides,
@@ -206,12 +269,16 @@ export function generateEntrypoint(
   );
   const hasConventions = conventions.args.length > 0;
   const appImports = buildAppImports({
-    hasRefs: extraImports.length > 0 || conventions.registrations.length > 0,
+    hasRefs:
+      brainRegistrationLine !== undefined ||
+      extraImports.length > 0 ||
+      conventions.registrations.length > 0,
     hasConventions,
   });
 
   return buildEntrypointSource({
     brainPackage,
+    brainRegistrationLine,
     appImports,
     packageImportLines: [...packageRefs.importLines, ...conventions.imports],
     registrationLines: [

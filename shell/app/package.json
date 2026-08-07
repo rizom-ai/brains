@@ -24,7 +24,8 @@
     "@brains/runtime-state": "workspace:*",
     "@brains/site-composition": "workspace:*",
     "@brains/templates": "workspace:*",
-    "@brains/utils": "workspace:*"
+    "@brains/utils": "workspace:*",
+    "@rizom/site": "workspace:*"
   },
   "devDependencies": {
     "@types/bun": "^1.3.14",

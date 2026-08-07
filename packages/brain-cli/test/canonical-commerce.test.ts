@@ -157,20 +157,20 @@ describe("canonical commerce posture", () => {
     }
   });
 
-  test("supports external extension declarations without policy bundles", () => {
-    const resolved = resolve(
-      canonicalBrain,
-      {},
-      commerceOverrides({
-        plugins: {
-          commerceExtension: {
-            package: "@fixture/commerce-extension",
-            config: { enabled: true },
+  test("rejects removed external extension factory declarations", () => {
+    expect(() =>
+      resolve(
+        canonicalBrain,
+        {},
+        commerceOverrides({
+          plugins: {
+            commerceExtension: {
+              package: "@fixture/commerce-extension",
+              config: { enabled: true },
+            },
           },
-        },
-      }),
-    );
-
-    expect(pluginIds(resolved)).toContain("stock-photo");
+        }),
+      ),
+    ).toThrow("uses the removed alpha factory contract");
   });
 });

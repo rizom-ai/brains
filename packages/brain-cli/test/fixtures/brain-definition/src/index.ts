@@ -1,51 +1,21 @@
-import {
-  PLUGIN_API_VERSION,
-  defineBrain,
-  defineBundle,
-  type BrainDefinition,
-  type BrainEnvironment,
-  type CapabilityBundleDefinition,
-  type CapabilityEntry,
-  type Plugin,
-  type PluginConfig,
-} from "@rizom/brain";
+import readingEntities from "@fixture/reading-entities";
+import { defineBrain, defineBundle, use } from "@rizom/brain";
 
-const fixturePlugin: Plugin = {
-  id: "fixture-service",
-  version: "0.1.0",
-  type: "service",
-  packageName: "@rizom/brain-definition-fixture",
-};
-
-const fixtureCapability: CapabilityEntry = [
-  "fixture-service",
-  (_config: PluginConfig): Plugin => fixturePlugin,
-  (env: BrainEnvironment, context): PluginConfig => ({
-    greeting: env["FIXTURE_GREETING"],
-    activeBundles: context.bundles,
-  }),
-];
-
-const coreBundle: CapabilityBundleDefinition = defineBundle({
+const entities = use(readingEntities);
+const core = defineBundle({
   id: "core",
-  members: ["fixture-service"],
+  members: [entities],
 });
 
-export const brain: BrainDefinition = defineBrain({
+export default defineBrain({
   name: "fixture-brain",
-  version: "0.1.0",
-  model: "fixture",
+  model: "gpt-5.6-luna",
   identity: {
     characterName: "Fixture",
     role: "Compile fixture",
     purpose: "Prove root public brain definition types",
     values: ["stability"],
   },
-  capabilities: [fixtureCapability],
-  interfaces: [],
-  bundles: [coreBundle],
+  plugins: [entities],
+  bundles: [core],
 });
-
-void PLUGIN_API_VERSION;
-
-export default brain;

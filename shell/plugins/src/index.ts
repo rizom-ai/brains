@@ -169,6 +169,41 @@ export {
 } from "./interface/context";
 
 // ============================================================================
+// Package definitions
+// ============================================================================
+
+export {
+  bindPluginPackageMetadata,
+  createPluginPackageDefinition,
+  getPluginPackageMetadata,
+  instantiatePluginPackageDefinition,
+  isPluginPackageDefinition,
+  type AnyPluginConfigSchema,
+  type CreatePluginPackageDefinitionInput,
+  type InstalledPluginPackageMetadata,
+  type PluginPackageConfig,
+  type PluginPackageConfigInput,
+  type PluginPackageDefinition,
+  type PluginPackageFamily,
+} from "./package-definition";
+export {
+  defineEntity,
+  defineEntityPackage,
+  defineProjection,
+  type AnyEntityDefinition,
+  type EncodedEntityMarkdown,
+  type EntityDefinition,
+  type EntityMarkdownCodec,
+  type EntityMarkdownDocument,
+  type EntityOf,
+  type EntityPackageDefinition,
+  type EntityVisibility,
+  type EntityWriteInput,
+  type ProjectionDefinition,
+  type ProjectionTarget,
+} from "./public/entity-definition";
+
+// ============================================================================
 // Essential Plugin Interfaces & Types
 // ============================================================================
 

@@ -1,5 +1,36 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, describe, expect, test } from "bun:test";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { generateEntrypoint } from "../src/generate-entrypoint";
+
+const temporaryDirectories: string[] = [];
+
+function createPackage(
+  root: string,
+  name: string,
+  manifest: Record<string, unknown>,
+): void {
+  const directory = join(root, "node_modules", ...name.split("/"));
+  mkdirSync(directory, { recursive: true });
+  writeFileSync(
+    join(directory, "package.json"),
+    JSON.stringify({
+      name,
+      version: "0.1.0",
+      type: "module",
+      exports: { ".": "./index.js" },
+      ...manifest,
+    }),
+  );
+  writeFileSync(join(directory, "index.js"), "export default {};\n");
+}
+
+afterEach(() => {
+  for (const directory of temporaryDirectories.splice(0)) {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
 
 describe("generateEntrypoint", () => {
   test("should generate basic entrypoint from brain.yaml", () => {
@@ -53,7 +84,7 @@ plugins:
     );
   });
 
-  test("should include static imports for external plugin declarations", () => {
+  test("should not execute removed external plugin declarations", () => {
     const yaml = `
 brain: brain
 bundles: [core]
@@ -66,11 +97,11 @@ plugins:
     const code = generateEntrypoint(yaml);
 
     expect(code).not.toBeNull();
-    expect(code).toContain(
+    expect(code).not.toContain(
       'import * as __pkg0 from "@rizom/brain-plugin-calendar"',
     );
-    expect(code).toContain(
-      'registerPackage("@rizom/brain-plugin-calendar", __pkg0.default ?? __pkg0)',
+    expect(code).not.toContain(
+      'registerPackage("@rizom/brain-plugin-calendar"',
     );
   });
 
@@ -177,5 +208,35 @@ plugins:
 
     expect(code).toContain("registerPackage");
     expect(code).toContain('from "@brains/app"');
+  });
+
+  test("registers external brain and definition dependency metadata", () => {
+    const root = mkdtempSync(join(tmpdir(), "brain-entrypoint-metadata-"));
+    temporaryDirectories.push(root);
+    createPackage(root, "@rizom/brain", { version: "0.2.0-alpha.256" });
+    createPackage(root, "@fixture/reader-brain", {
+      version: "0.2.0",
+      dependencies: { "@fixture/reading-service": "0.1.0" },
+      peerDependencies: {
+        "@rizom/brain": ">=0.2.0-alpha.0 <0.3.0",
+      },
+    });
+    createPackage(root, "@fixture/reading-service", {
+      peerDependencies: { "@rizom/brain": ">=0.2.0-alpha.0 <0.3.0" },
+    });
+
+    const code = generateEntrypoint("brain: '@fixture/reader-brain'", {
+      cwd: root,
+    });
+
+    expect(code).toContain(
+      'import * as __pkg0 from "@fixture/reading-service"',
+    );
+    expect(code).toContain(
+      'registerPackage("@fixture/reader-brain", definition, { version: "0.2.0" })',
+    );
+    expect(code).toContain(
+      'registerPackage("@fixture/reading-service", __pkg0.default ?? __pkg0, { version: "0.1.0" })',
+    );
   });
 });

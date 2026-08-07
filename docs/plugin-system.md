@@ -1,159 +1,109 @@
 # Plugin System
 
-`brains` is composed from plugin packages. The canonical definition declares an ordered catalog and fixed bundles; an instance selects explicit bundles and may load external plugin packages from `node_modules`.
+`brains` composes behavior from package definitions. External authors declare domain capabilities; the runtime normalizes those definitions into its internal plugin lifecycle.
 
-## Plugin families
+## Public definition families
 
-Use the smallest base class that matches the job:
+Choose the narrowest family:
 
-| Family            | Public base class        | Use for                                                     | Examples                                   |
-| ----------------- | ------------------------ | ----------------------------------------------------------- | ------------------------------------------ |
-| Entity            | `EntityPlugin`           | Durable markdown-backed content types with schemas/adapters | blog posts, links, topics, images          |
-| Service           | `ServicePlugin`          | Tools, resources, jobs, integrations, background services   | site building, sync, analytics, publishing |
-| Interface         | `InterfacePlugin`        | Non-chat user-facing transports, HTTP routes, daemons       | MCP, A2A, webserver-style integrations     |
-| Message interface | `MessageInterfacePlugin` | Chat/channel transports with conversation semantics         | Discord, Slack, Teams, Matrix, Telegram    |
+| Family            | Public helper              | Use for                                                             |
+| ----------------- | -------------------------- | ------------------------------------------------------------------- |
+| Entity            | `defineEntityPackage()`    | Durable markdown-backed entities and deterministic projections      |
+| Service           | `defineServicePlugin()`    | Tools, resources, prompts, templates, views, jobs, and integrations |
+| Interface         | `defineInterface()`        | HTTP routes and supervised non-chat listeners                       |
+| Message interface | `defineMessageInterface()` | Conversational and outbound channels                                |
+| Site              | `defineSite()`             | Layouts, routes, sections, content, display metadata, and assets    |
 
-`MessageInterfacePlugin` is optional sugar over `InterfacePlugin`. Use it when the integration is a messaging surface and you want shared progress-message tracking, URL capture helpers, text-upload validation, and input buffering. Use `InterfacePlugin` directly for non-chat interfaces.
+A package default-exports one definition. Packages with multiple concerns remain focused and are composed in the brain-definition package.
 
 ## Public authoring imports
 
-External plugin packages must import from `@rizom/brain/*` public subpaths, not internal `@brains/*` workspaces.
+External packages import one family entry point, not internal `@brains/*` workspaces:
 
 ```ts
-import { z } from "@rizom/brain";
-import {
-  ServicePlugin,
-  createTool,
-  toolSuccess,
-  type PluginFactory,
-  type ServicePluginContext,
-  type Tool,
-} from "@rizom/brain/plugins";
+import { defineServicePlugin, defineTool, z } from "@rizom/brain/services";
 ```
 
-Useful public subpaths:
+The stable entries are:
 
-- `@rizom/brain/plugins` — plugin base classes, contexts, tool/resource helpers, public DTO schemas
-- `@rizom/brain/entities` — entity schemas, adapters, datasource contracts
-- `@rizom/brain/interfaces` — route, daemon, permission, and messaging contracts
-- `@rizom/brain/services` — service datasource helpers
-- `@rizom/brain/templates` — template and renderer contracts
+- `@rizom/brain` — root composition with `defineBrain()`, `defineBundle()`, and `use()`;
+- `@rizom/brain/entities` — entity and projection definitions;
+- `@rizom/brain/services` — service, tool, and job definitions;
+- `@rizom/brain/interfaces` — route, daemon, and message-interface definitions; and
+- `@rizom/site` — site and schema-first section definitions.
 
-## Lifecycle
+`@rizom/brain/plugins` contains only nominated advanced shared contracts. It is not a class-first fallback authoring API.
 
-Public plugin lifecycle hooks are:
+## Configuration and package identity
 
-- `onRegister(context)` — register capabilities, routes, jobs, subscriptions, entity types, and static resources.
-- `onReady(context)` — startup work that depends on identity/profile or on other plugins having registered.
-- `onShutdown()` — cleanup.
+Each definition owns one config schema. `use()` and `brain.yaml` accept its inferred input. Runtime callbacks receive the parsed output after defaults and transforms.
 
-The shell calls all plugin registration hooks first, prepares ready state, then calls ready hooks. Background daemons and job processing start after ready hooks.
+The installed package manifest supplies package name and version. Local IDs are scoped by that identity at runtime. External definitions do not import package manifests or construct fully qualified capability names.
 
-Plugin instances are one-shot resources for one shell lifetime. Shutdown is terminal: the shell releases plugin subscriptions, handlers, daemons, registered capabilities, and other owned runtime resources rather than dynamically re-enabling the same instance. Registration is transactional, so resources acquired before a failed `onRegister` or `onReady` hook are rolled back. Dynamic plugin loading or re-enabling is not currently supported; it requires separate load/unload contracts with idempotent removal across every capability registry.
+Every external package declares a compatible `@rizom/brain` peer range. The loader verifies the installed version explicitly before registration.
 
-## Registration model
+## Brain composition
 
-Plugins register capabilities through a hybrid: override class methods (`getTools`, `getResources`, `getInstructions`, `getApiRoutes`, `getWebRoutes`, and on `ServicePlugin` the `registerEntityTypes` / `registerJobHandlers` hooks) for static declarations the shell collects automatically, and call `context.*.register*()` inside `onRegister` for dynamic, conditional, or namespaced registration (entity types, templates, data sources, daemons, instructions). See [External Plugin Authoring → Registration model](./external-plugin-authoring.md#registration-model) for the full breakdown.
-
-## Plugin factory contract
-
-External packages export a default or named `plugin` factory. Exporting both is fine.
+A brain-definition package imports package defaults and creates configured references:
 
 ```ts
-import { z } from "@rizom/brain";
-import {
-  ServicePlugin,
-  createTool,
-  toolSuccess,
-  type PluginFactory,
-  type ServicePluginContext,
-  type Tool,
-} from "@rizom/brain/plugins";
+import calendar from "@example/calendar";
+import { defineBrain, defineBundle, use } from "@rizom/brain";
 
-const configSchema = z.object({
-  timezone: z.optional(z.string()),
+const configuredCalendar = use(calendar, { timezone: "UTC" });
+const core = defineBundle({
+  id: "core",
+  members: [configuredCalendar],
 });
 
-type CalendarConfig = z.output<typeof configSchema>;
-type CalendarConfigInput = z.input<typeof configSchema>;
-
-const packageJson = {
-  name: "@rizom/brain-plugin-calendar",
-  version: "0.1.0",
-  description: "Calendar integration",
-};
-
-class CalendarPlugin extends ServicePlugin<
-  CalendarConfig,
-  CalendarConfigInput
-> {
-  constructor(config: CalendarConfigInput = {}) {
-    super("calendar", packageJson, config, configSchema);
-  }
-
-  protected override async onRegister(
-    _context: ServicePluginContext,
-  ): Promise<void> {
-    // Register subscriptions, routes, jobs, or instructions here.
-  }
-
-  protected override async getTools(): Promise<Tool[]> {
-    return [
-      createTool({
-        name: "calendar_ping",
-        description: "Check that the calendar plugin is loaded.",
-        inputSchema: {},
-        handler: () => toolSuccess({ ok: true }),
-      }),
-    ];
-  }
-}
-
-export const plugin: PluginFactory = (config) => new CalendarPlugin(config);
-export default plugin;
+export default defineBrain({
+  name: "calendar-brain",
+  plugins: [configuredCalendar],
+  bundles: [core],
+});
 ```
 
-## Loading external packages
+Instance YAML selects bundle IDs and supplies deployment-specific config. It does not import authoring factories.
 
-Install the external plugin in the instance package and declare it in `brain.yaml`.
+## Runtime lifecycle
 
-```json
-{
-  "dependencies": {
-    "@rizom/brain-plugin-calendar": "^0.1.0"
-  }
-}
-```
+The internal runtime adapts definitions to its registration lifecycle:
 
-```yaml
-plugins:
-  calendar:
-    package: "@rizom/brain-plugin-calendar"
-    config:
-      timezone: UTC
-      apiKey: ${CALENDAR_API_KEY}
-```
+1. validate final merged config;
+2. create package-owned setup state;
+3. register declared capabilities transactionally;
+4. finalize registration before ready work;
+5. start worker jobs and web daemons in their owned process roles; and
+6. release lifecycle-owned resources during terminal shutdown.
 
-Rules:
+Registration failure rolls back capabilities acquired by that definition. Authors declare jobs, daemons, routes, projections, and channel behavior without receiving registries, queues, shell objects, or process-role switches.
 
-- `plugins:` is a keyed map, not a list.
-- `package` is reserved for external package declarations.
-- External plugin configuration lives under nested `config`.
-- The factory receives only that nested `config` object.
-- Package versions live in `package.json`, not `brain.yaml`.
-- External packages declare compatible `@rizom/brain` versions with `peerDependencies`.
+Internal runtime classes may remain under `@brains/plugins`, but they are implementation details used by built-in workspaces. They are not exported as stable external authoring contracts.
+
+## Removed alpha contracts
+
+Stable `0.2.x` does not retain:
+
+- plugin subclasses as public authoring APIs;
+- tuple or default/named plugin factories;
+- package metadata objects in source;
+- positional tool helpers or success wrappers;
+- root `z` or `PLUGIN_API_VERSION`; or
+- `brain.yaml` `plugins.<id>.package` declarations.
+
+The loader rejects legacy package declarations with migration guidance before importing their modules.
 
 ## Internal plugin development
 
-Internal workspace plugins use the same architecture but may import workspace-private packages according to the local `AGENTS.md` file for their directory.
+Built-in workspace packages may use internal runtime classes according to their local `AGENTS.md` rules:
 
-- Entity plugin rules: [`entities/AGENTS.md`](../entities/AGENTS.md)
-- Service plugin rules: [`plugins/AGENTS.md`](../plugins/AGENTS.md)
-- Interface plugin rules: [`interfaces/AGENTS.md`](../interfaces/AGENTS.md)
+- entity package rules: [`entities/AGENTS.md`](../entities/AGENTS.md);
+- service package rules: [`plugins/AGENTS.md`](../plugins/AGENTS.md); and
+- interface package rules: [`interfaces/AGENTS.md`](../interfaces/AGENTS.md).
 
 ## Read next
 
-- [External Plugin Authoring](./external-plugin-authoring.md)
-- [Plugin Quick Reference](./plugin-quick-reference.md)
+- [External Package Authoring](./external-plugin-authoring.md)
+- [Package Authoring Quick Reference](./plugin-quick-reference.md)
 - [Architecture Overview](./architecture-overview.md)
 - [brain.yaml Reference](../packages/brain-cli/docs/brain-yaml-reference.md)

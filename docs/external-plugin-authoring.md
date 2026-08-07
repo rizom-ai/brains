@@ -1,15 +1,15 @@
-# External Plugin Authoring
+# External Package Authoring
 
-External plugin packages use the public `@rizom/brain` authoring API and are loaded by brain instances from `brain.yaml`.
+External packages use declarative definitions from the public `@rizom/brain` authoring API. They do not subclass runtime plugins or export factories.
 
 ## Package shape
 
-A plugin package should declare `@rizom/brain` as a peer dependency. The instance `package.json` chooses the plugin package version; `brain.yaml` only declares and configures it.
+Publish one canonical package definition as the package default. Declare `@rizom/brain` as a peer dependency and keep the range within the stable `0.2.x` lane:
 
 ```json
 {
-  "name": "@rizom/brain-plugin-calendar",
-  "version": "0.1.0",
+  "name": "@example/calendar",
+  "version": "1.0.0",
   "type": "module",
   "exports": {
     ".": {
@@ -18,218 +18,82 @@ A plugin package should declare `@rizom/brain` as a peer dependency. The instanc
     }
   },
   "peerDependencies": {
-    "@rizom/brain": "^0.2.0-alpha.54"
+    "@rizom/brain": ">=0.2.0 <0.3.0"
   }
 }
 ```
 
-Do not import internal `@brains/*` workspaces or `zod` directly from external plugins. Use the blessed `z` export from `@rizom/brain` for schema authoring so the SDK owns schema-version compatibility. `PLUGIN_API_VERSION` is available from the root `@rizom/brain` export for diagnostics; compatibility during alpha is enforced through `peerDependencies`. The minimal reference package is [`rizom-ai/brain-plugin-hello`](https://github.com/rizom-ai/brain-plugin-hello). `ServicePlugin`, `EntityPlugin`, `InterfacePlugin`, and `MessageInterfacePlugin` are available from the curated public API; use public subpaths for supporting contracts:
+Do not import internal `@brains/*` workspaces, package manifests, or `zod` directly. Each family entry point exports its blessed `z` instance:
 
-- `@rizom/brain`
-- `@rizom/brain/plugins`
-- `@rizom/brain/entities`
-- `@rizom/brain/services`
-- `@rizom/brain/interfaces`
-- `@rizom/brain/templates`
+| Package kind             | Entry point               | Definition helper          |
+| ------------------------ | ------------------------- | -------------------------- |
+| Entity package           | `@rizom/brain/entities`   | `defineEntityPackage()`    |
+| Service package          | `@rizom/brain/services`   | `defineServicePlugin()`    |
+| HTTP/event interface     | `@rizom/brain/interfaces` | `defineInterface()`        |
+| Conversational interface | `@rizom/brain/interfaces` | `defineMessageInterface()` |
+| Site package             | `@rizom/site`             | `defineSite()`             |
 
-## Plugin factory contract
+## Declarative package definition
 
-Export a plugin factory as either the default export or a named `plugin` export. Exporting both is fine.
+A service package declares its schema and capabilities once:
 
 ```ts
-import { z } from "@rizom/brain";
-import {
-  ServicePlugin,
-  createTool,
-  toolSuccess,
-  type PluginFactory,
-  type ServicePluginContext,
-  type Tool,
-} from "@rizom/brain/plugins";
+import { defineServicePlugin, defineTool, z } from "@rizom/brain/services";
 
-const configSchema = z.object({
-  timezone: z.optional(z.string()),
+export default defineServicePlugin({
+  id: "calendar",
+  config: z.object({
+    timezone: z.string().default("UTC"),
+  }),
+  tools: ({ config }) => [
+    defineTool({
+      name: "calendar-timezone",
+      description: "Return the configured calendar timezone.",
+      input: z.object({}),
+      output: z.object({ timezone: z.string() }),
+      execute: () => ({ timezone: config.timezone }),
+    }),
+  ],
 });
-
-type CalendarConfig = z.output<typeof configSchema>;
-type CalendarConfigInput = z.input<typeof configSchema>;
-
-const packageJson = {
-  name: "@rizom/brain-plugin-calendar",
-  version: "0.1.0",
-  description: "Calendar integration",
-};
-
-class CalendarPlugin extends ServicePlugin<
-  CalendarConfig,
-  CalendarConfigInput
-> {
-  constructor(config: CalendarConfigInput = {}) {
-    super("calendar", packageJson, config, configSchema);
-  }
-
-  protected override async onRegister(
-    _context: ServicePluginContext,
-  ): Promise<void> {
-    // Register capabilities, tools, resources, routes, jobs, and subscriptions.
-  }
-
-  protected override async onReady(
-    _context: ServicePluginContext,
-  ): Promise<void> {
-    // Identity/profile and other plugins are ready here.
-  }
-
-  protected override async getTools(): Promise<Tool[]> {
-    return [
-      createTool({
-        name: "calendar_ping",
-        description: "Check that the calendar plugin is loaded.",
-        inputSchema: {},
-        handler: () => toolSuccess({ ok: true }),
-      }),
-    ];
-  }
-}
-
-export const plugin: PluginFactory = (config) => new CalendarPlugin(config);
-export default plugin;
 ```
 
-The repository keeps a package-local compile fixture at [`packages/brain-cli/test/fixtures/external-plugin`](../packages/brain-cli/test/fixtures/external-plugin). It typechecks against the public `.d.ts` contracts and must not import `@brains/*`. For a durable entity example, see [`rizom-ai/brain-plugin-recipes`](https://github.com/rizom-ai/brain-plugin-recipes).
+Configuration supplied through `use()` and `brain.yaml` is inferred from the schema input. Callbacks receive the parsed schema output, including defaults and transforms.
 
-## Entity service and entity namespace
+The loader supplies the installed package name and version. Author source chooses only local domain IDs; runtime capability IDs are package-scoped automatically.
 
-Public plugin contexts expose entity capabilities through two deliberately separate surfaces:
+## Brain composition
 
-- `context.entityService` for read/query operations such as `getEntity<T extends BaseEntity>()`, `listEntities<T extends BaseEntity>()`, `search<T extends BaseEntity>()`, counts, and entity-type discovery.
-- `context.entities` for registration and controlled writes such as `register`, `update`, `registerDataSource`, and `registerCreateInterceptor`.
+The brain-definition package imports definitions and configures them with `use()`:
 
-`search<T>()` returns `SearchResult<T>[]`, not bare entities. Import `BaseEntity`, `ListOptions`, `SearchOptions`, and `SearchResult` from `@rizom/brain/entities` when you need typed entity access.
+```ts
+import calendar from "@example/calendar";
+import { defineBrain, defineBundle, use } from "@rizom/brain";
+
+const configuredCalendar = use(calendar, { timezone: "Europe/Paris" });
+const core = defineBundle({
+  id: "core",
+  members: [configuredCalendar],
+});
+
+export default defineBrain({
+  name: "personal-calendar",
+  plugins: [configuredCalendar],
+  bundles: [core],
+});
+```
+
+Secrets remain instance concerns and should be supplied through `brain.yaml` environment interpolation rather than package defaults.
 
 ## Registration model
 
-Capabilities are registered through a documented hybrid: **class methods** for static declarations the shell collects automatically, and **`context.*.register*()` calls** inside `onRegister` for anything dynamic, conditional, or namespaced.
+Definition fields are the registration model. The runtime validates and finalizes tools, resources, jobs, routes, daemons, entities, projections, channel descriptors, and lifecycle resources. Author packages do not receive registries or shell objects and do not branch on process roles.
 
-Class-method registration (auto-collected at boot):
+Long-running work belongs in supervised interface daemons. Durable work belongs in schema-first service jobs. Entity derivation belongs in projection definitions. This keeps lifecycle, worker isolation, shutdown, and rollback runtime-owned.
 
-| Override                                                | Use for                                                                                       |
-| ------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| `getTools()`                                            | Tools exposed through the plugin's namespace                                                  |
-| `getResources()`                                        | Static resources                                                                              |
-| `getInstructions()`                                     | A string appended to the agent's system prompt                                                |
-| `getApiRoutes()` / `getWebRoutes()` (interface/service) | Route definitions                                                                             |
-| `registerEntityTypes(context)` (`ServicePlugin`)        | Default `onRegister` calls this for you so subclasses can register entity types declaratively |
-| `registerJobHandlers(context)` (`ServicePlugin`)        | Same pattern for job handlers                                                                 |
+## Removed alpha package shapes
 
-Reach for class methods when the set of capabilities is fixed at construction time — the example in [Plugin factory contract](#plugin-factory-contract) above uses `getTools()` for exactly that reason.
+Stable `0.2.x` does not load class constructors, tuple factories, default plugin functions, named `plugin` factories, or `brain.yaml` plugin package declarations. The loader reports migration guidance when it encounters those alpha shapes. Move package imports into a `defineBrain()` package and compose their default definitions with `use()`.
 
-Context-call registration (inside `onRegister`):
+## Canonical examples
 
-```ts
-protected override async onRegister(context: ServicePluginContext): Promise<void> {
-  context.entities.register("note", noteSchema, noteAdapter);
-  context.entities.registerCreateInterceptor("note", interceptor);
-  context.entities.registerDataSource(myDataSource);
-  context.templates.register({ "note-card": noteCardTemplate }, "notes");
-  context.registerInstructions("Notes use ISO-8601 timestamps in frontmatter.");
-}
-```
-
-Reach for context calls when registration is conditional on config, when you need a namespace different from the plugin id (the optional second arg to `templates.register`), or when the capability isn't a fit for one of the static class methods. For long-running background work, `InterfacePlugin` subclasses typically override `createDaemon()` (static-style) and the base class registers it during `register()`; for ad-hoc cases, call `context.daemons.register(...)` directly. If you override `onRegister` on `ServicePlugin`, call `super.onRegister(context)` first so `registerEntityTypes` / `registerJobHandlers` still fire.
-
-## Messaging interfaces
-
-Use `InterfacePlugin` for generic/non-chat interfaces. Use `MessageInterfacePlugin` when building a channel/chat surface such as Slack, Teams, Matrix, Telegram, or Discord. It extends `InterfacePlugin` with shared message-routing helpers, progress-message tracking, URL capture helpers, and text-upload validation.
-
-```ts
-import { z } from "@rizom/brain";
-import {
-  MessageInterfacePlugin,
-  type JobProgressEvent,
-  type PluginFactory,
-} from "@rizom/brain/plugins";
-
-const packageJson = {
-  name: "@rizom/brain-plugin-chat-example",
-  version: "0.1.0",
-};
-
-class ChatExamplePlugin extends MessageInterfacePlugin {
-  constructor() {
-    super("chat-example", packageJson, {}, z.object({}));
-  }
-
-  protected sendMessageToChannel(
-    channelId: string | null,
-    message: string,
-  ): void {
-    // Send `message` through your platform SDK.
-    console.log(channelId, message);
-  }
-
-  protected override async onProgressUpdate(
-    event: JobProgressEvent,
-  ): Promise<void> {
-    // Optional: mirror progress into platform-specific UI state.
-    void event.id;
-  }
-}
-
-export const plugin: PluginFactory = () => new ChatExamplePlugin();
-export default plugin;
-```
-
-## Loading from `brain.yaml`
-
-Install the plugin in the instance package:
-
-```json
-{
-  "dependencies": {
-    "@rizom/brain-plugin-calendar": "^0.1.0"
-  }
-}
-```
-
-Declare and configure it in `brain.yaml`:
-
-```yaml
-plugins:
-  calendar:
-    package: "@rizom/brain-plugin-calendar"
-    config:
-      timezone: UTC
-      apiKey: ${CALENDAR_API_KEY}
-```
-
-Rules:
-
-- `plugins:` remains a keyed map, not a list.
-- `package` is reserved for external plugin declarations.
-- External plugin config must live under nested `config`.
-- The factory receives only that nested `config` object.
-- `add`/`remove` use the `plugins:` map key for selection, while returned plugin instances keep their own `plugin.id`.
-
-## Lifecycle
-
-- `onRegister` registers capabilities and subscriptions.
-- `onReady` runs after identity/profile and plugin registration are complete.
-- `onShutdown` handles cleanup.
-
-Background daemons and job processing start after ready hooks, so `onReady` is the place for startup work that needs the coordinated shell state.
-
-## Smoke testing
-
-Use startup-check mode for external plugin CI smoke tests:
-
-```bash
-brain start --startup-check
-```
-
-This boots far enough to load external `brain.yaml` plugins and run their `onRegister`/`onReady` lifecycle hooks, then exits without starting daemons or job workers and without requiring `AI_API_KEY`.
-
-## See also
-
-- [Plugin System](./plugin-system.md)
-- [brain.yaml Reference](../packages/brain-cli/docs/brain-yaml-reference.md)
+The checked standalone packages under [`packages/brain-cli/test/fixtures/public-authoring`](../packages/brain-cli/test/fixtures/public-authoring) are the authoritative examples for entity, service, site, generic interface, message-interface, and root brain-definition authoring. They compile against generated declarations and are exercised through isolated packed installs.

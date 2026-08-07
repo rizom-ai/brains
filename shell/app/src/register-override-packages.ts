@@ -1,6 +1,7 @@
 import type { InstanceOverrides } from "./instance-overrides";
 import { collectOverridePackageRefs } from "./override-package-refs";
 import { hasPackage, registerPackage } from "./package-registry";
+import { resolveInstalledPackageManifest } from "./installed-package-metadata";
 import { getErrorMessage } from "@brains/utils/error";
 
 /**
@@ -33,7 +34,17 @@ export async function registerOverridePackages(
 
       try {
         const mod = await importFn(ref);
-        registerPackage(ref, mod.default ?? mod);
+        let version: string | undefined;
+        try {
+          version = resolveInstalledPackageManifest(ref, process.cwd()).version;
+        } catch {
+          // Structural site/theme refs do not require plugin metadata.
+        }
+        registerPackage(
+          ref,
+          mod.default ?? mod,
+          version ? { version } : undefined,
+        );
       } catch (err) {
         const message = getErrorMessage(err);
         console.error(

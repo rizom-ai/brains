@@ -86,11 +86,8 @@ describe("registerOverridePackages", () => {
     expect(getPackage(pluginRef)).toBe(fakePlugin);
   });
 
-  it("registers external plugin package declarations with named plugin exports", async () => {
+  it("does not import removed external plugin package declarations", async () => {
     const pluginRef = createRef("external-plugin-fixture");
-    const pluginFactory = (): never => {
-      throw new Error("not called by registration");
-    };
     const overrides: InstanceOverrides = {
       plugins: {
         calendar: {
@@ -100,14 +97,13 @@ describe("registerOverridePackages", () => {
       },
     };
     const importFn: PackageImportFn = async (ref) => {
-      if (ref === pluginRef) return { plugin: pluginFactory };
-      throw new Error(`unexpected ref: ${ref}`);
+      throw new Error(`removed package declaration was imported: ${ref}`);
     };
 
     await registerOverridePackages(overrides, importFn);
 
-    expect(hasPackage(pluginRef)).toBe(true);
-    expect(getPackage(pluginRef)).toEqual({ plugin: pluginFactory });
+    expect(hasPackage(pluginRef)).toBe(false);
+    expect(getPackage(pluginRef)).toBeUndefined();
   });
 
   it("registers both site.package and plugin refs in one pass", async () => {

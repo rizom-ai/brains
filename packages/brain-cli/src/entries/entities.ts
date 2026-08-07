@@ -1,34 +1,28 @@
-/** Curated public entity authoring surface. */
+/** Declarative public entity authoring surface. */
 
+export { z } from "@brains/utils/zod";
 export {
-  BaseEntityAdapter,
-  baseEntitySchema,
-  NOTE_ENTITY_TYPE,
-  generateMarkdownWithFrontmatter,
-  parseMarkdownWithFrontmatter,
-  generateFrontmatter,
-  paginationInfoSchema,
-  paginateItems,
-  buildPaginationInfo,
-} from "@brains/entity-service";
+  defineEntity,
+  defineEntityPackage,
+  defineProjection,
+} from "@brains/plugins";
+export type {
+  EncodedEntityMarkdown,
+  EntityDefinition,
+  EntityMarkdownCodec,
+  EntityMarkdownDocument,
+  EntityOf,
+  EntityPackageDefinition,
+  ProjectionDefinition,
+} from "@brains/plugins";
 
 export type {
   BaseEntity,
   EntityInput,
-  CreateInput,
-  CreateExecutionContext,
-  CreateResult,
-  CreateInterceptionResult,
-  CreateInterceptor,
-  EntityAdapter,
-  EntityTypeConfig,
   EntityMutationResult,
   SearchResult,
   ListOptions,
   SearchOptions,
-  DataSource,
-  DataSourceCapabilities,
-  BaseDataSourceContext,
   PaginationInfo,
   PaginateOptions,
   PaginateResult,

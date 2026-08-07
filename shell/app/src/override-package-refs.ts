@@ -1,11 +1,14 @@
 import { isScopedPackageRef } from "./brain-resolver";
+import { isExternalPluginDeclaration } from "./instance-overrides";
 import type { InstanceOverrides } from "./instance-overrides";
 
 /**
  * Collect all @-prefixed package references from instance overrides.
  *
- * Scans `site.package`, `site.theme`, `site.themeOverride`, and plugin
- * config values. Used by both the entrypoint generator (static imports)
+ * Scans `site.package`, `site.theme`, `site.themeOverride`, and built-in
+ * plugin config values. Removed alpha plugin package declarations are skipped
+ * so their modules cannot run before the resolver reports migration guidance.
+ * Used by both the entrypoint generator (static imports)
  * and the dev runner (dynamic imports) to ensure all referenced packages
  * are registered before resolve() runs.
  */
@@ -33,6 +36,7 @@ export function collectOverridePackageRefs(
   // Plugin config values
   if (overrides.plugins) {
     for (const config of Object.values(overrides.plugins)) {
+      if (isExternalPluginDeclaration(config)) continue;
       for (const value of Object.values(config)) {
         if (typeof value === "string" && isScopedPackageRef(value)) {
           refs.push(value);

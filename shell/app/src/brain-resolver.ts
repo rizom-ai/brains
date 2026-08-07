@@ -2,6 +2,11 @@ import { PluginConfigValidationError, type Plugin } from "@brains/plugins";
 import { ensureArray } from "@brains/utils/array";
 import { type Logger } from "@brains/utils/logger";
 import type { BrainDefinition, BrainEnvironment } from "./brain-definition";
+import type { BrainDefinition as DeclarativeBrainDefinition } from "./contracts/brain-definition";
+import {
+  isDeclarativeBrainDefinition,
+  normalizeDeclarativeBrainDefinition,
+} from "./declarative-brain";
 import type { AppConfig, AppConfigInput, DeploymentConfigInput } from "./types";
 import {
   getExternalPluginDeclarations,
@@ -304,7 +309,7 @@ function applySiteEntityDisplay(
   };
 }
 
-export function resolve(
+function resolveRuntimeDefinition(
   definition: BrainDefinition,
   env: BrainEnvironment,
   overrides?: Omit<InstanceOverrides, "brain">,
@@ -421,4 +426,16 @@ export function resolve(
   applySiteEntityDisplay(appConfig, site);
 
   return defineConfig(appConfig);
+}
+
+export function resolve(
+  definition: BrainDefinition | DeclarativeBrainDefinition,
+  env: BrainEnvironment,
+  overrides?: Omit<InstanceOverrides, "brain">,
+  logger?: Logger,
+): AppConfig {
+  const runtimeDefinition = isDeclarativeBrainDefinition(definition)
+    ? normalizeDeclarativeBrainDefinition(definition)
+    : definition;
+  return resolveRuntimeDefinition(runtimeDefinition, env, overrides, logger);
 }

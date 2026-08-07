@@ -1,0 +1,3 @@
+brain: "@rizom/brain-definition-fixture"
+bundles: [core]
+database: "file:./brain.db"
