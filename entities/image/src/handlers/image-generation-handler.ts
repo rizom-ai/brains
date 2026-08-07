@@ -8,7 +8,7 @@ import {
 } from "@brains/plugins";
 import type { ProgressReporter } from "@brains/utils/progress";
 import { imageAdapter, setCoverImageId } from "@brains/image";
-import { fetchStyleGuide, formatVisualGuidance } from "@brains/style-guide";
+import { fetchStyleGuide, formatVisualGuidance } from "@brains/contracts";
 import { getErrorMessage } from "@brains/utils/error";
 import { slugify } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";

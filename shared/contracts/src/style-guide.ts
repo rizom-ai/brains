@@ -177,3 +177,33 @@ export function formatVoiceGuidance(styleGuide: StyleGuide): string {
 export function formatVisualGuidance(styleGuide: StyleGuide): string {
   return formatStyleGuidance(styleGuide, "visual").visual ?? "";
 }
+
+/**
+ * Minimal reader for the well-known singleton style-guide entity. Satisfied
+ * structurally by the entity service so entity and plugin packages can share
+ * the lookup without depending on each other.
+ */
+export interface StyleGuideEntityReader {
+  getEntity(request: {
+    entityType: string;
+    id: string;
+  }): Promise<{ id: string; content: string } | null>;
+}
+
+export async function fetchStyleGuide(
+  reader: StyleGuideEntityReader,
+): Promise<StyleGuide> {
+  const entity = await reader.getEntity({
+    entityType: "style-guide",
+    id: "style-guide",
+  });
+  return entity?.id === "style-guide"
+    ? parseStyleGuideContent(entity.content)
+    : DEFAULT_STYLE_GUIDE;
+}
+
+export async function fetchVoiceGuidance(
+  reader: StyleGuideEntityReader,
+): Promise<string> {
+  return formatVoiceGuidance(await fetchStyleGuide(reader));
+}

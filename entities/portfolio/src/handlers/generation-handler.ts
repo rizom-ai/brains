@@ -6,7 +6,7 @@ import { slugify } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
 import { generationResultSchema } from "@brains/contracts";
 import type { EntityPluginContext } from "@brains/plugins";
-import { fetchStyleGuide, formatVoiceGuidance } from "@brains/style-guide";
+import { fetchStyleGuide, formatVoiceGuidance } from "@brains/contracts";
 import { projectAdapter } from "../adapters/project-adapter";
 
 /**

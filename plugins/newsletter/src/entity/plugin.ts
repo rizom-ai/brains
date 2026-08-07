@@ -18,7 +18,7 @@ import {
 } from "@brains/contracts";
 import { BUTTONDOWN_CHANNELS } from "../buttondown-channels";
 import { h } from "preact";
-import { fetchVoiceGuidance } from "./style-guide";
+import { fetchVoiceGuidance } from "@brains/contracts";
 import { NewsletterSignup } from "@brains/ui-library";
 import { newsletterSchema, type Newsletter } from "./schemas/newsletter";
 import {

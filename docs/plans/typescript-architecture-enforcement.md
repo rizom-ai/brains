@@ -56,6 +56,8 @@ Dependency-cruiser's JSON, DOT, and text reporters return zero even when the gra
 
 The restored graph keeps the documented existing boundaries and adds explicit failure for unresolved imports. Obsolete `apps/` and `layouts/` rules were removed, reporter collapse roots now match the current workspace families, and package export resolution includes `bun` and `types` conditions.
 
+The entities family now has the same boundary posture as plugins and interfaces: entity packages may import only `shell/*` and `shared/*` (plus builtins), and never other entity packages outside their own tests. Both rules were verified to fire with injected entity-to-plugin and entity-to-entity probes.
+
 The only new builtin exception is exact: Admin and CMS build scripts may import Node's `module` builtin for `createRequire`. Their other imports remain under the normal plugin boundary rule.
 
 ## Real graph cleanup
@@ -69,6 +71,8 @@ Enabling the supported parser exposed circular and forbidden imports that the ol
 - Rizom site composition imports its base directly rather than through its own index.
 - Dashboard widget primitives and component contracts moved to `@brains/ui-library`, removing plugin-to-plugin and entity-to-plugin UI coupling.
 - Style-guide parsing/formatting contracts moved to `@brains/contracts`; Newsletter no longer imports the style-guide entity package.
+- The well-known singleton lookups moved next to their contracts: `fetchStyleGuide`/`fetchVoiceGuidance` live in `@brains/contracts` and `fetchSiteInfo` (with the site-info body schema) in `@brains/site-composition`, both against minimal structural entity readers. Blog, decks, image, portfolio, social-media, and newsletter consume them from there, and the entity packages re-export for compatibility.
+- Site build staging/completed payloads moved to `@brains/contracts` beside `SITE_CHANNELS`, removing blog's import from the site-builder plugin.
 - Onboarding imports lifecycle starter contracts from `@brains/contracts`, not the Playbooks plugin.
 - Generated package copies and standalone consumer fixtures received reviewed source-inventory exclusions.
 - A stale unused web-chat collapsible component was removed.

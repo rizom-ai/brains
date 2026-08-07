@@ -121,6 +121,35 @@ module.exports = {
       },
     },
     {
+      name: "no-entity-to-entity-imports",
+      severity: "error",
+      comment:
+        "Entity packages should not import from other entity packages - use shared packages instead",
+      from: {
+        path: "^entities/([^/]+)/",
+        pathNot: "\\.(test|spec)\\.(ts|tsx|js|jsx)$", // Allow integration tests
+      },
+      to: {
+        path: "^entities/(?!$1/)",
+      },
+    },
+    {
+      name: "entities-can-only-import-shell-and-shared",
+      severity: "error",
+      comment:
+        "Entity packages can only import from shell/* and shared/* packages",
+      from: {
+        path: "^entities/",
+      },
+      to: {
+        path: "^((?!shell/|shared/|entities/|node_modules/).)*$",
+        pathNot: [
+          "\\.(test|spec)\\.(ts|tsx|js|jsx)$", // Allow test files
+          "^(bun:test|path|fs|fs/promises|crypto|os|url|dns/promises)$", // Allow Node.js/Bun builtins
+        ],
+      },
+    },
+    {
       name: "interfaces-can-only-import-shell-and-shared",
       severity: "error",
       comment: "Interfaces can only import from shell/* and shared/* packages",

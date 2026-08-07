@@ -1,5 +1,5 @@
 import type { EntityPluginContext } from "@brains/plugins";
-import { fetchStyleGuide, formatVoiceGuidance } from "@brains/style-guide";
+import { fetchStyleGuide, formatVoiceGuidance } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 
 const generatePostInputSchema = z.object({

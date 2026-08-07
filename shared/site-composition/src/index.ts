@@ -54,6 +54,19 @@ export {
   sectionToTemplate,
   sectionGroupToTemplates,
 } from "./section-templates";
+export {
+  fetchSiteInfo,
+  parseSiteInfoContent,
+  siteInfoBodySchema,
+  siteInfoCTASchema,
+} from "./site-info";
+export type {
+  ResolvedSiteInfoBody,
+  SiteInfoBody,
+  SiteInfoBodyInput,
+  SiteInfoCTA,
+  SiteInfoEntityReader,
+} from "./site-info";
 export { derivePreviewDomain, type PreviewDomainOptions } from "./domain";
 export { EntityUrlGenerator } from "./entity-url-generator";
 export type { EntityDisplayMap } from "./entity-url-generator";

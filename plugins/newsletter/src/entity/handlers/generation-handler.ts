@@ -11,7 +11,7 @@ import { slugify } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
 import { type GenerationResult } from "@brains/contracts";
 import type { BaseEntity, EntityPluginContext } from "@brains/plugins";
-import { fetchVoiceGuidance } from "../style-guide";
+import { fetchVoiceGuidance } from "@brains/contracts";
 import type { NewsletterMetadata } from "../schemas/newsletter";
 
 /** Source entity shape consumed by newsletter generation */
