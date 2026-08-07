@@ -38,9 +38,11 @@ describe("canonical evaluation test cases", () => {
 
     expect(files.length).toBeGreaterThan(0);
 
+    const testCases = await Promise.all(
+      files.map((file) => loader.loadTestCase(file)),
+    );
     const seenIds = new Set<string>();
-    for (const file of files) {
-      const testCase = await loader.loadTestCase(file);
+    for (const testCase of testCases) {
       expect(testCase.id.length).toBeGreaterThan(0);
       expect(seenIds.has(testCase.id)).toBe(false);
       seenIds.add(testCase.id);
