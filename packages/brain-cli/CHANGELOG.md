@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.257
+
+### Patch Changes
+
+- [#85](https://github.com/rizom-ai/brains/pull/85) [`d273d5e`](https://github.com/rizom-ai/brains/commit/d273d5e902005fc509f2d57ce9000d5b16f7a538) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Keep durable jobs pending until a capable worker can execute them, recover projection waves whose queued jobs are terminal, and report stranded projection waves through operational health.
+
 ## 0.2.0-alpha.256
 
 ### Minor Changes

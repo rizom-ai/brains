@@ -254,6 +254,7 @@
     "core--projection-convergence",
     "core--projection-outputs-fail-closed",
     "core--projection-runtime-guards",
+    "core--projection-startup-recovery",
     "core--projection-wave-json-boundaries",
     "core--relicense-agpl-apache-split",
     "core--remove-obsolete-auth-compatibility",
