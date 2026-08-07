@@ -1,5 +1,11 @@
 # @rizom/ui
 
+## 0.2.0-alpha.258
+
+### Minor Changes
+
+- [`8066c33`](https://github.com/rizom-ai/brains/commit/8066c33f8b091d3f4192ff4f355229eea1a1601a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Drop the dead background-canvas mount from `RizomFrame`, and hold release configuration to the live workspace: `changeset:check` now fails when `.changeset/config.json` or `.syncpackrc.json` names a package that has left the workspace, the way consumed changesets already are. Retires the stale `@brains/ranger`, `@brains/relay`, `@brains/rover`, `@rizom/site-rizom-foundation`, and `@rizom/site-rizom-work` entries those files still carried.
+
 ## 0.2.0-alpha.257
 
 ## 0.2.0-alpha.256

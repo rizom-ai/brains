@@ -1,5 +1,16 @@
 # @brains/assessment
 
+## 0.2.0-alpha.258
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.258
+  - @brains/content-formatters@0.2.0-alpha.258
+  - @brains/contracts@0.2.0-alpha.258
+  - @brains/utils@0.2.0-alpha.258
+  - @brains/plugins@0.2.0-alpha.258
+
 ## 0.2.0-alpha.257
 
 ### Patch Changes

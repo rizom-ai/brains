@@ -256,6 +256,7 @@
     "core--projection-runtime-guards",
     "core--projection-startup-recovery",
     "core--projection-wave-json-boundaries",
+    "core--release-config-workspace-guard",
     "core--relicense-agpl-apache-split",
     "core--remove-obsolete-auth-compatibility",
     "core--remove-service-singletons",
