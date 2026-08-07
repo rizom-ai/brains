@@ -48,6 +48,7 @@ permissions:
     expectedTools:
       - toolName: system_create
         shouldBeCalled: true
+        resultRefused: false
         argsContain:
           entityType: note
           visibility: restricted

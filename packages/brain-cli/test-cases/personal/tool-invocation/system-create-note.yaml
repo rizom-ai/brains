@@ -33,11 +33,14 @@ permissions:
     expectedTools:
       - toolName: system_create
         shouldBeCalled: true
+        resultRefused: false
         argsContain:
           entityType: note
           source.kind: text
+    # No "Confirmation required" here: system_create always asks for approval
+    # first, so a trusted caller reaching that prompt is correct behaviour. What
+    # must not appear is a claim the note was already saved.
     responseNotContains:
-      - "Confirmation required"
       - "created"
       - "I've saved"
       - "I saved"
@@ -48,6 +51,7 @@ permissions:
     expectedTools:
       - toolName: system_create
         shouldBeCalled: true
+        resultRefused: false
         argsContain:
           entityType: note
           source.kind: text

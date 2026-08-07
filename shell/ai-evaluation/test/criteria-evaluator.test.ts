@@ -142,6 +142,68 @@ describe("evaluateCriteria", () => {
     );
   });
 
+  it("fails resultRefused when the call was refused", () => {
+    // shouldBeCalled only proves the model invoked the tool. A permission
+    // refusal still counts as "called", so a case asserting a successful write
+    // stays green while the write is actually denied.
+    const results = evaluateCriteria(
+      {
+        expectedTools: [
+          {
+            toolName: "system_create",
+            shouldBeCalled: true,
+            resultRefused: false,
+          },
+        ],
+      },
+      { text: "" },
+      [
+        {
+          toolName: "system_create",
+          args: { entityType: "note" },
+          result: {
+            success: false,
+            error:
+              "Creating `note` requires Admin permission; your current permission is Trusted.",
+          },
+        },
+      ],
+    );
+
+    expect(results).toContainEqual(
+      expect.objectContaining({
+        criterion: "toolResultRefused",
+        passed: false,
+      }),
+    );
+  });
+
+  it("passes resultRefused when the call actually succeeded", () => {
+    const results = evaluateCriteria(
+      {
+        expectedTools: [
+          {
+            toolName: "system_create",
+            shouldBeCalled: true,
+            resultRefused: false,
+          },
+        ],
+      },
+      { text: "" },
+      [
+        {
+          toolName: "system_create",
+          args: { entityType: "note" },
+          result: { success: true, entityId: "note:kept" },
+        },
+      ],
+    );
+
+    expect(results).toContainEqual(
+      expect.objectContaining({ criterion: "toolResultRefused", passed: true }),
+    );
+  });
+
   it("passes expectedAnyTool when any listed tool was called", () => {
     const results = evaluateCriteria(
       {

@@ -57,6 +57,20 @@ export const SITE_BUNDLE_ID = "site";
 export const PUBLISHING_BUNDLE_ID = "publishing";
 export const TEAM_BUNDLE_ID = "team";
 
+/**
+ * Content a vouched-for collaborator may capture and revise, but not remove or
+ * republish. The platform baseline is `"*": admin`, so every such type has to
+ * be granted explicitly — a type left unlisted is Admin-only no matter which
+ * tool offers it.
+ */
+const trustedContentEntityActions = {
+  create: "trusted",
+  update: "trusted",
+  delete: "admin",
+  extract: "admin",
+  publish: "admin",
+} as const;
+
 export const coreBundle: CapabilityBundleDefinition = defineBundle({
   id: CORE_BUNDLE_ID,
   members: [
@@ -97,6 +111,14 @@ export const coreBundle: CapabilityBundleDefinition = defineBundle({
     },
   ],
   permissions: [
+    {
+      member: "note",
+      config: { entityActions: { note: trustedContentEntityActions } },
+    },
+    {
+      member: "link",
+      config: { entityActions: { link: trustedContentEntityActions } },
+    },
     {
       member: "admin",
       config: {
@@ -197,14 +219,6 @@ export const publishingBundle: CapabilityBundleDefinition = defineBundle({
   evalDisable: ["atproto"],
 });
 
-const trustedTeamEntityActions = {
-  create: "trusted",
-  update: "trusted",
-  delete: "admin",
-  extract: "admin",
-  publish: "admin",
-} as const;
-
 export const teamBundle: CapabilityBundleDefinition = defineBundle({
   id: TEAM_BUNDLE_ID,
   members: [
@@ -231,30 +245,30 @@ export const teamBundle: CapabilityBundleDefinition = defineBundle({
   permissions: [
     {
       member: "image",
-      config: { entityActions: { image: trustedTeamEntityActions } },
+      config: { entityActions: { image: trustedContentEntityActions } },
     },
     {
       member: "note",
-      config: { entityActions: { note: trustedTeamEntityActions } },
+      config: { entityActions: { note: trustedContentEntityActions } },
     },
     {
       member: "link",
-      config: { entityActions: { link: trustedTeamEntityActions } },
+      config: { entityActions: { link: trustedContentEntityActions } },
     },
     {
       member: "decks",
-      config: { entityActions: { deck: trustedTeamEntityActions } },
+      config: { entityActions: { deck: trustedContentEntityActions } },
     },
     {
       member: "docs",
-      config: { entityActions: { doc: trustedTeamEntityActions } },
+      config: { entityActions: { doc: trustedContentEntityActions } },
     },
     {
       member: "conversation-memory",
       config: {
         entityActions: {
-          decision: trustedTeamEntityActions,
-          "action-item": trustedTeamEntityActions,
+          decision: trustedContentEntityActions,
+          "action-item": trustedContentEntityActions,
         },
       },
     },

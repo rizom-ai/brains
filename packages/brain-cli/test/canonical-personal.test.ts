@@ -187,4 +187,29 @@ describe("canonical personal bundles", () => {
     expect(instructions).toEqual(publishingBundle.agentInstructions ?? []);
     expect(instructions.join("\n")).toContain("publishing capabilities");
   });
+
+  test("lets trusted collaborators capture notes and links in every posture", () => {
+    // The platform baseline is "*": admin, so a content type a trusted user is
+    // meant to capture has to be granted explicitly. Only the team bundle did,
+    // which left a trusted user unable to save a note on a personal brain even
+    // though the tool was offered to them.
+    for (const bundles of [["core"], ["core", "site", "publishing"]]) {
+      const entityActions =
+        resolve(canonicalBrain, {}, { bundles }).permissions?.entityActions ??
+        {};
+
+      for (const entityType of ["note", "link"]) {
+        expect(
+          entityActions[entityType],
+          `${bundles.join("+")}/${entityType}`,
+        ).toEqual({
+          create: "trusted",
+          update: "trusted",
+          delete: "admin",
+          extract: "admin",
+          publish: "admin",
+        });
+      }
+    }
+  });
 });
