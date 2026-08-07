@@ -4,6 +4,10 @@ const WATCHDOG_PATH = "/usr/local/sbin/brains-health-watchdog";
 const SERVICE_PATH = "/etc/systemd/system/brains-health-watchdog.service";
 const TIMER_PATH = "/etc/systemd/system/brains-health-watchdog.timer";
 
+export const BRAIN_WATCHDOG_LABEL = "ai.rizom.brain.watchdog";
+export const BRAIN_WATCHDOG_LABEL_VALUE = "true";
+export const BRAIN_WATCHDOG_LABEL_FILTER: string = `${BRAIN_WATCHDOG_LABEL}=${BRAIN_WATCHDOG_LABEL_VALUE}`;
+
 export const healthWatchdogScript: string = `#!/usr/bin/env bash
 set -euo pipefail
 umask 077
@@ -26,7 +30,7 @@ while read -r container_id; do
   [ -n "$container_id" ] || continue
   service_name=$(docker inspect --format '{{ index .Config.Labels "service" }}' "$container_id" 2>/dev/null || true)
   container_name=$(docker inspect --format '{{ .Name }}' "$container_id" 2>/dev/null | tr -d '/' || true)
-  state_key=$(printf '%s-%s' "$service_name" "$container_name" | tr -c 'A-Za-z0-9_.-' '_')
+  state_key=$(printf '%s-%s-%s' "$service_name" "$container_name" "$container_id" | tr -c 'A-Za-z0-9_.-' '_')
   state_path="$state_dir/$state_key.restarts"
   recent_path="$state_path.tmp"
   now_epoch=$(date -u +%s)
@@ -62,7 +66,7 @@ while read -r container_id; do
 
   logger -t brains-health-watchdog "restarting unhealthy container=$container_name service=$service_name incident=$incident_path"
   docker restart "$container_id"
-done < <(docker ps --filter health=unhealthy --filter label=service --format '{{.ID}}')
+done < <(docker ps --filter health=unhealthy --filter label=${BRAIN_WATCHDOG_LABEL_FILTER} --format '{{.ID}}')
 `;
 
 export const healthWatchdogServiceUnit: string = `[Unit]
@@ -108,6 +112,13 @@ ${installCommand(TIMER_PATH, healthWatchdogTimerUnit, "0644")}
 
 $SUDO systemctl daemon-reload
 $SUDO systemctl enable --now brains-health-watchdog.timer
+
+labelled_containers=""
+if ! labelled_containers=$($SUDO docker ps --filter label=${BRAIN_WATCHDOG_LABEL_FILTER} --format '{{.ID}}' 2>/dev/null); then
+  echo "Warning: unable to verify running Brain containers with label ${BRAIN_WATCHDOG_LABEL_FILTER}." >&2
+elif [ -z "$labelled_containers" ]; then
+  echo "Warning: no running Brain containers found with label ${BRAIN_WATCHDOG_LABEL_FILTER}." >&2
+fi
 `;
 }
 

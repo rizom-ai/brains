@@ -1,6 +1,8 @@
 ARG BUN_VERSION=1.3.10
 FROM oven/bun:${BUN_VERSION}-slim AS runtime
 
+LABEL ai.rizom.brain.watchdog="true"
+
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y --no-install-recommends \

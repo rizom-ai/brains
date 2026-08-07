@@ -431,9 +431,14 @@ describe("initPilotRepo", () => {
     expect(deployWorkflow).toContain(
       "BRAIN_YAML_PATH: ${{ steps.user_config.outputs.brain_yaml_path }}",
     );
-    expect(deployWorkflow).toContain(
+    const deployIndex = deployWorkflow.indexOf(
       "kamal setup --skip-push -c deploy/kamal/deploy.yml",
     );
+    const watchdogIndex = deployWorkflow.indexOf(
+      "bun deploy/scripts/install-health-watchdog.ts",
+    );
+    expect(deployIndex).toBeGreaterThan(-1);
+    expect(watchdogIndex).toBeGreaterThan(deployIndex);
     expect(deployWorkflow).not.toContain("repository: rizom-ai/brains");
     expect(deployWorkflow).not.toContain(".brains/packages/brains-ops");
     expect(deployWorkflow).not.toContain(
