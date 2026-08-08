@@ -94,6 +94,38 @@ const init: OpsCommand = defineCommand({
   },
 });
 
+const upgrade: OpsCommand = defineCommand({
+  name: "upgrade",
+  usage: "<repo>",
+  description: "Bump @rizom/ops and refresh the generated scaffold",
+  flags: {
+    to: {
+      type: "string",
+      placeholder: "<version>",
+      description: "Explicit @rizom/ops version (`latest` by default)",
+    },
+  },
+  run: async ({ args, flags }): Promise<CommandResult> => {
+    const repo = args[0];
+    if (!repo) {
+      return usageFailure(upgrade);
+    }
+
+    const version = getStringFlag(flags, "to");
+    const { upgradePilotRepo } = await import("./upgrade");
+    const { from, to } = await upgradePilotRepo(repo, {
+      ...(version && version !== "latest" ? { version } : {}),
+    });
+    return {
+      success: true,
+      message:
+        from === to
+          ? `Already at @rizom/ops@${to}; scaffold refreshed`
+          : `Upgraded @rizom/ops ${from} -> ${to}; scaffold refreshed`,
+    };
+  },
+});
+
 const crossoverStage: OpsCommand = defineCommand({
   name: "crossover:stage",
   usage: "<source-repo> <output-dir> [site-pins.yaml]",
@@ -576,6 +608,7 @@ export const commands: readonly CommandDefinition<
   CommandResult
 >[] = [
   init,
+  upgrade,
   crossoverStage,
   render,
   userAdd,

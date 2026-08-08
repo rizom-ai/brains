@@ -28,6 +28,7 @@ const starterFilePaths = [
   ".github/workflows/deploy.yml",
   ".github/workflows/directory-sync-stress.yml",
   ".github/workflows/reconcile.yml",
+  ".github/workflows/upgrade.yml",
   "deploy/Dockerfile",
   "deploy/kamal/deploy.yml",
   "deploy/scripts/helpers.ts",
@@ -51,6 +52,19 @@ const starterFilePaths = [
 ] as const;
 
 const executableStarterFilePaths = new Set<string>([".kamal/hooks/pre-deploy"]);
+
+/**
+ * Example/one-time content scaffolded for a brand-new repo only. An operator
+ * who deletes these keeps them deleted — reruns (including `upgrade`) must
+ * not resurrect them the way missing infrastructure files are restored.
+ */
+const firstRunOnlyStarterFilePaths = new Set<(typeof starterFilePaths)[number]>(
+  [
+    "cohorts/cohort-1.yaml",
+    "users/alice.yaml",
+    "docs/canonical-crossover-record.md",
+  ],
+);
 const templateRootDir = fileURLToPath(
   new URL("../templates/rover-pilot/", import.meta.url),
 );
@@ -220,11 +234,28 @@ export async function initPilotRepo(rootDir: string): Promise<void> {
     usersTableExists = false;
   }
 
-  const templateWrites = starterFilePaths.map(async (relativePath) => {
-    const targetPath = join(rootDir, relativePath);
-    await mkdir(dirname(targetPath), { recursive: true });
-    await writeStarterFileIfMissing(relativePath, targetPath);
-  });
+  let isExistingRepo = true;
+  try {
+    await access(join(rootDir, "pilot.yaml"));
+  } catch {
+    isExistingRepo = false;
+  }
+
+  // Skipped example files must not skip their directories: the users table
+  // and cohort loading expect these to exist even on an example-free repo.
+  await mkdir(join(rootDir, "users"), { recursive: true });
+  await mkdir(join(rootDir, "cohorts"), { recursive: true });
+
+  const templateWrites = starterFilePaths
+    .filter(
+      (relativePath) =>
+        !(isExistingRepo && firstRunOnlyStarterFilePaths.has(relativePath)),
+    )
+    .map(async (relativePath) => {
+      const targetPath = join(rootDir, relativePath);
+      await mkdir(dirname(targetPath), { recursive: true });
+      await writeStarterFileIfMissing(relativePath, targetPath);
+    });
 
   await Promise.all(templateWrites);
 
