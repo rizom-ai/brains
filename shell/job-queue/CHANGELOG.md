@@ -1,5 +1,18 @@
 # @brains/job-queue
 
+## 0.2.0-alpha.262
+
+### Patch Changes
+
+- [`3c4ac3a`](https://github.com/rizom-ai/brains/commit/3c4ac3afd69e300ac1bb1aeebe25210fe87255c9) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Route-registry review follow-ups: the rover-pilot deploy template's origin-TLS check probes `/health/live` instead of the removed aggregate `/health`, and enqueue-side preflights report "No job type declared" instead of the stale "No handler registered" message now that they check declared validators rather than executable handlers.
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.262
+  - @brains/db@0.2.0-alpha.262
+  - @brains/operation-context@0.2.0-alpha.262
+  - @brains/utils@0.2.0-alpha.262
+  - @brains/mcp-service@0.2.0-alpha.262
+
 ## 0.2.0-alpha.261
 
 ### Patch Changes

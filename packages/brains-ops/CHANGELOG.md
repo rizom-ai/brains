@@ -1,5 +1,13 @@
 # @brains/ops
 
+## 0.2.0-alpha.262
+
+### Patch Changes
+
+- [`3c4ac3a`](https://github.com/rizom-ai/brains/commit/3c4ac3afd69e300ac1bb1aeebe25210fe87255c9) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Route-registry review follow-ups: the rover-pilot deploy template's origin-TLS check probes `/health/live` instead of the removed aggregate `/health`, and enqueue-side preflights report "No job type declared" instead of the stale "No handler registered" message now that they check declared validators rather than executable handlers.
+
+- [`e45aba7`](https://github.com/rizom-ai/brains/commit/e45aba721f635b79e79c25a439a4598e17c19852) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Reconcile prior generated deploy scripts on init rerun, so existing standalone and fleet repositories pick up the scoped health watchdog installer (and future script updates) instead of keeping the vintage they were scaffolded with. Content that no longer carries the generated-script fingerprint is treated as owner-customized and left untouched.
+
 ## 0.2.0-alpha.261
 
 ### Patch Changes
