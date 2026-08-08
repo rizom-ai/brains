@@ -192,6 +192,7 @@ brain.db
 *.db
 *.db-shm
 *.db-wal
+*.db-tshm
 
 # Allow pre-built eval databases
 !**/eval-content/*.db

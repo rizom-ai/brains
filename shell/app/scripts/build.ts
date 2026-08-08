@@ -70,6 +70,7 @@ try {
       // Native modules that cannot be bundled
       "@libsql/client",
       "libsql",
+      "@tursodatabase/database",
       "lightningcss",
       "@tailwindcss/oxide",
     ],
