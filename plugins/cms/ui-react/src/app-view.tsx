@@ -7,6 +7,10 @@ import type {
   DirectorySyncWorkspaceSnapshot,
   EntitySummary,
   EntityTypeInfo,
+  InboxWorkspaceAction,
+  InboxWorkspaceActionResult,
+  InboxWorkspaceQuery,
+  InboxWorkspaceSnapshot,
   MailTriageStatusAction,
   MailTriageStatusActionResult,
   MailTriageWorkspaceSnapshot,
@@ -22,6 +26,7 @@ import type {
 import { BodyEditor, type BodyMode } from "./body-editor";
 import { DirectorySyncWorkspace } from "./directory-sync-workspace";
 import { EmailTriageWorkspace } from "./email-triage-workspace";
+import { UnifiedInboxWorkspace } from "./unified-inbox-workspace";
 import {
   Field,
   FieldAssistControls,
@@ -79,6 +84,8 @@ export interface CmsAppViewProps {
   siteWorkspaceData: SiteWorkspaceSnapshot | null;
   directorySyncWorkspaceData: DirectorySyncWorkspaceSnapshot | null;
   mailTriageWorkspaceData: MailTriageWorkspaceSnapshot | null;
+  inboxWorkspaceData: InboxWorkspaceSnapshot | null;
+  inboxWorkspaceQuery: InboxWorkspaceQuery;
   entityType: string | null;
   entities: EntitySummary[] | null;
   schema: TypeSchema | null;
@@ -110,6 +117,14 @@ export interface CmsAppViewProps {
   performMailTriageAction: (
     action: MailTriageStatusAction,
   ) => Promise<MailTriageStatusActionResult>;
+  performInboxAction: (
+    action: InboxWorkspaceAction,
+  ) => Promise<InboxWorkspaceActionResult>;
+  changeInboxFilters: (filters: {
+    sourceId?: string;
+    urgency?: "high" | "normal";
+  }) => void;
+  loadMoreInbox: () => void;
   startCreate: () => void;
   openEntity: (entityId: string) => void;
   runFieldAssist: (variant: FieldAssistVariant, field: string) => void;
@@ -148,6 +163,8 @@ export function CmsAppView(props: CmsAppViewProps): ReactElement {
     siteWorkspaceData,
     directorySyncWorkspaceData,
     mailTriageWorkspaceData,
+    inboxWorkspaceData,
+    inboxWorkspaceQuery,
     entityType,
     entities,
     schema,
@@ -173,6 +190,9 @@ export function CmsAppView(props: CmsAppViewProps): ReactElement {
     performSiteAction,
     performDirectorySyncAction,
     performMailTriageAction,
+    performInboxAction,
+    changeInboxFilters,
+    loadMoreInbox,
     startCreate,
     openEntity,
     runFieldAssist,
@@ -268,6 +288,13 @@ export function CmsAppView(props: CmsAppViewProps): ReactElement {
               ...(mailTriageWorkspaceData
                 ? { "email-triage": mailTriageWorkspaceData.summary.new }
                 : {}),
+              ...Object.fromEntries(
+                workspaces.flatMap((workspace) =>
+                  workspace.badge === undefined
+                    ? []
+                    : [[workspace.id, workspace.badge]],
+                ),
+              ),
             }}
             onSelectWorkspace={selectWorkspace}
           />
@@ -300,6 +327,15 @@ export function CmsAppView(props: CmsAppViewProps): ReactElement {
             <EmailTriageWorkspace
               data={mailTriageWorkspaceData}
               onAction={performMailTriageAction}
+            />
+          ) : inboxWorkspaceData ? (
+            <UnifiedInboxWorkspace
+              data={inboxWorkspaceData}
+              query={inboxWorkspaceQuery}
+              onFiltersChange={changeInboxFilters}
+              onLoadMore={loadMoreInbox}
+              onOpenEntity={openWorkspaceEntity}
+              onAction={performInboxAction}
             />
           ) : null
         ) : !editing ? (

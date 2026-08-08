@@ -17,7 +17,15 @@ import {
 } from "./api";
 
 export type NavigationQueryKey = readonly ["cms", "navigation"];
-export type WorkspaceQueryKey = readonly ["cms", "workspace", string];
+export type CmsWorkspaceQuery = Readonly<
+  Record<string, string | number | undefined>
+>;
+export type WorkspaceQueryKey = readonly [
+  "cms",
+  "workspace",
+  string,
+  CmsWorkspaceQuery,
+];
 export type AgentTargetsQueryKey = readonly [
   "cms",
   "agent-targets",
@@ -32,11 +40,13 @@ export type EntityDetailQueryKey = readonly ["cms", "entity", string, string];
 export const cmsKeys = {
   all: (): readonly ["cms"] => ["cms"],
   navigation: (): NavigationQueryKey => ["cms", "navigation"],
-  workspace: (workspaceId: string): WorkspaceQueryKey => [
-    "cms",
-    "workspace",
-    workspaceId,
-  ],
+  workspaceScope: (
+    workspaceId: string,
+  ): readonly ["cms", "workspace", string] => ["cms", "workspace", workspaceId],
+  workspace: (
+    workspaceId: string,
+    query: CmsWorkspaceQuery = {},
+  ): WorkspaceQueryKey => ["cms", "workspace", workspaceId, query],
   agentTargets: (
     entityType: string,
     entityId: string,
@@ -74,6 +84,7 @@ export function navigationQueryOptions(): UseQueryOptions<
 
 export function workspaceQueryOptions(
   workspaceId: string,
+  query: CmsWorkspaceQuery = {},
 ): UseQueryOptions<
   CmsWorkspaceData,
   Error,
@@ -81,8 +92,8 @@ export function workspaceQueryOptions(
   WorkspaceQueryKey
 > {
   return {
-    queryKey: cmsKeys.workspace(workspaceId),
-    queryFn: () => fetchWorkspace(workspaceId),
+    queryKey: cmsKeys.workspace(workspaceId, query),
+    queryFn: () => fetchWorkspace(workspaceId, query),
   };
 }
 
@@ -91,7 +102,7 @@ export function invalidateAfterWorkspaceAction(
   workspaceId: string,
 ): Promise<void> {
   return queryClient.invalidateQueries({
-    queryKey: cmsKeys.workspace(workspaceId),
+    queryKey: cmsKeys.workspaceScope(workspaceId),
   });
 }
 

@@ -6,6 +6,8 @@ import {
   uploadFile,
   type DirectorySyncWorkspaceAction,
   type DirectorySyncWorkspaceActionResult,
+  type InboxWorkspaceAction,
+  type InboxWorkspaceActionResult,
   type MailTriageStatusAction,
   type MailTriageStatusActionResult,
   type PublishingAction,
@@ -55,6 +57,11 @@ export interface MailTriageWorkspaceActionInput {
   action: MailTriageStatusAction;
 }
 
+export interface InboxWorkspaceActionInput {
+  workspaceId: string;
+  action: InboxWorkspaceAction;
+}
+
 export interface UploadImageResult {
   entityId: string;
   jobId?: string;
@@ -97,6 +104,15 @@ export function runMailTriageWorkspaceAction(
   input: MailTriageWorkspaceActionInput,
 ): Promise<MailTriageStatusActionResult> {
   return runWorkspaceAction<MailTriageStatusActionResult>(
+    input.workspaceId,
+    input.action,
+  );
+}
+
+export function runInboxWorkspaceAction(
+  input: InboxWorkspaceActionInput,
+): Promise<InboxWorkspaceActionResult> {
+  return runWorkspaceAction<InboxWorkspaceActionResult>(
     input.workspaceId,
     input.action,
   );

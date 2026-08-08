@@ -74,7 +74,66 @@ describe("InboxOperatorService", () => {
     expect(result.errors).toEqual([]);
   });
 
-  it("requires confirmation before dispatching flagged actions and re-lists after execution", async () => {
+  it("filters before paging and returns bounded workspace totals", async () => {
+    const registry = new InboxRegistry();
+    registry.registerSource("mail-plugin", {
+      sourceId: "mail-items",
+      displayName: "Email Triage",
+      list: async () => [
+        attentionItem([]),
+        {
+          ...attentionItem([]),
+          id: "mail-normal",
+          urgency: "normal",
+          receivedAt: "2026-08-04T09:00:00.000Z",
+        },
+      ],
+      act: async () => undefined,
+    });
+    registry.registerSource("empty-plugin", {
+      sourceId: "empty-source",
+      displayName: "Empty Source",
+      list: async () => [],
+      act: async () => undefined,
+    });
+    registry.finalize();
+    const service = new InboxOperatorService(
+      registry,
+      new InboxDataSource(registry),
+    );
+
+    const snapshot = await service.workspace({
+      sourceId: "mail-items",
+      urgency: "normal",
+      offset: "0",
+      limit: "1",
+    });
+
+    expect(snapshot).toMatchObject({
+      summary: { open: 2, high: 1 },
+      total: 1,
+      offset: 0,
+      limit: 1,
+      entries: [{ item: { id: "mail-normal" } }],
+      sources: [
+        {
+          source: { sourceId: "empty-source" },
+          open: 0,
+          high: 0,
+          available: true,
+        },
+        {
+          source: { sourceId: "mail-items" },
+          open: 2,
+          high: 1,
+          available: true,
+        },
+      ],
+    });
+    expect(service.workspace({ offset: 0, limit: 101 })).rejects.toThrow();
+  });
+
+  it("requires confirmation before dispatching flagged actions and returns no projection after execution", async () => {
     const fixture = createService();
     const requested = inboxActionOutcomeSchema.parse(
       await fixture.service.act(
@@ -106,10 +165,51 @@ describe("InboxOperatorService", () => {
     );
 
     expect(fixture.actors).toEqual([{ permissionLevel: "admin" }]);
-    expect(completed).toEqual({
-      kind: "completed",
-      data: { entries: [], errors: [] },
+    expect(completed).toEqual({ kind: "completed" });
+  });
+
+  it("builds a five-entry Dashboard allowlist without source identifiers or actions", async () => {
+    const registry = new InboxRegistry();
+    registry.registerSource("mail-plugin", {
+      sourceId: "mail-items",
+      displayName: "Email Triage",
+      list: async () =>
+        Array.from({ length: 6 }, (_, index) => ({
+          ...attentionItem(),
+          id: `private-id-${index}`,
+          title: `Attention ${index}`,
+          receivedAt: `2026-08-05T0${index}:00:00.000Z`,
+        })),
+      act: async () => undefined,
     });
+    registry.finalize();
+    const service = new InboxOperatorService(
+      registry,
+      new InboxDataSource(registry),
+    );
+
+    const dashboard = await service.dashboard("/cms/workspaces/inbox");
+    const serialized = JSON.stringify(dashboard);
+
+    expect(dashboard.entries).toHaveLength(5);
+    expect(dashboard).toMatchObject({
+      summary: {
+        open: 6,
+        high: 6,
+        availableSources: 1,
+        unavailableSources: 0,
+      },
+      managementUrl: "/cms/workspaces/inbox",
+    });
+    expect(Object.keys(dashboard.entries[0] ?? {})).toEqual([
+      "sourceLabel",
+      "urgency",
+      "title",
+      "receivedAt",
+    ]);
+    expect(serialized).not.toContain("private-id");
+    expect(serialized).not.toContain("mark-reviewed");
+    expect(serialized).not.toContain("decision this week");
   });
 
   it("passes the caller to the source so source-owned authorization remains authoritative", async () => {

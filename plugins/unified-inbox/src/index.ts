@@ -2,12 +2,11 @@ export { InboxDataSource } from "./inbox-datasource";
 export { InboxOperatorService } from "./operator-service";
 export { createInboxListTool } from "./inbox-tool";
 export { createUnifiedInboxDigest, registerUnifiedInboxDigest } from "./digest";
-export { INBOX_ACTION_PATH, createInboxActionRoute } from "./action-route";
 export {
   UnifiedInboxDashboardWidget,
   registerUnifiedInboxDashboardWidget,
 } from "./dashboard-widget";
-export { unifiedInboxWidgetScript } from "./dashboard-widget-script";
+export { registerUnifiedInboxCmsWorkspace } from "./operator-cms";
 export { UnifiedInboxPlugin, unifiedInboxPlugin } from "./plugin";
 export {
   inboxProjectionEntrySchema,
@@ -16,9 +15,15 @@ export {
   inboxListFilterShape,
   inboxListFilterSchema,
   inboxListResultSchema,
+  inboxWorkspaceQuerySchema,
+  inboxSourceAvailabilitySchema,
+  inboxWorkspaceSnapshotSchema,
+  inboxDashboardEntrySchema,
+  inboxDashboardDataSchema,
   inboxActionRequestSchema,
   inboxActionConfirmationSchema,
   inboxActionCompletedSchema,
+  inboxActionErrorSchema,
   inboxActionOutcomeSchema,
   inboxListToolOutputSchema,
   inboxDigestAlertSchema,
@@ -27,6 +32,10 @@ export {
   type InboxSourceError,
   type InboxListFilter,
   type InboxListResult,
+  type InboxWorkspaceQuery,
+  type InboxSourceAvailability,
+  type InboxWorkspaceSnapshot,
+  type InboxDashboardData,
   type InboxActionRequest,
   type InboxActionOutcome,
   type InboxListToolOutput,

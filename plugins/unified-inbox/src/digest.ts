@@ -12,7 +12,7 @@ const HIGH_TITLES_PER_SOURCE = 3;
 const DIGEST_SOURCE_LIMIT = 10;
 
 interface CreateInboxDigestOptions {
-  dashboardUrl: string;
+  destinationUrl: string;
   now?: (() => Date) | undefined;
 }
 
@@ -69,7 +69,7 @@ export function createUnifiedInboxDigest(
   const unavailable = projection.errors.length;
   lines.push(
     "",
-    `${unavailable > 0 ? `${unavailable} ${unavailable === 1 ? "source" : "sources"} unavailable. ` : ""}Open Inbox: ${options.dashboardUrl}`,
+    `${unavailable > 0 ? `${unavailable} ${unavailable === 1 ? "source" : "sources"} unavailable. ` : ""}Open Inbox: ${options.destinationUrl}`,
   );
 
   const now = options.now?.() ?? new Date();
@@ -84,8 +84,9 @@ export function registerUnifiedInboxDigest(
   context: InboxDigestContext,
   dataSource: Pick<InboxDataSource, "getInboxData">,
   now?: () => Date,
+  workspaceUrl?: string,
 ): void {
-  const dashboardUrl = resolveDashboardUrl(context);
+  const destinationUrl = resolveDestinationUrl(context, workspaceUrl);
   context.recurringChecks.register({
     id: "daily-digest",
     cadence: "daily",
@@ -94,7 +95,7 @@ export function registerUnifiedInboxDigest(
       const projection = await dataSource.getInboxData();
       signal.throwIfAborted();
       const alert = createUnifiedInboxDigest(projection, {
-        dashboardUrl,
+        destinationUrl,
         ...(now ? { now } : {}),
       });
       return { alerts: alert ? [alert] : [] };
@@ -116,14 +117,19 @@ function groupBySource(entries: InboxProjectionEntry[]): DigestSourceGroup[] {
   return [...groups.values()];
 }
 
-function resolveDashboardUrl(context: InboxDigestContext): string {
+function resolveDestinationUrl(
+  context: InboxDigestContext,
+  workspaceUrl?: string,
+): string {
   const path =
+    workspaceUrl ??
     context.webRoutes
       .getRoutes()
       .find(
         (route) =>
           route.pluginId === "dashboard" &&
           (route.definition.method ?? "GET") === "GET",
-      )?.fullPath ?? "/dashboard";
+      )?.fullPath ??
+    "/dashboard";
   return context.siteUrl ? new URL(path, context.siteUrl).toString() : path;
 }

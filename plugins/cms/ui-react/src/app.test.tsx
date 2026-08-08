@@ -114,6 +114,15 @@ describe("editor surface styles", () => {
     );
   });
 
+  it("gives unified attention a responsive list/detail dispatch desk", () => {
+    expect(visualRefreshStyles).toContain(".unified-inbox-workspace");
+    expect(visualRefreshStyles).toContain(".inbox-workspace-grid");
+    expect(visualRefreshStyles).toContain(".inbox-dialog-backdrop");
+    expect(responsiveStyles).toContain(
+      ".unified-inbox-workspace.has-selection .inbox-detail-pane",
+    );
+  });
+
   it("carries no content-studio wordmark in the crumbbar", () => {
     // The label added noise without wayfinding value; the crumbbar leads
     // with the collection breadcrumb directly.
@@ -526,6 +535,8 @@ function renderCapabilityView(
     siteWorkspaceData: null,
     directorySyncWorkspaceData: null,
     mailTriageWorkspaceData: null,
+    inboxWorkspaceData: null,
+    inboxWorkspaceQuery: { offset: 0, limit: 50 },
     entityType: "post",
     entities: [entity],
     schema,
@@ -567,6 +578,9 @@ function renderCapabilityView(
       id: "mail-1",
       status: "reviewed",
     }),
+    performInboxAction: async () => ({ kind: "completed" }),
+    changeInboxFilters: () => {},
+    loadMoreInbox: () => {},
     startCreate: () => {},
     openEntity: () => {},
     runFieldAssist: () => {},

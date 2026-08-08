@@ -32,9 +32,14 @@ Open <http://localhost:8080/>. If the test data directory has no Admin account y
 the one-time setup URL printed during boot.
 
 Send synthetic messages that cover high-priority actionable mail, normal mail, reply
-requests, and strong bulk/list signals. Verify that only restricted derived titles and
-summaries appear, source-owned actions remove resolved items from the live projection,
-and restarting does not create duplicates.
+requests, and strong bulk/list signals. Open
+<http://localhost:8080/cms/workspaces/inbox> and verify server-side source/urgency
+filters, list/detail navigation, confirmation, and paging. Dashboard should expose only a
+five-entry read-only summary whose **Open Inbox** link returns to that workspace;
+`inbox_list` remains the chat read surface. If digest delivery is configured, verify its
+link resolves to the same workspace. Only restricted derived titles and content-safe
+summaries should appear, source-owned actions should remove resolved items from the live
+projection, and restarting must not create duplicates.
 
 Do not commit `.env`, mailbox exports, message fixtures copied from a real mailbox, or
 runtime databases.

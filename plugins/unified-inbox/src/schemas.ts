@@ -96,6 +96,117 @@ export const inboxListResultSchema: z.ZodType<
   total: z.number().int().nonnegative(),
 });
 
+interface InboxWorkspaceQueryValue {
+  sourceId?: string | undefined;
+  urgency?: "high" | "normal" | undefined;
+  offset: number;
+  limit: number;
+}
+
+function queryInteger(value: unknown): unknown {
+  if (typeof value !== "string" || value.trim() === "") return value;
+  return Number(value);
+}
+
+export const inboxWorkspaceQuerySchema: z.ZodType<
+  InboxWorkspaceQueryValue,
+  unknown
+> = z.strictObject({
+  sourceId: inboxSourceIdSchema.optional(),
+  urgency: inboxUrgencySchema.optional(),
+  offset: z
+    .preprocess(queryInteger, z.number().int().min(0).max(10_000))
+    .default(0),
+  limit: z
+    .preprocess(queryInteger, z.number().int().min(1).max(100))
+    .default(50),
+});
+
+interface InboxSourceAvailabilityValue {
+  source: InboxSourceMetadata;
+  open: number;
+  high: number;
+  available: boolean;
+}
+
+export const inboxSourceAvailabilitySchema: z.ZodType<
+  InboxSourceAvailabilityValue,
+  InboxSourceAvailabilityValue
+> = z.strictObject({
+  source: inboxSourceMetadataSchema,
+  open: z.number().int().nonnegative(),
+  high: z.number().int().nonnegative(),
+  available: z.boolean(),
+});
+
+interface InboxWorkspaceSnapshotValue {
+  summary: { open: number; high: number };
+  sources: InboxSourceAvailabilityValue[];
+  entries: InboxProjectionEntryValue[];
+  errors: InboxSourceErrorValue[];
+  total: number;
+  offset: number;
+  limit: number;
+}
+
+export const inboxWorkspaceSnapshotSchema: z.ZodType<
+  InboxWorkspaceSnapshotValue,
+  InboxWorkspaceSnapshotValue
+> = z.strictObject({
+  summary: z.strictObject({
+    open: z.number().int().nonnegative(),
+    high: z.number().int().nonnegative(),
+  }),
+  sources: z.array(inboxSourceAvailabilitySchema).max(1_000),
+  entries: z.array(inboxProjectionEntrySchema).max(100),
+  errors: z.array(inboxSourceErrorSchema).max(1_000),
+  total: z.number().int().nonnegative(),
+  offset: z.number().int().nonnegative(),
+  limit: z.number().int().min(1).max(100),
+});
+
+interface InboxDashboardEntryValue {
+  sourceLabel: string;
+  urgency: "high" | "normal";
+  title: string;
+  receivedAt: string;
+}
+
+export const inboxDashboardEntrySchema: z.ZodType<
+  InboxDashboardEntryValue,
+  InboxDashboardEntryValue
+> = z.strictObject({
+  sourceLabel: z.string().trim().min(1).max(200),
+  urgency: inboxUrgencySchema,
+  title: z.string().trim().min(1).max(500),
+  receivedAt: z.iso.datetime(),
+});
+
+interface InboxDashboardDataValue {
+  summary: {
+    open: number;
+    high: number;
+    availableSources: number;
+    unavailableSources: number;
+  };
+  entries: InboxDashboardEntryValue[];
+  managementUrl?: string | undefined;
+}
+
+export const inboxDashboardDataSchema: z.ZodType<
+  InboxDashboardDataValue,
+  InboxDashboardDataValue
+> = z.strictObject({
+  summary: z.strictObject({
+    open: z.number().int().nonnegative(),
+    high: z.number().int().nonnegative(),
+    availableSources: z.number().int().nonnegative(),
+    unavailableSources: z.number().int().nonnegative(),
+  }),
+  entries: z.array(inboxDashboardEntrySchema).max(5),
+  managementUrl: z.string().trim().min(1).max(2_048).optional(),
+});
+
 interface InboxActionRequestValue {
   sourceId: string;
   itemId: string;
@@ -138,7 +249,6 @@ export const inboxActionConfirmationSchema: z.ZodType<
 
 interface InboxActionCompletedValue {
   kind: "completed";
-  data: InboxProjectionValue;
 }
 
 export const inboxActionCompletedSchema: z.ZodType<
@@ -146,16 +256,34 @@ export const inboxActionCompletedSchema: z.ZodType<
   InboxActionCompletedValue
 > = z.strictObject({
   kind: z.literal("completed"),
-  data: inboxProjectionSchema,
+});
+
+interface InboxActionErrorValue {
+  kind: "error";
+  error: "Invalid inbox action" | "Inbox action failed";
+}
+
+export const inboxActionErrorSchema: z.ZodType<
+  InboxActionErrorValue,
+  InboxActionErrorValue
+> = z.strictObject({
+  kind: z.literal("error"),
+  error: z.enum(["Invalid inbox action", "Inbox action failed"]),
 });
 
 type InboxActionOutcomeValue =
-  InboxActionConfirmationValue | InboxActionCompletedValue;
+  | InboxActionConfirmationValue
+  | InboxActionCompletedValue
+  | InboxActionErrorValue;
 
 export const inboxActionOutcomeSchema: z.ZodType<
   InboxActionOutcomeValue,
   InboxActionOutcomeValue
-> = z.union([inboxActionConfirmationSchema, inboxActionCompletedSchema]);
+> = z.union([
+  inboxActionConfirmationSchema,
+  inboxActionCompletedSchema,
+  inboxActionErrorSchema,
+]);
 
 interface InboxDigestAlertValue {
   dedupeKey: string;
@@ -204,6 +332,14 @@ export type InboxSourceError = z.output<typeof inboxSourceErrorSchema>;
 export type InboxProjection = z.output<typeof inboxProjectionSchema>;
 export type InboxListFilter = z.output<typeof inboxListFilterSchema>;
 export type InboxListResult = z.output<typeof inboxListResultSchema>;
+export type InboxWorkspaceQuery = z.output<typeof inboxWorkspaceQuerySchema>;
+export type InboxSourceAvailability = z.output<
+  typeof inboxSourceAvailabilitySchema
+>;
+export type InboxWorkspaceSnapshot = z.output<
+  typeof inboxWorkspaceSnapshotSchema
+>;
+export type InboxDashboardData = z.output<typeof inboxDashboardDataSchema>;
 export type InboxActionRequest = z.output<typeof inboxActionRequestSchema>;
 export type InboxActionOutcome = z.output<typeof inboxActionOutcomeSchema>;
 export type InboxListToolOutput = z.output<typeof inboxListToolOutputSchema>;

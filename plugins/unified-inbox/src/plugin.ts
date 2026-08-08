@@ -1,18 +1,16 @@
-import { getActiveAuthService } from "@brains/auth-service";
 import {
   ServicePlugin,
   type Plugin,
   type ServicePluginContext,
   type Tool,
-  type WebRouteDefinition,
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import packageJson from "../package.json";
-import { createInboxActionRoute } from "./action-route";
 import { registerUnifiedInboxDashboardWidget } from "./dashboard-widget";
 import { InboxDataSource } from "./inbox-datasource";
 import { registerUnifiedInboxDigest } from "./digest";
 import { createInboxListTool } from "./inbox-tool";
+import { registerUnifiedInboxCmsWorkspace } from "./operator-cms";
 import { InboxOperatorService } from "./operator-service";
 
 type UnifiedInboxConfig = Record<string, never>;
@@ -46,22 +44,17 @@ export class UnifiedInboxPlugin extends ServicePlugin<
     context: ServicePluginContext,
   ): Promise<void> {
     const dataSource = this.getDataSource();
-    await registerUnifiedInboxDashboardWidget(context, dataSource);
-    registerUnifiedInboxDigest(context, dataSource);
+    const operator = this.getOperator();
+    const workspaceUrl = await registerUnifiedInboxCmsWorkspace(
+      context,
+      operator,
+    );
+    await registerUnifiedInboxDashboardWidget(context, operator, workspaceUrl);
+    registerUnifiedInboxDigest(context, dataSource, undefined, workspaceUrl);
   }
 
   protected override async getTools(): Promise<Tool[]> {
     return [createInboxListTool(this.getOperator())];
-  }
-
-  override getWebRoutes(): WebRouteDefinition[] {
-    return [
-      createInboxActionRoute({
-        getOperator: () => this.getOperator(),
-        resolvePrincipal: async (request) =>
-          getActiveAuthService()?.resolveSession(request),
-      }),
-    ];
   }
 
   private getDataSource(): InboxDataSource {

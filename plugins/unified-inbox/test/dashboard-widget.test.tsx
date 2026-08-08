@@ -4,74 +4,71 @@ import type { DashboardWidgetRegistration } from "@brains/plugins";
 import { render } from "preact-render-to-string";
 
 import {
-  INBOX_ACTION_PATH,
   UnifiedInboxDashboardWidget,
-  inboxProjectionSchema,
+  inboxDashboardDataSchema,
   registerUnifiedInboxDashboardWidget,
 } from "../src";
 
-const projection = inboxProjectionSchema.parse({
+const dashboardData = inboxDashboardDataSchema.parse({
+  summary: {
+    open: 2,
+    high: 1,
+    availableSources: 2,
+    unavailableSources: 1,
+  },
   entries: [
     {
-      source: { sourceId: "mail-items", displayName: "Email Triage" },
-      item: {
-        id: "mail-high",
-        title: "Time-sensitive work request",
-        summary: "A project contact asks for a decision this week.",
-        receivedAt: "2026-08-05T09:00:00.000Z",
-        urgency: "high",
-        entityRef: { entityType: "mail-item", entityId: "mail-high" },
-        actions: [
-          { id: "mark-reviewed", label: "Mark reviewed" },
-          { id: "archive", label: "Archive", confirm: true },
-        ],
-      },
+      sourceLabel: "Email Triage",
+      urgency: "high",
+      title: "Time-sensitive work request",
+      receivedAt: "2026-08-05T09:00:00.000Z",
     },
     {
-      source: { sourceId: "agent-candidates", displayName: "Candidates" },
-      item: {
-        id: "candidate-1",
-        title: "Possible collaborator",
-        receivedAt: "2026-08-05T08:00:00.000Z",
-        urgency: "normal",
-        actions: [{ id: "ignore", label: "Ignore" }],
-      },
+      sourceLabel: "Candidates",
+      urgency: "normal",
+      title: "Possible collaborator",
+      receivedAt: "2026-08-05T08:00:00.000Z",
     },
   ],
-  errors: [
-    {
-      source: { sourceId: "stale-work", displayName: "Stale work" },
-      error: "Source unavailable",
-    },
-  ],
+  managementUrl: "/studio/workspaces/inbox",
 });
 
 describe("UnifiedInboxDashboardWidget", () => {
-  it("renders grouped attention items, urgency, source failures, and action controls", () => {
-    const html = render(<UnifiedInboxDashboardWidget data={projection} />);
+  it("renders a read-only attention preview and workspace link", () => {
+    const html = render(<UnifiedInboxDashboardWidget data={dashboardData} />);
 
     expect(html).toContain("Email Triage");
     expect(html).toContain("Candidates");
     expect(html).toContain("Time-sensitive work request");
-    expect(html).toContain("Possible collaborator");
     expect(html).toContain("high priority");
-    expect(html).toContain("Stale work unavailable");
-    expect(html).toContain('data-inbox-action-id="mark-reviewed"');
-    expect(html).toContain('data-inbox-action-id="archive"');
-    expect(html).toContain('data-inbox-confirm="true"');
-    expect(html).toContain(`data-inbox-action-url="${INBOX_ACTION_PATH}"`);
+    expect(html).toContain("Open Inbox");
+    expect(html).toContain('href="/studio/workspaces/inbox"');
+    expect(html).not.toContain("data-inbox-action");
+    expect(html).not.toContain("A project contact asks");
   });
 
-  it("renders a stable empty state", () => {
+  it("renders the no-CMS conversational fallback without controls", () => {
     const html = render(
-      <UnifiedInboxDashboardWidget data={{ entries: [], errors: [] }} />,
+      <UnifiedInboxDashboardWidget
+        data={{
+          summary: {
+            open: 0,
+            high: 0,
+            availableSources: 1,
+            unavailableSources: 0,
+          },
+          entries: [],
+        }}
+      />,
     );
 
     expect(html).toContain("Inbox clear");
-    expect(html).not.toContain("data-inbox-action-id");
+    expect(html).toContain("Browser triage is unavailable");
+    expect(html).toContain("inbox_list");
+    expect(html).not.toContain("Open Inbox");
   });
 
-  it("registers an Admin widget with live data and attention digest", async () => {
+  it("registers an Admin widget with redacted data and attention digest", async () => {
     let registration: DashboardWidgetRegistration | undefined;
     await registerUnifiedInboxDashboardWidget(
       {
@@ -81,7 +78,8 @@ describe("UnifiedInboxDashboardWidget", () => {
           },
         },
       },
-      { getInboxData: async () => projection },
+      { dashboard: async () => dashboardData },
+      "/studio/workspaces/inbox",
     );
 
     expect(registration).toMatchObject({
@@ -94,17 +92,16 @@ describe("UnifiedInboxDashboardWidget", () => {
       component: UnifiedInboxDashboardWidget,
     });
     if (!registration) throw new Error("Inbox widget was not registered");
-    expect(await registration.dataProvider()).toEqual(projection);
-    expect(registration.digestProvider?.(projection)).toEqual({
+    expect(await registration.dataProvider()).toEqual(dashboardData);
+    expect(registration.digestProvider?.(dashboardData)).toEqual({
       digest: [
         { label: "Open", value: "2", tone: "warn" },
         { label: "High priority", value: "1", tone: "warn" },
-        { label: "Sources", value: "2" },
+        { label: "Sources online", value: "2/3" },
       ],
       needsAttention: 1,
     });
-    expect(registration.clientStyles).toContain(".unified-inbox-source");
-    expect(registration.clientScript).toContain("window.confirm");
-    expect(registration.clientScript).toContain(INBOX_ACTION_PATH);
+    expect(registration.clientStyles).toContain(".unified-inbox-preview");
+    expect(registration.clientScript).toBeUndefined();
   });
 });

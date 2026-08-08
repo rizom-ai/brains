@@ -4,7 +4,6 @@
   "version": "0.2.0-alpha.265",
   "description": "Live aggregation for source-owned operator attention",
   "dependencies": {
-    "@brains/auth-service": "workspace:*",
     "@brains/dashboard": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/utils": "workspace:*",

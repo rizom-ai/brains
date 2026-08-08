@@ -60,7 +60,7 @@ describe("unified inbox digest", () => {
   it("summarizes per-source counts and high-priority titles only", () => {
     const alert = inboxDigestAlertSchema.parse(
       createUnifiedInboxDigest(projection, {
-        dashboardUrl: "https://brain.test/dashboard",
+        destinationUrl: "https://brain.test/dashboard",
         now,
       }),
     );
@@ -93,7 +93,7 @@ describe("unified inbox digest", () => {
     expect(
       createUnifiedInboxDigest(
         { entries: [], errors: projection.errors },
-        { dashboardUrl: "/dashboard", now },
+        { destinationUrl: "/dashboard", now },
       ),
     ).toBeUndefined();
   });
@@ -125,6 +125,7 @@ describe("unified inbox digest", () => {
       },
       { getInboxData: async () => projection },
       now,
+      "/studio/workspaces/inbox",
     );
 
     expect(check).toMatchObject({
@@ -134,6 +135,42 @@ describe("unified inbox digest", () => {
     if (!check) throw new Error("Daily inbox check was not registered");
     const result = await check.run({ signal: new AbortController().signal });
     expect(result.alerts).toHaveLength(1);
+    expect(result.alerts?.[0]?.body).toContain(
+      "Open Inbox: https://brain.test/studio/workspaces/inbox",
+    );
+  });
+
+  it("falls back to the mounted Dashboard when CMS is absent", async () => {
+    let check: RecurringCheckDefinition | undefined;
+    registerUnifiedInboxDigest(
+      {
+        siteUrl: "https://brain.test",
+        recurringChecks: {
+          register: (definition): (() => void) => {
+            check = definition;
+            return (): void => undefined;
+          },
+        },
+        webRoutes: {
+          getRoutes: () => [
+            {
+              pluginId: "dashboard",
+              fullPath: "/ops",
+              definition: {
+                path: "/ops",
+                method: "GET",
+                handler: (): Response => new Response(),
+              },
+            },
+          ],
+        },
+      },
+      { getInboxData: async () => projection },
+      now,
+    );
+
+    if (!check) throw new Error("Daily inbox check was not registered");
+    const result = await check.run({ signal: new AbortController().signal });
     expect(result.alerts?.[0]?.body).toContain(
       "Open Inbox: https://brain.test/ops",
     );

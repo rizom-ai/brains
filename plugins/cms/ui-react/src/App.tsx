@@ -23,6 +23,10 @@ import {
   type CmsWorkspaceInfo,
   type DirectorySyncWorkspaceActionResult,
   type FieldAssistResponse,
+  type InboxWorkspaceAction,
+  type InboxWorkspaceActionResult,
+  type InboxWorkspaceEntry,
+  type InboxWorkspaceQuery,
   type MailTriageStatusAction,
   type MailTriageStatusActionResult,
   type PublishingAction,
@@ -49,6 +53,7 @@ import {
   removeEntity,
   runCmsWorkspaceAction,
   runDirectorySyncWorkspaceAction,
+  runInboxWorkspaceAction,
   runMailTriageWorkspaceAction,
   runSiteWorkspaceAction,
   saveEntity,
@@ -73,6 +78,23 @@ import { emptyDraft, errorMessage } from "./ui-utils";
 
 const EMPTY_AGENT_TARGETS: AgentTarget[] = [];
 const EMPTY_WORKSPACES: CmsWorkspaceInfo[] = [];
+const INITIAL_INBOX_QUERY: InboxWorkspaceQuery = { offset: 0, limit: 50 };
+
+function mergeInboxEntries(
+  current: InboxWorkspaceEntry[],
+  next: InboxWorkspaceEntry[],
+): InboxWorkspaceEntry[] {
+  const entries = new Map(
+    current.map((entry) => [
+      `${entry.source.sourceId}:${entry.item.id}`,
+      entry,
+    ]),
+  );
+  for (const entry of next) {
+    entries.set(`${entry.source.sourceId}:${entry.item.id}`, entry);
+  }
+  return [...entries.values()];
+}
 
 export function App(): ReactElement {
   const router = useRouter();
@@ -96,6 +118,11 @@ export function App(): ReactElement {
     null,
   );
   const [entityType, setEntityType] = useState<string | null>(null);
+  const [inboxWorkspaceQuery, setInboxWorkspaceQuery] =
+    useState<InboxWorkspaceQuery>(INITIAL_INBOX_QUERY);
+  const [loadedInboxEntries, setLoadedInboxEntries] = useState<
+    InboxWorkspaceEntry[]
+  >([]);
   const [editor, dispatchEditor] = useReducer(
     editorWorkflowReducer,
     initialEditorWorkflowState,
@@ -128,8 +155,15 @@ export function App(): ReactElement {
   const activeType = types?.find((info) => info.entityType === entityType);
   const activeCapabilities = activeType?.capabilities;
   const workspaces = navigationQuery.data?.workspaces ?? EMPTY_WORKSPACES;
+  const activeWorkspace = workspaces.find(
+    (workspace) => workspace.id === activeWorkspaceId,
+  );
+  const workspaceRequestQuery =
+    activeWorkspace?.rendererName === "UnifiedInboxWorkspace"
+      ? inboxWorkspaceQuery
+      : {};
   const workspaceQuery = useQuery({
-    ...workspaceQueryOptions(activeWorkspaceId ?? ""),
+    ...workspaceQueryOptions(activeWorkspaceId ?? "", workspaceRequestQuery),
     enabled: activeWorkspaceId !== null,
   });
   const workspaceResponse = workspaceQuery.data ?? null;
@@ -177,11 +211,10 @@ export function App(): ReactElement {
   const mailTriageWorkspaceActionMutation = useMutation({
     mutationFn: runMailTriageWorkspaceAction,
   });
+  const inboxWorkspaceActionMutation = useMutation({
+    mutationFn: runInboxWorkspaceAction,
+  });
   const deleting = deleteEntityMutation.isPending;
-
-  const activeWorkspace = workspaces.find(
-    (workspace) => workspace.id === activeWorkspaceId,
-  );
   const publicationWorkspaceData =
     activeWorkspace?.rendererName === "PublishingWorkspace" &&
     workspaceResponse?.rendererName === "PublishingWorkspace"
@@ -202,6 +235,31 @@ export function App(): ReactElement {
     workspaceResponse?.rendererName === "EmailTriageWorkspace"
       ? workspaceResponse.data
       : null;
+  const inboxWorkspacePage =
+    activeWorkspace?.rendererName === "UnifiedInboxWorkspace" &&
+    workspaceResponse?.rendererName === "UnifiedInboxWorkspace"
+      ? workspaceResponse.data
+      : null;
+  const inboxWorkspaceData = inboxWorkspacePage
+    ? {
+        ...inboxWorkspacePage,
+        entries:
+          inboxWorkspacePage.offset === 0
+            ? inboxWorkspacePage.entries
+            : mergeInboxEntries(loadedInboxEntries, inboxWorkspacePage.entries),
+      }
+    : null;
+
+  useEffect(() => {
+    if (!inboxWorkspacePage) return;
+    if (inboxWorkspacePage.offset === 0) {
+      setLoadedInboxEntries(inboxWorkspacePage.entries);
+      return;
+    }
+    setLoadedInboxEntries((entries) =>
+      mergeInboxEntries(entries, inboxWorkspacePage.entries),
+    );
+  }, [inboxWorkspacePage]);
 
   useEffect(() => {
     if (!deleteOpen) return undefined;
@@ -742,6 +800,51 @@ export function App(): ReactElement {
     [mailTriageWorkspaceActionMutation, queryClient, workspaces],
   );
 
+  const performInboxAction = useCallback(
+    async (
+      action: InboxWorkspaceAction,
+    ): Promise<InboxWorkspaceActionResult> => {
+      const capability = workspaces.find(
+        (workspace) => workspace.rendererName === "UnifiedInboxWorkspace",
+      );
+      if (!capability) throw new Error("Unified inbox is unavailable");
+
+      const result = await inboxWorkspaceActionMutation.mutateAsync({
+        workspaceId: capability.id,
+        action,
+      });
+      if (result.kind === "completed") {
+        setLoadedInboxEntries([]);
+        setInboxWorkspaceQuery((query) => ({ ...query, offset: 0 }));
+        await Promise.all([
+          invalidateAfterWorkspaceAction(queryClient, capability.id),
+          queryClient.invalidateQueries({ queryKey: cmsKeys.navigation() }),
+        ]);
+      }
+      return result;
+    },
+    [inboxWorkspaceActionMutation, queryClient, workspaces],
+  );
+
+  const changeInboxFilters = useCallback(
+    (filters: { sourceId?: string; urgency?: "high" | "normal" }): void => {
+      setLoadedInboxEntries([]);
+      setInboxWorkspaceQuery({
+        ...filters,
+        offset: 0,
+        limit: INITIAL_INBOX_QUERY.limit,
+      });
+    },
+    [],
+  );
+
+  const loadMoreInbox = useCallback((): void => {
+    setInboxWorkspaceQuery((query) => ({
+      ...query,
+      offset: query.offset + query.limit,
+    }));
+  }, []);
+
   const visibleLoadError =
     loadError ??
     (navigationQuery.error ? errorMessage(navigationQuery.error) : null);
@@ -771,6 +874,8 @@ export function App(): ReactElement {
       siteWorkspaceData={siteWorkspaceData}
       directorySyncWorkspaceData={directorySyncWorkspaceData}
       mailTriageWorkspaceData={mailTriageWorkspaceData}
+      inboxWorkspaceData={inboxWorkspaceData}
+      inboxWorkspaceQuery={inboxWorkspaceQuery}
       entityType={entityType}
       entities={entities}
       schema={schema}
@@ -796,6 +901,9 @@ export function App(): ReactElement {
       performSiteAction={performSiteAction}
       performDirectorySyncAction={performDirectorySyncAction}
       performMailTriageAction={performMailTriageAction}
+      performInboxAction={performInboxAction}
+      changeInboxFilters={changeInboxFilters}
+      loadMoreInbox={loadMoreInbox}
       startCreate={startCreate}
       openEntity={openEntity}
       runFieldAssist={runFieldAssist}

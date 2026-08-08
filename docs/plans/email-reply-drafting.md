@@ -89,4 +89,4 @@ Tests are written and observed failing before implementation in every phase.
 - [lead-management.md](./lead-management.md) — optional business context.
 - [connected-channels.md](./connected-channels.md) — delivery-provider contract extended
   for threading.
-- [unified-inbox.md](./unified-inbox.md) — attention and digest policy.
+- [`@brains/unified-inbox`](../../plugins/unified-inbox/README.md) — attention and digest policy.

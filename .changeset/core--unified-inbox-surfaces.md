@@ -1,6 +1,8 @@
 ---
+"@brains/cms": minor
+"@brains/plugins": minor
 "@brains/unified-inbox": minor
 "@rizom/brain": patch
 ---
 
-Add the Admin unified-inbox dashboard, `inbox_list` tool, daily digest, and dedicated synthetic-only test posture. The dashboard groups live source-owned attention, isolates source failures, dispatches current offered actions through same-origin authenticated routes, requires explicit confirmation where declared, and re-lists without duplicate inbox state. The digest sends bounded per-source counts and high-priority titles through recurring notifications while omitting summaries, action details, and entity identifiers. Restore canonical startup by resolving definition metadata from the package root and recognizing validation errors across separately bundled runtime entrypoints.
+Add the dedicated Admin CMS Inbox workspace with bounded server filters and paging, list/detail triage, source-entity navigation, access-checked rail badges, and server-gated action confirmation. Reduce Dashboard to a redacted five-entry read-only summary, route Dashboard and daily digest navigation to the custom CMS workspace mount, retain `inbox_list` as the conversational read surface, and remove the superseded Dashboard mutation route and script. Restore canonical startup by resolving definition metadata from the package root and recognizing validation errors across separately bundled runtime entrypoints.
