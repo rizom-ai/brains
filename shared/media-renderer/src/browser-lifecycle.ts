@@ -1,6 +1,6 @@
 import { Cause, Effect, Exit, Option } from "@brains/utils/effect";
 import type { Clock } from "@brains/utils/effect";
-import type { BrowserFactory, MediaBrowser } from "./renderer";
+import type { BrowserFactory, MediaBrowser } from "./browser-types";
 
 const DEFAULT_BROWSER_CLOSE_TIMEOUT_MS = 5_000;
 

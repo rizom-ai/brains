@@ -1,3 +1,4 @@
+/* global module */
 module.exports = {
   extends: [
     "eslint:recommended",
@@ -15,6 +16,10 @@ module.exports = {
         "*.js",
         "*.mjs",
         "*.cjs",
+        "scripts/*.js",
+        "scripts/*.mjs",
+        "scripts/*.cjs",
+        "shared/eslint-config/*.js",
         "packages/*/scripts/*.js",
         "packages/*/scripts/*.mjs",
         "packages/*/scripts/*.cjs",

@@ -8,7 +8,6 @@
     "@brains/contracts": "workspace:*",
     "@brains/media-page-composer": "workspace:*",
     "@brains/plugins": "workspace:*",
-    "@brains/style-guide": "workspace:*",
     "@brains/ui-library": "workspace:*",
     "@brains/utils": "workspace:*"
   },

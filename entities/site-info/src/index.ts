@@ -1,7 +1,7 @@
 export { SiteInfoPlugin, siteInfoPlugin } from "./plugin";
 export { SiteInfoAdapter } from "./adapters/site-info-adapter";
 export { SiteInfoService } from "./services/site-info-service";
-export { fetchSiteInfo } from "./services/site-info-helpers";
+export { fetchSiteInfo } from "@brains/site-composition";
 export { SiteInfoDataSource } from "./datasources/site-info-datasource";
 export {
   fetchRecentEntities,

@@ -3,7 +3,7 @@ import {
   endpointInfoSchema,
   entityCountSchema,
   interactionInfoSchema,
-} from "../interfaces";
+} from "./runtime-app-info";
 
 // Public daemon health uses a stringified lastCheck (Date → ISO string);
 // the runtime variant in manager/daemon-types.ts uses z.date().

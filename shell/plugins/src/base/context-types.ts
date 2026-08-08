@@ -16,7 +16,7 @@ import type {
   ProfileKindDefinition,
   ResolvedProfileSelection,
 } from "@brains/identity-service";
-import type { EvalHandler, InsightHandler } from "../interfaces";
+import type { EvalHandler, InsightHandler } from "../contracts/handlers";
 import type { EntityAction, UserPermissionLevel } from "@brains/templates";
 import type {
   ChannelDeliveryProvider,

@@ -1,4 +1,4 @@
-import type { RuntimeAppInfo } from "../interfaces";
+import type { RuntimeAppInfo } from "../contracts/runtime-app-info";
 import type { DaemonHealth } from "../manager/daemon-types";
 import type { AppInfo } from "../contracts/app-info";
 

@@ -13,8 +13,8 @@ import {
 } from "@brains/plugins";
 import { PUBLISH_CHANNELS } from "@brains/contracts";
 import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
-import { fetchSiteInfo } from "@brains/site-info";
-import { fetchStyleGuide, formatVoiceGuidance } from "@brains/style-guide";
+import { fetchSiteInfo } from "@brains/site-composition";
+import { fetchStyleGuide, formatVoiceGuidance } from "@brains/contracts";
 import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
 import { deckAdapter } from "./adapters/deck-adapter";

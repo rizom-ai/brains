@@ -32,7 +32,7 @@ export type {
 // Shared SSR primitives for custom dashboard widgets
 export {
   createWidgetInstanceId,
-  EmptyState,
+  WidgetPrimitiveEmptyState as EmptyState,
   KeyValueList,
   WidgetActionLink,
   WidgetActions,
@@ -44,14 +44,14 @@ export {
   WidgetStatusPill,
   WidgetTabs,
   WidgetTags,
-} from "./widget-ui";
+} from "@brains/ui-library";
 export type {
   KeyValueItem,
   WidgetDataAttributes,
   WidgetElementProps,
   WidgetFilterOption,
   WidgetTabDefinition,
-} from "./widget-ui";
+} from "@brains/ui-library";
 
 // Page renderer, exposed for the root console visual-regression script
 export { renderDashboardPageHtml } from "./dashboard-page";

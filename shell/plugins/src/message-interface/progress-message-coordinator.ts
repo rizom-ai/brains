@@ -8,7 +8,13 @@ import {
   toToolStatusUpdate,
   type ToolStatusUpdate,
 } from "./tool-status";
-import type { MessageInterfaceOutput } from "./index";
+
+export type MessageInterfaceOutput =
+  | string
+  | {
+      card: unknown;
+      fallbackText?: string;
+    };
 
 const PROGRESS_EDIT_THROTTLE_MS = 500;
 const PROGRESS_CLEANUP_DELAY_MS = 500;

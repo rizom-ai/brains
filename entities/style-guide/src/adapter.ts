@@ -1,7 +1,5 @@
-import {
-  BaseEntityAdapter,
-  parseMarkdownWithFrontmatter,
-} from "@brains/plugins";
+import { parseStyleGuideContent } from "@brains/contracts";
+import { BaseEntityAdapter } from "@brains/plugins";
 import {
   styleGuideEntitySchema,
   styleGuideFrontmatterSchema,
@@ -39,14 +37,7 @@ export class StyleGuideAdapter extends BaseEntityAdapter<
   }
 
   public parseStyleGuide(content: string): StyleGuide {
-    const parsed = parseMarkdownWithFrontmatter(
-      content,
-      styleGuideFrontmatterSchema,
-    );
-    return {
-      ...parsed.metadata,
-      guidance: parsed.content,
-    };
+    return parseStyleGuideContent(content);
   }
 
   public fromMarkdown(markdown: string): Partial<StyleGuideEntity> {

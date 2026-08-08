@@ -67,6 +67,11 @@ jobs:
         with:
           fetch-depth: 2
 
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version-file: .node-version
+
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
@@ -112,6 +117,11 @@ jobs:
         with:
           fetch-depth: 2
 
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version-file: .node-version
+
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
@@ -144,6 +154,11 @@ jobs:
         with:
           fetch-depth: 2
 
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version-file: .node-version
+
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
@@ -175,6 +190,11 @@ jobs:
         uses: actions/checkout@v5
         with:
           fetch-depth: 2
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version-file: .node-version
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2

@@ -8,14 +8,13 @@
     "@brains/entity-service": "workspace:*",
     "@brains/image": "workspace:*",
     "@brains/plugins": "workspace:*",
-    "@brains/style-guide": "workspace:*",
     "@brains/utils": "workspace:*"
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",
     "@brains/typescript-config": "workspace:*",
     "@types/bun": "^1.3.14",
-    "@types/node": "^20.19.43",
+    "@types/node": "^24.13.3",
     "typescript": "^7.0.2"
   },
   "exports": {

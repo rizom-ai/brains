@@ -1,9 +1,8 @@
 import type { EntityPluginContext } from "@brains/plugins";
 import { parseMarkdownWithFrontmatter } from "@brains/plugins";
-import { SITE_CHANNELS } from "@brains/contracts";
+import { SITE_CHANNELS, type SiteBuildStagingPayload } from "@brains/contracts";
 import { getErrorMessage } from "@brains/utils/error";
 import type { Logger } from "@brains/utils/logger";
-import type { SiteBuildStagingPayload } from "@brains/site-builder-plugin";
 import type { BlogPost } from "../schemas/blog-post";
 import { blogPostFrontmatterSchema } from "../schemas/blog-post";
 import type { BlogPostWithData } from "../datasources/blog-datasource";

@@ -8,7 +8,7 @@ import type { EntityPluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import type { ProgressReporter } from "@brains/utils/progress";
 import { slugify } from "@brains/utils/string-utils";
-import { fetchStyleGuide, formatVoiceGuidance } from "@brains/style-guide";
+import { fetchStyleGuide, formatVoiceGuidance } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 import { generationResultSchema } from "@brains/contracts";
 

@@ -14,7 +14,7 @@ import {
   type UpdateEntityResponse,
 } from "@brains/contracts";
 import type { IMessageBus } from "@brains/messaging-service";
-import { DaemonStatusInfoSchema, type Daemon } from "./manager/daemon-types";
+import type { Daemon } from "./manager/daemon-types";
 import type { IContentService } from "@brains/content-service";
 import type { Template } from "@brains/templates";
 import type { Logger } from "@brains/utils/logger";
@@ -81,14 +81,50 @@ import type {
   WebRouteDefinition,
 } from "./types/web-routes";
 import type { EntityDisplayEntry } from "@brains/site-composition";
+import {
+  appInfoSchema,
+  endpointInfoSchema,
+  entityCountSchema,
+  interactionInfoSchema,
+  interactionKindSchema,
+  interactionStatusSchema,
+} from "./contracts/runtime-app-info";
+import type {
+  EndpointInfo,
+  EndpointInfoInput,
+  EntityCount,
+  InteractionInfo,
+  InteractionInfoInput,
+  RuntimeAppInfo,
+} from "./contracts/runtime-app-info";
+import type { EvalHandler, InsightHandler } from "./contracts/handlers";
+import type {
+  ContentGenerationConfig,
+  GenerateContentFunction,
+  GenerationStyleGuide,
+} from "./contracts/generation";
 
-/**
- * Handler function for plugin evaluations
- * Plugins register these to enable direct (non-chat) testing
- */
-export type EvalHandler<TInput = unknown, TOutput = unknown> = (
-  input: TInput,
-) => Promise<TOutput>;
+export {
+  appInfoSchema,
+  endpointInfoSchema,
+  entityCountSchema,
+  interactionInfoSchema,
+  interactionKindSchema,
+  interactionStatusSchema,
+};
+export type {
+  ContentGenerationConfig,
+  EndpointInfo,
+  EndpointInfoInput,
+  EntityCount,
+  EvalHandler,
+  GenerateContentFunction,
+  GenerationStyleGuide,
+  InsightHandler,
+  InteractionInfo,
+  InteractionInfoInput,
+  RuntimeAppInfo,
+};
 
 /**
  * Registry interface for plugin eval handlers
@@ -129,118 +165,6 @@ export const toolInfoSchema: z.ZodObject<{
 });
 
 /**
- * Endpoint info — plugins advertise their user-facing URLs via
- * `context.endpoints.register({...})`. Shell collects and exposes
- * through `appInfo.endpoints` so the dashboard (and anything else)
- * can render them without knowing about individual plugins.
- */
-const userPermissionLevelSchema: z.ZodEnum<{
-  admin: "admin";
-  trusted: "trusted";
-  public: "public";
-}> = z.enum(["admin", "trusted", "public"]);
-
-export const endpointInfoSchema: z.ZodObject<{
-  label: z.ZodString;
-  url: z.ZodString;
-  pluginId: z.ZodString;
-  priority: z.ZodDefault<z.ZodNumber>;
-  visibility: z.ZodDefault<typeof userPermissionLevelSchema>;
-}> = z.object({
-  label: z.string(),
-  url: z.string(),
-  pluginId: z.string(),
-  priority: z.number().default(100),
-  visibility: userPermissionLevelSchema.default("public"),
-});
-
-export type EndpointInfo = z.output<typeof endpointInfoSchema>;
-export type EndpointInfoInput = z.input<typeof endpointInfoSchema>;
-
-export const interactionKindSchema: z.ZodEnum<{
-  human: "human";
-  agent: "agent";
-  admin: "admin";
-  protocol: "protocol";
-}> = z.enum(["human", "agent", "admin", "protocol"]);
-
-export const interactionStatusSchema: z.ZodEnum<{
-  available: "available";
-  "coming-soon": "coming-soon";
-  disabled: "disabled";
-}> = z.enum(["available", "coming-soon", "disabled"]);
-
-export const interactionInfoSchema: z.ZodObject<{
-  id: z.ZodString;
-  label: z.ZodString;
-  description: z.ZodOptional<z.ZodString>;
-  href: z.ZodString;
-  kind: typeof interactionKindSchema;
-  pluginId: z.ZodString;
-  priority: z.ZodDefault<z.ZodNumber>;
-  visibility: z.ZodDefault<typeof userPermissionLevelSchema>;
-  status: z.ZodDefault<typeof interactionStatusSchema>;
-}> = z.object({
-  id: z.string(),
-  label: z.string(),
-  description: z.string().optional(),
-  href: z.string(),
-  kind: interactionKindSchema,
-  pluginId: z.string(),
-  priority: z.number().default(100),
-  visibility: userPermissionLevelSchema.default("public"),
-  status: interactionStatusSchema.default("available"),
-});
-
-export type InteractionInfo = z.output<typeof interactionInfoSchema>;
-export type InteractionInfoInput = z.input<typeof interactionInfoSchema>;
-
-export const entityCountSchema: z.ZodObject<{
-  entityType: z.ZodString;
-  count: z.ZodNumber;
-}> = z.object({
-  entityType: z.string(),
-  count: z.number(),
-});
-
-export type EntityCount = z.output<typeof entityCountSchema>;
-
-/**
- * App info schema for validation
- */
-export const appInfoSchema: z.ZodObject<{
-  model: z.ZodString;
-  version: z.ZodString;
-  uptime: z.ZodNumber;
-  entities: z.ZodNumber;
-  entityCounts: z.ZodArray<typeof entityCountSchema>;
-  embeddings: z.ZodNumber;
-  ai: z.ZodObject<{
-    model: z.ZodString;
-    embeddingModel: z.ZodString;
-  }>;
-  daemons: z.ZodArray<typeof DaemonStatusInfoSchema>;
-  endpoints: z.ZodArray<typeof endpointInfoSchema>;
-  interactions: z.ZodArray<typeof interactionInfoSchema>;
-}> = z.object({
-  model: z.string(),
-  version: z.string(),
-  uptime: z.number(),
-  entities: z.number(),
-  entityCounts: z.array(entityCountSchema),
-  embeddings: z.number(),
-  ai: z.object({
-    model: z.string(),
-    embeddingModel: z.string(),
-  }),
-  daemons: z.array(DaemonStatusInfoSchema),
-  endpoints: z.array(endpointInfoSchema),
-  interactions: z.array(interactionInfoSchema),
-});
-
-export type RuntimeAppInfo = z.output<typeof appInfoSchema>;
-
-/**
  * Query context for shell queries
  */
 export interface QueryContext {
@@ -266,17 +190,6 @@ export interface JudgeInput<T> {
  * Shell interface that plugins use to access core services
  * This avoids circular dependencies between core and plugin-context
  */
-/**
- * Handler for a registered insight type.
- * Receives the entity service for data queries plus the caller's visibility
- * scope so aggregate insights can be filtered to what the caller is allowed
- * to see. Returns structured data.
- */
-export type InsightHandler = (
-  entityService: ICoreEntityService,
-  visibilityScope: ContentVisibility,
-) => Promise<Record<string, unknown>>;
-
 /**
  * Registry for insight types.
  * Core registers generic insights; plugins register domain-specific ones.
@@ -499,28 +412,3 @@ export type Plugin = z.output<typeof pluginMetadataSchema> & {
   getApiRoutes?(): ApiRouteDefinition[];
   getWebRoutes?(): WebRouteDefinition[];
 };
-
-/**
- * Content generation configuration - unified config object
- */
-export interface GenerationStyleGuide {
-  voice?: string;
-  visual?: string;
-}
-
-export interface ContentGenerationConfig {
-  prompt: string;
-  templateName: string;
-  conversationHistory?: string;
-  data?: Record<string, unknown>;
-  representedIdentity?: "brain" | "anchor" | "none";
-  styleGuide?: GenerationStyleGuide;
-  interfacePermissionGrant?: UserPermissionLevel;
-}
-
-/**
- * Content generation function signature - used by both PluginContext and Shell
- */
-export type GenerateContentFunction = <T = unknown>(
-  config: ContentGenerationConfig,
-) => Promise<T>;

@@ -6,7 +6,7 @@ import type { ProgressReporter } from "@brains/utils/progress";
 import { slugify } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
 import { generationResultSchema } from "@brains/contracts";
-import { fetchStyleGuide, formatVoiceGuidance } from "@brains/style-guide";
+import { fetchStyleGuide, formatVoiceGuidance } from "@brains/contracts";
 import type { EntityPluginContext } from "@brains/plugins";
 import type { SocialPostFrontmatter } from "../schemas/social-post";
 import { socialPostAdapter } from "../adapters/social-post-adapter";

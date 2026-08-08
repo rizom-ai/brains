@@ -5,7 +5,7 @@ import {
   WidgetActions,
   WidgetEmptyState,
   type WidgetComponentProps,
-} from "@brains/dashboard";
+} from "@brains/ui-library";
 import type { ServicePluginContext } from "@brains/plugins";
 import type { JSX } from "preact";
 import type { MailTriageOperatorService } from "./operator-service";

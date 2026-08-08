@@ -2,7 +2,7 @@ import { and, asc, desc, eq, lte, ne, sql } from "drizzle-orm";
 import { computeContentHash } from "@brains/utils/hash";
 import { z } from "@brains/utils/zod";
 import type { EntityDB } from "./db";
-import type { EntityMutationAdmission } from "./types";
+import type { EntityMutationAdmission } from "./mutation-admission";
 import {
   ProjectionWriteIntentSchema,
   type ProjectionWriteIntent,

@@ -7,8 +7,8 @@ import {
 } from "@brains/entity-service";
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
-import type { RuntimeAppInfo } from "../interfaces";
-import type { IEntityAINamespace } from "./context";
+import type { RuntimeAppInfo } from "../contracts/runtime-app-info";
+import type { IEntityAINamespace } from "./ai-types";
 import { computeProjectionInputFingerprint } from "./projection-input-fingerprint";
 
 export {

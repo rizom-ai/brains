@@ -8,7 +8,7 @@ Fact-checked against the tree 2026-06-10:
 
 - The public subpaths exist and exceed the Tier 2 list below: `@rizom/brain` (packages/brain-cli) ships `./plugins`, `./entities`, `./services`, `./interfaces`, `./templates`, plus `./site`, `./themes`, `./deploy`, and the `./cli` bin.
 - Declaration cleanliness is already guarded: `findInternalDeclarationImports` in `packages/brain-cli/scripts/build.ts` fails the build when generated declarations contain `@brains/*` imports.
-- dependency-cruiser is configured (`bun run arch:check`) with layering rules (no-circular, plugins-can-only-import-shell-and-shared, no plugin-to-plugin, …) — but not yet the published-official-plugin dependency rule from migration step 4.
+- `bun run arch:check` submits the Git-selected TypeScript/JavaScript inventory to one dependency-cruiser graph, asserts workspace-family coverage, and enforces circular, unresolved, plugin, entity, and interface boundaries in dedicated CI. It does not yet include the published-official-plugin dependency rule from migration step 4.
 - The blessed `z` root export (utils section below) is implemented from the public `@rizom/brain` root entry, so external plugin fixtures no longer declare their own `zod` dependency.
 - Milestone A has not started: `@brains/note` still depends on five private workspaces (`@brains/plugins`, `@brains/contracts`, `@brains/atproto-contracts`, `@brains/document`, `@brains/utils`).
 

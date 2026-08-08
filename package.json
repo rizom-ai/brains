@@ -31,7 +31,8 @@
     "typescript-legacy": "npm:typescript@^6.0.3"
   },
   "engines": {
-    "bun": ">=1.3.3"
+    "bun": ">=1.3.3",
+    "node": ">=24.18.0"
   },
   "lint-staged": {
     "*.{js,ts,tsx}": [
@@ -42,13 +43,15 @@
     ]
   },
   "overrides": {
+    "@types/node": "^24.13.3",
     "zod": "^4.1.8"
   },
   "packageManager": "bun@1.3.11",
   "private": true,
   "scripts": {
-    "arch:check": "depcruise --config .dependency-cruiser.js .",
-    "arch:graph": "depcruise --config .dependency-cruiser.js --output-type dot . | dot -T svg > dependency-graph.svg",
+    "arch:check": "bun scripts/architecture-check.ts",
+    "arch:graph": "bun scripts/architecture-check.ts --reporter dot | dot -T svg > dependency-graph.svg",
+    "arch:test": "bun test scripts/architecture-check.test.ts",
     "build": "turbo run build",
     "changeset": "bun scripts/release-lane.ts add",
     "changeset:check": "bun scripts/release-lane.ts check",

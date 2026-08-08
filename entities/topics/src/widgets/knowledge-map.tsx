@@ -1,6 +1,6 @@
 /** @jsxImportSource preact */
 import type { JSX } from "preact";
-import type { WidgetComponentProps } from "@brains/dashboard";
+import type { WidgetComponentProps } from "@brains/ui-library";
 import knowledgeMapStyles from "./knowledge-map.css" with { type: "text" };
 import {
   knowledgeMapDataSchema,

@@ -362,6 +362,12 @@ The project relies on:
 - **Eval suites** for end-to-end agent behavior and multi-model comparisons
 - **Type checking + linting** across the full monorepo via Turborepo
 
+### Dependency architecture validation
+
+Run `bun run arch:check` from the repository root after changing package imports. The command uses `git ls-files` to select tracked and non-ignored local TypeScript/JavaScript, removes only reviewed generated or standalone-consumer fixtures, and submits every selected entry to one dependency-cruiser graph. It fails on unresolved imports, circular dependencies, boundary violations, missing workspace-family sentinel edges, or unavailable TypeScript parsing.
+
+Use `bun scripts/architecture-check.ts --reporter json` to inspect the complete machine-readable graph. `bun run arch:graph` uses the same inventory and configuration to write `dependency-graph.svg` and requires Graphviz. Coverage counts are written to stderr so JSON and DOT stdout remain valid. Dependency-cruiser runs against the isolated `typescript-legacy` compiler because the repository's TypeScript 7 package no longer exposes the compiler API required by dependency-cruiser 17.
+
 ## Deployment model
 
 Current deployment paths:

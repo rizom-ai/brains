@@ -8,7 +8,7 @@ import {
   WidgetTabs,
   type WidgetComponentProps,
   type WidgetFilterOption,
-} from "@brains/dashboard";
+} from "@brains/ui-library";
 import type { ComponentChildren, JSX } from "preact";
 import {
   AGENT_NETWORK_KINDS,

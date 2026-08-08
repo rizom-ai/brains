@@ -1,4 +1,4 @@
-import { formatVisualGuidance, type StyleGuide } from "@brains/style-guide";
+import { formatVisualGuidance, type StyleGuide } from "@brains/contracts";
 
 /** Build image-generation art direction from the brain's style guide. */
 export function buildImageBasePrompt(styleGuide: StyleGuide): string {

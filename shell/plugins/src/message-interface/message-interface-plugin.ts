@@ -27,6 +27,7 @@ import type { ToolStatusUpdate } from "./tool-status";
 import {
   ProgressMessageCoordinator,
   type EditMessageRequest,
+  type MessageInterfaceOutput,
   type SendMessageToChannelRequest,
   type SendMessageWithIdRequest,
 } from "./progress-message-coordinator";
@@ -52,13 +53,6 @@ import {
 
 export { urlCaptureConfigSchema };
 
-export type MessageInterfaceOutput =
-  | string
-  | {
-      card: unknown;
-      fallbackText?: string;
-    };
-
 export interface NativeArtifactFile {
   cardId: string;
   data: Uint8Array;
@@ -73,6 +67,7 @@ export interface NativeArtifactDelivery {
 
 export type {
   EditMessageRequest,
+  MessageInterfaceOutput,
   SendMessageToChannelRequest,
   SendMessageWithIdRequest,
 } from "./progress-message-coordinator";

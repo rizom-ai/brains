@@ -5,7 +5,7 @@ import {
   WidgetListItem,
   WidgetTabs,
   type WidgetComponentProps,
-} from "@brains/dashboard";
+} from "@brains/ui-library";
 import type { JSX } from "preact";
 import {
   recentConversationMemoryDataSchema,
