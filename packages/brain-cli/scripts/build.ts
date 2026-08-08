@@ -164,6 +164,7 @@ console.log("Building @rizom/brain...");
 const sharedExternals = [
   "@libsql/client",
   "libsql",
+  "@tursodatabase/database",
   "lightningcss",
   "@tailwindcss/oxide",
   // ink loads react-devtools-core unconditionally

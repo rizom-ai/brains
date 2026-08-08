@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { createClient } from "@libsql/client";
+import { sql } from "drizzle-orm";
 import {
   applySqlitePragmas,
   createSqliteDatabase,
@@ -16,6 +17,41 @@ describe("createSqliteDatabase", () => {
     expect(db).toBeDefined();
     expect(client).toBeDefined();
     client.close();
+  });
+
+  it("uses the turso engine for file urls when BRAINS_DB_ENGINE=turso", async () => {
+    process.env["BRAINS_DB_ENGINE"] = "turso";
+    try {
+      const { db, client } = createSqliteDatabase({
+        url: "file::memory:",
+        schema: {},
+      });
+      // the turso file client is distinguishable by its unsupported sync()
+      expect(client.sync()).rejects.toThrow(/turso/);
+      await client.execute("CREATE TABLE t (x INTEGER)");
+      await client.execute("INSERT INTO t VALUES (7)");
+      const rows = await db.all<{ x: number }>(sql`SELECT x FROM t`);
+      expect(rows).toEqual([{ x: 7 }]);
+      client.close();
+    } finally {
+      delete process.env["BRAINS_DB_ENGINE"];
+    }
+  });
+
+  it("keeps libsql for remote urls even when BRAINS_DB_ENGINE=turso", () => {
+    process.env["BRAINS_DB_ENGINE"] = "turso";
+    try {
+      const { client } = createSqliteDatabase({
+        url: "libsql://example.turso.io",
+        schema: {},
+        authToken: "token",
+      });
+      // the libsql remote client reports its protocol; the adapter is file-only
+      expect(client.protocol).not.toBe("file");
+      client.close();
+    } finally {
+      delete process.env["BRAINS_DB_ENGINE"];
+    }
   });
 });
 

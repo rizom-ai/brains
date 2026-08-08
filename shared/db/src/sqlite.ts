@@ -1,6 +1,7 @@
 import { createClient, type Client } from "@libsql/client";
 import { drizzle } from "drizzle-orm/libsql";
 import type { LibSQLDatabase } from "drizzle-orm/libsql";
+import { createTursoClient } from "./turso-client";
 
 export type SqliteDatabase = LibSQLDatabase<Record<string, unknown>>;
 
@@ -50,9 +51,13 @@ export function createSqliteDatabase(
   const { url, schema } = options;
   const authToken = resolveAuthToken(options);
 
-  const client = authToken
-    ? createClient({ url, authToken })
-    : createClient({ url });
+  const useTurso =
+    process.env["BRAINS_DB_ENGINE"] === "turso" && url.startsWith("file:");
+  const client = useTurso
+    ? createTursoClient({ url })
+    : authToken
+      ? createClient({ url, authToken })
+      : createClient({ url });
 
   return { db: drizzle(client, { schema }), client, url };
 }
