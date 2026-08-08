@@ -6,4 +6,6 @@ Introduce schema-backed package definitions, typed `use()` composition, object-r
 
 Bundled instances can explicitly disable provider-backed semantic indexing while retaining lexical full-text search. Exact bundled tool invocation supports structured input, generated confirmation replay, and explicit permission scopes.
 
+Declarative service packages now infer setup state and config, expose schema-first tools with plain typed output, and register durable typed jobs with queue-owned retries, deadlines, progress, cancellation, status, and restart recovery. Resources, prompts, templates, views, and cleanup remain lifecycle-owned.
+
 This intentionally removes alpha-only root and plugin authoring exports including `PLUGIN_API_VERSION`, class-first plugin APIs, tuple/factory contracts, factory package loading, and the root Zod convenience export. Family authoring entries own their blessed schema helpers.

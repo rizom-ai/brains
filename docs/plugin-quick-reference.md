@@ -56,7 +56,7 @@ Package name, version, and runtime capability scoping are loader-owned.
 
 ## Lifecycle ownership
 
-- Use `setup` for package-owned state and resources.
+- Use `setup` for package-owned state and resources; register teardown with `lifecycle.onCleanup()`.
 - Use schema-first jobs for durable worker work.
 - Use supervised interface daemons for long-running listeners.
 - Use projections for deterministic entity derivation.

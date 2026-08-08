@@ -16,6 +16,19 @@ const digestResult = z.object({
   wordCount: z.number().int().nonnegative(),
 });
 
+const digestStatus = z.object({
+  status: z.enum(["pending", "processing", "completed", "failed"]),
+  progress: z
+    .object({
+      progress: z.number(),
+      total: z.number().optional(),
+      message: z.string().optional(),
+    })
+    .nullable(),
+  result: digestResult.optional(),
+  error: z.string().optional(),
+});
+
 export const compileReadingDigest = defineJob({
   name: "compile-reading-digest",
   input: digestRequest,
@@ -132,6 +145,23 @@ export default defineServicePlugin({
       async execute({ input }) {
         const job = await jobs.enqueue(compileReadingDigest, input);
         return { jobId: job.id };
+      },
+    }),
+    defineTool({
+      name: "reading-digest-status",
+      description: "Read one durable digest job status.",
+      input: z.object({ jobId: z.string() }),
+      output: digestStatus,
+      sideEffects: "none",
+      async execute({ input }) {
+        const status = await jobs.status(compileReadingDigest, input.jobId);
+        if (!status) throw new Error(`Digest job not found: ${input.jobId}`);
+        return {
+          status: status.status,
+          progress: status.progress,
+          ...(status.result ? { result: status.result } : {}),
+          ...(status.error ? { error: status.error } : {}),
+        };
       },
     }),
   ],

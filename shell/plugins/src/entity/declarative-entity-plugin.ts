@@ -50,6 +50,13 @@ function entitySchema(
   return schema;
 }
 
+export function parseDefinitionEntity<TDefinition extends AnyEntityDefinition>(
+  definition: TDefinition,
+  input: unknown,
+): EntityOf<TDefinition> {
+  return entitySchema(definition).parse(input) as EntityOf<TDefinition>;
+}
+
 function encodeParts(
   definition: AnyEntityDefinition,
   input: {

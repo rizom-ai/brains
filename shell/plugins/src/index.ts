@@ -203,6 +203,17 @@ export {
   type ProjectionDefinition,
   type ProjectionTarget,
 } from "./public/entity-definition";
+export {
+  defineJob,
+  defineServicePlugin,
+  defineTool,
+  type AnyServiceJobDefinition,
+  type AnyServiceToolDefinition,
+  type ServiceJobDefinition,
+  type ServiceJobReference,
+  type ServiceJobStatus,
+  type ServicePackageDefinition,
+} from "./public/service-definition";
 
 // ============================================================================
 // Essential Plugin Interfaces & Types

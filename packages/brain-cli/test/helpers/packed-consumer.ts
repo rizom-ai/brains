@@ -297,17 +297,23 @@ export async function buildAndPackFixturePackage(
     parsedManifest["peerDependencies"] ?? {},
     `peerDependencies: ${manifestPath}`,
   );
+  const overrides = stringRecord(
+    parsedManifest["overrides"] ?? {},
+    `overrides: ${manifestPath}`,
+  );
   for (const [packageName, tarball] of dependencyTarballs) {
+    const localTarball = `file:${tarball}`;
+    overrides[packageName] = localTarball;
     if (packageName in dependencies) {
-      dependencies[packageName] = `file:${tarball}`;
+      dependencies[packageName] = localTarball;
     } else if (packageName in peerDependencies) {
-      devDependencies[packageName] = `file:${tarball}`;
+      devDependencies[packageName] = localTarball;
     }
   }
   await writeFile(
     manifestPath,
     `${JSON.stringify(
-      { ...parsedManifest, dependencies, devDependencies },
+      { ...parsedManifest, dependencies, devDependencies, overrides },
       null,
       2,
     )}\n`,

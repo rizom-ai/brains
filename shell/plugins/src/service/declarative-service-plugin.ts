@@ -1,0 +1,547 @@
+import { AsyncLocalStorage } from "node:async_hooks";
+import type { JsonObject } from "@brains/contracts";
+import type { JobHandler, JobInfo } from "@brains/job-queue";
+import type { ProgressReporter } from "@brains/utils/progress";
+import type {
+  Prompt,
+  Resource,
+  Tool,
+  ToolContext,
+  ToolResponse,
+} from "@brains/mcp-service";
+import {
+  createTemplate,
+  type ComponentType,
+  type Template,
+} from "@brains/templates";
+import { getErrorMessage } from "@brains/utils/error";
+import { createId } from "@brains/utils/id";
+import { z } from "@brains/utils/zod";
+import type { PluginCapabilities, IShell } from "../interfaces";
+import type { InstalledPluginPackageMetadata } from "../package-definition";
+import { parseDefinitionEntity } from "../entity/declarative-entity-plugin";
+import { ServicePlugin } from "./service-plugin";
+import type { ServicePluginContext } from "./context";
+import type {
+  AnyServiceJobDefinition,
+  AnyServiceToolDefinition,
+  ServiceDefinitionInput,
+  ServiceJobBinding,
+  ServiceJobReference,
+  ServiceJobStatus,
+  ServiceJobs,
+  ServicePromptDefinition,
+  ServiceResourceDefinition,
+  ServiceSchema,
+  ServiceSchemaMap,
+  ServiceTemplateDefinition,
+  ServiceTemplateFormatter,
+  ServiceViewDefinition,
+} from "../public/service-definition";
+import {
+  getServiceJobHandler,
+  parseServiceDeadline,
+} from "../public/service-definition";
+
+const confirmationTokenField = "_rizomConfirmationToken";
+
+function identityConfigSchema<TConfig extends object>(): z.ZodType<
+  TConfig,
+  unknown
+> {
+  return z.custom<TConfig>(
+    (value) => value !== null && typeof value === "object",
+  );
+}
+
+function toolConfirmationToken(input: unknown): string | undefined {
+  if (input === null || typeof input !== "object") return undefined;
+  const token = Reflect.get(input, confirmationTokenField);
+  return typeof token === "string" ? token : undefined;
+}
+
+function promptInput(value: string | undefined): unknown {
+  if (value === undefined) return {};
+  try {
+    return JSON.parse(value);
+  } catch {
+    return value;
+  }
+}
+
+function statusFor<TDefinition extends AnyServiceJobDefinition>(
+  definition: TDefinition,
+  job: JobInfo,
+): ServiceJobStatus<z.output<TDefinition["output"]>> {
+  const result: z.output<TDefinition["output"]> | undefined =
+    job.status === "completed" && job.result !== undefined
+      ? (definition.output.parse(job.result) as z.output<TDefinition["output"]>)
+      : undefined;
+  return {
+    id: job.id,
+    status: job.status,
+    progress: job.progress,
+    ...(result !== undefined ? { result } : {}),
+    ...(job.lastError ? { error: job.lastError } : {}),
+  };
+}
+
+function runtimeJobHandler(
+  binding: ServiceJobBinding,
+  context: ServicePluginContext,
+  templates: ServiceTemplateFormatter,
+): JobHandler<string, unknown, unknown> {
+  const definition = binding.definition;
+  const handler = getServiceJobHandler(binding);
+  return {
+    ...(definition.deadline
+      ? { executionTimeoutMs: parseServiceDeadline(definition.deadline) }
+      : {}),
+    validateAndParse(data): unknown | null {
+      const parsed = definition.input.safeParse(data);
+      return parsed.success ? parsed.data : null;
+    },
+    async process(
+      input: unknown,
+      _jobId: string,
+      progress: ProgressReporter,
+      signal: AbortSignal,
+    ): Promise<unknown> {
+      const output = await handler({
+        input,
+        signal,
+        progress,
+        templates,
+        entities: {
+          async get(entityDefinition, id) {
+            const entity = await context.entityService.getEntity({
+              entityType: entityDefinition.type,
+              id,
+              visibilityScope: "restricted",
+            });
+            return entity
+              ? parseDefinitionEntity(entityDefinition, entity)
+              : null;
+          },
+        },
+        messaging: {
+          async publish(message): Promise<void> {
+            await context.messaging.send({
+              type: message.topic,
+              payload: message.data,
+            });
+          },
+        },
+      });
+      return definition.output.parse(output);
+    },
+  };
+}
+
+class DeclarativeServicePlugin<
+  TConfigSchema extends z.ZodType<object, object>,
+  TState extends object,
+  TPromptSchemas extends ServiceSchemaMap,
+  TTemplateSchemas extends ServiceSchemaMap,
+  TViewSchemas extends ServiceSchemaMap,
+> extends ServicePlugin<z.output<TConfigSchema>, z.output<TConfigSchema>> {
+  private readonly definition: ServiceDefinitionInput<
+    TConfigSchema,
+    TState,
+    TPromptSchemas,
+    TTemplateSchemas,
+    TViewSchemas
+  >;
+  private readonly publicId: string;
+  private readonly toolContext = new AsyncLocalStorage<ToolContext>();
+  private readonly cleanups: Array<() => void | Promise<void>> = [];
+  private readonly registeredJobs = new Set<AnyServiceJobDefinition>();
+  private scopedShell: IShell | undefined;
+  private state: TState | undefined;
+  private tools: Tool[] | undefined;
+  private resources: Resource[] | undefined;
+
+  constructor(
+    definition: ServiceDefinitionInput<
+      TConfigSchema,
+      TState,
+      TPromptSchemas,
+      TTemplateSchemas,
+      TViewSchemas
+    >,
+    config: z.output<TConfigSchema>,
+    metadata: InstalledPluginPackageMetadata,
+    id: string,
+  ) {
+    super(id, metadata, config, identityConfigSchema());
+    this.definition = definition;
+    this.publicId = definition.id;
+  }
+
+  public override register(shell: IShell): Promise<PluginCapabilities> {
+    this.scopedShell = shell;
+    return super.register(shell);
+  }
+
+  protected override async onRegister(
+    context: ServicePluginContext,
+  ): Promise<void> {
+    await super.onRegister(context);
+    this.state = this.definition.setup
+      ? await this.definition.setup({
+          config: this.config,
+          lifecycle: {
+            onCleanup: (cleanup): void => {
+              this.cleanups.push(cleanup);
+            },
+          },
+        })
+      : (Object.freeze({}) as TState);
+
+    const templates = this.templateFormatter();
+    context.templates.register(this.runtimeTemplates(), this.id);
+    this.registerPrompts();
+
+    const bindings =
+      this.definition.jobs?.({ config: this.config, state: this.state }) ?? [];
+    const names = new Set<string>();
+    for (const binding of bindings) {
+      const job = binding.definition;
+      if (names.has(job.name)) {
+        throw new Error(
+          `Service "${this.publicId}" registers job "${job.name}" more than once`,
+        );
+      }
+      names.add(job.name);
+      this.registeredJobs.add(job);
+      context.jobs.registerHandler(
+        job.name,
+        runtimeJobHandler(binding, context, templates),
+      );
+    }
+  }
+
+  protected override async getTools(): Promise<Tool[]> {
+    if (this.tools) return this.tools;
+    const state = this.requireState();
+    const definitions =
+      this.definition.tools?.({
+        config: this.config,
+        state,
+        jobs: this.jobs(),
+        templates: this.templateFormatter(),
+      }) ?? [];
+    const names = new Set<string>();
+    this.tools = definitions.map((definition) => {
+      if (names.has(definition.name)) {
+        throw new Error(
+          `Service "${this.publicId}" defines tool "${definition.name}" more than once`,
+        );
+      }
+      names.add(definition.name);
+      return this.runtimeTool(definition);
+    });
+    return this.tools;
+  }
+
+  protected override async getResources(): Promise<Resource[]> {
+    if (this.resources) return this.resources;
+    const definitions =
+      this.definition.resources?.({
+        config: this.config,
+        state: this.requireState(),
+      }) ?? {};
+    this.resources = Object.entries(definitions).map(([name, definition]) =>
+      this.runtimeResource(name, definition),
+    );
+    return this.resources;
+  }
+
+  protected override async getInstructions(): Promise<string | undefined> {
+    return this.definition.instructions?.({
+      config: this.config,
+      state: this.requireState(),
+    });
+  }
+
+  protected override async onShutdown(): Promise<void> {
+    this.tools = undefined;
+    this.resources = undefined;
+    this.registeredJobs.clear();
+    for (const cleanup of this.cleanups.splice(0).reverse()) {
+      await cleanup();
+    }
+  }
+
+  private requireState(): TState {
+    if (this.state === undefined) {
+      throw new Error(`Service "${this.publicId}" has not completed setup`);
+    }
+    return this.state;
+  }
+
+  private jobs(): ServiceJobs {
+    const context = this.getContext();
+    return {
+      enqueue: async <TDefinition extends AnyServiceJobDefinition>(
+        definition: TDefinition,
+        input: z.input<TDefinition["input"]>,
+      ): Promise<ServiceJobReference<TDefinition>> => {
+        if (!this.registeredJobs.has(definition)) {
+          throw new Error(
+            `Service "${this.publicId}" cannot enqueue unregistered job "${definition.name}"`,
+          );
+        }
+        const data = definition.input.parse(input);
+        const toolContext = this.toolContext.getStore();
+        const maxRetries = definition.retry
+          ? definition.retry.attempts - 1
+          : undefined;
+        const id = await context.jobs.enqueue({
+          type: definition.name,
+          data,
+          ...(toolContext ? { toolContext } : {}),
+          ...(maxRetries !== undefined
+            ? {
+                options: {
+                  source: this.id,
+                  metadata: {
+                    operationType: "data_processing",
+                    pluginId: this.id,
+                  },
+                  maxRetries,
+                },
+              }
+            : {}),
+        });
+        return Object.freeze({
+          id,
+          status: async () => {
+            const job = await context.jobs.getStatus(id);
+            return job ? statusFor(definition, job) : null;
+          },
+        });
+      },
+      async status<TDefinition extends AnyServiceJobDefinition>(
+        definition: TDefinition,
+        id: string,
+      ): Promise<ServiceJobStatus<z.output<TDefinition["output"]>> | null> {
+        const job = await context.jobs.getStatus(id);
+        return job ? statusFor(definition, job) : null;
+      },
+    };
+  }
+
+  private templateFormatter(): ServiceTemplateFormatter {
+    const templates = this.definition.templates as
+      Record<string, ServiceTemplateDefinition<ServiceSchema>> | undefined;
+    return {
+      format(name, value): string {
+        const template = templates?.[name];
+        if (!template) throw new Error(`Template not found: ${name}`);
+        return template.format({ value: template.schema.parse(value) });
+      },
+    };
+  }
+
+  private runtimeTemplates(): Record<string, Template> {
+    const templates = this.definition.templates as
+      Record<string, ServiceTemplateDefinition<ServiceSchema>> | undefined;
+    const views = this.definition.views as
+      Record<string, ServiceViewDefinition<ServiceSchema>> | undefined;
+    const result: Record<string, Template> = {};
+    const names = new Set([
+      ...Object.keys(templates ?? {}),
+      ...Object.keys(views ?? {}),
+    ]);
+
+    for (const name of names) {
+      const template = templates?.[name];
+      const view = views?.[name];
+      if (template && view && template.schema !== view.schema) {
+        throw new Error(
+          `Service "${this.publicId}" template and view "${name}" must share one schema`,
+        );
+      }
+      const schema = template?.schema ?? view?.schema;
+      if (!schema) continue;
+      const base = {
+        name,
+        description: view?.description ?? `${this.publicId} ${name}`,
+        schema,
+        requiredPermission: "admin" as const,
+        ...(template
+          ? {
+              formatter: {
+                format: (value: unknown): string =>
+                  template.format({ value: template.schema.parse(value) }),
+                parse: (): never => {
+                  throw new Error(`Template "${name}" is format-only`);
+                },
+              },
+            }
+          : {}),
+      };
+      if (!view) {
+        result[name] = createTemplate(base);
+        continue;
+      }
+      const component = ((value: JsonObject) => {
+        const parsed = view.schema.parse(value);
+        return typeof view.renderers.web === "function"
+          ? view.renderers.web(parsed)
+          : view.renderers.web;
+      }) as unknown as ComponentType<JsonObject>;
+      result[name] = createTemplate<JsonObject>({
+        ...base,
+        schema: schema as z.ZodType<JsonObject, unknown>,
+        layout: { component },
+      });
+    }
+    return result;
+  }
+
+  private registerPrompts(): void {
+    const shell = this.scopedShell;
+    if (!shell) throw new Error(`Service "${this.publicId}" has no shell`);
+    const prompts = this.definition.prompts as
+      Record<string, ServicePromptDefinition<ServiceSchema>> | undefined;
+    for (const [name, definition] of Object.entries(prompts ?? {})) {
+      const prompt: Prompt = {
+        name: `${this.publicId}_${name}`,
+        ...(definition.description
+          ? { description: definition.description }
+          : {}),
+        args: {
+          input: {
+            description: "JSON input",
+            required: true,
+          },
+        },
+        handler: async (args) => {
+          const input = definition.input.parse(promptInput(args["input"]));
+          return {
+            messages: [
+              {
+                role: "user",
+                content: {
+                  type: "text",
+                  text: definition.render({ input }),
+                },
+              },
+            ],
+          };
+        },
+      };
+      shell.registerPrompt(this.id, prompt);
+    }
+  }
+
+  private runtimeResource(
+    name: string,
+    definition: ServiceResourceDefinition,
+  ): Resource {
+    return {
+      uri: definition.uri,
+      name,
+      ...(definition.description
+        ? { description: definition.description }
+        : {}),
+      mimeType: definition.mimeType ?? "text/plain",
+      handler: async () => ({
+        contents: [
+          {
+            uri: definition.uri,
+            mimeType: definition.mimeType ?? "text/plain",
+            text: await definition.read(),
+          },
+        ],
+      }),
+    };
+  }
+
+  private runtimeTool(definition: AnyServiceToolDefinition): Tool {
+    const name = `${this.publicId}_${definition.name}`;
+    const pending = new Map<string, unknown>();
+    return {
+      name,
+      description: definition.description,
+      inputSchema: definition.input.shape,
+      outputSchema: definition.output,
+      visibility: definition.permission ?? "admin",
+      sideEffects:
+        definition.sideEffects ?? (definition.confirmation ? "writes" : "none"),
+      handler: async (rawInput, toolContext): Promise<ToolResponse> => {
+        try {
+          let input: unknown;
+          const token = toolConfirmationToken(rawInput);
+          if (token) {
+            input = pending.get(token);
+            pending.delete(token);
+            if (input === undefined) {
+              return {
+                success: false,
+                error: `No pending confirmation found for ${name}`,
+              };
+            }
+          } else {
+            input = definition.input.parse(rawInput);
+            if (definition.confirmation) {
+              const confirmationToken = createId();
+              pending.set(confirmationToken, input);
+              return {
+                needsConfirmation: true,
+                toolName: name,
+                summary: definition.confirmation,
+                args: {
+                  ...z.record(z.string(), z.unknown()).parse(input),
+                  [confirmationTokenField]: confirmationToken,
+                },
+              };
+            }
+          }
+
+          const output = await this.toolContext.run(toolContext, () =>
+            definition.execute({
+              input: definition.input.parse(input),
+              signal: toolContext.signal ?? new AbortController().signal,
+            }),
+          );
+          return {
+            success: true,
+            data: definition.output.parse(output),
+          };
+        } catch (error) {
+          return { success: false, error: getErrorMessage(error) };
+        }
+      },
+    };
+  }
+}
+
+export function createDeclarativeServicePlugin<
+  TConfigSchema extends z.ZodType<object, object>,
+  TState extends object,
+  TPromptSchemas extends ServiceSchemaMap,
+  TTemplateSchemas extends ServiceSchemaMap,
+  TViewSchemas extends ServiceSchemaMap,
+>(
+  definition: ServiceDefinitionInput<
+    TConfigSchema,
+    TState,
+    TPromptSchemas,
+    TTemplateSchemas,
+    TViewSchemas
+  >,
+  config: z.output<TConfigSchema>,
+  metadata: InstalledPluginPackageMetadata,
+  id: string,
+): DeclarativeServicePlugin<
+  TConfigSchema,
+  TState,
+  TPromptSchemas,
+  TTemplateSchemas,
+  TViewSchemas
+> {
+  return new DeclarativeServicePlugin(definition, config, metadata, id);
+}
