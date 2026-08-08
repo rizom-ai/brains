@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.263
+
+### Patch Changes
+
+- [`cfbec3b`](https://github.com/rizom-ai/brains/commit/cfbec3b4dcafc5d67f7f905d2c4fd3bf082df600) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Serialize durable job deduplication in explicit database write transactions across queue clients and processes. Validate duplicate requests before selection, reserve projection budget only for committed inserts, and preserve in-flight enqueue transactions during service shutdown.
+
 ## 0.2.0-alpha.262
 
 ### Patch Changes

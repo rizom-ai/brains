@@ -1,5 +1,24 @@
 # @brains/core
 
+## 0.2.0-alpha.263
+
+### Patch Changes
+
+- [`cfbec3b`](https://github.com/rizom-ai/brains/commit/cfbec3b4dcafc5d67f7f905d2c4fd3bf082df600) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Serialize durable job deduplication in explicit database write transactions across queue clients and processes. Validate duplicate requests before selection, reserve projection budget only for committed inserts, and preserve in-flight enqueue transactions during service shutdown.
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.263
+  - @brains/recurring-checks@0.2.0-alpha.263
+  - @brains/image@0.2.0-alpha.263
+  - @brains/contracts@0.2.0-alpha.263
+  - @brains/notification-contracts@0.2.0-alpha.263
+  - @brains/operation-context@0.2.0-alpha.263
+  - @brains/site-composition@0.2.0-alpha.263
+  - @brains/utils@0.2.0-alpha.263
+  - @brains/runtime-state@0.2.0-alpha.263
+  - @brains/scheduler@0.2.0-alpha.263
+  - @brains/templates@0.2.0-alpha.263
+
 ## 0.2.0-alpha.262
 
 ### Patch Changes

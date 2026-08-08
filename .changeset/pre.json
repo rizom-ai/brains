@@ -220,6 +220,7 @@
     "content-pipeline-scheduler-lifecycle",
     "conventional-site-package-merge",
     "conversation-service-effect-layer",
+    "core--atomic-job-deduplication",
     "core--batch-enqueue-validation-only-mode",
     "core--brain-definition-profile-kind",
     "core--bundle-resolver-integration",
