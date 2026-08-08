@@ -201,6 +201,11 @@ export class JobProgressMonitor implements IJobProgressMonitor {
     return !!rootJobId && rootJobId !== jobId;
   }
 
+  /** A durable-writer only records progress; its reader publishes events. */
+  private get publishesEvents(): boolean {
+    return this.mode !== "durable-writer";
+  }
+
   private async broadcastEvent(event: JobProgressEvent): Promise<void> {
     await this.messageBus.send({
       type: JOB_CHANNELS.progress,
@@ -231,7 +236,7 @@ export class JobProgressMonitor implements IJobProgressMonitor {
         return;
       }
 
-      if (this.mode === "durable-writer") return;
+      if (!this.publishesEvents) return;
 
       const job = await this.jobQueueService.getStatus(jobId);
       if (!job) {
@@ -270,21 +275,18 @@ export class JobProgressMonitor implements IJobProgressMonitor {
   }
 
   public async emitJobCompletion(jobId: string): Promise<void> {
-    if (this.mode !== "durable-writer") {
-      await this.emitJobStatusEvent(jobId, "completed");
-    }
+    await this.emitJobStatusEvent(jobId, "completed");
   }
 
   public async emitJobFailure(jobId: string): Promise<void> {
-    if (this.mode !== "durable-writer") {
-      await this.emitJobStatusEvent(jobId, "failed");
-    }
+    await this.emitJobStatusEvent(jobId, "failed");
   }
 
   private async emitJobStatusEvent(
     jobId: string,
     status: "completed" | "failed",
   ): Promise<void> {
+    if (!this.publishesEvents) return;
     try {
       const job = await this.jobQueueService.getStatus(jobId);
       if (!job) {
@@ -376,7 +378,7 @@ export class JobProgressMonitor implements IJobProgressMonitor {
     status: "completed" | "failed",
     metadata?: Record<string, unknown>,
   ): Promise<void> {
-    if (this.mode === "durable-writer") return;
+    if (!this.publishesEvents) return;
     const parsedMetadata = metadata
       ? JobContextSchema.safeParse(metadata)
       : undefined;
