@@ -112,29 +112,20 @@ volumes:
 `,
 ];
 
-const reconcilableStarterFiles: Partial<
-  Record<(typeof starterFilePaths)[number], string[]>
-> = {
-  "deploy/kamal/deploy.yml": legacyDeployYmlContents,
-};
+type StarterFilePath = (typeof starterFilePaths)[number];
+type StalenessCheck = (current: string, template: string) => boolean;
 
 /**
- * Fingerprints for the ops-owned generated deploy scripts, mirroring the
- * shared deployScriptFingerprints in @brains/deploy-support: a committed copy
- * that still contains its fingerprint but differs from the rendered template
- * is a prior generated vintage and gets rewritten on rerun.
+ * Marks a committed ops-owned generated script as a prior vintage when it
+ * still contains its fingerprint, mirroring the shared
+ * deployScriptFingerprints in @brains/deploy-support.
  */
-const opsDeployScriptFingerprints: Partial<
-  Record<(typeof starterFilePaths)[number], string>
-> = {
-  "deploy/scripts/helpers.ts": '"@rizom/ops/deploy"',
-  "deploy/scripts/resolve-user-config.ts": "loadPilotRegistry",
-  "deploy/scripts/resolve-missing-images.ts": "runResolveMissingImages",
-  "deploy/scripts/sync-content-repo.ts": "GIT_SYNC_TOKEN",
-};
+function hasOpsScriptFingerprint(fingerprint: string): StalenessCheck {
+  return (current) => current.includes(fingerprint);
+}
 
 function sharedDeployScriptName(
-  relativePath: (typeof starterFilePaths)[number],
+  relativePath: StarterFilePath,
 ): DeployScriptName | undefined {
   return deployScriptNames.find(
     (script) => relativePath === `deploy/scripts/${script}`,
@@ -170,49 +161,40 @@ function isStalePilotDeploySecrets(current: string): boolean {
   return normalizedCurrent === normalizedTemplate;
 }
 
-function isStalePilotEnvSchema(current: string, template: string): boolean {
-  const withoutDiscordChatCredentials = template.replace(
-    /\n# Stored with the per-user Discord credentials and injected at deploy time\.\n# @sensitive\nDISCORD_PUBLIC_KEY=\n\n# @sensitive\nDISCORD_APPLICATION_ID=\n/,
-    "\n",
-  );
-  const withoutAtproto = template.replace(
-    /\n# AT Protocol publishing\/discovery \(optional, per-user\)\n# Comes from the decrypted users\/<handle>\.secrets\.yaml\.age file when configured\.\n# @sensitive\nATPROTO_APP_PASSWORD=\n/,
-    "\n",
-  );
-  const withoutAtprotoOrDiscordChatCredentials = withoutAtproto.replace(
-    /\n# Stored with the per-user Discord credentials and injected at deploy time\.\n# @sensitive\nDISCORD_PUBLIC_KEY=\n\n# @sensitive\nDISCORD_APPLICATION_ID=\n/,
-    "\n",
-  );
+/**
+ * A committed copy missing any subset of these optional blocks is a prior
+ * vintage: stripping every block from both sides makes stale copies equal
+ * to the template without enumerating removal combinations.
+ */
+const envSchemaOptionalBlocks = [
+  /\n# Stored with the per-user Discord credentials and injected at deploy time\.\n# @sensitive\nDISCORD_PUBLIC_KEY=\n\n# @sensitive\nDISCORD_APPLICATION_ID=\n/,
+  /\n# AT Protocol publishing\/discovery \(optional, per-user\)\n# Comes from the decrypted users\/<handle>\.secrets\.yaml\.age file when configured\.\n# @sensitive\nATPROTO_APP_PASSWORD=\n/,
+];
 
-  return [
-    withoutDiscordChatCredentials,
-    withoutAtproto,
-    withoutAtprotoOrDiscordChatCredentials,
-  ].includes(current);
+function isStalePilotEnvSchema(current: string, template: string): boolean {
+  const strip = (content: string): string =>
+    envSchemaOptionalBlocks.reduce(
+      (stripped, block) => stripped.replace(block, "\n"),
+      content,
+    );
+  return strip(current) === strip(template);
 }
+
+const decryptUserSecretsOptionalSnippets = [
+  'writeSecretGitHubEnv("DISCORD_PUBLIC_KEY", secrets["discordPublicKey"]);\nwriteSecretGitHubEnv("DISCORD_APPLICATION_ID", secrets["discordApplicationId"]);\n',
+  'writeSecretGitHubEnv("ATPROTO_APP_PASSWORD", secrets["atprotoAppPassword"]);\n',
+];
 
 function isStaleDecryptUserSecretsScript(
   current: string,
   template: string,
 ): boolean {
-  const withoutDiscordChatCredentials = template.replace(
-    'writeSecretGitHubEnv("DISCORD_PUBLIC_KEY", secrets["discordPublicKey"]);\nwriteSecretGitHubEnv("DISCORD_APPLICATION_ID", secrets["discordApplicationId"]);\n',
-    "",
-  );
-  const withoutAtproto = template.replace(
-    'writeSecretGitHubEnv("ATPROTO_APP_PASSWORD", secrets["atprotoAppPassword"]);\n',
-    "",
-  );
-  const withoutAtprotoOrDiscordChatCredentials = withoutAtproto.replace(
-    'writeSecretGitHubEnv("DISCORD_PUBLIC_KEY", secrets["discordPublicKey"]);\nwriteSecretGitHubEnv("DISCORD_APPLICATION_ID", secrets["discordApplicationId"]);\n',
-    "",
-  );
-
-  return [
-    withoutDiscordChatCredentials,
-    withoutAtproto,
-    withoutAtprotoOrDiscordChatCredentials,
-  ].includes(current);
+  const strip = (content: string): string =>
+    decryptUserSecretsOptionalSnippets.reduce(
+      (stripped, snippet) => stripped.replace(snippet, ""),
+      content,
+    );
+  return strip(current) === strip(template);
 }
 
 function isStaleResolveDeployHandlesScript(current: string): boolean {
@@ -220,6 +202,40 @@ function isStaleResolveDeployHandlesScript(current: string): boolean {
     current.includes('if (eventName !== "push") {') &&
     current.includes('const currentSha = requireEnv("GITHUB_SHA");')
   );
+}
+
+/** Per-file detectors for committed copies of prior generated vintages. */
+const stalenessChecks: Partial<Record<StarterFilePath, StalenessCheck>> = {
+  ".env.schema": isStalePilotEnvSchema,
+  "deploy/Dockerfile": (current) => isStaleDeployDockerfile(current),
+  "deploy/kamal/deploy.yml": (current) =>
+    legacyDeployYmlContents.includes(current) ||
+    isStalePilotDeployYml(current) ||
+    isStalePilotDeploySecrets(current),
+  "deploy/scripts/decrypt-user-secrets.ts": isStaleDecryptUserSecretsScript,
+  "deploy/scripts/resolve-deploy-handles.ts": (current) =>
+    isStaleResolveDeployHandlesScript(current),
+  "deploy/scripts/helpers.ts": hasOpsScriptFingerprint('"@rizom/ops/deploy"'),
+  "deploy/scripts/resolve-user-config.ts":
+    hasOpsScriptFingerprint("loadPilotRegistry"),
+  "deploy/scripts/resolve-missing-images.ts": hasOpsScriptFingerprint(
+    "runResolveMissingImages",
+  ),
+  "deploy/scripts/sync-content-repo.ts":
+    hasOpsScriptFingerprint("GIT_SYNC_TOKEN"),
+};
+
+/** A stale committed copy of an earlier vintage gets rewritten on rerun. */
+function isStaleVintage(
+  relativePath: StarterFilePath,
+  current: string,
+  template: string,
+): boolean {
+  const sharedScript = sharedDeployScriptName(relativePath);
+  if (sharedScript && isStaleDeployScript(sharedScript, current, template)) {
+    return true;
+  }
+  return stalenessChecks[relativePath]?.(current, template) ?? false;
 }
 
 export async function initPilotRepo(rootDir: string): Promise<void> {
@@ -265,7 +281,7 @@ export async function initPilotRepo(rootDir: string): Promise<void> {
 }
 
 async function writeStarterFileIfMissing(
-  relativePath: (typeof starterFilePaths)[number],
+  relativePath: StarterFilePath,
   targetPath: string,
 ): Promise<void> {
   const content = await renderStarterFile(relativePath);
@@ -289,26 +305,7 @@ async function writeStarterFileIfMissing(
     return;
   }
 
-  const legacyContents = reconcilableStarterFiles[relativePath] ?? [];
-  const matchesLegacyContent = legacyContents.includes(current);
-  const sharedScript = sharedDeployScriptName(relativePath);
-  const opsScriptFingerprint = opsDeployScriptFingerprints[relativePath];
-  const matchesLegacyPredicate =
-    (sharedScript !== undefined &&
-      isStaleDeployScript(sharedScript, current, content)) ||
-    (opsScriptFingerprint !== undefined &&
-      current.includes(opsScriptFingerprint)) ||
-    (relativePath === "deploy/Dockerfile" &&
-      isStaleDeployDockerfile(current)) ||
-    (relativePath === ".env.schema" &&
-      isStalePilotEnvSchema(current, content)) ||
-    (relativePath === "deploy/kamal/deploy.yml" &&
-      (isStalePilotDeployYml(current) || isStalePilotDeploySecrets(current))) ||
-    (relativePath === "deploy/scripts/decrypt-user-secrets.ts" &&
-      isStaleDecryptUserSecretsScript(current, content)) ||
-    (relativePath === "deploy/scripts/resolve-deploy-handles.ts" &&
-      isStaleResolveDeployHandlesScript(current));
-  if (!matchesLegacyContent && !matchesLegacyPredicate) {
+  if (!isStaleVintage(relativePath, current, content)) {
     return;
   }
 

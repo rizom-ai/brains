@@ -77,6 +77,34 @@ function hasMessageType(value: unknown, type: string): boolean {
   );
 }
 
+function webExitResult(
+  child: ManagedChild,
+  code: number | null,
+): CommandResult {
+  if (child.startupTimedOut) {
+    return {
+      success: false,
+      message: "Brain web child missed its runtime-ready deadline",
+      exitCode: 1,
+    };
+  }
+  if (!child.ready) {
+    return {
+      success: false,
+      message: "Brain web child exited before runtime-ready",
+      exitCode: code ?? 1,
+    };
+  }
+  if (code === 0) {
+    return { success: true };
+  }
+  return {
+    success: false,
+    message: `Brain web child exited with code ${code}`,
+    exitCode: code ?? 1,
+  };
+}
+
 interface RuntimeSupervisorOptions {
   cwd: string;
   entrypointPath: string;
@@ -292,25 +320,7 @@ function runRuntimeSupervisor(
 
       if (child.role === "web") {
         if (!parentShutdownRequested) {
-          webResult = child.startupTimedOut
-            ? {
-                success: false,
-                message: "Brain web child missed its runtime-ready deadline",
-                exitCode: 1,
-              }
-            : !child.ready
-              ? {
-                  success: false,
-                  message: "Brain web child exited before runtime-ready",
-                  exitCode: code ?? 1,
-                }
-              : code === 0
-                ? { success: true }
-                : {
-                    success: false,
-                    message: `Brain web child exited with code ${code}`,
-                    exitCode: code ?? 1,
-                  };
+          webResult = webExitResult(child, code);
           if (workerRestartTimer !== undefined) {
             options.clock.clearTimeout(workerRestartTimer);
             workerRestartTimer = undefined;

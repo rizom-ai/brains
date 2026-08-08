@@ -16,6 +16,7 @@ import { jobQueue, jobWorkerSessions } from "./schema/job-queue";
 import type { InsertJobQueue, JobQueue } from "./schema/job-queue";
 import { getErrorMessage } from "@brains/utils/error";
 import type { Logger } from "@brains/utils/logger";
+import { KeyedSerialQueue } from "@brains/utils/serial-queue";
 import { JOB_STATUS } from "./schemas";
 import type { LibSQLDatabase } from "drizzle-orm/libsql";
 import type { Row, Transaction } from "@libsql/client";
@@ -92,7 +93,7 @@ const WRITE_RETRY_MAX_DELAY_MS = 40;
 // loop on busy_timeout when two clients in one process share a file. This turn
 // queue prevents that self-deadlock; the explicit database write transaction is
 // still the correctness boundary across processes.
-const writeTransactionTails = new Map<string, Promise<void>>();
+const writeTransactions = new KeyedSerialQueue();
 
 /**
  * Database-backed job queue operations.
@@ -128,15 +129,7 @@ export class JobQueueRepository {
   public async enqueueAtomic(
     request: AtomicEnqueueRequest,
   ): Promise<EnqueueDecision> {
-    const previous = writeTransactionTails.get(this.databaseUrl);
-    let release = (): void => {};
-    const current = new Promise<void>((resolve) => {
-      release = resolve;
-    });
-    writeTransactionTails.set(this.databaseUrl, current);
-    await previous;
-
-    try {
+    return writeTransactions.run(this.databaseUrl, async () => {
       const transaction = await this.acquireWriteTransaction(request);
 
       try {
@@ -158,12 +151,7 @@ export class JobQueueRepository {
       } finally {
         transaction.close();
       }
-    } finally {
-      release();
-      if (writeTransactionTails.get(this.databaseUrl) === current) {
-        writeTransactionTails.delete(this.databaseUrl);
-      }
-    }
+    });
   }
 
   private async decideEnqueue(

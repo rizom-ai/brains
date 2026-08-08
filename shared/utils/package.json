@@ -40,6 +40,7 @@
     "./p-limit": "./src/p-limit.ts",
     "./progress": "./src/progress.ts",
     "./safe-public-fetch": "./src/safe-public-fetch.ts",
+    "./serial-queue": "./src/serial-queue.ts",
     "./sort": "./src/sort.ts",
     "./string-utils": "./src/string-utils.ts",
     "./strip-undefined": "./src/strip-undefined.ts",

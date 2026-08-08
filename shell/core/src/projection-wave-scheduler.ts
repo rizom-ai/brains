@@ -13,6 +13,7 @@ import {
   type ProjectionRule,
   type RegisteredProjection,
 } from "@brains/plugins";
+import { SerialQueue } from "@brains/utils/serial-queue";
 
 export interface ProjectionWaveStore {
   getActiveWave(): Promise<ProjectionWave | null>;
@@ -64,7 +65,7 @@ export class ProjectionWaveScheduler {
     summary: ProjectionWaveReady,
   ) => Promise<void>;
   private readonly now: () => number;
-  private operationTail: Promise<void> = Promise.resolve();
+  private readonly operationQueue = new SerialQueue();
 
   constructor(options: ProjectionWaveSchedulerOptions) {
     this.store = options.store;
@@ -127,32 +128,17 @@ export class ProjectionWaveScheduler {
     });
     if (!wave) return null;
 
-    const inputs = await this.store.listWaveInputs(wave.id);
-    const plannedRules = planReachableRules(this.graph, this.ruleById, inputs);
-    if (plannedRules.length === 0) {
-      const completed = await this.completeWave(wave);
+    const advanced = await this.advanceWave(wave);
+    if (advanced.status !== "running") {
       await this.startNextWaveInternal();
-      return completed;
     }
-
-    await this.store.putWaveRules(wave.id, plannedRules);
-    return this.advanceWave(wave);
+    return advanced;
   }
 
   private async runExclusive<TResult>(
     operation: () => Promise<TResult>,
   ): Promise<TResult> {
-    const previous = this.operationTail;
-    let release = (): void => {};
-    this.operationTail = new Promise<void>((resolve) => {
-      release = resolve;
-    });
-    await previous;
-    try {
-      return await operation();
-    } finally {
-      release();
-    }
+    return this.operationQueue.run(operation);
   }
 
   private async advanceWave(wave: ProjectionWave): Promise<ProjectionWave> {
@@ -314,6 +300,7 @@ function planReachableRules(
   const projectionById = new Map(
     graph.projections.map((projection) => [projection.id, projection]),
   );
+  const successorsByFrom = groupEdges(graph, (edge) => [edge.from, edge.to]);
   const reachable = new Set(
     graph.projections
       .filter((projection) => isTriggeredBy(projection, inputs))
@@ -322,9 +309,8 @@ function planReachableRules(
 
   let frontier = [...reachable];
   while (frontier.length > 0) {
-    const next = graph.edges
-      .filter((edge) => frontier.includes(edge.from))
-      .map((edge) => edge.to)
+    const next = frontier
+      .flatMap((id) => successorsByFrom.get(id) ?? [])
       .filter((id) => projectionById.has(id) && !reachable.has(id));
     for (const id of next) reachable.add(id);
     frontier = [...new Set(next)].sort();
@@ -369,15 +355,18 @@ function assignTopologicalLevels(
   graph: ProjectionGraph,
   reachable: ReadonlySet<string>,
 ): ReadonlyMap<string, number> {
+  const reachablePredecessors = groupEdges(graph, (edge) =>
+    reachable.has(edge.from) ? [edge.to, edge.from] : undefined,
+  );
   const levelById = new Map<string, number>();
   const unresolved = new Set(reachable);
 
   while (unresolved.size > 0) {
     const ready = [...unresolved]
       .filter((id) =>
-        graph.edges
-          .filter((edge) => edge.to === id && reachable.has(edge.from))
-          .every((edge) => levelById.has(edge.from)),
+        (reachablePredecessors.get(id) ?? []).every((from) =>
+          levelById.has(from),
+        ),
       )
       .sort();
     if (ready.length === 0) {
@@ -385,9 +374,8 @@ function assignTopologicalLevels(
     }
 
     for (const id of ready) {
-      const predecessorLevels = graph.edges
-        .filter((edge) => edge.to === id && reachable.has(edge.from))
-        .map((edge) => levelById.get(edge.from))
+      const predecessorLevels = (reachablePredecessors.get(id) ?? [])
+        .map((from) => levelById.get(from))
         .filter((level) => level !== undefined);
       const level =
         predecessorLevels.length === 0 ? 0 : Math.max(...predecessorLevels) + 1;
@@ -397,4 +385,23 @@ function assignTopologicalLevels(
   }
 
   return levelById;
+}
+
+/** Index graph edges once as key → values via the supplied [key, value] map. */
+function groupEdges(
+  graph: ProjectionGraph,
+  entry: (
+    edge: ProjectionGraph["edges"][number],
+  ) => [string, string] | undefined,
+): ReadonlyMap<string, string[]> {
+  const grouped = new Map<string, string[]>();
+  for (const edge of graph.edges) {
+    const mapped = entry(edge);
+    if (!mapped) continue;
+    const [key, value] = mapped;
+    const values = grouped.get(key);
+    if (values) values.push(value);
+    else grouped.set(key, [value]);
+  }
+  return grouped;
 }
