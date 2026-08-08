@@ -156,21 +156,4 @@ describe("canonical commerce posture", () => {
       expect(pluginIds(resolved)).toContain(id);
     }
   });
-
-  test("rejects removed external extension factory declarations", () => {
-    expect(() =>
-      resolve(
-        canonicalBrain,
-        {},
-        commerceOverrides({
-          plugins: {
-            commerceExtension: {
-              package: "@fixture/commerce-extension",
-              config: { enabled: true },
-            },
-          },
-        }),
-      ),
-    ).toThrow("uses the removed alpha factory contract");
-  });
 });

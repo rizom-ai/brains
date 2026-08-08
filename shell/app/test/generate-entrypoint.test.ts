@@ -84,7 +84,7 @@ plugins:
     );
   });
 
-  test("should not execute removed external plugin declarations", () => {
+  test("should reject removed external plugin declarations", () => {
     const yaml = `
 brain: brain
 bundles: [core]
@@ -94,15 +94,9 @@ plugins:
     config:
       timezone: UTC
 `;
-    const code = generateEntrypoint(yaml);
-
-    expect(code).not.toBeNull();
-    expect(code).not.toContain(
-      'import * as __pkg0 from "@rizom/brain-plugin-calendar"',
-    );
-    expect(code).not.toContain(
-      'registerPackage("@rizom/brain-plugin-calendar"',
-    );
+    // Invalid brain.yaml yields no entrypoint; the migration error itself
+    // surfaces when the runtime parses the same yaml at boot.
+    expect(generateEntrypoint(yaml)).toBeNull();
   });
 
   test("should not duplicate brain package in imports", () => {

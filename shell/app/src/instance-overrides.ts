@@ -50,22 +50,6 @@ const overrideEntityActionPolicyConfigSchema: z.ZodRecord<
   typeof overrideEntityActionPolicyRuleSchema
 > = z.record(z.string(), overrideEntityActionPolicyRuleSchema);
 
-export interface ExternalPluginDeclaration {
-  [key: string]: unknown;
-  package: string;
-  config?: Record<string, unknown> | undefined;
-}
-
-export const externalPluginDeclarationSchema: z.ZodObject<{
-  package: z.ZodString;
-  config: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
-}> = z.strictObject({
-  /** npm package name to import from node_modules */
-  package: z.string().min(1),
-  /** Config object passed to the external plugin factory */
-  config: z.record(z.string(), z.unknown()).optional(),
-});
-
 export type PluginConfigOverride = Record<string, unknown>;
 export type PluginOverrideEntry = Record<string, unknown>;
 
@@ -73,14 +57,10 @@ export const pluginOverrideEntrySchema: z.ZodRecord<z.ZodString, z.ZodUnknown> =
   pluginConfigOverrideSchema.superRefine((entry, ctx) => {
     if (typeof entry["package"] !== "string") return;
 
-    const parsed = externalPluginDeclarationSchema.safeParse(entry);
-    if (!parsed.success) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message:
-          'external plugin declarations may only contain "package" and optional nested "config"',
-      });
-    }
+    ctx.addIssue({
+      code: "custom",
+      message: `"package" uses the removed alpha external-plugin contract. Default-export a declarative package definition from a @rizom/brain define helper and compose it with use() in defineBrain().`,
+    });
   });
 
 export interface InstanceOverrides {
@@ -101,6 +81,11 @@ export interface InstanceOverrides {
   port?: number | undefined;
   domain?: string | undefined;
   database?: string | undefined;
+  embedding?:
+    | {
+        enabled?: boolean | undefined;
+      }
+    | undefined;
   model?: string | undefined;
   reasoningEffort?: ReasoningEffort | undefined;
   bundles?: string[] | undefined;
@@ -193,6 +178,13 @@ const rawInstanceOverridesSchema: z.ZodType<InstanceOverrides> = z.strictObject(
     /** Database URL */
     database: z.string().optional(),
 
+    /** Provider-backed semantic indexing. Lexical search remains available when disabled. */
+    embedding: z
+      .strictObject({
+        enabled: z.boolean().optional(),
+      })
+      .optional(),
+
     /** AI model — determines provider. e.g. "gpt-4o-mini", "claude-haiku-4-5", "openai:gpt-4o" */
     model: z.string().optional(),
 
@@ -265,36 +257,10 @@ const instanceOverridesSchema: z.ZodType<InstanceOverrides> =
  * of the same brain model. Secrets stay in .env; everything else
  * goes here (with ${ENV_VAR} interpolation for referencing secrets).
  */
-export function isExternalPluginDeclaration(
-  entry: PluginOverrideEntry | undefined,
-): entry is ExternalPluginDeclaration {
-  return externalPluginDeclarationSchema.safeParse(entry).success;
-}
-
-/** Return only built-in plugin config overrides, excluding external packages. */
 export function getPluginConfigOverrides(
   plugins: InstanceOverrides["plugins"] | undefined,
 ): Record<string, PluginConfigOverride> {
-  const result: Record<string, PluginConfigOverride> = {};
-  for (const [id, entry] of Object.entries(plugins ?? {})) {
-    if (!isExternalPluginDeclaration(entry)) {
-      result[id] = entry;
-    }
-  }
-  return result;
-}
-
-/** Return only external plugin package declarations. */
-export function getExternalPluginDeclarations(
-  plugins: InstanceOverrides["plugins"] | undefined,
-): Record<string, ExternalPluginDeclaration> {
-  const result: Record<string, ExternalPluginDeclaration> = {};
-  for (const [id, entry] of Object.entries(plugins ?? {})) {
-    if (isExternalPluginDeclaration(entry)) {
-      result[id] = entry;
-    }
-  }
-  return result;
+  return plugins ?? {};
 }
 
 export const CONVENTIONAL_SITE_PACKAGE_REF = "@brains/local-site";

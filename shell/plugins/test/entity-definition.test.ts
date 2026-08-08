@@ -61,7 +61,8 @@ describe("entity package definitions", () => {
         entity: {
           id: "saved-page",
           entityType: "digest",
-          content: "Useful page",
+          content:
+            "---\nsourceId: saved-page\nvisibility: shared\n---\nUseful page\n",
           visibility: "shared",
           metadata: { sourceId: "saved-page" },
         },

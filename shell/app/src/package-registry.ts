@@ -3,7 +3,7 @@ import {
   isPluginPackageDefinition,
   type InstalledPluginPackageMetadata,
 } from "@brains/plugins";
-import { isConfiguredPluginDefinition } from "./configured-plugin";
+import { isDeclarativeBrainDefinition } from "./configured-plugin";
 
 /**
  * Package registry for pre-bundled package references.
@@ -21,14 +21,6 @@ const brainMetadataRegistry = new WeakMap<
 
 export interface PackageRegistrationOptions {
   readonly version: string;
-}
-
-function isDeclarativeBrainDefinition(value: unknown): value is object {
-  if (value === null || typeof value !== "object" || !("plugins" in value)) {
-    return false;
-  }
-  const plugins = value.plugins;
-  return Array.isArray(plugins) && plugins.every(isConfiguredPluginDefinition);
 }
 
 export function registerPackage(

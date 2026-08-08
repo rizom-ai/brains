@@ -61,6 +61,8 @@ import { makeIndexReadinessPollingEffect } from "./index-readiness";
  */
 export interface EntityServiceOptions {
   embeddingService: IEmbeddingService;
+  /** Disable provider-backed indexing while retaining lexical search. */
+  embeddingsEnabled?: boolean | undefined;
   entityRegistry: IEntityRegistry;
   logger?: Logger;
   jobQueueService?: IJobQueueService;
@@ -187,11 +189,13 @@ export class EntityService implements IEntityService {
         logger: this.logger,
         embeddingDb: this.embeddingDb,
       });
+      const embeddingsEnabled = options.embeddingsEnabled ?? true;
       this.entitySearch = new EntitySearch(
         search.db,
         options.embeddingService,
         this.entitySerializer,
         this.logger,
+        embeddingsEnabled,
       );
       this.entityMutations = new EntityMutations({
         db: this.db,
@@ -206,19 +210,22 @@ export class EntityService implements IEntityService {
         }),
         projectionStore: this.projectionStore,
         embeddingDb: this.embeddingDb,
+        embeddingsEnabled,
       });
       this.contentResolver = new ContentResolver(this.logger);
 
-      const embeddingJobHandler = EmbeddingJobHandler.createFresh(
-        this,
-        options.embeddingService,
-        options.messageBus,
-      );
-      this.jobQueueService.registerHandler(
-        SHELL_CHANNELS.embedding,
-        embeddingJobHandler,
-      );
-      this.embeddingHandlerRegistered = true;
+      if (options.embeddingsEnabled ?? true) {
+        const embeddingJobHandler = EmbeddingJobHandler.createFresh(
+          this,
+          options.embeddingService,
+          options.messageBus,
+        );
+        this.jobQueueService.registerHandler(
+          SHELL_CHANNELS.embedding,
+          embeddingJobHandler,
+        );
+        this.embeddingHandlerRegistered = true;
+      }
 
       // Initialize databases (WAL, migrations, ATTACH) — awaited by Shell.initialize()
       this.dbInitPromise = this.initializeDatabase(

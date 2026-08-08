@@ -2,6 +2,7 @@ import {
   isConfiguredPluginDefinition,
   type ConfiguredPluginDefinition,
 } from "../configured-plugin";
+import { assertIdentifier as assertId } from "@brains/plugins";
 import type {
   PluginPackageConfigInput,
   PluginPackageDefinition,
@@ -70,14 +71,6 @@ export interface BrainDefinition<
   readonly permissions?: PermissionConfig | undefined;
   readonly deployment?: DeploymentConfigInput | undefined;
   readonly evalDisable?: readonly TPlugin[] | undefined;
-}
-
-function assertId(id: string, label: string): void {
-  if (!/^[a-z][a-z0-9-]*$/u.test(id)) {
-    throw new Error(
-      `${label} must start with a lowercase letter and contain only lowercase letters, numbers, and hyphens`,
-    );
-  }
 }
 
 function assertUniqueMembers(

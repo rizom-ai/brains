@@ -14,20 +14,9 @@ import type {
   PluginConfig,
 } from "./brain-definition";
 import type { CapabilityBundleDefinition } from "./bundle-definition";
-import { isConfiguredPluginDefinition } from "./configured-plugin";
 import { getBrainPackageMetadata } from "./package-registry";
 
-export function isDeclarativeBrainDefinition(
-  value: unknown,
-): value is DeclarativeBrainDefinition {
-  if (value === null || typeof value !== "object") return false;
-  const candidate = value as Partial<DeclarativeBrainDefinition>;
-  return (
-    typeof candidate.name === "string" &&
-    Array.isArray(candidate.plugins) &&
-    candidate.plugins.every(isConfiguredPluginDefinition)
-  );
-}
+export { isDeclarativeBrainDefinition } from "./configured-plugin";
 
 function toConfigRecord(value: object): PluginConfig {
   return Object.fromEntries(Object.entries(value));

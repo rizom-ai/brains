@@ -173,6 +173,7 @@ export {
 // ============================================================================
 
 export {
+  assertIdentifier,
   bindPluginPackageMetadata,
   createPluginPackageDefinition,
   getPluginPackageMetadata,

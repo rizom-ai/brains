@@ -3,6 +3,7 @@ import { getErrorMessage } from "@brains/utils/error";
 import {
   liveEvidenceEnabled,
   runCommand,
+  startCommand,
   waitForHttpReadiness,
 } from "./helpers/packed-consumer";
 
@@ -37,6 +38,17 @@ describe("packed consumer harness", () => {
       ),
     );
     expect(timeout).toContain("Command timed out");
+  });
+
+  it("waits for an emitted process-readiness signal", async () => {
+    const started = startCommand(
+      ["bun", "-e", 'setTimeout(() => console.log("worker-ready"), 10)'],
+      import.meta.dir,
+    );
+
+    await started.waitForOutput("worker-ready", 1_000);
+    expect(started.getOutput().stdout).toContain("worker-ready");
+    expect((await started.completed).exitCode).toBe(0);
   });
 
   it("waits for bounded HTTP readiness", async () => {

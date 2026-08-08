@@ -9,9 +9,7 @@ import {
 } from "./declarative-brain";
 import type { AppConfig, AppConfigInput, DeploymentConfigInput } from "./types";
 import {
-  getExternalPluginDeclarations,
   getPluginConfigOverrides,
-  type ExternalPluginDeclaration,
   type InstanceOverrides,
 } from "./instance-overrides";
 import type { SitePackage } from "./site-package";
@@ -30,7 +28,6 @@ import { deepMerge } from "./resolver/merge";
 import {
   isScopedPackageRef,
   resolveAllPackageRefs,
-  resolveExternalPluginFactory,
 } from "./resolver/package-refs";
 import { resolveBundlePermissionConfig } from "./bundle-permissions";
 import { buildPermissions } from "./resolver/permissions";
@@ -157,23 +154,6 @@ function instantiateCapabilities(
   return capabilities;
 }
 
-function instantiateExternalPlugins(
-  declarations: Record<string, ExternalPluginDeclaration>,
-  overrides?: Omit<InstanceOverrides, "brain">,
-): Plugin[] {
-  const plugins: Plugin[] = [];
-
-  for (const [id, declaration] of Object.entries(declarations)) {
-    if (overrides?.remove?.includes(id)) continue;
-
-    const factory = resolveExternalPluginFactory(id, declaration);
-    const result = factory(declaration.config ?? {});
-    plugins.push(...ensureArray(result));
-  }
-
-  return plugins;
-}
-
 function instantiateInterfaces(
   definition: BrainDefinition,
   env: BrainEnvironment,
@@ -280,6 +260,21 @@ function applyExtraConfig(
   }
 }
 
+function applyEmbeddingConfig(
+  appConfig: AppConfigInput,
+  embedding: InstanceOverrides["embedding"],
+): void {
+  if (embedding?.enabled === undefined) return;
+
+  appConfig.shellConfig = {
+    ...appConfig.shellConfig,
+    embedding: {
+      ...appConfig.shellConfig?.embedding,
+      enabled: embedding.enabled,
+    },
+  };
+}
+
 function applySharedTheme(
   appConfig: AppConfigInput,
   themeCSS: string | undefined,
@@ -323,9 +318,6 @@ function resolveRuntimeDefinition(
   );
   const pluginOverrides = resolveAllPackageRefs(
     getPluginConfigOverrides(overrides?.plugins),
-  );
-  const externalPluginDeclarations = getExternalPluginDeclarations(
-    overrides?.plugins,
   );
   const effectiveModel = overrides?.model ?? definition.model;
   const effectiveReasoningEffort =
@@ -373,7 +365,6 @@ function resolveRuntimeDefinition(
       pluginOverrides,
       logger,
     ),
-    ...instantiateExternalPlugins(externalPluginDeclarations, overrides),
   ];
 
   const interfaces = instantiateInterfaces(
@@ -422,6 +413,7 @@ function resolveRuntimeDefinition(
 
   // Merge any extra config (escape hatch)
   applyExtraConfig(appConfig, definition);
+  applyEmbeddingConfig(appConfig, overrides?.embedding);
   applySharedTheme(appConfig, theme);
   applySiteEntityDisplay(appConfig, site);
 

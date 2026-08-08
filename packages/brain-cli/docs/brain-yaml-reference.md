@@ -115,6 +115,17 @@ model: anthropic:claude-haiku-4-5-20251001
 reasoningEffort: low
 ```
 
+### `embedding`
+
+Provider-backed semantic indexing is enabled by default. Disable it explicitly for offline or hermetic instances; lexical full-text search remains available.
+
+```yaml
+embedding:
+  enabled: false
+```
+
+Semantic-only operations fail clearly while indexing is disabled.
+
 ### `mode`
 
 `mode: eval` disables definition-owned side-effect members for evaluation runs.

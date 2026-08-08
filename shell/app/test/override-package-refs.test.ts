@@ -20,20 +20,6 @@ describe("collectOverridePackageRefs", () => {
     expect(refs).toContain("@brains/theme-pink");
   });
 
-  test("should not load removed external plugin package declarations", () => {
-    const refs = collectOverridePackageRefs({
-      plugins: {
-        calendar: {
-          package: "@rizom/brain-plugin-calendar",
-          config: {
-            apiKey: "secret",
-          },
-        },
-      },
-    });
-    expect(refs).not.toContain("@rizom/brain-plugin-calendar");
-  });
-
   test("should collect both site and plugin refs", () => {
     const refs = collectOverridePackageRefs({
       site: {

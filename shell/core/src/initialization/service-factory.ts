@@ -213,6 +213,7 @@ export function createShellServices(options: {
   const entityContext = lifecycle.buildLayer(
     createEntityServiceLayer({
       embeddingService,
+      embeddingsEnabled: config.embedding.enabled,
       entityRegistry,
       logger,
       jobQueueService,

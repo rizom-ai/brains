@@ -21,6 +21,7 @@ The top-level fields documented in [brain.yaml reference](../../packages/brain-c
 - `port` — server port
 - `domain` — production domain
 - `database` — connection string
+- `embedding.enabled` — explicitly enable or disable provider-backed semantic indexing; lexical full-text search remains available when disabled
 - `bundles` — explicit fixed bundle selection
 - `mode` — e.g. `eval`
 - `add` / `remove` — plugin list deltas

@@ -7,9 +7,16 @@ export interface CommandResult {
   readonly stderr: string;
 }
 
-interface ManagedProcess {
+export interface ManagedProcess {
   readonly exited: Promise<number>;
   kill(signal?: number | NodeJS.Signals): void;
+}
+
+export interface StartedCommand {
+  readonly process: ManagedProcess;
+  readonly completed: Promise<CommandResult & { readonly exitCode: number }>;
+  waitForOutput(expected: string, timeoutMs?: number): Promise<void>;
+  getOutput(): CommandResult;
 }
 
 interface HttpReadinessOptions {
@@ -20,6 +27,93 @@ interface HttpReadinessOptions {
 interface RunCommandOptions {
   readonly env?: NodeJS.ProcessEnv | undefined;
   readonly timeoutMs?: number | undefined;
+}
+
+export function startCommand(
+  command: readonly string[],
+  cwd: string,
+  options: RunCommandOptions = {},
+): StartedCommand {
+  const child = Bun.spawn([...command], {
+    cwd,
+    env: options.env ?? process.env,
+    stdout: "pipe",
+    stderr: "pipe",
+  });
+  let stdout = "";
+  let stderr = "";
+  let exitCode: number | undefined;
+  const listeners = new Set<() => void>();
+  const notify = (): void => {
+    for (const listener of listeners) listener();
+  };
+  const capture = async (
+    stream: ReadableStream<Uint8Array>,
+    append: (chunk: string) => void,
+  ): Promise<void> => {
+    const decoder = new TextDecoder();
+    for await (const chunk of stream) {
+      append(decoder.decode(chunk, { stream: true }));
+      notify();
+    }
+    append(decoder.decode());
+    notify();
+  };
+  const stdoutCapture = capture(child.stdout, (chunk) => {
+    stdout += chunk;
+  });
+  const stderrCapture = capture(child.stderr, (chunk) => {
+    stderr += chunk;
+  });
+  const completed = Promise.all([
+    child.exited,
+    stdoutCapture,
+    stderrCapture,
+  ]).then(([code]) => {
+    exitCode = code;
+    notify();
+    return { stdout, stderr, exitCode: code };
+  });
+
+  return {
+    process: child,
+    completed,
+    getOutput: () => ({ stdout, stderr }),
+    waitForOutput: (expected, timeoutMs = 30_000) =>
+      new Promise<void>((resolve, reject) => {
+        let settled = false;
+        const finish = (error?: Error): void => {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timeout);
+          listeners.delete(check);
+          if (error) reject(error);
+          else resolve();
+        };
+        const check = (): void => {
+          if (`${stdout}\n${stderr}`.includes(expected)) {
+            finish();
+          } else if (exitCode !== undefined) {
+            finish(
+              new Error(
+                `Command exited before output appeared: ${expected}\n${stdout}\n${stderr}`,
+              ),
+            );
+          }
+        };
+        const timeout = setTimeout(
+          () =>
+            finish(
+              new Error(
+                `Command output timed out after ${timeoutMs}ms: ${expected}\n${stdout}\n${stderr}`,
+              ),
+            ),
+          timeoutMs,
+        );
+        listeners.add(check);
+        check();
+      }),
+  };
 }
 
 export async function runCommand(

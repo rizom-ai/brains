@@ -58,8 +58,7 @@ export interface ShellConfigSchemaOutput {
     reasoningEffort?: ReasoningEffort | undefined;
   };
   embedding: {
-    model: "fast-all-MiniLM-L6-v2";
-    cacheDir: string;
+    enabled: boolean;
   };
   logging: {
     level: "debug" | "info" | "warn" | "error";
@@ -110,8 +109,7 @@ export const shellConfigSchema: z.ZodType<ShellConfigSchemaOutput, unknown> =
     }),
 
     embedding: z.object({
-      model: z.enum(["fast-all-MiniLM-L6-v2"]).default("fast-all-MiniLM-L6-v2"),
-      cacheDir: z.string(),
+      enabled: z.boolean().default(true),
     }),
 
     logging: z
@@ -187,7 +185,10 @@ export function createShellConfig(
         reasoningEffort: overrides.ai.reasoningEffort,
       }),
     },
-    embedding: overrides.embedding ?? standardConfig.embedding,
+    embedding: {
+      ...standardConfig.embedding,
+      ...overrides.embedding,
+    },
     logging: {
       level: overrides.logging?.level ?? "info",
       format: overrides.logging?.format ?? "text",

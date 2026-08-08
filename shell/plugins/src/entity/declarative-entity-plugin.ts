@@ -1,5 +1,6 @@
 import {
   ProjectionJsonObjectSchema,
+  applyVisibilityToMarkdown,
   baseEntitySchema,
   generateFrontmatter,
   generateMarkdownWithFrontmatter,
@@ -18,12 +19,6 @@ import type {
   ProjectionDefinition,
 } from "../public/entity-definition";
 
-interface ProjectionEnvelopeItem {
-  readonly operation: "upsert" | "delete";
-  readonly id: string;
-  readonly source?: ProjectionJsonObject | undefined;
-}
-
 const rawFrontmatterSchema = z.record(z.string(), z.unknown());
 
 const projectionEnvelopeSchema = z.object({
@@ -36,13 +31,49 @@ const projectionEnvelopeSchema = z.object({
   ),
 });
 
+const entitySchemaCache = new WeakMap<
+  AnyEntityDefinition,
+  z.ZodType<EntityOf<AnyEntityDefinition>, unknown>
+>();
+
 function entitySchema(
   definition: AnyEntityDefinition,
 ): z.ZodType<EntityOf<AnyEntityDefinition>, unknown> {
-  return baseEntitySchema.extend({
-    entityType: z.literal(definition.type),
-    metadata: definition.metadata,
-  });
+  let schema = entitySchemaCache.get(definition);
+  if (!schema) {
+    schema = baseEntitySchema.extend({
+      entityType: z.literal(definition.type),
+      metadata: definition.metadata,
+    });
+    entitySchemaCache.set(definition, schema);
+  }
+  return schema;
+}
+
+function encodeParts(
+  definition: AnyEntityDefinition,
+  input: {
+    readonly content: string;
+    readonly metadata: Record<string, unknown>;
+  },
+): { readonly content: string; readonly frontmatter: Record<string, unknown> } {
+  return definition.markdown
+    ? definition.markdown.encode({
+        content: input.content,
+        metadata: definition.metadata.parse(input.metadata),
+      })
+    : { content: input.content, frontmatter: input.metadata };
+}
+
+function encodeEntityMarkdown(
+  definition: AnyEntityDefinition,
+  input: {
+    readonly content: string;
+    readonly metadata: Record<string, unknown>;
+  },
+): string {
+  const encoded = encodeParts(definition, input);
+  return generateMarkdownWithFrontmatter(encoded.content, encoded.frontmatter);
 }
 
 function entityAdapter(
@@ -55,16 +86,7 @@ function entityAdapter(
     schema,
     frontmatterSchema: definition.metadata,
     toMarkdown(entity): string {
-      const encoded = definition.markdown
-        ? definition.markdown.encode({
-            content: entity.content,
-            metadata: entity.metadata,
-          })
-        : { content: entity.content, frontmatter: entity.metadata };
-      return generateMarkdownWithFrontmatter(
-        encoded.content,
-        encoded.frontmatter,
-      );
+      return encodeEntityMarkdown(definition, entity);
     },
     fromMarkdown(markdown): Partial<EntityOf<AnyEntityDefinition>> {
       const parsed = parseMarkdownWithFrontmatter(
@@ -86,13 +108,7 @@ function entityAdapter(
     parseFrontMatter: (markdown, schemaToParse) =>
       parseMarkdownWithFrontmatter(markdown, schemaToParse).metadata,
     generateFrontMatter(entity): string {
-      const frontmatter = definition.markdown
-        ? definition.markdown.encode({
-            content: entity.content,
-            metadata: entity.metadata,
-          }).frontmatter
-        : entity.metadata;
-      return generateFrontmatter(frontmatter);
+      return generateFrontmatter(encodeParts(definition, entity).frontmatter);
     },
     getBodyTemplate: () => "",
   };
@@ -110,16 +126,24 @@ export async function deriveProjectionUpserts(
     signal,
     target: {
       async upsert(entity): Promise<void> {
+        const metadata = ProjectionJsonObjectSchema.parse(
+          projection.target.metadata.parse(entity.metadata),
+        );
+        const visibility = entity.visibility ?? "public";
         intents.push({
           operation: "upsert",
           entity: {
             id: entity.id,
             entityType: projection.target.type,
-            content: entity.content,
-            metadata: ProjectionJsonObjectSchema.parse(
-              projection.target.metadata.parse(entity.metadata),
+            content: applyVisibilityToMarkdown(
+              encodeEntityMarkdown(projection.target, {
+                content: entity.content,
+                metadata,
+              }),
+              visibility,
             ),
-            visibility: entity.visibility ?? "public",
+            metadata,
+            visibility,
           },
         });
       },
@@ -130,12 +154,12 @@ export async function deriveProjectionUpserts(
 
 function projectionRule(
   projection: ProjectionDefinition,
-  metadata: InstalledPluginPackageMetadata,
+  version: string,
   scope: (localId: string) => string,
 ): ProjectionRule {
   return defineProjectionRule({
     id: scope(projection.id),
-    version: metadata.version,
+    version,
     sources: [{ kind: "entity", types: [projection.source.type] }],
     targetType: projection.target.type,
     inputSchema: ProjectionJsonObjectSchema,
@@ -144,26 +168,25 @@ function projectionRule(
         ({ sourceType }) => sourceType === projection.source.type,
       );
       const items = await Promise.all(
-        selected.map(async (input): Promise<ProjectionEnvelopeItem> => {
+        selected.map(async (input): Promise<unknown> => {
           if (input.operation === "delete") {
             return { operation: "delete", id: input.sourceId };
           }
           const source = await context.entities.getEntity({
             entityType: input.sourceType,
             id: input.sourceId,
+            visibilityScope: "restricted",
           });
           if (!source) {
             throw new Error(
               `Projection "${projection.id}" could not load ${input.sourceType}:${input.sourceId}`,
             );
           }
-          return {
-            operation: "upsert",
-            id: input.sourceId,
-            source: ProjectionJsonObjectSchema.parse(source),
-          };
+          return { operation: "upsert", id: input.sourceId, source };
         }),
       );
+      // One recursive validation of the whole envelope; per-item sources are
+      // covered by this pass, so they are not parsed individually above.
       return ProjectionJsonObjectSchema.parse({ items });
     },
     async derive(input, _context, signal) {
@@ -179,12 +202,13 @@ function projectionRule(
           });
           continue;
         }
+        if (!item.source) {
+          throw new Error(
+            `Projection "${projection.id}" upsert item ${item.id} is missing its source`,
+          );
+        }
         intents.push(
-          ...(await deriveProjectionUpserts(
-            projection,
-            ProjectionJsonObjectSchema.parse(item.source),
-            signal,
-          )),
+          ...(await deriveProjectionUpserts(projection, item.source, signal)),
         );
       }
       return intents;
@@ -197,9 +221,7 @@ class DeclarativeEntityPlugin extends EntityPlugin<
   Record<string, never>,
   Record<string, never>
 > {
-  private readonly definition: AnyEntityDefinition;
   private readonly projections: readonly ProjectionDefinition[];
-  private readonly metadata: InstalledPluginPackageMetadata;
   private readonly scope: (localId: string) => string;
   public readonly entityType: string;
   public readonly schema: z.ZodType<EntityOf<AnyEntityDefinition>, unknown>;
@@ -215,9 +237,7 @@ class DeclarativeEntityPlugin extends EntityPlugin<
     scope: (localId: string) => string,
   ) {
     super(scope(definition.type), metadata, {}, emptyEntityPluginConfigSchema);
-    this.definition = definition;
     this.projections = projections;
-    this.metadata = metadata;
     this.scope = scope;
     this.entityType = definition.type;
     this.schema = entitySchema(definition);
@@ -225,11 +245,9 @@ class DeclarativeEntityPlugin extends EntityPlugin<
   }
 
   protected override getProjectionRules(): ProjectionRule[] {
-    return this.projections
-      .filter(({ source }) => source === this.definition)
-      .map((projection) =>
-        projectionRule(projection, this.metadata, this.scope),
-      );
+    return this.projections.map((projection) =>
+      projectionRule(projection, this.version, this.scope),
+    );
   }
 }
 
@@ -241,6 +259,11 @@ export function createEntityPackagePlugins(
 ): DeclarativeEntityPlugin[] {
   return entities.map(
     (definition) =>
-      new DeclarativeEntityPlugin(definition, projections, metadata, scope),
+      new DeclarativeEntityPlugin(
+        definition,
+        projections.filter(({ source }) => source === definition),
+        metadata,
+        scope,
+      ),
   );
 }

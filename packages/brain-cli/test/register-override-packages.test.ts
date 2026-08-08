@@ -86,26 +86,6 @@ describe("registerOverridePackages", () => {
     expect(getPackage(pluginRef)).toBe(fakePlugin);
   });
 
-  it("does not import removed external plugin package declarations", async () => {
-    const pluginRef = createRef("external-plugin-fixture");
-    const overrides: InstanceOverrides = {
-      plugins: {
-        calendar: {
-          package: pluginRef,
-          config: { timezone: "UTC" },
-        },
-      },
-    };
-    const importFn: PackageImportFn = async (ref) => {
-      throw new Error(`removed package declaration was imported: ${ref}`);
-    };
-
-    await registerOverridePackages(overrides, importFn);
-
-    expect(hasPackage(pluginRef)).toBe(false);
-    expect(getPackage(pluginRef)).toBeUndefined();
-  });
-
   it("registers both site.package and plugin refs in one pass", async () => {
     const siteRef = createRef("site-fixture");
     const pluginRef = createRef("plugin-fixture");

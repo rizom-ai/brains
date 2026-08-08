@@ -1,5 +1,3 @@
-import type { PluginFactory } from "../brain-definition";
-import type { ExternalPluginDeclaration } from "../instance-overrides";
 import { getPackage, hasPackage } from "../package-registry";
 
 /** Matches scoped npm package names like @rizom/theme-default (no colons, no dots) */
@@ -49,14 +47,5 @@ export function resolveAllPackageRefs(
       pluginId,
       resolvePackageRefs(config),
     ]),
-  );
-}
-
-export function resolveExternalPluginFactory(
-  pluginId: string,
-  declaration: ExternalPluginDeclaration,
-): PluginFactory {
-  throw new Error(
-    `External plugin declaration "plugins.${pluginId}.package" for "${declaration.package}" uses the removed alpha factory contract. Default-export a declarative package definition from a @rizom/brain define helper and compose it with use() in defineBrain().`,
   );
 }

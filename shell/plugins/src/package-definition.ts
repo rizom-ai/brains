@@ -5,6 +5,15 @@ import type { z } from "@brains/utils/zod";
 export type PluginPackageFamily =
   "entity" | "service" | "interface" | "message-interface";
 
+// Total map so adding a family is a compile error here, and the deliberate
+// collapse of message interfaces onto the interface plugin type is explicit.
+const FAMILY_PLUGIN_TYPE: Record<PluginPackageFamily, Plugin["type"]> = {
+  entity: "entity",
+  service: "service",
+  interface: "interface",
+  "message-interface": "interface",
+};
+
 export type AnyPluginConfigSchema = z.ZodType<object, object>;
 
 /** Public, metadata-free description returned by declarative authoring helpers. */
@@ -67,7 +76,7 @@ export interface CreatePluginPackageDefinitionInput<
   readonly instantiate: PluginPackageRuntimeFactory<z.output<TConfigSchema>>;
 }
 
-function assertIdentifier(value: string, label: string): void {
+export function assertIdentifier(value: string, label: string): void {
   if (!/^[a-z][a-z0-9-]*$/u.test(value)) {
     throw new Error(
       `${label} must start with a lowercase letter and contain only lowercase letters, numbers, and hyphens`,
@@ -203,12 +212,7 @@ export function instantiatePluginPackageDefinition(
     },
   });
   const plugins = Array.isArray(created) ? [...created] : [created];
-  const expectedType =
-    definition.family === "entity"
-      ? "entity"
-      : definition.family === "service"
-        ? "service"
-        : "interface";
+  const expectedType = FAMILY_PLUGIN_TYPE[definition.family];
 
   for (const plugin of plugins) {
     if (

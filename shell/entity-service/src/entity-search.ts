@@ -72,17 +72,20 @@ export class EntitySearch {
   private embeddingService: IEmbeddingService;
   private serializer: EntitySerializer;
   private logger: Logger;
+  private readonly embeddingsEnabled: boolean;
 
   constructor(
     db: EntitySearchDB,
     embeddingService: IEmbeddingService,
     serializer: EntitySerializer,
     logger: Logger,
+    embeddingsEnabled = true,
   ) {
     this.db = db;
     this.embeddingService = embeddingService;
     this.serializer = serializer;
     this.logger = logger.child("EntitySearch");
+    this.embeddingsEnabled = embeddingsEnabled;
   }
 
   /**
@@ -111,6 +114,19 @@ export class EntitySearch {
     this.logger.debug(
       `Searching entities with query (${preparedQuery.length} chars)`,
     );
+
+    if (!this.embeddingsEnabled) {
+      return this.searchLexically<T>(preparedQuery, {
+        limit,
+        offset,
+        types,
+        excludeTypes,
+        weight,
+        visibilityScope,
+        includeUngenerated,
+        minScore,
+      });
+    }
 
     // Generate embedding for the query
     const { embedding: queryEmbedding } =
@@ -157,6 +173,71 @@ export class EntitySearch {
     );
   }
 
+  private async searchLexically<T extends BaseEntity>(
+    query: string,
+    options: {
+      readonly limit: number;
+      readonly offset: number;
+      readonly types: string[];
+      readonly excludeTypes: string[];
+      readonly weight: Record<string, number> | undefined;
+      readonly visibilityScope: ContentVisibility | undefined;
+      readonly includeUngenerated: boolean;
+      readonly minScore: number | undefined;
+    },
+  ): Promise<SearchResult<T>[]> {
+    if (!query) return [];
+    const ftsQuery = '"' + query.replace(/"/g, '""') + '"';
+    const conditions: SQL[] = [sql`entity_fts MATCH ${ftsQuery}`];
+    if (options.types.length > 0) {
+      conditions.push(inArray(entities.entityType, options.types));
+    }
+    if (options.excludeTypes.length > 0) {
+      conditions.push(
+        sql`${entities.entityType} NOT IN (${sql.join(
+          options.excludeTypes.map((type) => sql`${type}`),
+          sql`, `,
+        )})`,
+      );
+    }
+    conditions.push(
+      ...this.buildVisibilityConditions(options.visibilityScope),
+      ...this.buildGenerationStatusConditions(options.includeUngenerated),
+    );
+
+    // bm25() returns lower-is-better negative relevance. Map it to (0.5, 1)
+    // so the system search default threshold still admits lexical matches,
+    // while stronger matches remain ordered above weaker ones.
+    const multiplier = this.buildWeightMultiplier(options.weight);
+    const weightedScore = sql<number>`(0.5 + 0.5 * ((-bm25(entity_fts)) / (1.0 - bm25(entity_fts)))) * (${multiplier})`;
+    if (options.minScore !== undefined) {
+      conditions.push(sql`${weightedScore} >= ${options.minScore}`);
+    }
+    const results = await this.db
+      .select({
+        id: entities.id,
+        entityType: entities.entityType,
+        content: entities.content,
+        contentHash: entities.contentHash,
+        visibility: entities.visibility,
+        created: entities.created,
+        updated: entities.updated,
+        metadata: entities.metadata,
+        weighted_score: weightedScore.as("weighted_score"),
+      })
+      .from(entities)
+      .innerJoin(
+        sql`entity_fts`,
+        sql`entity_fts.entity_id = ${entities.id} AND entity_fts.entity_type = ${entities.entityType}`,
+      )
+      .where(and(...conditions))
+      .orderBy(sql`weighted_score DESC`)
+      .limit(options.limit)
+      .offset(options.offset);
+
+    return this.mapSearchResults<T>(results, query);
+  }
+
   private buildVisibilityConditions(
     visibilityScope?: ContentVisibility,
   ): SQL[] {
@@ -186,7 +267,7 @@ export class EntitySearch {
    * Build a parameterized CASE expression for entity-type score multipliers.
    * Weight keys may be caller-provided, so avoid raw SQL string interpolation.
    */
-  private buildWeightMultiplier(weight?: Record<string, number>): SQL {
+  private buildWeightMultiplier(weight?: Record<string, number>): SQL<number> {
     const entries = Object.entries(weight ?? {}).filter(([, multiplier]) =>
       Number.isFinite(multiplier),
     );
@@ -294,6 +375,9 @@ export class EntitySearch {
   public async projectSemanticSpace(
     request: ProjectSemanticSpaceRequest,
   ): Promise<SemanticSpaceProjection> {
+    if (!this.embeddingsEnabled) {
+      throw new Error("Semantic indexing is disabled for this Brain instance");
+    }
     const pointTypes =
       request.types && request.types.length > 0
         ? new Set(request.types)
@@ -391,6 +475,9 @@ export class EntitySearch {
   ): Promise<
     Array<{ entityId: string; entityType: string; distance: number }>
   > {
+    if (!this.embeddingsEnabled) {
+      throw new Error("Semantic indexing is disabled for this Brain instance");
+    }
     const preparedQuery = prepareSearchQuery(query, this.logger);
     const { embedding: queryEmbedding } =
       await this.embeddingService.generateEmbedding(preparedQuery);

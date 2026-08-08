@@ -336,16 +336,14 @@ describe("bundle resolver integration", () => {
       interfaces: [],
       bundles: [defineBundle({ id: "core", members: ["alpha"] })],
     });
-    const plugins = {
-      calendar: {
-        package: "@rizom/brain-plugin-bundle-calendar",
-        config: { timezone: "UTC" },
-      },
-    };
-
     expect(() =>
-      resolve(definition, {}, { bundles: ["core"], plugins }),
-    ).toThrow("uses the removed alpha factory contract");
+      parseInstanceOverrides(
+        'brain: "brain"\nbundles: [core]\nplugins:\n  calendar:\n    package: "@rizom/brain-plugin-bundle-calendar"',
+      ),
+    ).toThrow("removed alpha external-plugin contract");
+    expect(resolve(definition, {}, { bundles: ["core"] }).plugins).toHaveLength(
+      1,
+    );
   });
 
   test("creates fresh configs and plugins on repeated bundle resolution", () => {

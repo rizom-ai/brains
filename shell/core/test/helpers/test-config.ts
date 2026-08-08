@@ -19,8 +19,7 @@ export function createTestShellConfig(
       apiKey: "test-key",
     },
     embedding: {
-      cacheDir: `${dir}/embeddings`,
-      model: "fast-all-MiniLM-L6-v2",
+      enabled: true,
     },
     ...overrides,
   };

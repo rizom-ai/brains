@@ -11,9 +11,6 @@ import {
   CONVENTIONAL_SITE_PACKAGE_REF,
   parseInstanceOverrides,
   InstanceOverridesParseError,
-  getExternalPluginDeclarations,
-  getPluginConfigOverrides,
-  isExternalPluginDeclaration,
 } from "../src/instance-overrides";
 import type { Plugin, IShell, PluginCapabilities } from "@brains/plugins";
 import {
@@ -124,6 +121,13 @@ describe("parseInstanceOverrides", () => {
     expect(result.database).toBe("file:./data/brain.db");
   });
 
+  test("should parse disabled semantic indexing", () => {
+    const result = parseInstanceOverrides(
+      'brain: "brain"\nembedding:\n  enabled: false',
+    );
+    expect(result.embedding).toEqual({ enabled: false });
+  });
+
   test("should parse plugins section with flat config", () => {
     const result = parseInstanceOverrides(
       'brain: "brain"\nplugins:\n  webserver:\n    productionPort: 9090',
@@ -143,61 +147,17 @@ describe("parseInstanceOverrides", () => {
     });
   });
 
-  test("should parse external plugin declarations with nested config", () => {
-    process.env["CALENDAR_API_KEY"] = "cal-secret";
-    try {
-      const yaml = `brain: "brain"
-plugins:
-  calendar:
-    package: "@rizom/brain-plugin-calendar"
-    config:
-      apiKey: "\${CALENDAR_API_KEY}"
-      sync: true
-`;
-      const result = parseInstanceOverrides(yaml);
-      expect(result.plugins?.["calendar"]).toEqual({
-        package: "@rizom/brain-plugin-calendar",
-        config: {
-          apiKey: "cal-secret",
-          sync: true,
-        },
-      });
-      expect(isExternalPluginDeclaration(result.plugins?.["calendar"])).toBe(
-        true,
-      );
-    } finally {
-      delete process.env["CALENDAR_API_KEY"];
-    }
-  });
-
-  test("should split built-in config overrides from external plugin declarations", () => {
+  test("rejects removed alpha external plugin declarations at parse time", () => {
     const yaml = `brain: "brain"
 plugins:
-  directory-sync:
-    git:
-      repo: rizom-ai/brain-data
   calendar:
     package: "@rizom/brain-plugin-calendar"
     config:
       timezone: UTC
 `;
-    const result = parseInstanceOverrides(yaml);
-
-    expect(getPluginConfigOverrides(result.plugins)).toEqual({
-      "directory-sync": {
-        git: {
-          repo: "rizom-ai/brain-data",
-        },
-      },
-    });
-    expect(getExternalPluginDeclarations(result.plugins)).toEqual({
-      calendar: {
-        package: "@rizom/brain-plugin-calendar",
-        config: {
-          timezone: "UTC",
-        },
-      },
-    });
+    expect(() => parseInstanceOverrides(yaml)).toThrow(
+      "removed alpha external-plugin contract",
+    );
   });
 
   test("should reject list-form plugins", () => {
@@ -666,6 +626,18 @@ describe("resolve with instance overrides", () => {
 
     const config = resolve(def, {}, { database: "file:./custom.db" });
     expect(config.database).toBe("file:./custom.db");
+  });
+
+  test("should disable provider-backed semantic indexing", () => {
+    const def = defineBrain({
+      name: "test",
+      version: "1.0.0",
+      capabilities: [],
+      interfaces: [],
+    });
+
+    const config = resolve(def, {}, { embedding: { enabled: false } });
+    expect(config.shellConfig?.embedding?.enabled).toBe(false);
   });
 
   test("should override domain in deployment", () => {
@@ -1266,85 +1238,6 @@ permissions:
     expect(siteBuilder).toBeDefined();
     const resolvedConfig = getConfig(siteBuilder);
     expect(resolvedConfig["themeCSS"]).toBe("body { color: pink; }");
-  });
-
-  test("should reject legacy default plugin factory packages", () => {
-    registerPackage("@rizom/brain-plugin-calendar", () =>
-      createMockPlugin("calendar-plugin", {}),
-    );
-    const def = defineBrain({
-      name: "test",
-      version: "1.0.0",
-      capabilities: [],
-      interfaces: [],
-    });
-
-    expect(() =>
-      resolve(
-        def,
-        {},
-        {
-          plugins: {
-            calendar: {
-              package: "@rizom/brain-plugin-calendar",
-              config: { timezone: "UTC" },
-            },
-          },
-        },
-      ),
-    ).toThrow(
-      "Default-export a declarative package definition from a @rizom/brain define helper and compose it with use() in defineBrain()",
-    );
-  });
-
-  test("should reject legacy named plugin factory packages", () => {
-    registerPackage("@rizom/brain-plugin-named-calendar", {
-      plugin: (config: PluginConfig) =>
-        createMockPlugin("named-calendar-plugin", config),
-    });
-    const def = defineBrain({
-      name: "test",
-      version: "1.0.0",
-      capabilities: [],
-      interfaces: [],
-    });
-
-    expect(() =>
-      resolve(
-        def,
-        {},
-        {
-          plugins: {
-            calendar: {
-              package: "@rizom/brain-plugin-named-calendar",
-            },
-          },
-        },
-      ),
-    ).toThrow("uses the removed alpha factory contract");
-  });
-
-  test("should reject unregistered legacy plugin declarations with the same migration", () => {
-    const def = defineBrain({
-      name: "test",
-      version: "1.0.0",
-      capabilities: [],
-      interfaces: [],
-    });
-
-    expect(() =>
-      resolve(
-        def,
-        {},
-        {
-          plugins: {
-            missing: {
-              package: "@rizom/brain-plugin-missing",
-            },
-          },
-        },
-      ),
-    ).toThrow('External plugin declaration "plugins.missing.package"');
   });
 
   test("should leave non-@ values unchanged during package resolution", () => {

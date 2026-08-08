@@ -39,7 +39,10 @@ interface EntityTypeRegistration {
  */
 export async function setupEntityService(
   registrations: EntityTypeRegistration[],
-  options?: { messageBus?: EntityEventBus },
+  options?: {
+    messageBus?: EntityEventBus;
+    embeddingsEnabled?: boolean;
+  },
 ): Promise<EntityServiceTestContext> {
   const testDb = await createTestEntityDatabase();
   const logger = createSilentLogger();
@@ -59,6 +62,9 @@ export async function setupEntityService(
 
   const entityService = EntityService.createFresh({
     embeddingService: mockEmbeddingService,
+    ...(options?.embeddingsEnabled !== undefined && {
+      embeddingsEnabled: options.embeddingsEnabled,
+    }),
     entityRegistry,
     logger,
     jobQueueService: mockJobQueueService,

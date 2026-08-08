@@ -1,20 +1,13 @@
 import { z } from "@brains/utils/zod";
 import { createEntityPackagePlugins } from "../entity/declarative-entity-plugin";
 import {
+  assertIdentifier as assertLocalId,
   createPluginPackageDefinition,
   type PluginPackageDefinition,
 } from "../package-definition";
 
 export type EntityVisibility = "public" | "shared" | "restricted";
 export type EntityMetadataSchema = z.ZodObject<z.ZodRawShape>;
-
-function assertLocalId(value: string, label: string): void {
-  if (!/^[a-z][a-z0-9-]*$/u.test(value)) {
-    throw new Error(
-      `${label} must start with a lowercase letter and contain only lowercase letters, numbers, and hyphens`,
-    );
-  }
-}
 
 export interface EntityMarkdownDocument<TMetadata> {
   readonly content: string;
