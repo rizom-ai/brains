@@ -1,5 +1,15 @@
 # @rizom/brain
 
+## 0.2.0-alpha.266
+
+### Patch Changes
+
+- [`e70ab12`](https://github.com/rizom-ai/brains/commit/e70ab12745c6cf757f685389f4cd6de8991de95f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Behavior-preserving quality refactors: shared SerialQueue/KeyedSerialQueue primitive in @brains/utils replacing five hand-rolled promise-tail mutexes; directory-sync stress system split into command runner, git checkout, and health monitor modules; job-queue worker heartbeat/deadline/error-callback dedup and table-generic schema column helpers; consolidated pilot starter staleness detection; single-pass HTTP route registry views; projection wave planning simplification with indexed graph edges.
+
+- [`f3987de`](https://github.com/rizom-ai/brains/commit/f3987de9284e09c8e6b693cc68a537f67467c884) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add first-class `public`, `shared`, and `restricted` visibility to `system_create` so agent-backed interfaces can save non-public notes and uploads without rewriting exact source material. Preserve the requested scope through confirmation, permission checks, direct persistence, and asynchronous upload promotion, and add personal/team routing eval coverage.
+
+  Let Trusted collaborators capture notes and links on every posture, not only on a team brain. The platform baseline is `"*": admin`, and only the team bundle granted those types, so `system_create` was offered to a Trusted caller and then refused with "Creating `note` requires Admin permission". The core bundle now grants `note` and `link` at Trusted for create and update, leaving delete, extract, and publish with Admin. Public callers remain unable to create either type.
+
 ## 0.2.0-alpha.265
 
 ### Patch Changes

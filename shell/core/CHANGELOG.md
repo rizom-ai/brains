@@ -1,5 +1,24 @@
 # @brains/core
 
+## 0.2.0-alpha.266
+
+### Patch Changes
+
+- [`e70ab12`](https://github.com/rizom-ai/brains/commit/e70ab12745c6cf757f685389f4cd6de8991de95f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Behavior-preserving quality refactors: shared SerialQueue/KeyedSerialQueue primitive in @brains/utils replacing five hand-rolled promise-tail mutexes; directory-sync stress system split into command runner, git checkout, and health monitor modules; job-queue worker heartbeat/deadline/error-callback dedup and table-generic schema column helpers; consolidated pilot starter staleness detection; single-pass HTTP route registry views; projection wave planning simplification with indexed graph edges.
+
+- Updated dependencies [[`e70ab12`](https://github.com/rizom-ai/brains/commit/e70ab12745c6cf757f685389f4cd6de8991de95f)]:
+  - @brains/utils@0.2.0-alpha.266
+  - @brains/contracts@0.2.0-alpha.266
+  - @brains/image@0.2.0-alpha.266
+  - @brains/notification-contracts@0.2.0-alpha.266
+  - @brains/site-composition@0.2.0-alpha.266
+  - @brains/plugins@0.2.0-alpha.266
+  - @brains/recurring-checks@0.2.0-alpha.266
+  - @brains/runtime-state@0.2.0-alpha.266
+  - @brains/scheduler@0.2.0-alpha.266
+  - @brains/templates@0.2.0-alpha.266
+  - @brains/operation-context@0.2.0-alpha.266
+
 ## 0.2.0-alpha.265
 
 ### Patch Changes

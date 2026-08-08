@@ -1,5 +1,15 @@
 # @brains/admin
 
+## 0.2.0-alpha.266
+
+### Patch Changes
+
+- Updated dependencies [[`e70ab12`](https://github.com/rizom-ai/brains/commit/e70ab12745c6cf757f685389f4cd6de8991de95f)]:
+  - @brains/utils@0.2.0-alpha.266
+  - @brains/auth-service@0.2.0-alpha.266
+  - @brains/plugins@0.2.0-alpha.266
+  - @brains/console-theme@0.2.0-alpha.266
+
 ## 0.2.0-alpha.265
 
 ### Patch Changes
