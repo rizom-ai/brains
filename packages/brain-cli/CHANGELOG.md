@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.265
+
+### Patch Changes
+
+- [`db855c1`](https://github.com/rizom-ai/brains/commit/db855c121ac191ef1dbb3713ba321a43e9fcee50) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Run all network Git operations (pull, push, ls-remote, clone) through Bun-owned, process-group-scoped children with stall timeouts, guaranteed reaping, and credential-redacted errors — so large directory imports cannot leave unreaped Git processes or deadlock the web runtime.
+
 ## 0.2.0-alpha.264
 
 ## 0.2.0-alpha.263

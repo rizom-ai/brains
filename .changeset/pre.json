@@ -250,6 +250,7 @@
     "core--health-probe-and-declared-type-message",
     "core--health-watchdog-container-scope",
     "core--http-route-registry",
+    "core--import-burst-git-child",
     "core--inbound-email-daemon",
     "core--json-native-section-content",
     "core--media-provider-factories",
