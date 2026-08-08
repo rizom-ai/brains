@@ -121,6 +121,33 @@ export function copyDeployScripts(
   }
 }
 
+/**
+ * One stable string per generated deploy script, present in every generated
+ * vintage of that script. A committed copy that still contains its fingerprint
+ * but no longer matches the canonical source is a stale generated copy and
+ * safe to rewrite on init; content without the fingerprint is treated as
+ * owner-customized and left alone.
+ */
+const deployScriptFingerprints: Record<DeployScriptName, string> = {
+  "install-health-watchdog.ts": "/usr/local/sbin/brains-health-watchdog",
+  "provision-server.ts": 'requireEnv("HCLOUD_TOKEN")',
+  "update-dns.ts": 'requireEnv("CF_API_TOKEN")',
+  "validate-secrets.ts": "const requiredKeys = schema",
+  "write-kamal-secrets.ts": ".kamal/secrets",
+  "write-ssh-key.ts": 'requireEnv("KAMAL_SSH_PRIVATE_KEY")',
+};
+
+export function isStaleDeployScript(
+  script: DeployScriptName,
+  current: string,
+  canonical: string,
+): boolean {
+  if (current === canonical) {
+    return false;
+  }
+  return current.includes(deployScriptFingerprints[script]);
+}
+
 export function renderDockerfile(): string {
   return dockerfileTemplate;
 }

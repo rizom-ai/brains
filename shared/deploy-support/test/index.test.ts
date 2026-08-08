@@ -8,6 +8,7 @@ import {
   deployScriptNames,
   isStaleDeployDockerfile,
   isStaleDeployMounts,
+  isStaleDeployScript,
   renderDeployWorkflow,
   renderDockerfile,
   renderExtractBrainConfigScript,
@@ -134,6 +135,39 @@ describe("deploy templates", () => {
     );
     expect(deployIndex).toBeGreaterThan(-1);
     expect(watchdogIndex).toBeGreaterThan(deployIndex);
+  });
+
+  it("reconciles prior generated deploy script vintages", () => {
+    for (const script of deployScriptNames) {
+      const canonical = readFileSync(resolveDeployScriptPath(script), "utf8");
+      const priorVintage = `${canonical}\n// prior generated vintage\n`;
+      const operatorOwned = '#!/usr/bin/env bun\nconsole.log("custom");\n';
+
+      expect(isStaleDeployScript(script, canonical, canonical)).toBe(false);
+      expect(isStaleDeployScript(script, priorVintage, canonical)).toBe(true);
+      expect(isStaleDeployScript(script, operatorOwned, canonical)).toBe(false);
+    }
+  });
+
+  it("flags the pre-label health watchdog installer as stale", () => {
+    const canonical = readFileSync(
+      resolveDeployScriptPath("install-health-watchdog.ts"),
+      "utf8",
+    );
+    const preLabelInstaller = canonical
+      .replace(/export const BRAIN_WATCHDOG_LABEL[^]*?\n\n/, "")
+      .replace(
+        "--filter label=${BRAIN_WATCHDOG_LABEL_FILTER}",
+        "--filter label=service",
+      );
+    expect(preLabelInstaller).toContain("--filter label=service");
+    expect(
+      isStaleDeployScript(
+        "install-health-watchdog.ts",
+        preLabelInstaller,
+        canonical,
+      ),
+    ).toBe(true);
   });
 
   it("exports deploy env schema fragments", () => {
