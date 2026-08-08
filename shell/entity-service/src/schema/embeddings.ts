@@ -75,9 +75,7 @@ export const embeddings: EmbeddingsTable = sqliteTable(
     entityId: text("entity_id").notNull(),
     entityType: text("entity_type").notNull(),
 
-    // Vector embedding for semantic search
-    // NOTE: This column has a vector index created via ensureEmbeddingIndexes():
-    // CREATE INDEX embeddings_idx ON embeddings(libsql_vector_idx(embedding))
+    // Vector embedding for semantic search; queried with vector_distance_cos
     embedding: vector("embedding").notNull(),
 
     // Content hash to detect stale embeddings

@@ -48,16 +48,6 @@ export async function migrateEmbeddingDatabase(
 }
 
 /**
- * Ensure vector index exists on the embedding database
- */
-export async function ensureEmbeddingIndexes(client: Client): Promise<void> {
-  await client.execute(`
-    CREATE INDEX IF NOT EXISTS embeddings_embedding_idx
-    ON embeddings(libsql_vector_idx(embedding))
-  `);
-}
-
-/**
  * Attach the embedding database to an entity database client.
  * This enables cross-database joins for search queries.
  *

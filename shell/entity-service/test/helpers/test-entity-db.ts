@@ -3,11 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { EntityDbConfig } from "../../src/types";
 import { migrateEntities } from "../../src/migrate";
-import {
-  migrateEmbeddingDatabase,
-  ensureEmbeddingIndexes,
-} from "../../src/db/embedding-db";
-import { createClient } from "@libsql/client";
+import { migrateEmbeddingDatabase } from "../../src/db/embedding-db";
 import { createSilentLogger } from "@brains/test-utils";
 import { computeContentHash } from "@brains/utils/hash";
 import { MOCK_DIMENSIONS } from "./mock-services";
@@ -37,9 +33,8 @@ export async function createTestEntityDatabase(): Promise<{
   await migrateEntities(config, logger);
 
   // Migrate embedding DB
-  const embClient = createClient({ url: embeddingConfig.url });
+  const embClient = createEmbeddingDatabase(embeddingConfig).client;
   await migrateEmbeddingDatabase(embClient, MOCK_DIMENSIONS);
-  await ensureEmbeddingIndexes(embClient);
   embClient.close();
 
   const cleanup = async (): Promise<void> => {
