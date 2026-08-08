@@ -223,6 +223,20 @@ const stalenessChecks: Partial<Record<StarterFilePath, StalenessCheck>> = {
   ),
   "deploy/scripts/sync-content-repo.ts":
     hasOpsScriptFingerprint("GIT_SYNC_TOKEN"),
+  // Tooling workflows must track the template. directory-sync-stress.yml is
+  // deliberately absent: operators tune it in-repo, and a reconcile must not
+  // revert that.
+  ".github/workflows/build.yml": hasOpsScriptFingerprint(
+    "resolve-missing-images.ts",
+  ),
+  ".github/workflows/deploy.yml": hasOpsScriptFingerprint(
+    "install-health-watchdog.ts",
+  ),
+  ".github/workflows/reconcile.yml": hasOpsScriptFingerprint(
+    "brains-ops reconcile",
+  ),
+  ".github/workflows/upgrade.yml":
+    hasOpsScriptFingerprint("brains-ops upgrade"),
 };
 
 /** A stale committed copy of an earlier vintage gets rewritten on rerun. */

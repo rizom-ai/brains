@@ -23,6 +23,7 @@
   "devDependencies": {
     "@brains/deploy-support": "workspace:*",
     "@brains/eslint-config": "workspace:*",
+    "@brains/profile": "workspace:*",
     "@brains/site-composition": "workspace:*",
     "@brains/typescript-config": "workspace:*",
     "@brains/utils": "workspace:*",

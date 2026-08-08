@@ -11,6 +11,11 @@ on:
         description: 'Space-separated site packages for a per-instance site image (e.g. "@rizom/site-rizom-ai@0.2.0-alpha.148"). Empty builds the default fleet image.'
         required: false
         type: string
+      overwrite:
+        description: Rebuild an existing tag in place. Published tags are immutable; confirm only when replacing a tag whose containers were never deployed.
+        required: false
+        type: boolean
+        default: false
   push:
     branches: ["main"]
     paths:
@@ -54,6 +59,7 @@ jobs:
         env:
           BRAIN_VERSION_INPUT: ${{ inputs.brain_version || '' }}
           SITE_PACKAGES_INPUT: ${{ inputs.site_packages || '' }}
+          ALLOW_TAG_OVERWRITE: ${{ inputs.overwrite && 'true' || 'false' }}
         run: bun deploy/scripts/resolve-missing-images.ts
 
   no_builds:
