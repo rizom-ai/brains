@@ -1,5 +1,11 @@
 # @brains/ops
 
+## 0.2.0-alpha.264
+
+### Patch Changes
+
+- [`98370cb`](https://github.com/rizom-ai/brains/commit/98370cb7d8d0d11a1924c11b67ed7058f24a3619) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add `brains-ops upgrade`: bumps the `@rizom/ops` pin and reruns the scaffold refresh from the upgraded package, plus a scheduled Upgrade workflow template that stages the result as a reviewable PR. Init reruns also stop resurrecting deleted first-run example content (`users/alice.yaml`, `cohorts/cohort-1.yaml`, `docs/canonical-crossover-record.md`).
+
 ## 0.2.0-alpha.263
 
 ## 0.2.0-alpha.262

@@ -1,5 +1,18 @@
 # @brains/job-queue
 
+## 0.2.0-alpha.264
+
+### Patch Changes
+
+- [`f096118`](https://github.com/rizom-ai/brains/commit/f096118a902af6921546c748f8418964135d3645) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Retry atomic-enqueue write-transaction conflicts against a time budget (2s, jittered exponential backoff) instead of a fixed attempt cap, in both the acquire and commit phases. App-level retries stand in for SQLite's busy_timeout here, so any attempt cap was a latent failure under slow-runner contention.
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.264
+  - @brains/db@0.2.0-alpha.264
+  - @brains/operation-context@0.2.0-alpha.264
+  - @brains/utils@0.2.0-alpha.264
+  - @brains/mcp-service@0.2.0-alpha.264
+
 ## 0.2.0-alpha.263
 
 ### Patch Changes
