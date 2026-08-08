@@ -58,15 +58,15 @@ All entity CRUD goes through shared system tools. Entity plugins intentionally d
 
 Common tools:
 
-| Tool              | Purpose                                                                                                                                                     |
-| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Tool              | Purpose                                                                                                                                                                  |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `system_create`   | Create an entity from existing material. Use `source.kind` (`text`, `url`, `upload`, or `prior-response`) to select the concrete source, and `visibility` to set access. |
-| `system_update`   | Update fields or replace full content. Requires confirmation for writes.                                                                                    |
-| `system_delete`   | Delete an entity. Requires confirmation.                                                                                                                    |
-| `system_get`      | Fetch one entity by id, slug, or title.                                                                                                                     |
-| `system_list`     | List entities by type, optionally filtered by status.                                                                                                       |
-| `system_search`   | Search across entities, optionally filtered by type.                                                                                                        |
-| `system_insights` | Return aggregate insights registered by the runtime or plugins.                                                                                             |
+| `system_update`   | Update fields or replace full content. Requires confirmation for writes.                                                                                                 |
+| `system_delete`   | Delete an entity. Requires confirmation.                                                                                                                                 |
+| `system_get`      | Fetch one entity by id, slug, or title.                                                                                                                                  |
+| `system_list`     | List entities by type, optionally filtered by status.                                                                                                                    |
+| `system_search`   | Search across entities, optionally filtered by type.                                                                                                                     |
+| `system_insights` | Return aggregate insights registered by the runtime or plugins.                                                                                                          |
 
 Examples:
 
