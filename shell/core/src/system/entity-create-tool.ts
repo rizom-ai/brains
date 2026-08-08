@@ -520,7 +520,10 @@ export function createEntityCreateTool(services: SystemServices): Tool {
         prep.prepared;
 
       if (input.confirmed) {
-        const gateError = confirmationGate.validateConfirmed(input);
+        const gateError = confirmationGate.validateConfirmed(
+          input.confirmationToken,
+          input,
+        );
         if (gateError) return gateError;
       } else {
         const confirmation = uploadPreserve

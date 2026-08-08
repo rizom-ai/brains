@@ -35,3 +35,7 @@ export {
   ConfirmationArgsStore,
   type ConfirmationArgsValidationResult,
 } from "./confirmation-args-store";
+export {
+  createConfirmationGate,
+  type ConfirmationGate,
+} from "./confirmation-gate";

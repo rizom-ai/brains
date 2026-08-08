@@ -1,4 +1,5 @@
 import type { z } from "@brains/utils/zod";
+import type { UserPermissionLevel } from "@brains/templates";
 import { createDeclarativeServicePlugin } from "../service/declarative-service-plugin";
 import {
   assertIdentifier,
@@ -26,12 +27,14 @@ export interface ServiceMessagePublisher {
   }): Promise<void>;
 }
 
+export interface ServiceJobProgress {
+  readonly progress: number;
+  readonly total?: number | undefined;
+  readonly message?: string | undefined;
+}
+
 export interface ServiceProgressReporter {
-  report(input: {
-    readonly progress: number;
-    readonly total?: number | undefined;
-    readonly message?: string | undefined;
-  }): Promise<void>;
+  report(input: ServiceJobProgress): Promise<void>;
 }
 
 export interface ServiceTemplateFormatter {
@@ -153,11 +156,7 @@ export function parseServiceDeadline(deadline: ServiceDeadline): number {
 export interface ServiceJobStatus<TOutput> {
   readonly id: string;
   readonly status: "pending" | "processing" | "completed" | "failed";
-  readonly progress: {
-    readonly progress: number;
-    readonly total?: number | undefined;
-    readonly message?: string | undefined;
-  } | null;
+  readonly progress: ServiceJobProgress | null;
   readonly result?: TOutput | undefined;
   readonly error?: string | undefined;
 }
@@ -191,7 +190,7 @@ export interface ServiceToolDefinition<
   readonly input: TInputSchema;
   readonly output: TOutputSchema;
   readonly confirmation?: string | undefined;
-  readonly permission?: "public" | "trusted" | "admin" | undefined;
+  readonly permission?: UserPermissionLevel | undefined;
   readonly sideEffects?: "none" | "writes" | "external" | undefined;
   execute(context: {
     readonly input: z.output<TInputSchema>;

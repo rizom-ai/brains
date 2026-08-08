@@ -348,7 +348,10 @@ export function createEntityUpdateTool(services: SystemServices): Tool {
 
       if (input.confirmed) {
         if (!mangledApprovalReplay) {
-          const gateError = confirmationGate.validateConfirmed(input);
+          const gateError = confirmationGate.validateConfirmed(
+            input.confirmationToken,
+            input,
+          );
           if (gateError) return gateError;
         }
         if (input.contentHash && entity.contentHash !== input.contentHash) {

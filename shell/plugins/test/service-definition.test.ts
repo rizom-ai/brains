@@ -171,6 +171,121 @@ describe("declarative service definitions", () => {
     expect(manager.getPluginStatus(plugin.id)).toBe(PluginStatus.ERROR);
   });
 
+  it("replays confirmations statelessly and attributes enqueued jobs", async () => {
+    const attributedJob = defineJob({
+      name: "attributed-job",
+      input: digestInput,
+      output: digestOutput,
+    });
+    const definition = defineServicePlugin({
+      id: "replay-service",
+      config: z.object({}),
+      setup: () => ({}),
+      jobs: () => [
+        attributedJob.handle(async ({ input }) => ({
+          bookmarkId: input.bookmarkId,
+          words: 1,
+        })),
+      ],
+      tools: ({ jobs }) => [
+        defineTool({
+          name: "compile",
+          description: "Compile a digest.",
+          input: digestInput,
+          output: z.object({ jobId: z.string() }),
+          confirmation: "Compile this digest?",
+          async execute({ input }) {
+            const job = await jobs.enqueue(attributedJob, input);
+            return { jobId: job.id };
+          },
+        }),
+      ],
+    });
+    const makePlugin = (): NonNullable<
+      ReturnType<typeof instantiatePluginPackageDefinition>[number]
+    > => {
+      const [plugin] = instantiatePluginPackageDefinition(
+        definition,
+        {},
+        {
+          name: "@fixture/replay-service",
+          version: "0.1.0",
+        },
+      );
+      if (!plugin) throw new Error("Service plugin was not created");
+      return plugin;
+    };
+
+    const toolContext = {
+      interfaceType: "test",
+      actor: { kind: "service", serviceId: "test" },
+      userPermissionLevel: "admin",
+    } as const;
+
+    const harness = createPluginHarness();
+    const shell = harness.getMockShell();
+    const queue = shell.getJobQueueService();
+    const enqueue = mock(queue.enqueue);
+    queue.enqueue = enqueue;
+    shell.getJobQueueService = (): typeof queue => queue;
+    const capabilities = await harness.installPlugin(makePlugin());
+    const tool = capabilities.tools[0];
+    if (!tool) throw new Error("Tool was not registered");
+
+    const confirmation = await tool.handler(
+      { bookmarkId: "saved" },
+      toolContext,
+    );
+    if (!("needsConfirmation" in confirmation)) {
+      throw new Error("Tool did not request confirmation");
+    }
+
+    // Tampered replays are rejected against the stored proposal.
+    const confirmationArgs = z
+      .record(z.string(), z.unknown())
+      .parse(confirmation.args);
+    const tampered = await tool.handler(
+      { ...confirmationArgs, bookmarkId: "other" },
+      toolContext,
+    );
+    expect(tampered).toMatchObject({
+      success: false,
+      error: expect.stringContaining("do not match the pending approval"),
+    });
+
+    // A faithful replay executes and the job carries plugin attribution
+    // even though the job declares no retry policy.
+    const second = await tool.handler({ bookmarkId: "saved" }, toolContext);
+    if (!("needsConfirmation" in second)) {
+      throw new Error("Tool did not request confirmation");
+    }
+    const replayed = await tool.handler(second.args, toolContext);
+    expect(replayed).toMatchObject({ success: true });
+    expect(enqueue).toHaveBeenCalledWith(
+      expect.objectContaining({
+        options: expect.objectContaining({
+          source: expect.stringContaining("replay-service"),
+          metadata: expect.objectContaining({
+            pluginId: expect.stringContaining("replay-service"),
+          }),
+        }),
+      }),
+    );
+
+    // A replay in another runtime instance has no pending proposal to
+    // prove — confirmations are process-local by design.
+    const fresh = createPluginHarness();
+    const freshCapabilities = await fresh.installPlugin(makePlugin());
+    const rejected = await freshCapabilities.tools[0]?.handler(
+      second.args,
+      toolContext,
+    );
+    expect(rejected).toMatchObject({
+      success: false,
+      error: expect.stringContaining("confirmation found"),
+    });
+  });
+
   it("rejects invalid retry and deadline declarations", () => {
     expect(() =>
       defineJob({

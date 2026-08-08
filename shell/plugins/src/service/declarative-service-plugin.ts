@@ -2,12 +2,13 @@ import { AsyncLocalStorage } from "node:async_hooks";
 import type { JsonObject } from "@brains/contracts";
 import type { JobHandler, JobInfo } from "@brains/job-queue";
 import type { ProgressReporter } from "@brains/utils/progress";
-import type {
-  Prompt,
-  Resource,
-  Tool,
-  ToolContext,
-  ToolResponse,
+import {
+  createConfirmationGate,
+  type Prompt,
+  type Resource,
+  type Tool,
+  type ToolContext,
+  type ToolResponse,
 } from "@brains/mcp-service";
 import {
   createTemplate,
@@ -15,7 +16,6 @@ import {
   type Template,
 } from "@brains/templates";
 import { getErrorMessage } from "@brains/utils/error";
-import { createId } from "@brains/utils/id";
 import { z } from "@brains/utils/zod";
 import type { PluginCapabilities, IShell } from "../interfaces";
 import type { InstalledPluginPackageMetadata } from "../package-definition";
@@ -44,6 +44,13 @@ import {
 } from "../public/service-definition";
 
 const confirmationTokenField = "_rizomConfirmationToken";
+
+function formatTemplateValue(
+  template: ServiceTemplateDefinition<ServiceSchema>,
+  value: unknown,
+): string {
+  return template.format({ value: template.schema.parse(value) });
+}
 
 function identityConfigSchema<TConfig extends object>(): z.ZodType<
   TConfig,
@@ -301,18 +308,14 @@ class DeclarativeServicePlugin<
           type: definition.name,
           data,
           ...(toolContext ? { toolContext } : {}),
-          ...(maxRetries !== undefined
-            ? {
-                options: {
-                  source: this.id,
-                  metadata: {
-                    operationType: "data_processing",
-                    pluginId: this.id,
-                  },
-                  maxRetries,
-                },
-              }
-            : {}),
+          options: {
+            source: this.id,
+            metadata: {
+              operationType: "data_processing",
+              pluginId: this.id,
+            },
+            ...(maxRetries !== undefined ? { maxRetries } : {}),
+          },
         });
         return Object.freeze({
           id,
@@ -339,7 +342,7 @@ class DeclarativeServicePlugin<
       format(name, value): string {
         const template = templates?.[name];
         if (!template) throw new Error(`Template not found: ${name}`);
-        return template.format({ value: template.schema.parse(value) });
+        return formatTemplateValue(template, value);
       },
     };
   }
@@ -374,7 +377,7 @@ class DeclarativeServicePlugin<
           ? {
               formatter: {
                 format: (value: unknown): string =>
-                  template.format({ value: template.schema.parse(value) }),
+                  formatTemplateValue(template, value),
                 parse: (): never => {
                   throw new Error(`Template "${name}" is format-only`);
                 },
@@ -462,7 +465,10 @@ class DeclarativeServicePlugin<
 
   private runtimeTool(definition: AnyServiceToolDefinition): Tool {
     const name = `${this.publicId}_${definition.name}`;
-    const pending = new Map<string, unknown>();
+    const confirmations = createConfirmationGate({
+      label: definition.name,
+      requestNoun: "the operation",
+    });
     return {
       name,
       description: definition.description,
@@ -473,37 +479,32 @@ class DeclarativeServicePlugin<
         definition.sideEffects ?? (definition.confirmation ? "writes" : "none"),
       handler: async (rawInput, toolContext): Promise<ToolResponse> => {
         try {
-          let input: unknown;
           const token = toolConfirmationToken(rawInput);
-          if (token) {
-            input = pending.get(token);
-            pending.delete(token);
-            if (input === undefined) {
-              return {
-                success: false,
-                error: `No pending confirmation found for ${name}`,
-              };
-            }
-          } else {
-            input = definition.input.parse(rawInput);
-            if (definition.confirmation) {
-              const confirmationToken = createId();
-              pending.set(confirmationToken, input);
-              return {
-                needsConfirmation: true,
-                toolName: name,
-                summary: definition.confirmation,
-                args: {
-                  ...z.record(z.string(), z.unknown()).parse(input),
-                  [confirmationTokenField]: confirmationToken,
-                },
-              };
-            }
+          if (token !== undefined) {
+            const gateError = confirmations.validateConfirmed(token, rawInput);
+            if (gateError) return gateError;
+            const record = {
+              ...z.record(z.string(), z.unknown()).parse(rawInput),
+            };
+            delete record[confirmationTokenField];
+            rawInput = record;
+          }
+          const input = definition.input.parse(rawInput);
+          if (token === undefined && definition.confirmation) {
+            return {
+              needsConfirmation: true,
+              toolName: name,
+              summary: definition.confirmation,
+              args: confirmations.buildArgs((confirmationToken) => ({
+                ...z.record(z.string(), z.unknown()).parse(input),
+                [confirmationTokenField]: confirmationToken,
+              })),
+            };
           }
 
           const output = await this.toolContext.run(toolContext, () =>
             definition.execute({
-              input: definition.input.parse(input),
+              input,
               signal: toolContext.signal ?? new AbortController().signal,
             }),
           );
