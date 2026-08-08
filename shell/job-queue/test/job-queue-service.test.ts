@@ -140,7 +140,7 @@ describe("JobQueueService", () => {
           data: testEntity,
           options: defaultEnqueueOptions,
         }),
-      ).rejects.toThrow("No handler registered for job type: shell:embedding");
+      ).rejects.toThrow("No job type declared: shell:embedding");
     });
 
     it("freezes validation-only execution declarations without exposing handlers", async () => {
@@ -339,7 +339,7 @@ describe("JobQueueService", () => {
           data: testEntity,
           options: defaultEnqueueOptions,
         }),
-      ).rejects.toThrow("No handler registered for job type: shell:embedding");
+      ).rejects.toThrow("No job type declared: shell:embedding");
     });
     it("should throw error when enqueueing job with invalid data", async () => {
       testHandler.shouldValidationFail = true;

@@ -242,9 +242,7 @@ export class BatchJobManager {
       // handler — web processes register validation-only and hold no handlers.
       const validator = this.jobQueue.getValidator(operation.type);
       if (!validator) {
-        throw new Error(
-          `No handler registered for job type: ${operation.type}`,
-        );
+        throw new Error(`No job type declared: ${operation.type}`);
       }
 
       if (validator.validateAndParse(operation.data) === null) {

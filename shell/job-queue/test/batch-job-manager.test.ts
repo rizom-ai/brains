@@ -204,7 +204,7 @@ describe("BatchJobManager", () => {
           defaultBatchOptions,
           batchId,
         );
-      }).toThrow("No handler registered for job type: missing-handler");
+      }).toThrow("No job type declared: missing-handler");
 
       expect(await batchManager.getBatchStatus(batchId)).toBeNull();
       expect(await jobQueueService.getActiveJobs()).toHaveLength(0);
@@ -274,7 +274,7 @@ describe("BatchJobManager", () => {
           defaultBatchOptions,
           createId(),
         );
-      }).toThrow("No handler registered for job type: missing-handler");
+      }).toThrow("No job type declared: missing-handler");
     });
 
     it("should still preflight data validation", async () => {

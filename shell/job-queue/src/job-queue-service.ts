@@ -244,7 +244,7 @@ export class JobQueueService implements IJobQueueService {
 
     const validator = this.handlerRegistry.getValidator(type);
     if (!validator) {
-      throw new Error(`No handler registered for job type: ${type}`);
+      throw new Error(`No job type declared: ${type}`);
     }
 
     const parsedData = validator.validateAndParse(data);

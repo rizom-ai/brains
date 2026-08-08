@@ -235,7 +235,7 @@ jobs:
           WWW_DOMAIN: ${{ steps.user_config.outputs.www_domain }}
           PREVIEW_DOMAIN: ${{ steps.user_config.outputs.preview_domain }}
         run: |
-          curl -I -k --max-time 20 --resolve "$BRAIN_DOMAIN:443:$SERVER_IP" "https://$BRAIN_DOMAIN/health"
+          curl -I -k --max-time 20 --resolve "$BRAIN_DOMAIN:443:$SERVER_IP" "https://$BRAIN_DOMAIN/health/live"
           if [ -n "$WWW_DOMAIN" ]; then
             curl -I -k --max-time 20 --resolve "$WWW_DOMAIN:443:$SERVER_IP" "https://$WWW_DOMAIN/"
           fi
