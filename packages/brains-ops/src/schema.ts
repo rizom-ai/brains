@@ -24,6 +24,19 @@ export const canonicalBundleIdSchema: z.ZodEnum<{
 }> = z.enum(["core", "site", "publishing", "team"]);
 export type CanonicalBundleId = z.output<typeof canonicalBundleIdSchema>;
 
+/**
+ * The profile kinds the runtime's profile plugin registers. A user config
+ * selecting anything else composes a brain that fails at boot, so reject it
+ * at parse time. Kept in lockstep with @brains/profile BUILT_IN_PROFILE_KINDS
+ * by a test. Collective/organization brains use "organization".
+ */
+export const PROFILE_KINDS = ["professional", "team", "organization"] as const;
+export const profileKindSchema: z.ZodEnum<{
+  professional: "professional";
+  team: "team";
+  organization: "organization";
+}> = z.enum(PROFILE_KINDS);
+
 export interface PilotConfig {
   brainVersion: string;
   bundles: CanonicalBundleId[];
@@ -253,7 +266,7 @@ export const userSchema: z.ZodObject<{
   domainOverride: z.ZodOptional<z.ZodString>;
   cloudflareZoneId: z.ZodOptional<z.ZodString>;
   contentRepoOverride: z.ZodOptional<z.ZodString>;
-  profileKind: z.ZodOptional<z.ZodString>;
+  profileKind: z.ZodOptional<typeof profileKindSchema>;
   addOverride: z.ZodOptional<z.ZodArray<z.ZodString>>;
   removeOverride: z.ZodOptional<z.ZodArray<z.ZodString>>;
   siteOverride: z.ZodOptional<typeof siteOverrideSchema>;
@@ -272,7 +285,7 @@ export const userSchema: z.ZodObject<{
   domainOverride: z.string().min(1).optional(),
   cloudflareZoneId: z.string().min(1).optional(),
   contentRepoOverride: z.string().min(1).optional(),
-  profileKind: z.string().trim().min(1).optional(),
+  profileKind: profileKindSchema.optional(),
   addOverride: z.array(z.string().min(1)).optional(),
   removeOverride: z.array(z.string().min(1)).optional(),
   siteOverride: siteOverrideSchema.optional(),
