@@ -1,93 +1,65 @@
 import { describe, expect, it } from "bun:test";
-import { Effect } from "@brains/utils/effect";
-import { TestClock, TestContext } from "@brains/utils/effect/test";
-import { GitStallError, runGitWithStallTimeout } from "../../src/lib/git-stall";
+import {
+  GitStallError,
+  runGitCommandWithStallTimeout,
+} from "../../src/lib/git-stall";
 
-function deferred(): {
-  promise: Promise<void>;
-  resolve: () => void;
-} {
-  let resolve = (): void => {};
-  const promise = new Promise<void>((complete) => {
-    resolve = complete;
-  });
-  return { promise, resolve };
-}
-
-describe("runGitWithStallTimeout", () => {
-  it("uses the injected clock and preserves GitStallError identity", async () => {
-    await Effect.runPromise(
-      Effect.gen(function* () {
-        const clock = yield* TestClock.testClock();
-        let settled = false;
-        const operation = deferred();
-        const outcome = runGitWithStallTimeout(
-          { baseDir: process.cwd(), timeoutMs: 100, clock },
-          () => operation.promise,
-        ).then(
-          () => {
-            settled = true;
-            return undefined;
-          },
-          (error: unknown) => {
-            settled = true;
-            return error;
-          },
-        );
-
-        yield* TestClock.adjust(99);
-        yield* Effect.yieldNow();
-        expect(settled).toBe(false);
-
-        yield* TestClock.adjust(1);
-        yield* Effect.yieldNow();
-        expect(settled).toBe(false);
-
-        operation.resolve();
-        const error = yield* Effect.promise(() => outcome);
-        expect(error).toBeInstanceOf(GitStallError);
-      }).pipe(Effect.provide(TestContext.TestContext)),
-    );
-  });
-
-  it("preserves caller abort reason identity", async () => {
-    const controller = new AbortController();
-    const reason = new Error("stop periodic pull");
-    const operation = deferred();
-    let settled = false;
-    const running = runGitWithStallTimeout(
+describe("runGitCommandWithStallTimeout", () => {
+  it("returns stdout for a completing command", async () => {
+    const stdout = await runGitCommandWithStallTimeout(
       { baseDir: process.cwd(), timeoutMs: 10_000 },
-      () => operation.promise,
-      controller.signal,
-    ).finally(() => {
-      settled = true;
-    });
-
-    controller.abort(reason);
-    await Promise.resolve();
-    expect(settled).toBe(false);
-    operation.resolve();
-    try {
-      await running;
-      throw new Error("Expected caller cancellation");
-    } catch (error) {
-      expect(error).toBe(reason);
-    }
+      ["version"],
+    );
+    expect(stdout).toContain("git version");
   });
 
-  it("preserves ordinary operation errors", async () => {
-    const original = new Error("remote rejected credentials");
+  it("kills a silent child and throws GitStallError", async () => {
+    // `git daemon` listens silently until killed, independent of stdin.
+    const outcome = await runGitCommandWithStallTimeout(
+      { baseDir: process.cwd(), timeoutMs: 150 },
+      ["daemon", "--listen=127.0.0.1", "--port=0", "--base-path=."],
+    ).then(
+      () => undefined,
+      (error: unknown) => error,
+    );
+    expect(outcome).toBeInstanceOf(GitStallError);
+  });
 
-    try {
-      await runGitWithStallTimeout(
-        { baseDir: process.cwd(), timeoutMs: 10_000 },
-        async () => {
-          throw original;
-        },
-      );
-      throw new Error("Expected operation failure");
-    } catch (error) {
-      expect(error).toBe(original);
-    }
+  it("kills the child and rejects with the abort reason", async () => {
+    const controller = new AbortController();
+    const reason = new Error("caller cancelled");
+    const outcome = runGitCommandWithStallTimeout(
+      { baseDir: process.cwd(), timeoutMs: 10_000 },
+      ["daemon", "--listen=127.0.0.1", "--port=0", "--base-path=."],
+      controller.signal,
+    ).then(
+      () => undefined,
+      (error: unknown) => error,
+    );
+    controller.abort(reason);
+    expect(await outcome).toBe(reason);
+  });
+
+  it("redacts embedded credentials from failure messages", async () => {
+    const outcome = await runGitCommandWithStallTimeout(
+      { baseDir: process.cwd(), timeoutMs: 10_000 },
+      ["ls-remote", "https://x-access-token:secret123@127.0.0.1:1/repo.git"],
+    ).then(
+      () => undefined,
+      (error: unknown) => String(error),
+    );
+    expect(outcome).toContain("//<redacted>@");
+    expect(outcome).not.toContain("secret123");
+  });
+
+  it("surfaces the exit code and stderr of a failing command", async () => {
+    const outcome = await runGitCommandWithStallTimeout(
+      { baseDir: process.cwd(), timeoutMs: 10_000 },
+      ["rev-parse", "--verify", "definitely-missing-ref"],
+    ).then(
+      () => undefined,
+      (error: unknown) => error,
+    );
+    expect(String(outcome)).toContain("exited with");
   });
 });

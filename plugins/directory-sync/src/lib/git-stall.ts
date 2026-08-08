@@ -1,7 +1,5 @@
 import { Effect, Fiber } from "@brains/utils/effect";
 import type { Clock } from "@brains/utils/effect";
-import type { SimpleGit } from "simple-git";
-import simpleGit from "simple-git";
 
 /** Identifies the baseDir + stall timeout for a network git operation. */
 export interface GitNetwork {
@@ -19,27 +17,26 @@ export class GitStallError extends Error {
   }
 }
 
-/**
- * Run one network git operation on a throwaway simple-git instance.
- *
- * The output-sensitive stall delay resets on every chunk. Caller cancellation
- * and no-output stalls both abort simple-git, while retaining distinct error
- * identity at the Promise boundary.
- */
-export async function runGitWithStallTimeout<T>(
+/** Run a network Git command through Bun's owned subprocess API. */
+export async function runGitCommandWithStallTimeout(
   net: GitNetwork,
-  run: (git: SimpleGit) => Promise<T>,
+  args: readonly string[],
   signal?: AbortSignal,
-): Promise<T> {
+): Promise<string> {
   signal?.throwIfAborted();
 
   const { baseDir, timeoutMs } = net;
-  const controller = new AbortController();
   let timerFiber: Fiber.RuntimeFiber<void, never> | null = null;
   let onStall = (): void => {};
   let onAbort = (): void => {};
   let closed = false;
 
+  const child = Bun.spawn(["git", ...args], {
+    cwd: baseDir,
+    stdout: "pipe",
+    stderr: "pipe",
+    detached: true,
+  });
   const cancelStallTimer = (): void => {
     if (!timerFiber) return;
     Effect.runSync(Fiber.interruptFork(timerFiber));
@@ -61,33 +58,57 @@ export async function runGitWithStallTimeout<T>(
       await Effect.runPromise(Fiber.interrupt(activeTimer));
     }
   };
+  const kill = (): void => {
+    if (child.exitCode !== null) return;
+    try {
+      process.kill(-child.pid, "SIGKILL");
+    } catch {
+      child.kill("SIGKILL");
+    }
+  };
+  const readOutput = (stream: ReadableStream<Uint8Array>): Promise<string> =>
+    new Response(
+      stream.pipeThrough(
+        new TransformStream<Uint8Array, Uint8Array>({
+          transform(chunk, controller): void {
+            armStall();
+            controller.enqueue(chunk);
+          },
+        }),
+      ),
+    ).text();
 
-  const git = simpleGit(baseDir, {
-    abort: controller.signal,
-    timeout: { block: timeoutMs },
-  }).outputHandler((_command, stdout, stderr) => {
-    stdout.on("data", armStall);
-    stderr.on("data", armStall);
+  const operation = Promise.all([
+    child.exited,
+    readOutput(child.stdout),
+    readOutput(child.stderr),
+  ]).then(([exitCode, stdout, stderr]) => {
+    if (exitCode !== 0) {
+      // Remote URLs may embed credentials; keep them out of errors and logs.
+      const redact = (text: string): string =>
+        text.replace(/\/\/[^@/\s]+@/g, "//<redacted>@");
+      const detail = redact(stderr.trim() || stdout.trim());
+      throw new Error(
+        `git ${args.map(redact).join(" ")} exited with ${exitCode}${detail ? `: ${detail}` : ""}`,
+      );
+    }
+    return stdout;
   });
-
   const stalled = new Promise<never>((_resolve, reject) => {
     onStall = (): void => {
       const error = new GitStallError(timeoutMs);
       reject(error);
-      controller.abort(error);
+      kill();
     };
   });
   const cancelled = new Promise<never>((_resolve, reject) => {
     onAbort = (): void => {
-      const reason = signal?.reason;
-      reject(reason);
-      controller.abort(reason);
+      reject(signal?.reason);
+      kill();
     };
   });
   signal?.addEventListener("abort", onAbort, { once: true });
   if (signal?.aborted) onAbort();
-
-  const operation = Promise.resolve().then(() => run(git));
 
   armStall();
   try {
@@ -96,9 +117,6 @@ export async function runGitWithStallTimeout<T>(
     closed = true;
     signal?.removeEventListener("abort", onAbort);
     await settleStallTimer();
-    // A timeout or caller cancellation aborts simple-git, but abort delivery is
-    // asynchronous. Do not return while its child process can still be alive
-    // (or has exited but has not yet been reaped by simple-git).
     await operation.catch(() => undefined);
   }
 }

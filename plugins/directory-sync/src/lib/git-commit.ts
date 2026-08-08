@@ -1,7 +1,7 @@
 import type { SimpleGit } from "simple-git";
 import { getErrorMessage } from "@brains/utils/error";
 import type { Logger } from "@brains/utils/logger";
-import { GitStallError, runGitWithStallTimeout } from "./git-stall";
+import { GitStallError, runGitCommandWithStallTimeout } from "./git-stall";
 import type { GitNetwork } from "./git-stall";
 
 /** Stage and commit all changes. */
@@ -47,9 +47,9 @@ export async function pushGitChanges(
   // The network push runs on a throwaway, stall-guarded instance so an
   // unresponsive remote can't hang the caller and wedge the git lock.
   try {
-    await runGitWithStallTimeout(
+    await runGitCommandWithStallTimeout(
       net,
-      (g) => g.push("origin", branch, ["--set-upstream"]),
+      ["push", "origin", branch, "--set-upstream"],
       signal,
     );
   } catch (error) {
@@ -59,7 +59,11 @@ export async function pushGitChanges(
     if (error instanceof GitStallError) {
       throw error;
     }
-    await runGitWithStallTimeout(net, (g) => g.push("origin", branch), signal);
+    await runGitCommandWithStallTimeout(
+      net,
+      ["push", "origin", branch],
+      signal,
+    );
   }
   signal?.throwIfAborted();
   logger.info("Pushed changes to remote");
