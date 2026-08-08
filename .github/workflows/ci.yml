@@ -25,6 +25,10 @@ on:
       - "!.github/workflows/site-release.yml"
       - ".changeset/core--*.md"
       - "!.changeset/site--*.md"
+  # Escape hatch for the docs-only deadlock: a docs/markdown-only push skips
+  # Core CI, so a pending core changeset can strand with no Release trigger
+  # (Release fires off Core CI completing on main).
+  workflow_dispatch:
   pull_request:
     types: [opened, synchronize]
     paths:
