@@ -79,7 +79,9 @@ export interface JobQueueWriteTransactionClient {
   transaction(mode: "write"): Promise<Transaction>;
 }
 
-const WRITE_TRANSACTION_ATTEMPTS = 3;
+// Five attempts with exponential backoff (5..40ms sleeps, ~75ms worst case).
+// Three linear attempts flaked under real multi-process write contention.
+const WRITE_TRANSACTION_ATTEMPTS = 5;
 
 // Local libSQL begins a write transaction synchronously and can block the event
 // loop on busy_timeout when two clients in one process share a file. This turn
@@ -320,7 +322,9 @@ export class JobQueueRepository {
         }
         lastConflict = error;
         if (attempt < WRITE_TRANSACTION_ATTEMPTS) {
-          await new Promise((resolve) => setTimeout(resolve, attempt * 5));
+          await new Promise((resolve) =>
+            setTimeout(resolve, 5 * 2 ** (attempt - 1)),
+          );
         }
       }
     }

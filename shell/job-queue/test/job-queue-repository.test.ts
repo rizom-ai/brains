@@ -681,7 +681,7 @@ describe("JobQueueRepository fenced attempts", () => {
       transaction: async (mode) =>
         new CommitConflictTransaction(
           await database.client.transaction(mode),
-          3,
+          5,
         ),
     };
     const committingRepository = new JobQueueRepository(
@@ -701,7 +701,7 @@ describe("JobQueueRepository fenced attempts", () => {
           beforeInsert,
         }),
       ).rejects.toThrow(
-        'Failed to commit atomic enqueue transaction for type "type:a" after 3 attempts',
+        'Failed to commit atomic enqueue transaction for type "type:a" after 5 attempts',
       );
       expect(beforeInsert).toHaveBeenCalledTimes(1);
       expect(await committingRepository.getStatus(job.id)).toBeNull();
@@ -736,9 +736,9 @@ describe("JobQueueRepository fenced attempts", () => {
           deduplicationKey: "present-key",
         }),
       ).rejects.toThrow(
-        'Failed to acquire atomic enqueue transaction for type "type:a" after 3 attempts (strategy: coalesce, key: present)',
+        'Failed to acquire atomic enqueue transaction for type "type:a" after 5 attempts (strategy: coalesce, key: present)',
       );
-      expect(transaction).toHaveBeenCalledTimes(3);
+      expect(transaction).toHaveBeenCalledTimes(5);
     } finally {
       database.client.close();
     }
