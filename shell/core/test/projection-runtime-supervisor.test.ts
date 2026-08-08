@@ -88,6 +88,14 @@ function provenance(
   };
 }
 
+async function commitJobAdmission(
+  supervisor: ProjectionRuntimeSupervisor,
+  candidate: OperationProvenance,
+): Promise<void> {
+  const reservation = await supervisor.reserveJobAdmission(candidate);
+  reservation.commit();
+}
+
 describe("ProjectionRuntimeSupervisor", () => {
   it("rejects repeated undeclared projections and opens a circuit", async () => {
     let now = 1_000;
@@ -98,7 +106,7 @@ describe("ProjectionRuntimeSupervisor", () => {
     await supervisor.initialize(graph());
 
     void expect(
-      supervisor.assertJobAdmission(
+      supervisor.reserveJobAdmission(
         provenance({
           projectionLineage: ["topics-projection", "topics-projection"],
           derivationDepth: 2,
@@ -127,7 +135,7 @@ describe("ProjectionRuntimeSupervisor", () => {
     await supervisor.initialize(graph());
 
     void expect(
-      supervisor.assertJobAdmission(
+      supervisor.reserveJobAdmission(
         provenance({
           projectionLineage: ["topics-projection", "topics-projection"],
           derivationDepth: 2,
@@ -145,8 +153,8 @@ describe("ProjectionRuntimeSupervisor", () => {
     await supervisor.initialize(graph());
     const current = provenance();
 
-    await supervisor.assertJobAdmission(current);
-    void expect(supervisor.assertJobAdmission(current)).rejects.toThrow(
+    await commitJobAdmission(supervisor, current);
+    void expect(supervisor.reserveJobAdmission(current)).rejects.toThrow(
       "exceeded projection job budget 1",
     );
 
@@ -169,6 +177,25 @@ describe("ProjectionRuntimeSupervisor", () => {
         }),
       ).rejects.toThrow("exceeded projection mutation budget 1");
     });
+  });
+
+  it("rolls back an uncommitted job admission reservation", async () => {
+    const supervisor = ProjectionRuntimeSupervisor.createFresh(
+      OperationContext.createFresh(),
+      { maxJobsPerRoot: 1 },
+    );
+    await supervisor.initialize(graph());
+
+    const rolledBack = await supervisor.reserveJobAdmission(provenance());
+    rolledBack.rollback();
+    rolledBack.rollback();
+
+    const committed = await supervisor.reserveJobAdmission(provenance());
+    committed.commit();
+    committed.commit();
+    void expect(supervisor.reserveJobAdmission(provenance())).rejects.toThrow(
+      "exceeded projection job budget 1",
+    );
   });
 
   it("opens a circuit for repeated writes to the same target", async () => {
@@ -208,7 +235,7 @@ describe("ProjectionRuntimeSupervisor", () => {
 
     void expect(
       Promise.resolve().then(() =>
-        first.assertJobAdmission(
+        first.reserveJobAdmission(
           provenance({
             projectionLineage: ["topics-projection", "topics-projection"],
             derivationDepth: 2,
@@ -242,7 +269,7 @@ describe("ProjectionRuntimeSupervisor", () => {
     await supervisor.initialize(graph());
 
     for (const rootJobId of ["root-1", "root-2", "root-3"]) {
-      await supervisor.assertJobAdmission(provenance({ rootJobId }));
+      await commitJobAdmission(supervisor, provenance({ rootJobId }));
       now++;
     }
     expect((await supervisor.getDiagnostics()).trackedRoots).toBe(2);

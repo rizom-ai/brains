@@ -8,6 +8,7 @@ import { createId } from "@brains/utils/id";
 import type { ProgressReporter } from "@brains/utils/progress";
 import { z } from "@brains/utils/zod";
 import { OperationContext } from "@brains/operation-context";
+import { access, writeFile } from "node:fs/promises";
 interface EntityWithoutEmbedding {
   id: string;
   entityType: string;
@@ -23,6 +24,19 @@ const defaultEnqueueOptions: JobOptions = {
 };
 function enqueueOpts(overrides: Partial<JobOptions> = {}): JobOptions {
   return { ...defaultEnqueueOptions, ...overrides };
+}
+
+async function waitForFile(path: string): Promise<void> {
+  const deadline = Date.now() + 5_000;
+  while (Date.now() < deadline) {
+    try {
+      await access(path);
+      return;
+    } catch {
+      await Bun.sleep(5);
+    }
+  }
+  throw new Error(`Timed out waiting for ${path}`);
 }
 class TestJobHandler implements JobHandler<"shell:embedding"> {
   public processCallCount = 0;
@@ -60,9 +74,12 @@ describe("JobQueueService", () => {
   let service: JobQueueService;
   let config: JobQueueDbConfig;
   let cleanup: () => Promise<void>;
+  let dbPath: string;
   let testHandler: TestJobHandler;
   let operationContext: OperationContext;
-  let assertJobAdmission: ReturnType<typeof mock>;
+  let reserveJobAdmission: ReturnType<typeof mock>;
+  let commitJobAdmission: ReturnType<typeof mock>;
+  let rollbackJobAdmission: ReturnType<typeof mock>;
   const testEntity: EntityWithoutEmbedding = {
     id: "test-123",
     entityType: "note",
@@ -76,11 +93,17 @@ describe("JobQueueService", () => {
     const testDb = await createTestJobQueueDatabase();
     config = testDb.config;
     cleanup = testDb.cleanup;
+    dbPath = testDb.dbPath;
     operationContext = OperationContext.createFresh();
-    assertJobAdmission = mock(async () => {});
+    commitJobAdmission = mock(() => {});
+    rollbackJobAdmission = mock(() => {});
+    reserveJobAdmission = mock(async () => ({
+      commit: commitJobAdmission,
+      rollback: rollbackJobAdmission,
+    }));
     service = JobQueueService.createFresh(config, createSilentLogger(), {
       operationContext,
-      projectionAdmission: { assertJobAdmission },
+      projectionAdmission: { reserveJobAdmission },
     });
     testHandler = new TestJobHandler();
   });
@@ -315,7 +338,9 @@ describe("JobQueueService", () => {
       expect((await service.getStatus(jobId))?.metadata.provenance).toEqual(
         expectedProvenance,
       );
-      expect(assertJobAdmission).toHaveBeenCalledWith(expectedProvenance);
+      expect(reserveJobAdmission).toHaveBeenCalledWith(expectedProvenance);
+      expect(commitJobAdmission).toHaveBeenCalledTimes(1);
+      expect(rollbackJobAdmission).not.toHaveBeenCalled();
     });
 
     it("should store source and metadata correctly", async () => {
@@ -966,6 +991,484 @@ describe("JobQueueService", () => {
       expect(jobs.length).toBe(1);
       expect(jobs[0]?.status).toBe("pending");
     });
+    it("validates a skipped duplicate request before returning its id", async () => {
+      const skipOpts = enqueueOpts({ deduplication: "skip" });
+      await service.enqueue({
+        type: "site-build",
+        data: {},
+        options: skipOpts,
+      });
+      testHandler.shouldValidationFail = true;
+
+      void expect(
+        service.enqueue({
+          type: "site-build",
+          data: { invalid: true },
+          options: skipOpts,
+        }),
+      ).rejects.toThrow("Invalid job data for type: site-build");
+      expect(testHandler.validateCallCount).toBe(2);
+    });
+    it("always inserts concurrent requests using none", async () => {
+      await service.initialize();
+      const ids = await Promise.all(
+        Array.from({ length: 20 }, () =>
+          service.enqueue({
+            type: "site-build",
+            data: {},
+            options: enqueueOpts({ deduplication: "none" }),
+          }),
+        ),
+      );
+
+      expect(new Set(ids).size).toBe(20);
+      expect(await service.getActiveJobs(["site-build"])).toHaveLength(20);
+    });
+    it("atomically skips repeated waves of twenty concurrent requests", async () => {
+      await service.initialize();
+      for (let wave = 0; wave < 3; wave++) {
+        const ids = await Promise.all(
+          Array.from({ length: 20 }, () =>
+            service.enqueue({
+              type: "site-build",
+              data: {},
+              options: enqueueOpts({
+                deduplication: "skip",
+                deduplicationKey: `site-build:preview-${wave}`,
+              }),
+            }),
+          ),
+        );
+        expect(new Set(ids).size).toBe(1);
+      }
+
+      expect(await service.getActiveJobs(["site-build"])).toHaveLength(3);
+    });
+    it("atomically skips twenty concurrent requests across two clients", async () => {
+      const secondService = JobQueueService.createFresh(
+        config,
+        createSilentLogger(),
+        { projectionAdmission: { reserveJobAdmission } },
+      );
+      secondService.registerHandler("site-build", testHandler);
+      try {
+        await service.initialize();
+        await secondService.initialize();
+        const requests = Array.from({ length: 20 }, (_, index) =>
+          (index % 2 === 0 ? service : secondService).enqueue({
+            type: "site-build",
+            data: {},
+            options: enqueueOpts({
+              deduplication: "skip",
+              deduplicationKey: "site-build:production",
+            }),
+          }),
+        );
+
+        const ids = await Promise.all(requests);
+        expect(new Set(ids).size).toBe(1);
+        expect(await service.getActiveJobs(["site-build"])).toHaveLength(1);
+      } finally {
+        secondService.close();
+      }
+    });
+    it("preserves atomic skip across independent processes", async () => {
+      const startFile = `${dbPath}.start`;
+      const readyFiles = [`${dbPath}.ready-a`, `${dbPath}.ready-b`];
+      const fixturePath = new URL(
+        "./fixtures/concurrent-enqueue-process.ts",
+        import.meta.url,
+      ).pathname;
+      const children = readyFiles.map((readyFile) =>
+        Bun.spawn(
+          [
+            "bun",
+            fixturePath,
+            config.url,
+            startFile,
+            readyFile,
+            "site-build",
+            "site-build:cross-process",
+          ],
+          { stdout: "pipe", stderr: "pipe" },
+        ),
+      );
+
+      try {
+        await Promise.all(readyFiles.map(waitForFile));
+        await writeFile(startFile, "start");
+        const outputs = await Promise.all(
+          children.map(async (child) => {
+            const [exitCode, stdout, stderr] = await Promise.all([
+              child.exited,
+              new Response(child.stdout).text(),
+              new Response(child.stderr).text(),
+            ]);
+            if (exitCode !== 0) {
+              throw new Error(`Concurrent enqueue process failed: ${stderr}`);
+            }
+            return z.array(z.string()).parse(JSON.parse(stdout));
+          }),
+        );
+
+        expect(new Set(outputs.flat()).size).toBe(1);
+        expect(await service.getActiveJobs(["site-build"])).toHaveLength(1);
+      } finally {
+        for (const child of children) child.kill();
+      }
+    });
+    it("keeps concurrent keyed groups independent", async () => {
+      await service.initialize();
+      const ids = await Promise.all(
+        Array.from({ length: 20 }, (_, index) =>
+          service.enqueue({
+            type: "site-build",
+            data: {},
+            options: enqueueOpts({
+              deduplication: "skip",
+              deduplicationKey: `site-build:group-${index % 2}`,
+            }),
+          }),
+        ),
+      );
+
+      expect(new Set(ids).size).toBe(2);
+      expect(await service.getActiveJobs(["site-build"])).toHaveLength(2);
+    });
+    it("atomically replaces concurrent pending requests", async () => {
+      await service.initialize();
+      const ids = await Promise.all(
+        Array.from({ length: 20 }, (_, version) =>
+          service.enqueue({
+            type: "site-build",
+            data: { version },
+            options: enqueueOpts({
+              deduplication: "replace",
+              deduplicationKey: "site-build:replace",
+            }),
+          }),
+        ),
+      );
+
+      const active = await service.getActiveJobs(["site-build"]);
+      const failed = await service.getFailedJobs(["site-build"]);
+      expect(new Set(ids).size).toBe(20);
+      expect(active).toHaveLength(1);
+      expect(active[0]?.id).toBe(ids.at(-1));
+      expect(failed).toHaveLength(19);
+      expect(reserveJobAdmission).toHaveBeenCalledTimes(20);
+      expect(commitJobAdmission).toHaveBeenCalledTimes(20);
+      expect(rollbackJobAdmission).not.toHaveBeenCalled();
+    });
+    it("atomically coalesces concurrent active requests", async () => {
+      await service.initialize();
+      const ids = await Promise.all(
+        Array.from({ length: 20 }, () =>
+          service.enqueue({
+            type: "site-build",
+            data: {},
+            options: enqueueOpts({
+              deduplication: "coalesce",
+              deduplicationKey: "site-build:coalesce",
+            }),
+          }),
+        ),
+      );
+
+      expect(new Set(ids).size).toBe(1);
+      expect(await service.getActiveJobs(["site-build"])).toHaveLength(1);
+      expect(reserveJobAdmission).toHaveBeenCalledTimes(1);
+      expect(commitJobAdmission).toHaveBeenCalledTimes(1);
+      expect(rollbackJobAdmission).not.toHaveBeenCalled();
+    });
+    it("creates only one pending successor behind a processing job", async () => {
+      await service.initialize();
+      const options = enqueueOpts({
+        deduplication: "skip",
+        deduplicationKey: "site-build:successor",
+      });
+      const processingId = await service.enqueue({
+        type: "site-build",
+        data: {},
+        options,
+      });
+      expect((await service.dequeue())?.id).toBe(processingId);
+      reserveJobAdmission.mockClear();
+      commitJobAdmission.mockClear();
+
+      const ids = await Promise.all(
+        Array.from({ length: 20 }, () =>
+          service.enqueue({ type: "site-build", data: {}, options }),
+        ),
+      );
+      const active = await service.getActiveJobs(["site-build"]);
+
+      expect(new Set(ids).size).toBe(1);
+      expect(ids[0]).not.toBe(processingId);
+      expect(active.filter((job) => job.status === "processing")).toHaveLength(
+        1,
+      );
+      expect(active.filter((job) => job.status === "pending")).toHaveLength(1);
+      expect(reserveJobAdmission).toHaveBeenCalledTimes(1);
+      expect(commitJobAdmission).toHaveBeenCalledTimes(1);
+    });
+    it("does not reserve admission for skipped or coalesced requests", async () => {
+      const skipOptions = enqueueOpts({
+        deduplication: "skip",
+        deduplicationKey: "site-build:admission",
+      });
+      const firstId = await service.enqueue({
+        type: "site-build",
+        data: {},
+        options: skipOptions,
+      });
+      expect(
+        await service.enqueue({
+          type: "site-build",
+          data: {},
+          options: skipOptions,
+        }),
+      ).toBe(firstId);
+      expect(
+        await service.enqueue({
+          type: "site-build",
+          data: {},
+          options: enqueueOpts({
+            deduplication: "coalesce",
+            deduplicationKey: "site-build:admission",
+          }),
+        }),
+      ).toBe(firstId);
+
+      expect(reserveJobAdmission).toHaveBeenCalledTimes(1);
+      expect(commitJobAdmission).toHaveBeenCalledTimes(1);
+    });
+    it("rolls back admission when insertion fails after reservation", async () => {
+      void expect(
+        service.enqueue({
+          type: "site-build",
+          data: {},
+          options: enqueueOpts({
+            deduplication: "skip",
+            metadata: {
+              operationType: "data_processing",
+              unserializable: 1n,
+            },
+          }),
+        }),
+      ).rejects.toThrow();
+
+      expect(reserveJobAdmission).toHaveBeenCalledTimes(1);
+      expect(commitJobAdmission).not.toHaveBeenCalled();
+      expect(rollbackJobAdmission).toHaveBeenCalledTimes(1);
+      expect(await service.getActiveJobs(["site-build"])).toHaveLength(0);
+    });
+    it("rolls back the queue transaction when admission rejects", async () => {
+      reserveJobAdmission.mockImplementationOnce(async () => {
+        throw new Error("projection budget exhausted");
+      });
+
+      void expect(
+        service.enqueue({
+          type: "site-build",
+          data: {},
+          options: enqueueOpts({ deduplication: "skip" }),
+        }),
+      ).rejects.toThrow("projection budget exhausted");
+      expect(commitJobAdmission).not.toHaveBeenCalled();
+      expect(rollbackJobAdmission).not.toHaveBeenCalled();
+      expect(await service.getActiveJobs(["site-build"])).toHaveLength(0);
+    });
+    it("treats an empty deduplication key as unkeyed", async () => {
+      const firstId = await service.enqueue({
+        type: "site-build",
+        data: {},
+        options: enqueueOpts({
+          deduplication: "none",
+          deduplicationKey: "site-build:keyed",
+        }),
+      });
+      const secondId = await service.enqueue({
+        type: "site-build",
+        data: {},
+        options: enqueueOpts({
+          deduplication: "skip",
+          deduplicationKey: "",
+        }),
+      });
+
+      expect(secondId).toBe(firstId);
+      expect(await service.getActiveJobs(["site-build"])).toHaveLength(1);
+    });
+    it("coalesces with the newest pending row before a processing row", async () => {
+      const processingId = await service.enqueue({
+        type: "site-build",
+        data: { version: 1 },
+        options: enqueueOpts({ deduplication: "none" }),
+      });
+      await service.dequeue();
+      const pendingIds = await Promise.all([
+        service.enqueue({
+          type: "site-build",
+          data: { version: 2 },
+          options: enqueueOpts({ deduplication: "none" }),
+        }),
+        service.enqueue({
+          type: "site-build",
+          data: { version: 3 },
+          options: enqueueOpts({ deduplication: "none" }),
+        }),
+      ]);
+      const pendingRows = (await service.getActiveJobs(["site-build"]))
+        .filter((job) => job.status === "pending")
+        .sort(
+          (left, right) =>
+            right.createdAt - left.createdAt || right.id.localeCompare(left.id),
+        );
+
+      const selectedId = await service.enqueue({
+        type: "site-build",
+        data: { version: 4 },
+        options: enqueueOpts({ deduplication: "coalesce" }),
+      });
+
+      const newestPending = pendingRows[0];
+      expect(newestPending).toBeDefined();
+      if (!newestPending) throw new Error("Expected a pending candidate");
+      expect(pendingIds).toContain(selectedId);
+      expect(selectedId).toBe(newestPending.id);
+      expect(selectedId).not.toBe(processingId);
+      expect(await service.getActiveJobs(["site-build"])).toHaveLength(3);
+    });
+    it("replaces only the deterministically selected pre-existing pending row", async () => {
+      await Promise.all([
+        service.enqueue({
+          type: "site-build",
+          data: { version: 1 },
+          options: enqueueOpts({ deduplication: "none" }),
+        }),
+        service.enqueue({
+          type: "site-build",
+          data: { version: 2 },
+          options: enqueueOpts({ deduplication: "none" }),
+        }),
+      ]);
+      const pendingRows = (await service.getActiveJobs(["site-build"])).sort(
+        (left, right) =>
+          right.createdAt - left.createdAt || right.id.localeCompare(left.id),
+      );
+      const selected = pendingRows[0];
+      expect(selected).toBeDefined();
+      if (!selected) throw new Error("Expected a selected pending row");
+
+      const replacementId = await service.enqueue({
+        type: "site-build",
+        data: { version: 3 },
+        options: enqueueOpts({ deduplication: "replace" }),
+      });
+      const active = await service.getActiveJobs(["site-build"]);
+
+      expect((await service.getStatus(selected.id))?.status).toBe("failed");
+      expect(active).toHaveLength(2);
+      expect(active.map((job) => job.id)).toContain(replacementId);
+    });
+    it("coalesces a processing row without changing attempt ownership", async () => {
+      const jobId = await service.enqueue({
+        type: "site-build",
+        data: { version: 1 },
+        options: enqueueOpts({ deduplication: "coalesce" }),
+      });
+      const claimed = await service.dequeue();
+      expect(claimed?.id).toBe(jobId);
+
+      const coalescedId = await service.enqueue({
+        type: "site-build",
+        data: { version: 2 },
+        options: enqueueOpts({ deduplication: "coalesce" }),
+      });
+      const stored = await service.getStatus(jobId);
+
+      expect(coalescedId).toBe(jobId);
+      expect(stored).toMatchObject({
+        status: "processing",
+        data: claimed?.data,
+        attemptId: claimed?.attemptId,
+        workerSlotId: claimed?.workerSlotId,
+        workerSessionId: claimed?.workerSessionId,
+        leaseExpiresAt: claimed?.leaseExpiresAt,
+        attemptHeartbeatAt: claimed?.attemptHeartbeatAt,
+      });
+    });
+    it("settles an in-flight enqueue before closing and rejects later work", async () => {
+      let releaseAdmission = (): void => {};
+      let markAdmissionEntered = (): void => {};
+      const admissionGate = new Promise<void>((resolve) => {
+        releaseAdmission = resolve;
+      });
+      const admissionEntered = new Promise<void>((resolve) => {
+        markAdmissionEntered = resolve;
+      });
+      reserveJobAdmission.mockImplementationOnce(async () => {
+        markAdmissionEntered();
+        await admissionGate;
+        return {
+          commit: commitJobAdmission,
+          rollback: rollbackJobAdmission,
+        };
+      });
+      const inFlight = service.enqueue({
+        type: "site-build",
+        data: {},
+        options: enqueueOpts({ deduplication: "skip" }),
+      });
+      await admissionEntered;
+
+      service.close();
+      void expect(
+        service.enqueue({
+          type: "site-build",
+          data: {},
+          options: enqueueOpts({ deduplication: "skip" }),
+        }),
+      ).rejects.toThrow("queue service is closed");
+      releaseAdmission();
+      const jobId = await inFlight;
+
+      const inspector = JobQueueService.createFresh(
+        config,
+        createSilentLogger(),
+      );
+      try {
+        expect((await inspector.getStatus(jobId))?.status).toBe("pending");
+      } finally {
+        inspector.close();
+      }
+    });
+    it("keeps worker claim and deduplicating enqueue in a sequential shape", async () => {
+      await service.initialize();
+      const options = enqueueOpts({
+        deduplication: "skip",
+        deduplicationKey: "site-build:claim-race",
+      });
+      const firstId = await service.enqueue({
+        type: "site-build",
+        data: {},
+        options,
+      });
+
+      const [claimed, enqueuedId] = await Promise.all([
+        service.dequeue(),
+        service.enqueue({ type: "site-build", data: {}, options }),
+      ]);
+      const active = await service.getActiveJobs(["site-build"]);
+      const pending = active.filter((job) => job.status === "pending");
+      const processing = active.filter((job) => job.status === "processing");
+
+      expect(claimed?.id).toBe(firstId);
+      expect(processing).toHaveLength(1);
+      expect(pending.length).toBeLessThanOrEqual(1);
+      expect([firstId, pending[0]?.id]).toContain(enqueuedId);
+    });
     it("should allow enqueueing when job is PROCESSING (not PENDING)", async () => {
       const skipOpts = enqueueOpts({ deduplication: "skip" });
       const id1 = await service.enqueue({
@@ -1097,6 +1600,12 @@ describe("JobQueueService", () => {
       const activeJobs = await service.getActiveJobs(["site-build"]);
       expect(activeJobs.length).toBe(1);
       expect(activeJobs[0]?.id).toBe(id2);
+      const runtimeUpdates = await service.getRuntimeUpdates(
+        { updatedAt: 0, jobId: "" },
+        10,
+      );
+      expect(runtimeUpdates.map((update) => update.job.id)).toEqual([id1]);
+      expect(runtimeUpdates[0]?.job.status).toBe("failed");
     });
     it("should not replace a processing job", async () => {
       const replaceOpts = enqueueOpts({ deduplication: "replace" });

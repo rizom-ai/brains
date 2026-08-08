@@ -1,7 +1,13 @@
 import { z } from "@brains/utils/zod";
 import type { DeduplicationStrategy } from "./schema/types";
 import { JOB_STATUS } from "./schemas";
-import type { JobInfo } from "./types";
+
+export interface DeduplicationCandidate {
+  id: string;
+  status: "pending" | "processing";
+  createdAt: number;
+  metadata: unknown;
+}
 
 const deduplicatedJobMetadataSchema = z.looseObject({
   deduplicationKey: z.string().optional(),
@@ -12,10 +18,10 @@ const deduplicatedJobMetadataSchema = z.looseObject({
  */
 export class JobDeduplicator {
   public findDuplicate(
-    activeJobs: JobInfo[],
+    activeJobs: DeduplicationCandidate[],
     strategy?: DeduplicationStrategy,
     deduplicationKey?: string,
-  ): JobInfo | null {
+  ): DeduplicationCandidate | null {
     if (!strategy || strategy === "none") {
       return null;
     }
@@ -23,24 +29,24 @@ export class JobDeduplicator {
     const matchingJobs = this.filterByDeduplicationKey(
       activeJobs,
       deduplicationKey,
+    ).sort(
+      (left, right) =>
+        right.createdAt - left.createdAt || right.id.localeCompare(left.id),
     );
-    if (matchingJobs.length === 0) {
-      return null;
-    }
+    const pending =
+      matchingJobs.find((job) => job.status === JOB_STATUS.PENDING) ?? null;
 
     if (strategy === "skip" || strategy === "replace") {
-      return (
-        matchingJobs.find((job) => job.status === JOB_STATUS.PENDING) ?? null
-      );
+      return pending;
     }
 
-    return matchingJobs[0] ?? null;
+    return pending ?? matchingJobs[0] ?? null;
   }
 
   private filterByDeduplicationKey(
-    jobs: JobInfo[],
+    jobs: DeduplicationCandidate[],
     deduplicationKey?: string,
-  ): JobInfo[] {
+  ): DeduplicationCandidate[] {
     if (!deduplicationKey) {
       return jobs;
     }

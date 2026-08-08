@@ -27,6 +27,11 @@ export interface ProjectionRuntimeDiagnostics {
   openCircuits: ProjectionCircuitDiagnostic[];
 }
 
+export interface ProjectionJobAdmissionReservation {
+  commit(): void;
+  rollback(): void;
+}
+
 export interface ProjectionRuntimeSupervisorOptions {
   maxDerivationDepth?: number;
   maxJobsPerRoot?: number;
@@ -74,6 +79,7 @@ export class ProjectionRuntimeSupervisor {
   private readonly circuitStore:
     IRuntimeStateStore<ProjectionCircuitDiagnostic> | undefined;
   private readonly roots = new Map<string, RootCounters>();
+  private readonly reservedJobs = new Map<string, number>();
   private readonly circuits = new Map<string, ProjectionCircuitDiagnostic>();
   private projections: ReadonlyMap<string, RegisteredProjection> | undefined;
 
@@ -137,11 +143,11 @@ export class ProjectionRuntimeSupervisor {
     }
   }
 
-  public async assertJobAdmission(
+  public async reserveJobAdmission(
     provenance: OperationProvenance,
-  ): Promise<void> {
+  ): Promise<ProjectionJobAdmissionReservation> {
     const projectionId = provenance.projectionId;
-    if (!projectionId) return;
+    if (!projectionId) return this.createNoopJobReservation();
 
     const now = this.options.now();
     await this.prune(now);
@@ -160,16 +166,35 @@ export class ProjectionRuntimeSupervisor {
       );
     }
 
-    const counters = this.getRootCounters(provenance.rootJobId, now);
-    counters.jobs++;
-    counters.updatedAt = now;
-    if (counters.jobs > this.options.maxJobsPerRoot) {
+    const rootJobId = provenance.rootJobId;
+    const committedJobs = this.roots.get(rootJobId)?.jobs ?? 0;
+    const reservedJobs = this.reservedJobs.get(rootJobId) ?? 0;
+    if (committedJobs + reservedJobs + 1 > this.options.maxJobsPerRoot) {
       await this.rejectAndOpen(
         projectionId,
-        `Root ${provenance.rootJobId} exceeded projection job budget ${this.options.maxJobsPerRoot}`,
+        `Root ${rootJobId} exceeded projection job budget ${this.options.maxJobsPerRoot}`,
         now,
       );
     }
+    this.reservedJobs.set(rootJobId, reservedJobs + 1);
+
+    let settled = false;
+    const settle = (commit: boolean): void => {
+      if (settled) return;
+      settled = true;
+      this.releaseJobReservation(rootJobId);
+      if (!commit) return;
+
+      const committedAt = this.options.now();
+      const counters = this.getRootCounters(rootJobId, committedAt);
+      counters.jobs++;
+      counters.updatedAt = committedAt;
+    };
+
+    return {
+      commit: (): void => settle(true),
+      rollback: (): void => settle(false),
+    };
   }
 
   public async assertMutationAdmission(
@@ -294,6 +319,22 @@ export class ProjectionRuntimeSupervisor {
       );
     }
     throw new Error(reason);
+  }
+
+  private createNoopJobReservation(): ProjectionJobAdmissionReservation {
+    return {
+      commit: (): void => {},
+      rollback: (): void => {},
+    };
+  }
+
+  private releaseJobReservation(rootJobId: string): void {
+    const count = this.reservedJobs.get(rootJobId);
+    if (count === undefined || count <= 1) {
+      this.reservedJobs.delete(rootJobId);
+      return;
+    }
+    this.reservedJobs.set(rootJobId, count - 1);
   }
 
   private getRootCounters(rootJobId: string, now: number): RootCounters {
