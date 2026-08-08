@@ -297,25 +297,6 @@
       ],
       "internal/removable": []
     },
-    "@rizom/brain/site": {
-      "source": "packages/brain-cli/src/entries/site.ts",
-      "stable": [],
-      "advanced-with-consumer": [],
-      "internal/removable": [
-        "EntityDisplayEntry",
-        "PersonalLayout",
-        "Plugin",
-        "ProfessionalLayout",
-        "RouteDefinitionInput",
-        "SectionDefinitionInput",
-        "SitePackage",
-        "personalRoutes",
-        "personalSitePlugin",
-        "professionalRoutes",
-        "professionalSitePlugin",
-        "routes"
-      ]
-    },
     "@rizom/site": {
       "source": "packages/site/src/index.ts",
       "stable": [
@@ -333,11 +314,13 @@
         "NavigationSlots",
         "RouteDefinition",
         "RouteDefinitionInput",
+        "RouteSectionDefinition",
         "RuntimeScript",
         "SectionDefinition",
         "SectionDefinitionInput",
         "SectionGroup",
         "SectionMeta",
+        "SiteContent",
         "SiteContentArrayFieldDefinition",
         "SiteContentDefinition",
         "SiteContentEnumFieldDefinition",
@@ -349,6 +332,7 @@
         "SiteDefinition",
         "SiteDefinitionOverrides",
         "SiteLayoutInfo",
+        "SiteLayoutProps",
         "SiteMetadata",
         "SiteMetadataCTA",
         "SiteMetadataSection",
@@ -358,6 +342,7 @@
         "defineSection",
         "defineSite",
         "sectionGroup",
+        "siteDefinitionSchema",
         "z"
       ],
       "advanced-with-consumer": [],
@@ -367,21 +352,6 @@
         "RizomLayoutProps",
         "RizomLink",
         "RizomSideNavItem"
-      ]
-    },
-    "@rizom/site-sections": {
-      "source": "packages/site-sections/src/index.ts",
-      "stable": [],
-      "advanced-with-consumer": [],
-      "internal/removable": [
-        "ComponentType",
-        "SectionDefinition",
-        "SectionGroup",
-        "SectionMeta",
-        "UserPermissionLevel",
-        "defineSection",
-        "sectionGroup",
-        "z"
       ]
     }
   }

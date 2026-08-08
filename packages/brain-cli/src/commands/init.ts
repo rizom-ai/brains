@@ -10,6 +10,7 @@ import { basename, dirname, join, resolve as pathResolve } from "path";
 import { fileURLToPath } from "url";
 import { stringify } from "yaml";
 import pkg from "../../package.json" with { type: "json" };
+import sitePkg from "../../../site/package.json" with { type: "json" };
 import {
   isStaleDeployDockerfile,
   isStaleDeployScript,
@@ -37,11 +38,12 @@ import { expandBrainRecipe, type BrainRecipeName } from "../lib/brain-recipes";
  *
  * `@rizom/brain` is pinned to the same version as the CLI doing the
  * scaffolding — a brain instance is always paired with the framework
- * version it was generated from. `preact` is pinned to a known-good
- * version that matches what the bundled `@rizom/brain/site` was built
- * against; bumping it independently risks JSX runtime mismatches.
+ * version it was generated from. `@rizom/site` is independently versioned
+ * and pinned exactly to the SDK compiled with this CLI. `preact` remains on
+ * the matching JSX runtime range.
  */
 const RIZOM_BRAIN_VERSION = `^${pkg.version}`;
+const RIZOM_SITE_VERSION = sitePkg.version;
 const PREACT_VERSION = "^10.27.2";
 
 export interface ScaffoldOptions {
@@ -79,7 +81,7 @@ export interface ScaffoldOptions {
  * The scaffolded shape is a real package: it has its own `package.json`
  * with `@rizom/brain` and `preact` as deps so `bun install && bunx brain
  * start` works from the new dir. Recipes with an active website surface
- * also ship local `src/site.ts` and `src/theme.css` convention files as
+ * also ship local `src/site.tsx` and `src/theme.css` convention files as
  * editable starting points while `brain.yaml` stays pinned to the recipe's
  * built-in site. The local theme scaffold layers on top of the active
  * base theme automatically; the local site scaffold activates when the
@@ -554,7 +556,11 @@ function writePackageJson(dir: string): void {
     },
     dependencies: {
       "@rizom/brain": RIZOM_BRAIN_VERSION,
+      "@rizom/site": RIZOM_SITE_VERSION,
       preact: PREACT_VERSION,
+    },
+    devDependencies: {
+      typescript: "^7.0.2",
     },
   };
 
@@ -565,35 +571,57 @@ function writePackageJson(dir: string): void {
 }
 
 function writeSiteSource(dir: string): void {
-  const content = `import {
-  ProfessionalLayout,
-  professionalRoutes,
-  professionalSitePlugin,
-  type SitePackage,
-} from "@rizom/brain/site";
+  const content = `import { defineSection, defineSite, sectionGroup, z } from "@rizom/site";
 
-/**
- * Local site scaffold.
- *
- * This file is not active until you remove the explicit site.package ref
- * from brain.yaml. Start editing here, then switch brain.yaml to the local
- * convention when you're ready.
- */
-const site: SitePackage = {
+const hero = defineSection(
+  z.object({
+    heading: z.string(),
+    introduction: z.string(),
+  }),
+  ({ heading, introduction }) => (
+    <section class="hero">
+      <h1>{heading}</h1>
+      <p>{introduction}</p>
+    </section>
+  ),
+  { title: "Hero", description: "Site introduction." },
+);
+
+export default defineSite({
   layouts: {
-    default: ProfessionalLayout,
+    default: ({ title, sections }) => (
+      <html lang="en">
+        <head><title>{title}</title></head>
+        <body><main>{sections}</main></body>
+      </html>
+    ),
   },
-  routes: professionalRoutes,
-  plugin: (config) => professionalSitePlugin(config ?? {}),
-  entityDisplay: {
-    post: { label: "Post" },
+  routes: [
+    {
+      id: "home",
+      path: "/",
+      title: "Welcome",
+      sections: [{ id: "hero", template: "home.hero" }],
+      navigation: { show: true, label: "Home", priority: 10 },
+    },
+  ],
+  sections: [sectionGroup("home", { hero })],
+  content: {
+    home: {
+      hero: {
+        heading: "Your site",
+        introduction: "Start building with schema-first sections.",
+      },
+    },
   },
-};
-
-export default site;
+  entityDisplay: {},
+  staticAssets: {
+    "robots.txt": "User-agent: *\\nAllow: /\\n",
+  },
+});
 `;
 
-  writeScaffoldFile(join(dir, "src", "site.ts"), content);
+  writeScaffoldFile(join(dir, "src", "site.tsx"), content);
 }
 
 function writeThemeCss(dir: string): void {
@@ -633,7 +661,7 @@ function writeThemeCss(dir: string): void {
 function writeReadme(dir: string, recipe: BrainRecipeName): void {
   const name = basename(dir);
   const siteAuthoringLines = shouldScaffoldLocalSiteTheme(recipe)
-    ? "- `src/site.ts` — local site scaffold built on `@rizom/brain/site`\n- `src/theme.css` — local theme scaffold\n"
+    ? "- `src/site.tsx` — local schema-first site scaffold built on `@rizom/site`\n- `src/theme.css` — local theme scaffold\n"
     : "";
   const content = `# ${name}
 

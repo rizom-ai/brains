@@ -1,0 +1,21 @@
+brain: brain
+bundles: [site]
+add: [webserver, mcp]
+remove: [dashboard, analytics]
+database: "file:./brain.db"
+embedding:
+  enabled: false
+site:
+  package: "@fixture/reading-site"
+plugins:
+  onboarding:
+    enabled: false
+  mcp:
+    mode: debug
+  directory-sync:
+    autoSync: false
+    initialSync: false
+  webserver:
+    apiPort: 3355
+    previewPort: 4325
+    productionPort: 8085

@@ -1,9 +1,10 @@
 import { z } from "@brains/utils/zod";
-import type {
-  EntityDisplayEntry,
-  RouteDefinitionInput,
-  SiteContentDefinition,
-  SiteSectionGroup,
+import {
+  siteDefinitionSchema,
+  type RouteDefinitionInput,
+  type SiteContent,
+  type SiteDefinition,
+  type SiteSectionGroup,
 } from "@rizom/site";
 import type { SiteCompositionPlugin } from "./plugin";
 
@@ -38,56 +39,12 @@ import type { SiteCompositionPlugin } from "./plugin";
 export interface SitePackage<
   TPluginConfig = Record<string, unknown>,
   TPlugin extends SiteCompositionPlugin = SiteCompositionPlugin,
-> {
-  /** Layout components keyed by name — at minimum "default" is required */
+> extends Omit<SiteDefinition, "layouts"> {
+  /** Layout values are narrowed to Preact components by the runtime schema. */
   layouts: Record<string, unknown>;
-
-  /** Hand-written route definitions (home, about, etc.) */
-  routes: RouteDefinitionInput[];
 
   /** Optional runtime plugin factory for legacy/internal site integrations. */
   plugin?: ((config?: TPluginConfig) => TPlugin) | undefined;
-
-  /** Optional content definitions owned by this package. */
-  content?: SiteContentDefinition | SiteContentDefinition[];
-
-  /** Optional schema-first section groups (authored via @rizom/site-sections). */
-  sections?: SiteSectionGroup | SiteSectionGroup[];
-
-  /**
-   * Optional additive CSS owned by the site package.
-   *
-   * This is layered after the selected base theme and before any
-   * instance-level `site.themeOverride`, so package-specific visual
-   * fixes travel with the site code without leaking into deploy config.
-   */
-  themeOverride?: string;
-
-  /** Global head scripts to inject into every rendered page. */
-  headScripts?: string[];
-
-  /**
-   * Display metadata per entity type — label, plural name, layout,
-   * pagination, navigation slot. Consulted by the dynamic route
-   * generator when producing auto-generated list/detail routes for
-   * active entity plugins.
-   */
-  entityDisplay: Record<string, EntityDisplayEntry>;
-
-  /**
-   * Static assets to write into the site output directory at build time.
-   *
-   * Keys are output paths relative to the output directory (e.g.
-   * `/canvases/tree.js`, `/fonts/foo.woff2`). Values are file contents
-   * as strings — typically produced by text imports
-   * (`import content from "./foo.js" with { type: "text" }`).
-   *
-   * Use this to ship static files that belong to the site package
-   * itself (canvas scripts, fonts, images encoded as base64, etc.)
-   * rather than the consuming app's `public/` directory. The
-   * site-builder writes them verbatim next to the rendered HTML.
-   */
-  staticAssets?: Record<string, string>;
 }
 
 export type SitePackageOverrides<
@@ -95,22 +52,21 @@ export type SitePackageOverrides<
   TPlugin extends SiteCompositionPlugin = SiteCompositionPlugin,
 > = Partial<SitePackage<TPluginConfig, TPlugin>>;
 
-function normalizeContent(
-  content: SiteContentDefinition | SiteContentDefinition[] | undefined,
-): SiteContentDefinition[] {
-  if (!content) return [];
-  return Array.isArray(content) ? content : [content];
-}
-
 function mergeContent(
-  baseContent: SiteContentDefinition | SiteContentDefinition[] | undefined,
-  overrideContent: SiteContentDefinition | SiteContentDefinition[] | undefined,
-): SiteContentDefinition[] | undefined {
-  const merged = [
-    ...normalizeContent(baseContent),
-    ...normalizeContent(overrideContent),
-  ];
-  return merged.length > 0 ? merged : undefined;
+  baseContent: SiteContent | undefined,
+  overrideContent: SiteContent | undefined,
+): SiteContent | undefined {
+  if (!baseContent) return overrideContent;
+  if (!overrideContent) return baseContent;
+
+  const merged: SiteContent = { ...baseContent };
+  for (const [namespace, sections] of Object.entries(overrideContent)) {
+    merged[namespace] = {
+      ...(baseContent[namespace] ?? {}),
+      ...sections,
+    };
+  }
+  return merged;
 }
 
 function normalizeSections(
@@ -220,30 +176,18 @@ export function extendSite<
 
 export const themeCssSchema: z.ZodString = z.string();
 
-// Runtime gate for site packages loaded dynamically from a package ref at
-// boot. The full structural type is enforced statically by `SitePackage`
-// for in-tree consumers; this only catches dynamic-import shapes.
-const sitePackageRouteShapeSchema: z.ZodType<{ id: string }> = z.looseObject({
-  id: z.string().min(1),
-});
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
 
-const entityDisplayEntrySchema: z.ZodType<{ label: string }> = z.looseObject({
-  label: z.string().min(1),
-});
-
-const sitePackageShapeSchema: z.ZodType<unknown> = z.looseObject({
-  layouts: z.record(z.string(), z.unknown()),
-  plugin: z
-    .custom<SitePackage["plugin"]>((value) => typeof value === "function")
-    .optional(),
-  routes: z.array(sitePackageRouteShapeSchema),
-  entityDisplay: z.record(z.string(), entityDisplayEntrySchema),
-  content: z.unknown().optional(),
-  themeOverride: z.string().optional(),
-  headScripts: z.array(z.string()).optional(),
-  staticAssets: z.record(z.string(), z.string()).optional(),
-});
-
+// Internal packages may still carry an embedded runtime plugin while they are
+// migrated to explicit plugin composition. The public structural fields are
+// always validated by the canonical @rizom/site schema.
 export const sitePackageSchema: z.ZodType<SitePackage> = z.custom<SitePackage>(
-  (value) => sitePackageShapeSchema.safeParse(value).success,
+  (value) => {
+    if (!isRecord(value)) return false;
+    const { plugin, ...site } = value;
+    if (plugin !== undefined && typeof plugin !== "function") return false;
+    return siteDefinitionSchema.safeParse(site).success;
+  },
 );

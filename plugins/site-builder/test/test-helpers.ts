@@ -244,6 +244,7 @@ export function createTestConfig(
     layouts: {
       default: TestLayout,
     },
+    headScripts: [],
     autoRebuild: false, // Disabled for tests
     rebuildDebounce: 5000,
   };

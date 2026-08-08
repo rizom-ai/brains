@@ -1279,7 +1279,7 @@ function createMockSitePackage(
   overrides?: Partial<SitePackage>,
 ): SitePackage {
   return {
-    layouts: { default: null },
+    layouts: { default: () => null },
     routes: [{ id: "home", path: "/", title: "Home" }],
     plugin: (config) => createMockPlugin(pluginId, config ?? {}),
     entityDisplay: { post: { label: "Post" } },
@@ -1548,6 +1548,29 @@ describe("resolve with site package", () => {
     const dashboard = config.plugins?.find((p) => p.id === "dashboard");
 
     expect(getConfig(dashboard)["routePath"]).toBeUndefined();
+  });
+
+  test("should inject headScripts from site package into site-builder", () => {
+    const [siteBuilderFactory] = createMockFactory("site-builder");
+    const site = createMockSitePackage("scripted-site", {
+      headScripts: ['<script src="/site.js"></script>'],
+    });
+    const def = defineBrain({
+      name: "test",
+      version: "1.0.0",
+      site,
+      capabilities: [["site-builder", siteBuilderFactory, {}]],
+      interfaces: [],
+    });
+
+    const config = resolve(def, {});
+    const siteBuilder = config.plugins?.find(
+      (plugin) => plugin.id === "site-builder",
+    );
+
+    expect(getConfig(siteBuilder)["headScripts"]).toEqual([
+      '<script src="/site.js"></script>',
+    ]);
   });
 
   test("should inject staticAssets from site package into site-builder", () => {
@@ -1856,7 +1879,7 @@ site:
     const [siteBuilderFactory] = createMockFactory("site-builder");
     const pluginConfigs: PluginConfig[] = [];
     const site: SitePackage = {
-      layouts: { default: null },
+      layouts: { default: () => null },
       routes: [],
       plugin: (config) => {
         const cfg = config ?? {};

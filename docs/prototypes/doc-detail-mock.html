@@ -982,12 +982,12 @@ brain start</code></pre>
   .env.example      # environment variables to fill in
   .gitignore        # ignores .env, cache, build artifacts
   tsconfig.json     # JSX runtime hints for Preact
-  src/site.ts       # local site scaffold
+  src/site.tsx      # local site scaffold
   src/theme.css     # local theme scaffold</code></pre>
             <p>
               The generated <code>brain.yaml</code> stays pinned to the
               model's built-in site and theme at first. Edit
-              <code>src/site.ts</code> and <code>src/theme.css</code>,
+              <code>src/site.tsx</code> and <code>src/theme.css</code>,
               then remove the explicit <code>site.package</code> ref
               from <code>brain.yaml</code> when you want to switch to
               the local site convention.

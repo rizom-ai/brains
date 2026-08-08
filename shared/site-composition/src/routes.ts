@@ -5,7 +5,7 @@ import type {
   NavigationMetadataInput,
   RouteDefinition,
   RouteDefinitionInput,
-  SectionDefinition,
+  RouteSectionDefinition as SectionDefinition,
   SectionDefinitionInput,
 } from "@rizom/site";
 
@@ -17,7 +17,7 @@ export type {
   NavigationSlot,
   RouteDefinition,
   RouteDefinitionInput,
-  SectionDefinition,
+  RouteSectionDefinition as SectionDefinition,
   SectionDefinitionInput,
 } from "@rizom/site";
 

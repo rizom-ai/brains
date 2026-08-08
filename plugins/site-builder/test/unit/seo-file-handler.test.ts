@@ -37,6 +37,33 @@ function createPreparedBuild(): PreparedSiteBuild {
 }
 
 describe("writeSiteBuildSeoFiles", () => {
+  it("preserves package-owned SEO static assets", async () => {
+    const outputDir = await fs.mkdtemp(join(tmpdir(), "seo-handler-static-"));
+    try {
+      const preparedBuild = createPreparedBuild();
+      const robots = "User-agent: *\nAllow: /\n";
+      preparedBuild.staticAssets = { "/robots.txt": robots };
+      await fs.writeFile(join(outputDir, "robots.txt"), robots);
+
+      await writeSiteBuildSeoFiles({
+        outputDir,
+        preparedBuild,
+        logger: createSilentLogger(),
+        siteUrl: "https://example.com",
+        signal: new AbortController().signal,
+      });
+
+      expect(await fs.readFile(join(outputDir, "robots.txt"), "utf8")).toBe(
+        "User-agent: *\nAllow: /\n",
+      );
+      expect(
+        await fs.readFile(join(outputDir, "sitemap.xml"), "utf8"),
+      ).toContain("https://example.com");
+    } finally {
+      await fs.rm(outputDir, { recursive: true, force: true });
+    }
+  });
+
   it("writes robots.txt and sitemap.xml inside the staging output dir", async () => {
     const outputDir = await fs.mkdtemp(join(tmpdir(), "seo-handler-"));
     try {

@@ -62,12 +62,12 @@ Keep the first checkpoint boring: the Brain starts, content syncs, and an unchan
 
 For a one-off customization, keep the structure in the instance:
 
-- `src/site.ts` for layout, routes, and entity display metadata;
+- `src/site.tsx` for layout, routes, and entity display metadata;
 - `src/theme.css` for local visual overrides.
 
-A local `src/site.ts` is discovered when `brain.yaml` does not set `site.package`. A local theme remains an additive layer over the selected base theme.
+A local `src/site.tsx` is discovered when `brain.yaml` does not set `site.package`. A local theme remains an additive layer over the selected base theme.
 
-For a reusable or substantially custom site, create a site package using `@rizom/site`, `@rizom/site-sections`, and Preact. Export a `SiteDefinition`, install the package in the Brain instance, and select it with `site.package` in `brain.yaml`. Keep these package versions aligned with `@rizom/brain`. Use a separate theme package when the visual system should also be reusable.
+For a reusable or substantially custom site, create a site package using `@rizom/site` and Preact. Export a `SiteDefinition`, install the package in the Brain instance, and select it with `site.package` in `brain.yaml`. Keep these package versions aligned with `@rizom/brain`. Use a separate theme package when the visual system should also be reusable.
 
 ### 4. Port presentation from the outside in
 

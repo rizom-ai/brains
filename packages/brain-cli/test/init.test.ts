@@ -264,7 +264,7 @@ describe("brain init", () => {
       scaffold(testDir, { recipe: "minimal" });
 
       const readme = readFileSync(join(testDir, "README.md"), "utf-8");
-      expect(readme).not.toContain("`src/site.ts`");
+      expect(readme).not.toContain("`src/site.tsx`");
       expect(readme).not.toContain("`src/theme.css`");
     });
 
@@ -353,19 +353,22 @@ describe("brain init", () => {
     it("should not create local site/theme scaffold for minimal recipe", () => {
       scaffold(testDir, { recipe: "minimal" });
 
-      expect(existsSync(join(testDir, "src", "site.ts"))).toBe(false);
+      expect(existsSync(join(testDir, "src", "site.tsx"))).toBe(false);
       expect(existsSync(join(testDir, "src", "theme.css"))).toBe(false);
     });
 
-    it("should create src/site.ts and src/theme.css for commerce", () => {
+    it("should create src/site.tsx and src/theme.css for commerce", () => {
       scaffold(testDir, { recipe: "commerce" });
 
-      const siteSource = readFileSync(join(testDir, "src", "site.ts"), "utf-8");
-      expect(siteSource).toContain('from "@rizom/brain/site"');
-      expect(siteSource).toContain("professionalSitePlugin");
-      expect(siteSource).toContain("ProfessionalLayout");
-      expect(siteSource).toContain("professionalRoutes");
-      expect(siteSource).toContain("export default site");
+      const siteSource = readFileSync(
+        join(testDir, "src", "site.tsx"),
+        "utf-8",
+      );
+      expect(siteSource).toContain('from "@rizom/site"');
+      expect(siteSource).toContain("defineSection");
+      expect(siteSource).toContain("sectionGroup");
+      expect(siteSource).toContain("defineSite");
+      expect(siteSource).toContain("export default defineSite");
 
       const themeSource = readFileSync(
         join(testDir, "src", "theme.css"),
@@ -389,6 +392,18 @@ describe("brain init", () => {
         readFileSync(join(testDir, "package.json"), "utf-8"),
       );
       expect(pkg.dependencies["@rizom/brain"]).toMatch(/^[\^~]?\d+\.\d+\.\d+/);
+    });
+
+    it("should pin the independent site SDK exactly", () => {
+      scaffold(testDir, { recipe: "personal" });
+      const generated = JSON.parse(
+        readFileSync(join(testDir, "package.json"), "utf-8"),
+      );
+      const site = JSON.parse(
+        readFileSync(join(import.meta.dir, "../../site/package.json"), "utf-8"),
+      );
+
+      expect(generated.dependencies["@rizom/site"]).toBe(site.version);
     });
 
     it("should depend on preact for JSX runtime", () => {

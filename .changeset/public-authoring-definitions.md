@@ -8,4 +8,6 @@ Bundled instances can explicitly disable provider-backed semantic indexing while
 
 Declarative service packages now infer setup state and config, expose schema-first tools with plain typed output, and register durable typed jobs with queue-owned retries, deadlines, progress, cancellation, status, and restart recovery. Resources, prompts, templates, views, and cleanup remain lifecycle-owned.
 
+`@rizom/site` is now the sole site-authoring SDK, with canonical `defineSite()`, schema-first sections, a blessed schema vocabulary, initial content validation, and runtime-derived structural validation. App-managed builds preserve package CSS, global head scripts, and static assets. The removed alpha `@rizom/brain/site` subpath and `@rizom/site-sections` workspace package have no compatibility facade.
+
 This intentionally removes alpha-only root and plugin authoring exports including `PLUGIN_API_VERSION`, class-first plugin APIs, tuple/factory contracts, factory package loading, and the root Zod convenience export. Family authoring entries own their blessed schema helpers.

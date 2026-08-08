@@ -624,7 +624,7 @@ describe("initPilotRepo", () => {
     expect(operatorPlaybook).toContain(
       "## Hosted site and theme package contract",
     );
-    expect(operatorPlaybook).toContain("default-export a valid `SitePackage`");
+    expect(operatorPlaybook).toContain("default-export `defineSite(...)`");
     expect(operatorPlaybook).toContain("site-mockup-migration.md");
     expect(operatorPlaybook).toContain("version: <exact-site-version>");
     expect(operatorPlaybook).toContain("themeVersion: <exact-theme-version>");

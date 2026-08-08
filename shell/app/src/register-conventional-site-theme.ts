@@ -44,7 +44,7 @@ function applyPluginConfig(
 }
 
 /**
- * Register a local `src/site.ts` package, optionally composing its overrides
+ * Register a local `src/site.tsx` package, optionally composing its overrides
  * over the explicit `brain.yaml` site package first.
  */
 export function registerConventionalSitePackage(
@@ -59,18 +59,18 @@ export function registerConventionalSitePackage(
   const basePackage = sitePackageSchema.safeParse(getPackage(basePackageRef));
   if (!basePackage.success) {
     throw new Error(
-      `brain.yaml site.package "${basePackageRef}" could not be resolved as the base for src/site.ts`,
+      `brain.yaml site.package "${basePackageRef}" could not be resolved as the base for src/site.tsx`,
     );
   }
   if (!isRecord(localSite)) {
     throw new Error(
-      "Conventional site file src/site.ts must default-export site overrides",
+      "Conventional site file src/site.tsx must default-export site overrides",
     );
   }
 
   const { pluginConfig: rawPluginConfig, ...rawOverrides } = localSite;
   if (rawPluginConfig !== undefined && !isRecord(rawPluginConfig)) {
-    throw new Error("src/site.ts pluginConfig must be a mapping");
+    throw new Error("src/site.tsx pluginConfig must be a mapping");
   }
 
   const composed = extendSite(
@@ -86,7 +86,7 @@ export function registerConventionalSitePackage(
 /**
  * Register convention-based local authoring files.
  *
- * - `src/site.ts` becomes the effective `site.package`; when brain.yaml names
+ * - `src/site.tsx` becomes the effective `site.package`; when brain.yaml names
  *   a package, the local file layers over that explicit base package
  * - `src/theme.css` becomes an additive `site.themeOverride` layer so apps can
  *   extend a shared base theme without forking it
@@ -99,7 +99,7 @@ export async function registerConventionalSiteTheme(
 ): Promise<InstanceOverrides> {
   let nextOverrides = overrides;
 
-  const sitePath = join(cwd, "src/site.ts");
+  const sitePath = join(cwd, "src/site.tsx");
   if (existsSync(sitePath)) {
     const siteModule = await import(pathToFileURL(sitePath).href);
     if (siteModule.default === undefined) {

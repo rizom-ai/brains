@@ -130,7 +130,7 @@ describe("canonical personal bundles", () => {
 
     registerConventionalSitePackage(
       {
-        layouts: { default: "local-layout" },
+        layouts: { default: (): null => null },
         routes: [
           {
             ...home,

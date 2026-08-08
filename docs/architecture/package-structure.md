@@ -116,7 +116,7 @@ Note: system tools (create/update/delete/search/status) are registered directly 
 
 ## Sites
 
-Site packages are structural-only bundles: layouts, routes, site plugins, entity display metadata, and static assets. Themes live separately under `shared/theme-*` and are selected alongside the site in `brain.yaml`.
+Site definitions are structural-only bundles: layouts, routes, schema-first sections, initial content, entity display metadata, head scripts, and static assets. Themes live separately under `shared/theme-*` and are selected alongside the site in `brain.yaml`.
 
 | Package              | Purpose                                                               |
 | -------------------- | --------------------------------------------------------------------- |

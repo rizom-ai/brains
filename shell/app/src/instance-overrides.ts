@@ -333,7 +333,7 @@ function applyConventionalSiteContentDefinitions(
  * Apply convention-discovered local authoring refs.
  *
  * `sitePackageRef` selects the already-composed local site package. When
- * brain.yaml names a base package, registration composes `src/site.ts` over it
+ * brain.yaml names a base package, registration composes `src/site.tsx` over it
  * before this helper replaces the effective package ref.
  *
  * `themeOverrideRef` is additive: it layers local theme CSS after the base

@@ -1,17 +1,14 @@
 # External Site and Theme Authoring
 
-Site and theme packages are ordinary public npm packages. They may live in any
-repository and use only the published `@rizom/brain` API; hosted resolution does
-not depend on the Brains monorepo or the `@rizom` scope.
+Site and theme packages are ordinary public npm packages. They can live outside
+the Brains monorepo and must not import private `@brains/*` packages.
 
-The reference implementation is
-[`rizom-ai/site-smoke-canary`](https://github.com/rizom-ai/site-smoke-canary).
-It is intentionally released from a standalone repository with plain
-`npm publish`, hand-authored peer metadata, and no private `@brains/*` tooling.
+`@rizom/site` is the sole site-authoring SDK. Site structure and themes are
+versioned independently from `@rizom/brain` and from each other.
 
-## Required package metadata
+## Package metadata
 
-A deployable site must publish a manifest shaped like this:
+A deployable site publishes built JavaScript and declarations:
 
 ```json
 {
@@ -19,15 +16,21 @@ A deployable site must publish a manifest shaped like this:
   "version": "1.0.0",
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
   },
-  "files": ["src"],
+  "files": ["dist"],
+  "dependencies": {
+    "@rizom/site": ">=0.2.0-alpha.232 <0.3.0"
+  },
   "peerDependencies": {
-    "@rizom/brain": ">=0.2.0-alpha.233 <0.3.0",
+    "@rizom/brain": ">=0.2.0-alpha.263 <0.3.0",
     "preact": "^10.27.2"
   },
   "devDependencies": {
-    "@rizom/brain": "0.2.0-alpha.233",
+    "@rizom/brain": "0.2.0-alpha.263",
     "preact": "^10.27.2",
     "typescript": "^7.0.2"
   },
@@ -37,50 +40,71 @@ A deployable site must publish a manifest shaped like this:
 }
 ```
 
-The published npm packument and tarball must both:
+The published manifest and tarball must contain no `workspace:` ranges,
+`publishPeerDependencies`, `publishExports`, private imports, or undeclared
+runtime dependencies. Hosted production configuration should select an exact
+site package version.
 
-- contain a standard `peerDependencies["@rizom/brain"]` range;
-- contain no `publishPeerDependencies` or `publishExports` fields;
-- contain no `workspace:` dependency ranges;
-- import only public `@rizom/brain` entry points, never private `@brains/*`
-  packages.
+## Site definition
 
-External themes follow the same metadata rules and publish their brain range in
-`peerDependencies`. A site's version and an external theme's version are
-independent; do not infer one from the other.
+Import the schema vocabulary and helpers from one package. The default export is
+the validated structural definition; it never embeds a runtime plugin.
 
-## Compatibility rule
+```tsx
+import { defineSection, defineSite, sectionGroup, z } from "@rizom/site";
 
-While `@rizom/brain` is on the `0.2.0-alpha.*` line, declare compatibility as
-`>=<first-compatible> <0.3.0`. A release that first uses a newer hosting
-contract must advance the lower bound. A change to `@rizom/brain/site` or the
-runtime site loader that breaks existing packages must be called out in the
-brain release notes.
+const hero = defineSection(
+  z.object({ heading: z.string(), introduction: z.string() }),
+  ({ heading, introduction }) => (
+    <section>
+      <h1>{heading}</h1>
+      <p>{introduction}</p>
+    </section>
+  ),
+  { title: "Hero", description: "Page introduction" },
+);
 
-When the external authoring contract graduates to stable semver, breaking host
-changes advance the range ceiling in the usual way. A broad range is a promise
-that the package has been tested against that hosting contract, not decoration.
-
-## Site export contract
-
-Export a `SitePackage` as the package's default export. Use the curated public
-subpaths for routes, plugins, templates, and schemas:
-
-```ts
-import { z } from "@rizom/brain";
-import type { SitePackage } from "@rizom/brain/site";
-import { ServicePlugin } from "@rizom/brain/plugins";
-import { createTemplate } from "@rizom/brain/templates";
+export default defineSite({
+  layouts: {
+    default: ({ title, sections }) => (
+      <html lang="en">
+        <head>
+          <title>{title}</title>
+        </head>
+        <body>
+          <main>{sections}</main>
+        </body>
+      </html>
+    ),
+  },
+  routes: [
+    {
+      id: "home",
+      path: "/",
+      title: "Home",
+      sections: [{ id: "hero", template: "home.hero" }],
+    },
+  ],
+  sections: [sectionGroup("home", { hero })],
+  content: {
+    home: {
+      hero: { heading: "Welcome", introduction: "A schema-first site." },
+    },
+  },
+  entityDisplay: {},
+  themeOverride: ".hero { max-width: 48rem; }",
+  headScripts: ["<script>globalThis.siteReady = true</script>"],
+  staticAssets: { "robots.txt": "User-agent: *\nAllow: /\n" },
+});
 ```
 
-The reference canary keeps its shipped TypeScript source and lets the Brain
-runtime transpile it. Packages may instead export built JavaScript and type
-declarations, provided the npm `exports` map points only at files included in
-the tarball.
+Layouts, routes, content, section schemas, entity display metadata, additive
+CSS, head scripts, and static assets are all validated by `defineSite()`.
+Themes remain separately selected. Backend tools, jobs, or data integrations
+belong in a focused service package composed explicitly through the Brain
+definition.
 
 ## Verify and publish
-
-A standalone package does not need Changesets or Brains build tooling:
 
 ```bash
 bun install --frozen-lockfile
@@ -90,15 +114,7 @@ npm pack --dry-run
 npm publish --access public
 ```
 
-Before publishing, inspect the dry-run file list and packed `package.json`.
-After publishing, verify standard registry metadata directly:
-
-```bash
-npm view @scope/my-site@1.0.0 peerDependencies --json
-npm view @scope/my-site@1.0.0 publishPeerDependencies
-```
-
-The second command must return no field. Keep hosted production configuration
-on an exact package version. Floating `latest` policy is reserved for a
-lock-backed canary; until that resolver is deployed, the Smoke instance also
-pins each standalone canary version exactly.
+After publishing, inspect the registry metadata and install the tarball in an
+isolated Brain consumer. Start the app, request a preview rebuild through its
+MCP command surface, and inspect `dist/site-preview`; source-only rendering is
+not sufficient evidence.

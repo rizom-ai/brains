@@ -159,7 +159,7 @@ function collectConventionalEntrypointParts(
     importIndex += 1;
   };
 
-  const sitePath = `${cwd}/src/site.ts`;
+  const sitePath = `${cwd}/src/site.tsx`;
   if (existsSync(sitePath)) {
     const basePackageRef = overrides.site?.package;
     addConvention({
@@ -204,7 +204,7 @@ function collectConventionalEntrypointParts(
  *
  * When `cwd` is provided, conventional local authoring files are also
  * bundled:
- * - `./src/site.ts`, composed over `site.package` when one is explicit
+ * - `./src/site.tsx`, composed over `site.package` when one is explicit
  * - `./src/theme.css` as an additive theme override layer when
  *   `site.themeOverride` is omitted
  * - `./src/site-content.ts` if `plugins.site-content.definitions` is omitted

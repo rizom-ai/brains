@@ -160,7 +160,7 @@ Site structure and theme are separate:
 
 - a site package provides layouts, routes, metadata, and optional plugin behavior;
 - a theme package provides CSS;
-- local `src/site.ts`, `src/site-content.ts`, and `src/theme.css` conventions layer instance authoring without forking the canonical definition.
+- local `src/site.tsx`, `src/site-content.ts`, and `src/theme.css` conventions layer instance authoring without forking the canonical definition.
 
 ## Creating instances
 

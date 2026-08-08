@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 
 const fixtureRoot = join(import.meta.dir, "fixtures", "public-authoring");
@@ -341,14 +341,21 @@ describe("public authoring 0.2 export ledger", () => {
     }
   });
 
-  it("keeps deprecated @rizom/site-sections out of the supported surface", () => {
+  it("removes deprecated site authoring entry points", () => {
     const ledger = readLedger();
-    const entry = ledger.entries["@rizom/site-sections"];
+    const brainManifest = JSON.parse(
+      readFileSync(
+        join(repositoryRoot, "packages/brain-cli/package.json"),
+        "utf8",
+      ),
+    );
 
-    expect(entry).toBeDefined();
-    expect(entry?.stable).toEqual([]);
-    expect(entry?.["advanced-with-consumer"]).toEqual([]);
-    expect(entry?.["internal/removable"]).toContain("defineSection");
+    expect(ledger.entries["@rizom/brain/site"]).toBeUndefined();
+    expect(ledger.entries["@rizom/site-sections"]).toBeUndefined();
+    expect(brainManifest.exports["./site"]).toBeUndefined();
+    expect(
+      existsSync(join(repositoryRoot, "packages/site-sections")),
+    ).toBeFalse();
   });
 
   it("records intentional alpha removals", () => {
@@ -381,26 +388,8 @@ describe("public authoring 0.2 export ledger", () => {
     expect(
       ledger.entries["@rizom/brain/interfaces"]?.["internal/removable"],
     ).toContain("WebRouteDefinition");
-    expect(ledger.entries["@rizom/brain/site"]?.stable).toEqual([]);
-    expect(
-      ledger.entries["@rizom/brain/site"]?.["advanced-with-consumer"],
-    ).toEqual([]);
-    expect(ledger.entries["@rizom/brain/site"]?.["internal/removable"]).toEqual(
-      expect.arrayContaining([
-        "EntityDisplayEntry",
-        "PersonalLayout",
-        "ProfessionalLayout",
-        "RouteDefinitionInput",
-        "SectionDefinitionInput",
-        "personalSitePlugin",
-        "professionalSitePlugin",
-        "routes",
-      ]),
-    );
-    expect(ledger.entries["@rizom/site-sections"]?.stable).toEqual([]);
-    expect(
-      ledger.entries["@rizom/site-sections"]?.["internal/removable"],
-    ).toContain("defineSection");
+    expect(ledger.entries["@rizom/brain/site"]).toBeUndefined();
+    expect(ledger.entries["@rizom/site-sections"]).toBeUndefined();
   });
 
   it("points every ledger entry at a repository source", () => {

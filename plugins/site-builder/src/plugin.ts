@@ -74,6 +74,9 @@ export class SiteBuilderPlugin extends ServicePlugin<
       siteBuilderConfigSchema,
     );
     this.layouts = layouts;
+    for (const [index, script] of this.config.headScripts.entries()) {
+      this.headScripts.set(`site-package:${index}`, script);
+    }
   }
 
   protected override async onRegister(

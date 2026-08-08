@@ -39,9 +39,9 @@ describe("registerConventionalSiteTheme", () => {
     }
   });
 
-  test("registers ./src/site.ts when site.package is omitted", async () => {
+  test("registers ./src/site.tsx when site.package is omitted", async () => {
     writeFileSync(
-      join(testDir, "src/site.ts"),
+      join(testDir, "src/site.tsx"),
       `export default {
         layouts: {},
         routes: [],
@@ -75,7 +75,7 @@ describe("registerConventionalSiteTheme", () => {
     expect(getPackage(CONVENTIONAL_SITE_PACKAGE_REF)).toBeDefined();
   });
 
-  test("composes ./src/site.ts over an explicit base site package", async () => {
+  test("composes ./src/site.tsx over an explicit base site package", async () => {
     let receivedPluginConfig: Record<string, unknown> | undefined;
     const basePlugin = (config?: Record<string, unknown>): Plugin => {
       receivedPluginConfig = config;
@@ -91,15 +91,15 @@ describe("registerConventionalSiteTheme", () => {
       };
     };
     registerPackage("@brains/site-explicit", {
-      layouts: { default: "base-layout" },
+      layouts: { default: () => null },
       routes: [{ id: "home", path: "/", sections: [] }],
       plugin: basePlugin,
       entityDisplay: { post: { label: "Post" } },
     });
     writeFileSync(
-      join(testDir, "src/site.ts"),
+      join(testDir, "src/site.tsx"),
       `export default {
-        layouts: { default: "local-layout" },
+        layouts: { default: () => null },
         routes: [{ id: "home", path: "/", sections: [{ id: "hero", template: "local:hero" }] }],
         entityDisplay: { post: { label: "Essay" } },
         pluginConfig: { source: "local" },
@@ -124,7 +124,6 @@ describe("registerConventionalSiteTheme", () => {
       getPackage(CONVENTIONAL_SITE_PACKAGE_REF),
     );
     expect(composedSite).toMatchObject({
-      layouts: { default: "local-layout" },
       routes: [
         {
           id: "home",
@@ -133,6 +132,7 @@ describe("registerConventionalSiteTheme", () => {
       ],
       entityDisplay: { post: { label: "Essay" } },
     });
+    expect(composedSite.layouts["default"]).toBeFunction();
     composedSite.plugin?.({ variant: "editorial" });
     expect(receivedPluginConfig).toEqual({
       source: "local",

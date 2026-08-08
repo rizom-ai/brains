@@ -300,7 +300,7 @@ describe("bundle resolver integration", () => {
 
   test("preserves conventional local site package resolution", () => {
     const localSite: SitePackage = {
-      layouts: { default: null },
+      layouts: { default: () => null },
       routes: [{ id: "home", path: "/", title: "Home" }],
       entityDisplay: {},
       plugin: (config) => createPlugin("local-site", config ?? {}),

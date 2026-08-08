@@ -85,6 +85,7 @@ function applyPluginDefaults(
         routes: site.routes,
         entityDisplay: site.entityDisplay,
         layouts: site.layouts,
+        ...(site.headScripts && { headScripts: site.headScripts }),
       }),
       ...(site?.staticAssets && { staticAssets: site.staticAssets }),
     };

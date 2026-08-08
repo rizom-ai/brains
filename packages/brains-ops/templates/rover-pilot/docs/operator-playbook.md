@@ -176,7 +176,7 @@ Rollback must restore the prior desired-state revision and prior runtime image t
 
 Start with the public [site mockup migration guide](https://github.com/rizom-ai/brains/blob/main/docs/site-mockup-migration.md), then apply these hosted-fleet requirements:
 
-- A site package must default-export a valid `SitePackage` and use documented public APIs such as `@rizom/brain/site`.
+- A site package must default-export `defineSite(...)` and import its authoring API only from `@rizom/site`.
 - A theme package must default-export its CSS as a string. Hosted custom themes currently use the `@rizom/*` scope so the fleet image installs them with the site package; `@brains/*` themes are bundled with `@rizom/brain`.
 - Site and custom theme packages must be public npm packages that install without registry credentials.
 - Site, theme, and brain packages publish independently. Hosted configuration requires exact site and external-theme version pins and never derives one package version from another.

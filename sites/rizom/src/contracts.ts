@@ -3,8 +3,9 @@ import type {
   EntityDisplayEntry,
   RouteDefinitionInput,
   RuntimeScript,
-  SiteContentDefinition,
+  SiteContent,
   SiteLayoutInfo,
+  SiteSectionGroup,
   UserPermissionLevel,
 } from "@rizom/site";
 import type { ComponentChildren } from "preact";
@@ -25,6 +26,7 @@ export type {
   RuntimeScript,
   SectionDefinition,
   SectionDefinitionInput,
+  SiteContent,
   SiteContentArrayFieldDefinition,
   SiteContentDefinition,
   SiteContentEnumFieldDefinition,
@@ -138,11 +140,12 @@ export interface SitePackage<
   layouts: Record<string, unknown>;
   routes: RouteDefinitionInput[];
   plugin?: ((config?: TPluginConfig) => TPlugin) | undefined;
-  content?: SiteContentDefinition | SiteContentDefinition[];
-  themeOverride?: string;
-  headScripts?: string[];
+  content?: SiteContent | undefined;
+  sections?: SiteSectionGroup | SiteSectionGroup[] | undefined;
+  themeOverride?: string | undefined;
+  headScripts?: string[] | undefined;
   entityDisplay: Record<string, EntityDisplayEntry>;
-  staticAssets?: Record<string, string>;
+  staticAssets?: Record<string, string> | undefined;
 }
 
 // Keeps this module as the source-owned bridge for the current runtime shape;

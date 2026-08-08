@@ -1,10 +1,4 @@
-import {
-  SYSTEM_CHANNELS,
-  type IShell,
-  type Plugin,
-  type PluginCapabilities,
-} from "@brains/plugins";
-import { SITE_BUILDER_CHANNELS } from "@brains/contracts";
+import type { IShell, Plugin, PluginCapabilities } from "@brains/plugins";
 import { withThemeBase } from "@brains/theme-base";
 import { z } from "@brains/utils/zod";
 import type { BrainDefinition } from "../brain-definition";
@@ -14,25 +8,16 @@ import {
   type InstanceOverrides,
 } from "../instance-overrides";
 import {
-  createSiteContentTemplates,
   extendSite,
   sectionGroupToTemplates,
   sitePackageSchema,
   themeCssSchema,
   type ConventionalSiteOverrides,
-  type SiteContentDefinition,
   type SitePackage,
   type SiteSectionGroup,
 } from "../site-package";
 import { getPackage, hasPackage } from "../package-registry";
 import { isActive, type ActiveIds } from "./active-ids";
-
-export function normalizeSiteContent(
-  content: SitePackage["content"],
-): SiteContentDefinition[] {
-  if (!content) return [];
-  return Array.isArray(content) ? content : [content];
-}
 
 function normalizeSiteSections(
   sections: SitePackage["sections"],
@@ -56,32 +41,8 @@ class DeclarativeSitePlugin implements Plugin {
   }
 
   async register(shell: IShell): Promise<PluginCapabilities> {
-    for (const definition of normalizeSiteContent(this.site.content)) {
-      shell.registerTemplates(
-        createSiteContentTemplates(definition),
-        definition.namespace,
-      );
-    }
-
     for (const group of normalizeSiteSections(this.site.sections)) {
       shell.registerTemplates(sectionGroupToTemplates(group), group.namespace);
-    }
-
-    if (this.site.headScripts?.length) {
-      const messaging = shell.getMessageBus();
-      messaging.subscribe(SYSTEM_CHANNELS.pluginsRegistered, async () => {
-        for (const [index, script] of this.site.headScripts?.entries() ?? []) {
-          await messaging.send({
-            type: SITE_BUILDER_CHANNELS.headScriptRegister,
-            sender: this.id,
-            payload: {
-              pluginId: `${this.id}:${index}`,
-              script,
-            },
-          });
-        }
-        return { success: true };
-      });
     }
 
     return { tools: [], resources: [] };
@@ -108,7 +69,7 @@ export function instantiateSitePlugins(
     );
   }
 
-  if (site.content || site.headScripts?.length) {
+  if (site.sections) {
     plugins.push(
       new DeclarativeSitePlugin(
         overrides?.site?.package ?? "@rizom/site-package",

@@ -1,5 +1,4 @@
-import type { SiteDefinition } from "@rizom/site";
-import { createRizomSite } from "@rizom/site-rizom";
+import { createRizomSite, type SitePackage } from "@rizom/site-rizom";
 import { AiLayout } from "./layout";
 import { homeSections } from "./home";
 import { brainSections } from "./brain";
@@ -7,7 +6,7 @@ import { workSections } from "./work";
 import { foundationSections } from "./foundation";
 import { aiRoutes } from "./routes";
 
-export const rizomAiSite: SiteDefinition = createRizomSite({
+export const rizomAiSite: SitePackage = createRizomSite({
   packageName: "@rizom/site-rizom-ai",
   // The rev-5 design draws its own motifs (mycelium rail, growth diagram).
   // The theme's room accents key off data-room, set by the layout.

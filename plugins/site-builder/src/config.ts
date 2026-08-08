@@ -30,6 +30,7 @@ interface SiteBuilderSchemaConfig {
   siteInfo: SiteMetadata;
   themeCSS?: string | undefined;
   analyticsScript?: string | undefined;
+  headScripts: string[];
   templates?: Record<string, Template> | undefined;
   routes?: RouteDefinition[] | undefined;
   layouts?: Record<string, LayoutComponent> | undefined;
@@ -47,6 +48,7 @@ interface SiteBuilderSchemaConfigInput {
   siteInfo?: SiteMetadata | undefined;
   themeCSS?: string | undefined;
   analyticsScript?: string | undefined;
+  headScripts?: string[] | undefined;
   templates?: Record<string, Template> | undefined;
   routes?: RouteDefinitionInput[] | undefined;
   layouts?: Record<string, LayoutComponent> | undefined;
@@ -137,6 +139,10 @@ export const siteBuilderConfigSchema: z.ZodType<
       "Analytics tracking script to inject into page head (e.g., Cloudflare Web Analytics)",
     )
     .optional(),
+  headScripts: z
+    .array(z.string())
+    .default([])
+    .describe("Global scripts to inject into every rendered page head"),
   templates: z.any().optional().describe("Template definitions to register"),
   routes: z
     .array(routeDefinitionSchema)

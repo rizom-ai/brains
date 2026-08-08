@@ -133,10 +133,6 @@
       "types": "./dist/templates.d.ts",
       "import": "./dist/templates.js"
     },
-    "./site": {
-      "types": "./dist/site.d.ts",
-      "import": "./dist/site.js"
-    },
     "./deploy": {
       "types": "./dist/deploy.d.ts",
       "import": "./dist/deploy.js"
