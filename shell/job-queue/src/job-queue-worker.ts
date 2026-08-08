@@ -73,8 +73,7 @@ export class JobQueueWorker {
   private readonly clock: Clock.Clock | undefined;
   private readonly operationContext: OperationContext;
   private workerSessionId: string | null = null;
-  private workerHeartbeatTimer: ReturnType<typeof setInterval> | null = null;
-  private workerHeartbeatInFlight: Promise<void> | null = null;
+  private workerHeartbeatStop: (() => Promise<void>) | null = null;
 
   public static createFresh(
     jobQueueService: IJobQueueService,
@@ -516,39 +515,65 @@ export class JobQueueWorker {
     }
   }
 
-  private startWorkerHeartbeat(): void {
-    this.workerHeartbeatTimer = setInterval(
+  /**
+   * Start a guarded heartbeat interval: at most one beat in flight, a false
+   * beat reports staleness, and the returned stop function awaits the last
+   * in-flight beat.
+   */
+  private startHeartbeatLoop(options: {
+    intervalMs: number;
+    beat: () => Promise<boolean>;
+    onStale: () => void;
+    onError: (error: unknown) => void;
+  }): () => Promise<void> {
+    let inFlight: Promise<void> | null = null;
+    let stopped = false;
+    const timer = setInterval(
       () => {
-        const workerSessionId = this.workerSessionId;
-        if (!workerSessionId || this.workerHeartbeatInFlight) return;
-
-        this.workerHeartbeatInFlight = this.jobQueueService
-          .heartbeatWorkerSession(this.config.workerSlotId, workerSessionId)
+        if (stopped || inFlight) return;
+        inFlight = options
+          .beat()
           .then((current) => {
-            if (!current) {
-              this.markUnhealthy("Worker session was superseded");
-            }
+            if (!current) options.onStale();
           })
-          .catch((error: unknown) => {
-            this.markUnhealthy(
-              `Worker session heartbeat failed: ${getErrorMessage(error)}`,
-            );
-          })
+          .catch(options.onError)
           .finally(() => {
-            this.workerHeartbeatInFlight = null;
+            inFlight = null;
           });
       },
-      Math.max(1, this.config.workerHeartbeatIntervalMs),
+      Math.max(1, options.intervalMs),
     );
+
+    return async (): Promise<void> => {
+      if (stopped) return;
+      stopped = true;
+      clearInterval(timer);
+      await inFlight;
+    };
+  }
+
+  private startWorkerHeartbeat(): void {
+    this.workerHeartbeatStop = this.startHeartbeatLoop({
+      intervalMs: this.config.workerHeartbeatIntervalMs,
+      beat: async (): Promise<boolean> => {
+        const workerSessionId = this.workerSessionId;
+        if (!workerSessionId) return true;
+        return this.jobQueueService.heartbeatWorkerSession(
+          this.config.workerSlotId,
+          workerSessionId,
+        );
+      },
+      onStale: () => this.markUnhealthy("Worker session was superseded"),
+      onError: (error) =>
+        this.markUnhealthy(
+          `Worker session heartbeat failed: ${getErrorMessage(error)}`,
+        ),
+    });
   }
 
   private async stopWorkerHeartbeat(): Promise<void> {
-    if (this.workerHeartbeatTimer) {
-      clearInterval(this.workerHeartbeatTimer);
-      this.workerHeartbeatTimer = null;
-    }
-    await this.workerHeartbeatInFlight;
-    this.workerHeartbeatInFlight = null;
+    await this.workerHeartbeatStop?.();
+    this.workerHeartbeatStop = null;
   }
 
   private startAttemptHeartbeat(
@@ -558,39 +583,27 @@ export class JobQueueWorker {
     const attemptId = job.attemptId;
     if (!attemptId) return async () => undefined;
 
-    let inFlight: Promise<void> | null = null;
-    let stopped = false;
-    const timer = setInterval(
-      () => {
-        if (stopped || inFlight) return;
-        inFlight = this.jobQueueService
-          .renewAttemptLease(job.id, attemptId, this.config.leaseDurationMs)
-          .then((current) => {
-            if (current) return;
-            const error = new Error("Job attempt was superseded");
-            controller.abort(error);
-            this.markUnhealthy(error.message);
-          })
-          .catch((error: unknown) => {
-            const heartbeatError = toError(error);
-            controller.abort(heartbeatError);
-            this.markUnhealthy(
-              `Attempt lease heartbeat failed: ${heartbeatError.message}`,
-            );
-          })
-          .finally(() => {
-            inFlight = null;
-          });
+    return this.startHeartbeatLoop({
+      intervalMs: this.config.attemptHeartbeatIntervalMs,
+      beat: () =>
+        this.jobQueueService.renewAttemptLease(
+          job.id,
+          attemptId,
+          this.config.leaseDurationMs,
+        ),
+      onStale: () => {
+        const error = new Error("Job attempt was superseded");
+        controller.abort(error);
+        this.markUnhealthy(error.message);
       },
-      Math.max(1, this.config.attemptHeartbeatIntervalMs),
-    );
-
-    return async (): Promise<void> => {
-      if (stopped) return;
-      stopped = true;
-      clearInterval(timer);
-      await inFlight;
-    };
+      onError: (error) => {
+        const heartbeatError = toError(error);
+        controller.abort(heartbeatError);
+        this.markUnhealthy(
+          `Attempt lease heartbeat failed: ${heartbeatError.message}`,
+        );
+      },
+    });
   }
 
   private markUnhealthy(reason: string): void {
@@ -610,6 +623,24 @@ export class JobQueueWorker {
     }
   }
 
+  private async raceOutcome<T>(
+    outcome: Promise<OperationOutcome<T>>,
+    timeoutMs: number,
+  ): Promise<OperationOutcome<T> | { kind: "timeout" }> {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const timeout = new Promise<{ kind: "timeout" }>((resolve) => {
+      timer = setTimeout(
+        () => resolve({ kind: "timeout" }),
+        Math.max(1, timeoutMs),
+      );
+    });
+    try {
+      return await Promise.race([outcome, timeout]);
+    } finally {
+      if (timer) clearTimeout(timer);
+    }
+  }
+
   private async executeWithDeadline<T>(
     jobType: string,
     timeoutMs: number,
@@ -626,16 +657,8 @@ export class JobQueueWorker {
         }),
       );
 
-    let deadlineTimer: ReturnType<typeof setTimeout> | undefined;
-    const deadline = new Promise<{ kind: "deadline" }>((resolve) => {
-      deadlineTimer = setTimeout(
-        () => resolve({ kind: "deadline" }),
-        Math.max(1, timeoutMs),
-      );
-    });
-    const first = await Promise.race([outcome, deadline]);
-    if (first.kind !== "deadline") {
-      if (deadlineTimer) clearTimeout(deadlineTimer);
+    const first = await this.raceOutcome(outcome, timeoutMs);
+    if (first.kind !== "timeout") {
       if (first.kind === "failure") throw first.error;
       return first.value;
     }
@@ -643,16 +666,11 @@ export class JobQueueWorker {
     const deadlineError = new JobDeadlineExceededError(jobType, timeoutMs);
     controller.abort(deadlineError);
 
-    let graceTimer: ReturnType<typeof setTimeout> | undefined;
-    const graceExpired = new Promise<{ kind: "grace-expired" }>((resolve) => {
-      graceTimer = setTimeout(
-        () => resolve({ kind: "grace-expired" }),
-        Math.max(1, this.config.cancellationGraceMs),
-      );
-    });
-    const afterCancellation = await Promise.race([outcome, graceExpired]);
-    if (afterCancellation.kind !== "grace-expired") {
-      if (graceTimer) clearTimeout(graceTimer);
+    const afterCancellation = await this.raceOutcome(
+      outcome,
+      this.config.cancellationGraceMs,
+    );
+    if (afterCancellation.kind !== "timeout") {
       throw deadlineError;
     }
 
@@ -799,35 +817,13 @@ export class JobQueueWorker {
       const processError = toError(error);
       await stopHeartbeat();
 
-      try {
-        const rawData = JSON.parse(job.data);
-        const parsedData = handler.validateAndParse(rawData);
-        if (parsedData !== null && handler.onError) {
-          const progressReporter = this.progressMonitor.createProgressReporter(
-            job.id,
-            attemptId,
-          );
-          const errorController = new AbortController();
-          await this.executeWithDeadline(
-            `${job.type}:onError`,
-            this.config.errorCallbackTimeoutMs,
-            errorController,
-            () =>
-              handler.onError?.(
-                processError,
-                parsedData,
-                job.id,
-                progressReporter,
-                errorController.signal,
-              ) ?? Promise.resolve(),
-          );
-        }
-      } catch (callbackError) {
-        this.logger.error("Job handler error callback failed", {
-          jobId: job.id,
-          error: callbackError,
-        });
-      }
+      await this.runHandlerErrorCallback(
+        "onError",
+        handler,
+        job,
+        processError,
+        attemptId,
+      );
 
       const applied = await this.jobQueueService.fail(
         job.id,
@@ -856,41 +852,61 @@ export class JobQueueWorker {
     const status = await this.jobQueueService.getStatus(job.id);
     if (status?.status !== JOB_STATUS.FAILED) return;
 
-    if (handler.onTerminalError) {
-      try {
-        const parsedData = handler.validateAndParse(JSON.parse(job.data));
-        if (parsedData !== null) {
-          const progressReporter = this.progressMonitor.createProgressReporter(
-            job.id,
-            attemptId,
-          );
-          const terminalController = new AbortController();
-          await this.executeWithDeadline(
-            `${job.type}:onTerminalError`,
-            this.config.errorCallbackTimeoutMs,
-            terminalController,
-            () =>
-              handler.onTerminalError?.(
-                error,
-                parsedData,
-                job.id,
-                progressReporter,
-                terminalController.signal,
-              ) ?? Promise.resolve(),
-          );
-        }
-      } catch (callbackError) {
-        this.logger.error("Job handler terminal error callback failed", {
-          jobId: job.id,
-          error: callbackError,
-        });
-      }
-    }
+    await this.runHandlerErrorCallback(
+      "onTerminalError",
+      handler,
+      job,
+      error,
+      attemptId,
+    );
 
     await this.progressMonitor.handleJobStatusChange(
       job.id,
       "failed",
       job.metadata,
     );
+  }
+
+  /** Run a handler's failure callback under the callback deadline, logging errors. */
+  private async runHandlerErrorCallback(
+    kind: "onError" | "onTerminalError",
+    handler: JobHandler,
+    job: JobInfo,
+    error: Error,
+    attemptId: string,
+  ): Promise<void> {
+    const callback = handler[kind];
+    if (!callback) return;
+
+    try {
+      const parsedData = handler.validateAndParse(JSON.parse(job.data));
+      if (parsedData === null) return;
+      const progressReporter = this.progressMonitor.createProgressReporter(
+        job.id,
+        attemptId,
+      );
+      const controller = new AbortController();
+      await this.executeWithDeadline(
+        `${job.type}:${kind}`,
+        this.config.errorCallbackTimeoutMs,
+        controller,
+        () =>
+          callback.call(
+            handler,
+            error,
+            parsedData,
+            job.id,
+            progressReporter,
+            controller.signal,
+          ),
+      );
+    } catch (callbackError) {
+      this.logger.error(
+        kind === "onError"
+          ? "Job handler error callback failed"
+          : "Job handler terminal error callback failed",
+        { jobId: job.id, error: callbackError },
+      );
+    }
   }
 }
