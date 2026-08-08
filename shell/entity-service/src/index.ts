@@ -89,7 +89,6 @@ export type {
 export {
   createEmbeddingDatabase,
   migrateEmbeddingDatabase,
-  ensureEmbeddingIndexes,
   attachEmbeddingDatabase,
   dbUrlToPath,
 } from "./db/embedding-db";

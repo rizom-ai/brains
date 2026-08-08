@@ -6,7 +6,6 @@ import { existsSync } from "node:fs";
 import { createClient } from "@libsql/client";
 import {
   createEmbeddingDatabase,
-  ensureEmbeddingIndexes,
   attachEmbeddingDatabase,
 } from "../src/db/embedding-db";
 import type { EntityDbConfig } from "../src/types";
@@ -77,34 +76,6 @@ describe("Embedding Database", () => {
         "SELECT name FROM sqlite_master WHERE type='table' AND name='entities'",
       );
       expect(tables.rows).toHaveLength(0);
-      client.close();
-    });
-  });
-
-  describe("ensureEmbeddingIndexes", () => {
-    test("creates vector index on embeddings table", async () => {
-      const config: EntityDbConfig = {
-        url: `file:${join(tempDir, "embeddings.db")}`,
-      };
-      const { client } = createEmbeddingDatabase(config);
-
-      await client.execute(`
-        CREATE TABLE IF NOT EXISTS embeddings (
-          entity_id TEXT NOT NULL,
-          entity_type TEXT NOT NULL,
-          embedding F32_BLOB(1536) NOT NULL,
-          content_hash TEXT NOT NULL,
-          PRIMARY KEY(entity_id, entity_type)
-        )
-      `);
-
-      await ensureEmbeddingIndexes(client);
-
-      // Verify index exists
-      const indexes = await client.execute(
-        "SELECT name FROM sqlite_master WHERE type='index' AND name='embeddings_embedding_idx'",
-      );
-      expect(indexes.rows).toHaveLength(1);
       client.close();
     });
   });

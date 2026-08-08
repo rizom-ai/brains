@@ -1,10 +1,7 @@
 import { join } from "node:path";
 import type { EntityDbConfig } from "../../src/types";
 import { migrateEntities } from "../../src/migrate";
-import {
-  migrateEmbeddingDatabase,
-  ensureEmbeddingIndexes,
-} from "../../src/db/embedding-db";
+import { migrateEmbeddingDatabase } from "../../src/db/embedding-db";
 import { createClient } from "@libsql/client";
 import { createSilentLogger, createTestDatabase } from "@brains/test-utils";
 import type { TestDatabase } from "@brains/test-utils";
@@ -42,7 +39,6 @@ export async function createTestEntityDatabase(): Promise<TestEntityDatabase> {
     createClient({ url: embeddingConfig.url }),
   );
   await migrateEmbeddingDatabase(embeddingClient, MOCK_DIMENSIONS);
-  await ensureEmbeddingIndexes(embeddingClient);
 
   return {
     ...database,
