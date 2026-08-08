@@ -13,6 +13,7 @@ import {
   type ProjectionRule,
   type RegisteredProjection,
 } from "@brains/plugins";
+import { SerialQueue } from "@brains/utils/serial-queue";
 
 export interface ProjectionWaveStore {
   getActiveWave(): Promise<ProjectionWave | null>;
@@ -64,7 +65,7 @@ export class ProjectionWaveScheduler {
     summary: ProjectionWaveReady,
   ) => Promise<void>;
   private readonly now: () => number;
-  private operationTail: Promise<void> = Promise.resolve();
+  private readonly operationQueue = new SerialQueue();
 
   constructor(options: ProjectionWaveSchedulerOptions) {
     this.store = options.store;
@@ -142,17 +143,7 @@ export class ProjectionWaveScheduler {
   private async runExclusive<TResult>(
     operation: () => Promise<TResult>,
   ): Promise<TResult> {
-    const previous = this.operationTail;
-    let release = (): void => {};
-    this.operationTail = new Promise<void>((resolve) => {
-      release = resolve;
-    });
-    await previous;
-    try {
-      return await operation();
-    } finally {
-      release();
-    }
+    return this.operationQueue.run(operation);
   }
 
   private async advanceWave(wave: ProjectionWave): Promise<ProjectionWave> {

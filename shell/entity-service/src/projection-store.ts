@@ -1,5 +1,6 @@
 import { and, asc, desc, eq, lte, ne, sql } from "drizzle-orm";
 import { computeContentHash } from "@brains/utils/hash";
+import { SerialQueue } from "@brains/utils/serial-queue";
 import { z } from "@brains/utils/zod";
 import type { EntityDB } from "./db";
 import type { EntityMutationAdmission } from "./mutation-admission";
@@ -135,7 +136,7 @@ function parseWaveRule(rule: ProjectionWaveRule): ProjectionWaveRule {
 export class ProjectionStore {
   private readonly db: EntityDB;
   private readonly mutationAdmission: EntityMutationAdmission | undefined;
-  private transactionTail: Promise<void> = Promise.resolve();
+  private readonly transactionTail = new SerialQueue();
 
   constructor(db: EntityDB, mutationAdmission?: EntityMutationAdmission) {
     this.db = db;
@@ -604,17 +605,7 @@ export class ProjectionStore {
   private async runTransaction<TResult>(
     transaction: (database: EntityTransaction) => Promise<TResult>,
   ): Promise<TResult> {
-    const previous = this.transactionTail;
-    let release = (): void => {};
-    this.transactionTail = new Promise<void>((resolve) => {
-      release = resolve;
-    });
-    await previous;
-    try {
-      return await this.db.transaction(transaction);
-    } finally {
-      release();
-    }
+    return this.transactionTail.run(() => this.db.transaction(transaction));
   }
 
   private async applyWriteIntent(
