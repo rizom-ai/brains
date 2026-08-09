@@ -14,7 +14,8 @@
   "license": "AGPL-3.0-only",
   "author": "Yeehaa <yeehaa@rizom.ai> (https://rizom.ai)",
   "bin": {
-    "brain": "./dist/brain.js"
+    "brain": "./dist/brain.js",
+    "brain-rollback-entities-to-libsql": "./dist/rollback-entities-to-libsql.js"
   },
   "bugs": "https://github.com/rizom-ai/brains/issues",
   "dependencies": {
@@ -149,6 +150,7 @@
     "@bitwarden/sdk-napi": "^1.0.0",
     "@libsql/client": "^0.17.4",
     "@tailwindcss/oxide": "^4.1.4",
+    "@tursodatabase/database": "^0.7.2",
     "lightningcss": "^1.29.2",
     "playwright-core": "^1.61.0",
     "react-devtools-core": "^7.0.1",

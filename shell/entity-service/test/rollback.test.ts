@@ -3,12 +3,20 @@ import { createSqliteDatabase } from "@brains/db";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { createSilentLogger } from "@brains/test-utils";
+import { migrateEntities } from "../src/migrate";
 import { prepareEntityDatabaseForLibsql } from "../src/rollback";
 
 describe("prepareEntityDatabaseForLibsql", () => {
   const directories: string[] = [];
+  const previousEngine = process.env["BRAINS_DB_ENGINE"];
 
   afterEach(async () => {
+    if (previousEngine === undefined) {
+      delete process.env["BRAINS_DB_ENGINE"];
+    } else {
+      process.env["BRAINS_DB_ENGINE"] = previousEngine;
+    }
     await Promise.all(
       directories
         .splice(0)
@@ -21,32 +29,39 @@ describe("prepareEntityDatabaseForLibsql", () => {
     directories.push(directory);
     const config = { url: `file:${join(directory, "entities.db")}` };
 
-    const turso = createSqliteDatabase({
+    const logger = createSilentLogger();
+
+    process.env["BRAINS_DB_ENGINE"] = "libsql";
+    await migrateEntities(config, logger);
+    const libsqlSeed = createSqliteDatabase({
       url: config.url,
       schema: {},
-      engine: "turso",
+      engine: "libsql",
     });
     try {
-      await turso.client.execute(`
-        CREATE TABLE entities (
-          id TEXT NOT NULL,
-          entityType TEXT NOT NULL,
-          content TEXT NOT NULL,
-          PRIMARY KEY (id, entityType)
-        )
-      `);
-      await turso.client.execute(
-        "CREATE INDEX entities_content_fts ON entities USING fts (content)",
-      );
-      await turso.client.execute(`
-        INSERT INTO entities (id, entityType, content)
-        VALUES ('typescript', 'note', 'TypeScript is a typed superset of JavaScript')
-      `);
-      await turso.client.execute("PRAGMA wal_checkpoint(TRUNCATE)");
+      await libsqlSeed.client.execute({
+        sql: `INSERT INTO entities (
+          id, entityType, content, contentHash, visibility,
+          metadata, created, updated
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        args: [
+          "typescript",
+          "note",
+          "TypeScript is a typed superset of JavaScript",
+          "typescript-hash",
+          "public",
+          "{}",
+          1,
+          1,
+        ],
+      });
+      await libsqlSeed.client.execute("PRAGMA wal_checkpoint(TRUNCATE)");
     } finally {
-      turso.client.close();
+      libsqlSeed.client.close();
     }
 
+    process.env["BRAINS_DB_ENGINE"] = "turso";
+    await migrateEntities(config, logger);
     await prepareEntityDatabaseForLibsql(config);
 
     const libsql = createSqliteDatabase({
@@ -67,6 +82,11 @@ describe("prepareEntityDatabaseForLibsql", () => {
         "SELECT name FROM sqlite_master WHERE name LIKE '__turso_internal_fts_%' OR name = 'entities_content_fts'",
       );
       expect(nativeSchema.rows).toEqual([]);
+
+      const migratedSchema = await libsql.client.execute(
+        "SELECT name FROM sqlite_master WHERE name = 'projection_waves'",
+      );
+      expect(migratedSchema.rows).toHaveLength(1);
     } finally {
       libsql.client.close();
     }

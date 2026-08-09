@@ -345,16 +345,12 @@ async function emitLibraryDeclarations(): Promise<void> {
   }
 }
 
-const cliBuild = bundle({
-  name: "brain",
-  source: join(import.meta.dir, "entrypoint.ts"),
-  sourcemap: "none",
-}).then(() => {
-  // Prepend shebang so the bundle is directly executable.
-  const outFile = join(outdir, "brain.js");
+async function bundleExecutable(name: string, source: string): Promise<void> {
+  await bundle({ name, source, sourcemap: "none" });
+  const outFile = join(outdir, `${name}.js`);
   const stripped = readFileSync(outFile, "utf8").replace(/^#!.*\n/gm, "");
   writeFileSync(outFile, `#!/usr/bin/env bun\n${stripped}`);
-});
+}
 
 // Removed alpha authoring subpaths must not survive from an earlier build in
 // the package-wide dist directory.
@@ -367,10 +363,23 @@ for (const legacySiteArtifact of [
   rmSync(join(outdir, legacySiteArtifact), { force: true });
 }
 
+const cliBuild = bundleExecutable(
+  "brain",
+  join(import.meta.dir, "entrypoint.ts"),
+);
+const rollbackBuild = bundleExecutable(
+  "rollback-entities-to-libsql",
+  join(import.meta.dir, "rollback-entities-to-libsql.ts"),
+);
 const libraryBuild = bundleLibraries();
 
 // Declarations only need source files; run them concurrently with bundling.
-await Promise.all([cliBuild, libraryBuild, emitLibraryDeclarations()]);
+await Promise.all([
+  cliBuild,
+  rollbackBuild,
+  libraryBuild,
+  emitLibraryDeclarations(),
+]);
 
 // ─── Copy package-owned onboarding assets ────────────────────────────────
 
@@ -442,6 +451,7 @@ function reportSize(name: string): void {
 }
 
 reportSize("brain");
+reportSize("rollback-entities-to-libsql");
 for (const entry of libraryEntries) {
   reportSize(entry.name);
 }

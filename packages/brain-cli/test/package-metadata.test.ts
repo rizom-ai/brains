@@ -14,8 +14,16 @@ function readPackageFile(relativePath: string): string {
 }
 
 describe("@rizom/brain package metadata", () => {
-  it("declares media renderer runtime dependencies", () => {
+  it("publishes the explicit entity database rollback command", () => {
+    expect(packageJson.bin).toMatchObject({
+      "brain-rollback-entities-to-libsql":
+        "./dist/rollback-entities-to-libsql.js",
+    });
+  });
+
+  it("declares native runtime dependencies", () => {
     expect(packageJson.optionalDependencies).toMatchObject({
+      "@tursodatabase/database": expect.any(String),
       "playwright-core": expect.any(String),
       sharp: expect.any(String),
     });

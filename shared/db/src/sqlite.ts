@@ -43,8 +43,8 @@ export function resolveAuthToken(options: {
   return process.env[options.authTokenEnv];
 }
 
-/** Resolve the selected engine. Turso's embedded adapter only supports files. */
-function resolveSqliteEngine(
+/** Resolve the selected engine. Turso is the local default; remote urls stay libSQL. */
+export function resolveSqliteEngine(
   url: string,
   requestedEngine?: SqliteEngine,
 ): SqliteEngine {
@@ -52,9 +52,8 @@ function resolveSqliteEngine(
     throw new Error("The Turso embedded engine only supports file: urls");
   }
   if (requestedEngine !== undefined) return requestedEngine;
-  return process.env["BRAINS_DB_ENGINE"] === "turso" && url.startsWith("file:")
-    ? "turso"
-    : "libsql";
+  if (!url.startsWith("file:")) return "libsql";
+  return process.env["BRAINS_DB_ENGINE"] === "libsql" ? "libsql" : "turso";
 }
 
 /**

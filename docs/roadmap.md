@@ -216,6 +216,7 @@ Cleanup:
 - [operational-alert-delivery.md](./plans/operational-alert-delivery.md) — successor to `background-work-silent-stall.md`: deliver sustained operational degradation to the operator over a web-process path that survives a dead worker, with deduplicated episodes that resolve, then land client-side error capture on the same spine.
 - [test-suite-hardening.md](./plans/test-suite-hardening.md) — make the green suite's guarantees hard to lose: stop tests that silently never run, turn mock drift into a compile error, unify test-database setup, put the eval CLI under test, and replace sleep-based waits with condition waits.
 - [packed-compatibility-test-tiering.md](./plans/packed-compatibility-test-tiering.md) — keep focused tests and one packed canary in normal PR feedback, move the full external-authoring matrix to nightly/release evidence, reuse one packed artifact per run, and freeze the `0.2.0` fixtures for later patch-candidate compatibility.
+- [turso-database-engine.md](./plans/turso-database-engine.md) — **in progress**: local files now default to Turso Database with native FTS, packed native bindings, dual-engine service parity, production-shaped cutover coverage, and an explicit libSQL rollback command. The remaining work is the sync-model fork and, after production soak, the MVCC/layout decision.
 
 Research probes (parked):
 
