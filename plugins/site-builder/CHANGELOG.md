@@ -1,5 +1,18 @@
 # @brains/site-builder-plugin
 
+## 0.2.0-alpha.274
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.274
+  - @brains/image@0.2.0-alpha.274
+  - @brains/site-composition@0.2.0-alpha.274
+  - @brains/site-engine@0.2.0-alpha.274
+  - @brains/ui-library@0.2.0-alpha.274
+  - @brains/utils@0.2.0-alpha.274
+  - @brains/plugins@0.2.0-alpha.274
+
 ## 0.2.0-alpha.273
 
 ### Patch Changes

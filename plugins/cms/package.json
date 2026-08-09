@@ -1,7 +1,7 @@
 {
   "name": "@brains/cms",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.273",
+  "version": "0.2.0-alpha.274",
   "description": "CMS plugin for config and browser authoring routes",
   "dependencies": {
     "@brains/auth-service": "workspace:*",
