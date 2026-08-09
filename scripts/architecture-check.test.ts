@@ -31,7 +31,7 @@ describe("architecture source inventory", () => {
     const opsDeployCopy =
       "packages/brains-ops/templates/rover-pilot/deploy/scripts/provision-server.ts";
     const consumerFixture =
-      "packages/brain-cli/test/fixtures/external-plugin/src/index.ts";
+      "packages/brain-cli/test/fixtures/public-authoring/entity/src/index.ts";
     const canonical =
       "shared/deploy-support/src/deploy-scripts/provision-server.ts";
     const inventory = selectArchitectureSources(repositoryRoot, [
