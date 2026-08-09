@@ -11,6 +11,8 @@ import { createTestConversationDatabase } from "./helpers/test-conversation-db";
 import type { Client } from "@libsql/client";
 import { MessageBus } from "@brains/messaging-service";
 import { coerceConversationMetadata } from "../src/metadata";
+import type { SqliteEngine } from "@brains/db";
+import { access } from "node:fs/promises";
 
 describe("ConversationService", () => {
   let service: ConversationService;
@@ -21,6 +23,7 @@ describe("ConversationService", () => {
   let messageBus: MessageBus;
   let cleanup: () => Promise<void>;
   let dbPath: string;
+  let dbEngine: SqliteEngine;
 
   // Default test metadata
   const testMetadata: ConversationMetadata = {
@@ -36,6 +39,7 @@ describe("ConversationService", () => {
     client = testDb.client;
     cleanup = testDb.cleanup;
     dbPath = testDb.dbPath;
+    dbEngine = testDb.engine;
 
     // Create silent logger for tests
     logger = createSilentLogger();
@@ -70,7 +74,7 @@ describe("ConversationService", () => {
   });
 
   describe("database readiness", () => {
-    it("applies the busy timeout so concurrent writers wait instead of failing", async () => {
+    it("applies engine-appropriate local write readiness", async () => {
       const owned = ConversationService.createFreshFromConfig(
         logger,
         messageBus,
@@ -81,8 +85,72 @@ describe("ConversationService", () => {
         await owned.initialize();
 
         const ownedClient = owned.getDatabaseClient();
-        const busyTimeout = await ownedClient.execute("PRAGMA busy_timeout");
-        expect(busyTimeout.rows[0]?.["timeout"]).toBe(5000);
+        if (dbEngine === "libsql") {
+          const busyTimeout = await ownedClient.execute("PRAGMA busy_timeout");
+          expect(busyTimeout.rows[0]?.["timeout"]).toBe(5000);
+          return;
+        }
+
+        await ownedClient.execute("PRAGMA busy_timeout = 5000");
+
+        const insertSql = `INSERT INTO conversations (
+          id, session_id, interface_type, channel_id,
+          started, last_active, created, updated
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
+        const markerPath = `${dbPath}.writer-ready`;
+        const lockHolder = Bun.spawn({
+          cmd: [
+            process.execPath,
+            new URL(
+              "./helpers/hold-conversation-write-lock.ts",
+              import.meta.url,
+            ).pathname,
+          ],
+          env: {
+            ...process.env,
+            LOCK_TEST_DATABASE_URL: `file:${dbPath}`,
+            LOCK_TEST_MARKER_PATH: markerPath,
+          },
+          stdout: "ignore",
+          stderr: "pipe",
+        });
+
+        try {
+          let writerReady = false;
+          for (let attempt = 0; attempt < 100; attempt++) {
+            try {
+              await access(markerPath);
+              writerReady = true;
+              break;
+            } catch {
+              await Bun.sleep(5);
+            }
+          }
+          expect(writerReady).toBe(true);
+
+          const now = new Date().toISOString();
+          const result = await ownedClient.execute({
+            sql: insertSql,
+            args: [
+              "lock-waiter",
+              "lock-waiter",
+              "test",
+              "lock-waiter",
+              now,
+              now,
+              now,
+              now,
+            ],
+          });
+          expect(result.rowsAffected).toBe(1);
+
+          const exitCode = await lockHolder.exited;
+          const stderr = await new Response(lockHolder.stderr).text();
+          if (exitCode !== 0) throw new Error(stderr);
+        } finally {
+          if (lockHolder.exitCode === null) lockHolder.kill();
+          await lockHolder.exited;
+        }
       } finally {
         owned.close();
       }
