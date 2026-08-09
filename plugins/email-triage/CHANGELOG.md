@@ -1,5 +1,15 @@
 # @brains/email-triage
 
+## 0.2.0-alpha.267
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.267
+  - @brains/contracts@0.2.0-alpha.267
+  - @brains/ui-library@0.2.0-alpha.267
+  - @brains/utils@0.2.0-alpha.267
+
 ## 0.2.0-alpha.266
 
 ### Patch Changes

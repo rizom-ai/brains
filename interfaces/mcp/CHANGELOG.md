@@ -1,5 +1,18 @@
 # @brains/mcp
 
+## 0.2.0-alpha.267
+
+### Patch Changes
+
+- [`1f94bde`](https://github.com/rizom-ai/brains/commit/1f94bdee59ea9e5a3b352657b1c74c36ca2af3ea) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Bump @modelcontextprotocol/sdk to 1.30.0, the v1 maintenance release with SSE keep-alive lifecycle fixes, stricter Content-Type validation, and security-advisory dependency updates.
+
+- Updated dependencies [[`1f94bde`](https://github.com/rizom-ai/brains/commit/1f94bdee59ea9e5a3b352657b1c74c36ca2af3ea)]:
+  - @brains/mcp-service@0.2.0-alpha.267
+  - @brains/plugins@0.2.0-alpha.267
+  - @brains/auth-service@0.2.0-alpha.267
+  - @brains/contracts@0.2.0-alpha.267
+  - @brains/utils@0.2.0-alpha.267
+
 ## 0.2.0-alpha.266
 
 ### Patch Changes

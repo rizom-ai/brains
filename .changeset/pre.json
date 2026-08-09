@@ -253,6 +253,7 @@
     "core--import-burst-git-child",
     "core--inbound-email-daemon",
     "core--json-native-section-content",
+    "core--mcp-sdk-1-30",
     "core--media-provider-factories",
     "core--operational-health-semantics",
     "core--ops-explicit-theme-version",

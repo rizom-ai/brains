@@ -1,5 +1,14 @@
 # @brains/chat
 
+## 0.2.0-alpha.267
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.267
+  - @brains/auth-service@0.2.0-alpha.267
+  - @brains/utils@0.2.0-alpha.267
+
 ## 0.2.0-alpha.266
 
 ### Patch Changes
