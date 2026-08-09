@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.269
+
+### Patch Changes
+
+- [#90](https://github.com/rizom-ai/brains/pull/90) [`bbc7f08`](https://github.com/rizom-ai/brains/commit/bbc7f0834c241fde76d996224d7ef4392f94ab77) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Skip deserialization and schema validation when imported file content already matches the stored canonical hash, while still importing document sidecar metadata changes and reusing the prefetched entity lookup.
+
 ## 0.2.0-alpha.268
 
 ### Patch Changes
