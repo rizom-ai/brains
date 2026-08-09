@@ -9,7 +9,15 @@
 3. custom sites; and
 4. custom interfaces, including message interfaces.
 
-The remaining nomination gates, in this order: (1) the provider-backed live evidence tier — the opt-in `RIZOM_PUBLIC_API_LIVE_EVIDENCE` flag exists, but the live matrix itself is not yet written; (2) stable `@rizom/site` publication through a changesets prerelease exit in the site lane — sequenced after live evidence so authoring-contract corrections stay alpha-cheap until the last behavioral gate passes, and flowing only through the site release train, never an out-of-band publish step; (3) a registry-matrix re-run against the stable site version, completing acceptance criterion 4; and (4) the criterion-17 sweep — repo-wide format, typecheck, tests, forced lint, package-boundary checks, packed smokes, and the targeted personal/team evals. Acceptance criteria 12 (actionable load/config/conflict errors) and 15 (documented examples compile from checked fixture source in CI) are asserted but not yet systematically audited; verify both during the criterion-17 sweep. Five standalone extension packages—entity, service, site, generic interface, and message interface—serve as golden paths and primary documentation. A sixth standalone brain-definition package is a compatibility canary for the root API. This plan is narrower than general plugin-system cleanup: it freezes only the contracts required by those paths.
+The remaining nomination gates, in order, are:
+
+1. **Refresh the final alpha candidate.** Merge current `main`, nominate the newest published Brain alpha containing the intended stable source, advance every golden peer lower bound to it, and rerun the exact alpha registry matrix. The existing `alpha.272`/`alpha.233` result remains historical evidence, not proof for a newer final candidate.
+2. **Implement and run provider-backed live evidence.** The opt-in `RIZOM_PUBLIC_API_LIVE_EVIDENCE` flag exists, but the bounded live matrix itself is not yet written. It must prove embeddings, semantic ranking, agent chat and confirmation, inbound messaging, lazy attachments, and model-triggered durable progress against the same final alpha.
+3. **Complete every correctable pre-release check.** Audit acceptance criteria 12 and 15, then run the full criterion-17 sweep: format, typecheck, tests, forced lint, architecture/package boundaries, all packed smokes, and zero-failure personal/team eval suites. Failures are corrected on the alpha line before any stable package is published.
+4. **Obtain explicit release authorization.** A green plan, CI run, or evidence matrix does not authorize `changeset pre exit`, stable npm publication, workflow dispatch, or dist-tag mutation. Each stable release action requires a separate explicit yes/no approval.
+5. **Run one coordinated stable release.** Prepare the reviewed global Changesets prerelease exit, but do not use the current core-first publish order. Core Release may own the one global version commit; it must then pause core publication while Site Release publishes stable `@rizom/site` through the site lane. Rerun the exact registry matrix against the stable site SDK and final Brain alpha, then publish stable Brain only after that matrix passes.
+
+The current workflows do not yet satisfy gate 5: Core Release publishes Brain before it dispatches Site Release. That orchestration must be corrected and tested before prerelease exit; an out-of-band site publish is not an acceptable substitute. Five standalone extension packages—entity, service, site, generic interface, and message interface—serve as golden paths and primary documentation. A sixth standalone brain-definition package is a compatibility canary for the root API. This plan is narrower than general plugin-system cleanup: it freezes only the contracts required by those paths.
 
 ## Goal
 
@@ -31,12 +39,13 @@ For the `0.2.x` line:
 
 The current API is **alpha-usable, not stable-complete**.
 
-| Use case              | Existing foundation                                                                                  | Remaining release blocker                                                                                                                                        |
-| --------------------- | ---------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Custom entity type    | Entity schemas/adapters, projection scheduler, controlled entity access                              | Authors repeat base fields, interfaces, adapters, string type names, package metadata, and class generics; no packed behavioral proof                            |
-| Custom service plugin | Lifecycle, tools/resources, templates/views, entity access, messaging, and the durable queue         | No declarative service definition, parsed config exposure, inferred package metadata, schema-first job definition, typed enqueue, or canonical object-style tool |
-| Custom site           | `@rizom/site`, schema-first sections, published loader, standalone canary, exact pins                | Authoring is fragmented across three entry points, the public shape is duplicated, the legacy embedded plugin leaks into the contract, and no full build proof   |
-| Custom interface      | Routes, agent calls, daemon registry, canonical permissions, channel descriptors, delivery providers | Authors assemble auth/trust context, low-level daemon lifecycle, message progress plumbing, channel registration, and positional delivery APIs manually          |
+| Golden use case          | Proven alpha evidence                                                                                                                     | Remaining nomination gate                                                                     |
+| ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| Custom entity type       | Declarative schema/codec package; visibility-safe CRUD/FTS, projection convergence, restart durability, and packed worker execution       | Live embedding completion and semantic ranking against the final alpha                        |
+| Custom service plugin    | Declarative config/setup/tools/jobs; typed durable enqueue/result/progress, confirmation replay, restart recovery, and worker isolation   | Model-triggered confirmation/progress evidence plus the final criteria 12/15 and sweep audits |
+| Custom site              | One-import `@rizom/site`; canonical validation, isolated typecheck, running-app preview rebuild, full structural output, and alpha matrix | Authorized stable SDK publication and post-publication exact registry matrix                  |
+| Custom generic interface | Typed routes/protocol caller resolution, job enqueue, daemon health/shutdown, authentication rejection, and worker exclusion              | Final-alpha refresh and full criterion-17 sweep                                               |
+| Custom message interface | Descriptor/delivery ownership, normalized send/edit, listener lifecycle, lazy attachment contract, typed failure, and worker exclusion    | Live inbound chat, confirmation, attachment download, and model-backed progress               |
 
 ## Author-experience standard
 
@@ -361,10 +370,13 @@ Exit gate:
 1. Rewrite plugin-system, quick-reference, external-plugin, external-site, and stability docs directly from the checked golden sources.
 2. Publish the exact stable symbol/capability ledger and strip or mark internal every unsupported alpha export.
 3. Remove `PLUGIN_API_VERSION`; document stable peer ranges and make the harness verify them explicitly.
-4. Freeze copies of all `0.2.0` fixtures and add compatibility checks against each later `0.2.x` candidate.
+4. At nomination, freeze the exact final golden packages as the `0.2.0` compatibility baseline; after stable, compile and run those frozen fixtures against every later `0.2.x` candidate.
 5. Verify package tarball contents, export maps, declarations, the canonical site version, absence of removed authoring subpaths, and license metadata.
-6. Run all six packed packages against the nominated published Brain alpha and compatible published site SDK versions.
-7. Run the provider-backed live matrix against that same alpha, then add migration notes for every corrected alpha signature.
+6. Merge current `main`, nominate its newest published Brain alpha, advance all golden peer lower bounds together, and run all six packed packages against that exact alpha and the compatible published site SDK.
+7. Implement and run the bounded provider-backed live matrix against that same alpha, then add migration notes for every corrected alpha signature.
+8. Add focused automated audits for actionable package-load/config/conflict errors and every documented TypeScript example, then run the complete final nomination evidence protocol below.
+9. Request explicit approval before changing prerelease state or performing any stable registry action.
+10. Correct and test the coordinated release order: one global stable version commit, stable site-lane publication, stable-site registry matrix, then stable core publication.
 
 Exit gate:
 
@@ -454,6 +466,61 @@ Exit gate:
 - stable behavior does not change merely because declarations remain assignable;
 - every unannotated authoring export remains present and compatible;
 - explicit peer checks reject incompatible resolved versions.
+
+## Final nomination evidence protocol
+
+Run this protocol from a clean commit containing current `main`. Record the git SHA, exact Brain/site versions, npm packument versions and dist-tags, Bun/Node versions, provider model IDs, command results, durations, and linked CI artifacts in `docs/public-release/evidence/AUTHORING_0.2.md`. Do not commit provider secrets, raw credentials, or private conversation content.
+
+### Hermetic and repository checks
+
+All commands must exit zero:
+
+```bash
+bun run format:check
+bun run typecheck
+bun run lint
+bun run arch:check
+bun run changeset:check
+bun run docs:check
+bun run test
+
+bun test \
+  packages/brain-cli/test/public-authoring-golden.test.ts \
+  packages/brain-cli/test/public-authoring-phase1-packed.test.ts \
+  packages/brain-cli/test/public-authoring-phase2-packed.test.ts \
+  packages/brain-cli/test/public-authoring-phase3-packed.test.ts \
+  packages/brain-cli/test/public-authoring-phase4-packed.test.ts \
+  packages/brain-cli/test/public-authoring-phase5-packed.test.ts
+
+RIZOM_PUBLIC_API_REGISTRY_EVIDENCE=1 \
+RIZOM_PUBLIC_API_BRAIN_VERSION=<final-alpha> \
+RIZOM_PUBLIC_API_SITE_VERSION=<published-compatible-site> \
+bun test packages/brain-cli/test/public-authoring-registry-packed.test.ts
+```
+
+Before the sweep, criterion 12 must have focused tests for missing/invalid package loading, config validation, and capability conflicts that assert the package/plugin, field or capability, and corrective action. Criterion 15 must have an automated inventory proving every documented TypeScript example comes from, or compiles with, checked fixture source.
+
+### Provider-backed and eval checks
+
+Add `packages/brain-cli/test/public-authoring-live-packed.test.ts`, guarded only by `RIZOM_PUBLIC_API_LIVE_EVIDENCE=1`, and run it against the same exact final alpha:
+
+```bash
+RIZOM_PUBLIC_API_LIVE_EVIDENCE=1 \
+RIZOM_PUBLIC_API_BRAIN_VERSION=<final-alpha> \
+RIZOM_PUBLIC_API_SITE_VERSION=<published-compatible-site> \
+AI_API_KEY=<provider-secret> \
+bun test packages/brain-cli/test/public-authoring-live-packed.test.ts
+
+cd packages/brain-cli
+AI_API_KEY=<provider-secret> OPENAI_API_KEY=<provider-secret> \
+bun run eval:personal --parallel --max-parallel 3
+AI_API_KEY=<provider-secret> OPENAI_API_KEY=<provider-secret> \
+bun run eval:team --parallel --max-parallel 3
+```
+
+The checked `brain.eval.yaml` model (`gpt-5.6-luna`) and judge (`gpt-5.4-mini`) are the nomination eval configuration; changing either requires review and a new recorded run. Both suites must report zero failed tests. The live matrix has a 15-minute overall deadline, at most 60 seconds per provider call, and at most two retries limited to provider `429`/`5xx` failures. Validation, schema, authorization, assertion, or lifecycle failures are never retried. Its evidence must prove embedding completion, semantic ordering, agent response, confirmation completion, inbound conversation continuity, lazy attachment fetch, durable progress delivery, bounded shutdown, and the absence of leaked secrets in diagnostics.
+
+After authorized stable site publication, rerun the registry command with the exact stable site version and attach that result before stable Brain publication. A transient infrastructure rerun must be identified as such in the evidence file; failed cases may not be removed, waived, or hidden by averaging.
 
 ## Acceptance criteria
 
