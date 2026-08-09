@@ -1,10 +1,12 @@
 import { mock } from "bun:test";
-import type {
-  ServicePluginContext,
-  IEntityService,
-  BaseEntity,
-  MessageSendRequest,
-  ResolvedProfileSelection,
+import {
+  createServicePluginContext,
+  type ServicePluginContext,
+  type IEntityService,
+  type BaseEntity,
+  type ResolvedProfileSelection,
+  type MessageSendRequest,
+  type MessageResponse,
 } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import {
@@ -12,7 +14,9 @@ import {
   type MockEntityServiceReturns,
 } from "./mock-entity-service";
 import { createMockLogger } from "./mock-logger";
-import { createMockAppInfo } from "./mock-app-info";
+import { createMockShell } from "./mock-shell";
+import { genericSpy } from "./generic-spy";
+import { spyOnMembers } from "./spy-on-members";
 
 /**
  * Return value configuration for mock service plugin context methods
@@ -22,8 +26,14 @@ export interface MockServicePluginContextReturns {
   entityService?: MockEntityServiceReturns;
   /** Return value for jobs.enqueue */
   jobsEnqueue?: string;
-  /** Custom messaging.send implementation */
-  messagingSend?: (request: MessageSendRequest) => Promise<unknown>;
+  /** Custom messaging.send implementation.
+   *
+   * Deliberately the concrete shape a test writes rather than the generic
+   * MessageSender the namespace declares: a handler returning a specific data
+   * type can never satisfy `<T, R>` for arbitrary R. The generic signature is
+   * reconstructed once, below, where the context is assembled.
+   */
+  messagingSend?: (request: MessageSendRequest) => Promise<MessageResponse>;
 }
 
 /**
@@ -101,121 +111,48 @@ export function createMockServicePluginContext(
     });
   const logger = options.logger ?? createMockLogger();
 
-  return {
-    // Services
-    entityService,
+  const shell = createMockShell({
     logger,
-
-    // Entity management namespace
-    entities: {
-      register: mock(() => {}),
-      getAdapter: mock(() => undefined),
-      update: mock(() =>
-        Promise.resolve({ entityId: "mock-id", jobId: "mock-job" }),
-      ),
-      registerDataSource: mock(() => {}),
-    },
-
-    // Profile-kind composition namespace
-    profileKinds: {
-      register: mock(() => {}),
-      getResolved: mock(() => options.profileSelection ?? null),
-      getSelectedDefinition: mock(() => undefined),
-    },
-
-    // Identity namespace
-    identity: {
-      get: mock(() => ({ name: "Test Brain", values: [] })),
-      getProfile: mock(() => ({ name: "Test Profile", role: "", purpose: "" })),
-      getAppInfo: mock(() =>
-        Promise.resolve({
-          version: "0.0.0",
-          model: "test-model",
-          plugins: [],
-        }),
-      ),
-    },
-
-    // App metadata
-    appInfo: mock(() => Promise.resolve(createMockAppInfo())),
-
-    // Domain (top-level, like dataDir)
-    domain: undefined,
+    entityService,
+    dataDir,
     spaces,
-    siteUrl: undefined,
-    localSiteUrl: undefined,
-    previewUrl: undefined,
-    preferLocalUrls: false,
+  });
 
-    // Conversations namespace (read-only)
-    conversations: {
-      get: mock(() => Promise.resolve(null)),
-      search: mock(() => Promise.resolve([])),
-      list: mock(() => Promise.resolve([])),
-      getMessages: mock(() => Promise.resolve([])),
-      countMessages: mock(() => Promise.resolve(0)),
+  // Build the real context, then layer only what the options configure. The
+  // factory guarantees every member exists and stays in step with the
+  // interface, so this file cannot drift the way a hand-written literal did.
+  const context = createServicePluginContext(shell, pluginId);
+
+  return {
+    ...context,
+    // Namespaces tests assert against are wrapped so the factory's real
+    // behaviour still runs while calls are recorded.
+    entities: spyOnMembers(context.entities),
+    templates: spyOnMembers(context.templates),
+    views: spyOnMembers(context.views),
+    conversations: spyOnMembers(context.conversations),
+    prompts: spyOnMembers(context.prompts),
+    endpoints: spyOnMembers(context.endpoints),
+    interactions: spyOnMembers(context.interactions),
+    profileKinds: {
+      ...spyOnMembers(context.profileKinds),
+      getResolved: mock(() => options.profileSelection ?? null),
     },
-
-    // Job queue namespace
     jobs: {
+      ...spyOnMembers(context.jobs),
       enqueue: mock(() =>
         Promise.resolve(returns.jobsEnqueue ?? "mock-job-id"),
       ),
-      enqueueBatch: mock(() => Promise.resolve("mock-batch-id")),
-      registerHandler: mock(() => {}),
-      getStatus: mock(() => Promise.resolve(null)),
-      getActiveJobs: mock(() => Promise.resolve([])),
-      getActiveBatches: mock(() => Promise.resolve([])),
-      getBatchStatus: mock(() => Promise.resolve(null)),
     },
-
-    // Template operations namespace
-    templates: {
-      register: mock((_templates?: unknown, _namespace?: string) => {}),
-      format: mock(() => ""),
-      parse: mock(() => ({})),
-      resolve: mock(() => Promise.resolve(null)),
-      getCapabilities: mock(() => null),
-    },
-
-    // Views namespace
-    views: {
-      get: mock(() => undefined),
-      list: mock(() => []),
-      hasRenderer: mock(() => false),
-      getRenderer: mock(() => undefined),
-      validate: mock(() => true),
-    },
-
-    // Prompt resolution
-    prompts: {
-      resolve: mock((_target: string, fallback: string) =>
-        Promise.resolve(fallback),
-      ),
-    },
-
-    // Eval namespace
-    eval: {
-      registerHandler: mock(() => {}),
-    },
-
-    // Messaging namespace
     messaging: {
-      send: mock(
-        returns.messagingSend ?? ((): Promise<void> => Promise.resolve()),
-      ),
-      subscribe: mock(() => () => {}),
+      ...spyOnMembers(context.messaging),
+      ...(returns.messagingSend
+        ? {
+            send: genericSpy<ServicePluginContext["messaging"]["send"]>(
+              mock(returns.messagingSend),
+            ),
+          }
+        : {}),
     },
-
-    endpoints: {
-      register: mock(() => {}),
-    },
-    interactions: {
-      register: mock(() => {}),
-    },
-
-    // Properties
-    pluginId,
-    dataDir,
-  } as unknown as ServicePluginContext;
+  };
 }

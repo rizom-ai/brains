@@ -122,6 +122,8 @@ export interface MockShellOptions {
   profileKind?: string;
   /** Active resolved theme CSS */
   themeCSS?: string;
+  /** Replace the stateful in-memory entity fake with canned reads. */
+  entityService?: IEntityService;
 }
 
 function createDefaultMockAgentService(): IAgentService {
@@ -366,7 +368,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
   const messageBus = messageBusSurface as MessageBus;
 
   // --- Entity Service (stateful) ---
-  const entityService: IEntityService = {
+  const defaultEntityService: IEntityService = {
     createEntity: async <T extends BaseEntity>(
       request: CreateEntityRequest<T>,
     ): Promise<EntityMutationResult> => {
@@ -420,7 +422,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
           parsed.content ?? request.input.markdown,
         ),
       } as BaseEntity;
-      return entityService.createEntity({ entity });
+      return defaultEntityService.createEntity({ entity });
     },
     updateEntity: async <T extends BaseEntity>(
       request: UpdateEntityRequest<T>,
@@ -557,7 +559,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
     // unresolved form to return.
     getEntityRaw: async <T extends BaseEntity>(
       request: GetEntityRequest,
-    ): Promise<T | null> => entityService.getEntity<T>(request),
+    ): Promise<T | null> => defaultEntityService.getEntity<T>(request),
 
     // Embeddings and projections are not modelled: the fake has no vectors, so
     // it reports an empty, ready index rather than pretending to search one.
@@ -595,6 +597,10 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
 
     initialize: async (): Promise<void> => {},
   } satisfies IEntityService;
+
+  // Tests that want canned reads rather than the stateful fake can inject
+  // their own; everything built from this shell then sees the same service.
+  const entityService = options.entityService ?? defaultEntityService;
 
   // --- Entity Registry ---
   const createInterceptors = new Map<
