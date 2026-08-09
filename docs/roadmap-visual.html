@@ -313,6 +313,22 @@
           <div class="card-desc">keep focused tests and one packed canary in normal PR feedback, move the full external-authoring matrix to nightly/release evidence, reuse one packed artifact per run, and freeze the <code>0.2.0</code> fixtures for later patch-candidate compatibility.</div>
           <div class="card-file">packed-compatibility-test-tiering.md</div>
         </div>
+        <div class="card status-active">
+          <div class="card-head">
+            <span class="card-name">Turso Database engine migration</span>
+            <span class="badge badge-active">Active</span>
+          </div>
+          <div class="card-desc">**in progress**: local files now default to Turso Database with native FTS, packed native bindings, dual-engine service parity, production-shaped cutover coverage, and an explicit libSQL rollback command. After the live sync spike, the owner selected Git-only content sync; the later MVCC/layout decision remains gated on production soak.</div>
+          <div class="card-file">turso-database-engine.md</div>
+        </div>
+        <div class="card status-active">
+          <div class="card-head">
+            <span class="card-name">Turso Database engine migration</span>
+            <span class="badge badge-active">Active</span>
+          </div>
+          <div class="card-desc">exploratory: whether the SQLite-from-scratch Rust rewrite unlocks a DB-level/browser sync model that libSQL can't.</div>
+          <div class="card-file">turso-database-engine.md</div>
+        </div>
         <div class="card status-partial">
           <div class="card-head">
             <span class="card-name">Durable Binary Asset Storage Plan</span>
@@ -360,14 +376,6 @@
           </div>
           <div class="card-desc">make topic extraction incremental (waves currently re-extract the whole corpus), feed the extraction prompt embedding-retrieved nearest topics instead of a flat 40-title list, wire the semantic merge sweep into the production wave path (today it only runs in evals), and surface a zero-LLM topic-coverage insight from the knowledge-map geometry.</div>
           <div class="card-file">topic-extraction-and-reconciliation.md</div>
-        </div>
-        <div class="card status-active">
-          <div class="card-head">
-            <span class="card-name">Turso Database engine migration</span>
-            <span class="badge badge-active">Active</span>
-          </div>
-          <div class="card-desc">**in progress**: local files now default to Turso Database with native FTS, packed native bindings, dual-engine service parity, production-shaped cutover coverage, and an explicit libSQL rollback command. The live sync spike is complete; the owner decision between DB/browser sync and Git-only content sync remains open before the later MVCC/layout decision.</div>
-          <div class="card-file">turso-database-engine.md</div>
         </div>
         <div class="card status-parked">
           <div class="card-head">

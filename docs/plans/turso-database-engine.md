@@ -10,9 +10,9 @@ presents the libSQL `Client` surface over `@tursodatabase/database@0.7.2`, and
 Phases 1 through 3 are implemented in `work/turso-migration`: Turso native FTS
 is wired through an engine-aware seam, the remaining service differences are
 closed, packed installs carry the native binding, and local files default to
-Turso with a tested explicit fallback. Phase 4's live sync spike is complete;
-the strategic sync choice remains pending an owner decision. The affected
-service suites pass on both engines. Review uncovered that Turso's persisted native-FTS
+Turso with a tested explicit fallback. Phase 4's live sync spike is complete,
+and the owner selected Git-only content sync. The affected service suites pass
+on both engines. Review uncovered that Turso's persisted native-FTS
 schema syntax is not parseable by libSQL. The chosen mitigation is an explicit,
 tested break-glass command: `brain-rollback-entities-to-libsql`.
 
@@ -158,7 +158,7 @@ skip, and conversation-service is 35/35 on both engines.
 prepares the same database for a packed libSQL restart, and no one-env-var or
 automatic rollback promise remains.
 
-### Phase 4 — Sync-model spike — SPIKE DONE; DECISION PENDING
+### Phase 4 — Sync-model spike — DONE: owner selected Git-only
 
 Live probes used `@tursodatabase/sync@0.7.2`,
 `@tursodatabase/sync-wasm@0.7.2`, and temporary Turso Cloud databases:
@@ -183,19 +183,16 @@ Live probes used `@tursodatabase/sync@0.7.2`,
   replica adds a second distribution path without replacing Git's durable,
   reviewable markdown history.
 
-**Decision gate (owner):** pursue DB/browser sync or retain Git-only content
-sync. Pursuing database sync keeps embeddings separate and first requires a
-plan for native FTS compatibility, sync-managed-file cutover, authorization,
-and the entity service's single-writer responsibilities. Retaining Git-only
-sync adds no sync SDK production path and makes the embedding-table fold
-available after the production soak. The spike itself adds neither production
-path.
+**Owner decision:** retain Git as the only content sync model and keep CMS
+reads and writes behind the entity service. No sync SDK dependency or
+production path is added. Folding the regenerable embedding table into the
+entity database is now available for Phase 5 after the Turso production soak.
 
 ### Phase 5 — MVCC and layout consequences
 
-Only after the engine has run quietly in production (Phase 3) and the owner has
-resolved the Phase 4 fork. `journal_mode = mvcc` is the first file-format step
-that is not reversible to libSQL through schema cleanup, so it comes last.
+Only after the engine has run quietly in production (Phase 3). Phase 4 selected
+the Git-only branch. `journal_mode = mvcc` is the first file-format step that is
+not reversible to libSQL through schema cleanup, so it comes last.
 
 - Adopt MVCC journal mode; drop the WAL/busy-timeout pragma path.
 - Git-only branch: fold embeddings into the entity DB with FK + cascade
