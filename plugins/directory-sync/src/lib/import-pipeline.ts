@@ -13,9 +13,11 @@ import { deserializeImportEntity } from "./import-deserialization";
 import { queueImportImageConversions } from "./import-image-conversions";
 import { getImportPathDecision } from "./import-path-filter";
 import { persistImportEntity } from "./import-persistence";
+import { OversizedFileError } from "./oversized-file-error";
 import {
   createImportResult,
   logImportSummary,
+  recordImportIssue,
   recordImportReadError,
   recordSkippedImport,
 } from "./import-result";
@@ -26,6 +28,7 @@ export interface ImportPipelineDeps {
   fileOperations: FileOperations;
   quarantine: Quarantine;
   imageJobQueue: ImageJobQueueDeps;
+  maxImportFileBytes: number;
   entityTypes?: string[] | undefined;
 }
 
@@ -61,10 +64,18 @@ async function importFile(
   }
 
   try {
-    const rawEntity = await deps.fileOperations.readEntity(filePath);
+    const rawEntity = await deps.fileOperations.readEntity(
+      filePath,
+      deps.maxImportFileBytes,
+    );
 
     await processEntityImport(deps, rawEntity, filePath, result);
   } catch (error) {
+    if (error instanceof OversizedFileError) {
+      recordSkippedImport(result);
+      recordImportIssue(result, filePath, error.message);
+      return;
+    }
     recordImportReadError(deps.logger, filePath, error, result);
   }
 }

@@ -1,4 +1,5 @@
 import { z } from "@brains/utils/zod";
+import { DEFAULT_MAX_IMPORT_FILE_BYTES } from "../lib/oversized-file-error";
 
 /**
  * Configuration schema for directory sync plugin
@@ -37,6 +38,7 @@ export interface DirectorySyncConfig {
   deleteOnFileRemoval: boolean;
   syncInterval: number;
   commitDebounce: number;
+  maxImportFileBytes: number;
   git?: DirectorySyncGitConfig | undefined;
 }
 
@@ -54,6 +56,7 @@ export interface DirectorySyncConfigInput {
   deleteOnFileRemoval?: boolean | undefined;
   syncInterval?: number | undefined;
   commitDebounce?: number | undefined;
+  maxImportFileBytes?: number | undefined;
   git?: DirectorySyncGitConfigInput | undefined;
 }
 
@@ -128,6 +131,13 @@ export const directorySyncConfigSchema: z.ZodType<
     .optional()
     .describe("Debounce delay in ms before git commit after entity changes")
     .default(5000),
+  maxImportFileBytes: z
+    .number()
+    .int()
+    .positive()
+    .optional()
+    .describe("Maximum bytes for text and inline base64 binary imports")
+    .default(DEFAULT_MAX_IMPORT_FILE_BYTES),
 
   git: z
     .object({

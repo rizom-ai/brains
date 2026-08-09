@@ -1,7 +1,25 @@
 import { describe, it, expect } from "bun:test";
 import { directorySyncConfigSchema } from "../src/types";
 
-describe("git config block", () => {
+describe("directory sync config", () => {
+  it("defaults the ordinary import limit to 5 MiB", () => {
+    const result = directorySyncConfigSchema.parse({});
+    expect(result.maxImportFileBytes).toBe(5 * 1024 * 1024);
+  });
+
+  it("allows overriding the ordinary import limit", () => {
+    const result = directorySyncConfigSchema.parse({
+      maxImportFileBytes: 1024,
+    });
+    expect(result.maxImportFileBytes).toBe(1024);
+  });
+
+  it("rejects non-positive ordinary import limits", () => {
+    expect(() =>
+      directorySyncConfigSchema.parse({ maxImportFileBytes: 0 }),
+    ).toThrow();
+  });
+
   it("should accept config without git (git disabled)", () => {
     const result = directorySyncConfigSchema.parse({});
     expect(result.git).toBeUndefined();

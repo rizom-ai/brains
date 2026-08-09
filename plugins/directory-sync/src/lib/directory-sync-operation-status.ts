@@ -229,6 +229,11 @@ export class DirectorySyncOperationStatusService {
         path?: string;
         message: string;
       }> = [
+        ...(result.issues ?? []).map((issue) => ({
+          kind: "import" as const,
+          path: this.safePath(issue.path),
+          message: issue.message,
+        })),
         ...result.errors.map((error) => ({
           kind: "import" as const,
           path: this.safePath(error.path),

@@ -62,6 +62,7 @@ export function emptyImportResult(
     quarantined: 0,
     quarantinedFiles: [],
     errors: [],
+    issues: [],
     jobIds: [],
     ...overrides,
   };

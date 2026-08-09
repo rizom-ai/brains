@@ -10,12 +10,21 @@ export function createImportResult(): ImportResult {
     quarantined: 0,
     quarantinedFiles: [],
     errors: [],
+    issues: [],
     jobIds: [],
   };
 }
 
 export function recordSkippedImport(result: ImportResult): void {
   result.skipped++;
+}
+
+export function recordImportIssue(
+  result: ImportResult,
+  filePath: string,
+  message: string,
+): void {
+  (result.issues ??= []).push({ path: filePath, message });
 }
 
 export function recordImportReadError(

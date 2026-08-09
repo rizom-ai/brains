@@ -23,6 +23,7 @@ import {
   getAllSyncFiles as findSyncFiles,
 } from "./file-discovery";
 import { pathExists } from "./fs-utils";
+import { OversizedFileError } from "./oversized-file-error";
 
 export { IMAGE_EXTENSIONS, isImageFile } from "./image-file-utils";
 export { DOCUMENT_EXTENSIONS, isDocumentFile } from "./document-file-utils";
@@ -50,10 +51,13 @@ export class FileOperations {
     return parseEntityPath(this.syncPath, filePath);
   }
 
-  async readEntity(filePath: string): Promise<RawEntity> {
+  async readEntity(filePath: string, maxBytes?: number): Promise<RawEntity> {
     const fullPath = resolveInSyncPath(this.syncPath, filePath);
 
     const stats = await stat(fullPath);
+    if (maxBytes !== undefined && stats.size > maxBytes) {
+      throw new OversizedFileError(filePath, stats.size, maxBytes);
+    }
 
     const { entityType, id } = this.parseEntityFromPath(filePath);
 
