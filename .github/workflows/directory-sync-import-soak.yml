@@ -1,0 +1,66 @@
+name: Directory Sync Import Soak
+
+on:
+  schedule:
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: directory-sync-import-soak
+  cancel-in-progress: false
+
+jobs:
+  soak:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v5
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version-file: .node-version
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build packaged runtime
+        run: bunx turbo run build --filter=@rizom/brain
+
+      - name: Run directory-sync import soak
+        env:
+          RUN_IMPORT_BURST_SOAK: 1
+          IMPORT_BURST_FILE_COUNT: 350
+        run: |
+          bun test packages/brain-cli/test/import-burst-stability.test.ts \
+            2>&1 | tee "$RUNNER_TEMP/directory-sync-import-soak.log"
+
+      - name: Upload soak evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: directory-sync-import-soak-${{ github.run_id }}
+          path: ${{ runner.temp }}/directory-sync-import-soak.log
+          if-no-files-found: warn
+
+      - name: Notify operator of soak failure
+        if: failure()
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            await github.rest.issues.create({
+              ...context.repo,
+              title: `Directory sync nightly soak failed (${context.runId})`,
+              body: `The nightly directory-sync import soak failed.\n\nRun: ${runUrl}`,
+            });

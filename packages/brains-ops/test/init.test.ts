@@ -278,6 +278,8 @@ describe("initPilotRepo", () => {
       "utf8",
     );
     expect(stressWorkflow).toContain("workflow_dispatch:");
+    expect(stressWorkflow).toContain("schedule:");
+    expect(stressWorkflow).toContain('cron: "23 4 * * 1"');
     expect(stressWorkflow).toContain("type: choice");
     expect(stressWorkflow).toContain("stress:directory-sync");
     expect(stressWorkflow).toContain("stress:directory-sync:cleanup");
@@ -291,8 +293,17 @@ describe("initPilotRepo", () => {
     expect(stressRunBlocks.join("\n")).not.toMatch(
       /\$\{\{ inputs\.(?:handle|confirm) \}\}/,
     );
-    expect(stressWorkflow).toContain("HANDLE_INPUT: ${{ inputs.handle }}");
-    expect(stressWorkflow).toContain("CONFIRM_INPUT: ${{ inputs.confirm }}");
+    expect(stressWorkflow).toContain("HANDLE_INPUT: ${{");
+    expect(stressWorkflow).toContain(
+      "github.event_name == 'schedule' && 'smoke' || inputs.handle",
+    );
+    expect(stressWorkflow).toContain(
+      "github.event_name == 'schedule' && 'regression' || inputs.profile",
+    );
+    expect(stressWorkflow).toContain(
+      "github.event_name == 'schedule' && 'stress:smoke' || inputs.confirm",
+    );
+    expect(stressWorkflow).toContain("PROFILE_INPUT: ${{");
 
     const varlockAction = await readFile(
       join(repo, ".github", "actions", "varlock-env", "action.yml"),
