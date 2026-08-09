@@ -11,10 +11,14 @@ Implementation complete through Phase 4; permanent Phase 5 gates are being shipp
   inline-backed binary entities.
 - Phase 4: released in `@rizom/brain@0.2.0-alpha.271`.
 - Phase 5: the nightly hermetic and weekly smoke regression gates merged in PR
-  #94. The first dispatched nightly run exposed a piped-exit propagation bug,
-  external AI work in the fixture, and excessive targeted-delete job fan-out;
-  the follow-up rollout fixes all three and passes the 350-file soak locally.
-  The remote nightly rerun and manual smoke load acceptance run remain pending.
+  #94. The first dispatched run exposed a piped-exit propagation bug, external
+  AI work in the fixture, and excessive targeted-delete job fan-out; PR #99
+  fixed all three. The correctly failing rerun `31323158459` proved notification
+  delivery and cleanup convergence, then caught an unmanaged Git automatic-
+  maintenance descendant. The current follow-up disables automatic maintenance
+  only in the owned network subprocess and passes the 350-file soak locally.
+  The remote verification rerun and manual smoke load acceptance run remain
+  pending.
 
 Asset-backed Phase 2–3 behavior remains coordinated with
 [`durable-binary-assets.md`](./durable-binary-assets.md) and lands with that storage
