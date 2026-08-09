@@ -2,7 +2,7 @@
 
 ## Status
 
-**Implementation phases 1–5, the local Phase 6 export/documentation freeze, candidate publication, and the exact-version registry matrix are complete.** The six golden packages compile, pack, install, and boot against `@rizom/brain@0.2.0-alpha.272` with `@rizom/site@0.2.0-alpha.233`. Stable nomination still requires provider-backed live evidence, site-sections deprecation, and stable site SDK publication:
+**In progress:** implementation phases 1–5, the local Phase 6 export/documentation freeze, candidate publication, the exact-version registry matrix, and npm retirement are complete. The six golden packages compile, pack, install, and boot against `@rizom/brain@0.2.0-alpha.272` with `@rizom/site@0.2.0-alpha.233`. [Site Release evidence](https://github.com/rizom-ai/brains/actions/runs/31319970155) verifies all 73 published `@rizom/site-sections` alphas are deprecated with a migration pointer to `@rizom/site`. Stable nomination still requires provider-backed live evidence and stable site SDK publication:
 
 1. custom entity types;
 2. custom service plugins;
