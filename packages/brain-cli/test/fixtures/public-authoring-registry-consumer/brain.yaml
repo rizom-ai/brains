@@ -1,0 +1,10 @@
+brain: "@fixture/reader-brain"
+bundles: [reader]
+database: "file:./brain.db"
+embedding:
+  enabled: false
+plugins:
+  reading-webhook:
+    webhookToken: registry-evidence-secret
+  campfire:
+    token: registry-evidence-secret

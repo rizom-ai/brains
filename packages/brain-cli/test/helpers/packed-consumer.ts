@@ -191,6 +191,8 @@ interface PackageManifest {
   readonly dependencies?: Record<string, string> | undefined;
 }
 
+export type RegistryPackageVersions = Readonly<Record<string, string>>;
+
 interface PackageManifestDocument extends Record<string, unknown> {
   readonly name: string;
 }
@@ -271,6 +273,7 @@ export async function buildAndPackFixturePackage(
   stagingDirectory: string,
   destination: string,
   dependencyTarballs: ReadonlyMap<string, string>,
+  registryVersions: RegistryPackageVersions = {},
 ): Promise<readonly [string, string]> {
   const packageMetadata = await readManifest(fixtureDirectory);
   const packageDirectory = join(
@@ -301,6 +304,13 @@ export async function buildAndPackFixturePackage(
     parsedManifest["overrides"] ?? {},
     `overrides: ${manifestPath}`,
   );
+  for (const [packageName, version] of Object.entries(registryVersions)) {
+    overrides[packageName] = version;
+    if (packageName in dependencies) dependencies[packageName] = version;
+    if (packageName in peerDependencies) {
+      devDependencies[packageName] = version;
+    }
+  }
   for (const [packageName, tarball] of dependencyTarballs) {
     const localTarball = `file:${tarball}`;
     overrides[packageName] = localTarball;
@@ -342,6 +352,7 @@ export async function installPackedConsumer(
   fixtureDirectory: string,
   consumerDirectory: string,
   tarballs: ReadonlyMap<string, string>,
+  registryVersions: RegistryPackageVersions = {},
 ): Promise<void> {
   await cp(fixtureDirectory, consumerDirectory, { recursive: true });
   const manifestPath = join(consumerDirectory, "package.json");
@@ -354,6 +365,10 @@ export async function installPackedConsumer(
     manifest["overrides"] ?? {},
     `overrides: ${manifestPath}`,
   );
+  for (const [packageName, version] of Object.entries(registryVersions)) {
+    overrides[packageName] = version;
+    if (packageName in dependencies) dependencies[packageName] = version;
+  }
   for (const [packageName, tarball] of tarballs) {
     if (packageName in dependencies) {
       dependencies[packageName] = `file:${tarball}`;
@@ -425,6 +440,12 @@ export async function stopProcess(
     child.kill("SIGKILL");
     await child.exited;
   }
+}
+
+export function registryEvidenceEnabled(
+  env: NodeJS.ProcessEnv = process.env,
+): boolean {
+  return env["RIZOM_PUBLIC_API_REGISTRY_EVIDENCE"] === "1";
 }
 
 export function liveEvidenceEnabled(

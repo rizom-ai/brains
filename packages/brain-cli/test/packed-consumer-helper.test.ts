@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test";
 import { getErrorMessage } from "@brains/utils/error";
 import {
   liveEvidenceEnabled,
+  registryEvidenceEnabled,
   runCommand,
   startCommand,
   waitForHttpReadiness,
@@ -67,7 +68,11 @@ describe("packed consumer harness", () => {
     }
   });
 
-  it("isolates provider-backed evidence behind one opt-in flag", () => {
+  it("isolates registry and provider evidence behind separate opt-in flags", () => {
+    expect(registryEvidenceEnabled({})).toBeFalse();
+    expect(
+      registryEvidenceEnabled({ RIZOM_PUBLIC_API_REGISTRY_EVIDENCE: "1" }),
+    ).toBeTrue();
     expect(liveEvidenceEnabled({})).toBeFalse();
     expect(
       liveEvidenceEnabled({ RIZOM_PUBLIC_API_LIVE_EVIDENCE: "1" }),

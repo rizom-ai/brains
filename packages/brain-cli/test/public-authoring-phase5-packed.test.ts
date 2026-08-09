@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { getErrorMessage } from "@brains/utils/error";
@@ -49,6 +49,18 @@ interface TransportEvidence {
   readonly campfireClosures: () => number;
   readonly eventFeedConnections: () => number;
   readonly eventFeedClosures: () => number;
+}
+
+async function availablePort(): Promise<number> {
+  const server = Bun.serve({
+    hostname: "127.0.0.1",
+    port: 0,
+    fetch: () => new Response("reserved"),
+  });
+  const port = server.port;
+  await server.stop(true);
+  if (port === undefined) throw new Error("Bun did not allocate a test port");
+  return port;
 }
 
 function startTransportEvidence(): TransportEvidence {
@@ -252,6 +264,13 @@ describe("public authoring Phase 5 packed interface contracts", () => {
 
       const consumerDirectory = join(temporaryDirectory, "consumer");
       await installPackedConsumer(consumerFixture, consumerDirectory, tarballs);
+      const runtimePort = await availablePort();
+      const brainConfigPath = join(consumerDirectory, "brain.yaml");
+      const brainConfig = await readFile(brainConfigPath, "utf8");
+      await writeFile(
+        brainConfigPath,
+        `${brainConfig}plugins:\n  webserver:\n    productionPort: ${runtimePort}\n`,
+      );
       await invokeTool(
         consumerDirectory,
         "system_create",
@@ -291,19 +310,24 @@ describe("public authoring Phase 5 packed interface contracts", () => {
           combinedOutput(runtime?.getOutput() ?? { stdout: "", stderr: "" }),
       );
 
-      const health = await fetch("http://127.0.0.1:8080/reading-digest/health");
+      const health = await fetch(
+        `http://127.0.0.1:${runtimePort}/reading-digest/health`,
+      );
       expect(health.status).toBe(200);
       expect(await health.json()).toEqual({ status: "ok" });
 
-      const denied = await fetch("http://127.0.0.1:8080/hooks/reading-digest", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ bookmarkId: "interface-jobs" }),
-      });
+      const denied = await fetch(
+        `http://127.0.0.1:${runtimePort}/hooks/reading-digest`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ bookmarkId: "interface-jobs" }),
+        },
+      );
       expect(denied.status).toBe(401);
 
       const accepted = await fetch(
-        "http://127.0.0.1:8080/hooks/reading-digest",
+        `http://127.0.0.1:${runtimePort}/hooks/reading-digest`,
         {
           method: "POST",
           headers: {

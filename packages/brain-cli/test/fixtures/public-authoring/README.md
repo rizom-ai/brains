@@ -22,10 +22,25 @@ call, queue type, or fully qualified capability name. Each package carries a
 self-contained `tsconfig.json` — no `extends` into the monorepo — because these sources
 must build unchanged after they are packed and installed outside the repository.
 
-The `>=0.2.0-alpha.0 <0.3.0` brain peer range is a placeholder: no nominated published
-alpha implements the complete API yet. Phase 6 must pin all fixtures to that alpha and
-advance the fixture manifests and the golden test's `placeholderBrainPeerRange`
+The `>=0.2.0-alpha.0 <0.3.0` brain peer range remains a placeholder until the
+complete API is published. Phase 6 pins every fixture to the nominated alpha and
+advances the fixture manifests and the golden test's `placeholderBrainPeerRange`
 together.
+
+The registry matrix is intentionally opt-in so ordinary tests never depend on npm
+availability. It installs exact nominated versions, rebuilds and packs all six packages,
+then boots their composed brain outside the monorepo:
+
+```bash
+RIZOM_PUBLIC_API_REGISTRY_EVIDENCE=1 \
+RIZOM_PUBLIC_API_BRAIN_VERSION=0.2.0-alpha.N \
+RIZOM_PUBLIC_API_SITE_VERSION=0.2.0-alpha.N \
+bun test packages/brain-cli/test/public-authoring-registry-packed.test.ts
+```
+
+The test also verifies installed versions, licenses, declarations, export maps, and the
+absence of removed site authoring contracts. It refuses ranges and requires every golden
+Brain peer lower bound to equal the nominated alpha.
 
 `export-ledger.json` is the Phase 0 export decision record. Every current authoring export
 is classified exactly once as stable, advanced-with-consumer, or internal/removable. There
