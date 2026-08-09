@@ -44,7 +44,7 @@ import type {
   MessageBusSendRequest,
   MessageResponse,
 } from "@brains/messaging-service";
-import type { ContentService } from "@brains/content-service";
+import type { IContentService, ContentTemplate } from "@brains/content-service";
 import type { Logger } from "@brains/utils/logger";
 import type { DefaultQueryResponse } from "@brains/contracts";
 import {
@@ -56,6 +56,7 @@ import {
   type DataSourceRegistry,
   type DataSource,
   type EntityAdapter,
+  type DataSourceCapabilities,
   type UploadSaveHandlerRegistration,
   type CreateEntityRequest,
   type UpdateEntityRequest,
@@ -86,6 +87,7 @@ import type {
   JudgeInput,
 } from "@brains/ai-service";
 import { createSilentLogger } from "./mock-logger";
+import type { PublicSurface } from "./public-surface";
 
 /**
  * MockShell type — IShell plus test helper methods.
@@ -289,8 +291,10 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
     options.conversationService ?? createDefaultMockConversationService();
 
   // --- Message Bus (stateful — plugins subscribe during register, tests send) ---
-  const messageBus: MessageBus = {
-    send: async (request: MessageBusSendRequest) => {
+  const messageBusSurface: PublicSurface<MessageBus> = {
+    send: async <T = unknown, R = unknown>(
+      request: MessageBusSendRequest<T>,
+    ): Promise<MessageResponse<R>> => {
       const { type, payload, sender, broadcast } = request;
       const handlers = messageHandlers.get(type) ?? new Set();
       let result: MessageResponse<unknown> = { success: true };
@@ -306,22 +310,60 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
         result = response;
         break;
       }
-      return result;
+      return result as MessageResponse<R>;
     },
-    subscribe: (type: string, handler: MessageHandler<unknown, unknown>) => {
-      if (!messageHandlers.has(type)) {
-        messageHandlers.set(type, new Set());
-      }
-      const handlers = messageHandlers.get(type);
-      if (handlers) handlers.add(handler);
-      return () => {
-        messageHandlers.get(type)?.delete(handler);
+    subscribe: <T = unknown, R = unknown>(
+      type: string,
+      handler: MessageHandler<T, R>,
+    ): (() => void) => {
+      const handlers =
+        messageHandlers.get(type) ??
+        new Set<MessageHandler<unknown, unknown>>();
+      messageHandlers.set(type, handlers);
+      const erased = handler as MessageHandler<unknown, unknown>;
+      handlers.add(erased);
+      return (): void => {
+        messageHandlers.get(type)?.delete(erased);
       };
     },
-    hasHandlers: (type: string) => (messageHandlers.get(type)?.size ?? 0) > 0,
-    unsubscribe: () => {},
-    getSubscriptions: () => Array.from(messageHandlers.keys()),
-  } as unknown as MessageBus;
+    unsubscribe: (): void => {},
+    hasHandlers: (messageType: string): boolean =>
+      (messageHandlers.get(messageType)?.size ?? 0) > 0,
+    getHandlerCount: (messageType: string): number =>
+      messageHandlers.get(messageType)?.size ?? 0,
+    // The fake does not model targeting, so every handler counts as untargeted.
+    getTargetedHandlerCount: (): number => 0,
+    clearHandlers: (messageType: string): void => {
+      messageHandlers.delete(messageType);
+    },
+    clearAllHandlers: (): void => {
+      messageHandlers.clear();
+    },
+    collect: async <T = unknown, R = unknown>(
+      request: MessageBusSendRequest<T>,
+    ): Promise<MessageResponse<R>[]> => {
+      const handlers = messageHandlers.get(request.type) ?? new Set();
+      return Promise.all(
+        Array.from(handlers).map(
+          async (handler) =>
+            (await handler({
+              type: request.type,
+              payload: request.payload,
+              source: request.sender,
+              id: `msg-${Date.now()}`,
+              timestamp: new Date().toISOString(),
+            })) as MessageResponse<R>,
+        ),
+      );
+    },
+    // Validation belongs to the real bus's schema registry; the fake accepts
+    // whatever a test sends rather than pretending to validate it.
+    validateMessage: <T>(_messageType: string, payload: unknown): T =>
+      payload as T,
+  };
+
+  // Only the nominal private-field gap remains; the shape is checked above.
+  const messageBus = messageBusSurface as MessageBus;
 
   // --- Entity Service (stateful) ---
   const entityService: IEntityService = {
@@ -644,7 +686,25 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
   };
 
   // --- Content Service ---
-  const contentService: ContentService = {
+  // The real service narrows registered templates before handing them out, so
+  // the fake does the same. Returning the raw Template would give tests fields
+  // (layout, and anything else Template carries) that production never exposes.
+  const toContentTemplate = (template: Template): ContentTemplate<unknown> => {
+    const contentTemplate: ContentTemplate<unknown> = {
+      name: template.name,
+      description: template.description,
+      schema: template.schema,
+      requiredPermission: template.requiredPermission,
+    };
+    if (template.basePrompt) contentTemplate.basePrompt = template.basePrompt;
+    if (template.formatter) contentTemplate.formatter = template.formatter;
+    if (template.dataSourceId) {
+      contentTemplate.dataSourceId = template.dataSourceId;
+    }
+    return contentTemplate;
+  };
+
+  const contentService: IContentService = {
     generateContent: async <T = unknown>(
       templateName: string,
       context?: Record<string, unknown>,
@@ -661,32 +721,50 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
       `Formatted: ${JSON.stringify(data)}`,
     parseContent: <T = unknown>(_templateName: string, content: string): T =>
       ({ parsed: content }) as T,
-    hasTemplate: (name: string) => templates.has(name),
-    getTemplate: (name: string) => templates.get(name) ?? null,
-    listTemplates: () => Array.from(templates.values()),
-    unregisterTemplate: (name: string) => {
-      templates.delete(name);
+    getTemplate: (name: string): ContentTemplate<unknown> | null => {
+      const template = templates.get(name);
+      return template ? toContentTemplate(template) : null;
     },
-  } as unknown as ContentService;
+    listTemplates: (): ContentTemplate<unknown>[] =>
+      Array.from(templates.values()).map(toContentTemplate),
+    // No data sources are wired into the fake, so nothing resolves.
+    resolveContent: async <T = unknown>(): Promise<T | null> => null,
+  } satisfies IContentService;
 
   // --- DataSource Registry ---
-  const dataSourceRegistry: DataSourceRegistry = {
-    register: (dataSource: DataSource) => {
+  const dataSourceRegistrySurface: PublicSurface<DataSourceRegistry> = {
+    register: (dataSource: DataSource): void => {
       if ("id" in dataSource && typeof dataSource.id === "string") {
         dataSources.set(dataSource.id, dataSource);
       }
     },
-    registerWithId: (id: string, dataSource: DataSource) => {
-      dataSources.set(id, dataSource);
+    get: (id: string): DataSource | undefined => dataSources.get(id),
+    has: (id: string): boolean => dataSources.has(id),
+    list: (): DataSource[] => Array.from(dataSources.values()),
+    getIds: (): string[] => Array.from(dataSources.keys()),
+    getByCapability: (capability: keyof DataSourceCapabilities): DataSource[] =>
+      Array.from(dataSources.values()).filter((dataSource) => {
+        switch (capability) {
+          case "canFetch":
+            return Boolean(dataSource.fetch);
+          case "canGenerate":
+            return Boolean(dataSource.generate);
+          case "canTransform":
+            return Boolean(dataSource.transform);
+        }
+      }),
+    find: (predicate: (dataSource: DataSource) => boolean): DataSource[] =>
+      Array.from(dataSources.values()).filter(predicate),
+    clear: (): void => {
+      dataSources.clear();
     },
-    get: (id: string) => dataSources.get(id),
-    has: (id: string) => dataSources.has(id),
-    list: () => Array.from(dataSources.values()),
-    getIds: () => Array.from(dataSources.keys()),
-    unregister: (id: string) => {
+    unregister: (id: string): void => {
       dataSources.delete(id);
     },
-  } as unknown as DataSourceRegistry;
+  };
+
+  // Only the nominal private-field gap remains; the shape is checked above.
+  const dataSourceRegistry = dataSourceRegistrySurface as DataSourceRegistry;
 
   // --- Daemon Registry ---
   // --- Insights Registry ---
