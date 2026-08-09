@@ -1,3 +1,7 @@
+import {
+  createListToolOutputSchema,
+  type ListToolOutput,
+} from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import {
   mailCategorySchema,
@@ -85,36 +89,10 @@ export const mailTriageListResultSchema: z.ZodType<
   total: z.number().int().nonnegative(),
 });
 
-interface MailTriageListToolSuccessValue {
-  success: true;
-  data: MailTriageListResultValue;
-}
-
-interface MailTriageListToolErrorValue {
-  success: false;
-  error: string;
-}
-
-type MailTriageListToolOutputValue =
-  MailTriageListToolSuccessValue | MailTriageListToolErrorValue;
-
-const mailTriageListToolSuccessSchema = z.strictObject({
-  success: z.literal(true),
-  data: mailTriageListResultSchema,
-});
-
-const mailTriageListToolErrorSchema = z.strictObject({
-  success: z.literal(false),
-  error: z.string().min(1),
-});
-
 export const mailTriageListToolOutputSchema: z.ZodType<
-  MailTriageListToolOutputValue,
-  MailTriageListToolOutputValue
-> = z.discriminatedUnion("success", [
-  mailTriageListToolSuccessSchema,
-  mailTriageListToolErrorSchema,
-]);
+  ListToolOutput<MailTriageListResultValue>,
+  ListToolOutput<MailTriageListResultValue>
+> = createListToolOutputSchema(mailTriageListResultSchema);
 
 interface MailTriageSummaryValue {
   total: number;

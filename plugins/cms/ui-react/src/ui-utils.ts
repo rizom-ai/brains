@@ -1,3 +1,4 @@
+import { useCallback, useRef, useState } from "react";
 import { ApiError, type EntitySummary, type FieldDescriptor } from "./api";
 import { getErrorMessage } from "@brains/utils/error";
 
@@ -72,4 +73,48 @@ export function errorMessage(error: unknown): string {
       .join("; ");
   }
   return getErrorMessage(error);
+}
+
+export interface WorkspaceActionState<Result> {
+  pendingKey: string | null;
+  error: string | null;
+  clearError: () => void;
+  run: (key: string, action: () => Promise<Result>) => Promise<Result | null>;
+}
+
+/**
+ * The keyed pending/error loop every workspace renderer needs around its
+ * action calls. `run` resolves null when the call failed (the message lands
+ * in `error`) or when another action is already in flight — the ref, not the
+ * async pending state, is what makes the double-submit guard synchronous.
+ */
+export function useWorkspaceAction<Result>(): WorkspaceActionState<Result> {
+  const [pendingKey, setPendingKey] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const inFlight = useRef(false);
+
+  const clearError = useCallback((): void => setError(null), []);
+  const run = useCallback(
+    async (
+      key: string,
+      action: () => Promise<Result>,
+    ): Promise<Result | null> => {
+      if (inFlight.current) return null;
+      inFlight.current = true;
+      setPendingKey(key);
+      setError(null);
+      try {
+        return await action();
+      } catch (cause) {
+        setError(errorMessage(cause));
+        return null;
+      } finally {
+        inFlight.current = false;
+        setPendingKey(null);
+      }
+    },
+    [],
+  );
+
+  return { pendingKey, error, clearError, run };
 }

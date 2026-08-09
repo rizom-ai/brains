@@ -1,4 +1,7 @@
-import type { ServicePluginContext } from "@brains/plugins";
+import {
+  assertCmsWorkspaceAdmin,
+  type ServicePluginContext,
+} from "@brains/plugins";
 import { mailItemAdapter } from "./entity/adapters/mail-item-adapter";
 import {
   mailItemSchema,
@@ -39,8 +42,7 @@ export class MailTriageOperatorService {
     this.context = context;
   }
 
-  async list(input: unknown): Promise<MailTriageListResult> {
-    const filters = mailTriageFilterSchema.parse(input);
+  async list(filters: MailTriageFilter): Promise<MailTriageListResult> {
     const metadata = metadataFilter(filters);
     const [entities, total] = await Promise.all([
       this.context.entityService.listEntities<MailItemEntity>({
@@ -106,7 +108,7 @@ export class MailTriageOperatorService {
 
   async snapshot(): Promise<MailTriageWorkspaceSnapshot> {
     const [items, summary] = await Promise.all([
-      this.list({ limit: WORKSPACE_ITEM_LIMIT }),
+      this.list(mailTriageFilterSchema.parse({ limit: WORKSPACE_ITEM_LIMIT })),
       this.summary(),
     ]);
     return mailTriageWorkspaceSnapshotSchema.parse({
@@ -119,7 +121,7 @@ export class MailTriageOperatorService {
     input: unknown,
     actor: OperatorActor,
   ): Promise<MailTriageStatusActionResult> {
-    assertAdmin(actor);
+    assertMailTriageAdmin(actor);
     const action = mailTriageStatusActionSchema.parse(input);
     this.context.permissions.assertEntityActionAllowed(
       "mail-item",
@@ -176,13 +178,7 @@ export class MailTriageOperatorService {
 }
 
 export function assertMailTriageAdmin(actor: OperatorActor): void {
-  assertAdmin(actor);
-}
-
-function assertAdmin(actor: OperatorActor): void {
-  if (actor.userPermissionLevel !== "admin") {
-    throw new Error("Email triage requires admin permission");
-  }
+  assertCmsWorkspaceAdmin(actor, "Email triage");
 }
 
 function metadataFilter(

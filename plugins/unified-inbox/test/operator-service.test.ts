@@ -10,6 +10,7 @@ import {
   InboxOperatorService,
   inboxActionOutcomeSchema,
   inboxListResultSchema,
+  inboxWorkspaceQuerySchema,
 } from "../src";
 
 const receivedAt = "2026-08-05T09:00:00.000Z";
@@ -102,12 +103,14 @@ describe("InboxOperatorService", () => {
       new InboxDataSource(registry),
     );
 
-    const snapshot = await service.workspace({
-      sourceId: "mail-items",
-      urgency: "normal",
-      offset: "0",
-      limit: "1",
-    });
+    const snapshot = await service.workspace(
+      inboxWorkspaceQuerySchema.parse({
+        sourceId: "mail-items",
+        urgency: "normal",
+        offset: "0",
+        limit: "1",
+      }),
+    );
 
     expect(snapshot).toMatchObject({
       summary: { open: 2, high: 1 },
@@ -130,7 +133,9 @@ describe("InboxOperatorService", () => {
         },
       ],
     });
-    expect(service.workspace({ offset: 0, limit: 101 })).rejects.toThrow();
+    expect(
+      inboxWorkspaceQuerySchema.safeParse({ offset: 0, limit: 101 }).success,
+    ).toBe(false);
   });
 
   it("requires confirmation before dispatching flagged actions and returns no projection after execution", async () => {
@@ -141,6 +146,7 @@ describe("InboxOperatorService", () => {
           sourceId: "mail-items",
           itemId: "mail-opaque",
           actionId: "archive",
+          confirmed: false,
         },
         { permissionLevel: "admin" },
       ),
@@ -227,6 +233,7 @@ describe("InboxOperatorService", () => {
           sourceId: "mail-items",
           itemId: "mail-opaque",
           actionId: "mark-reviewed",
+          confirmed: false,
         },
         { permissionLevel: "trusted" },
       ),

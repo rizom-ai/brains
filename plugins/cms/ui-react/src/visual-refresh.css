@@ -1728,7 +1728,8 @@
   border: 1px solid var(--console-rule-strong);
   background: var(--console-card-soft);
 }
-.mail-triage-filters label > span {
+.mail-triage-filters label > span,
+.inbox-filters label > span {
   display: block;
   margin-bottom: 5px;
   color: var(--console-text-muted);
@@ -1736,7 +1737,8 @@
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
-.mail-triage-filters select {
+.mail-triage-filters select,
+.inbox-filters select {
   width: 100%;
   padding: 7px 9px;
   border: 1px solid var(--console-rule-strong);
@@ -2157,23 +2159,6 @@
   border: 1px solid var(--console-rule-strong);
   background: var(--console-card-soft);
 }
-.inbox-filters label > span {
-  display: block;
-  margin-bottom: 5px;
-  color: var(--console-text-muted);
-  font: 8px var(--console-mono);
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
-}
-.inbox-filters select {
-  width: 100%;
-  padding: 7px 9px;
-  border: 1px solid var(--console-rule-strong);
-  border-radius: 5px;
-  background: var(--console-card);
-  color: var(--console-text-dim);
-  font: 11px var(--console-ui);
-}
 .inbox-filters > span {
   justify-self: end;
   padding: 8px 2px;
@@ -2412,45 +2397,4 @@
   margin-bottom: 10px;
   color: var(--console-secondary, var(--console-accent));
   font-size: 27px;
-}
-.inbox-dialog-backdrop {
-  position: fixed;
-  z-index: 1300;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  padding: 20px;
-  background: color-mix(in srgb, var(--console-frame) 76%, transparent);
-  backdrop-filter: blur(3px);
-}
-.inbox-dialog {
-  width: min(430px, 100%);
-  padding: 24px;
-  border: 1px solid var(--console-rule-strong);
-  border-top: 3px solid var(--console-secondary, var(--console-accent));
-  background: var(--console-card);
-  box-shadow: 0 24px 80px color-mix(in srgb, black 28%, transparent);
-}
-.inbox-dialog > span {
-  color: var(--console-secondary, var(--console-accent));
-  font: 8px var(--console-mono);
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-.inbox-dialog h3 {
-  margin: 8px 0;
-  color: var(--console-text);
-  font: 560 24px/1.15 var(--console-display);
-}
-.inbox-dialog p {
-  margin: 0;
-  color: var(--console-text-dim);
-  font-size: 12px;
-  line-height: 1.55;
-}
-.inbox-dialog > div {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  margin-top: 22px;
 }

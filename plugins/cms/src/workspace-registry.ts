@@ -131,7 +131,9 @@ async function resolveBadge(
   if (!workspace.badgeProvider) return undefined;
   try {
     const badge = await workspace.badgeProvider(actor);
-    return Number.isInteger(badge) && (badge ?? -1) >= 0 ? badge : undefined;
+    return typeof badge === "number" && Number.isInteger(badge) && badge >= 0
+      ? badge
+      : undefined;
   } catch {
     return undefined;
   }

@@ -1,4 +1,8 @@
-import type { QueryClient, UseQueryOptions } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  type QueryClient,
+  type UseQueryOptions,
+} from "@tanstack/react-query";
 import {
   fetchAgentTargets,
   fetchEntities,
@@ -94,16 +98,27 @@ export function workspaceQueryOptions(
   return {
     queryKey: cmsKeys.workspace(workspaceId, query),
     queryFn: () => fetchWorkspace(workspaceId, query),
+    // Paged/filtered workspaces change query keys in place; keeping the
+    // previous page mounted avoids tearing the renderer down per page, and
+    // the modest staleTime stops focus/remount refetch spam. Action paths
+    // refresh explicitly through invalidateAfterWorkspaceAction.
+    placeholderData: keepPreviousData,
+    staleTime: 15_000,
   };
 }
 
-export function invalidateAfterWorkspaceAction(
+export async function invalidateAfterWorkspaceAction(
   queryClient: QueryClient,
   workspaceId: string,
 ): Promise<void> {
-  return queryClient.invalidateQueries({
-    queryKey: cmsKeys.workspaceScope(workspaceId),
-  });
+  await Promise.all([
+    queryClient.invalidateQueries({
+      queryKey: cmsKeys.workspaceScope(workspaceId),
+    }),
+    // Rail badges ride the navigation payload, so any workspace action can
+    // stale them.
+    queryClient.invalidateQueries({ queryKey: cmsKeys.navigation() }),
+  ]);
 }
 
 export async function invalidateAfterUpload(

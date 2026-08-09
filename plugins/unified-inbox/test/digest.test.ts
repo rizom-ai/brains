@@ -3,7 +3,6 @@ import type { ServicePluginContext } from "@brains/plugins";
 
 import {
   createUnifiedInboxDigest,
-  inboxDigestAlertSchema,
   inboxProjectionSchema,
   registerUnifiedInboxDigest,
 } from "../src";
@@ -58,12 +57,10 @@ const now = (): Date => new Date("2026-08-05T12:00:00.000Z");
 
 describe("unified inbox digest", () => {
   it("summarizes per-source counts and high-priority titles only", () => {
-    const alert = inboxDigestAlertSchema.parse(
-      createUnifiedInboxDigest(projection, {
-        destinationUrl: "https://brain.test/dashboard",
-        now,
-      }),
-    );
+    const alert = createUnifiedInboxDigest(projection, {
+      destinationUrl: "https://brain.test/dashboard",
+      now,
+    });
 
     expect(alert).toEqual({
       dedupeKey: "unified-inbox:daily-digest:2026-08-05",
@@ -124,8 +121,7 @@ describe("unified inbox digest", () => {
         },
       },
       { getInboxData: async () => projection },
-      now,
-      "/studio/workspaces/inbox",
+      { now, workspaceUrl: "/studio/workspaces/inbox" },
     );
 
     expect(check).toMatchObject({
@@ -166,7 +162,7 @@ describe("unified inbox digest", () => {
         },
       },
       { getInboxData: async () => projection },
-      now,
+      { now },
     );
 
     if (!check) throw new Error("Daily inbox check was not registered");

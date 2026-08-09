@@ -82,9 +82,12 @@ export {
   inboxActionSchema,
   inboxActorSchema,
   inboxEntityRefSchema,
+  inboxIdSchema,
+  inboxItemIdSchema,
   inboxItemListSchema,
   inboxItemSchema,
   inboxSourceMetadataSchema,
+  inboxUrgencySchema,
   type IInboxRegistry,
   type InboxAction,
   type InboxActor,
@@ -96,6 +99,11 @@ export {
 
 export { SYSTEM_CHANNELS, type SystemChannelName } from "./system-channels";
 export { defineChannel, type Channel } from "./utils/channels";
+export {
+  createAdminListTool,
+  createListToolOutputSchema,
+  type ListToolOutput,
+} from "./utils/admin-list-tool";
 
 // Plugin contexts (needed for plugin initialization)
 export type {
@@ -258,6 +266,8 @@ export type {
   SearchResult,
 } from "@brains/entity-service";
 export {
+  applyVisibilityToMarkdown,
+  extractVisibilityFromMarkdown,
   BaseEntityAdapter,
   baseEntityParserSchema,
   baseEntitySchema,
@@ -617,6 +627,7 @@ export type {
 export { jsonResponse, jsonError } from "./types/web-routes";
 export {
   CMS_WORKSPACE_REGISTER_MESSAGE,
+  assertCmsWorkspaceAdmin,
   type CmsWorkspaceActor,
   type CmsWorkspaceDescriptor,
   type CmsWorkspaceRegistration,
@@ -647,6 +658,7 @@ export type {
 
 export {
   basePluginConfigSchema,
+  isPluginConfigValidationError,
   PluginConfigValidationError,
   type PluginConfig,
   type PluginConfigInput,

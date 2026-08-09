@@ -1,23 +1,24 @@
 import type { IInboxRegistry, InboxActor, InboxSource } from "@brains/plugins";
-import type { InboxDataSource } from "./inbox-datasource";
-import {
-  inboxActionOutcomeSchema,
-  inboxActionRequestSchema,
-  inboxDashboardDataSchema,
-  inboxListFilterSchema,
-  inboxListResultSchema,
-  inboxWorkspaceQuerySchema,
-  inboxWorkspaceSnapshotSchema,
-  type InboxActionOutcome,
-  type InboxDashboardData,
-  type InboxListResult,
-  type InboxProjection,
-  type InboxSourceAvailability,
-  type InboxWorkspaceSnapshot,
+import { sourceMetadata, type InboxDataSource } from "./inbox-datasource";
+import type {
+  InboxActionOutcome,
+  InboxActionRequest,
+  InboxDashboardData,
+  InboxListFilter,
+  InboxListResult,
+  InboxProjection,
+  InboxSourceAvailability,
+  InboxWorkspaceQuery,
+  InboxWorkspaceSnapshot,
 } from "./schemas";
 
 type InboxSourceRegistry = Pick<IInboxRegistry, "getSource" | "listSources">;
 type InboxProjectionReader = Pick<InboxDataSource, "getInboxData">;
+
+interface SourceCounts {
+  open: number;
+  high: number;
+}
 
 export class InboxOperatorService {
   private readonly registry: InboxSourceRegistry;
@@ -31,42 +32,43 @@ export class InboxOperatorService {
     this.dataSource = dataSource;
   }
 
-  async list(input: unknown): Promise<InboxListResult> {
-    const filter = inboxListFilterSchema.parse(input);
+  async list(filter: InboxListFilter): Promise<InboxListResult> {
     const projection = await this.dataSource.getInboxData();
     const matching = filterEntries(projection, filter);
-    return inboxListResultSchema.parse({
+    return {
       entries: matching.slice(0, filter.limit),
       errors: filterErrors(projection, filter.sourceId),
       total: matching.length,
-    });
+    };
   }
 
-  async workspace(input: unknown): Promise<InboxWorkspaceSnapshot> {
-    const query = inboxWorkspaceQuerySchema.parse(input);
+  async workspace(query: InboxWorkspaceQuery): Promise<InboxWorkspaceSnapshot> {
     const projection = await this.dataSource.getInboxData();
+    const counts = countBySource(projection.entries);
     const matching = filterEntries(projection, query);
-    return inboxWorkspaceSnapshotSchema.parse({
-      summary: summarizeProjection(projection),
-      sources: this.sourceAvailability(projection),
+    return {
+      summary: summarizeProjection(projection, counts),
+      sources: this.sourceAvailability(projection, counts),
       entries: matching.slice(query.offset, query.offset + query.limit),
       errors: filterErrors(projection, query.sourceId),
       total: matching.length,
       offset: query.offset,
       limit: query.limit,
-    });
+    };
   }
 
   async dashboard(managementUrl?: string): Promise<InboxDashboardData> {
     const projection = await this.dataSource.getInboxData();
-    const summary = summarizeProjection(projection);
-    const sources = this.sourceAvailability(projection);
-    return inboxDashboardDataSchema.parse({
+    const counts = countBySource(projection.entries);
+    const sources = this.sourceAvailability(projection, counts);
+    const availableSources = sources.filter(
+      (source) => source.available,
+    ).length;
+    return {
       summary: {
-        ...summary,
-        availableSources: sources.filter((source) => source.available).length,
-        unavailableSources: sources.filter((source) => !source.available)
-          .length,
+        ...summarizeProjection(projection, counts),
+        availableSources,
+        unavailableSources: sources.length - availableSources,
       },
       entries: projection.entries.slice(0, 5).map((entry) => ({
         sourceLabel: entry.source.displayName,
@@ -75,15 +77,17 @@ export class InboxOperatorService {
         receivedAt: entry.item.receivedAt,
       })),
       ...(managementUrl ? { managementUrl } : {}),
-    });
+    };
   }
 
   async badge(): Promise<number> {
     return (await this.dataSource.getInboxData()).entries.length;
   }
 
-  async act(input: unknown, actor: InboxActor): Promise<InboxActionOutcome> {
-    const request = inboxActionRequestSchema.parse(input);
+  async act(
+    request: InboxActionRequest,
+    actor: InboxActor,
+  ): Promise<InboxActionOutcome> {
     const source = this.registry.getSource(request.sourceId);
     const offered = source
       ? await findOfferedAction(source, request.itemId, request.actionId)
@@ -93,42 +97,40 @@ export class InboxOperatorService {
     }
 
     if (offered.action.confirm === true && !request.confirmed) {
-      return inboxActionOutcomeSchema.parse({
+      return {
         kind: "confirmation",
         summary: `${offered.action.label} "${offered.title}"?`,
-      });
+      };
     }
 
     await source.act(request.itemId, request.actionId, actor);
-    return inboxActionOutcomeSchema.parse({ kind: "completed" });
+    return { kind: "completed" };
   }
 
   private sourceAvailability(
     projection: InboxProjection,
+    counts: Map<string, SourceCounts>,
   ): InboxSourceAvailability[] {
     const unavailable = new Set(
       projection.errors.map((error) => error.source.sourceId),
     );
-    return this.registry
-      .listSources()
-      .map((source) => {
-        const entries = projection.entries.filter(
-          (entry) => entry.source.sourceId === source.sourceId,
-        );
-        return {
-          source: {
-            sourceId: source.sourceId,
-            displayName: source.displayName,
-          },
-          open: entries.length,
-          high: entries.filter((entry) => entry.item.urgency === "high").length,
-          available: !unavailable.has(source.sourceId),
-        };
-      })
-      .sort((left, right) =>
-        left.source.sourceId.localeCompare(right.source.sourceId),
-      );
+    return this.registry.listSources().map((source) => ({
+      source: sourceMetadata(source),
+      ...(counts.get(source.sourceId) ?? { open: 0, high: 0 }),
+      available: !unavailable.has(source.sourceId),
+    }));
   }
+}
+
+function countBySource(
+  entries: InboxProjection["entries"],
+): Map<string, SourceCounts> {
+  return entries.reduce((counts, entry) => {
+    const bucket = counts.get(entry.source.sourceId) ?? { open: 0, high: 0 };
+    bucket.open += 1;
+    if (entry.item.urgency === "high") bucket.high += 1;
+    return counts.set(entry.source.sourceId, bucket);
+  }, new Map<string, SourceCounts>());
 }
 
 function filterEntries(
@@ -152,14 +154,16 @@ function filterErrors(
   );
 }
 
-function summarizeProjection(projection: InboxProjection): {
-  open: number;
-  high: number;
-} {
+function summarizeProjection(
+  projection: InboxProjection,
+  counts: Map<string, SourceCounts>,
+): { open: number; high: number } {
   return {
     open: projection.entries.length,
-    high: projection.entries.filter((entry) => entry.item.urgency === "high")
-      .length,
+    high: [...counts.values()].reduce(
+      (total, bucket) => total + bucket.high,
+      0,
+    ),
   };
 }
 

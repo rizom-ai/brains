@@ -1,9 +1,13 @@
-import { useCallback, useState, type ReactElement } from "react";
+import { useCallback, type ReactElement } from "react";
 import type {
   DirectorySyncWorkspaceActionResult,
   DirectorySyncWorkspaceSnapshot,
 } from "./api";
-import { errorMessage, formatUpdated, publicationLabel } from "./ui-utils";
+import {
+  formatUpdated,
+  publicationLabel,
+  useWorkspaceAction,
+} from "./ui-utils";
 
 function syncRunSummary(
   run: DirectorySyncWorkspaceSnapshot["recentRuns"][number],
@@ -26,8 +30,9 @@ export function DirectorySyncWorkspace(props: {
   data: DirectorySyncWorkspaceSnapshot;
   onAction: () => Promise<DirectorySyncWorkspaceActionResult>;
 }): ReactElement {
-  const [pending, setPending] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { pendingKey, error, run } =
+    useWorkspaceAction<DirectorySyncWorkspaceActionResult>();
+  const pending = pendingKey !== null;
   const { data } = props;
   const git = data.git;
   const coverage = Object.entries(data.directory.byEntityType)
@@ -43,17 +48,10 @@ export function DirectorySyncWorkspace(props: {
           ? "Watching"
           : "Ready";
 
+  const { onAction } = props;
   const runSync = useCallback(async (): Promise<void> => {
-    setPending(true);
-    setError(null);
-    try {
-      await props.onAction();
-    } catch (actionError: unknown) {
-      setError(errorMessage(actionError));
-    } finally {
-      setPending(false);
-    }
-  }, [props]);
+    await run("sync-now", () => onAction());
+  }, [onAction, run]);
 
   return (
     <main className="directory-sync-workspace" data-health={data.health}>

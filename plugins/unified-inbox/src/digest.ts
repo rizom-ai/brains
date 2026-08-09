@@ -1,11 +1,10 @@
 import type { ServicePluginContext } from "@brains/plugins";
+import { pluralize, resolveUrl } from "@brains/utils/string-utils";
 import type { InboxDataSource } from "./inbox-datasource";
-import {
-  inboxDigestAlertSchema,
-  inboxProjectionSchema,
-  type InboxDigestAlert,
-  type InboxProjection,
-  type InboxProjectionEntry,
+import type {
+  InboxDigestAlert,
+  InboxProjection,
+  InboxProjectionEntry,
 } from "./schemas";
 
 const HIGH_TITLES_PER_SOURCE = 3;
@@ -13,6 +12,11 @@ const DIGEST_SOURCE_LIMIT = 10;
 
 interface CreateInboxDigestOptions {
   destinationUrl: string;
+  now?: (() => Date) | undefined;
+}
+
+interface RegisterInboxDigestOptions {
+  workspaceUrl?: string | undefined;
   now?: (() => Date) | undefined;
 }
 
@@ -28,10 +32,9 @@ interface DigestSourceGroup {
 }
 
 export function createUnifiedInboxDigest(
-  input: InboxProjection,
+  projection: InboxProjection,
   options: CreateInboxDigestOptions,
 ): InboxDigestAlert | undefined {
-  const projection = inboxProjectionSchema.parse(input);
   if (projection.entries.length === 0) return undefined;
 
   const highCount = projection.entries.filter(
@@ -40,9 +43,10 @@ export function createUnifiedInboxDigest(
   const groups = groupBySource(projection.entries);
   const visibleGroups = groups.slice(0, DIGEST_SOURCE_LIMIT);
   const lines = [
-    `${projection.entries.length} open attention ${
-      projection.entries.length === 1 ? "item" : "items"
-    } · ${highCount} high priority`,
+    `${projection.entries.length} open attention ${nounFor(
+      projection.entries.length,
+      "item",
+    )} · ${highCount} high priority`,
   ];
 
   for (const group of visibleGroups) {
@@ -62,31 +66,30 @@ export function createUnifiedInboxDigest(
   if (hiddenSources > 0) {
     lines.push(
       "",
-      `+${hiddenSources} more ${hiddenSources === 1 ? "source" : "sources"}`,
+      `+${hiddenSources} more ${nounFor(hiddenSources, "source")}`,
     );
   }
 
   const unavailable = projection.errors.length;
   lines.push(
     "",
-    `${unavailable > 0 ? `${unavailable} ${unavailable === 1 ? "source" : "sources"} unavailable. ` : ""}Open Inbox: ${options.destinationUrl}`,
+    `${unavailable > 0 ? `${unavailable} ${nounFor(unavailable, "source")} unavailable. ` : ""}Open Inbox: ${options.destinationUrl}`,
   );
 
   const now = options.now?.() ?? new Date();
-  return inboxDigestAlertSchema.parse({
+  return {
     dedupeKey: `unified-inbox:daily-digest:${now.toISOString().slice(0, 10)}`,
     title: `Inbox digest — ${projection.entries.length} open`,
     body: lines.join("\n"),
-  });
+  };
 }
 
 export function registerUnifiedInboxDigest(
   context: InboxDigestContext,
   dataSource: Pick<InboxDataSource, "getInboxData">,
-  now?: () => Date,
-  workspaceUrl?: string,
+  options: RegisterInboxDigestOptions = {},
 ): void {
-  const destinationUrl = resolveDestinationUrl(context, workspaceUrl);
+  const destinationUrl = resolveDestinationUrl(context, options.workspaceUrl);
   context.recurringChecks.register({
     id: "daily-digest",
     cadence: "daily",
@@ -96,7 +99,7 @@ export function registerUnifiedInboxDigest(
       signal.throwIfAborted();
       const alert = createUnifiedInboxDigest(projection, {
         destinationUrl,
-        ...(now ? { now } : {}),
+        ...(options.now ? { now: options.now } : {}),
       });
       return { alerts: alert ? [alert] : [] };
     },
@@ -117,6 +120,16 @@ function groupBySource(entries: InboxProjectionEntry[]): DigestSourceGroup[] {
   return [...groups.values()];
 }
 
+function nounFor(count: number, noun: string): string {
+  return count === 1 ? noun : pluralize(noun);
+}
+
+/**
+ * Prefer the registered CMS Inbox workspace; without a CMS, fall back to the
+ * dashboard plugin's mounted GET route. There is no shared cross-plugin
+ * deep-link contract yet, so the dashboard lookup stays a local heuristic
+ * until a second consumer needs it.
+ */
 function resolveDestinationUrl(
   context: InboxDigestContext,
   workspaceUrl?: string,
@@ -131,5 +144,5 @@ function resolveDestinationUrl(
           (route.definition.method ?? "GET") === "GET",
       )?.fullPath ??
     "/dashboard";
-  return context.siteUrl ? new URL(path, context.siteUrl).toString() : path;
+  return resolveUrl(path, context.siteUrl);
 }

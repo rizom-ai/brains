@@ -263,7 +263,7 @@ describe("CMS workspace query", () => {
 });
 
 describe("CMS workspace invalidation", () => {
-  it("invalidates only the acted-on workspace snapshot", async () => {
+  it("invalidates the acted-on workspace scope and the badge-carrying navigation", async () => {
     const client = createCmsQueryClient();
     client.setQueryData(cmsKeys.workspace("publishing"), { data: "before" });
     client.setQueryData(
@@ -287,7 +287,7 @@ describe("CMS workspace invalidation", () => {
       client.getQueryState(cmsKeys.workspace("review"))?.isInvalidated,
     ).toBe(false);
     expect(client.getQueryState(cmsKeys.navigation())?.isInvalidated).toBe(
-      false,
+      true,
     );
     client.clear();
   });

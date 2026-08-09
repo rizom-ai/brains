@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import {
   resolveBrainPackageName,
-  resolveBrainPackageRootName,
+  resolveBrainPackageRef,
 } from "../src/brain-package";
 
 describe("brain package resolution", () => {
@@ -10,15 +10,27 @@ describe("brain package resolution", () => {
     expect(resolveBrainPackageName("@rizom/brain")).toBe("@rizom/brain/model");
   });
 
-  it("resolves package metadata from the scoped package root", () => {
-    expect(resolveBrainPackageRootName("@rizom/brain/model")).toBe(
-      "@rizom/brain",
+  it("keeps the owning package and the definition specifier together", () => {
+    expect(resolveBrainPackageRef("brain")).toEqual({
+      packageName: "@rizom/brain",
+      specifier: "@rizom/brain/model",
+    });
+    expect(resolveBrainPackageRef("@example/custom/model")).toEqual({
+      packageName: "@example/custom",
+      specifier: "@example/custom/model",
+    });
+    expect(resolveBrainPackageRef("@example/custom")).toEqual({
+      packageName: "@example/custom",
+      specifier: "@example/custom",
+    });
+  });
+
+  it("rejects unsupported definitions", () => {
+    expect(() => resolveBrainPackageRef("@brains/core")).toThrow(
+      /Unsupported brain definition/,
     );
-    expect(resolveBrainPackageRootName("@example/custom/model")).toBe(
-      "@example/custom",
-    );
-    expect(resolveBrainPackageRootName("@example/custom")).toBe(
-      "@example/custom",
+    expect(() => resolveBrainPackageRef("local-brain")).toThrow(
+      /Unsupported brain definition/,
     );
   });
 });

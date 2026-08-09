@@ -1,5 +1,6 @@
 import type { ReactElement } from "react";
 import type { GitSyncState } from "./api";
+import { ConfirmDialog } from "./confirm-dialog";
 import type { SaveState } from "./editor-workflow";
 
 export function SaveStateNotice(props: {
@@ -139,46 +140,21 @@ export function DeleteDialog(props: {
   onConfirm: () => void;
 }): ReactElement {
   return (
-    <div
-      className="modal-scrim"
-      role="presentation"
-      onMouseDown={props.deleting ? undefined : props.onCancel}
+    <ConfirmDialog
+      mark="×"
+      title="Delete this entry?"
+      titleId="delete-title"
+      cancelLabel="Keep entry"
+      confirmLabel={props.deleting ? "Deleting…" : "Delete entry"}
+      pending={props.deleting === true}
+      confirmClassName="danger"
+      onCancel={props.onCancel}
+      onConfirm={props.onConfirm}
     >
-      <section
-        className="delete-modal"
-        role="alertdialog"
-        aria-modal="true"
-        aria-labelledby="delete-title"
-        onMouseDown={(event) => event.stopPropagation()}
-      >
-        <span className="modal-mark" aria-hidden="true">
-          ×
-        </span>
-        <h3 id="delete-title">Delete this entry?</h3>
-        <p>
-          The exported file for <code>{props.entityId}</code> will be removed.
-          Its history remains recoverable in git.
-        </p>
-        <div className="modal-actions">
-          <button
-            type="button"
-            className="btn ghost"
-            autoFocus
-            disabled={props.deleting}
-            onClick={props.onCancel}
-          >
-            Keep entry
-          </button>
-          <button
-            type="button"
-            className="btn danger"
-            disabled={props.deleting}
-            onClick={props.onConfirm}
-          >
-            {props.deleting ? "Deleting…" : "Delete entry"}
-          </button>
-        </div>
-      </section>
-    </div>
+      <p>
+        The exported file for <code>{props.entityId}</code> will be removed. Its
+        history remains recoverable in git.
+      </p>
+    </ConfirmDialog>
   );
 }

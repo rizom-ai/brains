@@ -97,14 +97,12 @@
   .directory-sync-grid {
     grid-template-columns: minmax(0, 1fr);
   }
-  .mail-triage-filters {
+  .mail-triage-filters,
+  .inbox-filters {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   .mail-triage-filter-count {
     grid-column: 1 / -1;
-  }
-  .inbox-filters {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   .inbox-filters > span {
     grid-column: 1 / -1;
@@ -279,7 +277,8 @@
   .mail-triage-vitals > div:nth-child(3) {
     padding-left: 0;
   }
-  .mail-triage-filters {
+  .mail-triage-filters,
+  .inbox-filters {
     grid-template-columns: minmax(0, 1fr);
   }
   .mail-triage-item > footer {
@@ -295,9 +294,6 @@
   }
   .inbox-workspace-totals strong {
     text-align: left;
-  }
-  .inbox-filters {
-    grid-template-columns: minmax(0, 1fr);
   }
   .inbox-filters > span {
     grid-column: 1;
@@ -326,16 +322,6 @@
   }
   .inbox-row {
     min-height: 70px;
-  }
-  .inbox-dialog {
-    padding: 20px;
-  }
-  .inbox-dialog > div {
-    align-items: stretch;
-    flex-direction: column-reverse;
-  }
-  .inbox-dialog .btn {
-    min-height: var(--console-touch);
   }
   .site-workspace-head,
   .site-environments,

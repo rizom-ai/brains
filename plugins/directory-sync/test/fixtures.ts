@@ -126,6 +126,7 @@ export function createMockDirectorySync(
     fileOps: {
       readEntity: mock(async () => ({}) as never),
       parseEntityFromPath: mock(() => ({ entityType: "topic", id: "test" })),
+      fileExists: mock(async () => false),
     },
     shouldDeleteOnFileRemoval: true,
     getAllMarkdownFiles: mock(async () => []),

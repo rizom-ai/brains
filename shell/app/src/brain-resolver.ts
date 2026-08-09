@@ -1,4 +1,4 @@
-import { PluginConfigValidationError, type Plugin } from "@brains/plugins";
+import { isPluginConfigValidationError, type Plugin } from "@brains/plugins";
 import { ensureArray } from "@brains/utils/array";
 import { type Logger } from "@brains/utils/logger";
 import type { BrainDefinition, BrainEnvironment } from "./brain-definition";
@@ -36,25 +36,6 @@ import {
 } from "./resolver/site";
 
 export { isScopedPackageRef };
-
-function isPluginConfigValidationError(
-  error: unknown,
-): error is PluginConfigValidationError {
-  if (error instanceof PluginConfigValidationError) return true;
-  if (
-    !(error instanceof Error) ||
-    error.name !== "PluginConfigValidationError"
-  ) {
-    return false;
-  }
-  const candidate = error as Error & {
-    pluginId?: unknown;
-    issues?: unknown;
-  };
-  return (
-    typeof candidate.pluginId === "string" && Array.isArray(candidate.issues)
-  );
-}
 
 /**
  * Resolve a brain definition + environment into a runnable AppConfig.

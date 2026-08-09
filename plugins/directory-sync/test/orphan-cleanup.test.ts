@@ -169,3 +169,19 @@ describe("removeOrphanedEntities", () => {
     );
   });
 });
+
+describe("quarantined files", () => {
+  it("keeps entities whose files were quarantined rather than deleted", async () => {
+    const quarantined = createTestEntity("mail-item", { id: "mail-1" });
+    const deps = createMockDeps({
+      entities: { "mail-item": [quarantined] },
+      // Quarantine renamed the entity file; its .invalid marker remains.
+      existingFiles: new Set(["/data/mail-item/mail-1.md.invalid"]),
+    });
+
+    const result = await removeOrphanedEntities(deps);
+
+    expect(result.deleted).toBe(0);
+    expect(deps.entityService.deleteEntity).not.toHaveBeenCalled();
+  });
+});

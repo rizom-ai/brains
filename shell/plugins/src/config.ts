@@ -39,3 +39,23 @@ export class PluginConfigValidationError extends Error {
     this.issues = issues;
   }
 }
+
+/**
+ * Structural guard: separately bundled interfaces and plugins can carry their
+ * own copy of this class, so `instanceof` alone misses cross-realm instances.
+ */
+export function isPluginConfigValidationError(
+  error: unknown,
+): error is PluginConfigValidationError {
+  if (error instanceof PluginConfigValidationError) return true;
+  if (
+    !(error instanceof Error) ||
+    error.name !== "PluginConfigValidationError"
+  ) {
+    return false;
+  }
+  const candidate = error as Error & { pluginId?: unknown; issues?: unknown };
+  return (
+    typeof candidate.pluginId === "string" && Array.isArray(candidate.issues)
+  );
+}

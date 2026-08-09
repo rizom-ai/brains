@@ -4,6 +4,7 @@ import {
   parseMarkdownWithFrontmatter,
   generateMarkdownWithFrontmatter,
   generateFrontmatter,
+  stripSystemVisibility,
 } from "../frontmatter";
 import { EntityValidationError } from "../errors";
 
@@ -17,6 +18,19 @@ const defaultBodyFormatter: BodyTemplateProvider = {
 };
 
 const frontmatterRecordSchema = z.record(z.string(), z.unknown());
+
+/**
+ * Adapters validate only domain frontmatter: the exported file additionally
+ * carries the system `visibility` envelope, removed here before the domain
+ * schema sees it.
+ */
+function systemTolerant<T>(schema: { parse(data: unknown): T }): {
+  parse(data: unknown): T;
+} {
+  return {
+    parse: (data: unknown): T => schema.parse(stripSystemVisibility(data)),
+  };
+}
 
 export type DefaultEntityFrontmatter<TMetadata extends object> = {
   [K in keyof TMetadata]?: TMetadata[K] | undefined;
@@ -143,7 +157,8 @@ export abstract class BaseEntityAdapter<
     schema: { parse(data: unknown): T },
   ): T {
     try {
-      return parseMarkdownWithFrontmatter(markdown, schema).metadata;
+      return parseMarkdownWithFrontmatter(markdown, systemTolerant(schema))
+        .metadata;
     } catch (error) {
       throw new EntityValidationError(this.entityType, error);
     }
@@ -172,7 +187,10 @@ export abstract class BaseEntityAdapter<
   /** Parse frontmatter using this adapter's frontmatter schema. */
   protected parseFrontmatter(markdown: string): TFrontmatter {
     try {
-      return parseMarkdownWithFrontmatter(markdown, this.fmSchema).metadata;
+      return parseMarkdownWithFrontmatter(
+        markdown,
+        systemTolerant(this.fmSchema),
+      ).metadata;
     } catch (error) {
       throw new EntityValidationError(this.entityType, error);
     }

@@ -32,6 +32,7 @@ export type {
 // Shared SSR primitives for custom dashboard widgets
 export {
   createWidgetInstanceId,
+  formatDate,
   WidgetPrimitiveEmptyState as EmptyState,
   KeyValueList,
   WidgetActionLink,

@@ -40,7 +40,8 @@ describe("UnifiedInboxDashboardWidget", () => {
     expect(html).toContain("Email Triage");
     expect(html).toContain("Candidates");
     expect(html).toContain("Time-sensitive work request");
-    expect(html).toContain("high priority");
+    expect(html).toContain("pill--warn");
+    expect(html).toContain(">high<");
     expect(html).toContain("Open Inbox");
     expect(html).toContain('href="/studio/workspaces/inbox"');
     expect(html).not.toContain("data-inbox-action");
@@ -101,7 +102,7 @@ describe("UnifiedInboxDashboardWidget", () => {
       ],
       needsAttention: 1,
     });
-    expect(registration.clientStyles).toContain(".unified-inbox-preview");
+    expect(registration.clientStyles).toContain(".unified-inbox-widget");
     expect(registration.clientScript).toBeUndefined();
   });
 });

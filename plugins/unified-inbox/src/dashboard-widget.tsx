@@ -1,12 +1,17 @@
 /** @jsxImportSource preact */
 import {
+  KeyValueList,
   WidgetActionLink,
   WidgetActions,
   WidgetEmptyState,
+  WidgetList,
+  WidgetListItem,
   WidgetStatusPill,
+  formatDate,
   type WidgetComponentProps,
 } from "@brains/dashboard";
 import type { ServicePluginContext } from "@brains/plugins";
+import { pluralize } from "@brains/utils/string-utils";
 import type { JSX } from "preact";
 import type { InboxOperatorService } from "./operator-service";
 import { inboxDashboardDataSchema, type InboxDashboardData } from "./schemas";
@@ -14,10 +19,6 @@ import unifiedInboxWidgetStyles from "./dashboard-widget.css" with { type: "text
 
 interface InboxDashboardContext {
   dashboard: Pick<ServicePluginContext["dashboard"], "registerWidget">;
-}
-
-function displayTimestamp(receivedAt: string): string {
-  return `${receivedAt.slice(0, 10)} ${receivedAt.slice(11, 16)} UTC`;
 }
 
 export function UnifiedInboxDashboardWidget({
@@ -31,46 +32,49 @@ export function UnifiedInboxDashboardWidget({
   const { summary, entries, managementUrl } = parsed.data;
   return (
     <div class="unified-inbox-widget">
-      <div class="unified-inbox-summary" aria-label="Inbox summary">
-        <span>
-          <strong>{summary.open}</strong> open
-        </span>
-        <span class={summary.high > 0 ? "is-high" : undefined}>
-          <strong>{summary.high}</strong> high priority
-        </span>
-        <span>
-          <strong>{summary.availableSources}</strong> sources online
-        </span>
-      </div>
+      <KeyValueList
+        items={[
+          { label: "Open", value: summary.open },
+          { label: "High priority", value: summary.high },
+          { label: "Sources online", value: summary.availableSources },
+        ]}
+      />
 
       {entries.length === 0 ? (
         <WidgetEmptyState className="unified-inbox-empty">
           Inbox clear — no source needs attention.
         </WidgetEmptyState>
       ) : (
-        <ol class="unified-inbox-preview">
+        <WidgetList>
           {entries.map((entry, index) => (
-            <li key={`${entry.sourceLabel}:${entry.receivedAt}:${index}`}>
-              <WidgetStatusPill
-                tone={entry.urgency === "high" ? "warn" : "muted"}
-              >
-                {entry.urgency}
-              </WidgetStatusPill>
-              <span class="unified-inbox-preview-copy">
-                <strong>{entry.title}</strong>
-                <small>
-                  {entry.sourceLabel} · {displayTimestamp(entry.receivedAt)}
-                </small>
-              </span>
-            </li>
+            <WidgetListItem
+              key={`${entry.sourceLabel}:${entry.receivedAt}:${index}`}
+              title={entry.title}
+              meta={[
+                entry.sourceLabel,
+                formatDate(entry.receivedAt, {
+                  style: "medium",
+                  includeTime: true,
+                }),
+              ]}
+              trailing={
+                <WidgetStatusPill
+                  tone={entry.urgency === "high" ? "warn" : "muted"}
+                >
+                  {entry.urgency}
+                </WidgetStatusPill>
+              }
+            />
           ))}
-        </ol>
+        </WidgetList>
       )}
 
       {summary.unavailableSources > 0 && (
         <p class="unified-inbox-unavailable">
           {summary.unavailableSources}{" "}
-          {summary.unavailableSources === 1 ? "source is" : "sources are"}{" "}
+          {summary.unavailableSources === 1
+            ? "source is"
+            : `${pluralize("source")} are`}{" "}
           temporarily unavailable.
         </p>
       )}
@@ -108,6 +112,8 @@ export async function registerUnifiedInboxDashboardWidget(
     clientStyles: unifiedInboxWidgetStyles,
     dataProvider: async (): Promise<InboxDashboardData> =>
       operator.dashboard(managementUrl),
+    // The registration contract types digest input as unknown, so the parse
+    // here is the narrowing, not duplicate validation.
     digestProvider: (data) => {
       const current = inboxDashboardDataSchema.parse(data);
       return {

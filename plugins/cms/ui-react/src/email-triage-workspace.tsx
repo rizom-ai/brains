@@ -9,7 +9,7 @@ import type {
   MailTriageStatusActionResult,
   MailTriageWorkspaceSnapshot,
 } from "./api";
-import { errorMessage, formatUpdated } from "./ui-utils";
+import { formatUpdated, useWorkspaceAction } from "./ui-utils";
 
 export interface MailTriageFilters {
   category?: MailTriageCategory | null;
@@ -107,8 +107,11 @@ export function EmailTriageWorkspace(props: {
   const [priority, setPriority] = useState<MailTriagePriority | "all">("all");
   const [status, setStatus] = useState<MailTriageStatus | "all">("new");
   const [reply, setReply] = useState<"all" | "yes" | "no">("all");
-  const [pending, setPending] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const {
+    pendingKey: pending,
+    error,
+    run,
+  } = useWorkspaceAction<MailTriageStatusActionResult>();
   const filters: MailTriageFilters = {
     ...(category === "unclassified"
       ? { category: null }
@@ -121,20 +124,12 @@ export function EmailTriageWorkspace(props: {
   };
   const items = filterMailTriageItems(props.data.items, filters);
 
+  const { onAction } = props;
   const execute = useCallback(
     async (action: MailTriageStatusAction): Promise<void> => {
-      const key = `${action.id}:${action.type}`;
-      setPending(key);
-      setError(null);
-      try {
-        await props.onAction(action);
-      } catch (actionError: unknown) {
-        setError(errorMessage(actionError));
-      } finally {
-        setPending(null);
-      }
+      await run(`${action.id}:${action.type}`, () => onAction(action));
     },
-    [props],
+    [onAction, run],
   );
 
   return (

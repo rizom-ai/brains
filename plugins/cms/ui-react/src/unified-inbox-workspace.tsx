@@ -2,22 +2,40 @@
 import {
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
-  type KeyboardEvent as ReactKeyboardEvent,
   type ReactElement,
 } from "react";
 import type {
   InboxWorkspaceAction,
   InboxWorkspaceActionResult,
   InboxWorkspaceEntry,
-  InboxWorkspaceQuery,
   InboxWorkspaceSnapshot,
 } from "./api";
-import { formatUpdated } from "./ui-utils";
+import { ConfirmDialog } from "./confirm-dialog";
+import type { CmsWorkspaceQuery } from "./queries";
+import { formatUpdated, useWorkspaceAction } from "./ui-utils";
+
+const DEFAULT_INBOX_PAGE_SIZE = 50;
 
 function entryKey(entry: InboxWorkspaceEntry): string {
   return `${entry.source.sourceId}:${entry.item.id}`;
+}
+
+function actionKey(action: InboxWorkspaceAction): string {
+  return `${action.sourceId}:${action.itemId}:${action.actionId}`;
+}
+
+function mergeEntries(
+  current: InboxWorkspaceEntry[],
+  next: InboxWorkspaceEntry[],
+): InboxWorkspaceEntry[] {
+  const merged = new Map(current.map((entry) => [entryKey(entry), entry]));
+  for (const entry of next) {
+    merged.set(entryKey(entry), entry);
+  }
+  return [...merged.values()];
 }
 
 function sourceFilterValue(value: string): string | undefined {
@@ -28,126 +46,83 @@ function urgencyFilterValue(value: string): "high" | "normal" | undefined {
   return value === "high" || value === "normal" ? value : undefined;
 }
 
-function InboxConfirmationDialog(props: {
-  summary: string;
-  pending: boolean;
-  onCancel: () => void;
-  onConfirm: () => void;
-}): ReactElement {
-  const dialogRef = useRef<HTMLDivElement>(null);
-  const cancelRef = useRef<HTMLButtonElement>(null);
-
-  useEffect(() => {
-    cancelRef.current?.focus();
-  }, []);
-
-  const trapFocus = useCallback(
-    (event: ReactKeyboardEvent<HTMLDivElement>): void => {
-      if (event.key === "Escape" && !props.pending) {
-        event.preventDefault();
-        props.onCancel();
-        return;
-      }
-      if (event.key !== "Tab") return;
-      const controls = Array.from(
-        dialogRef.current?.querySelectorAll<HTMLButtonElement>(
-          "button:not(:disabled)",
-        ) ?? [],
-      );
-      const first = controls[0];
-      const last = controls.at(-1);
-      if (!first || !last) return;
-      if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault();
-        last.focus();
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault();
-        first.focus();
-      }
-    },
-    [props],
-  );
-
-  return (
-    <div className="inbox-dialog-backdrop">
-      <div
-        ref={dialogRef}
-        className="inbox-dialog"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="inbox-confirmation-title"
-        aria-describedby="inbox-confirmation-summary"
-        onKeyDown={trapFocus}
-      >
-        <span>Confirmation required</span>
-        <h3 id="inbox-confirmation-title">Run this inbox action?</h3>
-        <p id="inbox-confirmation-summary">{props.summary}</p>
-        <div>
-          <button
-            ref={cancelRef}
-            type="button"
-            className="btn ghost"
-            disabled={props.pending}
-            onClick={props.onCancel}
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            className="btn"
-            disabled={props.pending}
-            onClick={props.onConfirm}
-          >
-            {props.pending ? "Working…" : "Confirm action"}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
+interface InboxFeedback {
+  message: string;
+  isError: boolean;
 }
 
 export function UnifiedInboxWorkspace(props: {
   data: InboxWorkspaceSnapshot;
-  query: InboxWorkspaceQuery;
-  onFiltersChange: (filters: {
-    sourceId?: string;
-    urgency?: "high" | "normal";
-  }) => void;
-  onLoadMore: () => void;
+  query: CmsWorkspaceQuery;
+  onQueryChange: (query: CmsWorkspaceQuery) => void;
   onOpenEntity: (entityType: string, entityId: string) => void;
   onAction: (
     action: InboxWorkspaceAction,
   ) => Promise<InboxWorkspaceActionResult>;
 }): ReactElement {
+  const { data, query, onQueryChange, onOpenEntity, onAction } = props;
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
-  const [pendingKey, setPendingKey] = useState<string | null>(null);
-  const [feedback, setFeedback] = useState("");
-  const [feedbackError, setFeedbackError] = useState(false);
+  const [feedback, setFeedback] = useState<InboxFeedback | null>(null);
   const [confirmation, setConfirmation] = useState<{
     action: InboxWorkspaceAction;
     summary: string;
     trigger: HTMLButtonElement;
   } | null>(null);
+  // The projection is paged; older pages accumulate here. An offset-0 page
+  // replaces the accumulation so filter changes and post-action re-lists
+  // drop resolved rows instead of merging them back in.
+  const [entries, setEntries] = useState<InboxWorkspaceEntry[]>(data.entries);
   const detailHeadingRef = useRef<HTMLHeadingElement>(null);
   const originRef = useRef<HTMLButtonElement | null>(null);
-  const pendingRef = useRef(false);
-  const selected = props.data.entries.find(
-    (entry) => entryKey(entry) === selectedKey,
+  const action = useWorkspaceAction<InboxWorkspaceActionResult>();
+
+  useEffect(() => {
+    setEntries((current) =>
+      data.offset === 0 ? data.entries : mergeEntries(current, data.entries),
+    );
+  }, [data]);
+
+  const selected = useMemo(
+    () => entries.find((entry) => entryKey(entry) === selectedKey),
+    [entries, selectedKey],
   );
 
   useEffect(() => {
     if (selected) detailHeadingRef.current?.focus();
   }, [selected]);
 
-  useEffect(() => {
-    if (selectedKey && !selected) setSelectedKey(null);
-  }, [selected, selectedKey]);
+  const sourceFilter =
+    typeof query["sourceId"] === "string" ? query["sourceId"] : undefined;
+  const urgencyFilter =
+    query["urgency"] === "high" || query["urgency"] === "normal"
+      ? query["urgency"]
+      : undefined;
+  const limit =
+    typeof query["limit"] === "number"
+      ? query["limit"]
+      : DEFAULT_INBOX_PAGE_SIZE;
+
+  const filteredQuery = useCallback(
+    (
+      filters: {
+        sourceId: string | undefined;
+        urgency: "high" | "normal" | undefined;
+      },
+      offset: number,
+    ): CmsWorkspaceQuery => ({
+      ...(filters.sourceId !== undefined ? { sourceId: filters.sourceId } : {}),
+      ...(filters.urgency !== undefined ? { urgency: filters.urgency } : {}),
+      offset,
+      limit,
+    }),
+    [limit],
+  );
 
   const selectEntry = useCallback(
     (entry: InboxWorkspaceEntry, trigger: HTMLButtonElement): void => {
       originRef.current = trigger;
       setSelectedKey(entryKey(entry));
-      setFeedback("");
+      setFeedback(null);
     },
     [],
   );
@@ -157,47 +132,69 @@ export function UnifiedInboxWorkspace(props: {
     window.setTimeout(() => originRef.current?.focus(), 0);
   }, []);
 
-  const changeFilters = useCallback(
-    (filters: { sourceId?: string; urgency?: "high" | "normal" }): void => {
+  const changeFilter = useCallback(
+    (patch: {
+      sourceId?: string | undefined;
+      urgency?: "high" | "normal" | undefined;
+    }): void => {
       setSelectedKey(null);
       originRef.current = null;
-      setFeedback("");
-      props.onFiltersChange(filters);
+      setFeedback(null);
+      onQueryChange(
+        filteredQuery(
+          { sourceId: sourceFilter, urgency: urgencyFilter, ...patch },
+          0,
+        ),
+      );
     },
-    [props],
+    [filteredQuery, onQueryChange, sourceFilter, urgencyFilter],
   );
+
+  const loadMore = useCallback((): void => {
+    onQueryChange(
+      filteredQuery(
+        { sourceId: sourceFilter, urgency: urgencyFilter },
+        entries.length,
+      ),
+    );
+  }, [
+    entries.length,
+    filteredQuery,
+    onQueryChange,
+    sourceFilter,
+    urgencyFilter,
+  ]);
 
   const execute = useCallback(
     async (
-      action: InboxWorkspaceAction,
+      request: InboxWorkspaceAction,
       trigger: HTMLButtonElement,
     ): Promise<void> => {
-      const key = `${action.sourceId}:${action.itemId}:${action.actionId}`;
-      if (pendingRef.current) return;
-      pendingRef.current = true;
-      setPendingKey(key);
-      setFeedback("");
-      setFeedbackError(false);
-      try {
-        const result = await props.onAction(action);
-        if (result.kind === "confirmation") {
-          setConfirmation({ action, summary: result.summary, trigger });
-        } else if (result.kind === "error") {
-          setFeedback(result.error);
-          setFeedbackError(true);
-        } else {
-          setFeedback("Inbox updated.");
-          setSelectedKey(null);
-        }
-      } catch {
-        setFeedback("Inbox action failed");
-        setFeedbackError(true);
-      } finally {
-        pendingRef.current = false;
-        setPendingKey(null);
+      setFeedback(null);
+      const result = await action.run(actionKey(request), () =>
+        onAction(request),
+      );
+      if (!result) return;
+      if (result.kind === "confirmation") {
+        setConfirmation({ action: request, summary: result.summary, trigger });
+      } else if (result.kind === "error") {
+        setFeedback({ message: result.error, isError: true });
+      } else {
+        setFeedback({ message: "Inbox updated.", isError: false });
+        setSelectedKey(null);
+        onQueryChange(
+          filteredQuery({ sourceId: sourceFilter, urgency: urgencyFilter }, 0),
+        );
       }
     },
-    [props],
+    [
+      action,
+      filteredQuery,
+      onAction,
+      onQueryChange,
+      sourceFilter,
+      urgencyFilter,
+    ],
   );
 
   const closeConfirmation = useCallback((): void => {
@@ -207,14 +204,16 @@ export function UnifiedInboxWorkspace(props: {
   }, [confirmation]);
 
   const confirmAction = useCallback((): void => {
-    if (!confirmation || pendingRef.current) return;
-    const { action, trigger } = confirmation;
+    if (!confirmation) return;
+    const { action: request, trigger } = confirmation;
     setConfirmation(null);
     trigger.focus();
-    void execute({ ...action, confirmed: true }, trigger);
+    void execute({ ...request, confirmed: true }, trigger);
   }, [confirmation, execute]);
 
-  const hasMore = props.data.entries.length < props.data.total;
+  const statusMessage = action.error ?? feedback?.message ?? "";
+  const statusIsError = action.error !== null || feedback?.isError === true;
+  const hasMore = entries.length < data.total;
 
   return (
     <main
@@ -234,18 +233,18 @@ export function UnifiedInboxWorkspace(props: {
         </div>
         <div className="inbox-workspace-totals" aria-label="Inbox totals">
           <strong>
-            {props.data.summary.open}
+            {data.summary.open}
             <small>open</small>
           </strong>
-          <strong className={props.data.summary.high > 0 ? "needs" : ""}>
-            {props.data.summary.high}
+          <strong className={data.summary.high > 0 ? "needs" : ""}>
+            {data.summary.high}
             <small>high priority</small>
           </strong>
         </div>
       </header>
 
       <section className="inbox-source-health" aria-label="Source availability">
-        {props.data.sources.map((source) => (
+        {data.sources.map((source) => (
           <span
             key={source.source.sourceId}
             className={source.available ? "" : "is-unavailable"}
@@ -261,19 +260,13 @@ export function UnifiedInboxWorkspace(props: {
         <label>
           <span>Source</span>
           <select
-            value={props.query.sourceId ?? "all"}
-            onChange={(event) => {
-              const sourceId = sourceFilterValue(event.target.value);
-              changeFilters({
-                ...(sourceId ? { sourceId } : {}),
-                ...(props.query.urgency
-                  ? { urgency: props.query.urgency }
-                  : {}),
-              });
-            }}
+            value={sourceFilter ?? "all"}
+            onChange={(event) =>
+              changeFilter({ sourceId: sourceFilterValue(event.target.value) })
+            }
           >
             <option value="all">All sources</option>
-            {props.data.sources.map((source) => (
+            {data.sources.map((source) => (
               <option
                 key={source.source.sourceId}
                 value={source.source.sourceId}
@@ -286,16 +279,10 @@ export function UnifiedInboxWorkspace(props: {
         <label>
           <span>Urgency</span>
           <select
-            value={props.query.urgency ?? "all"}
-            onChange={(event) => {
-              const urgency = urgencyFilterValue(event.target.value);
-              changeFilters({
-                ...(props.query.sourceId
-                  ? { sourceId: props.query.sourceId }
-                  : {}),
-                ...(urgency ? { urgency } : {}),
-              });
-            }}
+            value={urgencyFilter ?? "all"}
+            onChange={(event) =>
+              changeFilter({ urgency: urgencyFilterValue(event.target.value) })
+            }
           >
             <option value="all">All urgency</option>
             <option value="high">High priority</option>
@@ -303,13 +290,13 @@ export function UnifiedInboxWorkspace(props: {
           </select>
         </label>
         <span>
-          {props.data.entries.length} shown · {props.data.total} matching
+          {entries.length} shown · {data.total} matching
         </span>
       </section>
 
-      {props.data.errors.length > 0 && (
+      {data.errors.length > 0 && (
         <aside className="inbox-source-errors" role="status">
-          {props.data.errors.map((error) => (
+          {data.errors.map((error) => (
             <span key={error.source.sourceId}>
               {error.source.displayName} is temporarily unavailable.
             </span>
@@ -319,24 +306,24 @@ export function UnifiedInboxWorkspace(props: {
 
       <p
         className={
-          feedbackError
+          statusIsError
             ? "status status-error inbox-feedback"
             : "status inbox-feedback"
         }
         aria-live="polite"
       >
-        {feedback}
+        {statusMessage}
       </p>
 
       <div className="inbox-workspace-grid">
         <section className="inbox-list-pane" aria-label="Inbox items">
-          {props.data.entries.length === 0 ? (
+          {entries.length === 0 ? (
             <p className="inbox-empty">
               Nothing needs attention for these filters.
             </p>
           ) : (
             <ol>
-              {props.data.entries.map((entry) => {
+              {entries.map((entry) => {
                 const key = entryKey(entry);
                 return (
                   <li key={key}>
@@ -371,7 +358,7 @@ export function UnifiedInboxWorkspace(props: {
             <button
               type="button"
               className="btn ghost inbox-load-more"
-              onClick={props.onLoadMore}
+              onClick={loadMore}
             >
               Load more
             </button>
@@ -412,7 +399,7 @@ export function UnifiedInboxWorkspace(props: {
                   type="button"
                   className="inbox-entity-link"
                   onClick={() =>
-                    props.onOpenEntity(
+                    onOpenEntity(
                       selected.item.entityRef?.entityType ?? "",
                       selected.item.entityRef?.entityId ?? "",
                     )
@@ -424,28 +411,27 @@ export function UnifiedInboxWorkspace(props: {
               <footer>
                 <span>Available actions</span>
                 <nav aria-label={`Actions for ${selected.item.title}`}>
-                  {selected.item.actions.map((action) => {
-                    const key = `${selected.source.sourceId}:${selected.item.id}:${action.id}`;
+                  {selected.item.actions.map((offered) => {
+                    const request: InboxWorkspaceAction = {
+                      sourceId: selected.source.sourceId,
+                      itemId: selected.item.id,
+                      actionId: offered.id,
+                    };
                     return (
                       <button
                         type="button"
                         className={
-                          action.confirm ? "requires-confirmation" : ""
+                          offered.confirm ? "requires-confirmation" : ""
                         }
-                        disabled={pendingKey !== null}
-                        key={action.id}
+                        disabled={action.pendingKey !== null}
+                        key={offered.id}
                         onClick={(event) =>
-                          void execute(
-                            {
-                              sourceId: selected.source.sourceId,
-                              itemId: selected.item.id,
-                              actionId: action.id,
-                            },
-                            event.currentTarget,
-                          )
+                          void execute(request, event.currentTarget)
                         }
                       >
-                        {pendingKey === key ? "Working…" : action.label}
+                        {action.pendingKey === actionKey(request)
+                          ? "Working…"
+                          : offered.label}
                       </button>
                     );
                   })}
@@ -465,12 +451,20 @@ export function UnifiedInboxWorkspace(props: {
       </div>
 
       {confirmation && (
-        <InboxConfirmationDialog
-          summary={confirmation.summary}
-          pending={pendingKey !== null}
+        <ConfirmDialog
+          mark="!"
+          title="Run this inbox action?"
+          titleId="inbox-confirmation-title"
+          cancelLabel="Cancel"
+          confirmLabel={
+            action.pendingKey !== null ? "Working…" : "Confirm action"
+          }
+          pending={action.pendingKey !== null}
           onCancel={closeConfirmation}
           onConfirm={confirmAction}
-        />
+        >
+          <p id="inbox-confirmation-summary">{confirmation.summary}</p>
+        </ConfirmDialog>
       )}
     </main>
   );

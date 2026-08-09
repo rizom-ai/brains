@@ -3,6 +3,19 @@ import { z } from "@brains/utils/zod";
 
 const inboxIdPattern = /^[a-z][a-z0-9-]*$/;
 
+/** Grammar for source and action identifiers; shared with inbox consumers. */
+export const inboxIdSchema: z.ZodString = z
+  .string()
+  .trim()
+  .regex(inboxIdPattern);
+
+export const inboxItemIdSchema: z.ZodString = z.string().trim().min(1).max(300);
+
+export const inboxUrgencySchema: z.ZodEnum<{
+  high: "high";
+  normal: "normal";
+}> = z.enum(["high", "normal"]);
+
 interface InboxActionValue {
   id: string;
   label: string;
@@ -11,7 +24,7 @@ interface InboxActionValue {
 
 export const inboxActionSchema: z.ZodType<InboxActionValue, InboxActionValue> =
   z.strictObject({
-    id: z.string().trim().regex(inboxIdPattern),
+    id: inboxIdSchema,
     label: z.string().trim().min(1).max(100),
     confirm: z.boolean().optional(),
   });
@@ -41,11 +54,11 @@ interface InboxItemValue {
 
 export const inboxItemSchema: z.ZodType<InboxItemValue, InboxItemValue> = z
   .strictObject({
-    id: z.string().trim().min(1).max(300),
+    id: inboxItemIdSchema,
     title: z.string().trim().min(1).max(160),
     summary: z.string().trim().min(1).max(1_000).optional(),
     receivedAt: z.iso.datetime(),
-    urgency: z.enum(["high", "normal"]),
+    urgency: inboxUrgencySchema,
     entityRef: inboxEntityRefSchema.optional(),
     actions: z.array(inboxActionSchema).max(10),
   })
@@ -86,7 +99,7 @@ export const inboxSourceMetadataSchema: z.ZodType<
   InboxSourceMetadataValue,
   InboxSourceMetadataValue
 > = z.strictObject({
-  sourceId: z.string().trim().regex(inboxIdPattern),
+  sourceId: inboxIdSchema,
   displayName: z.string().trim().min(1).max(100),
 });
 
@@ -214,12 +227,8 @@ function normalizeSource(
       actionId: string,
       actor: InboxActor,
     ): Promise<void> => {
-      const normalizedItemId = z.string().trim().min(1).max(300).parse(itemId);
-      const normalizedActionId = z
-        .string()
-        .trim()
-        .regex(inboxIdPattern)
-        .parse(actionId);
+      const normalizedItemId = inboxItemIdSchema.parse(itemId);
+      const normalizedActionId = inboxIdSchema.parse(actionId);
       await source.act(
         normalizedItemId,
         normalizedActionId,
@@ -250,5 +259,5 @@ function normalizePluginId(pluginId: string): string {
 }
 
 function normalizeSourceId(sourceId: string): string {
-  return z.string().trim().regex(inboxIdPattern).parse(sourceId);
+  return inboxIdSchema.parse(sourceId);
 }

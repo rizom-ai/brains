@@ -100,6 +100,33 @@ describe("InboxDataSource", () => {
     expect(JSON.stringify(projection)).not.toContain("private source failure");
   });
 
+  it("coalesces concurrent projections into one source fan-out", async () => {
+    let lists = 0;
+    const registry = new InboxRegistry();
+    registry.registerSource("alpha-plugin", {
+      sourceId: "alpha",
+      displayName: "Alpha",
+      list: async () => {
+        lists += 1;
+        return [item("alpha-high", "high", "2026-08-04T08:00:00.000Z")];
+      },
+      act: async () => undefined,
+    });
+    registry.finalize();
+    const dataSource = new InboxDataSource(registry);
+
+    const [first, second] = await Promise.all([
+      dataSource.getInboxData(),
+      dataSource.getInboxData(),
+    ]);
+
+    expect(lists).toBe(1);
+    expect(first).toBe(second);
+
+    await dataSource.getInboxData();
+    expect(lists).toBe(2);
+  });
+
   it("returns a stable empty projection", async () => {
     const registry = new InboxRegistry();
     registry.finalize();

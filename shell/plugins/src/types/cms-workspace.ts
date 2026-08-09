@@ -13,6 +13,19 @@ export interface CmsWorkspaceActor {
   isAnchor: boolean;
 }
 
+/**
+ * Source-owned authorization for workspace providers: capabilities enforce
+ * admin themselves instead of trusting the hosting surface's access gate.
+ */
+export function assertCmsWorkspaceAdmin(
+  actor: { userPermissionLevel?: UserPermissionLevel | undefined },
+  capability: string,
+): void {
+  if (actor.userPermissionLevel !== "admin") {
+    throw new Error(`${capability} requires admin permission`);
+  }
+}
+
 /** Optional server-side capability hosted by the first-party CMS. */
 export type CmsWorkspaceRendererName =
   | "PublishingWorkspace"

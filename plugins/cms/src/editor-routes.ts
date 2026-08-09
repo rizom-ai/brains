@@ -523,17 +523,8 @@ async function handleGetWorkspace(
 
 function workspaceQueryFromSearchParams(
   searchParams: URLSearchParams,
-): Record<string, string | string[]> {
-  const query: Record<string, string | string[]> = {};
-  for (const key of new Set(searchParams.keys())) {
-    if (key === "id") continue;
-    const values = searchParams.getAll(key);
-    if (values.length === 1 && values[0] !== undefined) {
-      query[key] = values[0];
-    } else if (values.length > 1) {
-      query[key] = values;
-    }
-  }
+): Record<string, string> {
+  const { id: _id, ...query } = Object.fromEntries(searchParams);
   return query;
 }
 

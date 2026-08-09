@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import type { InboundEmail } from "@brains/contracts";
+import { applyVisibilityToMarkdown } from "@brains/plugins";
 import { createPluginHarness } from "@brains/plugins/test";
 
 import {
@@ -205,5 +206,32 @@ describe("mail-item entity", () => {
     ).rejects.toThrow(
       "Only the system fallback may have an unclassified category",
     );
+  });
+});
+
+describe("mail item restricted export round-trip", () => {
+  it("re-imports its own exported markdown including the system visibility key", () => {
+    const content = mailItemAdapter.createMailItemContent(
+      {
+        title: "Unclassified email",
+        category: null,
+        priority: "high",
+        status: "new",
+        needsReply: true,
+        receivedAt: "2026-08-09T15:53:55.000Z",
+        source: {
+          ref: "imap:inbound",
+          senderKey: "a".repeat(64),
+        },
+        requestedActions: [],
+      },
+      "A content-safe summary.",
+    );
+    const exported = applyVisibilityToMarkdown(content, "restricted");
+
+    const parsed = mailItemAdapter.parseMailItemContent(exported);
+
+    expect(parsed.frontmatter.title).toBe("Unclassified email");
+    expect(parsed.summary).toBe("A content-safe summary.");
   });
 });

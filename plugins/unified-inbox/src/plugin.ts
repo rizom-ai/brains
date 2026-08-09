@@ -50,7 +50,7 @@ export class UnifiedInboxPlugin extends ServicePlugin<
       operator,
     );
     await registerUnifiedInboxDashboardWidget(context, operator, workspaceUrl);
-    registerUnifiedInboxDigest(context, dataSource, undefined, workspaceUrl);
+    registerUnifiedInboxDigest(context, dataSource, { workspaceUrl });
   }
 
   protected override async getTools(): Promise<Tool[]> {

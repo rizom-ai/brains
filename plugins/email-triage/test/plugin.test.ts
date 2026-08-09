@@ -18,7 +18,6 @@ import {
   MailItemPlugin,
   createMailItemProjection,
   emailTriage,
-  mailTriageDecisionSchema,
   mailTriageWorkspaceSnapshotSchema,
   type RetainedMailClassification,
 } from "../src";
@@ -42,6 +41,21 @@ const classification: RetainedMailClassification = {
   needsReply: true,
   requestedActions: ["Consider availability next month"],
   summary: "A prospective collaborator asks about availability next month.",
+};
+
+// Shaped like the classifier's flat wire schema (what the mocked
+// generateObject must satisfy), not the domain decision union.
+const wireClassification = {
+  decision: "retain",
+  retained: {
+    title: classification.title,
+    category: classification.category,
+    priority: classification.priority,
+    needsReply: classification.needsReply,
+    organization: null,
+    requestedActions: classification.requestedActions,
+    summary: classification.summary,
+  },
 };
 
 describe("email triage plugin", () => {
@@ -70,7 +84,7 @@ describe("email triage plugin", () => {
     ): Promise<{ object: T }> => {
       prompts.push(prompt);
       schemas.push(schema);
-      return { object: schema.parse(classification) };
+      return { object: schema.parse(wireClassification) };
     };
 
     await harness.getEntityService().createEntity({
@@ -107,7 +121,11 @@ Prioritize collaboration connected to Project Aurora.`,
     expect(prompts[0]).toContain(
       "Prioritize collaboration connected to Project Aurora.",
     );
-    expect(schemas).toEqual([mailTriageDecisionSchema]);
+    // The AI receives the classifier's flat wire schema (strict-mode safe),
+    // not the domain decision union.
+    expect(schemas).toHaveLength(1);
+    const wireSchema = schemas[0] as { parse(data: unknown): unknown };
+    expect(() => wireSchema.parse(wireClassification)).not.toThrow();
     expect(items).toHaveLength(1);
     expect(items[0]?.visibility).toBe("restricted");
   });

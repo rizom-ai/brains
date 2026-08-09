@@ -5,7 +5,8 @@ import type {
   PublishingActionResult,
   PublishConfirmationArgs,
 } from "./api";
-import { errorMessage, publicationLabel } from "./ui-utils";
+import { ConfirmDialog } from "./confirm-dialog";
+import { errorMessage, publicationLabel, useWorkspaceAction } from "./ui-utils";
 
 function publicationSchedule(value: string | undefined): string {
   if (!value) return "next dispatch";
@@ -38,47 +39,23 @@ export function PublishConfirmationDialog(props: {
   onConfirm: () => void;
 }): ReactElement {
   return (
-    <div
-      className="modal-scrim"
-      role="presentation"
-      onMouseDown={props.confirming ? undefined : props.onCancel}
+    <ConfirmDialog
+      mark="↑"
+      title={`Publish ${props.title} now?`}
+      titleId="publish-confirm-title"
+      cancelLabel="Review again"
+      confirmLabel={props.confirming ? "Publishing…" : "Confirm publication"}
+      pending={props.confirming}
+      sectionClassName="publication-modal"
+      confirmClassName="publish-confirm"
+      onCancel={props.onCancel}
+      onConfirm={props.onConfirm}
     >
-      <section
-        className="delete-modal publication-modal"
-        role="alertdialog"
-        aria-modal="true"
-        aria-labelledby="publish-confirm-title"
-        onMouseDown={(event) => event.stopPropagation()}
-      >
-        <span className="modal-mark" aria-hidden="true">
-          ↑
-        </span>
-        <h3 id="publish-confirm-title">Publish {props.title} now?</h3>
-        <p>{props.preview}</p>
-        <p className="publication-confirm-warning">
-          This sends the current saved version to an external public provider.
-        </p>
-        <div className="modal-actions">
-          <button
-            type="button"
-            className="btn ghost"
-            autoFocus
-            disabled={props.confirming}
-            onClick={props.onCancel}
-          >
-            Review again
-          </button>
-          <button
-            type="button"
-            className="btn publish-confirm"
-            disabled={props.confirming}
-            onClick={props.onConfirm}
-          >
-            {props.confirming ? "Publishing…" : "Confirm publication"}
-          </button>
-        </div>
-      </section>
-    </div>
+      <p>{props.preview}</p>
+      <p className="publication-confirm-warning">
+        This sends the current saved version to an external public provider.
+      </p>
+    </ConfirmDialog>
   );
 }
 
@@ -211,24 +188,22 @@ export function PublishingWorkspace(props: {
   onOpenEntity: (entityType: string, entityId: string) => void;
   onAction: (action: PublishingAction) => Promise<PublishingActionResult>;
 }): ReactElement {
-  const { data } = props;
-  const [pendingAction, setPendingAction] = useState<string | null>(null);
-  const [actionError, setActionError] = useState<string | null>(null);
+  const { data, onAction } = props;
+  const {
+    pendingKey: pendingAction,
+    error: actionError,
+    run,
+  } = useWorkspaceAction<PublishingActionResult>();
 
   const execute = useCallback(
     async (action: PublishingAction, key: string): Promise<void> => {
-      setPendingAction(key);
-      setActionError(null);
-      try {
-        const result = await props.onAction(action);
+      await run(key, async () => {
+        const result = await onAction(action);
         if (isPublishingActionError(result)) throw new Error(result.error);
-      } catch (error: unknown) {
-        setActionError(errorMessage(error));
-      } finally {
-        setPendingAction(null);
-      }
+        return result;
+      });
     },
-    [props],
+    [onAction, run],
   );
 
   return (

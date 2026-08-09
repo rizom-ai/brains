@@ -1,4 +1,5 @@
 import {
+  assertCmsWorkspaceAdmin,
   registerCmsWorkspace,
   type CmsWorkspaceActor,
   type CmsWorkspaceRegistration,
@@ -61,7 +62,5 @@ export async function registerUnifiedInboxCmsWorkspace(
 }
 
 function assertInboxAdmin(actor: CmsWorkspaceActor): void {
-  if (actor.userPermissionLevel !== "admin") {
-    throw new Error("Unified inbox requires admin permission");
-  }
+  assertCmsWorkspaceAdmin(actor, "Unified inbox");
 }

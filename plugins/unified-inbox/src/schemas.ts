@@ -1,8 +1,13 @@
 import {
+  createListToolOutputSchema,
+  inboxIdSchema,
+  inboxItemIdSchema,
   inboxItemSchema,
   inboxSourceMetadataSchema,
+  inboxUrgencySchema,
   type InboxItem,
   type InboxSourceMetadata,
+  type ListToolOutput,
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 
@@ -57,21 +62,12 @@ interface InboxListFilterInputValue {
   limit?: number | undefined;
 }
 
-const inboxSourceIdSchema: z.ZodString = z
-  .string()
-  .trim()
-  .regex(/^[a-z][a-z0-9-]*$/);
-const inboxUrgencySchema: z.ZodEnum<{
-  high: "high";
-  normal: "normal";
-}> = z.enum(["high", "normal"]);
-
 export const inboxListFilterShape: {
-  sourceId: z.ZodOptional<typeof inboxSourceIdSchema>;
+  sourceId: z.ZodOptional<typeof inboxIdSchema>;
   urgency: z.ZodOptional<typeof inboxUrgencySchema>;
   limit: z.ZodDefault<z.ZodNumber>;
 } = {
-  sourceId: inboxSourceIdSchema.optional(),
+  sourceId: inboxIdSchema.optional(),
   urgency: inboxUrgencySchema.optional(),
   limit: z.number().int().min(1).max(100).default(50),
 };
@@ -112,7 +108,7 @@ export const inboxWorkspaceQuerySchema: z.ZodType<
   InboxWorkspaceQueryValue,
   unknown
 > = z.strictObject({
-  sourceId: inboxSourceIdSchema.optional(),
+  sourceId: inboxIdSchema.optional(),
   urgency: inboxUrgencySchema.optional(),
   offset: z
     .preprocess(queryInteger, z.number().int().min(0).max(10_000))
@@ -225,12 +221,9 @@ export const inboxActionRequestSchema: z.ZodType<
   InboxActionRequestValue,
   InboxActionRequestInputValue
 > = z.strictObject({
-  sourceId: inboxSourceIdSchema,
-  itemId: z.string().trim().min(1).max(300),
-  actionId: z
-    .string()
-    .trim()
-    .regex(/^[a-z][a-z0-9-]*$/),
+  sourceId: inboxIdSchema,
+  itemId: inboxItemIdSchema,
+  actionId: inboxIdSchema,
   confirmed: z.boolean().default(false),
 });
 
@@ -285,47 +278,20 @@ export const inboxActionOutcomeSchema: z.ZodType<
   inboxActionErrorSchema,
 ]);
 
-interface InboxDigestAlertValue {
+/**
+ * Shape of the daily digest alert. Validated by the recurring-checks service
+ * on receipt, so no schema is duplicated here.
+ */
+export interface InboxDigestAlert {
   dedupeKey: string;
   title: string;
   body: string;
 }
 
-export const inboxDigestAlertSchema: z.ZodType<
-  InboxDigestAlertValue,
-  InboxDigestAlertValue
-> = z.strictObject({
-  dedupeKey: z.string().min(1).max(200),
-  title: z.string().min(1).max(200),
-  body: z.string().min(1).max(10_000),
-});
-
-interface InboxListToolSuccessValue {
-  success: true;
-  data: InboxListResultValue;
-}
-
-interface InboxListToolErrorValue {
-  success: false;
-  error: string;
-}
-
-type InboxListToolOutputValue =
-  InboxListToolSuccessValue | InboxListToolErrorValue;
-
 export const inboxListToolOutputSchema: z.ZodType<
-  InboxListToolOutputValue,
-  InboxListToolOutputValue
-> = z.discriminatedUnion("success", [
-  z.strictObject({
-    success: z.literal(true),
-    data: inboxListResultSchema,
-  }),
-  z.strictObject({
-    success: z.literal(false),
-    error: z.string().min(1),
-  }),
-]);
+  ListToolOutput<InboxListResultValue>,
+  ListToolOutput<InboxListResultValue>
+> = createListToolOutputSchema(inboxListResultSchema);
 
 export type InboxProjectionEntry = z.output<typeof inboxProjectionEntrySchema>;
 export type InboxSourceError = z.output<typeof inboxSourceErrorSchema>;
@@ -343,4 +309,3 @@ export type InboxDashboardData = z.output<typeof inboxDashboardDataSchema>;
 export type InboxActionRequest = z.output<typeof inboxActionRequestSchema>;
 export type InboxActionOutcome = z.output<typeof inboxActionOutcomeSchema>;
 export type InboxListToolOutput = z.output<typeof inboxListToolOutputSchema>;
-export type InboxDigestAlert = z.output<typeof inboxDigestAlertSchema>;

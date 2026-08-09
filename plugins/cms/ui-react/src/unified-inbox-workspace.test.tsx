@@ -51,8 +51,7 @@ describe("UnifiedInboxWorkspace", () => {
       createElement(UnifiedInboxWorkspace, {
         data,
         query: { sourceId: "mail-items", offset: 0, limit: 50 },
-        onFiltersChange: () => {},
-        onLoadMore: () => {},
+        onQueryChange: () => {},
         onOpenEntity: () => {},
         onAction: async () => ({ kind: "completed" as const }),
       }),
@@ -74,8 +73,7 @@ describe("UnifiedInboxWorkspace", () => {
       createElement(UnifiedInboxWorkspace, {
         data: { ...data, entries: [], total: 0 },
         query: { urgency: "normal", offset: 0, limit: 50 },
-        onFiltersChange: () => {},
-        onLoadMore: () => {},
+        onQueryChange: () => {},
         onOpenEntity: () => {},
         onAction: async () => ({ kind: "completed" as const }),
       }),

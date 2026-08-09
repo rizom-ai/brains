@@ -117,7 +117,8 @@ describe("editor surface styles", () => {
   it("gives unified attention a responsive list/detail dispatch desk", () => {
     expect(visualRefreshStyles).toContain(".unified-inbox-workspace");
     expect(visualRefreshStyles).toContain(".inbox-workspace-grid");
-    expect(visualRefreshStyles).toContain(".inbox-dialog-backdrop");
+    // Confirmation uses the shared modal, not inbox-specific dialog chrome.
+    expect(visualRefreshStyles).not.toContain(".inbox-dialog");
     expect(responsiveStyles).toContain(
       ".unified-inbox-workspace.has-selection .inbox-detail-pane",
     );
@@ -536,7 +537,7 @@ function renderCapabilityView(
     directorySyncWorkspaceData: null,
     mailTriageWorkspaceData: null,
     inboxWorkspaceData: null,
-    inboxWorkspaceQuery: { offset: 0, limit: 50 },
+    workspaceQuery: { offset: 0, limit: 50 },
     entityType: "post",
     entities: [entity],
     schema,
@@ -579,8 +580,7 @@ function renderCapabilityView(
       status: "reviewed",
     }),
     performInboxAction: async () => ({ kind: "completed" }),
-    changeInboxFilters: () => {},
-    loadMoreInbox: () => {},
+    onWorkspaceQueryChange: () => {},
     startCreate: () => {},
     openEntity: () => {},
     runFieldAssist: () => {},

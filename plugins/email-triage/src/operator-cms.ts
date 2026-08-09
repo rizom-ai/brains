@@ -30,6 +30,10 @@ export async function registerEmailTriageCmsWorkspace(
       }
       return operator.act(parsed.data, actor);
     },
+    badgeProvider: async (actor) => {
+      assertMailTriageAdmin(actor);
+      return (await operator.summary()).new;
+    },
   };
 
   return registerCmsWorkspace(context, registration);

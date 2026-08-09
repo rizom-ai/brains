@@ -25,8 +25,6 @@ import {
   type FieldAssistResponse,
   type InboxWorkspaceAction,
   type InboxWorkspaceActionResult,
-  type InboxWorkspaceEntry,
-  type InboxWorkspaceQuery,
   type MailTriageStatusAction,
   type MailTriageStatusActionResult,
   type PublishingAction,
@@ -73,28 +71,13 @@ import {
   navigationQueryOptions,
   syncStatusQueryOptions,
   workspaceQueryOptions,
+  type CmsWorkspaceQuery,
 } from "./queries";
 import { emptyDraft, errorMessage } from "./ui-utils";
 
 const EMPTY_AGENT_TARGETS: AgentTarget[] = [];
 const EMPTY_WORKSPACES: CmsWorkspaceInfo[] = [];
-const INITIAL_INBOX_QUERY: InboxWorkspaceQuery = { offset: 0, limit: 50 };
-
-function mergeInboxEntries(
-  current: InboxWorkspaceEntry[],
-  next: InboxWorkspaceEntry[],
-): InboxWorkspaceEntry[] {
-  const entries = new Map(
-    current.map((entry) => [
-      `${entry.source.sourceId}:${entry.item.id}`,
-      entry,
-    ]),
-  );
-  for (const entry of next) {
-    entries.set(`${entry.source.sourceId}:${entry.item.id}`, entry);
-  }
-  return [...entries.values()];
-}
+const EMPTY_WORKSPACE_QUERY: CmsWorkspaceQuery = {};
 
 export function App(): ReactElement {
   const router = useRouter();
@@ -118,16 +101,16 @@ export function App(): ReactElement {
     null,
   );
   const [entityType, setEntityType] = useState<string | null>(null);
-  const [inboxWorkspaceQuery, setInboxWorkspaceQuery] =
-    useState<InboxWorkspaceQuery>(INITIAL_INBOX_QUERY);
-  const [loadedInboxEntries, setLoadedInboxEntries] = useState<
-    InboxWorkspaceEntry[]
-  >([]);
+  // Renderer-agnostic per-workspace query params (filters, paging). Renderers
+  // own their query semantics; the container only stores and forwards them.
+  const [workspaceQueries, setWorkspaceQueries] = useState<
+    Record<string, CmsWorkspaceQuery>
+  >({});
   const [editor, dispatchEditor] = useReducer(
     editorWorkflowReducer,
     initialEditorWorkflowState,
   );
-  const { mode, draft, body, save: saveState, deleteOpen } = editor;
+  const { mode, draft, body, save: saveState } = editor;
   const hasUnsavedChanges = hasUnsavedEditorChanges(editor);
   const navigationBlocker = useBlocker({
     shouldBlockFn: () => hasUnsavedChanges,
@@ -159,9 +142,8 @@ export function App(): ReactElement {
     (workspace) => workspace.id === activeWorkspaceId,
   );
   const workspaceRequestQuery =
-    activeWorkspace?.rendererName === "UnifiedInboxWorkspace"
-      ? inboxWorkspaceQuery
-      : {};
+    (activeWorkspaceId ? workspaceQueries[activeWorkspaceId] : undefined) ??
+    EMPTY_WORKSPACE_QUERY;
   const workspaceQuery = useQuery({
     ...workspaceQueryOptions(activeWorkspaceId ?? "", workspaceRequestQuery),
     enabled: activeWorkspaceId !== null,
@@ -235,42 +217,11 @@ export function App(): ReactElement {
     workspaceResponse?.rendererName === "EmailTriageWorkspace"
       ? workspaceResponse.data
       : null;
-  const inboxWorkspacePage =
+  const inboxWorkspaceData =
     activeWorkspace?.rendererName === "UnifiedInboxWorkspace" &&
     workspaceResponse?.rendererName === "UnifiedInboxWorkspace"
       ? workspaceResponse.data
       : null;
-  const inboxWorkspaceData = inboxWorkspacePage
-    ? {
-        ...inboxWorkspacePage,
-        entries:
-          inboxWorkspacePage.offset === 0
-            ? inboxWorkspacePage.entries
-            : mergeInboxEntries(loadedInboxEntries, inboxWorkspacePage.entries),
-      }
-    : null;
-
-  useEffect(() => {
-    if (!inboxWorkspacePage) return;
-    if (inboxWorkspacePage.offset === 0) {
-      setLoadedInboxEntries(inboxWorkspacePage.entries);
-      return;
-    }
-    setLoadedInboxEntries((entries) =>
-      mergeInboxEntries(entries, inboxWorkspacePage.entries),
-    );
-  }, [inboxWorkspacePage]);
-
-  useEffect(() => {
-    if (!deleteOpen) return undefined;
-    const onKeyDown = (event: KeyboardEvent): void => {
-      if (event.key === "Escape" && !deleting) {
-        dispatchEditor({ type: "deleteCancelled" });
-      }
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return (): void => window.removeEventListener("keydown", onKeyDown);
-  }, [deleteOpen, deleting]);
 
   useEffect(() => {
     if (!types) return;
@@ -814,36 +765,19 @@ export function App(): ReactElement {
         action,
       });
       if (result.kind === "completed") {
-        setLoadedInboxEntries([]);
-        setInboxWorkspaceQuery((query) => ({ ...query, offset: 0 }));
-        await Promise.all([
-          invalidateAfterWorkspaceAction(queryClient, capability.id),
-          queryClient.invalidateQueries({ queryKey: cmsKeys.navigation() }),
-        ]);
+        await invalidateAfterWorkspaceAction(queryClient, capability.id);
       }
       return result;
     },
     [inboxWorkspaceActionMutation, queryClient, workspaces],
   );
 
-  const changeInboxFilters = useCallback(
-    (filters: { sourceId?: string; urgency?: "high" | "normal" }): void => {
-      setLoadedInboxEntries([]);
-      setInboxWorkspaceQuery({
-        ...filters,
-        offset: 0,
-        limit: INITIAL_INBOX_QUERY.limit,
-      });
+  const changeWorkspaceQuery = useCallback(
+    (workspaceId: string, query: CmsWorkspaceQuery): void => {
+      setWorkspaceQueries((current) => ({ ...current, [workspaceId]: query }));
     },
     [],
   );
-
-  const loadMoreInbox = useCallback((): void => {
-    setInboxWorkspaceQuery((query) => ({
-      ...query,
-      offset: query.offset + query.limit,
-    }));
-  }, []);
 
   const visibleLoadError =
     loadError ??
@@ -875,7 +809,7 @@ export function App(): ReactElement {
       directorySyncWorkspaceData={directorySyncWorkspaceData}
       mailTriageWorkspaceData={mailTriageWorkspaceData}
       inboxWorkspaceData={inboxWorkspaceData}
-      inboxWorkspaceQuery={inboxWorkspaceQuery}
+      workspaceQuery={workspaceRequestQuery}
       entityType={entityType}
       entities={entities}
       schema={schema}
@@ -902,8 +836,7 @@ export function App(): ReactElement {
       performDirectorySyncAction={performDirectorySyncAction}
       performMailTriageAction={performMailTriageAction}
       performInboxAction={performInboxAction}
-      changeInboxFilters={changeInboxFilters}
-      loadMoreInbox={loadMoreInbox}
+      onWorkspaceQueryChange={changeWorkspaceQuery}
       startCreate={startCreate}
       openEntity={openEntity}
       runFieldAssist={runFieldAssist}
