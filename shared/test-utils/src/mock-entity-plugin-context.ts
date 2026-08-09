@@ -3,7 +3,6 @@ import type {
   EntityPluginContext,
   IEntityService,
   BaseEntity,
-  MessageSendRequest,
   ResolvedProfileSelection,
 } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
@@ -14,6 +13,7 @@ import {
 } from "./mock-entity-service";
 import { createMockLogger } from "./mock-logger";
 import { createMockAppInfo } from "./mock-app-info";
+import { genericSpy } from "./generic-spy";
 
 /**
  * Return value configuration for AI namespace methods
@@ -42,7 +42,7 @@ export interface MockEntityPluginContextOptions {
     ai?: MockAIReturns;
     jobsEnqueue?: string;
     attachmentsResolve?: () => Promise<PublishMediaData | undefined>;
-    messagingSend?: (request: MessageSendRequest) => Promise<unknown>;
+    messagingSend?: EntityPluginContext["messaging"]["send"];
   };
   listEntitiesImpl?: (request: { entityType: string }) => Promise<BaseEntity[]>;
 }
@@ -88,11 +88,17 @@ export function createMockEntityPluginContext(
         Promise.resolve({ entityId: "mock-id", jobId: "mock-job" }),
       ),
       registerDataSource: mock(() => {}),
+      registerPersistValidator: mock(() => {}),
+      registerCreateInterceptor: mock(() => {}),
+      registerUploadSaveHandler: mock(() => {}),
+      getUploadSaveHandler: mock(() => undefined),
     },
 
     ai: {
       query: mock(() => Promise.resolve({ message: "mock response" })),
-      generate: mock(() => Promise.resolve(returns.ai?.generate ?? {})),
+      generate: genericSpy<EntityPluginContext["ai"]["generate"]>(
+        mock(() => Promise.resolve(returns.ai?.generate ?? {})),
+      ),
       generateImage: mock(() => {
         if (returns.ai?.generateImageError) {
           return Promise.reject(returns.ai.generateImageError);
@@ -105,8 +111,10 @@ export function createMockEntityPluginContext(
         );
       }),
       canGenerateImages: mock(() => returns.ai?.canGenerateImages ?? false),
-      generateObject: mock(() =>
-        Promise.resolve({ object: returns.ai?.generateObject ?? {} }),
+      generateObject: genericSpy<EntityPluginContext["ai"]["generateObject"]>(
+        mock(() =>
+          Promise.resolve({ object: returns.ai?.generateObject ?? {} }),
+        ),
       ),
     },
 
@@ -123,15 +131,14 @@ export function createMockEntityPluginContext(
     },
 
     identity: {
-      get: mock(() => ({ name: "Test Brain", values: [] })),
+      get: mock(() => ({
+        name: "Test Brain",
+        role: "",
+        purpose: "",
+        values: [],
+      })),
       getProfile: mock(() => ({ name: "Test Profile", role: "", purpose: "" })),
-      getAppInfo: mock(() =>
-        Promise.resolve({
-          version: "0.0.0",
-          model: "test-model",
-          plugins: [],
-        }),
-      ),
+      getAppInfo: mock(() => Promise.resolve(createMockAppInfo())),
     },
 
     appInfo: mock(() => Promise.resolve(createMockAppInfo())),
@@ -171,6 +178,7 @@ export function createMockEntityPluginContext(
             Promise.resolve(undefined)),
       ),
       hasProvider: mock(() => returns.attachmentsResolve !== undefined),
+      getProviderMetadata: mock(() => undefined),
     },
 
     eval: {
@@ -178,10 +186,15 @@ export function createMockEntityPluginContext(
     },
 
     messaging: {
-      send: mock(
-        returns.messagingSend ?? ((): Promise<void> => Promise.resolve()),
+      send: genericSpy<EntityPluginContext["messaging"]["send"]>(
+        mock(
+          returns.messagingSend ??
+            ((): Promise<{ success: boolean }> =>
+              Promise.resolve({ success: true })),
+        ),
       ),
       subscribe: mock(() => () => {}),
+      subscribeExecution: mock(() => () => {}),
     },
   } as unknown as EntityPluginContext;
 }

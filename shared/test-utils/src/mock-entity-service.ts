@@ -5,6 +5,7 @@ import type {
   SearchResult,
 } from "@brains/entity-service";
 import type { IEntityService } from "@brains/plugins";
+import { genericSpy } from "./generic-spy";
 
 /**
  * Return value configuration for mock entity service methods
@@ -82,14 +83,10 @@ export function createMockEntityService(
     getEntityImpl,
   } = options;
 
-  // Recording mocks for the generic read methods.
-  //
-  // `mock()` erases type parameters, so a `Mock` can never be assigned to a
-  // generic signature such as `getEntity<T extends BaseEntity>`. Each is
-  // therefore asserted to its own interface member type — the narrowest cast
-  // that keeps the value a real spy, so `expect(...).toHaveBeenCalledWith()`
-  // still works. Every non-generic member below stays fully checked by the
-  // `satisfies` at the end of this literal.
+  // Recording mocks for the generic read methods. These stay real spies, so
+  // `expect(...).toHaveBeenCalledWith()` keeps working; `genericSpy` only
+  // restores the type parameters `mock()` erased. Every other member below is
+  // fully checked by the `satisfies` at the end of this literal.
   const listEntitiesMock = mock(
     (request: { entityType: string }): Promise<BaseEntity[]> =>
       listEntitiesImpl?.(request) ??
@@ -108,10 +105,10 @@ export function createMockEntityService(
   );
 
   return {
-    getEntity: getEntityMock as IEntityService["getEntity"],
-    getEntityRaw: getEntityRawMock as IEntityService["getEntityRaw"],
-    listEntities: listEntitiesMock as IEntityService["listEntities"],
-    search: searchMock as IEntityService["search"],
+    getEntity: genericSpy<IEntityService["getEntity"]>(getEntityMock),
+    getEntityRaw: genericSpy<IEntityService["getEntityRaw"]>(getEntityRawMock),
+    listEntities: genericSpy<IEntityService["listEntities"]>(listEntitiesMock),
+    search: genericSpy<IEntityService["search"]>(searchMock),
 
     createEntity: mock(() =>
       Promise.resolve(mutationResult(returns.createEntity)),

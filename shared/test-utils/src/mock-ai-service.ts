@@ -1,5 +1,6 @@
 import { mock } from "bun:test";
 import type { IAIService } from "@brains/ai-service";
+import { genericSpy } from "./generic-spy";
 
 /**
  * Options for configuring mock AI service return values
@@ -63,18 +64,16 @@ export function createMockAIService(
         usage: generateTextReturn.usage ?? defaultUsage,
       }),
     ),
-    // `mock()` erases type parameters, so this cannot be assigned to the
-    // generic `generateObject<T>` signature directly. Asserting the member
-    // keeps it a real spy; every other member stays checked by `satisfies`.
-    generateObject: mock(() =>
-      Promise.resolve({
-        object: generateObjectReturn,
-        usage: defaultUsage,
-      }),
-    ) as IAIService["generateObject"],
-    judge: mock(() =>
-      Promise.resolve({ verdict: generateObjectReturn, usage: defaultUsage }),
-    ) as IAIService["judge"],
+    generateObject: genericSpy<IAIService["generateObject"]>(
+      mock(() =>
+        Promise.resolve({ object: generateObjectReturn, usage: defaultUsage }),
+      ),
+    ),
+    judge: genericSpy<IAIService["judge"]>(
+      mock(() =>
+        Promise.resolve({ verdict: generateObjectReturn, usage: defaultUsage }),
+      ),
+    ),
     generateImage: mock(() =>
       Promise.resolve({
         base64: "",
