@@ -1,4 +1,5 @@
 import { compileReadingDigest } from "@fixture/reading-insights";
+import { EventSource } from "eventsource";
 import {
   defineDaemon,
   defineInterface,

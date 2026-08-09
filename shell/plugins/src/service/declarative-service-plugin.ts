@@ -42,6 +42,10 @@ import {
   getServiceJobHandler,
   parseServiceDeadline,
 } from "../public/service-definition";
+import {
+  bindServiceJobRuntimeType,
+  unbindServiceJobRuntimeType,
+} from "./job-definition-runtime";
 
 const confirmationTokenField = "_rizomConfirmationToken";
 
@@ -221,6 +225,7 @@ class DeclarativeServicePlugin<
       }
       names.add(job.name);
       this.registeredJobs.add(job);
+      bindServiceJobRuntimeType(job, `${this.id}:${job.name}`);
       context.jobs.registerHandler(
         job.name,
         runtimeJobHandler(binding, context, templates),
@@ -274,6 +279,9 @@ class DeclarativeServicePlugin<
   protected override async onShutdown(): Promise<void> {
     this.tools = undefined;
     this.resources = undefined;
+    for (const job of this.registeredJobs) {
+      unbindServiceJobRuntimeType(job, `${this.id}:${job.name}`);
+    }
     this.registeredJobs.clear();
     for (const cleanup of this.cleanups.splice(0).reverse()) {
       await cleanup();

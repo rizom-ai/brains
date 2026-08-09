@@ -1,0 +1,5 @@
+brain: "@rizom/interface-brain-definition-fixture"
+bundles: [core]
+database: "file:./brain.db"
+embedding:
+  enabled: false

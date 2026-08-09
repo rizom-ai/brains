@@ -84,6 +84,14 @@ export default defineBrain({
 
 Secrets remain instance concerns and should be supplied through `brain.yaml` environment interpolation rather than package defaults.
 
+## Interface packages
+
+Generic interfaces declare explicit public or protocol-authenticated routes and supervised daemons. Route body and response schemas are runtime boundaries; a protocol authenticator returns only the transport identity, and the runtime derives permission and Anchor status before invoking the handler. Typed service job definitions can be imported and enqueued without exposing queue contracts.
+
+Message interfaces declare one channel descriptor plus transport behavior. `listen` receives an abort signal, health reporter, and `messages.receiveAuthenticated()`; `send`, optional `edit`, and `deliver` use normalized text messages. The runtime owns descriptor/provider registration, recipient validation, caller trust, conversations, attachments, progress, and shutdown. Transport libraries such as an SSE or WebSocket client remain ordinary dependencies of the interface package.
+
+The authoritative implementations are the checked [generic interface](../packages/brain-cli/test/fixtures/public-authoring/interface/src/index.ts) and [message interface](../packages/brain-cli/test/fixtures/public-authoring/message-interface/src/index.ts) fixtures.
+
 ## Registration model
 
 Definition fields are the registration model. The runtime validates and finalizes tools, resources, jobs, routes, daemons, entities, projections, channel descriptors, and lifecycle resources. Author packages do not receive registries or shell objects and do not branch on process roles.

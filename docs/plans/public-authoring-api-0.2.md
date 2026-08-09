@@ -2,7 +2,7 @@
 
 ## Status
 
-**Proposed — P0 stable-release gate.** The generated `@rizom/brain/*` declarations are clean enough for alpha use, and an external site has exercised the public package path, but the authoring API is not yet sufficient or proven as a patch-stable `0.2.x` contract for all four required extension use cases:
+**Implementation phases 1–5 complete; Phase 6 release evidence pending.** Local packed artifacts now prove the declarative contracts for all four required extension use cases, but stable nomination still requires the frozen export/documentation pass and the nominated published-alpha matrix:
 
 1. custom entity types;
 2. custom service plugins;
@@ -172,14 +172,14 @@ Public template and view namespaces retain their real stable methods and public 
 
 ### 6. Interfaces normalize routes, callers, agents, and daemons
 
-`defineInterface()` owns config/setup state and declarative capabilities. `defineRoute()` provides typed request parsing and response serialization. Its initial security union is explicit:
+`defineInterface()` owns parsed config and declarative capabilities. `defineRoute()` provides typed request parsing and response serialization. Its initial security union is explicit:
 
 - `{ kind: "public" }` for genuinely unauthenticated routes;
 - `protocol({ authenticate })` for handler-protocol authentication.
 
-A protocol authenticator returns the platform user identity. The runtime then resolves one canonical caller containing actor attribution, permission level, and anchor status. For already authenticated non-HTTP events, `permissions.resolveAuthenticated()` performs the same resolution without asking authors to repeat `interfaceType`. The alpha `public: true` shape is removed from public declarations and rejected by `defineRoute()` before stable; an equivalent private representation may remain inside the existing router adapter.
+A protocol authenticator returns the platform user identity. The runtime then resolves one canonical caller containing actor attribution, permission level, and anchor status. Already authenticated message events use the same runtime-owned resolution without asking authors to repeat `interfaceType`. The alpha `public: true` shape is absent from public declarations; an equivalent private representation remains inside the existing router adapter.
 
-Agent operations use request objects and canonical callers: `agent.chat({...})` and `agent.confirm({...})`. Authors do not manually copy permission, anchor, interface, channel, or actor fields into chat context.
+Generic agent operations are intentionally not stable without a golden caller. Message interfaces invoke the agent through `messages.receiveAuthenticated()`, which keeps permission, anchor, interface, channel, and actor fields out of author callbacks. A future generic request-object `agent` namespace must first appear in a concrete golden package.
 
 `defineDaemon()` exposes one supervised abortable `run()` task with health reporting. The runtime owns registration, post-ready startup, required/optional policy, shutdown deadlines, cleanup, and worker exclusion. Tool-backed API routes, shared-host operator authentication, parameter routing, and `context.http.register()` remain in the HTTP hardening plan.
 
@@ -189,7 +189,7 @@ Agent operations use request objects and canonical callers: `agent.chat({...})` 
 
 Conversational transports implement a supervised `listen`, `send`, and optional `edit`. `messages.receiveAuthenticated()` accepts normalized sender, channel/thread, text, and lazy attachments. The runtime owns permission resolution, conversation mapping, persistence, attachment policy, confirmation routing, agent invocation, response delivery, job tracking, progress buffering, and cleanup.
 
-Every outbound message has a stable text fallback plus optional typed cards and attachments. Presence of `edit` determines edit capability; authors do not implement support flags or progress registries. Outbound-only transports implement `deliver` without conversational placeholders. Delivery callbacks return a provider ID or throw a typed delivery error rather than constructing framework status unions. Native platform cards remain optional extensions and do not replace the fallback contract.
+Every stable outbound message is normalized to text. Presence of `edit` determines edit capability; authors do not implement support flags or progress registries. Outbound-only transports implement `deliver` without conversational placeholders. Delivery callbacks return a provider ID or throw; the runtime normalizes failures rather than asking authors to construct framework status unions. Native cards and authored outbound attachments remain outside the stable baseline.
 
 ### 8. `@rizom/site` is the one site-authoring concept
 
@@ -343,7 +343,7 @@ Exit gate:
 
 ### Phase 5 — Make generic and message interfaces declarative and lifecycle-owned
 
-1. Implement `defineInterface()`, schema-aware `defineRoute()`, explicit public/protocol security, canonical caller resolution, request-object agent operations, and enqueue-only typed jobs.
+1. Implement `defineInterface()`, schema-aware `defineRoute()`, explicit public/protocol security, canonical caller resolution, and enqueue-only typed jobs. Keep generic agent operations out until a golden package fixes their request-object contract.
 2. Implement `defineDaemon()` as one supervised abortable run task with readiness/health and runtime-owned cleanup.
 3. Activate the generic-interface fixture and prove public routing, protocol authentication failure/success, caller permission/anchor resolution, typed enqueue, daemon health/shutdown, and worker exclusion without model calls.
 4. Implement `defineMessageInterface()` with declarative channel registration, supervised listen, `messages.receiveAuthenticated()`, normalized output, send/optional edit, outbound deliver, lazy attachments, and runtime-owned progress/confirmation bookkeeping.

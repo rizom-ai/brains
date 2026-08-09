@@ -10,4 +10,6 @@ Declarative service packages now infer setup state and config, expose schema-fir
 
 `@rizom/site` is now the sole site-authoring SDK, with canonical `defineSite()`, schema-first sections, a blessed schema vocabulary, initial content validation, and runtime-derived structural validation. App-managed builds preserve package CSS, global head scripts, and static assets. The removed alpha `@rizom/brain/site` subpath and `@rizom/site-sections` workspace package have no compatibility facade.
 
+Generic and message interfaces now use declarative definitions for schema-validated routes, protocol authentication, canonical caller permissions, typed cross-package job enqueue, supervised daemon health and shutdown, channel registration, outbound delivery, normalized send/edit behavior, lazy attachments, and runtime-owned conversational progress. Declarative brains receive the shared HTTP host when they compose a generic interface, while interface plugins remain excluded from worker processes.
+
 This intentionally removes alpha-only root and plugin authoring exports including `PLUGIN_API_VERSION`, class-first plugin APIs, tuple/factory contracts, factory package loading, and the root Zod convenience export. Family authoring entries own their blessed schema helpers.

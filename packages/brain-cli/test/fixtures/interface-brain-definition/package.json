@@ -1,5 +1,5 @@
 {
-  "name": "@fixture/reading-webhook",
+  "name": "@rizom/interface-brain-definition-fixture",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -10,13 +10,16 @@
     }
   },
   "dependencies": {
+    "@fixture/campfire-interface": "0.1.0",
+    "@fixture/reading-entities": "0.1.0",
     "@fixture/reading-insights": "0.1.0",
-    "eventsource": "^3.0.7"
+    "@fixture/reading-webhook": "0.1.0"
   },
   "peerDependencies": {
     "@rizom/brain": ">=0.2.0-alpha.0 <0.3.0"
   },
   "devDependencies": {
+    "@types/bun": "^1.3.14",
     "typescript": "^7.0.2"
   }
 }

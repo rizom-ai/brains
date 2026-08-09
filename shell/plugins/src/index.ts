@@ -214,6 +214,13 @@ export {
   type ServiceJobStatus,
   type ServicePackageDefinition,
 } from "./public/service-definition";
+export {
+  defineDaemon,
+  defineInterface,
+  defineMessageInterface,
+  defineRoute,
+  protocol,
+} from "./public/interface-definition";
 
 // ============================================================================
 // Essential Plugin Interfaces & Types
