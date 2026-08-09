@@ -1,5 +1,11 @@
 # @brains/ops
 
+## 0.2.0-alpha.273
+
+### Patch Changes
+
+- [#94](https://github.com/rizom-ai/brains/pull/94) [`a53e85d`](https://github.com/rizom-ai/brains/commit/a53e85d0a72277b243e28112372507f60e73677d) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Schedule the smoke directory-sync regression profile weekly with independent cleanup, while retaining manual profile controls and using the content administration token for authenticated Git operations.
+
 ## 0.2.0-alpha.272
 
 ## 0.2.0-alpha.271
