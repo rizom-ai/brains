@@ -18,10 +18,12 @@ tested break-glass command: `brain-rollback-entities-to-libsql`.
 
 This plan originally asked whether the rewrite is worth adopting at all. The
 spike answered that: yes — phased, with libSQL retained as a fallback. Phase 1
-then showed that native-FTS cleanup must accompany the engine flag. The
-strategic sync fork (DB/browser sync vs git-only) survives as a later gate; it
-decides the embeddings-fold and MVCC
-single-file questions, not the engine swap itself.
+then showed that native-FTS cleanup must accompany the engine flag, and Phase 4
+closed the strategic sync fork in favor of Git-only content sync. Phase 5
+preflight exposed a separate runtime-topology constraint: Turso rejects MVCC
+while `multiprocess_wal` is enabled, but the current web and worker processes
+both open the same local database files. The next step is therefore one local
+database owner under WAL, not an immediate pragma change.
 
 ## Spike findings (measured, not assumed)
 
@@ -29,10 +31,12 @@ Engine: `@tursodatabase/database` 0.7.2. Suites run with `BRAINS_DB_ENGINE=turso
 
 - **Works unchanged:** vector search (`F32_BLOB`, `vector32`,
   `vector_distance_cos`, including the cross-DB `ATTACH` join used by
-  `entity-search.ts`, behind the SDK's `attach` experimental flag);
-  `PRAGMA journal_mode = mvcc` and `BEGIN CONCURRENT` (MVCC dropped its beta
-  label in engine v0.7); multi-process file access behind `multiprocess_wal`
-  (writes `*.db-tshm` sidecars, gitignored; invalid for `:memory:`).
+  `entity-search.ts`, behind the SDK's `attach` experimental flag).
+  `PRAGMA journal_mode = mvcc` and `BEGIN CONCURRENT` work without
+  `multiprocess_wal`; multi-process file access works behind `multiprocess_wal`
+  and writes gitignored `*.db-tshm` sidecars. These modes are mutually
+  exclusive: with `multiprocess_wal` enabled, the engine rejects MVCC because
+  MVCC does not support multiprocess access.
 - **Suite results:** shared/db 24/24 on both engines; runtime-state 10/10;
   job-queue 194/195; conversation-service 34/35; entity-service 188/325.
 - **FTS5 does not exist on Turso** — every original entity-service failure was
@@ -55,7 +59,8 @@ Engine: `@tursodatabase/database` 0.7.2. Suites run with `BRAINS_DB_ENGINE=turso
   `runtimeUpdatedAt >= ?` seeks correctly. The expanded-OR form is worse
   (multi-index OR + sorter).
 - **`PRAGMA busy_timeout` is a no-op** (the conversation-service failure — its
-  readiness test asserts the timeout value). Irrelevant once MVCC replaces WAL.
+  readiness test asserts the timeout value). Application retries remain
+  necessary while Turso uses multiprocess WAL.
 - **The SDK loads a NAPI native binding at import time.** It is dynamically
   imported and marked external in the app/CLI bundles so libsql-mode consumers
   never resolve it. The packed consumer's nested install did not materialize
@@ -186,25 +191,101 @@ Live probes used `@tursodatabase/sync@0.7.2`,
 **Owner decision:** retain Git as the only content sync model and keep CMS
 reads and writes behind the entity service. No sync SDK dependency or
 production path is added. Folding the regenerable embedding table into the
-entity database is now available for Phase 5 after the Turso production soak.
+entity database is now available in Phase 5.
 
-### Phase 5 — MVCC and layout consequences
+### Phase 5 — One local database owner, then layout and MVCC
 
-Only after the engine has run quietly in production (Phase 3). Phase 4 selected
-the Git-only branch. `journal_mode = mvcc` is the first file-format step that is
-not reversible to libSQL through schema cleanup, so it comes last.
+Phase 5 preflight measured a hard engine constraint. The Turso adapter enables
+`multiprocess_wal` because the supervised web and worker processes both open
+the local service databases. With that flag active, Turso rejects
+`PRAGMA journal_mode = mvcc` with `MVCC does not support multiprocess access`.
+Removing the flag without first removing direct cross-process file access is
+not an acceptable implementation.
 
-- Adopt MVCC journal mode; drop the WAL/busy-timeout pragma path.
-- Git-only branch: fold embeddings into the entity DB with FK + cascade
-  (tests first: atomic entity+embedding write, no orphan window), retiring
-  the `ATTACH` plumbing and the `attach` experimental flag.
-- Transactional outbox (entity write + job enqueue atomic): reopen the
-  separate-jobs-file decision — it was closed because of separate files, and
-  MVCC plus a decided sync fate changes both premises. Decision gate,
-  tests first, documented either way.
+#### Phase 5A — Choose and prove the owner topology under WAL
 
-**Exit:** final topology recorded in the roadmap; compensation logic for the
-entity-write/enqueue gap removed if the outbox is adopted.
+Keep the current WAL behavior while changing ownership. The owner must choose
+between two concrete topologies before implementation:
+
+1. Make the existing web process the local database owner and route worker
+   persistence calls to it. This preserves the current two-child supervisor and
+   matches the existing rule that the worker starts only after web readiness.
+2. Add a separately supervised state process and route both web and worker
+   persistence calls to it. This isolates database lifetime but adds a third
+   child, another readiness dependency, and another restart policy.
+
+For either topology:
+
+- Keep business logic and public Promise interfaces in their owning packages.
+  Define package-owned, Zod-validated internal request/response contracts; do
+  not expose SQL or Drizzle over IPC.
+- Propagate operation context, cancellation, errors, and request identity across
+  the boundary. Bound requests with backpressure and timeouts.
+- Parent-owned migrations still run once before the database owner starts.
+  Auth-service's embedded replica remains outside this change.
+- First prove one cross-process job-queue slice under WAL, including owner
+  readiness, worker restart, owner failure, reconnect, and clean shutdown.
+
+**Exit:** the owner has selected the concrete topology and the representative
+slice passes without a worker-side database file handle.
+
+#### Phase 5B — Route all local shell persistence through the owner
+
+- Add remote implementations for job queue, entities, conversations, and
+  runtime state without changing their public service contracts.
+- Preserve process-role behavior: web still validates enqueue requests and owns
+  interfaces; worker still owns executable handlers and durable execution.
+- Verify entity events, projection lineage, queue progress, visibility, and
+  health reports across the boundary.
+- Add a packed-runtime test that fails if the worker opens a local SQLite file,
+  plus worker crash/restart and owner shutdown coverage.
+- Keep WAL and `multiprocess_wal` until every local shell database has exactly
+  one process owner.
+
+**Exit:** web and worker behavior is at parity with the current runtime, while
+only the selected owner opens local shell database files.
+
+#### Phase 5C — Fold embeddings into the entity database
+
+- Migrate rows from the legacy embedding file into the entity database,
+  discarding or reporting orphans deterministically.
+- Rebuild `embeddings` with a composite foreign key to `entities` and cascade
+  delete. Make entity mutation and stale-embedding invalidation atomic.
+- Query the local table directly and retire the second connection, `ATTACH`
+  plumbing, embedding runtime config, and the SDK's `attach` flag when no other
+  caller needs it.
+- Test populated-file cutover, provider dimensions, atomic invalidation, cascade
+  delete, failed migration recovery, and absence of an orphan window.
+
+**Exit:** entities and embeddings use one owner and one database file, with no
+runtime dependency on the legacy embedding file.
+
+#### Phase 5D — Enable MVCC
+
+- Remove `multiprocess_wal` only after the single-owner invariant is enforced.
+- Apply `journal_mode = mvcc` for local Turso files, use
+  `BEGIN CONCURRENT` for Turso write transactions, and remove the Turso
+  WAL/busy-timeout path. Remote libSQL and auth-service behavior remain
+  unchanged.
+- Test concurrent reads/writes through the owner, restart recovery, migrations,
+  native FTS, vectors, packed startup, and explicit rejection of accidental
+  second-process file access.
+- Update the break-glass command and operator documentation: an MVCC file is no
+  longer recoverable by the existing schema-only libSQL rollback.
+
+**Exit:** all local shell databases report MVCC and pass their service suites
+through the selected owner topology.
+
+#### Phase 5E — Entity/job atomicity decision gate
+
+A single owner process does not by itself make separate entity and job files
+transactional. Measure an owner-local outbox or a deliberate entity/job file
+merge, then present the tradeoff to the owner. Do not remove compensation or
+backfill behavior until that decision is explicit and the replacement has
+failure-injection coverage.
+
+**Exit:** the owner records the final entity/job topology; compensation for the
+entity-write/enqueue gap is removed only if an atomic replacement is adopted.
 
 ## Non-goals
 
@@ -222,5 +303,8 @@ entity-write/enqueue gap removed if the outbox is adopted.
   would be load-bearing from Phase 3 on. WAL keeps the file format compatible,
   but the native FTS schema is not libSQL-parseable; fallback requires the
   explicit cleanup command described in Design and Phase 3.
-- MVCC-mode files close the instant-fallback door — deliberately sequenced
-  last, behind production soak time.
+- The single-owner boundary adds IPC latency and makes owner readiness a shared
+  dependency. Failure, restart, backpressure, and shutdown behavior must be
+  proved under WAL before changing the file format.
+- MVCC-mode files close the libSQL fallback door. The owner topology and
+  no-second-opener invariant must be enforced before conversion.
