@@ -10,8 +10,9 @@ presents the libSQL `Client` surface over `@tursodatabase/database@0.7.2`, and
 Phases 1 through 3 are implemented in `work/turso-migration`: Turso native FTS
 is wired through an engine-aware seam, the remaining service differences are
 closed, packed installs carry the native binding, and local files default to
-Turso with a tested explicit fallback. The affected service suites pass on
-both engines. Review uncovered that Turso's persisted native-FTS
+Turso with a tested explicit fallback. Phase 4's live sync spike is complete
+and selects the Git-only branch. The affected service suites pass on both
+engines. Review uncovered that Turso's persisted native-FTS
 schema syntax is not parseable by libSQL. The chosen mitigation is an explicit,
 tested break-glass command: `brain-rollback-entities-to-libsql`.
 
@@ -157,25 +158,41 @@ skip, and conversation-service is 35/35 on both engines.
 prepares the same database for a packed libSQL restart, and no one-env-var or
 automatic rollback promise remains.
 
-### Phase 4 — Sync-model spike (the strategic fork, unchanged)
+### Phase 4 — Sync-model spike — DONE: stay Git-only
 
-The fork that decides the file layout. Sync is whole-DB on both engines
-(verified earlier — no table-scoped sync), so a separate embedding file is
-the only way to give regenerable vectors an independent sync fate.
+Live probes used `@tursodatabase/sync@0.7.2`,
+`@tursodatabase/sync-wasm@0.7.2`, and temporary Turso Cloud databases:
 
-- Prove entity-DB `push()`/`pull()` against a remote via
-  `@tursodatabase/sync`; browser CMS spike via `sync-wasm` opening only the
-  entity DB. Compare against git sync: complement or replace; record the
-  topology.
+- Two Node clients completed bidirectional `push()`/`pull()` through Turso
+  Cloud. A separate local embedding database remained absent from the remote.
+- A Chromium browser under the required COOP/COEP headers opened only the
+  synced entity database, pulled both Node mutations, pushed a browser
+  mutation, and a Node client pulled that mutation back.
+- This proves the transport, but not a viable Brain topology. The sync package
+  manages its own database file family and did not adopt the existing
+  standalone production file as an in-place toggle. Replaying the full entity
+  migration history into an empty remote also failed on transient projection
+  DDL ordering.
+- More decisively, the current Turso Cloud SQL endpoint rejected the native FTS
+  schema (`CREATE INDEX … USING fts`) near `USING`, so the production entity
+  schema cannot sync unchanged.
+- Direct browser writes would bypass the entity service's permission checks,
+  visibility scoping, mutation events, projection admission, embedding jobs,
+  markdown export, and Git commit chain. A database token would also expose
+  the shared store rather than the caller's visibility slice. A read-only
+  replica adds a second distribution path without replacing Git's durable,
+  reviewable markdown history.
 
-**Exit — documented fork:** pursue DB/browser sync → embedding DB stays a
-separate file, no fold; stay git-only → the fold becomes available as a local
-simplification. Either way, do not fold while the DB-sync option is open.
+**Decision:** retain Git as the only content sync model and keep CMS reads and
+writes behind the entity service. No sync SDK dependency or production path is
+added. Because the DB-sync option is now closed, folding the regenerable
+embedding table into the entity database becomes available for Phase 5 after
+the Turso production soak.
 
 ### Phase 5 — MVCC and layout consequences
 
-Only after the engine has run quietly in production (Phase 3) and the fork is
-decided (Phase 4). `journal_mode = mvcc` is the first file-format step that is
+Only after the engine has run quietly in production (Phase 3). Phase 4 selected
+the Git-only branch. `journal_mode = mvcc` is the first file-format step that is
 not reversible to libSQL through schema cleanup, so it comes last.
 
 - Adopt MVCC journal mode; drop the WAL/busy-timeout pragma path.
