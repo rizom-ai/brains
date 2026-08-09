@@ -8,22 +8,36 @@ import {
 } from "../src/sqlite";
 import { dropTursoIndexForFallback } from "../src/turso-maintenance";
 
+function restoreDatabaseEngine(previousEngine: string | undefined): void {
+  if (previousEngine === undefined) {
+    delete process.env["BRAINS_DB_ENGINE"];
+  } else {
+    process.env["BRAINS_DB_ENGINE"] = previousEngine;
+  }
+}
+
 describe("createSqliteDatabase", () => {
-  it("returns a drizzle database, client, and the resolved url", () => {
-    const { db, client, url, engine } = createSqliteDatabase({
-      url: "file::memory:",
-      schema: {},
-    });
-    expect(url).toBe("file::memory:");
-    expect(engine).toBe(
-      process.env["BRAINS_DB_ENGINE"] === "turso" ? "turso" : "libsql",
-    );
-    expect(db).toBeDefined();
-    expect(client).toBeDefined();
-    client.close();
+  it("defaults local file urls to turso", async () => {
+    const previousEngine = process.env["BRAINS_DB_ENGINE"];
+    delete process.env["BRAINS_DB_ENGINE"];
+    try {
+      const { db, client, url, engine } = createSqliteDatabase({
+        url: "file::memory:",
+        schema: {},
+      });
+      expect(url).toBe("file::memory:");
+      expect(engine).toBe("turso");
+      expect(db).toBeDefined();
+      expect(client).toBeDefined();
+      await client.execute("SELECT 1");
+      client.close();
+    } finally {
+      restoreDatabaseEngine(previousEngine);
+    }
   });
 
   it("uses the turso engine for file urls when BRAINS_DB_ENGINE=turso", async () => {
+    const previousEngine = process.env["BRAINS_DB_ENGINE"];
     process.env["BRAINS_DB_ENGINE"] = "turso";
     try {
       const { db, client, engine } = createSqliteDatabase({
@@ -39,11 +53,27 @@ describe("createSqliteDatabase", () => {
       expect(rows).toEqual([{ x: 7 }]);
       client.close();
     } finally {
-      delete process.env["BRAINS_DB_ENGINE"];
+      restoreDatabaseEngine(previousEngine);
+    }
+  });
+
+  it("uses libsql as the explicit file fallback", () => {
+    const previousEngine = process.env["BRAINS_DB_ENGINE"];
+    process.env["BRAINS_DB_ENGINE"] = "libsql";
+    try {
+      const { client, engine } = createSqliteDatabase({
+        url: "file::memory:",
+        schema: {},
+      });
+      expect(engine).toBe("libsql");
+      client.close();
+    } finally {
+      restoreDatabaseEngine(previousEngine);
     }
   });
 
   it("lets an explicit engine override the environment", () => {
+    const previousEngine = process.env["BRAINS_DB_ENGINE"];
     process.env["BRAINS_DB_ENGINE"] = "turso";
     try {
       const { client, engine } = createSqliteDatabase({
@@ -54,7 +84,7 @@ describe("createSqliteDatabase", () => {
       expect(engine).toBe("libsql");
       client.close();
     } finally {
-      delete process.env["BRAINS_DB_ENGINE"];
+      restoreDatabaseEngine(previousEngine);
     }
   });
 
@@ -69,6 +99,7 @@ describe("createSqliteDatabase", () => {
   });
 
   it("keeps libsql for remote urls even when BRAINS_DB_ENGINE=turso", () => {
+    const previousEngine = process.env["BRAINS_DB_ENGINE"];
     process.env["BRAINS_DB_ENGINE"] = "turso";
     try {
       const { client, engine } = createSqliteDatabase({
@@ -81,7 +112,7 @@ describe("createSqliteDatabase", () => {
       expect(client.protocol).not.toBe("file");
       client.close();
     } finally {
-      delete process.env["BRAINS_DB_ENGINE"];
+      restoreDatabaseEngine(previousEngine);
     }
   });
 });

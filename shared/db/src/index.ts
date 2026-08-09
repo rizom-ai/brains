@@ -2,6 +2,7 @@ export {
   applySqlitePragmas,
   createSqliteDatabase,
   resolveAuthToken,
+  resolveSqliteEngine,
   type CreateSqliteDatabaseOptions,
   type PragmaClient,
   type SqliteConnection,

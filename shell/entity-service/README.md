@@ -4,7 +4,7 @@ Entity persistence, markdown serialization, embeddings, and search for Brain app
 
 ## Overview
 
-`@brains/entity-service` provides a typed entity registry plus CRUD operations backed by libSQL or Turso Database. Entities are stored as markdown with frontmatter-derived metadata, while embeddings are generated asynchronously and stored in a separate embedding database.
+`@brains/entity-service` provides a typed entity registry plus CRUD operations backed by libSQL or Turso Database. Entities are stored as markdown with frontmatter-derived metadata, while embeddings are generated asynchronously and stored in a separate embedding database. Local files default to Turso; libSQL is retained as the explicit fallback.
 
 ## Features
 

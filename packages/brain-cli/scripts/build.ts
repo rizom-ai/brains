@@ -31,6 +31,7 @@ import {
 
 const packageDir = join(import.meta.dir, "..");
 const outdir = join(packageDir, "dist");
+rmSync(outdir, { recursive: true, force: true });
 mkdirSync(outdir, { recursive: true });
 
 const packageInstanceTsConfigPath = join(packageDir, "tsconfig.instance.json");
@@ -338,26 +339,13 @@ async function emitLibraryDeclarations(): Promise<void> {
   }
 }
 
-const brokerBuild = bundle({
-  name: "git-broker",
-  source: join(import.meta.dir, "..", "src", "git-broker-entrypoint.ts"),
-  sourcemap: "none",
-}).then(() => {
-  const outFile = join(outdir, "git-broker.js");
+/** Bundle an entrypoint and prepend a shebang so it is directly executable. */
+async function bundleExecutable(name: string, source: string): Promise<void> {
+  await bundle({ name, source, sourcemap: "none" });
+  const outFile = join(outdir, `${name}.js`);
   const stripped = readFileSync(outFile, "utf8").replace(/^#!.*\n/gm, "");
   writeFileSync(outFile, `#!/usr/bin/env bun\n${stripped}`);
-});
-
-const cliBuild = bundle({
-  name: "brain",
-  source: join(import.meta.dir, "entrypoint.ts"),
-  sourcemap: "none",
-}).then(() => {
-  // Prepend shebang so the bundle is directly executable.
-  const outFile = join(outdir, "brain.js");
-  const stripped = readFileSync(outFile, "utf8").replace(/^#!.*\n/gm, "");
-  writeFileSync(outFile, `#!/usr/bin/env bun\n${stripped}`);
-});
+}
 
 // Removed alpha authoring subpaths must not survive from an earlier build in
 // the package-wide dist directory.
@@ -370,6 +358,14 @@ for (const legacySiteArtifact of [
   rmSync(join(outdir, legacySiteArtifact), { force: true });
 }
 
+const brokerBuild = bundleExecutable(
+  "git-broker",
+  join(import.meta.dir, "..", "src", "git-broker-entrypoint.ts"),
+);
+const cliBuild = bundleExecutable(
+  "brain",
+  join(import.meta.dir, "entrypoint.ts"),
+);
 const libraryBuild = bundleLibraries();
 
 // Declarations only need source files; run them concurrently with bundling.

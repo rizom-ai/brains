@@ -20,6 +20,18 @@ function readPackageFile(relativePath: string): string {
 }
 
 describe("@rizom/brain package metadata", () => {
+  it("publishes only the canonical brain command", () => {
+    expect(packageJson.bin).toEqual({
+      brain: "./dist/brain.js",
+    });
+  });
+
+  it("declares the Turso engine as a native optional dependency", () => {
+    expect(packageJson.optionalDependencies).toMatchObject({
+      "@tursodatabase/database": expect.any(String),
+    });
+  });
+
   it("uses Bun-native media rendering without browser wrapper dependencies", () => {
     expect(packageJson.optionalDependencies).not.toHaveProperty(
       "playwright-core",

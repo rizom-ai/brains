@@ -102,11 +102,11 @@ until the repository owns a corresponding format.
   - ~$0.02/M tokens (negligible for personal brains)
 - **Vector Storage** — separate `embeddings.db`
   - Decoupled from entity DB for model-swap flexibility
-  - libSQL F32_BLOB columns with vector index
+  - Turso Database `F32_BLOB` columns; local files use Turso by default
   - Attached to entity DB for cross-DB search joins
-- **Hybrid Search** — vector + FTS5 keyword
+- **Hybrid Search** — vector + full-text keyword
   - 70% semantic + 30% keyword boost
-  - SQLite FTS5 virtual table for exact-term matching
+  - Turso native FTS for local files; SQLite FTS5 on the libSQL fallback
   - Threshold tuning via `brain diagnostics search`
 
 ## Messaging & Communication

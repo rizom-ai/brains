@@ -39,20 +39,37 @@ describe("canonical packed consumer", () => {
       );
 
       await runCommand(["bun", "run", "import-smoke.ts"], consumerDirectory);
+      const runtimeEnv = {
+        ...process.env,
+        AI_API_KEY: "packed-startup-check",
+        GIT_SYNC_TOKEN: "packed-startup-check",
+      };
       const startup = await runCommand(
         ["bun", "run", "brain", "start", "--startup-check"],
         consumerDirectory,
         {
-          env: {
-            ...process.env,
-            AI_API_KEY: "packed-startup-check",
-            GIT_SYNC_TOKEN: "packed-startup-check",
-          },
+          env: { ...runtimeEnv, BRAINS_DB_ENGINE: "turso" },
           timeoutMs: 90_000,
         },
       );
-
       expect(combinedOutput(startup)).toContain("Dashboard plugin registered");
+
+      const rollback = await runCommand(
+        ["bun", "run", "brain-rollback-entities-to-libsql"],
+        consumerDirectory,
+        { env: runtimeEnv },
+      );
+      expect(combinedOutput(rollback)).toContain("Entity database prepared");
+
+      const fallback = await runCommand(
+        ["bun", "run", "brain", "start", "--startup-check"],
+        consumerDirectory,
+        {
+          env: { ...runtimeEnv, BRAINS_DB_ENGINE: "libsql" },
+          timeoutMs: 90_000,
+        },
+      );
+      expect(combinedOutput(fallback)).toContain("Dashboard plugin registered");
     } finally {
       await rm(temporaryDirectory, { recursive: true, force: true });
     }

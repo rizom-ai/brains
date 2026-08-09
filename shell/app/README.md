@@ -59,9 +59,13 @@ export default defineBrain({
 
 External authors should use the published `@rizom/brain` contracts rather than importing shell internals.
 
-## Turso-to-libSQL rollback
+## Database engine and rollback
 
-Rollback is an explicit break-glass operation. Stop the app, run:
+Local `file:` databases use Turso Database by default. Remote database URLs
+continue to use libSQL.
+
+Local libSQL is an explicit break-glass fallback, not a routine runtime switch.
+Stop the app, run:
 
 ```bash
 brain-rollback-entities-to-libsql

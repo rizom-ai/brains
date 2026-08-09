@@ -16,8 +16,7 @@
     "brain-migrate-entities": "./scripts/migrate-entities.ts",
     "brain-migrate-job-queue": "./scripts/migrate-job-queue.ts",
     "brain-migrate-conversations": "./scripts/migrate-conversations.ts",
-    "brain-migrate-runtime-state": "./scripts/migrate-runtime-state.ts",
-    "brain-rollback-entities-to-libsql": "./scripts/rollback-entities-to-libsql.ts"
+    "brain-migrate-runtime-state": "./scripts/migrate-runtime-state.ts"
   },
   "dependencies": {
     "@brains/core": "workspace:*",

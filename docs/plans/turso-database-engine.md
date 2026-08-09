@@ -7,10 +7,11 @@ In progress. The engine spike is done on `work/turso-spike` (commits
 presents the libSQL `Client` surface over `@tursodatabase/database@0.7.2`, and
 `createSqliteDatabase` selects it for `file:` urls when `BRAINS_DB_ENGINE=turso`.
 
-Phases 1 and 2 are implemented in `work/turso-migration`: Turso native FTS is
-wired through an engine-aware seam, and the remaining job-queue cursor and
-conversation readiness differences are closed. The affected service suites
-pass on both engines. Review uncovered that Turso's persisted native-FTS
+Phases 1 through 3 are implemented in `work/turso-migration`: Turso native FTS
+is wired through an engine-aware seam, the remaining service differences are
+closed, packed installs carry the native binding, and local files default to
+Turso with a tested explicit fallback. The affected service suites pass on
+both engines. Review uncovered that Turso's persisted native-FTS
 schema syntax is not parseable by libSQL. The chosen mitigation is an explicit,
 tested break-glass command: `brain-rollback-entities-to-libsql`.
 
@@ -58,7 +59,10 @@ Engine: `@tursodatabase/database` 0.7.2. Suites run with `BRAINS_DB_ENGINE=turso
   imported and marked external in the app/CLI bundles so libsql-mode consumers
   never resolve it. The packed consumer's nested install did not materialize
   the platform-specific optional dependency — shipping turso-by-default in the
-  packed CLI needs that story verified.
+  packed CLI needed that story verified. Phase 3 resolved it by declaring the
+  SDK as a direct optional dependency of `@rizom/brain`; the packed-consumer
+  test now starts under Turso, runs the shipped rollback command, and restarts
+  under libSQL.
 - **drizzle-orm 0.45.2 ships no turso driver** (contrary to this plan's earlier
   claim). The adapter therefore implements the libSQL `Client` contract that
   `drizzle-orm/libsql` already speaks — hybrid rows (non-enumerable indices +
@@ -70,10 +74,9 @@ Engine: `@tursodatabase/database` 0.7.2. Suites run with `BRAINS_DB_ENGINE=turso
   Removed in `23d7d468d`, independent of the migration.
 - **Not covered:** auth-service's embedded replica (`runtime-db.ts` constructs
   its own `@libsql/client` with `syncUrl`; it syncs against Turso Cloud and
-  stays on libSQL throughout this plan), and opening pre-existing DB files
-  whose `sqlite_master` still contains the legacy `libsql_vector_idx` index
-  definition (needs a drop-index migration run under libSQL before an engine
-  switch — Phase 3).
+  stays on libSQL throughout this plan). Phase 3 separately resolved the
+  pre-existing `libsql_vector_idx` schema gap with a libSQL cleanup before
+  Turso opens historical entity and embedding files.
 
 ## Context (unchanged)
 
@@ -133,27 +136,26 @@ FTS5 table; its file round-trip test passes.
 **Exit met:** job-queue has 195 passing tests plus one intentional remote-only
 skip, and conversation-service is 35/35 on both engines.
 
-### Phase 3 — Default flip with fallback
+### Phase 3 — Default flip with fallback — DONE
 
-- Verify the packed-CLI platform-binding story: a packed consumer with
-  `BRAINS_DB_ENGINE=turso` must resolve the native binding on install
-  (platform optional deps in the nested layout). Extend the packed-consumer
-  test with a turso-mode smoke.
-- Migration for existing installs: under libSQL, drop the legacy
-  `embeddings_embedding_idx` from existing embedding DB files before the
-  engine can open them, and drop the FTS5 shadow table before first Turso use
-  so it cannot go stale. Verify Turso opens a real production-shaped DB file
-  (WAL journal, existing schema).
-- Keep the explicit fallback command covered by a production-shaped test. It
-  drops `entities_content_fts` through Turso before libSQL opens the file, then
-  recreates and backfills the FTS5 shadow table from `entities`.
-- Flip the default engine for `file:` urls to turso;
-  `BRAINS_DB_ENGINE=libsql` becomes the explicit fallback. Keep WAL journal
-  mode so the file format remains SQLite-compatible; the selected cleanup path
-  handles the engine-specific FTS schema before libSQL opens it.
+- `@rizom/brain` directly declares the Turso SDK as an optional dependency, so
+  packed installs materialize the platform native binding. The packed-consumer
+  test starts in Turso mode outside the monorepo.
+- Before Turso opens existing local files, the entity migration uses libSQL to
+  remove the dead `embeddings_embedding_idx` from both historical entity DBs
+  and current embedding DBs, and removes the stale FTS5 shadow table. A
+  populated WAL-mode cutover test preserves entity and embedding data.
+- The explicit fallback command is shipped by `@rizom/brain` and covered by a
+  production-shaped migration round trip. It drops `entities_content_fts`
+  through Turso before libSQL opens the file, then recreates and backfills the
+  FTS5 shadow table from `entities`.
+- Local `file:` urls now default to Turso; remote URLs remain on libSQL and
+  `BRAINS_DB_ENGINE=libsql` selects the local fallback. WAL keeps the base file
+  SQLite-compatible, while the explicit cleanup handles engine-specific FTS.
 
-**Exit:** production runs Turso under WAL with the tested explicit rollback
-command; no one-env-var or automatic rollback promise remains.
+**Exit met:** packed startup succeeds under Turso, the shipped rollback command
+prepares the same database for a packed libSQL restart, and no one-env-var or
+automatic rollback promise remains.
 
 ### Phase 4 — Sync-model spike (the strategic fork, unchanged)
 
@@ -204,7 +206,5 @@ entity-write/enqueue gap removed if the outbox is adopted.
   would be load-bearing from Phase 3 on. WAL keeps the file format compatible,
   but the native FTS schema is not libSQL-parseable; fallback requires the
   explicit cleanup command described in Design and Phase 3.
-- The nested-install native-binding gap (packed CLI) is unresolved until
-  Phase 3 verifies it; turso-by-default cannot ship before that.
 - MVCC-mode files close the instant-fallback door — deliberately sequenced
   last, behind production soak time.
