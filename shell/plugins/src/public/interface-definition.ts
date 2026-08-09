@@ -1,4 +1,5 @@
 import { createDeclarativeInterfacePlugin } from "../interface/declarative-interface-plugin";
+import { routeMethods } from "../interface/interface-definition-contract";
 import type {
   InterfaceConfigSchema,
   InterfaceDaemonDefinition,
@@ -46,8 +47,6 @@ export type {
   RouteMethod,
   RouteSecurity,
 } from "../interface/interface-definition-contract";
-
-const routeMethods = ["GET", "POST", "PUT", "DELETE", "OPTIONS"] as const;
 
 export function protocol(
   definition: Omit<ProtocolSecurityDefinition, "kind">,

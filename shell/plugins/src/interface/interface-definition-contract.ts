@@ -2,7 +2,14 @@ import type { UserPermissionLevel } from "@brains/templates";
 import type { z } from "@brains/utils/zod";
 import type { AnyServiceJobDefinition } from "../service/service-definition-contract";
 
-export type RouteMethod = "GET" | "POST" | "PUT" | "DELETE" | "OPTIONS";
+export const routeMethods = [
+  "GET",
+  "POST",
+  "PUT",
+  "DELETE",
+  "OPTIONS",
+] as const;
+export type RouteMethod = (typeof routeMethods)[number];
 export type InterfaceSchema = z.ZodType<unknown, unknown>;
 export type InterfaceConfigSchema = z.ZodType<object, object>;
 export type MessageRecipientSchema = z.ZodType<unknown, unknown>;
