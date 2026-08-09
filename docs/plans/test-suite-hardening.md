@@ -89,6 +89,14 @@ Tests contain ~120 fixed sleeps (`await new Promise((r) => setTimeout(r, N))` an
 
 There is no shared wait-for-condition helper anywhere in the repo, which is why the pattern keeps being written by hand. Bun 1.3's test runner supports `jest.useFakeTimers` / `advanceTimersByTime`, so the time-semantics family has a deterministic alternative too.
 
+### Tests bind fixed ports, so two suites cannot run at once
+
+`packages/brain-cli/test/public-authoring-phase5-packed.test.ts` binds hardcoded ports `14010` and `14020`. Observed directly: a full suite run failed with `EADDRINUSE` on 14010 purely because a soak test was running in another worktree at the same time, and the identical test passed in isolation moments later.
+
+The repo already knows the right answer — `import-burst-stability.test.ts` does `Bun.serve({ port: 0 })` and reads back the assigned port, and `packed-consumer-helper.test.ts` likewise avoids a literal. This one file is the exception, so the fix is small and local.
+
+It matters because this repo is worked on through many parallel worktrees, so "only one suite at a time" is not a property anyone can rely on. The failure mode is also maximally misleading: it surfaces as a one-millisecond failure inside an otherwise slow integration test, pointing at a `Bun.serve` line rather than at the collision.
+
 ## Non-goals
 
 - Adding a coverage-percentage threshold or a coverage gate to CI. The weak-assertion and interaction-assertion measurements above are better signals for this codebase, and a line-coverage target would reward the tests this plan is trying to prevent.
@@ -243,11 +251,13 @@ Gate:
 4. Migrate `shell/job-queue` (17), `interfaces/a2a` (12), `interfaces/chat` (10), and `shell/ai-service` (13 `delay()` calls in `agent-service.test.ts`) the same way, preferring a direct await on an observable completion over polling wherever one exists.
 5. While `agent-service.test.ts` is open: replace its `Reflect.get` probes of the private conversation-actor registry with a package-internal introspection accessor on `AgentService` (actor count and snapshot). The probes already guard against shape drift at runtime; an accessor moves that guarantee to compile time and stops a private-field rename from silently breaking lifecycle assertions.
 6. Convert the time-semantics family — `shared/utils` `debounce.test.ts` and `logger-file.test.ts` — to fake timers.
-7. Land the ESLint `no-restricted-syntax` ban on the sleep idiom in test files, with `waitUntil` and fake timers as the documented alternatives.
+7. Replace the hardcoded `14010`/`14020` in `public-authoring-phase5-packed.test.ts` with `port: 0` and read back the assigned port, matching what `import-burst-stability.test.ts` already does.
+8. Land the ESLint `no-restricted-syntax` ban on the sleep idiom in test files, with `waitUntil` and fake timers as the documented alternatives.
 
 Gate:
 
 - No fixed-duration sleep used as synchronization remains in the migrated packages.
+- No test binds a hardcoded port; two suites can run concurrently without EADDRINUSE.
 - `directory-sync`'s suite time drops measurably (it is 25.4s today).
 - Debounce and logger tests pass with fake timers and no real-time dependence.
 - No test reads private service state via `Reflect.get`.
