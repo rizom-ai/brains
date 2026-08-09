@@ -10,7 +10,7 @@ import type {
   ExportResult,
   ImportResult,
   SyncResult,
-  DeleteResult,
+  DirectoryDeleteJobResult,
 } from "../types";
 import type { ImageConversionResult } from "../handlers/image-conversion-handler";
 import type { InlineImageConversionResult } from "../handlers/inline-image-conversion-handler";
@@ -39,7 +39,7 @@ declare module "@brains/job-queue" {
     };
     "directory-delete": {
       input: DirectoryDeleteJobData;
-      output: DeleteResult;
+      output: DirectoryDeleteJobResult;
     };
     "directory-cleanup": {
       input: Record<string, never>;

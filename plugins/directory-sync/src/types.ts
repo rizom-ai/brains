@@ -13,6 +13,7 @@ export type {
 export type {
   CleanupResult,
   DeleteResult,
+  DirectoryDeleteJobResult,
   DirectorySyncStatus,
   ExportResult,
   GitLogEntry,
@@ -33,6 +34,7 @@ export {
   inlineImageConversionJobSchema,
   type CoverImageConversionJobData,
   type DirectoryDeleteJobData,
+  type DirectoryDeleteTarget,
   type DirectoryExportJobData,
   type DirectoryImportJobData,
   type DirectorySyncJobData,

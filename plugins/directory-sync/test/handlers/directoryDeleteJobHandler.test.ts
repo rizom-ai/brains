@@ -58,6 +58,55 @@ describe("DirectoryDeleteJobHandler", () => {
       );
     });
 
+    it("deletes a targeted batch in one job", async () => {
+      const mockContext = createMockServicePluginContext({
+        returns: { entityService: { deleteEntity: true } },
+      });
+      const mockProgressReporter = createMockProgressReporter();
+      const completePendingDelete = mock(() => {});
+      const handler = new DirectoryDeleteJobHandler(
+        logger,
+        mockContext,
+        createMockDirectorySync({ completePendingDelete }),
+      );
+      const deletions = [
+        validData,
+        {
+          entityId: "second",
+          entityType: "note",
+          filePath: "/path/to/second.md",
+        },
+      ];
+
+      const result = await handler.process(
+        { deletions },
+        jobId,
+        mockProgressReporter,
+      );
+
+      expect(result).toEqual([
+        {
+          deleted: true,
+          entityId: validData.entityId,
+          entityType: validData.entityType,
+          filePath: validData.filePath,
+        },
+        {
+          deleted: true,
+          entityId: "second",
+          entityType: "note",
+          filePath: "/path/to/second.md",
+        },
+      ]);
+      expect(mockContext.entityService.deleteEntity).toHaveBeenCalledTimes(2);
+      expect(completePendingDelete).toHaveBeenCalledTimes(2);
+      expect(mockProgressReporter.report).toHaveBeenLastCalledWith({
+        progress: 2,
+        total: 2,
+        message: "Deleted note:second",
+      });
+    });
+
     it("should handle case when entity doesn't exist", async () => {
       const mockContext = createMockServicePluginContext({
         returns: { entityService: { deleteEntity: false } },

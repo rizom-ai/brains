@@ -42,6 +42,9 @@ jobs:
           RUN_IMPORT_BURST_SOAK: 1
           IMPORT_BURST_FILE_COUNT: 350
         run: |
+          # Actions bash has no pipefail by default; without it a failing
+          # soak exits 0 through tee and the failure notification never fires.
+          set -o pipefail
           bun test packages/brain-cli/test/import-burst-stability.test.ts \
             2>&1 | tee "$RUNNER_TEMP/directory-sync-import-soak.log"
 
