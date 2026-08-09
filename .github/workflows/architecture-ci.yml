@@ -18,7 +18,8 @@ on:
       - ".node-version"
       - "scripts/architecture-*"
       - "scripts/dependency-cruiser-typescript-*"
-      - ".github/workflows/architecture-ci.yml"
+      - "scripts/test-wiring*"
+      - ".github/workflows/**"
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
     paths:
@@ -35,7 +36,8 @@ on:
       - ".node-version"
       - "scripts/architecture-*"
       - "scripts/dependency-cruiser-typescript-*"
-      - ".github/workflows/architecture-ci.yml"
+      - "scripts/test-wiring*"
+      - ".github/workflows/**"
 
 jobs:
   architecture:
@@ -59,8 +61,8 @@ jobs:
       - name: Install dependencies
         run: bun install
 
-      - name: Test architecture inventory and toolchain
-        run: bun run arch:test
+      - name: Test repository scripts
+        run: bun run test:scripts
 
       - name: Check dependency architecture
         run: bun run arch:check

@@ -19,11 +19,26 @@ describe("professional profile schema", () => {
       audience: "climate-tech founders",
       expertise: ["resilient software systems"],
       availability: "Open to advisory work",
-      artistMediums: ["installation"],
     });
 
     expect(parsed.expertise).toEqual(["resilient software systems"]);
     expect(parsed.availability).toBe("Open to advisory work");
-    expect(parsed["artistMediums"]).toEqual(["installation"]);
+  });
+
+  it("drops posture fields the site does not render", () => {
+    const parsed = professionalProfileSchema.parse({
+      name: "Ada Morgan",
+      artistMediums: ["installation"],
+    });
+
+    expect(parsed).not.toHaveProperty("artistMediums");
+  });
+
+  it("defaults every unset optional field to null", () => {
+    const parsed = professionalProfileSchema.parse({ name: "Ada Morgan" });
+
+    expect(parsed.expertise).toBeNull();
+    expect(parsed.socialLinks).toBeNull();
+    expect(parsed.availability).toBeNull();
   });
 });

@@ -2,7 +2,7 @@
 
 ## Status
 
-**Proposed — 2026-08-09; claims re-verified against code the same day.** Nothing in this plan is implemented. This is not a rescue plan: the suite is green and structurally healthy today. Every phase targets a drift mechanism or a dead spot rather than failing behavior, so no phase gates a release. Phases are independently shippable and ordered so each one makes the next safer.
+**In progress — 2026-08-09; Phase 0 complete.** This is not a rescue plan: the suite is green and structurally healthy today. Every remaining phase targets a drift mechanism or a dead spot rather than failing behavior, so no phase gates a release. Phases are independently shippable and ordered so each one makes the next safer.
 
 ## Goal
 
@@ -20,7 +20,7 @@ Make the existing test suite's guarantees hard to lose:
 
 The suite is in good shape, and the plan depends on that staying true.
 
-1. `bun run test` runs 99 turbo tasks green in ~27s wall clock (45 cached). Shell alone is 17 packages in ~13s.
+1. `bun run test` runs 100 turbo tasks green in well under a minute. Shell alone is 17 packages in ~13s.
 2. There are zero `.skip`, `.only`, and `.todo` markers across every workspace.
 3. Weak assertions (`toBeDefined`, `toBeTruthy`, `toBeFalsy`, `toBeUndefined`, `toBeNull`, bare `not.toThrow`) are 6–10% of all `expect()` calls per layer — 8.7% in `shell/`, 10.4% in `shared/`, 2.7% in `packages/`.
 4. Interaction assertions (`toHaveBeenCalled*`) are 7.3% of expects in `shell/` and 1.7% in `shared/`. Tests assert outcomes, not call logs. `interfaces/` is the outlier at 15.2%.
@@ -31,21 +31,13 @@ The suite is in good shape, and the plan depends on that staying true.
 
 Two test-infrastructure homes exist and the split is correct: `@brains/test-utils` (mock factories, 297 consumers) and `@brains/plugins/test` (plugin harness, 144 consumers). This plan keeps both.
 
-Two caveats to the baseline. Test files themselves contain 156 `as unknown as` casts across 80 files (94 in `shell/` alone), almost always on inline partial mocks — so the "no casts in test files" property that `test-utils`' header aims for does not hold today; Phase 6 addresses it. And `shell/ai-service/test/agent-service.test.ts` is the one file in the repo that reads private service state via `Reflect.get` (the conversation-actor registry probes); Phase 5 replaces those probes while it has the file open.
+Phase 0 shipped the wiring guard: `scripts/test-wiring.test.ts` fails when a package with test files declares no `test` script, when a `scripts/*.test.ts` is not run by a CI-invoked root script, or when a `bun test` path argument in a root script resolves to nothing. It runs in `architecture-ci.yml` via `bun run test:scripts`, which replaced the file-pinned `arch:test`. `sites/professional` now has a `test` script (its stale `artistMediums` passthrough assertion was corrected to match the strict JSON-native schema that superseded it), `scripts/build-roadmap-visual.test.ts` runs for the first time, and the `test:integration` / `test:all` pair that reported a nonexistent suite as green is deleted.
+
+Three caveats to the baseline. Test files themselves contain 156 `as unknown as` casts across 80 files (94 in `shell/` alone), almost always on inline partial mocks — so the "no casts in test files" property that `test-utils`' header aims for does not hold today; Phase 6 addresses it. `shell/ai-service/test/agent-service.test.ts` is the one file in the repo that reads private service state via `Reflect.get` (the conversation-actor registry probes); Phase 5 replaces those probes while it has the file open. And root-level `scripts/` is linted by nothing — `scripts/lint.mjs` drives turbo, which only visits workspace packages, and the repository root is not one — so the script tests Phase 0 just wired up are unreachable from ESLint; Phase 6 fixes that alongside its own rules.
 
 A static "modules never imported by a test" sweep flagged 25 of 53 modules in `shell/core`. That signal was checked and is mostly transitive-coverage noise — barrel modules such as `messageBus.ts` pull in their collaborators, and the init/shutdown paths it flagged are covered. Only `shell/ai-evaluation` survived the check as a genuine hole. This plan does not act on that sweep beyond Phase 4.
 
 ## Problems to solve
-
-### Tests that exist but never execute
-
-Three independent instances, none of which fail loudly:
-
-- `sites/professional` has `test/professional-profile-schema.test.ts` and `test/template-schemas.test.ts`, and a `package.json` declaring only `lint`, `lint:fix`, and `typecheck`. Turbo's `test` task skips the package. It is the only package in the repo with test files and no `test` script.
-- `scripts/build-roadmap-visual.test.ts` is run by nothing. Root `arch:test` is pinned to `bun test scripts/architecture-check.test.ts`, and `architecture-ci.yml` runs only that. Turbo does not traverse the root package.
-- `test:integration` is `bun test test/integration`, and `test/integration` does not exist. Bun treats the argument as a path substring filter rather than erroring, so it matches `plugins/analytics/test/integration.test.ts`, runs 11 unrelated tests, and exits 0. `test:all` therefore reports a passing integration suite that was never written.
-
-The common failure is that all three are silent. Nothing in CI distinguishes "ran and passed" from "matched nothing and passed."
 
 ### Mock drift cannot be caught by the type system
 
@@ -176,30 +168,9 @@ Fake timers (`jest.useFakeTimers` / `advanceTimersByTime`, supported in Bun 1.3)
 
 An ESLint `no-restricted-syntax` rule bans the `new Promise(... setTimeout ...)` sleep idiom in test files once migration lands, so the pattern cannot quietly return.
 
-## Phases
+## Remaining implementation phases
 
-Each phase is independently shippable and starts with its test. Phases 1–5 may be reordered against each other, but Phase 0 goes first: it is the only one that changes whether the other phases' tests are believed. Phase 6 builds on Phases 1 and 3 and comes after both.
-
-### Phase 0 — A test file that exists always runs
-
-Walking skeleton. Delivers the guard and the three fixes it catches, end to end.
-
-1. Write `scripts/test-wiring.test.ts`, failing on the current tree, asserting:
-   - every workspace package containing a `*.test.ts` or `*.test.tsx` file declares a `test` script;
-   - every `scripts/*.test.ts` file is matched by a root script that CI executes;
-   - every root `test:*` script's path argument resolves to an existing file or directory.
-2. Broaden `arch:test` to `bun test scripts/` so all script-level tests run, and keep the `architecture-ci.yml` step pointed at it. This makes `build-roadmap-visual.test.ts` execute for the first time; fix it if it fails.
-3. Add `"test": "bun test"` to `sites/professional/package.json` and fix whatever its two test files surface.
-4. Delete `test:integration` and `test:all`. There is no integration suite, `turbo run test` already covers every workspace, and a script that green-lights a suite that does not exist is worse than its absence. `test:unit` stays as an alias for `test`.
-5. Add the guard test to `architecture-ci.yml` if step 2's broadening does not already cover it.
-
-Gate:
-
-- `scripts/test-wiring.test.ts` fails when a `test` script is removed from any package that has test files.
-- `sites/professional` tests execute under `bun run test` and appear in turbo's task count.
-- `scripts/build-roadmap-visual.test.ts` executes in CI.
-- No root script references a nonexistent path.
-- Turbo task count increases by at least one and the suite stays green.
+Each phase is independently shippable and starts with its test. Phases 1–5 may be reordered against each other. Phase 6 builds on Phases 1 and 3 and comes after both.
 
 ### Phase 1 — Mock drift is a compile error
 
@@ -287,21 +258,16 @@ Builds on Phase 1 (shared mocks are `satisfies`-checked) and Phase 3 (shared fac
 1. Migrate the 80 cast-bearing test files layer by layer, smallest layer first (`packages` 2 files, `shared` 2, `entities` 7, `interfaces` 10, `plugins` 18, `shell` 41). For each cast: if a shared factory exists for the type, use it; otherwise give the inline mock an honest narrow type (`Pick<...>` or a local interface) and adjust the code under test's parameter type if it demands more than it uses.
 2. Where a cast survives because the type genuinely cannot be narrowed or faked honestly, move the construction into `@brains/test-utils` behind a `satisfies`-checked factory so the debt is centralized and visible, never inline.
 3. Extend the Phase 1 ESLint restriction on `as unknown as` from `shared/test-utils/src/` to all `*.test.ts` / `*.test.tsx` files, enabled per layer as each layer completes.
+4. Bring root-level `scripts/` under ESLint. `scripts/lint.mjs` drives turbo, which only visits workspace packages, so nothing lints the repository root today — including the Phase 0 guard tests. Without this, the rules above silently skip the one directory whose tests protect all the others.
 
 Gate:
 
 - Zero `as unknown as` in test files repo-wide.
 - The ESLint restriction covers every test file and fails on a reintroduced cast.
+- `scripts/` is linted by a CI-invoked command.
 - No mock behavior changed — this phase only moves and types constructions.
 
 ## Validation matrix
-
-### Wiring
-
-- package with test files and no `test` script;
-- `scripts/*.test.ts` not reachable from a CI-run root script;
-- root script pointing at a nonexistent path;
-- turbo task count before and after Phase 0.
 
 ### Mock typing
 
@@ -344,7 +310,6 @@ Gate:
 
 ## Risks and mitigations
 
-- **Phase 0 turns previously-invisible failures into red CI.** That is the intended outcome, and the reason Phase 0 is first. `sites/professional`'s two tests and `build-roadmap-visual.test.ts` have never run and may not pass. Fix them in Phase 0 rather than merging the guard with exclusions; an allowlist would reproduce the problem the guard exists to remove.
 - **Phase 1 surfaces mocks that are already stale.** Likely in `mock-shell.ts`, and the reason it is sequenced last within the phase. A revealed gap means tests were asserting against a shape the real service no longer has, so fix the mock and re-check the tests that used it rather than narrowing the type to make the error disappear.
 - **`satisfies` on a large literal produces hard-to-read errors.** Convert one file at a time and keep each conversion a separate commit, so a confusing error is always attributable to one mock.
 - **Phase 2's `track` is easy to forget at a call site.** The four in-tree call sites are migrated in the same phase. Beyond that, an untracked client is no worse than today's behavior, so the helper degrades to the current state rather than to something broken.
@@ -358,8 +323,8 @@ Gate:
 
 ## Success criteria
 
-- No test file in the repository is unreachable from CI.
-- No root script silently matches nothing.
+- No test file in the repository is unreachable from CI (shipped in Phase 0; the guard keeps it true).
+- No root script silently matches nothing (shipped in Phase 0).
 - Adding a method to a mocked interface fails typecheck rather than passing silently.
 - No `as unknown as` remains in `shared/test-utils/src/` or in any test file.
 - One implementation of test-database setup, with one cleanup contract, and no cleanup that opens a connection.
