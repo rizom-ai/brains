@@ -21,7 +21,7 @@ Make the existing test suite's guarantees hard to lose:
 The suite is in good shape, and the plan depends on that staying true.
 
 1. `bun run test` runs 100 turbo tasks green in well under a minute. Shell alone is 17 packages in ~13s.
-2. There are zero `.skip`, `.only`, and `.todo` markers across every workspace.
+2. There are zero unconditional `.skip`, `.only`, and `.todo` markers. Four tests use `it.skipIf`, each gating an opt-in soak or remote-contract run behind an environment variable (`RUN_IMPORT_BURST_SOAK`, `RUN_SOAK`, `RUN_SMOKE_TESTS`, `JOB_QUEUE_REMOTE_TEST_URL`) and each documenting its invocation. These are deliberate opt-ins, not disabled tests — but they never run in CI, so nothing detects them rotting.
 3. Weak assertions (`toBeDefined`, `toBeTruthy`, `toBeFalsy`, `toBeUndefined`, `toBeNull`, bare `not.toThrow`) are 6–10% of all `expect()` calls per layer — 8.7% in `shell/`, 10.4% in `shared/`, 2.7% in `packages/`.
 4. Interaction assertions (`toHaveBeenCalled*`) are 7.3% of expects in `shell/` and 1.7% in `shared/`. Tests assert outcomes, not call logs. `interfaces/` is the outlier at 15.2%.
 5. No test file is assertion-free.
@@ -319,7 +319,8 @@ Gate:
 - **Phase 5 replaces a sleep with a wait on the wrong condition and hides a real race.** Each migration states what the original sleep was waiting for; when that cannot be named, the sleep is flagging an untestable design, and the right fix is exposing a completion signal from the code under test, not a longer poll.
 - **Fake timers mask genuine asynchrony.** Decision 7 restricts them to tests where elapsed time is the behavior under test; synchronization always goes through `waitUntil` or a direct await.
 - **Phase 6 widens parameter types in production code to accommodate tests.** Narrowing a consumer's parameter from a service interface to the methods it uses is a legitimate improvement; loosening a type to `Partial` or `unknown` to make a mock fit is not. When an honest type cannot be found, the cast moves into a centralized factory rather than being disguised.
-- **The guard tests become the thing people work around.** All the guards fail loudly with the offending path named. If a guard needs an exception, that is a signal to revisit the rule, not to add a skip — the repo currently has zero skips and that property is worth keeping.
+- **The guard tests become the thing people work around.** All the guards fail loudly with the offending path named. If a guard needs an exception, that is a signal to revisit the rule, not to add a skip — the repo has no unconditional skips and that property is worth keeping.
+- **The four `skipIf` soak tests rot unnoticed.** They never run in CI by design, so they carry the same silence Phase 0 removed elsewhere, one level down: they compile but are never executed against a real runtime. Phase 6's typecheck and lint sweeps cover them statically; scheduling an actual periodic run is out of scope here and belongs with whoever owns the soak workflow.
 
 ## Success criteria
 
@@ -331,7 +332,7 @@ Gate:
 - Each shared mock factory has exactly one definition.
 - `shell/ai-evaluation`'s CLI chain is reachable from tests, with no live model calls in the default suite.
 - No test synchronizes on a fixed-duration sleep, and no `mock.module` targets workspace-internal code.
-- The baseline properties hold: zero skips, weak assertions under 10% per layer, suite under 60s.
+- The baseline properties hold: no unconditional skips, weak assertions under 10% per layer, suite under 60s.
 
 ## Related plans
 
