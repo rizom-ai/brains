@@ -5,6 +5,7 @@ import {
   eq,
   exists,
   gt,
+  gte,
   inArray,
   isNull,
   lte,
@@ -745,22 +746,27 @@ export class JobQueueRepository {
     cursor: JobRuntimeUpdateCursor,
     limit: number,
   ): Promise<JobRuntimeUpdate[]> {
+    if (limit <= 0) return [];
+
     const rows = await this.db
       .select()
       .from(jobQueue)
-      .where(
-        sql`(${jobQueue.runtimeUpdatedAt}, ${jobQueue.id}) > (${cursor.updatedAt}, ${cursor.jobId})`,
-      )
-      .orderBy(asc(jobQueue.runtimeUpdatedAt), asc(jobQueue.id))
-      .limit(limit);
+      .where(gte(jobQueue.runtimeUpdatedAt, cursor.updatedAt))
+      .orderBy(asc(jobQueue.runtimeUpdatedAt), asc(jobQueue.id));
 
-    return rows.map((job) => ({
-      job,
-      cursor: {
-        updatedAt: job.runtimeUpdatedAt ?? 0,
-        jobId: job.id,
-      },
-    }));
+    return rows
+      .filter((job) => {
+        const updatedAt = job.runtimeUpdatedAt ?? 0;
+        return updatedAt > cursor.updatedAt || job.id > cursor.jobId;
+      })
+      .slice(0, limit)
+      .map((job) => ({
+        job,
+        cursor: {
+          updatedAt: job.runtimeUpdatedAt ?? 0,
+          jobId: job.id,
+        },
+      }));
   }
 
   public async cleanup(olderThanMs: number): Promise<number> {

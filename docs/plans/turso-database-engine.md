@@ -7,11 +7,12 @@ In progress. The engine spike is done on `work/turso-spike` (commits
 presents the libSQL `Client` surface over `@tursodatabase/database@0.7.2`, and
 `createSqliteDatabase` selects it for `file:` urls when `BRAINS_DB_ENGINE=turso`.
 
-Phase 1 is implemented in `work/turso-migration`: Turso native FTS is wired
-through an engine-aware seam and the entity-service suite passes 326/326 on
-both engines. Review uncovered that Turso's persisted native-FTS schema syntax
-is not parseable by libSQL. The chosen mitigation is an explicit, tested
-break-glass command: `brain-rollback-entities-to-libsql`.
+Phases 1 and 2 are implemented in `work/turso-migration`: Turso native FTS is
+wired through an engine-aware seam, and the remaining job-queue cursor and
+conversation readiness differences are closed. The affected service suites
+pass on both engines. Review uncovered that Turso's persisted native-FTS
+schema syntax is not parseable by libSQL. The chosen mitigation is an explicit,
+tested break-glass command: `brain-rollback-entities-to-libsql`.
 
 This plan originally asked whether the rewrite is worth adopting at all. The
 spike answered that: yes — phased, with libSQL retained as a fallback. Phase 1
@@ -120,17 +121,17 @@ The one real port, and the walking skeleton for production parity.
 Turso, checkpoints the schema change, then recreates and backfills the libSQL
 FTS5 table; its file round-trip test passes.
 
-### Phase 2 — Close the small diffs
+### Phase 2 — Close the small diffs — DONE
 
-- Job-queue cursor: rewrite the durable cursor seek as
-  `runtimeUpdatedAt >= ?` + client-side tie-skip of already-seen
-  `(runtimeUpdatedAt, id)` pairs. Update the query-plan test to assert a
-  seek on both engines (`SEARCH … USING INDEX`).
-- Conversation-service readiness: make the busy-timeout assertion
-  engine-aware — on turso assert the pragma is accepted and writes proceed
-  under contention instead of asserting the echoed value.
+- The job-queue durable cursor now seeks on `runtimeUpdatedAt >= ?`, then
+  tie-skips already-seen `(runtimeUpdatedAt, id)` pairs client-side. Both
+  engines report `SEARCH … USING INDEX` for the covering-index query plan.
+- Conversation-service readiness is engine-aware: libSQL still verifies the
+  echoed busy timeout, while Turso verifies that the pragma is accepted and a
+  write waits for a contending process to commit.
 
-**Exit:** every service suite green under the flag on both engines.
+**Exit met:** job-queue has 195 passing tests plus one intentional remote-only
+skip, and conversation-service is 35/35 on both engines.
 
 ### Phase 3 — Default flip with fallback
 

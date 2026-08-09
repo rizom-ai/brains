@@ -4,6 +4,7 @@ import { join } from "path";
 import type { ConversationDbConfig } from "../../src/types";
 import { createConversationDatabase } from "../../src/database";
 import { migrate } from "drizzle-orm/libsql/migrator";
+import type { SqliteEngine } from "@brains/db";
 
 /**
  * Create a temporary test conversation database
@@ -14,6 +15,7 @@ export async function createTestConversationDatabase(): Promise<{
   client: ReturnType<typeof createConversationDatabase>["client"];
   cleanup: () => Promise<void>;
   dbPath: string;
+  engine: SqliteEngine;
 }> {
   // Create a unique temporary directory
   const tempDir = await mkdtemp(join(tmpdir(), "brain-conversation-test-"));
@@ -25,7 +27,7 @@ export async function createTestConversationDatabase(): Promise<{
   };
 
   // Create database
-  const { db, client } = createConversationDatabase(config);
+  const { db, client, engine } = createConversationDatabase(config);
 
   // Run migrations
   await migrate(db, {
@@ -41,5 +43,5 @@ export async function createTestConversationDatabase(): Promise<{
     await rm(tempDir, { recursive: true, force: true });
   };
 
-  return { db, client, cleanup, dbPath };
+  return { db, client, cleanup, dbPath, engine };
 }

@@ -421,10 +421,9 @@ describe("JobQueueRepository fenced attempts", () => {
     const plan = await client.execute({
       sql: `EXPLAIN QUERY PLAN
         SELECT * FROM job_queue
-        WHERE (runtimeUpdatedAt, id) > (?, ?)
-        ORDER BY runtimeUpdatedAt, id
-        LIMIT ?`,
-      args: [0, "", 100],
+        WHERE runtimeUpdatedAt >= ?
+        ORDER BY runtimeUpdatedAt, id`,
+      args: [0],
     });
 
     expect(index.rows.map((row) => row["name"])).toEqual([
@@ -436,6 +435,21 @@ describe("JobQueueRepository fenced attempts", () => {
         "SEARCH job_queue USING INDEX idx_job_queue_runtime_updates",
       ),
     ]);
+  });
+
+  it("skips cursor ties after seeking by update timestamp", async () => {
+    const jobs = ["a-job", "b-job", "c-job"].map((id) => createTestJob({ id }));
+    for (const job of jobs) await repository.insert(job);
+    await client.execute(
+      "UPDATE job_queue SET runtimeUpdatedAt = 100 WHERE id IN ('a-job', 'b-job', 'c-job')",
+    );
+
+    const updates = await repository.getRuntimeUpdates(
+      { updatedAt: 100, jobId: "b-job" },
+      1,
+    );
+
+    expect(updates.map((update) => update.job.id)).toEqual(["c-job"]);
   });
 
   it("streams durable progress and terminal snapshots through a stable cursor", async () => {
