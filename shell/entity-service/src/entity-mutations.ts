@@ -1,6 +1,5 @@
 import { ENTITY_CHANNELS, SHELL_CHANNELS } from "@brains/contracts";
 import type { EntityDB } from "./db";
-import type { EmbeddingDB } from "./db/embedding-db";
 import type {
   AssetTransaction,
   SqliteAssetRepository,
@@ -27,11 +26,17 @@ import type {
 import type { EntitySerializer } from "./entity-serializer";
 import type { EntityQueries } from "./entity-queries";
 import type { ProjectionStore } from "./projection-store";
+import type { EntityJobOutbox } from "./entity-job-outbox";
 import type {
   EntityExportStore,
   EntityExportTransaction,
 } from "./entity-export-store";
-import type { IJobQueueService, JobInfo } from "@brains/job-queue";
+import type {
+  IJobQueueService,
+  JobInfo,
+  JobQueueEnqueueRequest,
+  PreparedJobEnqueue,
+} from "@brains/job-queue";
 import { createId } from "@brains/utils/id";
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
@@ -136,6 +141,7 @@ export interface EntityMutationDeps {
   entitySerializer: EntitySerializer;
   entityQueries: EntityQueries;
   jobQueueService: IJobQueueService;
+  jobOutbox: EntityJobOutbox;
   logger: Logger;
   messageBus?: EntityEventBus;
   mutationAdmission?: EntityMutationAdmission;
@@ -143,9 +149,8 @@ export interface EntityMutationDeps {
   assetRepository: SqliteAssetRepository;
   entityExportStore: EntityExportStore;
   projectionNow: () => number;
-  /** Embedding DB for writes (separate from entity DB). */
-  embeddingDb: EmbeddingDB;
   embeddingsEnabled: boolean;
+  embeddingDimensions: number;
 }
 
 /**
@@ -154,11 +159,11 @@ export interface EntityMutationDeps {
  */
 export class EntityMutations {
   private db: EntityDB;
-  private embeddingDb: EmbeddingDB;
   private entityRegistry: EntityRegistry;
   private entitySerializer: EntitySerializer;
   private entityQueries: EntityQueries;
   private jobQueueService: IJobQueueService;
+  private readonly jobOutbox: EntityJobOutbox;
   private messageBus?: EntityEventBus;
   private mutationAdmission?: EntityMutationAdmission;
   private readonly projectionStore: ProjectionStore;
@@ -168,20 +173,26 @@ export class EntityMutations {
   private readonly embeddingsEnabled: boolean;
   private projectionWakeup: (() => Promise<void>) | undefined;
   private logger: Logger;
+  private embeddingDimensions: number;
 
   constructor(deps: EntityMutationDeps) {
     this.db = deps.db;
-    this.embeddingDb = deps.embeddingDb;
     this.entityRegistry = deps.entityRegistry;
     this.entitySerializer = deps.entitySerializer;
     this.entityQueries = deps.entityQueries;
     this.jobQueueService = deps.jobQueueService;
+    this.jobOutbox = deps.jobOutbox;
     this.projectionStore = deps.projectionStore;
     this.assetRepository = deps.assetRepository;
     this.entityExportStore = deps.entityExportStore;
     this.projectionNow = deps.projectionNow;
     this.embeddingsEnabled = deps.embeddingsEnabled;
     this.logger = deps.logger.child("EntityMutations");
+    this.embeddingDimensions = z
+      .number()
+      .int()
+      .positive()
+      .parse(deps.embeddingDimensions);
     if (deps.messageBus) {
       this.messageBus = deps.messageBus;
     }
@@ -265,7 +276,20 @@ export class EntityMutations {
       entityId: finalId,
     });
 
-    // Persist the entity, search row, and scheduler journal atomically.
+    const embeddingIntent = this.prepareEmbeddingJob({
+      entityId: finalId,
+      entityType: validatedEntity.entityType,
+      contentHash,
+      operation: "create",
+      ...(options?.priority !== undefined && { priority: options.priority }),
+      ...(options?.maxRetries !== undefined && {
+        maxRetries: options.maxRetries,
+      }),
+      ...(options?.eventContext && { eventContext: options.eventContext }),
+    });
+    const markedAt = this.projectionNow();
+
+    // Persist the entity, scheduler journal, and embedding intent atomically.
     await this.projectionStore.withDirtyInput(
       {
         sourceType: validatedEntity.entityType,
@@ -276,7 +300,7 @@ export class EntityMutations {
           visibility: validatedEntity.visibility,
         }),
         operation: "upsert",
-        markedAt: this.projectionNow(),
+        markedAt,
       },
       async (transaction) => {
         await this.bindAssetContent(
@@ -295,12 +319,9 @@ export class EntityMutations {
           created: new Date(validatedEntity.created).getTime(),
           updated: new Date(validatedEntity.updated).getTime(),
         });
-        await this.syncFtsIndex(
-          transaction,
-          finalId,
-          validatedEntity.entityType,
-          markdown,
-        );
+        if (embeddingIntent) {
+          await this.jobOutbox.persist(transaction, embeddingIntent, markedAt);
+        }
         await this.persistEntityExport(
           transaction,
           {
@@ -312,6 +333,7 @@ export class EntityMutations {
         );
       },
     );
+    if (embeddingIntent) this.jobOutbox.requestDrain();
     await this.notifyProjectionScheduler();
 
     this.logger.debug(
@@ -330,17 +352,7 @@ export class EntityMutations {
       options?.eventContext,
     );
 
-    return this.enqueueEmbeddingJob({
-      entityId: finalId,
-      entityType: validatedEntity.entityType,
-      contentHash,
-      operation: "create",
-      ...(options?.priority !== undefined && { priority: options.priority }),
-      ...(options?.maxRetries !== undefined && {
-        maxRetries: options.maxRetries,
-      }),
-      ...(options?.eventContext && { eventContext: options.eventContext }),
-    });
+    return this.embeddingIntentResult(finalId, embeddingIntent);
   }
 
   /**
@@ -447,11 +459,6 @@ export class EntityMutations {
             markdown,
             stagedAsset,
           );
-          await this.pruneFtsIndexIfExcluded(
-            transaction,
-            validatedEntity.id,
-            validatedEntity.entityType,
-          );
           return this.persistEntityExport(
             transaction,
             {
@@ -485,6 +492,19 @@ export class EntityMutations {
       entityId: validatedEntity.id,
     });
 
+    const embeddingIntent = this.prepareEmbeddingJob({
+      entityId: validatedEntity.id,
+      entityType: validatedEntity.entityType,
+      contentHash,
+      operation: "update",
+      ...(options?.priority !== undefined && { priority: options.priority }),
+      ...(options?.maxRetries !== undefined && {
+        maxRetries: options.maxRetries,
+      }),
+      ...(options?.eventContext && { eventContext: options.eventContext }),
+    });
+    const markedAt = this.projectionNow();
+
     try {
       await this.projectionStore.withDirtyInput(
         {
@@ -496,9 +516,19 @@ export class EntityMutations {
             visibility: validatedEntity.visibility,
           }),
           operation: "upsert",
-          markedAt: this.projectionNow(),
+          markedAt,
         },
         async (transaction) => {
+          if (existingEntity.contentHash !== contentHash) {
+            await transaction
+              .delete(embeddings)
+              .where(
+                and(
+                  eq(embeddings.entityType, validatedEntity.entityType),
+                  eq(embeddings.entityId, validatedEntity.id),
+                ),
+              );
+          }
           await this.bindAssetContent(
             transaction,
             validatedEntity.entityType,
@@ -529,12 +559,13 @@ export class EntityMutations {
           ) {
             throw new StaleEntityUpdateError();
           }
-          await this.syncFtsIndex(
-            transaction,
-            validatedEntity.id,
-            validatedEntity.entityType,
-            markdown,
-          );
+          if (embeddingIntent) {
+            await this.jobOutbox.persist(
+              transaction,
+              embeddingIntent,
+              markedAt,
+            );
+          }
           await this.persistEntityExport(
             transaction,
             {
@@ -558,6 +589,7 @@ export class EntityMutations {
         skipReason: "content-conflict",
       };
     }
+    if (embeddingIntent) this.jobOutbox.requestDrain();
     await this.notifyProjectionScheduler();
 
     this.logger.debug(
@@ -576,17 +608,7 @@ export class EntityMutations {
       options?.eventContext,
     );
 
-    return this.enqueueEmbeddingJob({
-      entityId: validatedEntity.id,
-      entityType: validatedEntity.entityType,
-      contentHash,
-      operation: "update",
-      ...(options?.priority !== undefined && { priority: options.priority }),
-      ...(options?.maxRetries !== undefined && {
-        maxRetries: options.maxRetries,
-      }),
-      ...(options?.eventContext && { eventContext: options.eventContext }),
-    });
+    return this.embeddingIntentResult(validatedEntity.id, embeddingIntent);
   }
 
   /**
@@ -614,13 +636,9 @@ export class EntityMutations {
 
     if (!priorData) return false;
 
-    // Embeddings live in another database and are recoverable by backfill; the
-    // entity row, FTS row, and scheduler journal share one atomic transaction.
-    await this.embeddingDb
-      .delete(embeddings)
-      .where(
-        and(eq(embeddings.entityType, entityType), eq(embeddings.entityId, id)),
-      );
+    // The entity, embedding, and scheduler journal share one atomic
+    // transaction. The explicit embedding delete also works if FK enforcement
+    // is unavailable on a remote libSQL connection.
     await this.projectionStore.withDirtyInput(
       {
         sourceType: entityType,
@@ -634,9 +652,14 @@ export class EntityMutations {
         markedAt: this.projectionNow(),
       },
       async (transaction) => {
-        await transaction.run(
-          sql`DELETE FROM entity_fts WHERE entity_id = ${id} AND entity_type = ${entityType}`,
-        );
+        await transaction
+          .delete(embeddings)
+          .where(
+            and(
+              eq(embeddings.entityType, entityType),
+              eq(embeddings.entityId, id),
+            ),
+          );
         await transaction
           .delete(entities)
           .where(and(eq(entities.entityType, entityType), eq(entities.id, id)));
@@ -712,7 +735,7 @@ export class EntityMutations {
     }
   }
 
-  /** Reconcile indexes and lifecycle subscribers after atomic projection writes. */
+  /** Reconcile lifecycle subscribers and embeddings after atomic projection writes. */
   public async reconcileProjectionTargets(
     targets: readonly ProjectionChangedTarget[],
   ): Promise<void> {
@@ -724,14 +747,8 @@ export class EntityMutations {
             target.entityType,
             target.entityId,
           );
-          await this.embeddingDb
-            .delete(embeddings)
-            .where(
-              and(
-                eq(embeddings.entityType, target.entityType),
-                eq(embeddings.entityId, target.entityId),
-              ),
-            );
+          // The embedding row lives in the entity database and is removed by
+          // the composite foreign key cascade on the entity delete.
           return;
         }
         if (!target.contentHash) {
@@ -760,21 +777,44 @@ export class EntityMutations {
    * Entity must already exist in entities table
    */
   public async storeEmbedding(data: StoreEmbeddingData): Promise<void> {
-    await this.embeddingDb
-      .insert(embeddings)
-      .values({
-        entityId: data.entityId,
-        entityType: data.entityType,
-        embedding: data.embedding,
-        contentHash: data.contentHash,
-      })
-      .onConflictDoUpdate({
-        target: [embeddings.entityId, embeddings.entityType],
-        set: {
-          embedding: data.embedding,
-          contentHash: data.contentHash,
-        },
-      });
+    if (data.embedding.length !== this.embeddingDimensions) {
+      throw new RangeError(
+        `Expected ${this.embeddingDimensions} embedding dimensions, received ${data.embedding.length}`,
+      );
+    }
+
+    await this.projectionStore.runDatabaseOperation(() =>
+      this.db.transaction(async (transaction) => {
+        const current = await transaction
+          .select({ contentHash: entities.contentHash })
+          .from(entities)
+          .where(
+            and(
+              eq(entities.id, data.entityId),
+              eq(entities.entityType, data.entityType),
+              eq(entities.contentHash, data.contentHash),
+            ),
+          )
+          .limit(1);
+        if (current.length === 0) return;
+
+        await transaction
+          .insert(embeddings)
+          .values({
+            entityId: data.entityId,
+            entityType: data.entityType,
+            embedding: data.embedding,
+            contentHash: data.contentHash,
+          })
+          .onConflictDoUpdate({
+            target: [embeddings.entityId, embeddings.entityType],
+            set: {
+              embedding: data.embedding,
+              contentHash: data.contentHash,
+            },
+          });
+      }),
+    );
   }
 
   public async backfillMissingEmbeddings(): Promise<EmbeddingBackfillResult> {
@@ -847,7 +887,7 @@ export class EntityMutations {
       })
       .from(entities);
 
-    const embeddingRows = await this.embeddingDb
+    const embeddingRows = await this.db
       .select({
         entityId: embeddings.entityId,
         entityType: embeddings.entityType,
@@ -991,46 +1031,6 @@ export class EntityMutations {
     );
   }
 
-  /** Synchronize FTS independently from vector embedding policy. */
-  private async syncFtsIndex(
-    database: Pick<EntityDB, "run">,
-    entityId: string,
-    entityType: string,
-    content: string,
-  ): Promise<void> {
-    await this.deleteFtsIndex(database, entityId, entityType);
-    if (!this.isFullTextSearchable(entityType)) return;
-    await database.run(
-      sql`INSERT INTO entity_fts (entity_id, entity_type, content) VALUES (${entityId}, ${entityType}, ${content})`,
-    );
-  }
-
-  private async pruneFtsIndexIfExcluded(
-    database: Pick<EntityDB, "run">,
-    entityId: string,
-    entityType: string,
-  ): Promise<void> {
-    if (this.isFullTextSearchable(entityType)) return;
-    await this.deleteFtsIndex(database, entityId, entityType);
-  }
-
-  private async deleteFtsIndex(
-    database: Pick<EntityDB, "run">,
-    entityId: string,
-    entityType: string,
-  ): Promise<void> {
-    await database.run(
-      sql`DELETE FROM entity_fts WHERE entity_id = ${entityId} AND entity_type = ${entityType}`,
-    );
-  }
-
-  private isFullTextSearchable(entityType: string): boolean {
-    return (
-      this.entityRegistry.getEntityTypeConfig(entityType).fullTextSearchable !==
-      false
-    );
-  }
-
   /**
    * Find a unique ID by appending -2, -3, etc. if the base ID already exists.
    */
@@ -1155,13 +1155,49 @@ export class EntityMutations {
     });
   }
 
-  /**
-   * Enqueue an embedding job, or return early if the entity type is non-embeddable
-   */
+  /** Prepare an entity-transactional embedding intent for the owner outbox. */
+  private prepareEmbeddingJob(
+    params: Omit<EmbeddingJobData, "id"> &
+      EntityJobOptions & { entityId: string },
+  ): PreparedJobEnqueue | null {
+    const request = this.buildEmbeddingJobRequest(params, false);
+    return request ? this.jobQueueService.prepareEnqueue(request) : null;
+  }
+
+  private embeddingIntentResult(
+    entityId: string,
+    intent: PreparedJobEnqueue | null,
+  ): EntityMutationResult {
+    if (!intent) return { entityId, jobId: "", skipped: false };
+    this.logger.debug("Recorded durable embedding job intent", {
+      entityId,
+      jobId: intent.jobId,
+    });
+    return { entityId, jobId: intent.jobId, skipped: false };
+  }
+
+  /** Enqueue repair/projection work whose source already has durable recovery. */
   private async enqueueEmbeddingJob(
     params: Omit<EmbeddingJobData, "id"> &
       EntityJobOptions & { entityId: string },
   ): Promise<EntityMutationResult> {
+    const request = this.buildEmbeddingJobRequest(params, true);
+    if (!request) {
+      return { entityId: params.entityId, jobId: "", skipped: false };
+    }
+
+    const jobId = await this.jobQueueService.enqueue(request);
+    this.logger.debug(
+      `Queued embedding job for ${params.entityType}:${params.entityId} (job: ${jobId})`,
+    );
+    return { entityId: params.entityId, jobId, skipped: false };
+  }
+
+  private buildEmbeddingJobRequest(
+    params: Omit<EmbeddingJobData, "id"> &
+      EntityJobOptions & { entityId: string },
+    deduplicate: boolean,
+  ): JobQueueEnqueueRequest | null {
     const {
       entityId,
       entityType,
@@ -1171,7 +1207,6 @@ export class EntityMutations {
       maxRetries,
       eventContext,
     } = params;
-
     const entityConfig = this.entityRegistry.getEntityTypeConfig(entityType);
     if (!this.embeddingsEnabled || entityConfig.embeddable === false) {
       this.logger.debug(
@@ -1181,7 +1216,7 @@ export class EntityMutations {
             : "disabled indexing"
         }: ${entityType}:${entityId}`,
       );
-      return { entityId, jobId: "", skipped: false };
+      return null;
     }
 
     const jobData: EmbeddingJobData = {
@@ -1190,16 +1225,17 @@ export class EntityMutations {
       contentHash,
       operation,
     };
-
-    const jobId = await this.jobQueueService.enqueue({
+    return {
       type: SHELL_CHANNELS.embedding,
       data: jobData,
       options: {
         ...(priority !== undefined && { priority }),
         ...(maxRetries !== undefined && { maxRetries }),
         source: "entity-service",
-        deduplication: "coalesce",
-        deduplicationKey: `embedding:${entityType}:${entityId}:${contentHash}`,
+        ...(deduplicate && {
+          deduplication: "coalesce" as const,
+          deduplicationKey: `embedding:${entityType}:${entityId}:${contentHash}`,
+        }),
         metadata: {
           operationType: "data_processing",
           operationTarget: entityId,
@@ -1222,12 +1258,6 @@ export class EntityMutations {
           silent: true,
         },
       },
-    });
-
-    this.logger.debug(
-      `Queued embedding job for ${entityType}:${entityId} (job: ${jobId})`,
-    );
-
-    return { entityId, jobId, skipped: false };
+    };
   }
 }

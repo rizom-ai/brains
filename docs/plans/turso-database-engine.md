@@ -6,12 +6,18 @@ In progress. The engine spike is done on `work/turso-spike` (commits
 `23d7d468d`, `d02c4c0cd`): `@brains/db` has a `createTursoClient` adapter that
 presents the libSQL `Client` surface over `@tursodatabase/database@0.7.2`, and
 `createSqliteDatabase` selects it for `file:` urls when `BRAINS_DB_ENGINE=turso`.
-All services and drizzle run unchanged on either engine. Remaining phases below.
+
+Phase 1 is implemented in `work/turso-migration`: Turso native FTS is wired
+through an engine-aware seam and the entity-service suite passes 326/326 on
+both engines. Review uncovered that Turso's persisted native-FTS schema syntax
+is not parseable by libSQL. The chosen mitigation is an explicit, tested
+break-glass command: `brain-rollback-entities-to-libsql`.
 
 This plan originally asked whether the rewrite is worth adopting at all. The
-spike answered that: yes — phased, with libSQL as an instant fallback via the
-engine flag until the last phase. The strategic sync fork (DB/browser sync vs
-git-only) survives as a later gate; it decides the embeddings-fold and MVCC
+spike answered that: yes — phased, with libSQL retained as a fallback. Phase 1
+then showed that native-FTS cleanup must accompany the engine flag. The
+strategic sync fork (DB/browser sync vs git-only) survives as a later gate; it
+decides the embeddings-fold and MVCC
 single-file questions, not the engine swap itself.
 
 ## Spike findings (measured, not assumed)
@@ -26,11 +32,21 @@ Engine: `@tursodatabase/database` 0.7.2. Suites run with `BRAINS_DB_ENGINE=turso
   (writes `*.db-tshm` sidecars, gitignored; invalid for `:memory:`).
 - **Suite results:** shared/db 24/24 on both engines; runtime-state 10/10;
   job-queue 194/195; conversation-service 34/35; entity-service 188/325.
-- **FTS5 does not exist on Turso** — every entity-service failure is the single
-  error `no such module: fts5`. Turso replaces FTS5 with a native Tantivy-based
-  engine: `CREATE INDEX … USING fts (cols)` behind the `index_method`
-  experimental flag, queried with the standard `MATCH` operator (probed
-  working). The index is transactional — no shadow-table sync needed.
+- **FTS5 does not exist on Turso** — every original entity-service failure was
+  the single error `no such module: fts5`. Turso replaces FTS5 with a native
+  Tantivy-based engine: `CREATE INDEX … USING fts (cols)` behind the
+  `index_method` experimental flag. Queries use `content MATCH ?` against the
+  indexed source table, not the index name or a virtual table. Quoted phrases
+  also escape embedded quotes with backslashes rather than FTS5's doubled
+  quotes. The index is transactional — no shadow-table sync is needed.
+- **Native FTS breaks direct libSQL reopening until it is removed.** Its
+  `sqlite_master` entries use the Turso-only `fts` and `backing_btree` index
+  methods; libSQL reports `SQLITE_CORRUPT: malformed database schema`.
+  Dropping `entities_content_fts` while the file is open in Turso removes the
+  internal objects and makes it libSQL-readable again. Therefore
+  the engine env var alone is not an instant fallback after Phase 1 creates the
+  index. Existing FTS5 shadow tables also become stale while Turso is active
+  and must be dropped before cutover or rebuilt on fallback.
 - **Row-value cursor predicates don't seek.** `(runtimeUpdatedAt, id) > (?, ?)`
   plans as a full covering-index scan (the job-queue failure); plain
   `runtimeUpdatedAt >= ?` seeks correctly. The expanded-OR form is worse
@@ -69,8 +85,11 @@ multi-user exerts no pressure on DB layout.
 
 ## Design
 
-Thin vertical slices. The engine flag is the safety rail: every phase before
-the default flip is trivially reversible by unsetting `BRAINS_DB_ENGINE`.
+Thin vertical slices. The engine flag remains the runtime selector, but the
+Phase 1 review disproved the assumption that it is sufficient by itself for
+rollback: native FTS persists engine-specific schema. Rollback is deliberately
+a break-glass operation, not an automatic startup path: stop the app, run
+`brain-rollback-entities-to-libsql`, set `BRAINS_DB_ENGINE=libsql`, and restart.
 Tests precede implementation in each phase.
 
 ### Phase 0 — Engine adapter behind a flag — DONE (spike)
@@ -80,26 +99,26 @@ Tests precede implementation in each phase.
 bundler externals + dynamic import; `*.db-tshm` gitignored. Landed on
 `work/turso-spike`.
 
-### Phase 1 — FTS port to Turso native FTS
+### Phase 1 — FTS port to Turso native FTS — DONE
 
-The one real port, and the walking skeleton for production parity: after it,
-entity-service — the largest and most engine-sensitive suite — must be green
-under the flag.
+The one real port, and the walking skeleton for production parity.
 
-- Tests first: the existing search suites are the spec — they must pass on
-  both engines. Add an engine-parity test for the keyword-boost path
-  (`EXISTS … MATCH` returns the same boost decisions on both engines).
-- Replace `ensureFtsTable`'s `entity_fts` FTS5 virtual table with an
-  engine-aware seam in `shared/db` or `entity-service/db`: FTS5 virtual table
-  on libsql, `CREATE INDEX … USING fts` (+ `index_method` flag in the adapter)
-  on turso. The `MATCH`-based boost subquery in `entity-search.ts` stays
-  identical if the index name matches the table it indexes; adjust the
-  subquery shape only if probing shows otherwise.
-- Delete the FTS5 shadow-table sync machinery on the turso path (the native
-  index is transactional).
+- Existing search suites pass on both engines; an explicit parity test verifies
+  the same keyword-boost decisions.
+- `SqliteConnection` reports its selected engine. The entity-service seam keeps
+  the FTS5 virtual table on libSQL and creates
+  `entities_content_fts ON entities USING fts (content)` on Turso, with the
+  adapter's `index_method` flag enabled.
+- The keyword subquery is engine-specific: FTS5 queries `entity_fts MATCH`;
+  Turso queries `fts_entities.content MATCH` against the source table and uses
+  Tantivy-compatible phrase escaping.
+- FTS5 shadow-row writes are skipped on Turso because the native index tracks
+  entity transactions directly.
 
-**Exit:** entity-service 325/325 under `BRAINS_DB_ENGINE=turso` and unchanged
-on libsql.
+**Exit met:** entity-service 328/328 under `BRAINS_DB_ENGINE=turso` and
+328/328 on libSQL. The explicit rollback command removes native FTS through
+Turso, checkpoints the schema change, then recreates and backfills the libSQL
+FTS5 table; its file round-trip test passes.
 
 ### Phase 2 — Close the small diffs
 
@@ -121,13 +140,19 @@ on libsql.
   test with a turso-mode smoke.
 - Migration for existing installs: under libSQL, drop the legacy
   `embeddings_embedding_idx` from existing embedding DB files before the
-  engine can open them; verify turso opens a real production-shaped DB file
+  engine can open them, and drop the FTS5 shadow table before first Turso use
+  so it cannot go stale. Verify Turso opens a real production-shaped DB file
   (WAL journal, existing schema).
+- Keep the explicit fallback command covered by a production-shaped test. It
+  drops `entities_content_fts` through Turso before libSQL opens the file, then
+  recreates and backfills the FTS5 shadow table from `entities`.
 - Flip the default engine for `file:` urls to turso;
   `BRAINS_DB_ENGINE=libsql` becomes the explicit fallback. Keep WAL journal
-  mode — file format stays SQLite-compatible, so fallback remains instant.
+  mode so the file format remains SQLite-compatible; the selected cleanup path
+  handles the engine-specific FTS schema before libSQL opens it.
 
-**Exit:** production runs turso under WAL with a one-env-var rollback.
+**Exit:** production runs Turso under WAL with the tested explicit rollback
+command; no one-env-var or automatic rollback promise remains.
 
 ### Phase 4 — Sync-model spike (the strategic fork, unchanged)
 
@@ -147,8 +172,8 @@ simplification. Either way, do not fold while the DB-sync option is open.
 ### Phase 5 — MVCC and layout consequences
 
 Only after the engine has run quietly in production (Phase 3) and the fork is
-decided (Phase 4). `journal_mode = mvcc` is the first step that is not
-trivially reversible to libSQL, so it comes last.
+decided (Phase 4). `journal_mode = mvcc` is the first file-format step that is
+not reversible to libSQL through schema cleanup, so it comes last.
 
 - Adopt MVCC journal mode; drop the WAL/busy-timeout pragma path.
 - Git-only branch: fold embeddings into the entity DB with FK + cascade
@@ -175,8 +200,9 @@ entity-write/enqueue gap removed if the outbox is adopted.
 ## Risks
 
 - Turso's native FTS sits behind the `index_method` experimental flag and
-  would be load-bearing from Phase 3 on — the engine flag is the mitigation,
-  and Phase 3 keeps WAL so fallback stays instant.
+  would be load-bearing from Phase 3 on. WAL keeps the file format compatible,
+  but the native FTS schema is not libSQL-parseable; fallback requires the
+  explicit cleanup command described in Design and Phase 3.
 - The nested-install native-binding gap (packed CLI) is unresolved until
   Phase 3 verifies it; turso-by-default cannot ship before that.
 - MVCC-mode files close the instant-fallback door — deliberately sequenced

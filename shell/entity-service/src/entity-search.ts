@@ -1,4 +1,4 @@
-import type { EntitySearchDB } from "./db";
+import { buildFtsMatch, type EntitySearchDB } from "./db";
 import {
   getVisibleContentVisibilities,
   type BaseEntity,
@@ -10,6 +10,7 @@ import {
 } from "./types";
 import type { IEmbeddingService } from "./embedding-types";
 import type { EntitySerializer } from "./entity-serializer";
+import type { SqliteEngine } from "@brains/db";
 import { type Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
 import { sql, and, asc, desc, inArray, type SQL } from "drizzle-orm";
@@ -82,6 +83,7 @@ export class EntitySearch {
   private serializer: EntitySerializer;
   private logger: Logger;
   private readonly embeddingsEnabled: boolean;
+  private engine: SqliteEngine;
 
   constructor(
     db: EntitySearchDB,
@@ -89,12 +91,14 @@ export class EntitySearch {
     serializer: EntitySerializer,
     logger: Logger,
     embeddingsEnabled = true,
+    engine: SqliteEngine = "libsql",
   ) {
     this.db = db;
     this.embeddingService = embeddingService;
     this.serializer = serializer;
     this.logger = logger.child("EntitySearch");
     this.embeddingsEnabled = embeddingsEnabled;
+    this.engine = engine;
   }
 
   /**
@@ -266,8 +270,8 @@ export class EntitySearch {
   }
 
   /**
-   * FTS5 boost weight. When a keyword match is found, this fraction of the
-   * final score comes from FTS5 rank, the rest from vector similarity.
+   * Full-text boost weight. When a keyword match is found, this fraction of
+   * the final score comes from keyword matching, the rest from vector similarity.
    * 0.3 = 30% keyword, 70% semantic.
    */
   private static readonly FTS_ALPHA = 0.3;
@@ -311,14 +315,14 @@ export class EntitySearch {
     const vectorScore = sql<number>`(1.0 - vector_distance_cos(emb_e.embedding, vector32(${embeddingArray})) / 2.0) * (${weightMultiplier})`;
     const distanceExpr = sql<number>`vector_distance_cos(emb_e.embedding, vector32(${embeddingArray}))`;
 
-    // FTS5 keyword boost via subquery: 1.0 when matched, 0.0 when not.
-    // Wrap in double quotes for phrase matching — prevents special characters
-    // (?, *, OR, AND, etc.) from being parsed as FTS5 operators.
-    const ftsQuery = '"' + query.replace(/"/g, '""') + '"';
-    const ftsBoost = sql<number>`CASE WHEN EXISTS (
-      SELECT 1 FROM entity_fts WHERE entity_fts MATCH ${ftsQuery}
-        AND entity_id = ${entities.id} AND entity_type = ${entities.entityType}
-    ) THEN 1.0 ELSE 0.0 END`;
+    // Keyword boost via subquery: 1.0 when matched, 0.0 when not.
+    // Both engines accept quoted phrases but escape embedded quotes differently.
+    const escapedFtsQuery =
+      this.engine === "turso"
+        ? query.replace(/\\/g, "\\\\").replace(/"/g, '\\"')
+        : query.replace(/"/g, '""');
+    const ftsQuery = `"${escapedFtsQuery}"`;
+    const ftsBoost = sql<number>`CASE WHEN ${buildFtsMatch(this.engine, ftsQuery)} THEN 1.0 ELSE 0.0 END`;
 
     // Combined score: (1-α)*vector + α*keyword_match
     const combinedScore = sql<number>`(${1 - alpha} * ${vectorScore}) + (${alpha} * ${ftsBoost})`;

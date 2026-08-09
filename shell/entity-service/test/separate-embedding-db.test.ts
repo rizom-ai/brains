@@ -7,6 +7,7 @@ import { EntityService } from "../src/entityService";
 import { EntityRegistry } from "../src/entityRegistry";
 import { migrateEntities } from "../src/migrate";
 import { migrateEmbeddingDatabase } from "../src/db/embedding-db";
+import { createEntityDatabase } from "../src/db";
 import { createClient } from "@libsql/client";
 import {
   createSilentLogger,
@@ -81,12 +82,12 @@ describe("Separate embedding database", () => {
 
     // Entity DB's embeddings table (from migration) should be empty —
     // the write went to the separate embedding DB
-    const client = createClient({ url: entityDbConfig.url });
-    const result = await client.execute(
+    const connection = createEntityDatabase(entityDbConfig);
+    const result = await connection.client.execute(
       "SELECT count(*) as cnt FROM embeddings",
     );
     expect(result.rows[0]?.["cnt"]).toBe(0);
-    client.close();
+    connection.client.close();
   });
 
   test("storeEmbedding writes to separate embedding DB", async () => {

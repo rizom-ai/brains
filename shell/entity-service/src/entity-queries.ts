@@ -1,5 +1,6 @@
-import type { EntityDB } from "./db";
+import { deleteFtsEntry, type EntityDB } from "./db";
 import type { EmbeddingDB } from "./db/embedding-db";
+import type { SqliteEngine } from "@brains/db";
 import {
   getVisibleContentVisibilities,
   type BaseEntity,
@@ -81,6 +82,7 @@ export interface EntityQueryDeps {
   logger: Logger;
   /** Embedding DB for delete cascading (separate from entity DB). */
   embeddingDb: EmbeddingDB;
+  engine?: SqliteEngine;
 }
 
 export class EntityQueries {
@@ -88,12 +90,14 @@ export class EntityQueries {
   private embeddingDb: EmbeddingDB;
   private serializer: EntitySerializer;
   private logger: Logger;
+  private engine: SqliteEngine;
 
   constructor(deps: EntityQueryDeps) {
     this.db = deps.db;
     this.embeddingDb = deps.embeddingDb;
     this.serializer = deps.serializer;
     this.logger = deps.logger.child("EntityQueries");
+    this.engine = deps.engine ?? "libsql";
   }
 
   /**
@@ -391,10 +395,7 @@ export class EntityQueries {
         and(eq(embeddings.entityType, entityType), eq(embeddings.entityId, id)),
       );
 
-    // Delete FTS5 index entry
-    await this.db.run(
-      sql`DELETE FROM entity_fts WHERE entity_id = ${id} AND entity_type = ${entityType}`,
-    );
+    await deleteFtsEntry(this.db, this.engine, id, entityType);
 
     // Delete entity
     await this.db

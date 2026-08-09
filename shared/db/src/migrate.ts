@@ -4,6 +4,7 @@ import {
   applySqlitePragmas,
   createSqliteDatabase,
   type PragmaClient,
+  type SqliteEngine,
 } from "./sqlite";
 
 export interface PackageMigrationOptions {
@@ -22,10 +23,11 @@ export interface PackageMigrationOptions {
   authTokenEnv?: string | undefined;
   logger?: Logger | undefined;
   /**
-   * Runs after migrations, before the client closes — for schema objects
-   * drizzle does not manage (entity-service's FTS5 virtual table).
+   * Runs after migrations, before the client closes — for engine-specific
+   * schema objects that Drizzle does not manage.
    */
-  afterMigrate?: ((client: PragmaClient) => Promise<void>) | undefined;
+  afterMigrate?:
+    ((client: PragmaClient, engine: SqliteEngine) => Promise<void>) | undefined;
 }
 
 /**
@@ -40,7 +42,7 @@ export async function runPackageMigrations(
   const log =
     options.logger?.child(context) ?? Logger.getInstance().child(context);
 
-  const { db, client, url } = createSqliteDatabase({
+  const { db, client, url, engine } = createSqliteDatabase({
     url: config.url,
     schema,
     authToken: config.authToken,
@@ -53,7 +55,7 @@ export async function runPackageMigrations(
     // Pragmas first so the migration itself benefits from the busy timeout.
     await applySqlitePragmas(client, url);
     await migrate(db, { migrationsFolder });
-    await afterMigrate?.(client);
+    await afterMigrate?.(client, engine);
 
     log.debug(`${label} migrations completed successfully`);
   } catch (error) {

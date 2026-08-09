@@ -1,15 +1,8 @@
 import type { AssetRef, AssetStat, AssetVerification } from "@brains/assets";
 import { SHELL_CHANNELS } from "@brains/contracts";
 import type { Client } from "@libsql/client";
-import { applySqlitePragmas } from "@brains/db";
-import { createEntityDatabase, ensureFtsTable, type EntityDB } from "./db";
-import {
-  createEmbeddingDatabase,
-  migrateEmbeddingDatabase,
-  attachEmbeddingDatabase,
-  dbUrlToPath,
-  type EmbeddingDB,
-} from "./db/embedding-db";
+import { applySqlitePragmas, closeSqliteClient } from "@brains/db";
+import { createEntityDatabase, type EntityDB } from "./db";
 import type {
   EntityDbConfig,
   BaseEntity,
@@ -60,6 +53,7 @@ import { EntitySearch } from "./entity-search";
 import { EntitySerializer } from "./entity-serializer";
 import { EntityQueries } from "./entity-queries";
 import { EntityMutations } from "./entity-mutations";
+import { EntityJobOutbox } from "./entity-job-outbox";
 import { ProjectionStore } from "./projection-store";
 import { EntityExportStore } from "./entity-export-store";
 import { SqliteAssetRepository } from "./sqlite-asset-repository";
@@ -82,9 +76,6 @@ export interface EntityServiceOptions {
   /** Clock used for durable projection-ingress timestamps. */
   projectionNow?: (() => number) | undefined;
   dbConfig: EntityDbConfig;
-  /** Embedding database config. Embeddings are stored in a dedicated
-   *  database file, separate from entities. */
-  embeddingDbConfig: EntityDbConfig;
 }
 
 /**
@@ -99,9 +90,6 @@ export class EntityService implements IEntityService {
   private db: EntityDB;
   private dbClient: Client;
   private dbUrl: string;
-  private searchDbClient: Client;
-  private embeddingDb: EmbeddingDB;
-  private embeddingDbClient: Client;
   private dbInitPromise!: Promise<void>;
   private entityRegistry: IEntityRegistry;
   private logger: Logger;
@@ -112,18 +100,31 @@ export class EntityService implements IEntityService {
   private entityQueries: EntityQueries;
   private entityMutations: EntityMutations;
   private readonly projectionStore: ProjectionStore;
+  private jobOutbox!: EntityJobOutbox;
   private readonly assetRepository: SqliteAssetRepository;
   private readonly entityExportStore: EntityExportStore;
   private contentResolver: ContentResolver;
   private embeddingHandlerRegistered = false;
   private indexReady = false;
+  private closePromise: Promise<void> | null = null;
 
-  /**
-   * Close the underlying database connections.
-   */
+  /** Begin closing without changing the existing synchronous service contract. */
   public close(): void {
+    void this.closeAsync().catch((error) => {
+      this.logger.error("Failed to close entity storage", error);
+    });
+  }
+
+  /** Await handler release and the database handle's durable close. */
+  public closeAsync(): Promise<void> {
+    this.closePromise ??= this.closeOwnedResources();
+    return this.closePromise;
+  }
+
+  private async closeOwnedResources(): Promise<void> {
     let firstError: unknown;
     let failed = false;
+    this.jobOutbox.abandon();
     try {
       if (this.embeddingHandlerRegistered) {
         this.jobQueueService.unregisterHandler(SHELL_CHANNELS.embedding);
@@ -134,19 +135,7 @@ export class EntityService implements IEntityService {
       failed = true;
     }
     try {
-      this.embeddingDbClient.close();
-    } catch (error) {
-      if (!failed) firstError = error;
-      failed = true;
-    }
-    try {
-      this.searchDbClient.close();
-    } catch (error) {
-      if (!failed) firstError = error;
-      failed = true;
-    }
-    try {
-      this.dbClient.close();
+      await closeSqliteClient(this.dbClient);
     } catch (error) {
       if (!failed) firstError = error;
       failed = true;
@@ -183,21 +172,7 @@ export class EntityService implements IEntityService {
       },
     );
 
-    let searchDbClient: Client | undefined;
-    let embeddingDbClient: Client | undefined;
     try {
-      // Search has a dedicated connection because libSQL replaces a client's
-      // connection after every transaction, losing connection-local ATTACHes.
-      const search = createEntityDatabase(options.dbConfig);
-      searchDbClient = search.client;
-      this.searchDbClient = search.client;
-
-      // Set up separate embedding database
-      const emb = createEmbeddingDatabase(options.embeddingDbConfig);
-      embeddingDbClient = emb.client;
-      this.embeddingDb = emb.db;
-      this.embeddingDbClient = emb.client;
-
       this.entityRegistry = options.entityRegistry;
       this.logger = (options.logger ?? Logger.getInstance()).child(
         "EntityService",
@@ -208,6 +183,12 @@ export class EntityService implements IEntityService {
         );
       }
       this.jobQueueService = options.jobQueueService;
+      this.jobOutbox = new EntityJobOutbox(
+        this.db,
+        this.jobQueueService,
+        this.projectionStore,
+        this.logger,
+      );
 
       this.entitySerializer = new EntitySerializer(
         this.entityRegistry,
@@ -217,15 +198,22 @@ export class EntityService implements IEntityService {
         db: this.db,
         serializer: this.entitySerializer,
         logger: this.logger,
-        embeddingDb: this.embeddingDb,
       });
       const embeddingsEnabled = options.embeddingsEnabled ?? true;
       this.entitySearch = new EntitySearch(
-        search.db,
+        this.db,
         options.embeddingService,
         this.entitySerializer,
         this.logger,
         embeddingsEnabled,
+        () =>
+          this.entityRegistry
+            .getAllEntityTypes()
+            .filter(
+              (type) =>
+                this.entityRegistry.getEntityTypeConfig(type)
+                  .fullTextSearchable === false,
+            ),
       );
       this.entityMutations = new EntityMutations({
         db: this.db,
@@ -233,6 +221,7 @@ export class EntityService implements IEntityService {
         entitySerializer: this.entitySerializer,
         entityQueries: this.entityQueries,
         jobQueueService: this.jobQueueService,
+        jobOutbox: this.jobOutbox,
         logger: this.logger,
         ...(options.messageBus && { messageBus: options.messageBus }),
         ...(options.mutationAdmission && {
@@ -242,8 +231,8 @@ export class EntityService implements IEntityService {
         assetRepository: this.assetRepository,
         entityExportStore: this.entityExportStore,
         projectionNow: options.projectionNow ?? Date.now,
-        embeddingDb: this.embeddingDb,
         embeddingsEnabled,
+        embeddingDimensions: options.embeddingService.dimensions,
       });
       this.contentResolver = new ContentResolver(this.logger);
 
@@ -260,11 +249,8 @@ export class EntityService implements IEntityService {
         this.embeddingHandlerRegistered = true;
       }
 
-      // Initialize databases (WAL, migrations, ATTACH) — awaited by Shell.initialize()
-      this.dbInitPromise = this.initializeDatabase(
-        options.embeddingDbConfig,
-        options.embeddingService.dimensions,
-      );
+      // Initialize database settings.
+      this.dbInitPromise = this.initializeDatabase();
       // Failures surface in initialize(); this no-op handler only prevents an
       // unhandled rejection in the window before initialize() awaits.
       this.dbInitPromise.catch(() => {});
@@ -278,16 +264,6 @@ export class EntityService implements IEntityService {
         // Preserve the construction failure after attempting all cleanup.
       }
       try {
-        embeddingDbClient?.close();
-      } catch {
-        // Preserve the construction failure after attempting all cleanup.
-      }
-      try {
-        searchDbClient?.close();
-      } catch {
-        // Preserve the construction failure after attempting all cleanup.
-      }
-      try {
         client.close();
       } catch {
         // Preserve the construction failure after attempting all cleanup.
@@ -297,17 +273,14 @@ export class EntityService implements IEntityService {
   }
 
   /**
-   * Wait for database initialization (WAL mode, migrations, indexes, ATTACH).
+   * Wait for database initialization.
    * Called by Shell.initialize() before plugins load.
    */
   public async initialize(): Promise<void> {
     await this.dbInitPromise;
   }
 
-  private async initializeDatabase(
-    embeddingDbConfig: EntityDbConfig,
-    embeddingDimensions: number,
-  ): Promise<void> {
+  private async initializeDatabase(): Promise<void> {
     // WAL pragmas are a performance setting — failure is non-fatal
     try {
       await applySqlitePragmas(this.dbClient, this.dbUrl);
@@ -317,31 +290,37 @@ export class EntityService implements IEntityService {
         error,
       );
     }
-    try {
-      await applySqlitePragmas(this.searchDbClient, this.dbUrl);
-    } catch (error) {
-      this.logger.warn(
-        "Failed to configure entity search database (non-fatal)",
-        error,
-      );
-    }
-    try {
-      await applySqlitePragmas(this.embeddingDbClient, embeddingDbConfig.url);
-    } catch (error) {
-      this.logger.warn(
-        "Failed to enable WAL mode for embedding database (non-fatal)",
-        error,
-      );
-    }
+    // Foreign keys provide atomic embedding cleanup when an entity is deleted.
+    await this.dbClient.execute("PRAGMA foreign_keys = ON");
 
-    // Everything below is required for search/embedding correctness —
-    // failures must propagate so Shell.initialize() fails loudly.
-    await ensureFtsTable(this.dbClient);
-    await migrateEmbeddingDatabase(this.embeddingDbClient, embeddingDimensions);
-    await attachEmbeddingDatabase(
-      this.searchDbClient,
-      dbUrlToPath(embeddingDbConfig.url),
-    );
+    try {
+      const delivered = await this.jobOutbox.flush();
+      if (delivered > 0) {
+        this.logger.info("Recovered pending embedding job intents", {
+          delivered,
+        });
+      }
+    } catch (error) {
+      this.logger.error(
+        "Failed to recover pending embedding job intents; intents remain durable",
+        error,
+      );
+    }
+  }
+
+  /** Drain durable embedding intents while the owner job database is open. */
+  public flushJobOutbox(): Promise<number> {
+    return this.jobOutbox.flush();
+  }
+
+  /** Number of entity-committed embedding intents not yet acknowledged. */
+  public getPendingJobOutboxCount(): Promise<number> {
+    return this.jobOutbox.pendingCount();
+  }
+
+  /** Wait for admitted background delivery without starting another pass. */
+  public waitForJobOutboxIdle(): Promise<void> {
+    return this.jobOutbox.waitForIdle();
   }
 
   // ── Projection coordination ───────────────────────────────────────
@@ -726,7 +705,7 @@ export class EntityService implements IEntityService {
 
   public async countEmbeddings(): Promise<number> {
     await this.initialize();
-    const result = await this.embeddingDb
+    const result = await this.db
       .select({ count: sql<number>`count(*)` })
       .from(embeddings);
     return result[0]?.count ?? 0;

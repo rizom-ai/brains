@@ -46,6 +46,7 @@ import {
   type ProjectionWaveInput,
   type ProjectionWaveRule,
 } from "./schema/projection-state";
+import { embeddings } from "./schema/embeddings";
 import { entities } from "./schema/entities";
 
 const dirtyInputSchema = z.strictObject({
@@ -143,7 +144,7 @@ export interface SettleDurableBulkMutationChildInput {
 
 export class ProjectionBatchFencedError extends Error {}
 
-interface ProjectionBatchScope {
+export interface ProjectionBatchScope {
   batchId: string;
   source: string;
   operationId: string;
@@ -239,6 +240,54 @@ export interface ProjectionRuleMemoValue extends Omit<
   "writeIntents"
 > {
   writeIntents: ProjectionWriteIntent[];
+}
+
+/** Async projection persistence surface safe to keep behind the owner endpoint. */
+export interface IProjectionStore {
+  markDirty(input: MarkProjectionDirtyInput): Promise<number>;
+  // Batch primitives are plain data on both ends: a worker opens and closes a
+  // batch here while running the mutation body in its own process.
+  openCallbackBatch(input: BulkMutationInput): Promise<ProjectionBatchScope>;
+  renewCallbackBatch(scope: ProjectionBatchScope): Promise<void>;
+  closeCallbackBatch(scope: ProjectionBatchScope): Promise<void>;
+  openDurableBatchChild(
+    input: DurableBulkMutationChildInput,
+  ): Promise<ProjectionBatchScope>;
+  listPendingInputs(): Promise<ProjectionDirtyInput[]>;
+  claimPendingWave(
+    input: ClaimProjectionWaveInput,
+  ): Promise<ProjectionWave | null>;
+  listWaveInputs(waveId: string): Promise<ProjectionWaveInput[]>;
+  getActiveWave(): Promise<ProjectionWave | null>;
+  completeWave(waveId: string, completedAt: number): Promise<ProjectionWave>;
+  failWave(waveId: string, failedAt: number): Promise<ProjectionWave>;
+  failWaveWithIncident(input: ProjectionIncidentInput): Promise<ProjectionWave>;
+  getUnresolvedProjectionIncidentDiagnostics(
+    limit?: number,
+  ): Promise<ProjectionIncidentDiagnostics>;
+  putWaveRules(
+    waveId: string,
+    rules: readonly ProjectionWaveRuleInput[],
+  ): Promise<void>;
+  listWaveRules(waveId: string): Promise<ProjectionWaveRule[]>;
+  queueWaveRule(
+    waveId: string,
+    ruleId: string,
+    jobId: string,
+  ): Promise<ProjectionWaveRule>;
+  getWave(waveId: string): Promise<ProjectionWave | null>;
+  supersedeWaveIfStale(waveId: string, supersededAt: number): Promise<boolean>;
+  hasActiveProjectionBatch(): Promise<boolean>;
+  getWaveRule(
+    waveId: string,
+    ruleId: string,
+  ): Promise<ProjectionWaveRule | null>;
+  applyRuleResult(
+    input: ApplyProjectionRuleResultInput,
+  ): Promise<ProjectionWaveRule | null>;
+  getRuleMemo(
+    input: GetProjectionRuleMemoInput,
+  ): Promise<ProjectionRuleMemoValue | null>;
 }
 
 type EntityTransaction = Parameters<Parameters<EntityDB["transaction"]>[0]>[0];
@@ -345,7 +394,7 @@ export interface ProjectionEntityStoragePolicy {
 }
 
 /** Entity-database persistence boundary for scheduler coordination state. */
-export class ProjectionStore {
+export class ProjectionStore implements IProjectionStore {
   private readonly db: EntityDB;
   private readonly entityExportStore: EntityExportStore;
   private readonly mutationAdmission: EntityMutationAdmission | undefined;
@@ -365,6 +414,22 @@ export class ProjectionStore {
     this.mutationAdmission = mutationAdmission;
     this.now = now;
     this.storagePolicy = storagePolicy;
+  }
+
+  /**
+   * Run `fn` inside an existing batch scope.
+   *
+   * A worker owns the mutation body but not the database, so it opens the
+   * batch remotely and sends the resulting scope back with each proxied
+   * write. The owner re-enters the scope here so `withDirtyInput` still
+   * fences those writes against the batch.
+   */
+  public runInBatchScope<TResult>(
+    scope: ProjectionBatchScope,
+    fn: () => Promise<TResult>,
+  ): Promise<TResult> {
+    if (this.batchScope.getStore()) return fn();
+    return this.batchScope.run(scope, fn);
   }
 
   public async runBulkMutation<TResult>(
@@ -851,7 +916,13 @@ export class ProjectionStore {
     };
   }
 
-  private async openDurableBatchChild(
+  /**
+   * Open a durable batch child and return its scope. Remote-bracket primitive
+   * — see {@link openCallbackBatch}. In-process callers must use
+   * {@link runDurableBulkMutationChild}. A durable child is settled through
+   * {@link settleDurableBulkMutationChild} rather than closed.
+   */
+  public async openDurableBatchChild(
     input: DurableBulkMutationChildInput,
   ): Promise<ProjectionBatchScope> {
     const now = this.now();
@@ -956,7 +1027,17 @@ export class ProjectionStore {
     });
   }
 
-  private async openCallbackBatch(
+  /**
+   * Open a callback batch and return its scope.
+   *
+   * Remote-bracket primitive: a worker calls this over RPC because it runs the
+   * mutation body in its own process. In-process callers must use
+   * {@link runBulkMutation}, which guarantees the heartbeat and the closing
+   * `finally`. Calling this directly makes you responsible for pairing it with
+   * {@link closeCallbackBatch}; an unclosed batch holds its lease until it
+   * expires.
+   */
+  public async openCallbackBatch(
     input: BulkMutationInput,
   ): Promise<ProjectionBatchScope> {
     const scope: ProjectionBatchScope = {
@@ -993,7 +1074,12 @@ export class ProjectionStore {
     return scope;
   }
 
-  private async renewCallbackBatch(scope: ProjectionBatchScope): Promise<void> {
+  /**
+   * Renew a callback batch lease. Remote-bracket primitive — see
+   * {@link openCallbackBatch}; in-process callers get this from
+   * {@link runBulkMutation}'s heartbeat.
+   */
+  public async renewCallbackBatch(scope: ProjectionBatchScope): Promise<void> {
     const now = this.now();
     const rows = await this.db
       .update(projectionBatches)
@@ -1013,7 +1099,12 @@ export class ProjectionStore {
     }
   }
 
-  private async closeCallbackBatch(scope: ProjectionBatchScope): Promise<void> {
+  /**
+   * Close a callback batch. Remote-bracket primitive — see
+   * {@link openCallbackBatch}. Every `openCallbackBatch` must reach this call,
+   * including on failure paths.
+   */
+  public async closeCallbackBatch(scope: ProjectionBatchScope): Promise<void> {
     const now = this.now();
     await this.db
       .update(projectionBatches)
@@ -1140,6 +1231,13 @@ export class ProjectionStore {
       throw new Error("Failed to persist projection dirty input");
     }
     return generation;
+  }
+
+  /** Serialize owner-local database work with projection/entity transactions. */
+  public runDatabaseOperation<TResult>(
+    operation: () => Promise<TResult>,
+  ): Promise<TResult> {
+    return this.transactionTail.run(operation);
   }
 
   public withDirtyInput<TResult>(
@@ -1862,7 +1960,7 @@ export class ProjectionStore {
   private async runTransaction<TResult>(
     transaction: (database: EntityTransaction) => Promise<TResult>,
   ): Promise<TResult> {
-    return this.transactionTail.run(() => this.db.transaction(transaction));
+    return this.runDatabaseOperation(() => this.db.transaction(transaction));
   }
 
   private async runBatchStateWrite<TResult>(
@@ -1913,13 +2011,18 @@ export class ProjectionStore {
         entityId,
       });
       await transaction
+        .delete(embeddings)
+        .where(
+          and(
+            eq(embeddings.entityType, entityType),
+            eq(embeddings.entityId, entityId),
+          ),
+        );
+      await transaction
         .delete(entities)
         .where(
           and(eq(entities.entityType, entityType), eq(entities.id, entityId)),
         );
-      await transaction.run(
-        sql`DELETE FROM entity_fts WHERE entity_id = ${entityId} AND entity_type = ${entityType}`,
-      );
       await this.entityExportStore.record(transaction, {
         entityType,
         entityId,
@@ -1965,11 +2068,6 @@ export class ProjectionStore {
       existing.visibility === intent.entity.visibility &&
       canonicalJson(existing.metadata) === canonicalJson(intent.entity.metadata)
     ) {
-      if (this.storagePolicy?.isFullTextSearchable(entityType) === false) {
-        await transaction.run(
-          sql`DELETE FROM entity_fts WHERE entity_id = ${entityId} AND entity_type = ${entityType}`,
-        );
-      }
       return null;
     }
 
@@ -1980,6 +2078,16 @@ export class ProjectionStore {
     });
 
     if (existing) {
+      if (existing.contentHash !== contentHash) {
+        await transaction
+          .delete(embeddings)
+          .where(
+            and(
+              eq(embeddings.entityType, entityType),
+              eq(embeddings.entityId, entityId),
+            ),
+          );
+      }
       await transaction
         .update(entities)
         .set({
@@ -2005,14 +2113,6 @@ export class ProjectionStore {
       });
     }
 
-    await transaction.run(
-      sql`DELETE FROM entity_fts WHERE entity_id = ${entityId} AND entity_type = ${entityType}`,
-    );
-    if (this.storagePolicy?.isFullTextSearchable(entityType) !== false) {
-      await transaction.run(
-        sql`INSERT INTO entity_fts (entity_id, entity_type, content) VALUES (${entityId}, ${entityType}, ${intent.entity.content})`,
-      );
-    }
     await this.entityExportStore.record(transaction, {
       entityType,
       entityId,

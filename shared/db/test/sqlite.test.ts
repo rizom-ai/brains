@@ -6,14 +6,18 @@ import {
   createSqliteDatabase,
   resolveAuthToken,
 } from "../src/sqlite";
+import { dropTursoIndexForFallback } from "../src/turso-maintenance";
 
 describe("createSqliteDatabase", () => {
   it("returns a drizzle database, client, and the resolved url", () => {
-    const { db, client, url } = createSqliteDatabase({
+    const { db, client, url, engine } = createSqliteDatabase({
       url: "file::memory:",
       schema: {},
     });
     expect(url).toBe("file::memory:");
+    expect(engine).toBe(
+      process.env["BRAINS_DB_ENGINE"] === "turso" ? "turso" : "libsql",
+    );
     expect(db).toBeDefined();
     expect(client).toBeDefined();
     client.close();
@@ -22,10 +26,11 @@ describe("createSqliteDatabase", () => {
   it("uses the turso engine for file urls when BRAINS_DB_ENGINE=turso", async () => {
     process.env["BRAINS_DB_ENGINE"] = "turso";
     try {
-      const { db, client } = createSqliteDatabase({
+      const { db, client, engine } = createSqliteDatabase({
         url: "file::memory:",
         schema: {},
       });
+      expect(engine).toBe("turso");
       // the turso file client is distinguishable by its unsupported sync()
       expect(client.sync()).rejects.toThrow(/turso/);
       await client.execute("CREATE TABLE t (x INTEGER)");
@@ -38,20 +43,60 @@ describe("createSqliteDatabase", () => {
     }
   });
 
+  it("lets an explicit engine override the environment", () => {
+    process.env["BRAINS_DB_ENGINE"] = "turso";
+    try {
+      const { client, engine } = createSqliteDatabase({
+        url: "file::memory:",
+        schema: {},
+        engine: "libsql",
+      });
+      expect(engine).toBe("libsql");
+      client.close();
+    } finally {
+      delete process.env["BRAINS_DB_ENGINE"];
+    }
+  });
+
+  it("rejects the embedded Turso engine for remote urls", () => {
+    expect(() =>
+      createSqliteDatabase({
+        url: "libsql://example.turso.io",
+        schema: {},
+        engine: "turso",
+      }),
+    ).toThrow(/only supports file:/);
+  });
+
   it("keeps libsql for remote urls even when BRAINS_DB_ENGINE=turso", () => {
     process.env["BRAINS_DB_ENGINE"] = "turso";
     try {
-      const { client } = createSqliteDatabase({
+      const { client, engine } = createSqliteDatabase({
         url: "libsql://example.turso.io",
         schema: {},
         authToken: "token",
       });
+      expect(engine).toBe("libsql");
       // the libsql remote client reports its protocol; the adapter is file-only
       expect(client.protocol).not.toBe("file");
       client.close();
     } finally {
       delete process.env["BRAINS_DB_ENGINE"];
     }
+  });
+});
+
+describe("dropTursoIndexForFallback", () => {
+  it("rejects remote urls", () => {
+    expect(
+      dropTursoIndexForFallback("libsql://example.turso.io", "safe_index"),
+    ).rejects.toThrow(/only supports file:/);
+  });
+
+  it("rejects unsafe index names", () => {
+    expect(
+      dropTursoIndexForFallback("file::memory:", "index; DROP TABLE data"),
+    ).rejects.toThrow(/Unsafe SQLite index name/);
   });
 });
 

@@ -4,6 +4,7 @@ import type { LibSQLDatabase } from "drizzle-orm/libsql";
 import { createTursoClient } from "./turso-client";
 
 export type SqliteDatabase = LibSQLDatabase<Record<string, unknown>>;
+export type SqliteEngine = "libsql" | "turso";
 
 /** The subset of the libSQL client the pragma helper needs. */
 export interface PragmaClient {
@@ -19,12 +20,15 @@ export interface CreateSqliteDatabaseOptions {
   authToken?: string | undefined;
   /** Environment variable consulted when no explicit token is given. */
   authTokenEnv?: string | undefined;
+  /** Explicit engine selection; overrides `BRAINS_DB_ENGINE`. */
+  engine?: SqliteEngine | undefined;
 }
 
 export interface SqliteConnection {
   db: SqliteDatabase;
   client: Client;
   url: string;
+  engine: SqliteEngine;
 }
 
 /**
@@ -39,8 +43,22 @@ export function resolveAuthToken(options: {
   return process.env[options.authTokenEnv];
 }
 
+/** Resolve the selected engine. Turso's embedded adapter only supports files. */
+function resolveSqliteEngine(
+  url: string,
+  requestedEngine?: SqliteEngine,
+): SqliteEngine {
+  if (requestedEngine === "turso" && !url.startsWith("file:")) {
+    throw new Error("The Turso embedded engine only supports file: urls");
+  }
+  if (requestedEngine !== undefined) return requestedEngine;
+  return process.env["BRAINS_DB_ENGINE"] === "turso" && url.startsWith("file:")
+    ? "turso"
+    : "libsql";
+}
+
 /**
- * Create a libSQL-backed drizzle database.
+ * Create a SQLite-backed drizzle database using the selected engine.
  *
  * Every shell service database is built this way; the per-service parts are
  * the url, the drizzle schema, and which env var holds the auth token.
@@ -51,15 +69,15 @@ export function createSqliteDatabase(
   const { url, schema } = options;
   const authToken = resolveAuthToken(options);
 
-  const useTurso =
-    process.env["BRAINS_DB_ENGINE"] === "turso" && url.startsWith("file:");
-  const client = useTurso
-    ? createTursoClient({ url })
-    : authToken
-      ? createClient({ url, authToken })
-      : createClient({ url });
+  const engine = resolveSqliteEngine(url, options.engine);
+  const client =
+    engine === "turso"
+      ? createTursoClient({ url })
+      : authToken
+        ? createClient({ url, authToken })
+        : createClient({ url });
 
-  return { db: drizzle(client, { schema }), client, url };
+  return { db: drizzle(client, { schema }), client, url, engine };
 }
 
 /**

@@ -4,14 +4,14 @@ Entity persistence, markdown serialization, embeddings, and search for Brain app
 
 ## Overview
 
-`@brains/entity-service` provides a typed entity registry plus CRUD operations backed by SQLite/libSQL. Entities are stored as markdown with frontmatter-derived metadata, while embeddings are generated asynchronously and stored in a separate embedding database.
+`@brains/entity-service` provides a typed entity registry plus CRUD operations backed by libSQL or Turso Database. Entities are stored as markdown with frontmatter-derived metadata, while embeddings are generated asynchronously and stored in a separate embedding database.
 
 ## Features
 
 - Typed entity registration with Zod schemas and markdown adapters
 - Entity CRUD with immediate persistence
 - Async embedding job enqueueing through `@brains/job-queue`
-- Vector + FTS5 keyword search
+- Vector + full-text keyword search on libSQL and Turso Database
 - Metadata filtering, published filtering, pagination, and multi-field sorting
 - Markdown/frontmatter serialization helpers
 - Optional structural event bus for entity lifecycle notifications
@@ -153,7 +153,7 @@ const results = await entityService.search({
 });
 ```
 
-Search combines vector similarity with an FTS5 keyword boost. Entity type weights are applied inside the SQL score expression.
+Search combines vector similarity with a full-text keyword boost. Entity type weights are applied inside the SQL score expression.
 
 ## Event bus contract
 
@@ -196,7 +196,7 @@ CREATE TABLE entities (
 );
 ```
 
-The service also ensures an `entity_fts` FTS5 table for keyword search.
+For keyword search, the service ensures an `entity_fts` FTS5 table on libSQL or a native `entities_content_fts` index on Turso Database.
 
 ### Embedding database
 

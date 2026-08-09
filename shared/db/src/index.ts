@@ -6,7 +6,10 @@ export {
   type PragmaClient,
   type SqliteConnection,
   type SqliteDatabase,
+  type SqliteEngine,
 } from "./sqlite";
+
+export { dropTursoIndexForFallback } from "./turso-maintenance";
 
 export {
   refuseDirectMigrationRun,
