@@ -1,5 +1,21 @@
 # @rizom/brain
 
+## 0.2.0-alpha.272
+
+### Patch Changes
+
+- [#92](https://github.com/rizom-ai/brains/pull/92) [`2c9cc6f`](https://github.com/rizom-ai/brains/commit/2c9cc6f38bfbd054baaf11b0d147ce7ae5c06bc9) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Introduce schema-backed package definitions, typed `use()` composition, object-referenced bundles, and declarative entity packages for the stable `0.2` authoring API. Entity definitions now compose runtime fields, generated markdown adapters, optional typed codecs, and scheduler-owned projections. Installed package metadata and peer compatibility are resolved by the loader, including external brain definitions booted from packed artifacts.
+
+  Bundled instances can explicitly disable provider-backed semantic indexing while retaining lexical full-text search. Exact bundled tool invocation supports structured input, generated confirmation replay, and explicit permission scopes.
+
+  Declarative service packages now infer setup state and config, expose schema-first tools with plain typed output, and register durable typed jobs with queue-owned retries, deadlines, progress, cancellation, status, and restart recovery. Resources, prompts, templates, views, and cleanup remain lifecycle-owned.
+
+  `@rizom/site` is now the sole site-authoring SDK, with canonical `defineSite()`, schema-first sections, a blessed schema vocabulary, initial content validation, and runtime-derived structural validation. App-managed builds preserve package CSS, global head scripts, and static assets. The removed alpha `@rizom/brain/site` subpath and `@rizom/site-sections` workspace package have no compatibility facade. Brand-specific `Rizom*` layout and chrome types are owned by `@rizom/site-rizom`, not the base SDK.
+
+  Generic and message interfaces now use declarative definitions for schema-validated routes, protocol authentication, canonical caller permissions, typed cross-package job enqueue, supervised daemon health and shutdown, channel registration, outbound delivery, normalized send/edit behavior, lazy attachments, and runtime-owned conversational progress. Declarative brains receive the shared HTTP host when they compose a generic interface, while interface plugins remain excluded from worker processes.
+
+  This intentionally removes alpha-only root and plugin authoring exports including `PLUGIN_API_VERSION`, class-first plugin APIs, tuple/factory contracts, factory package loading, and the root Zod convenience export. Family authoring entries own their blessed schema helpers.
+
 ## 0.2.0-alpha.271
 
 ### Patch Changes

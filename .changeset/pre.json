@@ -272,6 +272,7 @@
     "core--projection-runtime-guards",
     "core--projection-startup-recovery",
     "core--projection-wave-json-boundaries",
+    "core--public-authoring-definitions",
     "core--quality-refactor-sweep",
     "core--reconcile-generated-deploy-scripts",
     "core--release-config-workspace-guard",
