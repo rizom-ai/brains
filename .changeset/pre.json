@@ -475,6 +475,7 @@
     "shell-lifecycle-registration-rollback",
     "shell-lifecycle-transitions",
     "show-account-contact-details",
+    "site--authoring-brand-contract-boundary",
     "site--drop-rizom-theme-profiles",
     "site--first-party-preact-peer",
     "site--json-native-section-content",
