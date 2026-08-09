@@ -1,5 +1,6 @@
 import { mock } from "bun:test";
 import type { TemplateRegistry, Template } from "@brains/templates";
+import type { PublicSurface } from "./public-surface";
 
 /**
  * Options for configuring mock template registry return values
@@ -41,7 +42,7 @@ export function createMockTemplateRegistry(
 ): TemplateRegistry {
   const { returns = {} } = options;
 
-  return {
+  const registry: PublicSurface<TemplateRegistry> = {
     register: mock(() => {}),
     get: mock(() => returns.get),
     getAll: mock(() => returns.getAll ?? new Map()),
@@ -53,5 +54,8 @@ export function createMockTemplateRegistry(
     size: mock(() => returns.size ?? 0),
     getPluginTemplates: mock(() => returns.getPluginTemplates ?? []),
     getPluginTemplateNames: mock(() => returns.getPluginTemplateNames ?? []),
-  } as unknown as TemplateRegistry;
+  };
+
+  // Only the nominal private-field gap remains; the shape is checked above.
+  return registry as TemplateRegistry;
 }

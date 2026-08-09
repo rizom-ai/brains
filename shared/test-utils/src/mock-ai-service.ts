@@ -63,14 +63,27 @@ export function createMockAIService(
         usage: generateTextReturn.usage ?? defaultUsage,
       }),
     ),
+    // `mock()` erases type parameters, so this cannot be assigned to the
+    // generic `generateObject<T>` signature directly. Asserting the member
+    // keeps it a real spy; every other member stays checked by `satisfies`.
     generateObject: mock(() =>
       Promise.resolve({
         object: generateObjectReturn,
         usage: defaultUsage,
       }),
+    ) as IAIService["generateObject"],
+    judge: mock(() =>
+      Promise.resolve({ verdict: generateObjectReturn, usage: defaultUsage }),
+    ) as IAIService["judge"],
+    generateImage: mock(() =>
+      Promise.resolve({
+        base64: "",
+        dataUrl: "data:image/png;base64,",
+      }),
     ),
+    canGenerateImages: mock(() => false),
     updateConfig: mock(() => {}),
     getConfig: mock(() => configReturn),
     getModel: mock(() => ({}) as ReturnType<IAIService["getModel"]>),
-  } as unknown as IAIService;
+  } satisfies IAIService;
 }

@@ -1,5 +1,9 @@
 import { mock } from "bun:test";
-import type { IBatchJobManager } from "@brains/job-queue";
+import type {
+  Batch,
+  BatchJobStatus,
+  IBatchJobManager,
+} from "@brains/job-queue";
 
 /**
  * Options for configuring mock BatchJobManager behavior
@@ -13,8 +17,8 @@ export interface MockBatchJobManagerOptions {
  */
 export interface MockBatchJobManagerReturns {
   enqueueBatch?: string;
-  getBatchStatus?: unknown | null;
-  getActiveBatches?: unknown[];
+  getBatchStatus?: BatchJobStatus | null;
+  getActiveBatches?: Batch[];
 }
 
 /**
@@ -42,7 +46,9 @@ export function createMockBatchJobManager(
 ): IBatchJobManager {
   const returns = options.returns ?? {};
 
-  const mockManager = {
+  const mockManager: IBatchJobManager = {
+    start: mock(() => {}),
+    stop: mock(() => {}),
     registerBatch: mock(() => {}),
     enqueueBatch: mock(() =>
       Promise.resolve(returns.enqueueBatch ?? "batch-id"),
@@ -53,5 +59,5 @@ export function createMockBatchJobManager(
     ),
   };
 
-  return mockManager as unknown as IBatchJobManager;
+  return mockManager;
 }

@@ -13,7 +13,7 @@ import type {
  */
 export interface MockJobQueueServiceReturns {
   enqueue?: string;
-  dequeue?: unknown | null;
+  dequeue?: JobInfo | null;
   getStatus?: JobInfo | null;
   getStatusByEntityId?: JobInfo | null;
   getHandler?: JobHandler | undefined;
@@ -215,5 +215,6 @@ export function createMockJobQueueService(
       ),
     ),
     getRegisteredTypes: mock(() => returns.getRegisteredTypes ?? []),
-  } as unknown as IJobQueueService;
+    close: mock(() => {}),
+  } satisfies IJobQueueService;
 }
