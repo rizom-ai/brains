@@ -203,54 +203,92 @@ the local service databases. With that flag active, Turso rejects
 Removing the flag without first removing direct cross-process file access is
 not an acceptable implementation.
 
-#### Phase 5A — Prove the owner topology under WAL
+#### Phase 5A — Prove the web owner and transport under WAL
 
-**Owner decision: the web process owns the local databases**; the worker
-routes persistence calls to it. Grounds: the latency-sensitive interactive
-path and the bulk import pipeline both already live in the web process (the
-directory-sync import-load plan keeps per-file import work in the main
-process by design, and its permanent 350-file burst-soak CI gate defends
-web-process import throughput — a separate state process would tax exactly
-that gated path). The worker's remaining traffic is job bookkeeping and
-embedding writes: low-rate, latency-tolerant, and batchable over IPC. This
-also preserves the two-child supervisor and the existing worker-after-web
-readiness order. The rejected alternative — a separately supervised state
-process — buys crash isolation and by-construction acyclicity, but at the
-cost of a third child and IPC on both the interactive and bulk-write paths.
-Two invariants substitute for the structural acyclicity: owner DB endpoints
-are leaf operations (no calls back toward clients), and request queues are
-bounded with timeouts.
+**Owner decision: the web process owns the local databases**; the worker routes
+durable persistence calls to it. The interactive path and directory imports
+already run in web, so this keeps their database access local and preserves the
+current two-child supervisor plus worker-after-web startup order. A separate
+state process would isolate database lifetime, but would add a third child and
+put both web and worker traffic over IPC.
 
-Keep the current WAL behavior while changing ownership. For this topology:
+Do not assume worker traffic is small or insensitive to latency. The worker
+constructs every executable job handler; generation, projection, publishing,
+queue lease/progress, conversation, runtime-state, and embedding paths all use
+persistent services. Capture a direct-database baseline and exercise those
+flows through the proposed boundary before removing any worker connection.
 
-- Keep business logic and public Promise interfaces in their owning packages.
-  Define package-owned, Zod-validated internal request/response contracts; do
-  not expose SQL or Drizzle over IPC.
-- Propagate operation context, cancellation, errors, and request identity across
-  the boundary. Bound requests with backpressure and timeouts.
-- Parent-owned migrations still run once before the database owner starts.
-  Auth-service's embedded replica remains outside this change.
-- First prove one cross-process job-queue slice under WAL, including owner
-  readiness, worker restart, owner failure, reconnect, and clean shutdown.
+Keep WAL while changing ownership. First resolve the transport gate with a
+representative job-queue slice. Compare exactly two local transports:
 
-**Exit:** the topology decision above is recorded and the representative
-slice passes without a worker-side database file handle.
+1. Parent-relayed child IPC, which reuses current process channels but turns the
+   supervisor into a data relay and copies each request twice.
+2. A private web-owned local endpoint, which keeps requests direct but needs
+   endpoint discovery, authentication, lifecycle, and cleanup.
 
-#### Phase 5B — Route all local shell persistence through the owner
+Record the owner's transport choice before extending the slice. For either
+transport:
 
-- Add remote implementations for job queue, entities, conversations, and
-  runtime state without changing their public service contracts.
-- Preserve process-role behavior: web still validates enqueue requests and owns
-  interfaces; worker still owns executable handlers and durable execution.
-- Verify entity events, projection lineage, queue progress, visibility, and
-  health reports across the boundary.
-- Add a packed-runtime test that fails if the worker opens a local SQLite file,
-  plus worker crash/restart and owner shutdown coverage.
-- Keep WAL and `multiprocess_wal` until every local shell database has exactly
-  one process owner.
+- Inventory each service contract before implementation. Preserve external
+  plugin APIs and their Promise-based operation surfaces, but split internal
+  process-local control from remote durable operations where the current
+  interface carries functions, concrete classes, or synchronous registry state.
+- Define package-owned, Zod-validated request/response envelopes. Do not expose
+  SQL or Drizzle, and do not send callbacks, handlers, class instances, or
+  `AbortSignal` objects over IPC. Represent cancellation with request IDs and
+  explicit cancel messages.
+- Propagate operation-context snapshots, request identity, typed failures, and
+  cancellation. Bound queues and in-flight requests with explicit limits and
+  timeouts.
+- Keep owner request handlers leaf-shaped with respect to IPC: they may call
+  owner-local services and databases but must never issue a synchronous request
+  back to the worker handling the original call.
+- Preserve current supervisor semantics. A worker restart reconnects to the
+  surviving web owner. A web/owner exit rejects in-flight requests, terminates
+  the worker, and exits the parent; Phase 5 does not add web-child restart.
+- Parent-owned migrations still run once before web starts. Auth-service's
+  embedded replica remains outside this change.
 
-**Exit:** web and worker behavior is at parity with the current runtime, while
-only the selected owner opens local shell database files.
+Test queue polling, claims, leases, progress, owner readiness, worker restart,
+bounded overload, request cancellation, web-owner exit, and clean shutdown.
+
+**Exit:** the owner has selected the transport, the representative slice passes
+without a worker-side job database handle, and measured latency/throughput plus
+failure behavior are recorded.
+
+#### Phase 5B — Route all local shell persistence through the web owner
+
+Build hybrid process facades rather than pretending every existing service is
+serializable:
+
+- **Job queue:** handler and validator registration stays local to each process;
+  the worker routes durable queue operations to the web-owned repository.
+- **Entities:** entity registry, adapters, serialization, and synchronous type
+  metadata stay process-local. Async persistence/search runs in web. Replace the
+  worker's concrete `ProjectionStore` dependency with a narrow async contract
+  whose operations are safe to proxy.
+- **Conversations:** keep process-local message-bus behavior explicit while web
+  owns conversation persistence; test that events are emitted in the intended
+  process exactly once.
+- **Runtime state:** `scoped()` returns a local store facade whose async reads,
+  writes, and deletes use the selected transport.
+
+Preserve process roles: web validates enqueue requests and owns interfaces;
+worker owns executable handlers and durable execution. Verify entity events,
+projection lineage, generation and projection bursts, queue heartbeats and
+progress, embedding backfill, directory import, visibility, conversation
+updates, runtime-state access, and health reports across the boundary. Compare
+these flows with the recorded direct-database baseline; do not describe worker
+traffic as low-rate or batchable without measurements.
+
+Add a packed-runtime invariant test that fails if the worker opens a local
+SQLite file. Cover worker crash/restart, transport interruption, request
+timeouts, web-owner shutdown, and terminal parent shutdown after owner loss.
+Keep WAL and `multiprocess_wal` until every local shell database has exactly one
+process owner.
+
+**Exit:** behavior and bounded-load results are at parity with the current
+runtime, while only web opens local shell database files.
 
 #### Phase 5C — Fold embeddings into the entity database
 
@@ -300,9 +338,8 @@ entity-write/enqueue gap is removed only if an atomic replacement is adopted.
   against Turso Cloud for the duration of this plan.
 - No reliance on experimental page-level "partial sync" for embeddings
   exclusion — access-pattern lazy loading guarantees nothing on `push()`.
-- No wholesale one-DB consolidation ahead of the Phase 4 fork; service-level
-  separation is domain-driven and survives unless Phase 5 explicitly folds a
-  specific pair for transactional integrity.
+- No wholesale one-DB consolidation. Phase 5 folds only embeddings into the
+  entity database; any entity/job merge remains a separate owner decision.
 
 ## Risks
 
@@ -310,8 +347,8 @@ entity-write/enqueue gap is removed only if an atomic replacement is adopted.
   would be load-bearing from Phase 3 on. WAL keeps the file format compatible,
   but the native FTS schema is not libSQL-parseable; fallback requires the
   explicit cleanup command described in Design and Phase 3.
-- The single-owner boundary adds IPC latency and makes owner readiness a shared
-  dependency. Failure, restart, backpressure, and shutdown behavior must be
-  proved under WAL before changing the file format.
+- The single-owner boundary adds IPC latency to substantial worker persistence
+  traffic. Baseline comparison, overload bounds, failure, restart, and shutdown
+  behavior must be proved under WAL before changing the file format.
 - MVCC-mode files close the libSQL fallback door. The owner topology and
   no-second-opener invariant must be enforced before conversion.
