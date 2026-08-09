@@ -419,27 +419,41 @@ describe("JobQueueRepository fenced attempts", () => {
     });
   });
 
-  it("uses the covering index for durable cursor seeks", async () => {
+  it("uses the covering index for both durable cursor seek queries", async () => {
     const index = await client.execute(
       "PRAGMA index_info('idx_job_queue_runtime_updates')",
     );
-    const plan = await client.execute({
-      sql: `EXPLAIN QUERY PLAN
-        SELECT * FROM job_queue
-        WHERE runtimeUpdatedAt >= ?
-        ORDER BY runtimeUpdatedAt, id`,
-      args: [0],
-    });
-
     expect(index.rows.map((row) => row["name"])).toEqual([
       "runtimeUpdatedAt",
       "id",
     ]);
-    expect(plan.rows.map((row) => String(row["detail"]))).toEqual([
-      expect.stringContaining(
-        "SEARCH job_queue USING INDEX idx_job_queue_runtime_updates",
-      ),
-    ]);
+
+    const seekShapes = [
+      {
+        sql: `EXPLAIN QUERY PLAN
+          SELECT * FROM job_queue
+          WHERE runtimeUpdatedAt = ? AND id > ?
+          ORDER BY id
+          LIMIT ?`,
+        args: [0, "", 100],
+      },
+      {
+        sql: `EXPLAIN QUERY PLAN
+          SELECT * FROM job_queue
+          WHERE runtimeUpdatedAt > ?
+          ORDER BY runtimeUpdatedAt, id
+          LIMIT ?`,
+        args: [0, 100],
+      },
+    ];
+    for (const shape of seekShapes) {
+      const plan = await client.execute(shape);
+      expect(plan.rows.map((row) => String(row["detail"]))).toEqual([
+        expect.stringContaining(
+          "SEARCH job_queue USING INDEX idx_job_queue_runtime_updates",
+        ),
+      ]);
+    }
   });
 
   it("skips cursor ties after seeking by update timestamp", async () => {
@@ -455,6 +469,41 @@ describe("JobQueueRepository fenced attempts", () => {
     );
 
     expect(updates.map((update) => update.job.id)).toEqual(["c-job"]);
+  });
+
+  it("bounds cursor pages across timestamp boundaries", async () => {
+    const jobs = ["a-job", "b-job", "c-job", "d-job", "e-job"].map((id) =>
+      createTestJob({ id }),
+    );
+    for (const job of jobs) await repository.insert(job);
+    await client.execute(
+      "UPDATE job_queue SET runtimeUpdatedAt = 100 WHERE id IN ('a-job', 'b-job', 'c-job')",
+    );
+    await client.execute(
+      "UPDATE job_queue SET runtimeUpdatedAt = 101 WHERE id = 'd-job'",
+    );
+    await client.execute(
+      "UPDATE job_queue SET runtimeUpdatedAt = 102 WHERE id = 'e-job'",
+    );
+
+    const cursor = { updatedAt: 100, jobId: "a-job" };
+    const firstTwo = await repository.getRuntimeUpdates(cursor, 2);
+    expect(firstTwo.map((update) => update.job.id)).toEqual(["b-job", "c-job"]);
+
+    const spanning = await repository.getRuntimeUpdates(cursor, 3);
+    expect(spanning.map((update) => update.job.id)).toEqual([
+      "b-job",
+      "c-job",
+      "d-job",
+    ]);
+
+    const unbounded = await repository.getRuntimeUpdates(cursor, 10);
+    expect(unbounded.map((update) => update.job.id)).toEqual([
+      "b-job",
+      "c-job",
+      "d-job",
+      "e-job",
+    ]);
   });
 
   it("streams durable progress and terminal snapshots through a stable cursor", async () => {
