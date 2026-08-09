@@ -1,7 +1,7 @@
 {
   "name": "@brains/media-renderer",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.267",
+  "version": "0.2.0-alpha.268",
   "dependencies": {
     "@brains/utils": "workspace:*",
     "playwright-core": "^1.61.0"

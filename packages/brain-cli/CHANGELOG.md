@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.268
+
+### Patch Changes
+
+- [#89](https://github.com/rizom-ai/brains/pull/89) [`eb42c08`](https://github.com/rizom-ai/brains/commit/eb42c089f3af3432375cd1ec45b943a862c5ddeb) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Suppress directory watcher echoes before auto-export creates, updates, or deletes entity files, including document sidecars, to avoid redundant re-import work.
+
 ## 0.2.0-alpha.267
 
 ### Patch Changes
