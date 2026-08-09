@@ -8,11 +8,6 @@ on:
     types: [completed]
     branches: [main]
   workflow_dispatch:
-    inputs:
-      stable_sdk_version:
-        description: Exact stable @rizom/site version to publish from the checked alpha source
-        required: false
-        type: string
 
 # Shared with Release so version commits cannot race on main.
 concurrency: npm-release-main
@@ -144,53 +139,3 @@ jobs:
       - name: Verify registry and tarball metadata
         if: steps.release_mode.outputs.mode != 'stable-exit'
         run: bun scripts/verify-published-peer-metadata.ts
-
-      # The generic authoring SDK has no Brain runtime dependency and may
-      # graduate independently while the runtime remains in prerelease. Keep
-      # the workspace on its alpha line so subsequent runtime candidates can
-      # still prove compatibility; once a normal release exists, Changesets
-      # automatically sends later prereleases to the alpha dist-tag.
-      - name: Publish stable generic site SDK
-        if: >
-          github.event_name == 'workflow_dispatch' &&
-          inputs.stable_sdk_version != '' &&
-          steps.release_mode.outputs.mode != 'stable-exit'
-        env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-          STABLE_SDK_VERSION: ${{ inputs.stable_sdk_version }}
-        run: |
-          set -euo pipefail
-          current="$(bun -e 'console.log((await Bun.file("packages/site/package.json").json()).version)')"
-          expected="${current%%-*}"
-          if [[ ! "$STABLE_SDK_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || [ "$STABLE_SDK_VERSION" != "$expected" ]; then
-            echo "Stable SDK version must be the non-prerelease base of ${current}; received ${STABLE_SDK_VERSION}." >&2
-            exit 1
-          fi
-
-          echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" > ~/.npmrc
-          published="$(npm view "@rizom/site@${STABLE_SDK_VERSION}" version 2>/dev/null || true)"
-          if [ "$published" != "$STABLE_SDK_VERSION" ]; then
-            stage="$(mktemp -d)"
-            trap 'rm -rf "$stage"' EXIT
-            cp -R packages/site/. "$stage/"
-            STAGE="$stage" bun -e '
-              const path = `${process.env.STAGE}/package.json`;
-              const manifest = await Bun.file(path).json();
-              manifest.version = process.env.STABLE_SDK_VERSION;
-              await Bun.write(path, `${JSON.stringify(manifest, null, 2)}\n`);
-            '
-            (cd "$stage" && npm publish --access public --tag latest --provenance)
-          fi
-
-          for attempt in {1..8}; do
-            published="$(npm view "@rizom/site@${STABLE_SDK_VERSION}" version 2>/dev/null || true)"
-            latest="$(npm view @rizom/site dist-tags.latest 2>/dev/null || true)"
-            license="$(npm view "@rizom/site@${STABLE_SDK_VERSION}" license 2>/dev/null || true)"
-            if [ "$published" = "$STABLE_SDK_VERSION" ] && [ "$latest" = "$STABLE_SDK_VERSION" ] && [ "$license" = "Apache-2.0" ]; then
-              echo "Verified @rizom/site@${STABLE_SDK_VERSION} as the Apache-2.0 latest release."
-              exit 0
-            fi
-            if [ "$attempt" -lt 8 ]; then sleep "$((attempt * 5))"; fi
-          done
-          echo "Stable @rizom/site registry verification failed." >&2
-          exit 1
