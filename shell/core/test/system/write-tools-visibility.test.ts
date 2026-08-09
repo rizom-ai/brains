@@ -115,13 +115,13 @@ describe("write tools cap visibility by caller permission", () => {
   }
 
   describe("system_create", () => {
-    it("rejects a trusted user creating an entity with visibility: restricted", async () => {
+    it("rejects a trusted user explicitly creating restricted content", async () => {
       const result = await runCreate(
         {
           entityType: "doc",
           title: "Restricted note",
-          content:
-            "---\ntitle: Restricted note\nvisibility: restricted\n---\nBody",
+          visibility: "restricted",
+          content: "---\ntitle: Restricted note\n---\nBody",
         },
         "trusted",
       );
@@ -131,12 +131,13 @@ describe("write tools cap visibility by caller permission", () => {
       expect(error).toMatch(/trusted/);
     });
 
-    it("rejects a public user creating an entity with visibility: shared", async () => {
+    it("rejects a public user explicitly creating shared content", async () => {
       const result = await runCreate(
         {
           entityType: "doc",
           title: "Shared note",
-          content: "---\ntitle: Shared note\nvisibility: shared\n---\nBody",
+          visibility: "shared",
+          content: "---\ntitle: Shared note\n---\nBody",
         },
         "public",
       );
@@ -145,34 +146,74 @@ describe("write tools cap visibility by caller permission", () => {
       expect(error).toMatch(/shared/);
     });
 
-    it("allows a trusted user creating an entity with visibility: shared", async () => {
+    it("allows a trusted user explicitly creating shared content", async () => {
       const result = await runCreate(
         {
           entityType: "doc",
           title: "Shared note",
-          content: "---\ntitle: Shared note\nvisibility: shared\n---\nBody",
+          visibility: "shared",
+          content: "---\ntitle: Shared note\n---\nBody",
         },
         "trusted",
       );
       const data = expectSuccess(result, createDataSchema);
       expect(data.status).toBe("created");
+      expect(services.getEntities().get(data.entityId ?? "")?.visibility).toBe(
+        "shared",
+      );
     });
 
-    it("allows an admin user creating an entity with visibility: restricted", async () => {
+    it("allows an admin user explicitly creating restricted content", async () => {
       const result = await runCreate(
         {
           entityType: "doc",
           title: "Restricted note",
-          content:
-            "---\ntitle: Restricted note\nvisibility: restricted\n---\nBody",
+          visibility: "restricted",
+          content: "---\ntitle: Restricted note\n---\nBody",
         },
         "admin",
       );
       const data = expectSuccess(result, createDataSchema);
       expect(data.status).toBe("created");
+      expect(services.getEntities().get(data.entityId ?? "")?.visibility).toBe(
+        "restricted",
+      );
     });
 
-    it("allows a public user creating an entity with default (public) visibility", async () => {
+    it("retains legacy visibility inference from source frontmatter", async () => {
+      const result = await runCreate(
+        {
+          entityType: "doc",
+          title: "Legacy Shared Note",
+          content:
+            "---\ntitle: Legacy Shared Note\nvisibility: shared\n---\nBody",
+        },
+        "trusted",
+      );
+      const data = expectSuccess(result, createDataSchema);
+      expect(services.getEntities().get(data.entityId ?? "")?.visibility).toBe(
+        "shared",
+      );
+    });
+
+    it("rejects conflicting explicit and frontmatter visibility", async () => {
+      const result = await runCreate(
+        {
+          entityType: "doc",
+          title: "Conflicted note",
+          visibility: "shared",
+          content:
+            "---\ntitle: Conflicted note\nvisibility: restricted\n---\nBody",
+        },
+        "admin",
+      );
+      const error = expectError(result);
+      expect(error).toContain("Conflicting entity visibility");
+      expect(error).toContain('requested "shared"');
+      expect(error).toContain('declares "restricted"');
+    });
+
+    it("allows a public user creating content with default public visibility", async () => {
       const result = await runCreate(
         {
           entityType: "doc",
@@ -183,6 +224,9 @@ describe("write tools cap visibility by caller permission", () => {
       );
       const data = expectSuccess(result, createDataSchema);
       expect(data.status).toBe("created");
+      expect(services.getEntities().get(data.entityId ?? "")?.visibility).toBe(
+        "public",
+      );
     });
   });
 

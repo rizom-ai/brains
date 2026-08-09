@@ -348,6 +348,9 @@ export class EntityService implements IEntityService {
         entityType: input.entityType,
         content: input.markdown,
         metadata: parsed.metadata ?? {},
+        ...(input.visibility !== undefined
+          ? { visibility: input.visibility }
+          : {}),
       },
       ...(options !== undefined && { options }),
     });

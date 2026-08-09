@@ -128,7 +128,7 @@ describe("system_create upload preserve", () => {
     expect(toolNames).not.toContain("system_upload_save");
   });
 
-  it("requires create confirmation before dispatching preserve to the registered media handler", async () => {
+  it("preserves explicit visibility through confirmation and media dispatch", async () => {
     const calls: unknown[] = [];
     const services = buildServices({
       uploadHandler: async (input) => {
@@ -145,6 +145,7 @@ describe("system_create upload preserve", () => {
       {
         entityType: "document",
         title: "Quarterly Report",
+        visibility: "shared",
         source: {
           kind: "upload",
           upload: { kind: "upload", id: uploadId },
@@ -158,7 +159,9 @@ describe("system_create upload preserve", () => {
       needsConfirmation: true,
       toolName: "system_create",
       summary: 'Save uploaded file as "Quarterly Report"?',
+      preview: expect.stringContaining("Visibility: shared"),
     });
+    expect(pending).toHaveProperty("args.visibility", "shared");
     expect(pending).toHaveProperty("args.source.transform", "preserve");
     expect(calls).toEqual([]);
 
@@ -172,7 +175,11 @@ describe("system_create upload preserve", () => {
       data: { entityId: "report", status: "created" },
     });
     expect(calls).toEqual([
-      { upload: { kind: "upload", id: uploadId }, title: "Quarterly Report" },
+      {
+        upload: { kind: "upload", id: uploadId },
+        title: "Quarterly Report",
+        visibility: "shared",
+      },
     ]);
   });
 

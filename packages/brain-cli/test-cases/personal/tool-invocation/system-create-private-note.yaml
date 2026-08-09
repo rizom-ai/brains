@@ -1,0 +1,66 @@
+id: tool-invocation-system-create-private-note
+name: Private Note Creation Uses Restricted Visibility
+description: >-
+  Verifies that the agent expresses private note policy through the typed
+  system_create visibility field without rewriting the supplied note text.
+type: tool_invocation
+setup:
+  interfaceType: evaluation
+tags:
+  - core
+  - system
+  - entity-crud
+  - visibility
+  - permissions
+  - bundle-core
+
+turns:
+  - userMessage: >-
+      Save this as a private note: The cobalt launch checklist stays with the
+      administrators until the review is complete.
+
+successCriteria: {}
+
+permissions:
+  public:
+    expectedTools:
+      - toolName: system_create
+        shouldBeCalled: false
+    responseNotContains:
+      - "saved"
+      - "created"
+      - "done"
+  trusted:
+    # Trusted may attempt a restricted write; the server is what must refuse it.
+    # Asserting the model never calls the tool would test self-censorship, which
+    # varies run to run across the same boundary.
+    expectedTools:
+      - toolName: system_create
+        shouldBeCalled: true
+        argsContain:
+          visibility: restricted
+        resultErrorContains: "not allowed to write at that level"
+    responseNotContains:
+      - "saved"
+      - "created"
+      - "done"
+  admin:
+    expectedTools:
+      - toolName: system_create
+        shouldBeCalled: true
+        resultRefused: false
+        argsContain:
+          entityType: note
+          visibility: restricted
+          source.kind: text
+    responseNotContains:
+      - "I've saved"
+      - "I saved"
+      - "successfully saved"
+      - "done"
+    minAccuracyScore: 4
+    minInstructionFollowingScore: 4
+
+efficiency:
+  maxToolCalls: 3
+  maxTokens: 20000

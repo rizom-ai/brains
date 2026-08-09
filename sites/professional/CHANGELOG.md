@@ -1,5 +1,101 @@
 # @brains/site-professional
 
+## 0.2.0-alpha.269
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.269
+  - @brains/decks@0.2.0-alpha.269
+  - @brains/site-info@0.2.0-alpha.269
+  - @brains/profile@0.2.0-alpha.269
+  - @brains/site-composition@0.2.0-alpha.269
+  - @brains/site-engine@0.2.0-alpha.269
+  - @brains/ui-library@0.2.0-alpha.269
+  - @brains/utils@0.2.0-alpha.269
+  - @brains/plugins@0.2.0-alpha.269
+  - @brains/templates@0.2.0-alpha.269
+
+## 0.2.0-alpha.268
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.268
+  - @brains/decks@0.2.0-alpha.268
+  - @brains/site-info@0.2.0-alpha.268
+  - @brains/profile@0.2.0-alpha.268
+  - @brains/site-composition@0.2.0-alpha.268
+  - @brains/site-engine@0.2.0-alpha.268
+  - @brains/ui-library@0.2.0-alpha.268
+  - @brains/utils@0.2.0-alpha.268
+  - @brains/plugins@0.2.0-alpha.268
+  - @brains/templates@0.2.0-alpha.268
+
+## 0.2.0-alpha.267
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.267
+  - @brains/site-info@0.2.0-alpha.267
+  - @brains/site-engine@0.2.0-alpha.267
+  - @brains/blog@0.2.0-alpha.267
+  - @brains/decks@0.2.0-alpha.267
+  - @brains/profile@0.2.0-alpha.267
+  - @brains/site-composition@0.2.0-alpha.267
+  - @brains/ui-library@0.2.0-alpha.267
+  - @brains/utils@0.2.0-alpha.267
+  - @brains/templates@0.2.0-alpha.267
+
+## 0.2.0-alpha.266
+
+### Patch Changes
+
+- Updated dependencies [[`e70ab12`](https://github.com/rizom-ai/brains/commit/e70ab12745c6cf757f685389f4cd6de8991de95f)]:
+  - @brains/utils@0.2.0-alpha.266
+  - @brains/blog@0.2.0-alpha.266
+  - @brains/decks@0.2.0-alpha.266
+  - @brains/site-info@0.2.0-alpha.266
+  - @brains/profile@0.2.0-alpha.266
+  - @brains/site-composition@0.2.0-alpha.266
+  - @brains/site-engine@0.2.0-alpha.266
+  - @brains/ui-library@0.2.0-alpha.266
+  - @brains/plugins@0.2.0-alpha.266
+  - @brains/templates@0.2.0-alpha.266
+
+## 0.2.0-alpha.265
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.265
+  - @brains/decks@0.2.0-alpha.265
+  - @brains/site-info@0.2.0-alpha.265
+  - @brains/profile@0.2.0-alpha.265
+  - @brains/site-composition@0.2.0-alpha.265
+  - @brains/site-engine@0.2.0-alpha.265
+  - @brains/ui-library@0.2.0-alpha.265
+  - @brains/utils@0.2.0-alpha.265
+  - @brains/plugins@0.2.0-alpha.265
+  - @brains/templates@0.2.0-alpha.265
+
+## 0.2.0-alpha.264
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.264
+  - @brains/site-info@0.2.0-alpha.264
+  - @brains/site-engine@0.2.0-alpha.264
+  - @brains/blog@0.2.0-alpha.264
+  - @brains/decks@0.2.0-alpha.264
+  - @brains/profile@0.2.0-alpha.264
+  - @brains/site-composition@0.2.0-alpha.264
+  - @brains/ui-library@0.2.0-alpha.264
+  - @brains/utils@0.2.0-alpha.264
+  - @brains/templates@0.2.0-alpha.264
+
 ## 0.2.0-alpha.263
 
 ### Patch Changes

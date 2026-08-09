@@ -57,6 +57,20 @@ export const SITE_BUNDLE_ID = "site";
 export const PUBLISHING_BUNDLE_ID = "publishing";
 export const TEAM_BUNDLE_ID = "team";
 
+/**
+ * Content a vouched-for collaborator may capture and revise, but not remove or
+ * republish. The platform baseline is `"*": admin`, so every such type has to
+ * be granted explicitly — a type left unlisted is Admin-only no matter which
+ * tool offers it.
+ */
+const trustedContentEntityActions = {
+  create: "trusted",
+  update: "trusted",
+  delete: "admin",
+  extract: "admin",
+  publish: "admin",
+} as const;
+
 export const coreBundle: CapabilityBundleDefinition = defineBundle({
   id: CORE_BUNDLE_ID,
   members: [
@@ -97,6 +111,14 @@ export const coreBundle: CapabilityBundleDefinition = defineBundle({
     },
   ],
   permissions: [
+    {
+      member: "note",
+      config: { entityActions: { note: trustedContentEntityActions } },
+    },
+    {
+      member: "link",
+      config: { entityActions: { link: trustedContentEntityActions } },
+    },
     {
       member: "admin",
       config: {
@@ -197,14 +219,6 @@ export const publishingBundle: CapabilityBundleDefinition = defineBundle({
   evalDisable: ["atproto"],
 });
 
-const trustedTeamEntityActions = {
-  create: "trusted",
-  update: "trusted",
-  delete: "admin",
-  extract: "admin",
-  publish: "admin",
-} as const;
-
 export const teamBundle: CapabilityBundleDefinition = defineBundle({
   id: TEAM_BUNDLE_ID,
   members: [
@@ -231,30 +245,30 @@ export const teamBundle: CapabilityBundleDefinition = defineBundle({
   permissions: [
     {
       member: "image",
-      config: { entityActions: { image: trustedTeamEntityActions } },
+      config: { entityActions: { image: trustedContentEntityActions } },
     },
     {
       member: "note",
-      config: { entityActions: { note: trustedTeamEntityActions } },
+      config: { entityActions: { note: trustedContentEntityActions } },
     },
     {
       member: "link",
-      config: { entityActions: { link: trustedTeamEntityActions } },
+      config: { entityActions: { link: trustedContentEntityActions } },
     },
     {
       member: "decks",
-      config: { entityActions: { deck: trustedTeamEntityActions } },
+      config: { entityActions: { deck: trustedContentEntityActions } },
     },
     {
       member: "docs",
-      config: { entityActions: { doc: trustedTeamEntityActions } },
+      config: { entityActions: { doc: trustedContentEntityActions } },
     },
     {
       member: "conversation-memory",
       config: {
         entityActions: {
-          decision: trustedTeamEntityActions,
-          "action-item": trustedTeamEntityActions,
+          decision: trustedContentEntityActions,
+          "action-item": trustedContentEntityActions,
         },
       },
     },
@@ -286,14 +300,14 @@ export const canonicalBrain: BrainDefinition = defineBrain({
   reasoningEffort: "low",
   capabilities: [
     ["prompt", promptPlugin, undefined],
-    ["profile", profilePlugin, {}],
+    ["profile", profilePlugin, undefined],
     ["style-guide", styleGuidePlugin, undefined],
     ["image", imagePlugin, undefined],
     ["document", documentPlugin, undefined],
-    ["note", notePlugin, {}],
-    ["link", linkPlugin, {}],
-    ["wishlist", wishlistPlugin, {}],
-    ["topics", topicsPlugin, {}],
+    ["note", notePlugin, undefined],
+    ["link", linkPlugin, undefined],
+    ["wishlist", wishlistPlugin, undefined],
+    ["topics", topicsPlugin, undefined],
     ["decks", decksPlugin, undefined],
     [
       "directory-sync",
@@ -304,31 +318,31 @@ export const canonicalBrain: BrainDefinition = defineBrain({
         initialSync: true,
       },
     ],
-    ["atproto-registry", atprotoRegistryPlugin, {}],
+    ["atproto-registry", atprotoRegistryPlugin, undefined],
     ["agents", agentDiscovery, undefined],
     ["assessment", assessment, undefined],
     ["auth-service", authServicePlugin, undefined],
     ["account", accountPlugin, undefined],
     ["notifications", notificationsPlugin, undefined],
-    ["playbook", playbookPlugin, {}],
-    ["playbooks", playbooksPlugin, {}],
-    ["onboarding", onboardingPlugin, {}],
-    ["cms", cmsPlugin, {}],
-    ["dashboard", dashboardPlugin, {}],
+    ["playbook", playbookPlugin, undefined],
+    ["playbooks", playbooksPlugin, undefined],
+    ["onboarding", onboardingPlugin, undefined],
+    ["cms", cmsPlugin, undefined],
+    ["dashboard", dashboardPlugin, undefined],
     ["admin", adminPlugin, undefined],
 
     ["site-info", siteInfoPlugin, undefined],
     ["site-content", siteContentPlugin, undefined],
-    ["site-builder", siteBuilderPlugin, {}],
-    ["analytics", analyticsPlugin, {}],
+    ["site-builder", siteBuilderPlugin, undefined],
+    ["analytics", analyticsPlugin, undefined],
 
-    ["blog", blogPlugin, {}],
+    ["blog", blogPlugin, undefined],
     ["series", seriesPlugin, undefined],
-    ["portfolio", portfolioPlugin, {}],
-    ["content-pipeline", contentPipelinePlugin, {}],
-    ["social-media", socialMediaPlugin, {}],
-    ["newsletter", newsletter, {}],
-    ["stock-photo", stockPhotoPlugin, {}],
+    ["portfolio", portfolioPlugin, undefined],
+    ["content-pipeline", contentPipelinePlugin, undefined],
+    ["social-media", socialMediaPlugin, undefined],
+    ["newsletter", newsletter, undefined],
+    ["stock-photo", stockPhotoPlugin, undefined],
     [
       "atproto",
       atprotoPlugin,
@@ -339,13 +353,13 @@ export const canonicalBrain: BrainDefinition = defineBrain({
       }),
     ],
 
-    ["conversation-memory", conversationMemoryPlugin, {}],
+    ["conversation-memory", conversationMemoryPlugin, undefined],
     ["docs", docsPlugin, undefined],
 
     ["products", productsPlugin, undefined],
     ["obsidian-vault", obsidianVaultPlugin, { autoSync: true }],
-    ["email-triage", emailTriage, {}],
-    ["unified-inbox", unifiedInboxPlugin, {}],
+    ["email-triage", emailTriage, undefined],
+    ["unified-inbox", unifiedInboxPlugin, undefined],
   ],
   interfaces: [
     ["mcp", MCPInterface, (): PluginConfig => ({})],

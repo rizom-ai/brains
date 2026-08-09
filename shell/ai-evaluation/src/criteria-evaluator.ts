@@ -193,6 +193,34 @@ function evaluateExpectedTools(
         ),
       );
     }
+
+    if (expected.resultErrorContains !== undefined) {
+      results.push(
+        evaluateResultErrorContains(
+          expected.toolName,
+          expected.resultErrorContains,
+          expected.argsContain
+            ? matchingCalls.filter((toolCall) =>
+                argsContainMatches(toolCall.args, expected.argsContain ?? {}),
+              )
+            : matchingCalls,
+        ),
+      );
+    }
+
+    if (expected.resultRefused !== undefined) {
+      results.push(
+        evaluateResultRefused(
+          expected.toolName,
+          expected.resultRefused,
+          expected.argsContain
+            ? matchingCalls.filter((toolCall) =>
+                argsContainMatches(toolCall.args, expected.argsContain ?? {}),
+              )
+            : matchingCalls,
+        ),
+      );
+    }
   }
 
   return results;
@@ -337,6 +365,66 @@ function evaluateArgsContain(
   }
 
   return results;
+}
+
+/** Error text of a refused tool call, or undefined when it did not refuse. */
+function refusalErrorText(result: unknown): string | undefined {
+  if (typeof result !== "object" || result === null) return undefined;
+  if (!("error" in result)) return undefined;
+  const { error } = result;
+  return typeof error === "string" ? error : undefined;
+}
+
+function evaluateResultRefused(
+  toolName: string,
+  shouldBeRefused: boolean,
+  matchingCalls: ToolCallRecord[],
+): CriteriaEvaluationResult {
+  const errors = matchingCalls.map((toolCall) =>
+    refusalErrorText(toolCall.result),
+  );
+  const refused =
+    matchingCalls.length > 0 && errors.every((error) => error !== undefined);
+  const passed = matchingCalls.length > 0 && refused === shouldBeRefused;
+
+  return {
+    criterion: "toolResultRefused",
+    expected: `${toolName} ${shouldBeRefused ? "is refused" : "is not refused"}`,
+    actual:
+      matchingCalls.length === 0
+        ? "no matching calls"
+        : JSON.stringify(errors.map((error) => error ?? "(not refused)")),
+    message: passed
+      ? `Tool "${toolName}" was ${shouldBeRefused ? "refused" : "not refused"} as expected`
+      : `Tool "${toolName}" was ${refused ? "refused" : "not refused"}`,
+    passed,
+  };
+}
+
+function evaluateResultErrorContains(
+  toolName: string,
+  expectedText: string,
+  matchingCalls: ToolCallRecord[],
+): CriteriaEvaluationResult {
+  const errors = matchingCalls.map((toolCall) =>
+    refusalErrorText(toolCall.result),
+  );
+  const refused =
+    matchingCalls.length > 0 &&
+    errors.every((error) => error?.includes(expectedText) === true);
+
+  return {
+    criterion: "toolResultErrorContains",
+    expected: `${toolName} refused with an error containing "${expectedText}"`,
+    actual:
+      matchingCalls.length === 0
+        ? "no matching calls"
+        : JSON.stringify(errors.map((error) => error ?? "(not refused)")),
+    message: refused
+      ? `Tool "${toolName}" was refused as expected`
+      : `Tool "${toolName}" was not refused with "${expectedText}"`,
+    passed: refused,
+  };
 }
 
 function evaluateArgsAbsent(

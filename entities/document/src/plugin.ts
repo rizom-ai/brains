@@ -139,6 +139,9 @@ export class DocumentPlugin extends ServicePlugin<
           {
             entityType: this.entityType,
             ...(input.title !== undefined ? { title: input.title } : {}),
+            ...(input.visibility !== undefined
+              ? { visibility: input.visibility }
+              : {}),
             from: input.upload,
           },
           context,
@@ -311,6 +314,9 @@ export class DocumentPlugin extends ServicePlugin<
       entity: {
         id,
         ...documentEntity,
+        ...(input.visibility !== undefined
+          ? { visibility: input.visibility }
+          : {}),
         created: now,
         updated: now,
       },

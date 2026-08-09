@@ -675,13 +675,45 @@ describe("JobQueueRepository fenced attempts", () => {
     }
   });
 
+  it("outlasts commit contention beyond any fixed attempt cap", async () => {
+    const database = createJobQueueDatabase(config);
+    let wrappedTransaction: CommitConflictTransaction | undefined;
+    const transactionClient: JobQueueWriteTransactionClient = {
+      transaction: async (mode) => {
+        const transaction = await database.client.transaction(mode);
+        wrappedTransaction = new CommitConflictTransaction(transaction, 8);
+        return wrappedTransaction;
+      },
+    };
+    const committingRepository = new JobQueueRepository(
+      database.db,
+      transactionClient,
+      `${database.url}:commit-contention-test`,
+      createSilentLogger(),
+    );
+    const job = createAtomicTestJob({ type: "type:a" });
+
+    try {
+      const decision = await committingRepository.enqueueAtomic({
+        jobData: job,
+        strategy: "skip",
+        beforeInsert: mock(async () => {}),
+      });
+
+      expect(decision).toEqual({ kind: "inserted", jobId: job.id });
+      expect(wrappedTransaction?.commitCalls).toBe(9);
+    } finally {
+      database.client.close();
+    }
+  });
+
   it("rolls back after commit conflict exhaustion without replaying insertion", async () => {
     const database = createJobQueueDatabase(config);
     const transactionClient: JobQueueWriteTransactionClient = {
       transaction: async (mode) =>
         new CommitConflictTransaction(
           await database.client.transaction(mode),
-          3,
+          Number.POSITIVE_INFINITY,
         ),
     };
     const committingRepository = new JobQueueRepository(
@@ -689,6 +721,7 @@ describe("JobQueueRepository fenced attempts", () => {
       transactionClient,
       `${database.url}:commit-exhaustion-test`,
       createSilentLogger(),
+      { writeRetryBudgetMs: 60 },
     );
     const beforeInsert = mock(async () => {});
     const job = createAtomicTestJob({ type: "type:a" });
@@ -701,7 +734,7 @@ describe("JobQueueRepository fenced attempts", () => {
           beforeInsert,
         }),
       ).rejects.toThrow(
-        'Failed to commit atomic enqueue transaction for type "type:a" after 3 attempts',
+        /Failed to commit atomic enqueue transaction for type "type:a" within \d+ms/,
       );
       expect(beforeInsert).toHaveBeenCalledTimes(1);
       expect(await committingRepository.getStatus(job.id)).toBeNull();
@@ -723,6 +756,7 @@ describe("JobQueueRepository fenced attempts", () => {
       transactionClient,
       `${database.url}:exhaustion-test`,
       createSilentLogger(),
+      { writeRetryBudgetMs: 60 },
     );
 
     try {
@@ -736,9 +770,9 @@ describe("JobQueueRepository fenced attempts", () => {
           deduplicationKey: "present-key",
         }),
       ).rejects.toThrow(
-        'Failed to acquire atomic enqueue transaction for type "type:a" after 3 attempts (strategy: coalesce, key: present)',
+        /Failed to acquire atomic enqueue transaction for type "type:a" within \d+ms after \d+ attempts \(strategy: coalesce, key: present\)/,
       );
-      expect(transaction).toHaveBeenCalledTimes(3);
+      expect(transaction.mock.calls.length).toBeGreaterThanOrEqual(2);
     } finally {
       database.client.close();
     }

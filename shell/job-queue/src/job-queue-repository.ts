@@ -16,6 +16,7 @@ import { jobQueue, jobWorkerSessions } from "./schema/job-queue";
 import type { InsertJobQueue, JobQueue } from "./schema/job-queue";
 import { getErrorMessage } from "@brains/utils/error";
 import type { Logger } from "@brains/utils/logger";
+import { KeyedSerialQueue } from "@brains/utils/serial-queue";
 import { JOB_STATUS } from "./schemas";
 import type { LibSQLDatabase } from "drizzle-orm/libsql";
 import type { Row, Transaction } from "@libsql/client";
@@ -79,13 +80,20 @@ export interface JobQueueWriteTransactionClient {
   transaction(mode: "write"): Promise<Transaction>;
 }
 
-const WRITE_TRANSACTION_ATTEMPTS = 3;
+// App-level retries stand in for SQLite's busy_timeout (which would block the
+// event loop on local libSQL), so the retry budget is time, not attempts: it
+// must absorb a slow winner's entire write-transaction stream under real
+// cross-process contention. Any fixed attempt cap re-becomes a flake on a
+// starved runner.
+const WRITE_RETRY_BUDGET_MS = 2_000;
+const WRITE_RETRY_BASE_DELAY_MS = 5;
+const WRITE_RETRY_MAX_DELAY_MS = 40;
 
 // Local libSQL begins a write transaction synchronously and can block the event
 // loop on busy_timeout when two clients in one process share a file. This turn
 // queue prevents that self-deadlock; the explicit database write transaction is
 // still the correctness boundary across processes.
-const writeTransactionTails = new Map<string, Promise<void>>();
+const writeTransactions = new KeyedSerialQueue();
 
 /**
  * Database-backed job queue operations.
@@ -97,17 +105,21 @@ export class JobQueueRepository {
   private databaseUrl: string;
   private logger: Logger;
   private deduplicator = new JobDeduplicator();
+  private writeRetryBudgetMs: number;
 
   constructor(
     db: LibSQLDatabase<Record<string, unknown>>,
     transactionClient: JobQueueWriteTransactionClient,
     databaseUrl: string,
     logger: Logger,
+    options?: { writeRetryBudgetMs?: number },
   ) {
     this.db = db;
     this.transactionClient = transactionClient;
     this.databaseUrl = databaseUrl;
     this.logger = logger.child("JobQueueRepository");
+    this.writeRetryBudgetMs =
+      options?.writeRetryBudgetMs ?? WRITE_RETRY_BUDGET_MS;
   }
 
   public async insert(jobData: InsertJobQueue): Promise<void> {
@@ -117,15 +129,7 @@ export class JobQueueRepository {
   public async enqueueAtomic(
     request: AtomicEnqueueRequest,
   ): Promise<EnqueueDecision> {
-    const previous = writeTransactionTails.get(this.databaseUrl);
-    let release = (): void => {};
-    const current = new Promise<void>((resolve) => {
-      release = resolve;
-    });
-    writeTransactionTails.set(this.databaseUrl, current);
-    await previous;
-
-    try {
+    return writeTransactions.run(this.databaseUrl, async () => {
       const transaction = await this.acquireWriteTransaction(request);
 
       try {
@@ -147,12 +151,7 @@ export class JobQueueRepository {
       } finally {
         transaction.close();
       }
-    } finally {
-      release();
-      if (writeTransactionTails.get(this.databaseUrl) === current) {
-        writeTransactionTails.delete(this.databaseUrl);
-      }
-    }
+    });
   }
 
   private async decideEnqueue(
@@ -305,57 +304,74 @@ export class JobQueueRepository {
     return JSON.stringify(value);
   }
 
-  private async commitWriteTransaction(
+  private commitWriteTransaction(
     transaction: Transaction,
     request: AtomicEnqueueRequest,
   ): Promise<void> {
-    let lastConflict: unknown;
-    for (let attempt = 1; attempt <= WRITE_TRANSACTION_ATTEMPTS; attempt++) {
-      try {
+    return this.retryOnConflict(
+      "commit",
+      request,
+      async () => {
         await transaction.commit();
-        return;
-      } catch (error) {
-        if (!this.isSerializationConflict(error) || transaction.closed) {
-          throw error;
-        }
-        lastConflict = error;
-        if (attempt < WRITE_TRANSACTION_ATTEMPTS) {
-          await new Promise((resolve) => setTimeout(resolve, attempt * 5));
-        }
-      }
-    }
-
-    throw this.transactionConflictError("commit", request, lastConflict);
+      },
+      (error) => this.isSerializationConflict(error) && !transaction.closed,
+    );
   }
 
-  private async acquireWriteTransaction(
+  private acquireWriteTransaction(
     request: AtomicEnqueueRequest,
   ): Promise<Transaction> {
-    let lastConflict: unknown;
-    for (let attempt = 1; attempt <= WRITE_TRANSACTION_ATTEMPTS; attempt++) {
-      try {
-        return await this.transactionClient.transaction("write");
-      } catch (error) {
-        if (!this.isSerializationConflict(error)) throw error;
-        lastConflict = error;
-        if (attempt < WRITE_TRANSACTION_ATTEMPTS) {
-          await new Promise((resolve) => setTimeout(resolve, attempt * 5));
-        }
-      }
-    }
+    return this.retryOnConflict(
+      "acquire",
+      request,
+      () => this.transactionClient.transaction("write"),
+      (error) => this.isSerializationConflict(error),
+    );
+  }
 
-    throw this.transactionConflictError("acquire", request, lastConflict);
+  private async retryOnConflict<T>(
+    phase: "acquire" | "commit",
+    request: AtomicEnqueueRequest,
+    operation: () => Promise<T>,
+    isRetryable: (error: unknown) => boolean,
+    deadline = Date.now() + this.writeRetryBudgetMs,
+    attempt = 1,
+  ): Promise<T> {
+    try {
+      return await operation();
+    } catch (error) {
+      if (!isRetryable(error)) throw error;
+      const backoff = Math.min(
+        WRITE_RETRY_BASE_DELAY_MS * 2 ** (attempt - 1),
+        WRITE_RETRY_MAX_DELAY_MS,
+      );
+      // Jitter half the window so contending processes fall out of lockstep.
+      const delay = backoff / 2 + Math.random() * (backoff / 2);
+      if (Date.now() + delay >= deadline) {
+        throw this.transactionConflictError(phase, request, attempt, error);
+      }
+      await new Promise((resolve) => setTimeout(resolve, delay));
+      return this.retryOnConflict(
+        phase,
+        request,
+        operation,
+        isRetryable,
+        deadline,
+        attempt + 1,
+      );
+    }
   }
 
   private transactionConflictError(
     phase: "acquire" | "commit",
     request: AtomicEnqueueRequest,
+    attempts: number,
     cause: unknown,
   ): Error {
     const strategy = request.strategy ?? "none";
     const keyPresence = request.deduplicationKey ? "present" : "absent";
     return new Error(
-      `Failed to ${phase} atomic enqueue transaction for type "${request.jobData.type}" after ${WRITE_TRANSACTION_ATTEMPTS} attempts (strategy: ${strategy}, key: ${keyPresence})`,
+      `Failed to ${phase} atomic enqueue transaction for type "${request.jobData.type}" within ${this.writeRetryBudgetMs}ms after ${attempts} attempts (strategy: ${strategy}, key: ${keyPresence})`,
       { cause },
     );
   }

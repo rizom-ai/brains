@@ -1,5 +1,83 @@
 # @brains/content-service
 
+## 0.2.0-alpha.269
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.269
+  - @brains/contracts@0.2.0-alpha.269
+  - @brains/utils@0.2.0-alpha.269
+  - @brains/ai-service@0.2.0-alpha.269
+  - @brains/entity-service@0.2.0-alpha.269
+  - @brains/job-queue@0.2.0-alpha.269
+  - @brains/templates@0.2.0-alpha.269
+
+## 0.2.0-alpha.268
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.268
+  - @brains/contracts@0.2.0-alpha.268
+  - @brains/utils@0.2.0-alpha.268
+  - @brains/ai-service@0.2.0-alpha.268
+  - @brains/entity-service@0.2.0-alpha.268
+  - @brains/job-queue@0.2.0-alpha.268
+  - @brains/templates@0.2.0-alpha.268
+
+## 0.2.0-alpha.267
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/ai-service@0.2.0-alpha.267
+  - @brains/job-queue@0.2.0-alpha.267
+  - @brains/entity-service@0.2.0-alpha.267
+  - @brains/content-formatters@0.2.0-alpha.267
+  - @brains/contracts@0.2.0-alpha.267
+  - @brains/utils@0.2.0-alpha.267
+  - @brains/templates@0.2.0-alpha.267
+
+## 0.2.0-alpha.266
+
+### Patch Changes
+
+- Updated dependencies [[`e70ab12`](https://github.com/rizom-ai/brains/commit/e70ab12745c6cf757f685389f4cd6de8991de95f)]:
+  - @brains/utils@0.2.0-alpha.266
+  - @brains/job-queue@0.2.0-alpha.266
+  - @brains/entity-service@0.2.0-alpha.266
+  - @brains/content-formatters@0.2.0-alpha.266
+  - @brains/contracts@0.2.0-alpha.266
+  - @brains/ai-service@0.2.0-alpha.266
+  - @brains/templates@0.2.0-alpha.266
+
+## 0.2.0-alpha.265
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.265
+  - @brains/contracts@0.2.0-alpha.265
+  - @brains/utils@0.2.0-alpha.265
+  - @brains/ai-service@0.2.0-alpha.265
+  - @brains/entity-service@0.2.0-alpha.265
+  - @brains/job-queue@0.2.0-alpha.265
+  - @brains/templates@0.2.0-alpha.265
+
+## 0.2.0-alpha.264
+
+### Patch Changes
+
+- Updated dependencies [[`f096118`](https://github.com/rizom-ai/brains/commit/f096118a902af6921546c748f8418964135d3645)]:
+  - @brains/job-queue@0.2.0-alpha.264
+  - @brains/entity-service@0.2.0-alpha.264
+  - @brains/ai-service@0.2.0-alpha.264
+  - @brains/content-formatters@0.2.0-alpha.264
+  - @brains/contracts@0.2.0-alpha.264
+  - @brains/utils@0.2.0-alpha.264
+  - @brains/templates@0.2.0-alpha.264
+
 ## 0.2.0-alpha.263
 
 ### Patch Changes

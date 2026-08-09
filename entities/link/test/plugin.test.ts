@@ -245,6 +245,7 @@ describe("LinkPlugin with Harness", () => {
       const result = await interceptor(
         {
           entityType: "link",
+          visibility: "shared",
           prompt: "Save this: https://anthropic.com/research",
         },
         {
@@ -269,6 +270,7 @@ describe("LinkPlugin with Harness", () => {
       const pendingEntity = await mockShell.getEntityService().getEntity({
         entityType: "link",
         id: "anthropic-com-abdc4a",
+        visibilityScope: "shared",
       });
       expect(pendingEntity?.metadata).toEqual({
         status: "pending",
@@ -277,6 +279,7 @@ describe("LinkPlugin with Harness", () => {
       expect(pendingEntity?.content).toContain(
         "Pending link capture for https://anthropic.com/research.",
       );
+      expect(pendingEntity?.visibility).toBe("shared");
       expect(enqueued).toHaveLength(1);
       expect(enqueued[0]?.type).toBe("link-capture");
       expect(enqueued[0]?.data).toEqual({

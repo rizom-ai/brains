@@ -3,7 +3,7 @@ import { getErrorMessage } from "@brains/utils/error";
 import type { Logger } from "@brains/utils/logger";
 import type { PullResult } from "../types";
 import { commitGitChanges, pushGitChanges } from "./git-commit";
-import { GitStallError, runGitWithStallTimeout } from "./git-stall";
+import { GitStallError, runGitCommandWithStallTimeout } from "./git-stall";
 import type { GitNetwork } from "./git-stall";
 
 /**
@@ -35,15 +35,17 @@ export async function pullGitChanges(
   try {
     // The network fetch runs on a throwaway, stall-guarded instance so an
     // unresponsive remote can't hang the caller and wedge the git lock.
-    await runGitWithStallTimeout(
+    await runGitCommandWithStallTimeout(
       net,
-      (g) =>
-        g.pull("origin", branch, {
-          "--no-rebase": null,
-          "--allow-unrelated-histories": null,
-          "--strategy=recursive": null,
-          "-Xtheirs": null,
-        }),
+      [
+        "pull",
+        "origin",
+        branch,
+        "--no-rebase",
+        "--allow-unrelated-histories",
+        "--strategy=recursive",
+        "-Xtheirs",
+      ],
       signal,
     );
     signal?.throwIfAborted();

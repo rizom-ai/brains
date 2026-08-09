@@ -1,5 +1,73 @@
 # @brains/mcp
 
+## 0.2.0-alpha.269
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.269
+  - @brains/utils@0.2.0-alpha.269
+  - @brains/auth-service@0.2.0-alpha.269
+  - @brains/mcp-service@0.2.0-alpha.269
+  - @brains/plugins@0.2.0-alpha.269
+
+## 0.2.0-alpha.268
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.268
+  - @brains/utils@0.2.0-alpha.268
+  - @brains/auth-service@0.2.0-alpha.268
+  - @brains/mcp-service@0.2.0-alpha.268
+  - @brains/plugins@0.2.0-alpha.268
+
+## 0.2.0-alpha.267
+
+### Patch Changes
+
+- [`1f94bde`](https://github.com/rizom-ai/brains/commit/1f94bdee59ea9e5a3b352657b1c74c36ca2af3ea) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Bump @modelcontextprotocol/sdk to 1.30.0, the v1 maintenance release with SSE keep-alive lifecycle fixes, stricter Content-Type validation, and security-advisory dependency updates.
+
+- Updated dependencies [[`1f94bde`](https://github.com/rizom-ai/brains/commit/1f94bdee59ea9e5a3b352657b1c74c36ca2af3ea)]:
+  - @brains/mcp-service@0.2.0-alpha.267
+  - @brains/plugins@0.2.0-alpha.267
+  - @brains/auth-service@0.2.0-alpha.267
+  - @brains/contracts@0.2.0-alpha.267
+  - @brains/utils@0.2.0-alpha.267
+
+## 0.2.0-alpha.266
+
+### Patch Changes
+
+- Updated dependencies [[`e70ab12`](https://github.com/rizom-ai/brains/commit/e70ab12745c6cf757f685389f4cd6de8991de95f)]:
+  - @brains/utils@0.2.0-alpha.266
+  - @brains/contracts@0.2.0-alpha.266
+  - @brains/auth-service@0.2.0-alpha.266
+  - @brains/mcp-service@0.2.0-alpha.266
+  - @brains/plugins@0.2.0-alpha.266
+
+## 0.2.0-alpha.265
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.265
+  - @brains/utils@0.2.0-alpha.265
+  - @brains/auth-service@0.2.0-alpha.265
+  - @brains/mcp-service@0.2.0-alpha.265
+  - @brains/plugins@0.2.0-alpha.265
+
+## 0.2.0-alpha.264
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.264
+  - @brains/auth-service@0.2.0-alpha.264
+  - @brains/contracts@0.2.0-alpha.264
+  - @brains/utils@0.2.0-alpha.264
+  - @brains/mcp-service@0.2.0-alpha.264
+
 ## 0.2.0-alpha.263
 
 ### Patch Changes

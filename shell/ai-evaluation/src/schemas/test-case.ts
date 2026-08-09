@@ -42,6 +42,8 @@ export interface ExpectedToolCall {
   toolName: string;
   argsContain?: Record<string, unknown> | undefined;
   argsAbsent?: string[] | undefined;
+  resultErrorContains?: string | undefined;
+  resultRefused?: boolean | undefined;
   shouldBeCalled: boolean;
 }
 
@@ -56,6 +58,18 @@ export const expectedToolCallSchema: z.ZodType<ExpectedToolCall> = z.object({
     .optional()
     .describe(
       "Tool argument paths that must be absent from all matching calls",
+    ),
+  resultErrorContains: z
+    .string()
+    .optional()
+    .describe(
+      "Every matching call must have been refused with an error containing this text. Use it to assert a server-side boundary rather than asking the model to decline the call.",
+    ),
+  resultRefused: z
+    .boolean()
+    .optional()
+    .describe(
+      "Whether every matching call must have been refused. shouldBeCalled alone only proves the model invoked the tool, so a denied write reads as a pass without this.",
     ),
   shouldBeCalled: z.boolean().default(true),
 });

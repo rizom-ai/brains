@@ -137,6 +137,16 @@ export async function runCreateInterceptor(
   }
 
   const transformedInput = interception.input;
+  if (transformedInput.visibility !== createInput.visibility) {
+    return {
+      kind: "error",
+      result: {
+        success: false,
+        error:
+          "Create interceptor changed or dropped the requested entity visibility.",
+      },
+    };
+  }
   const transformedPolicyError = assertEntityActionAllowed(
     services,
     transformedInput.entityType,

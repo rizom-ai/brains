@@ -141,6 +141,7 @@ describe("DocumentPlugin", () => {
     const result = await registration.handler(
       {
         title: "Brief",
+        visibility: "shared",
         upload: { kind: "upload", id: record.ref.id },
       },
       {
@@ -170,6 +171,7 @@ describe("DocumentPlugin", () => {
     const entity = await harness.getEntityService().getEntity({
       entityType: "document",
       id: "brief",
+      visibilityScope: "shared",
     });
     expect(entity?.content).toBe(
       `data:application/pdf;base64,${Buffer.from("%PDF-1.4\n%EOF\n").toString("base64")}`,
@@ -180,6 +182,7 @@ describe("DocumentPlugin", () => {
       mimeType: "application/pdf",
       attachmentType: "uploaded",
     });
+    expect(entity?.visibility).toBe("shared");
     expect(createSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         options: expect.objectContaining({

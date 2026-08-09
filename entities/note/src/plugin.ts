@@ -120,6 +120,9 @@ export class NotePlugin extends EntityPlugin<
           entityType: "note",
           content: stub.content,
           metadata: stub.metadata,
+          ...(input.visibility !== undefined
+            ? { visibility: input.visibility }
+            : {}),
           created: now,
           updated: now,
         },

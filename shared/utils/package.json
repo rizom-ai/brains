@@ -1,7 +1,7 @@
 {
   "name": "@brains/utils",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.263",
+  "version": "0.2.0-alpha.269",
   "dependencies": {
     "effect": "^3.21.4",
     "gray-matter": "^4.0.3",
@@ -40,6 +40,7 @@
     "./p-limit": "./src/p-limit.ts",
     "./progress": "./src/progress.ts",
     "./safe-public-fetch": "./src/safe-public-fetch.ts",
+    "./serial-queue": "./src/serial-queue.ts",
     "./sort": "./src/sort.ts",
     "./string-utils": "./src/string-utils.ts",
     "./strip-undefined": "./src/strip-undefined.ts",

@@ -137,6 +137,9 @@ export class LinkPlugin extends EntityPlugin<
                 title: parsedTitle,
                 status: parsedStatus,
               },
+              ...(input.visibility !== undefined
+                ? { visibility: input.visibility }
+                : {}),
               created: now,
               updated: now,
             },
@@ -170,6 +173,7 @@ export class LinkPlugin extends EntityPlugin<
         const entityId = await this.createPendingLink(
           url,
           input.title,
+          input.visibility,
           executionContext,
           context,
         );
@@ -307,6 +311,7 @@ export class LinkPlugin extends EntityPlugin<
   private async createPendingLink(
     url: string,
     title: string | undefined,
+    visibility: CreateInput["visibility"],
     executionContext: CreateExecutionContext,
     context: EntityPluginContext,
   ): Promise<string> {
@@ -332,10 +337,20 @@ export class LinkPlugin extends EntityPlugin<
         entityType: "link",
         content,
         metadata: { status: "pending", title: fallbackTitle },
+        ...(visibility !== undefined ? { visibility } : {}),
         created: now,
         updated: now,
       },
     });
+    if (
+      visibility !== undefined &&
+      result.existingEntity !== undefined &&
+      result.existingEntity.visibility !== visibility
+    ) {
+      throw new Error(
+        `Existing link visibility "${result.existingEntity.visibility}" does not match requested visibility "${visibility}".`,
+      );
+    }
 
     return result.entityId;
   }

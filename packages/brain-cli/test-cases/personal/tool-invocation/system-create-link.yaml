@@ -29,6 +29,7 @@ permissions:
     expectedTools:
       - toolName: system_create
         shouldBeCalled: true
+        resultRefused: false
         argsContain:
           entityType: "link"
           source.kind: "url"
@@ -40,6 +41,7 @@ permissions:
     expectedTools:
       - toolName: system_create
         shouldBeCalled: true
+        resultRefused: false
         argsContain:
           entityType: "link"
           source.kind: "url"

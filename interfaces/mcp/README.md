@@ -179,7 +179,10 @@ Use raw query tools such as `search`, `get`, `list`, and `job_status` for cheap
 structured reads. Use `chat` for any create/update/delete request so the brain's
 system prompt, permissions, and confirmation flow stay in the loop. Successful
 `chat`/`confirm` responses include the agent text and may include `toolResults`
-and `readYourWrites` handles with entity IDs and job IDs to fetch or poll.
+and `readYourWrites` handles with entity IDs and job IDs to fetch or poll. For
+non-public saves, ask for team/shared visibility or private/Admin-only
+visibility explicitly; the agent maps those requests to the canonical
+`system_create.visibility` field while basic mode continues to hide raw writes.
 
 `debug` mode preserves raw tool exposure for local inspection. It requires
 `admin` permissions and is refused for unauthenticated HTTP transport.

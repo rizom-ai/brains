@@ -1,7 +1,7 @@
 {
   "name": "@brains/playbooks",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.263",
+  "version": "0.2.0-alpha.269",
   "description": "Runtime orchestration for chat-native playbook runs",
   "dependencies": {
     "@brains/content-formatters": "workspace:*",

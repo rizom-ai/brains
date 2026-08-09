@@ -4,7 +4,7 @@ import { mkdir, mkdtemp, readFile, rename, rm, writeFile } from "fs/promises";
 import { basename, join } from "path";
 import type { Logger } from "@brains/utils/logger";
 import { pathExists } from "./fs-utils";
-import { runGitWithStallTimeout } from "./git-stall";
+import { runGitCommandWithStallTimeout } from "./git-stall";
 
 export interface PrepareGitRepositoryOptions {
   logger: Logger;
@@ -91,9 +91,9 @@ async function prepareRepositoryFromRemote(options: {
 
   let remoteHasHistory: boolean;
   try {
-    const refs = await runGitWithStallTimeout(
+    const refs = await runGitCommandWithStallTimeout(
       { baseDir: dataDir, timeoutMs },
-      (git) => git.listRemote(["--heads", authenticatedUrl]),
+      ["ls-remote", "--heads", authenticatedUrl],
       signal,
     );
     remoteHasHistory = refs.trim().length > 0;
@@ -113,9 +113,9 @@ async function prepareRepositoryFromRemote(options: {
   );
 
   try {
-    await runGitWithStallTimeout(
+    await runGitCommandWithStallTimeout(
       { baseDir: parentDir, timeoutMs },
-      (git) => git.clone(authenticatedUrl, cloneDir),
+      ["clone", authenticatedUrl, cloneDir],
       signal,
     );
     await rm(dataDir, { recursive: true, force: true });

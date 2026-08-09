@@ -72,17 +72,22 @@ export async function persistImportEntity(
   parsedEntity: Partial<BaseEntity>,
   filePath: string,
   result: ImportResult,
+  prefetchedExisting?: BaseEntity | null,
 ): Promise<void> {
   try {
-    const existing = await deps.entityService.getEntity({
-      entityType: rawEntity.entityType,
-      id: rawEntity.id,
-      visibilityScope: internalFullScope(
-        "directory sync indexes entities across all visibility tiers",
-      ),
-    });
+    const existing =
+      prefetchedExisting === undefined
+        ? await deps.entityService.getEntity({
+            entityType: rawEntity.entityType,
+            id: rawEntity.id,
+            visibilityScope: internalFullScope(
+              "directory sync indexes entities across all visibility tiers",
+            ),
+          })
+        : prefetchedExisting;
 
     if (
+      prefetchedExisting === undefined &&
       existing &&
       !deps.fileOperations.shouldUpdateEntity(existing, rawEntity)
     ) {

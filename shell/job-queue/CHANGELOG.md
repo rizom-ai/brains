@@ -1,5 +1,75 @@
 # @brains/job-queue
 
+## 0.2.0-alpha.269
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.269
+  - @brains/db@0.2.0-alpha.269
+  - @brains/operation-context@0.2.0-alpha.269
+  - @brains/utils@0.2.0-alpha.269
+  - @brains/mcp-service@0.2.0-alpha.269
+
+## 0.2.0-alpha.268
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.268
+  - @brains/db@0.2.0-alpha.268
+  - @brains/operation-context@0.2.0-alpha.268
+  - @brains/utils@0.2.0-alpha.268
+  - @brains/mcp-service@0.2.0-alpha.268
+
+## 0.2.0-alpha.267
+
+### Patch Changes
+
+- Updated dependencies [[`1f94bde`](https://github.com/rizom-ai/brains/commit/1f94bdee59ea9e5a3b352657b1c74c36ca2af3ea)]:
+  - @brains/mcp-service@0.2.0-alpha.267
+  - @brains/contracts@0.2.0-alpha.267
+  - @brains/db@0.2.0-alpha.267
+  - @brains/operation-context@0.2.0-alpha.267
+  - @brains/utils@0.2.0-alpha.267
+
+## 0.2.0-alpha.266
+
+### Patch Changes
+
+- [`e70ab12`](https://github.com/rizom-ai/brains/commit/e70ab12745c6cf757f685389f4cd6de8991de95f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Behavior-preserving quality refactors: shared SerialQueue/KeyedSerialQueue primitive in @brains/utils replacing five hand-rolled promise-tail mutexes; directory-sync stress system split into command runner, git checkout, and health monitor modules; job-queue worker heartbeat/deadline/error-callback dedup and table-generic schema column helpers; consolidated pilot starter staleness detection; single-pass HTTP route registry views; projection wave planning simplification with indexed graph edges.
+
+- Updated dependencies [[`e70ab12`](https://github.com/rizom-ai/brains/commit/e70ab12745c6cf757f685389f4cd6de8991de95f)]:
+  - @brains/utils@0.2.0-alpha.266
+  - @brains/contracts@0.2.0-alpha.266
+  - @brains/db@0.2.0-alpha.266
+  - @brains/mcp-service@0.2.0-alpha.266
+  - @brains/operation-context@0.2.0-alpha.266
+
+## 0.2.0-alpha.265
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.265
+  - @brains/db@0.2.0-alpha.265
+  - @brains/operation-context@0.2.0-alpha.265
+  - @brains/utils@0.2.0-alpha.265
+  - @brains/mcp-service@0.2.0-alpha.265
+
+## 0.2.0-alpha.264
+
+### Patch Changes
+
+- [`f096118`](https://github.com/rizom-ai/brains/commit/f096118a902af6921546c748f8418964135d3645) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Retry atomic-enqueue write-transaction conflicts against a time budget (2s, jittered exponential backoff) instead of a fixed attempt cap, in both the acquire and commit phases. App-level retries stand in for SQLite's busy_timeout here, so any attempt cap was a latent failure under slow-runner contention.
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.264
+  - @brains/db@0.2.0-alpha.264
+  - @brains/operation-context@0.2.0-alpha.264
+  - @brains/utils@0.2.0-alpha.264
+  - @brains/mcp-service@0.2.0-alpha.264
+
 ## 0.2.0-alpha.263
 
 ### Patch Changes

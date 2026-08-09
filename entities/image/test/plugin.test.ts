@@ -110,6 +110,7 @@ describe("ImagePlugin", () => {
     const result = await registration.handler(
       {
         title: "Robot",
+        visibility: "shared",
         upload: { kind: "upload", id: record.ref.id },
       },
       {
@@ -165,6 +166,7 @@ describe("ImagePlugin", () => {
     let entity = await harness.getEntityService().getEntity({
       entityType: "image",
       id: "robot",
+      visibilityScope: "shared",
     });
     expect(entity?.metadata).toMatchObject({
       title: "Robot",
@@ -175,12 +177,14 @@ describe("ImagePlugin", () => {
       sourceMediaType: "image/png",
       attachmentType: "uploaded",
     });
+    expect(entity?.visibility).toBe("shared");
 
     await runQueuedUploadPromotion();
 
     entity = await harness.getEntityService().getEntity({
       entityType: "image",
       id: "robot",
+      visibilityScope: "shared",
     });
     expect(entity?.content).toBe(
       `data:image/png;base64,${pngBytes.toString("base64")}`,
@@ -195,6 +199,7 @@ describe("ImagePlugin", () => {
       sourceMediaType: "image/png",
       attachmentType: "uploaded",
     });
+    expect(entity?.visibility).toBe("shared");
   });
 
   it("marks a pending uploaded image failed when promotion processing fails", async () => {

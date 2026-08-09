@@ -1,5 +1,41 @@
 # @rizom/brain
 
+## 0.2.0-alpha.269
+
+### Patch Changes
+
+- [#90](https://github.com/rizom-ai/brains/pull/90) [`bbc7f08`](https://github.com/rizom-ai/brains/commit/bbc7f0834c241fde76d996224d7ef4392f94ab77) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Skip deserialization and schema validation when imported file content already matches the stored canonical hash, while still importing document sidecar metadata changes and reusing the prefetched entity lookup.
+
+## 0.2.0-alpha.268
+
+### Patch Changes
+
+- [#89](https://github.com/rizom-ai/brains/pull/89) [`eb42c08`](https://github.com/rizom-ai/brains/commit/eb42c089f3af3432375cd1ec45b943a862c5ddeb) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Suppress directory watcher echoes before auto-export creates, updates, or deletes entity files, including document sidecars, to avoid redundant re-import work.
+
+## 0.2.0-alpha.267
+
+### Patch Changes
+
+- [`1f94bde`](https://github.com/rizom-ai/brains/commit/1f94bdee59ea9e5a3b352657b1c74c36ca2af3ea) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Bump @modelcontextprotocol/sdk to 1.30.0, the v1 maintenance release with SSE keep-alive lifecycle fixes, stricter Content-Type validation, and security-advisory dependency updates.
+
+## 0.2.0-alpha.266
+
+### Patch Changes
+
+- [`e70ab12`](https://github.com/rizom-ai/brains/commit/e70ab12745c6cf757f685389f4cd6de8991de95f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Behavior-preserving quality refactors: shared SerialQueue/KeyedSerialQueue primitive in @brains/utils replacing five hand-rolled promise-tail mutexes; directory-sync stress system split into command runner, git checkout, and health monitor modules; job-queue worker heartbeat/deadline/error-callback dedup and table-generic schema column helpers; consolidated pilot starter staleness detection; single-pass HTTP route registry views; projection wave planning simplification with indexed graph edges.
+
+- [`f3987de`](https://github.com/rizom-ai/brains/commit/f3987de9284e09c8e6b693cc68a537f67467c884) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add first-class `public`, `shared`, and `restricted` visibility to `system_create` so agent-backed interfaces can save non-public notes and uploads without rewriting exact source material. Preserve the requested scope through confirmation, permission checks, direct persistence, and asynchronous upload promotion, and add personal/team routing eval coverage.
+
+  Let Trusted collaborators capture notes and links on every posture, not only on a team brain. The platform baseline is `"*": admin`, and only the team bundle granted those types, so `system_create` was offered to a Trusted caller and then refused with "Creating `note` requires Admin permission". The core bundle now grants `note` and `link` at Trusted for create and update, leaving delete, extract, and publish with Admin. Public callers remain unable to create either type.
+
+## 0.2.0-alpha.265
+
+### Patch Changes
+
+- [`db855c1`](https://github.com/rizom-ai/brains/commit/db855c121ac191ef1dbb3713ba321a43e9fcee50) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Run all network Git operations (pull, push, ls-remote, clone) through Bun-owned, process-group-scoped children with stall timeouts, guaranteed reaping, and credential-redacted errors — so large directory imports cannot leave unreaped Git processes or deadlock the web runtime.
+
+## 0.2.0-alpha.264
+
 ## 0.2.0-alpha.263
 
 ### Patch Changes

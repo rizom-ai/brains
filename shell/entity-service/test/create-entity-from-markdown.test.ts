@@ -100,4 +100,32 @@ This content must be preserved exactly.`;
       status: "draft",
     });
   });
+
+  it("uses explicit core visibility when finalized markdown omits it", async () => {
+    const markdown = `---
+title: Restricted Markdown Doc
+slug: restricted-markdown-doc
+status: draft
+---
+
+Restricted body.`;
+
+    await ctx.entityService.createEntityFromMarkdown({
+      input: {
+        entityType: "markdown-doc",
+        id: "restricted-markdown-doc",
+        markdown,
+        visibility: "restricted",
+      },
+    });
+
+    const stored = await ctx.entityService.getEntity<MarkdownDoc>({
+      entityType: "markdown-doc",
+      id: "restricted-markdown-doc",
+      visibilityScope: "restricted",
+    });
+    expect(stored?.visibility).toBe("restricted");
+    expect(stored?.content).toContain("visibility: restricted");
+    expect(stored?.content).toContain("Restricted body.");
+  });
 });

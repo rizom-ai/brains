@@ -82,16 +82,12 @@ function assertValidPath(
   }
 }
 
-function assertValidMethod(method: string, pluginId: string): void {
-  if (!WEB_ROUTE_METHODS.has(method)) {
-    throw new Error(
-      `Invalid HTTP route method "${method}" declared by plugin "${pluginId}"`,
-    );
-  }
-}
-
-function assertValidToolMethod(method: string, pluginId: string): void {
-  if (!TOOL_ROUTE_METHODS.has(method)) {
+function assertMethodIn(
+  allowedMethods: ReadonlySet<string>,
+  method: string,
+  pluginId: string,
+): void {
+  if (!allowedMethods.has(method)) {
     throw new Error(
       `Invalid HTTP route method "${method}" declared by plugin "${pluginId}"`,
     );
@@ -112,7 +108,7 @@ function normalizeHandlerRoute(
 ): RegisteredHandlerHttpRoute {
   assertValidPath(definition.path, contributor.pluginId);
   const method = definition.method ?? "GET";
-  assertValidMethod(method, contributor.pluginId);
+  assertMethodIn(WEB_ROUTE_METHODS, method, contributor.pluginId);
   const match = definition.match ?? "exact";
   assertValidMatch(match, contributor.pluginId);
   if (typeof definition.handler !== "function") {
@@ -138,7 +134,7 @@ function normalizeToolRoute(
   assertValidPath(definition.path, contributor.pluginId, false);
   const fullPath = `/api/${contributor.pluginId}${definition.path}`;
   assertValidPath(fullPath, contributor.pluginId);
-  assertValidToolMethod(definition.method, contributor.pluginId);
+  assertMethodIn(TOOL_ROUTE_METHODS, definition.method, contributor.pluginId);
   if (typeof definition.tool !== "string" || definition.tool.trim() === "") {
     throw new Error(
       `Invalid HTTP route tool for "${fullPath}" declared by plugin "${contributor.pluginId}"`,
@@ -205,40 +201,38 @@ export class HttpRouteRegistry {
       throw new Error("HTTP route registry has already been finalized");
     }
 
-    const routes = contributors.flatMap((contributor) => [
-      ...contributor.webRoutes.map((definition) =>
-        normalizeHandlerRoute(contributor, definition),
-      ),
-      ...contributor.apiRoutes.map((definition) =>
-        normalizeToolRoute(contributor, definition),
-      ),
-    ]);
-    assertUniqueRouteKeys(routes);
-
-    this.routes = Object.freeze(routes);
-    this.manifest = createManifest(this.routes);
-    this.webRoutes = Object.freeze(
-      contributors.flatMap((contributor) =>
-        contributor.webRoutes.map((definition) =>
+    const routes: RegisteredHttpRoute[] = [];
+    const webRoutes: RegisteredWebRoute[] = [];
+    const apiRoutes: RegisteredApiRoute[] = [];
+    for (const contributor of contributors) {
+      for (const definition of contributor.webRoutes) {
+        routes.push(normalizeHandlerRoute(contributor, definition));
+        webRoutes.push(
           Object.freeze({
             pluginId: contributor.pluginId,
             fullPath: definition.path,
             definition: Object.freeze({ ...definition }),
           }),
-        ),
-      ),
-    );
-    this.apiRoutes = Object.freeze(
-      contributors.flatMap((contributor) =>
-        contributor.apiRoutes.map((definition) =>
+        );
+      }
+      for (const definition of contributor.apiRoutes) {
+        const route = normalizeToolRoute(contributor, definition);
+        routes.push(route);
+        apiRoutes.push(
           Object.freeze({
             pluginId: contributor.pluginId,
-            fullPath: `/api/${contributor.pluginId}${definition.path}`,
-            definition: Object.freeze({ ...definition }),
+            fullPath: route.fullPath,
+            definition: route.definition,
           }),
-        ),
-      ),
-    );
+        );
+      }
+    }
+    assertUniqueRouteKeys(routes);
+
+    this.routes = Object.freeze(routes);
+    this.manifest = createManifest(this.routes);
+    this.webRoutes = Object.freeze(webRoutes);
+    this.apiRoutes = Object.freeze(apiRoutes);
     return this.routes;
   }
 

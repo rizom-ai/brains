@@ -5,6 +5,7 @@ import {
   mkdir,
   readFile,
   readdir,
+  rm,
   stat,
   symlink,
   writeFile,
@@ -762,6 +763,87 @@ describe("initPilotRepo", () => {
     await initPilotRepo(repo);
 
     expect(await readFile(watchdogPath, "utf8")).toBe(operatorOwned);
+  });
+
+  it("reconciles prior generated tooling workflows on rerun", async () => {
+    const root = await mkdtemp(join(tmpdir(), "brains-ops-init-"));
+    const repo = join(root, "rover-pilot");
+
+    await initPilotRepo(repo);
+
+    const workflowsDir = join(repo, ".github", "workflows");
+    const toolingWorkflows = [
+      "build.yml",
+      "deploy.yml",
+      "reconcile.yml",
+      "upgrade.yml",
+    ];
+    const canonical = new Map<string, string>();
+    for (const name of toolingWorkflows) {
+      const path = join(workflowsDir, name);
+      const content = await readFile(path, "utf8");
+      canonical.set(name, content);
+      await writeFile(path, `${content}\n# prior generated vintage\n`);
+    }
+    // The stress workflow is operator-tunable; a diverged copy stays theirs.
+    const stressPath = join(workflowsDir, "directory-sync-stress.yml");
+    const divergedStress = `${await readFile(stressPath, "utf8")}\n# operator tuning\n`;
+    await writeFile(stressPath, divergedStress);
+
+    await initPilotRepo(repo);
+
+    for (const name of toolingWorkflows) {
+      expect(await readFile(join(workflowsDir, name), "utf8")).toBe(
+        canonical.get(name) ?? "",
+      );
+    }
+    expect(await readFile(stressPath, "utf8")).toBe(divergedStress);
+  });
+
+  it("keeps first-run example content deleted by the operator on rerun", async () => {
+    const root = await mkdtemp(join(tmpdir(), "brains-ops-init-"));
+    const repo = join(root, "rover-pilot");
+
+    await initPilotRepo(repo);
+
+    const firstRunOnly = [
+      join(repo, "users", "alice.yaml"),
+      join(repo, "cohorts", "cohort-1.yaml"),
+      join(repo, "docs", "canonical-crossover-record.md"),
+    ];
+    for (const path of firstRunOnly) {
+      expect(existsSync(path)).toBeTrue();
+      await rm(path);
+    }
+    const workflowPath = join(repo, ".github", "workflows", "deploy.yml");
+    await rm(workflowPath);
+
+    await initPilotRepo(repo);
+
+    for (const path of firstRunOnly) {
+      expect(existsSync(path)).toBeFalse();
+    }
+    // Infrastructure files are still restored when missing.
+    expect(existsSync(workflowPath)).toBeTrue();
+  });
+
+  it("scaffolds an Upgrade workflow that stages tooling bumps as PRs", async () => {
+    const root = await mkdtemp(join(tmpdir(), "brains-ops-init-"));
+    const repo = join(root, "rover-pilot");
+
+    await initPilotRepo(repo);
+
+    const upgradeWorkflow = await readFile(
+      join(repo, ".github", "workflows", "upgrade.yml"),
+      "utf8",
+    );
+    expect(upgradeWorkflow).toContain("workflow_dispatch:");
+    expect(upgradeWorkflow).toContain("schedule:");
+    expect(upgradeWorkflow).toContain("bunx brains-ops upgrade .");
+    expect(upgradeWorkflow).toContain("pull-requests: write");
+    expect(upgradeWorkflow).toContain("gh pr create");
+    // Untracked files count as changes too — porcelain, not diff.
+    expect(upgradeWorkflow).toContain("git status --porcelain");
   });
 
   it("reconciles generated ATProto deploy env artifacts on rerun", async () => {

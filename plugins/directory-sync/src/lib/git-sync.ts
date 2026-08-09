@@ -10,7 +10,7 @@ import type {
 import { commitGitChanges, pushGitChanges } from "./git-commit";
 import { getFileHistory, showFileAtCommit } from "./git-history";
 import { initializeGitRepository } from "./git-init";
-import { GitOperationLock } from "./git-lock";
+import { SerialQueue } from "@brains/utils/serial-queue";
 import {
   DEFAULT_GIT_TIMEOUT_MS,
   getAuthenticatedGitUrl,
@@ -39,7 +39,7 @@ export class GitSync implements IGitSync {
   private readonly authToken: string | undefined;
   private readonly dataDir: string;
   private readonly timeoutMs: number;
-  private readonly lock = new GitOperationLock();
+  private readonly lock = new SerialQueue();
   private readonly lifecycleController = new AbortController();
   private readonly activeOperations = new Set<Promise<unknown>>();
   private acceptingOperations = true;

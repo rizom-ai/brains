@@ -12,7 +12,8 @@ import type { ProgressNotification } from "@brains/utils/progress";
 
 type JobQueueStatus = "pending" | "processing" | "completed" | "failed";
 
-type JobQueueTextColumn<
+type SqliteTextColumn<
+  TTableName extends string,
   TName extends string,
   TNotNull extends boolean,
   THasDefault extends boolean = false,
@@ -23,7 +24,7 @@ type JobQueueTextColumn<
 > = SQLiteColumn<
   {
     name: TName;
-    tableName: "job_queue";
+    tableName: TTableName;
     dataType: "string";
     columnType: "SQLiteText";
     data: TData;
@@ -42,7 +43,8 @@ type JobQueueTextColumn<
   { length: number | undefined }
 >;
 
-type JobQueueIntegerColumn<
+type SqliteIntegerColumn<
+  TTableName extends string,
   TName extends string,
   TNotNull extends boolean,
   THasDefault extends boolean = false,
@@ -50,7 +52,7 @@ type JobQueueIntegerColumn<
 > = SQLiteColumn<
   {
     name: TName;
-    tableName: "job_queue";
+    tableName: TTableName;
     dataType: "number";
     columnType: "SQLiteInteger";
     data: number;
@@ -69,7 +71,8 @@ type JobQueueIntegerColumn<
   Record<string, never>
 >;
 
-type JobQueueJsonColumn<
+type SqliteJsonColumn<
+  TTableName extends string,
   TName extends string,
   TData,
   TNotNull extends boolean,
@@ -77,7 +80,7 @@ type JobQueueJsonColumn<
 > = SQLiteColumn<
   {
     name: TName;
-    tableName: "job_queue";
+    tableName: TTableName;
     dataType: "json";
     columnType: "SQLiteTextJson";
     data: TData;
@@ -96,61 +99,63 @@ type JobQueueJsonColumn<
   TExtraConfig
 >;
 
-type WorkerSessionTextColumn<
+type JobQueueTextColumn<
   TName extends string,
+  TNotNull extends boolean,
+  THasDefault extends boolean = false,
   TPrimaryKey extends boolean = false,
-> = SQLiteColumn<
-  {
-    name: TName;
-    tableName: "job_worker_sessions";
-    dataType: "string";
-    columnType: "SQLiteText";
-    data: string;
-    driverParam: string;
-    notNull: true;
-    hasDefault: false;
-    isPrimaryKey: TPrimaryKey;
-    isAutoincrement: false;
-    hasRuntimeDefault: false;
-    enumValues: [string, ...string[]];
-    baseColumn: never;
-    identity: undefined;
-    generated: undefined;
-  },
-  Record<string, never>,
-  { length: number | undefined }
+  THasRuntimeDefault extends boolean = false,
+  TData = string,
+  TEnumValues extends [string, ...string[]] = [string, ...string[]],
+> = SqliteTextColumn<
+  "job_queue",
+  TName,
+  TNotNull,
+  THasDefault,
+  TPrimaryKey,
+  THasRuntimeDefault,
+  TData,
+  TEnumValues
 >;
 
-type WorkerSessionIntegerColumn<TName extends string> = SQLiteColumn<
-  {
-    name: TName;
-    tableName: "job_worker_sessions";
-    dataType: "number";
-    columnType: "SQLiteInteger";
-    data: number;
-    driverParam: number;
-    notNull: true;
-    hasDefault: false;
-    isPrimaryKey: false;
-    isAutoincrement: false;
-    hasRuntimeDefault: false;
-    enumValues: undefined;
-    baseColumn: never;
-    identity: undefined;
-    generated: undefined;
-  },
-  Record<string, never>,
-  Record<string, never>
+type JobQueueIntegerColumn<
+  TName extends string,
+  TNotNull extends boolean,
+  THasDefault extends boolean = false,
+  THasRuntimeDefault extends boolean = false,
+> = SqliteIntegerColumn<
+  "job_queue",
+  TName,
+  TNotNull,
+  THasDefault,
+  THasRuntimeDefault
 >;
+
+type JobQueueJsonColumn<
+  TName extends string,
+  TData,
+  TNotNull extends boolean,
+  TExtraConfig extends object = Record<string, never>,
+> = SqliteJsonColumn<"job_queue", TName, TData, TNotNull, TExtraConfig>;
 
 type JobWorkerSessionsTable = SQLiteTableWithColumns<{
   name: "job_worker_sessions";
   schema: undefined;
   columns: {
-    slotId: WorkerSessionTextColumn<"slotId", true>;
-    sessionId: WorkerSessionTextColumn<"sessionId">;
-    startedAt: WorkerSessionIntegerColumn<"startedAt">;
-    heartbeatAt: WorkerSessionIntegerColumn<"heartbeatAt">;
+    slotId: SqliteTextColumn<
+      "job_worker_sessions",
+      "slotId",
+      true,
+      false,
+      true
+    >;
+    sessionId: SqliteTextColumn<"job_worker_sessions", "sessionId", true>;
+    startedAt: SqliteIntegerColumn<"job_worker_sessions", "startedAt", true>;
+    heartbeatAt: SqliteIntegerColumn<
+      "job_worker_sessions",
+      "heartbeatAt",
+      true
+    >;
   };
   dialect: "sqlite";
 }>;

@@ -1,0 +1,58 @@
+name: Upgrade
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Explicit @rizom/ops version (empty means latest)
+        required: false
+        type: string
+  schedule:
+    # Weekday morning check for new operator tooling releases.
+    - cron: "17 6 * * 1-5"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: upgrade
+  cancel-in-progress: false
+
+jobs:
+  upgrade:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Install operator tooling
+        run: bun install
+
+      - name: Upgrade operator tooling
+        env:
+          VERSION_INPUT: ${{ inputs.version }}
+        run: bunx brains-ops upgrade . --to "${VERSION_INPUT:-latest}"
+
+      - name: Open upgrade PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ -z "$(git status --porcelain)" ]; then
+            echo "Already up to date."
+            exit 0
+          fi
+          VERSION=$(bun -e 'console.log(JSON.parse(await Bun.file("package.json").text()).devDependencies["@rizom/ops"])')
+          BRANCH="ops/upgrade-rizom-ops-$VERSION"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -B "$BRANCH"
+          git add -A
+          git commit -m "chore(ops): upgrade @rizom/ops to $VERSION"
+          git push --force -u origin "$BRANCH"
+          gh pr create \
+            --title "chore(ops): upgrade @rizom/ops to $VERSION" \
+            --body "Automated operator tooling upgrade. Review the scaffold diff, then merge; deploys stay operator-dispatched." \
+            --head "$BRANCH" \
+            || echo "PR already open for $BRANCH"

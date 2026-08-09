@@ -3,6 +3,7 @@ import type {
   IRuntimeStateStore,
 } from "@brains/runtime-state";
 import { createPrefixedId } from "@brains/utils/id";
+import { SerialQueue } from "@brains/utils/serial-queue";
 import { z } from "@brains/utils/zod";
 
 export type PlaybookRunStatus =
@@ -116,7 +117,7 @@ const playbookRunsNamespace = "playbooks.runs";
 
 export class PlaybookRunStore {
   private readonly store: IRuntimeStateStore<PlaybookRun>;
-  private writeQueue: Promise<void> = Promise.resolve();
+  private readonly writeQueue = new SerialQueue();
 
   constructor(runtimeState: IRuntimeStateNamespace) {
     this.store = runtimeState.scoped<PlaybookRun>({
@@ -212,22 +213,11 @@ export class PlaybookRunStore {
   }
 
   private async enqueueMutation<T>(operation: () => Promise<T>): Promise<T> {
-    const previous = this.writeQueue;
-    let release: () => void = () => {};
-    this.writeQueue = new Promise<void>((resolve) => {
-      release = resolve;
-    });
-
-    await previous;
-    try {
-      return await operation();
-    } finally {
-      release();
-    }
+    return this.writeQueue.run(operation);
   }
 
   private async waitForWrites(): Promise<void> {
-    await this.writeQueue;
+    await this.writeQueue.idle();
   }
 }
 

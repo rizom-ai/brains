@@ -1,5 +1,27 @@
 # @brains/ops
 
+## 0.2.0-alpha.269
+
+## 0.2.0-alpha.268
+
+## 0.2.0-alpha.267
+
+## 0.2.0-alpha.266
+
+### Patch Changes
+
+- [`ce85b3d`](https://github.com/rizom-ai/brains/commit/ce85b3d7073d3d39b48ae3aba9fc65ff72eb1a3b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Harden the two defects behind the rizom.ai deploy incident: user profileKind now validates against the runtime's registered profile kinds at parse time (with a lockstep test against @brains/profile) instead of failing at production boot, and forced image builds refuse to overwrite an existing registry tag unless the new Build overwrite input is explicitly confirmed. Tooling workflows (build/deploy/reconcile/upgrade) also reconcile to the template on init rerun; the operator-tuned directory-sync-stress workflow deliberately does not.
+
+- [`e70ab12`](https://github.com/rizom-ai/brains/commit/e70ab12745c6cf757f685389f4cd6de8991de95f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Behavior-preserving quality refactors: shared SerialQueue/KeyedSerialQueue primitive in @brains/utils replacing five hand-rolled promise-tail mutexes; directory-sync stress system split into command runner, git checkout, and health monitor modules; job-queue worker heartbeat/deadline/error-callback dedup and table-generic schema column helpers; consolidated pilot starter staleness detection; single-pass HTTP route registry views; projection wave planning simplification with indexed graph edges.
+
+## 0.2.0-alpha.265
+
+## 0.2.0-alpha.264
+
+### Patch Changes
+
+- [`98370cb`](https://github.com/rizom-ai/brains/commit/98370cb7d8d0d11a1924c11b67ed7058f24a3619) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add `brains-ops upgrade`: bumps the `@rizom/ops` pin and reruns the scaffold refresh from the upgraded package, plus a scheduled Upgrade workflow template that stages the result as a reviewable PR. Init reruns also stop resurrecting deleted first-run example content (`users/alice.yaml`, `cohorts/cohort-1.yaml`, `docs/canonical-crossover-record.md`).
+
 ## 0.2.0-alpha.263
 
 ## 0.2.0-alpha.262

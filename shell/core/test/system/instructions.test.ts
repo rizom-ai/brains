@@ -38,6 +38,13 @@ describe("system instructions", () => {
     expect(instructions).toContain("summarize my blog posts");
     expect(instructions).toContain("short sentence or fragment after a colon");
     expect(instructions).toContain("memo about the launch timeline");
+    expect(instructions).toContain(
+      "use `shared` for team/collaborator content",
+    );
+    expect(instructions).toContain(
+      "use `restricted` for private/admin-only content",
+    );
+    expect(instructions).toContain("ask which scope they mean");
     expect(instructions).toContain("pasted uploaded-file transcript");
     expect(instructions).toContain(
       "even when the prior answer says there was limited readable content",

@@ -1,14 +1,14 @@
 {
   "name": "@brains/mcp",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.263",
+  "version": "0.2.0-alpha.269",
   "dependencies": {
     "@brains/auth-service": "workspace:*",
     "@brains/contracts": "workspace:*",
     "@brains/mcp-service": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/utils": "workspace:*",
-    "@modelcontextprotocol/sdk": "^1.29.0",
+    "@modelcontextprotocol/sdk": "^1.30.0",
     "cors": "^2.8.5",
     "express": "^4.18.0",
     "express-async-handler": "^1.2.0"
