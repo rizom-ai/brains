@@ -7,8 +7,15 @@ import { minimalTestSchema, minimalTestAdapter } from "./helpers/test-schemas";
 import { createTestEntity } from "@brains/test-utils";
 import { SHELL_CHANNELS } from "@brains/contracts";
 import { MOCK_DIMENSIONS } from "./helpers/mock-services";
+import {
+  buildFtsMatch,
+  createEntityDatabase,
+  ensureFtsTable,
+  upsertFtsEntry,
+} from "../src/db";
+import { sql } from "drizzle-orm";
 
-describe("FTS5 full-text search", () => {
+describe("full-text search", () => {
   let ctx: EntityServiceTestContext;
 
   beforeEach(async () => {
@@ -130,7 +137,7 @@ describe("FTS5 full-text search", () => {
     });
   });
 
-  test("FTS5 index is updated when entity content changes", async () => {
+  test("full-text index is updated when entity content changes", async () => {
     const entity = createTestEntity("test", {
       content: "Introduction to Python programming",
     });
@@ -169,7 +176,7 @@ describe("FTS5 full-text search", () => {
     expect(newScore).toBeGreaterThan(oldScore);
   });
 
-  test("FTS5 index is cleaned up when entity is deleted", async () => {
+  test("full-text index is cleaned up when entity is deleted", async () => {
     const entity = createTestEntity("test", {
       content: "Unique keyword: xylophone orchestration techniques",
     });
@@ -187,7 +194,7 @@ describe("FTS5 full-text search", () => {
     expect(results).toHaveLength(0);
   });
 
-  test("search handles queries with special FTS5 characters", async () => {
+  test("search handles queries with special full-text characters", async () => {
     const entity = createTestEntity("test", {
       content: "What topics does this brain cover?",
     });
@@ -307,5 +314,75 @@ describe("FTS5 full-text search", () => {
     expect(results.length).toBe(2);
     // Exact keyword match should rank first
     expect(results[0]?.entity.id).toBe("exact-match");
+  });
+});
+
+describe("full-text engine parity", () => {
+  test("returns the same keyword-boost decisions on both engines", async () => {
+    const decisions: Record<
+      string,
+      Array<{ id: string; boosted: number }>
+    > = {};
+
+    for (const selectedEngine of ["libsql", "turso"] as const) {
+      const previousEngine = process.env["BRAINS_DB_ENGINE"];
+      process.env["BRAINS_DB_ENGINE"] = selectedEngine;
+      const connection = createEntityDatabase({ url: "file::memory:" });
+      if (previousEngine === undefined) {
+        delete process.env["BRAINS_DB_ENGINE"];
+      } else {
+        process.env["BRAINS_DB_ENGINE"] = previousEngine;
+      }
+
+      try {
+        await connection.client.execute(`
+          CREATE TABLE entities (
+            id TEXT NOT NULL,
+            entityType TEXT NOT NULL,
+            content TEXT NOT NULL,
+            PRIMARY KEY (id, entityType)
+          )
+        `);
+        await ensureFtsTable(connection.client, connection.engine);
+
+        const rows = [
+          ["exact", "TypeScript is a typed superset of JavaScript"],
+          ["semantic", "Strongly typed languages improve code quality"],
+        ] as const;
+        for (const [id, content] of rows) {
+          await connection.client.execute({
+            sql: "INSERT INTO entities (id, entityType, content) VALUES (?, 'test', ?)",
+            args: [id, content],
+          });
+          await upsertFtsEntry(
+            connection.db,
+            connection.engine,
+            id,
+            "test",
+            content,
+          );
+        }
+
+        const ftsQuery = '"TypeScript"';
+        decisions[selectedEngine] = await connection.db.all<{
+          id: string;
+          boosted: number;
+        }>(sql`
+          SELECT id,
+            CASE WHEN ${buildFtsMatch(connection.engine, ftsQuery)}
+              THEN 1 ELSE 0 END AS boosted
+          FROM entities
+          ORDER BY id
+        `);
+      } finally {
+        connection.client.close();
+      }
+    }
+
+    expect(decisions["libsql"]).toEqual([
+      { id: "exact", boosted: 1 },
+      { id: "semantic", boosted: 0 },
+    ]);
+    expect(decisions["turso"]).toEqual(decisions["libsql"]);
   });
 });

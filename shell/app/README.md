@@ -57,3 +57,15 @@ export default defineBrain({
 ```
 
 External authors should use the published `@rizom/brain` contracts rather than importing shell internals.
+
+## Turso-to-libSQL rollback
+
+Rollback is an explicit break-glass operation. Stop the app, run:
+
+```bash
+brain-rollback-entities-to-libsql
+```
+
+Then set `BRAINS_DB_ENGINE=libsql` and restart. The command removes Turso's
+native entity FTS index, checkpoints the compatible SQLite file, and rebuilds
+the libSQL FTS5 keyword index from the durable `entities` table.

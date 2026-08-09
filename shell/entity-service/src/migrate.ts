@@ -39,7 +39,7 @@ export async function migrateEntities(
     ),
     authTokenEnv: "DATABASE_AUTH_TOKEN",
     logger,
-    // FTS5 virtual table is not managed by Drizzle.
+    // Engine-specific full-text indexes are not managed by Drizzle.
     afterMigrate: ensureFtsTable,
   });
 }

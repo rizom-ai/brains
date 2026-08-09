@@ -1,6 +1,6 @@
 import { describe, expect, test, beforeEach, afterEach, mock } from "bun:test";
 import { chmod, writeFile } from "node:fs/promises";
-import { createClient } from "@libsql/client";
+import { createEntityDatabase } from "../src/db";
 import { dirname, join } from "node:path";
 import { z } from "@brains/utils/zod";
 import { EntityService } from "../src/entityService";
@@ -245,9 +245,9 @@ describe("EntityService", (): void => {
       noteSchema,
       new NoteSerializerAdapter(),
     );
-    const client = createClient({ url: entityDbUrl });
-    await client.execute("DROP TABLE projection_dirty_inputs");
-    client.close();
+    const connection = createEntityDatabase({ url: entityDbUrl });
+    await connection.client.execute("DROP TABLE projection_dirty_inputs");
+    connection.client.close();
 
     const entity = createNote({ id: "journal-rollback", content: "rollback" });
     let rejected = false;

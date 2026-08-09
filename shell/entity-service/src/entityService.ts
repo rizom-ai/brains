@@ -1,6 +1,6 @@
 import { SHELL_CHANNELS } from "@brains/contracts";
 import type { Client } from "@libsql/client";
-import { applySqlitePragmas } from "@brains/db";
+import { applySqlitePragmas, type SqliteEngine } from "@brains/db";
 import { createEntityDatabase, ensureFtsTable, type EntityDB } from "./db";
 import {
   createEmbeddingDatabase,
@@ -85,6 +85,7 @@ export class EntityService implements IEntityService {
   private db: EntityDB;
   private dbClient: Client;
   private dbUrl: string;
+  private dbEngine: SqliteEngine;
   private searchDbClient: Client;
   private embeddingDb: EmbeddingDB;
   private embeddingDbClient: Client;
@@ -143,13 +144,15 @@ export class EntityService implements IEntityService {
   }
 
   private constructor(options: EntityServiceOptions) {
-    const { db, client, url } = createEntityDatabase(options.dbConfig);
+    const { db, client, url, engine } = createEntityDatabase(options.dbConfig);
     this.db = db;
     this.dbClient = client;
     this.dbUrl = url;
+    this.dbEngine = engine;
     this.projectionStore = new ProjectionStore(
       this.db,
       options.mutationAdmission,
+      this.dbEngine,
     );
 
     let searchDbClient: Client | undefined;
@@ -187,6 +190,7 @@ export class EntityService implements IEntityService {
         serializer: this.entitySerializer,
         logger: this.logger,
         embeddingDb: this.embeddingDb,
+        engine: this.dbEngine,
       });
       const embeddingsEnabled = options.embeddingsEnabled ?? true;
       this.entitySearch = new EntitySearch(
@@ -195,6 +199,7 @@ export class EntityService implements IEntityService {
         this.entitySerializer,
         this.logger,
         embeddingsEnabled,
+        this.dbEngine,
       );
       this.entityMutations = new EntityMutations({
         db: this.db,
@@ -210,6 +215,7 @@ export class EntityService implements IEntityService {
         projectionStore: this.projectionStore,
         embeddingDb: this.embeddingDb,
         embeddingsEnabled,
+        engine: this.dbEngine,
       });
       this.contentResolver = new ContentResolver(this.logger);
 
@@ -302,7 +308,7 @@ export class EntityService implements IEntityService {
 
     // Everything below is required for search/embedding correctness —
     // failures must propagate so Shell.initialize() fails loudly.
-    await ensureFtsTable(this.dbClient);
+    await ensureFtsTable(this.dbClient, this.dbEngine);
     await migrateEmbeddingDatabase(this.embeddingDbClient, embeddingDimensions);
     await attachEmbeddingDatabase(
       this.searchDbClient,

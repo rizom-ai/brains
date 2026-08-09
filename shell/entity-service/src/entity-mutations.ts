@@ -1,5 +1,5 @@
 import { ENTITY_CHANNELS, SHELL_CHANNELS } from "@brains/contracts";
-import type { EntityDB } from "./db";
+import { deleteFtsEntry, upsertFtsEntry, type EntityDB } from "./db";
 import type { EmbeddingDB } from "./db/embedding-db";
 import type {
   BaseEntity,
@@ -23,6 +23,7 @@ import type { EntitySerializer } from "./entity-serializer";
 import type { EntityQueries } from "./entity-queries";
 import type { ProjectionStore } from "./projection-store";
 import type { IJobQueueService, JobInfo } from "@brains/job-queue";
+import type { SqliteEngine } from "@brains/db";
 import { createId } from "@brains/utils/id";
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
@@ -134,6 +135,7 @@ export interface EntityMutationDeps {
   /** Embedding DB for writes (separate from entity DB). */
   embeddingDb: EmbeddingDB;
   embeddingsEnabled: boolean;
+  engine?: SqliteEngine;
 }
 
 /**
@@ -153,6 +155,7 @@ export class EntityMutations {
   private readonly embeddingsEnabled: boolean;
   private projectionWakeup: (() => Promise<void>) | undefined;
   private logger: Logger;
+  private engine: SqliteEngine;
 
   constructor(deps: EntityMutationDeps) {
     this.db = deps.db;
@@ -164,6 +167,7 @@ export class EntityMutations {
     this.projectionStore = deps.projectionStore;
     this.embeddingsEnabled = deps.embeddingsEnabled;
     this.logger = deps.logger.child("EntityMutations");
+    this.engine = deps.engine ?? "libsql";
     if (deps.messageBus) {
       this.messageBus = deps.messageBus;
     }
@@ -545,9 +549,7 @@ export class EntityMutations {
         markedAt: Date.now(),
       },
       async (transaction) => {
-        await transaction.run(
-          sql`DELETE FROM entity_fts WHERE entity_id = ${id} AND entity_type = ${entityType}`,
-        );
+        await deleteFtsEntry(transaction, this.engine, id, entityType);
         await transaction
           .delete(entities)
           .where(and(eq(entities.entityType, entityType), eq(entities.id, id)));
@@ -839,22 +841,14 @@ export class EntityMutations {
     return rows.length > 0;
   }
 
-  /**
-   * Insert or replace FTS5 index entry for an entity.
-   */
+  /** Keep the libSQL FTS5 shadow row in sync; Turso indexes entities directly. */
   private async upsertFtsIndex(
     database: Pick<EntityDB, "run">,
     entityId: string,
     entityType: string,
     content: string,
   ): Promise<void> {
-    // FTS5 doesn't support upsert — delete then insert
-    await database.run(
-      sql`DELETE FROM entity_fts WHERE entity_id = ${entityId} AND entity_type = ${entityType}`,
-    );
-    await database.run(
-      sql`INSERT INTO entity_fts (entity_id, entity_type, content) VALUES (${entityId}, ${entityType}, ${content})`,
-    );
+    await upsertFtsEntry(database, this.engine, entityId, entityType, content);
   }
 
   /**

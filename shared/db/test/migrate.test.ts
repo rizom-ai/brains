@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Logger, LogLevel } from "@brains/utils/logger";
 import { runPackageMigrations } from "../src/migrate";
-import type { PragmaClient } from "../src/sqlite";
+import type { PragmaClient, SqliteEngine } from "../src/sqlite";
 
 function silentLogger(): Logger {
   return Logger.createFresh({ level: LogLevel.NONE });
@@ -92,26 +92,30 @@ describe("runPackageMigrations", () => {
     const dbDir = await mkdtemp(join(tmpdir(), "brains-db-file-"));
     const url = `file:${join(dbDir, "test.db")}`;
 
+    let hookEngine: SqliteEngine | undefined;
     await runPackageMigrations({
       label: "things",
       config: { url },
       schema: {},
       migrationsFolder,
       logger: silentLogger(),
-      afterMigrate: async (client: PragmaClient): Promise<void> => {
-        await client.execute(
-          "CREATE VIRTUAL TABLE things_fts USING fts5(content)",
-        );
+      afterMigrate: async (
+        client: PragmaClient,
+        engine: SqliteEngine,
+      ): Promise<void> => {
+        hookEngine = engine;
+        await client.execute("CREATE TABLE things_hook (content text)");
       },
     });
 
     const { createSqliteDatabase } = await import("../src/sqlite");
-    const { client } = createSqliteDatabase({ url, schema: {} });
+    const { client, engine } = createSqliteDatabase({ url, schema: {} });
     try {
       const result = await client.execute(
-        "SELECT name FROM sqlite_master WHERE name='things_fts'",
+        "SELECT name FROM sqlite_master WHERE name='things_hook'",
       );
       expect(result.rows).toHaveLength(1);
+      expect(hookEngine).toBe(engine);
     } finally {
       client.close();
     }
