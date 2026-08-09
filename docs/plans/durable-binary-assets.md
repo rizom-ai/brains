@@ -1,10 +1,14 @@
 # Durable Binary Asset Storage Plan
 
-Last updated: 2026-08-05
+Last updated: 2026-08-09
 
 ## Status
 
-Proposed
+In progress. PRs 1–3 (asset foundation, image cutover, migration/reconciliation
+tooling) are implemented on `feat/durable-binary-assets-migration`
+(worktree `durable-binary-assets-migration`), unmerged. The full test suite and
+lint pass there; full typecheck fails on one branch-owned lockfile regression.
+The review findings below must be resolved on that branch before merge.
 
 ## Summary
 
@@ -336,14 +340,17 @@ then, PDF import remains under the legacy 5 MB guard.
 Also provide an explicit full reconciliation command:
 
 ```text
-brain assets reconcile --entity-type image --from brain-data --dry-run
-brain assets reconcile --entity-type image --from brain-data
+brain assets:reconcile --entity-type image --from brain-data --dry-run
+brain assets:reconcile --entity-type image --from brain-data
 ```
 
 Reconciliation scans every binary independently of entity content hashes, restores
 missing assets through `putStream`, verifies file bytes against existing references, and
-reports mismatches without silently changing an entity reference. The PDF phase extends
-the same command to `brain-data/document`.
+reports mismatches without silently changing an entity reference. File-versus-reference
+verification runs for every row, including when the runtime asset already exists and
+passes digest verification, so a drifted `brain-data` file is reported before the
+runtime copy is ever lost. The PDF phase extends the same command to
+`brain-data/document`.
 
 The migration does not rewrite the content repository or Git history. The runtime asset
 store and the synced content checkout intentionally contain separate copies because they
@@ -467,9 +474,9 @@ URLs. `--dry-run` and `--verify` are read-only; the mutating command requires th
 application and workers to be fully stopped. The proposed surface is:
 
 ```text
-brain migrate binary-assets --entity-type image --dry-run
-brain migrate binary-assets --entity-type image
-brain migrate binary-assets --entity-type image --verify
+brain migrate:binary-assets --entity-type image --dry-run
+brain migrate:binary-assets --entity-type image
+brain migrate:binary-assets --entity-type image --verify
 ```
 
 The command must:
@@ -507,7 +514,7 @@ asset bytes, expected one-time content-hash changes, and required free space. Ve
 proves every migrated reference exists, matches its digest and entity metadata, has no
 image FTS row, and
 round-trips through directory sync without a second entity hash change. The independent
-`brain assets reconcile` command proves missing runtime assets can be restored from
+`brain assets:reconcile` command proves missing runtime assets can be restored from
 `brain-data` even when entity rows and file timestamps are otherwise unchanged.
 
 ## Phase 4: `yeehaa.io` cutover and soak
@@ -604,7 +611,7 @@ command, manifest, verification, backup, and rollback machinery.
 4. Set document entities to `fullTextSearchable: false` and remove existing PDF payloads
    from FTS. Searchable extracted text, if desired later, must be a separate textual
    projection rather than the encoded PDF bytes.
-5. Extend `brain migrate binary-assets` with `--entity-type document` and mixed
+5. Extend `brain migrate:binary-assets` with `--entity-type document` and mixed
    image/document verification.
 6. Rehearse and cut over active PDF corpora independently; do not combine the first PDF
    migration with the image production window.
@@ -642,9 +649,13 @@ workflows:
 11. Missing or corrupt assets produce bounded errors and visible failed state rather than
     process crashes or silent empty images. `read` is deliberately not digest-verified —
     hashing every read would be prohibitive on site builds — so it catches truncation
-    through a size check only. Image and document readers call `verify` on the failure
-    path before surfacing an error, so corruption fails loudly instead of rendering as
-    wrong or empty bytes.
+    through a size check only. Image and document readers additionally validate the
+    binary signature, dimensions, and size-versus-metadata consistency, which fails
+    loudly on truncated or header-corrupt bytes. Byte-level corruption that preserves a
+    valid header is caught only by operator tooling (`brain migrate:binary-assets
+--verify` and `brain assets:reconcile`), never on the read path; no reader calls
+    `verify`, because digest verification cannot run on bytes that already passed
+    inspection.
 
 The stored/raw entity contract intentionally changes: completed `image.content` and later
 `document.content` contain an internal asset reference. The transitional resolved-read
@@ -672,7 +683,7 @@ be called out in release notes.
   deduplication, and rollback tests;
 - `getEntity`, `getEntityRaw`, and image `listEntities` compatibility-matrix tests in
   legacy/reference modes plus method/surface telemetry tests;
-- missing-asset startup restoration and explicit `brain assets reconcile` tests that do
+- missing-asset startup restoration and explicit `brain assets:reconcile` tests that do
   not depend on entity/file content drift;
 - equivalent document/PDF tests in Phase 5.
 
@@ -686,6 +697,46 @@ Use the canonical personal test app posture. Start the app using its canonical p
 script, trigger the site rebuild on the running app through MCP HTTP, and inspect
 `dist/site-preview` before production output. Validate both a fresh runtime and a runtime
 containing mixed legacy/new image rows during the transition.
+
+## Review findings to resolve before merge
+
+A 2026-08-09 review of `feat/durable-binary-assets-migration` confirmed the
+implementation matches this plan's contracts (write ordering, method matrix, FTS
+policy, import ordering, migration fencing, canonical one-time hash transition, and
+caller inventory). The following defects must be fixed on that branch; none require
+design changes to this plan.
+
+1. **Blocking: lockfile churn breaks web-chat typecheck.** The branch's `bun.lock`
+   incidentally bumps shiki 4.3.1 → 4.4.2 while `@streamdown/code` pins the older
+   shiki, so `interfaces/web-chat/ui-react/src/ai-elements/message.tsx` fails `tsc`.
+   Fix: restore main's lock entries (`git checkout main -- bun.lock`, then
+   `bun install`) so only the new workspace packages are added, or bump
+   `streamdown`/`@streamdown/code` together so their shiki versions agree.
+2. **`assets` namespace `put` spread order.** `put` spreads the caller's options
+   after the computed `expectedSize: bytes.byteLength`, so caller options clobber
+   the computed size and silently disable the size check. Fix: spread options
+   first, then set `expectedSize: bytes.byteLength` last.
+3. **`putStream` does not bound by `expectedSize` while streaming.** An over-long
+   stream is fully written to the temporary file before the mismatch check; only
+   `maxBytes` aborts mid-stream. Fix: treat `min(expectedSize, maxBytes)` as the
+   streaming bound so the write fails at `expectedSize + 1` bytes.
+4. **Reconciliation skips source-file verification when the runtime asset exists.**
+   Drifted `brain-data` bytes stay invisible until the runtime copy is lost. Fix:
+   hash the source file against the reference digest in the present-asset branch too
+   and report a mismatch as its own failure reason (see the reconciliation contract
+   above).
+5. **Migration analysis holds the whole corpus in memory.** `analyzeImageMigration`
+   retains decoded bytes for every legacy row alongside the row strings (~3× corpus).
+   Acceptable at the current 306 MiB image corpus; fix before the PDF phase reuses
+   it: drop `bytes` from candidates and re-decode each row inside the prewrite loop
+   so peak memory is one asset.
+6. **Hand-rolled I/O loops in the asset store.** `hashFile` and `writeAll` use manual
+   `while` read/write loops. Fix: `pipeline(createReadStream(path), hash)` from
+   `node:stream/promises` and a plain handle write, per repository iteration idiom.
+
+The acceptance-criteria wording in this plan (criterion 11) and the reconciliation
+contract were corrected in the same review: no runtime reader calls `verify`; full
+digest verification is operator tooling only.
 
 ## Delivery sequence
 
@@ -713,7 +764,7 @@ containing mixed legacy/new image rows during the transition.
 ### PR 3: migration and reconciliation tooling
 
 - Explicit CLI dry-run/migrate/verify command.
-- Explicit `brain assets reconcile` command for full `brain-data` rehydration.
+- Explicit `brain assets:reconcile` command for full `brain-data` rehydration.
 - Local-SQLite-only fencing, resumable asset prewrite, exclusive transactional entity/FTS
   mutation, and no-event migration repository.
 - Checkpoint, manifest, one-time hash transition, corruption, idempotency,
