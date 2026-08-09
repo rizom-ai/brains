@@ -13,6 +13,14 @@ describe("runGitCommandWithStallTimeout", () => {
     expect(stdout).toContain("git version");
   });
 
+  it("disables automatic maintenance in the owned Git subprocess", async () => {
+    const stdout = await runGitCommandWithStallTimeout(
+      { baseDir: process.cwd(), timeoutMs: 10_000 },
+      ["config", "--get", "maintenance.auto"],
+    );
+    expect(stdout.trim()).toBe("false");
+  });
+
   it("does not wait for a descendant that retains the completed command's output pipe", async () => {
     const startedAt = performance.now();
     const stdout = await runGitCommandWithStallTimeout(

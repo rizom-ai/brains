@@ -32,7 +32,10 @@ export async function runGitCommandWithStallTimeout(
   let closed = false;
   let processExited = false;
 
-  const child = Bun.spawn(["git", ...args], {
+  // Fetch/pull may detach maintenance while retaining this subprocess's pipes.
+  // Disable it only for the owned network command; ordinary local Git commands
+  // retain their normal automatic maintenance.
+  const child = Bun.spawn(["git", "-c", "maintenance.auto=false", ...args], {
     cwd: baseDir,
     stdout: "pipe",
     stderr: "pipe",
