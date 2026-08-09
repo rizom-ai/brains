@@ -1,5 +1,9 @@
 import { mock } from "bun:test";
-import type { BaseEntity, SearchResult } from "@brains/entity-service";
+import type {
+  BaseEntity,
+  EntityMutationResult,
+  SearchResult,
+} from "@brains/entity-service";
 import type { IEntityService } from "@brains/plugins";
 
 /**
@@ -7,13 +11,22 @@ import type { IEntityService } from "@brains/plugins";
  */
 export interface MockEntityServiceReturns {
   getEntity?: BaseEntity | null;
-  createEntity?: { entityId: string; jobId?: string };
-  updateEntity?: { entityId: string; jobId?: string };
+  createEntity?: EntityMutationResult;
+  updateEntity?: EntityMutationResult;
   deleteEntity?: boolean;
   listEntities?: BaseEntity[];
   search?: SearchResult[];
   countEntities?: number;
 }
+
+const mutationResult = (
+  override: EntityMutationResult | undefined,
+): EntityMutationResult =>
+  override ?? {
+    entityId: "mock-entity-id",
+    jobId: "mock-job-id",
+    skipped: false,
+  };
 
 /**
  * Options for creating a mock entity service
@@ -35,8 +48,10 @@ export interface MockEntityServiceOptions {
 /**
  * Create a mock EntityService for testing
  *
- * Returns an IEntityService-typed object where all methods are bun mock functions.
- * The cast is centralized here so test files don't need `as unknown as` casts.
+ * Returns an IEntityService-typed object where all methods are bun mock
+ * functions, so test files need no casts of their own. The literal is checked
+ * with `satisfies IEntityService`: if the interface gains a method or changes
+ * a signature, this file fails to compile rather than going silently stale.
  *
  * @example
  * ```typescript
@@ -67,54 +82,54 @@ export function createMockEntityService(
     getEntityImpl,
   } = options;
 
-  // Create listEntities mock - use callback if provided, otherwise static return
-  const listEntitiesMock = listEntitiesImpl
-    ? mock(
-        <T extends BaseEntity>(request: { entityType: string }): Promise<T[]> =>
-          listEntitiesImpl(request) as Promise<T[]>,
-      )
-    : mock(() => Promise.resolve(returns.listEntities ?? []));
-
-  // Create getEntity mock - use callback if provided, otherwise static return
-  const getEntityMock = getEntityImpl
-    ? mock((request: { entityType: string; id: string }) =>
-        getEntityImpl(request),
-      )
-    : mock(() => Promise.resolve(returns.getEntity ?? null));
+  // Recording mocks for the generic read methods.
+  //
+  // `mock()` erases type parameters, so a `Mock` can never be assigned to a
+  // generic signature such as `getEntity<T extends BaseEntity>`. Each is
+  // therefore asserted to its own interface member type — the narrowest cast
+  // that keeps the value a real spy, so `expect(...).toHaveBeenCalledWith()`
+  // still works. Every non-generic member below stays fully checked by the
+  // `satisfies` at the end of this literal.
+  const listEntitiesMock = mock(
+    (request: { entityType: string }): Promise<BaseEntity[]> =>
+      listEntitiesImpl?.(request) ??
+      Promise.resolve(returns.listEntities ?? []),
+  );
+  const getEntityMock = mock(
+    (request: { entityType: string; id: string }): Promise<BaseEntity | null> =>
+      getEntityImpl?.(request) ?? Promise.resolve(returns.getEntity ?? null),
+  );
+  const getEntityRawMock = mock(
+    (request: { entityType: string; id: string }): Promise<BaseEntity | null> =>
+      getEntityImpl?.(request) ?? Promise.resolve(returns.getEntity ?? null),
+  );
+  const searchMock = mock((): Promise<SearchResult[]> =>
+    Promise.resolve(returns.search ?? []),
+  );
 
   return {
-    getEntity: getEntityMock,
+    getEntity: getEntityMock as IEntityService["getEntity"],
+    getEntityRaw: getEntityRawMock as IEntityService["getEntityRaw"],
+    listEntities: listEntitiesMock as IEntityService["listEntities"],
+    search: searchMock as IEntityService["search"],
+
     createEntity: mock(() =>
-      Promise.resolve(
-        returns.createEntity ?? {
-          entityId: "mock-entity-id",
-          jobId: "mock-job-id",
-          skipped: false,
-        },
-      ),
+      Promise.resolve(mutationResult(returns.createEntity)),
+    ),
+    createEntityFromMarkdown: mock(() =>
+      Promise.resolve(mutationResult(undefined)),
     ),
     updateEntity: mock(() =>
-      Promise.resolve(
-        returns.updateEntity ?? {
-          entityId: "mock-entity-id",
-          jobId: "mock-job-id",
-          skipped: false,
-        },
-      ),
+      Promise.resolve(mutationResult(returns.updateEntity)),
     ),
     deleteEntity: mock(() => Promise.resolve(returns.deleteEntity ?? true)),
     upsertEntity: mock(() =>
-      Promise.resolve({
-        entityId: "mock-entity-id",
-        jobId: "mock-job-id",
-        created: false,
-        skipped: false,
-      }),
+      Promise.resolve({ ...mutationResult(undefined), created: false }),
     ),
-    listEntities: listEntitiesMock,
-    search: mock(() => Promise.resolve(returns.search ?? [])),
     getEntityTypes: mock(() => entityTypes),
     hasEntityType: mock((type: string) => entityTypes.includes(type)),
+    getEntityTypeConfig: mock(() => ({})),
+    getWeightMap: mock(() => ({})),
     serializeEntity: mock(() => ""),
     deserializeEntity: mock(() => ({})),
     getAsyncJobStatus: mock(() =>
@@ -122,10 +137,43 @@ export function createMockEntityService(
     ),
     countEntities: mock(() => Promise.resolve(returns.countEntities ?? 0)),
     getEntityCounts: mock(() => Promise.resolve([])),
-    storeEmbedding: mock(() => Promise.resolve()),
-    getWeightMap: mock(() => ({})),
-    searchWithDistances: mock(() => Promise.resolve([])),
     countEmbeddings: mock(() => Promise.resolve(0)),
+    storeEmbedding: mock(() => Promise.resolve()),
+    searchWithDistances: mock(() => Promise.resolve([])),
+    projectSemanticSpace: mock(() =>
+      Promise.resolve({
+        origin: { kind: "centroid" as const },
+        points: [],
+        neighbors: [],
+        distanceRange: { min: 0, max: 0 },
+      }),
+    ),
+    reconcileProjectionTargets: mock(() => Promise.resolve()),
+    backfillMissingEmbeddings: mock(() =>
+      Promise.resolve({ queued: 0, skipped: 0 }),
+    ),
+    isIndexReady: mock(() => true),
+    awaitIndexReady: mock(() =>
+      Promise.resolve({
+        ready: true,
+        degraded: false,
+        activeEmbeddingJobs: 0,
+        missingEmbeddings: 0,
+        staleEmbeddings: 0,
+        failedEmbeddings: 0,
+        embeddableEntities: 0,
+        embeddedEntities: 0,
+      }),
+    ),
+    setProjectionWakeup: mock(() => () => {}),
+    // Projection storage is database-backed and cannot be faked usefully.
+    // Fail loudly rather than hand back an empty stand-in that would make a
+    // test asserting projection behaviour silently meaningless.
+    getProjectionStore: (): never => {
+      throw new Error(
+        "createMockEntityService: getProjectionStore is not mocked; use a real entity service for projection tests",
+      );
+    },
     initialize: mock(() => Promise.resolve()),
-  } as unknown as IEntityService;
+  } satisfies IEntityService;
 }

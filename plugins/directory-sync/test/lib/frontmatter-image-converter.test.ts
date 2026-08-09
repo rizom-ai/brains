@@ -18,7 +18,11 @@ describe("FrontmatterImageConverter", () => {
 
     mockEntityService = createMockEntityService({
       returns: {
-        createEntity: { entityId: "generated-image-id", jobId: "job-1" },
+        createEntity: {
+          entityId: "generated-image-id",
+          jobId: "job-1",
+          skipped: false,
+        },
       },
     });
 
@@ -100,7 +104,7 @@ Post content here.`;
       });
       const entityServiceWithExisting = createMockEntityService({
         returns: {
-          createEntity: { entityId: "new-id", jobId: "job-1" },
+          createEntity: { entityId: "new-id", jobId: "job-1", skipped: false },
           listEntities: [existingImage],
         },
       });

@@ -54,7 +54,11 @@ describe("CoverImageConversionJobHandler", () => {
       returns: {
         entityService: {
           listEntities: [],
-          createEntity: { entityId: "test-post-cover" },
+          createEntity: {
+            entityId: "test-post-cover",
+            jobId: "mock-job-id",
+            skipped: false,
+          },
         },
       },
     });

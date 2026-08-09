@@ -29,7 +29,11 @@ describe("BlogGenerationJobHandler", () => {
         entityService: {
           getEntity: null,
           listEntities: [],
-          createEntity: { entityId: "test-slug" },
+          createEntity: {
+            entityId: "test-slug",
+            jobId: "mock-job-id",
+            skipped: false,
+          },
         },
       },
     });
