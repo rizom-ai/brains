@@ -329,6 +329,22 @@
           <div class="card-desc">keep focused tests and one packed canary in normal PR feedback, move the full external-authoring matrix to nightly/release evidence, reuse one packed artifact per run, and freeze the <code>0.2.0</code> fixtures for later patch-candidate compatibility.</div>
           <div class="card-file">packed-compatibility-test-tiering.md</div>
         </div>
+        <div class="card status-active">
+          <div class="card-head">
+            <span class="card-name">Turso Database engine migration</span>
+            <span class="badge badge-active">Active</span>
+          </div>
+          <div class="card-desc">**in progress**: local files now default to Turso Database with native FTS, packed native bindings, dual-engine service parity, production-shaped cutover coverage, and an explicit libSQL rollback command. After the live sync spike, the owner selected Git-only content sync; the later MVCC/layout decision remains gated on production soak.</div>
+          <div class="card-file">turso-database-engine.md</div>
+        </div>
+        <div class="card status-active">
+          <div class="card-head">
+            <span class="card-name">Turso Database engine migration</span>
+            <span class="badge badge-active">Active</span>
+          </div>
+          <div class="card-desc">exploratory: whether the SQLite-from-scratch Rust rewrite unlocks a DB-level/browser sync model that libSQL can't.</div>
+          <div class="card-file">turso-database-engine.md</div>
+        </div>
         <div class="card status-partial">
           <div class="card-head">
             <span class="card-name">Atomic durable job deduplication</span>
@@ -392,14 +408,6 @@
           </div>
           <div class="card-desc">make the green suite's guarantees hard to lose: stop tests that silently never run, turn mock drift into a compile error, unify test-database setup, put the eval CLI under test, and replace sleep-based waits with condition waits.</div>
           <div class="card-file">test-suite-hardening.md</div>
-        </div>
-        <div class="card status-active">
-          <div class="card-head">
-            <span class="card-name">Turso Database engine migration</span>
-            <span class="badge badge-active">Active</span>
-          </div>
-          <div class="card-desc">**in progress**: local files now default to Turso Database with native FTS, packed native bindings, dual-engine service parity, production-shaped cutover coverage, and an explicit libSQL rollback command. The live sync spike is complete; the owner decision between DB/browser sync and Git-only content sync remains open before the later MVCC/layout decision.</div>
-          <div class="card-file">turso-database-engine.md</div>
         </div>
         <div class="card status-parked">
           <div class="card-head">
