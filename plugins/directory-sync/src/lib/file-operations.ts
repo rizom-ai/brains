@@ -245,6 +245,13 @@ export class FileOperations {
     );
   }
 
+  getEntityWritePaths(entity: BaseEntity): string[] {
+    const filePath = this.getEntityFilePath(entity);
+    return entity.entityType === "document"
+      ? [filePath, getDocumentSidecarPath(filePath)]
+      : [filePath];
+  }
+
   async getAllMarkdownFiles(): Promise<string[]> {
     return findMarkdownFiles(this.syncPath, this.entityService);
   }
