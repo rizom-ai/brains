@@ -178,12 +178,14 @@ Each phase is independently shippable and starts with its test. Phases 1–5 may
 2. Verify the mechanism catches drift before converting anything else — add a method to `IEntityService` locally, confirm `bun run typecheck` fails at the mock, and revert. This step is manual verification of the guard, not a committed test; the compile error _is_ the assertion.
 3. Convert the remaining 11 mock files, smallest first. Where a mock cannot satisfy its full interface, narrow the factory's declared return type per decision 2 rather than restoring the cast.
 4. Convert `mock-shell.ts` last. At 1096 lines and 9 casts it is the hard case and the one with the most drift surface; doing it after the pattern is proven on 12 smaller files keeps the difficult work mechanical.
-5. Add an ESLint rule or a `test-wiring` assertion forbidding `as unknown as` in `shared/test-utils/src/`, so the pattern cannot return.
+5. Rebuild `createMockEntityPluginContext` and `createMockServicePluginContext` on the real `createEntityPluginContext` / `createServicePluginContext` factories, which `@brains/plugins` already exports and which take an `IShell` — exactly what `createMockShell` returns. Both currently hand-maintain a ~200-line parallel copy of a context production assembles itself, which is why they had drifted furthest. Deriving them makes drift structurally impossible instead of merely detected, and deletes both literals. Their existing options (`returns.ai`, `jobsEnqueue`, `attachmentsResolve`, `messagingSend`, `entityService`, `listEntitiesImpl`) map onto `createMockShell` options; 43 call sites depend on that surface, so it must be preserved.
+6. Add an ESLint rule or a `test-wiring` assertion forbidding `as unknown as` in `shared/test-utils/src/`, so the pattern cannot return.
 
 Gate:
 
 - Zero `as unknown as` casts remain in `shared/test-utils/src/`.
 - Adding a method to `IShell` or `IEntityService` fails `bun run typecheck` at the mock definition.
+- Every remaining cast is behind a named, documented helper (`genericSpy` for the type parameters `mock()` erases, `PublicSurface` for class nominality), so a reader can tell a known type-system limit from a papered-over mismatch.
 - No test file gains a cast as a result of the conversion.
 - Full suite green.
 
