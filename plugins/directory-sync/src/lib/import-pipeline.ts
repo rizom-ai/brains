@@ -1,4 +1,5 @@
-import type { IEntityService } from "@brains/plugins";
+import type { BaseEntity, IEntityService } from "@brains/plugins";
+import { internalFullScope } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import type { ImportResult, RawEntity } from "../types";
 import type { FileOperations } from "./file-operations";
@@ -84,6 +85,18 @@ async function processEntityImport(
     return;
   }
 
+  const existing = await deps.entityService.getEntity({
+    entityType: rawEntity.entityType,
+    id: rawEntity.id,
+    visibilityScope: internalFullScope(
+      "directory sync indexes entities across all visibility tiers",
+    ),
+  });
+  if (existing && canSkipBeforeDeserialization(deps, existing, rawEntity)) {
+    recordSkippedImport(result);
+    return;
+  }
+
   queueImportImageConversions(deps.imageJobQueue, rawEntity, filePath);
 
   const parsedEntity = await deserializeImportEntity(
@@ -96,5 +109,27 @@ async function processEntityImport(
     return;
   }
 
-  await persistImportEntity(deps, rawEntity, parsedEntity, filePath, result);
+  await persistImportEntity(
+    deps,
+    rawEntity,
+    parsedEntity,
+    filePath,
+    result,
+    existing,
+  );
+}
+
+function canSkipBeforeDeserialization(
+  deps: ImportPipelineDeps,
+  existing: BaseEntity,
+  rawEntity: RawEntity,
+): boolean {
+  if (deps.fileOperations.shouldUpdateEntity(existing, rawEntity)) {
+    return false;
+  }
+
+  return (
+    rawEntity.entityType !== "document" ||
+    Bun.deepEquals(existing.metadata, rawEntity.metadata ?? {})
+  );
 }
