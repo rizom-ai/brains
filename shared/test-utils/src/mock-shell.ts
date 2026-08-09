@@ -606,7 +606,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
   const entityRegistry: IEntityRegistry = {
     registerEntityType: (type, _schema, adapter, config) => {
       entityTypes.add(type);
-      entityAdapters.set(type, adapter as unknown as EntityAdapter<BaseEntity>);
+      entityAdapters.set(type, adapter as EntityAdapter<BaseEntity>);
       entityTypeConfigs.set(type, config ?? {});
     },
     unregisterEntityType: (type): void => {
@@ -628,7 +628,10 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
       if (!adapter) {
         throw new Error(`No adapter registered for entity type: ${type}`);
       }
-      return adapter as unknown as EntityAdapter<TEntity, TMetadata>;
+      // A heterogeneous registry cannot prove the stored adapter matches the
+      // caller-chosen T; the real EntityRegistry asserts at exactly this point
+      // for the same reason.
+      return adapter as EntityAdapter<TEntity, TMetadata>;
     },
     hasEntityType: (type: string) => entityTypes.has(type),
     validateEntity: (type: string, entity: unknown): BaseEntity => {
@@ -891,6 +894,81 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
     return routes;
   };
 
+  const jobQueueService: IJobQueueService = {
+    enqueue: async () => `job-${Date.now()}`,
+    // The real service reports whether the job was still claimable; the fake
+    // has no attempt bookkeeping, so it reports success.
+    complete: async () => true,
+    fail: async () => true,
+    update: async () => true,
+    getStatus: async () => null,
+    getStats: async () => ({
+      pending: 0,
+      processing: 0,
+      failed: 0,
+      completed: 0,
+      total: 0,
+    }),
+    cleanup: async () => 0,
+    getRuntimeUpdates: async () => [],
+    registerHandler: () => {},
+    unregisterHandler: () => {},
+    unregisterPluginHandlers: () => {},
+    getRegisteredTypes: () => [],
+    getHandler: () => undefined,
+    getValidator: () => undefined,
+    finalizeHandlerRegistrations: () => [],
+    getExecutionRegistrations: () => [],
+    getActiveJobs: async () => [],
+    getFailedJobs: async () => [],
+    getStatusByEntityId: async () => null,
+    getDiagnostics: async () => ({
+      totals: { pending: 0, processing: 0, failed: 0, completed: 0 },
+      byType: [],
+      oldestPendingAgeMs: null,
+      oldestProcessingAgeMs: null,
+      staleLeaseCount: 0,
+      workerSessions: {
+        total: 0,
+        active: 0,
+        stale: 0,
+        latestHeartbeatAgeMs: null,
+      },
+    }),
+    // No worker loop is modelled: nothing is ever dequeued, so lease and
+    // session calls are inert rather than pretending to hold a claim.
+    dequeue: async () => null,
+    startWorkerSession: async () => {},
+    heartbeatWorkerSession: async () => true,
+    endWorkerSession: async () => true,
+    renewAttemptLease: async () => true,
+    recordAttemptProgress: async () => true,
+    close: () => {},
+  };
+
+  const renderServiceSurface: PublicSurface<RenderService> = {
+    get: () => undefined,
+    list: () => [],
+    validate: () => true,
+    findViewTemplate: () => undefined,
+    getRenderer: () => undefined,
+    hasRenderer: () => false,
+    listFormats: () => [],
+  };
+  // Only the nominal private-field gap remains; the shape is checked above.
+  const renderService = renderServiceSurface as RenderService;
+
+  const mcpTransport: IMCPTransport = {
+    getMcpServer: (): never => {
+      throw new Error("Mock MCP server not implemented");
+    },
+    createMcpServer: (): never => {
+      throw new Error("Mock MCP server not implemented");
+    },
+    setPermissionLevel: () => {},
+    setProtocolMode: () => {},
+  };
+
   const shell: MockShell = {
     // Core services
     getMessageBus: () => messageBus,
@@ -898,59 +976,15 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
     getLogger: () => logger,
     getEntityService: () => entityService,
     getEntityRegistry: () => entityRegistry,
-    getJobQueueService: () =>
-      ({
-        enqueue: async () => `job-${Date.now()}`,
-        complete: async () => {},
-        fail: async () => {},
-        getStatus: async () => null,
-        getStats: async () => ({
-          pending: 0,
-          processing: 0,
-          failed: 0,
-          completed: 0,
-          total: 0,
-        }),
-        cleanup: async () => 0,
-        getRuntimeUpdates: async () => [],
-        registerHandler: () => {},
-        unregisterHandler: () => {},
-        unregisterPluginHandlers: () => {},
-        getRegisteredTypes: () => [],
-        getHandler: () => undefined,
-        finalizeHandlerRegistrations: () => [],
-        getExecutionRegistrations: () => [],
-        update: async () => {},
-        getActiveJobs: async () => [],
-        getFailedJobs: async () => [],
-        getStatusByEntityId: async () => null,
-      }) as unknown as IJobQueueService,
-    getRenderService: () =>
-      ({
-        get: () => undefined,
-        list: () => [],
-        validate: () => true,
-        findViewTemplate: () => undefined,
-        getRenderer: () => undefined,
-        hasRenderer: () => false,
-        listFormats: () => [],
-      }) as unknown as RenderService,
+    getJobQueueService: () => jobQueueService,
+    getRenderService: () => renderService,
     getAttachmentRegistry: () => createAttachmentsNamespace(attachmentRegistry),
     getRuntimeUploadRegistry: () =>
       createRuntimeUploadsNamespace(runtimeUploadRegistry),
     getRuntimeState: () => runtimeState,
     getRecurringChecks: () => ({ register: () => () => {} }),
     getConversationService: () => conversationService,
-    getMCPService: () =>
-      ({
-        getMcpServer: () => {
-          throw new Error("Mock MCP server not implemented");
-        },
-        createMcpServer: () => {
-          throw new Error("Mock MCP server not implemented");
-        },
-        setPermissionLevel: () => {},
-      }) as unknown as IMCPTransport,
+    getMCPService: () => mcpTransport,
     listToolsForPermissionLevel: (_level: unknown): ToolInfo[] => [],
     getPermissionService: () => new PermissionService({}),
     getDataSourceRegistry: () => dataSourceRegistry,
