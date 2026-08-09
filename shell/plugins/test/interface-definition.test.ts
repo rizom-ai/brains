@@ -94,6 +94,10 @@ describe("declarative generic interfaces", () => {
         admins: ["reading-webhook:reader-1"],
         anchors: ["reading-webhook:reader-1"],
       });
+    const queue = shell.getJobQueueService();
+    const enqueue = mock(queue.enqueue);
+    queue.enqueue = enqueue;
+    shell.getJobQueueService = (): typeof queue => queue;
     await instantiate(service, {}, "@fixture/digest-service").register(shell);
     const plugin = instantiate(
       definition,
@@ -136,6 +140,17 @@ describe("declarative generic interfaces", () => {
       permission: "admin",
       anchor: true,
     });
+    // Cross-package enqueue carries the interface plugin's attribution.
+    expect(enqueue).toHaveBeenCalledWith(
+      expect.objectContaining({
+        options: expect.objectContaining({
+          source: expect.stringContaining("reading-webhook"),
+          metadata: expect.objectContaining({
+            pluginId: expect.stringContaining("reading-webhook"),
+          }),
+        }),
+      }),
+    );
   });
 
   it("supervises one abortable daemon with emitted health", async () => {

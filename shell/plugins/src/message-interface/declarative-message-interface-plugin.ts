@@ -6,7 +6,10 @@ import type {
 } from "../channel-registry";
 import type { MessageInterfacePluginContext } from "../interface/context";
 import { createDeclarativeDaemon } from "../interface/declarative-daemon";
-import type { InstalledPluginPackageMetadata } from "../package-definition";
+import {
+  identityConfigSchema,
+  type InstalledPluginPackageMetadata,
+} from "../package-definition";
 import type {
   InboundMessageAttachment,
   MessageInterfaceDefinitionInput,
@@ -20,16 +23,7 @@ import type {
   SendMessageWithIdRequest,
 } from "./progress-message-coordinator";
 import { MessageInterfacePlugin } from "./message-interface-plugin";
-import { z } from "@brains/utils/zod";
-
-function identityConfigSchema<TConfig extends object>(): z.ZodType<
-  TConfig,
-  unknown
-> {
-  return z.custom<TConfig>(
-    (value) => value !== null && typeof value === "object",
-  );
-}
+import type { z } from "@brains/utils/zod";
 
 function normalizedOutput(message: MessageInterfaceOutput): MessageOutput {
   if (typeof message === "string") return { text: message };

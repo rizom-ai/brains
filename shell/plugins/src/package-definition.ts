@@ -1,6 +1,6 @@
 import type { Plugin } from "./interfaces";
 import { PluginConfigValidationError } from "./config";
-import type { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod";
 
 export type PluginPackageFamily =
   "entity" | "service" | "interface" | "message-interface";
@@ -74,6 +74,21 @@ export interface CreatePluginPackageDefinitionInput<
   readonly config: TConfigSchema;
   readonly public?: TPublic | undefined;
   readonly instantiate: PluginPackageRuntimeFactory<z.output<TConfigSchema>>;
+}
+
+/**
+ * Pass-through schema for config already parsed by the package loader.
+ * Declarative plugin adapters hand BasePlugin a schema, but their config
+ * was validated once by createPluginPackageDefinition — re-parsing would
+ * re-run transforms, so this only asserts the object shape.
+ */
+export function identityConfigSchema<TConfig extends object>(): z.ZodType<
+  TConfig,
+  unknown
+> {
+  return z.custom<TConfig>(
+    (value) => value !== null && typeof value === "object",
+  );
 }
 
 export function assertIdentifier(value: string, label: string): void {

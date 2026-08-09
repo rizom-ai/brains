@@ -18,7 +18,10 @@ import {
 import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
 import type { PluginCapabilities, IShell } from "../interfaces";
-import type { InstalledPluginPackageMetadata } from "../package-definition";
+import {
+  identityConfigSchema,
+  type InstalledPluginPackageMetadata,
+} from "../package-definition";
 import { parseDefinitionEntity } from "../entity/declarative-entity-plugin";
 import { ServicePlugin } from "./service-plugin";
 import type { ServicePluginContext } from "./context";
@@ -54,15 +57,6 @@ function formatTemplateValue(
   value: unknown,
 ): string {
   return template.format({ value: template.schema.parse(value) });
-}
-
-function identityConfigSchema<TConfig extends object>(): z.ZodType<
-  TConfig,
-  unknown
-> {
-  return z.custom<TConfig>(
-    (value) => value !== null && typeof value === "object",
-  );
 }
 
 function toolConfirmationToken(input: unknown): string | undefined {

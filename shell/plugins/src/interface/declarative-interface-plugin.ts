@@ -1,6 +1,9 @@
 import type { UserPermissionLevel } from "@brains/templates";
-import { z } from "@brains/utils/zod";
-import type { InstalledPluginPackageMetadata } from "../package-definition";
+import type { z } from "@brains/utils/zod";
+import {
+  identityConfigSchema,
+  type InstalledPluginPackageMetadata,
+} from "../package-definition";
 import type {
   AnyInterfaceRouteDefinition,
   InterfaceCaller,
@@ -17,15 +20,6 @@ import {
 import { createDeclarativeDaemon } from "./declarative-daemon";
 import type { InterfacePluginContext } from "./context";
 import { InterfacePlugin } from "./interface-plugin";
-
-function identityConfigSchema<TConfig extends object>(): z.ZodType<
-  TConfig,
-  unknown
-> {
-  return z.custom<TConfig>(
-    (value) => value !== null && typeof value === "object",
-  );
-}
 
 class DeclarativeInterfacePlugin<
   TConfigSchema extends z.ZodType<object, object>,
