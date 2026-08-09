@@ -10,10 +10,11 @@ const stableLedgerDocumentPath = join(
   "docs/public-release/AUTHORING_API_0.2.md",
 );
 
-// The lower bound is a placeholder: no published alpha implements this API yet.
-// The Phase 1 packed harness pins fixtures to the first compatible published
-// alpha and must advance the fixture manifests and this range together.
-const placeholderBrainPeerRange = ">=0.2.0-alpha.0 <0.3.0";
+// Frozen to the nominated published alpha. These values and the fixture
+// manifests advance together only when a pre-stable contract correction
+// requires nominating a new alpha.
+const nominatedBrainPeerRange = ">=0.2.0-alpha.272 <0.3.0";
+const nominatedSiteVersion = "0.2.0-alpha.233";
 
 const categories = [
   "stable",
@@ -189,8 +190,13 @@ describe("public authoring 0.2 golden packages", () => {
       });
       expect(manifestSource).not.toContain("workspace:");
       expect(manifest.peerDependencies?.["@rizom/brain"]).toBe(
-        placeholderBrainPeerRange,
+        nominatedBrainPeerRange,
       );
+      if (fixture.directory === "site") {
+        expect(manifest.dependencies?.["@rizom/site"]).toBe(
+          nominatedSiteVersion,
+        );
+      }
       expect(
         tsconfig.extends,
         `${fixture.directory} tsconfig must be self-contained`,

@@ -2,7 +2,7 @@
 
 ## Status
 
-**Implementation phases 1–5, the local Phase 6 export/documentation freeze, and the exact-version registry harness are complete; published release evidence remains pending.** Local packed artifacts now prove the declarative contracts for all four required extension use cases, but stable nomination still requires publishing the candidate, pinning fixtures to it, and running the nominated-alpha registry and live matrices:
+**Implementation phases 1–5, the local Phase 6 export/documentation freeze, candidate publication, and the exact-version registry matrix are complete.** The six golden packages compile, pack, install, and boot against `@rizom/brain@0.2.0-alpha.272` with `@rizom/site@0.2.0-alpha.233`. Stable nomination still requires provider-backed live evidence, site-sections deprecation, and stable site SDK publication:
 
 1. custom entity types;
 2. custom service plugins;
