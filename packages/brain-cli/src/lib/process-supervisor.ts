@@ -1,4 +1,11 @@
 import { spawn, type SpawnOptions } from "node:child_process";
+import { randomBytes, randomUUID } from "node:crypto";
+import { rmSync } from "node:fs";
+import { join } from "node:path";
+import {
+  localDatabaseEndpointEnv,
+  localDatabaseOwnershipEnv,
+} from "@brains/core";
 import {
   BROKER_PROGRESS_TIMEOUT_MS,
   GIT_BROKER_CHECKOUT_ENV,
@@ -83,6 +90,8 @@ export interface ProcessSupervisorDependencies extends SpawnBunRunnerDependencie
   brokerGroupProbeAttempts?: number;
   reportIncident?: (incident: Record<string, unknown>) => void;
   reportReady?: (role: SupervisedChildRole) => void;
+  localDatabaseEndpoint?: { address: string; secret: string };
+  createProcessSessionId?: () => string;
   gitBroker?: GitBrokerSpec;
 }
 
@@ -238,6 +247,8 @@ interface RuntimeSupervisorOptions {
   brokerGroupProbeAttempts: number;
   reportIncident: (incident: Record<string, unknown>) => void;
   reportReady: (role: SupervisedChildRole) => void;
+  localDatabaseEndpoint: { address: string; secret: string };
+  createProcessSessionId: () => string;
   gitBroker: GitBrokerSpec | undefined;
 }
 
@@ -301,6 +312,9 @@ function runRuntimeSupervisor(
       if (broker) clearChildTimers(broker);
       if (web) clearChildTimers(web);
       if (worker) clearChildTimers(worker);
+      if (!options.localDatabaseEndpoint.address.startsWith("\\\\.\\pipe\\")) {
+        rmSync(options.localDatabaseEndpoint.address, { force: true });
+      }
     };
 
     const finish = (result: CommandResult): void => {
@@ -710,13 +724,21 @@ function runRuntimeSupervisor(
           // The broker leads its own process group so its Git children can be
           // terminated as a unit without touching web or worker.
           detached: role === "git-broker",
-          env: options.gitBroker
-            ? {
-                ...options.processImpl.env,
-                [GIT_BROKER_SOCKET_ENV]: options.gitBroker.socketPath,
-                [GIT_BROKER_CHECKOUT_ENV]: options.gitBroker.checkoutPath,
-              }
-            : options.processImpl.env,
+          env: {
+            ...options.processImpl.env,
+            ...(options.gitBroker && {
+              [GIT_BROKER_SOCKET_ENV]: options.gitBroker.socketPath,
+              [GIT_BROKER_CHECKOUT_ENV]: options.gitBroker.checkoutPath,
+            }),
+            [localDatabaseEndpointEnv.address]:
+              options.localDatabaseEndpoint.address,
+            [localDatabaseEndpointEnv.secret]:
+              options.localDatabaseEndpoint.secret,
+            [localDatabaseEndpointEnv.sessionId]:
+              options.createProcessSessionId(),
+            [localDatabaseOwnershipEnv.forbidLocalOpen]:
+              role === "worker" ? "1" : "0",
+          },
         } satisfies SpawnOptions,
       );
       const child: ManagedChild = {
@@ -819,6 +841,20 @@ function runRuntimeSupervisor(
   });
 }
 
+function createLocalDatabaseEndpoint(): {
+  address: string;
+  secret: string;
+} {
+  const endpointId = `${process.pid}-${randomUUID()}`;
+  return {
+    address:
+      process.platform === "win32"
+        ? `\\\\.\\pipe\\brains-local-db-${endpointId}`
+        : join("/tmp", `brains-local-db-${endpointId}.sock`),
+    secret: randomBytes(32).toString("base64url"),
+  };
+}
+
 /** Own the same-bundle web child and its restartable worker sibling. */
 export function superviseRuntimeChildren(
   cwd: string,
@@ -857,5 +893,8 @@ export function superviseRuntimeChildren(
       ((role): void => {
         console.log(`Brain ${role} runtime ready`);
       }),
+    localDatabaseEndpoint:
+      dependencies.localDatabaseEndpoint ?? createLocalDatabaseEndpoint(),
+    createProcessSessionId: dependencies.createProcessSessionId ?? randomUUID,
   });
 }

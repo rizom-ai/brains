@@ -8,6 +8,7 @@ import {
 } from "@brains/job-queue";
 import { migrateJobQueue } from "@brains/job-queue/migrate";
 import { MessageBus } from "@brains/messaging-service";
+import { OperationContext } from "@brains/operation-context";
 import {
   type Daemon,
   type Plugin,
@@ -30,14 +31,16 @@ class ExecutionAuditPlugin extends ServicePlugin<
   Record<string, never>
 > {
   public readyCalled = false;
+  private readonly onProcess: () => void | Promise<void>;
 
-  public constructor() {
+  public constructor(onProcess: () => void | Promise<void> = () => undefined) {
     super(
       "execution-audit",
       { name: "@test/execution-audit", version: "1.0.0" },
       {},
       z.object({}),
     );
+    this.onProcess = onProcess;
   }
 
   protected override async onRegister(
@@ -66,7 +69,7 @@ class ExecutionAuditPlugin extends ServicePlugin<
         _jobId: string,
         _progress: ProgressReporter,
         _signal: AbortSignal,
-      ): Promise<void> => {},
+      ): Promise<void> => this.onProcess(),
     };
     context.jobs.registerHandler("execute", handler);
   }
@@ -182,6 +185,89 @@ describe("supervised runtime process roles", () => {
       },
     });
     expect(jobId).toBeString();
+  });
+
+  it("routes worker queue persistence through the web owner endpoint", async () => {
+    const testDirectory = await createTestDirectory();
+    cleanups.push(testDirectory.cleanup);
+    await Promise.all([
+      migrateEntities({ url: `file:${testDirectory.dir}/test.db` }),
+      migrateJobQueue({ url: `file:${testDirectory.dir}/test-jobs.db` }),
+      migrateConversations({ url: `file:${testDirectory.dir}/test-conv.db` }),
+      migrateRuntimeState({
+        url: `file:${testDirectory.dir}/test-runtime-state.db`,
+      }),
+    ]);
+
+    const endpoint = {
+      address: `${testDirectory.dir}/database-owner.sock`,
+      secret: "s".repeat(48),
+    };
+    const web = Shell.createFresh(
+      createTestShellConfig(testDirectory.dir, {
+        plugins: [new ExecutionAuditPlugin()],
+      }),
+      { logger: createSilentLogger("database-owner-web-test") },
+      {
+        processRole: "web",
+        localDatabaseEndpoint: { ...endpoint, sessionId: "web-session" },
+      },
+    );
+    const workerOperationContext = OperationContext.createFresh();
+    let acknowledgeProcessed = (): void => undefined;
+    const processed = new Promise<void>((resolve) => {
+      acknowledgeProcessed = resolve;
+    });
+    const worker = Shell.createFresh(
+      createTestShellConfig(testDirectory.dir, {
+        plugins: [new ExecutionAuditPlugin(acknowledgeProcessed)],
+      }),
+      {
+        logger: createSilentLogger("database-owner-worker-test"),
+        operationContext: workerOperationContext,
+      },
+      {
+        processRole: "worker",
+        localDatabaseEndpoint: { ...endpoint, sessionId: "worker-session" },
+      },
+    );
+    shells.push(web, worker);
+
+    await web.initialize({ mode: "startup-check" });
+    await worker.initialize();
+
+    const jobId = await workerOperationContext.run(
+      {
+        rootJobId: "remote-root",
+        causationId: "initial-cause",
+        projectionLineage: [],
+        derivationDepth: 0,
+      },
+      "worker-operation",
+      () =>
+        worker.getJobQueueService().enqueue({
+          type: "execution-audit:execute",
+          data: { value: "queued-by-worker" },
+          options: {
+            priority: -100,
+            source: "test",
+            rootJobId: "remote-root",
+            metadata: { operationType: "data_processing" },
+          },
+        }),
+    );
+    await processed;
+    await worker.shutdown();
+
+    expect(await web.getJobQueueService().getStatus(jobId)).toMatchObject({
+      status: "completed",
+      metadata: {
+        provenance: {
+          rootJobId: "remote-root",
+          causationId: "worker-operation",
+        },
+      },
+    });
   });
 
   it("boots only immutable execution capabilities in the worker", async () => {

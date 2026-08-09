@@ -1,4 +1,4 @@
-import type { BootMode } from "@brains/core";
+import type { BootMode, LocalDatabaseEndpointConfig } from "@brains/core";
 import type { Tool } from "@brains/mcp-service";
 
 /**
@@ -29,6 +29,7 @@ export interface BootFlags {
   mode?: BootMode;
   childRole?: "web" | "worker";
   migrationsCompleted?: boolean;
+  localDatabaseEndpoint?: LocalDatabaseEndpointConfig;
   operation?: "migrate";
 }
 

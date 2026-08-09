@@ -273,14 +273,41 @@ For the endpoint boundary:
 - Parent-owned migrations still run once before web starts. Auth-service's
   embedded replica remains outside this change.
 
-Test handshake authentication/version rejection, frame fragmentation and size
-limits, queue polling, claims, leases, progress, owner readiness, worker
-restart, stale-session replies, bounded overload, request cancellation,
-web-owner exit, endpoint cleanup, and clean shutdown.
+The contract inventory fixes the process split before later services move:
 
-**Exit:** the representative slice passes without a worker-side job database
-handle; measured latency/throughput remains recorded; transport saturation
-cannot delay the parent heartbeat watchdog.
+| Service       | Remains process-local                                                                                                                     | Safe durable boundary                                                                                                            |
+| ------------- | ----------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| Job queue     | Handler and validator registries, executable handlers, worker lifecycle, batch coordination, and progress event behavior                  | Enqueue, typed claims, worker sessions, attempt leases/progress, terminal writes, status, diagnostics, cursors, and cleanup      |
+| Entities      | Entity registry, adapters and schemas, Markdown serialization, interceptors, validators, upload handlers, and projection wakeup callbacks | CRUD, list/search/count, semantic and embedding operations, index readiness, and a future narrow async projection-store contract |
+| Conversations | Message-bus subscriptions and event delivery policy                                                                                       | Start, message and metadata writes, reads, search, and delete; the owner must emit each durable event exactly once               |
+| Runtime state | `scoped()` schema validation and the returned facade                                                                                      | The scoped store's async get/set/list/delete/clear operations, with dates encoded explicitly                                     |
+
+`ProjectionStore`, schemas, handlers, callbacks, scoped stores, and concrete
+service instances are therefore not endpoint payloads.
+
+Phase 5A now implements the representative job-queue slice. The supervisor
+creates one endpoint and secret, gives every child a fresh process session,
+and keeps heartbeat traffic on parent IPC. The web child listens before
+readiness; the worker authenticates before database readiness and constructs a
+remote queue service without calling `createJobQueueDatabase()`. Package-owned
+Zod envelopes cover every durable queue operation while execution registries
+stay local. Operation provenance is restored in the web owner before dispatch.
+
+Coverage now includes authentication and version rejection, fragmented and
+oversized frames, explicit typed-array encoding, class-instance rejection,
+bounded admission, cancellation, request deadlines, owner process loss,
+stale-session isolation, socket cleanup, worker session rotation, terminal
+owner shutdown, and a full web/worker queue claim-complete round trip.
+The remote-service test also asserts that its configured worker database file
+is never created. Both Turso and libSQL job-queue suites pass with 198 tests and
+one existing remote-contract skip; the Turso path remains in WAL for this
+phase. The earlier nine-trial throughput measurements remain the transport
+baseline because the implemented endpoint uses the selected private-socket
+shape and the parent never brokers its traffic.
+
+**Phase 5A exit: met.** The representative slice passes without a worker-side
+job database handle; measured latency/throughput remains recorded; transport
+saturation cannot delay the parent heartbeat watchdog.
 
 #### Phase 5B — Route all local shell persistence through the web owner
 

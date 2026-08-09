@@ -10,7 +10,10 @@ import {
 } from "./standard-paths";
 import { Effect, Exit, Scope } from "@brains/utils/effect";
 import type { Fiber } from "@brains/utils/effect";
-import type { RuntimeProcessRole } from "@brains/core";
+import type {
+  LocalDatabaseEndpointConfig,
+  RuntimeProcessRole,
+} from "@brains/core";
 import { addProcessSignalListeners } from "@brains/utils/process-signals";
 
 type ShellConfig = NonNullable<Parameters<typeof Shell.createFresh>[0]>;
@@ -19,6 +22,7 @@ type InitializeOptions = Parameters<Shell["initialize"]>[0];
 export interface AppRuntimeOptions {
   migrationsCompleted?: boolean;
   processRole?: RuntimeProcessRole;
+  localDatabaseEndpoint?: LocalDatabaseEndpointConfig;
   onRuntimeReady?: () => void;
 }
 
@@ -79,13 +83,18 @@ export class App {
 
   private createShell(
     options?: InitializeOptions,
-    processRole?: RuntimeProcessRole,
+    runtimeOptions?: AppRuntimeOptions,
   ): void {
     // Let shellInitializer build the logger from shellConfig.logging so
     // logFile, format, and level take effect. Logger.getInstance() ignores
     // options on a pre-existing singleton.
     this.shell = Shell.createFresh(this.buildShellConfig(options), undefined, {
-      ...(processRole && { processRole }),
+      ...(runtimeOptions?.processRole && {
+        processRole: runtimeOptions.processRole,
+      }),
+      ...(runtimeOptions?.localDatabaseEndpoint && {
+        localDatabaseEndpoint: runtimeOptions.localDatabaseEndpoint,
+      }),
     });
   }
 
@@ -119,7 +128,6 @@ export class App {
     shellConfig.jobQueueDatabase ??= standard.jobQueueDatabase;
     shellConfig.conversationDatabase ??= standard.conversationDatabase;
     shellConfig.runtimeStateDatabase ??= standard.runtimeStateDatabase;
-    shellConfig.embeddingDatabase ??= standard.embeddingDatabase;
     shellConfig.embedding ??= standard.embedding;
     shellConfig.gitBrokerSocket ??= resolveGitBrokerSocket();
     shellConfig.gitBrokerCheckout ??= resolveGitBrokerCheckout();
@@ -233,7 +241,7 @@ export class App {
     // Injected shells remain migration-free for tests and embedding applications.
     if (!this.shell) {
       if (!runtimeOptions?.migrationsCompleted) await this.migrate();
-      this.createShell(options, runtimeOptions?.processRole);
+      this.createShell(options, runtimeOptions);
     }
 
     await this.registerCLIInterface();

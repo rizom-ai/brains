@@ -107,6 +107,7 @@ function createHarness(): TestHarness {
 }
 
 function supervise(harness: TestHarness): Promise<CommandResult> {
+  let session = 0;
   return superviseRuntimeChildren("/brain", "/dist/brain.js", {
     spawnImpl: harness.spawnImpl,
     processImpl: harness.processEvents,
@@ -119,6 +120,11 @@ function supervise(harness: TestHarness): Promise<CommandResult> {
     workerHeartbeatIntervalMs: 20,
     reportIncident: harness.reportIncident,
     reportReady: harness.reportReady,
+    localDatabaseEndpoint: {
+      address: "/tmp/brain-supervisor-owner.sock",
+      secret: "s".repeat(48),
+    },
+    createProcessSessionId: () => `process-session-${++session}`,
   });
 }
 
@@ -642,6 +648,11 @@ describe("bundled process supervisor", () => {
       expect.objectContaining({
         cwd: "/brain",
         stdio: ["inherit", "inherit", "inherit", "ipc"],
+        env: expect.objectContaining({
+          BRAINS_LOCAL_DATABASE_ENDPOINT: "/tmp/brain-supervisor-owner.sock",
+          BRAINS_LOCAL_DATABASE_SECRET: "s".repeat(48),
+          BRAINS_LOCAL_DATABASE_SESSION_ID: "process-session-1",
+        }),
       }),
     );
 
@@ -655,7 +666,14 @@ describe("bundled process supervisor", () => {
     expect(harness.spawnImpl).toHaveBeenLastCalledWith(
       "bun",
       ["/dist/brain.js", "start", "--child=worker"],
-      expect.objectContaining({ cwd: "/brain" }),
+      expect.objectContaining({
+        cwd: "/brain",
+        env: expect.objectContaining({
+          BRAINS_LOCAL_DATABASE_ENDPOINT: "/tmp/brain-supervisor-owner.sock",
+          BRAINS_LOCAL_DATABASE_SECRET: "s".repeat(48),
+          BRAINS_LOCAL_DATABASE_SESSION_ID: "process-session-2",
+        }),
+      }),
     );
 
     const worker = harness.children[1];
@@ -700,6 +718,15 @@ describe("bundled process supervisor", () => {
     harness.advanceTo(10);
     harness.fireTimer(10);
     expect(harness.spawnImpl).toHaveBeenCalledTimes(3);
+    expect(harness.spawnImpl).toHaveBeenLastCalledWith(
+      "bun",
+      ["/dist/brain.js", "start", "--child=worker"],
+      expect.objectContaining({
+        env: expect.objectContaining({
+          BRAINS_LOCAL_DATABASE_SESSION_ID: "process-session-3",
+        }),
+      }),
+    );
     expect(harness.reportIncident).toHaveBeenCalledWith({
       type: "worker-exited",
       code: 1,
@@ -850,6 +877,27 @@ describe("bundled process supervisor", () => {
     replacement.emit("close", null, "SIGTERM");
     web.emit("close", null, "SIGTERM");
     expect(await supervised).toEqual({ success: true });
+  });
+
+  it("terminates the worker and parent after the web owner exits", async () => {
+    const harness = createHarness();
+    const supervised = supervise(harness);
+    const web = harness.children[0];
+    if (!web) throw new Error("Expected web child");
+    web.emit("message", { type: "runtime-ready" });
+    const worker = harness.children[1];
+    if (!worker) throw new Error("Expected worker child");
+    worker.emit("message", { type: "worker-ready" });
+
+    web.emit("close", 1, null);
+    expect(worker.kill).toHaveBeenCalledWith("SIGTERM");
+    worker.emit("close", null, "SIGTERM");
+
+    expect(await supervised).toEqual({
+      success: false,
+      message: "Brain web child exited with code 1",
+      exitCode: 1,
+    });
   });
 
   it("forwards shutdown to both children and escalates after the grace period", async () => {

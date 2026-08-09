@@ -196,9 +196,26 @@ describe("App", () => {
 
       try {
         const app = App.create({});
-        await app.initialize(undefined, { migrationsCompleted: true });
+        const localDatabaseEndpoint = {
+          address: "/tmp/brain-owner.sock",
+          secret: "s".repeat(48),
+          sessionId: "worker-session",
+        };
+        await app.initialize(undefined, {
+          migrationsCompleted: true,
+          processRole: "worker",
+          localDatabaseEndpoint,
+        });
 
         expect(migrationSpy).not.toHaveBeenCalled();
+        expect(createFreshSpy).toHaveBeenCalledWith(
+          expect.anything(),
+          undefined,
+          {
+            processRole: "worker",
+            localDatabaseEndpoint,
+          },
+        );
         expect(mockShell.initialize).toHaveBeenCalled();
       } finally {
         createFreshSpy.mockRestore();

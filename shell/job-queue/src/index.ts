@@ -4,6 +4,14 @@ export { JobQueueWorker } from "./job-queue-worker";
 export { BatchJobManager } from "./batch-job-manager";
 export { JobProgressMonitor } from "./job-progress-monitor";
 export type { JobProgressMonitorMode } from "./job-progress-monitor";
+export {
+  JOB_QUEUE_RPC_SERVICE,
+  JobQueueRpcRequestSchema,
+  parseJobQueueRpcRequest,
+  parseJobQueueRpcResult,
+  type JobQueueRpcRequest,
+  type JobQueueRpcTransport,
+} from "./job-queue-rpc";
 export { BaseJobHandler } from "./base-job-handler";
 export type {
   BaseJobHandlerConfig,

@@ -269,6 +269,19 @@ describe("builtin process supervision", () => {
       });
       const boot = mock(async (): Promise<void> => {});
       setBootFn(boot);
+      const localDatabaseEndpoint = {
+        address: join(tmpdir(), "brain-start-owner.sock"),
+        secret: "s".repeat(48),
+        sessionId: `${childRole}-session`,
+      };
+      const processImpl = Object.assign(new EventEmitter(), {
+        env: {
+          ...process.env,
+          BRAINS_LOCAL_DATABASE_ENDPOINT: localDatabaseEndpoint.address,
+          BRAINS_LOCAL_DATABASE_SECRET: localDatabaseEndpoint.secret,
+          BRAINS_LOCAL_DATABASE_SESSION_ID: localDatabaseEndpoint.sessionId,
+        },
+      });
 
       const result = await start(
         testDir,
@@ -277,6 +290,7 @@ describe("builtin process supervision", () => {
           argv: ["start", `--child=${childRole}`],
           entrypointPath: "/tmp/brain.js",
           spawnImpl,
+          processImpl,
         },
       );
 
@@ -286,6 +300,7 @@ describe("builtin process supervision", () => {
         chat: false,
         childRole,
         migrationsCompleted: true,
+        localDatabaseEndpoint,
       });
     },
   );

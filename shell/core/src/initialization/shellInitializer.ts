@@ -13,7 +13,10 @@ import type { ShellDependencies, ShellServices } from "../types/shell-types";
 import { createShellServices } from "./service-factory";
 import type { ShellLifecycle } from "./shell-lifecycle";
 import * as shellRegistration from "./shell-registration";
-import type { RuntimeProcessRole } from "../runtime-process-role";
+import type {
+  LocalDatabaseEndpointConfig,
+  RuntimeProcessRole,
+} from "../runtime-process-role";
 
 export type { ShellServices } from "../types/shell-types";
 export type { PluginInitializeOptions } from "./shell-registration";
@@ -22,23 +25,33 @@ export class ShellInitializer {
   private readonly logger: Logger;
   private readonly config: ShellConfig;
   private readonly processRole: RuntimeProcessRole | undefined;
+  private readonly localDatabaseEndpoint:
+    LocalDatabaseEndpointConfig | undefined;
 
   public static createFresh(
     logger: Logger,
     config: ShellConfig,
     processRole?: RuntimeProcessRole,
+    localDatabaseEndpoint?: LocalDatabaseEndpointConfig,
   ): ShellInitializer {
-    return new ShellInitializer(logger, config, processRole);
+    return new ShellInitializer(
+      logger,
+      config,
+      processRole,
+      localDatabaseEndpoint,
+    );
   }
 
   private constructor(
     logger: Logger,
     config: ShellConfig,
     processRole?: RuntimeProcessRole,
+    localDatabaseEndpoint?: LocalDatabaseEndpointConfig,
   ) {
     this.logger = logger.child("ShellInitializer");
     this.config = config;
     this.processRole = processRole;
+    this.localDatabaseEndpoint = localDatabaseEndpoint;
   }
 
   public registerShellTemplates(templateRegistry: TemplateRegistry): void {
@@ -95,6 +108,9 @@ export class ShellInitializer {
       initializerLogger: this.logger,
       lifecycle,
       ...(this.processRole && { processRole: this.processRole }),
+      ...(this.localDatabaseEndpoint && {
+        localDatabaseEndpoint: this.localDatabaseEndpoint,
+      }),
     });
   }
 
