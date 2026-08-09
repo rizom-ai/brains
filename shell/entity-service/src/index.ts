@@ -89,6 +89,8 @@ export type {
   SearchOptions,
   GetEntityRequest,
   GetEntityRawRequest,
+  CreateEntityRequest,
+  UpdateEntityRequest,
   ProjectSemanticSpaceRequest,
   SemanticEntityReference,
   SemanticSpaceDistanceRange,

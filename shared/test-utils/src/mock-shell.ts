@@ -49,6 +49,7 @@ import type { Logger } from "@brains/utils/logger";
 import type { DefaultQueryResponse } from "@brains/contracts";
 import {
   getVisibleContentVisibilities,
+  normalizeContentVisibility,
   type IEntityService,
   type IEntityRegistry,
   type BaseEntity,
@@ -56,7 +57,11 @@ import {
   type DataSource,
   type EntityAdapter,
   type UploadSaveHandlerRegistration,
-  type UpdateEntityOptions,
+  type CreateEntityRequest,
+  type UpdateEntityRequest,
+  type GetEntityRequest,
+  type ListEntitiesRequest,
+  type EntityMutationResult,
 } from "@brains/entity-service";
 import { computeContentHash } from "@brains/utils/hash";
 import type { IJobQueueService, IJobsNamespace } from "@brains/job-queue";
@@ -320,31 +325,39 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
 
   // --- Entity Service (stateful) ---
   const entityService: IEntityService = {
-    createEntity: async (request: {
-      entity: Omit<BaseEntity, "visibility"> & {
-        visibility?: BaseEntity["visibility"];
+    createEntity: async <T extends BaseEntity>(
+      request: CreateEntityRequest<T>,
+    ): Promise<EntityMutationResult> => {
+      // `EntityInput<T>` leaves id, timestamps and contentHash to the service,
+      // so the fake fills them the way the real one does rather than assuming
+      // the caller passed a complete entity.
+      const input = request.entity;
+      const now = new Date().toISOString();
+      const id = input.id ?? `entity-${Date.now()}`;
+      const entity: BaseEntity = {
+        ...input,
+        id,
+        visibility: normalizeContentVisibility(input.visibility),
+        created: input.created ?? now,
+        updated: input.updated ?? now,
+        content: input.content,
+        metadata: input.metadata,
+        entityType: input.entityType,
+        contentHash: "",
       };
-    }) => {
-      const entity = {
-        ...request.entity,
-        visibility: request.entity.visibility ?? "public",
-      } satisfies BaseEntity;
       entityTypes.add(entity.entityType);
-      const id = entity.id || `entity-${Date.now()}`;
-      const { content, metadata } = serializeViaAdapter({ ...entity, id });
+      const { content, metadata } = serializeViaAdapter(entity);
       entities.set(id, {
         ...entity,
-        id,
         content,
         metadata,
-        visibility: entity.visibility,
         contentHash: computeContentHash(content),
       });
       return { entityId: id, jobId: `job-${id}`, skipped: false };
     },
     createEntityFromMarkdown: async (request: {
       input: { entityType: string; id: string; markdown: string };
-    }) => {
+    }): Promise<EntityMutationResult> => {
       const adapter = entityAdapters.get(request.input.entityType);
       const parsed = adapter?.fromMarkdown(request.input.markdown) ?? {
         entityType: request.input.entityType,
@@ -367,10 +380,9 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
       } as BaseEntity;
       return entityService.createEntity({ entity });
     },
-    updateEntity: async (request: {
-      entity: BaseEntity;
-      options?: UpdateEntityOptions;
-    }) => {
+    updateEntity: async <T extends BaseEntity>(
+      request: UpdateEntityRequest<T>,
+    ): Promise<EntityMutationResult> => {
       const entity = request.entity;
       if (!entity.id) throw new Error("Entity must have an id");
       const { content, metadata } = serializeViaAdapter(entity);
@@ -404,34 +416,30 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
       });
       return { entityId: entity.id, jobId: `job-${entity.id}`, skipped: false };
     },
-    deleteEntity: async (request: { entityType: string; id: string }) => {
+    deleteEntity: async (request: {
+      entityType: string;
+      id: string;
+    }): Promise<boolean> => {
       entities.delete(request.id);
       return true;
     },
-    getEntity: async (request: {
+    getEntity: async <T extends BaseEntity>(request: {
       entityType: string;
       id: string;
       visibilityScope?: BaseEntity["visibility"];
-    }) => {
+    }): Promise<T | null> => {
       const entity = entities.get(request.id);
       if (entity?.entityType !== request.entityType) return null;
-      if (request.visibilityScope === undefined) return entity;
+      if (request.visibilityScope === undefined) return entity as T;
       return getVisibleContentVisibilities(request.visibilityScope).includes(
         entity.visibility,
       )
-        ? entity
+        ? (entity as T)
         : null;
     },
-    listEntities: async (request: {
-      entityType: string;
-      options?: {
-        filter?: {
-          metadata?: Record<string, unknown>;
-          visibilityScope?: BaseEntity["visibility"];
-        };
-        publishedOnly?: boolean;
-      };
-    }) => {
+    listEntities: async <T extends BaseEntity>(
+      request: ListEntitiesRequest,
+    ): Promise<T[]> => {
       const scope = request.options?.filter?.visibilityScope;
       const visible = scope
         ? new Set(getVisibleContentVisibilities(scope))
@@ -450,7 +458,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
           filterEntries.every(([key, value]) => e.metadata[key] === value),
         );
       }
-      return results;
+      return results as T[];
     },
     search: async () => [],
     searchWithDistances: async () => [],
@@ -460,7 +468,9 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
     deserializeEntity: (markdown: string) =>
       ({ content: markdown }) as BaseEntity,
     getAsyncJobStatus: async () => ({ status: "completed" as const }),
-    upsertEntity: async (request: { entity: BaseEntity }) => {
+    upsertEntity: async (request: {
+      entity: BaseEntity;
+    }): Promise<EntityMutationResult & { created: boolean }> => {
       const entity = request.entity;
       entityTypes.add(entity.entityType);
       const id = entity.id || `entity-${Date.now()}`;
@@ -484,7 +494,9 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
     getEntityTypeConfig,
     getWeightMap: () => ({}),
     countEntities: async () => 0,
-    getEntityCounts: async (visibilityScope?: BaseEntity["visibility"]) => {
+    getEntityCounts: async (
+      visibilityScope?: BaseEntity["visibility"],
+    ): Promise<Array<{ entityType: string; count: number }>> => {
       const visible = visibilityScope
         ? new Set(getVisibleContentVisibilities(visibilityScope))
         : null;
@@ -498,7 +510,49 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
         count,
       }));
     },
-  } as unknown as IEntityService;
+
+    // The fake stores serialized entities directly, so there is no separate
+    // unresolved form to return.
+    getEntityRaw: async <T extends BaseEntity>(
+      request: GetEntityRequest,
+    ): Promise<T | null> => entityService.getEntity<T>(request),
+
+    // Embeddings and projections are not modelled: the fake has no vectors, so
+    // it reports an empty, ready index rather than pretending to search one.
+    storeEmbedding: async (): Promise<void> => {},
+    countEmbeddings: async (): Promise<number> => 0,
+    backfillMissingEmbeddings: async () => ({ queued: 0, skipped: 0 }),
+    isIndexReady: (): boolean => true,
+    awaitIndexReady: async () => ({
+      ready: true,
+      degraded: false,
+      activeEmbeddingJobs: 0,
+      missingEmbeddings: 0,
+      staleEmbeddings: 0,
+      failedEmbeddings: 0,
+      embeddableEntities: 0,
+      embeddedEntities: 0,
+    }),
+    projectSemanticSpace: async () => ({
+      origin: { kind: "centroid" as const },
+      points: [],
+      neighbors: [],
+      distanceRange: { min: 0, max: 0 },
+    }),
+
+    reconcileProjectionTargets: async (): Promise<void> => {},
+    setProjectionWakeup: () => (): void => {},
+    // Projection storage is database-backed and cannot be faked usefully. Fail
+    // loudly rather than hand back an empty stand-in, which would make a test
+    // asserting projection behaviour silently meaningless.
+    getProjectionStore: (): never => {
+      throw new Error(
+        "createMockShell: getProjectionStore is not mocked; use a real entity service for projection tests",
+      );
+    },
+
+    initialize: async (): Promise<void> => {},
+  } satisfies IEntityService;
 
   // --- Entity Registry ---
   const createInterceptors = new Map<
