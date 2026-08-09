@@ -15,7 +15,7 @@ import type {
   MessageInterfaceDefinitionInput,
   MessageOutput,
   ReceiveAuthenticatedInput,
-} from "../public/interface-definition";
+} from "../interface/interface-definition-contract";
 import type {
   EditMessageRequest,
   MessageInterfaceOutput,

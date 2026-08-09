@@ -9,8 +9,8 @@ import type {
   InterfaceCaller,
   InterfaceDefinitionInput,
   InterfaceJobs,
-} from "../public/interface-definition";
-import type { AnyServiceJobDefinition } from "../public/service-definition";
+} from "./interface-definition-contract";
+import type { AnyServiceJobDefinition } from "../service/service-definition-contract";
 import { getServiceJobRuntimeType } from "../service/job-definition-runtime";
 import {
   jsonError,

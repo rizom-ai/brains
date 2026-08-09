@@ -1,220 +1,53 @@
-import type { UserPermissionLevel } from "@brains/templates";
-import type { z } from "@brains/utils/zod";
 import { createDeclarativeInterfacePlugin } from "../interface/declarative-interface-plugin";
+import type {
+  InterfaceConfigSchema,
+  InterfaceDaemonDefinition,
+  InterfaceDefinitionInput,
+  InterfaceRouteDefinition,
+  InterfaceRouteInput,
+  InterfaceSchema,
+  MessageInterfaceDefinitionInput,
+  MessageRecipientSchema,
+  ProtocolSecurityDefinition,
+  RouteMethod,
+  RouteSecurity,
+} from "../interface/interface-definition-contract";
 import { createDeclarativeMessageInterfacePlugin } from "../message-interface/declarative-message-interface-plugin";
 import {
   assertIdentifier,
   createPluginPackageDefinition,
 } from "../package-definition";
-import type { AnyServiceJobDefinition } from "./service-definition";
+
+export type {
+  AnyInterfaceRouteDefinition,
+  InboundMessageAttachment,
+  InterfaceActor,
+  InterfaceCaller,
+  InterfaceConfigSchema,
+  InterfaceDaemonDefinition,
+  InterfaceDaemonHealth,
+  InterfaceDefinitionInput,
+  InterfaceJobReference,
+  InterfaceJobs,
+  InterfaceRouteDefinition,
+  InterfaceRouteInput,
+  InterfaceSchema,
+  MessageChannel,
+  MessageChannelDefinition,
+  MessageInterfaceDefinitionInput,
+  MessageOutput,
+  MessageReceiver,
+  MessageRecipientSchema,
+  ProtocolSecurityDefinition,
+  PublicSecurityDefinition,
+  ReceiveAuthenticatedInput,
+  RouteBody,
+  RouteCaller,
+  RouteMethod,
+  RouteSecurity,
+} from "../interface/interface-definition-contract";
 
 const routeMethods = ["GET", "POST", "PUT", "DELETE", "OPTIONS"] as const;
-type RouteMethod = (typeof routeMethods)[number];
-type InterfaceSchema = z.ZodType<unknown, unknown>;
-type InterfaceConfigSchema = z.ZodType<object, object>;
-type MessageRecipientSchema = z.ZodType<unknown, unknown>;
-
-interface InterfaceJobReference {
-  readonly id: string;
-}
-
-interface InterfaceJobs {
-  enqueue<TDefinition extends AnyServiceJobDefinition>(
-    definition: TDefinition,
-    input: z.input<TDefinition["input"]>,
-  ): Promise<InterfaceJobReference>;
-}
-
-interface InterfaceActor {
-  readonly id: string;
-  readonly displayName?: string | undefined;
-}
-
-interface InterfaceCaller {
-  readonly actor: InterfaceActor;
-  readonly permission: UserPermissionLevel;
-  readonly isAnchor: boolean;
-}
-
-interface ProtocolSecurityDefinition {
-  readonly kind: "protocol";
-  authenticate(context: {
-    readonly request: Request;
-  }): InterfaceActor | null | Promise<InterfaceActor | null>;
-}
-
-interface PublicSecurityDefinition {
-  readonly kind: "public";
-}
-
-type RouteSecurity = PublicSecurityDefinition | ProtocolSecurityDefinition;
-type RouteCaller<TSecurity extends RouteSecurity> =
-  TSecurity extends ProtocolSecurityDefinition ? InterfaceCaller : null;
-type RouteBody<TSchema extends InterfaceSchema | undefined> =
-  TSchema extends InterfaceSchema ? z.output<TSchema> : undefined;
-
-interface InterfaceRouteInput<
-  TMethod extends RouteMethod = RouteMethod,
-  TBodySchema extends InterfaceSchema | undefined = InterfaceSchema | undefined,
-  TResponseSchema extends InterfaceSchema = InterfaceSchema,
-  TSecurity extends RouteSecurity = RouteSecurity,
-> {
-  readonly method: TMethod;
-  readonly path: string;
-  readonly security: TSecurity;
-  readonly body?: TBodySchema | undefined;
-  readonly response: TResponseSchema;
-  handle(context: {
-    readonly request: Request;
-    readonly body: RouteBody<TBodySchema>;
-    readonly caller: RouteCaller<TSecurity>;
-  }): unknown | Promise<unknown>;
-}
-
-interface InterfaceRouteDefinition<
-  TMethod extends RouteMethod = RouteMethod,
-  TBodySchema extends InterfaceSchema | undefined = InterfaceSchema | undefined,
-  TResponseSchema extends InterfaceSchema = InterfaceSchema,
-  TSecurity extends RouteSecurity = RouteSecurity,
-> extends InterfaceRouteInput<
-  TMethod,
-  TBodySchema,
-  TResponseSchema,
-  TSecurity
-> {
-  readonly kind: "rizom-interface-route";
-}
-
-type AnyInterfaceRouteDefinition = InterfaceRouteDefinition<
-  RouteMethod,
-  InterfaceSchema | undefined,
-  InterfaceSchema,
-  RouteSecurity
->;
-
-interface InterfaceDaemonHealth {
-  ready(): void;
-  warning(message: string): void;
-}
-
-interface InterfaceDaemonDefinition {
-  readonly kind: "rizom-interface-daemon";
-  readonly id: string;
-  readonly required: boolean;
-  run(context: {
-    readonly signal: AbortSignal;
-    readonly health: InterfaceDaemonHealth;
-  }): Promise<void>;
-}
-
-interface InterfaceDefinitionInput<
-  TConfigSchema extends InterfaceConfigSchema,
-> {
-  readonly id: string;
-  readonly config: TConfigSchema;
-  readonly routes?:
-    | ((context: {
-        readonly config: z.output<TConfigSchema>;
-        readonly jobs: InterfaceJobs;
-      }) => readonly AnyInterfaceRouteDefinition[])
-    | undefined;
-  readonly daemons?:
-    | ((context: {
-        readonly config: z.output<TConfigSchema>;
-        readonly jobs: InterfaceJobs;
-      }) => readonly InterfaceDaemonDefinition[])
-    | undefined;
-}
-
-interface MessageChannelDefinition<
-  TRecipientSchema extends MessageRecipientSchema,
-> {
-  readonly type: string;
-  readonly displayName: string;
-  readonly subjectLabel: string;
-  readonly recipient: TRecipientSchema;
-}
-
-interface MessageOutput {
-  readonly text: string;
-}
-
-interface MessageChannel {
-  readonly id: string;
-  readonly threadId?: string | undefined;
-}
-
-interface InboundMessageSender {
-  readonly id: string;
-  readonly displayName?: string | undefined;
-}
-
-interface InboundMessageAttachment {
-  readonly name: string;
-  readonly mediaType: string;
-  readonly url: string;
-}
-
-interface ReceiveAuthenticatedInput {
-  readonly sender: InboundMessageSender;
-  readonly channel: MessageChannel;
-  readonly text: string;
-  readonly attachments?:
-    (() => Promise<readonly InboundMessageAttachment[]>) | undefined;
-}
-
-interface MessageReceiver {
-  receiveAuthenticated(input: ReceiveAuthenticatedInput): Promise<void>;
-}
-
-interface MessageInterfaceDefinitionInput<
-  TConfigSchema extends InterfaceConfigSchema,
-  TState extends object,
-  TRecipientSchema extends MessageRecipientSchema,
-> {
-  readonly id: string;
-  readonly config: TConfigSchema;
-  readonly channel: MessageChannelDefinition<TRecipientSchema>;
-  readonly setup?:
-    | ((context: {
-        readonly config: z.output<TConfigSchema>;
-      }) => TState | Promise<TState>)
-    | undefined;
-  readonly listen?:
-    | ((context: {
-        readonly config: z.output<TConfigSchema>;
-        readonly state: TState;
-        readonly signal: AbortSignal;
-        readonly health: InterfaceDaemonHealth;
-        readonly messages: MessageReceiver;
-      }) => Promise<void>)
-    | undefined;
-  readonly send?:
-    | ((context: {
-        readonly config: z.output<TConfigSchema>;
-        readonly state: TState;
-        readonly channel: MessageChannel;
-        readonly message: MessageOutput;
-      }) => string | void | Promise<string | void>)
-    | undefined;
-  readonly edit?:
-    | ((context: {
-        readonly config: z.output<TConfigSchema>;
-        readonly state: TState;
-        readonly channel: MessageChannel;
-        readonly messageId: string;
-        readonly message: MessageOutput;
-      }) => void | Promise<void>)
-    | undefined;
-  readonly deliver?:
-    | ((context: {
-        readonly config: z.output<TConfigSchema>;
-        readonly state: TState;
-        readonly recipient: z.output<TRecipientSchema>;
-        readonly message: MessageOutput;
-      }) => string | void | Promise<string | void>)
-    | undefined;
-}
 
 export function protocol(
   definition: Omit<ProtocolSecurityDefinition, "kind">,
@@ -324,18 +157,3 @@ export function defineMessageInterface<
       ),
   });
 }
-
-export type {
-  AnyInterfaceRouteDefinition,
-  InboundMessageAttachment,
-  InterfaceCaller,
-  InterfaceDaemonDefinition,
-  InterfaceDefinitionInput,
-  InterfaceJobs,
-  MessageInterfaceDefinitionInput,
-  MessageOutput,
-  MessageReceiver,
-  ProtocolSecurityDefinition,
-  ReceiveAuthenticatedInput,
-  RouteSecurity,
-};

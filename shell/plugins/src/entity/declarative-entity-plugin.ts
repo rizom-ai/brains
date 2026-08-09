@@ -17,7 +17,7 @@ import type {
   AnyEntityDefinition,
   EntityOf,
   ProjectionDefinition,
-} from "../public/entity-definition";
+} from "./entity-definition-contract";
 
 const rawFrontmatterSchema = z.record(z.string(), z.unknown());
 

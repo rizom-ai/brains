@@ -40,11 +40,11 @@ import type {
   ServiceTemplateDefinition,
   ServiceTemplateFormatter,
   ServiceViewDefinition,
-} from "../public/service-definition";
+} from "./service-definition-contract";
 import {
   getServiceJobHandler,
   parseServiceDeadline,
-} from "../public/service-definition";
+} from "./service-definition-contract";
 import {
   bindServiceJobRuntimeType,
   unbindServiceJobRuntimeType,

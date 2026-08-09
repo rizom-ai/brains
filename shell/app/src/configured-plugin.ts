@@ -3,7 +3,6 @@ import {
   type PluginPackageConfigInput,
   type PluginPackageDefinition,
 } from "@brains/plugins";
-import type { BrainDefinition as DeclarativeBrainDefinition } from "./contracts/brain-definition";
 
 export interface ConfiguredPluginDefinition<
   TDefinition extends PluginPackageDefinition = PluginPackageDefinition,
@@ -39,17 +38,5 @@ export function isConfiguredPluginDefinition(
     candidate.kind === "rizom-configured-plugin" &&
     isPluginPackageDefinition(candidate.definition) &&
     typeof candidate.config === "object"
-  );
-}
-
-export function isDeclarativeBrainDefinition(
-  value: unknown,
-): value is DeclarativeBrainDefinition {
-  if (value === null || typeof value !== "object") return false;
-  const candidate = value as Partial<DeclarativeBrainDefinition>;
-  return (
-    typeof candidate.name === "string" &&
-    Array.isArray(candidate.plugins) &&
-    candidate.plugins.every(isConfiguredPluginDefinition)
   );
 }

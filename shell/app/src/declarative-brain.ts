@@ -16,7 +16,7 @@ import type {
 import type { CapabilityBundleDefinition } from "./bundle-definition";
 import { getBrainPackageMetadata } from "./package-registry";
 
-export { isDeclarativeBrainDefinition } from "./configured-plugin";
+export { isDeclarativeBrainDefinition } from "./declarative-brain-guard";
 
 function toConfigRecord(value: object): PluginConfig {
   return Object.fromEntries(Object.entries(value));

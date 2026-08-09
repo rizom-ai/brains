@@ -1,4 +1,4 @@
-import type { AnyServiceJobDefinition } from "../public/service-definition";
+import type { AnyServiceJobDefinition } from "./service-definition-contract";
 
 const runtimeTypes = new WeakMap<AnyServiceJobDefinition, string>();
 

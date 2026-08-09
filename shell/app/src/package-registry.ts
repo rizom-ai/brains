@@ -3,7 +3,7 @@ import {
   isPluginPackageDefinition,
   type InstalledPluginPackageMetadata,
 } from "@brains/plugins";
-import { isDeclarativeBrainDefinition } from "./configured-plugin";
+import { isDeclarativeBrainDefinition } from "./declarative-brain-guard";
 
 /**
  * Package registry for pre-bundled package references.

@@ -1,5 +1,5 @@
 import type { Daemon, DaemonHealth } from "../manager/daemon-types";
-import type { InterfaceDaemonDefinition } from "../public/interface-definition";
+import type { InterfaceDaemonDefinition } from "./interface-definition-contract";
 
 const DAEMON_READINESS_TIMEOUT_MS = 30_000;
 const DAEMON_SHUTDOWN_TIMEOUT_MS = 10_000;
