@@ -132,14 +132,15 @@ FTS5 table; its file round-trip test passes.
 
 ### Phase 2 — Close the small diffs — DONE
 
-- The job-queue durable cursor now seeks on `runtimeUpdatedAt >= ?`, then
-  tie-skips already-seen `(runtimeUpdatedAt, id)` pairs client-side. Both
-  engines report `SEARCH … USING INDEX` for the covering-index query plan.
+- The job-queue durable cursor pages with two bounded covering-index seeks —
+  ties at the cursor timestamp by `id`, then rows beyond it — after review
+  found the first rewrite fetched unbounded rows. Both engines report
+  `SEARCH … USING INDEX` for both query shapes.
 - Conversation-service readiness is engine-aware: libSQL still verifies the
   echoed busy timeout, while Turso verifies that the pragma is accepted and a
   write waits for a contending process to commit.
 
-**Exit met:** job-queue has 195 passing tests plus one intentional remote-only
+**Exit met:** job-queue has 196 passing tests plus one intentional remote-only
 skip, and conversation-service is 35/35 on both engines.
 
 ### Phase 3 — Default flip with fallback — DONE
@@ -202,19 +203,25 @@ the local service databases. With that flag active, Turso rejects
 Removing the flag without first removing direct cross-process file access is
 not an acceptable implementation.
 
-#### Phase 5A — Choose and prove the owner topology under WAL
+#### Phase 5A — Prove the owner topology under WAL
 
-Keep the current WAL behavior while changing ownership. The owner must choose
-between two concrete topologies before implementation:
+**Owner decision: the web process owns the local databases**; the worker
+routes persistence calls to it. Grounds: the latency-sensitive interactive
+path and the bulk import pipeline both already live in the web process (the
+directory-sync import-load plan keeps per-file import work in the main
+process by design, and its permanent 350-file burst-soak CI gate defends
+web-process import throughput — a separate state process would tax exactly
+that gated path). The worker's remaining traffic is job bookkeeping and
+embedding writes: low-rate, latency-tolerant, and batchable over IPC. This
+also preserves the two-child supervisor and the existing worker-after-web
+readiness order. The rejected alternative — a separately supervised state
+process — buys crash isolation and by-construction acyclicity, but at the
+cost of a third child and IPC on both the interactive and bulk-write paths.
+Two invariants substitute for the structural acyclicity: owner DB endpoints
+are leaf operations (no calls back toward clients), and request queues are
+bounded with timeouts.
 
-1. Make the existing web process the local database owner and route worker
-   persistence calls to it. This preserves the current two-child supervisor and
-   matches the existing rule that the worker starts only after web readiness.
-2. Add a separately supervised state process and route both web and worker
-   persistence calls to it. This isolates database lifetime but adds a third
-   child, another readiness dependency, and another restart policy.
-
-For either topology:
+Keep the current WAL behavior while changing ownership. For this topology:
 
 - Keep business logic and public Promise interfaces in their owning packages.
   Define package-owned, Zod-validated internal request/response contracts; do
@@ -226,7 +233,7 @@ For either topology:
 - First prove one cross-process job-queue slice under WAL, including owner
   readiness, worker restart, owner failure, reconnect, and clean shutdown.
 
-**Exit:** the owner has selected the concrete topology and the representative
+**Exit:** the topology decision above is recorded and the representative
 slice passes without a worker-side database file handle.
 
 #### Phase 5B — Route all local shell persistence through the owner
