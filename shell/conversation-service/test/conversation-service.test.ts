@@ -116,17 +116,19 @@ describe("ConversationService", () => {
         });
 
         try {
-          let writerReady = false;
-          for (let attempt = 0; attempt < 100; attempt++) {
+          const waitForWriter = async (
+            attemptsLeft: number,
+          ): Promise<boolean> => {
             try {
               await access(markerPath);
-              writerReady = true;
-              break;
+              return true;
             } catch {
+              if (attemptsLeft <= 0) return false;
               await Bun.sleep(5);
+              return waitForWriter(attemptsLeft - 1);
             }
-          }
-          expect(writerReady).toBe(true);
+          };
+          expect(await waitForWriter(100)).toBe(true);
 
           const now = new Date().toISOString();
           const result = await ownedClient.execute({

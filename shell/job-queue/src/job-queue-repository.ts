@@ -5,7 +5,6 @@ import {
   eq,
   exists,
   gt,
-  gte,
   inArray,
   isNull,
   lte,
@@ -748,25 +747,37 @@ export class JobQueueRepository {
   ): Promise<JobRuntimeUpdate[]> {
     if (limit <= 0) return [];
 
-    const rows = await this.db
+    // Row-value cursor predicates don't seek on Turso, so page with two
+    // bounded index seeks: ties at the cursor timestamp, then rows beyond it.
+    const ties = await this.db
       .select()
       .from(jobQueue)
-      .where(gte(jobQueue.runtimeUpdatedAt, cursor.updatedAt))
-      .orderBy(asc(jobQueue.runtimeUpdatedAt), asc(jobQueue.id));
+      .where(
+        and(
+          eq(jobQueue.runtimeUpdatedAt, cursor.updatedAt),
+          gt(jobQueue.id, cursor.jobId),
+        ),
+      )
+      .orderBy(asc(jobQueue.id))
+      .limit(limit);
 
-    return rows
-      .filter((job) => {
-        const updatedAt = job.runtimeUpdatedAt ?? 0;
-        return updatedAt > cursor.updatedAt || job.id > cursor.jobId;
-      })
-      .slice(0, limit)
-      .map((job) => ({
-        job,
-        cursor: {
-          updatedAt: job.runtimeUpdatedAt ?? 0,
-          jobId: job.id,
-        },
-      }));
+    const beyond =
+      ties.length < limit
+        ? await this.db
+            .select()
+            .from(jobQueue)
+            .where(gt(jobQueue.runtimeUpdatedAt, cursor.updatedAt))
+            .orderBy(asc(jobQueue.runtimeUpdatedAt), asc(jobQueue.id))
+            .limit(limit - ties.length)
+        : [];
+
+    return [...ties, ...beyond].map((job) => ({
+      job,
+      cursor: {
+        updatedAt: job.runtimeUpdatedAt ?? 0,
+        jobId: job.id,
+      },
+    }));
   }
 
   public async cleanup(olderThanMs: number): Promise<number> {
