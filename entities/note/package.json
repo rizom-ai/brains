@@ -1,7 +1,7 @@
 {
   "name": "@brains/note",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.274",
+  "version": "0.2.0-alpha.275",
   "description": "Personal knowledge capture with markdown-first workflow",
   "dependencies": {
     "@brains/atproto-contracts": "workspace:*",

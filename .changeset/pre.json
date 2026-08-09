@@ -238,6 +238,7 @@
     "core--directory-sync-export-echoes",
     "core--directory-sync-import-size-guard",
     "core--directory-sync-incremental-git",
+    "core--directory-sync-owned-git-maintenance",
     "core--directory-sync-permanent-gates",
     "core--directory-sync-preparse-skip",
     "core--directory-sync-remote-delete-wins",

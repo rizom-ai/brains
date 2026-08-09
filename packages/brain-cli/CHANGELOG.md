@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.275
+
+### Patch Changes
+
+- [#101](https://github.com/rizom-ai/brains/pull/101) [`145761b`](https://github.com/rizom-ai/brains/commit/145761bf398e67161b4a4bcbad09aa60fea8e345) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Prevent Git pull and push subprocesses from leaving unmanaged automatic-maintenance descendants while retaining normal maintenance for local Git commands.
+
 ## 0.2.0-alpha.274
 
 ### Patch Changes
