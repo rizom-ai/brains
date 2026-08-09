@@ -41,6 +41,17 @@ function assertSize(
   }
 }
 
+/**
+ * Smallest valid 1x1 PNG. Asset fixtures must hold real image bytes because
+ * readers validate binary signatures, not just declared media types.
+ */
+export const TINY_PNG_BYTES: Uint8Array = Uint8Array.from(
+  Buffer.from(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+    "base64",
+  ),
+);
+
 /** Deterministic in-memory asset store for behavior-focused tests. */
 export function createMockAssetStore(): MockAssetStore {
   const contents = new Map<AssetRef, Uint8Array>();
@@ -61,7 +72,14 @@ export function createMockAssetStore(): MockAssetStore {
   return {
     contents,
     seed: putBytes,
-    put: async (bytes) => putBytes(bytes),
+    // Mirrors the real store: expectedSize is computed from the payload, so
+    // only the byte-policy options apply.
+    put: async (bytes, options): Promise<AssetRecord> => {
+      assertSize(bytes.byteLength, {
+        ...(options?.maxBytes !== undefined && { maxBytes: options.maxBytes }),
+      });
+      return putBytes(bytes);
+    },
     putStream: async (chunks, options): Promise<AssetRecord> => {
       const collected: Uint8Array[] = [];
       let sizeBytes = 0;
@@ -117,15 +135,7 @@ export function createMockAssetsNamespace(
 ): MockAssetsNamespace {
   return {
     store,
-    put: async (bytes, options): Promise<AssetRecord> => {
-      async function* chunks(): AsyncGenerator<Uint8Array> {
-        yield bytes;
-      }
-      return store.putStream(chunks(), {
-        ...options,
-        expectedSize: bytes.byteLength,
-      });
-    },
+    put: (bytes, options): Promise<AssetRecord> => store.put(bytes, options),
     putStream: (chunks, options) => store.putStream(chunks, options),
     read: (ref) => store.read(ref),
     stat: (ref) => store.stat(ref),

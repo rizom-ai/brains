@@ -283,16 +283,7 @@ export class FileOperations {
     fullPath: string,
     expectedSize: number,
   ): Promise<{ ref: AssetRef }> {
-    async function* chunks(): AsyncGenerator<Uint8Array> {
-      for await (const chunk of createReadStream(fullPath)) {
-        if (!(chunk instanceof Uint8Array)) {
-          throw new TypeError("Image streams must yield Uint8Array chunks");
-        }
-        yield chunk;
-      }
-    }
-
-    return this.assets.putStream(chunks(), {
+    return this.assets.putStream(createReadStream(fullPath), {
       expectedSize,
       maxBytes: this.limits.maxAssetImportBytes,
     });

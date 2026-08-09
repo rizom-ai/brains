@@ -1,5 +1,4 @@
 import {
-  assetRefSchema,
   formatContentDispositionHeader,
   getArtifactEntityFilename,
   parseArtifactDataUrl,
@@ -7,6 +6,7 @@ import {
   type InterfacePluginContext,
   type UserPermissionLevel,
 } from "@brains/plugins";
+import { resolveImageBytes } from "@brains/image";
 
 type PermissionLevelResolver = (
   request: Request,
@@ -96,41 +96,26 @@ export async function handleImageAttachmentRequest(
     return new Response("Image content is not an image", { status: 415 });
   }
 
-  const assetRef = assetRefSchema.safeParse(image.content.trim());
-  if (assetRef.success) {
-    const mediaType = image.metadata?.["mediaType"];
-    if (typeof mediaType !== "string" || !mediaType.startsWith("image/")) {
-      return new Response("Image content is not an image", { status: 415 });
-    }
-    const data = Uint8Array.from(await deps.assets.read(assetRef.data)).buffer;
-    const filename = getArtifactEntityFilename(
-      image.metadata,
-      imageId,
-      "image",
-      mediaType,
+  let resolved;
+  try {
+    resolved = await resolveImageBytes(
+      { content: image.content, metadata: image.metadata ?? {} },
+      deps.assets,
     );
-    return createBinaryAttachmentResponse({
-      requestUrl: url,
-      data,
-      mediaType,
-      filename,
-    });
-  }
-
-  const parsed = parseArtifactDataUrl("image", image.content);
-  if (!parsed) {
+  } catch {
     return new Response("Image content is not an image", { status: 415 });
   }
+
   const filename = getArtifactEntityFilename(
     image.metadata,
     imageId,
     "image",
-    parsed.mimeType,
+    resolved.mediaType,
   );
   return createBinaryAttachmentResponse({
     requestUrl: url,
-    data: parsed.data,
-    mediaType: parsed.mimeType,
+    data: Uint8Array.from(resolved.bytes).buffer,
+    mediaType: resolved.mediaType,
     filename,
   });
 }

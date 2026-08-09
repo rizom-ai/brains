@@ -12,7 +12,8 @@ import type {
   IAssetsNamespace,
   ToolContext,
 } from "@brains/plugins";
-import { assetRefSchema, parseMarkdownWithFrontmatter } from "@brains/plugins";
+import { parseMarkdownWithFrontmatter } from "@brains/plugins";
+import { resolveImageBytes } from "@brains/image";
 import { PUBLISH_CHANNELS } from "@brains/contracts";
 import type { SocialPost, SocialPostFrontmatter } from "../schemas/social-post";
 import { socialPostFrontmatterSchema } from "../schemas/social-post";
@@ -414,25 +415,10 @@ export class PublishExecuteHandler {
         return undefined;
       }
 
-      const assetRef = assetRefSchema.safeParse(image.content.trim());
-      if (assetRef.success) {
-        const mimeType = image.metadata["mediaType"];
-        if (typeof mimeType !== "string" || !mimeType.startsWith("image/")) {
-          this.logger.warn("Image asset has invalid media type", { imageId });
-          return undefined;
-        }
-        const data = Buffer.from(await this.assets.read(assetRef.data));
-        return { data, mimeType };
-      }
-
-      const match = image.content.match(/^data:([^;]+);base64,(.+)$/);
-      if (!match?.[1] || !match[2]) {
-        this.logger.warn("Invalid image content format", { imageId });
-        return undefined;
-      }
+      const resolved = await resolveImageBytes(image, this.assets);
       return {
-        data: Buffer.from(match[2], "base64"),
-        mimeType: match[1],
+        data: Buffer.from(resolved.bytes),
+        mimeType: resolved.mediaType,
       };
     } catch (error) {
       this.logger.warn("Failed to fetch cover image", { imageId, error });

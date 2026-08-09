@@ -8,7 +8,11 @@ import {
   type ServicePluginContext,
 } from "@brains/plugins/test";
 import type { BaseEntity } from "@brains/plugins";
-import { createMockAssetStore, createSilentLogger } from "@brains/test-utils";
+import {
+  createMockAssetStore,
+  createSilentLogger,
+  TINY_PNG_BYTES,
+} from "@brains/test-utils";
 import type { PublishableMetadata } from "../../src/schemas/publishable";
 import { preparePublishContent } from "../../src/tools/publish-content";
 
@@ -90,7 +94,7 @@ This is the body.`;
   });
 
   it("should fetch asset-backed image data when coverImageId is present", async () => {
-    const bytes = Buffer.from("hello");
+    const bytes = Buffer.from(TINY_PNG_BYTES);
     const stored = await context.assets.put(bytes);
     await context.entityService.createEntity({
       entity: {

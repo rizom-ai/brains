@@ -1,5 +1,6 @@
 import type { BaseEntity, ServicePluginContext } from "@brains/plugins";
-import { assetRefSchema, parseMarkdownWithFrontmatter } from "@brains/plugins";
+import { parseMarkdownWithFrontmatter } from "@brains/plugins";
+import { resolveImageBytes } from "@brains/image";
 import { z } from "@brains/utils/zod";
 import type { PublishImageData, PublishMediaData } from "@brains/contracts";
 import type { PublishableMetadata } from "../schemas/publishable";
@@ -137,21 +138,13 @@ async function fetchPublishImageData(
   });
   if (!image?.content) return undefined;
 
-  const assetRef = assetRefSchema.safeParse(image.content.trim());
-  if (assetRef.success) {
-    const mimeType = image.metadata["mediaType"];
-    if (typeof mimeType !== "string" || !mimeType.startsWith("image/")) {
-      return undefined;
-    }
-    return {
-      data: Buffer.from(await context.assets.read(assetRef.data)),
-      mimeType,
-    };
+  // A broken cover image degrades the publication instead of blocking it.
+  try {
+    const resolved = await resolveImageBytes(image, context.assets);
+    return { data: Buffer.from(resolved.bytes), mimeType: resolved.mediaType };
+  } catch {
+    return undefined;
   }
-
-  const parsed = parseBase64DataUrl(image.content);
-  if (!parsed?.mimeType.startsWith("image/")) return undefined;
-  return { data: parsed.data, mimeType: parsed.mimeType };
 }
 
 async function fetchPublishDocumentData(

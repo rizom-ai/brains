@@ -30,6 +30,7 @@ export { createMockProgressReporter } from "./mock-progress-reporter";
 export {
   createMockAssetStore,
   createMockAssetsNamespace,
+  TINY_PNG_BYTES,
   type MockAssetStore,
   type MockAssetsNamespace,
 } from "./mock-assets";

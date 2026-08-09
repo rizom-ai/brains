@@ -131,8 +131,7 @@ export async function reconcileImageAssets(options: {
     }
 
     try {
-      const stored = await options.assets.putStream(toChunks(bytes), {
-        expectedSize: facts.sizeBytes,
+      const stored = await options.assets.put(bytes, {
         maxBytes: MAX_RECONCILE_IMAGE_BYTES,
       });
       if (
@@ -235,10 +234,6 @@ function buildImageSourcePath(
     `${filename}${extension}`,
   );
   return path.startsWith(`${root}${sep}`) ? path : null;
-}
-
-async function* toChunks(bytes: Uint8Array): AsyncGenerator<Uint8Array> {
-  yield bytes;
 }
 
 function isUnsafePathPart(part: string): boolean {

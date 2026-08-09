@@ -17,8 +17,16 @@ function createRecordingStore(): {
 } {
   const calls: AssetPutStreamOptions[] = [];
   const store: AssetStore = {
-    put: async (): Promise<AssetRecord> => {
-      throw new Error("namespace must route writes through putStream");
+    put: async (
+      bytes: Uint8Array,
+      options: AssetPutStreamOptions = {},
+    ): Promise<AssetRecord> => {
+      calls.push(options);
+      return {
+        ref: createAssetRef(digest),
+        digest,
+        sizeBytes: bytes.byteLength,
+      };
     },
     putStream: async (
       chunks: AsyncIterable<Uint8Array>,
@@ -61,19 +69,22 @@ describe("plugin asset context", () => {
 
     expect(record.sizeBytes).toBe(4);
     expect(calls[0]?.maxBytes).toBe(defaultPluginAssetMaxBytes);
-    expect(calls[0]?.expectedSize).toBe(4);
   });
 
-  test("does not let callers override the buffered payload size", async () => {
+  // The store's put contract computes expectedSize from the payload itself,
+  // so a namespace caller cannot understate it; that invariant is covered by
+  // the FilesystemAssetStore tests. Here we only prove delegation.
+  test("delegates buffered writes to the store put contract", async () => {
     const { store, calls } = createRecordingStore();
     const shell = createMockShell({ assetStore: store });
     const context = createServicePluginContext(shell, "asset-test");
 
-    await context.assets.put(new Uint8Array([1, 2, 3, 4]), {
-      expectedSize: 1,
+    const record = await context.assets.put(new Uint8Array([1, 2, 3, 4]), {
+      maxBytes: 8,
     });
 
-    expect(calls[0]?.expectedSize).toBe(4);
+    expect(record.sizeBytes).toBe(4);
+    expect(calls[0]?.maxBytes).toBe(8);
   });
 
   test("lets a caller raise the ceiling explicitly", async () => {

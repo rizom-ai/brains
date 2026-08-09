@@ -76,7 +76,7 @@ describe("image asset reconciliation", () => {
       failures: [],
     });
     expect(await assets.read(TINY_PNG_REF)).toEqual(TINY_PNG_BYTES);
-    expect(repository.events).toContain("put-stream");
+    expect(repository.events).toContain(`put:${TINY_PNG_REF}`);
     expect(repository.updates).toEqual([]);
   });
 

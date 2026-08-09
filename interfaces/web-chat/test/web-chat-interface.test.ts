@@ -16,7 +16,7 @@ import {
 } from "@brains/plugins/test";
 import { join } from "path";
 import { mkdir, rm, utimes, writeFile } from "fs/promises";
-import { createMockAssetStore } from "@brains/test-utils";
+import { createMockAssetStore, TINY_PNG_BYTES } from "@brains/test-utils";
 import { WebChatInterface } from "../src";
 
 type ChatContext = Parameters<IAgentService["chat"]>[2];
@@ -1927,7 +1927,7 @@ describe("WebChatInterface", () => {
     const attachmentHarness = createPluginHarness<WebChatInterface>({
       assetStore,
     });
-    const bytes = Buffer.from("iVBORw0KGgo=", "base64");
+    const bytes = Buffer.from(TINY_PNG_BYTES);
     const stored = await assetStore.put(bytes);
     attachmentHarness.addEntities([
       {

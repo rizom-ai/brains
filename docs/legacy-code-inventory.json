@@ -34,7 +34,6 @@
       "paths": [
         "plugins/site-builder/src/lib/content-enrichment.ts",
         "shared/assets/src/index.ts",
-        "shared/image/src/lib/image-resolver.ts",
         "shared/image/src/schemas/image.ts",
         "shell/entity-service/src/lib/content-resolver.ts"
       ],
@@ -42,7 +41,7 @@
       "owner": "durable image cutover",
       "class": "runtime-compatibility",
       "behavior": "Defines the bounded compatibility mode that materializes asset bytes as image data URLs for explicitly inventoried callers during the image cutover.",
-      "currentConsumers": "Stored pre-cutover image rows, embedded entity references, the shared display resolver, and the site-enrichment fallback used when optimized site images are unavailable.",
+      "currentConsumers": "Stored pre-cutover image rows, embedded entity references, and the site-enrichment fallback used when optimized site images are unavailable.",
       "removalPrerequisite": "Complete the image caller inventory, migrate every caller, and observe zero data-URL bridge materializations throughout the agreed yeehaa.io soak.",
       "rollbackDependency": "The transitional image release keeps prior clients readable while migration rollback remains supported.",
       "targetRelease": "post-yeehaa-image-soak"

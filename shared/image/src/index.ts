@@ -4,13 +4,11 @@ export {
   imageMetadataSchema,
   imageFormatSchema,
   imageIngestionStatusSchema,
-  resolvedImageSchema,
   type Image,
   type ImageMetadata,
   type ImageFormat,
   type ImageMediaType,
   type ImageIngestionStatus,
-  type ResolvedImage,
 } from "./schemas/image";
 
 // Image entity adapter
@@ -20,10 +18,8 @@ export type {
   CreatePendingImageInput,
 } from "./adapters/image-adapter";
 
-// Image resolver utilities
+// Frontmatter image-reference utilities
 export {
-  resolveImage,
-  resolveEntityCoverImage,
   extractCoverImageId,
   setCoverImageId,
   extractOgImageId,

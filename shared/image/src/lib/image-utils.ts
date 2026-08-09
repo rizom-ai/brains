@@ -1,6 +1,6 @@
 import { assetRefSchema, type AssetRef, type AssetStore } from "@brains/assets";
 import { fetchAsBase64DataUrl, isHttpUrl } from "@brains/utils/http-utils";
-import type { Image, ImageFormat, ImageMediaType } from "../schemas/image";
+import type { ImageFormat, ImageMediaType } from "../schemas/image";
 
 const IMAGE_MEDIA_TYPES: Record<ImageFormat, ImageMediaType> = {
   png: "image/png",
@@ -274,18 +274,27 @@ export async function fetchImageAsBase64(url: string): Promise<string> {
   return fetchAsBase64DataUrl(url, "image/");
 }
 
-/** Resolve either transitional inline content or a durable asset reference. */
+/**
+ * Resolve either transitional inline content or a durable asset reference.
+ * Accepts raw entity metadata so BaseEntity readers can call it directly;
+ * declared media type and size are validated against the actual bytes.
+ */
 export async function resolveImageBytes(
-  image: Pick<Image, "content" | "metadata">,
-  assets: AssetStore,
+  image: { content: string; metadata: Record<string, unknown> },
+  assets: Pick<AssetStore, "read">,
 ): Promise<ResolvedImageBytes> {
   const assetRef = assetRefSchema.safeParse(image.content.trim());
   if (assetRef.success) {
+    const declaredMediaType = image.metadata["mediaType"];
+    const declaredSize = image.metadata["sizeBytes"];
     const bytes = await assets.read(assetRef.data);
-    const inspected = inspectImageBytes(bytes, image.metadata.mediaType);
+    const inspected = inspectImageBytes(
+      bytes,
+      typeof declaredMediaType === "string" ? declaredMediaType : undefined,
+    );
     if (
-      image.metadata.sizeBytes !== undefined &&
-      image.metadata.sizeBytes !== inspected.sizeBytes
+      typeof declaredSize === "number" &&
+      declaredSize !== inspected.sizeBytes
     ) {
       throw new Error("Image asset size does not match entity metadata");
     }

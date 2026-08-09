@@ -7,6 +7,7 @@ import {
   createMockAssetsNamespace,
   createMockServicePluginContext,
   createMockShell,
+  TINY_PNG_BYTES,
 } from "@brains/test-utils";
 import { createPluginHarness } from "@brains/plugins/test";
 import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
@@ -78,7 +79,7 @@ describe("blog ATProto projection", () => {
       ),
     };
     const assets = createMockAssetsNamespace();
-    const stored = assets.store.seed(Buffer.from("hello"));
+    const stored = assets.store.seed(TINY_PNG_BYTES);
     const image = {
       id: "image-1",
       entityType: "image",
@@ -112,7 +113,7 @@ describe("blog ATProto projection", () => {
         $type: "blob",
         ref: { $link: "dry-run" },
         mimeType: "image/png",
-        size: 5,
+        size: TINY_PNG_BYTES.byteLength,
       },
       alt: "Cover alt",
       width: 1200,

@@ -50,7 +50,11 @@ export interface BinaryContentResolver {
 }
 
 export interface AssetStore {
-  put(bytes: Uint8Array): Promise<AssetRecord>;
+  /**
+   * Store an in-memory payload. `expectedSize` is always computed from the
+   * payload itself; options supply write policy such as `maxBytes`.
+   */
+  put(bytes: Uint8Array, options?: AssetPutStreamOptions): Promise<AssetRecord>;
   putStream(
     chunks: AsyncIterable<Uint8Array>,
     options?: AssetPutStreamOptions,
@@ -58,10 +62,10 @@ export interface AssetStore {
   /**
    * Read the referenced bytes. Reads are not digest-verified: truncation is
    * caught by a size check, but silent corruption is not, because hashing every
-   * read would be prohibitive on read-heavy paths such as site builds. Callers
-   * that suspect corruption — or that surface an error to a user — should call
-   * `verify` before reporting, so a corrupt asset fails loudly instead of
-   * rendering as empty or wrong bytes.
+   * read would be prohibitive on read-heavy paths such as site builds. Byte
+   * consumers validate what they can (signature, dimensions, size-versus-
+   * metadata); full digest verification is operator tooling (`verify`,
+   * migration `--verify`, reconciliation), never the read path.
    */
   read(ref: AssetRef): Promise<Uint8Array>;
   stat(ref: AssetRef): Promise<AssetStat | null>;

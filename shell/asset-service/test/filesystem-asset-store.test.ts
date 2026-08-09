@@ -65,6 +65,20 @@ describe("FilesystemAssetStore", () => {
     });
   });
 
+  test("put enforces byte policies and computes its own expected size", async () => {
+    const bytes = Buffer.from("bounded payload");
+
+    expect(
+      await rejectionOf(store.put(bytes, { maxBytes: bytes.byteLength - 1 })),
+    ).toMatchObject({ code: "too-large" });
+
+    const record = await store.put(bytes, {
+      maxBytes: bytes.byteLength,
+      expectedSize: bytes.byteLength + 1,
+    });
+    expect(record.sizeBytes).toBe(bytes.byteLength);
+  });
+
   test("materializes the bounded legacy data-URL bridge", async () => {
     const bytes = Buffer.from("legacy bridge bytes");
     const record = await store.put(bytes);

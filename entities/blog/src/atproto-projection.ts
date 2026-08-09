@@ -1,5 +1,6 @@
 import type { BaseEntity } from "@brains/plugins";
-import { assetRefSchema, parseMarkdownWithFrontmatter } from "@brains/plugins";
+import { parseMarkdownWithFrontmatter } from "@brains/plugins";
+import { resolveImageBytes } from "@brains/image";
 import { canonicalAtprotoLexicons } from "@brains/atproto-contracts";
 import type {
   AtprotoBlobRef,
@@ -24,26 +25,8 @@ async function imageToUploadInput(
   context: AtprotoProjectionContext,
   image: BaseEntity,
 ): Promise<{ data: Buffer; mimeType: string }> {
-  const assetRef = assetRefSchema.safeParse(image.content.trim());
-  if (assetRef.success) {
-    const mimeType = image.metadata["mediaType"];
-    if (typeof mimeType !== "string" || !mimeType.startsWith("image/")) {
-      throw new Error("Cover image asset requires an image media type");
-    }
-    return {
-      data: Buffer.from(await context.assets.read(assetRef.data)),
-      mimeType,
-    };
-  }
-
-  const match = /^data:([^;,]+);base64,(.*)$/.exec(image.content);
-  if (!match?.[1] || !match[2]) {
-    throw new Error("Cover image must contain an asset reference or data URL");
-  }
-  return {
-    data: Buffer.from(match[2], "base64"),
-    mimeType: match[1],
-  };
+  const resolved = await resolveImageBytes(image, context.assets);
+  return { data: Buffer.from(resolved.bytes), mimeType: resolved.mediaType };
 }
 
 async function uploadCoverImage(

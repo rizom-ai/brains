@@ -120,11 +120,17 @@ export class FilesystemAssetStore implements AssetStore {
     this.temporaryDirectory = resolve(this.assetDirectory, ".tmp");
   }
 
-  async put(bytes: Uint8Array): Promise<AssetRecord> {
+  async put(
+    bytes: Uint8Array,
+    options: AssetPutStreamOptions = {},
+  ): Promise<AssetRecord> {
     const chunks = async function* (): AsyncGenerator<Uint8Array> {
       yield bytes;
     };
-    return this.putStream(chunks(), { expectedSize: bytes.byteLength });
+    return this.putStream(chunks(), {
+      ...options,
+      expectedSize: bytes.byteLength,
+    });
   }
 
   async putStream(

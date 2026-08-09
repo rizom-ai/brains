@@ -137,20 +137,3 @@ export const imageSchema: z.ZodType<Image, unknown> = baseEntityParserSchema
       }
     }
   });
-
-/** Resolved image data for templates. */
-export interface ResolvedImage {
-  url: string;
-  alt: string;
-  title: string;
-  width: number;
-  height: number;
-}
-
-export const resolvedImageSchema: z.ZodType<ResolvedImage> = z.object({
-  url: z.string(),
-  alt: z.string(),
-  title: z.string(),
-  width: z.number(),
-  height: z.number(),
-});

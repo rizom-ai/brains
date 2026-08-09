@@ -59,16 +59,8 @@ export function createAssetsNamespace(
     put: async (
       bytes: Uint8Array,
       options?: AssetPutStreamOptions,
-    ): Promise<AssetRecord> => {
-      async function* single(): AsyncGenerator<Uint8Array> {
-        yield bytes;
-      }
-      const record = await store.putStream(single(), {
-        ...withDefaultCeiling(options),
-        expectedSize: bytes.byteLength,
-      });
-      return recordWrite(record);
-    },
+    ): Promise<AssetRecord> =>
+      recordWrite(await store.put(bytes, withDefaultCeiling(options))),
     putStream: async (
       chunks: AsyncIterable<Uint8Array>,
       options?: AssetPutStreamOptions,
