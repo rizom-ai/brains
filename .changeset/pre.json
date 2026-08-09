@@ -239,6 +239,7 @@
     "core--directory-sync-import-size-guard",
     "core--directory-sync-incremental-git",
     "core--directory-sync-preparse-skip",
+    "core--directory-sync-remote-delete-wins",
     "core--directory-sync-stress-direct-clone",
     "core--directory-sync-stress-harness",
     "core--drop-themes-subpath",

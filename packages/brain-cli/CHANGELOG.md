@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.271
+
+### Patch Changes
+
+- [#93](https://github.com/rizom-ai/brains/pull/93) [`05e5df4`](https://github.com/rizom-ai/brains/commit/05e5df4583e7da138b927611557b50b6b23798f5) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Keep remote Git deletions authoritative by suppressing late entity exports until targeted delete jobs complete, reconciling files that survive a remote delete/modify merge, and covering concurrent cleanup in the packaged import-burst soak.
+
 ## 0.2.0-alpha.270
 
 ### Patch Changes
