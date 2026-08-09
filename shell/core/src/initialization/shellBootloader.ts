@@ -77,6 +77,10 @@ export class ShellBootloader {
 
     const shellInitializer = this.initializer;
 
+    // The web owner must listen before it reports runtime readiness; workers
+    // must authenticate before any remote persistence service initializes.
+    await this.services.localDatabaseEndpoint?.initialize();
+
     // Settle database readiness (WAL mode, migrations, indexes, ATTACH)
     // before plugins load or runtime services can use the connections.
     await runConcurrentPhase([

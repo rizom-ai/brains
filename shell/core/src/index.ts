@@ -1,9 +1,12 @@
 export { Shell } from "./shell";
 export type { ShellDependencies } from "./shell";
 export type { BootMode } from "./initialization/shellBootloader";
-export type {
-  RuntimeProcessRole,
-  ShellRuntimeOptions,
+export {
+  localDatabaseEndpointEnv,
+  parseLocalDatabaseEndpointConfig,
+  type LocalDatabaseEndpointConfig,
+  type RuntimeProcessRole,
+  type ShellRuntimeOptions,
 } from "./runtime-process-role";
 export { PROJECTION_RULE_JOB_TYPE } from "./projection-wave-scheduler";
 

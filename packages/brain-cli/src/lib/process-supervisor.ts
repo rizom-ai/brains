@@ -1,4 +1,8 @@
 import { spawn, type SpawnOptions } from "node:child_process";
+import { randomBytes, randomUUID } from "node:crypto";
+import { rmSync } from "node:fs";
+import { join } from "node:path";
+import { localDatabaseEndpointEnv } from "@brains/core";
 import type { CommandResult } from "./command-result";
 import type {
   SignalProcess,
@@ -37,6 +41,8 @@ export interface ProcessSupervisorDependencies extends SpawnBunRunnerDependencie
   workerHeartbeatIntervalMs?: number;
   reportIncident?: (incident: Record<string, unknown>) => void;
   reportReady?: (role: BrainChildRole) => void;
+  localDatabaseEndpoint?: { address: string; secret: string };
+  createProcessSessionId?: () => string;
 }
 
 const defaultClock: SupervisorClock = {
@@ -120,6 +126,8 @@ interface RuntimeSupervisorOptions {
   workerHeartbeatIntervalMs: number;
   reportIncident: (incident: Record<string, unknown>) => void;
   reportReady: (role: BrainChildRole) => void;
+  localDatabaseEndpoint: { address: string; secret: string };
+  createProcessSessionId: () => string;
 }
 
 interface ManagedChild {
@@ -176,6 +184,9 @@ function runRuntimeSupervisor(
       }
       if (web) clearChildTimers(web);
       if (worker) clearChildTimers(worker);
+      if (!options.localDatabaseEndpoint.address.startsWith("\\\\.\\pipe\\")) {
+        rmSync(options.localDatabaseEndpoint.address, { force: true });
+      }
     };
 
     const finish = (result: CommandResult): void => {
@@ -357,7 +368,15 @@ function runRuntimeSupervisor(
         {
           cwd: options.cwd,
           stdio: ["inherit", "inherit", "inherit", "ipc"],
-          env: options.processImpl.env,
+          env: {
+            ...options.processImpl.env,
+            [localDatabaseEndpointEnv.address]:
+              options.localDatabaseEndpoint.address,
+            [localDatabaseEndpointEnv.secret]:
+              options.localDatabaseEndpoint.secret,
+            [localDatabaseEndpointEnv.sessionId]:
+              options.createProcessSessionId(),
+          },
         } satisfies SpawnOptions,
       );
       const child: ManagedChild = {
@@ -438,6 +457,20 @@ function runRuntimeSupervisor(
   });
 }
 
+function createLocalDatabaseEndpoint(): {
+  address: string;
+  secret: string;
+} {
+  const endpointId = `${process.pid}-${randomUUID()}`;
+  return {
+    address:
+      process.platform === "win32"
+        ? `\\\\.\\pipe\\brains-local-db-${endpointId}`
+        : join("/tmp", `brains-local-db-${endpointId}.sock`),
+    secret: randomBytes(32).toString("base64url"),
+  };
+}
+
 /** Own the same-bundle web child and its restartable worker sibling. */
 export function superviseRuntimeChildren(
   cwd: string,
@@ -467,5 +500,8 @@ export function superviseRuntimeChildren(
       ((role): void => {
         console.log(`Brain ${role} runtime ready`);
       }),
+    localDatabaseEndpoint:
+      dependencies.localDatabaseEndpoint ?? createLocalDatabaseEndpoint(),
+    createProcessSessionId: dependencies.createProcessSessionId ?? randomUUID,
   });
 }

@@ -35,14 +35,28 @@ import {
 } from "@brains/templates";
 import { Clock, Context } from "@brains/utils/effect";
 import type { Logger } from "@brains/utils/logger";
-import { OperationContext } from "@brains/operation-context";
+import {
+  OperationContext,
+  type OperationScope,
+} from "@brains/operation-context";
+import {
+  JOB_QUEUE_RPC_SERVICE,
+  type JobQueueRpcTransport,
+} from "@brains/job-queue";
 
 import { DaemonRegistry } from "../daemon-registry";
+import {
+  LocalDatabaseRpcClient,
+  LocalDatabaseRpcServer,
+} from "../local-database-endpoint";
 import { ProjectionRuntimeSupervisor } from "../projection-runtime-supervisor";
 import type { ShellConfig } from "../config";
 import type { ShellDependencies, ShellServices } from "../types/shell-types";
 import type { ShellLifecycle } from "./shell-lifecycle";
-import type { RuntimeProcessRole } from "../runtime-process-role";
+import type {
+  LocalDatabaseEndpointConfig,
+  RuntimeProcessRole,
+} from "../runtime-process-role";
 import { initializeIdentityAndAgentServices } from "./identity-agent-services";
 import { initializeJobServices } from "./job-services";
 import { createRecurringCheckDelivery } from "./recurring-check-delivery";
@@ -59,6 +73,7 @@ export function createShellServices(options: {
   initializerLogger: Logger;
   lifecycle: ShellLifecycle;
   processRole?: RuntimeProcessRole;
+  localDatabaseEndpoint?: LocalDatabaseEndpointConfig;
 }): ShellServices {
   const { config, dependencies, initializerLogger, lifecycle, processRole } =
     options;
@@ -67,6 +82,35 @@ export function createShellServices(options: {
   const logger = createServiceLogger(config, dependencies?.logger);
   const operationContext =
     dependencies?.operationContext ?? OperationContext.createFresh();
+  if (options.localDatabaseEndpoint && !processRole) {
+    throw new Error("A local database endpoint requires a process role");
+  }
+  const localDatabaseEndpoint = options.localDatabaseEndpoint
+    ? processRole === "web"
+      ? new LocalDatabaseRpcServer({ config: options.localDatabaseEndpoint })
+      : new LocalDatabaseRpcClient({
+          config: options.localDatabaseEndpoint,
+          getOperationScope: (): OperationScope | undefined =>
+            operationContext.current(),
+        })
+    : undefined;
+  if (localDatabaseEndpoint instanceof LocalDatabaseRpcClient) {
+    // Worker runtime drains before its shared endpoint client closes.
+    lifecycle.addFinalizer(() => localDatabaseEndpoint.close());
+  }
+  const remoteJobQueueTransport: JobQueueRpcTransport | undefined =
+    localDatabaseEndpoint instanceof LocalDatabaseRpcClient
+      ? {
+          initialize: () => localDatabaseEndpoint.initialize(),
+          request: (payload, requestOptions) =>
+            localDatabaseEndpoint.request(
+              JOB_QUEUE_RPC_SERVICE,
+              payload,
+              requestOptions,
+            ),
+          close: () => undefined,
+        }
+      : undefined;
   const disposables: Array<() => void> = [];
 
   const embeddingService =
@@ -155,6 +199,9 @@ export function createShellServices(options: {
         : processRole === "worker"
           ? "durable-writer"
           : "combined",
+    ...(remoteJobQueueTransport && {
+      remoteTransport: remoteJobQueueTransport,
+    }),
     logger,
   });
   const {
@@ -165,6 +212,30 @@ export function createShellServices(options: {
   } = jobServices;
   lifecycle.addSyncFinalizer(() => jobServices.closeDatabase());
   lifecycle.addSyncFinalizer(() => jobServices.rollbackRuntime());
+
+  if (localDatabaseEndpoint instanceof LocalDatabaseRpcServer) {
+    // Web runtime services stop first; then reject remote traffic before the
+    // owner queue database closes.
+    lifecycle.addFinalizer(() => localDatabaseEndpoint.close());
+    const handleRequest = jobServices.handleRpcRequest;
+    if (!handleRequest) {
+      throw new Error("The web-owned job queue does not expose RPC dispatch");
+    }
+    localDatabaseEndpoint.register(
+      JOB_QUEUE_RPC_SERVICE,
+      (payload, context) => {
+        const invoke = (): Promise<unknown> =>
+          handleRequest(payload, context.signal);
+        return context.scope
+          ? operationContext.run(
+              context.scope.provenance,
+              context.scope.operationId,
+              invoke,
+            )
+          : invoke();
+      },
+    );
+  }
 
   const recurringCheckService =
     dependencies?.recurringCheckService ??
@@ -276,6 +347,7 @@ export function createShellServices(options: {
   return {
     logger,
     operationContext,
+    localDatabaseEndpoint,
     projectionRuntimeSupervisor,
     disposables,
     entityRegistry,

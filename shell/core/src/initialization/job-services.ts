@@ -5,7 +5,9 @@ import type {
   JobHandlerRegistrationMode,
   JobProgressMonitorMode,
   JobQueueServiceConfig,
+  JobQueueRpcTransport,
 } from "@brains/job-queue";
+import { JobQueueService } from "@brains/job-queue";
 import {
   BatchJobManagerTag,
   JobProgressMonitorTag,
@@ -36,6 +38,8 @@ export interface JobServices {
   jobProgressMonitor: IJobProgressMonitor;
   jobQueueService: IJobQueueService;
   jobQueueWorker: IJobQueueWorker;
+  handleRpcRequest:
+    ((input: unknown, signal?: AbortSignal) => Promise<unknown>) | undefined;
   /** Close worker-owned runtime resources before plugin teardown. */
   closeRuntime(): Promise<void>;
   /** Synchronously discard an unused runtime layer during construction rollback. */
@@ -53,6 +57,7 @@ export interface JobServiceOptions {
   handlerRegistrationMode?: JobHandlerRegistrationMode;
   workerConcurrency: number;
   progressMonitorMode?: JobProgressMonitorMode;
+  remoteTransport?: JobQueueRpcTransport;
   logger: Logger;
 }
 
@@ -98,6 +103,9 @@ export function initializeJobServices(options: JobServiceOptions): JobServices {
           }),
           ...(options.handlerRegistrationMode && {
             handlerRegistrationMode: options.handlerRegistrationMode,
+          }),
+          ...(options.remoteTransport && {
+            remoteTransport: options.remoteTransport,
           }),
           ...(options.dependencies?.jobQueueService && {
             service: options.dependencies.jobQueueService,
@@ -155,6 +163,11 @@ export function initializeJobServices(options: JobServiceOptions): JobServices {
       jobProgressMonitor,
       jobQueueService,
       jobQueueWorker,
+      handleRpcRequest:
+        jobQueueService instanceof JobQueueService
+          ? (input: unknown, signal?: AbortSignal): Promise<unknown> =>
+              jobQueueService.handleRpcRequest(input, signal)
+          : undefined,
       closeRuntime: (): Promise<void> => {
         runtimeClosed = true;
         runtimeClosePromise ??= runEffectPromise(

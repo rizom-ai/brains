@@ -47,9 +47,15 @@ export interface JobServicesLifecycle {
   closeRuntime(): Promise<void>;
 }
 
+export interface LocalDatabaseEndpointLifecycle {
+  initialize(): Promise<void>;
+  close(): void | Promise<void>;
+}
+
 export interface ShellServices {
   logger: Logger;
   operationContext: OperationContext;
+  localDatabaseEndpoint: LocalDatabaseEndpointLifecycle | undefined;
   projectionRuntimeSupervisor: ProjectionRuntimeSupervisor;
   disposables: Array<() => void>;
   entityRegistry: IEntityRegistry;

@@ -97,6 +97,9 @@ setBootFn(async (cwd, definition, flags) => {
     await handleCLI(config, {
       ...(flags.migrationsCompleted && { migrationsCompleted: true }),
       ...(flags.childRole && { processRole: flags.childRole }),
+      ...(flags.localDatabaseEndpoint && {
+        localDatabaseEndpoint: flags.localDatabaseEndpoint,
+      }),
       ...(flags.childRole && {
         onRuntimeReady: (): void => {
           const sendSupervisorMessage = (

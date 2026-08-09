@@ -20,6 +20,7 @@ import {
   type ProjectionJobAdmission,
 } from "./job-queue-service";
 import { JobQueueWorker } from "./job-queue-worker";
+import type { JobQueueRpcTransport } from "./job-queue-rpc";
 import type {
   IBatchJobManager,
   IJobQueueService,
@@ -69,6 +70,7 @@ export interface JobQueueServiceLayerOptions {
   operationContext?: OperationContext;
   projectionAdmission?: ProjectionJobAdmission;
   handlerRegistrationMode?: JobHandlerRegistrationMode;
+  remoteTransport?: JobQueueRpcTransport;
   service?: IJobQueueService;
 }
 
@@ -106,6 +108,9 @@ export function createJobQueueServiceLayer(
         }),
         ...(options.handlerRegistrationMode && {
           handlerRegistrationMode: options.handlerRegistrationMode,
+        }),
+        ...(options.remoteTransport && {
+          remoteTransport: options.remoteTransport,
         }),
       });
     return { service, close: () => service.close() };
