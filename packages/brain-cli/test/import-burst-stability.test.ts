@@ -587,6 +587,7 @@ it("runs the packaged import-burst soak nightly in one isolated CI job", async (
   expect(workflow).toContain(
     "bun test packages/brain-cli/test/import-burst-stability.test.ts",
   );
+  expect(workflow).toContain("set -o pipefail");
   expect(workflow).toContain("issues: write");
   expect(workflow).toContain("if: failure()");
   expect(workflow).not.toContain("matrix:");
