@@ -2,7 +2,7 @@
 
 ## Status
 
-**In progress — 2026-08-09; Phase 0 complete.** This is not a rescue plan: the suite is green and structurally healthy today. Every remaining phase targets a drift mechanism or a dead spot rather than failing behavior, so no phase gates a release. Phases are independently shippable and ordered so each one makes the next safer.
+**In progress — 2026-08-09; Phases 0 and 1 complete.** This is not a rescue plan: the suite is green and structurally healthy today. Every remaining phase targets a drift mechanism or a dead spot rather than failing behavior, so no phase gates a release. Phases are independently shippable and ordered so each one makes the next safer.
 
 ## Goal
 
@@ -20,7 +20,7 @@ Make the existing test suite's guarantees hard to lose:
 
 The suite is in good shape, and the plan depends on that staying true.
 
-1. `bun run test` runs 100 turbo tasks green in well under a minute. Shell alone is 17 packages in ~13s.
+1. `bun run test` runs 99 turbo tasks green in well under two minutes. Shell alone is 17 packages in ~13s.
 2. There are zero unconditional `.skip`, `.only`, and `.todo` markers. Four tests use `it.skipIf`, each gating an opt-in soak or remote-contract run behind an environment variable (`RUN_IMPORT_BURST_SOAK`, `RUN_SOAK`, `RUN_SMOKE_TESTS`, `JOB_QUEUE_REMOTE_TEST_URL`) and each documenting its invocation. These are deliberate opt-ins, not disabled tests — but they never run in CI, so nothing detects them rotting.
 3. Weak assertions (`toBeDefined`, `toBeTruthy`, `toBeFalsy`, `toBeUndefined`, `toBeNull`, bare `not.toThrow`) are 6–10% of all `expect()` calls per layer — 8.7% in `shell/`, 10.4% in `shared/`, 2.7% in `packages/`.
 4. Interaction assertions (`toHaveBeenCalled*`) are 7.3% of expects in `shell/` and 1.7% in `shared/`. Tests assert outcomes, not call logs. `interfaces/` is the outlier at 15.2%.
@@ -33,23 +33,13 @@ Two test-infrastructure homes exist and the split is correct: `@brains/test-util
 
 Phase 0 shipped the wiring guard: `scripts/test-wiring.test.ts` fails when a package with test files declares no `test` script, when a `scripts/*.test.ts` is not run by a CI-invoked root script, or when a `bun test` path argument in a root script resolves to nothing. It runs in `architecture-ci.yml` via `bun run test:scripts`, which replaced the file-pinned `arch:test`. `sites/professional` now has a `test` script (its stale `artistMediums` passthrough assertion was corrected to match the strict JSON-native schema that superseded it), `scripts/build-roadmap-visual.test.ts` runs for the first time, and the `test:integration` / `test:all` pair that reported a nonexistent suite as green is deleted.
 
+Phase 1 made shared-mock drift a compile error. Every factory in `@brains/test-utils` is now checked against the type it stands in for, and an ESLint rule keeps `as unknown as` out of `shared/test-utils/src`. Three named helpers carry the cases the type system genuinely cannot express, so a reader can tell a known limit from a papered-over mismatch: `PublicSurface<T>` for class nominality, `genericSpy` for the type parameters bun's `mock()` erases, and `spyOnMembers` for wrapping a real namespace in recording spies. The two plugin-context mocks are no longer hand-written at all — they build a real context from a mock shell through `createEntityPluginContext` / `createServicePluginContext`, so their shape cannot drift because it is no longer a separate shape. One documented exception remains: `mockFetch` replaces a global rather than an injected collaborator and its handler deliberately returns a `Partial<Response>`, so there is nothing assignable to check it against.
+
 Three caveats to the baseline. Test files themselves contain 156 `as unknown as` casts across 80 files (94 in `shell/` alone), almost always on inline partial mocks — so the "no casts in test files" property that `test-utils`' header aims for does not hold today; Phase 6 addresses it. `shell/ai-service/test/agent-service.test.ts` is the one file in the repo that reads private service state via `Reflect.get` (the conversation-actor registry probes); Phase 5 replaces those probes while it has the file open. And root-level `scripts/` is linted by nothing — `scripts/lint.mjs` drives turbo, which only visits workspace packages, and the repository root is not one — so the script tests Phase 0 just wired up are unreachable from ESLint; Phase 6 fixes that alongside its own rules.
 
 A static "modules never imported by a test" sweep flagged 25 of 53 modules in `shell/core`. That signal was checked and is mostly transitive-coverage noise — barrel modules such as `messageBus.ts` pull in their collaborators, and the init/shutdown paths it flagged are covered. Only `shell/ai-evaluation` survived the check as a genuine hole. This plan does not act on that sweep beyond Phase 4.
 
 ## Problems to solve
-
-### Mock drift cannot be caught by the type system
-
-`@brains/test-utils` factories declare honest return types — `createMockEntityService(...): IEntityService` — but build the object literal and apply `as unknown as IEntityService` to it. There are 27 such casts across 13 mock files, 9 of them in the 1096-line `mock-shell.ts`.
-
-The centralization is deliberate and good for consumers: the package header states the cast lives in the factory so test files need none. The problem is the cast's position. Applied to the literal, it erases the only check that would notice the interface moving:
-
-- an interface gains a method, the mock literal does not → typecheck passes → suite passes
-- no test calls the new method → the mock is silently stale, and every test using it now asserts against a shape the real service no longer has
-- a test does call it → `undefined is not a function`, surfaced far from the cause
-
-The same applies to signature changes on existing methods, which is the more common case and produces no runtime error at all — just a mock that accepts arguments the real service would reject.
 
 ### Four test-database helpers with divergent cleanup contracts
 
@@ -178,24 +168,7 @@ An ESLint `no-restricted-syntax` rule bans the `new Promise(... setTimeout ...)`
 
 ## Remaining implementation phases
 
-Each phase is independently shippable and starts with its test. Phases 1–5 may be reordered against each other. Phase 6 builds on Phases 1 and 3 and comes after both.
-
-### Phase 1 — Mock drift is a compile error
-
-1. Convert `shared/test-utils/src/mock-entity-service.ts` first, as the proof: populate the literal fully and replace `as unknown as IEntityService` with `satisfies IEntityService`.
-2. Verify the mechanism catches drift before converting anything else — add a method to `IEntityService` locally, confirm `bun run typecheck` fails at the mock, and revert. This step is manual verification of the guard, not a committed test; the compile error _is_ the assertion.
-3. Convert the remaining 11 mock files, smallest first. Where a mock cannot satisfy its full interface, narrow the factory's declared return type per decision 2 rather than restoring the cast.
-4. Convert `mock-shell.ts` last. At 1096 lines and 9 casts it is the hard case and the one with the most drift surface; doing it after the pattern is proven on 12 smaller files keeps the difficult work mechanical.
-5. Rebuild `createMockEntityPluginContext` and `createMockServicePluginContext` on the real `createEntityPluginContext` / `createServicePluginContext` factories, which `@brains/plugins` already exports and which take an `IShell` — exactly what `createMockShell` returns. Both currently hand-maintain a ~200-line parallel copy of a context production assembles itself, which is why they had drifted furthest. Deriving them makes drift structurally impossible instead of merely detected, and deletes both literals. Their existing options (`returns.ai`, `jobsEnqueue`, `attachmentsResolve`, `messagingSend`, `entityService`, `listEntitiesImpl`) map onto `createMockShell` options; 43 call sites depend on that surface, so it must be preserved.
-6. Add an ESLint rule or a `test-wiring` assertion forbidding `as unknown as` in `shared/test-utils/src/`, so the pattern cannot return.
-
-Gate:
-
-- Zero `as unknown as` casts remain in `shared/test-utils/src/`.
-- Adding a method to `IShell` or `IEntityService` fails `bun run typecheck` at the mock definition.
-- Every remaining cast is behind a named, documented helper (`genericSpy` for the type parameters `mock()` erases, `PublicSurface` for class nominality), so a reader can tell a known type-system limit from a papered-over mismatch.
-- No test file gains a cast as a result of the conversion.
-- Full suite green.
+Each phase is independently shippable and starts with its test. Phases 2–5 may be reordered against each other. Phase 6 builds on Phase 3 and comes after it.
 
 ### Phase 2 — One test-database helper
 
@@ -281,13 +254,6 @@ Gate:
 
 ## Validation matrix
 
-### Mock typing
-
-- interface gains a method → typecheck fails at the mock;
-- interface method changes signature → typecheck fails at the mock;
-- mock retains narrow inferred types for `.mock.calls` consumers;
-- no test file requires a cast.
-
 ### Test databases
 
 - multi-client cleanup closes every tracked client;
@@ -322,8 +288,6 @@ Gate:
 
 ## Risks and mitigations
 
-- **Phase 1 surfaces mocks that are already stale.** Likely in `mock-shell.ts`, and the reason it is sequenced last within the phase. A revealed gap means tests were asserting against a shape the real service no longer has, so fix the mock and re-check the tests that used it rather than narrowing the type to make the error disappear.
-- **`satisfies` on a large literal produces hard-to-read errors.** Convert one file at a time and keep each conversion a separate commit, so a confusing error is always attributable to one mock.
 - **Phase 2's `track` is easy to forget at a call site.** The four in-tree call sites are migrated in the same phase. Beyond that, an untracked client is no worse than today's behavior, so the helper degrades to the current state rather than to something broken.
 - **Phase 3 changes shared mock defaults and breaks distant tests.** Fold local behavior in as opt-in options with defaults matching current shared behavior; never change an existing default to accommodate a migrating call site.
 - **Phase 4 tempts real model calls for realism.** Injected fake evaluation core only. If a live-model evaluation test is ever wanted, it belongs behind an explicit opt-in script, not in the default suite.
@@ -338,8 +302,8 @@ Gate:
 
 - No test file in the repository is unreachable from CI (shipped in Phase 0; the guard keeps it true).
 - No root script silently matches nothing (shipped in Phase 0).
-- Adding a method to a mocked interface fails typecheck rather than passing silently.
-- No `as unknown as` remains in `shared/test-utils/src/` or in any test file.
+- Adding a method to a mocked interface fails typecheck rather than passing silently (shipped in Phase 1).
+- No `as unknown as` remains in `shared/test-utils/src/` (shipped in Phase 1; lint-enforced) or in any test file.
 - One implementation of test-database setup, with one cleanup contract, and no cleanup that opens a connection.
 - Each shared mock factory has exactly one definition.
 - `shell/ai-evaluation`'s CLI chain is reachable from tests, with no live model calls in the default suite.
