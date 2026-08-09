@@ -216,13 +216,12 @@ Cleanup:
 - [operational-alert-delivery.md](./plans/operational-alert-delivery.md) — successor to `background-work-silent-stall.md`: deliver sustained operational degradation to the operator over a web-process path that survives a dead worker, with deduplicated episodes that resolve, then land client-side error capture on the same spine.
 - [test-suite-hardening.md](./plans/test-suite-hardening.md) — make the green suite's guarantees hard to lose: stop tests that silently never run, turn mock drift into a compile error, unify test-database setup, put the eval CLI under test, and replace sleep-based waits with condition waits.
 - [packed-compatibility-test-tiering.md](./plans/packed-compatibility-test-tiering.md) — keep focused tests and one packed canary in normal PR feedback, move the full external-authoring matrix to nightly/release evidence, reuse one packed artifact per run, and freeze the `0.2.0` fixtures for later patch-candidate compatibility.
-- [turso-database-engine.md](./plans/turso-database-engine.md) — **in progress**: local files now default to Turso Database with native FTS, packed native bindings, dual-engine service parity, production-shaped cutover coverage, and an explicit libSQL rollback command. After selecting Git-only content sync, Phase 5 preflight found that MVCC and multiprocess WAL are mutually exclusive; web is the selected database owner, with a transport and hybrid-service proof under WAL required before folding embeddings and enabling MVCC.
+- [turso-database-engine.md](./plans/turso-database-engine.md) — **in progress**: local files now default to Turso Database with native FTS, packed native bindings, dual-engine service parity, production-shaped cutover coverage, and an explicit libSQL rollback command. After selecting Git-only content sync, Phase 5 preflight found that MVCC and multiprocess WAL are mutually exclusive; web is the selected database owner and a private local endpoint is the selected worker transport, to be proved under WAL before folding embeddings and enabling MVCC.
 
 Research probes (parked):
 
 - [alternative-site-renderer-spike.md](./plans/alternative-site-renderer-spike.md) — whether any renderer other than Preact earns its place now that builds are prepared into a serializable snapshot.
 - [embedding-service.md](./plans/embedding-service.md) — local AI runtime sidecar direction.
-- [turso-database-engine.md](./plans/turso-database-engine.md) — exploratory: whether the SQLite-from-scratch Rust rewrite unlocks a DB-level/browser sync model that libSQL can't.
 
 ## Product direction
 
