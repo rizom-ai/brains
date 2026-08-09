@@ -1,58 +1,12 @@
-/** Curated public interface plugin contract surface. */
+/** Declarative public interface authoring contract. */
 
 export {
-  BaseMessageSchema,
-  MessageResponseSchema,
-} from "@brains/plugins/contracts/messaging";
-export type {
-  BaseMessage,
-  MessageContext,
-  MessageResponse,
-  MessageSendOptions,
-  MessageSender,
-  MessageWithPayload,
-} from "@brains/plugins/contracts/messaging";
-
-export {
-  NavigationSlots,
-  RouteDefinitionSchema,
-  RegisterRoutesPayloadSchema,
-  UnregisterRoutesPayloadSchema,
-  ListRoutesPayloadSchema,
-  GetRoutePayloadSchema,
-} from "@brains/site-composition";
-export type {
-  EntityDisplayEntry,
-  NavigationItem,
-  NavigationSlot,
-  RouteDefinition,
-  RouteDefinitionInput,
-  SectionDefinition,
-} from "@brains/site-composition";
-
-export type {
-  ApiRouteDefinition,
-  RegisteredApiRoute,
-} from "@brains/plugins/contracts/api-routes";
-
-export type {
-  RegisteredWebRoute,
-  WebRouteDefinition,
-  WebRouteHandler,
-  WebRouteMethod,
-} from "@brains/plugins/contracts/web-routes";
-
-export type {
-  Daemon,
-  DaemonHealth,
-  DaemonInfo,
-  DaemonStatusInfo,
-} from "@brains/plugins/contracts/daemons";
-
+  defineDaemon,
+  defineInterface,
+  defineMessageInterface,
+  defineRoute,
+  protocol,
+} from "@brains/plugins";
 export { UserPermissionLevelSchema } from "@brains/templates";
-export type {
-  PermissionConfig,
-  PermissionRule,
-  UserPermissionLevel,
-  WithVisibility,
-} from "@brains/templates";
+export type { UserPermissionLevel } from "@brains/templates";
+export { z } from "@brains/utils/zod";

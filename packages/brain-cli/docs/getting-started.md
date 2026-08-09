@@ -46,7 +46,7 @@ Each recipe also copies instance-owned starter content into `seed-content/`.
 - `package.json` — pinned `@rizom/brain` dependency
 - `.env.example` and `.env.schema` — environment contract
 - `.gitignore` and `tsconfig.json`
-- `src/site.ts` and `src/theme.css` for site-enabled recipes
+- `src/site.tsx` and `src/theme.css` for site-enabled recipes
 - optional deployment files with `--deploy`
 
 ## Init options

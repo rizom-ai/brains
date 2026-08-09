@@ -1,5 +1,4 @@
 ---
-"@rizom/site-sections": major
 "@rizom/site": minor
 ---
 

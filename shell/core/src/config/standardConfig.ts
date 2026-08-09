@@ -13,7 +13,7 @@ export interface StandardConfig {
   runtimeStateDatabase: DbConfig;
   embeddingDatabase: DbConfig;
   embedding: {
-    cacheDir: string;
+    enabled: boolean;
   };
 }
 
@@ -48,7 +48,7 @@ export function createStandardConfig(paths: StandardPaths): StandardConfig {
       url: `file:${paths.dataDir}/embeddings.db`,
     },
     embedding: {
-      cacheDir: `${paths.cacheDir}/embeddings`,
+      enabled: true,
     },
   };
 }

@@ -115,6 +115,17 @@ model: anthropic:claude-haiku-4-5-20251001
 reasoningEffort: low
 ```
 
+### `embedding`
+
+Provider-backed semantic indexing is enabled by default. Disable it explicitly for offline or hermetic instances; lexical full-text search remains available.
+
+```yaml
+embedding:
+  enabled: false
+```
+
+Semantic-only operations fail clearly while indexing is disabled.
+
 ### `mode`
 
 `mode: eval` disables definition-owned side-effect members for evaluation runs.
@@ -133,7 +144,7 @@ site:
   themeOverride: ":root { --brand: rebeccapurple; }"
 ```
 
-All fields are optional. Local `src/site.ts` is always the effective site package when present; an explicit `site.package` becomes its base and the local file layers structural overrides over it. Local `src/theme.css` and `src/site-content.ts` apply when `site.themeOverride` or `plugins.site-content.definitions` is absent, respectively.
+All fields are optional. Local `src/site.tsx` is always the effective site package when present; an explicit `site.package` becomes its base and the local file layers structural overrides over it. Local `src/theme.css` and `src/site-content.ts` apply when `site.themeOverride` or `plugins.site-content.definitions` is absent, respectively.
 
 ## Plugins
 

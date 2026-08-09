@@ -305,7 +305,7 @@ site:
 ```
 
 The publishing bundle provides the blog capability and its templates. Use a local
-`src/site.ts` package when the default site routes need to be replaced or extended.
+`src/site.tsx` package when the default site routes need to be replaced or extended.
 
 ### Creating a Blog Post Programmatically
 

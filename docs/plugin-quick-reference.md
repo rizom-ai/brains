@@ -1,184 +1,95 @@
-# Plugin Development Quick Reference
+# Package Authoring Quick Reference
 
-Use this as a compact checklist for choosing and authoring plugins. For full external package guidance, see [External Plugin Authoring](./external-plugin-authoring.md). For minimal standalone references, see [`rizom-ai/brain-plugin-hello`](https://github.com/rizom-ai/brain-plugin-hello) and [`rizom-ai/brain-plugin-recipes`](https://github.com/rizom-ai/brain-plugin-recipes).
+Use this checklist when choosing a declarative extension family. For package and composition guidance, see [External Package Authoring](./external-plugin-authoring.md). The authoritative standalone examples live under [`packages/brain-cli/test/fixtures/public-authoring`](../packages/brain-cli/test/fixtures/public-authoring).
 
-## Choose a base class
+## Choose a definition family
 
-| Need                                                                        | Use                      |
-| --------------------------------------------------------------------------- | ------------------------ |
-| Add a durable markdown-backed entity type                                   | `EntityPlugin`           |
-| Add tools, resources, jobs, integrations, templates, or background behavior | `ServicePlugin`          |
-| Add a non-chat transport, daemon, HTTP route, or interface                  | `InterfacePlugin`        |
-| Add a chat/channel transport                                                | `MessageInterfacePlugin` |
+| Need                                                          | Entry point               | Use                                                             |
+| ------------------------------------------------------------- | ------------------------- | --------------------------------------------------------------- |
+| Durable markdown-backed entities and deterministic derivation | `@rizom/brain/entities`   | `defineEntity()`, `defineProjection()`, `defineEntityPackage()` |
+| Tools, resources, prompts, templates, views, or durable jobs  | `@rizom/brain/services`   | `defineServicePlugin()`, `defineTool()`, `defineJob()`          |
+| HTTP routes or supervised event listeners                     | `@rizom/brain/interfaces` | `defineInterface()`, `defineRoute()`, `defineDaemon()`          |
+| Conversational or outbound channels                           | `@rizom/brain/interfaces` | `defineMessageInterface()`                                      |
+| Site layouts, routes, sections, content, and assets           | `@rizom/site`             | `defineSite()`, `defineSection()`, `sectionGroup()`             |
+
+Every extension package default-exports one definition. A package with several concerns composes focused packages rather than exposing runtime classes.
 
 ## Import rules
 
-External packages:
+Import helpers and the blessed `z` from one family entry point:
 
 ```ts
-import { z } from "@rizom/brain";
-import { ServicePlugin, type PluginFactory } from "@rizom/brain/plugins";
-import type { BaseEntity, EntityAdapter } from "@rizom/brain/entities";
-import type { WebRouteDefinition } from "@rizom/brain/interfaces";
+import { defineServicePlugin, defineTool, z } from "@rizom/brain/services";
 ```
 
-Do not import internal `@brains/*` packages from external plugins.
+Do not import:
 
-## Lifecycle hooks
+- internal `@brains/*` packages;
+- `zod` directly;
+- package manifests;
+- runtime plugin classes, registries, queues, or process-role types.
 
-| Hook                  | Use for                                                              |
-| --------------------- | -------------------------------------------------------------------- |
-| `onRegister(context)` | registering capabilities, routes, handlers, subscriptions            |
-| `onReady(context)`    | startup work that needs identity/profile or other registered plugins |
-| `onShutdown()`        | cleanup                                                              |
+## Configuration and setup
 
-Do not start long-running work before registration is complete. Daemons and job processing start after ready hooks.
-
-## Service plugin skeleton
+Declare one config schema. `use()` and `brain.yaml` accept its inferred input; definition callbacks receive its parsed output, including defaults and transforms.
 
 ```ts
-import { z } from "@rizom/brain";
-import {
-  ServicePlugin,
-  createTool,
-  toolSuccess,
-  type PluginFactory,
-  type Tool,
-} from "@rizom/brain/plugins";
-
-const packageJson = { name: "@acme/brain-plugin-demo", version: "0.1.0" };
-const configSchema = z.object({ greeting: z.optional(z.string()) });
-
-type Config = z.output<typeof configSchema>;
-type ConfigInput = z.input<typeof configSchema>;
-
-class DemoServicePlugin extends ServicePlugin<Config, ConfigInput> {
-  constructor(config: ConfigInput = {}) {
-    super("demo", packageJson, config, configSchema);
-  }
-
-  protected override async getTools(): Promise<Tool[]> {
-    return [
-      createTool({
-        name: "demo_greet",
-        description: "Return a greeting.",
-        inputSchema: { name: z.optional(z.string()) },
-        handler: () => toolSuccess({ message: "hello" }),
-      }),
-    ];
-  }
-}
-
-export const plugin: PluginFactory = (config) => new DemoServicePlugin(config);
-export default plugin;
-```
-
-## Entity plugin skeleton
-
-```ts
-import { z } from "@rizom/brain";
-import { EntityPlugin, type PluginFactory } from "@rizom/brain/plugins";
-import type { BaseEntity, EntityAdapter } from "@rizom/brain/entities";
-
-interface NoteEntity extends BaseEntity<{ title: string }> {
-  entityType: "note";
-  metadata: { title: string };
-}
-
-const noteSchema: z.ZodSchema<NoteEntity> = z.object({
-  id: z.string(),
-  entityType: z.literal("note"),
-  content: z.string(),
-  created: z.string(),
-  updated: z.string(),
-  metadata: z.object({ title: z.string() }),
-  contentHash: z.string(),
+export default defineServicePlugin({
+  id: "demo",
+  config: z.object({ greeting: z.string().default("Hello") }),
+  setup: ({ config }) => ({
+    greet: (name: string) => `${config.greeting}, ${name}`,
+  }),
+  tools: ({ state }) => [
+    defineTool({
+      name: "greet",
+      description: "Return a greeting.",
+      input: z.object({ name: z.string() }),
+      output: z.object({ message: z.string() }),
+      execute: ({ input }) => ({ message: state.greet(input.name) }),
+    }),
+  ],
 });
-
-const adapter: EntityAdapter<NoteEntity, { title: string }> = {
-  entityType: "note",
-  schema: noteSchema,
-  toMarkdown: (entity) => entity.content,
-  fromMarkdown: (markdown) => ({ content: markdown }),
-  extractMetadata: (entity) => entity.metadata,
-  parseFrontMatter: (_markdown, schema) => schema.parse({ title: "Note" }),
-  generateFrontMatter: (entity) => `title: ${entity.metadata.title}`,
-  getBodyTemplate: () => "",
-};
-
-class NotePlugin extends EntityPlugin<NoteEntity> {
-  readonly entityType = "note";
-  readonly schema = noteSchema;
-  readonly adapter = adapter;
-
-  constructor() {
-    super(
-      "note",
-      { name: "@acme/brain-plugin-note", version: "0.1.0" },
-      {},
-      z.object({}),
-    );
-  }
-}
-
-export const plugin: PluginFactory = () => new NotePlugin();
 ```
 
-## Message interface skeleton
+Package name, version, and runtime capability scoping are loader-owned.
+
+## Lifecycle ownership
+
+- Use `setup` for package-owned state and resources; register teardown with `lifecycle.onCleanup()`.
+- Use schema-first jobs for durable worker work.
+- Use supervised interface daemons for long-running listeners.
+- Use projections for deterministic entity derivation.
+- Return or register nothing through shell registries; definition fields are the registration contract.
+- Honor provided abort signals. Runtime shutdown and rollback own cleanup order.
+
+## Brain composition
+
+Import default definitions into a brain-definition package and configure them with `use()`:
 
 ```ts
-import { z } from "@rizom/brain";
-import {
-  MessageInterfacePlugin,
-  type JobProgressEvent,
-  type PluginFactory,
-} from "@rizom/brain/plugins";
+import demo from "@example/demo";
+import { defineBrain, defineBundle, use } from "@rizom/brain";
 
-class ChatPlugin extends MessageInterfacePlugin {
-  constructor() {
-    super(
-      "chat",
-      { name: "@acme/brain-plugin-chat", version: "0.1.0" },
-      {},
-      z.object({}),
-    );
-  }
+const configuredDemo = use(demo, { greeting: "Hi" });
+const core = defineBundle({ id: "core", members: [configuredDemo] });
 
-  protected sendMessageToChannel(
-    channelId: string | null,
-    message: string,
-  ): void {
-    // Send through your platform SDK.
-    console.log(channelId, message);
-  }
-
-  protected override async onProgressUpdate(
-    event: JobProgressEvent,
-  ): Promise<void> {
-    void event.id;
-  }
-}
-
-export const plugin: PluginFactory = () => new ChatPlugin();
+export default defineBrain({
+  name: "example",
+  plugins: [configuredDemo],
+  bundles: [core],
+});
 ```
 
-## `brain.yaml` external plugin entry
-
-```yaml
-plugins:
-  demo:
-    package: "@acme/brain-plugin-demo"
-    config:
-      greeting: Hello
-```
-
-The package version belongs in the instance `package.json`. The factory receives only the nested `config` object.
+Secrets belong in instance configuration, not package defaults.
 
 ## Validation checklist
 
-- Package exports a default or named `plugin` factory.
-- Package declares `@rizom/brain` as a peer dependency.
-- Package imports the blessed `z` from `@rizom/brain` if it needs schemas; do not declare or import `zod` directly.
-- Published declarations do not reference `@brains/*`.
-- Examples typecheck against `@rizom/brain/*`, not monorepo paths.
-- Smoke tests can use `brain start --startup-check` to prove `onRegister`/`onReady` without starting daemons or job workers.
+- Package default-exports a canonical `define*` result.
+- Package declares a compatible `@rizom/brain` peer range.
+- Source contains no `@brains/*`, direct `zod`, package metadata import, cast, or duplicated schema-derived type.
+- Generated declarations resolve only public package exports.
+- Packed installation and startup run outside the monorepo.
+- Deterministic behavior is covered without provider credentials; provider-backed evidence is opt-in.
+
+Class constructors, tuple factories, named `plugin` exports, positional tools, and `brain.yaml` plugin package declarations are removed alpha contracts and are not compatibility paths in stable `0.2.x`.

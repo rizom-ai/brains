@@ -1,7 +1,7 @@
 /** @jsxImportSource preact */
 import type { JSX } from "preact";
 import type { SiteSectionGroup } from "@rizom/site";
-import { defineSection, sectionGroup, z } from "@rizom/site-sections";
+import { defineSection, sectionGroup, z } from "@rizom/site";
 import { Section, renderHighlightedText } from "@rizom/site-rizom";
 import {
   AliveLine,

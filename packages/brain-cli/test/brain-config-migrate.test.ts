@@ -166,7 +166,7 @@ describe("brain config migration preview", () => {
     });
   });
 
-  test("preserves comments, overrides, external packages, and secret references", () => {
+  test("preserves comments, overrides, and secret references", () => {
     const input = `# Keep this operator note
 brain: rover # legacy model
 preset: default # keep selection rationale
@@ -192,11 +192,6 @@ plugins:
     git:
       repo: rizom-ai/example-content
       authToken: \${GIT_SYNC_TOKEN}
-  # Keep this external plugin note
-  calendar:
-    package: "@example/calendar" # Keep this package note
-    config:
-      apiKey: \${CALENDAR_API_KEY}
 permissions:
   trusted:
     - "discord:123"
@@ -207,13 +202,10 @@ permissions:
     expect(result.output).toContain("# Keep this operator note");
     expect(result.output).toContain("# legacy model");
     expect(result.output).toContain("# keep selection rationale");
-    expect(result.output).toContain("# Keep this external plugin note");
-    expect(result.output).toContain("# Keep this package note");
     expect(result.output).toContain("${GIT_SYNC_TOKEN}");
     expect(result.output).toContain("${DISCORD_BOT_TOKEN}");
     expect(result.output).toContain("${SETUP_EMAIL_API_KEY}");
     expect(result.output).toContain("${SETUP_EMAIL_FROM}");
-    expect(result.output).toContain("${CALENDAR_API_KEY}");
     expect(parsed.kind).toBe("professional");
     expect(parsed.add).toEqual(["docs", "onboarding", "obsidian-vault"]);
     expect(parsed.remove).toEqual([
@@ -246,9 +238,6 @@ permissions:
       git: {
         repo: "rizom-ai/example-content",
       },
-    });
-    expect(parsed.plugins?.["calendar"]).toMatchObject({
-      package: "@example/calendar",
     });
     expect(parsed.permissions?.trusted).toEqual(["discord:123"]);
   });

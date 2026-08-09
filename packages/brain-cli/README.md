@@ -57,7 +57,7 @@ Commands exposed by plugins are discovered from the running tool registry.
 - `@rizom/brain` — definition and bundle contracts
 - `@rizom/brain/model` — canonical definition
 - `@rizom/brain/plugins`, `/entities`, `/services`, `/interfaces`
-- `@rizom/brain/site`, `/themes`, `/templates`, `/deploy`
+- `@rizom/site` for site authoring; `@rizom/brain/templates` and `@rizom/brain/deploy` for advanced consumers
 
 ## Documentation
 

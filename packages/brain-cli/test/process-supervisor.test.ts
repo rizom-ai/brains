@@ -20,6 +20,7 @@ interface TestHarness {
   timers: Map<number, { callback: () => void; delayMs: number }>;
   spawnImpl: ReturnType<typeof mock>;
   reportIncident: ReturnType<typeof mock>;
+  reportReady: ReturnType<typeof mock>;
   advanceTo(timestamp: number): void;
   fireTimer(delayMs: number): void;
 }
@@ -55,6 +56,7 @@ function createHarness(): TestHarness {
     return child;
   });
   const reportIncident = mock((_incident: Record<string, unknown>) => {});
+  const reportReady = mock((_role: "web" | "worker") => {});
   const advanceTo = (timestamp: number): void => {
     now = timestamp;
   };
@@ -74,6 +76,7 @@ function createHarness(): TestHarness {
     timers,
     spawnImpl,
     reportIncident,
+    reportReady,
     advanceTo,
     fireTimer,
   };
@@ -91,6 +94,7 @@ function supervise(harness: TestHarness): Promise<CommandResult> {
     workerRestartWindowMs: 3_600,
     workerHeartbeatIntervalMs: 20,
     reportIncident: harness.reportIncident,
+    reportReady: harness.reportReady,
   });
 }
 
@@ -150,6 +154,8 @@ describe("bundled process supervisor", () => {
     const worker = harness.children[1];
     if (!worker) throw new Error("Expected worker child");
     worker.emit("message", { type: "worker-ready" });
+    expect(harness.reportReady).toHaveBeenNthCalledWith(1, "web");
+    expect(harness.reportReady).toHaveBeenNthCalledWith(2, "worker");
     harness.processEvents.emit("SIGTERM");
     worker.emit("close", null, "SIGTERM");
     web.emit("close", null, "SIGTERM");

@@ -23,27 +23,44 @@ export {
 export type { LogLevel } from "./types";
 
 // Brain definition / resolver API
+export {
+  isConfiguredPluginDefinition,
+  use,
+  type ConfiguredPluginDefinition,
+} from "./configured-plugin";
 export { brainAnchorConfigKindSchema, defineBrain } from "./brain-definition";
 export { defineBundle } from "./bundle-definition";
+export {
+  isDeclarativeBrainDefinition,
+  normalizeDeclarativeBrainDefinition,
+} from "./declarative-brain";
 export { resolve, isScopedPackageRef } from "./brain-resolver";
 export { resolveBrainPackageName } from "./brain-package";
-export { registerPackage, getPackage, hasPackage } from "./package-registry";
+export {
+  registerPackage,
+  getPackage,
+  getPackageMetadata,
+  hasPackage,
+  type PackageRegistrationOptions,
+} from "./package-registry";
 export { collectOverridePackageRefs } from "./override-package-refs";
 export { generateEntrypoint } from "./generate-entrypoint";
 export type { GenerateEntrypointOptions } from "./generate-entrypoint";
 export { registerOverridePackages } from "./register-override-packages";
 export type { PackageImportFn } from "./register-override-packages";
 export {
+  registerBrainDefinitionPackages,
+  type InstalledPackageImport,
+} from "./register-brain-definition-packages";
+export {
   parseInstanceOverrides,
   InstanceOverridesParseError,
   applyConventionalSiteRefs,
-  externalPluginDeclarationSchema,
   pluginOverrideEntrySchema,
   CONVENTIONAL_SITE_CONTENT_PACKAGE_REF,
   CONVENTIONAL_SITE_PACKAGE_REF,
   CONVENTIONAL_THEME_PACKAGE_REF,
 } from "./instance-overrides";
-export type { ExternalPluginDeclaration } from "./instance-overrides";
 export {
   registerConventionalSitePackage,
   registerConventionalSiteTheme,

@@ -1,0 +1,22 @@
+{
+  "name": "@fixture/reading-webhook",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "dependencies": {
+    "@fixture/reading-insights": "0.1.0",
+    "eventsource": "^3.0.7"
+  },
+  "peerDependencies": {
+    "@rizom/brain": ">=0.2.0-alpha.0 <0.3.0"
+  },
+  "devDependencies": {
+    "typescript": "^7.0.2"
+  }
+}

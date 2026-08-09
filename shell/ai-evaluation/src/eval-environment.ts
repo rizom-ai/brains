@@ -56,7 +56,6 @@ export async function bootEvalApp(options: BootEvalAppOptions): Promise<App> {
       conversationDatabase: { url: `file:${evalDbBase}-conv.db` },
       embeddingDatabase: { url: `file:${evalDbBase}-embeddings.db` },
       runtimeStateDatabase: { url: `file:${evalDbBase}-runtime-state.db` },
-      embedding: { cacheDir: `${evalDbBase}-cache` },
       evalHandlerRegistry,
       dataDir: `${evalDbBase}-data`,
     },

@@ -13,6 +13,7 @@ export {
 
 export { createRizomSite } from "./create-site";
 export type { CreateRizomSiteOptions } from "./create-site";
+export type { SitePackage } from "./contracts";
 export type {
   EntityDisplayEntry,
   RouteDefinitionInput,

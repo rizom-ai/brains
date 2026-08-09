@@ -1,0 +1,23 @@
+{
+  "name": "@fixture/reading-site",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "dependencies": {
+    "@rizom/site": ">=0.2.0-alpha.0 <0.3.0"
+  },
+  "peerDependencies": {
+    "@rizom/brain": ">=0.2.0-alpha.0 <0.3.0",
+    "preact": "^10.27.2"
+  },
+  "devDependencies": {
+    "preact": "^10.27.2",
+    "typescript": "^7.0.2"
+  }
+}

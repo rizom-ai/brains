@@ -23,8 +23,8 @@ describe("generateEntrypoint conventions", () => {
     }
   });
 
-  test("bundles ./src/site.ts when brain.yaml omits site.package", () => {
-    writeFileSync(join(testDir, "src/site.ts"), "export default {};\n");
+  test("bundles ./src/site.tsx when brain.yaml omits site.package", () => {
+    writeFileSync(join(testDir, "src/site.tsx"), "export default {};\n");
 
     const code = generateEntrypoint(
       `brain: brain
@@ -33,7 +33,7 @@ bundles: [core]`,
     );
 
     expect(code).not.toBeNull();
-    expect(code).toContain('import __pkg0 from "./src/site.ts"');
+    expect(code).toContain('import __pkg0 from "./src/site.tsx"');
     expect(code).toContain(
       "registerConventionalSitePackage(__pkg0, undefined);",
     );
@@ -86,7 +86,7 @@ bundles: [core]`,
   });
 
   test("explicit site.package is bundled as the base for local site overrides", () => {
-    writeFileSync(join(testDir, "src/site.ts"), "export default {};\n");
+    writeFileSync(join(testDir, "src/site.tsx"), "export default {};\n");
     writeFileSync(join(testDir, "src/theme.css"), ":root {}\n");
 
     const code = generateEntrypoint(
@@ -100,7 +100,7 @@ site:
     );
 
     expect(code).not.toBeNull();
-    expect(code).toContain("./src/site.ts");
+    expect(code).toContain("./src/site.tsx");
     expect(code).toContain("./src/theme.css");
     expect(code).toContain(CONVENTIONAL_SITE_PACKAGE_REF);
     expect(code).toContain(CONVENTIONAL_THEME_PACKAGE_REF);

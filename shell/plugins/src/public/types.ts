@@ -1,3 +1,10 @@
+export type {
+  PluginPackageConfig,
+  PluginPackageConfigInput,
+  PluginPackageDefinition,
+  PluginPackageFamily,
+} from "../package-definition";
+
 import type {
   ContentVisibility,
   CountEntitiesRequest,

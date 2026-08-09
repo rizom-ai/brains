@@ -11,9 +11,6 @@ import {
   CONVENTIONAL_SITE_PACKAGE_REF,
   parseInstanceOverrides,
   InstanceOverridesParseError,
-  getExternalPluginDeclarations,
-  getPluginConfigOverrides,
-  isExternalPluginDeclaration,
 } from "../src/instance-overrides";
 import type { Plugin, IShell, PluginCapabilities } from "@brains/plugins";
 import {
@@ -124,6 +121,13 @@ describe("parseInstanceOverrides", () => {
     expect(result.database).toBe("file:./data/brain.db");
   });
 
+  test("should parse disabled semantic indexing", () => {
+    const result = parseInstanceOverrides(
+      'brain: "brain"\nembedding:\n  enabled: false',
+    );
+    expect(result.embedding).toEqual({ enabled: false });
+  });
+
   test("should parse plugins section with flat config", () => {
     const result = parseInstanceOverrides(
       'brain: "brain"\nplugins:\n  webserver:\n    productionPort: 9090',
@@ -143,61 +147,17 @@ describe("parseInstanceOverrides", () => {
     });
   });
 
-  test("should parse external plugin declarations with nested config", () => {
-    process.env["CALENDAR_API_KEY"] = "cal-secret";
-    try {
-      const yaml = `brain: "brain"
-plugins:
-  calendar:
-    package: "@rizom/brain-plugin-calendar"
-    config:
-      apiKey: "\${CALENDAR_API_KEY}"
-      sync: true
-`;
-      const result = parseInstanceOverrides(yaml);
-      expect(result.plugins?.["calendar"]).toEqual({
-        package: "@rizom/brain-plugin-calendar",
-        config: {
-          apiKey: "cal-secret",
-          sync: true,
-        },
-      });
-      expect(isExternalPluginDeclaration(result.plugins?.["calendar"])).toBe(
-        true,
-      );
-    } finally {
-      delete process.env["CALENDAR_API_KEY"];
-    }
-  });
-
-  test("should split built-in config overrides from external plugin declarations", () => {
+  test("rejects removed alpha external plugin declarations at parse time", () => {
     const yaml = `brain: "brain"
 plugins:
-  directory-sync:
-    git:
-      repo: rizom-ai/brain-data
   calendar:
     package: "@rizom/brain-plugin-calendar"
     config:
       timezone: UTC
 `;
-    const result = parseInstanceOverrides(yaml);
-
-    expect(getPluginConfigOverrides(result.plugins)).toEqual({
-      "directory-sync": {
-        git: {
-          repo: "rizom-ai/brain-data",
-        },
-      },
-    });
-    expect(getExternalPluginDeclarations(result.plugins)).toEqual({
-      calendar: {
-        package: "@rizom/brain-plugin-calendar",
-        config: {
-          timezone: "UTC",
-        },
-      },
-    });
+    expect(() => parseInstanceOverrides(yaml)).toThrow(
+      "removed alpha external-plugin contract",
+    );
   });
 
   test("should reject list-form plugins", () => {
@@ -666,6 +626,18 @@ describe("resolve with instance overrides", () => {
 
     const config = resolve(def, {}, { database: "file:./custom.db" });
     expect(config.database).toBe("file:./custom.db");
+  });
+
+  test("should disable provider-backed semantic indexing", () => {
+    const def = defineBrain({
+      name: "test",
+      version: "1.0.0",
+      capabilities: [],
+      interfaces: [],
+    });
+
+    const config = resolve(def, {}, { embedding: { enabled: false } });
+    expect(config.shellConfig?.embedding?.enabled).toBe(false);
   });
 
   test("should override domain in deployment", () => {
@@ -1268,160 +1240,6 @@ permissions:
     expect(resolvedConfig["themeCSS"]).toBe("body { color: pink; }");
   });
 
-  test("should load external plugin declarations from the package registry", () => {
-    const seenConfigs: PluginConfig[] = [];
-    const externalFactory: PluginFactory = (config) => {
-      seenConfigs.push(config);
-      return createMockPlugin("calendar-plugin", config);
-    };
-    registerPackage("@rizom/brain-plugin-calendar", externalFactory);
-
-    const def = defineBrain({
-      name: "test",
-      version: "1.0.0",
-      capabilities: [],
-      interfaces: [],
-    });
-
-    const config = resolve(
-      def,
-      {},
-      {
-        plugins: {
-          calendar: {
-            package: "@rizom/brain-plugin-calendar",
-            config: { timezone: "UTC" },
-          },
-        },
-      },
-    );
-
-    expect(config.plugins?.map((plugin) => plugin.id)).toContain(
-      "calendar-plugin",
-    );
-    expect(seenConfigs).toEqual([{ timezone: "UTC" }]);
-  });
-
-  test("should parse brain.yaml and load an external plugin with interpolated config", () => {
-    const seenConfigs: PluginConfig[] = [];
-    const externalFactory: PluginFactory = (config) => {
-      seenConfigs.push(config);
-      return createMockPlugin("yaml-calendar-plugin", config);
-    };
-    registerPackage("@rizom/brain-plugin-yaml-calendar", externalFactory);
-
-    const def = defineBrain({
-      name: "test",
-      version: "1.0.0",
-      capabilities: [],
-      interfaces: [],
-    });
-
-    process.env["CALENDAR_API_KEY"] = "cal-secret";
-    try {
-      const overrides = parseInstanceOverrides(`brain: "brain"
-plugins:
-  calendar:
-    package: "@rizom/brain-plugin-yaml-calendar"
-    config:
-      apiKey: "\${CALENDAR_API_KEY}"
-      timezone: UTC
-`);
-
-      const config = resolve(def, {}, overrides);
-
-      expect(config.plugins?.map((plugin) => plugin.id)).toContain(
-        "yaml-calendar-plugin",
-      );
-      expect(seenConfigs).toEqual([{ apiKey: "cal-secret", timezone: "UTC" }]);
-    } finally {
-      delete process.env["CALENDAR_API_KEY"];
-    }
-  });
-
-  test("should support named plugin exports for external plugin packages", () => {
-    const externalFactory: PluginFactory = (config) =>
-      createMockPlugin("named-calendar-plugin", config);
-    registerPackage("@rizom/brain-plugin-named-calendar", {
-      plugin: externalFactory,
-    });
-
-    const def = defineBrain({
-      name: "test",
-      version: "1.0.0",
-      capabilities: [],
-      interfaces: [],
-    });
-
-    const config = resolve(
-      def,
-      {},
-      {
-        plugins: {
-          calendar: {
-            package: "@rizom/brain-plugin-named-calendar",
-          },
-        },
-      },
-    );
-
-    expect(config.plugins?.map((plugin) => plugin.id)).toContain(
-      "named-calendar-plugin",
-    );
-  });
-
-  test("should exclude external plugin declarations from built-in plugin config overrides", () => {
-    const [factory, configs] = createMockFactory("calendar");
-    registerPackage("@rizom/brain-plugin-calendar-shadow", () =>
-      createMockPlugin("external-calendar", {}),
-    );
-
-    const def = defineBrain({
-      name: "test",
-      version: "1.0.0",
-      capabilities: [["calendar", factory, { builtIn: true }]],
-      interfaces: [],
-    });
-
-    resolve(
-      def,
-      {},
-      {
-        plugins: {
-          calendar: {
-            package: "@rizom/brain-plugin-calendar-shadow",
-            config: { externalOnly: true },
-          },
-        },
-      },
-    );
-
-    expect(configs).toEqual([{ builtIn: true }]);
-  });
-
-  test("should throw clearly when an external plugin package is not registered", () => {
-    const def = defineBrain({
-      name: "test",
-      version: "1.0.0",
-      capabilities: [],
-      interfaces: [],
-    });
-
-    expect(() =>
-      resolve(
-        def,
-        {},
-        {
-          plugins: {
-            missing: {
-              package: "@rizom/brain-plugin-missing",
-            },
-          },
-        },
-      ),
-    ).toThrow('External plugin package "@rizom/brain-plugin-missing"');
-  });
-
   test("should leave non-@ values unchanged during package resolution", () => {
     const configs: unknown[] = [];
     const factory: PluginFactory = (config) => {
@@ -1461,7 +1279,7 @@ function createMockSitePackage(
   overrides?: Partial<SitePackage>,
 ): SitePackage {
   return {
-    layouts: { default: null },
+    layouts: { default: () => null },
     routes: [{ id: "home", path: "/", title: "Home" }],
     plugin: (config) => createMockPlugin(pluginId, config ?? {}),
     entityDisplay: { post: { label: "Post" } },
@@ -1730,6 +1548,29 @@ describe("resolve with site package", () => {
     const dashboard = config.plugins?.find((p) => p.id === "dashboard");
 
     expect(getConfig(dashboard)["routePath"]).toBeUndefined();
+  });
+
+  test("should inject headScripts from site package into site-builder", () => {
+    const [siteBuilderFactory] = createMockFactory("site-builder");
+    const site = createMockSitePackage("scripted-site", {
+      headScripts: ['<script src="/site.js"></script>'],
+    });
+    const def = defineBrain({
+      name: "test",
+      version: "1.0.0",
+      site,
+      capabilities: [["site-builder", siteBuilderFactory, {}]],
+      interfaces: [],
+    });
+
+    const config = resolve(def, {});
+    const siteBuilder = config.plugins?.find(
+      (plugin) => plugin.id === "site-builder",
+    );
+
+    expect(getConfig(siteBuilder)["headScripts"]).toEqual([
+      '<script src="/site.js"></script>',
+    ]);
   });
 
   test("should inject staticAssets from site package into site-builder", () => {
@@ -2038,7 +1879,7 @@ site:
     const [siteBuilderFactory] = createMockFactory("site-builder");
     const pluginConfigs: PluginConfig[] = [];
     const site: SitePackage = {
-      layouts: { default: null },
+      layouts: { default: () => null },
       routes: [],
       plugin: (config) => {
         const cfg = config ?? {};

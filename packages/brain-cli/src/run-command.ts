@@ -20,7 +20,8 @@ import pkg from "../package.json" with { type: "json" };
 import { scaffold, type ScaffoldOptions } from "./commands/init";
 import { promptInitOptions, isInteractive } from "./lib/init-prompts";
 import { start, findRunner } from "./commands/start";
-import { operate } from "./commands/operate";
+import { operate, operateRawTool } from "./commands/operate";
+import { UserPermissionLevelSchema } from "@brains/templates";
 import { operateRemote } from "./commands/operate-remote";
 import { runEval } from "./commands/eval";
 import { pin } from "./commands/pin";
@@ -292,36 +293,74 @@ const configMigrate: BrainCommand = defineCommand({
 
 const toolCommand: BrainCommand = defineCommand({
   name: "tool",
-  usage: "<name> [input-json]",
+  usage: "<name> [input-json] [--yes]",
   description: "Invoke a tool directly (for debugging)",
-  run: async ({ args }, dir): Promise<CommandResult> => {
+  flags: {
+    yes: {
+      type: "boolean",
+      description: "Approve a tool-generated confirmation in the same process",
+    },
+    permission: {
+      type: "string",
+      placeholder: "<level>",
+      description: "Invocation permission: public, trusted, or admin",
+    },
+  },
+  run: async ({ args, flags }, dir): Promise<CommandResult> => {
     const toolName = args[0];
     const inputJson = args[1];
 
     if (!toolName) {
       return {
         success: false,
-        message: 'Usage: brain tool <toolName> [\'{"key": "value"}\']',
+        message: 'Usage: brain tool <toolName> [\'{"key": "value"}\'] [--yes]',
       };
     }
+
+    let toolInput: unknown = {};
+    if (inputJson) {
+      try {
+        toolInput = JSON.parse(inputJson);
+      } catch {
+        return { success: false, message: "Tool input must be valid JSON." };
+      }
+    }
+
+    const confirmRequested = getBooleanFlag(flags, "yes") ?? false;
+    const requestedPermission = getStringFlag(flags, "permission");
 
     const runner = findRunner(dir);
-    if (!runner) {
+    if (runner) {
+      if (confirmRequested || requestedPermission !== undefined) {
+        return {
+          success: false,
+          message:
+            "--yes and --permission are only supported in the bundled runtime; this project uses an external runner.",
+        };
+      }
+      const runnerArgs = ["run", runner.path, "--tool", toolName];
+      if (inputJson) runnerArgs.push("--tool-input", inputJson);
+      return spawnBunRunner({
+        cwd: dir,
+        args: runnerArgs,
+        failureMessage: (code) => `Tool failed with exit code ${code}`,
+      });
+    }
+
+    const permission =
+      requestedPermission === undefined
+        ? undefined
+        : UserPermissionLevelSchema.safeParse(requestedPermission);
+    if (permission && !permission.success) {
       return {
         success: false,
-        message: "Could not find brain runner.",
+        message: `Unknown tool permission "${requestedPermission}".`,
       };
     }
 
-    const runnerArgs = ["run", runner.path, "--tool", toolName];
-    if (inputJson) {
-      runnerArgs.push("--tool-input", inputJson);
-    }
-
-    return spawnBunRunner({
-      cwd: dir,
-      args: runnerArgs,
-      failureMessage: (code) => `Tool failed with exit code ${code}`,
+    return operateRawTool(dir, toolName, toolInput, {
+      confirm: confirmRequested,
+      ...(permission ? { permission: permission.data } : {}),
     });
   },
 });

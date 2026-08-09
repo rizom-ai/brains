@@ -8,13 +8,11 @@
         "@rizom/site-docs",
         "@rizom/site-rizom",
         "@rizom/site-rizom-ai",
-        "@rizom/site-sections",
         "@rizom/theme-rizom-ai"
       ],
       "dependencies": [
         "@rizom/site",
         "@rizom/site-rizom",
-        "@rizom/site-sections",
         "@rizom/theme-default"
       ],
       "dependencyTypes": ["local", "prod"]
@@ -57,13 +55,11 @@
         "@rizom/site-docs",
         "@rizom/site-rizom",
         "@rizom/site-rizom-ai",
-        "@rizom/site-sections",
         "@rizom/theme-rizom-ai"
       ],
       "dependencies": [
         "@rizom/site",
         "@rizom/site-rizom",
-        "@rizom/site-sections",
         "@rizom/theme-default"
       ],
       "dependencyTypes": ["prod"],

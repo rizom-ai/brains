@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { h } from "preact";
-import { defineSection, sectionGroup, z } from "@rizom/site-sections";
+import { defineSection, sectionGroup, z } from "@rizom/site";
 import {
   sectionToTemplate,
   sectionGroupToTemplates,

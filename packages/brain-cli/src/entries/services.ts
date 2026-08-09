@@ -1,14 +1,10 @@
-/** Curated public service plugin contract surface. */
+/** Declarative service authoring contract. */
 
-export {
-  BaseEntityDataSource,
-  baseInputSchema,
-  baseQuerySchema,
-} from "@brains/plugins/services/base-entity-datasource";
-
+export { defineJob, defineServicePlugin, defineTool } from "@brains/plugins";
 export type {
-  BaseQuery,
-  EntityDataSourceConfig,
-  NavigationResult,
-  SortField,
-} from "@brains/plugins/services/base-entity-datasource";
+  ServiceJobDefinition,
+  ServiceJobReference,
+  ServiceJobStatus,
+  ServicePackageDefinition,
+} from "@brains/plugins";
+export { z } from "@brains/utils/zod";

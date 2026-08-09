@@ -92,15 +92,15 @@ The full pre-commit hook runs workspace check, deps check, secret scan, prettier
 
 These are enforced by the pre-commit hook and CI. If your PR isn't following them, the build will tell you.
 
-## Building a plugin
+## Building an extension package
 
-If you want to extend `brains` without contributing upstream, the plugin system is the right path. See:
+If you want to extend `brains` without contributing upstream, use the declarative package API. See:
 
-- [Plugin System](../plugin-system.md) — architecture and lifecycle
-- [External Plugin Authoring](../external-plugin-authoring.md) — package shape, factory contract, registration model, `brain.yaml` loading
-- [Plugin Quick Reference](../plugin-quick-reference.md) — API cheat sheet
+- [Plugin System](../plugin-system.md) — internal runtime architecture
+- [External Package Authoring](../external-plugin-authoring.md) — package definitions, peer ranges, and brain composition
+- [Package Authoring Quick Reference](../plugin-quick-reference.md) — API cheat sheet
 
-Publish your plugin as `@your-org/brain-plugin-cool-thing` on npm and reference it in `brain.yaml`. Your plugin doesn't need to be in this repository to work with `brains`.
+Publish your definition package on npm, then import its default export into a brain-definition package and compose it with `use()`. Extension packages do not need to live in this repository.
 
 ## Questions
 

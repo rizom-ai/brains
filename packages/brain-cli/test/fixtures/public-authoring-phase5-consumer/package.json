@@ -1,0 +1,16 @@
+{
+  "name": "public-authoring-phase5-consumer",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "brain": "brain"
+  },
+  "dependencies": {
+    "@fixture/campfire-interface": "file:__MESSAGE_INTERFACE_TARBALL__",
+    "@fixture/reading-entities": "file:__ENTITY_TARBALL__",
+    "@fixture/reading-insights": "file:__SERVICE_TARBALL__",
+    "@fixture/reading-webhook": "file:__INTERFACE_TARBALL__",
+    "@rizom/brain": "file:__RIZOM_BRAIN_TARBALL__",
+    "@rizom/interface-brain-definition-fixture": "file:__BRAIN_DEFINITION_TARBALL__"
+  }
+}

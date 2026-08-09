@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 import { existsSync, readFileSync } from "fs";
-import { dirname, join } from "path";
+import { join } from "path";
 import { handleCLI } from "./cli";
 import { resolve } from "./brain-resolver";
 import { Logger } from "@brains/utils/logger";
@@ -11,8 +11,11 @@ import {
 import { registerConventionalSiteTheme } from "./register-conventional-site-theme";
 import type { InstanceOverrides } from "./instance-overrides";
 import type { BrainDefinition } from "./brain-definition";
+import type { BrainDefinition as DeclarativeBrainDefinition } from "./contracts/brain-definition";
 import { registerOverridePackages } from "./register-override-packages";
 import { resolveBrainPackageName } from "./brain-package";
+import { registerBrainDefinitionPackages } from "./register-brain-definition-packages";
+import { resolveInstalledPackageManifest } from "./installed-package-metadata";
 import { internal } from "varlock";
 import { getErrorMessage } from "@brains/utils/error";
 
@@ -49,9 +52,11 @@ function loadBrainYaml(): InstanceOverrides {
  * Dynamically import the brain package and return its default export
  * (a BrainDefinition).
  */
+type ResolvableBrainDefinition = BrainDefinition | DeclarativeBrainDefinition;
+
 async function loadBrainDefinition(
   packageName: string,
-): Promise<BrainDefinition> {
+): Promise<ResolvableBrainDefinition> {
   try {
     const mod = await import(packageName);
     if (!mod.default) {
@@ -84,9 +89,10 @@ async function main(): Promise<void> {
   // Validate env against the brain's .env.schema.
   // Uses varlock's `internal` API — no public API supports custom schema paths yet.
   // TODO: Switch to public API when varlock adds path support (pin version until then).
-  const brainPkgDir = dirname(
-    new URL(import.meta.resolve(`${brainPackage}/package.json`)).pathname,
-  );
+  const brainPkgDir = resolveInstalledPackageManifest(
+    brainPackage,
+    process.cwd(),
+  ).directory;
   const schemaPath = join(brainPkgDir, ".env.schema");
   if (existsSync(schemaPath)) {
     const graph = await internal.loadVarlockEnvGraph({
@@ -102,6 +108,11 @@ async function main(): Promise<void> {
   }
 
   const definition = await loadBrainDefinition(brainPackage);
+  await registerBrainDefinitionPackages(
+    brainPackage,
+    definition,
+    process.cwd(),
+  );
 
   await registerOverridePackages(overrides);
 
