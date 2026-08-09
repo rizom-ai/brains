@@ -536,7 +536,9 @@ round-trips through directory sync without a second entity hash change. The inde
 1. Confirm sufficient temporary disk for a database backup, approximately one additional
    asset corpus, and SQLite compaction. Use the dry-run estimate; for the current local
    corpus, reserve at least 4 GiB before beginning.
-2. Deploy the transitional release without running the migration automatically.
+2. Deploy the transitional release without running the migration automatically. Before
+   pinning, map the published version to its commit and confirm it contains the image
+   cutover; a moved npm `latest` is not evidence the release includes it.
 3. Enter a bounded maintenance window and stop the entire brain application, including
    background workers and content writes; confirm the process remains stopped until the
    mutating command releases its exclusive SQLite lock.
