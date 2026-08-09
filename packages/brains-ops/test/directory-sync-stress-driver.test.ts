@@ -17,6 +17,7 @@ interface CommandCall {
   command: string;
   args: string[];
   cwd?: string;
+  contentGitTokenConfigured?: boolean;
 }
 
 interface ScriptedSystemOptions {
@@ -228,6 +229,15 @@ class ScriptedStressSystem {
       command,
       args: [...args],
       ...(commandOptions?.cwd ? { cwd: commandOptions.cwd } : {}),
+      ...(command === "git"
+        ? {
+            contentGitTokenConfigured:
+              commandOptions?.env?.["GH_TOKEN"] ===
+                environment.CONTENT_REPO_ADMIN_TOKEN &&
+              commandOptions.env["GITHUB_TOKEN"] ===
+                environment.CONTENT_REPO_ADMIN_TOKEN,
+          }
+        : {}),
     };
     this.calls.push(call);
 
@@ -368,6 +378,7 @@ describe("deployed directory-sync stress driver", () => {
       "https://github.com/rizom-ai/rover-smoke-content.git",
     );
     expect(clone?.args.join(" ")).not.toContain("test-content-token");
+    expect(clone?.contentGitTokenConfigured).toBe(true);
 
     const commands = relevantGitAndSshCalls(system.calls);
     expect(commands).toContain(

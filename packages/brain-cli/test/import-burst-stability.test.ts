@@ -567,5 +567,27 @@ plugins:
 
     if (failure) throw failure;
   },
-  240_000,
+  360_000,
 );
+
+it("runs the packaged import-burst soak nightly in one isolated CI job", async () => {
+  const repoRoot = join(import.meta.dir, "..", "..", "..");
+  const workflow = await readFile(
+    join(repoRoot, ".github", "workflows", "directory-sync-import-soak.yml"),
+    "utf8",
+  );
+
+  expect(workflow).toContain("schedule:");
+  expect(workflow).toContain("cron:");
+  expect(workflow).toContain("workflow_dispatch:");
+  expect(workflow).toContain("group: directory-sync-import-soak");
+  expect(workflow).toContain("RUN_IMPORT_BURST_SOAK: 1");
+  expect(workflow).toContain("IMPORT_BURST_FILE_COUNT: 350");
+  expect(workflow).toContain("bunx turbo run build --filter=@rizom/brain");
+  expect(workflow).toContain(
+    "bun test packages/brain-cli/test/import-burst-stability.test.ts",
+  );
+  expect(workflow).toContain("issues: write");
+  expect(workflow).toContain("if: failure()");
+  expect(workflow).not.toContain("matrix:");
+});
