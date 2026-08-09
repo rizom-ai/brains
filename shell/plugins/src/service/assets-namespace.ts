@@ -64,8 +64,8 @@ export function createAssetsNamespace(
         yield bytes;
       }
       const record = await store.putStream(single(), {
-        expectedSize: bytes.byteLength,
         ...withDefaultCeiling(options),
+        expectedSize: bytes.byteLength,
       });
       return recordWrite(record);
     },

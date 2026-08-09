@@ -600,6 +600,8 @@
         "@brains/analytics": "workspace:*",
         "@brains/app": "workspace:*",
         "@brains/assessment": "workspace:*",
+        "@brains/asset-service": "workspace:*",
+        "@brains/assets": "workspace:*",
         "@brains/atproto": "workspace:*",
         "@brains/atproto-registry": "workspace:*",
         "@brains/auth-service": "workspace:*",
@@ -620,6 +622,7 @@
         "@brains/email": "workspace:*",
         "@brains/email-triage": "workspace:*",
         "@brains/eslint-config": "workspace:*",
+        "@brains/image": "workspace:*",
         "@brains/image-plugin": "workspace:*",
         "@brains/link": "workspace:*",
         "@brains/mcp": "workspace:*",
@@ -1115,6 +1118,18 @@
         "typescript": "^7.0.2",
       },
     },
+    "shared/assets": {
+      "name": "@brains/assets",
+      "version": "0.2.0-alpha.246",
+      "dependencies": {
+        "@brains/utils": "workspace:*",
+      },
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "typescript": "^7.0.2",
+      },
+    },
     "shared/atproto-contracts": {
       "name": "@brains/atproto-contracts",
       "version": "0.2.0-alpha.278",
@@ -1587,6 +1602,19 @@
         "varlock": "^1.7.0",
       },
     },
+    "shell/asset-service": {
+      "name": "@brains/asset-service",
+      "version": "0.2.0-alpha.246",
+      "dependencies": {
+        "@brains/assets": "workspace:*",
+      },
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/node": "^24.13.3",
+        "typescript": "^7.0.2",
+      },
+    },
     "shell/auth-service": {
       "name": "@brains/auth-service",
       "version": "0.2.0-alpha.278",
@@ -1651,6 +1679,8 @@
       "name": "@brains/core",
       "version": "0.2.0-alpha.278",
       "dependencies": {
+        "@brains/asset-service": "workspace:*",
+        "@brains/assets": "workspace:*",
         "@brains/contracts": "workspace:*",
         "@brains/image": "workspace:*",
         "@brains/notification-contracts": "workspace:*",
@@ -1779,6 +1809,7 @@
       "version": "0.2.0-alpha.278",
       "dependencies": {
         "@brains/ai-service": "workspace:*",
+        "@brains/assets": "workspace:*",
         "@brains/content-formatters": "workspace:*",
         "@brains/content-service": "workspace:*",
         "@brains/contracts": "workspace:*",
@@ -2057,6 +2088,10 @@
     "@brains/app": ["@brains/app@workspace:shell/app"],
 
     "@brains/assessment": ["@brains/assessment@workspace:entities/assessment"],
+
+    "@brains/asset-service": ["@brains/asset-service@workspace:shell/asset-service"],
+
+    "@brains/assets": ["@brains/assets@workspace:shared/assets"],
 
     "@brains/atproto": ["@brains/atproto@workspace:plugins/atproto"],
 

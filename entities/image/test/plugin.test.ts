@@ -213,7 +213,7 @@ describe("ImagePlugin", () => {
       sourceMediaType: "image/png",
       attachmentType: "uploaded",
     });
-    expect(entity?.visibility).toBe("shared");
+    expect(entity.visibility).toBe("shared");
   });
 
   it("marks a pending uploaded image failed when promotion processing fails", async () => {

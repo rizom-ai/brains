@@ -65,16 +65,12 @@ export async function reconcileImageAssets(options: {
       continue;
     }
 
-    if (
-      await isValidExistingAsset(
-        options.assets,
-        parsedRef.data,
-        facts.sizeBytes,
-      )
-    ) {
-      presentCount += 1;
-      continue;
-    }
+    const runtimeAssetPresent = await isValidExistingAsset(
+      options.assets,
+      parsedRef.data,
+      facts.sizeBytes,
+    );
+    if (runtimeAssetPresent) presentCount += 1;
 
     const sourcePath = buildImageSourcePath(
       options.sourceDirectory,
@@ -126,6 +122,8 @@ export async function reconcileImageAssets(options: {
       failures.push({ id: row.id, reason: "source-digest-mismatch" });
       continue;
     }
+
+    if (runtimeAssetPresent) continue;
 
     if (options.dryRun) {
       restorableCount += 1;

@@ -274,18 +274,6 @@
       "removalPrerequisite": "Require explicit lease settings on every supported dequeue caller and observe zero fallback use.",
       "rollbackDependency": "Older direct dequeue callers require the fallback while they remain supported.",
       "targetRelease": "0.3.0-or-later"
-    },
-    {
-      "id": "derived-projection-visibility-option",
-      "paths": ["shell/plugins/src/entity/derived-entity-projection.ts"],
-      "symbol": "visibility option compatibility",
-      "owner": "@brains/plugins",
-      "class": "runtime-compatibility",
-      "behavior": "Honors the retired visibility option when deriving projection partition behavior.",
-      "currentConsumers": "External or internal derived projections configured before partition-first options.",
-      "removalPrerequisite": "Migrate all supported projection declarations and observe zero explicit use of the retired visibility option.",
-      "rollbackDependency": "Prior projection declarations remain runnable during their support window.",
-      "targetRelease": "0.3.0"
     }
   ],
   "exemptions": [

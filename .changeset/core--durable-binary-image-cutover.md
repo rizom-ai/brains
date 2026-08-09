@@ -16,6 +16,7 @@
 "@brains/site-engine": patch
 "@brains/social-media": patch
 "@brains/stock-photo": patch
+"@brains/ui-library": patch
 "@brains/web-chat": patch
 ---
 

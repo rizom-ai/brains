@@ -54,7 +54,6 @@ export interface ImageMigrationBlocker {
 
 export interface ImageMigrationCandidate extends BinaryEntityUpdate {
   ref: AssetRef;
-  bytes: Uint8Array;
   digest: string;
   sizeBytes: number;
   mediaType: string;
@@ -186,7 +185,6 @@ export function analyzeImageMigration(
       content: ref,
       contentHash: computeContentHash(ref),
       metadata,
-      bytes: parsed.bytes,
       digest,
       sizeBytes: inspected.sizeBytes,
       mediaType: inspected.mediaType,
@@ -279,6 +277,7 @@ export async function migrateImageAssets(
   for (const candidate of analysis.candidates) {
     candidateByRef.set(candidate.ref, candidate);
   }
+  const rowById = new Map(rows.map((row) => [row.id, row]));
 
   for (const candidate of candidateByRef.values()) {
     if (await options.canReuseVerifiedAsset?.(candidate)) {
@@ -295,7 +294,8 @@ export async function migrateImageAssets(
       }
     }
 
-    const stored = await options.assets.put(candidate.bytes);
+    const bytes = decodeCandidateBytes(candidate, rowById.get(candidate.id));
+    const stored = await options.assets.put(bytes);
     if (
       stored.ref !== candidate.ref ||
       stored.digest !== candidate.digest ||
@@ -325,6 +325,26 @@ export async function migrateImageAssets(
     migratedCount: updates.length,
     verifiedCount: analysis.references.length,
   };
+}
+
+function decodeCandidateBytes(
+  candidate: ImageMigrationCandidate,
+  row: BinaryEntityRow | undefined,
+): Uint8Array {
+  const parsed = row ? tryParseDataUrl(row.content.trim()) : null;
+  if (!parsed) {
+    throw new Error(
+      `Legacy source bytes are unavailable for image ${candidate.id}`,
+    );
+  }
+  const digest = createHash("sha256").update(parsed.bytes).digest("hex");
+  if (
+    digest !== candidate.digest ||
+    parsed.bytes.byteLength !== candidate.sizeBytes
+  ) {
+    throw new Error(`Legacy source bytes changed for image ${candidate.id}`);
+  }
+  return parsed.bytes;
 }
 
 function classifyInvalidImage(content: string): ImageMigrationBlockerReason {

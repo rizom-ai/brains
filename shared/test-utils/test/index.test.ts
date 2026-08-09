@@ -56,6 +56,15 @@ describe("@brains/test-utils", () => {
       expect(await assets.verify(record.ref)).toMatchObject({ valid: true });
     });
 
+    it("uses the buffered payload size instead of a caller override", async () => {
+      const assets = createMockAssetsNamespace();
+      const bytes = Buffer.from("asset bytes");
+
+      const record = await assets.put(bytes, { expectedSize: 1 });
+
+      expect(record.sizeBytes).toBe(bytes.byteLength);
+    });
+
     it("exposes a configured asset namespace on entity plugin contexts", () => {
       const assets = createMockAssetsNamespace();
       const context = createMockEntityPluginContext({ assets });

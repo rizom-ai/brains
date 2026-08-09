@@ -122,8 +122,8 @@ export function createMockAssetsNamespace(
         yield bytes;
       }
       return store.putStream(chunks(), {
-        expectedSize: bytes.byteLength,
         ...options,
+        expectedSize: bytes.byteLength,
       });
     },
     putStream: (chunks, options) => store.putStream(chunks, options),

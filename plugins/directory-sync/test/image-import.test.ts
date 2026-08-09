@@ -238,7 +238,9 @@ describe("Image Import - Regression Tests", () => {
       const result = await boundedSync.importEntities(["image/oversized.png"]);
 
       expect(result).toMatchObject({ imported: 0, skipped: 1, failed: 0 });
-      expect(result.errors[0]?.error).toContain("exceeds asset import limit");
+      expect(result.issues?.[0]?.message).toContain(
+        "exceeds asset import limit",
+      );
       expect(existsSync(sourcePath)).toBe(true);
       expect(assets.store.contents.size).toBe(0);
     });

@@ -68,10 +68,10 @@ export interface AssetStore {
   verify(ref: AssetRef): Promise<AssetVerification>;
 }
 
-export const assetRefSchema: z.ZodType<AssetRef> = z
-  .string()
-  .regex(ASSET_REF_PATTERN, "Invalid SHA-256 asset reference")
-  .transform((value) => value as AssetRef);
+export const assetRefSchema: z.ZodType<AssetRef> = z.custom<AssetRef>(
+  (value) => typeof value === "string" && ASSET_REF_PATTERN.test(value),
+  { message: "Invalid SHA-256 asset reference" },
+);
 
 export const binaryContentModeSchema: z.ZodType<BinaryContentMode> = z.enum([
   "legacy-data-url",

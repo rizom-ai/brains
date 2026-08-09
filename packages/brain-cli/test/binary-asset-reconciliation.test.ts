@@ -121,7 +121,7 @@ describe("image asset reconciliation", () => {
     expect(result.failures).toEqual([]);
   });
 
-  test("keeps verified assets without requiring a source file", async () => {
+  test("reports a missing source file even when the runtime asset is valid", async () => {
     const source = sourceDirectory();
     const repository = new ObservedRepository([referencedRow()]);
     const assets = new ObservedAssetStore(repository.events);
@@ -136,10 +136,34 @@ describe("image asset reconciliation", () => {
 
     expect(result.presentCount).toBe(1);
     expect(result.restoredCount).toBe(0);
-    expect(result.failures).toEqual([]);
+    expect(result.failures).toEqual([{ id: "hero", reason: "source-missing" }]);
     expect(repository.events.some((event) => event.startsWith("put:"))).toBe(
       false,
     );
+  });
+
+  test("reports drifted source bytes even when the runtime asset is valid", async () => {
+    const source = sourceDirectory();
+    mkdirSync(join(source, "image"), { recursive: true });
+    const driftedBytes = Buffer.from(TINY_PNG_BYTES);
+    driftedBytes[driftedBytes.byteLength - 1] = 1;
+    writeFileSync(join(source, "image", "hero.png"), driftedBytes);
+    const repository = new ObservedRepository([referencedRow()]);
+    const assets = new ObservedAssetStore(repository.events);
+    await assets.put(TINY_PNG_BYTES);
+    repository.events.length = 0;
+
+    const result = await reconcileImageAssets({
+      repository,
+      assets,
+      sourceDirectory: source,
+    });
+
+    expect(result.presentCount).toBe(1);
+    expect(result.restoredCount).toBe(0);
+    expect(result.failures).toEqual([
+      { id: "hero", reason: "source-digest-mismatch" },
+    ]);
   });
 
   test("refuses mismatched source bytes and unsafe entity IDs", async () => {

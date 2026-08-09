@@ -1,6 +1,5 @@
 import { afterEach, describe, expect, it } from "bun:test";
 import { execFileSync } from "node:child_process";
-import type { AssetStore } from "@brains/assets";
 import type { IEmbeddingService } from "@brains/entity-service";
 import { EntityRegistry, EntityService } from "@brains/entity-service";
 import { migrateEntities } from "@brains/entity-service/migrate";
@@ -22,6 +21,7 @@ import { CronerBackend } from "@brains/scheduler";
 import { RuntimeStateService } from "@brains/runtime-state";
 import { migrateRuntimeState } from "@brains/runtime-state/migrate";
 import {
+  createMockAssetStore,
   createMockJobQueueService,
   createSilentLogger,
 } from "@brains/test-utils";
@@ -383,7 +383,7 @@ describe("Shell service ownership", () => {
     });
     await entityService.initialize();
 
-    const assetStore = {} as AssetStore;
+    const assetStore = createMockAssetStore();
     let installedEntityService = false;
     let shell: Shell | undefined;
     try {

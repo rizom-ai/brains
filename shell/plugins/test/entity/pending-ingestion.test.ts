@@ -117,6 +117,8 @@ describe("pending ingestion helpers", () => {
       entityType: "test",
       id: "item-1",
       visibilityScope: "restricted",
+      binaryContent: "reference",
+      binaryContentSurface: "pending-ingestion-save",
     });
     expect(updateEntity).toHaveBeenCalledTimes(1);
     expect(updateEntity.mock.calls[0]?.[0]).toEqual({

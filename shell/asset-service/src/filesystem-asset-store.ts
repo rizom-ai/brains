@@ -10,6 +10,7 @@ import {
   type AssetVerification,
 } from "@brains/assets";
 import { createHash, randomUUID } from "node:crypto";
+import { createReadStream, type Stats } from "node:fs";
 import {
   link,
   lstat,
@@ -19,8 +20,8 @@ import {
   unlink,
   type FileHandle,
 } from "node:fs/promises";
-import type { Stats } from "node:fs";
 import { resolve } from "node:path";
+import { pipeline } from "node:stream/promises";
 
 export type AssetStoreErrorCode =
   | "invalid-options"
@@ -45,11 +46,7 @@ export interface FilesystemAssetStoreOptions {
 }
 
 function isErrnoCode(error: unknown, code: string): boolean {
-  return (
-    error instanceof Error &&
-    "code" in error &&
-    (error as NodeJS.ErrnoException).code === code
-  );
+  return error instanceof Error && "code" in error && error.code === code;
 }
 
 function validateByteLimit(
@@ -64,38 +61,19 @@ function validateByteLimit(
   }
 }
 
-async function writeAll(handle: FileHandle, chunk: Uint8Array): Promise<void> {
-  let offset = 0;
-  while (offset < chunk.byteLength) {
-    const { bytesWritten } = await handle.write(
-      chunk,
-      offset,
-      chunk.byteLength - offset,
-    );
-    if (bytesWritten === 0) {
-      throw new Error("Asset temporary write made no progress");
-    }
-    offset += bytesWritten;
+async function writeChunk(
+  handle: FileHandle,
+  chunk: Uint8Array,
+): Promise<void> {
+  const { bytesWritten } = await handle.write(chunk);
+  if (bytesWritten !== chunk.byteLength) {
+    throw new Error("Asset temporary write was incomplete");
   }
 }
 
 async function hashFile(path: string): Promise<string> {
-  const handle = await open(path, "r");
   const hash = createHash("sha256");
-  const buffer = Buffer.allocUnsafe(64 * 1024);
-
-  try {
-    let bytesRead = -1;
-    while (bytesRead !== 0) {
-      ({ bytesRead } = await handle.read(buffer, 0, buffer.byteLength, null));
-      if (bytesRead > 0) {
-        hash.update(buffer.subarray(0, bytesRead));
-      }
-    }
-  } finally {
-    await handle.close();
-  }
-
+  await pipeline(createReadStream(path), hash);
   return hash.digest("hex");
 }
 
@@ -188,7 +166,16 @@ export class FilesystemAssetStore implements AssetStore {
             `Asset exceeds byte limit ${options.maxBytes}`,
           );
         }
-        await writeAll(handle, chunk);
+        if (
+          options.expectedSize !== undefined &&
+          nextSize > options.expectedSize
+        ) {
+          throw new AssetStoreError(
+            "size-mismatch",
+            `Expected ${options.expectedSize} asset bytes, received more`,
+          );
+        }
+        await writeChunk(handle, chunk);
         hash.update(chunk);
         sizeBytes = nextSize;
       }

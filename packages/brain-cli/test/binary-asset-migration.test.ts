@@ -50,6 +50,7 @@ describe("image binary asset migration", () => {
     expect(analysis.uniqueAssetBytes).toBe(TINY_PNG_BYTES.byteLength);
     expect(analysis.duplicateBytesSaved).toBe(0);
     expect(analysis.candidates).toHaveLength(1);
+    expect(analysis.candidates[0]).not.toHaveProperty("bytes");
     expect(analysis.candidates[0]?.ref).toBe(TINY_PNG_REF);
     expect(analysis.candidates[0]?.contentHash).toBe(
       computeContentHash(TINY_PNG_REF),

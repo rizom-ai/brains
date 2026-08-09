@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import { mkdtemp, mkdir, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { createAssetRef, type AssetRef } from "@brains/assets";
+import { createAssetRef, parseAssetRef } from "@brains/assets";
 import {
   AssetBinaryContentResolver,
   AssetStoreError,
@@ -124,6 +124,26 @@ describe("FilesystemAssetStore", () => {
     expect(await readdir(join(root, ".tmp"))).toEqual([]);
   });
 
+  test("stops consuming an overlong stream at the expected size", async () => {
+    let consumedAfterOverrun = false;
+    const overlong = async function* (): AsyncGenerator<Uint8Array> {
+      yield Buffer.from("123");
+      yield Buffer.from("4");
+      consumedAfterOverrun = true;
+      yield Buffer.from("unreachable");
+    };
+
+    expect(
+      await rejectionOf(
+        store.putStream(overlong(), {
+          expectedSize: 3,
+        }),
+      ),
+    ).toMatchObject({ code: "size-mismatch" });
+    expect(consumedAfterOverrun).toBe(false);
+    expect(await readdir(join(root, ".tmp"))).toEqual([]);
+  });
+
   test("removes temporary files when a stream fails", async () => {
     const failing = async function* (): AsyncGenerator<Uint8Array> {
       yield Buffer.from("partial");
@@ -153,9 +173,7 @@ describe("FilesystemAssetStore", () => {
   });
 
   test("rejects malformed refs and non-regular digest paths", async () => {
-    expect(
-      await rejectionOf(store.read("asset://sha256/../brain.db" as AssetRef)),
-    ).toBeInstanceOf(Error);
+    expect(() => parseAssetRef("asset://sha256/../brain.db")).toThrow();
 
     const bytes = Buffer.from("directory collision");
     const ref = createAssetRef(digest(bytes));

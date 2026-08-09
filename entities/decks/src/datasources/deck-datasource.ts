@@ -2,12 +2,10 @@ import { BaseEntityDataSource } from "@brains/plugins";
 import type {
   BaseQuery,
   EntityDataSourceConfig,
-  IEntityService,
   NavigationResult,
   PaginationInfo,
 } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
-import { resolveEntityCoverImage } from "@brains/image";
 import type { DeckEntity, DeckWithData } from "../schemas/deck";
 import { parseDeckData } from "./parse-helpers";
 import {
@@ -53,32 +51,6 @@ export class DeckDataSource extends BaseEntityDataSource<
 
   protected transformEntity(entity: DeckEntity): DeckWithData {
     return parseDeckData(entity);
-  }
-
-  protected override async fetchDetail(
-    id: string,
-    entityService: IEntityService,
-  ): Promise<{
-    item: DeckWithData;
-    navigation: NavigationResult<DeckWithData> | null;
-  }> {
-    const result = await super.fetchDetail(id, entityService);
-
-    // Inject cover image as a slide directive on the first slide
-    const coverImage = await resolveEntityCoverImage(
-      result.item,
-      entityService,
-    );
-
-    if (coverImage) {
-      const directive = `<!-- .slide: data-background-image="${coverImage.url}" data-background-opacity="0.4" -->`;
-      result.item = {
-        ...result.item,
-        body: `${directive}\n${result.item.body}`,
-      };
-    }
-
-    return result;
   }
 
   protected override buildDetailResult(

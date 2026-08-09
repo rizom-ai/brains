@@ -64,6 +64,18 @@ describe("plugin asset context", () => {
     expect(calls[0]?.expectedSize).toBe(4);
   });
 
+  test("does not let callers override the buffered payload size", async () => {
+    const { store, calls } = createRecordingStore();
+    const shell = createMockShell({ assetStore: store });
+    const context = createServicePluginContext(shell, "asset-test");
+
+    await context.assets.put(new Uint8Array([1, 2, 3, 4]), {
+      expectedSize: 1,
+    });
+
+    expect(calls[0]?.expectedSize).toBe(4);
+  });
+
   test("lets a caller raise the ceiling explicitly", async () => {
     const { store, calls } = createRecordingStore();
     const shell = createMockShell({ assetStore: store });

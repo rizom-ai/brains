@@ -101,6 +101,7 @@ describe("queueSyncBatch should include images (regression)", () => {
     const documentSync = new DirectorySync({
       syncPath: testDir,
       entityService: createMockEntityService({ entityTypes: ["document"] }),
+      assets: createMockAssetsNamespace(),
       logger: createSilentLogger("sidecar-delete"),
     });
     const context = createMockServicePluginContext({
@@ -203,6 +204,7 @@ describe("queueSyncBatch should include images (regression)", () => {
       syncPath: testDir,
       deleteOnFileRemoval: false,
       entityService,
+      assets: createMockAssetsNamespace(),
       logger: createSilentLogger("no-pull-deletes"),
     });
     const context = createMockServicePluginContext({ entityTypes: ["post"] });

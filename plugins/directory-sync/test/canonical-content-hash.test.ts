@@ -187,6 +187,7 @@ describe("contentHash regression: canonical form, not raw content", () => {
     const dirSync = new DirectorySync({
       syncPath: testDir,
       entityService: documentService,
+      assets: createMockAssetsNamespace(),
       logger: createSilentLogger("document-sidecar-short-circuit"),
     });
 
