@@ -1,5 +1,24 @@
 # @brains/test-utils
 
+## 0.2.0-alpha.270
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.270
+  - @brains/utils@0.2.0-alpha.270
+  - @brains/ai-service@0.2.0-alpha.270
+  - @brains/content-service@0.2.0-alpha.270
+  - @brains/conversation-service@0.2.0-alpha.270
+  - @brains/entity-service@0.2.0-alpha.270
+  - @brains/identity-service@0.2.0-alpha.270
+  - @brains/job-queue@0.2.0-alpha.270
+  - @brains/mcp-service@0.2.0-alpha.270
+  - @brains/messaging-service@0.2.0-alpha.270
+  - @brains/plugins@0.2.0-alpha.270
+  - @brains/runtime-state@0.2.0-alpha.270
+  - @brains/templates@0.2.0-alpha.270
+
 ## 0.2.0-alpha.269
 
 ### Patch Changes

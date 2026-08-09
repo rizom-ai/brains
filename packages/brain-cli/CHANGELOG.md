@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.270
+
+### Patch Changes
+
+- [#91](https://github.com/rizom-ai/brains/pull/91) [`38ca87e`](https://github.com/rizom-ai/brains/commit/38ca87e4ebe34f30abfe34f22cda42c27debae08) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Bound text and legacy binary directory imports with a configurable `maxImportFileBytes` limit (5 MiB by default), skip oversized files before reading or parsing them, and expose those skips as operational import issues without moving the source files.
+
 ## 0.2.0-alpha.269
 
 ### Patch Changes
