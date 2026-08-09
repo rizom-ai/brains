@@ -22,8 +22,9 @@ then showed that native-FTS cleanup must accompany the engine flag, and Phase 4
 closed the strategic sync fork in favor of Git-only content sync. Phase 5
 preflight exposed a separate runtime-topology constraint: Turso rejects MVCC
 while `multiprocess_wal` is enabled, but the current web and worker processes
-both open the same local database files. The next step is therefore one local
-database owner under WAL, not an immediate pragma change.
+both open the same local database files. The owner selected the web process as
+the sole local database owner and a private local endpoint for worker traffic.
+That boundary must be proved under WAL before any pragma change.
 
 ## Spike findings (measured, not assumed)
 
@@ -203,7 +204,7 @@ the local service databases. With that flag active, Turso rejects
 Removing the flag without first removing direct cross-process file access is
 not an acceptable implementation.
 
-#### Phase 5A — Prove the web owner and transport under WAL
+#### Phase 5A — Prove the web owner's private endpoint under WAL
 
 **Owner decision: the web process owns the local databases**; the worker routes
 durable persistence calls to it. The interactive path and directory imports
@@ -218,16 +219,37 @@ queue lease/progress, conversation, runtime-state, and embedding paths all use
 persistent services. Capture a direct-database baseline and exercise those
 flows through the proposed boundary before removing any worker connection.
 
-Keep WAL while changing ownership. First resolve the transport gate with a
-representative job-queue slice. Compare exactly two local transports:
+A temporary transport spike ran nine interleaved trials against real Turso
+job-queue repository operations. Parent relay and a private local socket were
+both comfortably above the expected request rate and neither dominated normal
+database calls: median sequential throughput was 1,291 versus 1,377 requests
+per second, while 32-request concurrency was 1,628 versus 1,474. Parent relay
+serialized 256 KiB and 5 MiB payloads faster in the prototype, but payload
+throughput is not the deciding requirement.
 
-1. Parent-relayed child IPC, which reuses current process channels but turns the
-   supervisor into a data relay and copies each request twice.
-2. A private web-owned local endpoint, which keeps requests direct but needs
-   endpoint discovery, authentication, lifecycle, and cleanup.
+**Owner decision: use a private web-owned local endpoint.** Phase 5 eventually
+moves all worker persistence, so database traffic must not share the parent's
+heartbeat and restart-control channel. The rejected parent relay has less
+endpoint setup, but permanently turns the supervisor into a data broker and
+couples persistence backpressure to process health.
 
-Record the owner's transport choice before extending the slice. For either
-transport:
+Keep WAL while proving the endpoint with a representative job-queue slice:
+
+- Use OS-local IPC only: a Unix-domain socket on Unix and the equivalent named
+  pipe abstraction where supported, never a TCP listener.
+- The parent creates a per-runtime endpoint name and capability secret and
+  passes them only to its children. Web owns listen/cleanup; filesystem
+  permissions or platform ACLs restrict the endpoint to the runtime user.
+- Web reports runtime readiness only after the endpoint is listening. A worker
+  performs a versioned, authenticated handshake before queue startup.
+- Use length-prefixed, size-bounded frames rather than newline-delimited JSON.
+  Validate every decoded envelope before dispatch and define an explicit binary
+  representation for embeddings and other typed-array payloads.
+- Closing the endpoint rejects every pending request. Worker reconnect is
+  allowed only for a newly supervised worker session; requests and responses
+  carry that session identity so stale replies cannot cross restarts.
+
+For the endpoint boundary:
 
 - Inventory each service contract before implementation. Preserve external
   plugin APIs and their Promise-based operation surfaces, but split internal
@@ -243,18 +265,22 @@ transport:
 - Keep owner request handlers leaf-shaped with respect to IPC: they may call
   owner-local services and databases but must never issue a synchronous request
   back to the worker handling the original call.
-- Preserve current supervisor semantics. A worker restart reconnects to the
-  surviving web owner. A web/owner exit rejects in-flight requests, terminates
-  the worker, and exits the parent; Phase 5 does not add web-child restart.
+- Preserve current supervisor semantics and keep heartbeats on parent-child
+  IPC. A worker restart establishes a fresh endpoint session with the surviving
+  web owner. A web/owner exit closes the endpoint, rejects in-flight requests,
+  terminates the worker, and exits the parent; Phase 5 does not add web-child
+  restart.
 - Parent-owned migrations still run once before web starts. Auth-service's
   embedded replica remains outside this change.
 
-Test queue polling, claims, leases, progress, owner readiness, worker restart,
-bounded overload, request cancellation, web-owner exit, and clean shutdown.
+Test handshake authentication/version rejection, frame fragmentation and size
+limits, queue polling, claims, leases, progress, owner readiness, worker
+restart, stale-session replies, bounded overload, request cancellation,
+web-owner exit, endpoint cleanup, and clean shutdown.
 
-**Exit:** the owner has selected the transport, the representative slice passes
-without a worker-side job database handle, and measured latency/throughput plus
-failure behavior are recorded.
+**Exit:** the representative slice passes without a worker-side job database
+handle; measured latency/throughput remains recorded; transport saturation
+cannot delay the parent heartbeat watchdog.
 
 #### Phase 5B — Route all local shell persistence through the web owner
 
@@ -348,7 +374,9 @@ entity-write/enqueue gap is removed only if an atomic replacement is adopted.
   but the native FTS schema is not libSQL-parseable; fallback requires the
   explicit cleanup command described in Design and Phase 3.
 - The single-owner boundary adds IPC latency to substantial worker persistence
-  traffic. Baseline comparison, overload bounds, failure, restart, and shutdown
-  behavior must be proved under WAL before changing the file format.
+  traffic. The private endpoint also adds framing, authentication, discovery,
+  and cleanup responsibilities. Baseline comparison, overload bounds, failure,
+  restart, and shutdown behavior must be proved under WAL before changing the
+  file format.
 - MVCC-mode files close the libSQL fallback door. The owner topology and
   no-second-opener invariant must be enforced before conversion.
