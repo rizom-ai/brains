@@ -50,6 +50,7 @@ export function createDirectoryOperationDeps(
   entityService: IEntityService,
   syncPath: string,
   dependencies: DirectorySyncDependencies,
+  maxImportFileBytes: number,
   getJobQueueCallback: () => ((job: JobRequest) => Promise<string>) | undefined,
 ): DirectoryOperationDeps {
   return new DirectoryOperationDeps({
@@ -60,6 +61,7 @@ export function createDirectoryOperationDeps(
     quarantine: dependencies.quarantine,
     coverImageConverter: dependencies.coverImageConverter,
     inlineImageConverter: dependencies.inlineImageConverter,
+    maxImportFileBytes,
     getJobQueueCallback,
   });
 }

@@ -18,6 +18,7 @@ export interface DirectoryOperationDepsOptions {
   quarantine: Quarantine;
   coverImageConverter: FrontmatterImageConverter;
   inlineImageConverter: MarkdownImageConverter;
+  maxImportFileBytes: number;
   getJobQueueCallback: () => ((job: JobRequest) => Promise<string>) | undefined;
 }
 
@@ -47,6 +48,7 @@ export class DirectoryOperationDeps {
       fileOperations: this.options.fileOperations,
       quarantine: this.options.quarantine,
       imageJobQueue: this.createImageJobQueueDeps(),
+      maxImportFileBytes: this.options.maxImportFileBytes,
       entityTypes,
     };
   }

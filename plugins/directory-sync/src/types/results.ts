@@ -64,6 +64,13 @@ export interface ImportResult {
     path: string;
     error: string;
   }>;
+  // Optional so queued results created before this field was introduced still parse.
+  issues?:
+    | Array<{
+        path: string;
+        message: string;
+      }>
+    | undefined;
   jobIds: string[]; // Job IDs for async embedding generation
 }
 

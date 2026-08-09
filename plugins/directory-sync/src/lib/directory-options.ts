@@ -2,6 +2,7 @@ import type { IEntityService } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
 import { resolveSyncPath } from "./directory-path";
+import { DEFAULT_MAX_IMPORT_FILE_BYTES } from "./oversized-file-error";
 
 export interface DirectorySyncOptionsInput {
   syncPath: string;
@@ -10,6 +11,7 @@ export interface DirectorySyncOptionsInput {
   includeMetadata?: boolean | undefined;
   entityTypes?: string[] | undefined;
   deleteOnFileRemoval?: boolean | undefined;
+  maxImportFileBytes?: number | undefined;
 }
 
 export interface DirectorySyncOptions extends DirectorySyncOptionsInput {
@@ -25,6 +27,7 @@ export const directorySyncOptionsSchema: z.ZodObject<z.ZodRawShape> &
   includeMetadata: z.boolean().optional(),
   entityTypes: z.array(z.string()).optional(),
   deleteOnFileRemoval: z.boolean().optional(),
+  maxImportFileBytes: z.number().int().positive().optional(),
 });
 
 export interface NormalizedDirectorySyncOptions {
@@ -33,6 +36,7 @@ export interface NormalizedDirectorySyncOptions {
   autoSync: boolean;
   watchInterval: number;
   deleteOnFileRemoval: boolean;
+  maxImportFileBytes: number;
   entityTypes: string[] | undefined;
 }
 
@@ -52,6 +56,8 @@ export function normalizeDirectorySyncOptions(
     autoSync: options.autoSync ?? true,
     watchInterval: options.watchInterval ?? 5000,
     deleteOnFileRemoval: options.deleteOnFileRemoval ?? true,
+    maxImportFileBytes:
+      options.maxImportFileBytes ?? DEFAULT_MAX_IMPORT_FILE_BYTES,
     entityTypes: options.entityTypes,
   };
 }

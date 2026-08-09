@@ -100,6 +100,7 @@ export class DirectorySync implements IDirectorySync {
       this.entityService,
       this.syncPath,
       dependencies,
+      normalizedOptions.maxImportFileBytes,
       (): ((job: JobRequest) => Promise<string>) | undefined =>
         this.jobQueueCallback,
     );

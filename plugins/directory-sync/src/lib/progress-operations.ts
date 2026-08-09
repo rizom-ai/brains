@@ -40,6 +40,7 @@ export class ProgressOperations {
       quarantined: 0,
       quarantinedFiles: [],
       errors: [],
+      issues: [],
       jobIds: [],
     };
 
@@ -67,6 +68,7 @@ export class ProgressOperations {
       result.failed += batchResult.failed;
       result.quarantined += batchResult.quarantined;
       result.errors.push(...batchResult.errors);
+      result.issues?.push(...(batchResult.issues ?? []));
       result.quarantinedFiles.push(...batchResult.quarantinedFiles);
       result.jobIds.push(...batchResult.jobIds);
 
