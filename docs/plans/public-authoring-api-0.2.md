@@ -2,14 +2,14 @@
 
 ## Status
 
-**In progress:** implementation phases 1–5, the local Phase 6 export/documentation freeze, candidate publication, the exact-version registry matrix, and npm retirement are complete. The six golden packages compile, pack, install, and boot against `@rizom/brain@0.2.0-alpha.272` with `@rizom/site@0.2.0-alpha.233`. [Site Release evidence](https://github.com/rizom-ai/brains/actions/runs/31319970155) verifies all 73 published `@rizom/site-sections` alphas are deprecated with a migration pointer to `@rizom/site`. Stable nomination still requires provider-backed live evidence and stable site SDK publication:
+**In progress:** implementation phases 1–5, the local Phase 6 export/documentation freeze, candidate publication, the exact-version registry matrix, and npm retirement are complete. The six golden packages compile, pack, install, and boot against `@rizom/brain@0.2.0-alpha.272` with `@rizom/site@0.2.0-alpha.233`. [Site Release evidence](https://github.com/rizom-ai/brains/actions/runs/31319970155) verifies all 73 published `@rizom/site-sections` alphas are deprecated with a migration pointer to `@rizom/site`. The packed and registry matrices prove the declarative contracts for all four required extension use cases:
 
 1. custom entity types;
 2. custom service plugins;
 3. custom sites; and
 4. custom interfaces, including message interfaces.
 
-Stable `v0.2.0` must not be nominated until this plan's packed compatibility matrix passes against one published alpha. Five standalone extension packages—entity, service, site, generic interface, and message interface—serve as golden paths and primary documentation. A sixth standalone brain-definition package is a compatibility canary for the root API. This plan is narrower than general plugin-system cleanup: it freezes only the contracts required by those paths.
+Two gates remain before nomination, in this order: first the provider-backed live evidence tier — the opt-in `RIZOM_PUBLIC_API_LIVE_EVIDENCE` flag exists, but the live matrix itself is not yet written; then stable `@rizom/site` publication through a changesets prerelease exit in the site lane. The stable SDK release is deliberately sequenced after live evidence so authoring-contract corrections stay alpha-cheap until the last gate passes, and it must flow through the site release train — never an out-of-band publish step. Five standalone extension packages—entity, service, site, generic interface, and message interface—serve as golden paths and primary documentation. A sixth standalone brain-definition package is a compatibility canary for the root API. This plan is narrower than general plugin-system cleanup: it freezes only the contracts required by those paths.
 
 ## Goal
 
