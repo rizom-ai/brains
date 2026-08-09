@@ -36,6 +36,29 @@ export default [
     },
   }),
   {
+    // Shared mock factories must stay assignable to the types they claim to
+    // implement. `as unknown as` on a mock literal erases the only check that
+    // would notice an interface gaining a member or changing a signature, so
+    // the mock goes stale while every test using it still passes.
+    //
+    // Use `satisfies` on a fully populated literal, `PublicSurface<T>` plus a
+    // single nominal cast for class types, or `genericSpy` where bun's mock()
+    // has erased type parameters. Each of those names its reason; a bare
+    // `as unknown as` does not.
+    files: ["shared/test-utils/src/**/*.ts"],
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector:
+            "TSAsExpression > TSAsExpression > TSUnknownKeyword.typeAnnotation",
+          message:
+            "Do not use `as unknown as` in shared mocks — use `satisfies`, PublicSurface<T>, or genericSpy so interface drift fails to compile.",
+        },
+      ],
+    },
+  },
+  {
     // Vendored shadcn/ui and AI Elements primitives — kept in sync with the
     // upstream registry. Adding explicit return types here would diverge from
     // upstream and make future syncs painful.
