@@ -1,6 +1,7 @@
 brain: "@fixture/reader-brain"
 bundles: [reader]
 database: "file:./brain.db"
+model: gpt-5.6-luna
 embedding:
   enabled: false
 plugins:

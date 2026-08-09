@@ -17,7 +17,7 @@
     "@fixture/reading-webhook": "0.1.0"
   },
   "peerDependencies": {
-    "@rizom/brain": ">=0.2.0-alpha.0 <0.3.0"
+    "@rizom/brain": ">=0.2.0-alpha.272 <0.3.0"
   },
   "devDependencies": {
     "typescript": "^7.0.2"
