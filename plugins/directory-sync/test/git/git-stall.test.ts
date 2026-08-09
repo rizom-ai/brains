@@ -13,6 +13,20 @@ describe("runGitCommandWithStallTimeout", () => {
     expect(stdout).toContain("git version");
   });
 
+  it("does not wait for a descendant that retains the completed command's output pipe", async () => {
+    const startedAt = performance.now();
+    const stdout = await runGitCommandWithStallTimeout(
+      { baseDir: process.cwd(), timeoutMs: 5_000 },
+      ["-c", "alias.pipe-leak=!sh -c '(sleep 1) & printf done'", "pipe-leak"],
+    );
+
+    const elapsedMs = performance.now() - startedAt;
+    // Let the fixture descendant exit even when the assertion fails.
+    await Bun.sleep(Math.max(0, 1_100 - elapsedMs));
+    expect(stdout).toBe("done");
+    expect(elapsedMs).toBeLessThan(500);
+  });
+
   it("kills a silent child and throws GitStallError", async () => {
     // `git daemon` listens silently until killed, independent of stdin.
     const outcome = await runGitCommandWithStallTimeout(

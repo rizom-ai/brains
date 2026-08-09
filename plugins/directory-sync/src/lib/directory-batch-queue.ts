@@ -3,7 +3,7 @@ import type { Logger } from "@brains/utils/logger";
 import type {
   BatchMetadata,
   BatchResult,
-  DirectoryDeleteJobData,
+  DirectoryDeleteTarget,
 } from "../types";
 import { BatchOperationsManager } from "./batch-operations";
 import {
@@ -77,7 +77,7 @@ export class DirectoryBatchQueue {
   ): Promise<{
     files: string[];
     includeCleanup: boolean;
-    deletions: DirectoryDeleteJobData[];
+    deletions: DirectoryDeleteTarget[];
   }> {
     const requestedPaths = new Set(
       paths.map((path) => this.normalizePath(path)),
@@ -112,7 +112,7 @@ export class DirectoryBatchQueue {
       );
     });
 
-    const deletions: DirectoryDeleteJobData[] = [];
+    const deletions: DirectoryDeleteTarget[] = [];
     for (const path of requestedPaths) {
       if (
         !requestedDeletions.has(path) &&

@@ -106,6 +106,8 @@ export interface DeleteResult {
   filePath: string;
 }
 
+export type DirectoryDeleteJobResult = DeleteResult | DeleteResult[];
+
 /**
  * Raw entity data from file.
  *

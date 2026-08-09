@@ -1,4 +1,11 @@
-import { describe, it, expect, beforeEach, afterEach } from "bun:test";
+import {
+  describe,
+  it,
+  expect,
+  beforeEach,
+  afterEach,
+  type mock,
+} from "bun:test";
 import { DirectorySync } from "../src/lib/directory-sync";
 import { mkdirSync, rmSync, writeFileSync, existsSync, mkdtempSync } from "fs";
 import { join } from "path";
@@ -157,6 +164,35 @@ describe("queueSyncBatch should include images (regression)", () => {
       ],
       expect.any(Object),
     );
+  });
+
+  it("chunks large targeted deletion sets before enqueueing", async () => {
+    const context = createMockServicePluginContext({ entityTypes: ["post"] });
+    const deletedPaths = Array.from(
+      { length: 120 },
+      (_, index) => `post/deleted-${index}.md`,
+    );
+
+    const result = await dirSync.queueSyncBatch(
+      context,
+      "periodic-sync",
+      undefined,
+      deletedPaths,
+      deletedPaths,
+    );
+
+    expect(result).toMatchObject({
+      operationCount: 3,
+      importOperationsCount: 0,
+      totalFiles: 0,
+    });
+    const enqueueBatch = context.jobs.enqueueBatch as ReturnType<typeof mock>;
+    const operations = enqueueBatch.mock.calls[0]?.[0] as
+      Array<{ data: { deletions: unknown[] } }> | undefined;
+    expect(operations).toHaveLength(3);
+    expect(
+      operations?.map((operation) => operation.data.deletions.length),
+    ).toEqual([50, 50, 20]);
   });
 
   it("does not queue targeted deletes when file removal is disabled", async () => {
