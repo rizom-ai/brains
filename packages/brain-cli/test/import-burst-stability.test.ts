@@ -9,6 +9,7 @@ import {
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { Database } from "bun:sqlite";
 
 const RUN_SOAK =
   process.platform === "linux" && process.env["RUN_IMPORT_BURST_SOAK"] === "1";
@@ -290,6 +291,84 @@ async function commitBurst(
   await run(["git", "push", "origin", "main"], checkoutDir);
 }
 
+async function commitProbeCleanup(checkoutDir: string): Promise<void> {
+  await Promise.all(
+    Array.from({ length: FILE_COUNT }, (_, offset) => offset + 1).map(
+      (number) =>
+        rm(
+          join(
+            checkoutDir,
+            `directory-sync-stress-${String(number).padStart(3, "0")}.md`,
+          ),
+        ),
+    ),
+  );
+  await run(["git", "add", "-A"], checkoutDir);
+  await run(
+    [
+      "git",
+      "-c",
+      "user.name=Import Burst Soak",
+      "-c",
+      "user.email=import-burst@example.com",
+      "commit",
+      "-m",
+      "test(directory-sync): remove import burst",
+    ],
+    checkoutDir,
+  );
+  await run(["git", "push", "origin", "main"], checkoutDir);
+}
+
+function countNotes(databasePath: string): number {
+  const database = new Database(databasePath, { readonly: true });
+  try {
+    const row = database
+      .query<{ count: number }, []>(
+        "select count(*) as count from entities where \"entityType\" = 'note'",
+      )
+      .get();
+    return row?.count ?? 0;
+  } finally {
+    database.close();
+  }
+}
+
+async function waitForCleanup(
+  brainDataDir: string,
+  databasePath: string,
+  baselineNoteCount: number,
+  child: Bun.ReadableSubprocess,
+): Promise<void> {
+  await pollUntil(
+    Date.now() + PULL_TIMEOUT_MS,
+    250,
+    async () => {
+      if (child.exitCode !== null) {
+        throw new Error(`Brain exited during cleanup (${child.exitCode})`);
+      }
+      try {
+        const files = await readdir(brainDataDir);
+        if (files.some((file) => file.startsWith("directory-sync-stress-"))) {
+          return undefined;
+        }
+        if (countNotes(databasePath) !== baselineNoteCount) return undefined;
+        const diff = await run(
+          ["git", "diff", "--name-only", "origin/main", "--"],
+          brainDataDir,
+        );
+        const probeDiffs = diff
+          .split("\n")
+          .filter((path) => path.startsWith("directory-sync-stress-"));
+        return probeDiffs.length === 0 ? true : undefined;
+      } catch {
+        return undefined;
+      }
+    },
+    () => new Error("Timed out waiting for remote cleanup convergence"),
+  );
+}
+
 /**
  * Manual Linux soak using the packaged, supervised web + worker runtime:
  *
@@ -297,7 +376,7 @@ async function commitBurst(
  *   packages/brain-cli/test/import-burst-stability.test.ts
  */
 it.skipIf(!RUN_SOAK)(
-  "keeps the web process responsive across a 350-file update import",
+  "keeps the web responsive and remote deletions authoritative across an import burst",
   async () => {
     expect(Number.isInteger(FILE_COUNT) && FILE_COUNT > 0).toBe(true);
 
@@ -410,6 +489,21 @@ plugins:
       );
       expect(roles).toEqual(["web", "worker"]);
 
+      const databasePath = join(appDir, "data", "brain.db");
+      const baselineNoteCount = await pollUntil(
+        Date.now() + 30_000,
+        250,
+        async () => {
+          try {
+            const count = countNotes(databasePath);
+            return count > 0 ? count : undefined;
+          } catch {
+            return undefined;
+          }
+        },
+        () => new Error("Timed out waiting for baseline note import"),
+      );
+
       monitor = startHealthMonitor(healthUrl, supervisor);
       await commitBurst(writerDir, "add");
       const finalProbePath = join(
@@ -430,7 +524,25 @@ plugins:
         "Update marker: update.",
         supervisor,
       );
+
+      // Delete the remote probes while import-triggered entity churn can still
+      // be in flight. Remote deletion must remain authoritative over late
+      // entity updates and auto-export.
+      await commitProbeCleanup(writerDir);
+      const brainDataDir = join(appDir, "brain-data");
+      await waitForCleanup(
+        brainDataDir,
+        databasePath,
+        baselineNoteCount,
+        supervisor,
+      );
       await Bun.sleep(10_000);
+      await waitForCleanup(
+        brainDataDir,
+        databasePath,
+        baselineNoteCount,
+        supervisor,
+      );
       await monitor.stop();
 
       expect(monitor.failures).toEqual([]);

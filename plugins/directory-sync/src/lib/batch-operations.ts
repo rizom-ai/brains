@@ -5,6 +5,7 @@ import type {
   BatchMetadata,
   BatchOperationResult,
   BatchResult,
+  DirectoryDeleteJobData,
 } from "../types";
 
 export type {
@@ -40,6 +41,7 @@ export class BatchOperationsManager {
   prepareBatchOperations(
     files: string[],
     includeCleanup: boolean = true,
+    deletions: DirectoryDeleteJobData[] = [],
   ): BatchOperationResult {
     const operations: BatchOperation[] = [];
 
@@ -47,8 +49,21 @@ export class BatchOperationsManager {
     operations.push(...importOps);
     const importOperationsCount = importOps.length;
 
-    if (includeCleanup && this.deleteOnFileRemoval) {
-      operations.push({ type: "directory-cleanup", data: {} });
+    if (this.deleteOnFileRemoval) {
+      operations.push(
+        ...deletions.map((deletion) => ({
+          type: "directory-delete" as const,
+          data: {
+            entityId: deletion.entityId,
+            entityType: deletion.entityType,
+            filePath: deletion.filePath,
+          },
+        })),
+      );
+
+      if (includeCleanup) {
+        operations.push({ type: "directory-cleanup", data: {} });
+      }
     }
 
     const totalFiles = files.length;
@@ -73,8 +88,13 @@ export class BatchOperationsManager {
     files: string[],
     metadata?: BatchMetadata,
     includeCleanup: boolean = true,
+    deletions: DirectoryDeleteJobData[] = [],
   ): Promise<BatchResult | null> {
-    const batchData = this.prepareBatchOperations(files, includeCleanup);
+    const batchData = this.prepareBatchOperations(
+      files,
+      includeCleanup,
+      deletions,
+    );
 
     if (batchData.operations.length === 0) {
       this.logger.debug("No sync operations needed", { source });

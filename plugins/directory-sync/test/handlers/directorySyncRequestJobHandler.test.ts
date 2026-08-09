@@ -21,7 +21,10 @@ describe("DirectorySyncRequestJobHandler", () => {
     };
     const pull = mock(async () => {
       calls.push("pull");
-      return { files: ["test.md"] };
+      return {
+        files: ["test.md", "deleted.md"],
+        deletedFiles: ["deleted.md"],
+      };
     });
     const queueSyncBatch = mock(async () => {
       calls.push("queue");
@@ -33,11 +36,18 @@ describe("DirectorySyncRequestJobHandler", () => {
         totalFiles: 1,
       };
     });
+    const recordPendingPullDeletes = mock(async () => {});
+    const suppressWatchPaths = mock(() => {});
     const context = createMockServicePluginContext();
     const handler = new DirectorySyncRequestJobHandler(
       createSilentLogger("test"),
       context,
-      () => createMockDirectorySync({ queueSyncBatch }),
+      () =>
+        createMockDirectorySync({
+          queueSyncBatch,
+          recordPendingPullDeletes,
+          suppressWatchPaths,
+        }),
       () => createMockGitSync({ withLock, pull }),
     );
 
@@ -52,11 +62,19 @@ describe("DirectorySyncRequestJobHandler", () => {
     );
 
     expect(calls).toEqual(["lock:start", "pull", "queue", "lock:end"]);
-    expect(queueSyncBatch).toHaveBeenCalledWith(context, "web-chat:channel-1", {
-      rootJobId: "root-job-1",
-      interfaceType: "web-chat",
-      channelId: "channel-1",
-    });
+    expect(recordPendingPullDeletes).toHaveBeenCalledWith(["deleted.md"]);
+    expect(queueSyncBatch).toHaveBeenCalledWith(
+      context,
+      "web-chat:channel-1",
+      {
+        rootJobId: "root-job-1",
+        interfaceType: "web-chat",
+        channelId: "channel-1",
+      },
+      ["test.md", "deleted.md"],
+      ["deleted.md"],
+    );
+    expect(suppressWatchPaths).toHaveBeenCalledWith(["test.md", "deleted.md"]);
     expect(result).toEqual({
       gitPulled: true,
       batchQueued: true,

@@ -1,12 +1,13 @@
 import { describe, it, expect, beforeEach, afterEach, spyOn } from "bun:test";
 import { DirectorySyncPlugin } from "../src/plugin";
-import { createPluginHarness } from "@brains/plugins/test";
+import { baseEntitySchema, createPluginHarness } from "@brains/plugins/test";
 import { rmSync, existsSync, readFileSync, unlinkSync, mkdtempSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
 import { createTestEntity } from "@brains/test-utils";
 import type { DirectorySync } from "../src/lib/directory-sync";
 import type { BaseEntity } from "@brains/plugins";
+import { MockEntityAdapter } from "./fixtures";
 
 describe("DirectorySync AutoSync", () => {
   let harness: ReturnType<typeof createPluginHarness>;
@@ -17,6 +18,9 @@ describe("DirectorySync AutoSync", () => {
     testDir = mkdtempSync(join(tmpdir(), "test-auto-sync-"));
 
     harness = createPluginHarness({ dataDir: testDir });
+    harness
+      .getEntityRegistry()
+      .registerEntityType("note", baseEntitySchema, new MockEntityAdapter());
 
     plugin = new DirectorySyncPlugin({
       syncPath: testDir,
@@ -161,6 +165,9 @@ describe("Export echo suppression", () => {
   beforeEach(async () => {
     testDir = mkdtempSync(join(tmpdir(), "test-echo-suppression-"));
     harness = createPluginHarness({ dataDir: testDir });
+    harness
+      .getEntityRegistry()
+      .registerEntityType("note", baseEntitySchema, new MockEntityAdapter());
     plugin = new DirectorySyncPlugin({
       syncPath: testDir,
       autoSync: true,
@@ -262,6 +269,66 @@ describe("Export echo suppression", () => {
 
     expect(existsSync(filePath)).toBe(false);
     expect(suppress).toHaveBeenCalledWith([filePath]);
+  });
+
+  it("does not recreate a pull-deleted entity from a late create event", async () => {
+    const dirSync = dirSyncOrFail();
+    const entity = createTestEntity("note", {
+      id: "remote-deleted-create",
+      content: "---\n---\nLate create event",
+    });
+    await dirSync.recordPendingPullDeletes(["remote-deleted-create.md"]);
+
+    await harness.sendMessage(
+      "entity:created",
+      {
+        entity,
+        entityType: "note",
+        entityId: "remote-deleted-create",
+      },
+      "test",
+    );
+
+    expect(existsSync(join(testDir, "remote-deleted-create.md"))).toBe(false);
+  });
+
+  it("does not recreate a pull-deleted entity from a late update", async () => {
+    const dirSync = dirSyncOrFail();
+    const entity = createTestEntity("note", {
+      id: "remote-deleted",
+      content: "---\n---\nLate embedding update",
+    });
+    const entityService = harness.getEntityService();
+    entityService.getEntity = async <T extends BaseEntity>(): Promise<T> =>
+      entity as T;
+    await dirSync.recordPendingPullDeletes(["remote-deleted.md"]);
+    expect(dirSync.isPendingDelete("note", "remote-deleted")).toBe(true);
+    expect(existsSync(join(testDir, "remote-deleted.md"))).toBe(false);
+
+    await harness.sendMessage(
+      "entity:updated",
+      { entity, entityType: "note", entityId: "remote-deleted" },
+      "test",
+    );
+
+    expect(existsSync(join(testDir, "remote-deleted.md"))).toBe(false);
+  });
+
+  it("still exports unrelated entities while a pull deletion is pending", async () => {
+    const dirSync = dirSyncOrFail();
+    await dirSync.recordPendingPullDeletes(["remote-deleted.md"]);
+    const entity = createTestEntity("note", {
+      id: "unrelated",
+      content: "---\n---\nConcurrent local edit",
+    });
+
+    await harness.sendMessage(
+      "entity:created",
+      { entity, entityType: "note", entityId: "unrelated" },
+      "test",
+    );
+
+    expect(existsSync(join(testDir, "unrelated.md"))).toBe(true);
   });
 
   it("returns pdf and sidecar paths for document write paths", () => {

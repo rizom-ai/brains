@@ -30,6 +30,9 @@ export function setupPeriodicGitSync(
       const { files, result } = await gitSync.withLock(async () => {
         const pullResult = await gitSync.pull(signal);
         signal.throwIfAborted();
+        await directorySync.recordPendingPullDeletes(
+          pullResult.deletedFiles ?? [],
+        );
         if (pullResult.files.length === 0) {
           return { files: [], result: null };
         }
@@ -38,6 +41,7 @@ export function setupPeriodicGitSync(
           "periodic-sync",
           undefined,
           pullResult.files,
+          pullResult.deletedFiles,
         );
         if (batchResult) {
           directorySync.suppressWatchPaths(pullResult.files);

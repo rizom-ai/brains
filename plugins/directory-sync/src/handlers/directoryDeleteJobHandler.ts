@@ -15,17 +15,19 @@ export class DirectoryDeleteJobHandler extends BaseJobHandler<
   DeleteResult
 > {
   private context: ServicePluginContext;
+  private readonly directorySync: IDirectorySync;
 
   constructor(
     logger: Logger,
     context: ServicePluginContext,
-    _directorySync: IDirectorySync,
+    directorySync: IDirectorySync,
   ) {
     super(logger, {
       schema: directoryDeleteJobSchema,
       jobTypeName: "directory-delete",
     });
     this.context = context;
+    this.directorySync = directorySync;
   }
 
   public async process(
@@ -70,6 +72,12 @@ export class DirectoryDeleteJobHandler extends BaseJobHandler<
         total: 1,
         message: `Deleted ${validatedData.entityType}:${validatedData.entityId}`,
       });
+
+      this.directorySync.completePendingDelete(
+        validatedData.entityType,
+        validatedData.entityId,
+        validatedData.filePath,
+      );
 
       return {
         deleted,

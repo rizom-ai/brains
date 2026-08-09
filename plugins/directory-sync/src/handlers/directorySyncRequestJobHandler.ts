@@ -54,18 +54,29 @@ export class DirectorySyncRequestJobHandler extends BaseJobHandler<
     const directorySync = this.getDirectorySync();
     const gitSync = this.getGitSync();
     const result = await gitSync.withLock(async () => {
-      await gitSync.pull();
+      const pullResult = await gitSync.pull();
+      await directorySync.recordPendingPullDeletes(
+        pullResult.deletedFiles ?? [],
+      );
 
       await progressReporter.report({
         progress: 35,
         message: "Scanning pulled content for sync changes",
       });
 
-      return directorySync.queueSyncBatch(this.context, data.source, {
-        rootJobId: jobId,
-        interfaceType: data.interfaceType,
-        channelId: data.channelId,
-      });
+      const batchResult = await directorySync.queueSyncBatch(
+        this.context,
+        data.source,
+        {
+          rootJobId: jobId,
+          interfaceType: data.interfaceType,
+          channelId: data.channelId,
+        },
+        pullResult.files,
+        pullResult.deletedFiles,
+      );
+      if (batchResult) directorySync.suppressWatchPaths(pullResult.files);
+      return batchResult;
     });
 
     if (!result) {

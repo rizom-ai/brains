@@ -63,6 +63,10 @@ describe("setupInitialSync with git", () => {
     const callOrder: string[] = [];
 
     const ds = createMockDirectorySync({
+      recordPendingPullDeletes: mock(async (paths: string[]) => {
+        expect(paths).toEqual(["deleted.md"]);
+        callOrder.push("record-deletes");
+      }),
       sync: mock(async () => {
         callOrder.push("sync");
         return {
@@ -75,7 +79,7 @@ describe("setupInitialSync with git", () => {
     const gs = createMockGitSync({
       pull: mock(async () => {
         callOrder.push("pull");
-        return { files: [] };
+        return { files: ["deleted.md"], deletedFiles: ["deleted.md"] };
       }),
     });
 
@@ -85,7 +89,7 @@ describe("setupInitialSync with git", () => {
     expect(handler).toBeDefined();
     if (handler) await handler();
 
-    expect(callOrder).toEqual(["pull", "sync"]);
+    expect(callOrder).toEqual(["pull", "record-deletes", "sync"]);
   });
 
   it("should call sync when gitSync is not provided", async () => {

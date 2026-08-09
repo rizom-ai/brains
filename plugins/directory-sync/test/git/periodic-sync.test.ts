@@ -76,8 +76,10 @@ describe("setupPeriodicGitSync", () => {
           async (): Promise<BatchResult | null> => emptyBatchResult,
         );
         const suppressWatchPathsMock = mock(() => {});
+        const recordPendingPullDeletesMock = mock(async () => {});
         const pullMock = mock(async (): Promise<PullResult> => ({
-          files: ["a.md"],
+          files: ["a.md", "deleted.md"],
+          deletedFiles: ["deleted.md"],
         }));
 
         const context = createMockServicePluginContext();
@@ -86,6 +88,7 @@ describe("setupPeriodicGitSync", () => {
           createMockDirectorySync({
             queueSyncBatch: queueSyncBatchMock,
             suppressWatchPaths: suppressWatchPathsMock,
+            recordPendingPullDeletes: recordPendingPullDeletesMock,
           }),
           context,
           0.001,
@@ -95,12 +98,19 @@ describe("setupPeriodicGitSync", () => {
         yield* TestClock.adjust(60);
         yield* yieldToFibers();
         expect(queueSyncBatchMock).toHaveBeenCalledTimes(1);
-        expect(suppressWatchPathsMock).toHaveBeenCalledWith(["a.md"]);
+        expect(recordPendingPullDeletesMock).toHaveBeenCalledWith([
+          "deleted.md",
+        ]);
+        expect(suppressWatchPathsMock).toHaveBeenCalledWith([
+          "a.md",
+          "deleted.md",
+        ]);
         expect(queueSyncBatchMock).toHaveBeenCalledWith(
           context,
           "periodic-sync",
           undefined,
-          ["a.md"],
+          ["a.md", "deleted.md"],
+          ["deleted.md"],
         );
 
         pullMock.mockImplementation(async () => ({ files: [] }));
