@@ -63,6 +63,7 @@ export interface IDirectorySync {
     source: string,
     metadata?: BatchMetadata,
     paths?: string[],
+    deletedPaths?: string[],
   ): Promise<{
     batchId: string;
     operationCount: number;
@@ -73,6 +74,13 @@ export interface IDirectorySync {
   startWatching(): Promise<void>;
   stopWatching(): Promise<void>;
   suppressWatchPaths(paths: string[]): void;
+  recordPendingPullDeletes(paths: string[]): Promise<void>;
+  isPendingDelete(entityType: string, entityId: string): boolean;
+  completePendingDelete(
+    entityType: string,
+    entityId: string,
+    filePath: string,
+  ): void;
   setWatchCallback(callback: (event: string, path: string) => void): void;
 }
 

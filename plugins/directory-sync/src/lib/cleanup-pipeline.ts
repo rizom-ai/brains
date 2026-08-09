@@ -33,6 +33,7 @@ export interface CleanupPipelineDeps {
   };
   deleteOnFileRemoval: boolean;
   entityTypes?: string[] | undefined;
+  onEntityDeleted?: ((entity: BaseEntity) => void) | undefined;
 }
 
 /**
@@ -73,6 +74,7 @@ export async function removeOrphanedEntities(
             entityType: entity.entityType,
             id: entity.id,
           });
+          deps.onEntityDeleted?.(entity);
           recordCleanupDeleted(deps.logger, result, entity);
         } catch (error) {
           recordCleanupError(deps.logger, result, entity, error);

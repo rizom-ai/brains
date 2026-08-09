@@ -8,6 +8,7 @@ import { FrontmatterImageConverter } from "./frontmatter-image-converter";
 import { MarkdownImageConverter } from "./markdown-image-converter";
 import { ProgressOperations } from "./progress-operations";
 import { Quarantine } from "./quarantine";
+import type { PendingDeleteRegistry } from "./pending-delete-registry";
 
 export interface DirectorySyncDependencies {
   fileOperations: FileOperations;
@@ -51,6 +52,7 @@ export function createDirectoryOperationDeps(
   syncPath: string,
   dependencies: DirectorySyncDependencies,
   maxImportFileBytes: number,
+  pendingDeletes: PendingDeleteRegistry,
   getJobQueueCallback: () => ((job: JobRequest) => Promise<string>) | undefined,
 ): DirectoryOperationDeps {
   return new DirectoryOperationDeps({
@@ -62,6 +64,7 @@ export function createDirectoryOperationDeps(
     coverImageConverter: dependencies.coverImageConverter,
     inlineImageConverter: dependencies.inlineImageConverter,
     maxImportFileBytes,
+    pendingDeletes,
     getJobQueueCallback,
   });
 }

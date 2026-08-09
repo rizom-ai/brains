@@ -19,6 +19,7 @@ import { bootstrapContentRemoteFromSeed } from "./lib/content-remote-bootstrap";
 import { registerMessageHandlers } from "./lib/message-handlers";
 import { createDirectorySyncTools } from "./tools";
 import { DirectorySyncOperationStatusService } from "./lib/directory-sync-operation-status";
+import { PendingDeleteRegistry } from "./lib/pending-delete-registry";
 import { DirectorySyncWorkspaceProvider } from "./lib/cms-workspace";
 import {
   DirectorySyncRuntime,
@@ -58,6 +59,7 @@ export class DirectorySyncPlugin extends ServicePlugin<
   private readyState = false;
   private shutdownStarted = false;
   private configurationQueue: Promise<void> = Promise.resolve();
+  private readonly pendingDeletes = new PendingDeleteRegistry();
 
   constructor(config: DirectorySyncConfigInput = {}) {
     super("directory-sync", packageJson, config, directorySyncConfigSchema);
@@ -302,17 +304,20 @@ export class DirectorySyncPlugin extends ServicePlugin<
     context: ServicePluginContext,
     syncPath: string,
   ): DirectorySync {
-    return new DirectorySync({
-      syncPath,
-      autoSync: this.config.autoSync,
-      watchInterval: this.config.watchInterval,
-      includeMetadata: this.config.includeMetadata,
-      entityTypes: this.config.entityTypes,
-      deleteOnFileRemoval: this.config.deleteOnFileRemoval,
-      maxImportFileBytes: this.config.maxImportFileBytes,
-      entityService: context.entityService,
-      logger: context.logger,
-    });
+    return new DirectorySync(
+      {
+        syncPath,
+        autoSync: this.config.autoSync,
+        watchInterval: this.config.watchInterval,
+        includeMetadata: this.config.includeMetadata,
+        entityTypes: this.config.entityTypes,
+        deleteOnFileRemoval: this.config.deleteOnFileRemoval,
+        maxImportFileBytes: this.config.maxImportFileBytes,
+        entityService: context.entityService,
+        logger: context.logger,
+      },
+      this.pendingDeletes,
+    );
   }
 
   private isGitConfigured(): boolean {

@@ -36,6 +36,7 @@ export interface GitSyncStatus {
  */
 export interface PullResult {
   files: string[];
+  deletedFiles?: string[] | undefined;
 }
 
 /**

@@ -32,6 +32,13 @@ export function setupAutoSync(
 
       try {
         const directorySync = getDirectorySync();
+        if (directorySync.isPendingDelete(entity.entityType, entity.id)) {
+          logger.debug("Skipping export for pull-deleted entity", {
+            id: entity.id,
+            entityType: entity.entityType,
+          });
+          return { success: true };
+        }
         directorySync.suppressWatchPaths(
           directorySync.fileOps.getEntityWritePaths(entity),
         );
@@ -65,6 +72,14 @@ export function setupAutoSync(
       const { entityType, entityId } = message.payload;
 
       try {
+        const directorySync = getDirectorySync();
+        if (directorySync.isPendingDelete(entityType, entityId)) {
+          logger.debug("Skipping export for pull-deleted entity", {
+            id: entityId,
+            entityType,
+          });
+          return { success: true };
+        }
         const currentEntity = await entityService.getEntity({
           entityType: entityType,
           id: entityId,
@@ -77,7 +92,6 @@ export function setupAutoSync(
           return { success: false };
         }
 
-        const directorySync = getDirectorySync();
         directorySync.suppressWatchPaths(
           directorySync.fileOps.getEntityWritePaths(currentEntity),
         );

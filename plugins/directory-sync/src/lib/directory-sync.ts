@@ -30,6 +30,8 @@ import {
   createDirectorySyncDependencies,
 } from "./directory-dependencies";
 import type { DirectoryOperationDeps } from "./directory-operation-deps";
+import { PendingDeleteRegistry } from "./pending-delete-registry";
+import { isDocumentSidecarFile } from "./document-file-utils";
 import {
   ensureDirectoryEntityStructure,
   getDirectoryMarkdownFiles,
@@ -72,12 +74,17 @@ export class DirectorySync implements IDirectorySync {
   private progressOperations: ProgressOperations;
   private operationDeps: DirectoryOperationDeps;
   private jobQueueCallback?: ((job: JobRequest) => Promise<string>) | undefined;
+  private readonly pendingDeletes: PendingDeleteRegistry;
 
-  constructor(options: DirectorySyncOptions) {
+  constructor(
+    options: DirectorySyncOptions,
+    pendingDeletes: PendingDeleteRegistry = new PendingDeleteRegistry(),
+  ) {
     const normalizedOptions = normalizeDirectorySyncOptions(options);
 
     this.entityService = options.entityService;
     this.logger = options.logger.child("DirectorySync");
+    this.pendingDeletes = pendingDeletes;
 
     this.syncPath = normalizedOptions.syncPath;
 
@@ -101,6 +108,7 @@ export class DirectorySync implements IDirectorySync {
       this.syncPath,
       dependencies,
       normalizedOptions.maxImportFileBytes,
+      this.pendingDeletes,
       (): ((job: JobRequest) => Promise<string>) | undefined =>
         this.jobQueueCallback,
     );
@@ -243,12 +251,14 @@ export class DirectorySync implements IDirectorySync {
     source: string,
     metadata?: BatchMetadata,
     paths?: string[],
+    deletedPaths?: string[],
   ): Promise<BatchResult | null> {
     return this.batchQueue.queueSyncBatch(
       pluginContext,
       source,
       metadata,
       paths,
+      deletedPaths,
     );
   }
 
@@ -272,6 +282,38 @@ export class DirectorySync implements IDirectorySync {
 
   suppressWatchPaths(paths: string[]): void {
     this.fileWatcher?.suppressPaths(paths);
+  }
+
+  async recordPendingPullDeletes(paths: string[]): Promise<void> {
+    if (!this.deleteOnFileRemoval) return;
+
+    for (const path of paths) {
+      const target = this.fileOperations.getPendingDeleteTarget(path);
+      if (!target) continue;
+      if (
+        isDocumentSidecarFile(path) &&
+        (await this.fileOperations.fileExists(target.filePath))
+      ) {
+        continue;
+      }
+      this.pendingDeletes.record(target);
+    }
+  }
+
+  isPendingDelete(entityType: string, entityId: string): boolean {
+    return this.pendingDeletes.has(entityType, entityId);
+  }
+
+  completePendingDelete(
+    entityType: string,
+    entityId: string,
+    filePath: string,
+  ): void {
+    const target = this.fileOperations.getPendingDeleteTarget(filePath);
+    if (target?.entityType !== entityType || target.entityId !== entityId) {
+      return;
+    }
+    this.pendingDeletes.complete(entityType, entityId, target.filePath);
   }
 
   setWatchCallback(callback: (event: string, path: string) => void): void {

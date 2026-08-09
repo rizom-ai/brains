@@ -1,11 +1,13 @@
 import type { BaseEntity, IEntityService } from "@brains/plugins";
 import { basename, dirname, extname } from "path";
-import { resolveInSyncPath } from "./path-utils";
+import { resolveInSyncPath, toSyncRelativePath } from "./path-utils";
 import { getMimeTypeForExtension, isImageFile } from "./image-file-utils";
 import {
+  DOCUMENT_SIDECAR_SUFFIX,
   getDocumentMimeTypeForExtension,
   getDocumentSidecarPath,
   isDocumentFile,
+  isDocumentSidecarFile,
 } from "./document-file-utils";
 import {
   buildEntityFilePath,
@@ -24,6 +26,7 @@ import {
 } from "./file-discovery";
 import { pathExists } from "./fs-utils";
 import { OversizedFileError } from "./oversized-file-error";
+import type { PendingDeleteTarget } from "./pending-delete-registry";
 
 export { IMAGE_EXTENSIONS, isImageFile } from "./image-file-utils";
 export { DOCUMENT_EXTENSIONS, isDocumentFile } from "./document-file-utils";
@@ -49,6 +52,27 @@ export class FileOperations {
 
   parseEntityFromPath(filePath: string): { entityType: string; id: string } {
     return parseEntityPath(this.syncPath, filePath);
+  }
+
+  getPendingDeleteTarget(filePath: string): PendingDeleteTarget | undefined {
+    const relativePath = toSyncRelativePath(this.syncPath, filePath);
+    const entityPath = isDocumentSidecarFile(relativePath)
+      ? relativePath.slice(0, -DOCUMENT_SIDECAR_SUFFIX.length)
+      : relativePath;
+    const { entityType, id } = this.parseEntityFromPath(entityPath);
+    if (!this.entityService.hasEntityType(entityType)) return undefined;
+
+    const isSyncFile =
+      entityPath.endsWith(".md") ||
+      (entityType === "image" && isImageFile(entityPath)) ||
+      (entityType === "document" && isDocumentFile(entityPath));
+    if (!isSyncFile) return undefined;
+
+    return {
+      entityType,
+      entityId: id,
+      filePath: resolveInSyncPath(this.syncPath, entityPath),
+    };
   }
 
   async readEntity(filePath: string, maxBytes?: number): Promise<RawEntity> {

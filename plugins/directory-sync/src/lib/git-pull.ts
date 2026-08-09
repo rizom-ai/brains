@@ -3,8 +3,14 @@ import { getErrorMessage } from "@brains/utils/error";
 import type { Logger } from "@brains/utils/logger";
 import type { PullResult } from "../types";
 import { commitGitChanges, pushGitChanges } from "./git-commit";
+import { reconcileRemoteDeletedFiles } from "./git-remote-deletion-reconciliation";
 import { GitStallError, runGitCommandWithStallTimeout } from "./git-stall";
 import type { GitNetwork } from "./git-stall";
+
+interface ChangedPaths {
+  files: string[];
+  deletedFiles: string[];
+}
 
 /**
  * Pull changes from remote. Returns the list of changed file paths.
@@ -31,6 +37,7 @@ export async function pullGitChanges(
   }
 
   const headBefore = await git.revparse(["HEAD"]);
+  const remoteHeadBefore = await tryResolveRemoteHead(git, branch);
 
   try {
     // The network fetch runs on a throwaway, stall-guarded instance so an
@@ -50,11 +57,31 @@ export async function pullGitChanges(
     );
     signal?.throwIfAborted();
 
-    const result = await getChangedFilesSince(git, headBefore);
+    const result = await getPullChanges(
+      git,
+      headBefore,
+      remoteHeadBefore,
+      branch,
+    );
+    await reconcileRemoteDeletedFiles({
+      git,
+      logger,
+      syncPath: net.baseDir,
+      deletedFiles: result.deletedFiles ?? [],
+    });
     signal?.throwIfAborted();
     return result;
   } catch (pullError) {
-    return handlePullError(git, logger, branch, net, pullError, signal);
+    return handlePullError(
+      git,
+      logger,
+      branch,
+      net,
+      headBefore,
+      remoteHeadBefore,
+      pullError,
+      signal,
+    );
   }
 }
 
@@ -63,6 +90,8 @@ async function handlePullError(
   logger: Logger,
   branch: string,
   net: GitNetwork,
+  headBefore: string,
+  remoteHeadBefore: string | undefined,
   pullError: unknown,
   signal?: AbortSignal,
 ): Promise<PullResult> {
@@ -72,9 +101,23 @@ async function handlePullError(
   }
 
   const msg = getErrorMessage(pullError);
+  const mergeStatus = await git.status();
 
-  if (msg.includes("CONFLICT")) {
-    return resolveRemoteConflicts(git, logger, msg);
+  if (msg.includes("CONFLICT") || mergeStatus.conflicted.length > 0) {
+    await resolveRemoteConflicts(git, logger, msg, mergeStatus.conflicted);
+    const result = await getPullChanges(
+      git,
+      headBefore,
+      remoteHeadBefore,
+      branch,
+    );
+    await reconcileRemoteDeletedFiles({
+      git,
+      logger,
+      syncPath: net.baseDir,
+      deletedFiles: result.deletedFiles ?? [],
+    });
+    return result;
   }
 
   if (msg.includes("couldn't find remote ref")) {
@@ -84,31 +127,71 @@ async function handlePullError(
   throw new Error(`Failed to pull: ${msg}`);
 }
 
-async function getChangedFilesSince(
+async function getPullChanges(
   git: SimpleGit,
   headBefore: string,
+  remoteHeadBefore: string | undefined,
+  branch: string,
 ): Promise<PullResult> {
   const headAfter = await git.revparse(["HEAD"]);
-  if (headBefore === headAfter) {
-    return { files: [] };
+  const localChanges =
+    headBefore === headAfter
+      ? { files: [], deletedFiles: [] }
+      : await getChangedPaths(git, headBefore, headAfter);
+
+  const remoteHeadAfter = await tryResolveRemoteHead(git, branch);
+  const remoteChanges =
+    remoteHeadBefore && remoteHeadAfter && remoteHeadBefore !== remoteHeadAfter
+      ? await getChangedPaths(git, remoteHeadBefore, remoteHeadAfter)
+      : undefined;
+
+  return {
+    files: [
+      ...new Set([...localChanges.files, ...(remoteChanges?.files ?? [])]),
+    ],
+    deletedFiles: remoteChanges?.deletedFiles ?? localChanges.deletedFiles,
+  };
+}
+
+async function getChangedPaths(
+  git: SimpleGit,
+  from: string,
+  to: string,
+): Promise<ChangedPaths> {
+  const diff = await git.diff([from, to, "--name-status", "--no-renames"]);
+  const files: string[] = [];
+  const deletedFiles: string[] = [];
+
+  for (const line of diff.split("\n")) {
+    if (!line.trim()) continue;
+    const [status, filePath] = line.split("\t");
+    if (!status || !filePath) continue;
+    files.push(filePath);
+    if (status.startsWith("D")) deletedFiles.push(filePath);
   }
-  const diff = await git.diff([
-    headBefore,
-    headAfter,
-    "--name-only",
-    "--no-renames",
-  ]);
-  return { files: diff.split("\n").filter((f) => f.trim()) };
+
+  return { files, deletedFiles };
+}
+
+async function tryResolveRemoteHead(
+  git: SimpleGit,
+  branch: string,
+): Promise<string | undefined> {
+  try {
+    return await git.revparse([`refs/remotes/origin/${branch}`]);
+  } catch {
+    return undefined;
+  }
 }
 
 async function resolveRemoteConflicts(
   git: SimpleGit,
   logger: Logger,
   msg: string,
-): Promise<PullResult> {
+  conflictedFiles: string[],
+): Promise<void> {
   logger.warn("Resolving merge conflict", { error: msg });
-  const mergeStatus = await git.status();
-  for (const file of mergeStatus.conflicted) {
+  for (const file of conflictedFiles) {
     try {
       await git.raw(["checkout", "--theirs", file]);
     } catch {
@@ -117,9 +200,6 @@ async function resolveRemoteConflicts(
   }
   await git.add(["-A"]);
   await git.commit("Auto-resolve merge conflict (remote wins)");
-
-  const diffOutput = await git.diff(["HEAD~1", "--name-only", "--no-renames"]);
-  return { files: diffOutput.split("\n").filter((f) => f.trim()) };
 }
 
 async function bootstrapRemoteBranch(
@@ -146,5 +226,5 @@ async function bootstrapRemoteBranch(
   }
   signal?.throwIfAborted();
   await pushGitChanges(logger, branch, net, signal);
-  return { files: [] };
+  return { files: [], deletedFiles: [] };
 }
