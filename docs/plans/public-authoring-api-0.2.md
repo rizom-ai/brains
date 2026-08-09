@@ -2,7 +2,7 @@
 
 ## Status
 
-**Implementation phases 1–5 complete; Phase 6 release evidence pending.** Local packed artifacts now prove the declarative contracts for all four required extension use cases, but stable nomination still requires the frozen export/documentation pass and the nominated published-alpha matrix:
+**Implementation phases 1–5 and the local Phase 6 export/documentation freeze are complete; published release evidence remains pending.** Local packed artifacts now prove the declarative contracts for all four required extension use cases, but stable nomination still requires fixture pinning and the nominated published-alpha matrix:
 
 1. custom entity types;
 2. custom service plugins;

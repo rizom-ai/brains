@@ -5,6 +5,10 @@ import { join, relative } from "node:path";
 const fixtureRoot = join(import.meta.dir, "fixtures", "public-authoring");
 const repositoryRoot = join(import.meta.dir, "../../..");
 const ledgerPath = join(fixtureRoot, "export-ledger.json");
+const stableLedgerDocumentPath = join(
+  repositoryRoot,
+  "docs/public-release/AUTHORING_API_0.2.md",
+);
 
 // The lower bound is a placeholder: no published alpha implements this API yet.
 // The Phase 1 packed harness pins fixtures to the first compatible published
@@ -305,6 +309,13 @@ describe("public authoring 0.2 export ledger", () => {
       expect(missing, `${specifier} has unclassified current exports`).toEqual(
         [],
       );
+      const removable = current.filter((name) =>
+        entry["internal/removable"].includes(name),
+      );
+      expect(
+        removable,
+        `${specifier} still exports internal/removable symbols`,
+      ).toEqual([]);
     }
   });
 
@@ -390,6 +401,21 @@ describe("public authoring 0.2 export ledger", () => {
     ).toContain("WebRouteDefinition");
     expect(ledger.entries["@rizom/brain/site"]).toBeUndefined();
     expect(ledger.entries["@rizom/site-sections"]).toBeUndefined();
+  });
+
+  it("publishes every stable symbol in the release ledger", () => {
+    const ledger = readLedger();
+    const document = readFileSync(stableLedgerDocumentPath, "utf8");
+
+    for (const [specifier, entry] of Object.entries(ledger.entries)) {
+      if (entry.stable.length === 0) continue;
+      expect(document).toContain(`## \`${specifier}\``);
+      for (const symbol of entry.stable) {
+        expect(document, `${specifier} is missing ${symbol}`).toContain(
+          `\`${symbol}\``,
+        );
+      }
+    }
   });
 
   it("points every ledger entry at a repository source", () => {

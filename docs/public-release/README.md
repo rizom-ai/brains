@@ -89,7 +89,7 @@ A **brain instance** selects explicit bundles in `brain.yaml` and supplies its o
 - `defineMessageInterface()` — conversational and outbound channels; and
 - `defineSite()` from `@rizom/site` — layouts, content sections, routes, and assets.
 
-External packages default-export a definition. A brain-definition package imports those defaults and composes typed configured references through `use()`, `defineBundle()`, and `defineBrain()`. Runtime classes and YAML-loaded factories are not public authoring contracts.
+External packages default-export a definition. A brain-definition package imports those defaults and composes typed configured references through `use()`, `defineBundle()`, and `defineBrain()`. Runtime classes and YAML-loaded factories are not public authoring contracts. See the [exact `0.2` authoring ledger](./AUTHORING_API_0.2.md) and [alpha migration guide](./AUTHORING_0.2_MIGRATION.md).
 
 **Interfaces** are how users and other agents talk to your brain. Built-in: MCP, A2A, Discord, webserver, CLI.
 

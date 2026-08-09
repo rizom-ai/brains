@@ -3,4 +3,4 @@ export type {
   RizomFooterTagline,
   RizomLink,
   RizomSideNavItem,
-} from "@rizom/site";
+} from "../contracts";

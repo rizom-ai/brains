@@ -91,6 +91,8 @@ Each extension package default-exports one definition returned by its family hel
 
 Class-first plugin APIs, lifecycle subclasses, tuple factories, positional tools, root `z`, and `PLUGIN_API_VERSION` are removed alpha contracts and are not stable compatibility surfaces.
 
+The exact patch-stable symbol list is [Public Authoring API `0.2`](./AUTHORING_API_0.2.md). Authors moving from an alpha package should follow the [authoring migration guide](./AUTHORING_0.2_MIGRATION.md).
+
 ### External package loading shape
 
 A brain-definition package imports extension defaults and configures them through typed `use()` references. Package versions live in package manifests, and every external package declares a compatible `@rizom/brain` peer range. The loader verifies that range and supplies installed name/version metadata.

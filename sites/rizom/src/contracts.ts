@@ -5,6 +5,7 @@ import type {
   RuntimeScript,
   SiteContent,
   SiteLayoutInfo,
+  SiteLayoutProps,
   SiteSectionGroup,
   UserPermissionLevel,
 } from "@rizom/site";
@@ -16,11 +17,6 @@ export type {
   NavigationItem,
   NavigationMetadata,
   NavigationSlot,
-  RizomBrandSuffix,
-  RizomFooterTagline,
-  RizomLayoutProps,
-  RizomLink,
-  RizomSideNavItem,
   RouteDefinition,
   RouteDefinitionInput,
   RuntimeScript,
@@ -44,6 +40,28 @@ export type {
   UserPermissionLevel,
 } from "@rizom/site";
 export { NavigationSlots } from "@rizom/site";
+
+export interface RizomLink {
+  href: string;
+  label: string;
+  /** Open in a new tab with rel="noopener noreferrer". */
+  external?: boolean;
+}
+
+export type RizomBrandSuffix = "ai" | "foundation" | "work";
+
+export interface RizomSideNavItem {
+  href: string;
+  label: string;
+}
+
+export interface RizomFooterTagline {
+  prefix?: string;
+  link: RizomLink;
+  suffix?: string;
+}
+
+export type RizomLayoutProps = SiteLayoutProps;
 
 export interface RizomRuntimeConfig {
   theme?: string;

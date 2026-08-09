@@ -360,28 +360,6 @@ export interface SiteDefinition {
 
 export type SiteDefinitionOverrides = Partial<SiteDefinition>;
 
-export interface RizomLink {
-  href: string;
-  label: string;
-  /** Open in a new tab with rel="noopener noreferrer". */
-  external?: boolean;
-}
-
-export type RizomBrandSuffix = "ai" | "foundation" | "work";
-
-export interface RizomSideNavItem {
-  href: string;
-  label: string;
-}
-
-export interface RizomFooterTagline {
-  prefix?: string;
-  link: RizomLink;
-  suffix?: string;
-}
-
-export type RizomLayoutProps = SiteLayoutProps;
-
 const componentSchema = z.custom<ComponentType<SiteLayoutProps>>(
   (value) => typeof value === "function",
   "Expected a Preact component",

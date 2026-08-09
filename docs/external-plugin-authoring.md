@@ -100,7 +100,7 @@ Long-running work belongs in supervised interface daemons. Durable work belongs 
 
 ## Removed alpha package shapes
 
-Stable `0.2.x` does not load class constructors, tuple factories, default plugin functions, named `plugin` factories, or `brain.yaml` plugin package declarations. The loader reports migration guidance when it encounters those alpha shapes. Move package imports into a `defineBrain()` package and compose their default definitions with `use()`.
+Stable `0.2.x` does not load class constructors, tuple factories, default plugin functions, named `plugin` factories, or `brain.yaml` plugin package declarations. The loader reports migration guidance when it encounters those alpha shapes. Move package imports into a `defineBrain()` package and compose their default definitions with `use()`. The [alpha authoring migration guide](./public-release/AUTHORING_0.2_MIGRATION.md) lists each corrected signature.
 
 ## Canonical examples
 
