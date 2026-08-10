@@ -410,18 +410,25 @@ scoping prevents global collisions.
 
 ## Delivery phases
 
-### Phase 0: source-first API review
+### Phase 0: source-first API validation
 
 1. Add the supplemental standalone `operator-surface` golden package source,
    manifest, strict TypeScript config, and README section before runtime helpers
    exist.
 2. Keep the source domain-led and free of all forbidden runtime vocabulary.
 3. Draft the smallest `OperatorView` blocks needed by the example.
-4. Review the source with Jo and Niels.
+4. Port all four built-in workspaces (DirectorySync, Site, Publishing overview,
+   EmailTriage) as source sketches on the same API. Each port either expresses
+   the workspace's real operations or names the exact missing capability. This
+   is the solidity test: the API freezes only when the golden source plus the
+   ports prove it, and any block the ports demand — such as a schema-derived
+   input form if EmailTriage's operations require user-entered parameters —
+   is added here by demonstrated need, not speculation.
 5. Release scope is already decided: a `0.2.x` additive milestone, not a
-   `v0.2.0` nomination gate. Phase 0 approval covers the API shape only.
+   `v0.2.0` nomination gate.
 
-Exit: the external source is approved unchanged as the target API.
+Exit: the golden source and built-in ports stand unchanged as the target API,
+with every unportable operation named.
 
 ### Phase 1: public schemas and inference
 
@@ -493,9 +500,10 @@ hermetic; no provider credential or model call is needed.
 
 ### Phase 5: built-in and documentation alignment
 
-1. Adapt at least one built-in dashboard widget and one CMS workspace through
-   the same semantic normalization path, or document why a specialized private
-   renderer remains intentionally outside it.
+1. Land the Phase 0 built-in ports as running adaptations through the same
+   semantic normalization path; any workspace whose Phase 0 port named a
+   missing capability keeps its specialized private renderer with that reason
+   recorded next to it.
 2. Update `docs/external-plugin-authoring.md` with the golden source flow and
    clear stable/advanced UI boundaries.
 3. Update `docs/plugin-quick-reference.md`, `docs/plugin-system.md`, and the
