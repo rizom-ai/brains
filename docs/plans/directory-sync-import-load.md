@@ -45,7 +45,10 @@ acceptance remains pending.
 - Before another workload is approved, the stress workflow's `verify_only` mode
   must prove the exact Bitwarden/Varlock content credential path through clone
   and `git push --dry-run`. That mode creates no ref, content commit, probe, or
-  cleanup job.
+  cleanup job. The current fine-grained PAT authenticates and can read repository
+  metadata, but Git and the Contents API return 403. Grant that existing token
+  `Contents: Read and write` for `rover-smoke-content`; this is a permission edit,
+  not a selector change or token rotation.
 
 Asset-backed Phase 2–3 behavior remains coordinated with
 [`durable-binary-assets.md`](./durable-binary-assets.md) and lands with that storage
@@ -66,9 +69,10 @@ path; it is not a permanent inline compatibility commitment.
 - `~/Documents/directory-sync-stress-evidence/tools/` holds the working operational
   scripts: `smoke-ssh.sh` (read-only smoke server access via the Bitwarden/varlock
   bootstrap), `run-regression.sh` (local benchmark driver; set `STRESS_PROFILE=load`
-  for the load profile; note its `GH_TOKEN` override working around the Phase 5 clone
-  bug), `run-cleanup.sh`, and `monitor-smoke.sh`. They read credentials at runtime
-  from `~/Documents/yeehaa-io/.env` and contain no secrets.
+  for the load profile; its personal `GH_TOKEN` override bypasses the fleet credential
+  and must be removed after the PAT permission repair), `run-cleanup.sh`, and
+  `monitor-smoke.sh`. They read credentials at runtime from
+  `~/Documents/yeehaa-io/.env` and contain no secrets.
 - Deployed smoke: `@rizom/brain@0.2.0-alpha.265` (git-runner fix verified in
   production), clean 7-note baseline, healthcheck + watchdog active.
 
@@ -243,10 +247,13 @@ one-off:
   runtime. It gates nothing on PRs (too slow) but pages the operator on failure. The
   soak is load-sensitive, so the job runs alone on its runner.
 - **Weekly smoke regression profile** (rover-pilot): the Directory Sync Stress workflow
-  on a cron, `profile: regression`. The clone prerequisite is satisfied:
-  `GitCheckout` routes `CONTENT_REPO_ADMIN_TOKEN` through the credential-helper
-  `GH_TOKEN`/`GITHUB_TOKEN` environment used by all stress Git operations, without
-  placing the token in command arguments.
+  on a cron, `profile: regression`. `GitCheckout` routes
+  `CONTENT_REPO_ADMIN_TOKEN` through the credential-helper `GH_TOKEN`/`GITHUB_TOKEN`
+  environment used by all stress Git operations, without placing the token in command
+  arguments. The existing fine-grained PAT must select `rover-smoke-content` and grant
+  repository permission `Contents: Read and write`; metadata authorization alone is
+  insufficient. Repair this permission in place rather than changing selectors or
+  rotating the token.
 - **Load profile as the acceptance gate**: rerun manually after Phases 1–4 land; the
   plan is complete when `load` passes end-to-end on smoke (all seven phases, zero
   health failures). Only then consider promoting `load` to a scheduled cadence and
