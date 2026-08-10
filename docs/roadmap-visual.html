@@ -313,14 +313,6 @@
           <div class="card-desc">keep focused tests and one packed canary in normal PR feedback, move the full external-authoring matrix to nightly/release evidence, reuse one packed artifact per run, and freeze the <code>0.2.0</code> fixtures for later patch-candidate compatibility.</div>
           <div class="card-file">packed-compatibility-test-tiering.md</div>
         </div>
-        <div class="card status-active">
-          <div class="card-head">
-            <span class="card-name">Turso Database engine migration</span>
-            <span class="badge badge-active">Active</span>
-          </div>
-          <div class="card-desc">**in progress; MVCC parked behind saturation**: local files default to Turso Database with packed native bindings, dual-engine parity, production-shaped cutover coverage, and an explicit libSQL rollback command. Git remains the only content sync model. Phases 5A–5C make web the sole local shell database owner under WAL, route worker persistence through the private endpoint, enforce a packed worker no-local-open fence, and store regenerated embeddings atomically with entities in <code>brain.db</code>. Phase 5D replaces both engine-specific search indexes with the measured portable phrase boost and automatically cleans historical schema while retaining recovery for old backups. MVCC is technically available but intentionally parked until owner-connection saturation is observed; entity/job atomicity is the remaining local decision.</div>
-          <div class="card-file">turso-database-engine.md</div>
-        </div>
         <div class="card status-partial">
           <div class="card-head">
             <span class="card-name">Durable Binary Asset Storage Plan</span>
@@ -369,6 +361,14 @@
           <div class="card-desc">make topic extraction incremental (waves currently re-extract the whole corpus), feed the extraction prompt embedding-retrieved nearest topics instead of a flat 40-title list, wire the semantic merge sweep into the production wave path (today it only runs in evals), and surface a zero-LLM topic-coverage insight from the knowledge-map geometry.</div>
           <div class="card-file">topic-extraction-and-reconciliation.md</div>
         </div>
+        <div class="card status-proposed">
+          <div class="card-head">
+            <span class="card-name">Decision: directory-sync stays a plugin; entity surface reshaped before stable</span>
+            <span class="badge badge-proposed">Proposed</span>
+          </div>
+          <div class="card-desc">decided: directory-sync stays a plugin and the bulk/export surface stays plugin API; the surface shape is release-gate work — managed batch bracket, release-final journal naming, and <code>recoverProjectionBatches</code> off the plugin surface before stable <code>v0.2.0</code>.</div>
+          <div class="card-file">entity-surface-layering.md</div>
+        </div>
         <div class="card status-parked">
           <div class="card-head">
             <span class="card-name">Alternative Site Renderer Spike</span>
@@ -400,6 +400,22 @@
           </div>
           <div class="card-desc">from a full-repo duplication audit: collapse the duplicated site-metadata schema that silently dropped <code>represents</code>, derive ATProto record strictness from the lexicons instead of one hardcoded field list, and guard the published-SDK type copies that no test currently pins.</div>
           <div class="card-file">contract-drift-fixes.md</div>
+        </div>
+        <div class="card status-done">
+          <div class="card-head">
+            <span class="card-name">Configurable embedding provider</span>
+            <span class="badge badge-done">Done</span>
+          </div>
+          <div class="card-desc">make the embedding model and dimensions user-configurable at initialization (they are hardcoded today behind a dead config block), and fail fast with an explicit re-embed remedy when a configured dimension does not match stored vectors.</div>
+          <div class="card-file">configurable-embedding-provider.md</div>
+        </div>
+        <div class="card status-done">
+          <div class="card-head">
+            <span class="card-name">Turso Database engine migration</span>
+            <span class="badge badge-done">Done</span>
+          </div>
+          <div class="card-desc">**complete through Phase 5G; MVCC parked behind saturation**: local files default to Turso Database with packed native bindings, dual-engine parity, and production-shaped cutover coverage. Git remains the only content sync model. Phases 5A–5C make web the sole local shell database owner under WAL, route worker persistence through the private endpoint, enforce a packed worker no-local-open fence, and store regenerated embeddings atomically with entities in <code>brain.db</code>. Phase 5D replaces both engine-specific search indexes with the measured portable phrase boost. Phase 5E atomically journals embedding-job intents with entity mutations and relays them idempotently to the separate job database. Phase 5F removes unreleased native-FTS compatibility. Phase 5G removes obsolete multiprocess WAL, awaits durable native shutdown, and ports worker expiry plus operational queue/projection diagnostics across the owner RPC boundary. MVCC remains intentionally parked until owner-connection saturation is observed.</div>
+          <div class="card-file">turso-database-engine.md</div>
         </div>
         </div>
       </details>
