@@ -30,6 +30,9 @@ roles, internal UI components, or lifecycle timing.
 
 The minimum useful outcome is:
 
+- per-account plugin settings with schema-validated fields, encrypted secrets,
+  a host-rendered form, principal-scoped injection, and typed
+  configured-accounts enumeration (the IMAP-connection case end to end);
 - one dashboard widget with schema-validated data, placement, permission,
   digest/attention state, and an optional typed link to a CMS workspace;
 - one CMS workspace with schema-validated data, entity coverage, canonical
@@ -170,6 +173,35 @@ web runtime. Worker processes retain the same service jobs but do not register
 widgets/workspaces or execute their providers. Author callbacks receive an
 `AbortSignal`; the runtime owns cancellation, registration order, rollback,
 unregistration, and shutdown.
+
+### 8. Per-account plugin settings are part of this contract
+
+A service may declare `accountSettings` on `defineServicePlugin()`: one schema
+of per-principal settings (for example a user's IMAP host, username, and
+password for a mail integration), with individual fields markable as `secret`.
+This is distinct from instance config in `brain.yaml` — instance config is
+deployment-owned; account settings belong to one authenticated principal.
+
+The runtime owns everything except the schema and the consuming callbacks:
+
+- storage keyed by installed package, service ID, and actor ID, with secret
+  fields encrypted at rest;
+- the settings surface itself, rendered from the schema as a host form —
+  which is why schema-derived input forms are part of the v1 view vocabulary;
+- write-only secret semantics: the form shows whether a secret is set and
+  accepts replacement, but never echoes the stored value;
+- validation on save against the declared schema, with actionable errors;
+- deletion of all settings and secrets when the account is removed; and
+- strict injection boundaries: parsed settings reach only server-side plugin
+  callbacks for that principal — never agent or model context, never browser
+  responses, never logs.
+
+For background work that acts on behalf of configured users (an IMAP listener
+polling each connected mailbox), the service receives a typed accounts
+enumeration: iterate principals that have valid settings, receiving each
+principal's parsed settings server-side. Authors never touch identity storage,
+never enumerate users without settings, and never see another principal's
+secrets in a per-principal callback.
 
 ## Proposed golden author experience
 
@@ -435,10 +467,10 @@ with every unportable operation named.
 1. Add schema-first definition contracts and `define*` identity/validation
    helpers under `@brains/plugins` internals.
 2. Curate only approved helpers/types through `@rizom/brain/services`.
-3. Extend `defineServicePlugin()` with inferred `dashboardWidgets` and
-   `cmsWorkspaces` callbacks.
+3. Extend `defineServicePlugin()` with inferred `accountSettings`,
+   `dashboardWidgets`, and `cmsWorkspaces` callbacks.
 4. Prove config/setup-state, schema input/output, caller, entity, job, action,
-   and view inference without casts.
+   settings, and view inference without casts.
 5. Add every export to `export-ledger.json`; stable classification requires the
    approved consumer fixture.
 6. Verify generated declarations contain no private workspace, UI, shell,
@@ -446,7 +478,31 @@ with every unportable operation named.
 
 Exit: the golden package typechecks against generated local declarations.
 
-### Phase 2: dashboard runtime
+### Phase 2: account settings runtime
+
+Settings ship first: they are the thinnest slice through every novel layer —
+per-principal storage, secret handling, the schema-derived form, and
+caller-scoped injection — they carry the highest-risk contract (secrets at
+rest), and they deliver standalone value with no presentation dependency: a
+user can connect an IMAP mailbox before any widget or workspace exists. The
+later capabilities reuse the form renderer and principal-scoped context proven
+here.
+
+1. Implement per-principal settings storage keyed by installed package,
+   service ID, and actor ID, with secret fields encrypted at rest.
+2. Render the host settings form from the declared schema, with write-only
+   secret semantics.
+3. Validate on save; inject parsed settings into the calling principal's
+   server-side callbacks only.
+4. Implement the typed configured-accounts enumeration for daemon/worker use.
+5. Delete settings and secrets with account removal.
+6. Prove isolation: no cross-principal reads, no secrets in agent context,
+   browser responses, or logs.
+
+Exit: a packed service stores, validates, injects, and enumerates per-account
+settings — the IMAP case works end to end — with secrets provably contained.
+
+### Phase 3: dashboard runtime
 
 1. Add runtime-owned registration/finalization/rollback around declarative
    widgets.
@@ -459,7 +515,7 @@ Exit: the golden package typechecks against generated local declarations.
 Exit: a packed widget renders through the running Dashboard without private
 imports or author lifecycle code.
 
-### Phase 3: CMS runtime
+### Phase 4: CMS runtime
 
 1. Add package-scoped declarative workspace registration and unregistration.
 2. Add the generic React workspace renderer for `OperatorView`.
@@ -472,7 +528,7 @@ imports or author lifecycle code.
 Exit: a packed workspace lists, loads, renders, acts, unregisters, and restarts
 through public HTTP behavior.
 
-### Phase 4: packed integration evidence
+### Phase 5: packed integration evidence
 
 Add `packages/brain-cli/test/public-authoring-operator-packed.test.ts` and an
 isolated consumer. The test must:
@@ -498,7 +554,7 @@ isolated consumer. The test must:
 Use readiness signals and bounded polling with diagnostics. The matrix is
 hermetic; no provider credential or model call is needed.
 
-### Phase 5: built-in and documentation alignment
+### Phase 6: built-in and documentation alignment
 
 1. Land the Phase 0 built-in ports as running adaptations through the same
    semantic normalization path; any workspace whose Phase 0 port named a
@@ -518,7 +574,7 @@ hermetic; no provider credential or model call is needed.
 Exit: docs, fixture source, declarations, and runtime behavior describe one
 contract.
 
-### Phase 6: additive `0.2.x` release gates
+### Phase 7: additive `0.2.x` release gates
 
 For the `0.2.x` release that ships this contract:
 
@@ -597,6 +653,10 @@ one.
     packed external evidence passes, then links to the shipped public contract.
 20. No stable release action occurs without the existing explicit nomination
     and authorization gates.
+21. Per-account settings store schema-validated values with encrypted secrets;
+    the form is host-rendered and write-only for secrets; parsed settings and
+    the configured-accounts enumeration reach only server-side callbacks;
+    settings are isolated per principal and deleted with the account.
 
 ## Risks and mitigations
 
