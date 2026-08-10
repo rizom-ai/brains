@@ -22,8 +22,14 @@ acceptance remains pending.
   pull, then its unchanged rerun passed the complete 350-file packaged soak in
   195.99 seconds: 2 tests passed, health and zombie checks passed, and the
   uploaded artifact contained the real Bun result with no external AI call.
-  Issue #102 retains the one-off cleanup-stall evidence for recurrence tracking.
-  The manual smoke load acceptance run remains pending.
+  The next independent scheduled run, `31356873624`, passed on its first attempt
+  in 196.21 seconds with the same assertions, so issue #102 was closed as a
+  non-recurring runner stall.
+- The read-only smoke baseline is operational on alpha.265: 7 notes, zero probe
+  files, a drained queue, one active worker, zero zombies, and zero container
+  restarts. Manual acceptance remains pending explicit approval to roll only
+  smoke's cohort runtime pin to alpha.275 and run the non-overlapping load
+  profile.
 
 Asset-backed Phase 2–3 behavior remains coordinated with
 [`durable-binary-assets.md`](./durable-binary-assets.md) and lands with that storage
