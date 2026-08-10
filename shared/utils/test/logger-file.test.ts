@@ -7,6 +7,32 @@ import { z } from "../src/zod";
 
 const logRecordSchema = z.record(z.string(), z.unknown());
 
+/**
+ * Wait until the log file holds at least `count` lines.
+ *
+ * The writes are asynchronous I/O, not timers, so a fake clock cannot drive
+ * them and a fixed sleep is only a guess at how fast the disk is. Polling the
+ * file is the actual signal. `@brains/utils` cannot import `waitUntil` from
+ * `@brains/test-utils` — test-utils depends on this package — so this is a
+ * local helper rather than the shared one.
+ */
+async function waitForLogLines(
+  logFile: string,
+  count: number,
+  deadline = Date.now() + 2000,
+): Promise<string[]> {
+  const content = await readFile(logFile, "utf-8").catch(() => "");
+  const lines = content.trim() === "" ? [] : content.trim().split("\n");
+  if (lines.length >= count) return lines;
+  if (Date.now() >= deadline) {
+    throw new Error(
+      `Timed out waiting for ${count} log lines; saw ${lines.length}`,
+    );
+  }
+  await Bun.sleep(5);
+  return waitForLogLines(logFile, count, deadline);
+}
+
 function parseLogRecord(
   line: string | undefined,
 ): z.output<typeof logRecordSchema> | undefined {
@@ -37,11 +63,7 @@ describe("Logger file output", () => {
     logger.debug("detail");
     logger.warn("careful");
 
-    // Flush — give async write a moment
-    await new Promise((r) => setTimeout(r, 50));
-
-    const content = await readFile(logFile, "utf-8");
-    const lines = content.trim().split("\n");
+    const lines = await waitForLogLines(logFile, 3);
 
     expect(lines.length).toBe(3);
 
@@ -68,10 +90,8 @@ describe("Logger file output", () => {
     });
 
     logger.info("text mode");
-    await new Promise((r) => setTimeout(r, 50));
-
-    const content = await readFile(logFile, "utf-8");
-    const parsed = parseLogRecord(content.trim());
+    const [onlyLine] = await waitForLogLines(logFile, 1);
+    const parsed = parseLogRecord(onlyLine);
     expect(parsed?.["msg"]).toBe("text mode");
   });
 
@@ -86,10 +106,8 @@ describe("Logger file output", () => {
     const child = parent.child("ChildCtx");
 
     child.info("from child");
-    await new Promise((r) => setTimeout(r, 50));
-
-    const content = await readFile(logFile, "utf-8");
-    const parsed = parseLogRecord(content.trim());
+    const [onlyLine] = await waitForLogLines(logFile, 1);
+    const parsed = parseLogRecord(onlyLine);
     expect(parsed?.["ctx"]).toBe("ChildCtx");
     expect(parsed?.["msg"]).toBe("from child");
   });
@@ -104,10 +122,8 @@ describe("Logger file output", () => {
     });
 
     logger.info("event", { key: "value" });
-    await new Promise((r) => setTimeout(r, 50));
-
-    const content = await readFile(logFile, "utf-8");
-    const parsed = parseLogRecord(content.trim());
+    const [onlyLine] = await waitForLogLines(logFile, 1);
+    const parsed = parseLogRecord(onlyLine);
     expect(parsed?.["data"]).toEqual([{ key: "value" }]);
   });
 
@@ -124,10 +140,7 @@ describe("Logger file output", () => {
     logger.info("should not appear");
     logger.warn("should appear");
 
-    await new Promise((r) => setTimeout(r, 50));
-
-    const content = await readFile(logFile, "utf-8");
-    const lines = content.trim().split("\n");
+    const lines = await waitForLogLines(logFile, 1);
     expect(lines.length).toBe(1);
 
     const parsed = parseLogRecord(lines[0]);
