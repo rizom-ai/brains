@@ -1,5 +1,11 @@
 # @brains/ops
 
+## 0.2.0-alpha.276
+
+### Patch Changes
+
+- [#105](https://github.com/rizom-ai/brains/pull/105) [`70417e7`](https://github.com/rizom-ai/brains/commit/70417e783af34ef9c946a4a234195266e119a7cb) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Make deployed directory-sync gates hermetic by requiring embeddings and automatic topic extraction to be disabled, failing on observed external AI usage, and detecting watchdog-driven container restarts through the container start time even when Docker reports a zero restart count.
+
 ## 0.2.0-alpha.275
 
 ## 0.2.0-alpha.274
