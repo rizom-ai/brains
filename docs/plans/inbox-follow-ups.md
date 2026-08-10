@@ -3,9 +3,14 @@
 ## Status
 
 **Active.** Builds directly on the shipped unified inbox (contract, CMS
-workspace, digest — branch `feat/unified-inbox-surfaces`). Phase 0a is
-implemented; Phases 0b–6 remain planned. UX mockup:
+workspace, digest — branch `feat/unified-inbox-surfaces`). Phases 0a and 7
+are implemented; Phases 0b–6 and 8 remain planned. UX mockup:
 [inbox-follow-ups-mockup.html](./inbox-follow-ups-mockup.html).
+
+`unified-inbox` is being promoted from an explicit opt-in to a `core` bundle
+member by [brain-model-unification.md](./brain-model-unification.md). Phases 7
+and 8 below are the conditions of that promotion and are independent of the
+follow-up surfaces in Phases 0b–6.
 
 ## Goal
 
@@ -25,7 +30,10 @@ with different chrome.
 - The inbox contract (`shell/plugins/src/inbox-registry.ts`) gives every item
   `id`, content-safe `title`/`summary`, `receivedAt`, `urgency`, optional
   `entityRef`, and source-owned `actions`. Actions mutate source state through
-  `act` and resolve items out of the projection.
+  `act` and resolve items out of the projection. The Admin-only `inbox_list`
+  tool is the headless reader: it returns source metadata plus a strict allowlist
+  of `title`/`summary`/`urgency`/`receivedAt`/`contact`, while omitting item IDs,
+  entity references, actions, and source detail.
 - The Inbox workspace already renders **Open source entity** from `entityRef` —
   the only non-resolution affordance an item has.
 - The Email Triage workspace (`EmailTriageWorkspace` renderer +
@@ -265,6 +273,26 @@ with different chrome.
     locator and source-read contract; reply drafting and future web-side
     consumers import that one contract.
 
+11. **The projection is core; every surface here is a channel.** Under the
+    bundle taxonomy in [brain-model-unification.md](./brain-model-unification.md),
+    `unified-inbox` belongs to `core` — it aggregates whatever `InboxSource`s
+    are registered over a registry that already lives at shell level, needs no
+    inbound listener, and depends on no third-party account. The renderings
+    belong to the bundles that own their channels: the CMS workspace, create
+    mode, and Dashboard widget are `web`; the digest is `chat`, because
+    `notifications` lives there. Everything in Phases 0b–6 is therefore
+    channel work sitting above a core capability. The plugin does not move to
+    `web` to be near its UI, and the surfaces do not move into `core` to be
+    near the projection.
+
+    Two consequences follow, and both are conditions of the promotion rather
+    than results of it. The first is now satisfied by Phase 7: the inbox has a
+    reader that works without a browser, because it is a live projection and
+    the framework `system_*` tools only see the entity database. It still needs
+    a source that exists in a `[core]` brain, because email-triage is an opt-in
+    requiring the `email` interface from `chat`, so without one the inbox would
+    be empty by construction rather than by circumstance — Phase 8.
+
 ## Out of scope
 
 - **No auto-send anywhere.** Chat prefill and note prefill populate composers
@@ -366,7 +394,45 @@ Tests are written first inside each phase.
   calls, client query cache, or provider errors; sources without
   `resolveDetail` render no expander.
 
+- **Phase 7 — Headless reader (implemented).** Harden `inbox_list` so the live
+  projection is reachable over MCP stdio with no webserver, CMS, or Dashboard.
+  The tool is Admin-only and returns source metadata plus a strict allowlist of
+  the same content-safe `title`/`summary`/`urgency`/`receivedAt`/`contact`
+  fields the workspace renders. Item IDs, entity references, actions, and
+  source detail are omitted. Source and urgency use the workspace's shared
+  filter path; declared facets join that vocabulary with Phase 3. `resolveDetail`
+  remains a Phase 6 surface concern requiring its own Admin check. _Tests:_ MCP
+  protocol access with no browser plugins; an empty registry returns an empty
+  result rather than an error; filters agree field for field with the workspace
+  for the same inputs; non-Admin actors are rejected before source reads; no
+  source body, sender address, sender hash, locator, or action appears in the
+  response.
+- **Phase 8 — Recurring checks as the first core source.** Re-point
+  `shell/recurring-checks` at the inbox so `RecurringAlert` and failing
+  `RecurringCheckResult`s register as `InboxSource` items instead of being
+  delivered only through notifications. This makes scheduled-work failures
+  visible to a brain with no chat channel and demotes notifications from being
+  the surface for things needing attention to being one delivery channel for
+  them. The source declares its own resolution actions; alerts leave the
+  projection the same way mail does. _Tests:_ a failing check appears as an
+  inbox item with no notification channel present; adding one delivers the
+  same item without duplicating it in the projection; resolving from the
+  inbox stops redelivery; a passing check contributes nothing; recurring
+  cadence and existing notification consumers are unchanged.
+
+  directory-sync import issues are the natural second source once the in-flight
+  [directory-sync-import-load.md](./directory-sync-import-load.md) work lands,
+  since `importFile` already records an operation-status issue for skipped
+  oversized files that has no operator surface today. agent-discovery's
+  pending-approval queue and inbound A2A tasks from unapproved peers are later
+  candidates.
+
 ## Related plans
+
+- [brain-model-unification.md](./brain-model-unification.md) — promotes
+  `unified-inbox` into `core` and owns the bundle taxonomy that places these
+  surfaces in `web` and the digest in `chat`. Phases 7 and 8 here are the
+  conditions of that promotion.
 
 - [email-reply-drafting.md](./email-reply-drafting.md) — consumes the source-read
   operation Phase 6 owns and supplies the registered Draft reply destination.

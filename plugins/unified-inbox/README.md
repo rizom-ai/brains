@@ -16,7 +16,8 @@ The opt-in plugin provides:
   paging, list/detail triage, source-entity navigation, and confirmation-gated actions;
 - an access-checked open-count badge in the CMS workspace rail;
 - a read-only Admin Dashboard summary containing at most five redacted entries;
-- the bounded Admin `inbox_list` conversational tool;
+- the bounded Admin `inbox_list` headless reader, available without browser
+  plugins;
 - a daily title-only digest that links to the mounted CMS workspace, or to Dashboard when
   CMS is absent.
 
@@ -24,6 +25,12 @@ Actions always re-list the owning source and verify that the requested item and 
 still offered. Confirmed actions are revalidated immediately before dispatch. Browser
 responses never expose source exception text, and completed actions return no inbox
 projection; the client invalidates and reloads the live view.
+
+`inbox_list` is directly available to Admin MCP clients in basic mode, including stdio
+brains with no webserver, CMS, or Dashboard. It returns source metadata and only the
+content-safe `title`, `summary`, `contact`, `receivedAt`, and `urgency` item fields. Item
+IDs, source-entity references, resolution actions, source detail, and private source
+locators are omitted.
 
 ## Source contract
 

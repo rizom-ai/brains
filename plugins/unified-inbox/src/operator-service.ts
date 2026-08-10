@@ -36,7 +36,7 @@ export class InboxOperatorService {
     const projection = await this.dataSource.getInboxData();
     const matching = filterEntries(projection, filter);
     return {
-      entries: matching.slice(0, filter.limit),
+      entries: matching.slice(0, filter.limit).map(toListEntry),
       errors: filterErrors(projection, filter.sourceId),
       total: matching.length,
     };
@@ -143,6 +143,21 @@ function filterEntries(
         entry.source.sourceId === filter.sourceId) &&
       (filter.urgency === undefined || entry.item.urgency === filter.urgency),
   );
+}
+
+function toListEntry(
+  entry: InboxProjection["entries"][number],
+): InboxListResult["entries"][number] {
+  return {
+    source: entry.source,
+    item: {
+      title: entry.item.title,
+      ...(entry.item.summary ? { summary: entry.item.summary } : {}),
+      ...(entry.item.contact ? { contact: entry.item.contact } : {}),
+      receivedAt: entry.item.receivedAt,
+      urgency: entry.item.urgency,
+    },
+  };
 }
 
 function filterErrors(

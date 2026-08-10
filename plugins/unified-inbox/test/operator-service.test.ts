@@ -57,7 +57,7 @@ function createService(input?: { rejectActor?: (actor: InboxActor) => void }): {
 }
 
 describe("InboxOperatorService", () => {
-  it("returns bounded filtered data for shared consumers", async () => {
+  it("returns a bounded content-safe allowlist for headless consumers", async () => {
     const fixture = createService();
     const result = inboxListResultSchema.parse(
       await fixture.service.list({
@@ -72,11 +72,20 @@ describe("InboxOperatorService", () => {
     expect(result.entries[0]).toMatchObject({
       source: { sourceId: "mail-items", displayName: "Email Triage" },
       item: {
-        id: "mail-opaque",
+        title: "Time-sensitive work request",
+        summary: "A project contact asks for a decision this week.",
         urgency: "high",
+        receivedAt,
         contact: { label: "Sam Rivera · acme.io", personId: "prsn_sam" },
       },
     });
+    expect(Object.keys(result.entries[0]?.item ?? {})).toEqual([
+      "title",
+      "summary",
+      "contact",
+      "receivedAt",
+      "urgency",
+    ]);
     expect(result.errors).toEqual([]);
   });
 

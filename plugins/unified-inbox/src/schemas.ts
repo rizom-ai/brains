@@ -1,5 +1,6 @@
 import {
   createListToolOutputSchema,
+  inboxContactSchema,
   inboxIdSchema,
   inboxItemIdSchema,
   inboxItemSchema,
@@ -77,8 +78,40 @@ export const inboxListFilterSchema: z.ZodType<
   InboxListFilterInputValue
 > = z.strictObject(inboxListFilterShape);
 
+interface InboxListItemValue {
+  title: string;
+  summary?: string | undefined;
+  contact?: InboxItem["contact"] | undefined;
+  receivedAt: string;
+  urgency: "high" | "normal";
+}
+
+export const inboxListItemSchema: z.ZodType<
+  InboxListItemValue,
+  InboxListItemValue
+> = z.strictObject({
+  title: z.string().trim().min(1).max(160),
+  summary: z.string().trim().min(1).max(1_000).optional(),
+  contact: inboxContactSchema.optional(),
+  receivedAt: z.iso.datetime(),
+  urgency: inboxUrgencySchema,
+});
+
+interface InboxListEntryValue {
+  source: InboxSourceMetadata;
+  item: InboxListItemValue;
+}
+
+export const inboxListEntrySchema: z.ZodType<
+  InboxListEntryValue,
+  InboxListEntryValue
+> = z.strictObject({
+  source: inboxSourceMetadataSchema,
+  item: inboxListItemSchema,
+});
+
 interface InboxListResultValue {
-  entries: InboxProjectionEntryValue[];
+  entries: InboxListEntryValue[];
   errors: InboxSourceErrorValue[];
   total: number;
 }
@@ -87,7 +120,7 @@ export const inboxListResultSchema: z.ZodType<
   InboxListResultValue,
   InboxListResultValue
 > = z.strictObject({
-  entries: z.array(inboxProjectionEntrySchema).max(100),
+  entries: z.array(inboxListEntrySchema).max(100),
   errors: z.array(inboxSourceErrorSchema).max(1_000),
   total: z.number().int().nonnegative(),
 });
@@ -336,6 +369,7 @@ export type InboxProjectionEntry = z.output<typeof inboxProjectionEntrySchema>;
 export type InboxSourceError = z.output<typeof inboxSourceErrorSchema>;
 export type InboxProjection = z.output<typeof inboxProjectionSchema>;
 export type InboxListFilter = z.output<typeof inboxListFilterSchema>;
+export type InboxListEntry = z.output<typeof inboxListEntrySchema>;
 export type InboxListResult = z.output<typeof inboxListResultSchema>;
 export type InboxWorkspaceQuery = z.output<typeof inboxWorkspaceQuerySchema>;
 export type InboxWorkspaceEntry = z.output<typeof inboxWorkspaceEntrySchema>;

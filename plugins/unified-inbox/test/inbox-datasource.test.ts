@@ -203,7 +203,7 @@ describe("InboxDataSource", () => {
     );
   });
 
-  it("registers the DataSource, tool, and route-free widget lifecycle", async () => {
+  it("answers the headless tool without webserver, CMS, or Dashboard plugins", async () => {
     const harness = createPluginHarness<UnifiedInboxPlugin>({
       logContext: "unified-inbox-test",
     });
@@ -226,10 +226,16 @@ describe("InboxDataSource", () => {
     expect(
       harness.getMockShell().getDataSourceRegistry().has("unified-inbox:inbox"),
     ).toBe(true);
+    expect(harness.getMockShell().hasPlugin("webserver")).toBe(false);
+    expect(harness.getMockShell().hasPlugin("cms")).toBe(false);
+    expect(harness.getMockShell().hasPlugin("dashboard")).toBe(false);
     expect(capabilities.tools.map((tool) => tool.name)).toEqual(["inbox_list"]);
     expect(await harness.executeTool("inbox_list", {})).toMatchObject({
       success: true,
-      data: { total: 1, entries: [{ item: { id: "mail-high" } }] },
+      data: {
+        total: 1,
+        entries: [{ item: { title: "Attention mail-high" } }],
+      },
     });
     expect(plugin.getWebRoutes()).toEqual([]);
   });
