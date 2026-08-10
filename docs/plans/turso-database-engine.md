@@ -26,7 +26,8 @@ negligible read margin. Native FTS and its MVCC incompatibility are no longer
 load-bearing; `index_method` remains available only to clean skipped releases
 and restored backups. MVCC is parked behind an observed owner-connection
 saturation trigger because job writes are at engine parity under WAL and the
-owner connection is serialized. Phase 5E remains open.
+owner connection is serialized. Phase 5E has measured the remaining atomicity
+options and is waiting for the owner's topology decision.
 
 This plan originally asked whether the rewrite is worth adopting at all. The
 spike answered that: yes — phased, with libSQL retained as a fallback. Phase 1
@@ -113,6 +114,16 @@ Engine: `@tursodatabase/database` 0.7.2. Suites run with `BRAINS_DB_ENGINE=turso
   engines once both used WAL. The owner selected the portable scan. A
   10,000-entity follow-up kept scan-mode writes near 1.2–1.6 ms and measured
   hybrid search at 27 ms/query on libSQL and 42 ms/query on Turso.
+- **Entity/job atomicity benchmark:**
+  `scripts/perf-entity-job-atomicity.ts` isolates the persistence boundary with
+  the production entity + projection-journal write shape. Across 2,000
+  operations on Turso, the current entity-then-job commits measured 2.26 ms p50
+  and 427 operations/s; an entity-local outbox measured 1.14 ms p50 and 837
+  acknowledged intents/s plus a 19,098 jobs/s batch relay; a merged entity/job
+  transaction measured 1.17 ms p50 and 829 operations/s. libSQL measured 2.47
+  ms, 1.28 ms, and 1.39 ms p50 respectively. Failure probes reproduce the
+  current missing-job window, prove that an interrupted outbox relay replays to
+  exactly one stable job row, and prove merged rollback leaves neither row.
 - **Not covered:** auth-service's embedded replica (`runtime-db.ts` constructs
   its own `@libsql/client` with `syncUrl`; it syncs against Turso Cloud and
   stays on libSQL throughout this plan). Phase 3 separately resolved the
@@ -512,13 +523,67 @@ are green, and MVCC is explicitly parked behind the saturation trigger.
 #### Phase 5E — Entity/job atomicity decision gate
 
 A single owner process does not by itself make separate entity and job files
-transactional. Measure an owner-local outbox or a deliberate entity/job file
-merge, then present the tradeoff to the owner. Do not remove compensation or
-backfill behavior until that decision is explicit and the replacement has
-failure-injection coverage.
+transactional. The direct uncovered gap is embedding enqueue after an entity
+create/update: the entity, embedding invalidation, and projection dirty input
+commit together, but the embedding job commits later in `brain-jobs.db`.
+Projection scheduling already uses its durable dirty-input journal, while
+startup embedding backfill eventually repairs the direct gap. An enqueue or
+process interruption can nevertheless leave a successful entity write without
+an immediately durable embedding job and can surface an error after the entity
+has committed.
 
-**Exit:** the owner records the final entity/job topology; compensation for the
-entity-write/enqueue gap is removed only if an atomic replacement is adopted.
+`scripts/perf-entity-job-atomicity.ts` compares the storage boundaries without
+conflating them with validation, event subscribers, or embedding execution. It
+uses the production entity + projection-journal write shape, WAL on both
+engines, 2,000 sequential entity operations, and outbox relay batches of 100:
+
+| Topology                           | Turso p50 / p95 | Turso rate | libSQL p50 / p95 | libSQL rate |
+| ---------------------------------- | --------------: | ---------: | ---------------: | ----------: |
+| Current separate commits           |  2.26 / 2.59 ms |  427 ops/s |   2.47 / 3.10 ms |   386 ops/s |
+| Entity-local durable outbox intent |  1.14 / 1.33 ms |  837 ops/s |   1.28 / 1.56 ms |   743 ops/s |
+| Merged entity + job transaction    |  1.17 / 1.34 ms |  829 ops/s |   1.39 / 2.62 ms |   637 ops/s |
+
+The outbox relay separately sustained 19,098 jobs/s on Turso and 23,836 jobs/s
+on libSQL. Its failure probe interrupts after the queue commit but before
+outbox acknowledgement; startup replay uses the stable job id and leaves
+exactly one queue row. The merged probe interrupts inside the transaction and
+leaves neither an entity nor a job. The current probe commits the entity and
+interrupts before enqueue, reproducing one entity and zero jobs.
+
+The choices are now explicit:
+
+1. **Keep separate files and the compensated gap.** No migration or new runtime
+   component, and independent entity/job failure and checkpoint domains remain.
+   The cost is an ambiguous partial success when enqueue fails; startup
+   backfill is the repair boundary.
+2. **Add an owner-local outbox to `brain.db` and keep `brain-jobs.db`
+   separate.** Entity mutation and a fully validated embedding-job intent
+   commit together. A triggered relay plus startup drain copies intents with a
+   stable delivery/job id and deletes an intent only after durable queue
+   acknowledgement. This preserves workload, backup, migration, and rollback
+   isolation while removing the missing-intent window. It adds one table, an
+   idempotent owner-internal queue admission path, relay lifecycle and
+   diagnostics, and changes mutation acknowledgement from “queue row is
+   visible” to “job intent is durable.” It must not poll.
+3. **Merge job tables into `brain.db`.** This gives a direct entity + job-row
+   transaction with essentially the same measured acknowledgement latency as
+   the outbox. It also merges all job churn, migrations, backup/restore,
+   rollback, and corruption scope into the content database and requires a
+   cross-service transactional writer or shared connection. The benchmark
+   shows no performance advantage that justifies that larger boundary change.
+
+**Recommendation pending owner approval:** choose the owner-local outbox. It
+closes the durability gap at the same measured acknowledgement cost as a file
+merge without turning generic job runtime traffic into content-database
+traffic. Keep startup backfill as regeneration and operational repair rather
+than as the normal entity/enqueue bridge. If approved, implementation requires
+Drizzle-generated migration metadata, triggered and startup drain, stable
+idempotent admission, shutdown drain ordering, and deterministic failure
+injection before compensation semantics can change.
+
+**Exit pending:** the owner records the final entity/job topology; compensation
+for the entity-write/enqueue gap is removed only if an atomic replacement is
+adopted.
 
 ## Non-goals
 
