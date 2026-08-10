@@ -26,8 +26,10 @@ negligible read margin. Native FTS and its MVCC incompatibility are no longer
 load-bearing; `index_method` remains available only to clean skipped releases
 and restored backups. MVCC is parked behind an observed owner-connection
 saturation trigger because job writes are at engine parity under WAL and the
-owner connection is serialized. Phase 5E has measured the remaining atomicity
-options and is waiting for the owner's topology decision.
+owner connection is serialized. Phase 5E measured the remaining atomicity
+options and the owner selected the owner-local outbox: entity mutations and
+their embedding-job intents commit together in `brain.db`, while the job queue
+keeps its own file. Its implementation is the remaining scheduled work.
 
 This plan originally asked whether the rewrite is worth adopting at all. The
 spike answered that: yes — phased, with libSQL retained as a fallback. Phase 1
@@ -520,7 +522,7 @@ both engines. The 10,000-entity scan run measured 27–42 ms hybrid queries and
 no engine-specific search schema remains after migration, dual-engine suites
 are green, and MVCC is explicitly parked behind the saturation trigger.
 
-#### Phase 5E — Entity/job atomicity decision gate
+#### Phase 5E — Entity/job atomicity: owner-local outbox
 
 A single owner process does not by itself make separate entity and job files
 transactional. The direct uncovered gap is embedding enqueue after an entity
@@ -572,18 +574,39 @@ The choices are now explicit:
    cross-service transactional writer or shared connection. The benchmark
    shows no performance advantage that justifies that larger boundary change.
 
-**Recommendation pending owner approval:** choose the owner-local outbox. It
-closes the durability gap at the same measured acknowledgement cost as a file
-merge without turning generic job runtime traffic into content-database
-traffic. Keep startup backfill as regeneration and operational repair rather
-than as the normal entity/enqueue bridge. If approved, implementation requires
-Drizzle-generated migration metadata, triggered and startup drain, stable
-idempotent admission, shutdown drain ordering, and deterministic failure
-injection before compensation semantics can change.
+**Owner decision (2026-08-10):** adopt the owner-local outbox. It closes the
+durability gap at the same measured acknowledgement cost as a file merge —
+and faster than today's two commits — without turning generic job runtime
+traffic into content-database traffic. The job queue stays in its own file:
+the separate-writer rationale ended with the Phase 5A/5B single owner, but
+churn isolation, backup and restore scope, and cleanup fragmentation still
+justify the boundary, and the benchmark gives merging no advantage to weigh
+against them. Keep startup backfill as regeneration and operational repair
+rather than as the normal entity/enqueue bridge.
 
-**Exit pending:** the owner records the final entity/job topology; compensation
-for the entity-write/enqueue gap is removed only if an atomic replacement is
-adopted.
+Implementation notes:
+
+- The intent table lives in `brain.db` beside `projection_dirty_inputs`, which
+  is the same durable-work-journal pattern: a new schema module under
+  `shell/entity-service/src/schema/` plus Drizzle-generated migration
+  metadata. Entity-service owns the table and the intent write.
+- The relay runs in the web owner, which already holds both the entity service
+  and the job queue in-process after Phase 5A/5B, so it reads intents and
+  calls the ordinary enqueue path. No package may reach into `brain.db` from
+  the job-queue side, and the relay adds no IPC hop.
+- Triggered plus startup drain, never polling. Stable idempotent job ids so a
+  crash between queue write and intent acknowledgement replays to exactly one
+  row (the measured failure probe). Shutdown drain ordering, relay
+  diagnostics, and deterministic failure injection land before compensation
+  semantics change.
+- Mutation acknowledgement moves from "queue row is visible" to "job intent is
+  durable". Audit callers that enqueue and then immediately read job status by
+  id — they must tolerate a job that is durable but not yet relayed.
+
+**Exit:** entity mutation and its embedding-job intent commit together; an
+interrupted relay replays to exactly one job; compensation for the
+entity-write/enqueue gap is removed only once that replacement is proven by
+failure injection.
 
 ## Non-goals
 
