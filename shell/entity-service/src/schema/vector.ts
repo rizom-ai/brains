@@ -9,10 +9,8 @@ interface VectorCustomTypeValues {
  * Custom type for libSQL vector columns.
  * This allows us to use F32_BLOB in libSQL while maintaining Drizzle compatibility.
  *
- * Note: This schema is only used for the entity DB's Drizzle migration (legacy).
- * The actual embedding DB uses raw SQL with provider-supplied dimensions.
- * The dimension here must match the Drizzle migration SQL but does not
- * constrain the embedding DB.
+ * The declared dimension is migration metadata. Runtime writes separately
+ * validate vectors against the active embedding provider's dimensions.
  */
 export const vector: ReturnType<typeof customType<VectorCustomTypeValues>> =
   customType<VectorCustomTypeValues>({
@@ -20,13 +18,13 @@ export const vector: ReturnType<typeof customType<VectorCustomTypeValues>> =
       return "F32_BLOB(1536)";
     },
     toDriver(value: Float32Array): Buffer {
-      return Buffer.from(value.buffer);
+      return Buffer.from(value.buffer, value.byteOffset, value.byteLength);
     },
     fromDriver(value: Buffer): Float32Array {
-      return new Float32Array(
-        value.buffer,
-        value.byteOffset,
-        value.byteLength / 4,
+      const bytes = new Uint8Array(value.byteLength);
+      bytes.set(
+        new Uint8Array(value.buffer, value.byteOffset, value.byteLength),
       );
+      return new Float32Array(bytes.buffer);
     },
   });

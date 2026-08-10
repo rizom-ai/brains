@@ -7,6 +7,7 @@ import {
   runPackageMigrations,
 } from "@brains/db";
 import { ensureFtsTable } from "./db";
+import { embeddings } from "./schema/embeddings";
 import { entities } from "./schema/entities";
 import {
   projectionDirtyInputs,
@@ -51,10 +52,9 @@ async function dropLibsqlSchemaObjects(
   }
 }
 
-/** Remove libSQL-only schema before Turso opens existing local database files. */
+/** Remove libSQL-only schema before Turso opens the entity database file. */
 export async function prepareEntityDatabasesForTurso(
   config: EntityDbConfig,
-  embeddingConfig?: EntityDbConfig,
 ): Promise<void> {
   if (resolveSqliteEngine(config.url) === "turso") {
     await dropLibsqlSchemaObjects(
@@ -66,25 +66,20 @@ export async function prepareEntityDatabasesForTurso(
       true,
     );
   }
-  if (embeddingConfig && resolveSqliteEngine(embeddingConfig.url) === "turso") {
-    await dropLibsqlSchemaObjects(embeddingConfig, [
-      "DROP INDEX IF EXISTS embeddings_embedding_idx",
-    ]);
-  }
 }
 
 export async function migrateEntities(
   config: EntityDbConfig,
   logger?: Logger,
-  embeddingConfig?: EntityDbConfig,
 ): Promise<void> {
-  await prepareEntityDatabasesForTurso(config, embeddingConfig);
+  await prepareEntityDatabasesForTurso(config);
 
   await runPackageMigrations({
     label: "entity",
     config,
     schema: {
       entities,
+      embeddings,
       projectionDirtyInputs,
       projectionWaves,
       projectionIncidents,

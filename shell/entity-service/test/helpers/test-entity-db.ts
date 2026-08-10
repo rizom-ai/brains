@@ -3,45 +3,29 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { EntityDbConfig } from "../../src/types";
 import { migrateEntities } from "../../src/migrate";
-import { migrateEmbeddingDatabase } from "../../src/db/embedding-db";
 import { createSilentLogger } from "@brains/test-utils";
 import { computeContentHash } from "@brains/utils/hash";
-import { MOCK_DIMENSIONS } from "./mock-services";
 import { entities } from "../../src/schema/entities";
 import { embeddings } from "../../src/schema/embeddings";
 import { createEntityDatabase } from "../../src/db";
-import { createEmbeddingDatabase } from "../../src/db/embedding-db";
 
-/**
- * Create temporary test databases (entity + embedding).
- * Each test gets its own isolated database pair.
- */
+/** Create a temporary migrated entity database. */
 export async function createTestEntityDatabase(): Promise<{
   config: EntityDbConfig;
-  embeddingConfig: EntityDbConfig;
   cleanup: () => Promise<void>;
   dbPath: string;
-  embeddingDbPath: string;
 }> {
   const tempDir = await mkdtemp(join(tmpdir(), "brain-entity-test-"));
   const dbPath = join(tempDir, "test-entities.db");
-  const embeddingDbPath = join(tempDir, "test-embeddings.db");
   const config: EntityDbConfig = { url: `file:${dbPath}` };
-  const embeddingConfig: EntityDbConfig = { url: `file:${embeddingDbPath}` };
 
-  const logger = createSilentLogger();
-  await migrateEntities(config, logger);
-
-  // Migrate embedding DB
-  const embClient = createEmbeddingDatabase(embeddingConfig).client;
-  await migrateEmbeddingDatabase(embClient, MOCK_DIMENSIONS);
-  embClient.close();
+  await migrateEntities(config, createSilentLogger());
 
   const cleanup = async (): Promise<void> => {
     await rm(tempDir, { recursive: true, force: true });
   };
 
-  return { config, embeddingConfig, cleanup, dbPath, embeddingDbPath };
+  return { config, cleanup, dbPath };
 }
 
 export interface TestEntityData {
@@ -54,39 +38,31 @@ export interface TestEntityData {
   embedding: Float32Array;
 }
 
-/**
- * Insert a test entity directly into the database with its embedding.
- * Writes entity to entity DB and embedding to embedding DB.
- */
+/** Insert a test entity and its embedding into the entity database. */
 export async function insertTestEntity(
   config: EntityDbConfig,
   data: TestEntityData,
-  embeddingConfig: EntityDbConfig,
 ): Promise<void> {
   const { db, client } = createEntityDatabase(config);
   const contentHash = computeContentHash(data.content);
 
-  await db.insert(entities).values({
-    id: data.id,
-    entityType: data.entityType,
-    content: data.content,
-    contentHash,
-    metadata: data.metadata,
-    created: data.created,
-    updated: data.updated,
+  await db.transaction(async (transaction) => {
+    await transaction.insert(entities).values({
+      id: data.id,
+      entityType: data.entityType,
+      content: data.content,
+      contentHash,
+      metadata: data.metadata,
+      created: data.created,
+      updated: data.updated,
+    });
+    await transaction.insert(embeddings).values({
+      entityId: data.id,
+      entityType: data.entityType,
+      embedding: data.embedding,
+      contentHash,
+    });
   });
 
   client.close();
-
-  const { db: embDb, client: embClient } =
-    createEmbeddingDatabase(embeddingConfig);
-
-  await embDb.insert(embeddings).values({
-    entityId: data.id,
-    entityType: data.entityType,
-    embedding: data.embedding,
-    contentHash,
-  });
-
-  embClient.close();
 }

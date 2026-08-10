@@ -25,7 +25,7 @@ function isCloseableEntityService(
   return "close" in service && typeof service.close === "function";
 }
 
-/** Own one entity service and both of its databases for the layer scope. */
+/** Own one entity service and its database for the layer scope. */
 export function createEntityServiceLayer(
   options: EntityServiceLayerOptions,
 ): Layer.Layer<EntityServiceTag> {

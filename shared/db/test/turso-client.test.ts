@@ -1,23 +1,6 @@
-import { afterEach, describe, expect, it } from "bun:test";
-import { mkdtempSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { describe, expect, it } from "bun:test";
 import type { Client } from "@libsql/client";
 import { createTursoClient } from "../src/turso-client";
-
-const tempDirs: string[] = [];
-
-function tempDbPath(name: string): string {
-  const dir = mkdtempSync(join(tmpdir(), "turso-client-test-"));
-  tempDirs.push(dir);
-  return join(dir, name);
-}
-
-afterEach(() => {
-  tempDirs.splice(0).forEach((dir) => {
-    rmSync(dir, { recursive: true, force: true });
-  });
-});
 
 async function createSeededClient(): Promise<Client> {
   const client = createTursoClient({ url: "file::memory:" });
@@ -182,6 +165,30 @@ describe("createTursoClient transactions", () => {
       client.close();
     }
   });
+
+  it("holds top-level operations until an interactive transaction settles", async () => {
+    const client = await createSeededClient();
+    try {
+      const txn = await client.transaction("write");
+      await txn.execute(
+        "INSERT INTO books (name, year) VALUES ('rolled back', 2000)",
+      );
+      const queued = client.execute(
+        "INSERT INTO books (name, year) VALUES ('after rollback', 2001)",
+      );
+
+      await txn.rollback();
+      await queued;
+
+      const rs = await client.execute("SELECT name FROM books ORDER BY id");
+      expect(rs.rows.map((row) => row["name"])).toEqual([
+        "Pride and Prejudice",
+        "after rollback",
+      ]);
+    } finally {
+      client.close();
+    }
+  });
 });
 
 describe("createTursoClient close", () => {
@@ -216,25 +223,6 @@ describe("createTursoClient vector support", () => {
       expect(distance).toBeLessThan(1e-6);
     } finally {
       client.close();
-    }
-  });
-});
-
-describe("createTursoClient attach", () => {
-  it("attaches a second database file for cross-db queries", async () => {
-    const embPath = tempDbPath("emb.db");
-    const emb = createTursoClient({ url: `file:${embPath}` });
-    await emb.execute("CREATE TABLE t (x INTEGER)");
-    await emb.execute("INSERT INTO t VALUES (42)");
-    emb.close();
-
-    const main = createTursoClient({ url: "file::memory:" });
-    try {
-      await main.execute(`ATTACH DATABASE '${embPath}' AS emb`);
-      const rs = await main.execute("SELECT x FROM emb.t");
-      expect(rs.rows[0]?.["x"]).toBe(42);
-    } finally {
-      main.close();
     }
   });
 });

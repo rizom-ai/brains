@@ -521,7 +521,7 @@ type TopicEntity = z.infer<typeof topicEntitySchema>;
 
 ## Database Storage
 
-Entities live in `brain.db`. Embeddings live in a separate `embeddings.db` that gets attached to the entity DB for cross-DB search joins. FTS5 full-text search runs on entity content for keyword matching.
+Entities and embeddings live in `brain.db`, allowing entity changes and vector invalidation to commit atomically. Turso native FTS indexes entity content by default; the emergency libSQL fallback uses FTS5.
 
 ```sql
 -- brain.db: entities table
@@ -545,17 +545,19 @@ CREATE VIRTUAL TABLE entity_fts USING fts5(
   content
 );
 
--- embeddings.db: separate database for vector storage
+-- brain.db: derived vector storage
 CREATE TABLE embeddings (
   entity_id TEXT NOT NULL,
   entity_type TEXT NOT NULL,
   embedding F32_BLOB(1536) NOT NULL,  -- OpenAI text-embedding-3-small
   content_hash TEXT NOT NULL,
-  PRIMARY KEY(entity_id, entity_type)
+  PRIMARY KEY(entity_id, entity_type),
+  FOREIGN KEY (entity_id, entity_type)
+    REFERENCES entities(id, entityType) ON DELETE CASCADE
 );
 ```
 
-Search queries ATTACH the embedding DB and join across for hybrid vector + keyword scoring.
+Hybrid search joins the local `entities` and `embeddings` tables. Content changes delete the old vector in the same transaction; the embedding queue regenerates it with the active provider.
 
 ```sql
 -- Entity relationships table (planned)

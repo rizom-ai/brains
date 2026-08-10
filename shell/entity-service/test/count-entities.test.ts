@@ -22,47 +22,35 @@ describe("countEntities", () => {
       { name: "post", schema: postSchema, adapter: postAdapter },
     ]);
 
-    await insertTestEntity(
-      ctx.dbConfig,
-      {
-        id: "post-1",
-        entityType: "post",
-        content: "Post 1",
-        metadata: { status: "published", category: "tech" },
-        created: Date.now(),
-        updated: Date.now(),
-        embedding: mockEmbedding,
-      },
-      ctx.embeddingDbConfig,
-    );
+    await insertTestEntity(ctx.dbConfig, {
+      id: "post-1",
+      entityType: "post",
+      content: "Post 1",
+      metadata: { status: "published", category: "tech" },
+      created: Date.now(),
+      updated: Date.now(),
+      embedding: mockEmbedding,
+    });
 
-    await insertTestEntity(
-      ctx.dbConfig,
-      {
-        id: "post-2",
-        entityType: "post",
-        content: "Post 2",
-        metadata: { status: "published", category: "life" },
-        created: Date.now(),
-        updated: Date.now(),
-        embedding: mockEmbedding,
-      },
-      ctx.embeddingDbConfig,
-    );
+    await insertTestEntity(ctx.dbConfig, {
+      id: "post-2",
+      entityType: "post",
+      content: "Post 2",
+      metadata: { status: "published", category: "life" },
+      created: Date.now(),
+      updated: Date.now(),
+      embedding: mockEmbedding,
+    });
 
-    await insertTestEntity(
-      ctx.dbConfig,
-      {
-        id: "post-3",
-        entityType: "post",
-        content: "Post 3",
-        metadata: { status: "draft", category: "tech" },
-        created: Date.now(),
-        updated: Date.now(),
-        embedding: mockEmbedding,
-      },
-      ctx.embeddingDbConfig,
-    );
+    await insertTestEntity(ctx.dbConfig, {
+      id: "post-3",
+      entityType: "post",
+      content: "Post 3",
+      metadata: { status: "draft", category: "tech" },
+      created: Date.now(),
+      updated: Date.now(),
+      embedding: mockEmbedding,
+    });
   });
 
   afterEach(async () => {
@@ -131,35 +119,27 @@ describe("countEntities", () => {
         { id: "peer-archived", status: "archived" },
       ];
       for (const row of rows) {
-        await insertTestEntity(
-          declaringCtx.dbConfig,
-          {
-            id: row.id,
-            entityType: "peer",
-            content: row.id,
-            metadata: { status: row.status },
-            created: Date.now(),
-            updated: Date.now(),
-            embedding: mockEmbedding,
-          },
-          declaringCtx.embeddingDbConfig,
-        );
-      }
-      // An entity with no lifecycle status at all: for a type that DECLARES
-      // its publish gate, absence of status is not published.
-      await insertTestEntity(
-        declaringCtx.dbConfig,
-        {
-          id: "peer-statusless",
+        await insertTestEntity(declaringCtx.dbConfig, {
+          id: row.id,
           entityType: "peer",
-          content: "no status",
-          metadata: {},
+          content: row.id,
+          metadata: { status: row.status },
           created: Date.now(),
           updated: Date.now(),
           embedding: mockEmbedding,
-        },
-        declaringCtx.embeddingDbConfig,
-      );
+        });
+      }
+      // An entity with no lifecycle status at all: for a type that DECLARES
+      // its publish gate, absence of status is not published.
+      await insertTestEntity(declaringCtx.dbConfig, {
+        id: "peer-statusless",
+        entityType: "peer",
+        content: "no status",
+        metadata: {},
+        created: Date.now(),
+        updated: Date.now(),
+        embedding: mockEmbedding,
+      });
 
       const count = await declaringCtx.entityService.countEntities({
         entityType: "peer",
@@ -177,19 +157,15 @@ describe("countEntities", () => {
 
       // A non-declaring type keeps the default lifecycle semantics: an
       // "approved" status is unknown vocabulary there, not published.
-      await insertTestEntity(
-        declaringCtx.dbConfig,
-        {
-          id: "post-approved",
-          entityType: "post",
-          content: "Approved post",
-          metadata: { status: "approved" },
-          created: Date.now(),
-          updated: Date.now(),
-          embedding: mockEmbedding,
-        },
-        declaringCtx.embeddingDbConfig,
-      );
+      await insertTestEntity(declaringCtx.dbConfig, {
+        id: "post-approved",
+        entityType: "post",
+        content: "Approved post",
+        metadata: { status: "approved" },
+        created: Date.now(),
+        updated: Date.now(),
+        embedding: mockEmbedding,
+      });
       const postCount = await declaringCtx.entityService.countEntities({
         entityType: "post",
         options: { publishedOnly: true },
@@ -209,19 +185,15 @@ describe("countEntities", () => {
       { name: "peer", schema: peerSchema, adapter: peerAdapter },
     ]);
     try {
-      await insertTestEntity(
-        routeCtx.dbConfig,
-        {
-          id: "yeehaa-io",
-          entityType: "peer",
-          content: "approved agent",
-          metadata: { status: "approved" },
-          created: Date.now(),
-          updated: Date.now(),
-          embedding: mockEmbedding,
-        },
-        routeCtx.embeddingDbConfig,
-      );
+      await insertTestEntity(routeCtx.dbConfig, {
+        id: "yeehaa-io",
+        entityType: "peer",
+        content: "approved agent",
+        metadata: { status: "approved" },
+        created: Date.now(),
+        updated: Date.now(),
+        embedding: mockEmbedding,
+      });
 
       const entities = await routeCtx.entityService.listEntities({
         entityType: "peer",

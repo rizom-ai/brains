@@ -54,8 +54,8 @@ describe("standard shell paths", () => {
       expect(config.runtimeStateDatabase.url).toBe(
         "file:./data/runtime-state.db",
       );
-      expect(config.embeddingDatabase.url).toBe("file:./data/embeddings.db");
       expect(config.embedding.enabled).toBe(true);
+      expect(config.embedding.cacheDir).toBe("./cache/embeddings");
     } finally {
       delete process.env["XDG_DATA_HOME"];
     }
@@ -65,7 +65,6 @@ describe("standard shell paths", () => {
     const config = getStandardConfig();
 
     expect(config.database.authToken).toBeUndefined();
-    expect(config.embeddingDatabase.authToken).toBeUndefined();
     expect(config.jobQueueDatabase.authToken).toBeUndefined();
     expect(config.conversationDatabase.authToken).toBeUndefined();
     expect(config.runtimeStateDatabase.authToken).toBeUndefined();

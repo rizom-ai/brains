@@ -11,9 +11,10 @@ export interface StandardConfig {
   jobQueueDatabase: DbConfig;
   conversationDatabase: DbConfig;
   runtimeStateDatabase: DbConfig;
-  embeddingDatabase: DbConfig;
   embedding: {
     enabled: boolean;
+    model: "fast-all-MiniLM-L6-v2";
+    cacheDir: string;
   };
 }
 
@@ -44,11 +45,10 @@ export function createStandardConfig(paths: StandardPaths): StandardConfig {
     runtimeStateDatabase: {
       url: `file:${paths.dataDir}/runtime-state.db`,
     },
-    embeddingDatabase: {
-      url: `file:${paths.dataDir}/embeddings.db`,
-    },
     embedding: {
       enabled: true,
+      model: "fast-all-MiniLM-L6-v2",
+      cacheDir: `${paths.cacheDir}/embeddings`,
     },
   };
 }

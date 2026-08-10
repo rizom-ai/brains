@@ -361,7 +361,6 @@ export function createShellServices(options: {
       messageBus,
       mutationAdmission: projectionRuntimeSupervisor,
       dbConfig: createDatabaseConfig(config.database),
-      embeddingDbConfig: createDatabaseConfig(config.embeddingDatabase),
       ...(remoteEntityTransport && {
         remoteTransport: remoteEntityTransport,
       }),

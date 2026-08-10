@@ -2,13 +2,6 @@ import { SHELL_CHANNELS } from "@brains/contracts";
 import type { Client } from "@libsql/client";
 import { applySqlitePragmas, type SqliteEngine } from "@brains/db";
 import { createEntityDatabase, ensureFtsTable, type EntityDB } from "./db";
-import {
-  createEmbeddingDatabase,
-  migrateEmbeddingDatabase,
-  attachEmbeddingDatabase,
-  dbUrlToPath,
-  type EmbeddingDB,
-} from "./db/embedding-db";
 import type {
   EntityDbConfig,
   BaseEntity,
@@ -68,9 +61,6 @@ export interface EntityServiceOptions {
   messageBus?: EntityEventBus;
   mutationAdmission?: EntityMutationAdmission;
   dbConfig: EntityDbConfig;
-  /** Embedding database config. Embeddings are stored in a dedicated
-   *  database file, separate from entities. */
-  embeddingDbConfig: EntityDbConfig;
 }
 
 /**
@@ -86,9 +76,6 @@ export class EntityService implements IEntityService {
   private dbClient: Client;
   private dbUrl: string;
   private dbEngine: SqliteEngine;
-  private searchDbClient: Client;
-  private embeddingDb: EmbeddingDB;
-  private embeddingDbClient: Client;
   private dbInitPromise!: Promise<void>;
   private entityRegistry: IEntityRegistry;
   private logger: Logger;
@@ -119,18 +106,6 @@ export class EntityService implements IEntityService {
       failed = true;
     }
     try {
-      this.embeddingDbClient.close();
-    } catch (error) {
-      if (!failed) firstError = error;
-      failed = true;
-    }
-    try {
-      this.searchDbClient.close();
-    } catch (error) {
-      if (!failed) firstError = error;
-      failed = true;
-    }
-    try {
       this.dbClient.close();
     } catch (error) {
       if (!failed) firstError = error;
@@ -155,21 +130,7 @@ export class EntityService implements IEntityService {
       this.dbEngine,
     );
 
-    let searchDbClient: Client | undefined;
-    let embeddingDbClient: Client | undefined;
     try {
-      // Search has a dedicated connection because libSQL replaces a client's
-      // connection after every transaction, losing connection-local ATTACHes.
-      const search = createEntityDatabase(options.dbConfig);
-      searchDbClient = search.client;
-      this.searchDbClient = search.client;
-
-      // Set up separate embedding database
-      const emb = createEmbeddingDatabase(options.embeddingDbConfig);
-      embeddingDbClient = emb.client;
-      this.embeddingDb = emb.db;
-      this.embeddingDbClient = emb.client;
-
       this.entityRegistry = options.entityRegistry;
       this.logger = (options.logger ?? Logger.getInstance()).child(
         "EntityService",
@@ -189,12 +150,11 @@ export class EntityService implements IEntityService {
         db: this.db,
         serializer: this.entitySerializer,
         logger: this.logger,
-        embeddingDb: this.embeddingDb,
         engine: this.dbEngine,
       });
       const embeddingsEnabled = options.embeddingsEnabled ?? true;
       this.entitySearch = new EntitySearch(
-        search.db,
+        this.db,
         options.embeddingService,
         this.entitySerializer,
         this.logger,
@@ -213,8 +173,8 @@ export class EntityService implements IEntityService {
           mutationAdmission: options.mutationAdmission,
         }),
         projectionStore: this.projectionStore,
-        embeddingDb: this.embeddingDb,
         embeddingsEnabled,
+        embeddingDimensions: options.embeddingService.dimensions,
         engine: this.dbEngine,
       });
       this.contentResolver = new ContentResolver(this.logger);
@@ -232,11 +192,8 @@ export class EntityService implements IEntityService {
         this.embeddingHandlerRegistered = true;
       }
 
-      // Initialize databases (WAL, migrations, ATTACH) — awaited by Shell.initialize()
-      this.dbInitPromise = this.initializeDatabase(
-        options.embeddingDbConfig,
-        options.embeddingService.dimensions,
-      );
+      // Initialize database settings and engine-specific search indexes.
+      this.dbInitPromise = this.initializeDatabase();
       // Failures surface in initialize(); this no-op handler only prevents an
       // unhandled rejection in the window before initialize() awaits.
       this.dbInitPromise.catch(() => {});
@@ -250,16 +207,6 @@ export class EntityService implements IEntityService {
         // Preserve the construction failure after attempting all cleanup.
       }
       try {
-        embeddingDbClient?.close();
-      } catch {
-        // Preserve the construction failure after attempting all cleanup.
-      }
-      try {
-        searchDbClient?.close();
-      } catch {
-        // Preserve the construction failure after attempting all cleanup.
-      }
-      try {
         client.close();
       } catch {
         // Preserve the construction failure after attempting all cleanup.
@@ -269,17 +216,14 @@ export class EntityService implements IEntityService {
   }
 
   /**
-   * Wait for database initialization (WAL mode, migrations, indexes, ATTACH).
+   * Wait for database initialization (WAL mode and indexes).
    * Called by Shell.initialize() before plugins load.
    */
   public async initialize(): Promise<void> {
     await this.dbInitPromise;
   }
 
-  private async initializeDatabase(
-    embeddingDbConfig: EntityDbConfig,
-    embeddingDimensions: number,
-  ): Promise<void> {
+  private async initializeDatabase(): Promise<void> {
     // WAL pragmas are a performance setting — failure is non-fatal
     try {
       await applySqlitePragmas(this.dbClient, this.dbUrl);
@@ -289,31 +233,11 @@ export class EntityService implements IEntityService {
         error,
       );
     }
-    try {
-      await applySqlitePragmas(this.searchDbClient, this.dbUrl);
-    } catch (error) {
-      this.logger.warn(
-        "Failed to configure entity search database (non-fatal)",
-        error,
-      );
-    }
-    try {
-      await applySqlitePragmas(this.embeddingDbClient, embeddingDbConfig.url);
-    } catch (error) {
-      this.logger.warn(
-        "Failed to enable WAL mode for embedding database (non-fatal)",
-        error,
-      );
-    }
+    // Foreign keys provide atomic embedding cleanup when an entity is deleted.
+    await this.dbClient.execute("PRAGMA foreign_keys = ON");
 
-    // Everything below is required for search/embedding correctness —
-    // failures must propagate so Shell.initialize() fails loudly.
+    // Engine-specific FTS setup is required for search correctness.
     await ensureFtsTable(this.dbClient, this.dbEngine);
-    await migrateEmbeddingDatabase(this.embeddingDbClient, embeddingDimensions);
-    await attachEmbeddingDatabase(
-      this.searchDbClient,
-      dbUrlToPath(embeddingDbConfig.url),
-    );
   }
 
   // ── Projection coordination ───────────────────────────────────────
@@ -596,7 +520,7 @@ export class EntityService implements IEntityService {
 
   public async countEmbeddings(): Promise<number> {
     await this.initialize();
-    const result = await this.embeddingDb
+    const result = await this.db
       .select({ count: sql<number>`count(*)` })
       .from(embeddings);
     return result[0]?.count ?? 0;

@@ -81,12 +81,8 @@ export async function buildEvalDatabase(
 }
 
 function removeStaleBuiltDatabases(evalDbBase: string): void {
-  for (const staleDb of [
-    `${evalDbBase}-data/brain.db`,
-    `${evalDbBase}-data/embeddings.db`,
-  ]) {
-    if (existsSync(staleDb)) rmSync(staleDb);
-  }
+  const staleDb = `${evalDbBase}-data/brain.db`;
+  if (existsSync(staleDb)) rmSync(staleDb);
 }
 
 async function verifyDatabaseContents(
@@ -117,13 +113,11 @@ async function verifyDatabaseContents(
 
 async function checkpointDatabases(evalDbBase: string): Promise<void> {
   const { Database } = await import("bun:sqlite");
-  for (const dbPath of [`${evalDbBase}.db`, `${evalDbBase}-embeddings.db`]) {
-    const db = new Database(dbPath);
-    try {
-      db.exec("PRAGMA wal_checkpoint(TRUNCATE)");
-    } finally {
-      db.close();
-    }
+  const db = new Database(`${evalDbBase}.db`);
+  try {
+    db.exec("PRAGMA wal_checkpoint(TRUNCATE)");
+  } finally {
+    db.close();
   }
 }
 
@@ -131,14 +125,7 @@ export function copyBuiltDatabases(
   evalDbBase: string,
   evalContentDir: string,
 ): void {
-  const databasePairs = [
-    { source: `${evalDbBase}.db`, output: "brain.db" },
-    { source: `${evalDbBase}-embeddings.db`, output: "embeddings.db" },
-  ];
-
-  for (const { source, output } of databasePairs) {
-    const outputPath = resolvePath(evalContentDir, output);
-    copyFileSync(source, outputPath);
-    console.log(`Saved eval database to ${outputPath}`);
-  }
+  const outputPath = resolvePath(evalContentDir, "brain.db");
+  copyFileSync(`${evalDbBase}.db`, outputPath);
+  console.log(`Saved eval database to ${outputPath}`);
 }

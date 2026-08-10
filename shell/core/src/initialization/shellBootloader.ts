@@ -81,7 +81,7 @@ export class ShellBootloader {
     // must authenticate before any remote persistence service initializes.
     await this.services.localDatabaseEndpoint?.initialize();
 
-    // Settle database readiness (WAL mode, migrations, indexes, ATTACH)
+    // Settle database readiness (WAL mode, migrations, and indexes)
     // before plugins load or runtime services can use the connections.
     await runConcurrentPhase([
       (): Promise<void> => this.services.entityService.initialize(),

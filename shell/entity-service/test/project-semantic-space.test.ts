@@ -43,11 +43,17 @@ describe("projectSemanticSpace", () => {
     embedding.set(options.values);
 
     await ctx.entityService.createEntity({ entity });
+    const persisted = await ctx.entityService.getEntity({
+      entityType,
+      id: entity.id,
+      visibilityScope: "restricted",
+    });
+    if (!persisted) throw new Error(`Expected persisted entity ${entity.id}`);
     await ctx.entityService.storeEmbedding({
       entityId: entity.id,
       entityType,
       embedding,
-      contentHash: entity.contentHash,
+      contentHash: persisted.contentHash,
     });
   }
 

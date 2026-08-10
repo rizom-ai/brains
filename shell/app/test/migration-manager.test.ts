@@ -28,10 +28,6 @@ describe("MigrationManager", () => {
       url: "file:runtime-state.db",
       authToken: "runtime-state-token",
     },
-    embeddingDatabase: {
-      url: "file:embeddings.db",
-      authToken: "emb-token",
-    },
     embedding: {
       enabled: true,
     },
@@ -80,10 +76,6 @@ describe("MigrationManager", () => {
           authToken: mockConfig.database.authToken,
         },
         mockLogger,
-        {
-          url: mockConfig.embeddingDatabase.url,
-          authToken: mockConfig.embeddingDatabase.authToken,
-        },
       );
 
       expect(mockMigrations.migrateJobQueue).toHaveBeenCalledWith(
@@ -138,10 +130,6 @@ describe("MigrationManager", () => {
           url: "file:runtime-state.db",
           authToken: undefined,
         },
-        embeddingDatabase: {
-          url: "file:embeddings.db",
-          authToken: undefined,
-        },
         embedding: {
           enabled: true,
         },
@@ -158,9 +146,6 @@ describe("MigrationManager", () => {
           url: configWithoutTokens.database.url,
         },
         mockLogger,
-        {
-          url: configWithoutTokens.embeddingDatabase.url,
-        },
       );
 
       expect(mockMigrations.migrateJobQueue).toHaveBeenCalledWith(
@@ -210,7 +195,6 @@ describe("MigrationManager", () => {
       expect(mockMigrations.migrateEntities).toHaveBeenCalledWith(
         expect.objectContaining({ url: overrides.database }),
         mockLogger,
-        expect.objectContaining({ url: mockConfig.embeddingDatabase.url }),
       );
 
       expect(mockMigrations.migrateJobQueue).toHaveBeenCalledWith(

@@ -218,18 +218,6 @@
       "targetRelease": "0.3.0-or-later"
     },
     {
-      "id": "entity-vector-drizzle-schema",
-      "paths": ["shell/entity-service/src/schema/vector.ts"],
-      "symbol": "entity DB vector migration schema",
-      "owner": "@brains/entity-service",
-      "class": "durable-data-compatibility",
-      "behavior": "Retains the Drizzle schema needed to migrate databases created by the former vector layout.",
-      "currentConsumers": "Entity database migrations from supported older releases.",
-      "removalPrerequisite": "Squash the entity migration baseline after the minimum supported upgrade source contains the replacement schema.",
-      "rollbackDependency": "Old entity databases require this migration schema during rollback and re-upgrade.",
-      "targetRelease": "0.3.0-or-later"
-    },
-    {
       "id": "job-queue-direct-dequeue-timeout",
       "paths": ["shell/job-queue/src/types.ts"],
       "symbol": "claimTimeoutMs direct-dequeue fallback",

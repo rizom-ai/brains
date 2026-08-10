@@ -381,18 +381,38 @@ files.
 
 #### Phase 5C — Fold embeddings into the entity database
 
-- Migrate rows from the legacy embedding file into the entity database,
-  discarding or reporting orphans deterministically.
-- Rebuild `embeddings` with a composite foreign key to `entities` and cascade
-  delete. Make entity mutation and stale-embedding invalidation atomic.
-- Query the local table directly and retire the second connection, `ATTACH`
-  plumbing, embedding runtime config, and the SDK's `attach` flag when no other
-  caller needs it.
-- Test populated-file cutover, provider dimensions, atomic invalidation, cascade
-  delete, failed migration recovery, and absence of an orphan window.
+Existing vectors are regenerated rather than copied. The legacy rows contain a
+content hash but no model, model version, or provider-dimension provenance, so
+copying them could make the active provider query incompatible vectors. The
+migration preserves entities, replaces `embeddings` with an empty local table,
+and lets the existing startup backfill enqueue every embeddable entity. The old
+`embeddings.db` file is left untouched as a recovery artifact but is never
+opened by the runtime.
 
-**Exit:** entities and embeddings use one owner and one database file, with no
-runtime dependency on the legacy embedding file.
+The generated Drizzle migration gives `embeddings` a composite foreign key to
+`entities` with cascade delete. Entity updates and projection writes invalidate
+changed-content vectors in their entity transaction; entity deletes remove the
+vector in that same transaction. Embedding writes validate the active provider
+dimensions and conditionally commit only while the entity content hash still
+matches, closing the generation/write race.
+
+Search now joins the local table directly. The separate embedding connection,
+raw embedding migrator, `ATTACH` plumbing, embedding database config, packed and
+evaluation artifact handling, and Turso SDK `attach` flag are removed. Eval
+artifacts now checkpoint and copy one `brain.db`. Turso's client adapter also
+holds top-level operations behind an interactive transaction so concurrent
+owner requests cannot leak into that transaction on its single connection.
+
+Coverage proves populated pre-cutover rows are cleared while entities survive,
+a failed table rebuild leaves the old table intact, provider-dimension
+validation, stale-write rejection, atomic invalidation, cascade and orphan
+behavior, rollback preservation, direct vector/FTS search, worker-owned RPC
+embedding writes, and absence of a legacy file. Entity-service passes 327/327
+on both Turso and libSQL; shared DB passes 30/30 and core passes 432/432.
+
+**Phase 5C exit: met.** Entities and embeddings use one owner, one connection,
+and one database file, with no runtime configuration or dependency for the
+legacy embedding file.
 
 #### Phase 5D — Enable MVCC
 

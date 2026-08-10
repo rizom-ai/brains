@@ -123,7 +123,6 @@ export class App {
     shellConfig.jobQueueDatabase ??= standard.jobQueueDatabase;
     shellConfig.conversationDatabase ??= standard.conversationDatabase;
     shellConfig.runtimeStateDatabase ??= standard.runtimeStateDatabase;
-    shellConfig.embeddingDatabase ??= standard.embeddingDatabase;
     shellConfig.embedding ??= standard.embedding;
   }
 

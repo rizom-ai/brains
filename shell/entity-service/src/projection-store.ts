@@ -24,6 +24,7 @@ import {
   type ProjectionWaveInput,
   type ProjectionWaveRule,
 } from "./schema/projection-state";
+import { embeddings } from "./schema/embeddings";
 import { entities } from "./schema/entities";
 
 const dirtyInputSchema = z.strictObject({
@@ -820,6 +821,14 @@ export class ProjectionStore implements IProjectionStore {
         entityId,
       });
       await transaction
+        .delete(embeddings)
+        .where(
+          and(
+            eq(embeddings.entityType, entityType),
+            eq(embeddings.entityId, entityId),
+          ),
+        );
+      await transaction
         .delete(entities)
         .where(
           and(eq(entities.entityType, entityType), eq(entities.id, entityId)),
@@ -845,6 +854,16 @@ export class ProjectionStore implements IProjectionStore {
     });
 
     if (existing) {
+      if (existing.contentHash !== contentHash) {
+        await transaction
+          .delete(embeddings)
+          .where(
+            and(
+              eq(embeddings.entityType, entityType),
+              eq(embeddings.entityId, entityId),
+            ),
+          );
+      }
       await transaction
         .update(entities)
         .set({

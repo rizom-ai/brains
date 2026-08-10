@@ -79,15 +79,6 @@ export type {
   BatchEmbeddingResult,
 } from "./embedding-types";
 
-// Embedding database
-export {
-  createEmbeddingDatabase,
-  migrateEmbeddingDatabase,
-  attachEmbeddingDatabase,
-  dbUrlToPath,
-} from "./db/embedding-db";
-export type { EmbeddingDB } from "./db/embedding-db";
-
 export type {
   BaseEntity,
   CreateCoverImageInput,

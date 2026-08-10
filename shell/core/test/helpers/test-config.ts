@@ -13,7 +13,6 @@ export function createTestShellConfig(
     jobQueueDatabase: { url: `file:${dir}/test-jobs.db` },
     conversationDatabase: { url: `file:${dir}/test-conv.db` },
     runtimeStateDatabase: { url: `file:${dir}/test-runtime-state.db` },
-    embeddingDatabase: { url: `file:${dir}/test-embeddings.db` },
     ai: {
       model: "claude-haiku-4-5",
       apiKey: "test-key",

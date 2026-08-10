@@ -5,6 +5,7 @@ import {
   type SqliteDatabase,
   type SqliteEngine,
 } from "@brains/db";
+import { embeddings } from "../schema/embeddings";
 import { entities } from "../schema/entities";
 import {
   projectionDirtyInputs,
@@ -19,8 +20,7 @@ import { sql, type SQL } from "drizzle-orm";
 
 export type EntityDB = SqliteDatabase;
 
-/** Search-only entity database surface. It cannot start a transaction and
- * therefore cannot replace the connection that owns the `emb` attachment. */
+/** Search-only entity database surface. */
 export type EntitySearchDB = Pick<EntityDB, "select">;
 
 /**
@@ -32,6 +32,7 @@ export function createEntityDatabase(config: EntityDbConfig): SqliteConnection {
     url: config.url,
     schema: {
       entities,
+      embeddings,
       projectionDirtyInputs,
       projectionWaves,
       projectionIncidents,

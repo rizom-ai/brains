@@ -264,14 +264,12 @@ describe("supervised runtime process roles", () => {
     const workerRuntimeStatePath = `${testDirectory.dir}/worker-runtime-state.db`;
     const workerConversationPath = `${testDirectory.dir}/worker-conversations.db`;
     const workerEntityPath = `${testDirectory.dir}/worker-entities.db`;
-    const workerEmbeddingPath = `${testDirectory.dir}/worker-embeddings.db`;
     const worker = Shell.createFresh(
       createTestShellConfig(testDirectory.dir, {
         plugins: [new ExecutionAuditPlugin(acknowledgeProcessed)],
         runtimeStateDatabase: { url: `file:${workerRuntimeStatePath}` },
         conversationDatabase: { url: `file:${workerConversationPath}` },
         database: { url: `file:${workerEntityPath}` },
-        embeddingDatabase: { url: `file:${workerEmbeddingPath}` },
       }),
       {
         logger: createSilentLogger("database-owner-worker-test"),
@@ -347,7 +345,6 @@ describe("supervised runtime process roles", () => {
     });
     expect(await web.getEntityService().countEmbeddings()).toBe(1);
     await expectFileMissing(workerEntityPath);
-    await expectFileMissing(workerEmbeddingPath);
 
     const jobId = await workerOperationContext.run(
       {

@@ -11,6 +11,9 @@ import {
   type EntityServiceTestContext,
 } from "./helpers/setup-entity-service";
 import { MOCK_DIMENSIONS } from "./helpers/mock-services";
+import { createEntityDatabase } from "../src/db";
+import { embeddings } from "../src/schema/embeddings";
+import { and, eq } from "drizzle-orm";
 
 async function createCurrentEmbeddedNote(
   ctx: EntityServiceTestContext,
@@ -195,22 +198,18 @@ describe("EntityService index readiness", () => {
   });
 
   test("awaitIndexReady reports stale embeddings separately from missing ones", async () => {
-    await ctx.entityService.createEntity({
-      entity: createNoteInput(
-        {
-          title: "Stale Embedding",
-          content: "This entity has an old embedding",
-          tags: [],
-        },
-        "stale-index-note",
-      ),
-    });
-    await ctx.entityService.storeEmbedding({
-      entityId: "stale-index-note",
-      entityType: "note",
-      embedding: new Float32Array(MOCK_DIMENSIONS).fill(0.1),
-      contentHash: "stale-hash",
-    });
+    await createCurrentEmbeddedNote(ctx, "stale-index-note");
+    const { db, client } = createEntityDatabase(ctx.dbConfig);
+    await db
+      .update(embeddings)
+      .set({ contentHash: "stale-hash" })
+      .where(
+        and(
+          eq(embeddings.entityId, "stale-index-note"),
+          eq(embeddings.entityType, "note"),
+        ),
+      );
+    client.close();
 
     const status = await ctx.entityService.awaitIndexReady({
       timeoutMs: 10,
