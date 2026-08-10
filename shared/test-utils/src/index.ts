@@ -114,3 +114,6 @@ export {
   createTempDirSync,
   removeTrackedTempDirs,
 } from "./test-database";
+
+// Wait for a condition rather than a guessed duration
+export { waitUntil, type WaitUntilOptions } from "./wait-until";

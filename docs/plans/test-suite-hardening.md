@@ -201,7 +201,12 @@ Gate:
 
 1. Write `waitUntil`'s own tests in `shared/test-utils`: resolves when the predicate turns true, rejects with the predicate's description at the deadline, never busy-loops.
 2. Implement `waitUntil` per decision 7.
-3. Migrate `plugins/directory-sync` first — it has the largest concentration of synchronization sleeps (21) and the most to gain: `sync-job-race-condition.test.ts`'s 100ms "wait for jobs" sleeps become waits on the job-completion signal they were approximating.
+3. Migrate `plugins/directory-sync` — it has the largest concentration of synchronization sleeps (21).
+
+   Do **not** treat `sync-job-race-condition.test.ts` as the easy first case, despite appearances. Its sleeps look like they wait for a `jobsCompleted` flag, but the flag is shared across two import/export cycles within a single test and across tests in the describe block, and the mocks schedule timers that outlive the cycle that created them. Waiting on the flag returns early against a stale value; the fixed 100ms sleep passed only by out-waiting every timer regardless of state. An attempt at this conversion failed and was reverted. The file needs its shared state understood — probably reset per cycle, or the wait moved onto the state the assertion actually reads (`entityInDB`) rather than the completion flag — before any sleep in it is removed.
+
+   Start with the files whose sleeps guard a single, locally-owned signal.
+
 4. Migrate `shell/job-queue` (17), `interfaces/a2a` (12), `interfaces/chat` (10), and `shell/ai-service` (13 `delay()` calls in `agent-service.test.ts`) the same way, preferring a direct await on an observable completion over polling wherever one exists.
 5. While `agent-service.test.ts` is open: replace its `Reflect.get` probes of the private conversation-actor registry with a package-internal introspection accessor on `AgentService` (actor count and snapshot). The probes already guard against shape drift at runtime; an accessor moves that guarantee to compile time and stops a private-field rename from silently breaking lifecycle assertions.
 6. Convert the time-semantics family — `shared/utils` `debounce.test.ts` and `logger-file.test.ts` — to fake timers.
