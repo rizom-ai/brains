@@ -373,4 +373,35 @@ describe("portable keyword engine parity", () => {
     ]);
     expect(decisions["turso"]).toEqual(decisions["libsql"]);
   });
+
+  test("an empty query boosts nothing", async () => {
+    const connection = createEntityDatabase({ url: "file::memory:" });
+    try {
+      await connection.client.execute(`
+        CREATE TABLE entities (
+          id TEXT NOT NULL,
+          entityType TEXT NOT NULL,
+          content TEXT NOT NULL,
+          PRIMARY KEY (id, entityType)
+        )
+      `);
+      await connection.client.execute(
+        "INSERT INTO entities VALUES ('a', 'test', 'TypeScript generics'), ('b', 'test', 'unrelated prose')",
+      );
+
+      for (const emptyQuery of ["", "   "]) {
+        const boosted = await connection.db.all<{ boosted: number }>(sql`
+          SELECT CASE WHEN ${buildKeywordMatch(emptyQuery)} THEN 1 ELSE 0 END
+            AS boosted
+          FROM entities
+          ORDER BY id
+        `);
+        // instr(content, '') matches every row; an empty phrase must not
+        // uniformly inflate scores past a caller's minScore threshold.
+        expect(boosted).toEqual([{ boosted: 0 }, { boosted: 0 }]);
+      }
+    } finally {
+      connection.client.close();
+    }
+  });
 });

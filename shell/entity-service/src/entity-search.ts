@@ -251,11 +251,11 @@ export class EntitySearch {
   }
 
   /**
-   * Full-text boost weight. When a keyword match is found, this fraction of
+   * Keyword boost weight. When a keyword match is found, this fraction of
    * the final score comes from keyword matching, the rest from vector similarity.
    * 0.3 = 30% keyword, 70% semantic.
    */
-  private static readonly FTS_ALPHA = 0.3;
+  private static readonly KEYWORD_ALPHA = 0.3;
 
   /**
    * Build a parameterized CASE expression for entity-type score multipliers.
@@ -290,7 +290,7 @@ export class EntitySearch {
     query: string,
     minScore: number | undefined,
   ): Promise<SearchResult<T>[]> {
-    const alpha = EntitySearch.FTS_ALPHA;
+    const alpha = EntitySearch.KEYWORD_ALPHA;
 
     // Vector similarity score (0..1, higher is better)
     const vectorScore = sql<number>`(1.0 - vector_distance_cos(emb_e.embedding, vector32(${embeddingArray})) / 2.0) * (${weightMultiplier})`;

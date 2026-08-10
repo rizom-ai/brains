@@ -49,6 +49,9 @@ export function createEntityDatabase(config: EntityDbConfig): SqliteConnection {
  * engine-specific schema is involved.
  */
 export function buildKeywordMatch(query: string): SQL {
+  // instr(content, '') is 1 for every row, so an empty phrase would boost the
+  // whole corpus and push results past a caller's minScore threshold.
+  if (query.trim() === "") return sql`0 = 1`;
   return sql`instr(lower(${entities.content}), lower(${query})) > 0`;
 }
 
