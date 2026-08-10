@@ -1,10 +1,6 @@
+import { createTestPipelineContext } from "../pipeline-context";
 import { describe, expect, it, mock } from "bun:test";
 import type { RouteDefinitionInput } from "@brains/site-composition";
-import { RouteRegistry } from "@brains/site-engine";
-import {
-  createMockServicePluginContext,
-  createSilentLogger,
-} from "@brains/test-utils";
 import type { BuildPipelineContext } from "../../src/lib/build-pipeline-context";
 import type { BuildResult } from "../../src/types/site-builder-types";
 import type { SiteViewTemplate } from "../../src/lib/site-view-template";
@@ -13,7 +9,6 @@ import { h, type VNode } from "preact";
 import { runSiteBuild } from "../../src/lib/run-site-build";
 import type { StaticSiteBuilderFactory } from "../../src/lib/static-site-builder";
 import {
-  createSiteBuilderServices,
   createTestSiteBuildOutputLifecycle,
   TestLayout,
 } from "../test-helpers";
@@ -23,17 +18,7 @@ const outputDir = "/tmp/site-build-preflight-output";
 function createPipelineContext(
   route: RouteDefinitionInput,
 ): BuildPipelineContext {
-  const logger = createSilentLogger();
-  const context = createMockServicePluginContext({ logger });
-  const routeRegistry = new RouteRegistry(logger);
-  routeRegistry.register(route);
-  return {
-    logger,
-    services: createSiteBuilderServices(context),
-    routeRegistry,
-    profileService: { getProfile: () => ({}) },
-    entityDisplay: undefined,
-  };
+  return createTestPipelineContext([route]).pipeline;
 }
 
 function run(

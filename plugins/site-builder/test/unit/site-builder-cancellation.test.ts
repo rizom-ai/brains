@@ -1,9 +1,5 @@
+import { createTestPipelineContext } from "../pipeline-context";
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { RouteRegistry } from "@brains/site-engine";
-import {
-  createMockServicePluginContext,
-  createSilentLogger,
-} from "@brains/test-utils";
 import { promises as fs } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
@@ -11,30 +7,12 @@ import type { BuildPipelineContext } from "../../src/lib/build-pipeline-context"
 import { SiteBuilder } from "../../src/lib/site-builder";
 import type { StaticSiteBuilderFactory } from "../../src/lib/static-site-builder";
 import {
-  createSiteBuilderServices,
   createTestSiteBuildOutputLifecycle,
   TestLayout,
 } from "../test-helpers";
 
 function createPipelineContext(): BuildPipelineContext {
-  const logger = createSilentLogger();
-  const context = createMockServicePluginContext({ logger });
-  const routeRegistry = new RouteRegistry(logger);
-  routeRegistry.register({
-    id: "home",
-    path: "/",
-    title: "Home",
-    description: "Home route",
-    layout: "default",
-    sections: [],
-  });
-  return {
-    logger,
-    services: createSiteBuilderServices(context),
-    routeRegistry,
-    profileService: { getProfile: () => ({}) },
-    entityDisplay: undefined,
-  };
+  return createTestPipelineContext().pipeline;
 }
 
 describe("SiteBuilder cancellation", () => {

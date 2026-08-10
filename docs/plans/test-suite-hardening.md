@@ -37,7 +37,7 @@ Phase 1 made shared-mock drift a compile error. Every factory in `@brains/test-u
 
 Phase 2 gave test databases one implementation and one cleanup contract. `createTestDatabase` in `@brains/test-utils` owns the `mkdtemp → migrate → cleanup` flow; clients register through `track()`, `cleanup` closes them all then removes the directory and is idempotent, and a failing migration removes the directory rather than leaking a temp dir per failing test. Migration is injected, so the package still depends on nothing under `shell/`. `createTestDirectory` exposes the directory primitive for tests that need scratch space without a database. The four per-package helpers are gone, along with `job-queue`'s cleanup that opened a connection purely to close it.
 
-Note that ~100 individual test files still call `mkdtemp` inline for their own scratch directories. That is a different pattern from the four helpers — each is local to one file and most have no database or client to close — so this plan does not treat it as duplication to remove.
+Note that ~100 individual test files still call `mkdtemp` inline for their own scratch directories. That is a different pattern from the four helpers — each is local to one file — so this plan does not treat it as _duplication_ to remove. It is, however, a leak, which an earlier version of this note wrongly waved away; see below.
 
 Three caveats to the baseline. Test files themselves contain 156 `as unknown as` casts across 80 files (94 in `shell/` alone), almost always on inline partial mocks — so the "no casts in test files" property that `test-utils`' header aims for does not hold today; Phase 6 addresses it. `shell/ai-service/test/agent-service.test.ts` is the one file in the repo that reads private service state via `Reflect.get` (the conversation-actor registry probes); Phase 5 replaces those probes while it has the file open. And root-level `scripts/` is linted by nothing — `scripts/lint.mjs` drives turbo, which only visits workspace packages, and the repository root is not one — so the script tests Phase 0 just wired up are unreachable from ESLint; Phase 6 fixes that alongside its own rules.
 
@@ -81,6 +81,20 @@ Tests contain ~120 fixed sleeps (`await new Promise((r) => setTimeout(r, N))` an
 - **Time-semantics tests** — `debounce.test.ts` and `logger-file.test.ts`, where elapsed time is the behavior under test, currently driven by real 30–80ms timers.
 
 There is no shared wait-for-condition helper anywhere in the repo, which is why the pattern keeps being written by hand. Bun 1.3's test runner supports `jest.useFakeTimers` / `advanceTimersByTime`, so the time-semantics family has a deterministic alternative too.
+
+### The suite fills the disk, and a full disk then corrupts its own results
+
+Observed directly during Phase 3: `/tmp` reached 67G across 153,682 entries, the root filesystem hit 100% with 24M free, and the suite began failing with `failed to write tarball header: Write error` in the packed-authoring tests. Those failures look like test failures and are not.
+
+Two separate leaks produce it, and they need separating because the obvious one is not the expensive one.
+
+**Directory count.** Test files that call `mkdtemp` inline and never remove the directory: 30,929 `brains-cms-editor-auth-`, 29,669 `brains-playbooks-`, 10,980 `brains-ops-init-`, and a long tail. Individually tiny, collectively over a hundred thousand directories. `plugins/cms`, `plugins/playbooks` and `packages/brains-ops` are the main sources — they build a `storageDir` per test and drop it.
+
+**Disk space.** 552 hidden `.*.brain` directories at ~113M each, 60G in total — nine tenths of the problem. Each is an extracted `@rizom/brain` tarball, bun's install-staging area for the packed-consumer tests. Bun removes these on a clean run; they survive when an install is interrupted. That makes it self-reinforcing: a full disk interrupts the next install, which leaks more.
+
+Both belong with Phase 5, since both are tests failing to release something they acquired — the same defect class as a cleanup contract that does not close its clients. The directory leak is fixed by routing those call sites through `createTestDirectory`, which Phase 2 already provides and which removes the directory for them. The staging leak needs the packed tests to pack into a directory they own and delete, rather than letting bun stage into `/tmp`.
+
+Until then, a full-suite run on a nearly full disk cannot be trusted: check free space before believing a packed-test failure.
 
 ### Tests bind fixed ports, so two suites cannot run at once
 
@@ -214,7 +228,9 @@ Gate:
 5. While `agent-service.test.ts` is open: replace its `Reflect.get` probes of the private conversation-actor registry with a package-internal introspection accessor on `AgentService` (actor count and snapshot). The probes already guard against shape drift at runtime; an accessor moves that guarantee to compile time and stops a private-field rename from silently breaking lifecycle assertions.
 6. Convert the time-semantics family — `shared/utils` `debounce.test.ts` and `logger-file.test.ts` — to fake timers.
 7. Replace the hardcoded `14010`/`14020` in `public-authoring-phase5-packed.test.ts` with `port: 0` and read back the assigned port, matching what `import-burst-stability.test.ts` already does.
-8. Land the ESLint `no-restricted-syntax` ban on the sleep idiom in test files, with `waitUntil` and fake timers as the documented alternatives.
+8. Route the inline `mkdtemp` call sites that never clean up through `createTestDirectory`, starting with the three biggest sources — `plugins/cms`, `plugins/playbooks` and `packages/brains-ops` — which between them left over seventy thousand directories in `/tmp`.
+9. Make the packed-authoring tests pack into a directory they own and delete, so bun does not stage 113M per run into `/tmp` and leave it there when an install is interrupted.
+10. Land the ESLint `no-restricted-syntax` ban on the sleep idiom in test files, with `waitUntil` and fake timers as the documented alternatives.
 
 Gate:
 
@@ -223,6 +239,7 @@ Gate:
 - `directory-sync`'s suite time drops measurably (it is 25.4s today).
 - Debounce and logger tests pass with fake timers and no real-time dependence.
 - No test reads private service state via `Reflect.get`.
+- A full suite run leaves no directory behind in the system temp dir.
 - The ESLint rule fails on a reintroduced sleep.
 
 ### Phase 6 — No unsafe casts in test files
