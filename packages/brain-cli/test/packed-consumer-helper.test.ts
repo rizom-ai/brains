@@ -1,8 +1,12 @@
 import { describe, expect, it } from "bun:test";
+import { existsSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join, sep } from "node:path";
 import { getErrorMessage } from "@brains/utils/error";
 import {
   liveEvidenceEnabled,
   registryEvidenceEnabled,
+  removeSpawnTempRoot,
   runCommand,
   startCommand,
   waitForHttpReadiness,
@@ -77,5 +81,89 @@ describe("packed consumer harness", () => {
     expect(
       liveEvidenceEnabled({ RIZOM_PUBLIC_API_LIVE_EVIDENCE: "1" }),
     ).toBeTrue();
+  });
+});
+
+/**
+ * `bun install` extracts each tarball into a staging directory under the
+ * spawned process's temp dir and renames it into place. When a packed test
+ * times out or is killed mid-install the rename never happens and the staging
+ * directory is orphaned. Pointing spawned processes at a temp root the harness
+ * owns keeps those orphans inside something that gets removed.
+ */
+describe("packed consumer spawn isolation", () => {
+  const readChildTempDir = async (
+    options: Parameters<typeof runCommand>[2] = {},
+  ): Promise<string> =>
+    (
+      await runCommand(
+        ["bun", "-e", 'console.log(process.env.TMPDIR ?? "")'],
+        import.meta.dir,
+        options,
+      )
+    ).stdout.trim();
+
+  it("runs spawned commands in a temp root of its own", async () => {
+    const childTempDir = await readChildTempDir();
+
+    expect(childTempDir).not.toBe(tmpdir());
+    expect(childTempDir).toStartWith(join(tmpdir(), "packed-spawn-"));
+    expect(existsSync(childTempDir)).toBeTrue();
+  });
+
+  it("overrides an inherited temp dir rather than staging in the shared one", async () => {
+    const childTempDir = await readChildTempDir({
+      env: { ...process.env, TMPDIR: tmpdir() },
+    });
+
+    expect(childTempDir).not.toBe(tmpdir());
+    expect(childTempDir).toStartWith(join(tmpdir(), "packed-spawn-"));
+  });
+
+  it("isolates long-running commands the same way", async () => {
+    const started = startCommand(
+      ["bun", "-e", 'console.log(process.env.TMPDIR ?? "")'],
+      import.meta.dir,
+    );
+    await started.completed;
+
+    expect(started.getOutput().stdout.trim()).toStartWith(
+      join(tmpdir(), "packed-spawn-"),
+    );
+  });
+
+  it("removes what a spawned command leaves behind in the temp root", async () => {
+    await runCommand(
+      [
+        "bun",
+        "-e",
+        'require("node:fs").mkdirSync(require("node:path").join(process.env.TMPDIR, ".abandoned-staging"), { recursive: true })',
+      ],
+      import.meta.dir,
+    );
+    const childTempDir = await readChildTempDir();
+    const orphan = join(childTempDir, ".abandoned-staging");
+    expect(existsSync(orphan)).toBeTrue();
+
+    removeSpawnTempRoot();
+
+    expect(existsSync(orphan)).toBeFalse();
+    expect(existsSync(childTempDir)).toBeFalse();
+  });
+
+  it("hands out a fresh root after cleanup so later files do not spawn into a removed dir", async () => {
+    const first = await readChildTempDir();
+    removeSpawnTempRoot();
+    const second = await readChildTempDir();
+
+    expect(second).not.toBe(first);
+    expect(second).toStartWith(join(tmpdir(), "packed-spawn-"));
+    expect(existsSync(second)).toBeTrue();
+  });
+
+  it("keeps the root directly under the system temp dir", async () => {
+    const childTempDir = await readChildTempDir();
+
+    expect(childTempDir.slice(tmpdir().length + 1)).not.toContain(sep);
   });
 });

@@ -1,6 +1,75 @@
+import { afterAll } from "bun:test";
+import { mkdtempSync, rmSync } from "node:fs";
 import { cp, mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { getErrorMessage } from "@brains/utils/error";
+
+/**
+ * A temp root the harness owns, shared by every process it spawns.
+ *
+ * `bun install` extracts each tarball into a staging directory under the
+ * spawned process's temp dir, named `.<hash>-<counter>.<last name segment>`,
+ * then renames it into `node_modules`. When a packed test times out or the
+ * process is killed mid-install, the rename never happens and the staging
+ * directory is orphaned with nothing to reap it. `@rizom/brain` ships `dist/`
+ * and `templates/`, so each orphan cost ~113MB and a few hundred of them
+ * filled the disk.
+ *
+ * Redirecting spawned processes here does not stop bun from orphaning staging
+ * directories — it makes the orphans land somewhere that gets removed.
+ */
+let spawnTempRoot: string | undefined;
+let cleanupArmed = false;
+
+/**
+ * Create the root on first use and arm cleanup for the scope that needs it.
+ *
+ * It has to be `afterAll` rather than a process hook: bun's test runner fires
+ * neither `exit` nor `beforeExit`. And it has to re-arm rather than register
+ * once at module load: bun evaluates this module once per *process* and runs a
+ * package's test files in one process, so a single registration would only
+ * cover whichever file imported first. Disarming inside the hook makes the
+ * next file register its own, and clearing the root makes it get a fresh one
+ * instead of spawning into a directory that has already been removed.
+ */
+function currentSpawnTempRoot(): string {
+  spawnTempRoot ??= mkdtempSync(join(tmpdir(), "packed-spawn-"));
+  if (!cleanupArmed) {
+    cleanupArmed = true;
+    afterAll(() => {
+      cleanupArmed = false;
+      removeSpawnTempRoot();
+    });
+  }
+  return spawnTempRoot;
+}
+
+/**
+ * Remove the spawn temp root and everything spawned processes staged in it.
+ *
+ * Runs automatically after each test file; exported so a test can force it,
+ * and so this behaviour is itself testable.
+ */
+export function removeSpawnTempRoot(): void {
+  if (spawnTempRoot === undefined) return;
+  rmSync(spawnTempRoot, { recursive: true, force: true });
+  spawnTempRoot = undefined;
+}
+
+/**
+ * The environment every spawned process gets.
+ *
+ * The temp root always wins over an inherited or caller-supplied `TMPDIR`:
+ * callers build their env by spreading `process.env`, so honouring what is
+ * already there would send staging straight back to the shared temp dir. `TMP`
+ * and `TEMP` are set alongside it because tooling disagrees about which one to
+ * read.
+ */
+function spawnEnv(env: NodeJS.ProcessEnv | undefined): NodeJS.ProcessEnv {
+  const root = currentSpawnTempRoot();
+  return { ...(env ?? process.env), TMPDIR: root, TMP: root, TEMP: root };
+}
 
 export interface CommandResult {
   readonly stdout: string;
@@ -36,7 +105,7 @@ export function startCommand(
 ): StartedCommand {
   const child = Bun.spawn([...command], {
     cwd,
-    env: options.env ?? process.env,
+    env: spawnEnv(options.env),
     stdout: "pipe",
     stderr: "pipe",
   });
@@ -123,7 +192,7 @@ export async function runCommand(
 ): Promise<CommandResult> {
   const child = Bun.spawn([...command], {
     cwd,
-    env: options.env ?? process.env,
+    env: spawnEnv(options.env),
     stdout: "pipe",
     stderr: "pipe",
   });
