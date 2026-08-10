@@ -9,7 +9,7 @@ tags:
   - a2a
   - trust
   - tool-invocation
-  - bundle-core
+  - posture-personal
 
 turns:
   - userMessage: "Revoke docs.rizom.ai inbound A2A trusted access."

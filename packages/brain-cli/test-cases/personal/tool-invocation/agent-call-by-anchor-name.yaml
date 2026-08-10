@@ -8,7 +8,7 @@ tags:
   - agent-discovery
   - a2a
   - tool-invocation
-  - bundle-core
+  - posture-personal
 
 turns:
   - userMessage: "Ask my contact Yeehaa about ecosystem architecture"

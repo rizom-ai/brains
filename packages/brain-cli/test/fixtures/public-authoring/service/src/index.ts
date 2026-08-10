@@ -6,6 +6,7 @@ import {
   z,
 } from "@rizom/brain/services";
 
+// Shared schemas drive tool input, job input/output, and persisted result checks.
 const digestRequest = z.object({
   bookmarkId: z.string(),
 });
@@ -29,6 +30,7 @@ const digestStatus = z.object({
   error: z.string().optional(),
 });
 
+// Export the reusable job contract; execution is bound by the owning service.
 export const compileReadingDigest = defineJob({
   name: "compile-reading-digest",
   input: digestRequest,
@@ -43,6 +45,7 @@ export default defineServicePlugin({
     summaryPrefix: z.string().default("Reading digest"),
   }),
 
+  // Setup returns inferred state shared by the service callbacks.
   setup({ config }) {
     return {
       summarize(
@@ -81,6 +84,7 @@ export default defineServicePlugin({
     },
   },
 
+  // Templates validate render data before producing text.
   templates: {
     digest: {
       schema: digestResult,
@@ -89,6 +93,7 @@ export default defineServicePlugin({
     },
   },
 
+  // A same-name view reuses the exact schema object and adds web rendering.
   views: {
     digest: {
       schema: digestResult,
@@ -100,6 +105,7 @@ export default defineServicePlugin({
     },
   },
 
+  // Binding with .handle() keeps the contract importable without its executor.
   jobs: ({ state }) => [
     compileReadingDigest.handle(
       async ({ input, entities, messaging, progress, signal, templates }) => {
@@ -126,6 +132,7 @@ export default defineServicePlugin({
           total: 100,
           message: "Digest ready",
         });
+        // Entity data reaches the template only through the declared render schema.
         await messaging.publish({
           topic: "digest-ready",
           data: { ...result, markdown: templates.format("digest", result) },
@@ -135,6 +142,7 @@ export default defineServicePlugin({
     ),
   ],
 
+  // Tools return plain schema-valid data; durable mechanics stay framework-owned.
   tools: ({ jobs }) => [
     defineTool({
       name: "compile-reading-digest",

@@ -7,7 +7,7 @@ setup:
 tags:
   - agent-discovery
   - tool-invocation
-  - bundle-core
+  - posture-personal
 
 turns:
   - userMessage: "Who is the best saved agent to ask about brand positioning?"

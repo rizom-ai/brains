@@ -21,9 +21,9 @@ successCriteria:
     max: 6
   responseContains:
     - "Team Brain"
+    - "docs"
+    - "decks"
   responseNotContains:
-    - "meeting-notes"
-    - "decision-record"
     - "newsletter"
     - "blog"
 

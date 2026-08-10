@@ -5,6 +5,7 @@ import readingSite from "@fixture/reading-site";
 import readingWebhook from "@fixture/reading-webhook";
 import { defineBrain, defineBundle, use } from "@rizom/brain";
 
+// use() creates typed configured definitions; defaults need no empty config object.
 const entities = use(readingEntities);
 const insights = use(readingInsights, {
   summaryPrefix: "Saved reading",
@@ -12,11 +13,13 @@ const insights = use(readingInsights, {
 const webhook = use(readingWebhook);
 const messages = use(campfire);
 
+// Bundles reference configured definitions, never repeated string identifiers.
 const reader = defineBundle({
   id: "reader",
   members: [entities, insights, webhook, messages],
 });
 
+// The root package composes capabilities, identity, and the independent site.
 export default defineBrain({
   name: "reader",
   identity: {

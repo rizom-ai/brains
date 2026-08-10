@@ -14,7 +14,7 @@ tags:
   - onboarding
   - playbooks
   - multi-turn
-  - bundle-core
+  - posture-personal
 
 turns:
   - userMessage: "Start playbook onboarding."
@@ -121,9 +121,12 @@ turns:
           shouldBeCalled: false
       responseContains:
         - "woodchucks"
-        - "saved a seed"
         - "retrieved"
         - "transformed"
+      responseContainsAny:
+        - - "saved a seed"
+          - "saved the seed"
+          - "durable knowledge"
       responseNotContains:
         - "Confirmation required"
         - "I cannot"

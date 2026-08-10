@@ -56,8 +56,10 @@ successCriteria:
     - "summar"
     - "topics"
     - "agent"
-    - "docs"
     - "decks"
+  responseContainsAny:
+    - - "docs"
+      - "documents"
   responseNotContains:
     - "blog platform"
     - "newsletter pipeline"

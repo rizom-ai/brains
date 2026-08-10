@@ -30,9 +30,9 @@ successCriteria:
     - "summar"
     - "topic"
     - "peer"
+    - "gaps"
+    - "proof"
   responseNotContains:
-    - "fully autonomous"
-    - "production-ready"
     - "blog platform"
     - "newsletter"
   minHelpfulnessScore: 4

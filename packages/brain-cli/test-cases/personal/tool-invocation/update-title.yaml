@@ -9,7 +9,7 @@ tags:
   - system
   - entity-crud
   - permissions
-  - bundle-core
+  - posture-personal
 
 turns:
   - userMessage: "Change the title of my note 'typescript-patterns' to 'TypeScript Pattern Notes'"

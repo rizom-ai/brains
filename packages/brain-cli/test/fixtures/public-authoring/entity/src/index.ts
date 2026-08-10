@@ -6,6 +6,7 @@ import {
   type EntityOf,
 } from "@rizom/brain/entities";
 
+// Export definitions when another package needs typed entity access.
 export const bookmark = defineEntity({
   type: "bookmark",
   purpose: "A saved page in the reader's library.",
@@ -16,6 +17,7 @@ export const bookmark = defineEntity({
   }),
 });
 
+// EntityOf adds the runtime-managed identity, content, visibility, and timestamps.
 export type Bookmark = EntityOf<typeof bookmark>;
 
 export const readingDigest = defineEntity({
@@ -30,6 +32,7 @@ export const readingDigest = defineEntity({
 
 export type ReadingDigest = EntityOf<typeof readingDigest>;
 
+// Projections connect definitions directly; target writes are type-safe.
 const bookmarkDigest = defineProjection({
   id: "bookmark-digest",
   source: bookmark,
@@ -50,6 +53,8 @@ const bookmarkDigest = defineProjection({
   },
 });
 
+// Presentation templates belong in a service that imports these definitions.
+// One default package definition is the loader-facing contract.
 export default defineEntityPackage({
   id: "reading-library",
   entities: [bookmark, readingDigest],

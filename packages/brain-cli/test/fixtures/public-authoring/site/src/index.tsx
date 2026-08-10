@@ -1,5 +1,6 @@
 import { defineSection, defineSite, sectionGroup, z } from "@rizom/site";
 
+// A section schema validates content and infers component props.
 const hero = defineSection(
   z.object({
     heading: z.string(),
@@ -18,8 +19,10 @@ const hero = defineSection(
   },
 );
 
+// Groups namespace section IDs and their content under one stable key.
 const librarySections = sectionGroup("library", { hero });
 
+// The default export is structural site data; backend behavior composes separately.
 export default defineSite({
   layouts: {
     default: ({ title, sections }) => (
