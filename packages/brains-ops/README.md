@@ -25,13 +25,18 @@ Operator CLI package for managing pilot brain fleet registry repos.
 
 ## Directory-sync stress profiles
 
-Directory-sync stress is deliberately smoke-only. The handle, domain, and content repository must each identify smoke, and the operator must pass the exact `stress:<handle>` confirmation. The runner refuses production-like targets.
+Directory-sync stress is deliberately smoke-only. The handle, domain, and content repository must each identify smoke, and the operator must pass the exact `stress:<handle>` confirmation. The runner refuses production-like targets. The smoke user must also declare the hermetic posture below; reconcile and deploy it before running the workload:
+
+```yaml
+embeddingEnabled: false
+topicExtractionEnabled: false
+```
 
 - `regression`: add 20 files, update all 20, then delete them;
 - `load`: ramp through 50, 150, and 350 files, update 350, rename 100, update again, then delete all probes;
 - `stress`: continue the same deterministic ramp to 700 files and 200 renames.
 
-Each run creates a rollback branch, gates on health failures during the monitored workload window, preserves warmup and cleanup health samples as evidence without poisoning that gate, samples container CPU/memory/PIDs, waits for Git and entity persistence, and always attempts cleanup. JSON, Markdown, runtime logs, and samples are written under `.brains-ops/stress/` unless `--artifacts-dir` is supplied. The scaffolded `Directory Sync Stress` workflow is manual-only and has a separate `always()` cleanup job. Successful idempotent cleanup also prunes retained stress backup branches; branches remain available when probes remain for recovery. The workflow never deploys or targets a non-smoke user.
+Each run creates a rollback branch, gates on health failures during the monitored workload window, preserves warmup and cleanup health samples as evidence without poisoning that gate, samples container CPU/memory/PIDs, detects watchdog restarts even when Docker's restart counter remains zero, rejects external AI usage, waits for Git and entity persistence, and always attempts cleanup. JSON, Markdown, runtime logs, and samples are written under `.brains-ops/stress/` unless `--artifacts-dir` is supplied. The scaffolded `Directory Sync Stress` workflow is manual-only and has a separate `always()` cleanup job. Successful idempotent cleanup also prunes retained stress backup branches; branches remain available when probes remain for recovery. The workflow never deploys or targets a non-smoke user.
 
 ## Scope
 

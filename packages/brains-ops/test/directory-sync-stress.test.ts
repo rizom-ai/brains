@@ -144,11 +144,12 @@ describe("directory-sync stress probe lifecycle", () => {
 });
 
 describe("directory-sync stress observations", () => {
-  it("classifies health, restart, OOM, and stopped-container failures", () => {
+  it("classifies health, external-AI, restart, OOM, and stopped-container failures", () => {
     expect(
       stressMetricsFailure({
         health: [],
         runtime: [],
+        externalAiCalls: 0,
         container: { status: "running", restartCount: 0, oomKilled: false },
       }),
     ).toBeUndefined();
@@ -166,6 +167,13 @@ describe("directory-sync stress observations", () => {
         runtime: [],
       }),
     ).toBe("health: /health/ready unavailable");
+    expect(
+      stressMetricsFailure({
+        health: [],
+        runtime: [],
+        externalAiCalls: 2,
+      }),
+    ).toBe("external AI: observed 2 call(s)");
     expect(
       stressMetricsFailure({
         health: [],

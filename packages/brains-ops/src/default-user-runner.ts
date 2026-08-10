@@ -23,6 +23,9 @@ function renderUserBrainYaml(user: ResolvedUser, githubOrg: string): string {
     `domain: ${user.domain}`,
     "bundles:",
     ...user.bundles.map((bundle) => `  - ${bundle}`),
+    ...(user.embeddingEnabled !== undefined
+      ? ["", "embedding:", `  enabled: ${String(user.embeddingEnabled)}`]
+      : []),
     ...renderMemberOverrides("add", user.add),
     ...renderMemberOverrides("remove", user.remove),
     ...renderSiteConfig(user),
@@ -42,6 +45,12 @@ function renderUserBrainYaml(user: ResolvedUser, githubOrg: string): string {
       : []),
     ...(user.playbooks?.onboarding
       ? ["  onboarding:", "    enabled: true"]
+      : []),
+    ...(user.topicExtractionEnabled !== undefined
+      ? [
+          "  topics:",
+          `    enableAutoExtraction: ${String(user.topicExtractionEnabled)}`,
+        ]
       : []),
     "  directory-sync:",
     "    git:",
