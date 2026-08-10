@@ -2,7 +2,8 @@
 
 ## Status
 
-Implementation complete through Phase 4; permanent Phase 5 gates are being shipped.
+Implementation and release are complete through Phase 5; manual smoke load
+acceptance remains pending.
 
 - Phase 1: released in `@rizom/brain@0.2.0-alpha.268`.
 - Phase 2: released in `@rizom/brain@0.2.0-alpha.269` for text and current
@@ -13,12 +14,16 @@ Implementation complete through Phase 4; permanent Phase 5 gates are being shipp
 - Phase 5: the nightly hermetic and weekly smoke regression gates merged in PR
   #94. The first dispatched run exposed a piped-exit propagation bug, external
   AI work in the fixture, and excessive targeted-delete job fan-out; PR #99
-  fixed all three. The correctly failing rerun `31323158459` proved notification
-  delivery and cleanup convergence, then caught an unmanaged Git automatic-
-  maintenance descendant. The current follow-up disables automatic maintenance
-  only in the owned network subprocess and passes the 350-file soak locally.
-  The remote verification rerun and manual smoke load acceptance run remain
-  pending.
+  fixed all three. Run `31323158459` then proved failure propagation and
+  notification delivery while catching an unmanaged Git automatic-maintenance
+  descendant. PR #101 disabled automatic maintenance only in owned network Git
+  subprocesses and released `@rizom/brain@0.2.0-alpha.275`.
+- Post-release run `31325069219` timed out once waiting for its final cleanup
+  pull, then its unchanged rerun passed the complete 350-file packaged soak in
+  195.99 seconds: 2 tests passed, health and zombie checks passed, and the
+  uploaded artifact contained the real Bun result with no external AI call.
+  Issue #102 retains the one-off cleanup-stall evidence for recurrence tracking.
+  The manual smoke load acceptance run remains pending.
 
 Asset-backed Phase 2–3 behavior remains coordinated with
 [`durable-binary-assets.md`](./durable-binary-assets.md) and lands with that storage
