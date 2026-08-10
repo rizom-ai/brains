@@ -207,6 +207,7 @@ Cleanup:
 - [http-route-registry-hardening.md](./plans/http-route-registry-hardening.md) — normalize the shared HTTP route table, reject collisions, centralize operator authorization, and move toward lifecycle-owned registration without breaking existing plugins.
 - [atomic-job-deduplication.md](./plans/atomic-job-deduplication.md) — serialize durable queue deduplication in the database so concurrent web/worker enqueues preserve `skip`, `replace`, and `coalesce` guarantees.
 - [directory-sync-import-load.md](./plans/directory-sync-import-load.md) — follow-up to the git fan-out fix: suppress auto-export watcher echoes, short-circuit unchanged files before parse so startup full-vault sync is cheap, and skip oversized files at import with an operator-visible issue.
+- [test-suite-hardening.md](./plans/test-suite-hardening.md) — make the green suite's guarantees hard to lose: stop tests that silently never run, turn mock drift into a compile error, unify test-database setup, put the eval CLI under test, and replace sleep-based waits with condition waits.
 
 Research probes (parked):
 
