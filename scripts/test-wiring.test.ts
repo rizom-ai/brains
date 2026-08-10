@@ -9,6 +9,9 @@ import {
   readWorkflowInvokedScripts,
   scriptPathsThatDoNotExist,
   scriptTestsNotCovered,
+  shadowingFactories,
+  readSharedFactoryReturnTypes,
+  collectLocalFactories,
   uncoveredScriptTestFiles,
   workspaceScriptTestFiles,
 } from "./test-wiring-inventory";
@@ -183,5 +186,63 @@ describe("repository test wiring", () => {
     expect(scriptPathsThatDoNotExist(rootScripts, existsInRepository)).toEqual(
       [],
     );
+  });
+});
+
+describe("shadowingFactories", () => {
+  const shared = { createMockShell: "MockShell" };
+
+  test("flags a local factory that builds the same type as the shared one", () => {
+    expect(
+      shadowingFactories(
+        [
+          {
+            file: "a/test/x.test.ts",
+            name: "createMockShell",
+            returnType: "MockShell",
+          },
+        ],
+        shared,
+      ),
+    ).toEqual(["a/test/x.test.ts: createMockShell"]);
+  });
+
+  test("ignores a same-named local that builds a different type", () => {
+    expect(
+      shadowingFactories(
+        [
+          {
+            file: "shell/app/test/app.test.ts",
+            name: "createMockShell",
+            returnType: "ShellInstance",
+          },
+        ],
+        shared,
+      ),
+    ).toEqual([]);
+  });
+
+  test("ignores a local factory with no shared counterpart", () => {
+    expect(
+      shadowingFactories(
+        [
+          {
+            file: "a/test/x.test.ts",
+            name: "createPipelineContext",
+            returnType: "X",
+          },
+        ],
+        shared,
+      ),
+    ).toEqual([]);
+  });
+});
+
+describe("repository mock factories", () => {
+  test("no test file redefines a shared factory", () => {
+    const shared = readSharedFactoryReturnTypes(repositoryRoot);
+    const locals = collectLocalFactories(repositoryRoot);
+
+    expect(shadowingFactories(locals, shared)).toEqual([]);
   });
 });

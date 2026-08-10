@@ -8,6 +8,7 @@
  */
 
 import { Glob } from "bun";
+import { readFileSync } from "node:fs";
 import { readFile, readdir } from "node:fs/promises";
 import { join } from "node:path";
 import { getPackages } from "@manypkg/get-packages";
@@ -200,4 +201,73 @@ function relativeTo(repositoryRoot: string, absolutePath: string): string {
   return absolutePath.startsWith(`${repositoryRoot}/`)
     ? absolutePath.slice(repositoryRoot.length + 1)
     : absolutePath;
+}
+
+export interface LocalFactory {
+  /** Repository-relative file the factory is declared in. */
+  file: string;
+  name: string;
+  /** Declared return type, as written. */
+  returnType: string;
+}
+
+/**
+ * Local factories that shadow a shared one *and* claim to build the same type.
+ *
+ * Name alone is the wrong test. Several packages legitimately declare a
+ * `createMockShell` or `createMockEntityService` that builds something else
+ * entirely — `ShellInstance`, or a narrow package-local interface — and a
+ * thin wrapper around a shared factory is fine too, as long as it does not
+ * take the shared name. Only a same-name, same-return-type declaration is a
+ * second definition of the same thing.
+ */
+export function shadowingFactories(
+  locals: LocalFactory[],
+  sharedReturnTypes: Record<string, string>,
+): string[] {
+  return locals
+    .filter((local) => sharedReturnTypes[local.name] === local.returnType)
+    .map((local) => `${local.file}: ${local.name}`)
+    .sort();
+}
+
+/** Return types of the `create*` factories `@brains/test-utils` exports. */
+export function readSharedFactoryReturnTypes(
+  repositoryRoot: string,
+): Record<string, string> {
+  const dir = join(repositoryRoot, "shared", "test-utils", "src");
+  const sources = Array.from(new Glob("*.ts").scanSync({ cwd: dir })).map(
+    (file) => readFileSync(join(dir, file), "utf8"),
+  );
+  return Object.fromEntries(
+    sources.flatMap((source) =>
+      Array.from(
+        source.matchAll(
+          /export function (create[A-Za-z]+)\([\s\S]*?\)\s*:\s*([A-Za-z<>[\]| ]+?)\s*\{/g,
+        ),
+        (match) => [match[1] ?? "", (match[2] ?? "").trim()],
+      ),
+    ),
+  );
+}
+
+/** `create*` factories declared inside test files, with their return types. */
+export function collectLocalFactories(repositoryRoot: string): LocalFactory[] {
+  const files = Array.from(
+    new Glob(
+      "{shell,shared,plugins,interfaces,entities,packages}/*/test/**/*.test.{ts,tsx}",
+    ).scanSync({ cwd: repositoryRoot }),
+  );
+  return files.flatMap((file) =>
+    Array.from(
+      readFileSync(join(repositoryRoot, file), "utf8").matchAll(
+        /^\s*(?:export\s+)?function (create[A-Za-z]+)\([\s\S]*?\)\s*:\s*([A-Za-z<>[\]| ]+?)\s*\{/gm,
+      ),
+      (match): LocalFactory => ({
+        file,
+        name: match[1] ?? "",
+        returnType: (match[2] ?? "").trim(),
+      }),
+    ),
+  );
 }

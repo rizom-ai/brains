@@ -59,7 +59,7 @@ interface EntityServiceOverrides {
   }) => Promise<EntityMutationResult>;
 }
 
-function createMockEntityService(
+function createEntityServiceWith(
   overrides: EntityServiceOverrides = {},
 ): IEntityService {
   const base = createSharedEntityService({
@@ -113,7 +113,7 @@ describe("stock-photo tools", () => {
 
   beforeEach(() => {
     provider = createMockProvider();
-    entityService = createMockEntityService();
+    entityService = createEntityServiceWith();
     enqueuedJobs = [];
     jobs = {
       enqueue: async (request): Promise<string> => {
@@ -299,7 +299,7 @@ describe("stock-photo tools", () => {
     });
 
     it("should reuse existing image entity by sourceUrl", async () => {
-      entityService = createMockEntityService({
+      entityService = createEntityServiceWith({
         listEntities: async () => [
           createTestEntity<BaseEntity>("image", {
             id: "existing-id",
@@ -329,7 +329,7 @@ describe("stock-photo tools", () => {
     it("should report cover as pending when queuing with a target entity", async () => {
       let updatedEntity: unknown;
 
-      entityService = createMockEntityService({
+      entityService = createEntityServiceWith({
         createEntity: async () => ({
           entityId: "abc123",
           jobId: "job-1",
@@ -385,7 +385,7 @@ describe("stock-photo tools", () => {
     it("should set cover image immediately when the photo already exists", async () => {
       let updatedEntity: { metadata?: Record<string, unknown> } | undefined;
 
-      entityService = createMockEntityService({
+      entityService = createEntityServiceWith({
         listEntities: async () => [
           createTestEntity<BaseEntity>("image", {
             id: "existing-id",
@@ -444,7 +444,7 @@ describe("stock-photo tools", () => {
     });
 
     it("should report cover as not set when the photo exists but the target is missing", async () => {
-      entityService = createMockEntityService({
+      entityService = createEntityServiceWith({
         listEntities: async () => [
           createTestEntity<BaseEntity>("image", {
             id: "existing-id",

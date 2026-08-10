@@ -77,7 +77,7 @@ function createCardFetch(cardEndpointUrl: string): ReturnType<typeof mock> {
  * Serve reads from a caller-supplied map. Everything else comes from the
  * shared factory, so this cannot fall behind the entity-service interface.
  */
-function createMockEntityService(
+function createEntityServiceFrom(
   entities: Map<string, BaseEntity>,
 ): ICoreEntityService {
   return createSharedEntityService({
@@ -121,7 +121,7 @@ describe("agent_call agent resolution", () => {
     const fetchFn = createMockFetch();
     const tool = createAgentCallTool({
       fetch: fetchFn,
-      entityService: createMockEntityService(entities),
+      entityService: createEntityServiceFrom(entities),
     });
 
     const result = await tool.handler(
@@ -152,7 +152,7 @@ describe("agent_call agent resolution", () => {
     const fetchFn = createMockFetch();
     const tool = createAgentCallTool({
       fetch: fetchFn,
-      entityService: createMockEntityService(entities),
+      entityService: createEntityServiceFrom(entities),
     });
 
     const result = await tool.handler(
@@ -182,7 +182,7 @@ describe("agent_call agent resolution", () => {
     const fetchFn = createMockFetch();
     const tool = createAgentCallTool({
       fetch: fetchFn,
-      entityService: createMockEntityService(entities),
+      entityService: createEntityServiceFrom(entities),
     });
 
     const result = await tool.handler(
@@ -213,7 +213,7 @@ describe("agent_call agent resolution", () => {
     const fetchFn = createMockFetch();
     const tool = createAgentCallTool({
       fetch: fetchFn,
-      entityService: createMockEntityService(entities),
+      entityService: createEntityServiceFrom(entities),
     });
 
     const result = await tool.handler(
@@ -233,7 +233,7 @@ describe("agent_call agent resolution", () => {
     const fetchFn = createMockFetch();
     const tool = createAgentCallTool({
       fetch: fetchFn,
-      entityService: createMockEntityService(new Map()),
+      entityService: createEntityServiceFrom(new Map()),
     });
 
     const result = await tool.handler(
@@ -265,7 +265,7 @@ describe("agent_call agent resolution", () => {
     const fetchFn = createMockFetch();
     const tool = createAgentCallTool({
       fetch: fetchFn,
-      entityService: createMockEntityService(new Map()),
+      entityService: createEntityServiceFrom(new Map()),
     });
 
     const result = await tool.handler(
@@ -287,7 +287,7 @@ describe("agent_call agent resolution", () => {
     const fetchFn = createMockFetch();
     const tool = createAgentCallTool({
       fetch: fetchFn,
-      entityService: createMockEntityService(new Map()),
+      entityService: createEntityServiceFrom(new Map()),
     });
 
     const result = await tool.handler(
@@ -315,7 +315,7 @@ describe("agent_call agent resolution", () => {
     const fetchFn = createCardFetch("http://localhost:8080/a2a");
     const tool = createAgentCallTool({
       fetch: fetchFn,
-      entityService: createMockEntityService(new Map()),
+      entityService: createEntityServiceFrom(new Map()),
     });
 
     const result = await tool.handler(
@@ -335,7 +335,7 @@ describe("agent_call agent resolution", () => {
     const fetchFn = createCardFetch("https://attacker.example/a2a");
     const tool = createAgentCallTool({
       fetch: fetchFn,
-      entityService: createMockEntityService(new Map()),
+      entityService: createEntityServiceFrom(new Map()),
     });
 
     const result = await tool.handler(
@@ -369,7 +369,7 @@ describe("agent_call agent resolution", () => {
     const fetchFn = createCardFetch("http://localhost:8080/a2a");
     const tool = createAgentCallTool({
       fetch: fetchFn,
-      entityService: createMockEntityService(entities),
+      entityService: createEntityServiceFrom(entities),
     });
 
     const result = await tool.handler(
@@ -403,7 +403,7 @@ describe("agent_call agent resolution", () => {
     const fetchFn = createCardFetch("https://attacker.example/a2a");
     const tool = createAgentCallTool({
       fetch: fetchFn,
-      entityService: createMockEntityService(entities),
+      entityService: createEntityServiceFrom(entities),
     });
 
     const result = await tool.handler(
@@ -422,7 +422,7 @@ describe("agent_call agent resolution", () => {
     const fetchFn = createMockFetch();
     const tool = createAgentCallTool({
       fetch: fetchFn,
-      entityService: createMockEntityService(new Map()),
+      entityService: createEntityServiceFrom(new Map()),
     });
 
     const result = await tool.handler(
