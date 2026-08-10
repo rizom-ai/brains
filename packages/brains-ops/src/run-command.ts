@@ -37,6 +37,7 @@ import { verifyPilotUser } from "./verify-user";
 import type {
   cleanupDirectorySyncStress,
   runDeployedDirectorySyncStress,
+  verifyDirectorySyncStressAccess,
 } from "./directory-sync-stress-system";
 
 export interface CommandResult {
@@ -53,6 +54,8 @@ export interface CommandDependencies extends LoadPilotRegistryOptions {
   bootstrapRunCommand?: OpsRunCommand | undefined;
   sshKeygen?: SshKeygen | undefined;
   directorySyncStressRunner?: typeof runDeployedDirectorySyncStress | undefined;
+  directorySyncStressAccessRunner?:
+    typeof verifyDirectorySyncStressAccess | undefined;
   directorySyncStressCleanupRunner?:
     typeof cleanupDirectorySyncStress | undefined;
 }
@@ -426,6 +429,49 @@ const directorySyncStress: OpsCommand = defineCommand({
   },
 });
 
+const directorySyncStressAccess: OpsCommand = defineCommand({
+  name: "stress:directory-sync:verify-access",
+  usage: "<repo> <handle> --confirm stress:<handle> [--artifacts-dir <path>]",
+  description: "Verify smoke stress credentials without remote writes",
+  flags: {
+    confirm: {
+      type: "string",
+      placeholder: "stress:<handle>",
+      description: "Explicit smoke target confirmation",
+    },
+    "artifacts-dir": {
+      type: "string",
+      placeholder: "<path>",
+      description: "Directory for the access-check result",
+    },
+  },
+  run: async ({ args, flags }, dependencies): Promise<CommandResult> => {
+    const repo = args[0];
+    const handle = args[1];
+    const confirmation = getStringFlag(flags, "confirm");
+    if (!repo || !handle || !confirmation) {
+      return usageFailure(directorySyncStressAccess);
+    }
+
+    const runner =
+      dependencies.directorySyncStressAccessRunner ??
+      (await import("./directory-sync-stress-system"))
+        .verifyDirectorySyncStressAccess;
+    const artifactsDir = getStringFlag(flags, "artifacts-dir");
+    const result = await runner({
+      rootDir: repo,
+      handle,
+      confirmation,
+      ...(artifactsDir ? { artifactsDir } : {}),
+      ...(dependencies.env ? { env: dependencies.env } : {}),
+    });
+    return {
+      success: result.success,
+      message: `Verified directory-sync stress access for ${handle} at ${result.remoteHead}; artifacts: ${result.artifactsDir}`,
+    };
+  },
+});
+
 const directorySyncStressCleanup: OpsCommand = defineCommand({
   name: "stress:directory-sync:cleanup",
   usage: "<repo> <handle> --confirm stress:<handle> [--artifacts-dir <path>]",
@@ -619,6 +665,7 @@ export const commands: readonly CommandDefinition<
   secretsPush,
   secretsEncrypt,
   directorySyncStress,
+  directorySyncStressAccess,
   directorySyncStressCleanup,
   verifyUser,
   reconcileCohortCommand,

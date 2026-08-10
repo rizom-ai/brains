@@ -69,7 +69,14 @@ If any gate fails, disable all three workflows again. Restore the prior pilot de
 
 ## Directory-sync stress gate
 
-Use the manual `Directory Sync Stress` workflow only against a disposable smoke user. It refuses a target unless the handle, domain, and content repository all identify smoke and the confirmation input exactly matches `stress:<handle>`.
+Use the manual `Directory Sync Stress` workflow only against a disposable smoke user. It refuses a target unless the handle, domain, and content repository all identify smoke, the confirmation input exactly matches `stress:<handle>`, and the user desired state declares the hermetic posture below. Reconcile and deploy this posture before running the workload:
+
+```yaml
+embeddingEnabled: false
+topicExtractionEnabled: false
+```
+
+Before authorizing a workload, dispatch the workflow once with `verify_only: true`. That mode loads the same Bitwarden/Varlock content credential, clones the smoke content repository, and runs `git push --dry-run` against a temporary stress ref. It creates no ref, performs no content write, does not contact the deployed runtime, and skips cleanup because no probes were created.
 
 Profiles are deterministic and reversible:
 
@@ -77,7 +84,7 @@ Profiles are deterministic and reversible:
 - `load`: ramps to 350 probes, updates all, renames 100, updates again, then deletes all;
 - `stress`: ramps to 700 probes and renames 200 before cleanup.
 
-The workflow loads operator credentials through Bitwarden/Varlock, but it is separate from Deploy and cannot deploy an image. It creates a rollback branch before the first content write, gates on health timeouts during the monitored workload window, preserves warmup and cleanup samples as evidence, uploads JSON/Markdown/runtime artifacts, and runs an independent idempotent cleanup job with `if: always()`. Once cleanup confirms that no probes remain, it also prunes retained `ops/directory-sync-stress-backup-*` branches; if probes remain, the branches stay available for recovery.
+The workflow loads operator credentials through Bitwarden/Varlock, but it is separate from Deploy and cannot deploy an image. It creates a rollback branch before the first content write, gates on health timeouts, watchdog restarts, and external AI usage during the monitored workload window, preserves warmup and cleanup samples as evidence, uploads JSON/Markdown/runtime artifacts, and runs an independent idempotent cleanup job with `if: always()`. Once cleanup confirms that no probes remain, it also prunes retained `ops/directory-sync-stress-backup-*` branches; if probes remain, the branches stay available for recovery.
 
 Treat any gated health failure, restart, OOM, residual probe, or entity-baseline drift as a failed gate. Do not restart the target during measurement. Recovery is a separate operator action after evidence collection.
 

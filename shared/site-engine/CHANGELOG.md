@@ -1,5 +1,27 @@
 # @brains/site-engine
 
+## 0.2.0-alpha.277
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/image@0.2.0-alpha.277
+  - @brains/site-composition@0.2.0-alpha.277
+  - @brains/ui-library@0.2.0-alpha.277
+  - @brains/utils@0.2.0-alpha.277
+  - @brains/entity-service@0.2.0-alpha.277
+
+## 0.2.0-alpha.276
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/image@0.2.0-alpha.276
+  - @brains/site-composition@0.2.0-alpha.276
+  - @brains/ui-library@0.2.0-alpha.276
+  - @brains/utils@0.2.0-alpha.276
+  - @brains/entity-service@0.2.0-alpha.276
+
 ## 0.2.0-alpha.275
 
 ### Patch Changes

@@ -1,7 +1,7 @@
 {
   "name": "@brains/site-info",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.275",
+  "version": "0.2.0-alpha.277",
   "description": "Site info entity — site metadata, title, description, CTA",
   "dependencies": {
     "@brains/contracts": "workspace:*",

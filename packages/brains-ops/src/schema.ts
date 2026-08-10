@@ -267,6 +267,8 @@ export const userSchema: z.ZodObject<{
   cloudflareZoneId: z.ZodOptional<z.ZodString>;
   contentRepoOverride: z.ZodOptional<z.ZodString>;
   profileKind: z.ZodOptional<typeof profileKindSchema>;
+  embeddingEnabled: z.ZodOptional<z.ZodBoolean>;
+  topicExtractionEnabled: z.ZodOptional<z.ZodBoolean>;
   addOverride: z.ZodOptional<z.ZodArray<z.ZodString>>;
   removeOverride: z.ZodOptional<z.ZodArray<z.ZodString>>;
   siteOverride: z.ZodOptional<typeof siteOverrideSchema>;
@@ -286,6 +288,8 @@ export const userSchema: z.ZodObject<{
   cloudflareZoneId: z.string().min(1).optional(),
   contentRepoOverride: z.string().min(1).optional(),
   profileKind: profileKindSchema.optional(),
+  embeddingEnabled: z.boolean().optional(),
+  topicExtractionEnabled: z.boolean().optional(),
   addOverride: z.array(z.string().min(1)).optional(),
   removeOverride: z.array(z.string().min(1)).optional(),
   siteOverride: siteOverrideSchema.optional(),

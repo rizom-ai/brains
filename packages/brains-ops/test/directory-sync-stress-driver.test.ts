@@ -7,6 +7,7 @@ import {
   cleanupDirectorySyncStress,
   listProbeFiles,
   runDeployedDirectorySyncStress,
+  verifyDirectorySyncStressAccess,
   type DeployedDirectorySyncStressResult,
   type StressCommandOptions,
   type StressCommandResult,
@@ -24,6 +25,8 @@ interface ScriptedSystemOptions {
   warmupFailures?: number;
   renameNoteCounts?: number[];
   rejectRuntimeMonitor?: boolean;
+  runtimeLog?: string;
+  containerStartedAt?: string[];
 }
 
 const environment = {
@@ -47,6 +50,8 @@ contentRepoAdminToken: CONTENT_REPO_ADMIN_TOKEN
 agePublicKey: age1testpublickey
 `,
     "users/smoke.yaml": `handle: smoke
+embeddingEnabled: false
+topicExtractionEnabled: false
 discord:
   enabled: false
 `,
@@ -71,6 +76,7 @@ class ScriptedStressSystem {
   renamePayloadReads = 0;
   private clockMs = Date.parse("2026-08-06T06:00:00.000Z");
   private revParseHeadCalls = 0;
+  private containerInspectCalls = 0;
   private remainingWarmupFailures: number;
   private renameNoteCounts: number[];
 
@@ -273,11 +279,23 @@ class ScriptedStressSystem {
         return ok("rover-web-smoke\n");
       }
       if (remote[0] === "docker" && remote[1] === "inspect") {
+        const startedAt =
+          this.options.containerStartedAt?.[
+            Math.min(
+              this.containerInspectCalls,
+              this.options.containerStartedAt.length - 1,
+            )
+          ] ?? "2026-08-06T05:59:00.000Z";
+        this.containerInspectCalls += 1;
         return ok(
           `${JSON.stringify([
             {
               RestartCount: 0,
-              State: { Status: "running", OOMKilled: false },
+              State: {
+                Status: "running",
+                OOMKilled: false,
+                StartedAt: startedAt,
+              },
             },
           ])}\n`,
         );
@@ -289,7 +307,7 @@ class ScriptedStressSystem {
         return ok("4.25%,12.50%,17\n");
       }
       if (remote[0] === "docker" && remote[1] === "logs") {
-        return ok("runtime evidence\n");
+        return ok(this.options.runtimeLog ?? "runtime evidence\n");
       }
       if (remote[0] === "docker" && remote[1] === "exec") {
         return ok();
@@ -344,6 +362,53 @@ function relevantGitAndSshCalls(calls: CommandCall[]): string[] {
 }
 
 describe("deployed directory-sync stress driver", () => {
+  it("verifies the exact content credential path without writing a remote ref", async () => {
+    const system = new ScriptedStressSystem();
+    const rootDir = await createSmokePilotRepo();
+    const artifactsDir = join(rootDir, "access-artifacts");
+
+    const result = await verifyDirectorySyncStressAccess({
+      rootDir,
+      handle: "smoke",
+      confirmation: "stress:smoke",
+      artifactsDir,
+      env: environment,
+      commandRunner: system.commandRunner,
+      now: system.now,
+    });
+
+    expect(result).toMatchObject({
+      success: true,
+      artifactsDir,
+      target: {
+        handle: "smoke",
+        domain: "smoke.rizom.ai",
+        contentRepo: "rizom-ai/rover-smoke-content",
+      },
+      remoteHead: "baseline-head",
+    });
+    expect(
+      JSON.parse(
+        await readFile(join(artifactsDir, "access-check.json"), "utf8"),
+      ),
+    ).toMatchObject({ success: true, remoteHead: "baseline-head" });
+
+    const clone = system.calls.find(
+      (call) => call.command === "git" && call.args.includes("clone"),
+    );
+    expect(clone?.contentGitTokenConfigured).toBe(true);
+    const pushes = system.calls.filter(
+      (call) => call.command === "git" && call.args[0] === "push",
+    );
+    expect(pushes).toHaveLength(1);
+    expect(pushes[0]?.args).toEqual([
+      "push",
+      "--dry-run",
+      "origin",
+      "HEAD:refs/heads/ops/directory-sync-stress-access-check-20260806060000",
+    ]);
+  });
+
   it("runs the real prepare, monitor, phase, cleanup, and evidence lifecycle", async () => {
     const system = new ScriptedStressSystem();
     const { artifactsDir, result } = await runScriptedProfile(
@@ -402,6 +467,56 @@ describe("deployed directory-sync stress driver", () => {
     );
     expect(backupDeletionIndex).toBeGreaterThan(-1);
     expect(runtimeLogsIndex).toBeGreaterThan(backupDeletionIndex);
+  });
+
+  it("detects a watchdog restart even when Docker RestartCount stays zero", async () => {
+    const system = new ScriptedStressSystem({
+      containerStartedAt: [
+        "2026-08-06T05:59:00.000Z",
+        "2026-08-06T06:05:00.000Z",
+      ],
+    });
+    const { result } = await runScriptedProfile("regression", system);
+
+    expect(result.report.success).toBe(false);
+    expect(result.report.failure).toBe("container: restarted 1 time(s)");
+    expect(result.report.metrics.container?.restartCount).toBe(1);
+  });
+
+  it("fails the hermetic gate when runtime logs contain external AI usage", async () => {
+    const system = new ScriptedStressSystem({
+      runtimeLog:
+        "[2026-08-06T06:01:00.000Z] [EmbeddingJobHandler] ai:usage {\n",
+    });
+    const { result } = await runScriptedProfile("regression", system);
+
+    expect(result.report.success).toBe(false);
+    expect(result.report.failure).toBe("external AI: observed 1 call(s)");
+    expect(result.report.metrics.externalAiCalls).toBe(1);
+  });
+
+  it("refuses a deployed stress run without the hermetic smoke posture", async () => {
+    const system = new ScriptedStressSystem();
+    const rootDir = await createSmokePilotRepo();
+    await writeFile(
+      join(rootDir, "users", "smoke.yaml"),
+      "handle: smoke\ndiscord:\n  enabled: false\n",
+    );
+
+    expect(
+      runDeployedDirectorySyncStress({
+        rootDir,
+        handle: "smoke",
+        profile: "regression",
+        confirmation: "stress:smoke",
+        env: environment,
+        fetchImpl: system.fetchImpl,
+        commandRunner: system.commandRunner,
+        now: system.now,
+        sleep: system.sleep,
+        logger() {},
+      }),
+    ).rejects.toThrow("requires embeddingEnabled: false");
   });
 
   it("excludes tolerated warmup failures from the gate but preserves them as evidence", async () => {

@@ -70,6 +70,7 @@ export interface StressContainerState {
 export interface StressMetrics {
   health: StressHealthSample[];
   runtime: StressRuntimeSample[];
+  externalAiCalls?: number | undefined;
   container?: StressContainerState | undefined;
 }
 
@@ -153,6 +154,7 @@ export const stressCleanupResultSchema: z.ZodType<StressCleanupResult> =
 export const stressMetricsSchema: z.ZodType<StressMetrics> = z.object({
   health: z.array(stressHealthSampleSchema),
   runtime: z.array(stressRuntimeSampleSchema),
+  externalAiCalls: z.number().int().nonnegative().optional(),
   container: z
     .object({
       status: z.string(),
@@ -407,6 +409,10 @@ export function stressMetricsFailure(
   const healthFailure = metrics.health.find((sample) => !sample.ok);
   if (healthFailure) {
     return `health: ${healthFailure.endpoint} unavailable`;
+  }
+  const externalAiCalls = metrics.externalAiCalls ?? 0;
+  if (externalAiCalls > 0) {
+    return `external AI: observed ${externalAiCalls} call(s)`;
   }
   if (metrics.container?.oomKilled) {
     return "container: OOM killed";

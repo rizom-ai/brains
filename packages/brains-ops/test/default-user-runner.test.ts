@@ -62,6 +62,21 @@ describe("createDefaultUserRunner", () => {
     expect(result.brainYaml).not.toContain("kind: professional");
   });
 
+  it("renders a hermetic directory-sync performance posture", async () => {
+    const runner = createDefaultUserRunner("rizom-ai");
+
+    const result = await runner({
+      ...baseUser,
+      embeddingEnabled: false,
+      topicExtractionEnabled: false,
+    });
+
+    expect(result.brainYaml).toContain("embedding:\n  enabled: false");
+    expect(result.brainYaml).toContain(
+      "  topics:\n    enableAutoExtraction: false",
+    );
+  });
+
   it("renders the atproto block with the owner's account DID for handle verification", async () => {
     const runner = createDefaultUserRunner("rizom-ai");
 

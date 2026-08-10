@@ -1,5 +1,17 @@
 # @brains/ops
 
+## 0.2.0-alpha.277
+
+### Patch Changes
+
+- [#106](https://github.com/rizom-ai/brains/pull/106) [`f8ffa2d`](https://github.com/rizom-ai/brains/commit/f8ffa2d99fe99e19cec1c94d0f1625b5e738d1c8) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add a write-free directory-sync stress credential check and a workflow `verify_only` mode that proves clone and dry-run push access without starting a workload.
+
+## 0.2.0-alpha.276
+
+### Patch Changes
+
+- [#105](https://github.com/rizom-ai/brains/pull/105) [`70417e7`](https://github.com/rizom-ai/brains/commit/70417e783af34ef9c946a4a234195266e119a7cb) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Make deployed directory-sync gates hermetic by requiring embeddings and automatic topic extraction to be disabled, failing on observed external AI usage, and detecting watchdog-driven container restarts through the container start time even when Docker reports a zero restart count.
+
 ## 0.2.0-alpha.275
 
 ## 0.2.0-alpha.274
