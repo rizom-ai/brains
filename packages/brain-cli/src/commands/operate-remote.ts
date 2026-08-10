@@ -3,7 +3,37 @@ import type { MCPClient } from "../lib/mcp-client";
 import { getErrorMessage } from "@brains/utils/error";
 
 /** A single tool from the MCP listTools response. */
-type RemoteTool = Awaited<ReturnType<MCPClient["listTools"]>>[number];
+export type RemoteTool = Awaited<ReturnType<MCPClient["listTools"]>>[number];
+
+/**
+ * The subset of `MCPClient` that `operateRemote` actually uses.
+ *
+ * Declared structurally so tests can supply an honest fake without casting
+ * or replacing the module.
+ */
+export interface RemoteToolClient {
+  connect(): Promise<void>;
+  close(): Promise<void>;
+  listTools(): Promise<RemoteTool[]>;
+  callTool(name: string, input: Record<string, unknown>): Promise<string>;
+}
+
+/** Builds the client `operateRemote` talks to. Injected so tests can fake it. */
+export type RemoteToolClientFactory = (
+  url: string,
+  token: string | undefined,
+) => Promise<RemoteToolClient>;
+
+/**
+ * Default factory: imports the MCP SDK lazily.
+ *
+ * The dynamic import keeps `@modelcontextprotocol/sdk` off the startup path
+ * for every CLI invocation that never goes remote — do not hoist it.
+ */
+const createMCPClient: RemoteToolClientFactory = async (url, token) => {
+  const { MCPClient: ClientClass } = await import("../lib/mcp-client");
+  return new ClientClass(url, token);
+};
 
 /**
  * Find a remote tool by CLI command name.
@@ -83,9 +113,9 @@ export async function operateRemote(
   args: string[],
   flags: Record<string, unknown>,
   token: string | undefined,
+  createClient: RemoteToolClientFactory = createMCPClient,
 ): Promise<CommandResult> {
-  const { MCPClient: ClientClass } = await import("../lib/mcp-client");
-  const client = new ClientClass(url, token);
+  const client = await createClient(url, token);
 
   try {
     await client.connect();
