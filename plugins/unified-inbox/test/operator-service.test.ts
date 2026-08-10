@@ -25,6 +25,7 @@ function attentionItem(
     id: "mail-opaque",
     title: "Time-sensitive work request",
     summary: "A project contact asks for a decision this week.",
+    contact: { label: "Sam Rivera · acme.io", personId: "prsn_sam" },
     receivedAt,
     urgency: "high",
     actions,
@@ -70,7 +71,11 @@ describe("InboxOperatorService", () => {
     expect(result.entries).toHaveLength(1);
     expect(result.entries[0]).toMatchObject({
       source: { sourceId: "mail-items", displayName: "Email Triage" },
-      item: { id: "mail-opaque", urgency: "high" },
+      item: {
+        id: "mail-opaque",
+        urgency: "high",
+        contact: { label: "Sam Rivera · acme.io", personId: "prsn_sam" },
+      },
     });
     expect(result.errors).toEqual([]);
   });
@@ -216,6 +221,8 @@ describe("InboxOperatorService", () => {
     expect(serialized).not.toContain("private-id");
     expect(serialized).not.toContain("mark-reviewed");
     expect(serialized).not.toContain("decision this week");
+    expect(serialized).not.toContain("Sam Rivera");
+    expect(serialized).not.toContain("prsn_sam");
   });
 
   it("passes the caller to the source so source-owned authorization remains authoritative", async () => {

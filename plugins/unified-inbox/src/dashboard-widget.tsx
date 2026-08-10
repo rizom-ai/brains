@@ -1,4 +1,5 @@
 /** @jsxImportSource preact */
+import type { ServicePluginContext } from "@brains/plugins";
 import {
   KeyValueList,
   WidgetActionLink,
@@ -8,9 +9,7 @@ import {
   WidgetListItem,
   WidgetStatusPill,
   formatDate,
-  type WidgetComponentProps,
-} from "@brains/dashboard";
-import type { ServicePluginContext } from "@brains/plugins";
+} from "@brains/ui-library";
 import { pluralize } from "@brains/utils/string-utils";
 import type { JSX } from "preact";
 import type { InboxOperatorService } from "./operator-service";
@@ -21,9 +20,13 @@ interface InboxDashboardContext {
   dashboard: Pick<ServicePluginContext["dashboard"], "registerWidget">;
 }
 
+interface InboxDashboardWidgetProps {
+  data: unknown;
+}
+
 export function UnifiedInboxDashboardWidget({
   data,
-}: WidgetComponentProps): JSX.Element {
+}: InboxDashboardWidgetProps): JSX.Element {
   const parsed = inboxDashboardDataSchema.safeParse(data);
   if (!parsed.success) {
     return <WidgetEmptyState>Inbox unavailable.</WidgetEmptyState>;

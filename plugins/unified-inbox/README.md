@@ -38,6 +38,7 @@ context.inbox.registerSource({
       id: "item-1",
       title: "Review requested",
       summary: "A content-safe routing summary.",
+      contact: { label: "Sam Rivera · acme.io", personId: "prsn_sam" },
       receivedAt: new Date().toISOString(),
       urgency: "normal",
       entityRef: { entityType: "review-item", entityId: "item-1" },
@@ -50,8 +51,12 @@ context.inbox.registerSource({
 });
 ```
 
-Titles and summaries must be safe for browser and notification transport. Do not include
-message bodies, secrets, or unnecessary raw addresses.
+Titles, summaries, and contact labels must be safe for browser transport. `contact` is a
+structured person relationship rather than a presentation byline: `label` is bounded
+recognizable text, while optional `personId` is the stable local Auth person key. In the
+CMS, a resolved person links through the registered Admin interaction; unresolved contacts
+remain plain text. Dashboard and digest projections omit contact labels and identifiers.
+Do not include message bodies, secrets, or unnecessary raw addresses.
 
 ## Configuration
 

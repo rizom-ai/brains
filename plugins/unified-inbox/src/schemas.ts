@@ -135,10 +135,30 @@ export const inboxSourceAvailabilitySchema: z.ZodType<
   available: z.boolean(),
 });
 
+interface InboxWorkspaceEntryValue extends InboxProjectionEntryValue {
+  contactHref?: string | undefined;
+}
+
+const inboxContactHrefSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(2_048)
+  .refine(isSafeSameOriginPath, { message: "Invalid contact target" });
+
+export const inboxWorkspaceEntrySchema: z.ZodType<
+  InboxWorkspaceEntryValue,
+  InboxWorkspaceEntryValue
+> = z.strictObject({
+  source: inboxSourceMetadataSchema,
+  item: inboxItemSchema,
+  contactHref: inboxContactHrefSchema.optional(),
+});
+
 interface InboxWorkspaceSnapshotValue {
   summary: { open: number; high: number };
   sources: InboxSourceAvailabilityValue[];
-  entries: InboxProjectionEntryValue[];
+  entries: InboxWorkspaceEntryValue[];
   errors: InboxSourceErrorValue[];
   total: number;
   offset: number;
@@ -154,7 +174,7 @@ export const inboxWorkspaceSnapshotSchema: z.ZodType<
     high: z.number().int().nonnegative(),
   }),
   sources: z.array(inboxSourceAvailabilitySchema).max(1_000),
-  entries: z.array(inboxProjectionEntrySchema).max(100),
+  entries: z.array(inboxWorkspaceEntrySchema).max(100),
   errors: z.array(inboxSourceErrorSchema).max(1_000),
   total: z.number().int().nonnegative(),
   offset: z.number().int().nonnegative(),
@@ -293,12 +313,32 @@ export const inboxListToolOutputSchema: z.ZodType<
   ListToolOutput<InboxListResultValue>
 > = createListToolOutputSchema(inboxListResultSchema);
 
+function isSafeSameOriginPath(value: string): boolean {
+  if (
+    !value.startsWith("/") ||
+    value.startsWith("//") ||
+    value.includes("\\") ||
+    /[\p{Cc}\p{Cf}]/u.test(value)
+  ) {
+    return false;
+  }
+  try {
+    return (
+      new URL(value, "https://brains.invalid").origin ===
+      "https://brains.invalid"
+    );
+  } catch {
+    return false;
+  }
+}
+
 export type InboxProjectionEntry = z.output<typeof inboxProjectionEntrySchema>;
 export type InboxSourceError = z.output<typeof inboxSourceErrorSchema>;
 export type InboxProjection = z.output<typeof inboxProjectionSchema>;
 export type InboxListFilter = z.output<typeof inboxListFilterSchema>;
 export type InboxListResult = z.output<typeof inboxListResultSchema>;
 export type InboxWorkspaceQuery = z.output<typeof inboxWorkspaceQuerySchema>;
+export type InboxWorkspaceEntry = z.output<typeof inboxWorkspaceEntrySchema>;
 export type InboxSourceAvailability = z.output<
   typeof inboxSourceAvailabilitySchema
 >;

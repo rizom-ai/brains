@@ -13,6 +13,7 @@ export interface AdminShellOptions {
   routePath: string;
   userId: string;
   displayName: string;
+  initialPersonId?: string | undefined;
   role: AuthAdminRole;
   isAnchor: boolean;
   brainName: string;
@@ -77,6 +78,7 @@ ${CONSOLE_THEME_CSS}
       id="root"
       data-people-root
       data-people-user-id="${escapeAttribute(options.userId)}"
+      ${options.initialPersonId ? `data-people-person="${escapeAttribute(options.initialPersonId)}"` : ""}
       data-people-role="${options.role}"
       data-people-is-anchor="${String(options.isAnchor)}"
       data-people-brain-name="${escapeAttribute(options.brainName)}"

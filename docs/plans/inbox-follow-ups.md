@@ -2,9 +2,9 @@
 
 ## Status
 
-**Proposed.** Builds directly on the shipped unified inbox (contract, CMS
-workspace, digest — branch `feat/unified-inbox-surfaces`). Requires review
-before implementation. UX mockup:
+**Active.** Builds directly on the shipped unified inbox (contract, CMS
+workspace, digest — branch `feat/unified-inbox-surfaces`). Phase 0a is
+implemented; Phases 0b–6 remain planned. UX mockup:
 [inbox-follow-ups-mockup.html](./inbox-follow-ups-mockup.html).
 
 ## Goal
@@ -14,9 +14,11 @@ affordance on an item is a resolution transition (mark reviewed, mark handled,
 archive) — the only thing an operator can do with attention is dismiss it.
 Different items must lead to different next activities: discuss a mail with
 the brain, capture an idea as a note, draft a reply, review a candidate. At
-the same time, the CMS stops presenting two open-attention surfaces: with one
-source registered, the Inbox workspace and the default-new view of the Email
-Triage workspace show the same arrivals with different chrome.
+the same time, recognized mail senders remain connected to their People
+identity instead of becoming a decorative byline, and the CMS stops presenting
+two open-attention surfaces: with one source registered, the Inbox workspace
+and the default-new view of the Email Triage workspace show the same arrivals
+with different chrome.
 
 ## What exists today (fact-check)
 
@@ -42,11 +44,17 @@ Triage workspace show the same arrivals with different chrome.
   in its high-priority, needs-reply, and unclassified counts. Those counts do
   not describe the new-only Inbox projection and cannot keep their current
   definitions when the widget retargets the Inbox.
-- Mail items carry no operator-recognizable sender: `source.senderKey` is a
+- Mail items carry no operator-recognizable contact: `source.senderKey` is a
   hash and `organization` is optional, so the title must carry all context.
-  The parsed inbound envelope already has a display name and the projection
-  already derives a domain. A hashed `threadKey` exists in frontmatter but is
-  not indexed metadata and has no bounded position lookup.
+  Inbound intake already asks Auth to resolve the parsed sender address and the
+  projection persists a resolved `source.personId`, but the recognizable label
+  and person relationship do not reach the Inbox contract or UI. Mixed-case
+  sender addresses resolve correctly today, but only incidentally: the email
+  address parser lowercases before the lookup, while `createExternalActorId`
+  hashes its input verbatim and Auth's stored hash requires the lowercased
+  identity key. Nothing pins that agreement — normalization belongs at the
+  hash boundary, with a regression test. A hashed `threadKey` exists in
+  frontmatter but is not indexed metadata and has no bounded position lookup.
 - The current IMAP `sourceRef` is a one-way SHA-256 hash of mailbox,
   UIDVALIDITY, and UID. The email interface stores no corresponding locator,
   so refs written before a locator store exists cannot be resolved on demand.
@@ -158,12 +166,40 @@ Triage workspace show the same arrivals with different chrome.
    URL. This is a deliberate reduction from the old reviewed-item desk, not a
    claim that the collection already has equivalent filters.
 
-8. **Mail recognition is deterministic.** The projection builder, not the
-   classifier, derives optional `senderLabel` from the parsed sender display
-   name and already-derived domain. It strips controls, rejects address-shaped
-   display names and `@`, never uses the local part, and falls back to the
-   domain alone. The field is bounded and schema-validated, including the
-   unclassified fallback path.
+8. **Mail recognition preserves contact identity.** A sender is not flattened
+   into a generic presentation byline. `InboxItem` instead gains the bounded,
+   strict optional contact shape `contact?: { label, personId? }`. `personId`
+   is the stable local Auth person key used by the People surface; Auth's
+   optional cross-system `canonicalId` remains attribution metadata and is not
+   substituted for that local lookup key.
+
+   Intake normalizes the parsed address with `trim().toLowerCase()` before
+   building the hashed `email:<address>` external actor ID. Auth resolves that
+   hash only through a non-revoked, verified email identity belonging to an
+   active person. A resolved principal contributes `personId` and Auth's
+   resolved display name to the transient inbound attribution. Unknown,
+   asserted-only, revoked, or inactive identities remain unresolved: inbound
+   mail never creates a person and no display-name, domain, classifier, or AI
+   heuristic may infer one.
+
+   The projection builder, not the classifier, persists optional
+   `senderLabel`. For a resolved sender it prefers the Auth display name; for
+   an unresolved sender it uses the parsed display name. In both cases it
+   strips controls, rejects address-shaped names and `@`, never uses the local
+   part, appends the already-derived domain when a safe name exists, and falls
+   back to the domain alone. The field is bounded and schema-validated in both
+   classified and unclassified paths. The mail Inbox source maps
+   `senderLabel` plus `source.personId` to `contact`; it does not expose the
+   sender address or sender hash.
+
+   A resolved contact is also connectable. At request time, the CMS resolves
+   the registered Admin interaction, adds only the local person key with the URL
+   API as `person=<personId>`, and revalidates the final same-origin target. The
+   Admin surface owns that query contract and opens its People view with the
+   exact matching person selected; an unknown or malformed person value is
+   ignored. Missing Admin registration or an unresolved sender leaves the
+   label as plain text; the Inbox never guesses `/admin`, places an address in
+   the URL, or links a domain-only fallback.
 
    Thread position is an independent optional slice. Phase 0b adds a durable,
    content-safe `source.threadOrdinal` to mail-item frontmatter and copies the
@@ -218,13 +254,16 @@ Triage workspace show the same arrivals with different chrome.
     The email interface exposes a typed request/response handler on the
     existing in-memory app message bus in the web runtime, where interface and
     service plugins coexist. The request carries the authenticated actor and
-    the interface independently enforces Admin. Worker boots exclude interface
-    plugins, so worker registration must not expose source-dependent detail or
-    drafting handlers; original content never crosses process IPC or enters a
-    job payload. The CMS detail request and reply-draft generation execute in
-    the web process. A future worker-side consumer requires a separate IPC
-    design and review. This plan owns the locator and source-read contract;
-    reply drafting and future web-side consumers import that one contract.
+    the interface independently enforces Admin. The invariant is stated
+    without assuming a particular process model: the source-read handler is
+    registered only where interface plugins run, and any boot that excludes
+    interface plugins — present or future worker processes — must not gain a
+    source-dependent detail or drafting handler; original content never
+    crosses process IPC or enters a job payload. The CMS detail request and
+    reply-draft generation execute in the web process. A future worker-side
+    consumer requires a separate IPC design and review. This plan owns the
+    locator and source-read contract; reply drafting and future web-side
+    consumers import that one contract.
 
 ## Out of scope
 
@@ -234,6 +273,9 @@ Triage workspace show the same arrivals with different chrome.
   snooze. An item leaves only through source-owned resolution.
 - **No per-item chat binding.** Discuss starts an ordinary conversation; the
   inbox does not track or display its transcript.
+- **No automatic contact creation or fuzzy reconciliation.** Unknown senders
+  stay unresolved until a verified Auth identity exists; names, domains,
+  classifications, and model output never create or merge People records.
 - **Reply drafting itself** — delivered by
   [email-reply-drafting.md](./email-reply-drafting.md); this plan renders its
   registered entry point and owns the shared source-read primitive.
@@ -248,13 +290,22 @@ Triage workspace show the same arrivals with different chrome.
 
 Tests are written first inside each phase.
 
-- **Phase 0a — Recognizable senders.** Projection derives `senderLabel`;
-  mail-item schema gains the optional field; rows and detail render it. This
-  is the smallest slice that addresses the stated context gap and ships
-  independently. _Tests:_ name + domain and domain-only fallbacks; controls,
-  `@`, full addresses, and local parts rejected; unclassified path;
-  wire/domain decision unchanged; absent field renders nothing; digest stays
-  titles-only.
+- **Phase 0a — Recognizable, connected senders (implemented).** Normalize hashed email
+  identity lookup, carry resolved Auth attribution into the projection, derive
+  `senderLabel`, and add the structured Inbox `contact` contract. Rows and
+  detail render the contact; a resolved `personId` opens the exact person at
+  the registered Admin interaction, while unresolved contacts remain plain
+  text. This slice ships independently and does not alter classification.
+  _Tests:_ mixed-case addresses resolve the same verified identity; unbound,
+  asserted-only, revoked, and inactive identities do not resolve or create a
+  person; the resolver request contains no raw address; Auth's resolved display
+  name wins for a resolved sender; parsed name-and-domain and domain-only
+  fallbacks; controls, `@`, full addresses, and local parts rejected;
+  classified and unclassified paths; contact schema bounds; wire/domain
+  classification decision unchanged; exact-person deep link at a non-default
+  Admin mount; malformed or unknown person queries are ignored; missing Admin
+  and unresolved contacts render no link or placeholder; digest and Dashboard
+  remain free of contact labels and identifiers.
 - **Phase 0b — Thread position.** Mail-item frontmatter gains optional
   `source.threadOrdinal`, indexed metadata gains `threadKey` and
   `threadOrdinal`, and the shared coordinator gates migration, ingress

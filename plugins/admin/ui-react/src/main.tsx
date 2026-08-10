@@ -8,9 +8,11 @@ const root = document.querySelector<HTMLElement>("[data-people-root]");
 if (!root) throw new Error("People root element not found");
 
 const bootstrapRole = root.dataset["peopleRole"];
+const initialPersonId = root.dataset["peoplePerson"];
 const bootstrap: PeopleBootstrap = {
   userId: root.dataset["peopleUserId"] ?? "",
   displayName: root.dataset["peopleName"] ?? "Authenticated",
+  ...(initialPersonId ? { initialPersonId } : {}),
   role:
     bootstrapRole === "admin" ||
     bootstrapRole === "trusted" ||

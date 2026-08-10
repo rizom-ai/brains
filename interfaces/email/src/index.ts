@@ -248,7 +248,10 @@ export class EmailInterface extends MessageInterfacePlugin<
       payload: {
         actor: {
           kind: "external",
-          externalActorId: createExternalActorId("email", address),
+          externalActorId: createExternalActorId(
+            "email",
+            address.trim().toLowerCase(),
+          ),
         },
       },
     });
@@ -263,6 +266,7 @@ export class EmailInterface extends MessageInterfacePlugin<
     return principal
       ? {
           personId: principal.personId,
+          displayName: principal.displayName,
           permissionLevel: principal.permissionLevel,
         }
       : undefined;

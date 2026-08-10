@@ -10,6 +10,7 @@ import {
   inboxActionOutcomeSchema,
   inboxActionRequestSchema,
   inboxWorkspaceQuerySchema,
+  inboxWorkspaceSnapshotSchema,
 } from "./schemas";
 
 export async function registerUnifiedInboxCmsWorkspace(
@@ -27,7 +28,31 @@ export async function registerUnifiedInboxCmsWorkspace(
       assertInboxAdmin(actor);
       const query = inboxWorkspaceQuerySchema.safeParse(input ?? {});
       if (!query.success) throw new Error("Invalid unified inbox query");
-      return operator.workspace(query.data);
+      const [snapshot, appInfo] = await Promise.all([
+        operator.workspace(query.data),
+        context.appInfo(),
+      ]);
+      const adminHref = appInfo.interactions.find(
+        (interaction) =>
+          interaction.id === "admin" &&
+          interaction.kind === "admin" &&
+          interaction.visibility === "admin" &&
+          interaction.status === "available",
+      )?.href;
+      return inboxWorkspaceSnapshotSchema.parse({
+        ...snapshot,
+        entries: snapshot.entries.map((entry) => {
+          const personId = entry.item.contact?.personId;
+          const contactHref =
+            personId && adminHref
+              ? createContactHref(adminHref, personId)
+              : undefined;
+          return {
+            ...entry,
+            ...(contactHref ? { contactHref } : {}),
+          };
+        }),
+      });
     },
     actionHandler: async (input, actor) => {
       assertInboxAdmin(actor);
@@ -59,6 +84,30 @@ export async function registerUnifiedInboxCmsWorkspace(
   };
 
   return registerCmsWorkspace(context, registration);
+}
+
+function createContactHref(
+  registeredHref: string,
+  personId: string,
+): string | undefined {
+  if (
+    registeredHref.length > 2_048 ||
+    !registeredHref.startsWith("/") ||
+    registeredHref.startsWith("//") ||
+    registeredHref.includes("\\") ||
+    /[\p{Cc}\p{Cf}]/u.test(registeredHref)
+  ) {
+    return undefined;
+  }
+  try {
+    const url = new URL(registeredHref, "https://brains.invalid");
+    if (url.origin !== "https://brains.invalid") return undefined;
+    url.searchParams.set("person", personId);
+    const target = `${url.pathname}${url.search}${url.hash}`;
+    return target.length <= 2_048 ? target : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 function assertInboxAdmin(actor: CmsWorkspaceActor): void {

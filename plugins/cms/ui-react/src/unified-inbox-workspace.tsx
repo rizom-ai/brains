@@ -51,6 +51,27 @@ interface InboxFeedback {
   isError: boolean;
 }
 
+export function InboxContact(props: {
+  contact: NonNullable<InboxWorkspaceEntry["item"]["contact"]>;
+  href?: string | undefined;
+  linked?: boolean | undefined;
+}): ReactElement {
+  const label = <span className="inbox-contact">{props.contact.label}</span>;
+  if (!props.linked)
+    return <b className="inbox-contact">{props.contact.label}</b>;
+  if (!props.href) return label;
+  return (
+    <a
+      className="inbox-contact-link"
+      href={props.href}
+      aria-label={`Open contact ${props.contact.label}`}
+    >
+      {label}
+      <i aria-hidden="true">Open contact →</i>
+    </a>
+  );
+}
+
 export function UnifiedInboxWorkspace(props: {
   data: InboxWorkspaceSnapshot;
   query: CmsWorkspaceQuery;
@@ -344,6 +365,11 @@ export function UnifiedInboxWorkspace(props: {
                       </span>
                       <strong>{entry.item.title}</strong>
                       <small>
+                        {entry.item.contact && (
+                          <>
+                            <InboxContact contact={entry.item.contact} /> ·{" "}
+                          </>
+                        )}
                         {entry.source.displayName} ·{" "}
                         {formatUpdated(entry.item.receivedAt)}
                       </small>
@@ -385,7 +411,19 @@ export function UnifiedInboxWorkspace(props: {
                 <h3 ref={detailHeadingRef} tabIndex={-1}>
                   {selected.item.title}
                 </h3>
-                <small>{selected.source.displayName}</small>
+                <small className="inbox-detail-context">
+                  {selected.item.contact && (
+                    <>
+                      <InboxContact
+                        contact={selected.item.contact}
+                        href={selected.contactHref}
+                        linked
+                      />
+                      <span aria-hidden="true">·</span>
+                    </>
+                  )}
+                  <span>{selected.source.displayName}</span>
+                </small>
               </header>
               {selected.item.summary ? (
                 <p className="inbox-detail-summary">{selected.item.summary}</p>

@@ -172,6 +172,7 @@ describe("mail triage operator service", () => {
         needsReply: true,
         receivedAt,
         summary: "Derived summary for matching.",
+        senderLabel: "sender.test",
         requestedActions: ["Review matching"],
       },
     ]);

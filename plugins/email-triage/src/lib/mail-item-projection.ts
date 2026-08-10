@@ -42,6 +42,7 @@ export function createMailItemProjection(
         ...(email.sender?.personId ? { personId: email.sender.personId } : {}),
         ...domainFromAddress(email.from.address),
       },
+      ...senderLabelForEmail(email),
       ...(classification.organization
         ? { organization: classification.organization }
         : {}),
@@ -71,6 +72,7 @@ export function createUnclassifiedMailItemProjection(
         ...(email.sender?.personId ? { personId: email.sender.personId } : {}),
         ...domainFromAddress(email.from.address),
       },
+      ...senderLabelForEmail(email),
       requestedActions: ["Review the original message in the mailbox"],
     },
     "Review the original message in the mailbox.",
@@ -94,6 +96,45 @@ function buildProjection(
     metadata: parsed.metadata,
     visibility: "restricted",
   };
+}
+
+function senderLabelForEmail(email: InboundEmail): {
+  senderLabel?: string;
+} {
+  const domain = domainFromAddress(email.from.address).domain;
+  if (!domain) return {};
+
+  const separator = email.from.address.lastIndexOf("@");
+  const localPart =
+    separator >= 0 ? email.from.address.slice(0, separator).toLowerCase() : "";
+  const displayName = safeSenderName(
+    email.sender?.displayName ?? email.from.name,
+    localPart,
+  );
+  return {
+    senderLabel: displayName ? `${displayName} · ${domain}` : domain,
+  };
+}
+
+function safeSenderName(
+  value: string | undefined,
+  localPart: string,
+): string | undefined {
+  if (!value) return undefined;
+  const normalized = value
+    .normalize("NFKC")
+    .replace(/[\p{Cc}\p{Cf}]/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (
+    !normalized ||
+    normalized.includes("@") ||
+    normalized.toLowerCase() === localPart
+  ) {
+    return undefined;
+  }
+  const bounded = [...normalized].slice(0, 40).join("").trim();
+  return bounded || undefined;
 }
 
 function domainFromAddress(address: string): { domain?: string } {

@@ -54,6 +54,14 @@ function toInboxItem(item: MailTriageListItem): InboxItem {
     id: item.id,
     title: item.title,
     summary: item.summary,
+    ...(item.senderLabel
+      ? {
+          contact: {
+            label: item.senderLabel,
+            ...(item.personId ? { personId: item.personId } : {}),
+          },
+        }
+      : {}),
     receivedAt: item.receivedAt,
     urgency: item.priority === "high" ? "high" : "normal",
     entityRef: { entityType: "mail-item", entityId: item.id },

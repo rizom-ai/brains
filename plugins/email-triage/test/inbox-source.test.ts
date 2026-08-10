@@ -49,9 +49,13 @@ async function persistItem(
     priority: MailPriority;
     receivedAt: string;
     status?: MailStatus;
+    sender?: InboundEmail["sender"];
   },
 ): Promise<string> {
-  const email = inbound(input.id, input.receivedAt);
+  const email = {
+    ...inbound(input.id, input.receivedAt),
+    ...(input.sender ? { sender: input.sender } : {}),
+  };
   const projection = createMailItemProjection(email, {
     decision: "retain",
     title: input.title,
@@ -110,6 +114,11 @@ describe("mail triage inbox source", () => {
       summary: "A project contact asks for a decision this week.",
       priority: "high",
       receivedAt: "2026-08-05T08:00:00.000Z",
+      sender: {
+        personId: "prsn_contact",
+        displayName: "Known Contact",
+        permissionLevel: "trusted",
+      },
     });
     await persistItem(harness, {
       id: "normal",
@@ -139,6 +148,7 @@ describe("mail triage inbox source", () => {
         id: expect.stringMatching(/^mail-[a-f0-9]{64}$/),
         title: "Routine project update",
         summary: "A project contact shared a routine progress update.",
+        contact: { label: "sender.test" },
         receivedAt: "2026-08-05T10:00:00.000Z",
         urgency: "normal",
         entityRef: {
@@ -155,6 +165,10 @@ describe("mail triage inbox source", () => {
         id: expect.stringMatching(/^mail-[a-f0-9]{64}$/),
         title: "Time-sensitive work request",
         summary: "A project contact asks for a decision this week.",
+        contact: {
+          label: "Known Contact · sender.test",
+          personId: "prsn_contact",
+        },
         receivedAt: "2026-08-05T08:00:00.000Z",
         urgency: "high",
         entityRef: {

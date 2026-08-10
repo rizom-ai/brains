@@ -15,6 +15,7 @@ const projection = inboxProjectionSchema.parse({
         id: "mail-high",
         title: "Time-sensitive work request",
         summary: "Private derived detail that must not enter the digest.",
+        contact: { label: "Sam Rivera · acme.io", personId: "prsn_sam" },
         receivedAt: "2026-08-05T10:00:00.000Z",
         urgency: "high",
         actions: [{ id: "archive", label: "Archive" }],
@@ -81,6 +82,8 @@ describe("unified inbox digest", () => {
     expect(serialized).not.toContain(
       "Private derived detail that must not enter the digest.",
     );
+    expect(serialized).not.toContain("Sam Rivera · acme.io");
+    expect(serialized).not.toContain("prsn_sam");
     expect(serialized).not.toContain("Routine project update");
     expect(serialized).not.toContain("mail-high");
     expect(serialized).not.toContain("Archive");

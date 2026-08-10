@@ -29,18 +29,34 @@ const item: InboxItem = {
   id: "mail-1",
   title: "Time-sensitive request",
   summary: "A content-safe routing summary.",
+  contact: { label: "Sam Rivera · acme.io", personId: "prsn_sam/id" },
   receivedAt: "2026-08-08T09:00:00.000Z",
   urgency: "high",
   entityRef: { entityType: "mail-item", entityId: "mail-1" },
   actions: [{ id: "archive", label: "Archive", confirm: true }],
 };
 
-async function setup(options?: { failAction?: boolean }): Promise<{
+async function setup(options?: {
+  failAction?: boolean;
+  adminHref?: string | false;
+}): Promise<{
   workspace: CmsWorkspaceRegistration;
   actors: InboxActor[];
   withdraw(): void;
 }> {
   const shell = createMockShell({ domain: "brain.test" });
+  if (options?.adminHref !== false) {
+    shell.registerInteraction({
+      id: "admin",
+      label: "Admin",
+      description: "Manage people and access.",
+      href: options?.adminHref ?? "/access/people?view=members",
+      kind: "admin",
+      pluginId: "admin",
+      priority: 50,
+      visibility: "admin",
+    });
+  }
   let workspace: CmsWorkspaceRegistration | undefined;
   shell
     .getMessageBus()
@@ -117,12 +133,42 @@ describe("unified inbox CMS registration", () => {
       total: 1,
       offset: 0,
       limit: 1,
-      entries: [{ item: { id: "mail-1" } }],
+      entries: [
+        {
+          item: {
+            id: "mail-1",
+            contact: {
+              label: "Sam Rivera · acme.io",
+              personId: "prsn_sam/id",
+            },
+          },
+          contactHref: "/access/people?view=members&person=prsn_sam%2Fid",
+        },
+      ],
     });
+    expect(
+      inboxWorkspaceSnapshotSchema.safeParse({
+        ...snapshot,
+        entries: [{ ...snapshot.entries[0], contactHref: "https://evil.test" }],
+      }).success,
+    ).toBe(false);
     expect(await fixture.workspace.badgeProvider?.(admin)).toBe(1);
     expect(
       fixture.workspace.dataProvider(admin, { limit: "101" }),
     ).rejects.toThrow("Invalid unified inbox query");
+  });
+
+  it("leaves resolved contacts unlinked when Admin is not registered", async () => {
+    const fixture = await setup({ adminHref: false });
+    const snapshot = inboxWorkspaceSnapshotSchema.parse(
+      await fixture.workspace.dataProvider(admin, {}),
+    );
+
+    expect(snapshot.entries[0]?.item.contact).toEqual({
+      label: "Sam Rivera · acme.io",
+      personId: "prsn_sam/id",
+    });
+    expect(snapshot.entries[0]).not.toHaveProperty("contactHref");
   });
 
   it("server-gates confirmation and re-checks withdrawn actions", async () => {

@@ -6,6 +6,7 @@ import { z } from "@brains/utils/zod";
 import {
   mailCategorySchema,
   mailPrioritySchema,
+  mailSenderLabelSchema,
   mailStatusSchema,
   type MailCategory,
   type MailPriority,
@@ -56,6 +57,8 @@ interface MailTriageListItemValue {
   needsReply: boolean;
   receivedAt: string;
   summary: string;
+  senderLabel?: string | undefined;
+  personId?: string | undefined;
   organization?: string | undefined;
   requestedActions: string[];
 }
@@ -72,6 +75,8 @@ export const mailTriageListItemSchema: z.ZodType<
   needsReply: z.boolean(),
   receivedAt: z.iso.datetime(),
   summary: z.string().min(1).max(1_000),
+  senderLabel: mailSenderLabelSchema.optional(),
+  personId: z.string().min(1).max(200).optional(),
   organization: z.string().min(1).max(200).optional(),
   requestedActions: z.array(z.string().min(1).max(240)).max(10),
 });

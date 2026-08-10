@@ -19,6 +19,7 @@ export type InboundEmailAddress = z.output<typeof inboundEmailAddressSchema>;
 
 interface InboundEmailSenderValue {
   personId: string;
+  displayName: string;
   permissionLevel: "admin" | "trusted" | "public";
 }
 
@@ -26,7 +27,8 @@ export const inboundEmailSenderSchema: z.ZodType<
   InboundEmailSenderValue,
   InboundEmailSenderValue
 > = z.strictObject({
-  personId: z.string().min(1),
+  personId: z.string().min(1).max(200),
+  displayName: z.string().trim().min(1).max(200),
   permissionLevel: z.enum(["admin", "trusted", "public"]),
 });
 

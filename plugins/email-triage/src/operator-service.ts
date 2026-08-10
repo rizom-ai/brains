@@ -208,6 +208,12 @@ function toListItem(rawEntity: MailItemEntity): MailTriageListItem {
     needsReply: frontmatter.needsReply,
     receivedAt: frontmatter.receivedAt,
     summary,
+    ...(frontmatter.senderLabel
+      ? { senderLabel: frontmatter.senderLabel }
+      : {}),
+    ...(frontmatter.source.personId
+      ? { personId: frontmatter.source.personId }
+      : {}),
     ...(frontmatter.organization
       ? { organization: frontmatter.organization }
       : {}),

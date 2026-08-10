@@ -212,6 +212,8 @@ export interface MailTriageListItem {
   needsReply: boolean;
   receivedAt: string;
   summary: string;
+  senderLabel?: string;
+  personId?: string;
   organization?: string;
   requestedActions: string[];
 }
@@ -233,11 +235,13 @@ export interface InboxWorkspaceEntry {
     id: string;
     title: string;
     summary?: string;
+    contact?: { label: string; personId?: string };
     receivedAt: string;
     urgency: "high" | "normal";
     entityRef?: { entityType: string; entityId: string };
     actions: Array<{ id: string; label: string; confirm?: boolean }>;
   };
+  contactHref?: string;
 }
 
 export interface InboxWorkspaceSnapshot {

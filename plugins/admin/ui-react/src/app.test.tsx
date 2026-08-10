@@ -275,6 +275,31 @@ describe("Admin surface", () => {
     expect(html).not.toContain("Representatives");
   });
 
+  it("opens the exact person requested by a registered contact link", () => {
+    const html = renderPeople({
+      bootstrap: { ...admin, initialPersonId: user.personId },
+      initialAnchor: brainAnchor,
+      initialUsers: [user],
+      initialAudit: audit,
+    });
+
+    expect(html).toContain("Mira Reyes");
+    expect(html).toContain("Permission role on this brain");
+    expect(html).toContain("Connected channels");
+  });
+
+  it("ignores an unknown person target", () => {
+    const html = renderPeople({
+      bootstrap: { ...admin, initialPersonId: "per_unknown" },
+      initialAnchor: brainAnchor,
+      initialUsers: [user],
+      initialAudit: audit,
+    });
+
+    expect(html).toContain("Active members");
+    expect(html).not.toContain("Permission role on this brain");
+  });
+
   it("uses People vocabulary only for collective organizations", () => {
     const { personId: _personId, ...collectiveAnchor } = brainAnchor;
     const organizationHtml = renderPeople({

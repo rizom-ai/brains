@@ -52,6 +52,15 @@ export const mailItemSourceSchema: z.ZodType<
   domain: z.string().min(1).max(253).optional(),
 });
 
+export const mailSenderLabelSchema: z.ZodType<string, string> = z
+  .string()
+  .trim()
+  .min(1)
+  .max(300)
+  .refine((value) => !value.includes("@"), {
+    message: "Sender labels must not contain an email address",
+  });
+
 type MailItemFrontmatterSchema = z.ZodObject<{
   title: z.ZodString;
   category: z.ZodDefault<z.ZodNullable<typeof mailCategorySchema>>;
@@ -60,6 +69,7 @@ type MailItemFrontmatterSchema = z.ZodObject<{
   needsReply: z.ZodBoolean;
   receivedAt: ReturnType<typeof z.iso.datetime>;
   source: typeof mailItemSourceSchema;
+  senderLabel: z.ZodOptional<typeof mailSenderLabelSchema>;
   organization: z.ZodOptional<z.ZodString>;
   requestedActions: z.ZodArray<z.ZodString>;
 }>;
@@ -73,6 +83,7 @@ export const mailItemFrontmatterSchema: MailItemFrontmatterSchema =
     needsReply: z.boolean(),
     receivedAt: z.iso.datetime(),
     source: mailItemSourceSchema,
+    senderLabel: mailSenderLabelSchema.optional(),
     organization: z.string().min(1).max(200).optional(),
     requestedActions: z.array(z.string().min(1).max(240)).max(10),
   });

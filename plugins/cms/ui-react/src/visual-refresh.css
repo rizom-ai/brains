@@ -2240,6 +2240,10 @@
   color: var(--console-text-muted);
   font: 8px var(--console-mono);
 }
+.inbox-row .inbox-contact {
+  color: var(--console-text-dim);
+  font-weight: 650;
+}
 .inbox-row > i {
   grid-column: 3;
   grid-row: 1 / 3;
@@ -2327,6 +2331,27 @@
   grid-column: 1 / -1;
   color: var(--console-text-muted);
   font: 9px var(--console-mono);
+}
+.inbox-detail-context {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: baseline;
+}
+.inbox-contact-link {
+  display: inline-flex;
+  gap: 7px;
+  align-items: baseline;
+  color: var(--console-secondary, var(--console-accent));
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+.inbox-contact-link i {
+  color: var(--console-text-muted);
+  font-size: 7px;
+  font-style: normal;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 .inbox-detail-summary {
   max-width: 68ch;

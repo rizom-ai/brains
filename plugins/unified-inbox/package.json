@@ -4,8 +4,8 @@
   "version": "0.2.0-alpha.265",
   "description": "Live aggregation for source-owned operator attention",
   "dependencies": {
-    "@brains/dashboard": "workspace:*",
     "@brains/plugins": "workspace:*",
+    "@brains/ui-library": "workspace:*",
     "@brains/utils": "workspace:*",
     "preact": "^10.27.2"
   },

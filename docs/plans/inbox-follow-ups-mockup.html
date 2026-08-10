@@ -296,6 +296,11 @@
     text-transform: uppercase;
     letter-spacing: 0.08em;
   }
+  .detail .src a {
+    color: var(--accent);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+  }
   .detail .summary {
     margin: 2px 0 4px;
     color: var(--dim);
@@ -358,7 +363,7 @@
     vertical-align: baseline;
   }
 
-  .row .sender {
+  .row .contact {
     color: var(--dim);
     font-weight: 500;
     font-style: normal;
@@ -562,7 +567,7 @@
           <span class="pill high">high</span>
           <strong>Schedule inbox demo walkthrough</strong>
           <small
-            ><b class="sender">Sam Rivera · acme.io</b>
+            ><b class="contact">Sam Rivera · acme.io</b>
             <span class="dot">5</span> · 24 min ago · work</small
           >
           <span class="arrow">→</span>
@@ -571,8 +576,8 @@
           <span class="pill high">high</span>
           <strong>Partnership inquiry from studio collective</strong>
           <small
-            ><b class="sender">M. Okafor · studiocollective.eu</b> · 2 hours ago
-            · opportunity</small
+            ><b class="contact">M. Okafor · studiocollective.eu</b> · 2 hours
+            ago · opportunity</small
           >
           <span class="arrow">→</span>
         </div>
@@ -580,7 +585,7 @@
           <span class="pill">normal</span>
           <strong>Idea: publish the smoke-test rig as a guide</strong>
           <small
-            ><b class="sender">Joanna V. · rizom.ai</b> · yesterday ·
+            ><b class="contact">Joanna V. · rizom.ai</b> · yesterday ·
             work</small
           >
           <span class="arrow">→</span>
@@ -600,8 +605,8 @@
         </div>
         <h3>Schedule inbox demo walkthrough</h3>
         <span class="src"
-          >Sam Rivera · acme.io · message 3 in thread · category work · needs
-          reply</span
+          ><a href="/admin?person=prsn_sam">Sam Rivera · acme.io</a> · message 3
+          in thread · category work · needs reply</span
         >
         <p class="summary">
           The sender requests an urgent demo walkthrough meeting ahead of a
@@ -699,12 +704,15 @@
     <div class="legend-item">
       <span class="dot">5</span>
       <p>
-        <b>Recognizable and connectable mail.</b> The projection derives a
-        sanitized <code>senderLabel</code> from parsed name + domain (never an
-        address) and an idempotent thread ordinal. <b>View original</b> resolves
-        the opaque ref through its private locator, fetches bounded plain text,
-        and renders it once with no-store semantics. The same source-read
-        primitive is consumed by <code>email-reply-drafting.md</code>.
+        <b>Recognizable and connected mail.</b> A verified, normalized email
+        identity becomes a structured Inbox <code>contact</code> with its local
+        Auth <code>personId</code>; the registered Admin interaction opens that
+        exact person. Unknown senders remain sanitized name + domain text, never
+        an address or inferred person. Thread position stays an independent
+        idempotent ordinal. <b>View original</b> resolves the opaque ref through
+        its private locator, fetches bounded plain text, and renders it once
+        with no-store semantics. The same source-read primitive is consumed by
+        <code>email-reply-drafting.md</code>.
       </p>
     </div>
   </section>
