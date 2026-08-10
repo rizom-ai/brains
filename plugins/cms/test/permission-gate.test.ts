@@ -1,6 +1,4 @@
-import { mkdtemp } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { createTempDataDir } from "@brains/plugins/test";
 import { describe, expect, it, spyOn } from "bun:test";
 import { AuthServicePlugin } from "@brains/auth-service";
 import { ServicePlugin, type WebRouteDefinition } from "@brains/plugins";
@@ -173,7 +171,7 @@ function apiRouteRequests(): RouteRequest[] {
 
 async function createSessionMatrix(shell: MockShell): Promise<SessionMatrix> {
   const authPlugin = new AuthServicePlugin({
-    storageDir: await mkdtemp(join(tmpdir(), "brains-cms-permission-gate-")),
+    storageDir: await createTempDataDir("brains-cms-permission-gate-"),
   });
   await authPlugin.register(shell);
   const service = authPlugin.getService();

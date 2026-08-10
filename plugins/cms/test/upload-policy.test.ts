@@ -1,6 +1,6 @@
-import { mkdtemp, readdir } from "node:fs/promises";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { readdir } from "node:fs/promises";
+import { createTempDataDir } from "@brains/plugins/test";
 import { describe, expect, it } from "bun:test";
 import type {
   AppendAuthAuditEventInput,
@@ -34,7 +34,7 @@ async function setup(): Promise<{
   uploadRoute: WebRouteDefinition;
   auditEvents: AppendAuthAuditEventInput[];
 }> {
-  const dataDir = await mkdtemp(join(tmpdir(), "brains-cms-upload-policy-"));
+  const dataDir = await createTempDataDir("brains-cms-upload-policy-");
   const shell = createMockShell({ domain: "yeehaa.io", dataDir });
   const permissions = new PermissionService({
     entityActions: {

@@ -11,7 +11,11 @@ export {
   expectConfirmation,
   type HarnessOptions,
 } from "./src/test/harness";
-export { createTempDataDir, createTempDataDirSync } from "./src/test/temp-dir";
+export {
+  createTempDataDir,
+  createTempDataDirSync,
+  removeTrackedTempDataDirs,
+} from "./src/test/temp-dir";
 
 // Re-export commonly used types and schemas for test convenience
 export type {
