@@ -5,7 +5,7 @@ import type {
   EmbeddingJobData,
   BaseEntity,
 } from "../src/types";
-import { createTestEntity } from "@brains/test-utils";
+import { createMockEntityService, createTestEntity } from "@brains/test-utils";
 import type { ProgressReporter } from "@brains/utils/progress";
 import { computeContentHash } from "@brains/utils/hash";
 import { mockEmbeddingService } from "./helpers/mock-services";
@@ -14,17 +14,14 @@ const mockProgressReporter = {
   report: async () => {},
 } as unknown as ProgressReporter;
 
-function createMockEntityService(overrides: {
-  getEntity: () => Promise<BaseEntity | null>;
-}): { service: IEntityService; storeEmbeddingCalled: () => boolean } {
-  let called = false;
-  const service = {
-    getEntity: overrides.getEntity,
-    storeEmbedding: async () => {
-      called = true;
-    },
-  } as unknown as IEntityService;
-  return { service, storeEmbeddingCalled: () => called };
+/**
+ * The shared factory's members are recording spies, so `storeEmbedding` can be
+ * asserted directly rather than through a hand-rolled call flag.
+ */
+function createEntityServiceStub(
+  getEntity: () => Promise<BaseEntity | null>,
+): IEntityService {
+  return createMockEntityService({ getEntityImpl: getEntity });
 }
 
 describe("EmbeddingJobHandler", () => {
@@ -32,9 +29,7 @@ describe("EmbeddingJobHandler", () => {
 
   describe("CREATE operation handling", () => {
     test("should skip when entity does not exist", async () => {
-      const { service, storeEmbeddingCalled } = createMockEntityService({
-        getEntity: async () => null,
-      });
+      const service = createEntityServiceStub(async () => null);
 
       const handler = EmbeddingJobHandler.createFresh(
         service,
@@ -50,7 +45,7 @@ describe("EmbeddingJobHandler", () => {
 
       await handler.process(jobData, "job-123", mockProgressReporter);
 
-      expect(storeEmbeddingCalled()).toBe(false);
+      expect(service.storeEmbedding).not.toHaveBeenCalled();
     });
 
     test("should process when entity exists and content matches", async () => {
@@ -61,9 +56,7 @@ describe("EmbeddingJobHandler", () => {
         metadata: { coverImageId: "my-cover" },
       });
 
-      const { service, storeEmbeddingCalled } = createMockEntityService({
-        getEntity: async () => currentEntity,
-      });
+      const service = createEntityServiceStub(async () => currentEntity);
 
       const handler = EmbeddingJobHandler.createFresh(
         service,
@@ -79,7 +72,7 @@ describe("EmbeddingJobHandler", () => {
 
       await handler.process(jobData, "job-123", mockProgressReporter);
 
-      expect(storeEmbeddingCalled()).toBe(true);
+      expect(service.storeEmbedding).toHaveBeenCalled();
     });
   });
 
@@ -91,9 +84,7 @@ describe("EmbeddingJobHandler", () => {
         metadata: { coverImageId: "should-be-preserved" },
       });
 
-      const { service, storeEmbeddingCalled } = createMockEntityService({
-        getEntity: async () => currentEntity,
-      });
+      const service = createEntityServiceStub(async () => currentEntity);
 
       const handler = EmbeddingJobHandler.createFresh(
         service,
@@ -109,7 +100,7 @@ describe("EmbeddingJobHandler", () => {
 
       await handler.process(jobData, "job-123", mockProgressReporter);
 
-      expect(storeEmbeddingCalled()).toBe(false);
+      expect(service.storeEmbedding).not.toHaveBeenCalled();
     });
 
     test("should process when entity content matches", async () => {
@@ -120,9 +111,7 @@ describe("EmbeddingJobHandler", () => {
         metadata: { coverImageId: "preserved" },
       });
 
-      const { service, storeEmbeddingCalled } = createMockEntityService({
-        getEntity: async () => currentEntity,
-      });
+      const service = createEntityServiceStub(async () => currentEntity);
 
       const handler = EmbeddingJobHandler.createFresh(
         service,
@@ -138,13 +127,11 @@ describe("EmbeddingJobHandler", () => {
 
       await handler.process(jobData, "job-123", mockProgressReporter);
 
-      expect(storeEmbeddingCalled()).toBe(true);
+      expect(service.storeEmbedding).toHaveBeenCalled();
     });
 
     test("should skip when entity no longer exists", async () => {
-      const { service, storeEmbeddingCalled } = createMockEntityService({
-        getEntity: async () => null,
-      });
+      const service = createEntityServiceStub(async () => null);
 
       const handler = EmbeddingJobHandler.createFresh(
         service,
@@ -160,7 +147,7 @@ describe("EmbeddingJobHandler", () => {
 
       await handler.process(jobData, "job-123", mockProgressReporter);
 
-      expect(storeEmbeddingCalled()).toBe(false);
+      expect(service.storeEmbedding).not.toHaveBeenCalled();
     });
   });
 });
