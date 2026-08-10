@@ -1,6 +1,6 @@
+import { createTempDir } from "@brains/test-utils";
 import { describe, expect, it } from "bun:test";
-import { mkdtemp, mkdir, readFile, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 
 import packageJson from "../package.json";
@@ -9,7 +9,7 @@ import { parseArgs } from "../src/parse-args";
 import { runCommand } from "../src/run-command";
 
 async function createPilotRepo(files: Record<string, string>): Promise<string> {
-  const root = await mkdtemp(join(tmpdir(), "brains-ops-cli-"));
+  const root = await createTempDir("brains-ops-cli-");
 
   for (const [relativePath, content] of Object.entries(files)) {
     const filePath = join(root, relativePath);
@@ -207,7 +207,7 @@ discord:
   } satisfies Record<string, string>;
 
   it("creates repo skeleton for init command", async () => {
-    const root = await mkdtemp(join(tmpdir(), "brains-ops-run-"));
+    const root = await createTempDir("brains-ops-run-");
     const repo = join(root, "rover-pilot");
 
     const result = await runCommand({

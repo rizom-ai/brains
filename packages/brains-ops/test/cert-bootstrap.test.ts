@@ -1,3 +1,4 @@
+import { createTempDirSync } from "@brains/test-utils";
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import {
   existsSync,
@@ -6,10 +7,8 @@ import {
   rmSync,
   statSync,
   writeFileSync,
-  mkdtempSync,
 } from "node:fs";
 import { join } from "node:path";
-import { tmpdir } from "node:os";
 import { z } from "@brains/utils/zod";
 
 import {
@@ -37,7 +36,7 @@ describe("pilot origin CA bootstrap", () => {
   let testDir: string;
 
   beforeEach(() => {
-    testDir = mkdtempSync(join(tmpdir(), "brains-ops-cert-bootstrap-"));
+    testDir = createTempDirSync("brains-ops-cert-bootstrap-");
     mkdirSync(join(testDir, "users"), { recursive: true });
     mkdirSync(join(testDir, "cohorts"), { recursive: true });
     writeFileSync(

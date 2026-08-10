@@ -2,7 +2,12 @@ import { describe, expect, test } from "bun:test";
 import { existsSync } from "node:fs";
 import { readdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { createTestDatabase } from "../src/test-database";
+import {
+  createTempDir,
+  createTempDirSync,
+  createTestDatabase,
+  removeTrackedTempDirs,
+} from "../src/test-database";
 
 /** Records close() calls so a test can prove cleanup reached every client. */
 function fakeClient(): { close: () => void; closed: () => number } {
@@ -119,5 +124,38 @@ describe("createTestDatabase", () => {
         entry.startsWith("brain-helper-failing-") && !before.includes(entry),
     );
     expect(leaked).toEqual([]);
+  });
+});
+
+describe("createTempDir", () => {
+  test("creates a directory under the system temp dir with the given prefix", async () => {
+    const dir = await createTempDir("brains-temp-helper-test-");
+
+    expect(existsSync(dir)).toBe(true);
+    expect(dir.startsWith(tmpdir())).toBe(true);
+    expect(dir).toContain("brains-temp-helper-test-");
+
+    removeTrackedTempDirs();
+  });
+
+  test("removes every directory it handed out, sync and async alike", async () => {
+    const first = await createTempDir("brains-temp-helper-test-");
+    const second = createTempDirSync("brains-temp-helper-test-");
+
+    removeTrackedTempDirs();
+
+    expect(existsSync(first)).toBe(false);
+    expect(existsSync(second)).toBe(false);
+  });
+
+  test("keeps directories handed out after the last cleanup", async () => {
+    const before = await createTempDir("brains-temp-helper-test-");
+    removeTrackedTempDirs();
+    const after = await createTempDir("brains-temp-helper-test-");
+
+    expect(existsSync(before)).toBe(false);
+    expect(existsSync(after)).toBe(true);
+
+    removeTrackedTempDirs();
   });
 });

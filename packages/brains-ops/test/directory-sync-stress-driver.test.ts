@@ -1,6 +1,6 @@
+import { createTempDir } from "@brains/test-utils";
 import { describe, expect, it } from "bun:test";
-import { mkdtemp, mkdir, readFile, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 
 import { resolveDirectorySyncStressPlan } from "../src/directory-sync-stress";
@@ -38,7 +38,7 @@ const environment = {
 };
 
 async function createSmokePilotRepo(): Promise<string> {
-  const root = await mkdtemp(join(tmpdir(), "brains-ops-stress-driver-"));
+  const root = await createTempDir("brains-ops-stress-driver-");
   const files = {
     "pilot.yaml": `brainVersion: 0.2.0-alpha.253
 githubOrg: rizom-ai

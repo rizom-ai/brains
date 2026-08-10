@@ -107,3 +107,10 @@ export {
 
 // Isolated temp directory for one test
 export { createTestDirectory, type TestDirectory } from "./test-database";
+
+// Temp directories that remove themselves after the test file
+export {
+  createTempDir,
+  createTempDirSync,
+  removeTrackedTempDirs,
+} from "./test-database";

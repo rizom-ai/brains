@@ -1,13 +1,12 @@
+import { createTempDir } from "@brains/test-utils";
 import { describe, expect, it } from "bun:test";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { mkdtemp } from "node:fs/promises";
-import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 
 import { addPilotUser } from "../src/user-add";
 
 async function createPilotRepo(files: Record<string, string>): Promise<string> {
-  const root = await mkdtemp(join(tmpdir(), "brains-ops-user-add-"));
+  const root = await createTempDir("brains-ops-user-add-");
 
   for (const [relativePath, content] of Object.entries(files)) {
     const filePath = join(root, relativePath);

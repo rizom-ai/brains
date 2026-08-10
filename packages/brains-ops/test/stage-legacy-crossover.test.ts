@@ -1,6 +1,6 @@
+import { createTempDir } from "@brains/test-utils";
 import { describe, expect, test } from "bun:test";
-import { mkdtemp, mkdir, readFile, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import {
   parseReviewedSitePins,
@@ -34,7 +34,7 @@ describe("stageLegacyCrossover", () => {
   });
 
   test("creates a complete canonical review copy without touching the source", async () => {
-    const root = await mkdtemp(join(tmpdir(), "ops-crossover-stage-"));
+    const root = await createTempDir("ops-crossover-stage-");
     const source = join(root, "source");
     const output = join(root, "output");
     await mkdir(join(source, "cohorts"), { recursive: true });
@@ -147,7 +147,7 @@ discord:
   });
 
   test("requires a complete identity-matched hosted site pin manifest", async () => {
-    const root = await mkdtemp(join(tmpdir(), "ops-crossover-pins-"));
+    const root = await createTempDir("ops-crossover-pins-");
     const source = join(root, "source");
     await mkdir(join(source, "cohorts"), { recursive: true });
     await mkdir(join(source, "users"), { recursive: true });
@@ -228,7 +228,7 @@ discord:
   });
 
   test("refuses to write inside the source repository", async () => {
-    const source = await mkdtemp(join(tmpdir(), "ops-crossover-source-"));
+    const source = await createTempDir("ops-crossover-source-");
     let failure: unknown;
     try {
       await stageLegacyCrossover(source, join(source, "staged"));

@@ -1,6 +1,54 @@
+import { afterAll } from "bun:test";
+import { mkdtempSync, rmSync } from "node:fs";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+
+const trackedDirs: string[] = [];
+let cleanupArmed = false;
+
+/**
+ * Arm cleanup for the scope the caller is running in, once per scope.
+ *
+ * `afterAll` rather than a process hook because bun's test runner fires
+ * neither `exit` nor `beforeExit`. Re-armed rather than registered once at
+ * module load because bun evaluates a module once per *process* and runs a
+ * package's test files in one process, so a single registration would only
+ * cover whichever file imported first and every later file would leak.
+ */
+function track(dir: string): string {
+  trackedDirs.push(dir);
+  if (!cleanupArmed) {
+    cleanupArmed = true;
+    afterAll(() => {
+      cleanupArmed = false;
+      removeTrackedTempDirs();
+    });
+  }
+  return dir;
+}
+
+/** Remove every directory the tracked helpers created, and forget them. */
+export function removeTrackedTempDirs(): void {
+  trackedDirs.splice(0).forEach((dir) => {
+    rmSync(dir, { recursive: true, force: true });
+  });
+}
+
+/**
+ * A temp directory that removes itself after the test file.
+ *
+ * For the many call sites that want a path and nothing else. Prefer
+ * `createTestDirectory` when the test wants to control removal explicitly.
+ */
+export async function createTempDir(prefix = "brains-test-"): Promise<string> {
+  return track(await mkdtemp(join(tmpdir(), prefix)));
+}
+
+/** Synchronous variant, for setup outside async hooks. */
+export function createTempDirSync(prefix = "brains-test-"): string {
+  return track(mkdtempSync(join(tmpdir(), prefix)));
+}
 
 /**
  * Anything with a `close()` — libSQL clients, Drizzle handles, and the fakes
