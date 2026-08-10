@@ -45,10 +45,11 @@ acceptance remains pending.
 - Before another workload is approved, the stress workflow's `verify_only` mode
   must prove the exact Bitwarden/Varlock content credential path through clone
   and `git push --dry-run`. That mode creates no ref, content commit, probe, or
-  cleanup job. The current fine-grained PAT authenticates and can read repository
-  metadata, but Git and the Contents API return 403. Grant that existing token
-  `Contents: Read and write` for `rover-smoke-content`; this is a permission edit,
-  not a selector change or token rotation.
+  cleanup job. The existing fine-grained PAT was repaired in place by granting
+  `Contents: Read and write` for `rover-smoke-content`; no selector change or token
+  rotation was needed. A local `ls-remote` then listed four refs, and write-free
+  workflow run `31413167727` passed while the workload and cleanup jobs remained
+  skipped.
 
 Asset-backed Phase 2–3 behavior remains coordinated with
 [`durable-binary-assets.md`](./durable-binary-assets.md) and lands with that storage
@@ -69,10 +70,9 @@ path; it is not a permanent inline compatibility commitment.
 - `~/Documents/directory-sync-stress-evidence/tools/` holds the working operational
   scripts: `smoke-ssh.sh` (read-only smoke server access via the Bitwarden/varlock
   bootstrap), `run-regression.sh` (local benchmark driver; set `STRESS_PROFILE=load`
-  for the load profile; its personal `GH_TOKEN` override bypasses the fleet credential
-  and must be removed after the PAT permission repair), `run-cleanup.sh`, and
-  `monitor-smoke.sh`. They read credentials at runtime from
-  `~/Documents/yeehaa-io/.env` and contain no secrets.
+  for the load profile; its former personal `GH_TOKEN` override was removed after the
+  fleet PAT permission repair), `run-cleanup.sh`, and `monitor-smoke.sh`. They read
+  credentials at runtime from `~/Documents/yeehaa-io/.env` and contain no secrets.
 - Deployed smoke: `@rizom/brain@0.2.0-alpha.265` (git-runner fix verified in
   production), clean 7-note baseline, healthcheck + watchdog active.
 
@@ -253,7 +253,8 @@ one-off:
   arguments. The existing fine-grained PAT must select `rover-smoke-content` and grant
   repository permission `Contents: Read and write`; metadata authorization alone is
   insufficient. Repair this permission in place rather than changing selectors or
-  rotating the token.
+  rotating the token. Write-free workflow run `31413167727` proves the repaired
+  Bitwarden/Varlock path.
 - **Load profile as the acceptance gate**: rerun manually after Phases 1–4 land; the
   plan is complete when `load` passes end-to-end on smoke (all seven phases, zero
   health failures). Only then consider promoting `load` to a scheduled cadence and
