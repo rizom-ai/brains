@@ -1,7 +1,7 @@
 import { SHELL_CHANNELS } from "@brains/contracts";
 import type { Client } from "@libsql/client";
-import { applySqlitePragmas, type SqliteEngine } from "@brains/db";
-import { createEntityDatabase, ensureFtsTable, type EntityDB } from "./db";
+import { applySqlitePragmas } from "@brains/db";
+import { createEntityDatabase, type EntityDB } from "./db";
 import type {
   EntityDbConfig,
   BaseEntity,
@@ -75,7 +75,6 @@ export class EntityService implements IEntityService {
   private db: EntityDB;
   private dbClient: Client;
   private dbUrl: string;
-  private dbEngine: SqliteEngine;
   private dbInitPromise!: Promise<void>;
   private entityRegistry: IEntityRegistry;
   private logger: Logger;
@@ -119,15 +118,13 @@ export class EntityService implements IEntityService {
   }
 
   private constructor(options: EntityServiceOptions) {
-    const { db, client, url, engine } = createEntityDatabase(options.dbConfig);
+    const { db, client, url } = createEntityDatabase(options.dbConfig);
     this.db = db;
     this.dbClient = client;
     this.dbUrl = url;
-    this.dbEngine = engine;
     this.projectionStore = new ProjectionStore(
       this.db,
       options.mutationAdmission,
-      this.dbEngine,
     );
 
     try {
@@ -150,7 +147,6 @@ export class EntityService implements IEntityService {
         db: this.db,
         serializer: this.entitySerializer,
         logger: this.logger,
-        engine: this.dbEngine,
       });
       const embeddingsEnabled = options.embeddingsEnabled ?? true;
       this.entitySearch = new EntitySearch(
@@ -159,7 +155,6 @@ export class EntityService implements IEntityService {
         this.entitySerializer,
         this.logger,
         embeddingsEnabled,
-        this.dbEngine,
       );
       this.entityMutations = new EntityMutations({
         db: this.db,
@@ -175,7 +170,6 @@ export class EntityService implements IEntityService {
         projectionStore: this.projectionStore,
         embeddingsEnabled,
         embeddingDimensions: options.embeddingService.dimensions,
-        engine: this.dbEngine,
       });
       this.contentResolver = new ContentResolver(this.logger);
 
@@ -192,7 +186,7 @@ export class EntityService implements IEntityService {
         this.embeddingHandlerRegistered = true;
       }
 
-      // Initialize database settings and engine-specific search indexes.
+      // Initialize database settings.
       this.dbInitPromise = this.initializeDatabase();
       // Failures surface in initialize(); this no-op handler only prevents an
       // unhandled rejection in the window before initialize() awaits.
@@ -216,7 +210,7 @@ export class EntityService implements IEntityService {
   }
 
   /**
-   * Wait for database initialization (WAL mode and indexes).
+   * Wait for database initialization.
    * Called by Shell.initialize() before plugins load.
    */
   public async initialize(): Promise<void> {
@@ -235,9 +229,6 @@ export class EntityService implements IEntityService {
     }
     // Foreign keys provide atomic embedding cleanup when an entity is deleted.
     await this.dbClient.execute("PRAGMA foreign_keys = ON");
-
-    // Engine-specific FTS setup is required for search correctness.
-    await ensureFtsTable(this.dbClient, this.dbEngine);
   }
 
   // ── Projection coordination ───────────────────────────────────────

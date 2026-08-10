@@ -23,7 +23,7 @@ describe("Turso entity database cutover", () => {
     );
   });
 
-  test("opens a populated WAL entity database without touching the legacy embedding file", async () => {
+  test("removes legacy search schema across an engine round trip without touching the legacy embedding file", async () => {
     const directory = await mkdtemp(join(tmpdir(), "brains-turso-cutover-"));
     directories.push(directory);
     const entityConfig = { url: `file:${join(directory, "entities.db")}` };
@@ -39,6 +39,13 @@ describe("Turso entity database cutover", () => {
       engine: "libsql",
     });
     try {
+      await entityLibsql.client.execute(`
+        CREATE VIRTUAL TABLE entity_fts USING fts5(
+          entity_id UNINDEXED,
+          entity_type UNINDEXED,
+          content
+        )
+      `);
       await entityLibsql.client.execute({
         sql: `INSERT INTO entities (
           id, entityType, content, contentHash, visibility,
@@ -121,11 +128,38 @@ describe("Turso entity database cutover", () => {
            'embeddings_embedding_idx'
          )`,
       );
-      expect(indexes.rows.map((row) => row["name"])).toEqual([
-        "entities_content_fts",
-      ]);
+      expect(indexes.rows).toEqual([]);
+
+      // Simulate a database restored from a release that still used native
+      // Turso FTS. The next migration must remove it before normal startup.
+      await entityTurso.client.execute(`
+        CREATE INDEX entities_content_fts
+        ON entities USING fts (content)
+      `);
     } finally {
       entityTurso.client.close();
+    }
+
+    process.env["BRAINS_DB_ENGINE"] = "libsql";
+    await migrateEntities(entityConfig, logger);
+    const cleanedLibsql = createSqliteDatabase({
+      url: entityConfig.url,
+      schema: {},
+      engine: "libsql",
+    });
+    try {
+      const entity = await cleanedLibsql.client.execute(
+        "SELECT content FROM entities WHERE id = 'existing-note'",
+      );
+      expect(entity.rows[0]?.["content"]).toBe("Existing production content");
+      const searchSchema = await cleanedLibsql.client.execute(
+        `SELECT name FROM sqlite_master
+         WHERE name LIKE '__turso_internal_fts_%'
+            OR name IN ('entity_fts', 'entities_content_fts')`,
+      );
+      expect(searchSchema.rows).toEqual([]);
+    } finally {
+      cleanedLibsql.client.close();
     }
 
     const unchangedLegacy = createSqliteDatabase({

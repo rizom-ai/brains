@@ -4,9 +4,10 @@ import type { EntityDbConfig } from "./types";
 /**
  * Prepare a Turso-backed entity database for the explicit libSQL fallback.
  *
- * The application must be stopped before this runs. Turso's native FTS index
- * persists schema syntax that libSQL cannot parse, so it must be removed with
- * Turso first. The derived FTS5 shadow table is then rebuilt from `entities`.
+ * The application must be stopped before this runs. Historical Turso native
+ * FTS schema is not parseable by libSQL, so it must be removed with Turso
+ * first. Historical libSQL FTS5 schema is also removed; keyword boosting uses
+ * the portable entities-table scan on both engines.
  */
 export async function prepareEntityDatabaseForLibsql(
   config: EntityDbConfig,
@@ -24,19 +25,7 @@ export async function prepareEntityDatabaseForLibsql(
     engine: "libsql",
   });
   try {
-    await libsql.client.batch(
-      [
-        "DROP TABLE IF EXISTS entity_fts",
-        `CREATE VIRTUAL TABLE entity_fts USING fts5(
-          entity_id UNINDEXED,
-          entity_type UNINDEXED,
-          content
-        )`,
-        `INSERT INTO entity_fts (entity_id, entity_type, content)
-         SELECT id, entityType, content FROM entities`,
-      ],
-      "write",
-    );
+    await libsql.client.execute("DROP TABLE IF EXISTS entity_fts");
   } finally {
     libsql.client.close();
   }

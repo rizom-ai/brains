@@ -521,7 +521,7 @@ type TopicEntity = z.infer<typeof topicEntitySchema>;
 
 ## Database Storage
 
-Entities and embeddings live in `brain.db`, allowing entity changes and vector invalidation to commit atomically. Turso native FTS indexes entity content by default; the emergency libSQL fallback uses FTS5.
+Entities and embeddings live in `brain.db`, allowing entity changes and vector invalidation to commit atomically. Both engines apply the same portable literal phrase check directly to entity content for keyword boosting; no search shadow table or engine-specific index is maintained.
 
 ```sql
 -- brain.db: entities table
@@ -538,13 +538,6 @@ CREATE TABLE entities (
   PRIMARY KEY(id, entityType)
 );
 
--- brain.db: FTS5 virtual table for keyword search
-CREATE VIRTUAL TABLE entity_fts USING fts5(
-  entity_id UNINDEXED,
-  entity_type UNINDEXED,
-  content
-);
-
 -- brain.db: derived vector storage
 CREATE TABLE embeddings (
   entity_id TEXT NOT NULL,
@@ -557,7 +550,7 @@ CREATE TABLE embeddings (
 );
 ```
 
-Hybrid search joins the local `entities` and `embeddings` tables. Content changes delete the old vector in the same transaction; the embedding queue regenerates it with the active provider.
+Hybrid search joins the local `entities` and `embeddings` tables, combining vector similarity with an ASCII case-insensitive literal phrase boost against `entities.content`. Content changes delete the old vector in the same transaction; the embedding queue regenerates it with the active provider.
 
 ```sql
 -- Entity relationships table (planned)

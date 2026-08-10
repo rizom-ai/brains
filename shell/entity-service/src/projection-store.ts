@@ -2,8 +2,7 @@ import { and, asc, desc, eq, isNull, lte, ne, sql } from "drizzle-orm";
 import { computeContentHash } from "@brains/utils/hash";
 import { SerialQueue } from "@brains/utils/serial-queue";
 import { z } from "@brains/utils/zod";
-import { deleteFtsEntry, upsertFtsEntry, type EntityDB } from "./db";
-import type { SqliteEngine } from "@brains/db";
+import type { EntityDB } from "./db";
 import type { EntityMutationAdmission } from "./mutation-admission";
 import {
   ProjectionWriteIntentSchema,
@@ -199,17 +198,11 @@ function parseWaveRule(rule: ProjectionWaveRule): ProjectionWaveRule {
 export class ProjectionStore implements IProjectionStore {
   private readonly db: EntityDB;
   private readonly mutationAdmission: EntityMutationAdmission | undefined;
-  private readonly engine: SqliteEngine;
   private readonly transactionTail = new SerialQueue();
 
-  constructor(
-    db: EntityDB,
-    mutationAdmission?: EntityMutationAdmission,
-    engine: SqliteEngine = "libsql",
-  ) {
+  constructor(db: EntityDB, mutationAdmission?: EntityMutationAdmission) {
     this.db = db;
     this.mutationAdmission = mutationAdmission;
-    this.engine = engine;
   }
 
   public async markDirty(input: MarkProjectionDirtyInput): Promise<number> {
@@ -833,7 +826,6 @@ export class ProjectionStore implements IProjectionStore {
         .where(
           and(eq(entities.entityType, entityType), eq(entities.id, entityId)),
         );
-      await deleteFtsEntry(transaction, this.engine, entityId, entityType);
       return { entityType, entityId, operation: "delete" };
     }
 
@@ -889,13 +881,6 @@ export class ProjectionStore implements IProjectionStore {
       });
     }
 
-    await upsertFtsEntry(
-      transaction,
-      this.engine,
-      entityId,
-      entityType,
-      intent.entity.content,
-    );
     return {
       entityType,
       entityId,

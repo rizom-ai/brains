@@ -26,13 +26,12 @@ URL:
 data:image/png;base64,...
 ```
 
-The entity service also inserts that content into FTS5. Images are excluded from vector
-embeddings, but not from full-text indexing. Data URLs therefore cause several forms of
-avoidable amplification:
+Images are excluded from vector embeddings, and the entity service no longer maintains
+a separate full-text index. Data URLs still cause several forms of avoidable
+amplification:
 
 - base64 adds roughly 33% over the original bytes;
 - SQLite stores the expanded value in the entity row;
-- FTS stores/indexes the same non-textual content again;
 - updates amplify WAL, backup, event, and API payloads;
 - normal entity reads and lists can materialize complete image payloads;
 - every consumer decodes the full string back into bytes.

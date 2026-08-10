@@ -1,5 +1,5 @@
 import { ENTITY_CHANNELS, SHELL_CHANNELS } from "@brains/contracts";
-import { deleteFtsEntry, upsertFtsEntry, type EntityDB } from "./db";
+import type { EntityDB } from "./db";
 import type {
   BaseEntity,
   EmbeddingJobData,
@@ -22,7 +22,6 @@ import type { EntitySerializer } from "./entity-serializer";
 import type { EntityQueries } from "./entity-queries";
 import type { ProjectionStore } from "./projection-store";
 import type { IJobQueueService, JobInfo } from "@brains/job-queue";
-import type { SqliteEngine } from "@brains/db";
 import { createId } from "@brains/utils/id";
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
@@ -133,7 +132,6 @@ export interface EntityMutationDeps {
   projectionStore: ProjectionStore;
   embeddingsEnabled: boolean;
   embeddingDimensions: number;
-  engine?: SqliteEngine;
 }
 
 /**
@@ -152,7 +150,6 @@ export class EntityMutations {
   private readonly embeddingsEnabled: boolean;
   private projectionWakeup: (() => Promise<void>) | undefined;
   private logger: Logger;
-  private engine: SqliteEngine;
   private embeddingDimensions: number;
 
   constructor(deps: EntityMutationDeps) {
@@ -164,7 +161,6 @@ export class EntityMutations {
     this.projectionStore = deps.projectionStore;
     this.embeddingsEnabled = deps.embeddingsEnabled;
     this.logger = deps.logger.child("EntityMutations");
-    this.engine = deps.engine ?? "libsql";
     this.embeddingDimensions = z
       .number()
       .int()
@@ -247,7 +243,7 @@ export class EntityMutations {
       entityId: finalId,
     });
 
-    // Persist the entity, search row, and scheduler journal atomically.
+    // Persist the entity and scheduler journal atomically.
     await this.projectionStore.withDirtyInput(
       {
         sourceType: validatedEntity.entityType,
@@ -271,12 +267,6 @@ export class EntityMutations {
           created: new Date(validatedEntity.created).getTime(),
           updated: new Date(validatedEntity.updated).getTime(),
         });
-        await this.upsertFtsIndex(
-          transaction,
-          finalId,
-          validatedEntity.entityType,
-          markdown,
-        );
       },
     );
     await this.notifyProjectionScheduler();
@@ -465,12 +455,6 @@ export class EntityMutations {
           ) {
             throw new StaleEntityUpdateError();
           }
-          await this.upsertFtsIndex(
-            transaction,
-            validatedEntity.id,
-            validatedEntity.entityType,
-            markdown,
-          );
         },
       );
     } catch (error) {
@@ -541,7 +525,7 @@ export class EntityMutations {
 
     if (!priorData) return false;
 
-    // The entity, embedding, FTS row, and scheduler journal share one atomic
+    // The entity, embedding, and scheduler journal share one atomic
     // transaction. The explicit embedding delete also works if FK enforcement
     // is unavailable on a remote libSQL connection.
     await this.projectionStore.withDirtyInput(
@@ -565,7 +549,6 @@ export class EntityMutations {
               eq(embeddings.entityId, id),
             ),
           );
-        await deleteFtsEntry(transaction, this.engine, id, entityType);
         await transaction
           .delete(entities)
           .where(and(eq(entities.entityType, entityType), eq(entities.id, id)));
@@ -866,16 +849,6 @@ export class EntityMutations {
       sql`SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'entities'`,
     );
     return rows.length > 0;
-  }
-
-  /** Keep the libSQL FTS5 shadow row in sync; Turso indexes entities directly. */
-  private async upsertFtsIndex(
-    database: Pick<EntityDB, "run">,
-    entityId: string,
-    entityType: string,
-    content: string,
-  ): Promise<void> {
-    await upsertFtsEntry(database, this.engine, entityId, entityType, content);
   }
 
   /**

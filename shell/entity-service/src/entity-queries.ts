@@ -1,5 +1,4 @@
-import { deleteFtsEntry, type EntityDB } from "./db";
-import type { SqliteEngine } from "@brains/db";
+import type { EntityDB } from "./db";
 import {
   getVisibleContentVisibilities,
   type BaseEntity,
@@ -78,20 +77,17 @@ export interface EntityQueryDeps {
   db: EntityDB;
   serializer: EntitySerializer;
   logger: Logger;
-  engine?: SqliteEngine;
 }
 
 export class EntityQueries {
   private db: EntityDB;
   private serializer: EntitySerializer;
   private logger: Logger;
-  private engine: SqliteEngine;
 
   constructor(deps: EntityQueryDeps) {
     this.db = deps.db;
     this.serializer = deps.serializer;
     this.logger = deps.logger.child("EntityQueries");
-    this.engine = deps.engine ?? "libsql";
   }
 
   /**
@@ -380,8 +376,6 @@ export class EntityQueries {
       );
       return false;
     }
-
-    await deleteFtsEntry(this.db, this.engine, id, entityType);
 
     // Delete entity
     await this.db

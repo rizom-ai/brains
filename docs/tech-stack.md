@@ -83,9 +83,9 @@ The Brains project uses a modern, TypeScript-based stack optimized for building 
   - Turso Database `F32_BLOB` columns; local files use Turso by default
   - Composite foreign key to entities with cascading deletion
   - Content changes invalidate stale vectors atomically before regeneration
-- **Hybrid Search** — vector + full-text keyword
+- **Hybrid Search** — vector + literal phrase boost
   - 70% semantic + 30% keyword boost
-  - Turso native FTS for local files; SQLite FTS5 on the libSQL fallback
+  - Portable ASCII case-insensitive content matching on Turso and libSQL
   - Threshold tuning via `brain diagnostics search`
 
 ## Messaging & Communication
@@ -310,7 +310,7 @@ The Brains project uses a modern, TypeScript-based stack optimized for building 
 ## Key Features
 
 - **Local-first content** — Markdown files as source of truth, git-backed sync via `directory-sync`
-- **Hybrid search** — vector embeddings (OpenAI) + FTS5 keyword matching, threshold-tuned
+- **Hybrid search** — vector embeddings (OpenAI) + portable literal phrase boosting, threshold-tuned
 - **Multi-interface support** — CLI, Chat REPL, Discord, MCP, A2A, Webserver
 - **AI-powered** — single `AI_API_KEY`, provider auto-detected from model name (OpenAI / Anthropic / Google)
 - **Extensible** — EntityPlugin / ServicePlugin / InterfacePlugin + composite factories

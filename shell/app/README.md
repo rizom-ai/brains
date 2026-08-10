@@ -70,6 +70,7 @@ Stop the app, run:
 brain-rollback-entities-to-libsql
 ```
 
-Then set `BRAINS_DB_ENGINE=libsql` and restart. The command removes Turso's
-native entity FTS index, checkpoints the compatible SQLite file, and rebuilds
-the libSQL FTS5 keyword index from the durable `entities` table.
+Then set `BRAINS_DB_ENGINE=libsql` and restart. The command removes historical
+Turso native FTS and libSQL FTS5 schema, then checkpoints the compatible SQLite
+file. Current releases use the same portable entities-table keyword boost on
+both engines.

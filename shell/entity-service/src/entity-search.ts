@@ -1,4 +1,4 @@
-import { buildFtsMatch, type EntitySearchDB } from "./db";
+import { buildKeywordMatch, type EntitySearchDB } from "./db";
 import {
   getVisibleContentVisibilities,
   type BaseEntity,
@@ -10,7 +10,6 @@ import {
 } from "./types";
 import type { IEmbeddingService } from "./embedding-types";
 import type { EntitySerializer } from "./entity-serializer";
-import type { SqliteEngine } from "@brains/db";
 import { type Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
 import { sql, and, asc, desc, inArray, type SQL } from "drizzle-orm";
@@ -74,7 +73,6 @@ export class EntitySearch {
   private serializer: EntitySerializer;
   private logger: Logger;
   private readonly embeddingsEnabled: boolean;
-  private engine: SqliteEngine;
 
   constructor(
     db: EntitySearchDB,
@@ -82,14 +80,12 @@ export class EntitySearch {
     serializer: EntitySerializer,
     logger: Logger,
     embeddingsEnabled = true,
-    engine: SqliteEngine = "libsql",
   ) {
     this.db = db;
     this.embeddingService = embeddingService;
     this.serializer = serializer;
     this.logger = logger.child("EntitySearch");
     this.embeddingsEnabled = embeddingsEnabled;
-    this.engine = engine;
   }
 
   /**
@@ -191,8 +187,7 @@ export class EntitySearch {
     },
   ): Promise<SearchResult<T>[]> {
     if (!query) return [];
-    const ftsQuery = '"' + query.replace(/"/g, '""') + '"';
-    const conditions: SQL[] = [sql`entity_fts MATCH ${ftsQuery}`];
+    const conditions: SQL[] = [buildKeywordMatch(query)];
     if (options.types.length > 0) {
       conditions.push(inArray(entities.entityType, options.types));
     }
@@ -209,11 +204,10 @@ export class EntitySearch {
       ...this.buildGenerationStatusConditions(options.includeUngenerated),
     );
 
-    // bm25() returns lower-is-better negative relevance. Map it to (0.5, 1)
-    // so the system search default threshold still admits lexical matches,
-    // while stronger matches remain ordered above weaker ones.
+    // A literal phrase match receives the same minimum relevance admitted by
+    // the system default while preserving configured type multipliers.
     const multiplier = this.buildWeightMultiplier(options.weight);
-    const weightedScore = sql<number>`(0.5 + 0.5 * ((-bm25(entity_fts)) / (1.0 - bm25(entity_fts)))) * (${multiplier})`;
+    const weightedScore = sql<number>`0.5 * (${multiplier})`;
     if (options.minScore !== undefined) {
       conditions.push(sql`${weightedScore} >= ${options.minScore}`);
     }
@@ -230,10 +224,6 @@ export class EntitySearch {
         weighted_score: weightedScore.as("weighted_score"),
       })
       .from(entities)
-      .innerJoin(
-        sql`entity_fts`,
-        sql`entity_fts.entity_id = ${entities.id} AND entity_fts.entity_type = ${entities.entityType}`,
-      )
       .where(and(...conditions))
       .orderBy(sql`weighted_score DESC`)
       .limit(options.limit)
@@ -306,17 +296,12 @@ export class EntitySearch {
     const vectorScore = sql<number>`(1.0 - vector_distance_cos(emb_e.embedding, vector32(${embeddingArray})) / 2.0) * (${weightMultiplier})`;
     const distanceExpr = sql<number>`vector_distance_cos(emb_e.embedding, vector32(${embeddingArray}))`;
 
-    // Keyword boost via subquery: 1.0 when matched, 0.0 when not.
-    // Both engines accept quoted phrases but escape embedded quotes differently.
-    const escapedFtsQuery =
-      this.engine === "turso"
-        ? query.replace(/\\/g, "\\\\").replace(/"/g, '\\"')
-        : query.replace(/"/g, '""');
-    const ftsQuery = `"${escapedFtsQuery}"`;
-    const ftsBoost = sql<number>`CASE WHEN ${buildFtsMatch(this.engine, ftsQuery)} THEN 1.0 ELSE 0.0 END`;
+    // Portable literal phrase boost: 1.0 when the normalized query appears in
+    // content (ASCII case-insensitive), 0.0 otherwise.
+    const keywordBoost = sql<number>`CASE WHEN ${buildKeywordMatch(query)} THEN 1.0 ELSE 0.0 END`;
 
     // Combined score: (1-α)*vector + α*keyword_match
-    const combinedScore = sql<number>`(${1 - alpha} * ${vectorScore}) + (${alpha} * ${ftsBoost})`;
+    const combinedScore = sql<number>`(${1 - alpha} * ${vectorScore}) + (${alpha} * ${keywordBoost})`;
 
     const results = await this.db
       .select({

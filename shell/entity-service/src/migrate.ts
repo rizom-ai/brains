@@ -1,12 +1,11 @@
 #!/usr/bin/env bun
 import {
   createSqliteDatabase,
+  dropTursoIndexForFallback,
   refuseDirectMigrationRun,
   resolveMigrationsFolder,
-  resolveSqliteEngine,
   runPackageMigrations,
 } from "@brains/db";
-import { ensureFtsTable } from "./db";
 import { embeddings } from "./schema/embeddings";
 import { entities } from "./schema/entities";
 import {
@@ -25,7 +24,7 @@ async function dropLibsqlSchemaObjects(
   config: EntityDbConfig,
   statements: string[],
   allowNativeFtsSchema = false,
-): Promise<void> {
+): Promise<boolean> {
   const { client } = createSqliteDatabase({
     url: config.url,
     schema: {},
@@ -44,27 +43,41 @@ async function dropLibsqlSchemaObjects(
       message.includes("malformed database schema") &&
       message.includes("__turso_internal_fts_")
     ) {
-      return;
+      return true;
     }
     throw error;
   } finally {
     client.close();
   }
+  return false;
 }
 
-/** Remove libSQL-only schema before Turso opens the entity database file. */
-export async function prepareEntityDatabasesForTurso(
+const historicalLibsqlSchemaCleanup = [
+  "DROP INDEX IF EXISTS embeddings_embedding_idx",
+  "DROP TABLE IF EXISTS entity_fts",
+];
+
+/**
+ * Remove every historical engine-specific search object before the selected
+ * engine opens the entity database. The second libSQL pass handles files that
+ * were unreadable until Turso removed its native FTS schema.
+ */
+export async function preparePortableEntitySearch(
   config: EntityDbConfig,
 ): Promise<void> {
-  if (resolveSqliteEngine(config.url) === "turso") {
-    await dropLibsqlSchemaObjects(
-      config,
-      [
-        "DROP INDEX IF EXISTS embeddings_embedding_idx",
-        "DROP TABLE IF EXISTS entity_fts",
-      ],
-      true,
-    );
+  if (!config.url.startsWith("file:")) {
+    await dropLibsqlSchemaObjects(config, historicalLibsqlSchemaCleanup);
+    return;
+  }
+
+  const hasNativeFts = await dropLibsqlSchemaObjects(
+    config,
+    historicalLibsqlSchemaCleanup,
+    true,
+  );
+  if (hasNativeFts) {
+    await dropTursoIndexForFallback(config.url, "entities_content_fts");
+    await dropLibsqlSchemaObjects(config, historicalLibsqlSchemaCleanup);
   }
 }
 
@@ -72,7 +85,7 @@ export async function migrateEntities(
   config: EntityDbConfig,
   logger?: Logger,
 ): Promise<void> {
-  await prepareEntityDatabasesForTurso(config);
+  await preparePortableEntitySearch(config);
 
   await runPackageMigrations({
     label: "entity",
@@ -93,8 +106,6 @@ export async function migrateEntities(
     ),
     authTokenEnv: "DATABASE_AUTH_TOKEN",
     logger,
-    // Engine-specific full-text indexes are not managed by Drizzle.
-    afterMigrate: ensureFtsTable,
   });
 }
 
