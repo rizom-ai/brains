@@ -6,6 +6,8 @@ import { createTursoClient } from "./turso-client";
 export type SqliteDatabase = LibSQLDatabase<Record<string, unknown>>;
 export type SqliteEngine = "libsql" | "turso";
 
+const forbidLocalDatabaseOpenEnv = "BRAINS_FORBID_LOCAL_DATABASE_OPEN";
+
 /** The subset of the libSQL client the pragma helper needs. */
 export interface PragmaClient {
   execute: (statement: string) => Promise<unknown>;
@@ -66,6 +68,12 @@ export function createSqliteDatabase(
   options: CreateSqliteDatabaseOptions,
 ): SqliteConnection {
   const { url, schema } = options;
+  if (
+    url.startsWith("file:") &&
+    process.env[forbidLocalDatabaseOpenEnv] === "1"
+  ) {
+    throw new Error(`Local SQLite opens are forbidden in this process: ${url}`);
+  }
   const authToken = resolveAuthToken(options);
 
   const engine = resolveSqliteEngine(url, options.engine);

@@ -1,7 +1,9 @@
 import { Context, scopedServiceLayer } from "@brains/utils/effect";
 import type { Layer } from "@brains/utils/effect";
 import type { Logger } from "@brains/utils/logger";
+import { RemoteRuntimeStateService } from "./remote-runtime-state-service";
 import { RuntimeStateService } from "./runtime-state-service";
+import type { RuntimeStateRpcTransport } from "./runtime-state-rpc";
 import type { IRuntimeStateService, RuntimeStateServiceConfig } from "./types";
 
 export type RuntimeStateServiceTag =
@@ -16,6 +18,7 @@ export const RuntimeStateServiceTag: Context.Tag<
 export interface RuntimeStateServiceLayerOptions {
   config: RuntimeStateServiceConfig;
   logger: Logger;
+  remoteTransport?: RuntimeStateRpcTransport;
   service?: IRuntimeStateService;
 }
 
@@ -26,7 +29,9 @@ export function createRuntimeStateServiceLayer(
   return scopedServiceLayer(RuntimeStateServiceTag, () => {
     const service =
       options.service ??
-      RuntimeStateService.createFresh(options.config, options.logger);
+      (options.remoteTransport
+        ? new RemoteRuntimeStateService(options.remoteTransport, options.logger)
+        : RuntimeStateService.createFresh(options.config, options.logger));
     return { service, close: () => service.close() };
   });
 }

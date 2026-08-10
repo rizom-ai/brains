@@ -1,10 +1,24 @@
 import { AIService, OnlineEmbeddingProvider } from "@brains/ai-service";
 import { ContentService as ContentServiceClass } from "@brains/content-service";
 import {
+  CONVERSATION_RPC_SERVICE,
+  handleConversationRpcRequest,
+  type ConversationRpcTransport,
+} from "@brains/conversation-service";
+import {
   ConversationServiceTag,
   createConversationServiceLayer,
 } from "@brains/conversation-service/effect";
-import { DataSourceRegistry, EntityRegistry } from "@brains/entity-service";
+import {
+  DataSourceRegistry,
+  ENTITY_RPC_SERVICE,
+  EntityRegistry,
+  PROJECTION_STORE_RPC_SERVICE,
+  handleEntityRpcRequest,
+  handleProjectionStoreRpcRequest,
+  type EntityRpcTransport,
+  type ProjectionStoreRpcTransport,
+} from "@brains/entity-service";
 import {
   EntityServiceTag,
   createEntityServiceLayer,
@@ -23,6 +37,11 @@ import {
   RuntimeUploadRegistry,
 } from "@brains/plugins";
 import { RecurringCheckService } from "@brains/recurring-checks";
+import {
+  RUNTIME_STATE_RPC_SERVICE,
+  handleRuntimeStateRpcRequest,
+  type RuntimeStateRpcTransport,
+} from "@brains/runtime-state";
 import {
   RuntimeStateServiceTag,
   createRuntimeStateServiceLayer,
@@ -111,6 +130,74 @@ export function createShellServices(options: {
           close: () => undefined,
         }
       : undefined;
+  const remoteRuntimeStateTransport: RuntimeStateRpcTransport | undefined =
+    localDatabaseEndpoint instanceof LocalDatabaseRpcClient
+      ? {
+          initialize: () => localDatabaseEndpoint.initialize(),
+          request: (payload, requestOptions) =>
+            localDatabaseEndpoint.request(
+              RUNTIME_STATE_RPC_SERVICE,
+              payload,
+              requestOptions,
+            ),
+          close: () => undefined,
+        }
+      : undefined;
+  const remoteConversationTransport: ConversationRpcTransport | undefined =
+    localDatabaseEndpoint instanceof LocalDatabaseRpcClient
+      ? {
+          initialize: () => localDatabaseEndpoint.initialize(),
+          request: (payload, requestOptions) =>
+            localDatabaseEndpoint.request(
+              CONVERSATION_RPC_SERVICE,
+              payload,
+              requestOptions,
+            ),
+          close: () => undefined,
+        }
+      : undefined;
+  const remoteEntityTransport: EntityRpcTransport | undefined =
+    localDatabaseEndpoint instanceof LocalDatabaseRpcClient
+      ? {
+          initialize: () => localDatabaseEndpoint.initialize(),
+          request: (payload, requestOptions) =>
+            localDatabaseEndpoint.request(
+              ENTITY_RPC_SERVICE,
+              payload,
+              requestOptions,
+            ),
+          close: () => undefined,
+        }
+      : undefined;
+  const remoteProjectionTransport: ProjectionStoreRpcTransport | undefined =
+    localDatabaseEndpoint instanceof LocalDatabaseRpcClient
+      ? {
+          initialize: () => localDatabaseEndpoint.initialize(),
+          request: (payload, requestOptions) =>
+            localDatabaseEndpoint.request(
+              PROJECTION_STORE_RPC_SERVICE,
+              payload,
+              requestOptions,
+            ),
+          close: () => undefined,
+        }
+      : undefined;
+  const registerOwnerHandler = (
+    service: string,
+    handler: (payload: unknown, signal: AbortSignal) => Promise<unknown>,
+  ): void => {
+    if (!(localDatabaseEndpoint instanceof LocalDatabaseRpcServer)) return;
+    localDatabaseEndpoint.register(service, (payload, context) => {
+      const invoke = (): Promise<unknown> => handler(payload, context.signal);
+      return context.scope
+        ? operationContext.run(
+            context.scope.provenance,
+            context.scope.operationId,
+            invoke,
+          )
+        : invoke();
+    });
+  };
   const disposables: Array<() => void> = [];
 
   const embeddingService =
@@ -162,6 +249,9 @@ export function createShellServices(options: {
     createRuntimeStateServiceLayer({
       config: createDatabaseConfig(config.runtimeStateDatabase),
       logger,
+      ...(remoteRuntimeStateTransport && {
+        remoteTransport: remoteRuntimeStateTransport,
+      }),
       ...(dependencies?.runtimeStateService && {
         service: dependencies.runtimeStateService,
       }),
@@ -170,6 +260,9 @@ export function createShellServices(options: {
   const runtimeStateService = Context.get(
     runtimeStateContext,
     RuntimeStateServiceTag,
+  );
+  registerOwnerHandler(RUNTIME_STATE_RPC_SERVICE, (payload, signal) =>
+    handleRuntimeStateRpcRequest(runtimeStateService, payload, signal),
   );
   const projectionRuntimeSupervisor =
     dependencies?.projectionRuntimeSupervisor ??
@@ -214,26 +307,12 @@ export function createShellServices(options: {
   lifecycle.addSyncFinalizer(() => jobServices.rollbackRuntime());
 
   if (localDatabaseEndpoint instanceof LocalDatabaseRpcServer) {
-    // Web runtime services stop first; then reject remote traffic before the
-    // owner queue database closes.
-    lifecycle.addFinalizer(() => localDatabaseEndpoint.close());
     const handleRequest = jobServices.handleRpcRequest;
     if (!handleRequest) {
       throw new Error("The web-owned job queue does not expose RPC dispatch");
     }
-    localDatabaseEndpoint.register(
-      JOB_QUEUE_RPC_SERVICE,
-      (payload, context) => {
-        const invoke = (): Promise<unknown> =>
-          handleRequest(payload, context.signal);
-        return context.scope
-          ? operationContext.run(
-              context.scope.provenance,
-              context.scope.operationId,
-              invoke,
-            )
-          : invoke();
-      },
+    registerOwnerHandler(JOB_QUEUE_RPC_SERVICE, (payload, signal) =>
+      handleRequest(payload, signal),
     );
   }
 
@@ -286,18 +365,37 @@ export function createShellServices(options: {
       }),
       dbConfig: createDatabaseConfig(config.database),
       embeddingDbConfig: createDatabaseConfig(config.embeddingDatabase),
+      ...(remoteEntityTransport && {
+        remoteTransport: remoteEntityTransport,
+      }),
+      ...(remoteProjectionTransport && {
+        projectionTransport: remoteProjectionTransport,
+      }),
       ...(dependencies?.entityService && {
         service: dependencies.entityService,
       }),
     }),
   );
   const entityService = Context.get(entityContext, EntityServiceTag);
+  registerOwnerHandler(ENTITY_RPC_SERVICE, (payload, signal) =>
+    handleEntityRpcRequest(entityService, payload, signal),
+  );
+  registerOwnerHandler(PROJECTION_STORE_RPC_SERVICE, (payload, signal) =>
+    handleProjectionStoreRpcRequest(
+      entityService.getProjectionStore(),
+      payload,
+      signal,
+    ),
+  );
 
   const conversationContext = lifecycle.buildLayer(
     createConversationServiceLayer({
       dbConfig: createDatabaseConfig(config.conversationDatabase),
       logger,
       messageBus,
+      ...(remoteConversationTransport && {
+        remoteTransport: remoteConversationTransport,
+      }),
       ...(dependencies?.conversationService && {
         service: dependencies.conversationService,
       }),
@@ -307,6 +405,15 @@ export function createShellServices(options: {
     conversationContext,
     ConversationServiceTag,
   );
+  registerOwnerHandler(CONVERSATION_RPC_SERVICE, (payload, signal) =>
+    handleConversationRpcRequest(conversationService, payload, signal),
+  );
+
+  if (localDatabaseEndpoint instanceof LocalDatabaseRpcServer) {
+    // Shell runtime finalizers are registered later and therefore run first.
+    // Then reject and drain remote traffic before any owner database scope.
+    lifecycle.addFinalizer(() => localDatabaseEndpoint.close());
+  }
 
   lifecycle.addSyncFinalizer(() => {
     for (const dispose of disposables.splice(0)) {

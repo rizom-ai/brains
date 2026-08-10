@@ -1,5 +1,11 @@
 import { afterEach, describe, expect, it } from "bun:test";
+import { access } from "node:fs/promises";
 import { migrateConversations } from "@brains/conversation-service/migrate";
+import type {
+  BatchEmbeddingResult,
+  EmbeddingResult,
+  IEmbeddingService,
+} from "@brains/entity-service";
 import { migrateEntities } from "@brains/entity-service/migrate";
 import {
   type IJobQueueWorker,
@@ -108,6 +114,39 @@ function createInterfacePlugin(onRegister: () => void): Plugin {
   };
 }
 
+async function expectFileMissing(path: string): Promise<void> {
+  const error = await access(path).then<never, Error>(
+    () => {
+      throw new Error(`Expected ${path} not to exist`);
+    },
+    (reason) => reason as Error,
+  );
+  expect(error).toMatchObject({ code: "ENOENT" });
+}
+
+function createStubEmbeddingService(): IEmbeddingService {
+  const dimensions = 1536;
+  return {
+    dimensions,
+    generateEmbedding: (text, signal): Promise<EmbeddingResult> => {
+      signal?.throwIfAborted();
+      return Promise.resolve({
+        embedding: new Float32Array(dimensions),
+        usage: { tokens: text.length },
+      });
+    },
+    generateEmbeddings: (texts, signal): Promise<BatchEmbeddingResult> => {
+      signal?.throwIfAborted();
+      return Promise.resolve({
+        embeddings: texts.map(() => new Float32Array(dimensions)),
+        usage: {
+          tokens: texts.reduce((total, text) => total + text.length, 0),
+        },
+      });
+    },
+  };
+}
+
 function createTrackingWorker(onStart: () => void): IJobQueueWorker {
   return {
     start: async (): Promise<void> => {
@@ -203,11 +242,15 @@ describe("supervised runtime process roles", () => {
       address: `${testDirectory.dir}/database-owner.sock`,
       secret: "s".repeat(48),
     };
+    const embeddingService = createStubEmbeddingService();
     const web = Shell.createFresh(
       createTestShellConfig(testDirectory.dir, {
         plugins: [new ExecutionAuditPlugin()],
       }),
-      { logger: createSilentLogger("database-owner-web-test") },
+      {
+        logger: createSilentLogger("database-owner-web-test"),
+        embeddingService,
+      },
       {
         processRole: "web",
         localDatabaseEndpoint: { ...endpoint, sessionId: "web-session" },
@@ -218,13 +261,22 @@ describe("supervised runtime process roles", () => {
     const processed = new Promise<void>((resolve) => {
       acknowledgeProcessed = resolve;
     });
+    const workerRuntimeStatePath = `${testDirectory.dir}/worker-runtime-state.db`;
+    const workerConversationPath = `${testDirectory.dir}/worker-conversations.db`;
+    const workerEntityPath = `${testDirectory.dir}/worker-entities.db`;
+    const workerEmbeddingPath = `${testDirectory.dir}/worker-embeddings.db`;
     const worker = Shell.createFresh(
       createTestShellConfig(testDirectory.dir, {
         plugins: [new ExecutionAuditPlugin(acknowledgeProcessed)],
+        runtimeStateDatabase: { url: `file:${workerRuntimeStatePath}` },
+        conversationDatabase: { url: `file:${workerConversationPath}` },
+        database: { url: `file:${workerEntityPath}` },
+        embeddingDatabase: { url: `file:${workerEmbeddingPath}` },
       }),
       {
         logger: createSilentLogger("database-owner-worker-test"),
         operationContext: workerOperationContext,
+        embeddingService,
       },
       {
         processRole: "worker",
@@ -235,6 +287,67 @@ describe("supervised runtime process roles", () => {
 
     await web.initialize({ mode: "startup-check" });
     await worker.initialize();
+
+    const workerRuntimeState = worker.getRuntimeState().scoped({
+      namespace: "worker.endpoint.test",
+      schema: z.string(),
+    });
+    const ownerRuntimeState = web.getRuntimeState().scoped({
+      namespace: "worker.endpoint.test",
+      schema: z.string(),
+    });
+    await workerRuntimeState.set("ownership", "web");
+    expect(await ownerRuntimeState.get("ownership")).toBe("web");
+    await expectFileMissing(workerRuntimeStatePath);
+
+    const conversationId = await worker
+      .getConversationService()
+      .startConversation({
+        sessionId: "worker-owned-conversation",
+        interfaceType: "worker",
+        channelId: "worker-channel",
+        metadata: {
+          channelName: "Worker",
+          interfaceType: "worker",
+          channelId: "worker-channel",
+        },
+      });
+    await worker.getConversationService().addMessage({
+      conversationId,
+      role: "user",
+      content: "persisted by web owner",
+    });
+    expect(
+      await web.getConversationService().getMessages(conversationId),
+    ).toMatchObject([{ content: "persisted by web owner" }]);
+    await expectFileMissing(workerConversationPath);
+
+    const entityResult = await worker
+      .getEntityService()
+      .createEntityFromMarkdown({
+        input: {
+          entityType: "note",
+          id: "worker-owned-note",
+          markdown: "# Worker-owned note\n\nPersisted by web.",
+        },
+      });
+    expect(entityResult.entityId).toBe("worker-owned-note");
+    const persistedEntity = await web.getEntityService().getEntityRaw({
+      entityType: "note",
+      id: "worker-owned-note",
+      visibilityScope: "restricted",
+    });
+    expect(persistedEntity).toMatchObject({ id: "worker-owned-note" });
+    if (!persistedEntity) throw new Error("Web owner did not persist entity");
+    await worker.getEntityService().storeEmbedding({
+      entityId: "worker-owned-note",
+      entityType: "note",
+      embedding: new Float32Array(1536),
+      contentHash: persistedEntity.contentHash,
+    });
+    expect(await web.getEntityService().countEmbeddings()).toBe(1);
+    await expectFileMissing(workerEntityPath);
+    await expectFileMissing(workerEmbeddingPath);
 
     const jobId = await workerOperationContext.run(
       {

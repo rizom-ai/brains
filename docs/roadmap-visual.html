@@ -318,7 +318,7 @@
             <span class="card-name">Turso Database engine migration</span>
             <span class="badge badge-active">Active</span>
           </div>
-          <div class="card-desc">**in progress**: local files now default to Turso Database with native FTS, packed native bindings, dual-engine service parity, production-shaped cutover coverage, and an explicit libSQL rollback command. After selecting Git-only content sync, Phase 5 preflight found that MVCC and multiprocess WAL are mutually exclusive. Phase 5A now proves the private web-owned endpoint with remote job-queue persistence and no worker queue database handle; the remaining services must cross the owner boundary under WAL before embeddings fold and MVCC begins.</div>
+          <div class="card-desc">**in progress**: local files now default to Turso Database with native FTS, packed native bindings, dual-engine service parity, production-shaped cutover coverage, and an explicit libSQL rollback command. Git remains the only content sync model. Phases 5A–5B now make web the sole local shell database owner under WAL, route worker queue/entity/conversation/runtime-state persistence through the private endpoint, and enforce a packed worker no-local-open fence. Next, fold embeddings into the entity database before enabling MVCC.</div>
           <div class="card-file">turso-database-engine.md</div>
         </div>
         <div class="card status-partial">

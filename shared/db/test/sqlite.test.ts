@@ -88,6 +88,20 @@ describe("createSqliteDatabase", () => {
     }
   });
 
+  it("rejects local opens when the process is fenced to the database owner", () => {
+    const key = "BRAINS_FORBID_LOCAL_DATABASE_OPEN";
+    const previous = process.env[key];
+    process.env[key] = "1";
+    try {
+      expect(() =>
+        createSqliteDatabase({ url: "file::memory:", schema: {} }),
+      ).toThrow(/forbidden in this process/);
+    } finally {
+      if (previous === undefined) delete process.env[key];
+      else process.env[key] = previous;
+    }
+  });
+
   it("rejects the embedded Turso engine for remote urls", () => {
     expect(() =>
       createSqliteDatabase({

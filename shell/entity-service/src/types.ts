@@ -1,6 +1,6 @@
 import type { PreparedAsset } from "@brains/assets";
 import type { ActorRef } from "@brains/contracts";
-import type { ProjectionStore } from "./projection-store";
+import type { IProjectionStore } from "./projection-store";
 import type { ProjectionChangedTarget } from "./schema/projection-state";
 import type {
   AcknowledgeEntityExportsRequest,
@@ -983,7 +983,7 @@ export interface EntityService extends ICoreEntityService {
   ): Promise<number>;
 
   // Scheduler-owned projection coordination
-  getProjectionStore(): ProjectionStore;
+  getProjectionStore(): IProjectionStore;
   setProjectionWakeup(wakeup: () => Promise<void>): () => void;
 
   // Callback-scoped bulk mutation coordination

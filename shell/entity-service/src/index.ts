@@ -20,7 +20,32 @@ export {
   type PrepareAssetOptions,
 } from "@brains/assets";
 export { EntityService } from "./entityService";
+export { RemoteEntityService } from "./remote-entity-service";
+export { RemoteProjectionStore } from "./remote-projection-store";
 export { EntityRegistry } from "./entityRegistry";
+export {
+  ENTITY_RPC_SERVICE,
+  EntityRpcRequestSchema,
+  handleEntityRpcRequest,
+  parseEntityRpcRequest,
+  parseEntityRpcResult,
+} from "./entity-rpc";
+export type {
+  EntityIndexReadinessRpcOptions,
+  EntityRpcRequest,
+  EntityRpcTransport,
+} from "./entity-rpc";
+export {
+  PROJECTION_STORE_RPC_SERVICE,
+  ProjectionStoreRpcRequestSchema,
+  handleProjectionStoreRpcRequest,
+  parseProjectionStoreRpcRequest,
+  parseProjectionStoreRpcResult,
+} from "./projection-rpc";
+export type {
+  ProjectionStoreRpcRequest,
+  ProjectionStoreRpcTransport,
+} from "./projection-rpc";
 export { EmbeddingJobHandler } from "./handlers/embeddingJobHandler";
 export { BaseEntityFormatter } from "./base-entity-formatter";
 export { BaseEntityAdapter, FallbackEntityAdapter } from "./adapters";
@@ -46,6 +71,7 @@ export {
 export {
   ProjectionBatchFencedError,
   ProjectionStore,
+  type IProjectionStore,
   type ApplyProjectionRuleResultInput,
   type ProjectionBatchDiagnostics,
   type ClaimProjectionWaveInput,
