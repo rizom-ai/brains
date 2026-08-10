@@ -24,8 +24,9 @@ export interface MockBatchJobManagerReturns {
 /**
  * Create a mock IBatchJobManager for testing
  *
- * Returns an IBatchJobManager-typed object where all methods are bun mock functions.
- * The cast is centralized here so test files don't need `as unknown as` casts.
+ * Returns an IBatchJobManager-typed object where all methods are bun mock
+ * functions. The literal is type-checked, so interface drift fails to compile
+ * here rather than leaving a stale mock.
  *
  * @example
  * ```typescript

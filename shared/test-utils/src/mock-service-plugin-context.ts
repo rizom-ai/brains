@@ -63,8 +63,9 @@ export interface MockServicePluginContextOptions {
 /**
  * Create a mock ServicePluginContext for testing
  *
- * Returns a ServicePluginContext-typed object where all methods are bun mock functions.
- * The cast is centralized here so test files don't need `as unknown as` casts.
+ * Builds a real context from a mock shell via createServicePluginContext and
+ * layers only what the options configure, so its shape cannot drift from
+ * ServicePluginContext. Namespaces tests assert against are recording spies.
  *
  * @example
  * ```typescript

@@ -4,9 +4,11 @@
  * Shared test utilities for the brains project.
  * Provides mock builders and helpers to reduce test boilerplate.
  *
- * All mock factories return properly typed objects (Logger, IEntityService, etc.)
- * with the `as unknown as` cast centralized inside the factory function.
- * This means test files don't need any unsafe casts.
+ * Every factory is checked against the type it stands in for — `satisfies` on
+ * the literal, `PublicSurface<T>` for class types, `genericSpy` where bun's
+ * `mock()` erases type parameters — so interface drift fails to compile here
+ * rather than leaving a silently stale mock. Test files need no casts of
+ * their own.
  */
 
 // Logger utilities

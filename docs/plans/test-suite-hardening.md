@@ -199,6 +199,8 @@ Gate:
 
 ### Phase 5 — Tests wait on conditions, not the clock
 
+Partially shipped. Done: `waitUntil` exists in `@brains/test-utils` with its own tests (steps 1–2); the packed transport ports bind at run time and two concurrent suites no longer collide (step 7); and the inline-`mkdtemp` leak is closed for its three biggest sources — `plugins/cms`, `plugins/playbooks` and `packages/brains-ops` each leak zero directories per package run, via tracked helpers in `@brains/plugins/test` and `@brains/test-utils` (most of step 8). Still open: every sleep migration (steps 3–4, none converted yet), the `Reflect.get` probes (5), fake timers (6), the residual ~159-directory leak under a full concurrent run whose cause is not yet explained plus the bun install-staging leak (rest of 8, and 9), and the ESLint ban (10), which must come after the migrations it polices.
+
 1. Write `waitUntil`'s own tests in `shared/test-utils`: resolves when the predicate turns true, rejects with the predicate's description at the deadline, never busy-loops.
 2. Implement `waitUntil` per decision 7.
 3. Migrate `plugins/directory-sync` — it has the largest concentration of synchronization sleeps (21).
