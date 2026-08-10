@@ -18,6 +18,7 @@ successCriteria:
       shouldBeCalled: true
       argsContain:
         action: status
+        playbookId: onboarding
   responseNotContains:
     - "I cannot"
     - "I don't have access"
