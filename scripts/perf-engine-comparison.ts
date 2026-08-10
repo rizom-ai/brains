@@ -7,6 +7,7 @@
  *
  *   bun scripts/perf-engine-comparison.ts
  *   bun scripts/perf-engine-comparison.ts <libsql|turso> [fts|scan]
+ *   BRAINS_BENCH_ENTITY_COUNT=10000 bun scripts/perf-engine-comparison.ts turso scan
  */
 import { cpus, tmpdir } from "node:os";
 import { mkdtempSync, rmSync } from "node:fs";
@@ -28,12 +29,31 @@ interface OpenDatabase {
   url: string;
 }
 
-const ENTITY_COUNT = 1_000;
+function readPositiveInteger(name: string, fallback: number): number {
+  const raw = process.env[name];
+  if (raw === undefined) return fallback;
+  const parsed = Number(raw);
+  if (!Number.isSafeInteger(parsed) || parsed <= 0) {
+    throw new Error(`${name} must be a positive integer`);
+  }
+  return parsed;
+}
+
+const ENTITY_COUNT = readPositiveInteger("BRAINS_BENCH_ENTITY_COUNT", 1_000);
 const DIMENSIONS = 1_536;
-const SEARCH_ITERATIONS = 30;
-const BOOST_ITERATIONS = 100;
-const UPDATE_ITERATIONS = 200;
-const JOB_COUNT = 300;
+const SEARCH_ITERATIONS = readPositiveInteger(
+  "BRAINS_BENCH_SEARCH_ITERATIONS",
+  30,
+);
+const BOOST_ITERATIONS = readPositiveInteger(
+  "BRAINS_BENCH_BOOST_ITERATIONS",
+  100,
+);
+const UPDATE_ITERATIONS = Math.min(
+  readPositiveInteger("BRAINS_BENCH_UPDATE_ITERATIONS", 200),
+  ENTITY_COUNT,
+);
+const JOB_COUNT = readPositiveInteger("BRAINS_BENCH_JOB_COUNT", 300);
 
 const WORDS = [
   "typescript",

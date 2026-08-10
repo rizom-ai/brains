@@ -24,7 +24,7 @@ describe("prepareEntityDatabaseForLibsql", () => {
     );
   });
 
-  test("removes native FTS schema and rebuilds the libSQL keyword index", async () => {
+  test("removes legacy search schema and preserves portable keyword search", async () => {
     const directory = await mkdtemp(join(tmpdir(), "brains-fts-rollback-"));
     directories.push(directory);
     const config = { url: `file:${join(directory, "entities.db")}` };
@@ -78,6 +78,10 @@ describe("prepareEntityDatabaseForLibsql", () => {
         "typescript-hash",
       ],
     });
+    await tursoSeed.client.execute(`
+      CREATE INDEX entities_content_fts
+      ON entities USING fts (content)
+    `);
     tursoSeed.client.close();
     await prepareEntityDatabaseForLibsql(config);
 
@@ -88,15 +92,16 @@ describe("prepareEntityDatabaseForLibsql", () => {
     });
     try {
       const matches = await libsql.client.execute({
-        sql: "SELECT entity_id FROM entity_fts WHERE entity_fts MATCH ?",
-        args: ['"TypeScript"'],
+        sql: `SELECT id FROM entities
+              WHERE instr(lower(content), lower(?)) > 0`,
+        args: ["typescript"],
       });
       expect(matches.rows).toEqual([
-        expect.objectContaining({ entity_id: "typescript" }),
+        expect.objectContaining({ id: "typescript" }),
       ]);
 
       const nativeSchema = await libsql.client.execute(
-        "SELECT name FROM sqlite_master WHERE name LIKE '__turso_internal_fts_%' OR name = 'entities_content_fts'",
+        "SELECT name FROM sqlite_master WHERE name LIKE '__turso_internal_fts_%' OR name IN ('entities_content_fts', 'entity_fts')",
       );
       expect(nativeSchema.rows).toEqual([]);
 

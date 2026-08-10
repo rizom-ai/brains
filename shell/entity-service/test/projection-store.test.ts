@@ -24,7 +24,7 @@ describe("ProjectionStore", () => {
   beforeEach(async () => {
     database = await createTestEntityDatabase();
     connection = createEntityDatabase(database.config);
-    store = new ProjectionStore(connection.db, undefined, connection.engine);
+    store = new ProjectionStore(connection.db);
   });
 
   afterEach(async () => {

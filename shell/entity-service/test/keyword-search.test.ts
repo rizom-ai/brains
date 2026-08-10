@@ -7,15 +7,10 @@ import { minimalTestSchema, minimalTestAdapter } from "./helpers/test-schemas";
 import { createTestEntity } from "@brains/test-utils";
 import { SHELL_CHANNELS } from "@brains/contracts";
 import { MOCK_DIMENSIONS } from "./helpers/mock-services";
-import {
-  buildFtsMatch,
-  createEntityDatabase,
-  ensureFtsTable,
-  upsertFtsEntry,
-} from "../src/db";
+import { buildKeywordMatch, createEntityDatabase } from "../src/db";
 import { sql } from "drizzle-orm";
 
-describe("full-text search", () => {
+describe("portable keyword search", () => {
   let ctx: EntityServiceTestContext;
 
   beforeEach(async () => {
@@ -76,7 +71,7 @@ describe("full-text search", () => {
     ).rejects.toThrow("Semantic indexing is disabled");
   });
 
-  test("lexical fallback applies minScore on a normalized bm25 scale", async () => {
+  test("lexical fallback applies minScore on a portable score", async () => {
     await ctx.cleanup();
     ctx = await setupEntityService(
       [
@@ -99,9 +94,8 @@ describe("full-text search", () => {
     });
     expect(permissive.map((result) => result.entity.id)).toEqual([entity.id]);
 
-    // Normalized bm25 relevance stays strictly below the type-weight
-    // multiplier (1 for unweighted types), so a threshold of 1 filters
-    // every lexical match while the system default of 0.5 admits it.
+    // Portable lexical relevance is 0.5 for an unweighted type, so a
+    // threshold of 1 filters every match while the default admits it.
     const filtered = await ctx.entityService.search({
       query: "wombat",
       options: { types: ["test"], minScore: 1 },
@@ -137,7 +131,7 @@ describe("full-text search", () => {
     });
   });
 
-  test("full-text index is updated when entity content changes", async () => {
+  test("keyword boost follows entity content changes", async () => {
     const entity = createTestEntity("test", {
       content: "Introduction to Python programming",
     });
@@ -168,12 +162,12 @@ describe("full-text search", () => {
       contentHash: updated.contentHash,
     });
 
-    // Old term should not get FTS boost (lower score)
+    // Old term should not get a keyword boost (lower score)
     const oldResults = await ctx.entityService.search({ query: "Python" });
     const oldScore =
       oldResults.find((r) => r.entity.id === entity.id)?.score ?? 0;
 
-    // New term should get FTS boost (higher score)
+    // New term should get a keyword boost (higher score)
     const newResults = await ctx.entityService.search({ query: "Rust" });
     const newScore =
       newResults.find((r) => r.entity.id === entity.id)?.score ?? 0;
@@ -181,7 +175,7 @@ describe("full-text search", () => {
     expect(newScore).toBeGreaterThan(oldScore);
   });
 
-  test("full-text index is cleaned up when entity is deleted", async () => {
+  test("deleted content cannot receive a keyword boost", async () => {
     const entity = createTestEntity("test", {
       content: "Unique keyword: xylophone orchestration techniques",
     });
@@ -199,7 +193,7 @@ describe("full-text search", () => {
     expect(results).toHaveLength(0);
   });
 
-  test("search handles queries with special full-text characters", async () => {
+  test("search treats special characters as literal text", async () => {
     const entity = createTestEntity("test", {
       content: "What topics does this brain cover?",
     });
@@ -211,8 +205,7 @@ describe("full-text search", () => {
       contentHash: entity.contentHash,
     });
 
-    // These queries contain characters that break FTS5 if not escaped:
-    // ? is a prefix operator, * is a glob, OR/AND are boolean operators
+    // These remain literal input rather than query-language operators.
     const queries = [
       "What topics does this brain cover?",
       "search for something*",
@@ -322,7 +315,7 @@ describe("full-text search", () => {
   });
 });
 
-describe("full-text engine parity", () => {
+describe("portable keyword engine parity", () => {
   test("returns the same keyword-boost decisions on both engines", async () => {
     const decisions: Record<
       string,
@@ -348,8 +341,6 @@ describe("full-text engine parity", () => {
             PRIMARY KEY (id, entityType)
           )
         `);
-        await ensureFtsTable(connection.client, connection.engine);
-
         const rows = [
           ["exact", "TypeScript is a typed superset of JavaScript"],
           ["semantic", "Strongly typed languages improve code quality"],
@@ -359,23 +350,15 @@ describe("full-text engine parity", () => {
             sql: "INSERT INTO entities (id, entityType, content) VALUES (?, 'test', ?)",
             args: [id, content],
           });
-          await upsertFtsEntry(
-            connection.db,
-            connection.engine,
-            id,
-            "test",
-            content,
-          );
         }
 
-        const ftsQuery = '"TypeScript"';
+        const query = "typescript";
         decisions[selectedEngine] = await connection.db.all<{
           id: string;
           boosted: number;
         }>(sql`
           SELECT id,
-            CASE WHEN ${buildFtsMatch(connection.engine, ftsQuery)}
-              THEN 1 ELSE 0 END AS boosted
+            CASE WHEN ${buildKeywordMatch(query)} THEN 1 ELSE 0 END AS boosted
           FROM entities
           ORDER BY id
         `);

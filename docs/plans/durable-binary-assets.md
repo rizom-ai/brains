@@ -72,11 +72,12 @@ Current image entities place a complete data URL in `entities.content`:
 data:image/png;base64,...
 ```
 
-That causes avoidable amplification:
+That causes avoidable amplification. Since the Turso migration the entity service no
+longer maintains a separate full-text index (portable keyword scan replaced engine FTS),
+so the FTS-specific steps below collapse to verifying no residual index artifacts remain:
 
 - base64 adds roughly 33% over the original bytes;
 - SQLite stores the expanded text in the entity row;
-- FTS stores/indexes the same non-textual content again;
 - updates amplify WAL, backup, event, and API payloads;
 - ordinary entity reads and lists can materialize complete image payloads;
 - consumers repeatedly decode the text back into bytes.
