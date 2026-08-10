@@ -137,6 +137,7 @@ export async function runDeployedDirectorySyncStress(
     contentRepo: user.contentRepo,
     confirmation: options.confirmation,
   });
+  assertHermeticDirectorySyncPosture(user);
 
   const environment = requiredEnvironmentSchema.parse(
     options.env ?? process.env,
@@ -256,6 +257,10 @@ export async function cleanupDirectorySyncStress(
   }
 }
 
+interface InspectedContainerState extends StressContainerState {
+  startedAt: string;
+}
+
 interface SystemDriverOptions {
   runId: string;
   artifactsDir: string;
@@ -281,7 +286,7 @@ class SystemDirectorySyncStressDriver implements DirectorySyncStressDriver {
   #container: string | undefined;
   #backupBranch: string | undefined;
   #originalTree: string | undefined;
-  #initialContainerState: StressContainerState | undefined;
+  #initialContainerState: InspectedContainerState | undefined;
 
   constructor(options: SystemDriverOptions) {
     this.#options = options;
@@ -574,20 +579,24 @@ class SystemDirectorySyncStressDriver implements DirectorySyncStressDriver {
       join(this.#options.artifactsDir, "health-samples.json"),
       `${JSON.stringify(this.#monitor.healthSamples, null, 2)}\n`,
     );
+    let externalAiCalls = 0;
     if (this.#container && this.#monitor.startedAt) {
       const logs = await this.#ssh(
         ["docker", "logs", "--since", this.#monitor.startedAt, this.#container],
         false,
       );
+      const runtimeLog = `${logs.stdout}${logs.stderr}`;
+      externalAiCalls = runtimeLog.match(/\] ai:usage \{/g)?.length ?? 0;
       await writeFile(
         join(this.#options.artifactsDir, "runtime.log"),
-        `${logs.stdout}${logs.stderr}`,
+        runtimeLog,
       );
     }
     const container = await this.#readContainerState();
     const metrics: StressMetrics = {
       health: this.#monitor.gateHealthSamples(),
       runtime: [...this.#monitor.runtimeSamples],
+      externalAiCalls,
       ...(container ? { container } : {}),
     };
     if (this.#monitor.error) {
@@ -603,7 +612,7 @@ class SystemDirectorySyncStressDriver implements DirectorySyncStressDriver {
     }
   }
 
-  async #readContainerState(): Promise<StressContainerState | undefined> {
+  async #readContainerState(): Promise<InspectedContainerState | undefined> {
     if (!this.#container) return undefined;
     const result = await this.#ssh(
       ["docker", "inspect", this.#container],
@@ -618,22 +627,28 @@ class SystemDirectorySyncStressDriver implements DirectorySyncStressDriver {
             State: z.object({
               Status: z.string(),
               OOMKilled: z.boolean(),
+              StartedAt: z.string().min(1),
             }),
           }),
         )
         .parse(JSON.parse(result.stdout));
       const inspection = inspections[0];
       if (!inspection) return undefined;
+      const reportedRestarts = Math.max(
+        0,
+        inspection.RestartCount -
+          (this.#initialContainerState?.restartCount ?? 0),
+      );
+      const manuallyRestarted =
+        this.#initialContainerState !== undefined &&
+        inspection.State.StartedAt !== this.#initialContainerState.startedAt;
       return {
         status: inspection.State.Status,
-        restartCount: Math.max(
-          0,
-          inspection.RestartCount -
-            (this.#initialContainerState?.restartCount ?? 0),
-        ),
+        restartCount: Math.max(reportedRestarts, manuallyRestarted ? 1 : 0),
         oomKilled:
           inspection.State.OOMKilled &&
           !(this.#initialContainerState?.oomKilled ?? false),
+        startedAt: inspection.State.StartedAt,
       };
     } catch {
       return undefined;
@@ -768,6 +783,19 @@ class SystemDirectorySyncStressDriver implements DirectorySyncStressDriver {
     ) {
       throw new Error("Directory-sync stress driver is not prepared");
     }
+  }
+}
+
+function assertHermeticDirectorySyncPosture(user: ResolvedUser): void {
+  if (user.embeddingEnabled !== false) {
+    throw new Error(
+      "Directory-sync stress requires embeddingEnabled: false for a hermetic smoke workload",
+    );
+  }
+  if (user.topicExtractionEnabled !== false) {
+    throw new Error(
+      "Directory-sync stress requires topicExtractionEnabled: false for a hermetic smoke workload",
+    );
   }
 }
 
@@ -987,6 +1015,7 @@ function renderStressMarkdown(
     `- Memory max: ${formatPercent(memory.length ? Math.max(...memory) : undefined)}`,
     `- PIDs max: ${runtime.length ? Math.max(...runtime.map((sample) => sample.pids)) : "n/a"}`,
     `- Container status/restarts/OOM: ${result.report.metrics.container ? `${result.report.metrics.container.status} / ${result.report.metrics.container.restartCount} / ${result.report.metrics.container.oomKilled}` : "unknown"}`,
+    `- External AI calls: ${result.report.metrics.externalAiCalls ?? 0}`,
     `- Health samples: ${health.length}`,
     `- Health failures: ${failures.length}`,
     "",

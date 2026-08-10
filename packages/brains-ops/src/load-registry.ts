@@ -110,6 +110,8 @@ export interface ResolvedUserIdentity {
   cloudflareZoneId?: string | undefined;
   contentRepo: string;
   profileKind?: string | undefined;
+  embeddingEnabled?: boolean | undefined;
+  topicExtractionEnabled?: boolean | undefined;
   siteOverride?: ResolvedSiteOverride;
   discordEnabled: boolean;
   discordAnchorUserId?: string;
@@ -226,6 +228,12 @@ export async function loadPilotRegistry(
           `${pilot.contentRepoPrefix}${userFile.data.handle}-content`,
         ...(userFile.data.profileKind
           ? { profileKind: userFile.data.profileKind }
+          : {}),
+        ...(userFile.data.embeddingEnabled !== undefined
+          ? { embeddingEnabled: userFile.data.embeddingEnabled }
+          : {}),
+        ...(userFile.data.topicExtractionEnabled !== undefined
+          ? { topicExtractionEnabled: userFile.data.topicExtractionEnabled }
           : {}),
         ...(userFile.data.siteOverride
           ? { siteOverride: { ...userFile.data.siteOverride } }

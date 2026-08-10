@@ -25,11 +25,20 @@ acceptance remains pending.
   The next independent scheduled run, `31356873624`, passed on its first attempt
   in 196.21 seconds with the same assertions, so issue #102 was closed as a
   non-recurring runner stall.
-- The read-only smoke baseline is operational on alpha.265: 7 notes, zero probe
-  files, a drained queue, one active worker, zero zombies, and zero container
-  restarts. Manual acceptance remains pending explicit approval to roll only
-  smoke's cohort runtime pin to alpha.275 and run the non-overlapping load
-  profile.
+- Smoke was rolled to `@rizom/brain@0.2.0-alpha.275` with the migrated
+  `@rizom/site-smoke-canary@0.2.0-alpha.235`; deploy run `31364403378` passed.
+- The approved manual load run `20260810072537` passed `add50`, `add150`, and
+  `add350`, then failed `update350a` when both cores remained near 200% and
+  health became unavailable. The server watchdog manually restarted the
+  container at `2026-08-10T07:34:11Z`; Docker still reported `RestartCount: 0`,
+  exposing a blind spot in the stress gate. Runtime logs also recorded 366
+  external AI embedding calls because the deployed smoke config did not use the
+  hermetic posture already used by the packaged soak.
+- Workload cleanup and the independent cleanup both passed: the original Git
+  tree, 7-note baseline, zero probes, drained queue, one active worker, and zero
+  zombies were restored. Smoke remains operational on alpha.275; further remote
+  load is paused while the gate gains hermetic-posture, external-AI, and
+  watchdog-restart assertions.
 
 Asset-backed Phase 2–3 behavior remains coordinated with
 [`durable-binary-assets.md`](./durable-binary-assets.md) and lands with that storage
