@@ -10,7 +10,7 @@ tags:
   - tool-invocation
   - permissions
   - regression
-  - bundle-core
+  - posture-personal
 
 turns:
   - userMessage: "Approve approval-candidate.io"

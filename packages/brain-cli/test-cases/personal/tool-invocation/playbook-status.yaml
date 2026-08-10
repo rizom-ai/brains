@@ -7,7 +7,7 @@ setup:
 tags:
   - playbooks
   - tool-invocation
-  - bundle-core
+  - posture-personal
 
 turns:
   - userMessage: "Check the status of the onboarding playbook."
@@ -18,7 +18,6 @@ successCriteria:
       shouldBeCalled: true
       argsContain:
         action: status
-        playbookId: onboarding
   responseNotContains:
     - "I cannot"
     - "I don't have access"

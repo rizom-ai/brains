@@ -23,6 +23,10 @@ describe("getAgentDiscoveryInstructions", () => {
       "approve/archive an existing or discovered agent with system_update",
     );
     expect(instructions).toContain(
+      "call system_update directly when it is callable",
+    );
+    expect(instructions).toContain("never substitute agent_connect");
+    expect(instructions).toContain(
       "agent_connect only to verify and save a new domain/URL",
     );
     expect(instructions).toContain("returned entity id/domain");
