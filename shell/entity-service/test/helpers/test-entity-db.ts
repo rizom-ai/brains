@@ -1,29 +1,21 @@
-import { join } from "node:path";
 import type { EntityDbConfig } from "../../src/types";
 import { migrateEntities } from "../../src/migrate";
-import { migrateEmbeddingDatabase } from "../../src/db/embedding-db";
-import { createClient } from "@libsql/client";
 import { createSilentLogger, createTestDatabase } from "@brains/test-utils";
 import type { TestDatabase } from "@brains/test-utils";
 import { computeContentHash } from "@brains/utils/hash";
-import { MOCK_DIMENSIONS } from "./mock-services";
 import { entities } from "../../src/schema/entities";
 import { embeddings } from "../../src/schema/embeddings";
 import { createEntityDatabase } from "../../src/db";
-import { createEmbeddingDatabase } from "../../src/db/embedding-db";
 
 export interface TestEntityDatabase extends TestDatabase {
   config: EntityDbConfig;
-  embeddingConfig: EntityDbConfig;
-  embeddingDbPath: string;
 }
 
 /**
- * Create temporary test databases (entity + embedding).
- * Each test gets its own isolated database pair.
+ * Create a temporary migrated entity database.
  *
- * Both files live in the one temp directory the shared helper created, so a
- * single `cleanup` covers the pair.
+ * Embeddings live in the entity database itself, so this is one file rather
+ * than the entity/embedding pair the separate-database layout needed.
  */
 export async function createTestEntityDatabase(): Promise<TestEntityDatabase> {
   const database = await createTestDatabase({
@@ -32,20 +24,7 @@ export async function createTestEntityDatabase(): Promise<TestEntityDatabase> {
     migrate: (url) => migrateEntities({ url }, createSilentLogger()),
   });
 
-  const embeddingDbPath = join(database.dir, "test-embeddings.db");
-  const embeddingConfig: EntityDbConfig = { url: `file:${embeddingDbPath}` };
-
-  const embeddingClient = database.track(
-    createClient({ url: embeddingConfig.url }),
-  );
-  await migrateEmbeddingDatabase(embeddingClient, MOCK_DIMENSIONS);
-
-  return {
-    ...database,
-    config: { url: database.url },
-    embeddingConfig,
-    embeddingDbPath,
-  };
+  return { ...database, config: { url: database.url } };
 }
 
 export interface TestEntityData {
@@ -58,39 +37,31 @@ export interface TestEntityData {
   embedding: Float32Array;
 }
 
-/**
- * Insert a test entity directly into the database with its embedding.
- * Writes entity to entity DB and embedding to embedding DB.
- */
+/** Insert a test entity and its embedding into the entity database. */
 export async function insertTestEntity(
   config: EntityDbConfig,
   data: TestEntityData,
-  embeddingConfig: EntityDbConfig,
 ): Promise<void> {
   const { db, client } = createEntityDatabase(config);
   const contentHash = computeContentHash(data.content);
 
-  await db.insert(entities).values({
-    id: data.id,
-    entityType: data.entityType,
-    content: data.content,
-    contentHash,
-    metadata: data.metadata,
-    created: data.created,
-    updated: data.updated,
+  await db.transaction(async (transaction) => {
+    await transaction.insert(entities).values({
+      id: data.id,
+      entityType: data.entityType,
+      content: data.content,
+      contentHash,
+      metadata: data.metadata,
+      created: data.created,
+      updated: data.updated,
+    });
+    await transaction.insert(embeddings).values({
+      entityId: data.id,
+      entityType: data.entityType,
+      embedding: data.embedding,
+      contentHash,
+    });
   });
 
   client.close();
-
-  const { db: embDb, client: embClient } =
-    createEmbeddingDatabase(embeddingConfig);
-
-  await embDb.insert(embeddings).values({
-    entityId: data.id,
-    entityType: data.entityType,
-    embedding: data.embedding,
-    contentHash,
-  });
-
-  embClient.close();
 }

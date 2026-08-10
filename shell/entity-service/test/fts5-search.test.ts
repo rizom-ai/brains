@@ -156,11 +156,16 @@ describe("full-text search", () => {
         content: "Advanced Rust memory management",
       },
     });
+    const updated = await ctx.entityService.getEntity({
+      entityType: "test",
+      id: entity.id,
+    });
+    if (!updated) throw new Error(`Expected updated entity ${entity.id}`);
     await ctx.entityService.storeEmbedding({
       entityId: entity.id,
       entityType: "test",
       embedding: new Float32Array(MOCK_DIMENSIONS).fill(0.2),
-      contentHash: "updated-hash",
+      contentHash: updated.contentHash,
     });
 
     // Old term should not get FTS boost (lower score)

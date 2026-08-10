@@ -1,12 +1,12 @@
 #!/usr/bin/env bun
 import {
+  closeSqliteClient,
   createSqliteDatabase,
   refuseDirectMigrationRun,
   resolveMigrationsFolder,
-  resolveSqliteEngine,
   runPackageMigrations,
 } from "@brains/db";
-import { ensureFtsTable } from "./db";
+import { embeddings } from "./schema/embeddings";
 import { assets } from "./schema/assets";
 import { entities } from "./schema/entities";
 import {
@@ -21,10 +21,19 @@ import type { EntityDbConfig } from "./types";
 import { getErrorMessage } from "@brains/utils/error";
 import type { Logger } from "@brains/utils/logger";
 
-async function dropLibsqlSchemaObjects(
+/**
+ * Remove the FTS5 table created by released libSQL builds.
+ *
+ * This must run on libSQL: only libSQL can drop the fts5 virtual table and
+ * the historical vector index its own era created (Turso has neither module). A
+ * file whose WAL Turso is already coordinating is unreadable to libSQL and
+ * reports SQLITE_CORRUPT — but such a file has necessarily been through this
+ * cleanup before its first Turso open, so there is nothing left to remove
+ * and the pass is skipped. Genuine corruption still fails loudly at the
+ * migration step immediately after.
+ */
+export async function preparePortableEntitySearch(
   config: EntityDbConfig,
-  statements: string[],
-  allowNativeFtsSchema = false,
 ): Promise<void> {
   const { client } = createSqliteDatabase({
     url: config.url,
@@ -35,51 +44,22 @@ async function dropLibsqlSchemaObjects(
   });
 
   try {
-    await client.batch(statements, "write");
-    await client.execute("PRAGMA wal_checkpoint(TRUNCATE)");
-  } catch (error) {
-    const message = getErrorMessage(error);
-    if (
-      allowNativeFtsSchema &&
-      message.includes("malformed database schema") &&
-      message.includes("__turso_internal_fts_")
-    ) {
-      return;
+    try {
+      await client.execute("DROP TABLE IF EXISTS entity_fts");
+      await client.execute("PRAGMA wal_checkpoint(TRUNCATE)");
+    } finally {
+      await closeSqliteClient(client);
     }
-    throw error;
-  } finally {
-    client.close();
-  }
-}
-
-/** Remove libSQL-only schema before Turso opens existing local database files. */
-export async function prepareEntityDatabasesForTurso(
-  config: EntityDbConfig,
-  embeddingConfig?: EntityDbConfig,
-): Promise<void> {
-  if (resolveSqliteEngine(config.url) === "turso") {
-    await dropLibsqlSchemaObjects(
-      config,
-      [
-        "DROP INDEX IF EXISTS embeddings_embedding_idx",
-        "DROP TABLE IF EXISTS entity_fts",
-      ],
-      true,
-    );
-  }
-  if (embeddingConfig && resolveSqliteEngine(embeddingConfig.url) === "turso") {
-    await dropLibsqlSchemaObjects(embeddingConfig, [
-      "DROP INDEX IF EXISTS embeddings_embedding_idx",
-    ]);
+  } catch (error) {
+    if (!getErrorMessage(error).includes("SQLITE_CORRUPT")) throw error;
   }
 }
 
 export async function migrateEntities(
   config: EntityDbConfig,
   logger?: Logger,
-  embeddingConfig?: EntityDbConfig,
 ): Promise<void> {
-  await prepareEntityDatabasesForTurso(config, embeddingConfig);
+  await preparePortableEntitySearch(config);
 
   await runPackageMigrations({
     label: "entity",
@@ -87,6 +67,7 @@ export async function migrateEntities(
     schema: {
       assets,
       entities,
+      embeddings,
       projectionDirtyInputs,
       projectionWaves,
       projectionIncidents,
@@ -100,8 +81,6 @@ export async function migrateEntities(
     ),
     authTokenEnv: "DATABASE_AUTH_TOKEN",
     logger,
-    // Engine-specific full-text indexes are not managed by Drizzle.
-    afterMigrate: ensureFtsTable,
   });
 }
 

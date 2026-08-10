@@ -23,12 +23,6 @@ async function main(): Promise<void> {
         }),
       },
       logger,
-      {
-        url: config.embeddingDatabase.url,
-        ...(config.embeddingDatabase.authToken && {
-          authToken: config.embeddingDatabase.authToken,
-        }),
-      },
     );
 
     logger.info("Running job queue database migrations...");

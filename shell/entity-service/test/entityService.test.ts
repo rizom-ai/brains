@@ -1,7 +1,5 @@
 import { describe, expect, test, beforeEach, afterEach, mock } from "bun:test";
-import { chmod, writeFile } from "node:fs/promises";
 import { createEntityDatabase } from "../src/db";
-import { dirname, join } from "node:path";
 import { z } from "@brains/utils/zod";
 import { EntityService } from "../src/entityService";
 import { genericSpy } from "@brains/test-utils";
@@ -101,13 +99,13 @@ describe("EntityService", (): void => {
       logger,
       jobQueueService: mockJobQueueService,
       dbConfig: testDb.config,
-      embeddingDbConfig: testDb.embeddingConfig,
       mutationAdmission: { assertMutationAdmission },
       messageBus: { send: sendEvent },
     });
   });
 
   afterEach(async (): Promise<void> => {
+    entityService.close();
     await cleanup();
   });
 
@@ -642,36 +640,6 @@ describe("EntityService", (): void => {
     ).toThrow(
       "Entity type registration failed for unknownType: No adapter registered for entity type",
     );
-  });
-});
-
-describe("EntityService > initialize", () => {
-  test("propagates embedding database initialization failures", async () => {
-    const testDb = await createTestEntityDatabase();
-    // Read-only embedding DB file: opening succeeds, but the CREATE TABLE
-    // migration must fail — and that failure must surface via initialize()
-    const embPath = join(dirname(testDb.dbPath), "readonly-emb.db");
-    await writeFile(embPath, "");
-    await chmod(embPath, 0o444);
-
-    const logger = createSilentLogger();
-    const service = EntityService.createFresh({
-      embeddingService: mockEmbeddingService,
-      entityRegistry: EntityRegistry.createFresh(logger),
-      logger,
-      jobQueueService: createMockJobQueueService({
-        returns: { enqueue: "mock-job-id" },
-      }),
-      dbConfig: testDb.config,
-      embeddingDbConfig: { url: `file:${embPath}` },
-    });
-
-    try {
-      expect(service.initialize()).rejects.toThrow();
-    } finally {
-      service.close();
-      await testDb.cleanup();
-    }
   });
 });
 

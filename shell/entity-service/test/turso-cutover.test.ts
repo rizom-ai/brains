@@ -4,10 +4,7 @@ import { createSilentLogger } from "@brains/test-utils";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { migrateEmbeddingDatabase } from "../src/db/embedding-db";
 import { migrateEntities } from "../src/migrate";
-
-const EMBEDDING_DIMENSIONS = 4;
 
 describe("Turso entity database cutover", () => {
   const directories: string[] = [];
@@ -26,13 +23,11 @@ describe("Turso entity database cutover", () => {
     );
   });
 
-  test("opens populated WAL databases after removing libSQL-only schema", async () => {
+  test("opens a populated WAL entity database without touching the legacy embedding file", async () => {
     const directory = await mkdtemp(join(tmpdir(), "brains-turso-cutover-"));
     directories.push(directory);
     const entityConfig = { url: `file:${join(directory, "entities.db")}` };
-    const embeddingConfig = {
-      url: `file:${join(directory, "embeddings.db")}`,
-    };
+    const legacyEmbeddingUrl = `file:${join(directory, "embeddings.db")}`;
     const logger = createSilentLogger();
 
     process.env["BRAINS_DB_ENGINE"] = "libsql";
@@ -73,41 +68,42 @@ describe("Turso entity database cutover", () => {
       entityLibsql.client.close();
     }
 
-    const embeddingLibsql = createSqliteDatabase({
-      url: embeddingConfig.url,
+    const legacy = createSqliteDatabase({
+      url: legacyEmbeddingUrl,
       schema: {},
       engine: "libsql",
     });
     try {
-      await embeddingLibsql.client.execute("PRAGMA journal_mode = WAL");
-      await migrateEmbeddingDatabase(
-        embeddingLibsql.client,
-        EMBEDDING_DIMENSIONS,
-      );
-      await embeddingLibsql.client.execute({
-        sql: `INSERT INTO embeddings
-          VALUES ('existing-note', 'note', vector32(?), 'existing-hash')`,
-        args: [JSON.stringify([0.1, 0.2, 0.3, 0.4])],
+      await legacy.client.execute(`CREATE TABLE embeddings (
+        entity_id TEXT NOT NULL,
+        entity_type TEXT NOT NULL,
+        embedding F32_BLOB(4) NOT NULL,
+        content_hash TEXT NOT NULL,
+        PRIMARY KEY (entity_id, entity_type)
+      )`);
+      await legacy.client.execute({
+        sql: "INSERT INTO embeddings VALUES (?, ?, vector32(?), ?)",
+        args: [
+          "existing-note",
+          "note",
+          JSON.stringify([0.1, 0.2, 0.3, 0.4]),
+          "existing-hash",
+        ],
       });
-      await embeddingLibsql.client.execute(`
+      await legacy.client.execute(`
         CREATE INDEX embeddings_embedding_idx
         ON embeddings(libsql_vector_idx(embedding))
       `);
-      await embeddingLibsql.client.execute("PRAGMA wal_checkpoint(TRUNCATE)");
+      await legacy.client.execute("PRAGMA wal_checkpoint(TRUNCATE)");
     } finally {
-      embeddingLibsql.client.close();
+      legacy.client.close();
     }
 
     process.env["BRAINS_DB_ENGINE"] = "turso";
-    await migrateEntities(entityConfig, logger, embeddingConfig);
+    await migrateEntities(entityConfig, logger);
 
     const entityTurso = createSqliteDatabase({
       url: entityConfig.url,
-      schema: {},
-      engine: "turso",
-    });
-    const embeddingTurso = createSqliteDatabase({
-      url: embeddingConfig.url,
       schema: {},
       engine: "turso",
     });
@@ -117,7 +113,7 @@ describe("Turso entity database cutover", () => {
       );
       expect(entity.rows[0]?.["content"]).toBe("Existing production content");
 
-      const entityIndexes = await entityTurso.client.execute(
+      const indexes = await entityTurso.client.execute(
         `SELECT name FROM sqlite_master
          WHERE name IN (
            'entity_fts',
@@ -125,23 +121,29 @@ describe("Turso entity database cutover", () => {
            'embeddings_embedding_idx'
          )`,
       );
-      expect(entityIndexes.rows.map((row) => row["name"])).toEqual([
+      expect(indexes.rows.map((row) => row["name"])).toEqual([
         "entities_content_fts",
       ]);
-
-      const embedding = await embeddingTurso.client.execute(
-        "SELECT content_hash FROM embeddings WHERE entity_id = 'existing-note'",
-      );
-      expect(embedding.rows[0]?.["content_hash"]).toBe("existing-hash");
-
-      const legacyIndex = await embeddingTurso.client.execute(
-        `SELECT name FROM sqlite_master
-         WHERE name = 'embeddings_embedding_idx'`,
-      );
-      expect(legacyIndex.rows).toEqual([]);
     } finally {
-      embeddingTurso.client.close();
       entityTurso.client.close();
+    }
+
+    const unchangedLegacy = createSqliteDatabase({
+      url: legacyEmbeddingUrl,
+      schema: {},
+      engine: "libsql",
+    });
+    try {
+      const rows = await unchangedLegacy.client.execute(
+        "SELECT content_hash FROM embeddings",
+      );
+      expect(rows.rows[0]?.["content_hash"]).toBe("existing-hash");
+      const indexes = await unchangedLegacy.client.execute(
+        "SELECT name FROM sqlite_master WHERE name = 'embeddings_embedding_idx'",
+      );
+      expect(indexes.rows).toHaveLength(1);
+    } finally {
+      unchangedLegacy.client.close();
     }
   });
 });

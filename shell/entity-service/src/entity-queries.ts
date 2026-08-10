@@ -1,5 +1,4 @@
 import { deleteFtsEntry, type EntityDB } from "./db";
-import type { EmbeddingDB } from "./db/embedding-db";
 import type { SqliteEngine } from "@brains/db";
 import {
   getVisibleContentVisibilities,
@@ -7,7 +6,6 @@ import {
   type ContentVisibility,
 } from "./types";
 import { entities } from "./schema/entities";
-import { embeddings } from "./schema/embeddings";
 import {
   eq,
   and,
@@ -80,21 +78,17 @@ export interface EntityQueryDeps {
   db: EntityDB;
   serializer: EntitySerializer;
   logger: Logger;
-  /** Embedding DB for delete cascading (separate from entity DB). */
-  embeddingDb: EmbeddingDB;
   engine?: SqliteEngine;
 }
 
 export class EntityQueries {
   private db: EntityDB;
-  private embeddingDb: EmbeddingDB;
   private serializer: EntitySerializer;
   private logger: Logger;
   private engine: SqliteEngine;
 
   constructor(deps: EntityQueryDeps) {
     this.db = deps.db;
-    this.embeddingDb = deps.embeddingDb;
     this.serializer = deps.serializer;
     this.logger = deps.logger.child("EntityQueries");
     this.engine = deps.engine ?? "libsql";
@@ -386,14 +380,6 @@ export class EntityQueries {
       );
       return false;
     }
-
-    // Delete embedding first (no foreign key constraint, so manual cascade)
-    // Uses embedding DB (which may be separate from entity DB)
-    await this.embeddingDb
-      .delete(embeddings)
-      .where(
-        and(eq(embeddings.entityType, entityType), eq(embeddings.entityId, id)),
-      );
 
     await deleteFtsEntry(this.db, this.engine, id, entityType);
 

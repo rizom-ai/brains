@@ -19,11 +19,7 @@ export interface DatabaseConfig {
  */
 export interface IMigrationFunctions {
   getStandardConfigWithDirectories(): Promise<StandardConfig>;
-  migrateEntities(
-    config: DatabaseConfig,
-    logger?: Logger,
-    embeddingConfig?: DatabaseConfig,
-  ): Promise<void>;
+  migrateEntities(config: DatabaseConfig, logger?: Logger): Promise<void>;
   migrateJobQueue(config: DatabaseConfig, logger?: Logger): Promise<void>;
   migrateConversations(config: DatabaseConfig, logger?: Logger): Promise<void>;
   migrateRuntimeState(config: DatabaseConfig, logger?: Logger): Promise<void>;
@@ -96,12 +92,6 @@ export class MigrationManager {
         }),
       },
       this.logger,
-      {
-        url: config.embeddingDatabase.url,
-        ...(config.embeddingDatabase.authToken && {
-          authToken: config.embeddingDatabase.authToken,
-        }),
-      },
     );
   }
 

@@ -46,6 +46,5 @@ describe("resolveStandardConfig", () => {
     expect(config.jobQueueDatabase.url).toBe("file:/data/brain-jobs.db");
     expect(config.conversationDatabase.url).toBe("file:/data/conversations.db");
     expect(config.runtimeStateDatabase.url).toBe("file:/data/runtime-state.db");
-    expect(config.embeddingDatabase.url).toBe("file:/data/embeddings.db");
   });
 });

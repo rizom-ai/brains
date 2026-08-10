@@ -364,7 +364,6 @@ export function createShellServices(options: {
         projectionNow: dependencies.projectionRuntime.now,
       }),
       dbConfig: createDatabaseConfig(config.database),
-      embeddingDbConfig: createDatabaseConfig(config.embeddingDatabase),
       ...(remoteEntityTransport && {
         remoteTransport: remoteEntityTransport,
       }),

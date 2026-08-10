@@ -100,10 +100,10 @@ until the repository owns a corresponding format.
   - 1536-dimensional vectors
   - Called via Vercel AI SDK (same `AI_API_KEY` as text gen)
   - ~$0.02/M tokens (negligible for personal brains)
-- **Vector Storage** — separate `embeddings.db`
-  - Decoupled from entity DB for model-swap flexibility
+- **Vector Storage** — `embeddings` table in `brain.db`
   - Turso Database `F32_BLOB` columns; local files use Turso by default
-  - Attached to entity DB for cross-DB search joins
+  - Composite foreign key to entities with cascading deletion
+  - Content changes invalidate stale vectors atomically before regeneration
 - **Hybrid Search** — vector + full-text keyword
   - 70% semantic + 30% keyword boost
   - Turso native FTS for local files; SQLite FTS5 on the libSQL fallback

@@ -58,7 +58,6 @@ function createLayerOptions(database: TestDatabase): TestLayerOptions {
     logger,
     jobQueueService,
     dbConfig: database.config,
-    embeddingDbConfig: database.embeddingConfig,
   };
 }
 

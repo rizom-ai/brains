@@ -4,7 +4,7 @@ Entity persistence, markdown serialization, embeddings, and search for Brain app
 
 ## Overview
 
-`@brains/entity-service` provides a typed entity registry plus CRUD operations backed by libSQL or Turso Database. Entities are stored as markdown with frontmatter-derived metadata, while embeddings are generated asynchronously and stored in a separate embedding database. Local files default to Turso; libSQL is retained as the explicit fallback.
+`@brains/entity-service` provides a typed entity registry plus CRUD operations backed by libSQL or Turso Database. Entities are stored as markdown with frontmatter-derived metadata, while embeddings are generated asynchronously and stored in the entity database. Local files default to Turso; libSQL is retained as the explicit fallback.
 
 ## Features
 
@@ -15,7 +15,7 @@ Entity persistence, markdown serialization, embeddings, and search for Brain app
 - Metadata filtering, published filtering, pagination, and multi-field sorting
 - Markdown/frontmatter serialization helpers
 - Optional structural event bus for entity lifecycle notifications
-- Separate entity and embedding databases
+- Atomic entity and embedding persistence in one database
 
 ## Basic usage
 
@@ -37,7 +37,6 @@ const entityService = EntityService.createFresh({
   logger,
   jobQueueService,
   dbConfig: { url: "file:./entities.db" },
-  embeddingDbConfig: { url: "file:./embeddings.db" },
   // Optional. Structural contract; does not require importing a concrete message bus here.
   messageBus: eventBus,
 });
@@ -198,7 +197,7 @@ CREATE TABLE entities (
 
 For keyword search, the service ensures an `entity_fts` FTS5 table on libSQL or a native `entities_content_fts` index on Turso Database.
 
-### Embedding database
+### Embeddings
 
 ```sql
 CREATE TABLE embeddings (
@@ -206,11 +205,13 @@ CREATE TABLE embeddings (
   entity_type TEXT NOT NULL,
   embedding F32_BLOB(<provider dimensions>) NOT NULL,
   content_hash TEXT NOT NULL,
-  PRIMARY KEY (entity_id, entity_type)
+  PRIMARY KEY (entity_id, entity_type),
+  FOREIGN KEY (entity_id, entity_type)
+    REFERENCES entities(id, entityType) ON DELETE CASCADE
 );
 ```
 
-The embedding database is attached to the entity database as `emb` for search queries.
+Embeddings share the entity database. Content changes invalidate the prior vector in the same transaction, and runtime writes validate dimensions against the active provider.
 
 ## Frontmatter utilities
 
@@ -246,7 +247,7 @@ bun test
 - `SingletonEntityService`
 - `BaseEntity`, `EntityAdapter`, `SearchOptions`, `ListOptions`, `EntityEventBus`
 - `parseMarkdownWithFrontmatter`, `generateMarkdownWithFrontmatter`, `generateFrontmatter`
-- Entity and embedding database helpers
+- Entity database helpers
 
 ## License
 

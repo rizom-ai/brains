@@ -95,7 +95,6 @@ function createTestConfig(dir: string): ShellConfigInput {
   return {
     plugins: [],
     database: { url: `file:${dir}/entities.db` },
-    embeddingDatabase: { url: `file:${dir}/embeddings.db` },
     jobQueueDatabase: { url: `file:${dir}/jobs.db` },
     conversationDatabase: { url: `file:${dir}/conversations.db` },
     runtimeStateDatabase: { url: `file:${dir}/runtime-state.db` },
@@ -371,9 +370,6 @@ describe("Shell service ownership", () => {
     const entityRegistry = EntityRegistry.createFresh(logger);
     const entityService = EntityService.createFresh({
       dbConfig: { url: `file:${directory.dir}/entities.db` },
-      embeddingDbConfig: {
-        url: `file:${directory.dir}/embeddings.db`,
-      },
       embeddingService,
       entityRegistry,
       jobQueueService,
@@ -493,7 +489,6 @@ describe("Shell service ownership", () => {
     const entityRegistry = EntityRegistry.createFresh(logger);
     const entityService = EntityService.createFresh({
       dbConfig: { url: `file:${directory.dir}/entities.db` },
-      embeddingDbConfig: { url: `file:${directory.dir}/embeddings.db` },
       embeddingService,
       entityRegistry,
       jobQueueService,

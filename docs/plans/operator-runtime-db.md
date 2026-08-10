@@ -117,7 +117,7 @@ The earlier open question — "one shared runtime-state DB file, or one per cons
 
 - **Durable operator/security tier (this plan):** its own private file (e.g. `auth`/operator DB), strict permissions, backed up. Auth's isolation requirement is satisfied by the tier boundary.
 - **Ephemeral operational tier:** a single shared the runtime state store (`shell/runtime-state`) file with per-consumer table namespaces (chat subscriptions, playbook runs, dedupe). No per-consumer files; they share a profile (tiny, secret-free, disposable).
-- **Already-separate by scale/lifecycle:** `brain-jobs.db` (job queue) and `embeddings.db` stay their own files; they are not folded into either tier.
+- **Already-separate by scale/lifecycle:** `brain-jobs.db` remains its own file. Derived embeddings live with entities in `brain.db`; neither belongs to an operator-state tier.
 
 ## Related plans
 

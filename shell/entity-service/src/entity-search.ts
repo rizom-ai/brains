@@ -298,7 +298,7 @@ export class EntitySearch {
   }
 
   /**
-   * Execute search against an attached embedding database (aliased as "emb").
+   * Execute hybrid search against the local embeddings table.
    */
   private async searchWithAttachedDb<T extends BaseEntity = BaseEntity>(
     embeddingArray: string,
@@ -342,7 +342,7 @@ export class EntitySearch {
       })
       .from(entities)
       .innerJoin(
-        sql`emb.embeddings AS emb_e`,
+        sql`embeddings AS emb_e`,
         sql`${entities.id} = emb_e.entity_id AND ${entities.entityType} = emb_e.entity_type`,
       )
       .where(
@@ -428,7 +428,7 @@ export class EntitySearch {
     });
   }
 
-  /** Read and decode vectors from the attached embedding database. */
+  /** Read and decode vectors from the entity database. */
   private async readEmbeddings(
     types?: string[],
     visibilityScope?: ContentVisibility,
@@ -471,7 +471,7 @@ export class EntitySearch {
       })
       .from(entities)
       .innerJoin(
-        sql`emb.embeddings AS emb_e`,
+        sql`embeddings AS emb_e`,
         sql`${entities.id} = emb_e.entity_id AND ${entities.entityType} = emb_e.entity_type`,
       )
       .where(conditions.length > 0 ? and(...conditions) : undefined)
@@ -506,7 +506,7 @@ export class EntitySearch {
       })
       .from(entities)
       .innerJoin(
-        sql`emb.embeddings AS emb_e`,
+        sql`embeddings AS emb_e`,
         sql`${entities.id} = emb_e.entity_id AND ${entities.entityType} = emb_e.entity_type`,
       )
       .orderBy(sql`${distanceExpr} ASC`);

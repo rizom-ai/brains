@@ -62,6 +62,23 @@ describe("prepareEntityDatabaseForLibsql", () => {
 
     process.env["BRAINS_DB_ENGINE"] = "turso";
     await migrateEntities(config, logger);
+    const tursoSeed = createSqliteDatabase({
+      url: config.url,
+      schema: {},
+      engine: "turso",
+    });
+    await tursoSeed.client.execute({
+      sql: `INSERT INTO embeddings
+        (entity_id, entity_type, embedding, content_hash)
+        VALUES (?, ?, vector32(?), ?)`,
+      args: [
+        "typescript",
+        "note",
+        JSON.stringify([0.1, 0.2]),
+        "typescript-hash",
+      ],
+    });
+    tursoSeed.client.close();
     await prepareEntityDatabaseForLibsql(config);
 
     const libsql = createSqliteDatabase({
@@ -87,6 +104,11 @@ describe("prepareEntityDatabaseForLibsql", () => {
         "SELECT name FROM sqlite_master WHERE name = 'projection_waves'",
       );
       expect(migratedSchema.rows).toHaveLength(1);
+
+      const embeddings = await libsql.client.execute(
+        "SELECT content_hash FROM embeddings WHERE entity_id = 'typescript'",
+      );
+      expect(embeddings.rows[0]?.["content_hash"]).toBe("typescript-hash");
     } finally {
       libsql.client.close();
     }

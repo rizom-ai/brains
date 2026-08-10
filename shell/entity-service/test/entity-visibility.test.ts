@@ -301,11 +301,17 @@ describe("entity visibility", () => {
 
     for (const entity of [publicEntity, sharedEntity, restrictedEntity]) {
       await ctx.entityService.createEntity({ entity });
+      const persisted = await ctx.entityService.getEntity({
+        entityType: entity.entityType,
+        id: entity.id,
+        visibilityScope: "restricted",
+      });
+      if (!persisted) throw new Error(`Expected persisted entity ${entity.id}`);
       await ctx.entityService.storeEmbedding({
         entityId: entity.id,
         entityType: entity.entityType,
         embedding: new Float32Array(MOCK_DIMENSIONS).fill(0.1),
-        contentHash: entity.contentHash,
+        contentHash: persisted.contentHash,
       });
     }
 
@@ -374,11 +380,17 @@ describe("entity visibility", () => {
         metadata: { title: seed.id },
       });
       await ctx.entityService.createEntity({ entity });
+      const persisted = await ctx.entityService.getEntity({
+        entityType: entity.entityType,
+        id: entity.id,
+        visibilityScope: "restricted",
+      });
+      if (!persisted) throw new Error(`Expected persisted entity ${entity.id}`);
       await ctx.entityService.storeEmbedding({
         entityId: entity.id,
         entityType: entity.entityType,
         embedding: new Float32Array(MOCK_DIMENSIONS).fill(0.1),
-        contentHash: entity.contentHash,
+        contentHash: persisted.contentHash,
       });
     }
 

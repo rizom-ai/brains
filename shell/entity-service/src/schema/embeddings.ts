@@ -1,4 +1,5 @@
 import {
+  foreignKey,
   text,
   primaryKey,
   sqliteTable,
@@ -7,6 +8,7 @@ import {
 } from "drizzle-orm/sqlite-core";
 import type { SqliteTextColumn } from "@brains/db";
 import { vector } from "./vector";
+import { entities } from "./entities";
 
 type EmbeddingTextColumn<TName extends string> = SqliteTextColumn<
   "embeddings",
@@ -49,9 +51,8 @@ type EmbeddingsTable = SQLiteTableWithColumns<{
 }>;
 
 /**
- * Embeddings table for vector search
- * Separated from entities to allow immediate entity persistence
- * while embeddings are generated asynchronously
+ * Derived vectors stored beside entities in the same database. Keeping them in
+ * a separate table allows immediate entity persistence and atomic invalidation.
  */
 export const embeddings: EmbeddingsTable = sqliteTable(
   "embeddings",
@@ -71,6 +72,10 @@ export const embeddings: EmbeddingsTable = sqliteTable(
     return {
       // Composite primary key on entityId + entityType
       pk: primaryKey({ columns: [table.entityId, table.entityType] }),
+      entity: foreignKey({
+        columns: [table.entityId, table.entityType],
+        foreignColumns: [entities.id, entities.entityType],
+      }).onDelete("cascade"),
     };
   },
 );

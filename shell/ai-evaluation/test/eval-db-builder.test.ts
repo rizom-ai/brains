@@ -49,8 +49,7 @@ describe("eval DB builder", () => {
     const evalDbBase = join(tempDir, "build");
     const suiteContentDir = join(tempDir, "eval-content", "personal");
     await mkdir(suiteContentDir, { recursive: true });
-    await writeFile(`${evalDbBase}.db`, "entity-db");
-    await writeFile(`${evalDbBase}-embeddings.db`, "embedding-db");
+    await writeFile(`${evalDbBase}.db`, "entity-and-embedding-db");
 
     const config = {
       plugins: [
@@ -65,10 +64,7 @@ describe("eval DB builder", () => {
     copyBuiltDatabases(evalDbBase, suiteContentDir);
 
     expect(await readFile(join(suiteContentDir, "brain.db"), "utf8")).toBe(
-      "entity-db",
-    );
-    expect(await readFile(join(suiteContentDir, "embeddings.db"), "utf8")).toBe(
-      "embedding-db",
+      "entity-and-embedding-db",
     );
   });
 

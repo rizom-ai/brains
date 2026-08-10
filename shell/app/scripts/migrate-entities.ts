@@ -18,12 +18,6 @@ async function main(): Promise<void> {
         }),
       },
       logger,
-      {
-        url: config.embeddingDatabase.url,
-        ...(config.embeddingDatabase.authToken && {
-          authToken: config.embeddingDatabase.authToken,
-        }),
-      },
     );
 
     logger.info("✅ Entity database migrations completed successfully");

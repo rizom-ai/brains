@@ -44,7 +44,6 @@ function createTestConfig(dir: string): ShellConfigInput {
   return {
     plugins: [],
     database: { url: `file:${dir}/entities.db` },
-    embeddingDatabase: { url: `file:${dir}/embeddings.db` },
     jobQueueDatabase: { url: `file:${dir}/jobs.db` },
     conversationDatabase: { url: `file:${dir}/conversations.db` },
     runtimeStateDatabase: { url: `file:${dir}/runtime-state.db` },

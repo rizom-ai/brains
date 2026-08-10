@@ -50,7 +50,6 @@ export interface ShellConfigSchemaOutput {
   };
   conversationDatabase: DbConfig;
   runtimeStateDatabase: DbConfig;
-  embeddingDatabase: DbConfig;
   ai: {
     apiKey: string;
     imageApiKey?: string | undefined;
@@ -62,6 +61,8 @@ export interface ShellConfigSchemaOutput {
   };
   embedding: {
     enabled: boolean;
+    model: "fast-all-MiniLM-L6-v2";
+    cacheDir: string;
   };
   logging: {
     level: "debug" | "info" | "warn" | "error";
@@ -110,7 +111,6 @@ export const shellConfigSchema: z.ZodType<ShellConfigSchemaOutput, unknown> =
       .prefault({}),
     conversationDatabase: dbConfigSchema,
     runtimeStateDatabase: dbConfigSchema,
-    embeddingDatabase: dbConfigSchema,
 
     ai: z.object({
       apiKey: z.string(),
@@ -126,6 +126,8 @@ export const shellConfigSchema: z.ZodType<ShellConfigSchemaOutput, unknown> =
 
     embedding: z.object({
       enabled: z.boolean().default(true),
+      model: z.enum(["fast-all-MiniLM-L6-v2"]).default("fast-all-MiniLM-L6-v2"),
+      cacheDir: z.string(),
     }),
 
     logging: z
@@ -193,8 +195,6 @@ export function createShellConfig(
       overrides.conversationDatabase ?? standardConfig.conversationDatabase,
     runtimeStateDatabase:
       overrides.runtimeStateDatabase ?? standardConfig.runtimeStateDatabase,
-    embeddingDatabase:
-      overrides.embeddingDatabase ?? standardConfig.embeddingDatabase,
     ai: {
       apiKey: overrides.ai?.apiKey ?? "",
       ...(overrides.ai?.imageApiKey

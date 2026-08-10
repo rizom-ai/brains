@@ -20,7 +20,6 @@ export interface EntityServiceTestContext {
   entityRegistry: EntityRegistry;
   jobQueueService: IJobQueueService;
   dbConfig: EntityDbConfig;
-  embeddingDbConfig: EntityDbConfig;
   cleanup: () => Promise<void>;
 }
 
@@ -70,11 +69,13 @@ export async function setupEntityService(
     logger,
     jobQueueService: mockJobQueueService,
     dbConfig: testDb.config,
-    embeddingDbConfig: testDb.embeddingConfig,
     ...(options?.messageBus && { messageBus: options.messageBus }),
   });
 
+  await entityService.initialize();
+
   const cleanup = async (): Promise<void> => {
+    entityService.close();
     await testDb.cleanup();
   };
 
@@ -83,7 +84,6 @@ export async function setupEntityService(
     entityRegistry,
     jobQueueService: mockJobQueueService,
     dbConfig: testDb.config,
-    embeddingDbConfig: testDb.embeddingConfig,
     cleanup,
   };
 }

@@ -100,14 +100,15 @@ class TursoClient implements Client {
   public closed = false;
   public readonly protocol = "file";
   private readonly connection: Promise<Database>;
+  private operationTail: Promise<void> = Promise.resolve();
 
   constructor(url: string) {
     const path = pathFromFileUrl(url);
     // multiprocess WAL coordination only exists for real files
-    const experimental: ("attach" | "index_method" | "multiprocess_wal")[] =
+    const experimental: ("index_method" | "multiprocess_wal")[] =
       path === ":memory:"
-        ? ["attach", "index_method"]
-        : ["attach", "index_method", "multiprocess_wal"];
+        ? ["index_method"]
+        : ["index_method", "multiprocess_wal"];
     // dynamic import: the SDK loads a native binding at import time, which
     // must not happen for consumers that never select the turso engine
     this.connection = import("@tursodatabase/database").then(({ connect }) =>
@@ -124,15 +125,75 @@ class TursoClient implements Client {
     stmtOrSql: InStatement | string,
     args?: InArgs,
   ): Promise<ResultSet> {
-    const db = await this.open();
-    return this.executeOn(db, normalizeStatement(stmtOrSql, args));
+    return this.runExclusive(async () => {
+      const db = await this.open();
+      return this.executeOn(db, normalizeStatement(stmtOrSql, args));
+    });
   }
 
   async batch(
     stmts: Array<InStatement | [string, InArgs?]>,
     mode: TransactionMode = "deferred",
   ): Promise<Array<ResultSet>> {
-    const db = await this.open();
+    return this.runExclusive(async () => {
+      const db = await this.open();
+      return this.batchOn(db, stmts, mode);
+    });
+  }
+
+  async migrate(stmts: Array<InStatement>): Promise<Array<ResultSet>> {
+    return this.runExclusive(async () => {
+      const db = await this.open();
+      await db.exec("PRAGMA foreign_keys=off");
+      try {
+        return await this.batchOn(db, stmts, "deferred");
+      } finally {
+        await db.exec("PRAGMA foreign_keys=on").catch(() => undefined);
+      }
+    });
+  }
+
+  async transaction(mode: TransactionMode = "deferred"): Promise<Transaction> {
+    const release = await this.acquireOperation();
+    try {
+      const db = await this.open();
+      await db.exec(BEGIN_BY_MODE[mode]);
+      return new TursoTransaction(
+        db,
+        (stmt) => this.executeOn(db, stmt),
+        release,
+      );
+    } catch (error) {
+      release();
+      throw error;
+    }
+  }
+
+  async executeMultiple(sql: string): Promise<void> {
+    await this.runExclusive(async () => {
+      const db = await this.open();
+      await db.exec(sql);
+    });
+  }
+
+  async sync(): Promise<never> {
+    throw new Error("sync() is not supported by the turso file client");
+  }
+
+  reconnect(): void {
+    throw new Error("reconnect() is not supported by the turso file client");
+  }
+
+  close(): void {
+    this.closed = true;
+    void this.connection.then((db) => db.close()).catch(() => undefined);
+  }
+
+  private async batchOn(
+    db: Database,
+    stmts: Array<InStatement | [string, InArgs?]>,
+    mode: TransactionMode,
+  ): Promise<Array<ResultSet>> {
     await db.exec(BEGIN_BY_MODE[mode]);
     try {
       const results: ResultSet[] = [];
@@ -150,38 +211,25 @@ class TursoClient implements Client {
     }
   }
 
-  async migrate(stmts: Array<InStatement>): Promise<Array<ResultSet>> {
-    const db = await this.open();
-    await db.exec("PRAGMA foreign_keys=off");
+  private async acquireOperation(): Promise<() => void> {
+    const previous = this.operationTail;
+    let release = (): void => undefined;
+    this.operationTail = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    await previous;
+    return release;
+  }
+
+  private async runExclusive<TResult>(
+    operation: () => Promise<TResult>,
+  ): Promise<TResult> {
+    const release = await this.acquireOperation();
     try {
-      return await this.batch(stmts, "deferred");
+      return await operation();
     } finally {
-      await db.exec("PRAGMA foreign_keys=on").catch(() => undefined);
+      release();
     }
-  }
-
-  async transaction(mode: TransactionMode = "deferred"): Promise<Transaction> {
-    const db = await this.open();
-    await db.exec(BEGIN_BY_MODE[mode]);
-    return new TursoTransaction(db, (stmt) => this.executeOn(db, stmt));
-  }
-
-  async executeMultiple(sql: string): Promise<void> {
-    const db = await this.open();
-    await db.exec(sql);
-  }
-
-  async sync(): Promise<never> {
-    throw new Error("sync() is not supported by the turso file client");
-  }
-
-  reconnect(): void {
-    throw new Error("reconnect() is not supported by the turso file client");
-  }
-
-  close(): void {
-    this.closed = true;
-    void this.connection.then((db) => db.close()).catch(() => undefined);
   }
 
   private async open(): Promise<Database> {
@@ -231,13 +279,16 @@ class TursoTransaction implements Transaction {
   private readonly executeStatement: (
     stmt: NormalizedStatement,
   ) => Promise<ResultSet>;
+  private readonly releaseOperation: () => void;
 
   constructor(
     db: Database,
     executeStatement: (stmt: NormalizedStatement) => Promise<ResultSet>,
+    releaseOperation: () => void,
   ) {
     this.db = db;
     this.executeStatement = executeStatement;
+    this.releaseOperation = releaseOperation;
   }
 
   async execute(stmt: InStatement): Promise<ResultSet>;
@@ -276,7 +327,11 @@ class TursoTransaction implements Transaction {
   private async finish(statement: "COMMIT" | "ROLLBACK"): Promise<void> {
     if (this.closed) return;
     this.closed = true;
-    await this.db.exec(statement);
+    try {
+      await this.db.exec(statement);
+    } finally {
+      this.releaseOperation();
+    }
   }
 }
 
