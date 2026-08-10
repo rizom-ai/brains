@@ -27,7 +27,7 @@ import {
 import type { ShellConfigInput } from "../src/config";
 import { DaemonRegistry } from "../src/daemon-registry";
 import { Shell, type ShellDependencies } from "../src/shell";
-import { createTestDirectory } from "./helpers/test-db";
+import { createTestDirectory } from "@brains/test-utils";
 
 interface TestDirectory {
   dir: string;

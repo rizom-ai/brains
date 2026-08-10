@@ -1,5 +1,3 @@
-import { mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { EntityDbConfig } from "../../src/types";
 import { migrateEntities } from "../../src/migrate";
@@ -8,7 +6,8 @@ import {
   ensureEmbeddingIndexes,
 } from "../../src/db/embedding-db";
 import { createClient } from "@libsql/client";
-import { createSilentLogger } from "@brains/test-utils";
+import { createSilentLogger, createTestDatabase } from "@brains/test-utils";
+import type { TestDatabase } from "@brains/test-utils";
 import { computeContentHash } from "@brains/utils/hash";
 import { MOCK_DIMENSIONS } from "./mock-services";
 import { entities } from "../../src/schema/entities";
@@ -16,37 +15,41 @@ import { embeddings } from "../../src/schema/embeddings";
 import { createEntityDatabase } from "../../src/db";
 import { createEmbeddingDatabase } from "../../src/db/embedding-db";
 
+export interface TestEntityDatabase extends TestDatabase {
+  config: EntityDbConfig;
+  embeddingConfig: EntityDbConfig;
+  embeddingDbPath: string;
+}
+
 /**
  * Create temporary test databases (entity + embedding).
  * Each test gets its own isolated database pair.
+ *
+ * Both files live in the one temp directory the shared helper created, so a
+ * single `cleanup` covers the pair.
  */
-export async function createTestEntityDatabase(): Promise<{
-  config: EntityDbConfig;
-  embeddingConfig: EntityDbConfig;
-  cleanup: () => Promise<void>;
-  dbPath: string;
-  embeddingDbPath: string;
-}> {
-  const tempDir = await mkdtemp(join(tmpdir(), "brain-entity-test-"));
-  const dbPath = join(tempDir, "test-entities.db");
-  const embeddingDbPath = join(tempDir, "test-embeddings.db");
-  const config: EntityDbConfig = { url: `file:${dbPath}` };
+export async function createTestEntityDatabase(): Promise<TestEntityDatabase> {
+  const database = await createTestDatabase({
+    prefix: "brain-entity-test-",
+    filename: "test-entities.db",
+    migrate: (url) => migrateEntities({ url }, createSilentLogger()),
+  });
+
+  const embeddingDbPath = join(database.dir, "test-embeddings.db");
   const embeddingConfig: EntityDbConfig = { url: `file:${embeddingDbPath}` };
 
-  const logger = createSilentLogger();
-  await migrateEntities(config, logger);
+  const embeddingClient = database.track(
+    createClient({ url: embeddingConfig.url }),
+  );
+  await migrateEmbeddingDatabase(embeddingClient, MOCK_DIMENSIONS);
+  await ensureEmbeddingIndexes(embeddingClient);
 
-  // Migrate embedding DB
-  const embClient = createClient({ url: embeddingConfig.url });
-  await migrateEmbeddingDatabase(embClient, MOCK_DIMENSIONS);
-  await ensureEmbeddingIndexes(embClient);
-  embClient.close();
-
-  const cleanup = async (): Promise<void> => {
-    await rm(tempDir, { recursive: true, force: true });
+  return {
+    ...database,
+    config: { url: database.url },
+    embeddingConfig,
+    embeddingDbPath,
   };
-
-  return { config, embeddingConfig, cleanup, dbPath, embeddingDbPath };
 }
 
 export interface TestEntityData {

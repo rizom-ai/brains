@@ -13,7 +13,7 @@ import type { BootMode } from "../src/initialization/shellBootloader";
 import { Shell, type ShellDependencies } from "../src/shell";
 import type { ShellRuntimeOptions } from "../src/runtime-process-role";
 import { createTestShellConfig } from "./helpers/test-config";
-import { createTestDirectory } from "./helpers/test-db";
+import { createTestDirectory } from "@brains/test-utils";
 
 interface TestDirectory {
   dir: string;

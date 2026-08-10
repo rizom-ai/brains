@@ -23,7 +23,7 @@ import { z } from "@brains/utils/zod";
 import { DaemonRegistry } from "../src/daemon-registry";
 import { Shell } from "../src/shell";
 import { createTestShellConfig } from "./helpers/test-config";
-import { createTestDirectory } from "./helpers/test-db";
+import { createTestDirectory } from "@brains/test-utils";
 
 class ExecutionAuditPlugin extends ServicePlugin<
   Record<string, never>,

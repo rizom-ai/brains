@@ -12,7 +12,7 @@ import { createSilentLogger } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
 import type { ShellConfigInput } from "../src/config";
 import { Shell, type ShellDependencies } from "../src/shell";
-import { createTestDirectory } from "./helpers/test-db";
+import { createTestDirectory } from "@brains/test-utils";
 
 interface TestDirectory {
   dir: string;

@@ -7,7 +7,7 @@ import { InboxRegistry } from "@brains/plugins";
 import { Shell, type ShellDependencies } from "../src/shell";
 import type { ShellConfigInput } from "../src/config";
 import { createSilentLogger } from "@brains/test-utils";
-import { createTestDirectory } from "./helpers/test-db";
+import { createTestDirectory } from "@brains/test-utils";
 
 function createTestConfig(dir: string): ShellConfigInput {
   return {

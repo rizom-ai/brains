@@ -96,3 +96,14 @@ export { createMockAppInfo } from "./mock-app-info";
 
 // MCP service mock
 export { createMockMCPService } from "./mock-mcp-service";
+
+// Isolated file-backed database for one test, with one cleanup contract
+export {
+  createTestDatabase,
+  type ClosableClient,
+  type TestDatabase,
+  type TestDatabaseOptions,
+} from "./test-database";
+
+// Isolated temp directory for one test
+export { createTestDirectory, type TestDirectory } from "./test-database";
