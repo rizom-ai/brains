@@ -3,9 +3,11 @@
 ## Status
 
 **Proposed, gated on the shipped
-[`@brains/email-triage`](../../plugins/email-triage/README.md), and requires a focused
-review.** Email triage persists only a safe derived
-`mail-item`; it does not copy the original email. Lead context from
+[`@brains/email-triage`](../../plugins/email-triage/README.md), Phase 6 of
+[inbox-follow-ups.md](./inbox-follow-ups.md), and a focused review.** Email triage
+persists only a safe derived `mail-item`; it does not copy the original email. The
+inbox follow-up plan owns the private IMAP locator and permission-checked source-read
+contract; this plan consumes that one operation. Lead context from
 [lead-management.md](./lead-management.md) is optional enrichment, not the source of
 threading or recipient truth.
 
@@ -31,10 +33,15 @@ or accept it, and send a correctly threaded reply only after explicit approval.
 
 1. **Draft-and-approve is the safety boundary.** Nothing auto-sends. The pipeline may
    generate a draft, but only a confirmation-gated send operation can contact a human.
-2. **The mailbox remains source of truth.** Extend the email interface with an internal,
-   permission-checked source-read operation that resolves the mail item's opaque
-   `source.ref`. Original content is held only for the active draft/send operation and is
-   never copied into a mail item, lead, log, job payload, or model trace owned by Brain.
+2. **The mailbox remains source of truth.** Consume the internal, permission-checked
+   source-read operation owned by [inbox-follow-ups.md](./inbox-follow-ups.md). That
+   operation resolves the mail item's opaque `source.ref` through the email interface's
+   private locator store; this plugin defines no second locator, mailbox client, or read
+   contract. The in-memory provider exists only in the web process, so source-backed
+   draft generation and send preparation execute there; worker registration exposes no
+   dependent operation. Original content never crosses process IPC and is held only for
+   the active draft/send operation, never copied into a mail item, lead, log, or job
+   payload owned by Brain.
 3. **Drafting is structured generation, not agent chat.** The fetched email is delimited
    as untrusted source material. Voice and response guidance are explicit plugin
    configuration/profile context. No inbound instruction can enter an agent loop.
@@ -58,10 +65,13 @@ or accept it, and send a correctly threaded reply only after explicit approval.
 
 Tests are written and observed failing before implementation in every phase.
 
-- **Phase 0 — On-demand source read.** Add the internal source-read contract and email
-  interface implementation. _Tests first:_ admin/internal authorization; valid/expired
-  source references; bounded fetch; no mailbox content in logs, runtime state, or job
-  payloads; source bytes released after the operation.
+- **Phase 0 — Source-read integration gate.** Consume the shipped source-read contract;
+  refuse to register draft operations when the capability is absent, and map its fixed
+  unavailable outcome without provider detail. Do not add another email-interface
+  reader or locator. _Tests first:_ web capability-present/absent registration; worker
+  registration exposes no source-backed operation; actor forwarding; valid/unavailable
+  result handling; no source content copied into plugin state, IPC, logs, or job
+  payloads; source bytes released after generation.
 - **Phase 1 — Draft entity + generation.** Finalize the `email-reply-draft` schema and a
   confirmation-neutral draft operation that fetches the source, generates reply text,
   stores only the reply, and increments revision. _Tests first:_ raw source never
@@ -89,4 +99,6 @@ Tests are written and observed failing before implementation in every phase.
 - [lead-management.md](./lead-management.md) — optional business context.
 - [connected-channels.md](./connected-channels.md) — delivery-provider contract extended
   for threading.
+- [inbox-follow-ups.md](./inbox-follow-ups.md) — owns the private source locator,
+  source-read operation, and registered Draft reply entry-point contract.
 - [`@brains/unified-inbox`](../../plugins/unified-inbox/README.md) — attention and digest policy.
