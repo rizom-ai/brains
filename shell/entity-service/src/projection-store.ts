@@ -121,6 +121,39 @@ export interface ProjectionRuleMemoValue extends Omit<
   writeIntents: ProjectionWriteIntent[];
 }
 
+/** Async projection persistence surface safe to keep behind the owner endpoint. */
+export interface IProjectionStore {
+  markDirty(input: MarkProjectionDirtyInput): Promise<number>;
+  listPendingInputs(): Promise<ProjectionDirtyInput[]>;
+  claimPendingWave(
+    input: ClaimProjectionWaveInput,
+  ): Promise<ProjectionWave | null>;
+  listWaveInputs(waveId: string): Promise<ProjectionWaveInput[]>;
+  getActiveWave(): Promise<ProjectionWave | null>;
+  completeWave(waveId: string, completedAt: number): Promise<ProjectionWave>;
+  failWave(waveId: string, failedAt: number): Promise<ProjectionWave>;
+  putWaveRules(
+    waveId: string,
+    rules: readonly ProjectionWaveRuleInput[],
+  ): Promise<void>;
+  listWaveRules(waveId: string): Promise<ProjectionWaveRule[]>;
+  queueWaveRule(
+    waveId: string,
+    ruleId: string,
+    jobId: string,
+  ): Promise<ProjectionWaveRule>;
+  getWaveRule(
+    waveId: string,
+    ruleId: string,
+  ): Promise<ProjectionWaveRule | null>;
+  applyRuleResult(
+    input: ApplyProjectionRuleResultInput,
+  ): Promise<ProjectionWaveRule>;
+  getRuleMemo(
+    input: GetProjectionRuleMemoInput,
+  ): Promise<ProjectionRuleMemoValue | null>;
+}
+
 type EntityTransaction = Parameters<Parameters<EntityDB["transaction"]>[0]>[0];
 
 function inputKey(
@@ -162,7 +195,7 @@ function parseWaveRule(rule: ProjectionWaveRule): ProjectionWaveRule {
 }
 
 /** Entity-database persistence boundary for scheduler coordination state. */
-export class ProjectionStore {
+export class ProjectionStore implements IProjectionStore {
   private readonly db: EntityDB;
   private readonly mutationAdmission: EntityMutationAdmission | undefined;
   private readonly engine: SqliteEngine;

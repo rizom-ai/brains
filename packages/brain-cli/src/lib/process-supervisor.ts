@@ -2,7 +2,10 @@ import { spawn, type SpawnOptions } from "node:child_process";
 import { randomBytes, randomUUID } from "node:crypto";
 import { rmSync } from "node:fs";
 import { join } from "node:path";
-import { localDatabaseEndpointEnv } from "@brains/core";
+import {
+  localDatabaseEndpointEnv,
+  localDatabaseOwnershipEnv,
+} from "@brains/core";
 import type { CommandResult } from "./command-result";
 import type {
   SignalProcess,
@@ -376,6 +379,8 @@ function runRuntimeSupervisor(
               options.localDatabaseEndpoint.secret,
             [localDatabaseEndpointEnv.sessionId]:
               options.createProcessSessionId(),
+            [localDatabaseOwnershipEnv.forbidLocalOpen]:
+              role === "worker" ? "1" : "0",
           },
         } satisfies SpawnOptions,
       );

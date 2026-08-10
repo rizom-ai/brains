@@ -1,5 +1,5 @@
 import type { ActorRef } from "@brains/contracts";
-import type { ProjectionStore } from "./projection-store";
+import type { IProjectionStore } from "./projection-store";
 import type { ProjectionChangedTarget } from "./schema/projection-state";
 import { z } from "@brains/utils/zod";
 import {
@@ -886,7 +886,7 @@ export interface IndexReadinessStatus extends EmbeddingIndexStats {
 
 export interface EntityService extends ICoreEntityService {
   // Scheduler-owned projection coordination
-  getProjectionStore(): ProjectionStore;
+  getProjectionStore(): IProjectionStore;
   setProjectionWakeup(wakeup: () => Promise<void>): () => void;
 
   // Mutations

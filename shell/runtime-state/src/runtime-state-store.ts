@@ -9,9 +9,11 @@ import type {
   RuntimeStateRecordValue,
   RuntimeStateValueSchema,
 } from "./types";
-
-const namespacePattern = /^[a-zA-Z0-9][a-zA-Z0-9_.:-]{0,127}$/;
-const maxKeyLength = 512;
+import {
+  assertValidRuntimeStateNamespace,
+  normalizeRuntimeStateKey,
+  normalizeRuntimeStateKeyPrefix,
+} from "./runtime-state-validation";
 
 export class RuntimeStateStore<T> implements IRuntimeStateStore<T> {
   private readonly db: RuntimeStateDB;
@@ -25,7 +27,7 @@ export class RuntimeStateStore<T> implements IRuntimeStateStore<T> {
     schema: RuntimeStateValueSchema<T>,
     now: () => Date = () => new Date(),
   ) {
-    assertValidNamespace(namespace);
+    assertValidRuntimeStateNamespace(namespace);
     this.db = db;
     this.namespace = namespace;
     this.schema = schema;
@@ -33,7 +35,7 @@ export class RuntimeStateStore<T> implements IRuntimeStateStore<T> {
   }
 
   async get(key: string): Promise<T | null> {
-    const normalizedKey = normalizeKey(key);
+    const normalizedKey = normalizeRuntimeStateKey(key);
     const rows = await this.db
       .select()
       .from(runtimeStateRecords)
@@ -51,7 +53,7 @@ export class RuntimeStateStore<T> implements IRuntimeStateStore<T> {
   }
 
   async has(key: string): Promise<boolean> {
-    const normalizedKey = normalizeKey(key);
+    const normalizedKey = normalizeRuntimeStateKey(key);
     const rows = await this.db
       .select({ key: runtimeStateRecords.key })
       .from(runtimeStateRecords)
@@ -66,7 +68,7 @@ export class RuntimeStateStore<T> implements IRuntimeStateStore<T> {
   }
 
   async set(key: string, value: T): Promise<void> {
-    const normalizedKey = normalizeKey(key);
+    const normalizedKey = normalizeRuntimeStateKey(key);
     const parsedValue = this.schema.parse(value);
     const timestamp = this.now().getTime();
 
@@ -89,7 +91,7 @@ export class RuntimeStateStore<T> implements IRuntimeStateStore<T> {
   }
 
   async setIfNotExists(key: string, value: T): Promise<boolean> {
-    const normalizedKey = normalizeKey(key);
+    const normalizedKey = normalizeRuntimeStateKey(key);
     const parsedValue = this.schema.parse(value);
     const timestamp = this.now().getTime();
 
@@ -110,7 +112,7 @@ export class RuntimeStateStore<T> implements IRuntimeStateStore<T> {
   }
 
   async delete(key: string): Promise<boolean> {
-    const normalizedKey = normalizeKey(key);
+    const normalizedKey = normalizeRuntimeStateKey(key);
     const result = await this.db
       .delete(runtimeStateRecords)
       .where(
@@ -127,7 +129,7 @@ export class RuntimeStateStore<T> implements IRuntimeStateStore<T> {
   ): Promise<RuntimeStateRecordValue<T>[]> {
     const rows = await this.listRows();
     const keyPrefix = options.keyPrefix;
-    if (keyPrefix !== undefined) normalizeKeyPrefix(keyPrefix);
+    if (keyPrefix !== undefined) normalizeRuntimeStateKeyPrefix(keyPrefix);
 
     return rows
       .filter((row) => keyPrefix === undefined || row.key.startsWith(keyPrefix))
@@ -150,7 +152,7 @@ export class RuntimeStateStore<T> implements IRuntimeStateStore<T> {
       return Number(result.rowsAffected);
     }
 
-    normalizeKeyPrefix(keyPrefix);
+    normalizeRuntimeStateKeyPrefix(keyPrefix);
     const records = await this.list({ keyPrefix });
     await Promise.all(records.map((record) => this.delete(record.key)));
     return records.length;
@@ -162,28 +164,4 @@ export class RuntimeStateStore<T> implements IRuntimeStateStore<T> {
       .from(runtimeStateRecords)
       .where(eq(runtimeStateRecords.namespace, this.namespace));
   }
-}
-
-function assertValidNamespace(namespace: string): void {
-  if (!namespacePattern.test(namespace)) {
-    throw new Error(
-      `Invalid runtime state namespace: ${namespace}. Use 1-128 alphanumeric, _, ., :, or - characters.`,
-    );
-  }
-}
-
-function normalizeKey(key: string): string {
-  if (key.length === 0 || key.length > maxKeyLength) {
-    throw new Error("Runtime state keys must be 1-512 characters long");
-  }
-  return key;
-}
-
-function normalizeKeyPrefix(keyPrefix: string): string {
-  if (keyPrefix.length > maxKeyLength) {
-    throw new Error(
-      "Runtime state key prefixes must be 512 characters or shorter",
-    );
-  }
-  return keyPrefix;
 }

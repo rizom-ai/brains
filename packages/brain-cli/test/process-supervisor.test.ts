@@ -145,6 +145,7 @@ describe("bundled process supervisor", () => {
           BRAINS_LOCAL_DATABASE_ENDPOINT: "/tmp/brain-supervisor-owner.sock",
           BRAINS_LOCAL_DATABASE_SECRET: "s".repeat(48),
           BRAINS_LOCAL_DATABASE_SESSION_ID: "process-session-1",
+          BRAINS_FORBID_LOCAL_DATABASE_OPEN: "0",
         }),
       }),
     );
@@ -165,6 +166,7 @@ describe("bundled process supervisor", () => {
           BRAINS_LOCAL_DATABASE_ENDPOINT: "/tmp/brain-supervisor-owner.sock",
           BRAINS_LOCAL_DATABASE_SECRET: "s".repeat(48),
           BRAINS_LOCAL_DATABASE_SESSION_ID: "process-session-2",
+          BRAINS_FORBID_LOCAL_DATABASE_OPEN: "1",
         }),
       }),
     );
@@ -217,6 +219,7 @@ describe("bundled process supervisor", () => {
       expect.objectContaining({
         env: expect.objectContaining({
           BRAINS_LOCAL_DATABASE_SESSION_ID: "process-session-3",
+          BRAINS_FORBID_LOCAL_DATABASE_OPEN: "1",
         }),
       }),
     );

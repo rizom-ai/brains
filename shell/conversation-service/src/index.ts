@@ -1,6 +1,18 @@
 // With moduleResolution: "bundler", we can export implementations safely
 export { ConversationService } from "./conversation-service";
+export { RemoteConversationService } from "./remote-conversation-service";
 export { coerceConversationMetadata } from "./metadata";
+export {
+  CONVERSATION_RPC_SERVICE,
+  ConversationRpcRequestSchema,
+  handleConversationRpcRequest,
+  parseConversationRpcRequest,
+  parseConversationRpcResult,
+} from "./conversation-rpc";
+export type {
+  ConversationRpcRequest,
+  ConversationRpcTransport,
+} from "./conversation-rpc";
 
 export type {
   IConversationService,

@@ -54,6 +54,23 @@ describe("canonical packed consumer", () => {
       );
       expect(combinedOutput(startup)).toContain("Dashboard plugin registered");
 
+      const fencedWorker = await runCommand(
+        ["bun", "run", "brain", "start", "--startup-check"],
+        consumerDirectory,
+        {
+          env: {
+            ...runtimeEnv,
+            BRAINS_DB_ENGINE: "turso",
+            BRAINS_FORBID_LOCAL_DATABASE_OPEN: "1",
+          },
+          timeoutMs: 90_000,
+        },
+      );
+      expect(fencedWorker.exitCode).not.toBe(0);
+      expect(combinedOutput(fencedWorker)).toContain(
+        "Local SQLite opens are forbidden in this process",
+      );
+
       const rollback = await runCommand(
         ["bun", "run", "brain-rollback-entities-to-libsql"],
         consumerDirectory,

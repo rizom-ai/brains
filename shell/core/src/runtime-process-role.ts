@@ -8,6 +8,10 @@ export const localDatabaseEndpointEnv = {
   sessionId: "BRAINS_LOCAL_DATABASE_SESSION_ID",
 } as const;
 
+export const localDatabaseOwnershipEnv = {
+  forbidLocalOpen: "BRAINS_FORBID_LOCAL_DATABASE_OPEN",
+} as const;
+
 export interface LocalDatabaseEndpointConfig {
   readonly address: string;
   readonly secret: string;

@@ -3,6 +3,8 @@ import type { Layer, ScopedService } from "@brains/utils/effect";
 import type { Logger } from "@brains/utils/logger";
 import type { MessageBus } from "@brains/messaging-service";
 import { ConversationService } from "./conversation-service";
+import { RemoteConversationService } from "./remote-conversation-service";
+import type { ConversationRpcTransport } from "./conversation-rpc";
 import type {
   ConversationDbConfig,
   ConversationServiceConfig,
@@ -23,6 +25,7 @@ export interface ConversationServiceLayerOptions {
   logger: Logger;
   messageBus: MessageBus;
   config?: ConversationServiceConfig;
+  remoteTransport?: ConversationRpcTransport;
   service?: IConversationService;
 }
 
@@ -31,6 +34,13 @@ function acquireConversationService(
 ): ScopedService<IConversationService> {
   if (options.service) {
     const service = options.service;
+    return {
+      service,
+      close: () => service.close(),
+    };
+  }
+  if (options.remoteTransport) {
+    const service = new RemoteConversationService(options.remoteTransport);
     return {
       service,
       close: () => service.close(),

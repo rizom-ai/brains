@@ -11,8 +11,9 @@ Phases 1 through 3 are implemented in `work/turso-migration`: Turso native FTS
 is wired through an engine-aware seam, the remaining service differences are
 closed, packed installs carry the native binding, and local files default to
 Turso with a tested explicit fallback. Phase 4's live sync spike is complete,
-and the owner selected Git-only content sync. The affected service suites pass
-on both engines. Review uncovered that Turso's persisted native-FTS
+and the owner selected Git-only content sync. Phases 5A and 5B now establish
+the web process as the sole local shell database owner under WAL. The affected
+service suites pass on both engines. Review uncovered that Turso's persisted native-FTS
 schema syntax is not parseable by libSQL. The chosen mitigation is an explicit,
 tested break-glass command: `brain-rollback-entities-to-libsql`.
 
@@ -340,8 +341,43 @@ timeouts, web-owner shutdown, and terminal parent shutdown after owner loss.
 Keep WAL and `multiprocess_wal` until every local shell database has exactly one
 process owner.
 
-**Exit:** behavior and bounded-load results are at parity with the current
-runtime, while only web opens local shell database files.
+Phase 5B now implements package-owned, Zod-validated RPC contracts for entity,
+projection, conversation, and runtime-state persistence. Worker entity
+registries, adapters, serializers, validators, embedding execution handler,
+and projection execution handler remain local. The projection facade exposes
+only async durable operations; `withDirtyInput()` and database transactions
+remain owner-internal. Runtime-state schemas and scoped facades stay in the
+worker, while records encode dates as integer milliseconds. Conversation and
+entity mutations dispatch through owner-local services, so their durable
+message-bus events are emitted once in web rather than duplicated in worker.
+
+The socket-backed web/worker integration configures nonexistent worker paths
+for all five shell files (entity, embedding, conversation, job queue, and
+runtime state), exercises queue execution, entity CRUD, a 1,536-dimension
+embedding frame, conversation writes, and scoped runtime state, and verifies
+that none of those worker paths appears. The supervisor also fences every
+worker with `BRAINS_FORBID_LOCAL_DATABASE_OPEN=1`; the shared database factory
+rejects any `file:` open in that process. The packed-consumer test proves the
+shipped bundle contains and enforces that fence, while supervisor coverage
+proves fresh and restarted workers receive it and web explicitly does not.
+Remote libSQL remains allowed, and auth-service remains outside the fence.
+
+A seven-trial interleaved WAL experiment compared direct web calls with the
+socket facade. Each trial performed 100 runtime-state writes, 51 conversation
+writes, 50 projection-journal writes, and 20 entity creates. Median completion
+was 662 ms direct and 614 ms remote (0.93x); the result is parity, not a claim
+that IPC improves database work. The experiment is recorded in
+`/tmp/brains-phase5b-owner-load.ts`; correctness tests use acknowledgements and
+settled promises rather than timing thresholds.
+
+Both engines pass entity-service 332/332, conversation-service 38/38, and
+runtime-state 13/13. Core passes 432/432 on both engines, including endpoint
+failure, restart, shutdown, visibility, projection, health, and lifecycle
+coverage. WAL and `multiprocess_wal` remain unchanged.
+
+**Phase 5B exit: met.** Behavior and bounded-load results are at parity, while
+the web process is the only process permitted to open local shell database
+files.
 
 #### Phase 5C — Fold embeddings into the entity database
 

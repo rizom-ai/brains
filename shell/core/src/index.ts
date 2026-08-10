@@ -3,6 +3,7 @@ export type { ShellDependencies } from "./shell";
 export type { BootMode } from "./initialization/shellBootloader";
 export {
   localDatabaseEndpointEnv,
+  localDatabaseOwnershipEnv,
   parseLocalDatabaseEndpointConfig,
   type LocalDatabaseEndpointConfig,
   type RuntimeProcessRole,
