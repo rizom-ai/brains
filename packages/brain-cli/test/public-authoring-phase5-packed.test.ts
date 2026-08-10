@@ -34,6 +34,10 @@ const consumerFixture = join(
 );
 
 const it = bunIt.skipIf(!packedCompatibilityEvidenceEnabled());
+
+// Built per call rather than at module load: the transport ports are assigned
+// by the OS when the evidence servers start, which happens after this module
+// is evaluated.
 let transportUrls:
   { eventFeedUrl: string; campfireBaseUrl: string } | undefined;
 
@@ -56,6 +60,7 @@ interface CampfireSocketData {
 }
 
 interface TransportEvidence {
+  /** Ports are assigned by the OS so two suites can run at once. */
   readonly eventFeedUrl: string;
   readonly campfireBaseUrl: string;
   close(): Promise<void>;
