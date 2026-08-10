@@ -21,7 +21,10 @@ command: `brain-rollback-entities-to-libsql`.
 Phase 5D is blocked by an engine limitation: Turso custom index modules,
 including native FTS, are unsupported in MVCC mode. The owner chose to retain
 WAL and native FTS rather than replace indexed keyword search with a table scan.
-Phase 5E remains open.
+A corrected follow-up benchmark now compares the current correlated FTS query,
+a materialized FTS match set, and a portable scan under production WAL and
+transaction settings. Its results reopen the search-backend question but do not
+silently supersede the owner decision. Phase 5E remains open.
 
 This plan originally asked whether the rewrite is worth adopting at all. The
 spike answered that: yes — phased, with libSQL retained as a fallback. Phase 1
@@ -95,6 +98,18 @@ Engine: `@tursodatabase/database` 0.7.2. Suites run with `BRAINS_DB_ENGINE=turso
   MVCC mode. The Turso entity suite reached 183/327, with all 144 failures
   rooted in that error. Creating native FTS under WAL and then converting the
   file to MVCC instead triggered a Turso `root_page must be positive` panic.
+- **Corrected search benchmark:** `scripts/perf-engine-comparison.ts` applies
+  production WAL pragmas to both engines, uses the production transaction and
+  libSQL FTS-shadow update shapes, isolates `brain.db` from `brain-jobs.db`, and
+  measures both FTS query shapes plus the proposed scan. On the recorded
+  1,000-entity run, materializing the FTS match set removed the correlated-query
+  pathology (Turso hybrid search fell from 1,096 to 14.3 ms/query), but the
+  Turso scan was still 4.0 ms/query and removed substantial native-index write
+  cost (entity writes 21.3 to 1.1 ms; updates 47.9 to 1.4 ms). Under libSQL,
+  materialized FTS was faster than the scan for hybrid reads (3.0 vs 5.5 ms)
+  while writes were effectively at parity. Job writes were at parity between
+  engines once both used WAL. These results are evidence for a new owner
+  decision, not an owner decision by themselves.
 - **Not covered:** auth-service's embedded replica (`runtime-db.ts` constructs
   its own `@libsql/client` with `syncUrl`; it syncs against Turso Cloud and
   stays on libSQL throughout this plan). Phase 3 separately resolved the
@@ -429,7 +444,7 @@ on both Turso and libSQL; shared DB passes 30/30 and core passes 432/432.
 and one database file, with no runtime configuration or dependency for the
 legacy embedding file.
 
-#### Phase 5D — Enable MVCC — BLOCKED
+#### Phase 5D — Enable MVCC — BLOCKED, SEARCH DECISION REOPENED
 
 The single-owner prerequisite is met, but the implementation spike found that
 Turso native FTS and MVCC cannot coexist. With `multiprocess_wal` removed, the
@@ -443,16 +458,29 @@ MVCC mode. The released 0.7.2 SDK and the available 0.8.0 pre-release behave the
 same. Pre-creating the index under WAL is not a workaround: converting that
 file to MVCC panicked inside Turso. No MVCC code was retained after the spike.
 
-**Owner decision:** retain WAL and native FTS. Do not replace native FTS with a
-linear exact-phrase scan or add a separate WAL search database merely to enable
-MVCC. The current owner also uses one Turso connection whose adapter serializes
-top-level operations, so MVCC would not unlock runtime concurrency today.
-Revisit this phase only when a released Turso SDK supports custom index modules
-under MVCC; rerun migrations, native FTS, vectors, rollback, packed startup,
-owner-topology, restart, and full dual-engine service coverage before cutover.
+**Current owner decision:** retain WAL and native FTS. The corrected benchmark
+above invalidates the earlier performance assumptions but does not change that
+decision without explicit owner approval. It narrows any reconsideration to two
+options: keep native FTS with a materialized match-set query, or replace both
+engine-specific indexes with the measured portable exact-phrase scan. A
+separate WAL search database remains rejected.
 
-**Exit: blocked upstream.** Local shell databases remain in WAL and the existing
-schema-cleanup libSQL rollback command remains valid.
+If the owner retains native FTS, revisit MVCC only when a released Turso SDK
+supports custom index modules. If the owner selects the portable scan, remove
+native FTS and libSQL FTS5 first; then MVCC is technically available but still
+should not ship until owner-connection saturation gives it a concrete benefit.
+The current owner uses one Turso connection whose adapter serializes top-level
+operations, and the corrected benchmark found job writes at engine parity
+under WAL.
+
+In either case, keep `brain-rollback-entities-to-libsql` capable of cleaning a
+native Turso index indefinitely. Installations can skip cleanup releases or
+restore old backups, so neither `index_method` cleanup capability nor the
+break-glass command may be retired based only on release sequencing.
+
+**Exit: blocked pending an explicit search-backend decision.** Local shell
+databases remain in WAL and the existing schema-cleanup libSQL rollback command
+remains valid.
 
 #### Phase 5E — Entity/job atomicity decision gate
 
