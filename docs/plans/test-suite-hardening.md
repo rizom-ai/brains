@@ -2,7 +2,7 @@
 
 ## Status
 
-**In progress — 2026-08-09; Phases 0, 1 and 2 complete.** This is not a rescue plan: the suite is green and structurally healthy today. Every remaining phase targets a drift mechanism or a dead spot rather than failing behavior, so no phase gates a release. Phases are independently shippable and ordered so each one makes the next safer.
+**In progress — 2026-08-09; Phases 0 through 3 complete.** This is not a rescue plan: the suite is green and structurally healthy today. Every remaining phase targets a drift mechanism or a dead spot rather than failing behavior, so no phase gates a release. Phases are independently shippable and ordered so each one makes the next safer.
 
 ## Goal
 
@@ -25,7 +25,7 @@ The suite is in good shape, and the plan depends on that staying true.
 3. Weak assertions (`toBeDefined`, `toBeTruthy`, `toBeFalsy`, `toBeUndefined`, `toBeNull`, bare `not.toThrow`) are 6–10% of all `expect()` calls per layer — 8.7% in `shell/`, 10.4% in `shared/`, 2.7% in `packages/`.
 4. Interaction assertions (`toHaveBeenCalled*`) are 7.3% of expects in `shell/` and 1.7% in `shared/`. Tests assert outcomes, not call logs. `interfaces/` is the outlier at 15.2%.
 5. No test file is assertion-free.
-6. `mock.module` appears 15 times repo-wide, almost always against genuinely external dependencies (`ai`, `@ai-sdk/*`, `@chat-adapter/*`, the npm `chat` package). One exception: `packages/brain-cli/test/remote-operate.test.ts` mocks its own `../src/lib/mcp-client` source module — Phase 3 removes it.
+6. `mock.module` appears 15 times repo-wide, almost always against genuinely external dependencies (`ai`, `@ai-sdk/*`, `@chat-adapter/*`, the npm `chat` package). One exception remains: `packages/brain-cli/test/remote-operate.test.ts` mocks its own `../src/lib/mcp-client`. That fix is in flight in the main checkout, not on this branch.
 7. Test names are behavioral, not structural — `fails closed to public visibility and allows explicit scope widening`, `skips a stale update when the expected content hash changed`.
 8. Initialization, registration, and shutdown paths required by `shell/AGENTS.md` are covered: `shell-shutdown.test.ts`, `shell-initialization-order.test.ts`, `service-ownership-integration.test.ts`, plus shutdown drained across four more `core` tests.
 
@@ -38,6 +38,10 @@ Phase 1 made shared-mock drift a compile error. Every factory in `@brains/test-u
 Phase 2 gave test databases one implementation and one cleanup contract. `createTestDatabase` in `@brains/test-utils` owns the `mkdtemp → migrate → cleanup` flow; clients register through `track()`, `cleanup` closes them all then removes the directory and is idempotent, and a failing migration removes the directory rather than leaking a temp dir per failing test. Migration is injected, so the package still depends on nothing under `shell/`. `createTestDirectory` exposes the directory primitive for tests that need scratch space without a database. The four per-package helpers are gone, along with `job-queue`'s cleanup that opened a connection purely to close it.
 
 Note that ~100 individual test files still call `mkdtemp` inline for their own scratch directories. That is a different pattern from the four helpers — each is local to one file — so this plan does not treat it as _duplication_ to remove. It is, however, a leak, which an earlier version of this note wrongly waved away; see below.
+
+Phase 3 gave each shared mock one definition. All five local `createMockEntityService` redefinitions are gone, along with a dead 160-line `createMockAIService` in `shell/ai-service/test/mock.ts` that nothing imported, the `@deprecated` `mock-shell` shim, and three of site-builder's four identical `createPipelineContext` copies. `scripts/test-wiring.test.ts` now fails when a test file declares a factory that shadows a `@brains/test-utils` export, matching on name **and** declared return type so that same-named locals building a different type — `ShellInstance`, a narrow package-local interface — stay quiet.
+
+Typing the overrides on two of those conversions caught malformed fixtures the untyped bags had hidden: entities built with `createdAt`/`updatedAt` where `BaseEntity` has `created`/`updated`, and with no `contentHash` or `visibility`. Nothing read those fields, so nothing failed.
 
 Three caveats to the baseline. Test files themselves contain 156 `as unknown as` casts across 80 files (94 in `shell/` alone), almost always on inline partial mocks — so the "no casts in test files" property that `test-utils`' header aims for does not hold today; Phase 6 addresses it. `shell/ai-service/test/agent-service.test.ts` is the one file in the repo that reads private service state via `Reflect.get` (the conversation-actor registry probes); Phase 5 replaces those probes while it has the file open. And root-level `scripts/` is linted by nothing — `scripts/lint.mjs` drives turbo, which only visits workspace packages, and the repository root is not one — so the script tests Phase 0 just wired up are unreachable from ESLint; Phase 6 fixes that alongside its own rules.
 
@@ -54,14 +58,6 @@ Every one of those packages also imports `@brains/test-utils` in its own tests, 
 So the repository has a large, invisible dependency edge that no manifest records and no check catches: `bun install` is happy, `arch:check` is happy, and turbo's graph is acyclic only because it cannot see the edge.
 
 The fix is directional. A mock of an interface belongs with the package that owns the interface, not in a package that must import it. Moving `mock-shell` into `@brains/plugins` — which already declares every package it imports, so it needs no new dependencies — and re-exporting it from `test-utils` would let `plugins` drop the edge entirely, with no consumer changes. The same reasoning applies to the entity, content and job-queue mocks. That is a package-boundary change rather than test hygiene, so it wants its own decision and is not folded into a phase here.
-
-### Shared mocks re-implemented locally
-
-`createMockEntityService` exists in `@brains/test-utils` and is independently redefined in four test files: `shell/entity-service/test/embeddingJobHandler.test.ts`, `shell/entity-service/test/singleton-entity-service.test.ts`, `plugins/stock-photo/test/tools.test.ts`, and `interfaces/a2a/test/client-resolution.test.ts`. `stock-photo` already depends on `@brains/test-utils` and reimplements anyway; `entity-service` and `a2a` do not declare the dependency. The same pattern appears for `createMockContext` (3 local definitions), `createPipelineContext` (4), and `createMockShell` (2).
-
-Separately, `shell/plugins/src/test/mock-shell.ts` is a 12-line `@deprecated` shim re-exporting `createMockShell` from `@brains/test-utils`. The migration it bridged is complete.
-
-Every local redefinition is a mock that will not be updated when the interface moves, which compounds the drift problem above.
 
 ### The evaluation CLI chain is untested
 
@@ -185,25 +181,7 @@ An ESLint `no-restricted-syntax` rule bans the `new Promise(... setTimeout ...)`
 
 ## Remaining implementation phases
 
-Each phase is independently shippable and starts with its test. Phases 3–5 may be reordered against each other. Phase 6 builds on Phase 3 and comes after it.
-
-### Phase 3 — One definition per mock
-
-Two of the five local `createMockEntityService` definitions are gone (`shell/entity-service`), as is the deprecated `shell/plugins/src/test/mock-shell.ts` shim. What remains:
-
-1. Replace the remaining `createMockEntityService` redefinitions in `plugins/stock-photo/test/tools.test.ts` (an untyped `Record<string, unknown>` override bag) and `interfaces/a2a/test/client-resolution.test.ts` (a Map-backed fake, expressible through the factory's `getEntityImpl` / `listEntitiesImpl` options).
-2. Add `@brains/test-utils` as a devDependency to `interfaces/a2a`. It is the only one of these packages that can declare it — `test-utils` does not depend on `a2a`. The rest are blocked by the cycle described above.
-3. Fold `shell/ai-service/test/mock.ts`'s `createMockAIService` into the shared factory of the same name, or rename it if it is deliberately different.
-4. Extract one `createPipelineContext` for `plugins/site-builder`. Its four copies all build the same package-local `BuildPipelineContext`, so this belongs in that package's test directory, not in `test-utils`.
-5. Add a `test-wiring` assertion that fails when a test file defines a factory whose name matches a `@brains/test-utils` export. It must ignore same-named locals that build a different type — `app.test`'s `createMockShell` returns `ShellInstance`, and `social-media`'s `createMockEntityService` returns a narrow local interface — so the check is name plus assignability, not name alone.
-
-`packages/brain-cli/test/remote-operate.test.ts`'s `mock.module` against its own `../src/lib/mcp-client` is being replaced with injection in the main checkout; confirm before touching it.
-Gate:
-
-- `createMockEntityService` and `createMockAIService` each have exactly one definition, and `createPipelineContext` one per package.
-- No `@deprecated` re-export shims remain under `shell/plugins/src/test/` (shipped).
-- No `mock.module` targets a workspace-internal module.
-- The guard fails when a local factory shadows a shared one it is assignable to, and stays quiet for same-named locals that build a different type.
+Each phase is independently shippable and starts with its test. Phases 4 and 5 may be reordered against each other; Phase 6 comes last.
 
 ### Phase 4 — The evaluation CLI chain is under test
 
@@ -259,56 +237,3 @@ Gate:
 - No mock behavior changed — this phase only moves and types constructions.
 
 ## Validation matrix
-
-### Mock uniqueness
-
-- shared factory covers every behavior the deleted local factories provided;
-- reintroducing a shadowing local factory fails the guard.
-
-### Evaluation CLI
-
-- reporter selection and summary pass-through with a fake evaluation core;
-- one model failing among several;
-- `json` and `console` reporter output against fixtures;
-- CLI exit codes and environment-bootstrap failure.
-
-### Waiting
-
-- `waitUntil` deadline, resolution, and rejection message;
-- migrated race-condition tests pass under load (repeat-run locally before merging);
-- fake-timer debounce and logger tests with no real-time dependence;
-- ESLint rule catches the sleep idiom.
-
-### Cast removal
-
-- per-layer zero-cast check as each layer completes;
-- surviving hard cases centralized in `@brains/test-utils` behind `satisfies`-checked factories;
-- ESLint restriction catches a reintroduced cast in any test file.
-
-## Risks and mitigations
-
-- **Phase 3 changes shared mock defaults and breaks distant tests.** Fold local behavior in as opt-in options with defaults matching current shared behavior; never change an existing default to accommodate a migrating call site.
-- **Phase 4 tempts real model calls for realism.** Injected fake evaluation core only. If a live-model evaluation test is ever wanted, it belongs behind an explicit opt-in script, not in the default suite.
-- **Phase 4 re-tests what `evaluation-service.test.ts` already covers.** The CLI tests assert composition, not evaluation semantics; the gate forbids duplicating existing assertions. Duplicated coverage is not free — it doubles the cost of every future orchestration change.
-- **Phase 5 replaces a sleep with a wait on the wrong condition and hides a real race.** Each migration states what the original sleep was waiting for; when that cannot be named, the sleep is flagging an untestable design, and the right fix is exposing a completion signal from the code under test, not a longer poll.
-- **Fake timers mask genuine asynchrony.** Decision 7 restricts them to tests where elapsed time is the behavior under test; synchronization always goes through `waitUntil` or a direct await.
-- **Phase 6 widens parameter types in production code to accommodate tests.** Narrowing a consumer's parameter from a service interface to the methods it uses is a legitimate improvement; loosening a type to `Partial` or `unknown` to make a mock fit is not. When an honest type cannot be found, the cast moves into a centralized factory rather than being disguised.
-- **The guard tests become the thing people work around.** All the guards fail loudly with the offending path named. If a guard needs an exception, that is a signal to revisit the rule, not to add a skip — the repo has no unconditional skips and that property is worth keeping.
-- **The four `skipIf` soak tests rot unnoticed.** They never run in CI by design, so they carry the same silence Phase 0 removed elsewhere, one level down: they compile but are never executed against a real runtime. Phase 6's typecheck and lint sweeps cover them statically; scheduling an actual periodic run is out of scope here and belongs with whoever owns the soak workflow.
-
-## Success criteria
-
-- No test file in the repository is unreachable from CI (shipped in Phase 0; the guard keeps it true).
-- No root script silently matches nothing (shipped in Phase 0).
-- Adding a method to a mocked interface fails typecheck rather than passing silently (shipped in Phase 1).
-- No `as unknown as` remains in `shared/test-utils/src/` (shipped in Phase 1; lint-enforced) or in any test file.
-- One implementation of test-database setup, with one cleanup contract, and no cleanup that opens a connection (shipped in Phase 2).
-- Each shared mock factory has exactly one definition.
-- `shell/ai-evaluation`'s CLI chain is reachable from tests, with no live model calls in the default suite.
-- No test synchronizes on a fixed-duration sleep, and no `mock.module` targets workspace-internal code.
-- The baseline properties hold: no unconditional skips, weak assertions under 10% per layer, suite under 60s.
-
-## Related plans
-
-- [`docs/plans/README.md`](./README.md) — this plan is deleted once its phases ship; git history is the archive
-- [`shell/AGENTS.md`](../../shell/AGENTS.md) — the init/registration/shutdown testing requirement this plan verifies is already met
