@@ -70,50 +70,19 @@ function createUploadAttachmentResolver(
   });
 }
 
-function getConversationActors(service: AgentService): Map<unknown, unknown> {
-  const registry = Reflect.get(service, "conversationActors");
-  if (typeof registry !== "object" || registry === null) {
-    throw new Error("Expected conversationActors to be a registry");
-  }
-  const actors = Reflect.get(registry, "actors");
-  if (!(actors instanceof Map)) {
-    throw new Error("Expected registry actors to be a Map");
-  }
-  return actors;
-}
-
 function getConversationActorCount(service: AgentService): number {
-  return getConversationActors(service).size;
-}
-
-function getConversationActorSnapshot(
-  service: AgentService,
-  conversationId: string,
-): unknown {
-  const actor = getConversationActors(service).get(conversationId);
-  if (typeof actor !== "object" || actor === null) {
-    throw new Error(`Expected actor for conversation ${conversationId}`);
-  }
-  const getSnapshot = Reflect.get(actor, "getSnapshot");
-  if (typeof getSnapshot !== "function") {
-    throw new Error("Expected actor to expose getSnapshot");
-  }
-  return Reflect.apply(getSnapshot, actor, []);
+  return service.getConversationActors().size;
 }
 
 function getConversationActorAttachments(
   service: AgentService,
   conversationId: string,
 ): unknown {
-  const snapshot = getConversationActorSnapshot(service, conversationId);
-  if (typeof snapshot !== "object" || snapshot === null) {
-    throw new Error("Expected actor snapshot object");
+  const actor = service.getConversationActors().peek(conversationId);
+  if (!actor) {
+    throw new Error(`Expected actor for conversation ${conversationId}`);
   }
-  const context = Reflect.get(snapshot, "context");
-  if (typeof context !== "object" || context === null) {
-    throw new Error("Expected actor snapshot context object");
-  }
-  return Reflect.get(context, "attachments");
+  return actor.getSnapshot().context.attachments;
 }
 
 // Mock BrainCharacterService

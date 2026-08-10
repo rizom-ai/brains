@@ -162,6 +162,18 @@ export class AgentService implements IAgentService {
   }
 
   /**
+   * The live per-conversation actor registry.
+   *
+   * Read-only in practice: callers observe actor lifetime and machine state
+   * through `peek` and `size`. Exposed so lifecycle assertions and diagnostics
+   * do not have to reach through the private field with `Reflect.get`, which
+   * turns a rename into a runtime failure instead of a compile error.
+   */
+  public getConversationActors(): ConversationActorRegistry<ConversationActor> {
+    return this.conversationActors;
+  }
+
+  /**
    * Get or create the BrainAgent instance
    * Lazy initialization allows tools to be registered after service creation
    */

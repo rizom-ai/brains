@@ -119,6 +119,11 @@ export class ConversationActorRegistry<TActor extends { stop(): void }> {
     return this.actors.get(conversationId);
   }
 
+  /** How many conversations currently hold a live actor. */
+  public get size(): number {
+    return this.actors.size;
+  }
+
   /**
    * Append an operation to the conversation's FIFO chain. Rejects with a
    * busy error when the chain is already at the bound.
