@@ -75,20 +75,33 @@ export const directoryExportJobSchema: z.ZodType<
 /**
  * Schema for directory delete job data
  */
-export interface DirectoryDeleteJobData {
+export interface DirectoryDeleteTarget {
   entityId: string;
   entityType: string;
   filePath: string;
 }
 
-export const directoryDeleteJobSchema: z.ZodType<
-  DirectoryDeleteJobData,
-  DirectoryDeleteJobData
+export type DirectoryDeleteJobData =
+  DirectoryDeleteTarget | { deletions: DirectoryDeleteTarget[] };
+
+const directoryDeleteTargetSchema: z.ZodType<
+  DirectoryDeleteTarget,
+  DirectoryDeleteTarget
 > = z.object({
   entityId: z.string(),
   entityType: z.string(),
   filePath: z.string(),
 });
+
+export const directoryDeleteJobSchema: z.ZodType<
+  DirectoryDeleteJobData,
+  DirectoryDeleteJobData
+> = z.union([
+  directoryDeleteTargetSchema,
+  z.object({
+    deletions: z.array(directoryDeleteTargetSchema).min(1).max(50),
+  }),
+]);
 
 /**
  * Schema for cover image conversion job data

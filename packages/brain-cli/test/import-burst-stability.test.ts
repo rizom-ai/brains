@@ -14,7 +14,8 @@ import { Database } from "bun:sqlite";
 const RUN_SOAK =
   process.platform === "linux" && process.env["RUN_IMPORT_BURST_SOAK"] === "1";
 const FILE_COUNT = Number(process.env["IMPORT_BURST_FILE_COUNT"] ?? 350);
-const PULL_TIMEOUT_MS = 75_000;
+// One-minute pull cadence plus enough time for 350 targeted delete jobs.
+const PULL_TIMEOUT_MS = 150_000;
 const HEALTH_TIMEOUT_MS = 1_000;
 const MAX_HEALTH_LATENCY_MS = 500;
 
@@ -432,6 +433,8 @@ it.skipIf(!RUN_SOAK)(
 anchor: person
 kind: professional
 bundles: [core]
+embedding:
+  enabled: false
 remove:
   - a2a
   - chat
@@ -440,6 +443,8 @@ remove:
   - onboarding
   - web-chat
 plugins:
+  topics:
+    enableAutoExtraction: false
   directory-sync:
     autoSync: true
     initialSync: true
@@ -587,6 +592,7 @@ it("runs the packaged import-burst soak nightly in one isolated CI job", async (
   expect(workflow).toContain(
     "bun test packages/brain-cli/test/import-burst-stability.test.ts",
   );
+  expect(workflow).toContain("set -o pipefail");
   expect(workflow).toContain("issues: write");
   expect(workflow).toContain("if: failure()");
   expect(workflow).not.toContain("matrix:");

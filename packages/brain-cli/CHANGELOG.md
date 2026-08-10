@@ -1,5 +1,17 @@
 # @rizom/brain
 
+## 0.2.0-alpha.275
+
+### Patch Changes
+
+- [#101](https://github.com/rizom-ai/brains/pull/101) [`145761b`](https://github.com/rizom-ai/brains/commit/145761bf398e67161b4a4bcbad09aa60fea8e345) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Prevent Git pull and push subprocesses from leaving unmanaged automatic-maintenance descendants while retaining normal maintenance for local Git commands.
+
+## 0.2.0-alpha.274
+
+### Patch Changes
+
+- [#99](https://github.com/rizom-ai/brains/pull/99) [`ea55df8`](https://github.com/rizom-ai/brains/commit/ea55df836408c0d4111e69198d71a5775c1835ce) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Keep large remote-deletion pulls convergent by returning when the Git command exits even if a detached descendant retains its output pipe, batching targeted delete jobs in groups of 50 while accepting existing single-delete jobs, and isolating the packaged import soak from external AI work.
+
 ## 0.2.0-alpha.273
 
 ## 0.2.0-alpha.272

@@ -1,7 +1,7 @@
 {
   "name": "@brains/link",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.273",
+  "version": "0.2.0-alpha.275",
   "description": "Web content capture plugin with AI-powered extraction and structured storage",
   "dependencies": {
     "@brains/atproto-contracts": "workspace:*",

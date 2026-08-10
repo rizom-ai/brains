@@ -1,7 +1,7 @@
 {
   "name": "@brains/email",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.273",
+  "version": "0.2.0-alpha.275",
   "description": "Email message interface with Resend delivery and IMAP intake",
   "dependencies": {
     "@brains/contracts": "workspace:*",
