@@ -5,7 +5,7 @@ import {
 } from "@brains/templates";
 import { createEntityPluginContext } from "../src/entity/context";
 import { createServicePluginContext } from "../src/service/context";
-import { createMockShell } from "../src/test/mock-shell";
+import { createMockShell } from "@brains/test-utils";
 
 function createShellWithPublishPolicy(): ReturnType<typeof createMockShell> {
   const shell = createMockShell();

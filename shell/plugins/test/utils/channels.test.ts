@@ -3,7 +3,7 @@ import { z } from "@brains/utils/zod";
 import type { BaseMessage } from "@brains/messaging-service";
 import { defineChannel, isChannel } from "../../src/utils/channels";
 import { createBasePluginContext } from "../../src/base/context";
-import { createMockShell } from "../../src/test/mock-shell";
+import { createMockShell } from "@brains/test-utils";
 import { createSilentLogger } from "@brains/test-utils";
 
 describe("Typed Message Channels", () => {

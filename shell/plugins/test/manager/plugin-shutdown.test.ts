@@ -4,7 +4,7 @@ import { PluginStatus } from "../../src/manager/types";
 import type { IShell } from "@brains/plugins";
 import { PluginManager } from "../../src/manager/pluginManager";
 import { createSilentLogger } from "@brains/test-utils";
-import { createMockShell } from "../../src/test/mock-shell";
+import { createMockShell } from "@brains/test-utils";
 
 function deferred(): { promise: Promise<void>; resolve(): void } {
   let settle: (() => void) | undefined;

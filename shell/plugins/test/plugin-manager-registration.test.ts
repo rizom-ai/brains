@@ -7,7 +7,7 @@ import {
   type ProjectionRule,
 } from "../src/entity/projection-rule";
 import type { ServicePluginContext } from "../src/service/context";
-import { createMockShell, type MockShell } from "../src/test/mock-shell";
+import { createMockShell, type MockShell } from "@brains/test-utils";
 import { createMockMCPService, createSilentLogger } from "@brains/test-utils";
 import type { IMCPService } from "@brains/mcp-service";
 import { z } from "@brains/utils/zod";

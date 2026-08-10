@@ -1,6 +1,6 @@
 import { describe, it, expect } from "bun:test";
 import { createBasePluginContext } from "../../src/base/context";
-import { createMockShell } from "../../src/test/mock-shell";
+import { createMockShell } from "@brains/test-utils";
 import { createServicePluginContext } from "../../src/service/context";
 import { createSilentLogger } from "@brains/test-utils";
 
