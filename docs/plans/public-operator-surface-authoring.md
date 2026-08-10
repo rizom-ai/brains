@@ -500,9 +500,9 @@ hermetic; no provider credential or model call is needed.
    clear stable/advanced UI boundaries.
 3. Update `docs/plugin-quick-reference.md`, `docs/plugin-system.md`, and the
    golden README.
-4. Correct `docs/feature-overview.md` so “custom dashboard widgets/CMS
-   workspaces” means the proven external contract rather than private built-in
-   support.
+4. Keep the current built-in-only notice in `docs/feature-overview.md` until
+   packed evidence passes; then replace it with the proven external contract
+   and stable authoring documentation.
 5. Update the stable symbol ledger and migration guide.
 6. Make every TypeScript documentation example originate from or compile with
    checked fixture source.
@@ -523,9 +523,14 @@ For the `0.2.x` release that ships this contract:
 5. run the full criterion-17 sweep and personal/team evals;
 6. add a changeset only after the contract is accepted;
 7. obtain explicit approval before any merge that triggers alpha publication;
-8. nominate and publish a new Brain alpha through the reviewed release lane;
-9. repin every golden peer lower bound and rerun the exact registry matrix; and
-10. perform no prerelease exit, stable publication, dist-tag mutation, or
+8. nominate and publish an exact Brain patch prerelease through the reviewed
+   release lane;
+9. preserve the original six fixtures' stable `>=0.2.0 <0.3.0` lower bound,
+   while setting the supplemental operator fixture's lower bound to the first
+   version containing this contract;
+10. rerun the exact registry matrix against the nominated candidate with all
+    seven fixtures; and
+11. perform no prerelease exit, stable publication, dist-tag mutation, or
     workflow dispatch without separate explicit authorization.
 
 No Site SDK change or publication is implied unless implementation discovers a
@@ -580,7 +585,8 @@ one.
     outside the monorepo.
 18. Every stable export is classified in the ledger and every documentation
     example is fixture-backed or compile-checked.
-19. The feature overview no longer overstates private built-in capabilities.
+19. The feature overview remains explicit about built-in-only support until
+    packed external evidence passes, then links to the shipped public contract.
 20. No stable release action occurs without the existing explicit nomination
     and authorization gates.
 
@@ -604,10 +610,10 @@ one.
   runtime finalization internally; reject author-facing ready-event hooks.
 - **Custom UI pressure causes private package publication.** Keep the stable path
   JSON-native and handle rich UI in the later public UI milestone.
-- **The feature delays `0.2` indefinitely.** Require explicit scope approval at
-  Phase 0. The additive design makes a `0.2.x` milestone the default escape:
-  stable `v0.2.0` ships on the frozen surface and this lands additively after,
-  rather than gating nomination or waiting for `0.3`.
+- **The feature delays `0.2` indefinitely.** Scope is already fixed outside
+  `v0.2.0`; Phase 0 approval covers only the API shape. Stable `v0.2.0` ships on
+  the frozen surface and this lands additively afterward rather than gating
+  nomination or waiting for `0.3`.
 
 ## Explicit non-goals
 

@@ -16,6 +16,7 @@ export default defineInterface({
     eventFeedUrl: z.url().default("http://127.0.0.1:4010/events"),
   }),
 
+  // Route schemas are both the TypeScript contract and the HTTP boundary.
   routes: ({ config, jobs }) => [
     defineRoute({
       method: "GET",
@@ -27,6 +28,7 @@ export default defineInterface({
     defineRoute({
       method: "POST",
       path: "/hooks/reading-digest",
+      // Authentication returns transport identity only; Brain derives caller access.
       security: protocol({
         authenticate({ request }) {
           const authorization = request.headers.get("authorization");
@@ -56,6 +58,7 @@ export default defineInterface({
     }),
   ],
 
+  // Long-lived listeners report health and stop through the supplied signal.
   daemons: ({ config, jobs }) => [
     defineDaemon({
       id: "reading-event-feed",

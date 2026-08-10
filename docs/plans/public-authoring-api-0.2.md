@@ -562,6 +562,7 @@ After authorized stable site publication, rerun the registry command with the ex
 
 ## Related work
 
+- [Public dashboard-widget and CMS-workspace authoring](./public-operator-surface-authoring.md) — approved additive `0.2.x` milestone that does not gate `v0.2.0`.
 - [NPM package boundaries](./npm-package-boundaries.md) — later official plugin publishing and public-only dependency proofs.
 - [Independent site and theme package versioning](./site-package-independent-versioning.md) — external site publishing and exact hosted pins.
 - [HTTP route registry hardening](./http-route-registry-hardening.md) — post-baseline route ownership and authorization improvements.

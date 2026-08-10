@@ -54,6 +54,31 @@ export default defineServicePlugin({
 
 Package name, version, and runtime capability scoping are loader-owned.
 
+## Templates and entity data
+
+Entity definitions do not directly declare presentation templates. Read an
+entity through a service job, transform it into a schema-backed render value,
+and call the service-local formatter:
+
+```ts
+const saved = await entities.get(bookmark, input.bookmarkId);
+if (!saved) throw new Error(`Bookmark not found: ${input.bookmarkId}`);
+
+const value = { bookmarkId: saved.id, summary: saved.metadata.title };
+const markdown = templates.format("digest", value);
+```
+
+Declare `digest` under the owning service's `templates` field. The runtime
+validates `value` against that template's schema before formatting it. A service
+`view` adds web rendering and must reuse the exact schema object when it shares
+the template key.
+
+Do not confuse service templates with an entity's persistence `markdown` codec
+or a site's `namespace.section` route template. The generic
+`@rizom/brain/templates` subpath remains an advanced exact-version API. See
+[Entity data, templates, and views](./external-plugin-authoring.md#entity-data-templates-and-views)
+for the complete rules and checked reference.
+
 ## Lifecycle ownership
 
 - Use `setup` for package-owned state and resources; register teardown with `lifecycle.onCleanup()`.

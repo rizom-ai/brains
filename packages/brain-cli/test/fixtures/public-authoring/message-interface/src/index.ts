@@ -9,6 +9,7 @@ export default defineMessageInterface({
     token: z.string().min(1),
   }),
 
+  // The channel declaration owns display metadata and recipient validation.
   channel: {
     type: "campfire",
     displayName: "Campfire",
@@ -26,6 +27,7 @@ export default defineMessageInterface({
       onReady: () => health.ready(),
       onWarning: (message) => health.warning(message),
       async onMessage(incoming) {
+        // Brain owns caller access, conversation continuity, and attachment policy.
         await messages.receiveAuthenticated({
           sender: {
             id: incoming.userId,
@@ -42,6 +44,7 @@ export default defineMessageInterface({
     });
   },
 
+  // Returning a provider ID enables later progress edits when edit() exists.
   async send({ state: client, channel, message }) {
     return client.send(channel.id, message.text);
   },
