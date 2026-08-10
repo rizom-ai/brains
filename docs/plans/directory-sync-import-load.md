@@ -38,7 +38,14 @@ acceptance remains pending.
   tree, 7-note baseline, zero probes, drained queue, one active worker, and zero
   zombies were restored. Smoke remains operational on alpha.275; further remote
   load is paused while the gate gains hermetic-posture, external-AI, and
-  watchdog-restart assertions.
+  watchdog-restart assertions. PR #105 added those assertions and released
+  `@rizom/ops@0.2.0-alpha.276`; the pilot desired state now declares embeddings
+  and automatic topic extraction disabled, but it has not been reconciled or
+  deployed.
+- Before another workload is approved, the stress workflow's `verify_only` mode
+  must prove the exact Bitwarden/Varlock content credential path through clone
+  and `git push --dry-run`. That mode creates no ref, content commit, probe, or
+  cleanup job.
 
 Asset-backed Phase 2–3 behavior remains coordinated with
 [`durable-binary-assets.md`](./durable-binary-assets.md) and lands with that storage

@@ -7,6 +7,7 @@ import {
   cleanupDirectorySyncStress,
   listProbeFiles,
   runDeployedDirectorySyncStress,
+  verifyDirectorySyncStressAccess,
   type DeployedDirectorySyncStressResult,
   type StressCommandOptions,
   type StressCommandResult,
@@ -361,6 +362,53 @@ function relevantGitAndSshCalls(calls: CommandCall[]): string[] {
 }
 
 describe("deployed directory-sync stress driver", () => {
+  it("verifies the exact content credential path without writing a remote ref", async () => {
+    const system = new ScriptedStressSystem();
+    const rootDir = await createSmokePilotRepo();
+    const artifactsDir = join(rootDir, "access-artifacts");
+
+    const result = await verifyDirectorySyncStressAccess({
+      rootDir,
+      handle: "smoke",
+      confirmation: "stress:smoke",
+      artifactsDir,
+      env: environment,
+      commandRunner: system.commandRunner,
+      now: system.now,
+    });
+
+    expect(result).toMatchObject({
+      success: true,
+      artifactsDir,
+      target: {
+        handle: "smoke",
+        domain: "smoke.rizom.ai",
+        contentRepo: "rizom-ai/rover-smoke-content",
+      },
+      remoteHead: "baseline-head",
+    });
+    expect(
+      JSON.parse(
+        await readFile(join(artifactsDir, "access-check.json"), "utf8"),
+      ),
+    ).toMatchObject({ success: true, remoteHead: "baseline-head" });
+
+    const clone = system.calls.find(
+      (call) => call.command === "git" && call.args.includes("clone"),
+    );
+    expect(clone?.contentGitTokenConfigured).toBe(true);
+    const pushes = system.calls.filter(
+      (call) => call.command === "git" && call.args[0] === "push",
+    );
+    expect(pushes).toHaveLength(1);
+    expect(pushes[0]?.args).toEqual([
+      "push",
+      "--dry-run",
+      "origin",
+      "HEAD:refs/heads/ops/directory-sync-stress-access-check-20260806060000",
+    ]);
+  });
+
   it("runs the real prepare, monitor, phase, cleanup, and evidence lifecycle", async () => {
     const system = new ScriptedStressSystem();
     const { artifactsDir, result } = await runScriptedProfile(

@@ -155,6 +155,24 @@ describe("brains-ops parseArgs", () => {
     });
   });
 
+  it("parses the write-free directory-sync credential check", () => {
+    const result = parseArgs([
+      "stress:directory-sync:verify-access",
+      "/tmp/rover-pilot",
+      "smoke",
+      "--confirm",
+      "stress:smoke",
+      "--artifacts-dir",
+      "/tmp/artifacts",
+    ]);
+    expect(result.command).toBe("stress:directory-sync:verify-access");
+    expect(result.args).toEqual(["/tmp/rover-pilot", "smoke"]);
+    expect(result.flags).toMatchObject({
+      confirm: "stress:smoke",
+      "artifacts-dir": "/tmp/artifacts",
+    });
+  });
+
   it("defaults to help when no args", () => {
     const result = parseArgs([]);
     expect(result.command).toBe("help");
@@ -416,6 +434,46 @@ discord:
       success: true,
       message:
         "Passed regression directory-sync stress for smoke; artifacts: /tmp/artifacts",
+    });
+  });
+
+  it("runs an injected directory-sync credential check", async () => {
+    const result = await runCommand(
+      {
+        command: "stress:directory-sync:verify-access",
+        args: ["/tmp/rover-pilot", "smoke"],
+        flags: {
+          confirm: "stress:smoke",
+          "artifacts-dir": "/tmp/artifacts",
+        },
+      },
+      {
+        async directorySyncStressAccessRunner(options) {
+          expect(options).toMatchObject({
+            rootDir: "/tmp/rover-pilot",
+            handle: "smoke",
+            confirmation: "stress:smoke",
+            artifactsDir: "/tmp/artifacts",
+          });
+          return {
+            success: true,
+            artifactsDir: "/tmp/artifacts",
+            checkedAt: "2026-08-10T14:00:00.000Z",
+            remoteHead: "abc123",
+            target: {
+              handle: "smoke",
+              domain: "smoke.rizom.ai",
+              contentRepo: "rizom-ai/rover-smoke-content",
+            },
+          };
+        },
+      },
+    );
+
+    expect(result).toEqual({
+      success: true,
+      message:
+        "Verified directory-sync stress access for smoke at abc123; artifacts: /tmp/artifacts",
     });
   });
 
@@ -847,6 +905,9 @@ members:
     expect(result.message).toContain("secrets:push <repo>");
     expect(result.message).toContain("secrets:encrypt <repo> <handle>");
     expect(result.message).toContain("verify-user <repo> <handle>");
+    expect(result.message).toContain(
+      "stress:directory-sync:verify-access <repo> <handle>",
+    );
     expect(result.message).not.toContain("requires operator runner");
   });
 
