@@ -82,6 +82,16 @@ export interface DeployedDirectorySyncStressOptions {
   sleep?: (milliseconds: number) => Promise<void>;
 }
 
+export interface VerifyDirectorySyncStressAccessOptions {
+  rootDir: string;
+  handle: string;
+  confirmation: string;
+  artifactsDir?: string;
+  env?: NodeJS.ProcessEnv;
+  commandRunner?: StressCommandRunner;
+  now?: () => Date;
+}
+
 export interface CleanupDirectorySyncStressOptions {
   rootDir: string;
   handle: string;
@@ -104,6 +114,18 @@ export interface DeployedDirectorySyncStressResult {
   startedAt: string;
   completedAt: string;
   report: DirectorySyncStressReport;
+}
+
+export interface VerifyDirectorySyncStressAccessResult {
+  success: true;
+  artifactsDir: string;
+  checkedAt: string;
+  remoteHead: string;
+  target: {
+    handle: string;
+    domain: string;
+    contentRepo: string;
+  };
 }
 
 export interface CleanupDirectorySyncStressResult {
@@ -181,6 +203,74 @@ export async function runDeployedDirectorySyncStress(
   };
   await writeStressArtifacts(result);
   return result;
+}
+
+export async function verifyDirectorySyncStressAccess(
+  options: VerifyDirectorySyncStressAccessOptions,
+): Promise<VerifyDirectorySyncStressAccessResult> {
+  const now: () => Date = options.now ?? ((): Date => new Date());
+  const checkedAt = now().toISOString();
+  const runId = createRunId(checkedAt);
+  const artifactsDir = resolve(
+    options.artifactsDir ??
+      join(options.rootDir, ".brains-ops", "stress", `access-check-${runId}`),
+  );
+  await mkdir(artifactsDir, { recursive: true });
+
+  const { pilot, user } = await resolveStressUser(
+    options.rootDir,
+    options.handle,
+  );
+  assertDirectorySyncStressTarget({
+    handle: user.handle,
+    domain: user.domain,
+    contentRepo: user.contentRepo,
+    confirmation: options.confirmation,
+  });
+  assertHermeticDirectorySyncPosture(user);
+
+  const token = (options.env ?? process.env)["CONTENT_REPO_ADMIN_TOKEN"];
+  if (!token) {
+    throw new Error("Missing CONTENT_REPO_ADMIN_TOKEN");
+  }
+
+  const temporaryRoot = await mkdtemp(
+    join(tmpdir(), "brains-ops-directory-sync-access-check-"),
+  );
+  try {
+    const checkout = await GitCheckout.clone(
+      options.commandRunner ?? runStressCommand,
+      `${pilot.githubOrg}/${user.contentRepo}`,
+      join(temporaryRoot, "content"),
+      token,
+    );
+    const remoteHead = await checkout.output(["rev-parse", "HEAD"]);
+    await checkout.run([
+      "push",
+      "--dry-run",
+      "origin",
+      `HEAD:refs/heads/ops/directory-sync-stress-access-check-${runId}`,
+    ]);
+
+    const result: VerifyDirectorySyncStressAccessResult = {
+      success: true,
+      artifactsDir,
+      checkedAt,
+      remoteHead,
+      target: {
+        handle: user.handle,
+        domain: user.domain,
+        contentRepo: `${pilot.githubOrg}/${user.contentRepo}`,
+      },
+    };
+    await writeFile(
+      join(artifactsDir, "access-check.json"),
+      `${JSON.stringify(result, null, 2)}\n`,
+    );
+    return result;
+  } finally {
+    await rm(temporaryRoot, { recursive: true, force: true });
+  }
 }
 
 export async function cleanupDirectorySyncStress(

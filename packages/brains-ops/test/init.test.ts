@@ -282,10 +282,15 @@ describe("initPilotRepo", () => {
     expect(stressWorkflow).toContain('cron: "23 4 * * 1"');
     expect(stressWorkflow).toContain("type: choice");
     expect(stressWorkflow).toContain("stress:directory-sync");
+    expect(stressWorkflow).toContain("stress:directory-sync:verify-access");
     expect(stressWorkflow).toContain("stress:directory-sync:cleanup");
+    expect(stressWorkflow).toContain("verify_only:");
+    expect(stressWorkflow).toContain("type: boolean");
     expect(stressWorkflow).toContain("BWS_ACCESS_TOKEN");
     expect(stressWorkflow).toContain("needs: stress");
-    expect(stressWorkflow).toContain("if: always()");
+    expect(stressWorkflow).toContain(
+      "if: ${{ always() && (github.event_name == 'schedule' || !inputs.verify_only) }}",
+    );
     expect(stressWorkflow).toContain("actions/upload-artifact@v4");
     expect(stressWorkflow).not.toContain("push:");
     const stressRunBlocks =

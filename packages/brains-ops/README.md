@@ -16,6 +16,7 @@ Operator CLI package for managing pilot brain fleet registry repos.
 - `brains-ops secrets:encrypt <repo> <handle>`
 - `brains-ops verify-user <repo> <handle>` — checks `/health/operate`, unauthenticated `/mcp`, and site-enabled browser/CMS routes
 - `brains-ops stress:directory-sync <repo> <handle> --profile <regression|load|stress> --confirm stress:<handle>` — runs a smoke-only, reversible directory-sync workload and writes structured evidence
+- `brains-ops stress:directory-sync:verify-access <repo> <handle> --confirm stress:<handle>` — clones the smoke content repository and verifies push authorization with `git push --dry-run`, without creating a ref or starting a workload
 - `brains-ops stress:directory-sync:cleanup <repo> <handle> --confirm stress:<handle>` — idempotently removes residual stress probes
 - `brains-ops reconcile-cohort <repo> <cohort>`
 - `brains-ops reconcile-all <repo>`
@@ -36,7 +37,7 @@ topicExtractionEnabled: false
 - `load`: ramp through 50, 150, and 350 files, update 350, rename 100, update again, then delete all probes;
 - `stress`: continue the same deterministic ramp to 700 files and 200 renames.
 
-Each run creates a rollback branch, gates on health failures during the monitored workload window, preserves warmup and cleanup health samples as evidence without poisoning that gate, samples container CPU/memory/PIDs, detects watchdog restarts even when Docker's restart counter remains zero, rejects external AI usage, waits for Git and entity persistence, and always attempts cleanup. JSON, Markdown, runtime logs, and samples are written under `.brains-ops/stress/` unless `--artifacts-dir` is supplied. The scaffolded `Directory Sync Stress` workflow is manual-only and has a separate `always()` cleanup job. Successful idempotent cleanup also prunes retained stress backup branches; branches remain available when probes remain for recovery. The workflow never deploys or targets a non-smoke user.
+Each run creates a rollback branch, gates on health failures during the monitored workload window, preserves warmup and cleanup health samples as evidence without poisoning that gate, samples container CPU/memory/PIDs, detects watchdog restarts even when Docker's restart counter remains zero, rejects external AI usage, waits for Git and entity persistence, and always attempts cleanup. JSON, Markdown, runtime logs, and samples are written under `.brains-ops/stress/` unless `--artifacts-dir` is supplied. The scaffolded `Directory Sync Stress` workflow runs a weekly regression and supports manual profiles. Its manual `verify_only` mode exercises the Bitwarden/Varlock content credential path through clone and a dry-run push, skips the workload, and does not schedule cleanup. Workload runs retain a separate `always()` cleanup job. Successful idempotent cleanup also prunes retained stress backup branches; branches remain available when probes remain for recovery. The workflow never deploys or targets a non-smoke user.
 
 ## Scope
 
