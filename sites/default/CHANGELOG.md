@@ -1,5 +1,12 @@
 # @brains/site-default
 
+## 0.2.0-alpha.277
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/site-professional@0.2.0-alpha.277
+
 ## 0.2.0-alpha.276
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @brains/ops
 
+## 0.2.0-alpha.277
+
+### Patch Changes
+
+- [#106](https://github.com/rizom-ai/brains/pull/106) [`f8ffa2d`](https://github.com/rizom-ai/brains/commit/f8ffa2d99fe99e19cec1c94d0f1625b5e738d1c8) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add a write-free directory-sync stress credential check and a workflow `verify_only` mode that proves clone and dry-run push access without starting a workload.
+
 ## 0.2.0-alpha.276
 
 ### Patch Changes
