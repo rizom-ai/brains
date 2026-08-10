@@ -2,7 +2,7 @@
 
 ## Status
 
-**In progress — 2026-08-09; Phases 0 and 1 complete.** This is not a rescue plan: the suite is green and structurally healthy today. Every remaining phase targets a drift mechanism or a dead spot rather than failing behavior, so no phase gates a release. Phases are independently shippable and ordered so each one makes the next safer.
+**In progress — 2026-08-09; Phases 0, 1 and 2 complete.** This is not a rescue plan: the suite is green and structurally healthy today. Every remaining phase targets a drift mechanism or a dead spot rather than failing behavior, so no phase gates a release. Phases are independently shippable and ordered so each one makes the next safer.
 
 ## Goal
 
@@ -35,22 +35,15 @@ Phase 0 shipped the wiring guard: `scripts/test-wiring.test.ts` fails when a pac
 
 Phase 1 made shared-mock drift a compile error. Every factory in `@brains/test-utils` is now checked against the type it stands in for, and an ESLint rule keeps `as unknown as` out of `shared/test-utils/src`. Three named helpers carry the cases the type system genuinely cannot express, so a reader can tell a known limit from a papered-over mismatch: `PublicSurface<T>` for class nominality, `genericSpy` for the type parameters bun's `mock()` erases, and `spyOnMembers` for wrapping a real namespace in recording spies. The two plugin-context mocks are no longer hand-written at all — they build a real context from a mock shell through `createEntityPluginContext` / `createServicePluginContext`, so their shape cannot drift because it is no longer a separate shape. One documented exception remains: `mockFetch` replaces a global rather than an injected collaborator and its handler deliberately returns a `Partial<Response>`, so there is nothing assignable to check it against.
 
+Phase 2 gave test databases one implementation and one cleanup contract. `createTestDatabase` in `@brains/test-utils` owns the `mkdtemp → migrate → cleanup` flow; clients register through `track()`, `cleanup` closes them all then removes the directory and is idempotent, and a failing migration removes the directory rather than leaking a temp dir per failing test. Migration is injected, so the package still depends on nothing under `shell/`. `createTestDirectory` exposes the directory primitive for tests that need scratch space without a database. The four per-package helpers are gone, along with `job-queue`'s cleanup that opened a connection purely to close it.
+
+Note that ~100 individual test files still call `mkdtemp` inline for their own scratch directories. That is a different pattern from the four helpers — each is local to one file and most have no database or client to close — so this plan does not treat it as duplication to remove.
+
 Three caveats to the baseline. Test files themselves contain 156 `as unknown as` casts across 80 files (94 in `shell/` alone), almost always on inline partial mocks — so the "no casts in test files" property that `test-utils`' header aims for does not hold today; Phase 6 addresses it. `shell/ai-service/test/agent-service.test.ts` is the one file in the repo that reads private service state via `Reflect.get` (the conversation-actor registry probes); Phase 5 replaces those probes while it has the file open. And root-level `scripts/` is linted by nothing — `scripts/lint.mjs` drives turbo, which only visits workspace packages, and the repository root is not one — so the script tests Phase 0 just wired up are unreachable from ESLint; Phase 6 fixes that alongside its own rules.
 
 A static "modules never imported by a test" sweep flagged 25 of 53 modules in `shell/core`. That signal was checked and is mostly transitive-coverage noise — barrel modules such as `messageBus.ts` pull in their collaborators, and the init/shutdown paths it flagged are covered. Only `shell/ai-evaluation` survived the check as a genuine hole. This plan does not act on that sweep beyond Phase 4.
 
 ## Problems to solve
-
-### Four test-database helpers with divergent cleanup contracts
-
-`shell/core/test/helpers/test-db.ts`, `shell/entity-service/test/helpers/test-entity-db.ts`, `shell/conversation-service/test/helpers/test-conversation-db.ts`, and `shell/job-queue/test/helpers/test-job-queue-db.ts` each implement the same flow: `mkdtemp` → build a `file:` URL → run migrations → return a `cleanup`. They disagree on what cleanup means:
-
-- `conversation-service` closes the client it opened inside `cleanup`, then removes the directory. Correct.
-- `entity-service` closes each of its three clients inline at the point of use; its `cleanup` only removes the directory. Also correct — a second valid contract.
-- `job-queue` calls `createJobQueueDatabase(config)` inside `cleanup` to obtain a **new** client, closes that one, then removes the directory. The connection it closes was created two lines earlier for that purpose; the client the service under test opened is untouched. The line does nothing. This is the one defective implementation.
-- `core` is temp-directory only, with no database concern.
-
-Four implementations of one flow is well past the point where the abstraction should exist, and the two-valid-contracts split is exactly how the third, broken one arose: with no single place stating who closes what, `job-queue` guessed.
 
 ### Shared mocks re-implemented locally
 
@@ -168,22 +161,7 @@ An ESLint `no-restricted-syntax` rule bans the `new Promise(... setTimeout ...)`
 
 ## Remaining implementation phases
 
-Each phase is independently shippable and starts with its test. Phases 2–5 may be reordered against each other. Phase 6 builds on Phase 3 and comes after it.
-
-### Phase 2 — One test-database helper
-
-1. Write the helper's own tests in `shared/test-utils`: `track` closes every registered client, `cleanup` removes the directory, `cleanup` is idempotent, and a failing `migrate` still removes the directory.
-2. Implement `createTestDatabase` per decision 4.
-3. Migrate `job-queue` first — it is the smallest and has the incorrect cleanup, so it is the migration that fixes a real defect. Its throwaway-connection line disappears.
-4. Migrate `conversation-service` (already correct — proves the helper covers correct behavior without regressing it), then `entity-service` (three clients — proves `track` handles the multi-connection case), then `core` (temp directory only, no `migrate`).
-5. Delete the four local helper implementations, leaving thin per-package wrappers.
-
-Gate:
-
-- One implementation of the mkdtemp → migrate → cleanup flow exists.
-- All four packages' tests pass unchanged in behavior.
-- No `cleanup` opens a connection.
-- Temp directories are removed even when `migrate` throws.
+Each phase is independently shippable and starts with its test. Phases 3–5 may be reordered against each other. Phase 6 builds on Phase 3 and comes after it.
 
 ### Phase 3 — One definition per mock
 
@@ -254,13 +232,6 @@ Gate:
 
 ## Validation matrix
 
-### Test databases
-
-- multi-client cleanup closes every tracked client;
-- cleanup after a failed migration still removes the directory;
-- idempotent cleanup;
-- all four migrated packages behaviorally unchanged.
-
 ### Mock uniqueness
 
 - shared factory covers every behavior the deleted local factories provided;
@@ -288,7 +259,6 @@ Gate:
 
 ## Risks and mitigations
 
-- **Phase 2's `track` is easy to forget at a call site.** The four in-tree call sites are migrated in the same phase. Beyond that, an untracked client is no worse than today's behavior, so the helper degrades to the current state rather than to something broken.
 - **Phase 3 changes shared mock defaults and breaks distant tests.** Fold local behavior in as opt-in options with defaults matching current shared behavior; never change an existing default to accommodate a migrating call site.
 - **Phase 4 tempts real model calls for realism.** Injected fake evaluation core only. If a live-model evaluation test is ever wanted, it belongs behind an explicit opt-in script, not in the default suite.
 - **Phase 4 re-tests what `evaluation-service.test.ts` already covers.** The CLI tests assert composition, not evaluation semantics; the gate forbids duplicating existing assertions. Duplicated coverage is not free — it doubles the cost of every future orchestration change.
@@ -304,7 +274,7 @@ Gate:
 - No root script silently matches nothing (shipped in Phase 0).
 - Adding a method to a mocked interface fails typecheck rather than passing silently (shipped in Phase 1).
 - No `as unknown as` remains in `shared/test-utils/src/` (shipped in Phase 1; lint-enforced) or in any test file.
-- One implementation of test-database setup, with one cleanup contract, and no cleanup that opens a connection.
+- One implementation of test-database setup, with one cleanup contract, and no cleanup that opens a connection (shipped in Phase 2).
 - Each shared mock factory has exactly one definition.
 - `shell/ai-evaluation`'s CLI chain is reachable from tests, with no live model calls in the default suite.
 - No test synchronizes on a fixed-duration sleep, and no `mock.module` targets workspace-internal code.
