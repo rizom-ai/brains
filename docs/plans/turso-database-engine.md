@@ -11,21 +11,28 @@ Phases 1 through 3 are implemented in `work/turso-migration`: Turso native FTS
 is wired through an engine-aware seam, the remaining service differences are
 closed, packed installs carry the native binding, and local files default to
 Turso with a tested explicit fallback. Phase 4's live sync spike is complete,
-and the owner selected Git-only content sync. Phases 5A and 5B now establish
-the web process as the sole local shell database owner under WAL. The affected
-service suites pass on both engines. Review uncovered that Turso's persisted native-FTS
-schema syntax is not parseable by libSQL. The chosen mitigation is an explicit,
-tested break-glass command: `brain-rollback-entities-to-libsql`.
+and the owner selected Git-only content sync. Phases 5A through 5C make the web
+process the sole local shell database owner under WAL and fold regenerated
+embeddings into `brain.db`. The affected service suites pass on both engines.
+Review uncovered that Turso's persisted native-FTS schema syntax is not
+parseable by libSQL. The chosen mitigation is an explicit, tested break-glass
+command: `brain-rollback-entities-to-libsql`.
+
+Phase 5D is blocked by an engine limitation: Turso custom index modules,
+including native FTS, are unsupported in MVCC mode. The owner chose to retain
+WAL and native FTS rather than replace indexed keyword search with a table scan.
+Phase 5E remains open.
 
 This plan originally asked whether the rewrite is worth adopting at all. The
 spike answered that: yes — phased, with libSQL retained as a fallback. Phase 1
 then showed that native-FTS cleanup must accompany the engine flag, and Phase 4
 closed the strategic sync fork in favor of Git-only content sync. Phase 5
 preflight exposed a separate runtime-topology constraint: Turso rejects MVCC
-while `multiprocess_wal` is enabled, but the current web and worker processes
-both open the same local database files. The owner selected the web process as
-the sole local database owner and a private local endpoint for worker traffic.
-That boundary must be proved under WAL before any pragma change.
+while `multiprocess_wal` is enabled, but the web and worker processes both
+opened the same local database files. The owner selected the web process as the
+sole local database owner and a private local endpoint for worker traffic.
+That boundary is now enforced and proved under WAL. The subsequent MVCC spike
+exposed the independent native-FTS blocker recorded in Phase 5D.
 
 ## Spike findings (measured, not assumed)
 
@@ -80,6 +87,14 @@ Engine: `@tursodatabase/database` 0.7.2. Suites run with `BRAINS_DB_ENGINE=turso
 - **The libsql vector index was dead weight** on both engines — created on
   every embedding insert, never queried (nothing issues `vector_top_k`).
   Removed in `23d7d468d`, independent of the migration.
+- **Phase 5D MVCC/FTS incompatibility:** with `multiprocess_wal` removed,
+  MVCC, `BEGIN CONCURRENT`, disjoint concurrent writes, and MVCC-to-WAL
+  conversion all work. Native FTS does not: both released
+  `@tursodatabase/database@0.7.2` and `0.8.0-pre.3` reject
+  `CREATE INDEX … USING fts` because custom index modules are unsupported in
+  MVCC mode. The Turso entity suite reached 183/327, with all 144 failures
+  rooted in that error. Creating native FTS under WAL and then converting the
+  file to MVCC instead triggered a Turso `root_page must be positive` panic.
 - **Not covered:** auth-service's embedded replica (`runtime-db.ts` constructs
   its own `@libsql/client` with `syncUrl`; it syncs against Turso Cloud and
   stays on libSQL throughout this plan). Phase 3 separately resolved the
@@ -414,21 +429,30 @@ on both Turso and libSQL; shared DB passes 30/30 and core passes 432/432.
 and one database file, with no runtime configuration or dependency for the
 legacy embedding file.
 
-#### Phase 5D — Enable MVCC
+#### Phase 5D — Enable MVCC — BLOCKED
 
-- Remove `multiprocess_wal` only after the single-owner invariant is enforced.
-- Apply `journal_mode = mvcc` for local Turso files, use
-  `BEGIN CONCURRENT` for Turso write transactions, and remove the Turso
-  WAL/busy-timeout path. Remote libSQL and auth-service behavior remain
-  unchanged.
-- Test concurrent reads/writes through the owner, restart recovery, migrations,
-  native FTS, vectors, packed startup, and explicit rejection of accidental
-  second-process file access.
-- Update the break-glass command and operator documentation: an MVCC file is no
-  longer recoverable by the existing schema-only libSQL rollback.
+The single-owner prerequisite is met, but the implementation spike found that
+Turso native FTS and MVCC cannot coexist. With `multiprocess_wal` removed, the
+adapter successfully opened MVCC files, used `BEGIN CONCURRENT`, committed
+disjoint writes from independent connections, surfaced write-write conflicts,
+and converted MVCC files back to WAL without losing rows. Shared database tests
+passed 35/35.
 
-**Exit:** all local shell databases report MVCC and pass their service suites
-through the selected owner topology.
+Entity initialization then failed because Turso rejects its custom FTS index in
+MVCC mode. The released 0.7.2 SDK and the available 0.8.0 pre-release behave the
+same. Pre-creating the index under WAL is not a workaround: converting that
+file to MVCC panicked inside Turso. No MVCC code was retained after the spike.
+
+**Owner decision:** retain WAL and native FTS. Do not replace native FTS with a
+linear exact-phrase scan or add a separate WAL search database merely to enable
+MVCC. The current owner also uses one Turso connection whose adapter serializes
+top-level operations, so MVCC would not unlock runtime concurrency today.
+Revisit this phase only when a released Turso SDK supports custom index modules
+under MVCC; rerun migrations, native FTS, vectors, rollback, packed startup,
+owner-topology, restart, and full dual-engine service coverage before cutover.
+
+**Exit: blocked upstream.** Local shell databases remain in WAL and the existing
+schema-cleanup libSQL rollback command remains valid.
 
 #### Phase 5E — Entity/job atomicity decision gate
 
@@ -461,5 +485,6 @@ entity-write/enqueue gap is removed only if an atomic replacement is adopted.
   and cleanup responsibilities. Baseline comparison, overload bounds, failure,
   restart, and shutdown behavior must be proved under WAL before changing the
   file format.
-- MVCC-mode files close the libSQL fallback door. The owner topology and
-  no-second-opener invariant must be enforced before conversion.
+- MVCC currently cannot host Turso's native FTS custom index. If upstream adds
+  support, conversion still requires the enforced owner topology plus a tested
+  MVCC-to-WAL rollback path before it can ship.
