@@ -45,6 +45,16 @@ A static "modules never imported by a test" sweep flagged 25 of 53 modules in `s
 
 ## Problems to solve
 
+### `@brains/test-utils` cannot be depended on by the packages it mocks
+
+`@brains/test-utils` declares eleven workspace dependencies — `ai-service`, `content-service`, `contracts`, `conversation-service`, `entity-service`, `identity-service`, `job-queue`, `mcp-service`, `messaging-service`, `plugins`, `runtime-state`, `templates`, `utils` — because its factories mock those packages' types.
+
+Every one of those packages also imports `@brains/test-utils` in its own tests, and **none of them declares it**: 74 files across eleven packages. They cannot. Adding the dependency creates a cycle, and turbo rejects the task graph outright rather than tolerating it — verified by declaring it on `shell/plugins` and watching `turbo run typecheck` refuse to build a plan. The imports only resolve today because bun hoists the workspace.
+
+So the repository has a large, invisible dependency edge that no manifest records and no check catches: `bun install` is happy, `arch:check` is happy, and turbo's graph is acyclic only because it cannot see the edge.
+
+The fix is directional. A mock of an interface belongs with the package that owns the interface, not in a package that must import it. Moving `mock-shell` into `@brains/plugins` — which already declares every package it imports, so it needs no new dependencies — and re-exporting it from `test-utils` would let `plugins` drop the edge entirely, with no consumer changes. The same reasoning applies to the entity, content and job-queue mocks. That is a package-boundary change rather than test hygiene, so it wants its own decision and is not folded into a phase here.
+
 ### Shared mocks re-implemented locally
 
 `createMockEntityService` exists in `@brains/test-utils` and is independently redefined in four test files: `shell/entity-service/test/embeddingJobHandler.test.ts`, `shell/entity-service/test/singleton-entity-service.test.ts`, `plugins/stock-photo/test/tools.test.ts`, and `interfaces/a2a/test/client-resolution.test.ts`. `stock-photo` already depends on `@brains/test-utils` and reimplements anyway; `entity-service` and `a2a` do not declare the dependency. The same pattern appears for `createMockContext` (3 local definitions), `createPipelineContext` (4), and `createMockShell` (2).
@@ -165,20 +175,21 @@ Each phase is independently shippable and starts with its test. Phases 3–5 may
 
 ### Phase 3 — One definition per mock
 
-1. Extend `MockEntityServiceOptions` to cover what the four local `createMockEntityService` definitions need, with a test per added option.
-2. Add `@brains/test-utils` as a devDependency to `shell/entity-service` and `interfaces/a2a`.
-3. Replace the four local `createMockEntityService` definitions with the shared factory.
-4. Repeat for `createMockShell` (2 local), `createMockContext` (3), and `createPipelineContext` (4), folding divergent needs into shared options.
-5. Delete `shell/plugins/src/test/mock-shell.ts` and repoint its importers at `@brains/test-utils`.
-6. Replace the `mock.module("../src/lib/mcp-client", ...)` in `packages/brain-cli/test/remote-operate.test.ts` with injection — `mock.module` against own source is the antipattern the rest of the repo already avoids; the client is internal code and its consumer should take it as a parameter.
-7. Add a `test-wiring` assertion that fails when a test file defines a factory whose name matches a `@brains/test-utils` export.
+Two of the five local `createMockEntityService` definitions are gone (`shell/entity-service`), as is the deprecated `shell/plugins/src/test/mock-shell.ts` shim. What remains:
 
+1. Replace the remaining `createMockEntityService` redefinitions in `plugins/stock-photo/test/tools.test.ts` (an untyped `Record<string, unknown>` override bag) and `interfaces/a2a/test/client-resolution.test.ts` (a Map-backed fake, expressible through the factory's `getEntityImpl` / `listEntitiesImpl` options).
+2. Add `@brains/test-utils` as a devDependency to `interfaces/a2a`. It is the only one of these packages that can declare it — `test-utils` does not depend on `a2a`. The rest are blocked by the cycle described above.
+3. Fold `shell/ai-service/test/mock.ts`'s `createMockAIService` into the shared factory of the same name, or rename it if it is deliberately different.
+4. Extract one `createPipelineContext` for `plugins/site-builder`. Its four copies all build the same package-local `BuildPipelineContext`, so this belongs in that package's test directory, not in `test-utils`.
+5. Add a `test-wiring` assertion that fails when a test file defines a factory whose name matches a `@brains/test-utils` export. It must ignore same-named locals that build a different type — `app.test`'s `createMockShell` returns `ShellInstance`, and `social-media`'s `createMockEntityService` returns a narrow local interface — so the check is name plus assignability, not name alone.
+
+`packages/brain-cli/test/remote-operate.test.ts`'s `mock.module` against its own `../src/lib/mcp-client` is being replaced with injection in the main checkout; confirm before touching it.
 Gate:
 
-- `createMockEntityService`, `createMockShell`, `createMockContext`, and `createPipelineContext` each have exactly one definition.
-- No `@deprecated` re-export shims remain under `shell/plugins/src/test/`.
+- `createMockEntityService` and `createMockAIService` each have exactly one definition, and `createPipelineContext` one per package.
+- No `@deprecated` re-export shims remain under `shell/plugins/src/test/` (shipped).
 - No `mock.module` targets a workspace-internal module.
-- The guard fails when a shadowing local factory is reintroduced.
+- The guard fails when a local factory shadows a shared one it is assignable to, and stays quiet for same-named locals that build a different type.
 
 ### Phase 4 — The evaluation CLI chain is under test
 
