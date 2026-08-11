@@ -7,7 +7,10 @@ import {
   DEFAULT_EMAIL_TRIAGE_CLASSIFICATION_PROMPT,
   EmailTriageProcessor,
   buildClassificationPrompt,
+  mailItemAdapter,
   mailItemIdForMessage,
+  withMailThreadOrdinal,
+  type EmailTriageProcessorDependencies,
   type MailClassifier,
   type RetainedMailClassification,
   type MailItemProjection,
@@ -136,6 +139,7 @@ function setup(
   options: {
     classify?: MailClassifier;
     failCreate?: () => boolean;
+    threadOrdinals?: EmailTriageProcessorDependencies["threadOrdinals"];
   } = {},
 ): {
   processor: EmailTriageProcessor;
@@ -161,6 +165,9 @@ function setup(
   return {
     processor: new EmailTriageProcessor({
       repository,
+      ...(options.threadOrdinals
+        ? { threadOrdinals: options.threadOrdinals }
+        : {}),
       attempts,
       classify,
       logger,
@@ -256,6 +263,34 @@ describe("email triage processor", () => {
     expect(fixture.classify).toHaveBeenCalledTimes(1);
     expect(stored?.visibility).toBe("restricted");
     expect(await fixture.attempts.has(stored?.id ?? "missing")).toBe(false);
+  });
+
+  it("routes threaded persistence through the ordinal coordinator", async () => {
+    let coordinatorCalls = 0;
+    const fixture = setup({
+      threadOrdinals: {
+        persist: async (projection, writer): Promise<void> => {
+          coordinatorCalls += 1;
+          await writer(withMailThreadOrdinal(projection, 4));
+        },
+      },
+    });
+    const threaded = email({ threadId: "private-thread" });
+
+    expect(await fixture.processor.process(threaded)).toEqual({
+      success: true,
+    });
+
+    const stored = fixture.entities.get(
+      mailItemIdForMessage(threaded.messageId),
+    );
+    if (!stored) throw new Error("Expected a stored mail item");
+    expect(coordinatorCalls).toBe(1);
+    expect(
+      mailItemAdapter.parseMailItemContent(stored.content).frontmatter.source
+        .threadOrdinal,
+    ).toBe(4);
+    expect(stored.metadata.threadOrdinal).toBe(4);
   });
 
   it("holds the first two model failures and persists a safe fallback on the third", async () => {

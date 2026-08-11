@@ -44,6 +44,7 @@ describe("InboxRegistry", () => {
         title: "Derived mail summary",
         summary: "A safe derived summary.",
         contact: { label: "Sam Rivera · acme.io", personId: "prsn_sam" },
+        threadOrdinal: 2,
         receivedAt: "2026-08-04T09:00:00.000Z",
         urgency: "high",
         entityRef: { entityType: "mail-item", entityId: "mail-1" },
@@ -57,6 +58,7 @@ describe("InboxRegistry", () => {
       title: "Derived mail summary",
       summary: "A safe derived summary.",
       contact: { label: "Sam Rivera · acme.io", personId: "prsn_sam" },
+      threadOrdinal: 2,
       receivedAt: "2026-08-04T09:00:00.000Z",
       urgency: "high",
       entityRef: { entityType: "mail-item", entityId: "mail-1" },
@@ -85,6 +87,18 @@ describe("InboxRegistry", () => {
         actions: [],
       }).success,
     ).toBe(false);
+    for (const threadOrdinal of [0, -1, 1.5]) {
+      expect(
+        inboxItemSchema.safeParse({
+          id: "mail-1",
+          title: "Derived mail summary",
+          threadOrdinal,
+          receivedAt: "2026-08-04T09:00:00.000Z",
+          urgency: "normal",
+          actions: [],
+        }).success,
+      ).toBe(false);
+    }
     expect(
       inboxItemSchema.safeParse({
         id: "mail-1",

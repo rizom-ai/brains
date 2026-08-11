@@ -50,6 +50,7 @@ interface MailItemFrontmatter {
     ref: string;
     senderKey: string;
     threadKey?: string;
+    threadOrdinal?: number;
     personId?: string;
     domain?: string;
   };
@@ -60,6 +61,13 @@ interface MailItemFrontmatter {
 ```
 
 The entity ID derives from the hashed message identifier, so replay is idempotent: an existing item acknowledges without filtering or another model call.
+
+Thread position is assigned without reading mailbox content. A restartable coordinator
+indexes `threadKey` and `threadOrdinal`, migrates legacy items in received-time/ID order,
+and keeps the Inbox label hidden until a final exclusive catch-up commits its ready
+marker. Once ready, new arrivals take the next indexed ordinal under a per-thread lock.
+Directory export/import preserves the nested `source.threadOrdinal`; the UI deliberately
+says **message N in thread**, never an unstable total.
 
 ## Classification
 

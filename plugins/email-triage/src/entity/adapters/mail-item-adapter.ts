@@ -57,6 +57,12 @@ export class MailItemAdapter extends BaseEntityAdapter<
         status: frontmatter.status,
         needsReply: frontmatter.needsReply,
         receivedAt: frontmatter.receivedAt,
+        ...(frontmatter.source.threadKey
+          ? { threadKey: frontmatter.source.threadKey }
+          : {}),
+        ...(frontmatter.source.threadOrdinal !== undefined
+          ? { threadOrdinal: frontmatter.source.threadOrdinal }
+          : {}),
       },
     };
   }

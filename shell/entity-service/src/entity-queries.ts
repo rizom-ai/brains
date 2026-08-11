@@ -240,7 +240,7 @@ export class EntityQueries {
 
   /**
    * Build ORDER BY clauses from sortFields.
-   * Supports system fields (created, updated) and metadata fields via json_extract.
+   * Supports system fields (id, created, updated) and metadata fields via json_extract.
    */
   private buildOrderByClauses(sortFields?: ListOptions["sortFields"]): SQL[] {
     // Default: sort by updated desc
@@ -252,6 +252,10 @@ export class EntityQueries {
       const orderFn = direction === "desc" ? desc : asc;
 
       // System fields
+      if (field === "id") {
+        return [orderFn(entities.id)];
+      }
+
       if (field === "created") {
         const fieldExpr = entities.created;
         if (nullsFirst) {

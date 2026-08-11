@@ -8,6 +8,7 @@ import {
   mailPrioritySchema,
   mailSenderLabelSchema,
   mailStatusSchema,
+  mailThreadOrdinalSchema,
   type MailCategory,
   type MailPriority,
   type MailStatus,
@@ -59,6 +60,7 @@ interface MailTriageListItemValue {
   summary: string;
   senderLabel?: string | undefined;
   personId?: string | undefined;
+  threadOrdinal?: number | undefined;
   organization?: string | undefined;
   requestedActions: string[];
 }
@@ -77,6 +79,7 @@ export const mailTriageListItemSchema: z.ZodType<
   summary: z.string().min(1).max(1_000),
   senderLabel: mailSenderLabelSchema.optional(),
   personId: z.string().min(1).max(200).optional(),
+  threadOrdinal: mailThreadOrdinalSchema.optional(),
   organization: z.string().min(1).max(200).optional(),
   requestedActions: z.array(z.string().min(1).max(240)).max(10),
 });

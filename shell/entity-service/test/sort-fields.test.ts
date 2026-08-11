@@ -27,6 +27,8 @@ describe("listEntities sortFields", () => {
         metadata: {
           publishedAt: "2025-01-03T00:00:00.000Z",
           status: "published",
+          threadKey: "thread-a",
+          threadOrdinal: 1,
         },
         created: new Date("2025-01-01T10:00:00.000Z").getTime(),
         updated: new Date("2025-01-01T10:00:00.000Z").getTime(),
@@ -44,6 +46,8 @@ describe("listEntities sortFields", () => {
         metadata: {
           publishedAt: "2025-01-01T00:00:00.000Z",
           status: "published",
+          threadKey: "thread-a",
+          threadOrdinal: 3,
         },
         created: new Date("2025-01-02T10:00:00.000Z").getTime(),
         updated: new Date("2025-01-02T10:00:00.000Z").getTime(),
@@ -61,6 +65,8 @@ describe("listEntities sortFields", () => {
         metadata: {
           publishedAt: "2025-01-02T00:00:00.000Z",
           status: "draft",
+          threadKey: "thread-b",
+          threadOrdinal: 10,
         },
         created: new Date("2025-01-03T10:00:00.000Z").getTime(),
         updated: new Date("2025-01-03T10:00:00.000Z").getTime(),
@@ -123,6 +129,34 @@ describe("listEntities sortFields", () => {
 
     expect(result).toHaveLength(3);
     expect(result.map((r) => r.id)).toEqual(["post-1", "post-2", "post-3"]);
+  });
+
+  test("should sort by the entity ID system field", async () => {
+    const result = await ctx.entityService.listEntities<BaseEntity>({
+      entityType: "post",
+      options: {
+        sortFields: [{ field: "id", direction: "desc" }],
+      },
+    });
+
+    expect(result.map((entity) => entity.id)).toEqual([
+      "post-3",
+      "post-2",
+      "post-1",
+    ]);
+  });
+
+  test("should read the highest numeric metadata value through a bounded filter", async () => {
+    const result = await ctx.entityService.listEntities<BaseEntity>({
+      entityType: "post",
+      options: {
+        limit: 1,
+        sortFields: [{ field: "threadOrdinal", direction: "desc" }],
+        filter: { metadata: { threadKey: "thread-a" } },
+      },
+    });
+
+    expect(result.map((entity) => entity.id)).toEqual(["post-2"]);
   });
 
   test("should combine sortFields with pagination", async () => {

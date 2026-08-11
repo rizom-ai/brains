@@ -34,23 +34,41 @@ interface MailItemSourceValue {
   ref: string;
   senderKey: string;
   threadKey?: string | undefined;
+  threadOrdinal?: number | undefined;
   personId?: string | undefined;
   domain?: string | undefined;
 }
 
+export const mailThreadKeySchema: z.ZodType<string, string> = z
+  .string()
+  .regex(/^[a-f0-9]{64}$/);
+
+export const mailThreadOrdinalSchema: z.ZodType<number, number> = z
+  .number()
+  .int()
+  .positive()
+  .max(Number.MAX_SAFE_INTEGER);
+
 export const mailItemSourceSchema: z.ZodType<
   MailItemSourceValue,
   MailItemSourceValue
-> = z.strictObject({
-  ref: z.string().min(1).max(1_024),
-  senderKey: z.string().regex(/^[a-f0-9]{64}$/),
-  threadKey: z
-    .string()
-    .regex(/^[a-f0-9]{64}$/)
-    .optional(),
-  personId: z.string().min(1).max(200).optional(),
-  domain: z.string().min(1).max(253).optional(),
-});
+> = z
+  .strictObject({
+    ref: z.string().min(1).max(1_024),
+    senderKey: z.string().regex(/^[a-f0-9]{64}$/),
+    threadKey: mailThreadKeySchema.optional(),
+    threadOrdinal: mailThreadOrdinalSchema.optional(),
+    personId: z.string().min(1).max(200).optional(),
+    domain: z.string().min(1).max(253).optional(),
+  })
+  .refine(
+    (source) =>
+      source.threadOrdinal === undefined || source.threadKey !== undefined,
+    {
+      path: ["threadOrdinal"],
+      message: "A thread ordinal requires a thread key",
+    },
+  );
 
 export const mailSenderLabelSchema: z.ZodType<string, string> = z
   .string()
@@ -92,18 +110,26 @@ type MailItemMetadataSchema = z.ZodObject<
   Pick<
     MailItemFrontmatterSchema["shape"],
     "title" | "category" | "priority" | "status" | "needsReply" | "receivedAt"
-  >
+  > & {
+    threadKey: z.ZodOptional<typeof mailThreadKeySchema>;
+    threadOrdinal: z.ZodOptional<typeof mailThreadOrdinalSchema>;
+  }
 >;
 
 export const mailItemMetadataSchema: MailItemMetadataSchema =
-  mailItemFrontmatterSchema.pick({
-    title: true,
-    category: true,
-    priority: true,
-    status: true,
-    needsReply: true,
-    receivedAt: true,
-  });
+  mailItemFrontmatterSchema
+    .pick({
+      title: true,
+      category: true,
+      priority: true,
+      status: true,
+      needsReply: true,
+      receivedAt: true,
+    })
+    .extend({
+      threadKey: mailThreadKeySchema.optional(),
+      threadOrdinal: mailThreadOrdinalSchema.optional(),
+    });
 
 export const mailItemSchema: ReturnType<
   typeof baseEntityParserSchema.extend<{

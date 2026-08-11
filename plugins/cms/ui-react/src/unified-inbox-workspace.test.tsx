@@ -28,6 +28,7 @@ const data: InboxWorkspaceSnapshot = {
         title: "Time-sensitive collaboration request",
         summary: "A content-safe summary.",
         contact: { label: "Sam Rivera · acme.io", personId: "prsn_sam" },
+        threadOrdinal: 2,
         receivedAt: "2026-08-08T09:00:00.000Z",
         urgency: "high",
         entityRef: { entityType: "mail-item", entityId: "mail-1" },
@@ -62,6 +63,8 @@ describe("UnifiedInboxWorkspace", () => {
     expect(html).toContain("Live source-owned attention");
     expect(html).toContain("Time-sensitive collaboration request");
     expect(html).toContain("Sam Rivera · acme.io");
+    expect(html).toContain("message 2 in thread");
+    expect(html).not.toContain("message 2 of");
     expect(html).toContain('class="inbox-contact"');
     expect(html).toContain("Email Triage");
     expect(html).toContain("Candidates is temporarily unavailable");

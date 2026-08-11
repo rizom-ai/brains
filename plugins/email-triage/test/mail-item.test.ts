@@ -63,6 +63,7 @@ const frontmatter: MailItemFrontmatter = {
       "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
     threadKey:
       "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    threadOrdinal: 2,
     personId: "prsn_sender",
     domain: "example.com",
   },
@@ -91,6 +92,9 @@ describe("mail-item entity", () => {
       status: "new",
       needsReply: true,
       receivedAt: email.receivedAt,
+      threadKey:
+        "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      threadOrdinal: 2,
     });
     expect(
       mailItemSchema.parse({
@@ -158,6 +162,22 @@ describe("mail-item entity", () => {
       mailItemFrontmatterSchema.safeParse({
         ...frontmatter,
         senderLabel: "x".repeat(301),
+      }).success,
+    ).toBe(false);
+    for (const threadOrdinal of [0, -1, 1.5]) {
+      expect(
+        mailItemFrontmatterSchema.safeParse({
+          ...frontmatter,
+          source: { ...frontmatter.source, threadOrdinal },
+        }).success,
+      ).toBe(false);
+    }
+    const { threadKey: _threadKey, ...sourceWithoutThread } =
+      frontmatter.source;
+    expect(
+      mailItemFrontmatterSchema.safeParse({
+        ...frontmatter,
+        source: { ...sourceWithoutThread, threadOrdinal: 1 },
       }).success,
     ).toBe(false);
   });
@@ -307,7 +327,9 @@ describe("mail-item entity", () => {
 });
 
 describe("mail item restricted export round-trip", () => {
-  it("re-imports its own exported markdown including the system visibility key", () => {
+  it("re-imports its own exported markdown including thread position and visibility", () => {
+    const receivedAt = "2026-08-09T15:53:55.000Z";
+    const threadKey = "b".repeat(64);
     const content = mailItemAdapter.createMailItemContent(
       {
         title: "Unclassified email",
@@ -315,20 +337,41 @@ describe("mail item restricted export round-trip", () => {
         priority: "high",
         status: "new",
         needsReply: true,
-        receivedAt: "2026-08-09T15:53:55.000Z",
+        receivedAt,
         source: {
           ref: "imap:inbound",
           senderKey: "a".repeat(64),
+          threadKey,
+          threadOrdinal: 7,
         },
         requestedActions: [],
       },
       "A content-safe summary.",
     );
-    const exported = applyVisibilityToMarkdown(content, "restricted");
+    const partial = mailItemAdapter.fromMarkdown(content);
+    if (!partial.metadata) throw new Error("Expected mail metadata");
+    const serialized = mailItemAdapter.toMarkdown({
+      id: "mail-round-trip",
+      entityType: "mail-item",
+      content,
+      metadata: partial.metadata,
+      created: receivedAt,
+      updated: receivedAt,
+      contentHash: "hash",
+      visibility: "restricted",
+    });
+    const exported = applyVisibilityToMarkdown(serialized, "restricted");
 
     const parsed = mailItemAdapter.parseMailItemContent(exported);
 
-    expect(parsed.frontmatter.title).toBe("Unclassified email");
+    expect(parsed.frontmatter.source).toMatchObject({
+      threadKey,
+      threadOrdinal: 7,
+    });
+    expect(mailItemAdapter.fromMarkdown(exported).metadata).toMatchObject({
+      threadKey,
+      threadOrdinal: 7,
+    });
     expect(parsed.summary).toBe("A content-safe summary.");
   });
 });
