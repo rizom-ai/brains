@@ -98,14 +98,20 @@ describe("job queue owner RPC", () => {
     expect(transport.initialized).toBe(true);
     await expectFileMissing(workerDatabasePath);
 
-    const jobId = await worker.enqueue({
+    const stableRequest = {
       type: "test:remote",
       data: { value: 7 },
+      idempotencyKey: "remote-stable-job",
       options: {
         source: "test",
-        metadata: { operationType: "data_processing", custom: "preserved" },
+        metadata: {
+          operationType: "data_processing" as const,
+          custom: "preserved",
+        },
       },
-    });
+    };
+    const jobId = await worker.enqueue(stableRequest);
+    expect(jobId).toBe("remote-stable-job");
     const claim = {
       workerSlotId: "slot-1",
       workerSessionId: "session-1",
@@ -143,6 +149,9 @@ describe("job queue owner RPC", () => {
       result: { ok: true },
       progress: { progress: 1, total: 2, message: "halfway" },
     });
+    expect(await worker.enqueue(stableRequest)).toBe(jobId);
+    expect((await worker.getStats()).total).toBe(1);
+
     const noResultJobId = await worker.enqueue({
       type: "test:remote",
       data: { value: 8 },

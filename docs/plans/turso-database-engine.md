@@ -2,7 +2,8 @@
 
 ## Status
 
-In progress. The engine spike is done on `work/turso-spike` (commits
+Complete through Phase 5E; MVCC remains deliberately gated. The engine spike
+is done on `work/turso-spike` (commits
 `23d7d468d`, `d02c4c0cd`): `@brains/db` has a `createTursoClient` adapter that
 presents the libSQL `Client` surface over `@tursodatabase/database@0.7.2`, and
 `createSqliteDatabase` selects it for `file:` urls when `BRAINS_DB_ENGINE=turso`.
@@ -12,8 +13,9 @@ is wired through an engine-aware seam, the remaining service differences are
 closed, packed installs carry the native binding, and local files default to
 Turso with a tested explicit fallback. Phase 4's live sync spike is complete,
 and the owner selected Git-only content sync. Phases 5A through 5C make the web
-process the sole local shell database owner under WAL and fold regenerated
-embeddings into `brain.db`. The affected service suites pass on both engines.
+process the sole local shell database owner under WAL, fold regenerated
+embeddings into `brain.db`, and atomically journal entity embedding jobs through
+an owner-local outbox. The affected service suites pass on both engines.
 Review uncovered that Turso's persisted native-FTS schema syntax is not
 parseable by libSQL. The chosen mitigation is an explicit, tested break-glass
 command: `brain-rollback-entities-to-libsql`.
@@ -26,10 +28,10 @@ negligible read margin. Native FTS and its MVCC incompatibility are no longer
 load-bearing; `index_method` remains available only to clean skipped releases
 and restored backups. MVCC is parked behind an observed owner-connection
 saturation trigger because job writes are at engine parity under WAL and the
-owner connection is serialized. Phase 5E measured the remaining atomicity
-options and the owner selected the owner-local outbox: entity mutations and
-their embedding-job intents commit together in `brain.db`, while the job queue
-keeps its own file. Its implementation is the remaining scheduled work.
+owner connection is serialized. Phase 5E measured and implemented the selected
+owner-local outbox: entity mutations and their embedding-job intents commit
+together in `brain.db`, while the job queue keeps its own file and accepts
+interrupted relay replays idempotently.
 
 This plan originally asked whether the rewrite is worth adopting at all. The
 spike answered that: yes — phased, with libSQL retained as a fallback. Phase 1
@@ -491,8 +493,10 @@ projection mutation paths have dropped FTS shadow-row maintenance. Before the
 selected engine runs normal migrations, `preparePortableEntitySearch()` drops
 legacy FTS5 and dead vector-index schema through libSQL. If libSQL detects an
 unreadable native Turso schema, a maintenance connection drops
-`entities_content_fts` and libSQL completes a second cleanup pass. Direct
-Turso-to-libSQL migration therefore works without a separate schema transform.
+`entities_content_fts`, rebuilds the offline file with `VACUUM` to remove pages
+leaked by Turso 0.7's native-index cleanup, and libSQL completes a second
+cleanup pass. Direct Turso-to-libSQL migration therefore works without a
+separate schema transform.
 The recovery command performs the same historical cleanup without rebuilding
 FTS5.
 
@@ -584,29 +588,38 @@ justify the boundary, and the benchmark gives merging no advantage to weigh
 against them. Keep startup backfill as regeneration and operational repair
 rather than as the normal entity/enqueue bridge.
 
-Implementation notes:
+Implementation:
 
-- The intent table lives in `brain.db` beside `projection_dirty_inputs`, which
-  is the same durable-work-journal pattern: a new schema module under
-  `shell/entity-service/src/schema/` plus Drizzle-generated migration
-  metadata. Entity-service owns the table and the intent write.
-- The relay runs in the web owner, which already holds both the entity service
-  and the job queue in-process after Phase 5A/5B, so it reads intents and
-  calls the ordinary enqueue path. No package may reach into `brain.db` from
-  the job-queue side, and the relay adds no IPC hop.
-- Triggered plus startup drain, never polling. Stable idempotent job ids so a
-  crash between queue write and intent acknowledgement replays to exactly one
-  row (the measured failure probe). Shutdown drain ordering, relay
-  diagnostics, and deterministic failure injection land before compensation
-  semantics change.
-- Mutation acknowledgement moves from "queue row is visible" to "job intent is
-  durable". Audit callers that enqueue and then immediately read job status by
-  id — they must tolerate a job that is durable but not yet relayed.
+- Drizzle-generated migration `0007_grey_the_professor.sql` adds
+  `entity_job_outbox` beside `projection_dirty_inputs`. Entity create/update,
+  embedding invalidation, projection dirty input, and the fully validated job
+  intent now share one `brain.db` transaction.
+- `prepareEnqueue()` freezes the generated job id, validated payload, retry
+  options, and operation provenance before the entity transaction. The queue
+  treats that id as an idempotency key, returns the existing row on a matching
+  replay, and rejects reuse for different job data.
+- `EntityJobOutbox` drains on mutation triggers and startup, never by polling.
+  It acknowledges a batch only after queue admission and serializes its local
+  database work with entity/projection transactions for libSQL and Turso
+  parity. A queue outage leaves the committed intent for a later trigger,
+  shutdown, or restart.
+- The web-owner lifecycle closes remote traffic first, flushes the outbox while
+  both databases are open, closes `brain.db`, and closes `brain-jobs.db` last.
+  Pending-count and explicit flush/idle operations provide owner diagnostics
+  and deterministic tests without timers.
+- Mutation acknowledgement is now "job intent is durable," not "queue row is
+  already visible." Startup embedding backfill remains regeneration and
+  operational repair rather than the normal mutation bridge.
 
-**Exit:** entity mutation and its embedding-job intent commit together; an
-interrupted relay replays to exactly one job; compensation for the
-entity-write/enqueue gap is removed only once that replacement is proven by
-failure injection.
+Coverage injects a queue outage, interrupts after queue admission but before
+outbox acknowledgement, reopens the entity service to exercise startup replay,
+proves one stable queue row, preserves provenance across delayed relay, covers
+RPC idempotency and conflicting-key rejection, and pins shutdown ordering.
+The full entity and job suites pass on both Turso and break-glass libSQL.
+
+**Phase 5E exit: met.** Entity mutation and embedding-job intent commit
+together; interrupted delivery replays to exactly one queue row; the former
+post-commit enqueue gap is no longer the normal mutation path.
 
 ## Non-goals
 

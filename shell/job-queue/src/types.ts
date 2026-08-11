@@ -23,8 +23,16 @@ export interface JobQueueEnqueueRequest {
   type: string;
   /** Job payload passed to the registered handler */
   data: unknown;
+  /** Stable admission key. Replays return the original job without reinserting. */
+  idempotencyKey?: string | undefined;
   /** Optional queue behavior, routing metadata, and retry settings */
-  options?: JobOptions;
+  options?: JobOptions | undefined;
+}
+
+/** A validated enqueue request with a stable job identity and provenance. */
+export interface PreparedJobEnqueue {
+  jobId: string;
+  request: JobQueueEnqueueRequest;
 }
 
 export interface JobInfo {
@@ -247,6 +255,9 @@ export interface IJobQueueService {
 
   /** Read the immutable handler declarations derived during boot. */
   getExecutionRegistrations(): readonly JobExecutionRegistration[];
+
+  /** Validate and freeze a durable enqueue request before another transaction. */
+  prepareEnqueue(request: JobQueueEnqueueRequest): PreparedJobEnqueue;
 
   /**
    * Enqueue a job for processing

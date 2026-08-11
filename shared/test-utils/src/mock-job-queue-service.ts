@@ -6,6 +6,7 @@ import type {
   JobValidator,
   JobQueueDiagnostics,
   JobQueueEnqueueRequest,
+  PreparedJobEnqueue,
 } from "@brains/job-queue";
 
 /**
@@ -66,6 +67,7 @@ export function createMockJobQueueService(
 ): IJobQueueService {
   const { returns = {} } = options;
   const jobs = new Map<string, JobInfo>();
+  const handlers = new Map<string, JobHandler>();
   let generatedJobCount = 0;
 
   const createJobInfo = (
@@ -124,16 +126,49 @@ export function createMockJobQueueService(
   };
 
   return {
-    registerHandler: mock(() => {}),
-    unregisterHandler: mock(() => {}),
+    registerHandler: mock((type: string, handler: JobHandler) => {
+      handlers.set(type, handler);
+    }),
+    unregisterHandler: mock((type: string) => {
+      handlers.delete(type);
+    }),
     unregisterPluginHandlers: mock(() => {}),
-    getHandler: mock(() => returns.getHandler),
-    getValidator: mock(() => returns.getValidator ?? returns.getHandler),
+    getHandler: mock(
+      (type: string) => returns.getHandler ?? handlers.get(type),
+    ),
+    getValidator: mock(
+      (type: string) =>
+        returns.getValidator ?? returns.getHandler ?? handlers.get(type),
+    ),
     finalizeHandlerRegistrations: mock(() => []),
     getExecutionRegistrations: mock(() => []),
+    prepareEnqueue: mock(
+      (request: JobQueueEnqueueRequest): PreparedJobEnqueue => {
+        const validator =
+          returns.getValidator ??
+          returns.getHandler ??
+          handlers.get(request.type);
+        if (!validator) {
+          throw new Error(`No job type declared: ${request.type}`);
+        }
+        const data = validator.validateAndParse(request.data);
+        if (data === null) {
+          throw new Error(`Invalid job data for type: ${request.type}`);
+        }
+        const jobId =
+          request.idempotencyKey ?? `mock-job-id-${++generatedJobCount}`;
+        return {
+          jobId,
+          request: { ...request, data, idempotencyKey: jobId },
+        };
+      },
+    ),
     enqueue: mock((request: JobQueueEnqueueRequest) => {
-      const id = returns.enqueue ?? `mock-job-id-${++generatedJobCount}`;
-      jobs.set(id, createJobInfo(request, id));
+      const id =
+        request.idempotencyKey ??
+        returns.enqueue ??
+        `mock-job-id-${++generatedJobCount}`;
+      if (!jobs.has(id)) jobs.set(id, createJobInfo(request, id));
       return Promise.resolve(id);
     }),
     dequeue: mock(() => Promise.resolve(returns.dequeue ?? null)),
@@ -214,6 +249,8 @@ export function createMockJobQueueService(
           Array.from(jobs.values()).filter((job) => job.status === "failed"),
       ),
     ),
-    getRegisteredTypes: mock(() => returns.getRegisteredTypes ?? []),
+    getRegisteredTypes: mock(
+      () => returns.getRegisteredTypes ?? [...handlers.keys()],
+    ),
   } as unknown as IJobQueueService;
 }

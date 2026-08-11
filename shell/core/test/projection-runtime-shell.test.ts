@@ -210,9 +210,6 @@ describe("Shell projection runtime lifecycle", () => {
       requests.push(request);
       return `job-${requests.length}`;
     });
-    queue.registerHandler = mock(() => {});
-    queue.unregisterHandler = mock(() => {});
-
     let workerRunning = false;
     const worker: IJobQueueWorker = {
       start: async () => {

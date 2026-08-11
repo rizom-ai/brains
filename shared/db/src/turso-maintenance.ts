@@ -16,20 +16,37 @@ export async function dropTursoIndexForFallback(
   }
 
   const path = url.slice("file:".length);
-  const experimental: ("index_method" | "multiprocess_wal")[] =
-    path === ":memory:"
-      ? ["index_method"]
-      : ["index_method", "multiprocess_wal"];
+  const inMemory = path === ":memory:";
   const { connect } = await import("@tursodatabase/database");
-  const database = await connect(path, { experimental });
 
+  // Drop with the same WAL coordination used by the runtime, then close that
+  // connection before vacuuming. Turso 0.7 can leak a page when removing a
+  // native FTS index; stock SQLite reports that page as corruption. VACUUM
+  // repairs it, but Turso rejects VACUUM while multiprocess WAL is enabled.
+  const cleanup = await connect(path, {
+    experimental: inMemory
+      ? ["index_method", "vacuum"]
+      : ["index_method", "multiprocess_wal"],
+  });
   try {
-    await database.exec(`DROP INDEX IF EXISTS ${indexName}`);
-    const checkpoint = await database.prepare(
-      "PRAGMA wal_checkpoint(TRUNCATE)",
-    );
+    await cleanup.exec(`DROP INDEX IF EXISTS ${indexName}`);
+    if (inMemory) await cleanup.exec("VACUUM");
+    const checkpoint = await cleanup.prepare("PRAGMA wal_checkpoint(TRUNCATE)");
     await checkpoint.all();
   } finally {
-    await database.close();
+    await cleanup.close();
+  }
+
+  if (inMemory) return;
+
+  const vacuum = await connect(path, {
+    experimental: ["index_method", "vacuum"],
+  });
+  try {
+    await vacuum.exec("VACUUM");
+    const checkpoint = await vacuum.prepare("PRAGMA wal_checkpoint(TRUNCATE)");
+    await checkpoint.all();
+  } finally {
+    await vacuum.close();
   }
 }

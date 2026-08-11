@@ -43,6 +43,7 @@ import { EntitySearch } from "./entity-search";
 import { EntitySerializer } from "./entity-serializer";
 import { EntityQueries } from "./entity-queries";
 import { EntityMutations } from "./entity-mutations";
+import { EntityJobOutbox } from "./entity-job-outbox";
 import { ProjectionStore } from "./projection-store";
 import { ContentResolver, shouldResolveContent } from "./lib/content-resolver";
 import { Cause, Effect, Exit } from "@brains/utils/effect";
@@ -85,6 +86,7 @@ export class EntityService implements IEntityService {
   private entityQueries: EntityQueries;
   private entityMutations: EntityMutations;
   private readonly projectionStore: ProjectionStore;
+  private jobOutbox!: EntityJobOutbox;
   private contentResolver: ContentResolver;
   private embeddingHandlerRegistered = false;
   private indexReady = false;
@@ -95,6 +97,7 @@ export class EntityService implements IEntityService {
   public close(): void {
     let firstError: unknown;
     let failed = false;
+    this.jobOutbox.abandon();
     try {
       if (this.embeddingHandlerRegistered) {
         this.jobQueueService.unregisterHandler(SHELL_CHANNELS.embedding);
@@ -138,6 +141,12 @@ export class EntityService implements IEntityService {
         );
       }
       this.jobQueueService = options.jobQueueService;
+      this.jobOutbox = new EntityJobOutbox(
+        this.db,
+        this.jobQueueService,
+        this.projectionStore,
+        this.logger,
+      );
 
       this.entitySerializer = new EntitySerializer(
         this.entityRegistry,
@@ -162,6 +171,7 @@ export class EntityService implements IEntityService {
         entitySerializer: this.entitySerializer,
         entityQueries: this.entityQueries,
         jobQueueService: this.jobQueueService,
+        jobOutbox: this.jobOutbox,
         logger: this.logger,
         ...(options.messageBus && { messageBus: options.messageBus }),
         ...(options.mutationAdmission && {
@@ -229,6 +239,35 @@ export class EntityService implements IEntityService {
     }
     // Foreign keys provide atomic embedding cleanup when an entity is deleted.
     await this.dbClient.execute("PRAGMA foreign_keys = ON");
+
+    try {
+      const delivered = await this.jobOutbox.flush();
+      if (delivered > 0) {
+        this.logger.info("Recovered pending embedding job intents", {
+          delivered,
+        });
+      }
+    } catch (error) {
+      this.logger.error(
+        "Failed to recover pending embedding job intents; intents remain durable",
+        error,
+      );
+    }
+  }
+
+  /** Drain durable embedding intents while the owner job database is open. */
+  public flushJobOutbox(): Promise<number> {
+    return this.jobOutbox.flush();
+  }
+
+  /** Number of entity-committed embedding intents not yet acknowledged. */
+  public getPendingJobOutboxCount(): Promise<number> {
+    return this.jobOutbox.pendingCount();
+  }
+
+  /** Wait for admitted background delivery without starting another pass. */
+  public waitForJobOutboxIdle(): Promise<void> {
+    return this.jobOutbox.waitForIdle();
   }
 
   // ── Projection coordination ───────────────────────────────────────

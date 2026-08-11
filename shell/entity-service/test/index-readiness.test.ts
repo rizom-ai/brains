@@ -37,6 +37,7 @@ async function createCurrentEmbeddedNote(
     embedding: new Float32Array(MOCK_DIMENSIONS).fill(0.1),
     contentHash: entity.contentHash,
   });
+  await ctx.entityService.flushJobOutbox();
   await ctx.jobQueueService.complete(result.jobId, { entityId: id });
 }
 
@@ -135,6 +136,7 @@ describe("EntityService index readiness", () => {
       ),
       options: { maxRetries: 0 },
     });
+    await ctx.entityService.flushJobOutbox();
     await ctx.jobQueueService.fail(
       result.jobId,
       new Error("embedding provider rejected content"),

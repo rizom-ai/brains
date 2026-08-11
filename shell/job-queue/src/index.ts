@@ -6,7 +6,9 @@ export { JobProgressMonitor } from "./job-progress-monitor";
 export type { JobProgressMonitorMode } from "./job-progress-monitor";
 export {
   JOB_QUEUE_RPC_SERVICE,
+  JobQueueEnqueueRequestSchema,
   JobQueueRpcRequestSchema,
+  parseJobQueueEnqueueRequest,
   parseJobQueueRpcRequest,
   parseJobQueueRpcResult,
   type JobQueueRpcRequest,
@@ -33,6 +35,7 @@ export type {
   JobRuntimeUpdate,
   JobRuntimeUpdateCursor,
   JobQueueEnqueueRequest,
+  PreparedJobEnqueue,
   JobQueueStats,
   JobQueueDbConfig,
   JobQueueServiceConfig,

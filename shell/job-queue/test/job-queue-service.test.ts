@@ -222,6 +222,95 @@ describe("JobQueueService", () => {
       expect(job?.type).toBe("shell:embedding");
       expect(job?.status).toBe("pending");
     });
+    it("replays a stable idempotency key without inserting another job", async () => {
+      const request = {
+        type: "shell:embedding",
+        data: testEntity,
+        idempotencyKey: "stable-embedding-job",
+        options: defaultEnqueueOptions,
+      };
+
+      const firstId = await service.enqueue(request);
+      await service.complete(firstId, { embedded: true });
+      const replayedId = await service.enqueue(request);
+
+      expect(firstId).toBe("stable-embedding-job");
+      expect(replayedId).toBe(firstId);
+      expect((await service.getStatus(firstId))?.status).toBe("completed");
+      expect((await service.getStats()).total).toBe(1);
+    });
+
+    it("rejects reuse of an idempotency key for different job data", async () => {
+      const idempotencyKey = "conflicting-stable-job";
+      await service.enqueue({
+        type: "shell:embedding",
+        data: testEntity,
+        idempotencyKey,
+        options: defaultEnqueueOptions,
+      });
+
+      const conflict = await service
+        .enqueue({
+          type: "shell:embedding",
+          data: { ...testEntity, entityId: "different-entity" },
+          idempotencyKey,
+          options: defaultEnqueueOptions,
+        })
+        .catch((error: unknown) => error);
+      expect(conflict).toBeInstanceOf(Error);
+      if (!(conflict instanceof Error)) throw conflict;
+      expect(conflict.message).toMatch(/already assigned to a different job/);
+      expect((await service.getStats()).total).toBe(1);
+    });
+
+    it("rejects empty idempotency keys before queue admission", async () => {
+      const rejection = await service
+        .enqueue({
+          type: "shell:embedding",
+          data: testEntity,
+          idempotencyKey: "",
+          options: defaultEnqueueOptions,
+        })
+        .catch((error: unknown) => error);
+      expect(rejection).toBeInstanceOf(Error);
+      if (!(rejection instanceof Error)) throw rejection;
+      expect(rejection.message).toMatch(/must not be empty/);
+      expect((await service.getStats()).total).toBe(0);
+    });
+
+    it("freezes provenance before a prepared enqueue leaves its context", async () => {
+      const parentProvenance = {
+        rootJobId: "root-job",
+        causationId: "parent-job",
+        projectionId: "parent-projection",
+        projectionLineage: ["parent-projection"],
+        derivationDepth: 1,
+      };
+      const prepared = operationContext.run(
+        parentProvenance,
+        "entity-write",
+        () =>
+          service.prepareEnqueue({
+            type: "shell:embedding",
+            data: testEntity,
+            options: enqueueOpts({
+              projection: { id: "embedding-projection" },
+            }),
+          }),
+      );
+
+      const jobId = await service.enqueue(prepared.request);
+
+      expect(jobId).toBe(prepared.jobId);
+      expect((await service.getStatus(jobId))?.metadata.provenance).toEqual({
+        rootJobId: "root-job",
+        causationId: "entity-write",
+        projectionId: "embedding-projection",
+        projectionLineage: ["parent-projection", "embedding-projection"],
+        derivationDepth: 2,
+      });
+    });
+
     it("should store source and metadata when provided", async () => {
       const source = "matrix:room123";
       const rootJobId = createId();

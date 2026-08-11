@@ -13,6 +13,7 @@ import type {
   JobQueueDiagnostics,
   JobQueueIdleOptions,
   JobQueueEnqueueRequest,
+  PreparedJobEnqueue,
   JobQueueServiceConfig,
   JobQueueStats,
   JobRuntimeUpdate,
@@ -252,6 +253,43 @@ export class JobQueueService implements IJobQueueService {
     return this.handlerRegistry.getExecutionRegistrations();
   }
 
+  /** Validate a request and freeze the identity/provenance used by a durable relay. */
+  public prepareEnqueue(request: JobQueueEnqueueRequest): PreparedJobEnqueue {
+    const parsedData = this.validateEnqueueData(request.type, request.data);
+    const jobId = this.resolveJobId(request.idempotencyKey);
+    const options = request.options;
+    if (!options) {
+      return {
+        jobId,
+        request: {
+          type: request.type,
+          data: parsedData,
+          idempotencyKey: jobId,
+        },
+      };
+    }
+
+    const rootJobId =
+      options.rootJobId ??
+      this.operationContext.current()?.provenance.rootJobId ??
+      jobId;
+    const provenance = this.createJobProvenance(jobId, rootJobId, options);
+    const { projection: _appliedProjection, ...preparedOptions } = options;
+    return {
+      jobId,
+      request: {
+        type: request.type,
+        data: parsedData,
+        idempotencyKey: jobId,
+        options: {
+          ...preparedOptions,
+          rootJobId,
+          metadata: { ...options.metadata, provenance },
+        },
+      },
+    };
+  }
+
   /**
    * Enqueue a job for processing
    */
@@ -273,24 +311,23 @@ export class JobQueueService implements IJobQueueService {
     request: JobQueueEnqueueRequest,
   ): Promise<string> {
     const { type, data, options } = request;
-    const validator = this.handlerRegistry.getValidator(type);
-    if (!validator) {
-      throw new Error(`No job type declared: ${type}`);
-    }
-
-    const parsedData = validator.validateAndParse(data);
-    if (parsedData === null) {
-      throw new Error(`Invalid job data for type: ${type}`);
-    }
+    const parsedData = this.validateEnqueueData(type, data);
     if (this.remoteTransport) {
       return this.requestRemote<string>({
         operation: "enqueue",
-        request: { type, data: parsedData, ...(options && { options }) },
+        request: {
+          type,
+          data: parsedData,
+          ...(request.idempotencyKey && {
+            idempotencyKey: request.idempotencyKey,
+          }),
+          ...(options && { options }),
+        },
       });
     }
 
     const now = Date.now();
-    const id = createId();
+    const id = this.resolveJobId(request.idempotencyKey);
     const rootJobId =
       options?.rootJobId ??
       this.operationContext.current()?.provenance.rootJobId ??
@@ -331,6 +368,7 @@ export class JobQueueService implements IJobQueueService {
     try {
       const decision = await this.requireRepository().enqueueAtomic({
         jobData,
+        idempotent: request.idempotencyKey !== undefined,
         strategy: options?.deduplication,
         deduplicationKey: options?.deduplicationKey,
         beforeInsert: async () => {
@@ -340,7 +378,12 @@ export class JobQueueService implements IJobQueueService {
       });
       admissionReservation?.commit();
 
-      if (decision.kind === "skipped") {
+      if (decision.kind === "replayed") {
+        this.logger.debug("Acknowledging idempotent job replay", {
+          type,
+          jobId: decision.jobId,
+        });
+      } else if (decision.kind === "skipped") {
         this.logger.debug("Skipping duplicate job (already pending)", {
           type,
           existingJobId: decision.jobId,
@@ -374,6 +417,25 @@ export class JobQueueService implements IJobQueueService {
       });
       throw error;
     }
+  }
+
+  private resolveJobId(idempotencyKey: string | undefined): string {
+    if (idempotencyKey === "") {
+      throw new Error("Job idempotency keys must not be empty");
+    }
+    return idempotencyKey ?? createId();
+  }
+
+  private validateEnqueueData(type: string, data: unknown): unknown {
+    const validator = this.handlerRegistry.getValidator(type);
+    if (!validator) {
+      throw new Error(`No job type declared: ${type}`);
+    }
+    const parsedData = validator.validateAndParse(data);
+    if (parsedData === null) {
+      throw new Error(`Invalid job data for type: ${type}`);
+    }
+    return parsedData;
   }
 
   private createJobProvenance(

@@ -218,6 +218,13 @@ export class ProjectionStore implements IProjectionStore {
     return generation;
   }
 
+  /** Serialize owner-local database work with projection/entity transactions. */
+  public runDatabaseOperation<TResult>(
+    operation: () => Promise<TResult>,
+  ): Promise<TResult> {
+    return this.transactionTail.run(operation);
+  }
+
   public withDirtyInput<TResult>(
     input: MarkProjectionDirtyInput,
     mutation: (transaction: EntityTransaction) => Promise<TResult>,
@@ -778,7 +785,7 @@ export class ProjectionStore implements IProjectionStore {
   private async runTransaction<TResult>(
     transaction: (database: EntityTransaction) => Promise<TResult>,
   ): Promise<TResult> {
-    return this.transactionTail.run(() => this.db.transaction(transaction));
+    return this.runDatabaseOperation(() => this.db.transaction(transaction));
   }
 
   private async applyWriteIntent(

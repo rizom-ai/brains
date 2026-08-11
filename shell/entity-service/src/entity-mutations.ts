@@ -21,7 +21,13 @@ import type {
 import type { EntitySerializer } from "./entity-serializer";
 import type { EntityQueries } from "./entity-queries";
 import type { ProjectionStore } from "./projection-store";
-import type { IJobQueueService, JobInfo } from "@brains/job-queue";
+import type { EntityJobOutbox } from "./entity-job-outbox";
+import type {
+  IJobQueueService,
+  JobInfo,
+  JobQueueEnqueueRequest,
+  PreparedJobEnqueue,
+} from "@brains/job-queue";
 import { createId } from "@brains/utils/id";
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
@@ -126,6 +132,7 @@ export interface EntityMutationDeps {
   entitySerializer: EntitySerializer;
   entityQueries: EntityQueries;
   jobQueueService: IJobQueueService;
+  jobOutbox: EntityJobOutbox;
   logger: Logger;
   messageBus?: EntityEventBus;
   mutationAdmission?: EntityMutationAdmission;
@@ -144,6 +151,7 @@ export class EntityMutations {
   private entitySerializer: EntitySerializer;
   private entityQueries: EntityQueries;
   private jobQueueService: IJobQueueService;
+  private readonly jobOutbox: EntityJobOutbox;
   private messageBus?: EntityEventBus;
   private mutationAdmission?: EntityMutationAdmission;
   private readonly projectionStore: ProjectionStore;
@@ -158,6 +166,7 @@ export class EntityMutations {
     this.entitySerializer = deps.entitySerializer;
     this.entityQueries = deps.entityQueries;
     this.jobQueueService = deps.jobQueueService;
+    this.jobOutbox = deps.jobOutbox;
     this.projectionStore = deps.projectionStore;
     this.embeddingsEnabled = deps.embeddingsEnabled;
     this.logger = deps.logger.child("EntityMutations");
@@ -243,7 +252,20 @@ export class EntityMutations {
       entityId: finalId,
     });
 
-    // Persist the entity and scheduler journal atomically.
+    const embeddingIntent = this.prepareEmbeddingJob({
+      entityId: finalId,
+      entityType: validatedEntity.entityType,
+      contentHash,
+      operation: "create",
+      ...(options?.priority !== undefined && { priority: options.priority }),
+      ...(options?.maxRetries !== undefined && {
+        maxRetries: options.maxRetries,
+      }),
+      ...(options?.eventContext && { eventContext: options.eventContext }),
+    });
+    const markedAt = Date.now();
+
+    // Persist the entity, scheduler journal, and embedding intent atomically.
     await this.projectionStore.withDirtyInput(
       {
         sourceType: validatedEntity.entityType,
@@ -254,7 +276,7 @@ export class EntityMutations {
           visibility: validatedEntity.visibility,
         }),
         operation: "upsert",
-        markedAt: Date.now(),
+        markedAt,
       },
       async (transaction) => {
         await transaction.insert(entities).values({
@@ -267,8 +289,12 @@ export class EntityMutations {
           created: new Date(validatedEntity.created).getTime(),
           updated: new Date(validatedEntity.updated).getTime(),
         });
+        if (embeddingIntent) {
+          await this.jobOutbox.persist(transaction, embeddingIntent, markedAt);
+        }
       },
     );
+    if (embeddingIntent) this.jobOutbox.requestDrain();
     await this.notifyProjectionScheduler();
 
     this.logger.debug(
@@ -287,17 +313,7 @@ export class EntityMutations {
       options?.eventContext,
     );
 
-    return this.enqueueEmbeddingJob({
-      entityId: finalId,
-      entityType: validatedEntity.entityType,
-      contentHash,
-      operation: "create",
-      ...(options?.priority !== undefined && { priority: options.priority }),
-      ...(options?.maxRetries !== undefined && {
-        maxRetries: options.maxRetries,
-      }),
-      ...(options?.eventContext && { eventContext: options.eventContext }),
-    });
+    return this.embeddingIntentResult(finalId, embeddingIntent);
   }
 
   /**
@@ -407,6 +423,19 @@ export class EntityMutations {
       entityId: validatedEntity.id,
     });
 
+    const embeddingIntent = this.prepareEmbeddingJob({
+      entityId: validatedEntity.id,
+      entityType: validatedEntity.entityType,
+      contentHash,
+      operation: "update",
+      ...(options?.priority !== undefined && { priority: options.priority }),
+      ...(options?.maxRetries !== undefined && {
+        maxRetries: options.maxRetries,
+      }),
+      ...(options?.eventContext && { eventContext: options.eventContext }),
+    });
+    const markedAt = Date.now();
+
     try {
       await this.projectionStore.withDirtyInput(
         {
@@ -418,7 +447,7 @@ export class EntityMutations {
             visibility: validatedEntity.visibility,
           }),
           operation: "upsert",
-          markedAt: Date.now(),
+          markedAt,
         },
         async (transaction) => {
           if (existingEntity.contentHash !== contentHash) {
@@ -455,6 +484,13 @@ export class EntityMutations {
           ) {
             throw new StaleEntityUpdateError();
           }
+          if (embeddingIntent) {
+            await this.jobOutbox.persist(
+              transaction,
+              embeddingIntent,
+              markedAt,
+            );
+          }
         },
       );
     } catch (error) {
@@ -469,6 +505,7 @@ export class EntityMutations {
         skipReason: "content-conflict",
       };
     }
+    if (embeddingIntent) this.jobOutbox.requestDrain();
     await this.notifyProjectionScheduler();
 
     this.logger.debug(
@@ -487,17 +524,7 @@ export class EntityMutations {
       options?.eventContext,
     );
 
-    return this.enqueueEmbeddingJob({
-      entityId: validatedEntity.id,
-      entityType: validatedEntity.entityType,
-      contentHash,
-      operation: "update",
-      ...(options?.priority !== undefined && { priority: options.priority }),
-      ...(options?.maxRetries !== undefined && {
-        maxRetries: options.maxRetries,
-      }),
-      ...(options?.eventContext && { eventContext: options.eventContext }),
-    });
+    return this.embeddingIntentResult(validatedEntity.id, embeddingIntent);
   }
 
   /**
@@ -650,36 +677,38 @@ export class EntityMutations {
       );
     }
 
-    await this.db.transaction(async (transaction) => {
-      const current = await transaction
-        .select({ contentHash: entities.contentHash })
-        .from(entities)
-        .where(
-          and(
-            eq(entities.id, data.entityId),
-            eq(entities.entityType, data.entityType),
-            eq(entities.contentHash, data.contentHash),
-          ),
-        )
-        .limit(1);
-      if (current.length === 0) return;
+    await this.projectionStore.runDatabaseOperation(() =>
+      this.db.transaction(async (transaction) => {
+        const current = await transaction
+          .select({ contentHash: entities.contentHash })
+          .from(entities)
+          .where(
+            and(
+              eq(entities.id, data.entityId),
+              eq(entities.entityType, data.entityType),
+              eq(entities.contentHash, data.contentHash),
+            ),
+          )
+          .limit(1);
+        if (current.length === 0) return;
 
-      await transaction
-        .insert(embeddings)
-        .values({
-          entityId: data.entityId,
-          entityType: data.entityType,
-          embedding: data.embedding,
-          contentHash: data.contentHash,
-        })
-        .onConflictDoUpdate({
-          target: [embeddings.entityId, embeddings.entityType],
-          set: {
+        await transaction
+          .insert(embeddings)
+          .values({
+            entityId: data.entityId,
+            entityType: data.entityType,
             embedding: data.embedding,
             contentHash: data.contentHash,
-          },
-        });
-    });
+          })
+          .onConflictDoUpdate({
+            target: [embeddings.entityId, embeddings.entityType],
+            set: {
+              embedding: data.embedding,
+              contentHash: data.contentHash,
+            },
+          });
+      }),
+    );
   }
 
   public async backfillMissingEmbeddings(): Promise<EmbeddingBackfillResult> {
@@ -943,13 +972,49 @@ export class EntityMutations {
     });
   }
 
-  /**
-   * Enqueue an embedding job, or return early if the entity type is non-embeddable
-   */
+  /** Prepare an entity-transactional embedding intent for the owner outbox. */
+  private prepareEmbeddingJob(
+    params: Omit<EmbeddingJobData, "id"> &
+      EntityJobOptions & { entityId: string },
+  ): PreparedJobEnqueue | null {
+    const request = this.buildEmbeddingJobRequest(params, false);
+    return request ? this.jobQueueService.prepareEnqueue(request) : null;
+  }
+
+  private embeddingIntentResult(
+    entityId: string,
+    intent: PreparedJobEnqueue | null,
+  ): EntityMutationResult {
+    if (!intent) return { entityId, jobId: "", skipped: false };
+    this.logger.debug("Recorded durable embedding job intent", {
+      entityId,
+      jobId: intent.jobId,
+    });
+    return { entityId, jobId: intent.jobId, skipped: false };
+  }
+
+  /** Enqueue repair/projection work whose source already has durable recovery. */
   private async enqueueEmbeddingJob(
     params: Omit<EmbeddingJobData, "id"> &
       EntityJobOptions & { entityId: string },
   ): Promise<EntityMutationResult> {
+    const request = this.buildEmbeddingJobRequest(params, true);
+    if (!request) {
+      return { entityId: params.entityId, jobId: "", skipped: false };
+    }
+
+    const jobId = await this.jobQueueService.enqueue(request);
+    this.logger.debug(
+      `Queued embedding job for ${params.entityType}:${params.entityId} (job: ${jobId})`,
+    );
+    return { entityId: params.entityId, jobId, skipped: false };
+  }
+
+  private buildEmbeddingJobRequest(
+    params: Omit<EmbeddingJobData, "id"> &
+      EntityJobOptions & { entityId: string },
+    deduplicate: boolean,
+  ): JobQueueEnqueueRequest | null {
     const {
       entityId,
       entityType,
@@ -959,7 +1024,6 @@ export class EntityMutations {
       maxRetries,
       eventContext,
     } = params;
-
     const entityConfig = this.entityRegistry.getEntityTypeConfig(entityType);
     if (!this.embeddingsEnabled || entityConfig.embeddable === false) {
       this.logger.debug(
@@ -969,7 +1033,7 @@ export class EntityMutations {
             : "disabled indexing"
         }: ${entityType}:${entityId}`,
       );
-      return { entityId, jobId: "", skipped: false };
+      return null;
     }
 
     const jobData: EmbeddingJobData = {
@@ -978,16 +1042,17 @@ export class EntityMutations {
       contentHash,
       operation,
     };
-
-    const jobId = await this.jobQueueService.enqueue({
+    return {
       type: SHELL_CHANNELS.embedding,
       data: jobData,
       options: {
         ...(priority !== undefined && { priority }),
         ...(maxRetries !== undefined && { maxRetries }),
         source: "entity-service",
-        deduplication: "coalesce",
-        deduplicationKey: `embedding:${entityType}:${entityId}:${contentHash}`,
+        ...(deduplicate && {
+          deduplication: "coalesce" as const,
+          deduplicationKey: `embedding:${entityType}:${entityId}:${contentHash}`,
+        }),
         metadata: {
           operationType: "data_processing",
           operationTarget: entityId,
@@ -1010,12 +1075,6 @@ export class EntityMutations {
           silent: true,
         },
       },
-    });
-
-    this.logger.debug(
-      `Queued embedding job for ${entityType}:${entityId} (job: ${jobId})`,
-    );
-
-    return { entityId, jobId, skipped: false };
+    };
   }
 }

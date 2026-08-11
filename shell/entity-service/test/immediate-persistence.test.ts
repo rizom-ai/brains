@@ -328,6 +328,7 @@ describe("Immediate Entity Persistence", () => {
           entity: { ...original, content: "Updated body" },
           options: { eventContext },
         });
+        await eventCtx.entityService.flushJobOutbox();
 
         const created = events.find((event) => event.type === "entity:created");
         const updated = events.find((event) => event.type === "entity:updated");

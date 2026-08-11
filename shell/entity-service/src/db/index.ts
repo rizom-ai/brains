@@ -5,6 +5,7 @@ import {
 } from "@brains/db";
 import { embeddings } from "../schema/embeddings";
 import { entities } from "../schema/entities";
+import { entityJobOutbox } from "../schema/entity-job-outbox";
 import {
   projectionDirtyInputs,
   projectionIncidents,
@@ -31,6 +32,7 @@ export function createEntityDatabase(config: EntityDbConfig): SqliteConnection {
     schema: {
       entities,
       embeddings,
+      entityJobOutbox,
       projectionDirtyInputs,
       projectionWaves,
       projectionIncidents,

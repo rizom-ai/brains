@@ -31,41 +31,28 @@ describe("prepareEntityDatabaseForLibsql", () => {
 
     const logger = createSilentLogger();
 
-    process.env["BRAINS_DB_ENGINE"] = "libsql";
-    await migrateEntities(config, logger);
-    const libsqlSeed = createSqliteDatabase({
-      url: config.url,
-      schema: {},
-      engine: "libsql",
-    });
-    try {
-      await libsqlSeed.client.execute({
-        sql: `INSERT INTO entities (
-          id, entityType, content, contentHash, visibility,
-          metadata, created, updated
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-        args: [
-          "typescript",
-          "note",
-          "TypeScript is a typed superset of JavaScript",
-          "typescript-hash",
-          "public",
-          "{}",
-          1,
-          1,
-        ],
-      });
-      await libsqlSeed.client.execute("PRAGMA wal_checkpoint(TRUNCATE)");
-    } finally {
-      libsqlSeed.client.close();
-    }
-
     process.env["BRAINS_DB_ENGINE"] = "turso";
     await migrateEntities(config, logger);
     const tursoSeed = createSqliteDatabase({
       url: config.url,
       schema: {},
       engine: "turso",
+    });
+    await tursoSeed.client.execute({
+      sql: `INSERT INTO entities (
+        id, entityType, content, contentHash, visibility,
+        metadata, created, updated
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      args: [
+        "typescript",
+        "note",
+        "TypeScript is a typed superset of JavaScript",
+        "typescript-hash",
+        "public",
+        "{}",
+        1,
+        1,
+      ],
     });
     await tursoSeed.client.execute({
       sql: `INSERT INTO embeddings
@@ -82,6 +69,7 @@ describe("prepareEntityDatabaseForLibsql", () => {
       CREATE INDEX entities_content_fts
       ON entities USING fts (content)
     `);
+    await tursoSeed.client.execute("PRAGMA wal_checkpoint(TRUNCATE)");
     tursoSeed.client.close();
     await prepareEntityDatabaseForLibsql(config);
 
