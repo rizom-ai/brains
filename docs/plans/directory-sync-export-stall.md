@@ -37,6 +37,11 @@ mechanism and the still-unconfirmed attribution of the alpha.262 production inci
   remains on Bun 1.3.11; no canary was committed or deployed.
 - The production evidence is consistent with a pull holding the shared lock, but it does not prove
   which Git command wedged or exclude the remaining incident-specific checks below.
+- Cross-incident note: the 2026-08-08 smoke web-process wedge on alpha.261 (futex wait, git child
+  exited but unreaped, all requests queued) matches this same Bun non-settlement class. Since
+  alpha.265 the _network_ git ops run through `runGitCommandWithStallTimeout`, whose stall-kill
+  rejects the locked operation and releases the queue — so on current runtimes the remaining
+  exposure is the unguarded local ops (see deliverable 3).
 
 ## What the plugin does (confirmed from the code — verify as you go)
 
@@ -87,14 +92,17 @@ Server: brain runtime `@rizom/brain` v0.2.0-alpha.262, uptime ~66h (booted ~2026
 
 ## Confirmed mechanism and remaining incident checks
 
-1. **Confirmed locally: `GitOperationLock` deadlocks behind an unresolved Git completion.**
-   `git-lock.ts` chains every operation onto an in-memory `this.queue` promise; the
-   `finally { release() }` runs only if `fn` settles. Git can exit and be reaped while Bun's
-   completion remains unresolved, leaving every later `git-sync.ts:49` `this.lock.run(...)` —
-   including all future export commits — blocked indefinitely. Because the lock is in memory, a
-   process restart clears it. CHECK FOR THE PRODUCTION INCIDENT: identify the owning Git command
-   from retained logs/status, if available, rather than inferring it solely from the matching
-   symptom.
+1. **Confirmed locally: the serialized git lock deadlocks behind an unresolved Git completion.**
+   On current main the lock is `SerialQueue` (`shared/utils/src/serial-queue.ts`), held as
+   `private readonly lock = new SerialQueue()` at `git-sync.ts:42` and entered via
+   `withLock`/`this.lock.run` at `git-sync.ts:52-56`; there is no `git-lock.ts` /
+   `GitOperationLock` on main — cite the alpha.262 tree separately when reproducing against the
+   deployed source. The tail promise advances only when the previous operation _settles_. Git can
+   exit and be reaped while Bun's completion remains unresolved, leaving every later locked
+   operation — including all future export commits — blocked indefinitely. Because the lock is in
+   memory, a process restart clears it. CHECK FOR THE PRODUCTION INCIDENT: identify the owning Git
+   command from retained logs/status, if available, rather than inferring it solely from the
+   matching symptom.
 
 2. **Stale `.git/index.lock`** in `/app/brain-data/.git/` from a crashed/killed git process → every
    commit fails, working tree stays clean, and it **survives restart**. CHECK: does the git layer
@@ -119,6 +127,10 @@ behavior — a gap between them and the failure mode above is likely where the b
 
 ## Deliverables
 
+Ordering: deliverable 4 (safe live recovery) runs FIRST — production has been wedged since
+2026-08-11 ~08:36Z, the plan's own evidence shows restart is loss-free, and nothing in 1–3
+depends on the server staying wedged (capture logs/status before restarting).
+
 1. **Root cause**: the specific file:line and the precise mechanism, with the confirming code path.
 2. **A failing regression test** that reproduces it (e.g., a git op that never settles, asserting a
    later export still commits / the lock doesn't deadlock; or a stale-lock scenario).
@@ -126,6 +138,11 @@ behavior — a gap between them and the failure mode above is likely where the b
    containing the upstream fix, checkpointing `lastEnqueuedGitHead`, replaying a merged-but-not-
    queued diff on startup, and surfacing an over-age `pulling` run through `/health/operate` to the
    external watchdog. Do not rely on an in-process timer to recover the affected event loop.
+   Include the local-op gap: `commitGitChanges` (`git.add`/`git.commit`) and
+   `resolveLocalConflicts` still run unguarded simple-git under the shared lock — a non-settling
+   local op re-wedges the queue regardless of the Bun pin. Extend the owned stall-guarded runner
+   to locked local operations (or add an equivalent lock-level guard) so every lock holder has a
+   bounded settle path.
 4. **Safe live-recovery runbook** for the current wedged server: what to check (stale
    `/app/brain-data/.git/index.lock`?), and confirm that restarting the brain process /
    directory-sync plugin clears the in-memory lock. NOTE: the live DB is the source of truth and is
