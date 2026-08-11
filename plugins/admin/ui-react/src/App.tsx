@@ -73,6 +73,7 @@ interface SetupRegistration {
 export interface PeopleBootstrap {
   userId: string;
   displayName: string;
+  initialPersonId?: string | undefined;
   role: AuthAdminRole;
   isAnchor: boolean;
   brainName: string;
@@ -139,12 +140,23 @@ export function PeopleApp(props: PeopleAppProps): ReactElement {
   const activeAdminCount = users.filter(
     (user) => user.role === "admin" && user.status === "active",
   ).length;
+  const initialContact = props.initialUsers?.find(
+    (user) =>
+      user.status !== "invited" &&
+      user.personId === props.bootstrap.initialPersonId,
+  );
   const [selectedUserId, setSelectedUserId] = useState<string | undefined>(
-    props.initialUsers?.find((user) => user.userId === props.bootstrap.userId)
-      ?.userId ??
+    initialContact?.userId ??
+      props.initialUsers?.find((user) => user.userId === props.bootstrap.userId)
+        ?.userId ??
       props.initialUsers?.find((user) => user.status !== "invited")?.userId,
   );
-  const [view, setView] = useState<SurfaceView>("overview");
+  const [view, setView] = useState<SurfaceView>(
+    initialContact ? "members" : "overview",
+  );
+  const initialContactHandled = useRef(
+    initialContact !== undefined || !props.bootstrap.initialPersonId,
+  );
   const [modal, setModal] = useState<Modal>(null);
   const [manualConfirmationPending, setManualConfirmationPending] =
     useState(false);
@@ -175,6 +187,17 @@ export function PeopleApp(props: PeopleAppProps): ReactElement {
       );
     });
   }, [activeUsers, props.bootstrap.userId]);
+
+  useEffect(() => {
+    if (initialContactHandled.current || usersQuery.isPending) return;
+    initialContactHandled.current = true;
+    const contact = activeUsers.find(
+      (user) => user.personId === props.bootstrap.initialPersonId,
+    );
+    if (!contact) return;
+    setSelectedUserId(contact.userId);
+    setView("members");
+  }, [activeUsers, props.bootstrap.initialPersonId, usersQuery.isPending]);
 
   useEffect(() => {
     if (!isAdmin || typeof window === "undefined") return;

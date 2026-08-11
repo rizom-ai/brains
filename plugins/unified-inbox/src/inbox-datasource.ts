@@ -22,12 +22,25 @@ export class InboxDataSource implements DataSource {
     "Aggregates live source-owned operator attention";
 
   private readonly registry: InboxSourceReader;
+  private inFlight: Promise<InboxProjection> | undefined;
 
   constructor(registry: InboxSourceReader) {
     this.registry = registry;
   }
 
+  /**
+   * One page load fans out to badge, workspace, and dashboard reads at once;
+   * concurrent calls share a single source fan-out. Nothing is cached beyond
+   * the in-flight promise, so sequential reads always see live source state.
+   */
   async getInboxData(): Promise<InboxProjection> {
+    this.inFlight ??= this.loadProjection().finally(() => {
+      this.inFlight = undefined;
+    });
+    return this.inFlight;
+  }
+
+  private async loadProjection(): Promise<InboxProjection> {
     const sources = this.registry.listSources();
     const results = await Promise.allSettled(
       sources.map(async (source) => ({
@@ -68,7 +81,7 @@ export class InboxDataSource implements DataSource {
   }
 }
 
-function sourceMetadata(source: InboxSource): InboxSourceMetadata {
+export function sourceMetadata(source: InboxSource): InboxSourceMetadata {
   return {
     sourceId: source.sourceId,
     displayName: source.displayName,

@@ -126,6 +126,27 @@ describe("optional CMS workspaces", () => {
     });
   });
 
+  it("accepts the typed Unified Inbox workspace renderer", async () => {
+    const shell = createMockShell({ domain: "yeehaa.io" });
+    const plugin = cmsPlugin();
+    await plugin.register(shell);
+
+    const response = await registerWorkspace(shell, {
+      id: "inbox",
+      pluginId: "unified-inbox",
+      label: "Inbox",
+      rendererName: "UnifiedInboxWorkspace",
+      priority: 20,
+      accessHandler: (actor) => actor.userPermissionLevel === "admin",
+      dataProvider: async () => ({ entries: [] }),
+    });
+
+    expect(response).toEqual({
+      success: true,
+      data: { workspaceUrl: "/cms/workspaces/inbox" },
+    });
+  });
+
   it("exposes registered descriptors and provider data to the browser", async () => {
     const shell = createMockShell({ domain: "yeehaa.io" });
     const cookie = await createSessionCookie(shell);
@@ -208,6 +229,98 @@ describe("optional CMS workspaces", () => {
     expect(typesPayload.workspaces).toEqual([
       { entityTypes: ["post", "newsletter"] },
     ]);
+  });
+
+  it("passes authorized workspace query parameters to the provider", async () => {
+    const shell = createMockShell({ domain: "yeehaa.io" });
+    const cookie = await createSessionCookie(shell);
+    const plugin = cmsPlugin();
+    await plugin.register(shell);
+    const queries: unknown[] = [];
+    await registerWorkspace(shell, {
+      id: "inbox",
+      pluginId: "unified-inbox",
+      label: "Inbox",
+      rendererName: "UnifiedInboxWorkspace",
+      priority: 20,
+      accessHandler: () => true,
+      dataProvider: async (_actor, query) => {
+        queries.push(query);
+        return { entries: [] };
+      },
+    });
+
+    const response = await findRoute(plugin, "/cms/api/workspace").handler(
+      request(
+        "/cms/api/workspace?id=inbox&sourceId=mail-items&urgency=high&offset=50&limit=50",
+        { cookie },
+      ),
+    );
+
+    expect(response.status).toBe(200);
+    expect(queries).toEqual([
+      {
+        sourceId: "mail-items",
+        urgency: "high",
+        offset: "50",
+        limit: "50",
+      },
+    ]);
+  });
+
+  it("access-checks and failure-isolates workspace badges", async () => {
+    const shell = createMockShell({ domain: "yeehaa.io" });
+    const cookie = await createSessionCookie(shell);
+    const plugin = cmsPlugin();
+    await plugin.register(shell);
+    let deniedBadgeCalls = 0;
+    await registerWorkspace(shell, {
+      id: "inbox",
+      pluginId: "unified-inbox",
+      label: "Inbox",
+      rendererName: "UnifiedInboxWorkspace",
+      priority: 20,
+      accessHandler: () => true,
+      dataProvider: async () => ({}),
+      badgeProvider: async () => 7,
+    });
+    await registerWorkspace(shell, {
+      id: "broken",
+      pluginId: "broken-plugin",
+      label: "Broken",
+      rendererName: "DirectorySyncWorkspace",
+      priority: 21,
+      accessHandler: () => true,
+      dataProvider: async () => ({}),
+      badgeProvider: async () => {
+        throw new Error("private badge failure");
+      },
+    });
+    await registerWorkspace(shell, {
+      id: "denied",
+      pluginId: "denied-plugin",
+      label: "Denied",
+      rendererName: "DirectorySyncWorkspace",
+      priority: 22,
+      accessHandler: () => false,
+      dataProvider: async () => ({}),
+      badgeProvider: async () => {
+        deniedBadgeCalls += 1;
+        return 99;
+      },
+    });
+
+    const response = await findRoute(plugin, "/cms/api/types").handler(
+      request("/cms/api/types", { cookie }),
+    );
+    const payload = await response.json();
+
+    expect(payload).toMatchObject({
+      workspaces: [{ id: "inbox", badge: 7 }, { id: "broken" }],
+    });
+    expect(JSON.stringify(payload)).not.toContain("private badge failure");
+    expect(JSON.stringify(payload)).not.toContain("denied");
+    expect(deniedBadgeCalls).toBe(0);
   });
 
   it("orders multiple workspaces deterministically", async () => {

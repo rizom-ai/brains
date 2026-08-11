@@ -10,7 +10,7 @@ the worktree needs a single-entity rework (packaging split plus the `lead` state
 typed `sources`) before further feature work. Remaining local work after the rework is
 capture-eval hardening, composition into a Rizom brain, and focused dashboard
 follow-through. Stale-opportunity alerts are deliberately blocked on the shared
-infrastructure defined by [unified-inbox.md](./unified-inbox.md) (`InboxSource` +
+infrastructure provided by [`@brains/unified-inbox`](../../plugins/unified-inbox/README.md) (`InboxSource` +
 `recurring-checks`); scheduling, dedupe, and notification delivery must not become
 business-development-specific.
 
@@ -275,5 +275,5 @@ reassessed on the weekly cadence; nothing is locked).
   `lead`-state records; qualification transition.
 - [`@brains/email-triage`](../../plugins/email-triage/README.md) — shipped; upstream
   derived mail items.
-- [unified-inbox.md](./unified-inbox.md) — shared attention/heartbeat
+- [`@brains/unified-inbox`](../../plugins/unified-inbox/README.md) — shared attention/heartbeat
   infrastructure this plan's alerts wait on.

@@ -5,7 +5,8 @@ import type {
   SiteWorkspaceActionResult,
   SiteWorkspaceSnapshot,
 } from "./api";
-import { errorMessage } from "./ui-utils";
+import { ConfirmDialog } from "./confirm-dialog";
+import { useWorkspaceAction } from "./ui-utils";
 
 function siteEnvironment(
   data: SiteWorkspaceSnapshot,
@@ -98,28 +99,24 @@ export function SiteWorkspace(props: {
   onAction: (action: SiteWorkspaceAction) => Promise<SiteWorkspaceActionResult>;
   onOpenSiteInfo?: (() => void) | undefined;
 }): ReactElement {
-  const [pending, setPending] = useState<"preview" | "production" | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const {
+    pendingKey: pending,
+    error,
+    run,
+  } = useWorkspaceAction<SiteWorkspaceActionResult>();
   const [confirmProduction, setConfirmProduction] = useState(false);
   const preview = siteEnvironment(props.data, "preview");
   const production = siteEnvironment(props.data, "production");
 
+  const { onAction } = props;
   const execute = useCallback(
     async (action: SiteWorkspaceAction): Promise<void> => {
       const environment =
         action.type === "build-preview" ? "preview" : "production";
-      setPending(environment);
-      setError(null);
-      try {
-        await props.onAction(action);
-        setConfirmProduction(false);
-      } catch (actionError: unknown) {
-        setError(errorMessage(actionError));
-      } finally {
-        setPending(null);
-      }
+      const result = await run(environment, () => onAction(action));
+      if (result) setConfirmProduction(false);
     },
-    [props],
+    [onAction, run],
   );
 
   return (
@@ -231,51 +228,28 @@ export function SiteWorkspace(props: {
       </div>
 
       {confirmProduction && (
-        <div
-          className="modal-scrim"
-          role="presentation"
-          onMouseDown={() => setConfirmProduction(false)}
+        <ConfirmDialog
+          mark="↑"
+          title="Update the live site?"
+          titleId="site-production-title"
+          cancelLabel="Keep current site"
+          confirmLabel={
+            pending === "production" ? "Requesting…" : "Update live site"
+          }
+          pending={pending !== null}
+          sectionClassName="site-production-modal"
+          confirmClassName="site-production-confirm"
+          onCancel={() => setConfirmProduction(false)}
+          onConfirm={() =>
+            void execute({ type: "build-production", confirmed: true })
+          }
         >
-          <section
-            className="delete-modal site-production-modal"
-            role="alertdialog"
-            aria-modal="true"
-            aria-labelledby="site-production-title"
-            onMouseDown={(event) => event.stopPropagation()}
-          >
-            <span className="modal-mark" aria-hidden="true">
-              ↑
-            </span>
-            <h3 id="site-production-title">Update the live site?</h3>
-            <p>
-              This rebuild replaces the production output currently served at{" "}
-              {props.data.site.liveUrl ?? "the configured live URL"} using
-              published public content only.
-            </p>
-            <div className="modal-actions">
-              <button
-                type="button"
-                className="btn ghost"
-                onClick={() => setConfirmProduction(false)}
-              >
-                Keep current site
-              </button>
-              <button
-                type="button"
-                className="btn site-production-confirm"
-                disabled={pending !== null}
-                onClick={() =>
-                  void execute({
-                    type: "build-production",
-                    confirmed: true,
-                  })
-                }
-              >
-                {pending === "production" ? "Requesting…" : "Update live site"}
-              </button>
-            </div>
-          </section>
-        </div>
+          <p>
+            This rebuild replaces the production output currently served at{" "}
+            {props.data.site.liveUrl ?? "the configured live URL"} using
+            published public content only.
+          </p>
+        </ConfirmDialog>
       )}
     </main>
   );

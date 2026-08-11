@@ -1,10 +1,12 @@
 import { describe, expect, it } from "bun:test";
 import type { InboundEmail } from "@brains/contracts";
+import { applyVisibilityToMarkdown } from "@brains/plugins";
 import { createPluginHarness } from "@brains/plugins/test";
 
 import {
   MailItemPlugin,
   createMailItemProjection,
+  createUnclassifiedMailItemProjection,
   mailItemAdapter,
   mailCategorySchema,
   mailItemFrontmatterSchema,
@@ -29,7 +31,11 @@ const email: InboundEmail = {
     autoSubmitted: "no",
     listUnsubscribe: "<mailto:private-unsubscribe@example.com>",
   },
-  sender: { personId: "prsn_sender", permissionLevel: "trusted" },
+  sender: {
+    personId: "prsn_sender",
+    displayName: "Canonical Sender",
+    permissionLevel: "trusted",
+  },
 };
 
 const classification: RetainedMailClassification = {
@@ -60,6 +66,7 @@ const frontmatter: MailItemFrontmatter = {
     personId: "prsn_sender",
     domain: "example.com",
   },
+  senderLabel: "Canonical Sender · example.com",
   organization: classification.organization,
   requestedActions: classification.requestedActions,
 };
@@ -141,6 +148,18 @@ describe("mail-item entity", () => {
         source: { ...frontmatter.source, senderKey: "sender@example.com" },
       }).success,
     ).toBe(false);
+    expect(
+      mailItemFrontmatterSchema.safeParse({
+        ...frontmatter,
+        senderLabel: "sender@example.com",
+      }).success,
+    ).toBe(false);
+    expect(
+      mailItemFrontmatterSchema.safeParse({
+        ...frontmatter,
+        senderLabel: "x".repeat(301),
+      }).success,
+    ).toBe(false);
   });
 
   it("derives stable opaque IDs and stores no original mailbox content", () => {
@@ -155,7 +174,6 @@ describe("mail-item entity", () => {
     for (const sourceValue of [
       email.messageId,
       email.threadId,
-      email.from.name,
       email.from.address,
       email.to[0]?.name,
       email.to[0]?.address,
@@ -165,6 +183,86 @@ describe("mail-item entity", () => {
       email.headers.listUnsubscribe,
     ]) {
       if (sourceValue) expect(serialized).not.toContain(sourceValue);
+    }
+    expect(serialized).toContain("Canonical Sender · example.com");
+  });
+
+  it("derives safe contact labels for classified and unclassified mail", () => {
+    const projectionLabel = (
+      input: InboundEmail,
+      unclassified = false,
+    ): {
+      projection: ReturnType<typeof createMailItemProjection>;
+      label: string | undefined;
+    } => {
+      const projection = unclassified
+        ? createUnclassifiedMailItemProjection(input)
+        : createMailItemProjection(input, classification);
+      return {
+        projection,
+        label: mailItemAdapter.parseMailItemContent(projection.content)
+          .frontmatter.senderLabel,
+      };
+    };
+
+    const resolved = projectionLabel(email);
+    const parsedName = projectionLabel({
+      ...email,
+      sender: undefined,
+      from: { name: "Sam Rivera", address: "sam.rivera@acme.io" },
+    });
+    const domainOnly = projectionLabel({
+      ...email,
+      sender: undefined,
+      from: { address: "sam.rivera@acme.io" },
+    });
+    const controlled = projectionLabel({
+      ...email,
+      sender: undefined,
+      from: { name: "Sam\u0000 Rivera", address: "sam.rivera@acme.io" },
+    });
+    const addressShaped = projectionLabel({
+      ...email,
+      sender: undefined,
+      from: {
+        name: "Sam <sam.rivera@acme.io>",
+        address: "sam.rivera@acme.io",
+      },
+    });
+    const localPart = projectionLabel(
+      {
+        ...email,
+        sender: undefined,
+        from: { name: "sam.rivera", address: "sam.rivera@acme.io" },
+      },
+      true,
+    );
+    const bounded = projectionLabel({
+      ...email,
+      sender: undefined,
+      from: { name: "N".repeat(1_000), address: "sender@acme.io" },
+    });
+
+    expect(resolved.label).toBe("Canonical Sender · example.com");
+    expect(parsedName.label).toBe("Sam Rivera · acme.io");
+    expect(domainOnly.label).toBe("acme.io");
+    expect(controlled.label).toBe("Sam Rivera · acme.io");
+    expect(addressShaped.label).toBe("acme.io");
+    expect(localPart.label).toBe("acme.io");
+    expect(bounded.label?.length).toBeLessThanOrEqual(300);
+
+    for (const { projection } of [
+      resolved,
+      parsedName,
+      domainOnly,
+      controlled,
+      addressShaped,
+      localPart,
+      bounded,
+    ]) {
+      const serialized = JSON.stringify(projection);
+      expect(serialized).not.toContain("sam.rivera@acme.io");
+      expect(serialized).not.toContain("Sam <sam.rivera@acme.io>");
     }
   });
 
@@ -205,5 +303,32 @@ describe("mail-item entity", () => {
     ).rejects.toThrow(
       "Only the system fallback may have an unclassified category",
     );
+  });
+});
+
+describe("mail item restricted export round-trip", () => {
+  it("re-imports its own exported markdown including the system visibility key", () => {
+    const content = mailItemAdapter.createMailItemContent(
+      {
+        title: "Unclassified email",
+        category: null,
+        priority: "high",
+        status: "new",
+        needsReply: true,
+        receivedAt: "2026-08-09T15:53:55.000Z",
+        source: {
+          ref: "imap:inbound",
+          senderKey: "a".repeat(64),
+        },
+        requestedActions: [],
+      },
+      "A content-safe summary.",
+    );
+    const exported = applyVisibilityToMarkdown(content, "restricted");
+
+    const parsed = mailItemAdapter.parseMailItemContent(exported);
+
+    expect(parsed.frontmatter.title).toBe("Unclassified email");
+    expect(parsed.summary).toBe("A content-safe summary.");
   });
 });

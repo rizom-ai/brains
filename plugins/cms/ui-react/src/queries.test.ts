@@ -208,6 +208,7 @@ describe("CMS workspace query", () => {
       "cms",
       "workspace",
       "publishing",
+      {},
     ]);
     if (first.rendererName !== "PublishingWorkspace") {
       throw new Error("Expected Publishing workspace data");
@@ -217,12 +218,58 @@ describe("CMS workspace query", () => {
     expect(requests).toBe(1);
     client.clear();
   });
+
+  it("keys and requests server-filtered workspace pages independently", async () => {
+    const requestedUrls: string[] = [];
+    mockFetch(async (input) => {
+      requestedUrls.push(String(input));
+      return Response.json({
+        workspace: {
+          id: "inbox",
+          rendererName: "UnifiedInboxWorkspace",
+          data: {
+            summary: { open: 0, high: 0 },
+            sources: [],
+            entries: [],
+            errors: [],
+            total: 0,
+            offset: 50,
+            limit: 50,
+          },
+        },
+      });
+    });
+    const query = {
+      sourceId: "mail-items",
+      urgency: "high",
+      offset: 50,
+      limit: 50,
+    } as const;
+    const client = createCmsQueryClient();
+
+    await client.fetchQuery(workspaceQueryOptions("inbox", query));
+
+    expect(cmsKeys.workspace("inbox", query)).toEqual([
+      "cms",
+      "workspace",
+      "inbox",
+      query,
+    ]);
+    expect(requestedUrls[0]).toBe(
+      "/cms/api/workspace?id=inbox&sourceId=mail-items&urgency=high&offset=50&limit=50",
+    );
+    client.clear();
+  });
 });
 
 describe("CMS workspace invalidation", () => {
-  it("invalidates only the acted-on workspace snapshot", async () => {
+  it("invalidates the acted-on workspace scope and the badge-carrying navigation", async () => {
     const client = createCmsQueryClient();
     client.setQueryData(cmsKeys.workspace("publishing"), { data: "before" });
+    client.setQueryData(
+      cmsKeys.workspace("publishing", { offset: 50, limit: 50 }),
+      { data: "page two" },
+    );
     client.setQueryData(cmsKeys.workspace("review"), { data: "untouched" });
     client.setQueryData(cmsKeys.navigation(), { types: [], workspaces: [] });
 
@@ -232,10 +279,15 @@ describe("CMS workspace invalidation", () => {
       client.getQueryState(cmsKeys.workspace("publishing"))?.isInvalidated,
     ).toBe(true);
     expect(
+      client.getQueryState(
+        cmsKeys.workspace("publishing", { offset: 50, limit: 50 }),
+      )?.isInvalidated,
+    ).toBe(true);
+    expect(
       client.getQueryState(cmsKeys.workspace("review"))?.isInvalidated,
     ).toBe(false);
     expect(client.getQueryState(cmsKeys.navigation())?.isInvalidated).toBe(
-      false,
+      true,
     );
     client.clear();
   });

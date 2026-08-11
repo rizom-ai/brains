@@ -5,14 +5,19 @@
   "description": "Live aggregation for source-owned operator attention",
   "dependencies": {
     "@brains/plugins": "workspace:*",
-    "@brains/utils": "workspace:*"
+    "@brains/ui-library": "workspace:*",
+    "@brains/utils": "workspace:*",
+    "preact": "^10.27.2"
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",
+    "@brains/mcp-service": "workspace:*",
     "@brains/typescript-config": "workspace:*",
+    "@modelcontextprotocol/sdk": "^1.30.0",
     "@types/bun": "^1.3.14",
     "bun-types": "^1.3.14",
     "eslint": "^10.5.0",
+    "preact-render-to-string": "^6.7.0",
     "typescript": "^7.0.2"
   },
   "exports": {

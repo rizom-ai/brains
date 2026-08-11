@@ -179,6 +179,22 @@ export function generateFrontmatter(metadata: Record<string, unknown>): string {
   return match ? match[0] : "";
 }
 
+/**
+ * Inverse of `applyVisibilityToMarkdown` for the adapter parse path: the
+ * export pipeline injects the system-owned `visibility` key into every
+ * non-public file's frontmatter, so it must be removed again before a domain
+ * frontmatter schema validates — a strict adapter schema must accept its own
+ * exported file on re-import. Module-internal: consumed by
+ * `BaseEntityAdapter.parseFrontMatter`, not part of the package API.
+ */
+export function stripSystemVisibility(data: unknown): unknown {
+  if (typeof data !== "object" || data === null || Array.isArray(data)) {
+    return data;
+  }
+  const { visibility: _visibility, ...rest } = data as Record<string, unknown>;
+  return rest;
+}
+
 const visibilityFrontmatterSchema = z.object({
   visibility: z
     .enum(["public", "shared", "restricted", "private"])

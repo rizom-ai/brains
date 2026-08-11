@@ -20,6 +20,7 @@ import type { JobRequest } from "./jobs";
 export interface IFileOperations {
   readEntity(filePath: string): Promise<RawEntity>;
   parseEntityFromPath(filePath: string): { entityType: string; id: string };
+  fileExists(filePath: string): Promise<boolean>;
 }
 
 /**

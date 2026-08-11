@@ -187,7 +187,7 @@ the reworked `entities/opportunity` package landing first.
   durable source records.
 - [bd-priority-engine.md](./bd-priority-engine.md) — owns the shared `opportunity`
   entity and the committed-state surfaces.
-- [unified-inbox.md](./unified-inbox.md) — attention remains on open mail items to avoid
+- [`@brains/unified-inbox`](../../plugins/unified-inbox/README.md) — attention remains on open mail items to avoid
   duplicate entries.
 - [email-reply-drafting.md](./email-reply-drafting.md) — future per-mail-item draft and
   send workflow with optional lead context.

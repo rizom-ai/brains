@@ -159,3 +159,16 @@ describe("NotificationsPlugin", () => {
     expect(response).toBeUndefined();
   });
 });
+
+describe("empty recipient env interpolation", () => {
+  // Unset SETUP_EMAIL_TO interpolates to an empty address in brain.yaml; the
+  // plugin must boot without a default recipient rather than being skipped.
+  it("boots with an empty default recipient address", () => {
+    expect(
+      () =>
+        new NotificationsPlugin({
+          defaultRecipient: { type: "email", address: "" },
+        }),
+    ).not.toThrow();
+  });
+});

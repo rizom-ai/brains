@@ -1,4 +1,4 @@
-import type { Tool } from "@brains/plugins";
+import { createAdminListTool, type Tool } from "@brains/plugins";
 import type { MailTriageOperatorService } from "./operator-service";
 import {
   mailTriageFilterSchema,
@@ -10,33 +10,18 @@ import {
 export function createEmailTriageListTool(
   operator: MailTriageOperatorService,
 ): Tool<MailTriageListToolOutput> {
-  return {
+  return createAdminListTool({
     name: "email_triage_list",
     description:
       "List safe derived email-triage items with combined category, priority, status, and reply filters",
     inputSchema: mailTriageFilterShape,
+    filterSchema: mailTriageFilterSchema,
     outputSchema: mailTriageListToolOutputSchema,
-    visibility: "admin",
-    sideEffects: "none",
-    handler: async (rawInput, context): Promise<MailTriageListToolOutput> => {
-      if (context.userPermissionLevel !== "admin") {
-        return {
-          success: false,
-          error: "Email triage requires admin permission",
-        };
-      }
-      const parsed = mailTriageFilterSchema.safeParse(rawInput);
-      if (!parsed.success) {
-        return { success: false, error: "Invalid email triage filters" };
-      }
-      try {
-        return {
-          success: true,
-          data: await operator.list(parsed.data),
-        };
-      } catch {
-        return { success: false, error: "Email triage list failed" };
-      }
+    errors: {
+      permission: "Email triage requires admin permission",
+      invalidFilter: "Invalid email triage filters",
+      failed: "Email triage list failed",
     },
-  };
+    list: (filter) => operator.list(filter),
+  });
 }

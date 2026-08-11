@@ -44,6 +44,15 @@ export class EventHandler {
           return;
         }
 
+        // Quarantine renames <file> to <file>.invalid: the removal is ours,
+        // not the user's, so the entity must survive.
+        if (await this.fileOperations.fileExists(`${path}.invalid`)) {
+          this.logger.info("File was quarantined, keeping its entity", {
+            path,
+          });
+          return;
+        }
+
         // Extract entity info from file path
         try {
           const { entityType, id } =

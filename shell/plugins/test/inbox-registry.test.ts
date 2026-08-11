@@ -43,6 +43,7 @@ describe("InboxRegistry", () => {
         id: "mail-1",
         title: "Derived mail summary",
         summary: "A safe derived summary.",
+        contact: { label: "Sam Rivera · acme.io", personId: "prsn_sam" },
         receivedAt: "2026-08-04T09:00:00.000Z",
         urgency: "high",
         entityRef: { entityType: "mail-item", entityId: "mail-1" },
@@ -55,6 +56,7 @@ describe("InboxRegistry", () => {
       id: "mail-1",
       title: "Derived mail summary",
       summary: "A safe derived summary.",
+      contact: { label: "Sam Rivera · acme.io", personId: "prsn_sam" },
       receivedAt: "2026-08-04T09:00:00.000Z",
       urgency: "high",
       entityRef: { entityType: "mail-item", entityId: "mail-1" },
@@ -63,6 +65,26 @@ describe("InboxRegistry", () => {
         { id: "archive", label: "Archive", confirm: true },
       ],
     });
+    expect(
+      inboxItemSchema.safeParse({
+        id: "mail-1",
+        title: "Derived mail summary",
+        contact: { label: "x".repeat(301) },
+        receivedAt: "2026-08-04T09:00:00.000Z",
+        urgency: "normal",
+        actions: [],
+      }).success,
+    ).toBe(false);
+    expect(
+      inboxItemSchema.safeParse({
+        id: "mail-1",
+        title: "Derived mail summary",
+        contact: { label: "Sam", personId: "x".repeat(201) },
+        receivedAt: "2026-08-04T09:00:00.000Z",
+        urgency: "normal",
+        actions: [],
+      }).success,
+    ).toBe(false);
     expect(
       inboxItemSchema.safeParse({
         id: "mail-1",

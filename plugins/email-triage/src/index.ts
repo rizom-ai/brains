@@ -31,6 +31,7 @@ export {
 export {
   mailCategorySchema,
   mailPrioritySchema,
+  mailSenderLabelSchema,
   mailStatusSchema,
   mailItemSourceSchema,
   mailItemFrontmatterSchema,

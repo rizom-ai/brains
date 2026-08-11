@@ -69,6 +69,15 @@ export async function removeOrphanedEntities(
     for (const entity of entities) {
       const filePath = deps.fileOperations.getEntityFilePath(entity);
       if (!(await deps.fileOperations.fileExists(filePath))) {
+        // A quarantined file (renamed to .invalid) is not a user deletion;
+        // the entity must survive until the file is repaired or removed.
+        if (await deps.fileOperations.fileExists(`${filePath}.invalid`)) {
+          deps.logger.info("Entity file is quarantined, keeping entity", {
+            entityType: entity.entityType,
+            entityId: entity.id,
+          });
+          continue;
+        }
         try {
           await deps.entityService.deleteEntity({
             entityType: entity.entityType,

@@ -13,6 +13,7 @@ const workspaceRegistrationSchema = z.object({
     "SiteWorkspace",
     "DirectorySyncWorkspace",
     "EmailTriageWorkspace",
+    "UnifiedInboxWorkspace",
   ]),
   priority: z.number().int(),
   entityTypes: z
@@ -42,6 +43,12 @@ const workspaceRegistrationSchema = z.object({
       { message: "Expected CMS workspace action handler function" },
     )
     .optional(),
+  badgeProvider: z
+    .custom<NonNullable<CmsWorkspaceRegistration["badgeProvider"]>>(
+      (value) => typeof value === "function",
+      { message: "Expected CMS workspace badge provider function" },
+    )
+    .optional(),
 });
 
 export interface StoredCmsWorkspace extends Omit<
@@ -52,6 +59,7 @@ export interface StoredCmsWorkspace extends Omit<
   accessHandler: CmsWorkspaceRegistration["accessHandler"];
   dataProvider: CmsWorkspaceRegistration["dataProvider"];
   actionHandler?: CmsWorkspaceRegistration["actionHandler"];
+  badgeProvider?: CmsWorkspaceRegistration["badgeProvider"];
 }
 
 export class CmsWorkspaceRegistry {
@@ -72,6 +80,7 @@ export class CmsWorkspaceRegistry {
       accessHandler: parsed.accessHandler,
       dataProvider: parsed.dataProvider,
       ...(parsed.actionHandler ? { actionHandler: parsed.actionHandler } : {}),
+      ...(parsed.badgeProvider ? { badgeProvider: parsed.badgeProvider } : {}),
     };
     this.workspaces.set(workspace.id, workspace);
     return workspace;
@@ -96,17 +105,36 @@ export class CmsWorkspaceRegistry {
     return Promise.all(
       admitted
         .filter(({ admitted: isAdmitted }) => isAdmitted)
-        .map(async ({ workspace }) => ({
-          id: workspace.id,
-          pluginId: workspace.pluginId,
-          label: workspace.label,
-          rendererName: workspace.rendererName,
-          priority: workspace.priority,
-          entityTypes:
-            typeof workspace.entityTypes === "function"
-              ? await workspace.entityTypes(actor)
-              : workspace.entityTypes,
-        })),
+        .map(async ({ workspace }) => {
+          const badge = await resolveBadge(workspace, actor);
+          return {
+            id: workspace.id,
+            pluginId: workspace.pluginId,
+            label: workspace.label,
+            rendererName: workspace.rendererName,
+            priority: workspace.priority,
+            entityTypes:
+              typeof workspace.entityTypes === "function"
+                ? await workspace.entityTypes(actor)
+                : workspace.entityTypes,
+            ...(badge !== undefined ? { badge } : {}),
+          };
+        }),
     );
+  }
+}
+
+async function resolveBadge(
+  workspace: StoredCmsWorkspace,
+  actor: Parameters<CmsWorkspaceRegistration["accessHandler"]>[0],
+): Promise<number | undefined> {
+  if (!workspace.badgeProvider) return undefined;
+  try {
+    const badge = await workspace.badgeProvider(actor);
+    return typeof badge === "number" && Number.isInteger(badge) && badge >= 0
+      ? badge
+      : undefined;
+  } catch {
+    return undefined;
   }
 }

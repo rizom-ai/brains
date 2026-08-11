@@ -4,6 +4,7 @@ import {
   removeEntity,
   runCmsWorkspaceAction,
   runDirectorySyncWorkspaceAction,
+  runInboxWorkspaceAction,
   runMailTriageWorkspaceAction,
   runSiteWorkspaceAction,
   saveEntity,
@@ -124,6 +125,37 @@ describe("CMS Email Triage workspace mutation", () => {
       action: { type: "mark-handled", id: "mail-1" },
     });
     expect(result).toEqual({ id: "mail-1", status: "handled" });
+  });
+});
+
+describe("CMS Unified Inbox workspace mutation", () => {
+  it("posts the exact server-confirmed inbox action", async () => {
+    let payload: unknown;
+    mockFetch(async (_url, options) => {
+      payload = JSON.parse(String(options.body));
+      return Response.json({ result: { kind: "completed" } });
+    });
+
+    const result = await runInboxWorkspaceAction({
+      workspaceId: "inbox",
+      action: {
+        sourceId: "mail-items",
+        itemId: "mail-1",
+        actionId: "archive",
+        confirmed: true,
+      },
+    });
+
+    expect(payload).toEqual({
+      id: "inbox",
+      action: {
+        sourceId: "mail-items",
+        itemId: "mail-1",
+        actionId: "archive",
+        confirmed: true,
+      },
+    });
+    expect(result).toEqual({ kind: "completed" });
   });
 });
 

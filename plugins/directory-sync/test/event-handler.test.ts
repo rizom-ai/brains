@@ -25,6 +25,7 @@ describe("EventHandler", () => {
         created: new Date(),
         updated: new Date(),
       }),
+      fileExists: mock().mockResolvedValue(false),
     };
   });
 
@@ -118,6 +119,22 @@ describe("EventHandler", () => {
             filePath: "/test/summary/daily.md",
           },
         });
+      });
+
+      it("does not queue a delete for a quarantined file", async () => {
+        // Quarantine renames <file>.md to <file>.md.invalid — the watcher
+        // sees an unlink, but the removal is ours, not the user's.
+        mockFileOperations.fileExists = mock().mockImplementation(
+          async (path: string) =>
+            path === "/test/topic/technology/ai.md.invalid",
+        );
+
+        await eventHandler.handleFileChange(
+          "unlink",
+          "/test/topic/technology/ai.md",
+        );
+
+        expect(mockJobQueueCallback).not.toHaveBeenCalled();
       });
 
       it("should not queue delete job when deleteOnFileRemoval is false", async () => {

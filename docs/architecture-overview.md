@@ -179,7 +179,7 @@ Service plugins live in `plugins/` and provide tools, handlers, routes, orchestr
 | `plugins/site-builder`     | Static site build orchestration                                    |
 | `plugins/site-content`     | Site section content generation                                    |
 | `plugins/stock-photo`      | Stock-photo search and selection                                   |
-| `plugins/unified-inbox`    | Live projection over source-owned operator attention               |
+| `plugins/unified-inbox`    | Live inbox projection, CMS triage, summary, tool, and daily digest |
 | `plugins/cms`              | Browser authoring routes + CMS config                              |
 
 ### Interface plugins

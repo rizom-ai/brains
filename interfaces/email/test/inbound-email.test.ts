@@ -379,8 +379,18 @@ describe("inbound email intake", () => {
     expect(received[1]?.messageId).toBe(received[0]?.messageId);
   });
 
-  it("enriches known senders without logging their raw address", async () => {
-    const messages = [await fixtureMessage(1, "plain.eml")];
+  it("normalizes and enriches known senders without exposing their raw address", async () => {
+    const fixture = await fixtureMessage(1, "plain.eml");
+    const messages = [
+      {
+        ...fixture,
+        source: Buffer.from(
+          Buffer.from(fixture.source)
+            .toString("utf8")
+            .replace("alice@example.com", "Alice@Example.COM"),
+        ),
+      },
+    ];
     const requestedUids: number[] = [];
     const logger = createMockLogger();
     const harness = createPluginHarness<EmailInterface>({ logger });
@@ -390,6 +400,12 @@ describe("inbound email intake", () => {
         kind: "external",
         externalActorId: createExternalActorId("email", "alice@example.com"),
       });
+      expect(JSON.stringify(message.payload)).not.toContain(
+        "Alice@Example.COM",
+      );
+      expect(JSON.stringify(message.payload)).not.toContain(
+        "alice@example.com",
+      );
       return {
         success: true,
         data: {
@@ -424,8 +440,10 @@ describe("inbound email intake", () => {
 
     expect(received[0]?.sender).toEqual({
       personId: "prsn_alice",
+      displayName: "Alice Example",
       permissionLevel: "trusted",
     });
+    expectLoggerNotToContain(logger, "Alice@Example.COM");
     expectLoggerNotToContain(logger, "alice@example.com");
   });
 

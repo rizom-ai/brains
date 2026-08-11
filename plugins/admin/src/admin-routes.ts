@@ -27,12 +27,15 @@ export function createAdminRoutes(
       method: "GET",
       public: true,
       handler: async (request): Promise<Response> => {
+        const requestUrl = new URL(request.url);
+        const returnTo = `${requestUrl.pathname}${requestUrl.search}`;
+        const initialPersonId = requestedPersonId(requestUrl);
         const principal = await options.resolvePrincipal(request);
         if (!principal) {
           return new Response(null, {
             status: 302,
             headers: {
-              Location: `/login?return_to=${encodeURIComponent(options.routePath)}`,
+              Location: `/login?return_to=${encodeURIComponent(returnTo)}`,
               "Cache-Control": "no-store",
             },
           });
@@ -57,6 +60,7 @@ export function createAdminRoutes(
             routePath: options.routePath,
             userId: principal.userId,
             displayName: principal.displayName,
+            ...(initialPersonId ? { initialPersonId } : {}),
             role: principal.role,
             isAnchor: principal.isAnchor,
             brainName: appInfo.model,
@@ -96,4 +100,11 @@ export function createAdminRoutes(
       },
     },
   ];
+}
+
+function requestedPersonId(url: URL): string | undefined {
+  const value = url.searchParams.get("person")?.trim();
+  return value && value.length <= 200 && !/[\p{Cc}\p{Cf}]/u.test(value)
+    ? value
+    : undefined;
 }

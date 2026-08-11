@@ -36,17 +36,19 @@ describe("admin console plugin", () => {
     );
   });
 
-  it("redirects unauthenticated callers to login", async () => {
+  it("redirects unauthenticated callers to login without dropping a person target", async () => {
     const shell = createMockShell({ domain: "brain.test" });
     const plugin = adminPlugin();
     await plugin.register(shell);
 
     const response = await findRoute(plugin.getWebRoutes(), "/admin").handler(
-      new Request("https://brain.test/admin"),
+      new Request("https://brain.test/admin?person=prsn_contact"),
     );
 
     expect(response.status).toBe(302);
-    expect(response.headers.get("location")).toBe("/login?return_to=%2Fadmin");
+    expect(response.headers.get("location")).toBe(
+      "/login?return_to=%2Fadmin%3Fperson%3Dprsn_contact",
+    );
   });
 
   it("serves an instrument-climate shell to Admins", async () => {
@@ -71,7 +73,7 @@ describe("admin console plugin", () => {
     await plugin.register(shell);
 
     const response = await findRoute(plugin.getWebRoutes(), "/admin").handler(
-      new Request("https://brain.test/admin", {
+      new Request(`https://brain.test/admin?person=${admin.personId}`, {
         headers: { Cookie: session.cookie },
       }),
     );
@@ -80,11 +82,38 @@ describe("admin console plugin", () => {
     expect(response.status).toBe(200);
     expect(html).toContain('data-climate="instrument"');
     expect(html).toContain('data-people-role="admin"');
+    expect(html).toContain(`data-people-person="${admin.personId}"`);
     expect(html).toContain("data-people-brain-name=");
     expect(html).not.toContain("data-people-interfaces");
     expect(html).toContain("Mira Reyes");
     expect(html).toMatch(/src="\/admin\/assets\/app\.js\?v=[a-z0-9]+"/);
     expect(html).toContain('class="surface-nav-link is-active" href="/admin"');
+  });
+
+  it("ignores malformed person targets", async () => {
+    const shell = createMockShell({ domain: "brain.test" });
+    const authPlugin = new AuthServicePlugin({
+      storageDir: await mkdtemp(join(tmpdir(), "brains-people-auth-")),
+    });
+    await authPlugin.register(shell);
+    const admin = await authPlugin.getService().createUser({
+      displayName: "Mira Reyes",
+      role: "admin",
+      status: "active",
+    });
+    const session = await authPlugin
+      .getService()
+      .createAuthSession(admin.userId);
+    const plugin = adminPlugin();
+    await plugin.register(shell);
+
+    const response = await findRoute(plugin.getWebRoutes(), "/admin").handler(
+      new Request("https://brain.test/admin?person=%00private", {
+        headers: { Cookie: session.cookie },
+      }),
+    );
+
+    expect(await response.text()).not.toContain("data-people-person=");
   });
 
   it("redirects authenticated non-Admins to their own account surface", async () => {

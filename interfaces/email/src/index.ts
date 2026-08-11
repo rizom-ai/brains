@@ -80,10 +80,20 @@ const emailImapConfigSchema: z.ZodType<EmailImapConfig, EmailImapConfigInput> =
       .default(60_000),
   });
 
+// Unset env vars interpolate to empty strings in brain.yaml; an optional
+// outbound setting left empty means "absent", not invalid — inbound-only
+// postures must still boot.
+const optionalConfigString = z
+  .string()
+  .max(0)
+  .transform((): undefined => undefined)
+  .or(z.string().min(1))
+  .optional();
+
 const emailConfigSchema: z.ZodType<EmailConfig, EmailConfigInput> = z.object({
   transport: z.literal("resend").default("resend"),
-  apiKey: z.string().min(1).optional(),
-  from: z.string().min(1).optional(),
+  apiKey: optionalConfigString,
+  from: optionalConfigString,
   imap: emailImapConfigSchema.optional(),
 });
 
@@ -238,7 +248,10 @@ export class EmailInterface extends MessageInterfacePlugin<
       payload: {
         actor: {
           kind: "external",
-          externalActorId: createExternalActorId("email", address),
+          externalActorId: createExternalActorId(
+            "email",
+            address.trim().toLowerCase(),
+          ),
         },
       },
     });
@@ -253,6 +266,7 @@ export class EmailInterface extends MessageInterfacePlugin<
     return principal
       ? {
           personId: principal.personId,
+          displayName: principal.displayName,
           permissionLevel: principal.permissionLevel,
         }
       : undefined;

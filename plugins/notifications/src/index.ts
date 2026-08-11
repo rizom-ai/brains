@@ -27,11 +27,18 @@ export interface NotificationsConfig {
 
 export type NotificationsConfigInput = NotificationsConfig;
 
+// Unset SETUP_EMAIL_TO interpolates to an empty address in brain.yaml; a
+// recipient without an address means "no default recipient", not an invalid
+// plugin config — alerts then stay pending on the standard retry path.
+const emptyRecipient = z
+  .object({ type: z.literal("email"), address: z.string().max(0) })
+  .transform((): undefined => undefined);
+
 const notificationsConfigSchema: z.ZodType<
   NotificationsConfig,
   NotificationsConfigInput
 > = z.looseObject({
-  defaultRecipient: notificationRecipientSchema.optional(),
+  defaultRecipient: emptyRecipient.or(notificationRecipientSchema).optional(),
 });
 
 export class NotificationsPlugin extends ServicePlugin<

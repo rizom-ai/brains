@@ -169,12 +169,15 @@ Plans:
 
 - [astryx-adoption.md](./plans/astryx-adoption.md) — exploratory, demand-gated Astryx pilot for the React web-chat console, with explicit Preact boundaries and a go/no-go gate before any CMS or shared adoption.
 - [operator-console-pwa.md](./plans/operator-console-pwa.md) — add an optional installable, network-first PWA shell for Dashboard/CMS/web-chat with conservative caching, explicit service-worker scope, standalone safe-area behavior, and no offline-authoring claim.
+- [inbox-follow-ups.md](./plans/inbox-follow-ups.md) — turn the shipped Inbox into a launch pad with safe follow-up navigation, source-scoped facets, recognizable mail linked to verified People identities, one open-attention CMS surface, and bounded transient source detail.
 - [brain-web-chat-sdk-adapter.md](./plans/brain-web-chat-sdk-adapter.md) — parked strategy; how browser web-chat can share Chat SDK semantics with Discord/Slack/etc. without losing Brain-specific web-chat features.
 - [chat-interface-forms-modals.md](./plans/chat-interface-forms-modals.md) — parked; transport-neutral structured forms that render as platform-native UI (Discord modals, Slack/Teams forms, web-chat dialogs) once adapter support exists.
 - [message-feedback.md](./plans/message-feedback.md) — parked; transport-neutral thumbs-up/down feedback capture from chat interfaces, pending a real feedback sink/use case.
-- [unified-inbox.md](./plans/unified-inbox.md) — **in progress**: the schema-first source contract, finalized app-scoped registry, failure-isolating live projection, and first real source (`mail-items`) are implemented without a second store. Next are the dashboard/tool surfaces and daily digest; later consumers include agent candidates and stale-opportunity alerts.
 
-Shipped from this section: inbound email intake — `interfaces/email` now owns the inbound half of the email channel (IMAP daemon, at-least-once `EMAIL_INBOUND` events, sender identity enrichment), completing connected-channels decision 4. Deliberately non-conversational: inbound mail never reaches agent chat.
+Shipped from this section:
+
+- inbound email intake — `interfaces/email` owns the inbound half of the email channel (IMAP daemon, at-least-once `EMAIL_INBOUND` events, sender identity enrichment), completing connected-channels decision 4. Deliberately non-conversational: inbound mail never reaches agent chat;
+- [the unified inbox](../plugins/unified-inbox/README.md) — live source-owned attention, an Admin CMS triage workspace and rail badge, read-only Dashboard summary, bounded `inbox_list` tool, first `mail-items` source, and title-only daily digest without a second store. Agent candidates and stale-opportunity alerts can register as later sources.
 
 ### 6. Ecosystem
 

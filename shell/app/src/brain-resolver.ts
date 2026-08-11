@@ -1,4 +1,4 @@
-import { PluginConfigValidationError, type Plugin } from "@brains/plugins";
+import { isPluginConfigValidationError, type Plugin } from "@brains/plugins";
 import { ensureArray } from "@brains/utils/array";
 import { type Logger } from "@brains/utils/logger";
 import type { BrainDefinition, BrainEnvironment } from "./brain-definition";
@@ -144,7 +144,7 @@ function instantiateCapabilities(
       const result = factory(merged);
       capabilities.push(...ensureArray(result));
     } catch (error) {
-      if (error instanceof PluginConfigValidationError) {
+      if (isPluginConfigValidationError(error)) {
         logger?.warn(`Skipping capability "${id}": missing required config`);
       } else {
         throw error;
@@ -179,7 +179,7 @@ function instantiateInterfaces(
     try {
       interfaces.push(new ctor(merged));
     } catch (error) {
-      if (error instanceof PluginConfigValidationError) {
+      if (isPluginConfigValidationError(error)) {
         logger?.warn(`Skipping interface "${id}": missing required config`);
       } else {
         throw error;

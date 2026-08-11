@@ -3,6 +3,7 @@ import { z } from "@brains/utils/zod";
 import { createTestEntity } from "@brains/test-utils";
 import { BaseEntityAdapter } from "../src/adapters/base-entity-adapter";
 import { baseEntitySchema, type BaseEntity } from "../src/types";
+import { applyVisibilityToMarkdown } from "../src/frontmatter";
 
 // ── Test schema setup ──
 
@@ -291,5 +292,25 @@ describe("BaseEntityAdapter", () => {
       expect(output).toContain("title: Fresh");
       expect(output).toContain("Just a body, no frontmatter.");
     });
+  });
+});
+
+describe("system visibility frontmatter key", () => {
+  // Export injects `visibility` for non-public entities
+  // (applyVisibilityToMarkdown); adapters own only domain frontmatter, so a
+  // strict schema must still accept its own exported file on re-import.
+  it("validates strict frontmatter on markdown carrying the exported visibility key", () => {
+    const adapter = new TestAdapter();
+    const exported = applyVisibilityToMarkdown(
+      adapter.testBuildMarkdown("Body text", { title: "Mail" }),
+      "restricted",
+    );
+
+    const parsed = adapter.parseFrontMatter(
+      exported,
+      z.strictObject({ title: z.string() }),
+    );
+
+    expect(parsed).toEqual({ title: "Mail" });
   });
 });

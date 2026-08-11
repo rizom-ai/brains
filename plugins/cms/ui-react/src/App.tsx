@@ -23,6 +23,8 @@ import {
   type CmsWorkspaceInfo,
   type DirectorySyncWorkspaceActionResult,
   type FieldAssistResponse,
+  type InboxWorkspaceAction,
+  type InboxWorkspaceActionResult,
   type MailTriageStatusAction,
   type MailTriageStatusActionResult,
   type PublishingAction,
@@ -49,6 +51,7 @@ import {
   removeEntity,
   runCmsWorkspaceAction,
   runDirectorySyncWorkspaceAction,
+  runInboxWorkspaceAction,
   runMailTriageWorkspaceAction,
   runSiteWorkspaceAction,
   saveEntity,
@@ -68,11 +71,13 @@ import {
   navigationQueryOptions,
   syncStatusQueryOptions,
   workspaceQueryOptions,
+  type CmsWorkspaceQuery,
 } from "./queries";
 import { emptyDraft, errorMessage } from "./ui-utils";
 
 const EMPTY_AGENT_TARGETS: AgentTarget[] = [];
 const EMPTY_WORKSPACES: CmsWorkspaceInfo[] = [];
+const EMPTY_WORKSPACE_QUERY: CmsWorkspaceQuery = {};
 
 export function App(): ReactElement {
   const router = useRouter();
@@ -96,11 +101,16 @@ export function App(): ReactElement {
     null,
   );
   const [entityType, setEntityType] = useState<string | null>(null);
+  // Renderer-agnostic per-workspace query params (filters, paging). Renderers
+  // own their query semantics; the container only stores and forwards them.
+  const [workspaceQueries, setWorkspaceQueries] = useState<
+    Record<string, CmsWorkspaceQuery>
+  >({});
   const [editor, dispatchEditor] = useReducer(
     editorWorkflowReducer,
     initialEditorWorkflowState,
   );
-  const { mode, draft, body, save: saveState, deleteOpen } = editor;
+  const { mode, draft, body, save: saveState } = editor;
   const hasUnsavedChanges = hasUnsavedEditorChanges(editor);
   const navigationBlocker = useBlocker({
     shouldBlockFn: () => hasUnsavedChanges,
@@ -128,8 +138,14 @@ export function App(): ReactElement {
   const activeType = types?.find((info) => info.entityType === entityType);
   const activeCapabilities = activeType?.capabilities;
   const workspaces = navigationQuery.data?.workspaces ?? EMPTY_WORKSPACES;
+  const activeWorkspace = workspaces.find(
+    (workspace) => workspace.id === activeWorkspaceId,
+  );
+  const workspaceRequestQuery =
+    (activeWorkspaceId ? workspaceQueries[activeWorkspaceId] : undefined) ??
+    EMPTY_WORKSPACE_QUERY;
   const workspaceQuery = useQuery({
-    ...workspaceQueryOptions(activeWorkspaceId ?? ""),
+    ...workspaceQueryOptions(activeWorkspaceId ?? "", workspaceRequestQuery),
     enabled: activeWorkspaceId !== null,
   });
   const workspaceResponse = workspaceQuery.data ?? null;
@@ -177,11 +193,10 @@ export function App(): ReactElement {
   const mailTriageWorkspaceActionMutation = useMutation({
     mutationFn: runMailTriageWorkspaceAction,
   });
+  const inboxWorkspaceActionMutation = useMutation({
+    mutationFn: runInboxWorkspaceAction,
+  });
   const deleting = deleteEntityMutation.isPending;
-
-  const activeWorkspace = workspaces.find(
-    (workspace) => workspace.id === activeWorkspaceId,
-  );
   const publicationWorkspaceData =
     activeWorkspace?.rendererName === "PublishingWorkspace" &&
     workspaceResponse?.rendererName === "PublishingWorkspace"
@@ -202,17 +217,11 @@ export function App(): ReactElement {
     workspaceResponse?.rendererName === "EmailTriageWorkspace"
       ? workspaceResponse.data
       : null;
-
-  useEffect(() => {
-    if (!deleteOpen) return undefined;
-    const onKeyDown = (event: KeyboardEvent): void => {
-      if (event.key === "Escape" && !deleting) {
-        dispatchEditor({ type: "deleteCancelled" });
-      }
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return (): void => window.removeEventListener("keydown", onKeyDown);
-  }, [deleteOpen, deleting]);
+  const inboxWorkspaceData =
+    activeWorkspace?.rendererName === "UnifiedInboxWorkspace" &&
+    workspaceResponse?.rendererName === "UnifiedInboxWorkspace"
+      ? workspaceResponse.data
+      : null;
 
   useEffect(() => {
     if (!types) return;
@@ -742,6 +751,34 @@ export function App(): ReactElement {
     [mailTriageWorkspaceActionMutation, queryClient, workspaces],
   );
 
+  const performInboxAction = useCallback(
+    async (
+      action: InboxWorkspaceAction,
+    ): Promise<InboxWorkspaceActionResult> => {
+      const capability = workspaces.find(
+        (workspace) => workspace.rendererName === "UnifiedInboxWorkspace",
+      );
+      if (!capability) throw new Error("Unified inbox is unavailable");
+
+      const result = await inboxWorkspaceActionMutation.mutateAsync({
+        workspaceId: capability.id,
+        action,
+      });
+      if (result.kind === "completed") {
+        await invalidateAfterWorkspaceAction(queryClient, capability.id);
+      }
+      return result;
+    },
+    [inboxWorkspaceActionMutation, queryClient, workspaces],
+  );
+
+  const changeWorkspaceQuery = useCallback(
+    (workspaceId: string, query: CmsWorkspaceQuery): void => {
+      setWorkspaceQueries((current) => ({ ...current, [workspaceId]: query }));
+    },
+    [],
+  );
+
   const visibleLoadError =
     loadError ??
     (navigationQuery.error ? errorMessage(navigationQuery.error) : null);
@@ -771,6 +808,8 @@ export function App(): ReactElement {
       siteWorkspaceData={siteWorkspaceData}
       directorySyncWorkspaceData={directorySyncWorkspaceData}
       mailTriageWorkspaceData={mailTriageWorkspaceData}
+      inboxWorkspaceData={inboxWorkspaceData}
+      workspaceQuery={workspaceRequestQuery}
       entityType={entityType}
       entities={entities}
       schema={schema}
@@ -796,6 +835,8 @@ export function App(): ReactElement {
       performSiteAction={performSiteAction}
       performDirectorySyncAction={performDirectorySyncAction}
       performMailTriageAction={performMailTriageAction}
+      performInboxAction={performInboxAction}
+      onWorkspaceQueryChange={changeWorkspaceQuery}
       startCreate={startCreate}
       openEntity={openEntity}
       runFieldAssist={runFieldAssist}

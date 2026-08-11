@@ -484,7 +484,8 @@ async function handleGetWorkspace(
   request: Request,
   access: CmsRequestAccess,
 ): Promise<Response> {
-  const id = new URL(request.url).searchParams.get("id");
+  const searchParams = new URL(request.url).searchParams;
+  const id = searchParams.get("id");
   if (!id) {
     return jsonResponse({ error: "id query parameter is required" }, 400);
   }
@@ -504,7 +505,10 @@ async function handleGetWorkspace(
       workspace: {
         id: workspace.id,
         rendererName: workspace.rendererName,
-        data: await workspace.dataProvider(actor),
+        data: await workspace.dataProvider(
+          actor,
+          workspaceQueryFromSearchParams(searchParams),
+        ),
       },
     });
   } catch (error) {
@@ -515,6 +519,13 @@ async function handleGetWorkspace(
       502,
     );
   }
+}
+
+function workspaceQueryFromSearchParams(
+  searchParams: URLSearchParams,
+): Record<string, string> {
+  const { id: _id, ...query } = Object.fromEntries(searchParams);
+  return query;
 }
 
 async function handleWorkspaceAction(

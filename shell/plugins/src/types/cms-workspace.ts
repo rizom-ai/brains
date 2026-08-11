@@ -13,12 +13,26 @@ export interface CmsWorkspaceActor {
   isAnchor: boolean;
 }
 
+/**
+ * Source-owned authorization for workspace providers: capabilities enforce
+ * admin themselves instead of trusting the hosting surface's access gate.
+ */
+export function assertCmsWorkspaceAdmin(
+  actor: { userPermissionLevel?: UserPermissionLevel | undefined },
+  capability: string,
+): void {
+  if (actor.userPermissionLevel !== "admin") {
+    throw new Error(`${capability} requires admin permission`);
+  }
+}
+
 /** Optional server-side capability hosted by the first-party CMS. */
 export type CmsWorkspaceRendererName =
   | "PublishingWorkspace"
   | "SiteWorkspace"
   | "DirectorySyncWorkspace"
-  | "EmailTriageWorkspace";
+  | "EmailTriageWorkspace"
+  | "UnifiedInboxWorkspace";
 
 export interface CmsWorkspaceRegistration {
   id: string;
@@ -36,9 +50,15 @@ export interface CmsWorkspaceRegistration {
     | ((actor: CmsWorkspaceActor) => string[] | Promise<string[]>)
     | undefined;
   accessHandler: (actor: CmsWorkspaceActor) => boolean | Promise<boolean>;
-  dataProvider: (actor: CmsWorkspaceActor) => Promise<unknown>;
+  dataProvider: (actor: CmsWorkspaceActor, query?: unknown) => Promise<unknown>;
   actionHandler?:
     | ((request: unknown, actor: CmsWorkspaceActor) => Promise<unknown>)
+    | undefined;
+  /** Bounded attention count shown in the workspace rail. */
+  badgeProvider?:
+    | ((
+        actor: CmsWorkspaceActor,
+      ) => number | undefined | Promise<number | undefined>)
     | undefined;
 }
 
@@ -50,6 +70,7 @@ export interface CmsWorkspaceDescriptor {
   rendererName: CmsWorkspaceRendererName;
   priority: number;
   entityTypes: string[];
+  badge?: number | undefined;
 }
 
 export interface CmsWorkspaceRegistrationResult {

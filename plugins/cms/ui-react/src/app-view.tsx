@@ -7,6 +7,9 @@ import type {
   DirectorySyncWorkspaceSnapshot,
   EntitySummary,
   EntityTypeInfo,
+  InboxWorkspaceAction,
+  InboxWorkspaceActionResult,
+  InboxWorkspaceSnapshot,
   MailTriageStatusAction,
   MailTriageStatusActionResult,
   MailTriageWorkspaceSnapshot,
@@ -20,8 +23,11 @@ import type {
   TypeSchema,
 } from "./api";
 import { BodyEditor, type BodyMode } from "./body-editor";
+import { ConfirmDialog } from "./confirm-dialog";
+import type { CmsWorkspaceQuery } from "./queries";
 import { DirectorySyncWorkspace } from "./directory-sync-workspace";
 import { EmailTriageWorkspace } from "./email-triage-workspace";
+import { UnifiedInboxWorkspace } from "./unified-inbox-workspace";
 import {
   Field,
   FieldAssistControls,
@@ -79,6 +85,8 @@ export interface CmsAppViewProps {
   siteWorkspaceData: SiteWorkspaceSnapshot | null;
   directorySyncWorkspaceData: DirectorySyncWorkspaceSnapshot | null;
   mailTriageWorkspaceData: MailTriageWorkspaceSnapshot | null;
+  inboxWorkspaceData: InboxWorkspaceSnapshot | null;
+  workspaceQuery: CmsWorkspaceQuery;
   entityType: string | null;
   entities: EntitySummary[] | null;
   schema: TypeSchema | null;
@@ -110,6 +118,13 @@ export interface CmsAppViewProps {
   performMailTriageAction: (
     action: MailTriageStatusAction,
   ) => Promise<MailTriageStatusActionResult>;
+  performInboxAction: (
+    action: InboxWorkspaceAction,
+  ) => Promise<InboxWorkspaceActionResult>;
+  onWorkspaceQueryChange: (
+    workspaceId: string,
+    query: CmsWorkspaceQuery,
+  ) => void;
   startCreate: () => void;
   openEntity: (entityId: string) => void;
   runFieldAssist: (variant: FieldAssistVariant, field: string) => void;
@@ -118,6 +133,34 @@ export interface CmsAppViewProps {
   remove: () => void;
   onNavigationReset: () => void;
   onNavigationProceed: () => void;
+}
+
+/**
+ * Server-registered badges (`CmsWorkspaceDescriptor.badge`) are authoritative
+ * and always present in the navigation payload. The client-side derivations
+ * below are fallbacks for workspaces whose plugins predate `badgeProvider`;
+ * they only produce a count while that workspace's own data is loaded and
+ * disappear as each plugin adopts `badgeProvider`.
+ */
+function workspaceRailBadges(input: {
+  workspaces: CmsWorkspaceInfo[];
+  publicationWorkspaceData: PublicationPipelineSnapshot | null;
+  siteWorkspaceData: SiteWorkspaceSnapshot | null;
+  directorySyncWorkspaceData: DirectorySyncWorkspaceSnapshot | null;
+}): Record<string, number> {
+  const fallbacks: Record<string, number | undefined> = {
+    publishing: input.publicationWorkspaceData?.summary.needsOperator,
+    site: input.siteWorkspaceData?.environments.filter(
+      (entry) => entry.lastFailure !== undefined,
+    ).length,
+    sync: input.directorySyncWorkspaceData?.issues.length,
+  };
+  return Object.fromEntries(
+    input.workspaces.flatMap((workspace) => {
+      const badge = workspace.badge ?? fallbacks[workspace.id];
+      return badge === undefined ? [] : [[workspace.id, badge]];
+    }),
+  );
 }
 
 export function CmsAppStatus(props: {
@@ -148,6 +191,8 @@ export function CmsAppView(props: CmsAppViewProps): ReactElement {
     siteWorkspaceData,
     directorySyncWorkspaceData,
     mailTriageWorkspaceData,
+    inboxWorkspaceData,
+    workspaceQuery,
     entityType,
     entities,
     schema,
@@ -173,6 +218,8 @@ export function CmsAppView(props: CmsAppViewProps): ReactElement {
     performSiteAction,
     performDirectorySyncAction,
     performMailTriageAction,
+    performInboxAction,
+    onWorkspaceQueryChange,
     startCreate,
     openEntity,
     runFieldAssist,
@@ -249,26 +296,12 @@ export function CmsAppView(props: CmsAppViewProps): ReactElement {
             onSelect={selectEntityType}
             workspaces={workspaces}
             activeWorkspace={activeWorkspaceId}
-            workspaceBadges={{
-              ...(publicationWorkspaceData
-                ? {
-                    publishing: publicationWorkspaceData.summary.needsOperator,
-                  }
-                : {}),
-              ...(siteWorkspaceData
-                ? {
-                    site: siteWorkspaceData.environments.filter(
-                      (entry) => entry.lastFailure !== undefined,
-                    ).length,
-                  }
-                : {}),
-              ...(directorySyncWorkspaceData
-                ? { sync: directorySyncWorkspaceData.issues.length }
-                : {}),
-              ...(mailTriageWorkspaceData
-                ? { "email-triage": mailTriageWorkspaceData.summary.new }
-                : {}),
-            }}
+            workspaceBadges={workspaceRailBadges({
+              workspaces,
+              publicationWorkspaceData,
+              siteWorkspaceData,
+              directorySyncWorkspaceData,
+            })}
             onSelectWorkspace={selectWorkspace}
           />
         </aside>
@@ -300,6 +333,16 @@ export function CmsAppView(props: CmsAppViewProps): ReactElement {
             <EmailTriageWorkspace
               data={mailTriageWorkspaceData}
               onAction={performMailTriageAction}
+            />
+          ) : inboxWorkspaceData && activeWorkspaceId ? (
+            <UnifiedInboxWorkspace
+              data={inboxWorkspaceData}
+              query={workspaceQuery}
+              onQueryChange={(query) =>
+                onWorkspaceQueryChange(activeWorkspaceId, query)
+              }
+              onOpenEntity={openWorkspaceEntity}
+              onAction={performInboxAction}
             />
           ) : null
         ) : !editing ? (
@@ -567,39 +610,21 @@ export function CmsAppView(props: CmsAppViewProps): ReactElement {
         />
       )}
       {navigationBlocked && (
-        <div className="modal-scrim" role="presentation">
-          <section
-            className="delete-modal"
-            role="alertdialog"
-            aria-modal="true"
-            aria-labelledby="discard-navigation-title"
-          >
-            <span className="modal-mark" aria-hidden="true">
-              ↩
-            </span>
-            <h3 id="discard-navigation-title">Discard unsaved changes?</h3>
-            <p>
-              This draft has not been saved. Continue only if you want to leave
-              it behind.
-            </p>
-            <div className="modal-actions">
-              <button
-                type="button"
-                className="btn ghost"
-                onClick={onNavigationReset}
-              >
-                Keep editing
-              </button>
-              <button
-                type="button"
-                className="btn danger"
-                onClick={onNavigationProceed}
-              >
-                Discard and continue
-              </button>
-            </div>
-          </section>
-        </div>
+        <ConfirmDialog
+          mark="↩"
+          title="Discard unsaved changes?"
+          titleId="discard-navigation-title"
+          cancelLabel="Keep editing"
+          confirmLabel="Discard and continue"
+          confirmClassName="danger"
+          onCancel={onNavigationReset}
+          onConfirm={onNavigationProceed}
+        >
+          <p>
+            This draft has not been saved. Continue only if you want to leave it
+            behind.
+          </p>
+        </ConfirmDialog>
       )}
     </div>
   );

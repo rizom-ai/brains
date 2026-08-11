@@ -30,9 +30,11 @@ export interface CmsWorkspaceInfo {
     | "PublishingWorkspace"
     | "SiteWorkspace"
     | "DirectorySyncWorkspace"
-    | "EmailTriageWorkspace";
+    | "EmailTriageWorkspace"
+    | "UnifiedInboxWorkspace";
   priority: number;
   entityTypes: string[];
+  badge?: number;
 }
 
 export interface CmsNavigation {
@@ -210,6 +212,8 @@ export interface MailTriageListItem {
   needsReply: boolean;
   receivedAt: string;
   summary: string;
+  senderLabel?: string;
+  personId?: string;
   organization?: string;
   requestedActions: string[];
 }
@@ -224,6 +228,58 @@ export interface MailTriageWorkspaceSnapshot {
   };
   items: MailTriageListItem[];
 }
+
+export interface InboxWorkspaceEntry {
+  source: { sourceId: string; displayName: string };
+  item: {
+    id: string;
+    title: string;
+    summary?: string;
+    contact?: { label: string; personId?: string };
+    receivedAt: string;
+    urgency: "high" | "normal";
+    entityRef?: { entityType: string; entityId: string };
+    actions: Array<{ id: string; label: string; confirm?: boolean }>;
+  };
+  contactHref?: string;
+}
+
+export interface InboxWorkspaceSnapshot {
+  summary: { open: number; high: number };
+  sources: Array<{
+    source: { sourceId: string; displayName: string };
+    open: number;
+    high: number;
+    available: boolean;
+  }>;
+  entries: InboxWorkspaceEntry[];
+  errors: Array<{
+    source: { sourceId: string; displayName: string };
+    error: "Source unavailable";
+  }>;
+  total: number;
+  offset: number;
+  limit: number;
+}
+
+export interface InboxWorkspaceQuery {
+  sourceId?: string;
+  urgency?: "high" | "normal";
+  offset: number;
+  limit: number;
+}
+
+export interface InboxWorkspaceAction {
+  sourceId: string;
+  itemId: string;
+  actionId: string;
+  confirmed?: boolean;
+}
+
+export type InboxWorkspaceActionResult =
+  | { kind: "confirmation"; summary: string }
+  | { kind: "completed" }
+  | { kind: "error"; error: "Invalid inbox action" | "Inbox action failed" };
 
 export type CmsWorkspaceData =
   | {
@@ -245,6 +301,11 @@ export type CmsWorkspaceData =
       id: string;
       rendererName: "EmailTriageWorkspace";
       data: MailTriageWorkspaceSnapshot;
+    }
+  | {
+      id: string;
+      rendererName: "UnifiedInboxWorkspace";
+      data: InboxWorkspaceSnapshot;
     };
 
 export interface PublishConfirmationArgs {
@@ -444,9 +505,16 @@ export async function fetchTypes(): Promise<EntityTypeInfo[]> {
   return (await fetchNavigation()).types;
 }
 
-export async function fetchWorkspace(id: string): Promise<CmsWorkspaceData> {
+export async function fetchWorkspace(
+  id: string,
+  query: Readonly<Record<string, string | number | undefined>> = {},
+): Promise<CmsWorkspaceData> {
+  const search = new URLSearchParams({ id });
+  for (const [key, value] of Object.entries(query)) {
+    if (value !== undefined) search.set(key, String(value));
+  }
   const { workspace } = await requestJson<{ workspace: CmsWorkspaceData }>(
-    cmsApiPath(`workspace?id=${encodeURIComponent(id)}`),
+    cmsApiPath(`workspace?${search.toString()}`),
   );
   return workspace;
 }

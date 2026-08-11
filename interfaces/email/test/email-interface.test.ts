@@ -399,3 +399,20 @@ describe("EmailInterface", () => {
     expect(shouldRedactDelivery(undefined)).toBe(true);
   });
 });
+
+describe("empty transport env interpolation", () => {
+  // Unset SETUP_EMAIL_* vars interpolate to empty strings in brain.yaml.
+  // Optional outbound settings must then read as absent so the inbound IMAP
+  // half still boots (the documented inbound-only posture).
+  it("boots inbound-only when optional outbound settings are empty strings", () => {
+    expect(
+      () =>
+        new EmailInterface({
+          transport: "resend",
+          apiKey: "",
+          from: "",
+          imap: imapConfig,
+        }),
+    ).not.toThrow();
+  });
+});

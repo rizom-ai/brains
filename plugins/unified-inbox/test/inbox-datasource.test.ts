@@ -1,5 +1,13 @@
 import { describe, expect, it } from "bun:test";
-import { InboxRegistry, type InboxItem } from "@brains/plugins";
+import { DASHBOARD_CHANNELS } from "@brains/contracts";
+import {
+  CMS_WORKSPACE_REGISTER_MESSAGE,
+  InboxRegistry,
+  type CmsWorkspaceRegistration,
+  type DashboardWidgetRegistration,
+  type InboxItem,
+  type ServicePluginContext,
+} from "@brains/plugins";
 import { createPluginHarness } from "@brains/plugins/test";
 import {
   InboxDataSource,
@@ -92,6 +100,33 @@ describe("InboxDataSource", () => {
     expect(JSON.stringify(projection)).not.toContain("private source failure");
   });
 
+  it("coalesces concurrent projections into one source fan-out", async () => {
+    let lists = 0;
+    const registry = new InboxRegistry();
+    registry.registerSource("alpha-plugin", {
+      sourceId: "alpha",
+      displayName: "Alpha",
+      list: async () => {
+        lists += 1;
+        return [item("alpha-high", "high", "2026-08-04T08:00:00.000Z")];
+      },
+      act: async () => undefined,
+    });
+    registry.finalize();
+    const dataSource = new InboxDataSource(registry);
+
+    const [first, second] = await Promise.all([
+      dataSource.getInboxData(),
+      dataSource.getInboxData(),
+    ]);
+
+    expect(lists).toBe(1);
+    expect(first).toBe(second);
+
+    await dataSource.getInboxData();
+    expect(lists).toBe(2);
+  });
+
   it("returns a stable empty projection", async () => {
     const registry = new InboxRegistry();
     registry.finalize();
@@ -102,14 +137,106 @@ describe("InboxDataSource", () => {
     });
   });
 
-  it("registers the aggregation datasource from the opt-in plugin", async () => {
+  it("hands the custom CMS destination to Dashboard and digest in order", async () => {
+    const harness = createPluginHarness<UnifiedInboxPlugin>({
+      domain: "brain.test",
+      logContext: "unified-inbox-order-test",
+    });
+    const shell = harness.getMockShell();
+    const events: string[] = [];
+    let widget: DashboardWidgetRegistration | undefined;
+    let check:
+      | Parameters<ServicePluginContext["recurringChecks"]["register"]>[0]
+      | undefined;
+    shell
+      .getMessageBus()
+      .subscribe<CmsWorkspaceRegistration, { workspaceUrl: string }>(
+        CMS_WORKSPACE_REGISTER_MESSAGE,
+        async () => {
+          events.push("workspace");
+          return {
+            success: true,
+            data: { workspaceUrl: "/studio/workspaces/inbox" },
+          };
+        },
+      );
+    shell
+      .getMessageBus()
+      .subscribe<DashboardWidgetRegistration>(
+        DASHBOARD_CHANNELS.registerWidget,
+        async (message) => {
+          events.push("dashboard");
+          widget = message.payload;
+          return { success: true };
+        },
+      );
+    shell.getRecurringChecks = (): ReturnType<
+      typeof shell.getRecurringChecks
+    > => ({
+      register: (definition): (() => void) => {
+        events.push("digest");
+        check = definition;
+        return (): void => undefined;
+      },
+    });
+    shell.getInboxRegistry().registerSource("mail-plugin", {
+      sourceId: "mail-items",
+      displayName: "Email Triage",
+      list: async () => [item("mail-high", "high", "2026-08-04T10:00:00.000Z")],
+      act: async () => undefined,
+    });
+
+    const plugin = new UnifiedInboxPlugin();
+    await harness.installPlugin(plugin);
+    await harness.finalizeRegistration();
+    await plugin.ready();
+
+    expect(events).toEqual(["workspace", "dashboard", "digest"]);
+    if (!widget || !check)
+      throw new Error("Operator surfaces did not register");
+    expect(await widget.dataProvider()).toMatchObject({
+      managementUrl: "/studio/workspaces/inbox",
+    });
+    const digest = await check.run({ signal: new AbortController().signal });
+    expect(digest.alerts?.[0]?.body).toContain(
+      "Open Inbox: https://brain.test/studio/workspaces/inbox",
+    );
+  });
+
+  it("answers the headless tool without webserver, CMS, or Dashboard plugins", async () => {
     const harness = createPluginHarness<UnifiedInboxPlugin>({
       logContext: "unified-inbox-test",
     });
-    await harness.installPlugin(new UnifiedInboxPlugin());
+    harness
+      .getMockShell()
+      .getInboxRegistry()
+      .registerSource("mail-plugin", {
+        sourceId: "mail-items",
+        displayName: "Email Triage",
+        list: async () => [
+          item("mail-high", "high", "2026-08-04T10:00:00.000Z"),
+        ],
+        act: async () => undefined,
+      });
+    const plugin = new UnifiedInboxPlugin();
+    const capabilities = await harness.installPlugin(plugin);
+    await harness.finalizeRegistration();
+    await plugin.ready();
 
     expect(
       harness.getMockShell().getDataSourceRegistry().has("unified-inbox:inbox"),
     ).toBe(true);
+    expect(harness.getMockShell().hasPlugin("webserver")).toBe(false);
+    expect(harness.getMockShell().hasPlugin("cms")).toBe(false);
+    expect(harness.getMockShell().hasPlugin("dashboard")).toBe(false);
+    expect(capabilities.tools.map((tool) => tool.name)).toEqual(["inbox_list"]);
+    expect(await harness.executeTool("inbox_list", {})).toMatchObject({
+      success: true,
+      data: {
+        total: 1,
+        entries: [{ item: { title: "Attention mail-high" } }],
+      },
+    });
+    expect(plugin.getWebRoutes()).toEqual([]);
   });
 });
