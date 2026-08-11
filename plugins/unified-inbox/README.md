@@ -26,6 +26,13 @@ still offered. Confirmed actions are revalidated immediately before dispatch. Br
 responses never expose source exception text, and completed actions return no inbox
 projection; the client invalidates and reloads the live view.
 
+The shell registers **Recurring checks** as the first core source. Returned alerts remain
+one open item per condition episode until an Admin resolves them. Notification delivery is
+independent: unavailable channels leave delivery pending without hiding or duplicating the
+Inbox item, while checks with `includeInInbox: false` remain channel-only. The daily Inbox
+digest uses that channel-only mode so it never projects a summary of the Inbox back into
+itself.
+
 `inbox_list` is directly available to Admin MCP clients in basic mode, including stdio
 brains with no webserver, CMS, or Dashboard. It returns source metadata and only the
 content-safe `title`, `summary`, `contact`, `receivedAt`, and `urgency` item fields. Item
@@ -77,6 +84,7 @@ The workspace, Dashboard summary, and tool require no plugin configuration. Dail
 uses the notifications plugin's existing `defaultRecipient`; without one, browser and chat
 surfaces continue to work and delivery follows the recurring-check retry path.
 
-The first production source is `mail-items`, registered by `@brains/email-triage`. The
-synthetic pilot posture is documented in
+The shell-owned `recurring-checks` source is available without email or notification
+channels. The first external production source is `mail-items`, registered by
+`@brains/email-triage`. The synthetic pilot posture is documented in
 [`packages/brain-cli/test-apps/unified-inbox`](../../packages/brain-cli/test-apps/unified-inbox/README.md).

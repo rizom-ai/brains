@@ -12,12 +12,14 @@ import type {
 import type { ScheduledJob, SchedulerBackend } from "@brains/scheduler";
 import { computeContentHash } from "@brains/utils/hash";
 import type { Logger } from "@brains/utils/logger";
+import { KeyedSerialQueue } from "@brains/utils/serial-queue";
 import { z } from "@brains/utils/zod";
 import type {
   IRecurringChecksNamespace,
   RecurringAlert,
   RecurringCheckCadence,
   RecurringCheckDefinition,
+  RecurringCheckOpenAlert,
   RecurringCheckResult,
 } from "./types";
 
@@ -51,10 +53,12 @@ type RecurringCheckState =
       kind: "alert";
       checkId: string;
       dedupeKey: string;
-      status: "pending" | "delivered";
+      status: "pending" | "suppressed" | "delivered" | "resolved";
       alert: RecurringAlert;
       observedAt: string;
+      includeInInbox?: boolean | undefined;
       deliveredAt?: string | undefined;
+      resolvedAt?: string | undefined;
     };
 
 const recurringCheckStateSchema: z.ZodType<
@@ -70,10 +74,12 @@ const recurringCheckStateSchema: z.ZodType<
     kind: z.literal("alert"),
     checkId: z.string(),
     dedupeKey: z.string(),
-    status: z.enum(["pending", "delivered"]),
+    status: z.enum(["pending", "suppressed", "delivered", "resolved"]),
     alert: recurringAlertSchema,
     observedAt: z.string().datetime(),
+    includeInInbox: z.boolean().optional(),
     deliveredAt: z.string().datetime().optional(),
+    resolvedAt: z.string().datetime().optional(),
   }),
 ]);
 
@@ -92,7 +98,8 @@ interface RegisteredCheck {
 }
 
 export interface RecurringCheckDelivery {
-  deliver(alert: RecurringAlert): Promise<void>;
+  /** Return false when no delivery channel is currently registered. */
+  deliver(alert: RecurringAlert): Promise<boolean | void>;
 }
 
 export interface RecurringCheckServiceOptions {
@@ -126,6 +133,7 @@ export class RecurringCheckService {
   private readonly nowFallback: () => Date;
   private readonly checks = new Map<string, RegisteredCheck>();
   private readonly pluginChecks = new Map<string, Set<RegisteredCheck>>();
+  private readonly alertOperations = new KeyedSerialQueue();
   private handlerRegistered = false;
   private started = false;
   private stopPromise: Promise<void> | null = null;
@@ -302,7 +310,7 @@ export class RecurringCheckService {
         if (deliverAlerts) {
           await this.flushPendingAlerts(checkId);
         } else {
-          await this.discardPendingAlerts(checkId);
+          await this.suppressPendingAlerts(checkId);
         }
         checkSignal.throwIfAborted();
         const rawResult = await registered.definition.run({
@@ -310,11 +318,12 @@ export class RecurringCheckService {
         });
         checkSignal.throwIfAborted();
         const result = recurringCheckResultSchema.parse(rawResult);
-        if (deliverAlerts) {
-          for (const alert of result.alerts ?? []) {
-            checkSignal.throwIfAborted();
-            await this.deliverAlert(checkId, alert);
-          }
+        for (const alert of result.alerts ?? []) {
+          checkSignal.throwIfAborted();
+          await this.recordAlert(checkId, alert, {
+            deliver: deliverAlerts,
+            includeInInbox: registered.definition.includeInInbox !== false,
+          });
         }
         await this.state.set(this.lastSuccessKey(checkId), {
           kind: "last-success",
@@ -461,58 +470,135 @@ export class RecurringCheckService {
     });
   }
 
+  async listOpenAlerts(): Promise<RecurringCheckOpenAlert[]> {
+    const records = await this.state.list({ keyPrefix: "alert:" });
+    return records
+      .filter((record) => {
+        const state = record.value;
+        if (state.kind !== "alert" || state.status === "resolved") return false;
+        if (state.includeInInbox !== undefined) return state.includeInInbox;
+        return (
+          this.checks.get(state.checkId)?.definition.includeInInbox !== false
+        );
+      })
+      .map((record) => {
+        const state = record.value as Extract<
+          RecurringCheckState,
+          { kind: "alert" }
+        >;
+        return {
+          id: record.key,
+          checkId: state.checkId,
+          title: state.alert.title,
+          body: state.alert.body,
+          observedAt: state.observedAt,
+        };
+      })
+      .sort(
+        (left, right) =>
+          left.observedAt.localeCompare(right.observedAt) ||
+          left.id.localeCompare(right.id),
+      );
+  }
+
+  async resolveOpenAlert(itemId: string): Promise<void> {
+    await this.alertOperations.run(itemId, async () => {
+      const state = await this.state.get(itemId);
+      const includeInInbox =
+        state?.kind === "alert" &&
+        (state.includeInInbox ??
+          this.checks.get(state.checkId)?.definition.includeInInbox !== false);
+      if (
+        state?.kind !== "alert" ||
+        state.status === "resolved" ||
+        !includeInInbox
+      ) {
+        throw new Error("Recurring-check inbox item is not open");
+      }
+      await this.state.set(itemId, {
+        ...state,
+        status: "resolved",
+        resolvedAt: this.currentTime().toISOString(),
+      });
+    });
+  }
+
   private async flushPendingAlerts(checkId: string): Promise<void> {
     const records = await this.state.list({
       keyPrefix: this.alertKeyPrefix(checkId),
     });
     for (const record of records) {
-      if (record.value.kind === "alert" && record.value.status === "pending") {
-        await this.deliverStoredAlert(record.key, record.value);
-      }
+      await this.alertOperations.run(record.key, async () => {
+        const state = await this.state.get(record.key);
+        if (
+          state?.kind === "alert" &&
+          (state.status === "pending" || state.status === "suppressed")
+        ) {
+          await this.deliverStoredAlert(record.key, state);
+        }
+      });
     }
   }
 
-  private async discardPendingAlerts(checkId: string): Promise<void> {
+  private async suppressPendingAlerts(checkId: string): Promise<void> {
     const records = await this.state.list({
       keyPrefix: this.alertKeyPrefix(checkId),
     });
     for (const record of records) {
-      if (record.value.kind === "alert" && record.value.status === "pending") {
-        await this.state.delete(record.key);
-      }
+      await this.alertOperations.run(record.key, async () => {
+        const state = await this.state.get(record.key);
+        if (state?.kind === "alert" && state.status === "pending") {
+          await this.state.set(record.key, {
+            ...state,
+            status: "suppressed",
+          });
+        }
+      });
     }
   }
 
-  private async deliverAlert(
+  private async recordAlert(
     checkId: string,
     alert: RecurringAlert,
+    options: { deliver: boolean; includeInInbox: boolean },
   ): Promise<void> {
     const parsedAlert = recurringAlertSchema.parse(alert);
     const key = this.alertKey(checkId, parsedAlert.dedupeKey);
-    const prior = await this.state.get(key);
-    if (prior?.kind === "alert" && prior.status === "delivered") return;
-    if (prior?.kind === "alert" && prior.status === "pending") {
-      await this.deliverStoredAlert(key, prior);
-      return;
-    }
+    await this.alertOperations.run(key, async () => {
+      const prior = await this.state.get(key);
+      if (prior?.kind === "alert") {
+        const current =
+          prior.includeInInbox === options.includeInInbox
+            ? prior
+            : { ...prior, includeInInbox: options.includeInInbox };
+        if (current !== prior) await this.state.set(key, current);
+        if (current.status === "delivered" || current.status === "resolved") {
+          return;
+        }
+        if (options.deliver) await this.deliverStoredAlert(key, current);
+        return;
+      }
 
-    const pending: RecurringCheckState = {
-      kind: "alert",
-      checkId,
-      dedupeKey: parsedAlert.dedupeKey,
-      status: "pending",
-      alert: parsedAlert,
-      observedAt: this.currentTime().toISOString(),
-    };
-    await this.state.set(key, pending);
-    await this.deliverStoredAlert(key, pending);
+      const pending: Extract<RecurringCheckState, { kind: "alert" }> = {
+        kind: "alert",
+        checkId,
+        dedupeKey: parsedAlert.dedupeKey,
+        status: options.deliver ? "pending" : "suppressed",
+        alert: parsedAlert,
+        observedAt: this.currentTime().toISOString(),
+        includeInInbox: options.includeInInbox,
+      };
+      await this.state.set(key, pending);
+      if (options.deliver) await this.deliverStoredAlert(key, pending);
+    });
   }
 
   private async deliverStoredAlert(
     key: string,
     state: Extract<RecurringCheckState, { kind: "alert" }>,
   ): Promise<void> {
-    await this.delivery.deliver(state.alert);
+    const delivered = await this.delivery.deliver(state.alert);
+    if (delivered === false) return;
     await this.state.set(key, {
       ...state,
       status: "delivered",

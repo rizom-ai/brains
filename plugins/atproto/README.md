@@ -97,7 +97,7 @@ Jetstream is used only as an untrusted repo-DID signal. Matching create/update e
 
 The consumer runs only on an opted-in full boot. It bounds queue depth and concurrency, coalesces repeated DIDs, enforces cooldown/fetch/creation budgets, persists a contiguous cursor and replay dedupe window in scoped runtime state, clamps stale cursors with `atproto:jetstream-gap`, reconnects with jittered backoff, and closes on shutdown. Candidate-controlled HTTP egress rejects non-public DNS/IP destinations on initial requests and redirects and caps time, bytes, and redirects. Deletes emit availability state rather than deleting agents or revoking approval. A jittered heartbeat republishes the same `self` card so peers missed outside replay can recover.
 
-The durable review queue remains `agent` entities with `status: discovered`. Different repo DIDs cannot overwrite an existing domain-backed agent or inherit approval; conflicts emit `atproto:brain-card-conflict`. When `agentDiscovery({ notifyOnNewAgents: true })` is configured, the existing recurring-check scheduler sends bounded discovery and conflict digests through the normal notification path.
+The durable review queue remains `agent` entities with `status: discovered`. Different repo DIDs cannot overwrite an existing domain-backed agent or inherit approval; conflicts emit `atproto:brain-card-conflict`. The recurring check exposes bounded discovery and conflict alerts through the shared Inbox; when `agentDiscovery({ notifyOnNewAgents: true })` is configured, it also sends those alerts through the normal notification path.
 
 ## Projection registration
 

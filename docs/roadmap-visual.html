@@ -393,6 +393,14 @@
           <div class="card-desc">local AI runtime sidecar direction.</div>
           <div class="card-file">embedding-service.md</div>
         </div>
+        <div class="card status-done">
+          <div class="card-head">
+            <span class="card-name">Directory-sync DB→git auto-export silent permanent stall</span>
+            <span class="badge badge-done">Done</span>
+          </div>
+          <div class="card-desc">open incident (2026-08-11): DB→git auto-export silently stops emitting <code>Auto-sync</code> commits and never recovers without a restart; trace the root cause (likely a hung git op wedging the in-memory <code>GitOperationLock</code>) and make export self-healing with a surfaced error.</div>
+          <div class="card-file">directory-sync-export-stall.md</div>
+        </div>
         </div>
       </details>
 

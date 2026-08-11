@@ -117,7 +117,7 @@ async function setupRecurringCheck(
 }
 
 describe("agent_scan_directories", () => {
-  it("scans daily without notifying on new agents by default", async () => {
+  it("reports new agents while suppressing notification delivery by default", async () => {
     const network = createMockNetwork({
       "kai.brain": {
         directory: directoryOf("https://vale.example/a2a"),
@@ -132,7 +132,12 @@ describe("agent_scan_directories", () => {
     const result = await check.run({ signal: new AbortController().signal });
 
     expect(check.deliverAlerts).toBe(false);
-    expect(result.alerts).toBeUndefined();
+    expect(result.alerts).toEqual([
+      expect.objectContaining({
+        title: "New agent sightings",
+        body: "1 agent sighted through kai.brain",
+      }),
+    ]);
     expect(
       await harness.getEntityService().getEntity({
         entityType: "agent",

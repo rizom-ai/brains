@@ -12,6 +12,7 @@ export type {
   RecurringAlert,
   RecurringCheckCadence,
   RecurringCheckDefinition,
+  RecurringCheckOpenAlert,
   RecurringCheckResult,
   RecurringCheckRunContext,
 } from "./types";

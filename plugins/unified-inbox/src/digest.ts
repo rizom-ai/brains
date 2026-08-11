@@ -93,6 +93,7 @@ export function registerUnifiedInboxDigest(
   context.recurringChecks.register({
     id: "daily-digest",
     cadence: "daily",
+    includeInInbox: false,
     run: async ({ signal }) => {
       signal.throwIfAborted();
       const projection = await dataSource.getInboxData();

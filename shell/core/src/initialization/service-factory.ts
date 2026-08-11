@@ -13,12 +13,6 @@ import { ProfileKindRegistry } from "@brains/identity-service";
 import { MCPService } from "@brains/mcp-service";
 import { MessageBus } from "@brains/messaging-service";
 import {
-  NOTIFICATIONS_SEND,
-  sendNotificationResultSchema,
-  type SendNotificationInput,
-  type SendNotificationResult,
-} from "@brains/notification-contracts";
-import {
   AttachmentRegistry,
   ChannelRegistry,
   InboxRegistry,
@@ -48,6 +42,8 @@ import type { ShellLifecycle } from "./shell-lifecycle";
 import type { RuntimeProcessRole } from "../runtime-process-role";
 import { initializeIdentityAndAgentServices } from "./identity-agent-services";
 import { initializeJobServices } from "./job-services";
+import { createRecurringCheckDelivery } from "./recurring-check-delivery";
+import { createRecurringCheckInboxSource } from "./recurring-check-inbox-source";
 import {
   createAIModelConfig,
   createDatabaseConfig,
@@ -169,31 +165,16 @@ export function createShellServices(options: {
       clock: Clock.make(),
       jobQueue: jobQueueService,
       logger,
-      delivery: {
-        deliver: async (alert): Promise<void> => {
-          const response = await messageBus.send<
-            SendNotificationInput,
-            SendNotificationResult
-          >({
-            type: NOTIFICATIONS_SEND,
-            payload: {
-              title: alert.title,
-              body: alert.body,
-              ...(alert.html ? { html: alert.html } : {}),
-            },
-            sender: "shell.recurring-checks",
-          });
-          if (!("success" in response) || !response.success || !response.data) {
-            throw new Error("Recurring alert delivery failed");
-          }
-          const result = sendNotificationResultSchema.safeParse(response.data);
-          if (!result.success || result.data.status !== "sent") {
-            throw new Error("Recurring alert delivery failed");
-          }
-        },
-      },
+      delivery: createRecurringCheckDelivery(messageBus),
     });
   lifecycle.addSyncFinalizer(() => recurringCheckService.abandon());
+  inboxRegistry.registerSource(
+    "shell.recurring-checks",
+    createRecurringCheckInboxSource(recurringCheckService),
+  );
+  lifecycle.addSyncFinalizer(() =>
+    inboxRegistry.unregisterPlugin("shell.recurring-checks"),
+  );
 
   if (processRole !== "worker") {
     const recurringDaemonName = "shell:recurring-checks";
