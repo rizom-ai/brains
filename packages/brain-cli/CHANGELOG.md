@@ -1,5 +1,13 @@
 # @rizom/brain
 
+## 0.2.0-alpha.279
+
+### Patch Changes
+
+- [#111](https://github.com/rizom-ai/brains/pull/111) [`bd1eb47`](https://github.com/rizom-ai/brains/commit/bd1eb4768ee154570f5ba144f59a145c7f00aa51) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Connect recognizable Inbox senders to verified People identities. Normalize privacy-safe inbound email identity resolution, derive bounded sender labels without retaining mailbox addresses, carry a structured optional contact through the Inbox contract, and link resolved contacts to the exact person through the registered Admin surface while keeping Dashboard and digest projections redacted. Consume shared Dashboard widget primitives from the UI library rather than importing across plugin boundaries.
+
+- [#111](https://github.com/rizom-ai/brains/pull/111) [`d0211d9`](https://github.com/rizom-ai/brains/commit/d0211d97253360ead7cfdeb957650e7ff8369afc) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add the dedicated Admin CMS Inbox workspace with bounded server filters and paging, list/detail triage, source-entity navigation, access-checked rail badges, and server-gated action confirmation. Reduce Dashboard to a redacted five-entry read-only summary, route Dashboard and daily digest navigation to the custom CMS workspace mount, retain `inbox_list` as the conversational read surface, and remove the superseded Dashboard mutation route and script.
+
 ## 0.2.0-alpha.278
 
 ### Patch Changes

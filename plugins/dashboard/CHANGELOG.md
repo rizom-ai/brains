@@ -1,5 +1,26 @@
 # @brains/dashboard
 
+## 0.2.0-alpha.279
+
+### Minor Changes
+
+- [#111](https://github.com/rizom-ai/brains/pull/111) [`bd1eb47`](https://github.com/rizom-ai/brains/commit/bd1eb4768ee154570f5ba144f59a145c7f00aa51) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Quality pass on the unified-inbox surfaces. Email triage serves its rail badge
+  through the CMS `badgeProvider` and shares the admin list-tool envelope and
+  workspace-admin guard from `@brains/plugins`. The dashboard package re-exports
+  `formatDate` beside the other widget primitives. App resolution recognizes
+  plugin configuration validation errors across separately bundled runtime
+  entrypoints.
+
+### Patch Changes
+
+- Updated dependencies [[`bd1eb47`](https://github.com/rizom-ai/brains/commit/bd1eb4768ee154570f5ba144f59a145c7f00aa51), [`d0211d9`](https://github.com/rizom-ai/brains/commit/d0211d97253360ead7cfdeb957650e7ff8369afc)]:
+  - @brains/contracts@0.2.0-alpha.279
+  - @brains/plugins@0.2.0-alpha.279
+  - @brains/auth-service@0.2.0-alpha.279
+  - @brains/console-theme@0.2.0-alpha.279
+  - @brains/ui-library@0.2.0-alpha.279
+  - @brains/utils@0.2.0-alpha.279
+
 ## 0.2.0-alpha.278
 
 ### Patch Changes

@@ -1,5 +1,12 @@
 # @brains/operation-context
 
+## 0.2.0-alpha.279
+
+### Patch Changes
+
+- Updated dependencies [[`bd1eb47`](https://github.com/rizom-ai/brains/commit/bd1eb4768ee154570f5ba144f59a145c7f00aa51)]:
+  - @brains/contracts@0.2.0-alpha.279
+
 ## 0.2.0-alpha.278
 
 ### Patch Changes
