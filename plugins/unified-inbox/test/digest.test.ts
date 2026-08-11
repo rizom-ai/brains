@@ -130,6 +130,7 @@ describe("unified inbox digest", () => {
     expect(check).toMatchObject({
       id: "daily-digest",
       cadence: "daily",
+      includeInInbox: false,
     });
     if (!check) throw new Error("Daily inbox check was not registered");
     const result = await check.run({ signal: new AbortController().signal });

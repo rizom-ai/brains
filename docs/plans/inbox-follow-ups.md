@@ -3,8 +3,8 @@
 ## Status
 
 **Active.** Builds directly on the shipped unified inbox (contract, CMS
-workspace, digest — branch `feat/unified-inbox-surfaces`). Phases 0a and 7
-are implemented; Phases 0b–6 and 8 remain planned. UX mockup:
+workspace, digest). Phases 0a, 7, and 8 are implemented; Phases 0b–6 remain
+planned. UX mockup:
 [inbox-follow-ups-mockup.html](./inbox-follow-ups-mockup.html).
 
 `unified-inbox` is being promoted from an explicit opt-in to a `core` bundle
@@ -286,12 +286,11 @@ with different chrome.
     near the projection.
 
     Two consequences follow, and both are conditions of the promotion rather
-    than results of it. The first is now satisfied by Phase 7: the inbox has a
-    reader that works without a browser, because it is a live projection and
-    the framework `system_*` tools only see the entity database. It still needs
-    a source that exists in a `[core]` brain, because email-triage is an opt-in
-    requiring the `email` interface from `chat`, so without one the inbox would
-    be empty by construction rather than by circumstance — Phase 8.
+    than results of it. Phase 7 supplies the browser-independent reader because
+    this is a live projection and the framework `system_*` tools only see the
+    entity database. Phase 8 supplies the first source present in a `[core]`
+    brain by projecting recurring-check alerts independently of notification
+    delivery.
 
 ## Out of scope
 
@@ -407,7 +406,7 @@ Tests are written first inside each phase.
   for the same inputs; non-Admin actors are rejected before source reads; no
   source body, sender address, sender hash, locator, or action appears in the
   response.
-- **Phase 8 — Recurring checks as the first core source.** Re-point
+- **Phase 8 — Recurring checks as the first core source (implemented).** Re-point
   `shell/recurring-checks` at the inbox so `RecurringAlert` and failing
   `RecurringCheckResult`s register as `InboxSource` items instead of being
   delivered only through notifications. This makes scheduled-work failures

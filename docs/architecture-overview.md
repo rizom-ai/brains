@@ -77,7 +77,7 @@ The first layer-owned slice is the job-service stack. The private `@brains/job-q
 
 Core also composes package-owned scoped layers for runtime state, conversations, and entities through each package's private `/effect` subpath. These layers own fresh or injected services and their database connections for exactly one shell lifetime, replacing manual core finalizers while preserving Promise service contracts. Pure registries, adapters, schemas, and configuration remain normal TypeScript services rather than Layer dependencies.
 
-Durable registrations created during synchronous construction need ownership even when they are not Layers. Core registers synchronous abandonment immediately after recurring-check handler and daemon registration; entity release unregisters its embedding handler before the injected or default queue database closes. A later constructor failure therefore cannot leave handlers or stopped daemons in supplied registries.
+Durable registrations created during synchronous construction need ownership even when they are not Layers. Core registers synchronous abandonment immediately after recurring-check handler and daemon registration, and unregisters the shell-owned recurring-check Inbox source during rollback; entity release unregisters its embedding handler before the injected or default queue database closes. A later constructor failure therefore cannot leave handlers, sources, or stopped daemons in supplied registries.
 
 The ownership boundary is integration-tested with two no-interface shells using separate persistent SQLite paths. Construction or asynchronous initialization failure in one shell must leave entity, conversation, job, and runtime-state I/O in the other usable. Repeated register-only and startup-check boots share no state at all, generated `@rizom/brain` declarations are checked for Effect or private `/effect` imports, and the packed CLI is smoke-tested through startup-check acquisition and teardown.
 
@@ -130,7 +130,7 @@ A running brain is driven by an _instance directory_ centered on `brain.yaml` pl
 | `shell/messaging-service`                               | Typed event bus used across plugins                                      |
 | `shell/runtime-state`                                   | Runtime state store service (`RuntimeStateService`/`RuntimeStateStore`)  |
 | `shell/scheduler`                                       | Shared scheduler contracts and deterministic test backend                |
-| `shell/recurring-checks`                                | Recurring cadence, retries, dedupe, and alert delivery orchestration     |
+| `shell/recurring-checks`                                | Recurring cadence, dedupe, Inbox alerts, and channel delivery retries    |
 | `shell/plugins`                                         | Base plugin classes, contexts, harnesses                                 |
 | `shell/templates`                                       | Template registry and resolution                                         |
 | `shell/ai-evaluation`                                   | Eval runner, test cases, judges, reporting                               |

@@ -22,9 +22,20 @@ export interface RecurringCheckRunContext {
 export interface RecurringCheckDefinition {
   id: string;
   cadence: RecurringCheckCadence;
-  /** Deliver returned alerts and retry pending alerts. False discards pending alerts. Defaults to true. */
+  /** Deliver returned alerts and retry pending alerts. False suppresses notification delivery. Defaults to true. */
   deliverAlerts?: boolean | undefined;
+  /** Project returned alerts into the shared Inbox. Defaults to true. */
+  includeInInbox?: boolean | undefined;
   run(context: RecurringCheckRunContext): Promise<RecurringCheckResult>;
+}
+
+export interface RecurringCheckOpenAlert {
+  /** Opaque stable ID for one condition episode. */
+  id: string;
+  checkId: string;
+  title: string;
+  body: string;
+  observedAt: string;
 }
 
 export interface IRecurringChecksNamespace {

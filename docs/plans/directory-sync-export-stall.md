@@ -25,9 +25,9 @@ mechanism. Read the actual code; don't theorize from names alone.
 - `lastSync` is written in exactly one place: `src/lib/directory-sync.ts:142` (`markSynced` from
   `runDirectorySync`). So `lastSync` only advances on a completed **import** sync.
 - The **DB→git export** ("Auto-sync" commits) is event-driven: `entity:created` / `entity:updated`
-  subscribers, wired by `setupGitAutoCommit(messaging, () => gitSync, config.commitDebounce, …,
-  this.operationStatus)` in `src/plugin.ts` (~line 380, inside `startBackgroundWork`). It is
-  **debounced** (`commitDebounce`). Export work goes through `src/lib/export-pipeline.ts`
+  subscribers, wired by `setupGitAutoCommit(...)` in `src/plugin.ts` (~line 380, inside
+  `startBackgroundWork`). The call passes `config.commitDebounce` and `this.operationStatus`.
+  Export is **debounced** (`commitDebounce`) and goes through `src/lib/export-pipeline.ts`
   (`processEntityExport`, lines 68/77).
 - All git operations are serialized by `GitOperationLock` in `src/lib/git-lock.ts`, invoked via
   `src/lib/git-sync.ts:49` (`this.lock.run(fn, signal)`).

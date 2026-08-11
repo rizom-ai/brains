@@ -3,6 +3,7 @@ import type {
   IRuntimeStateStore,
   RuntimeStateRecordValue,
 } from "@brains/runtime-state";
+import { InboxRegistry } from "@brains/plugins";
 import { Shell, type ShellDependencies } from "../src/shell";
 import type { ShellConfigInput } from "../src/config";
 import { createSilentLogger } from "@brains/test-utils";
@@ -29,6 +30,7 @@ describe("Shell service construction", () => {
     const constructionError = new Error("shell wiring failed");
     let runtimeStateCloseCalls = 0;
     let jobQueueCloseCalls = 0;
+    const inboxRegistry = new InboxRegistry();
 
     const dependencies: ShellDependencies = {
       logger: createSilentLogger("test"),
@@ -61,9 +63,13 @@ describe("Shell service construction", () => {
       recurringCheckService: {
         start: async (): Promise<void> => {},
         stop: async (): Promise<void> => {},
+        abandon: (): void => {},
         namespace: () => ({ register: () => () => {} }),
         unregisterPlugin: (): void => {},
+        listOpenAlerts: async () => [],
+        resolveOpenAlert: async (): Promise<void> => {},
       } as unknown as NonNullable<ShellDependencies["recurringCheckService"]>,
+      inboxRegistry,
       jobQueueService: {
         close: (): void => {
           jobQueueCloseCalls++;
@@ -90,6 +96,8 @@ describe("Shell service construction", () => {
       expect(receivedError).toBe(constructionError);
       expect(runtimeStateCloseCalls).toBe(1);
       expect(jobQueueCloseCalls).toBe(1);
+      inboxRegistry.finalize();
+      expect(inboxRegistry.listSources()).toEqual([]);
     } finally {
       await testDir.cleanup();
     }

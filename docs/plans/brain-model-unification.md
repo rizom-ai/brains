@@ -166,10 +166,10 @@ renderings:
 - `chat` delivers the daily digest through notifications.
 
 This demotes notifications from being _the_ surface for things needing attention to being
-_a_ delivery channel for them. `shell/recurring-checks` already models `RecurringAlert`
-and `RecurringCheckResult` and today delivers only through notifications, which live in
-`chat`; routing those into the inbox is what makes scheduled-work failures visible to a
-headless brain.
+_a_ delivery channel for them. `shell/recurring-checks` models `RecurringAlert` and
+`RecurringCheckResult` as durable Inbox attention independently of notification delivery,
+which lives in `chat`; scheduled-work failures therefore remain visible to a headless
+brain.
 
 Two things follow, and both are prerequisites for core membership rather than
 consequences of it:
@@ -343,10 +343,9 @@ directory-sync import issues follow as the second source once the in-flight
 `importFile` already records the operation-status issue that has no operator surface
 today.
 
-Both halves are specified in full as Phases 7 and 8 of the inbox plan on the
-`feat/unified-inbox-surfaces` branch, which also records that the CMS workspace and
-Dashboard widget are `web` renderings and the digest is a `chat` delivery. Deliver them
-there rather than duplicating the work here; this phase is the bundle-side gate.
+Both halves are implemented as Phases 7 and 8 of the inbox plan, which also records
+that the CMS workspace and Dashboard widget are `web` renderings and the digest is a
+`chat` delivery. This phase retains only the bundle-side gate.
 
 ### Phase 7 — Restructure the eval suites
 

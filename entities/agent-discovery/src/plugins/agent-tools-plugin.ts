@@ -136,7 +136,6 @@ export class AgentToolsPlugin extends ServicePlugin<
           this.fetchFn,
           signal,
         );
-        if (!this.config.notifyOnNewAgents) return {};
 
         const alerts: Array<{
           dedupeKey: string;

@@ -163,7 +163,7 @@ const logger = {
 interface CreateServiceOptions {
   now?: Date;
   clock?: Clock.Clock;
-  delivery?: (body: string) => Promise<void>;
+  delivery?: (body: string) => Promise<boolean | void>;
 }
 
 interface ServiceFixture<TScheduler extends SchedulerBackend> {
@@ -202,9 +202,12 @@ function createService(
       ? { clock: options.clock }
       : { now: (): Date => new Date(now) }),
     delivery: {
-      deliver: async (alert): Promise<void> => {
-        if (options.delivery) await options.delivery(alert.body);
-        delivered.push(alert.body);
+      deliver: async (alert): Promise<boolean | void> => {
+        const outcome = options.delivery
+          ? await options.delivery(alert.body)
+          : undefined;
+        if (outcome !== false) delivered.push(alert.body);
+        return outcome;
       },
     },
   });
@@ -584,7 +587,150 @@ describe("RecurringCheckService", () => {
     expect(delivered).toEqual(["one", "two"]);
   });
 
-  it("discards pending alerts when alert delivery is disabled", async () => {
+  it("keeps one open alert when the notification channel is unavailable", async () => {
+    let channelAvailable = false;
+    const { service, delivered } = createService({
+      delivery: async () => channelAvailable,
+    });
+    service.namespace("monitoring").register({
+      id: "health-check",
+      cadence: "daily",
+      run: async () => ({
+        alerts: [
+          {
+            dedupeKey: "database-down",
+            title: "Database health check failed",
+            body: "The primary database did not answer the health check.",
+          },
+        ],
+      }),
+    });
+
+    expect(await service.runNow("monitoring:health-check")).toBe(true);
+    const beforeDelivery = await service.listOpenAlerts();
+    expect(beforeDelivery).toHaveLength(1);
+    expect(beforeDelivery[0]).toMatchObject({
+      checkId: "monitoring:health-check",
+      title: "Database health check failed",
+      body: "The primary database did not answer the health check.",
+    });
+    expect(delivered).toEqual([]);
+
+    channelAvailable = true;
+    expect(await service.runNow("monitoring:health-check")).toBe(true);
+    expect(delivered).toEqual([
+      "The primary database did not answer the health check.",
+    ]);
+    expect(await service.listOpenAlerts()).toEqual(beforeDelivery);
+  });
+
+  it("resolves an open alert and does not redeliver the same episode", async () => {
+    let channelAvailable = false;
+    const { service, delivered } = createService({
+      delivery: async () => channelAvailable,
+    });
+    service.namespace("monitoring").register({
+      id: "health-check",
+      cadence: "daily",
+      run: async () => ({
+        alerts: [
+          {
+            dedupeKey: "database-down",
+            title: "Database health check failed",
+            body: "The primary database did not answer the health check.",
+          },
+        ],
+      }),
+    });
+    await service.runNow("monitoring:health-check");
+    const alert = (await service.listOpenAlerts())[0];
+    if (!alert) throw new Error("Expected an open alert");
+
+    await service.resolveOpenAlert(alert.id);
+    channelAvailable = true;
+    await service.runNow("monitoring:health-check");
+
+    expect(await service.listOpenAlerts()).toEqual([]);
+    expect(delivered).toEqual([]);
+  });
+
+  it("does not reopen an alert when resolution races with delivery", async () => {
+    let markDeliveryStarted: (() => void) | undefined;
+    let releaseDelivery: (() => void) | undefined;
+    const deliveryStarted = new Promise<void>((resolve) => {
+      markDeliveryStarted = resolve;
+    });
+    const deliveryBlocked = new Promise<void>((resolve) => {
+      releaseDelivery = resolve;
+    });
+    const { service } = createService({
+      delivery: async () => {
+        markDeliveryStarted?.();
+        await deliveryBlocked;
+      },
+    });
+    service.namespace("monitoring").register({
+      id: "health-check",
+      cadence: "daily",
+      run: async () => ({
+        alerts: [
+          {
+            dedupeKey: "database-down",
+            title: "Database health check failed",
+            body: "The primary database did not answer the health check.",
+          },
+        ],
+      }),
+    });
+
+    const run = service.runNow("monitoring:health-check");
+    await deliveryStarted;
+    const alert = (await service.listOpenAlerts())[0];
+    if (!alert) throw new Error("Expected an open alert");
+    const resolving = service.resolveOpenAlert(alert.id);
+    releaseDelivery?.();
+    await Promise.all([run, resolving]);
+
+    expect(await service.listOpenAlerts()).toEqual([]);
+  });
+
+  it("does not project a passing recurring check", async () => {
+    const { service } = createService();
+    service.namespace("monitoring").register({
+      id: "health-check",
+      cadence: "daily",
+      run: async () => ({}),
+    });
+
+    await service.runNow("monitoring:health-check");
+
+    expect(await service.listOpenAlerts()).toEqual([]);
+  });
+
+  it("keeps channel-only alerts out of the open-attention projection", async () => {
+    const { service, delivered } = createService();
+    service.namespace("inbox").register({
+      id: "daily-digest",
+      cadence: "daily",
+      includeInInbox: false,
+      run: async () => ({
+        alerts: [
+          {
+            dedupeKey: "digest-2026-08-11",
+            title: "Inbox digest",
+            body: "Three open items.",
+          },
+        ],
+      }),
+    });
+
+    await service.runNow("inbox:daily-digest");
+
+    expect(delivered).toEqual(["Three open items."]);
+    expect(await service.listOpenAlerts()).toEqual([]);
+  });
+
+  it("suppresses pending delivery while retaining open alerts", async () => {
     let attempts = 0;
     const { service, state } = createService({
       delivery: async () => {
@@ -618,6 +764,18 @@ describe("RecurringCheckService", () => {
     expect(state.snapshot()).not.toContainEqual(
       expect.objectContaining({ kind: "alert", status: "pending" }),
     );
+    expect(await service.listOpenAlerts()).toEqual([
+      expect.objectContaining({
+        checkId: "agent:directory-scan",
+        title: "Sightings",
+        body: "one",
+      }),
+      expect.objectContaining({
+        checkId: "agent:directory-scan",
+        title: "Sightings",
+        body: "two",
+      }),
+    ]);
   });
 
   it("retries pending delivery even when the domain result becomes empty", async () => {
