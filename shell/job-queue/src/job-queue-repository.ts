@@ -47,6 +47,7 @@ export interface JobAttemptClaim {
 
 export type EnqueueDecision =
   | { kind: "inserted"; jobId: string }
+  | { kind: "replayed"; jobId: string }
   | { kind: "skipped"; jobId: string }
   | { kind: "coalesced"; jobId: string }
   | { kind: "replaced"; jobId: string; replacedJobId: string };
@@ -71,6 +72,7 @@ export interface AtomicJobData {
 
 export interface AtomicEnqueueRequest {
   jobData: AtomicJobData;
+  idempotent?: boolean | undefined;
   strategy?: DeduplicationStrategy | undefined;
   deduplicationKey?: string | undefined;
   beforeInsert?: (() => Promise<void>) | undefined;
@@ -197,6 +199,25 @@ export class JobQueueRepository {
     markInsertPrepared: () => void,
   ): Promise<EnqueueDecision> {
     const { jobData, strategy, deduplicationKey, beforeInsert } = request;
+    if (request.idempotent) {
+      const existing = await transaction.execute({
+        sql: "SELECT `id`, `type`, `data` FROM `job_queue` WHERE `id` = ? LIMIT 1",
+        args: [jobData.id],
+      });
+      const existingJob = existing.rows[0];
+      if (existingJob) {
+        if (
+          existingJob["type"] !== jobData.type ||
+          existingJob["data"] !== jobData.data
+        ) {
+          throw new Error(
+            `Idempotency key ${jobData.id} is already assigned to a different job`,
+          );
+        }
+        return { kind: "replayed", jobId: jobData.id };
+      }
+    }
+
     const effectiveStrategy = strategy ?? "none";
     const prepareInsert = async (): Promise<void> => {
       await beforeInsert?.();

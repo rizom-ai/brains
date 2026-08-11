@@ -46,6 +46,7 @@ describe("Consolidated embedding database", () => {
   });
 
   afterEach(async () => {
+    await entityService.waitForJobOutboxIdle();
     entityService.close();
     await rm(tempDir, { recursive: true, force: true });
   });

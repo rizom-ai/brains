@@ -113,10 +113,6 @@ export function createShellServices(options: {
             operationContext.current(),
         })
     : undefined;
-  if (localDatabaseEndpoint instanceof LocalDatabaseRpcClient) {
-    // Worker runtime drains before its shared endpoint client closes.
-    lifecycle.addFinalizer(() => localDatabaseEndpoint.close());
-  }
   const remoteJobQueueTransport: JobQueueRpcTransport | undefined =
     localDatabaseEndpoint instanceof LocalDatabaseRpcClient
       ? {
@@ -407,12 +403,6 @@ export function createShellServices(options: {
   registerOwnerHandler(CONVERSATION_RPC_SERVICE, (payload, signal) =>
     handleConversationRpcRequest(conversationService, payload, signal),
   );
-
-  if (localDatabaseEndpoint instanceof LocalDatabaseRpcServer) {
-    // Shell runtime finalizers are registered later and therefore run first.
-    // Then reject and drain remote traffic before any owner database scope.
-    lifecycle.addFinalizer(() => localDatabaseEndpoint.close());
-  }
 
   lifecycle.addSyncFinalizer(() => {
     for (const dispose of disposables.splice(0)) {

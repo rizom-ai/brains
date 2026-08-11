@@ -495,6 +495,11 @@ describe("Shell service ownership", () => {
       messageBus,
       logger,
     });
+    const flushEntityOutbox = entityService.flushJobOutbox.bind(entityService);
+    entityService.flushJobOutbox = async (): Promise<number> => {
+      order.push("entity-outbox");
+      return flushEntityOutbox();
+    };
     const closeEntity = entityService.close.bind(entityService);
     entityService.close = (): void => {
       order.push("entity-database");
@@ -555,6 +560,7 @@ describe("Shell service ownership", () => {
       "agent",
       "job-runtime",
       "plugins",
+      "entity-outbox",
       "conversation-database",
       "entity-database",
       "recurring-handler",

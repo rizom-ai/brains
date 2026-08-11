@@ -42,13 +42,14 @@ describe("EntityTypeConfig embeddable flag", () => {
     };
 
     await ctx.entityService.createEntity({ entity: noteData });
+    await ctx.entityService.flushJobOutbox();
 
     expect(ctx.jobQueueService.enqueue).toHaveBeenCalled();
   });
 
-  test("embedding jobs use stable deduplication keys", async () => {
+  test("embedding outbox jobs use stable idempotency keys", async () => {
     const noteData = {
-      id: "dedupe-note",
+      id: "idempotent-note",
       entityType: "note" as const,
       title: "Test Note",
       content: "Some text content",
@@ -56,16 +57,15 @@ describe("EntityTypeConfig embeddable flag", () => {
       metadata: {},
     };
 
-    await ctx.entityService.createEntity({ entity: noteData });
+    const result = await ctx.entityService.createEntity({ entity: noteData });
+    await ctx.entityService.flushJobOutbox();
 
     expect(ctx.jobQueueService.enqueue).toHaveBeenCalledWith(
       expect.objectContaining({
         type: "shell:embedding",
-        options: expect.objectContaining({
-          deduplication: "coalesce",
-          deduplicationKey: expect.stringMatching(
-            /^embedding:note:dedupe-note:[a-f0-9]{64}$/,
-          ),
+        idempotencyKey: result.jobId,
+        options: expect.not.objectContaining({
+          deduplication: expect.anything(),
         }),
       }),
     );
@@ -82,6 +82,7 @@ describe("EntityTypeConfig embeddable flag", () => {
     };
 
     await ctx.entityService.createEntity({ entity: noteData });
+    await ctx.entityService.flushJobOutbox();
 
     expect(ctx.jobQueueService.enqueue).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -173,6 +174,7 @@ describe("EntityTypeConfig embeddable flag", () => {
         "missing-embedding-note",
       ),
     });
+    await ctx.entityService.flushJobOutbox();
 
     const result = await ctx.entityService.backfillMissingEmbeddings();
 
@@ -240,6 +242,7 @@ describe("EntityTypeConfig embeddable flag", () => {
       embedding: new Float32Array(MOCK_DIMENSIONS).fill(0.1),
       contentHash: currentEntity.contentHash,
     });
+    await ctx.entityService.flushJobOutbox();
 
     const result = await ctx.entityService.backfillMissingEmbeddings();
 

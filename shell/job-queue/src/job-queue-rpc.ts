@@ -112,9 +112,13 @@ const metadataSchema = z.intersection(
   JobContextInputSchema,
 );
 
-const enqueueRequestSchema = z.strictObject({
+export const JobQueueEnqueueRequestSchema: z.ZodType<
+  JobQueueEnqueueRequest,
+  unknown
+> = z.strictObject({
   type: z.string().min(1),
   data: z.unknown(),
+  idempotencyKey: z.string().min(1).optional(),
   options: z
     .strictObject({
       priority: z.number().optional(),
@@ -154,7 +158,7 @@ const optionalAttemptIdSchema = z.string().min(1).optional();
 export const JobQueueRpcRequestSchema = z.discriminatedUnion("operation", [
   z.strictObject({
     operation: z.literal("enqueue"),
-    request: enqueueRequestSchema,
+    request: JobQueueEnqueueRequestSchema,
   }),
   z.strictObject({
     operation: z.literal("dequeue"),
@@ -242,9 +246,14 @@ export const JobQueueRpcRequestSchema = z.discriminatedUnion("operation", [
   }),
 ]) as z.ZodType<JobQueueRpcRequest, unknown>;
 
+export function parseJobQueueEnqueueRequest(
+  input: unknown,
+): JobQueueEnqueueRequest {
+  return JobQueueEnqueueRequestSchema.parse(input);
+}
+
 export function parseJobQueueRpcRequest(input: unknown): JobQueueRpcRequest {
-  JobQueueRpcRequestSchema.parse(input);
-  return input as JobQueueRpcRequest;
+  return JobQueueRpcRequestSchema.parse(input);
 }
 
 function parseJobInfo(input: unknown): JobInfo {

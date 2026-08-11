@@ -14,6 +14,7 @@ import {
 import { createId } from "@brains/utils/id";
 import { ENTITY_CHANNELS } from "@brains/contracts";
 import { type Logger } from "@brains/utils/logger";
+import type { JobQueueEnqueueRequest } from "@brains/job-queue";
 import { mockEmbeddingService } from "./helpers/mock-services";
 import {
   setupEntityService,
@@ -86,7 +87,10 @@ describe("EntityService", (): void => {
     const mockJobQueueService = createMockJobQueueService({
       returns: { enqueue: "mock-job-id" },
     });
-    enqueueJob = mock(async () => "mock-job-id");
+    enqueueJob = mock(
+      async (request: JobQueueEnqueueRequest) =>
+        request.idempotencyKey ?? "mock-job-id",
+    );
     mockJobQueueService.enqueue = enqueueJob;
 
     logger = createSilentLogger();
@@ -105,6 +109,7 @@ describe("EntityService", (): void => {
   });
 
   afterEach(async (): Promise<void> => {
+    await entityService.waitForJobOutboxIdle();
     entityService.close();
     await cleanup();
   });
@@ -461,7 +466,7 @@ describe("EntityService", (): void => {
     expect(after?.generation).toBe(before?.generation);
   });
 
-  test("rolls back entity persistence when dirty journaling fails", async () => {
+  test("rolls back entity and job intent when dirty journaling fails", async () => {
     entityRegistry.registerEntityType(
       "note",
       noteSchema,
@@ -482,6 +487,7 @@ describe("EntityService", (): void => {
     expect(
       await entityService.getEntity({ entityType: "note", id: entity.id }),
     ).toBeNull();
+    expect(await entityService.getPendingJobOutboxCount()).toBe(0);
   });
 
   test("getEntityTypes returns empty array when no types registered", (): void => {

@@ -77,6 +77,13 @@ describe("JobProgressMonitor", () => {
     getRuntimeUpdatesMock = mock(() => Promise.resolve([]));
 
     mockJobQueueService = {
+      prepareEnqueue: mock((request) => ({
+        jobId: request.idempotencyKey ?? "job-id",
+        request: {
+          ...request,
+          idempotencyKey: request.idempotencyKey ?? "job-id",
+        },
+      })),
       enqueue: mock(() => Promise.resolve("job-id")),
       dequeue: mock(() => Promise.resolve(null)),
       startWorkerSession: mock(() => Promise.resolve()),

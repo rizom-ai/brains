@@ -75,6 +75,7 @@ export async function setupEntityService(
   await entityService.initialize();
 
   const cleanup = async (): Promise<void> => {
+    await entityService.waitForJobOutboxIdle();
     entityService.close();
     await testDb.cleanup();
   };

@@ -119,21 +119,21 @@ export interface ProjectionJobContext {
 }
 
 export interface JobOptions {
-  priority?: number; // Job priority (lower = higher priority, 0 = default)
-  maxRetries?: number; // Override default retry count
-  delayMs?: number; // Initial delay before processing
+  priority?: number | undefined; // Job priority (lower = higher priority, 0 = default)
+  maxRetries?: number | undefined; // Override default retry count
+  delayMs?: number | undefined; // Initial delay before processing
   source: string; // Source identifier for job progress events
   metadata: JobContextInput; // Caller-provided metadata (rootJobId is added by job queue service)
-  deduplication?: DeduplicationStrategy; // Deduplication strategy (default: "none")
-  deduplicationKey?: string; // Optional key for fine-grained deduplication
+  deduplication?: DeduplicationStrategy | undefined; // Deduplication strategy (default: "none")
+  deduplicationKey?: string | undefined; // Optional key for fine-grained deduplication
   /** Projection identity used to advance inherited causal provenance. */
-  projection?: ProjectionJobContext;
+  projection?: ProjectionJobContext | undefined;
   /**
    * Override rootJobId for batch child jobs
    * External callers should not use this - it's set automatically by the job queue service
    * Batch jobs use this to link child jobs to the parent batch
    */
-  rootJobId?: string;
+  rootJobId?: string | undefined;
 }
 
 /**
