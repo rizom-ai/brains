@@ -23,7 +23,7 @@ describe("Turso entity database cutover", () => {
     );
   });
 
-  test("removes legacy search schema across an engine round trip without touching the legacy embedding file", async () => {
+  test("upgrades released libSQL schema and switches back without data loss", async () => {
     const directory = await mkdtemp(join(tmpdir(), "brains-turso-cutover-"));
     directories.push(directory);
     const entityConfig = { url: `file:${join(directory, "entities.db")}` };
@@ -66,10 +66,6 @@ describe("Turso entity database cutover", () => {
         `INSERT INTO entity_fts (entity_id, entity_type, content)
          VALUES ('existing-note', 'note', 'Existing production content')`,
       );
-      await entityLibsql.client.execute(`
-        CREATE INDEX embeddings_embedding_idx
-        ON embeddings(libsql_vector_idx(embedding))
-      `);
       await entityLibsql.client.execute("PRAGMA wal_checkpoint(TRUNCATE)");
     } finally {
       entityLibsql.client.close();
@@ -120,46 +116,76 @@ describe("Turso entity database cutover", () => {
       );
       expect(entity.rows[0]?.["content"]).toBe("Existing production content");
 
-      const indexes = await entityTurso.client.execute(
-        `SELECT name FROM sqlite_master
-         WHERE name IN (
-           'entity_fts',
-           'entities_content_fts',
-           'embeddings_embedding_idx'
-         )`,
+      const searchSchema = await entityTurso.client.execute(
+        "SELECT name FROM sqlite_master WHERE name = 'entity_fts'",
       );
-      expect(indexes.rows).toEqual([]);
+      expect(searchSchema.rows).toEqual([]);
 
-      // Simulate a database restored from a release that still used native
-      // Turso FTS. The next migration must remove it before normal startup.
-      await entityTurso.client.execute(`
-        CREATE INDEX entities_content_fts
-        ON entities USING fts (content)
-      `);
+      await entityTurso.client.execute({
+        sql: `INSERT INTO embeddings
+          (entity_id, entity_type, embedding, content_hash)
+          VALUES (?, ?, vector32(?), ?)`,
+        args: [
+          "existing-note",
+          "note",
+          JSON.stringify([0.1, 0.2]),
+          "existing-hash",
+        ],
+      });
+      await entityTurso.client.execute({
+        sql: `INSERT INTO entity_job_outbox (id, request, created_at)
+          VALUES (?, ?, ?)`,
+        args: [
+          "roundtrip-intent",
+          JSON.stringify({
+            type: "generate-embedding",
+            data: { entityId: "existing-note", entityType: "note" },
+            idempotencyKey: "roundtrip-intent",
+          }),
+          2,
+        ],
+      });
+      await entityTurso.client.execute("PRAGMA wal_checkpoint(TRUNCATE)");
     } finally {
       entityTurso.client.close();
     }
 
     process.env["BRAINS_DB_ENGINE"] = "libsql";
     await migrateEntities(entityConfig, logger);
-    const cleanedLibsql = createSqliteDatabase({
+
+    const fallback = createSqliteDatabase({
       url: entityConfig.url,
       schema: {},
       engine: "libsql",
     });
     try {
-      const entity = await cleanedLibsql.client.execute(
-        "SELECT content FROM entities WHERE id = 'existing-note'",
+      const matches = await fallback.client.execute({
+        sql: `SELECT id FROM entities
+          WHERE instr(lower(content), lower(?)) > 0`,
+        args: ["production content"],
+      });
+      expect(matches.rows).toEqual([
+        expect.objectContaining({ id: "existing-note" }),
+      ]);
+
+      const embeddings = await fallback.client.execute(
+        "SELECT content_hash FROM embeddings WHERE entity_id = 'existing-note'",
       );
-      expect(entity.rows[0]?.["content"]).toBe("Existing production content");
-      const searchSchema = await cleanedLibsql.client.execute(
-        `SELECT name FROM sqlite_master
-         WHERE name LIKE '__turso_internal_fts_%'
-            OR name IN ('entity_fts', 'entities_content_fts')`,
+      expect(embeddings.rows[0]?.["content_hash"]).toBe("existing-hash");
+
+      const outbox = await fallback.client.execute(
+        "SELECT request FROM entity_job_outbox WHERE id = 'roundtrip-intent'",
+      );
+      expect(String(outbox.rows[0]?.["request"])).toContain(
+        '"idempotencyKey":"roundtrip-intent"',
+      );
+
+      const searchSchema = await fallback.client.execute(
+        "SELECT name FROM sqlite_master WHERE name = 'entity_fts'",
       );
       expect(searchSchema.rows).toEqual([]);
     } finally {
-      cleanedLibsql.client.close();
+      fallback.client.close();
     }
 
     const unchangedLegacy = createSqliteDatabase({

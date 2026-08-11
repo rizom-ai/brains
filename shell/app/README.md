@@ -58,19 +58,12 @@ export default defineBrain({
 
 External authors should use the published `@rizom/brain` contracts rather than importing shell internals.
 
-## Database engine and rollback
+## Database engine fallback
 
 Local `file:` databases use Turso Database by default. Remote database URLs
 continue to use libSQL.
 
-Local libSQL is an explicit break-glass fallback, not a routine runtime switch.
-Stop the app, run:
-
-```bash
-brain-rollback-entities-to-libsql
-```
-
-Then set `BRAINS_DB_ENGINE=libsql` and restart. The command removes historical
-Turso native FTS and libSQL FTS5 schema, then checkpoints the compatible SQLite
-file. Current releases use the same portable entities-table keyword boost on
-both engines.
+Local libSQL is an explicit fallback, not a routine runtime switch. Stop the
+app, set `BRAINS_DB_ENGINE=libsql`, and restart. Both engines use the same
+portable entities-table keyword boost, and startup removes the historical FTS5
+table created by released libSQL builds.

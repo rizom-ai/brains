@@ -29,6 +29,7 @@ import {
 
 const packageDir = join(import.meta.dir, "..");
 const outdir = join(packageDir, "dist");
+rmSync(outdir, { recursive: true, force: true });
 mkdirSync(outdir, { recursive: true });
 
 const packageInstanceTsConfigPath = join(packageDir, "tsconfig.instance.json");
@@ -367,19 +368,10 @@ const cliBuild = bundleExecutable(
   "brain",
   join(import.meta.dir, "entrypoint.ts"),
 );
-const rollbackBuild = bundleExecutable(
-  "rollback-entities-to-libsql",
-  join(import.meta.dir, "rollback-entities-to-libsql.ts"),
-);
 const libraryBuild = bundleLibraries();
 
 // Declarations only need source files; run them concurrently with bundling.
-await Promise.all([
-  cliBuild,
-  rollbackBuild,
-  libraryBuild,
-  emitLibraryDeclarations(),
-]);
+await Promise.all([cliBuild, libraryBuild, emitLibraryDeclarations()]);
 
 // ─── Copy package-owned onboarding assets ────────────────────────────────
 
@@ -451,7 +443,6 @@ function reportSize(name: string): void {
 }
 
 reportSize("brain");
-reportSize("rollback-entities-to-libsql");
 for (const entry of libraryEntries) {
   reportSize(entry.name);
 }

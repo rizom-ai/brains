@@ -2,7 +2,7 @@
 
 ## Status
 
-Complete through Phase 5E; MVCC remains deliberately gated. The engine spike
+Complete through Phase 5F; MVCC remains deliberately gated. The engine spike
 is done on `work/turso-spike` (commits
 `23d7d468d`, `d02c4c0cd`): `@brains/db` has a `createTursoClient` adapter that
 presents the libSQL `Client` surface over `@tursodatabase/database@0.7.2`, and
@@ -19,16 +19,17 @@ an owner-local outbox. The affected service suites pass on both engines.
 Review uncovered that Turso's persisted native-FTS schema syntax is not
 parseable by libSQL, mitigated at the time by a tested break-glass command
 (`brain-rollback-entities-to-libsql`). Phase 5D removed native FTS entirely,
-so that command and the `index_method` flag now guard a state no released
-build can produce; Phase 5F deletes them before the branch merges.
+so that command and the `index_method` flag guarded a state no released build
+could produce; Phase 5F deleted them before the branch merges.
 
 The corrected production-shaped benchmark reopened the search-backend
 question, and the owner decided it: both engine-specific search indexes are
 replaced by a portable exact-phrase scan in completed Phase 5D, on the measured
 grounds that the scan strictly dominates native FTS on Turso and costs libSQL a
 negligible read margin. Native FTS and its MVCC incompatibility are no longer
-load-bearing, and Phase 5F removes the cleanup machinery they justified —
-`main` never shipped Turso, so no installation can hold a native index. MVCC
+load-bearing, and completed Phase 5F removes the cleanup machinery they
+justified — `main` never shipped Turso, so no installation can hold a native
+index. MVCC
 is parked behind an observed owner-connection
 saturation trigger because job writes are at engine parity under WAL and the
 owner connection is serialized. Phase 5E measured and implemented the selected
@@ -88,9 +89,10 @@ Engine: `@tursodatabase/database` 0.7.2. Suites run with `BRAINS_DB_ENGINE=turso
   never resolve it. The packed consumer's nested install did not materialize
   the platform-specific optional dependency — shipping turso-by-default in the
   packed CLI needed that story verified. Phase 3 resolved it by declaring the
-  SDK as a direct optional dependency of `@rizom/brain`; the packed-consumer
-  test now starts under Turso, runs the shipped rollback command, and restarts
-  under libSQL.
+  SDK as a direct optional dependency of `@rizom/brain`; its packed-consumer
+  test started under Turso, ran the rollback command required by native FTS,
+  and restarted under libSQL. Phase 5F replaces that historical sequence with
+  a direct engine-flag fallback because the final schema is portable.
 - **drizzle-orm 0.45.2 ships no turso driver** (contrary to this plan's earlier
   claim). The adapter therefore implements the libSQL `Client` contract that
   `drizzle-orm/libsql` already speaks — hybrid rows (non-enumerable indices +
@@ -133,9 +135,11 @@ Engine: `@tursodatabase/database` 0.7.2. Suites run with `BRAINS_DB_ENGINE=turso
   exactly one stable job row, and prove merged rollback leaves neither row.
 - **Not covered:** auth-service's embedded replica (`runtime-db.ts` constructs
   its own `@libsql/client` with `syncUrl`; it syncs against Turso Cloud and
-  stays on libSQL throughout this plan). Phase 3 separately resolved the
-  pre-existing `libsql_vector_idx` schema gap with a libSQL cleanup before
-  Turso opens historical entity and embedding files.
+  stays on libSQL throughout this plan). Phase 3 separately handled the
+  pre-existing `libsql_vector_idx` schema gap while the embedding database was
+  still in the cutover path. Phase 5C retired that separate database without
+  opening it; Phase 5F removes the now-no-op vector-index drop from the active
+  `brain.db` migration path.
 
 ## Context (unchanged)
 
@@ -148,12 +152,13 @@ multi-user exerts no pressure on DB layout.
 
 ## Design
 
-Thin vertical slices. The engine flag remains the runtime selector. Historical
-native FTS persists engine-specific schema, so normal parent-owned migrations
-now remove it before either engine opens the application schema. The explicit
-offline recovery path remains: stop the app, run
-`brain-rollback-entities-to-libsql`, set `BRAINS_DB_ENGINE=libsql`, and restart.
-Tests precede implementation in each phase.
+Thin vertical slices. The engine flag remains the runtime selector. Released
+libSQL builds persist an FTS5 `entity_fts` table in `brain.db`, so normal
+parent-owned migrations remove it before either engine opens the application
+schema. Native Turso FTS existed only on this unmerged branch; Phase 5F removes
+its special cleanup and the explicit rollback command before release. The
+portable final schema makes fallback a clean shutdown followed by a
+`BRAINS_DB_ENGINE=libsql` restart. Tests precede implementation in each phase.
 
 ### Phase 0 — Engine adapter behind a flag — DONE (spike)
 
@@ -503,10 +508,11 @@ separate schema transform.
 The recovery command performs the same historical cleanup without rebuilding
 FTS5.
 
-Installations can skip cleanup releases or restore old backups, so the
-`index_method` cleanup capability and
-`brain-rollback-entities-to-libsql`'s native-index drop remain available
-indefinitely even though no current runtime path creates an index.
+At Phase 5D completion, the branch retained `index_method` cleanup and the
+rollback command on the assumption that installations could skip cleanup
+releases or restore native-FTS backups. Phase 5F supersedes that precaution
+before release: `main` never produced those files, so no released backup or
+upgrade path can contain the native index.
 
 MVCC then becomes technically available (no custom index module remains), but
 still must not ship until owner-connection saturation gives it a concrete
@@ -618,13 +624,13 @@ Coverage injects a queue outage, interrupts after queue admission but before
 outbox acknowledgement, reopens the entity service to exercise startup replay,
 proves one stable queue row, preserves provenance across delayed relay, covers
 RPC idempotency and conflicting-key rejection, and pins shutdown ordering.
-The full entity and job suites pass on both Turso and break-glass libSQL.
+The full entity and job suites pass on both Turso and fallback libSQL.
 
 **Phase 5E exit: met.** Entity mutation and embedding-job intent commit
 together; interrupted delivery replays to exactly one queue row; the former
 post-commit enqueue gap is no longer the normal mutation path.
 
-#### Phase 5F — Delete the native-FTS back-compat
+#### Phase 5F — Delete the native-FTS back-compat — DONE
 
 Phases 1–5C created a Turso native FTS index, so Phases 3–5D carried
 machinery to clean it out of existing files and to transform a Turso file
@@ -637,38 +643,52 @@ machines that ran this branch mid-flight can hold one, and `brain.db` is a
 derived index whose source of truth is git, so the remedy there is deleting
 the file and re-importing, not shipping permanent machinery.
 
-Keep, because released builds really do create them:
+Retained, because released builds really do create it:
 
-- the startup cleanup that drops `entity_fts` and `embeddings_embedding_idx`
-  before the engine opens the database. Every upgrading installation needs it.
+- startup cleanup drops `entity_fts` from `brain.db` before either engine opens
+  the database. Every installation upgrading from `main` needs that cleanup.
 
-Delete, because nothing outside this branch can hold a native index:
+The released `embeddings_embedding_idx` is different: runtime code created it
+only in the retired separate `embeddings.db`, which Phase 5C deliberately
+leaves untouched. No released path created that index in `brain.db`, so Phase
+5F removed its no-op drop from `preparePortableEntitySearch` rather than
+preserving a second unreachable compatibility case.
 
-- `dropTursoIndexForFallback` in `shared/db/src/turso-maintenance.ts`, and the
-  malformed-schema detection plus second cleanup pass it feeds in
-  `preparePortableEntitySearch`. The cleanup collapses to one libSQL pass.
-- the `index_method` experimental flag in the Turso adapter. No code creates
-  an index; the flag exists only to open files that contain one. Removing it
-  leaves `multiprocess_wal` as the adapter's only experimental flag.
-- `brain-rollback-entities-to-libsql` end to end: `shell/entity-service/src/rollback.ts`,
-  its test, the `./rollback` package export, the CLI bin entry, its bundle
-  target in `packages/brain-cli/scripts/build.ts`, and the package-metadata
-  and packed-consumer assertions that cover it. After Phase 5D both engines
-  read identical schema, so `BRAINS_DB_ENGINE=libsql` is a plain env-var
-  switch with no transform to perform — which is the whole job the command
-  had left.
-- the `turso-cutover` and rollback test fixtures that seed a native index,
-  plus the plan/README/`shell/app` documentation describing the break-glass
-  procedure.
+Deleted, because nothing outside this branch can hold a native index:
 
-Sequencing: this must land before the branch merges. Once a build carrying
-native FTS reaches a user, the machinery stops being dead weight and becomes
-load-bearing, and this phase is off the table.
+- `dropTursoIndexForFallback`, its maintenance module, malformed-schema
+  detection, and the second cleanup pass. The remaining `entity_fts` cleanup is
+  one libSQL pass.
+- the `index_method` experimental flag. `multiprocess_wal` is now the adapter's
+  only experimental flag.
+- `brain-rollback-entities-to-libsql` end to end: entity-service implementation
+  and export, CLI bin and bundle target, tests, and operator documentation.
+  Fallback is now a clean shutdown followed by a
+  `BRAINS_DB_ENGINE=libsql` restart with no schema transform.
+- the historical FTS mode in `scripts/perf-engine-comparison.ts`. The checked-in
+  benchmark now measures only the selected portable scan; the historical FTS
+  measurements remain recorded in this plan.
 
-**Exit:** no `index_method` flag, no rollback command, no native-FTS cleanup
-path; libSQL-era cleanup still runs; `BRAINS_DB_ENGINE=libsql` still opens a
-Turso-written database with dual-engine suites green; the packed-consumer test
-covers the env-var fallback without invoking a rollback command.
+Coverage was rewritten rather than deleted:
+
+- `turso-cutover.test.ts` retains the populated released-libSQL-to-Turso
+  upgrade, including data preservation and `entity_fts` removal.
+- the same fixture writes entities, embeddings, and an outbox intent under
+  Turso, switches directly to libSQL, and verifies all three plus portable
+  search.
+- the packed-consumer test starts under Turso and restarts under libSQL using
+  only the engine flag.
+
+Sequencing is satisfied: Phase 5F is implemented on the migration branch
+before merge. Once a build carrying native FTS reaches a user, this removal
+would no longer be valid.
+
+**Phase 5F exit: met.** No `index_method` flag, rollback command, native-FTS
+cleanup path, native-FTS benchmark path, or no-op vector-index drop remains;
+released-libSQL `entity_fts` cleanup still runs; a populated released database
+upgrades under Turso without data loss; direct libSQL fallback preserves entity,
+embedding, outbox, and search state; dual-engine suites pass; and the packed
+consumer exercises the env-var fallback without a rollback command.
 
 ## Non-goals
 
@@ -681,11 +701,12 @@ covers the env-var fallback without invoking a rollback command.
 
 ## Risks
 
-- Installations upgrading from a released build carry libSQL-era schema —
-  `entity_fts` and the dead `embeddings_embedding_idx` — so the startup
-  cleanup that drops them is required and permanent. Turso native FTS is a
-  different case: it never shipped, so no released installation can hold it
-  (see Phase 5F).
+- Installations upgrading from a released build carry the libSQL-era
+  `entity_fts` table in `brain.db`, so its startup cleanup is required and
+  permanent. The dead `embeddings_embedding_idx` exists only in the retired
+  separate `embeddings.db`, which the final runtime does not open. Turso native
+  FTS is also different: it never shipped, so no released installation can
+  hold it (see Phase 5F).
 - The portable predicate is a linear ASCII case-insensitive substring check,
   not tokenizer-based FTS. Ranking changes are bounded to the 30% keyword
   boost; behavior tests pin punctuation and case semantics, and the 10,000-row

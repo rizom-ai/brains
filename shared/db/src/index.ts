@@ -10,8 +10,6 @@ export {
   type SqliteEngine,
 } from "./sqlite";
 
-export { dropTursoIndexForFallback } from "./turso-maintenance";
-
 export {
   refuseDirectMigrationRun,
   resolveMigrationsFolder,
