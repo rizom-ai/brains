@@ -2,8 +2,8 @@
 
 ## Status
 
-Implementation and release are complete through Phase 5; manual smoke load
-acceptance remains pending.
+Implementation and release are complete through Phase 5; runtime-resilience Phase 6
+and manual smoke load acceptance remain pending.
 
 - Phase 1: released in `@rizom/brain@0.2.0-alpha.268`.
 - Phase 2: released in `@rizom/brain@0.2.0-alpha.269` for text and current
@@ -23,8 +23,23 @@ acceptance remains pending.
   195.99 seconds: 2 tests passed, health and zombie checks passed, and the
   uploaded artifact contained the real Bun result with no external AI call.
   The next independent scheduled run, `31356873624`, passed on its first attempt
-  in 196.21 seconds with the same assertions, so issue #102 was closed as a
-  non-recurring runner stall.
+  in 196.21 seconds with the same assertions, so issue #102 was closed based on
+  the evidence available at that time.
+- Later current-main local runs reproduced the stall repeatedly on Bun 1.3.11.
+  Git had completed and created the merge commit, but the owning Bun subprocess
+  completion remained unresolved, so update/delete jobs were never queued.
+  Retained wrapper experiments additionally proved `status=0` and fully written
+  output while the parent operation stayed pending. Replacing `Bun.spawn` with
+  Node `child_process`, isolating it in a Worker, polling a mode-0600 completion
+  sentinel, and using synchronous or persistent-interval polling did not make
+  the full soak reliable. Those speculative workarounds must not ship.
+- This behavior matches Bun issue `oven-sh/bun#26580` and the event-loop failure
+  described by `oven-sh/bun#33261` / PR `oven-sh/bun#32233`. Upstream reproduced
+  the defect on Bun 1.3.14 and verified it fixed on current main. With the
+  original Git runner restored, isolated Bun `1.4.0-canary.1+da3851e57` passed
+  three consecutive persistence-gated 350-file soaks in 193.63, 193.69, and
+  193.95 seconds with no soak-owned process left behind. The repository and
+  deployed runtime remain on Bun 1.3.11; no canary was committed or deployed.
 - Smoke was rolled to `@rizom/brain@0.2.0-alpha.275` with the migrated
   `@rizom/site-smoke-canary@0.2.0-alpha.235`; deploy run `31364403378` passed.
 - The approved manual load run `20260810072537` passed `add50`, `add150`, and
@@ -259,3 +274,71 @@ one-off:
   plan is complete when `load` passes end-to-end on smoke (all seven phases, zero
   health failures). Only then consider promoting `load` to a scheduled cadence and
   opening the 700-probe `stress` profile.
+
+## Phase 6 — Bun runtime and stalled-sync resilience
+
+Do not accept the intermittent Bun failure and do not ship an in-process completion
+workaround. Close both the upstream runtime exposure and the recovery gap before another
+remote load.
+
+### 6.1 Pin a stable Bun release containing the upstream fix
+
+- Bun 1.3.14 is not sufficient: upstream reproduced the hang there. Use the first
+  immutable stable release that contains the current-main fix; do not make production
+  follow the mutable `canary` channel.
+- Update the root `packageManager` pin and every generated/runtime consumer through the
+  existing Bun-version source of truth. Validate install, build, typecheck, lint, unit
+  tests, packaging, and supervisor startup before soak testing.
+- Strengthen the packaged soak so a changed checkout is not mistaken for a completed
+  import: after the update merge, require at least one probe's update marker to persist
+  in the database before pushing cleanup, while asserting fewer than all probes have
+  persisted so delete authority still races remaining entity churn.
+- Require at least three unchanged local 350-file passes with the original Git runner,
+  followed by normal CI and one independent scheduled soak on the pinned stable version.
+  Preserve Bun version/revision and process-cleanup evidence in every artifact.
+
+### 6.2 Make merge-to-queue handoff durable
+
+A fixed runtime reduces the probability of a hang; it does not make a merged-but-not-
+queued window acceptable.
+
+- Persist a schema-validated `lastEnqueuedGitHead` in runtime state after initial sync.
+- For each pull, retain the prior checkpoint, merge/fetch, derive changed and deleted
+  paths from `lastEnqueuedGitHead..HEAD`, and enqueue the durable batch before advancing
+  the checkpoint. Never advance it when path derivation or enqueue fails.
+- On startup, compare the checkpoint with the checkout HEAD. If they differ, replay the
+  exact diff through the same changed-path, pending-delete, and batch-enqueue path. If
+  the checkpoint is missing or is not an ancestor, use the existing full-scan correctness
+  fallback rather than guessing.
+- Advancing after successful enqueue is sufficient because queued jobs are already
+  durable and restart-recoverable. Test crash points after merge, after path derivation,
+  and after enqueue to prove neither missed work nor duplicate destructive deletion.
+
+### 6.3 Surface stale pulls to an external watchdog
+
+The existing operation status records `state: pulling` and `startedAt`, but a pulling run
+without a job or batch is currently cleared during restart initialization and is not an
+operational-health failure. Change that behavior deliberately:
+
+- Classify a pull as stale after its configured Git deadline plus a bounded grace period.
+  Record a sanitized Git issue and make the stale state degrade `/health/operate`; do not
+  make `/health/live` or routing readiness depend on repository reachability.
+- Preserve enough stale-run context for startup replay before clearing the active run.
+  Dashboard history must say that recovery replayed an interrupted Git handoff rather
+  than reporting an unrelated missing batch.
+- Keep recovery outside the affected process: the existing host/container watchdog may
+  restart only after sustained `/health/operate` failure. Detect restart with container
+  `StartedAt` as well as `RestartCount`, apply a cooldown and restart budget, and alert
+  instead of looping indefinitely.
+- Test with an injected Git operation that updates HEAD but never settles. Assert stale
+  operational health, external restart eligibility, startup diff replay, final DB/Git
+  convergence, and zero orphaned process groups.
+
+### 6.4 Resume acceptance only after both layers pass
+
+After the fixed stable Bun pin and durable recovery safeguards pass local and scheduled
+soaks, complete the feature-enabled mocked-AI comparison. Bound AI concurrency and queue
+growth if that comparison shows health starvation. A new remote `load` run still requires
+explicit approval and must complete all seven phases with zero external AI calls, health
+failures, restarts, OOMs, or zombies, followed by cleanup to the seven-note baseline,
+zero probes, and Git parity.
