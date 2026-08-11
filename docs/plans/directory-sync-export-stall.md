@@ -2,21 +2,41 @@
 
 ## Status
 
-Open investigation, opened 2026-08-11 from a live production incident. The database→git
-auto-export in `plugins/directory-sync` silently stops emitting `Auto-sync` commits and never
-recovers without a full process restart. Root cause not yet confirmed in code; this plan captures
-the confirmed evidence, the leading hypotheses to confirm/kill against the code, and the
-deliverables that close it out. Related in-flight branches: `fix/directory-sync-git-performance`,
-`fix/directory-sync-import-soak-gate`.
+Root-cause class confirmed locally; attribution of the specific live production incident remains
+open. The database→git auto-export in `plugins/directory-sync` can silently stop emitting
+`Auto-sync` commits because every export shares the Git lock with pulls, and one Git operation
+whose runtime completion never settles holds that lock indefinitely. The remaining work is to
+prove that exact path for the production incident, pin the fixed Bun runtime, add durable recovery,
+and validate the safe live-recovery procedure. Related in-flight work is tracked in Phase 6 of
+`docs/plans/directory-sync-import-load.md`.
 
 ## Goal
 
-Find the **root cause in the code** for why the database→git auto-export stops emitting commits and
-does not recover without a full process restart, then propose a minimal fix + regression test + a
+Finish proving the **specific production path** by which the database→git auto-export stopped
+emitting commits, then deliver the fixed runtime, deterministic replay, regression tests, and a
 safe live-recovery procedure.
 
-Do NOT just reproduce the symptom and stop — trace it to the specific line(s) and explain the
-mechanism. Read the actual code; don't theorize from names alone.
+Do NOT stop at the matching local symptom. Preserve the distinction between the confirmed code
+mechanism and the still-unconfirmed attribution of the alpha.262 production incident.
+
+## Investigation update (2026-08-11)
+
+- Current-main local 350-file runs repeatedly reached a state where Git created the merge commit
+  and exited successfully, but Bun 1.3.11 never resolved the owned subprocess completion. A
+  mode-0600 shell sentinel recorded `status=0` and complete output while the parent remained
+  pending. The changed paths therefore never reached batch enqueue.
+- `GitOperationLock` makes that unresolved operation globally significant: its promise-tail turn is
+  released only when the callback settles, so later pull, push, commit, and auto-export operations
+  queue forever behind it. This exactly explains why only a process restart restores export.
+- Node `child_process`, Worker isolation, file sentinels, synchronous filesystem inspection, and
+  persistent timer polling were not reliable workarounds inside the affected Bun event loop. Do
+  not ship them.
+- Bun issue `oven-sh/bun#26580` was reproduced upstream on 1.3.14 and verified fixed on current
+  main. With the original Git runner restored, isolated Bun `1.4.0-canary.1+da3851e57` passed three
+  consecutive persistence-gated 350-file soaks in 193.63, 193.69, and 193.95 seconds. Production
+  remains on Bun 1.3.11; no canary was committed or deployed.
+- The production evidence is consistent with a pull holding the shared lock, but it does not prove
+  which Git command wedged or exclude the remaining incident-specific checks below.
 
 ## What the plugin does (confirmed from the code — verify as you go)
 
@@ -65,15 +85,16 @@ Server: brain runtime `@rizom/brain` v0.2.0-alpha.262, uptime ~66h (booted ~2026
 - The "update with `content`+`fields` drops content" bug is a **separate** known issue, not this.
 - `git status` being clean is expected here — the export never commits, so nothing is left staged.
 
-## Leading hypotheses (investigate in this order; confirm or kill each with code)
+## Confirmed mechanism and remaining incident checks
 
-1. **`GitOperationLock` deadlock on a hung git op.** `git-lock.ts` chains every op onto an in-memory
-   `this.queue` promise; the `finally { release() }` only runs if `fn` **settles**. If one git
-   pull/push/commit **hangs** (network stall, no timeout/abort), `this.queue` stays pending forever
-   and every subsequent `git-sync.ts:49` `this.lock.run(...)` — including all future export
-   commits — blocks indefinitely. In-memory ⇒ only a process restart clears it (matches "no restart
-   since boot"). CHECK: does `git-sync.ts` put a timeout/AbortSignal on pull/push/commit? Can `fn`
-   hang? Does anything ever reject the queued turn if the op never returns?
+1. **Confirmed locally: `GitOperationLock` deadlocks behind an unresolved Git completion.**
+   `git-lock.ts` chains every operation onto an in-memory `this.queue` promise; the
+   `finally { release() }` runs only if `fn` settles. Git can exit and be reaped while Bun's
+   completion remains unresolved, leaving every later `git-sync.ts:49` `this.lock.run(...)` —
+   including all future export commits — blocked indefinitely. Because the lock is in memory, a
+   process restart clears it. CHECK FOR THE PRODUCTION INCIDENT: identify the owning Git command
+   from retained logs/status, if available, rather than inferring it solely from the matching
+   symptom.
 
 2. **Stale `.git/index.lock`** in `/app/brain-data/.git/` from a crashed/killed git process → every
    commit fails, working tree stays clean, and it **survives restart**. CHECK: does the git layer
@@ -101,9 +122,10 @@ behavior — a gap between them and the failure mode above is likely where the b
 1. **Root cause**: the specific file:line and the precise mechanism, with the confirming code path.
 2. **A failing regression test** that reproduces it (e.g., a git op that never settles, asserting a
    later export still commits / the lock doesn't deadlock; or a stale-lock scenario).
-3. **Minimal fix** that makes the export self-healing (timeout+abort on git ops, queue that can't be
-   wedged by a hung op, stale-lock detection, and/or correct activeRun clearing) — without breaking
-   the mutex guarantees the existing tests rely on.
+3. **Minimal durable fix** that preserves serialization while pinning the first stable Bun release
+   containing the upstream fix, checkpointing `lastEnqueuedGitHead`, replaying a merged-but-not-
+   queued diff on startup, and surfacing an over-age `pulling` run through `/health/operate` to the
+   external watchdog. Do not rely on an in-process timer to recover the affected event loop.
 4. **Safe live-recovery runbook** for the current wedged server: what to check (stale
    `/app/brain-data/.git/index.lock`?), and confirm that restarting the brain process /
    directory-sync plugin clears the in-memory lock. NOTE: the live DB is the source of truth and is
