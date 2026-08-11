@@ -1,5 +1,28 @@
 # @brains/plugins
 
+## 0.2.0-alpha.278
+
+### Patch Changes
+
+- [`f2d2775`](https://github.com/rizom-ai/brains/commit/f2d2775d61177d5af16e3a839aed6d18de10a511) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Keep HTTP route snapshot bindings available across the separately bundled runtime entrypoints so canonical brains can start their webserver reliably.
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.278
+  - @brains/contracts@0.2.0-alpha.278
+  - @brains/site-composition@0.2.0-alpha.278
+  - @brains/utils@0.2.0-alpha.278
+  - @brains/ai-service@0.2.0-alpha.278
+  - @brains/content-service@0.2.0-alpha.278
+  - @brains/conversation-service@0.2.0-alpha.278
+  - @brains/entity-service@0.2.0-alpha.278
+  - @brains/identity-service@0.2.0-alpha.278
+  - @brains/job-queue@0.2.0-alpha.278
+  - @brains/mcp-service@0.2.0-alpha.278
+  - @brains/messaging-service@0.2.0-alpha.278
+  - @brains/recurring-checks@0.2.0-alpha.278
+  - @brains/runtime-state@0.2.0-alpha.278
+  - @brains/templates@0.2.0-alpha.278
+
 ## 0.2.0-alpha.277
 
 ### Patch Changes

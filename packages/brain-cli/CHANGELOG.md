@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.278
+
+### Patch Changes
+
+- [`f2d2775`](https://github.com/rizom-ai/brains/commit/f2d2775d61177d5af16e3a839aed6d18de10a511) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Keep HTTP route snapshot bindings available across the separately bundled runtime entrypoints so canonical brains can start their webserver reliably.
+
 ## 0.2.0-alpha.277
 
 ## 0.2.0-alpha.276

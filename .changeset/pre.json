@@ -224,6 +224,7 @@
     "core--batch-enqueue-validation-only-mode",
     "core--brain-definition-profile-kind",
     "core--bundle-resolver-integration",
+    "core--bundle-split-boot",
     "core--canonical-brain-crossover",
     "core--canonical-core-catalog",
     "core--canonical-eval-persistent-failures",
