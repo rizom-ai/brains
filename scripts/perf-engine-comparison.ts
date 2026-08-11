@@ -1,13 +1,12 @@
 /**
  * Production-shaped local database comparison for libSQL and Turso.
  *
- * Runs the current FTS-backed keyword boost and the portable exact-phrase
- * candidate independently so index maintenance and query costs remain visible.
+ * Runs the portable exact-phrase search selected for both database engines.
  * Run from the worktree root:
  *
  *   bun scripts/perf-engine-comparison.ts
- *   bun scripts/perf-engine-comparison.ts <libsql|turso> [fts|scan]
- *   BRAINS_BENCH_ENTITY_COUNT=10000 bun scripts/perf-engine-comparison.ts turso scan
+ *   bun scripts/perf-engine-comparison.ts <libsql|turso>
+ *   BRAINS_BENCH_ENTITY_COUNT=10000 bun scripts/perf-engine-comparison.ts turso
  */
 import { cpus, tmpdir } from "node:os";
 import { mkdtempSync, rmSync } from "node:fs";
@@ -19,9 +18,7 @@ import {
   type SqliteDatabase,
   type SqliteEngine,
 } from "@brains/db";
-import { sql, type SQL } from "drizzle-orm";
-
-type SearchMode = "fts" | "scan";
+import { sql } from "drizzle-orm";
 
 interface OpenDatabase {
   client: Client;
@@ -147,11 +144,7 @@ async function withWriteTransaction(
   }
 }
 
-async function createEntitySchema(
-  client: Client,
-  engine: SqliteEngine,
-  mode: SearchMode,
-): Promise<void> {
+async function createEntitySchema(client: Client): Promise<void> {
   await client.execute(`CREATE TABLE entities (
     id TEXT NOT NULL, entityType TEXT NOT NULL, content TEXT NOT NULL,
     contentHash TEXT NOT NULL, visibility TEXT NOT NULL DEFAULT 'public',
@@ -163,103 +156,25 @@ async function createEntitySchema(
     PRIMARY KEY (entity_id, entity_type),
     FOREIGN KEY (entity_id, entity_type)
       REFERENCES entities(id, entityType) ON DELETE CASCADE)`);
-
-  if (mode === "scan") return;
-  if (engine === "turso") {
-    await client.execute(
-      "CREATE INDEX entities_content_fts ON entities USING fts (content)",
-    );
-  } else {
-    await client.execute(`CREATE VIRTUAL TABLE entity_fts USING fts5(
-      entity_id UNINDEXED, entity_type UNINDEXED, content)`);
-  }
-}
-
-async function syncLibsqlFts(
-  transaction: Transaction,
-  engine: SqliteEngine,
-  mode: SearchMode,
-  entityId: string,
-  entityContent: string,
-): Promise<void> {
-  if (engine !== "libsql" || mode !== "fts") return;
-  await transaction.execute({
-    sql: "DELETE FROM entity_fts WHERE entity_id = ? AND entity_type = 'note'",
-    args: [entityId],
-  });
-  await transaction.execute({
-    sql: "INSERT INTO entity_fts (entity_id, entity_type, content) VALUES (?, 'note', ?)",
-    args: [entityId, entityContent],
-  });
-}
-
-function correlatedFtsPredicate(engine: SqliteEngine, ftsQuery: string): SQL {
-  if (engine === "turso") {
-    return sql`EXISTS (
-      SELECT 1 FROM entities AS fts_entities
-      WHERE fts_entities.content MATCH ${ftsQuery}
-        AND fts_entities.id = e.id
-        AND fts_entities.entityType = e.entityType)`;
-  }
-  return sql`EXISTS (
-    SELECT 1 FROM entity_fts WHERE entity_fts MATCH ${ftsQuery}
-      AND entity_id = e.id AND entity_type = e.entityType)`;
-}
-
-function ftsMatchSet(engine: SqliteEngine, ftsQuery: string): SQL {
-  if (engine === "turso") {
-    return sql`SELECT id, entityType FROM entities WHERE content MATCH ${ftsQuery}`;
-  }
-  return sql`SELECT entity_id AS id, entity_type AS entityType
-    FROM entity_fts WHERE entity_fts MATCH ${ftsQuery}`;
 }
 
 async function hybridSearch(
   database: SqliteDatabase,
-  engine: SqliteEngine,
-  mode: SearchMode,
   iteration: number,
-  shape: "current" | "match-set" = "current",
 ): Promise<void> {
   const query = WORDS[iteration % WORDS.length] ?? "database";
   const queryVector = vectors[iteration] ?? vectors[0];
   if (!queryVector) throw new Error("Query vector fixture is missing");
 
-  let rows: unknown[];
-  if (mode === "scan") {
-    rows = await database.all(sql`
-      SELECT e.id,
-        (1.0 - vector_distance_cos(emb.embedding, vector32(${queryVector})) / 2.0) * 0.7
-          + CASE WHEN instr(lower(e.content), lower(${query})) > 0
-            THEN 0.3 ELSE 0.0 END AS score
-      FROM entities e
-      JOIN embeddings emb
-        ON emb.entity_id = e.id AND emb.entity_type = e.entityType
-      ORDER BY score DESC LIMIT 10`);
-  } else if (shape === "match-set") {
-    const matches = ftsMatchSet(engine, `"${query}"`);
-    rows = await database.all(sql`
-      WITH fts_matches AS MATERIALIZED (${matches})
-      SELECT e.id,
-        (1.0 - vector_distance_cos(emb.embedding, vector32(${queryVector})) / 2.0) * 0.7
-          + CASE WHEN fm.id IS NOT NULL THEN 0.3 ELSE 0.0 END AS score
-      FROM entities e
-      JOIN embeddings emb
-        ON emb.entity_id = e.id AND emb.entity_type = e.entityType
-      LEFT JOIN fts_matches fm
-        ON fm.id = e.id AND fm.entityType = e.entityType
-      ORDER BY score DESC LIMIT 10`);
-  } else {
-    const boost = correlatedFtsPredicate(engine, `"${query}"`);
-    rows = await database.all(sql`
-      SELECT e.id,
-        (1.0 - vector_distance_cos(emb.embedding, vector32(${queryVector})) / 2.0) * 0.7
-          + CASE WHEN ${boost} THEN 0.3 ELSE 0.0 END AS score
-      FROM entities e
-      JOIN embeddings emb
-        ON emb.entity_id = e.id AND emb.entity_type = e.entityType
-      ORDER BY score DESC LIMIT 10`);
-  }
+  const rows = await database.all(sql`
+    SELECT e.id,
+      (1.0 - vector_distance_cos(emb.embedding, vector32(${queryVector})) / 2.0) * 0.7
+        + CASE WHEN instr(lower(e.content), lower(${query})) > 0
+          THEN 0.3 ELSE 0.0 END AS score
+    FROM entities e
+    JOIN embeddings emb
+      ON emb.entity_id = e.id AND emb.entity_type = e.entityType
+    ORDER BY score DESC LIMIT 10`);
 
   if (rows.length !== 10) {
     throw new Error("Hybrid search returned too few rows");
@@ -268,44 +183,25 @@ async function hybridSearch(
 
 async function keywordSearch(
   database: SqliteDatabase,
-  engine: SqliteEngine,
-  mode: SearchMode,
   iteration: number,
 ): Promise<void> {
   const query = WORDS[iteration % WORDS.length] ?? "database";
-  if (mode === "scan") {
-    await database.all(sql`
-      SELECT e.id FROM entities e
-      WHERE instr(lower(e.content), lower(${query})) > 0 LIMIT 20`);
-    return;
-  }
-
-  if (engine === "turso") {
-    await database.all(sql`
-      SELECT id FROM entities WHERE content MATCH ${`"${query}"`} LIMIT 20`);
-  } else {
-    await database.all(sql`
-      SELECT entity_id FROM entity_fts
-      WHERE entity_fts MATCH ${`"${query}"`} LIMIT 20`);
-  }
+  await database.all(sql`
+    SELECT e.id FROM entities e
+    WHERE instr(lower(e.content), lower(${query})) > 0 LIMIT 20`);
 }
 
-async function benchmarkEntityDatabase(
-  engine: SqliteEngine,
-  mode: SearchMode,
-): Promise<void> {
-  const directory = mkdtempSync(
-    join(tmpdir(), `perf-entity-${engine}-${mode}-`),
-  );
+async function benchmarkEntityDatabase(engine: SqliteEngine): Promise<void> {
+  const directory = mkdtempSync(join(tmpdir(), `perf-entity-${engine}-scan-`));
   const { client, db } = await openDatabase(directory, "brain.db", engine);
 
-  console.log(`\n[entity:${engine}:${mode}]`);
+  console.log(`\n[entity:${engine}:scan]`);
   try {
     const journal = await client.execute("PRAGMA journal_mode");
     console.log(`journal_mode\t${String(journal.rows[0]?.["journal_mode"])}`);
-    await createEntitySchema(client, engine, mode);
+    await createEntitySchema(client);
 
-    await timed("entity+search writes", ENTITY_COUNT, async () => {
+    await timed("entity writes", ENTITY_COUNT, async () => {
       for (let index = 0; index < ENTITY_COUNT; index++) {
         const entityId = `e-${index}`;
         const entityContent = contents[index];
@@ -315,13 +211,6 @@ async function benchmarkEntityDatabase(
             sql: "INSERT INTO entities (id, entityType, content, contentHash, created, updated) VALUES (?, 'note', ?, ?, 1, 1)",
             args: [entityId, entityContent, `hash-${index}`],
           });
-          await syncLibsqlFts(
-            transaction,
-            engine,
-            mode,
-            entityId,
-            entityContent,
-          );
         });
       }
     });
@@ -335,26 +224,17 @@ async function benchmarkEntityDatabase(
       }
     });
 
-    await hybridSearch(db, engine, mode, 0);
+    await hybridSearch(db, 0);
     await timed("hybrid search", SEARCH_ITERATIONS, async () => {
       for (let iteration = 0; iteration < SEARCH_ITERATIONS; iteration++) {
-        await hybridSearch(db, engine, mode, iteration);
+        await hybridSearch(db, iteration);
       }
     });
 
-    if (mode === "fts") {
-      await hybridSearch(db, engine, mode, 0, "match-set");
-      await timed("hybrid search (match-set)", SEARCH_ITERATIONS, async () => {
-        for (let iteration = 0; iteration < SEARCH_ITERATIONS; iteration++) {
-          await hybridSearch(db, engine, mode, iteration, "match-set");
-        }
-      });
-    }
-
-    await keywordSearch(db, engine, mode, 0);
+    await keywordSearch(db, 0);
     await timed("keyword lookup", BOOST_ITERATIONS, async () => {
       for (let iteration = 0; iteration < BOOST_ITERATIONS; iteration++) {
-        await keywordSearch(db, engine, mode, iteration);
+        await keywordSearch(db, iteration);
       }
     });
 
@@ -367,13 +247,6 @@ async function benchmarkEntityDatabase(
             sql: "UPDATE entities SET content = ?, contentHash = ?, updated = 2 WHERE id = ? AND entityType = 'note'",
             args: [updatedContent, `hash-${index}-v2`, entityId],
           });
-          await syncLibsqlFts(
-            transaction,
-            engine,
-            mode,
-            entityId,
-            updatedContent,
-          );
           await transaction.execute({
             sql: "DELETE FROM embeddings WHERE entity_id = ? AND entity_type = 'note'",
             args: [entityId],
@@ -439,12 +312,8 @@ async function benchmarkJobDatabase(engine: SqliteEngine): Promise<void> {
   }
 }
 
-function parseSelection(): Array<{
-  engine: SqliteEngine;
-  modes: SearchMode[];
-}> {
+function parseSelection(): SqliteEngine[] {
   const requestedEngine = process.argv[2];
-  const requestedMode = process.argv[3];
   if (
     requestedEngine !== undefined &&
     requestedEngine !== "libsql" &&
@@ -452,30 +321,16 @@ function parseSelection(): Array<{
   ) {
     throw new Error("Engine must be libsql or turso");
   }
-  if (
-    requestedMode !== undefined &&
-    requestedMode !== "fts" &&
-    requestedMode !== "scan"
-  ) {
-    throw new Error("Search mode must be fts or scan");
+  if (process.argv[3] !== undefined) {
+    throw new Error("Search mode was removed; portable scan is the only mode");
   }
-
-  const engines: SqliteEngine[] = requestedEngine
-    ? [requestedEngine]
-    : ["libsql", "turso"];
-  const modes: SearchMode[] = requestedMode ? [requestedMode] : ["fts", "scan"];
-  return engines.map((selectedEngine) => ({
-    engine: selectedEngine,
-    modes,
-  }));
+  return requestedEngine ? [requestedEngine] : ["libsql", "turso"];
 }
 
 console.log(
   `runtime\t${process.platform}/${process.arch}\t${cpus()[0]?.model ?? "unknown CPU"}`,
 );
-for (const selection of parseSelection()) {
-  for (const mode of selection.modes) {
-    await benchmarkEntityDatabase(selection.engine, mode);
-  }
-  await benchmarkJobDatabase(selection.engine);
+for (const engine of parseSelection()) {
+  await benchmarkEntityDatabase(engine);
+  await benchmarkJobDatabase(engine);
 }

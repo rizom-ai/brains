@@ -14,8 +14,7 @@
   "license": "AGPL-3.0-only",
   "author": "Yeehaa <yeehaa@rizom.ai> (https://rizom.ai)",
   "bin": {
-    "brain": "./dist/brain.js",
-    "brain-rollback-entities-to-libsql": "./dist/rollback-entities-to-libsql.js"
+    "brain": "./dist/brain.js"
   },
   "bugs": "https://github.com/rizom-ai/brains/issues",
   "dependencies": {

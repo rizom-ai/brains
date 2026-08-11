@@ -105,10 +105,8 @@ class TursoClient implements Client {
   constructor(url: string) {
     const path = pathFromFileUrl(url);
     // multiprocess WAL coordination only exists for real files
-    const experimental: ("index_method" | "multiprocess_wal")[] =
-      path === ":memory:"
-        ? ["index_method"]
-        : ["index_method", "multiprocess_wal"];
+    const experimental: "multiprocess_wal"[] =
+      path === ":memory:" ? [] : ["multiprocess_wal"];
     // dynamic import: the SDK loads a native binding at import time, which
     // must not happen for consumers that never select the turso engine
     this.connection = import("@tursodatabase/database").then(({ connect }) =>

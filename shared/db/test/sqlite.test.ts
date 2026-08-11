@@ -6,7 +6,6 @@ import {
   createSqliteDatabase,
   resolveAuthToken,
 } from "../src/sqlite";
-import { dropTursoIndexForFallback } from "../src/turso-maintenance";
 
 function restoreDatabaseEngine(previousEngine: string | undefined): void {
   if (previousEngine === undefined) {
@@ -128,20 +127,6 @@ describe("createSqliteDatabase", () => {
     } finally {
       restoreDatabaseEngine(previousEngine);
     }
-  });
-});
-
-describe("dropTursoIndexForFallback", () => {
-  it("rejects remote urls", () => {
-    expect(
-      dropTursoIndexForFallback("libsql://example.turso.io", "safe_index"),
-    ).rejects.toThrow(/only supports file:/);
-  });
-
-  it("rejects unsafe index names", () => {
-    expect(
-      dropTursoIndexForFallback("file::memory:", "index; DROP TABLE data"),
-    ).rejects.toThrow(/Unsafe SQLite index name/);
   });
 });
 

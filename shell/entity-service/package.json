@@ -27,8 +27,7 @@
       "default": "./src/index.ts"
     },
     "./effect": "./src/effect.ts",
-    "./migrate": "./src/migrate.ts",
-    "./rollback": "./src/rollback.ts"
+    "./migrate": "./src/migrate.ts"
   },
   "files": [
     "src"

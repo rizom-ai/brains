@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { existsSync } from "node:fs";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -38,6 +39,18 @@ describe("canonical packed consumer", () => {
         "# Packed consumer\n",
       );
 
+      expect(
+        existsSync(
+          join(
+            consumerDirectory,
+            "node_modules",
+            "@rizom",
+            "brain",
+            "dist",
+            "rollback-entities-to-libsql.js",
+          ),
+        ),
+      ).toBe(false);
       await runCommand(["bun", "run", "import-smoke.ts"], consumerDirectory);
       const runtimeEnv = {
         ...process.env,
@@ -70,13 +83,6 @@ describe("canonical packed consumer", () => {
       expect(combinedOutput(fencedWorker)).toContain(
         "Local SQLite opens are forbidden in this process",
       );
-
-      const rollback = await runCommand(
-        ["bun", "run", "brain-rollback-entities-to-libsql"],
-        consumerDirectory,
-        { env: runtimeEnv },
-      );
-      expect(combinedOutput(rollback)).toContain("Entity database prepared");
 
       const fallback = await runCommand(
         ["bun", "run", "brain", "start", "--startup-check"],

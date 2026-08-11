@@ -563,7 +563,6 @@
       "version": "0.2.0-alpha.338",
       "bin": {
         "brain": "./dist/brain.js",
-        "brain-rollback-entities-to-libsql": "./dist/rollback-entities-to-libsql.js",
       },
       "dependencies": {
         "@clack/prompts": "^1.5.1",
