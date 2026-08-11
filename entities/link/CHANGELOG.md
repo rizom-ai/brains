@@ -1,5 +1,16 @@
 # @brains/link
 
+## 0.2.0-alpha.281
+
+### Patch Changes
+
+- Updated dependencies [[`c6b44ae`](https://github.com/rizom-ai/brains/commit/c6b44ae420bc0c4c92c2081bfbc320c00987db79)]:
+  - @brains/plugins@0.2.0-alpha.281
+  - @brains/atproto-contracts@0.2.0-alpha.281
+  - @brains/content-formatters@0.2.0-alpha.281
+  - @brains/contracts@0.2.0-alpha.281
+  - @brains/utils@0.2.0-alpha.281
+
 ## 0.2.0-alpha.280
 
 ### Patch Changes

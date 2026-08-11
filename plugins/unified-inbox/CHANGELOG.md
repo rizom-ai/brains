@@ -1,5 +1,16 @@
 # @brains/unified-inbox
 
+## 0.2.0-alpha.281
+
+### Patch Changes
+
+- [#114](https://github.com/rizom-ai/brains/pull/114) [`c6b44ae`](https://github.com/rizom-ai/brains/commit/c6b44ae420bc0c4c92c2081bfbc320c00987db79) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add migration-gated email thread ordinals with deterministic indexed ordering, concurrency-safe ingress assignment, directory round-trip preservation, and Inbox-only “message N in thread” rendering.
+
+- Updated dependencies [[`c6b44ae`](https://github.com/rizom-ai/brains/commit/c6b44ae420bc0c4c92c2081bfbc320c00987db79)]:
+  - @brains/plugins@0.2.0-alpha.281
+  - @brains/ui-library@0.2.0-alpha.281
+  - @brains/utils@0.2.0-alpha.281
+
 ## 0.2.0-alpha.280
 
 ### Patch Changes
