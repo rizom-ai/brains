@@ -11,7 +11,7 @@ tags:
   - onboarding
   - playbooks
   - multi-turn
-  - bundle-core
+  - posture-personal
 
 turns:
   - userMessage: "Start playbook onboarding."

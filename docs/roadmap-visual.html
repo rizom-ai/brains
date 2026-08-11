@@ -70,7 +70,7 @@
     <header class="header">
       <h1>Brains Strategic Roadmap</h1>
       <p>One brain, composed from capability bundles. What used to be three models (rover, relay, ranger) is a single brain whose posture — from personal publishing to shared team memory — is selected by bundles at deploy time. The bet: one brain that scales from a single person to a collective without switching products.</p>
-      <div class="updated">Last updated: 2026-08-05 · generated from docs/roadmap.md</div>
+      <div class="updated">Last updated: 2026-08-08 · generated from docs/roadmap.md</div>
     </header>
     <div class="legend">
         <span class="legend-item"><span class="legend-dot dot-active"></span>Active</span>
@@ -130,6 +130,14 @@
           </div>
           <div class="card-desc">rename/reframe <code>system_insights</code> as an extensible typed analytics/reporting surface, folding plugin reports such as Cloudflare traffic into one LLM-facing tool.</div>
           <div class="card-file">system-analytics-tool.md</div>
+        </div>
+        <div class="card status-proposed">
+          <div class="card-head">
+            <span class="card-name">MCP 2026-07-28 spec migration</span>
+            <span class="badge badge-proposed">Proposed</span>
+          </div>
+          <div class="card-desc">adopt the stateless MCP 2026-07-28 spec revision: SDK 1.30 now, v1-compatible registration/test modernization in <code>work/mcp-v2</code>, dual-mode transport swap when SDK v2 reaches npm, and CIMD alongside deprecated DCR in auth-service.</div>
+          <div class="card-file">mcp-2026-07-28-migration.md</div>
         </div>
         </div>
       </details>
@@ -254,6 +262,14 @@
         <div class="cards">
         <div class="card status-active">
           <div class="card-head">
+            <span class="card-name">Public authoring API compatibility for <code>v0.2.0</code></span>
+            <span class="badge badge-active">Active</span>
+          </div>
+          <div class="card-desc">**P0 stable-release gate**: freeze and prove packed external authoring for custom entity types, service plugins, sites, and interfaces before nominating <code>v0.2.0</code>.</div>
+          <div class="card-file">public-authoring-api-0.2.md</div>
+        </div>
+        <div class="card status-active">
+          <div class="card-head">
             <span class="card-name">Independent site and theme package versioning</span>
             <span class="badge badge-active">Active</span>
           </div>
@@ -275,14 +291,6 @@
           </div>
           <div class="card-desc">active prototype for distribution/discovery; outbound publishing, registry contracts/routes, and the first bounded discovery slice are implemented. Remaining work is OAuth hardening, configurable discovery/Jetstream, and later ingestion/feed work.</div>
           <div class="card-file">atproto-integration.md</div>
-        </div>
-        <div class="card status-proposed">
-          <div class="card-head">
-            <span class="card-name">Public authoring API compatibility for <code>v0.2.0</code></span>
-            <span class="badge badge-proposed">Proposed</span>
-          </div>
-          <div class="card-desc">**P0 stable-release gate**: freeze and prove packed external authoring for custom entity types, service plugins, sites, and interfaces before nominating <code>v0.2.0</code>.</div>
-          <div class="card-file">public-authoring-api-0.2.md</div>
         </div>
         <div class="card status-proposed">
           <div class="card-head">
@@ -313,6 +321,22 @@
       <details class="group" open>
         <summary class="group-title"><span class="group-num">§7</span>Keep the framework sustainable</summary>
         <div class="cards">
+        <div class="card status-partial">
+          <div class="card-head">
+            <span class="card-name">Atomic durable job deduplication</span>
+            <span class="badge badge-partial">In progress</span>
+          </div>
+          <div class="card-desc">serialize durable queue deduplication in the database so concurrent web/worker enqueues preserve <code>skip</code>, <code>replace</code>, and <code>coalesce</code> guarantees.</div>
+          <div class="card-file">atomic-job-deduplication.md</div>
+        </div>
+        <div class="card status-partial">
+          <div class="card-head">
+            <span class="card-name">Directory Sync Import Load Follow-ups</span>
+            <span class="badge badge-partial">In progress</span>
+          </div>
+          <div class="card-desc">follow-up to the git fan-out fix: suppress auto-export watcher echoes, short-circuit unchanged files before parse so startup full-vault sync is cheap, and skip oversized files at import with an operator-visible issue.</div>
+          <div class="card-file">directory-sync-import-load.md</div>
+        </div>
         <div class="card status-proposed">
           <div class="card-head">
             <span class="card-name">Durable Binary Asset Storage Plan</span>
@@ -339,11 +363,11 @@
         </div>
         <div class="card status-proposed">
           <div class="card-head">
-            <span class="card-name">Directory Sync Import Load Follow-ups</span>
+            <span class="card-name">Test suite hardening</span>
             <span class="badge badge-proposed">Proposed</span>
           </div>
-          <div class="card-desc">follow-up to the git fan-out fix: suppress auto-export watcher echoes, short-circuit unchanged files before parse so startup full-vault sync is cheap, and skip oversized files at import with an operator-visible issue.</div>
-          <div class="card-file">directory-sync-import-load.md</div>
+          <div class="card-desc">make the green suite's guarantees hard to lose: stop tests that silently never run, turn mock drift into a compile error, unify test-database setup, put the eval CLI under test, and replace sleep-based waits with condition waits.</div>
+          <div class="card-file">test-suite-hardening.md</div>
         </div>
         <div class="card status-proposed">
           <div class="card-head">

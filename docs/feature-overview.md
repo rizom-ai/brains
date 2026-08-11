@@ -382,7 +382,12 @@ The plugin system supports:
 - **Entity plugins** for schema-validated, Markdown-backed content types;
 - **Service plugins** for tools, jobs, integrations, API routes, and automation;
 - **Interface plugins** for user and agent transports;
-- custom templates, data sources, dashboard widgets, CMS workspaces, site routes, and publishing providers.
+- custom templates, data sources, site routes, and publishing providers.
+
+Dashboard widgets and CMS workspaces are currently built-in capabilities only;
+external packages cannot yet author them. The public contract for both is
+planned as a `0.2.x` additive milestone
+([plan](plans/public-operator-surface-authoring.md)).
 
 ## Current boundaries
 

@@ -58,10 +58,13 @@ export {
 export {
   cleanupDirectorySyncStress,
   runDeployedDirectorySyncStress,
+  verifyDirectorySyncStressAccess,
   type CleanupDirectorySyncStressOptions,
   type CleanupDirectorySyncStressResult,
   type DeployedDirectorySyncStressOptions,
   type DeployedDirectorySyncStressResult,
+  type VerifyDirectorySyncStressAccessOptions,
+  type VerifyDirectorySyncStressAccessResult,
 } from "./directory-sync-stress-system";
 export { runCommand, type CommandResult } from "./run-command";
 export {

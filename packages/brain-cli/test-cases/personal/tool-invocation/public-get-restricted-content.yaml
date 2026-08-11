@@ -13,7 +13,7 @@ tags:
   - visibility
   - permissions
   - regression
-  - bundle-core
+  - posture-personal
 
 turns:
   - userMessage: "Show me the note with id private-visibility-probe."

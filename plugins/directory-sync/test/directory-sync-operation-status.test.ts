@@ -63,6 +63,35 @@ describe("DirectorySyncOperationStatusService", () => {
     expect(JSON.stringify(snapshot)).not.toContain("/srv/brain-data");
   });
 
+  it("records skipped import issues without counting them as failures", async () => {
+    const context = createContext();
+    const service = createService(context);
+    await service.initialize();
+
+    await service.addImportResult({
+      imported: 0,
+      skipped: 1,
+      failed: 0,
+      quarantined: 0,
+      quarantinedFiles: [],
+      errors: [],
+      issues: [
+        {
+          path: "/srv/brain-data/note/oversized.md",
+          message: "File is 9 bytes; import limit is 8 bytes",
+        },
+      ],
+      jobIds: [],
+    });
+
+    const snapshot = await service.getSnapshot();
+    expect(snapshot.issues[0]).toMatchObject({
+      kind: "import",
+      path: "note/oversized.md",
+      message: "File is 9 bytes; import limit is 8 bytes",
+    });
+  });
+
   it("reconciles a completed Git request through its terminal import batch", async () => {
     const base = createContext();
     const getStatus = mock(async (): Promise<JobInfo> => ({

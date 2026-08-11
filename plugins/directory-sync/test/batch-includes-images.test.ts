@@ -1,4 +1,11 @@
-import { describe, it, expect, beforeEach, afterEach } from "bun:test";
+import {
+  describe,
+  it,
+  expect,
+  beforeEach,
+  afterEach,
+  type mock,
+} from "bun:test";
 import { DirectorySync } from "../src/lib/directory-sync";
 import { mkdirSync, rmSync, writeFileSync, existsSync, mkdtempSync } from "fs";
 import { join } from "path";
@@ -8,7 +15,7 @@ import {
   createMockEntityService,
 } from "@brains/test-utils";
 import { createMockServicePluginContext } from "@brains/test-utils";
-import { TINY_PNG_BYTES } from "./fixtures";
+import { TINY_PDF_BYTES, TINY_PNG_BYTES } from "./fixtures";
 
 describe("queueSyncBatch should include images (regression)", () => {
   let dirSync: DirectorySync;
@@ -86,7 +93,130 @@ describe("queueSyncBatch should include images (regression)", () => {
     });
   });
 
-  it("keeps cleanup for files deleted by a periodic git pull", async () => {
+  it("imports a document whose metadata sidecar alone was deleted", async () => {
+    mkdirSync(join(testDir, "document"), { recursive: true });
+    writeFileSync(join(testDir, "document", "kept.pdf"), TINY_PDF_BYTES);
+    const documentSync = new DirectorySync({
+      syncPath: testDir,
+      entityService: createMockEntityService({ entityTypes: ["document"] }),
+      logger: createSilentLogger("sidecar-delete"),
+    });
+    const context = createMockServicePluginContext({
+      entityTypes: ["document"],
+    });
+
+    const result = await documentSync.queueSyncBatch(
+      context,
+      "periodic-sync",
+      undefined,
+      ["document/kept.pdf.meta.json"],
+      ["document/kept.pdf.meta.json"],
+    );
+
+    expect(result).toMatchObject({
+      operationCount: 1,
+      importOperationsCount: 1,
+      totalFiles: 1,
+    });
+    expect(context.jobs.enqueueBatch).toHaveBeenCalledWith(
+      [
+        {
+          type: "directory-import",
+          data: {
+            batchIndex: 0,
+            paths: ["document/kept.pdf"],
+            batchSize: 1,
+          },
+        },
+      ],
+      expect.any(Object),
+    );
+  });
+
+  it("keeps an explicitly remote-deleted path out of imports if it was recreated", async () => {
+    mkdirSync(join(testDir, "post"), { recursive: true });
+    writeFileSync(join(testDir, "post", "resurrected.md"), "# Late export");
+    const context = createMockServicePluginContext({ entityTypes: ["post"] });
+
+    const result = await dirSync.queueSyncBatch(
+      context,
+      "periodic-sync",
+      undefined,
+      ["post/resurrected.md"],
+      ["post/resurrected.md"],
+    );
+
+    expect(result).toMatchObject({
+      operationCount: 1,
+      importOperationsCount: 0,
+      totalFiles: 0,
+    });
+    expect(context.jobs.enqueueBatch).toHaveBeenCalledWith(
+      [
+        {
+          type: "directory-delete",
+          data: {
+            entityType: "post",
+            entityId: "resurrected",
+            filePath: join(testDir, "post", "resurrected.md"),
+          },
+        },
+      ],
+      expect.any(Object),
+    );
+  });
+
+  it("chunks large targeted deletion sets before enqueueing", async () => {
+    const context = createMockServicePluginContext({ entityTypes: ["post"] });
+    const deletedPaths = Array.from(
+      { length: 120 },
+      (_, index) => `post/deleted-${index}.md`,
+    );
+
+    const result = await dirSync.queueSyncBatch(
+      context,
+      "periodic-sync",
+      undefined,
+      deletedPaths,
+      deletedPaths,
+    );
+
+    expect(result).toMatchObject({
+      operationCount: 3,
+      importOperationsCount: 0,
+      totalFiles: 0,
+    });
+    const enqueueBatch = context.jobs.enqueueBatch as ReturnType<typeof mock>;
+    const operations = enqueueBatch.mock.calls[0]?.[0] as
+      Array<{ data: { deletions: unknown[] } }> | undefined;
+    expect(operations).toHaveLength(3);
+    expect(
+      operations?.map((operation) => operation.data.deletions.length),
+    ).toEqual([50, 50, 20]);
+  });
+
+  it("does not queue targeted deletes when file removal is disabled", async () => {
+    const entityService = createMockEntityService({ entityTypes: ["post"] });
+    const noDeleteSync = new DirectorySync({
+      syncPath: testDir,
+      deleteOnFileRemoval: false,
+      entityService,
+      logger: createSilentLogger("no-pull-deletes"),
+    });
+    const context = createMockServicePluginContext({ entityTypes: ["post"] });
+
+    const result = await noDeleteSync.queueSyncBatch(
+      context,
+      "periodic-sync",
+      undefined,
+      ["post/deleted.md"],
+    );
+
+    expect(result).toBeNull();
+    expect(context.jobs.enqueueBatch).not.toHaveBeenCalled();
+  });
+
+  it("queues targeted deletes for files deleted by a periodic git pull", async () => {
     mkdirSync(join(testDir, "post"), { recursive: true });
     writeFileSync(join(testDir, "post", "untouched.md"), "# Untouched");
 
@@ -103,5 +233,18 @@ describe("queueSyncBatch should include images (regression)", () => {
       importOperationsCount: 0,
       totalFiles: 0,
     });
+    expect(context.jobs.enqueueBatch).toHaveBeenCalledWith(
+      [
+        {
+          type: "directory-delete",
+          data: {
+            entityType: "post",
+            entityId: "deleted",
+            filePath: join(testDir, "post", "deleted.md"),
+          },
+        },
+      ],
+      expect.any(Object),
+    );
   });
 });

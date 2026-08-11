@@ -21,6 +21,7 @@ The top-level fields documented in [brain.yaml reference](../../packages/brain-c
 - `port` — server port
 - `domain` — production domain
 - `database` — connection string
+- `embedding.enabled` — explicitly enable or disable provider-backed semantic indexing; lexical full-text search remains available when disabled
 - `bundles` — explicit fixed bundle selection
 - `mode` — e.g. `eval`
 - `add` / `remove` — plugin list deltas
@@ -75,39 +76,32 @@ The `brain` CLI commands documented in the README are stable:
 
 Internal subcommands and flags not documented in the README are not stable.
 
-### Public plugin authoring API
+### Public package authoring API
 
-External plugin authors should use the generated public `@rizom/brain/*` subpaths:
+Stable external packages use generated declarative authoring subpaths:
 
-- `@rizom/brain/plugins`
-- `@rizom/brain/entities`
-- `@rizom/brain/interfaces`
-- `@rizom/brain/services`
-- `@rizom/brain/templates`
+- `@rizom/brain` for `defineBrain()`, `defineBundle()`, and `use()`;
+- `@rizom/brain/entities` for entity packages and projections;
+- `@rizom/brain/services` for services, tools, and durable jobs;
+- `@rizom/brain/interfaces` for routes, daemons, and message interfaces;
+- `@rizom/site` for site definitions and schema-first sections; and
+- `@rizom/brain/plugins` only for nominated advanced shared contracts.
 
-The public plugin base classes (`ServicePlugin`, `EntityPlugin`, `InterfacePlugin`, and `MessageInterfacePlugin`) and lifecycle hooks (`onRegister`, `onReady`, `onShutdown`) are stable enough to build external plugins on during alpha. Public data contracts are schema-backed DTOs; callable context namespaces are TypeScript interfaces. Published declarations are generated from source and guarded so they do not expose internal `@brains/*` imports.
+Each extension package default-exports one definition returned by its family helper. Config input and parsed callback config derive from one schema. Installed package metadata, capability scoping, registration, worker/web placement, rollback, and shutdown remain runtime-owned. Published declarations are generated from source and guarded against internal `@brains/*` imports.
 
-`context.entityService` is the shared read/query entity-service surface: typed `getEntity`, `listEntities`, `search`, counts, and entity-type discovery. Registration and controlled mutation capabilities live on `context.entities` instead of exposing the full runtime entity-service implementation.
+Class-first plugin APIs, lifecycle subclasses, tuple factories, positional tools, root `z`, and `PLUGIN_API_VERSION` are removed alpha contracts and are not stable compatibility surfaces.
 
-Public DTO `metadata` bags use `ExtensionMetadataSchema` and are best-effort extension data, not stable per-key contracts. Stable fields are hoisted to typed top-level properties before being documented.
+The exact patch-stable symbol list is [Public Authoring API `0.2`](./AUTHORING_API_0.2.md). Authors moving from an alpha package should follow the [authoring migration guide](./AUTHORING_0.2_MIGRATION.md).
 
-### External plugin loading shape
+### External package loading shape
 
-The external plugin declaration shape in `brain.yaml` is stable during alpha:
+A brain-definition package imports extension defaults and configures them through typed `use()` references. Package versions live in package manifests, and every external package declares a compatible `@rizom/brain` peer range. The loader verifies that range and supplies installed name/version metadata.
 
-```yaml
-plugins:
-  calendar:
-    package: "@rizom/brain-plugin-calendar"
-    config:
-      apiKey: ${CALENDAR_API_KEY}
-```
-
-`plugins:` remains a keyed map, package versions live in the instance `package.json`, and external plugin packages declare compatible `@rizom/brain` versions through `peerDependencies`.
+The alpha `brain.yaml` shape `plugins.<id>.package`, default plugin functions, and named `plugin` factories are rejected with migration guidance. Stable instances select bundles and provide instance config; they do not load authoring factories from YAML.
 
 ### Definition and bundle API
 
-`defineBrain()` and `defineBundle()` from `@rizom/brain` are the public authoring surface for ordered definitions and custom catalogs. Canonical instances select only the fixed built-in bundle IDs; external definitions may declare their own ordered bundles.
+`defineBrain()` and `defineBundle()` compose configured definition objects rather than string catalogs or constructors. Bundles reference configured members directly, while instance `brain.yaml` selects the resulting bundle IDs.
 
 ### License and provenance
 
@@ -119,11 +113,11 @@ AGPL-3.0-only for the core, Apache-2.0 for the SDK and contract packages, with a
 
 These are explicitly **not** stable. Don't depend on them without expecting churn. If you need to, vendor the relevant code or pin a specific version.
 
-### Plugin context expansion
+### Declarative callback expansion
 
-The currently published public context contracts are usable for external plugins, but additive context expansion is still in progress. Depend on documented public namespace methods and DTO schemas, not on internal shell services or workspace-private types.
+Family helpers expose narrow contextual callback inputs for their documented capabilities. Additive callback expansion is still in progress. Depend on methods demonstrated by the standalone golden packages, not internal shell services or workspace-private context types.
 
-Message interface file-upload formatting, URL extraction, URL-capture helper internals, and related protected utility methods remain unstable unless they appear in generated public declarations without `@internal` filtering.
+Message transport SDK details, file-upload formatting, URL extraction, and URL-capture helper internals remain runtime or package-wrapper concerns rather than stable framework hooks.
 
 Internal context factories and shell-only types remain unstable and are not public API:
 

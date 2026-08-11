@@ -38,9 +38,9 @@ describe("registerConventionalSiteTheme", () => {
     }
   });
 
-  test("registers ./src/site.ts when site.package is omitted", async () => {
+  test("registers ./src/site.tsx when site.package is omitted", async () => {
     writeFileSync(
-      join(testDir, "src/site.ts"),
+      join(testDir, "src/site.tsx"),
       `export default {
         layouts: {},
         routes: [],
@@ -91,15 +91,15 @@ describe("registerConventionalSiteTheme", () => {
       throw new Error("not called during composition");
     };
     registerPackage("@brains/site-explicit", {
-      layouts: { default: "base-layout" },
+      layouts: { default: (): null => null },
       routes: [{ id: "home", path: "/", sections: [] }],
       plugin: basePlugin,
       entityDisplay: { post: { label: "Post" } },
     });
     writeFileSync(
-      join(testDir, "src/site.ts"),
+      join(testDir, "src/site.tsx"),
       `export default {
-        layouts: { default: "local-layout" },
+        layouts: { default: () => null },
         routes: [{ id: "home", path: "/", sections: [{ id: "hero", template: "local:hero" }] }],
         entityDisplay: { post: { label: "Essay" } },
       };`,
@@ -128,7 +128,7 @@ describe("registerConventionalSiteTheme", () => {
       },
     });
     expect(getPackage(CONVENTIONAL_SITE_PACKAGE_REF)).toMatchObject({
-      layouts: { default: "local-layout" },
+      layouts: { default: expect.any(Function) },
       routes: [
         {
           id: "home",

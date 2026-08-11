@@ -99,10 +99,13 @@ export interface ResolveImageBuildsOptions {
   users: ImageRequirementSource[];
   /**
    * Explicit dispatch override — the manual/backfill path. When set, exactly
-   * this one image is built, skipping both the registry and the exists check.
+   * this one image is built, skipping the registry-derived resolve. Published
+   * tags stay immutable: a same-tag rebuild from a newer Dockerfile can
+   * strand the tag boot-broken, so rebuilding needs allowTagOverwrite.
    */
   brainVersionInput?: string | undefined;
   sitePackagesInput?: string | undefined;
+  allowTagOverwrite?: boolean | undefined;
   imageExists: (tag: string) => Promise<boolean>;
 }
 
@@ -119,9 +122,17 @@ export async function resolveImageBuilds(
     const sitePackages = (options.sitePackagesInput ?? "")
       .split(/\s+/)
       .filter(Boolean);
+    const tag = siteImageTag(versionInput, sitePackages);
+    if (!options.allowTagOverwrite && (await options.imageExists(tag))) {
+      throw new Error(
+        `Image tag ${tag} already exists; published tags are immutable. ` +
+          "Pick a new version, or pass overwrite=true only when replacing a " +
+          "tag whose containers were never deployed.",
+      );
+    }
     return [
       {
-        tag: siteImageTag(versionInput, sitePackages),
+        tag,
         brainVersion: versionInput,
         sitePackages,
       },
@@ -165,6 +176,7 @@ export async function runResolveMissingImages(
 
   const brainVersionInput = env["BRAIN_VERSION_INPUT"]?.trim() ?? "";
   const sitePackagesInput = env["SITE_PACKAGES_INPUT"]?.trim() ?? "";
+  const allowTagOverwrite = env["ALLOW_TAG_OVERWRITE"]?.trim() === "true";
 
   const users = brainVersionInput
     ? []
@@ -174,6 +186,7 @@ export async function runResolveMissingImages(
     users,
     brainVersionInput,
     sitePackagesInput,
+    allowTagOverwrite,
     imageExists: async (tag) => {
       try {
         await run("docker", [

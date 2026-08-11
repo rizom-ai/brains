@@ -36,6 +36,7 @@ export interface GitSyncStatus {
  */
 export interface PullResult {
   files: string[];
+  deletedFiles?: string[] | undefined;
 }
 
 /**
@@ -64,6 +65,13 @@ export interface ImportResult {
     path: string;
     error: string;
   }>;
+  // Optional so queued results created before this field was introduced still parse.
+  issues?:
+    | Array<{
+        path: string;
+        message: string;
+      }>
+    | undefined;
   jobIds: string[]; // Job IDs for async embedding generation
 }
 
@@ -97,6 +105,8 @@ export interface DeleteResult {
   entityType: string;
   filePath: string;
 }
+
+export type DirectoryDeleteJobResult = DeleteResult | DeleteResult[];
 
 /**
  * Raw entity data from file.

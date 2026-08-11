@@ -198,6 +198,9 @@ Decision rules:
 - If two candidate items say nearly the same thing, keep the sharper one and replace the other with a different capability pattern
 - Prefer distinct coverage across the four quadrants over filling every slot
 - Before writing, choose up to four DISTINCT themes first, then map them to quadrants. Reuse a theme only if the contrast is truly different and necessary.
+- When the context supplies at least three distinct owner skills, cover at least three named owner or network capability areas across the draft unless the evidence cannot support actionable distinctions.
+- Keep concrete owner skill names visible instead of collapsing several supplied skills into a generic label such as support, operations, or knowledge work.
+- Do not describe an external skill as filling an owner gap when an owner skill description already includes that capability under a different name.
 - Use this priority order when distinct themes exist:
   1. one real owner-skill strength
   2. one real owner-skill gap or one missing complement revealed by the evidence cards
@@ -262,6 +265,7 @@ Refinement rules:
 - Keep the output concise and decision-oriented
 - Make each detail operational: state what to use, test, learn, pair with, or avoid relying on
 - When context contains distinct owner skills and network-only skills, preserve that breadth instead of thinning the SWOT to generic labels
+- When the draft contains at least three distinct grounded capability themes, preserve at least three of them in the final SWOT unless an item is inaccurate or non-actionable
 - Prefer details that name the practical contrast, such as dependable overlap, missing complement, adjacent network move, or tentative risk
 - Do not use vague wording like "outside input" or "network" alone when a concrete capability from the draft can be named
 

@@ -5,6 +5,7 @@ import {
 } from "./helpers/setup-entity-service";
 import { minimalTestSchema, minimalTestAdapter } from "./helpers/test-schemas";
 import { createTestEntity } from "@brains/test-utils";
+import { SHELL_CHANNELS } from "@brains/contracts";
 import { MOCK_DIMENSIONS } from "./helpers/mock-services";
 
 describe("FTS5 full-text search", () => {
@@ -37,6 +38,96 @@ describe("FTS5 full-text search", () => {
     const results = await ctx.entityService.search({ query: "TypeScript" });
     expect(results.length).toBeGreaterThan(0);
     expect(results[0]?.entity.id).toBe(entity.id);
+  });
+
+  test("lexical search remains available when semantic indexing is disabled", async () => {
+    await ctx.cleanup();
+    ctx = await setupEntityService(
+      [
+        {
+          name: "test",
+          schema: minimalTestSchema,
+          adapter: minimalTestAdapter,
+        },
+      ],
+      { embeddingsEnabled: false },
+    );
+    const entity = createTestEntity("test", {
+      content: "Offline quokka field guide",
+    });
+    await ctx.entityService.createEntity({ entity });
+
+    const results = await ctx.entityService.search({
+      query: "quokka",
+      options: { types: ["test"] },
+    });
+
+    expect(results.map((result) => result.entity.id)).toEqual([entity.id]);
+    expect(results[0]?.score).toBeGreaterThanOrEqual(0.5);
+    expect(
+      ctx.entityService.searchWithDistances({ query: "quokka" }),
+    ).rejects.toThrow("Semantic indexing is disabled");
+  });
+
+  test("lexical fallback applies minScore on a normalized bm25 scale", async () => {
+    await ctx.cleanup();
+    ctx = await setupEntityService(
+      [
+        {
+          name: "test",
+          schema: minimalTestSchema,
+          adapter: minimalTestAdapter,
+        },
+      ],
+      { embeddingsEnabled: false },
+    );
+    const entity = createTestEntity("test", {
+      content: "Normalized wombat scoring notes",
+    });
+    await ctx.entityService.createEntity({ entity });
+
+    const permissive = await ctx.entityService.search({
+      query: "wombat",
+      options: { types: ["test"], minScore: 0 },
+    });
+    expect(permissive.map((result) => result.entity.id)).toEqual([entity.id]);
+
+    // Normalized bm25 relevance stays strictly below the type-weight
+    // multiplier (1 for unweighted types), so a threshold of 1 filters
+    // every lexical match while the system default of 0.5 admits it.
+    const filtered = await ctx.entityService.search({
+      query: "wombat",
+      options: { types: ["test"], minScore: 1 },
+    });
+    expect(filtered).toEqual([]);
+  });
+
+  test("disabled semantic indexing registers no handler and queues no backfill", async () => {
+    await ctx.cleanup();
+    ctx = await setupEntityService(
+      [
+        {
+          name: "test",
+          schema: minimalTestSchema,
+          adapter: minimalTestAdapter,
+        },
+      ],
+      { embeddingsEnabled: false },
+    );
+    expect(ctx.jobQueueService.registerHandler).not.toHaveBeenCalledWith(
+      SHELL_CHANNELS.embedding,
+      expect.anything(),
+    );
+
+    const entity = createTestEntity("test", {
+      content: "Offline backfill candidate",
+    });
+    await ctx.entityService.createEntity({ entity });
+
+    expect(await ctx.entityService.backfillMissingEmbeddings()).toEqual({
+      queued: 0,
+      skipped: 0,
+    });
   });
 
   test("FTS5 index is updated when entity content changes", async () => {

@@ -1,0 +1,127 @@
+import { z } from "@brains/utils/zod";
+import { createEntityPackagePlugins } from "../entity/declarative-entity-plugin";
+import type {
+  AnyEntityDefinition,
+  EntityDefinition,
+  EntityMarkdownCodec,
+  EntityMetadataSchema,
+  ProjectionDefinition,
+} from "../entity/entity-definition-contract";
+import {
+  assertIdentifier as assertLocalId,
+  createPluginPackageDefinition,
+  type PluginPackageDefinition,
+} from "../package-definition";
+
+export type {
+  AnyEntityDefinition,
+  EncodedEntityMarkdown,
+  EntityDefinition,
+  EntityMarkdownCodec,
+  EntityMarkdownDocument,
+  EntityMetadataSchema,
+  EntityOf,
+  EntityVisibility,
+  EntityWriteInput,
+  ProjectionDefinition,
+  ProjectionTarget,
+} from "../entity/entity-definition-contract";
+
+export function defineEntity<
+  const TType extends string,
+  TMetadataSchema extends EntityMetadataSchema,
+>(definition: {
+  readonly type: TType;
+  readonly purpose: string;
+  readonly metadata: TMetadataSchema;
+  readonly markdown?: EntityMarkdownCodec<TMetadataSchema> | undefined;
+}): EntityDefinition<TType, TMetadataSchema> {
+  assertLocalId(definition.type, "Entity type");
+  if (!definition.purpose.trim()) {
+    throw new Error(`Entity "${definition.type}" purpose must not be empty`);
+  }
+  return Object.freeze({
+    kind: "rizom-entity",
+    ...definition,
+  });
+}
+
+export function defineProjection<
+  TSource extends AnyEntityDefinition,
+  TTarget extends AnyEntityDefinition,
+>(
+  definition: Omit<ProjectionDefinition<TSource, TTarget>, "kind">,
+): ProjectionDefinition<TSource, TTarget> {
+  assertLocalId(definition.id, "Projection id");
+  return Object.freeze({ kind: "rizom-projection", ...definition });
+}
+
+const entityPackageConfig: z.ZodObject<Record<string, never>> = z.object({});
+
+export interface EntityPackageDefinition<
+  TEntities extends readonly AnyEntityDefinition[] =
+    readonly AnyEntityDefinition[],
+  TProjections extends readonly ProjectionDefinition[] =
+    readonly ProjectionDefinition[],
+> extends PluginPackageDefinition<typeof entityPackageConfig, "entity"> {
+  readonly entities: TEntities;
+  readonly projections: TProjections;
+}
+
+export function defineEntityPackage<
+  const TEntities extends readonly AnyEntityDefinition[],
+  const TProjections extends readonly ProjectionDefinition[],
+>(definition: {
+  readonly id: string;
+  readonly entities: TEntities;
+  readonly projections: TProjections;
+}): EntityPackageDefinition<TEntities, TProjections>;
+export function defineEntityPackage<
+  const TEntities extends readonly AnyEntityDefinition[],
+>(definition: {
+  readonly id: string;
+  readonly entities: TEntities;
+  readonly projections?: undefined;
+}): EntityPackageDefinition<TEntities, readonly []>;
+export function defineEntityPackage(definition: {
+  readonly id: string;
+  readonly entities: readonly AnyEntityDefinition[];
+  readonly projections?: readonly ProjectionDefinition[] | undefined;
+}): EntityPackageDefinition {
+  const entities = Object.freeze([...definition.entities]);
+  const projections = Object.freeze([...(definition.projections ?? [])]);
+  const entitySet = new Set<AnyEntityDefinition>(entities);
+  const entityTypes = entities.map(({ type }) => type);
+  if (new Set(entityTypes).size !== entityTypes.length) {
+    throw new Error(
+      `Entity package "${definition.id}" contains duplicate entity types`,
+    );
+  }
+  const projectionIds = projections.map(({ id }) => id);
+  if (new Set(projectionIds).size !== projectionIds.length) {
+    throw new Error(
+      `Entity package "${definition.id}" contains duplicate projection ids`,
+    );
+  }
+  const invalidProjection = projections.find(
+    ({ source, target }) => !entitySet.has(source) || !entitySet.has(target),
+  );
+  if (invalidProjection) {
+    throw new Error(
+      `Entity package "${definition.id}" projection "${invalidProjection.id}" references an entity outside its package`,
+    );
+  }
+
+  const publicDefinition = {
+    entities,
+    projections,
+  };
+  return createPluginPackageDefinition({
+    family: "entity",
+    id: definition.id,
+    config: entityPackageConfig,
+    public: publicDefinition,
+    instantiate: ({ package: metadata, scope }) =>
+      createEntityPackagePlugins(entities, projections, metadata, scope),
+  });
+}

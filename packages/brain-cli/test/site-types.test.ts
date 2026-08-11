@@ -1,101 +1,30 @@
 import { describe, expect, it } from "bun:test";
-import { existsSync, readFileSync } from "fs";
-import { join } from "path";
-import { spawnSync } from "node:child_process";
+import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 
-import {
-  personalSitePlugin,
-  professionalSitePlugin,
-} from "../src/entries/site";
+const packageDirectory = join(import.meta.dir, "..");
 
-const pkgDir = join(import.meta.dir, "..");
-const siteAuthorFixtureDir = join(pkgDir, "test", "fixtures", "site-author");
-
-describe("@rizom/brain/site type contract", () => {
-  const siteTypesPath = join(pkgDir, "dist", "site.d.ts");
-  const siteEntryPath = join(pkgDir, "src", "entries", "site.ts");
-
-  it("has a generated site declaration from the Turbo build", () => {
-    expect(existsSync(siteTypesPath)).toBe(true);
-  });
-
-  it("generates the site declaration from the public entry source", () => {
-    const types = readFileSync(siteTypesPath, "utf-8");
-    const entry = readFileSync(siteEntryPath, "utf-8");
-
-    expect(entry).toContain("export interface SitePackage");
-    expect(types).toContain("interface SitePackage");
-    expect(types).not.toContain("@brains/");
-  });
-
-  it("does not expose a theme field on SitePackage", () => {
-    const types = readFileSync(siteTypesPath, "utf-8");
-    expect(types).not.toMatch(/\btheme\s*:\s*string\s*;/);
-    expect(types).not.toContain("SitePackage.theme");
-  });
-
-  it("exposes both personal and professional site authoring symbols", () => {
-    const types = readFileSync(siteTypesPath, "utf-8");
-    const entry = readFileSync(siteEntryPath, "utf-8");
-
-    for (const symbol of [
-      "PersonalLayout",
-      "personalSitePlugin",
-      "routes",
-      "personalRoutes",
-      "ProfessionalLayout",
-      "professionalSitePlugin",
-      "professionalRoutes",
-    ]) {
-      expect(types).toContain(symbol);
-      expect(entry).toContain(symbol);
-    }
-  });
-
-  it("preserves runtime lifecycle methods behind the opaque plugin type", () => {
-    for (const plugin of [personalSitePlugin(), professionalSitePlugin()]) {
-      expect(
-        (plugin as unknown as { register?: unknown }).register,
-      ).toBeFunction();
-    }
-  });
-
-  it("typechecks the package-local site authoring fixture", () => {
-    const result = spawnSync(
-      "bun",
-      ["x", "tsc", "--noEmit", "-p", "tsconfig.json"],
-      {
-        cwd: siteAuthorFixtureDir,
-        encoding: "utf-8",
-      },
+describe("removed @rizom/brain/site alpha surface", () => {
+  it("has no package export, source entry, or generated declaration", () => {
+    const manifest = JSON.parse(
+      readFileSync(join(packageDirectory, "package.json"), "utf8"),
     );
 
-    const output = `${result.stdout}\n${result.stderr}`;
-    if (result.status !== 0) {
-      throw new Error(output);
-    }
-    expect(output).not.toContain("@brains/");
+    expect(manifest.exports["./site"]).toBeUndefined();
+    expect(
+      existsSync(join(packageDirectory, "src", "entries", "site.ts")),
+    ).toBeFalse();
+    expect(existsSync(join(packageDirectory, "dist", "site.d.ts"))).toBeFalse();
+    expect(existsSync(join(packageDirectory, "dist", "site.js"))).toBeFalse();
   });
 
-  it("resolves the site authoring fixture against generated dist declarations", () => {
-    const result = spawnSync(
-      "bun",
-      ["x", "tsc", "--noEmit", "--traceResolution", "-p", "tsconfig.json"],
-      {
-        cwd: siteAuthorFixtureDir,
-        encoding: "utf-8",
-        maxBuffer: 10 * 1024 * 1024,
-      },
+  it("does not build the removed entry", () => {
+    const buildSource = readFileSync(
+      join(packageDirectory, "scripts", "build.ts"),
+      "utf8",
     );
 
-    const output = `${result.stdout}\n${result.stderr}`;
-    if (result.status !== 0) {
-      throw new Error(output);
-    }
-
-    expect(output).toContain(
-      "Module name '@rizom/brain/site' was successfully resolved",
-    );
-    expect(output).toContain("dist/site.d.ts");
+    expect(buildSource).not.toContain('name: "site"');
+    expect(buildSource).not.toContain('"src", "entries", "site.ts"');
   });
 });

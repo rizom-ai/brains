@@ -199,16 +199,37 @@ describe("resolveImageBuilds", () => {
   });
 
   // The manual/backfill path: explicit dispatch inputs force exactly that
-  // build, skipping both the registry and the exists check.
+  // build. Published tags stay immutable — an existing tag refuses to be
+  // rebuilt unless overwrite is explicitly confirmed, because a same-tag
+  // rebuild from a newer Dockerfile can strand the tag boot-broken.
+  it("refuses to force-rebuild an existing tag without overwrite", () => {
+    void expect(
+      resolveImageBuilds({
+        users,
+        brainVersionInput: "0.2.0-alpha.169",
+        imageExists: async () => true,
+      }),
+    ).rejects.toThrow(/immutable/);
+  });
+
+  it("force-rebuilds an existing tag when overwrite is confirmed", async () => {
+    const builds = await resolveImageBuilds({
+      users,
+      brainVersionInput: "0.2.0-alpha.169",
+      allowTagOverwrite: true,
+      imageExists: async () => true,
+    });
+    expect(builds).toHaveLength(1);
+    expect(builds[0]?.tag).toBe("brain-0.2.0-alpha.169");
+  });
+
   it("forces a single explicit build from dispatch inputs", async () => {
     const builds = await resolveImageBuilds({
       users,
       brainVersionInput: "0.2.0-alpha.169",
       sitePackagesInput:
         "@rizom/site-rizom-ai@0.2.0-alpha.169 @rizom/theme-rizom-ai@0.2.0-alpha.169",
-      imageExists: async () => {
-        throw new Error("must not be consulted for an explicit build");
-      },
+      imageExists: async () => false,
     });
 
     expect(builds).toEqual([

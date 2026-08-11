@@ -177,7 +177,7 @@ const sharedExternals = [
   // need PDF/media generation can skip the chromium browser payload.
   "playwright-core",
   // Preact and its subpaths MUST be externalized so brain.js, the
-  // library exports (site.js), and consumer site code all share a
+  // library exports and consumer site code all share a
   // single preact instance. Bundling preact into brain.js creates a
   // second copy that diverges from the consumer's installed preact
   // at runtime; preact hooks (which rely on a module-level `options`
@@ -245,10 +245,6 @@ const libraryEntries = [
   {
     name: "templates",
     source: join(import.meta.dir, "..", "src", "entries", "templates.ts"),
-  },
-  {
-    name: "site",
-    source: join(import.meta.dir, "..", "src", "entries", "site.ts"),
   },
   {
     name: "deploy",
@@ -358,6 +354,17 @@ const cliBuild = bundle({
   const stripped = readFileSync(outFile, "utf8").replace(/^#!.*\n/gm, "");
   writeFileSync(outFile, `#!/usr/bin/env bun\n${stripped}`);
 });
+
+// Removed alpha authoring subpaths must not survive from an earlier build in
+// the package-wide dist directory.
+for (const legacySiteArtifact of [
+  "site.js",
+  "site.js.map",
+  "site.d.ts",
+  "site.d.ts.map",
+]) {
+  rmSync(join(outdir, legacySiteArtifact), { force: true });
+}
 
 const libraryBuild = bundleLibraries();
 

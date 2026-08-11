@@ -34,6 +34,9 @@ export function setupInitialSync(
       if (gitSync) {
         logger.debug("Git enabled — pulling before import");
         const pullResult = await gitSync.pull();
+        await directorySync.recordPendingPullDeletes(
+          pullResult.deletedFiles ?? [],
+        );
         if (pullResult.files.length > 0) {
           logger.info("Pulled changes from remote", {
             filesChanged: pullResult.files.length,

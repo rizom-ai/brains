@@ -1,7 +1,7 @@
 {
   "name": "@brains/web-chat",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.265",
+  "version": "0.2.0-alpha.278",
   "description": "Web chat interface for Brains",
   "dependencies": {
     "@ai-sdk/react": "^3.0.208",
@@ -23,7 +23,7 @@
     "radix-ui": "^1.6.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
-    "shiki": "^3.23.0",
+    "shiki": "^4.2.0",
     "streamdown": "^2.5.0",
     "tailwind-merge": "^3.6.0",
     "use-stick-to-bottom": "^1.1.6"

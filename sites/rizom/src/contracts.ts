@@ -3,8 +3,10 @@ import type {
   EntityDisplayEntry,
   RouteDefinitionInput,
   RuntimeScript,
-  SiteContentDefinition,
+  SiteContent,
   SiteLayoutInfo,
+  SiteLayoutProps,
+  SiteSectionGroup,
   UserPermissionLevel,
 } from "@rizom/site";
 import type { ComponentChildren } from "preact";
@@ -15,16 +17,12 @@ export type {
   NavigationItem,
   NavigationMetadata,
   NavigationSlot,
-  RizomBrandSuffix,
-  RizomFooterTagline,
-  RizomLayoutProps,
-  RizomLink,
-  RizomSideNavItem,
   RouteDefinition,
   RouteDefinitionInput,
   RuntimeScript,
   SectionDefinition,
   SectionDefinitionInput,
+  SiteContent,
   SiteContentArrayFieldDefinition,
   SiteContentDefinition,
   SiteContentEnumFieldDefinition,
@@ -42,6 +40,28 @@ export type {
   UserPermissionLevel,
 } from "@rizom/site";
 export { NavigationSlots } from "@rizom/site";
+
+export interface RizomLink {
+  href: string;
+  label: string;
+  /** Open in a new tab with rel="noopener noreferrer". */
+  external?: boolean;
+}
+
+export type RizomBrandSuffix = "ai" | "foundation" | "work";
+
+export interface RizomSideNavItem {
+  href: string;
+  label: string;
+}
+
+export interface RizomFooterTagline {
+  prefix?: string;
+  link: RizomLink;
+  suffix?: string;
+}
+
+export type RizomLayoutProps = SiteLayoutProps;
 
 export interface RizomRuntimeConfig {
   theme?: string;
@@ -138,11 +158,12 @@ export interface SitePackage<
   layouts: Record<string, unknown>;
   routes: RouteDefinitionInput[];
   plugin?: ((config?: TPluginConfig) => TPlugin) | undefined;
-  content?: SiteContentDefinition | SiteContentDefinition[];
-  themeOverride?: string;
-  headScripts?: string[];
+  content?: SiteContent | undefined;
+  sections?: SiteSectionGroup | SiteSectionGroup[] | undefined;
+  themeOverride?: string | undefined;
+  headScripts?: string[] | undefined;
   entityDisplay: Record<string, EntityDisplayEntry>;
-  staticAssets?: Record<string, string>;
+  staticAssets?: Record<string, string> | undefined;
 }
 
 // Keeps this module as the source-owned bridge for the current runtime shape;

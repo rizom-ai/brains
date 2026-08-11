@@ -1,5 +1,109 @@
 # @brains/image
 
+## 0.2.0-alpha.278
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.278
+  - @brains/entity-service@0.2.0-alpha.278
+
+## 0.2.0-alpha.277
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.277
+  - @brains/entity-service@0.2.0-alpha.277
+
+## 0.2.0-alpha.276
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.276
+  - @brains/entity-service@0.2.0-alpha.276
+
+## 0.2.0-alpha.275
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.275
+  - @brains/entity-service@0.2.0-alpha.275
+
+## 0.2.0-alpha.274
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.274
+  - @brains/entity-service@0.2.0-alpha.274
+
+## 0.2.0-alpha.273
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.273
+  - @brains/entity-service@0.2.0-alpha.273
+
+## 0.2.0-alpha.272
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.272
+  - @brains/entity-service@0.2.0-alpha.272
+
+## 0.2.0-alpha.271
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.271
+  - @brains/entity-service@0.2.0-alpha.271
+
+## 0.2.0-alpha.270
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.270
+  - @brains/entity-service@0.2.0-alpha.270
+
+## 0.2.0-alpha.269
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.269
+  - @brains/entity-service@0.2.0-alpha.269
+
+## 0.2.0-alpha.268
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.268
+  - @brains/entity-service@0.2.0-alpha.268
+
+## 0.2.0-alpha.267
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/entity-service@0.2.0-alpha.267
+  - @brains/utils@0.2.0-alpha.267
+
+## 0.2.0-alpha.266
+
+### Patch Changes
+
+- Updated dependencies [[`e70ab12`](https://github.com/rizom-ai/brains/commit/e70ab12745c6cf757f685389f4cd6de8991de95f)]:
+  - @brains/utils@0.2.0-alpha.266
+  - @brains/entity-service@0.2.0-alpha.266
+
 ## 0.2.0-alpha.265
 
 ### Patch Changes

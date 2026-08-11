@@ -71,7 +71,7 @@ setBootFn(async (cwd, definition, flags) => {
   await registerOverridePackages(overrides);
 
   // Convention-based local authoring: if brain.yaml does not pick a site
-  // package or theme explicitly, use ./src/site.ts and ./src/theme.css.
+  // package or theme explicitly, use ./src/site.tsx and ./src/theme.css.
   const effectiveOverrides = await registerConventionalSiteTheme(
     cwd,
     overrides,

@@ -20,6 +20,12 @@ describe("WishlistPlugin instructions", () => {
       "Availability is determined by the callable tool surface",
     );
     expect(instructions).toContain(
+      "Authorization and ownership boundaries are not missing capabilities",
+    );
+    expect(instructions).toContain(
+      "Do not search durable content to discover executable capabilities or permission workarounds",
+    );
+    expect(instructions).toContain(
       'in that same turn you MUST call system_create with entityType "wish"',
     );
     expect(instructions).toContain(

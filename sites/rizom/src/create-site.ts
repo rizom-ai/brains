@@ -2,8 +2,7 @@ import { extendSite } from "@brains/site-composition";
 import type {
   EntityDisplayEntry,
   RouteDefinitionInput,
-  SiteContentDefinition,
-  SiteDefinition,
+  SiteContent,
   SiteSectionGroup,
 } from "@rizom/site";
 import { rizomBaseSite } from "./runtime";
@@ -58,9 +57,9 @@ export interface CreateRizomSiteOptions {
   packageName: string;
   layout: unknown;
   routes: RouteDefinitionInput[];
-  content?: SiteContentDefinition | SiteContentDefinition[];
+  content?: SiteContent;
   /**
-   * Schema-first section groups (authored via `@rizom/site-sections`'
+   * Schema-first section groups (authored via `@rizom/site`'
    * `defineSection`/`sectionGroup`). Registered as content templates at brain
    * boot exactly like `content`, so the CMS + directory-sync + resolver treat
    * them identically — but the section shape is derived from one zod schema.
@@ -105,9 +104,7 @@ function createRuntimePlugin(
     );
 }
 
-export function createRizomSite(
-  options: CreateRizomSiteOptions,
-): SiteDefinition {
+export function createRizomSite(options: CreateRizomSiteOptions): SitePackage {
   const plugin = createRuntimePlugin(options);
 
   return extendSite(rizomBaseSite, {

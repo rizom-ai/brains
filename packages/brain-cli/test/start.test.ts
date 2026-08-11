@@ -326,7 +326,10 @@ describe("resolveRunnerType", () => {
     const stop = mock(async (): Promise<void> => {});
     const bootedBrain: BootedBrain = {
       getShell: () => ({
-        getMCPService: () => ({ getCliTools: () => [] }),
+        getMCPService: () => ({
+          getCliTools: () => [],
+          listTools: () => [],
+        }),
       }),
       stop,
     };

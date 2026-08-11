@@ -1,5 +1,85 @@
 # @rizom/brain
 
+## 0.2.0-alpha.278
+
+### Patch Changes
+
+- [`f2d2775`](https://github.com/rizom-ai/brains/commit/f2d2775d61177d5af16e3a839aed6d18de10a511) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Keep HTTP route snapshot bindings available across the separately bundled runtime entrypoints so canonical brains can start their webserver reliably.
+
+## 0.2.0-alpha.277
+
+## 0.2.0-alpha.276
+
+## 0.2.0-alpha.275
+
+### Patch Changes
+
+- [#101](https://github.com/rizom-ai/brains/pull/101) [`145761b`](https://github.com/rizom-ai/brains/commit/145761bf398e67161b4a4bcbad09aa60fea8e345) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Prevent Git pull and push subprocesses from leaving unmanaged automatic-maintenance descendants while retaining normal maintenance for local Git commands.
+
+## 0.2.0-alpha.274
+
+### Patch Changes
+
+- [#99](https://github.com/rizom-ai/brains/pull/99) [`ea55df8`](https://github.com/rizom-ai/brains/commit/ea55df836408c0d4111e69198d71a5775c1835ce) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Keep large remote-deletion pulls convergent by returning when the Git command exits even if a detached descendant retains its output pipe, batching targeted delete jobs in groups of 50 while accepting existing single-delete jobs, and isolating the packaged import soak from external AI work.
+
+## 0.2.0-alpha.273
+
+## 0.2.0-alpha.272
+
+### Patch Changes
+
+- [#92](https://github.com/rizom-ai/brains/pull/92) [`2c9cc6f`](https://github.com/rizom-ai/brains/commit/2c9cc6f38bfbd054baaf11b0d147ce7ae5c06bc9) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Introduce schema-backed package definitions, typed `use()` composition, object-referenced bundles, and declarative entity packages for the stable `0.2` authoring API. Entity definitions now compose runtime fields, generated markdown adapters, optional typed codecs, and scheduler-owned projections. Installed package metadata and peer compatibility are resolved by the loader, including external brain definitions booted from packed artifacts.
+
+  Bundled instances can explicitly disable provider-backed semantic indexing while retaining lexical full-text search. Exact bundled tool invocation supports structured input, generated confirmation replay, and explicit permission scopes.
+
+  Declarative service packages now infer setup state and config, expose schema-first tools with plain typed output, and register durable typed jobs with queue-owned retries, deadlines, progress, cancellation, status, and restart recovery. Resources, prompts, templates, views, and cleanup remain lifecycle-owned.
+
+  `@rizom/site` is now the sole site-authoring SDK, with canonical `defineSite()`, schema-first sections, a blessed schema vocabulary, initial content validation, and runtime-derived structural validation. App-managed builds preserve package CSS, global head scripts, and static assets. The removed alpha `@rizom/brain/site` subpath and `@rizom/site-sections` workspace package have no compatibility facade. Brand-specific `Rizom*` layout and chrome types are owned by `@rizom/site-rizom`, not the base SDK.
+
+  Generic and message interfaces now use declarative definitions for schema-validated routes, protocol authentication, canonical caller permissions, typed cross-package job enqueue, supervised daemon health and shutdown, channel registration, outbound delivery, normalized send/edit behavior, lazy attachments, and runtime-owned conversational progress. Declarative brains receive the shared HTTP host when they compose a generic interface, while interface plugins remain excluded from worker processes.
+
+  This intentionally removes alpha-only root and plugin authoring exports including `PLUGIN_API_VERSION`, class-first plugin APIs, tuple/factory contracts, factory package loading, and the root Zod convenience export. Family authoring entries own their blessed schema helpers.
+
+## 0.2.0-alpha.271
+
+### Patch Changes
+
+- [#93](https://github.com/rizom-ai/brains/pull/93) [`05e5df4`](https://github.com/rizom-ai/brains/commit/05e5df4583e7da138b927611557b50b6b23798f5) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Keep remote Git deletions authoritative by suppressing late entity exports until targeted delete jobs complete, reconciling files that survive a remote delete/modify merge, and covering concurrent cleanup in the packaged import-burst soak.
+
+## 0.2.0-alpha.270
+
+### Patch Changes
+
+- [#91](https://github.com/rizom-ai/brains/pull/91) [`38ca87e`](https://github.com/rizom-ai/brains/commit/38ca87e4ebe34f30abfe34f22cda42c27debae08) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Bound text and legacy binary directory imports with a configurable `maxImportFileBytes` limit (5 MiB by default), skip oversized files before reading or parsing them, and expose those skips as operational import issues without moving the source files.
+
+## 0.2.0-alpha.269
+
+### Patch Changes
+
+- [#90](https://github.com/rizom-ai/brains/pull/90) [`bbc7f08`](https://github.com/rizom-ai/brains/commit/bbc7f0834c241fde76d996224d7ef4392f94ab77) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Skip deserialization and schema validation when imported file content already matches the stored canonical hash, while still importing document sidecar metadata changes and reusing the prefetched entity lookup.
+
+## 0.2.0-alpha.268
+
+### Patch Changes
+
+- [#89](https://github.com/rizom-ai/brains/pull/89) [`eb42c08`](https://github.com/rizom-ai/brains/commit/eb42c089f3af3432375cd1ec45b943a862c5ddeb) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Suppress directory watcher echoes before auto-export creates, updates, or deletes entity files, including document sidecars, to avoid redundant re-import work.
+
+## 0.2.0-alpha.267
+
+### Patch Changes
+
+- [`1f94bde`](https://github.com/rizom-ai/brains/commit/1f94bdee59ea9e5a3b352657b1c74c36ca2af3ea) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Bump @modelcontextprotocol/sdk to 1.30.0, the v1 maintenance release with SSE keep-alive lifecycle fixes, stricter Content-Type validation, and security-advisory dependency updates.
+
+## 0.2.0-alpha.266
+
+### Patch Changes
+
+- [`e70ab12`](https://github.com/rizom-ai/brains/commit/e70ab12745c6cf757f685389f4cd6de8991de95f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Behavior-preserving quality refactors: shared SerialQueue/KeyedSerialQueue primitive in @brains/utils replacing five hand-rolled promise-tail mutexes; directory-sync stress system split into command runner, git checkout, and health monitor modules; job-queue worker heartbeat/deadline/error-callback dedup and table-generic schema column helpers; consolidated pilot starter staleness detection; single-pass HTTP route registry views; projection wave planning simplification with indexed graph edges.
+
+- [`f3987de`](https://github.com/rizom-ai/brains/commit/f3987de9284e09c8e6b693cc68a537f67467c884) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add first-class `public`, `shared`, and `restricted` visibility to `system_create` so agent-backed interfaces can save non-public notes and uploads without rewriting exact source material. Preserve the requested scope through confirmation, permission checks, direct persistence, and asynchronous upload promotion, and add personal/team routing eval coverage.
+
+  Let Trusted collaborators capture notes and links on every posture, not only on a team brain. The platform baseline is `"*": admin`, and only the team bundle granted those types, so `system_create` was offered to a Trusted caller and then refused with "Creating `note` requires Admin permission". The core bundle now grants `note` and `link` at Trusted for create and update, leaving delete, extract, and publish with Admin. Public callers remain unable to create either type.
+
 ## 0.2.0-alpha.265
 
 ### Patch Changes

@@ -7,7 +7,7 @@ setup:
 tags:
   - playbooks
   - tool-invocation
-  - bundle-core
+  - posture-personal
 
 turns:
   - userMessage: "Check the status of the onboarding playbook."

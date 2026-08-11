@@ -1,5 +1,11 @@
 # @rizom/site
 
+## 0.2.0-alpha.233
+
+### Patch Changes
+
+- [#92](https://github.com/rizom-ai/brains/pull/92) [`964de88`](https://github.com/rizom-ai/brains/commit/964de8838ad9a2b686a0031d540e6d2756318d2b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Keep the stable `@rizom/site` authoring SDK brand-neutral by moving the Rizom-specific frame, navigation, ecosystem, and footer contracts to `@rizom/site-rizom`.
+
 ## 0.2.0-alpha.232
 
 ### Minor Changes

@@ -74,6 +74,14 @@ export const importResultSchema: z.ZodType<ImportResult, ImportResult> =
         error: z.string(),
       }),
     ),
+    issues: z
+      .array(
+        z.object({
+          path: z.string(),
+          message: z.string(),
+        }),
+      )
+      .optional(),
     jobIds: z.array(z.string()),
   });
 

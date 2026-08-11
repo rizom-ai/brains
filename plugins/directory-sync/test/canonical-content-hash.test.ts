@@ -9,6 +9,7 @@ import {
   createMockEntityService,
 } from "@brains/test-utils";
 import { computeContentHash } from "@brains/utils/hash";
+import { TINY_PDF_BYTES } from "./fixtures";
 
 /**
  * Regression tests: contentHash should be hash of canonical (serialized) form,
@@ -128,8 +129,80 @@ describe("contentHash regression: canonical form, not raw content", () => {
     // Phase 3: re-import canonical file (simulating file watcher trigger after auto-sync)
     const result2 = await dirSync.importEntities(["note/my-note.md"]);
 
-    // Should skip — canonical content on disk matches canonical hash in DB
+    // Should skip before parsing — canonical content on disk matches the
+    // canonical hash in DB.
     expect(result2.skipped).toBe(1);
     expect(result2.imported).toBe(0);
+    expect(mockEntityService.deserializeEntity).toHaveBeenCalledTimes(1);
+
+    // A genuine content change still parses and imports.
+    writeFileSync(
+      join(testDir, "note", "my-note.md"),
+      `${canonicalContent}\nChanged`,
+    );
+    const result3 = await dirSync.importEntities(["note/my-note.md"]);
+    expect(result3.imported).toBe(1);
+    expect(mockEntityService.deserializeEntity).toHaveBeenCalledTimes(2);
+  });
+
+  it("imports a document metadata-only sidecar change", async () => {
+    mkdirSync(join(testDir, "document"), { recursive: true });
+    const documentPath = join(testDir, "document", "report.pdf");
+    const sidecarPath = `${documentPath}.meta.json`;
+    writeFileSync(documentPath, TINY_PDF_BYTES);
+    writeFileSync(
+      sidecarPath,
+      `${JSON.stringify({ filename: "report.pdf", pageCount: 1 })}\n`,
+    );
+
+    const dataUrl = `data:application/pdf;base64,${TINY_PDF_BYTES.toString("base64")}`;
+    const existing: BaseEntity = {
+      id: "report",
+      entityType: "document",
+      content: dataUrl,
+      visibility: "public",
+      metadata: {
+        mimeType: "application/pdf",
+        filename: "report.pdf",
+        pageCount: 1,
+      },
+      created: "2026-01-01T00:00:00.000Z",
+      updated: "2026-01-01T00:00:00.000Z",
+      contentHash: computeContentHash(dataUrl),
+    };
+    const documentService = createMockEntityService({
+      entityTypes: ["document"],
+    });
+    const getEntity = spyOn(documentService, "getEntity").mockResolvedValue(
+      existing,
+    );
+    const deserialize = spyOn(
+      documentService,
+      "deserializeEntity",
+    ).mockReturnValue({ entityType: "document", content: dataUrl });
+    const upsert = spyOn(documentService, "upsertEntity");
+    const dirSync = new DirectorySync({
+      syncPath: testDir,
+      entityService: documentService,
+      logger: createSilentLogger("document-sidecar-short-circuit"),
+    });
+
+    const unchanged = await dirSync.importEntities(["document/report.pdf"]);
+    expect(unchanged.skipped).toBe(1);
+    expect(deserialize).not.toHaveBeenCalled();
+    expect(upsert).not.toHaveBeenCalled();
+
+    writeFileSync(
+      sidecarPath,
+      `${JSON.stringify({ filename: "report.pdf", pageCount: 2 })}\n`,
+    );
+    const metadataChanged = await dirSync.importEntities([
+      "document/report.pdf",
+    ]);
+
+    expect(metadataChanged.imported).toBe(1);
+    expect(deserialize).toHaveBeenCalledTimes(1);
+    expect(upsert).toHaveBeenCalledTimes(1);
+    expect(getEntity).toHaveBeenCalledTimes(2);
   });
 });

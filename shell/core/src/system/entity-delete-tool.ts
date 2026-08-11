@@ -72,7 +72,10 @@ export function createEntityDeleteTool(services: SystemServices): Tool {
       const { entity } = resolved;
 
       if (input.confirmed) {
-        const gateError = confirmationGate.validateConfirmed(input);
+        const gateError = confirmationGate.validateConfirmed(
+          input.confirmationToken,
+          input,
+        );
         if (gateError) return gateError;
         try {
           await entityService.deleteEntity({

@@ -19,7 +19,7 @@ tags:
   - permissions
   - confirmation
   - regression
-  - bundle-core
+  - posture-personal
 
 turns:
   - userMessage: "Update the title of my note 'typescript-patterns' to TypeScript Patterns Shared Approval Probe."

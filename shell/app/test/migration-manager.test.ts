@@ -4,6 +4,7 @@ import {
   type IMigrationFunctions,
 } from "../src/migration-manager";
 import { createMockLogger } from "@brains/test-utils";
+import type { StandardConfig } from "@brains/core";
 import type { Logger } from "@brains/utils/logger";
 
 describe("MigrationManager", () => {
@@ -32,9 +33,9 @@ describe("MigrationManager", () => {
       authToken: "emb-token",
     },
     embedding: {
-      cacheDir: "/test/cache/embeddings",
+      enabled: true,
     },
-  };
+  } satisfies StandardConfig;
 
   beforeEach(() => {
     mockLogger = createMockLogger();
@@ -138,9 +139,9 @@ describe("MigrationManager", () => {
           authToken: undefined,
         },
         embedding: {
-          cacheDir: "/test/cache/embeddings",
+          enabled: true,
         },
-      };
+      } satisfies StandardConfig;
 
       mockMigrations.getStandardConfigWithDirectories = mock(() =>
         Promise.resolve(configWithoutTokens),

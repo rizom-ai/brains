@@ -1,0 +1,12 @@
+{
+  "name": "public-authoring-phase4-consumer",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "brain": "brain"
+  },
+  "dependencies": {
+    "@fixture/reading-site": "file:__SITE_TARBALL__",
+    "@rizom/brain": "file:__RIZOM_BRAIN_TARBALL__"
+  }
+}

@@ -300,7 +300,7 @@ describe("bundle resolver integration", () => {
 
   test("preserves conventional local site package resolution", () => {
     const localSite: SitePackage = {
-      layouts: { default: null },
+      layouts: { default: () => null },
       routes: [{ id: "home", path: "/", title: "Home" }],
       entityDisplay: {},
       plugin: (config) => createPlugin("local-site", config ?? {}),
@@ -324,7 +324,7 @@ describe("bundle resolver integration", () => {
     ]);
   });
 
-  test("preserves external plugin declarations and remove semantics", () => {
+  test("rejects external alpha plugin factory declarations", () => {
     registerPackage(
       "@rizom/brain-plugin-bundle-calendar",
       trackingFactory("calendar"),
@@ -336,29 +336,14 @@ describe("bundle resolver integration", () => {
       interfaces: [],
       bundles: [defineBundle({ id: "core", members: ["alpha"] })],
     });
-    const plugins = {
-      calendar: {
-        package: "@rizom/brain-plugin-bundle-calendar",
-        config: { timezone: "UTC" },
-      },
-    };
-
-    expect(
-      pluginIds(resolve(definition, {}, { bundles: ["core"], plugins })),
-    ).toEqual(["alpha", "calendar"]);
-    expect(
-      pluginIds(
-        resolve(
-          definition,
-          {},
-          {
-            bundles: ["core"],
-            plugins,
-            remove: ["calendar"],
-          },
-        ),
+    expect(() =>
+      parseInstanceOverrides(
+        'brain: "brain"\nbundles: [core]\nplugins:\n  calendar:\n    package: "@rizom/brain-plugin-bundle-calendar"',
       ),
-    ).toEqual(["alpha"]);
+    ).toThrow("removed alpha external-plugin contract");
+    expect(resolve(definition, {}, { bundles: ["core"] }).plugins).toHaveLength(
+      1,
+    );
   });
 
   test("creates fresh configs and plugins on repeated bundle resolution", () => {

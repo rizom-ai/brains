@@ -299,6 +299,23 @@ describe("PlaybooksPlugin", () => {
     expect(toolNames).toEqual(["playbook_manage"]);
   });
 
+  it("instructs named status checks to include the playbook id", async () => {
+    const harness = createPluginHarness({ dataDir: await tempStorageDir() });
+    const capabilities = await harness.installPlugin(playbooksPlugin({}));
+    const manageTool = capabilities.tools.find(
+      (tool) => tool.name === "playbook_manage",
+    );
+
+    expect(manageTool?.description).toContain(
+      "action=status MUST include playbookId whenever the user's request names a specific playbook",
+    );
+    expect(
+      JSON.stringify(z.toJSONSchema(z.object(manageTool?.inputSchema ?? {}))),
+    ).toContain(
+      "REQUIRED whenever the user's request names a specific playbook",
+    );
+  });
+
   it("declares playbook tool visibility and side effects", async () => {
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
     const capabilities = await harness.installPlugin(playbooksPlugin({}));

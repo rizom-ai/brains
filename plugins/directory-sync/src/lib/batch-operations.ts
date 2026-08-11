@@ -5,6 +5,7 @@ import type {
   BatchMetadata,
   BatchOperationResult,
   BatchResult,
+  DirectoryDeleteTarget,
 } from "../types";
 
 export type {
@@ -40,6 +41,7 @@ export class BatchOperationsManager {
   prepareBatchOperations(
     files: string[],
     includeCleanup: boolean = true,
+    deletions: DirectoryDeleteTarget[] = [],
   ): BatchOperationResult {
     const operations: BatchOperation[] = [];
 
@@ -47,8 +49,12 @@ export class BatchOperationsManager {
     operations.push(...importOps);
     const importOperationsCount = importOps.length;
 
-    if (includeCleanup && this.deleteOnFileRemoval) {
-      operations.push({ type: "directory-cleanup", data: {} });
+    if (this.deleteOnFileRemoval) {
+      operations.push(...this.createDeleteOperations(deletions));
+
+      if (includeCleanup) {
+        operations.push({ type: "directory-cleanup", data: {} });
+      }
     }
 
     const totalFiles = files.length;
@@ -73,8 +79,13 @@ export class BatchOperationsManager {
     files: string[],
     metadata?: BatchMetadata,
     includeCleanup: boolean = true,
+    deletions: DirectoryDeleteTarget[] = [],
   ): Promise<BatchResult | null> {
-    const batchData = this.prepareBatchOperations(files, includeCleanup);
+    const batchData = this.prepareBatchOperations(
+      files,
+      includeCleanup,
+      deletions,
+    );
 
     if (batchData.operations.length === 0) {
       this.logger.debug("No sync operations needed", { source });
@@ -105,6 +116,32 @@ export class BatchOperationsManager {
       importOperationsCount: batchData.importOperationsCount,
       totalFiles: batchData.totalFiles,
     };
+  }
+
+  private createDeleteOperations(
+    deletions: DirectoryDeleteTarget[],
+  ): BatchOperation[] {
+    const batchSize = 50;
+    const operations: BatchOperation[] = [];
+
+    for (let index = 0; index < deletions.length; index += batchSize) {
+      const batch = deletions.slice(index, index + batchSize);
+      const target = batch[0];
+      if (!target) continue;
+      operations.push({
+        type: "directory-delete",
+        data:
+          batch.length === 1
+            ? {
+                entityId: target.entityId,
+                entityType: target.entityType,
+                filePath: target.filePath,
+              }
+            : { deletions: batch },
+      });
+    }
+
+    return operations;
   }
 
   private createImportOperations(files: string[]): BatchOperation[] {

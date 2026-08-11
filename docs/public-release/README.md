@@ -79,16 +79,17 @@ The **canonical brain definition** is an ordered catalog of entities, plugins, a
 
 A **brain instance** selects explicit bundles in `brain.yaml` and supplies its own identity, domain, theme, plugin config, permissions, and content.
 
-**Entities** are typed content with a Zod schema, a markdown adapter, and an AI generation handler. Every entity is a markdown file with frontmatter, stored on disk and indexed in SQLite for search.
+**Entities** are typed content whose domain metadata schema is declared with `defineEntity()`. The runtime composes storage fields, markdown/frontmatter handling, validation, persistence, and search indexing.
 
-**Plugins** extend the brain. Public authoring base classes:
+**Packages** extend the brain through one declarative family:
 
-- `EntityPlugin` — defines a content type (e.g. blog posts, links, topics)
-- `ServicePlugin` — provides tools, jobs, and external integrations (e.g. site building, sync, analytics)
-- `InterfacePlugin` — exposes the brain via a non-chat transport or daemon (e.g. MCP, A2A, webserver)
-- `MessageInterfacePlugin` — optional chat/channel transport base for integrations like Discord, Slack, Teams, Matrix, or Telegram
+- `defineEntityPackage()` — durable content and deterministic projections;
+- `defineServicePlugin()` — tools, jobs, resources, templates, and integrations;
+- `defineInterface()` — non-chat routes and supervised listeners;
+- `defineMessageInterface()` — conversational and outbound channels; and
+- `defineSite()` from `@rizom/site` — layouts, content sections, routes, and assets.
 
-External plugins import these from `@rizom/brain/plugins` and are loaded through keyed `brain.yaml plugins:` entries.
+External packages default-export a definition. A brain-definition package imports those defaults and composes typed configured references through `use()`, `defineBundle()`, and `defineBrain()`. Runtime classes and YAML-loaded factories are not public authoring contracts. See the [exact `0.2` authoring ledger](./AUTHORING_API_0.2.md) and [alpha migration guide](./AUTHORING_0.2_MIGRATION.md).
 
 **Interfaces** are how users and other agents talk to your brain. Built-in: MCP, A2A, Discord, webserver, CLI.
 
@@ -180,7 +181,7 @@ docs/                 Architecture, plugin development, deployment, theming
 
 ## License
 
-Split model: the core (runtime, brain models, agents, CLI, deploy tooling, apps) is [AGPL-3.0-only](../../LICENSE); the SDK and contract packages (`@rizom/site`, `@rizom/site-sections`, `@rizom/ui`, the published `@rizom` themes, `@brains/contracts`, `@brains/atproto-contracts`) are Apache-2.0. Plugins, themes, and site packages built against the Apache-licensed interfaces are not considered derivative works of the runtime and may be licensed however their authors choose.
+Split model: the core (runtime, brain models, agents, CLI, deploy tooling, apps) is [AGPL-3.0-only](../../LICENSE); the SDK and contract packages (`@rizom/site`, `@rizom/ui`, the published `@rizom` themes, `@brains/contracts`, `@brains/atproto-contracts`) are Apache-2.0. Plugins, themes, and site packages built against the Apache-licensed interfaces are not considered derivative works of the runtime and may be licensed however their authors choose.
 
 ## Security
 

@@ -36,6 +36,7 @@ export interface ProcessSupervisorDependencies extends SpawnBunRunnerDependencie
   workerRestartWindowMs?: number;
   workerHeartbeatIntervalMs?: number;
   reportIncident?: (incident: Record<string, unknown>) => void;
+  reportReady?: (role: BrainChildRole) => void;
 }
 
 const defaultClock: SupervisorClock = {
@@ -118,6 +119,7 @@ interface RuntimeSupervisorOptions {
   workerRestartWindowMs: number;
   workerHeartbeatIntervalMs: number;
   reportIncident: (incident: Record<string, unknown>) => void;
+  reportReady: (role: BrainChildRole) => void;
 }
 
 interface ManagedChild {
@@ -376,18 +378,22 @@ function runRuntimeSupervisor(
       child.handleMessage = (message: unknown): void => {
         if (child.closed) return;
         if (role === "web" && hasMessageType(message, "runtime-ready")) {
+          if (child.ready) return;
           child.ready = true;
           clearChildTimers(child);
+          options.reportReady(role);
           scheduleWorker();
           return;
         }
         if (role === "worker" && hasMessageType(message, "worker-ready")) {
+          if (child.ready) return;
           child.ready = true;
           consecutiveWorkerFailures = 0;
           if (child.startupTimer !== undefined) {
             options.clock.clearTimeout(child.startupTimer);
             child.startupTimer = undefined;
           }
+          options.reportReady(role);
           armWorkerHeartbeatWatchdog(child);
           return;
         }
@@ -456,6 +462,11 @@ export function superviseRuntimeChildren(
       dependencies.reportIncident ??
       ((incident): void => {
         console.error(JSON.stringify(incident));
+      }),
+    reportReady:
+      dependencies.reportReady ??
+      ((role): void => {
+        console.log(`Brain ${role} runtime ready`);
       }),
   });
 }

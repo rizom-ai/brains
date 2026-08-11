@@ -1,33 +1,69 @@
 # External Site and Theme Authoring
 
-Site and theme packages are ordinary public npm packages. They may live in any
-repository and use only the published `@rizom/brain` API; hosted resolution does
-not depend on the Brains monorepo or the `@rizom` scope.
+> **Alpha preview for collaborators.** The last exact registry-tested combination
+> was `@rizom/brain@0.2.0-alpha.272` with `@rizom/site@0.2.0-alpha.233`. The
+> final candidates may advance after review; stable versions have not been
+> nominated.
 
-The reference implementation is
-[`rizom-ai/site-smoke-canary`](https://github.com/rizom-ai/site-smoke-canary).
-It is intentionally released from a standalone repository with plain
-`npm publish`, hand-authored peer metadata, and no private `@brains/*` tooling.
+Sites and themes are ordinary public npm packages and can live outside the
+Brains monorepo. `@rizom/site` is the sole structural authoring SDK; site,
+theme, and Brain versions are selected independently.
 
-## Required package metadata
+For the complete checked implementation, read the
+[reading-site fixture](../packages/brain-cli/test/fixtures/public-authoring/site/src/index.tsx).
+It passes isolated package typechecking and a running-app preview rebuild that
+inspects rendered layout, content, CSS, head scripts, routing, and assets.
 
-A deployable site must publish a manifest shaped like this:
+## Mental model
+
+```text
+section schema + component
+          │
+          ▼
+sectionGroup(namespace)
+          │
+          ├── typed content
+          └── route placements
+                    │
+                    ▼
+defineSite({ layouts, routes, sections, content, ... })
+```
+
+A site package owns structural presentation. It does not own runtime plugin
+behavior. Tools, jobs, data integrations, and backend listeners belong in
+focused entity/service/interface packages composed by the Brain definition.
+
+## Publishable site package
+
+A deployable site publishes built JavaScript and declarations. During this
+preview, pin `@rizom/site` exactly and declare the nominated Brain compatibility
+range:
 
 ```json
 {
   "name": "@scope/my-site",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "type": "module",
+  "files": ["dist"],
   "exports": {
-    ".": "./src/index.ts"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
   },
-  "files": ["src"],
+  "scripts": {
+    "check": "tsc --noEmit -p tsconfig.json",
+    "build": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@rizom/site": "0.2.0-alpha.233"
+  },
   "peerDependencies": {
-    "@rizom/brain": ">=0.2.0-alpha.233 <0.3.0",
+    "@rizom/brain": ">=0.2.0-alpha.272 <0.3.0",
     "preact": "^10.27.2"
   },
   "devDependencies": {
-    "@rizom/brain": "0.2.0-alpha.233",
+    "@rizom/brain": "0.2.0-alpha.272",
     "preact": "^10.27.2",
     "typescript": "^7.0.2"
   },
@@ -37,68 +73,164 @@ A deployable site must publish a manifest shaped like this:
 }
 ```
 
-The published npm packument and tarball must both:
+The published manifest and tarball must contain no `workspace:` ranges,
+authoring-only publish fields, private imports, or undeclared runtime
+dependencies. Hosted configuration selects exact site and theme package
+versions; it never infers either from the Brain version.
 
-- contain a standard `peerDependencies["@rizom/brain"]` range;
-- contain no `publishPeerDependencies` or `publishExports` fields;
-- contain no `workspace:` dependency ranges;
-- import only public `@rizom/brain` entry points, never private `@brains/*`
-  packages.
+## Structural definition
 
-External themes follow the same metadata rules and publish their brain range in
-`peerDependencies`. A site's version and an external theme's version are
-independent; do not infer one from the other.
+Import schema vocabulary and helpers from one package. A section schema both
+validates content and infers component props:
 
-## Compatibility rule
+```tsx
+import { defineSection, defineSite, sectionGroup, z } from "@rizom/site";
 
-While `@rizom/brain` is on the `0.2.0-alpha.*` line, declare compatibility as
-`>=<first-compatible> <0.3.0`. A release that first uses a newer hosting
-contract must advance the lower bound. A change to `@rizom/brain/site` or the
-runtime site loader that breaks existing packages must be called out in the
-brain release notes.
+const hero = defineSection(
+  z.object({ heading: z.string(), introduction: z.string() }),
+  ({ heading, introduction }) => (
+    <section class="hero">
+      <h1>{heading}</h1>
+      <p>{introduction}</p>
+    </section>
+  ),
+  { title: "Hero", description: "Page introduction" },
+);
 
-When the external authoring contract graduates to stable semver, breaking host
-changes advance the range ceiling in the usual way. A broad range is a promise
-that the package has been tested against that hosting contract, not decoration.
+const homeSections = sectionGroup("home", { hero });
 
-## Site export contract
+export default defineSite({
+  layouts: {
+    default: ({ title, sections }) => (
+      <html lang="en">
+        <head>
+          <title>{title}</title>
+        </head>
+        <body>
+          <main>{sections}</main>
+        </body>
+      </html>
+    ),
+  },
+  routes: [
+    {
+      id: "home",
+      path: "/",
+      title: "Home",
+      sections: [{ id: "hero", template: "home.hero" }],
+      navigation: { show: true, label: "Home", priority: 10 },
+    },
+  ],
+  sections: [homeSections],
+  content: {
+    home: {
+      hero: {
+        heading: "Welcome",
+        introduction: "A schema-first site.",
+      },
+    },
+  },
+  entityDisplay: {
+    article: {
+      label: "Article",
+      pluralName: "Articles",
+      navigation: { show: true, slot: "primary", priority: 20 },
+    },
+  },
+  themeOverride: ".hero { max-width: 48rem; margin: 4rem auto; }",
+  headScripts: [
+    `<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite"}</script>`,
+  ],
+  staticAssets: {
+    "robots.txt": "User-agent: *\nAllow: /\n",
+  },
+});
+```
 
-Export a `SitePackage` as the package's default export. Use the curated public
-subpaths for routes, plugins, templates, and schemas:
+### How names connect
+
+For `sectionGroup("home", { hero })`:
+
+- content lives at `content.home.hero`;
+- route placement uses `template: "home.hero"`;
+- `id: "hero"` identifies this placement within the route;
+- the component props are inferred from the `hero` schema.
+
+A mismatch in authored content fails `defineSite()` validation instead of
+reaching the renderer.
+
+## Stable structural fields
+
+| Field           | Purpose                                                                |
+| --------------- | ---------------------------------------------------------------------- |
+| `layouts`       | HTML page frames receiving title and rendered section output           |
+| `routes`        | Paths, titles, navigation metadata, and ordered section placements     |
+| `sections`      | Namespaced schema/component definitions                                |
+| `content`       | Schema-validated values keyed by section namespace and ID              |
+| `entityDisplay` | Labels and navigation hints for entity-backed pages                    |
+| `themeOverride` | Site-specific additive CSS applied over the selected independent theme |
+| `headScripts`   | Explicit trusted head markup such as JSON-LD                           |
+| `staticAssets`  | Text assets emitted at exact output paths                              |
+
+`defineSite()` never accepts an embedded `plugin`. Compose backend behavior as
+a separate default package definition through `use()` in the Brain package.
+
+## Theme package
+
+A theme is simpler than a site: its default JavaScript export is the complete
+CSS string. It does not import site structure or private build tooling.
 
 ```ts
-import { z } from "@rizom/brain";
-import type { SitePackage } from "@rizom/brain/site";
-import { ServicePlugin } from "@rizom/brain/plugins";
-import { createTemplate } from "@rizom/brain/templates";
+const themeCSS = `
+  :root {
+    --surface: #f7f4ed;
+    --ink: #181713;
+  }
+  body {
+    background: var(--surface);
+    color: var(--ink);
+  }
+`;
+
+export default themeCSS;
+export { themeCSS };
 ```
 
-The reference canary keeps its shipped TypeScript source and lets the Brain
-runtime transpile it. Packages may instead export built JavaScript and type
-declarations, provided the npm `exports` map points only at files included in
-the tarball.
+Publish the emitted JavaScript and declaration (`declare const themeCSS:
+string`). A theme that layers another public theme imports that package and
+exports the complete combined string. Hosted configuration pins the theme
+package and version separately from the site.
 
-## Verify and publish
-
-A standalone package does not need Changesets or Brains build tooling:
+## Build and review locally
 
 ```bash
-bun install --frozen-lockfile
-bun run typecheck
-bun test
-npm pack --dry-run
-npm publish --access public
+bun install
+bun run check
+bun run build
+bun pm pack
 ```
 
-Before publishing, inspect the dry-run file list and packed `package.json`.
-After publishing, verify standard registry metadata directly:
+Before publishing:
 
-```bash
-npm view @scope/my-site@1.0.0 peerDependencies --json
-npm view @scope/my-site@1.0.0 publishPeerDependencies
-```
+1. install the tarball in a clean Brain consumer;
+2. start the app;
+3. request an app-managed preview rebuild through the command surface;
+4. inspect `dist/site-preview` for every route, layout, section, style, head
+   script, and asset;
+5. verify the tarball and registry metadata contain only public dependencies
+   and exact intended versions.
 
-The second command must return no field. Keep hosted production configuration
-on an exact package version. Floating `latest` policy is reserved for a
-lock-backed canary; until that resolver is deployed, the Smoke instance also
-pins each standalone canary version exactly.
+Rendering source directly is not equivalent to the app-managed build path.
+The runtime resolves entity data, template names, theme layering, and output
+paths during that build.
+
+## Common mistakes
+
+| Symptom                                      | Correction                                                                           |
+| -------------------------------------------- | ------------------------------------------------------------------------------------ |
+| Content is accepted by TypeScript but fails  | Keep content under the section group's namespace and satisfy its schema              |
+| A route renders no section                   | Match `template: "namespace.sectionId"` to `sectionGroup(namespace, {...})`          |
+| The site imports `@rizom/brain/site`         | Import every structural helper from `@rizom/site`                                    |
+| The site embeds tools or a runtime plugin    | Move backend behavior into a separately composed extension package                   |
+| Theme and site versions move together        | Publish and pin them independently                                                   |
+| A static inspection passes but preview fails | Start the app and trigger the real preview rebuild before inspecting generated files |

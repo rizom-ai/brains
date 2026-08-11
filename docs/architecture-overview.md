@@ -110,7 +110,7 @@ brains/         Brain model packages
 packages/       Standalone distributable packages (for example @rizom/brain)
 ```
 
-A running brain is driven by an _instance directory_ centered on `brain.yaml` plus optional deploy/config files. The monorepo does not currently ship such instance directories; user instances are scaffolded outside the monorepo with `brain init`. Those generated instances also include support files such as `.env.example`, `.gitignore`, `tsconfig.json`, `package.json`, `src/site.ts`, and `src/theme.css` depending on model and options.
+A running brain is driven by an _instance directory_ centered on `brain.yaml` plus optional deploy/config files. The monorepo does not currently ship such instance directories; user instances are scaffolded outside the monorepo with `brain init`. Those generated instances also include support files such as `.env.example`, `.gitignore`, `tsconfig.json`, `package.json`, `src/site.tsx`, and `src/theme.css` depending on model and options.
 
 ## Current package map
 

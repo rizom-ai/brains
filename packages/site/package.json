@@ -1,6 +1,6 @@
 {
   "name": "@rizom/site",
-  "version": "0.2.0-alpha.232",
+  "version": "0.2.0-alpha.233",
   "description": "Public authoring SDK for Rizom site packages",
   "type": "module",
   "exports": {
@@ -14,6 +14,9 @@
     "test": "bun test",
     "lint": "eslint . --max-warnings 0",
     "lint:fix": "eslint . --max-warnings 0 --fix"
+  },
+  "dependencies": {
+    "zod": "^4.1.8"
   },
   "peerDependencies": {
     "preact": "^10.27.2"

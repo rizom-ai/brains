@@ -2,6 +2,9 @@ import { existsSync } from "fs";
 import { join } from "path";
 import { spawn } from "child_process";
 import type { CommandResult } from "../lib/command-result";
+import type { BootedBrain } from "../lib/boot";
+import type { ToolResponse } from "@brains/mcp-service";
+import type { UserPermissionLevel } from "@brains/templates";
 import { findRunner, resolveRunnerType } from "./start";
 import { parseBrainYaml } from "../lib/brain-yaml";
 import { getErrorMessage } from "@brains/utils/error";
@@ -47,6 +50,62 @@ export async function operate(
 }
 
 /**
+ * Boot the bundled runtime in register-only mode — no daemons, no events.
+ * A register-only boot always returns the App, so a missing brain means the
+ * entrypoint's boot function did not honour the mode it was given.
+ */
+async function bootRegisterOnly(
+  cwd: string,
+): Promise<{ brain: BootedBrain } | { failure: CommandResult }> {
+  const config = parseBrainYaml(cwd);
+  const definition = await loadDefinition(config.brain);
+  const { bootBrain } = await import("../lib/boot");
+  const brain = await bootBrain(cwd, definition, {
+    chat: false,
+    mode: "register-only",
+  });
+  if (!brain) {
+    return {
+      failure: {
+        success: false,
+        message: "Boot did not return a brain; cannot run CLI commands.",
+      },
+    };
+  }
+  return { brain };
+}
+
+/** Print a tool result and translate it into the shared command result. */
+function printToolResult(
+  result: ToolResponse,
+  onConfirmation: CommandResult,
+): CommandResult {
+  if ("needsConfirmation" in result) {
+    const detail = result.preview ? `\n\n${result.preview}` : "";
+    console.log(`Confirmation needed: ${result.summary}${detail}`);
+    return onConfirmation;
+  }
+
+  if (!result.success) {
+    console.error(`❌ ${result.error}`);
+    return { success: false, message: result.error };
+  }
+
+  if (result.message) {
+    console.log(result.message);
+  }
+  if (result.data !== undefined) {
+    console.log(
+      typeof result.data === "string"
+        ? result.data
+        : JSON.stringify(result.data, null, 2),
+    );
+  }
+
+  return { success: true };
+}
+
+/**
  * In-process operate: boot brain, find tool by CLI name, invoke, print, exit.
  */
 async function operateBuiltin(
@@ -55,28 +114,10 @@ async function operateBuiltin(
   args: string[],
   flags: Record<string, unknown>,
 ): Promise<CommandResult> {
-  const config = parseBrainYaml(cwd);
-
   try {
-    const definition = await loadDefinition(config.brain);
-    const { bootBrain } = await import("../lib/boot");
-
-    // Boot in register-only mode — no daemons, no events
-    const bootedBrain = await bootBrain(cwd, definition, {
-      chat: false,
-      mode: "register-only",
-    });
-
-    // After boot, the shell is initialized with tools registered. A boot in
-    // register-only mode always returns the App, so a missing brain means the
-    // entrypoint's boot function did not honour the mode it was given.
-    if (!bootedBrain) {
-      return {
-        success: false,
-        message: "Boot did not return a brain; cannot run CLI commands.",
-      };
-    }
-    const mcpService = bootedBrain.getShell().getMCPService();
+    const booted = await bootRegisterOnly(cwd);
+    if ("failure" in booted) return booted.failure;
+    const mcpService = booted.brain.getShell().getMCPService();
     const cliTools = mcpService.getCliTools();
     const match = cliTools.find((t) => t.tool.cli?.name === commandName);
 
@@ -100,34 +141,77 @@ async function operateBuiltin(
       userPermissionLevel: "admin",
     });
 
-    if ("needsConfirmation" in result) {
-      const detail = result.preview ? `\n\n${result.preview}` : "";
-      console.log(`Confirmation needed: ${result.summary}${detail}`);
-      return { success: true };
-    }
-
-    if (!result.success) {
-      console.error(`❌ ${result.error}`);
-      return { success: false, message: result.error };
-    }
-
-    if (result.message) {
-      console.log(result.message);
-    }
-    if (result.data !== undefined) {
-      console.log(
-        typeof result.data === "string"
-          ? result.data
-          : JSON.stringify(result.data, null, 2),
-      );
-    }
-
-    return { success: true };
+    return printToolResult(result, { success: true });
   } catch (error) {
     return {
       success: false,
       message: getErrorMessage(error, "Operation failed"),
     };
+  }
+}
+
+/** Invoke an exact tool name with structured input in the bundled runtime. */
+export async function operateRawTool(
+  cwd: string,
+  toolName: string,
+  input: unknown,
+  options: {
+    readonly confirm?: boolean | undefined;
+    readonly permission?: UserPermissionLevel | undefined;
+  } = {},
+): Promise<CommandResult> {
+  if (!existsSync(join(cwd, "brain.yaml"))) {
+    return {
+      success: false,
+      message: `No brain.yaml found in ${cwd}. Run 'brain init <dir>' first.`,
+    };
+  }
+  if (resolveRunnerType(cwd) !== "builtin") {
+    return {
+      success: false,
+      message: "Raw bundled tool invocation is unavailable in this runtime.",
+    };
+  }
+
+  let bootedBrain: BootedBrain | undefined;
+  try {
+    const booted = await bootRegisterOnly(cwd);
+    if ("failure" in booted) return booted.failure;
+    bootedBrain = booted.brain;
+
+    const mcpService = bootedBrain.getShell().getMCPService();
+    const tools = mcpService.listTools();
+    const match = tools.find(({ tool }) => tool.name === toolName);
+    if (!match) {
+      return {
+        success: false,
+        message: `Tool not found: ${toolName}. Available: ${tools
+          .map(({ tool }) => tool.name)
+          .join(", ")}`,
+      };
+    }
+
+    const context = {
+      interfaceType: "cli",
+      actor: { kind: "service" as const, serviceId: "brain-cli" },
+      userPermissionLevel: options.permission ?? "admin",
+    };
+    let result = await match.tool.handler(input, context);
+    if ("needsConfirmation" in result && options.confirm) {
+      result = await match.tool.handler(result.args, context);
+    }
+
+    return printToolResult(result, {
+      success: false,
+      message: "Confirmation required; rerun with --yes.",
+    });
+  } catch (error) {
+    return {
+      success: false,
+      message: getErrorMessage(error, "Raw tool operation failed"),
+    };
+  } finally {
+    await bootedBrain?.stop?.();
   }
 }
 

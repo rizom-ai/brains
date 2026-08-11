@@ -1,7 +1,7 @@
 {
   "name": "@brains/site-composition",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.265",
+  "version": "0.2.0-alpha.278",
   "description": "Shared site composition contract and merge helpers",
   "dependencies": {
     "@brains/content-formatters": "workspace:*",
@@ -12,7 +12,6 @@
     "@brains/eslint-config": "workspace:*",
     "@brains/typescript-config": "workspace:*",
     "@rizom/site": "workspace:*",
-    "@rizom/site-sections": "workspace:*",
     "eslint": "^10.5.0",
     "preact": "^10.27.2",
     "typescript": "^7.0.2"

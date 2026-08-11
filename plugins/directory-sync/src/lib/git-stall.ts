@@ -30,8 +30,12 @@ export async function runGitCommandWithStallTimeout(
   let onStall = (): void => {};
   let onAbort = (): void => {};
   let closed = false;
+  let processExited = false;
 
-  const child = Bun.spawn(["git", ...args], {
+  // Fetch/pull may detach maintenance while retaining this subprocess's pipes.
+  // Disable it only for the owned network command; ordinary local Git commands
+  // retain their normal automatic maintenance.
+  const child = Bun.spawn(["git", "-c", "maintenance.auto=false", ...args], {
     cwd: baseDir,
     stdout: "pipe",
     stderr: "pipe",
@@ -43,7 +47,7 @@ export async function runGitCommandWithStallTimeout(
     timerFiber = null;
   };
   const armStall = (): void => {
-    if (closed) return;
+    if (closed || processExited) return;
     cancelStallTimer();
     const delay = Effect.sleep(timeoutMs).pipe(
       Effect.andThen(Effect.sync(() => onStall())),
@@ -66,23 +70,53 @@ export async function runGitCommandWithStallTimeout(
       child.kill("SIGKILL");
     }
   };
-  const readOutput = (stream: ReadableStream<Uint8Array>): Promise<string> =>
-    new Response(
-      stream.pipeThrough(
-        new TransformStream<Uint8Array, Uint8Array>({
-          transform(chunk, controller): void {
-            armStall();
-            controller.enqueue(chunk);
-          },
-        }),
-      ),
-    ).text();
+  const captureOutput = (
+    stream: ReadableStream<Uint8Array>,
+  ): {
+    done: Promise<string>;
+    closeAfterExit(): Promise<string>;
+  } => {
+    const reader = stream.getReader();
+    const decoder = new TextDecoder();
+    let output = "";
+    let doneReading = false;
+    const readToEnd = async (): Promise<string> => {
+      const chunk = await reader.read();
+      if (chunk.done) return output + decoder.decode();
+      armStall();
+      output += decoder.decode(chunk.value, { stream: true });
+      return readToEnd();
+    };
+    const done = readToEnd().finally(() => {
+      doneReading = true;
+      reader.releaseLock();
+    });
+    // The operation awaits this after process exit; observe earlier stream errors now.
+    void done.catch(() => undefined);
 
-  const operation = Promise.all([
-    child.exited,
-    readOutput(child.stdout),
-    readOutput(child.stderr),
-  ]).then(([exitCode, stdout, stderr]) => {
+    return {
+      done,
+      async closeAfterExit(): Promise<string> {
+        // Detached Git maintenance can inherit these pipes after the Git
+        // command itself exits. Keep final output, then stop waiting on it.
+        if (!doneReading) {
+          await Promise.race([done.then(() => undefined), Bun.sleep(25)]);
+        }
+        if (!doneReading) await reader.cancel();
+        return done;
+      },
+    };
+  };
+
+  const stdoutCapture = captureOutput(child.stdout);
+  const stderrCapture = captureOutput(child.stderr);
+  const operation = child.exited.then(async (exitCode) => {
+    processExited = true;
+    cancelStallTimer();
+    const [stdout, stderr] = await Promise.all([
+      stdoutCapture.closeAfterExit(),
+      stderrCapture.closeAfterExit(),
+    ]);
     if (exitCode !== 0) {
       // Remote URLs may embed credentials; keep them out of errors and logs.
       const redact = (text: string): string =>
@@ -96,6 +130,7 @@ export async function runGitCommandWithStallTimeout(
   });
   const stalled = new Promise<never>((_resolve, reject) => {
     onStall = (): void => {
+      if (processExited) return;
       const error = new GitStallError(timeoutMs);
       reject(error);
       kill();

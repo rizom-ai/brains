@@ -1,6 +1,6 @@
 /** @jsxImportSource preact */
 import type { JSX, ComponentChildren } from "preact";
-import { z } from "@rizom/site-sections";
+import { z } from "@rizom/site";
 import { Button, Section, renderHighlightedText } from "@rizom/site-rizom";
 
 /**

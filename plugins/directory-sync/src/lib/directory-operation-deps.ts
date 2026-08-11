@@ -9,6 +9,7 @@ import type { ImportPipelineDeps } from "./import-pipeline";
 import type { MarkdownImageConverter } from "./markdown-image-converter";
 import type { Quarantine } from "./quarantine";
 import type { JobRequest } from "../types";
+import type { PendingDeleteRegistry } from "./pending-delete-registry";
 
 export interface DirectoryOperationDepsOptions {
   entityService: IEntityService;
@@ -18,6 +19,8 @@ export interface DirectoryOperationDepsOptions {
   quarantine: Quarantine;
   coverImageConverter: FrontmatterImageConverter;
   inlineImageConverter: MarkdownImageConverter;
+  maxImportFileBytes: number;
+  pendingDeletes: PendingDeleteRegistry;
   getJobQueueCallback: () => ((job: JobRequest) => Promise<string>) | undefined;
 }
 
@@ -47,6 +50,7 @@ export class DirectoryOperationDeps {
       fileOperations: this.options.fileOperations,
       quarantine: this.options.quarantine,
       imageJobQueue: this.createImageJobQueueDeps(),
+      maxImportFileBytes: this.options.maxImportFileBytes,
       entityTypes,
     };
   }
@@ -61,6 +65,13 @@ export class DirectoryOperationDeps {
       fileOperations: this.options.fileOperations,
       deleteOnFileRemoval,
       entityTypes,
+      onEntityDeleted: (entity): void => {
+        this.options.pendingDeletes.complete(
+          entity.entityType,
+          entity.id,
+          this.options.fileOperations.getEntityFilePath(entity),
+        );
+      },
     };
   }
 

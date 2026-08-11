@@ -62,6 +62,7 @@ export function emptyImportResult(
     quarantined: 0,
     quarantinedFiles: [],
     errors: [],
+    issues: [],
     jobIds: [],
     ...overrides,
   };
@@ -142,6 +143,9 @@ export function createMockDirectorySync(
     startWatching: mock(async () => {}),
     stopWatching: mock(() => Promise.resolve()),
     suppressWatchPaths: mock(() => {}),
+    recordPendingPullDeletes: mock(async () => {}),
+    isPendingDelete: mock(() => false),
+    completePendingDelete: mock(() => {}),
     setWatchCallback: mock(() => {}),
   };
   return Object.assign(base, overrides);

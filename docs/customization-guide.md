@@ -5,7 +5,7 @@
 1. configure the instance in `brain.yaml`
 2. edit content in `brain-data/`
 3. layer CSS in `src/theme.css`
-4. customize site structure in `src/site.ts`
+4. customize site structure in `src/site.tsx`
 5. write or enable plugins only when behavior or data models need to change
 
 ## Instance configuration
@@ -122,45 +122,57 @@ Read next: [Theming Guide](./theming-guide.md).
 
 ## Site and layout customization
 
-A site package is structural. It provides layouts, hand-written routes, a site plugin, entity display metadata, and optional static assets. Themes stay separate.
+A site package is structural. It provides layouts, hand-written routes, schema-first sections, initial content, entity display metadata, and optional static assets. Themes stay separate. Backend behavior belongs in a separate explicitly composed plugin.
 
 Generated standalone instances can include:
 
 ```text
-src/site.ts
+src/site.tsx
 ```
 
-When local `src/site.ts` exists, the runtime uses it by convention. If `brain.yaml` also selects `site.package`, that package is the structural base and the local file layers layouts, routes, plugin choices, and display metadata over it. Local `src/theme.css` still layers as a theme override.
+When local `src/site.tsx` exists, the runtime uses it by convention. If `brain.yaml` also selects `site.package`, that package is the structural base and the local file layers layouts, routes, sections, content, and display metadata over it. Local `src/theme.css` still layers as a theme override.
 
 ### Start from a shipped site
 
-Example local `src/site.ts` using the public site API:
+Example local `src/site.tsx` using the public site API:
 
-```ts
-import {
-  professionalSitePlugin,
-  ProfessionalLayout,
-  professionalRoutes,
-  type SitePackage,
-} from "@rizom/brain/site";
+```tsx
+import { defineSection, defineSite, sectionGroup, z } from "@rizom/site";
 
-const site: SitePackage = {
+const hero = defineSection(
+  z.object({ heading: z.string() }),
+  ({ heading }) => <h1>{heading}</h1>,
+  { title: "Hero", description: "Page introduction" },
+);
+
+export default defineSite({
   layouts: {
-    default: ProfessionalLayout,
+    default: ({ title, sections }) => (
+      <html>
+        <head>
+          <title>{title}</title>
+        </head>
+        <body>{sections}</body>
+      </html>
+    ),
   },
-  routes: professionalRoutes,
-  plugin: (config) => professionalSitePlugin(config ?? {}),
+  routes: [
+    {
+      id: "home",
+      path: "/",
+      title: "Home",
+      sections: [{ id: "hero", template: "home.hero" }],
+    },
+  ],
+  sections: [sectionGroup("home", { hero })],
+  content: { home: { hero: { heading: "Welcome" } } },
   entityDisplay: {
     post: { label: "Essay", pluralName: "essays" },
-    deck: { label: "Talk", pluralName: "talks" },
-    base: { label: "Note", navigation: { show: false } },
   },
-};
-
-export default site;
+});
 ```
 
-This example is a complete site package, so `site.package` may be omitted. Keep an explicit `site.package` when the local file contains only overrides and should inherit the shipped site's plugin, templates, datasources, and other structure.
+This example is a complete site package, so `site.package` may be omitted. Keep an explicit `site.package` when the local file contains only structural overrides.
 
 ### Entity display metadata
 
@@ -246,12 +258,14 @@ Use existing layouts as references:
 A site package can include static assets that the site builder writes during builds:
 
 ```ts
-const site: SitePackage = {
-  // ...
+export default defineSite({
+  layouts,
+  routes,
+  entityDisplay,
   staticAssets: {
     "/canvases/tree.js": treeScript,
   },
-};
+});
 ```
 
 Use this for package-owned scripts, fonts, or small static files that should ship with the site structure.
@@ -328,7 +342,7 @@ The project is still pre-stable in the `0.x` series. Build against documented su
 - CLI commands
 - system tool names
 - entity markdown contracts
-- public exports such as `@rizom/brain/site`
+- public exports such as `@rizom/site`
 
 Avoid deep imports into shell internals or package-private implementation files. See [STABILITY.md](../STABILITY.md).
 

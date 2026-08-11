@@ -31,7 +31,18 @@ export function setupAutoSync(
       const { entity } = message.payload;
 
       try {
-        await getDirectorySync().fileOps.writeEntity(entity);
+        const directorySync = getDirectorySync();
+        if (directorySync.isPendingDelete(entity.entityType, entity.id)) {
+          logger.debug("Skipping export for pull-deleted entity", {
+            id: entity.id,
+            entityType: entity.entityType,
+          });
+          return { success: true };
+        }
+        directorySync.suppressWatchPaths(
+          directorySync.fileOps.getEntityWritePaths(entity),
+        );
+        await directorySync.fileOps.writeEntity(entity);
         logger.debug("Auto-exported created entity", {
           id: entity.id,
           entityType: entity.entityType,
@@ -61,6 +72,14 @@ export function setupAutoSync(
       const { entityType, entityId } = message.payload;
 
       try {
+        const directorySync = getDirectorySync();
+        if (directorySync.isPendingDelete(entityType, entityId)) {
+          logger.debug("Skipping export for pull-deleted entity", {
+            id: entityId,
+            entityType,
+          });
+          return { success: true };
+        }
         const currentEntity = await entityService.getEntity({
           entityType: entityType,
           id: entityId,
@@ -73,7 +92,10 @@ export function setupAutoSync(
           return { success: false };
         }
 
-        await getDirectorySync().fileOps.writeEntity(currentEntity);
+        directorySync.suppressWatchPaths(
+          directorySync.fileOps.getEntityWritePaths(currentEntity),
+        );
+        await directorySync.fileOps.writeEntity(currentEntity);
         logger.debug("Auto-exported updated entity", {
           id: currentEntity.id,
           entityType: currentEntity.entityType,
@@ -101,15 +123,14 @@ export function setupAutoSync(
     async (message) => {
       const { entityId, entityType } = message.payload;
 
-      const filePath = getDirectorySync().fileOps.getFilePath(
-        entityId,
-        entityType,
-      );
+      const directorySync = getDirectorySync();
+      const filePath = directorySync.fileOps.getFilePath(entityId, entityType);
       const exists = await access(filePath).then(
         () => true,
         () => false,
       );
       if (exists) {
+        directorySync.suppressWatchPaths([filePath]);
         await unlink(filePath);
         logger.debug("Auto-deleted entity file", {
           id: entityId,

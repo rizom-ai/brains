@@ -1,5 +1,150 @@
 # @brains/job-queue
 
+## 0.2.0-alpha.278
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.278
+  - @brains/db@0.2.0-alpha.278
+  - @brains/operation-context@0.2.0-alpha.278
+  - @brains/utils@0.2.0-alpha.278
+  - @brains/mcp-service@0.2.0-alpha.278
+
+## 0.2.0-alpha.277
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.277
+  - @brains/db@0.2.0-alpha.277
+  - @brains/operation-context@0.2.0-alpha.277
+  - @brains/utils@0.2.0-alpha.277
+  - @brains/mcp-service@0.2.0-alpha.277
+
+## 0.2.0-alpha.276
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.276
+  - @brains/db@0.2.0-alpha.276
+  - @brains/operation-context@0.2.0-alpha.276
+  - @brains/utils@0.2.0-alpha.276
+  - @brains/mcp-service@0.2.0-alpha.276
+
+## 0.2.0-alpha.275
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.275
+  - @brains/db@0.2.0-alpha.275
+  - @brains/operation-context@0.2.0-alpha.275
+  - @brains/utils@0.2.0-alpha.275
+  - @brains/mcp-service@0.2.0-alpha.275
+
+## 0.2.0-alpha.274
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.274
+  - @brains/db@0.2.0-alpha.274
+  - @brains/operation-context@0.2.0-alpha.274
+  - @brains/utils@0.2.0-alpha.274
+  - @brains/mcp-service@0.2.0-alpha.274
+
+## 0.2.0-alpha.273
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.273
+  - @brains/db@0.2.0-alpha.273
+  - @brains/operation-context@0.2.0-alpha.273
+  - @brains/utils@0.2.0-alpha.273
+  - @brains/mcp-service@0.2.0-alpha.273
+
+## 0.2.0-alpha.272
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.272
+  - @brains/db@0.2.0-alpha.272
+  - @brains/operation-context@0.2.0-alpha.272
+  - @brains/utils@0.2.0-alpha.272
+  - @brains/mcp-service@0.2.0-alpha.272
+
+## 0.2.0-alpha.271
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.271
+  - @brains/db@0.2.0-alpha.271
+  - @brains/operation-context@0.2.0-alpha.271
+  - @brains/utils@0.2.0-alpha.271
+  - @brains/mcp-service@0.2.0-alpha.271
+
+## 0.2.0-alpha.270
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.270
+  - @brains/db@0.2.0-alpha.270
+  - @brains/operation-context@0.2.0-alpha.270
+  - @brains/utils@0.2.0-alpha.270
+  - @brains/mcp-service@0.2.0-alpha.270
+
+## 0.2.0-alpha.269
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.269
+  - @brains/db@0.2.0-alpha.269
+  - @brains/operation-context@0.2.0-alpha.269
+  - @brains/utils@0.2.0-alpha.269
+  - @brains/mcp-service@0.2.0-alpha.269
+
+## 0.2.0-alpha.268
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.268
+  - @brains/db@0.2.0-alpha.268
+  - @brains/operation-context@0.2.0-alpha.268
+  - @brains/utils@0.2.0-alpha.268
+  - @brains/mcp-service@0.2.0-alpha.268
+
+## 0.2.0-alpha.267
+
+### Patch Changes
+
+- Updated dependencies [[`1f94bde`](https://github.com/rizom-ai/brains/commit/1f94bdee59ea9e5a3b352657b1c74c36ca2af3ea)]:
+  - @brains/mcp-service@0.2.0-alpha.267
+  - @brains/contracts@0.2.0-alpha.267
+  - @brains/db@0.2.0-alpha.267
+  - @brains/operation-context@0.2.0-alpha.267
+  - @brains/utils@0.2.0-alpha.267
+
+## 0.2.0-alpha.266
+
+### Patch Changes
+
+- [`e70ab12`](https://github.com/rizom-ai/brains/commit/e70ab12745c6cf757f685389f4cd6de8991de95f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Behavior-preserving quality refactors: shared SerialQueue/KeyedSerialQueue primitive in @brains/utils replacing five hand-rolled promise-tail mutexes; directory-sync stress system split into command runner, git checkout, and health monitor modules; job-queue worker heartbeat/deadline/error-callback dedup and table-generic schema column helpers; consolidated pilot starter staleness detection; single-pass HTTP route registry views; projection wave planning simplification with indexed graph edges.
+
+- Updated dependencies [[`e70ab12`](https://github.com/rizom-ai/brains/commit/e70ab12745c6cf757f685389f4cd6de8991de95f)]:
+  - @brains/utils@0.2.0-alpha.266
+  - @brains/contracts@0.2.0-alpha.266
+  - @brains/db@0.2.0-alpha.266
+  - @brains/mcp-service@0.2.0-alpha.266
+  - @brains/operation-context@0.2.0-alpha.266
+
 ## 0.2.0-alpha.265
 
 ### Patch Changes

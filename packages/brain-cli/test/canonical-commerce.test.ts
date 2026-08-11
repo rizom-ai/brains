@@ -156,21 +156,4 @@ describe("canonical commerce posture", () => {
       expect(pluginIds(resolved)).toContain(id);
     }
   });
-
-  test("supports external extension declarations without policy bundles", () => {
-    const resolved = resolve(
-      canonicalBrain,
-      {},
-      commerceOverrides({
-        plugins: {
-          commerceExtension: {
-            package: "@fixture/commerce-extension",
-            config: { enabled: true },
-          },
-        },
-      }),
-    );
-
-    expect(pluginIds(resolved)).toContain("stock-photo");
-  });
 });

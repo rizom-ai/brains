@@ -104,7 +104,7 @@ describe("parseBrainYaml AI model field", () => {
     expect(config.model).toBeUndefined();
   });
 
-  it("should parse external plugin declarations", () => {
+  it("should reject removed external plugin declarations", () => {
     writeFileSync(
       join(testDir, "brain.yaml"),
       `brain: brain
@@ -112,17 +112,11 @@ bundles: [core]
 plugins:
   calendar:
     package: "@rizom/brain-plugin-calendar"
-    config:
-      timezone: UTC
 `,
     );
-    const config = parseBrainYaml(testDir);
-    expect(config.plugins?.["calendar"]).toEqual({
-      package: "@rizom/brain-plugin-calendar",
-      config: {
-        timezone: "UTC",
-      },
-    });
+    expect(() => parseBrainYaml(testDir)).toThrow(
+      "removed alpha external-plugin contract",
+    );
   });
 
   it("should reject list-form plugins", () => {

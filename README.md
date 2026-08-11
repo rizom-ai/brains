@@ -160,7 +160,7 @@ This project is currently maintainer-led. Bug reports, documentation fixes, and 
 This repository uses a split licensing model:
 
 - **Core** — the runtime, brain models, agents, interfaces, plugins, the `@rizom/brain` CLI, deploy tooling, and apps — is licensed under [AGPL-3.0-only](LICENSE).
-- **SDK and contract packages** — `@rizom/site`, `@rizom/site-sections`, `@rizom/ui`, `@rizom/theme-default`, `@rizom/theme-signal`, `@rizom/theme-rizom-ai`, `@brains/contracts`, and `@brains/atproto-contracts` — are licensed under Apache-2.0 (see the `LICENSE` file in each package directory).
+- **SDK and contract packages** — `@rizom/site`, `@rizom/ui`, `@rizom/theme-default`, `@rizom/theme-signal`, `@rizom/theme-rizom-ai`, `@brains/contracts`, and `@brains/atproto-contracts` — are licensed under Apache-2.0 (see the `LICENSE` file in each package directory).
 
 Plugins, themes, and site packages built against the Apache-licensed interfaces are **not** considered derivative works of the runtime and may be licensed however their authors choose. In particular, importing types and interfaces from `@rizom/brain` for the purpose of authoring a plugin, theme, or site package does not, by itself, make the resulting work a derivative of the AGPL-licensed runtime.
 

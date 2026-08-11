@@ -173,7 +173,7 @@ agePublicKey: age1testpublickey
 domainOverride: rizom.work
 cloudflareZoneId: rizom-work-zone
 contentRepoOverride: rizom-ai/rizom-work-content
-profileKind: collective
+profileKind: organization
 addOverride:
   - docs
 siteOverride:
@@ -193,7 +193,7 @@ discord:
     expect(registry.users[0]?.domain).toBe("rizom.work");
     expect(registry.users[0]?.cloudflareZoneId).toBe("rizom-work-zone");
     expect(registry.users[0]?.contentRepo).toBe("rizom-ai/rizom-work-content");
-    expect(registry.users[0]?.profileKind).toBe("collective");
+    expect(registry.users[0]?.profileKind).toBe("organization");
     expect(registry.users[0]?.add).toEqual(["docs"]);
     expect(registry.users[0]?.siteOverride).toEqual({
       package: "@rizom/site-rizom-work",
@@ -438,5 +438,41 @@ discord:
         "users/alice.yaml must declare handle: alice",
       );
     }
+  });
+});
+
+describe("profile kind validation", () => {
+  it("rejects profile kinds no runtime registers at parse time", () => {
+    const result = userSchema.safeParse({
+      handle: "rizom-ai",
+      discord: { enabled: false },
+      profileKind: "collective",
+    });
+    expect(result.success).toBeFalse();
+    if (!result.success) {
+      expect(JSON.stringify(result.error.issues)).toContain("profileKind");
+    }
+  });
+
+  it("accepts every runtime-registered profile kind", () => {
+    for (const kind of ["professional", "team", "organization"]) {
+      expect(
+        userSchema.safeParse({
+          handle: "rizom-ai",
+          discord: { enabled: false },
+          profileKind: kind,
+        }).success,
+      ).toBeTrue();
+    }
+  });
+
+  it("stays in lockstep with the runtime's built-in profile kinds", async () => {
+    const { BUILT_IN_PROFILE_KINDS } = await import("@brains/profile");
+    const { PROFILE_KINDS } = await import("../src/schema");
+    expect([...PROFILE_KINDS].map(String).sort()).toEqual(
+      BUILT_IN_PROFILE_KINDS.map(
+        (definition: { kind: string }) => definition.kind,
+      ).sort(),
+    );
   });
 });

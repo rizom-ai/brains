@@ -7,7 +7,7 @@ setup:
 tags:
   - agent-discovery
   - tool-invocation
-  - bundle-core
+  - posture-personal
 
 turns:
   - userMessage: "Who in my network should I consult about branding?"

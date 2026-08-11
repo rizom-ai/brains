@@ -82,6 +82,16 @@ export interface DeployedDirectorySyncStressOptions {
   sleep?: (milliseconds: number) => Promise<void>;
 }
 
+export interface VerifyDirectorySyncStressAccessOptions {
+  rootDir: string;
+  handle: string;
+  confirmation: string;
+  artifactsDir?: string;
+  env?: NodeJS.ProcessEnv;
+  commandRunner?: StressCommandRunner;
+  now?: () => Date;
+}
+
 export interface CleanupDirectorySyncStressOptions {
   rootDir: string;
   handle: string;
@@ -104,6 +114,18 @@ export interface DeployedDirectorySyncStressResult {
   startedAt: string;
   completedAt: string;
   report: DirectorySyncStressReport;
+}
+
+export interface VerifyDirectorySyncStressAccessResult {
+  success: true;
+  artifactsDir: string;
+  checkedAt: string;
+  remoteHead: string;
+  target: {
+    handle: string;
+    domain: string;
+    contentRepo: string;
+  };
 }
 
 export interface CleanupDirectorySyncStressResult {
@@ -137,6 +159,7 @@ export async function runDeployedDirectorySyncStress(
     contentRepo: user.contentRepo,
     confirmation: options.confirmation,
   });
+  assertHermeticDirectorySyncPosture(user);
 
   const environment = requiredEnvironmentSchema.parse(
     options.env ?? process.env,
@@ -180,6 +203,74 @@ export async function runDeployedDirectorySyncStress(
   };
   await writeStressArtifacts(result);
   return result;
+}
+
+export async function verifyDirectorySyncStressAccess(
+  options: VerifyDirectorySyncStressAccessOptions,
+): Promise<VerifyDirectorySyncStressAccessResult> {
+  const now: () => Date = options.now ?? ((): Date => new Date());
+  const checkedAt = now().toISOString();
+  const runId = createRunId(checkedAt);
+  const artifactsDir = resolve(
+    options.artifactsDir ??
+      join(options.rootDir, ".brains-ops", "stress", `access-check-${runId}`),
+  );
+  await mkdir(artifactsDir, { recursive: true });
+
+  const { pilot, user } = await resolveStressUser(
+    options.rootDir,
+    options.handle,
+  );
+  assertDirectorySyncStressTarget({
+    handle: user.handle,
+    domain: user.domain,
+    contentRepo: user.contentRepo,
+    confirmation: options.confirmation,
+  });
+  assertHermeticDirectorySyncPosture(user);
+
+  const token = (options.env ?? process.env)["CONTENT_REPO_ADMIN_TOKEN"];
+  if (!token) {
+    throw new Error("Missing CONTENT_REPO_ADMIN_TOKEN");
+  }
+
+  const temporaryRoot = await mkdtemp(
+    join(tmpdir(), "brains-ops-directory-sync-access-check-"),
+  );
+  try {
+    const checkout = await GitCheckout.clone(
+      options.commandRunner ?? runStressCommand,
+      `${pilot.githubOrg}/${user.contentRepo}`,
+      join(temporaryRoot, "content"),
+      token,
+    );
+    const remoteHead = await checkout.output(["rev-parse", "HEAD"]);
+    await checkout.run([
+      "push",
+      "--dry-run",
+      "origin",
+      `HEAD:refs/heads/ops/directory-sync-stress-access-check-${runId}`,
+    ]);
+
+    const result: VerifyDirectorySyncStressAccessResult = {
+      success: true,
+      artifactsDir,
+      checkedAt,
+      remoteHead,
+      target: {
+        handle: user.handle,
+        domain: user.domain,
+        contentRepo: `${pilot.githubOrg}/${user.contentRepo}`,
+      },
+    };
+    await writeFile(
+      join(artifactsDir, "access-check.json"),
+      `${JSON.stringify(result, null, 2)}\n`,
+    );
+    return result;
+  } finally {
+    await rm(temporaryRoot, { recursive: true, force: true });
+  }
 }
 
 export async function cleanupDirectorySyncStress(
@@ -256,6 +347,10 @@ export async function cleanupDirectorySyncStress(
   }
 }
 
+interface InspectedContainerState extends StressContainerState {
+  startedAt: string;
+}
+
 interface SystemDriverOptions {
   runId: string;
   artifactsDir: string;
@@ -281,7 +376,7 @@ class SystemDirectorySyncStressDriver implements DirectorySyncStressDriver {
   #container: string | undefined;
   #backupBranch: string | undefined;
   #originalTree: string | undefined;
-  #initialContainerState: StressContainerState | undefined;
+  #initialContainerState: InspectedContainerState | undefined;
 
   constructor(options: SystemDriverOptions) {
     this.#options = options;
@@ -574,20 +669,24 @@ class SystemDirectorySyncStressDriver implements DirectorySyncStressDriver {
       join(this.#options.artifactsDir, "health-samples.json"),
       `${JSON.stringify(this.#monitor.healthSamples, null, 2)}\n`,
     );
+    let externalAiCalls = 0;
     if (this.#container && this.#monitor.startedAt) {
       const logs = await this.#ssh(
         ["docker", "logs", "--since", this.#monitor.startedAt, this.#container],
         false,
       );
+      const runtimeLog = `${logs.stdout}${logs.stderr}`;
+      externalAiCalls = runtimeLog.match(/\] ai:usage \{/g)?.length ?? 0;
       await writeFile(
         join(this.#options.artifactsDir, "runtime.log"),
-        `${logs.stdout}${logs.stderr}`,
+        runtimeLog,
       );
     }
     const container = await this.#readContainerState();
     const metrics: StressMetrics = {
       health: this.#monitor.gateHealthSamples(),
       runtime: [...this.#monitor.runtimeSamples],
+      externalAiCalls,
       ...(container ? { container } : {}),
     };
     if (this.#monitor.error) {
@@ -603,7 +702,7 @@ class SystemDirectorySyncStressDriver implements DirectorySyncStressDriver {
     }
   }
 
-  async #readContainerState(): Promise<StressContainerState | undefined> {
+  async #readContainerState(): Promise<InspectedContainerState | undefined> {
     if (!this.#container) return undefined;
     const result = await this.#ssh(
       ["docker", "inspect", this.#container],
@@ -618,22 +717,28 @@ class SystemDirectorySyncStressDriver implements DirectorySyncStressDriver {
             State: z.object({
               Status: z.string(),
               OOMKilled: z.boolean(),
+              StartedAt: z.string().min(1),
             }),
           }),
         )
         .parse(JSON.parse(result.stdout));
       const inspection = inspections[0];
       if (!inspection) return undefined;
+      const reportedRestarts = Math.max(
+        0,
+        inspection.RestartCount -
+          (this.#initialContainerState?.restartCount ?? 0),
+      );
+      const manuallyRestarted =
+        this.#initialContainerState !== undefined &&
+        inspection.State.StartedAt !== this.#initialContainerState.startedAt;
       return {
         status: inspection.State.Status,
-        restartCount: Math.max(
-          0,
-          inspection.RestartCount -
-            (this.#initialContainerState?.restartCount ?? 0),
-        ),
+        restartCount: Math.max(reportedRestarts, manuallyRestarted ? 1 : 0),
         oomKilled:
           inspection.State.OOMKilled &&
           !(this.#initialContainerState?.oomKilled ?? false),
+        startedAt: inspection.State.StartedAt,
       };
     } catch {
       return undefined;
@@ -768,6 +873,19 @@ class SystemDirectorySyncStressDriver implements DirectorySyncStressDriver {
     ) {
       throw new Error("Directory-sync stress driver is not prepared");
     }
+  }
+}
+
+function assertHermeticDirectorySyncPosture(user: ResolvedUser): void {
+  if (user.embeddingEnabled !== false) {
+    throw new Error(
+      "Directory-sync stress requires embeddingEnabled: false for a hermetic smoke workload",
+    );
+  }
+  if (user.topicExtractionEnabled !== false) {
+    throw new Error(
+      "Directory-sync stress requires topicExtractionEnabled: false for a hermetic smoke workload",
+    );
   }
 }
 
@@ -987,6 +1105,7 @@ function renderStressMarkdown(
     `- Memory max: ${formatPercent(memory.length ? Math.max(...memory) : undefined)}`,
     `- PIDs max: ${runtime.length ? Math.max(...runtime.map((sample) => sample.pids)) : "n/a"}`,
     `- Container status/restarts/OOM: ${result.report.metrics.container ? `${result.report.metrics.container.status} / ${result.report.metrics.container.restartCount} / ${result.report.metrics.container.oomKilled}` : "unknown"}`,
+    `- External AI calls: ${result.report.metrics.externalAiCalls ?? 0}`,
     `- Health samples: ${health.length}`,
     `- Health failures: ${failures.length}`,
     "",

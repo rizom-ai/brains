@@ -1,14 +1,15 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, test } from "bun:test";
+import { h } from "preact";
 import { NavigationSlots, type SiteDefinition } from "../src";
 
 describe("@rizom/site authoring SDK", () => {
-  test("exposes zod-free authoring primitives", () => {
+  test("exposes canonical authoring primitives", () => {
     expect(NavigationSlots).toEqual(["primary", "secondary"]);
 
     const site: SiteDefinition = {
-      layouts: { default: {} },
+      layouts: { default: () => h("main", null) },
       routes: [{ id: "home", path: "/", sections: [] }],
       entityDisplay: {},
       themeOverride: ":root { --accent: currentColor; }",
@@ -29,6 +30,7 @@ describe("@rizom/site authoring SDK", () => {
     };
 
     expect(JSON.stringify(runtimeManifest)).not.toContain("@brains/");
+    expect(manifest.dependencies).toEqual({ zod: "^4.1.8" });
     expect(manifest.peerDependencies).toEqual({ preact: "^10.27.2" });
   });
 });

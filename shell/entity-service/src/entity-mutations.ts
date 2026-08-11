@@ -133,6 +133,7 @@ export interface EntityMutationDeps {
   projectionStore: ProjectionStore;
   /** Embedding DB for writes (separate from entity DB). */
   embeddingDb: EmbeddingDB;
+  embeddingsEnabled: boolean;
 }
 
 /**
@@ -149,6 +150,7 @@ export class EntityMutations {
   private messageBus?: EntityEventBus;
   private mutationAdmission?: EntityMutationAdmission;
   private readonly projectionStore: ProjectionStore;
+  private readonly embeddingsEnabled: boolean;
   private projectionWakeup: (() => Promise<void>) | undefined;
   private logger: Logger;
 
@@ -160,6 +162,7 @@ export class EntityMutations {
     this.entityQueries = deps.entityQueries;
     this.jobQueueService = deps.jobQueueService;
     this.projectionStore = deps.projectionStore;
+    this.embeddingsEnabled = deps.embeddingsEnabled;
     this.logger = deps.logger.child("EntityMutations");
     if (deps.messageBus) {
       this.messageBus = deps.messageBus;
@@ -668,6 +671,13 @@ export class EntityMutations {
   }
 
   public async backfillMissingEmbeddings(): Promise<EmbeddingBackfillResult> {
+    if (!this.embeddingsEnabled) {
+      this.logger.debug(
+        "Skipping embedding backfill; semantic indexing is disabled",
+      );
+      return { queued: 0, skipped: 0 };
+    }
+
     const candidates = await this.getEmbeddingBackfillCandidates();
 
     if (candidates.tableMissing) {
@@ -957,9 +967,13 @@ export class EntityMutations {
     } = params;
 
     const entityConfig = this.entityRegistry.getEntityTypeConfig(entityType);
-    if (entityConfig.embeddable === false) {
+    if (!this.embeddingsEnabled || entityConfig.embeddable === false) {
       this.logger.debug(
-        `Skipping embedding for non-embeddable entity type: ${entityType}:${entityId}`,
+        `Skipping embedding for ${
+          this.embeddingsEnabled
+            ? "non-embeddable entity type"
+            : "disabled indexing"
+        }: ${entityType}:${entityId}`,
       );
       return { entityId, jobId: "", skipped: false };
     }

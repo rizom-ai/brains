@@ -4,7 +4,9 @@ import { createPluginHarness } from "@brains/plugins/test";
 import { SwotAdapter, SwotAssessmentPlugin } from "../src";
 import { AgentAdapter, SkillAdapter } from "./helpers";
 import {
+  buildDraftPromptFallback,
   buildPromptContext,
+  buildRefinementPromptFallback,
   SwotDerivationHandler,
 } from "../src/handlers/swot-derivation-handler";
 
@@ -35,6 +37,15 @@ describe("SwotDerivationHandler", () => {
     resetPromptCache();
     harness = createPluginHarness({ dataDir: "/tmp/test-swot-handler" });
     harness.getMockShell().getProfileKindRegistry().finalize();
+  });
+
+  it("preserves distinct grounded capabilities across SWOT passes", () => {
+    expect(buildDraftPromptFallback()).toContain(
+      "cover at least three named owner or network capability areas",
+    );
+    expect(buildRefinementPromptFallback()).toContain(
+      "preserve at least three of them in the final SWOT",
+    );
   });
 
   it("builds JSON-compatible prompt context without optional evidence", () => {

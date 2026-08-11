@@ -168,7 +168,13 @@ const playbookEntitySchema: z.ZodType<PlaybookEntity> = z
 const manageInputSchema = {
   action: z.enum(["status", "start", "send-event"]),
   runId: z.string().min(1).optional(),
-  playbookId: z.string().min(1).optional(),
+  playbookId: z
+    .string()
+    .min(1)
+    .optional()
+    .describe(
+      "For action=status, this field is REQUIRED whenever the user's request names a specific playbook. Pass that playbook's stable slug/id; omit only when the user asks for conversation-wide status without naming one.",
+    ),
   lifecycle: z.string().min(1).optional(),
   event: z.string().min(1).optional(),
   fromState: z.string().min(1).optional(),
@@ -383,7 +389,7 @@ export class PlaybooksPlugin extends ServicePlugin<
       {
         name: "playbook_manage",
         description:
-          "Manage playbook runs with an action discriminator: status gets compact lifecycle/run state, start starts or resumes a run, and send-event advances a run with a valid event. Use action=status whenever the user asks for a playbook's status, lifecycle, run state, current step, or valid events, even if you believe no run is active or the playbook is unavailable; use the tool to verify instead of answering from memory. After meaningful tool actions, use the reported current state as source of truth. Do not send an extra NEXT after runtime evidence already advanced the run. Do not claim the playbook is finished unless the run has reached a final state. For send-event, always pass fromState set to the current state id you are acting on.",
+          "Named status rule: action=status MUST include playbookId whenever the user's request names a specific playbook; for example, an onboarding playbook status request requires playbookId=onboarding. Omit playbookId only for a conversation-wide status request that names no playbook. Manage playbook runs with an action discriminator: status gets compact lifecycle/run state, start starts or resumes a run, and send-event advances a run with a valid event. Use action=status whenever the user asks for a playbook's status, lifecycle, run state, current step, or valid events, even if you believe no run is active or the playbook is unavailable; use the tool to verify instead of answering from memory. After meaningful tool actions, use the reported current state as source of truth. Do not send an extra NEXT after runtime evidence already advanced the run. Do not claim the playbook is finished unless the run has reached a final state. For send-event, always pass fromState set to the current state id you are acting on.",
         inputSchema: manageInputSchema,
         visibility: "admin",
         sideEffects: "writes",

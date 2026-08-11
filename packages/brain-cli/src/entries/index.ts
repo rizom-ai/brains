@@ -1,39 +1,21 @@
-/** Public root library export for brain definitions and plugin API compatibility. */
+/** Public root authoring surface for brain definitions and typed composition. */
 
-import { defineBundle as validateBundle } from "@brains/app";
-import type { CapabilityBundleDefinition as PublicBundleDefinition } from "@brains/app/contracts/brain-definition";
-
-export { defineBrain } from "@brains/app/contracts/brain-definition";
+export {
+  defineBrain,
+  defineBundle,
+} from "@brains/app/contracts/brain-definition";
+export { use } from "@brains/app";
 export type {
   BrainAnchorConfigKind,
   BrainDefinition,
   BrainIdentity,
-  BrainEnvironment,
   BrainMode,
   BundleConfigContribution,
   BundlePermissionContribution,
   CapabilityBundleDefinition,
-  CapabilityConfig,
-  CapabilityContext,
-  CapabilityEntry,
+  ConfiguredPluginDefinition,
   DeploymentConfigInput,
-  InterfaceEntry,
-  InterfaceConstructor,
   PermissionConfig,
-  Plugin,
-  PluginFactory,
-  PluginConfig,
+  PluginPackageDefinition,
   ReasoningEffort,
-  SitePackage,
 } from "@brains/app/contracts/brain-definition";
-export function defineBundle(
-  definition: PublicBundleDefinition,
-): PublicBundleDefinition {
-  return validateBundle(
-    definition as unknown as Parameters<typeof validateBundle>[0],
-  ) as unknown as PublicBundleDefinition;
-}
-
-export { PLUGIN_API_VERSION } from "../plugin-api-version";
-export { z, ZodError } from "@brains/utils/zod";
-export type { ZodSchema, ZodType } from "@brains/utils/zod";

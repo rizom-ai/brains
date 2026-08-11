@@ -1,6 +1,6 @@
 # brains roadmap
 
-Last updated: 2026-08-05
+Last updated: 2026-08-08
 
 This roadmap is the public-facing view of where `brains` is headed.
 
@@ -91,6 +91,7 @@ Plans:
 - [web-search-tool.md](./plans/web-search-tool.md) — provider-neutral `web_search` capability (Tavily first), permission-gated and audited; Phase 0 removes the verified-dead `webSearch` config flag.
 - [system-analytics-tool.md](./plans/system-analytics-tool.md) — rename/reframe `system_insights` as an extensible typed analytics/reporting surface, folding plugin reports such as Cloudflare traffic into one LLM-facing tool.
 - [agent-tool-surface-consolidation.md](./plans/agent-tool-surface-consolidation.md) — separate agent/protocol/CLI exposure, remove maintenance and MCP adapters from model context, and consolidate playbook, directory-sync, and publishing lifecycle tools behind typed canonical surfaces.
+- [mcp-2026-07-28-migration.md](./plans/mcp-2026-07-28-migration.md) — adopt the stateless MCP 2026-07-28 spec revision: SDK 1.30 now, v1-compatible registration/test modernization in `work/mcp-v2`, dual-mode transport swap when SDK v2 reaches npm, and CIMD alongside deprecated DCR in auth-service.
 
 ### 2. The collective posture (active POC)
 
@@ -207,7 +208,9 @@ Cleanup:
 - [durable-binary-assets.md](./plans/durable-binary-assets.md) — move durable image bytes from base64 entity rows into a content-addressed asset store, validate the cutover on `yeehaa.io`, then migrate PDF documents as an independent follow-up phase.
 - [parallel-eval-workers.md](./plans/parallel-eval-workers.md) — parallelize multi-model eval runs.
 - [http-route-registry-hardening.md](./plans/http-route-registry-hardening.md) — normalize the shared HTTP route table, reject collisions, centralize operator authorization, and move toward lifecycle-owned registration without breaking existing plugins.
+- [atomic-job-deduplication.md](./plans/atomic-job-deduplication.md) — serialize durable queue deduplication in the database so concurrent web/worker enqueues preserve `skip`, `replace`, and `coalesce` guarantees.
 - [directory-sync-import-load.md](./plans/directory-sync-import-load.md) — follow-up to the git fan-out fix: suppress auto-export watcher echoes, short-circuit unchanged files before parse so startup full-vault sync is cheap, and skip oversized files at import with an operator-visible issue.
+- [test-suite-hardening.md](./plans/test-suite-hardening.md) — make the green suite's guarantees hard to lose: stop tests that silently never run, turn mock drift into a compile error, unify test-database setup, put the eval CLI under test, and replace sleep-based waits with condition waits.
 
 Research probes (parked):
 

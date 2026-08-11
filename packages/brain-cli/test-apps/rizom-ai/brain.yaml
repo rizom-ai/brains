@@ -42,6 +42,7 @@ plugins:
       gitUrl: file:///tmp/rizom-ai-test-content.git
       bootstrapFromSeed: true
 remove:
+  - chat
   - series
   - portfolio
   - content-pipeline

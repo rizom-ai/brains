@@ -16,18 +16,6 @@ import {
 } from "@brains/build-tools";
 
 const pkgDir = join(import.meta.dir, "..");
-const externalPluginFixtureDir = join(
-  pkgDir,
-  "test",
-  "fixtures",
-  "external-plugin",
-);
-const brainDefinitionFixtureDir = join(
-  pkgDir,
-  "test",
-  "fixtures",
-  "brain-definition",
-);
 const subpaths = [
   "plugins",
   "entities",
@@ -122,9 +110,9 @@ describe("@rizom/brain public plugin API surface", () => {
       [
         "-e",
         `import { defineBundle } from "./dist/index.js";
-         defineBundle({ id: "core", members: ["alpha"] });
+         defineBundle({ id: "core", members: [] });
          try {
-           defineBundle({ id: "core", members: ["alpha", "alpha"] });
+           defineBundle({ id: "Invalid Bundle", members: [] });
            process.exit(1);
          } catch {}`,
       ],
@@ -186,12 +174,17 @@ describe("@rizom/brain public plugin API surface", () => {
       "utf-8",
     );
 
-    expect(pluginsTypes).toContain("declare abstract class EntityPlugin");
-    expect(pluginsTypes).toContain("declare abstract class InterfacePlugin");
-    expect(pluginsTypes).toContain(
+    expect(pluginsTypes).toContain("PluginPackageDefinition");
+    expect(pluginsTypes).not.toContain("declare abstract class EntityPlugin");
+    expect(pluginsTypes).not.toContain(
+      "declare abstract class InterfacePlugin",
+    );
+    expect(pluginsTypes).not.toContain(
       "declare abstract class MessageInterfacePlugin",
     );
-    expect(pluginsTypes).toContain("declare abstract class ServicePlugin");
+    expect(pluginsTypes).not.toContain("declare abstract class ServicePlugin");
+    expect(pluginsTypes).not.toContain("PluginFactory");
+    expect(pluginsTypes).not.toContain("toolSuccess");
     expect(pluginsTypes).toContain("ExtensionMetadataSchema");
     expect(pluginsTypes).toContain("ExtensionMetadata");
     expect(pluginsTypes).not.toContain("IShell");
@@ -217,128 +210,6 @@ describe("@rizom/brain public plugin API surface", () => {
     expect(pluginsTypes).not.toContain("AttachmentProvider");
     expect(pluginsTypes).not.toContain("AttachmentResolveRequest");
     expect(pluginsTypes).not.toContain("themeCSS");
-  });
-
-  it("keeps the external plugin fixture on public @rizom/brain subpaths", () => {
-    const source = readFileSync(
-      join(externalPluginFixtureDir, "src", "index.ts"),
-      "utf-8",
-    );
-    const packageJson = JSON.parse(
-      readFileSync(join(externalPluginFixtureDir, "package.json"), "utf-8"),
-    );
-
-    expect(source).toContain('PLUGIN_API_VERSION, z } from "@rizom/brain"');
-    expect(source).toContain('from "@rizom/brain/plugins"');
-    expect(source).toContain('from "@rizom/brain/entities"');
-    expect(source).toContain('from "@rizom/brain/interfaces"');
-    expect(source).not.toContain('from "zod"');
-    expect(source).not.toContain("@brains/");
-    expect(packageJson.peerDependencies?.["@rizom/brain"]).toBeDefined();
-    expect(packageJson.peerDependencies?.["zod"]).toBeUndefined();
-    expect(packageJson.devDependencies?.["zod"]).toBeUndefined();
-    expect(packageJson.rizomBrain?.pluginApi).toBeUndefined();
-
-    const tsconfig = readFileSync(
-      join(externalPluginFixtureDir, "tsconfig.json"),
-      "utf-8",
-    );
-    expect(tsconfig).not.toContain("../../../src");
-    expect(tsconfig).not.toContain('"paths"');
-  });
-
-  it("typechecks the package-local external plugin fixture", () => {
-    const result = spawnSync(
-      "bun",
-      ["x", "tsc", "--noEmit", "-p", "tsconfig.json"],
-      {
-        cwd: externalPluginFixtureDir,
-        encoding: "utf-8",
-      },
-    );
-
-    const output = `${result.stdout}\n${result.stderr}`;
-    if (result.status !== 0) {
-      throw new Error(output);
-    }
-    expect(output).not.toContain("@brains/");
-  });
-
-  it("typechecks the package-local brain definition fixture", () => {
-    const source = readFileSync(
-      join(brainDefinitionFixtureDir, "src", "index.ts"),
-      "utf-8",
-    );
-    expect(source).toContain('from "@rizom/brain"');
-    expect(source).toContain("defineBrain");
-    expect(source).toContain("defineBundle");
-    expect(source).not.toContain("@brains/");
-
-    const result = spawnSync(
-      "bun",
-      ["x", "tsc", "--noEmit", "-p", "tsconfig.json"],
-      {
-        cwd: brainDefinitionFixtureDir,
-        encoding: "utf-8",
-      },
-    );
-
-    const output = `${result.stdout}\n${result.stderr}`;
-    if (result.status !== 0) {
-      throw new Error(output);
-    }
-    expect(output).not.toContain("@brains/");
-  });
-
-  it("resolves the external plugin fixture against generated dist declarations", () => {
-    const result = spawnSync(
-      "bun",
-      ["x", "tsc", "--noEmit", "--traceResolution", "-p", "tsconfig.json"],
-      {
-        cwd: externalPluginFixtureDir,
-        encoding: "utf-8",
-        maxBuffer: 10 * 1024 * 1024,
-      },
-    );
-
-    const output = `${result.stdout}\n${result.stderr}`;
-    if (result.status !== 0) {
-      throw new Error(output);
-    }
-
-    expect(output).toContain(
-      "Module name '@rizom/brain' was successfully resolved",
-    );
-    expect(output).toContain("dist/index.d.ts");
-
-    for (const subpath of ["plugins", "entities", "interfaces"]) {
-      expect(output).toContain(
-        `Module name '@rizom/brain/${subpath}' was successfully resolved`,
-      );
-      expect(output).toContain(`dist/${subpath}.d.ts`);
-    }
-  });
-
-  it("resolves the brain definition fixture against generated root declarations", () => {
-    const result = spawnSync(
-      "bun",
-      ["x", "tsc", "--noEmit", "--traceResolution", "-p", "tsconfig.json"],
-      {
-        cwd: brainDefinitionFixtureDir,
-        encoding: "utf-8",
-        maxBuffer: 10 * 1024 * 1024,
-      },
-    );
-
-    const output = `${result.stdout}\n${result.stderr}`;
-    if (result.status !== 0) {
-      throw new Error(output);
-    }
-
-    expect(output).toContain(
-      "Module name '@rizom/brain' was successfully resolved",
-    );
-    expect(output).toContain("dist/index.d.ts");
   });
 
   it("resolves every typed package export against generated dist declarations", () => {

@@ -1,5 +1,49 @@
 # @brains/ops
 
+## 0.2.0-alpha.278
+
+## 0.2.0-alpha.277
+
+### Patch Changes
+
+- [#106](https://github.com/rizom-ai/brains/pull/106) [`f8ffa2d`](https://github.com/rizom-ai/brains/commit/f8ffa2d99fe99e19cec1c94d0f1625b5e738d1c8) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add a write-free directory-sync stress credential check and a workflow `verify_only` mode that proves clone and dry-run push access without starting a workload.
+
+## 0.2.0-alpha.276
+
+### Patch Changes
+
+- [#105](https://github.com/rizom-ai/brains/pull/105) [`70417e7`](https://github.com/rizom-ai/brains/commit/70417e783af34ef9c946a4a234195266e119a7cb) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Make deployed directory-sync gates hermetic by requiring embeddings and automatic topic extraction to be disabled, failing on observed external AI usage, and detecting watchdog-driven container restarts through the container start time even when Docker reports a zero restart count.
+
+## 0.2.0-alpha.275
+
+## 0.2.0-alpha.274
+
+## 0.2.0-alpha.273
+
+### Patch Changes
+
+- [#94](https://github.com/rizom-ai/brains/pull/94) [`a53e85d`](https://github.com/rizom-ai/brains/commit/a53e85d0a72277b243e28112372507f60e73677d) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Schedule the smoke directory-sync regression profile weekly with independent cleanup, while retaining manual profile controls and using the content administration token for authenticated Git operations.
+
+## 0.2.0-alpha.272
+
+## 0.2.0-alpha.271
+
+## 0.2.0-alpha.270
+
+## 0.2.0-alpha.269
+
+## 0.2.0-alpha.268
+
+## 0.2.0-alpha.267
+
+## 0.2.0-alpha.266
+
+### Patch Changes
+
+- [`ce85b3d`](https://github.com/rizom-ai/brains/commit/ce85b3d7073d3d39b48ae3aba9fc65ff72eb1a3b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Harden the two defects behind the rizom.ai deploy incident: user profileKind now validates against the runtime's registered profile kinds at parse time (with a lockstep test against @brains/profile) instead of failing at production boot, and forced image builds refuse to overwrite an existing registry tag unless the new Build overwrite input is explicitly confirmed. Tooling workflows (build/deploy/reconcile/upgrade) also reconcile to the template on init rerun; the operator-tuned directory-sync-stress workflow deliberately does not.
+
+- [`e70ab12`](https://github.com/rizom-ai/brains/commit/e70ab12745c6cf757f685389f4cd6de8991de95f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Behavior-preserving quality refactors: shared SerialQueue/KeyedSerialQueue primitive in @brains/utils replacing five hand-rolled promise-tail mutexes; directory-sync stress system split into command runner, git checkout, and health monitor modules; job-queue worker heartbeat/deadline/error-callback dedup and table-generic schema column helpers; consolidated pilot starter staleness detection; single-pass HTTP route registry views; projection wave planning simplification with indexed graph edges.
+
 ## 0.2.0-alpha.265
 
 ## 0.2.0-alpha.264

@@ -1,6 +1,8 @@
 name: Directory Sync Stress
 
 on:
+  schedule:
+    - cron: "23 4 * * 1"
   workflow_dispatch:
     inputs:
       handle:
@@ -21,12 +23,17 @@ on:
         description: Type stress:<handle> to confirm reversible content writes
         required: true
         type: string
+      verify_only:
+        description: Verify the content credential path without remote writes or a workload
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: read
 
 concurrency:
-  group: directory-sync-stress-${{ inputs.handle }}
+  group: directory-sync-stress-${{ github.event_name == 'schedule' && 'smoke' || inputs.handle }}
   cancel-in-progress: false
 
 jobs:
@@ -46,13 +53,25 @@ jobs:
         env:
           BWS_ACCESS_TOKEN: ${{ secrets.BWS_ACCESS_TOKEN }}
 
-      - name: Run smoke directory-sync stress profile
+      - name: Verify smoke directory-sync credential path
+        if: ${{ github.event_name != 'schedule' && inputs.verify_only }}
         env:
           HANDLE_INPUT: ${{ inputs.handle }}
           CONFIRM_INPUT: ${{ inputs.confirm }}
         run: |
+          bunx brains-ops stress:directory-sync:verify-access "$GITHUB_WORKSPACE" "$HANDLE_INPUT" \
+            --confirm "$CONFIRM_INPUT" \
+            --artifacts-dir "$RUNNER_TEMP/directory-sync-stress"
+
+      - name: Run smoke directory-sync stress profile
+        if: ${{ github.event_name == 'schedule' || !inputs.verify_only }}
+        env:
+          HANDLE_INPUT: ${{ github.event_name == 'schedule' && 'smoke' || inputs.handle }}
+          PROFILE_INPUT: ${{ github.event_name == 'schedule' && 'regression' || inputs.profile }}
+          CONFIRM_INPUT: ${{ github.event_name == 'schedule' && 'stress:smoke' || inputs.confirm }}
+        run: |
           bunx brains-ops stress:directory-sync "$GITHUB_WORKSPACE" "$HANDLE_INPUT" \
-            --profile "${{ inputs.profile }}" \
+            --profile "$PROFILE_INPUT" \
             --confirm "$CONFIRM_INPUT" \
             --artifacts-dir "$RUNNER_TEMP/directory-sync-stress"
 
@@ -60,13 +79,13 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: directory-sync-stress-${{ inputs.handle }}-${{ inputs.profile }}-${{ github.run_id }}
+          name: directory-sync-stress-${{ github.event_name == 'schedule' && 'smoke' || inputs.handle }}-${{ github.event_name == 'schedule' && 'regression' || inputs.profile }}-${{ github.run_id }}
           path: ${{ runner.temp }}/directory-sync-stress
           if-no-files-found: warn
 
   cleanup:
     needs: stress
-    if: always()
+    if: ${{ always() && (github.event_name == 'schedule' || !inputs.verify_only) }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -84,8 +103,8 @@ jobs:
 
       - name: Remove residual stress probes
         env:
-          HANDLE_INPUT: ${{ inputs.handle }}
-          CONFIRM_INPUT: ${{ inputs.confirm }}
+          HANDLE_INPUT: ${{ github.event_name == 'schedule' && 'smoke' || inputs.handle }}
+          CONFIRM_INPUT: ${{ github.event_name == 'schedule' && 'stress:smoke' || inputs.confirm }}
         run: |
           bunx brains-ops stress:directory-sync:cleanup "$GITHUB_WORKSPACE" "$HANDLE_INPUT" \
             --confirm "$CONFIRM_INPUT" \
@@ -95,6 +114,6 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: directory-sync-stress-cleanup-${{ inputs.handle }}-${{ github.run_id }}
+          name: directory-sync-stress-cleanup-${{ github.event_name == 'schedule' && 'smoke' || inputs.handle }}-${{ github.run_id }}
           path: ${{ runner.temp }}/directory-sync-stress-cleanup
           if-no-files-found: warn

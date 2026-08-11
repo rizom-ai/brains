@@ -43,6 +43,15 @@ describe("siteBuilderConfigSchema", () => {
     expect(result.success).toBe(true);
   });
 
+  test("validates global head scripts and defaults them to empty", () => {
+    expect(siteBuilderConfigSchema.parse({}).headScripts).toEqual([]);
+    expect(
+      siteBuilderConfigSchema.parse({
+        headScripts: ['<script src="/site.js"></script>'],
+      }).headScripts,
+    ).toEqual(['<script src="/site.js"></script>']);
+  });
+
   test("previewOutputDir defaults to ./dist/site-preview", () => {
     const config = {
       templates: {},

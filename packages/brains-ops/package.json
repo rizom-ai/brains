@@ -1,6 +1,6 @@
 {
   "name": "@rizom/ops",
-  "version": "0.2.0-alpha.265",
+  "version": "0.2.0-alpha.278",
   "description": "Operator CLI for managing private brain fleet registry repos",
   "keywords": [
     "brains",
@@ -23,6 +23,7 @@
   "devDependencies": {
     "@brains/deploy-support": "workspace:*",
     "@brains/eslint-config": "workspace:*",
+    "@brains/profile": "workspace:*",
     "@brains/site-composition": "workspace:*",
     "@brains/typescript-config": "workspace:*",
     "@brains/utils": "workspace:*",

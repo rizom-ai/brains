@@ -24,9 +24,8 @@ describe("site.package resolution", () => {
 
   test("accepts a standalone public site package without a plugin factory", () => {
     registerPackage("@rizom/site-standalone", {
-      layouts: { default: {} },
+      layouts: { default: (): null => null },
       routes: [],
-      content: { namespace: "standalone", sections: {} },
       entityDisplay: {},
     } satisfies SitePackage);
 
@@ -35,11 +34,10 @@ describe("site.package resolution", () => {
     ).not.toThrow();
   });
 
-  test("adapts declarative SDK sites without requiring a public plugin factory", () => {
+  test("keeps structural head scripts out of the legacy plugin adapter", () => {
     const site = {
-      layouts: { default: {} },
+      layouts: { default: (): null => null },
       routes: [],
-      content: { namespace: "landing-page", sections: {} },
       headScripts: ['<script src="/boot.js" defer></script>'],
       entityDisplay: {},
     } satisfies SitePackage;
@@ -50,7 +48,7 @@ describe("site.package resolution", () => {
 
     const config = resolve(definitionWithSite, {}, {});
 
-    expect((config.plugins ?? []).map((plugin) => plugin.id)).toContain(
+    expect((config.plugins ?? []).map((plugin) => plugin.id)).not.toContain(
       "site-package",
     );
   });

@@ -20,7 +20,7 @@ tags:
   - permissions
   - confirmation
   - regression
-  - bundle-core
+  - posture-personal
 
 turns:
   - userMessage: "Update the note with id private-visibility-probe: set its title to Citrine Lantern Brief."

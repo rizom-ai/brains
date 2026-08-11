@@ -278,12 +278,19 @@ describe("initPilotRepo", () => {
       "utf8",
     );
     expect(stressWorkflow).toContain("workflow_dispatch:");
+    expect(stressWorkflow).toContain("schedule:");
+    expect(stressWorkflow).toContain('cron: "23 4 * * 1"');
     expect(stressWorkflow).toContain("type: choice");
     expect(stressWorkflow).toContain("stress:directory-sync");
+    expect(stressWorkflow).toContain("stress:directory-sync:verify-access");
     expect(stressWorkflow).toContain("stress:directory-sync:cleanup");
+    expect(stressWorkflow).toContain("verify_only:");
+    expect(stressWorkflow).toContain("type: boolean");
     expect(stressWorkflow).toContain("BWS_ACCESS_TOKEN");
     expect(stressWorkflow).toContain("needs: stress");
-    expect(stressWorkflow).toContain("if: always()");
+    expect(stressWorkflow).toContain(
+      "if: ${{ always() && (github.event_name == 'schedule' || !inputs.verify_only) }}",
+    );
     expect(stressWorkflow).toContain("actions/upload-artifact@v4");
     expect(stressWorkflow).not.toContain("push:");
     const stressRunBlocks =
@@ -291,8 +298,17 @@ describe("initPilotRepo", () => {
     expect(stressRunBlocks.join("\n")).not.toMatch(
       /\$\{\{ inputs\.(?:handle|confirm) \}\}/,
     );
-    expect(stressWorkflow).toContain("HANDLE_INPUT: ${{ inputs.handle }}");
-    expect(stressWorkflow).toContain("CONFIRM_INPUT: ${{ inputs.confirm }}");
+    expect(stressWorkflow).toContain("HANDLE_INPUT: ${{");
+    expect(stressWorkflow).toContain(
+      "github.event_name == 'schedule' && 'smoke' || inputs.handle",
+    );
+    expect(stressWorkflow).toContain(
+      "github.event_name == 'schedule' && 'regression' || inputs.profile",
+    );
+    expect(stressWorkflow).toContain(
+      "github.event_name == 'schedule' && 'stress:smoke' || inputs.confirm",
+    );
+    expect(stressWorkflow).toContain("PROFILE_INPUT: ${{");
 
     const varlockAction = await readFile(
       join(repo, ".github", "actions", "varlock-env", "action.yml"),
@@ -625,7 +641,7 @@ describe("initPilotRepo", () => {
     expect(operatorPlaybook).toContain(
       "## Hosted site and theme package contract",
     );
-    expect(operatorPlaybook).toContain("default-export a valid `SitePackage`");
+    expect(operatorPlaybook).toContain("default-export `defineSite(...)`");
     expect(operatorPlaybook).toContain("site-mockup-migration.md");
     expect(operatorPlaybook).toContain("version: <exact-site-version>");
     expect(operatorPlaybook).toContain("themeVersion: <exact-theme-version>");
@@ -763,6 +779,41 @@ describe("initPilotRepo", () => {
     await initPilotRepo(repo);
 
     expect(await readFile(watchdogPath, "utf8")).toBe(operatorOwned);
+  });
+
+  it("reconciles prior generated tooling workflows on rerun", async () => {
+    const root = await mkdtemp(join(tmpdir(), "brains-ops-init-"));
+    const repo = join(root, "rover-pilot");
+
+    await initPilotRepo(repo);
+
+    const workflowsDir = join(repo, ".github", "workflows");
+    const toolingWorkflows = [
+      "build.yml",
+      "deploy.yml",
+      "reconcile.yml",
+      "upgrade.yml",
+    ];
+    const canonical = new Map<string, string>();
+    for (const name of toolingWorkflows) {
+      const path = join(workflowsDir, name);
+      const content = await readFile(path, "utf8");
+      canonical.set(name, content);
+      await writeFile(path, `${content}\n# prior generated vintage\n`);
+    }
+    // The stress workflow is operator-tunable; a diverged copy stays theirs.
+    const stressPath = join(workflowsDir, "directory-sync-stress.yml");
+    const divergedStress = `${await readFile(stressPath, "utf8")}\n# operator tuning\n`;
+    await writeFile(stressPath, divergedStress);
+
+    await initPilotRepo(repo);
+
+    for (const name of toolingWorkflows) {
+      expect(await readFile(join(workflowsDir, name), "utf8")).toBe(
+        canonical.get(name) ?? "",
+      );
+    }
+    expect(await readFile(stressPath, "utf8")).toBe(divergedStress);
   });
 
   it("keeps first-run example content deleted by the operator on rerun", async () => {

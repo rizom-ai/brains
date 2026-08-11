@@ -18,6 +18,7 @@ export interface BootedBrain {
   getShell(): {
     getMCPService(): {
       getCliTools(): Array<{ pluginId: string; tool: Tool }>;
+      listTools(): Array<{ pluginId: string; tool: Tool }>;
     };
   };
   stop?(): Promise<void>;

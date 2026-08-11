@@ -1,11 +1,13 @@
 import type { BaseEntity, IEntityService } from "@brains/plugins";
 import { basename, dirname, extname } from "path";
-import { resolveInSyncPath } from "./path-utils";
+import { resolveInSyncPath, toSyncRelativePath } from "./path-utils";
 import { getMimeTypeForExtension, isImageFile } from "./image-file-utils";
 import {
+  DOCUMENT_SIDECAR_SUFFIX,
   getDocumentMimeTypeForExtension,
   getDocumentSidecarPath,
   isDocumentFile,
+  isDocumentSidecarFile,
 } from "./document-file-utils";
 import {
   buildEntityFilePath,
@@ -23,6 +25,8 @@ import {
   getAllSyncFiles as findSyncFiles,
 } from "./file-discovery";
 import { pathExists } from "./fs-utils";
+import { OversizedFileError } from "./oversized-file-error";
+import type { PendingDeleteTarget } from "./pending-delete-registry";
 
 export { IMAGE_EXTENSIONS, isImageFile } from "./image-file-utils";
 export { DOCUMENT_EXTENSIONS, isDocumentFile } from "./document-file-utils";
@@ -50,10 +54,34 @@ export class FileOperations {
     return parseEntityPath(this.syncPath, filePath);
   }
 
-  async readEntity(filePath: string): Promise<RawEntity> {
+  getPendingDeleteTarget(filePath: string): PendingDeleteTarget | undefined {
+    const relativePath = toSyncRelativePath(this.syncPath, filePath);
+    const entityPath = isDocumentSidecarFile(relativePath)
+      ? relativePath.slice(0, -DOCUMENT_SIDECAR_SUFFIX.length)
+      : relativePath;
+    const { entityType, id } = this.parseEntityFromPath(entityPath);
+    if (!this.entityService.hasEntityType(entityType)) return undefined;
+
+    const isSyncFile =
+      entityPath.endsWith(".md") ||
+      (entityType === "image" && isImageFile(entityPath)) ||
+      (entityType === "document" && isDocumentFile(entityPath));
+    if (!isSyncFile) return undefined;
+
+    return {
+      entityType,
+      entityId: id,
+      filePath: resolveInSyncPath(this.syncPath, entityPath),
+    };
+  }
+
+  async readEntity(filePath: string, maxBytes?: number): Promise<RawEntity> {
     const fullPath = resolveInSyncPath(this.syncPath, filePath);
 
     const stats = await stat(fullPath);
+    if (maxBytes !== undefined && stats.size > maxBytes) {
+      throw new OversizedFileError(filePath, stats.size, maxBytes);
+    }
 
     const { entityType, id } = this.parseEntityFromPath(filePath);
 
@@ -243,6 +271,13 @@ export class FileOperations {
       entity.entityType,
       getEntityFileExtension(entity),
     );
+  }
+
+  getEntityWritePaths(entity: BaseEntity): string[] {
+    const filePath = this.getEntityFilePath(entity);
+    return entity.entityType === "document"
+      ? [filePath, getDocumentSidecarPath(filePath)]
+      : [filePath];
   }
 
   async getAllMarkdownFiles(): Promise<string[]> {
