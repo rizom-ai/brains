@@ -1,5 +1,24 @@
 # @brains/core
 
+## 0.2.0-alpha.280
+
+### Patch Changes
+
+- [#112](https://github.com/rizom-ai/brains/pull/112) [`2e931c3`](https://github.com/rizom-ai/brains/commit/2e931c339065860f31a034f3ad5b3bc10852dffc) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Project recurring-check alerts into the unified Inbox independently of notification availability, with durable Admin resolution, channel retry deduplication, and channel-only digest support.
+
+- Updated dependencies [[`2e931c3`](https://github.com/rizom-ai/brains/commit/2e931c339065860f31a034f3ad5b3bc10852dffc)]:
+  - @brains/recurring-checks@0.2.0-alpha.280
+  - @brains/plugins@0.2.0-alpha.280
+  - @brains/contracts@0.2.0-alpha.280
+  - @brains/image@0.2.0-alpha.280
+  - @brains/notification-contracts@0.2.0-alpha.280
+  - @brains/operation-context@0.2.0-alpha.280
+  - @brains/site-composition@0.2.0-alpha.280
+  - @brains/utils@0.2.0-alpha.280
+  - @brains/runtime-state@0.2.0-alpha.280
+  - @brains/scheduler@0.2.0-alpha.280
+  - @brains/templates@0.2.0-alpha.280
+
 ## 0.2.0-alpha.279
 
 ### Patch Changes

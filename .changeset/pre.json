@@ -283,6 +283,7 @@
     "core--public-authoring-definitions",
     "core--quality-refactor-sweep",
     "core--reconcile-generated-deploy-scripts",
+    "core--recurring-check-inbox-source",
     "core--release-config-workspace-guard",
     "core--relicense-agpl-apache-split",
     "core--remove-obsolete-auth-compatibility",

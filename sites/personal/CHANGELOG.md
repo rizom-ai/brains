@@ -1,5 +1,20 @@
 # @brains/site-personal
 
+## 0.2.0-alpha.280
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.280
+  - @brains/blog@0.2.0-alpha.280
+  - @brains/site-info@0.2.0-alpha.280
+  - @brains/profile@0.2.0-alpha.280
+  - @brains/site-engine@0.2.0-alpha.280
+  - @brains/site-composition@0.2.0-alpha.280
+  - @brains/ui-library@0.2.0-alpha.280
+  - @brains/utils@0.2.0-alpha.280
+  - @brains/templates@0.2.0-alpha.280
+
 ## 0.2.0-alpha.279
 
 ### Patch Changes

@@ -1,7 +1,7 @@
 {
   "name": "@brains/stock-photo",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.279",
+  "version": "0.2.0-alpha.280",
   "description": "Stock photo search and selection — Unsplash provider",
   "dependencies": {
     "@brains/image": "workspace:*",
