@@ -409,6 +409,14 @@
           <div class="card-desc">local AI runtime sidecar direction.</div>
           <div class="card-file">embedding-service.md</div>
         </div>
+        <div class="card status-done">
+          <div class="card-head">
+            <span class="card-name">Background work stops silently and never recovers</span>
+            <span class="badge badge-done">Done</span>
+          </div>
+          <div class="card-desc">open incident (2026-08-11): a brain served HTTP normally with no live job-queue worker, and deploy ignored the operational-health signal; expose durable background status, make exhausted supervision fatal, detect genuinely unclaimed due work, persist terminal projection incidents, and gate post-deploy verification on operational health.</div>
+          <div class="card-file">background-work-silent-stall.md</div>
+        </div>
         </div>
       </details>
 
