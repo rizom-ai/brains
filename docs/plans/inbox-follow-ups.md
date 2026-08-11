@@ -3,7 +3,7 @@
 ## Status
 
 **Active.** Builds directly on the shipped unified inbox (contract, CMS
-workspace, digest). Phases 0a, 7, and 8 are implemented; Phases 0b–6 remain
+workspace, digest). Phases 0a, 0b, 7, and 8 are implemented; Phases 1–6 remain
 planned. UX mockup:
 [inbox-follow-ups-mockup.html](./inbox-follow-ups-mockup.html).
 
@@ -61,8 +61,9 @@ with different chrome.
   address parser lowercases before the lookup, while `createExternalActorId`
   hashes its input verbatim and Auth's stored hash requires the lowercased
   identity key. Nothing pins that agreement — normalization belongs at the
-  hash boundary, with a regression test. A hashed `threadKey` exists in
-  frontmatter but is not indexed metadata and has no bounded position lookup.
+  hash boundary, with a regression test. A hashed `threadKey` and its
+  migration-gated ordinal now live in indexed metadata for bounded position
+  lookup.
 - The current IMAP `sourceRef` is a one-way SHA-256 hash of mailbox,
   UIDVALIDITY, and UID. The email interface stores no corresponding locator,
   so refs written before a locator store exists cannot be resolved on demand.
@@ -222,9 +223,9 @@ with different chrome.
    the marker. A crash leaves the feature non-visible and the idempotent
    migration reruns. Once ready, ingress uses the same coordinator plus a
    per-`threadKey` lock and reads only the highest indexed ordinal for that
-   thread. The UI says **message N in thread**, never `N of N`. Phase 0b may
-   follow any later phase without blocking it, but ordinal display cannot
-   activate before this migration protocol completes.
+   thread. The UI says **message N in thread**, never `N of N`. No downstream
+   phase depends on this slice, and ordinal display cannot activate before this
+   migration protocol completes.
 
 9. **Expanded detail is transient, bounded, and hostile-rendered.** The inbox
    contract gains optional `resolveDetail(itemId, actor, signal)`, returning
@@ -333,12 +334,11 @@ Tests are written first inside each phase.
   Admin mount; malformed or unknown person queries are ignored; missing Admin
   and unresolved contacts render no link or placeholder; digest and Dashboard
   remain free of contact labels and identifiers.
-- **Phase 0b — Thread position.** Mail-item frontmatter gains optional
+- **Phase 0b — Thread position (implemented).** Mail-item frontmatter gains optional
   `source.threadOrdinal`, indexed metadata gains `threadKey` and
   `threadOrdinal`, and the shared coordinator gates migration, ingress
-  assignment, and Inbox display. Nothing
-  downstream depends on this phase, so it may slip past later phases without
-  blocking them. _Tests:_ paged migration is restartable and idempotent; a
+  assignment, and Inbox display. Nothing downstream depends on this phase.
+  _Tests:_ paged migration is restartable and idempotent; a
   crash never exposes partial ordinals in the Inbox snapshot; arrivals during
   migration are indexed without ordinals and included by the exclusive final
   catch-up; the readiness

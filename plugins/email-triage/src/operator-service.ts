@@ -214,6 +214,9 @@ function toListItem(rawEntity: MailItemEntity): MailTriageListItem {
     ...(frontmatter.source.personId
       ? { personId: frontmatter.source.personId }
       : {}),
+    ...(frontmatter.source.threadOrdinal !== undefined
+      ? { threadOrdinal: frontmatter.source.threadOrdinal }
+      : {}),
     ...(frontmatter.organization
       ? { organization: frontmatter.organization }
       : {}),

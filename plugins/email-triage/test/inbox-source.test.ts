@@ -8,6 +8,7 @@ import {
   MailTriageInboxSource,
   MailTriageOperatorService,
   createMailItemProjection,
+  withMailThreadOrdinal,
   type MailPriority,
   type MailStatus,
 } from "../src";
@@ -50,13 +51,16 @@ async function persistItem(
     receivedAt: string;
     status?: MailStatus;
     sender?: InboundEmail["sender"];
+    threadId?: string;
+    threadOrdinal?: number;
   },
 ): Promise<string> {
   const email = {
     ...inbound(input.id, input.receivedAt),
     ...(input.sender ? { sender: input.sender } : {}),
+    ...(input.threadId ? { threadId: input.threadId } : {}),
   };
-  const projection = createMailItemProjection(email, {
+  const baseProjection = createMailItemProjection(email, {
     decision: "retain",
     title: input.title,
     category: "work",
@@ -65,6 +69,10 @@ async function persistItem(
     requestedActions: ["Review the request"],
     summary: input.summary,
   });
+  const projection =
+    input.threadOrdinal === undefined
+      ? baseProjection
+      : withMailThreadOrdinal(baseProjection, input.threadOrdinal);
   const result = await harness.getEntityService().createEntity({
     entity: {
       ...projection,
@@ -119,6 +127,8 @@ describe("mail triage inbox source", () => {
         displayName: "Known Contact",
         permissionLevel: "trusted",
       },
+      threadId: "private-thread",
+      threadOrdinal: 2,
     });
     await persistItem(harness, {
       id: "normal",
@@ -138,6 +148,7 @@ describe("mail triage inbox source", () => {
 
     const source = new MailTriageInboxSource(
       new MailTriageOperatorService(harness.getServiceContext("email-triage")),
+      { isReady: async (): Promise<boolean> => true },
     );
     const items = inboxItemListSchema.parse(await source.list());
 
@@ -169,6 +180,7 @@ describe("mail triage inbox source", () => {
           label: "Known Contact · sender.test",
           personId: "prsn_contact",
         },
+        threadOrdinal: 2,
         receivedAt: "2026-08-05T08:00:00.000Z",
         urgency: "high",
         entityRef: {
@@ -242,6 +254,29 @@ describe("mail triage inbox source", () => {
     expect(await readStatus(harness, handledId)).toBe("handled");
     expect(await readStatus(harness, archivedId)).toBe("archived");
     expect(await source.list()).toEqual([]);
+  });
+
+  it("hides partial thread ordinals until migration is ready", async () => {
+    const harness = createOperatorHarness();
+    await harness.installPlugin(new MailItemPlugin());
+    await persistItem(harness, {
+      id: "migrating-thread",
+      title: "Thread still migrating",
+      summary: "A derived item whose thread position is not ready.",
+      priority: "normal",
+      receivedAt,
+      threadId: "private-thread",
+      threadOrdinal: 3,
+    });
+    const source = new MailTriageInboxSource(
+      new MailTriageOperatorService(harness.getServiceContext("email-triage")),
+      { isReady: async (): Promise<boolean> => false },
+    );
+
+    const items = await source.list();
+
+    expect(items).toHaveLength(1);
+    expect(items[0]).not.toHaveProperty("threadOrdinal");
   });
 
   it("returns an empty state when no new mail items need attention", async () => {

@@ -1,7 +1,10 @@
 import { inboundEmailSchema, type InboundEmail } from "@brains/contracts";
 import { sha256Hex } from "@brains/utils/hash";
 import { mailItemAdapter } from "../entity/adapters/mail-item-adapter";
-import type { MailItemMetadata } from "../entity/schemas/mail-item";
+import {
+  mailThreadOrdinalSchema,
+  type MailItemMetadata,
+} from "../entity/schemas/mail-item";
 import {
   retainedMailClassificationSchema,
   type RetainedMailClassification,
@@ -50,6 +53,29 @@ export function createMailItemProjection(
     },
     classification.summary,
   );
+}
+
+export function withMailThreadOrdinal(
+  projection: MailItemProjection,
+  rawOrdinal: number,
+): MailItemProjection {
+  const ordinal = mailThreadOrdinalSchema.parse(rawOrdinal);
+  const { frontmatter, summary } = mailItemAdapter.parseMailItemContent(
+    projection.content,
+  );
+  if (!frontmatter.source.threadKey) {
+    throw new Error("A thread ordinal requires a thread key");
+  }
+  const content = mailItemAdapter.createMailItemContent(
+    {
+      ...frontmatter,
+      source: { ...frontmatter.source, threadOrdinal: ordinal },
+    },
+    summary,
+  );
+  const metadata = mailItemAdapter.fromMarkdown(content).metadata;
+  if (!metadata) throw new Error("Mail item metadata could not be derived");
+  return { ...projection, content, metadata };
 }
 
 export function createUnclassifiedMailItemProjection(

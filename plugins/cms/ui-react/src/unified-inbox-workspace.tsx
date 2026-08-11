@@ -370,6 +370,9 @@ export function UnifiedInboxWorkspace(props: {
                             <InboxContact contact={entry.item.contact} /> ·{" "}
                           </>
                         )}
+                        {entry.item.threadOrdinal !== undefined && (
+                          <>message {entry.item.threadOrdinal} in thread · </>
+                        )}
                         {entry.source.displayName} ·{" "}
                         {formatUpdated(entry.item.receivedAt)}
                       </small>
@@ -419,6 +422,14 @@ export function UnifiedInboxWorkspace(props: {
                         href={selected.contactHref}
                         linked
                       />
+                      <span aria-hidden="true">·</span>
+                    </>
+                  )}
+                  {selected.item.threadOrdinal !== undefined && (
+                    <>
+                      <span>
+                        message {selected.item.threadOrdinal} in thread
+                      </span>
                       <span aria-hidden="true">·</span>
                     </>
                   )}

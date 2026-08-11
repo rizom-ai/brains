@@ -22,6 +22,10 @@ import {
   type EmailTriageConfig,
   type EmailTriageConfigInput,
 } from "./schemas/config";
+import {
+  MailThreadOrdinalCoordinator,
+  threadOrdinalStateSchema,
+} from "./thread-ordinal-coordinator";
 import { EmailTriageProcessor } from "./triage-processor";
 
 export class EmailTriagePlugin extends ServicePlugin<
@@ -29,6 +33,7 @@ export class EmailTriagePlugin extends ServicePlugin<
   EmailTriageConfigInput
 > {
   private operator: MailTriageOperatorService | undefined;
+  private threadOrdinals: MailThreadOrdinalCoordinator | undefined;
 
   constructor() {
     super("email-triage", packageJson, {}, emailTriageConfigSchema);
@@ -38,13 +43,23 @@ export class EmailTriagePlugin extends ServicePlugin<
     context: ServicePluginContext,
   ): Promise<void> {
     this.operator = new MailTriageOperatorService(context);
-    context.inbox.registerSource(new MailTriageInboxSource(this.operator));
+    this.threadOrdinals = new MailThreadOrdinalCoordinator({
+      entityService: context.entityService,
+      state: context.runtimeState.scoped({
+        namespace: "email-triage.thread-ordinals",
+        schema: threadOrdinalStateSchema,
+      }),
+    });
+    context.inbox.registerSource(
+      new MailTriageInboxSource(this.operator, this.threadOrdinals),
+    );
     const classificationPrompt = await context.prompts.resolve(
       EMAIL_TRIAGE_CLASSIFICATION_PROMPT_TARGET,
       DEFAULT_EMAIL_TRIAGE_CLASSIFICATION_PROMPT,
     );
     const processor = new EmailTriageProcessor({
       repository: new EntityMailItemRepository(context.entityService),
+      threadOrdinals: this.threadOrdinals,
       attempts: context.runtimeState.scoped({
         namespace: "email-triage.classification-attempts",
         schema: z.number().int().min(1).max(3),
@@ -61,6 +76,7 @@ export class EmailTriagePlugin extends ServicePlugin<
   protected override async onReady(
     context: ServicePluginContext,
   ): Promise<void> {
+    if (!context.executionOnly) await this.getThreadOrdinals().initialize();
     const operator = this.getOperator();
     const workspaceUrl = await registerEmailTriageCmsWorkspace(
       context,
@@ -78,5 +94,12 @@ export class EmailTriagePlugin extends ServicePlugin<
       throw new Error("Email triage operator service is not initialized");
     }
     return this.operator;
+  }
+
+  private getThreadOrdinals(): MailThreadOrdinalCoordinator {
+    if (!this.threadOrdinals) {
+      throw new Error("Email triage thread ordinals are not initialized");
+    }
+    return this.threadOrdinals;
   }
 }

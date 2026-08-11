@@ -19,6 +19,12 @@ export interface MailItemRepository {
 
 export interface EmailTriageProcessorDependencies {
   repository: MailItemRepository;
+  threadOrdinals?: {
+    persist(
+      projection: MailItemProjection,
+      writer: (projection: MailItemProjection) => Promise<void>,
+    ): Promise<void>;
+  };
   attempts: IRuntimeStateStore<number>;
   classify: MailClassifier;
   logger: Logger;
@@ -26,12 +32,14 @@ export interface EmailTriageProcessorDependencies {
 
 export class EmailTriageProcessor {
   private readonly repository: MailItemRepository;
+  private readonly threadOrdinals: EmailTriageProcessorDependencies["threadOrdinals"];
   private readonly attempts: IRuntimeStateStore<number>;
   private readonly classify: MailClassifier;
   private readonly logger: Logger;
 
   constructor(dependencies: EmailTriageProcessorDependencies) {
     this.repository = dependencies.repository;
+    this.threadOrdinals = dependencies.threadOrdinals;
     this.attempts = dependencies.attempts;
     this.classify = dependencies.classify;
     this.logger = dependencies.logger;
@@ -129,7 +137,13 @@ export class EmailTriageProcessor {
     itemId: string,
   ): Promise<MessageResponse> {
     try {
-      await this.repository.create(projection);
+      if (this.threadOrdinals) {
+        await this.threadOrdinals.persist(projection, (item) =>
+          this.repository.create(item),
+        );
+      } else {
+        await this.repository.create(projection);
+      }
     } catch {
       return this.persistenceFailure(itemId);
     }

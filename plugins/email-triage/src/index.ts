@@ -34,6 +34,8 @@ export {
   mailSenderLabelSchema,
   mailStatusSchema,
   mailItemSourceSchema,
+  mailThreadKeySchema,
+  mailThreadOrdinalSchema,
   mailItemFrontmatterSchema,
   mailItemMetadataSchema,
   mailItemSchema,
@@ -48,6 +50,7 @@ export {
 export {
   createMailItemProjection,
   createUnclassifiedMailItemProjection,
+  withMailThreadOrdinal,
   mailItemIdForMessage,
   type MailItemProjection,
 } from "./lib/mail-item-projection";
@@ -63,6 +66,11 @@ export {
   EMAIL_TRIAGE_CLASSIFICATION_PROMPT_TARGET,
   type MailClassifier,
 } from "./lib/classifier";
+export {
+  MailThreadOrdinalCoordinator,
+  threadOrdinalStateSchema,
+  type ThreadOrdinalState,
+} from "./thread-ordinal-coordinator";
 export { isDeterministicBulkMail } from "./lib/bulk-filter";
 export { assertClassificationIsDerived } from "./lib/source-safety";
 export {

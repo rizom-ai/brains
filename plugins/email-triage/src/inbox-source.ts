@@ -18,17 +18,24 @@ export class MailTriageInboxSource implements InboxSource {
   readonly displayName: string = "Email Triage";
 
   private readonly operator: MailTriageOperatorService;
+  private readonly readiness: { isReady(): Promise<boolean> } | undefined;
 
-  constructor(operator: MailTriageOperatorService) {
+  constructor(
+    operator: MailTriageOperatorService,
+    readiness?: { isReady(): Promise<boolean> },
+  ) {
     this.operator = operator;
+    this.readiness = readiness;
   }
 
   async list(): Promise<InboxItem[]> {
-    const result = await this.operator.list({
-      status: "new",
-      limit: INBOX_ITEM_LIMIT,
-    });
-    return inboxItemListSchema.parse(result.items.map(toInboxItem));
+    const [result, threadOrdinalsReady] = await Promise.all([
+      this.operator.list({ status: "new", limit: INBOX_ITEM_LIMIT }),
+      this.readiness?.isReady() ?? Promise.resolve(false),
+    ]);
+    return inboxItemListSchema.parse(
+      result.items.map((item) => toInboxItem(item, threadOrdinalsReady)),
+    );
   }
 
   async act(
@@ -49,7 +56,10 @@ export class MailTriageInboxSource implements InboxSource {
   }
 }
 
-function toInboxItem(item: MailTriageListItem): InboxItem {
+function toInboxItem(
+  item: MailTriageListItem,
+  threadOrdinalsReady: boolean,
+): InboxItem {
   return {
     id: item.id,
     title: item.title,
@@ -61,6 +71,9 @@ function toInboxItem(item: MailTriageListItem): InboxItem {
             ...(item.personId ? { personId: item.personId } : {}),
           },
         }
+      : {}),
+    ...(threadOrdinalsReady && item.threadOrdinal !== undefined
+      ? { threadOrdinal: item.threadOrdinal }
       : {}),
     receivedAt: item.receivedAt,
     urgency: item.priority === "high" ? "high" : "normal",

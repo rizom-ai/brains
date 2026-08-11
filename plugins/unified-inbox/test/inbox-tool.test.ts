@@ -18,6 +18,7 @@ function item(
     title: `Attention ${id}`,
     summary: `Safe summary ${id}`,
     contact: { label: `Contact ${id} · example.com`, personId: `person-${id}` },
+    threadOrdinal: 4,
     receivedAt,
     urgency,
     entityRef: { entityType: "mail-item", entityId: `private-${id}` },
@@ -139,6 +140,7 @@ describe("inbox_list tool", () => {
         id: "sender-hash-8ab1",
         title: "Safe routing title",
         summary: "Safe routing summary",
+        threadOrdinal: 7,
         receivedAt: "2026-08-05T10:00:00.000Z",
         urgency: "high",
         entityRef: {
@@ -161,6 +163,7 @@ describe("inbox_list tool", () => {
     expect(serialized).not.toContain("private transport content");
     expect(serialized).not.toContain("entityRef");
     expect(serialized).not.toContain("actions");
+    expect(serialized).not.toContain("threadOrdinal");
   });
 
   it("rejects non-Admin callers before reading any source", async () => {

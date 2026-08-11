@@ -60,6 +60,7 @@ interface InboxItemValue {
   title: string;
   summary?: string | undefined;
   contact?: InboxContactValue | undefined;
+  threadOrdinal?: number | undefined;
   receivedAt: string;
   urgency: "high" | "normal";
   entityRef?: InboxEntityRefValue | undefined;
@@ -72,6 +73,12 @@ export const inboxItemSchema: z.ZodType<InboxItemValue, InboxItemValue> = z
     title: z.string().trim().min(1).max(160),
     summary: z.string().trim().min(1).max(1_000).optional(),
     contact: inboxContactSchema.optional(),
+    threadOrdinal: z
+      .number()
+      .int()
+      .positive()
+      .max(Number.MAX_SAFE_INTEGER)
+      .optional(),
     receivedAt: z.iso.datetime(),
     urgency: inboxUrgencySchema,
     entityRef: inboxEntityRefSchema.optional(),

@@ -53,6 +53,7 @@ context.inbox.registerSource({
       title: "Review requested",
       summary: "A content-safe routing summary.",
       contact: { label: "Sam Rivera · acme.io", personId: "prsn_sam" },
+      threadOrdinal: 2,
       receivedAt: new Date().toISOString(),
       urgency: "normal",
       entityRef: { entityType: "review-item", entityId: "item-1" },
@@ -70,7 +71,10 @@ structured person relationship rather than a presentation byline: `label` is bou
 recognizable text, while optional `personId` is the stable local Auth person key. In the
 CMS, a resolved person links through the registered Admin interaction; unresolved contacts
 remain plain text. Dashboard and digest projections omit contact labels and identifiers.
-Do not include message bodies, secrets, or unnecessary raw addresses.
+Do not include message bodies, secrets, or unnecessary raw addresses. Optional
+`threadOrdinal` is a positive, content-safe position supplied only after the owning source
+has completed its consistency gate; the CMS renders it as **message N in thread** without
+claiming a total. The headless reader, Dashboard, and digest continue to omit it.
 
 ## Configuration
 

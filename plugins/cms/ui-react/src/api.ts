@@ -214,6 +214,7 @@ export interface MailTriageListItem {
   summary: string;
   senderLabel?: string;
   personId?: string;
+  threadOrdinal?: number;
   organization?: string;
   requestedActions: string[];
 }
@@ -236,6 +237,7 @@ export interface InboxWorkspaceEntry {
     title: string;
     summary?: string;
     contact?: { label: string; personId?: string };
+    threadOrdinal?: number;
     receivedAt: string;
     urgency: "high" | "normal";
     entityRef?: { entityType: string; entityId: string };
