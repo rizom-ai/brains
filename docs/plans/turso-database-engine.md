@@ -17,16 +17,19 @@ process the sole local shell database owner under WAL, fold regenerated
 embeddings into `brain.db`, and atomically journal entity embedding jobs through
 an owner-local outbox. The affected service suites pass on both engines.
 Review uncovered that Turso's persisted native-FTS schema syntax is not
-parseable by libSQL. The chosen mitigation is an explicit, tested break-glass
-command: `brain-rollback-entities-to-libsql`.
+parseable by libSQL, mitigated at the time by a tested break-glass command
+(`brain-rollback-entities-to-libsql`). Phase 5D removed native FTS entirely,
+so that command and the `index_method` flag now guard a state no released
+build can produce; Phase 5F deletes them before the branch merges.
 
 The corrected production-shaped benchmark reopened the search-backend
 question, and the owner decided it: both engine-specific search indexes are
 replaced by a portable exact-phrase scan in completed Phase 5D, on the measured
 grounds that the scan strictly dominates native FTS on Turso and costs libSQL a
 negligible read margin. Native FTS and its MVCC incompatibility are no longer
-load-bearing; `index_method` remains available only to clean skipped releases
-and restored backups. MVCC is parked behind an observed owner-connection
+load-bearing, and Phase 5F removes the cleanup machinery they justified —
+`main` never shipped Turso, so no installation can hold a native index. MVCC
+is parked behind an observed owner-connection
 saturation trigger because job writes are at engine parity under WAL and the
 owner connection is serialized. Phase 5E measured and implemented the selected
 owner-local outbox: entity mutations and their embedding-job intents commit
@@ -621,6 +624,52 @@ The full entity and job suites pass on both Turso and break-glass libSQL.
 together; interrupted delivery replays to exactly one queue row; the former
 post-commit enqueue gap is no longer the normal mutation path.
 
+#### Phase 5F — Delete the native-FTS back-compat
+
+Phases 1–5C created a Turso native FTS index, so Phases 3–5D carried
+machinery to clean it out of existing files and to transform a Turso file
+back into a libSQL-readable one. That machinery protects against a state no
+installation can be in: `main` contains no Turso at all — no
+`@tursodatabase` dependency in `@rizom/brain`, no Turso branch in
+`shared/db/src/sqlite.ts`, and no `USING fts` index in entity-service — so
+`entities_content_fts` has never existed in a released build. Only developer
+machines that ran this branch mid-flight can hold one, and `brain.db` is a
+derived index whose source of truth is git, so the remedy there is deleting
+the file and re-importing, not shipping permanent machinery.
+
+Keep, because released builds really do create them:
+
+- the startup cleanup that drops `entity_fts` and `embeddings_embedding_idx`
+  before the engine opens the database. Every upgrading installation needs it.
+
+Delete, because nothing outside this branch can hold a native index:
+
+- `dropTursoIndexForFallback` in `shared/db/src/turso-maintenance.ts`, and the
+  malformed-schema detection plus second cleanup pass it feeds in
+  `preparePortableEntitySearch`. The cleanup collapses to one libSQL pass.
+- the `index_method` experimental flag in the Turso adapter. No code creates
+  an index; the flag exists only to open files that contain one. Removing it
+  leaves `multiprocess_wal` as the adapter's only experimental flag.
+- `brain-rollback-entities-to-libsql` end to end: `shell/entity-service/src/rollback.ts`,
+  its test, the `./rollback` package export, the CLI bin entry, its bundle
+  target in `packages/brain-cli/scripts/build.ts`, and the package-metadata
+  and packed-consumer assertions that cover it. After Phase 5D both engines
+  read identical schema, so `BRAINS_DB_ENGINE=libsql` is a plain env-var
+  switch with no transform to perform — which is the whole job the command
+  had left.
+- the `turso-cutover` and rollback test fixtures that seed a native index,
+  plus the plan/README/`shell/app` documentation describing the break-glass
+  procedure.
+
+Sequencing: this must land before the branch merges. Once a build carrying
+native FTS reaches a user, the machinery stops being dead weight and becomes
+load-bearing, and this phase is off the table.
+
+**Exit:** no `index_method` flag, no rollback command, no native-FTS cleanup
+path; libSQL-era cleanup still runs; `BRAINS_DB_ENGINE=libsql` still opens a
+Turso-written database with dual-engine suites green; the packed-consumer test
+covers the env-var fallback without invoking a rollback command.
+
 ## Non-goals
 
 - No changes to auth-service's replica path — it stays on `@libsql/client`
@@ -632,10 +681,11 @@ post-commit enqueue gap is no longer the normal mutation path.
 
 ## Risks
 
-- Historical files and backups may still contain Turso native FTS schema that
-  libSQL cannot parse. Startup cleanup and the explicit break-glass command
-  retain `index_method` capability indefinitely rather than assuming every
-  installation consumed an intermediate release.
+- Installations upgrading from a released build carry libSQL-era schema —
+  `entity_fts` and the dead `embeddings_embedding_idx` — so the startup
+  cleanup that drops them is required and permanent. Turso native FTS is a
+  different case: it never shipped, so no released installation can hold it
+  (see Phase 5F).
 - The portable predicate is a linear ASCII case-insensitive substring check,
   not tokenizer-based FTS. Ranking changes are bounded to the 30% keyword
   boost; behavior tests pin punctuation and case semantics, and the 10,000-row
