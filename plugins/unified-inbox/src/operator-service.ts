@@ -1,15 +1,16 @@
 import type { IInboxRegistry, InboxActor, InboxSource } from "@brains/plugins";
 import { sourceMetadata, type InboxDataSource } from "./inbox-datasource";
-import type {
-  InboxActionOutcome,
-  InboxActionRequest,
-  InboxDashboardData,
-  InboxListFilter,
-  InboxListResult,
-  InboxProjection,
-  InboxSourceAvailability,
-  InboxWorkspaceQuery,
-  InboxWorkspaceSnapshot,
+import {
+  normalizeInboxWorkspaceQuery,
+  type InboxActionOutcome,
+  type InboxActionRequest,
+  type InboxDashboardData,
+  type InboxListFilter,
+  type InboxListResult,
+  type InboxProjection,
+  type InboxSourceAvailability,
+  type InboxWorkspaceQuery,
+  type InboxWorkspaceSnapshot,
 } from "./schemas";
 
 type InboxSourceRegistry = Pick<IInboxRegistry, "getSource" | "listSources">;
@@ -42,7 +43,11 @@ export class InboxOperatorService {
     };
   }
 
-  async workspace(query: InboxWorkspaceQuery): Promise<InboxWorkspaceSnapshot> {
+  async workspace(input: unknown = {}): Promise<InboxWorkspaceSnapshot> {
+    const query: InboxWorkspaceQuery = normalizeInboxWorkspaceQuery(
+      input,
+      this.registry.listSources().map((source) => source.sourceId),
+    );
     const projection = await this.dataSource.getInboxData();
     const counts = countBySource(projection.entries);
     const matching = filterEntries(projection, query);

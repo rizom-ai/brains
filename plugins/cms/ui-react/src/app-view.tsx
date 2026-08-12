@@ -124,6 +124,7 @@ export interface CmsAppViewProps {
   onWorkspaceQueryChange: (
     workspaceId: string,
     query: CmsWorkspaceQuery,
+    canonicalUrlQuery?: CmsWorkspaceQuery,
   ) => void;
   startCreate: () => void;
   openEntity: (entityId: string) => void;
@@ -338,8 +339,12 @@ export function CmsAppView(props: CmsAppViewProps): ReactElement {
             <UnifiedInboxWorkspace
               data={inboxWorkspaceData}
               query={workspaceQuery}
-              onQueryChange={(query) =>
-                onWorkspaceQueryChange(activeWorkspaceId, query)
+              onQueryChange={(query, canonicalUrlQuery) =>
+                onWorkspaceQueryChange(
+                  activeWorkspaceId,
+                  query,
+                  canonicalUrlQuery,
+                )
               }
               onOpenEntity={openWorkspaceEntity}
               onAction={performInboxAction}

@@ -33,6 +33,7 @@ export interface CmsWorkspaceInfo {
     | "EmailTriageWorkspace"
     | "UnifiedInboxWorkspace";
   priority: number;
+  urlQuery?: true;
   entityTypes: string[];
   badge?: number;
 }

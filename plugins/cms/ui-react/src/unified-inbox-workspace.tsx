@@ -16,8 +16,7 @@ import type {
 import { ConfirmDialog } from "./confirm-dialog";
 import type { CmsWorkspaceQuery } from "./queries";
 import { formatUpdated, useWorkspaceAction } from "./ui-utils";
-
-const DEFAULT_INBOX_PAGE_SIZE = 50;
+import { workspaceUrlSearch } from "./workspace-url-query";
 
 function entryKey(entry: InboxWorkspaceEntry): string {
   return `${entry.source.sourceId}:${entry.item.id}`;
@@ -75,7 +74,10 @@ export function InboxContact(props: {
 export function UnifiedInboxWorkspace(props: {
   data: InboxWorkspaceSnapshot;
   query: CmsWorkspaceQuery;
-  onQueryChange: (query: CmsWorkspaceQuery) => void;
+  onQueryChange: (
+    query: CmsWorkspaceQuery,
+    canonicalUrlQuery?: CmsWorkspaceQuery,
+  ) => void;
   onOpenEntity: (entityType: string, entityId: string) => void;
   onAction: (
     action: InboxWorkspaceAction,
@@ -112,16 +114,26 @@ export function UnifiedInboxWorkspace(props: {
     if (selected) detailHeadingRef.current?.focus();
   }, [selected]);
 
-  const sourceFilter =
+  const requestedSource =
     typeof query["sourceId"] === "string" ? query["sourceId"] : undefined;
+  const sourceFilter = data.sources.some(
+    (source) => source.source.sourceId === requestedSource,
+  )
+    ? requestedSource
+    : undefined;
   const urgencyFilter =
     query["urgency"] === "high" || query["urgency"] === "normal"
       ? query["urgency"]
       : undefined;
   const limit =
-    typeof query["limit"] === "number"
-      ? query["limit"]
-      : DEFAULT_INBOX_PAGE_SIZE;
+    typeof query["limit"] === "number" ? query["limit"] : data.limit;
+  const canonicalUrlQuery = useMemo<CmsWorkspaceQuery>(
+    () => ({
+      ...(sourceFilter !== undefined ? { sourceId: sourceFilter } : {}),
+      ...(urgencyFilter !== undefined ? { urgency: urgencyFilter } : {}),
+    }),
+    [sourceFilter, urgencyFilter],
+  );
 
   const filteredQuery = useCallback(
     (
@@ -138,6 +150,23 @@ export function UnifiedInboxWorkspace(props: {
     }),
     [limit],
   );
+
+  useEffect(() => {
+    if (workspaceUrlSearch(query) === workspaceUrlSearch(canonicalUrlQuery)) {
+      return;
+    }
+    onQueryChange(
+      filteredQuery({ sourceId: sourceFilter, urgency: urgencyFilter }, 0),
+      canonicalUrlQuery,
+    );
+  }, [
+    canonicalUrlQuery,
+    filteredQuery,
+    onQueryChange,
+    query,
+    sourceFilter,
+    urgencyFilter,
+  ]);
 
   const selectEntry = useCallback(
     (entry: InboxWorkspaceEntry, trigger: HTMLButtonElement): void => {
@@ -161,12 +190,21 @@ export function UnifiedInboxWorkspace(props: {
       setSelectedKey(null);
       originRef.current = null;
       setFeedback(null);
-      onQueryChange(
-        filteredQuery(
-          { sourceId: sourceFilter, urgency: urgencyFilter, ...patch },
-          0,
-        ),
-      );
+      const filters: {
+        sourceId: string | undefined;
+        urgency: "high" | "normal" | undefined;
+      } = {
+        sourceId: sourceFilter,
+        urgency: urgencyFilter,
+        ...patch,
+      };
+      const nextUrlQuery: CmsWorkspaceQuery = {
+        ...(filters.sourceId !== undefined
+          ? { sourceId: filters.sourceId }
+          : {}),
+        ...(filters.urgency !== undefined ? { urgency: filters.urgency } : {}),
+      };
+      onQueryChange(filteredQuery(filters, 0), nextUrlQuery);
     },
     [filteredQuery, onQueryChange, sourceFilter, urgencyFilter],
   );

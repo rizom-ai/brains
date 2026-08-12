@@ -161,6 +161,7 @@ after that evidence is reviewed.
    Route them through one owned, abortable process abstraction (or an equivalent complete guard)
    after the fixed Bun pin. A timeout may release the queue only after kill-and-reap is confirmed;
    otherwise operational health must fail and the external supervisor must restart the process.
+
 4. **Approval-gated live-recovery runbook**: after the fresh capture, backup, and parity proof,
    request explicit approval to restart the process/container without changing image or config.
    Verify recovery passively first: process `StartedAt`, health, queue/worker state, Git parity, and

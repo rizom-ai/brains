@@ -3,8 +3,8 @@
 ## Status
 
 **Active.** Builds directly on the shipped unified inbox (contract, CMS
-workspace, digest). Phases 0a, 0b, 7, and 8 are implemented; Phases 1–6 remain
-planned. UX mockup:
+workspace, digest). Phases 0a, 0b, 1, 7, and 8 are implemented; Phases 2–6
+remain planned. UX mockup:
 [inbox-follow-ups-mockup.html](./inbox-follow-ups-mockup.html).
 
 `unified-inbox` is being promoted from an explicit opt-in to a `core` bundle
@@ -345,8 +345,9 @@ Tests are written first inside each phase.
   transition and ingress cannot race; a new arrival after legacy items gets the
   next correct ordinal; retries/concurrent arrivals do not duplicate ordinals;
   unmigrated items render no placeholder.
-- **Phase 1 — Linkable filter queries.** Add the generic opt-in workspace URL
-  capability and separate canonical filter state from transient paging.
+- **Phase 1 — Linkable filter queries (implemented).** Add the generic opt-in
+  workspace URL capability and separate canonical filter state from transient
+  paging.
   _Tests:_ direct entry filters server-side and starts at offset zero; filter
   changes replace the URL; Load more never writes offset/limit; reload after
   paging starts on page one; malformed/orphan facet params canonicalize to

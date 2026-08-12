@@ -147,6 +147,47 @@ describe("optional CMS workspaces", () => {
     });
   });
 
+  it("exposes URL query capability only for opted-in workspaces", async () => {
+    const shell = createMockShell({ domain: "yeehaa.io" });
+    const cookie = await createSessionCookie(shell);
+    const plugin = cmsPlugin();
+    await plugin.register(shell);
+    await registerWorkspace(shell, {
+      id: "inbox",
+      pluginId: "unified-inbox",
+      label: "Inbox",
+      rendererName: "UnifiedInboxWorkspace",
+      priority: 20,
+      urlQuery: true,
+      accessHandler: () => true,
+      dataProvider: async () => ({ entries: [] }),
+    });
+    await registerWorkspace(shell, {
+      id: "publishing",
+      pluginId: "content-pipeline",
+      label: "Publishing",
+      rendererName: "PublishingWorkspace",
+      priority: 40,
+      accessHandler: () => true,
+      dataProvider: async () => ({ queue: [] }),
+    });
+
+    const response = await findRoute(plugin, "/cms/api/types").handler(
+      request("/cms/api/types", { cookie }),
+    );
+
+    expect(await response.json()).toMatchObject({
+      workspaces: [{ id: "inbox", urlQuery: true }, { id: "publishing" }],
+    });
+    const payload = await findRoute(plugin, "/cms/api/types").handler(
+      request("/cms/api/types", { cookie }),
+    );
+    const descriptors = z
+      .object({ workspaces: z.array(z.record(z.string(), z.unknown())) })
+      .parse(await payload.json()).workspaces;
+    expect(descriptors[1]).not.toHaveProperty("urlQuery");
+  });
+
   it("exposes registered descriptors and provider data to the browser", async () => {
     const shell = createMockShell({ domain: "yeehaa.io" });
     const cookie = await createSessionCookie(shell);

@@ -137,19 +137,48 @@ function queryInteger(value: unknown): unknown {
   return Number(value);
 }
 
+const inboxWorkspaceOffsetSchema = z.preprocess(
+  queryInteger,
+  z.number().int().min(0).max(10_000),
+);
+const inboxWorkspaceLimitSchema = z.preprocess(
+  queryInteger,
+  z.number().int().min(1).max(100),
+);
+
 export const inboxWorkspaceQuerySchema: z.ZodType<
   InboxWorkspaceQueryValue,
   unknown
 > = z.strictObject({
   sourceId: inboxIdSchema.optional(),
   urgency: inboxUrgencySchema.optional(),
-  offset: z
-    .preprocess(queryInteger, z.number().int().min(0).max(10_000))
-    .default(0),
-  limit: z
-    .preprocess(queryInteger, z.number().int().min(1).max(100))
-    .default(50),
+  offset: inboxWorkspaceOffsetSchema.default(0),
+  limit: inboxWorkspaceLimitSchema.default(50),
 });
+
+/** Normalize each URL/request field independently so one bad filter fails open. */
+export function normalizeInboxWorkspaceQuery(
+  input: unknown,
+  sourceIds: readonly string[],
+): InboxWorkspaceQueryValue {
+  const raw =
+    typeof input === "object" && input !== null && !Array.isArray(input)
+      ? (input as Record<string, unknown>)
+      : {};
+  const sourceId = inboxIdSchema.safeParse(raw["sourceId"]);
+  const urgency = inboxUrgencySchema.safeParse(raw["urgency"]);
+  const offset = inboxWorkspaceOffsetSchema.safeParse(raw["offset"]);
+  const limit = inboxWorkspaceLimitSchema.safeParse(raw["limit"]);
+  const knownSources = new Set(sourceIds);
+  return inboxWorkspaceQuerySchema.parse({
+    ...(sourceId.success && knownSources.has(sourceId.data)
+      ? { sourceId: sourceId.data }
+      : {}),
+    ...(urgency.success ? { urgency: urgency.data } : {}),
+    offset: offset.success ? offset.data : 0,
+    limit: limit.success ? limit.data : 50,
+  });
+}
 
 interface InboxSourceAvailabilityValue {
   source: InboxSourceMetadata;

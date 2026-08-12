@@ -16,6 +16,7 @@ const workspaceRegistrationSchema = z.object({
     "UnifiedInboxWorkspace",
   ]),
   priority: z.number().int(),
+  urlQuery: z.literal(true).optional(),
   entityTypes: z
     .union([
       z.array(z.string().trim().min(1)),
@@ -76,6 +77,7 @@ export class CmsWorkspaceRegistry {
       label: parsed.label,
       rendererName: parsed.rendererName,
       priority: parsed.priority,
+      ...(parsed.urlQuery ? { urlQuery: true as const } : {}),
       entityTypes: parsed.entityTypes,
       accessHandler: parsed.accessHandler,
       dataProvider: parsed.dataProvider,
@@ -113,6 +115,7 @@ export class CmsWorkspaceRegistry {
             label: workspace.label,
             rendererName: workspace.rendererName,
             priority: workspace.priority,
+            ...(workspace.urlQuery ? { urlQuery: true as const } : {}),
             entityTypes:
               typeof workspace.entityTypes === "function"
                 ? await workspace.entityTypes(actor)

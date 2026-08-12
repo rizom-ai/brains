@@ -1,6 +1,8 @@
-import { describe, expect, it } from "bun:test";
-import { createElement } from "react";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { act, createElement } from "react";
+import { createRoot, type Root } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
+import { Window } from "happy-dom";
 import type { InboxWorkspaceSnapshot } from "./api";
 import { InboxContact, UnifiedInboxWorkspace } from "./unified-inbox-workspace";
 
@@ -131,5 +133,141 @@ describe("UnifiedInboxWorkspace", () => {
 
     expect(html).toContain("Nothing needs attention for these filters");
     expect(html).not.toContain("Load more");
+  });
+});
+
+describe("UnifiedInboxWorkspace query changes", () => {
+  let windowInstance: Window;
+  let root: Root;
+
+  beforeEach(() => {
+    windowInstance = new Window({
+      url: "https://brain.test/cms/workspaces/inbox",
+    });
+    const win = windowInstance as unknown as Window & Record<string, unknown>;
+    Object.assign(globalThis, {
+      window: windowInstance,
+      document: windowInstance.document,
+      navigator: windowInstance.navigator,
+      HTMLElement: win.HTMLElement,
+      Element: win.Element,
+      Node: win.Node,
+      Event: win.Event,
+      IS_REACT_ACT_ENVIRONMENT: true,
+    });
+    const container = windowInstance.document.createElement("div");
+    windowInstance.document.body.append(container);
+    root = createRoot(container as unknown as HTMLElement);
+  });
+
+  afterEach(async () => {
+    await act(async () => root.unmount());
+    windowInstance.close();
+  });
+
+  it("publishes stable filters separately from the first-page request", async () => {
+    const changes: Array<{
+      request: Record<string, string | number | undefined>;
+      urlQuery?: Record<string, string | number | undefined> | undefined;
+    }> = [];
+    await act(async () => {
+      root.render(
+        createElement(UnifiedInboxWorkspace, {
+          data,
+          query: {},
+          onQueryChange: (request, urlQuery) => {
+            changes.push({ request, ...(urlQuery ? { urlQuery } : {}) });
+          },
+          onOpenEntity: () => {},
+          onAction: async () => ({ kind: "completed" as const }),
+        }),
+      );
+    });
+    const source = windowInstance.document.querySelector(
+      ".inbox-filters select",
+    );
+    if (!(source instanceof windowInstance.HTMLSelectElement)) {
+      throw new Error("Missing source filter");
+    }
+
+    await act(async () => {
+      source.value = "mail-items";
+      source.dispatchEvent(
+        new windowInstance.Event("change", { bubbles: true }),
+      );
+    });
+
+    expect(changes).toEqual([
+      {
+        request: { sourceId: "mail-items", offset: 0, limit: 50 },
+        urlQuery: { sourceId: "mail-items" },
+      },
+    ]);
+  });
+
+  it("keeps Load more paging transient", async () => {
+    const changes: Array<{
+      request: Record<string, string | number | undefined>;
+      urlQuery?: Record<string, string | number | undefined> | undefined;
+    }> = [];
+    await act(async () => {
+      root.render(
+        createElement(UnifiedInboxWorkspace, {
+          data,
+          query: { sourceId: "mail-items" },
+          onQueryChange: (request, urlQuery) => {
+            changes.push({ request, ...(urlQuery ? { urlQuery } : {}) });
+          },
+          onOpenEntity: () => {},
+          onAction: async () => ({ kind: "completed" as const }),
+        }),
+      );
+    });
+    const loadMore = [
+      ...windowInstance.document.querySelectorAll("button"),
+    ].find((button) => button.textContent === "Load more");
+    if (!(loadMore instanceof windowInstance.HTMLButtonElement)) {
+      throw new Error("Missing Load more button");
+    }
+
+    await act(async () => loadMore.click());
+
+    expect(changes).toEqual([
+      {
+        request: {
+          sourceId: "mail-items",
+          offset: data.entries.length,
+          limit: 50,
+        },
+      },
+    ]);
+  });
+
+  it("canonicalizes malformed and orphaned stable URL fields", async () => {
+    const changes: Array<{
+      request: Record<string, string | number | undefined>;
+      urlQuery?: Record<string, string | number | undefined> | undefined;
+    }> = [];
+    await act(async () => {
+      root.render(
+        createElement(UnifiedInboxWorkspace, {
+          data,
+          query: {
+            sourceId: "missing-source",
+            urgency: "urgent",
+            "facet.category": "orphaned",
+          },
+          onQueryChange: (request, urlQuery) => {
+            changes.push({ request, ...(urlQuery ? { urlQuery } : {}) });
+          },
+          onOpenEntity: () => {},
+          onAction: async () => ({ kind: "completed" as const }),
+        }),
+      );
+    });
+
+    expect(changes).toEqual([
+      { request: { offset: 0, limit: 50 }, urlQuery: {} },
+    ]);
   });
 });

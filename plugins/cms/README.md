@@ -40,6 +40,12 @@ Reducer actions are discriminated transitions; rejected transitions return the e
 
 CMS doors use `{routePath}/entities/{encodedEntityType}` or `{routePath}/entities/{encodedEntityType}/{encodedEntityId}`. Optional operational workspaces use `{routePath}/workspaces/{encodedWorkspaceId}`. Package-local TanStack Router browser history owns the selected collection, entity, or workspace, including Back, Forward, refresh, and direct entry. Entity IDs are encoded as one value and may contain slashes. Draft values, conflicts, dialogs, pane selection, and other transient workflow state do not belong in the URL; navigation away from a dirty edit or creation draft requires explicit confirmation.
 
+Workspace providers may opt into renderer-owned stable URL filters with `urlQuery: true`.
+The CMS hydrates those filters from the raw search string and replaces their canonical URL
+without guessing provider semantics. `offset` and `limit` are always transient request
+state: they are neither hydrated nor serialized, so reload starts from the first page.
+Workspaces without the capability ignore URL search entirely.
+
 ## Optional workspaces
 
 Service plugins may register a CMS-owned renderer through `cms:register-workspace`. Registrations are ordered by `priority`, duplicate IDs are rejected, and no provider is required for the CMS to start.
@@ -48,6 +54,8 @@ The bundled renderer vocabulary is deliberately narrow:
 
 - `PublishingWorkspace` operates the content-pipeline queue and publication failures;
 - `SiteWorkspace` operates site-builder preview and production builds;
-- `DirectorySyncWorkspace` operates directory/Git sync status and manual sync requests.
+- `DirectorySyncWorkspace` operates directory/Git sync status and manual sync requests;
+- `EmailTriageWorkspace` operates the retained-mail triage desk;
+- `UnifiedInboxWorkspace` operates source-owned attention and linkable stable filters.
 
 Providers own snapshots, validation, authorization, and actions. The CMS owns authenticated transport, navigation, rendering, and targeted query invalidation. Runtime React components are never accepted through registration.
