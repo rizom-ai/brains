@@ -33,6 +33,7 @@ import type {
 import { z } from "@brains/utils/zod";
 import type { AgentNamespace } from "../contracts/agent";
 import type { AppInfo } from "../contracts/app-info";
+import type { RuntimeHealthCheck } from "../contracts/runtime-health";
 export type {
   ProjectionRule,
   ProjectionRuleDefinition,
@@ -384,6 +385,15 @@ export interface IInboxNamespace {
   getSource(sourceId: string): InboxSource | undefined;
 }
 
+export interface IOperationalHealthNamespace {
+  register(
+    name: string,
+    provider: () =>
+      | Promise<Omit<RuntimeHealthCheck, "name">>
+      | Omit<RuntimeHealthCheck, "name">,
+  ): () => void;
+}
+
 export interface BasePluginContext {
   readonly pluginId: string;
   readonly logger: Logger;
@@ -407,6 +417,7 @@ export interface BasePluginContext {
   readonly identity: IIdentityNamespace;
   readonly channels: IChannelsNamespace;
   readonly inbox: IInboxNamespace;
+  readonly operationalHealth: IOperationalHealthNamespace;
   readonly messaging: IMessagingNamespace;
   readonly conversations: IConversationsNamespace;
   readonly eval: IEvalNamespace;

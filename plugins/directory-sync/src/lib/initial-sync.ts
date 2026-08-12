@@ -17,6 +17,11 @@ export function setupInitialSync(
   logger: Logger,
   gitSync?: IGitSync,
   reconciliation?: Pick<GitReconciliationService, "captureCurrent">,
+  recovery?: {
+    onGitProgress(): void;
+    onGitRecoverySucceeded(): Promise<void>;
+    onGitRecoveryFailed(error: unknown): Promise<void>;
+  },
 ): void {
   let initialSyncStarted = false;
 
@@ -35,7 +40,11 @@ export function setupInitialSync(
       // Pull remote changes before importing
       if (gitSync) {
         logger.debug("Git enabled — pulling before import");
-        const pullResult = await gitSync.pull();
+        recovery?.onGitProgress();
+        const pullResult = await gitSync.pull(
+          undefined,
+          recovery?.onGitProgress,
+        );
         await directorySync.recordPendingPullDeletes(
           pullResult.deletedFiles ?? [],
         );
@@ -56,6 +65,7 @@ export function setupInitialSync(
       if (gitSync && reconciliation) {
         await reconciliation.captureCurrent(gitSync);
       }
+      await recovery?.onGitRecoverySucceeded();
 
       await context.messaging.send({
         type: SYSTEM_CHANNELS.initialSyncCompleted,
@@ -64,6 +74,7 @@ export function setupInitialSync(
       });
     } catch (error) {
       logger.error("Initial sync failed", error);
+      await recovery?.onGitRecoveryFailed(error);
       await context.messaging.send({
         type: SYSTEM_CHANNELS.initialSyncCompleted,
         payload: {

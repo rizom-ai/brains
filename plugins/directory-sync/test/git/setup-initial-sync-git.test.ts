@@ -104,6 +104,40 @@ describe("setupInitialSync with git", () => {
     expect(callOrder).toEqual(["pull", "record-deletes", "sync", "checkpoint"]);
   });
 
+  it("tracks Git output and records interrupted-pull recovery", async () => {
+    const { context, handlers } = createMockContext();
+    const onGitProgress = mock(() => {});
+    const onGitRecoverySucceeded = mock(async () => {});
+    const onGitRecoveryFailed = mock(async () => {});
+    const gs = createMockGitSync({
+      pull: mock(async (_signal?: AbortSignal, onProgress?: () => void) => {
+        onProgress?.();
+        return { files: [] };
+      }),
+    });
+
+    setupInitialSync(
+      context,
+      () => createMockDirectorySync(),
+      baseConfig,
+      createSilentLogger(),
+      gs,
+      undefined,
+      {
+        onGitProgress,
+        onGitRecoverySucceeded,
+        onGitRecoveryFailed,
+      },
+    );
+
+    const handler = handlers.get(SYSTEM_CHANNELS.pluginsRegistered);
+    if (handler) await handler();
+
+    expect(onGitProgress).toHaveBeenCalledTimes(2);
+    expect(onGitRecoverySucceeded).toHaveBeenCalledTimes(1);
+    expect(onGitRecoveryFailed).not.toHaveBeenCalled();
+  });
+
   it("should call sync when gitSync is not provided", async () => {
     const { context, handlers } = createMockContext();
     const syncMock = mock(async () => ({

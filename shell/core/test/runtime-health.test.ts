@@ -15,6 +15,7 @@ type RuntimeDependencies = Pick<
   | "jobQueueService"
   | "daemonRegistry"
   | "projectionRuntimeSupervisor"
+  | "operationalHealthRegistry"
 >;
 
 function createDependencies(): RuntimeDependencies {
@@ -51,6 +52,9 @@ function createDependencies(): RuntimeDependencies {
         trackedRoots: 1,
         openCircuits: [],
       }),
+    },
+    operationalHealthRegistry: {
+      getChecks: async () => [],
     },
     daemonRegistry: {
       getStatuses: async () => [
@@ -280,6 +284,38 @@ describe("getRuntimeReadiness", () => {
           },
         ],
       },
+    });
+  });
+
+  it("degrades operation for plugin checks without changing routing readiness", async () => {
+    const dependencies = createDependencies();
+    dependencies.operationalHealthRegistry.getChecks = async (): Promise<
+      Awaited<
+        ReturnType<
+          RuntimeDependencies["operationalHealthRegistry"]["getChecks"]
+        >
+      >
+    > => [
+      {
+        name: "directory-sync:git-progress",
+        status: "unhealthy",
+        message: "Directory Git pull has made no progress for 150001ms",
+        details: { inactivityMs: 150_001, staleAfterMs: 150_000 },
+      },
+    ];
+
+    const readiness = await getRuntimeReadiness({
+      ...dependencies,
+      ...runtimeOptions,
+    });
+
+    expect(readiness.status).toBe("ready");
+    expect(readiness.operationalStatus).toBe("degraded");
+    expect(readiness.checks).toContainEqual({
+      name: "directory-sync:git-progress",
+      status: "unhealthy",
+      message: "Directory Git pull has made no progress for 150001ms",
+      details: { inactivityMs: 150_001, staleAfterMs: 150_000 },
     });
   });
 

@@ -51,6 +51,10 @@ export interface RuntimeReadinessOptions {
     "getDiagnostics" | "getStatus"
   >;
   daemonRegistry: Pick<ShellServices["daemonRegistry"], "getStatuses">;
+  operationalHealthRegistry: Pick<
+    ShellServices["operationalHealthRegistry"],
+    "getChecks"
+  >;
   projectionRuntimeSupervisor: Pick<
     ShellServices["projectionRuntimeSupervisor"],
     "getDiagnostics"
@@ -302,6 +306,7 @@ export async function getRuntimeReadiness(
     processResult,
     projectionResult,
     projectionWaveResult,
+    operationalHealthResult,
   ] = await Promise.allSettled([
     options.entityService.getEntityCounts(
       internalFullScope("runtime readiness database probe"),
@@ -311,6 +316,7 @@ export async function getRuntimeReadiness(
     (options.readProcessSignals ?? readLinuxProcessSignals)(),
     options.projectionRuntimeSupervisor.getDiagnostics(),
     getProjectionWaveDiagnostics(options),
+    options.operationalHealthRegistry.getChecks(),
   ]);
 
   const diagnostics =
@@ -334,7 +340,7 @@ export async function getRuntimeReadiness(
           trackedRoots: 0,
           openCircuits: [],
         };
-  const checks: RuntimeHealthCheck[] = [
+  const routingChecks: RuntimeHealthCheck[] = [
     dependencyCheck(
       "entity-database",
       entityResult,
@@ -369,9 +375,20 @@ export async function getRuntimeReadiness(
           message: getErrorMessage(daemonResult.reason),
         },
   ];
+  const operationalChecks: RuntimeHealthCheck[] =
+    operationalHealthResult.status === "fulfilled"
+      ? operationalHealthResult.value
+      : [
+          {
+            name: "plugin-operational-health",
+            status: "degraded",
+            message: "Plugin operational health is unavailable",
+          },
+        ];
+  const checks = [...routingChecks, ...operationalChecks];
 
   return {
-    status: checks.some((check) => check.status === "unhealthy")
+    status: routingChecks.some((check) => check.status === "unhealthy")
       ? "not_ready"
       : "ready",
     operationalStatus: checks.some((check) => check.status !== "healthy")

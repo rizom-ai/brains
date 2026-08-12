@@ -2,6 +2,7 @@ import {
   AttachmentRegistry,
   ChannelRegistry,
   InboxRegistry,
+  OperationalHealthRegistry,
   RuntimeUploadRegistry,
   createAttachmentsNamespace,
   createRuntimeUploadsNamespace,
@@ -228,6 +229,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
   const profileKindRegistry = new ProfileKindRegistry(options.profileKind);
   const channelRegistry = new ChannelRegistry();
   const inboxRegistry = new InboxRegistry();
+  const operationalHealthRegistry = new OperationalHealthRegistry();
 
   // Stateful backing stores
   const entities = new Map<string, BaseEntity>();
@@ -831,6 +833,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
     getProfileKindRegistry: () => profileKindRegistry,
     getChannelRegistry: () => channelRegistry,
     getInboxRegistry: () => inboxRegistry,
+    getOperationalHealthRegistry: () => operationalHealthRegistry,
     getDomain: (): string | undefined => options.domain,
     getLocalSiteUrl: (): string | undefined => options.localSiteUrl,
     shouldPreferLocalUrls: (): boolean => options.preferLocalUrls ?? false,

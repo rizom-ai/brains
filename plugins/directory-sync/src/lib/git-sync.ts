@@ -141,13 +141,13 @@ export class GitSync implements IGitSync {
     );
   }
 
-  pull(signal?: AbortSignal): Promise<PullResult> {
+  pull(signal?: AbortSignal, onProgress?: () => void): Promise<PullResult> {
     return this.runOperation(() =>
       pullGitChanges(
         this.git,
         this.logger,
         this.branch,
-        this.net,
+        { ...this.net, ...(onProgress ? { onProgress } : {}) },
         this.getOperationSignal(signal),
       ),
     );

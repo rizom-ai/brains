@@ -41,6 +41,7 @@ interface QueueReconciliationOptions {
   source: string;
   metadata?: BatchMetadata | undefined;
   signal?: AbortSignal | undefined;
+  onGitProgress?: (() => void) | undefined;
 }
 
 const CHECKPOINT_NAMESPACE = "directory-sync.git-reconciliation";
@@ -89,7 +90,7 @@ export class GitReconciliationService {
     options: QueueReconciliationOptions,
   ): Promise<GitReconciliationResult> {
     return options.gitSync.withLock(async () => {
-      await options.gitSync.pull(options.signal);
+      await options.gitSync.pull(options.signal, options.onGitProgress);
       options.signal?.throwIfAborted();
       return this.queueCurrentDelta(options);
     }, options.signal);

@@ -82,6 +82,16 @@ describe("DirectorySyncPlugin", () => {
       expect(templates.has("directory-sync:status")).toBe(true);
     });
 
+    it("should register request-driven Git progress health", async () => {
+      expect(
+        await harness.getMockShell().getOperationalHealthRegistry().getChecks(),
+      ).toContainEqual({
+        name: "directory-sync:git-progress",
+        status: "healthy",
+        message: "No stale directory Git pull",
+      });
+    });
+
     it("should register the optional CMS Sync workspace", () => {
       expect(workspaceRegistration).toMatchObject({
         id: "sync",
@@ -182,6 +192,64 @@ describe("DirectorySyncPlugin", () => {
       if (existsSync(newPath)) {
         rmSync(newPath, { recursive: true, force: true });
       }
+    });
+  });
+
+  describe("startup recovery", () => {
+    it("records an interrupted unlinked pull instead of silently clearing it", async () => {
+      const path = mkdtempSync(join(tmpdir(), "test-interrupted-pull-"));
+      const localHarness = createPluginHarness<DirectorySyncPlugin>({
+        dataDir: path,
+      });
+      const runtimeState = localHarness.getMockShell().getRuntimeState();
+      const statusStore = runtimeState.scoped<unknown>({
+        namespace: "directory-sync.operation-status",
+        schema: z.unknown(),
+      });
+      await statusStore.set("current", {
+        activeRun: {
+          id: "interrupted-run",
+          source: "periodic",
+          state: "pulling",
+          startedAt: "2025-01-01T00:00:00.000Z",
+          lastProgressAt: "2025-01-01T00:00:01.000Z",
+          imported: 0,
+          skipped: 0,
+          failed: 0,
+          quarantined: 0,
+          exported: 0,
+        },
+        recentRuns: [],
+        issues: [],
+      });
+
+      const localPlugin = new DirectorySyncPlugin({
+        syncPath: path,
+        autoSync: false,
+        initialSync: false,
+      });
+      await localHarness.installPlugin(localPlugin);
+
+      const stored = (await statusStore.get("current")) as {
+        activeRun?: unknown;
+        recentRuns: Array<{ id: string; outcome: string; summary: string }>;
+        issues: Array<{ kind: string; message: string }>;
+      };
+      expect(stored.activeRun).toBeUndefined();
+      expect(stored.recentRuns[0]).toMatchObject({
+        id: "interrupted-run",
+        outcome: "failed",
+        summary:
+          "Interrupted Git handoff recovery requires a configured repository",
+      });
+      expect(stored.issues[0]).toMatchObject({
+        kind: "git",
+        message:
+          "Interrupted Git handoff recovery requires a configured repository",
+      });
+
+      localHarness.reset();
+      rmSync(path, { recursive: true, force: true });
     });
   });
 
