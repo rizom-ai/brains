@@ -4,16 +4,21 @@ import readingInsights from "@fixture/reading-insights";
 import readingWebhook from "@fixture/reading-webhook";
 import { defineBrain, defineBundle, use } from "@rizom/brain";
 
+const fixtureEnv =
+  (globalThis as { process?: { env?: Record<string, string | undefined> } })
+    .process?.env ?? {};
+
 const entities = use(readingEntities);
 const insights = use(readingInsights, {
   summaryPrefix: "Saved reading",
 });
 const webhook = use(readingWebhook, {
   webhookToken: "packed-interface-secret",
-  eventFeedUrl: "http://127.0.0.1:14010/events",
+  eventFeedUrl:
+    fixtureEnv["FIXTURE_EVENT_FEED_URL"] ?? "http://127.0.0.1:14010/events",
 });
 const messages = use(campfire, {
-  baseUrl: "http://127.0.0.1:14020",
+  baseUrl: fixtureEnv["FIXTURE_CAMPFIRE_BASE_URL"] ?? "http://127.0.0.1:14020",
   workspace: "packed-reading-club",
   token: "packed-campfire-secret",
 });

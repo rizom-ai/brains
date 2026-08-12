@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it as bunIt } from "bun:test";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -8,6 +8,7 @@ import {
   buildAndPackFixturePackage,
   combinedOutput,
   installPackedConsumer,
+  packedCompatibilityEvidenceEnabled,
   packPackages,
   runCommand,
   startCommand,
@@ -32,17 +33,31 @@ const consumerFixture = join(
   "public-authoring-phase5-consumer",
 );
 
-const runtimeEnv = {
-  ...process.env,
-  AI_API_KEY: "packed-hermetic-runtime",
-  BRAIN_SKIP_LOCAL_REEXEC: "1",
-};
+const it = bunIt.skipIf(!packedCompatibilityEvidenceEnabled());
+let transportUrls:
+  { eventFeedUrl: string; campfireBaseUrl: string } | undefined;
+
+function runtimeEnv(): Record<string, string | undefined> {
+  return {
+    ...process.env,
+    AI_API_KEY: "packed-hermetic-runtime",
+    BRAIN_SKIP_LOCAL_REEXEC: "1",
+    ...(transportUrls
+      ? {
+          FIXTURE_EVENT_FEED_URL: transportUrls.eventFeedUrl,
+          FIXTURE_CAMPFIRE_BASE_URL: transportUrls.campfireBaseUrl,
+        }
+      : {}),
+  };
+}
 
 interface CampfireSocketData {
   authenticated: boolean;
 }
 
 interface TransportEvidence {
+  readonly eventFeedUrl: string;
+  readonly campfireBaseUrl: string;
   close(): Promise<void>;
   readonly campfireConnections: () => number;
   readonly campfireAuthentications: () => number;
@@ -73,7 +88,7 @@ function startTransportEvidence(): TransportEvidence {
 
   const eventFeed = Bun.serve({
     hostname: "127.0.0.1",
-    port: 14010,
+    port: 0,
     fetch(request): Response {
       if (new URL(request.url).pathname !== "/events") {
         return new Response("Not found", { status: 404 });
@@ -103,7 +118,7 @@ function startTransportEvidence(): TransportEvidence {
 
   const campfire = Bun.serve<CampfireSocketData>({
     hostname: "127.0.0.1",
-    port: 14020,
+    port: 0,
     fetch(request, server): Response | undefined {
       const url = new URL(request.url);
       if (url.pathname === "/events") {
@@ -147,7 +162,13 @@ function startTransportEvidence(): TransportEvidence {
     },
   });
 
+  transportUrls = {
+    eventFeedUrl: `http://127.0.0.1:${eventFeed.port}/events`,
+    campfireBaseUrl: `http://127.0.0.1:${campfire.port}`,
+  };
+
   return {
+    ...transportUrls,
     async close(): Promise<void> {
       await Promise.all([eventFeed.stop(true), campfire.stop(true)]);
     },
@@ -174,7 +195,7 @@ async function waitForEvidence(
 
 function startRuntime(consumerDirectory: string): StartedCommand {
   return startCommand(["bun", "run", "brain", "start"], consumerDirectory, {
-    env: runtimeEnv,
+    env: runtimeEnv(),
   });
 }
 
@@ -201,7 +222,7 @@ async function invokeTool(
         ...(confirm ? ["--yes"] : []),
       ],
       consumerDirectory,
-      { env: runtimeEnv, timeoutMs: 90_000 },
+      { env: runtimeEnv(), timeoutMs: 90_000 },
     ),
   );
 }

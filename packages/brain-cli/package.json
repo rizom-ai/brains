@@ -181,6 +181,7 @@
     "start:publishing": "bun run build:ui && cd test-apps/publishing && INIT_CWD=$PWD bun run $([ -t 1 ] && echo --elide-lines=0) --filter @rizom/brain dev:start",
     "start:team": "bun run build:ui && cd test-apps/team && INIT_CWD=$PWD bun run $([ -t 1 ] && echo --elide-lines=0) --filter @rizom/brain dev:start",
     "test": "bun test",
+    "test:packed:compat": "bun scripts/run-packed-compatibility.ts",
     "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.model.json"
   },
   "type": "module"

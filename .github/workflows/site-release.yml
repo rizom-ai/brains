@@ -108,6 +108,10 @@ jobs:
           echo "@rizom/brain@${expected} must be published before the site lane publishes." >&2
           exit 1
 
+      - name: Run packed compatibility matrix
+        if: steps.release_mode.outputs.mode != 'stable-exit'
+        run: bun run test:packed:compat
+
       - name: Build site and theme packages
         if: steps.release_mode.outputs.mode != 'stable-exit'
         run: bunx turbo run build --filter='@rizom/site*' --filter='@rizom/theme*'

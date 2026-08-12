@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it as bunIt } from "bun:test";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -7,6 +7,7 @@ import {
   buildAndPackFixturePackage,
   combinedOutput,
   installPackedConsumer,
+  packedCompatibilityEvidenceEnabled,
   packPackages,
   runCommand,
   startCommand,
@@ -27,6 +28,8 @@ const consumerFixture = join(
   "fixtures",
   "public-authoring-phase1-consumer",
 );
+
+const it = bunIt.skipIf(!packedCompatibilityEvidenceEnabled());
 
 const runtimeEnv = {
   ...process.env,

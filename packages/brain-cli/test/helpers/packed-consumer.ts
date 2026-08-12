@@ -1,9 +1,16 @@
 import { afterAll } from "bun:test";
-import { mkdtempSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, rmSync } from "node:fs";
 import { cp, mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { getErrorMessage } from "@brains/utils/error";
+import { packedBrainTarball } from "./packed-evidence";
+
+export {
+  packedCompatibilityEvidenceEnabled,
+  PACKED_BRAIN_TARBALL_ENV,
+  PACKED_COMPATIBILITY_EVIDENCE_ENV,
+} from "./packed-evidence";
 
 /**
  * A temp root the harness owns, shared by every process it spawns.
@@ -316,11 +323,22 @@ async function readManifest(directory: string): Promise<PackageManifest> {
 export async function packPackages(
   packageDirectories: readonly string[],
   destination: string,
+  env: NodeJS.ProcessEnv = process.env,
 ): Promise<ReadonlyMap<string, string>> {
   await mkdir(destination, { recursive: true });
   const entries: Array<readonly [string, string]> = [];
   for (const directory of packageDirectories) {
     const manifest = await readManifest(directory);
+    const sharedBrainTarball = packedBrainTarball(env);
+    if (manifest.name === "@rizom/brain" && sharedBrainTarball !== undefined) {
+      if (!existsSync(sharedBrainTarball)) {
+        throw new Error(
+          `Shared packed @rizom/brain tarball does not exist: ${sharedBrainTarball}`,
+        );
+      }
+      entries.push([manifest.name, sharedBrainTarball]);
+      continue;
+    }
     const before = new Set(await readdir(destination));
     await runCommand(
       ["bun", "pm", "pack", "--destination", destination, "--quiet"],

@@ -116,6 +116,9 @@ jobs:
             git push
           fi
 
+      - name: Run packed compatibility matrix
+        run: bun run test:packed:compat
+
       - name: Run pre-publish smoke tests
         run: bun --filter @rizom/ops test:smoke
 

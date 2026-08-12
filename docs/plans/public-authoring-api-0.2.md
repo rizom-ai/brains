@@ -212,7 +212,9 @@ Remove the `@rizom/brain/site` export map and entry before stable. Migrate all `
 
 Five extension fixtures are the primary documentation source. The root brain-definition package is a sixth compatibility canary, not a sixth extension style. Every TypeScript example is imported from one of these checked packages or extracted and compiled.
 
-The required per-PR packed matrix is hermetic: package loading, config, metadata inference, CRUD/FTS, markdown, visibility, deterministic projection, durable jobs, public/protocol routes, caller resolution, daemons, outbound delivery, site builds, restart, and shutdown. It uses no model-provider network calls or secrets.
+Normal PR and pre-commit feedback keeps focused contract/integration tests plus one canonical packed-install/startup canary. The complete hermetic packed matrix is an explicit nightly, manual, and pre-publication tier: package loading, config, metadata inference, CRUD/FTS, markdown, visibility, deterministic projection, durable jobs, public/protocol routes, caller resolution, daemons, outbound delivery, site builds, restart, and shutdown. It uses no model-provider network calls or secrets and runs through `bun run test:packed:compat`, which packs Brain once and isolates each scenario's mutable state.
+
+At stable nomination, freeze the approved `0.2.0` fixtures as an immutable compatibility baseline. Every later `0.2.x` candidate compiles and runs that baseline; current examples may evolve additively without replacing it. The phase-oriented suite names are retired once the stable baseline is frozen. See [`packed-compatibility-test-tiering.md`](./packed-compatibility-test-tiering.md).
 
 A nominated-alpha live tier supplies real providers and proves embedding completion, semantic ranking, `agent.chat`, confirmation, inbound conversations, attachments, and model-backed progress. Live evidence gates stable nomination but is not a flaky per-PR compatibility test.
 
@@ -484,13 +486,8 @@ bun run changeset:check
 bun run docs:check
 bun run test
 
-bun test \
-  packages/brain-cli/test/public-authoring-golden.test.ts \
-  packages/brain-cli/test/public-authoring-phase1-packed.test.ts \
-  packages/brain-cli/test/public-authoring-phase2-packed.test.ts \
-  packages/brain-cli/test/public-authoring-phase3-packed.test.ts \
-  packages/brain-cli/test/public-authoring-phase4-packed.test.ts \
-  packages/brain-cli/test/public-authoring-phase5-packed.test.ts
+bun test packages/brain-cli/test/public-authoring-golden.test.ts
+bun run test:packed:compat
 
 RIZOM_PUBLIC_API_REGISTRY_EVIDENCE=1 \
 RIZOM_PUBLIC_API_BRAIN_VERSION=<final-alpha> \
@@ -555,13 +552,14 @@ After authorized stable site publication, rerun the registry command with the ex
 - **Message abstractions freeze presentation internals.** Guarantee text fallback and optional typed cards/attachments; keep native card rendering and progress bookkeeping runtime-owned.
 - **Site ownership forks again.** Keep `@rizom/site` as the only exported authoring path, remove the Brain subpath and workspace sections package, and deprecate every published sections alpha before stable.
 - **Compile fixtures pass while runtime loading fails.** Require isolated pack/install/boot/behavior/restart/shutdown for each extension.
-- **Provider calls make compatibility tests flaky.** Keep the per-PR matrix hermetic and run bounded live evidence only for nominated alphas with diagnostics and retry policy.
+- **Provider calls make compatibility tests flaky.** Keep the nightly/release packed matrix hermetic and run bounded live evidence only for nominated alphas with diagnostics and retry policy.
 - **Documentation drifts from signatures.** Source primary examples directly from fixtures and reject uncompiled TypeScript snippets.
 - **Alpha compatibility blocks correction.** Correct signatures before stable, publish migration notes, and advance alpha peer lower bounds rather than carrying obsolete overloads.
 - **The published surface remains broader than the promise.** Treat every unannotated authoring export as stable and strip or mark internal everything else before nomination.
 
 ## Related work
 
+- [Packed compatibility test tiering](./packed-compatibility-test-tiering.md) — focused PR feedback, one default packed canary, and the nightly/release compatibility lifecycle.
 - [Public dashboard-widget and CMS-workspace authoring](./public-operator-surface-authoring.md) — approved additive `0.2.x` milestone that does not gate `v0.2.0`.
 - [NPM package boundaries](./npm-package-boundaries.md) — later official plugin publishing and public-only dependency proofs.
 - [Independent site and theme package versioning](./site-package-independent-versioning.md) — external site publishing and exact hosted pins.
