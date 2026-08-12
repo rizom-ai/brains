@@ -1,5 +1,7 @@
 # @brains/http-signatures
 
+## 0.2.0-alpha.282
+
 ## 0.2.0-alpha.281
 
 ## 0.2.0-alpha.280

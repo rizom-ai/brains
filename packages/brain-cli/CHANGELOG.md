@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.282
+
+### Patch Changes
+
+- [#117](https://github.com/rizom-ai/brains/pull/117) [`5abe56d`](https://github.com/rizom-ai/brains/commit/5abe56d8b361d23d85c22aa2fdb61a49c97ae6ff) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Persist a repository- and branch-scoped directory-sync Git reconciliation checkpoint, replay checkout changes that merged before their import batch was queued, preserve remote-only deletion authority, and advance DB-origin export commits only after push.
+
 ## 0.2.0-alpha.281
 
 ## 0.2.0-alpha.280
