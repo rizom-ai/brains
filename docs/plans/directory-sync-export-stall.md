@@ -25,9 +25,10 @@ mechanism and the still-unconfirmed attribution of the alpha.262 production inci
   and exited successfully, but Bun 1.3.11 never resolved the owned subprocess completion. A
   mode-0600 shell sentinel recorded `status=0` and complete output while the parent remained
   pending. The changed paths therefore never reached batch enqueue.
-- `GitOperationLock` makes that unresolved operation globally significant: its promise-tail turn is
-  released only when the callback settles, so later pull, push, commit, and auto-export operations
-  queue forever behind it. This exactly explains why only a process restart restores export.
+- The serialized Git queue makes that unresolved operation globally significant: its promise-tail
+  turn is released only when the callback settles, so later pull, push, commit, and auto-export
+  operations queue forever behind it. This exactly explains why only a process restart restores
+  export.
 - Node `child_process`, Worker isolation, file sentinels, synchronous filesystem inspection, and
   persistent timer polling were not reliable workarounds inside the affected Bun event loop. Do
   not ship them.
@@ -37,11 +38,14 @@ mechanism and the still-unconfirmed attribution of the alpha.262 production inci
   remains on Bun 1.3.11; no canary was committed or deployed.
 - The production evidence is consistent with a pull holding the shared lock, but it does not prove
   which Git command wedged or exclude the remaining incident-specific checks below.
-- Cross-incident note: the 2026-08-08 smoke web-process wedge on alpha.261 (futex wait, git child
+- Cross-incident note: the 2026-08-08 smoke web-process wedge on alpha.261 (futex wait, Git child
   exited but unreaped, all requests queued) matches this same Bun non-settlement class. Since
-  alpha.265 the _network_ git ops run through `runGitCommandWithStallTimeout`, whose stall-kill
-  rejects the locked operation and releases the queue — so on current runtimes the remaining
-  exposure is the unguarded local ops (see deliverable 3).
+  alpha.265, network Git uses `runGitCommandWithStallTimeout`, which bounds ordinary no-output
+  network stalls when Bun continues dispatching events. It does **not** protect Bun 1.3.x from the
+  observed lost completion: the current-main reproduction hung inside that guarded pull because
+  both `child.exited` and its in-process Effect timer failed to resume the owner. Network and local
+  subprocesses therefore remain exposed until the fixed Bun pin; the external stale-operation
+  watchdog remains the recovery backstop.
 
 ## What the plugin does (confirmed from the code — verify as you go)
 
@@ -54,12 +58,15 @@ mechanism and the still-unconfirmed attribution of the alpha.262 production inci
   `startBackgroundWork`). The call passes `config.commitDebounce` and `this.operationStatus`.
   Export is **debounced** (`commitDebounce`) and goes through `src/lib/export-pipeline.ts`
   (`processEntityExport`, lines 68/77).
-- All git operations are serialized by `GitOperationLock` in `src/lib/git-lock.ts`, invoked via
-  `src/lib/git-sync.ts:49` (`this.lock.run(fn, signal)`).
+- Current main serializes mutating Git workflows with `SerialQueue` from
+  `shared/utils/src/serial-queue.ts`, held at `src/lib/git-sync.ts:42` and entered through
+  `withLock` at lines 52–56. The deployed alpha.262 source must be cited separately when
+  reconstructing that incident; current main has no `src/lib/git-lock.ts`.
 - Restart recovery + the dashboard error live in `src/lib/directory-sync-operation-status.ts`:
-  `reconcile()` (line 339); the string **"The active sync batch could not be recovered after
-  restart"** is emitted at line 392 (`failRun`, which deletes `activeRun` at line 311). A sibling
-  string "…job could not be found after restart" is at line 351.
+  `reconcile()` starts at line 346; **"The active sync batch could not be recovered after
+  restart"** is emitted at line 398, while the sibling missing-job message is at line 357.
+  `failRun` removes `activeRun`; initialization also currently clears an active run that has no
+  attached job or batch.
 
 ## Observed production evidence (all 2026-08-11 UTC)
 
@@ -89,6 +96,9 @@ Server: brain runtime `@rizom/brain` v0.2.0-alpha.262, uptime ~66h (booted ~2026
   version; that earlier theory is false.
 - The "update with `content`+`fields` drops content" bug is a **separate** known issue, not this.
 - `git status` being clean is expected here — the export never commits, so nothing is left staged.
+- Persisted `operationStatus` does not gate auto-commit on current main. `setupGitAutoCommit` uses it
+  only to clear/record issues and terminal history after the Git workflow. A stale dashboard run is
+  evidence to preserve and reconcile, not the cause of the blocked export.
 
 ## Confirmed mechanism and remaining incident checks
 
@@ -108,12 +118,7 @@ Server: brain runtime `@rizom/brain` v0.2.0-alpha.262, uptime ~66h (booted ~2026
    commit fails, working tree stays clean, and it **survives restart**. CHECK: does the git layer
    detect/clear a stale `index.lock`, and does an export failure get surfaced or swallowed?
 
-3. **Stuck persisted `operationStatus` / `activeRun` gating the auto-commit.** `setupGitAutoCommit`
-   receives `operationStatus`. If the export path is suppressed while an issue/`activeRun` is
-   outstanding, or `reconcile()` leaves state that blocks new runs, exports stay off. Trace whether
-   `reconcile()`'s `failRun` fully clears the blocking state and whether auto-commit checks it.
-
-4. **Debounce timer / subscription lost after the crash.** The `commitDebounce` scheduler or the
+3. **Debounce timer / subscription lost after the crash.** The `commitDebounce` scheduler or the
    `entity:updated` subscription may have been torn down (or its pending flush dropped) when the
    batch crashed, so events no longer trigger commits even though `watching: true`. Verify the
    subscription + debounce lifecycle in `plugin.ts` / `export-pipeline.ts`.
@@ -127,33 +132,49 @@ behavior — a gap between them and the failure mode above is likely where the b
 
 ## Deliverables
 
-Ordering: deliverable 4 (safe live recovery) runs FIRST — production has been wedged since
-2026-08-11 ~08:36Z, the plan's own evidence shows restart is loss-free, and nothing in 1–3
-depends on the server staying wedged (capture logs/status before restarting).
+Operational triage precedes code changes, but **restart is not pre-authorized**. Treat the server's
+current state as unknown until a new read-only capture proves whether it is still wedged. If it is,
+preserve logs, process/child state, active jobs and batches, Git HEAD/status/ahead/behind state,
+`.git/index.lock`, runtime/container `StartedAt`, and all DB entities changed since the last known
+export. Take a recoverable backup and re-establish current DB↔Git parity; the 10:51Z snapshot is
+historical evidence, not a continuing loss-free guarantee. Request explicit restart approval only
+after that evidence is reviewed.
 
-1. **Root cause**: the specific file:line and the precise mechanism, with the confirming code path.
-2. **A failing regression test** that reproduces it (e.g., a git op that never settles, asserting a
-   later export still commits / the lock doesn't deadlock; or a stale-lock scenario).
+1. **Root cause**: the specific current-main file:line and deployed-alpha.262 file:line, with the
+   precise mechanism and confirming code path kept distinct.
+2. **Regression tests for both failure classes**:
+   - A true stalled child may release the serialized queue only after its complete process group is
+     killed and reaped; a later export must then commit normally.
+   - A lost completion whose process termination cannot be confirmed must keep later Git work
+     blocked, surface stale operational health, and recover only through supervised restart plus
+     deterministic checkpoint replay. Never `Promise.race` the lock open while an old Git process
+     may still mutate the checkout.
 3. **Minimal durable fix** that preserves serialization while pinning the first stable Bun release
-   containing the upstream fix, checkpointing `lastEnqueuedGitHead`, replaying a merged-but-not-
-   queued diff on startup, and surfacing an over-age `pulling` run through `/health/operate` to the
-   external watchdog. Do not rely on an in-process timer to recover the affected event loop.
-   Include the local-op gap: `commitGitChanges` (`git.add`/`git.commit`) and
-   `resolveLocalConflicts` still run unguarded simple-git under the shared lock — a non-settling
-   local op re-wedges the queue regardless of the Bun pin. Extend the owned stall-guarded runner
-   to locked local operations (or add an equivalent lock-level guard) so every lock holder has a
-   bounded settle path.
-4. **Safe live-recovery runbook** for the current wedged server: what to check (stale
-   `/app/brain-data/.git/index.lock`?), and confirm that restarting the brain process /
-   directory-sync plugin clears the in-memory lock. NOTE: the live DB is the source of truth and is
-   **currently consistent with git** (both contain `fc7f038a`'s content), so a restart risks no data
-   loss. After recovery, verify by making a trivial edit and confirming an `Auto-sync` commit appears
-   and `lastSync` advances.
+   containing the upstream fix, storing the repository/branch-scoped
+   `lastReconciledGitHead`, replaying a merged-but-not-queued diff on startup, and surfacing an
+   over-age `pulling` run through progress-based `/health/operate` degradation. Do not rely on an
+   in-process timer to recover the affected Bun 1.3.x event loop.
+
+   Cover every child command that can execute while a serialized Git workflow owns the checkout,
+   not only `commitGitChanges` and `resolveLocalConflicts`: status, rev-parse, diff, add, commit,
+   show/index inspection, conflict checkout/rm, remote-delete reconciliation, pull, and push.
+   Route them through one owned, abortable process abstraction (or an equivalent complete guard)
+   after the fixed Bun pin. A timeout may release the queue only after kill-and-reap is confirmed;
+   otherwise operational health must fail and the external supervisor must restart the process.
+4. **Approval-gated live-recovery runbook**: after the fresh capture, backup, and parity proof,
+   request explicit approval to restart the process/container without changing image or config.
+   Verify recovery passively first: process `StartedAt`, health, queue/worker state, Git parity, and
+   resumed existing export activity. Any active canary edit must be separately approved,
+   designated, reversible, and followed by a verified revert; do not make an ad hoc production
+   edit merely to prove the restart.
 
 ## Constraints
 
 - Preserve the intended serialization (no two git ops racing); don't fix the deadlock by removing the
   lock.
-- Don't propose destructive git recovery (no hard resets / force-push); DB and git already agree.
+- Don't propose destructive Git recovery (no hard resets / force-push). DB and Git agreed at the
+  historical capture; prove fresh parity before claiming that remains true.
 - Prefer a fix that turns "silent permanent stall" into "recoverable / self-healing with a surfaced
   error," since the failure mode's worst property is that it's invisible.
+- Production restart, watchdog-policy changes, deployment, and active verification edits require
+  explicit approval. Read-only evidence capture does not authorize recovery.

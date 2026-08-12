@@ -289,10 +289,13 @@ remote load.
 - Update the root `packageManager` pin and every generated/runtime consumer through the
   existing Bun-version source of truth. Validate install, build, typecheck, lint, unit
   tests, packaging, and supervisor startup before soak testing.
-- Strengthen the packaged soak so a changed checkout is not mistaken for a completed
-  import: after the update merge, require at least one probe's update marker to persist
-  in the database before pushing cleanup, while asserting fewer than all probes have
-  persisted so delete authority still races remaining entity churn.
+- Strengthen the packaged soak without a timing assertion. First require all update
+  markers to persist so a changed checkout cannot masquerade as a completed import.
+  Exercise delete authority separately with a deterministic worker/handler barrier:
+  hold a second update batch before execution, wait until that batch and the subsequent
+  cleanup/delete work are durably queued, then release the barrier and prove that the
+  late updates cannot resurrect remote-deleted files. Do not infer concurrency from a
+  polling sample that happens to observe between 1 and 349 persisted probes.
 - Require at least three unchanged local 350-file passes with the original Git runner,
   followed by normal CI and one independent scheduled soak on the pinned stable version.
   Preserve Bun version/revision and process-cleanup evidence in every artifact.
@@ -302,17 +305,29 @@ remote load.
 A fixed runtime reduces the probability of a hang; it does not make a merged-but-not-
 queued window acceptable.
 
-- Persist a schema-validated `lastEnqueuedGitHead` in runtime state after initial sync.
-- For each pull, retain the prior checkpoint, merge/fetch, derive changed and deleted
-  paths from `lastEnqueuedGitHead..HEAD`, and enqueue the durable batch before advancing
-  the checkpoint. Never advance it when path derivation or enqueue fails.
-- On startup, compare the checkpoint with the checkout HEAD. If they differ, replay the
-  exact diff through the same changed-path, pending-delete, and batch-enqueue path. If
-  the checkpoint is missing or is not an ancestor, use the existing full-scan correctness
-  fallback rather than guessing.
-- Advancing after successful enqueue is sufficient because queued jobs are already
-  durable and restart-recoverable. Test crash points after merge, after path derivation,
-  and after enqueue to prove neither missed work nor duplicate destructive deletion.
+- Persist a schema-validated reconciliation checkpoint containing a credential-free
+  remote fingerprint, branch, and `lastReconciledGitHead`. Read and advance it under the
+  same Git serialization boundary as the corresponding HEAD transition.
+- Establish the checkpoint only after initial sync has durably queued its work. For each
+  pull, retain the prior checkpoint, merge/fetch, derive changed and deleted paths from
+  `lastReconciledGitHead..HEAD`, and enqueue one durable batch before advancing it. A
+  no-change pull may advance only after validating repository identity and HEAD.
+- A successful DB→Git local commit may advance the reconciliation checkpoint because the
+  DB mutation is already applied; push/ahead state remains Git's separate responsibility.
+  If checkpoint persistence fails, startup replay is intentionally idempotent. Never
+  advance after a failed path derivation, partial enqueue, or unconfirmed commit.
+- On startup, require the checkpoint's credential-free remote fingerprint and branch to
+  match the configured checkout, require its commit object to exist, and require it to be
+  an ancestor of HEAD. Replay a valid mismatch through the same changed-path,
+  pending-delete, and batch-enqueue path. A missing checkpoint, identity mismatch,
+  missing commit, reclone, branch switch, or non-ancestor/force-pushed history uses the
+  existing full-scan correctness fallback; reset the checkpoint only after that work is
+  durably queued.
+- Advancing after successful enqueue is sufficient because queued jobs are durable and
+  restart-recoverable. Test crash points after merge, path derivation, enqueue, local
+  commit, and checkpoint persistence. Prove duplicate replay is harmless, deletions stay
+  authoritative, local export commits are not misclassified as remote deletes, and a
+  checkpoint can never cross repository or branch identity.
 
 ### 6.3 Surface stale pulls to an external watchdog
 
@@ -320,19 +335,29 @@ The existing operation status records `state: pulling` and `startedAt`, but a pu
 without a job or batch is currently cleared during restart initialization and is not an
 operational-health failure. Change that behavior deliberately:
 
-- Classify a pull as stale after its configured Git deadline plus a bounded grace period.
-  Record a sanitized Git issue and make the stale state degrade `/health/operate`; do not
-  make `/health/live` or routing readiness depend on repository reachability.
-- Preserve enough stale-run context for startup replay before clearing the active run.
-  Dashboard history must say that recovery replayed an interrupted Git handoff rather
-  than reporting an unrelated missing batch.
-- Keep recovery outside the affected process: the existing host/container watchdog may
-  restart only after sustained `/health/operate` failure. Detect restart with container
-  `StartedAt` as well as `RestartCount`, apply a cooldown and restart budget, and alert
-  instead of looping indefinitely.
-- Test with an injected Git operation that updates HEAD but never settles. Assert stale
-  operational health, external restart eligibility, startup diff replay, final DB/Git
-  convergence, and zero orphaned process groups.
+- Add schema-validated `lastProgressAt` to the active run. Update it at phase boundaries,
+  successful subprocess boundaries, and observed Git output, with bounded/throttled
+  persistence. The existing Git timeout is an inactivity timeout, not a total-runtime
+  deadline.
+- On each `/health/operate` request, classify the pull as stale when
+  `now - lastProgressAt` exceeds the configured inactivity timeout plus a bounded grace
+  period. This evaluation must be read-only and request-driven, not dependent on an
+  in-process recovery timer. Return sanitized stale-Git details in operational health;
+  do not make `/health/live` or routing readiness depend on repository reachability.
+- During startup, classify and preserve an unlinked `pulling` run before the current
+  initialization path can clear it. Run checkpoint replay, persist the sanitized issue
+  and recovery outcome, then clear/finish the stale run. Dashboard history must describe the
+  interrupted Git handoff instead of reporting an unrelated missing batch.
+- Keep recovery outside the affected process. Under an explicitly approved policy, the
+  host/container watchdog may restart only after sustained `/health/operate` failure.
+  Detect restart with container `StartedAt` as well as `RestartCount`, apply a cooldown
+  and restart budget, and alert instead of looping indefinitely. A case-specific
+  production restart still requires fresh evidence and explicit approval.
+- Test two distinct failures. A true stalled child that is killed and reaped may reject
+  its operation and release the queue. A child whose completion never settles must keep
+  later Git operations serialized, degrade operational health, and become externally
+  restart-eligible; after supervised termination, startup replay must restore DB/Git
+  convergence with zero orphaned process groups.
 
 ### 6.4 Resume acceptance only after both layers pass
 
