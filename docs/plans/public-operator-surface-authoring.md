@@ -521,7 +521,8 @@ Every author-correctable failure identifies:
 Focused tests cover:
 
 - duplicate local IDs;
-- a widget referencing a workspace outside the package definition;
+- a widget definition attempting to declare a CMS workspace reference or
+  management URL;
 - a view referencing an undeclared action;
 - invalid data/action/view output;
 - action permission lower than its workspace;
