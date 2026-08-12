@@ -20,6 +20,9 @@ export interface RuntimeQueueSignals {
     count: number;
   }>;
   oldestPendingAgeMs: number | null;
+  duePending: number;
+  oldestDuePendingAgeMs: number | null;
+  latestClaimAgeMs: number | null;
   oldestProcessingAgeMs: number | null;
   staleLeaseCount: number;
   workerSessions: RuntimeWorkerSignals;
@@ -94,6 +97,9 @@ export const RuntimeQueueSignalsSchema: z.ZodType<RuntimeQueueSignals> =
       }),
     ),
     oldestPendingAgeMs: z.number().nonnegative().nullable(),
+    duePending: z.number().int().nonnegative(),
+    oldestDuePendingAgeMs: z.number().nonnegative().nullable(),
+    latestClaimAgeMs: z.number().nonnegative().nullable(),
     oldestProcessingAgeMs: z.number().nonnegative().nullable(),
     staleLeaseCount: z.number().int().nonnegative(),
     workerSessions: z.object({

@@ -251,6 +251,7 @@ export type {
   ToolConfirmation,
   ToolVisibility,
   RuntimeAppInfo,
+  BackgroundWorkInfo,
   EndpointInfo,
   EndpointInfoInput,
   EntityCount,
@@ -274,6 +275,7 @@ export type {
 
 export {
   appInfoSchema,
+  backgroundWorkInfoSchema,
   endpointInfoSchema,
   interactionInfoSchema,
   interactionKindSchema,

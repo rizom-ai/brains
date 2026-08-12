@@ -851,6 +851,23 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
       entities: 0,
       entityCounts: [],
       embeddings: 0,
+      backgroundWork: {
+        status: "operational",
+        reasons: [],
+        worker: {
+          state: "active",
+          activeSessions: 1,
+          staleSessions: 0,
+          latestHeartbeatAgeMs: 0,
+        },
+        queue: {
+          duePending: 0,
+          processing: 0,
+          oldestDuePendingAgeMs: null,
+          latestClaimAgeMs: null,
+          stalled: false,
+        },
+      },
       ai: {
         model: "gpt-4.1",
         embeddingModel: "text-embedding-3-small",
@@ -876,6 +893,9 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
           totals: { pending: 0, processing: 0, completed: 0, failed: 0 },
           byType: [],
           oldestPendingAgeMs: null,
+          duePending: 0,
+          oldestDuePendingAgeMs: null,
+          latestClaimAgeMs: null,
           oldestProcessingAgeMs: null,
           staleLeaseCount: 0,
           workerSessions: {

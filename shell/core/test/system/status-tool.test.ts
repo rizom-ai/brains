@@ -38,6 +38,13 @@ describe("system_status tool", () => {
     expect(data["version"]).toBe("1.0.0");
     expect(typeof data["uptime"]).toBe("number");
     expect(data["entities"]).toBeDefined();
+    expect(data["backgroundWork"]).toEqual(
+      expect.objectContaining({
+        status: "operational",
+        worker: expect.objectContaining({ state: "active" }),
+        queue: expect.objectContaining({ duePending: 0 }),
+      }),
+    );
     expect(data["ai"]).toBeDefined();
   });
 

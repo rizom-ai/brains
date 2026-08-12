@@ -6,6 +6,7 @@ import type {
 import { internalFullScope } from "@brains/entity-service";
 import type { ShellConfig } from "./config";
 import type { ShellServices } from "./types/shell-types";
+import { summarizeBackgroundWork } from "./background-work-status";
 
 export async function getRuntimeAppInfo(options: {
   config: ShellConfig;
@@ -15,14 +16,18 @@ export async function getRuntimeAppInfo(options: {
   interactions: () => InteractionInfo[];
 }): Promise<RuntimeAppInfo> {
   const { config, services, bootTime, endpoints, interactions } = options;
-  const entityCounts = await services.entityService.getEntityCounts(
-    internalFullScope(
-      "runtime app info reports operator-facing aggregate status",
-    ),
-  );
+  const [entityCounts, embeddingCount, daemons, queueDiagnostics] =
+    await Promise.all([
+      services.entityService.getEntityCounts(
+        internalFullScope(
+          "runtime app info reports operator-facing aggregate status",
+        ),
+      ),
+      services.entityService.countEmbeddings(),
+      services.daemonRegistry.getStatuses(),
+      services.jobQueueService.getDiagnostics(),
+    ]);
   const totalEntities = entityCounts.reduce((sum, c) => sum + c.count, 0);
-  const embeddingCount = await services.entityService.countEmbeddings();
-  const daemons = await services.daemonRegistry.getStatuses();
 
   return {
     model: config.name || "brain-app",
@@ -31,6 +36,7 @@ export async function getRuntimeAppInfo(options: {
     entities: totalEntities,
     entityCounts,
     embeddings: embeddingCount,
+    backgroundWork: summarizeBackgroundWork(queueDiagnostics),
     ai: {
       model: config.ai.model,
       embeddingModel: "text-embedding-3-small",

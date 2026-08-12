@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import type {
+  ProjectionIncident,
   ProjectionWave,
   ProjectionWaveRule,
 } from "@brains/entity-service";
@@ -24,6 +25,7 @@ function createDependencies(): RuntimeDependencies {
     getProjectionStore: () => ({
       getActiveWave: async (): Promise<ProjectionWave | null> => null,
       listWaveRules: async (): Promise<ProjectionWaveRule[]> => [],
+      listUnresolvedProjectionIncidents: async () => [],
     }),
   };
   const jobQueueService = {
@@ -31,6 +33,9 @@ function createDependencies(): RuntimeDependencies {
       totals: { pending: 1, processing: 0, completed: 3, failed: 0 },
       byType: [{ type: "note:embedding", status: "pending", count: 1 }],
       oldestPendingAgeMs: 25,
+      duePending: 0,
+      oldestDuePendingAgeMs: null,
+      latestClaimAgeMs: null,
       oldestProcessingAgeMs: null,
       staleLeaseCount: 0,
       workerSessions: {
@@ -109,6 +114,10 @@ describe("getRuntimeReadiness", () => {
         }),
         expect.objectContaining({ name: "job-worker", status: "healthy" }),
         expect.objectContaining({
+          name: "job-queue-progress",
+          status: "healthy",
+        }),
+        expect.objectContaining({
           name: "attempt-leases",
           status: "healthy",
         }),
@@ -127,6 +136,9 @@ describe("getRuntimeReadiness", () => {
         totals: { pending: 1, processing: 0, completed: 3, failed: 0 },
         byType: [{ type: "note:embedding", status: "pending", count: 1 }],
         oldestPendingAgeMs: 25,
+        duePending: 0,
+        oldestDuePendingAgeMs: null,
+        latestClaimAgeMs: null,
         oldestProcessingAgeMs: null,
         staleLeaseCount: 0,
         workerSessions: {
@@ -203,6 +215,55 @@ describe("getRuntimeReadiness", () => {
     );
   });
 
+  it("degrades operation when due work has not been claimed", async () => {
+    const dependencies = createDependencies();
+    dependencies.jobQueueService.getDiagnostics =
+      async (): Promise<JobQueueDiagnostics> => ({
+        ...(await createDependencies().jobQueueService.getDiagnostics()),
+        duePending: 2,
+        oldestDuePendingAgeMs: 120_000,
+        latestClaimAgeMs: 120_000,
+      });
+
+    const readiness = await getRuntimeReadiness({
+      ...dependencies,
+      ...runtimeOptions,
+    });
+
+    expect(readiness.operationalStatus).toBe("degraded");
+    expect(readiness.checks).toContainEqual(
+      expect.objectContaining({
+        name: "job-queue-progress",
+        status: "degraded",
+        message: "2 due job(s) are not being claimed",
+      }),
+    );
+  });
+
+  it("keeps due backlog operational while work is processing", async () => {
+    const dependencies = createDependencies();
+    dependencies.jobQueueService.getDiagnostics =
+      async (): Promise<JobQueueDiagnostics> => ({
+        ...(await createDependencies().jobQueueService.getDiagnostics()),
+        totals: { pending: 2, processing: 1, completed: 3, failed: 0 },
+        duePending: 2,
+        oldestDuePendingAgeMs: 300_000,
+        latestClaimAgeMs: 300_000,
+      });
+
+    const readiness = await getRuntimeReadiness({
+      ...dependencies,
+      ...runtimeOptions,
+    });
+
+    expect(readiness.checks).toContainEqual(
+      expect.objectContaining({
+        name: "job-queue-progress",
+        status: "healthy",
+      }),
+    );
+  });
+
   it("degrades operation when an active projection wave has a terminal queued job", async () => {
     const dependencies = createDependencies();
     const entityService: RuntimeDependencies["entityService"] = {
@@ -228,6 +289,7 @@ describe("getRuntimeReadiness", () => {
             changedTargets: [],
           },
         ],
+        listUnresolvedProjectionIncidents: async () => [],
       }),
     };
     const jobQueueService = {
@@ -317,6 +379,45 @@ describe("getRuntimeReadiness", () => {
       message: "Directory Git pull has made no progress for 150001ms",
       details: { inactivityMs: 150_001, staleAfterMs: 150_000 },
     });
+  });
+
+  it("reports durable terminal incidents after the active wave is gone", async () => {
+    const dependencies = createDependencies();
+    dependencies.entityService = {
+      ...dependencies.entityService,
+      getProjectionStore: (): ReturnType<
+        RuntimeDependencies["entityService"]["getProjectionStore"]
+      > => ({
+        getActiveWave: async (): Promise<ProjectionWave | null> => null,
+        listWaveRules: async (): Promise<ProjectionWaveRule[]> => [],
+        listUnresolvedProjectionIncidents: async (): Promise<
+          ProjectionIncident[]
+        > => [
+          {
+            waveId: "wave-failed",
+            ruleId: "topics-projection",
+            jobId: "job-terminal",
+            failureReason: "Projection rule job exhausted retries",
+            createdAt: 100,
+            resolvedAt: null,
+          },
+        ],
+      }),
+    };
+
+    const readiness = await getRuntimeReadiness({
+      ...dependencies,
+      ...runtimeOptions,
+    });
+
+    expect(readiness.operationalStatus).toBe("degraded");
+    expect(readiness.checks).toContainEqual(
+      expect.objectContaining({
+        name: "projection-waves",
+        status: "degraded",
+        message: "1 unresolved terminal projection incident(s)",
+      }),
+    );
   });
 
   it("degrades operation while a projection circuit is open", async () => {

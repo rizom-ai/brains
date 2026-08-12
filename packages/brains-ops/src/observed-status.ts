@@ -26,13 +26,16 @@ export function createObservedStatusResolver(
     user: ResolvedUserIdentity,
   ): Promise<ObservedUserStatus> {
     const dnsStatus = await probeDns(user.domain, lookupHost);
-    const serverStatus = await probeHealth(user.domain, fetchImpl);
-    const mcpStatus = await probeMcpAuthGate(user.domain, fetchImpl);
+    const [serverStatus, deployStatus, mcpStatus] = await Promise.all([
+      probeHealth(user.domain, "/health/ready", fetchImpl),
+      probeHealth(user.domain, "/health/operate", fetchImpl),
+      probeMcpAuthGate(user.domain, fetchImpl),
+    ]);
 
     return {
       dnsStatus,
       serverStatus,
-      deployStatus: serverStatus,
+      deployStatus,
       mcpStatus,
     };
   };
@@ -52,12 +55,13 @@ async function probeDns(
 
 async function probeHealth(
   hostname: string,
+  path: "/health/ready" | "/health/operate",
   fetchImpl: FetchLike,
 ): Promise<"ready" | "failed"> {
   try {
     const response = await fetchWithTimeout(
       fetchImpl,
-      `https://${hostname}/health/ready`,
+      `https://${hostname}${path}`,
       {
         method: "GET",
       },

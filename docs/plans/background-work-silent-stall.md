@@ -2,7 +2,8 @@
 
 ## Status
 
-Open, opened 2026-08-11 from a live production incident on rizom.ai, **split out
+Implemented, awaiting release. Opened 2026-08-11 from a live production incident on rizom.ai,
+**split out
 2026-08-11** after code tracing found a confirmed worker-supervision invariant violation, then
 expanded after the same day's rover-pilot deploy showed two operationally-degraded-but-deploy-green
 site brains. The later evidence established a broader fault: **background work can stop while HTTP

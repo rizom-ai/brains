@@ -454,8 +454,12 @@ describe("initPilotRepo", () => {
     const watchdogIndex = deployWorkflow.indexOf(
       "bun deploy/scripts/install-health-watchdog.ts",
     );
+    const operationalVerifyIndex = deployWorkflow.indexOf(
+      'bunx brains-ops verify-user "$GITHUB_WORKSPACE" "$HANDLE"',
+    );
     expect(deployIndex).toBeGreaterThan(-1);
     expect(watchdogIndex).toBeGreaterThan(deployIndex);
+    expect(operationalVerifyIndex).toBeGreaterThan(watchdogIndex);
     expect(deployWorkflow).not.toContain("repository: rizom-ai/brains");
     expect(deployWorkflow).not.toContain(".brains/packages/brains-ops");
     expect(deployWorkflow).not.toContain(

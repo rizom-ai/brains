@@ -51,6 +51,9 @@ export interface CommandDependencies extends LoadPilotRegistryOptions {
   logger?: ((message: string) => void) | undefined;
   fetchImpl?: FetchLike | undefined;
   lookupHost?: LookupHost | undefined;
+  verificationRetryAttempts?: number | undefined;
+  verificationRetryDelayMs?: number | undefined;
+  sleep?: ((delayMs: number) => Promise<void>) | undefined;
   bootstrapRunCommand?: OpsRunCommand | undefined;
   sshKeygen?: SshKeygen | undefined;
   directorySyncStressRunner?: typeof runDeployedDirectorySyncStress | undefined;
@@ -530,6 +533,13 @@ const verifyUser: OpsCommand = defineCommand({
     const result = await verifyPilotUser(repo, handle, {
       ...(dependencies.fetchImpl ? { fetchImpl: dependencies.fetchImpl } : {}),
       ...(dependencies.logger ? { logger: dependencies.logger } : {}),
+      ...(dependencies.verificationRetryAttempts !== undefined
+        ? { operationalRetryAttempts: dependencies.verificationRetryAttempts }
+        : {}),
+      ...(dependencies.verificationRetryDelayMs !== undefined
+        ? { operationalRetryDelayMs: dependencies.verificationRetryDelayMs }
+        : {}),
+      ...(dependencies.sleep ? { sleep: dependencies.sleep } : {}),
     });
     const passedSummary =
       result.checks.length > 0 ? result.checks.join(", ") : "none";

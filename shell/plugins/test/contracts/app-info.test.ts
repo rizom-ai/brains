@@ -1,6 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { AppInfoSchema } from "../../src/contracts/app-info";
 import { toPublicAppInfo } from "../../src/base/public-app-info";
+import { backgroundWorkInfoSchema } from "../../src/contracts/runtime-app-info";
 
 describe("public app info contracts", () => {
   it("maps internal app info to the stable public contract", () => {
@@ -14,6 +15,23 @@ describe("public app info contracts", () => {
         { entityType: "topic", count: 3 },
       ],
       embeddings: 3,
+      backgroundWork: {
+        status: "operational",
+        reasons: [],
+        worker: {
+          state: "active",
+          activeSessions: 1,
+          staleSessions: 0,
+          latestHeartbeatAgeMs: 100,
+        },
+        queue: {
+          duePending: 0,
+          processing: 0,
+          oldestDuePendingAgeMs: null,
+          latestClaimAgeMs: 200,
+          stalled: false,
+        },
+      },
       ai: {
         model: "claude-sonnet",
         embeddingModel: "text-embedding-3-small",
@@ -105,5 +123,27 @@ describe("public app info contracts", () => {
         },
       ],
     });
+  });
+
+  it("rejects malformed durable background-work status", () => {
+    expect(
+      backgroundWorkInfoSchema.safeParse({
+        status: "operational",
+        reasons: [],
+        worker: {
+          state: "active",
+          activeSessions: -1,
+          staleSessions: 0,
+          latestHeartbeatAgeMs: null,
+        },
+        queue: {
+          duePending: 0,
+          processing: 0,
+          oldestDuePendingAgeMs: null,
+          latestClaimAgeMs: null,
+          stalled: false,
+        },
+      }).success,
+    ).toBe(false);
   });
 });

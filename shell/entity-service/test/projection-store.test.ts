@@ -241,6 +241,65 @@ describe("ProjectionStore", () => {
     ]);
   });
 
+  it("persists one terminal incident and resolves it after a later successful wave", async () => {
+    await store.markDirty({
+      sourceType: "document",
+      sourceId: "doc-incident",
+      revision: "hash-1",
+      operation: "upsert",
+      markedAt: 10,
+    });
+    await store.claimPendingWave({
+      waveId: "wave-failed",
+      graphFingerprint: "graph-1",
+      startedAt: 20,
+    });
+    await store.putWaveRules("wave-failed", [
+      { ruleId: "topics", targetType: "topic", level: 0 },
+    ]);
+    await store.queueWaveRule("wave-failed", "topics", "job-terminal");
+
+    await store.failWaveWithIncident({
+      waveId: "wave-failed",
+      ruleId: "topics",
+      jobId: "job-terminal",
+      failureReason: "Projection rule job exhausted retries",
+      failedAt: 30,
+    });
+    await store.failWaveWithIncident({
+      waveId: "wave-failed",
+      ruleId: "topics",
+      jobId: "job-terminal",
+      failureReason: "must remain idempotent",
+      failedAt: 31,
+    });
+
+    expect(await store.listUnresolvedProjectionIncidents()).toEqual([
+      {
+        waveId: "wave-failed",
+        ruleId: "topics",
+        jobId: "job-terminal",
+        failureReason: "Projection rule job exhausted retries",
+        createdAt: 30,
+        resolvedAt: null,
+      },
+    ]);
+
+    const restartedStore = new ProjectionStore(connection.db);
+    expect(
+      await restartedStore.listUnresolvedProjectionIncidents(),
+    ).toHaveLength(1);
+
+    await store.claimPendingWave({
+      waveId: "wave-recovery",
+      graphFingerprint: "graph-1",
+      startedAt: 40,
+    });
+    await store.completeWave("wave-recovery", 50);
+
+    expect(await store.listUnresolvedProjectionIncidents()).toEqual([]);
+  });
+
   it("atomically stores a memo, canonical writes, and rule outcome", async () => {
     await store.markDirty({
       sourceType: "document",

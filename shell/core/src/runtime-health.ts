@@ -1,6 +1,7 @@
 import { readdir, readFile } from "node:fs/promises";
 import { internalFullScope } from "@brains/entity-service";
 import type {
+  ProjectionIncident,
   ProjectionWave,
   ProjectionWaveRule,
 } from "@brains/entity-service";
@@ -13,6 +14,7 @@ import type {
 import { getErrorMessage } from "@brains/utils/error";
 import type { ShellServices } from "./types/shell-types";
 import type { ProjectionRuntimeDiagnostics } from "./projection-runtime-supervisor";
+import { summarizeBackgroundWork } from "./background-work-status";
 
 interface ProcessSignals {
   fileDescriptors: number | null;
@@ -29,6 +31,7 @@ interface RuntimeMemoryUsage {
 interface ProjectionWaveReader {
   getActiveWave(): Promise<ProjectionWave | null>;
   listWaveRules(waveId: string): Promise<ProjectionWaveRule[]>;
+  listUnresolvedProjectionIncidents(): Promise<ProjectionIncident[]>;
 }
 
 interface StrandedProjectionRule {
@@ -40,6 +43,7 @@ interface StrandedProjectionRule {
 interface ProjectionWaveDiagnostics {
   waveId: string | null;
   strandedRules: StrandedProjectionRule[];
+  incidents: ProjectionIncident[];
 }
 
 export interface RuntimeReadinessOptions {
@@ -131,7 +135,8 @@ function workerCheck(
   }
 
   const sessions = diagnostics.workerSessions;
-  if (sessions.active === 0) {
+  const worker = summarizeBackgroundWork(diagnostics).worker;
+  if (worker.state === "missing") {
     return {
       name: "job-worker",
       status: "degraded",
@@ -139,7 +144,7 @@ function workerCheck(
       details: { sessions },
     };
   }
-  if (sessions.stale > 0) {
+  if (worker.state === "stale") {
     return {
       name: "job-worker",
       status: "degraded",
@@ -153,6 +158,33 @@ function workerCheck(
     message: `${sessions.active} live worker session(s)`,
     details: { sessions },
   };
+}
+
+function queueProgressCheck(
+  diagnostics: JobQueueDiagnostics | null,
+): RuntimeHealthCheck {
+  if (!diagnostics) {
+    return {
+      name: "job-queue-progress",
+      status: "degraded",
+      message: "Queue progress state is unavailable",
+    };
+  }
+
+  const queue = summarizeBackgroundWork(diagnostics).queue;
+  return queue.stalled
+    ? {
+        name: "job-queue-progress",
+        status: "degraded",
+        message: `${queue.duePending} due job(s) are not being claimed`,
+        details: { queue },
+      }
+    : {
+        name: "job-queue-progress",
+        status: "healthy",
+        message: "Due jobs are being claimed",
+        details: { queue },
+      };
 }
 
 function leaseCheck(
@@ -208,8 +240,11 @@ async function getProjectionWaveDiagnostics(
   options: RuntimeReadinessOptions,
 ): Promise<ProjectionWaveDiagnostics> {
   const store = options.entityService.getProjectionStore();
-  const activeWave = await store.getActiveWave();
-  if (!activeWave) return { waveId: null, strandedRules: [] };
+  const [activeWave, incidents] = await Promise.all([
+    store.getActiveWave(),
+    store.listUnresolvedProjectionIncidents(),
+  ]);
+  if (!activeWave) return { waveId: null, strandedRules: [], incidents };
 
   const rules = await store.listWaveRules(activeWave.id);
   const candidates = rules.filter(
@@ -237,12 +272,28 @@ async function getProjectionWaveDiagnostics(
     )
   ).filter((rule): rule is StrandedProjectionRule => rule !== null);
 
-  return { waveId: activeWave.id, strandedRules };
+  return { waveId: activeWave.id, strandedRules, incidents };
 }
 
 function projectionWaveCheck(
   diagnostics: ProjectionWaveDiagnostics,
 ): RuntimeHealthCheck {
+  if (diagnostics.incidents.length > 0) {
+    return {
+      name: "projection-waves",
+      status: "degraded",
+      message: `${diagnostics.incidents.length} unresolved terminal projection incident(s)`,
+      details: {
+        incidents: diagnostics.incidents.map((incident) => ({
+          waveId: incident.waveId,
+          ruleId: incident.ruleId,
+          jobId: incident.jobId,
+          failureReason: incident.failureReason,
+          createdAt: incident.createdAt,
+        })),
+      },
+    };
+  }
   if (!diagnostics.waveId) {
     return {
       name: "projection-waves",
@@ -352,6 +403,7 @@ export async function getRuntimeReadiness(
       "Job queue database is accessible",
     ),
     workerCheck(diagnostics),
+    queueProgressCheck(diagnostics),
     leaseCheck(diagnostics),
     projectionResult.status === "fulfilled"
       ? projectionCheck(projectionDiagnostics)

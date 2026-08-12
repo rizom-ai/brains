@@ -241,6 +241,9 @@ jobs:
           fi
           curl -I -k --max-time 20 --resolve "$PREVIEW_DOMAIN:443:$SERVER_IP" "https://$PREVIEW_DOMAIN/"
 
+      - name: Verify operational health
+        run: bunx brains-ops verify-user "$GITHUB_WORKSPACE" "$HANDLE"
+
       - name: Upload generated config
         uses: actions/upload-artifact@v4
         with:

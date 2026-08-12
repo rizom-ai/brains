@@ -52,6 +52,12 @@ export interface ProjectionRuleExecutionStore {
 export interface ProjectionWaveCoordinator {
   advanceActiveWave(waveId: string): Promise<unknown>;
   failActiveWave(waveId: string): Promise<unknown>;
+  failActiveWaveWithIncident(input: {
+    waveId: string;
+    ruleId: string;
+    jobId: string | null;
+    failureReason: string;
+  }): Promise<unknown>;
 }
 
 export interface ProjectionRuleJobHandlerOptions {
@@ -107,9 +113,15 @@ export class ProjectionRuleJobHandler implements JobHandler<
   public async onTerminalError(
     _error: Error,
     data: ProjectionRuleJobData,
+    jobId: string,
   ): Promise<void> {
     const parsedData = projectionRuleJobDataSchema.parse(data);
-    await this.coordinator.failActiveWave(parsedData.waveId);
+    await this.coordinator.failActiveWaveWithIncident({
+      waveId: parsedData.waveId,
+      ruleId: parsedData.ruleId,
+      jobId,
+      failureReason: "Projection rule job exhausted retries",
+    });
   }
 
   public async process(

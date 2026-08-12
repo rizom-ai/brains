@@ -48,6 +48,23 @@ function inputContext(entities: BaseEntity[]): ProjectionInputContext {
       entities: entities.length,
       entityCounts: [],
       embeddings: 0,
+      backgroundWork: {
+        status: "operational",
+        reasons: [],
+        worker: {
+          state: "active",
+          activeSessions: 1,
+          staleSessions: 0,
+          latestHeartbeatAgeMs: 0,
+        },
+        queue: {
+          duePending: 0,
+          processing: 0,
+          oldestDuePendingAgeMs: null,
+          latestClaimAgeMs: null,
+          stalled: false,
+        },
+      },
       ai: { model: "test-model", embeddingModel: "test-embedding" },
       daemons: [],
       endpoints: [],

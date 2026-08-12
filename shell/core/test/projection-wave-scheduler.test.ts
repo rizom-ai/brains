@@ -1,6 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import type {
   ClaimProjectionWaveInput,
+  ProjectionIncidentInput,
   ProjectionWave,
   ProjectionWaveInput,
   ProjectionWaveRule,
@@ -36,6 +37,7 @@ class MemoryProjectionStore implements ProjectionWaveStore {
   pending = true;
   readonly completedRuleIds = new Set<string>();
   readonly failedWaveIds: string[] = [];
+  readonly incidents: ProjectionIncidentInput[] = [];
 
   constructor(inputs: ProjectionWaveInput[]) {
     this.inputs = inputs;
@@ -110,6 +112,13 @@ class MemoryProjectionStore implements ProjectionWaveStore {
       status: "failed",
       completedAt: failedAt,
     });
+  }
+
+  failWaveWithIncident(
+    input: ProjectionIncidentInput,
+  ): Promise<ProjectionWave> {
+    this.incidents.push(input);
+    return this.failWave(input.waveId, input.failedAt);
   }
 
   completeWave(_waveId: string, _completedAt: number): Promise<ProjectionWave> {
@@ -373,7 +382,7 @@ describe("ProjectionWaveScheduler", () => {
     });
   });
 
-  it("fails and replays a wave whose queued job is terminal", async () => {
+  it("persists a terminal incident without immediately replaying the wave", async () => {
     const store = new MemoryProjectionStore(documentInputs(1));
     store.active = true;
     store.claimedWave.graphFingerprint = graphFingerprint;
@@ -400,6 +409,20 @@ describe("ProjectionWaveScheduler", () => {
     await scheduler.startNextWave();
 
     expect(store.failedWaveIds).toEqual(["wave-1"]);
+    expect(store.incidents).toEqual([
+      {
+        waveId: "wave-1",
+        ruleId: "topics",
+        jobId: "job-terminal",
+        failureReason: "Projection rule job exhausted retries",
+        failedAt: 30,
+      },
+    ]);
+    expect(store.claimedWave.id).toBe("wave-1");
+    expect(queue.requests).toEqual([]);
+
+    await scheduler.startNextWave();
+
     expect(store.claimedWave.id).toBe("wave-2");
     expect(queue.requests.map(({ data }) => data)).toEqual([
       { waveId: "wave-2", ruleId: "topics" },

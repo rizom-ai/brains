@@ -83,6 +83,9 @@ describe("ServerManager (in-process)", () => {
         totals: { pending: 0, processing: 0, completed: 0, failed: 0 },
         byType: [],
         oldestPendingAgeMs: null,
+        duePending: 0,
+        oldestDuePendingAgeMs: null,
+        latestClaimAgeMs: null,
         oldestProcessingAgeMs: null,
         staleLeaseCount: 0,
         workerSessions: {

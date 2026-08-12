@@ -556,7 +556,7 @@ describe("JobQueueRepository fenced attempts", () => {
     const pending = createTestJob({
       id: "pending",
       type: "type:a",
-      scheduledFor: 20_000,
+      scheduledFor: 1_000,
     });
     const processing = createTestJob({ id: "processing", type: "type:b" });
     const completed = createTestJob({
@@ -582,6 +582,9 @@ describe("JobQueueRepository fenced attempts", () => {
         failed: 0,
       },
       oldestPendingAgeMs: 11_000,
+      duePending: 1,
+      oldestDuePendingAgeMs: 11_000,
+      latestClaimAgeMs: 2_000,
       oldestProcessingAgeMs: 2_000,
       staleLeaseCount: 1,
       workerSessions: {
@@ -593,11 +596,32 @@ describe("JobQueueRepository fenced attempts", () => {
     });
     expect(diagnostics.byType).toEqual(
       expect.arrayContaining([
-        { type: "type:a", status: JOB_STATUS.PENDING, count: 1 },
+        { type: "type:a", status: JOB_STATUS.PROCESSING, count: 1 },
         { type: "type:a", status: JOB_STATUS.COMPLETED, count: 1 },
-        { type: "type:b", status: JOB_STATUS.PROCESSING, count: 1 },
+        { type: "type:b", status: JOB_STATUS.PENDING, count: 1 },
       ]),
     );
+  });
+
+  it("excludes future-scheduled jobs from due diagnostics", async () => {
+    await repository.insert(
+      createTestJob({
+        id: "future",
+        type: "type:a",
+        createdAt: 1_000,
+        scheduledFor: 20_000,
+      }),
+    );
+
+    const diagnostics = await repository.getDiagnostics(12_000);
+
+    expect(diagnostics).toMatchObject({
+      totals: { pending: 1 },
+      oldestPendingAgeMs: 11_000,
+      duePending: 0,
+      oldestDuePendingAgeMs: null,
+      latestClaimAgeMs: null,
+    });
   });
 
   it("retries recognized write-transaction acquisition conflicts", async () => {

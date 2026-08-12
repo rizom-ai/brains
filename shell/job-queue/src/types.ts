@@ -193,6 +193,9 @@ export interface JobQueueDiagnostics {
     count: number;
   }>;
   oldestPendingAgeMs: number | null;
+  duePending: number;
+  oldestDuePendingAgeMs: number | null;
+  latestClaimAgeMs: number | null;
   oldestProcessingAgeMs: number | null;
   staleLeaseCount: number;
   workerSessions: JobWorkerSessionDiagnostics;

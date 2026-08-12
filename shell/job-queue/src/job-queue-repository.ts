@@ -675,6 +675,11 @@ export class JobQueueRepository {
           oldestPendingAt: sql<
             number | null
           >`min(case when ${jobQueue.status} = ${JOB_STATUS.PENDING} then ${jobQueue.createdAt} end)`,
+          duePending: sql<number>`coalesce(sum(case when ${jobQueue.status} = ${JOB_STATUS.PENDING} and ${jobQueue.scheduledFor} <= ${now} then 1 else 0 end), 0)`,
+          oldestDuePendingAt: sql<
+            number | null
+          >`min(case when ${jobQueue.status} = ${JOB_STATUS.PENDING} and ${jobQueue.scheduledFor} <= ${now} then ${jobQueue.scheduledFor} end)`,
+          latestClaimAt: sql<number | null>`max(${jobQueue.startedAt})`,
           oldestProcessingAt: sql<
             number | null
           >`min(case when ${jobQueue.status} = ${JOB_STATUS.PROCESSING} then ${jobQueue.startedAt} end)`,
@@ -715,6 +720,9 @@ export class JobQueueRepository {
       totals,
       byType,
       oldestPendingAgeMs: ageSince(ages?.oldestPendingAt),
+      duePending: Number(ages?.duePending ?? 0),
+      oldestDuePendingAgeMs: ageSince(ages?.oldestDuePendingAt),
+      latestClaimAgeMs: ageSince(ages?.latestClaimAt),
       oldestProcessingAgeMs: ageSince(ages?.oldestProcessingAt),
       staleLeaseCount: Number(ages?.staleLeaseCount ?? 0),
       workerSessions: {
