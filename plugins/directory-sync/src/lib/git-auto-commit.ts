@@ -4,6 +4,7 @@ import type { Logger } from "@brains/utils/logger";
 import type { IGitSync } from "../types";
 import type { DirectorySyncScheduler } from "./directory-sync-runtime";
 import type { DirectorySyncOperationStatusService } from "./directory-sync-operation-status";
+import type { GitReconciliationService } from "./git-reconciliation";
 import { getErrorMessage } from "@brains/utils/error";
 
 const AUTO_COMMIT_KEY = "git-auto-commit";
@@ -21,6 +22,7 @@ export function setupGitAutoCommit(
   debounceMs: number,
   logger: Logger,
   runtime: DirectorySyncScheduler,
+  reconciliation?: Pick<GitReconciliationService, "captureCurrentUnderLock">,
   operationStatus?: DirectorySyncOperationStatusService,
 ): void {
   const getGitSync =
@@ -40,6 +42,7 @@ export function setupGitAutoCommit(
           await git.commit();
         }
         await git.push();
+        await reconciliation?.captureCurrentUnderLock(git);
         return true;
       });
       if (!pushed) return;

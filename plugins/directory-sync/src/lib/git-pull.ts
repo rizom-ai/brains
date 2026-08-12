@@ -153,7 +153,7 @@ async function getPullChanges(
   };
 }
 
-async function getChangedPaths(
+export async function getChangedPaths(
   git: SimpleGit,
   from: string,
   to: string,
@@ -173,7 +173,7 @@ async function getChangedPaths(
   return { files, deletedFiles };
 }
 
-async function tryResolveRemoteHead(
+export async function tryResolveRemoteHead(
   git: SimpleGit,
   branch: string,
 ): Promise<string | undefined> {

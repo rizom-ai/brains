@@ -8,6 +8,44 @@ import { DirectorySyncRequestJobHandler } from "../../src/handlers/directorySync
 import type { IGitSync } from "../../src/types";
 import { createMockDirectorySync, createMockGitSync } from "../fixtures";
 
+function createReconciliation(): ConstructorParameters<
+  typeof DirectorySyncRequestJobHandler
+>[4] {
+  return {
+    pullAndQueue: (options) =>
+      options.gitSync.withLock(async () => {
+        const pull = await options.gitSync.pull(options.signal);
+        await options.directorySync.recordPendingPullDeletes(
+          pull.deletedFiles ?? [],
+        );
+        if (pull.files.length === 0) {
+          return {
+            mode: "incremental",
+            files: [],
+            deletedFiles: [],
+            batch: null,
+            checkpointAdvanced: true,
+          };
+        }
+        const batch = await options.directorySync.queueSyncBatch(
+          options.context,
+          options.source,
+          options.metadata,
+          pull.files,
+          pull.deletedFiles,
+        );
+        if (batch) options.directorySync.suppressWatchPaths(pull.files);
+        return {
+          mode: "incremental",
+          files: pull.files,
+          deletedFiles: pull.deletedFiles ?? [],
+          batch,
+          checkpointAdvanced: batch !== null,
+        };
+      }),
+  };
+}
+
 describe("DirectorySyncRequestJobHandler", () => {
   it("pulls and queues the sync batch under the git lock", async () => {
     const calls: string[] = [];
@@ -49,6 +87,7 @@ describe("DirectorySyncRequestJobHandler", () => {
           suppressWatchPaths,
         }),
       () => createMockGitSync({ withLock, pull }),
+      createReconciliation(),
     );
 
     const result = await handler.process(
@@ -90,6 +129,7 @@ describe("DirectorySyncRequestJobHandler", () => {
       createMockServicePluginContext(),
       () => createMockDirectorySync({ queueSyncBatch: mock(async () => null) }),
       () => createMockGitSync({ pull: mock(async () => ({ files: [] })) }),
+      createReconciliation(),
     );
 
     const result = await handler.process(

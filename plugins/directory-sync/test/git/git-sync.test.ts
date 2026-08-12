@@ -6,6 +6,8 @@ import { execSync } from "child_process";
 import { createServer, type AddressInfo, type Socket } from "net";
 import { GitSync } from "../../src/lib/git-sync";
 import { GitStallError } from "../../src/lib/git-stall";
+import type { GitReconciliationCheckpoint } from "../../src/types";
+import { getGitRemoteFingerprint } from "../../src/lib/git-options";
 import { createSilentLogger } from "@brains/test-utils";
 
 /**
@@ -354,6 +356,147 @@ describe("GitSync (simplified)", () => {
 
       const result = await gs.pull();
       expect(result.files).toEqual([]);
+    });
+  });
+
+  describe("reconciliation delta", () => {
+    async function createBaseline(
+      gs: GitSync,
+    ): Promise<GitReconciliationCheckpoint> {
+      writeFileSync(join(dataDir, "baseline.md"), "# Baseline");
+      await gs.commit("baseline");
+      await gs.push();
+      const delta = await gs.getReconciliationDelta(undefined);
+      expect(delta.mode).toBe("full");
+      return delta.checkpoint;
+    }
+
+    it("derives incremental checkout changes and only remote-authoritative deletions", async () => {
+      const gs = createGitSync();
+      await gs.initialize();
+      const checkpoint = await createBaseline(gs);
+
+      const cloneDir = join(testDir, "reconcile-clone");
+      execSync(`git clone ${remoteDir} ${cloneDir}`, { stdio: "ignore" });
+      execSync("git config user.name Test", { cwd: cloneDir, stdio: "ignore" });
+      execSync("git config user.email test@test.com", {
+        cwd: cloneDir,
+        stdio: "ignore",
+      });
+      writeFileSync(join(cloneDir, "remote.md"), "# Remote");
+      execSync("git rm baseline.md", { cwd: cloneDir, stdio: "ignore" });
+      execSync("git add -A", { cwd: cloneDir, stdio: "ignore" });
+      execSync('git commit -m "remote replacement"', {
+        cwd: cloneDir,
+        stdio: "ignore",
+      });
+      execSync("git push", { cwd: cloneDir, stdio: "ignore" });
+
+      await gs.pull();
+      const delta = await gs.getReconciliationDelta(checkpoint);
+
+      expect(delta.mode).toBe("incremental");
+      if (delta.mode !== "incremental")
+        throw new Error("Expected incremental delta");
+      expect(delta.files).toEqual(
+        expect.arrayContaining(["baseline.md", "remote.md"]),
+      );
+      expect(delta.deletedFiles).toEqual(["baseline.md"]);
+      expect(delta.checkpoint.lastReconciledGitHead).not.toBe(
+        checkpoint.lastReconciledGitHead,
+      );
+      expect(delta.checkpoint.lastObservedRemoteHead).not.toBe(
+        checkpoint.lastObservedRemoteHead,
+      );
+    });
+
+    it("does not classify a local export deletion as a remote deletion", async () => {
+      const gs = createGitSync();
+      await gs.initialize();
+      const checkpoint = await createBaseline(gs);
+
+      rmSync(join(dataDir, "baseline.md"));
+      await gs.commit("local DB export deletion");
+      const delta = await gs.getReconciliationDelta(checkpoint);
+
+      expect(delta.mode).toBe("incremental");
+      if (delta.mode !== "incremental")
+        throw new Error("Expected incremental delta");
+      expect(delta.files).toEqual(["baseline.md"]);
+      expect(delta.deletedFiles).toEqual([]);
+    });
+
+    it("falls back when repository identity or checkpoint ancestry is invalid", async () => {
+      const gs = createGitSync();
+      await gs.initialize();
+      const checkpoint = await createBaseline(gs);
+
+      const wrongIdentity = await gs.getReconciliationDelta({
+        ...checkpoint,
+        remoteFingerprint: "f".repeat(64),
+      });
+      expect(wrongIdentity).toMatchObject({
+        mode: "full",
+        reason: "repository-identity-mismatch",
+      });
+
+      const missingCommit = await gs.getReconciliationDelta({
+        ...checkpoint,
+        lastReconciledGitHead: "f".repeat(40),
+      });
+      expect(missingCommit).toMatchObject({
+        mode: "full",
+        reason: "missing-local-checkpoint",
+      });
+
+      const emptyTree = execSync("git mktree", {
+        cwd: dataDir,
+        input: "",
+        encoding: "utf8",
+      }).trim();
+      const unrelatedCommit = execSync(
+        `printf 'rewritten history\\n' | git commit-tree ${emptyTree}`,
+        { cwd: dataDir, encoding: "utf8" },
+      ).trim();
+      execSync(`git reset --hard ${unrelatedCommit}`, {
+        cwd: dataDir,
+        stdio: "ignore",
+      });
+      const nonAncestor = await gs.getReconciliationDelta(checkpoint);
+      expect(nonAncestor).toMatchObject({
+        mode: "full",
+        reason: "non-ancestor-local-checkpoint",
+      });
+    });
+
+    it("treats a checkpoint captured after local push as already reconciled", async () => {
+      const gs = createGitSync();
+      await gs.initialize();
+      await createBaseline(gs);
+
+      rmSync(join(dataDir, "baseline.md"));
+      await gs.commit("local DB export deletion");
+      await gs.push();
+      const captured = (await gs.getReconciliationDelta(undefined)).checkpoint;
+      const delta = await gs.getReconciliationDelta(captured);
+
+      expect(delta).toMatchObject({
+        mode: "incremental",
+        files: [],
+        deletedFiles: [],
+      });
+    });
+
+    it("never exposes credentials in the repository fingerprint", () => {
+      const fingerprint = getGitRemoteFingerprint(
+        "https://secret-token@github.com/rizom-ai/content.git",
+      );
+
+      expect(fingerprint).toMatch(/^[a-f0-9]{64}$/);
+      expect(fingerprint).not.toContain("secret-token");
+      expect(fingerprint).toBe(
+        getGitRemoteFingerprint("https://github.com/rizom-ai/content.git"),
+      );
     });
   });
 

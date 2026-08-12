@@ -39,6 +39,39 @@ export interface PullResult {
   deletedFiles?: string[] | undefined;
 }
 
+/** Durable identity and commit boundary for checkout-to-database reconciliation. */
+export interface GitReconciliationCheckpoint {
+  /** SHA-256 of the credential-free configured remote URL. */
+  remoteFingerprint: string;
+  branch: string;
+  lastReconciledGitHead: string;
+  /** Remote-tracking head used to distinguish authoritative remote deletions. */
+  lastObservedRemoteHead?: string | undefined;
+}
+
+export type GitReconciliationFallbackReason =
+  | "missing-checkpoint"
+  | "repository-identity-mismatch"
+  | "branch-mismatch"
+  | "missing-local-checkpoint"
+  | "non-ancestor-local-checkpoint"
+  | "remote-checkpoint-mismatch";
+
+/** Changed checkout paths since the durable checkpoint, or a safe full-scan fallback. */
+export type GitReconciliationDelta =
+  | {
+      mode: "incremental";
+      checkpoint: GitReconciliationCheckpoint;
+      files: string[];
+      /** Only deletions observed on the remote-tracking branch. */
+      deletedFiles: string[];
+    }
+  | {
+      mode: "full";
+      checkpoint: GitReconciliationCheckpoint;
+      reason: GitReconciliationFallbackReason;
+    };
+
 /**
  * Export result
  */

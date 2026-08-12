@@ -19,6 +19,7 @@ import { bootstrapContentRemoteFromSeed } from "./lib/content-remote-bootstrap";
 import { registerMessageHandlers } from "./lib/message-handlers";
 import { createDirectorySyncTools } from "./tools";
 import { DirectorySyncOperationStatusService } from "./lib/directory-sync-operation-status";
+import { GitReconciliationService } from "./lib/git-reconciliation";
 import { PendingDeleteRegistry } from "./lib/pending-delete-registry";
 import { DirectorySyncWorkspaceProvider } from "./lib/cms-workspace";
 import {
@@ -39,6 +40,7 @@ export class DirectorySyncPlugin extends ServicePlugin<
   private directorySync: DirectorySync | undefined;
   private gitSync: GitSync | undefined;
   private operationStatus: DirectorySyncOperationStatusService | undefined;
+  private gitReconciliation: GitReconciliationService | undefined;
   private workspaceProvider: DirectorySyncWorkspaceProvider | undefined;
   private cmsWorkspaceUrl: string | undefined;
   private runtime = new DirectorySyncRuntime();
@@ -86,6 +88,13 @@ export class DirectorySyncPlugin extends ServicePlugin<
     return this.operationStatus;
   }
 
+  private requireGitReconciliation(): GitReconciliationService {
+    if (!this.gitReconciliation) {
+      throw new Error("Git reconciliation service not initialized");
+    }
+    return this.gitReconciliation;
+  }
+
   /** Whether git integration has a configured repository. */
   public hasGitSync(): boolean {
     return this.gitSync !== undefined;
@@ -122,6 +131,7 @@ export class DirectorySyncPlugin extends ServicePlugin<
       syncPath,
     );
     await this.operationStatus.initialize();
+    this.gitReconciliation = new GitReconciliationService(context.runtimeState);
 
     if (!context.executionOnly && this.config.autoSync) {
       setupFileWatcher(
@@ -161,8 +171,17 @@ export class DirectorySyncPlugin extends ServicePlugin<
           context,
           () => this.requireDirectorySync(),
           () => this.requireGitSync(),
+          this.requireGitReconciliation(),
         ),
       );
+      if (!context.executionOnly && !this.config.initialSync) {
+        await this.requireGitReconciliation().replayAndQueue({
+          gitSync: this.gitSync,
+          directorySync: this.requireDirectorySync(),
+          context,
+          source: "startup-replay",
+        });
+      }
     }
 
     if (!context.executionOnly && this.config.initialSync) {
@@ -172,6 +191,7 @@ export class DirectorySyncPlugin extends ServicePlugin<
         this.config,
         this.logger,
         this.gitSync ? this.gitSyncFacade : undefined,
+        this.gitSync ? this.requireGitReconciliation() : undefined,
       );
     }
 
@@ -294,6 +314,14 @@ export class DirectorySyncPlugin extends ServicePlugin<
     this.watcherOwned = false;
     this.gitBackgroundStarted = false;
 
+    if (candidateGitSync) {
+      await this.requireGitReconciliation().replayAndQueue({
+        gitSync: candidateGitSync,
+        directorySync: candidateDirectorySync,
+        context,
+        source: "reconfigure-replay",
+      });
+    }
     if (this.readyState) {
       await this.startBackgroundWork();
     }
@@ -383,6 +411,7 @@ export class DirectorySyncPlugin extends ServicePlugin<
         this.config.commitDebounce,
         this.logger.child("GitAutoCommit"),
         this.runtimeScheduler,
+        this.requireGitReconciliation(),
         this.operationStatus,
       );
       this.gitAutoCommitRegistered = true;
@@ -396,6 +425,7 @@ export class DirectorySyncPlugin extends ServicePlugin<
         this.config.syncInterval,
         this.logger.child("GitPeriodicSync"),
         this.runtime,
+        this.requireGitReconciliation(),
         this.operationStatus,
       );
     }

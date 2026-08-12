@@ -171,6 +171,15 @@ export function createMockGitSync(overrides: Partial<IGitSync> = {}): IGitSync {
     commit: mock(async () => {}),
     push: mock(async () => {}),
     pull: mock(async () => ({ files: [] })),
+    getReconciliationDelta: mock(async () => ({
+      mode: "full" as const,
+      checkpoint: {
+        remoteFingerprint: "0".repeat(64),
+        branch: "main",
+        lastReconciledGitHead: "0".repeat(40),
+      },
+      reason: "missing-checkpoint" as const,
+    })),
     log: mock(async () => []),
     show: mock(async () => ""),
     cleanup: async () => {},

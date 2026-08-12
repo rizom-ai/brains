@@ -3,6 +3,7 @@ import type { Logger } from "@brains/utils/logger";
 import type { IGitSync, IDirectorySync } from "../types";
 import type { DirectorySyncRuntime } from "./directory-sync-runtime";
 import type { DirectorySyncOperationStatusService } from "./directory-sync-operation-status";
+import type { GitReconciliationService } from "./git-reconciliation";
 import { getErrorMessage } from "@brains/utils/error";
 
 /**
@@ -19,6 +20,7 @@ export function setupPeriodicGitSync(
   intervalMinutes: number,
   logger: Logger,
   runtime: DirectorySyncRuntime,
+  reconciliation: Pick<GitReconciliationService, "pullAndQueue">,
   operationStatus?: DirectorySyncOperationStatusService,
 ): void {
   if (intervalMinutes <= 0) return;
@@ -27,27 +29,14 @@ export function setupPeriodicGitSync(
   const cycle = async (signal: AbortSignal): Promise<void> => {
     const runId = await operationStatus?.startRun("periodic", "pulling");
     try {
-      const { files, result } = await gitSync.withLock(async () => {
-        const pullResult = await gitSync.pull(signal);
-        signal.throwIfAborted();
-        await directorySync.recordPendingPullDeletes(
-          pullResult.deletedFiles ?? [],
-        );
-        if (pullResult.files.length === 0) {
-          return { files: [], result: null };
-        }
-        const batchResult = await directorySync.queueSyncBatch(
-          pluginContext,
-          "periodic-sync",
-          undefined,
-          pullResult.files,
-          pullResult.deletedFiles,
-        );
-        if (batchResult) {
-          directorySync.suppressWatchPaths(pullResult.files);
-        }
-        return { files: pullResult.files, result: batchResult };
-      }, signal);
+      const reconciled = await reconciliation.pullAndQueue({
+        gitSync,
+        directorySync,
+        context: pluginContext,
+        source: "periodic-sync",
+        signal,
+      });
+      const { files, batch: result } = reconciled;
 
       if (files.length > 0) {
         logger.info("Periodic sync: pulled changes", {
