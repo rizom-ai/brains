@@ -148,8 +148,11 @@ A site package also carries an exact direct dependency on
 
 ## How the evidence works
 
-Per-PR tests build and pack local SDK artifacts, then build each fixture and
-install the complete consumer outside the monorepo. The phase tests exercise:
+Normal PR and pre-commit tests run focused contract coverage plus one canonical
+packed-install/startup canary. The complete local compatibility matrix runs
+nightly, on demand, and before publication. It builds and packs local SDK
+artifacts, then builds each fixture and installs the complete consumer outside
+the monorepo. The compatibility scenarios exercise:
 
 - package loading, metadata inference, and typed composition;
 - entity CRUD/FTS/visibility, projection convergence, and restart durability;
@@ -165,16 +168,18 @@ Run the source/ledger checks:
 bun test packages/brain-cli/test/public-authoring-golden.test.ts
 ```
 
-Run all local packed proofs:
+Run all local packed proofs through the same command used by nightly and release
+CI. It builds and packs Brain once, then reuses that immutable tarball while
+each scenario keeps isolated mutable state:
 
 ```bash
-bun test \
-  packages/brain-cli/test/public-authoring-phase1-packed.test.ts \
-  packages/brain-cli/test/public-authoring-phase2-packed.test.ts \
-  packages/brain-cli/test/public-authoring-phase3-packed.test.ts \
-  packages/brain-cli/test/public-authoring-phase4-packed.test.ts \
-  packages/brain-cli/test/public-authoring-phase5-packed.test.ts
+bun run test:packed:compat
 ```
+
+The five local packed files are intentionally skipped by ordinary `bun test`
+unless `RIZOM_PUBLIC_API_PACKED_EVIDENCE=1`; use the command above rather than
+setting the flag directly. The canonical packed consumer remains in ordinary
+tests.
 
 The npm registry matrix is opt-in and exact-version only:
 

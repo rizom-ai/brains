@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it as bunIt } from "bun:test";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -7,6 +7,7 @@ import {
   buildAndPackFixturePackage,
   combinedOutput,
   installPackedConsumer,
+  packedCompatibilityEvidenceEnabled,
   packPackages,
   runCommand,
   startCommand,
@@ -28,6 +29,7 @@ const consumerFixture = join(
   "public-authoring-phase4-consumer",
 );
 
+const it = bunIt.skipIf(!packedCompatibilityEvidenceEnabled());
 const remoteToken = "packed-phase4-static-operator-token-0001";
 const runtimeEnv = {
   ...process.env,
