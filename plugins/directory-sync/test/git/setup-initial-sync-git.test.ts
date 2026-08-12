@@ -82,14 +82,26 @@ describe("setupInitialSync with git", () => {
         return { files: ["deleted.md"], deletedFiles: ["deleted.md"] };
       }),
     });
+    const reconciliation = {
+      captureCurrent: mock(async () => {
+        callOrder.push("checkpoint");
+      }),
+    };
 
-    setupInitialSync(context, () => ds, baseConfig, createSilentLogger(), gs);
+    setupInitialSync(
+      context,
+      () => ds,
+      baseConfig,
+      createSilentLogger(),
+      gs,
+      reconciliation,
+    );
 
     const handler = handlers.get(SYSTEM_CHANNELS.pluginsRegistered);
     expect(handler).toBeDefined();
     if (handler) await handler();
 
-    expect(callOrder).toEqual(["pull", "record-deletes", "sync"]);
+    expect(callOrder).toEqual(["pull", "record-deletes", "sync", "checkpoint"]);
   });
 
   it("should call sync when gitSync is not provided", async () => {

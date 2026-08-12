@@ -114,6 +114,48 @@ describe("setupGitAutoCommit", () => {
     );
   });
 
+  it("checkpoints a DB-origin commit only after its push succeeds", async () => {
+    await Effect.runPromise(
+      Effect.gen(function* () {
+        const clock = yield* TestClock.testClock();
+        const runtime = new DirectorySyncRuntime({ clock });
+        const harness = createPluginHarness();
+        const calls: string[] = [];
+        const git = createDirtyGitSync({
+          commit: mock(async () => {
+            calls.push("commit");
+          }),
+          push: mock(async () => {
+            calls.push("push");
+          }),
+        });
+        const reconciliation = {
+          captureCurrentUnderLock: mock(async (capturedGit) => {
+            expect(capturedGit).toBe(git);
+            calls.push("checkpoint");
+          }),
+        };
+        setupGitAutoCommit(
+          harness.getServiceContext("directory-sync").messaging,
+          git,
+          50,
+          createSilentLogger(),
+          runtime,
+          reconciliation,
+        );
+
+        yield* Effect.promise(() =>
+          harness.sendMessage("entity:updated", eventPayload, "test", true),
+        );
+        yield* TestClock.adjust(50);
+        yield* yieldToFibers();
+
+        expect(calls).toEqual(["commit", "push", "checkpoint"]);
+        yield* Effect.promise(() => runtime.close());
+      }).pipe(Effect.provide(TestContext.TestContext)),
+    );
+  });
+
   it("subscribes to every entity CRUD event", async () => {
     await Effect.runPromise(
       Effect.gen(function* () {

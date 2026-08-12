@@ -7,6 +7,7 @@ import {
 } from "@brains/test-utils";
 import { setupPeriodicGitSync } from "../../src/lib/git-periodic-sync";
 import { DirectorySyncRuntime } from "../../src/lib/directory-sync-runtime";
+import type { GitReconciliationResult } from "../../src/lib/git-reconciliation";
 import type { PullResult } from "../../src/lib/git-sync";
 import type { BatchResult } from "../../src/lib/batch-operations";
 import { createMockDirectorySync, createMockGitSync } from "../fixtures";
@@ -34,6 +35,42 @@ function yieldToFibers(): Effect.Effect<void> {
   return Effect.yieldNow().pipe(Effect.andThen(Effect.yieldNow()));
 }
 
+function createReconciliation(): Parameters<typeof setupPeriodicGitSync>[6] {
+  return {
+    pullAndQueue: async (options): Promise<GitReconciliationResult> => {
+      const pull = await options.gitSync.pull(options.signal);
+      options.signal?.throwIfAborted();
+      await options.directorySync.recordPendingPullDeletes(
+        pull.deletedFiles ?? [],
+      );
+      if (pull.files.length === 0) {
+        return {
+          mode: "incremental",
+          files: [],
+          deletedFiles: [],
+          batch: null,
+          checkpointAdvanced: true,
+        };
+      }
+      const batch = await options.directorySync.queueSyncBatch(
+        options.context,
+        options.source,
+        options.metadata,
+        pull.files,
+        pull.deletedFiles,
+      );
+      if (batch) options.directorySync.suppressWatchPaths(pull.files);
+      return {
+        mode: "incremental",
+        files: pull.files,
+        deletedFiles: pull.deletedFiles ?? [],
+        batch,
+        checkpointAdvanced: batch !== null,
+      };
+    },
+  };
+}
+
 describe("setupPeriodicGitSync", () => {
   it("waits one complete interval and runs at fixed cadence", async () => {
     await Effect.runPromise(
@@ -49,6 +86,7 @@ describe("setupPeriodicGitSync", () => {
           0.001,
           createSilentLogger(),
           runtime,
+          createReconciliation(),
         );
 
         yield* TestClock.adjust(59);
@@ -94,6 +132,7 @@ describe("setupPeriodicGitSync", () => {
           0.001,
           createSilentLogger(),
           runtime,
+          createReconciliation(),
         );
         yield* TestClock.adjust(60);
         yield* yieldToFibers();
@@ -141,6 +180,7 @@ describe("setupPeriodicGitSync", () => {
           0.001,
           createSilentLogger(),
           runtime,
+          createReconciliation(),
         );
         yield* TestClock.adjust(60);
         yield* yieldToFibers();
@@ -175,6 +215,7 @@ describe("setupPeriodicGitSync", () => {
           0.001,
           createSilentLogger(),
           runtime,
+          createReconciliation(),
         );
         yield* TestClock.adjust(60);
         yield* yieldToFibers();
@@ -200,6 +241,7 @@ describe("setupPeriodicGitSync", () => {
           0,
           createSilentLogger(),
           runtime,
+          createReconciliation(),
         );
         yield* TestClock.adjust(1_000);
         yield* yieldToFibers();
@@ -244,6 +286,7 @@ describe("setupPeriodicGitSync", () => {
           0.001,
           createSilentLogger(),
           runtime,
+          createReconciliation(),
         );
         yield* TestClock.adjust(60);
         yield* Effect.promise(() => pullStarted.promise);
@@ -287,6 +330,7 @@ describe("setupPeriodicGitSync", () => {
           0.001,
           createSilentLogger(),
           runtime,
+          createReconciliation(),
         );
         yield* TestClock.adjust(60);
         yield* yieldToFibers();

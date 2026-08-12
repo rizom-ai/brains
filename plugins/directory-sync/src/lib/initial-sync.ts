@@ -2,6 +2,7 @@ import { getErrorMessage } from "@brains/utils/error";
 import { SYSTEM_CHANNELS, type ServicePluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import type { DirectorySyncConfig, IDirectorySync, IGitSync } from "../types";
+import type { GitReconciliationService } from "./git-reconciliation";
 import { copySeedContentIfNeeded } from "./seed-content";
 
 /**
@@ -15,6 +16,7 @@ export function setupInitialSync(
   config: DirectorySyncConfig,
   logger: Logger,
   gitSync?: IGitSync,
+  reconciliation?: Pick<GitReconciliationService, "captureCurrent">,
 ): void {
   let initialSyncStarted = false;
 
@@ -51,6 +53,9 @@ export function setupInitialSync(
         failed: result.import.failed,
         duration: result.duration,
       });
+      if (gitSync && reconciliation) {
+        await reconciliation.captureCurrent(gitSync);
+      }
 
       await context.messaging.send({
         type: SYSTEM_CHANNELS.initialSyncCompleted,
