@@ -30,8 +30,28 @@ interface ProcessInfo {
 interface HealthMonitor {
   failures: string[];
   maxLatencyMs: number;
-  maxZombies: number;
+  maxPersistentZombies: number;
   stop(): Promise<void>;
+}
+
+const ZOMBIE_PERSISTENCE_SAMPLES = 2;
+
+/** Distinguishes a normal wait/reap window from a child left permanently dead. */
+class PersistentZombieTracker {
+  private consecutiveSamples = new Map<string, number>();
+
+  observe(zombies: ProcessInfo[]): ProcessInfo[] {
+    const next = new Map<string, number>();
+    const persistent: ProcessInfo[] = [];
+    for (const zombie of zombies) {
+      const key = `${zombie.pid}/${zombie.parentPid}/${zombie.name}`;
+      const count = (this.consecutiveSamples.get(key) ?? 0) + 1;
+      next.set(key, count);
+      if (count >= ZOMBIE_PERSISTENCE_SAMPLES) persistent.push(zombie);
+    }
+    this.consecutiveSamples = next;
+    return persistent;
+  }
 }
 
 async function run(command: string[], cwd: string): Promise<string> {
@@ -152,10 +172,11 @@ function startHealthMonitor(
   supervisor: Bun.ReadableSubprocess,
 ): HealthMonitor {
   let stopped = false;
+  const zombieTracker = new PersistentZombieTracker();
   const monitor: HealthMonitor = {
     failures: [],
     maxLatencyMs: 0,
-    maxZombies: 0,
+    maxPersistentZombies: 0,
     async stop(): Promise<void> {
       stopped = true;
       await monitoring;
@@ -183,10 +204,14 @@ function startHealthMonitor(
       const zombies = (await readDescendants(supervisor.pid)).filter(
         (processInfo) => processInfo.state === "Z",
       );
-      monitor.maxZombies = Math.max(monitor.maxZombies, zombies.length);
-      if (zombies.length > 0) {
+      const persistentZombies = zombieTracker.observe(zombies);
+      monitor.maxPersistentZombies = Math.max(
+        monitor.maxPersistentZombies,
+        persistentZombies.length,
+      );
+      if (persistentZombies.length > 0) {
         monitor.failures.push(
-          `zombie children: ${zombies
+          `persistent zombie children: ${persistentZombies
             .map(({ pid, parentPid, name }) => `${pid}/${parentPid} ${name}`)
             .join(", ")}`,
         );
@@ -551,7 +576,7 @@ plugins:
       await monitor.stop();
 
       expect(monitor.failures).toEqual([]);
-      expect(monitor.maxZombies).toBe(0);
+      expect(monitor.maxPersistentZombies).toBe(0);
       expect(monitor.maxLatencyMs).toBeLessThan(MAX_HEALTH_LATENCY_MS);
     } catch (error) {
       failure = error;
@@ -574,6 +599,35 @@ plugins:
   },
   360_000,
 );
+
+it("ignores a transient zombie that is reaped before the next sample", () => {
+  const tracker = new PersistentZombieTracker();
+  const zombie: ProcessInfo = {
+    pid: 101,
+    parentPid: 100,
+    state: "Z",
+    name: "sh",
+    command: "",
+  };
+
+  expect(tracker.observe([zombie])).toEqual([]);
+  expect(tracker.observe([])).toEqual([]);
+  expect(tracker.observe([zombie])).toEqual([]);
+});
+
+it("reports the same zombie when it survives consecutive samples", () => {
+  const tracker = new PersistentZombieTracker();
+  const zombie: ProcessInfo = {
+    pid: 101,
+    parentPid: 100,
+    state: "Z",
+    name: "git",
+    command: "",
+  };
+
+  expect(tracker.observe([zombie])).toEqual([]);
+  expect(tracker.observe([zombie])).toEqual([zombie]);
+});
 
 it("runs the packaged import-burst soak nightly in one isolated CI job", async () => {
   const repoRoot = join(import.meta.dir, "..", "..", "..");
