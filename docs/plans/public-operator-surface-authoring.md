@@ -20,6 +20,61 @@ design intentionally avoids.
 `docs/feature-overview.md` no longer implies external plugins can already
 provide these capabilities; that correction shipped with this scope decision.
 
+### Phase 0 refinement record (drafted 2026-08-11)
+
+The source-first service target now lives at
+`packages/brain-cli/test/fixtures/public-authoring/operator-surface/`; the
+interface-owned IMAP lifecycle target lives beside it at
+`account-settings-interface/`. They are proposal fixtures only: normal checks
+enforce package shape and public-only source, but no helper is exported, no
+implementation exists, and neither package is compiled, packed, or added to
+the stable ledger. `PORTS.md` beside the operator fixture sketches Directory
+Sync, Site, Email Triage, and Publishing against the same vocabulary.
+
+The source and ports surfaced five points that must be reviewed before Phase 1:
+
+1. **Account settings cannot remain service-only if IMAP is the proof.** The
+   Email package that owns IMAP is a message interface under the accepted
+   connected-channel architecture. Moving mailbox polling into a service would
+   be a boundary regression. The recommended revision is one shared
+   `defineAccountSettings()` definition exported from both the service and
+   interface family entries, attachable to service, generic-interface, and
+   message-interface definitions. A supervised daemon can bind to that
+   definition with `forAccounts`; the runtime owns one task per configured
+   principal, with that principal's ID and parsed settings, and replaces/cancels it
+   on secret rotation or removal. A one-time
+   enumeration is not enough, and authors should not manage account task maps.
+2. **Operator callbacks need parsed service config/state.** Directory Sync,
+   Site, and Email Triage all load snapshots and run operations through
+   package-owned state. The public callback context should add inferred
+   `config` and `state`; it should not expose registries or runtime services.
+3. **The semantic view needs two demonstrated additions.** Email Triage needs
+   declarative local table filters and conditional typed row actions. Site
+   needs a narrow caller-policy query for a referenced entity action plus
+   runtime-owned entity links. Neither addition permits raw routes, components,
+   scripts, or unrestricted permission access.
+4. **Widgets and workspaces are independent capabilities.** A Dashboard widget
+   does not reference, own, discover, or implicitly link to a CMS workspace.
+   Both may be declared by the same service, but registration, data, actions,
+   permissions, lifecycle, and host navigation remain separate.
+5. **Publishing should remain specialized in the first release.** Its dynamic
+   provider-discovered entity coverage, dynamic editor targets,
+   content-hash-bound prepared confirmation, and caller-filtered queue-position
+   mapping do not justify opening dynamic registries or a generic confirmation
+   protocol. Its Dashboard digest can use the generic widget contract while the
+   CMS renderer/action adapter stays private.
+
+Account settings belong under the principal's Account surface, not CMS. Secret
+fields are encrypted at rest and write-only in host forms. Runtime code can
+prevent automatic serialization/logging and provide bounded errors, but plugin
+callbacks are a trusted code boundary: a package authorized to consume a
+plaintext credential could intentionally reveal it, so the plan must not claim
+sandbox-level containment.
+
+Phase 0 exits only after the source vocabulary and these five findings receive
+owner review. Until then, names and shapes in the fixture are targets, not
+contract decisions.
+
 ## Goal
 
 An author in a standalone package can contribute a dashboard widget and a CMS
@@ -31,21 +86,23 @@ roles, internal UI components, or lifecycle timing.
 The minimum useful outcome is:
 
 - per-account plugin settings with schema-validated fields, encrypted secrets,
-  a host-rendered form, principal-scoped injection, and typed
-  configured-accounts enumeration (the IMAP-connection case end to end);
-- one dashboard widget with schema-validated data, placement, permission,
-  digest/attention state, and an optional typed link to a CMS workspace;
+  a host-rendered form, principal-scoped injection, and interface-owned
+  per-account task supervision (the IMAP-connection case end to end);
+- one independently declared dashboard widget with schema-validated data,
+  placement, permission, and digest/attention state;
 - one CMS workspace with schema-validated data, entity coverage, canonical
   caller access, typed actions, and a runtime-owned URL;
 - one JSON-native presentation contract rendered by both first-party hosts;
 - one supplemental standalone golden service package that compiles, packs,
   installs, boots, renders, authorizes, acts, restarts, and shuts down outside
-  the monorepo.
+  the monorepo; plus one focused interface fixture that proves account-settings
+  connection lifecycle in the family that owns IMAP.
 
 ## Audited gap
 
 | Capability       | Current built-in path                                                                                      | Why it is not a public authoring contract                                                           |
 | ---------------- | ---------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| Account settings | Deployment-owned `brain.yaml`/environment config; Account owns profile, passkeys, and sessions             | No package-declared per-principal schema, encrypted plugin secret store, form, or callback binding  |
 | Dashboard widget | Private `context.dashboard.registerWidget()` and `DashboardWidgetRegistration`                             | Requires private context/types, string `rendererName`, registration timing, and optional UI objects |
 | CMS workspace    | Private `registerCmsWorkspace()` over `cms:register-workspace` messaging                                   | Requires private messaging/types, author-supplied plugin ID, and a first-party renderer allowlist   |
 | Dashboard UI     | `@brains/ui-library` component plus optional raw client style/script strings                               | Private UI dependency and unstable rendering implementation                                         |
@@ -76,7 +133,11 @@ Provisional author vocabulary:
 - blessed `z` from `@rizom/brain/services`.
 
 The exact field names freeze only after the golden source is reviewed by Jo and
-Niels. There will still be one preferred declarative path and one family import.
+Niels. There will still be one preferred declarative operator path and one
+service-family import. `defineAccountSettings()` is the deliberate exception:
+it is one shared definition contract re-exported through the service and
+interface family entries because principal-owned configuration can support
+capabilities in either family without creating a new plugin family.
 
 ### 2. Expose semantic presentation, not private UI
 
@@ -141,19 +202,23 @@ minimum. Entity access supplied to loaders/actions is automatically scoped to
 the caller. The public context exposes typed `get`, `list`, and `search` by
 entity-definition reference, with no unrestricted visibility override.
 
-### 5. Use definition references across capabilities
+### 5. Use definition references within each capability
 
 Author source references imported definitions, not stringly scoped names:
 
 - workspace entity coverage uses entity definitions;
-- widget management links reference a workspace definition;
-- view actions reference workspace-action definitions; and
+- workspace views reference their own workspace-action definitions; and
 - actions enqueue imported `defineJob()` definitions through a typed job
   context.
 
-The runtime resolves owning packages, scoped IDs, routes, and execution types.
-A dashboard widget can remain visible when its linked CMS host is absent; the
-runtime simply omits the unavailable management link.
+Dashboard widgets and CMS workspaces remain independent declarations. Neither
+definition references, owns, discovers, or implicitly links to the other. If a
+host later offers general navigation between installed surfaces, that is
+host-owned navigation metadata rather than a widget/workspace authoring
+contract.
+
+The runtime resolves owning packages, scoped IDs, action routes, and execution
+types within each capability.
 
 ### 6. Keep host presence optional
 
@@ -176,15 +241,19 @@ unregistration, and shutdown.
 
 ### 8. Per-account plugin settings are part of this contract
 
-A service may declare `accountSettings` on `defineServicePlugin()`: one schema
-of per-principal settings (for example a user's IMAP host, username, and
-password for a mail integration), with individual fields markable as `secret`.
-This is distinct from instance config in `brain.yaml` — instance config is
-deployment-owned; account settings belong to one authenticated principal.
+**Phase 0 revision pending owner review:** settings remain part of this scope,
+but the IMAP ownership proof means the definition cannot be service-only. The
+recommended shape is one `defineAccountSettings()` contract re-exported by the
+service and interface family entries. A service, generic interface, or message
+interface may attach one schema of per-principal settings (for example a user's
+IMAP host, username, and password), with individual fields markable as
+`secret`. This is distinct from instance config in `brain.yaml` — instance
+config is deployment-owned; account settings belong to one authenticated
+principal.
 
 The runtime owns everything except the schema and the consuming callbacks:
 
-- storage keyed by installed package, service ID, and actor ID, with secret
+- storage keyed by installed package, definition ID, and actor ID, with secret
   fields encrypted at rest;
 - the settings surface itself, rendered from the schema as a host form —
   which is why schema-derived input forms are part of the v1 view vocabulary;
@@ -197,19 +266,27 @@ The runtime owns everything except the schema and the consuming callbacks:
   responses, never logs.
 
 For background work that acts on behalf of configured users (an IMAP listener
-polling each connected mailbox), the service receives a typed accounts
-enumeration: iterate principals that have valid settings, receiving each
-principal's parsed settings server-side. Authors never touch identity storage,
-never enumerate users without settings, and never see another principal's
-secrets in a per-principal callback.
+polling each connected mailbox), a supervised interface/message-interface
+daemon binds to the account-settings definition with `forAccounts`. The runtime
+starts one callback per principal with valid settings, the principal ID, parsed
+settings, and an account-scoped abort signal, then replaces or cancels that task
+when settings change or are removed. Request-scoped service callbacks receive
+only the current principal's parsed settings; broad enumeration is not exposed
+to ordinary
+widget/workspace/action callbacks. Authors never touch identity storage,
+enumerate users without settings, or manage per-account task maps.
 
 ## Proposed golden author experience
 
-The supplemental package should be
+The supplemental operator package should be
 `packages/brain-cli/test/fixtures/public-authoring/operator-surface`, published
 in the fixture graph as `@fixture/reading-operator`. It remains a service-family
 package and imports only `@rizom/brain/services` plus ordinary fixture package
-dependencies.
+dependencies. The IMAP ownership proof is a second supplemental fixture,
+`account-settings-interface`, importing only `@rizom/brain/interfaces` plus its
+ordinary transport dependency. It exists to prove the shared account-settings
+contract and runtime-owned per-account connection reconciliation in the correct
+package family rather than pretending a reading service owns inbound mail.
 
 The source-first draft should read approximately like the following. This is a
 shape sketch, not a frozen TypeScript snippet; the checked fixture becomes the
@@ -238,7 +315,6 @@ define readingWidget:
   load counts using caller-scoped entities
   derive digest and needs-attention from parsed data
   return status/list OperatorView
-  link to readingWorkspace by definition reference
 
 default export defineServicePlugin:
   one config schema
@@ -279,12 +355,12 @@ domain fields:
 - minimum permission;
 - data schema;
 - async data loader receiving caller, typed entities/jobs, and signal;
-- optional digest/attention derivation from parsed data;
-- view derivation from parsed data; and
-- optional workspace-definition reference.
+- optional digest/attention derivation from parsed data; and
+- view derivation from parsed data.
 
-Runtime metadata—package ID, globally scoped widget ID, renderer selection,
-host assets, lifecycle token, and management URL—is not accepted from authors.
+The definition contains no CMS workspace reference or management URL. Runtime
+metadata—package ID, globally scoped widget ID, renderer selection, host assets,
+and lifecycle token—is not accepted from authors.
 
 ### CMS workspace definition
 
@@ -339,11 +415,13 @@ reading golden package and at least one real built-in operator surface.
 
 ## Runtime adaptation
 
-### Shared declarative adapter
+### Shared declarative adapters
 
 Extend the internal declarative service plugin to normalize widget/workspace
-definitions after setup state is ready. The adapter may reuse current Dashboard
-and CMS internals, but public callbacks never receive those internals.
+definitions after setup state is ready. Add one family-neutral account-settings
+adapter used by declarative service, generic-interface, and message-interface
+definitions. The adapters may reuse current Dashboard, CMS, Account, and auth
+internals, but public callbacks never receive those internals.
 
 Registration order:
 
@@ -351,14 +429,29 @@ Registration order:
 2. complete service setup;
 3. collect and validate local widget/workspace/action definitions;
 4. wait for runtime plugin finalization internally;
-5. register CMS workspaces first so workspace URLs can resolve;
-6. register dashboard widgets and any available workspace links;
-7. expose readiness only after required host-side registration attempts settle;
-8. on failure, unregister acquired contributions in reverse order; and
-9. unregister all contributions during shutdown.
+5. register CMS workspaces and Dashboard widgets independently with their
+   respective hosts;
+6. expose readiness only after required host-side registration attempts settle;
+7. on failure, unregister acquired contributions in reverse order; and
+8. unregister all contributions during shutdown.
 
 Use emitted lifecycle/finalization signals, not sleeps. Iteration is bounded and
 uses explicit `for...of` traversal.
+
+### Account host
+
+Add one authenticated package-settings list/form surface under Account. The
+host derives controls from the declared schema plus bounded field metadata,
+loads and writes settings only for the current principal, and shows secret
+presence without returning secret values. The server owns CSRF/session checks,
+encrypted persistence, validation errors, replacement semantics, account
+removal cleanup, and task-reconciliation signals. Packages do not contribute
+Account UI components, routes, or scripts.
+
+For `forAccounts` daemons, the runtime aggregates task health without exposing
+principal IDs or settings in public health details. One principal's failed
+connection does not cancel healthy principals; required/optional daemon policy
+still determines aggregate readiness.
 
 ### Dashboard host
 
@@ -420,7 +513,7 @@ host registries.
 
 Every author-correctable failure identifies:
 
-1. installed package and local service ID;
+1. installed package and local definition ID;
 2. widget/workspace/action ID;
 3. failing field or schema path; and
 4. corrective action.
@@ -428,7 +521,8 @@ Every author-correctable failure identifies:
 Focused tests cover:
 
 - duplicate local IDs;
-- a widget referencing a workspace outside the package definition;
+- a widget definition attempting to declare a CMS workspace reference or
+  management URL;
 - a view referencing an undeclared action;
 - invalid data/action/view output;
 - action permission lower than its workspace;
@@ -467,10 +561,12 @@ with every unportable operation named.
 1. Add schema-first definition contracts and `define*` identity/validation
    helpers under `@brains/plugins` internals.
 2. Curate only approved helpers/types through `@rizom/brain/services`.
-3. Extend `defineServicePlugin()` with inferred `accountSettings`,
-   `dashboardWidgets`, and `cmsWorkspaces` callbacks.
+3. Add the shared inferred `accountSettings` field to service, generic
+   interface, and message-interface definitions; extend `defineServicePlugin()`
+   with `dashboardWidgets` and `cmsWorkspaces` callbacks.
 4. Prove config/setup-state, schema input/output, caller, entity, job, action,
-   settings, and view inference without casts.
+   current-principal settings, account-bound supervised daemon callbacks, and
+   view inference without casts.
 5. Add every export to `export-ledger.json`; stable classification requires the
    approved consumer fixture.
 6. Verify generated declarations contain no private workspace, UI, shell,
@@ -489,18 +585,21 @@ later capabilities reuse the form renderer and principal-scoped context proven
 here.
 
 1. Implement per-principal settings storage keyed by installed package,
-   service ID, and actor ID, with secret fields encrypted at rest.
+   definition ID, and actor ID, with secret fields encrypted at rest.
 2. Render the host settings form from the declared schema, with write-only
    secret semantics.
 3. Validate on save; inject parsed settings into the calling principal's
    server-side callbacks only.
-4. Implement the typed configured-accounts enumeration for daemon/worker use.
+4. Implement runtime-owned per-account supervision for interface/message-
+   interface daemons bound with `forAccounts`; additions, removals, and
+   replacements reconcile without restart and without author-owned task maps.
 5. Delete settings and secrets with account removal.
-6. Prove isolation: no cross-principal reads, no secrets in agent context,
-   browser responses, or logs.
+6. Prove isolation: no cross-principal request reads, no automatic secrets in
+   agent context, browser responses, or logs.
 
-Exit: a packed service stores, validates, injects, and enumerates per-account
-settings — the IMAP case works end to end — with secrets provably contained.
+Exit: packed service and interface fixtures store, validate, inject, and
+reconcile per-account settings; the interface-owned IMAP connection case works
+end to end with encrypted-at-rest, write-only secret handling.
 
 ### Phase 3: dashboard runtime
 
@@ -521,7 +620,7 @@ imports or author lifecycle code.
 2. Add the generic React workspace renderer for `OperatorView`.
 3. Preserve authenticated actor derivation and CSRF protection.
 4. Validate workspace data and action input/output.
-5. Resolve typed entity coverage and workspace links.
+5. Resolve typed entity coverage and CMS-owned entity links.
 6. Prove denied callers cannot discover workspace coverage, fetch data, or run
    actions.
 
@@ -531,25 +630,33 @@ through public HTTP behavior.
 ### Phase 5: packed integration evidence
 
 Add `packages/brain-cli/test/public-authoring-operator-packed.test.ts` and an
-isolated consumer. The test must:
+isolated consumer containing both supplemental fixtures. The test must:
 
 1. build and pack local Brain plus every fixture dependency;
 2. install the consumer outside the monorepo;
-3. start the app with Dashboard and CMS enabled;
+3. start the app with Account, Dashboard, and CMS enabled;
 4. create reading entities through public tools;
 5. exercise an anonymous public request plus authenticated trusted and admin
    actors through supported app flows;
-6. assert widget visibility, validated data, digest, attention, placement, and
-   workspace link;
-7. assert workspace descriptors do not leak to denied actors;
-8. load the workspace and execute a typed action;
-9. reject invalid/unauthorized actions without invoking the handler;
-10. enqueue a referenced durable job and observe its result through public
+6. save settings for two test principals, prove encrypted persistence and
+   write-only secret responses, rotate one secret, and remove the other;
+7. observe one account-bound interface task per configured principal, task
+   replacement on rotation, cancellation on removal, and no secret-bearing
+   health/log output;
+8. assert widget visibility, validated data, digest, attention, and placement;
+9. assert the widget has no CMS workspace coupling or management URL;
+10. assert workspace descriptors do not leak to denied actors;
+11. load the workspace and execute a typed action;
+12. reject invalid/unauthorized actions without invoking the handler;
+13. enqueue a referenced durable job and observe its result through public
     status behavior;
-11. restart and prove definitions re-register once without duplicates;
-12. shut down and prove providers/actions stop and registrations are removed;
-13. start a worker and prove operator providers never register or execute; and
-14. boot without Dashboard/CMS and prove the service remains healthy.
+14. restart and prove definitions and settings re-register once without
+    duplicates;
+15. shut down and prove providers/actions/account tasks stop and registrations
+    are removed;
+16. start a worker and prove operator providers never register or execute; and
+17. boot without Account/Dashboard/CMS and prove the definitions remain healthy
+    and inert where their hosts are absent.
 
 Use readiness signals and bounded polling with diagnostics. The matrix is
 hermetic; no provider credential or model call is needed.
@@ -590,10 +697,10 @@ For the `0.2.x` release that ships this contract:
 8. nominate and publish an exact Brain patch prerelease through the reviewed
    release lane;
 9. preserve the original six fixtures' stable `>=0.2.0 <0.3.0` lower bound,
-   while setting the supplemental operator fixture's lower bound to the first
-   version containing this contract;
+   while setting both supplemental fixtures' lower bounds to the first version
+   containing this contract;
 10. rerun the exact registry matrix against the nominated candidate with all
-    seven fixtures; and
+    eight fixtures; and
 11. perform no prerelease exit, stable publication, dist-tag mutation, or
     workflow dispatch without separate explicit authorization.
 
@@ -603,22 +710,23 @@ one.
 
 ## Validation matrix
 
-| Layer              | Required evidence                                                                                  |
-| ------------------ | -------------------------------------------------------------------------------------------------- |
-| Definition helpers | IDs, duplicate references, schema inference, permission monotonicity, immutable definitions        |
-| Service adapter    | config/state inference, registration order, rollback, cleanup, host absence, worker exclusion      |
-| Dashboard          | caller filtering, data/view validation, digest/attention, placement, escaped output, safe links    |
-| CMS                | descriptor privacy, caller access, data/action validation, CSRF, scoped routes, unregister/restart |
-| Entity access      | typed definitions, list/search/get inference, visibility narrowing, denied reads                   |
-| Job access         | cross-package typed enqueue, durable execution, validated result, no execution in UI callback      |
-| Package boundary   | one public family import, clean declarations, tarball install, no private/UI leaks                 |
-| Documentation      | source-backed examples, stable/advanced distinction, symbol ledger completeness                    |
-| Runtime            | packed app behavior, readiness, restart, shutdown, host absence, bounded diagnostics               |
+| Layer              | Required evidence                                                                                            |
+| ------------------ | ------------------------------------------------------------------------------------------------------------ |
+| Definition helpers | IDs, duplicate references, schema inference, permission monotonicity, immutable definitions                  |
+| Account settings   | schema/form inference, encrypted secrets, write-only reads, per-account supervision, removal                 |
+| Service adapter    | config/state inference, registration order, rollback, cleanup, host absence, worker exclusion                |
+| Dashboard          | caller filtering, data/view validation, digest/attention, placement, escaped output, safe links              |
+| CMS                | descriptor privacy, caller access, data/action validation, CSRF, scoped routes, unregister/restart           |
+| Entity access      | typed definitions, list/search/get inference, visibility narrowing, denied reads                             |
+| Job access         | cross-package typed enqueue, durable execution, validated result, no execution in UI callback                |
+| Package boundary   | one public family import per fixture, clean declarations, tarball install, no private/UI leaks               |
+| Documentation      | source-backed examples, stable/advanced distinction, symbol ledger completeness                              |
+| Runtime            | packed app behavior, account task isolation, readiness, restart, shutdown, host absence, bounded diagnostics |
 
 ## Acceptance criteria
 
-1. The supplemental golden package is approved as the primary operator-surface
-   reference.
+1. The supplemental service and interface golden packages are approved as the
+   operator-surface and account-lifecycle references.
 2. Author source imports one public family entry point and no `@brains/*`, UI
    library, React/Preact, direct Zod, manifest, or runtime class.
 3. Authors declare no plugin/package identity, renderer names, routes,
@@ -632,8 +740,8 @@ one.
 8. Entity reads are definition-based and principal-scoped.
 9. Job enqueue is definition-based and crosses the existing durable worker
    boundary.
-10. Widget-to-workspace and view-to-action relationships use definition
-    references.
+10. Workspace view-to-action relationships use definition references, while
+    widgets and workspaces have no cross-definition relationship.
 11. One JSON-native presentation contract renders in Dashboard and CMS without
     author-supplied scripts or private components.
 12. Dashboard visibility and CMS descriptor/data/action access are proven for
@@ -654,9 +762,10 @@ one.
 20. No stable release action occurs without the existing explicit nomination
     and authorization gates.
 21. Per-account settings store schema-validated values with encrypted secrets;
-    the form is host-rendered and write-only for secrets; parsed settings and
-    the configured-accounts enumeration reach only server-side callbacks;
-    settings are isolated per principal and deleted with the account.
+    the form is host-rendered and write-only for secrets; current-principal
+    settings and interface-owned account-bound daemon callbacks remain
+    server-side; settings are isolated per principal and deleted with the
+    account.
 
 ## Risks and mitigations
 
