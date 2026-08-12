@@ -75,8 +75,41 @@ Provisional author vocabulary:
 - `cmsWorkspaces` on `defineServicePlugin()`; and
 - blessed `z` from `@rizom/brain/services`.
 
-The exact field names freeze only after the golden source is reviewed by Jo and
-Niels. There will still be one preferred declarative path and one family import.
+Definitions are declared at module scope; executors bind inside the factory.
+`defineDashboardWidget()` and `defineCmsWorkspace()` are called at module scope
+and produce a validated, frozen contract — identity, placement, permission, and
+data schema. The data callback attaches inside the `dashboardWidgets` factory
+through a binding step, exactly as `defineJob()` at module scope pairs with
+`.handle()` inside the `jobs` factory:
+
+```text
+module scope:  const readingWidget = defineDashboardWidget({ id, title, placement, schema, render })
+factory:       dashboardWidgets: ({ config, state, settings }) => [readingWidget.load(async ({ caller, entities }) => …)]
+```
+
+Declaring the contracts inside the factories instead would break this plan's own
+golden sketch: a widget that links to a workspace by definition reference cannot
+see a workspace created in a sibling factory closure, which forces an unchecked
+string id. String references are not typed here — `ServiceTemplateFormatter.format`
+already accepts any name and any value — and factory returns are type-erased, so
+no id union exists to check against. The two-tier split keeps by-value references
+working. It also fails validation at import rather than after setup has opened
+databases and started daemons, makes a widget's render unit-testable without
+booting a plugin, and lets one package ship a contract another package binds,
+while config, state, and account-settings types still flow into the bound
+callback.
+
+The same split applies to workspaces and workspace actions, which also own data
+and handler callbacks: `defineCmsWorkspace()` and `defineWorkspaceAction()`
+declare contracts at module scope and bind their callbacks inside the
+`cmsWorkspaces` factory. One rule covers every operator capability rather than a
+per-capability exception. Type parameters stay bounded: `setup` remains the only
+inference source for state, and factory returns stay erased rather than inferring
+an id union back out.
+
+The exact field names freeze when the golden source and the four built-in ports
+are checked in. There will still be one preferred declarative path and one family
+import.
 
 ### 2. Expose semantic presentation, not private UI
 
@@ -203,6 +236,22 @@ principal's parsed settings server-side. Authors never touch identity storage,
 never enumerate users without settings, and never see another principal's
 secrets in a per-principal callback.
 
+Settings values are resolved per caller, never captured at factory time. The
+`dashboardWidgets` and `cmsWorkspaces` factories run once per process after
+setup, while account settings belong to one principal, so those factories
+receive a typed accessor only — never parsed values. Values resolve inside the
+per-request callback from the caller-scoped context, the same way routes derive
+their caller at request time. Handing parsed settings to a factory would capture
+whichever principal was loaded at boot and render their data to every viewer;
+the accessor type is what prevents it.
+
+Secrets are excluded structurally from anything a view can render. `OperatorView`
+blocks serialize to the browser, so the render-visible settings type omits fields
+declared `secret` rather than relying on author discipline: secret values are
+reachable only from server-side callbacks — jobs, daemons, tools, and the
+per-principal accounts enumeration — and a widget or workspace that tries to read
+one fails to typecheck.
+
 ## Proposed golden author experience
 
 The supplemental package should be
@@ -228,22 +277,22 @@ define readingWorkspace:
   local id, label, priority, trusted permission
   covered entities by definition reference
   one data schema
-  load parsed bookmark/digest rows using caller-scoped entities
   expose refreshDigest action
   return a table/list OperatorView with typed row actions
+  from parsed bookmark/digest rows
 
 define readingWidget:
   local id, title, group, placement, trusted permission
   one data schema
-  load counts using caller-scoped entities
   derive digest and needs-attention from parsed data
   return status/list OperatorView
   link to readingWorkspace by definition reference
 
 default export defineServicePlugin:
   one config schema
-  dashboardWidgets returns readingWidget
-  cmsWorkspaces returns readingWorkspace
+  dashboardWidgets binds readingWidget's load:
+    count using caller-scoped entities and this caller's settings
+  cmsWorkspaces binds readingWorkspace's load and refreshDigest handler
 ```
 
 The author must not write any of the following in that source:
@@ -468,9 +517,12 @@ with every unportable operation named.
    helpers under `@brains/plugins` internals.
 2. Curate only approved helpers/types through `@rizom/brain/services`.
 3. Extend `defineServicePlugin()` with inferred `accountSettings`,
-   `dashboardWidgets`, and `cmsWorkspaces` callbacks.
+   `dashboardWidgets`, and `cmsWorkspaces` callbacks, each factory returning
+   module-scope contracts with their callbacks bound.
 4. Prove config/setup-state, schema input/output, caller, entity, job, action,
-   settings, and view inference without casts.
+   settings, and view inference without casts, including definition-value
+   references between a widget and a workspace and a negative compile-check
+   that a view cannot read a `secret` settings field.
 5. Add every export to `export-ledger.json`; stable classification requires the
    approved consumer fixture.
 6. Verify generated declarations contain no private workspace, UI, shell,
@@ -657,6 +709,14 @@ one.
     the form is host-rendered and write-only for secrets; parsed settings and
     the configured-accounts enumeration reach only server-side callbacks;
     settings are isolated per principal and deleted with the account.
+22. Widget, workspace, and action contracts are declared at module scope and
+    bind their callbacks in the factory; a widget references a workspace by
+    definition value rather than by string id, invalid definitions fail at
+    import before setup runs, and a contract's render is testable without
+    booting a plugin.
+23. Settings values reach callbacks only per caller, never captured at factory
+    time; a compile-check proves a widget or workspace cannot read a field
+    declared `secret`.
 
 ## Risks and mitigations
 
