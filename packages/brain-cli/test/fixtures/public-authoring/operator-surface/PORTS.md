@@ -20,7 +20,7 @@ The golden package and ports require this initial host-rendered vocabulary:
 - `list`: ordered records with stable row IDs;
 - `table`: declared columns, stable row IDs, optional filters, links, and typed
   row actions;
-- `links`: validated external links plus runtime-owned workspace/entity links;
+- `links`: validated external links plus runtime-owned entity links within CMS;
 - typed action controls: definition reference plus schema-valid input; and
 - deterministic empty text on list/table blocks.
 
@@ -303,9 +303,8 @@ Exact missing capabilities:
 Do not widen the initial public contract with a dynamic capability registry or
 an open confirmation protocol solely for this built-in. Keep the specialized
 Publishing renderer and action adapter private. Its Dashboard summary can move
-to the generic widget path because that surface needs only validated stats,
-digest, attention, and a typed workspace link to the existing private
-workspace.
+to the generic widget path independently because that surface needs only
+validated stats, digest, and attention.
 
 ## Account-settings ownership finding
 
@@ -327,8 +326,8 @@ Before Phase 1, review one architectural choice:
 - **Rejected workaround:** move IMAP polling into a service just so it can use a
   service-only settings contract.
 
-The principal-owned form belongs under Account, not CMS. CMS may link to it but
-must not display or administer another principal's secret. A secret marker gives
+The principal-owned form belongs under Account, not CMS. CMS must not display or
+administer another principal's secret. A secret marker gives
 the host encrypted-at-rest and write-only display behavior; callbacks remain a
 trusted package boundary, so the framework can prevent automatic serialization
 and logging but cannot stop intentionally malicious package code from revealing

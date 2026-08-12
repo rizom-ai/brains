@@ -10,8 +10,9 @@ The target package demonstrates one service-family import and three related
 capabilities:
 
 - principal-owned reading-provider settings, including one write-only secret;
-- a schema-validated Dashboard widget linked by definition to a CMS workspace;
-- a schema-validated CMS workspace with a typed durable-job action.
+- an independently declared schema-validated Dashboard widget; and
+- an independently declared schema-validated CMS workspace with a typed
+  durable-job action.
 
 The source intentionally contains no package identity plumbing, registry call,
 host route, renderer name, UI-framework import, process role, or private

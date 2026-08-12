@@ -158,7 +158,6 @@ const readingWidget = defineDashboardWidget({
   priority: 40,
   permission: "trusted",
   data: readingWidgetData,
-  workspace: readingWorkspace,
 
   async load({ entities, settings, signal }) {
     signal.throwIfAborted();

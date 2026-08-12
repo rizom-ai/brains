@@ -216,6 +216,8 @@ describe("public authoring 0.2 golden packages", () => {
       "rendererName",
       "registerWidget",
       "registerCmsWorkspace",
+      "workspace: readingWorkspace",
+      "managementUrl",
       "process.env",
       'from "react',
       'from "preact',

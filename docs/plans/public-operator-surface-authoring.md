@@ -31,7 +31,7 @@ implementation exists, and neither package is compiled, packed, or added to
 the stable ledger. `PORTS.md` beside the operator fixture sketches Directory
 Sync, Site, Email Triage, and Publishing against the same vocabulary.
 
-The source and ports surfaced four points that must be reviewed before Phase 1:
+The source and ports surfaced five points that must be reviewed before Phase 1:
 
 1. **Account settings cannot remain service-only if IMAP is the proof.** The
    Email package that owns IMAP is a message interface under the accepted
@@ -53,7 +53,11 @@ The source and ports surfaced four points that must be reviewed before Phase 1:
    needs a narrow caller-policy query for a referenced entity action plus
    runtime-owned entity links. Neither addition permits raw routes, components,
    scripts, or unrestricted permission access.
-4. **Publishing should remain specialized in the first release.** Its dynamic
+4. **Widgets and workspaces are independent capabilities.** A Dashboard widget
+   does not reference, own, discover, or implicitly link to a CMS workspace.
+   Both may be declared by the same service, but registration, data, actions,
+   permissions, lifecycle, and host navigation remain separate.
+5. **Publishing should remain specialized in the first release.** Its dynamic
    provider-discovered entity coverage, dynamic editor targets,
    content-hash-bound prepared confirmation, and caller-filtered queue-position
    mapping do not justify opening dynamic registries or a generic confirmation
@@ -67,7 +71,7 @@ callbacks are a trusted code boundary: a package authorized to consume a
 plaintext credential could intentionally reveal it, so the plan must not claim
 sandbox-level containment.
 
-Phase 0 exits only after the source vocabulary and these four findings receive
+Phase 0 exits only after the source vocabulary and these five findings receive
 owner review. Until then, names and shapes in the fixture are targets, not
 contract decisions.
 
@@ -84,8 +88,8 @@ The minimum useful outcome is:
 - per-account plugin settings with schema-validated fields, encrypted secrets,
   a host-rendered form, principal-scoped injection, and interface-owned
   per-account task supervision (the IMAP-connection case end to end);
-- one dashboard widget with schema-validated data, placement, permission,
-  digest/attention state, and an optional typed link to a CMS workspace;
+- one independently declared dashboard widget with schema-validated data,
+  placement, permission, and digest/attention state;
 - one CMS workspace with schema-validated data, entity coverage, canonical
   caller access, typed actions, and a runtime-owned URL;
 - one JSON-native presentation contract rendered by both first-party hosts;
@@ -198,19 +202,23 @@ minimum. Entity access supplied to loaders/actions is automatically scoped to
 the caller. The public context exposes typed `get`, `list`, and `search` by
 entity-definition reference, with no unrestricted visibility override.
 
-### 5. Use definition references across capabilities
+### 5. Use definition references within each capability
 
 Author source references imported definitions, not stringly scoped names:
 
 - workspace entity coverage uses entity definitions;
-- widget management links reference a workspace definition;
-- view actions reference workspace-action definitions; and
+- workspace views reference their own workspace-action definitions; and
 - actions enqueue imported `defineJob()` definitions through a typed job
   context.
 
-The runtime resolves owning packages, scoped IDs, routes, and execution types.
-A dashboard widget can remain visible when its linked CMS host is absent; the
-runtime simply omits the unavailable management link.
+Dashboard widgets and CMS workspaces remain independent declarations. Neither
+definition references, owns, discovers, or implicitly links to the other. If a
+host later offers general navigation between installed surfaces, that is
+host-owned navigation metadata rather than a widget/workspace authoring
+contract.
+
+The runtime resolves owning packages, scoped IDs, action routes, and execution
+types within each capability.
 
 ### 6. Keep host presence optional
 
@@ -307,7 +315,6 @@ define readingWidget:
   load counts using caller-scoped entities
   derive digest and needs-attention from parsed data
   return status/list OperatorView
-  link to readingWorkspace by definition reference
 
 default export defineServicePlugin:
   one config schema
@@ -348,12 +355,12 @@ domain fields:
 - minimum permission;
 - data schema;
 - async data loader receiving caller, typed entities/jobs, and signal;
-- optional digest/attention derivation from parsed data;
-- view derivation from parsed data; and
-- optional workspace-definition reference.
+- optional digest/attention derivation from parsed data; and
+- view derivation from parsed data.
 
-Runtime metadata—package ID, globally scoped widget ID, renderer selection,
-host assets, lifecycle token, and management URL—is not accepted from authors.
+The definition contains no CMS workspace reference or management URL. Runtime
+metadata—package ID, globally scoped widget ID, renderer selection, host assets,
+and lifecycle token—is not accepted from authors.
 
 ### CMS workspace definition
 
@@ -422,11 +429,11 @@ Registration order:
 2. complete service setup;
 3. collect and validate local widget/workspace/action definitions;
 4. wait for runtime plugin finalization internally;
-5. register CMS workspaces first so workspace URLs can resolve;
-6. register dashboard widgets and any available workspace links;
-7. expose readiness only after required host-side registration attempts settle;
-8. on failure, unregister acquired contributions in reverse order; and
-9. unregister all contributions during shutdown.
+5. register CMS workspaces and Dashboard widgets independently with their
+   respective hosts;
+6. expose readiness only after required host-side registration attempts settle;
+7. on failure, unregister acquired contributions in reverse order; and
+8. unregister all contributions during shutdown.
 
 Use emitted lifecycle/finalization signals, not sleeps. Iteration is bounded and
 uses explicit `for...of` traversal.
@@ -612,7 +619,7 @@ imports or author lifecycle code.
 2. Add the generic React workspace renderer for `OperatorView`.
 3. Preserve authenticated actor derivation and CSRF protection.
 4. Validate workspace data and action input/output.
-5. Resolve typed entity coverage and workspace links.
+5. Resolve typed entity coverage and CMS-owned entity links.
 6. Prove denied callers cannot discover workspace coverage, fetch data, or run
    actions.
 
@@ -635,19 +642,19 @@ isolated consumer containing both supplemental fixtures. The test must:
 7. observe one account-bound interface task per configured principal, task
    replacement on rotation, cancellation on removal, and no secret-bearing
    health/log output;
-8. assert widget visibility, validated data, digest, attention, placement, and
-   workspace link;
-9. assert workspace descriptors do not leak to denied actors;
-10. load the workspace and execute a typed action;
-11. reject invalid/unauthorized actions without invoking the handler;
-12. enqueue a referenced durable job and observe its result through public
+8. assert widget visibility, validated data, digest, attention, and placement;
+9. assert the widget has no CMS workspace coupling or management URL;
+10. assert workspace descriptors do not leak to denied actors;
+11. load the workspace and execute a typed action;
+12. reject invalid/unauthorized actions without invoking the handler;
+13. enqueue a referenced durable job and observe its result through public
     status behavior;
-13. restart and prove definitions and settings re-register once without
+14. restart and prove definitions and settings re-register once without
     duplicates;
-14. shut down and prove providers/actions/account tasks stop and registrations
+15. shut down and prove providers/actions/account tasks stop and registrations
     are removed;
-15. start a worker and prove operator providers never register or execute; and
-16. boot without Account/Dashboard/CMS and prove the definitions remain healthy
+16. start a worker and prove operator providers never register or execute; and
+17. boot without Account/Dashboard/CMS and prove the definitions remain healthy
     and inert where their hosts are absent.
 
 Use readiness signals and bounded polling with diagnostics. The matrix is
@@ -732,8 +739,8 @@ one.
 8. Entity reads are definition-based and principal-scoped.
 9. Job enqueue is definition-based and crosses the existing durable worker
    boundary.
-10. Widget-to-workspace and view-to-action relationships use definition
-    references.
+10. Workspace view-to-action relationships use definition references, while
+    widgets and workspaces have no cross-definition relationship.
 11. One JSON-native presentation contract renders in Dashboard and CMS without
     author-supplied scripts or private components.
 12. Dashboard visibility and CMS descriptor/data/action access are proven for
