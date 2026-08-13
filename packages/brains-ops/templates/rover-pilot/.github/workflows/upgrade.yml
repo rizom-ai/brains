@@ -12,8 +12,7 @@ on:
     - cron: "17 6 * * 1-5"
 
 permissions:
-  contents: write
-  pull-requests: write
+  contents: read
 
 concurrency:
   group: upgrade
@@ -23,7 +22,21 @@ jobs:
   upgrade:
     runs-on: ubuntu-latest
     steps:
+      - name: Require upgrade App configuration
+        env:
+          APP_ID: ${{ vars.OPS_UPGRADE_APP_ID }}
+        run: |
+          if [ -z "$APP_ID" ]; then
+            echo "OPS_UPGRADE_APP_ID is not set." >&2
+            echo "Configure the upgrade GitHub App as described in docs/operator-playbook.md." >&2
+            exit 1
+          fi
+
+      # No credential is persisted in .git/config while the workflow installs
+      # and executes a freshly published @rizom/ops package.
       - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
 
       - uses: oven-sh/setup-bun@v2
 
@@ -35,14 +48,32 @@ jobs:
           VERSION_INPUT: ${{ inputs.version }}
         run: bunx brains-ops upgrade . --to "${VERSION_INPUT:-latest}"
 
-      - name: Open upgrade PR
-        env:
-          GH_TOKEN: ${{ github.token }}
+      - name: Detect upgrade changes
+        id: upgrade-changes
         run: |
           if [ -z "$(git status --porcelain)" ]; then
             echo "Already up to date."
-            exit 0
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
           fi
+
+      - name: Create repository-scoped upgrade token
+        if: steps.upgrade-changes.outputs.changed == 'true'
+        id: upgrade-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ vars.OPS_UPGRADE_APP_ID }}
+          private-key: ${{ secrets.OPS_UPGRADE_APP_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
+          permission-workflows: write
+
+      - name: Open upgrade PR
+        if: steps.upgrade-changes.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ steps.upgrade-token.outputs.token }}
+        run: |
           VERSION=$(bun -e 'console.log(JSON.parse(await Bun.file("package.json").text()).devDependencies["@rizom/ops"])')
           BRANCH="ops/upgrade-rizom-ops-$VERSION"
           git config user.name "github-actions[bot]"
@@ -50,9 +81,14 @@ jobs:
           git checkout -B "$BRANCH"
           git add -A
           git commit -m "chore(ops): upgrade @rizom/ops to $VERSION"
-          git push --force -u origin "$BRANCH"
+          git push --force \
+            "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" \
+            "$BRANCH"
+          if [ -n "$(gh pr list --head "$BRANCH" --state open --json number --jq '.[].number')" ]; then
+            echo "PR already open for $BRANCH"
+            exit 0
+          fi
           gh pr create \
             --title "chore(ops): upgrade @rizom/ops to $VERSION" \
             --body "Automated operator tooling upgrade. Review the scaffold diff, then merge; deploys stay operator-dispatched." \
-            --head "$BRANCH" \
-            || echo "PR already open for $BRANCH"
+            --head "$BRANCH"
