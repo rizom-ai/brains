@@ -3,6 +3,7 @@ import { PermissionService } from "@brains/templates";
 import { z } from "@brains/utils/zod";
 import { createPluginHarness } from "../src/test/harness";
 import {
+  defineAccountSettings,
   defineDaemon,
   defineInterface,
   defineJob,
@@ -151,6 +152,34 @@ describe("declarative generic interfaces", () => {
         }),
       }),
     );
+  });
+
+  it("fails explicitly until account-bound daemon supervision lands", async () => {
+    const settings = defineAccountSettings({
+      title: "Mailbox",
+      schema: z.object({ password: z.string() }),
+      fields: { password: { label: "Password", secret: true } },
+    });
+    const definition = defineInterface({
+      id: "mailbox",
+      config: z.object({}),
+      accountSettings: settings,
+      daemons: () => [
+        defineDaemon({
+          id: "mailboxes",
+          forAccounts: settings,
+          async run({ account }) {
+            expectTypeOf(account.settings.password).toEqualTypeOf<string>();
+          },
+        }),
+      ],
+    });
+
+    expect(() =>
+      instantiate(definition, {}, "@fixture/mailbox").register(
+        createPluginHarness().getMockShell(),
+      ),
+    ).toThrow("requires the account-settings runtime");
   });
 
   it("supervises one abortable daemon with emitted health", async () => {

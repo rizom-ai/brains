@@ -7,6 +7,7 @@ import {
   defineServicePlugin,
   defineWorkspaceAction,
   z,
+  type OperatorViewBlock,
 } from "@rizom/brain/services";
 
 // Account settings are principal-owned rather than deployment-owned. Field
@@ -36,11 +37,6 @@ const refreshDigest = defineWorkspaceAction({
   input: z.object({ bookmarkId: z.string() }),
   output: z.object({ jobId: z.string() }),
   permission: "trusted",
-  async execute({ input, jobs, signal }) {
-    signal.throwIfAborted();
-    const job = await jobs.enqueue(compileReadingDigest, input);
-    return { jobId: job.id };
-  },
 });
 
 const readingRow = z.object({
@@ -65,31 +61,6 @@ const readingWorkspace = defineCmsWorkspace({
   entities: [bookmark, readingDigest],
   data: readingWorkspaceData,
   actions: [refreshDigest],
-
-  async load({ entities, settings, signal }) {
-    signal.throwIfAborted();
-    const [bookmarks, digests] = await Promise.all([
-      entities.list(bookmark),
-      entities.list(readingDigest),
-    ]);
-    const digestByBookmark = new Map(
-      digests.map((digest) => [digest.metadata.bookmarkId, digest]),
-    );
-
-    return {
-      connected: settings !== null,
-      bookmarks: bookmarks.map((saved) => {
-        const digest = digestByBookmark.get(saved.id);
-        return {
-          id: saved.id,
-          title: saved.metadata.title,
-          tags: saved.metadata.tags,
-          ...(digest ? { wordCount: digest.metadata.wordCount } : {}),
-        };
-      }),
-      digestCount: digests.length,
-    };
-  },
 
   view({ data }) {
     return {
@@ -159,25 +130,6 @@ const readingWidget = defineDashboardWidget({
   permission: "trusted",
   data: readingWidgetData,
 
-  async load({ entities, settings, signal }) {
-    signal.throwIfAborted();
-    const [bookmarks, digests] = await Promise.all([
-      entities.list(bookmark),
-      entities.list(readingDigest),
-    ]);
-    const covered = new Set(
-      digests.map((digest) => digest.metadata.bookmarkId),
-    );
-
-    return {
-      connected: settings !== null,
-      bookmarks: bookmarks.length,
-      digests: digests.length,
-      missingDigests: bookmarks.filter((saved) => !covered.has(saved.id))
-        .length,
-    };
-  },
-
   digest({ data }) {
     return {
       items: [
@@ -189,29 +141,27 @@ const readingWidget = defineDashboardWidget({
   },
 
   view({ data }) {
+    const stats: OperatorViewBlock = {
+      type: "stats",
+      items: [
+        { label: "Saved", value: data.bookmarks },
+        { label: "Digested", value: data.digests },
+        {
+          label: "Missing",
+          value: data.missingDigests,
+          tone: data.missingDigests > 0 ? "warn" : "good",
+        },
+      ],
+    };
+    if (data.connected) return { blocks: [stats] };
     return {
       blocks: [
+        stats,
         {
-          type: "stats",
-          items: [
-            { label: "Saved", value: data.bookmarks },
-            { label: "Digested", value: data.digests },
-            {
-              label: "Missing",
-              value: data.missingDigests,
-              tone: data.missingDigests > 0 ? "warn" : "good",
-            },
-          ],
+          type: "notice",
+          tone: "neutral",
+          text: "Connect a reading provider from Account settings.",
         },
-        ...(!data.connected
-          ? [
-              {
-                type: "notice",
-                tone: "neutral",
-                text: "Connect a reading provider from Account settings.",
-              },
-            ]
-          : []),
       ],
     };
   },
@@ -222,8 +172,67 @@ export default defineServicePlugin({
   config: z.object({}),
   accountSettings: readingAccountSettings,
 
-  // Only the current caller's parsed settings reach these loaders. Broad
-  // account reconciliation belongs to supervised interface capabilities.
-  dashboardWidgets: () => [readingWidget],
-  cmsWorkspaces: () => [readingWorkspace],
+  // Contracts stay at module scope; executors bind once after setup. Only the
+  // current caller's parsed settings reach loaders/actions at request time.
+  dashboardWidgets: (context) => [
+    readingWidget.bind(context, async ({ entities, settings, signal }) => {
+      signal.throwIfAborted();
+      const [bookmarks, digests] = await Promise.all([
+        entities.list(bookmark),
+        entities.list(readingDigest),
+      ]);
+      const covered = new Set(
+        digests.map((digest) => digest.metadata.bookmarkId),
+      );
+
+      return {
+        connected: settings !== null,
+        bookmarks: bookmarks.length,
+        digests: digests.length,
+        missingDigests: bookmarks.filter((saved) => !covered.has(saved.id))
+          .length,
+      };
+    }),
+  ],
+
+  cmsWorkspaces: (context) => {
+    const refreshDigestHandler = refreshDigest.bind(
+      context,
+      async ({ input, jobs, signal }) => {
+        signal.throwIfAborted();
+        const job = await jobs.enqueue(compileReadingDigest, input);
+        return { jobId: job.id };
+      },
+    );
+
+    return [
+      readingWorkspace.bind(context, {
+        actions: [refreshDigestHandler],
+        async load({ entities, settings, signal }) {
+          signal.throwIfAborted();
+          const [bookmarks, digests] = await Promise.all([
+            entities.list(bookmark),
+            entities.list(readingDigest),
+          ]);
+          const digestByBookmark = new Map(
+            digests.map((digest) => [digest.metadata.bookmarkId, digest]),
+          );
+
+          return {
+            connected: settings !== null,
+            bookmarks: bookmarks.map((saved) => {
+              const digest = digestByBookmark.get(saved.id);
+              return {
+                id: saved.id,
+                title: saved.metadata.title,
+                tags: saved.metadata.tags,
+                ...(digest ? { wordCount: digest.metadata.wordCount } : {}),
+              };
+            }),
+            digestCount: digests.length,
+          };
+        },
+      }),
+    ];
+  },
 });

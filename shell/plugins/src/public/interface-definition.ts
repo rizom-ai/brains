@@ -1,6 +1,8 @@
 import { createDeclarativeInterfacePlugin } from "../interface/declarative-interface-plugin";
+import type { AnyAccountSettingsDefinition } from "../operator/account-settings-definition-contract";
 import { routeMethods } from "../interface/interface-definition-contract";
 import type {
+  AccountInterfaceDaemonDefinition,
   InterfaceConfigSchema,
   InterfaceDaemonDefinition,
   InterfaceDefinitionInput,
@@ -19,7 +21,16 @@ import {
   createPluginPackageDefinition,
 } from "../package-definition";
 
+export { defineAccountSettings } from "../operator/account-settings-definition-contract";
 export type {
+  AccountSettingsDefinition,
+  AccountSettingsFieldDefinition,
+  AccountSettingsValue,
+} from "../operator/account-settings-definition-contract";
+
+export type {
+  AccountInterfaceDaemonDefinition,
+  AnyInterfaceDaemonDefinition,
   AnyInterfaceRouteDefinition,
   InboundMessageAttachment,
   InterfaceActor,
@@ -84,18 +95,39 @@ export function defineDaemon(
   definition: Omit<InterfaceDaemonDefinition, "kind" | "required"> & {
     readonly required?: boolean | undefined;
   },
-): InterfaceDaemonDefinition {
+): InterfaceDaemonDefinition;
+export function defineDaemon<
+  TAccountSettings extends AnyAccountSettingsDefinition,
+>(
+  definition: Omit<
+    AccountInterfaceDaemonDefinition<TAccountSettings>,
+    "kind" | "required"
+  > & {
+    readonly required?: boolean | undefined;
+  },
+): AccountInterfaceDaemonDefinition<TAccountSettings>;
+export function defineDaemon(
+  definition: Omit<
+    InterfaceDaemonDefinition | AccountInterfaceDaemonDefinition,
+    "kind" | "required"
+  > & {
+    readonly required?: boolean | undefined;
+  },
+): InterfaceDaemonDefinition | AccountInterfaceDaemonDefinition {
   assertIdentifier(definition.id, "Daemon id");
   const { required = false, ...daemon } = definition;
   return Object.freeze({
     kind: "rizom-interface-daemon",
     ...daemon,
     required,
-  });
+  }) as InterfaceDaemonDefinition | AccountInterfaceDaemonDefinition;
 }
 
-export function defineInterface<TConfigSchema extends InterfaceConfigSchema>(
-  definition: InterfaceDefinitionInput<TConfigSchema>,
+export function defineInterface<
+  TConfigSchema extends InterfaceConfigSchema,
+  TAccountSettings extends AnyAccountSettingsDefinition | undefined = undefined,
+>(
+  definition: InterfaceDefinitionInput<TConfigSchema, TAccountSettings>,
 ): {
   readonly kind: "rizom-plugin-package";
   readonly family: "interface";
@@ -120,11 +152,13 @@ export function defineMessageInterface<
   TConfigSchema extends InterfaceConfigSchema,
   TState extends object = Record<never, never>,
   TRecipientSchema extends MessageRecipientSchema = MessageRecipientSchema,
+  TAccountSettings extends AnyAccountSettingsDefinition | undefined = undefined,
 >(
   definition: MessageInterfaceDefinitionInput<
     TConfigSchema,
     TState,
-    TRecipientSchema
+    TRecipientSchema,
+    TAccountSettings
   >,
 ): {
   readonly kind: "rizom-plugin-package";

@@ -58,30 +58,52 @@ The runtime owns base entity fields, persistence, markdown validation, search in
 
 Definitions and schema vocabulary:
 
+- `defineAccountSettings`
+- `defineCmsWorkspace`
+- `defineDashboardWidget`
 - `defineJob`
 - `defineServicePlugin`
 - `defineTool`
+- `defineWorkspaceAction`
 - `z`
 
 Types:
 
+- `AccountSettingsDefinition`
+- `AccountSettingsFieldDefinition`
+- `AccountSettingsValue`
+- `CmsWorkspaceDefinition`
+- `DashboardDigest`
+- `DashboardWidgetDefinition`
+- `OperatorCaller`
+- `OperatorEntityReader`
+- `OperatorView`
+- `OperatorViewBlock`
 - `ServiceJobDefinition`
 - `ServiceJobReference`
 - `ServiceJobStatus`
 - `ServicePackageDefinition`
+- `WorkspaceActionDefinition`
 
-The runtime owns tool wrapping, confirmation replay, job scoping, queue execution, retry, deadlines, progress, cancellation, and restart recovery.
+The additive milestone reserves these operator schemas and executor bindings as its accepted Phase 1 contract target. They are not a runtime-complete shipped feature until Dashboard/CMS registration, rendering, packed evidence, and release nomination land in later phases. The runtime already owns tool wrapping, confirmation replay, job scoping, queue execution, retry, deadlines, progress, cancellation, and restart recovery.
 
 ## `@rizom/brain/interfaces`
 
 Definitions and schema vocabulary:
 
+- `defineAccountSettings`
 - `defineDaemon`
 - `defineInterface`
 - `defineMessageInterface`
 - `defineRoute`
 - `protocol`
 - `z`
+
+Account settings types:
+
+- `AccountSettingsDefinition`
+- `AccountSettingsFieldDefinition`
+- `AccountSettingsValue`
 
 Permission contract:
 

@@ -5,6 +5,7 @@ import type {
   ChannelDeliveryResult,
 } from "../channel-registry";
 import type { MessageInterfacePluginContext } from "../interface/context";
+import type { AnyAccountSettingsDefinition } from "../operator/account-settings-definition-contract";
 import { createDeclarativeDaemon } from "../interface/declarative-daemon";
 import {
   identityConfigSchema,
@@ -65,6 +66,7 @@ class DeclarativeMessageInterfacePlugin<
   TConfigSchema extends z.ZodType<object, object>,
   TState extends object,
   TRecipientSchema extends z.ZodType<unknown, unknown>,
+  TAccountSettings extends AnyAccountSettingsDefinition | undefined,
 > extends MessageInterfacePlugin<
   z.output<TConfigSchema>,
   z.output<TConfigSchema>
@@ -72,7 +74,8 @@ class DeclarativeMessageInterfacePlugin<
   private readonly definition: MessageInterfaceDefinitionInput<
     TConfigSchema,
     TState,
-    TRecipientSchema
+    TRecipientSchema,
+    TAccountSettings
   >;
   private state: TState | undefined;
 
@@ -80,7 +83,8 @@ class DeclarativeMessageInterfacePlugin<
     definition: MessageInterfaceDefinitionInput<
       TConfigSchema,
       TState,
-      TRecipientSchema
+      TRecipientSchema,
+      TAccountSettings
     >,
     config: z.output<TConfigSchema>,
     metadata: InstalledPluginPackageMetadata,
@@ -344,11 +348,13 @@ export function createDeclarativeMessageInterfacePlugin<
   TConfigSchema extends z.ZodType<object, object>,
   TState extends object,
   TRecipientSchema extends z.ZodType<unknown, unknown>,
+  TAccountSettings extends AnyAccountSettingsDefinition | undefined,
 >(
   definition: MessageInterfaceDefinitionInput<
     TConfigSchema,
     TState,
-    TRecipientSchema
+    TRecipientSchema,
+    TAccountSettings
   >,
   config: z.output<TConfigSchema>,
   metadata: InstalledPluginPackageMetadata,
