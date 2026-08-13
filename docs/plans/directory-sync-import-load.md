@@ -363,7 +363,21 @@ operational-health failure. Change that behavior deliberately:
 
 After the fixed stable Bun pin and durable recovery safeguards pass local and scheduled
 soaks, complete the feature-enabled mocked-AI comparison. Bound AI concurrency and queue
-growth if that comparison shows health starvation. A new remote `load` run still requires
-explicit approval and must complete all seven phases with zero external AI calls, health
-failures, restarts, OOMs, or zombies, followed by cleanup to the seven-note baseline,
-zero probes, and Git parity.
+growth if that comparison shows health starvation.
+
+The local comparison is complete. A hermetic 350-note import with embeddings and topic
+extraction enabled, injected AI/embedding services, and 100 ms asynchronous latency per
+mocked call completed on Bun 1.3.11 in 83.1 seconds (86.4 seconds including fixture
+startup/shutdown). It made 354 embedding calls and 91 schema-valid object-generation
+calls, reached 332 pending and one processing job, and drained to zero pending/processing
+jobs. Existing serialization held shared AI concurrency to one; topic work remained
+coalesced to one outstanding projection job. All 1,850 readiness samples stayed routing-
+ready and operational, with no degraded sample. The fixture cannot contact an external AI
+provider. This evidence does not justify an additional AI throttle, health-priority
+scheduler, or new stale-job mechanism; retain the existing single-worker bound and topic
+wave coalescing unless a future higher-concurrency configuration produces contrary data.
+
+A new remote `load` run remains blocked on the fixed stable Bun pin and the owned-Git
+process boundary, still requires explicit approval, and must complete all seven phases
+with zero external AI calls, health failures, restarts, OOMs, or zombies, followed by
+cleanup to the seven-note baseline, zero probes, and Git parity.
