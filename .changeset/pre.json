@@ -221,6 +221,7 @@
     "conventional-site-package-merge",
     "conversation-service-effect-layer",
     "core--atomic-job-deduplication",
+    "core--background-work-supervision",
     "core--batch-enqueue-validation-only-mode",
     "core--boot-and-roundtrip-hardening",
     "core--brain-definition-profile-kind",

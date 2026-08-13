@@ -1,5 +1,11 @@
 # @brains/ops
 
+## 0.2.0-alpha.284
+
+### Patch Changes
+
+- [`a840b5c`](https://github.com/rizom-ai/brains/commit/a840b5c05389e727c8e5acae3f6c0bcbdb85e78c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Make stalled background work visible and recoverable: expose durable worker and due-queue status, persist configured worker-session expiry, fail the runtime after worker restart-budget exhaustion, persist bounded generation-linked projection incidents, and require operational health in post-deploy verification and fleet status.
+
 ## 0.2.0-alpha.283
 
 ## 0.2.0-alpha.282
