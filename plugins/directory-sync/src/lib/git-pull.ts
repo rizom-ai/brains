@@ -1,11 +1,11 @@
-import type { SimpleGit } from "simple-git";
+import type { OwnedGit } from "./owned-git";
 import { getErrorMessage } from "@brains/utils/error";
 import type { Logger } from "@brains/utils/logger";
 import type { PullResult } from "../types";
 import { commitGitChanges, pushGitChanges } from "./git-commit";
 import { reconcileRemoteDeletedFiles } from "./git-remote-deletion-reconciliation";
-import { GitStallError, runGitCommandWithStallTimeout } from "./git-stall";
-import type { GitNetwork } from "./git-stall";
+import { GitStallError } from "./git-stall";
+import type { GitProcessOptions } from "./git-stall";
 
 interface ChangedPaths {
   files: string[];
@@ -17,10 +17,10 @@ interface ChangedPaths {
  * Does NOT trigger imports — the caller decides what to do with the files.
  */
 export async function pullGitChanges(
-  git: SimpleGit,
+  git: OwnedGit,
   logger: Logger,
   branch: string,
-  net: GitNetwork,
+  processOptions: GitProcessOptions,
   signal?: AbortSignal,
 ): Promise<PullResult> {
   signal?.throwIfAborted();
@@ -42,8 +42,7 @@ export async function pullGitChanges(
   try {
     // The network fetch runs on a throwaway, stall-guarded instance so an
     // unresponsive remote can't hang the caller and wedge the git lock.
-    await runGitCommandWithStallTimeout(
-      net,
+    await git.raw(
       [
         "pull",
         "origin",
@@ -53,7 +52,7 @@ export async function pullGitChanges(
         "--strategy=recursive",
         "-Xtheirs",
       ],
-      signal,
+      { signal, onProgress: processOptions.onProgress },
     );
     signal?.throwIfAborted();
 
@@ -66,7 +65,7 @@ export async function pullGitChanges(
     await reconcileRemoteDeletedFiles({
       git,
       logger,
-      syncPath: net.baseDir,
+      syncPath: processOptions.baseDir,
       deletedFiles: result.deletedFiles ?? [],
     });
     signal?.throwIfAborted();
@@ -76,7 +75,7 @@ export async function pullGitChanges(
       git,
       logger,
       branch,
-      net,
+      processOptions,
       headBefore,
       remoteHeadBefore,
       pullError,
@@ -86,10 +85,10 @@ export async function pullGitChanges(
 }
 
 async function handlePullError(
-  git: SimpleGit,
+  git: OwnedGit,
   logger: Logger,
   branch: string,
-  net: GitNetwork,
+  processOptions: GitProcessOptions,
   headBefore: string,
   remoteHeadBefore: string | undefined,
   pullError: unknown,
@@ -114,21 +113,21 @@ async function handlePullError(
     await reconcileRemoteDeletedFiles({
       git,
       logger,
-      syncPath: net.baseDir,
+      syncPath: processOptions.baseDir,
       deletedFiles: result.deletedFiles ?? [],
     });
     return result;
   }
 
   if (msg.includes("couldn't find remote ref")) {
-    return bootstrapRemoteBranch(git, logger, branch, net, signal);
+    return bootstrapRemoteBranch(git, logger, branch, processOptions, signal);
   }
 
   throw new Error(`Failed to pull: ${msg}`);
 }
 
 async function getPullChanges(
-  git: SimpleGit,
+  git: OwnedGit,
   headBefore: string,
   remoteHeadBefore: string | undefined,
   branch: string,
@@ -154,7 +153,7 @@ async function getPullChanges(
 }
 
 export async function getChangedPaths(
-  git: SimpleGit,
+  git: OwnedGit,
   from: string,
   to: string,
 ): Promise<ChangedPaths> {
@@ -174,7 +173,7 @@ export async function getChangedPaths(
 }
 
 export async function tryResolveRemoteHead(
-  git: SimpleGit,
+  git: OwnedGit,
   branch: string,
 ): Promise<string | undefined> {
   try {
@@ -185,7 +184,7 @@ export async function tryResolveRemoteHead(
 }
 
 async function resolveRemoteConflicts(
-  git: SimpleGit,
+  git: OwnedGit,
   logger: Logger,
   msg: string,
   conflictedFiles: string[],
@@ -203,10 +202,10 @@ async function resolveRemoteConflicts(
 }
 
 async function bootstrapRemoteBranch(
-  git: SimpleGit,
+  git: OwnedGit,
   logger: Logger,
   branch: string,
-  net: GitNetwork,
+  processOptions: GitProcessOptions,
   signal?: AbortSignal,
 ): Promise<PullResult> {
   // Remote is empty (no branches) — bootstrap it by committing any
@@ -225,6 +224,6 @@ async function bootstrapRemoteBranch(
     }
   }
   signal?.throwIfAborted();
-  await pushGitChanges(logger, branch, net, signal);
+  await pushGitChanges(git, logger, branch, processOptions, signal);
   return { files: [], deletedFiles: [] };
 }

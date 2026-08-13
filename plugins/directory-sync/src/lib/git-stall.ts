@@ -1,17 +1,36 @@
 import { Effect, Fiber } from "@brains/utils/effect";
 import type { Clock } from "@brains/utils/effect";
+import type { GitCommandOptions, GitCommandRunner } from "./owned-git";
 
-/** Identifies the baseDir + stall timeout for a network git operation. */
-export interface GitNetwork {
+export interface OwnedGitChild {
+  readonly pid: number;
+  readonly exitCode: number | null;
+  readonly stdout: ReadableStream<Uint8Array>;
+  readonly stderr: ReadableStream<Uint8Array>;
+  readonly exited: Promise<number>;
+  /** Resolves only after the direct child and its process group are gone. */
+  readonly reaped: Promise<number>;
+  killProcessGroup(): void;
+}
+
+export type SpawnOwnedGitProcess = (
+  baseDir: string,
+  args: readonly string[],
+) => OwnedGitChild;
+
+/** Identifies the working directory and stall policy for an owned Git command. */
+export interface GitProcessOptions {
   baseDir: string;
   timeoutMs: number;
   /** Injectable timing service for deterministic stall tests. */
   clock?: Clock.Clock | undefined;
   /** Credential-free progress signal; receives no command output. */
   onProgress?: (() => void) | undefined;
+  /** Injectable child boundary for process-ownership tests. */
+  spawn?: SpawnOwnedGitProcess | undefined;
 }
 
-/** Thrown when a git network operation produces no output for too long. */
+/** Thrown when an owned Git operation produces no output for too long. */
 export class GitStallError extends Error {
   constructor(stallMs: number) {
     super(`Git operation stalled: no output for ${stallMs}ms`);
@@ -19,30 +38,114 @@ export class GitStallError extends Error {
   }
 }
 
-/** Run a network Git command through Bun's owned subprocess API. */
-export async function runGitCommandWithStallTimeout(
-  net: GitNetwork,
+/**
+ * Runs every command through the same owned, abortable Bun subprocess boundary.
+ * A caller-visible timeout or cancellation settles only after the subprocess
+ * completion settles, so serialized checkout ownership is never released while
+ * that process may still be alive.
+ */
+export class OwnedGitProcessRunner implements GitCommandRunner {
+  private readonly processOptions: GitProcessOptions;
+  private readonly lifecycleSignal: AbortSignal | undefined;
+
+  constructor(
+    processOptions: GitProcessOptions,
+    lifecycleSignal?: AbortSignal,
+  ) {
+    this.processOptions = processOptions;
+    this.lifecycleSignal = lifecycleSignal;
+  }
+
+  run(args: readonly string[], options?: GitCommandOptions): Promise<string> {
+    const signals = [this.lifecycleSignal, options?.signal].filter(
+      (signal): signal is AbortSignal => signal !== undefined,
+    );
+    const signal = signals.length > 1 ? AbortSignal.any(signals) : signals[0];
+    return runGitCommandWithStallTimeout(
+      {
+        ...this.processOptions,
+        ...(options?.onProgress ? { onProgress: options.onProgress } : {}),
+      },
+      args,
+      signal,
+    );
+  }
+}
+
+function processGroupExists(pid: number): boolean {
+  if (process.platform === "win32") return false;
+  try {
+    process.kill(-pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function reapProcessGroup(pid: number): Promise<void> {
+  if (!processGroupExists(pid)) return;
+  try {
+    process.kill(-pid, "SIGKILL");
+  } catch {
+    return;
+  }
+  while (processGroupExists(pid)) {
+    await Bun.sleep(10);
+  }
+}
+
+function spawnOwnedGitProcess(
+  baseDir: string,
   args: readonly string[],
-  signal?: AbortSignal,
-): Promise<string> {
-  signal?.throwIfAborted();
-
-  const { baseDir, timeoutMs } = net;
-  let timerFiber: Fiber.RuntimeFiber<void, never> | null = null;
-  let onStall = (): void => {};
-  let onAbort = (): void => {};
-  let closed = false;
-  let processExited = false;
-
-  // Fetch/pull may detach maintenance while retaining this subprocess's pipes.
-  // Disable it only for the owned network command; ordinary local Git commands
-  // retain their normal automatic maintenance.
+): OwnedGitChild {
+  // Detached mode gives the command and any descendants one process group.
+  // Automatic maintenance is disabled so Git cannot leave a pipe-owning
+  // background process after the serialized checkout command exits.
   const child = Bun.spawn(["git", "-c", "maintenance.auto=false", ...args], {
     cwd: baseDir,
     stdout: "pipe",
     stderr: "pipe",
     detached: true,
   });
+
+  return {
+    pid: child.pid,
+    get exitCode(): number | null {
+      return child.exitCode;
+    },
+    stdout: child.stdout,
+    stderr: child.stderr,
+    exited: child.exited,
+    reaped: child.exited.then(async (exitCode) => {
+      await reapProcessGroup(child.pid);
+      return exitCode;
+    }),
+    killProcessGroup(): void {
+      try {
+        process.kill(-child.pid, "SIGKILL");
+      } catch {
+        child.kill("SIGKILL");
+      }
+    },
+  };
+}
+
+/** Run one Git command through Bun's owned subprocess API. */
+export async function runGitCommandWithStallTimeout(
+  processOptions: GitProcessOptions,
+  args: readonly string[],
+  signal?: AbortSignal,
+): Promise<string> {
+  signal?.throwIfAborted();
+
+  const { baseDir, timeoutMs } = processOptions;
+  let timerFiber: Fiber.RuntimeFiber<void, never> | null = null;
+  let onStall = (): void => {};
+  let onAbort = (): void => {};
+  let closed = false;
+  let processExited = false;
+
+  const child = (processOptions.spawn ?? spawnOwnedGitProcess)(baseDir, args);
   const cancelStallTimer = (): void => {
     if (!timerFiber) return;
     Effect.runSync(Fiber.interruptFork(timerFiber));
@@ -54,7 +157,9 @@ export async function runGitCommandWithStallTimeout(
     const delay = Effect.sleep(timeoutMs).pipe(
       Effect.andThen(Effect.sync(() => onStall())),
     );
-    const ownedDelay = net.clock ? Effect.withClock(delay, net.clock) : delay;
+    const ownedDelay = processOptions.clock
+      ? Effect.withClock(delay, processOptions.clock)
+      : delay;
     timerFiber = Effect.runFork(ownedDelay);
   };
   const settleStallTimer = async (): Promise<void> => {
@@ -66,11 +171,7 @@ export async function runGitCommandWithStallTimeout(
   };
   const kill = (): void => {
     if (child.exitCode !== null) return;
-    try {
-      process.kill(-child.pid, "SIGKILL");
-    } catch {
-      child.kill("SIGKILL");
-    }
+    child.killProcessGroup();
   };
   const captureOutput = (
     stream: ReadableStream<Uint8Array>,
@@ -86,7 +187,7 @@ export async function runGitCommandWithStallTimeout(
       const chunk = await reader.read();
       if (chunk.done) return output + decoder.decode();
       armStall();
-      net.onProgress?.();
+      processOptions.onProgress?.();
       output += decoder.decode(chunk.value, { stream: true });
       return readToEnd();
     };
@@ -113,10 +214,13 @@ export async function runGitCommandWithStallTimeout(
 
   const stdoutCapture = captureOutput(child.stdout);
   const stderrCapture = captureOutput(child.stderr);
-  const operation = child.exited.then(async (exitCode) => {
+  const exited = child.exited.then(() => {
     processExited = true;
     cancelStallTimer();
-    net.onProgress?.();
+  });
+  void exited.catch(() => undefined);
+  const operation = child.reaped.then(async (exitCode) => {
+    processOptions.onProgress?.();
     const [stdout, stderr] = await Promise.all([
       stdoutCapture.closeAfterExit(),
       stderrCapture.closeAfterExit(),

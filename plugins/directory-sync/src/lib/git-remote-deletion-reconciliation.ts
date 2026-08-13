@@ -1,11 +1,16 @@
-import type { SimpleGit } from "simple-git";
 import type { Logger } from "@brains/utils/logger";
 import { unlink } from "fs/promises";
 import { pathExists } from "./fs-utils";
 import { resolveInSyncPath } from "./path-utils";
 
+export interface RemoteDeletionGit {
+  add(args: readonly string[]): Promise<unknown>;
+  diff(args: readonly string[]): Promise<string>;
+  commit(message: string): Promise<unknown>;
+}
+
 export interface RemoteDeletionReconciliationOptions {
-  git: SimpleGit;
+  git: RemoteDeletionGit;
   logger: Logger;
   syncPath: string;
   deletedFiles: string[];

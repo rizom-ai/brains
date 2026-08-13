@@ -1,9 +1,9 @@
-import type { SimpleGit } from "simple-git";
+import type { OwnedGit } from "./owned-git";
 import type { Logger } from "@brains/utils/logger";
 import type { GitSyncStatus } from "../types";
 
 export async function getGitStatus(
-  git: SimpleGit,
+  git: OwnedGit,
   logger: Logger,
   branch: string,
   remoteUrl: string,
@@ -43,7 +43,7 @@ export async function getGitStatus(
   }
 }
 
-export async function hasGitLocalChanges(git: SimpleGit): Promise<boolean> {
+export async function hasGitLocalChanges(git: OwnedGit): Promise<boolean> {
   const status = await git.status();
   return (
     status.modified.length > 0 ||

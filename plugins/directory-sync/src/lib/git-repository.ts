@@ -1,10 +1,9 @@
-import type { SimpleGit } from "simple-git";
-import simpleGit from "simple-git";
+import { OwnedGit } from "./owned-git";
 import { mkdir, mkdtemp, readFile, rename, rm, writeFile } from "fs/promises";
 import { basename, join } from "path";
 import type { Logger } from "@brains/utils/logger";
 import { pathExists } from "./fs-utils";
-import { runGitCommandWithStallTimeout } from "./git-stall";
+import { OwnedGitProcessRunner } from "./git-stall";
 
 export interface PrepareGitRepositoryOptions {
   logger: Logger;
@@ -18,7 +17,7 @@ export interface PrepareGitRepositoryOptions {
 
 export async function prepareGitRepository(
   options: PrepareGitRepositoryOptions,
-): Promise<SimpleGit> {
+): Promise<OwnedGit> {
   const {
     logger,
     dataDir,
@@ -44,11 +43,13 @@ export async function prepareGitRepository(
         signal,
       });
     } else {
-      await gitInit(dataDir, branch);
+      await gitInit(dataDir, branch, timeoutMs, signal);
     }
   }
 
-  const git = simpleGit(dataDir);
+  const git = new OwnedGit(
+    new OwnedGitProcessRunner({ baseDir: dataDir, timeoutMs }, signal),
+  );
 
   await repairInvalidPlaceholderHead({ logger, dataDir, branch });
 
@@ -86,16 +87,15 @@ async function prepareRepositoryFromRemote(options: {
     if (cleanupDir) {
       await rm(cleanupDir, { recursive: true, force: true });
     }
-    await gitInit(dataDir, branch);
+    await gitInit(dataDir, branch, timeoutMs, signal);
   };
 
   let remoteHasHistory: boolean;
   try {
-    const refs = await runGitCommandWithStallTimeout(
+    const refs = await new OwnedGitProcessRunner(
       { baseDir: dataDir, timeoutMs },
-      ["ls-remote", "--heads", authenticatedUrl],
       signal,
-    );
+    ).run(["ls-remote", "--heads", authenticatedUrl]);
     remoteHasHistory = refs.trim().length > 0;
   } catch {
     if (signal?.aborted) throw signal.reason;
@@ -113,11 +113,10 @@ async function prepareRepositoryFromRemote(options: {
   );
 
   try {
-    await runGitCommandWithStallTimeout(
+    await new OwnedGitProcessRunner(
       { baseDir: parentDir, timeoutMs },
-      ["clone", authenticatedUrl, cloneDir],
       signal,
-    );
+    ).run(["clone", authenticatedUrl, cloneDir]);
     await rm(dataDir, { recursive: true, force: true });
     await rename(cloneDir, dataDir);
   } catch {
@@ -129,8 +128,16 @@ async function prepareRepositoryFromRemote(options: {
   }
 }
 
-async function gitInit(dataDir: string, branch: string): Promise<void> {
-  await simpleGit(dataDir).raw(["init", `--initial-branch=${branch}`]);
+async function gitInit(
+  dataDir: string,
+  branch: string,
+  timeoutMs: number,
+  signal?: AbortSignal,
+): Promise<void> {
+  await new OwnedGitProcessRunner({ baseDir: dataDir, timeoutMs }, signal).run([
+    "init",
+    `--initial-branch=${branch}`,
+  ]);
 }
 
 async function repairInvalidPlaceholderHead(options: {
@@ -155,7 +162,7 @@ async function repairInvalidPlaceholderHead(options: {
 }
 
 async function configureRemote(
-  git: SimpleGit,
+  git: OwnedGit,
   authenticatedUrl: string,
 ): Promise<void> {
   const remotes = await git.getRemotes(true);

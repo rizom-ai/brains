@@ -1,5 +1,4 @@
-import type { SimpleGit } from "simple-git";
-import simpleGit from "simple-git";
+import { OwnedGit } from "./owned-git";
 import type { Logger } from "@brains/utils/logger";
 import type {
   GitLogEntry,
@@ -26,6 +25,7 @@ import {
   tryResolveRemoteHead,
 } from "./git-pull";
 import { getGitStatus, hasGitLocalChanges } from "./git-status";
+import { OwnedGitProcessRunner } from "./git-stall";
 
 export type { GitSyncOptions } from "./git-options";
 export type { GitSyncStatus, PullResult } from "../types";
@@ -37,7 +37,7 @@ export type { GitSyncStatus, PullResult } from "../types";
  * This class only knows how to talk to git.
  */
 export class GitSync implements IGitSync {
-  private _git: SimpleGit | null = null;
+  private _git: OwnedGit | null = null;
   private readonly logger: Logger;
   private readonly remoteUrl: string;
   private readonly remoteFingerprint: string;
@@ -76,8 +76,10 @@ export class GitSync implements IGitSync {
     this.timeoutMs = options.timeoutMs ?? DEFAULT_GIT_TIMEOUT_MS;
   }
 
-  private get git(): SimpleGit {
-    this._git ??= simpleGit(this.dataDir);
+  private get git(): OwnedGit {
+    this._git ??= new OwnedGit(
+      new OwnedGitProcessRunner(this.net, this.lifecycleController.signal),
+    );
     return this._git;
   }
 
@@ -133,6 +135,7 @@ export class GitSync implements IGitSync {
   push(signal?: AbortSignal): Promise<void> {
     return this.runOperation(() =>
       pushGitChanges(
+        this.git,
         this.logger,
         this.branch,
         this.net,
@@ -142,15 +145,20 @@ export class GitSync implements IGitSync {
   }
 
   pull(signal?: AbortSignal, onProgress?: () => void): Promise<PullResult> {
-    return this.runOperation(() =>
-      pullGitChanges(
-        this.git,
+    return this.runOperation(() => {
+      const operationSignal = this.getOperationSignal(signal);
+      const git = this.git.withOptions({
+        signal: operationSignal,
+        ...(onProgress ? { onProgress } : {}),
+      });
+      return pullGitChanges(
+        git,
         this.logger,
         this.branch,
         { ...this.net, ...(onProgress ? { onProgress } : {}) },
-        this.getOperationSignal(signal),
-      ),
-    );
+        operationSignal,
+      );
+    });
   }
 
   getReconciliationDelta(

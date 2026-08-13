@@ -3,6 +3,35 @@ import {
   GitStallError,
   runGitCommandWithStallTimeout,
 } from "../../src/lib/git-stall";
+import type { OwnedGitChild } from "../../src/lib/git-stall";
+import { SerialQueue } from "@brains/utils/serial-queue";
+
+interface Deferred<T> {
+  promise: Promise<T>;
+  resolve(value: T): void;
+}
+
+function deferred<T>(): Deferred<T> {
+  let settle: ((value: T) => void) | undefined;
+  const promise = new Promise<T>((resolve) => {
+    settle = resolve;
+  });
+  return {
+    promise,
+    resolve(value: T): void {
+      if (!settle) throw new Error("Deferred promise is not initialized");
+      settle(value);
+    },
+  };
+}
+
+function closedStream(): ReadableStream<Uint8Array> {
+  return new ReadableStream({
+    start(controller): void {
+      controller.close();
+    },
+  });
+}
 
 describe("runGitCommandWithStallTimeout", () => {
   it("returns stdout for a completing command", async () => {
@@ -34,18 +63,91 @@ describe("runGitCommandWithStallTimeout", () => {
     expect(stdout.trim()).toBe("false");
   });
 
-  it("does not wait for a descendant that retains the completed command's output pipe", async () => {
-    const startedAt = performance.now();
+  it("kills and reaps an output-pipe descendant before returning", async () => {
     const stdout = await runGitCommandWithStallTimeout(
       { baseDir: process.cwd(), timeoutMs: 5_000 },
-      ["-c", "alias.pipe-leak=!sh -c '(sleep 1) & printf done'", "pipe-leak"],
+      ["-c", "alias.pipe-leak=!sh -c 'sleep 10 & printf \"$!\"'", "pipe-leak"],
     );
+    const descendantPid = Number(stdout);
+    let descendantExists = true;
+    try {
+      process.kill(descendantPid, 0);
+    } catch {
+      descendantExists = false;
+    }
 
-    const elapsedMs = performance.now() - startedAt;
-    // Let the fixture descendant exit even when the assertion fails.
-    await Bun.sleep(Math.max(0, 1_100 - elapsedMs));
-    expect(stdout).toBe("done");
-    expect(elapsedMs).toBeLessThan(500);
+    expect(descendantPid).toBeGreaterThan(0);
+    expect(descendantExists).toBe(false);
+  });
+
+  it("keeps the queue blocked until a killed child exits and its group is reaped", async () => {
+    const exited = deferred<number>();
+    const reaped = deferred<number>();
+    const killed = deferred<void>();
+    let exitCode: number | null = null;
+    let killCount = 0;
+    const child: OwnedGitChild = {
+      pid: 123,
+      get exitCode(): number | null {
+        return exitCode;
+      },
+      stdout: closedStream(),
+      stderr: closedStream(),
+      exited: exited.promise.then((code) => {
+        exitCode = code;
+        return code;
+      }),
+      reaped: reaped.promise,
+      killProcessGroup(): void {
+        killCount++;
+        killed.resolve();
+      },
+    };
+    const queue = new SerialQueue();
+    let firstSettled = false;
+    let secondStarted = false;
+
+    const first = queue
+      .run(() =>
+        runGitCommandWithStallTimeout(
+          {
+            baseDir: process.cwd(),
+            timeoutMs: 5,
+            spawn: () => child,
+          },
+          ["status"],
+        ),
+      )
+      .then(
+        () => {
+          firstSettled = true;
+          return undefined;
+        },
+        (error: unknown) => {
+          firstSettled = true;
+          return error;
+        },
+      );
+
+    await killed.promise;
+    const second = queue.run(async () => {
+      secondStarted = true;
+    });
+    await Promise.resolve();
+
+    expect(killCount).toBe(1);
+    expect(firstSettled).toBe(false);
+    expect(secondStarted).toBe(false);
+
+    exited.resolve(137);
+    await Promise.resolve();
+    expect(firstSettled).toBe(false);
+    expect(secondStarted).toBe(false);
+
+    reaped.resolve(137);
+    expect(await first).toBeInstanceOf(GitStallError);
+    await second;
+    expect(secondStarted).toBe(true);
   });
 
   it("kills a silent child and throws GitStallError", async () => {
