@@ -273,6 +273,7 @@
     "core--mcp-sdk-1-30",
     "core--media-provider-factories",
     "core--operational-health-semantics",
+    "core--operator-contract-secret-boundary",
     "core--ops-explicit-theme-version",
     "core--ops-incident-hardening",
     "core--ops-reconcile-view-convergence",

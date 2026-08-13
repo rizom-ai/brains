@@ -1,7 +1,7 @@
 {
   "name": "@brains/eslint-config",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.285",
+  "version": "0.2.0-alpha.286",
   "dependencies": {
     "@typescript-eslint/eslint-plugin": "^8.61.1",
     "@typescript-eslint/parser": "^8.61.1",

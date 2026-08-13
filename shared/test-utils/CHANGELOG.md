@@ -1,5 +1,24 @@
 # @brains/test-utils
 
+## 0.2.0-alpha.286
+
+### Patch Changes
+
+- Updated dependencies [[`b7cda6c`](https://github.com/rizom-ai/brains/commit/b7cda6cd64c1a7400b16bf4faacb36d0244c58f9)]:
+  - @brains/plugins@0.2.0-alpha.286
+  - @brains/contracts@0.2.0-alpha.286
+  - @brains/utils@0.2.0-alpha.286
+  - @brains/ai-service@0.2.0-alpha.286
+  - @brains/content-service@0.2.0-alpha.286
+  - @brains/conversation-service@0.2.0-alpha.286
+  - @brains/entity-service@0.2.0-alpha.286
+  - @brains/identity-service@0.2.0-alpha.286
+  - @brains/job-queue@0.2.0-alpha.286
+  - @brains/mcp-service@0.2.0-alpha.286
+  - @brains/messaging-service@0.2.0-alpha.286
+  - @brains/runtime-state@0.2.0-alpha.286
+  - @brains/templates@0.2.0-alpha.286
+
 ## 0.2.0-alpha.285
 
 ### Patch Changes
