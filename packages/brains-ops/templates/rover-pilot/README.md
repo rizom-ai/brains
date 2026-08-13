@@ -51,4 +51,6 @@ When a push changes only deploy contract files, CI prints `No affected user conf
 
 `render` owns the observational `views/users.md` projection. Reconcile owns generated per-user config and never rewrites observed status rows.
 
+The Upgrade workflow uses a repository-scoped GitHub App token because an Actions `GITHUB_TOKEN` cannot update generated files under `.github/workflows/`. Checkout persists no credential, and the App token is minted only after the freshly published tooling finishes and only when there is a change to push. Configure the App and its `OPS_UPGRADE_APP_ID` Actions variable and `OPS_UPGRADE_APP_PRIVATE_KEY` Actions secret as described in `docs/operator-playbook.md`. If token creation or the upgrade push fails, stop; do not substitute an operator's personal credentials.
+
 Use `docs/canonical-crossover-record.md` to record exact forward and rollback artifact pins before an approved crossover window.

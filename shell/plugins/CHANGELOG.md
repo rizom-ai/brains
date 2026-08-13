@@ -1,5 +1,49 @@
 # @brains/plugins
 
+## 0.2.0-alpha.287
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.287
+  - @brains/contracts@0.2.0-alpha.287
+  - @brains/site-composition@0.2.0-alpha.287
+  - @brains/utils@0.2.0-alpha.287
+  - @brains/ai-service@0.2.0-alpha.287
+  - @brains/content-service@0.2.0-alpha.287
+  - @brains/conversation-service@0.2.0-alpha.287
+  - @brains/entity-service@0.2.0-alpha.287
+  - @brains/identity-service@0.2.0-alpha.287
+  - @brains/job-queue@0.2.0-alpha.287
+  - @brains/mcp-service@0.2.0-alpha.287
+  - @brains/messaging-service@0.2.0-alpha.287
+  - @brains/recurring-checks@0.2.0-alpha.287
+  - @brains/runtime-state@0.2.0-alpha.287
+  - @brains/templates@0.2.0-alpha.287
+
+## 0.2.0-alpha.286
+
+### Patch Changes
+
+- [#129](https://github.com/rizom-ai/brains/pull/129) [`b7cda6c`](https://github.com/rizom-ai/brains/commit/b7cda6cd64c1a7400b16bf4faacb36d0244c58f9) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Hold the account-settings secret boundary in the type system and refuse operator declarations until their runtime exists. Settings reaching a widget, workspace, or action now omit every field declared `secret`, since operator data is serialized to the browser, and each settings schema field must carry a field declaration so `secret` is a decision rather than an omission. A service declaring account settings, dashboard widgets, or CMS workspaces now fails to install with a message naming the missing runtime instead of registering nothing, matching how an account-bound daemon already refuses.
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.286
+  - @brains/contracts@0.2.0-alpha.286
+  - @brains/site-composition@0.2.0-alpha.286
+  - @brains/utils@0.2.0-alpha.286
+  - @brains/ai-service@0.2.0-alpha.286
+  - @brains/content-service@0.2.0-alpha.286
+  - @brains/conversation-service@0.2.0-alpha.286
+  - @brains/entity-service@0.2.0-alpha.286
+  - @brains/identity-service@0.2.0-alpha.286
+  - @brains/job-queue@0.2.0-alpha.286
+  - @brains/mcp-service@0.2.0-alpha.286
+  - @brains/messaging-service@0.2.0-alpha.286
+  - @brains/recurring-checks@0.2.0-alpha.286
+  - @brains/runtime-state@0.2.0-alpha.286
+  - @brains/templates@0.2.0-alpha.286
+
 ## 0.2.0-alpha.285
 
 ### Patch Changes

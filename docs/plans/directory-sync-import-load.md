@@ -2,8 +2,11 @@
 
 ## Status
 
-Implementation and release are complete through Phase 5; runtime-resilience Phase 6
-and manual smoke load acceptance remain pending.
+Implementation and release are complete through Phase 5, and the local
+feature-enabled performance comparison is complete. Git runtime resilience is a
+separate track in
+[`directory-sync-git-execution-broker.md`](./directory-sync-git-execution-broker.md);
+manual smoke load acceptance remains pending and approval-gated.
 
 - Phase 1: released in `@rizom/brain@0.2.0-alpha.268`.
 - Phase 2: released in `@rizom/brain@0.2.0-alpha.269` for text and current
@@ -275,30 +278,26 @@ one-off:
   health failures). Only then consider promoting `load` to a scheduled cadence and
   opening the 700-probe `stress` profile.
 
-## Phase 6 — Bun runtime and stalled-sync resilience
+## Phase 6 — Related Git resilience and cross-track acceptance
 
-Do not accept the intermittent Bun failure and do not ship an in-process completion
-workaround. Close both the upstream runtime exposure and the recovery gap before another
-remote load.
+Performance and Git resilience are separate engineering tracks. The Git-specific history
+below is retained because it defines reconciliation and health invariants, but active Git
+execution work is handed off to
+[`directory-sync-git-execution-broker.md`](./directory-sync-git-execution-broker.md).
+Do not reopen performance conclusions merely because the runtime workaround is pending.
 
-### 6.1 Pin a stable Bun release containing the upstream fix
+### 6.1 Remove the affected async Git-completion path
 
-- Bun 1.3.14 is not sufficient: upstream reproduced the hang there. Use the first
-  immutable stable release that contains the current-main fix; do not make production
-  follow the mutable `canary` channel.
-- Update the root `packageManager` pin and every generated/runtime consumer through the
-  existing Bun-version source of truth. Validate install, build, typecheck, lint, unit
-  tests, packaging, and supervisor startup before soak testing.
-- Strengthen the packaged soak without a timing assertion. First require all update
-  markers to persist so a changed checkout cannot masquerade as a completed import.
-  Exercise delete authority separately with a deterministic worker/handler barrier:
-  hold a second update batch before execution, wait until that batch and the subsequent
-  cleanup/delete work are durably queued, then release the barrier and prove that the
-  late updates cannot resurrect remote-deleted files. Do not infer concurrency from a
-  polling sample that happens to observe between 1 and 349 persisted probes.
-- Require at least three unchanged local 350-file passes with the original Git runner,
-  followed by normal CI and one independent scheduled soak on the pinned stable version.
-  Preserve Bun version/revision and process-cleanup evidence in every artifact.
+- Bun 1.3.14 remains affected. Instead of waiting indefinitely for a fixed stable release,
+  move checkout ownership and Git execution outside the web/worker Bun event loops using
+  the broker plan.
+- The broker workaround must pass on Bun 1.3.11 and 1.3.14. A future immutable stable Bun
+  containing the upstream fix remains defense in depth and should run the same matrix,
+  but is no longer the sole delivery path.
+- The packaged soak already has persistence assertions and deterministic worker/handler
+  deletion barriers. Preserve them unchanged while changing Git execution.
+- Require three unchanged local 350-file passes, normal CI, and one independent scheduled
+  soak with Bun version, broker state, and process-cleanup evidence.
 
 ### 6.2 Make merge-to-queue handoff durable
 
@@ -363,7 +362,21 @@ operational-health failure. Change that behavior deliberately:
 
 After the fixed stable Bun pin and durable recovery safeguards pass local and scheduled
 soaks, complete the feature-enabled mocked-AI comparison. Bound AI concurrency and queue
-growth if that comparison shows health starvation. A new remote `load` run still requires
-explicit approval and must complete all seven phases with zero external AI calls, health
-failures, restarts, OOMs, or zombies, followed by cleanup to the seven-note baseline,
-zero probes, and Git parity.
+growth if that comparison shows health starvation.
+
+The local comparison is complete. A hermetic 350-note import with embeddings and topic
+extraction enabled, injected AI/embedding services, and 100 ms asynchronous latency per
+mocked call completed on Bun 1.3.11 in 83.1 seconds (86.4 seconds including fixture
+startup/shutdown). It made 354 embedding calls and 91 schema-valid object-generation
+calls, reached 332 pending and one processing job, and drained to zero pending/processing
+jobs. Existing serialization held shared AI concurrency to one; topic work remained
+coalesced to one outstanding projection job. All 1,850 readiness samples stayed routing-
+ready and operational, with no degraded sample. The fixture cannot contact an external AI
+provider. This evidence does not justify an additional AI throttle, health-priority
+scheduler, or new stale-job mechanism; retain the existing single-worker bound and topic
+wave coalescing unless a future higher-concurrency configuration produces contrary data.
+
+A new remote `load` run remains blocked on completion of the separate Git execution
+broker acceptance plan, still requires explicit approval, and must complete all seven phases
+with zero external AI calls, health failures, restarts, OOMs, or zombies, followed by
+cleanup to the seven-note baseline, zero probes, and Git parity.

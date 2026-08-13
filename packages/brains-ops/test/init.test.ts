@@ -13,6 +13,7 @@ import {
 import { existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
+import { parse as parseYaml } from "yaml";
 
 import packageJson from "../package.json";
 import { initPilotRepo } from "../src/init";
@@ -860,7 +861,53 @@ describe("initPilotRepo", () => {
     expect(upgradeWorkflow).toContain("workflow_dispatch:");
     expect(upgradeWorkflow).toContain("schedule:");
     expect(upgradeWorkflow).toContain("bunx brains-ops upgrade .");
-    expect(upgradeWorkflow).toContain("pull-requests: write");
+    // The job's own Actions token stays read-only; write access arrives only
+    // through the App token. Asserted structurally so reindenting the template
+    // cannot quietly turn this check into a no-op.
+    const upgradeManifest = parseYaml(upgradeWorkflow);
+    expect(upgradeManifest.permissions).toEqual({ contents: "read" });
+
+    expect(upgradeWorkflow).toContain("actions/create-github-app-token@v2");
+    expect(upgradeWorkflow).toContain("persist-credentials: false");
+    expect(upgradeWorkflow).toContain("app-id: ${{ vars.OPS_UPGRADE_APP_ID }}");
+    expect(upgradeWorkflow).toContain(
+      "private-key: ${{ secrets.OPS_UPGRADE_APP_PRIVATE_KEY }}",
+    );
+    expect(upgradeWorkflow).toContain("permission-contents: write");
+    expect(upgradeWorkflow).toContain("permission-pull-requests: write");
+    expect(upgradeWorkflow).toContain("permission-workflows: write");
+    // An unconfigured pilot must fail with a pointer to the playbook, not with
+    // an opaque token-minting error on every scheduled run.
+    expect(upgradeWorkflow).toContain("APP_ID: ${{ vars.OPS_UPGRADE_APP_ID }}");
+    expect(upgradeWorkflow).toContain("docs/operator-playbook.md");
+    expect(upgradeWorkflow).toContain(
+      "GH_TOKEN: ${{ steps.upgrade-token.outputs.token }}",
+    );
+    expect(upgradeWorkflow).not.toContain("GH_TOKEN: ${{ github.token }}");
+    const upgradeSteps = upgradeManifest.jobs.upgrade.steps as Array<{
+      id?: string;
+      name?: string;
+    }>;
+    expect(
+      upgradeSteps.findIndex((step) => step.id === "upgrade-token"),
+    ).toBeGreaterThan(
+      upgradeSteps.findIndex(
+        (step) => step.name === "Upgrade operator tooling",
+      ),
+    );
+    // The upgrade step executes freshly published @rizom/ops code, so no
+    // credential may be persisted into .git/config by checkout and the App
+    // token must not exist until that code has finished.
+    expect(upgradeWorkflow).not.toContain(
+      "token: ${{ steps.upgrade-token.outputs.token }}",
+    );
+    expect(upgradeWorkflow).toContain(
+      '"https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"',
+    );
+    // An existing PR is detected explicitly; `|| echo` would also swallow a
+    // permissions or rate-limit failure and still report success.
+    expect(upgradeWorkflow).toContain("gh pr list --head");
+    expect(upgradeWorkflow).not.toContain("|| echo");
     expect(upgradeWorkflow).toContain("gh pr create");
     // Untracked files count as changes too — porcelain, not diff.
     expect(upgradeWorkflow).toContain("git status --porcelain");

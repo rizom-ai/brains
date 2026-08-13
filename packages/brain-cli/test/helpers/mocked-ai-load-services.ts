@@ -1,0 +1,255 @@
+import type {
+  AIGenerationSchema,
+  AIModelConfig,
+  AIModelConfigUpdate,
+  IAIService,
+  ImageGenerationOptions,
+  ImageGenerationResult,
+  JudgeInput,
+  LanguageModel,
+} from "@brains/ai-service";
+import type {
+  BatchEmbeddingResult,
+  EmbeddingResult,
+  IEmbeddingService,
+} from "@brains/entity-service";
+import { MockLanguageModelV3 } from "ai/test";
+
+export const MOCK_LOAD_PROBE_MARKER = "Mocked AI feature-load probe";
+
+export interface MockLoadSnapshot {
+  embeddingCalls: number;
+  probeEmbeddingCalls: number;
+  completedProbeEmbeddingCalls: number;
+  objectCalls: number;
+  textCalls: number;
+  activeCalls: number;
+  maxConcurrentCalls: number;
+}
+
+type MockCallKind = "embedding" | "object" | "text";
+
+export class MockLoadTracker {
+  private embeddingCalls = 0;
+  private probeEmbeddingCalls = 0;
+  private completedProbeEmbeddingCalls = 0;
+  private objectCalls = 0;
+  private textCalls = 0;
+  private activeCalls = 0;
+  private maxConcurrentCalls = 0;
+
+  begin(kind: MockCallKind, probe = false): () => void {
+    if (kind === "embedding") {
+      this.embeddingCalls++;
+      if (probe) this.probeEmbeddingCalls++;
+    }
+    if (kind === "object") this.objectCalls++;
+    if (kind === "text") this.textCalls++;
+    this.activeCalls++;
+    this.maxConcurrentCalls = Math.max(
+      this.maxConcurrentCalls,
+      this.activeCalls,
+    );
+
+    let finished = false;
+    return (): void => {
+      if (finished) return;
+      finished = true;
+      if (kind === "embedding" && probe) {
+        this.completedProbeEmbeddingCalls++;
+      }
+      this.activeCalls--;
+    };
+  }
+
+  snapshot(): MockLoadSnapshot {
+    return {
+      embeddingCalls: this.embeddingCalls,
+      probeEmbeddingCalls: this.probeEmbeddingCalls,
+      completedProbeEmbeddingCalls: this.completedProbeEmbeddingCalls,
+      objectCalls: this.objectCalls,
+      textCalls: this.textCalls,
+      activeCalls: this.activeCalls,
+      maxConcurrentCalls: this.maxConcurrentCalls,
+    };
+  }
+}
+
+interface MockLoadServiceOptions {
+  delayMs: number;
+}
+
+interface MockLoadEmbeddingOptions extends MockLoadServiceOptions {
+  dimensions: number;
+}
+
+const tokenUsage = {
+  promptTokens: 1,
+  completionTokens: 1,
+  totalTokens: 2,
+};
+
+async function delay(ms: number, signal?: AbortSignal): Promise<void> {
+  signal?.throwIfAborted();
+  if (ms > 0) await Bun.sleep(ms);
+  signal?.throwIfAborted();
+}
+
+export class MockLoadEmbeddingService implements IEmbeddingService {
+  readonly dimensions: number;
+  private readonly tracker: MockLoadTracker;
+  private readonly delayMs: number;
+
+  constructor(tracker: MockLoadTracker, options: MockLoadEmbeddingOptions) {
+    this.tracker = tracker;
+    this.delayMs = options.delayMs;
+    this.dimensions = options.dimensions;
+  }
+
+  async generateEmbedding(
+    text: string,
+    signal?: AbortSignal,
+  ): Promise<EmbeddingResult> {
+    const finish = this.tracker.begin(
+      "embedding",
+      text.includes(MOCK_LOAD_PROBE_MARKER),
+    );
+    try {
+      await delay(this.delayMs, signal);
+      return {
+        embedding: new Float32Array(this.dimensions).fill(0.01),
+        usage: { tokens: 1 },
+      };
+    } finally {
+      finish();
+    }
+  }
+
+  async generateEmbeddings(
+    texts: string[],
+    signal?: AbortSignal,
+  ): Promise<BatchEmbeddingResult> {
+    if (texts.length === 0) {
+      return { embeddings: [], usage: { tokens: 0 } };
+    }
+    const embeddings: Float32Array[] = [];
+    for (const text of texts) {
+      const result = await this.generateEmbedding(text, signal);
+      embeddings.push(result.embedding);
+    }
+    return { embeddings, usage: { tokens: texts.length } };
+  }
+}
+
+export class MockLoadAIService implements IAIService {
+  private readonly tracker: MockLoadTracker;
+  private readonly delayMs: number;
+  private readonly model: LanguageModel;
+  private config: AIModelConfig = {
+    model: "openai:gpt-4o-mini",
+    apiKey: "mocked-feature-load",
+  };
+
+  constructor(tracker: MockLoadTracker, options: MockLoadServiceOptions) {
+    this.tracker = tracker;
+    this.delayMs = options.delayMs;
+    this.model = new MockLanguageModelV3({
+      doGenerate: {
+        content: [{ type: "text", text: "{}" }],
+        finishReason: { unified: "stop", raw: "stop" },
+        usage: {
+          inputTokens: {
+            total: 1,
+            noCache: 1,
+            cacheRead: 0,
+            cacheWrite: 0,
+          },
+          outputTokens: { total: 1, text: 1, reasoning: 0 },
+        },
+        warnings: [],
+      },
+    });
+  }
+
+  async generateText(
+    _systemPrompt: string,
+    _userPrompt: string,
+    signal?: AbortSignal,
+  ): Promise<{ text: string; usage: typeof tokenUsage }> {
+    const finish = this.tracker.begin("text");
+    try {
+      await delay(this.delayMs, signal);
+      return { text: "mocked feature-load response", usage: tokenUsage };
+    } finally {
+      finish();
+    }
+  }
+
+  async generateObject<T>(
+    _systemPrompt: string,
+    _userPrompt: string,
+    schema: AIGenerationSchema<T>,
+    signal?: AbortSignal,
+  ): Promise<{ object: T; usage: typeof tokenUsage }> {
+    const finish = this.tracker.begin("object");
+    try {
+      await delay(this.delayMs, signal);
+      const candidates: unknown[] = [
+        { topics: [] },
+        { skills: [] },
+        {
+          strengths: [],
+          weaknesses: [],
+          opportunities: [],
+          threats: [],
+        },
+        {},
+      ];
+      for (const candidate of candidates) {
+        const parsed = schema.safeParse(candidate);
+        if (parsed.success) {
+          return { object: parsed.data, usage: tokenUsage };
+        }
+      }
+      throw new Error("No deterministic mocked object satisfies the schema");
+    } finally {
+      finish();
+    }
+  }
+
+  async judge<T>(input: JudgeInput<T>): Promise<{
+    verdict: T;
+    usage: typeof tokenUsage;
+  }> {
+    const generated = await this.generateObject(
+      "mocked judge",
+      `${input.instruction}\n\n${input.material}`,
+      input.schema,
+      input.signal,
+    );
+    return { verdict: generated.object, usage: generated.usage };
+  }
+
+  updateConfig(config: AIModelConfigUpdate): void {
+    this.config = { ...this.config, ...config };
+  }
+
+  getConfig(): AIModelConfig {
+    return { ...this.config };
+  }
+
+  getModel(): LanguageModel {
+    return this.model;
+  }
+
+  async generateImage(
+    _prompt: string,
+    _options?: ImageGenerationOptions,
+  ): Promise<ImageGenerationResult> {
+    throw new Error("Image generation is not part of the mocked load fixture");
+  }
+
+  canGenerateImages(): boolean {
+    return false;
+  }
+}

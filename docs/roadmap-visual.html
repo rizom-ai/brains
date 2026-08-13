@@ -342,7 +342,7 @@
             <span class="card-name">Directory Sync Import Load Follow-ups</span>
             <span class="badge badge-partial">In progress</span>
           </div>
-          <div class="card-desc">follow-up to the git fan-out fix: suppress auto-export watcher echoes, short-circuit unchanged files before parse so startup full-vault sync is cheap, and skip oversized files at import with an operator-visible issue.</div>
+          <div class="card-desc">**performance work complete; remote acceptance pending**: import/load optimizations, deterministic 350-file barriers, and the feature-enabled mocked-AI comparison are green without additional throttling.</div>
           <div class="card-file">directory-sync-import-load.md</div>
         </div>
         <div class="card status-partial">
@@ -350,7 +350,7 @@
             <span class="card-name">Directory-sync DB→git auto-export silent permanent stall</span>
             <span class="badge badge-partial">In progress</span>
           </div>
-          <div class="card-desc">root-cause class confirmed: an unresolved Bun Git completion can wedge the shared <code>GitOperationLock</code>; pin the fixed stable runtime, replay merged-but-not-queued changes durably, and expose stale pulls to the external watchdog.</div>
+          <div class="card-desc">root-cause class confirmed: an unresolved Bun Git completion can wedge auto-export; merged checkpoint/health recovery remains paired with fresh, approval-gated incident attribution.</div>
           <div class="card-file">directory-sync-export-stall.md</div>
         </div>
         <div class="card status-proposed">
@@ -376,6 +376,14 @@
           </div>
           <div class="card-desc">normalize the shared HTTP route table, reject collisions, centralize operator authorization, and move toward lifecycle-owned registration without breaking existing plugins.</div>
           <div class="card-file">http-route-registry-hardening.md</div>
+        </div>
+        <div class="card status-proposed">
+          <div class="card-head">
+            <span class="card-name">Directory-sync Git execution broker</span>
+            <span class="badge badge-proposed">Proposed</span>
+          </div>
+          <div class="card-desc">**handoff-ready, separate from performance**: move all Git commands behind one cross-process broker and OS-owned lock/reap boundary, then prove the workaround on affected Bun 1.3.11 and 1.3.14.</div>
+          <div class="card-file">directory-sync-git-execution-broker.md</div>
         </div>
         <div class="card status-proposed">
           <div class="card-head">
@@ -416,6 +424,14 @@
           </div>
           <div class="card-desc">**implemented, awaiting release**: expose durable background status, make exhausted worker supervision fatal, detect genuinely unclaimed due work, persist terminal projection incidents, and gate post-deploy verification and fleet status on operational health.</div>
           <div class="card-file">background-work-silent-stall.md</div>
+        </div>
+        <div class="card status-done">
+          <div class="card-head">
+            <span class="card-name">Operational alerts reach a human</span>
+            <span class="badge badge-done">Done</span>
+          </div>
+          <div class="card-desc">successor to <code>background-work-silent-stall.md</code>: deliver sustained operational degradation to the operator over a web-process path that survives a dead worker, with deduplicated episodes that resolve, then land client-side error capture on the same spine.</div>
+          <div class="card-file">operational-alert-delivery.md</div>
         </div>
         </div>
       </details>
