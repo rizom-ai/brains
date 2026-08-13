@@ -1,3 +1,4 @@
+import type { BinaryContentMode } from "@brains/assets";
 import type { ActorRef } from "@brains/contracts";
 import type { ProjectionStore } from "./projection-store";
 import type { ProjectionChangedTarget } from "./schema/projection-state";
@@ -531,6 +532,12 @@ export interface EntityTypeConfig {
   /** Whether to generate embeddings for this entity type (default: true).
    *  Set to false for entity types with non-textual content (e.g., images). */
   embeddable?: boolean;
+  /** Whether to index serialized content in full-text search (default: true).
+   *  Set to false for binary entity types. Mutations remove stale FTS rows. */
+  fullTextSearchable?: boolean;
+  /** Durable binary storage policy. Absence means inline/text storage.
+   *  Asset-backed types enable this only when their read/write cutover lands. */
+  binaryStorage?: "asset";
   /** Whether this entity type may be used as source material for derived projections (default: true).
    *  Set to false for projection outputs that would create feedback loops. */
   projectionSource?: boolean;
@@ -557,6 +564,10 @@ export interface GetEntityRequest {
    * with elevated access must opt up explicitly.
    */
   visibilityScope?: ContentVisibility;
+  /** Omitted preserves the transitional data-URL response for asset binaries. */
+  binaryContent?: BinaryContentMode | undefined;
+  /** Stable caller label used only for count-only compatibility telemetry. */
+  binaryContentSurface?: string | undefined;
 }
 
 export type GetEntityRawRequest = GetEntityRequest;
@@ -564,6 +575,10 @@ export type GetEntityRawRequest = GetEntityRequest;
 export interface ListEntitiesRequest {
   entityType: string;
   options?: ListOptions | undefined;
+  /** Omitted preserves the transitional data-URL response for asset binaries. */
+  binaryContent?: BinaryContentMode | undefined;
+  /** Stable caller label used only for count-only compatibility telemetry. */
+  binaryContentSurface?: string | undefined;
 }
 
 export interface CountEntitiesRequest {

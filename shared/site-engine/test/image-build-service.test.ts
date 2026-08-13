@@ -7,7 +7,9 @@ import sharp from "sharp";
 import { ImageBuildService } from "../src/image-build-service";
 import {
   createSilentLogger,
+  createMockAssetStore,
   createMockEntityService,
+  type MockAssetStore,
 } from "@brains/test-utils";
 
 /** Create a real PNG as a base64 data URL */
@@ -32,10 +34,12 @@ describe("ImageBuildService", () => {
   const logger = createSilentLogger();
   let outputDir: string;
   let imagesDir: string;
+  let assetStore: MockAssetStore;
 
   beforeEach(async () => {
     outputDir = mkdtempSync(join(tmpdir(), "image-build-service-test-"));
     imagesDir = join(outputDir, "images");
+    assetStore = createMockAssetStore();
     await fs.mkdir(imagesDir, { recursive: true });
   });
 
@@ -47,17 +51,25 @@ describe("ImageBuildService", () => {
     }
   });
 
-  test("should resolve image entity to optimized WebP", async () => {
+  test("should resolve an asset-backed image entity to optimized WebP", async () => {
     const dataUrl = await createTestDataUrl(2000, 1000);
+    const bytes = Buffer.from(dataUrl.split(",")[1] ?? "", "base64");
+    const asset = await assetStore.put(bytes);
 
     const mockEntityService = createMockEntityService({
       returns: {
         getEntity: {
           id: "cover-photo",
           entityType: "image",
-          content: dataUrl,
+          content: asset.ref,
           visibility: "public",
-          metadata: { format: "png", width: 2000, height: 1000 },
+          metadata: {
+            format: "png",
+            mediaType: "image/png",
+            sizeBytes: bytes.byteLength,
+            width: 2000,
+            height: 1000,
+          },
           created: new Date().toISOString(),
           updated: new Date().toISOString(),
           contentHash: "abc123",
@@ -65,7 +77,12 @@ describe("ImageBuildService", () => {
       },
     });
 
-    const service = new ImageBuildService(mockEntityService, logger, imagesDir);
+    const service = new ImageBuildService(
+      mockEntityService,
+      assetStore,
+      logger,
+      imagesDir,
+    );
     await service.resolveAll(["cover-photo"], new AbortController().signal);
 
     const resolved = service.get("cover-photo");
@@ -82,7 +99,12 @@ describe("ImageBuildService", () => {
 
   test("rejects an already cancelled image batch before entity reads", async () => {
     const mockEntityService = createMockEntityService();
-    const service = new ImageBuildService(mockEntityService, logger, imagesDir);
+    const service = new ImageBuildService(
+      mockEntityService,
+      assetStore,
+      logger,
+      imagesDir,
+    );
     const controller = new AbortController();
     controller.abort(new Error("cancel image preparation"));
 
@@ -109,7 +131,12 @@ describe("ImageBuildService", () => {
       },
     });
 
-    const service = new ImageBuildService(mockEntityService, logger, imagesDir);
+    const service = new ImageBuildService(
+      mockEntityService,
+      assetStore,
+      logger,
+      imagesDir,
+    );
     await service.resolveAll(["tiny-icon"], new AbortController().signal);
 
     const resolved = service.get("tiny-icon");
@@ -125,7 +152,12 @@ describe("ImageBuildService", () => {
       returns: { getEntity: null },
     });
 
-    const service = new ImageBuildService(mockEntityService, logger, imagesDir);
+    const service = new ImageBuildService(
+      mockEntityService,
+      assetStore,
+      logger,
+      imagesDir,
+    );
     await service.resolveAll(["missing-id"], new AbortController().signal);
 
     expect(service.get("missing-id")).toBeUndefined();
@@ -149,7 +181,12 @@ describe("ImageBuildService", () => {
       },
     });
 
-    const service = new ImageBuildService(mockEntityService, logger, imagesDir);
+    const service = new ImageBuildService(
+      mockEntityService,
+      assetStore,
+      logger,
+      imagesDir,
+    );
     await service.resolveAll(
       ["shared", "shared", "shared"],
       new AbortController().signal,
@@ -177,7 +214,12 @@ describe("ImageBuildService", () => {
       },
     });
 
-    const service = new ImageBuildService(mockEntityService, logger, imagesDir);
+    const service = new ImageBuildService(
+      mockEntityService,
+      assetStore,
+      logger,
+      imagesDir,
+    );
     await service.resolveAll(["test"], new AbortController().signal);
 
     const map = service.getMap();
@@ -206,6 +248,7 @@ describe("ImageBuildService", () => {
 
       const service = new ImageBuildService(
         mockEntityService,
+        assetStore,
         logger,
         imagesDir,
       );
@@ -227,6 +270,7 @@ describe("ImageBuildService", () => {
       const mockEntityService = createMockEntityService();
       const service = new ImageBuildService(
         mockEntityService,
+        assetStore,
         logger,
         imagesDir,
       );
@@ -244,6 +288,7 @@ describe("ImageBuildService", () => {
       const mockEntityService = createMockEntityService();
       const service = new ImageBuildService(
         mockEntityService,
+        assetStore,
         logger,
         imagesDir,
       );

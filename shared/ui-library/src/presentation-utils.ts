@@ -11,8 +11,11 @@ const SLIDE_DIRECTIVE_PATTERN = /<!--\s*\.slide:\s*(.*?)\s*-->/g;
  * attributes plus the cleaned markdown. Supports quoted values and
  * bare boolean attributes.
  */
-export function parseSlideDirectives(markdown: string): SlideDirectiveResult {
-  const attributes: Record<string, string> = {};
+export function parseSlideDirectives(
+  markdown: string,
+  fallbackAttributes: Record<string, string> = {},
+): SlideDirectiveResult {
+  const attributes: Record<string, string> = { ...fallbackAttributes };
 
   for (const match of markdown.matchAll(SLIDE_DIRECTIVE_PATTERN)) {
     const attrString = match[1] ?? "";

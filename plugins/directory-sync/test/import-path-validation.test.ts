@@ -5,6 +5,7 @@ import { join } from "path";
 import { tmpdir } from "os";
 import type { BaseEntity } from "@brains/plugins";
 import {
+  createMockAssetsNamespace,
   createSilentLogger,
   createMockEntityService,
 } from "@brains/test-utils";
@@ -28,6 +29,7 @@ describe("Import Path Validation", () => {
     dirSync = new DirectorySync({
       syncPath: testDir,
       entityService: mockEntityService,
+      assets: createMockAssetsNamespace(),
       logger: createSilentLogger("test"),
     });
   });

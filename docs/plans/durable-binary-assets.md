@@ -1,10 +1,15 @@
 # Durable Binary Asset Storage Plan
 
-Last updated: 2026-08-05
+Last updated: 2026-08-13
 
 ## Status
 
-Proposed
+In progress. The asset foundation, image cutover, migration/reconciliation tooling,
+implementation-review fixes, and isolated `yeehaa.io` rehearsal are complete on the
+pushed `feat/durable-binary-assets-migration` branch. The remaining work is to merge and
+deploy that implementation, perform the production cutover and soak, remove the
+transitional image bridge after zero-use telemetry, and complete the independent PDF
+follow-up.
 
 ## Summary
 
@@ -342,8 +347,11 @@ brain assets reconcile --entity-type image --from brain-data
 
 Reconciliation scans every binary independently of entity content hashes, restores
 missing assets through `putStream`, verifies file bytes against existing references, and
-reports mismatches without silently changing an entity reference. The PDF phase extends
-the same command to `brain-data/document`.
+reports mismatches without silently changing an entity reference. File-versus-reference
+verification runs for every row, including when the runtime asset already exists and
+passes digest verification, so a drifted `brain-data` file is reported before the
+runtime copy is ever lost. The PDF phase extends the same command to
+`brain-data/document`.
 
 The migration does not rewrite the content repository or Git history. The runtime asset
 store and the synced content checkout intentionally contain separate copies because they
@@ -529,7 +537,9 @@ round-trips through directory sync without a second entity hash change. The inde
 1. Confirm sufficient temporary disk for a database backup, approximately one additional
    asset corpus, and SQLite compaction. Use the dry-run estimate; for the current local
    corpus, reserve at least 4 GiB before beginning.
-2. Deploy the transitional release without running the migration automatically.
+2. Deploy the transitional release without running the migration automatically. Before
+   pinning, map the published version to its commit and confirm it contains the image
+   cutover; a moved npm `latest` is not evidence the release includes it.
 3. Enter a bounded maintenance window and stop the entire brain application, including
    background workers and content writes; confirm the process remains stopped until the
    mutating command releases its exclusive SQLite lock.
@@ -640,7 +650,15 @@ workflows:
 10. A clean restore from synced `brain-data` rebuilds the asset store and produces a
     working site.
 11. Missing or corrupt assets produce bounded errors and visible failed state rather than
-    process crashes or silent empty images.
+    process crashes or silent empty images. `read` is deliberately not digest-verified —
+    hashing every read would be prohibitive on site builds — so it catches truncation
+    through a size check only. Image and document readers additionally validate the
+    binary signature, dimensions, and size-versus-metadata consistency, which fails
+    loudly on truncated or header-corrupt bytes. Byte-level corruption that preserves a
+    valid header is caught only by operator tooling (`brain migrate binary-assets
+--verify` and `brain assets reconcile`), never on the read path; no reader calls
+    `verify`, because digest verification cannot run on bytes that already passed
+    inspection.
 
 The stored/raw entity contract intentionally changes: completed `image.content` and later
 `document.content` contain an internal asset reference. The transitional resolved-read
@@ -683,38 +701,32 @@ script, trigger the site rebuild on the running app through MCP HTTP, and inspec
 `dist/site-preview` before production output. Validate both a fresh runtime and a runtime
 containing mixed legacy/new image rows during the transition.
 
+## Resolved implementation review
+
+The 2026-08-09 implementation review findings are resolved on the implementation
+branch: lockfile alignment, buffered-size ownership, early streamed-size enforcement,
+canonical-source reconciliation, one-asset migration memory, and repository-standard
+streaming I/O. Runtime readers intentionally perform bounded size and media validation;
+full digest verification remains operator tooling only.
+
 ## Delivery sequence
 
-### PR 1: asset service and FTS policy
+### Combined implementation PR: foundation, image cutover, and migration tooling
 
 - Lower-level `@brains/assets` contracts and `@brains/asset-service` filesystem
   implementation without dependency cycles.
-- Explicit `assetDirectory` plumbing through standard, app, and shell configuration.
-- Shell/plugin-context integration and entity-service resolver injection.
-- Explicit full-text eligibility policy.
-- Lifecycle, path-resolution, security, and atomic-write tests.
-
-### PR 2: image cutover
-
-- Image schema/adapter and pending-state changes.
-- All image writers and readers moved to the asset service.
-- Entity-ID-based attachment descriptor plus explicit get/raw/list binary-content modes
-  and compatibility bridges.
-- PNG/JPEG/GIF/WebP policy with blocking SVG preflight/removal.
-- Directory-sync no-drift, asset-first short-circuit, separate text/asset limits, and
-  missing-asset startup restoration coverage coordinated with
-  `directory-sync-import-load.md`.
-- UX regression coverage.
-
-### PR 3: migration and reconciliation tooling
-
-- Explicit CLI dry-run/migrate/verify command.
-- Explicit `brain assets reconcile` command for full `brain-data` rehydration.
-- Local-SQLite-only fencing, resumable asset prewrite, exclusive transactional entity/FTS
-  mutation, and no-event migration repository.
-- Checkpoint, manifest, one-time hash transition, corruption, idempotency,
-  reconciliation, and backup/rollback tests.
-- `yeehaa.io` staging rehearsal instructions.
+- Explicit `assetDirectory` plumbing, shell/plugin integration, FTS eligibility policy,
+  and lifecycle/path/security/atomic-write tests.
+- Image schema/adapter and pending-state changes, with every image writer and reader moved
+  to the asset service.
+- Entity-ID-based attachment descriptors, explicit binary-content modes, the bounded
+  compatibility bridge, PNG/JPEG/GIF/WebP policy, and blocking SVG preflight.
+- Directory-sync no-drift, asset-first short-circuit, independent text/asset limits,
+  missing-asset restoration, and UX regression coverage.
+- Explicit CLI dry-run/migrate/verify and `brain assets reconcile` commands.
+- Local-SQLite-only fencing, resumable prewrite, transactional entity/FTS mutation,
+  safe manifests, idempotency, reconciliation, and backup/rollback tests.
+- `yeehaa.io` staging rehearsal and production runbook.
 
 ### Operational window: `yeehaa.io`
 

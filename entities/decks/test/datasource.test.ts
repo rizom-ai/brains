@@ -1,11 +1,7 @@
 import { describe, it, expect, beforeEach, spyOn } from "bun:test";
 import { DeckDataSource } from "../src/datasources/deck-datasource";
 import type { DeckEntity } from "../src/schemas/deck";
-import type {
-  BaseEntity,
-  IEntityService,
-  BaseDataSourceContext,
-} from "@brains/plugins";
+import type { IEntityService, BaseDataSourceContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
 import { createMockLogger, createMockEntityService } from "@brains/test-utils";
@@ -165,7 +161,7 @@ describe("DeckDataSource", () => {
       expect(result.markdown).toBe("# Test Deck\n\n---\n\n# Slide 2");
     });
 
-    it("should inject cover image directive when coverImageId exists", async () => {
+    it("defers cover rendering without materializing image bytes", async () => {
       const deck = createMockDeckEntity({
         id: "deck-with-cover",
         title: "Deck With Cover",
@@ -191,22 +187,8 @@ coverImageId: cover-img-1
         },
       });
 
-      const coverImageEntity: BaseEntity = {
-        id: "cover-img-1",
-        entityType: "image",
-        content: "data:image/png;base64,AAAA",
-        visibility: "public",
-        metadata: {
-          title: "Cover",
-          alt: "Cover image",
-        },
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
-        contentHash: "abc",
-      };
-
       spyOn(mockEntityService, "listEntities").mockResolvedValue([deck]);
-      spyOn(mockEntityService, "getEntity").mockResolvedValue(coverImageEntity);
+      const getEntity = spyOn(mockEntityService, "getEntity");
 
       const result = await datasource.fetch(
         { entityType: "deck", query: { id: "deck-with-cover" } },
@@ -214,10 +196,8 @@ coverImageId: cover-img-1
         mockContext,
       );
 
-      expect(result.markdown).toContain("<!-- .slide: data-background-image=");
-      expect(result.markdown).toContain("data-background-opacity=");
-      // Directive should be at the start
-      expect(result.markdown.startsWith("<!-- .slide:")).toBe(true);
+      expect(getEntity).not.toHaveBeenCalled();
+      expect(result.markdown).not.toContain("data-background-image");
     });
 
     it("should not inject directive when no coverImageId", async () => {

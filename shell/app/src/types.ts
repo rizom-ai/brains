@@ -181,6 +181,7 @@ interface AppConfigSchemaRaw {
   name: string;
   version: string;
   database?: string | undefined;
+  assetDirectory?: string | undefined;
   aiApiKey?: string | undefined;
   aiImageKey?: string | undefined;
   aiModel?: string | undefined;
@@ -201,6 +202,7 @@ export const appConfigSchema: z.ZodType<AppConfigSchemaRaw> = z.object({
   version: z.string().default("1.0.0"),
   // These map directly to Shell config but with simpler names
   database: z.string().optional(), // Maps to database.url in Shell
+  assetDirectory: z.string().trim().min(1).optional(),
   aiApiKey: z.string().optional(), // Maps to ai.apiKey in Shell
   aiImageKey: z.string().optional(), // Optional override for image generation
   aiModel: z.string().optional(), // AI model — determines provider (e.g. "gpt-4o-mini", "openai:gpt-4o")

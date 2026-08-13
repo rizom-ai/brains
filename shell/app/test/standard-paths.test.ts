@@ -27,6 +27,7 @@ describe("resolveStandardConfig", () => {
   it("maps XDG_DATA_HOME to /data database urls (Docker/Kamal contract)", () => {
     const config = resolveStandardConfig({ XDG_DATA_HOME: "/data" });
 
+    expect(config.assetDirectory).toBe("/data/assets");
     expect(config.database.url).toBe("file:/data/brain.db");
     expect(config.jobQueueDatabase.url).toBe("file:/data/brain-jobs.db");
     expect(config.conversationDatabase.url).toBe("file:/data/conversations.db");

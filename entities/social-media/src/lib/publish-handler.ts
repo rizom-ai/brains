@@ -47,6 +47,7 @@ export function subscribeToPublishExecute(
     sendMessage: context.messaging.send,
     logger: logger.child("PublishExecuteHandler"),
     entityService: context.entityService,
+    assets: context.assets,
     providers,
     permissions: context.permissions,
     resolveAttachment: context.attachments.resolve,

@@ -92,6 +92,23 @@ describe("directory sync config", () => {
     expect(result.git?.authToken).toBe("test-token-abc123");
   });
 
+  it("defaults text and asset imports to independent byte limits", () => {
+    const result = directorySyncConfigSchema.parse({});
+
+    expect(result.maxImportFileBytes).toBe(5 * 1024 * 1024);
+    expect(result.maxAssetImportBytes).toBe(100 * 1024 * 1024);
+  });
+
+  it("allows text and asset import limits to be configured independently", () => {
+    const result = directorySyncConfigSchema.parse({
+      maxImportFileBytes: 1024,
+      maxAssetImportBytes: 2048,
+    });
+
+    expect(result.maxImportFileBytes).toBe(1024);
+    expect(result.maxAssetImportBytes).toBe(2048);
+  });
+
   it("should have syncInterval at top level with default of 2 minutes", () => {
     const result = directorySyncConfigSchema.parse({});
     expect(result.syncInterval).toBe(2);

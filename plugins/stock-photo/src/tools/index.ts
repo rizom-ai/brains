@@ -106,6 +106,8 @@ function createSelectTool(pluginId: string, deps: StockPhotoToolsDeps): Tool {
       // Deduplicate by image URL stored as sourceUrl on the entity
       const existing = await deps.entityService.listEntities({
         entityType: "image",
+        binaryContent: "reference",
+        binaryContentSurface: "stock-photo-dedup",
         options: {
           limit: 1,
           filter: { metadata: { sourceUrl: imageUrl } },

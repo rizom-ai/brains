@@ -11,6 +11,7 @@ import type { toolSuccessSchema, toolErrorSchema } from "@brains/mcp-service";
 
 type ToolSuccess = z.output<typeof toolSuccessSchema>;
 type ToolError = z.output<typeof toolErrorSchema>;
+import type { AssetStore } from "@brains/assets";
 import type { Logger } from "@brains/utils/logger";
 import { createSilentLogger } from "@brains/test-utils";
 import type { Template } from "@brains/templates";
@@ -42,6 +43,8 @@ export interface HarnessOptions {
   preferLocalUrls?: boolean;
   /** Optional composition-selected semantic profile kind */
   profileKind?: string;
+  /** Durable asset store used by plugin contexts in this harness. */
+  assetStore?: AssetStore;
 }
 
 /**
@@ -65,6 +68,7 @@ export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
       localSiteUrl?: string;
       preferLocalUrls?: boolean;
       profileKind?: string;
+      assetStore?: AssetStore;
     } = { logger };
     if (options.dataDir !== undefined) {
       mockShellOptions.dataDir = options.dataDir;
@@ -80,6 +84,9 @@ export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
     }
     if (options.profileKind !== undefined) {
       mockShellOptions.profileKind = options.profileKind;
+    }
+    if (options.assetStore !== undefined) {
+      mockShellOptions.assetStore = options.assetStore;
     }
     this.mockShell = createMockShell(mockShellOptions);
   }
@@ -103,6 +110,7 @@ export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
         localSiteUrl?: string;
         preferLocalUrls?: boolean;
         profileKind?: string;
+        assetStore?: AssetStore;
       } = {
         logger: createSilentLogger(context),
       };
@@ -120,6 +128,9 @@ export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
       }
       if (this.options.profileKind !== undefined) {
         mockShellOptions.profileKind = this.options.profileKind;
+      }
+      if (this.options.assetStore !== undefined) {
+        mockShellOptions.assetStore = this.options.assetStore;
       }
       this.mockShell = createMockShell(mockShellOptions);
     }
@@ -389,6 +400,7 @@ export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
     // Create a fresh MockShell
     this.mockShell = createMockShell({
       logger: this.mockShell.getLogger(),
+      ...(this.options.assetStore && { assetStore: this.options.assetStore }),
     });
   }
 

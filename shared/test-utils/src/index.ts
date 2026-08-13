@@ -26,6 +26,15 @@ export {
 // Progress reporter mocks
 export { createMockProgressReporter } from "./mock-progress-reporter";
 
+// Durable asset mocks
+export {
+  createMockAssetStore,
+  createMockAssetsNamespace,
+  TINY_PNG_BYTES,
+  type MockAssetStore,
+  type MockAssetsNamespace,
+} from "./mock-assets";
+
 // Service plugin context mocks
 export {
   createMockServicePluginContext,

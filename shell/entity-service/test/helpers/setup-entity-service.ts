@@ -1,3 +1,4 @@
+import type { BinaryContentResolver } from "@brains/assets";
 import { EntityService } from "../../src/entityService";
 import { EntityRegistry } from "../../src/entityRegistry";
 import {
@@ -10,6 +11,7 @@ import type {
   EntityAdapter,
   BaseEntity,
   EntityEventBus,
+  EntityTypeConfig,
 } from "../../src/types";
 import { mockEmbeddingService } from "./mock-services";
 import { createTestEntityDatabase } from "./test-entity-db";
@@ -27,7 +29,7 @@ interface EntityTypeRegistration {
   name: string;
   schema: EntityAdapter<BaseEntity>["schema"];
   adapter: EntityAdapter<BaseEntity>;
-  config?: { weight?: number; embeddable?: boolean };
+  config?: EntityTypeConfig;
 }
 
 /**
@@ -42,6 +44,7 @@ export async function setupEntityService(
   options?: {
     messageBus?: EntityEventBus;
     embeddingsEnabled?: boolean;
+    binaryContentResolver?: BinaryContentResolver;
   },
 ): Promise<EntityServiceTestContext> {
   const testDb = await createTestEntityDatabase();
@@ -71,6 +74,9 @@ export async function setupEntityService(
     dbConfig: testDb.config,
     embeddingDbConfig: testDb.embeddingConfig,
     ...(options?.messageBus && { messageBus: options.messageBus }),
+    ...(options?.binaryContentResolver && {
+      binaryContentResolver: options.binaryContentResolver,
+    }),
   });
 
   const cleanup = async (): Promise<void> => {

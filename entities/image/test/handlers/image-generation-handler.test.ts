@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { describe, it, expect, beforeEach } from "bun:test";
 import {
   ImageGenerationJobHandler,
@@ -7,7 +8,11 @@ import {
   createSilentLogger,
   createMockEntityPluginContext,
 } from "@brains/test-utils";
-import type { BaseEntity, EntityPluginContext } from "@brains/plugins";
+import {
+  createAssetRef,
+  type BaseEntity,
+  type EntityPluginContext,
+} from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import { ProgressReporter } from "@brains/utils/progress";
 
@@ -15,6 +20,10 @@ import { ProgressReporter } from "@brains/utils/progress";
 const VALID_PNG_BASE64 =
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
 const VALID_PNG_DATA_URL = `data:image/png;base64,${VALID_PNG_BASE64}`;
+const VALID_PNG_BYTES = Buffer.from(VALID_PNG_BASE64, "base64");
+const VALID_PNG_ASSET_REF = createAssetRef(
+  createHash("sha256").update(VALID_PNG_BYTES).digest("hex"),
+);
 
 describe("ImageGenerationJobHandler", () => {
   let handler: ImageGenerationJobHandler;
@@ -175,9 +184,11 @@ describe("ImageGenerationJobHandler", () => {
         entity: expect.objectContaining({
           id: "sunset-image",
           entityType: "image",
-          content: VALID_PNG_DATA_URL,
+          content: VALID_PNG_ASSET_REF,
           metadata: expect.objectContaining({
             title: "Sunset Image",
+            mediaType: "image/png",
+            sizeBytes: VALID_PNG_BYTES.byteLength,
           }),
         }),
       });
@@ -232,9 +243,11 @@ describe("ImageGenerationJobHandler", () => {
       expect(pendingContext.entityService.updateEntity).toHaveBeenCalledWith({
         entity: expect.objectContaining({
           id: "sunset-image",
-          content: VALID_PNG_DATA_URL,
+          content: VALID_PNG_ASSET_REF,
           metadata: expect.objectContaining({
             title: "Sunset Image",
+            mediaType: "image/png",
+            sizeBytes: VALID_PNG_BYTES.byteLength,
             status: "draft",
           }),
         }),
@@ -285,8 +298,12 @@ describe("ImageGenerationJobHandler", () => {
       expect(regenContext.entityService.updateEntity).toHaveBeenCalledWith({
         entity: expect.objectContaining({
           id: "sunset-image",
-          content: VALID_PNG_DATA_URL,
-          metadata: expect.objectContaining({ status: "draft" }),
+          content: VALID_PNG_ASSET_REF,
+          metadata: expect.objectContaining({
+            mediaType: "image/png",
+            sizeBytes: VALID_PNG_BYTES.byteLength,
+            status: "draft",
+          }),
         }),
       });
       expect(regenContext.entityService.deleteEntity).not.toHaveBeenCalled();

@@ -115,6 +115,7 @@ export function createMockEntityService(
     search: mock(() => Promise.resolve(returns.search ?? [])),
     getEntityTypes: mock(() => entityTypes),
     hasEntityType: mock((type: string) => entityTypes.includes(type)),
+    getEntityTypeConfig: mock(() => ({})),
     serializeEntity: mock(() => ""),
     deserializeEntity: mock(() => ({})),
     getAsyncJobStatus: mock(() =>

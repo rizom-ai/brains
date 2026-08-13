@@ -265,7 +265,7 @@ export class EntityMutations {
           created: new Date(validatedEntity.created).getTime(),
           updated: new Date(validatedEntity.updated).getTime(),
         });
-        await this.upsertFtsIndex(
+        await this.syncFtsIndex(
           transaction,
           finalId,
           validatedEntity.entityType,
@@ -392,6 +392,14 @@ export class EntityMutations {
       this.logger.debug(
         `Skipping no-op update for ${validatedEntity.entityType}:${validatedEntity.id}`,
       );
+      // A policy change can leave a stale FTS row even when entity fields are
+      // unchanged. Drop it here, but never rewrite an identical row for a
+      // searchable type: this path is idempotent and runs often, and a
+      // delete/insert of the full serialized content is pure write amplification.
+      await this.pruneFtsIndexIfExcluded(
+        validatedEntity.id,
+        validatedEntity.entityType,
+      );
       if (options?.eventContext) {
         await this.emitEntityEvent(
           ENTITY_CHANNELS.updated,
@@ -449,7 +457,7 @@ export class EntityMutations {
           ) {
             throw new StaleEntityUpdateError();
           }
-          await this.upsertFtsIndex(
+          await this.syncFtsIndex(
             transaction,
             validatedEntity.id,
             validatedEntity.entityType,
@@ -840,20 +848,54 @@ export class EntityMutations {
   }
 
   /**
-   * Insert or replace FTS5 index entry for an entity.
+   * Synchronize an entity's FTS5 row with its independently configured
+   * full-text policy. FTS5 has no upsert, so deletion always comes first.
    */
-  private async upsertFtsIndex(
+  private async syncFtsIndex(
     database: Pick<EntityDB, "run">,
     entityId: string,
     entityType: string,
     content: string,
   ): Promise<void> {
-    // FTS5 doesn't support upsert — delete then insert
+    await this.deleteFtsIndex(database, entityId, entityType);
+
+    if (!this.isFullTextSearchable(entityType)) {
+      return;
+    }
+
+    await database.run(
+      sql`INSERT INTO entity_fts (entity_id, entity_type, content) VALUES (${entityId}, ${entityType}, ${content})`,
+    );
+  }
+
+  /**
+   * Remove an FTS5 row left behind by a type that is no longer full-text
+   * searchable. Searchable types are untouched, so idempotent writes stay free.
+   */
+  private async pruneFtsIndexIfExcluded(
+    entityId: string,
+    entityType: string,
+  ): Promise<void> {
+    if (this.isFullTextSearchable(entityType)) {
+      return;
+    }
+    await this.deleteFtsIndex(this.db, entityId, entityType);
+  }
+
+  private async deleteFtsIndex(
+    database: Pick<EntityDB, "run">,
+    entityId: string,
+    entityType: string,
+  ): Promise<void> {
     await database.run(
       sql`DELETE FROM entity_fts WHERE entity_id = ${entityId} AND entity_type = ${entityType}`,
     );
-    await database.run(
-      sql`INSERT INTO entity_fts (entity_id, entity_type, content) VALUES (${entityId}, ${entityType}, ${content})`,
+  }
+
+  private isFullTextSearchable(entityType: string): boolean {
+    return (
+      this.entityRegistry.getEntityTypeConfig(entityType).fullTextSearchable !==
+      false
     );
   }
 

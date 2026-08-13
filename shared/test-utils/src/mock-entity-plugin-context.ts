@@ -1,6 +1,7 @@
 import { mock } from "bun:test";
 import type {
   EntityPluginContext,
+  IAssetsNamespace,
   IEntityService,
   BaseEntity,
   MessageSendRequest,
@@ -14,6 +15,7 @@ import {
 } from "./mock-entity-service";
 import { createMockLogger } from "./mock-logger";
 import { createMockAppInfo } from "./mock-app-info";
+import { createMockAssetsNamespace } from "./mock-assets";
 
 /**
  * Return value configuration for AI namespace methods
@@ -37,6 +39,7 @@ export interface MockEntityPluginContextOptions {
   dataDir?: string;
   spaces?: string[];
   profileSelection?: ResolvedProfileSelection;
+  assets?: IAssetsNamespace;
   returns?: {
     entityService?: MockEntityServiceReturns;
     ai?: MockAIReturns;
@@ -78,6 +81,7 @@ export function createMockEntityPluginContext(
     logger,
     pluginId,
     dataDir,
+    assets: options.assets ?? createMockAssetsNamespace(),
 
     entities: {
       register: mock(() => {}),

@@ -5,6 +5,7 @@ import { join } from "path";
 import { tmpdir } from "os";
 import { EntityValidationError } from "@brains/plugins";
 import {
+  createMockAssetsNamespace,
   createSilentLogger,
   createMockEntityService,
 } from "@brains/test-utils";
@@ -36,6 +37,7 @@ describe("Deserialize error quarantine behavior", () => {
     dirSync = new DirectorySync({
       syncPath: testDir,
       entityService: mockEntityService,
+      assets: createMockAssetsNamespace(),
       logger: createSilentLogger("test"),
     });
   });

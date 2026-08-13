@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, spyOn } from "bun:test";
 import { DirectorySync } from "../src/lib/directory-sync";
 import {
+  createMockAssetsNamespace,
   createSilentLogger,
   createMockEntityService,
   createTestEntity,
@@ -89,6 +90,7 @@ slug: test-series
       autoSync: false,
       entityTypes: ["series"],
       entityService: mockEntityService,
+      assets: createMockAssetsNamespace(),
       logger: createSilentLogger("test"),
     });
 

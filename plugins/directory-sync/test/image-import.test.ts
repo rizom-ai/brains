@@ -3,10 +3,17 @@ import { DirectorySync } from "../src/lib/directory-sync";
 import { mkdirSync, rmSync, writeFileSync, existsSync, mkdtempSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
-import type { BaseEntity, EntityMutationResult } from "@brains/plugins";
 import {
+  parseAssetRef,
+  type BaseEntity,
+  type EntityMutationResult,
+} from "@brains/plugins";
+import {
+  createMockAssetsNamespace,
   createSilentLogger,
   createMockEntityService,
+  createTestEntity,
+  type MockAssetsNamespace,
 } from "@brains/test-utils";
 import { TINY_PDF_BYTES, TINY_PNG_BYTES } from "./fixtures";
 
@@ -14,15 +21,22 @@ describe("Image Import - Regression Tests", () => {
   let dirSync: DirectorySync;
   let testDir: string;
   let mockEntityService: ReturnType<typeof createMockEntityService>;
+  let assets: MockAssetsNamespace;
   let upsertedEntities: Array<{ entityType: string; id: string }>;
 
   beforeEach(() => {
     testDir = mkdtempSync(join(tmpdir(), "test-image-import-"));
 
     upsertedEntities = [];
+    assets = createMockAssetsNamespace();
     mockEntityService = createMockEntityService({
       entityTypes: ["topic", "image", "post", "document"],
     });
+
+    spyOn(mockEntityService, "getEntityTypeConfig").mockImplementation(
+      (entityType: string) =>
+        entityType === "image" ? { binaryStorage: "asset" } : {},
+    );
 
     spyOn(mockEntityService, "serializeEntity").mockImplementation(
       (entity: BaseEntity): string => `# ${entity.id}\n\n${entity.content}`,
@@ -53,6 +67,7 @@ describe("Image Import - Regression Tests", () => {
     dirSync = new DirectorySync({
       syncPath: testDir,
       entityService: mockEntityService,
+      assets,
       logger: createSilentLogger("test"),
     });
   });
@@ -75,7 +90,7 @@ describe("Image Import - Regression Tests", () => {
       // Create image files in image/ directory
       mkdirSync(join(testDir, "image"), { recursive: true });
       writeFileSync(join(testDir, "image", "photo.png"), TINY_PNG_BYTES);
-      writeFileSync(join(testDir, "image", "banner.webp"), TINY_PNG_BYTES);
+      writeFileSync(join(testDir, "image", "banner.png"), TINY_PNG_BYTES);
 
       // Import all entities (without specifying paths)
       const result = await dirSync.importEntities();
@@ -105,16 +120,15 @@ describe("Image Import - Regression Tests", () => {
       ]);
     });
 
-    it("should convert binary image to base64 data URL when importing", async () => {
+    it("should persist binary images as durable asset references", async () => {
       mkdirSync(join(testDir, "image"), { recursive: true });
       writeFileSync(join(testDir, "image", "test-image.png"), TINY_PNG_BYTES);
 
-      // Track the actual content passed to upsert
-      let capturedContent: string | undefined;
+      let capturedEntity: Partial<BaseEntity> | undefined;
       spyOn(mockEntityService, "upsertEntity").mockImplementation(
         async (request: { entity: Partial<BaseEntity> }) => {
           const entity = request.entity;
-          capturedContent = entity.content;
+          capturedEntity = entity;
           upsertedEntities.push({
             entityType: entity.entityType ?? "unknown",
             id: entity.id ?? "unknown",
@@ -135,7 +149,100 @@ describe("Image Import - Regression Tests", () => {
         entityType: "image",
         id: "test-image",
       });
-      expect(capturedContent).toMatch(/^data:image\/png;base64,/);
+      const ref = parseAssetRef(capturedEntity?.content);
+      expect(await assets.read(ref)).toEqual(TINY_PNG_BYTES);
+      expect(capturedEntity?.metadata).toMatchObject({
+        format: "png",
+        mediaType: "image/png",
+        sizeBytes: TINY_PNG_BYTES.byteLength,
+        width: 1,
+        height: 1,
+      });
+    });
+
+    it("restores a missing referenced asset before skipping an unchanged image", async () => {
+      mkdirSync(join(testDir, "image"), { recursive: true });
+      writeFileSync(join(testDir, "image", "restored.png"), TINY_PNG_BYTES);
+      const expected = createMockAssetsNamespace().store.seed(TINY_PNG_BYTES);
+      const existing = createTestEntity("image", {
+        id: "restored",
+        content: expected.ref,
+        metadata: {
+          format: "png",
+          mediaType: "image/png",
+          sizeBytes: expected.sizeBytes,
+          width: 1,
+          height: 1,
+        },
+      });
+      spyOn(mockEntityService, "getEntity").mockResolvedValue(existing);
+      const operations: string[] = [];
+      spyOn(assets, "stat").mockImplementation(async (ref) => {
+        operations.push("stat");
+        return assets.store.stat(ref);
+      });
+      spyOn(assets, "putStream").mockImplementation(async (chunks, options) => {
+        operations.push("putStream");
+        return assets.store.putStream(chunks, options);
+      });
+
+      const result = await dirSync.importEntities(["image/restored.png"]);
+
+      expect(result).toMatchObject({ imported: 0, skipped: 1, failed: 0 });
+      expect(operations).toEqual(["stat", "putStream"]);
+      expect(await assets.stat(expected.ref)).not.toBeNull();
+      expect(mockEntityService.deserializeEntity).not.toHaveBeenCalled();
+      expect(mockEntityService.upsertEntity).not.toHaveBeenCalled();
+    });
+
+    it("skips an unchanged image only after confirming its asset exists", async () => {
+      mkdirSync(join(testDir, "image"), { recursive: true });
+      writeFileSync(join(testDir, "image", "unchanged.png"), TINY_PNG_BYTES);
+      const stored = assets.store.seed(TINY_PNG_BYTES);
+      const existing = createTestEntity("image", {
+        id: "unchanged",
+        content: stored.ref,
+        metadata: {
+          format: "png",
+          mediaType: "image/png",
+          sizeBytes: stored.sizeBytes,
+          width: 1,
+          height: 1,
+        },
+      });
+      spyOn(mockEntityService, "getEntity").mockResolvedValue(existing);
+      const stat = spyOn(assets, "stat");
+      const putStream = spyOn(assets, "putStream");
+
+      const result = await dirSync.importEntities(["image/unchanged.png"]);
+
+      expect(result).toMatchObject({ imported: 0, skipped: 1, failed: 0 });
+      expect(stat).toHaveBeenCalledWith(stored.ref);
+      expect(putStream).not.toHaveBeenCalled();
+      expect(mockEntityService.deserializeEntity).not.toHaveBeenCalled();
+      expect(mockEntityService.upsertEntity).not.toHaveBeenCalled();
+    });
+
+    it("reports an oversized image as skipped and leaves the source in place", async () => {
+      mkdirSync(join(testDir, "image"), { recursive: true });
+      const sourcePath = join(testDir, "image", "oversized.png");
+      writeFileSync(sourcePath, TINY_PNG_BYTES);
+      const boundedSync = new DirectorySync({
+        syncPath: testDir,
+        entityService: mockEntityService,
+        assets,
+        logger: createSilentLogger("test"),
+        maxAssetImportBytes: TINY_PNG_BYTES.byteLength - 1,
+      });
+
+      const result = await boundedSync.importEntities(["image/oversized.png"]);
+
+      expect(result).toMatchObject({ imported: 0, skipped: 1, failed: 0 });
+      expect(result.issues?.[0]?.message).toContain(
+        "exceeds asset import limit",
+      );
+      expect(existsSync(sourcePath)).toBe(true);
+      expect(assets.store.contents.size).toBe(0);
     });
 
     it("should handle mixed import of markdown and images in single call", async () => {
@@ -147,8 +254,8 @@ describe("Image Import - Regression Tests", () => {
       writeFileSync(join(testDir, "topic", "topic1.md"), "# Topic 1");
       writeFileSync(join(testDir, "topic", "topic2.md"), "# Topic 2");
       writeFileSync(join(testDir, "post", "blog-post.md"), "# Blog Post");
-      writeFileSync(join(testDir, "image", "cover.webp"), TINY_PNG_BYTES);
-      writeFileSync(join(testDir, "image", "inline.jpg"), TINY_PNG_BYTES);
+      writeFileSync(join(testDir, "image", "cover.png"), TINY_PNG_BYTES);
+      writeFileSync(join(testDir, "image", "inline.png"), TINY_PNG_BYTES);
 
       const result = await dirSync.importEntities();
 

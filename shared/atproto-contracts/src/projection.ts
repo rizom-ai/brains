@@ -1,3 +1,4 @@
+import type { AssetRef } from "@brains/assets";
 import type { BaseEntity, IEntityService } from "@brains/entity-service";
 import type { AtprotoLexicon } from "./lexicon";
 import type { AtprotoBlobRef, AtprotoBrainPostRecord } from "./records";
@@ -58,6 +59,9 @@ export interface AtprotoPdsClientLike {
  */
 export interface AtprotoProjectionContext {
   entityService: IEntityService;
+  assets: {
+    read(ref: AssetRef): Promise<Uint8Array>;
+  };
 }
 
 export interface AtprotoProjectionBuildInput {

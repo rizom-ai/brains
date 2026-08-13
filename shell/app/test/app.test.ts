@@ -223,6 +223,31 @@ describe("App", () => {
       }
     });
 
+    it("passes an explicit asset directory to the shell", async () => {
+      const mockShell = createMockShell();
+      let shellConfig: Parameters<typeof Shell.createFresh>[0];
+      const migrationSpy = spyOn(
+        MigrationManager.prototype,
+        "runAllMigrations",
+      ).mockImplementation(async () => undefined);
+      const createFreshSpy = spyOn(Shell, "createFresh").mockImplementation(
+        (config) => {
+          shellConfig = config;
+          return mockShell;
+        },
+      );
+
+      try {
+        const app = App.create({ assetDirectory: "/srv/assets" });
+        await app.initialize({ mode: "startup-check" });
+
+        expect(shellConfig?.assetDirectory).toBe("/srv/assets");
+      } finally {
+        createFreshSpy.mockRestore();
+        migrationSpy.mockRestore();
+      }
+    });
+
     it("should prefer localhost runtime URLs outside production", async () => {
       const mockShell = createMockShell();
       let shellConfig: Parameters<typeof Shell.createFresh>[0];

@@ -44,9 +44,18 @@ export const PresentationLayout = ({
   const slides = markdown.split(/^---$/gm).map((slide) => slide.trim());
 
   // Build slide HTML
-  const processedSlides = slides.map((slideContent) => {
-    const { attributes, markdown: cleanMarkdown } =
-      parseSlideDirectives(slideContent);
+  const processedSlides = slides.map((slideContent, index) => {
+    const coverAttributes =
+      index === 0 && deck?.coverImageUrl
+        ? {
+            "data-background-image": deck.coverImageUrl,
+            "data-background-opacity": "0.4",
+          }
+        : undefined;
+    const { attributes, markdown: cleanMarkdown } = parseSlideDirectives(
+      slideContent,
+      coverAttributes,
+    );
     const columns = splitColumns(cleanMarkdown);
 
     let htmlContent: string;

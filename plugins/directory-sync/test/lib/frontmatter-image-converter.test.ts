@@ -1,20 +1,24 @@
 import { describe, test, expect, mock, beforeEach } from "bun:test";
 import { FrontmatterImageConverter } from "../../src/lib/frontmatter-image-converter";
 import {
+  createMockAssetsNamespace,
   createSilentLogger,
   createMockEntityService,
   createTestEntity,
+  type MockAssetsNamespace,
 } from "@brains/test-utils";
-import { TINY_PNG_DATA_URL as VALID_PNG_DATA_URL } from "../fixtures";
+import { TINY_PNG_BYTES, TINY_PNG_DATA_URL } from "../fixtures";
 
 describe("FrontmatterImageConverter", () => {
   let converter: FrontmatterImageConverter;
   let mockEntityService: ReturnType<typeof createMockEntityService>;
+  let assets: MockAssetsNamespace;
   let mockFetcher: ReturnType<typeof mock>;
   const logger = createSilentLogger();
 
   beforeEach(() => {
-    mockFetcher = mock(() => Promise.resolve(VALID_PNG_DATA_URL));
+    assets = createMockAssetsNamespace();
+    mockFetcher = mock(() => Promise.resolve(TINY_PNG_DATA_URL));
 
     mockEntityService = createMockEntityService({
       returns: {
@@ -24,6 +28,7 @@ describe("FrontmatterImageConverter", () => {
 
     converter = new FrontmatterImageConverter(
       mockEntityService,
+      assets,
       logger,
       mockFetcher,
     );
@@ -44,6 +49,18 @@ Post content here.`;
       expect(result.content).toContain("coverImageId:");
       expect(result.content).not.toContain("coverImageUrl:");
       expect(mockFetcher).toHaveBeenCalledWith("https://example.com/image.png");
+      const [ref] = assets.store.contents.keys();
+      if (!ref) throw new Error("Expected the converter to persist an asset");
+      expect(await assets.read(ref)).toEqual(TINY_PNG_BYTES);
+      expect(mockEntityService.createEntity).toHaveBeenCalledWith({
+        entity: expect.objectContaining({
+          content: ref,
+          metadata: expect.objectContaining({
+            mediaType: "image/png",
+            sizeBytes: TINY_PNG_BYTES.byteLength,
+          }),
+        }),
+      });
     });
 
     test("should skip if coverImageId already exists", async () => {
@@ -91,7 +108,7 @@ Post content here.`;
 
     test("should reuse existing image entity with same sourceUrl", async () => {
       // Create everything fresh for this test
-      const localFetcher = mock(() => Promise.resolve(VALID_PNG_DATA_URL));
+      const localFetcher = mock(() => Promise.resolve(TINY_PNG_DATA_URL));
       const localLogger = createSilentLogger();
 
       const existingImage = createTestEntity("image", {
@@ -107,6 +124,7 @@ Post content here.`;
 
       const converterWithExisting = new FrontmatterImageConverter(
         entityServiceWithExisting,
+        createMockAssetsNamespace(),
         localLogger,
         localFetcher,
       );

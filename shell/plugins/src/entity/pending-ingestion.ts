@@ -1,3 +1,4 @@
+import type { BinaryContentMode } from "@brains/assets";
 import {
   internalFullScope,
   type BaseEntity,
@@ -21,6 +22,8 @@ export interface PendingEntityService {
     entityType: string;
     id: string;
     visibilityScope?: ContentVisibility;
+    binaryContent?: BinaryContentMode;
+    binaryContentSurface?: string;
   }): Promise<BaseEntity | null>;
   createEntity(request: {
     entity: EntityInput<BaseEntity>;
@@ -67,6 +70,8 @@ export async function createPendingEntity({
     entityType: entity.entityType,
     id: entity.id,
     visibilityScope: internalFullScope("pending entity identity check"),
+    binaryContent: "reference",
+    binaryContentSurface: "pending-ingestion-create",
   });
 
   if (existingEntity) {
@@ -134,6 +139,8 @@ export async function saveProcessedEntity({
     entityType: entity.entityType,
     id: entity.id,
     visibilityScope: internalFullScope("pending entity completion"),
+    binaryContent: "reference",
+    binaryContentSurface: "pending-ingestion-save",
   });
 
   if (previousEntity) {
@@ -193,6 +200,8 @@ export async function failPendingEntity({
     entityType,
     id,
     visibilityScope: internalFullScope("pending entity failure"),
+    binaryContent: "reference",
+    binaryContentSurface: "pending-ingestion-fail",
   });
 
   if (!previousEntity) {

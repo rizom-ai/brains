@@ -1,14 +1,19 @@
+import { createHash } from "node:crypto";
 import { describe, expect, it } from "bun:test";
 import { ProgressReporter } from "@brains/utils/progress";
 import {
   createMockEntityPluginContext,
   createSilentLogger,
 } from "@brains/test-utils";
+import { createAssetRef } from "@brains/plugins";
 import { SourceImageRenderJobHandler } from "../../src/handlers/source-image-render-handler";
 
 const TINY_PNG_BASE64 =
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
 const TINY_PNG = Buffer.from(TINY_PNG_BASE64, "base64");
+const TINY_PNG_ASSET_REF = createAssetRef(
+  createHash("sha256").update(TINY_PNG).digest("hex"),
+);
 
 function createProgressReporter(): ProgressReporter {
   const reporter = ProgressReporter.from(async () => {});
@@ -71,8 +76,10 @@ describe("SourceImageRenderJobHandler", () => {
       entity: expect.objectContaining({
         id: "og-post-post-1",
         entityType: "image",
-        content: expect.stringContaining("data:image/png;base64,"),
+        content: TINY_PNG_ASSET_REF,
         metadata: expect.objectContaining({
+          mediaType: "image/png",
+          sizeBytes: TINY_PNG.byteLength,
           attachmentType: "og-image",
           sourceEntityType: "post",
           sourceEntityId: "post-1",

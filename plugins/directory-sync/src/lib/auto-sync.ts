@@ -83,6 +83,8 @@ export function setupAutoSync(
         const currentEntity = await entityService.getEntity({
           entityType: entityType,
           id: entityId,
+          binaryContent: "reference",
+          binaryContentSurface: "directory-sync-auto-export",
         });
         if (!currentEntity) {
           logger.debug("Entity not found in DB, skipping export", {

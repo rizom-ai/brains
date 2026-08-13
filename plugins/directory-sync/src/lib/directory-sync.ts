@@ -97,6 +97,11 @@ export class DirectorySync implements IDirectorySync {
       this.logger,
       this.entityService,
       this.syncPath,
+      options.assets,
+      {
+        maxImportFileBytes: normalizedOptions.maxImportFileBytes,
+        maxAssetImportBytes: normalizedOptions.maxAssetImportBytes,
+      },
       this.deleteOnFileRemoval,
     );
     this.fileOperations = dependencies.fileOperations;

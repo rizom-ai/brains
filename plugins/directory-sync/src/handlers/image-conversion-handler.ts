@@ -8,11 +8,7 @@ import { getErrorMessage } from "@brains/utils/error";
 import { parseMarkdown, generateMarkdown } from "@brains/utils/markdown";
 import { PROGRESS_STEPS, JobResult } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
-import {
-  parseDataUrl,
-  detectImageFormat,
-  detectImageDimensions,
-} from "@brains/image";
+import { inspectImageBytes, parseDataUrl } from "@brains/image";
 import { coverImageConversionJobSchema } from "../types";
 import type { CoverImageConversionJobData } from "../types";
 
@@ -140,6 +136,8 @@ export class CoverImageConversionJobHandler extends BaseJobHandler<
       // Step 3: Check for existing image with this sourceUrl (deduplication)
       const existing = await this.context.entityService.listEntities({
         entityType: "image",
+        binaryContent: "reference",
+        binaryContentSurface: "directory-sync-cover-image-dedup",
         options: {
           filter: { metadata: { sourceUrl } },
           limit: 1,
@@ -182,16 +180,12 @@ export class CoverImageConversionJobHandler extends BaseJobHandler<
           message: "Creating image entity",
         });
 
-        // Extract format and dimensions
-        const { base64 } = parseDataUrl(dataUrl);
-        const format = detectImageFormat(base64);
-        const dimensions = detectImageDimensions(base64);
-
-        if (!format || !dimensions) {
-          const errorMessage = "Could not detect image format or dimensions";
-          this.logger.error(errorMessage, { sourceUrl });
-          return JobResult.failure(new Error(errorMessage));
-        }
+        const parsedImage = parseDataUrl(dataUrl);
+        const inspected = inspectImageBytes(
+          parsedImage.bytes,
+          parsedImage.mediaType,
+        );
+        const stored = await this.context.assets.put(parsedImage.bytes);
 
         // Step 5: Create image entity
         imageId = `${postSlug}-cover`;
@@ -202,13 +196,15 @@ export class CoverImageConversionJobHandler extends BaseJobHandler<
           entity: {
             id: imageId,
             entityType: "image",
-            content: dataUrl,
+            content: stored.ref,
             metadata: {
               title: imageTitle,
               alt: imageAlt,
-              format,
-              width: dimensions.width,
-              height: dimensions.height,
+              format: inspected.format,
+              mediaType: inspected.mediaType,
+              sizeBytes: stored.sizeBytes,
+              width: inspected.width,
+              height: inspected.height,
               sourceUrl,
             },
           },

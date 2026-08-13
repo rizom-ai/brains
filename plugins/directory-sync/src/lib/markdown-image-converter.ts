@@ -1,4 +1,4 @@
-import type { IEntityService } from "@brains/plugins";
+import type { IAssetsNamespace, IEntityService } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import {
   extractMarkdownImages,
@@ -47,15 +47,18 @@ export interface InlineConversionResult {
  */
 export class MarkdownImageConverter {
   private entityService: IEntityService;
+  private assets: IAssetsNamespace;
   private fetcher: ImageFetcher;
   private logger: Logger;
 
   constructor(
     entityService: IEntityService,
+    assets: IAssetsNamespace,
     logger: Logger,
     fetcher: ImageFetcher = fetchImageAsBase64,
   ) {
     this.entityService = entityService;
+    this.assets = assets;
     this.fetcher = fetcher;
     this.logger = logger.child("MarkdownImageConverter");
   }
@@ -179,6 +182,7 @@ export class MarkdownImageConverter {
         sourceUrl,
       },
       this.entityService,
+      this.assets,
       this.fetcher,
       this.logger,
     );

@@ -232,6 +232,8 @@ Some text
       expect(mockEntityService.getEntityRaw).toHaveBeenCalledWith({
         entityType: "image",
         id: "test-id",
+        binaryContent: "legacy-data-url",
+        binaryContentSurface: "entity-content-resolver",
       });
       expect(mockEntityService.getEntity).not.toHaveBeenCalled();
     });

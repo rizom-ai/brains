@@ -1,6 +1,9 @@
 import { describe, it, expect, beforeEach, spyOn } from "bun:test";
 import { FileOperations } from "../src/lib/file-operations";
-import { createMockEntityService } from "@brains/test-utils";
+import {
+  createMockAssetsNamespace,
+  createMockEntityService,
+} from "@brains/test-utils";
 import { join } from "path";
 
 describe("FileOperations.parseEntityFromPath", () => {
@@ -17,7 +20,11 @@ describe("FileOperations.parseEntityFromPath", () => {
       metadata: {},
     }));
 
-    fileOps = new FileOperations(testDir, mockEntityService);
+    fileOps = new FileOperations(
+      testDir,
+      mockEntityService,
+      createMockAssetsNamespace(),
+    );
   });
 
   describe("root level files", () => {

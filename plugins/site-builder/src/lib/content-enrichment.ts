@@ -219,6 +219,8 @@ async function resolveCoverImage(
   const image = await entityService.getEntity({
     entityType: "image",
     id: imageId,
+    binaryContent: "legacy-data-url",
+    binaryContentSurface: "site-content-enrichment-fallback",
   });
   const imageCheck = imageEntitySchema.safeParse(image);
   if (!imageCheck.success) return undefined;

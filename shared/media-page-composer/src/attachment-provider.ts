@@ -6,6 +6,13 @@ import type {
   EntityPluginContext,
 } from "@brains/plugins";
 import type { PublishMediaData } from "@brains/contracts";
+import {
+  createDataUrl,
+  isAssetImageContent,
+  resolveImageBytes,
+  tryParseDataUrl,
+  type Image,
+} from "@brains/image";
 import { slugify } from "@brains/utils/string-utils";
 import { renderOgImagePng, type ScreenshotPng } from "./og-image";
 import { renderPrintablePdf, type RenderPdf } from "./printable";
@@ -14,7 +21,7 @@ import type { MediaPageTemplate } from "./types";
 /** The slice of the entity plugin context media attachment providers need. */
 export type MediaAttachmentContext = Pick<
   EntityPluginContext,
-  "entityService" | "themeCSS" | "identity" | "domain"
+  "entityService" | "assets" | "themeCSS" | "identity" | "domain"
 >;
 
 /** Context-derived values every template content builder ends up needing. */
@@ -86,13 +93,28 @@ export function createMediaContentHelpers(
       imageId: string | undefined,
     ): Promise<string | undefined> => {
       if (!imageId) return undefined;
-      const image = await context.entityService.getEntity({
+      const image = await context.entityService.getEntity<Image>({
         entityType: "image",
         id: imageId,
+        binaryContent: "reference",
+        binaryContentSurface: "media-page-composer",
       });
-      return image?.content.startsWith("data:image/")
-        ? image.content
-        : undefined;
+      if (!image?.content) return undefined;
+      if (
+        !isAssetImageContent(image.content) &&
+        !tryParseDataUrl(image.content)
+      ) {
+        return undefined;
+      }
+      const resolved = await resolveImageBytes(image, context.assets);
+      return createDataUrl(
+        Buffer.from(
+          resolved.bytes.buffer,
+          resolved.bytes.byteOffset,
+          resolved.bytes.byteLength,
+        ).toString("base64"),
+        resolved.format,
+      );
     },
   };
 }

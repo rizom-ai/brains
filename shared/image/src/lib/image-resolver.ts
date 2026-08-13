@@ -1,42 +1,11 @@
-import type { ICoreEntityService, BaseEntity } from "@brains/entity-service";
 import { updateFrontmatterField } from "@brains/utils/markdown";
 import { fromYaml } from "@brains/utils/yaml";
 import { z } from "@brains/utils/zod";
-import type { Image, ResolvedImage } from "../schemas/image";
 
 // Matches the leading `---\n…\n---` frontmatter block. Capture group 1 is
 // the inner YAML, so callers can parse just that slice and skip the body.
 const FRONTMATTER_BLOCK = /^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/;
 const frontmatterRecordSchema = z.record(z.string(), z.unknown());
-
-/**
- * Resolve an image entity by ID and return display-ready data
- *
- * @param imageId - The image entity ID to resolve
- * @param entityService - Entity service for fetching the image
- * @returns ResolvedImage with url, alt, title, width, height - or null if not found
- */
-export async function resolveImage(
-  imageId: string,
-  entityService: ICoreEntityService,
-): Promise<ResolvedImage | undefined> {
-  const image = await entityService.getEntity<Image>({
-    entityType: "image",
-    id: imageId,
-  });
-
-  if (!image) {
-    return undefined;
-  }
-
-  return {
-    url: image.content,
-    alt: image.metadata.alt ?? "",
-    title: image.metadata.title ?? "",
-    width: image.metadata.width,
-    height: image.metadata.height,
-  };
-}
 
 /**
  * Extract coverImageId from entity content frontmatter
@@ -97,27 +66,4 @@ export function setOgImageId<T extends { content: string }>(
     ...entity,
     content: updateFrontmatterField(entity.content, "ogImageId", imageId),
   };
-}
-
-/**
- * Resolve cover image for any entity with coverImageId in frontmatter
- *
- * This utility provides a unified way to resolve cover images for any entity type.
- * It extracts coverImageId from the entity's YAML frontmatter and resolves it.
- * No adapter-specific implementation needed.
- *
- * @param entity - The entity to resolve cover image for
- * @param entityService - Entity service for fetching the image
- * @returns ResolvedImage with url, alt, title, width, height - or undefined if not found
- */
-export async function resolveEntityCoverImage(
-  entity: BaseEntity,
-  entityService: ICoreEntityService,
-): Promise<ResolvedImage | undefined> {
-  const coverImageId = extractCoverImageId(entity);
-  if (!coverImageId) {
-    return undefined;
-  }
-
-  return resolveImage(coverImageId, entityService);
 }

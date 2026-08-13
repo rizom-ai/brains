@@ -1,4 +1,4 @@
-import type { IEntityService } from "@brains/plugins";
+import type { IAssetsNamespace, IEntityService } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import { fetchImageAsBase64, isHttpUrl } from "@brains/image";
 import { z } from "@brains/utils/zod";
@@ -66,15 +66,18 @@ export interface CoverImageDetection {
  */
 export class FrontmatterImageConverter {
   private entityService: IEntityService;
+  private assets: IAssetsNamespace;
   private fetcher: ImageFetcher;
   private logger: Logger;
 
   constructor(
     entityService: IEntityService,
+    assets: IAssetsNamespace,
     logger: Logger,
     fetcher: ImageFetcher = fetchImageAsBase64,
   ) {
     this.entityService = entityService;
+    this.assets = assets;
     this.fetcher = fetcher;
     this.logger = logger.child("FrontmatterImageConverter");
   }
@@ -199,6 +202,7 @@ export class FrontmatterImageConverter {
         sourceUrl,
       },
       this.entityService,
+      this.assets,
       this.fetcher,
       this.logger,
     );

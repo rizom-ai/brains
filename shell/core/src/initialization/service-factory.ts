@@ -1,4 +1,8 @@
 import { AIService, OnlineEmbeddingProvider } from "@brains/ai-service";
+import {
+  AssetBinaryContentResolver,
+  FilesystemAssetStore,
+} from "@brains/asset-service";
 import { ContentService as ContentServiceClass } from "@brains/content-service";
 import {
   ConversationServiceTag,
@@ -105,6 +109,11 @@ export function createShellServices(options: {
     dependencies?.operationalHealthRegistry ?? new OperationalHealthRegistry();
   const attachmentRegistry =
     dependencies?.attachmentRegistry ?? AttachmentRegistry.createFresh();
+  const assetStore =
+    dependencies?.assetStore ??
+    FilesystemAssetStore.createFresh({
+      assetDirectory: config.assetDirectory,
+    });
   const runtimeUploadRegistry =
     dependencies?.runtimeUploadRegistry ??
     RuntimeUploadRegistry.createFresh({ dataDir: config.dataDir });
@@ -205,6 +214,7 @@ export function createShellServices(options: {
       mutationAdmission: projectionRuntimeSupervisor,
       dbConfig: createDatabaseConfig(config.database),
       embeddingDbConfig: createDatabaseConfig(config.embeddingDatabase),
+      binaryContentResolver: new AssetBinaryContentResolver(assetStore),
       ...(dependencies?.entityService && {
         service: dependencies.entityService,
       }),
@@ -299,6 +309,7 @@ export function createShellServices(options: {
     operationalHealthRegistry,
     agentService,
     attachmentRegistry,
+    assetStore,
     runtimeUploadRegistry,
     runtimeStateService,
     recurringCheckService,

@@ -1,179 +1,311 @@
+import { assetRefSchema, type AssetRef, type AssetStore } from "@brains/assets";
 import { fetchAsBase64DataUrl, isHttpUrl } from "@brains/utils/http-utils";
-import type { ImageFormat } from "../schemas/image";
+import type { ImageFormat, ImageMediaType } from "../schemas/image";
 
-/**
- * Parsed data URL result
- */
+const IMAGE_MEDIA_TYPES: Record<ImageFormat, ImageMediaType> = {
+  png: "image/png",
+  jpeg: "image/jpeg",
+  gif: "image/gif",
+  webp: "image/webp",
+};
+
 export interface ParsedDataUrl {
-  format: string;
+  format: ImageFormat;
+  mediaType: ImageMediaType;
   base64: string;
+  bytes: Uint8Array;
 }
 
-/**
- * Parse a data URL into format and base64 components, or null when the
- * value is not a valid image data URL.
- */
+export interface InspectedImage {
+  format: ImageFormat;
+  mediaType: ImageMediaType;
+  sizeBytes: number;
+  width: number;
+  height: number;
+}
+
+export interface ResolvedImageBytes extends InspectedImage {
+  bytes: Uint8Array;
+}
+
+function normalizeDeclaredMediaType(value: string): ImageMediaType | undefined {
+  const normalized =
+    value.toLowerCase() === "image/jpg" ? "image/jpeg" : value.toLowerCase();
+  switch (normalized) {
+    case "image/png":
+    case "image/jpeg":
+    case "image/gif":
+    case "image/webp":
+      return normalized;
+    default:
+      return undefined;
+  }
+}
+
+function toBytes(input: string | Uint8Array): Uint8Array {
+  return typeof input === "string" ? Buffer.from(input, "base64") : input;
+}
+
+/** Parse and strictly validate a supported raster image data URL. */
 export function tryParseDataUrl(dataUrl: string): ParsedDataUrl | null {
-  // Trim surrounding whitespace: image entities store the bare data URL as
-  // their content, so a filesystem round-trip (toMarkdown -> disk -> read)
-  // appends a trailing newline that would otherwise fail the match.
-  const match = dataUrl.trim().match(/^data:image\/([a-z+]+);base64,(.+)$/i);
-  if (!match?.[1] || !match[2]) {
+  const match = dataUrl
+    .trim()
+    .match(
+      /^data:(image\/(?:png|jpeg|jpg|gif|webp));base64,([a-z0-9+/]+={0,2})$/i,
+    );
+  const declaredMediaType = match?.[1];
+  const base64 = match?.[2];
+  if (!declaredMediaType || !base64) return null;
+
+  const mediaType = normalizeDeclaredMediaType(declaredMediaType);
+  if (!mediaType) return null;
+
+  const bytes = Buffer.from(base64, "base64");
+  if (bytes.byteLength === 0) return null;
+
+  try {
+    const inspected = inspectImageBytes(bytes, mediaType);
+    return {
+      format: inspected.format,
+      mediaType: inspected.mediaType,
+      base64,
+      bytes,
+    };
+  } catch {
     return null;
   }
-  return {
-    format: match[1].toLowerCase(),
-    base64: match[2],
-  };
 }
 
-/**
- * Parse a data URL into format and base64 components
- * @throws Error if not a valid image data URL
- */
 export function parseDataUrl(dataUrl: string): ParsedDataUrl {
   const parsed = tryParseDataUrl(dataUrl);
-  if (!parsed) {
-    throw new Error("Invalid image data URL");
-  }
+  if (!parsed) throw new Error("Invalid or unsupported image data URL");
   return parsed;
 }
 
-/**
- * Create a data URL from base64 and format
- */
 export function createDataUrl(
   base64: string,
   format: ImageFormat | string,
 ): string {
-  // Normalize jpg to jpeg for MIME type
-  const mimeFormat = format === "jpg" ? "jpeg" : format;
+  const normalizedFormat = format.toLowerCase();
+  const mimeFormat = normalizedFormat === "jpg" ? "jpeg" : normalizedFormat;
   return `data:image/${mimeFormat};base64,${base64}`;
 }
 
-/**
- * Magic bytes for common image formats
- */
-const IMAGE_MAGIC_BYTES: Record<string, string> = {
-  // PNG: 89 50 4E 47 = iVBORw
-  png: "iVBORw",
-  // JPEG: FF D8 FF = /9j/
-  jpg: "/9j/",
-  // GIF: 47 49 46 38 = R0lGOD
-  gif: "R0lGOD",
-  // WebP: 52 49 46 46 = UklGR (RIFF header)
-  webp: "UklGR",
-};
+/** Detect a supported image format from binary signatures. */
+export function detectImageFormat(
+  input: string | Uint8Array,
+): ImageFormat | null {
+  const bytes = toBytes(input);
 
-/**
- * Detect image format from base64 magic bytes
- * @returns format string or null if unknown
- */
-export function detectImageFormat(base64: string): ImageFormat | null {
-  for (const [format, magic] of Object.entries(IMAGE_MAGIC_BYTES)) {
-    if (base64.startsWith(magic)) {
-      return format as ImageFormat;
-    }
+  if (
+    bytes.byteLength >= 8 &&
+    bytes[0] === 0x89 &&
+    bytes[1] === 0x50 &&
+    bytes[2] === 0x4e &&
+    bytes[3] === 0x47 &&
+    bytes[4] === 0x0d &&
+    bytes[5] === 0x0a &&
+    bytes[6] === 0x1a &&
+    bytes[7] === 0x0a
+  ) {
+    return "png";
   }
+
+  if (
+    bytes.byteLength >= 3 &&
+    bytes[0] === 0xff &&
+    bytes[1] === 0xd8 &&
+    bytes[2] === 0xff
+  ) {
+    return "jpeg";
+  }
+
+  if (
+    bytes.byteLength >= 6 &&
+    bytes[0] === 0x47 &&
+    bytes[1] === 0x49 &&
+    bytes[2] === 0x46 &&
+    bytes[3] === 0x38 &&
+    (bytes[4] === 0x37 || bytes[4] === 0x39) &&
+    bytes[5] === 0x61
+  ) {
+    return "gif";
+  }
+
+  if (
+    bytes.byteLength >= 12 &&
+    bytes[0] === 0x52 &&
+    bytes[1] === 0x49 &&
+    bytes[2] === 0x46 &&
+    bytes[3] === 0x46 &&
+    bytes[8] === 0x57 &&
+    bytes[9] === 0x45 &&
+    bytes[10] === 0x42 &&
+    bytes[11] === 0x50
+  ) {
+    return "webp";
+  }
+
   return null;
 }
 
-/**
- * Check if string is a valid image data URL
- */
-export function isValidDataUrl(str: string): boolean {
-  return /^data:image\/[a-z+]+;base64,.+$/i.test(str);
+/** Extract dimensions from a bounded binary header. */
+export function detectImageDimensions(
+  input: string | Uint8Array,
+): { width: number; height: number } | null {
+  const bytes = toBytes(input);
+  const buffer = Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  const format = detectImageFormat(bytes);
+
+  if (format === "png") {
+    if (buffer.byteLength < 24) return null;
+    return { width: buffer.readUInt32BE(16), height: buffer.readUInt32BE(20) };
+  }
+
+  if (format === "jpeg") {
+    let offset = 2;
+    const startOfFrameMarkers = new Set([
+      0xc0, 0xc1, 0xc2, 0xc3, 0xc5, 0xc6, 0xc7, 0xc9, 0xca, 0xcb, 0xcd, 0xce,
+      0xcf,
+    ]);
+    while (offset + 8 < buffer.byteLength) {
+      if (buffer[offset] !== 0xff) {
+        offset++;
+        continue;
+      }
+      while (buffer[offset] === 0xff) offset++;
+      const marker = buffer[offset];
+      if (marker === undefined || marker === 0xd9 || marker === 0xda)
+        return null;
+      if (marker === 0x01 || (marker >= 0xd0 && marker <= 0xd7)) {
+        offset++;
+        continue;
+      }
+      if (offset + 2 >= buffer.byteLength) return null;
+      const segmentLength = buffer.readUInt16BE(offset + 1);
+      if (segmentLength < 2) return null;
+      if (startOfFrameMarkers.has(marker)) {
+        if (offset + 7 >= buffer.byteLength) return null;
+        return {
+          height: buffer.readUInt16BE(offset + 4),
+          width: buffer.readUInt16BE(offset + 6),
+        };
+      }
+      offset += 1 + segmentLength;
+    }
+    return null;
+  }
+
+  if (format === "gif") {
+    if (buffer.byteLength < 10) return null;
+    return { width: buffer.readUInt16LE(6), height: buffer.readUInt16LE(8) };
+  }
+
+  if (format === "webp") {
+    if (buffer.byteLength < 30) return null;
+    const chunk = buffer.toString("ascii", 12, 16);
+    if (chunk === "VP8 ") {
+      return {
+        width: buffer.readUInt16LE(26) & 0x3fff,
+        height: buffer.readUInt16LE(28) & 0x3fff,
+      };
+    }
+    if (chunk === "VP8L") {
+      if (buffer[20] !== 0x2f) return null;
+      const bits = buffer.readUInt32LE(21);
+      return {
+        width: (bits & 0x3fff) + 1,
+        height: ((bits >> 14) & 0x3fff) + 1,
+      };
+    }
+    if (chunk === "VP8X") {
+      return {
+        width: 1 + buffer.readUIntLE(24, 3),
+        height: 1 + buffer.readUIntLE(27, 3),
+      };
+    }
+  }
+
+  return null;
+}
+
+/** Validate signature, declared MIME type, and dimensions without decoding pixels. */
+export function inspectImageBytes(
+  bytes: Uint8Array,
+  declaredMediaType?: string,
+): InspectedImage {
+  const format = detectImageFormat(bytes);
+  if (!format) throw new Error("Unsupported image signature");
+
+  const mediaType = IMAGE_MEDIA_TYPES[format];
+  if (declaredMediaType !== undefined) {
+    const normalized = normalizeDeclaredMediaType(declaredMediaType);
+    if (!normalized)
+      throw new Error(`Unsupported image media type: ${declaredMediaType}`);
+    if (normalized !== mediaType) {
+      throw new Error(
+        `Image media type ${declaredMediaType} does not match ${mediaType} signature`,
+      );
+    }
+  }
+
+  const dimensions = detectImageDimensions(bytes);
+  if (!dimensions || dimensions.width <= 0 || dimensions.height <= 0) {
+    throw new Error("Could not detect valid image dimensions");
+  }
+
+  return {
+    format,
+    mediaType,
+    sizeBytes: bytes.byteLength,
+    width: dimensions.width,
+    height: dimensions.height,
+  };
+}
+
+export function isValidDataUrl(value: string): boolean {
+  return tryParseDataUrl(value) !== null;
 }
 
 export { isHttpUrl };
 
-/**
- * Fetch an image from URL and return as base64 data URL.
- */
+/** Fetch an image from URL as a provider-boundary data URL. */
 export async function fetchImageAsBase64(url: string): Promise<string> {
   return fetchAsBase64DataUrl(url, "image/");
 }
 
 /**
- * Get image dimensions from base64 data
- * Parses image headers to extract width/height without full decode
+ * Resolve either transitional inline content or a durable asset reference.
+ * Accepts raw entity metadata so BaseEntity readers can call it directly;
+ * declared media type and size are validated against the actual bytes.
  */
-export function detectImageDimensions(
-  base64: string,
-): { width: number; height: number } | null {
-  const buffer = Buffer.from(base64, "base64");
-
-  // PNG: width at bytes 16-19, height at bytes 20-23 (big-endian)
-  if (
-    buffer[0] === 0x89 &&
-    buffer[1] === 0x50 &&
-    buffer[2] === 0x4e &&
-    buffer[3] === 0x47
-  ) {
-    const width = buffer.readUInt32BE(16);
-    const height = buffer.readUInt32BE(20);
-    return { width, height };
-  }
-
-  // JPEG: Need to scan for SOF0/SOF2 marker
-  if (buffer[0] === 0xff && buffer[1] === 0xd8) {
-    let offset = 2;
-    while (offset < buffer.length - 8) {
-      if (buffer[offset] !== 0xff) {
-        offset++;
-        continue;
-      }
-      const marker = buffer[offset + 1];
-      // SOF0 (0xC0) or SOF2 (0xC2) - Start of Frame
-      if (marker === 0xc0 || marker === 0xc2) {
-        const height = buffer.readUInt16BE(offset + 5);
-        const width = buffer.readUInt16BE(offset + 7);
-        return { width, height };
-      }
-      // Skip to next marker
-      const length = buffer.readUInt16BE(offset + 2);
-      offset += 2 + length;
+export async function resolveImageBytes(
+  image: { content: string; metadata: Record<string, unknown> },
+  assets: Pick<AssetStore, "read">,
+): Promise<ResolvedImageBytes> {
+  const assetRef = assetRefSchema.safeParse(image.content.trim());
+  if (assetRef.success) {
+    const declaredMediaType = image.metadata["mediaType"];
+    const declaredSize = image.metadata["sizeBytes"];
+    const bytes = await assets.read(assetRef.data);
+    const inspected = inspectImageBytes(
+      bytes,
+      typeof declaredMediaType === "string" ? declaredMediaType : undefined,
+    );
+    if (
+      typeof declaredSize === "number" &&
+      declaredSize !== inspected.sizeBytes
+    ) {
+      throw new Error("Image asset size does not match entity metadata");
     }
+    return { ...inspected, bytes };
   }
 
-  // GIF: width at bytes 6-7, height at bytes 8-9 (little-endian)
-  if (buffer[0] === 0x47 && buffer[1] === 0x49 && buffer[2] === 0x46) {
-    const width = buffer.readUInt16LE(6);
-    const height = buffer.readUInt16LE(8);
-    return { width, height };
-  }
+  const parsed = parseDataUrl(image.content);
+  const inspected = inspectImageBytes(parsed.bytes, parsed.mediaType);
+  return { ...inspected, bytes: parsed.bytes };
+}
 
-  // WebP: RIFF header, check for VP8 chunk
-  if (
-    buffer.length >= 30 &&
-    buffer[0] === 0x52 &&
-    buffer[1] === 0x49 &&
-    buffer[2] === 0x46 &&
-    buffer[3] === 0x46
-  ) {
-    // VP8 (lossy): width/height at specific offsets
-    if (buffer[12] === 0x56 && buffer[13] === 0x50 && buffer[14] === 0x38) {
-      // VP8 chunk
-      if (buffer[15] === 0x20) {
-        // VP8 lossy
-        // Frame header starts at offset 23
-        const b26 = buffer[26] ?? 0;
-        const b27 = buffer[27] ?? 0;
-        const b28 = buffer[28] ?? 0;
-        const b29 = buffer[29] ?? 0;
-        const width = (b26 | (b27 << 8)) & 0x3fff;
-        const height = (b28 | (b29 << 8)) & 0x3fff;
-        return { width, height };
-      }
-      // VP8L (lossless)
-      if (buffer[15] === 0x4c && buffer.length >= 25) {
-        const bits = buffer.readUInt32LE(21);
-        const width = (bits & 0x3fff) + 1;
-        const height = ((bits >> 14) & 0x3fff) + 1;
-        return { width, height };
-      }
-    }
-  }
-
-  return null;
+export function isAssetImageContent(content: string): content is AssetRef {
+  return assetRefSchema.safeParse(content.trim()).success;
 }

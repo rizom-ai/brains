@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from "bun:test";
+import { describe, it, expect, beforeEach, afterEach, spyOn } from "bun:test";
 import { FileOperations } from "../src/lib/file-operations";
 import {
   mkdirSync,
@@ -11,9 +11,12 @@ import {
 } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
-import type { BaseEntity } from "@brains/plugins";
+import { parseAssetRef, type BaseEntity } from "@brains/plugins";
 import type { FileOperationsEntityService } from "../src/lib/file-operations";
-import { createTestEntity } from "@brains/test-utils";
+import {
+  createMockAssetsNamespace,
+  createTestEntity,
+} from "@brains/test-utils";
 import {
   TINY_PDF_BYTES,
   TINY_PDF_DATA_URL,
@@ -25,18 +28,23 @@ describe("FileOperations", () => {
   let fileOps: FileOperations;
   let testDir: string;
   let mockEntityService: FileOperationsEntityService;
+  let assets: ReturnType<typeof createMockAssetsNamespace>;
 
   beforeEach(() => {
     // Create a unique test directory
     testDir = mkdtempSync(join(tmpdir(), "test-file-ops-"));
 
+    assets = createMockAssetsNamespace();
     mockEntityService = {
       serializeEntity: (entity: BaseEntity): string =>
         `# ${entity.id}\n\n${entity.content}`,
       hasEntityType: (): boolean => true,
+      getEntityTypeConfig: (entityType: string): { binaryStorage?: "asset" } =>
+        entityType === "image" ? { binaryStorage: "asset" } : {},
+      getEntity: async (): Promise<null> => null,
     };
 
-    fileOps = new FileOperations(testDir, mockEntityService);
+    fileOps = new FileOperations(testDir, mockEntityService, assets);
   });
 
   afterEach(() => {
@@ -226,6 +234,30 @@ describe("FileOperations", () => {
     });
 
     describe("readEntity from subdirectories", () => {
+      it("enforces the ordinary import limit independently of asset imports", async () => {
+        mkdirSync(join(testDir, "topic"), { recursive: true });
+        writeFileSync(join(testDir, "topic", "bounded.md"), "text");
+        const exactFileOps = new FileOperations(
+          testDir,
+          mockEntityService,
+          assets,
+          { maxImportFileBytes: 4, maxAssetImportBytes: 1 },
+        );
+        const oversizedFileOps = new FileOperations(
+          testDir,
+          mockEntityService,
+          assets,
+          { maxImportFileBytes: 3, maxAssetImportBytes: 100 },
+        );
+
+        expect(
+          (await exactFileOps.readEntity("topic/bounded.md")).content,
+        ).toBe("text");
+        expect(oversizedFileOps.readEntity("topic/bounded.md")).rejects.toThrow(
+          "exceeds ordinary import limit",
+        );
+      });
+
       it("should read entities from nested paths", async () => {
         // First create the nested structure
         const subdir = join(testDir, "summary", "daily", "2024");
@@ -302,8 +334,14 @@ describe("FileOperations", () => {
         const selectiveService: FileOperationsEntityService = {
           serializeEntity: () => "",
           hasEntityType: (type: string) => ["post", "link"].includes(type),
+          getEntityTypeConfig: (): Record<string, never> => ({}),
+          getEntity: async (): Promise<null> => null,
         };
-        const selectiveFileOps = new FileOperations(testDir, selectiveService);
+        const selectiveFileOps = new FileOperations(
+          testDir,
+          selectiveService,
+          assets,
+        );
 
         mkdirSync(join(testDir, "post"), { recursive: true });
         mkdirSync(join(testDir, "link"), { recursive: true });
@@ -325,34 +363,111 @@ describe("FileOperations", () => {
   });
 
   describe("Image File Support", () => {
-    it("should read image files from image/ directory as base64 data URLs", async () => {
-      // Create image file in image/ directory
+    it("streams image files into durable assets and returns canonical metadata", async () => {
       mkdirSync(join(testDir, "image"), { recursive: true });
       const imagePath = join(testDir, "image", "test-photo.png");
       writeFileSync(imagePath, TINY_PNG_BYTES);
 
       const entity = await fileOps.readEntity("image/test-photo.png");
+      const ref = parseAssetRef(entity.content);
 
       expect(entity.entityType).toBe("image");
       expect(entity.id).toBe("test-photo");
-      expect(entity.content).toBe(TINY_PNG_DATA_URL);
+      expect(await assets.read(ref)).toEqual(TINY_PNG_BYTES);
+      expect(entity.metadata).toEqual({
+        format: "png",
+        mediaType: "image/png",
+        sizeBytes: TINY_PNG_BYTES.byteLength,
+        width: 1,
+        height: 1,
+      });
     });
 
-    it("should write image entities as binary files in image/ directory", async () => {
+    it("uses the independent streamed asset import limit", async () => {
+      mkdirSync(join(testDir, "image"), { recursive: true });
+      writeFileSync(join(testDir, "image", "bounded.png"), TINY_PNG_BYTES);
+      const putStream = spyOn(assets, "putStream");
+      const boundedFileOps = new FileOperations(
+        testDir,
+        mockEntityService,
+        assets,
+        {
+          maxImportFileBytes: 1,
+          maxAssetImportBytes: TINY_PNG_BYTES.byteLength,
+        },
+      );
+
+      await boundedFileOps.readEntity("image/bounded.png");
+
+      expect(putStream).toHaveBeenCalledTimes(1);
+      expect(putStream.mock.calls[0]?.[1]).toEqual({
+        expectedSize: TINY_PNG_BYTES.byteLength,
+        maxBytes: TINY_PNG_BYTES.byteLength,
+      });
+    });
+
+    it("rejects an oversized image before writing an asset", async () => {
+      mkdirSync(join(testDir, "image"), { recursive: true });
+      writeFileSync(join(testDir, "image", "oversized.png"), TINY_PNG_BYTES);
+      const putStream = spyOn(assets, "putStream");
+      const boundedFileOps = new FileOperations(
+        testDir,
+        mockEntityService,
+        assets,
+        {
+          maxImportFileBytes: TINY_PNG_BYTES.byteLength,
+          maxAssetImportBytes: TINY_PNG_BYTES.byteLength - 1,
+        },
+      );
+
+      expect(boundedFileOps.readEntity("image/oversized.png")).rejects.toThrow(
+        "exceeds asset import limit",
+      );
+      expect(putStream).not.toHaveBeenCalled();
+    });
+
+    it("should write asset-backed image entities as binary files", async () => {
+      const stored = assets.store.seed(TINY_PNG_BYTES);
       const entity = createTestEntity("image", {
         id: "my-image",
-        content: TINY_PNG_DATA_URL,
-        metadata: { format: "png" },
+        content: stored.ref,
+        metadata: {
+          format: "png",
+          mediaType: "image/png",
+          sizeBytes: stored.sizeBytes,
+          width: 1,
+          height: 1,
+        },
       });
 
       await fileOps.writeEntity(entity);
 
       const expectedPath = join(testDir, "image", "my-image.png");
       expect(existsSync(expectedPath)).toBe(true);
+      expect(readFileSync(expectedPath).equals(TINY_PNG_BYTES)).toBe(true);
+    });
 
-      // Verify binary content
-      const writtenBytes = readFileSync(expectedPath);
-      expect(writtenBytes.equals(TINY_PNG_BYTES)).toBe(true);
+    it("fails loudly without replacing a file when an image asset is missing", async () => {
+      const imageDir = join(testDir, "image");
+      const imagePath = join(imageDir, "guarded.png");
+      mkdirSync(imageDir, { recursive: true });
+      writeFileSync(imagePath, TINY_PNG_BYTES);
+      const entity = createTestEntity("image", {
+        id: "guarded",
+        content: `asset://sha256/${"a".repeat(64)}`,
+        metadata: {
+          format: "png",
+          mediaType: "image/png",
+          sizeBytes: TINY_PNG_BYTES.byteLength,
+          width: 1,
+          height: 1,
+        },
+      });
+
+      expect(fileOps.writeEntity(entity)).rejects.toThrow(
+        "Mock asset not found",
+      );
+      expect(readFileSync(imagePath).equals(TINY_PNG_BYTES)).toBe(true);
     });
 
     it("should include image files from image/ directory in getAllSyncFiles", async () => {
@@ -384,20 +499,13 @@ describe("FileOperations", () => {
       expect(files).not.toContain("topic/photo.png"); // Should be ignored
     });
 
-    it("should handle different image formats in image/ directory", async () => {
+    it("does not treat SVG files as durable images", async () => {
       mkdirSync(join(testDir, "image"), { recursive: true });
+      writeFileSync(join(testDir, "image", "unsafe.svg"), "<svg />");
 
-      // Test various image extensions
-      const extensions = [".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg"];
+      const files = await fileOps.getAllSyncFiles();
 
-      for (const ext of extensions) {
-        const fileName = `test${ext}`;
-        writeFileSync(join(testDir, "image", fileName), TINY_PNG_BYTES);
-
-        const entity = await fileOps.readEntity(`image/${fileName}`);
-        expect(entity.entityType).toBe("image");
-        expect(entity.id).toBe("test");
-      }
+      expect(files).not.toContain("image/unsafe.svg");
     });
 
     it("should use correct extension when writing image entities", async () => {
@@ -413,22 +521,26 @@ describe("FileOperations", () => {
       expect(existsSync(join(testDir, "image", "photo.png"))).toBe(false);
     });
 
-    it("should roundtrip image entities correctly", async () => {
+    it("should roundtrip asset-backed image entities correctly", async () => {
+      const stored = assets.store.seed(TINY_PNG_BYTES);
       const entity = createTestEntity("image", {
         id: "roundtrip-test",
-        content: TINY_PNG_DATA_URL,
-        metadata: { format: "png" },
+        content: stored.ref,
+        metadata: {
+          format: "png",
+          mediaType: "image/png",
+          sizeBytes: stored.sizeBytes,
+          width: 1,
+          height: 1,
+        },
       });
 
-      // Write
       await fileOps.writeEntity(entity);
-
-      // Read back
       const readEntity = await fileOps.readEntity("image/roundtrip-test.png");
 
       expect(readEntity.id).toBe("roundtrip-test");
       expect(readEntity.entityType).toBe("image");
-      expect(readEntity.content).toBe(TINY_PNG_DATA_URL);
+      expect(readEntity.content).toBe(stored.ref);
     });
   });
 
@@ -460,6 +572,30 @@ describe("FileOperations", () => {
 
       const writtenBytes = readFileSync(expectedPath);
       expect(writtenBytes.equals(TINY_PDF_BYTES)).toBe(true);
+    });
+
+    it("fails loudly instead of decoding a document asset reference as base64", async () => {
+      const documentDir = join(testDir, "document");
+      const documentPath = join(documentDir, "guarded.pdf");
+      mkdirSync(documentDir, { recursive: true });
+      writeFileSync(documentPath, TINY_PDF_BYTES);
+      const entity = createTestEntity("document", {
+        id: "guarded",
+        content: `asset://sha256/${"b".repeat(64)}`,
+        metadata: { mimeType: "application/pdf", filename: "guarded.pdf" },
+      });
+
+      let writeError: unknown;
+      try {
+        await fileOps.writeEntity(entity);
+      } catch (error) {
+        writeError = error;
+      }
+      expect(writeError).toHaveProperty(
+        "message",
+        expect.stringContaining("expected a supported base64 data URL"),
+      );
+      expect(readFileSync(documentPath).equals(TINY_PDF_BYTES)).toBe(true);
     });
 
     it("should include PDF files from document/ directory in getAllSyncFiles", async () => {

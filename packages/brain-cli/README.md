@@ -38,6 +38,8 @@ The fixed bundles are `core`, `site`, `publishing`, and `team`. `minimal`, `pers
 | `brain chat`                           | Start with terminal chat                               |
 | `brain eval`                           | Run structural/model evaluation tooling                |
 | `brain config migrate`                 | Preview a retired built-in config as canonical bundles |
+| `brain migrate binary-assets`          | Migrate local binary rows into durable asset storage   |
+| `brain assets reconcile`               | Restore missing assets from synced binary files        |
 | `brain diagnostics <subcommand>`       | Inspect runtime diagnostics                            |
 | `brain cert:bootstrap`                 | Create an origin certificate                           |
 | `brain secrets:push`                   | Push declared secrets                                  |

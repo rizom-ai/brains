@@ -35,7 +35,7 @@ export class DeckCarouselAttachmentProvider implements AttachmentProvider {
 
   private readonly context: Pick<
     EntityPluginContext,
-    "entityService" | "themeCSS" | "identity" | "domain"
+    "entityService" | "assets" | "themeCSS" | "identity" | "domain"
   >;
   private readonly renderPdf: RenderPdf | undefined;
   private readonly getThemeMode: GetThemeMode;
@@ -43,7 +43,7 @@ export class DeckCarouselAttachmentProvider implements AttachmentProvider {
   constructor(
     context: Pick<
       EntityPluginContext,
-      "entityService" | "themeCSS" | "identity" | "domain"
+      "entityService" | "assets" | "themeCSS" | "identity" | "domain"
     >,
     deps: DeckCarouselAttachmentProviderDeps = {},
   ) {

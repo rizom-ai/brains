@@ -1,25 +1,14 @@
+import { assetRefSchema, type AssetRef } from "@brains/assets";
 import type { EntityAdapter, EntitySchema } from "@brains/entity-service";
 import {
   imageSchema,
   type Image,
-  type ImageMetadata,
-  type ImageFormat,
   type ImageIngestionStatus,
+  type ImageMetadata,
 } from "../schemas/image";
-import {
-  parseDataUrl,
-  detectImageDimensions,
-  detectImageFormat,
-} from "../lib/image-utils";
+import { inspectImageBytes, parseDataUrl } from "../lib/image-utils";
 
-/**
- * Input for creating an image entity
- */
-export interface CreateImageInput {
-  dataUrl: string;
-  title: string;
-  alt?: string;
-  status?: ImageIngestionStatus;
+interface ImageProvenanceInput {
   sourceUrl?: string;
   sourceEntityType?: string;
   sourceEntityId?: string;
@@ -30,13 +19,27 @@ export interface CreateImageInput {
   dedupKey?: string;
 }
 
+/** Input for a completed, asset-backed image entity. */
+export interface CreateImageInput extends ImageProvenanceInput {
+  assetRef: AssetRef;
+  bytes: Uint8Array;
+  declaredMediaType?: string;
+  title: string;
+  alt?: string;
+  status?: "draft";
+}
+
+/** Input for a durable pending image that intentionally has no fake payload. */
+export interface CreatePendingImageInput extends ImageProvenanceInput {
+  title: string;
+  alt?: string;
+  status?: Extract<ImageIngestionStatus, "pending" | "failed">;
+  processingError?: string;
+}
+
 /**
- * Entity adapter for image entities.
- *
- * Images store base64 data URLs in content field — NOT markdown.
- * They have no frontmatter, no structured body, and no template.
- * This adapter implements EntityAdapter directly (not BaseEntityAdapter)
- * because images are fundamentally non-textual entities.
+ * Pure adapter for image entities. Binary I/O remains in ingestion/read
+ * callers; the adapter validates byte facts and serializes the opaque ref.
  */
 export class ImageAdapter implements EntityAdapter<Image, ImageMetadata> {
   public readonly entityType = "image" as const;
@@ -49,16 +52,22 @@ export class ImageAdapter implements EntityAdapter<Image, ImageMetadata> {
   }
 
   public fromMarkdown(content: string): Partial<Image> {
-    const { format, base64 } = parseDataUrl(content);
-    const dimensions = detectImageDimensions(base64);
+    const normalized = content.trim();
+    if (!normalized || assetRefSchema.safeParse(normalized).success) {
+      return { entityType: "image", content: normalized };
+    }
 
+    const parsed = parseDataUrl(normalized);
+    const inspected = inspectImageBytes(parsed.bytes, parsed.mediaType);
     return {
       entityType: "image",
-      content,
+      content: normalized,
       metadata: {
-        format: format as ImageFormat,
-        width: dimensions?.width ?? 0,
-        height: dimensions?.height ?? 0,
+        format: inspected.format,
+        mediaType: inspected.mediaType,
+        sizeBytes: inspected.sizeBytes,
+        width: inspected.width,
+        height: inspected.height,
       },
     };
   }
@@ -82,45 +91,61 @@ export class ImageAdapter implements EntityAdapter<Image, ImageMetadata> {
     return "";
   }
 
-  /**
-   * Create image entity data from input.
-   * Auto-detects format and dimensions from the data URL.
-   */
   public createImageEntity(
     input: CreateImageInput,
   ): Pick<Image, "entityType" | "content" | "metadata"> {
-    const { dataUrl, title, alt } = input;
-    const { format, base64 } = parseDataUrl(dataUrl);
-    const dimensions = detectImageDimensions(base64);
-
-    const detectedFormat = detectImageFormat(base64);
-    const finalFormat = (detectedFormat ?? format) as ImageFormat;
+    const assetRef = assetRefSchema.parse(input.assetRef);
+    const inspected = inspectImageBytes(input.bytes, input.declaredMediaType);
 
     return {
       entityType: "image",
-      content: dataUrl,
+      content: assetRef,
       metadata: {
-        title,
-        alt: alt ?? title,
-        format: finalFormat,
-        width: dimensions?.width ?? 0,
-        height: dimensions?.height ?? 0,
-        ...(input.status && { status: input.status }),
-        ...(input.sourceUrl && { sourceUrl: input.sourceUrl }),
-        ...(input.sourceEntityType && {
-          sourceEntityType: input.sourceEntityType,
-        }),
-        ...(input.sourceEntityId && { sourceEntityId: input.sourceEntityId }),
-        ...(input.sourceUploadId && { sourceUploadId: input.sourceUploadId }),
-        ...(input.sourceFilename && { sourceFilename: input.sourceFilename }),
-        ...(input.sourceMediaType && {
-          sourceMediaType: input.sourceMediaType,
-        }),
-        ...(input.attachmentType && { attachmentType: input.attachmentType }),
-        ...(input.dedupKey && { dedupKey: input.dedupKey }),
+        title: input.title,
+        alt: input.alt ?? input.title,
+        format: inspected.format,
+        mediaType: inspected.mediaType,
+        sizeBytes: inspected.sizeBytes,
+        width: inspected.width,
+        height: inspected.height,
+        status: input.status ?? "draft",
+        ...getProvenance(input),
       },
     };
   }
+
+  public createPendingImageEntity(
+    input: CreatePendingImageInput,
+  ): Pick<Image, "entityType" | "content" | "metadata"> {
+    return {
+      entityType: "image",
+      content: "",
+      metadata: {
+        title: input.title,
+        alt: input.alt ?? input.title,
+        status: input.status ?? "pending",
+        ...(input.processingError && {
+          processingError: input.processingError,
+        }),
+        ...getProvenance(input),
+      },
+    };
+  }
+}
+
+function getProvenance(input: ImageProvenanceInput): ImageProvenanceInput {
+  return {
+    ...(input.sourceUrl && { sourceUrl: input.sourceUrl }),
+    ...(input.sourceEntityType && {
+      sourceEntityType: input.sourceEntityType,
+    }),
+    ...(input.sourceEntityId && { sourceEntityId: input.sourceEntityId }),
+    ...(input.sourceUploadId && { sourceUploadId: input.sourceUploadId }),
+    ...(input.sourceFilename && { sourceFilename: input.sourceFilename }),
+    ...(input.sourceMediaType && { sourceMediaType: input.sourceMediaType }),
+    ...(input.attachmentType && { attachmentType: input.attachmentType }),
+    ...(input.dedupKey && { dedupKey: input.dedupKey }),
+  };
 }
 
 export const imageAdapter: ImageAdapter = new ImageAdapter();

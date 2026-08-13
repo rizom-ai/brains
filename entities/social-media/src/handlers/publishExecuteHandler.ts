@@ -9,9 +9,11 @@ import type {
   MessageSender,
   BaseEntity,
   EntityPluginContext,
+  IAssetsNamespace,
   ToolContext,
 } from "@brains/plugins";
 import { parseMarkdownWithFrontmatter } from "@brains/plugins";
+import { resolveImageBytes } from "@brains/image";
 import { PUBLISH_CHANNELS } from "@brains/contracts";
 import type { SocialPost, SocialPostFrontmatter } from "../schemas/social-post";
 import { socialPostFrontmatterSchema } from "../schemas/social-post";
@@ -46,6 +48,8 @@ export interface PublishExecuteEntityService {
   getEntity(request: {
     entityType: string;
     id: string;
+    binaryContent?: "reference";
+    binaryContentSurface?: string;
   }): Promise<BaseEntity | null>;
   updateEntity(request: { entity: BaseEntity }): Promise<unknown>;
 }
@@ -54,6 +58,7 @@ export interface PublishExecuteHandlerConfig {
   sendMessage: MessageSender;
   logger: Logger;
   entityService: PublishExecuteEntityService;
+  assets: IAssetsNamespace;
   providers: Map<string, PublishProvider>;
   permissions: EntityPluginContext["permissions"];
   /**
@@ -72,6 +77,7 @@ export class PublishExecuteHandler {
   private sendMessage: MessageSender;
   private logger: Logger;
   private entityService: PublishExecuteEntityService;
+  private assets: IAssetsNamespace;
   private providers: Map<string, PublishProvider>;
   private permissions: EntityPluginContext["permissions"];
   private resolveAttachment: ResolveAttachmentFn | undefined;
@@ -80,6 +86,7 @@ export class PublishExecuteHandler {
     this.sendMessage = config.sendMessage;
     this.logger = config.logger;
     this.entityService = config.entityService;
+    this.assets = config.assets;
     this.providers = config.providers;
     this.permissions = config.permissions;
     this.resolveAttachment = config.resolveAttachment;
@@ -399,6 +406,8 @@ export class PublishExecuteHandler {
       const image = await this.entityService.getEntity({
         entityType: "image",
         id: imageId,
+        binaryContent: "reference",
+        binaryContentSurface: "social-media-publish",
       });
 
       if (!image) {
@@ -406,20 +415,11 @@ export class PublishExecuteHandler {
         return undefined;
       }
 
-      // Image content is stored as data URL: data:image/png;base64,...
-      const dataUrl = image.content;
-      const match = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
-
-      if (!match?.[1] || !match[2]) {
-        this.logger.warn("Invalid image data URL format", { imageId });
-        return undefined;
-      }
-
-      const mimeType = match[1];
-      const base64Data = match[2];
-      const data = Buffer.from(base64Data, "base64");
-
-      return { data, mimeType };
+      const resolved = await resolveImageBytes(image, this.assets);
+      return {
+        data: Buffer.from(resolved.bytes),
+        mimeType: resolved.mediaType,
+      };
     } catch (error) {
       this.logger.warn("Failed to fetch cover image", { imageId, error });
       return undefined;

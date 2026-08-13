@@ -4,8 +4,10 @@ import {
   generateMarkdownWithFrontmatter,
 } from "@brains/plugins";
 import {
+  createMockAssetsNamespace,
   createMockServicePluginContext,
   createMockShell,
+  TINY_PNG_BYTES,
 } from "@brains/test-utils";
 import { createPluginHarness } from "@brains/plugins/test";
 import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
@@ -76,19 +78,28 @@ describe("blog ATProto projection", () => {
         },
       ),
     };
+    const assets = createMockAssetsNamespace();
+    const stored = assets.store.seed(TINY_PNG_BYTES);
     const image = {
       id: "image-1",
       entityType: "image",
-      content: "data:image/png;base64,aGVsbG8=",
+      content: stored.ref,
       created: "2026-05-28T10:00:00.000Z",
       updated: "2026-05-28T10:00:00.000Z",
       visibility: "public" as const,
       contentHash: "image-hash",
-      metadata: { alt: "Cover alt", width: 1200, height: 630 },
+      metadata: {
+        alt: "Cover alt",
+        mediaType: "image/png",
+        sizeBytes: stored.sizeBytes,
+        width: 1200,
+        height: 630,
+      },
     };
-    const shell = createMockShell();
-    shell.addEntities([postWithCover, image]);
-    const context = createServicePluginContext(shell, "blog");
+    const context = createMockServicePluginContext({
+      assets,
+      returns: { entityService: { getEntity: image } },
+    });
 
     const record = await projection.buildRecord({
       entity: postWithCover,
@@ -102,7 +113,7 @@ describe("blog ATProto projection", () => {
         $type: "blob",
         ref: { $link: "dry-run" },
         mimeType: "image/png",
-        size: 5,
+        size: TINY_PNG_BYTES.byteLength,
       },
       alt: "Cover alt",
       width: 1200,

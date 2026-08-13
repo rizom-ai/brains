@@ -3,6 +3,7 @@ import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
 import {
+  createMockAssetsNamespace,
   createMockEntityService,
   createSilentLogger,
   createTestEntity,
@@ -28,6 +29,7 @@ describe("pending pull deletions", () => {
       entityService: createMockEntityService({
         entityTypes: ["note", "document"],
       }),
+      assets: createMockAssetsNamespace(),
       logger: createSilentLogger("pending-pull-delete"),
     });
   }
@@ -81,6 +83,7 @@ describe("pending pull deletions", () => {
     const directorySync = new DirectorySync({
       syncPath: testDir,
       entityService,
+      assets: createMockAssetsNamespace(),
       logger: createSilentLogger("pending-pull-cleanup"),
     });
     await directorySync.recordPendingPullDeletes(["remote-deleted.md"]);

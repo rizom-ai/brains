@@ -4,6 +4,7 @@
   "version": "0.2.0-alpha.285",
   "description": "Entity service for managing brain entities with database persistence and serialization",
   "dependencies": {
+    "@brains/assets": "workspace:*",
     "@brains/content-formatters": "workspace:*",
     "@brains/contracts": "workspace:*",
     "@brains/db": "workspace:*",

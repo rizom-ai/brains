@@ -121,6 +121,7 @@ A running brain is driven by an _instance directory_ centered on `brain.yaml` pl
 | `shell/app`                                             | Brain resolver, `defineBrain()`, instance loading, runtime bootstrap     |
 | `shell/core`                                            | Core shell, lifecycle orchestration, system tools/resources/prompts      |
 | `shell/ai-service`                                      | AI querying, orchestration, provider abstraction                         |
+| `shell/asset-service`                                   | Durable filesystem-backed content-addressed asset storage                |
 | `shell/content-service`                                 | Template-based content generation support                                |
 | `shell/conversation-service`                            | Conversation state and message history                                   |
 | `shell/entity-service`                                  | Entity CRUD, indexing, search, embeddings                                |

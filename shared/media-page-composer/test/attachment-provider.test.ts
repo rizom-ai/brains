@@ -1,7 +1,11 @@
 import { describe, expect, it } from "bun:test";
 import { h, type JSX } from "preact";
 import { z } from "@brains/utils/zod";
-import { createMockEntityService } from "@brains/test-utils";
+import {
+  createMockAssetStore,
+  createMockAssetsNamespace,
+  createMockEntityService,
+} from "@brains/test-utils";
 import type { BaseEntity } from "@brains/plugins";
 import {
   createOgImageProvider,
@@ -13,7 +17,10 @@ import {
 
 const TINY_PNG = Buffer.from([0x89, 0x50, 0x4e, 0x47]);
 const TINY_PDF = Buffer.from("%PDF-1.7\n", "utf-8");
-const COVER_DATA_URL = "data:image/png;base64,AAAA";
+const COVER_BASE64 =
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+const COVER_BYTES = Buffer.from(COVER_BASE64, "base64");
+const COVER_DATA_URL = `data:image/png;base64,${COVER_BASE64}`;
 
 interface Widget extends BaseEntity {
   metadata: { title: string; slug: string };
@@ -61,6 +68,8 @@ function createContext(
   // Explicit `domain: undefined` must survive, so don't use a default value.
   const domain = "domain" in options ? options.domain : "example.com";
   const { profileName = "Rizom" } = options;
+  const assetStore = createMockAssetStore();
+  const coverAsset = assetStore.seed(COVER_BYTES);
 
   return {
     entityService: createMockEntityService({
@@ -74,7 +83,17 @@ function createContext(
             ...createWidget(),
             entityType: "image",
             id: "cover-1",
-            content: COVER_DATA_URL,
+            content: coverAsset.ref,
+            metadata: {
+              title: "Cover",
+              alt: "Cover",
+              format: "png",
+              mediaType: "image/png",
+              sizeBytes: COVER_BYTES.byteLength,
+              width: 1,
+              height: 1,
+              status: "draft",
+            },
           };
         }
         if (request.entityType === "image" && request.id === "not-inline") {
@@ -88,6 +107,7 @@ function createContext(
         return null;
       },
     }),
+    assets: createMockAssetsNamespace(assetStore),
     themeCSS: "",
     identity: {
       get: () => ({
@@ -279,7 +299,7 @@ describe("createOgImageProvider", () => {
     ).toBeUndefined();
   });
 
-  it("resolves referenced image entities to their data URL", async () => {
+  it("resolves referenced asset-backed image entities at the render boundary", async () => {
     let resolved: string | undefined;
     const provider = createOgImageProvider({
       ...WIDGET_OG_CONFIG,

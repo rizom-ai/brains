@@ -26,8 +26,9 @@ export class EntitySerializer {
    */
   public serializeEntity(entity: BaseEntity): string {
     const adapter = this.entityRegistry.getAdapter(entity.entityType);
-    return applyVisibilityToMarkdown(
+    return this.applyVisibilityForStorage(
       adapter.toMarkdown(entity),
+      entity.entityType,
       entity.visibility,
     );
   }
@@ -150,8 +151,9 @@ export class EntitySerializer {
     const adapter = this.entityRegistry.getAdapter<T>(entityType);
 
     // Convert to markdown using adapter
-    const markdown = applyVisibilityToMarkdown(
+    const markdown = this.applyVisibilityForStorage(
       adapter.toMarkdown(entity),
+      entityType,
       entity.visibility,
     );
 
@@ -159,6 +161,21 @@ export class EntitySerializer {
     const metadata = this.stripPolicyMetadata(adapter.extractMetadata(entity));
 
     return { markdown, metadata };
+  }
+
+  private applyVisibilityForStorage(
+    markdown: string,
+    entityType: string,
+    visibility: BaseEntity["visibility"],
+  ): string {
+    if (
+      this.entityRegistry.getEntityTypeConfig(entityType).binaryStorage ===
+      "asset"
+    ) {
+      return markdown;
+    }
+
+    return applyVisibilityToMarkdown(markdown, visibility);
   }
 
   private stripPolicyMetadata(

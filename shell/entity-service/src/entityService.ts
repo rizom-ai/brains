@@ -1,3 +1,8 @@
+import {
+  assetRefSchema,
+  type BinaryContentReadMethod,
+  type BinaryContentResolver,
+} from "@brains/assets";
 import { SHELL_CHANNELS } from "@brains/contracts";
 import type { Client } from "@libsql/client";
 import { applySqlitePragmas } from "@brains/db";
@@ -72,6 +77,8 @@ export interface EntityServiceOptions {
   /** Embedding database config. Embeddings are stored in a dedicated
    *  database file, separate from entities. */
   embeddingDbConfig: EntityDbConfig;
+  /** Transitional resolver for explicitly requested data-URL materialization. */
+  binaryContentResolver?: BinaryContentResolver | undefined;
 }
 
 /**
@@ -100,6 +107,7 @@ export class EntityService implements IEntityService {
   private entityMutations: EntityMutations;
   private readonly projectionStore: ProjectionStore;
   private contentResolver: ContentResolver;
+  private binaryContentResolver: BinaryContentResolver | undefined;
   private embeddingHandlerRegistered = false;
   private indexReady = false;
 
@@ -213,6 +221,7 @@ export class EntityService implements IEntityService {
         embeddingsEnabled,
       });
       this.contentResolver = new ContentResolver(this.logger);
+      this.binaryContentResolver = options.binaryContentResolver;
 
       if (options.embeddingsEnabled ?? true) {
         const embeddingJobHandler = EmbeddingJobHandler.createFresh(
@@ -474,21 +483,20 @@ export class EntityService implements IEntityService {
     request: GetEntityRequest,
   ): Promise<T | null> {
     await this.initialize();
-    const { entityType, id, visibilityScope } = request;
-    const entity = await this.getEntityRaw<T>({
-      entityType,
-      id,
-      ...(visibilityScope !== undefined && { visibilityScope }),
-    });
-    if (!entity) {
-      return null;
-    }
+    const entity = await this.readEntity<T>(request, "getEntity");
+    if (!entity) return null;
 
-    if (shouldResolveContent(entityType) && entity.content) {
+    // Reference mode is storage-oriented and must not expand embedded image
+    // references in otherwise textual entities.
+    if (
+      request.binaryContent !== "reference" &&
+      shouldResolveContent(request.entityType) &&
+      entity.content
+    ) {
       const result = await this.contentResolver.resolve(
         entity.content,
         this,
-        visibilityScope,
+        request.visibilityScope,
       );
       if (result.resolvedCount > 0) {
         return { ...entity, content: result.content };
@@ -502,17 +510,7 @@ export class EntityService implements IEntityService {
     request: GetEntityRawRequest,
   ): Promise<T | null> {
     await this.initialize();
-    const { entityType, id, visibilityScope } = request;
-    const entityData = await this.entityQueries.getEntityData(
-      entityType,
-      id,
-      visibilityScope,
-    );
-    if (!entityData) {
-      return null;
-    }
-
-    return this.entitySerializer.convertToEntity<T>(entityData);
+    return this.readEntity<T>(request, "getEntityRaw");
   }
 
   public async listEntities<T extends BaseEntity>(
@@ -520,11 +518,80 @@ export class EntityService implements IEntityService {
   ): Promise<T[]> {
     await this.initialize();
     const { entityType, options } = request;
-    return this.entityQueries.listEntities<T>(
+    const entities = await this.entityQueries.listEntities<T>(
       entityType,
       options,
       this.publishedStatusesFor(entityType),
     );
+    return Promise.all(
+      entities.map((entity) =>
+        this.resolveBinaryContent(
+          entity,
+          request.binaryContent,
+          "listEntities",
+          request.binaryContentSurface,
+        ),
+      ),
+    );
+  }
+
+  private async readEntity<T extends BaseEntity>(
+    request: GetEntityRequest,
+    method: Extract<BinaryContentReadMethod, "getEntity" | "getEntityRaw">,
+  ): Promise<T | null> {
+    const entityData = await this.entityQueries.getEntityData(
+      request.entityType,
+      request.id,
+      request.visibilityScope,
+    );
+    if (!entityData) return null;
+
+    const entity = await this.entitySerializer.convertToEntity<T>(entityData);
+    if (!entity) return null;
+    return this.resolveBinaryContent(
+      entity,
+      request.binaryContent,
+      method,
+      request.binaryContentSurface,
+    );
+  }
+
+  private async resolveBinaryContent<T extends BaseEntity>(
+    entity: T,
+    mode: GetEntityRequest["binaryContent"],
+    method: BinaryContentReadMethod,
+    surface: string | undefined,
+  ): Promise<T> {
+    if (mode === "reference") return entity;
+    if (
+      this.entityRegistry.getEntityTypeConfig(entity.entityType)
+        .binaryStorage !== "asset"
+    ) {
+      return entity;
+    }
+
+    const parsedRef = assetRefSchema.safeParse(entity.content.trim());
+    if (!parsedRef.success) return entity;
+
+    const mediaType = entity.metadata["mediaType"];
+    if (typeof mediaType !== "string" || !mediaType.trim()) {
+      throw new Error(
+        `Asset-backed ${entity.entityType}:${entity.id} is missing mediaType metadata`,
+      );
+    }
+    if (!this.binaryContentResolver) {
+      throw new Error(
+        "Asset-backed binary content cannot be materialized without a resolver",
+      );
+    }
+
+    const content = await this.binaryContentResolver.materializeLegacyDataUrl({
+      ref: parsedRef.data,
+      mediaType,
+      method,
+      ...(surface && { surface }),
+    });
+    return { ...entity, content };
   }
 
   public async countEntities(request: CountEntitiesRequest): Promise<number> {

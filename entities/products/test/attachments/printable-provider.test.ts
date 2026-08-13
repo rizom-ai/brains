@@ -85,6 +85,7 @@ describe("Product printable attachment provider", () => {
     const provider = createProductPrintableProvider(
       {
         entityService: harness.getEntityService(),
+        assets: harness.getEntityContext("test").assets,
         themeCSS: "",
         identity: harness.getEntityContext("test").identity,
         domain: "example.com",

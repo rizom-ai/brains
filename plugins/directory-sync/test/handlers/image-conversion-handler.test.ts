@@ -13,17 +13,20 @@ import {
   type CoverImageConversionJobData,
 } from "../../src/handlers/image-conversion-handler";
 import {
+  createMockAssetsNamespace,
   createSilentLogger,
   createMockServicePluginContext,
+  type MockAssetsNamespace,
 } from "@brains/test-utils";
 import type { ServicePluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import { ProgressReporter } from "@brains/utils/progress";
-import { TINY_PNG_DATA_URL as VALID_PNG_DATA_URL } from "../fixtures";
+import { TINY_PNG_BYTES, TINY_PNG_DATA_URL } from "../fixtures";
 
 describe("CoverImageConversionJobHandler", () => {
   let handler: CoverImageConversionJobHandler;
   let context: ServicePluginContext;
+  let assets: MockAssetsNamespace;
   let logger: Logger;
   let progressReporter: ProgressReporter;
   let progressCalls: Array<{ progress: number; message?: string }>;
@@ -50,7 +53,9 @@ describe("CoverImageConversionJobHandler", () => {
 
   beforeEach(() => {
     logger = createSilentLogger();
+    assets = createMockAssetsNamespace();
     context = createMockServicePluginContext({
+      assets,
       returns: {
         entityService: {
           listEntities: [],
@@ -59,7 +64,7 @@ describe("CoverImageConversionJobHandler", () => {
       },
     });
 
-    mockFetcher = mock(() => Promise.resolve(VALID_PNG_DATA_URL));
+    mockFetcher = mock(() => Promise.resolve(TINY_PNG_DATA_URL));
 
     handler = new CoverImageConversionJobHandler(context, logger, mockFetcher);
     progressReporter = createProgressReporter();
@@ -337,15 +342,21 @@ Some content here.
       const jobData = createValidJobData();
       await handler.process(jobData, "job-123", progressReporter);
 
+      const [ref] = assets.store.contents.keys();
+      if (!ref) throw new Error("Expected the handler to persist an asset");
+
+      expect(await context.assets.read(ref)).toEqual(TINY_PNG_BYTES);
       expect(context.entityService.createEntity).toHaveBeenCalledWith({
         entity: expect.objectContaining({
           id: "test-post-cover",
           entityType: "image",
-          content: VALID_PNG_DATA_URL,
+          content: ref,
           metadata: expect.objectContaining({
             title: "Cover image for Test Post",
             alt: "Cover image for Test Post",
             format: "png",
+            mediaType: "image/png",
+            sizeBytes: TINY_PNG_BYTES.byteLength,
             width: 1,
             height: 1,
             sourceUrl: "https://example.com/image.jpg",

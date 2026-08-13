@@ -32,6 +32,7 @@ import type {
   IDaemonRegistry,
   IInsightsRegistry,
   InsightHandler,
+  AssetStore,
 } from "@brains/plugins";
 import type { RegisteredHttpRoute } from "@brains/plugins/internal/http-routes";
 import type { Template } from "@brains/templates";
@@ -101,6 +102,7 @@ export interface MockShellOptions {
   agentService?: IAgentService;
   conversationService?: IConversationService;
   dataDir?: string;
+  assetStore?: AssetStore;
   /** Bare domain string (e.g. "yeehaa.io") for identity.getSiteUrl/getPreviewUrl */
   domain?: string;
   /** Local runtime site URL (e.g. "http://localhost:8080") */
@@ -222,6 +224,21 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
   // Fresh registries per mock shell — keeps tests isolated from each other and
   // from process-wide singleton state.
   const attachmentRegistry = AttachmentRegistry.createFresh();
+  const assetStore: AssetStore = options.assetStore ?? {
+    put: async (): Promise<never> => {
+      throw new Error("Mock asset store not configured");
+    },
+    putStream: async (): Promise<never> => {
+      throw new Error("Mock asset store not configured");
+    },
+    read: async (): Promise<never> => {
+      throw new Error("Mock asset store not configured");
+    },
+    stat: async (): Promise<null> => null,
+    verify: async (): Promise<never> => {
+      throw new Error("Mock asset store not configured");
+    },
+  };
   const runtimeUploadRegistry = RuntimeUploadRegistry.createFresh({
     dataDir: options.dataDir ?? "/tmp/mock-shell-test-data",
   });
@@ -799,6 +816,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
         listFormats: () => [],
       }) as unknown as RenderService,
     getAttachmentRegistry: () => createAttachmentsNamespace(attachmentRegistry),
+    getAssetStore: () => assetStore,
     getRuntimeUploadRegistry: () =>
       createRuntimeUploadsNamespace(runtimeUploadRegistry),
     getRuntimeState: () => runtimeState,

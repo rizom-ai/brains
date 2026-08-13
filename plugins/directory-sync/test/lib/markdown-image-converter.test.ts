@@ -1,6 +1,7 @@
 import { describe, test, expect, mock, beforeEach } from "bun:test";
 import { MarkdownImageConverter } from "../../src/lib/markdown-image-converter";
 import {
+  createMockAssetsNamespace,
   createSilentLogger,
   createMockEntityService,
   createTestEntity,
@@ -24,6 +25,7 @@ describe("MarkdownImageConverter", () => {
 
     converter = new MarkdownImageConverter(
       mockEntityService,
+      createMockAssetsNamespace(),
       logger,
       mockFetcher,
     );
@@ -371,6 +373,7 @@ slug: my-post
 
       const converterWithExisting = new MarkdownImageConverter(
         entityServiceWithExisting,
+        createMockAssetsNamespace(),
         localLogger,
         localFetcher,
       );

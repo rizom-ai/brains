@@ -1,4 +1,5 @@
 import { z } from "@brains/utils/zod";
+import { DEFAULT_MAX_ASSET_IMPORT_BYTES } from "../lib/import-limits";
 import { DEFAULT_MAX_IMPORT_FILE_BYTES } from "../lib/oversized-file-error";
 
 /**
@@ -39,6 +40,7 @@ export interface DirectorySyncConfig {
   syncInterval: number;
   commitDebounce: number;
   maxImportFileBytes: number;
+  maxAssetImportBytes: number;
   git?: DirectorySyncGitConfig | undefined;
 }
 
@@ -57,6 +59,7 @@ export interface DirectorySyncConfigInput {
   syncInterval?: number | undefined;
   commitDebounce?: number | undefined;
   maxImportFileBytes?: number | undefined;
+  maxAssetImportBytes?: number | undefined;
   git?: DirectorySyncGitConfigInput | undefined;
 }
 
@@ -136,8 +139,15 @@ export const directorySyncConfigSchema: z.ZodType<
     .int()
     .positive()
     .optional()
-    .describe("Maximum bytes for text and inline base64 binary imports")
+    .describe("Maximum bytes for text and inline binary imports")
     .default(DEFAULT_MAX_IMPORT_FILE_BYTES),
+  maxAssetImportBytes: z
+    .number()
+    .int()
+    .positive()
+    .optional()
+    .describe("Maximum bytes for streamed asset-backed binary imports")
+    .default(DEFAULT_MAX_ASSET_IMPORT_BYTES),
 
   git: z
     .object({

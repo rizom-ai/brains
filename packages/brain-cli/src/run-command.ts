@@ -291,6 +291,89 @@ const configMigrate: BrainCommand = defineCommand({
   },
 });
 
+const binaryAssetsMigrate: BrainCommand = defineCommand({
+  name: "migrate:binary-assets",
+  description: "Migrate local binary entities into durable asset storage",
+  flags: {
+    "entity-type": {
+      type: "string",
+      placeholder: "<type>",
+      description: "Binary entity type to migrate (currently: image)",
+    },
+    "dry-run": {
+      type: "boolean",
+      description: "Inspect and validate without writing assets or entities",
+    },
+    "database-url": {
+      type: "string",
+      placeholder: "<file:url>",
+      description: "Override the local SQLite database URL",
+    },
+    "asset-directory": {
+      type: "string",
+      placeholder: "<dir>",
+      description: "Override the durable asset directory",
+    },
+    verify: {
+      type: "boolean",
+      description: "Verify migrated entities and assets without writing",
+    },
+  },
+  run: async ({ flags }, dir): Promise<CommandResult> => {
+    const { runBinaryAssetMigration } =
+      await import("./commands/migrate-binary-assets");
+    return runBinaryAssetMigration(dir, {
+      entityType: getStringFlag(flags, "entity-type"),
+      dryRun: getBooleanFlag(flags, "dry-run"),
+      verify: getBooleanFlag(flags, "verify"),
+      databaseUrl: getStringFlag(flags, "database-url"),
+      assetDirectory: getStringFlag(flags, "asset-directory"),
+    });
+  },
+});
+
+const assetsReconcile: BrainCommand = defineCommand({
+  name: "assets:reconcile",
+  description: "Restore missing durable assets from a brain-data directory",
+  flags: {
+    "entity-type": {
+      type: "string",
+      placeholder: "<type>",
+      description: "Binary entity type to reconcile (currently: image)",
+    },
+    from: {
+      type: "string",
+      placeholder: "<dir>",
+      description: "Directory-sync source directory (for example: brain-data)",
+    },
+    "dry-run": {
+      type: "boolean",
+      description: "Verify restoration inputs without writing assets",
+    },
+    "database-url": {
+      type: "string",
+      placeholder: "<file:url>",
+      description: "Override the local SQLite database URL",
+    },
+    "asset-directory": {
+      type: "string",
+      placeholder: "<dir>",
+      description: "Override the durable asset directory",
+    },
+  },
+  run: async ({ flags }, dir): Promise<CommandResult> => {
+    const { runAssetReconciliation } =
+      await import("./commands/reconcile-assets");
+    return runAssetReconciliation(dir, {
+      entityType: getStringFlag(flags, "entity-type"),
+      from: getStringFlag(flags, "from"),
+      dryRun: getBooleanFlag(flags, "dry-run"),
+      databaseUrl: getStringFlag(flags, "database-url"),
+      assetDirectory: getStringFlag(flags, "asset-directory"),
+    });
+  },
+});
+
 const toolCommand: BrainCommand = defineCommand({
   name: "tool",
   usage: "<name> [input-json] [--yes]",
@@ -418,6 +501,8 @@ export const commands: readonly CommandDefinition<string, CommandResult>[] = [
   authResetPasskeys,
   authReinitializeAccess,
   configMigrate,
+  binaryAssetsMigrate,
+  assetsReconcile,
   toolCommand,
   helpCommand,
   versionCommand,

@@ -1,10 +1,6 @@
-import type { IEntityService } from "@brains/plugins";
+import type { IAssetsNamespace, IEntityService } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
-import {
-  parseDataUrl,
-  detectImageFormat,
-  detectImageDimensions,
-} from "@brains/image";
+import { inspectImageBytes, parseDataUrl } from "@brains/image";
 
 /** Function to fetch an image URL and return base64 data URL */
 export type ImageFetcher = (url: string) => Promise<string>;
@@ -23,6 +19,7 @@ interface ImageEntityParams {
 export async function getOrCreateImageEntity(
   params: ImageEntityParams,
   entityService: IEntityService,
+  assets: IAssetsNamespace,
   fetcher: ImageFetcher,
   logger: Logger,
 ): Promise<string> {
@@ -31,6 +28,8 @@ export async function getOrCreateImageEntity(
   // Check for existing image with this sourceUrl (deduplication)
   const existing = await entityService.listEntities({
     entityType: "image",
+    binaryContent: "reference",
+    binaryContentSurface: "directory-sync-remote-image-dedup",
     options: {
       filter: { metadata: { sourceUrl } },
       limit: 1,
@@ -46,26 +45,23 @@ export async function getOrCreateImageEntity(
   }
 
   const dataUrl = await fetcher(sourceUrl);
-
-  const { base64 } = parseDataUrl(dataUrl);
-  const format = detectImageFormat(base64);
-  const dimensions = detectImageDimensions(base64);
-
-  if (!format || !dimensions) {
-    throw new Error("Could not detect image format or dimensions");
-  }
+  const parsed = parseDataUrl(dataUrl);
+  const inspected = inspectImageBytes(parsed.bytes, parsed.mediaType);
+  const stored = await assets.put(parsed.bytes);
 
   const result = await entityService.createEntity({
     entity: {
       id: params.id,
       entityType: "image",
-      content: dataUrl,
+      content: stored.ref,
       metadata: {
         title: params.title,
         alt: params.alt,
-        format,
-        width: dimensions.width,
-        height: dimensions.height,
+        format: inspected.format,
+        mediaType: inspected.mediaType,
+        sizeBytes: stored.sizeBytes,
+        width: inspected.width,
+        height: inspected.height,
         sourceUrl,
       },
     },

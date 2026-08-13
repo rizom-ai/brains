@@ -1,4 +1,15 @@
-import type { BaseEntity, IEntityService } from "@brains/plugins";
+import {
+  assetRefSchema,
+  createAssetRef,
+  internalFullScope,
+  type AssetRef,
+  type BaseEntity,
+  type IAssetsNamespace,
+  type IEntityService,
+} from "@brains/plugins";
+import { inspectImageBytes } from "@brains/image";
+import { createHash } from "node:crypto";
+import { createReadStream } from "node:fs";
 import { basename, dirname, extname } from "path";
 import { resolveInSyncPath, toSyncRelativePath } from "./path-utils";
 import { getMimeTypeForExtension, isImageFile } from "./image-file-utils";
@@ -25,7 +36,14 @@ import {
   getAllSyncFiles as findSyncFiles,
 } from "./file-discovery";
 import { pathExists } from "./fs-utils";
-import { OversizedFileError } from "./oversized-file-error";
+import {
+  DEFAULT_MAX_ASSET_IMPORT_BYTES,
+  OversizedImportFileError,
+} from "./import-limits";
+import {
+  DEFAULT_MAX_IMPORT_FILE_BYTES,
+  OversizedFileError,
+} from "./oversized-file-error";
 import type { PendingDeleteTarget } from "./pending-delete-registry";
 
 export { IMAGE_EXTENSIONS, isImageFile } from "./image-file-utils";
@@ -33,10 +51,16 @@ export { DOCUMENT_EXTENSIONS, isDocumentFile } from "./document-file-utils";
 
 export type FileOperationsEntityService = Pick<
   IEntityService,
-  "serializeEntity" | "hasEntityType"
+  "serializeEntity" | "hasEntityType" | "getEntity" | "getEntityTypeConfig"
 >;
 
+export interface FileOperationsImportLimits {
+  maxImportFileBytes: number;
+  maxAssetImportBytes: number;
+}
+
 const sidecarMetadataSchema = z.record(z.string(), z.unknown());
+const MAX_IMAGE_INSPECTION_BYTES = 1024 * 1024;
 
 /**
  * Handles file I/O operations for directory sync
@@ -44,10 +68,22 @@ const sidecarMetadataSchema = z.record(z.string(), z.unknown());
 export class FileOperations {
   private readonly syncPath: string;
   private readonly entityService: FileOperationsEntityService;
+  private readonly assets: IAssetsNamespace;
+  private readonly limits: FileOperationsImportLimits;
 
-  constructor(syncPath: string, entityService: FileOperationsEntityService) {
+  constructor(
+    syncPath: string,
+    entityService: FileOperationsEntityService,
+    assets: IAssetsNamespace,
+    limits: FileOperationsImportLimits = {
+      maxImportFileBytes: DEFAULT_MAX_IMPORT_FILE_BYTES,
+      maxAssetImportBytes: DEFAULT_MAX_ASSET_IMPORT_BYTES,
+    },
+  ) {
     this.syncPath = syncPath;
     this.entityService = entityService;
+    this.assets = assets;
+    this.limits = limits;
   }
 
   parseEntityFromPath(filePath: string): { entityType: string; id: string } {
@@ -79,16 +115,38 @@ export class FileOperations {
     const fullPath = resolveInSyncPath(this.syncPath, filePath);
 
     const stats = await stat(fullPath);
-    if (maxBytes !== undefined && stats.size > maxBytes) {
-      throw new OversizedFileError(filePath, stats.size, maxBytes);
-    }
-
     const { entityType, id } = this.parseEntityFromPath(filePath);
 
     // Fallback to mtime if birthtime is invalid (zero epoch)
     const created =
       stats.birthtime.getTime() > 0 ? stats.birthtime : stats.mtime;
     const updated = stats.mtime;
+
+    const isAssetBackedImage =
+      entityType === "image" &&
+      isImageFile(filePath) &&
+      this.entityService.getEntityTypeConfig(entityType).binaryStorage ===
+        "asset";
+    if (isAssetBackedImage) {
+      return this.readAssetBackedImage({
+        filePath,
+        fullPath,
+        id,
+        created,
+        updated,
+        sizeBytes: stats.size,
+      });
+    }
+
+    if (maxBytes !== undefined && stats.size > maxBytes) {
+      throw new OversizedFileError(filePath, stats.size, maxBytes);
+    }
+    this.assertWithinImportLimit(
+      filePath,
+      stats.size,
+      this.limits.maxImportFileBytes,
+      "ordinary",
+    );
 
     let content: string;
     let metadata: Record<string, unknown> | undefined;
@@ -118,6 +176,133 @@ export class FileOperations {
       result.metadata = metadata;
     }
     return result;
+  }
+
+  private async readAssetBackedImage(options: {
+    filePath: string;
+    fullPath: string;
+    id: string;
+    created: Date;
+    updated: Date;
+    sizeBytes: number;
+  }): Promise<RawEntity> {
+    this.assertWithinImportLimit(
+      options.filePath,
+      options.sizeBytes,
+      this.limits.maxAssetImportBytes,
+      "asset",
+    );
+
+    const existing = await this.entityService.getEntity({
+      entityType: "image",
+      id: options.id,
+      visibilityScope: internalFullScope(
+        "directory sync verifies durable images across all visibility tiers",
+      ),
+      binaryContent: "reference",
+      binaryContentSurface: "directory-sync-import",
+    });
+    const existingRef = assetRefSchema.safeParse(existing?.content.trim());
+    const existingAsset = existingRef.success
+      ? await this.assets.stat(existingRef.data)
+      : null;
+
+    const { ref, metadata } = await this.inspectAssetImageFile(
+      options.fullPath,
+      options.filePath,
+      options.sizeBytes,
+    );
+    const unchanged = existingRef.success && existingRef.data === ref;
+
+    if (!unchanged || !existingAsset) {
+      const stored = await this.putAssetFile(
+        options.fullPath,
+        options.sizeBytes,
+      );
+      if (stored.ref !== ref) {
+        throw new Error(
+          `Image changed while importing ${options.filePath}; expected ${ref} but stored ${stored.ref}`,
+        );
+      }
+    }
+
+    return {
+      entityType: "image",
+      id: options.id,
+      content: ref,
+      created: options.created,
+      updated: options.updated,
+      metadata: { ...existing?.metadata, ...metadata },
+      ...(unchanged && { assetUnchanged: true }),
+    };
+  }
+
+  private async inspectAssetImageFile(
+    fullPath: string,
+    filePath: string,
+    sizeBytes: number,
+  ): Promise<{
+    ref: AssetRef;
+    metadata: Record<string, unknown>;
+  }> {
+    const hash = createHash("sha256");
+    const headerChunks: Buffer[] = [];
+    let headerSize = 0;
+
+    for await (const chunk of createReadStream(fullPath)) {
+      if (!(chunk instanceof Uint8Array)) {
+        throw new TypeError("Image streams must yield Uint8Array chunks");
+      }
+      hash.update(chunk);
+      const remaining = MAX_IMAGE_INSPECTION_BYTES - headerSize;
+      if (remaining > 0) {
+        const headerChunk = Buffer.from(chunk).subarray(0, remaining);
+        headerChunks.push(headerChunk);
+        headerSize += headerChunk.byteLength;
+      }
+    }
+
+    const declaredMediaType = getMimeTypeForExtension(extname(filePath));
+    const inspected = inspectImageBytes(
+      Buffer.concat(headerChunks, headerSize),
+      declaredMediaType,
+    );
+    return {
+      ref: createAssetRef(hash.digest("hex")),
+      metadata: {
+        format: inspected.format,
+        mediaType: inspected.mediaType,
+        sizeBytes,
+        width: inspected.width,
+        height: inspected.height,
+      },
+    };
+  }
+
+  private async putAssetFile(
+    fullPath: string,
+    expectedSize: number,
+  ): Promise<{ ref: AssetRef }> {
+    return this.assets.putStream(createReadStream(fullPath), {
+      expectedSize,
+      maxBytes: this.limits.maxAssetImportBytes,
+    });
+  }
+
+  private assertWithinImportLimit(
+    filePath: string,
+    sizeBytes: number,
+    maxBytes: number,
+    limitKind: "ordinary" | "asset",
+  ): void {
+    if (sizeBytes > maxBytes) {
+      throw new OversizedImportFileError({
+        filePath,
+        sizeBytes,
+        maxBytes,
+        limitKind,
+      });
+    }
   }
 
   /**
@@ -161,13 +346,25 @@ export class FileOperations {
     const isDocument = entity.entityType === "document";
 
     if (isImage || isDocument) {
-      const dataUrlPattern = isImage
-        ? /^data:image\/[a-z+]+;base64,(.+)$/i
-        : /^data:application\/pdf;base64,(.+)$/i;
-      const match = entity.content.match(dataUrlPattern);
-      const contentToWrite = match?.[1]
-        ? Buffer.from(match[1], "base64")
-        : Buffer.from(entity.content, "base64");
+      let contentToWrite: Uint8Array;
+      const assetRef = isImage
+        ? assetRefSchema.safeParse(entity.content.trim())
+        : undefined;
+      if (assetRef?.success) {
+        contentToWrite = await this.assets.read(assetRef.data);
+      } else {
+        const dataUrlPattern = isImage
+          ? /^data:image\/[a-z+]+;base64,(.+)$/i
+          : /^data:application\/pdf;base64,(.+)$/i;
+        const match = entity.content.match(dataUrlPattern);
+        const encodedContent = match?.[1];
+        if (!encodedContent) {
+          throw new Error(
+            `Cannot export ${entity.entityType}:${entity.id}: expected a supported base64 data URL or asset reference`,
+          );
+        }
+        contentToWrite = Buffer.from(encodedContent, "base64");
+      }
 
       let binaryUnchanged = false;
       if (await pathExists(filePath)) {
@@ -175,7 +372,9 @@ export class FileOperations {
         const currentHash = computeContentHash(
           currentContent.toString("base64"),
         );
-        const newHash = computeContentHash(contentToWrite.toString("base64"));
+        const newHash = computeContentHash(
+          Buffer.from(contentToWrite).toString("base64"),
+        );
 
         if (currentHash === newHash) {
           binaryUnchanged = true;

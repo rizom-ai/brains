@@ -7,16 +7,26 @@ import {
 } from "../../src/handlers/publishExecuteHandler";
 import type { BaseEntity } from "@brains/plugins";
 import type { SocialPost } from "../../src/schemas/social-post";
-import { createMockLogger, createMockMessageSender } from "@brains/test-utils";
+import {
+  createMockAssetsNamespace,
+  createMockLogger,
+  createMockMessageSender,
+  type MockAssetsNamespace,
+} from "@brains/test-utils";
 import { getErrorMessage } from "@brains/utils/error";
 
+interface TestEntityReadRequest {
+  entityType: string;
+  id: string;
+  binaryContent?: "reference";
+  binaryContentSurface?: string;
+}
+
 class TestEntityService implements PublishExecuteEntityService {
-  public readonly getEntityCalls: Array<{ entityType: string; id: string }> =
-    [];
-  private getEntityHandler: (request: {
-    entityType: string;
-    id: string;
-  }) => Promise<BaseEntity | null> = async () => null;
+  public readonly getEntityCalls: TestEntityReadRequest[] = [];
+  private getEntityHandler: (
+    request: TestEntityReadRequest,
+  ) => Promise<BaseEntity | null> = async () => null;
 
   public readonly updateEntity = mock(
     async (_request: { entity: BaseEntity }): Promise<void> => {},
@@ -27,26 +37,20 @@ class TestEntityService implements PublishExecuteEntityService {
   }
 
   public setGetEntityHandler(
-    handler: (request: {
-      entityType: string;
-      id: string;
-    }) => Promise<BaseEntity | null>,
+    handler: (request: TestEntityReadRequest) => Promise<BaseEntity | null>,
   ): void {
     this.getEntityHandler = handler;
   }
 
-  public async getEntity(request: {
-    entityType: "social-post";
-    id: string;
-  }): Promise<SocialPost | null>;
-  public async getEntity(request: {
-    entityType: string;
-    id: string;
-  }): Promise<BaseEntity | null>;
-  public async getEntity(request: {
-    entityType: string;
-    id: string;
-  }): Promise<BaseEntity | null> {
+  public async getEntity(
+    request: TestEntityReadRequest & { entityType: "social-post" },
+  ): Promise<SocialPost | null>;
+  public async getEntity(
+    request: TestEntityReadRequest,
+  ): Promise<BaseEntity | null>;
+  public async getEntity(
+    request: TestEntityReadRequest,
+  ): Promise<BaseEntity | null> {
     this.getEntityCalls.push(request);
     return this.getEntityHandler(request);
   }
@@ -185,6 +189,7 @@ describe("PublishExecuteHandler", () => {
   let messageSender: ReturnType<typeof createMockMessageSender>;
   let logger: ReturnType<typeof createMockLogger>;
   let entityService: ReturnType<typeof createMockEntityService>;
+  let assets: MockAssetsNamespace;
   let providers: Map<string, PublishProvider>;
   let linkedinProvider: PublishProvider;
   let permissions: PublishExecuteHandlerConfig["permissions"];
@@ -193,6 +198,7 @@ describe("PublishExecuteHandler", () => {
     messageSender = createMockMessageSender();
     logger = createMockLogger();
     entityService = createMockEntityService();
+    assets = createMockAssetsNamespace();
 
     linkedinProvider = {
       name: "linkedin",
@@ -209,6 +215,7 @@ describe("PublishExecuteHandler", () => {
         messageSender.sendMessage(request),
       logger,
       entityService,
+      assets,
       providers,
       permissions,
     };
@@ -225,6 +232,7 @@ describe("PublishExecuteHandler", () => {
       sendMessage: (request) => messageSender.sendMessage(request),
       logger,
       entityService,
+      assets,
       providers,
       permissions,
       resolveAttachment,
@@ -406,13 +414,24 @@ describe("PublishExecuteHandler", () => {
       expect(messageSender.sendMessage).not.toHaveBeenCalled();
     });
 
-    it("should fetch and pass image data when coverImageId is present", async () => {
+    it("should fetch and pass asset-backed image data when coverImageId is present", async () => {
+      const bytes = Buffer.from(TINY_PNG_BASE64, "base64");
+      const stored = assets.store.seed(bytes);
+      const assetImage: BaseEntity = {
+        ...sampleImage,
+        content: stored.ref,
+        metadata: {
+          ...sampleImage.metadata,
+          mediaType: "image/png",
+          sizeBytes: stored.sizeBytes,
+        },
+      };
       entityService.setGetEntityHandler(async (request) => {
         if (request.entityType === "social-post") {
           return samplePostWithImage;
         }
         if (request.entityType === "image" && request.id === "image-123") {
-          return sampleImage;
+          return assetImage;
         }
         return null;
       });
@@ -426,10 +445,16 @@ describe("PublishExecuteHandler", () => {
         "This is a post with an image.",
         expect.any(Object),
         expect.objectContaining({
-          data: expect.any(Buffer),
+          data: bytes,
           mimeType: "image/png",
         }),
       );
+      expect(entityService.getEntityCalls).toContainEqual({
+        entityType: "image",
+        id: "image-123",
+        binaryContent: "reference",
+        binaryContentSurface: "social-media-publish",
+      });
     });
 
     it("should fetch and pass document data when documents are present", async () => {

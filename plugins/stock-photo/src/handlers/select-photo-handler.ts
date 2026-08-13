@@ -1,9 +1,9 @@
 import { BaseJobHandler } from "@brains/plugins";
-import type { IEntityService } from "@brains/plugins";
+import type { AssetStore, IEntityService } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import type { ProgressReporter } from "@brains/utils/progress";
 import { z } from "@brains/utils/zod";
-import { imageAdapter } from "@brains/image";
+import { imageAdapter, parseDataUrl } from "@brains/image";
 import type { FetchImageFn, StockPhotoProvider } from "../lib/types";
 import { setCoverImage } from "../lib/set-cover-image";
 
@@ -48,6 +48,7 @@ export interface SelectPhotoJobResult {
 export interface SelectPhotoHandlerDeps {
   provider: StockPhotoProvider;
   entityService: IEntityService;
+  assets: AssetStore;
   fetchImage: FetchImageFn;
 }
 
@@ -83,9 +84,13 @@ export class SelectPhotoJobHandler extends BaseJobHandler<
     });
 
     const dataUrl = await this.deps.fetchImage(data.imageUrl);
+    const parsedImage = parseDataUrl(dataUrl);
+    const asset = await this.deps.assets.put(parsedImage.bytes);
     const imageTitle = data.title ?? `Stock photo ${data.photoId}`;
     const imageData = imageAdapter.createImageEntity({
-      dataUrl,
+      assetRef: asset.ref,
+      bytes: parsedImage.bytes,
+      declaredMediaType: parsedImage.mediaType,
       title: imageTitle,
       alt: data.alt ?? imageTitle,
     });

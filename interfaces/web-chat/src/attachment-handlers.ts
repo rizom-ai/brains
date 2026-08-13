@@ -6,6 +6,7 @@ import {
   type InterfacePluginContext,
   type UserPermissionLevel,
 } from "@brains/plugins";
+import { resolveImageBytes } from "@brains/image";
 
 type PermissionLevelResolver = (
   request: Request,
@@ -17,6 +18,7 @@ interface AttachmentHandlerDeps {
   resolvePermissionLevel: PermissionLevelResolver;
   createAuthLoginRequiredResponse: (request: Request) => Response;
   entityService: EntityService;
+  assets: InterfacePluginContext["assets"];
 }
 
 export async function handleDocumentAttachmentRequest(
@@ -94,8 +96,13 @@ export async function handleImageAttachmentRequest(
     return new Response("Image content is not an image", { status: 415 });
   }
 
-  const parsed = parseArtifactDataUrl("image", image.content);
-  if (!parsed) {
+  let resolved;
+  try {
+    resolved = await resolveImageBytes(
+      { content: image.content, metadata: image.metadata ?? {} },
+      deps.assets,
+    );
+  } catch {
     return new Response("Image content is not an image", { status: 415 });
   }
 
@@ -103,12 +110,12 @@ export async function handleImageAttachmentRequest(
     image.metadata,
     imageId,
     "image",
-    parsed.mimeType,
+    resolved.mediaType,
   );
   return createBinaryAttachmentResponse({
     requestUrl: url,
-    data: parsed.data,
-    mediaType: parsed.mimeType,
+    data: Uint8Array.from(resolved.bytes).buffer,
+    mediaType: resolved.mediaType,
     filename,
   });
 }
@@ -126,12 +133,27 @@ async function resolveVisibleArtifactEntity(input: {
   | undefined
 > {
   const entityRef = { entityType: input.entityType, id: input.id };
+  const binaryReadOptions: {
+    binaryContent?: "reference";
+    binaryContentSurface?: string;
+  } =
+    input.entityType === "image"
+      ? {
+          binaryContent: "reference",
+          binaryContentSurface: "web-chat-image-attachment",
+        }
+      : {};
   const access = await resolveMessageArtifactAccess({
     entityRef,
     userLevel: input.permissionLevel,
-    getEntity: (ref) => input.entityService.getEntity(ref),
+    getEntity: (ref) =>
+      input.entityService.getEntity({ ...ref, ...binaryReadOptions }),
     getVisibleEntity: (ref, visibilityScope) =>
-      input.entityService.getEntity({ ...ref, visibilityScope }),
+      input.entityService.getEntity({
+        ...ref,
+        visibilityScope,
+        ...binaryReadOptions,
+      }),
   });
 
   return access.status === "visible" ? access.entity : undefined;

@@ -8,6 +8,27 @@ describe("parseSlideDirectives", () => {
     expect(result.markdown).toBe("# Hello\n\nSome content");
   });
 
+  it("should apply fallback attributes when no directive is present", () => {
+    const result = parseSlideDirectives("# Title", {
+      "data-background-image": "/images/cover.webp",
+      "data-background-opacity": "0.4",
+    });
+
+    expect(result.attributes).toEqual({
+      "data-background-image": "/images/cover.webp",
+      "data-background-opacity": "0.4",
+    });
+  });
+
+  it("should let explicit directives override fallback attributes", () => {
+    const result = parseSlideDirectives(
+      '<!-- .slide: data-background-opacity="0.8" -->\n# Title',
+      { "data-background-opacity": "0.4" },
+    );
+
+    expect(result.attributes["data-background-opacity"]).toBe("0.8");
+  });
+
   it("should parse a single attribute", () => {
     const result = parseSlideDirectives(
       '<!-- .slide: data-background-color="#ff0000" -->\n# Title',

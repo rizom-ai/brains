@@ -61,6 +61,7 @@ describe("Product OG image attachment provider", () => {
     const provider = createProductOgImageProvider(
       {
         entityService: harness.getEntityService(),
+        assets: harness.getEntityContext("test").assets,
         themeCSS: "",
         identity: harness.getEntityContext("test").identity,
         domain: "example.com",

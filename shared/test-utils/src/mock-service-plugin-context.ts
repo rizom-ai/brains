@@ -1,6 +1,7 @@
 import { mock } from "bun:test";
 import type {
   ServicePluginContext,
+  IAssetsNamespace,
   IEntityService,
   BaseEntity,
   MessageSendRequest,
@@ -13,6 +14,7 @@ import {
 } from "./mock-entity-service";
 import { createMockLogger } from "./mock-logger";
 import { createMockAppInfo } from "./mock-app-info";
+import { createMockAssetsNamespace } from "./mock-assets";
 
 /**
  * Return value configuration for mock service plugin context methods
@@ -34,6 +36,8 @@ export interface MockServicePluginContextOptions {
   entityService?: IEntityService;
   /** Custom logger mock */
   logger?: Logger;
+  /** Custom durable asset namespace. */
+  assets?: IAssetsNamespace;
   /** Entity types to register */
   entityTypes?: string[];
   /** Plugin ID */
@@ -105,6 +109,7 @@ export function createMockServicePluginContext(
     // Services
     entityService,
     logger,
+    assets: options.assets ?? createMockAssetsNamespace(),
 
     // Entity management namespace
     entities: {

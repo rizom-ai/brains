@@ -1,9 +1,14 @@
-import type { IEntityService, MessageSender } from "@brains/plugins";
+import type {
+  AssetStore,
+  IEntityService,
+  MessageSender,
+} from "@brains/plugins";
 import type { SiteContentResolutionOptions } from "./site-content-contracts";
 import type { SiteViewTemplate } from "./site-view-template";
 
 export interface SiteBuilderServices {
   entityService: IEntityService;
+  assets: AssetStore;
   sendMessage: MessageSender;
   resolveTemplateContent: <T = unknown>(
     templateName: string,

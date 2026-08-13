@@ -2,10 +2,11 @@ import { describe, it, expect, mock, beforeEach, afterEach } from "bun:test";
 import { createTempDataDir } from "@brains/plugins/test";
 import { DirectorySync } from "../src/lib/directory-sync";
 import {
+  createMockAssetsNamespace,
   createSilentLogger,
   createMockEntityService,
+  createMockServicePluginContext,
 } from "@brains/test-utils";
-import { createMockServicePluginContext } from "@brains/test-utils";
 import { writeFile, mkdir } from "fs/promises";
 import { join } from "path";
 import { rmSync } from "fs";
@@ -39,6 +40,7 @@ describe("sync mutex", () => {
       syncPath: testDir,
       autoSync: false,
       entityService,
+      assets: createMockAssetsNamespace(),
       logger: createSilentLogger("test"),
     });
     await directorySync.initializeDirectory();

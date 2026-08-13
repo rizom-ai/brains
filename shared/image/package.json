@@ -2,8 +2,9 @@
   "name": "@brains/image",
   "license": "AGPL-3.0-only",
   "version": "0.2.0-alpha.285",
-  "description": "Image entity support with base64 storage - schemas, adapter, and utilities",
+  "description": "Image entity schemas, adapters, and durable asset utilities",
   "dependencies": {
+    "@brains/assets": "workspace:*",
     "@brains/entity-service": "workspace:*",
     "@brains/utils": "workspace:*",
     "remark": "^15.0.1",
