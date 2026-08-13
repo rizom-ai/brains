@@ -5,16 +5,18 @@
 Root-cause class confirmed locally; attribution of the specific live production incident remains
 open. The database→git auto-export in `plugins/directory-sync` can silently stop emitting
 `Auto-sync` commits because every export shares the Git lock with pulls, and one Git operation
-whose runtime completion never settles holds that lock indefinitely. The remaining work is to
-prove that exact path for the production incident, pin the fixed Bun runtime, add durable recovery,
-and validate the safe live-recovery procedure. Related in-flight work is tracked in Phase 6 of
-`docs/plans/directory-sync-import-load.md`.
+whose runtime completion never settles holds that lock indefinitely. Reconciliation checkpoints
+and stale operational health have landed. The remaining implementation is the separately scoped
+[`directory-sync-git-execution-broker.md`](./directory-sync-git-execution-broker.md) workaround;
+a future fixed Bun pin is defense in depth rather than a reason to block all progress. Fresh
+incident attribution and any live recovery remain separate approval-gated operational work.
 
 ## Goal
 
 Finish proving the **specific production path** by which the database→git auto-export stopped
-emitting commits, then deliver the fixed runtime, deterministic replay, regression tests, and a
-safe live-recovery procedure.
+emitting commits, then deliver the Git execution broker, deterministic replay, regression tests,
+and a safe live-recovery procedure. Pin a fixed stable runtime when available as an independent
+defense-in-depth change.
 
 Do NOT stop at the matching local symptom. Preserve the distinction between the confirmed code
 mechanism and the still-unconfirmed attribution of the alpha.262 production incident.
@@ -149,8 +151,9 @@ after that evidence is reviewed.
      blocked, surface stale operational health, and recover only through supervised restart plus
      deterministic checkpoint replay. Never `Promise.race` the lock open while an old Git process
      may still mutate the checkout.
-3. **Minimal durable fix** that preserves serialization while pinning the first stable Bun release
-   containing the upstream fix, storing the repository/branch-scoped
+3. **Minimal durable fix** that preserves serialization while implementing the external
+   [`directory-sync-git-execution-broker.md`](./directory-sync-git-execution-broker.md)
+   boundary and retaining the repository/branch-scoped
    `lastReconciledGitHead`, replaying a merged-but-not-queued diff on startup, and surfacing an
    over-age `pulling` run through progress-based `/health/operate` degradation. Do not rely on an
    in-process timer to recover the affected Bun 1.3.x event loop.
@@ -158,9 +161,9 @@ after that evidence is reviewed.
    Cover every child command that can execute while a serialized Git workflow owns the checkout,
    not only `commitGitChanges` and `resolveLocalConflicts`: status, rev-parse, diff, add, commit,
    show/index inspection, conflict checkout/rm, remote-delete reconciliation, pull, and push.
-   Route them through one owned, abortable process abstraction (or an equivalent complete guard)
-   after the fixed Bun pin. A timeout may release the queue only after kill-and-reap is confirmed;
-   otherwise operational health must fail and the external supervisor must restart the process.
+   Route them through the single cross-process broker owner. A timeout may release the checkout
+   only after kill-and-reap is confirmed; otherwise the externally owned wrapper must retain its
+   advisory lock, operational health must fail, and broker recovery must reconcile the result.
 
 4. **Approval-gated live-recovery runbook**: after the fresh capture, backup, and parity proof,
    request explicit approval to restart the process/container without changing image or config.
