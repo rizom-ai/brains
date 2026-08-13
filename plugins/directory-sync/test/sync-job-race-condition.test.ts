@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, mock } from "bun:test";
+import { describe, it, expect, mock } from "bun:test";
 import type { DirectorySync } from "../src/lib/directory-sync";
 import type { ImportResult, ExportResult } from "../src/types";
 import type { BaseEntity } from "@brains/plugins";
@@ -18,30 +18,35 @@ import {
  *
  * This causes manual file edits to be lost.
  */
+/**
+ * Every queued job in this file completes when its own test releases it, never
+ * on a timer. These are ordering-documentation tests built entirely from mocks:
+ * what they assert is which step observed which state, so expressing completion
+ * as a value the test controls says exactly that, while a sleep could only say
+ * "long enough, probably". It also removes the hazard that made the sleeps hard
+ * to replace — state shared across two cycles in one test, with timers from the
+ * first cycle still in flight during the second.
+ */
 describe("Directory sync race condition", () => {
   let mockDirectorySync: Partial<DirectorySync>;
-  let importCallCount = 0;
-  let exportCallCount = 0;
-  let jobsCompleted = false;
-
-  beforeEach(() => {
-    importCallCount = 0;
-    exportCallCount = 0;
-    jobsCompleted = false;
-  });
 
   it("should demonstrate the race condition bug", async () => {
-    // Track when export is called relative to job completion
+    let importCallCount = 0;
+    let exportCallCount = 0;
+    let jobsCompleted = false;
     let exportCalledBeforeJobsComplete = false;
+
+    // The queued job is released only after export has run. Completing it at
+    // the end rather than never proves export beat a job that genuinely could
+    // finish, instead of one that was incapable of finishing.
+    const queuedJob = Promise.withResolvers<void>();
+    const jobFinished = queuedJob.promise.then(() => {
+      jobsCompleted = true;
+    });
 
     // Mock import that returns job IDs (simulating async processing)
     const mockImportWithProgress = mock(async (): Promise<ImportResult> => {
       importCallCount++;
-
-      // Simulate async job processing
-      setTimeout(() => {
-        jobsCompleted = true;
-      }, 100); // Jobs complete after 100ms
 
       return {
         imported: 1,
@@ -89,22 +94,30 @@ describe("Directory sync race condition", () => {
     // BUG: Export starts immediately without waiting for jobs
     await exportFn(undefined, createMockProgressReporter(), 10);
 
+    // Let the queued job finish now, so the assertion below distinguishes
+    // "export got there first" from "the job could never have completed".
+    queuedJob.resolve();
+    await jobFinished;
+
     // Assertions proving the bug exists
     expect(importCallCount).toBe(1);
     expect(exportCallCount).toBe(1);
     expect(importResult.jobIds.length).toBeGreaterThan(0);
+    expect(jobsCompleted).toBe(true); // the job was completable all along
     expect(exportCalledBeforeJobsComplete).toBe(true); // BUG: Export ran before jobs completed!
   });
 
   it("should wait for import jobs before starting export", async () => {
     // This test documents the expected behavior after fix
+    let jobsCompleted = false;
     let exportCalledBeforeJobsComplete = false;
 
-    const mockImportWithProgress = mock(async (): Promise<ImportResult> => {
-      setTimeout(() => {
-        jobsCompleted = true;
-      }, 50);
+    const queuedJob = Promise.withResolvers<void>();
+    const jobFinished = queuedJob.promise.then(() => {
+      jobsCompleted = true;
+    });
 
+    const mockImportWithProgress = mock(async (): Promise<ImportResult> => {
       return {
         imported: 1,
         skipped: 0,
@@ -141,7 +154,8 @@ describe("Directory sync race condition", () => {
     await importFn(undefined, createMockProgressReporter(), 10);
 
     // FIX: Wait for all jobs to complete
-    await new Promise((resolve) => setTimeout(resolve, 100));
+    queuedJob.resolve();
+    await jobFinished;
 
     // Export
     await exportFn(undefined, createMockProgressReporter(), 10);
@@ -168,16 +182,29 @@ describe("Directory sync race condition", () => {
     let entityInDB: BaseEntity = originalEntity;
     let fileContent = originalEntity.content;
 
+    // Each import owns the job it queued. Both cycles below write the same
+    // value to entityInDB, so no assertion here can tell the two jobs apart —
+    // the point is that the wait names one of them. Under the previous fixed
+    // sleep, the first cycle's timer fired during the second cycle's sleep and
+    // supplied the state the second cycle was waiting for, so the test passed
+    // without the behaviour it documents ever being exercised twice.
+    const queuedJobs: Array<{
+      release: () => void;
+      finished: Promise<void>;
+    }> = [];
+
     // Mock import that updates DB after job completes
     const mockImportWithProgress = mock(async (): Promise<ImportResult> => {
       // File has edited content
       fileContent = editedEntity.content;
 
-      // Simulate async job that updates DB
-      setTimeout(() => {
-        entityInDB = editedEntity; // Job updates DB
-        jobsCompleted = true;
-      }, 50);
+      const completion = Promise.withResolvers<void>();
+      queuedJobs.push({
+        release: completion.resolve,
+        finished: completion.promise.then(() => {
+          entityInDB = editedEntity; // Job updates DB
+        }),
+      });
 
       return {
         imported: 1,
@@ -223,7 +250,14 @@ describe("Directory sync race condition", () => {
     fileContent = editedEntity.content; // File edited again
 
     await importFn(undefined, createMockProgressReporter(), 10);
-    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for jobs
+
+    // Wait for this cycle's job. The first cycle's job is still outstanding and
+    // is never released, so nothing but this one can advance entityInDB.
+    const secondCycleJob = queuedJobs[1];
+    if (!secondCycleJob) throw new Error("second import queued no job");
+    secondCycleJob.release();
+    await secondCycleJob.finished;
+
     await exportFn(undefined, createMockProgressReporter(), 10);
 
     // FIX: File has edited content because export ran AFTER job completed
@@ -252,14 +286,23 @@ slug: test-series
       let fileWrittenContent = "";
       let importJobCompleted = false;
 
+      // One job per import, for the same reason as the two-cycle test above.
+      const queuedJobs: Array<{
+        release: () => void;
+        finished: Promise<void>;
+      }> = [];
+
       // Mock import that queues a job to update DB
       const mockImportWithProgress = mock(async (): Promise<ImportResult> => {
         // Simulate reading file with coverImageId
-        // Job will update DB after a delay
-        setTimeout(() => {
-          dbContent = newContentWithCover;
-          importJobCompleted = true;
-        }, 50);
+        const completion = Promise.withResolvers<void>();
+        queuedJobs.push({
+          release: completion.resolve,
+          finished: completion.promise.then(() => {
+            dbContent = newContentWithCover;
+            importJobCompleted = true;
+          }),
+        });
 
         return {
           imported: 1,
@@ -308,8 +351,11 @@ slug: test-series
 
       // HISTORICAL FIXED SCENARIO: import-side work completed before export
       await importFn();
-      // Wait for import job to complete
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      // Wait for this cycle's import job to complete
+      const secondCycleJob = queuedJobs[1];
+      if (!secondCycleJob) throw new Error("second import queued no job");
+      secondCycleJob.release();
+      await secondCycleJob.finished;
       // Now export runs after job completed
       await exportFn();
 
@@ -351,8 +397,8 @@ slug: test-series
         operationOrder.push("waitForJobs");
         waitForJobsCalled = true;
         jobsWaitedFor = jobIds;
-        // Simulate waiting
-        await new Promise((resolve) => setTimeout(resolve, 10));
+        // No sleep: the assertions read operationOrder, so how long this took
+        // was never observed by anything.
       });
 
       const mockExportEntities = mock(async (): Promise<ExportResult> => {
