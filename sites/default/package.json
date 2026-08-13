@@ -1,7 +1,7 @@
 {
   "name": "@brains/site-default",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.284",
+  "version": "0.2.0-alpha.285",
   "description": "Default structural site package — clean professional layout for rover",
   "dependencies": {
     "@brains/site-professional": "workspace:*"

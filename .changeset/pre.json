@@ -266,6 +266,7 @@
     "core--http-route-registry",
     "core--import-burst-git-child",
     "core--inbound-email-daemon",
+    "core--inbox-linkable-filters",
     "core--inbox-recognizable-contacts",
     "core--inbox-thread-position",
     "core--json-native-section-content",
