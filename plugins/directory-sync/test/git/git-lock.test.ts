@@ -5,6 +5,7 @@ import { DirectorySyncRuntime } from "../../src/lib/directory-sync-runtime";
 import {
   createSilentLogger,
   createMockServicePluginContext,
+  waitUntil,
 } from "@brains/test-utils";
 import type { ServicePluginContext } from "@brains/plugins";
 import type { PullResult } from "../../src/lib/git-sync";
@@ -93,6 +94,17 @@ describe("git operation serialization", () => {
       commit: commitMock,
       push: pushMock,
       pull: pullMock,
+      // commitAndPush gates on getStatus().hasChanges, not hasLocalChanges.
+      // Without this the auto-commit returns early and never takes the lock,
+      // so the concurrency assertion below only ever saw periodic syncs.
+      getStatus: mock(async () => ({
+        isRepo: true,
+        hasChanges: true,
+        ahead: 0,
+        behind: 0,
+        branch: "main",
+        files: [],
+      })),
       hasLocalChanges: mock(async () => true),
       withLock,
     });
@@ -133,8 +145,20 @@ describe("git operation serialization", () => {
       },
     });
 
-    // Let both run for a while
-    await new Promise((r) => setTimeout(r, 300));
+    // Wait for the work itself rather than for a duration: the auto-commit and
+    // several periodic syncs must actually have run before "they never
+    // overlapped" means anything. A fixed sleep fits fewer operations on a
+    // loaded machine and would weaken the assertion without failing.
+    await waitUntil(
+      () =>
+        commitMock.mock.calls.length >= 1 && pullMock.mock.calls.length >= 3,
+      "the auto-commit and three periodic syncs to run",
+    );
+
+    // Both halves must actually have run: a green "never overlapped" means
+    // nothing if only one kind of operation ever took the lock.
+    expect(commitMock).toHaveBeenCalled();
+    expect(pushMock).toHaveBeenCalled();
 
     // Git operations should never overlap
     expect(maxConcurrent).toBe(1);
