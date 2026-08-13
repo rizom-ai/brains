@@ -22,12 +22,22 @@ jobs:
   upgrade:
     runs-on: ubuntu-latest
     steps:
+      # Check only presence here; the private key itself is never exposed to
+      # this step. A missing private-key secret fails before checkout.
       - name: Require upgrade App configuration
         env:
           APP_ID: ${{ vars.OPS_UPGRADE_APP_ID }}
+          HAS_PRIVATE_KEY: ${{ secrets.OPS_UPGRADE_APP_PRIVATE_KEY != '' }}
         run: |
+          missing=""
           if [ -z "$APP_ID" ]; then
-            echo "OPS_UPGRADE_APP_ID is not set." >&2
+            missing="OPS_UPGRADE_APP_ID"
+          fi
+          if [ "$HAS_PRIVATE_KEY" != "true" ]; then
+            missing="${missing:+$missing and }OPS_UPGRADE_APP_PRIVATE_KEY"
+          fi
+          if [ -n "$missing" ]; then
+            echo "$missing is not set for this repository." >&2
             echo "Configure the upgrade GitHub App as described in docs/operator-playbook.md." >&2
             exit 1
           fi
