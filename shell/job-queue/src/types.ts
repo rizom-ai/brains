@@ -200,6 +200,15 @@ export interface JobQueueDiagnostics {
   workerSessions: JobWorkerSessionDiagnostics;
 }
 
+export interface JobQueueIdleOptions {
+  /** How long the queue must stay empty before it counts as settled. */
+  quietMs?: number;
+  /** Give up after this long and report what is still outstanding. */
+  timeoutMs?: number;
+  pollIntervalMs?: number;
+  signal?: AbortSignal;
+}
+
 /**
  * Job queue service interface
  */
@@ -311,6 +320,9 @@ export interface IJobQueueService {
 
   /** Get bounded operational diagnostics without loading queue rows. */
   getDiagnostics(now?: number): Promise<JobQueueDiagnostics>;
+
+  /** Settle once nothing is in flight and nothing new has arrived. */
+  waitForIdle(options?: JobQueueIdleOptions): Promise<void>;
 
   /** Read durable processing and terminal updates for web-owned publication. */
   getRuntimeUpdates(

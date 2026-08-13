@@ -11,6 +11,7 @@ import type {
   JobHandlerRegistrationMode,
   JobInfo,
   JobQueueDiagnostics,
+  JobQueueIdleOptions,
   JobQueueEnqueueRequest,
   JobQueueServiceConfig,
   JobQueueStats,
@@ -501,6 +502,36 @@ export class JobQueueService implements IJobQueueService {
 
   public getDiagnostics(now?: number): Promise<JobQueueDiagnostics> {
     return this.repository.getDiagnostics(now);
+  }
+
+  /**
+   * Resolve once no work is pending or processing and none has arrived for
+   * `quietMs`. Completing a job can enqueue the next one, so a momentarily
+   * empty queue is not a finished queue; the quiet window is what separates
+   * the two. The durable rows are the source of truth because other processes
+   * enqueue too, so this samples rather than listens.
+   */
+  public async waitForIdle(options: JobQueueIdleOptions = {}): Promise<void> {
+    const quietMs = options.quietMs ?? 250;
+    const pollIntervalMs = options.pollIntervalMs ?? 25;
+    const deadline = Date.now() + (options.timeoutMs ?? 30_000);
+
+    const settle = async (quietSince: number | null): Promise<void> => {
+      options.signal?.throwIfAborted();
+      const { totals } = await this.getDiagnostics();
+      const empty = totals.pending === 0 && totals.processing === 0;
+      const since = empty ? (quietSince ?? Date.now()) : null;
+      if (since !== null && Date.now() - since >= quietMs) return;
+      if (Date.now() >= deadline) {
+        throw new Error(
+          `Timed out waiting for the job queue to settle: ${totals.pending} pending, ${totals.processing} processing`,
+        );
+      }
+      await Bun.sleep(pollIntervalMs);
+      return settle(since);
+    };
+
+    return settle(null);
   }
 
   public getRuntimeUpdates(
