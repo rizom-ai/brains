@@ -2,7 +2,7 @@
 
 ## Status
 
-Implemented, awaiting release. Opened 2026-08-11 from a live production incident on rizom.ai,
+**Released in `@rizom/brain@0.2.0-alpha.284` on 2026-08-13.** Opened 2026-08-11 from a live production incident on rizom.ai,
 **split out
 2026-08-11** after code tracing found a confirmed worker-supervision invariant violation, then
 expanded after the same day's rover-pilot deploy showed two operationally-degraded-but-deploy-green
