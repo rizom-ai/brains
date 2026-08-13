@@ -60,6 +60,8 @@ export function createGitSyncFacade(getActive: () => IGitSync): IGitSync {
     commit: (message) => getActive().commit(message),
     push: (signal) => getActive().push(signal),
     pull: (signal) => getActive().pull(signal),
+    getReconciliationDelta: (checkpoint) =>
+      getActive().getReconciliationDelta(checkpoint),
     cleanup: () => getActive().cleanup(),
     log: (filePath, limit) => getActive().log(filePath, limit),
     show: (sha, filePath) => getActive().show(sha, filePath),

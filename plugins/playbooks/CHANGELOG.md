@@ -1,5 +1,27 @@
 # @brains/playbooks
 
+## 0.2.0-alpha.283
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.283
+  - @brains/contracts@0.2.0-alpha.283
+  - @brains/utils@0.2.0-alpha.283
+  - @brains/plugins@0.2.0-alpha.283
+  - @brains/runtime-state@0.2.0-alpha.283
+
+## 0.2.0-alpha.282
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.282
+  - @brains/contracts@0.2.0-alpha.282
+  - @brains/utils@0.2.0-alpha.282
+  - @brains/plugins@0.2.0-alpha.282
+  - @brains/runtime-state@0.2.0-alpha.282
+
 ## 0.2.0-alpha.281
 
 ### Patch Changes

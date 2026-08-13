@@ -6,6 +6,8 @@ import type {
   DirectorySyncStatus,
   ExportResult,
   GitLogEntry,
+  GitReconciliationCheckpoint,
+  GitReconciliationDelta,
   GitSyncStatus,
   ImportResult,
   PullResult,
@@ -97,7 +99,10 @@ export interface IGitSync {
   hasLocalChanges(): Promise<boolean>;
   commit(message?: string): Promise<void>;
   push(signal?: AbortSignal): Promise<void>;
-  pull(signal?: AbortSignal): Promise<PullResult>;
+  pull(signal?: AbortSignal, onProgress?: () => void): Promise<PullResult>;
+  getReconciliationDelta(
+    checkpoint?: GitReconciliationCheckpoint,
+  ): Promise<GitReconciliationDelta>;
   cleanup(): Promise<void>;
 
   /** Get commit history for a specific file path (relative to data dir) */

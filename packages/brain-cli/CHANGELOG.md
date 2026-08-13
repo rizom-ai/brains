@@ -1,5 +1,17 @@
 # @rizom/brain
 
+## 0.2.0-alpha.283
+
+### Patch Changes
+
+- [#122](https://github.com/rizom-ai/brains/pull/122) [`017e9fb`](https://github.com/rizom-ai/brains/commit/017e9fb8ae86aab887a0cefd3501d145caa203a0) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Persist throttled directory Git progress, preserve interrupted pull handoffs for startup replay, and expose request-driven stale-pull degradation through operational health without coupling routing readiness to repository reachability.
+
+## 0.2.0-alpha.282
+
+### Patch Changes
+
+- [#117](https://github.com/rizom-ai/brains/pull/117) [`5abe56d`](https://github.com/rizom-ai/brains/commit/5abe56d8b361d23d85c22aa2fdb61a49c97ae6ff) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Persist a repository- and branch-scoped directory-sync Git reconciliation checkpoint, replay checkout changes that merged before their import batch was queued, preserve remote-only deletion authority, and advance DB-origin export commits only after push.
+
 ## 0.2.0-alpha.281
 
 ## 0.2.0-alpha.280

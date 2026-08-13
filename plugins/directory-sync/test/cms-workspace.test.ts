@@ -189,6 +189,7 @@ describe("directory-sync CMS workspace", () => {
       type: "sync-request",
       data: {
         source: "cms:operator-1",
+        runId: expect.any(String),
         interfaceType: "cms",
         channelId: undefined,
       },

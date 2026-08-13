@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
+import { migrateConversations } from "@brains/conversation-service/migrate";
 import {
   BaseEntityAdapter,
   baseEntitySchema,
@@ -11,6 +12,7 @@ import type {
   IJobQueueWorker,
   JobQueueEnqueueRequest,
 } from "@brains/job-queue";
+import { migrateJobQueue } from "@brains/job-queue/migrate";
 import {
   createMockJobQueueService,
   createSilentLogger,
@@ -51,6 +53,11 @@ class ProjectionTargetAdapter extends BaseEntityAdapter<BaseEntity> {
   }
 }
 
+const projectionInputSchema = z.object({
+  id: z.string(),
+  content: z.string().nullable(),
+});
+
 class ProjectionTargetPlugin extends EntityPlugin<
   BaseEntity,
   Record<string, never>,
@@ -76,9 +83,47 @@ class ProjectionTargetPlugin extends EntityPlugin<
         version: "1",
         sources: [{ kind: "entity", types: ["note"] }],
         targetType: this.entityType,
-        inputSchema: z.object({}),
-        selectInput: async () => ({}),
-        derive: async () => [],
+        inputSchema: projectionInputSchema,
+        selectInput: async (trigger, context) => {
+          const sourceInput = trigger.inputs.at(-1);
+          if (sourceInput === undefined) {
+            throw new Error("Projection wave has no source input");
+          }
+          if (sourceInput.operation === "delete") {
+            return { id: sourceInput.sourceId, content: null };
+          }
+          const source = await context.entities.getEntity({
+            entityType: sourceInput.sourceType,
+            id: sourceInput.sourceId,
+          });
+          if (source === null) {
+            throw new Error(
+              `Projection source ${sourceInput.sourceType}:${sourceInput.sourceId} is missing`,
+            );
+          }
+          return { id: source.id, content: source.content };
+        },
+        derive: async (input) =>
+          input.content === null
+            ? [
+                {
+                  operation: "delete" as const,
+                  entityType: "projection-target",
+                  id: input.id,
+                },
+              ]
+            : [
+                {
+                  operation: "upsert" as const,
+                  entity: {
+                    id: input.id,
+                    entityType: "projection-target",
+                    content: input.content,
+                    metadata: { sourceId: input.id },
+                    visibility: "public" as const,
+                  },
+                },
+              ],
       }),
     ];
   }
@@ -106,20 +151,56 @@ const embeddingService = {
 
 describe("Shell projection runtime lifecycle", () => {
   let testDir: { dir: string; cleanup: () => Promise<void> };
-  let shell: Shell;
+  const shells: Shell[] = [];
 
   beforeEach(async () => {
     testDir = await createTestDirectory();
-    await migrateEntities({ url: `file:${testDir.dir}/test.db` });
-    await migrateRuntimeState({
-      url: `file:${testDir.dir}/test-runtime-state.db`,
-    });
+    await Promise.all([
+      migrateEntities({ url: `file:${testDir.dir}/test.db` }),
+      migrateJobQueue({ url: `file:${testDir.dir}/test-jobs.db` }),
+      migrateConversations({ url: `file:${testDir.dir}/test-conv.db` }),
+      migrateRuntimeState({
+        url: `file:${testDir.dir}/test-runtime-state.db`,
+      }),
+    ]);
   });
 
   afterEach(async () => {
-    await shell.shutdown();
+    for (const activeShell of shells.splice(0).reverse()) {
+      await activeShell.shutdown();
+    }
     await testDir.cleanup();
   });
+
+  async function shutdownTracked(shell: Shell): Promise<void> {
+    await shell.shutdown();
+    const index = shells.indexOf(shell);
+    if (index >= 0) shells.splice(index, 1);
+  }
+
+  async function projectedContent(shell: Shell): Promise<string | null> {
+    const target = await shell.getEntityService().getEntity({
+      entityType: "projection-target",
+      id: "source-note",
+    });
+    return target?.content ?? null;
+  }
+
+  async function waitForProjectedContent(
+    shell: Shell,
+    expected: string | null,
+  ): Promise<void> {
+    const deadline = Date.now() + 10_000;
+    let lastContent: string | null = null;
+    while (Date.now() < deadline) {
+      lastContent = await projectedContent(shell);
+      if (lastContent === expected) return;
+      await Bun.sleep(20);
+    }
+    throw new Error(
+      `Projection target did not converge to ${JSON.stringify(expected)}; last content was ${JSON.stringify(lastContent)}`,
+    );
+  }
 
   it("wakes the scheduler from a committed entity mutation", async () => {
     const requests: JobQueueEnqueueRequest[] = [];
@@ -178,7 +259,8 @@ describe("Shell projection runtime lifecycle", () => {
     };
     const config = createTestShellConfig(testDir.dir);
     config.plugins = [new ProjectionTargetPlugin()];
-    shell = Shell.createFresh(config, dependencies);
+    const shell = Shell.createFresh(config, dependencies);
+    shells.push(shell);
     await shell.initialize();
 
     await shell.getEntityService().createEntity({
@@ -203,4 +285,63 @@ describe("Shell projection runtime lifecycle", () => {
       }),
     ]);
   });
+
+  it("replays stopped-worker updates and deletes after each restart", async () => {
+    const config = createTestShellConfig(testDir.dir, {
+      plugins: [new ProjectionTargetPlugin()],
+      embedding: { enabled: false },
+    });
+    const web = Shell.createFresh(
+      config,
+      { logger: createSilentLogger(), embeddingService },
+      { processRole: "web" },
+    );
+    shells.push(web);
+    await web.initialize();
+
+    const startWorker = async (): Promise<Shell> => {
+      const worker = Shell.createFresh(
+        config,
+        { logger: createSilentLogger(), embeddingService },
+        { processRole: "worker" },
+      );
+      shells.push(worker);
+      await worker.initialize();
+      return worker;
+    };
+
+    await web.getEntityService().createEntity({
+      entity: {
+        id: "source-note",
+        entityType: "note",
+        content: "first revision",
+        metadata: {},
+      },
+    });
+    let worker = await startWorker();
+    await waitForProjectedContent(web, "first revision");
+    expect(await projectedContent(web)).toBe("first revision");
+    await shutdownTracked(worker);
+
+    const source = await web.getEntityService().getEntity({
+      entityType: "note",
+      id: "source-note",
+    });
+    if (source === null) throw new Error("Projection source is missing");
+    await web.getEntityService().updateEntity({
+      entity: { ...source, content: "second revision" },
+    });
+    worker = await startWorker();
+    await waitForProjectedContent(web, "second revision");
+    expect(await projectedContent(web)).toBe("second revision");
+    await shutdownTracked(worker);
+
+    await web.getEntityService().deleteEntity({
+      entityType: "note",
+      id: "source-note",
+    });
+    await startWorker();
+    await waitForProjectedContent(web, null);
+    expect(await projectedContent(web)).toBeNull();
+  }, 30_000);
 });

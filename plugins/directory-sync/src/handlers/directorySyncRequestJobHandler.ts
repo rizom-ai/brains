@@ -2,6 +2,8 @@ import { BaseJobHandler } from "@brains/plugins";
 import type { ServicePluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import type { ProgressReporter } from "@brains/utils/progress";
+import type { GitReconciliationService } from "../lib/git-reconciliation";
+import type { DirectorySyncOperationStatusService } from "../lib/directory-sync-operation-status";
 import {
   directorySyncRequestJobSchema,
   type BatchResult,
@@ -26,11 +28,19 @@ export class DirectorySyncRequestJobHandler extends BaseJobHandler<
   private readonly context: ServicePluginContext;
   private readonly getDirectorySync: () => IDirectorySync;
   private readonly getGitSync: () => IGitSync;
+  private readonly reconciliation: Pick<
+    GitReconciliationService,
+    "pullAndQueue"
+  >;
+  private readonly operationStatus:
+    DirectorySyncOperationStatusService | undefined;
   constructor(
     logger: Logger,
     context: ServicePluginContext,
     getDirectorySync: () => IDirectorySync,
     getGitSync: () => IGitSync,
+    reconciliation: Pick<GitReconciliationService, "pullAndQueue">,
+    operationStatus?: DirectorySyncOperationStatusService,
   ) {
     super(logger, {
       schema: directorySyncRequestJobSchema,
@@ -39,6 +49,8 @@ export class DirectorySyncRequestJobHandler extends BaseJobHandler<
     this.context = context;
     this.getDirectorySync = getDirectorySync;
     this.getGitSync = getGitSync;
+    this.reconciliation = reconciliation;
+    this.operationStatus = operationStatus;
   }
 
   async process(
@@ -51,32 +63,27 @@ export class DirectorySyncRequestJobHandler extends BaseJobHandler<
       message: "Pulling latest content from git",
     });
 
-    const directorySync = this.getDirectorySync();
-    const gitSync = this.getGitSync();
-    const result = await gitSync.withLock(async () => {
-      const pullResult = await gitSync.pull();
-      await directorySync.recordPendingPullDeletes(
-        pullResult.deletedFiles ?? [],
-      );
+    const onGitProgress = data.runId
+      ? this.operationStatus?.createProgressObserver(data.runId)
+      : undefined;
+    onGitProgress?.();
+    const reconciled = await this.reconciliation.pullAndQueue({
+      gitSync: this.getGitSync(),
+      directorySync: this.getDirectorySync(),
+      context: this.context,
+      source: data.source,
+      ...(onGitProgress ? { onGitProgress } : {}),
+      metadata: {
+        rootJobId: jobId,
+        interfaceType: data.interfaceType,
+        channelId: data.channelId,
+      },
+    });
+    const result = reconciled.batch;
 
-      await progressReporter.report({
-        progress: 35,
-        message: "Scanning pulled content for sync changes",
-      });
-
-      const batchResult = await directorySync.queueSyncBatch(
-        this.context,
-        data.source,
-        {
-          rootJobId: jobId,
-          interfaceType: data.interfaceType,
-          channelId: data.channelId,
-        },
-        pullResult.files,
-        pullResult.deletedFiles,
-      );
-      if (batchResult) directorySync.suppressWatchPaths(pullResult.files);
-      return batchResult;
+    await progressReporter.report({
+      progress: 35,
+      message: "Scanning pulled content for sync changes",
     });
 
     if (!result) {

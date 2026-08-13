@@ -33,6 +33,7 @@ import {
   type IAttachmentsNamespace,
   type IChannelRegistry,
   type IInboxRegistry,
+  type IOperationalHealthRegistry,
   type IRuntimeStateNamespace,
   type IRuntimeUploadsNamespace,
   type PluginManager,
@@ -691,6 +692,10 @@ export class Shell implements IShell {
 
   public getInboxRegistry(): IInboxRegistry {
     return this.services.inboxRegistry;
+  }
+
+  public getOperationalHealthRegistry(): IOperationalHealthRegistry {
+    return this.services.operationalHealthRegistry;
   }
 
   public getDomain(): string | undefined {

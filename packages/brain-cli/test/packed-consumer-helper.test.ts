@@ -1,10 +1,14 @@
 import { describe, expect, it } from "bun:test";
 import { existsSync } from "node:fs";
+import { mkdtemp, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, sep } from "node:path";
 import { getErrorMessage } from "@brains/utils/error";
 import {
   liveEvidenceEnabled,
+  packedCompatibilityEvidenceEnabled,
+  packPackages,
+  PACKED_BRAIN_TARBALL_ENV,
   registryEvidenceEnabled,
   removeSpawnTempRoot,
   runCommand,
@@ -72,7 +76,38 @@ describe("packed consumer harness", () => {
     }
   });
 
-  it("isolates registry and provider evidence behind separate opt-in flags", () => {
+  it("reuses the runner-owned Brain tarball without packing another copy", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "packed-artifact-reuse-"));
+    try {
+      const tarball = join(directory, "shared-brain.tgz");
+      const destination = join(directory, "destination");
+      await writeFile(tarball, "test tarball");
+
+      const packed = await packPackages(
+        [join(import.meta.dir, "..")],
+        destination,
+        { [PACKED_BRAIN_TARBALL_ENV]: tarball },
+      );
+
+      expect(packed.get("@rizom/brain")).toBe(tarball);
+      expect(await readdir(destination)).toEqual([]);
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
+
+  it("isolates packed, registry, and provider evidence behind separate opt-in flags", () => {
+    expect(packedCompatibilityEvidenceEnabled({})).toBeFalse();
+    expect(
+      packedCompatibilityEvidenceEnabled({
+        RIZOM_PUBLIC_API_PACKED_EVIDENCE: "1",
+      }),
+    ).toBeTrue();
+    expect(
+      packedCompatibilityEvidenceEnabled({
+        RIZOM_PUBLIC_API_PACKED_EVIDENCE: "true",
+      }),
+    ).toBeFalse();
     expect(registryEvidenceEnabled({})).toBeFalse();
     expect(
       registryEvidenceEnabled({ RIZOM_PUBLIC_API_REGISTRY_EVIDENCE: "1" }),

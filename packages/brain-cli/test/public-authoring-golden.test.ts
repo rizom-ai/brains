@@ -41,6 +41,11 @@ interface GoldenPackageExpectation {
   requiredVocabulary: string[];
 }
 
+const phase0ProposalDirectories = [
+  "account-settings-interface",
+  "operator-surface",
+] as const;
+
 const goldenPackages: GoldenPackageExpectation[] = [
   {
     directory: "entity",
@@ -164,8 +169,118 @@ describe("public authoring 0.2 golden packages", () => {
       .sort();
 
     expect(directories).toEqual(
-      goldenPackages.map((fixture) => fixture.directory).sort(),
+      [
+        ...goldenPackages.map((fixture) => fixture.directory),
+        ...phase0ProposalDirectories,
+      ].sort(),
     );
+  });
+
+  it("keeps the operator-surface Phase 0 proposal source-first and public-only", () => {
+    const directory = join(fixtureRoot, "operator-surface");
+    const manifestSource = readFileSync(
+      join(directory, "package.json"),
+      "utf8",
+    );
+    const manifest = JSON.parse(manifestSource);
+    const tsconfig = JSON.parse(
+      readFileSync(join(directory, "tsconfig.json"), "utf8"),
+    );
+    const source = packageSource("operator-surface");
+    const ports = readFileSync(join(directory, "PORTS.md"), "utf8");
+
+    expect(manifest.name).toBe("@fixture/reading-operator");
+    expect(manifest.type).toBe("module");
+    expect(manifestSource).not.toContain("workspace:");
+    expect(manifest.peerDependencies?.["@rizom/brain"]).toBe(">=0.2.1 <0.3.0");
+    expect(tsconfig.extends).toBeUndefined();
+    expect([...publicNamedImports(source).keys()]).toEqual([
+      "@rizom/brain/services",
+    ]);
+
+    for (const symbol of [
+      "defineAccountSettings",
+      "defineCmsWorkspace",
+      "defineDashboardWidget",
+      "defineServicePlugin",
+      "defineWorkspaceAction",
+      "z",
+    ]) {
+      expect(source).toContain(symbol);
+    }
+
+    for (const forbidden of [
+      "@brains/",
+      'from "zod',
+      "pluginId",
+      "rendererName",
+      "registerWidget",
+      "registerCmsWorkspace",
+      "workspace: readingWorkspace",
+      "managementUrl",
+      "process.env",
+      'from "react',
+      'from "preact',
+    ]) {
+      expect(source).not.toContain(forbidden);
+    }
+
+    for (const heading of [
+      "## Directory Sync",
+      "## Site",
+      "## Email Triage",
+      "## Publishing",
+      "## Account-settings ownership finding",
+    ]) {
+      expect(ports).toContain(heading);
+    }
+    expect(ports).toContain("does **not** fit the first generic contract");
+    expect(ports).toContain("Moving mailbox intake into a service");
+    expect(ports).toContain("connected-channel ownership decision");
+  });
+
+  it("keeps the account-settings interface proposal lifecycle-owned", () => {
+    const directory = join(fixtureRoot, "account-settings-interface");
+    const manifestSource = readFileSync(
+      join(directory, "package.json"),
+      "utf8",
+    );
+    const manifest = JSON.parse(manifestSource);
+    const tsconfig = JSON.parse(
+      readFileSync(join(directory, "tsconfig.json"), "utf8"),
+    );
+    const source = packageSource("account-settings-interface");
+
+    expect(manifest.name).toBe("@fixture/mailbox-connection");
+    expect(manifest.type).toBe("module");
+    expect(manifestSource).not.toContain("workspace:");
+    expect(manifest.peerDependencies?.["@rizom/brain"]).toBe(">=0.2.1 <0.3.0");
+    expect(tsconfig.extends).toBeUndefined();
+    expect([...publicNamedImports(source).keys()]).toEqual([
+      "@rizom/brain/interfaces",
+    ]);
+
+    for (const symbol of [
+      "defineAccountSettings",
+      "defineDaemon",
+      "defineInterface",
+      "forAccounts: mailboxSettings",
+      "account.settings.password",
+      "z",
+    ]) {
+      expect(source).toContain(symbol);
+    }
+
+    for (const forbidden of [
+      "@brains/",
+      'from "zod',
+      "MessageInterfacePlugin",
+      "process.env",
+      "registerDescriptor",
+      "receiveAuthenticated",
+    ]) {
+      expect(source).not.toContain(forbidden);
+    }
   });
 
   for (const fixture of goldenPackages) {

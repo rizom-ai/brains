@@ -109,6 +109,7 @@ const directorySyncWorkspaceSnapshotSchema: z.ZodType<DirectorySyncWorkspaceSnap
         source: z.enum(["manual", "periodic", "watcher", "save"]),
         state: z.enum(["pulling", "scanning", "importing", "settling"]),
         startedAt: z.string().datetime(),
+        lastProgressAt: z.string().datetime(),
         jobId: z.string().min(1).optional(),
         batchId: z.string().min(1).optional(),
         ...directorySyncRunMetricsSchema,

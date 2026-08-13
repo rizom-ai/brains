@@ -23,7 +23,7 @@ Make the existing test suite's guarantees hard to lose:
 The suite is in good shape, and the plan depends on that staying true.
 
 1. `bun run test` runs 99 turbo tasks green in ~27s wall clock (45 cached). Shell alone is 17 packages in ~13s.
-2. There are zero unconditional `.skip`, `.only`, and `.todo` markers across every workspace. One conditional skip exists — `it.skipIf(!RUN_SOAK)` in `packages/brain-cli/test/import-burst-stability.test.ts:299`, an opt-in soak test gated on `RUN_IMPORT_BURST_SOAK=1`. That is the shape an opt-in test should take, and Phase 4 cites it as precedent rather than treating it as a violation.
+2. There are zero unconditional `.skip`, `.only`, and `.todo` markers across every workspace. Conditional `it.skipIf(!FLAG)` tests are reserved for explicit, documented evidence tiers such as import/Git soaks, remote contracts, packed compatibility, registry checks, and release smoke tests. They are opt-ins rather than disabled tests, and each has an owning command or workflow.
 3. Weak assertions (`toBeDefined`, `toBeTruthy`, `toBeFalsy`, `toBeUndefined`, `toBeNull`, bare `not.toThrow`) are 6–10% of all `expect()` calls per layer — 8.7% in `shell/`, 10.4% in `shared/`, 2.7% in `packages/`.
 4. Interaction assertions (`toHaveBeenCalled*`) are 7.3% of expects in `shell/` and 1.7% in `shared/`. Tests assert outcomes, not call logs. `interfaces/` is the outlier at 15.2%.
 5. No test file is assertion-free.
@@ -415,5 +415,6 @@ Gate:
 
 ## Related plans
 
+- [`packed-compatibility-test-tiering.md`](./packed-compatibility-test-tiering.md) — owns which packed tests run in normal, nightly, and release tiers plus shared-artifact reuse; this plan retains ownership of their waits, ports, process teardown, and temporary-resource cleanup
 - [`docs/plans/README.md`](./README.md) — this plan is deleted once its phases ship; git history is the archive
 - [`shell/AGENTS.md`](../../shell/AGENTS.md) — the init/registration/shutdown testing requirement this plan verifies is already met

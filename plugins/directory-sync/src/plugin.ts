@@ -19,6 +19,7 @@ import { bootstrapContentRemoteFromSeed } from "./lib/content-remote-bootstrap";
 import { registerMessageHandlers } from "./lib/message-handlers";
 import { createDirectorySyncTools } from "./tools";
 import { DirectorySyncOperationStatusService } from "./lib/directory-sync-operation-status";
+import { GitReconciliationService } from "./lib/git-reconciliation";
 import { PendingDeleteRegistry } from "./lib/pending-delete-registry";
 import { DirectorySyncWorkspaceProvider } from "./lib/cms-workspace";
 import {
@@ -31,6 +32,7 @@ import {
 } from "./lib/active-sync-facades";
 import "./types/job-augmentation";
 import packageJson from "../package.json";
+import { getErrorMessage } from "@brains/utils/error";
 
 export class DirectorySyncPlugin extends ServicePlugin<
   DirectorySyncConfig,
@@ -39,6 +41,7 @@ export class DirectorySyncPlugin extends ServicePlugin<
   private directorySync: DirectorySync | undefined;
   private gitSync: GitSync | undefined;
   private operationStatus: DirectorySyncOperationStatusService | undefined;
+  private gitReconciliation: GitReconciliationService | undefined;
   private workspaceProvider: DirectorySyncWorkspaceProvider | undefined;
   private cmsWorkspaceUrl: string | undefined;
   private runtime = new DirectorySyncRuntime();
@@ -86,6 +89,13 @@ export class DirectorySyncPlugin extends ServicePlugin<
     return this.operationStatus;
   }
 
+  private requireGitReconciliation(): GitReconciliationService {
+    if (!this.gitReconciliation) {
+      throw new Error("Git reconciliation service not initialized");
+    }
+    return this.gitReconciliation;
+  }
+
   /** Whether git integration has a configured repository. */
   public hasGitSync(): boolean {
     return this.gitSync !== undefined;
@@ -121,7 +131,13 @@ export class DirectorySyncPlugin extends ServicePlugin<
       this.logger.child("OperationStatus"),
       syncPath,
     );
-    await this.operationStatus.initialize();
+    const interruptedPull = await this.operationStatus.initialize();
+    if (!context.executionOnly) {
+      context.operationalHealth.register("git-progress", () =>
+        this.requireOperationStatus().getOperationalHealth(),
+      );
+    }
+    this.gitReconciliation = new GitReconciliationService(context.runtimeState);
 
     if (!context.executionOnly && this.config.autoSync) {
       setupFileWatcher(
@@ -152,8 +168,18 @@ export class DirectorySyncPlugin extends ServicePlugin<
     }
 
     if (this.isGitConfigured()) {
-      if (!context.executionOnly) await this.bootstrapContentRemote();
-      this.gitSync = await this.initializeGitSync(syncPath);
+      try {
+        if (!context.executionOnly) await this.bootstrapContentRemote();
+        this.gitSync = await this.initializeGitSync(syncPath);
+      } catch (error) {
+        if (!context.executionOnly && interruptedPull) {
+          await this.operationStatus.finishInterruptedPull(interruptedPull.id, {
+            recovered: false,
+            message: `Interrupted Git handoff recovery failed: ${getErrorMessage(error)}`,
+          });
+        }
+        throw error;
+      }
       context.jobs.registerHandler(
         "sync-request",
         new DirectorySyncRequestJobHandler(
@@ -161,8 +187,49 @@ export class DirectorySyncPlugin extends ServicePlugin<
           context,
           () => this.requireDirectorySync(),
           () => this.requireGitSync(),
+          this.requireGitReconciliation(),
+          this.operationStatus,
         ),
       );
+      if (!context.executionOnly && !this.config.initialSync) {
+        try {
+          if (interruptedPull) {
+            await this.operationStatus.markProgress(interruptedPull.id);
+          }
+          await this.requireGitReconciliation().replayAndQueue({
+            gitSync: this.gitSync,
+            directorySync: this.requireDirectorySync(),
+            context,
+            source: "startup-replay",
+          });
+          if (interruptedPull) {
+            await this.operationStatus.finishInterruptedPull(
+              interruptedPull.id,
+              {
+                recovered: true,
+                message: "Recovered interrupted Git handoff during startup",
+              },
+            );
+          }
+        } catch (error) {
+          if (interruptedPull) {
+            await this.operationStatus.finishInterruptedPull(
+              interruptedPull.id,
+              {
+                recovered: false,
+                message: `Interrupted Git handoff recovery failed: ${getErrorMessage(error)}`,
+              },
+            );
+          }
+          throw error;
+        }
+      }
+    } else if (!context.executionOnly && interruptedPull) {
+      await this.operationStatus.finishInterruptedPull(interruptedPull.id, {
+        recovered: false,
+        message:
+          "Interrupted Git handoff recovery requires a configured repository",
+      });
     }
 
     if (!context.executionOnly && this.config.initialSync) {
@@ -172,6 +239,32 @@ export class DirectorySyncPlugin extends ServicePlugin<
         this.config,
         this.logger,
         this.gitSync ? this.gitSyncFacade : undefined,
+        this.gitSync ? this.requireGitReconciliation() : undefined,
+        interruptedPull && this.gitSync
+          ? {
+              onGitProgress:
+                this.requireOperationStatus().createProgressObserver(
+                  interruptedPull.id,
+                ),
+              onGitRecoverySucceeded: (): Promise<void> =>
+                this.requireOperationStatus().finishInterruptedPull(
+                  interruptedPull.id,
+                  {
+                    recovered: true,
+                    message:
+                      "Recovered interrupted Git handoff during initial sync",
+                  },
+                ),
+              onGitRecoveryFailed: (error): Promise<void> =>
+                this.requireOperationStatus().finishInterruptedPull(
+                  interruptedPull.id,
+                  {
+                    recovered: false,
+                    message: `Interrupted Git handoff recovery failed: ${getErrorMessage(error)}`,
+                  },
+                ),
+            }
+          : undefined,
       );
     }
 
@@ -294,6 +387,14 @@ export class DirectorySyncPlugin extends ServicePlugin<
     this.watcherOwned = false;
     this.gitBackgroundStarted = false;
 
+    if (candidateGitSync) {
+      await this.requireGitReconciliation().replayAndQueue({
+        gitSync: candidateGitSync,
+        directorySync: candidateDirectorySync,
+        context,
+        source: "reconfigure-replay",
+      });
+    }
     if (this.readyState) {
       await this.startBackgroundWork();
     }
@@ -383,6 +484,7 @@ export class DirectorySyncPlugin extends ServicePlugin<
         this.config.commitDebounce,
         this.logger.child("GitAutoCommit"),
         this.runtimeScheduler,
+        this.requireGitReconciliation(),
         this.operationStatus,
       );
       this.gitAutoCommitRegistered = true;
@@ -396,6 +498,7 @@ export class DirectorySyncPlugin extends ServicePlugin<
         this.config.syncInterval,
         this.logger.child("GitPeriodicSync"),
         this.runtime,
+        this.requireGitReconciliation(),
         this.operationStatus,
       );
     }

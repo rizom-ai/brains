@@ -53,6 +53,19 @@ The message transport keeps its ordinary protocol client in
 is intentional: the public API owns Brain integration, while the package owns
 its transport SDK code.
 
+## Phase 0 additive proposal
+
+[`operator-surface`](./operator-surface/) and
+[`account-settings-interface`](./account-settings-interface/) are source-first
+design fixtures for the approved post-`v0.2.0` Dashboard, CMS, and per-account
+settings milestone. The second fixture keeps the IMAP proof in the interface
+family that owns inbound connection lifecycle. They are not executable `0.2.0`
+contracts yet: their proposed helpers are not exported, they are excluded from
+packing and the stable ledger, and their provisional `>=0.2.1` peer lower bounds
+must advance to the first release that actually contains the accepted API. The
+operator fixture's [built-in port sketches](./operator-surface/PORTS.md) record
+what the generic contract can express and what should remain private.
+
 ## Entity-to-template flow
 
 Entity packages do not declare presentation templates. The service fixture
@@ -135,8 +148,11 @@ A site package also carries an exact direct dependency on
 
 ## How the evidence works
 
-Per-PR tests build and pack local SDK artifacts, then build each fixture and
-install the complete consumer outside the monorepo. The phase tests exercise:
+Normal PR and pre-commit tests run focused contract coverage plus one canonical
+packed-install/startup canary. The complete local compatibility matrix runs
+nightly, on demand, and before publication. It builds and packs local SDK
+artifacts, then builds each fixture and installs the complete consumer outside
+the monorepo. The compatibility scenarios exercise:
 
 - package loading, metadata inference, and typed composition;
 - entity CRUD/FTS/visibility, projection convergence, and restart durability;
@@ -152,16 +168,18 @@ Run the source/ledger checks:
 bun test packages/brain-cli/test/public-authoring-golden.test.ts
 ```
 
-Run all local packed proofs:
+Run all local packed proofs through the same command used by nightly and release
+CI. It builds and packs Brain once, then reuses that immutable tarball while
+each scenario keeps isolated mutable state:
 
 ```bash
-bun test \
-  packages/brain-cli/test/public-authoring-phase1-packed.test.ts \
-  packages/brain-cli/test/public-authoring-phase2-packed.test.ts \
-  packages/brain-cli/test/public-authoring-phase3-packed.test.ts \
-  packages/brain-cli/test/public-authoring-phase4-packed.test.ts \
-  packages/brain-cli/test/public-authoring-phase5-packed.test.ts
+bun run test:packed:compat
 ```
+
+The five local packed files are intentionally skipped by ordinary `bun test`
+unless `RIZOM_PUBLIC_API_PACKED_EVIDENCE=1`; use the command above rather than
+setting the flag directly. The canonical packed consumer remains in ordinary
+tests.
 
 The npm registry matrix is opt-in and exact-version only:
 

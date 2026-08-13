@@ -23,6 +23,7 @@ import type {
   ChannelDescriptor,
 } from "../channel-registry";
 import type { InboxSource } from "../inbox-registry";
+import type { OperationalHealthProvider } from "../operational-health-registry";
 
 /**
  * Handler for typed channel subscriptions
@@ -125,6 +126,11 @@ export interface IInboxNamespace {
   registerSource(source: InboxSource): void;
   listSources(): InboxSource[];
   getSource(sourceId: string): InboxSource | undefined;
+}
+
+/** Request-driven plugin contributions to operational (not routing) health. */
+export interface IOperationalHealthNamespace {
+  register(name: string, provider: OperationalHealthProvider): () => void;
 }
 
 /**

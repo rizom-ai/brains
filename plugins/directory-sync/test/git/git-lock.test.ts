@@ -108,6 +108,19 @@ describe("git operation serialization", () => {
       0.001,
       createSilentLogger(),
       runtime,
+      {
+        pullAndQueue: (options) =>
+          options.gitSync.withLock(async () => {
+            const pull = await options.gitSync.pull(options.signal);
+            return {
+              mode: "incremental",
+              files: pull.files,
+              deletedFiles: pull.deletedFiles ?? [],
+              batch: null,
+              checkpointAdvanced: false,
+            };
+          }),
+      },
     );
 
     // Trigger auto-commit

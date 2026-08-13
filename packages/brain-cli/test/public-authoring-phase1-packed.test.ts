@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it as bunIt } from "bun:test";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -6,6 +6,7 @@ import {
   buildAndPackFixturePackage,
   combinedOutput,
   installPackedConsumer,
+  packedCompatibilityEvidenceEnabled,
   packPackages,
   runCommand,
 } from "./helpers/packed-consumer";
@@ -23,6 +24,7 @@ const consumerFixture = join(
   "fixtures",
   "public-authoring-phase1-consumer",
 );
+const it = bunIt.skipIf(!packedCompatibilityEvidenceEnabled());
 
 describe("public authoring Phase 1 packed canary", () => {
   it("builds, packs, installs, imports, and boots declarative definitions", async () => {

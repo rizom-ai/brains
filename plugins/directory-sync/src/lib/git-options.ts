@@ -1,3 +1,4 @@
+import { sha256Hex } from "@brains/utils/hash";
 import type { Logger } from "@brains/utils/logger";
 
 /**
@@ -39,4 +40,19 @@ export function getAuthenticatedGitUrl(
   url.username = authToken;
   url.password = "";
   return url.toString();
+}
+
+/** Stable repository identity that never persists URL credentials. */
+export function getGitRemoteFingerprint(remoteUrl: string): string {
+  let credentialFreeUrl = remoteUrl;
+  try {
+    const parsed = new URL(remoteUrl);
+    parsed.username = "";
+    parsed.password = "";
+    credentialFreeUrl = parsed.toString();
+  } catch {
+    // SCP-style and local paths do not carry URL userinfo. Hash the configured
+    // value rather than persisting it in runtime state.
+  }
+  return sha256Hex(credentialFreeUrl);
 }

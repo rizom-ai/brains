@@ -2,12 +2,15 @@ import {
   createId,
   SerializedStatusStore,
   type IRuntimeStateNamespace,
+  type IRuntimeStateStore,
+  type RuntimeHealthCheck,
   type ServicePluginContext,
 } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
 import { isAbsolute, relative } from "path";
 import type { ExportResult, ImportResult } from "../types";
+import { DEFAULT_GIT_TIMEOUT_MS } from "./git-options";
 
 export type DirectorySyncRunSource = "manual" | "periodic" | "watcher" | "save";
 export type DirectorySyncRunState =
@@ -29,6 +32,7 @@ export interface ActiveDirectorySyncRun extends DirectorySyncRunMetrics {
   source: DirectorySyncRunSource;
   state: DirectorySyncRunState;
   startedAt: string;
+  lastProgressAt: string;
   jobId?: string | undefined;
   batchId?: string | undefined;
 }
@@ -71,15 +75,30 @@ const runMetricsSchema = {
   quarantined: z.number().int().nonnegative(),
   exported: z.number().int().nonnegative(),
 };
-const activeRunSchema = z.object({
-  id: z.string().min(1),
-  source: runSourceSchema,
-  state: runStateSchema,
-  startedAt: z.string().datetime(),
-  jobId: z.string().min(1).optional(),
-  batchId: z.string().min(1).optional(),
-  ...runMetricsSchema,
-});
+const activeRunSchema: z.ZodType<ActiveDirectorySyncRun> = z.preprocess(
+  (input) => {
+    if (
+      typeof input !== "object" ||
+      input === null ||
+      "lastProgressAt" in input ||
+      !("startedAt" in input) ||
+      typeof input.startedAt !== "string"
+    ) {
+      return input;
+    }
+    return { ...input, lastProgressAt: input.startedAt };
+  },
+  z.object({
+    id: z.string().min(1),
+    source: runSourceSchema,
+    state: runStateSchema,
+    startedAt: z.string().datetime(),
+    lastProgressAt: z.string().datetime(),
+    jobId: z.string().min(1).optional(),
+    batchId: z.string().min(1).optional(),
+    ...runMetricsSchema,
+  }),
+);
 const recentRunSchema = z.object({
   id: z.string().min(1),
   source: runSourceSchema,
@@ -122,8 +141,22 @@ const EMPTY_STATUS: StoredDirectorySyncOperationStatus = {
   recentRuns: [],
   issues: [],
 };
+const progressSchema = z.object({
+  lastProgressAt: z.string().datetime(),
+});
+
 const STATUS_NAMESPACE = "directory-sync.operation-status";
 const STATUS_KEY = "current";
+const PROGRESS_NAMESPACE = "directory-sync.operation-progress";
+const DEFAULT_PROGRESS_PERSISTENCE_INTERVAL_MS = 1_000;
+const DEFAULT_STALE_GRACE_MS = 30_000;
+
+export interface DirectorySyncOperationStatusOptions {
+  now?: (() => number) | undefined;
+  inactivityTimeoutMs?: number | undefined;
+  staleGraceMs?: number | undefined;
+  progressPersistenceIntervalMs?: number | undefined;
+}
 
 /**
  * Bounded, browser-safe operational history for directory-sync.
@@ -131,11 +164,19 @@ const STATUS_KEY = "current";
  */
 export class DirectorySyncOperationStatusService {
   private readonly store: SerializedStatusStore<StoredDirectorySyncOperationStatus>;
+  private readonly progressStore: IRuntimeStateStore<
+    z.infer<typeof progressSchema>
+  >;
   private readonly jobs: Pick<
     ServicePluginContext["jobs"],
     "getStatus" | "getBatchStatus"
   >;
   private readonly logger: Logger;
+  private readonly now: () => number;
+  private readonly inactivityTimeoutMs: number;
+  private readonly staleGraceMs: number;
+  private readonly progressPersistenceIntervalMs: number;
+  private readonly lastProgressPersistence = new Map<string, number>();
   private syncPath: string;
 
   constructor(
@@ -143,6 +184,7 @@ export class DirectorySyncOperationStatusService {
     jobs: ServicePluginContext["jobs"],
     logger: Logger,
     syncPath: string,
+    options: DirectorySyncOperationStatusOptions = {},
   ) {
     this.store = new SerializedStatusStore({
       runtimeState,
@@ -152,26 +194,41 @@ export class DirectorySyncOperationStatusService {
       createEmpty: (): StoredDirectorySyncOperationStatus =>
         structuredClone(EMPTY_STATUS),
     });
+    this.progressStore = runtimeState.scoped({
+      namespace: PROGRESS_NAMESPACE,
+      schema: progressSchema,
+    });
     this.jobs = jobs;
     this.logger = logger;
     this.syncPath = syncPath;
+    this.now = options.now ?? Date.now;
+    this.inactivityTimeoutMs =
+      options.inactivityTimeoutMs ?? DEFAULT_GIT_TIMEOUT_MS;
+    this.staleGraceMs = options.staleGraceMs ?? DEFAULT_STALE_GRACE_MS;
+    this.progressPersistenceIntervalMs =
+      options.progressPersistenceIntervalMs ??
+      DEFAULT_PROGRESS_PERSISTENCE_INTERVAL_MS;
   }
 
   setSyncPath(syncPath: string): void {
     this.syncPath = syncPath;
   }
 
-  async initialize(): Promise<void> {
+  async initialize(): Promise<ActiveDirectorySyncRun | undefined> {
     const status = await this.store.snapshot();
     if (
       status.activeRun &&
       !status.activeRun.jobId &&
       !status.activeRun.batchId
     ) {
+      if (status.activeRun.state === "pulling") {
+        return this.withEffectiveProgress(status.activeRun);
+      }
       await this.clearRun(status.activeRun.id);
-      return;
+      return undefined;
     }
     await this.reconcile();
+    return undefined;
   }
 
   startRun(
@@ -179,49 +236,91 @@ export class DirectorySyncOperationStatusService {
     state: DirectorySyncRunState,
   ): Promise<string | undefined> {
     const id = createId();
+    const now = this.now();
     return this.mutate((status) => {
       if (status.activeRun) return undefined;
+      const timestamp = new Date(now).toISOString();
       status.activeRun = {
         id,
         source,
         state,
-        startedAt: new Date().toISOString(),
+        startedAt: timestamp,
+        lastProgressAt: timestamp,
         ...EMPTY_METRICS,
       };
+      this.lastProgressPersistence.set(id, now);
       return id;
     });
   }
 
   markPhase(runId: string, state: DirectorySyncRunState): Promise<void> {
+    const now = this.now();
     return this.mutate((status) => {
-      if (status.activeRun?.id === runId) status.activeRun.state = state;
+      if (status.activeRun?.id !== runId) return;
+      status.activeRun.state = state;
+      status.activeRun.lastProgressAt = new Date(now).toISOString();
+      this.lastProgressPersistence.set(runId, now);
     });
   }
 
+  async markProgress(runId: string): Promise<void> {
+    const now = this.now();
+    const lastPersisted = this.lastProgressPersistence.get(runId);
+    if (
+      lastPersisted !== undefined &&
+      now - lastPersisted < this.progressPersistenceIntervalMs
+    ) {
+      return;
+    }
+    this.lastProgressPersistence.set(runId, now);
+    await this.progressStore.set(runId, {
+      lastProgressAt: new Date(now).toISOString(),
+    });
+  }
+
+  createProgressObserver(runId: string): () => void {
+    return (): void => {
+      void this.markProgress(runId).catch((error: unknown) => {
+        this.logger.debug("Unable to persist directory Git progress", {
+          error,
+        });
+      });
+    };
+  }
+
   attachJob(runId: string, jobId: string): Promise<void> {
+    const now = this.now();
     return this.mutate((status) => {
       if (status.activeRun?.id !== runId) return;
       status.activeRun.jobId = jobId;
       status.activeRun.state = "pulling";
+      status.activeRun.lastProgressAt = new Date(now).toISOString();
+      this.lastProgressPersistence.set(runId, now);
     });
   }
 
   attachBatch(runId: string, batchId: string): Promise<void> {
+    const now = this.now();
     return this.mutate((status) => {
       if (status.activeRun?.id !== runId) return;
       delete status.activeRun.jobId;
       status.activeRun.batchId = batchId;
       status.activeRun.state = "importing";
+      status.activeRun.lastProgressAt = new Date(now).toISOString();
+      this.lastProgressPersistence.set(runId, now);
     });
   }
 
   addImportResult(result: ImportResult): Promise<void> {
+    const now = this.now();
     return this.mutate((status) => {
       if (status.activeRun) {
         status.activeRun.imported += result.imported;
         status.activeRun.skipped += result.skipped;
         status.activeRun.failed += result.failed;
         status.activeRun.quarantined += result.quarantined;
+        status.activeRun.lastProgressAt = new Date(now).toISOString();
+        this.lastProgressPersistence.set(status.activeRun.id, now);
       }
 
       const issueInputs: Array<{
@@ -257,10 +356,13 @@ export class DirectorySyncOperationStatusService {
   }
 
   addExportResult(result: ExportResult): Promise<void> {
+    const now = this.now();
     return this.mutate((status) => {
       if (status.activeRun) {
         status.activeRun.exported += result.exported;
         status.activeRun.failed += result.failed;
+        status.activeRun.lastProgressAt = new Date(now).toISOString();
+        this.lastProgressPersistence.set(status.activeRun.id, now);
       }
       if (result.errors.length === 0) {
         status.issues = status.issues.filter(
@@ -298,18 +400,19 @@ export class DirectorySyncOperationStatusService {
     return this.finishRun(runId, "succeeded", summary);
   }
 
-  clearRun(runId: string): Promise<void> {
-    return this.mutate((status) => {
+  async clearRun(runId: string): Promise<void> {
+    await this.mutate((status) => {
       if (status.activeRun?.id === runId) delete status.activeRun;
     });
+    await this.clearProgress(runId);
   }
 
-  failRun(
+  async failRun(
     runId: string,
     message: string,
     kind: DirectorySyncIssueKind = "git",
   ): Promise<void> {
-    return this.mutate((status) => {
+    await this.mutate((status) => {
       const active = status.activeRun;
       if (active?.id !== runId) return;
       const safeMessage = sanitizeMessage(message);
@@ -317,6 +420,27 @@ export class DirectorySyncOperationStatusService {
       this.prependIssue(status, { kind, message: safeMessage });
       delete status.activeRun;
     });
+    await this.clearProgress(runId);
+  }
+
+  async finishInterruptedPull(
+    runId: string,
+    recovery: { recovered: boolean; message: string },
+  ): Promise<void> {
+    await this.mutate((status) => {
+      const active = status.activeRun;
+      if (active?.id !== runId || active.state !== "pulling") return;
+      const safeMessage = sanitizeMessage(recovery.message);
+      this.prependRecent(
+        status,
+        active,
+        recovery.recovered ? "attention" : "failed",
+        safeMessage,
+      );
+      this.prependIssue(status, { kind: "git", message: safeMessage });
+      delete status.activeRun;
+    });
+    await this.clearProgress(runId);
   }
 
   recordTerminal(
@@ -326,7 +450,7 @@ export class DirectorySyncOperationStatusService {
     metrics: Partial<DirectorySyncRunMetrics> = {},
   ): Promise<void> {
     return this.mutate((status) => {
-      const now = new Date().toISOString();
+      const now = new Date(this.now()).toISOString();
       this.prependRecent(
         status,
         {
@@ -334,6 +458,7 @@ export class DirectorySyncOperationStatusService {
           source,
           state: "settling",
           startedAt: now,
+          lastProgressAt: now,
           ...EMPTY_METRICS,
           ...metrics,
         },
@@ -360,7 +485,6 @@ export class DirectorySyncOperationStatusService {
           return;
         }
         if (job.status === "pending" || job.status === "processing") {
-          await this.markPhase(active.id, "pulling");
           return;
         }
         if (job.status === "failed") {
@@ -401,7 +525,6 @@ export class DirectorySyncOperationStatusService {
           return;
         }
         if (batch.status === "pending" || batch.status === "processing") {
-          await this.markPhase(active.id, "importing");
           return;
         }
         if (batch.status === "failed") {
@@ -426,15 +549,51 @@ export class DirectorySyncOperationStatusService {
 
   async getSnapshot(): Promise<DirectorySyncOperationSnapshot> {
     await this.reconcile();
-    return this.store.snapshot();
+    const status = await this.store.snapshot();
+    if (status.activeRun) {
+      status.activeRun = await this.withEffectiveProgress(status.activeRun);
+    }
+    return status;
   }
 
-  private finishRun(
+  async getOperationalHealth(): Promise<Omit<RuntimeHealthCheck, "name">> {
+    const status = await this.store.snapshot();
+    if (status.activeRun?.state !== "pulling") {
+      return healthyGitProgress();
+    }
+
+    const active = await this.withEffectiveProgress(status.activeRun);
+    if (active.jobId) {
+      const job = await this.jobs.getStatus(active.jobId);
+      if (job?.status !== "processing") return healthyGitProgress();
+    }
+    const inactivityMs = Math.max(
+      0,
+      this.now() - Date.parse(active.lastProgressAt),
+    );
+    const staleAfterMs = this.inactivityTimeoutMs + this.staleGraceMs;
+    if (inactivityMs <= staleAfterMs) return healthyGitProgress();
+
+    return {
+      status: "degraded",
+      message: `Directory Git pull has made no progress for ${inactivityMs}ms`,
+      details: {
+        runId: active.id,
+        source: active.source,
+        state: active.state,
+        lastProgressAt: active.lastProgressAt,
+        inactivityMs,
+        staleAfterMs,
+      },
+    };
+  }
+
+  private async finishRun(
     runId: string,
     outcome: DirectorySyncRunOutcome,
     summary: string,
   ): Promise<void> {
-    return this.mutate((status) => {
+    await this.mutate((status) => {
       const active = status.activeRun;
       if (active?.id !== runId) return;
       const derivedOutcome =
@@ -447,6 +606,7 @@ export class DirectorySyncOperationStatusService {
         );
       }
     });
+    await this.clearProgress(runId);
   }
 
   private mutate<T>(
@@ -466,7 +626,7 @@ export class DirectorySyncOperationStatusService {
       source: active.source,
       outcome,
       startedAt: active.startedAt,
-      completedAt: new Date().toISOString(),
+      completedAt: new Date(this.now()).toISOString(),
       summary: sanitizeMessage(summary, 240),
       imported: active.imported,
       skipped: active.skipped,
@@ -494,12 +654,30 @@ export class DirectorySyncOperationStatusService {
       kind: input.kind,
       ...(safePath ? { path: safePath } : {}),
       message: sanitizeMessage(input.message),
-      occurredAt: new Date().toISOString(),
+      occurredAt: new Date(this.now()).toISOString(),
     };
     status.issues = [
       issue,
       ...status.issues.filter((candidate) => candidate.id !== issue.id),
     ].slice(0, 8);
+  }
+
+  private async withEffectiveProgress(
+    active: ActiveDirectorySyncRun,
+  ): Promise<ActiveDirectorySyncRun> {
+    const progress = await this.progressStore.get(active.id);
+    if (
+      !progress ||
+      Date.parse(progress.lastProgressAt) <= Date.parse(active.lastProgressAt)
+    ) {
+      return active;
+    }
+    return { ...active, lastProgressAt: progress.lastProgressAt };
+  }
+
+  private async clearProgress(runId: string): Promise<void> {
+    this.lastProgressPersistence.delete(runId);
+    await this.progressStore.delete(runId);
   }
 
   private safePath(path: string): string {
@@ -509,6 +687,10 @@ export class DirectorySyncOperationStatusService {
       return "content file";
     return normalizeRelativePath(candidate);
   }
+}
+
+function healthyGitProgress(): Omit<RuntimeHealthCheck, "name"> {
+  return { status: "healthy", message: "No stale directory Git pull" };
 }
 
 function parseStoredJobResult(result: unknown): unknown {

@@ -1,5 +1,31 @@
 # @brains/site-builder-plugin
 
+## 0.2.0-alpha.283
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.283
+  - @brains/image@0.2.0-alpha.283
+  - @brains/site-composition@0.2.0-alpha.283
+  - @brains/site-engine@0.2.0-alpha.283
+  - @brains/ui-library@0.2.0-alpha.283
+  - @brains/utils@0.2.0-alpha.283
+  - @brains/plugins@0.2.0-alpha.283
+
+## 0.2.0-alpha.282
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.282
+  - @brains/image@0.2.0-alpha.282
+  - @brains/site-composition@0.2.0-alpha.282
+  - @brains/site-engine@0.2.0-alpha.282
+  - @brains/ui-library@0.2.0-alpha.282
+  - @brains/utils@0.2.0-alpha.282
+  - @brains/plugins@0.2.0-alpha.282
+
 ## 0.2.0-alpha.281
 
 ### Patch Changes

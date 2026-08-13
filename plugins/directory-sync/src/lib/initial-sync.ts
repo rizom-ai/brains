@@ -2,6 +2,7 @@ import { getErrorMessage } from "@brains/utils/error";
 import { SYSTEM_CHANNELS, type ServicePluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import type { DirectorySyncConfig, IDirectorySync, IGitSync } from "../types";
+import type { GitReconciliationService } from "./git-reconciliation";
 import { copySeedContentIfNeeded } from "./seed-content";
 
 /**
@@ -15,6 +16,12 @@ export function setupInitialSync(
   config: DirectorySyncConfig,
   logger: Logger,
   gitSync?: IGitSync,
+  reconciliation?: Pick<GitReconciliationService, "captureCurrent">,
+  recovery?: {
+    onGitProgress(): void;
+    onGitRecoverySucceeded(): Promise<void>;
+    onGitRecoveryFailed(error: unknown): Promise<void>;
+  },
 ): void {
   let initialSyncStarted = false;
 
@@ -33,7 +40,11 @@ export function setupInitialSync(
       // Pull remote changes before importing
       if (gitSync) {
         logger.debug("Git enabled — pulling before import");
-        const pullResult = await gitSync.pull();
+        recovery?.onGitProgress();
+        const pullResult = await gitSync.pull(
+          undefined,
+          recovery?.onGitProgress,
+        );
         await directorySync.recordPendingPullDeletes(
           pullResult.deletedFiles ?? [],
         );
@@ -51,6 +62,10 @@ export function setupInitialSync(
         failed: result.import.failed,
         duration: result.duration,
       });
+      if (gitSync && reconciliation) {
+        await reconciliation.captureCurrent(gitSync);
+      }
+      await recovery?.onGitRecoverySucceeded();
 
       await context.messaging.send({
         type: SYSTEM_CHANNELS.initialSyncCompleted,
@@ -59,6 +74,7 @@ export function setupInitialSync(
       });
     } catch (error) {
       logger.error("Initial sync failed", error);
+      await recovery?.onGitRecoveryFailed(error);
       await context.messaging.send({
         type: SYSTEM_CHANNELS.initialSyncCompleted,
         payload: {

@@ -47,6 +47,7 @@ export async function requestDirectorySync(
         type: "sync-request",
         data: {
           source: options.source,
+          runId,
           interfaceType: options.interfaceType,
           channelId: options.channelId,
         },

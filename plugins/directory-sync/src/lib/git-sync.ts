@@ -3,6 +3,8 @@ import simpleGit from "simple-git";
 import type { Logger } from "@brains/utils/logger";
 import type {
   GitLogEntry,
+  GitReconciliationCheckpoint,
+  GitReconciliationDelta,
   GitSyncStatus,
   IGitSync,
   PullResult,
@@ -14,10 +16,15 @@ import { SerialQueue } from "@brains/utils/serial-queue";
 import {
   DEFAULT_GIT_TIMEOUT_MS,
   getAuthenticatedGitUrl,
+  getGitRemoteFingerprint,
   resolveGitRemoteUrl,
 } from "./git-options";
 import type { GitSyncOptions } from "./git-options";
-import { pullGitChanges } from "./git-pull";
+import {
+  getChangedPaths,
+  pullGitChanges,
+  tryResolveRemoteHead,
+} from "./git-pull";
 import { getGitStatus, hasGitLocalChanges } from "./git-status";
 
 export type { GitSyncOptions } from "./git-options";
@@ -33,6 +40,7 @@ export class GitSync implements IGitSync {
   private _git: SimpleGit | null = null;
   private readonly logger: Logger;
   private readonly remoteUrl: string;
+  private readonly remoteFingerprint: string;
   private readonly branch: string;
   private readonly authorName: string | undefined;
   private readonly authorEmail: string | undefined;
@@ -60,6 +68,7 @@ export class GitSync implements IGitSync {
     this.logger = options.logger;
     this.dataDir = options.dataDir;
     this.remoteUrl = resolveGitRemoteUrl(options);
+    this.remoteFingerprint = getGitRemoteFingerprint(this.remoteUrl);
     this.branch = options.branch ?? "main";
     this.authorName = options.authorName;
     this.authorEmail = options.authorEmail;
@@ -132,16 +141,88 @@ export class GitSync implements IGitSync {
     );
   }
 
-  pull(signal?: AbortSignal): Promise<PullResult> {
+  pull(signal?: AbortSignal, onProgress?: () => void): Promise<PullResult> {
     return this.runOperation(() =>
       pullGitChanges(
         this.git,
         this.logger,
         this.branch,
-        this.net,
+        { ...this.net, ...(onProgress ? { onProgress } : {}) },
         this.getOperationSignal(signal),
       ),
     );
+  }
+
+  getReconciliationDelta(
+    checkpoint?: GitReconciliationCheckpoint,
+  ): Promise<GitReconciliationDelta> {
+    return this.runOperation(async () => {
+      const current = await this.getCurrentReconciliationCheckpoint();
+      if (!checkpoint) {
+        return {
+          mode: "full",
+          checkpoint: current,
+          reason: "missing-checkpoint",
+        };
+      }
+      if (checkpoint.remoteFingerprint !== this.remoteFingerprint) {
+        return {
+          mode: "full",
+          checkpoint: current,
+          reason: "repository-identity-mismatch",
+        };
+      }
+      if (checkpoint.branch !== this.branch) {
+        return {
+          mode: "full",
+          checkpoint: current,
+          reason: "branch-mismatch",
+        };
+      }
+      if (!(await this.commitExists(checkpoint.lastReconciledGitHead))) {
+        return {
+          mode: "full",
+          checkpoint: current,
+          reason: "missing-local-checkpoint",
+        };
+      }
+      if (
+        !(await this.isAncestor(
+          checkpoint.lastReconciledGitHead,
+          current.lastReconciledGitHead,
+        ))
+      ) {
+        return {
+          mode: "full",
+          checkpoint: current,
+          reason: "non-ancestor-local-checkpoint",
+        };
+      }
+
+      const localChanges =
+        checkpoint.lastReconciledGitHead === current.lastReconciledGitHead
+          ? { files: [], deletedFiles: [] }
+          : await getChangedPaths(
+              this.git,
+              checkpoint.lastReconciledGitHead,
+              current.lastReconciledGitHead,
+            );
+      const remoteChanges = await this.getRemoteChanges(checkpoint, current);
+      if (!remoteChanges) {
+        return {
+          mode: "full",
+          checkpoint: current,
+          reason: "remote-checkpoint-mismatch",
+        };
+      }
+
+      return {
+        mode: "incremental",
+        checkpoint: current,
+        files: localChanges.files,
+        deletedFiles: remoteChanges.deletedFiles,
+      };
+    });
   }
 
   log(filePath: string, limit?: number): Promise<GitLogEntry[]> {
@@ -170,6 +251,59 @@ export class GitSync implements IGitSync {
     return signal
       ? AbortSignal.any([this.lifecycleController.signal, signal])
       : this.lifecycleController.signal;
+  }
+
+  private async getCurrentReconciliationCheckpoint(): Promise<GitReconciliationCheckpoint> {
+    const lastObservedRemoteHead = await tryResolveRemoteHead(
+      this.git,
+      this.branch,
+    );
+    return {
+      remoteFingerprint: this.remoteFingerprint,
+      branch: this.branch,
+      lastReconciledGitHead: await this.git.revparse(["HEAD"]),
+      ...(lastObservedRemoteHead ? { lastObservedRemoteHead } : {}),
+    };
+  }
+
+  private async getRemoteChanges(
+    previous: GitReconciliationCheckpoint,
+    current: GitReconciliationCheckpoint,
+  ): Promise<{ deletedFiles: string[] } | undefined> {
+    const previousHead = previous.lastObservedRemoteHead;
+    const currentHead = current.lastObservedRemoteHead;
+    if (!previousHead && !currentHead) return { deletedFiles: [] };
+    if (!previousHead || !currentHead) return undefined;
+    if (!(await this.commitExists(previousHead))) return undefined;
+    if (!(await this.isAncestor(previousHead, currentHead))) return undefined;
+    if (previousHead === currentHead) return { deletedFiles: [] };
+    const changes = await getChangedPaths(this.git, previousHead, currentHead);
+    return { deletedFiles: changes.deletedFiles };
+  }
+
+  private async commitExists(commit: string): Promise<boolean> {
+    try {
+      await this.git.raw(["cat-file", "-e", `${commit}^{commit}`]);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  private async isAncestor(
+    ancestor: string,
+    descendant: string,
+  ): Promise<boolean> {
+    try {
+      const mergeBase = await this.git.raw([
+        "merge-base",
+        ancestor,
+        descendant,
+      ]);
+      return mergeBase.trim() === ancestor;
+    } catch {
+      return false;
+    }
   }
 
   private runOperation<T>(operation: () => Promise<T>): Promise<T> {

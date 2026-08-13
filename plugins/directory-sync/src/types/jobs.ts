@@ -25,6 +25,7 @@ export const directorySyncJobSchema: z.ZodType<
  */
 export interface DirectorySyncRequestJobData {
   source: string;
+  runId?: string | undefined;
   interfaceType?: string | undefined;
   channelId?: string | undefined;
 }
@@ -34,6 +35,7 @@ export const directorySyncRequestJobSchema: z.ZodType<
   DirectorySyncRequestJobData
 > = z.object({
   source: z.string().min(1),
+  runId: z.string().min(1).optional(),
   interfaceType: z.string().optional(),
   channelId: z.string().optional(),
 });

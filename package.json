@@ -86,6 +86,7 @@
     "roadmap:check": "bun scripts/build-roadmap-visual.ts --check",
     "test": "turbo run test",
     "test:all": "bun run test:unit && bun run test:integration",
+    "test:packed:compat": "bun --filter @rizom/brain test:packed:compat",
     "test:integration": "bun test test/integration",
     "test:unit": "turbo run test",
     "typecheck": "turbo run typecheck",

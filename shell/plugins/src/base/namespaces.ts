@@ -30,6 +30,7 @@ import type {
   IInteractionsNamespace,
   IMessageInterfaceChannelsNamespace,
   IMessagingNamespace,
+  IOperationalHealthNamespace,
   IPermissionsNamespace,
   IPluginsNamespace,
   IProfileKindsNamespace,
@@ -74,6 +75,17 @@ export function createChannelsNamespace(shell: IShell): IChannelsNamespace {
     getDescriptor: (channelType) => registry.getDescriptor(channelType),
     getDeliveryProvider: (channelType) =>
       registry.getDeliveryProvider(channelType),
+  };
+}
+
+export function createOperationalHealthNamespace(
+  shell: IShell,
+  pluginId: string,
+): IOperationalHealthNamespace {
+  const registry = shell.getOperationalHealthRegistry();
+  return {
+    register: (name, provider): (() => void) =>
+      registry.register(pluginId, name, provider),
   };
 }
 

@@ -27,6 +27,7 @@ import {
   createInteractionsNamespace,
   createJobsNamespace,
   createMessagingNamespace,
+  createOperationalHealthNamespace,
   createPermissionsNamespace,
   createPluginsNamespace,
   createProfileKindsNamespace,
@@ -43,6 +44,7 @@ import type {
   IInsightsNamespace,
   IInteractionsNamespace,
   IMessagingNamespace,
+  IOperationalHealthNamespace,
   IPermissionsNamespace,
   IPluginsNamespace,
   IProfileKindsNamespace,
@@ -65,6 +67,7 @@ export type {
   IInteractionsNamespace,
   IMessageInterfaceChannelsNamespace,
   IMessagingNamespace,
+  IOperationalHealthNamespace,
   IPermissionsNamespace,
   IPluginsNamespace,
   IProfileKindsNamespace,
@@ -126,6 +129,9 @@ export interface BasePluginContext {
 
   /** Runtime dependency readiness and bounded resource signals. */
   readonly readiness: () => Promise<RuntimeReadiness>;
+
+  /** Register request-driven operational-health checks owned by this plugin. */
+  readonly operationalHealth: IOperationalHealthNamespace;
 
   /** Bounded model-as-judge capability; schema-constrained verdicts only. */
   readonly judge: <T>(input: JudgeInput<T>) => Promise<{
@@ -310,6 +316,7 @@ export function createBasePluginContext(
 
     appInfo: getAppInfo,
     readiness: () => shell.getRuntimeReadiness(),
+    operationalHealth: createOperationalHealthNamespace(shell, pluginId),
     judge: (input) => shell.judge(input),
 
     domain,
