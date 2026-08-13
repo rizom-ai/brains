@@ -28,6 +28,15 @@ export function cmsEntityPath(
   return `${cmsCollectionPath(routePath, entityType)}/${encodeURIComponent(id)}`;
 }
 
+export function cmsCreatePath(routePath: string, entityType: string): string {
+  const url = new URL(
+    cmsCollectionPath(routePath, entityType),
+    "https://brains.invalid",
+  );
+  url.searchParams.set("mode", "create");
+  return `${url.pathname}${url.search}`;
+}
+
 export function cmsWorkspacePath(
   routePath: string,
   workspaceId: string,

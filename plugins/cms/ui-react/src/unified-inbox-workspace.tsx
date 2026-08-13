@@ -11,6 +11,7 @@ import type {
   InboxWorkspaceAction,
   InboxWorkspaceActionResult,
   InboxWorkspaceEntry,
+  InboxWorkspaceFollowUp,
   InboxWorkspaceSnapshot,
 } from "./api";
 import { ConfirmDialog } from "./confirm-dialog";
@@ -78,12 +79,12 @@ export function UnifiedInboxWorkspace(props: {
     query: CmsWorkspaceQuery,
     canonicalUrlQuery?: CmsWorkspaceQuery,
   ) => void;
-  onOpenEntity: (entityType: string, entityId: string) => void;
+  onFollowUp: (followUp: InboxWorkspaceFollowUp) => void;
   onAction: (
     action: InboxWorkspaceAction,
   ) => Promise<InboxWorkspaceActionResult>;
 }): ReactElement {
-  const { data, query, onQueryChange, onOpenEntity, onAction } = props;
+  const { data, query, onQueryChange, onFollowUp, onAction } = props;
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<InboxFeedback | null>(null);
   const [confirmation, setConfirmation] = useState<{
@@ -481,19 +482,24 @@ export function UnifiedInboxWorkspace(props: {
                   This source supplied no additional summary.
                 </p>
               )}
-              {selected.item.entityRef && (
-                <button
-                  type="button"
-                  className="inbox-entity-link"
-                  onClick={() =>
-                    onOpenEntity(
-                      selected.item.entityRef?.entityType ?? "",
-                      selected.item.entityRef?.entityId ?? "",
-                    )
-                  }
+              {selected.followUps.length > 0 && (
+                <section
+                  className="inbox-follow-ups"
+                  aria-label={`Follow-ups for ${selected.item.title}`}
                 >
-                  Open source entity →
-                </button>
+                  <span>Follow up</span>
+                  <nav>
+                    {selected.followUps.map((followUp) => (
+                      <button
+                        type="button"
+                        key={followUp.kind}
+                        onClick={() => onFollowUp(followUp)}
+                      >
+                        {followUp.label}
+                      </button>
+                    ))}
+                  </nav>
+                </section>
               )}
               <footer>
                 <span>Available actions</span>

@@ -1,6 +1,7 @@
 import {
   AttachmentRegistry,
   ChannelRegistry,
+  InboxFollowUpRegistry,
   InboxRegistry,
   OperationalHealthRegistry,
   RuntimeUploadRegistry,
@@ -229,6 +230,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
   const profileKindRegistry = new ProfileKindRegistry(options.profileKind);
   const channelRegistry = new ChannelRegistry();
   const inboxRegistry = new InboxRegistry();
+  const inboxFollowUpRegistry = new InboxFollowUpRegistry();
   const operationalHealthRegistry = new OperationalHealthRegistry();
 
   // Stateful backing stores
@@ -833,6 +835,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
     getProfileKindRegistry: () => profileKindRegistry,
     getChannelRegistry: () => channelRegistry,
     getInboxRegistry: () => inboxRegistry,
+    getInboxFollowUpRegistry: () => inboxFollowUpRegistry,
     getOperationalHealthRegistry: () => operationalHealthRegistry,
     getDomain: (): string | undefined => options.domain,
     getLocalSiteUrl: (): string | undefined => options.localSiteUrl,

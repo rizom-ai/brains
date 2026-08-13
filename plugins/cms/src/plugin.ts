@@ -3,12 +3,14 @@ import type {
   CmsWorkspaceRegistration,
   CmsWorkspaceRegistrationResult,
   ServicePluginContext,
+  UserPermissionLevel,
   WebRouteDefinition,
 } from "@brains/plugins";
 import { CMS_WORKSPACE_REGISTER_MESSAGE, ServicePlugin } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import type { CmsEntityDisplayMap } from "./config";
-import { cmsWorkspacePath } from "./cms-paths";
+import { cmsCreatePath, cmsEntityPath, cmsWorkspacePath } from "./cms-paths";
+import { createCmsCreatePrefillState } from "./create-prefill-contract";
 import { createEditorRoutes } from "./editor-routes";
 import { CmsWorkspaceRegistry } from "./workspace-registry";
 import packageJson from "../package.json";
@@ -51,6 +53,45 @@ function parseEntityDisplay(value: unknown): CmsEntityDisplayMap | undefined {
 }
 
 /**
+ * Note-creation capability depends on the actor, never on the item, but the
+ * follow-up registry evaluates predicates and resolvers per item. Memoize by
+ * permission level so a page of entries costs one check instead of one per
+ * entry — and so a denied actor does not construct an exception per entry.
+ */
+function createNoteCapability(
+  context: ServicePluginContext,
+): (permissionLevel: UserPermissionLevel) => boolean {
+  const cache = new Map<UserPermissionLevel, boolean>();
+  return (permissionLevel) => {
+    const cached = cache.get(permissionLevel);
+    if (cached !== undefined) return cached;
+    const allowed = context.entityService.getEntityTypes().includes("note")
+      ? allowsNoteCreation(context, permissionLevel)
+      : false;
+    cache.set(permissionLevel, allowed);
+    return allowed;
+  };
+}
+
+function allowsNoteCreation(
+  context: ServicePluginContext,
+  permissionLevel: UserPermissionLevel,
+): boolean {
+  try {
+    context.permissions.assertEntityActionAllowed("note", "create", {
+      userPermissionLevel: permissionLevel,
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function entityBacklink(entityType: string, entityId: string): string {
+  return `entity://${encodeURIComponent(entityType)}/${encodeURIComponent(entityId)}`;
+}
+
+/**
  * First-party CMS editor: a React app served at `routePath`, gated on the
  * authenticated passkey session, whose reads and writes go through the entity
  * service. Git persistence follows via directory-sync + git-sync — no
@@ -84,6 +125,46 @@ export class CmsPlugin extends ServicePlugin<
       kind: "admin",
       priority: 40,
       visibility: "trusted",
+    });
+    const canCreateNote = createNoteCapability(context);
+    context.inboxFollowUps.registerKind({
+      kind: "capture-as-note",
+      label: "Capture as note",
+      priority: 20,
+      mode: "universal",
+      permissionLevel: "trusted",
+      applies: ({ item, actor }) =>
+        item.entityRef !== undefined && canCreateNote(actor.permissionLevel),
+      resolve: ({ item, actor }) => {
+        if (!item.entityRef || !canCreateNote(actor.permissionLevel)) {
+          return undefined;
+        }
+        return {
+          href: cmsCreatePath(this.config.routePath, "note"),
+          state: createCmsCreatePrefillState(
+            item.title,
+            entityBacklink(item.entityRef.entityType, item.entityRef.entityId),
+          ),
+        };
+      },
+    });
+    context.inboxFollowUps.registerKind({
+      kind: "open-entity",
+      label: "Open source entity",
+      priority: 30,
+      mode: "universal",
+      permissionLevel: "trusted",
+      applies: ({ item }) => item.entityRef !== undefined,
+      resolve: ({ item }) =>
+        item.entityRef
+          ? {
+              href: cmsEntityPath(
+                this.config.routePath,
+                item.entityRef.entityType,
+                item.entityRef.entityId,
+              ),
+            }
+          : undefined,
     });
 
     context.messaging.subscribe<

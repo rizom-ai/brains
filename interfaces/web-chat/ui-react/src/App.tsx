@@ -60,6 +60,10 @@ import {
   rememberConversationId,
 } from "./conversation-id";
 import { focusPromptTextarea, resizePromptTextarea } from "./prompt-textarea";
+import {
+  consumeInboxChatPrefill,
+  withoutInboxChatPrefill,
+} from "./inbox-prefill";
 import { deriveSessionTitle } from "./session-format";
 import { useSessionMutations } from "./use-session-mutations";
 
@@ -68,7 +72,17 @@ type UploadNotice = { tone: "success" | "error"; message: string } | null;
 const emptySessions: WebChatSession[] = [];
 
 export function App(): React.ReactElement {
-  const [input, setInput] = useState("");
+  const [input, setInput] = useState(() =>
+    consumeInboxChatPrefill(window.history.state, () => {
+      window.history.replaceState(
+        withoutInboxChatPrefill(
+          window.history.state as Record<string, unknown>,
+        ),
+        "",
+        window.location.href,
+      );
+    }),
+  );
   const [conversationId, setConversationId] = useState(() =>
     getBrowserConversationId(),
   );

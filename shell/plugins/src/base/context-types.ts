@@ -23,6 +23,12 @@ import type {
   ChannelDescriptor,
 } from "../channel-registry";
 import type { InboxSource } from "../inbox-registry";
+import type {
+  InboxFollowUpKindRegistration,
+  InboxFollowUpResolutionInput,
+  RegisteredInboxFollowUpKind,
+  ResolvedInboxFollowUp,
+} from "../inbox-follow-up-registry";
 import type { OperationalHealthProvider } from "../operational-health-registry";
 
 /**
@@ -131,6 +137,16 @@ export interface IInboxNamespace {
 /** Request-driven plugin contributions to operational (not routing) health. */
 export interface IOperationalHealthNamespace {
   register(name: string, provider: OperationalHealthProvider): () => void;
+}
+
+/** Destination-owned Inbox follow-up registration and finalized resolution. */
+export interface IInboxFollowUpsNamespace {
+  registerKind(registration: InboxFollowUpKindRegistration): void;
+  listKinds(): RegisteredInboxFollowUpKind[];
+  getKind(kind: string): RegisteredInboxFollowUpKind | undefined;
+  resolveUniversal(
+    input: Omit<InboxFollowUpResolutionInput, "context">,
+  ): Promise<ResolvedInboxFollowUp[]>;
 }
 
 /**

@@ -32,6 +32,7 @@ import {
   resolvePrompt,
   type IAttachmentsNamespace,
   type IChannelRegistry,
+  type IInboxFollowUpRegistry,
   type IInboxRegistry,
   type IOperationalHealthRegistry,
   type IRuntimeStateNamespace,
@@ -692,6 +693,10 @@ export class Shell implements IShell {
 
   public getInboxRegistry(): IInboxRegistry {
     return this.services.inboxRegistry;
+  }
+
+  public getInboxFollowUpRegistry(): IInboxFollowUpRegistry {
+    return this.services.inboxFollowUpRegistry;
   }
 
   public getOperationalHealthRegistry(): IOperationalHealthRegistry {

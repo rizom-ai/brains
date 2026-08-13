@@ -71,6 +71,7 @@ const dependencyAudit: Record<keyof ShellDependencies, DependencyAuditEntry> = {
   profileKindRegistry: { honoredByCore: true, cleanup: "none" },
   channelRegistry: { honoredByCore: true, cleanup: "none" },
   inboxRegistry: { honoredByCore: true, cleanup: "none" },
+  inboxFollowUpRegistry: { honoredByCore: true, cleanup: "none" },
   operationalHealthRegistry: { honoredByCore: true, cleanup: "none" },
 };
 

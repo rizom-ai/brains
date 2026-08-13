@@ -441,7 +441,7 @@ Tests are written first inside each phase.
   changes replace the URL; Load more never writes offset/limit; reload after
   paging starts on page one; malformed/orphan facet params canonicalize to
   defaults; non-opted-in workspaces are unaffected.
-- **Phase 2 — Follow-up kind registry and the three built-in kinds.** Add the
+- **Phase 2 — Follow-up kind registry and the three built-in kinds (implemented).** Add the
   finalized app-scoped kind registry; web-chat accepts prefill at its registered
   route and registers universal `discuss-in-chat`; CMS gains create mode with
   same-origin history-state prefill and registers universal `capture-as-note`

@@ -147,6 +147,22 @@ describe("editorWorkflowReducer", () => {
     expect(conflicted.mode).toEqual(dirty.mode);
   });
 
+  it("starts a prefilled create draft without persisting it", () => {
+    const created = editorWorkflowReducer(initialEditorWorkflowState, {
+      type: "creationStarted",
+      draft: { title: "Review the proposal" },
+      body: "Source: entity://mail-item/mail-1",
+    });
+
+    expect(created).toMatchObject({
+      mode: { kind: "create" },
+      draft: { title: "Review the proposal" },
+      body: "Source: entity://mail-item/mail-1",
+      save: { kind: "idle" },
+    });
+    expect(hasUnsavedEditorChanges(created)).toBe(true);
+  });
+
   it("allows deletion only for an opened entity and closes failures", () => {
     const create = editorWorkflowReducer(initialEditorWorkflowState, {
       type: "creationStarted",

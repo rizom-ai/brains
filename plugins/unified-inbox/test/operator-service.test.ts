@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import {
+  InboxFollowUpRegistry,
   InboxRegistry,
   type InboxActor,
   type InboxItem,
@@ -26,6 +27,7 @@ function attentionItem(
     title: "Time-sensitive work request",
     summary: "A project contact asks for a decision this week.",
     contact: { label: "Sam Rivera · acme.io", personId: "prsn_sam" },
+    entityRef: { entityType: "mail-item", entityId: "mail-opaque" },
     receivedAt,
     urgency: "high",
     actions,
@@ -50,8 +52,14 @@ function createService(input?: { rejectActor?: (actor: InboxActor) => void }): {
     },
   });
   registry.finalize();
+  const followUps = new InboxFollowUpRegistry();
+  followUps.finalize();
   return {
-    service: new InboxOperatorService(registry, new InboxDataSource(registry)),
+    service: new InboxOperatorService(
+      registry,
+      new InboxDataSource(registry),
+      followUps,
+    ),
     actors,
   };
 }
@@ -112,9 +120,12 @@ describe("InboxOperatorService", () => {
       act: async () => undefined,
     });
     registry.finalize();
+    const followUps = new InboxFollowUpRegistry();
+    followUps.finalize();
     const service = new InboxOperatorService(
       registry,
       new InboxDataSource(registry),
+      followUps,
     );
 
     const snapshot = await service.workspace(
@@ -124,6 +135,7 @@ describe("InboxOperatorService", () => {
         offset: "0",
         limit: "1",
       }),
+      { permissionLevel: "admin" },
     );
 
     expect(snapshot).toMatchObject({
@@ -150,6 +162,60 @@ describe("InboxOperatorService", () => {
     expect(
       inboxWorkspaceQuerySchema.safeParse({ offset: 0, limit: 101 }).success,
     ).toBe(false);
+  });
+
+  it("resolves universal follow-ups only for the bounded workspace page", async () => {
+    const registry = new InboxRegistry();
+    registry.registerSource("mail-plugin", {
+      sourceId: "mail-items",
+      displayName: "Email Triage",
+      list: async () => [attentionItem()],
+      act: async () => undefined,
+    });
+    registry.finalize();
+    const followUps = new InboxFollowUpRegistry();
+    followUps.registerKind("chat", {
+      kind: "discuss-in-chat",
+      label: "Discuss in chat",
+      priority: 10,
+      mode: "universal",
+      permissionLevel: "trusted",
+      applies: ({ item }) => item.entityRef !== undefined,
+      resolve: ({ item }) => ({
+        href: "/chat",
+        state: {
+          webChatPrefill: {
+            version: 1,
+            text: `About inbox item: ${item.title}`,
+          },
+        },
+      }),
+    });
+    followUps.finalize();
+    const service = new InboxOperatorService(
+      registry,
+      new InboxDataSource(registry),
+      followUps,
+    );
+
+    const snapshot = await service.workspace({}, { permissionLevel: "admin" });
+    const headless = await service.list({ limit: 10 });
+
+    expect(snapshot.entries[0]?.followUps).toEqual([
+      {
+        kind: "discuss-in-chat",
+        label: "Discuss in chat",
+        href: "/chat",
+        state: {
+          webChatPrefill: {
+            version: 1,
+            text: "About inbox item: Time-sensitive work request",
+          },
+        },
+      },
+    ]);
+    expect(JSON.stringify(headless)).not.toContain("discuss-in-chat");
+    expect(JSON.stringify(headless)).not.toContain("mail-opaque");
   });
 
   it("requires confirmation before dispatching flagged actions and returns no projection after execution", async () => {
@@ -203,9 +269,12 @@ describe("InboxOperatorService", () => {
       act: async () => undefined,
     });
     registry.finalize();
+    const followUps = new InboxFollowUpRegistry();
+    followUps.finalize();
     const service = new InboxOperatorService(
       registry,
       new InboxDataSource(registry),
+      followUps,
     );
 
     const dashboard = await service.dashboard("/cms/workspaces/inbox");

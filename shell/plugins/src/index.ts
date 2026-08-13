@@ -78,6 +78,19 @@ export {
   type IChannelRegistry,
 } from "./channel-registry";
 export {
+  InboxFollowUpRegistry,
+  resolvedInboxFollowUpSchema,
+  type IInboxFollowUpRegistry,
+  type InboxFollowUpContext,
+  type InboxFollowUpJson,
+  type InboxFollowUpKindRegistration,
+  type InboxFollowUpMode,
+  type InboxFollowUpResolutionInput,
+  type InboxFollowUpTargetInput,
+  type RegisteredInboxFollowUpKind,
+  type ResolvedInboxFollowUp,
+} from "./inbox-follow-up-registry";
+export {
   InboxRegistry,
   inboxActionSchema,
   inboxActorSchema,
@@ -150,6 +163,7 @@ export type {
   IProfileKindsNamespace,
   IChannelsNamespace,
   IInboxNamespace,
+  IInboxFollowUpsNamespace,
   IOperationalHealthNamespace,
   IMessageInterfaceChannelsNamespace,
   ISemanticNamespace,

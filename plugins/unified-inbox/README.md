@@ -13,7 +13,7 @@ failures.
 The opt-in plugin provides:
 
 - an Admin-only CMS **Inbox** workspace with linkable server-side source/urgency filters,
-  bounded transient paging, list/detail triage, source-entity navigation, and
+  bounded transient paging, list/detail triage, destination-owned follow-up launches, and
   confirmation-gated actions;
 - an access-checked open-count badge in the CMS workspace rail;
 - a read-only Admin Dashboard summary containing at most five redacted entries;
@@ -29,6 +29,15 @@ projection; the client invalidates and reloads the live view. Stable source and 
 filters use the workspace URL, while paging remains in-memory: direct entry and reload
 always start at offset zero. Unknown or malformed filter values are removed instead of
 failing or producing a private provider error.
+
+Follow-ups launch another surface without resolving the item. Destination plugins register
+kinds during plugin registration and own labels, applicability, permission gates, final
+same-origin target resolution, and optional bounded history state. The workspace receives
+only resolved `{ kind, label, href, state? }` targets for its current bounded page; raw
+resolvers never enter browser or headless output. CMS contributes **Open source entity**
+and capability-gated **Capture as note**. Web chat contributes **Discuss in chat** when
+that interface is installed. Note and chat handoffs are one-shot prefills and never save or
+send automatically.
 
 The shell registers **Recurring checks** as the first core source. Returned alerts remain
 one open item per condition episode until an Admin resolves them. Notification delivery is
@@ -88,7 +97,9 @@ The capability is opt-in:
 add: [unified-inbox]
 ```
 
-The workspace, Dashboard summary, and tool require no plugin configuration. Daily delivery
+The workspace, Dashboard summary, and tool require no plugin configuration. Universal
+follow-ups require no per-source configuration: unavailable destination plugins or denied
+capabilities simply remove their launch. Daily delivery
 uses the notifications plugin's existing `defaultRecipient`; without one, browser and chat
 surfaces continue to work and delivery follows the recurring-check retry path.
 

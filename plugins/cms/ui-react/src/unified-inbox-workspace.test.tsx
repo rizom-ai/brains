@@ -37,6 +37,21 @@ const data: InboxWorkspaceSnapshot = {
         actions: [{ id: "archive", label: "Archive", confirm: true }],
       },
       contactHref: "/access?person=prsn_sam",
+      followUps: [
+        {
+          kind: "discuss-in-chat",
+          label: "Discuss in chat",
+          href: "/chat",
+          state: {
+            webChatPrefill: { version: 1, text: "About inbox item" },
+          },
+        },
+        {
+          kind: "open-entity",
+          label: "Open source entity",
+          href: "/cms/entities/mail-item/mail-1",
+        },
+      ],
     },
   ],
   errors: [
@@ -57,7 +72,7 @@ describe("UnifiedInboxWorkspace", () => {
         data,
         query: { sourceId: "mail-items", offset: 0, limit: 50 },
         onQueryChange: () => {},
-        onOpenEntity: () => {},
+        onFollowUp: () => {},
         onAction: async () => ({ kind: "completed" as const }),
       }),
     );
@@ -107,11 +122,11 @@ describe("UnifiedInboxWorkspace", () => {
       createElement(UnifiedInboxWorkspace, {
         data: {
           ...data,
-          entries: [{ source: entry.source, item }],
+          entries: [{ source: entry.source, item, followUps: entry.followUps }],
         },
         query: { offset: 0, limit: 50 },
         onQueryChange: () => {},
-        onOpenEntity: () => {},
+        onFollowUp: () => {},
         onAction: async () => ({ kind: "completed" as const }),
       }),
     );
@@ -126,7 +141,7 @@ describe("UnifiedInboxWorkspace", () => {
         data: { ...data, entries: [], total: 0 },
         query: { urgency: "normal", offset: 0, limit: 50 },
         onQueryChange: () => {},
-        onOpenEntity: () => {},
+        onFollowUp: () => {},
         onAction: async () => ({ kind: "completed" as const }),
       }),
     );
@@ -165,6 +180,81 @@ describe("UnifiedInboxWorkspace query changes", () => {
     windowInstance.close();
   });
 
+  it("renders registered follow-ups separately from resolution actions", async () => {
+    type FollowUp = NonNullable<
+      InboxWorkspaceSnapshot["entries"][number]["followUps"]
+    >[number];
+    const firstEntry = data.entries[0];
+    if (!firstEntry) throw new Error("Expected inbox fixture entry");
+    const opened: FollowUp[] = [];
+    await act(async () => {
+      root.render(
+        createElement(UnifiedInboxWorkspace, {
+          data,
+          query: {},
+          onQueryChange: () => {},
+          onFollowUp: (followUp) => opened.push(followUp),
+          onAction: async () => ({ kind: "completed" as const }),
+        }),
+      );
+    });
+    const row = windowInstance.document.querySelector(".inbox-row");
+    if (!(row instanceof windowInstance.HTMLButtonElement)) {
+      throw new Error("Missing inbox row");
+    }
+
+    await act(async () => row.click());
+
+    const detail = windowInstance.document.querySelector(".inbox-detail-pane");
+    expect(detail?.textContent).toContain("Follow up");
+    expect(detail?.textContent).toContain("Discuss in chat");
+    expect(detail?.textContent).toContain("Open source entity");
+    expect(detail?.textContent).toContain("Available actions");
+    expect(detail?.textContent).toContain("Archive");
+    expect(
+      [...(detail?.querySelectorAll("button") ?? [])].filter(
+        (button) => button.textContent === "Open source entity",
+      ),
+    ).toHaveLength(1);
+
+    const discuss = [...(detail?.querySelectorAll("button") ?? [])].find(
+      (button) => button.textContent === "Discuss in chat",
+    );
+    if (!(discuss instanceof windowInstance.HTMLButtonElement)) {
+      throw new Error("Missing Discuss in chat follow-up");
+    }
+    await act(async () => discuss.click());
+
+    expect(opened).toEqual(firstEntry.followUps.slice(0, 1));
+  });
+
+  it("renders no follow-up group or legacy entity button when none resolve", async () => {
+    const entry = data.entries[0];
+    if (!entry) throw new Error("Expected inbox fixture entry");
+    await act(async () => {
+      root.render(
+        createElement(UnifiedInboxWorkspace, {
+          data: { ...data, entries: [{ ...entry, followUps: [] }] },
+          query: {},
+          onQueryChange: () => {},
+          onFollowUp: () => {},
+          onAction: async () => ({ kind: "completed" as const }),
+        }),
+      );
+    });
+    const row = windowInstance.document.querySelector(".inbox-row");
+    if (!(row instanceof windowInstance.HTMLButtonElement)) {
+      throw new Error("Missing inbox row");
+    }
+
+    await act(async () => row.click());
+
+    const detail = windowInstance.document.querySelector(".inbox-detail-pane");
+    expect(detail?.textContent).not.toContain("Follow up");
+    expect(detail?.textContent).not.toContain("Open source entity");
+    expect(detail?.textContent).toContain("Available actions");
+  });
+
   it("publishes stable filters separately from the first-page request", async () => {
     const changes: Array<{
       request: Record<string, string | number | undefined>;
@@ -178,7 +268,7 @@ describe("UnifiedInboxWorkspace query changes", () => {
           onQueryChange: (request, urlQuery) => {
             changes.push({ request, ...(urlQuery ? { urlQuery } : {}) });
           },
-          onOpenEntity: () => {},
+          onFollowUp: () => {},
           onAction: async () => ({ kind: "completed" as const }),
         }),
       );
@@ -218,7 +308,7 @@ describe("UnifiedInboxWorkspace query changes", () => {
           onQueryChange: (request, urlQuery) => {
             changes.push({ request, ...(urlQuery ? { urlQuery } : {}) });
           },
-          onOpenEntity: () => {},
+          onFollowUp: () => {},
           onAction: async () => ({ kind: "completed" as const }),
         }),
       );
@@ -260,7 +350,7 @@ describe("UnifiedInboxWorkspace query changes", () => {
           onQueryChange: (request, urlQuery) => {
             changes.push({ request, ...(urlQuery ? { urlQuery } : {}) });
           },
-          onOpenEntity: () => {},
+          onFollowUp: () => {},
           onAction: async () => ({ kind: "completed" as const }),
         }),
       );

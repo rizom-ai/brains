@@ -137,6 +137,7 @@ export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
     this.mockShell.getProfileKindRegistry().finalize();
     this.mockShell.getChannelRegistry().finalize();
     this.mockShell.getInboxRegistry().finalize();
+    this.mockShell.getInboxFollowUpRegistry().finalize();
     await this.plugin.finalizeRegistration?.();
   }
 

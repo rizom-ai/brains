@@ -1,6 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import {
   cmsCollectionPath,
+  cmsCreatePath,
   cmsEntityPath,
   cmsWorkspacePath,
   normalizeCmsBasePath,
@@ -21,6 +22,9 @@ describe("CMS canonical paths", () => {
     expect(
       cmsEntityPath("/studio", "note", "journal/2026-07-09 % complete"),
     ).toBe("/studio/entities/note/journal%2F2026-07-09%20%25%20complete");
+    expect(cmsCreatePath("/studio", "note")).toBe(
+      "/studio/entities/note?mode=create",
+    );
     expect(cmsWorkspacePath("/studio", "publish desk")).toBe(
       "/studio/workspaces/publish%20desk",
     );
@@ -45,6 +49,11 @@ describe("CMS canonical paths", () => {
     expect(parseCmsPath("/studio/workspaces/site", "/studio/")).toEqual({
       kind: "workspace",
       workspaceId: "site",
+    });
+    expect(parseCmsPath("/cms/entities/note/new", "/cms")).toEqual({
+      kind: "entity",
+      entityType: "note",
+      id: "new",
     });
   });
 

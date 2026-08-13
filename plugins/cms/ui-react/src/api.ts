@@ -231,6 +231,13 @@ export interface MailTriageWorkspaceSnapshot {
   items: MailTriageListItem[];
 }
 
+export interface InboxWorkspaceFollowUp {
+  kind: string;
+  label: string;
+  href: string;
+  state?: Record<string, unknown>;
+}
+
 export interface InboxWorkspaceEntry {
   source: { sourceId: string; displayName: string };
   item: {
@@ -245,6 +252,7 @@ export interface InboxWorkspaceEntry {
     actions: Array<{ id: string; label: string; confirm?: boolean }>;
   };
   contactHref?: string;
+  followUps: InboxWorkspaceFollowUp[];
 }
 
 export interface InboxWorkspaceSnapshot {

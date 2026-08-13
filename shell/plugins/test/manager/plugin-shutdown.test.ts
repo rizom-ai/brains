@@ -28,6 +28,40 @@ describe("Plugin shutdown lifecycle", () => {
     pluginManager.setShell(mockShell as unknown as IShell);
   });
 
+  test("rejects follow-up registration from a ready hook", async () => {
+    let readyContext: IShell | undefined;
+    const plugin: Plugin = {
+      id: "late-follow-up",
+      version: "1.0.0",
+      type: "service",
+      description: "Test",
+      packageName: "@test/late-follow-up",
+      register: async (shell): Promise<PluginCapabilities> => {
+        readyContext = shell;
+        return { tools: [], resources: [] };
+      },
+      ready: async (): Promise<void> => {
+        if (!readyContext) throw new Error("Missing ready context");
+        readyContext.getInboxFollowUpRegistry().registerKind("late-follow-up", {
+          kind: "late-follow-up",
+          label: "Late follow-up",
+          priority: 1,
+          mode: "universal",
+          permissionLevel: "admin",
+          applies: () => true,
+          resolve: () => ({ href: "/late" }),
+        });
+      },
+    };
+    pluginManager.registerPlugin(plugin);
+    await pluginManager.initializePlugins();
+    mockShell.getInboxFollowUpRegistry().finalize();
+
+    expect(pluginManager.readyPlugins()).rejects.toThrow(
+      "Inbox follow-up registration is closed",
+    );
+  });
+
   test("disablePlugin should call plugin.shutdown() when defined", async () => {
     const shutdownMock = mock(() => Promise.resolve());
 
@@ -198,6 +232,15 @@ describe("Plugin shutdown lifecycle", () => {
           list: async () => [],
           act: async () => undefined,
         });
+        shell.getInboxFollowUpRegistry().registerKind("scoped-plugin", {
+          kind: "scoped-follow-up",
+          label: "Scoped follow-up",
+          priority: 1,
+          mode: "universal",
+          permissionLevel: "admin",
+          applies: () => true,
+          resolve: () => ({ href: "/scoped" }),
+        });
         shell
           .getOperationalHealthRegistry()
           .register("scoped-plugin", "test", () => ({ status: "healthy" }));
@@ -208,6 +251,7 @@ describe("Plugin shutdown lifecycle", () => {
     pluginManager.registerPlugin(plugin);
     await pluginManager.initializePlugins();
     mockShell.getInboxRegistry().finalize();
+    mockShell.getInboxFollowUpRegistry().finalize();
     await mockShell.getMessageBus().send({
       type: "scoped:event",
       payload: {},
@@ -218,6 +262,7 @@ describe("Plugin shutdown lifecycle", () => {
       true,
     );
     expect(mockShell.getInboxRegistry().listSources()).toHaveLength(1);
+    expect(mockShell.getInboxFollowUpRegistry().listKinds()).toHaveLength(1);
     expect(
       await mockShell.getOperationalHealthRegistry().getChecks(),
     ).toHaveLength(1);
@@ -236,6 +281,7 @@ describe("Plugin shutdown lifecycle", () => {
       false,
     );
     expect(mockShell.getInboxRegistry().listSources()).toEqual([]);
+    expect(mockShell.getInboxFollowUpRegistry().listKinds()).toEqual([]);
     expect(await mockShell.getOperationalHealthRegistry().getChecks()).toEqual(
       [],
     );
@@ -379,6 +425,15 @@ describe("Plugin shutdown lifecycle", () => {
         shell
           .getInsightsRegistry()
           .register("failed-insight", async () => ({}));
+        shell.getInboxFollowUpRegistry().registerKind("failing-registration", {
+          kind: "failed-follow-up",
+          label: "Failed follow-up",
+          priority: 1,
+          mode: "universal",
+          permissionLevel: "admin",
+          applies: () => true,
+          resolve: () => ({ href: "/failed" }),
+        });
         throw registrationError;
       },
       shutdown: shutdownMock,
@@ -405,6 +460,8 @@ describe("Plugin shutdown lifecycle", () => {
     expect(mockShell.getInsightsRegistry().getTypes()).not.toContain(
       "failed-insight",
     );
+    mockShell.getInboxFollowUpRegistry().finalize();
+    expect(mockShell.getInboxFollowUpRegistry().listKinds()).toEqual([]);
     expect(shutdownMock).toHaveBeenCalledTimes(1);
     expect(pluginManager.getPluginStatus("failing-registration")).toBe(
       PluginStatus.ERROR,

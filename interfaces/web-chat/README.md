@@ -30,3 +30,9 @@ Do not persist the query cache or use it as a second active-message owner. Tests
 ## Addressable state
 
 A conversation door uses `#s/{encodedConversationId}`. The chat surface consumes the hash, reopens that session, then clears the transient door from the URL. Streaming blocks session switching so an active AI SDK stream cannot be replaced by a history seed.
+
+The interface owns the universal Inbox **Discuss in chat** follow-up at its configured
+mount. Its destination schema bounds and validates a one-shot history-state composer
+prefill. The browser removes only that handoff key, places the text in the composer, and
+never submits it automatically; normal web-chat authentication and conversation ownership
+still apply on direct entry and send.

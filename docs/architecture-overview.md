@@ -77,7 +77,7 @@ The first layer-owned slice is the job-service stack. The private `@brains/job-q
 
 Core also composes package-owned scoped layers for runtime state, conversations, and entities through each package's private `/effect` subpath. These layers own fresh or injected services and their database connections for exactly one shell lifetime, replacing manual core finalizers while preserving Promise service contracts. Pure registries, adapters, schemas, and configuration remain normal TypeScript services rather than Layer dependencies.
 
-Durable registrations created during synchronous construction need ownership even when they are not Layers. Core registers synchronous abandonment immediately after recurring-check handler and daemon registration, and unregisters the shell-owned recurring-check Inbox source during rollback; entity release unregisters its embedding handler before the injected or default queue database closes. A later constructor failure therefore cannot leave handlers, sources, or stopped daemons in supplied registries.
+Durable registrations created during synchronous construction need ownership even when they are not Layers. Core registers synchronous abandonment immediately after recurring-check handler and daemon registration, and unregisters the shell-owned recurring-check Inbox source during rollback; plugin resource scopes likewise unregister destination-owned Inbox follow-up kinds after failed registration or shutdown. Entity release unregisters its embedding handler before the injected or default queue database closes. A later constructor failure therefore cannot leave handlers, sources, launches, or stopped daemons in supplied registries.
 
 The ownership boundary is integration-tested with two no-interface shells using separate persistent SQLite paths. Construction or asynchronous initialization failure in one shell must leave entity, conversation, job, and runtime-state I/O in the other usable. Repeated register-only and startup-check boots share no state at all, generated `@rizom/brain` declarations are checked for Effect or private `/effect` imports, and the packed CLI is smoke-tested through startup-check acquisition and teardown. Normal PR feedback keeps that one package-boundary canary; the complete external-authoring tarball matrix runs nightly, on demand, and before publication through `bun run test:packed:compat`.
 
@@ -131,7 +131,7 @@ A running brain is driven by an _instance directory_ centered on `brain.yaml` pl
 | `shell/runtime-state`                                   | Runtime state store service (`RuntimeStateService`/`RuntimeStateStore`)  |
 | `shell/scheduler`                                       | Shared scheduler contracts and deterministic test backend                |
 | `shell/recurring-checks`                                | Recurring cadence, dedupe, Inbox alerts, and channel delivery retries    |
-| `shell/plugins`                                         | Base plugin classes, contexts, harnesses                                 |
+| `shell/plugins`                                         | Base plugin classes, contexts, harnesses, and app-scoped registries      |
 | `shell/templates`                                       | Template registry and resolution                                         |
 | `shell/ai-evaluation`                                   | Eval runner, test cases, judges, reporting                               |
 | [`shell/auth-service`](../shell/auth-service/README.md) | Private auth DB, OAuth/WebAuthn, users, identity, invitations, and audit |
@@ -165,22 +165,22 @@ Entity packages live in `entities/`. Most packages define one entity type; a few
 
 Service plugins live in `plugins/` and provide tools, handlers, routes, orchestration, or external integrations.
 
-| Package                    | Purpose                                                            |
-| -------------------------- | ------------------------------------------------------------------ |
-| `plugins/analytics`        | Analytics integration and insights                                 |
-| `plugins/atproto`          | AT Protocol identity, publishing, discovery, feeds                 |
-| `plugins/atproto-registry` | Canonical Rizom AT Protocol lexicon registry                       |
-| `plugins/content-pipeline` | Publishing queue, scheduling, retries                              |
-| `plugins/dashboard`        | Dashboard widgets and UI slots                                     |
-| `plugins/directory-sync`   | File sync + git operations                                         |
-| `plugins/newsletter`       | Compound newsletter entity and Buttondown service capability       |
-| `plugins/notifications`    | Notification routing for transactional and administrative messages |
-| `plugins/obsidian-vault`   | Obsidian export/templates                                          |
-| `plugins/site-builder`     | Static site build orchestration                                    |
-| `plugins/site-content`     | Site section content generation                                    |
-| `plugins/stock-photo`      | Stock-photo search and selection                                   |
-| `plugins/unified-inbox`    | Live inbox projection, CMS triage, summary, tool, and daily digest |
-| `plugins/cms`              | Browser authoring routes + CMS config                              |
+| Package                    | Purpose                                                                   |
+| -------------------------- | ------------------------------------------------------------------------- |
+| `plugins/analytics`        | Analytics integration and insights                                        |
+| `plugins/atproto`          | AT Protocol identity, publishing, discovery, feeds                        |
+| `plugins/atproto-registry` | Canonical Rizom AT Protocol lexicon registry                              |
+| `plugins/content-pipeline` | Publishing queue, scheduling, retries                                     |
+| `plugins/dashboard`        | Dashboard widgets and UI slots                                            |
+| `plugins/directory-sync`   | File sync + git operations                                                |
+| `plugins/newsletter`       | Compound newsletter entity and Buttondown service capability              |
+| `plugins/notifications`    | Notification routing for transactional and administrative messages        |
+| `plugins/obsidian-vault`   | Obsidian export/templates                                                 |
+| `plugins/site-builder`     | Static site build orchestration                                           |
+| `plugins/site-content`     | Site section content generation                                           |
+| `plugins/stock-photo`      | Stock-photo search and selection                                          |
+| `plugins/unified-inbox`    | Live inbox projection, resolved launches, CMS triage, summary, and digest |
+| `plugins/cms`              | Browser authoring routes + CMS config                                     |
 
 ### Interface plugins
 

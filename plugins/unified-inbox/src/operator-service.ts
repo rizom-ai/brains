@@ -1,4 +1,9 @@
-import type { IInboxRegistry, InboxActor, InboxSource } from "@brains/plugins";
+import type {
+  IInboxFollowUpRegistry,
+  IInboxRegistry,
+  InboxActor,
+  InboxSource,
+} from "@brains/plugins";
 import { sourceMetadata, type InboxDataSource } from "./inbox-datasource";
 import {
   normalizeInboxWorkspaceQuery,
@@ -14,6 +19,7 @@ import {
 } from "./schemas";
 
 type InboxSourceRegistry = Pick<IInboxRegistry, "getSource" | "listSources">;
+type InboxFollowUpCatalog = Pick<IInboxFollowUpRegistry, "resolveUniversal">;
 type InboxProjectionReader = Pick<InboxDataSource, "getInboxData">;
 
 interface SourceCounts {
@@ -24,13 +30,16 @@ interface SourceCounts {
 export class InboxOperatorService {
   private readonly registry: InboxSourceRegistry;
   private readonly dataSource: InboxProjectionReader;
+  private readonly followUps: InboxFollowUpCatalog;
 
   constructor(
     registry: InboxSourceRegistry,
     dataSource: InboxProjectionReader,
+    followUps: InboxFollowUpCatalog,
   ) {
     this.registry = registry;
     this.dataSource = dataSource;
+    this.followUps = followUps;
   }
 
   async list(filter: InboxListFilter): Promise<InboxListResult> {
@@ -43,7 +52,10 @@ export class InboxOperatorService {
     };
   }
 
-  async workspace(input: unknown = {}): Promise<InboxWorkspaceSnapshot> {
+  async workspace(
+    input: unknown,
+    actor: InboxActor,
+  ): Promise<InboxWorkspaceSnapshot> {
     const query: InboxWorkspaceQuery = normalizeInboxWorkspaceQuery(
       input,
       this.registry.listSources().map((source) => source.sourceId),
@@ -51,10 +63,20 @@ export class InboxOperatorService {
     const projection = await this.dataSource.getInboxData();
     const counts = countBySource(projection.entries);
     const matching = filterEntries(projection, query);
+    const page = matching.slice(query.offset, query.offset + query.limit);
     return {
       summary: summarizeProjection(projection, counts),
       sources: this.sourceAvailability(projection, counts),
-      entries: matching.slice(query.offset, query.offset + query.limit),
+      entries: await Promise.all(
+        page.map(async (entry) => ({
+          ...entry,
+          followUps: await this.followUps.resolveUniversal({
+            sourceId: entry.source.sourceId,
+            item: entry.item,
+            actor,
+          }),
+        })),
+      ),
       errors: filterErrors(projection, query.sourceId),
       total: matching.length,
       offset: query.offset,

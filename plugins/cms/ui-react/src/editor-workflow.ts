@@ -25,7 +25,11 @@ export interface EditorWorkflowState {
 export type EditorWorkflowAction =
   | { type: "collectionChanged" }
   | { type: "documentOpened"; document: EditorDocument; save?: SaveState }
-  | { type: "creationStarted"; draft: Record<string, unknown> }
+  | {
+      type: "creationStarted";
+      draft: Record<string, unknown>;
+      body?: string | undefined;
+    }
   | { type: "browseRequested" }
   | { type: "fieldChanged"; descriptor: FieldDescriptor; raw: unknown }
   | { type: "fieldAssistApplied"; field: string; suggestion: string | string[] }
@@ -102,7 +106,7 @@ export function editorWorkflowReducer(
       return {
         mode: { kind: "create" },
         draft: action.draft,
-        body: "",
+        body: action.body ?? "",
         save: { kind: "idle" },
         deleteOpen: false,
       };

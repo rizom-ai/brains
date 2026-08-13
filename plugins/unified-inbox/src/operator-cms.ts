@@ -27,7 +27,9 @@ export async function registerUnifiedInboxCmsWorkspace(
     dataProvider: async (actor, input) => {
       assertInboxAdmin(actor);
       const [snapshot, appInfo] = await Promise.all([
-        operator.workspace(input),
+        operator.workspace(input, {
+          permissionLevel: actor.userPermissionLevel,
+        }),
         context.appInfo(),
       ]);
       const adminHref = appInfo.interactions.find(

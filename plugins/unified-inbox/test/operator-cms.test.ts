@@ -84,9 +84,21 @@ async function setup(options?: {
     },
   });
   registry.finalize();
+  const followUps = shell.getInboxFollowUpRegistry();
+  followUps.registerKind("chat", {
+    kind: "discuss-in-chat",
+    label: "Discuss in chat",
+    priority: 10,
+    mode: "universal",
+    permissionLevel: "trusted",
+    applies: ({ item: candidate }) => candidate.entityRef !== undefined,
+    resolve: () => ({ href: "/talk" }),
+  });
+  followUps.finalize();
   const operator = new InboxOperatorService(
     registry,
     new InboxDataSource(registry),
+    followUps,
   );
   const context = createServicePluginContext(shell, "unified-inbox");
   expect(await registerUnifiedInboxCmsWorkspace(context, operator)).toBe(
@@ -144,6 +156,13 @@ describe("unified inbox CMS registration", () => {
             },
           },
           contactHref: "/access/people?view=members&person=prsn_sam%2Fid",
+          followUps: [
+            {
+              kind: "discuss-in-chat",
+              label: "Discuss in chat",
+              href: "/talk",
+            },
+          ],
         },
       ],
     });

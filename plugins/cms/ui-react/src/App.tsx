@@ -25,6 +25,7 @@ import {
   type FieldAssistResponse,
   type InboxWorkspaceAction,
   type InboxWorkspaceActionResult,
+  type InboxWorkspaceFollowUp,
   type MailTriageStatusAction,
   type MailTriageStatusActionResult,
   type PublishingAction,
@@ -35,6 +36,11 @@ import {
 import type { BodyMode } from "./body-editor";
 import { getCmsRouterBasePath } from "./cms-router";
 import { createEditorDocument } from "./editor-document";
+import {
+  consumeCmsCreatePrefill,
+  createPrefilledDraft,
+  withoutCmsCreatePrefill,
+} from "./create-prefill";
 import {
   visibleFieldValues,
   type FieldAssistState,
@@ -74,6 +80,7 @@ import {
   type CmsWorkspaceQuery,
 } from "./queries";
 import { emptyDraft, errorMessage } from "./ui-utils";
+import { navigateToInboxFollowUp } from "./follow-up-navigation";
 import {
   initialWorkspaceUrlQuery,
   replaceWorkspaceUrlQuery,
@@ -103,6 +110,12 @@ export function App(): ReactElement {
   const routeTarget = useMemo(
     () => parseCmsPath(routePathname, "/"),
     [routePathname],
+  );
+  const createMode = useMemo(
+    () =>
+      routeTarget.kind === "collection" &&
+      new URLSearchParams(routeSearch).get("mode") === "create",
+    [routeSearch, routeTarget],
   );
   const currentCmsPathname = useMemo(
     () =>
@@ -388,6 +401,34 @@ export function App(): ReactElement {
     ])
       .then(([loadedSchema, loadedEntities]) => {
         if (!active || requestId !== openRequestId.current) return undefined;
+        if (createMode && routeEntityId === null) {
+          const canCreateRequestedType =
+            types?.find((info) => info.entityType === entityType)?.capabilities
+              .canCreate === true;
+          if (!canCreateRequestedType) {
+            setLoadError(`Creating ${entityType} is not allowed.`);
+            return undefined;
+          }
+          const prefill = consumeCmsCreatePrefill(
+            window.history.state,
+            entityType,
+            () =>
+              window.history.replaceState(
+                withoutCmsCreatePrefill(
+                  window.history.state as Record<string, unknown>,
+                ),
+                "",
+                window.location.href,
+              ),
+          );
+          const next = createPrefilledDraft(loadedSchema.fields, prefill);
+          dispatchEditor({
+            type: "creationStarted",
+            draft: next.draft,
+            body: next.body,
+          });
+          return undefined;
+        }
         if (routeEntityId !== null) {
           return queryClient
             .fetchQuery({
@@ -442,7 +483,15 @@ export function App(): ReactElement {
     return (): void => {
       active = false;
     };
-  }, [currentCmsPathname, entityType, queryClient, routePathname, routeTarget]);
+  }, [
+    createMode,
+    currentCmsPathname,
+    entityType,
+    queryClient,
+    routePathname,
+    routeTarget,
+    types,
+  ]);
 
   const openEntity = useCallback(
     (id: string, nextState: SaveState = { kind: "idle" }): void => {
@@ -496,6 +545,19 @@ export function App(): ReactElement {
       pendingOpenState.current = { pathname, save: { kind: "idle" } };
       router.history.push(pathname, {
         cmsCollectionPath: cmsCollectionPath(cmsBasePath, nextEntityType),
+      });
+    },
+    [cmsBasePath, router.history],
+  );
+
+  const openInboxFollowUp = useCallback(
+    (followUp: InboxWorkspaceFollowUp): void => {
+      navigateToInboxFollowUp(followUp, {
+        cmsBasePath,
+        routerPush: (href, state) => router.history.push(href, state as never),
+        browserPushState: (state, title, href) =>
+          window.history.pushState(state, title, href),
+        reload: () => window.location.reload(),
       });
     },
     [cmsBasePath, router.history],
@@ -900,6 +962,7 @@ export function App(): ReactElement {
       selectEntityType={selectEntityType}
       selectWorkspace={selectWorkspace}
       openWorkspaceEntity={openWorkspaceEntity}
+      openInboxFollowUp={openInboxFollowUp}
       performPublishingAction={performPublishingAction}
       performSiteAction={performSiteAction}
       performDirectorySyncAction={performDirectorySyncAction}

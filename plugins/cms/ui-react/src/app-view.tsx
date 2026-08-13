@@ -9,6 +9,7 @@ import type {
   EntityTypeInfo,
   InboxWorkspaceAction,
   InboxWorkspaceActionResult,
+  InboxWorkspaceFollowUp,
   InboxWorkspaceSnapshot,
   MailTriageStatusAction,
   MailTriageStatusActionResult,
@@ -108,6 +109,7 @@ export interface CmsAppViewProps {
   selectEntityType: (entityType: string) => void;
   selectWorkspace: (workspaceId: string) => void;
   openWorkspaceEntity: (entityType: string, entityId: string) => void;
+  openInboxFollowUp: (followUp: InboxWorkspaceFollowUp) => void;
   performPublishingAction: (
     action: PublishingAction,
   ) => Promise<PublishingActionResult>;
@@ -215,6 +217,7 @@ export function CmsAppView(props: CmsAppViewProps): ReactElement {
     selectEntityType,
     selectWorkspace,
     openWorkspaceEntity,
+    openInboxFollowUp,
     performPublishingAction,
     performSiteAction,
     performDirectorySyncAction,
@@ -346,7 +349,7 @@ export function CmsAppView(props: CmsAppViewProps): ReactElement {
                   canonicalUrlQuery,
                 )
               }
-              onOpenEntity={openWorkspaceEntity}
+              onFollowUp={openInboxFollowUp}
               onAction={performInboxAction}
             />
           ) : null
