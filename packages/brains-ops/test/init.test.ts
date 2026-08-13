@@ -868,6 +868,7 @@ describe("initPilotRepo", () => {
     expect(upgradeManifest.permissions).toEqual({ contents: "read" });
 
     expect(upgradeWorkflow).toContain("actions/create-github-app-token@v2");
+    expect(upgradeWorkflow).toContain("persist-credentials: false");
     expect(upgradeWorkflow).toContain("app-id: ${{ vars.OPS_UPGRADE_APP_ID }}");
     expect(upgradeWorkflow).toContain(
       "private-key: ${{ secrets.OPS_UPGRADE_APP_PRIVATE_KEY }}",
@@ -883,8 +884,20 @@ describe("initPilotRepo", () => {
       "GH_TOKEN: ${{ steps.upgrade-token.outputs.token }}",
     );
     expect(upgradeWorkflow).not.toContain("GH_TOKEN: ${{ github.token }}");
-    // The upgrade step executes freshly published @rizom/ops code, so the
-    // App token must never be persisted into .git/config by checkout.
+    const upgradeSteps = upgradeManifest.jobs.upgrade.steps as Array<{
+      id?: string;
+      name?: string;
+    }>;
+    expect(
+      upgradeSteps.findIndex((step) => step.id === "upgrade-token"),
+    ).toBeGreaterThan(
+      upgradeSteps.findIndex(
+        (step) => step.name === "Upgrade operator tooling",
+      ),
+    );
+    // The upgrade step executes freshly published @rizom/ops code, so no
+    // credential may be persisted into .git/config by checkout and the App
+    // token must not exist until that code has finished.
     expect(upgradeWorkflow).not.toContain(
       "token: ${{ steps.upgrade-token.outputs.token }}",
     );

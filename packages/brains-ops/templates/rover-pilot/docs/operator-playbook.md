@@ -129,7 +129,7 @@ Because scaffold refreshes can update `.github/workflows/*`, the workflow must n
 3. Store its App ID as the repository Actions variable `OPS_UPGRADE_APP_ID`.
 4. Store its private key as the repository Actions secret `OPS_UPGRADE_APP_PRIVATE_KEY`.
 
-The workflow mints a short-lived, repository-scoped installation token and explicitly requests only those three permissions. Its own `GITHUB_TOKEN` remains read-only, and checkout keeps that read-only token: the App token reaches only the final push-and-open-PR step. This matters because the upgrade step installs and executes a freshly published `@rizom/ops` — a credential that can rewrite `.github/workflows/` must not be sitting in `.git/config` while that code runs.
+The workflow explicitly requests only those three permissions. Checkout persists no credential. After the freshly published `@rizom/ops` finishes, the workflow checks whether it produced a change; only then does it mint a short-lived, repository-scoped App token for the push-and-open-PR steps. A credential that can rewrite `.github/workflows/` therefore does not exist while upgraded package code runs.
 
 If `OPS_UPGRADE_APP_ID` is unset, or token creation, branch push, or PR creation fails, the run stops with a non-zero status. Repair the CI credential path; never fall back to an operator's personal SSH key or token.
 
