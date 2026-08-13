@@ -4,6 +4,14 @@ import type {
   AnyEntityDefinition,
   EntityOf,
 } from "../entity/entity-definition-contract";
+import type { AnyAccountSettingsDefinition } from "../operator/account-settings-definition-contract";
+import type {
+  AnyCmsWorkspaceDefinition,
+  AnyDashboardWidgetDefinition,
+  BoundCmsWorkspace,
+  BoundDashboardWidget,
+} from "../operator/operator-definition-contract";
+import type { OperatorBindingContext } from "../operator/operator-context-contract";
 import { assertIdentifier } from "../package-definition";
 
 export type ServiceSchema = z.ZodType<unknown, unknown>;
@@ -255,9 +263,11 @@ export interface ServiceDefinitionInput<
   TPromptSchemas extends ServiceSchemaMap,
   TTemplateSchemas extends ServiceSchemaMap,
   TViewSchemas extends ServiceSchemaMap,
+  TAccountSettings extends AnyAccountSettingsDefinition | undefined,
 > {
   readonly id: string;
   readonly config: TConfigSchema;
+  readonly accountSettings?: TAccountSettings | undefined;
   readonly setup?:
     | ((context: {
         readonly config: z.output<TConfigSchema>;
@@ -310,5 +320,33 @@ export interface ServiceDefinitionInput<
         readonly jobs: ServiceJobs;
         readonly templates: ServiceTemplateFormatter;
       }) => readonly AnyServiceToolDefinition[])
+    | undefined;
+  readonly dashboardWidgets?:
+    | ((
+        context: OperatorBindingContext<
+          z.output<TConfigSchema>,
+          TState,
+          TAccountSettings
+        >,
+      ) => readonly BoundDashboardWidget<
+        AnyDashboardWidgetDefinition,
+        z.output<TConfigSchema>,
+        TState,
+        TAccountSettings
+      >[])
+    | undefined;
+  readonly cmsWorkspaces?:
+    | ((
+        context: OperatorBindingContext<
+          z.output<TConfigSchema>,
+          TState,
+          TAccountSettings
+        >,
+      ) => readonly BoundCmsWorkspace<
+        AnyCmsWorkspaceDefinition,
+        z.output<TConfigSchema>,
+        TState,
+        TAccountSettings
+      >[])
     | undefined;
 }

@@ -1,4 +1,5 @@
 import type { UserPermissionLevel } from "@brains/templates";
+import type { AnyAccountSettingsDefinition } from "../operator/account-settings-definition-contract";
 import type { z } from "@brains/utils/zod";
 import {
   identityConfigSchema,
@@ -23,13 +24,17 @@ import { InterfacePlugin } from "./interface-plugin";
 
 class DeclarativeInterfacePlugin<
   TConfigSchema extends z.ZodType<object, object>,
+  TAccountSettings extends AnyAccountSettingsDefinition | undefined,
 > extends InterfacePlugin<z.output<TConfigSchema>, z.output<TConfigSchema>> {
-  private readonly definition: InterfaceDefinitionInput<TConfigSchema>;
+  private readonly definition: InterfaceDefinitionInput<
+    TConfigSchema,
+    TAccountSettings
+  >;
   private routes: WebRouteDefinition[] = [];
   private hasRequiredDaemon = false;
 
   constructor(
-    definition: InterfaceDefinitionInput<TConfigSchema>,
+    definition: InterfaceDefinitionInput<TConfigSchema, TAccountSettings>,
     config: z.output<TConfigSchema>,
     metadata: InstalledPluginPackageMetadata,
     id: string,
@@ -60,6 +65,16 @@ class DeclarativeInterfacePlugin<
       }
       daemonIds.add(daemon.id);
       this.hasRequiredDaemon ||= daemon.required;
+      if (daemon.forAccounts) {
+        if (daemon.forAccounts !== this.definition.accountSettings) {
+          throw new Error(
+            `Interface "${this.definition.id}" account-bound daemon "${daemon.id}" must reference its attached account settings`,
+          );
+        }
+        throw new Error(
+          `Interface "${this.definition.id}" account-bound daemon "${daemon.id}" requires the account-settings runtime`,
+        );
+      }
       context.daemons.register(daemon.id, createDeclarativeDaemon(daemon));
     }
   }
@@ -155,8 +170,9 @@ class DeclarativeInterfacePlugin<
 
 export function createDeclarativeInterfacePlugin<
   TConfigSchema extends z.ZodType<object, object>,
+  TAccountSettings extends AnyAccountSettingsDefinition | undefined,
 >(
-  definition: InterfaceDefinitionInput<TConfigSchema>,
+  definition: InterfaceDefinitionInput<TConfigSchema, TAccountSettings>,
   config: z.output<TConfigSchema>,
   metadata: InstalledPluginPackageMetadata,
   id: string,

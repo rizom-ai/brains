@@ -1,13 +1,14 @@
-# Reading operator surface — Phase 0 target
+# Reading operator surface — Phase 1 contract
 
-This standalone package is the source-first target for the additive public
-operator-surface contract. It deliberately precedes runtime helpers. During
-Phase 0 it is checked for authoring shape and forbidden vocabulary, but it is
-not compiled, packed, included in the stable export ledger, or presented as a
-shipped API.
+This standalone package is the checked authoring target for the additive public
+operator-surface contract. It compiles against the local public service entry,
+and every imported helper is classified in the stable export ledger. It is not
+yet packed or presented as a runtime-complete API; registration, hosts, storage,
+and rendering land in later phases.
 
 The target package demonstrates one service-family import and three related
-capabilities:
+capabilities. Definitions are validated and frozen at module scope; their
+loaders/actions bind once inside the typed service factories after setup:
 
 - principal-owned reading-provider settings, including one write-only secret;
 - an independently declared schema-validated Dashboard widget; and

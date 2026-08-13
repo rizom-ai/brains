@@ -2,11 +2,13 @@
 
 ## Status
 
-**Approved as a `0.2.x` additive milestone (scope decided 2026-08-10).**
-Dashboard widgets and CMS workspaces exist for built-in packages, but external
-declarative packages cannot author either capability without importing private
-`@brains/*` contracts. No implementation, publication, workflow dispatch, or
-stable-release action is authorized by this plan.
+**Approved as a `0.2.x` additive milestone (scope decided 2026-08-10; Phase 0
+contract decisions accepted 2026-08-12).** Dashboard widgets and CMS workspaces
+exist for built-in packages, but external declarative packages cannot use the
+new contracts end to end until their runtime phases land. Phase 1 public
+schemas, definition bindings, inference checks, and ledger curation are
+authorized. Host adapters, account storage/supervision, packing, publication,
+workflow dispatch, and stable-release actions are not authorized by this phase.
 
 Scope: this plan does **not** gate `v0.2.0`. Stable nomination proceeds on the
 current frozen surface. The design is purely additive — optional
@@ -25,13 +27,15 @@ provide these capabilities; that correction shipped with this scope decision.
 The source-first service target now lives at
 `packages/brain-cli/test/fixtures/public-authoring/operator-surface/`; the
 interface-owned IMAP lifecycle target lives beside it at
-`account-settings-interface/`. They are proposal fixtures only: normal checks
-enforce package shape and public-only source, but no helper is exported, no
-implementation exists, and neither package is compiled, packed, or added to
-the stable ledger. `PORTS.md` beside the operator fixture sketches Directory
-Sync, Site, Email Triage, and Publishing against the same vocabulary.
+`account-settings-interface/`. They began as proposal fixtures: Phase 0 checks
+enforced package shape and public-only source without compiling or exporting
+them. Phase 1 now compiles
+both fixtures against local public entries and classifies the accepted helpers
+in the stable ledger; packing and runtime behavior remain later-phase evidence.
+`PORTS.md` beside the operator fixture sketches Directory Sync, Site, Email
+Triage, and Publishing against the same vocabulary.
 
-The source and ports surfaced five points that must be reviewed before Phase 1:
+Owner review accepted the five findings below before Phase 1:
 
 1. **Account settings cannot remain service-only if IMAP is the proof.** The
    Email package that owns IMAP is a message interface under the accepted
@@ -71,9 +75,9 @@ callbacks are a trusted code boundary: a package authorized to consume a
 plaintext credential could intentionally reveal it, so the plan must not claim
 sandbox-level containment.
 
-Phase 0 exits only after the source vocabulary and these five findings receive
-owner review. Until then, names and shapes in the fixture are targets, not
-contract decisions.
+Phase 0 exited on 2026-08-12. The checked fixture vocabulary and these five
+findings are the Phase 1 contract target; later runtime evidence may still
+surface an additive correction before release nomination.
 
 ## Goal
 
@@ -131,6 +135,14 @@ Provisional author vocabulary:
 - `dashboardWidgets` on `defineServicePlugin()`;
 - `cmsWorkspaces` on `defineServicePlugin()`; and
 - blessed `z` from `@rizom/brain/services`.
+
+Widget, workspace, and action contracts are declared and frozen at module
+scope; their loaders/actions bind once inside the corresponding typed service
+factory after setup. This mirrors `defineJob().handle()`: stable definition
+identity and import-time validation remain separate from executors that need
+inferred service config/state/account-settings types. The bindings are collected
+once per plugin instance, never per request. Widgets and workspaces remain
+independent definitions and factories.
 
 The exact field names freeze only after the golden source is reviewed by Jo and
 Niels. There will still be one preferred declarative operator path and one
@@ -241,11 +253,11 @@ unregistration, and shutdown.
 
 ### 8. Per-account plugin settings are part of this contract
 
-**Phase 0 revision pending owner review:** settings remain part of this scope,
-but the IMAP ownership proof means the definition cannot be service-only. The
-recommended shape is one `defineAccountSettings()` contract re-exported by the
-service and interface family entries. A service, generic interface, or message
-interface may attach one schema of per-principal settings (for example a user's
+Settings remain part of this scope, but the accepted IMAP ownership proof means
+the definition is not service-only. One `defineAccountSettings()` contract is
+re-exported by the service and interface family entries. A service, generic
+interface, or message interface may attach one schema of per-principal settings
+(for example a user's
 IMAP host, username, and password), with individual fields markable as
 `secret`. This is distinct from instance config in `brain.yaml` — instance
 config is deployment-owned; account settings belong to one authenticated
@@ -255,8 +267,8 @@ The runtime owns everything except the schema and the consuming callbacks:
 
 - storage keyed by installed package, definition ID, and actor ID, with secret
   fields encrypted at rest;
-- the settings surface itself, rendered from the schema as a host form —
-  which is why schema-derived input forms are part of the v1 view vocabulary;
+- the settings surface itself, rendered as a host-owned Account form from the
+  settings schema and bounded field metadata; it is not an `OperatorView` form;
 - write-only secret semantics: the form shows whether a secret is set and
   accepts replacement, but never echoes the stored value;
 - validation on save against the declared schema, with actionable errors;
@@ -299,27 +311,25 @@ import defineCmsWorkspace, defineDashboardWidget,
        defineServicePlugin, defineWorkspaceAction, z
        from @rizom/brain/services
 
-define refreshDigest action with input/output schemas
+define refreshDigest action contract with input/output schemas
 
-define readingWorkspace:
+define readingWorkspace contract:
   local id, label, priority, trusted permission
   covered entities by definition reference
   one data schema
-  load parsed bookmark/digest rows using caller-scoped entities
   expose refreshDigest action
   return a table/list OperatorView with typed row actions
 
-define readingWidget:
+define readingWidget contract:
   local id, title, group, placement, trusted permission
   one data schema
-  load counts using caller-scoped entities
   derive digest and needs-attention from parsed data
   return status/list OperatorView
 
 default export defineServicePlugin:
   one config schema
-  dashboardWidgets returns readingWidget
-  cmsWorkspaces returns readingWorkspace
+  dashboardWidgets binds readingWidget's loader using caller-scoped entities
+  cmsWorkspaces binds readingWorkspace's loader and refreshDigest executor
 ```
 
 The author must not write any of the following in that source:
@@ -563,10 +573,11 @@ with every unportable operation named.
 2. Curate only approved helpers/types through `@rizom/brain/services`.
 3. Add the shared inferred `accountSettings` field to service, generic
    interface, and message-interface definitions; extend `defineServicePlugin()`
-   with `dashboardWidgets` and `cmsWorkspaces` callbacks.
+   with `dashboardWidgets` and `cmsWorkspaces` callbacks that bind module-scope
+   definitions to inferred config/state/account-settings types.
 4. Prove config/setup-state, schema input/output, caller, entity, job, action,
-   current-principal settings, account-bound supervised daemon callbacks, and
-   view inference without casts.
+   current-principal settings, account-bound daemon callback, and view
+   inference without casts. Supervision behavior remains Phase 2.
 5. Add every export to `export-ledger.json`; stable classification requires the
    approved consumer fixture.
 6. Verify generated declarations contain no private workspace, UI, shell,
@@ -731,7 +742,8 @@ one.
    library, React/Preact, direct Zod, manifest, or runtime class.
 3. Authors declare no plugin/package identity, renderer names, routes,
    registration, messaging, or process behavior.
-4. Widget/workspace/action schemas are declared once and infer every callback.
+4. Widget/workspace/action contracts are declared once at module scope and bind
+   their inferred executors once per plugin instance after setup.
 5. Widget and workspace data is parsed before digest/view rendering.
 6. Action input/output is parsed around execution and permission is monotonic.
 7. Canonical caller facts come from authenticated host sessions, while truly
