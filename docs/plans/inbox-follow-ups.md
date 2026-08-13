@@ -35,7 +35,15 @@ with different chrome.
   of `title`/`summary`/`urgency`/`receivedAt`/`contact`, while omitting item IDs,
   entity references, actions, and source detail.
 - The Inbox workspace already renders **Open source entity** from `entityRef` —
-  the only non-resolution affordance an item has.
+  the only non-resolution affordance an item has. It is hard-coded in the
+  renderer; there is no contract through which another plugin can contribute a
+  launch.
+- App-scoped, owner-aware contribution registries are the established pattern
+  for this shape. `ChannelRegistry` and `InboxRegistry` close registration with
+  an explicit finalize step; the CMS workspace and interaction registries are
+  live registries without that step. Follow-up kinds need the finalized variant
+  because one immutable catalog must arbitrate duplicate ownership, permissions,
+  and ordering before any item is resolved.
 - The Email Triage workspace (`EmailTriageWorkspace` renderer +
   `plugins/email-triage/src/operator-cms.ts`) defaults to new mail but also
   offers client-side category, priority, status, and needs-reply filters. It
@@ -97,42 +105,118 @@ with different chrome.
    interaction; it does not mutate the already-finalized inbox source
    registry. Source widgets resolve that interaction inside their data
    provider, not during `onReady`, so plugin ready order is irrelevant.
-   Source-declared follow-ups are origin-relative paths from an authoritative
-   registration/interaction. Registry normalization requires a leading single
-   `/`, rejects `//`, URL schemes, backslashes, control characters, and paths
-   over 2,048 characters. It parses against a sentinel origin and requires the
-   normalized result to retain that origin before freezing the target. Missing
-   targets hide the affordance.
+   Target normalization requires a leading single `/`, rejects `//`, URL
+   schemes, backslashes, control characters, and paths over 2,048 characters.
+   It parses against a sentinel origin and requires the normalized result to
+   retain that origin. Registration normalizes and freezes static metadata and
+   any static base path, but an item-dependent resolver cannot pre-validate a
+   target that does not exist yet: every resolved final path is independently
+   normalized before it enters a response. A static base-path check never
+   exempts the final target check. Missing or invalid targets hide the
+   affordance; a source never supplies a path.
 
-3. **Universal follow-ups are derived by the surface.** Every item with an
-   `entityRef` may receive these launches without source declarations:
+3. **Follow-ups are registered kinds: destinations own resolution, sources
+   declare intent.** Sources never choose labels or permissions and never build,
+   encode, or validate a URL. A new app-scoped follow-up kind registry in
+   `@brains/plugins` exposes owner-scoped register/unregister, finalize, list,
+   and lookup operations. Destinations register during `onRegister`, and
+   `shellBootloader` finalizes the catalog beside the inbox source registry, so
+   a kind registered later — during `onReady` or from a lazily constructed
+   surface — is rejected rather than silently dropped.
+   Registration closes at finalization; reads before finalization fail. Plugin
+   resource cleanup unregisters all kinds owned by a plugin on failed
+   registration and shutdown, and a post-finalization removal rebuilds the
+   active catalog fail-closed in the same manner as the Inbox registry.
 
-   - **Open source entity** — exists today and remains access-checked by CMS.
+   Each kind registration carries:
+
+   - `kind` using the Inbox ID grammar, a 1–100 character operator-facing
+     `label`, and a deterministic integer `priority` from 0–1,000, all
+     normalized and frozen when the catalog finalizes;
+   - `mode: "universal" | "declared"`, so applicability alone cannot
+     accidentally turn a source-specific launch into a universal one;
+   - the `UserPermissionLevel` required to display the launch;
+   - an applicability predicate over `{ sourceId, item, actor, context }`;
+   - for declared kinds, a destination-owned context schema;
+   - a resolver over the same input that returns `{ href, state? }` or
+     `undefined`.
+
+   The presentation permission is only a visibility gate. The destination
+   independently authenticates and authorizes every opened route; CMS still
+   checks entity access and create permission, web-chat still checks chat
+   access, and reply drafting still revalidates the mail item and actor. A
+   resolver receives the source ID because item IDs are only source-local — it
+   is scoping context, never an exclusion lever. A predicate narrows on item
+   shape (`entityRef.entityType`, declared context, actor permission); a
+   destination that tests `sourceId` against a list of known sources has
+   reintroduced exactly the coupling this contract removes.
+
+   Resolver output is evaluated server-side after the source item and actor are
+   validated. Decision 2's same-origin rules are applied to every final `href`.
+   Optional history `state` is produced only by the destination-owned resolver,
+   must be JSON-safe and no more than 8 KiB serialized, and is parsed again by
+   the destination on arrival. Raw declaration context, the resolver, and
+   non-presentation registry metadata never enter the CMS response, React Query
+   cache, URL, or headless output; the browser receives only the resolved
+   `{ kind, label, href, state? }` presentation target.
+
+   The plugin that owns the destination registers the kind: web-chat registers
+   `discuss-in-chat`; CMS registers `capture-as-note` and `open-entity`;
+   [email-reply-drafting.md](./email-reply-drafting.md) registers `draft-reply`;
+   and the atproto and lead plans register their own. Nothing about a target
+   route lives in unified-inbox.
+
+   `InboxItem` gains at most eight declared
+   `followUps?: { kind, context }[]`, with duplicate kinds rejected. `context`
+   is a flat record of at most eight string entries: keys match
+   `^[a-z][A-Za-z0-9]{0,39}$`, values are bounded to 300 characters, controls
+   and empty values are rejected, and nested values are forbidden. Generic
+   parsing preserves opaque
+   values byte-for-byte; the destination-owned kind schema then validates their
+   meaning before the predicate or resolver runs. For `draft-reply`, that schema
+   accepts only the expected opaque mail-item ID. A declared kind is considered
+   only when the item names it. A universal kind is considered for every item
+   without requiring a matching source declaration or any context. Both modes
+   must pass registration lookup, actor permission, context parsing where
+   applicable, and the applicability predicate. Unavailable or invalid kinds
+   render nothing. A context parser, predicate, or resolver failure is isolated
+   to that launch and returns no plugin exception detail.
+
+   The three built-in registrations use `mode: "universal"` and apply only when
+   `item.entityRef` exists:
+
+   - **Open source entity** — behavior remains unchanged and CMS rechecks access
+     when the entity is opened. Today's hard-coded renderer affordance is
+     deleted in the same phase that registers this kind: the launch must exist
+     once, through the registry, with no `entityRef`-derived button left in the
+     workspace.
    - **Discuss in chat** — opens the registered web-chat path with a bounded
      composer prefill: `About inbox item: <title> (<entityType>/<entityId>)`.
      Only the already content-safe title and reference enter the handoff; no
      summary or source body does. The composer is populated but never sent.
      Web-chat runs at the operator's permission and may resolve the restricted
      entity only after the operator submits the message.
-   - **Capture as note** — appears only when the current actor can create the
-     registered `note` entity. CMS gains the collision-free
-     `/entities/<type>?mode=create` target (rather than reserving the valid
-     entity ID `new`), but the Inbox targets `note` specifically. Title,
-     summary, and the canonical
-     `entity://<encoded-type>/<encoded-id>` backlink travel in same-origin
-     router history state, not URL query parameters, server logs, or storage.
-     A reload opens an empty draft; nothing persists until Save.
+   - **Capture as note** — CMS explicitly targets the registered `note` entity;
+     it does not choose an arbitrary capture type. Applicability fails when
+     `note` is absent or the actor cannot create it. CMS gains the collision-free
+     `/entities/note?mode=create` target (rather than reserving the valid entity
+     ID `new`). The item title and the canonical
+     `entity://<encoded-type>/<encoded-id>` backlink travel in bounded,
+     same-origin router history state, not URL query parameters, server logs, or
+     storage. The derived summary is deliberately **not** seeded into the note
+     body: a note is operator-authored thought, and copying classifier-derived
+     text into a durable entity would create exactly the second stale copy this
+     architecture refuses everywhere else. The destination validates the state
+     envelope before using it. A reload opens an empty draft; nothing persists
+     until Save.
 
-4. **Kind-specific follow-ups are source-declared safe links.** `InboxItem`
-   gains `followUps?: { id, label, href }[]`, bounded and normalized by the
-   same-origin target schema above. A source builds a target from a surface or
-   interaction that actually registered, never from a hard-coded route. The
-   first consumer is email-triage's **Draft reply** link on `needsReply` items:
-   it appears only when an `email-reply-draft` interaction is available and
-   adds the opaque mail-item ID as `mailItemId` through the URL API (never
-   string concatenation) before revalidating the final same-origin path. Agent
-   candidates and stale opportunities use the same field with their own
-   registered targets.
+4. **Rendering order is fixed.** Within the follow-up group, declared kinds
+   render before universal ones; each group sorts by destination-owned
+   `priority` and then `kind`, so source array order and plugin registration
+   order cannot change the UI. Follow-ups never intermix with resolution
+   actions. Specific, high-intent launches stay first as the group grows; no
+   launch is buried behind an overflow menu, which would defeat the surface's
+   purpose.
 
 5. **Facets are source-scoped.** `InboxItem` gains bounded
    `facets?: Record<string, string>`, and each source registration may declare
@@ -301,6 +385,11 @@ with different chrome.
   snooze. An item leaves only through source-owned resolution.
 - **No per-item chat binding.** Discuss starts an ordinary conversation; the
   inbox does not track or display its transcript.
+- **No operator configuration of follow-ups.** Availability is decided by
+  registration, permission, and applicability — not by settings. A source that
+  needs a universal kind hidden is a signal to narrow that kind's applicability
+  predicate on item shape, not to add a toggle and not to name the source
+  inside the destination.
 - **No automatic contact creation or fuzzy reconciliation.** Unknown senders
   stay unresolved until a verified Auth identity exists; names, domains,
   classifications, and model output never create or merge People records.
@@ -352,14 +441,31 @@ Tests are written first inside each phase.
   changes replace the URL; Load more never writes offset/limit; reload after
   paging starts on page one; malformed/orphan facet params canonicalize to
   defaults; non-opted-in workspaces are unaffected.
-- **Phase 2 — Universal follow-ups.** Web-chat accepts prefill at its registered
-  route; CMS gains create mode and same-origin history-state prefill; Inbox
-  renders chat, capture note, and open entity only when their capabilities
-  exist. _Tests:_ prefill lands and is not sent; create seeds an unsaved note;
-  reload persists nothing; exact content-safe title/summary/ref payloads;
-  entity ID `new` still opens normally; absent web-chat/note capability hides
-  its launch; configured non-default mounts; XSS and URL encoding remain
-  inert.
+- **Phase 2 — Follow-up kind registry and the three built-in kinds.** Add the
+  finalized app-scoped kind registry; web-chat accepts prefill at its registered
+  route and registers universal `discuss-in-chat`; CMS gains create mode with
+  same-origin history-state prefill and registers universal `capture-as-note`
+  and `open-entity`, replacing the renderer's hard-coded Open source entity
+  button; the Inbox resolves and renders the registry intersection
+  server-side. _Tests:_ registry lifecycle (duplicate kind rejected, use before
+  finalize and registration after finalize rejected, registration during
+  `onReady` rejected, owner unregister, failed-registration rollback, shutdown
+  cleanup); static metadata freezing;
+  final resolver-output normalization on every call (schemes, `//`,
+  backslashes, controls, length, and sentinel-origin retention); predicate and
+  resolver failure isolation without exception disclosure; explicit mode
+  prevents a declared kind from auto-applying; deterministic priority/kind
+  ordering; label, permission, and state come from the registration/resolver,
+  not a source; predicate hides kinds for items without `entityRef`; prefill
+  lands and is not sent; create seeds an unsaved note; reload persists nothing;
+  the note draft carries title and backlink and **no** derived summary; absent
+  or non-createable `note` hides capture; entity ID `new` still opens normally;
+  absent web-chat hides only chat; insufficient permission hides the launch;
+  exactly one Open source entity launch renders and no `entityRef`-derived
+  button survives in the renderer; a catalog offering no applicable kind
+  renders no follow-up group rather than an empty labelled one; every
+  destination reauthorizes direct entry; configured non-default mounts;
+  oversized or malformed state, XSS, and URL encoding remain inert.
 - **Phase 3 — Source-scoped facets.** Add facet definitions and item values to
   the contract, generic operator filtering, selected-source rendering, and
   canonical URL keys. Mail declares category, mail-priority, and needs-reply.
@@ -376,12 +482,23 @@ Tests are written first inside each phase.
   for new items; reviewed records remain reachable in Mail Items; no dead
   routes, guessed CMS mounts, or widget differences under reversed plugin
   ready order.
-- **Phase 5 — Declared follow-ups.** Add bounded same-origin `followUps`, render
-  them in the follow-up group, and let email-triage discover the registered
-  `email-reply-draft` interaction before offering **Draft reply**. _Tests:_ ID,
-  label, count, duplicate, and path bounds; schemes, `//`, and controls reject;
-  rendering order never intermixes follow-ups with resolution actions; absent
-  interaction renders nothing; non-default registered route is used.
+- **Phase 5 — Source-declared kinds.** Add the bounded, flat
+  `followUps?: { kind, context }[]` declarations to `InboxItem`, and have
+  email-triage declare `draft-reply` on `needsReply` items with the opaque
+  mail-item ID as context;
+  [email-reply-drafting.md](./email-reply-drafting.md) registers that declared
+  kind, its context schema, and its resolver. No URL construction enters this
+  phase. _Tests:_ declaration count, duplicate-kind, key/value/control, flatness,
+  and context bounds; generic parsing preserves opaque values; destination
+  schema rejection hides the launch before predicate/resolver execution;
+  unregistered or universal kinds named by a source render nothing; the
+  resolver receives validated `{ sourceId, item, actor, context }`; raw context
+  never reaches browser or headless output; declared kinds render before
+  universal ones with deterministic destination-owned ordering and never
+  intermix with resolution actions; a source cannot override a registered
+  label, permission, state, or target; absent reply-drafting registration
+  renders nothing; direct entry is reauthorized; non-default registered route
+  is used.
 - **Phase 6 — Locator-backed transient original view.** Add the private locator
   store and source-read message contract, then `resolveDetail` and the CMS
   expander. _Tests:_ locator write precedes event/cursor commit; retry upsert;
@@ -435,10 +552,11 @@ Tests are written first inside each phase.
   conditions of that promotion.
 
 - [email-reply-drafting.md](./email-reply-drafting.md) — consumes the source-read
-  operation Phase 6 owns and supplies the registered Draft reply destination.
-- [atproto-integration.md](./atproto-integration.md) — candidate items gain
-  review/invite follow-ups through the Phase 5 field and may expose a bounded
-  plain-text profile through `resolveDetail`.
+  operation Phase 6 owns, and registers the `draft-reply` follow-up kind with
+  its own resolver; email-triage only declares the kind on `needsReply` items.
+- [atproto-integration.md](./atproto-integration.md) — registers its own
+  review/invite kinds and declares them on candidate items; may expose a
+  bounded plain-text profile through `resolveDetail`.
 - [bd-priority-engine.md](./bd-priority-engine.md) /
-  [lead-management.md](./lead-management.md) — stale-opportunity items link
-  into their registered lead/opportunity views through the same target schema.
+  [lead-management.md](./lead-management.md) — register lead/opportunity kinds
+  owned by those surfaces; stale-opportunity items declare them by kind.
