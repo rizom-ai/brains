@@ -3,6 +3,13 @@ import type { z } from "@brains/utils/zod";
 import type { AnyEntityDefinition } from "../entity/entity-definition-contract";
 import { assertIdentifier } from "../package-definition";
 import type { AnyAccountSettingsDefinition } from "./account-settings-definition-contract";
+import {
+  assertOptionalText,
+  assertPermission,
+  assertPriority,
+  assertText,
+  meetsPermission,
+} from "./contract-assertions";
 import type {
   OperatorBaseContext,
   OperatorBindingBrand,
@@ -112,12 +119,10 @@ export function defineDashboardWidget<
   assertIdentifier(definition.id, "Dashboard widget id");
   assertText(definition.title, `Dashboard widget "${definition.id}" title`);
   assertText(definition.group, `Dashboard widget "${definition.id}" group`);
-  if (definition.description !== undefined) {
-    assertText(
-      definition.description,
-      `Dashboard widget "${definition.id}" description`,
-    );
-  }
+  assertOptionalText(
+    definition.description,
+    `Dashboard widget "${definition.id}" description`,
+  );
   assertPriority(definition.priority, `Dashboard widget "${definition.id}"`);
   assertPermission(
     definition.permission,
@@ -291,12 +296,10 @@ export function defineCmsWorkspace<
 ): CmsWorkspaceDefinition<TId, TDataSchema, TActions> {
   assertIdentifier(definition.id, "CMS workspace id");
   assertText(definition.label, `CMS workspace "${definition.id}" label`);
-  if (definition.description !== undefined) {
-    assertText(
-      definition.description,
-      `CMS workspace "${definition.id}" description`,
-    );
-  }
+  assertOptionalText(
+    definition.description,
+    `CMS workspace "${definition.id}" description`,
+  );
   assertPriority(definition.priority, `CMS workspace "${definition.id}"`);
   assertPermission(definition.permission, `CMS workspace "${definition.id}"`);
   const actionNames = new Set<string>();
@@ -309,7 +312,7 @@ export function defineCmsWorkspace<
     actionNames.add(action.name);
     if (
       action.permission !== undefined &&
-      permissionRank(action.permission) < permissionRank(definition.permission)
+      !meetsPermission(action.permission, definition.permission)
     ) {
       throw new Error(
         `CMS workspace "${definition.id}" action "${action.name}" permission cannot be lower than the workspace permission`,
@@ -360,29 +363,4 @@ export function defineCmsWorkspace<
     },
   };
   return Object.freeze(workspace);
-}
-
-function assertText(value: string, label: string): void {
-  if (!value.trim()) throw new Error(`${label} must not be empty`);
-}
-
-function assertPriority(priority: number | undefined, label: string): void {
-  if (priority !== undefined && !Number.isFinite(priority)) {
-    throw new Error(`${label} priority must be finite`);
-  }
-}
-
-function assertPermission(
-  permission: UserPermissionLevel,
-  label: string,
-): void {
-  if (!["public", "trusted", "admin"].includes(permission)) {
-    throw new Error(
-      `${label} permission "${String(permission)}" is unsupported`,
-    );
-  }
-}
-
-function permissionRank(permission: UserPermissionLevel): number {
-  return permission === "public" ? 0 : permission === "trusted" ? 1 : 2;
 }

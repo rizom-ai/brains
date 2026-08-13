@@ -1,5 +1,28 @@
 # @brains/plugins
 
+## 0.2.0-alpha.285
+
+### Patch Changes
+
+- [#119](https://github.com/rizom-ai/brains/pull/119) [`c41168e`](https://github.com/rizom-ai/brains/commit/c41168ea6058686541e3bd3abde1699d86687eb0) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add opt-in CMS workspace URL queries and linkable Inbox source and urgency filters while keeping pagination transient and malformed filters failure-isolated.
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.285
+  - @brains/contracts@0.2.0-alpha.285
+  - @brains/site-composition@0.2.0-alpha.285
+  - @brains/utils@0.2.0-alpha.285
+  - @brains/ai-service@0.2.0-alpha.285
+  - @brains/content-service@0.2.0-alpha.285
+  - @brains/conversation-service@0.2.0-alpha.285
+  - @brains/entity-service@0.2.0-alpha.285
+  - @brains/identity-service@0.2.0-alpha.285
+  - @brains/job-queue@0.2.0-alpha.285
+  - @brains/mcp-service@0.2.0-alpha.285
+  - @brains/messaging-service@0.2.0-alpha.285
+  - @brains/recurring-checks@0.2.0-alpha.285
+  - @brains/runtime-state@0.2.0-alpha.285
+  - @brains/templates@0.2.0-alpha.285
+
 ## 0.2.0-alpha.284
 
 ### Patch Changes

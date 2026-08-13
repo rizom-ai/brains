@@ -1,5 +1,16 @@
 # @brains/unified-inbox
 
+## 0.2.0-alpha.285
+
+### Patch Changes
+
+- [#119](https://github.com/rizom-ai/brains/pull/119) [`c41168e`](https://github.com/rizom-ai/brains/commit/c41168ea6058686541e3bd3abde1699d86687eb0) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add opt-in CMS workspace URL queries and linkable Inbox source and urgency filters while keeping pagination transient and malformed filters failure-isolated.
+
+- Updated dependencies [[`c41168e`](https://github.com/rizom-ai/brains/commit/c41168ea6058686541e3bd3abde1699d86687eb0)]:
+  - @brains/plugins@0.2.0-alpha.285
+  - @brains/ui-library@0.2.0-alpha.285
+  - @brains/utils@0.2.0-alpha.285
+
 ## 0.2.0-alpha.284
 
 ### Patch Changes

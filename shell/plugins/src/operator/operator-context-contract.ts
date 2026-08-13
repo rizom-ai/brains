@@ -5,8 +5,8 @@ import type {
   EntityOf,
 } from "../entity/entity-definition-contract";
 import type {
-  AccountSettingsValue,
   AnyAccountSettingsDefinition,
+  RedactedAccountSettingsValue,
 } from "./account-settings-definition-contract";
 
 export type OperatorSchema = z.ZodType<unknown, unknown>;
@@ -108,8 +108,13 @@ export interface OperatorBaseContext<
   readonly config: TConfig;
   readonly state: TState;
   readonly caller: OperatorCaller | null;
+  /**
+   * The current caller's settings, minus every field declared `secret`.
+   * Operator data reaches the browser, so secrets are excluded from the type
+   * rather than left to author discipline.
+   */
   readonly settings: TAccountSettings extends AnyAccountSettingsDefinition
-    ? AccountSettingsValue<TAccountSettings> | null
+    ? RedactedAccountSettingsValue<TAccountSettings> | null
     : null;
   readonly entities: OperatorEntityReader;
   readonly jobs: OperatorJobs;

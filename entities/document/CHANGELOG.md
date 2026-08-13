@@ -1,5 +1,16 @@
 # @brains/document-plugin
 
+## 0.2.0-alpha.285
+
+### Patch Changes
+
+- Updated dependencies [[`c41168e`](https://github.com/rizom-ai/brains/commit/c41168ea6058686541e3bd3abde1699d86687eb0)]:
+  - @brains/plugins@0.2.0-alpha.285
+  - @brains/contracts@0.2.0-alpha.285
+  - @brains/document@0.2.0-alpha.285
+  - @brains/media-renderer@0.2.0-alpha.285
+  - @brains/utils@0.2.0-alpha.285
+
 ## 0.2.0-alpha.284
 
 ### Patch Changes

@@ -5,6 +5,8 @@ import { PluginManager } from "../src/manager/pluginManager";
 import { PluginStatus } from "../src/manager/types";
 import { createPluginHarness } from "../src/test/harness";
 import {
+  defineAccountSettings,
+  defineDashboardWidget,
   defineJob,
   defineServicePlugin,
   defineTool,
@@ -304,5 +306,52 @@ describe("declarative service definitions", () => {
         deadline: "0s",
       }),
     ).toThrow("must be positive");
+  });
+
+  it("refuses operator declarations until their runtime exists", async () => {
+    const widget = defineDashboardWidget({
+      id: "library",
+      title: "Library",
+      group: "knowledge",
+      placement: "secondary",
+      permission: "trusted",
+      data: z.object({ count: z.number() }),
+      view: () => ({ blocks: [] }),
+    });
+
+    const install = async (
+      extra: Partial<Parameters<typeof defineServicePlugin>[0]>,
+    ): Promise<void> => {
+      const definition = defineServicePlugin({
+        id: "reading-operator",
+        config: z.object({}),
+        ...extra,
+      });
+      const [plugin] = instantiatePluginPackageDefinition(
+        definition,
+        {},
+        { name: "@fixture/reading-operator", version: "0.1.0" },
+      );
+      if (!plugin) throw new Error("Service plugin was not created");
+      await createPluginHarness().installPlugin(plugin);
+    };
+
+    expect(
+      install({
+        dashboardWidgets: (context) => [
+          widget.bind(context, () => ({ count: 0 })),
+        ],
+      }),
+    ).rejects.toThrow("dashboard widgets require the operator runtime");
+
+    expect(
+      install({
+        accountSettings: defineAccountSettings({
+          title: "Reading provider",
+          schema: z.object({ endpoint: z.url() }),
+          fields: { endpoint: { label: "Endpoint" } },
+        }),
+      }),
+    ).rejects.toThrow("account settings require the account-settings runtime");
   });
 });
