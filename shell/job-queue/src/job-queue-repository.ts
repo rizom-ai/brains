@@ -4,6 +4,7 @@ import {
   desc,
   eq,
   exists,
+  gt,
   inArray,
   isNull,
   lte,
@@ -41,7 +42,6 @@ export interface JobAttemptClaim {
   workerSlotId: string;
   workerSessionId: string;
   leaseDurationMs: number;
-  workerSessionTimeoutMs: number;
   executableTypes: readonly string[];
 }
 
@@ -401,7 +401,9 @@ export class JobQueueRepository {
     workerSlotId: string,
     workerSessionId: string,
     now: number = Date.now(),
+    workerSessionTimeoutMs: number = DEFAULT_WORKER_SESSION_TIMEOUT_MS,
   ): Promise<void> {
+    const expiresAt = now + workerSessionTimeoutMs;
     await this.db
       .insert(jobWorkerSessions)
       .values({
@@ -409,6 +411,7 @@ export class JobQueueRepository {
         sessionId: workerSessionId,
         startedAt: now,
         heartbeatAt: now,
+        expiresAt,
       })
       .onConflictDoUpdate({
         target: jobWorkerSessions.slotId,
@@ -416,6 +419,7 @@ export class JobQueueRepository {
           sessionId: workerSessionId,
           startedAt: now,
           heartbeatAt: now,
+          expiresAt,
         },
       });
   }
@@ -425,10 +429,14 @@ export class JobQueueRepository {
     workerSlotId: string,
     workerSessionId: string,
     now: number = Date.now(),
+    workerSessionTimeoutMs: number = DEFAULT_WORKER_SESSION_TIMEOUT_MS,
   ): Promise<boolean> {
     const result = await this.db
       .update(jobWorkerSessions)
-      .set({ heartbeatAt: now })
+      .set({
+        heartbeatAt: now,
+        expiresAt: now + workerSessionTimeoutMs,
+      })
       .where(
         and(
           eq(jobWorkerSessions.slotId, workerSlotId),
@@ -660,7 +668,6 @@ export class JobQueueRepository {
   public async getDiagnostics(
     now: number = Date.now(),
   ): Promise<JobQueueDiagnostics> {
-    const workerSessionExpiredBefore = now - DEFAULT_WORKER_SESSION_TIMEOUT_MS;
     const [byTypeRows, ageRows, workerSessionRows] = await Promise.all([
       this.db
         .select({
@@ -675,6 +682,11 @@ export class JobQueueRepository {
           oldestPendingAt: sql<
             number | null
           >`min(case when ${jobQueue.status} = ${JOB_STATUS.PENDING} then ${jobQueue.createdAt} end)`,
+          duePending: sql<number>`coalesce(sum(case when ${jobQueue.status} = ${JOB_STATUS.PENDING} and ${jobQueue.scheduledFor} <= ${now} then 1 else 0 end), 0)`,
+          oldestDuePendingAt: sql<
+            number | null
+          >`min(case when ${jobQueue.status} = ${JOB_STATUS.PENDING} and ${jobQueue.scheduledFor} <= ${now} then ${jobQueue.scheduledFor} end)`,
+          latestClaimAt: sql<number | null>`max(${jobQueue.startedAt})`,
           oldestProcessingAt: sql<
             number | null
           >`min(case when ${jobQueue.status} = ${JOB_STATUS.PROCESSING} then ${jobQueue.startedAt} end)`,
@@ -684,8 +696,8 @@ export class JobQueueRepository {
       this.db
         .select({
           total: sql<number>`count(*)`,
-          active: sql<number>`coalesce(sum(case when ${jobWorkerSessions.heartbeatAt} > ${workerSessionExpiredBefore} then 1 else 0 end), 0)`,
-          stale: sql<number>`coalesce(sum(case when ${jobWorkerSessions.heartbeatAt} <= ${workerSessionExpiredBefore} then 1 else 0 end), 0)`,
+          active: sql<number>`coalesce(sum(case when ${jobWorkerSessions.expiresAt} > ${now} then 1 else 0 end), 0)`,
+          stale: sql<number>`coalesce(sum(case when ${jobWorkerSessions.expiresAt} <= ${now} then 1 else 0 end), 0)`,
           latestHeartbeatAt: sql<
             number | null
           >`max(${jobWorkerSessions.heartbeatAt})`,
@@ -715,6 +727,9 @@ export class JobQueueRepository {
       totals,
       byType,
       oldestPendingAgeMs: ageSince(ages?.oldestPendingAt),
+      duePending: Number(ages?.duePending ?? 0),
+      oldestDuePendingAgeMs: ageSince(ages?.oldestDuePendingAt),
+      latestClaimAgeMs: ageSince(ages?.latestClaimAt),
       oldestProcessingAgeMs: ageSince(ages?.oldestProcessingAt),
       staleLeaseCount: Number(ages?.staleLeaseCount ?? 0),
       workerSessions: {
@@ -812,10 +827,8 @@ export class JobQueueRepository {
       workerSlotId,
       workerSessionId,
       leaseDurationMs,
-      workerSessionTimeoutMs,
       executableTypes,
     } = claim;
-    const sessionExpiredBefore = now - workerSessionTimeoutMs;
 
     const claimingSession = this.db
       .select({ slotId: jobWorkerSessions.slotId })
@@ -824,6 +837,7 @@ export class JobQueueRepository {
         and(
           eq(jobWorkerSessions.slotId, workerSlotId),
           eq(jobWorkerSessions.sessionId, workerSessionId),
+          gt(jobWorkerSessions.expiresAt, now),
         ),
       );
     const matchingOwnerSession = this.db
@@ -842,7 +856,7 @@ export class JobQueueRepository {
         and(
           eq(jobWorkerSessions.slotId, jobQueue.workerSlotId),
           eq(jobWorkerSessions.sessionId, jobQueue.workerSessionId),
-          lte(jobWorkerSessions.heartbeatAt, sessionExpiredBefore),
+          lte(jobWorkerSessions.expiresAt, now),
         ),
       );
 

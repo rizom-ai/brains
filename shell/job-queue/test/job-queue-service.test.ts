@@ -430,7 +430,6 @@ describe("JobQueueService", () => {
         workerSlotId: "worker-a",
         workerSessionId: "session-a",
         leaseDurationMs: 10_000,
-        workerSessionTimeoutMs: 30_000,
       });
 
       expect(job).toMatchObject({
@@ -453,7 +452,6 @@ describe("JobQueueService", () => {
         workerSlotId: "worker-a",
         workerSessionId: "session-a",
         leaseDurationMs: 60_000,
-        workerSessionTimeoutMs: 30_000,
       };
       await service.startWorkerSession(
         claim.workerSlotId,

@@ -84,6 +84,7 @@ import type {
 import type { EntityDisplayEntry } from "@brains/site-composition";
 import {
   appInfoSchema,
+  backgroundWorkInfoSchema,
   endpointInfoSchema,
   entityCountSchema,
   interactionInfoSchema,
@@ -91,6 +92,7 @@ import {
   interactionStatusSchema,
 } from "./contracts/runtime-app-info";
 import type {
+  BackgroundWorkInfo,
   EndpointInfo,
   EndpointInfoInput,
   EntityCount,
@@ -107,6 +109,7 @@ import type {
 
 export {
   appInfoSchema,
+  backgroundWorkInfoSchema,
   endpointInfoSchema,
   entityCountSchema,
   interactionInfoSchema,
@@ -114,6 +117,7 @@ export {
   interactionStatusSchema,
 };
 export type {
+  BackgroundWorkInfo,
   ContentGenerationConfig,
   EndpointInfo,
   EndpointInfoInput,

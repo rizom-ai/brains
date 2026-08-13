@@ -24,12 +24,15 @@ export {
   type ClaimProjectionWaveInput,
   type GetProjectionRuleMemoInput,
   type MarkProjectionDirtyInput,
+  type ProjectionIncidentDiagnostics,
+  type ProjectionIncidentInput,
   type ProjectionRuleMemoValue,
   type ProjectionWaveRuleInput,
 } from "./projection-store";
 export type {
   ProjectionChangedTarget,
   ProjectionDirtyInput,
+  ProjectionIncident,
   ProjectionRuleMemo,
   ProjectionWave,
   ProjectionWaveInput,

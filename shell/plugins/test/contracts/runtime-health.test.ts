@@ -35,6 +35,9 @@ const validReport: RuntimeReadiness = {
       },
       byType: [{ type: "topic:projection", status: "pending", count: 1 }],
       oldestPendingAgeMs: 20,
+      duePending: 1,
+      oldestDuePendingAgeMs: 20,
+      latestClaimAgeMs: 10,
       oldestProcessingAgeMs: 10,
       staleLeaseCount: 0,
       workerSessions: {

@@ -104,6 +104,23 @@ function createContext(
         model: "test",
         uptime: 0,
         entityCounts: [],
+        backgroundWork: {
+          status: "operational" as const,
+          reasons: [],
+          worker: {
+            state: "active" as const,
+            activeSessions: 1,
+            staleSessions: 0,
+            latestHeartbeatAgeMs: 0,
+          },
+          queue: {
+            duePending: 0,
+            processing: 0,
+            oldestDuePendingAgeMs: null,
+            latestClaimAgeMs: null,
+            stalled: false,
+          },
+        },
         ai: { model: "test", embeddingModel: "test" },
         daemons: [],
         endpoints: [],

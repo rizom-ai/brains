@@ -7,6 +7,9 @@ import { getErrorMessage } from "@brains/utils/error";
 export interface VerifyPilotUserOptions {
   fetchImpl?: FetchLike;
   logger?: (message: string) => void;
+  operationalRetryAttempts?: number;
+  operationalRetryDelayMs?: number;
+  sleep?: (delayMs: number) => Promise<void>;
 }
 
 export interface FailedCheck {
@@ -26,22 +29,33 @@ export interface VerifyPilotUserResult {
 const operationalHealthResponseSchema = z.looseObject({
   status: z.string(),
   operationalStatus: z.string(),
-  app: z.looseObject({
-    daemons: z
-      .array(
-        z.looseObject({
-          name: z.string().optional(),
-          status: z.string().optional(),
-          health: z
-            .looseObject({
-              status: z.string().optional(),
-              message: z.string().optional(),
-            })
-            .optional(),
-        }),
-      )
-      .default([]),
-  }),
+  checks: z
+    .array(
+      z.looseObject({
+        name: z.string(),
+        status: z.string(),
+        message: z.string().optional(),
+      }),
+    )
+    .default([]),
+  app: z
+    .looseObject({
+      daemons: z
+        .array(
+          z.looseObject({
+            name: z.string().optional(),
+            status: z.string().optional(),
+            health: z
+              .looseObject({
+                status: z.string().optional(),
+                message: z.string().optional(),
+              })
+              .optional(),
+          }),
+        )
+        .default([]),
+    })
+    .default({ daemons: [] }),
 });
 
 export async function verifyPilotUser(
@@ -59,10 +73,33 @@ export async function verifyPilotUser(
   const baseUrl = `https://${user.domain}`;
   const checks: string[] = [];
   const failedChecks: FailedCheck[] = [];
+  const operationalRetryAttempts = z
+    .number()
+    .int()
+    .positive()
+    .max(30)
+    .parse(options.operationalRetryAttempts ?? 6);
+  const operationalRetryDelayMs = z
+    .number()
+    .int()
+    .nonnegative()
+    .max(60_000)
+    .parse(options.operationalRetryDelayMs ?? 10_000);
+  const sleep =
+    options.sleep ??
+    ((delayMs: number): Promise<void> =>
+      new Promise((resolve) => setTimeout(resolve, delayMs)));
 
   await runCheck(
     "health",
-    () => verifyHealth(fetchImpl, baseUrl),
+    () =>
+      verifyHealthWithRetry(
+        fetchImpl,
+        baseUrl,
+        operationalRetryAttempts,
+        operationalRetryDelayMs,
+        sleep,
+      ),
     checks,
     failedChecks,
   );
@@ -118,6 +155,26 @@ async function runCheck(
   }
 }
 
+async function verifyHealthWithRetry(
+  fetchImpl: FetchLike,
+  baseUrl: string,
+  attempts: number,
+  delayMs: number,
+  sleep: (delayMs: number) => Promise<void>,
+): Promise<void> {
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    try {
+      await verifyHealth(fetchImpl, baseUrl);
+      return;
+    } catch (error) {
+      lastError = error;
+      if (attempt < attempts) await sleep(delayMs);
+    }
+  }
+  throw lastError;
+}
+
 async function verifyHealth(
   fetchImpl: FetchLike,
   baseUrl: string,
@@ -126,13 +183,23 @@ async function verifyHealth(
   const response = await fetchWithTimeout(fetchImpl, `${baseUrl}${endpoint}`, {
     method: "GET",
   });
+  const payload: unknown = await response.json().catch(() => null);
+  const parsed = operationalHealthResponseSchema.safeParse(payload);
   if (!response.ok) {
-    throw new Error(`${endpoint} returned ${response.status}, expected 200`);
+    const degraded = parsed.success
+      ? parsed.data.checks
+          .filter((check) => check.status !== "healthy")
+          .slice(0, 10)
+          .map(
+            (check) =>
+              `${check.name}: ${boundedStatusMessage(check.message ?? check.status)}`,
+          )
+      : [];
+    throw new Error(
+      `${endpoint} returned ${response.status}, expected 200${degraded.length > 0 ? ` (${degraded.join("; ")})` : ""}`,
+    );
   }
 
-  const parsed = operationalHealthResponseSchema.safeParse(
-    await response.json(),
-  );
   if (!parsed.success) {
     throw new Error(
       `${endpoint} response did not match expected shape: ${parsed.error.message}`,
@@ -158,6 +225,13 @@ async function verifyHealth(
       );
     }
   }
+}
+
+function boundedStatusMessage(message: string): string {
+  const normalized = message.replaceAll(/\s+/g, " ").trim();
+  return normalized.length <= 300
+    ? normalized
+    : `${normalized.slice(0, 297)}...`;
 }
 
 async function verifyMcpAuthGate(

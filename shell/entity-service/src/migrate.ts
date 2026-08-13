@@ -8,6 +8,7 @@ import { ensureFtsTable } from "./db";
 import { entities } from "./schema/entities";
 import {
   projectionDirtyInputs,
+  projectionIncidents,
   projectionRuleMemos,
   projectionWaveInputs,
   projectionWaveRules,
@@ -27,6 +28,7 @@ export async function migrateEntities(
       entities,
       projectionDirtyInputs,
       projectionWaves,
+      projectionIncidents,
       projectionWaveInputs,
       projectionWaveRules,
       projectionRuleMemos,

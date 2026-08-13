@@ -121,6 +121,12 @@ class MemoryExecutionStore implements ProjectionRuleExecutionStore {
 class MemoryCoordinator implements ProjectionWaveCoordinator {
   readonly advancedWaveIds: string[] = [];
   readonly failedWaveIds: string[] = [];
+  readonly incidents: Array<{
+    waveId: string;
+    ruleId: string;
+    jobId: string | null;
+    failureReason: string;
+  }> = [];
 
   advanceActiveWave(waveId: string): Promise<unknown> {
     this.advancedWaveIds.push(waveId);
@@ -129,6 +135,17 @@ class MemoryCoordinator implements ProjectionWaveCoordinator {
 
   failActiveWave(waveId: string): Promise<unknown> {
     this.failedWaveIds.push(waveId);
+    return Promise.resolve();
+  }
+
+  failActiveWaveWithIncident(input: {
+    waveId: string;
+    ruleId: string;
+    jobId: string | null;
+    failureReason: string;
+  }): Promise<unknown> {
+    this.failedWaveIds.push(input.waveId);
+    this.incidents.push(input);
     return Promise.resolve();
   }
 }
@@ -216,12 +233,24 @@ describe("ProjectionRuleJobHandler", () => {
       now: (): number => 20,
     });
 
-    await handler.onTerminalError(new Error("exhausted"), {
-      waveId: "wave-1",
-      ruleId: "topics",
-    });
+    await handler.onTerminalError(
+      new Error("secret token must not be persisted"),
+      {
+        waveId: "wave-1",
+        ruleId: "topics",
+      },
+      "job-terminal",
+    );
 
     expect(coordinator.failedWaveIds).toEqual(["wave-1"]);
+    expect(coordinator.incidents).toEqual([
+      {
+        waveId: "wave-1",
+        ruleId: "topics",
+        jobId: "job-terminal",
+        failureReason: "Projection rule job exhausted retries",
+      },
+    ]);
   });
 
   it("replays a durable memo without deriving again", async () => {

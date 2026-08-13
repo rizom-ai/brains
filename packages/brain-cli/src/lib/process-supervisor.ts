@@ -278,20 +278,19 @@ function runRuntimeSupervisor(
       }
 
       if (workerAttempts.length >= options.workerRestartBudget) {
-        const retryAt =
-          (workerAttempts[0] ?? now) + options.workerRestartWindowMs;
         options.reportIncident({
-          type: "worker-supervision-paused",
+          type: "worker-supervision-exhausted",
           attempts: workerAttempts.length,
-          retryAt,
+          windowMs: options.workerRestartWindowMs,
         });
-        workerRestartTimer = options.clock.setTimeout(
-          () => {
-            workerRestartTimer = undefined;
-            scheduleWorker();
-          },
-          Math.max(0, retryAt - now),
-        );
+        webResult = {
+          success: false,
+          message: `Brain worker restart budget exhausted after ${workerAttempts.length} attempts`,
+          exitCode: 1,
+        };
+        parentShutdownRequested = true;
+        requestChildrenShutdown("SIGTERM");
+        maybeFinish();
         return;
       }
 

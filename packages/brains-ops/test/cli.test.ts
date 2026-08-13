@@ -261,7 +261,10 @@ discord:
         fetchImpl(input, init) {
           const url = typeof input === "string" ? input : input.toString();
 
-          if (url === "https://alice.rizom.ai/health/ready") {
+          if (
+            url === "https://alice.rizom.ai/health/ready" ||
+            url === "https://alice.rizom.ai/health/operate"
+          ) {
             expect(init?.method).toBe("GET");
             return Promise.resolve(new Response("ok", { status: 200 }));
           }
@@ -295,6 +298,42 @@ discord:
     const table = await readFile(join(root, "views/users.md"), "utf8");
     expect(table).toContain(
       "| alice | canary | core |  |  | 0.1.1-alpha.14 | alice.rizom.ai | rover-alice-content | off | ready | ready | ready | ready |",
+    );
+  });
+
+  it("does not report a deployment ready when operational health is degraded", async () => {
+    const root = await createPilotRepo(baseFiles);
+
+    const result = await runCommand(
+      {
+        command: "render",
+        args: [root],
+        flags: {},
+      },
+      {
+        lookupHost: async () => ({ address: "203.0.113.10", family: 4 }),
+        fetchImpl(input) {
+          const url = typeof input === "string" ? input : input.toString();
+          if (url.endsWith("/health/ready")) {
+            return Promise.resolve(new Response("ok", { status: 200 }));
+          }
+          if (url.endsWith("/health/operate")) {
+            return Promise.resolve(new Response("degraded", { status: 503 }));
+          }
+          if (url.endsWith("/mcp")) {
+            return Promise.resolve(
+              new Response("Unauthorized", { status: 401 }),
+            );
+          }
+          throw new Error(`Unexpected URL: ${url}`);
+        },
+      },
+    );
+
+    expect(result.success).toBe(true);
+    const table = await readFile(join(root, "views/users.md"), "utf8");
+    expect(table).toContain(
+      "| alice | canary | core |  |  | 0.1.1-alpha.14 | alice.rizom.ai | rover-alice-content | off | ready | failed | ready | ready |",
     );
   });
 
@@ -564,6 +603,100 @@ members:
     );
   });
 
+  it("retries transient operational degradation before passing", async () => {
+    const root = await createPilotRepo(baseFiles);
+    let healthAttempts = 0;
+    const sleeps: number[] = [];
+
+    const result = await runCommand(
+      {
+        command: "verify-user",
+        args: [root, "alice"],
+        flags: {},
+      },
+      {
+        verificationRetryAttempts: 3,
+        verificationRetryDelayMs: 25,
+        sleep: async (delayMs) => {
+          sleeps.push(delayMs);
+        },
+        fetchImpl(input) {
+          const url = typeof input === "string" ? input : input.toString();
+          if (url === "https://alice.rizom.ai/health/operate") {
+            healthAttempts++;
+            return Promise.resolve(
+              healthAttempts === 1
+                ? new Response("degraded", { status: 503 })
+                : Response.json({
+                    status: "ready",
+                    operationalStatus: "operational",
+                    app: { daemons: [] },
+                  }),
+            );
+          }
+          if (url === "https://alice.rizom.ai/mcp") {
+            return Promise.resolve(
+              new Response("Unauthorized", { status: 401 }),
+            );
+          }
+          throw new Error(`Unexpected URL: ${url}`);
+        },
+      },
+    );
+
+    expect(result.success).toBe(true);
+    expect(healthAttempts).toBe(2);
+    expect(sleeps).toEqual([25]);
+  });
+
+  it("includes degraded operational check details in a failed health check", async () => {
+    const root = await createPilotRepo(baseFiles);
+
+    const result = await runCommand(
+      {
+        command: "verify-user",
+        args: [root, "alice"],
+        flags: {},
+      },
+      {
+        verificationRetryAttempts: 1,
+        fetchImpl(input) {
+          const url = typeof input === "string" ? input : input.toString();
+          if (url === "https://alice.rizom.ai/health/operate") {
+            return Promise.resolve(
+              Response.json(
+                {
+                  status: "ready",
+                  operationalStatus: "degraded",
+                  checks: [
+                    {
+                      name: "job-worker",
+                      status: "degraded",
+                      message: "No live worker session",
+                    },
+                  ],
+                  app: { daemons: [] },
+                },
+                { status: 503 },
+              ),
+            );
+          }
+          if (url === "https://alice.rizom.ai/mcp") {
+            return Promise.resolve(
+              new Response("Unauthorized", { status: 401 }),
+            );
+          }
+          throw new Error(`Unexpected URL: ${url}`);
+        },
+      },
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.message).toContain(
+      "health: /health/operate returned 503, expected 200 (job-worker: No live worker session)",
+    );
+  });
+
   it("reports an unhealthy daemon as a failed health check", async () => {
     const root = await createPilotRepo(baseFiles);
 
@@ -574,6 +707,7 @@ members:
         flags: {},
       },
       {
+        verificationRetryAttempts: 1,
         fetchImpl(input) {
           const url = typeof input === "string" ? input : input.toString();
           if (url === "https://alice.rizom.ai/health/operate") {

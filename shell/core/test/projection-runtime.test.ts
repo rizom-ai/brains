@@ -3,6 +3,7 @@ import type {
   ApplyProjectionRuleResultInput,
   ClaimProjectionWaveInput,
   GetProjectionRuleMemoInput,
+  ProjectionIncidentInput,
   ProjectionRuleMemoValue,
   ProjectionWave,
   ProjectionWaveInput,
@@ -111,6 +112,12 @@ class MemoryRuntimeStore implements ProjectionRuntimeStore {
     return Promise.resolve(failed);
   }
 
+  failWaveWithIncident(
+    input: ProjectionIncidentInput,
+  ): Promise<ProjectionWave> {
+    return this.failWave(input.waveId, input.failedAt);
+  }
+
   completeWave(_waveId: string, completedAt: number): Promise<ProjectionWave> {
     if (!this.active) throw new Error("missing wave");
     const completed: ProjectionWave = {
@@ -174,6 +181,23 @@ const inputContext: ProjectionInputContext = {
     entities: 0,
     entityCounts: [],
     embeddings: 0,
+    backgroundWork: {
+      status: "operational",
+      reasons: [],
+      worker: {
+        state: "active",
+        activeSessions: 1,
+        staleSessions: 0,
+        latestHeartbeatAgeMs: 0,
+      },
+      queue: {
+        duePending: 0,
+        processing: 0,
+        oldestDuePendingAgeMs: null,
+        latestClaimAgeMs: null,
+        stalled: false,
+      },
+    },
     ai: { model: "test", embeddingModel: "test" },
     daemons: [],
     endpoints: [],

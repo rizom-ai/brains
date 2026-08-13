@@ -1,0 +1,2701 @@
+<!doctype html>
+<html lang="en" data-climate="paper" data-scenario="offers">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Dataspaces &amp; Brains — Interaction Mockup</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,300..900,30..100;1,9..144,300..900,30..100&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --review-bg: #080711;
+        --review-text: #f1eadd;
+        --review-dim: rgba(241, 234, 221, 0.62);
+        --review-faint: rgba(241, 234, 221, 0.38);
+        --review-line: rgba(241, 234, 221, 0.12);
+        --review-accent: #ff8b3d;
+        --display: "Fraunces", Georgia, serif;
+        --ui: "IBM Plex Sans", sans-serif;
+        --mono: "IBM Plex Mono", monospace;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        min-width: 320px;
+        scroll-behavior: smooth;
+      }
+
+      body {
+        margin: 0;
+        background:
+          radial-gradient(
+            circle at 7% 0,
+            rgba(255, 139, 61, 0.11),
+            transparent 27rem
+          ),
+          radial-gradient(
+            circle at 96% 28%,
+            rgba(104, 204, 139, 0.07),
+            transparent 29rem
+          ),
+          var(--review-bg);
+        color: var(--review-text);
+        font: 14px/1.5 var(--ui);
+        -webkit-font-smoothing: antialiased;
+      }
+
+      body::before {
+        position: fixed;
+        z-index: 100;
+        inset: 0;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.88' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='linear' slope='.035'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+        content: "";
+        opacity: 0.42;
+        pointer-events: none;
+      }
+
+      button,
+      a {
+        -webkit-tap-highlight-color: transparent;
+      }
+
+      button {
+        font: inherit;
+      }
+
+      button:focus-visible,
+      a:focus-visible {
+        outline: 2px solid var(--review-accent);
+        outline-offset: 3px;
+      }
+
+      @keyframes rise {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: none;
+        }
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          box-shadow: 0 0 0 0 color-mix(in srgb, currentColor 44%, transparent);
+        }
+        55% {
+          box-shadow: 0 0 0 7px transparent;
+        }
+      }
+
+      @keyframes travel {
+        from {
+          transform: translateX(-120%);
+        }
+        to {
+          transform: translateX(380%);
+        }
+      }
+
+      .review-head,
+      .review-nav,
+      .specimen,
+      .decisions,
+      .review-foot {
+        width: min(100% - 40px, 1460px);
+        margin-inline: auto;
+      }
+
+      .review-head {
+        padding: 72px 0 31px;
+      }
+
+      .eyebrow,
+      .spec-num,
+      .screen-label,
+      .decision small {
+        font-family: var(--mono);
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+      }
+
+      .eyebrow {
+        color: var(--review-accent);
+        font-size: 10px;
+      }
+
+      .review-head h1 {
+        max-width: 12ch;
+        margin: 14px 0 0;
+        animation: rise 0.55s ease-out both;
+        font: 480 clamp(44px, 7vw, 86px) / 0.93 var(--display);
+        font-variation-settings:
+          "SOFT" 58,
+          "opsz" 120;
+        letter-spacing: -0.04em;
+      }
+
+      .review-head h1 em {
+        color: var(--review-accent);
+        font-weight: 390;
+      }
+
+      .review-intro {
+        display: grid;
+        grid-template-columns: minmax(0, 64ch) auto;
+        gap: 30px;
+        align-items: end;
+        margin-top: 27px;
+        animation: rise 0.55s 0.1s ease-out both;
+      }
+
+      .review-intro p {
+        margin: 0;
+        color: var(--review-dim);
+        font-size: 16px;
+      }
+
+      .review-controls {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 7px;
+      }
+
+      .review-control {
+        min-height: 40px;
+        padding: 0 14px;
+        border: 1px solid var(--review-line);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.025);
+        color: var(--review-dim);
+        cursor: pointer;
+        font: 500 9px var(--mono);
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+      }
+
+      .review-control:hover,
+      .review-control.is-active {
+        border-color: rgba(255, 139, 61, 0.55);
+        background: rgba(255, 139, 61, 0.09);
+        color: var(--review-text);
+      }
+
+      .review-nav {
+        position: sticky;
+        z-index: 80;
+        top: 0;
+        display: flex;
+        overflow-x: auto;
+        border-block: 1px solid var(--review-line);
+        background: rgba(8, 7, 17, 0.86);
+        backdrop-filter: blur(18px);
+        scrollbar-width: none;
+      }
+
+      .review-nav::-webkit-scrollbar {
+        display: none;
+      }
+
+      .review-nav a {
+        flex: 0 0 auto;
+        padding: 11px 14px;
+        color: var(--review-faint);
+        font: 10px var(--mono);
+        text-decoration: none;
+      }
+
+      .review-nav a:hover {
+        color: var(--review-text);
+      }
+
+      .review-nav span {
+        margin-right: 7px;
+        color: var(--review-accent);
+      }
+
+      .specimen {
+        padding-top: 84px;
+      }
+
+      .specimen-head {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) minmax(260px, 42ch);
+        gap: 18px;
+        align-items: baseline;
+        margin-bottom: 18px;
+        padding-top: 16px;
+        border-top: 1px solid var(--review-line);
+      }
+
+      .spec-num {
+        color: var(--review-accent);
+        font-size: 10px;
+      }
+
+      .specimen h2 {
+        margin: 0;
+        font: 520 clamp(28px, 3vw, 42px) / 1 var(--display);
+        font-variation-settings:
+          "SOFT" 52,
+          "opsz" 80;
+        letter-spacing: -0.025em;
+      }
+
+      .specimen-note {
+        margin: 0;
+        color: var(--review-faint);
+        font-size: 13px;
+        text-align: right;
+      }
+
+      .screen-label {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 8px;
+        color: var(--review-faint);
+        font-size: 9px;
+      }
+
+      /* CMS console climate ------------------------------------------ */
+      .console {
+        --c-bg: #ece5d6;
+        --c-frame: #f4efe6;
+        --c-card: #faf7f0;
+        --c-soft: #ece5d6;
+        --c-deep: #211d18;
+        --c-text: #211d18;
+        --c-66: rgba(33, 29, 24, 0.66);
+        --c-44: rgba(33, 29, 24, 0.44);
+        --c-24: rgba(33, 29, 24, 0.24);
+        --c-line: rgba(33, 29, 24, 0.16);
+        --c-line-soft: rgba(33, 29, 24, 0.08);
+        --c-accent: #c44a1d;
+        --c-accent-soft: rgba(196, 74, 29, 0.1);
+        --c-secondary: #6b2fa0;
+        --c-secondary-soft: rgba(107, 47, 160, 0.09);
+        --c-ok: #3d6b5c;
+        --c-ok-soft: rgba(61, 107, 92, 0.14);
+        --c-warn: #a97613;
+        --c-warn-soft: rgba(169, 118, 19, 0.12);
+        --c-err: #932f2f;
+        --c-err-soft: rgba(147, 47, 47, 0.09);
+        position: relative;
+        overflow: hidden;
+        border: 1px solid rgba(241, 234, 221, 0.15);
+        border-radius: 12px;
+        background: var(--c-bg);
+        box-shadow: 0 36px 90px -38px rgba(0, 0, 0, 0.92);
+        color: var(--c-text);
+        color-scheme: light;
+        font-family: var(--ui);
+        transition:
+          background 0.3s ease,
+          color 0.3s ease;
+      }
+
+      [data-climate="instrument"] .console {
+        --c-bg: #0a0819;
+        --c-frame: #0f0d22;
+        --c-card: #14112b;
+        --c-soft: #1b1638;
+        --c-deep: #05040f;
+        --c-text: #f1eadd;
+        --c-66: rgba(241, 234, 221, 0.66);
+        --c-44: rgba(241, 234, 221, 0.44);
+        --c-24: rgba(241, 234, 221, 0.24);
+        --c-line: rgba(241, 234, 221, 0.14);
+        --c-line-soft: rgba(241, 234, 221, 0.07);
+        --c-accent: #ff8b3d;
+        --c-accent-soft: rgba(255, 139, 61, 0.12);
+        --c-secondary: #9998ff;
+        --c-secondary-soft: rgba(153, 152, 255, 0.12);
+        --c-ok: #68cc8b;
+        --c-ok-soft: rgba(104, 204, 139, 0.13);
+        --c-warn: #f5c158;
+        --c-warn-soft: rgba(245, 193, 88, 0.12);
+        --c-err: #e26d6d;
+        --c-err-soft: rgba(226, 109, 109, 0.1);
+        color-scheme: dark;
+      }
+
+      .console::before {
+        position: absolute;
+        z-index: 30;
+        top: 0;
+        right: 0;
+        left: 0;
+        height: 2px;
+        background: linear-gradient(90deg, var(--c-accent), transparent 62%);
+        content: "";
+        pointer-events: none;
+      }
+
+      .console-strip {
+        display: flex;
+        min-height: 52px;
+        align-items: center;
+        gap: 22px;
+        padding: 0 20px;
+        border-bottom: 1px solid var(--c-line);
+        background:
+          linear-gradient(
+            to bottom,
+            color-mix(in srgb, white 18%, transparent),
+            transparent
+          ),
+          var(--c-frame);
+      }
+
+      .console-mark,
+      .session {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        white-space: nowrap;
+      }
+
+      .console-mark {
+        color: var(--c-66);
+        font: 10px var(--mono);
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+
+      .console-mark b {
+        color: var(--c-text);
+        font-weight: 500;
+      }
+
+      .brand-dot,
+      .session-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--c-accent);
+      }
+
+      .surface-nav {
+        display: flex;
+        gap: 2px;
+      }
+
+      .surface-nav span {
+        padding: 5px 12px;
+        border-radius: 6px;
+        color: var(--c-44);
+        font-size: 13px;
+      }
+
+      .surface-nav .active {
+        background: var(--c-line-soft);
+        color: var(--c-text);
+        font-weight: 500;
+      }
+
+      .spacer {
+        flex: 1;
+      }
+
+      .command {
+        padding: 5px 10px;
+        border: 1px solid var(--c-line);
+        border-radius: 6px;
+        color: var(--c-44);
+        font-size: 12px;
+      }
+
+      .command kbd {
+        margin-right: 5px;
+        font: 9px var(--mono);
+      }
+
+      .session {
+        padding: 5px 10px;
+        border-radius: 999px;
+        background: var(--c-ok-soft);
+        color: var(--c-ok);
+        font: 10px var(--mono);
+      }
+
+      .session-dot {
+        width: 6px;
+        height: 6px;
+        background: currentColor;
+      }
+
+      .crumbbar {
+        display: flex;
+        min-height: 40px;
+        align-items: center;
+        padding: 0 20px;
+        border-bottom: 1px solid var(--c-line);
+        background: var(--c-frame);
+        color: var(--c-44);
+        font-size: 12px;
+      }
+
+      .crumbbar b {
+        color: var(--c-text);
+        font-weight: 500;
+      }
+
+      .capability {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        margin-left: auto;
+        color: var(--c-ok);
+        font: 9px var(--mono);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .capability::before {
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: currentColor;
+        content: "";
+      }
+
+      .cms-layout {
+        display: grid;
+        grid-template-columns: 226px minmax(0, 1fr);
+        min-height: 760px;
+      }
+
+      .rail {
+        padding: 20px 0 26px;
+        border-right: 1px solid var(--c-line);
+        background:
+          linear-gradient(
+            to right,
+            transparent 62%,
+            color-mix(in srgb, var(--c-text) 2.5%, transparent)
+          ),
+          var(--c-soft);
+      }
+
+      .rail-group + .rail-group {
+        margin-top: 13px;
+        padding-top: 17px;
+        border-top: 1px solid var(--c-line-soft);
+      }
+
+      .rail-label {
+        padding: 0 20px 7px;
+        color: var(--c-44);
+        font: 8px var(--mono);
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+      }
+
+      .rail-item {
+        display: flex;
+        width: 100%;
+        min-height: 32px;
+        align-items: center;
+        gap: 9px;
+        padding: 5px 20px 5px 18px;
+        border: 0;
+        border-left: 2px solid transparent;
+        background: transparent;
+        color: var(--c-66);
+        text-align: left;
+      }
+
+      .rail-item.active {
+        border-left-color: var(--c-accent);
+        background: var(--c-card);
+        color: var(--c-text);
+      }
+
+      .rail-item .glyph {
+        width: 16px;
+        color: var(--c-44);
+        font: 11px var(--mono);
+        text-align: center;
+      }
+
+      .rail-item.active .glyph {
+        color: var(--c-accent);
+      }
+
+      .rail-count {
+        margin-left: auto;
+        color: var(--c-44);
+        font: 9px var(--mono);
+      }
+
+      .attention-count {
+        display: none;
+        width: 18px;
+        height: 18px;
+        place-items: center;
+        border-radius: 50%;
+        background: var(--c-err);
+        color: var(--c-card);
+        font: 8px var(--mono);
+      }
+
+      [data-scenario="attention"] .attention-count {
+        display: grid;
+      }
+
+      /* Scenario visibility ------------------------------------------ */
+      [data-scenario="healthy"] .state-syncing,
+      [data-scenario="healthy"] .state-attention,
+      [data-scenario="syncing"] .state-healthy,
+      [data-scenario="syncing"] .state-attention,
+      [data-scenario="syncing"] .not-syncing,
+      [data-scenario="attention"] .state-healthy,
+      [data-scenario="attention"] .state-syncing,
+      [data-scenario="attention"] .state-not-attention {
+        display: none !important;
+      }
+
+      /* Workspace ---------------------------------------------------- */
+      .workspace {
+        min-width: 0;
+        padding: 28px 30px 34px;
+        background: var(--c-frame);
+      }
+
+      .workspace-head {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 24px;
+        align-items: end;
+        padding-bottom: 21px;
+        border-bottom: 2px solid var(--c-text);
+      }
+
+      .kicker,
+      .section-head span,
+      .card-head,
+      .vital span {
+        font-family: var(--mono);
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      .kicker {
+        display: block;
+        margin-bottom: 6px;
+        color: var(--c-accent);
+        font-size: 8px;
+        font-weight: 500;
+        letter-spacing: 0.16em;
+      }
+
+      .workspace-head h3 {
+        margin: 0;
+        font: 520 clamp(34px, 4vw, 49px) / 0.95 var(--display);
+        font-variation-settings:
+          "SOFT" 62,
+          "opsz" 82;
+        letter-spacing: -0.035em;
+      }
+
+      .workspace-head p {
+        max-width: 55ch;
+        margin: 8px 0 0;
+        color: var(--c-66);
+        font-size: 13px;
+      }
+
+      .decisions {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 10px;
+        padding-top: 84px;
+      }
+
+      .decision {
+        min-height: 174px;
+        padding: 18px;
+        border: 1px solid var(--review-line);
+        background: rgba(255, 255, 255, 0.025);
+      }
+
+      .decision small {
+        color: var(--review-accent);
+        font-size: 8px;
+      }
+
+      .decision h3 {
+        margin: 14px 0 8px;
+        font: 520 20px var(--display);
+      }
+
+      .decision p {
+        margin: 0;
+        color: var(--review-faint);
+        font-size: 12px;
+      }
+
+      .review-foot {
+        padding: 62px 0 46px;
+        color: var(--review-faint);
+        font: 9px var(--mono);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .toast {
+        position: absolute;
+        z-index: 50;
+        right: 24px;
+        bottom: 24px;
+        padding: 10px 13px;
+        border-radius: 7px;
+        background: var(--c-text);
+        color: var(--c-card);
+        font: 9px var(--mono);
+        opacity: 0;
+        pointer-events: none;
+        transform: translateY(8px);
+        transition: 0.18s ease;
+      }
+
+      .toast.show {
+        opacity: 1;
+        transform: none;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          animation: none !important;
+          scroll-behavior: auto !important;
+          transition: none !important;
+        }
+      }
+
+      /* Dataspace components ------------------------------------------ */
+      .workspace-body {
+        margin-top: 20px;
+      }
+
+      .ws-split {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 296px;
+        gap: 16px;
+        align-items: start;
+      }
+
+      @media (max-width: 1200px) {
+        .ws-split {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .stat-strip {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        border: 1px solid var(--c-line);
+        border-radius: 8px;
+        background: var(--c-card);
+        margin-bottom: 18px;
+      }
+
+      .stat {
+        padding: 13px 16px;
+        border-right: 1px solid var(--c-line-soft);
+      }
+
+      .stat:last-child {
+        border-right: 0;
+      }
+
+      .stat span {
+        display: block;
+        font-family: var(--mono);
+        font-size: 9.5px;
+        letter-spacing: 0.15em;
+        text-transform: uppercase;
+        color: var(--c-44);
+      }
+
+      .stat b {
+        display: block;
+        margin-top: 5px;
+        font-family: var(--mono);
+        font-size: 21px;
+        font-weight: 500;
+        letter-spacing: -0.02em;
+      }
+
+      .stat b.word {
+        font-family: var(--display);
+        font-size: 17px;
+        font-variation-settings:
+          "SOFT" 40,
+          "opsz" 40;
+      }
+
+      .stat small {
+        display: block;
+        margin-top: 3px;
+        font-size: 11px;
+        color: var(--c-66);
+      }
+
+      .stat.flag b {
+        color: var(--c-warn);
+      }
+
+      /* asset-type tab strip — the generic layer, made visible */
+      .type-tabs {
+        display: flex;
+        align-items: stretch;
+        gap: 0;
+        border: 1px solid var(--c-line);
+        border-radius: 8px 8px 0 0;
+        border-bottom: 0;
+        background: var(--c-card);
+        overflow-x: auto;
+      }
+
+      .type-tab {
+        display: flex;
+        align-items: baseline;
+        gap: 7px;
+        padding: 11px 17px;
+        border-right: 1px solid var(--c-line-soft);
+        font-size: 12.5px;
+        font-weight: 500;
+        color: var(--c-66);
+        white-space: nowrap;
+      }
+
+      .type-tab.active {
+        background: var(--c-accent-soft);
+        color: var(--c-accent);
+        box-shadow: inset 0 -2px 0 var(--c-accent);
+      }
+
+      .type-tab i {
+        font-family: var(--mono);
+        font-size: 10px;
+        font-style: normal;
+        color: var(--c-44);
+      }
+
+      .type-tab.active i {
+        color: var(--c-accent);
+      }
+
+      .type-tab.pending {
+        color: var(--c-24);
+      }
+
+      .type-tab.pending i {
+        color: var(--c-24);
+      }
+
+      .tab-note {
+        margin-left: auto;
+        display: flex;
+        align-items: center;
+        padding: 0 15px;
+        font-family: var(--mono);
+        font-size: 9.5px;
+        letter-spacing: 0.13em;
+        text-transform: uppercase;
+        color: var(--c-44);
+        white-space: nowrap;
+      }
+
+      .tab-panel {
+        border: 1px solid var(--c-line);
+        border-radius: 0 0 8px 8px;
+        background: var(--c-frame);
+        padding: 16px;
+      }
+
+      /* generic chips */
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 2px 7px;
+        border: 1px solid var(--c-line);
+        border-radius: 3px;
+        font-family: var(--mono);
+        font-size: 9.5px;
+        letter-spacing: 0.11em;
+        text-transform: uppercase;
+        color: var(--c-66);
+        white-space: nowrap;
+      }
+
+      .chip.src {
+        border-color: color-mix(in srgb, var(--c-secondary) 40%, transparent);
+        background: var(--c-secondary-soft);
+        color: var(--c-secondary);
+      }
+
+      .chip.fed {
+        border-color: color-mix(in srgb, var(--c-accent) 42%, transparent);
+        background: var(--c-accent-soft);
+        color: var(--c-accent);
+      }
+
+      .chip.ok {
+        border-color: color-mix(in srgb, var(--c-ok) 40%, transparent);
+        background: var(--c-ok-soft);
+        color: var(--c-ok);
+      }
+
+      .chip.warn {
+        border-color: color-mix(in srgb, var(--c-warn) 44%, transparent);
+        background: var(--c-warn-soft);
+        color: var(--c-warn);
+      }
+
+      .chip.err {
+        border-color: color-mix(in srgb, var(--c-err) 42%, transparent);
+        background: var(--c-err-soft);
+        color: var(--c-err);
+      }
+
+      .chip.lock {
+        border-style: dashed;
+      }
+
+      /* inbox */
+      .inbox-list {
+        border: 1px solid var(--c-line);
+        border-radius: 8px;
+        background: var(--c-card);
+        overflow: hidden;
+      }
+
+      .inbox-row {
+        display: grid;
+        grid-template-columns: 96px minmax(0, 1fr) auto;
+        gap: 14px;
+        align-items: start;
+        padding: 14px 16px;
+        border-bottom: 1px solid var(--c-line-soft);
+      }
+
+      .inbox-row:last-child {
+        border-bottom: 0;
+      }
+
+      .inbox-row.high {
+        background: var(--c-warn-soft);
+      }
+
+      .row-src {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+        padding-top: 1px;
+      }
+
+      .row-main strong {
+        display: block;
+        font-size: 13.5px;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+      }
+
+      .row-main p {
+        margin: 4px 0 0;
+        font-size: 12px;
+        color: var(--c-66);
+      }
+
+      .row-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 7px;
+        font-family: var(--mono);
+        font-size: 10.5px;
+        color: var(--c-44);
+      }
+
+      .row-actions {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+      }
+
+      .btn {
+        padding: 5px 11px;
+        border: 1px solid var(--c-line);
+        border-radius: 4px;
+        background: transparent;
+        color: var(--c-66);
+        font-size: 11.5px;
+        font-weight: 500;
+        cursor: pointer;
+        white-space: nowrap;
+      }
+
+      .btn:hover {
+        border-color: var(--c-44);
+        color: var(--c-text);
+      }
+
+      .btn.primary {
+        border-color: var(--c-accent);
+        background: var(--c-accent);
+        color: #fff;
+      }
+
+      .btn.quiet {
+        border-color: transparent;
+        color: var(--c-44);
+      }
+
+      /* annotation callout — explains the architectural point */
+      .annot {
+        display: flex;
+        gap: 11px;
+        margin-top: 16px;
+        padding: 13px 15px;
+        border: 1px dashed var(--c-line);
+        border-radius: 8px;
+        background: var(--c-soft);
+      }
+
+      .annot i {
+        flex-shrink: 0;
+        width: 17px;
+        height: 17px;
+        margin-top: 1px;
+        border: 1px solid var(--c-accent);
+        border-radius: 50%;
+        color: var(--c-accent);
+        font-family: var(--mono);
+        font-size: 10px;
+        font-style: normal;
+        line-height: 15px;
+        text-align: center;
+      }
+
+      .annot p {
+        margin: 0;
+        max-width: 78ch;
+        font-size: 12px;
+        line-height: 1.6;
+        color: var(--c-66);
+      }
+
+      .annot p b {
+        color: var(--c-text);
+        font-weight: 600;
+      }
+
+      /* offer cards */
+      .offer-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .offer {
+        display: flex;
+        flex-direction: column;
+        border: 1px solid var(--c-line);
+        border-radius: 7px;
+        background: var(--c-card);
+        overflow: hidden;
+      }
+
+      .offer-body {
+        flex: 1;
+        padding: 14px;
+      }
+
+      .offer-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+        margin-bottom: 9px;
+      }
+
+      .offer h4 {
+        margin: 0;
+        font-size: 13.5px;
+        font-weight: 600;
+        line-height: 1.35;
+        letter-spacing: -0.01em;
+      }
+
+      .offer p {
+        margin: 6px 0 0;
+        font-size: 11.5px;
+        line-height: 1.55;
+        color: var(--c-66);
+      }
+
+      .offer.locked p {
+        font-style: italic;
+        color: var(--c-44);
+      }
+
+      .offer-meta {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 4px 10px;
+        margin-top: 11px;
+        font-family: var(--mono);
+        font-size: 10.5px;
+        color: var(--c-66);
+      }
+
+      .offer-meta span.blur {
+        filter: blur(3.4px);
+        user-select: none;
+      }
+
+      .why {
+        display: flex;
+        gap: 7px;
+        margin-top: 11px;
+        padding-top: 10px;
+        border-top: 1px dashed var(--c-line);
+        font-size: 11px;
+        line-height: 1.5;
+        color: var(--c-secondary);
+      }
+
+      .why b {
+        font-family: var(--mono);
+        font-size: 9.5px;
+        letter-spacing: 0.11em;
+        text-transform: uppercase;
+        color: var(--c-44);
+        flex-shrink: 0;
+      }
+
+      .offer-foot {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        padding: 10px 14px;
+        border-top: 1px solid var(--c-line);
+        background: var(--c-frame);
+      }
+
+      .pub {
+        min-width: 0;
+      }
+
+      .pub b {
+        display: block;
+        font-size: 11.5px;
+        font-weight: 600;
+      }
+
+      .pub span {
+        display: block;
+        font-family: var(--mono);
+        font-size: 9.5px;
+        color: var(--c-44);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      /* peer rail */
+      .side-card {
+        border: 1px solid var(--c-line);
+        border-radius: 8px;
+        background: var(--c-card);
+        overflow: hidden;
+      }
+
+      .side-card + .side-card {
+        margin-top: 12px;
+      }
+
+      .side-head {
+        padding: 10px 14px;
+        border-bottom: 1px solid var(--c-line);
+        background: var(--c-frame);
+        font-family: var(--mono);
+        font-size: 9.5px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--c-44);
+      }
+
+      .peer {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 8px;
+        align-items: center;
+        padding: 10px 14px;
+        border-bottom: 1px solid var(--c-line-soft);
+      }
+
+      .peer:last-child {
+        border-bottom: 0;
+      }
+
+      .peer b {
+        display: block;
+        font-size: 12px;
+        font-weight: 600;
+      }
+
+      .peer span {
+        display: block;
+        font-family: var(--mono);
+        font-size: 9.5px;
+        color: var(--c-44);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .trust {
+        display: flex;
+        border: 1px solid var(--c-line);
+        border-radius: 4px;
+        overflow: hidden;
+      }
+
+      .trust i {
+        padding: 3px 6px;
+        font-family: var(--mono);
+        font-size: 9px;
+        font-style: normal;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--c-44);
+      }
+
+      .trust i.on {
+        background: var(--c-secondary-soft);
+        color: var(--c-secondary);
+      }
+
+      .side-note {
+        padding: 11px 14px;
+        font-size: 11px;
+        line-height: 1.55;
+        color: var(--c-66);
+        border-top: 1px dashed var(--c-line);
+      }
+
+      /* agreements table */
+      .agr {
+        border: 1px solid var(--c-line);
+        border-radius: 8px;
+        background: var(--c-card);
+        overflow: hidden;
+      }
+
+      .agr-head,
+      .agr-row {
+        display: grid;
+        grid-template-columns:
+          minmax(0, 2.1fr) 78px minmax(0, 1.1fr) minmax(0, 1.35fr)
+          minmax(0, 1fr) 96px;
+        gap: 12px;
+        align-items: center;
+        padding: 11px 16px;
+      }
+
+      .agr-head {
+        border-bottom: 1px solid var(--c-line);
+        background: var(--c-frame);
+        font-family: var(--mono);
+        font-size: 9.5px;
+        letter-spacing: 0.13em;
+        text-transform: uppercase;
+        color: var(--c-44);
+      }
+
+      .agr-row {
+        border-bottom: 1px solid var(--c-line-soft);
+        font-size: 12px;
+      }
+
+      .agr-row > div {
+        min-width: 0;
+      }
+
+      .agr-row small,
+      .agr-row code {
+        display: block;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .agr-row:last-child {
+        border-bottom: 0;
+      }
+
+      .agr-row b {
+        font-weight: 600;
+      }
+
+      .agr-row small {
+        display: block;
+        margin-top: 2px;
+        font-family: var(--mono);
+        font-size: 9.5px;
+        color: var(--c-44);
+      }
+
+      .agr-row code {
+        font-family: var(--mono);
+        font-size: 10.5px;
+        color: var(--c-66);
+      }
+
+      .agr-row.is-stale {
+        background: var(--c-warn-soft);
+      }
+
+      .agr-row.is-revoked {
+        background: var(--c-err-soft);
+      }
+
+      .agr-row.is-revoked b,
+      .agr-row.is-revoked code {
+        text-decoration: line-through;
+        text-decoration-color: var(--c-24);
+      }
+
+      /* provenance card */
+      .prov {
+        padding: 14px;
+      }
+
+      .prov-field + .prov-field {
+        margin-top: 12px;
+      }
+
+      .prov-field span {
+        display: block;
+        font-family: var(--mono);
+        font-size: 9.5px;
+        letter-spacing: 0.13em;
+        text-transform: uppercase;
+        color: var(--c-44);
+      }
+
+      .prov-field b {
+        display: block;
+        margin-top: 3px;
+        font-family: var(--mono);
+        font-size: 12px;
+        font-weight: 500;
+        word-break: break-all;
+      }
+
+      .prov-split {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin-top: 13px;
+        padding-top: 13px;
+        border-top: 1px dashed var(--c-line);
+        text-align: center;
+      }
+
+      .prov-split div {
+        padding: 9px 6px;
+        border: 1px solid var(--c-line);
+        border-radius: 6px;
+      }
+
+      .prov-split small {
+        display: block;
+        font-family: var(--mono);
+        font-size: 9px;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--c-44);
+      }
+
+      .prov-split b {
+        display: block;
+        margin-top: 4px;
+        font-family: var(--mono);
+        font-size: 11px;
+        font-weight: 500;
+      }
+
+      /* rules */
+      .rules-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+        gap: 14px;
+      }
+
+      .rule-box {
+        display: flex;
+        flex-direction: column;
+        border: 1px solid var(--c-line);
+        border-radius: 8px;
+        background: var(--c-card);
+        overflow: hidden;
+      }
+
+      .rule-text {
+        flex: 1;
+        margin: 0;
+        padding: 15px;
+        font-family: var(--mono);
+        font-size: 11.5px;
+        line-height: 1.85;
+        color: var(--c-text);
+        white-space: pre-wrap;
+      }
+
+      .rule-foot {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 14px;
+        border-top: 1px solid var(--c-line);
+        background: var(--c-frame);
+        font-size: 11px;
+        color: var(--c-44);
+      }
+
+      .triage-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 104px;
+        gap: 11px;
+        align-items: start;
+        padding: 11px 14px;
+        border-bottom: 1px solid var(--c-line-soft);
+      }
+
+      .triage-row:last-child {
+        border-bottom: 0;
+      }
+
+      .triage-row b {
+        display: block;
+        font-size: 12.5px;
+        font-weight: 600;
+      }
+
+      .reason {
+        display: block;
+        margin-top: 4px;
+        font-size: 11px;
+        line-height: 1.5;
+        color: var(--c-secondary);
+      }
+
+      .verdict {
+        justify-self: end;
+      }
+
+      /* scenario visibility */
+      [data-scenario="quiet"] .not-quiet,
+      .only-quiet,
+      .only-terms,
+      .only-revoked {
+        display: none;
+      }
+
+      [data-scenario="quiet"] .only-quiet,
+      [data-scenario="terms"] .only-terms,
+      [data-scenario="revoked"] .only-revoked {
+        display: revert;
+      }
+
+      [data-scenario="quiet"] .only-quiet.inbox-row {
+        display: grid;
+      }
+
+      [data-scenario="terms"] .only-terms.inbox-row {
+        display: grid;
+      }
+
+      [data-scenario="terms"] .agr-row.watch {
+        background: var(--c-warn-soft);
+      }
+
+      [data-scenario="revoked"] .agr-row.watch {
+        background: var(--c-err-soft);
+      }
+
+      [data-scenario="revoked"] .agr-row.watch b,
+      [data-scenario="revoked"] .agr-row.watch code {
+        text-decoration: line-through;
+        text-decoration-color: var(--c-24);
+      }
+
+      /* Two class selectors so this beats .stat span / .peer span etc. */
+      .swap > .s-offers,
+      .swap > .s-quiet,
+      .swap > .s-terms,
+      .swap > .s-revoked {
+        display: none;
+      }
+
+      [data-scenario="offers"] .swap > .s-offers,
+      [data-scenario="quiet"] .swap > .s-quiet,
+      [data-scenario="terms"] .swap > .s-terms,
+      [data-scenario="revoked"] .swap > .s-revoked {
+        display: inline-flex;
+      }
+
+      .empty {
+        padding: 46px 20px;
+        text-align: center;
+        color: var(--c-44);
+        font-size: 12.5px;
+      }
+
+      .empty b {
+        display: block;
+        margin-bottom: 5px;
+        font-family: var(--display);
+        font-size: 16px;
+        font-variation-settings:
+          "SOFT" 40,
+          "opsz" 40;
+        color: var(--c-66);
+      }
+
+      @media (max-width: 1200px) {
+        .offer-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .rules-grid,
+        .stat-strip {
+          grid-template-columns: 1fr;
+        }
+
+        .agr-head,
+        .agr-row {
+          grid-template-columns: minmax(0, 1.6fr) 70px minmax(0, 1fr) 88px;
+        }
+
+        .agr-head > :nth-child(4),
+        .agr-row > :nth-child(4),
+        .agr-head > :nth-child(5),
+        .agr-row > :nth-child(5) {
+          display: none;
+        }
+      }
+
+      @media (max-width: 900px) {
+        .cms-layout {
+          grid-template-columns: 1fr;
+        }
+
+        .rail {
+          display: none;
+        }
+
+        .offer-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .inbox-row {
+          grid-template-columns: 1fr;
+        }
+
+        .row-actions {
+          justify-content: flex-start;
+        }
+
+        .decisions {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="review-head">
+      <span class="eyebrow"
+        >Operator console · dataspace interaction proposal</span
+      >
+      <h1>A dataspace is a <em>place</em>, an offer is just <em>mail.</em></h1>
+      <div class="review-intro">
+        <p>
+          How TrustFlow and a brain compose, at two levels. The
+          <b>inbox</b> is where a peer's offer competes for attention alongside
+          everything else that arrived — no new surface, no new authorization.
+          The <b>dataspace workspace</b> is where the relationship lives: peers,
+          catalogue, the agreements we hold, and what we publish back. Events
+          are the first asset type through it, not the shape of it.
+        </p>
+        <div class="review-controls" aria-label="Mockup controls">
+          <button class="review-control is-active" data-climate-choice="paper">
+            Paper
+          </button>
+          <button class="review-control" data-climate-choice="instrument">
+            Instrument
+          </button>
+          <button
+            class="review-control is-active"
+            data-scenario-choice="offers"
+          >
+            Offers waiting
+          </button>
+          <button class="review-control" data-scenario-choice="quiet">
+            Quiet
+          </button>
+          <button class="review-control" data-scenario-choice="terms">
+            Terms changed
+          </button>
+          <button class="review-control" data-scenario-choice="revoked">
+            Revoked
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <nav class="review-nav" aria-label="Mockup sections">
+      <a href="#inbox"><span>01</span>Inbox · the generic level</a>
+      <a href="#catalogue"><span>02</span>Dataspace · catalogue</a>
+      <a href="#agreements"><span>03</span>Dataspace · agreements</a>
+      <a href="#rules"><span>04</span>Triage that explains itself</a>
+      <a href="#decisions"><span>05</span>Decisions</a>
+    </nav>
+
+    <!-- 01 · INBOX ---------------------------------------------------- -->
+    <section class="specimen" id="inbox">
+      <header class="specimen-head">
+        <span class="spec-num">01</span>
+        <h2>An offer is an inbox item like any other</h2>
+        <p class="specimen-note">
+          The federation does not get its own attention queue. It registers an
+          <code>InboxSource</code> and takes its place in line behind the mail
+          and the agent candidates.
+        </p>
+      </header>
+      <div class="screen-label">
+        <span>Desktop · Dashboard</span><span>1440 × 900 reference</span>
+      </div>
+
+      <div class="console">
+        <header class="console-strip">
+          <span class="console-mark"
+            ><i class="brand-dot"></i><b>Rover</b> <span>Console</span></span
+          >
+          <nav class="surface-nav" aria-label="Console surfaces">
+            <span class="active">Dashboard</span><span>CMS</span
+            ><span>Agents</span>
+          </nav>
+          <span class="spacer"></span>
+          <span class="command"><kbd>⌘K</kbd> Jump</span>
+          <span class="session"
+            ><i class="session-dot"></i><span>Operator</span></span
+          >
+        </header>
+        <div class="crumbbar">
+          Attention / <b>&nbsp;Inbox</b>
+          <span class="capability">trustflow connected</span>
+        </div>
+
+        <div class="cms-layout">
+          <aside class="rail">
+            <section class="rail-group">
+              <div class="rail-label">Attention</div>
+              <div class="rail-item active">
+                <span class="glyph">⌾</span>Inbox
+                <span class="rail-count attention-count swap"
+                  ><span class="s-offers">8</span><span class="s-quiet">0</span
+                  ><span class="s-terms">9</span
+                  ><span class="s-revoked">8</span></span
+                >
+              </div>
+              <div class="rail-item"><span class="glyph">⇢</span>Digest</div>
+            </section>
+            <section class="rail-group">
+              <div class="rail-label">Sources</div>
+              <div class="rail-item">
+                <span class="glyph">·</span>Mail<span class="rail-count"
+                  >4</span
+                >
+              </div>
+              <div class="rail-item">
+                <span class="glyph">·</span>Federation<span
+                  class="rail-count swap"
+                  ><span class="s-offers">3</span><span class="s-quiet">0</span
+                  ><span class="s-terms">4</span
+                  ><span class="s-revoked">3</span></span
+                >
+              </div>
+              <div class="rail-item">
+                <span class="glyph">·</span>Agents<span class="rail-count"
+                  >1</span
+                >
+              </div>
+            </section>
+            <section class="rail-group">
+              <div class="rail-label">Federation</div>
+              <div class="rail-item"><span class="glyph">⇄</span>Dataspace</div>
+            </section>
+          </aside>
+
+          <main class="workspace">
+            <header class="workspace-head">
+              <div>
+                <span class="kicker">Attention</span>
+                <h3>Inbox</h3>
+                <p>
+                  What came in that needs you — projected live from each source,
+                  never copied into a second store.
+                </p>
+              </div>
+            </header>
+
+            <div class="workspace-body">
+              <div class="stat-strip">
+                <div class="stat">
+                  <span>Waiting</span>
+                  <b class="swap"
+                    ><span class="s-offers">8</span
+                    ><span class="s-quiet">0</span><span class="s-terms">9</span
+                    ><span class="s-revoked">8</span></b
+                  >
+                  <small>across 3 sources</small>
+                </div>
+                <div class="stat">
+                  <span>From federation</span>
+                  <b class="swap"
+                    ><span class="s-offers">3</span
+                    ><span class="s-quiet">0</span><span class="s-terms">4</span
+                    ><span class="s-revoked">3</span></b
+                  >
+                  <small>TrustFlow catalogue</small>
+                </div>
+                <div class="stat flag">
+                  <span>Needs terms review</span>
+                  <b class="swap"
+                    ><span class="s-offers">1</span
+                    ><span class="s-quiet">0</span><span class="s-terms">2</span
+                    ><span class="s-revoked">1</span></b
+                  >
+                  <small>paid or terms-bearing</small>
+                </div>
+                <div class="stat">
+                  <span>Auto-handled today</span>
+                  <b class="word">4 accepted</b>
+                  <small>by rules, all free</small>
+                </div>
+              </div>
+
+              <div class="inbox-list">
+                <div class="only-quiet empty">
+                  <b>Nothing waiting.</b>
+                  Rules handled everything that arrived. The dataspace workspace
+                  still holds the relationship.
+                </div>
+
+                <div class="inbox-row high only-terms">
+                  <div class="row-src">
+                    <span class="chip fed">Federation</span>
+                    <span class="chip warn">Terms changed</span>
+                  </div>
+                  <div class="row-main">
+                    <strong>Just Transition Finance Forum</strong>
+                    <p>
+                      Holomovement amended the agreement after you accepted. The
+                      canonical hash no longer matches the one you hold.
+                    </p>
+                    <div class="row-meta">
+                      <span>did:web:holomovement.example</span>
+                      <span>agreement JTFF26-Q7M2</span>
+                      <span>12 min ago</span>
+                    </div>
+                  </div>
+                  <div class="row-actions">
+                    <button class="btn primary">Review terms</button>
+                    <button class="btn">Keep as-is</button>
+                  </div>
+                </div>
+
+                <div class="inbox-row not-quiet">
+                  <div class="row-src">
+                    <span class="chip fed">Federation</span>
+                    <span class="chip">Offer · event</span>
+                  </div>
+                  <div class="row-main">
+                    <strong>Regenerative Ocean Finance Gathering</strong>
+                    <p>
+                      Two days of closed-door dealmaking and public panels
+                      connecting blended-finance funders with coastal
+                      restoration ventures.
+                    </p>
+                    <div class="row-meta">
+                      <span>Leading Edge Collective</span>
+                      <span>Lisbon · 22–23 Sept</span>
+                      <span>Free</span>
+                      <span>2 hours ago</span>
+                    </div>
+                  </div>
+                  <div class="row-actions">
+                    <button class="btn primary">Accept</button>
+                    <button class="btn">Ignore</button>
+                  </div>
+                </div>
+
+                <div class="inbox-row">
+                  <div class="row-src">
+                    <span class="chip src">Mail</span>
+                  </div>
+                  <div class="row-main">
+                    <strong>Re: Q3 partnership scope</strong>
+                    <p>Priya Nakamura · flagged high by email triage.</p>
+                    <div class="row-meta">
+                      <span>priya@leadingedge.example</span>
+                      <span>3 hours ago</span>
+                    </div>
+                  </div>
+                  <div class="row-actions">
+                    <button class="btn">Handled</button>
+                  </div>
+                </div>
+
+                <div class="inbox-row not-quiet">
+                  <div class="row-src">
+                    <span class="chip fed">Federation</span>
+                    <span class="chip lock">Locked</span>
+                  </div>
+                  <div class="row-main">
+                    <strong>Coastal Resilience Investor Roundtable</strong>
+                    <p>
+                      Preview only. Full agenda and audience detail are released
+                      once terms are agreed.
+                    </p>
+                    <div class="row-meta">
+                      <span>Ocean Impact Alliance</span>
+                      <span>governance: pending</span>
+                      <span>USD 180</span>
+                      <span>5 hours ago</span>
+                    </div>
+                  </div>
+                  <div class="row-actions">
+                    <button class="btn primary">Accept to unlock</button>
+                    <button class="btn">Ignore</button>
+                  </div>
+                </div>
+
+                <div class="inbox-row">
+                  <div class="row-src">
+                    <span class="chip src">Agents</span>
+                  </div>
+                  <div class="row-main">
+                    <strong>corenexus.example wants to connect</strong>
+                    <p>
+                      Discovered via signed brain card. Approval grants inbound
+                      trust — separate from anything the dataspace says.
+                    </p>
+                    <div class="row-meta">
+                      <span>did:web:corenexus.example</span>
+                      <span>yesterday</span>
+                    </div>
+                  </div>
+                  <div class="row-actions">
+                    <button class="btn">Review</button>
+                    <button class="btn quiet">Archive</button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="annot">
+                <i>i</i>
+                <p>
+                  <b>Nothing here is federation-specific.</b> The row is an
+                  <code>InboxItem</code>; the buttons are that source's declared
+                  actions, dispatched back with the actor's permission level.
+                  Accepting a paid or terms-bearing offer always routes through
+                  the standard confirmation flow — a rule may propose it, but it
+                  never signs on your behalf.
+                </p>
+              </div>
+            </div>
+          </main>
+        </div>
+      </div>
+    </section>
+
+    <!-- 02 · CATALOGUE ------------------------------------------------ -->
+    <section class="specimen" id="catalogue">
+      <header class="specimen-head">
+        <span class="spec-num">02</span>
+        <h2>A dataspace workspace, not an events workspace</h2>
+        <p class="specimen-note">
+          The asset-type strip is the whole argument made visible: events is tab
+          one of several, and adding the next type is a registration, not a new
+          screen.
+        </p>
+      </header>
+      <div class="screen-label">
+        <span>Desktop · CMS</span><span>1440 × 900 reference</span>
+      </div>
+
+      <div class="console">
+        <header class="console-strip">
+          <span class="console-mark"
+            ><i class="brand-dot"></i><b>Rover</b> <span>Console</span></span
+          >
+          <nav class="surface-nav" aria-label="Console surfaces">
+            <span>Dashboard</span><span class="active">CMS</span
+            ><span>Agents</span>
+          </nav>
+          <span class="spacer"></span>
+          <span class="command"><kbd>⌘K</kbd> Jump</span>
+          <span class="session"
+            ><i class="session-dot"></i><span>Operator</span></span
+          >
+        </header>
+        <div class="crumbbar">
+          Federation / <b>&nbsp;Catalogue</b>
+          <span class="capability"
+            >did:web:rizom.ai · member since Mar 2026</span
+          >
+        </div>
+
+        <div class="cms-layout">
+          <aside class="rail">
+            <section class="rail-group">
+              <div class="rail-label">Content</div>
+              <div class="rail-item">
+                <span class="glyph">·</span>Notes<span class="rail-count"
+                  >42</span
+                >
+              </div>
+              <div class="rail-item">
+                <span class="glyph">·</span>Posts<span class="rail-count"
+                  >18</span
+                >
+              </div>
+              <div class="rail-item">
+                <span class="glyph">·</span>Links<span class="rail-count"
+                  >64</span
+                >
+              </div>
+              <div class="rail-item">
+                <span class="glyph">·</span>Events<span class="rail-count"
+                  >7</span
+                >
+              </div>
+            </section>
+            <section class="rail-group">
+              <div class="rail-label">Federation</div>
+              <div class="rail-item">
+                <span class="glyph">◇</span>Peers<span class="rail-count"
+                  >5</span
+                >
+              </div>
+              <div class="rail-item active">
+                <span class="glyph">⇣</span>Catalogue
+                <span class="rail-count attention-count swap"
+                  ><span class="s-offers">3</span><span class="s-quiet">0</span
+                  ><span class="s-terms">3</span
+                  ><span class="s-revoked">3</span></span
+                >
+              </div>
+              <div class="rail-item">
+                <span class="glyph">§</span>Agreements<span class="rail-count"
+                  >4</span
+                >
+              </div>
+              <div class="rail-item">
+                <span class="glyph">⇡</span>Published<span class="rail-count"
+                  >2</span
+                >
+              </div>
+              <div class="rail-item"><span class="glyph">⌁</span>Rules</div>
+            </section>
+            <section class="rail-group">
+              <div class="rail-label">Operations</div>
+              <div class="rail-item">
+                <span class="glyph">⇥</span>Publishing
+              </div>
+              <div class="rail-item"><span class="glyph">⇄</span>Sync</div>
+            </section>
+          </aside>
+
+          <main class="workspace">
+            <header class="workspace-head">
+              <div>
+                <span class="kicker">Dataspace · TrustFlow</span>
+                <h3>Catalogue</h3>
+                <p>
+                  Offers published by peer networks. Preview is open; detail is
+                  released only against an agreement.
+                </p>
+              </div>
+            </header>
+
+            <div class="workspace-body">
+              <div class="type-tabs">
+                <span class="type-tab active">Events <i>6</i></span>
+                <span class="type-tab">Links <i>—</i></span>
+                <span class="type-tab">Topics <i>—</i></span>
+                <span class="type-tab pending">Projects <i>not yet</i></span>
+                <span class="tab-note"
+                  >asset types with a registered projection</span
+                >
+              </div>
+
+              <div class="tab-panel">
+                <div class="ws-split">
+                  <div>
+                    <div class="only-quiet empty">
+                      <b>Catalogue is quiet.</b>
+                      No new offers since the last refresh. Held agreements are
+                      unaffected.
+                    </div>
+
+                    <div class="offer-grid not-quiet">
+                      <article class="offer">
+                        <div class="offer-body">
+                          <div class="offer-tags">
+                            <span class="chip">Ocean Health</span>
+                            <span class="chip">Climate Finance</span>
+                          </div>
+                          <h4>Regenerative Ocean Finance Gathering</h4>
+                          <p>
+                            Two days of closed-door dealmaking and public panels
+                            connecting blended-finance funders with coastal
+                            restoration ventures across the Atlantic basin.
+                          </p>
+                          <div class="offer-meta">
+                            <span>22–23 Sept 2026</span>
+                            <span>Lisbon, PT</span>
+                            <span>Free</span>
+                            <span>180 attendees</span>
+                          </div>
+                          <div class="why">
+                            <b>Why</b>
+                            <span
+                              >3 member projects tagged coastal-finance; 2
+                              members published on blended finance this
+                              quarter.</span
+                            >
+                          </div>
+                        </div>
+                        <div class="offer-foot">
+                          <div class="pub">
+                            <b>Leading Edge Collective</b>
+                            <span>did:web:leadingedge.example</span>
+                          </div>
+                          <button class="btn primary">Accept</button>
+                        </div>
+                      </article>
+
+                      <article class="offer locked">
+                        <div class="offer-body">
+                          <div class="offer-tags">
+                            <span class="chip lock">Locked</span>
+                            <span class="chip warn">Governance pending</span>
+                          </div>
+                          <h4>Coastal Resilience Investor Roundtable</h4>
+                          <p>
+                            Full description, agenda and audience detail are
+                            shared only with networks that hold an agreement for
+                            this offer.
+                          </p>
+                          <div class="offer-meta">
+                            <span>2 Oct 2026</span>
+                            <span>Auckland, NZ</span>
+                            <span>USD 180</span>
+                            <span class="blur">75 attendees</span>
+                          </div>
+                          <div class="why">
+                            <b>Why</b>
+                            <span
+                              >Publisher governance is pending — your rules hold
+                              pending networks for review.</span
+                            >
+                          </div>
+                        </div>
+                        <div class="offer-foot">
+                          <div class="pub">
+                            <b>Ocean Impact Alliance</b>
+                            <span>did:web:oceanimpact.example</span>
+                          </div>
+                          <button class="btn">Accept to unlock</button>
+                        </div>
+                      </article>
+
+                      <article class="offer">
+                        <div class="offer-body">
+                          <div class="offer-tags">
+                            <span class="chip">Data &amp; AI</span>
+                            <span class="chip">Impact Measurement</span>
+                          </div>
+                          <h4>Frequency Signals: Data &amp; AI for Impact</h4>
+                          <p>
+                            A practitioner forum on applying AI and shared data
+                            infrastructure to impact measurement, with worked
+                            examples from four networks.
+                          </p>
+                          <div class="offer-meta">
+                            <span>27 Aug 2026</span>
+                            <span>Online</span>
+                            <span>Free</span>
+                            <span>600 attendees</span>
+                          </div>
+                          <div class="why">
+                            <b>Why</b>
+                            <span
+                              >Matches the standing rule for free online events;
+                              queued as auto-accept.</span
+                            >
+                          </div>
+                        </div>
+                        <div class="offer-foot">
+                          <div class="pub">
+                            <b>Frequency Network</b>
+                            <span>did:web:frequency.example</span>
+                          </div>
+                          <span class="chip ok">Auto-accept</span>
+                        </div>
+                      </article>
+
+                      <article class="offer">
+                        <div class="offer-body">
+                          <div class="offer-tags">
+                            <span class="chip warn">Terms-bearing</span>
+                            <span class="chip">Systems Change</span>
+                          </div>
+                          <h4>Systems Change Funders Retreat</h4>
+                          <p>
+                            An invitation-only retreat for funders and network
+                            weavers exploring systems-change grantmaking
+                            practice, away from conference-hall noise.
+                          </p>
+                          <div class="offer-meta">
+                            <span>4–6 Nov 2026</span>
+                            <span>Boulder, US</span>
+                            <span>USD 250–450</span>
+                            <span>12% affiliate</span>
+                          </div>
+                          <div class="why">
+                            <b>Why</b>
+                            <span
+                              >Strong fit, but the agreement carries a rate. A
+                              rule can propose this; only you can sign it.</span
+                            >
+                          </div>
+                        </div>
+                        <div class="offer-foot">
+                          <div class="pub">
+                            <b>Leading Edge Collective</b>
+                            <span>did:web:leadingedge.example</span>
+                          </div>
+                          <button class="btn">Review terms</button>
+                        </div>
+                      </article>
+                    </div>
+                  </div>
+
+                  <aside>
+                    <div class="side-card">
+                      <div class="side-head">Peers · governance roster</div>
+                      <div class="peer">
+                        <div>
+                          <b>Leading Edge Collective</b>
+                          <span>did:web:leadingedge.example · active</span>
+                        </div>
+                        <div class="trust">
+                          <i class="on">Auto</i><i>Rev</i><i>Ign</i>
+                        </div>
+                      </div>
+                      <div class="peer">
+                        <div>
+                          <b>Frequency Network</b>
+                          <span>did:web:frequency.example · active</span>
+                        </div>
+                        <div class="trust">
+                          <i class="on">Auto</i><i>Rev</i><i>Ign</i>
+                        </div>
+                      </div>
+                      <div class="peer">
+                        <div>
+                          <b>Ocean Impact Alliance</b>
+                          <span>did:web:oceanimpact.example · pending</span>
+                        </div>
+                        <div class="trust">
+                          <i>Auto</i><i class="on">Rev</i><i>Ign</i>
+                        </div>
+                      </div>
+                      <div class="peer">
+                        <div>
+                          <b>Holomovement</b>
+                          <span>did:web:holomovement.example · active</span>
+                        </div>
+                        <div class="trust">
+                          <i>Auto</i><i class="on">Rev</i><i>Ign</i>
+                        </div>
+                      </div>
+                      <div class="peer">
+                        <div>
+                          <b>CoreNexus</b>
+                          <span>did:web:corenexus.example · active</span>
+                        </div>
+                        <div class="trust">
+                          <i>Auto</i><i>Rev</i><i class="on">Ign</i>
+                        </div>
+                      </div>
+                      <p class="side-note">
+                        Auto / Review / Ignore is <b>triage</b> — how offers are
+                        queued. It is not authorization and never grants a peer
+                        anything. Inbound trust lives in the agent directory,
+                        one approval at a time.
+                      </p>
+                    </div>
+
+                    <div class="side-card">
+                      <div class="side-head">We publish</div>
+                      <div class="peer">
+                        <div>
+                          <b>Planetir Tech Circle — Q3</b>
+                          <span>event · shared · 2 acceptances</span>
+                        </div>
+                        <span class="chip ok">Live</span>
+                      </div>
+                      <div class="peer">
+                        <div>
+                          <b>Community Finance Futures</b>
+                          <span>event · draft</span>
+                        </div>
+                        <span class="chip">Draft</span>
+                      </div>
+                      <p class="side-note">
+                        Publishing to TrustFlow and publishing to the ATProto
+                        network are independent paths. If the dataspace rejects
+                        an offer, the record still reaches the network.
+                      </p>
+                    </div>
+                  </aside>
+                </div>
+              </div>
+
+              <div class="annot">
+                <i>i</i>
+                <p>
+                  <b>Events is a tab, not the room.</b> An asset type appears
+                  here by registering a catalogue projection that says which of
+                  its fields are safe before terms exist and which are released
+                  after. Adding <code>link</code> or <code>topic</code> lights
+                  up a tab. <code>note</code> never gets one — private working
+                  memory has no safe preview, so it is excluded by design rather
+                  than by omission.
+                </p>
+              </div>
+            </div>
+          </main>
+        </div>
+      </div>
+    </section>
+
+    <!-- 03 · AGREEMENTS ----------------------------------------------- -->
+    <section class="specimen" id="agreements">
+      <header class="specimen-head">
+        <span class="spec-num">03</span>
+        <h2>The object the brain does not have yet</h2>
+        <p class="specimen-note">
+          A held agreement is per-asset and carries terms. Our peer trust is
+          per-peer and coarse. This screen is where that gap becomes a feature
+          rather than a mismatch.
+        </p>
+      </header>
+      <div class="screen-label">
+        <span>Desktop · CMS</span><span>1440 × 900 reference</span>
+      </div>
+
+      <div class="console">
+        <header class="console-strip">
+          <span class="console-mark"
+            ><i class="brand-dot"></i><b>Rover</b> <span>Console</span></span
+          >
+          <nav class="surface-nav" aria-label="Console surfaces">
+            <span>Dashboard</span><span class="active">CMS</span
+            ><span>Agents</span>
+          </nav>
+          <span class="spacer"></span>
+          <span class="command"><kbd>⌘K</kbd> Jump</span>
+          <span class="session"
+            ><i class="session-dot"></i><span>Operator</span></span
+          >
+        </header>
+        <div class="crumbbar">
+          Federation / <b>&nbsp;Agreements</b>
+          <span class="capability">last refresh 06:12 · daily</span>
+        </div>
+
+        <div class="cms-layout">
+          <aside class="rail">
+            <section class="rail-group">
+              <div class="rail-label">Federation</div>
+              <div class="rail-item">
+                <span class="glyph">◇</span>Peers<span class="rail-count"
+                  >5</span
+                >
+              </div>
+              <div class="rail-item">
+                <span class="glyph">⇣</span>Catalogue<span class="rail-count"
+                  >6</span
+                >
+              </div>
+              <div class="rail-item active">
+                <span class="glyph">§</span>Agreements<span class="rail-count"
+                  >4</span
+                >
+              </div>
+              <div class="rail-item">
+                <span class="glyph">⇡</span>Published<span class="rail-count"
+                  >2</span
+                >
+              </div>
+              <div class="rail-item"><span class="glyph">⌁</span>Rules</div>
+            </section>
+          </aside>
+
+          <main class="workspace">
+            <header class="workspace-head">
+              <div>
+                <span class="kicker">Dataspace · TrustFlow</span>
+                <h3>Agreements held</h3>
+                <p>
+                  What we are entitled to, on what terms, and whether the other
+                  side still agrees.
+                </p>
+              </div>
+            </header>
+
+            <div class="workspace-body">
+              <div class="ws-split">
+                <div class="agr">
+                  <div class="agr-head">
+                    <span>Asset</span><span>Type</span><span>Publisher</span
+                    ><span>Agreement</span><span>Terms</span><span>State</span>
+                  </div>
+
+                  <div class="agr-row watch">
+                    <div>
+                      <b>Just Transition Finance Forum</b>
+                      <small>accepted 14 Jul 2026</small>
+                    </div>
+                    <span class="chip">event</span>
+                    <div>
+                      Holomovement<small>did:web:holomovement.example</small>
+                    </div>
+                    <div>
+                      <code>JTFF26-Q7M2</code>
+                      <small>sha256:4b1c9e7a02…</small>
+                    </div>
+                    <div>Free · no rate</div>
+                    <div class="swap">
+                      <span class="s-offers chip ok">Active</span>
+                      <span class="s-quiet chip ok">Active</span>
+                      <span class="s-terms chip warn">Stale</span>
+                      <span class="s-revoked chip err">Revoked</span>
+                    </div>
+                  </div>
+
+                  <div class="agr-row">
+                    <div>
+                      <b>Systems Change Funders Retreat</b>
+                      <small>accepted 2 Aug 2026</small>
+                    </div>
+                    <span class="chip">event</span>
+                    <div>
+                      Leading Edge<small>did:web:leadingedge.example</small>
+                    </div>
+                    <div>
+                      <code>SCFR26-B4T9</code>
+                      <small>sha256:9f2a7c4e1b…</small>
+                    </div>
+                    <div>USD 250–450 · 12%</div>
+                    <div><span class="chip ok">Active</span></div>
+                  </div>
+
+                  <div class="agr-row">
+                    <div>
+                      <b>Frequency Signals: Data &amp; AI</b>
+                      <small>accepted 4 Aug 2026 · by rule</small>
+                    </div>
+                    <span class="chip">event</span>
+                    <div>Frequency<small>did:web:frequency.example</small></div>
+                    <div>
+                      <code>FSDA26-K1P8</code>
+                      <small>sha256:2c8e0b5d9a…</small>
+                    </div>
+                    <div>Free · no rate</div>
+                    <div><span class="chip ok">Active</span></div>
+                  </div>
+
+                  <div class="agr-row">
+                    <div>
+                      <b>Deep Tech Climate Capital Forum</b>
+                      <small>accepted 30 Jul 2026</small>
+                    </div>
+                    <span class="chip">event</span>
+                    <div>Frequency<small>did:web:frequency.example</small></div>
+                    <div>
+                      <code>DTCC26-R6V3</code>
+                      <small>sha256:7a4d1f8c33…</small>
+                    </div>
+                    <div>Free · no rate</div>
+                    <div><span class="chip ok">Active</span></div>
+                  </div>
+                </div>
+
+                <aside>
+                  <div class="side-card">
+                    <div class="side-head">Provenance · JTFF26-Q7M2</div>
+                    <div class="prov">
+                      <div class="prov-field">
+                        <span>Agreement id</span>
+                        <b>JTFF26-Q7M2</b>
+                      </div>
+                      <div class="prov-field">
+                        <span>Canonical hash</span>
+                        <b>sha256:4b1c9e7a02d6f8391a5c7e0b2d4f6a819c3e5b7d</b>
+                      </div>
+                      <div class="prov-split">
+                        <div>
+                          <small>Our copy</small>
+                          <b>4b1c9e7a</b>
+                        </div>
+                        <div>
+                          <small>Their copy</small>
+                          <b class="swap"
+                            ><span class="s-offers">4b1c9e7a</span
+                            ><span class="s-quiet">4b1c9e7a</span
+                            ><span class="s-terms">e07b31d5</span
+                            ><span class="s-revoked">—</span></b
+                          >
+                        </div>
+                      </div>
+                    </div>
+                    <p class="side-note">
+                      Held by both parties, amendable by neither. Signed by the
+                      publisher — <b>auditable, not independently verified.</b>
+                      We store the hash as provenance; we do not re-derive it,
+                      and we do not claim more than they do.
+                    </p>
+                  </div>
+
+                  <div class="side-card only-terms">
+                    <div class="side-head">Terms changed</div>
+                    <p class="side-note">
+                      Holomovement republished this agreement. Your copy and
+                      theirs no longer match, so the asset is marked
+                      <b>stale</b> and pulled from every published surface until
+                      you review. The entity is retained — nothing was deleted.
+                    </p>
+                  </div>
+
+                  <div class="side-card only-revoked">
+                    <div class="side-head">Access revoked</div>
+                    <p class="side-note">
+                      The publisher withdrew this offer. The event no longer
+                      appears on the site or in search, but the record and its
+                      agreement history stay in <code>brain-data/</code> so you
+                      can see <b>why</b> something vanished.
+                    </p>
+                  </div>
+                </aside>
+              </div>
+
+              <div class="annot">
+                <i>i</i>
+                <p>
+                  <b>Revocation is visible, never silent.</b> A daily refresh
+                  compares held hashes against the publisher's. Match keeps the
+                  asset live; a mismatch marks it stale; absence marks it
+                  revoked. All three keep the local entity and change only what
+                  the published projection includes — so the site never quietly
+                  disagrees with the dataspace.
+                </p>
+              </div>
+            </div>
+          </main>
+        </div>
+      </div>
+    </section>
+
+    <!-- 04 · RULES ---------------------------------------------------- -->
+    <section class="specimen" id="rules">
+      <header class="specimen-head">
+        <span class="spec-num">04</span>
+        <h2>Triage that can say why</h2>
+        <p class="specimen-note">
+          Their prototype matches metadata and calls the parsing approximate.
+          The same rules read by a brain can weigh them against what the
+          collective actually works on — and show its reasoning.
+        </p>
+      </header>
+      <div class="screen-label">
+        <span>Desktop · CMS</span><span>1440 × 900 reference</span>
+      </div>
+
+      <div class="console">
+        <header class="console-strip">
+          <span class="console-mark"
+            ><i class="brand-dot"></i><b>Rover</b> <span>Console</span></span
+          >
+          <nav class="surface-nav" aria-label="Console surfaces">
+            <span>Dashboard</span><span class="active">CMS</span
+            ><span>Agents</span>
+          </nav>
+          <span class="spacer"></span>
+          <span class="command"><kbd>⌘K</kbd> Jump</span>
+          <span class="session"
+            ><i class="session-dot"></i><span>Operator</span></span
+          >
+        </header>
+        <div class="crumbbar">
+          Federation / <b>&nbsp;Rules</b>
+          <span class="capability">applies to the next incoming offer</span>
+        </div>
+
+        <div class="cms-layout">
+          <aside class="rail">
+            <section class="rail-group">
+              <div class="rail-label">Federation</div>
+              <div class="rail-item">
+                <span class="glyph">◇</span>Peers<span class="rail-count"
+                  >5</span
+                >
+              </div>
+              <div class="rail-item">
+                <span class="glyph">⇣</span>Catalogue<span class="rail-count"
+                  >6</span
+                >
+              </div>
+              <div class="rail-item">
+                <span class="glyph">§</span>Agreements<span class="rail-count"
+                  >4</span
+                >
+              </div>
+              <div class="rail-item active">
+                <span class="glyph">⌁</span>Rules
+              </div>
+            </section>
+          </aside>
+
+          <main class="workspace">
+            <header class="workspace-head">
+              <div>
+                <span class="kicker">Dataspace · automation</span>
+                <h3>Triage rules</h3>
+                <p>
+                  Write instructions in plain language. The brain applies them
+                  as offers arrive, with your content as context.
+                </p>
+              </div>
+            </header>
+
+            <div class="workspace-body">
+              <div class="rules-grid">
+                <div class="rule-box">
+                  <pre class="rule-text">
+Accept free online events from networks we
+already hold an agreement with.
+
+Anything involving investment, venture capital
+or fundraising goes to review — I want to read
+those myself.
+
+Hold offers from networks whose governance is
+pending until they are confirmed active.
+
+Surface anything that overlaps what our members
+are actually working on, even if it costs money.</pre>
+                  <div class="rule-foot">
+                    <span>Changes take effect on the next incoming offer</span>
+                    <button class="btn primary">Save rules</button>
+                  </div>
+                </div>
+
+                <div class="rule-box">
+                  <div class="side-head">Preview · today's catalogue</div>
+                  <div class="triage-row">
+                    <div>
+                      <b>Frequency Signals: Data &amp; AI for Impact</b>
+                      <span class="reason"
+                        >Free, online, and we hold FSDA26 with Frequency
+                        already. Rule 1 applies cleanly.</span
+                      >
+                    </div>
+                    <span class="verdict chip ok">Auto-accept</span>
+                  </div>
+                  <div class="triage-row">
+                    <div>
+                      <b>Regenerative Ocean Finance Gathering</b>
+                      <span class="reason"
+                        >Costs nothing but is blended-finance framed. Rule 2
+                        would say review; rule 4 says surface it — 3 member
+                        projects tag coastal-finance. Escalated, not
+                        auto-accepted.</span
+                      >
+                    </div>
+                    <span class="verdict chip warn">Review</span>
+                  </div>
+                  <div class="triage-row">
+                    <div>
+                      <b>Coastal Resilience Investor Roundtable</b>
+                      <span class="reason"
+                        >Ocean Impact Alliance governance is pending. Rule 3
+                        holds it regardless of fit.</span
+                      >
+                    </div>
+                    <span class="verdict chip warn">Hold</span>
+                  </div>
+                  <div class="triage-row">
+                    <div>
+                      <b>Deep Tech Climate Capital Forum</b>
+                      <span class="reason"
+                        >LP/GP underwriting session. Rule 2 matches on
+                        &ldquo;venture capital&rdquo;, and no member has
+                        published on deep tech in 9 months.</span
+                      >
+                    </div>
+                    <span class="verdict chip">Ignore</span>
+                  </div>
+                  <div class="triage-row">
+                    <div>
+                      <b>Systems Change Funders Retreat</b>
+                      <span class="reason"
+                        >USD 250–450 with a 12% affiliate rate. Terms-bearing —
+                        never auto-accepted, whatever the rules say.</span
+                      >
+                    </div>
+                    <span class="verdict chip warn">Confirm</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="annot">
+                <i>i</i>
+                <p>
+                  <b>The reason column is the whole point.</b> A metadata
+                  matcher can tell you a tag matched. A brain can tell you three
+                  members are working on this and one of them asked about Lisbon
+                  last week. That is the capability the dataspace cannot supply
+                  for itself — and it is why this is an integration rather than
+                  a feed subscription.
+                </p>
+              </div>
+            </div>
+          </main>
+        </div>
+      </div>
+    </section>
+
+    <!-- 05 · DECISIONS ------------------------------------------------ -->
+    <section class="decisions" id="decisions">
+      <article class="decision">
+        <small>01 · Levels</small>
+        <h3>Inbox decides, workspace holds</h3>
+        <p>
+          The inbox is for the moment of judgement and is deliberately generic.
+          The workspace is for the standing relationship — peers, terms,
+          provenance. Splitting them keeps attention short-lived and the
+          relationship durable.
+        </p>
+      </article>
+      <article class="decision">
+        <small>02 · Naming</small>
+        <h3>Dataspace, not events</h3>
+        <p>
+          An events workspace would bake the demo vertical into the UI and force
+          a second workspace the moment we share a link. Asset types are tabs
+          inside one dataspace surface; events is simply the first with a
+          registered projection.
+        </p>
+      </article>
+      <article class="decision">
+        <small>03 · Trust</small>
+        <h3>Triage is not authorization</h3>
+        <p>
+          Auto / Review / Ignore governs queueing only. Inbound trust stays with
+          the agent directory's one approval per peer. The two are never merged,
+          so a triage preference can never mint access.
+        </p>
+      </article>
+      <article class="decision">
+        <small>04 · Provenance</small>
+        <h3>Claim exactly what they claim</h3>
+        <p>
+          We store the agreement id and canonical hash, show both copies side by
+          side, and repeat their own caveat: auditable, not independently
+          verified. No re-derivation, no stronger claim than the dataspace
+          makes.
+        </p>
+      </article>
+    </section>
+
+    <footer class="review-foot">
+      Proposed · Dataspaces &amp; Brains · companion to
+      docs/plans/trustflow-federation-integration.md
+    </footer>
+
+    <script>
+      const root = document.documentElement;
+      const climateButtons = [
+        ...document.querySelectorAll("[data-climate-choice]"),
+      ];
+      const scenarioButtons = [
+        ...document.querySelectorAll("[data-scenario-choice]"),
+      ];
+
+      function setClimate(climate) {
+        root.dataset.climate = climate;
+        climateButtons.forEach((button) =>
+          button.classList.toggle(
+            "is-active",
+            button.dataset.climateChoice === climate,
+          ),
+        );
+      }
+
+      function setScenario(scenario) {
+        root.dataset.scenario = scenario;
+        scenarioButtons.forEach((button) =>
+          button.classList.toggle(
+            "is-active",
+            button.dataset.scenarioChoice === scenario,
+          ),
+        );
+      }
+
+      climateButtons.forEach((button) =>
+        button.addEventListener("click", () =>
+          setClimate(button.dataset.climateChoice),
+        ),
+      );
+      scenarioButtons.forEach((button) =>
+        button.addEventListener("click", () =>
+          setScenario(button.dataset.scenarioChoice),
+        ),
+      );
+    </script>
+  </body>
+</html>

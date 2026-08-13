@@ -209,7 +209,7 @@ describe("bundled process supervisor", () => {
     expect(await supervised).toEqual({ success: true });
   });
 
-  it("pauses crash-looping workers when the rolling budget is exhausted", async () => {
+  it("fails and shuts down when the rolling worker budget is exhausted", async () => {
     const harness = createHarness();
     const supervised = supervise(harness);
     const web = harness.children[0];
@@ -234,17 +234,52 @@ describe("bundled process supervisor", () => {
 
     expect(harness.spawnImpl).toHaveBeenCalledTimes(4);
     expect(harness.reportIncident).toHaveBeenCalledWith({
-      type: "worker-supervision-paused",
+      type: "worker-supervision-exhausted",
       attempts: 3,
-      retryAt: 3_600,
+      windowMs: 3_600,
     });
+    expect(web.kill).toHaveBeenCalledWith("SIGTERM");
     expect(
       [...harness.timers.values()].some((timer) => timer.delayMs === 3_570),
-    ).toBe(true);
+    ).toBe(false);
 
-    harness.processEvents.emit("SIGTERM");
     web.emit("close", null, "SIGTERM");
-    expect(await supervised).toEqual({ success: true });
+    expect(await supervised).toEqual({
+      success: false,
+      message: "Brain worker restart budget exhausted after 3 attempts",
+      exitCode: 1,
+    });
+  });
+
+  it("keeps ready worker starts in the rolling restart budget", async () => {
+    const harness = createHarness();
+    const supervised = supervise(harness);
+    const web = harness.children[0];
+    if (!web) throw new Error("Expected web child");
+    web.emit("message", { type: "runtime-ready" });
+
+    for (const [index, now] of [
+      [1, 10],
+      [2, 20],
+      [3, 30],
+    ] as const) {
+      const child = harness.children[index];
+      if (!child) throw new Error(`Expected worker ${index}`);
+      child.emit("message", { type: "worker-ready" });
+      child.emit("close", 1, null);
+      if (index < 3) {
+        harness.advanceTo(now);
+        harness.fireTimer(10);
+      }
+    }
+
+    expect(harness.reportIncident).toHaveBeenCalledWith({
+      type: "worker-supervision-exhausted",
+      attempts: 3,
+      windowMs: 3_600,
+    });
+    web.emit("close", null, "SIGTERM");
+    expect((await supervised).success).toBe(false);
   });
 
   it("kills a worker that misses its startup deadline and schedules recovery", async () => {

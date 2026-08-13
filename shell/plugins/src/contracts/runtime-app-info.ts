@@ -72,6 +72,42 @@ export const entityCountSchema: z.ZodObject<{
 
 export type EntityCount = z.output<typeof entityCountSchema>;
 
+export const backgroundWorkInfoSchema: z.ZodType<{
+  status: "operational" | "degraded";
+  reasons: string[];
+  worker: {
+    state: "active" | "missing" | "stale";
+    activeSessions: number;
+    staleSessions: number;
+    latestHeartbeatAgeMs: number | null;
+  };
+  queue: {
+    duePending: number;
+    processing: number;
+    oldestDuePendingAgeMs: number | null;
+    latestClaimAgeMs: number | null;
+    stalled: boolean;
+  };
+}> = z.object({
+  status: z.enum(["operational", "degraded"]),
+  reasons: z.array(z.string()),
+  worker: z.object({
+    state: z.enum(["active", "missing", "stale"]),
+    activeSessions: z.number().int().nonnegative(),
+    staleSessions: z.number().int().nonnegative(),
+    latestHeartbeatAgeMs: z.number().nonnegative().nullable(),
+  }),
+  queue: z.object({
+    duePending: z.number().int().nonnegative(),
+    processing: z.number().int().nonnegative(),
+    oldestDuePendingAgeMs: z.number().nonnegative().nullable(),
+    latestClaimAgeMs: z.number().nonnegative().nullable(),
+    stalled: z.boolean(),
+  }),
+});
+
+export type BackgroundWorkInfo = z.output<typeof backgroundWorkInfoSchema>;
+
 export const appInfoSchema: z.ZodObject<{
   model: z.ZodString;
   version: z.ZodString;
@@ -79,6 +115,7 @@ export const appInfoSchema: z.ZodObject<{
   entities: z.ZodNumber;
   entityCounts: z.ZodArray<typeof entityCountSchema>;
   embeddings: z.ZodNumber;
+  backgroundWork: typeof backgroundWorkInfoSchema;
   ai: z.ZodObject<{
     model: z.ZodString;
     embeddingModel: z.ZodString;
@@ -93,6 +130,7 @@ export const appInfoSchema: z.ZodObject<{
   entities: z.number(),
   entityCounts: z.array(entityCountSchema),
   embeddings: z.number(),
+  backgroundWork: backgroundWorkInfoSchema,
   ai: z.object({
     model: z.string(),
     embeddingModel: z.string(),

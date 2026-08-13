@@ -169,6 +169,43 @@ type ProjectionWavesTable = SQLiteTableWithColumns<{
   dialect: "sqlite";
 }>;
 
+type ProjectionIncidentsTable = SQLiteTableWithColumns<{
+  name: "projection_incidents";
+  schema: undefined;
+  columns: {
+    waveId: ProjectionTextColumn<
+      "projection_incidents",
+      "wave_id",
+      true,
+      false,
+      true
+    >;
+    ruleId: ProjectionTextColumn<"projection_incidents", "rule_id", true>;
+    jobId: ProjectionTextColumn<"projection_incidents", "job_id", false>;
+    failureReason: ProjectionTextColumn<
+      "projection_incidents",
+      "failure_reason",
+      true
+    >;
+    recoveryGeneration: ProjectionIntegerColumn<
+      "projection_incidents",
+      "recovery_generation",
+      true
+    >;
+    createdAt: ProjectionIntegerColumn<
+      "projection_incidents",
+      "created_at",
+      true
+    >;
+    resolvedAt: ProjectionIntegerColumn<
+      "projection_incidents",
+      "resolved_at",
+      false
+    >;
+  };
+  dialect: "sqlite";
+}>;
+
 type ProjectionWaveInputsTable = SQLiteTableWithColumns<{
   name: "projection_wave_inputs";
   schema: undefined;
@@ -303,6 +340,27 @@ export const projectionWaves: ProjectionWavesTable = sqliteTable(
   },
 );
 
+export const projectionIncidents: ProjectionIncidentsTable = sqliteTable(
+  "projection_incidents",
+  {
+    waveId: text("wave_id")
+      .primaryKey()
+      .references(() => projectionWaves.id, { onDelete: "cascade" }),
+    ruleId: text("rule_id").notNull(),
+    jobId: text("job_id"),
+    failureReason: text("failure_reason").notNull(),
+    recoveryGeneration: integer("recovery_generation").notNull(),
+    createdAt: integer("created_at").notNull(),
+    resolvedAt: integer("resolved_at"),
+  },
+  (table) => ({
+    unresolvedIdx: index("projection_incidents_unresolved_idx").on(
+      table.resolvedAt,
+      table.createdAt,
+    ),
+  }),
+);
+
 export const projectionWaveInputs: ProjectionWaveInputsTable = sqliteTable(
   "projection_wave_inputs",
   {
@@ -374,6 +432,7 @@ export const projectionRuleMemos: ProjectionRuleMemosTable = sqliteTable(
 );
 
 export type ProjectionDirtyInput = typeof projectionDirtyInputs.$inferSelect;
+export type ProjectionIncident = typeof projectionIncidents.$inferSelect;
 export type ProjectionWave = typeof projectionWaves.$inferSelect;
 export type ProjectionWaveInput = typeof projectionWaveInputs.$inferSelect;
 export type ProjectionWaveRule = typeof projectionWaveRules.$inferSelect;

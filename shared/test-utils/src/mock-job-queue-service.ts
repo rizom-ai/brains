@@ -184,6 +184,9 @@ export function createMockJobQueueService(
           },
           byType: [],
           oldestPendingAgeMs: null,
+          duePending: 0,
+          oldestDuePendingAgeMs: null,
+          latestClaimAgeMs: null,
           oldestProcessingAgeMs: null,
           staleLeaseCount: 0,
           workerSessions: {

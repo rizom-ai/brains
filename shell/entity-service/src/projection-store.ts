@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, lte, ne, sql } from "drizzle-orm";
+import { and, asc, desc, eq, isNull, lte, ne, sql } from "drizzle-orm";
 import { computeContentHash } from "@brains/utils/hash";
 import { SerialQueue } from "@brains/utils/serial-queue";
 import { z } from "@brains/utils/zod";
@@ -10,12 +10,14 @@ import {
 } from "./projection-contracts";
 import {
   projectionDirtyInputs,
+  projectionIncidents,
   projectionRuleMemos,
   projectionWaveInputs,
   projectionWaveRules,
   projectionWaves,
   type ProjectionChangedTarget,
   type ProjectionDirtyInput,
+  type ProjectionIncident,
   type ProjectionRuleMemo,
   type ProjectionWave,
   type ProjectionWaveInput,
@@ -29,6 +31,14 @@ const dirtyInputSchema = z.strictObject({
   revision: z.string().trim().min(1),
   operation: z.enum(["upsert", "delete"]),
   markedAt: z.number().int().nonnegative(),
+});
+
+const projectionIncidentInputSchema = z.strictObject({
+  waveId: z.string().trim().min(1),
+  ruleId: z.string().trim().min(1),
+  jobId: z.string().trim().min(1).nullable(),
+  failureReason: z.string().trim().min(1).max(500),
+  failedAt: z.number().int().nonnegative(),
 });
 
 const memoKeySchema = z.strictObject({
@@ -74,6 +84,24 @@ export interface ProjectionWaveRuleInput {
   ruleId: string;
   targetType: string;
   level: number;
+}
+
+export interface ProjectionIncidentInput {
+  waveId: string;
+  ruleId: string;
+  jobId: string | null;
+  failureReason: string;
+  failedAt: number;
+}
+
+export interface ProjectionIncidentDiagnostics {
+  total: number;
+  incidents: ProjectionIncident[];
+}
+
+interface FailedProjectionWave {
+  wave: ProjectionWave;
+  recoveryGeneration: number;
 }
 
 export interface ApplyProjectionRuleResultInput {
@@ -306,6 +334,15 @@ export class ProjectionStore {
           `Failed to mark projection wave "${parsedWaveId}" completed`,
         );
       }
+      await transaction
+        .update(projectionIncidents)
+        .set({ resolvedAt: parsedCompletedAt })
+        .where(
+          and(
+            isNull(projectionIncidents.resolvedAt),
+            lte(projectionIncidents.recoveryGeneration, wave.cutoffGeneration),
+          ),
+        );
       return completedWave;
     });
   }
@@ -316,57 +353,159 @@ export class ProjectionStore {
   ): Promise<ProjectionWave> {
     const parsedWaveId = z.string().trim().min(1).parse(waveId);
     const parsedFailedAt = z.number().int().nonnegative().parse(failedAt);
+    return this.runTransaction(
+      async (transaction) =>
+        (
+          await this.failWaveInTransaction(
+            transaction,
+            parsedWaveId,
+            parsedFailedAt,
+          )
+        ).wave,
+    );
+  }
+
+  public async failWaveWithIncident(
+    input: ProjectionIncidentInput,
+  ): Promise<ProjectionWave> {
+    const parsed = projectionIncidentInputSchema.parse(input);
     return this.runTransaction(async (transaction) => {
-      const waveRows = await transaction
-        .select()
-        .from(projectionWaves)
-        .where(eq(projectionWaves.id, parsedWaveId))
-        .limit(1);
-      const wave = waveRows[0];
-      if (!wave) {
-        throw new Error(`Projection wave "${parsedWaveId}" does not exist`);
-      }
-      if (wave.status === "completed") {
-        throw new Error(`Projection wave "${parsedWaveId}" already completed`);
-      }
-      if (wave.status === "failed") return wave;
-
-      const claimedInputs = await transaction
-        .select()
-        .from(projectionWaveInputs)
-        .where(eq(projectionWaveInputs.waveId, parsedWaveId));
-      const pendingInputs = await transaction
-        .select()
-        .from(projectionDirtyInputs);
-      const pendingKeys = new Set(pendingInputs.map(inputKey));
-      const requeued = claimedInputs.filter(
-        (input) => !pendingKeys.has(inputKey(input)),
+      const failure = await this.failWaveInTransaction(
+        transaction,
+        parsed.waveId,
+        parsed.failedAt,
       );
-      if (requeued.length > 0) {
-        await transaction.insert(projectionDirtyInputs).values(
-          requeued.map((input) => ({
-            sourceType: input.sourceType,
-            sourceId: input.sourceId,
-            revision: input.revision,
-            operation: input.operation,
-            markedAt: parsedFailedAt,
-          })),
-        );
-      }
-
-      const updated = await transaction
-        .update(projectionWaves)
-        .set({ status: "failed", completedAt: parsedFailedAt })
-        .where(eq(projectionWaves.id, parsedWaveId))
-        .returning();
-      const failedWave = updated[0];
-      if (!failedWave) {
+      const updatedRules = await transaction
+        .update(projectionWaveRules)
+        .set({ status: "failed" })
+        .where(
+          and(
+            eq(projectionWaveRules.waveId, parsed.waveId),
+            eq(projectionWaveRules.ruleId, parsed.ruleId),
+          ),
+        )
+        .returning({ ruleId: projectionWaveRules.ruleId });
+      if (updatedRules.length === 0) {
         throw new Error(
-          `Failed to mark projection wave "${parsedWaveId}" failed`,
+          `Projection rule "${parsed.ruleId}" is not scheduled for wave "${parsed.waveId}"`,
         );
       }
-      return failedWave;
+      await transaction
+        .insert(projectionIncidents)
+        .values({
+          waveId: parsed.waveId,
+          ruleId: parsed.ruleId,
+          jobId: parsed.jobId,
+          failureReason: parsed.failureReason,
+          recoveryGeneration: failure.recoveryGeneration,
+          createdAt: parsed.failedAt,
+          resolvedAt: null,
+        })
+        .onConflictDoNothing({ target: projectionIncidents.waveId });
+      return failure.wave;
     });
+  }
+
+  public async getUnresolvedProjectionIncidentDiagnostics(
+    limit: number = 10,
+  ): Promise<ProjectionIncidentDiagnostics> {
+    const parsedLimit = z.number().int().positive().max(100).parse(limit);
+    const [countRows, incidents] = await Promise.all([
+      this.db
+        .select({ total: sql<number>`count(*)` })
+        .from(projectionIncidents)
+        .where(isNull(projectionIncidents.resolvedAt)),
+      this.db
+        .select()
+        .from(projectionIncidents)
+        .where(isNull(projectionIncidents.resolvedAt))
+        .orderBy(desc(projectionIncidents.createdAt))
+        .limit(parsedLimit),
+    ]);
+    return {
+      total: Number(countRows[0]?.total ?? 0),
+      incidents,
+    };
+  }
+
+  private async failWaveInTransaction(
+    transaction: EntityTransaction,
+    waveId: string,
+    failedAt: number,
+  ): Promise<FailedProjectionWave> {
+    const waveRows = await transaction
+      .select()
+      .from(projectionWaves)
+      .where(eq(projectionWaves.id, waveId))
+      .limit(1);
+    const wave = waveRows[0];
+    if (!wave) {
+      throw new Error(`Projection wave "${waveId}" does not exist`);
+    }
+    if (wave.status === "completed") {
+      throw new Error(`Projection wave "${waveId}" already completed`);
+    }
+    if (wave.status === "failed") {
+      return {
+        wave,
+        recoveryGeneration: await this.getRecoveryGeneration(
+          transaction,
+          wave.cutoffGeneration,
+        ),
+      };
+    }
+
+    const claimedInputs = await transaction
+      .select()
+      .from(projectionWaveInputs)
+      .where(eq(projectionWaveInputs.waveId, waveId));
+    const pendingInputs = await transaction
+      .select()
+      .from(projectionDirtyInputs);
+    const pendingKeys = new Set(pendingInputs.map(inputKey));
+    const requeued = claimedInputs.filter(
+      (input) => !pendingKeys.has(inputKey(input)),
+    );
+    if (requeued.length > 0) {
+      await transaction.insert(projectionDirtyInputs).values(
+        requeued.map((input) => ({
+          sourceType: input.sourceType,
+          sourceId: input.sourceId,
+          revision: input.revision,
+          operation: input.operation,
+          markedAt: failedAt,
+        })),
+      );
+    }
+
+    const recoveryGeneration = await this.getRecoveryGeneration(
+      transaction,
+      wave.cutoffGeneration,
+    );
+    const updated = await transaction
+      .update(projectionWaves)
+      .set({ status: "failed", completedAt: failedAt })
+      .where(eq(projectionWaves.id, waveId))
+      .returning();
+    const failedWave = updated[0];
+    if (!failedWave) {
+      throw new Error(`Failed to mark projection wave "${waveId}" failed`);
+    }
+    return { wave: failedWave, recoveryGeneration };
+  }
+
+  private async getRecoveryGeneration(
+    transaction: EntityTransaction,
+    fallback: number,
+  ): Promise<number> {
+    const rows = await transaction
+      .select({
+        generation: sql<
+          number | null
+        >`max(${projectionDirtyInputs.generation})`,
+      })
+      .from(projectionDirtyInputs);
+    return Number(rows[0]?.generation ?? fallback);
   }
 
   public async putWaveRules(
