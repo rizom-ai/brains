@@ -879,6 +879,11 @@ describe("initPilotRepo", () => {
     // An unconfigured pilot must fail with a pointer to the playbook, not with
     // an opaque token-minting error on every scheduled run.
     expect(upgradeWorkflow).toContain("APP_ID: ${{ vars.OPS_UPGRADE_APP_ID }}");
+    // A missing repository secret must fail before checkout, not after the
+    // freshly installed package has already refreshed the scaffold.
+    expect(upgradeWorkflow).toContain(
+      "HAS_PRIVATE_KEY: ${{ secrets.OPS_UPGRADE_APP_PRIVATE_KEY != '' }}",
+    );
     expect(upgradeWorkflow).toContain("docs/operator-playbook.md");
     expect(upgradeWorkflow).toContain(
       "GH_TOKEN: ${{ steps.upgrade-token.outputs.token }}",
@@ -887,12 +892,22 @@ describe("initPilotRepo", () => {
     const upgradeSteps = upgradeManifest.jobs.upgrade.steps as Array<{
       id?: string;
       name?: string;
+      uses?: string;
     }>;
     expect(
       upgradeSteps.findIndex((step) => step.id === "upgrade-token"),
     ).toBeGreaterThan(
       upgradeSteps.findIndex(
         (step) => step.name === "Upgrade operator tooling",
+      ),
+    );
+    const guardIndex = upgradeSteps.findIndex(
+      (step) => step.name === "Require upgrade App configuration",
+    );
+    expect(guardIndex).toBeGreaterThanOrEqual(0);
+    expect(guardIndex).toBeLessThan(
+      upgradeSteps.findIndex((step) =>
+        step.uses?.startsWith("actions/checkout"),
       ),
     );
     // The upgrade step executes freshly published @rizom/ops code, so no
