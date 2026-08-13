@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "6a555a05-6ab0-4500-b260-daec0a6f1e15",
+  "id": "23d06b9c-0088-4ab8-a187-7b2a38a11279",
   "prevId": "414fe73f-312f-48af-bf9d-58f6a907e595",
   "tables": {
     "entities": {
@@ -210,6 +210,13 @@
         "failure_reason": {
           "name": "failure_reason",
           "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "recovery_generation": {
+          "name": "recovery_generation",
+          "type": "integer",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false

@@ -94,6 +94,16 @@ export interface ProjectionIncidentInput {
   failedAt: number;
 }
 
+export interface ProjectionIncidentDiagnostics {
+  total: number;
+  incidents: ProjectionIncident[];
+}
+
+interface FailedProjectionWave {
+  wave: ProjectionWave;
+  recoveryGeneration: number;
+}
+
 export interface ApplyProjectionRuleResultInput {
   waveId: string;
   ruleId: string;
@@ -330,7 +340,7 @@ export class ProjectionStore {
         .where(
           and(
             isNull(projectionIncidents.resolvedAt),
-            lte(projectionIncidents.createdAt, wave.startedAt),
+            lte(projectionIncidents.recoveryGeneration, wave.cutoffGeneration),
           ),
         );
       return completedWave;
@@ -343,8 +353,15 @@ export class ProjectionStore {
   ): Promise<ProjectionWave> {
     const parsedWaveId = z.string().trim().min(1).parse(waveId);
     const parsedFailedAt = z.number().int().nonnegative().parse(failedAt);
-    return this.runTransaction((transaction) =>
-      this.failWaveInTransaction(transaction, parsedWaveId, parsedFailedAt),
+    return this.runTransaction(
+      async (transaction) =>
+        (
+          await this.failWaveInTransaction(
+            transaction,
+            parsedWaveId,
+            parsedFailedAt,
+          )
+        ).wave,
     );
   }
 
@@ -353,7 +370,7 @@ export class ProjectionStore {
   ): Promise<ProjectionWave> {
     const parsed = projectionIncidentInputSchema.parse(input);
     return this.runTransaction(async (transaction) => {
-      const failedWave = await this.failWaveInTransaction(
+      const failure = await this.failWaveInTransaction(
         transaction,
         parsed.waveId,
         parsed.failedAt,
@@ -380,29 +397,42 @@ export class ProjectionStore {
           ruleId: parsed.ruleId,
           jobId: parsed.jobId,
           failureReason: parsed.failureReason,
+          recoveryGeneration: failure.recoveryGeneration,
           createdAt: parsed.failedAt,
           resolvedAt: null,
         })
         .onConflictDoNothing({ target: projectionIncidents.waveId });
-      return failedWave;
+      return failure.wave;
     });
   }
 
-  public async listUnresolvedProjectionIncidents(): Promise<
-    ProjectionIncident[]
-  > {
-    return this.db
-      .select()
-      .from(projectionIncidents)
-      .where(isNull(projectionIncidents.resolvedAt))
-      .orderBy(asc(projectionIncidents.createdAt));
+  public async getUnresolvedProjectionIncidentDiagnostics(
+    limit: number = 10,
+  ): Promise<ProjectionIncidentDiagnostics> {
+    const parsedLimit = z.number().int().positive().max(100).parse(limit);
+    const [countRows, incidents] = await Promise.all([
+      this.db
+        .select({ total: sql<number>`count(*)` })
+        .from(projectionIncidents)
+        .where(isNull(projectionIncidents.resolvedAt)),
+      this.db
+        .select()
+        .from(projectionIncidents)
+        .where(isNull(projectionIncidents.resolvedAt))
+        .orderBy(desc(projectionIncidents.createdAt))
+        .limit(parsedLimit),
+    ]);
+    return {
+      total: Number(countRows[0]?.total ?? 0),
+      incidents,
+    };
   }
 
   private async failWaveInTransaction(
     transaction: EntityTransaction,
     waveId: string,
     failedAt: number,
-  ): Promise<ProjectionWave> {
+  ): Promise<FailedProjectionWave> {
     const waveRows = await transaction
       .select()
       .from(projectionWaves)
@@ -415,7 +445,15 @@ export class ProjectionStore {
     if (wave.status === "completed") {
       throw new Error(`Projection wave "${waveId}" already completed`);
     }
-    if (wave.status === "failed") return wave;
+    if (wave.status === "failed") {
+      return {
+        wave,
+        recoveryGeneration: await this.getRecoveryGeneration(
+          transaction,
+          wave.cutoffGeneration,
+        ),
+      };
+    }
 
     const claimedInputs = await transaction
       .select()
@@ -440,6 +478,10 @@ export class ProjectionStore {
       );
     }
 
+    const recoveryGeneration = await this.getRecoveryGeneration(
+      transaction,
+      wave.cutoffGeneration,
+    );
     const updated = await transaction
       .update(projectionWaves)
       .set({ status: "failed", completedAt: failedAt })
@@ -449,7 +491,21 @@ export class ProjectionStore {
     if (!failedWave) {
       throw new Error(`Failed to mark projection wave "${waveId}" failed`);
     }
-    return failedWave;
+    return { wave: failedWave, recoveryGeneration };
+  }
+
+  private async getRecoveryGeneration(
+    transaction: EntityTransaction,
+    fallback: number,
+  ): Promise<number> {
+    const rows = await transaction
+      .select({
+        generation: sql<
+          number | null
+        >`max(${projectionDirtyInputs.generation})`,
+      })
+      .from(projectionDirtyInputs);
+    return Number(rows[0]?.generation ?? fallback);
   }
 
   public async putWaveRules(

@@ -157,8 +157,9 @@ process from `JobQueueService.getDiagnostics()` — the same durable source used
 - a compact healthy/degraded summary using the same interpretation as runtime operational health.
 
 Extract/reuse a pure durable-diagnostics summary helper so `system_status` and runtime health cannot
-drift into different worker or queue interpretations. Do **not** wire `JobQueueWorkerStats` into the
-web process. Those stats and the internal
+drift into different worker or queue interpretations. Persist each session's expiry alongside its
+heartbeat so diagnostics and attempt fencing honor that worker's configured timeout rather than a
+reader-side default. Do **not** wire `JobQueueWorkerStats` into the web process. Those stats and the internal
 `markUnhealthy` reason live in the separate worker child and are unavailable after it exits. The
 durable status can truthfully report reasons such as `No live worker session`, not an unavailable
 in-memory crash reason.
@@ -218,9 +219,11 @@ Treat a terminal job as retry-exhausted: do **not** recursively enqueue replacem
 terminal callback. Instead, make terminal reconciliation persist a structured projection incident
 in the projection store containing the wave id, rule id, terminal job id, and sanitized failure
 reason while atomically failing the wave and preserving its inputs for the existing later-activation
-replay path. Do not keep the incident only in job or process memory. Runtime health reports the
-unresolved incident even when there is no active wave. Completing a later wave that covers the
-requeued inputs resolves the incident.
+replay path. Record the requeued input high-water generation on the incident; completing a later wave
+resolves only incidents whose recovery generation its cutoff covers, without relying on process
+clocks. Do not keep the incident only in job or process memory. Runtime health reports the unresolved
+incident count even when there is no active wave, while bounding serialized incident details to the
+10 most recent records.
 
 Both the direct terminal callback and scheduler reconciliation of a stranded queued rule must call
 the same idempotent persistence path. This closes the loudness gap without creating an unbounded
@@ -228,8 +231,9 @@ wave-replacement loop.
 
 Tests: both terminal-callback and stranded-rule reconciliation persist one incident; repeated
 reconciliation is idempotent; no immediate replacement wave is enqueued; restart/later activation
-can replay the preserved inputs; a successful covering wave resolves the incident and
-`/health/operate` returns operational.
+can replay the preserved inputs; clock skew does not prevent a successful covering wave from
+resolving it; incident detail output remains bounded; and `/health/operate` returns
+operational.
 
 ### Phase 5 — Deploy verifies operational health, not just readiness
 

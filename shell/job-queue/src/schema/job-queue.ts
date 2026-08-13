@@ -156,6 +156,12 @@ type JobWorkerSessionsTable = SQLiteTableWithColumns<{
       "heartbeatAt",
       true
     >;
+    expiresAt: SqliteIntegerColumn<
+      "job_worker_sessions",
+      "expiresAt",
+      true,
+      true
+    >;
   };
   dialect: "sqlite";
 }>;
@@ -296,11 +302,13 @@ export const jobWorkerSessions: JobWorkerSessionsTable = sqliteTable(
     sessionId: text("sessionId").notNull().unique(),
     startedAt: integer("startedAt").notNull(),
     heartbeatAt: integer("heartbeatAt").notNull(),
+    expiresAt: integer("expiresAt").notNull().default(0),
   },
   (table) => ({
     heartbeatIdx: index("idx_job_worker_sessions_heartbeat").on(
       table.heartbeatAt,
     ),
+    expiresIdx: index("idx_job_worker_sessions_expires").on(table.expiresAt),
   }),
 );
 

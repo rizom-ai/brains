@@ -241,7 +241,7 @@ describe("ProjectionStore", () => {
     ]);
   });
 
-  it("persists one terminal incident and resolves it after a later successful wave", async () => {
+  it("persists idempotent incidents, bounds details, and resolves by coverage", async () => {
     await store.markDirty({
       sourceType: "document",
       sourceId: "doc-incident",
@@ -274,30 +274,70 @@ describe("ProjectionStore", () => {
       failedAt: 31,
     });
 
-    expect(await store.listUnresolvedProjectionIncidents()).toEqual([
-      {
-        waveId: "wave-failed",
-        ruleId: "topics",
-        jobId: "job-terminal",
-        failureReason: "Projection rule job exhausted retries",
-        createdAt: 30,
-        resolvedAt: null,
-      },
-    ]);
+    expect(await store.getUnresolvedProjectionIncidentDiagnostics()).toEqual({
+      total: 1,
+      incidents: [
+        {
+          waveId: "wave-failed",
+          ruleId: "topics",
+          jobId: "job-terminal",
+          failureReason: "Projection rule job exhausted retries",
+          recoveryGeneration: 2,
+          createdAt: 30,
+          resolvedAt: null,
+        },
+      ],
+    });
 
     const restartedStore = new ProjectionStore(connection.db);
     expect(
-      await restartedStore.listUnresolvedProjectionIncidents(),
-    ).toHaveLength(1);
+      (await restartedStore.getUnresolvedProjectionIncidentDiagnostics()).total,
+    ).toBe(1);
+
+    await store.claimPendingWave({
+      waveId: "wave-failed-again",
+      graphFingerprint: "graph-1",
+      startedAt: 4,
+    });
+    await store.putWaveRules("wave-failed-again", [
+      { ruleId: "topics", targetType: "topic", level: 0 },
+    ]);
+    await store.queueWaveRule(
+      "wave-failed-again",
+      "topics",
+      "job-terminal-again",
+    );
+    await store.failWaveWithIncident({
+      waveId: "wave-failed-again",
+      ruleId: "topics",
+      jobId: "job-terminal-again",
+      failureReason: "Projection rule job exhausted retries again",
+      failedAt: 35,
+    });
+
+    expect(await store.getUnresolvedProjectionIncidentDiagnostics(1)).toEqual({
+      total: 2,
+      incidents: [
+        expect.objectContaining({
+          waveId: "wave-failed-again",
+          recoveryGeneration: 3,
+        }),
+      ],
+    });
 
     await store.claimPendingWave({
       waveId: "wave-recovery",
       graphFingerprint: "graph-1",
-      startedAt: 40,
+      // Deliberately skew the clock behind failedAt: generation coverage, not
+      // wall-clock ordering, proves that this wave replayed the inputs.
+      startedAt: 5,
     });
     await store.completeWave("wave-recovery", 50);
 
-    expect(await store.listUnresolvedProjectionIncidents()).toEqual([]);
+    expect(await store.getUnresolvedProjectionIncidentDiagnostics()).toEqual({
+      total: 0,
+      incidents: [],
+    });
   });
 
   it("atomically stores a memo, canonical writes, and rule outcome", async () => {

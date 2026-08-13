@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import type {
-  ProjectionIncident,
+  ProjectionIncidentDiagnostics,
   ProjectionWave,
   ProjectionWaveRule,
 } from "@brains/entity-service";
@@ -25,7 +25,10 @@ function createDependencies(): RuntimeDependencies {
     getProjectionStore: () => ({
       getActiveWave: async (): Promise<ProjectionWave | null> => null,
       listWaveRules: async (): Promise<ProjectionWaveRule[]> => [],
-      listUnresolvedProjectionIncidents: async () => [],
+      getUnresolvedProjectionIncidentDiagnostics: async () => ({
+        total: 0,
+        incidents: [],
+      }),
     }),
   };
   const jobQueueService = {
@@ -289,7 +292,10 @@ describe("getRuntimeReadiness", () => {
             changedTargets: [],
           },
         ],
-        listUnresolvedProjectionIncidents: async () => [],
+        getUnresolvedProjectionIncidentDiagnostics: async () => ({
+          total: 0,
+          incidents: [],
+        }),
       }),
     };
     const jobQueueService = {
@@ -381,8 +387,9 @@ describe("getRuntimeReadiness", () => {
     });
   });
 
-  it("reports durable terminal incidents after the active wave is gone", async () => {
+  it("reports a bounded sample of durable terminal incidents after the active wave is gone", async () => {
     const dependencies = createDependencies();
+    let requestedIncidentLimit: number | undefined;
     dependencies.entityService = {
       ...dependencies.entityService,
       getProjectionStore: (): ReturnType<
@@ -390,18 +397,25 @@ describe("getRuntimeReadiness", () => {
       > => ({
         getActiveWave: async (): Promise<ProjectionWave | null> => null,
         listWaveRules: async (): Promise<ProjectionWaveRule[]> => [],
-        listUnresolvedProjectionIncidents: async (): Promise<
-          ProjectionIncident[]
-        > => [
-          {
-            waveId: "wave-failed",
-            ruleId: "topics-projection",
-            jobId: "job-terminal",
-            failureReason: "Projection rule job exhausted retries",
-            createdAt: 100,
-            resolvedAt: null,
-          },
-        ],
+        getUnresolvedProjectionIncidentDiagnostics: async (
+          limit,
+        ): Promise<ProjectionIncidentDiagnostics> => {
+          requestedIncidentLimit = limit;
+          return {
+            total: 12,
+            incidents: [
+              {
+                waveId: "wave-failed",
+                ruleId: "topics-projection",
+                jobId: "job-terminal",
+                failureReason: "Projection rule job exhausted retries",
+                recoveryGeneration: 42,
+                createdAt: 100,
+                resolvedAt: null,
+              },
+            ],
+          };
+        },
       }),
     };
 
@@ -410,12 +424,17 @@ describe("getRuntimeReadiness", () => {
       ...runtimeOptions,
     });
 
+    expect(requestedIncidentLimit).toBe(10);
     expect(readiness.operationalStatus).toBe("degraded");
     expect(readiness.checks).toContainEqual(
       expect.objectContaining({
         name: "projection-waves",
         status: "degraded",
-        message: "1 unresolved terminal projection incident(s)",
+        message: "12 unresolved terminal projection incident(s)",
+        details: expect.objectContaining({
+          incidentCount: 12,
+          incidentsTruncated: true,
+        }),
       }),
     );
   });

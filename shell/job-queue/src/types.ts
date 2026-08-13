@@ -57,7 +57,6 @@ export interface JobClaimOptions {
   workerSlotId: string;
   workerSessionId: string;
   leaseDurationMs: number;
-  workerSessionTimeoutMs: number;
 }
 
 /**
@@ -252,12 +251,14 @@ export interface IJobQueueService {
   startWorkerSession(
     workerSlotId: string,
     workerSessionId: string,
+    workerSessionTimeoutMs?: number,
   ): Promise<void>;
 
   /** Persist worker liveness only while the session still owns its slot. */
   heartbeatWorkerSession(
     workerSlotId: string,
     workerSessionId: string,
+    workerSessionTimeoutMs?: number,
   ): Promise<boolean>;
 
   /** Remove a normally stopped worker session. */

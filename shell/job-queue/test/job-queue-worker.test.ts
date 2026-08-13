@@ -270,11 +270,11 @@ describe("JobQueueWorker", () => {
       if (!startCall) throw new Error("Worker session was not registered");
       expect(startCall[0]).toBe("stable-slot");
       expect(startCall[1]).toBeString();
+      expect(startCall[2]).toBe(15_000);
       expect(observedClaim).toEqual({
         workerSlotId: "stable-slot",
         workerSessionId: startCall[1],
         leaseDurationMs: 5_000,
-        workerSessionTimeoutMs: 15_000,
       });
 
       await worker.stop();

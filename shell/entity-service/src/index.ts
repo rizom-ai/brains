@@ -24,6 +24,7 @@ export {
   type ClaimProjectionWaveInput,
   type GetProjectionRuleMemoInput,
   type MarkProjectionDirtyInput,
+  type ProjectionIncidentDiagnostics,
   type ProjectionIncidentInput,
   type ProjectionRuleMemoValue,
   type ProjectionWaveRuleInput,

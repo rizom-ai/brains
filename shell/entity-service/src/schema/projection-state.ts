@@ -187,6 +187,11 @@ type ProjectionIncidentsTable = SQLiteTableWithColumns<{
       "failure_reason",
       true
     >;
+    recoveryGeneration: ProjectionIntegerColumn<
+      "projection_incidents",
+      "recovery_generation",
+      true
+    >;
     createdAt: ProjectionIntegerColumn<
       "projection_incidents",
       "created_at",
@@ -344,6 +349,7 @@ export const projectionIncidents: ProjectionIncidentsTable = sqliteTable(
     ruleId: text("rule_id").notNull(),
     jobId: text("job_id"),
     failureReason: text("failure_reason").notNull(),
+    recoveryGeneration: integer("recovery_generation").notNull(),
     createdAt: integer("created_at").notNull(),
     resolvedAt: integer("resolved_at"),
   },

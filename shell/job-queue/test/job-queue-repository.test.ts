@@ -126,7 +126,6 @@ function claimOptions(
     workerSlotId: "worker-a",
     workerSessionId: "session-a",
     leaseDurationMs: 1_000,
-    workerSessionTimeoutMs: 2_000,
     executableTypes: ["test:job", "type:a", "type:b"],
     ...overrides,
   };
@@ -247,7 +246,7 @@ describe("JobQueueRepository fenced attempts", () => {
   it("does not reclaim another slot's attempt while its worker session is live", async () => {
     const job = createTestJob();
     await repository.insert(job);
-    await repository.startWorkerSession("worker-a", "session-a", 10_000);
+    await repository.startWorkerSession("worker-a", "session-a", 10_000, 500);
     await repository.claimNextReady(claimOptions({ leaseDurationMs: 100 }));
 
     await repository.startWorkerSession("worker-b", "session-b", 10_200);
@@ -257,7 +256,6 @@ describe("JobQueueRepository fenced attempts", () => {
         attemptId: createId(),
         workerSlotId: "worker-b",
         workerSessionId: "session-b",
-        workerSessionTimeoutMs: 500,
       }),
     );
 
@@ -267,7 +265,7 @@ describe("JobQueueRepository fenced attempts", () => {
   it("reclaims another slot's attempt only after both its lease and owner session expire", async () => {
     const job = createTestJob();
     await repository.insert(job);
-    await repository.startWorkerSession("worker-a", "session-a", 10_000);
+    await repository.startWorkerSession("worker-a", "session-a", 10_000, 500);
     await repository.claimNextReady(claimOptions({ leaseDurationMs: 100 }));
     await repository.startWorkerSession("worker-b", "session-b", 10_700);
 
@@ -277,7 +275,6 @@ describe("JobQueueRepository fenced attempts", () => {
         attemptId: createId(),
         workerSlotId: "worker-b",
         workerSessionId: "session-b",
-        workerSessionTimeoutMs: 500,
       }),
     );
 
@@ -293,11 +290,16 @@ describe("JobQueueRepository fenced attempts", () => {
     const job = createTestJob();
     const claim = claimOptions({ leaseDurationMs: 100 });
     await repository.insert(job);
-    await repository.startWorkerSession("worker-a", "session-a", 10_000);
+    await repository.startWorkerSession("worker-a", "session-a", 10_000, 500);
     await repository.claimNextReady(claim);
 
     expect(
-      await repository.heartbeatWorkerSession("worker-a", "session-a", 10_400),
+      await repository.heartbeatWorkerSession(
+        "worker-a",
+        "session-a",
+        10_400,
+        500,
+      ),
     ).toBe(true);
     expect(
       await repository.renewAttemptLease(job.id, claim.attemptId, 10_400, 500),
@@ -310,7 +312,6 @@ describe("JobQueueRepository fenced attempts", () => {
         attemptId: createId(),
         workerSlotId: "worker-b",
         workerSessionId: "session-b",
-        workerSessionTimeoutMs: 500,
       }),
     );
     const stored = await repository.getStatus(job.id);
@@ -330,6 +331,16 @@ describe("JobQueueRepository fenced attempts", () => {
     expect(
       await repository.heartbeatWorkerSession("worker-a", "session-b", 10_002),
     ).toBe(true);
+  });
+
+  it("prevents an expired worker session from claiming new work", async () => {
+    const job = createTestJob();
+    await repository.insert(job);
+    await repository.startWorkerSession("worker-a", "session-a", 10_000, 500);
+
+    expect(
+      await repository.claimNextReady(claimOptions({ now: 10_500 })),
+    ).toBeNull();
   });
 
   it("prevents a superseded worker session from claiming new work", async () => {
@@ -601,6 +612,28 @@ describe("JobQueueRepository fenced attempts", () => {
         { type: "type:b", status: JOB_STATUS.PENDING, count: 1 },
       ]),
     );
+  });
+
+  it("uses each worker's persisted session expiry in diagnostics", async () => {
+    await repository.startWorkerSession(
+      "worker-custom",
+      "session-custom",
+      10_000,
+      30_000,
+    );
+
+    expect((await repository.getDiagnostics(30_000)).workerSessions).toEqual({
+      total: 1,
+      active: 1,
+      stale: 0,
+      latestHeartbeatAgeMs: 20_000,
+    });
+    expect((await repository.getDiagnostics(40_000)).workerSessions).toEqual({
+      total: 1,
+      active: 0,
+      stale: 1,
+      latestHeartbeatAgeMs: 30_000,
+    });
   });
 
   it("excludes future-scheduled jobs from due diagnostics", async () => {

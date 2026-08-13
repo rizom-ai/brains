@@ -172,6 +172,7 @@ export class JobQueueWorker {
     await this.jobQueueService.startWorkerSession(
       this.config.workerSlotId,
       workerSessionId,
+      this.config.workerSessionTimeoutMs,
     );
     this.workerSessionId = workerSessionId;
     this.isRunning = true;
@@ -329,7 +330,6 @@ export class JobQueueWorker {
           workerSlotId: this.config.workerSlotId,
           workerSessionId,
           leaseDurationMs: this.config.leaseDurationMs,
-          workerSessionTimeoutMs: this.config.workerSessionTimeoutMs,
         });
         if (job) {
           jobs.push(job);
@@ -561,6 +561,7 @@ export class JobQueueWorker {
         return this.jobQueueService.heartbeatWorkerSession(
           this.config.workerSlotId,
           workerSessionId,
+          this.config.workerSessionTimeoutMs,
         );
       },
       onStale: () => this.markUnhealthy("Worker session was superseded"),

@@ -3,6 +3,7 @@ CREATE TABLE `projection_incidents` (
 	`rule_id` text NOT NULL,
 	`job_id` text,
 	`failure_reason` text NOT NULL,
+	`recovery_generation` integer NOT NULL,
 	`created_at` integer NOT NULL,
 	`resolved_at` integer,
 	FOREIGN KEY (`wave_id`) REFERENCES `projection_waves`(`id`) ON UPDATE no action ON DELETE cascade

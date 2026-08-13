@@ -2,6 +2,7 @@ import type { JobQueue } from "./schema/job-queue";
 import type { JobContextInput } from "./schema/types";
 import { createId } from "@brains/utils/id";
 import { Logger } from "@brains/utils/logger";
+import { DEFAULT_WORKER_SESSION_TIMEOUT_MS } from "./types";
 import type {
   IJobQueueService,
   JobClaimOptions,
@@ -387,17 +388,26 @@ export class JobQueueService implements IJobQueueService {
   public async startWorkerSession(
     workerSlotId: string,
     workerSessionId: string,
+    workerSessionTimeoutMs: number = DEFAULT_WORKER_SESSION_TIMEOUT_MS,
   ): Promise<void> {
-    await this.repository.startWorkerSession(workerSlotId, workerSessionId);
+    await this.repository.startWorkerSession(
+      workerSlotId,
+      workerSessionId,
+      Date.now(),
+      workerSessionTimeoutMs,
+    );
   }
 
   public heartbeatWorkerSession(
     workerSlotId: string,
     workerSessionId: string,
+    workerSessionTimeoutMs: number = DEFAULT_WORKER_SESSION_TIMEOUT_MS,
   ): Promise<boolean> {
     return this.repository.heartbeatWorkerSession(
       workerSlotId,
       workerSessionId,
+      Date.now(),
+      workerSessionTimeoutMs,
     );
   }
 
@@ -460,13 +470,14 @@ export class JobQueueService implements IJobQueueService {
     this.directSessionStart ??= this.repository.startWorkerSession(
       this.directWorkerSlotId,
       this.directWorkerSessionId,
+      Date.now(),
+      this.directLeaseDurationMs,
     );
     await this.directSessionStart;
     return {
       workerSlotId: this.directWorkerSlotId,
       workerSessionId: this.directWorkerSessionId,
       leaseDurationMs: this.directLeaseDurationMs,
-      workerSessionTimeoutMs: this.directLeaseDurationMs,
     };
   }
 

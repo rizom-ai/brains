@@ -2,6 +2,7 @@ import { readdir, readFile } from "node:fs/promises";
 import { internalFullScope } from "@brains/entity-service";
 import type {
   ProjectionIncident,
+  ProjectionIncidentDiagnostics,
   ProjectionWave,
   ProjectionWaveRule,
 } from "@brains/entity-service";
@@ -31,7 +32,9 @@ interface RuntimeMemoryUsage {
 interface ProjectionWaveReader {
   getActiveWave(): Promise<ProjectionWave | null>;
   listWaveRules(waveId: string): Promise<ProjectionWaveRule[]>;
-  listUnresolvedProjectionIncidents(): Promise<ProjectionIncident[]>;
+  getUnresolvedProjectionIncidentDiagnostics(
+    limit?: number,
+  ): Promise<ProjectionIncidentDiagnostics>;
 }
 
 interface StrandedProjectionRule {
@@ -43,8 +46,11 @@ interface StrandedProjectionRule {
 interface ProjectionWaveDiagnostics {
   waveId: string | null;
   strandedRules: StrandedProjectionRule[];
+  incidentCount: number;
   incidents: ProjectionIncident[];
 }
+
+const PROJECTION_INCIDENT_DETAILS_LIMIT = 10;
 
 export interface RuntimeReadinessOptions {
   entityService: Pick<ShellServices["entityService"], "getEntityCounts"> & {
@@ -240,11 +246,20 @@ async function getProjectionWaveDiagnostics(
   options: RuntimeReadinessOptions,
 ): Promise<ProjectionWaveDiagnostics> {
   const store = options.entityService.getProjectionStore();
-  const [activeWave, incidents] = await Promise.all([
+  const [activeWave, incidentDiagnostics] = await Promise.all([
     store.getActiveWave(),
-    store.listUnresolvedProjectionIncidents(),
+    store.getUnresolvedProjectionIncidentDiagnostics(
+      PROJECTION_INCIDENT_DETAILS_LIMIT,
+    ),
   ]);
-  if (!activeWave) return { waveId: null, strandedRules: [], incidents };
+  if (!activeWave) {
+    return {
+      waveId: null,
+      strandedRules: [],
+      incidentCount: incidentDiagnostics.total,
+      incidents: incidentDiagnostics.incidents,
+    };
+  }
 
   const rules = await store.listWaveRules(activeWave.id);
   const candidates = rules.filter(
@@ -272,18 +287,26 @@ async function getProjectionWaveDiagnostics(
     )
   ).filter((rule): rule is StrandedProjectionRule => rule !== null);
 
-  return { waveId: activeWave.id, strandedRules, incidents };
+  return {
+    waveId: activeWave.id,
+    strandedRules,
+    incidentCount: incidentDiagnostics.total,
+    incidents: incidentDiagnostics.incidents,
+  };
 }
 
 function projectionWaveCheck(
   diagnostics: ProjectionWaveDiagnostics,
 ): RuntimeHealthCheck {
-  if (diagnostics.incidents.length > 0) {
+  if (diagnostics.incidentCount > 0) {
     return {
       name: "projection-waves",
       status: "degraded",
-      message: `${diagnostics.incidents.length} unresolved terminal projection incident(s)`,
+      message: `${diagnostics.incidentCount} unresolved terminal projection incident(s)`,
       details: {
+        incidentCount: diagnostics.incidentCount,
+        incidentsTruncated:
+          diagnostics.incidentCount > diagnostics.incidents.length,
         incidents: diagnostics.incidents.map((incident) => ({
           waveId: incident.waveId,
           ruleId: incident.ruleId,
