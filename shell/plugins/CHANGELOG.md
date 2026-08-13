@@ -1,5 +1,30 @@
 # @brains/plugins
 
+## 0.2.0-alpha.288
+
+### Minor Changes
+
+- [#128](https://github.com/rizom-ai/brains/pull/128) [`b06bc78`](https://github.com/rizom-ai/brains/commit/b06bc78514aa163b3a86c5c6d62d4500aa7c7e3b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add destination-owned Inbox follow-up kinds with finalized app-scoped registration, permission- and capability-gated universal launches, bounded same-origin history-state handoffs, CMS note capture and source-entity navigation, and web-chat composer prefill without automatic send or save.
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.288
+  - @brains/contracts@0.2.0-alpha.288
+  - @brains/site-composition@0.2.0-alpha.288
+  - @brains/utils@0.2.0-alpha.288
+  - @brains/ai-service@0.2.0-alpha.288
+  - @brains/content-service@0.2.0-alpha.288
+  - @brains/conversation-service@0.2.0-alpha.288
+  - @brains/entity-service@0.2.0-alpha.288
+  - @brains/identity-service@0.2.0-alpha.288
+  - @brains/job-queue@0.2.0-alpha.288
+  - @brains/mcp-service@0.2.0-alpha.288
+  - @brains/messaging-service@0.2.0-alpha.288
+  - @brains/recurring-checks@0.2.0-alpha.288
+  - @brains/runtime-state@0.2.0-alpha.288
+  - @brains/templates@0.2.0-alpha.288
+
 ## 0.2.0-alpha.287
 
 ### Patch Changes

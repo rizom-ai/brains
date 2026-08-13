@@ -1,5 +1,11 @@
 # @brains/ops
 
+## 0.2.0-alpha.288
+
+### Patch Changes
+
+- [#134](https://github.com/rizom-ai/brains/pull/134) [`d370a86`](https://github.com/rizom-ai/brains/commit/d370a86cfd7c6cbfab85da4e1d4528a2cef5af73) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Fail generated pilot Upgrade workflows before checkout when either the repository's GitHub App ID variable or private-key secret is missing. The preflight observes only whether the secret exists; upgraded package code still runs before any privileged App token is minted.
+
 ## 0.2.0-alpha.287
 
 ### Minor Changes

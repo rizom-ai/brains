@@ -1,7 +1,7 @@
 {
   "name": "@brains/admin",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.287",
+  "version": "0.2.0-alpha.288",
   "description": "Authenticated administration console for people, invitations, peers, and audit",
   "dependencies": {
     "@brains/auth-service": "workspace:*",
