@@ -7,6 +7,8 @@ export interface GitNetwork {
   timeoutMs: number;
   /** Injectable timing service for deterministic stall tests. */
   clock?: Clock.Clock | undefined;
+  /** Credential-free progress signal; receives no command output. */
+  onProgress?: (() => void) | undefined;
 }
 
 /** Thrown when a git network operation produces no output for too long. */
@@ -84,6 +86,7 @@ export async function runGitCommandWithStallTimeout(
       const chunk = await reader.read();
       if (chunk.done) return output + decoder.decode();
       armStall();
+      net.onProgress?.();
       output += decoder.decode(chunk.value, { stream: true });
       return readToEnd();
     };
@@ -113,6 +116,7 @@ export async function runGitCommandWithStallTimeout(
   const operation = child.exited.then(async (exitCode) => {
     processExited = true;
     cancelStallTimer();
+    net.onProgress?.();
     const [stdout, stderr] = await Promise.all([
       stdoutCapture.closeAfterExit(),
       stderrCapture.closeAfterExit(),

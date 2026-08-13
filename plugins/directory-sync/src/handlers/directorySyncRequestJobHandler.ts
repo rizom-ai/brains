@@ -3,6 +3,7 @@ import type { ServicePluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import type { ProgressReporter } from "@brains/utils/progress";
 import type { GitReconciliationService } from "../lib/git-reconciliation";
+import type { DirectorySyncOperationStatusService } from "../lib/directory-sync-operation-status";
 import {
   directorySyncRequestJobSchema,
   type BatchResult,
@@ -31,12 +32,15 @@ export class DirectorySyncRequestJobHandler extends BaseJobHandler<
     GitReconciliationService,
     "pullAndQueue"
   >;
+  private readonly operationStatus:
+    DirectorySyncOperationStatusService | undefined;
   constructor(
     logger: Logger,
     context: ServicePluginContext,
     getDirectorySync: () => IDirectorySync,
     getGitSync: () => IGitSync,
     reconciliation: Pick<GitReconciliationService, "pullAndQueue">,
+    operationStatus?: DirectorySyncOperationStatusService,
   ) {
     super(logger, {
       schema: directorySyncRequestJobSchema,
@@ -46,6 +50,7 @@ export class DirectorySyncRequestJobHandler extends BaseJobHandler<
     this.getDirectorySync = getDirectorySync;
     this.getGitSync = getGitSync;
     this.reconciliation = reconciliation;
+    this.operationStatus = operationStatus;
   }
 
   async process(
@@ -58,16 +63,16 @@ export class DirectorySyncRequestJobHandler extends BaseJobHandler<
       message: "Pulling latest content from git",
     });
 
-    await progressReporter.report({
-      progress: 35,
-      message: "Scanning pulled content for sync changes",
-    });
-
+    const onGitProgress = data.runId
+      ? this.operationStatus?.createProgressObserver(data.runId)
+      : undefined;
+    onGitProgress?.();
     const reconciled = await this.reconciliation.pullAndQueue({
       gitSync: this.getGitSync(),
       directorySync: this.getDirectorySync(),
       context: this.context,
       source: data.source,
+      ...(onGitProgress ? { onGitProgress } : {}),
       metadata: {
         rootJobId: jobId,
         interfaceType: data.interfaceType,
@@ -75,6 +80,11 @@ export class DirectorySyncRequestJobHandler extends BaseJobHandler<
       },
     });
     const result = reconciled.batch;
+
+    await progressReporter.report({
+      progress: 35,
+      message: "Scanning pulled content for sync changes",
+    });
 
     if (!result) {
       await progressReporter.report({

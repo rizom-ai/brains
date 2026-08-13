@@ -150,6 +150,7 @@ export type {
   IProfileKindsNamespace,
   IChannelsNamespace,
   IInboxNamespace,
+  IOperationalHealthNamespace,
   IMessageInterfaceChannelsNamespace,
   ISemanticNamespace,
 } from "./base/context";
@@ -449,6 +450,11 @@ export {
   type ToolResultData,
 } from "./contracts/agent";
 export { AppInfoSchema, type AppInfo } from "./contracts/app-info";
+export {
+  OperationalHealthRegistry,
+  type IOperationalHealthRegistry,
+  type OperationalHealthProvider,
+} from "./operational-health-registry";
 export {
   RuntimeHealthCheckSchema,
   RuntimeQueueSignalsSchema,

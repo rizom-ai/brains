@@ -13,6 +13,19 @@ describe("runGitCommandWithStallTimeout", () => {
     expect(stdout).toContain("git version");
   });
 
+  it("signals progress on output and successful subprocess completion", async () => {
+    let progressSignals = 0;
+    await runGitCommandWithStallTimeout(
+      {
+        baseDir: process.cwd(),
+        timeoutMs: 10_000,
+        onProgress: () => progressSignals++,
+      },
+      ["version"],
+    );
+    expect(progressSignals).toBeGreaterThanOrEqual(2);
+  });
+
   it("disables automatic maintenance in the owned Git subprocess", async () => {
     const stdout = await runGitCommandWithStallTimeout(
       { baseDir: process.cwd(), timeoutMs: 10_000 },

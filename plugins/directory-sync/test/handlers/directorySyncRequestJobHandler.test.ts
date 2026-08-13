@@ -14,7 +14,10 @@ function createReconciliation(): ConstructorParameters<
   return {
     pullAndQueue: (options) =>
       options.gitSync.withLock(async () => {
-        const pull = await options.gitSync.pull(options.signal);
+        const pull = await options.gitSync.pull(
+          options.signal,
+          options.onGitProgress,
+        );
         await options.directorySync.recordPendingPullDeletes(
           pull.deletedFiles ?? [],
         );
@@ -57,13 +60,21 @@ describe("DirectorySyncRequestJobHandler", () => {
       calls.push("lock:end");
       return result;
     };
-    const pull = mock(async () => {
-      calls.push("pull");
-      return {
-        files: ["test.md", "deleted.md"],
-        deletedFiles: ["deleted.md"],
-      };
+    const progress = mock(() => {});
+    const createProgressObserver = mock((runId: string) => {
+      expect(runId).toBe("run-1");
+      return progress;
     });
+    const pull = mock(
+      async (_signal?: AbortSignal, onProgress?: () => void) => {
+        calls.push("pull");
+        onProgress?.();
+        return {
+          files: ["test.md", "deleted.md"],
+          deletedFiles: ["deleted.md"],
+        };
+      },
+    );
     const queueSyncBatch = mock(async () => {
       calls.push("queue");
       return {
@@ -88,11 +99,13 @@ describe("DirectorySyncRequestJobHandler", () => {
         }),
       () => createMockGitSync({ withLock, pull }),
       createReconciliation(),
+      { createProgressObserver } as never,
     );
 
     const result = await handler.process(
       {
         source: "web-chat:channel-1",
+        runId: "run-1",
         interfaceType: "web-chat",
         channelId: "channel-1",
       },
@@ -101,6 +114,8 @@ describe("DirectorySyncRequestJobHandler", () => {
     );
 
     expect(calls).toEqual(["lock:start", "pull", "queue", "lock:end"]);
+    expect(createProgressObserver).toHaveBeenCalledWith("run-1");
+    expect(progress).toHaveBeenCalledTimes(2);
     expect(recordPendingPullDeletes).toHaveBeenCalledWith(["deleted.md"]);
     expect(queueSyncBatch).toHaveBeenCalledWith(
       context,

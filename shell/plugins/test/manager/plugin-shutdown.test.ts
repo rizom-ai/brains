@@ -198,6 +198,9 @@ describe("Plugin shutdown lifecycle", () => {
           list: async () => [],
           act: async () => undefined,
         });
+        shell
+          .getOperationalHealthRegistry()
+          .register("scoped-plugin", "test", () => ({ status: "healthy" }));
         return { tools: [], resources: [] };
       },
     };
@@ -215,6 +218,9 @@ describe("Plugin shutdown lifecycle", () => {
       true,
     );
     expect(mockShell.getInboxRegistry().listSources()).toHaveLength(1);
+    expect(
+      await mockShell.getOperationalHealthRegistry().getChecks(),
+    ).toHaveLength(1);
 
     await pluginManager.disablePlugin("scoped-plugin");
     await mockShell.getMessageBus().send({
@@ -230,6 +236,9 @@ describe("Plugin shutdown lifecycle", () => {
       false,
     );
     expect(mockShell.getInboxRegistry().listSources()).toEqual([]);
+    expect(await mockShell.getOperationalHealthRegistry().getChecks()).toEqual(
+      [],
+    );
   });
 
   test("scoped MessageBus.unsubscribe removes wrapped subscriptions", async () => {

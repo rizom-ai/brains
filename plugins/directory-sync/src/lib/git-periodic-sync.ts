@@ -29,13 +29,18 @@ export function setupPeriodicGitSync(
   const cycle = async (signal: AbortSignal): Promise<void> => {
     const runId = await operationStatus?.startRun("periodic", "pulling");
     try {
+      const onGitProgress = runId
+        ? operationStatus?.createProgressObserver(runId)
+        : undefined;
       const reconciled = await reconciliation.pullAndQueue({
         gitSync,
         directorySync,
         context: pluginContext,
         source: "periodic-sync",
         signal,
+        ...(onGitProgress ? { onGitProgress } : {}),
       });
+      if (runId) await operationStatus?.markPhase(runId, "scanning");
       const { files, batch: result } = reconciled;
 
       if (files.length > 0) {
