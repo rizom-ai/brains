@@ -1,4 +1,4 @@
-import { describe, it, expect, mock } from "bun:test";
+import { describe, it, expect, mock, afterEach, setSystemTime } from "bun:test";
 import { PermissionService } from "@brains/plugins/test";
 import {
   ChatInterface,
@@ -18,6 +18,22 @@ import type {
 
 describe("ChatInterface tool status and progress", () => {
   const suite = setupChatInterfaceTest();
+
+  /**
+   * ProgressMessageCoordinator throttles progress edits to one per 500ms of
+   * wall clock, measured with Date.now(). Elapsed time is genuinely the
+   * behaviour here, so these tests move the clock past the window rather than
+   * sleeping through it — exact instead of "510ms should be enough", and it
+   * gives back half a second per test. The literal tracks
+   * PROGRESS_EDIT_THROTTLE_MS in shell/plugins, which is module-private.
+   */
+  const advancePastProgressThrottle = (): void => {
+    setSystemTime(new Date(Date.now() + 501));
+  };
+
+  afterEach(() => {
+    setSystemTime();
+  });
 
   it("edits Discord tool activity status messages after the agent response", async () => {
     const statusMessage = createSentMessage("status-1");
@@ -301,7 +317,7 @@ describe("ChatInterface tool status and progress", () => {
     const chat = MockChatSdk.instances[0];
 
     await chat?.handlers.mentions[0]?.(thread, createMessage());
-    await new Promise((resolve) => setTimeout(resolve, 510));
+    advancePastProgressThrottle();
     await suite.harness.sendMessage("job-progress", {
       id: "job-slack",
       type: "job",
@@ -427,7 +443,7 @@ describe("ChatInterface tool status and progress", () => {
     const chat = MockChatSdk.instances[0];
 
     await chat?.handlers.mentions[0]?.(thread, createMessage());
-    await new Promise((resolve) => setTimeout(resolve, 510));
+    advancePastProgressThrottle();
     await suite.harness.sendMessage("job-progress", {
       id: "job-123",
       type: "job",
@@ -479,7 +495,7 @@ describe("ChatInterface tool status and progress", () => {
     const chat = MockChatSdk.instances[0];
 
     await chat?.handlers.mentions[0]?.(thread, createMessage());
-    await new Promise((resolve) => setTimeout(resolve, 510));
+    advancePastProgressThrottle();
     await suite.harness.sendMessage("job-progress", {
       id: "artifact-job-123",
       type: "job",
