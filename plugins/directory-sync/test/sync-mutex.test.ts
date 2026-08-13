@@ -53,15 +53,18 @@ describe("sync mutex", () => {
   });
 
   it("should return null for second concurrent call", async () => {
-    // Make enqueueBatch slow so the first call is still in progress
+    // Hold the first call inside enqueueBatch until the second has been made,
+    // so the overlap is guaranteed rather than relying on a sleep outlasting it.
+    const firstEnqueue = Promise.withResolvers<void>();
     context.jobs.enqueueBatch = mock(async () => {
-      await new Promise((r) => setTimeout(r, 100));
+      await firstEnqueue.promise;
       return "batch-slow";
     });
 
     const call1 = directorySync.queueSyncBatch(context, "test-1");
     const call2 = directorySync.queueSyncBatch(context, "test-2");
 
+    firstEnqueue.resolve();
     const [result1, result2] = await Promise.all([call1, call2]);
 
     // First call succeeds, second is rejected

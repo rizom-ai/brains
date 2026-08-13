@@ -1,7 +1,7 @@
 import { describe, it, expect, mock } from "bun:test";
 import type { ImportResult, ExportResult } from "../src/types";
 import type { BaseEntity } from "@brains/plugins";
-import { createTestEntity } from "@brains/test-utils";
+import { createTestEntity, waitUntil } from "@brains/test-utils";
 
 /**
  * Tests for sync() behavior when export is removed and subscribers handle file writes.
@@ -83,7 +83,10 @@ slug: test-series
       await mockExportEntities(); // This writes OLD content!
 
       // Wait for job to complete
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await waitUntil(
+        () => eventsEmitted.includes("subscriber:write"),
+        "the queued import job to complete and its subscriber to write",
+      );
 
       // Verify the race condition occurred
       expect(eventsEmitted).toEqual([
@@ -109,7 +112,10 @@ slug: test-series
       // NO export call!
 
       // Wait for job to complete
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await waitUntil(
+        () => eventsEmitted.includes("subscriber:write"),
+        "the queued import job to complete and its subscriber to write",
+      );
 
       // Verify no race condition
       expect(eventsEmitted).toEqual([
