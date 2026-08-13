@@ -103,7 +103,7 @@ export function createShellServices(options: {
     dependencies?.channelRegistry ?? new ChannelRegistry();
   const inboxRegistry = dependencies?.inboxRegistry ?? new InboxRegistry();
   const inboxFollowUpRegistry =
-    dependencies?.inboxFollowUpRegistry ?? new InboxFollowUpRegistry();
+    dependencies?.inboxFollowUpRegistry ?? new InboxFollowUpRegistry(logger);
   const operationalHealthRegistry =
     dependencies?.operationalHealthRegistry ?? new OperationalHealthRegistry();
   const attachmentRegistry =

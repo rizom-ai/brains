@@ -52,11 +52,31 @@ function parseEntityDisplay(value: unknown): CmsEntityDisplayMap | undefined {
   return parsed.success ? parsed.data : undefined;
 }
 
-function canCreateNote(
+/**
+ * Note-creation capability depends on the actor, never on the item, but the
+ * follow-up registry evaluates predicates and resolvers per item. Memoize by
+ * permission level so a page of entries costs one check instead of one per
+ * entry — and so a denied actor does not construct an exception per entry.
+ */
+function createNoteCapability(
+  context: ServicePluginContext,
+): (permissionLevel: UserPermissionLevel) => boolean {
+  const cache = new Map<UserPermissionLevel, boolean>();
+  return (permissionLevel) => {
+    const cached = cache.get(permissionLevel);
+    if (cached !== undefined) return cached;
+    const allowed = context.entityService.getEntityTypes().includes("note")
+      ? allowsNoteCreation(context, permissionLevel)
+      : false;
+    cache.set(permissionLevel, allowed);
+    return allowed;
+  };
+}
+
+function allowsNoteCreation(
   context: ServicePluginContext,
   permissionLevel: UserPermissionLevel,
 ): boolean {
-  if (!context.entityService.getEntityTypes().includes("note")) return false;
   try {
     context.permissions.assertEntityActionAllowed("note", "create", {
       userPermissionLevel: permissionLevel,
@@ -106,6 +126,7 @@ export class CmsPlugin extends ServicePlugin<
       priority: 40,
       visibility: "trusted",
     });
+    const canCreateNote = createNoteCapability(context);
     context.inboxFollowUps.registerKind({
       kind: "capture-as-note",
       label: "Capture as note",
@@ -113,10 +134,9 @@ export class CmsPlugin extends ServicePlugin<
       mode: "universal",
       permissionLevel: "trusted",
       applies: ({ item, actor }) =>
-        item.entityRef !== undefined &&
-        canCreateNote(context, actor.permissionLevel),
+        item.entityRef !== undefined && canCreateNote(actor.permissionLevel),
       resolve: ({ item, actor }) => {
-        if (!item.entityRef || !canCreateNote(context, actor.permissionLevel)) {
+        if (!item.entityRef || !canCreateNote(actor.permissionLevel)) {
           return undefined;
         }
         return {

@@ -1,4 +1,5 @@
-import type { UserPermissionLevel } from "@brains/templates";
+import { PermissionService, type UserPermissionLevel } from "@brains/templates";
+import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
 import {
   inboxActorSchema,
@@ -171,6 +172,11 @@ export class InboxFollowUpRegistry implements IInboxFollowUpRegistry {
   private readonly registrations = new Map<string, KindRegistration[]>();
   private activeKinds = new Map<string, RegisteredInboxFollowUpKind>();
   private finalized = false;
+  private readonly logger: Logger | undefined;
+
+  constructor(logger?: Logger) {
+    this.logger = logger;
+  }
 
   registerKind(
     pluginId: string,
@@ -226,7 +232,7 @@ export class InboxFollowUpRegistry implements IInboxFollowUpRegistry {
     const resolved = await Promise.all(
       this.listKinds()
         .filter((kind) => kind.mode === "universal")
-        .map(async (kind) => resolveKind(kind, normalizedInput)),
+        .map(async (kind) => resolveKind(kind, normalizedInput, this.logger)),
     );
     return resolved.filter(
       (target): target is ResolvedInboxFollowUp => target !== undefined,
@@ -272,8 +278,14 @@ export class InboxFollowUpRegistry implements IInboxFollowUpRegistry {
 async function resolveKind(
   kind: RegisteredInboxFollowUpKind,
   input: InboxFollowUpResolutionInput,
+  logger?: Logger,
 ): Promise<ResolvedInboxFollowUp | undefined> {
-  if (!hasPermission(input.actor.permissionLevel, kind.permissionLevel)) {
+  if (
+    !PermissionService.hasPermission(
+      input.actor.permissionLevel,
+      kind.permissionLevel,
+    )
+  ) {
     return undefined;
   }
   try {
@@ -287,7 +299,16 @@ async function resolveKind(
       href: normalized.href,
       ...(normalized.state ? { state: normalized.state } : {}),
     });
-  } catch {
+  } catch (error) {
+    // A hidden launch looks identical to an unavailable one at the surface, so
+    // a destination whose predicate or resolver always throws would otherwise
+    // fail silently forever. Detail stays server-side; the caller still gets
+    // nothing.
+    logger?.debug("Inbox follow-up kind did not resolve", {
+      kind: kind.kind,
+      sourceId: input.sourceId,
+      error,
+    });
     return undefined;
   }
 }
@@ -345,18 +366,6 @@ function compareKinds(
   right: RegisteredInboxFollowUpKind,
 ): number {
   return left.priority - right.priority || left.kind.localeCompare(right.kind);
-}
-
-function hasPermission(
-  granted: UserPermissionLevel,
-  required: UserPermissionLevel,
-): boolean {
-  const rank: Record<UserPermissionLevel, number> = {
-    public: 0,
-    trusted: 1,
-    admin: 2,
-  };
-  return rank[granted] >= rank[required];
 }
 
 function normalizePluginId(pluginId: string): string {
