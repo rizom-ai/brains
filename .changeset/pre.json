@@ -247,6 +247,7 @@
     "core--directory-sync-preparse-skip",
     "core--directory-sync-remote-delete-wins",
     "core--directory-sync-soak-convergence",
+    "core--directory-sync-stale-operational-health",
     "core--directory-sync-stress-credential-check",
     "core--directory-sync-stress-direct-clone",
     "core--directory-sync-stress-harness",
