@@ -1,5 +1,12 @@
 import { describe, expect, it } from "bun:test";
-import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
+import {
+  existsSync,
+  readFileSync,
+  readdirSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
 import { join, relative } from "node:path";
 
 const fixtureRoot = join(import.meta.dir, "fixtures", "public-authoring");
@@ -176,7 +183,7 @@ describe("public authoring 0.2 golden packages", () => {
     );
   });
 
-  it("keeps the operator-surface Phase 0 proposal source-first and public-only", () => {
+  it("keeps the operator-surface Phase 1 contract public-only", () => {
     const directory = join(fixtureRoot, "operator-surface");
     const manifestSource = readFileSync(
       join(directory, "package.json"),
@@ -204,6 +211,7 @@ describe("public authoring 0.2 golden packages", () => {
       "defineDashboardWidget",
       "defineServicePlugin",
       "defineWorkspaceAction",
+      ".bind(context",
       "z",
     ]) {
       expect(source).toContain(symbol);
@@ -239,7 +247,75 @@ describe("public authoring 0.2 golden packages", () => {
     expect(ports).toContain("connected-channel ownership decision");
   });
 
-  it("keeps the account-settings interface proposal lifecycle-owned", () => {
+  it("compiles the approved Phase 1 operator contract fixtures", () => {
+    const cases = [
+      {
+        directory: "operator-surface",
+        paths: {
+          "@rizom/brain/services": [
+            "./packages/brain-cli/src/entries/services.ts",
+          ],
+          "@fixture/reading-entities": [
+            "./packages/brain-cli/test/fixtures/public-authoring/entity/src/index.ts",
+          ],
+          "@fixture/reading-insights": [
+            "./packages/brain-cli/test/fixtures/public-authoring/service/src/index.ts",
+          ],
+        },
+      },
+      {
+        directory: "account-settings-interface",
+        paths: {
+          "@rizom/brain/interfaces": [
+            "./packages/brain-cli/src/entries/interfaces.ts",
+          ],
+        },
+      },
+    ] as const;
+
+    for (const fixture of cases) {
+      const tsconfigPath = join(
+        repositoryRoot,
+        `.public-authoring-${fixture.directory}.tsconfig.json`,
+      );
+      try {
+        writeFileSync(
+          tsconfigPath,
+          JSON.stringify({
+            extends: `./packages/brain-cli/test/fixtures/public-authoring/${fixture.directory}/tsconfig.json`,
+            compilerOptions: {
+              rootDir: ".",
+              declaration: false,
+              types: ["bun"],
+              noUnusedLocals: false,
+              noUnusedParameters: false,
+              paths: fixture.paths,
+            },
+            include: [
+              `./packages/brain-cli/test/fixtures/public-authoring/${fixture.directory}/src/**/*.ts`,
+            ],
+          }),
+        );
+        const result = Bun.spawnSync(
+          ["bunx", "tsc", "--noEmit", "-p", tsconfigPath],
+          {
+            cwd: repositoryRoot,
+            env: process.env,
+            stdout: "pipe",
+            stderr: "pipe",
+          },
+        );
+        expect(
+          result.exitCode,
+          `${fixture.directory} failed to compile:\n${result.stdout.toString()}${result.stderr.toString()}`,
+        ).toBe(0);
+      } finally {
+        rmSync(tsconfigPath, { force: true });
+      }
+    }
+  });
+
+  it("keeps the account-settings interface contract lifecycle-owned", () => {
     const directory = join(fixtureRoot, "account-settings-interface");
     const manifestSource = readFileSync(
       join(directory, "package.json"),
@@ -443,7 +519,10 @@ describe("public authoring 0.2 export ledger", () => {
   it("classifies every golden public import as stable", () => {
     const ledger = readLedger();
 
-    for (const fixture of goldenPackages) {
+    for (const fixture of [
+      ...goldenPackages,
+      ...phase0ProposalDirectories.map((directory) => ({ directory })),
+    ]) {
       const imports = publicNamedImports(packageSource(fixture.directory));
       for (const [specifier, names] of imports) {
         const entry = ledger.entries[specifier];

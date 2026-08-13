@@ -1,5 +1,9 @@
 import type { UserPermissionLevel } from "@brains/templates";
 import type { z } from "@brains/utils/zod";
+import type {
+  AccountSettingsValue,
+  AnyAccountSettingsDefinition,
+} from "../operator/account-settings-definition-contract";
 import type { AnyServiceJobDefinition } from "../service/service-definition-contract";
 
 export const routeMethods = [
@@ -102,17 +106,41 @@ export interface InterfaceDaemonDefinition {
   readonly kind: "rizom-interface-daemon";
   readonly id: string;
   readonly required: boolean;
+  readonly forAccounts?: undefined;
   run(context: {
     readonly signal: AbortSignal;
     readonly health: InterfaceDaemonHealth;
   }): Promise<void>;
 }
 
+export interface AccountInterfaceDaemonDefinition<
+  TAccountSettings extends AnyAccountSettingsDefinition =
+    AnyAccountSettingsDefinition,
+> {
+  readonly kind: "rizom-interface-daemon";
+  readonly id: string;
+  readonly required: boolean;
+  readonly forAccounts: TAccountSettings;
+  run(context: {
+    readonly account: {
+      readonly id: string;
+      readonly settings: AccountSettingsValue<TAccountSettings>;
+    };
+    readonly signal: AbortSignal;
+    readonly health: InterfaceDaemonHealth;
+  }): Promise<void>;
+}
+
+export type AnyInterfaceDaemonDefinition =
+  InterfaceDaemonDefinition | AccountInterfaceDaemonDefinition;
+
 export interface InterfaceDefinitionInput<
   TConfigSchema extends InterfaceConfigSchema,
+  TAccountSettings extends AnyAccountSettingsDefinition | undefined,
 > {
   readonly id: string;
   readonly config: TConfigSchema;
+  readonly accountSettings?: TAccountSettings | undefined;
   readonly routes?:
     | ((context: {
         readonly config: z.output<TConfigSchema>;
@@ -123,7 +151,12 @@ export interface InterfaceDefinitionInput<
     | ((context: {
         readonly config: z.output<TConfigSchema>;
         readonly jobs: InterfaceJobs;
-      }) => readonly InterfaceDaemonDefinition[])
+      }) => readonly (
+        | InterfaceDaemonDefinition
+        | (TAccountSettings extends AnyAccountSettingsDefinition
+            ? AccountInterfaceDaemonDefinition<TAccountSettings>
+            : never)
+      )[])
     | undefined;
 }
 
@@ -172,9 +205,11 @@ export interface MessageInterfaceDefinitionInput<
   TConfigSchema extends InterfaceConfigSchema,
   TState extends object,
   TRecipientSchema extends MessageRecipientSchema,
+  TAccountSettings extends AnyAccountSettingsDefinition | undefined,
 > {
   readonly id: string;
   readonly config: TConfigSchema;
+  readonly accountSettings?: TAccountSettings | undefined;
   readonly channel: MessageChannelDefinition<TRecipientSchema>;
   readonly setup?:
     | ((context: {

@@ -18,6 +18,7 @@ import {
 import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
 import type { PluginCapabilities, IShell } from "../interfaces";
+import type { AnyAccountSettingsDefinition } from "../operator/account-settings-definition-contract";
 import {
   identityConfigSchema,
   type InstalledPluginPackageMetadata,
@@ -149,13 +150,15 @@ class DeclarativeServicePlugin<
   TPromptSchemas extends ServiceSchemaMap,
   TTemplateSchemas extends ServiceSchemaMap,
   TViewSchemas extends ServiceSchemaMap,
+  TAccountSettings extends AnyAccountSettingsDefinition | undefined,
 > extends ServicePlugin<z.output<TConfigSchema>, z.output<TConfigSchema>> {
   private readonly definition: ServiceDefinitionInput<
     TConfigSchema,
     TState,
     TPromptSchemas,
     TTemplateSchemas,
-    TViewSchemas
+    TViewSchemas,
+    TAccountSettings
   >;
   private readonly publicId: string;
   private readonly toolContext = new AsyncLocalStorage<ToolContext>();
@@ -172,7 +175,8 @@ class DeclarativeServicePlugin<
       TState,
       TPromptSchemas,
       TTemplateSchemas,
-      TViewSchemas
+      TViewSchemas,
+      TAccountSettings
     >,
     config: z.output<TConfigSchema>,
     metadata: InstalledPluginPackageMetadata,
@@ -528,13 +532,15 @@ export function createDeclarativeServicePlugin<
   TPromptSchemas extends ServiceSchemaMap,
   TTemplateSchemas extends ServiceSchemaMap,
   TViewSchemas extends ServiceSchemaMap,
+  TAccountSettings extends AnyAccountSettingsDefinition | undefined,
 >(
   definition: ServiceDefinitionInput<
     TConfigSchema,
     TState,
     TPromptSchemas,
     TTemplateSchemas,
-    TViewSchemas
+    TViewSchemas,
+    TAccountSettings
   >,
   config: z.output<TConfigSchema>,
   metadata: InstalledPluginPackageMetadata,
@@ -544,7 +550,8 @@ export function createDeclarativeServicePlugin<
   TState,
   TPromptSchemas,
   TTemplateSchemas,
-  TViewSchemas
+  TViewSchemas,
+  TAccountSettings
 > {
   return new DeclarativeServicePlugin(definition, config, metadata, id);
 }

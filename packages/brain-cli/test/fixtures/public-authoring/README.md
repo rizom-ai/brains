@@ -53,16 +53,17 @@ The message transport keeps its ordinary protocol client in
 is intentional: the public API owns Brain integration, while the package owns
 its transport SDK code.
 
-## Phase 0 additive proposal
+## Additive operator contracts
 
 [`operator-surface`](./operator-surface/) and
-[`account-settings-interface`](./account-settings-interface/) are source-first
-design fixtures for the approved post-`v0.2.0` Dashboard, CMS, and per-account
-settings milestone. The second fixture keeps the IMAP proof in the interface
-family that owns inbound connection lifecycle. They are not executable `0.2.0`
-contracts yet: their proposed helpers are not exported, they are excluded from
-packing and the stable ledger, and their provisional `>=0.2.1` peer lower bounds
-must advance to the first release that actually contains the accepted API. The
+[`account-settings-interface`](./account-settings-interface/) are the checked
+Phase 1 contract fixtures for the approved post-`v0.2.0` Dashboard, CMS, and
+per-account settings milestone. The second fixture keeps the IMAP proof in the
+interface family that owns inbound connection lifecycle. Both compile against
+local public entries, and their approved exports are classified in the stable
+ledger. They remain excluded from packing and runtime evidence until the later
+host/storage phases land; their provisional `>=0.2.1` peer lower bounds must
+advance to the first release that actually contains the complete contract. The
 operator fixture's [built-in port sketches](./operator-surface/PORTS.md) record
 what the generic contract can express and what should remain private.
 

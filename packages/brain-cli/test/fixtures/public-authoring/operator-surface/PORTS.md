@@ -1,14 +1,13 @@
-# Phase 0 built-in port sketches
+# Phase 1 built-in port sketches
 
-These sketches test the proposed public vocabulary against the four built-in
-CMS workspaces named by the plan. They preserve domain operations, permission
+These sketches test the accepted public contract vocabulary against the four
+built-in CMS workspaces named by the plan. They preserve domain operations, permission
 rules, and action semantics; they do not attempt to preserve bespoke markup.
 Identifiers such as `state.snapshot()` stand for package-owned domain state
 returned by `setup()`.
 
-None of these snippets is a shipped API. They intentionally use the same target
-helpers as `src/index.ts` so review can change one vocabulary before Phase 1
-freezes declarations.
+None of these snippets is a runtime-complete shipped API. They intentionally
+use the same module-scope-contract/factory-bound-executor split as `src/index.ts`.
 
 ## Shared semantic view vocabulary
 
@@ -42,8 +41,6 @@ const syncNow = defineWorkspaceAction({
   permission: "admin",
   input: z.object({}),
   output: syncRequestResult,
-  execute: ({ state, caller, signal }) =>
-    state.requestSync({ caller, source: "cms", signal }),
 });
 
 const directorySyncWorkspace = defineCmsWorkspace({
@@ -53,7 +50,6 @@ const directorySyncWorkspace = defineCmsWorkspace({
   permission: "admin",
   data: directorySyncSnapshot,
   actions: [syncNow],
-  load: ({ state, signal }) => state.snapshot(signal),
   view: ({ data }) => ({
     title: "Content sync",
     blocks: [
@@ -101,6 +97,18 @@ const directorySyncWorkspace = defineCmsWorkspace({
     ],
   }),
 });
+
+cmsWorkspaces: (context) => {
+  const syncNowHandler = syncNow.bind(context, ({ state, caller, signal }) =>
+    state.requestSync({ caller, source: "cms", signal }),
+  );
+  return [
+    directorySyncWorkspace.bind(context, {
+      actions: [syncNowHandler],
+      load: ({ state, signal }) => state.snapshot(signal),
+    }),
+  ];
+};
 ```
 
 This port requires operator loaders/actions to receive parsed service `state`
@@ -119,7 +127,6 @@ const buildPreview = defineWorkspaceAction({
   permission: "trusted",
   input: z.object({}),
   output: buildRequestResult,
-  execute: ({ state }) => state.requestBuild("preview"),
 });
 
 const buildProduction = defineWorkspaceAction({
@@ -130,7 +137,6 @@ const buildProduction = defineWorkspaceAction({
     "Replace the current live output with published public content?",
   input: z.object({}),
   output: buildRequestResult,
-  execute: ({ state }) => state.requestBuild("production"),
 });
 
 const siteWorkspace = defineCmsWorkspace({
@@ -141,8 +147,6 @@ const siteWorkspace = defineCmsWorkspace({
   entities: [siteInfo],
   data: siteSnapshot,
   actions: [buildPreview, buildProduction],
-  authorize: ({ permissions }) => permissions.allows(siteInfo, "update"),
-  load: ({ state, signal }) => state.snapshot(signal),
   view: ({ data }) => ({
     title: "Site control",
     blocks: [
@@ -183,6 +187,22 @@ const siteWorkspace = defineCmsWorkspace({
     ],
   }),
 });
+
+cmsWorkspaces: (context) => {
+  const previewHandler = buildPreview.bind(context, ({ state }) =>
+    state.requestBuild("preview"),
+  );
+  const productionHandler = buildProduction.bind(context, ({ state }) =>
+    state.requestBuild("production"),
+  );
+  return [
+    siteWorkspace.bind(context, {
+      actions: [previewHandler, productionHandler],
+      authorize: ({ permissions }) => permissions.allows(siteInfo, "update"),
+      load: ({ state, signal }) => state.snapshot(signal),
+    }),
+  ];
+};
 ```
 
 The missing policy query must answer only whether the canonical caller may
@@ -204,7 +224,6 @@ const markReviewed = defineWorkspaceAction({
   permission: "admin",
   input: z.object({ id: z.string() }),
   output: statusActionResult,
-  execute: ({ input, state, caller }) => state.markReviewed(input.id, caller),
 });
 
 const markHandled = defineWorkspaceAction({
@@ -213,7 +232,6 @@ const markHandled = defineWorkspaceAction({
   permission: "admin",
   input: z.object({ id: z.string() }),
   output: statusActionResult,
-  execute: ({ input, state, caller }) => state.markHandled(input.id, caller),
 });
 
 const archive = defineWorkspaceAction({
@@ -222,7 +240,6 @@ const archive = defineWorkspaceAction({
   permission: "admin",
   input: z.object({ id: z.string() }),
   output: statusActionResult,
-  execute: ({ input, state, caller }) => state.archive(input.id, caller),
 });
 
 const emailTriageWorkspace = defineCmsWorkspace({
@@ -233,7 +250,6 @@ const emailTriageWorkspace = defineCmsWorkspace({
   entities: [mailItem],
   data: mailTriageSnapshot,
   actions: [markReviewed, markHandled, archive],
-  load: ({ state, signal }) => state.snapshot(signal),
   badge: ({ data }) => data.summary.new,
   view: ({ data }) => ({
     title: "Mail desk",
@@ -276,6 +292,25 @@ const emailTriageWorkspace = defineCmsWorkspace({
     ],
   }),
 });
+
+cmsWorkspaces: (context) => {
+  const reviewedHandler = markReviewed.bind(
+    context,
+    ({ input, state, caller }) => state.markReviewed(input.id, caller),
+  );
+  const handledHandler = markHandled.bind(context, ({ input, state, caller }) =>
+    state.markHandled(input.id, caller),
+  );
+  const archiveHandler = archive.bind(context, ({ input, state, caller }) =>
+    state.archive(input.id, caller),
+  );
+  return [
+    emailTriageWorkspace.bind(context, {
+      actions: [reviewedHandler, handledHandler, archiveHandler],
+      load: ({ state, signal }) => state.snapshot(signal),
+    }),
+  ];
+};
 ```
 
 Filter declarations may select only fields already present in validated data.
@@ -313,9 +348,9 @@ but the plan's stated IMAP case is owned today by the Email **message
 interface**, not by a service plugin. Moving mailbox intake into a service would
 violate the connected-channel ownership decision.
 
-Before Phase 1, review one architectural choice:
+Phase 0 accepted the architectural choice:
 
-- **Recommended:** make `defineAccountSettings()` a shared definition exported
+- `defineAccountSettings()` is a shared definition exported
   from both `@rizom/brain/services` and `@rizom/brain/interfaces`.
   `accountSettings` may be attached to service, generic-interface, and
   message-interface definitions. Dashboard/workspace callbacks receive only

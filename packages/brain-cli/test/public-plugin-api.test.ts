@@ -139,6 +139,87 @@ describe("@rizom/brain public plugin API surface", () => {
     }
   });
 
+  it("publishes the accepted operator contracts without runtime internals", () => {
+    const servicesTypes = readFileSync(
+      join(pkgDir, "dist", "services.d.ts"),
+      "utf-8",
+    );
+    const interfacesTypes = readFileSync(
+      join(pkgDir, "dist", "interfaces.d.ts"),
+      "utf-8",
+    );
+
+    for (const symbol of [
+      "defineAccountSettings",
+      "defineCmsWorkspace",
+      "defineDashboardWidget",
+      "defineWorkspaceAction",
+      "OperatorView",
+    ]) {
+      expect(servicesTypes).toContain(symbol);
+    }
+    expect(interfacesTypes).toContain("defineAccountSettings");
+    expect(interfacesTypes).toContain("forAccounts");
+    expect(servicesTypes).not.toContain("getDashboardWidgetLoader");
+    expect(servicesTypes).not.toContain("getCmsWorkspaceExecutor");
+    expect(servicesTypes).not.toContain("getWorkspaceActionExecutor");
+    for (const privateType of [
+      "IShell",
+      "PluginManager",
+      "EntityService",
+      "JobQueue",
+      "DashboardWidgetRegistration",
+      "CmsWorkspaceRegistration",
+    ]) {
+      expect(servicesTypes).not.toContain(privateType);
+      expect(interfacesTypes).not.toContain(privateType);
+    }
+  });
+
+  it("compiles the Phase 1 fixtures against generated declarations", () => {
+    const tempDir = mkdtempSync(join(pkgDir, ".tmp-operator-declarations-"));
+    try {
+      writeFileSync(
+        join(tempDir, "tsconfig.json"),
+        JSON.stringify({
+          extends:
+            "../test/fixtures/public-authoring/operator-surface/tsconfig.json",
+          compilerOptions: {
+            rootDir: "..",
+            declaration: false,
+            types: ["bun"],
+            noUnusedLocals: false,
+            noUnusedParameters: false,
+            paths: {
+              "@rizom/brain/entities": ["../dist/entities.d.ts"],
+              "@rizom/brain/interfaces": ["../dist/interfaces.d.ts"],
+              "@rizom/brain/services": ["../dist/services.d.ts"],
+              "@fixture/reading-entities": [
+                "../test/fixtures/public-authoring/entity/src/index.ts",
+              ],
+              "@fixture/reading-insights": [
+                "../test/fixtures/public-authoring/service/src/index.ts",
+              ],
+            },
+          },
+          include: [
+            "../test/fixtures/public-authoring/operator-surface/src/**/*.ts",
+            "../test/fixtures/public-authoring/account-settings-interface/src/**/*.ts",
+          ],
+        }),
+      );
+
+      const result = spawnSync(
+        "bun",
+        ["x", "tsc", "--noEmit", "-p", "tsconfig.json"],
+        { cwd: tempDir, encoding: "utf-8" },
+      );
+      expect(result.status, `${result.stdout}\n${result.stderr}`).toBe(0);
+    } finally {
+      rmSync(tempDir, { force: true, recursive: true });
+    }
+  });
+
   it("keeps published declarations free of internal @brains/* imports", () => {
     for (const publicExport of listTypedPublicExports()) {
       const types = readFileSync(join(pkgDir, publicExport.types), "utf-8");
