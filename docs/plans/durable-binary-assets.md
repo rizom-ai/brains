@@ -1,14 +1,15 @@
 # Durable Binary Asset Storage Plan
 
-Last updated: 2026-08-09
+Last updated: 2026-08-13
 
 ## Status
 
-In progress. PRs 1–3 (asset foundation, image cutover, migration/reconciliation
-tooling) are implemented on `feat/durable-binary-assets-migration`
-(worktree `durable-binary-assets-migration`), unmerged. The full test suite and
-lint pass there; full typecheck fails on one branch-owned lockfile regression.
-The review findings below must be resolved on that branch before merge.
+In progress. The asset foundation, image cutover, migration/reconciliation tooling,
+implementation-review fixes, and isolated `yeehaa.io` rehearsal are complete on the
+pushed `feat/durable-binary-assets-migration` branch. The remaining work is to merge and
+deploy that implementation, perform the production cutover and soak, remove the
+transitional image bridge after zero-use telemetry, and complete the independent PDF
+follow-up.
 
 ## Summary
 
@@ -340,8 +341,8 @@ then, PDF import remains under the legacy 5 MB guard.
 Also provide an explicit full reconciliation command:
 
 ```text
-brain assets:reconcile --entity-type image --from brain-data --dry-run
-brain assets:reconcile --entity-type image --from brain-data
+brain assets reconcile --entity-type image --from brain-data --dry-run
+brain assets reconcile --entity-type image --from brain-data
 ```
 
 Reconciliation scans every binary independently of entity content hashes, restores
@@ -474,9 +475,9 @@ URLs. `--dry-run` and `--verify` are read-only; the mutating command requires th
 application and workers to be fully stopped. The proposed surface is:
 
 ```text
-brain migrate:binary-assets --entity-type image --dry-run
-brain migrate:binary-assets --entity-type image
-brain migrate:binary-assets --entity-type image --verify
+brain migrate binary-assets --entity-type image --dry-run
+brain migrate binary-assets --entity-type image
+brain migrate binary-assets --entity-type image --verify
 ```
 
 The command must:
@@ -514,7 +515,7 @@ asset bytes, expected one-time content-hash changes, and required free space. Ve
 proves every migrated reference exists, matches its digest and entity metadata, has no
 image FTS row, and
 round-trips through directory sync without a second entity hash change. The independent
-`brain assets:reconcile` command proves missing runtime assets can be restored from
+`brain assets reconcile` command proves missing runtime assets can be restored from
 `brain-data` even when entity rows and file timestamps are otherwise unchanged.
 
 ## Phase 4: `yeehaa.io` cutover and soak
@@ -613,7 +614,7 @@ command, manifest, verification, backup, and rollback machinery.
 4. Set document entities to `fullTextSearchable: false` and remove existing PDF payloads
    from FTS. Searchable extracted text, if desired later, must be a separate textual
    projection rather than the encoded PDF bytes.
-5. Extend `brain migrate:binary-assets` with `--entity-type document` and mixed
+5. Extend `brain migrate binary-assets` with `--entity-type document` and mixed
    image/document verification.
 6. Rehearse and cut over active PDF corpora independently; do not combine the first PDF
    migration with the image production window.
@@ -654,8 +655,8 @@ workflows:
     through a size check only. Image and document readers additionally validate the
     binary signature, dimensions, and size-versus-metadata consistency, which fails
     loudly on truncated or header-corrupt bytes. Byte-level corruption that preserves a
-    valid header is caught only by operator tooling (`brain migrate:binary-assets
---verify` and `brain assets:reconcile`), never on the read path; no reader calls
+    valid header is caught only by operator tooling (`brain migrate binary-assets
+--verify` and `brain assets reconcile`), never on the read path; no reader calls
     `verify`, because digest verification cannot run on bytes that already passed
     inspection.
 
@@ -685,7 +686,7 @@ be called out in release notes.
   deduplication, and rollback tests;
 - `getEntity`, `getEntityRaw`, and image `listEntities` compatibility-matrix tests in
   legacy/reference modes plus method/surface telemetry tests;
-- missing-asset startup restoration and explicit `brain assets:reconcile` tests that do
+- missing-asset startup restoration and explicit `brain assets reconcile` tests that do
   not depend on entity/file content drift;
 - equivalent document/PDF tests in Phase 5.
 
@@ -700,78 +701,32 @@ script, trigger the site rebuild on the running app through MCP HTTP, and inspec
 `dist/site-preview` before production output. Validate both a fresh runtime and a runtime
 containing mixed legacy/new image rows during the transition.
 
-## Review findings to resolve before merge
+## Resolved implementation review
 
-A 2026-08-09 review of `feat/durable-binary-assets-migration` confirmed the
-implementation matches this plan's contracts (write ordering, method matrix, FTS
-policy, import ordering, migration fencing, canonical one-time hash transition, and
-caller inventory). The following defects must be fixed on that branch; none require
-design changes to this plan.
-
-1. **Blocking: lockfile churn breaks web-chat typecheck.** The branch's `bun.lock`
-   incidentally bumps shiki 4.3.1 → 4.4.2 while `@streamdown/code` pins the older
-   shiki, so `interfaces/web-chat/ui-react/src/ai-elements/message.tsx` fails `tsc`.
-   Fix: restore main's lock entries (`git checkout main -- bun.lock`, then
-   `bun install`) so only the new workspace packages are added, or bump
-   `streamdown`/`@streamdown/code` together so their shiki versions agree.
-2. **`assets` namespace `put` spread order.** `put` spreads the caller's options
-   after the computed `expectedSize: bytes.byteLength`, so caller options clobber
-   the computed size and silently disable the size check. Fix: spread options
-   first, then set `expectedSize: bytes.byteLength` last.
-3. **`putStream` does not bound by `expectedSize` while streaming.** An over-long
-   stream is fully written to the temporary file before the mismatch check; only
-   `maxBytes` aborts mid-stream. Fix: treat `min(expectedSize, maxBytes)` as the
-   streaming bound so the write fails at `expectedSize + 1` bytes.
-4. **Reconciliation skips source-file verification when the runtime asset exists.**
-   Drifted `brain-data` bytes stay invisible until the runtime copy is lost. Fix:
-   hash the source file against the reference digest in the present-asset branch too
-   and report a mismatch as its own failure reason (see the reconciliation contract
-   above).
-5. **Migration analysis holds the whole corpus in memory.** `analyzeImageMigration`
-   retains decoded bytes for every legacy row alongside the row strings (~3× corpus).
-   Acceptable at the current 306 MiB image corpus; fix before the PDF phase reuses
-   it: drop `bytes` from candidates and re-decode each row inside the prewrite loop
-   so peak memory is one asset.
-6. **Hand-rolled I/O loops in the asset store.** `hashFile` and `writeAll` use manual
-   `while` read/write loops. Fix: `pipeline(createReadStream(path), hash)` from
-   `node:stream/promises` and a plain handle write, per repository iteration idiom.
-
-The acceptance-criteria wording in this plan (criterion 11) and the reconciliation
-contract were corrected in the same review: no runtime reader calls `verify`; full
-digest verification is operator tooling only.
+The 2026-08-09 implementation review findings are resolved on the implementation
+branch: lockfile alignment, buffered-size ownership, early streamed-size enforcement,
+canonical-source reconciliation, one-asset migration memory, and repository-standard
+streaming I/O. Runtime readers intentionally perform bounded size and media validation;
+full digest verification remains operator tooling only.
 
 ## Delivery sequence
 
-### PR 1: asset service and FTS policy
+### Combined implementation PR: foundation, image cutover, and migration tooling
 
 - Lower-level `@brains/assets` contracts and `@brains/asset-service` filesystem
   implementation without dependency cycles.
-- Explicit `assetDirectory` plumbing through standard, app, and shell configuration.
-- Shell/plugin-context integration and entity-service resolver injection.
-- Explicit full-text eligibility policy.
-- Lifecycle, path-resolution, security, and atomic-write tests.
-
-### PR 2: image cutover
-
-- Image schema/adapter and pending-state changes.
-- All image writers and readers moved to the asset service.
-- Entity-ID-based attachment descriptor plus explicit get/raw/list binary-content modes
-  and compatibility bridges.
-- PNG/JPEG/GIF/WebP policy with blocking SVG preflight/removal.
-- Directory-sync no-drift, asset-first short-circuit, separate text/asset limits, and
-  missing-asset startup restoration coverage coordinated with
-  `directory-sync-import-load.md`.
-- UX regression coverage.
-
-### PR 3: migration and reconciliation tooling
-
-- Explicit CLI dry-run/migrate/verify command.
-- Explicit `brain assets:reconcile` command for full `brain-data` rehydration.
-- Local-SQLite-only fencing, resumable asset prewrite, exclusive transactional entity/FTS
-  mutation, and no-event migration repository.
-- Checkpoint, manifest, one-time hash transition, corruption, idempotency,
-  reconciliation, and backup/rollback tests.
-- `yeehaa.io` staging rehearsal instructions.
+- Explicit `assetDirectory` plumbing, shell/plugin integration, FTS eligibility policy,
+  and lifecycle/path/security/atomic-write tests.
+- Image schema/adapter and pending-state changes, with every image writer and reader moved
+  to the asset service.
+- Entity-ID-based attachment descriptors, explicit binary-content modes, the bounded
+  compatibility bridge, PNG/JPEG/GIF/WebP policy, and blocking SVG preflight.
+- Directory-sync no-drift, asset-first short-circuit, independent text/asset limits,
+  missing-asset restoration, and UX regression coverage.
+- Explicit CLI dry-run/migrate/verify and `brain assets reconcile` commands.
+- Local-SQLite-only fencing, resumable prewrite, transactional entity/FTS mutation,
+  safe manifests, idempotency, reconciliation, and backup/rollback tests.
+- `yeehaa.io` staging rehearsal and production runbook.
 
 ### Operational window: `yeehaa.io`
 
