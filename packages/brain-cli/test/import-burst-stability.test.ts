@@ -18,6 +18,9 @@ const FILE_COUNT = Number(process.env["IMPORT_BURST_FILE_COUNT"] ?? 350);
 const PULL_TIMEOUT_MS = 150_000;
 const HEALTH_TIMEOUT_MS = 1_000;
 const MAX_HEALTH_LATENCY_MS = 500;
+const IMPORT_BATCH_SIZE = 50;
+const IMPORT_BARRIER_SCHEDULED_FOR = Date.UTC(2100, 0, 1);
+const IMPORT_BARRIER_TRIGGER = "hold_import_burst_jobs";
 
 interface ProcessInfo {
   pid: number;
@@ -271,7 +274,7 @@ async function stopProcessGroup(child: Bun.ReadableSubprocess): Promise<void> {
 
 async function commitBurst(
   checkoutDir: string,
-  phase: "add" | "update",
+  phase: "add" | "update" | "delayed-update",
 ): Promise<void> {
   await Promise.all(
     Array.from({ length: FILE_COUNT }, (_, offset) => offset + 1).map(
@@ -292,10 +295,11 @@ async function commitBurst(
           );
         } else {
           const existing = await readFile(path, "utf8");
-          await writeFile(
-            path,
-            `${existing.trimEnd()}\n\nUpdate marker: update.\n`,
-          );
+          const marker =
+            phase === "update"
+              ? "Update marker: update."
+              : "Update marker: delayed.";
+          await writeFile(path, `${existing.trimEnd()}\n\n${marker}\n`);
         }
       },
     ),
@@ -346,6 +350,98 @@ async function commitProbeCleanup(checkoutDir: string): Promise<void> {
   await run(["git", "push", "origin", "main"], checkoutDir);
 }
 
+interface JobBarrierSnapshot {
+  jobIds: string[];
+  itemCount: number;
+}
+
+class DurableImportJobBarrier {
+  private readonly databasePath: string;
+  private armed = false;
+
+  constructor(databasePath: string) {
+    this.databasePath = databasePath;
+  }
+
+  arm(): void {
+    const database = new Database(this.databasePath);
+    try {
+      database.exec("PRAGMA busy_timeout = 5000");
+      database.exec(`
+        DROP TRIGGER IF EXISTS ${IMPORT_BARRIER_TRIGGER};
+        CREATE TRIGGER ${IMPORT_BARRIER_TRIGGER}
+        AFTER INSERT ON job_queue
+        WHEN NEW.type = 'directory-sync:directory-import'
+        BEGIN
+          UPDATE job_queue
+          SET scheduledFor = ${IMPORT_BARRIER_SCHEDULED_FOR}
+          WHERE id = NEW.id;
+        END;
+      `);
+      this.armed = true;
+    } finally {
+      database.close();
+    }
+  }
+
+  readHeldImports(): JobBarrierSnapshot {
+    const database = new Database(this.databasePath, { readonly: true });
+    try {
+      const rows = database
+        .query<{ id: string; itemCount: number }, [number]>(
+          `SELECT id,
+                  coalesce(json_array_length(data, '$.paths'), 0) AS itemCount
+           FROM job_queue
+           WHERE type = 'directory-sync:directory-import'
+             AND status = 'pending'
+             AND scheduledFor = ?
+           ORDER BY createdAt, id`,
+        )
+        .all(IMPORT_BARRIER_SCHEDULED_FOR);
+      return {
+        jobIds: rows.map(({ id }) => id),
+        itemCount: rows.reduce((total, { itemCount }) => total + itemCount, 0),
+      };
+    } finally {
+      database.close();
+    }
+  }
+
+  release(): void {
+    if (!this.armed) return;
+    const database = new Database(this.databasePath);
+    database.exec("PRAGMA busy_timeout = 5000");
+    database.exec("BEGIN IMMEDIATE");
+    try {
+      database.exec(`DROP TRIGGER IF EXISTS ${IMPORT_BARRIER_TRIGGER}`);
+      database
+        .query<void, [number, number]>(
+          `UPDATE job_queue
+           SET scheduledFor = ?
+           WHERE type = 'directory-sync:directory-import' AND scheduledFor = ?`,
+        )
+        .run(Date.now(), IMPORT_BARRIER_SCHEDULED_FOR);
+      database.exec("COMMIT");
+      this.armed = false;
+    } catch (error) {
+      database.exec("ROLLBACK");
+      throw error;
+    } finally {
+      database.close();
+    }
+  }
+}
+
+function readJobSchedule(database: Database, jobId: string): number {
+  const row = database
+    .query<{ scheduledFor: number }, [string]>(
+      "SELECT scheduledFor FROM job_queue WHERE id = ?",
+    )
+    .get(jobId);
+  if (!row) throw new Error(`Missing test job ${jobId}`);
+  return row.scheduledFor;
+}
+
 function countNotes(databasePath: string): number {
   const database = new Database(databasePath, { readonly: true });
   try {
@@ -358,6 +454,162 @@ function countNotes(databasePath: string): number {
   } finally {
     database.close();
   }
+}
+
+function countProbeNotesWithMarker(
+  databasePath: string,
+  marker: string,
+): number {
+  const database = new Database(databasePath, { readonly: true });
+  try {
+    const row = database
+      .query<{ count: number }, [string]>(
+        `SELECT count(*) AS count
+         FROM entities
+         WHERE "entityType" = 'note'
+           AND id LIKE 'directory-sync-stress-%'
+           AND instr(content, ?) > 0`,
+      )
+      .get(marker);
+    return row?.count ?? 0;
+  } finally {
+    database.close();
+  }
+}
+
+async function waitForPersistedProbeMarker(
+  databasePath: string,
+  marker: string,
+  child: Bun.ReadableSubprocess,
+): Promise<void> {
+  await pollUntil(
+    Date.now() + PULL_TIMEOUT_MS,
+    250,
+    async () => {
+      if (child.exitCode !== null) {
+        throw new Error(`Brain exited during import (${child.exitCode})`);
+      }
+      try {
+        const count = countProbeNotesWithMarker(databasePath, marker);
+        return count === FILE_COUNT ? true : undefined;
+      } catch {
+        return undefined;
+      }
+    },
+    () =>
+      new Error(
+        `Timed out waiting for ${FILE_COUNT} persisted probes containing ${marker}`,
+      ),
+  );
+}
+
+function readQueuedDeletes(
+  databasePath: string,
+  createdAfter: number,
+): JobBarrierSnapshot {
+  const database = new Database(databasePath, { readonly: true });
+  try {
+    const rows = database
+      .query<{ id: string; itemCount: number }, [number]>(
+        `SELECT id,
+                CASE
+                  WHEN json_type(data, '$.deletions') = 'array'
+                    THEN json_array_length(data, '$.deletions')
+                  ELSE 1
+                END AS itemCount
+         FROM job_queue
+         WHERE type = 'directory-sync:directory-delete' AND createdAt >= ?
+         ORDER BY createdAt, id`,
+      )
+      .all(createdAfter);
+    return {
+      jobIds: rows.map(({ id }) => id),
+      itemCount: rows.reduce((total, { itemCount }) => total + itemCount, 0),
+    };
+  } finally {
+    database.close();
+  }
+}
+
+async function waitForQueuedJobs(
+  probe: () => JobBarrierSnapshot,
+  expectedJobCount: number,
+  expectedItemCount: number,
+  child: Bun.ReadableSubprocess,
+  description: string,
+): Promise<JobBarrierSnapshot> {
+  return pollUntil(
+    Date.now() + PULL_TIMEOUT_MS,
+    250,
+    async () => {
+      if (child.exitCode !== null) {
+        throw new Error(`Brain exited while queueing ${description}`);
+      }
+      try {
+        const snapshot = probe();
+        if (
+          snapshot.jobIds.length > expectedJobCount ||
+          snapshot.itemCount > expectedItemCount
+        ) {
+          throw new Error(
+            `Unexpected ${description}: ${snapshot.jobIds.length} jobs for ${snapshot.itemCount} items`,
+          );
+        }
+        return snapshot.jobIds.length === expectedJobCount &&
+          snapshot.itemCount === expectedItemCount
+          ? snapshot
+          : undefined;
+      } catch (error) {
+        if (error instanceof Error && error.message.startsWith("Unexpected ")) {
+          throw error;
+        }
+        return undefined;
+      }
+    },
+    () =>
+      new Error(
+        `Timed out waiting for ${expectedJobCount} durable ${description} jobs covering ${expectedItemCount} items`,
+      ),
+  );
+}
+
+function countTerminalJobs(databasePath: string, jobIds: string[]): number {
+  const database = new Database(databasePath, { readonly: true });
+  try {
+    const statusQuery = database.query<{ status: string }, [string]>(
+      "SELECT status FROM job_queue WHERE id = ?",
+    );
+    return jobIds.filter((jobId) => {
+      const status = statusQuery.get(jobId)?.status;
+      return status === "completed" || status === "failed";
+    }).length;
+  } finally {
+    database.close();
+  }
+}
+
+async function waitForTerminalJobs(
+  databasePath: string,
+  jobIds: string[],
+  child: Bun.ReadableSubprocess,
+): Promise<void> {
+  await pollUntil(
+    Date.now() + PULL_TIMEOUT_MS,
+    250,
+    async () => {
+      if (child.exitCode !== null) {
+        throw new Error(`Brain exited while draining barrier jobs`);
+      }
+      try {
+        return countTerminalJobs(databasePath, jobIds) === jobIds.length
+          ? true
+          : undefined;
+      } catch {
+        return undefined;
+      }
+    },
+    () => new Error("Timed out waiting for barrier jobs to become terminal"),
+  );
 }
 
 async function waitForCleanup(
@@ -418,6 +670,7 @@ it.skipIf(!RUN_SOAK)(
     let stdout: Promise<string> | undefined;
     let stderr: Promise<string> | undefined;
     let monitor: HealthMonitor | undefined;
+    let importBarrier: DurableImportJobBarrier | undefined;
     let failure: unknown;
 
     try {
@@ -520,6 +773,7 @@ plugins:
       expect(roles).toEqual(["web", "worker"]);
 
       const databasePath = join(appDir, "data", "brain.db");
+      const jobDatabasePath = join(appDir, "data", "brain-jobs.db");
       const baselineNoteCount = await pollUntil(
         Date.now() + 30_000,
         250,
@@ -546,7 +800,11 @@ plugins:
         "Deterministic import-burst probe",
         supervisor,
       );
-      await Bun.sleep(10_000);
+      await waitForPersistedProbeMarker(
+        databasePath,
+        "Deterministic import-burst probe",
+        supervisor,
+      );
 
       await commitBurst(writerDir, "update");
       await waitForFileContent(
@@ -554,11 +812,49 @@ plugins:
         "Update marker: update.",
         supervisor,
       );
+      await waitForPersistedProbeMarker(
+        databasePath,
+        "Update marker: update.",
+        supervisor,
+      );
 
-      // Delete the remote probes while import-triggered entity churn can still
-      // be in flight. Remote deletion must remain authoritative over late
-      // entity updates and auto-export.
+      // Hold every job from a second update at the durable scheduler boundary.
+      // The worker remains free to pull the later remote deletion and queue its
+      // targeted delete jobs before these older imports can execute.
+      importBarrier = new DurableImportJobBarrier(jobDatabasePath);
+      importBarrier.arm();
+      await commitBurst(writerDir, "delayed-update");
+      const expectedBatchJobs = Math.ceil(FILE_COUNT / IMPORT_BATCH_SIZE);
+      const heldImports = await waitForQueuedJobs(
+        () => importBarrier?.readHeldImports() ?? { jobIds: [], itemCount: 0 },
+        expectedBatchJobs,
+        FILE_COUNT,
+        supervisor,
+        "held import",
+      );
+      expect(
+        countProbeNotesWithMarker(databasePath, "Update marker: delayed."),
+      ).toBe(0);
+
+      const deletesCreatedAfter = Date.now();
       await commitProbeCleanup(writerDir);
+      const queuedDeletes = await waitForQueuedJobs(
+        () => readQueuedDeletes(jobDatabasePath, deletesCreatedAfter),
+        expectedBatchJobs,
+        FILE_COUNT,
+        supervisor,
+        "targeted delete",
+      );
+
+      // Releasing only after both durable snapshots exist makes the race
+      // deliberate: old imports and authoritative deletes may now interleave.
+      importBarrier.release();
+      await waitForTerminalJobs(
+        jobDatabasePath,
+        [...heldImports.jobIds, ...queuedDeletes.jobIds],
+        supervisor,
+      );
+
       const brainDataDir = join(appDir, "brain-data");
       await waitForCleanup(
         brainDataDir,
@@ -566,13 +862,9 @@ plugins:
         baselineNoteCount,
         supervisor,
       );
-      await Bun.sleep(10_000);
-      await waitForCleanup(
-        brainDataDir,
-        databasePath,
-        baselineNoteCount,
-        supervisor,
-      );
+      expect(
+        countProbeNotesWithMarker(databasePath, "Update marker: delayed."),
+      ).toBe(0);
       await monitor.stop();
 
       expect(monitor.failures).toEqual([]);
@@ -581,6 +873,11 @@ plugins:
     } catch (error) {
       failure = error;
     } finally {
+      try {
+        importBarrier?.release();
+      } catch (error) {
+        failure ??= error;
+      }
       await monitor?.stop();
       if (supervisor) await stopProcessGroup(supervisor);
       const logs = [await stdout, await stderr].filter(Boolean).join("\n");
@@ -599,6 +896,62 @@ plugins:
   },
   360_000,
 );
+
+it("holds queued imports durably without blocking later job types", async () => {
+  const root = await mkdtemp(join(tmpdir(), "import-job-barrier-"));
+  const databasePath = join(root, "jobs.db");
+  const database = new Database(databasePath);
+  database.exec(`
+    CREATE TABLE job_queue (
+      id TEXT PRIMARY KEY,
+      type TEXT NOT NULL,
+      data TEXT NOT NULL,
+      status TEXT NOT NULL,
+      scheduledFor INTEGER NOT NULL,
+      createdAt INTEGER NOT NULL
+    )
+  `);
+  const insert = database.query<void, [string, string, string, number, number]>(
+    "INSERT INTO job_queue (id, type, data, status, scheduledFor, createdAt) VALUES (?, ?, ?, 'pending', ?, ?)",
+  );
+  const barrier = new DurableImportJobBarrier(databasePath);
+
+  try {
+    barrier.arm();
+    insert.run(
+      "import-1",
+      "directory-sync:directory-import",
+      JSON.stringify({ paths: ["one.md", "two.md"] }),
+      1,
+      1,
+    );
+    insert.run("sync-1", "directory-sync:sync-request", "{}", 2, 2);
+
+    expect(barrier.readHeldImports()).toEqual({
+      jobIds: ["import-1"],
+      itemCount: 2,
+    });
+    expect(readJobSchedule(database, "sync-1")).toBe(2);
+
+    barrier.release();
+    expect(readJobSchedule(database, "import-1")).toBeLessThanOrEqual(
+      Date.now(),
+    );
+
+    insert.run(
+      "import-2",
+      "directory-sync:directory-import",
+      JSON.stringify({ paths: ["three.md"] }),
+      3,
+      3,
+    );
+    expect(readJobSchedule(database, "import-2")).toBe(3);
+  } finally {
+    barrier.release();
+    database.close();
+    await rm(root, { recursive: true, force: true });
+  }
+});
 
 it("ignores a transient zombie that is reaped before the next sample", () => {
   const tracker = new PersistentZombieTracker();
