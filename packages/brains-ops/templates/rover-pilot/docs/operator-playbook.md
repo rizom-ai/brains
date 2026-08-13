@@ -120,12 +120,23 @@ Preview hosts use the shape `<handle>-preview.rizom.ai`, so one wildcard origin 
 
 ## Upgrading operator behavior
 
-When `@rizom/ops` changes the scaffolded deploy contract:
+The pilot repository pins `@rizom/ops` in `package.json`. The scheduled and manually dispatched Upgrade workflow owns routine upgrades to that pin. It refreshes the scaffold on a branch and opens a reviewable PR; it does not change runtime desired state or authorize a deployment.
 
-1. bump `@rizom/ops` in `package.json`
-2. rerun the relevant scaffold/reconcile flow
-3. review the resulting changes to `.env.schema`, `deploy/scripts/`, and workflows in git
-4. commit the updated deploy artifacts together
+Because scaffold refreshes can update `.github/workflows/*`, the workflow must not push with its Actions `GITHUB_TOKEN`. Configure a dedicated GitHub App:
+
+1. Install it only on this pilot repository.
+2. Grant repository permissions `Contents: Read and write`, `Pull requests: Read and write`, and `Workflows: Read and write`; grant nothing else.
+3. Store its App ID as the repository Actions variable `OPS_UPGRADE_APP_ID`.
+4. Store its private key as the repository Actions secret `OPS_UPGRADE_APP_PRIVATE_KEY`.
+
+The workflow mints a short-lived, repository-scoped installation token and explicitly requests only those three permissions. Its own `GITHUB_TOKEN` remains read-only. If App token creation, branch push, or PR creation fails, stop and repair the CI credential path; never fall back to an operator's personal SSH key or token.
+
+Adopting this credential flow in an existing pilot repository requires one explicitly reviewed bootstrap PR because the old Upgrade workflow cannot update itself. After that merge, routine upgrades run entirely in CI:
+
+1. dispatch Upgrade with an exact version, or let its schedule select `latest`;
+2. review the generated package, lockfile, deploy-script, and workflow diff;
+3. merge the upgrade PR only after its checks pass;
+4. change runtime desired state separately through the approved canary or fleet rollout flow.
 
 ## Canonical verification notes
 

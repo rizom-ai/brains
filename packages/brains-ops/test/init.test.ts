@@ -860,7 +860,22 @@ describe("initPilotRepo", () => {
     expect(upgradeWorkflow).toContain("workflow_dispatch:");
     expect(upgradeWorkflow).toContain("schedule:");
     expect(upgradeWorkflow).toContain("bunx brains-ops upgrade .");
-    expect(upgradeWorkflow).toContain("pull-requests: write");
+    expect(upgradeWorkflow).toContain("permissions:\n  contents: read");
+    expect(upgradeWorkflow).toContain("actions/create-github-app-token@v2");
+    expect(upgradeWorkflow).toContain("app-id: ${{ vars.OPS_UPGRADE_APP_ID }}");
+    expect(upgradeWorkflow).toContain(
+      "private-key: ${{ secrets.OPS_UPGRADE_APP_PRIVATE_KEY }}",
+    );
+    expect(upgradeWorkflow).toContain("permission-contents: write");
+    expect(upgradeWorkflow).toContain("permission-pull-requests: write");
+    expect(upgradeWorkflow).toContain("permission-workflows: write");
+    expect(upgradeWorkflow).toContain(
+      "token: ${{ steps.upgrade-token.outputs.token }}",
+    );
+    expect(upgradeWorkflow).toContain(
+      "GH_TOKEN: ${{ steps.upgrade-token.outputs.token }}",
+    );
+    expect(upgradeWorkflow).not.toContain("GH_TOKEN: ${{ github.token }}");
     expect(upgradeWorkflow).toContain("gh pr create");
     // Untracked files count as changes too — porcelain, not diff.
     expect(upgradeWorkflow).toContain("git status --porcelain");

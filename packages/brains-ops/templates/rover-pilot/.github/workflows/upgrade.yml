@@ -12,8 +12,7 @@ on:
     - cron: "17 6 * * 1-5"
 
 permissions:
-  contents: write
-  pull-requests: write
+  contents: read
 
 concurrency:
   group: upgrade
@@ -23,7 +22,19 @@ jobs:
   upgrade:
     runs-on: ubuntu-latest
     steps:
+      - name: Create repository-scoped upgrade token
+        id: upgrade-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ vars.OPS_UPGRADE_APP_ID }}
+          private-key: ${{ secrets.OPS_UPGRADE_APP_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
+          permission-workflows: write
+
       - uses: actions/checkout@v5
+        with:
+          token: ${{ steps.upgrade-token.outputs.token }}
 
       - uses: oven-sh/setup-bun@v2
 
@@ -37,7 +48,7 @@ jobs:
 
       - name: Open upgrade PR
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ steps.upgrade-token.outputs.token }}
         run: |
           if [ -z "$(git status --porcelain)" ]; then
             echo "Already up to date."
