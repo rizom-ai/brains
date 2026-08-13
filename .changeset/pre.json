@@ -278,6 +278,7 @@
     "core--ops-incident-hardening",
     "core--ops-reconcile-view-convergence",
     "core--ops-split-health-endpoints",
+    "core--ops-upgrade-app-token",
     "core--ops-upgrade-path",
     "core--prepare-canonical-crossover",
     "core--preserve-visibility-on-content-replacement",
