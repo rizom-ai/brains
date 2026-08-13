@@ -60,6 +60,7 @@ import { handleJobStatusRequest as handleJobStatusRouteRequest } from "./job-han
 import { handleMessagesRequest as handleMessagesRouteRequest } from "./message-handlers";
 import { createWebChatUploadStoreScope } from "./upload-store";
 import { createWebChatRoutes } from "./web-routes";
+import { createWebChatInboxPrefillState } from "./inbox-prefill-contract";
 import {
   handleArchiveSessionRequest as handleArchiveSessionRouteRequest,
   handleDeleteSessionRequest as handleDeleteSessionRouteRequest,
@@ -164,6 +165,22 @@ export class WebChatInterface extends MessageInterfacePlugin<
       kind: "human",
       priority: 15,
       visibility: "trusted",
+    });
+    context.inboxFollowUps.registerKind({
+      kind: "discuss-in-chat",
+      label: "Discuss in chat",
+      priority: 10,
+      mode: "universal",
+      permissionLevel: "trusted",
+      applies: ({ item }) => item.entityRef !== undefined,
+      resolve: ({ item }) => {
+        if (!item.entityRef) return undefined;
+        const text = `About inbox item: ${item.title} (${item.entityRef.entityType}/${item.entityRef.entityId})`;
+        return {
+          href: this.config.routePath,
+          state: createWebChatInboxPrefillState(text),
+        };
+      },
     });
   }
 

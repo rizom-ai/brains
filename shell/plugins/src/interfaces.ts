@@ -55,6 +55,7 @@ import type { PermissionService } from "@brains/templates";
 import type { DataSourceRegistry } from "@brains/entity-service";
 import type { IChannelRegistry } from "./channel-registry";
 import type { IInboxRegistry } from "./inbox-registry";
+import type { IInboxFollowUpRegistry } from "./inbox-follow-up-registry";
 import type { IOperationalHealthRegistry } from "./operational-health-registry";
 import type {
   AnchorProfile,
@@ -243,6 +244,7 @@ export interface IShell {
   getProfileKindRegistry(): IProfileKindRegistry;
   getChannelRegistry(): IChannelRegistry;
   getInboxRegistry(): IInboxRegistry;
+  getInboxFollowUpRegistry(): IInboxFollowUpRegistry;
   getOperationalHealthRegistry(): IOperationalHealthRegistry;
 
   // Domain — bare domain string (e.g. "yeehaa.io"), undefined for local dev

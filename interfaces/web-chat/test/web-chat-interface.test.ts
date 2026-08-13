@@ -314,6 +314,52 @@ describe("WebChatInterface", () => {
     );
   });
 
+  it("registers the universal Discuss in chat follow-up at the configured mount", async () => {
+    const plugin = new WebChatInterface({ routePath: "/talk" });
+    await harness.installPlugin(plugin);
+    await harness.finalizeRegistration();
+
+    expect(
+      harness
+        .getMockShell()
+        .getInboxFollowUpRegistry()
+        .getKind("discuss-in-chat"),
+    ).toMatchObject({
+      label: "Discuss in chat",
+      mode: "universal",
+      permissionLevel: "trusted",
+    });
+    expect(
+      await harness
+        .getMockShell()
+        .getInboxFollowUpRegistry()
+        .resolveUniversal({
+          sourceId: "email-triage",
+          actor: { permissionLevel: "admin" },
+          item: {
+            id: "mail-1",
+            title: "Review <script>alert(1)</script>",
+            receivedAt: "2026-08-13T08:00:00.000Z",
+            urgency: "high",
+            entityRef: { entityType: "mail-item", entityId: "mail/1" },
+            actions: [],
+          },
+        }),
+    ).toEqual([
+      {
+        kind: "discuss-in-chat",
+        label: "Discuss in chat",
+        href: "/talk",
+        state: {
+          webChatPrefill: {
+            version: 1,
+            text: "About inbox item: Review <script>alert(1)</script> (mail-item/mail/1)",
+          },
+        },
+      },
+    ]);
+  });
+
   it("exposes chat page, AI SDK endpoint, and UI asset routes", async () => {
     const plugin = new WebChatInterface();
     await harness.installPlugin(plugin);

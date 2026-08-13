@@ -2364,14 +2364,39 @@
   color: var(--console-text-muted);
   font-style: italic;
 }
-.inbox-entity-link {
-  padding: 7px 0;
-  border: 0;
-  border-bottom: 1px solid var(--console-secondary, var(--console-accent));
+.inbox-follow-ups {
+  margin-top: 28px;
+  padding: 14px 0 2px;
+  border-top: 1px solid var(--console-rule-strong);
+}
+.inbox-follow-ups > span {
+  display: block;
+  margin-bottom: 9px;
+  color: var(--console-text-muted);
+  font: 8px var(--console-mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.inbox-follow-ups nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+.inbox-follow-ups button {
+  padding: 7px 10px;
+  border: 1px solid var(--console-secondary, var(--console-accent));
+  border-radius: 5px;
   background: transparent;
   color: var(--console-secondary, var(--console-accent));
   font: 9px var(--console-mono);
   cursor: pointer;
+}
+.inbox-follow-ups button:hover {
+  background: color-mix(
+    in srgb,
+    var(--console-secondary, var(--console-accent)) 9%,
+    transparent
+  );
 }
 .inbox-detail-pane > footer {
   margin-top: 28px;

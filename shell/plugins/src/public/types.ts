@@ -51,6 +51,12 @@ import type {
   ChannelDescriptor,
 } from "../channel-registry";
 import type { InboxSource } from "../inbox-registry";
+import type {
+  InboxFollowUpKindRegistration,
+  InboxFollowUpResolutionInput,
+  RegisteredInboxFollowUpKind,
+  ResolvedInboxFollowUp,
+} from "../inbox-follow-up-registry";
 export type {
   ChannelDeliveryInput,
   ChannelDeliveryProvider,
@@ -66,6 +72,16 @@ export type {
   InboxSource,
   InboxSourceMetadata,
 } from "../inbox-registry";
+export type {
+  InboxFollowUpContext,
+  InboxFollowUpJson,
+  InboxFollowUpKindRegistration,
+  InboxFollowUpMode,
+  InboxFollowUpResolutionInput,
+  InboxFollowUpTargetInput,
+  RegisteredInboxFollowUpKind,
+  ResolvedInboxFollowUp,
+} from "../inbox-follow-up-registry";
 
 export type PluginConfig = Record<string, unknown>;
 export type PluginConfigInput<T extends { _input: unknown }> = T["_input"];
@@ -385,6 +401,15 @@ export interface IInboxNamespace {
   getSource(sourceId: string): InboxSource | undefined;
 }
 
+export interface IInboxFollowUpsNamespace {
+  registerKind(registration: InboxFollowUpKindRegistration): void;
+  listKinds(): RegisteredInboxFollowUpKind[];
+  getKind(kind: string): RegisteredInboxFollowUpKind | undefined;
+  resolveUniversal(
+    input: Omit<InboxFollowUpResolutionInput, "context">,
+  ): Promise<ResolvedInboxFollowUp[]>;
+}
+
 export interface IOperationalHealthNamespace {
   register(
     name: string,
@@ -417,6 +442,7 @@ export interface BasePluginContext {
   readonly identity: IIdentityNamespace;
   readonly channels: IChannelsNamespace;
   readonly inbox: IInboxNamespace;
+  readonly inboxFollowUps: IInboxFollowUpsNamespace;
   readonly operationalHealth: IOperationalHealthNamespace;
   readonly messaging: IMessagingNamespace;
   readonly conversations: IConversationsNamespace;

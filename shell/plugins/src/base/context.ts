@@ -22,6 +22,7 @@ import {
   createEndpointsNamespace,
   createEvalNamespace,
   createIdentityNamespace,
+  createInboxFollowUpsNamespace,
   createInboxNamespace,
   createInsightsNamespace,
   createInteractionsNamespace,
@@ -40,6 +41,7 @@ import type {
   IEndpointsNamespace,
   IEvalNamespace,
   IIdentityNamespace,
+  IInboxFollowUpsNamespace,
   IInboxNamespace,
   IInsightsNamespace,
   IInteractionsNamespace,
@@ -62,6 +64,7 @@ export type {
   IEndpointsNamespace,
   IEvalNamespace,
   IIdentityNamespace,
+  IInboxFollowUpsNamespace,
   IInboxNamespace,
   IInsightsNamespace,
   IInteractionsNamespace,
@@ -173,6 +176,9 @@ export interface BasePluginContext {
 
   /** App-scoped source-owned attention registry. */
   readonly inbox: IInboxNamespace;
+
+  /** Destination-owned non-mutating Inbox follow-up catalog. */
+  readonly inboxFollowUps: IInboxFollowUpsNamespace;
 
   // ============================================================================
   // Inter-Plugin Messaging
@@ -313,6 +319,7 @@ export function createBasePluginContext(
     profileKinds: createProfileKindsNamespace(shell, pluginId),
     channels: createChannelsNamespace(shell),
     inbox: createInboxNamespace(shell, pluginId),
+    inboxFollowUps: createInboxFollowUpsNamespace(shell, pluginId),
 
     appInfo: getAppInfo,
     readiness: () => shell.getRuntimeReadiness(),

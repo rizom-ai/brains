@@ -565,6 +565,7 @@ function renderCapabilityView(
     selectEntityType: () => {},
     selectWorkspace: () => {},
     openWorkspaceEntity: () => {},
+    openInboxFollowUp: () => {},
     performPublishingAction: successfulPublishingAction,
     performSiteAction: async (): Promise<SiteWorkspaceActionResult> => ({
       accepted: true,

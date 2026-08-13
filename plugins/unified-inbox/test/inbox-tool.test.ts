@@ -1,5 +1,9 @@
 import { describe, expect, it } from "bun:test";
-import { InboxRegistry, type InboxItem } from "@brains/plugins";
+import {
+  InboxFollowUpRegistry,
+  InboxRegistry,
+  type InboxItem,
+} from "@brains/plugins";
 
 import {
   InboxDataSource,
@@ -40,9 +44,12 @@ function createToolFixture(items?: InboxItem[]): {
     });
   }
   registry.finalize();
+  const followUps = new InboxFollowUpRegistry();
+  followUps.finalize();
   const service = new InboxOperatorService(
     registry,
     new InboxDataSource(registry),
+    followUps,
   );
   return { service, tool: createInboxListTool(service) };
 }
@@ -97,12 +104,15 @@ describe("inbox_list tool", () => {
 
   it("uses the same source and urgency filters as the workspace", async () => {
     const { service, tool } = createToolFixture(attentionItems);
-    const workspace = await service.workspace({
-      sourceId: "mail-items",
-      urgency: "normal",
-      offset: 0,
-      limit: 50,
-    });
+    const workspace = await service.workspace(
+      {
+        sourceId: "mail-items",
+        urgency: "normal",
+        offset: 0,
+        limit: 50,
+      },
+      { permissionLevel: "admin" },
+    );
     const result = inboxListToolOutputSchema.parse(
       await tool.handler(
         { sourceId: "mail-items", urgency: "normal", limit: 50 },
@@ -179,8 +189,14 @@ describe("inbox_list tool", () => {
       act: async () => undefined,
     });
     registry.finalize();
+    const followUps = new InboxFollowUpRegistry();
+    followUps.finalize();
     const tool = createInboxListTool(
-      new InboxOperatorService(registry, new InboxDataSource(registry)),
+      new InboxOperatorService(
+        registry,
+        new InboxDataSource(registry),
+        followUps,
+      ),
     );
 
     const result = await tool.handler(

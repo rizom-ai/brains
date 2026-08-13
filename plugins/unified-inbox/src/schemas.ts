@@ -6,7 +6,9 @@ import {
   inboxItemSchema,
   inboxSourceMetadataSchema,
   inboxUrgencySchema,
+  resolvedInboxFollowUpSchema,
   type InboxItem,
+  type ResolvedInboxFollowUp,
   type InboxSourceMetadata,
   type ListToolOutput,
 } from "@brains/plugins";
@@ -199,6 +201,7 @@ export const inboxSourceAvailabilitySchema: z.ZodType<
 
 interface InboxWorkspaceEntryValue extends InboxProjectionEntryValue {
   contactHref?: string | undefined;
+  followUps: ResolvedInboxFollowUp[];
 }
 
 const inboxContactHrefSchema = z
@@ -215,6 +218,7 @@ export const inboxWorkspaceEntrySchema: z.ZodType<
   source: inboxSourceMetadataSchema,
   item: inboxItemSchema,
   contactHref: inboxContactHrefSchema.optional(),
+  followUps: z.array(resolvedInboxFollowUpSchema).max(100),
 });
 
 interface InboxWorkspaceSnapshotValue {

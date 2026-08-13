@@ -25,6 +25,7 @@ import type {
   IEndpointsNamespace,
   IEvalNamespace,
   IIdentityNamespace,
+  IInboxFollowUpsNamespace,
   IInboxNamespace,
   IInsightsNamespace,
   IInteractionsNamespace,
@@ -100,6 +101,21 @@ export function createInboxNamespace(
     },
     listSources: () => registry.listSources(),
     getSource: (sourceId) => registry.getSource(sourceId),
+  };
+}
+
+export function createInboxFollowUpsNamespace(
+  shell: IShell,
+  pluginId: string,
+): IInboxFollowUpsNamespace {
+  const registry = shell.getInboxFollowUpRegistry();
+  return {
+    registerKind: (registration): void => {
+      registry.registerKind(pluginId, registration);
+    },
+    listKinds: () => registry.listKinds(),
+    getKind: (kind) => registry.getKind(kind),
+    resolveUniversal: (input) => registry.resolveUniversal(input),
   };
 }
 

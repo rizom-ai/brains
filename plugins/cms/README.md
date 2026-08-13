@@ -40,6 +40,13 @@ Reducer actions are discriminated transitions; rejected transitions return the e
 
 CMS doors use `{routePath}/entities/{encodedEntityType}` or `{routePath}/entities/{encodedEntityType}/{encodedEntityId}`. Optional operational workspaces use `{routePath}/workspaces/{encodedWorkspaceId}`. Package-local TanStack Router browser history owns the selected collection, entity, or workspace, including Back, Forward, refresh, and direct entry. Entity IDs are encoded as one value and may contain slashes. Draft values, conflicts, dialogs, pane selection, and other transient workflow state do not belong in the URL; navigation away from a dirty edit or creation draft requires explicit confirmation.
 
+Destination-owned Inbox handoffs may open `{routePath}/entities/note?mode=create` with a
+bounded, schema-validated history-state envelope. CMS consumes that envelope once, seeds an
+unsaved title and canonical source backlink, and removes only its own history-state key.
+Reloading opens an empty draft, and direct entry still passes normal CMS authentication,
+entity availability, and create-policy checks. CMS also owns the registered **Open source
+entity** target, so the Inbox renderer never constructs entity URLs itself.
+
 Workspace providers may opt into renderer-owned stable URL filters with `urlQuery: true`.
 The CMS hydrates those filters from the raw search string and replaces their canonical URL
 without guessing provider semantics. `offset` and `limit` are always transient request

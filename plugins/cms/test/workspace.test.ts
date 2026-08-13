@@ -1,13 +1,44 @@
 import { createTempDataDir } from "@brains/plugins/test";
-import { describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "bun:test";
 import { AuthServicePlugin } from "@brains/auth-service";
-import type {
-  CmsWorkspaceRegistration,
-  WebRouteDefinition,
+import {
+  BaseEntityAdapter,
+  baseEntitySchema,
+  type BaseEntity,
+  type CmsWorkspaceRegistration,
+  type WebRouteDefinition,
 } from "@brains/plugins";
 import { createMockShell, type MockShell } from "@brains/test-utils";
+import { PermissionService } from "@brains/templates";
 import { z } from "@brains/utils/zod";
 import { cmsPlugin, type CmsPlugin } from "../src";
+
+const authPlugins: AuthServicePlugin[] = [];
+
+afterEach(async () => {
+  for (const plugin of authPlugins.splice(0).reverse()) {
+    await plugin.shutdown?.();
+  }
+});
+
+class NoteTestAdapter extends BaseEntityAdapter<BaseEntity> {
+  constructor() {
+    super({
+      entityType: "note",
+      purpose: "Test notes",
+      schema: baseEntitySchema,
+      frontmatterSchema: z.object({ title: z.string().optional() }),
+    });
+  }
+
+  public override toMarkdown(entity: BaseEntity): string {
+    return entity.content;
+  }
+
+  public override fromMarkdown(markdown: string): Partial<BaseEntity> {
+    return { entityType: "note", content: markdown };
+  }
+}
 
 function findRoute(
   plugin: CmsPlugin,
@@ -29,6 +60,7 @@ async function createSessionCookie(shell: MockShell): Promise<string> {
     storageDir: await createTempDataDir("brains-cms-workspace-auth-"),
   });
   await authPlugin.register(shell);
+  authPlugins.push(authPlugin);
   return (await authPlugin.getService().createAuthSession()).cookie;
 }
 
@@ -80,6 +112,102 @@ describe("optional CMS workspaces", () => {
 
     expect(response.status).toBe(200);
     expect(payload.workspaces).toEqual([]);
+  });
+
+  it("registers universal CMS follow-ups at a non-default mount", async () => {
+    const shell = createMockShell({ domain: "yeehaa.io" });
+    shell
+      .getEntityRegistry()
+      .registerEntityType("note", baseEntitySchema, new NoteTestAdapter());
+    const plugin = cmsPlugin({ routePath: "/studio" });
+    await plugin.register(shell);
+    shell.getInboxFollowUpRegistry().finalize();
+
+    expect(
+      await shell.getInboxFollowUpRegistry().resolveUniversal({
+        sourceId: "email-triage",
+        actor: { permissionLevel: "admin" },
+        item: {
+          id: "mail-1",
+          title: "Review the proposal",
+          summary: "Classifier summary must not be copied.",
+          receivedAt: "2026-08-13T08:00:00.000Z",
+          urgency: "high",
+          entityRef: { entityType: "note", entityId: "new" },
+          actions: [],
+        },
+      }),
+    ).toEqual([
+      {
+        kind: "capture-as-note",
+        label: "Capture as note",
+        href: "/studio/entities/note?mode=create",
+        state: {
+          cmsCreatePrefill: {
+            version: 1,
+            entityType: "note",
+            title: "Review the proposal",
+            backlink: "entity://note/new",
+          },
+        },
+      },
+      {
+        kind: "open-entity",
+        label: "Open source entity",
+        href: "/studio/entities/note/new",
+      },
+    ]);
+  });
+
+  it("hides note capture when the note entity capability is absent", async () => {
+    const shell = createMockShell({ domain: "yeehaa.io" });
+    const plugin = cmsPlugin();
+    await plugin.register(shell);
+    shell.getInboxFollowUpRegistry().finalize();
+
+    const resolved = await shell.getInboxFollowUpRegistry().resolveUniversal({
+      sourceId: "recurring-checks",
+      actor: { permissionLevel: "admin" },
+      item: {
+        id: "alert-1",
+        title: "Check the import",
+        receivedAt: "2026-08-13T08:00:00.000Z",
+        urgency: "high",
+        entityRef: { entityType: "operation-status", entityId: "sync-1" },
+        actions: [],
+      },
+    });
+
+    expect(resolved.map((entry) => entry.kind)).toEqual(["open-entity"]);
+  });
+
+  it("hides note capture when entity policy forbids creation", async () => {
+    const shell = createMockShell({ domain: "yeehaa.io" });
+    shell
+      .getEntityRegistry()
+      .registerEntityType("note", baseEntitySchema, new NoteTestAdapter());
+    const permissionService = new PermissionService({
+      entityActions: { note: { create: "never" } },
+    });
+    shell.getPermissionService = (): PermissionService => permissionService;
+    const plugin = cmsPlugin();
+    await plugin.register(shell);
+    shell.getInboxFollowUpRegistry().finalize();
+
+    const resolved = await shell.getInboxFollowUpRegistry().resolveUniversal({
+      sourceId: "email-triage",
+      actor: { permissionLevel: "admin" },
+      item: {
+        id: "mail-1",
+        title: "Review the proposal",
+        receivedAt: "2026-08-13T08:00:00.000Z",
+        urgency: "high",
+        entityRef: { entityType: "mail-item", entityId: "mail-1" },
+        actions: [],
+      },
+    });
+
+    expect(resolved.map((entry) => entry.kind)).toEqual(["open-entity"]);
   });
 
   it("registers a workspace and returns its configured CMS URL", async () => {

@@ -15,6 +15,7 @@ import { MessageBus } from "@brains/messaging-service";
 import {
   AttachmentRegistry,
   ChannelRegistry,
+  InboxFollowUpRegistry,
   InboxRegistry,
   OperationalHealthRegistry,
   PluginManager,
@@ -101,6 +102,8 @@ export function createShellServices(options: {
   const channelRegistry =
     dependencies?.channelRegistry ?? new ChannelRegistry();
   const inboxRegistry = dependencies?.inboxRegistry ?? new InboxRegistry();
+  const inboxFollowUpRegistry =
+    dependencies?.inboxFollowUpRegistry ?? new InboxFollowUpRegistry();
   const operationalHealthRegistry =
     dependencies?.operationalHealthRegistry ?? new OperationalHealthRegistry();
   const attachmentRegistry =
@@ -296,6 +299,7 @@ export function createShellServices(options: {
     profileKindRegistry,
     channelRegistry,
     inboxRegistry,
+    inboxFollowUpRegistry,
     operationalHealthRegistry,
     agentService,
     attachmentRegistry,

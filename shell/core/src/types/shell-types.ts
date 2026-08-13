@@ -29,6 +29,7 @@ import type {
 import type {
   AttachmentRegistry,
   ChannelRegistry,
+  InboxFollowUpRegistry,
   InboxRegistry,
   OperationalHealthRegistry,
   PluginManager,
@@ -75,6 +76,7 @@ export interface ShellServices {
   profileKindRegistry: ProfileKindRegistry;
   channelRegistry: ChannelRegistry;
   inboxRegistry: InboxRegistry;
+  inboxFollowUpRegistry: InboxFollowUpRegistry;
   operationalHealthRegistry: OperationalHealthRegistry;
   agentService: IAgentService;
   attachmentRegistry: AttachmentRegistry;
@@ -112,5 +114,6 @@ export interface ShellDependencies {
   profileKindRegistry?: ProfileKindRegistry;
   channelRegistry?: ChannelRegistry;
   inboxRegistry?: InboxRegistry;
+  inboxFollowUpRegistry?: InboxFollowUpRegistry;
   operationalHealthRegistry?: OperationalHealthRegistry;
 }

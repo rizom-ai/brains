@@ -110,6 +110,7 @@ export class ShellBootloader {
     this.services.profileKindRegistry.finalize();
     this.services.channelRegistry.finalize();
     this.services.inboxRegistry.finalize();
+    this.services.inboxFollowUpRegistry.finalize();
     await this.services.pluginManager.finalizePluginRegistrations();
     this.hooks.finalizeHttpRoutes();
     await this.services.projectionRuntimeSupervisor.initialize(

@@ -36,7 +36,11 @@ export class UnifiedInboxPlugin extends ServicePlugin<
     context: ServicePluginContext,
   ): Promise<void> {
     this.dataSource = new InboxDataSource(context.inbox);
-    this.operator = new InboxOperatorService(context.inbox, this.dataSource);
+    this.operator = new InboxOperatorService(
+      context.inbox,
+      this.dataSource,
+      context.inboxFollowUps,
+    );
     context.entities.registerDataSource(this.dataSource);
   }
 

@@ -280,6 +280,24 @@ export function createPluginScopedShell(
     },
   });
 
+  const inboxFollowUpRegistry = shell.getInboxFollowUpRegistry();
+  const scopedInboxFollowUpRegistry = new Proxy(inboxFollowUpRegistry, {
+    get(target, property): unknown {
+      const value = Reflect.get(target, property, target) as unknown;
+      if (property === "registerKind" && typeof value === "function") {
+        return (...args: unknown[]): unknown => {
+          const result = Reflect.apply(value, target, args);
+          const pluginId = args[0];
+          if (typeof pluginId === "string") {
+            resources.addFinalizer(() => target.unregisterPlugin(pluginId));
+          }
+          return result;
+        };
+      }
+      return typeof value === "function" ? value.bind(target) : value;
+    },
+  });
+
   const operationalHealthRegistry = shell.getOperationalHealthRegistry();
   const scopedOperationalHealthRegistry = new Proxy(operationalHealthRegistry, {
     get(target, property): unknown {
@@ -364,6 +382,9 @@ export function createPluginScopedShell(
       }
       if (property === "getInboxRegistry") {
         return () => scopedInboxRegistry;
+      }
+      if (property === "getInboxFollowUpRegistry") {
+        return () => scopedInboxFollowUpRegistry;
       }
       if (property === "getOperationalHealthRegistry") {
         return () => scopedOperationalHealthRegistry;
