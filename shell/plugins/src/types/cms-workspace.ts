@@ -40,6 +40,8 @@ export interface CmsWorkspaceRegistration {
   label: string;
   rendererName: CmsWorkspaceRendererName;
   priority: number;
+  /** Allow the CMS container to hydrate stable renderer-owned filters from the URL. */
+  urlQuery?: true | undefined;
   /**
    * Entity types the workspace covers. Providers whose coverage depends on
    * the caller's permissions supply a resolver so descriptors never disclose
@@ -69,6 +71,7 @@ export interface CmsWorkspaceDescriptor {
   label: string;
   rendererName: CmsWorkspaceRendererName;
   priority: number;
+  urlQuery?: true | undefined;
   entityTypes: string[];
   badge?: number | undefined;
 }

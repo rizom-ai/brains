@@ -74,15 +74,29 @@ import {
   type CmsWorkspaceQuery,
 } from "./queries";
 import { emptyDraft, errorMessage } from "./ui-utils";
+import {
+  initialWorkspaceUrlQuery,
+  replaceWorkspaceUrlQuery,
+  workspaceUrlHref,
+  workspaceUrlSearch,
+} from "./workspace-url-query";
 
 const EMPTY_AGENT_TARGETS: AgentTarget[] = [];
 const EMPTY_WORKSPACES: CmsWorkspaceInfo[] = [];
 const EMPTY_WORKSPACE_QUERY: CmsWorkspaceQuery = {};
 
+interface WorkspaceQueryState {
+  query: CmsWorkspaceQuery;
+  urlSearch?: string | undefined;
+}
+
 export function App(): ReactElement {
   const router = useRouter();
   const routePathname = useRouterState({
     select: (state) => state.location.pathname,
+  });
+  const routeSearch = useRouterState({
+    select: (state) => state.location.searchStr,
   });
   const cmsBasePath = getCmsRouterBasePath();
   // TanStack Router exposes a pathname relative to its configured basepath.
@@ -104,7 +118,7 @@ export function App(): ReactElement {
   // Renderer-agnostic per-workspace query params (filters, paging). Renderers
   // own their query semantics; the container only stores and forwards them.
   const [workspaceQueries, setWorkspaceQueries] = useState<
-    Record<string, CmsWorkspaceQuery>
+    Record<string, WorkspaceQueryState>
   >({});
   const [editor, dispatchEditor] = useReducer(
     editorWorkflowReducer,
@@ -141,9 +155,21 @@ export function App(): ReactElement {
   const activeWorkspace = workspaces.find(
     (workspace) => workspace.id === activeWorkspaceId,
   );
-  const workspaceRequestQuery =
-    (activeWorkspaceId ? workspaceQueries[activeWorkspaceId] : undefined) ??
-    EMPTY_WORKSPACE_QUERY;
+  const storedWorkspaceQuery = activeWorkspaceId
+    ? workspaceQueries[activeWorkspaceId]
+    : undefined;
+  const storedQueryMatchesLocation =
+    activeWorkspace?.urlQuery !== true ||
+    storedWorkspaceQuery?.urlSearch === routeSearch;
+  const initialUrlWorkspaceQuery = useMemo(
+    () => initialWorkspaceUrlQuery(activeWorkspace, routeSearch),
+    [activeWorkspace, routeSearch],
+  );
+  const workspaceRequestQuery = activeWorkspaceId
+    ? storedWorkspaceQuery && storedQueryMatchesLocation
+      ? storedWorkspaceQuery.query
+      : initialUrlWorkspaceQuery
+    : EMPTY_WORKSPACE_QUERY;
   const workspaceQuery = useQuery({
     ...workspaceQueryOptions(activeWorkspaceId ?? "", workspaceRequestQuery),
     enabled: activeWorkspaceId !== null,
@@ -222,6 +248,32 @@ export function App(): ReactElement {
     workspaceResponse?.rendererName === "UnifiedInboxWorkspace"
       ? workspaceResponse.data
       : null;
+
+  useEffect(() => {
+    if (
+      activeWorkspace?.urlQuery !== true ||
+      routeTarget.kind !== "workspace" ||
+      routeTarget.workspaceId !== activeWorkspace.id
+    ) {
+      return;
+    }
+    const pathname = cmsWorkspacePath(cmsBasePath, activeWorkspace.id);
+    const canonicalHref = workspaceUrlHref(pathname, initialUrlWorkspaceQuery);
+    if (canonicalHref !== `${pathname}${routeSearch}`) {
+      replaceWorkspaceUrlQuery(
+        router.history,
+        pathname,
+        initialUrlWorkspaceQuery,
+      );
+    }
+  }, [
+    activeWorkspace,
+    cmsBasePath,
+    initialUrlWorkspaceQuery,
+    routeSearch,
+    routeTarget,
+    router.history,
+  ]);
 
   useEffect(() => {
     if (!types) return;
@@ -773,10 +825,27 @@ export function App(): ReactElement {
   );
 
   const changeWorkspaceQuery = useCallback(
-    (workspaceId: string, query: CmsWorkspaceQuery): void => {
-      setWorkspaceQueries((current) => ({ ...current, [workspaceId]: query }));
+    (
+      workspaceId: string,
+      query: CmsWorkspaceQuery,
+      canonicalUrlQuery?: CmsWorkspaceQuery,
+    ): void => {
+      const workspace = workspaces.find((entry) => entry.id === workspaceId);
+      let urlSearch = workspace?.urlQuery === true ? routeSearch : undefined;
+      if (workspace?.urlQuery === true && canonicalUrlQuery !== undefined) {
+        const pathname = cmsWorkspacePath(cmsBasePath, workspaceId);
+        urlSearch = workspaceUrlSearch(canonicalUrlQuery);
+        replaceWorkspaceUrlQuery(router.history, pathname, canonicalUrlQuery);
+      }
+      setWorkspaceQueries((current) => ({
+        ...current,
+        [workspaceId]: {
+          query,
+          ...(urlSearch !== undefined ? { urlSearch } : {}),
+        },
+      }));
     },
-    [],
+    [cmsBasePath, routeSearch, router.history, workspaces],
   );
 
   const visibleLoadError =

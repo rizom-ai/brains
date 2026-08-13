@@ -112,6 +112,7 @@ describe("unified inbox CMS registration", () => {
       label: "Inbox",
       rendererName: "UnifiedInboxWorkspace",
       priority: 20,
+      urlQuery: true,
     });
     expect(
       await fixture.workspace.accessHandler({
@@ -153,9 +154,22 @@ describe("unified inbox CMS registration", () => {
       }).success,
     ).toBe(false);
     expect(await fixture.workspace.badgeProvider?.(admin)).toBe(1);
-    expect(
-      fixture.workspace.dataProvider(admin, { limit: "101" }),
-    ).rejects.toThrow("Invalid unified inbox query");
+
+    const canonicalized = inboxWorkspaceSnapshotSchema.parse(
+      await fixture.workspace.dataProvider(admin, {
+        sourceId: "missing-source",
+        urgency: "urgent",
+        offset: "not-a-page",
+        limit: "101",
+        "facet.category": "orphaned",
+      }),
+    );
+    expect(canonicalized).toMatchObject({
+      total: 1,
+      offset: 0,
+      limit: 50,
+      entries: [{ item: { id: "mail-1" } }],
+    });
   });
 
   it("leaves resolved contacts unlinked when Admin is not registered", async () => {

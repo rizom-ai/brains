@@ -668,8 +668,13 @@
         context and never mutate: <b>Discuss in chat</b> opens the registered
         web-chat interaction with the composer prefilled (never auto-sent),
         <b>Capture as note</b> opens an unsaved CMS note using same-origin
-        navigation state, and <b>Open source entity</b> already exists. Missing
-        route or create capabilities hide their launch instead of guessing.
+        navigation state — title and backlink only, never the derived summary —
+        and <b>Open source entity</b> already exists. Each is registered in
+        explicit <em>universal</em> mode by its destination plugin; these three
+        apply to any item carrying an entity reference, so no source declares
+        them. The server validates each final target, and the destination checks
+        access again on entry. Missing registrations or insufficient permission
+        hide a launch instead of guessing a route.
       </p>
     </div>
     <div class="legend-item">
@@ -686,11 +691,15 @@
     <div class="legend-item">
       <span class="dot">3</span>
       <p>
-        <b>Kind-specific follow-ups are source-declared links.</b>
-        <b>Draft reply</b> appears only on needs-reply mail and points into the
-        draft-and-approve pipeline from <code>email-reply-drafting.md</code>.
-        Candidates would declare <b>Review profile</b> / <b>Invite</b>; stale
-        opportunities <b>Open lead</b>. Different items, different launches.
+        <b>Sources declare intent, never URLs.</b> An item carries bounded
+        <code>{ kind, context }</code>; the plugin owning the destination
+        registered that declared kind, its context schema, and its resolver.
+        Only a validated target reaches the browser. <b>Draft reply</b> appears
+        only on needs-reply mail and is registered by the draft-and-approve
+        pipeline in <code>email-reply-drafting.md</code>. Candidates would
+        declare <b>Review profile</b> / <b>Invite</b>; stale opportunities
+        <b>Open lead</b>. Different items, different launches — declared kinds
+        render before universal ones, with destination-owned ordering.
       </p>
     </div>
     <div class="legend-item">

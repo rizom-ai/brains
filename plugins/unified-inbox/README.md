@@ -12,8 +12,9 @@ failures.
 
 The opt-in plugin provides:
 
-- an Admin-only CMS **Inbox** workspace with server-side source/urgency filters, bounded
-  paging, list/detail triage, source-entity navigation, and confirmation-gated actions;
+- an Admin-only CMS **Inbox** workspace with linkable server-side source/urgency filters,
+  bounded transient paging, list/detail triage, source-entity navigation, and
+  confirmation-gated actions;
 - an access-checked open-count badge in the CMS workspace rail;
 - a read-only Admin Dashboard summary containing at most five redacted entries;
 - the bounded Admin `inbox_list` headless reader, available without browser
@@ -24,7 +25,10 @@ The opt-in plugin provides:
 Actions always re-list the owning source and verify that the requested item and action are
 still offered. Confirmed actions are revalidated immediately before dispatch. Browser
 responses never expose source exception text, and completed actions return no inbox
-projection; the client invalidates and reloads the live view.
+projection; the client invalidates and reloads the live view. Stable source and urgency
+filters use the workspace URL, while paging remains in-memory: direct entry and reload
+always start at offset zero. Unknown or malformed filter values are removed instead of
+failing or producing a private provider error.
 
 The shell registers **Recurring checks** as the first core source. Returned alerts remain
 one open item per condition episode until an Admin resolves them. Notification delivery is

@@ -9,7 +9,6 @@ import type { InboxOperatorService } from "./operator-service";
 import {
   inboxActionOutcomeSchema,
   inboxActionRequestSchema,
-  inboxWorkspaceQuerySchema,
   inboxWorkspaceSnapshotSchema,
 } from "./schemas";
 
@@ -23,13 +22,12 @@ export async function registerUnifiedInboxCmsWorkspace(
     label: "Inbox",
     rendererName: "UnifiedInboxWorkspace",
     priority: 20,
+    urlQuery: true,
     accessHandler: (actor) => actor.userPermissionLevel === "admin",
     dataProvider: async (actor, input) => {
       assertInboxAdmin(actor);
-      const query = inboxWorkspaceQuerySchema.safeParse(input ?? {});
-      if (!query.success) throw new Error("Invalid unified inbox query");
       const [snapshot, appInfo] = await Promise.all([
-        operator.workspace(query.data),
+        operator.workspace(input),
         context.appInfo(),
       ]);
       const adminHref = appInfo.interactions.find(
