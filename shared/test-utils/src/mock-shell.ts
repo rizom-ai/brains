@@ -1,4 +1,5 @@
 import {
+  AccountSettingsRegistry,
   AttachmentRegistry,
   ChannelRegistry,
   InboxFollowUpRegistry,
@@ -232,6 +233,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
   const inboxRegistry = new InboxRegistry();
   const inboxFollowUpRegistry = new InboxFollowUpRegistry();
   const operationalHealthRegistry = new OperationalHealthRegistry();
+  const accountSettingsRegistry = new AccountSettingsRegistry();
 
   // Stateful backing stores
   const entities = new Map<string, BaseEntity>();
@@ -837,6 +839,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
     getInboxRegistry: () => inboxRegistry,
     getInboxFollowUpRegistry: () => inboxFollowUpRegistry,
     getOperationalHealthRegistry: () => operationalHealthRegistry,
+    getAccountSettingsRegistry: () => accountSettingsRegistry,
     getDomain: (): string | undefined => options.domain,
     getLocalSiteUrl: (): string | undefined => options.localSiteUrl,
     shouldPreferLocalUrls: (): boolean => options.preferLocalUrls ?? false,

@@ -73,6 +73,11 @@ export class AuthRequestRouter {
       },
       {
         method: "POST",
+        path: "/auth/account/plugin-settings",
+        handler: options.handleAccountRequest,
+      },
+      {
+        method: "POST",
         path: "/auth/account/passkeys/options",
         handler: options.handleAccountRequest,
       },

@@ -130,6 +130,30 @@ describe("declarative service definitions", () => {
     expect(cleaned).toBeTrue();
   });
 
+  it("fails finalization when service account settings have no auth backend", async () => {
+    const settings = defineAccountSettings({
+      title: "Reading provider",
+      schema: z.object({ token: z.string() }),
+      fields: { token: { label: "Token", secret: true } },
+    });
+    const definition = defineServicePlugin({
+      id: "account-service",
+      config: z.object({}),
+      accountSettings: settings,
+    });
+    const [plugin] = instantiatePluginPackageDefinition(
+      definition,
+      {},
+      { name: "@fixture/account-service", version: "0.1.0" },
+    );
+    if (!plugin) throw new Error("Service plugin was not created");
+    const harness = createPluginHarness();
+    await harness.installPlugin(plugin);
+    expect(harness.finalizeRegistration()).rejects.toThrow(
+      "require auth-service and an account settings encryption key",
+    );
+  });
+
   it("rolls back durable registrations when service registration fails", async () => {
     const binding = digestJob.handle(async ({ input }) => ({
       bookmarkId: input.bookmarkId,
@@ -343,15 +367,5 @@ describe("declarative service definitions", () => {
         ],
       }),
     ).rejects.toThrow("dashboard widgets require the operator runtime");
-
-    expect(
-      install({
-        accountSettings: defineAccountSettings({
-          title: "Reading provider",
-          schema: z.object({ endpoint: z.url() }),
-          fields: { endpoint: { label: "Endpoint" } },
-        }),
-      }),
-    ).rejects.toThrow("account settings require the account-settings runtime");
   });
 });

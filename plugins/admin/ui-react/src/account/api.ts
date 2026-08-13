@@ -1,5 +1,6 @@
 import type {
   AuthAccountMutation,
+  AuthAccountPluginSettingsMutation,
   AuthAccountResponse,
   AuthAccountSnapshot,
 } from "@brains/auth-service/account-contracts";
@@ -59,6 +60,20 @@ export async function fetchAccount(): Promise<AuthAccountSnapshot> {
     await fetch("/auth/account", {
       credentials: "same-origin",
       cache: "no-store",
+    }),
+  );
+  return response.account;
+}
+
+export async function mutatePluginSettings(
+  mutation: AuthAccountPluginSettingsMutation,
+): Promise<AuthAccountSnapshot> {
+  const response = await parseResponse<AuthAccountResponse>(
+    await fetch("/auth/account/plugin-settings", {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(mutation),
     }),
   );
   return response.account;

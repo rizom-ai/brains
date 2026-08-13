@@ -6,9 +6,12 @@
 contract decisions accepted 2026-08-12).** Dashboard widgets and CMS workspaces
 exist for built-in packages, but external declarative packages cannot use the
 new contracts end to end until their runtime phases land. Phase 1 public
-schemas, definition bindings, inference checks, and ledger curation are
-authorized. Host adapters, account storage/supervision, packing, publication,
-workflow dispatch, and stable-release actions are not authorized by this phase.
+schemas, definition bindings, inference checks, and ledger curation shipped in
+PR #123. Phase 2 account-settings persistence, Account forms, and runtime-owned
+`forAccounts` supervision are implemented on `feat/public-operator-phase2` and
+await review. Request-scoped settings access lands with the Dashboard/CMS hosts
+that invoke those callbacks. Dashboard/CMS host adapters, packing,
+publication, workflow dispatch, and stable-release actions remain later work.
 
 Scope: this plan does **not** gate `v0.2.0`. Stable nomination proceeds on the
 current frozen surface. The design is purely additive — optional
@@ -601,6 +604,14 @@ Exit: the golden package typechecks against generated local declarations.
 
 ### Phase 2: account settings runtime
 
+**Implemented on the Phase 2 branch; awaiting review.** The implementation uses
+one app-scoped account-settings registry, an auth-DB backend with AES-GCM
+authenticated encryption keyed by the deployment-provided
+`ACCOUNT_SETTINGS_ENCRYPTION_KEY`, redacted Account form descriptors, and
+runtime-owned per-principal daemon reconciliation. The runtime fails
+finalization when a package declares account settings without the auth
+backend/key rather than silently dropping the capability.
+
 Settings ship first: they are the thinnest slice through every novel layer —
 per-principal storage, secret handling, the schema-derived form, and
 caller-scoped injection — they carry the highest-risk contract (secrets at
@@ -613,8 +624,9 @@ here.
    definition ID, and actor ID, with secret fields encrypted at rest.
 2. Render the host settings form from the declared schema, with write-only
    secret semantics.
-3. Validate on save; inject parsed settings into the calling principal's
-   server-side callbacks only.
+3. Validate on save and retain principal-scoped lookup for the later
+   Dashboard/CMS request hosts; Phase 2 injects full values only into the
+   server-side `forAccounts` callback for that principal.
 4. Implement runtime-owned per-account supervision for interface/message-
    interface daemons bound with `forAccounts`; additions, removals, and
    replacements reconcile without restart and without author-owned task maps.
@@ -622,9 +634,11 @@ here.
 6. Prove isolation: no cross-principal request reads, no automatic secrets in
    agent context, browser responses, or logs.
 
-Exit: packed service and interface fixtures store, validate, inject, and
-reconcile per-account settings; the interface-owned IMAP connection case works
-end to end with encrypted-at-rest, write-only secret handling.
+Branch evidence: focused service/interface fixtures store, validate, isolate,
+and reconcile per-account settings; the interface-owned lifecycle proves
+encrypted-at-rest, write-only secret handling. Packed standalone evidence
+remains Phase 5, and request-scoped service injection remains host-owned work in
+Phases 3–4.
 
 ### Phase 3: dashboard runtime
 

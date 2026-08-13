@@ -1,4 +1,5 @@
 import type { RegistrationResponseJSON } from "@simplewebauthn/server";
+import type { AccountSettingsRegistry } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import {
   AUTH_ACCOUNT_MUTATION_ACTIONS,
@@ -18,11 +19,13 @@ import { clearAuthSessionCookie } from "./session-store";
 export interface AuthAccountOperations {
   resolveSession(request: Request): Promise<AuthAccountContext | undefined>;
   account: AuthAccountService;
+  accountSettings?: AccountSettingsRegistry;
 }
 
 interface AccountRouteContext {
   account: AuthAccountContext;
   service: AuthAccountService;
+  accountSettings?: AccountSettingsRegistry;
 }
 
 const accountMutationSchema = z.union([
@@ -51,6 +54,18 @@ const accountMutationSchema = z.union([
   }),
 ]);
 
+const pluginSettingsMutationSchema = z.union([
+  z.strictObject({
+    action: z.literal("save"),
+    definitionId: z.string().trim().min(1).max(1_000),
+    values: z.record(z.string(), z.unknown()),
+  }),
+  z.strictObject({
+    action: z.literal("delete"),
+    definitionId: z.string().trim().min(1).max(1_000),
+  }),
+]);
+
 const emptyJsonSchema = z.strictObject({});
 
 const accountRoutes = new AuthRouteTable<AccountRouteContext>([
@@ -58,14 +73,17 @@ const accountRoutes = new AuthRouteTable<AccountRouteContext>([
     method: "GET",
     path: "/auth/account",
     handler: async (_request, context): Promise<Response> =>
-      privateJsonResponse({
-        account: await context.service.getSnapshot(context.account),
-      }),
+      privateJsonResponse({ account: await accountSnapshot(context) }),
   },
   {
     method: "POST",
     path: "/auth/account/mutations",
     handler: handleAccountMutation,
+  },
+  {
+    method: "POST",
+    path: "/auth/account/plugin-settings",
+    handler: handlePluginSettingsMutation,
   },
   {
     method: "POST",
@@ -93,6 +111,9 @@ export async function handleAuthAccountRequest(
       (await accountRoutes.dispatch(request, {
         account,
         service: operations.account,
+        ...(operations.accountSettings
+          ? { accountSettings: operations.accountSettings }
+          : {}),
       })) ?? privateJsonResponse({ error: "Not Found" }, 404)
     );
   } catch (error) {
@@ -122,30 +143,27 @@ async function handleAccountMutation(
 
   switch (parsed.data.action) {
     case "updateDisplayName":
-      return accountResponse(
-        await context.service.updateDisplayName(
-          context.account,
-          parsed.data.displayName,
-        ),
+      await context.service.updateDisplayName(
+        context.account,
+        parsed.data.displayName,
       );
+      return accountResponse(await accountSnapshot(context));
     case "revokePasskey":
-      return accountResponse(
-        await context.service.revokePasskey(
-          context.account,
-          parsed.data.credentialId,
-        ),
+      await context.service.revokePasskey(
+        context.account,
+        parsed.data.credentialId,
       );
+      return accountResponse(await accountSnapshot(context));
     case "revokeSession":
-      return accountResponse(
-        await context.service.revokeSession(
-          context.account,
-          parsed.data.sessionId,
-        ),
+      await context.service.revokeSession(
+        context.account,
+        parsed.data.sessionId,
       );
+      return accountResponse(await accountSnapshot(context));
     case "revokeOtherSessions": {
       const result = await context.service.revokeOtherSessions(context.account);
       return privateJsonResponse({
-        account: result.account,
+        account: await accountSnapshot(context),
         revoked: { sessions: result.sessions },
       });
     }
@@ -157,6 +175,52 @@ async function handleAccountMutation(
       );
     }
   }
+}
+
+async function handlePluginSettingsMutation(
+  request: Request,
+  context: AccountRouteContext,
+): Promise<Response> {
+  const requestError = requireSameOriginJson(request);
+  if (requestError) return requestError;
+  if (!context.accountSettings) {
+    return privateJsonResponse(
+      { error: "Account settings runtime is unavailable" },
+      503,
+    );
+  }
+  const parsed = pluginSettingsMutationSchema.safeParse(
+    await readJsonRequest(request),
+  );
+  if (!parsed.success) {
+    return privateJsonResponse(
+      { error: "Invalid account settings request" },
+      400,
+    );
+  }
+  if (parsed.data.action === "save") {
+    await context.accountSettings.save(
+      parsed.data.definitionId,
+      context.account.userId,
+      parsed.data.values,
+    );
+  } else {
+    await context.accountSettings.delete(
+      parsed.data.definitionId,
+      context.account.userId,
+    );
+  }
+  return accountResponse(await accountSnapshot(context));
+}
+
+async function accountSnapshot(
+  context: AccountRouteContext,
+): Promise<AuthAccountSnapshot> {
+  const account = await context.service.getSnapshot(context.account);
+  const pluginSettings = context.accountSettings
+    ? await context.accountSettings.listForms(context.account.userId)
+    : [];
+  return { ...account, pluginSettings: [...pluginSettings] };
 }
 
 async function handlePasskeyOptions(
@@ -198,7 +262,7 @@ async function handlePasskeyVerify(
   }
   return privateJsonResponse({
     verified: true,
-    account: await context.service.getSnapshot(context.account),
+    account: await accountSnapshot(context),
   });
 }
 

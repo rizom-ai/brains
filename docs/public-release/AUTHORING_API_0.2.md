@@ -85,7 +85,7 @@ Types:
 - `ServicePackageDefinition`
 - `WorkspaceActionDefinition`
 
-The additive milestone reserves these operator schemas and executor bindings as its accepted Phase 1 contract target. They are not a runtime-complete shipped feature until Dashboard/CMS registration, rendering, packed evidence, and release nomination land in later phases. The runtime already owns tool wrapping, confirmation replay, job scoping, queue execution, retry, deadlines, progress, cancellation, and restart recovery.
+The additive milestone reserves these operator schemas and executor bindings as its accepted Phase 1 contract. Phase 2 account-settings runtime work is implemented on its review branch: it adds encrypted auth-DB persistence, redacted Account forms, principal-isolated access, and runtime-owned account-daemon reconciliation. Request-scoped service settings are supplied only when the later Dashboard/CMS hosts invoke those callbacks. The overall operator surface is not runtime-complete until Dashboard/CMS registration, rendering, packed evidence, and release nomination land in later phases. The runtime already owns tool wrapping, confirmation replay, job scoping, queue execution, retry, deadlines, progress, cancellation, and restart recovery.
 
 ## `@rizom/brain/interfaces`
 
@@ -110,7 +110,7 @@ Permission contract:
 - `UserPermissionLevel`
 - `UserPermissionLevelSchema`
 
-The runtime owns HTTP hosting, caller permission and Anchor resolution, daemon supervision, worker exclusion, channel/provider registration, recipient validation, conversations, normalized progress, and shutdown.
+The runtime owns HTTP hosting, caller permission and Anchor resolution, daemon supervision, worker exclusion, channel/provider registration, recipient validation, conversations, normalized progress, and shutdown. Account-settings declarations require auth-service plus the deployment-owned `ACCOUNT_SETTINGS_ENCRYPTION_KEY`; secret values are encrypted at rest and never echoed by Account APIs.
 
 ## `@rizom/site`
 

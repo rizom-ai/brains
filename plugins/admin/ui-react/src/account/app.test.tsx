@@ -15,6 +15,7 @@ const bootstrap: AccountBootstrap = {
 const account: AuthAccountSnapshot = {
   displayName: "Mira Reyes",
   role: "trusted",
+  pluginSettings: [],
   connectedChannels: [
     {
       type: "email",
@@ -68,6 +69,45 @@ describe("Account surface", () => {
     expect(html).not.toContain("Members");
     expect(html).not.toContain("Invitations");
     expect(html).not.toContain("Audit");
+  });
+
+  it("renders schema-derived plugin settings without secret values", () => {
+    const html = render({
+      ...account,
+      pluginSettings: [
+        {
+          id: "mailbox",
+          title: "Inbound mailbox",
+          description: "Connect a mailbox.",
+          configured: true,
+          revision: 1,
+          fields: [
+            {
+              name: "host",
+              label: "IMAP host",
+              control: "text",
+              secret: false,
+              required: true,
+              value: "imap.example.com",
+            },
+            {
+              name: "password",
+              label: "Password",
+              control: "text",
+              secret: true,
+              required: true,
+              set: true,
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(html).toContain("Inbound mailbox");
+    expect(html).toContain("imap.example.com");
+    expect(html).toContain('type="password"');
+    expect(html).toContain("Stored — leave blank to keep");
+    expect(html).not.toContain("mailbox-secret");
   });
 
   it("uses the admin console detail layout", () => {

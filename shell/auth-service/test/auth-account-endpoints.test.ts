@@ -3,6 +3,11 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
+  AccountSettingsRegistry,
+  defineAccountSettings,
+} from "@brains/plugins";
+import { z } from "@brains/utils/zod";
+import {
   AuthCredentialStore,
   AuthRuntimeDatabase,
   AuthService,
@@ -79,6 +84,10 @@ describe("auth account API", () => {
           method: "POST",
         }),
         expect.objectContaining({
+          path: "/auth/account/plugin-settings",
+          method: "POST",
+        }),
+        expect.objectContaining({
           path: "/auth/account/passkeys/options",
           method: "POST",
         }),
@@ -112,6 +121,73 @@ describe("auth account API", () => {
         connectedChannels: [],
         sessions: [expect.objectContaining({ current: true })],
       },
+    });
+    await service.close();
+  });
+
+  it("stores schema-validated plugin settings and never returns secret values", async () => {
+    const storageDir = await mkdtemp(join(tmpdir(), "brains-auth-account-"));
+    tempDirs.push(storageDir);
+    const registry = new AccountSettingsRegistry();
+    const service = new AuthService({
+      storageDir,
+      issuer: ISSUER,
+      accountSettingsEncryptionKey: "test-account-settings-encryption-key-0001",
+      accountSettingsRegistry: registry,
+    });
+    await service.initialize();
+    const backend = service.getAccountSettingsBackend();
+    if (!backend) throw new Error("Account settings backend missing");
+    registry.bindBackend(backend);
+    const registration = registry.register({
+      ownerPluginId: "mailbox",
+      packageName: "@fixture/mailbox",
+      definitionId: "mailbox",
+      definition: defineAccountSettings({
+        title: "Inbound mailbox",
+        schema: z.object({
+          host: z.string().min(1),
+          password: z.string().min(1),
+        }),
+        fields: {
+          host: { label: "IMAP host" },
+          password: { label: "Password", secret: true },
+        },
+      }),
+    });
+    const user = await service.createUser({ displayName: "Mira" });
+    const session = await service.createAuthSession(user.userId);
+
+    const response = await service.handleRequest(
+      accountRequest("/auth/account/plugin-settings", session.cookie, {
+        action: "save",
+        definitionId: registration.id,
+        values: { host: "imap.example.com", password: "mailbox-secret" },
+      }),
+    );
+    expect(response.status).toBe(200);
+    const bodyText = await response.text();
+    expect(bodyText).not.toContain("mailbox-secret");
+    expect(JSON.parse(bodyText)).toMatchObject({
+      account: {
+        pluginSettings: [
+          {
+            id: registration.id,
+            configured: true,
+            fields: [
+              expect.objectContaining({
+                name: "host",
+                value: "imap.example.com",
+              }),
+              expect.objectContaining({ name: "password", set: true }),
+            ],
+          },
+        ],
+      },
+    });
+    expect(await registry.getForActor(registration, user.userId)).toEqual({
+      host: "imap.example.com",
+      password: "mailbox-secret",
     });
     await service.close();
   });

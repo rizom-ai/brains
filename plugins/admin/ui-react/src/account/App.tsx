@@ -3,6 +3,7 @@
 import {
   AUTH_ACCOUNT_MUTATION_ACTIONS,
   type AuthAccountMutation,
+  type AuthAccountPluginSettingsMutation,
   type AuthAccountRole,
   type AuthAccountSnapshot,
 } from "@brains/auth-service/account-contracts";
@@ -14,6 +15,7 @@ import peopleStyles from "../people.css" with { type: "text" };
 import {
   fetchAccount,
   mutateAccount,
+  mutatePluginSettings,
   registerPasskey,
   type AccountMutationResponse,
 } from "./api";
@@ -30,6 +32,9 @@ export interface AccountClient {
   mutateAccount: (
     mutation: AuthAccountMutation,
   ) => Promise<AccountMutationResponse>;
+  mutatePluginSettings: (
+    mutation: AuthAccountPluginSettingsMutation,
+  ) => Promise<AuthAccountSnapshot>;
   registerPasskey: () => Promise<AuthAccountSnapshot>;
 }
 
@@ -42,6 +47,7 @@ export interface AccountAppProps {
 const defaultClient: AccountClient = {
   fetchAccount,
   mutateAccount,
+  mutatePluginSettings,
   registerPasskey,
 };
 
@@ -315,6 +321,126 @@ export function AccountApp({
                   ))
                 )}
               </DetailSection>
+
+              {current.pluginSettings.map((settings) => (
+                <DetailSection
+                  key={settings.id}
+                  title={settings.title}
+                  description={
+                    settings.description ?? "Private settings for this account."
+                  }
+                >
+                  <form
+                    key={`${settings.id}:${settings.revision ?? "unset"}`}
+                    className="name-form"
+                    onSubmit={(event) => {
+                      event.preventDefault();
+                      const formData = new FormData(event.currentTarget);
+                      const values: Record<string, unknown> =
+                        Object.fromEntries(formData.entries());
+                      for (const field of settings.fields) {
+                        if (field.control === "checkbox") {
+                          values[field.name] = formData.has(field.name);
+                        } else if (
+                          field.control === "number" &&
+                          typeof values[field.name] === "string" &&
+                          values[field.name] !== ""
+                        ) {
+                          values[field.name] = Number(values[field.name]);
+                        }
+                      }
+                      void run(
+                        `Saving ${settings.title}…`,
+                        `${settings.title} updated.`,
+                        () =>
+                          client.mutatePluginSettings({
+                            action: "save",
+                            definitionId: settings.id,
+                            values,
+                          }),
+                      );
+                    }}
+                  >
+                    {settings.fields.map((field) => (
+                      <label
+                        key={field.name}
+                        htmlFor={`setting-${settings.id}-${field.name}`}
+                      >
+                        {field.label}
+                        {field.control === "checkbox" ? (
+                          <input
+                            id={`setting-${settings.id}-${field.name}`}
+                            name={field.name}
+                            type="checkbox"
+                            defaultChecked={field.value === true}
+                          />
+                        ) : (
+                          <input
+                            id={`setting-${settings.id}-${field.name}`}
+                            name={field.name}
+                            type={
+                              field.secret
+                                ? "password"
+                                : field.control === "url"
+                                  ? "url"
+                                  : field.control === "number"
+                                    ? "number"
+                                    : "text"
+                            }
+                            required={
+                              field.required &&
+                              (!settings.configured || field.secret) &&
+                              !field.set
+                            }
+                            defaultValue={
+                              field.secret
+                                ? ""
+                                : typeof field.value === "string" ||
+                                    typeof field.value === "number"
+                                  ? field.value
+                                  : ""
+                            }
+                            placeholder={
+                              field.secret && field.set
+                                ? "Stored — leave blank to keep"
+                                : undefined
+                            }
+                            autoComplete="off"
+                          />
+                        )}
+                      </label>
+                    ))}
+                    <div className="people-inline-actions">
+                      <Button type="submit" tone="primary" disabled={busy}>
+                        Save settings
+                      </Button>
+                      {settings.configured ? (
+                        <button
+                          className="people-text-action people-text-action--danger"
+                          disabled={busy}
+                          type="button"
+                          onClick={() => {
+                            if (!window.confirm(`Remove ${settings.title}?`)) {
+                              return;
+                            }
+                            void run(
+                              `Removing ${settings.title}…`,
+                              `${settings.title} removed.`,
+                              () =>
+                                client.mutatePluginSettings({
+                                  action: "delete",
+                                  definitionId: settings.id,
+                                }),
+                            );
+                          }}
+                        >
+                          Remove
+                        </button>
+                      ) : null}
+                    </div>
+                  </form>
+                </DetailSection>
+              ))}
 
               <DetailSection
                 title="Sign-in"

@@ -78,6 +78,13 @@
       "when": 1785139111015,
       "tag": "0010_mixed_red_skull",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "6",
+      "when": 1786606188029,
+      "tag": "0011_vengeful_raider",
+      "breakpoints": true
     }
   ]
 }

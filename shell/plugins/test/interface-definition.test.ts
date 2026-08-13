@@ -34,6 +34,26 @@ function instantiate(
 }
 
 describe("declarative generic interfaces", () => {
+  it("fails finalization when account settings have no auth backend", async () => {
+    const settings = defineAccountSettings({
+      title: "Mailbox",
+      schema: z.object({ password: z.string() }),
+      fields: { password: { label: "Password", secret: true } },
+    });
+    const definition = defineInterface({
+      id: "mailbox-no-runtime",
+      config: z.object({}),
+      accountSettings: settings,
+    });
+    const harness = createPluginHarness();
+    await harness.installPlugin(
+      instantiate(definition, {}, "@fixture/mailbox-no-runtime"),
+    );
+    expect(harness.finalizeRegistration()).rejects.toThrow(
+      "require auth-service and an account settings encryption key",
+    );
+  });
+
   it("authenticates protocol callers, resolves trust, and enqueues typed jobs", async () => {
     const service = defineServicePlugin({
       id: "digest-service",
@@ -154,12 +174,14 @@ describe("declarative generic interfaces", () => {
     );
   });
 
-  it("fails explicitly until account-bound daemon supervision lands", async () => {
+  it("supervises one account task per configured principal and reconciles rotation/removal", async () => {
     const settings = defineAccountSettings({
       title: "Mailbox",
       schema: z.object({ password: z.string() }),
       fields: { password: { label: "Password", secret: true } },
     });
+    const started: string[] = [];
+    const stopped: string[] = [];
     const definition = defineInterface({
       id: "mailbox",
       config: z.object({}),
@@ -168,18 +190,90 @@ describe("declarative generic interfaces", () => {
         defineDaemon({
           id: "mailboxes",
           forAccounts: settings,
-          async run({ account }) {
+          async run({ account, health, signal }) {
             expectTypeOf(account.settings.password).toEqualTypeOf<string>();
+            started.push(`${account.id}:${account.settings.password}`);
+            health.ready();
+            await new Promise<void>((resolve) => {
+              signal.addEventListener(
+                "abort",
+                () => {
+                  stopped.push(`${account.id}:${account.settings.password}`);
+                  resolve();
+                },
+                { once: true },
+              );
+            });
           },
         }),
       ],
     });
 
-    expect(() =>
-      instantiate(definition, {}, "@fixture/mailbox").register(
-        createPluginHarness().getMockShell(),
-      ),
-    ).toThrow("requires the account-settings runtime");
+    const harness = createPluginHarness();
+    const shell = harness.getMockShell();
+    const accountSettings = shell.getAccountSettingsRegistry();
+    const configured = new Map<
+      string,
+      {
+        values: Readonly<Record<string, string | number | boolean | null>>;
+        revision: number;
+      }
+    >([
+      ["actor-1", { values: { password: "first" }, revision: 1 }],
+      ["actor-2", { values: { password: "second" }, revision: 1 }],
+    ]);
+    accountSettings.bindBackend({
+      read: async (identity) => configured.get(identity.actorId) ?? null,
+      list: async () =>
+        [...configured.entries()].map(([actorId, value]) => ({
+          actorId,
+          ...value,
+        })),
+      write: async (identity, values) => {
+        const stored = {
+          values,
+          revision: (configured.get(identity.actorId)?.revision ?? 0) + 1,
+        };
+        configured.set(identity.actorId, stored);
+        return stored;
+      },
+      delete: async (identity) => configured.delete(identity.actorId),
+      deleteActor: async (actorId) => (configured.delete(actorId) ? 1 : 0),
+    });
+    const plugin = instantiate(definition, {}, "@fixture/mailbox");
+    await harness.installPlugin(plugin);
+    await harness.finalizeRegistration();
+    const daemon = shell.getDaemonRegistry().get(`${plugin.id}:mailboxes`);
+    if (!daemon) throw new Error("Account daemon was not registered");
+    await daemon.daemon.start();
+    expect(started).toEqual(["actor-1:first", "actor-2:second"]);
+    expect(await daemon.daemon.healthCheck?.()).toMatchObject({
+      status: "healthy",
+      details: { total: 2, ready: 2 },
+    });
+
+    await accountSettings.save(
+      accountSettings.listRegistrations()[0]?.id ?? "missing",
+      "actor-1",
+      { password: "rotated" },
+    );
+    await Bun.sleep(0);
+    expect(stopped).toContain("actor-1:first");
+    expect(started).toContain("actor-1:rotated");
+
+    await accountSettings.delete(
+      accountSettings.listRegistrations()[0]?.id ?? "missing",
+      "actor-2",
+    );
+    await Bun.sleep(0);
+    expect(stopped).toContain("actor-2:second");
+    expect(await daemon.daemon.healthCheck?.()).toMatchObject({
+      status: "healthy",
+      details: { total: 1, ready: 1 },
+    });
+
+    await daemon.daemon.stop();
+    expect(stopped).toContain("actor-1:rotated");
   });
 
   it("supervises one abortable daemon with emitted health", async () => {
@@ -240,6 +334,63 @@ describe("declarative message interfaces", () => {
         listen: async () => {},
       }),
     ).toThrow("must define send when it defines listen");
+  });
+
+  it("runs account-bound daemons in message-interface packages", async () => {
+    const settings = defineAccountSettings({
+      title: "Mailbox",
+      schema: z.object({ user: z.string() }),
+      fields: { user: { label: "User" } },
+    });
+    const started: string[] = [];
+    const definition = defineMessageInterface({
+      id: "mail-channel",
+      config: z.object({}),
+      accountSettings: settings,
+      channel: {
+        type: "mail-channel",
+        displayName: "Mail",
+        subjectLabel: "Address",
+        recipient: z.string(),
+      },
+      daemons: () => [
+        defineDaemon({
+          id: "mailboxes",
+          forAccounts: settings,
+          required: true,
+          async run({ account, health, signal }) {
+            started.push(`${account.id}:${account.settings.user}`);
+            health.ready();
+            await new Promise<void>((resolve) =>
+              signal.addEventListener("abort", () => resolve(), { once: true }),
+            );
+          },
+        }),
+      ],
+    });
+    const harness = createPluginHarness();
+    const registry = harness.getMockShell().getAccountSettingsRegistry();
+    registry.bindBackend({
+      read: async () => ({ values: { user: "mira" }, revision: 1 }),
+      list: async () => [
+        { actorId: "actor-1", values: { user: "mira" }, revision: 1 },
+      ],
+      write: async (_identity, values) => ({ values, revision: 2 }),
+      delete: async () => false,
+      deleteActor: async () => 0,
+    });
+    const plugin = instantiate(definition, {}, "@fixture/mail-channel");
+    await harness.installPlugin(plugin);
+    await harness.finalizeRegistration();
+    expect(plugin.requiresDaemonStartup?.()).toBeTrue();
+    const daemon = harness
+      .getMockShell()
+      .getDaemonRegistry()
+      .get(`${plugin.id}:mailboxes`);
+    if (!daemon) throw new Error("Message account daemon was not registered");
+    await daemon.daemon.start();
+    expect(started).toEqual(["actor-1:mira"]);
+    await daemon.daemon.stop();
   });
 
   it("allows outbound-only delivery without setup or listener placeholders", async () => {

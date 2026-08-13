@@ -298,6 +298,23 @@ export function createPluginScopedShell(
     },
   });
 
+  const accountSettingsRegistry = shell.getAccountSettingsRegistry();
+  const scopedAccountSettingsRegistry = new Proxy(accountSettingsRegistry, {
+    get(target, property): unknown {
+      const value = Reflect.get(target, property, target) as unknown;
+      if (property === "register" && typeof value === "function") {
+        return (...args: unknown[]): unknown => {
+          const registration = Reflect.apply(value, target, args) as Parameters<
+            typeof target.unregister
+          >[0];
+          resources.addFinalizer(() => target.unregister(registration));
+          return registration;
+        };
+      }
+      return typeof value === "function" ? value.bind(target) : value;
+    },
+  });
+
   const operationalHealthRegistry = shell.getOperationalHealthRegistry();
   const scopedOperationalHealthRegistry = new Proxy(operationalHealthRegistry, {
     get(target, property): unknown {
@@ -388,6 +405,9 @@ export function createPluginScopedShell(
       }
       if (property === "getOperationalHealthRegistry") {
         return () => scopedOperationalHealthRegistry;
+      }
+      if (property === "getAccountSettingsRegistry") {
+        return () => scopedAccountSettingsRegistry;
       }
       if (property === "getInsightsRegistry") {
         return () => scopedInsightsRegistry;

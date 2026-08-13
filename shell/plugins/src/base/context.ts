@@ -14,6 +14,7 @@ import type { JobsNamespace } from "@brains/job-queue";
 import type { IRecurringChecksNamespace } from "@brains/recurring-checks";
 import type { IRuntimeStateNamespace } from "@brains/runtime-state";
 import type { IAttachmentsNamespace } from "../service/attachment-registry";
+import type { AccountSettingsRegistry } from "../operator/account-settings-registry";
 import type { IRuntimeUploadsNamespace } from "../service/upload-registry";
 import {
   createAppInfoGetter,
@@ -219,6 +220,9 @@ export interface BasePluginContext {
   // Runtime State
   // ============================================================================
 
+  /** Internal app-scoped per-account settings catalog and runtime access. */
+  readonly accountSettings: AccountSettingsRegistry;
+
   /** Disposable, secret-free operational state namespace. */
   readonly runtimeState: IRuntimeStateNamespace;
 
@@ -297,6 +301,7 @@ export function createBasePluginContext(
   const attachments = shell.getAttachmentRegistry();
   const uploads = shell.getRuntimeUploadRegistry();
   const runtimeState = shell.getRuntimeState();
+  const accountSettings = shell.getAccountSettingsRegistry();
   const executionOnly = registrationContext?.executionOnly === true;
   const messaging = createMessagingNamespace(
     shell,
@@ -347,6 +352,7 @@ export function createBasePluginContext(
 
     uploads,
 
+    accountSettings,
     runtimeState,
     recurringChecks: shell.getRecurringChecks(pluginId),
 

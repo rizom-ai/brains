@@ -73,6 +73,7 @@ const dependencyAudit: Record<keyof ShellDependencies, DependencyAuditEntry> = {
   inboxRegistry: { honoredByCore: true, cleanup: "none" },
   inboxFollowUpRegistry: { honoredByCore: true, cleanup: "none" },
   operationalHealthRegistry: { honoredByCore: true, cleanup: "none" },
+  accountSettingsRegistry: { honoredByCore: true, cleanup: "none" },
 };
 
 const logger = createSilentLogger("service-ownership");

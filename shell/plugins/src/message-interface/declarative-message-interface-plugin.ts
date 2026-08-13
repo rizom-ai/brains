@@ -6,6 +6,8 @@ import type {
 } from "../channel-registry";
 import type { MessageInterfacePluginContext } from "../interface/context";
 import type { AnyAccountSettingsDefinition } from "../operator/account-settings-definition-contract";
+import { createAccountDaemon } from "../operator/account-daemon-supervisor";
+import type { AccountSettingsRegistration } from "../operator/account-settings-registry";
 import { createDeclarativeDaemon } from "../interface/declarative-daemon";
 import {
   identityConfigSchema,
@@ -77,6 +79,8 @@ class DeclarativeMessageInterfacePlugin<
     TRecipientSchema,
     TAccountSettings
   >;
+  private accountSettingsRegistration: AccountSettingsRegistration | undefined;
+  private hasRequiredDaemon = false;
   private state: TState | undefined;
 
   constructor(
@@ -98,6 +102,14 @@ class DeclarativeMessageInterfacePlugin<
     context: MessageInterfacePluginContext,
   ): Promise<void> {
     await super.onRegister(context);
+    if (this.definition.accountSettings) {
+      this.accountSettingsRegistration = context.accountSettings.register({
+        ownerPluginId: this.id,
+        packageName: this.packageName,
+        definitionId: this.definition.id,
+        definition: this.definition.accountSettings,
+      });
+    }
     this.state = this.definition.setup
       ? await this.definition.setup({ config: this.config })
       : (Object.freeze({}) as TState);
@@ -114,6 +126,41 @@ class DeclarativeMessageInterfacePlugin<
         isAvailable: () => Promise.resolve(this.state !== undefined),
         send: (input) => this.deliver(input),
       });
+    }
+
+    const daemonDefinitions =
+      this.definition.daemons?.({
+        config: this.config,
+        state: this.requireState(),
+      }) ?? [];
+    const daemonIds = new Set<string>();
+    for (const daemon of daemonDefinitions) {
+      if (daemonIds.has(daemon.id) || daemon.id === "listener") {
+        throw new Error(
+          `Message interface "${this.definition.id}" defines daemon "${daemon.id}" more than once`,
+        );
+      }
+      daemonIds.add(daemon.id);
+      this.hasRequiredDaemon ||= daemon.required;
+      if (daemon.forAccounts) {
+        if (daemon.forAccounts !== this.definition.accountSettings) {
+          throw new Error(
+            `Message interface "${this.definition.id}" account-bound daemon "${daemon.id}" must reference its attached account settings`,
+          );
+        }
+        const registration = this.accountSettingsRegistration;
+        if (!registration) {
+          throw new Error(
+            `Message interface "${this.definition.id}" account-bound daemon "${daemon.id}" has no registered account settings`,
+          );
+        }
+        context.daemons.register(
+          daemon.id,
+          createAccountDaemon(daemon, registration, context.accountSettings),
+        );
+        continue;
+      }
+      context.daemons.register(daemon.id, createDeclarativeDaemon(daemon));
     }
 
     if (this.definition.listen) {
@@ -137,6 +184,23 @@ class DeclarativeMessageInterfacePlugin<
         }),
       );
     }
+  }
+
+  protected override async onRegistrationComplete(
+    context: MessageInterfacePluginContext,
+  ): Promise<void> {
+    if (
+      this.accountSettingsRegistration &&
+      !context.accountSettings.hasBackend()
+    ) {
+      throw new Error(
+        `Message interface "${this.definition.id}" account settings require auth-service and an account settings encryption key`,
+      );
+    }
+  }
+
+  override requiresDaemonStartup(): boolean {
+    return this.hasRequiredDaemon;
   }
 
   protected override sendMessageToChannel(
@@ -191,6 +255,8 @@ class DeclarativeMessageInterfacePlugin<
   }
 
   protected override async onShutdown(): Promise<void> {
+    this.accountSettingsRegistration = undefined;
+    this.hasRequiredDaemon = false;
     this.state = undefined;
     await super.onShutdown();
   }
