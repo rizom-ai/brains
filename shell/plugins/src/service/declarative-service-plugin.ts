@@ -196,6 +196,24 @@ class DeclarativeServicePlugin<
     context: ServicePluginContext,
   ): Promise<void> {
     await super.onRegister(context);
+    // The contracts are public so authors can write and typecheck against them,
+    // but no host consumes them yet. Refuse loudly rather than accept a
+    // declaration and silently register nothing.
+    if (this.definition.accountSettings) {
+      throw new Error(
+        `Service "${this.publicId}" account settings require the account-settings runtime`,
+      );
+    }
+    if (this.definition.dashboardWidgets) {
+      throw new Error(
+        `Service "${this.publicId}" dashboard widgets require the operator runtime`,
+      );
+    }
+    if (this.definition.cmsWorkspaces) {
+      throw new Error(
+        `Service "${this.publicId}" CMS workspaces require the operator runtime`,
+      );
+    }
     this.state = this.definition.setup
       ? await this.definition.setup({
           config: this.config,

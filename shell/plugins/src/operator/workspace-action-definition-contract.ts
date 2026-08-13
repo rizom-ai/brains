@@ -2,6 +2,11 @@ import type { UserPermissionLevel } from "@brains/templates";
 import type { z } from "@brains/utils/zod";
 import { assertIdentifier } from "../package-definition";
 import type { AnyAccountSettingsDefinition } from "./account-settings-definition-contract";
+import {
+  assertOptionalText,
+  assertPermission,
+  assertText,
+} from "./contract-assertions";
 import type {
   OperatorBaseContext,
   OperatorBindingBrand,
@@ -116,18 +121,14 @@ export function defineWorkspaceAction<
 }): WorkspaceActionDefinition<TName, TInputSchema, TOutputSchema> {
   assertIdentifier(definition.name, "Workspace action name");
   assertText(definition.label, `Workspace action "${definition.name}" label`);
-  if (definition.confirmation !== undefined) {
-    assertText(
-      definition.confirmation,
-      `Workspace action "${definition.name}" confirmation`,
-    );
-  }
-  if (
-    definition.permission !== undefined &&
-    !["public", "trusted", "admin"].includes(definition.permission)
-  ) {
-    throw new Error(
-      `Workspace action "${definition.name}" permission "${String(definition.permission)}" is unsupported`,
+  assertOptionalText(
+    definition.confirmation,
+    `Workspace action "${definition.name}" confirmation`,
+  );
+  if (definition.permission !== undefined) {
+    assertPermission(
+      definition.permission,
+      `Workspace action "${definition.name}"`,
     );
   }
 
@@ -152,8 +153,4 @@ export function defineWorkspaceAction<
       },
     };
   return Object.freeze(action);
-}
-
-function assertText(value: string, label: string): void {
-  if (!value.trim()) throw new Error(`${label} must not be empty`);
 }

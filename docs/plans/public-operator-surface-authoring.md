@@ -251,6 +251,12 @@ widgets/workspaces or execute their providers. Author callbacks receive an
 `AbortSignal`; the runtime owns cancellation, registration order, rollback,
 unregistration, and shutdown.
 
+Until that runtime lands, a plugin that declares account settings, widgets, or
+workspaces fails to install with a message naming the missing runtime, matching
+how an account-bound daemon already refuses. The contracts are public so authors
+can write and typecheck against them ahead of the hosts; accepting a declaration
+and registering nothing would be indistinguishable from a broken plugin.
+
 ### 8. Per-account plugin settings are part of this contract
 
 Settings remain part of this scope, but the accepted IMAP ownership proof means
@@ -276,6 +282,14 @@ The runtime owns everything except the schema and the consuming callbacks:
 - strict injection boundaries: parsed settings reach only server-side plugin
   callbacks for that principal — never agent or model context, never browser
   responses, never logs.
+
+Two of those boundaries are held by the types rather than by review. Every
+schema field must carry a field declaration, so marking a credential `secret`
+is a decision the author makes rather than an entry they can forget. And the
+settings value an operator callback receives omits every `secret` field: widget,
+workspace, and action data is serialized to the browser, so reading a secret
+there is a compile error. Full values stay available to server-only paths —
+account-bound daemons, jobs, and tools.
 
 For background work that acts on behalf of configured users (an IMAP listener
 polling each connected mailbox), a supervised interface/message-interface
@@ -778,6 +792,11 @@ one.
     settings and interface-owned account-bound daemon callbacks remain
     server-side; settings are isolated per principal and deleted with the
     account.
+22. Every settings schema field carries a field declaration, and a compile-check
+    proves a widget, workspace, or action cannot read a field declared `secret`.
+23. A plugin declaring account settings, widgets, or workspaces before their
+    runtime exists fails to install with a message naming the missing runtime,
+    rather than registering nothing.
 
 ## Risks and mitigations
 

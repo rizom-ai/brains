@@ -81,9 +81,10 @@ describe("public operator definitions", () => {
         widget.bind(context, async ({ config, state, settings }) => {
           expectTypeOf(config.prefix).toEqualTypeOf<string>();
           expectTypeOf(state.offset).toEqualTypeOf<number>();
+          // The token field is declared secret, so operator callbacks never
+          // receive it: view data is serialized to the browser.
           expectTypeOf(settings).toEqualTypeOf<{
             endpoint: string;
-            token: string;
           } | null>();
           return {
             label: settings?.endpoint ?? config.prefix,
@@ -137,7 +138,7 @@ describe("public operator definitions", () => {
       config: bindingContext.config,
       state: bindingContext.state,
       caller: null,
-      settings: { endpoint: "https://example.com", token: "test-token" },
+      settings: { endpoint: "https://example.com" },
       entities: {
         get: async () => null,
         list: async () => [],
@@ -242,5 +243,76 @@ describe("public operator definitions", () => {
         view: () => ({ blocks: [] }),
       }),
     ).toThrow("Dashboard widget id");
+  });
+
+  it("requires a field declaration for every settings schema key", () => {
+    expect(() =>
+      Reflect.apply(defineAccountSettings, undefined, [
+        {
+          title: "Settings",
+          schema: z.object({ endpoint: z.url(), token: z.string() }),
+          fields: { endpoint: { label: "Endpoint" } },
+        },
+      ]),
+    ).toThrow('schema field "token" has no field declaration');
+  });
+
+  it("rejects unbound definitions at executor lookup", () => {
+    expect(() =>
+      Reflect.apply(getDashboardWidgetLoader, undefined, [
+        { kind: "rizom-dashboard-widget-binding", definition: widget },
+      ]),
+    ).toThrow('Dashboard widget "library" was not bound');
+    expect(() =>
+      Reflect.apply(getCmsWorkspaceExecutor, undefined, [
+        { kind: "rizom-cms-workspace-binding", definition: workspace },
+      ]),
+    ).toThrow('CMS workspace "library" was not bound');
+    expect(() =>
+      Reflect.apply(getWorkspaceActionExecutor, undefined, [
+        { kind: "rizom-workspace-action-binding", definition: refresh },
+      ]),
+    ).toThrow('Workspace action "refresh" was not bound');
+  });
+
+  it("refuses workspace bindings that leave declared actions unimplemented", () => {
+    const bindingContext = {
+      config: { prefix: "read" },
+      state: { offset: 4 },
+      accountSettings,
+    };
+
+    expect(() =>
+      Reflect.apply(workspace.bind, workspace, [
+        bindingContext,
+        { actions: [], load: (): { count: number } => ({ count: 0 }) },
+      ]),
+    ).toThrow('has no executor for action "refresh"');
+
+    const action = refresh.bind(bindingContext, ({ input }) => ({
+      refreshed: input.id,
+    }));
+    expect(() =>
+      Reflect.apply(workspace.bind, workspace, [
+        bindingContext,
+        {
+          actions: [action, action],
+          load: (): { count: number } => ({ count: 0 }),
+        },
+      ]),
+    ).toThrow('binds action "refresh" more than once');
+  });
+
+  it("rejects a workspace declaring the same action twice", () => {
+    expect(() =>
+      defineCmsWorkspace({
+        id: "library",
+        label: "Library",
+        permission: "trusted",
+        data: z.object({}),
+        actions: [refresh, refresh],
+        view: () => ({ blocks: [] }),
+      }),
+    ).toThrow('declares action "refresh" more than once');
   });
 });
