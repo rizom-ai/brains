@@ -19,6 +19,7 @@ import {
   createSilentLogger,
   createMockProgressReporter,
   createMockJobQueueService,
+  waitUntil,
 } from "@brains/test-utils";
 import { createId } from "@brains/utils/id";
 import type {
@@ -639,7 +640,12 @@ describe("JobQueueWorker", () => {
     it("should show running state when started", async () => {
       await worker.start();
 
-      await new Promise((resolve) => setTimeout(resolve, 20));
+      // uptime is the thing under test, so wait for it rather than for a
+      // duration chosen to be comfortably longer than one clock tick.
+      await waitUntil(
+        () => worker.getStats().uptime > 0,
+        "the worker's uptime to advance past zero",
+      );
 
       const stats = worker.getStats();
       expect(stats.isRunning).toBe(true);
@@ -690,7 +696,10 @@ describe("JobQueueWorker", () => {
 
       await worker.start();
 
-      await new Promise((resolve) => setTimeout(resolve, 150));
+      await waitUntil(
+        () => worker.getStats().processedJobs > 0,
+        "the worker to process the available job",
+      );
 
       expect(result.mockService.getHandler).toHaveBeenCalledWith(testJob.type);
     });
@@ -798,7 +807,10 @@ describe("JobQueueWorker", () => {
       );
 
       await worker.start();
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await waitUntil(
+        () => worker.getStats().failedJobs > 0,
+        "the worker to count the failed job",
+      );
 
       const stats = worker.getStats();
       expect(stats.failedJobs).toBe(1);
@@ -814,7 +826,14 @@ describe("JobQueueWorker", () => {
 
       await worker.start();
 
-      await new Promise((resolve) => setTimeout(resolve, 50));
+      // stop() must be called while a job is genuinely in flight, which is what
+      // this test is about. Waiting for activeJobs says that; sleeping 50ms only
+      // aimed for the middle of the handler's 100ms and would silently test
+      // nothing if the job started late.
+      await waitUntil(
+        () => worker.getStats().activeJobs > 0,
+        "the worker to claim a job and begin processing it",
+      );
 
       await worker.stop();
 
@@ -884,7 +903,10 @@ describe("JobQueueWorker", () => {
       worker = result.worker;
 
       await worker.start();
-      await new Promise((resolve) => setTimeout(resolve, 150));
+      await waitUntil(
+        () => worker.getStats().failedJobs > 0,
+        "the worker to finish failing the job",
+      );
 
       expect(result.mockService.fail).toHaveBeenCalled();
       expect(result.mockService.complete).not.toHaveBeenCalled();
@@ -899,7 +921,10 @@ describe("JobQueueWorker", () => {
       worker = result.worker;
 
       await worker.start();
-      await new Promise((resolve) => setTimeout(resolve, 150));
+      await waitUntil(
+        () => worker.getStats().processedJobs > 0,
+        "the worker to finish completing the job",
+      );
 
       expect(result.mockService.complete).toHaveBeenCalledWith(
         testJob.id,
@@ -949,7 +974,10 @@ describe("JobQueueWorker", () => {
       );
 
       await worker.start();
-      await new Promise((resolve) => setTimeout(resolve, 150));
+      await waitUntil(
+        () => worker.getStats().failedJobs > 0,
+        "the worker to finish failing the job",
+      );
 
       expect(handleStatusChange).toHaveBeenCalledWith(
         testJob.id,
@@ -995,7 +1023,13 @@ describe("JobQueueWorker", () => {
       );
 
       await worker.start();
-      await new Promise((resolve) => setTimeout(resolve, 150));
+      // Both assertions below are negative, and nothing can wait for an event
+      // that never arrives. Wait instead for the job to be done with — once the
+      // worker has counted it, the reporting decision has already been made.
+      await waitUntil(
+        () => worker.getStats().failedJobs > 0,
+        "the worker to finish processing the retryable failure",
+      );
 
       expect(handleStatusChange).not.toHaveBeenCalled();
       expect(handler.onTerminalError).not.toHaveBeenCalled();
@@ -1010,7 +1044,10 @@ describe("JobQueueWorker", () => {
       worker = result.worker;
 
       await worker.start();
-      await new Promise((resolve) => setTimeout(resolve, 150));
+      await waitUntil(
+        () => worker.getStats().failedJobs > 0,
+        "the worker to count the failed job",
+      );
 
       const stats = worker.getStats();
       expect(stats.failedJobs).toBe(1);
