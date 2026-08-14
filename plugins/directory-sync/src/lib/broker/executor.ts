@@ -50,6 +50,37 @@ export interface GitExecutorOptions {
   /** Credentials for wrapper environments, by repository key. Never journalled. */
   credentials?:
     ((repositoryKey: string) => Readonly<Record<string, string>>) | undefined;
+  /** Binary resolution, injected so the dependency check is testable. */
+  which?: ((name: string) => string | null) | undefined;
+}
+
+/**
+ * Binaries `git-wrapper.sh` invokes. The wrapper is a shell script, so an image
+ * missing one of these fails deep inside a Git command — an unexplained
+ * non-zero exit under a held lock. Checking at startup turns that into a named
+ * error before any checkout is touched.
+ */
+export const WRAPPER_DEPENDENCIES: readonly string[] = [
+  "bash",
+  "flock",
+  "setsid",
+  "timeout",
+  "git",
+];
+
+export class MissingWrapperDependencyError extends Error {
+  readonly missing: readonly string[];
+
+  constructor(missing: readonly string[]) {
+    const plural = missing.length === 1;
+    super(
+      `The Git wrapper requires ${missing.join(", ")}, which ${
+        plural ? "is" : "are"
+      } not on PATH. The runtime image must provide ${plural ? "it" : "them"}.`,
+    );
+    this.name = "MissingWrapperDependencyError";
+    this.missing = missing;
+  }
 }
 
 /** Outcome of reconciling the journal against wrappers from a previous life. */
@@ -119,6 +150,13 @@ export class GitExecutor {
   }
 
   static async create(options: GitExecutorOptions): Promise<GitExecutor> {
+    const resolve =
+      options.which ?? ((name: string): string | null => Bun.which(name));
+    const missing = WRAPPER_DEPENDENCIES.filter(
+      (name) => resolve(name) === null,
+    );
+    if (missing.length > 0) throw new MissingWrapperDependencyError(missing);
+
     const runtimeDir = options.runtimeDir;
     await mkdir(runtimeDir, { recursive: true, mode: 0o700 });
     await chmod(runtimeDir, 0o700);
