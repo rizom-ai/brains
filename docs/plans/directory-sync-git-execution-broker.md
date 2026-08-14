@@ -308,21 +308,42 @@ Use barriers and injected process/protocol interfaces, not timing-sensitive poll
 ### Phase 1 — Protocol and durable journal
 
 Implement schemas, message framing, request IDs, atomic mode-`0600` records, bounded
-capture, redaction, and idempotent lookup before executing real Git.
+capture, redaction, and idempotent lookup before executing real Git. **Done** —
+`src/lib/broker/{protocol,journal,ledger,redaction}.ts`, no real Git executed yet.
 
-Tests first:
+Framing is a 4-byte big-endian length prefix over UTF-8 JSON, validated by Zod. The
+length bound is checked before anything is allocated for the body, so a hostile prefix
+costs nothing. `FrameDecoder` is separate from the socket, so Phase 3 adds transport to a
+contract that is already proven.
 
-- malformed/version-mismatched/oversized messages are rejected;
+Tests first — all landed:
+
+- malformed/version-mismatched/oversized messages are rejected, and a frame split across
+  chunks or two frames in one chunk reassemble correctly;
 - duplicate request IDs return the same result and never call the executor twice;
 - partial journal writes are ignored/quarantined safely;
 - credentials cannot appear in serialized records or errors;
-- checkout registration rejects identity/path drift;
 - a client that disconnects after Git mutation but before acknowledgement leaves the
   request recoverable by ID, and reconnecting never repeats the mutation (moved from
   Phase 0 — needs the request-ID contract to be expressible);
 - a broker that dies while a wrapper and its Git process group are active leaves an active
-  record that a replacement broker resolves without re-issuing the command (moved from
-  Phase 0 for the same reason).
+  record that a replacement broker refuses to re-issue (moved from Phase 0).
+
+Two decisions worth carrying forward:
+
+- **Operation classes are `bootstrap`, `inspect`, `mutate`, `network`**, each with a closed
+  subcommand allow-list; the executable is always `git`. `bootstrap` is deliberately the
+  widest, because branch repair legitimately stages and commits seed content before a
+  checkout can be registered. Its boundary is temporal, not narrow: Phase 3 must reject it
+  once `register-checkout` has succeeded, so that surface exists only during bootstrap.
+- **`settle()` is deliberately not `async`.** It registers the in-flight request before it
+  yields; moving that registration past an `await` lets two same-tick duplicates both pass
+  the journal check and run the command twice. The test asserts promise _identity_ for
+  two same-tick calls, because asserting the executor ran once does not catch it — a
+  delayed registration still passes that weaker assertion.
+
+Checkout registration and identity/path-drift rejection move to Phase 3, which owns
+`register-checkout` state; Phase 1 has no place to hold a registry.
 
 ### Phase 2 — Wrapper and advisory lock
 
@@ -375,7 +396,11 @@ Tests first:
 - shutdown drains or leaves an externally recoverable active record;
 - stale socket handling cannot evict a live broker;
 - socket permissions are `0600` and journal directory permissions are `0700`;
-- direct/in-process test shells can inject a structural runner without starting a broker.
+- direct/in-process test shells can inject a structural runner without starting a broker;
+- checkout registration rejects identity, branch, and path drift (moved from Phase 1,
+  which has nowhere to hold the registry);
+- `bootstrap` requests are rejected once the checkout is registered, and every other
+  operation class is rejected before it is.
 
 ### Phase 4 — Runner composition seam
 
