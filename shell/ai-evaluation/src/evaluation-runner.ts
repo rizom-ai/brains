@@ -83,6 +83,23 @@ async function runEvaluationsWithReporters(
   return evaluationService.runEvaluations(toEvaluationOptions(options));
 }
 
+/** Only the fields reporter selection reads. */
+export type ReporterSelectionInput = Pick<
+  RunEvaluationsOptions,
+  "resultsDir" | "verbose" | "compareAgainst" | "saveBaseline"
+>;
+
+/** Only the fields the evaluation filters are built from. */
+export type EvaluationFilterInput = Pick<
+  RunEvaluationsOptions,
+  | "skipLLMJudge"
+  | "parallel"
+  | "maxParallel"
+  | "tags"
+  | "testCaseIds"
+  | "testType"
+>;
+
 export interface SelectReportersOptions {
   /**
    * Collect the summary for a caller that will report on it later, rather than
@@ -100,7 +117,7 @@ export interface SelectReportersOptions {
  * comparison reporter added to a collect run overwrites a baseline.
  */
 export function selectReporters(
-  options: RunEvaluationsOptions,
+  options: ReporterSelectionInput,
   { collectOnly = false }: SelectReportersOptions = {},
 ): IReporter[] {
   if (collectOnly) return createBaseReporters(options);
@@ -127,7 +144,7 @@ export function selectReporters(
   ];
 }
 
-function createBaseReporters(options: RunEvaluationsOptions): IReporter[] {
+function createBaseReporters(options: ReporterSelectionInput): IReporter[] {
   const resultsDir =
     options.resultsDir ?? resolvePath(process.cwd(), "eval-results");
   const verbose = options.verbose ?? false;
@@ -146,7 +163,7 @@ function createBaseReporters(options: RunEvaluationsOptions): IReporter[] {
  * cases and report a vacuous pass.
  */
 export function toEvaluationOptions(
-  options: RunEvaluationsOptions,
+  options: EvaluationFilterInput,
 ): EvaluationOptions {
   const evalOptions: EvaluationOptions = {
     skipLLMJudge: options.skipLLMJudge ?? false,

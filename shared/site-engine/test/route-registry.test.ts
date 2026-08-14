@@ -264,7 +264,8 @@ describe("RouteRegistry", () => {
         navigation: {
           show: true,
           slot: "primary" as const,
-          priority: undefined as unknown as number, // Testing default priority
+          // priority omitted: the default is what this test is about, and
+          // `priority` is optional, so an explicit undefined was never needed.
         },
         sections: [],
       };

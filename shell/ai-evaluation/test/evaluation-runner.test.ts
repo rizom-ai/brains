@@ -5,7 +5,6 @@ import {
   toEvaluationOptions,
 } from "../src/evaluation-runner";
 import type { EvaluationSummary } from "../src/schemas";
-import type { IAgentService, IAIService } from "@brains/ai-service";
 
 /**
  * Composition-layer tests. What the evaluation itself does is covered by
@@ -15,13 +14,10 @@ import type { IAgentService, IAIService } from "@brains/ai-service";
  * flags become EvaluationOptions, and whether a failing run exits nonzero.
  */
 
-// The runner never calls either of these — it only hands them to the service,
-// which is faked or absent in every test here.
-const agentService = {} as IAgentService;
-const aiService = {} as IAIService;
-
-function baseOptions(): { agentService: IAgentService; aiService: IAIService } {
-  return { agentService, aiService };
+// Neither function under test reads the agent or AI service — they take only
+// the fields they use, so nothing needs faking and no cast is required.
+function baseOptions(): Record<string, never> {
+  return {};
 }
 
 function summary(

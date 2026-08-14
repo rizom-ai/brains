@@ -88,10 +88,9 @@ describe("start subprocess lifecycle", () => {
         { chat: false },
         {
           spawnImpl,
-          processImpl: fakeProcess as unknown as Pick<
-            NodeJS.Process,
-            "env" | "on" | "removeListener"
-          >,
+          // No cast: SignalProcess is already the narrow structural type the
+          // supervisor needs, and an EventEmitter carrying `env` satisfies it.
+          processImpl: fakeProcess,
         },
       );
 
