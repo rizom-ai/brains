@@ -326,6 +326,108 @@ JSON and schema-backed content types:
 - `SiteContentSectionDefinition`
 - `SiteContentStringFieldDefinition`
 
+## `@rizom/brain-ui`
+
+Preact components for site and dashboard templates. `preact` is a peer dependency. The package holds more components than it publishes; this list is the supported surface, and adding to it requires a named consumer.
+
+Components and helpers:
+
+- `Alert`
+- `BackLink`
+- `Breadcrumb`
+- `CTASection`
+- `Card`
+- `CardHeader`
+- `CardImage`
+- `CardMetadata`
+- `CardTitle`
+- `ContentArchive`
+- `ContentList`
+- `CoverImage`
+- `DetailPageHeader`
+- `EmptyState`
+- `Footer`
+- `Head`
+- `HeadProvider`
+- `Header`
+- `ImageRendererProvider`
+- `KeyValueList`
+- `LinkButton`
+- `ListPageHeader`
+- `MarkdownContent`
+- `NewsletterSignup`
+- `OgCard`
+- `Pagination`
+- `PresentationLayout`
+- `SectionHeader`
+- `StatBadge`
+- `StatusBadge`
+- `SubjectsList`
+- `TagsList`
+- `ThemeToggle`
+- `WidgetActionLink`
+- `WidgetActions`
+- `WidgetEmptyState`
+- `WidgetFilter`
+- `WidgetList`
+- `WidgetListItem`
+- `WidgetMetaLine`
+- `WidgetPrimitiveEmptyState`
+- `WidgetStatusPill`
+- `WidgetTabs`
+- `WidgetTags`
+- `createWidgetInstanceId`
+- `formatDate`
+- `markdownToHtml`
+- `renderHighlightedText`
+- `splitWordmark`
+- `tagVariants`
+- `useMarkdownToHtml`
+
+Types:
+
+- `AlertProps`
+- `BackLinkProps`
+- `BreadcrumbItem`
+- `BreadcrumbProps`
+- `CTASectionProps`
+- `CardImageProps`
+- `CardMetadataProps`
+- `CardProps`
+- `CardTitleProps`
+- `ContentArchiveProps`
+- `ContentItem`
+- `ContentListProps`
+- `CoverImageProps`
+- `DetailPageHeaderProps`
+- `EmptyStateProps`
+- `HeadCollectorInterface`
+- `HeadProps`
+- `HeadProviderProps`
+- `HeaderProps`
+- `ImageRenderer`
+- `ImageRendererProviderProps`
+- `KeyValueItem`
+- `LinkButtonProps`
+- `ListPageHeaderProps`
+- `MarkdownContentProps`
+- `NewsletterSignupProps`
+- `OgCardProps`
+- `PaginationProps`
+- `PresentationLayoutProps`
+- `SectionHeaderProps`
+- `StatBadgeProps`
+- `StatusBadgeProps`
+- `SubjectsListProps`
+- `TagsListProps`
+- `ThemeToggleProps`
+- `WidgetComponent`
+- `WidgetComponentProps`
+- `WidgetDataAttributes`
+- `WidgetElementProps`
+- `WidgetFilterOption`
+- `WidgetTabDefinition`
+
 ## Exported but not stable
 
 `@rizom/brain/plugins`, `@rizom/brain/templates`, and the advanced names classified in `export-ledger.json` remain consumer-backed alpha contracts. They are not part of the patch-stable authoring commitment unless listed above. Pin an exact version when using them.

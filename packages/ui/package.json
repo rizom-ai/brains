@@ -3,14 +3,14 @@
   "version": "0.2.0-alpha.349",
   "description": "Shared UI components for the Brains project.",
   "license": "AGPL-3.0-only",
-  "author": "Gemini",
   "dependencies": {
-    "@brains/utils": "workspace:*",
+    "@rizom/site": "workspace:*",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.0",
     "marked": "^18.0.5",
     "sanitize-html": "^2.17.5",
-    "tailwind-merge": "^3.6.0"
+    "tailwind-merge": "^3.6.0",
+    "zod": "^4.1.8"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.3.1",
@@ -26,12 +26,11 @@
     "tailwindcss": "^4.3.1",
     "typescript": "^7.0.2"
   },
-  "main": "src/index.ts",
+  "main": "src/public.ts",
   "peerDependencies": {
     "react": "^19.2.7",
     "react-dom": "^19.2.7"
   },
-  "private": true,
   "scripts": {
     "build-storybook": "storybook build",
     "lint": "eslint . --max-warnings 0",
@@ -41,5 +40,11 @@
     "typecheck": "tsc --noEmit"
   },
   "type": "module",
-  "types": "src/index.ts"
+  "types": "src/public.ts",
+  "files": [
+    "src"
+  ],
+  "exports": {
+    ".": "./src/public.ts"
+  }
 }

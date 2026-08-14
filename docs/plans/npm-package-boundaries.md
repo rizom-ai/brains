@@ -1037,10 +1037,17 @@ Overlap check, which the earlier note flagged: `@brains/theme-*` and
 `sites/rizom`, never by entity packages, so they need no boundary work
 here.
 
-Remaining for this milestone: curate the published export surface (it
-still exports all ~50 components; a published package needs a ledger
-entry and a stable-API section, not a wholesale barrel), then migrate
-the first UI-heavy package as the proof.
+**Export curation landed 2026-08-14.** `packages/ui/src/public.ts` is
+the published entry: 92 of 164 symbols, being every symbol with an
+in-repo consumer plus the props type of each exported component.
+`index.ts` stays the internal barrel with the full set. Ledger entry
+and stable-API section added, so the two gates now hold this surface
+like any other.
+
+Remaining for this milestone: migrate the first UI-heavy package as the
+proof. `@brains/doc` is the smallest (uses only `Head` and
+`MarkdownContent`) but still needs the DataSource and template
+capabilities, so it is gated on those, not on UI.
 
 ## First release scope
 
