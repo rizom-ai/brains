@@ -1,5 +1,18 @@
 # @brains/job-queue
 
+## 0.2.0-alpha.290
+
+### Patch Changes
+
+- [`878b6e2`](https://github.com/rizom-ai/brains/commit/878b6e227b26f3c59996a9042080c37598b5ffdf) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add `waitForIdle` to the job queue so callers can await a settled queue instead of sampling counters. Work here cascades — completing a job can enqueue the next — so idle means the queue stayed empty for a quiet window rather than being momentarily empty, and a timeout reports what is still outstanding.
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.290
+  - @brains/db@0.2.0-alpha.290
+  - @brains/operation-context@0.2.0-alpha.290
+  - @brains/utils@0.2.0-alpha.290
+  - @brains/mcp-service@0.2.0-alpha.290
+
 ## 0.2.0-alpha.289
 
 ### Patch Changes

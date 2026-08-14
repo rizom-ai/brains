@@ -271,6 +271,7 @@
     "core--inbox-linkable-filters",
     "core--inbox-recognizable-contacts",
     "core--inbox-thread-position",
+    "core--job-queue-wait-for-idle",
     "core--json-native-section-content",
     "core--mcp-sdk-1-30",
     "core--media-provider-factories",
