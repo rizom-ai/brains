@@ -1,5 +1,9 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { createSqliteDatabase, runPackageMigrations } from "@brains/db";
+import {
+  closeSqliteClient,
+  createSqliteDatabase,
+  runPackageMigrations,
+} from "@brains/db";
 import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -56,6 +60,7 @@ async function createLegacyEntityDatabase(): Promise<{
   await runPackageMigrations({
     label: "legacy-embedding-test",
     config: { url },
+    engine: "libsql",
     schema: {},
     migrationsFolder: legacyMigrations,
   });
@@ -63,7 +68,11 @@ async function createLegacyEntityDatabase(): Promise<{
 }
 
 async function seedLegacyRows(url: string): Promise<void> {
-  const { client } = createSqliteDatabase({ url, schema: {} });
+  const { client } = createSqliteDatabase({
+    url,
+    schema: {},
+    engine: "libsql",
+  });
   await client.execute({
     sql: `INSERT INTO entities
       (id, entityType, content, contentHash, visibility, metadata, created, updated)
@@ -91,7 +100,7 @@ async function seedLegacyRows(url: string): Promise<void> {
       VALUES (?, ?, vector32(?), ?)`,
     args: ["missing", "note", JSON.stringify([0.3, 0.4]), "orphan-hash"],
   });
-  client.close();
+  await closeSqliteClient(client);
 }
 
 describe("embedding consolidation migration", () => {
@@ -110,21 +119,25 @@ describe("embedding consolidation migration", () => {
     expect(entities.rows.map((row) => row["id"])).toEqual(["note-1"]);
     expect(embeddings.rows).toEqual([]);
     expect(foreignKeys.rows).toHaveLength(2);
-    client.close();
+    await closeSqliteClient(client);
   });
 
   test("leaves the old embedding table intact when the schema rebuild fails", async () => {
     const legacy = await createLegacyEntityDatabase();
     await seedLegacyRows(legacy.url);
-    const before = createSqliteDatabase({ url: legacy.url, schema: {} });
+    const before = createSqliteDatabase({
+      url: legacy.url,
+      schema: {},
+      engine: "libsql",
+    });
     await before.client.execute("CREATE TABLE __new_embeddings (value TEXT)");
-    before.client.close();
+    await closeSqliteClient(before.client);
 
     expect(migrateEntities({ url: legacy.url })).rejects.toThrow();
 
     const after = createSqliteDatabase({ url: legacy.url, schema: {} });
     const rows = await after.client.execute("SELECT entity_id FROM embeddings");
     expect(rows.rows).toHaveLength(2);
-    after.client.close();
+    await closeSqliteClient(after.client);
   });
 });

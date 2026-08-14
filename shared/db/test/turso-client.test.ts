@@ -1,6 +1,9 @@
 import { describe, expect, it } from "bun:test";
-import type { Client } from "@libsql/client";
-import { createTursoClient } from "../src/turso-client";
+import { mkdtemp, readdir, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { createClient, type Client } from "@libsql/client";
+import { closeSqliteClient, createTursoClient } from "../src/turso-client";
 
 async function createSeededClient(): Promise<Client> {
   const client = createTursoClient({ url: "file::memory:" });
@@ -200,6 +203,51 @@ describe("createTursoClient close", () => {
     expect(client.batch(["SELECT 1"])).rejects.toThrow(/CLIENT_CLOSED/);
     expect(client.transaction("write")).rejects.toThrow(/CLIENT_CLOSED/);
     expect(client.executeMultiple("SELECT 1")).rejects.toThrow(/CLIENT_CLOSED/);
+  });
+
+  it("awaits durable file close before a replacement client opens", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "turso-close-"));
+    const url = `file:${join(directory, "durable.db")}`;
+    const writer = createTursoClient({ url });
+    try {
+      await writer.execute("CREATE TABLE durable (value TEXT NOT NULL)");
+      await writer.execute("INSERT INTO durable VALUES ('committed')");
+      await closeSqliteClient(writer);
+
+      const reader = createTursoClient({ url });
+      try {
+        const result = await reader.execute("SELECT value FROM durable");
+        expect(result.rows[0]?.["value"]).toBe("committed");
+      } finally {
+        await closeSqliteClient(reader);
+      }
+    } finally {
+      if (!writer.closed) await closeSqliteClient(writer);
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
+
+  it("leaves a durably closed Turso file readable by libSQL", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "turso-libsql-handoff-"));
+    const url = `file:${join(directory, "handoff.db")}`;
+    const writer = createTursoClient({ url });
+    try {
+      await writer.execute("CREATE TABLE durable (value TEXT NOT NULL)");
+      await writer.execute("INSERT INTO durable VALUES ('committed')");
+      await closeSqliteClient(writer);
+      expect(await readdir(directory)).toEqual(["handoff.db"]);
+
+      const reader = createClient({ url });
+      try {
+        const result = await reader.execute("SELECT value FROM durable");
+        expect(result.rows[0]?.["value"]).toBe("committed");
+      } finally {
+        await closeSqliteClient(reader);
+      }
+    } finally {
+      if (!writer.closed) await closeSqliteClient(writer);
+      await rm(directory, { recursive: true, force: true });
+    }
   });
 });
 

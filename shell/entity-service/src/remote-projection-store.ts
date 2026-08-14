@@ -4,6 +4,8 @@ import type {
   GetProjectionRuleMemoInput,
   IProjectionStore,
   MarkProjectionDirtyInput,
+  ProjectionIncidentDiagnostics,
+  ProjectionIncidentInput,
   ProjectionRuleMemoValue,
   ProjectionWaveRuleInput,
 } from "./projection-store";
@@ -87,6 +89,24 @@ export class RemoteProjectionStore implements IProjectionStore {
       operation: "failWave",
       waveId,
       failedAt,
+    });
+  }
+
+  public failWaveWithIncident(
+    input: ProjectionIncidentInput,
+  ): Promise<ProjectionWave> {
+    return this.requestRemote<ProjectionWave>({
+      operation: "failWaveWithIncident",
+      input,
+    });
+  }
+
+  public getUnresolvedProjectionIncidentDiagnostics(
+    limit?: number,
+  ): Promise<ProjectionIncidentDiagnostics> {
+    return this.requestRemote<ProjectionIncidentDiagnostics>({
+      operation: "getUnresolvedProjectionIncidentDiagnostics",
+      limit,
     });
   }
 

@@ -73,16 +73,16 @@ async function initializeHeadlessApp(
   return app;
 }
 
-function printToolResult(result: ToolResponse): void {
+function printToolResult(result: ToolResponse): boolean {
   if ("needsConfirmation" in result) {
     const detail = result.preview ? `\n\n${result.preview}` : "";
     console.log(`Confirmation needed: ${result.summary}${detail}`);
-    process.exit(0);
+    return true;
   }
 
   if (!result.success) {
     console.error(`❌ ${result.error}`);
-    process.exit(1);
+    return false;
   }
 
   if (result.message) {
@@ -95,6 +95,7 @@ function printToolResult(result: ToolResponse): void {
         : JSON.stringify(result.data, null, 2),
     );
   }
+  return true;
 }
 
 async function invokeCliTool(
@@ -104,16 +105,16 @@ async function invokeCliTool(
   ) => Promise<ToolResponse>,
   input: unknown,
   failureLabel: string,
-): Promise<void> {
+): Promise<boolean> {
   try {
     const result = await handler(input, {
       interfaceType: "cli",
       actor: { kind: "service", serviceId: "shell-cli" },
     });
-    printToolResult(result);
+    return printToolResult(result);
   } catch (error) {
     console.error(`❌ ${failureLabel} failed:`, getErrorMessage(error));
-    process.exit(1);
+    return false;
   }
 }
 
@@ -238,15 +239,16 @@ async function listCliCommands(
   const app = await initializeHeadlessApp(config, App, {
     mode: "register-only",
   });
-
-  const cliTools = app.getShell().getMCPService().getCliTools();
-  for (const { tool } of cliTools) {
-    if (tool.cli) {
-      console.log(`${tool.cli.name.padEnd(16)}${tool.description}`);
+  try {
+    const cliTools = app.getShell().getMCPService().getCliTools();
+    for (const { tool } of cliTools) {
+      if (tool.cli) {
+        console.log(`${tool.cli.name.padEnd(16)}${tool.description}`);
+      }
     }
+  } finally {
+    await app.stop();
   }
-
-  process.exit(0);
 }
 
 /**
@@ -270,24 +272,35 @@ async function runCliCommand(
   const cliFlags = parseJsonFlag(args, "--cli-flags", {}, cliFlagsSchema);
 
   const app = await initializeHeadlessApp(config, App);
-  const cliTools = app.getShell().getMCPService().getCliTools();
-  const match = cliTools.find((t) => t.tool.cli?.name === commandName);
+  try {
+    const cliTools = app.getShell().getMCPService().getCliTools();
+    const match = cliTools.find((t) => t.tool.cli?.name === commandName);
 
-  if (!match?.tool.cli) {
-    const available = cliTools
-      .map((t) => t.tool.cli?.name)
-      .filter(Boolean)
-      .join(", ");
-    console.error(`❌ Unknown command: ${commandName}`);
-    console.error(`Available commands: ${available}`);
-    process.exit(1);
+    if (!match?.tool.cli) {
+      const available = cliTools
+        .map((t) => t.tool.cli?.name)
+        .filter(Boolean)
+        .join(", ");
+      console.error(`❌ Unknown command: ${commandName}`);
+      console.error(`Available commands: ${available}`);
+      process.exitCode = 1;
+      return;
+    }
+
+    const { mapArgsToInput } = await import("@brains/mcp-service");
+    const toolInput = mapArgsToInput(match.tool.inputSchema, cliArgs, cliFlags);
+    if (
+      !(await invokeCliTool(
+        match.tool.handler,
+        toolInput,
+        `Command ${commandName}`,
+      ))
+    ) {
+      process.exitCode = 1;
+    }
+  } finally {
+    await app.stop();
   }
-
-  const { mapArgsToInput } = await import("@brains/mcp-service");
-  const toolInput = mapArgsToInput(match.tool.inputSchema, cliArgs, cliFlags);
-  await invokeCliTool(match.tool.handler, toolInput, `Command ${commandName}`);
-
-  process.exit(0);
 }
 
 /**
@@ -317,20 +330,27 @@ async function runTool(
   }
 
   const app = await initializeHeadlessApp(config, App);
-  const tools = app.getShell().getMCPService().listTools();
-  const match = tools.find((t) => t.tool.name === toolName);
+  try {
+    const tools = app.getShell().getMCPService().listTools();
+    const match = tools.find((t) => t.tool.name === toolName);
 
-  if (!match) {
-    console.error(`❌ Tool not found: ${toolName}`);
-    console.error(
-      `Available tools: ${tools.map((t) => t.tool.name).join(", ")}`,
-    );
-    process.exit(1);
+    if (!match) {
+      console.error(`❌ Tool not found: ${toolName}`);
+      console.error(
+        `Available tools: ${tools.map((t) => t.tool.name).join(", ")}`,
+      );
+      process.exitCode = 1;
+      return;
+    }
+
+    if (
+      !(await invokeCliTool(match.tool.handler, toolInput, `Tool ${toolName}`))
+    ) {
+      process.exitCode = 1;
+    }
+  } finally {
+    await app.stop();
   }
-
-  await invokeCliTool(match.tool.handler, toolInput, `Tool ${toolName}`);
-
-  process.exit(0);
 }
 
 /**

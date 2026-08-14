@@ -290,6 +290,9 @@ const diagnosticsSchema: z.ZodType<JobQueueDiagnostics, unknown> =
       }),
     ),
     oldestPendingAgeMs: z.number().nonnegative().nullable(),
+    duePending: z.number().int().nonnegative(),
+    oldestDuePendingAgeMs: z.number().nonnegative().nullable(),
+    latestClaimAgeMs: z.number().nonnegative().nullable(),
     oldestProcessingAgeMs: z.number().nonnegative().nullable(),
     staleLeaseCount: z.number().int().nonnegative(),
     workerSessions: z.strictObject({

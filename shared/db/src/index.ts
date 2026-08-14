@@ -10,6 +10,8 @@ export {
   type SqliteEngine,
 } from "./sqlite";
 
+export { closeSqliteClient } from "./turso-client";
+
 export {
   refuseDirectMigrationRun,
   resolveMigrationsFolder,

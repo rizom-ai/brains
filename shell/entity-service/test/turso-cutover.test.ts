@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { createSqliteDatabase } from "@brains/db";
+import { closeSqliteClient, createSqliteDatabase } from "@brains/db";
 import { createSilentLogger } from "@brains/test-utils";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -66,9 +66,8 @@ describe("Turso entity database cutover", () => {
         `INSERT INTO entity_fts (entity_id, entity_type, content)
          VALUES ('existing-note', 'note', 'Existing production content')`,
       );
-      await entityLibsql.client.execute("PRAGMA wal_checkpoint(TRUNCATE)");
     } finally {
-      entityLibsql.client.close();
+      await closeSqliteClient(entityLibsql.client);
     }
 
     const legacy = createSqliteDatabase({
@@ -97,9 +96,8 @@ describe("Turso entity database cutover", () => {
         CREATE INDEX embeddings_embedding_idx
         ON embeddings(libsql_vector_idx(embedding))
       `);
-      await legacy.client.execute("PRAGMA wal_checkpoint(TRUNCATE)");
     } finally {
-      legacy.client.close();
+      await closeSqliteClient(legacy.client);
     }
 
     process.env["BRAINS_DB_ENGINE"] = "turso";
@@ -145,9 +143,8 @@ describe("Turso entity database cutover", () => {
           2,
         ],
       });
-      await entityTurso.client.execute("PRAGMA wal_checkpoint(TRUNCATE)");
     } finally {
-      entityTurso.client.close();
+      await closeSqliteClient(entityTurso.client);
     }
 
     process.env["BRAINS_DB_ENGINE"] = "libsql";
@@ -185,7 +182,7 @@ describe("Turso entity database cutover", () => {
       );
       expect(searchSchema.rows).toEqual([]);
     } finally {
-      fallback.client.close();
+      await closeSqliteClient(fallback.client);
     }
 
     const unchangedLegacy = createSqliteDatabase({
@@ -203,7 +200,7 @@ describe("Turso entity database cutover", () => {
       );
       expect(indexes.rows).toHaveLength(1);
     } finally {
-      unchangedLegacy.client.close();
+      await closeSqliteClient(unchangedLegacy.client);
     }
   });
 });

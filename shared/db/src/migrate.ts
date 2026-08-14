@@ -6,6 +6,7 @@ import {
   type PragmaClient,
   type SqliteEngine,
 } from "./sqlite";
+import { closeSqliteClient } from "./turso-client";
 
 export interface PackageMigrationOptions {
   /** Human label used for log context, e.g. "job-queue". */
@@ -15,6 +16,8 @@ export interface PackageMigrationOptions {
     url: string;
     authToken?: string | undefined;
   };
+  /** Explicit engine override, primarily for controlled cutover operations. */
+  engine?: SqliteEngine | undefined;
   /** Drizzle schema tables for this database. */
   schema: Record<string, unknown>;
   /** Absolute path to the drizzle migrations folder. */
@@ -47,6 +50,7 @@ export async function runPackageMigrations(
     schema,
     authToken: config.authToken,
     authTokenEnv: options.authTokenEnv,
+    engine: options.engine,
   });
 
   log.debug(`Running ${label} migrations...`);
@@ -62,7 +66,7 @@ export async function runPackageMigrations(
     log.error(`${label} migration failed:`, error);
     throw error;
   } finally {
-    client.close();
+    await closeSqliteClient(client);
   }
 }
 

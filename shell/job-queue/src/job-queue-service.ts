@@ -21,7 +21,7 @@ import type {
   JobValidator,
 } from "./types";
 import { JOB_STATUS } from "./schemas";
-import { applySqlitePragmas } from "@brains/db";
+import { applySqlitePragmas, closeSqliteClient } from "@brains/db";
 import { createJobQueueDatabase } from "./db";
 import type { Client } from "@libsql/client";
 import { HandlerRegistry } from "./handler-registry";
@@ -72,7 +72,10 @@ export class JobQueueService implements IJobQueueService {
   private walInitialization: Promise<void> | null = null;
   private walInitializationSettled = false;
   private closeRequested = false;
-  private clientClosed = false;
+  private closePromise: Promise<void> | null = null;
+  private clientClosePromise: Promise<void> | null = null;
+  private resolveClose: (() => void) | null = null;
+  private rejectClose: ((error: unknown) => void) | null = null;
   private inFlightEnqueues = 0;
   private readonly databaseUrl: string | undefined;
   private readonly operationContext: OperationContext;
@@ -82,12 +85,23 @@ export class JobQueueService implements IJobQueueService {
   private readonly directLeaseDurationMs: number;
   private directSessionStart: Promise<void> | null = null;
 
-  /**
-   * Close the underlying database connection.
-   */
+  /** Begin closing without changing the existing synchronous service contract. */
   public close(): void {
+    void this.closeAsync().catch((error) => {
+      this.logger.error("Failed to close job queue storage", error);
+    });
+  }
+
+  /** Await admitted enqueues, readiness work, and durable client close. */
+  public closeAsync(): Promise<void> {
+    if (this.closePromise) return this.closePromise;
     this.closeRequested = true;
+    this.closePromise = new Promise<void>((resolve, reject) => {
+      this.resolveClose = resolve;
+      this.rejectClose = reject;
+    });
     this.closeClientWhenReady();
+    return this.closePromise;
   }
 
   public static createFresh(
@@ -166,17 +180,18 @@ export class JobQueueService implements IJobQueueService {
     ) {
       return;
     }
-    this.closeClient();
+    void this.closeClient().then(
+      () => this.resolveClose?.(),
+      (error) => this.rejectClose?.(error),
+    );
   }
 
-  private closeClient(): void {
-    if (this.clientClosed) return;
-    this.clientClosed = true;
-    if (this.remoteTransport) {
-      this.remoteTransport.close();
-    } else {
-      this.requireClient().close();
-    }
+  private closeClient(): Promise<void> {
+    if (this.clientClosePromise) return this.clientClosePromise;
+    this.clientClosePromise = this.remoteTransport
+      ? Promise.resolve().then(() => this.remoteTransport?.close())
+      : closeSqliteClient(this.requireClient());
+    return this.clientClosePromise;
   }
 
   private requireClient(): Client {

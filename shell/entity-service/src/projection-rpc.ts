@@ -6,11 +6,14 @@ import type {
   GetProjectionRuleMemoInput,
   IProjectionStore,
   MarkProjectionDirtyInput,
+  ProjectionIncidentDiagnostics,
+  ProjectionIncidentInput,
   ProjectionRuleMemoValue,
   ProjectionWaveRuleInput,
 } from "./projection-store";
 import type {
   ProjectionDirtyInput,
+  ProjectionIncident,
   ProjectionRuleMemo,
   ProjectionWave,
   ProjectionWaveInput,
@@ -36,6 +39,11 @@ export type ProjectionStoreRpcRequest =
   | { operation: "getActiveWave" }
   | { operation: "completeWave"; waveId: string; completedAt: number }
   | { operation: "failWave"; waveId: string; failedAt: number }
+  | { operation: "failWaveWithIncident"; input: ProjectionIncidentInput }
+  | {
+      operation: "getUnresolvedProjectionIncidentDiagnostics";
+      limit?: number | undefined;
+    }
   | {
       operation: "putWaveRules";
       waveId: string;
@@ -80,6 +88,14 @@ const applyRuleResultSchema = z.strictObject({
   writeIntents: z.array(ProjectionWriteIntentSchema),
   completedAt: timestamp,
 });
+const incidentInputSchema: z.ZodType<ProjectionIncidentInput, unknown> =
+  z.strictObject({
+    waveId: nonEmptyString,
+    ruleId: nonEmptyString,
+    jobId: nonEmptyString.nullable(),
+    failureReason: nonEmptyString.max(500),
+    failedAt: timestamp,
+  });
 
 export const ProjectionStoreRpcRequestSchema: z.ZodType<
   ProjectionStoreRpcRequest,
@@ -109,6 +125,14 @@ export const ProjectionStoreRpcRequestSchema: z.ZodType<
     operation: z.literal("failWave"),
     ...waveIdSchema,
     failedAt: timestamp,
+  }),
+  z.strictObject({
+    operation: z.literal("failWaveWithIncident"),
+    input: incidentInputSchema,
+  }),
+  z.strictObject({
+    operation: z.literal("getUnresolvedProjectionIncidentDiagnostics"),
+    limit: z.number().int().positive().max(100).optional(),
   }),
   z.strictObject({
     operation: z.literal("putWaveRules"),
@@ -177,6 +201,22 @@ const memoSchema: z.ZodType<ProjectionRuleMemoValue, unknown> = z.strictObject({
   writeIntents: z.array(ProjectionWriteIntentSchema),
   createdAt: timestamp,
 });
+const incidentSchema: z.ZodType<ProjectionIncident, unknown> = z.strictObject({
+  waveId: nonEmptyString,
+  ruleId: nonEmptyString,
+  jobId: nonEmptyString.nullable(),
+  failureReason: nonEmptyString,
+  recoveryGeneration: z.number().int().nonnegative(),
+  createdAt: timestamp,
+  resolvedAt: timestamp.nullable(),
+});
+const incidentDiagnosticsSchema: z.ZodType<
+  ProjectionIncidentDiagnostics,
+  unknown
+> = z.strictObject({
+  total: z.number().int().nonnegative(),
+  incidents: z.array(incidentSchema),
+});
 
 export function parseProjectionStoreRpcRequest(
   input: unknown,
@@ -200,7 +240,10 @@ export function parseProjectionStoreRpcResult(
       return z.array(waveInputSchema).parse(input);
     case "completeWave":
     case "failWave":
+    case "failWaveWithIncident":
       return waveSchema.parse(input);
+    case "getUnresolvedProjectionIncidentDiagnostics":
+      return incidentDiagnosticsSchema.parse(input);
     case "putWaveRules":
       return z.undefined().parse(input);
     case "listWaveRules":
@@ -237,6 +280,10 @@ export function handleProjectionStoreRpcRequest(
       return store.completeWave(request.waveId, request.completedAt);
     case "failWave":
       return store.failWave(request.waveId, request.failedAt);
+    case "failWaveWithIncident":
+      return store.failWaveWithIncident(request.input);
+    case "getUnresolvedProjectionIncidentDiagnostics":
+      return store.getUnresolvedProjectionIncidentDiagnostics(request.limit);
     case "putWaveRules":
       return store.putWaveRules(request.waveId, request.rules);
     case "listWaveRules":

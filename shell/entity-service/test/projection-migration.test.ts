@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from "bun:test";
 import { createClient } from "@libsql/client";
-import { runPackageMigrations } from "@brains/db";
+import { closeSqliteClient, runPackageMigrations } from "@brains/db";
 import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -58,6 +58,7 @@ describe("projection migrations", () => {
     await runPackageMigrations({
       label: "legacy-entity-test",
       config: { url: databaseUrl },
+      engine: "libsql",
       schema: {},
       migrationsFolder: legacyMigrations,
     });
@@ -78,10 +79,25 @@ describe("projection migrations", () => {
         20,
       ],
     });
-    legacyClient.close();
+    await closeSqliteClient(legacyClient);
 
     await migrateEntities({ url: databaseUrl });
-    await migrateEntities({ url: databaseUrl });
+    const repeatedMigration = Bun.spawn({
+      cmd: [
+        process.execPath,
+        new URL("./fixtures/migrate-entities-process.ts", import.meta.url)
+          .pathname,
+        databaseUrl,
+      ],
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    const [exitCode, stderr] = await Promise.all([
+      repeatedMigration.exited,
+      new Response(repeatedMigration.stderr).text(),
+    ]);
+    if (exitCode !== 0) throw new Error(stderr);
+
     const connection = createEntityDatabase({ url: databaseUrl });
     const store = new ProjectionStore(connection.db);
 
@@ -94,7 +110,7 @@ describe("projection migrations", () => {
       }),
     ]);
 
-    connection.client.close();
+    await closeSqliteClient(connection.client);
   });
 
   it("backfills current projection outputs without reclaiming later ordinary writes", async () => {

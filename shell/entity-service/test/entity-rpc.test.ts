@@ -208,6 +208,43 @@ describe("entity owner RPC", () => {
     expect(await store.completeWave("remote-wave", 103)).toMatchObject({
       status: "completed",
     });
+
+    await store.markDirty({
+      sourceType: "note",
+      sourceId: "source-2",
+      revision: "revision-2",
+      operation: "upsert",
+      markedAt: 104,
+    });
+    await store.claimPendingWave({
+      waveId: "remote-failed-wave",
+      graphFingerprint: "graph-1",
+      startedAt: 105,
+    });
+    await store.putWaveRules("remote-failed-wave", [
+      { ruleId: "note-rule", targetType: "note", level: 0 },
+    ]);
+    await store.queueWaveRule("remote-failed-wave", "note-rule", "job-2");
+    expect(
+      await store.failWaveWithIncident({
+        waveId: "remote-failed-wave",
+        ruleId: "note-rule",
+        jobId: "job-2",
+        failureReason: "remote terminal failure",
+        failedAt: 106,
+      }),
+    ).toMatchObject({ status: "failed" });
+    expect(await store.getUnresolvedProjectionIncidentDiagnostics()).toEqual({
+      total: 1,
+      incidents: [
+        expect.objectContaining({
+          waveId: "remote-failed-wave",
+          ruleId: "note-rule",
+          jobId: "job-2",
+          failureReason: "remote terminal failure",
+        }),
+      ],
+    });
   });
 
   it("rejects malformed operations before owner dispatch", () => {

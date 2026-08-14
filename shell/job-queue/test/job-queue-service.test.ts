@@ -17,6 +17,7 @@ import { createId } from "@brains/utils/id";
 import type { ProgressReporter } from "@brains/utils/progress";
 import { z } from "@brains/utils/zod";
 import { OperationContext } from "@brains/operation-context";
+import { resolveSqliteEngine } from "@brains/db";
 import { access, writeFile } from "node:fs/promises";
 interface EntityWithoutEmbedding {
   id: string;
@@ -45,6 +46,10 @@ async function waitForFile(path: string): Promise<void> {
     { timeoutMs: 5_000, intervalMs: 5 },
   );
 }
+
+const itWithIndependentLocalOpeners =
+  resolveSqliteEngine("file:test.db") === "libsql" ? it : it.skip;
+
 class TestJobHandler implements JobHandler<"shell:embedding"> {
   public processCallCount = 0;
   public onErrorCallCount = 0;
@@ -115,7 +120,7 @@ describe("JobQueueService", () => {
     testHandler = new TestJobHandler();
   });
   afterEach(async () => {
-    service.close();
+    await service.closeAsync();
     await cleanup();
   });
   describe("Database readiness", () => {
@@ -204,7 +209,7 @@ describe("JobQueueService", () => {
           ),
         ).toThrow("Job handler registrations are finalized");
       } finally {
-        validationService.close();
+        await validationService.closeAsync();
       }
     });
   });
@@ -634,8 +639,8 @@ describe("JobQueueService", () => {
           status: "processing",
         });
       } finally {
-        scheduler.close();
-        successorWorker.close();
+        await scheduler.closeAsync();
+        await successorWorker.closeAsync();
       }
     });
 
@@ -657,7 +662,7 @@ describe("JobQueueService", () => {
         expect(claimedJobs.filter((job) => job?.id === jobId)).toHaveLength(1);
         expect(claimedJobs.filter(Boolean)).toHaveLength(1);
       } finally {
-        secondService.close();
+        await secondService.closeAsync();
       }
     });
     it("does not reclaim a direct caller's claim while its fallback session is live", async () => {
@@ -1197,54 +1202,57 @@ describe("JobQueueService", () => {
         expect(new Set(ids).size).toBe(1);
         expect(await service.getActiveJobs(["site-build"])).toHaveLength(1);
       } finally {
-        secondService.close();
+        await secondService.closeAsync();
       }
     });
-    it("preserves atomic skip across independent processes", async () => {
-      const startFile = `${dbPath}.start`;
-      const readyFiles = [`${dbPath}.ready-a`, `${dbPath}.ready-b`];
-      const fixturePath = new URL(
-        "./fixtures/concurrent-enqueue-process.ts",
-        import.meta.url,
-      ).pathname;
-      const children = readyFiles.map((readyFile) =>
-        Bun.spawn(
-          [
-            "bun",
-            fixturePath,
-            config.url,
-            startFile,
-            readyFile,
-            "site-build",
-            "site-build:cross-process",
-          ],
-          { stdout: "pipe", stderr: "pipe" },
-        ),
-      );
-
-      try {
-        await Promise.all(readyFiles.map(waitForFile));
-        await writeFile(startFile, "start");
-        const outputs = await Promise.all(
-          children.map(async (child) => {
-            const [exitCode, stdout, stderr] = await Promise.all([
-              child.exited,
-              new Response(child.stdout).text(),
-              new Response(child.stderr).text(),
-            ]);
-            if (exitCode !== 0) {
-              throw new Error(`Concurrent enqueue process failed: ${stderr}`);
-            }
-            return z.array(z.string()).parse(JSON.parse(stdout));
-          }),
+    itWithIndependentLocalOpeners(
+      "preserves atomic skip across independent processes",
+      async () => {
+        const startFile = `${dbPath}.start`;
+        const readyFiles = [`${dbPath}.ready-a`, `${dbPath}.ready-b`];
+        const fixturePath = new URL(
+          "./fixtures/concurrent-enqueue-process.ts",
+          import.meta.url,
+        ).pathname;
+        const children = readyFiles.map((readyFile) =>
+          Bun.spawn(
+            [
+              "bun",
+              fixturePath,
+              config.url,
+              startFile,
+              readyFile,
+              "site-build",
+              "site-build:cross-process",
+            ],
+            { stdout: "pipe", stderr: "pipe" },
+          ),
         );
 
-        expect(new Set(outputs.flat()).size).toBe(1);
-        expect(await service.getActiveJobs(["site-build"])).toHaveLength(1);
-      } finally {
-        for (const child of children) child.kill();
-      }
-    });
+        try {
+          await Promise.all(readyFiles.map(waitForFile));
+          await writeFile(startFile, "start");
+          const outputs = await Promise.all(
+            children.map(async (child) => {
+              const [exitCode, stdout, stderr] = await Promise.all([
+                child.exited,
+                new Response(child.stdout).text(),
+                new Response(child.stderr).text(),
+              ]);
+              if (exitCode !== 0) {
+                throw new Error(`Concurrent enqueue process failed: ${stderr}`);
+              }
+              return z.array(z.string()).parse(JSON.parse(stdout));
+            }),
+          );
+
+          expect(new Set(outputs.flat()).size).toBe(1);
+          expect(await service.getActiveJobs(["site-build"])).toHaveLength(1);
+        } finally {
+          for (const child of children) child.kill();
+        }
+      },
+    );
     it("keeps concurrent keyed groups independent", async () => {
       await service.initialize();
       const ids = await Promise.all(
@@ -1551,7 +1559,7 @@ describe("JobQueueService", () => {
       });
       await admissionEntered;
 
-      service.close();
+      const closePromise = service.closeAsync();
       void expect(
         service.enqueue({
           type: "site-build",
@@ -1561,6 +1569,7 @@ describe("JobQueueService", () => {
       ).rejects.toThrow("queue service is closed");
       releaseAdmission();
       const jobId = await inFlight;
+      await closePromise;
 
       const inspector = JobQueueService.createFresh(
         config,
@@ -1569,7 +1578,7 @@ describe("JobQueueService", () => {
       try {
         expect((await inspector.getStatus(jobId))?.status).toBe("pending");
       } finally {
-        inspector.close();
+        await inspector.closeAsync();
       }
     });
     it("keeps worker claim and deduplicating enqueue in a sequential shape", async () => {

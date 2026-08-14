@@ -30,6 +30,8 @@ describe("MigrationManager", () => {
     },
     embedding: {
       enabled: true,
+      model: "fast-all-MiniLM-L6-v2",
+      cacheDir: "./cache/embeddings",
     },
   } satisfies StandardConfig;
 
@@ -132,6 +134,8 @@ describe("MigrationManager", () => {
         },
         embedding: {
           enabled: true,
+          model: "fast-all-MiniLM-L6-v2",
+          cacheDir: "./cache/embeddings",
         },
       } satisfies StandardConfig;
 

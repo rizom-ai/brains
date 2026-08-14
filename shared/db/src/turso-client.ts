@@ -1,3 +1,4 @@
+import { rm } from "node:fs/promises";
 import type { Database } from "@tursodatabase/database";
 import type {
   Client,
@@ -100,17 +101,21 @@ class TursoClient implements Client {
   public closed = false;
   public readonly protocol = "file";
   private readonly connection: Promise<Database>;
+  private readonly databasePath: string;
+  private readonly fileBacked: boolean;
   private operationTail: Promise<void> = Promise.resolve();
+  private closePromise: Promise<void> | null = null;
 
   constructor(url: string) {
     const path = pathFromFileUrl(url);
-    // multiprocess WAL coordination only exists for real files
-    const experimental: "multiprocess_wal"[] =
-      path === ":memory:" ? [] : ["multiprocess_wal"];
+    this.databasePath = path;
+    this.fileBacked = path !== ":memory:";
+    // The web-owner boundary guarantees one local opener, so enabling
+    // multiprocess_wal would only permit callers to bypass that invariant.
     // dynamic import: the SDK loads a native binding at import time, which
     // must not happen for consumers that never select the turso engine
     this.connection = import("@tursodatabase/database").then(({ connect }) =>
-      connect(path, { experimental }),
+      connect(path),
     );
     // a failed lazy connect surfaces when a method awaits it; without this,
     // an unused client would turn it into an unhandled rejection
@@ -183,8 +188,33 @@ class TursoClient implements Client {
   }
 
   close(): void {
+    void this.closeAsync().catch(() => undefined);
+  }
+
+  /** Await all admitted operations and the native handle's durable close. */
+  closeAsync(): Promise<void> {
+    if (this.closePromise) return this.closePromise;
     this.closed = true;
-    void this.connection.then((db) => db.close()).catch(() => undefined);
+    const admittedOperations = this.operationTail;
+    this.closePromise = admittedOperations.then(async () => {
+      const db = await this.connection;
+      let checkpointed = false;
+      try {
+        if (this.fileBacked) {
+          await db.exec("PRAGMA wal_checkpoint(TRUNCATE)");
+          checkpointed = true;
+        }
+      } finally {
+        await db.close();
+      }
+      if (checkpointed) {
+        await Promise.all([
+          rm(`${this.databasePath}-shm`, { force: true }),
+          rm(`${this.databasePath}-wal`, { force: true }),
+        ]);
+      }
+    });
+    return this.closePromise;
   }
 
   private async batchOn(
@@ -339,4 +369,32 @@ class TursoTransaction implements Transaction {
  */
 export function createTursoClient(options: CreateTursoClientOptions): Client {
   return new TursoClient(options.url);
+}
+
+interface AsyncCloseClient extends Client {
+  closeAsync(): Promise<void>;
+}
+
+/** Await a local checkpoint and durable close across SQLite client engines. */
+export function closeSqliteClient(client: Client): Promise<void> {
+  const closeAsync = (client as Partial<AsyncCloseClient>).closeAsync;
+  if (typeof closeAsync === "function") return closeAsync.call(client);
+
+  if (client.protocol !== "file") {
+    client.close();
+    return Promise.resolve();
+  }
+
+  // The local libSQL client executes this statement synchronously before
+  // returning its promise. Close in the same turn to preserve Client.close()
+  // semantics while still surfacing checkpoint failures to async owners.
+  let checkpoint: Promise<ResultSet>;
+  try {
+    checkpoint = client.execute("PRAGMA wal_checkpoint(TRUNCATE)");
+  } catch (error) {
+    client.close();
+    return Promise.reject(error);
+  }
+  client.close();
+  return checkpoint.then(() => undefined);
 }

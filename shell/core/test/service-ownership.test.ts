@@ -420,7 +420,12 @@ describe("Shell service ownership", () => {
     await migrateTestDatabases(directory.dir);
 
     const jobQueueService = createMockJobQueueService();
-    jobQueueService.close = (): void => {
+    jobQueueService.close = (): void => {};
+    (
+      jobQueueService as typeof jobQueueService & {
+        closeAsync(): Promise<void>;
+      }
+    ).closeAsync = async (): Promise<void> => {
       order.push("job-database");
     };
     const jobQueueWorker = {
@@ -444,10 +449,14 @@ describe("Shell service ownership", () => {
       logger,
     );
     const closeRuntimeState =
-      runtimeStateService.close.bind(runtimeStateService);
-    runtimeStateService.close = (): void => {
-      order.push("runtime-state-database");
-      closeRuntimeState();
+      runtimeStateService.closeAsync.bind(runtimeStateService);
+    let runtimeStateCloseRecorded = false;
+    runtimeStateService.closeAsync = async (): Promise<void> => {
+      if (!runtimeStateCloseRecorded) {
+        runtimeStateCloseRecorded = true;
+        order.push("runtime-state-database");
+      }
+      await closeRuntimeState();
     };
 
     const recurringCheckService = new RecurringCheckService({
@@ -480,10 +489,14 @@ describe("Shell service ownership", () => {
       { url: `file:${directory.dir}/conversations.db` },
     );
     const closeConversation =
-      conversationService.close.bind(conversationService);
-    conversationService.close = (): void => {
-      order.push("conversation-database");
-      closeConversation();
+      conversationService.closeAsync.bind(conversationService);
+    let conversationCloseRecorded = false;
+    conversationService.closeAsync = async (): Promise<void> => {
+      if (!conversationCloseRecorded) {
+        conversationCloseRecorded = true;
+        order.push("conversation-database");
+      }
+      await closeConversation();
     };
 
     const entityRegistry = EntityRegistry.createFresh(logger);
@@ -500,10 +513,14 @@ describe("Shell service ownership", () => {
       order.push("entity-outbox");
       return flushEntityOutbox();
     };
-    const closeEntity = entityService.close.bind(entityService);
-    entityService.close = (): void => {
-      order.push("entity-database");
-      closeEntity();
+    const closeEntity = entityService.closeAsync.bind(entityService);
+    let entityCloseRecorded = false;
+    entityService.closeAsync = async (): Promise<void> => {
+      if (!entityCloseRecorded) {
+        entityCloseRecorded = true;
+        order.push("entity-database");
+      }
+      await closeEntity();
     };
 
     const daemonPlugin: Plugin = {
@@ -561,11 +578,11 @@ describe("Shell service ownership", () => {
       "job-runtime",
       "plugins",
       "entity-outbox",
-      "conversation-database",
       "entity-database",
-      "recurring-handler",
-      "job-database",
+      "conversation-database",
       "runtime-state-database",
+      "job-database",
+      "recurring-handler",
     ]);
   });
 });
