@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createSilentLogger } from "@brains/test-utils";
 import { GitBrokerServer } from "../../src/lib/broker/server";
+import { assertExecutableArgs } from "../../src/lib/broker/protocol";
 import { GitSync } from "../../src/lib/git-sync";
 import { hasGitHead } from "../../src/lib/git-state";
 
@@ -36,6 +37,51 @@ async function withBroker(): Promise<{ socketPath: string; dataDir: string }> {
 }
 
 describe("directory-sync routed through the broker", () => {
+  it("permits every Git subcommand directory-sync actually issues", async () => {
+    const root = join(import.meta.dir, "../../src");
+    const walk = async (dir: string): Promise<string[]> => {
+      const entries = await readdir(dir, { withFileTypes: true });
+      const nested = await Promise.all(
+        entries.map(async (entry) => {
+          const path = join(dir, entry.name);
+          if (entry.isDirectory()) return walk(path);
+          return entry.name.endsWith(".ts") ? [path] : [];
+        }),
+      );
+      return nested.flat();
+    };
+
+    const bodies = await Promise.all(
+      (await walk(root)).map((file) => readFile(file, "utf-8")),
+    );
+    const used = new Set(
+      bodies.flatMap((body) =>
+        [...body.matchAll(/\.(?:run|raw)\(\s*\[\s*"([a-z][a-z-]*)"/g)].map(
+          (match) => match[1] ?? "",
+        ),
+      ),
+    );
+
+    // A subcommand missing from every class is rejected at the boundary, and a
+    // caller that catches its own errors then degrades silently rather than
+    // failing — `merge-base` was absent and quietly turned every
+    // reconciliation into a full sync. Pin the two lists together.
+    const unroutable = [...used].filter((subcommand) =>
+      (["inspect", "mutate", "network", "bootstrap"] as const).every(
+        (operationClass) => {
+          try {
+            assertExecutableArgs([subcommand], operationClass);
+            return false;
+          } catch {
+            return true;
+          }
+        },
+      ),
+    );
+
+    expect(unroutable.sort()).toEqual([]);
+  });
+
   it("has no direct Git execution outside the broker and wrapper", async () => {
     const root = join(import.meta.dir, "../../src");
     const walk = async (dir: string): Promise<string[]> => {
@@ -65,14 +111,12 @@ describe("directory-sync routed through the broker", () => {
     expect(
       offenders.filter((file): file is string => file !== null).sort(),
     ).toEqual([
-      // The in-process runner the factory still returns when no broker owns
-      // the checkout, and which Phase 5 leaves in place as the fallback.
+      // Spawning the OS-owned wrapper. This is the execution boundary.
       "lib/broker/wrapper.ts",
       // Local `file://` seed bootstrap: it builds a throwaway worktree and a
       // bare remote, never touching the managed checkout, so it is outside the
       // ownership the broker exists to hold. See the plan's Phase 5 note.
       "lib/content-remote-bootstrap.ts",
-      "lib/git-stall.ts",
     ]);
   });
 

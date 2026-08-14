@@ -27,7 +27,6 @@ import {
   tryResolveRemoteHead,
 } from "./git-pull";
 import { getGitStatus, hasGitLocalChanges } from "./git-status";
-import { defaultGitRunnerFactory } from "./git-runner-factory";
 import type { GitRunnerFactory } from "./git-runner-factory";
 
 export type { GitSyncOptions } from "./git-options";
@@ -78,18 +77,21 @@ export class GitSync implements IGitSync {
     this.authorEmail = options.authorEmail;
     this.authToken = options.authToken;
     this.timeoutMs = options.timeoutMs ?? DEFAULT_GIT_TIMEOUT_MS;
+    // Always broker-backed. A supervisor hands down a socket; otherwise one is
+    // hosted here. There is no configuration in which Git runs on this event
+    // loop, so there is no weaker path to fall back to.
     this.runnerFactory =
       options.runnerFactory ??
-      (options.brokerSocketPath
-        ? createBrokerGitRunnerFactory({
-            socketPath: options.brokerSocketPath,
-            repositoryKey: getCheckoutRepositoryKey(this.dataDir),
-            checkoutPath: this.dataDir,
-            branch: this.branch,
-            remoteFingerprint: this.remoteFingerprint,
-            timeoutMs: this.timeoutMs,
-          })
-        : defaultGitRunnerFactory);
+      createBrokerGitRunnerFactory({
+        ...(options.brokerSocketPath
+          ? { socketPath: options.brokerSocketPath }
+          : {}),
+        repositoryKey: getCheckoutRepositoryKey(this.dataDir),
+        checkoutPath: this.dataDir,
+        branch: this.branch,
+        remoteFingerprint: this.remoteFingerprint,
+        timeoutMs: this.timeoutMs,
+      });
   }
 
   private get git(): OwnedGit {

@@ -13,6 +13,7 @@ import type {
   StatusMessage,
 } from "./protocol";
 import { redactSecrets } from "./redaction";
+import { GitStallError } from "../git-options";
 import { SocketWriter } from "./socket-writer";
 
 /**
@@ -188,6 +189,10 @@ export class BrokerGitCommandRunner implements GitCommandRunner {
           return;
         }
 
+        if (message.outcome === "timeout") {
+          settled.reject(new GitStallError(0));
+          return;
+        }
         if (message.outcome !== "exit" || message.exitCode !== 0) {
           const detail = redactSecrets(
             message.stderr.trim() || message.stdout.trim(),

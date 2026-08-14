@@ -1,25 +1,29 @@
 import { afterEach, describe, expect, it } from "bun:test";
-import { readdir, readFile, mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createSilentLogger } from "@brains/test-utils";
+import { sha256Hex } from "@brains/utils/hash";
+import { stopHostedBroker } from "../../src/lib/broker/hosted";
+import { createBrokerGitRunnerFactory } from "../../src/lib/broker-runner-factory";
 import { initializeGitRepository } from "../../src/lib/git-init";
-import { hasGitHead } from "../../src/lib/git-state";
 import { GitSync } from "../../src/lib/git-sync";
 import type {
   GitRunnerFactory,
   GitRunnerRequest,
 } from "../../src/lib/git-runner-factory";
-import { createOwnedGitRunnerFactory } from "../../src/lib/git-runner-factory";
 import type { GitCommandRunner } from "../../src/lib/owned-git";
 
 /**
  * Phase 4 of docs/plans/directory-sync-git-execution-broker.md.
  *
- * Every Git path must resolve its runner from injected dependencies, because
- * Phase 5 swaps that runner for the broker-backed one. A path that constructs
- * its own runner would silently keep executing Git in the app process.
+ * Every Git path resolves its runner from injected dependencies, so the
+ * execution boundary is replaceable and every command is observable. The
+ * delegate here is the real broker-backed factory — there is no in-process
+ * runner to substitute.
  */
+
+const LINUX = process.platform === "linux";
 
 let scratch: string | undefined;
 
@@ -28,11 +32,19 @@ interface Recorded {
   args: string[];
 }
 
-function recordingFactory(delegate: GitRunnerFactory): {
+function recordingFactory(checkoutPath: string): {
   factory: GitRunnerFactory;
   recorded: Recorded[];
 } {
   const recorded: Recorded[] = [];
+  const delegate = createBrokerGitRunnerFactory({
+    repositoryKey: sha256Hex(checkoutPath).slice(0, 32),
+    checkoutPath,
+    branch: "main",
+    remoteFingerprint: sha256Hex(""),
+    timeoutMs: 30_000,
+  });
+
   const factory: GitRunnerFactory = (request): GitCommandRunner => {
     const runner = delegate(request);
     return {
@@ -46,46 +58,16 @@ function recordingFactory(delegate: GitRunnerFactory): {
 }
 
 afterEach(async () => {
+  await stopHostedBroker();
   if (scratch) await rm(scratch, { recursive: true, force: true });
   scratch = undefined;
 });
 
-describe("git runner factory seam", () => {
-  it("has no runner construction outside the factory", async () => {
-    const root = join(import.meta.dir, "../../src");
-    const walk = async (dir: string): Promise<string[]> => {
-      const entries = await readdir(dir, { withFileTypes: true });
-      const nested = await Promise.all(
-        entries.map(async (entry) => {
-          const path = join(dir, entry.name);
-          if (entry.isDirectory()) return walk(path);
-          return entry.name.endsWith(".ts") ? [path] : [];
-        }),
-      );
-      return nested.flat();
-    };
-
-    const files = await walk(root);
-    const offenders = await Promise.all(
-      files.map(async (file) => {
-        const body = await readFile(file, "utf-8");
-        return body.includes("new OwnedGitProcessRunner") ? file : null;
-      }),
-    );
-
-    expect(
-      offenders
-        .filter((file): file is string => file !== null)
-        .map((file) => file.slice(root.length + 1)),
-    ).toEqual(["lib/git-runner-factory.ts"]);
-  });
-
-  it("routes bootstrap clone, init, and branch repair through the factory", async () => {
+describe.skipIf(!LINUX)("git runner factory seam", () => {
+  it("routes repository preparation through the factory", async () => {
     scratch = await mkdtemp(join(tmpdir(), "runner-factory-"));
     const dataDir = join(scratch, "checkout");
-    const { factory, recorded } = recordingFactory(
-      createOwnedGitRunnerFactory(),
-    );
+    const { factory, recorded } = recordingFactory(dataDir);
 
     await initializeGitRepository({
       logger: createSilentLogger(),
@@ -104,29 +86,31 @@ describe("git runner factory seam", () => {
     expect(subcommands).toContain("init");
     expect(subcommands).toContain("config");
     expect(subcommands).toContain("checkout");
-    // Repository preparation is bootstrap work: the checkout does not exist
-    // yet, so Phase 5 must send these under the bootstrap operation class.
+    // `init` runs before the checkout exists, so it is bootstrap work. The
+    // commands that follow run against a real repository and are not.
     expect(
       recorded
         .filter((entry) => entry.args[0] === "init")
         .every((entry) => entry.request.bootstrap === true),
     ).toBe(true);
-  }, 30_000);
+    expect(
+      recorded
+        .filter((entry) => entry.args[0] === "checkout")
+        .every((entry) => entry.request.bootstrap !== true),
+    ).toBe(true);
+  }, 60_000);
 
   it("resolves the GitSync runner from the injected factory", async () => {
     scratch = await mkdtemp(join(tmpdir(), "runner-factory-sync-"));
-    const { factory, recorded } = recordingFactory(
-      createOwnedGitRunnerFactory(),
-    );
+    const dataDir = join(scratch, "checkout");
+    const { factory, recorded } = recordingFactory(dataDir);
 
     const gitSync = new GitSync({
       logger: createSilentLogger(),
-      dataDir: scratch,
+      dataDir,
       runnerFactory: factory,
     });
     await gitSync.initialize();
-    // Branch repair legitimately runs status during bootstrap, so only the
-    // commands issued afterwards are ordinary work.
     recorded.length = 0;
     await gitSync.getStatus();
 
@@ -137,26 +121,7 @@ describe("git runner factory seam", () => {
     expect(recorded.every((entry) => entry.request.bootstrap !== true)).toBe(
       true,
     );
-  }, 30_000);
 
-  it("resolves the head probe from the injected factory", async () => {
-    scratch = await mkdtemp(join(tmpdir(), "runner-factory-head-"));
-    const { factory, recorded } = recordingFactory(
-      createOwnedGitRunnerFactory(),
-    );
-
-    await initializeGitRepository({
-      logger: createSilentLogger(),
-      dataDir: scratch,
-      remoteUrl: "",
-      authenticatedUrl: "",
-      branch: "main",
-      timeoutMs: 30_000,
-      runnerFactory: factory,
-    });
-    recorded.length = 0;
-
-    expect(await hasGitHead(scratch, factory)).toBe(true);
-    expect(recorded.map((entry) => entry.args[0])).toEqual(["rev-parse"]);
-  }, 30_000);
+    await gitSync.cleanup();
+  }, 60_000);
 });

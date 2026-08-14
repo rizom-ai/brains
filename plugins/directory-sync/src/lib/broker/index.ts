@@ -6,6 +6,9 @@ export {
 } from "./client";
 export type { BrokerClientOptions } from "./client";
 export { BrokerStartupError, GitBrokerServer } from "./server";
+export { GitExecutor } from "./executor";
+export type { GitExecutorOptions } from "./executor";
+export { hostGitBroker, processRuntimeDir, stopHostedBroker } from "./hosted";
 export type { BrokerServerOptions } from "./server";
 export { CheckoutRegistry, RegistryError } from "./registry";
 export type { RegisteredCheckout, RegistryErrorCode } from "./registry";

@@ -1,8 +1,8 @@
 import type { OwnedGit } from "./owned-git";
 import { getErrorMessage } from "@brains/utils/error";
 import type { Logger } from "@brains/utils/logger";
-import { GitStallError } from "./git-stall";
-import type { GitProcessOptions } from "./git-stall";
+import { GitStallError } from "./git-options";
+import type { GitProcessOptions } from "./git-options";
 
 /** Stage and commit all changes. */
 export async function commitGitChanges(

@@ -12,7 +12,7 @@ export interface GitInitializeOptions {
   branch: string;
   timeoutMs: number;
   signal?: AbortSignal | undefined;
-  runnerFactory?: GitRunnerFactory | undefined;
+  runnerFactory: GitRunnerFactory;
   authorName?: string | undefined;
   authorEmail?: string | undefined;
 }

@@ -1,20 +1,26 @@
 import { BrokerGitCommandRunner, registerCheckout } from "./broker/client";
+import { hostGitBroker } from "./broker/hosted";
 import { MAX_OUTPUT_BYTES } from "./broker/protocol";
 import type { GitRunnerFactory } from "./git-runner-factory";
 import type { GitCommandOptions, GitCommandRunner } from "./owned-git";
 
 /**
- * Broker-backed execution boundary for a checkout.
+ * The execution boundary for a checkout: always a broker, never in-process.
+ *
+ * Where the broker lives is a lifecycle detail. A supervised brain is handed a
+ * socket by its supervisor; anything else hosts one for itself. Both reach the
+ * same executor and the same OS-owned wrapper, so there is no configuration in
+ * which Git runs on an application event loop.
  *
  * Registration is lazy and idempotent rather than a separate lifecycle step:
- * the first command declares the checkout, and re-declaring identical
- * identity is a no-op. That means no caller can forget to register, and a
- * broker restart is recovered on the next command rather than needing the
- * plugin to notice.
+ * the first command declares the checkout, and re-declaring identical identity
+ * is a no-op. No caller can forget it, and a broker restart is recovered on
+ * the next command rather than needing the plugin to notice.
  */
 
 export interface BrokerRunnerFactoryOptions {
-  socketPath: string;
+  /** Socket handed down by a supervisor; absent means host one here. */
+  socketPath?: string | undefined;
   repositoryKey: string;
   checkoutPath: string;
   branch: string;
@@ -47,46 +53,45 @@ function combineProgress(
 export function createBrokerGitRunnerFactory(
   options: BrokerRunnerFactoryOptions,
 ): GitRunnerFactory {
-  let declaration: Promise<unknown> | null = null;
+  let connection: Promise<string> | null = null;
 
-  const declare = (): Promise<unknown> => {
-    declaration ??= registerCheckout(options.socketPath, {
-      repositoryKey: options.repositoryKey,
-      checkoutPath: options.checkoutPath,
-      branch: options.branch,
-      remoteFingerprint: options.remoteFingerprint,
-      timeoutMs: options.timeoutMs,
-      maxOutputBytes: options.maxOutputBytes ?? MAX_OUTPUT_BYTES,
-    }).catch((error: unknown) => {
-      // A failed declaration must not be cached, or one unlucky startup would
-      // wedge every later command against a broker that has since recovered.
-      declaration = null;
+  const socket = (): Promise<string> => {
+    connection ??= (async (): Promise<string> => {
+      const socketPath =
+        options.socketPath ?? (await hostGitBroker()).socketPath;
+
+      await registerCheckout(socketPath, {
+        repositoryKey: options.repositoryKey,
+        checkoutPath: options.checkoutPath,
+        branch: options.branch,
+        remoteFingerprint: options.remoteFingerprint,
+        timeoutMs: options.timeoutMs,
+        maxOutputBytes: options.maxOutputBytes ?? MAX_OUTPUT_BYTES,
+      });
+      return socketPath;
+    })().catch((error: unknown) => {
+      connection = null;
       throw error;
     });
-    return declaration;
+    return connection;
   };
 
-  return (request): GitCommandRunner => {
-    const runner = new BrokerGitCommandRunner({
-      socketPath: options.socketPath,
-      repositoryKey: options.repositoryKey,
-      ...(request.bootstrap ? { operationClass: "bootstrap" as const } : {}),
-    });
+  return (request): GitCommandRunner => ({
+    run: async (args, commandOptions?: GitCommandOptions): Promise<string> => {
+      const socketPath = await socket();
+      const runner = new BrokerGitCommandRunner({
+        socketPath,
+        repositoryKey: options.repositoryKey,
+        ...(request.bootstrap ? { operationClass: "bootstrap" as const } : {}),
+      });
 
-    return {
-      run: async (
-        args,
-        commandOptions?: GitCommandOptions,
-      ): Promise<string> => {
-        await declare();
-        return runner.run(args, {
-          signal: combineSignals(request.signal, commandOptions?.signal),
-          onProgress: combineProgress(
-            request.onProgress,
-            commandOptions?.onProgress,
-          ),
-        });
-      },
-    };
-  };
+      return runner.run(args, {
+        signal: combineSignals(request.signal, commandOptions?.signal),
+        onProgress: combineProgress(
+          request.onProgress,
+          commandOptions?.onProgress,
+        ),
+      });
+    },
+  });
 }

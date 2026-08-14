@@ -4,8 +4,8 @@ import type { Logger } from "@brains/utils/logger";
 import type { PullResult } from "../types";
 import { commitGitChanges, pushGitChanges } from "./git-commit";
 import { reconcileRemoteDeletedFiles } from "./git-remote-deletion-reconciliation";
-import { GitStallError } from "./git-stall";
-import type { GitProcessOptions } from "./git-stall";
+import { GitStallError } from "./git-options";
+import type { GitProcessOptions } from "./git-options";
 
 interface ChangedPaths {
   files: string[];

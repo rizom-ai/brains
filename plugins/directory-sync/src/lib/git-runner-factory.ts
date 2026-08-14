@@ -1,25 +1,23 @@
-import { OwnedGitProcessRunner } from "./git-stall";
 import type { GitCommandRunner } from "./owned-git";
 
 /**
- * The single place a Git command runner is constructed.
+ * How a Git path obtains its command runner.
  *
- * Every Git path in directory-sync resolves its runner from here rather than
- * building one inline, so the execution boundary can be replaced wholesale.
- * Phase 5 of docs/plans/directory-sync-git-execution-broker.md swaps this for
- * the broker-backed runner; a path that constructed its own would silently
- * keep executing Git inside the app process, which is the defect the broker
- * exists to remove. A test asserts this module is the only construction site.
+ * There is exactly one implementation — the broker-backed runner in
+ * `broker-runner-factory.ts` — because every execution guarantee lives in the
+ * broker's executor and its OS-owned wrapper. This type exists so call sites
+ * resolve a runner from injected dependencies rather than constructing one,
+ * which is what let the execution boundary be replaced wholesale, and what
+ * lets tests observe every command.
  */
 
 export interface GitRunnerRequest {
   baseDir: string;
   timeoutMs: number;
   /**
-   * Repository preparation — probe, clone, init, branch repair — which runs
-   * before the checkout exists and therefore cannot be resolved against a
-   * registered one. The broker accepts these under its `bootstrap` operation
-   * class and refuses them once the checkout is real.
+   * Repository preparation — remote probe, clone, init — which runs before the
+   * checkout exists. The broker accepts these under its `bootstrap` operation
+   * class and refuses them the moment the checkout appears.
    */
   bootstrap?: boolean | undefined;
   signal?: AbortSignal | undefined;
@@ -27,19 +25,3 @@ export interface GitRunnerRequest {
 }
 
 export type GitRunnerFactory = (request: GitRunnerRequest) => GitCommandRunner;
-
-/** In-process execution: the current behaviour, unchanged. */
-export function createOwnedGitRunnerFactory(): GitRunnerFactory {
-  return (request): GitCommandRunner =>
-    new OwnedGitProcessRunner(
-      {
-        baseDir: request.baseDir,
-        timeoutMs: request.timeoutMs,
-        ...(request.onProgress ? { onProgress: request.onProgress } : {}),
-      },
-      request.signal,
-    );
-}
-
-export const defaultGitRunnerFactory: GitRunnerFactory =
-  createOwnedGitRunnerFactory();

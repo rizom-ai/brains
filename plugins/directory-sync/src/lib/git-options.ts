@@ -10,6 +10,29 @@ import type { GitRunnerFactory } from "./git-runner-factory";
  */
 export const DEFAULT_GIT_TIMEOUT_MS = 120_000;
 
+/**
+ * Thrown when a Git operation produces no output for its inactivity budget.
+ *
+ * The deadline is enforced by the OS-owned wrapper, not by this process, but
+ * the error class stays: callers classify a stalled network operation
+ * differently from a failed one, and that distinction is independent of where
+ * the deadline is enforced.
+ */
+export class GitStallError extends Error {
+  constructor(stallMs: number) {
+    super(`Git operation stalled: no output for ${stallMs}ms`);
+    this.name = "GitStallError";
+  }
+}
+
+/** Working directory and stall policy for a Git command. */
+export interface GitProcessOptions {
+  baseDir: string;
+  timeoutMs: number;
+  /** Credential-free progress signal; receives no command output. */
+  onProgress?: (() => void) | undefined;
+}
+
 export interface GitSyncOptions {
   logger: Logger;
   dataDir: string;

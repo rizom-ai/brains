@@ -115,7 +115,34 @@ These are release blockers, not preferences:
 8. **No casts.** Use explicit Zod contracts and structural interfaces; do not introduce
    `as`, `as unknown`, or equivalent assertions in the owned-Git/broker change.
 
-## Proposed architecture
+## Architecture
+
+There is **one execution path**, not a broker path and an in-process path. Anything that
+looks like a fallback is a defect: an unsupervised brain that ran Git in-process would
+keep exactly the defect this plan exists to remove, because the lost-completion failure
+does not care how many processes a brain has.
+
+```
+GitExecutor          registry → per-repo queue → detached wrapper → observe journal
+  ├── hosted in-process   (interactive session, startup check, tests)
+  └── git-broker child    (supervised web + worker)
+        └── Unix socket → BrokerGitCommandRunner
+```
+
+- **The wrapper is the execution boundary.** `flock`, a dedicated process group, the
+  inactivity deadline, bounded output, and one atomic terminal record. No child completion
+  is ever awaited, which is what makes the runtime defect unreachable.
+- **The advisory lock is the ownership mechanism.** It is kernel-level and cross-process,
+  so two wrappers cannot overlap on one checkout regardless of which process started them.
+  The executor's per-repository queue is an optimisation on top — it keeps a burst from
+  becoming a pile of processes blocked on the lock — not the safety property.
+- **The socket is a transport, not a second implementation.** It exists so web and worker
+  share one executor. A process holding an executor directly gets identical guarantees.
+
+Where the executor lives is therefore a lifecycle question, not an execution one. A
+supervised brain is handed a socket; anything else hosts a broker for itself, one per
+process rather than one per checkout — the registry is already keyed by repository, and
+hosting per checkout would leak a socket and an executor for every repository touched.
 
 ### Broker process
 
@@ -564,22 +591,31 @@ The rule is now asymmetric, and deliberately so:
   forced every post-init preparation command to stay `bootstrap` forever, holding the
   widest allow-list open indefinitely — the opposite of the goal.
 
-Three direct-execution sites remain in directory-sync, and a test pins that list so a
-fourth cannot appear unnoticed:
+**The in-process runner is gone.** `git-stall.ts` and `OwnedGitProcessRunner` are deleted
+rather than kept as a fallback. A fallback would have meant every unsupervised run —
+interactive sessions, startup checks, the whole test suite — retained the lost-completion
+defect, because that failure is a property of awaiting a Git child, not of how many
+processes a brain has. Two direct-execution sites remain, and a test pins the list so a
+third cannot appear unnoticed:
 
 - `lib/broker/wrapper.ts` — spawns the wrapper. This is the boundary.
-- `lib/git-stall.ts` — the in-process runner, still used when no broker owns the checkout.
 - `lib/content-remote-bootstrap.ts` — local `file://` seed bootstrap. It builds a
   throwaway worktree and a bare remote and never touches the managed checkout, so it sits
   outside the ownership the broker exists to hold, and its `spawnSync` has no asynchronous
   completion to lose. Kept deliberately, not overlooked.
 
-**One residual risk worth naming.** The in-process runner is still reachable: it is what
-runs when `BRAIN_GIT_BROKER_SOCKET` is absent. That is correct for unsupervised runs —
-tests, `--chat`, and brains started with `gitBroker: false` — but it means a supervised
-brain that somehow lost the variable would silently fall back to the defective path rather
-than fail. Phase 7's packaged-image check should assert a supervised brain actually
-reaches its broker, rather than assuming the variable arrived.
+`GitStallError` survives that deletion: callers classify a stalled network operation
+differently from a failed one, and the distinction is independent of where the deadline is
+enforced. The broker client raises it on a timeout outcome.
+
+`hasGitHead` no longer runs Git at all. It is a boot-time probe for whether seed content
+is needed, running before any checkout owner exists; reading `refs/heads` and `packed-refs`
+answers it without a broker and a wrapper process.
+
+**A closed allow-list fails silently when callers catch their own errors.** `merge-base`
+was missing from every class, so each reconciliation quietly degraded from incremental to
+full instead of erroring. A test now derives the subcommands directory-sync actually
+issues from source and asserts each is permitted, pinning the two lists together.
 
 The original routing list follows.
 

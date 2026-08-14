@@ -106,7 +106,15 @@ export type BrokerMessage =
 const SUBCOMMANDS_BY_CLASS: Readonly<
   Record<GitOperationClass, ReadonlySet<string>>
 > = {
-  inspect: new Set(["status", "rev-parse", "log", "diff", "show", "cat-file"]),
+  inspect: new Set([
+    "status",
+    "rev-parse",
+    "log",
+    "diff",
+    "show",
+    "cat-file",
+    "merge-base",
+  ]),
   // `config` and `remote` sit here rather than in `inspect` because their
   // read and write forms differ only by argument. Classifying by capability
   // rather than by intent keeps the boundary checkable from argv alone.

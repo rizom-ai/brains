@@ -3,7 +3,6 @@ import { mkdir, mkdtemp, readFile, rename, rm, writeFile } from "fs/promises";
 import { basename, join } from "path";
 import type { Logger } from "@brains/utils/logger";
 import { pathExists } from "./fs-utils";
-import { defaultGitRunnerFactory } from "./git-runner-factory";
 import type { GitRunnerFactory } from "./git-runner-factory";
 
 export interface PrepareGitRepositoryOptions {
@@ -14,7 +13,7 @@ export interface PrepareGitRepositoryOptions {
   branch: string;
   timeoutMs: number;
   signal?: AbortSignal | undefined;
-  runnerFactory?: GitRunnerFactory | undefined;
+  runnerFactory: GitRunnerFactory;
 }
 
 export async function prepareGitRepository(
@@ -28,7 +27,7 @@ export async function prepareGitRepository(
     branch,
     timeoutMs,
     signal,
-    runnerFactory = defaultGitRunnerFactory,
+    runnerFactory,
   } = options;
   const gitDir = join(dataDir, ".git");
 
