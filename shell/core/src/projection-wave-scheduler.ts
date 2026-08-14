@@ -1,6 +1,7 @@
 import type { ProjectionWaveReady } from "@brains/contracts";
 import type {
   ClaimProjectionWaveInput,
+  ProjectionDirtyInput,
   ProjectionIncidentInput,
   ProjectionWave,
   ProjectionWaveInput,
@@ -18,6 +19,7 @@ import { SerialQueue } from "@brains/utils/serial-queue";
 
 export interface ProjectionWaveStore {
   getActiveWave(): Promise<ProjectionWave | null>;
+  listPendingInputs(): Promise<ProjectionDirtyInput[]>;
   claimPendingWave(
     input: ClaimProjectionWaveInput,
   ): Promise<ProjectionWave | null>;
@@ -70,6 +72,9 @@ export interface ProjectionWaveSchedulerOptions {
   createWaveId: () => string;
   beforeWaveCompletion?:
     ((summary: ProjectionWaveReady) => Promise<void>) | undefined;
+  scheduleWakeup?:
+    ((delayMs: number, wakeup: () => Promise<void>) => () => void) | undefined;
+  onScheduledWakeupError?: ((error: unknown) => void) | undefined;
   now: () => number;
 }
 
@@ -86,8 +91,14 @@ export class ProjectionWaveScheduler {
   private readonly beforeWaveCompletion: (
     summary: ProjectionWaveReady,
   ) => Promise<void>;
+  private readonly scheduleWakeup: (
+    delayMs: number,
+    wakeup: () => Promise<void>,
+  ) => () => void;
+  private readonly onScheduledWakeupError: (error: unknown) => void;
   private readonly now: () => number;
   private readonly operationQueue = new SerialQueue();
+  private scheduledWakeup: { readyAt: number; cancel: () => void } | undefined;
 
   constructor(options: ProjectionWaveSchedulerOptions) {
     this.store = options.store;
@@ -101,7 +112,14 @@ export class ProjectionWaveScheduler {
     this.createWaveId = options.createWaveId;
     this.beforeWaveCompletion =
       options.beforeWaveCompletion ?? (async (): Promise<void> => {});
+    this.scheduleWakeup = options.scheduleWakeup ?? scheduleTimerWakeup;
+    this.onScheduledWakeupError =
+      options.onScheduledWakeupError ?? ((): void => {});
     this.now = options.now;
+  }
+
+  public dispose(): void {
+    this.cancelScheduledWakeup();
   }
 
   public advanceActiveWave(waveId: string): Promise<ProjectionWave> {
@@ -159,7 +177,22 @@ export class ProjectionWaveScheduler {
       return advanced;
     }
 
+    const pendingInputs = await this.store.listPendingInputs();
+    if (pendingInputs.length === 0) {
+      this.cancelScheduledWakeup();
+      return null;
+    }
+    const readyAt = getSourceChangeBatchReadyAt(
+      this.graph,
+      this.ruleById,
+      pendingInputs,
+    );
     const startedAt = this.now();
+    if (readyAt > startedAt) {
+      this.schedulePendingWakeup(readyAt);
+      return null;
+    }
+    this.cancelScheduledWakeup();
     const wave = await this.store.claimPendingWave({
       waveId: this.createWaveId(),
       graphFingerprint: this.graphFingerprint,
@@ -178,6 +211,30 @@ export class ProjectionWaveScheduler {
     operation: () => Promise<TResult>,
   ): Promise<TResult> {
     return this.operationQueue.run(operation);
+  }
+
+  private schedulePendingWakeup(readyAt: number): void {
+    if (this.scheduledWakeup?.readyAt === readyAt) return;
+    this.cancelScheduledWakeup();
+    const scheduled = { readyAt, cancel: (): void => {} };
+    scheduled.cancel = this.scheduleWakeup(
+      Math.max(0, readyAt - this.now()),
+      async (): Promise<void> => {
+        if (this.scheduledWakeup !== scheduled) return;
+        this.scheduledWakeup = undefined;
+        try {
+          await this.startNextWave();
+        } catch (error) {
+          this.onScheduledWakeupError(error);
+        }
+      },
+    );
+    this.scheduledWakeup = scheduled;
+  }
+
+  private cancelScheduledWakeup(): void {
+    this.scheduledWakeup?.cancel();
+    this.scheduledWakeup = undefined;
   }
 
   private async advanceWave(wave: ProjectionWave): Promise<ProjectionWave> {
@@ -300,6 +357,38 @@ export class ProjectionWaveScheduler {
   }
 }
 
+function scheduleTimerWakeup(
+  delayMs: number,
+  wakeup: () => Promise<void>,
+): () => void {
+  const timer = setTimeout(() => {
+    void wakeup();
+  }, delayMs);
+  return (): void => clearTimeout(timer);
+}
+
+function getSourceChangeBatchReadyAt(
+  graph: ProjectionGraph,
+  ruleById: ReadonlyMap<string, ProjectionRule>,
+  inputs: readonly ProjectionDirtyInput[],
+): number {
+  const plannedRules = planReachableRules(graph, ruleById, inputs);
+  const batchDelayMs = plannedRules.reduce(
+    (maximum, planned) =>
+      Math.max(
+        maximum,
+        ruleById.get(planned.ruleId)?.sourceChangeBatchDelayMs ?? 0,
+      ),
+    0,
+  );
+  if (batchDelayMs === 0) return 0;
+  const latestMarkedAt = inputs.reduce(
+    (latest, input) => Math.max(latest, input.markedAt),
+    0,
+  );
+  return latestMarkedAt + batchDelayMs;
+}
+
 function validateRuleComposition(
   graph: ProjectionGraph,
   rules: readonly ProjectionRule[],
@@ -346,7 +435,7 @@ function fingerprintRuleComposition(
 function planReachableRules(
   graph: ProjectionGraph,
   ruleById: ReadonlyMap<string, ProjectionRule>,
-  inputs: readonly ProjectionWaveInput[],
+  inputs: readonly Pick<ProjectionWaveInput, "sourceType">[],
 ): ProjectionWaveRuleInput[] {
   const projectionById = new Map(
     graph.projections.map((projection) => [projection.id, projection]),
@@ -390,7 +479,7 @@ function planReachableRules(
 
 function isTriggeredBy(
   projection: RegisteredProjection,
-  inputs: readonly ProjectionWaveInput[],
+  inputs: readonly Pick<ProjectionWaveInput, "sourceType">[],
 ): boolean {
   return projection.sources.some((source) => {
     const excluded = new Set(source.excludeTypes ?? []);

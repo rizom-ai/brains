@@ -98,6 +98,7 @@ describe("job queue Effect layers", () => {
     const runtimeLayer = createJobQueueRuntimeLayer({
       messageBus: MessageBus.createFresh(logger),
       logger,
+      workerConcurrency: 4,
       batchJobManager,
       jobProgressMonitor,
       jobQueueWorker,

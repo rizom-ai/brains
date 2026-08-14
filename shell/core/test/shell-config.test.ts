@@ -22,6 +22,20 @@ describe("shell config", () => {
 
     expect(config.ai.reasoningEffort).toBe("low");
   });
+
+  it("uses bounded parallel job execution by default and accepts an override", () => {
+    expect(
+      createShellConfig({
+        ai: { apiKey: "test-key", model: "gpt-4o-mini" },
+      }).jobQueue.workerConcurrency,
+    ).toBe(4);
+    expect(
+      createShellConfig({
+        ai: { apiKey: "test-key", model: "gpt-4o-mini" },
+        jobQueue: { workerConcurrency: 2 },
+      }).jobQueue.workerConcurrency,
+    ).toBe(2);
+  });
 });
 
 describe("standard shell paths", () => {

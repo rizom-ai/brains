@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test";
 import { z } from "@brains/utils/zod";
 import {
   MOCK_LOAD_PROBE_MARKER,
+  MOCK_LOAD_UPDATE_MARKER,
   MockLoadAIService,
   MockLoadEmbeddingService,
   MockLoadTracker,
@@ -16,25 +17,37 @@ describe("mocked feature-load services", () => {
     });
     const ai = new MockLoadAIService(tracker, { delayMs: 5 });
 
-    const [embedding, generated] = await Promise.all([
-      embeddings.generateEmbedding(MOCK_LOAD_PROBE_MARKER),
-      ai.generateObject(
-        "system",
-        "prompt",
-        z.object({ topics: z.array(z.string()) }),
-      ),
-    ]);
+    const [embedding, updateEmbedding, secondUpdateEmbedding, generated] =
+      await Promise.all([
+        embeddings.generateEmbedding(MOCK_LOAD_PROBE_MARKER),
+        embeddings.generateEmbedding(
+          `${MOCK_LOAD_PROBE_MARKER} ${MOCK_LOAD_UPDATE_MARKER}`,
+        ),
+        embeddings.generateEmbedding(
+          `${MOCK_LOAD_PROBE_MARKER} ${MOCK_LOAD_UPDATE_MARKER} second`,
+        ),
+        ai.generateObject(
+          "system",
+          "prompt",
+          z.object({ topics: z.array(z.string()) }),
+        ),
+      ]);
 
     expect(embedding.embedding.length).toBe(4);
+    expect(updateEmbedding.embedding.length).toBe(4);
+    expect(secondUpdateEmbedding.embedding.length).toBe(4);
     expect(generated.object).toEqual({ topics: [] });
     expect(tracker.snapshot()).toEqual({
-      embeddingCalls: 1,
-      probeEmbeddingCalls: 1,
-      completedProbeEmbeddingCalls: 1,
+      embeddingCalls: 3,
+      probeEmbeddingCalls: 3,
+      completedProbeEmbeddingCalls: 3,
+      updateEmbeddingCalls: 2,
+      completedUpdateEmbeddingCalls: 2,
+      maxConcurrentUpdateEmbeddingCalls: 2,
       objectCalls: 1,
       textCalls: 0,
       activeCalls: 0,
-      maxConcurrentCalls: 2,
+      maxConcurrentCalls: 4,
     });
   });
 });

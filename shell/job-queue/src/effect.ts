@@ -79,6 +79,7 @@ export interface JobQueueRuntimeLayerOptions {
   jobProgressMonitor?: IJobProgressMonitor;
   jobQueueWorker?: IJobQueueWorker;
   onWorkerUnhealthy?: (reason: string) => void;
+  workerConcurrency: number;
   operationContext?: OperationContext;
   progressMonitorMode?: JobProgressMonitorMode;
 }
@@ -143,7 +144,7 @@ export function createJobQueueRuntimeLayer(
         options.logger,
         {
           pollInterval: 100,
-          concurrency: 1,
+          concurrency: options.workerConcurrency,
           autoStart: false,
           ...(options.onWorkerUnhealthy && {
             onUnhealthy: options.onWorkerUnhealthy,

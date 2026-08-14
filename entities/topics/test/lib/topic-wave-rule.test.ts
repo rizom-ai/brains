@@ -113,6 +113,7 @@ describe("topic wave rule", () => {
       autoMerge: false,
     });
     const rule = createTopicProjectionRule(config);
+    expect(rule.sourceChangeBatchDelayMs).toBe(1000);
     const signal = new AbortController().signal;
     const selected = await rule.selectInput(
       { waveId: "wave-1", inputs: [] },

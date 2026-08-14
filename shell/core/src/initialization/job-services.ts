@@ -51,6 +51,7 @@ export interface JobServiceOptions {
   operationContext?: OperationContext;
   projectionAdmission?: ProjectionRuntimeSupervisor;
   handlerRegistrationMode?: JobHandlerRegistrationMode;
+  workerConcurrency: number;
   progressMonitorMode?: JobProgressMonitorMode;
   logger: Logger;
 }
@@ -114,6 +115,7 @@ export function initializeJobServices(options: JobServiceOptions): JobServices {
       logger: options.logger,
       operationContext,
       onWorkerUnhealthy: createFatalJobWorkerHandler(options.logger),
+      workerConcurrency: options.workerConcurrency,
       ...(options.progressMonitorMode && {
         progressMonitorMode: options.progressMonitorMode,
       }),

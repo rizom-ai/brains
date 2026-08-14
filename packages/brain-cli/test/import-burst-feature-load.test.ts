@@ -11,6 +11,7 @@ import {
   MOCK_LOAD_API_KEY,
   MOCK_LOAD_MODEL,
   MOCK_LOAD_PROBE_MARKER,
+  MOCK_LOAD_UPDATE_MARKER,
   MockLoadAIService,
   MockLoadEmbeddingService,
   MockLoadTracker,
@@ -42,7 +43,34 @@ interface QueueSample {
   projectionProcessing: number;
   operationalStatus: "operational" | "degraded";
   readinessStatus: "ready" | "not_ready";
-  completedProbeEmbeddings: number;
+}
+
+interface PhaseAICalls {
+  embeddingCalls: number;
+  probeEmbeddingCalls: number;
+  completedProbeEmbeddingCalls: number;
+  updateEmbeddingCalls: number;
+  completedUpdateEmbeddingCalls: number;
+  objectCalls: number;
+  textCalls: number;
+}
+
+interface FeatureLoadPhaseReport {
+  durationMs: number;
+  ai: PhaseAICalls;
+  queue: {
+    samples: number;
+    maxPending: number;
+    maxProcessing: number;
+    maxEmbeddingOutstanding: number;
+    maxProjectionOutstanding: number;
+    pendingAtEmbeddingCompletion: number;
+    operationalSamples: number;
+    degradedSamples: number;
+    notReadySamples: number;
+    finalPending: number;
+    finalProcessing: number;
+  };
 }
 
 interface FeatureLoadReport {
@@ -50,18 +78,9 @@ interface FeatureLoadReport {
   serviceDelayMs: number;
   durationMs: number;
   ai: MockLoadSnapshot;
-  queue: {
-    samples: number;
-    maxPending: number;
-    maxProcessing: number;
-    maxEmbeddingOutstanding: number;
-    maxProjectionOutstanding: number;
-    pendingAtProbeCompletion: number;
-    operationalSamples: number;
-    degradedSamples: number;
-    notReadySamples: number;
-    finalPending: number;
-    finalProcessing: number;
+  phases: {
+    add: FeatureLoadPhaseReport;
+    update: FeatureLoadPhaseReport;
   };
 }
 
@@ -74,6 +93,19 @@ function jobCount(
     byType.find((entry) => entry.type === type && entry.status === status)
       ?.count ?? 0
   );
+}
+
+async function waitFor(
+  description: string,
+  timeoutMs: number,
+  predicate: () => Promise<boolean>,
+): Promise<void> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    if (await predicate()) return;
+    await Bun.sleep(POLL_INTERVAL_MS);
+  }
+  throw new Error(`Timed out waiting for ${description}`);
 }
 
 /**
@@ -104,6 +136,7 @@ function startSampler(
 async function writeImportedNotes(
   dataDir: string,
   count: number,
+  phase: "add" | "update",
 ): Promise<void> {
   await mkdir(dataDir, { recursive: true });
   for (let index = 0; index < count; index++) {
@@ -120,11 +153,33 @@ async function writeImportedNotes(
         `${MOCK_LOAD_PROBE_MARKER} ${index}`,
         "",
         `Deterministic local content for import ${index}.`,
+        ...(phase === "update"
+          ? ["", `${MOCK_LOAD_UPDATE_MARKER} ${index}`]
+          : []),
         "",
       ].join("\n"),
       "utf8",
     );
   }
+}
+
+function diffAI(
+  before: MockLoadSnapshot,
+  after: MockLoadSnapshot,
+): PhaseAICalls {
+  return {
+    embeddingCalls: after.embeddingCalls - before.embeddingCalls,
+    probeEmbeddingCalls: after.probeEmbeddingCalls - before.probeEmbeddingCalls,
+    completedProbeEmbeddingCalls:
+      after.completedProbeEmbeddingCalls - before.completedProbeEmbeddingCalls,
+    updateEmbeddingCalls:
+      after.updateEmbeddingCalls - before.updateEmbeddingCalls,
+    completedUpdateEmbeddingCalls:
+      after.completedUpdateEmbeddingCalls -
+      before.completedUpdateEmbeddingCalls,
+    objectCalls: after.objectCalls - before.objectCalls,
+    textCalls: after.textCalls - before.textCalls,
+  };
 }
 
 function maxOf(
@@ -153,7 +208,7 @@ describe("directory import burst with locally mocked AI features", () => {
   });
 
   it(
-    "keeps AI concurrency bounded, queue growth finite, and health observable",
+    "keeps add and update AI work parallel, bounded, and observable",
     async () => {
       if (!Number.isInteger(IMPORT_COUNT) || IMPORT_COUNT < 1) {
         throw new Error("MOCKED_AI_IMPORT_COUNT must be a positive integer");
@@ -219,7 +274,6 @@ describe("directory import burst with locally mocked AI features", () => {
             topics: {
               enableAutoExtraction: true,
               maxEntitiesPerBatch: 4,
-              sourceChangeBatchDelayMs: 0,
             },
           },
         },
@@ -264,47 +318,6 @@ describe("directory import burst with locally mocked AI features", () => {
         pollIntervalMs: POLL_INTERVAL_MS,
       });
 
-      const samples: QueueSample[] = [];
-      const sample = async (): Promise<QueueSample> => {
-        const [diagnostics, readiness] = await Promise.all([
-          queue.getDiagnostics(),
-          runningShell.getRuntimeReadiness(),
-        ]);
-        const current: QueueSample = {
-          atMs: Date.now(),
-          pending: diagnostics.totals.pending,
-          processing: diagnostics.totals.processing,
-          duePending: diagnostics.duePending,
-          embeddingPending: jobCount(
-            diagnostics.byType,
-            "shell:embedding",
-            "pending",
-          ),
-          embeddingProcessing: jobCount(
-            diagnostics.byType,
-            "shell:embedding",
-            "processing",
-          ),
-          projectionPending: jobCount(
-            diagnostics.byType,
-            "shell:projection-rule",
-            "pending",
-          ),
-          projectionProcessing: jobCount(
-            diagnostics.byType,
-            "shell:projection-rule",
-            "processing",
-          ),
-          operationalStatus: readiness.operationalStatus,
-          readinessStatus: readiness.status,
-          completedProbeEmbeddings:
-            tracker.snapshot().completedProbeEmbeddingCalls,
-        };
-        samples.push(current);
-        return current;
-      };
-
-      await writeImportedNotes(dataDir, IMPORT_COUNT);
       const directoryPlugin = runningShell
         .getPluginManager()
         .getPlugin("directory-sync");
@@ -314,82 +327,191 @@ describe("directory import burst with locally mocked AI features", () => {
       const directorySync = directoryPlugin.getDirectorySync();
       if (!directorySync) throw new Error("Directory sync was not initialized");
 
-      // Sample across the burst itself, not just the drain that follows it.
-      const sampler = startSampler(POLL_INTERVAL_MS, sample);
+      const runPhase = async (
+        phase: "add" | "update",
+        completedEmbeddings: (snapshot: MockLoadSnapshot) => number,
+      ): Promise<FeatureLoadPhaseReport> => {
+        await writeImportedNotes(dataDir, IMPORT_COUNT, phase);
+        const before = tracker.snapshot();
+        const samples: QueueSample[] = [];
+        const sample = async (): Promise<QueueSample> => {
+          const [diagnostics, readiness] = await Promise.all([
+            queue.getDiagnostics(),
+            runningShell.getRuntimeReadiness(),
+          ]);
+          const current: QueueSample = {
+            atMs: Date.now(),
+            pending: diagnostics.totals.pending,
+            processing: diagnostics.totals.processing,
+            duePending: diagnostics.duePending,
+            embeddingPending: jobCount(
+              diagnostics.byType,
+              "shell:embedding",
+              "pending",
+            ),
+            embeddingProcessing: jobCount(
+              diagnostics.byType,
+              "shell:embedding",
+              "processing",
+            ),
+            projectionPending: jobCount(
+              diagnostics.byType,
+              "shell:projection-rule",
+              "pending",
+            ),
+            projectionProcessing: jobCount(
+              diagnostics.byType,
+              "shell:projection-rule",
+              "processing",
+            ),
+            operationalStatus: readiness.operationalStatus,
+            readinessStatus: readiness.status,
+          };
+          samples.push(current);
+          return current;
+        };
+
+        const sampler = startSampler(POLL_INTERVAL_MS, sample);
+        const startedAt = Date.now();
+        let embeddingCompletedAt: QueueSample | undefined;
+        const completedBefore = completedEmbeddings(before);
+        try {
+          const importResult = await directorySync.sync();
+          expect(importResult.import.failed).toBe(0);
+          expect(importResult.import.imported).toBe(IMPORT_COUNT);
+
+          await waitFor(
+            `all ${phase} embeddings`,
+            SETTLE_TIMEOUT_MS,
+            async () => {
+              const current = await sample();
+              if (
+                completedEmbeddings(tracker.snapshot()) - completedBefore >=
+                IMPORT_COUNT
+              ) {
+                embeddingCompletedAt = current;
+                return true;
+              }
+              return false;
+            },
+          );
+          await waitFor(
+            `${phase} topic extraction to start`,
+            SETTLE_TIMEOUT_MS,
+            async () => {
+              await sample();
+              return tracker.snapshot().objectCalls > before.objectCalls;
+            },
+          );
+          await queue.waitForIdle({
+            quietMs: QUIET_MS,
+            timeoutMs: SETTLE_TIMEOUT_MS,
+            pollIntervalMs: POLL_INTERVAL_MS,
+          });
+        } finally {
+          await sampler.stop();
+        }
+        const finalSample = await sample();
+        const after = tracker.snapshot();
+        if (!embeddingCompletedAt) {
+          throw new Error(`${phase} embedding completion was not sampled`);
+        }
+
+        return {
+          durationMs: Date.now() - startedAt,
+          ai: diffAI(before, after),
+          queue: {
+            samples: samples.length,
+            maxPending: maxOf(samples, (entry) => entry.pending),
+            maxProcessing: maxOf(samples, (entry) => entry.processing),
+            maxEmbeddingOutstanding: maxOf(
+              samples,
+              (entry) => entry.embeddingPending + entry.embeddingProcessing,
+            ),
+            maxProjectionOutstanding: maxOf(
+              samples,
+              (entry) => entry.projectionPending + entry.projectionProcessing,
+            ),
+            pendingAtEmbeddingCompletion: embeddingCompletedAt.pending,
+            operationalSamples: samples.filter(
+              (entry) => entry.operationalStatus === "operational",
+            ).length,
+            degradedSamples: samples.filter(
+              (entry) => entry.operationalStatus === "degraded",
+            ).length,
+            notReadySamples: samples.filter(
+              (entry) => entry.readinessStatus === "not_ready",
+            ).length,
+            finalPending: finalSample.pending,
+            finalProcessing: finalSample.processing,
+          },
+        };
+      };
+
       const startedAt = Date.now();
-      const importResult = await directorySync.sync();
-      expect(importResult.import.failed).toBe(0);
-      expect(importResult.import.imported).toBe(IMPORT_COUNT);
-
-      await queue.waitForIdle({
-        quietMs: QUIET_MS,
-        timeoutMs: SETTLE_TIMEOUT_MS,
-        pollIntervalMs: POLL_INTERVAL_MS,
-      });
-      await sampler.stop();
-      const finalSample = await sample();
-      const snapshot = tracker.snapshot();
-      const probeCompletedAt = samples.find(
-        (entry) => entry.completedProbeEmbeddings >= IMPORT_COUNT,
+      const add = await runPhase(
+        "add",
+        (snapshot) => snapshot.completedProbeEmbeddingCalls,
       );
-      if (!probeCompletedAt)
-        throw new Error("Probe completion was not sampled");
-
+      const update = await runPhase(
+        "update",
+        (snapshot) => snapshot.completedUpdateEmbeddingCalls,
+      );
+      const snapshot = tracker.snapshot();
       const report: FeatureLoadReport = {
         importCount: IMPORT_COUNT,
         serviceDelayMs: SERVICE_DELAY_MS,
         durationMs: Date.now() - startedAt,
         ai: snapshot,
-        queue: {
-          samples: samples.length,
-          maxPending: maxOf(samples, (entry) => entry.pending),
-          maxProcessing: maxOf(samples, (entry) => entry.processing),
-          maxEmbeddingOutstanding: maxOf(
-            samples,
-            (entry) => entry.embeddingPending + entry.embeddingProcessing,
-          ),
-          maxProjectionOutstanding: maxOf(
-            samples,
-            (entry) => entry.projectionPending + entry.projectionProcessing,
-          ),
-          pendingAtProbeCompletion: probeCompletedAt.pending,
-          operationalSamples: samples.filter(
-            (entry) => entry.operationalStatus === "operational",
-          ).length,
-          degradedSamples: samples.filter(
-            (entry) => entry.operationalStatus === "degraded",
-          ).length,
-          notReadySamples: samples.filter(
-            (entry) => entry.readinessStatus === "not_ready",
-          ).length,
-          finalPending: finalSample.pending,
-          finalProcessing: finalSample.processing,
-        },
+        phases: { add, update },
       };
 
       console.info(`MOCKED_AI_LOAD_REPORT ${JSON.stringify(report)}`);
 
-      expect(snapshot.probeEmbeddingCalls).toBe(IMPORT_COUNT);
-      expect(snapshot.completedProbeEmbeddingCalls).toBe(IMPORT_COUNT);
-      expect(snapshot.embeddingCalls).toBeLessThanOrEqual(IMPORT_COUNT + 8);
+      const assertPhase = (
+        phase: FeatureLoadPhaseReport,
+        expectedUpdateEmbeddings: number,
+      ): void => {
+        expect(phase.ai.embeddingCalls).toBeLessThanOrEqual(IMPORT_COUNT + 3);
+        expect(phase.ai.probeEmbeddingCalls).toBe(IMPORT_COUNT);
+        expect(phase.ai.completedProbeEmbeddingCalls).toBe(IMPORT_COUNT);
+        expect(phase.ai.completedUpdateEmbeddingCalls).toBe(
+          expectedUpdateEmbeddings,
+        );
+        expect(phase.ai.objectCalls).toBeGreaterThan(0);
+        expect(phase.ai.objectCalls).toBeLessThanOrEqual(
+          Math.ceil(IMPORT_COUNT / 4) + 8,
+        );
+        expect(phase.queue.maxPending).toBeLessThanOrEqual(IMPORT_COUNT + 3);
+        expect(phase.queue.maxProcessing).toBeLessThanOrEqual(4);
+        expect(phase.queue.maxEmbeddingOutstanding).toBeLessThanOrEqual(
+          IMPORT_COUNT,
+        );
+        expect(phase.queue.maxProjectionOutstanding).toBeLessThanOrEqual(3);
+        expect(phase.queue.pendingAtEmbeddingCompletion).toBeLessThanOrEqual(3);
+        expect(phase.queue.operationalSamples).toBeGreaterThan(0);
+        expect(phase.queue.degradedSamples).toBe(0);
+        expect(phase.queue.notReadySamples).toBe(0);
+        expect(phase.queue.finalPending).toBe(0);
+        expect(phase.queue.finalProcessing).toBe(0);
+      };
+
+      assertPhase(add, 0);
+      assertPhase(update, IMPORT_COUNT);
+      expect(snapshot.probeEmbeddingCalls).toBe(IMPORT_COUNT * 2);
+      expect(snapshot.completedProbeEmbeddingCalls).toBe(IMPORT_COUNT * 2);
+      expect(snapshot.updateEmbeddingCalls).toBe(IMPORT_COUNT);
+      expect(snapshot.completedUpdateEmbeddingCalls).toBe(IMPORT_COUNT);
+      expect(snapshot.embeddingCalls).toBeLessThanOrEqual(IMPORT_COUNT * 2 + 8);
       expect(snapshot.objectCalls).toBeGreaterThan(0);
       expect(snapshot.objectCalls).toBeLessThanOrEqual(
-        Math.ceil(IMPORT_COUNT / 4) + 8,
+        Math.ceil(IMPORT_COUNT / 4) * 2 + 16,
       );
       expect(snapshot.activeCalls).toBe(0);
-      expect(snapshot.maxConcurrentCalls).toBeLessThanOrEqual(1);
-      expect(report.queue.maxPending).toBeLessThanOrEqual(IMPORT_COUNT + 3);
-      expect(report.queue.maxProcessing).toBeLessThanOrEqual(1);
-      expect(report.queue.maxEmbeddingOutstanding).toBeLessThanOrEqual(
-        IMPORT_COUNT,
-      );
-      expect(report.queue.maxProjectionOutstanding).toBeLessThanOrEqual(3);
-      expect(report.queue.pendingAtProbeCompletion).toBeLessThanOrEqual(3);
-      expect(report.queue.operationalSamples).toBeGreaterThan(0);
-      expect(report.queue.degradedSamples).toBe(0);
-      expect(report.queue.notReadySamples).toBe(0);
-      expect(report.queue.finalPending).toBe(0);
-      expect(report.queue.finalProcessing).toBe(0);
+      expect(snapshot.maxConcurrentCalls).toBeGreaterThan(1);
+      expect(snapshot.maxConcurrentCalls).toBeLessThanOrEqual(4);
+      expect(snapshot.maxConcurrentUpdateEmbeddingCalls).toBeGreaterThan(1);
+      expect(snapshot.maxConcurrentUpdateEmbeddingCalls).toBeLessThanOrEqual(4);
     },
     { timeout: IMPORT_TIMEOUT_MS + SETTLE_TIMEOUT_MS * 2 },
   );

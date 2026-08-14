@@ -60,6 +60,8 @@ export async function activateProjectionRuntime(
     rules: options.rules,
     createWaveId: options.createWaveId,
     beforeWaveCompletion: options.beforeWaveCompletion,
+    onScheduledWakeupError: (error): void =>
+      options.logger.error("Scheduled projection wakeup failed", error),
     now: options.now,
   });
   const handler = new ProjectionRuleJobHandler({
@@ -98,6 +100,7 @@ export async function activateProjectionRuntime(
       if (!active) return;
       active = false;
       removeWakeup();
+      scheduler.dispose();
       options.queue.unregisterHandler(PROJECTION_RULE_JOB_TYPE);
     },
   };

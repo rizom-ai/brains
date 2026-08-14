@@ -139,6 +139,7 @@ export function createShellServices(options: {
   const jobServices = initializeJobServices({
     dependencies,
     jobQueueConfig: createDatabaseConfig(config.jobQueueDatabase),
+    workerConcurrency: config.jobQueue.workerConcurrency,
     messageBus,
     operationContext,
     projectionAdmission: projectionRuntimeSupervisor,

@@ -358,25 +358,30 @@ operational-health failure. Change that behavior deliberately:
   restart-eligible; after supervised termination, startup replay must restore DB/Git
   convergence with zero orphaned process groups.
 
-### 6.4 Resume acceptance only after both layers pass
+### 6.4 Validate feature-enabled performance independently
 
-After the fixed stable Bun pin and durable recovery safeguards pass local and scheduled
-soaks, complete the feature-enabled mocked-AI comparison. Bound AI concurrency and queue
-growth if that comparison shows health starvation.
+Keep feature-enabled performance acceptance independent of the Git execution broker. The
+first hermetic 350-note comparison exposed a conservative throughput bound: embeddings and
+topic extraction completed safely in 83.1 seconds, but the shared job worker serialized all
+AI calls at concurrency one.
 
-The local comparison is complete. A hermetic 350-note import with embeddings and topic
-extraction enabled, injected AI/embedding services, and 100 ms asynchronous latency per
-mocked call completed on Bun 1.3.11 in 83.1 seconds (86.4 seconds including fixture
-startup/shutdown). It made 354 embedding calls and 91 schema-valid object-generation
-calls, reached 332 pending and one processing job, and drained to zero pending/processing
-jobs. Existing serialization held shared AI concurrency to one; topic work remained
-coalesced to one outstanding projection job. All 1,850 readiness samples stayed routing-
-ready and operational, with no degraded sample. The fixture cannot contact an external AI
-provider. This evidence does not justify an additional AI throttle, health-priority
-scheduler, or new stale-job mechanism; retain the existing single-worker bound and topic
-wave coalescing unless a future higher-concurrency configuration produces contrary data.
+The bounded-parallel follow-up now covers distinct 350-note add and update phases with
+embeddings and topic extraction enabled and 100 ms asynchronous latency per mocked call.
+The add phase completed in 33.1 seconds and the update phase in 34.0 seconds. Each phase
+completed 350 probe embeddings and exactly 88 topic batches; shared AI concurrency and
+update-embedding concurrency reached four, while projection work remained limited to one
+outstanding job. Pending work peaked at 11 jobs for add and 78 for update, processing
+peaked at four, and both phases drained to zero after a 250 ms quiet window. All 1,031
+readiness samples stayed routing-ready and operational with no degraded sample. The fixture
+cannot contact an external AI provider.
 
-A new remote `load` run remains blocked on completion of the separate Git execution
-broker acceptance plan, still requires explicit approval, and must complete all seven phases
-with zero external AI calls, health failures, restarts, OOMs, or zombies, followed by
-cleanup to the seven-note baseline, zero probes, and Git parity.
+The shell job-worker concurrency is schema-validated, defaults to four, and remains
+configurable. Topic projection honors the existing `sourceChangeBatchDelayMs` setting so
+parallel workers do not split one source burst into repeated full-corpus projection waves.
+This replaces accidental global serialization without adding an unbounded AI fan-out,
+health-priority scheduler, or stale-job mechanism.
+
+A new remote `load` run remains blocked on completion of the separate Git execution broker
+acceptance plan, still requires explicit approval, and must complete all seven phases with
+zero external AI calls, health failures, restarts, OOMs, or zombies, followed by cleanup to
+the seven-note baseline, zero probes, and Git parity.

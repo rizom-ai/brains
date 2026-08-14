@@ -3,6 +3,7 @@ import type {
   ApplyProjectionRuleResultInput,
   ClaimProjectionWaveInput,
   GetProjectionRuleMemoInput,
+  ProjectionDirtyInput,
   ProjectionIncidentInput,
   ProjectionRuleMemoValue,
   ProjectionWave,
@@ -31,6 +32,23 @@ class MemoryRuntimeStore implements ProjectionRuntimeStore {
   private rules: ProjectionWaveRule[] = [];
   getActiveWave(): Promise<ProjectionWave | null> {
     return Promise.resolve(this.active);
+  }
+
+  listPendingInputs(): Promise<ProjectionDirtyInput[]> {
+    return Promise.resolve(
+      this.pending
+        ? [
+            {
+              generation: 1,
+              sourceType: "document",
+              sourceId: "document-1",
+              revision: "revision-1",
+              operation: "upsert",
+              markedAt: 0,
+            },
+          ]
+        : [],
+    );
   }
 
   claimPendingWave(

@@ -45,6 +45,9 @@ export interface ShellConfigSchemaOutput {
   version: string;
   database: DbConfig;
   jobQueueDatabase: DbConfig;
+  jobQueue: {
+    workerConcurrency: number;
+  };
   conversationDatabase: DbConfig;
   runtimeStateDatabase: DbConfig;
   embeddingDatabase: DbConfig;
@@ -92,6 +95,11 @@ export const shellConfigSchema: z.ZodType<ShellConfigSchemaOutput, unknown> =
 
     database: dbConfigSchema,
     jobQueueDatabase: dbConfigSchema,
+    jobQueue: z
+      .object({
+        workerConcurrency: z.number().int().min(1).max(32).default(4),
+      })
+      .prefault({}),
     conversationDatabase: dbConfigSchema,
     runtimeStateDatabase: dbConfigSchema,
     embeddingDatabase: dbConfigSchema,
@@ -147,11 +155,15 @@ export type ShellConfig = Omit<
 };
 
 export type ShellConfigInput = Partial<
-  Omit<ShellConfig, "ai" | "logging" | "database" | "embedding"> & {
+  Omit<
+    ShellConfig,
+    "ai" | "logging" | "database" | "embedding" | "jobQueue"
+  > & {
     ai?: Partial<ShellConfig["ai"]>;
     logging?: Partial<ShellConfig["logging"]>;
     database?: Partial<ShellConfig["database"]>;
     embedding?: Partial<ShellConfig["embedding"]>;
+    jobQueue?: Partial<ShellConfig["jobQueue"]>;
   }
 >;
 
@@ -166,6 +178,7 @@ export function createShellConfig(
     database: overrides.database ?? standardConfig.database,
     jobQueueDatabase:
       overrides.jobQueueDatabase ?? standardConfig.jobQueueDatabase,
+    jobQueue: overrides.jobQueue ?? {},
     conversationDatabase:
       overrides.conversationDatabase ?? standardConfig.conversationDatabase,
     runtimeStateDatabase:
