@@ -1,5 +1,6 @@
 import { sha256Hex } from "@brains/utils/hash";
 import type { Logger } from "@brains/utils/logger";
+import type { GitRunnerFactory } from "./git-runner-factory";
 
 /**
  * Stall timeout for network git operations (pull/push): if git produces no
@@ -8,6 +9,29 @@ import type { Logger } from "@brains/utils/logger";
  * on every chunk of output, so a slow-but-progressing transfer is not killed.
  */
 export const DEFAULT_GIT_TIMEOUT_MS = 120_000;
+
+/**
+ * Thrown when a Git operation produces no output for its inactivity budget.
+ *
+ * The deadline is enforced by the OS-owned wrapper, not by this process, but
+ * the error class stays: callers classify a stalled network operation
+ * differently from a failed one, and that distinction is independent of where
+ * the deadline is enforced.
+ */
+export class GitStallError extends Error {
+  constructor(stallMs: number) {
+    super(`Git operation stalled: no output for ${stallMs}ms`);
+    this.name = "GitStallError";
+  }
+}
+
+/** Working directory and stall policy for a Git command. */
+export interface GitProcessOptions {
+  baseDir: string;
+  timeoutMs: number;
+  /** Credential-free progress signal; receives no command output. */
+  onProgress?: (() => void) | undefined;
+}
 
 export interface GitSyncOptions {
   logger: Logger;
@@ -20,6 +44,27 @@ export interface GitSyncOptions {
   authorEmail?: string | undefined;
   /** Stall timeout for git operations in ms (defaults to DEFAULT_GIT_TIMEOUT_MS). */
   timeoutMs?: number | undefined;
+  /** Execution boundary for every Git command this checkout runs. */
+  runnerFactory?: GitRunnerFactory | undefined;
+  /** Unix socket of the Git broker that owns this checkout, when supervised. */
+  brokerSocketPath?: string | undefined;
+}
+
+/** The socket the supervisor exported for this instance's Git broker. */
+export function resolveBrokerSocketPath(
+  env: Record<string, string | undefined>,
+): string | undefined {
+  const socketPath = env["BRAIN_GIT_BROKER_SOCKET"];
+  return socketPath && socketPath.length > 0 ? socketPath : undefined;
+}
+
+/**
+ * Stable, wire-safe identity for a checkout. Hashed rather than derived from
+ * the path so the repository key never carries a filesystem layout — and so it
+ * always satisfies the protocol's key charset.
+ */
+export function getCheckoutRepositoryKey(dataDir: string): string {
+  return sha256Hex(dataDir).slice(0, 32);
 }
 
 export function resolveGitRemoteUrl(options: GitSyncOptions): string {

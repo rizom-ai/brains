@@ -5,7 +5,7 @@ import { tmpdir } from "os";
 import { execSync } from "child_process";
 import { createServer, type AddressInfo, type Socket } from "net";
 import { GitSync } from "../../src/lib/git-sync";
-import { GitStallError } from "../../src/lib/git-stall";
+import { GitStallError } from "../../src/lib/git-options";
 import type { GitReconciliationCheckpoint } from "../../src/types";
 import { getGitRemoteFingerprint } from "../../src/lib/git-options";
 import { createSilentLogger } from "@brains/test-utils";

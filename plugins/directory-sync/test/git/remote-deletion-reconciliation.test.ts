@@ -2,7 +2,6 @@ import { afterEach, describe, expect, it, mock, spyOn } from "bun:test";
 import { existsSync, mkdtempSync, rmSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
-import type { SimpleGit } from "simple-git";
 import { createSilentLogger } from "@brains/test-utils";
 import { reconcileRemoteDeletedFiles } from "../../src/lib/git-remote-deletion-reconciliation";
 
@@ -26,7 +25,7 @@ describe("reconcileRemoteDeletedFiles", () => {
     const warn = spyOn(logger, "warn");
 
     const reconciled = await reconcileRemoteDeletedFiles({
-      git: { add, diff, commit } as unknown as SimpleGit,
+      git: { add, diff, commit },
       logger,
       syncPath,
       deletedFiles: ["resurrected.md"],
@@ -53,7 +52,7 @@ describe("reconcileRemoteDeletedFiles", () => {
     const commit = mock(async () => ({ commit: "unexpected" }));
 
     await reconcileRemoteDeletedFiles({
-      git: { add, diff, commit } as unknown as SimpleGit,
+      git: { add, diff, commit },
       logger: createSilentLogger("remote-delete-untracked"),
       syncPath,
       deletedFiles: ["late-export.md"],

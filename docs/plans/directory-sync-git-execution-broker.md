@@ -11,19 +11,34 @@ The preferred implementation starts from draft PR
 [#124](https://github.com/rizom-ai/brains/pull/124), branch
 `fix/directory-sync-owned-git-processes`, currently at `82c0415e8`. That PR provides a
 narrow `OwnedGit` API, removes directory-sync's `simple-git` execution paths, and has
-green current-main CI. It is intentionally unmerged because its in-process Bun runner
-cannot recover a completion notification that Bun loses.
+green current-main CI. It is intentionally unmerged for two reasons: its in-process Bun
+runner cannot recover a completion notification that Bun loses, and it leaves checkout
+ownership per-process.
 
-This plan changes the earlier wait-only decision: a future fixed stable Bun remains
-valuable defense in depth, but is **not** the delivery dependency for this workaround.
-The workaround may ship on Bun 1.3.11 only after the affected-runtime acceptance matrix
+This plan changes the earlier wait-only decision, and the reordered problem statement is
+why: a fixed stable Bun addresses only the second defect below, never the first. A future
+fixed Bun therefore remains valuable defense in depth but is **not** the delivery
+dependency for this workaround. The workaround ships on Bun 1.3.14 — the newest release
+that still carries the defect — and only after the affected-runtime acceptance matrix
 below passes unchanged.
 
 ## Problem statement
 
-Bun 1.3.11 and 1.3.14 can lose asynchronous child-process completion after Git has
-finished. When directory-sync awaits that completion while holding its in-memory
-`SerialQueue` turn:
+Two independent defects share one fix. Order matters: only the first is verified in
+current code and immune to any runtime upgrade, and it is the primary justification for a
+cross-process owner.
+
+**1. Checkout ownership is per-process, not per-checkout.** `GitSync` holds
+`private readonly lock = new SerialQueue()` (`git-sync.ts:50`), and `plugin.ts:451`
+constructs one `GitSync` per plugin instance. The plugin runs in both the web process
+(auto-export) and the worker process (`sync-request` handling), so a single checkout has
+two independent in-memory queues that cannot see each other. No Bun version fixes this.
+The workaround must establish one cross-process owner rather than adding another
+per-process mutex.
+
+**2. Bun 1.3.11 and 1.3.14 can lose asynchronous child-process completion after Git has
+finished.** When directory-sync awaits that completion while holding its `SerialQueue`
+turn:
 
 - the completed pull never reaches changed-path enqueue;
 - later pull, push, commit, and DB→Git auto-export work remains blocked;
@@ -32,16 +47,25 @@ finished. When directory-sync awaits that completion while holding its in-memory
 - restart clears the in-memory lock, but the affected process cannot prove when it is
   safe to do so itself.
 
-There is also a process-role ownership gap: web-owned auto-export and worker-owned
-`sync-request` handlers construct separate `GitSync` instances and therefore separate
-in-memory queues for the same checkout. The workaround must establish one cross-process
-owner rather than adding another per-process mutex.
+The observed failure is broader than one unsettled promise. The current-main reproduction
+hung with **both** `child.exited` and its in-process Effect timer failing to resume the
+owner (`directory-sync-export-stall.md`). Treat the failure class as "the affected event
+loop stopped resuming this work", not "one child-completion promise was lost". Unlike
+defect 1, defect 2 does have a runtime remedy: `oven-sh/bun#26580` is fixed upstream and
+three consecutive 350-file soaks passed on `1.4.0-canary.1`.
+
+The load-bearing property of this design is therefore **process isolation**: Git execution
+and checkout serialization move to a supervised process whose event loop is separate from
+web and worker, so a lost completion can neither wedge nor prematurely release checkout
+ownership, and a wedged executor cannot hold an app-process queue. Synchronous versus
+asynchronous execution _inside_ the broker is a secondary implementation choice, not the
+safety mechanism.
 
 ## Goal
 
-Move Git execution and checkout serialization outside the web and worker Bun event loops
-so a lost app-process child completion cannot wedge or prematurely release checkout
-ownership.
+Give a checkout exactly one owner across process roles, and move Git execution and
+checkout serialization outside the web and worker Bun event loops so a lost app-process
+child completion cannot wedge or prematurely release that ownership.
 
 One supervised broker must:
 
@@ -92,7 +116,34 @@ These are release blockers, not preferences:
 8. **No casts.** Use explicit Zod contracts and structural interfaces; do not introduce
    `as`, `as unknown`, or equivalent assertions in the owned-Git/broker change.
 
-## Proposed architecture
+## Architecture
+
+There is **one execution path**, not a broker path and an in-process path. Anything that
+looks like a fallback is a defect: an unsupervised brain that ran Git in-process would
+keep exactly the defect this plan exists to remove, because the lost-completion failure
+does not care how many processes a brain has.
+
+```
+GitExecutor          registry → per-repo queue → detached wrapper → observe journal
+  ├── hosted in-process   (interactive session, startup check, tests)
+  └── git-broker child    (supervised web + worker)
+        └── Unix socket → BrokerGitCommandRunner
+```
+
+- **The wrapper is the execution boundary.** `flock`, a dedicated process group, the
+  inactivity deadline, bounded output, and one atomic terminal record. No child completion
+  is ever awaited, which is what makes the runtime defect unreachable.
+- **The advisory lock is the ownership mechanism.** It is kernel-level and cross-process,
+  so two wrappers cannot overlap on one checkout regardless of which process started them.
+  The executor's per-repository queue is an optimisation on top — it keeps a burst from
+  becoming a pile of processes blocked on the lock — not the safety property.
+- **The socket is a transport, not a second implementation.** It exists so web and worker
+  share one executor. A process holding an executor directly gets identical guarantees.
+
+Where the executor lives is therefore a lifecycle question, not an execution one. A
+supervised brain is handed a socket; anything else hosts a broker for itself, one per
+process rather than one per checkout — the registry is already keyed by repository, and
+hosting per checkout would leak a socket and an executor for every repository touched.
 
 ### Broker process
 
@@ -132,38 +183,62 @@ adds `-c maintenance.auto=false`. Canonicalize the registered checkout once and 
 unknown repository keys, path changes, NUL bytes, oversized arguments, and unsupported
 operation classes.
 
-The existing `OwnedGit` client remains the only Git semantic API. Replace
-`OwnedGitProcessRunner` at composition time with a `BrokerGitCommandRunner`; do not make
-call sites know about IPC.
+The existing `OwnedGit` client remains the only Git semantic API. A `BrokerGitCommandRunner`
+replaces `OwnedGitProcessRunner` behind the existing `GitCommandRunner` interface; call
+sites never learn about IPC. No such composition point exists yet — `OwnedGitProcessRunner`
+is constructed inline at six sites — so Phase 4 builds the seam before Phase 5 uses it.
 
 ### OS-owned command wrapper
 
-The broker must not use `Bun.spawn().exited` for individual Git commands. The preferred
-candidate is a synchronous broker-to-wrapper boundary (`Bun.spawnSync`) because upstream
-and local evidence distinguish the working synchronous wait path from the broken async
-completion path. It is acceptable for the dedicated broker to block; it is not a routing
-or job worker process.
+The broker must never await `Bun.spawn().exited` for individual Git commands, and must
+never block its own event loop for the duration of a command. Both constraints hold
+together, and together they rule out `Bun.spawnSync` as the broker-to-wrapper boundary.
+
+`Bun.spawnSync` was the earlier candidate on the theory that a synchronous wait avoids the
+broken async completion path. Reject it: a blocked broker cannot service its socket, so it
+cannot emit `progress`, cannot answer `status`, cannot accept work for a second checkout,
+and is indistinguishable from a broker outage for the whole duration of every clone and
+pull. That contradicts the `progress`/`status` messages defined above, the independent-
+checkout requirement, and the live `onGitProgress` heartbeat described under Progress and
+health.
+
+Instead the broker starts the wrapper detached, never awaits it, and observes the
+wrapper's own durable artifacts: bounded output files with byte counters, and one atomic
+terminal result record. This is byte-identical to how a _replacement_ broker must recover
+an active request after a crash, so the normal path and the recovery path are one code
+path rather than two.
+
+`directory-sync-export-stall.md` records that file sentinels and persistent timer polling
+were not reliable workarounds. That verdict was measured **inside the affected app
+process**, whose event loop stopped resuming the owner; it does not automatically transfer
+to a dedicated broker with a separate event loop and no app workload. It is also not
+assumed — Phase 2 gates on proving broker-side observation resumes under the affected
+runtime before any later phase depends on it.
 
 The wrapper, not the broker's JavaScript promise, owns command safety:
 
 1. acquire `flock` on a deterministic lock file outside the replaceable checkout;
 2. atomically create the request's active record;
 3. start Git in a dedicated session/process group via `setsid`;
-4. redirect stdout/stderr to mode-`0600` bounded files and monitor byte progress outside
-   the app Bun event loop;
+4. redirect stdout/stderr to mode-`0600` bounded files and advance byte counters in the
+   active record, outside the app Bun event loop — these counters are what the broker
+   reads to emit `progress`, so they must advance during the command, not at exit;
 5. on inactivity timeout, signal the process group, escalate to `SIGKILL`, `wait`
    the direct child, and verify the process group is empty;
 6. atomically write the terminal result;
 7. release `flock` only after step 5 or confirmed normal group exit.
 
-Add explicit runtime dependencies for the wrapper (`flock`, `setsid`, and the required
-core utilities) to the canonical Docker image rather than assuming a developer machine.
-The image currently uses `oven/bun:<version>-slim` and installs only curl, certificates,
-Git, and tini.
+Wrapper dependencies are already present and must not be treated as a missing install:
+`oven/bun:<version>-slim` ships `flock`, `setsid`, `timeout`, and `bash` at `/usr/bin`
+(verified against `oven/bun:1.3.11-slim` and `1.3.14-slim`), on top of the image's curl,
+ca-certificates, Git, and tini. The real gap is proof, not installation — add a
+packaged-image check that every wrapper dependency resolves at runtime, so a future
+base-image change cannot silently remove one.
 
 A broker crash must not release `flock`: the separately owned wrapper continues to a
 terminal result. A replacement broker reads the active record and returns/waits for that
-result instead of issuing the mutation again. A client crash is handled the same way.
+result instead of issuing the mutation again — the same read the running broker already
+performs on the normal path. A client crash is handled the same way.
 
 ### Authentication
 
@@ -180,7 +255,34 @@ Redact URL userinfo and authorization material at both broker and client boundar
 Local `file://`, SSH, and unauthenticated HTTPS remotes continue to work. Test each
 transport without network access except for mocked loopback fixtures.
 
-### Recovery and health
+### Progress and health
+
+`onGitProgress` is a live heartbeat, not cosmetic status.
+`directorySyncRequestJobHandler.ts:66` and `git-periodic-sync.ts:32` build
+`createProgressObserver(runId)` and thread it into `pull`; `git-stall.ts` fires it once per
+stdout chunk. Operation-status freshness — and therefore `/health/operate` — depends on
+that signal arriving _during_ long clones and pulls, not at their end.
+
+The broker preserves it end to end:
+
+1. wrapper appends Git output to its bounded capture files;
+2. wrapper advances byte counters in the active record;
+3. broker observes the advance without blocking and emits `progress` for that request ID;
+4. `BrokerGitCommandRunner` invokes the caller's `onProgress`;
+5. `OwnedGit` and every call site keep today's `GitCommandOptions.onProgress` contract
+   unchanged.
+
+Failure branches:
+
+- no byte advance within the inactivity deadline → the wrapper terminates and reaps the
+  process group (wrapper step 5) and writes a timeout result; the client sees the existing
+  stall error class;
+- broker unreachable → the client surfaces a broker-outage error and `/health/operate`
+  degrades, while `/health/live` and `/health/ready` stay independent;
+- progress observed but no terminal record appears → the request stays active and
+  externally recoverable, and is never silently completed or unlocked.
+
+### Startup recovery and checkpoint
 
 Keep the existing `directory-sync.git-reconciliation` checkpoint authoritative for the
 Git-to-job handoff. Broker durability answers “did this Git command finish safely?”; the
@@ -197,10 +299,9 @@ On startup:
 4. stale operation history records the interrupted handoff and recovery result;
 5. only then may ordinary periodic/auto-commit work resume.
 
-A broker outage or over-age active request degrades `/health/operate` with sanitized
-facts. `/health/live` and `/health/ready` remain independent. Broker supervision has its
-own bounded restart budget and reports an incident rather than restarting the entire
-container indefinitely.
+An over-age active request degrades `/health/operate` with sanitized facts, on the same
+terms as the broker-outage branch above. Broker supervision has its own bounded restart
+budget and reports an incident rather than restarting the entire container indefinitely.
 
 ## Implementation phases
 
@@ -208,65 +309,317 @@ container indefinitely.
 
 Work from PR #124; do not implement directly on `main`.
 
-Add deterministic tests that fail with the current in-process runner:
+Add deterministic tests that fail with the current in-process runner. **Done** — see
+`plugins/directory-sync/test/git/git-broker-reproductions.test.ts`:
 
-- Git exits and writes complete output while its Bun completion promise is withheld;
-- a web auto-commit request and worker pull target the same checkout concurrently;
-- the client disconnects after Git mutation but before acknowledgement;
-- the broker dies while the wrapper and Git process group are active.
+- Git exits and writes complete output while its Bun completion promise is withheld. The
+  injected child settles neither `exited` nor `reaped`; the stall deadline fires and kills
+  the group, but the runner still never settles, so the `SerialQueue` turn is never
+  released. Fails on `firstSettled: false`.
+- A web auto-commit and a worker pull target the same checkout concurrently. Two `GitSync`
+  instances over one `dataDir` both enter `withLock`. Fails on `maxActive: 2`.
+- Opt-in real-Git counterpart (`RUN_GIT_OWNERSHIP_REPRO=1`, Linux): two owners committing
+  to one checkout fail with `cannot lock ref 'HEAD'`.
+
+Each is an `it.failing` tripwire rather than a skipped or deleted test: green while the
+defect exists, red the moment the broker removes it, which is the signal to drop
+`.failing` and keep the assertion as a regression test.
+
+The plan's other two Phase 0 reproductions — client disconnect after mutation but before
+acknowledgement, and broker death with the wrapper still live — move to Phase 1. Both are
+statements about request IDs and the durable journal, so neither can be expressed before
+Phase 1 defines that contract; written here they would assert against stubs rather than
+reproduce anything. They are listed in Phase 1 below, not dropped.
 
 Use barriers and injected process/protocol interfaces, not timing-sensitive polling.
-Retain the upstream-style real Git reproduction as an opt-in Linux test.
 
 ### Phase 1 — Protocol and durable journal
 
 Implement schemas, message framing, request IDs, atomic mode-`0600` records, bounded
-capture, redaction, and idempotent lookup before executing real Git.
+capture, redaction, and idempotent lookup before executing real Git. **Done** —
+`src/lib/broker/{protocol,journal,ledger,redaction}.ts`, no real Git executed yet.
 
-Tests first:
+Framing is a 4-byte big-endian length prefix over UTF-8 JSON, validated by Zod. The
+length bound is checked before anything is allocated for the body, so a hostile prefix
+costs nothing. `FrameDecoder` is separate from the socket, so Phase 3 adds transport to a
+contract that is already proven.
 
-- malformed/version-mismatched/oversized messages are rejected;
+Tests first — all landed:
+
+- malformed/version-mismatched/oversized messages are rejected, and a frame split across
+  chunks or two frames in one chunk reassemble correctly;
 - duplicate request IDs return the same result and never call the executor twice;
 - partial journal writes are ignored/quarantined safely;
 - credentials cannot appear in serialized records or errors;
-- checkout registration rejects identity/path drift.
+- a client that disconnects after Git mutation but before acknowledgement leaves the
+  request recoverable by ID, and reconnecting never repeats the mutation (moved from
+  Phase 0 — needs the request-ID contract to be expressible);
+- a broker that dies while a wrapper and its Git process group are active leaves an active
+  record that a replacement broker refuses to re-issue (moved from Phase 0).
+
+Two decisions worth carrying forward:
+
+- **Operation classes are `bootstrap`, `inspect`, `mutate`, `network`**, each with a closed
+  subcommand allow-list; the executable is always `git`. `bootstrap` is deliberately the
+  widest, because branch repair legitimately stages and commits seed content before a
+  checkout can be registered. Its boundary is temporal, not narrow: Phase 3 must reject it
+  once `register-checkout` has succeeded, so that surface exists only during bootstrap.
+- **`settle()` is deliberately not `async`.** It registers the in-flight request before it
+  yields; moving that registration past an `await` lets two same-tick duplicates both pass
+  the journal check and run the command twice. The test asserts promise _identity_ for
+  two same-tick calls, because asserting the executor ran once does not catch it — a
+  delayed registration still passes that weaker assertion.
+
+Checkout registration and identity/path-drift rejection move to Phase 3, which owns
+`register-checkout` state; Phase 1 has no place to hold a registry.
 
 ### Phase 2 — Wrapper and advisory lock
 
-Implement the wrapper and prove lock/reap behavior independently of the broker.
+Implement the wrapper and prove lock/reap behavior independently of the broker. **Done** —
+`src/lib/broker/git-wrapper.sh` plus its `wrapper.ts` observation surface.
 
-Tests first on Linux:
+The wrapper writes key=value records, not JSON, and leaves captured bytes in their own
+files. Escaping arbitrary Git output into JSON from shell is a bug farm; TypeScript keeps
+ownership of the JSON and Zod contracts, and the raw bytes stay byte-exact.
+
+Tests first on Linux — landed:
 
 - two wrappers for one checkout never overlap;
 - different checkouts may proceed independently;
 - output resets the inactivity deadline;
-- a silent process group is killed, waited, and absent before lock release;
+- a silent process group is killed, waited, and absent before the terminal result;
+- a SIGTERM-ignoring group publishes no terminal result while it is still alive;
 - descendants holding output pipes are killed and disappear;
-- killing the broker does not drop the wrapper's lock;
-- killing the client does not duplicate the operation;
-- paths and output containing spaces, newlines, and NUL-delimited porcelain records are
-  preserved byte-for-byte;
-- output overflow is bounded and safely terminated.
+- killing the starter does not drop the wrapper's lock — an orphaned wrapper still reaches
+  a terminal result;
+- paths and output containing spaces, newlines, and NUL bytes are preserved byte-for-byte;
+- output overflow is bounded and safely terminated;
+- byte counters advance in the active record while the command runs, not only at exit.
 
-Do not continue if `spawnSync` itself reproduces lost completion or cannot prove group
-termination. In that case keep the same protocol/journal and replace only the broker's
-executor with a long-lived POSIX/native helper; do not fall back to app-process polling.
+Gate 1 **passes on Bun 1.3.11**: 25 consecutive detached wrappers were observed to their
+terminal record with no lost completion, without ever awaiting a child. Gate 2 passes via
+the termination tests above. Both are re-run on the shipped runtime, 1.3.14, in Phase 7
+rather than assumed to carry over.
+
+If gate 1 ever fails, keep the same protocol, journal, and wrapper, and replace only the
+broker's observation mechanism with a long-lived POSIX/native helper. Do not fall back to
+blocking the broker event loop, and do not fall back to app-process polling.
+
+Two findings worth carrying:
+
+- **One safety step has no executable test, by nature.** The pre-`wait` loop that proves
+  the group is empty after SIGKILL cannot be observed from another process: SIGKILL is
+  immediate, and `wait` on the runner already reaps the group in the common path. Deleting
+  that loop fails no test. It is kept as defence for orphaned grandchildren, and that case
+  _is_ covered — deleting the post-exit reap does fail the pipe-holding-descendant test.
+  Do not treat the loop as tested; treat it as justified.
+- **The wrapper is a file, and `@rizom/brain` ships as a bundle.** `import.meta.dir` will
+  not locate `git-wrapper.sh` next to `dist/brain.js`. Phase 3 must resolve this — prefer
+  embedding the script as a string and writing it into the instance runtime directory at
+  mode `0700` on broker start, over adding asset-copy plumbing to the bundler. Phase 7's
+  packaged-image check must then assert the wrapper resolves and runs from the image.
 
 ### Phase 3 — Broker service and supervision
 
-Add the broker child role and Unix-socket client.
+Split in two. **Phase 3a — broker service is done**
+(`src/lib/broker/{server,client,registry,socket-writer}.ts`): the Unix-socket server,
+per-repository serialization with the wrapper's `flock` as the authority, the checkout
+registry, the `BrokerGitCommandRunner` behind the existing `GitCommandRunner` interface,
+and end-to-end tests over a real socket, real wrapper, and real Git. **Phase 3b — the
+supervisor refactor is not started.**
+
+Two transport bugs found here that a green unit suite had missed, both of which produce
+exactly the silent wedge this plan exists to remove:
+
+- **A frame limit below the output bound strands results.** `MAX_FRAME_BYTES` was 64 KiB
+  while a checkout may declare megabytes of `maxOutputBytes`; the oversized frame threw
+  inside the send path, was swallowed, and the caller waited forever for a command that
+  had already finished. The frame limit is now 8 MiB with `maxOutputBytes` capped at
+  4 MiB at registration, and an unframeable result shrinks rather than disappears.
+- **Ignoring partial writes strands them too.** `socket.write` accepts fewer bytes than
+  requested once the kernel buffer fills, so a multi-megabyte result arrived truncated and
+  never decoded. All writes now go through a backpressure-aware writer flushed on `drain`.
+
+Treat any silent drop on the result path as a release blocker, not a performance detail:
+the client has no timeout of its own, by design, because the wrapper owns the deadline.
+
+Registration state resolved the bootstrap chicken-and-egg without a new message type:
+`register-checkout` _declares_ a repository, and the broker itself promotes it to ready by
+observing that the checkout exists on disk. `bootstrap` is accepted only while it does
+not, every other class only once it does. The transition is verified, not asserted by a
+client.
+
+#### Phase 3b — supervisor refactor
+
+**Done.** Roles are policy-driven: `BrainChildRole` gains `git-broker`, readiness message
+types and restart budgets are per role, and the worker-scoped knobs became one
+`restartPolicies` table. The broker starts first and web spawns only on `broker-ready`;
+on the way down web and worker are signalled first and the broker only once both have
+closed, because its wrapper may still hold the checkout lock for a request in flight.
+
+`--child=git-broker` runs `runGitBrokerChild`, which deliberately **does not boot a
+Brain** — the broker owns Git execution and nothing else, so it has no entities, jobs, or
+HTTP surface. That is what makes it cheap to start before web and safe to stop after it.
+
+**`gitBroker` defaults to `false`.** Nothing routes Git through the broker until Phase 5,
+so enabling the child now would add a process that no caller uses. Flip the default in
+Phase 5, in the same change that converts the runners — not before.
+
+Existing web and worker behaviour is unchanged, and the existing supervisor tests prove
+it: they were not modified, they simply do not opt into the broker.
+
+Two smaller decisions worth keeping:
+
+- The wrapper's text import needs a **sibling `git-wrapper.sh.d.ts`**, not an ambient
+  `*.sh` wildcard and not a triple-slash reference — the wildcard is invisible to other
+  packages that typecheck these sources, and the reference form is banned by lint. A
+  sibling declaration resolves relative to the importing file, so it works everywhere.
+- The broker's runtime directory resolves from `BRAIN_GIT_BROKER_RUNTIME_DIR`, then
+  `XDG_DATA_HOME`, then a `.brain-runtime` directory beside the working directory. It is
+  never inside the checkout: the socket and journal must survive a checkout being
+  replaced, and must never be committed.
+
+Remaining for a later phase, once callers exist: shutdown that drains in-flight requests
+rather than relying on the wrapper's externally recoverable record, and surfacing broker
+outage on `/health/operate`.
+
+The original scoping notes for this phase follow.
+
+This is a supervisor refactor, not an added child; size it accordingly.
+`process-supervisor.ts` hardcodes `BrainChildRole = "web" | "worker"`, rejects any other
+`--child=` value, treats the web child's exit as the command result (`webExitResult`), and
+scopes every restart and heartbeat knob to the worker role (`workerRestartBaseMs`,
+`workerRestartBudget`, `workerRestartWindowMs`, `workerHeartbeatIntervalMs`). Generalize
+role identity, restart budget, and heartbeat policy per role first, then add the broker
+role, explicit start ordering (broker ready → web and worker start), and stop ordering
+(web and worker stopped → broker stopped).
 
 Tests first:
 
+- existing web and worker restart, heartbeat, and exit-result behavior is unchanged by the
+  per-role generalization;
 - broker is ready before web/worker startup;
 - web and worker share one registered checkout owner;
 - broker restart budget/cooldown is bounded;
 - shutdown drains or leaves an externally recoverable active record;
 - stale socket handling cannot evict a live broker;
 - socket permissions are `0600` and journal directory permissions are `0700`;
-- direct/in-process test shells can inject a structural runner without starting a broker.
+- direct/in-process test shells can inject a structural runner without starting a broker;
+- checkout registration rejects identity, branch, and path drift (moved from Phase 1,
+  which has nowhere to hold the registry);
+- `bootstrap` requests are rejected once the checkout is registered, and every other
+  operation class is rejected before it is.
 
-### Phase 4 — Route every Git path
+### Phase 4 — Runner composition seam
+
+**Done** — `src/lib/git-runner-factory.ts` is now the only place a runner is constructed,
+and a test walks the source tree to assert exactly that. The factory is threaded through
+`GitSyncOptions`, `initializeGitRepository`, `prepareGitRepository`, and `hasGitHead`;
+`OwnedGitProcessRunner` remains its only implementation, so behaviour is unchanged.
+
+The seam carries one flag, `bootstrap`, rather than a full operation class: the class is
+derivable from argv, but whether a command is repository preparation is not. Everything
+else the client infers.
+
+One defect the seam exposed, which would have broken the brain immediately after Phase 5
+landed: **`GitSync.initialize()` kept the bootstrap client for all later work.** Every
+ordinary command would then have been sent under the bootstrap class, which the broker
+refuses once the checkout exists. The bootstrap client's life now ends with bootstrap and
+the lazy getter builds an ordinary one. This is worth remembering as a shape, not just a
+fix — a long-lived handle acquired during a privileged phase silently keeps that
+privilege.
+
+Dropped from this phase with a reason: the planned test for _"the advisory lock covers a
+bootstrap clone against a concurrent registered command on the same path"_ is not
+writable, because the registry makes those two states mutually exclusive — `bootstrap` is
+refused once the checkout exists and every other class is refused before it does. There is
+no legitimate concurrency to test. The lock still covers them, since both key on the same
+repository.
+
+The original scoping notes follow.
+
+There is no composition point today. `OwnedGitProcessRunner` is constructed inline at six
+sites: `git-repository.ts:51,95,116,137`, `git-sync.ts:81`, and `git-state.ts:11`. Phase 5
+cannot "swap the runner at composition time" until a seam exists.
+
+Introduce a `GitCommandRunner` factory and thread it through `directory-dependencies.ts` so
+every Git path resolves its runner from injected dependencies. `OwnedGitProcessRunner`
+stays the factory's only implementation in this phase; behavior must not change.
+
+The `git-repository.ts` sites need a decision, not a shim. Probe, clone, and init run at
+bootstrap against a `dataDir` before a checkout exists, so they cannot satisfy
+`register-checkout` first. Define a `bootstrap` operation class: the broker accepts it for
+a declared parent directory rather than a registered checkout, permits only probe, clone,
+init, and branch repair, holds the same advisory lock keyed on the eventual checkout path,
+and requires `register-checkout` to succeed before any other operation class is accepted
+for that path.
+
+Tests first:
+
+- every Git path resolves its runner from injected dependencies, and no
+  `new OwnedGitProcessRunner` remains outside the factory;
+- a structural runner injected in tests observes every command, including clone and init;
+- `bootstrap` is rejected once the checkout is registered;
+- non-`bootstrap` classes are rejected before registration;
+- the advisory lock covers a bootstrap clone against a concurrent command on the same path.
+
+### Phase 5 — Route every Git path
+
+**Done.** `createBrokerGitRunnerFactory` supplies the runner whenever a broker socket is
+present, `gitBroker` now defaults on, and the supervisor exports one
+`BRAIN_GIT_BROKER_SOCKET` to every child so web and worker cannot disagree with the broker
+about which checkout owner they share. Registration is lazy and idempotent inside the
+factory rather than a separate lifecycle step, so no caller can forget it and a broker
+restart recovers on the next command.
+
+The Phase 0 reproduction now passes through the real stack: two `GitSync` owners of one
+checkout commit concurrently without colliding on the HEAD ref, even though their
+in-memory `SerialQueue`s are still separate. That is the defect closed end to end.
+
+**The bootstrap boundary had to move, and this is the correction that matters.** Phase 3a
+made `bootstrap` legal only while the checkout was absent and every other class legal only
+once it existed. That is wrong: `git init` creates the checkout _partway through_
+bootstrap, and the remaining preparation — remote configuration, identity, branch repair,
+the initial commit — legitimately runs against a real repository. Routed end to end, the
+brain bootstrapped and then refused its own next command.
+
+The rule is now asymmetric, and deliberately so:
+
+- `bootstrap` covers only the commands that run against a checkout which does not exist
+  yet — remote probe, clone, init — and is refused the moment the checkout appears. The
+  widest allow-list closes as early as it possibly can.
+- Ordinary classes carry no reverse restriction. An ordinary command issued before the
+  checkout exists simply fails in Git, which is a truthful error. Forbidding it would have
+  forced every post-init preparation command to stay `bootstrap` forever, holding the
+  widest allow-list open indefinitely — the opposite of the goal.
+
+**The in-process runner is gone.** `git-stall.ts` and `OwnedGitProcessRunner` are deleted
+rather than kept as a fallback. A fallback would have meant every unsupervised run —
+interactive sessions, startup checks, the whole test suite — retained the lost-completion
+defect, because that failure is a property of awaiting a Git child, not of how many
+processes a brain has. Two direct-execution sites remain, and a test pins the list so a
+third cannot appear unnoticed:
+
+- `lib/broker/wrapper.ts` — spawns the wrapper. This is the boundary.
+- `lib/content-remote-bootstrap.ts` — local `file://` seed bootstrap. It builds a
+  throwaway worktree and a bare remote and never touches the managed checkout, so it sits
+  outside the ownership the broker exists to hold, and its `spawnSync` has no asynchronous
+  completion to lose. Kept deliberately, not overlooked.
+
+`GitStallError` survives that deletion: callers classify a stalled network operation
+differently from a failed one, and the distinction is independent of where the deadline is
+enforced. The broker client raises it on a timeout outcome.
+
+`hasGitHead` no longer runs Git at all. It is a boot-time probe for whether seed content
+is needed, running before any checkout owner exists; reading `refs/heads` and `packed-refs`
+answers it without a broker and a wrapper process.
+
+**A closed allow-list fails silently when callers catch their own errors.** `merge-base`
+was missing from every class, so each reconciliation quietly degraded from incremental to
+full instead of erroring. A test now derives the subcommands directory-sync actually
+issues from source and asserts each is permitted, pinning the two lists together.
+
+The original routing list follows.
 
 Use the broker-backed `OwnedGit` runner for:
 
@@ -284,7 +637,38 @@ broker/wrapper implementation and explicit test fixtures. Remove `simple-git` on
 porcelain status, logs, remotes, clean commits, conflicts, renames, and paths containing
 spaces retain behavior.
 
-### Phase 5 — Crash and handoff recovery
+### Phase 6 — Crash and handoff recovery
+
+**Done.** The four broker-side crash points are covered by
+`test/git/broker/recovery.test.ts`; the four downstream handoff points were already
+covered by `reconciliation-checkpoint.test.ts` and were verified rather than rewritten.
+
+`GitExecutor.reconcile()` runs before the broker starts listening, so a client can never
+reach an executor that still believes a dead wrapper owns its checkout. It classifies each
+active record three ways:
+
+- **owned** — the wrapper is still alive. Its advisory lock is still held and it will reach
+  a terminal result on its own; a replacement must not touch it.
+- **completed** — the wrapper finished and the result was simply never acknowledged. The
+  active record is cleared and the result stays replayable by request ID.
+- **abandoned** — the wrapper died without writing a result. The outcome is _genuinely
+  unknown_, so the record is retired rather than deleted or retried. It is never
+  re-executed: a retry is a fresh request with a fresh ID, and the checkout's real state is
+  re-derived by the reconciliation checkpoint rather than by replaying a command that may
+  already have applied.
+
+That third case is the one worth stating plainly. Before this, an active record whose
+wrapper had died blocked its request ID forever and left the checkout looking permanently
+busy in `status`.
+
+**One bug found by mutation testing, not by the suite passing.** Re-executing a request ID
+observed the _previous_ run's wrapper terminal record and returned a stale result
+instantly, while a second wrapper was still spawned and mutating the checkout. The ledger
+masks it in practice, but masking is not sufficient for the duplicate-mutation invariant —
+so the executor now clears prior wrapper artifacts before spawning, which turns that
+failure loud. The replay test only started catching a broken ledger after that fix.
+
+The original crash-point list follows.
 
 Exercise crash points after:
 
@@ -301,14 +685,34 @@ For every case prove checkout convergence, idempotent replay, remote-delete auth
 zero duplicate commits, zero orphaned process groups, and a truthful sanitized operation
 history.
 
-### Phase 6 — Affected-runtime acceptance
+### Phase 7 — Affected-runtime acceptance
 
 The workaround is specifically required to pass on the affected runtime; a canary-only
 pass is insufficient.
 
-Run in the packaged Linux/container runtime on Bun 1.3.11 and separately on 1.3.14:
+**The image is pinned to Bun 1.3.14, and the matrix runs on 1.3.14 only.**
 
-1. focused protocol/wrapper/process-group tests;
+The reasoning, because it corrects an earlier mistake in this plan. Deployed images take
+the Dockerfile default — the fleet build passes `BRAIN_VERSION` and `SITE_PACKAGES` and
+nothing else — so production ran **1.3.10**, not 1.3.11 as this plan previously claimed.
+That voids the one argument for pinning 1.3.11: there was no runtime to hold constant,
+since 1.3.11 was already a bump. With the pin moving regardless, an intermediate version
+buys nothing.
+
+1.3.14 does not fix the defect — `oven-sh/bun#26580` was reproduced on it — but that no
+longer decides anything. The broker removes the defect independently of the runtime, which
+is exactly why the Bun fix was demoted from delivery dependency to defence in depth. The
+runtime choice is therefore ordinary version hygiene, and 1.3.14 is the newest affected
+release, so proving the workaround there is the strongest affected-runtime evidence
+available short of the fixed one.
+
+1.3.11 is dropped from the required set: keeping it doubles a container matrix to prove a
+version that would no longer run anywhere.
+
+Run in the packaged Linux/container runtime on Bun 1.3.14:
+
+1. focused protocol/wrapper/process-group tests, plus the packaged-image check that every
+   wrapper dependency (`flock`, `setsid`, `timeout`, `bash`) resolves at runtime;
 2. 100-cycle commit/push/pull zombie soak;
 3. three unchanged 350-file packaged soaks with persistence and deterministic deletion
    barriers;
@@ -345,8 +749,8 @@ generic retry. Never retry an unexplained failed soak.
 - Prefer stacking broker work on its branch or a child worktree, then update/squash #124
   so the owned client and safe execution boundary ship together. Do not merge/release the
   mechanical conversion alone.
-- Keep commits phase-sized: protocol/journal, wrapper, supervision, routing, recovery,
-  acceptance infrastructure.
+- Keep commits phase-sized: protocol/journal, wrapper, supervision, composition seam,
+  routing, recovery, acceptance infrastructure.
 - Require a changeset for the directory-sync/Brain runtime behavior and any ops/deploy
   template changes.
 - Generated rollout files remain CI-owned.
@@ -367,12 +771,16 @@ Code completion does not authorize deployment.
 ## Handoff checklist
 
 1. Read this file, [`directory-sync-export-stall.md`](./directory-sync-export-stall.md),
-   and Phase 6 history in
-   [`directory-sync-import-load.md`](./directory-sync-import-load.md).
+   and that plan's own Phase 6 history in
+   [`directory-sync-import-load.md`](./directory-sync-import-load.md) — not this plan's
+   Phase 6.
 2. Inspect PR #124 and worktree
    `~/Documents/brains-worktrees/directory-sync-owned-git-processes` without discarding
    unrelated worktrees.
-3. Rebase onto current `origin/main` and rerun its 515-test directory-sync baseline.
+3. Rebase onto current `origin/main` and rerun its directory-sync baseline. Verified
+   2026-08-13 at `82c0415e8`: 515 pass, 1 skip, 0 fail on Bun 1.3.11, and the branch was
+   behind `origin/main` only by docs and ops-workflow commits — the rebase carries no
+   directory-sync code risk.
 4. Start with Phase 0 red tests; do not begin with process-supervisor production code.
 5. Record each disproved design in this plan or the PR. Do not blind-retry lost
    completions.
@@ -385,11 +793,16 @@ Code completion does not authorize deployment.
 This plan is complete when:
 
 - app web/worker processes execute no Git child process;
-- one broker serializes all commands for a checkout across process roles;
+- one broker serializes all commands for a checkout across process roles, replacing the
+  per-instance `SerialQueue` as the ownership boundary;
+- every Git path resolves its runner from injected dependencies, with no
+  `new OwnedGitProcessRunner` outside the factory;
+- the broker answers `status` and emits `progress` while a Git command is still running,
+  and `onGitProgress` keeps firing during long clones and pulls;
 - timeout/crash tests prove lock retention through complete process-group termination;
 - duplicate and lost acknowledgements cannot duplicate Git mutations;
 - checkpoint replay closes every Git-to-queue crash window;
-- Bun 1.3.11 and 1.3.14 pass the complete affected-runtime matrix;
+- Bun 1.3.14 — the pinned, still-affected runtime — passes the complete acceptance matrix;
 - normal CI and an independent scheduled soak pass without retries;
 - operational health surfaces broker failures while readiness/liveness remain correct;
 - no secret enters durable state or logs;

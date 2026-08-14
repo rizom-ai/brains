@@ -1,11 +1,11 @@
-import type { SimpleGit } from "simple-git";
+import type { OwnedGit } from "./owned-git";
 import { writeFile } from "fs/promises";
 import { join } from "path";
 import { getErrorMessage } from "@brains/utils/error";
 import { pathExists } from "./fs-utils";
 
 export async function checkoutGitBranch(
-  git: SimpleGit,
+  git: OwnedGit,
   dataDir: string,
   branch: string,
 ): Promise<void> {
@@ -30,7 +30,7 @@ export async function checkoutGitBranch(
 }
 
 async function createInitialCommitIfNeeded(
-  git: SimpleGit,
+  git: OwnedGit,
   dataDir: string,
 ): Promise<void> {
   // Create initial commit if empty. Stage ANY existing files in the

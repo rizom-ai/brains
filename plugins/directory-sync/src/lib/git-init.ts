@@ -1,7 +1,8 @@
-import type { SimpleGit } from "simple-git";
+import type { OwnedGit } from "./owned-git";
 import type { Logger } from "@brains/utils/logger";
 import { checkoutGitBranch } from "./git-branch";
 import { prepareGitRepository } from "./git-repository";
+import type { GitRunnerFactory } from "./git-runner-factory";
 
 export interface GitInitializeOptions {
   logger: Logger;
@@ -11,6 +12,7 @@ export interface GitInitializeOptions {
   branch: string;
   timeoutMs: number;
   signal?: AbortSignal | undefined;
+  runnerFactory: GitRunnerFactory;
   authorName?: string | undefined;
   authorEmail?: string | undefined;
 }
@@ -18,7 +20,7 @@ export interface GitInitializeOptions {
 /** Initialize git repository — clone, init, or update remote. */
 export async function initializeGitRepository(
   options: GitInitializeOptions,
-): Promise<SimpleGit> {
+): Promise<OwnedGit> {
   const {
     logger,
     dataDir,
@@ -27,6 +29,7 @@ export async function initializeGitRepository(
     branch,
     timeoutMs,
     signal,
+    runnerFactory,
     authorName,
     authorEmail,
   } = options;
@@ -41,6 +44,7 @@ export async function initializeGitRepository(
     branch,
     timeoutMs,
     signal,
+    runnerFactory,
   });
 
   await configureIdentity(git, authorName, authorEmail);
@@ -52,7 +56,7 @@ export async function initializeGitRepository(
 }
 
 async function configureIdentity(
-  git: SimpleGit,
+  git: OwnedGit,
   authorName?: string,
   authorEmail?: string,
 ): Promise<void> {

@@ -1,5 +1,4 @@
-import type { SimpleGit } from "simple-git";
-import simpleGit from "simple-git";
+import { OwnedGit } from "./owned-git";
 import type { Logger } from "@brains/utils/logger";
 import type {
   GitLogEntry,
@@ -16,9 +15,11 @@ import { SerialQueue } from "@brains/utils/serial-queue";
 import {
   DEFAULT_GIT_TIMEOUT_MS,
   getAuthenticatedGitUrl,
+  getCheckoutRepositoryKey,
   getGitRemoteFingerprint,
   resolveGitRemoteUrl,
 } from "./git-options";
+import { createBrokerGitRunnerFactory } from "./broker-runner-factory";
 import type { GitSyncOptions } from "./git-options";
 import {
   getChangedPaths,
@@ -26,6 +27,7 @@ import {
   tryResolveRemoteHead,
 } from "./git-pull";
 import { getGitStatus, hasGitLocalChanges } from "./git-status";
+import type { GitRunnerFactory } from "./git-runner-factory";
 
 export type { GitSyncOptions } from "./git-options";
 export type { GitSyncStatus, PullResult } from "../types";
@@ -37,7 +39,7 @@ export type { GitSyncStatus, PullResult } from "../types";
  * This class only knows how to talk to git.
  */
 export class GitSync implements IGitSync {
-  private _git: SimpleGit | null = null;
+  private _git: OwnedGit | null = null;
   private readonly logger: Logger;
   private readonly remoteUrl: string;
   private readonly remoteFingerprint: string;
@@ -47,6 +49,7 @@ export class GitSync implements IGitSync {
   private readonly authToken: string | undefined;
   private readonly dataDir: string;
   private readonly timeoutMs: number;
+  private readonly runnerFactory: GitRunnerFactory;
   private readonly lock = new SerialQueue();
   private readonly lifecycleController = new AbortController();
   private readonly activeOperations = new Set<Promise<unknown>>();
@@ -74,10 +77,30 @@ export class GitSync implements IGitSync {
     this.authorEmail = options.authorEmail;
     this.authToken = options.authToken;
     this.timeoutMs = options.timeoutMs ?? DEFAULT_GIT_TIMEOUT_MS;
+    // Always broker-backed. A supervisor hands down a socket; otherwise one is
+    // hosted here. There is no configuration in which Git runs on this event
+    // loop, so there is no weaker path to fall back to.
+    this.runnerFactory =
+      options.runnerFactory ??
+      createBrokerGitRunnerFactory({
+        ...(options.brokerSocketPath
+          ? { socketPath: options.brokerSocketPath }
+          : {}),
+        repositoryKey: getCheckoutRepositoryKey(this.dataDir),
+        checkoutPath: this.dataDir,
+        branch: this.branch,
+        remoteFingerprint: this.remoteFingerprint,
+        timeoutMs: this.timeoutMs,
+      });
   }
 
-  private get git(): SimpleGit {
-    this._git ??= simpleGit(this.dataDir);
+  private get git(): OwnedGit {
+    this._git ??= new OwnedGit(
+      this.runnerFactory({
+        ...this.net,
+        signal: this.lifecycleController.signal,
+      }),
+    );
     return this._git;
   }
 
@@ -90,7 +113,13 @@ export class GitSync implements IGitSync {
    */
   initialize(): Promise<void> {
     return this.runOperation(async () => {
-      this._git = await initializeGitRepository({
+      // The client returned here is a *bootstrap* client: it may run clone,
+      // init, and branch repair against a checkout that does not exist yet.
+      // Its life ends with bootstrap. Keeping it would send every later
+      // command under the bootstrap operation class, which the broker refuses
+      // once the checkout is real — so discard it and let the lazy getter
+      // build an ordinary client.
+      await initializeGitRepository({
         logger: this.logger,
         dataDir: this.dataDir,
         remoteUrl: this.remoteUrl,
@@ -101,9 +130,11 @@ export class GitSync implements IGitSync {
         branch: this.branch,
         timeoutMs: this.timeoutMs,
         signal: this.lifecycleController.signal,
+        runnerFactory: this.runnerFactory,
         authorName: this.authorName,
         authorEmail: this.authorEmail,
       });
+      this._git = null;
     });
   }
 
@@ -133,6 +164,7 @@ export class GitSync implements IGitSync {
   push(signal?: AbortSignal): Promise<void> {
     return this.runOperation(() =>
       pushGitChanges(
+        this.git,
         this.logger,
         this.branch,
         this.net,
@@ -142,15 +174,20 @@ export class GitSync implements IGitSync {
   }
 
   pull(signal?: AbortSignal, onProgress?: () => void): Promise<PullResult> {
-    return this.runOperation(() =>
-      pullGitChanges(
-        this.git,
+    return this.runOperation(() => {
+      const operationSignal = this.getOperationSignal(signal);
+      const git = this.git.withOptions({
+        signal: operationSignal,
+        ...(onProgress ? { onProgress } : {}),
+      });
+      return pullGitChanges(
+        git,
         this.logger,
         this.branch,
         { ...this.net, ...(onProgress ? { onProgress } : {}) },
-        this.getOperationSignal(signal),
-      ),
-    );
+        operationSignal,
+      );
+    });
   }
 
   getReconciliationDelta(

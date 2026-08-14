@@ -1,12 +1,12 @@
-import type { SimpleGit } from "simple-git";
+import type { OwnedGit } from "./owned-git";
 import { getErrorMessage } from "@brains/utils/error";
 import type { Logger } from "@brains/utils/logger";
-import { GitStallError, runGitCommandWithStallTimeout } from "./git-stall";
-import type { GitNetwork } from "./git-stall";
+import { GitStallError } from "./git-options";
+import type { GitProcessOptions } from "./git-options";
 
 /** Stage and commit all changes. */
 export async function commitGitChanges(
-  git: SimpleGit,
+  git: OwnedGit,
   logger: Logger,
   message?: string,
 ): Promise<void> {
@@ -37,21 +37,19 @@ export async function commitGitChanges(
 }
 
 export async function pushGitChanges(
+  git: OwnedGit,
   logger: Logger,
   branch: string,
-  net: GitNetwork,
+  processOptions: GitProcessOptions,
   signal?: AbortSignal,
 ): Promise<void> {
   signal?.throwIfAborted();
   logger.debug("Pushing to origin", { branch });
-  // The network push runs on a throwaway, stall-guarded instance so an
-  // unresponsive remote can't hang the caller and wedge the git lock.
   try {
-    await runGitCommandWithStallTimeout(
-      net,
-      ["push", "origin", branch, "--set-upstream"],
+    await git.raw(["push", "origin", branch, "--set-upstream"], {
       signal,
-    );
+      onProgress: processOptions.onProgress,
+    });
   } catch (error) {
     // Cancellation and stalls are terminal. The fallback exists only for the
     // "no upstream configured" case.
@@ -59,18 +57,17 @@ export async function pushGitChanges(
     if (error instanceof GitStallError) {
       throw error;
     }
-    await runGitCommandWithStallTimeout(
-      net,
-      ["push", "origin", branch],
+    await git.raw(["push", "origin", branch], {
       signal,
-    );
+      onProgress: processOptions.onProgress,
+    });
   }
   signal?.throwIfAborted();
   logger.info("Pushed changes to remote");
 }
 
 async function resolveLocalConflicts(
-  git: SimpleGit,
+  git: OwnedGit,
   logger: Logger,
 ): Promise<void> {
   const status = await git.status();
@@ -86,7 +83,7 @@ async function resolveLocalConflicts(
   }
 }
 
-async function assertNoConflictMarkers(git: SimpleGit): Promise<void> {
+async function assertNoConflictMarkers(git: OwnedGit): Promise<void> {
   const diff = await git.diff(["--cached", "--name-only"]);
   for (const file of diff.split("\n").filter((f) => f.trim())) {
     try {

@@ -1,4 +1,4 @@
-import type { SimpleGit } from "simple-git";
+import type { OwnedGit } from "./owned-git";
 import type { GitLogEntry } from "../types/results";
 
 /**
@@ -6,7 +6,7 @@ import type { GitLogEntry } from "../types/results";
  * Returns commits in reverse chronological order (newest first).
  */
 export async function getFileHistory(
-  git: SimpleGit,
+  git: OwnedGit,
   filePath: string,
   limit?: number,
 ): Promise<GitLogEntry[]> {
@@ -45,7 +45,7 @@ export async function getFileHistory(
  * Throws if the sha or file path is invalid.
  */
 export function showFileAtCommit(
-  git: SimpleGit,
+  git: OwnedGit,
   sha: string,
   filePath: string,
 ): Promise<string> {
