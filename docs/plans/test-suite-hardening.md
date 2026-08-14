@@ -2,7 +2,9 @@
 
 ## Status
 
-**In progress — 2026-08-09; Phases 0 through 3 complete.** This is not a rescue plan: the suite is green and structurally healthy today. Every remaining phase targets a drift mechanism or a dead spot rather than failing behavior, so no phase gates a release. Phases are independently shippable and ordered so each one makes the next safer.
+**In progress — 2026-08-09; Phases 0, 1, 2, 3 and 5 complete. Phases 4 and 6 remain.** This is not a rescue plan: the suite is green and structurally healthy today. Every remaining phase targets a drift mechanism or a dead spot rather than failing behavior, so no phase gates a release. Phases are independently shippable and ordered so each one makes the next safer.
+
+Phase 5 is worth reading before starting either remaining phase, for one recurring reason: three of its findings were defects the plan had not predicted, and all three were found by _converting_ code rather than by reading it. Two tests were partly dead — one had never exercised half of what its name promised — and the leak it closed was misattributed to packages that were already clean. Expect the same of the estimates below.
 
 ## Goal
 
@@ -201,13 +203,23 @@ Gate:
 
 ### Phase 5 — Tests wait on conditions, not the clock
 
-Partially shipped. Done: `waitUntil` exists in `@brains/test-utils` with its own tests (steps 1–2); the `Reflect.get` probes are replaced by an introspection accessor on `AgentService` (5); `debounce` and `logger-file` run on fake timers (6); the packed transport ports bind at run time and two concurrent suites no longer collide (step 7); and the inline-`mkdtemp` leak is closed for its three biggest sources — `plugins/cms`, `plugins/playbooks` and `packages/brains-ops` each leak zero directories per package run, via tracked helpers in `@brains/plugins/test` and `@brains/test-utils` (most of step 8).
+**Complete.** `waitUntil` lives in `@brains/test-utils` with its own tests (1–2); the sleep migrations are done (3–4); the `Reflect.get` probes are replaced by an introspection accessor on `AgentService` (5); `debounce` and `logger-file` run on fake timers (6); the packed transport ports bind at run time so two suites no longer collide (7); a forced full run leaves no directory behind (8); bun's install staging is contained in a temp root the packed tests own (9, landed separately on main); and an ESLint rule keeps the sleep idiom out of the migrated packages (10).
 
-Steps 3 and 4 are complete. `plugins/directory-sync` has one sleep left, the deliberate latency simulation inside `git-lock.test.ts`; `interfaces/a2a` has none; and `shell/job-queue`, `interfaces/chat` and `shell/ai-service` retain only sleeps that are not synchronization. Repo-wide the count is 93 → 57.
+The banned idiom is down from ~93 to 40, and every one of the 40 is in a package this phase did not migrate — `shared/utils`, `plugins/site-builder`, `shared/media-renderer`, `shell/messaging-service` and a long tail of single sites. The five migrated packages have none of it: their surviving deliberate sleeps are `Bun.sleep` behind a named helper, which is what makes the step 10 rule enforceable without exceptions.
 
-What remains in the step-4 packages is deliberate, not skipped. `interfaces/chat`'s seven are all `setTimeout(resolve, 0)` — one turn of the macrotask queue before a negative assertion, a yield rather than a duration. `shell/job-queue`'s seven are five timestamp-separation sleeps (below) and two that model how long a handler runs.
+What remains in those five is deliberate, not skipped. `interfaces/chat`'s seven are all `Bun.sleep(0)` — one turn of the macrotask queue before a negative assertion, a yield rather than a duration. `shell/job-queue`'s seven are five timestamp-separation sleeps (below) and two that model how long a handler runs. `plugins/directory-sync` has one, the latency simulation inside `git-lock.test.ts`. `interfaces/a2a` has none.
 
-Still open: the residual ~159-directory leak under a full concurrent run whose cause is not yet explained plus the bun install-staging leak (rest of 8, and 9), and the ESLint ban (10), which must come after the migrations it polices.
+### The temp-directory leak was measured wrong twice
+
+The count and the attribution were both wrong, and in the same way: they came from looking at accumulated `/tmp` state rather than from a run.
+
+A forced full run leaked **51** directories, not ~159, and none of them came from `plugins/cms`, `plugins/playbooks` or `packages/brains-ops` — the three this plan named. Those were already fixed and leak zero, which is checkable in about a minute by diffing `/tmp` around a single package's tests. The real sources were eleven files in nine other packages that nothing had prompted anyone to look at, because a count with no filenames attached gives you nowhere to start.
+
+The method that worked: snapshot `ls /tmp`, run `bun run test --force`, snapshot again, diff the sets. That names the leakers. It is now zero.
+
+Half of them would never have shown up in a `mkdtemp` sweep, which is the other reason they lasted. They passed a literal `` `/tmp/<name>-${crypto.randomUUID()}` `` as a `dataDir` and let the code under test create the directory, so the test never called a temp-directory API at all — there was nothing to grep for, and nothing that owned removal.
+
+Two packages could not take `@brains/test-utils` as a devDependency to reach the shared helper: `shell/plugins` and `shared/db` are both reachable from its own dependency list, which is the cycle described above under "problems to solve". `shell/plugins` has an equivalent helper of its own; `shared/db` tracks locally. That the fix is blocked by a dependency edge on a helper needing nothing from the workspace is the clearest argument yet for extracting the temp-directory and database helpers into a leaf package.
 
 ### What the sleeps actually were
 
