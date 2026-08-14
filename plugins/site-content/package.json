@@ -1,7 +1,7 @@
 {
   "name": "@brains/site-content",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.292",
+  "version": "0.2.0-alpha.293",
   "description": "Site content entity and generation orchestration",
   "dependencies": {
     "@brains/content-formatters": "workspace:*",

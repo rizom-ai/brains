@@ -1,5 +1,12 @@
 # @brains/notification-contracts
 
+## 0.2.0-alpha.293
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.293
+
 ## 0.2.0-alpha.292
 
 ### Patch Changes

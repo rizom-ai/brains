@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.293
+
+### Patch Changes
+
+- [`f25b201`](https://github.com/rizom-ai/brains/commit/f25b2017de7be3a7eb117166ca3458237055137b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Run public declarative Dashboard widgets through a host-owned runtime and semantic renderer. Providers receive canonical caller facts, secret-redacted current-account settings, visibility-scoped entity reads, typed jobs, and request/lifecycle cancellation; the runtime validates data and views, owns finalization, rollback, and shutdown, remains inert without Dashboard, and excludes execution-only workers.
+
 ## 0.2.0-alpha.292
 
 ### Patch Changes

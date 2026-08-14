@@ -1,5 +1,16 @@
 # @brains/image-plugin
 
+## 0.2.0-alpha.293
+
+### Patch Changes
+
+- Updated dependencies [[`f25b201`](https://github.com/rizom-ai/brains/commit/f25b2017de7be3a7eb117166ca3458237055137b)]:
+  - @brains/plugins@0.2.0-alpha.293
+  - @brains/entity-service@0.2.0-alpha.293
+  - @brains/image@0.2.0-alpha.293
+  - @brains/contracts@0.2.0-alpha.293
+  - @brains/utils@0.2.0-alpha.293
+
 ## 0.2.0-alpha.292
 
 ### Patch Changes
