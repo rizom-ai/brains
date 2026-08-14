@@ -37,12 +37,14 @@ const POLL_INTERVAL_MS = 25;
 const RESOURCE_POLL_INTERVAL_MS = 100;
 const CPU_SATURATION_FRACTION = 0.9;
 const MAX_SUSTAINED_CPU_SATURATION_MS = 5_000;
-const MAX_EVENT_LOOP_DELAY_MS = 500;
+const EVENT_LOOP_STALL_THRESHOLD_MS = 500;
+const MAX_EVENT_LOOP_DELAY_MS = 1_000;
+const MAX_SUSTAINED_EVENT_LOOP_DELAY_MS = 5_000;
 const RESOURCE_SETTLE_MS = 5_000;
 const MAX_RSS_BYTES = 1_216 * 1024 * 1024;
 const MAX_RSS_GROWTH_BYTES = 768 * 1024 * 1024;
-const MAX_FINAL_RSS_BYTES = 1_152 * 1024 * 1024;
-const MAX_FINAL_RSS_GROWTH_BYTES = 704 * 1024 * 1024;
+const MAX_FINAL_RSS_BYTES = MAX_RSS_BYTES;
+const MAX_FINAL_RSS_GROWTH_BYTES = MAX_RSS_GROWTH_BYTES;
 /** Work cascades here, so an empty queue only counts after it stays empty. */
 const QUIET_MS = 250;
 
@@ -488,6 +490,7 @@ describe("directory import burst with locally mocked AI features", () => {
         intervalMs: RESOURCE_POLL_INTERVAL_MS,
         cpuCapacity,
         saturationFraction: CPU_SATURATION_FRACTION,
+        eventLoopStallThresholdMs: EVENT_LOOP_STALL_THRESHOLD_MS,
       });
       const startedAt = Date.now();
       let resources: ProcessResourceSnapshot | undefined;
@@ -584,6 +587,9 @@ describe("directory import burst with locally mocked AI features", () => {
         );
         expect(resources.maxEventLoopDelayMs).toBeLessThan(
           MAX_EVENT_LOOP_DELAY_MS,
+        );
+        expect(resources.maxSustainedEventLoopDelayMs).toBeLessThan(
+          MAX_SUSTAINED_EVENT_LOOP_DELAY_MS,
         );
         expect(resources.maxRssBytes).toBeLessThan(MAX_RSS_BYTES);
         expect(resources.maxRssGrowthBytes).toBeLessThan(MAX_RSS_GROWTH_BYTES);

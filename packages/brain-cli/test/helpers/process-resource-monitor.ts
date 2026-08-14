@@ -12,6 +12,7 @@ export interface ProcessResourceSnapshot {
   maxCpuFraction: number;
   maxSustainedCpuSaturationMs: number;
   maxEventLoopDelayMs: number;
+  maxSustainedEventLoopDelayMs: number;
   baselineRssBytes: number;
   maxRssBytes: number;
   maxRssGrowthBytes: number;
@@ -23,14 +24,17 @@ export class ProcessResourceTracker {
   private readonly cpuCapacity: number;
   private readonly saturationFraction: number;
   private readonly expectedSampleIntervalMs: number;
+  private readonly eventLoopStallThresholdMs: number;
   private previous: ProcessResourceSample | undefined;
   private consecutiveSaturationMs = 0;
+  private consecutiveEventLoopDelayMs = 0;
   private readonly usage: ProcessResourceSnapshot = {
     samples: 0,
     maxCpuCores: 0,
     maxCpuFraction: 0,
     maxSustainedCpuSaturationMs: 0,
     maxEventLoopDelayMs: 0,
+    maxSustainedEventLoopDelayMs: 0,
     baselineRssBytes: 0,
     maxRssBytes: 0,
     maxRssGrowthBytes: 0,
@@ -42,10 +46,12 @@ export class ProcessResourceTracker {
     cpuCapacity: number;
     saturationFraction: number;
     expectedSampleIntervalMs: number;
+    eventLoopStallThresholdMs: number;
   }) {
     this.cpuCapacity = options.cpuCapacity;
     this.saturationFraction = options.saturationFraction;
     this.expectedSampleIntervalMs = options.expectedSampleIntervalMs;
+    this.eventLoopStallThresholdMs = options.eventLoopStallThresholdMs;
   }
 
   observe(sample: ProcessResourceSample): void {
@@ -79,9 +85,21 @@ export class ProcessResourceTracker {
         this.usage.maxSustainedCpuSaturationMs,
         this.consecutiveSaturationMs,
       );
+      const eventLoopDelayMs = Math.max(
+        0,
+        elapsedMs - this.expectedSampleIntervalMs,
+      );
       this.usage.maxEventLoopDelayMs = Math.max(
         this.usage.maxEventLoopDelayMs,
-        elapsedMs - this.expectedSampleIntervalMs,
+        eventLoopDelayMs,
+      );
+      this.consecutiveEventLoopDelayMs =
+        eventLoopDelayMs >= this.eventLoopStallThresholdMs
+          ? this.consecutiveEventLoopDelayMs + eventLoopDelayMs
+          : 0;
+      this.usage.maxSustainedEventLoopDelayMs = Math.max(
+        this.usage.maxSustainedEventLoopDelayMs,
+        this.consecutiveEventLoopDelayMs,
       );
     }
 
@@ -132,12 +150,14 @@ export function startProcessResourceMonitor(options: {
   intervalMs: number;
   cpuCapacity: number;
   saturationFraction: number;
+  eventLoopStallThresholdMs: number;
 }): ProcessResourceMonitor {
   let running = true;
   const tracker = new ProcessResourceTracker({
     cpuCapacity: options.cpuCapacity,
     saturationFraction: options.saturationFraction,
     expectedSampleIntervalMs: options.intervalMs,
+    eventLoopStallThresholdMs: options.eventLoopStallThresholdMs,
   });
   tracker.observe(takeProcessResourceSample());
 
