@@ -183,7 +183,7 @@ jobs:
             turbo-${{ runner.os }}-
 
       - name: Test core packages
-        run: bunx turbo run test --filter='!@rizom/site*' --filter='!@rizom/theme*'
+        run: bunx turbo run test --concurrency="$(nproc)" --filter='!@rizom/site*' --filter='!@rizom/theme*'
 
   build:
     name: Build
