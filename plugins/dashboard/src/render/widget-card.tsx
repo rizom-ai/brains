@@ -1,5 +1,5 @@
 /** @jsxImportSource react */
-import { CardHeader } from "@brains/ui-library";
+import { CardHeader } from "@rizom/brain-ui";
 import type { JSX } from "react";
 import { DeclarativeWidgetBody } from "./declarative-widget";
 import type { RenderableWidgetData } from "./types";

@@ -1,5 +1,5 @@
 ---
-"@brains/ui-library": patch
+"@rizom/brain-ui": patch
 "@brains/site-professional": patch
 ---
 

@@ -1,7 +1,7 @@
 import type { JSX, ReactNode } from "react";
 import type { LayoutSlots } from "@brains/site-engine";
 import type { SiteLayoutInfo } from "@brains/site-composition";
-import { Header, Footer } from "@brains/ui-library";
+import { Header, Footer } from "@rizom/brain-ui";
 
 export interface ProfessionalLayoutProps {
   sections: ReactNode[];

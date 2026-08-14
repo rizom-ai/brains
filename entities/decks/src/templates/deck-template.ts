@@ -1,5 +1,5 @@
 import { z } from "@brains/sdk/entities";
-import { PresentationLayout } from "@brains/ui-library";
+import { PresentationLayout } from "@rizom/brain-ui";
 import { createTemplate, type Template } from "@brains/sdk/entities";
 import { deckViewSchema } from "./deck-view-schema";
 

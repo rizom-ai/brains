@@ -1,6 +1,6 @@
 import type { JSX } from "react";
 import type { TopicDetailData } from "./schema";
-import { BackLink, DetailPageHeader } from "@brains/ui-library";
+import { BackLink, DetailPageHeader } from "@rizom/brain-ui";
 
 export const TopicDetailLayout = ({
   title,

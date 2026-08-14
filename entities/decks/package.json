@@ -7,7 +7,7 @@
     "@brains/image": "workspace:*",
     "@brains/media-page-composer": "workspace:*",
     "@brains/sdk": "workspace:*",
-    "@brains/ui-library": "workspace:*"
+    "@rizom/brain-ui": "workspace:*"
   },
   "devDependencies": {
     "@brains/atproto-contracts": "workspace:*",

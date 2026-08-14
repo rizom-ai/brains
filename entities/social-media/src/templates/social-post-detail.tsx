@@ -7,7 +7,7 @@ import {
   Card,
   CoverImage,
   type BreadcrumbItem,
-} from "@brains/ui-library";
+} from "@rizom/brain-ui";
 import type { SocialPostView } from "./social-post-view";
 
 export interface SocialPostDetailProps {

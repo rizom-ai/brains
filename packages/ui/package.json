@@ -1,11 +1,10 @@
 {
-  "name": "@brains/ui-library",
+  "name": "@rizom/brain-ui",
   "version": "0.2.0-alpha.349",
   "description": "Shared UI components for the Brains project.",
   "license": "AGPL-3.0-only",
   "author": "Gemini",
   "dependencies": {
-    "@brains/contracts": "workspace:*",
     "@brains/utils": "workspace:*",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.0",

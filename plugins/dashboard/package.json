@@ -9,8 +9,9 @@
     "@brains/contracts": "workspace:*",
     "@brains/operator-view-react": "workspace:*",
     "@brains/plugins": "workspace:*",
-    "@brains/ui-library": "workspace:*",
     "@brains/utils": "workspace:*",
+    "@rizom/brain-ui": "workspace:*",
+    "preact-render-to-string": "^6.7.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7"
   },
