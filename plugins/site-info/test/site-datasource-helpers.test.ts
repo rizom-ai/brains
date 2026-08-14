@@ -5,7 +5,7 @@ import {
   fetchRecentEntities,
   requireCta,
 } from "../src/datasources/site-datasource-helpers";
-import type { SiteInfoCTA } from "../src/schemas/site-info-schema";
+import type { SiteInfoCTA } from "../src/entity/schema";
 
 function isoDaysAgo(days: number): string {
   return new Date(Date.UTC(2026, 0, 1 + days)).toISOString();

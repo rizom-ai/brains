@@ -1,8 +1,5 @@
 import { z } from "@brains/utils/zod";
-import {
-  siteInfoBodySchema,
-  type ResolvedSiteInfoBody,
-} from "./site-info-schema";
+import { siteInfoBodySchema, type ResolvedSiteInfoBody } from "./schema";
 
 export interface SiteInfoNavigationItem {
   label: string;

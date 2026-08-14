@@ -7,7 +7,7 @@ import {
   type SiteInfoBody,
   type SiteInfoBodyInput,
   type SiteInfoMetadata,
-} from "../schemas/site-info-schema";
+} from "./schema";
 
 const frontmatterRecordSchema = z.record(z.string(), z.unknown());
 

@@ -1,6 +1,6 @@
 import { describe, it, expect } from "bun:test";
-import { SiteInfoAdapter } from "../src/adapters/site-info-adapter";
-import type { SiteInfoEntity } from "../src/schemas/site-info-schema";
+import { SiteInfoAdapter } from "../src/entity/adapter";
+import type { SiteInfoEntity } from "../src/entity/schema";
 
 describe("SiteInfoAdapter", () => {
   const adapter = new SiteInfoAdapter();
