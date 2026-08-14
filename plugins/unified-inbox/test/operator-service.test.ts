@@ -164,6 +164,127 @@ describe("InboxOperatorService", () => {
     ).toBe(false);
   });
 
+  it("filters source-scoped facets consistently and ignores orphaned selections", async () => {
+    const registry = new InboxRegistry();
+    registry.registerSource("mail-plugin", {
+      sourceId: "mail-items",
+      displayName: "Email Triage",
+      facets: [
+        {
+          key: "category",
+          label: "Category",
+          values: [
+            { value: "work", label: "Work" },
+            { value: "opportunity", label: "Opportunity" },
+          ],
+        },
+        {
+          key: "needs-reply",
+          label: "Needs reply",
+          values: [
+            { value: "true", label: "Yes" },
+            { value: "false", label: "No" },
+          ],
+        },
+      ],
+      list: async () => [
+        {
+          ...attentionItem([]),
+          id: "mail-work",
+          facets: { category: "work", "needs-reply": "true" },
+        },
+        {
+          ...attentionItem([]),
+          id: "mail-opportunity",
+          facets: { category: "opportunity", "needs-reply": "false" },
+        },
+        {
+          ...attentionItem([]),
+          id: "mail-without-facets",
+        },
+      ],
+      act: async () => undefined,
+    });
+    registry.registerSource("candidate-plugin", {
+      sourceId: "candidate-items",
+      displayName: "Candidates",
+      facets: [
+        {
+          key: "category",
+          label: "Review state",
+          values: [{ value: "review", label: "Needs review" }],
+        },
+      ],
+      list: async () => [
+        {
+          ...attentionItem([]),
+          id: "candidate-review",
+          urgency: "normal",
+          facets: { category: "review" },
+        },
+      ],
+      act: async () => undefined,
+    });
+    registry.finalize();
+    const followUps = new InboxFollowUpRegistry();
+    followUps.finalize();
+    const service = new InboxOperatorService(
+      registry,
+      new InboxDataSource(registry),
+      followUps,
+    );
+
+    const workspace = await service.workspace(
+      {
+        sourceId: "mail-items",
+        urgency: "high",
+        "facet.category": "work",
+        "facet.needs-reply": "true",
+        offset: 0,
+        limit: 50,
+      },
+      { permissionLevel: "admin" },
+    );
+    const headless = await service.list({
+      sourceId: "mail-items",
+      urgency: "high",
+      facets: { category: "work", "needs-reply": "true" },
+      limit: 50,
+    });
+
+    expect(workspace.entries.map((entry) => entry.item.id)).toEqual([
+      "mail-work",
+    ]);
+    expect(headless.entries.map((entry) => entry.item.title)).toEqual([
+      "Time-sensitive work request",
+    ]);
+    expect(workspace.total).toBe(1);
+    expect(headless.total).toBe(1);
+
+    const independent = await service.workspace(
+      {
+        sourceId: "candidate-items",
+        "facet.category": "review",
+      },
+      { permissionLevel: "admin" },
+    );
+    expect(independent.entries.map((entry) => entry.item.id)).toEqual([
+      "candidate-review",
+    ]);
+
+    const crossSource = await service.workspace(
+      {
+        sourceId: "candidate-items",
+        "facet.category": "work",
+        "facet.needs-reply": "true",
+      },
+      { permissionLevel: "admin" },
+    );
+    expect(crossSource.entries.map((entry) => entry.item.id)).toEqual([
+      "candidate-review",
+    ]);
+  });
+
   it("resolves universal follow-ups only for the bounded workspace page", async () => {
     const registry = new InboxRegistry();
     registry.registerSource("mail-plugin", {

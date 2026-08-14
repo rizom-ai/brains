@@ -14,7 +14,8 @@ The capability is explicit opt-in. It is a compound package containing the triag
 - owns acknowledgement of raw inbound mail, so a failure holds the mailbox cursor rather than losing a message
 - registers an Admin-only Email Triage CMS workspace with combined filters and typed status actions
 - contributes a compact dashboard count linking to that workspace
-- registers a `mail-items` inbox source for `@brains/unified-inbox`
+- registers a `mail-items` inbox source for `@brains/unified-inbox`, with source-scoped
+  category, mail-priority, and needs-reply facets for workspace and headless filtering
 
 ## The mailbox stays canonical
 

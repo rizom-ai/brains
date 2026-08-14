@@ -11,6 +11,7 @@ import type {
   InboxWorkspaceAction,
   InboxWorkspaceActionResult,
   InboxWorkspaceEntry,
+  InboxWorkspaceFacetDefinition,
   InboxWorkspaceFollowUp,
   InboxWorkspaceSnapshot,
 } from "./api";
@@ -44,6 +45,37 @@ function sourceFilterValue(value: string): string | undefined {
 
 function urgencyFilterValue(value: string): "high" | "normal" | undefined {
   return value === "high" || value === "normal" ? value : undefined;
+}
+
+interface WorkspaceFilters {
+  sourceId: string | undefined;
+  urgency: "high" | "normal" | undefined;
+  facets: Record<string, string>;
+}
+
+function facetQueryKey(key: string): string {
+  return `facet.${key}`;
+}
+
+function selectedFacetFilters(
+  query: CmsWorkspaceQuery,
+  definitions: InboxWorkspaceFacetDefinition[],
+): Record<string, string> {
+  return Object.fromEntries(
+    definitions.flatMap((definition) => {
+      const value = query[facetQueryKey(definition.key)];
+      return typeof value === "string" &&
+        definition.values.some((option) => option.value === value)
+        ? [[definition.key, value]]
+        : [];
+    }),
+  );
+}
+
+function facetQuery(filters: Record<string, string>): CmsWorkspaceQuery {
+  return Object.fromEntries(
+    Object.entries(filters).map(([key, value]) => [facetQueryKey(key), value]),
+  );
 }
 
 interface InboxFeedback {
@@ -117,11 +149,15 @@ export function UnifiedInboxWorkspace(props: {
 
   const requestedSource =
     typeof query["sourceId"] === "string" ? query["sourceId"] : undefined;
-  const sourceFilter = data.sources.some(
+  const selectedSource = data.sources.find(
     (source) => source.source.sourceId === requestedSource,
-  )
-    ? requestedSource
-    : undefined;
+  );
+  const sourceFilter = selectedSource?.source.sourceId;
+  const facetDefinitions = selectedSource?.source.facets ?? [];
+  const facetFilters = useMemo(
+    () => selectedFacetFilters(query, facetDefinitions),
+    [facetDefinitions, query],
+  );
   const urgencyFilter =
     query["urgency"] === "high" || query["urgency"] === "normal"
       ? query["urgency"]
@@ -132,20 +168,16 @@ export function UnifiedInboxWorkspace(props: {
     () => ({
       ...(sourceFilter !== undefined ? { sourceId: sourceFilter } : {}),
       ...(urgencyFilter !== undefined ? { urgency: urgencyFilter } : {}),
+      ...facetQuery(facetFilters),
     }),
-    [sourceFilter, urgencyFilter],
+    [facetFilters, sourceFilter, urgencyFilter],
   );
 
   const filteredQuery = useCallback(
-    (
-      filters: {
-        sourceId: string | undefined;
-        urgency: "high" | "normal" | undefined;
-      },
-      offset: number,
-    ): CmsWorkspaceQuery => ({
+    (filters: WorkspaceFilters, offset: number): CmsWorkspaceQuery => ({
       ...(filters.sourceId !== undefined ? { sourceId: filters.sourceId } : {}),
       ...(filters.urgency !== undefined ? { urgency: filters.urgency } : {}),
+      ...facetQuery(filters.facets),
       offset,
       limit,
     }),
@@ -157,11 +189,19 @@ export function UnifiedInboxWorkspace(props: {
       return;
     }
     onQueryChange(
-      filteredQuery({ sourceId: sourceFilter, urgency: urgencyFilter }, 0),
+      filteredQuery(
+        {
+          sourceId: sourceFilter,
+          urgency: urgencyFilter,
+          facets: facetFilters,
+        },
+        0,
+      ),
       canonicalUrlQuery,
     );
   }, [
     canonicalUrlQuery,
+    facetFilters,
     filteredQuery,
     onQueryChange,
     query,
@@ -183,42 +223,37 @@ export function UnifiedInboxWorkspace(props: {
     window.setTimeout(() => originRef.current?.focus(), 0);
   }, []);
 
-  const changeFilter = useCallback(
-    (patch: {
-      sourceId?: string | undefined;
-      urgency?: "high" | "normal" | undefined;
-    }): void => {
+  const changeFilters = useCallback(
+    (filters: WorkspaceFilters): void => {
       setSelectedKey(null);
       originRef.current = null;
       setFeedback(null);
-      const filters: {
-        sourceId: string | undefined;
-        urgency: "high" | "normal" | undefined;
-      } = {
-        sourceId: sourceFilter,
-        urgency: urgencyFilter,
-        ...patch,
-      };
       const nextUrlQuery: CmsWorkspaceQuery = {
         ...(filters.sourceId !== undefined
           ? { sourceId: filters.sourceId }
           : {}),
         ...(filters.urgency !== undefined ? { urgency: filters.urgency } : {}),
+        ...facetQuery(filters.facets),
       };
       onQueryChange(filteredQuery(filters, 0), nextUrlQuery);
     },
-    [filteredQuery, onQueryChange, sourceFilter, urgencyFilter],
+    [filteredQuery, onQueryChange],
   );
 
   const loadMore = useCallback((): void => {
     onQueryChange(
       filteredQuery(
-        { sourceId: sourceFilter, urgency: urgencyFilter },
+        {
+          sourceId: sourceFilter,
+          urgency: urgencyFilter,
+          facets: facetFilters,
+        },
         entries.length,
       ),
     );
   }, [
     entries.length,
+    facetFilters,
     filteredQuery,
     onQueryChange,
     sourceFilter,
@@ -243,12 +278,20 @@ export function UnifiedInboxWorkspace(props: {
         setFeedback({ message: "Inbox updated.", isError: false });
         setSelectedKey(null);
         onQueryChange(
-          filteredQuery({ sourceId: sourceFilter, urgency: urgencyFilter }, 0),
+          filteredQuery(
+            {
+              sourceId: sourceFilter,
+              urgency: urgencyFilter,
+              facets: facetFilters,
+            },
+            0,
+          ),
         );
       }
     },
     [
       action,
+      facetFilters,
       filteredQuery,
       onAction,
       onQueryChange,
@@ -322,7 +365,11 @@ export function UnifiedInboxWorkspace(props: {
           <select
             value={sourceFilter ?? "all"}
             onChange={(event) =>
-              changeFilter({ sourceId: sourceFilterValue(event.target.value) })
+              changeFilters({
+                sourceId: sourceFilterValue(event.target.value),
+                urgency: urgencyFilter,
+                facets: {},
+              })
             }
           >
             <option value="all">All sources</option>
@@ -341,7 +388,11 @@ export function UnifiedInboxWorkspace(props: {
           <select
             value={urgencyFilter ?? "all"}
             onChange={(event) =>
-              changeFilter({ urgency: urgencyFilterValue(event.target.value) })
+              changeFilters({
+                sourceId: sourceFilter,
+                urgency: urgencyFilterValue(event.target.value),
+                facets: facetFilters,
+              })
             }
           >
             <option value="all">All urgency</option>
@@ -349,6 +400,33 @@ export function UnifiedInboxWorkspace(props: {
             <option value="normal">Normal</option>
           </select>
         </label>
+        {facetDefinitions.map((definition) => (
+          <label key={definition.key}>
+            <span>{definition.label}</span>
+            <select
+              name={facetQueryKey(definition.key)}
+              value={facetFilters[definition.key] ?? "all"}
+              onChange={(event) => {
+                const value = event.target.value;
+                const nextFacets = { ...facetFilters };
+                if (value === "all") delete nextFacets[definition.key];
+                else nextFacets[definition.key] = value;
+                changeFilters({
+                  sourceId: sourceFilter,
+                  urgency: urgencyFilter,
+                  facets: nextFacets,
+                });
+              }}
+            >
+              <option value="all">All</option>
+              {definition.values.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        ))}
         <span>
           {entries.length} shown · {data.total} matching
         </span>

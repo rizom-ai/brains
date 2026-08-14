@@ -6,6 +6,7 @@ import type {
 } from "@brains/plugins";
 import { sourceMetadata, type InboxDataSource } from "./inbox-datasource";
 import {
+  normalizeInboxListFilter,
   normalizeInboxWorkspaceQuery,
   type InboxActionOutcome,
   type InboxActionRequest,
@@ -44,10 +45,14 @@ export class InboxOperatorService {
 
   async list(filter: InboxListFilter): Promise<InboxListResult> {
     const projection = await this.dataSource.getInboxData();
-    const matching = filterEntries(projection, filter);
+    const normalized = normalizeInboxListFilter(
+      filter,
+      this.registry.listSources(),
+    );
+    const matching = filterEntries(projection, normalized);
     return {
-      entries: matching.slice(0, filter.limit).map(toListEntry),
-      errors: filterErrors(projection, filter.sourceId),
+      entries: matching.slice(0, normalized.limit).map(toListEntry),
+      errors: filterErrors(projection, normalized.sourceId),
       total: matching.length,
     };
   }
@@ -58,7 +63,7 @@ export class InboxOperatorService {
   ): Promise<InboxWorkspaceSnapshot> {
     const query: InboxWorkspaceQuery = normalizeInboxWorkspaceQuery(
       input,
-      this.registry.listSources().map((source) => source.sourceId),
+      this.registry.listSources(),
     );
     const projection = await this.dataSource.getInboxData();
     const counts = countBySource(projection.entries);
@@ -142,7 +147,10 @@ export class InboxOperatorService {
       projection.errors.map((error) => error.source.sourceId),
     );
     return this.registry.listSources().map((source) => ({
-      source: sourceMetadata(source),
+      source: {
+        ...sourceMetadata(source),
+        ...(source.facets ? { facets: source.facets } : {}),
+      },
       ...(counts.get(source.sourceId) ?? { open: 0, high: 0 }),
       available: !unavailable.has(source.sourceId),
     }));
@@ -162,13 +170,20 @@ function countBySource(
 
 function filterEntries(
   projection: InboxProjection,
-  filter: { sourceId?: string | undefined; urgency?: string | undefined },
+  filter: {
+    sourceId?: string | undefined;
+    urgency?: string | undefined;
+    facets?: Record<string, string> | undefined;
+  },
 ): InboxProjection["entries"] {
   return projection.entries.filter(
     (entry) =>
       (filter.sourceId === undefined ||
         entry.source.sourceId === filter.sourceId) &&
-      (filter.urgency === undefined || entry.item.urgency === filter.urgency),
+      (filter.urgency === undefined || entry.item.urgency === filter.urgency) &&
+      Object.entries(filter.facets ?? {}).every(
+        ([key, value]) => entry.item.facets?.[key] === value,
+      ),
   );
 }
 

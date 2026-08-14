@@ -2,6 +2,7 @@ import {
   inboxItemListSchema,
   type InboxAction,
   type InboxActor,
+  type InboxFacetDefinition,
   type InboxItem,
   type InboxSource,
 } from "@brains/plugins";
@@ -13,9 +14,42 @@ import {
 
 const INBOX_ITEM_LIMIT = 100;
 
+const MAIL_FACETS: InboxFacetDefinition[] = [
+  {
+    key: "category",
+    label: "Category",
+    values: [
+      { value: "opportunity", label: "Opportunity" },
+      { value: "recruiting", label: "Recruiting" },
+      { value: "work", label: "Work" },
+      { value: "administrative", label: "Administrative" },
+      { value: "personal", label: "Personal" },
+      { value: "unclassified", label: "Unclassified" },
+    ],
+  },
+  {
+    key: "mail-priority",
+    label: "Mail priority",
+    values: [
+      { value: "high", label: "High" },
+      { value: "normal", label: "Normal" },
+      { value: "low", label: "Low" },
+    ],
+  },
+  {
+    key: "needs-reply",
+    label: "Needs reply",
+    values: [
+      { value: "true", label: "Yes" },
+      { value: "false", label: "No" },
+    ],
+  },
+];
+
 export class MailTriageInboxSource implements InboxSource {
   readonly sourceId: string = "mail-items";
   readonly displayName: string = "Email Triage";
+  readonly facets: InboxFacetDefinition[] = MAIL_FACETS;
 
   private readonly operator: MailTriageOperatorService;
   private readonly readiness: { isReady(): Promise<boolean> } | undefined;
@@ -77,6 +111,11 @@ function toInboxItem(
       : {}),
     receivedAt: item.receivedAt,
     urgency: item.priority === "high" ? "high" : "normal",
+    facets: {
+      category: item.category ?? "unclassified",
+      "mail-priority": item.priority,
+      "needs-reply": String(item.needsReply),
+    },
     entityRef: { entityType: "mail-item", entityId: item.id },
     actions: inboxActions(),
   };

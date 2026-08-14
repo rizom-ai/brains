@@ -16,6 +16,82 @@ export const inboxUrgencySchema: z.ZodEnum<{
   normal: "normal";
 }> = z.enum(["high", "normal"]);
 
+export const inboxFacetKeySchema: z.ZodString = inboxIdSchema.max(40);
+export const inboxFacetValueSchema: z.ZodString = inboxIdSchema.max(40);
+
+interface InboxFacetOptionValue {
+  value: string;
+  label: string;
+}
+
+export const inboxFacetOptionSchema: z.ZodType<
+  InboxFacetOptionValue,
+  InboxFacetOptionValue
+> = z.strictObject({
+  value: inboxFacetValueSchema,
+  label: z.string().trim().min(1).max(100),
+});
+
+interface InboxFacetDefinitionValue {
+  key: string;
+  label: string;
+  values: InboxFacetOptionValue[];
+}
+
+export const inboxFacetDefinitionSchema: z.ZodType<
+  InboxFacetDefinitionValue,
+  InboxFacetDefinitionValue
+> = z
+  .strictObject({
+    key: inboxFacetKeySchema,
+    label: z.string().trim().min(1).max(100),
+    values: z.array(inboxFacetOptionSchema).min(1).max(20),
+  })
+  .superRefine((definition, context) => {
+    const values = new Set<string>();
+    for (const option of definition.values) {
+      if (values.has(option.value)) {
+        context.addIssue({
+          code: "custom",
+          path: ["values"],
+          message: `Duplicate inbox facet value: ${option.value}`,
+        });
+      }
+      values.add(option.value);
+    }
+  });
+
+export const inboxFacetDefinitionsSchema: z.ZodType<
+  InboxFacetDefinitionValue[],
+  InboxFacetDefinitionValue[]
+> = z
+  .array(inboxFacetDefinitionSchema)
+  .max(8)
+  .superRefine((definitions, context) => {
+    const keys = new Set<string>();
+    for (const definition of definitions) {
+      if (keys.has(definition.key)) {
+        context.addIssue({
+          code: "custom",
+          path: [],
+          message: `Duplicate inbox facet key: ${definition.key}`,
+        });
+      }
+      keys.add(definition.key);
+    }
+  });
+
+interface InboxFacetsValue {
+  [key: string]: string;
+}
+
+export const inboxFacetsSchema: z.ZodType<InboxFacetsValue, InboxFacetsValue> =
+  z
+    .record(inboxFacetKeySchema, inboxFacetValueSchema)
+    .refine((facets) => Object.keys(facets).length <= 8, {
+      message: "Inbox items may declare at most eight facets",
+    });
+
 interface InboxActionValue {
   id: string;
   label: string;
@@ -64,6 +140,7 @@ interface InboxItemValue {
   receivedAt: string;
   urgency: "high" | "normal";
   entityRef?: InboxEntityRefValue | undefined;
+  facets?: InboxFacetsValue | undefined;
   actions: InboxActionValue[];
 }
 
@@ -82,6 +159,7 @@ export const inboxItemSchema: z.ZodType<InboxItemValue, InboxItemValue> = z
     receivedAt: z.iso.datetime(),
     urgency: inboxUrgencySchema,
     entityRef: inboxEntityRefSchema.optional(),
+    facets: inboxFacetsSchema.optional(),
     actions: z.array(inboxActionSchema).max(10),
   })
   .superRefine((item, context) => {
@@ -125,14 +203,33 @@ export const inboxSourceMetadataSchema: z.ZodType<
   displayName: z.string().trim().min(1).max(100),
 });
 
+interface InboxSourceDescriptorValue extends InboxSourceMetadataValue {
+  facets?: InboxFacetDefinitionValue[] | undefined;
+}
+
+export const inboxSourceDescriptorSchema: z.ZodType<
+  InboxSourceDescriptorValue,
+  InboxSourceDescriptorValue
+> = z.strictObject({
+  sourceId: inboxIdSchema,
+  displayName: z.string().trim().min(1).max(100),
+  facets: inboxFacetDefinitionsSchema.optional(),
+});
+
 export type InboxAction = z.output<typeof inboxActionSchema>;
 export type InboxEntityRef = z.output<typeof inboxEntityRefSchema>;
 export type InboxContact = z.output<typeof inboxContactSchema>;
+export type InboxFacetOption = z.output<typeof inboxFacetOptionSchema>;
+export type InboxFacetDefinition = z.output<typeof inboxFacetDefinitionSchema>;
+export type InboxFacets = z.output<typeof inboxFacetsSchema>;
 export type InboxItem = z.output<typeof inboxItemSchema>;
 export type InboxActor = z.output<typeof inboxActorSchema>;
 export type InboxSourceMetadata = z.output<typeof inboxSourceMetadataSchema>;
+export type InboxSourceDescriptor = z.output<
+  typeof inboxSourceDescriptorSchema
+>;
 
-export interface InboxSource extends InboxSourceMetadata {
+export interface InboxSource extends InboxSourceDescriptor {
   list(): Promise<InboxItem[]>;
   act(itemId: string, actionId: string, actor: InboxActor): Promise<void>;
 }
@@ -160,17 +257,22 @@ export class InboxRegistry implements IInboxRegistry {
   registerSource(pluginId: string, source: InboxSource): void {
     this.assertRegistrationOpen();
     const owner = normalizePluginId(pluginId);
-    const metadata = inboxSourceMetadataSchema.parse({
+    const descriptor = inboxSourceDescriptorSchema.parse({
       sourceId: source.sourceId,
       displayName: source.displayName,
+      ...(source.facets ? { facets: source.facets } : {}),
     });
     if (typeof source.list !== "function" || typeof source.act !== "function") {
       throw new Error("Inbox source operations are required");
     }
-    const normalized = normalizeSource(metadata, source);
-    const registrations = this.registrations.get(metadata.sourceId) ?? [];
+    const normalized = normalizeSource(
+      descriptor,
+      descriptor.facets ?? [],
+      source,
+    );
+    const registrations = this.registrations.get(descriptor.sourceId) ?? [];
     registrations.push({ pluginId: owner, source: normalized });
-    this.registrations.set(metadata.sourceId, registrations);
+    this.registrations.set(descriptor.sourceId, registrations);
   }
 
   unregisterPlugin(pluginId: string): void {
@@ -237,12 +339,19 @@ export class InboxRegistry implements IInboxRegistry {
 
 function normalizeSource(
   metadata: InboxSourceMetadata,
+  facets: InboxFacetDefinition[],
   source: InboxSource,
 ): InboxSource {
+  const normalizedFacets = freezeFacetDefinitions(facets);
+  const sourceFacetsSchema = createSourceFacetsSchema(normalizedFacets);
   return Object.freeze({
     ...metadata,
+    ...(normalizedFacets.length > 0 ? { facets: normalizedFacets } : {}),
     list: async (): Promise<InboxItem[]> => {
       const items = inboxItemListSchema.parse(await source.list());
+      for (const item of items) {
+        if (item.facets !== undefined) sourceFacetsSchema.parse(item.facets);
+      }
       return items.map(freezeItem);
     },
     act: async (
@@ -272,7 +381,44 @@ function freezeItem(item: InboxItem): InboxItem {
     ...(item.entityRef
       ? { entityRef: Object.freeze({ ...item.entityRef }) }
       : {}),
+    ...(item.facets ? { facets: Object.freeze({ ...item.facets }) } : {}),
     actions,
+  });
+}
+
+function freezeFacetDefinitions(
+  definitions: InboxFacetDefinition[],
+): InboxFacetDefinition[] {
+  const frozen = definitions.map((definition) => {
+    const values = definition.values.map((option) =>
+      Object.freeze({ ...option }),
+    );
+    Object.freeze(values);
+    return Object.freeze({ ...definition, values });
+  });
+  Object.freeze(frozen);
+  return frozen;
+}
+
+function createSourceFacetsSchema(
+  definitions: InboxFacetDefinition[],
+): z.ZodType<InboxFacets, InboxFacets> {
+  const allowed = new Map(
+    definitions.map((definition) => [
+      definition.key,
+      new Set(definition.values.map((option) => option.value)),
+    ]),
+  );
+  return inboxFacetsSchema.superRefine((facets, context) => {
+    for (const [key, value] of Object.entries(facets)) {
+      if (!allowed.get(key)?.has(value)) {
+        context.addIssue({
+          code: "custom",
+          path: [key],
+          message: `Undeclared inbox facet value: ${key}=${value}`,
+        });
+      }
+    }
   });
 }
 

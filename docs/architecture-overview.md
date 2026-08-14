@@ -165,22 +165,22 @@ Entity packages live in `entities/`. Most packages define one entity type; a few
 
 Service plugins live in `plugins/` and provide tools, handlers, routes, orchestration, or external integrations.
 
-| Package                    | Purpose                                                                   |
-| -------------------------- | ------------------------------------------------------------------------- |
-| `plugins/analytics`        | Analytics integration and insights                                        |
-| `plugins/atproto`          | AT Protocol identity, publishing, discovery, feeds                        |
-| `plugins/atproto-registry` | Canonical Rizom AT Protocol lexicon registry                              |
-| `plugins/content-pipeline` | Publishing queue, scheduling, retries                                     |
-| `plugins/dashboard`        | Dashboard widgets and UI slots                                            |
-| `plugins/directory-sync`   | File sync + git operations                                                |
-| `plugins/newsletter`       | Compound newsletter entity and Buttondown service capability              |
-| `plugins/notifications`    | Notification routing for transactional and administrative messages        |
-| `plugins/obsidian-vault`   | Obsidian export/templates                                                 |
-| `plugins/site-builder`     | Static site build orchestration                                           |
-| `plugins/site-content`     | Site section content generation                                           |
-| `plugins/stock-photo`      | Stock-photo search and selection                                          |
-| `plugins/unified-inbox`    | Live inbox projection, resolved launches, CMS triage, summary, and digest |
-| `plugins/cms`              | Browser authoring routes + CMS config                                     |
+| Package                    | Purpose                                                                                         |
+| -------------------------- | ----------------------------------------------------------------------------------------------- |
+| `plugins/analytics`        | Analytics integration and insights                                                              |
+| `plugins/atproto`          | AT Protocol identity, publishing, discovery, feeds                                              |
+| `plugins/atproto-registry` | Canonical Rizom AT Protocol lexicon registry                                                    |
+| `plugins/content-pipeline` | Publishing queue, scheduling, retries                                                           |
+| `plugins/dashboard`        | Dashboard widgets and UI slots                                                                  |
+| `plugins/directory-sync`   | File sync + git operations                                                                      |
+| `plugins/newsletter`       | Compound newsletter entity and Buttondown service capability                                    |
+| `plugins/notifications`    | Notification routing for transactional and administrative messages                              |
+| `plugins/obsidian-vault`   | Obsidian export/templates                                                                       |
+| `plugins/site-builder`     | Static site build orchestration                                                                 |
+| `plugins/site-content`     | Site section content generation                                                                 |
+| `plugins/stock-photo`      | Stock-photo search and selection                                                                |
+| `plugins/unified-inbox`    | Live inbox projection, source-scoped facets, resolved launches, CMS triage, summary, and digest |
+| `plugins/cms`              | Browser authoring routes + CMS config                                                           |
 
 ### Interface plugins
 

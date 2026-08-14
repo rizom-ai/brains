@@ -154,6 +154,37 @@ describe("mail triage inbox source", () => {
 
     expect(source.sourceId).toBe("mail-items");
     expect(source.displayName).toBe("Email Triage");
+    expect(source.facets).toEqual([
+      {
+        key: "category",
+        label: "Category",
+        values: [
+          { value: "opportunity", label: "Opportunity" },
+          { value: "recruiting", label: "Recruiting" },
+          { value: "work", label: "Work" },
+          { value: "administrative", label: "Administrative" },
+          { value: "personal", label: "Personal" },
+          { value: "unclassified", label: "Unclassified" },
+        ],
+      },
+      {
+        key: "mail-priority",
+        label: "Mail priority",
+        values: [
+          { value: "high", label: "High" },
+          { value: "normal", label: "Normal" },
+          { value: "low", label: "Low" },
+        ],
+      },
+      {
+        key: "needs-reply",
+        label: "Needs reply",
+        values: [
+          { value: "true", label: "Yes" },
+          { value: "false", label: "No" },
+        ],
+      },
+    ]);
     expect(items).toEqual([
       {
         id: expect.stringMatching(/^mail-[a-f0-9]{64}$/),
@@ -162,6 +193,11 @@ describe("mail triage inbox source", () => {
         contact: { label: "sender.test" },
         receivedAt: "2026-08-05T10:00:00.000Z",
         urgency: "normal",
+        facets: {
+          category: "work",
+          "mail-priority": "normal",
+          "needs-reply": "true",
+        },
         entityRef: {
           entityType: "mail-item",
           entityId: expect.stringMatching(/^mail-[a-f0-9]{64}$/),
@@ -183,6 +219,11 @@ describe("mail triage inbox source", () => {
         threadOrdinal: 2,
         receivedAt: "2026-08-05T08:00:00.000Z",
         urgency: "high",
+        facets: {
+          category: "work",
+          "mail-priority": "high",
+          "needs-reply": "true",
+        },
         entityRef: {
           entityType: "mail-item",
           entityId: expect.stringMatching(/^mail-[a-f0-9]{64}$/),
