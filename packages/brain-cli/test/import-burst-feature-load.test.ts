@@ -8,6 +8,8 @@ import { DirectorySyncPlugin } from "@brains/directory-sync";
 import { Logger, LogLevel } from "@brains/utils/logger";
 import { canonicalBrain } from "../src/model/canonical-brain";
 import {
+  MOCK_LOAD_API_KEY,
+  MOCK_LOAD_MODEL,
   MOCK_LOAD_PROBE_MARKER,
   MockLoadAIService,
   MockLoadEmbeddingService,
@@ -26,6 +28,8 @@ const SERVICE_DELAY_MS = Number.parseInt(
 const IMPORT_TIMEOUT_MS = 120_000;
 const SETTLE_TIMEOUT_MS = 120_000;
 const POLL_INTERVAL_MS = 25;
+/** Work cascades here, so an empty queue only counts after it stays empty. */
+const QUIET_MS = 250;
 
 interface QueueSample {
   atMs: number;
@@ -38,6 +42,7 @@ interface QueueSample {
   projectionProcessing: number;
   operationalStatus: "operational" | "degraded";
   readinessStatus: "ready" | "not_ready";
+  completedProbeEmbeddings: number;
 }
 
 interface FeatureLoadReport {
@@ -71,17 +76,29 @@ function jobCount(
   );
 }
 
-async function waitFor(
-  description: string,
-  timeoutMs: number,
-  predicate: () => Promise<boolean>,
-): Promise<void> {
-  const deadline = Date.now() + timeoutMs;
-  while (Date.now() < deadline) {
-    if (await predicate()) return;
-    await Bun.sleep(POLL_INTERVAL_MS);
-  }
-  throw new Error(`Timed out waiting for ${description}`);
+/**
+ * Sample on its own cadence. Sampling used to live inside the wait predicates,
+ * so nothing was recorded until the import call had already returned — exactly
+ * the window worth profiling.
+ */
+function startSampler(
+  intervalMs: number,
+  take: () => Promise<unknown>,
+): { stop: () => Promise<void> } {
+  let running = true;
+  const tick = async (): Promise<void> => {
+    if (!running) return;
+    await take();
+    await Bun.sleep(intervalMs);
+    return tick();
+  };
+  const finished = tick();
+  return {
+    stop: async (): Promise<void> => {
+      running = false;
+      await finished;
+    },
+  };
 }
 
 async function writeImportedNotes(
@@ -222,8 +239,8 @@ describe("directory import burst with locally mocked AI features", () => {
           embeddingDatabase: { url: embeddingDatabaseUrl },
           dataDir,
           ai: {
-            apiKey: "mocked-feature-load",
-            model: "openai:gpt-4o-mini",
+            apiKey: MOCK_LOAD_API_KEY,
+            model: MOCK_LOAD_MODEL,
           },
           embedding: { enabled: true },
           logging: { level: "error", context: "mocked-ai-load" },
@@ -241,12 +258,10 @@ describe("directory import burst with locally mocked AI features", () => {
       await runningShell.initialize();
 
       const queue = runningShell.getJobQueueService();
-      await waitFor("startup queue to drain", SETTLE_TIMEOUT_MS, async () => {
-        const diagnostics = await queue.getDiagnostics();
-        return (
-          diagnostics.totals.pending === 0 &&
-          diagnostics.totals.processing === 0
-        );
+      await queue.waitForIdle({
+        quietMs: QUIET_MS,
+        timeoutMs: SETTLE_TIMEOUT_MS,
+        pollIntervalMs: POLL_INTERVAL_MS,
       });
 
       const samples: QueueSample[] = [];
@@ -282,6 +297,8 @@ describe("directory import burst with locally mocked AI features", () => {
           ),
           operationalStatus: readiness.operationalStatus,
           readinessStatus: readiness.status,
+          completedProbeEmbeddings:
+            tracker.snapshot().completedProbeEmbeddingCalls,
         };
         samples.push(current);
         return current;
@@ -297,26 +314,24 @@ describe("directory import burst with locally mocked AI features", () => {
       const directorySync = directoryPlugin.getDirectorySync();
       if (!directorySync) throw new Error("Directory sync was not initialized");
 
+      // Sample across the burst itself, not just the drain that follows it.
+      const sampler = startSampler(POLL_INTERVAL_MS, sample);
       const startedAt = Date.now();
       const importResult = await directorySync.sync();
       expect(importResult.import.failed).toBe(0);
       expect(importResult.import.imported).toBe(IMPORT_COUNT);
 
-      let probeCompletedAt: QueueSample | undefined;
-      await waitFor("all probe embeddings", SETTLE_TIMEOUT_MS, async () => {
-        const current = await sample();
-        if (tracker.snapshot().completedProbeEmbeddingCalls >= IMPORT_COUNT) {
-          probeCompletedAt = current;
-          return true;
-        }
-        return false;
+      await queue.waitForIdle({
+        quietMs: QUIET_MS,
+        timeoutMs: SETTLE_TIMEOUT_MS,
+        pollIntervalMs: POLL_INTERVAL_MS,
       });
-      await waitFor("feature queue to drain", SETTLE_TIMEOUT_MS, async () => {
-        const current = await sample();
-        return current.pending === 0 && current.processing === 0;
-      });
+      await sampler.stop();
       const finalSample = await sample();
       const snapshot = tracker.snapshot();
+      const probeCompletedAt = samples.find(
+        (entry) => entry.completedProbeEmbeddings >= IMPORT_COUNT,
+      );
       if (!probeCompletedAt)
         throw new Error("Probe completion was not sampled");
 

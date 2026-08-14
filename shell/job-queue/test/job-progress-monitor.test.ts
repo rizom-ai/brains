@@ -126,6 +126,7 @@ describe("JobProgressMonitor", () => {
           },
         }),
       ),
+      waitForIdle: mock(() => Promise.resolve()),
       getRuntimeUpdates: getRuntimeUpdatesMock,
       cleanup: mock(() => Promise.resolve(0)),
       close: mock(() => {}),

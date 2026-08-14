@@ -17,6 +17,10 @@ import { MockLanguageModelV3 } from "ai/test";
 
 export const MOCK_LOAD_PROBE_MARKER = "Mocked AI feature-load probe";
 
+/** The shell config and the mock must agree, so both read these. */
+export const MOCK_LOAD_MODEL = "openai:gpt-4o-mini";
+export const MOCK_LOAD_API_KEY = "mocked-feature-load";
+
 export interface MockLoadSnapshot {
   embeddingCalls: number;
   probeEmbeddingCalls: number;
@@ -146,8 +150,8 @@ export class MockLoadAIService implements IAIService {
   private readonly delayMs: number;
   private readonly model: LanguageModel;
   private config: AIModelConfig = {
-    model: "openai:gpt-4o-mini",
-    apiKey: "mocked-feature-load",
+    model: MOCK_LOAD_MODEL,
+    apiKey: MOCK_LOAD_API_KEY,
   };
 
   constructor(tracker: MockLoadTracker, options: MockLoadServiceOptions) {
@@ -186,7 +190,7 @@ export class MockLoadAIService implements IAIService {
   }
 
   async generateObject<T>(
-    _systemPrompt: string,
+    systemPrompt: string,
     _userPrompt: string,
     schema: AIGenerationSchema<T>,
     signal?: AbortSignal,
@@ -205,13 +209,28 @@ export class MockLoadAIService implements IAIService {
         },
         {},
       ];
+      const rejections: string[] = [];
       for (const candidate of candidates) {
         const parsed = schema.safeParse(candidate);
         if (parsed.success) {
           return { object: parsed.data, usage: tokenUsage };
         }
+        rejections.push(
+          `${JSON.stringify(candidate)} rejected: ${parsed.error.issues
+            .map(
+              (issue) => `${issue.path.join(".") || "(root)"} ${issue.message}`,
+            )
+            .join("; ")}`,
+        );
       }
-      throw new Error("No deterministic mocked object satisfies the schema");
+      // Name the consumer and every rejection: the next caller to need a
+      // richer shape has to know which candidate to add.
+      throw new Error(
+        [
+          `No deterministic mocked object satisfies the schema for: ${systemPrompt}`,
+          ...rejections,
+        ].join("\n"),
+      );
     } finally {
       finish();
     }

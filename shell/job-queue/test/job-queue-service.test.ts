@@ -1679,4 +1679,71 @@ describe("JobQueueService", () => {
       expect(activeJobs.length).toBe(2);
     });
   });
+
+  describe("waitForIdle", () => {
+    beforeEach(() => {
+      service.registerHandler("shell:embedding", testHandler);
+    });
+
+    it("resolves once the queue has been empty for the quiet window", async () => {
+      const startedAt = Date.now();
+      await service.waitForIdle({ quietMs: 60, pollIntervalMs: 5 });
+
+      expect(Date.now() - startedAt).toBeGreaterThanOrEqual(55);
+    });
+
+    it("does not resolve in the gap between cascading jobs", async () => {
+      // Work here cascades: finishing one job can enqueue the next. Anything
+      // arriving during the quiet window has to restart it, or "idle" would
+      // mean "momentarily empty".
+      let enqueuedAt = 0;
+      const cascade = (async (): Promise<void> => {
+        await Bun.sleep(25);
+        const jobId = await service.enqueue({
+          type: "shell:embedding",
+          data: testEntity,
+          options: enqueueOpts(),
+        });
+        enqueuedAt = Date.now();
+        await Bun.sleep(25);
+        await service.complete(jobId, { processed: true });
+      })();
+
+      await service.waitForIdle({ quietMs: 60, pollIntervalMs: 5 });
+      const settledAt = Date.now();
+      await cascade;
+
+      expect(enqueuedAt).toBeGreaterThan(0);
+      expect(settledAt - enqueuedAt).toBeGreaterThanOrEqual(60);
+    });
+
+    it("names the outstanding work when it times out", async () => {
+      await service.enqueue({
+        type: "shell:embedding",
+        data: testEntity,
+        options: enqueueOpts(),
+      });
+
+      expect(
+        service.waitForIdle({ quietMs: 10, timeoutMs: 50, pollIntervalMs: 5 }),
+      ).rejects.toThrow(/1 pending/);
+    });
+
+    it("stops when the caller aborts", async () => {
+      await service.enqueue({
+        type: "shell:embedding",
+        data: testEntity,
+        options: enqueueOpts(),
+      });
+      const controller = new AbortController();
+      const idle = service.waitForIdle({
+        quietMs: 10,
+        pollIntervalMs: 5,
+        signal: controller.signal,
+      });
+      controller.abort();
+
+      expect(idle).rejects.toThrow();
+    });
+  });
 });
