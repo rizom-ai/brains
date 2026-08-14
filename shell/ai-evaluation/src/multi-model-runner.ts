@@ -2,6 +2,7 @@ import { resolve as resolvePath } from "path";
 import type { AppConfig } from "@brains/app";
 import { AIService, type IAIService } from "@brains/ai-service";
 import { Logger } from "@brains/utils/logger";
+import { getErrorMessage } from "@brains/utils/error";
 
 import type { EvaluationSummary } from "./schemas";
 import type { EvalHandlerRegistry } from "./eval-handler-registry";
@@ -38,6 +39,68 @@ export interface MultiModelRunOptions {
   ) => Promise<EvaluationSummary>;
 }
 
+/** What one model's run produced: a summary, or the reason it never got one. */
+export interface ModelRunOutcome {
+  model: string;
+  summary?: EvaluationSummary;
+  error?: string;
+}
+
+/**
+ * Run every model, in order, and keep going when one fails.
+ *
+ * A model can fail before it produces any summary at all — a missing provider
+ * key, a boot failure. Letting that propagate discarded every model already
+ * evaluated and skipped the comparison report entirely, so a five-model run
+ * that stumbled on the third returned nothing for the two that had passed.
+ *
+ * The run function is a parameter so this is testable without booting a brain.
+ */
+export async function collectModelRuns(
+  models: readonly string[],
+  runModel: (model: string) => Promise<EvaluationSummary>,
+): Promise<ModelRunOutcome[]> {
+  const outcomes: ModelRunOutcome[] = [];
+
+  for (const model of models) {
+    try {
+      outcomes.push({ model, summary: await runModel(model) });
+    } catch (error) {
+      const message = getErrorMessage(error, "model run failed");
+      console.error(`\n✖ Model ${model} did not complete: ${message}`);
+      outcomes.push({ model, error: message });
+    }
+  }
+
+  return outcomes;
+}
+
+/** The runs the comparison report can actually describe. */
+export function succeededRuns(
+  outcomes: readonly ModelRunOutcome[],
+): Array<{ model: string; summary: EvaluationSummary }> {
+  return outcomes.flatMap((outcome) =>
+    outcome.summary ? [{ model: outcome.model, summary: outcome.summary }] : [],
+  );
+}
+
+/**
+ * The exit code a whole comparison should produce.
+ *
+ * A model that could not run counts as a failure. It contributes no failing
+ * tests precisely because it never ran one, so ignoring it would let a broken
+ * model read as success.
+ */
+export function exitCodeForModelRuns(
+  outcomes: readonly ModelRunOutcome[],
+): number {
+  if (outcomes.length === 0) return 1;
+  if (outcomes.some((outcome) => outcome.error !== undefined)) return 1;
+  return outcomes.some((outcome) => (outcome.summary?.failedTests ?? 0) > 0)
+    ? 1
+    : 0;
+}
+
 export async function runMultiModelEvaluation(
   options: MultiModelRunOptions,
 ): Promise<void> {
@@ -47,25 +110,29 @@ export async function runMultiModelEvaluation(
     `\n🔄 Multi-model evaluation: ${options.models.join(", ")}\n${"─".repeat(60)}`,
   );
 
-  const modelSummaries: Array<{ model: string; summary: EvaluationSummary }> =
-    [];
+  const outcomes = await collectModelRuns(options.models, (model) =>
+    runSingleModelIteration(model, options, judgeAiService).then(
+      (result) => result.summary,
+    ),
+  );
 
-  for (const model of options.models) {
-    modelSummaries.push(
-      await runSingleModelIteration(model, options, judgeAiService),
+  const completed = succeededRuns(outcomes);
+  if (completed.length > 0) {
+    const resultsDir = resolvePath(process.cwd(), "eval-results");
+    await writeModelComparisonReport(completed, resultsDir);
+    process.stdout.write(`\n${renderModelComparison(completed)}`);
+  }
+
+  const failedToRun = outcomes.filter((outcome) => outcome.error !== undefined);
+  if (failedToRun.length > 0) {
+    process.stdout.write(
+      `\n${failedToRun.length} of ${outcomes.length} models did not complete: ${failedToRun
+        .map((outcome) => outcome.model)
+        .join(", ")}\n`,
     );
   }
 
-  const resultsDir = resolvePath(process.cwd(), "eval-results");
-  await writeModelComparisonReport(modelSummaries, resultsDir);
-
-  const md = renderModelComparison(modelSummaries);
-  process.stdout.write(`\n${md}`);
-
-  const anyFailed = modelSummaries.some(
-    (modelSummary) => modelSummary.summary.failedTests > 0,
-  );
-  process.exit(anyFailed ? 1 : 0);
+  process.exit(exitCodeForModelRuns(outcomes));
 }
 
 function createJudgeAiService(judge: string | undefined): IAIService {
