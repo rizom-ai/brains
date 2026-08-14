@@ -1,6 +1,13 @@
 import { describe, expect, it } from "bun:test";
 import { existsSync } from "node:fs";
-import { mkdtemp, readdir, rm, writeFile } from "node:fs/promises";
+import {
+  mkdir,
+  mkdtemp,
+  readdir,
+  rm,
+  utimes,
+  writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, sep } from "node:path";
 import { getErrorMessage } from "@brains/utils/error";
@@ -10,11 +17,14 @@ import {
   packPackages,
   PACKED_BRAIN_TARBALL_ENV,
   registryEvidenceEnabled,
+  reapOrphanedPackedTempDirs,
   removeSpawnTempRoot,
   runCommand,
   startCommand,
   waitForHttpReadiness,
 } from "./helpers/packed-consumer";
+
+const HOUR = 60 * 60 * 1000;
 
 async function rejectionMessage(promise: Promise<unknown>): Promise<string> {
   try {
@@ -200,5 +210,101 @@ describe("packed consumer spawn isolation", () => {
     const childTempDir = await readChildTempDir();
 
     expect(childTempDir.slice(tmpdir().length + 1)).not.toContain(sep);
+  });
+});
+
+describe("orphaned packed temp reaping", () => {
+  async function stageEntry(
+    root: string,
+    name: string,
+    ageMs: number,
+  ): Promise<string> {
+    const path = join(root, name);
+    await mkdir(path, { recursive: true });
+    await writeFile(join(path, "marker"), "x");
+    const stamp = new Date(Date.now() - ageMs);
+    await utimes(path, stamp, stamp);
+    return path;
+  }
+
+  it("removes stale directories the harness owns", async () => {
+    const root = await mkdtemp(join(tmpdir(), "reap-test-"));
+    try {
+      const stale = await stageEntry(root, "packed-spawn-aaaaaa", HOUR * 3);
+      const staleTest = await stageEntry(
+        root,
+        "public-authoring-phase2-bbbbbb",
+        HOUR * 3,
+      );
+
+      reapOrphanedPackedTempDirs({ root });
+
+      expect(existsSync(stale)).toBe(false);
+      expect(existsSync(staleTest)).toBe(false);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("leaves recent directories alone, so a concurrent run survives", async () => {
+    const root = await mkdtemp(join(tmpdir(), "reap-test-"));
+    try {
+      // The whole risk of a reaper: another suite is mid-run and its temp root
+      // is minutes old. Reaping by age is what keeps this safe.
+      const live = await stageEntry(root, "packed-spawn-cccccc", 60_000);
+
+      reapOrphanedPackedTempDirs({ root });
+
+      expect(existsSync(live)).toBe(true);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("ignores directories it does not own", async () => {
+    const root = await mkdtemp(join(tmpdir(), "reap-test-"));
+    try {
+      const foreign = await stageEntry(
+        root,
+        "someone-elses-checkout",
+        HOUR * 3,
+      );
+
+      reapOrphanedPackedTempDirs({ root });
+
+      expect(existsSync(foreign)).toBe(true);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("reports what it removed", async () => {
+    const root = await mkdtemp(join(tmpdir(), "reap-test-"));
+    try {
+      await stageEntry(root, "packed-spawn-dddddd", HOUR * 3);
+      await stageEntry(root, "packed-spawn-eeeeee", 60_000);
+
+      const removed = reapOrphanedPackedTempDirs({ root });
+
+      expect(removed).toEqual(["packed-spawn-dddddd"]);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("survives a directory disappearing mid-sweep", async () => {
+    // Two runs can reap at once; losing the race must not fail the run.
+    const root = await mkdtemp(join(tmpdir(), "reap-test-"));
+    try {
+      await stageEntry(root, "packed-spawn-ffffff", HOUR * 3);
+      await rm(join(root, "packed-spawn-ffffff"), {
+        recursive: true,
+        force: true,
+      });
+
+      expect(() => reapOrphanedPackedTempDirs({ root })).not.toThrow();
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
   });
 });

@@ -1,5 +1,11 @@
 import { afterAll } from "bun:test";
-import { existsSync, mkdtempSync, rmSync } from "node:fs";
+import {
+  existsSync,
+  mkdtempSync,
+  readdirSync,
+  rmSync,
+  statSync,
+} from "node:fs";
 import { cp, mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -28,6 +34,71 @@ export {
  */
 let spawnTempRoot: string | undefined;
 let cleanupArmed = false;
+let reaped = false;
+
+/** Temp-directory prefixes the packed harness and its tests create. */
+const PACKED_TEMP_PREFIXES = ["packed-spawn-", "public-authoring-"] as const;
+
+/** How long a directory must be untouched before it counts as abandoned. */
+const ORPHAN_AGE_MS = 60 * 60 * 1000;
+
+export interface ReapOptions {
+  /** Directory to sweep. Defaults to the system temp dir. */
+  readonly root?: string;
+  /** Minimum age before a directory is removed. Defaults to one hour. */
+  readonly olderThanMs?: number;
+}
+
+/**
+ * Remove packed-test temp directories left behind by runs that were killed.
+ *
+ * Both cleanup routes here — the `finally` in each packed test and the
+ * `afterAll` below — need the process to survive to the end. A timeout, a
+ * SIGKILL, or a full disk skips them, and each orphan is hundreds of megabytes.
+ * Nothing else reaps them, so they accumulate until the disk fills, which then
+ * kills the next run and orphans more. That loop is why this exists.
+ *
+ * Age is the safety mechanism: another suite may be running right now, and its
+ * temp root is minutes old, not hours. Only directories whose names this
+ * harness owns are considered, so an unrelated directory in the temp dir is
+ * never touched.
+ */
+export function reapOrphanedPackedTempDirs(
+  options: ReapOptions = {},
+): string[] {
+  const root = options.root ?? tmpdir();
+  const olderThanMs = options.olderThanMs ?? ORPHAN_AGE_MS;
+  const cutoff = Date.now() - olderThanMs;
+
+  const ours = (name: string): boolean =>
+    PACKED_TEMP_PREFIXES.some((prefix) => name.startsWith(prefix));
+
+  // flatMap rather than a filter that deletes: the removal is the point, so it
+  // reads better as a mapping to "removed" than as a predicate with a side
+  // effect. Racing another reaper is expected — two suites can start together —
+  // so a directory vanishing between the stat and the removal is not an error.
+  return listDirectory(root)
+    .filter(ours)
+    .flatMap((name) => {
+      const path = join(root, name);
+      try {
+        if (statSync(path).mtimeMs >= cutoff) return [];
+        rmSync(path, { recursive: true, force: true });
+        return [name];
+      } catch {
+        return [];
+      }
+    });
+}
+
+/** The entries of a directory, or none when it cannot be read. */
+function listDirectory(root: string): string[] {
+  try {
+    return readdirSync(root);
+  } catch {
+    return [];
+  }
+}
 
 /**
  * Create the root on first use and arm cleanup for the scope that needs it.
@@ -41,6 +112,12 @@ let cleanupArmed = false;
  * instead of spawning into a directory that has already been removed.
  */
 function currentSpawnTempRoot(): string {
+  if (!reaped) {
+    // Once per process, before staging anything of our own: clears whatever
+    // previous killed runs left behind so the disk cannot fill from history.
+    reaped = true;
+    reapOrphanedPackedTempDirs();
+  }
   spawnTempRoot ??= mkdtempSync(join(tmpdir(), "packed-spawn-"));
   if (!cleanupArmed) {
     cleanupArmed = true;

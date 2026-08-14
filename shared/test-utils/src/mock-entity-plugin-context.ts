@@ -15,7 +15,38 @@ import {
 import { createMockLogger } from "./mock-logger";
 import { createMockShell } from "./mock-shell";
 import { genericSpy } from "./generic-spy";
-import { spyOnMembers } from "./spy-on-members";
+import { spyOnMembers, type SpiedMembers } from "./spy-on-members";
+
+/**
+ * The namespaces this factory wraps in recording spies.
+ *
+ * Named so the return type can expose them. Declaring the factory's result as
+ * a plain EntityPluginContext hid the spies from the type system, so a test
+ * that needed to read a captured argument had no typed route to it and reached
+ * for a cast instead — which is what several of the casts Phase 6 removes were.
+ *
+ * messaging and ai are spied too but stay off this list: some of their members
+ * go through genericSpy, which re-applies a generic signature that mock() had
+ * erased and cannot also carry a precisely-typed Mock. Their calls are still
+ * recorded and still assertable with toHaveBeenCalledWith; only reading a
+ * captured argument back off them needs another route.
+ */
+type SpiedNamespace =
+  | "entities"
+  | "prompts"
+  | "conversations"
+  | "attachments"
+  | "profileKinds"
+  | "jobs"
+  | "dashboard";
+
+/** An EntityPluginContext whose spied namespaces report their calls. */
+export type MockEntityPluginContext = Omit<
+  EntityPluginContext,
+  SpiedNamespace
+> & {
+  [K in SpiedNamespace]: SpiedMembers<EntityPluginContext[K]>;
+};
 
 /**
  * Return value configuration for AI namespace methods
@@ -56,7 +87,7 @@ export interface MockEntityPluginContextOptions {
  */
 export function createMockEntityPluginContext(
   options: MockEntityPluginContextOptions = {},
-): EntityPluginContext {
+): MockEntityPluginContext {
   const {
     entityTypes = [],
     pluginId = "test-plugin",
@@ -108,6 +139,7 @@ export function createMockEntityPluginContext(
         Promise.resolve(returns.jobsEnqueue ?? "mock-job-id"),
       ),
     },
+    dashboard: spyOnMembers(context.dashboard),
     messaging: {
       ...spyOnMembers(context.messaging),
       ...(returns.messagingSend
