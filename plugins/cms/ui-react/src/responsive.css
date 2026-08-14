@@ -97,12 +97,8 @@
   .directory-sync-grid {
     grid-template-columns: minmax(0, 1fr);
   }
-  .mail-triage-filters,
   .inbox-filters {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-  .mail-triage-filter-count {
-    grid-column: 1 / -1;
   }
   .inbox-filters > span {
     grid-column: 1 / -1;
@@ -251,39 +247,11 @@
   .publishing-workspace,
   .site-workspace,
   .directory-sync-workspace,
-  .mail-triage-workspace,
   .unified-inbox-workspace {
     padding: 20px 16px 30px;
   }
-  .mail-triage-head {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 14px;
-  }
-  .mail-triage-head > strong {
-    justify-self: start;
-    text-align: left;
-  }
-  .mail-triage-vitals {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-  .mail-triage-vitals > div:nth-child(2) {
-    border-right: 0;
-  }
-  .mail-triage-vitals > div:nth-child(n + 3) {
-    margin-top: 12px;
-    padding-top: 12px;
-    border-top: 1px solid var(--console-rule-strong);
-  }
-  .mail-triage-vitals > div:nth-child(3) {
-    padding-left: 0;
-  }
-  .mail-triage-filters,
   .inbox-filters {
     grid-template-columns: minmax(0, 1fr);
-  }
-  .mail-triage-item > footer {
-    align-items: flex-start;
-    flex-direction: column;
   }
   .inbox-workspace-head {
     grid-template-columns: minmax(0, 1fr);

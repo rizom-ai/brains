@@ -26,8 +26,6 @@ import {
   type InboxWorkspaceAction,
   type InboxWorkspaceActionResult,
   type InboxWorkspaceFollowUp,
-  type MailTriageStatusAction,
-  type MailTriageStatusActionResult,
   type PublishingAction,
   type PublishingActionResult,
   type SiteWorkspaceAction,
@@ -58,7 +56,6 @@ import {
   runCmsWorkspaceAction,
   runDirectorySyncWorkspaceAction,
   runInboxWorkspaceAction,
-  runMailTriageWorkspaceAction,
   runSiteWorkspaceAction,
   saveEntity,
   type SaveEntityInput,
@@ -229,9 +226,6 @@ export function App(): ReactElement {
   const directorySyncWorkspaceActionMutation = useMutation({
     mutationFn: runDirectorySyncWorkspaceAction,
   });
-  const mailTriageWorkspaceActionMutation = useMutation({
-    mutationFn: runMailTriageWorkspaceAction,
-  });
   const inboxWorkspaceActionMutation = useMutation({
     mutationFn: runInboxWorkspaceAction,
   });
@@ -249,11 +243,6 @@ export function App(): ReactElement {
   const directorySyncWorkspaceData =
     activeWorkspace?.rendererName === "DirectorySyncWorkspace" &&
     workspaceResponse?.rendererName === "DirectorySyncWorkspace"
-      ? workspaceResponse.data
-      : null;
-  const mailTriageWorkspaceData =
-    activeWorkspace?.rendererName === "EmailTriageWorkspace" &&
-    workspaceResponse?.rendererName === "EmailTriageWorkspace"
       ? workspaceResponse.data
       : null;
   const inboxWorkspaceData =
@@ -841,30 +830,6 @@ export function App(): ReactElement {
       return result;
     }, [directorySyncWorkspaceActionMutation, queryClient, workspaces]);
 
-  const performMailTriageAction = useCallback(
-    async (
-      action: MailTriageStatusAction,
-    ): Promise<MailTriageStatusActionResult> => {
-      const capability = workspaces.find(
-        (workspace) => workspace.rendererName === "EmailTriageWorkspace",
-      );
-      if (!capability) throw new Error("Email triage is unavailable");
-
-      const result = await mailTriageWorkspaceActionMutation.mutateAsync({
-        workspaceId: capability.id,
-        action,
-      });
-      await Promise.all([
-        invalidateAfterWorkspaceAction(queryClient, capability.id),
-        queryClient.invalidateQueries({
-          queryKey: cmsKeys.entities("mail-item"),
-        }),
-      ]);
-      return result;
-    },
-    [mailTriageWorkspaceActionMutation, queryClient, workspaces],
-  );
-
   const performInboxAction = useCallback(
     async (
       action: InboxWorkspaceAction,
@@ -938,7 +903,6 @@ export function App(): ReactElement {
       publicationWorkspaceData={publicationWorkspaceData}
       siteWorkspaceData={siteWorkspaceData}
       directorySyncWorkspaceData={directorySyncWorkspaceData}
-      mailTriageWorkspaceData={mailTriageWorkspaceData}
       inboxWorkspaceData={inboxWorkspaceData}
       workspaceQuery={workspaceRequestQuery}
       entityType={entityType}
@@ -966,7 +930,6 @@ export function App(): ReactElement {
       performPublishingAction={performPublishingAction}
       performSiteAction={performSiteAction}
       performDirectorySyncAction={performDirectorySyncAction}
-      performMailTriageAction={performMailTriageAction}
       performInboxAction={performInboxAction}
       onWorkspaceQueryChange={changeWorkspaceQuery}
       startCreate={startCreate}

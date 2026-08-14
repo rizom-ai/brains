@@ -105,13 +105,9 @@ describe("editor surface styles", () => {
     expect(responsiveStyles).toContain("env(safe-area-inset-bottom)");
   });
 
-  it("gives the mail desk a responsive routing-ledger treatment", () => {
-    expect(visualRefreshStyles).toContain(".mail-triage-workspace");
-    expect(visualRefreshStyles).toContain(".mail-triage-filters");
-    expect(visualRefreshStyles).toContain(".mail-triage-item");
-    expect(responsiveStyles).toMatch(
-      /\.mail-triage-vitals \{[^}]*grid-template-columns: repeat\(2/,
-    );
+  it("removes the retired mail desk styles", () => {
+    expect(visualRefreshStyles).not.toContain(".mail-triage-");
+    expect(responsiveStyles).not.toContain(".mail-triage-");
   });
 
   it("gives unified attention a responsive list/detail dispatch desk", () => {
@@ -535,7 +531,6 @@ function renderCapabilityView(
     publicationWorkspaceData: null,
     siteWorkspaceData: null,
     directorySyncWorkspaceData: null,
-    mailTriageWorkspaceData: null,
     inboxWorkspaceData: null,
     workspaceQuery: { offset: 0, limit: 50 },
     entityType: "post",
@@ -576,10 +571,6 @@ function renderCapabilityView(
         accepted: true,
         status: "queued",
       }),
-    performMailTriageAction: async () => ({
-      id: "mail-1",
-      status: "reviewed",
-    }),
     performInboxAction: async () => ({ kind: "completed" }),
     onWorkspaceQueryChange: () => {},
     startCreate: () => {},

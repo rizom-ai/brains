@@ -13,7 +13,6 @@ import {
   EMAIL_TRIAGE_CLASSIFICATION_PROMPT_TARGET,
 } from "./lib/classifier";
 import { EntityMailItemRepository } from "./mail-item-repository";
-import { registerEmailTriageCmsWorkspace } from "./operator-cms";
 import { registerEmailTriageDashboardWidget } from "./operator-dashboard-widget";
 import { MailTriageOperatorService } from "./operator-service";
 import { createEmailTriageListTool } from "./operator-tool";
@@ -77,12 +76,7 @@ export class EmailTriagePlugin extends ServicePlugin<
     context: ServicePluginContext,
   ): Promise<void> {
     if (!context.executionOnly) await this.getThreadOrdinals().initialize();
-    const operator = this.getOperator();
-    const workspaceUrl = await registerEmailTriageCmsWorkspace(
-      context,
-      operator,
-    );
-    await registerEmailTriageDashboardWidget(context, operator, workspaceUrl);
+    await registerEmailTriageDashboardWidget(context, this.getOperator());
   }
 
   protected override async getTools(): Promise<Tool[]> {

@@ -3,8 +3,8 @@
 ## Status
 
 **Active.** Builds directly on the shipped unified inbox (contract, CMS
-workspace, digest). Phases 0a, 0b, 1, 2, 3, 7, and 8 are implemented;
-Phases 4–6 remain planned. UX mockup:
+workspace, digest). Phases 0a, 0b, 1, 2, 3, 4, 7, and 8 are implemented;
+Phases 5–6 remain planned. UX mockup:
 [inbox-follow-ups-mockup.html](./inbox-follow-ups-mockup.html).
 
 `unified-inbox` is being promoted from an explicit opt-in to a `core` bundle
@@ -20,10 +20,9 @@ archive) — the only thing an operator can do with attention is dismiss it.
 Different items must lead to different next activities: discuss a mail with
 the brain, capture an idea as a note, draft a reply, review a candidate. At
 the same time, recognized mail senders remain connected to their People
-identity instead of becoming a decorative byline, and the CMS stops presenting
-two open-attention surfaces: with one source registered, the Inbox workspace
-and the default-new view of the Email Triage workspace show the same arrivals
-with different chrome.
+identity instead of becoming a decorative byline, and the CMS presents one
+open-attention surface: new mail is triaged through the Inbox while the standard
+Mail Items collection retains chronological history.
 
 ## What exists today (fact-check)
 
@@ -46,34 +45,27 @@ with different chrome.
   live registries without that step. Follow-up kinds need the finalized variant
   because one immutable catalog must arbitrate duplicate ownership, permissions,
   and ordering before any item is resolved.
-- The Email Triage workspace (`EmailTriageWorkspace` renderer +
-  `plugins/email-triage/src/operator-cms.ts`) defaults to new mail but also
-  offers client-side category, priority, status, and needs-reply filters. It
-  displays organization and requested-action fields and can mutate reviewed
-  items after they have left the Inbox.
+- The dedicated Email Triage workspace and renderer have been removed. New mail
+  is operated through the Inbox's category, mail-priority, and needs-reply facets;
+  organization and requested-action fields remain available through **Open source
+  entity**.
 - The standard **Mail Items** CMS collection lists and opens every retained
   mail item, so it supplies chronological history and direct field inspection.
-  It does **not** currently reproduce the desk's status-filter bar.
+  This fold intentionally retires the old desk's status-filter bar.
 - The inbox source lists only `status: "new"` items
   (`plugins/email-triage/src/inbox-source.ts`) — the Inbox is open attention
-  only, by design. It maps mail priority `low` to inbox urgency `normal`, so a
-  separate mail-priority facet is required before the desk can be folded.
-- The email-triage Dashboard summary currently combines new and reviewed mail
-  in its high-priority, needs-reply, and unclassified counts. Those counts do
-  not describe the new-only Inbox projection and cannot keep their current
-  definitions when the widget retargets the Inbox.
-- Mail items carry no operator-recognizable contact: `source.senderKey` is a
-  hash and `organization` is optional, so the title must carry all context.
-  Inbound intake already asks Auth to resolve the parsed sender address and the
-  projection persists a resolved `source.personId`, but the recognizable label
-  and person relationship do not reach the Inbox contract or UI. Mixed-case
-  sender addresses resolve correctly today, but only incidentally: the email
-  address parser lowercases before the lookup, while `createExternalActorId`
-  hashes its input verbatim and Auth's stored hash requires the lowercased
-  identity key. Nothing pins that agreement — normalization belongs at the
-  hash boundary, with a regression test. A hashed `threadKey` and its
-  migration-gated ordinal now live in indexed metadata for bounded position
-  lookup.
+  only, by design. It maps mail priority `low` to inbox urgency `normal`, while
+  the source-scoped mail-priority facet preserves that distinction for filters.
+- The email-triage Dashboard summary uses new-only high-priority, needs-reply,
+  and unclassified counts. Its links resolve the registered `unified-inbox`
+  interaction at data-provider time and target canonical source/facet URLs, so
+  custom CMS mounts and reversed plugin ready order do not change the result.
+- Mail items carry an operator-recognizable `senderLabel` and an optional
+  verified local `source.personId`; the Inbox maps those fields into structured
+  contact presentation without exposing the address or sender hash. Identity
+  hashing normalizes mixed-case addresses at the boundary, and only active,
+  verified, non-revoked Auth identities resolve. A hashed `threadKey` and its
+  migration-gated ordinal live in indexed metadata for bounded position lookup.
 - The current IMAP `sourceRef` is a one-way SHA-256 hash of mailbox,
   UIDVALIDITY, and UID. The email interface stores no corresponding locator,
   so refs written before a locator store exists cannot be resolved on demand.
@@ -247,17 +239,17 @@ with different chrome.
    ignore URL search and remain unchanged.
 
 7. **The fold preserves new-mail triage and intentionally retires history
-   filter chrome.** The Inbox continues to list only `status: "new"`; choosing
-   Mark reviewed, Mark handled, or Archive resolves the item. Category,
-   mail-priority, and needs-reply facets reproduce every non-status filter for
-   those open items. Organization and requested-action fields remain available
-   through **Open source entity**. The Mail Items collection remains the
-   chronological history and direct correction surface, but this plan does not
-   add generic collection filtering. The email-triage Dashboard widget changes
-   its high-priority, needs-reply, and unclassified counts to `status: "new"`
-   only, labels them accordingly, and targets the matching source/facet Inbox
-   URL. This is a deliberate reduction from the old reviewed-item desk, not a
-   claim that the collection already has equivalent filters.
+   filter chrome.** The Inbox lists only `status: "new"`; choosing Mark reviewed,
+   Mark handled, or Archive resolves the item. Category, mail-priority, and
+   needs-reply facets reproduce every non-status filter for those open items.
+   Organization and requested-action fields remain available through **Open
+   source entity**. The Mail Items collection is the chronological history and
+   direct correction surface; no generic collection filtering was added. The
+   email-triage Dashboard widget uses `status: "new"` for its high-priority,
+   needs-reply, and unclassified counts, labels them accordingly, and targets
+   matching source/facet Inbox URLs through the registered interaction. This is
+   a deliberate reduction from the old reviewed-item desk, not a claim that the
+   collection has equivalent filters.
 
 8. **Mail recognition preserves contact identity.** A sender is not flattened
    into a generic presentation byline. `InboxItem` instead gains the bounded,
@@ -473,7 +465,7 @@ Tests are written first inside each phase.
   facets hidden with All sources; combined facet + urgency filtering; missing
   facets do not match; same key may be used independently by two sources;
   malformed/cross-source params are removed.
-- **Phase 4 — The fold.** Delete `EmailTriageWorkspace` (renderer,
+- **Phase 4 — The fold (implemented).** Delete `EmailTriageWorkspace` (renderer,
   registration, enum entries, styles, and tests); advertise the Inbox
   workspace URL as the Admin-only `unified-inbox` interaction; retarget the
   email widget with new-only counts and canonical source/facet URLs. _Tests:_

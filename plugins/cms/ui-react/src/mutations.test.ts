@@ -5,7 +5,6 @@ import {
   runCmsWorkspaceAction,
   runDirectorySyncWorkspaceAction,
   runInboxWorkspaceAction,
-  runMailTriageWorkspaceAction,
   runSiteWorkspaceAction,
   saveEntity,
   uploadImage,
@@ -102,29 +101,6 @@ describe("CMS Directory Sync workspace mutation", () => {
       status: "queued",
       runId: "run-1",
     });
-  });
-});
-
-describe("CMS Email Triage workspace mutation", () => {
-  it("posts only a typed mail lifecycle action", async () => {
-    let payload: unknown;
-    mockFetch(async (_url, options) => {
-      payload = JSON.parse(String(options.body));
-      return Response.json({
-        result: { id: "mail-1", status: "handled" },
-      });
-    });
-
-    const result = await runMailTriageWorkspaceAction({
-      workspaceId: "email-triage",
-      action: { type: "mark-handled", id: "mail-1" },
-    });
-
-    expect(payload).toEqual({
-      id: "email-triage",
-      action: { type: "mark-handled", id: "mail-1" },
-    });
-    expect(result).toEqual({ id: "mail-1", status: "handled" });
   });
 });
 

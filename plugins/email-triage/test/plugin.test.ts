@@ -6,7 +6,6 @@ import {
 } from "@brains/contracts";
 import {
   CMS_WORKSPACE_REGISTER_MESSAGE,
-  type CmsWorkspaceActor,
   type CmsWorkspaceRegistration,
   type DashboardWidgetRegistration,
 } from "@brains/plugins";
@@ -18,7 +17,6 @@ import {
   MailItemPlugin,
   createMailItemProjection,
   emailTriage,
-  mailTriageWorkspaceSnapshotSchema,
   type RetainedMailClassification,
 } from "../src";
 
@@ -130,7 +128,7 @@ Prioritize collaboration connected to Project Aurora.`,
     expect(items[0]?.visibility).toBe("restricted");
   });
 
-  it("registers the Admin tool, CMS workflow, inbox source, and compact dashboard", async () => {
+  it("registers the Admin tool, inbox source, and compact dashboard without a parallel CMS workspace", async () => {
     const harness = createPluginHarness();
     const entityService = harness.getEntityService();
     entityService.countEntities = async (request): Promise<number> =>
@@ -182,7 +180,8 @@ Prioritize collaboration connected to Project Aurora.`,
       sourceId: "mail-items",
       displayName: "Email Triage",
     });
-    expect(await inboxSource?.list()).toMatchObject([
+    const openItems = await inboxSource?.list();
+    expect(openItems).toMatchObject([
       {
         title: "Possible collaboration",
         urgency: "normal",
@@ -216,49 +215,33 @@ Prioritize collaboration connected to Project Aurora.`,
       },
     });
 
-    expect(workspace).toMatchObject({
-      id: "email-triage",
-      label: "Email Triage",
-      rendererName: "EmailTriageWorkspace",
-      entityTypes: ["mail-item"],
+    expect(workspace).toBeUndefined();
+    const itemId = openItems?.[0]?.id;
+    if (!itemId || !inboxSource) throw new Error("Inbox item was not listed");
+    await inboxSource.act(itemId, "mark-reviewed", {
+      permissionLevel: "admin",
     });
-    if (!workspace) throw new Error("CMS workspace was not registered");
+    expect(await inboxSource.list()).toEqual([]);
     expect(
-      await workspace.accessHandler({
-        interfaceType: "cms",
-        userId: "trusted-user",
-        actor: { kind: "user", userId: "trusted-user" },
-        userPermissionLevel: "trusted",
-        visibilityScope: "shared",
-        isAnchor: false,
-      }),
-    ).toBe(false);
-    const admin: CmsWorkspaceActor = {
-      interfaceType: "cms",
-      userId: "admin-user",
-      actor: { kind: "user", userId: "admin-user" },
-      userPermissionLevel: "admin",
-      visibilityScope: "restricted",
-      isAnchor: true,
-    };
-    expect(await workspace.accessHandler(admin)).toBe(true);
-    const workspaceData = mailTriageWorkspaceSnapshotSchema.parse(
-      await workspace.dataProvider(admin),
-    );
-    expect(workspaceData.summary.new).toBe(1);
-    expect(workspaceData.items[0]?.title).toBe("Possible collaboration");
-    const itemId = workspaceData.items[0]?.id;
-    if (!itemId || !workspace.actionHandler) {
-      throw new Error("CMS workspace action handler was not registered");
-    }
-    expect(
-      await workspace.actionHandler(
-        { type: "mark-reviewed", id: itemId },
-        admin,
-      ),
-    ).toEqual({ id: itemId, status: "reviewed" });
-    expect(await inboxSource?.list()).toEqual([]);
+      await harness.executeTool("email_triage_list", { status: "reviewed" }),
+    ).toMatchObject({
+      success: true,
+      data: {
+        total: 1,
+        items: [{ id: itemId, title: "Possible collaboration" }],
+      },
+    });
 
+    harness.getMockShell().registerInteraction({
+      id: "unified-inbox",
+      label: "Inbox",
+      description: "Review source-owned items that need operator attention.",
+      href: "/studio/workspaces/inbox",
+      kind: "admin",
+      pluginId: "unified-inbox",
+      priority: 20,
+      visibility: "admin",
+    });
     expect(widget).toMatchObject({
       pluginId: "email-triage",
       id: "email-triage",
@@ -274,13 +257,19 @@ Prioritize collaboration connected to Project Aurora.`,
       }),
     ).toEqual({
       summary: {
-        total: 1,
         new: 0,
         high: 0,
-        needsReply: 1,
+        needsReply: 0,
         unclassified: 0,
       },
-      managementUrl: "/cms/workspaces/email-triage",
+      links: {
+        new: "/studio/workspaces/inbox?sourceId=mail-items",
+        high: "/studio/workspaces/inbox?sourceId=mail-items&facet.mail-priority=high",
+        needsReply:
+          "/studio/workspaces/inbox?sourceId=mail-items&facet.needs-reply=true",
+        unclassified:
+          "/studio/workspaces/inbox?sourceId=mail-items&facet.category=unclassified",
+      },
     });
   });
 });

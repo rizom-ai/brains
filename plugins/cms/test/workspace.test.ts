@@ -232,25 +232,23 @@ describe("optional CMS workspaces", () => {
     });
   });
 
-  it("accepts the typed Email Triage workspace renderer", async () => {
+  it("rejects the retired Email Triage workspace renderer", async () => {
     const shell = createMockShell({ domain: "yeehaa.io" });
     const plugin = cmsPlugin();
     await plugin.register(shell);
-
-    const response = await registerWorkspace(shell, {
+    const legacyRegistration = {
       id: "email-triage",
       pluginId: "email-triage",
       label: "Email Triage",
       rendererName: "EmailTriageWorkspace",
       priority: 30,
       entityTypes: ["mail-item"],
-      accessHandler: (actor) => actor.userPermissionLevel === "admin",
+      accessHandler: () => true,
       dataProvider: async () => ({ items: [] }),
-    });
+    } as unknown as CmsWorkspaceRegistration;
 
-    expect(response).toEqual({
-      success: true,
-      data: { workspaceUrl: "/cms/workspaces/email-triage" },
+    expect(await registerWorkspace(shell, legacyRegistration)).toMatchObject({
+      success: false,
     });
   });
 

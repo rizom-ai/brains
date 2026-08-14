@@ -12,8 +12,6 @@ import {
   type MailTriageListItem,
 } from "./schemas/operator";
 
-const INBOX_ITEM_LIMIT = 100;
-
 const MAIL_FACETS: InboxFacetDefinition[] = [
   {
     key: "category",
@@ -64,11 +62,11 @@ export class MailTriageInboxSource implements InboxSource {
 
   async list(): Promise<InboxItem[]> {
     const [result, threadOrdinalsReady] = await Promise.all([
-      this.operator.list({ status: "new", limit: INBOX_ITEM_LIMIT }),
+      this.operator.listInboxItems(),
       this.readiness?.isReady() ?? Promise.resolve(false),
     ]);
     return inboxItemListSchema.parse(
-      result.items.map((item) => toInboxItem(item, threadOrdinalsReady)),
+      result.map((item) => toInboxItem(item, threadOrdinalsReady)),
     );
   }
 

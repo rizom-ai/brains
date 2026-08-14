@@ -1,6 +1,7 @@
 import { PermissionService, type UserPermissionLevel } from "@brains/templates";
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
+import { normalizeSameOriginPath } from "./internal/same-origin-path";
 import {
   inboxActorSchema,
   inboxIdSchema,
@@ -11,7 +12,6 @@ import {
 
 const MAX_TARGET_LENGTH = 2_048;
 const MAX_STATE_BYTES = 8 * 1_024;
-const unsafeTargetCharacterPattern = /[\\\p{Cc}\p{Cf}]/u;
 
 export type InboxFollowUpMode = "universal" | "declared";
 export type InboxFollowUpContext = Readonly<Record<string, string>>;
@@ -157,13 +157,7 @@ export const resolvedInboxFollowUpSchema: z.ZodType<
     .string()
     .min(1)
     .max(MAX_TARGET_LENGTH)
-    .refine((href) => {
-      try {
-        return normalizeSameOriginPath(href) === href;
-      } catch {
-        return false;
-      }
-    }),
+    .refine((href) => normalizeSameOriginPath(href) === href),
   state: inboxFollowUpStateSchema.optional(),
 });
 
@@ -319,40 +313,12 @@ function normalizeTarget(target: InboxFollowUpTargetInput): {
 } {
   const parsed = targetSchema.parse(target);
   const href = normalizeSameOriginPath(parsed.href);
+  if (!href) throw new Error("Invalid inbox follow-up target");
   const state =
     parsed.state === undefined
       ? undefined
       : normalizeHistoryState(parsed.state);
   return { href, ...(state ? { state } : {}) };
-}
-
-function normalizeSameOriginPath(href: string): string {
-  if (
-    typeof href !== "string" ||
-    href !== href.trim() ||
-    href.length === 0 ||
-    href.length > MAX_TARGET_LENGTH ||
-    !href.startsWith("/") ||
-    href.startsWith("//") ||
-    unsafeTargetCharacterPattern.test(href)
-  ) {
-    throw new Error("Invalid inbox follow-up target");
-  }
-  const url = new URL(href, "https://brains.invalid");
-  if (url.origin !== "https://brains.invalid") {
-    throw new Error("Invalid inbox follow-up target");
-  }
-  const normalized = `${url.pathname}${url.search}${url.hash}`;
-  if (
-    normalized.length === 0 ||
-    normalized.length > MAX_TARGET_LENGTH ||
-    !normalized.startsWith("/") ||
-    normalized.startsWith("//") ||
-    unsafeTargetCharacterPattern.test(normalized)
-  ) {
-    throw new Error("Invalid inbox follow-up target");
-  }
-  return normalized;
 }
 
 function normalizeHistoryState(

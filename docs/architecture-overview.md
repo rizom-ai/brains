@@ -173,13 +173,14 @@ Service plugins live in `plugins/` and provide tools, handlers, routes, orchestr
 | `plugins/content-pipeline` | Publishing queue, scheduling, retries                                                           |
 | `plugins/dashboard`        | Dashboard widgets and UI slots                                                                  |
 | `plugins/directory-sync`   | File sync + git operations                                                                      |
+| `plugins/email-triage`     | Restricted derived mail, new-mail Inbox source, and new-only Dashboard links                    |
 | `plugins/newsletter`       | Compound newsletter entity and Buttondown service capability                                    |
 | `plugins/notifications`    | Notification routing for transactional and administrative messages                              |
 | `plugins/obsidian-vault`   | Obsidian export/templates                                                                       |
 | `plugins/site-builder`     | Static site build orchestration                                                                 |
 | `plugins/site-content`     | Site section content generation                                                                 |
 | `plugins/stock-photo`      | Stock-photo search and selection                                                                |
-| `plugins/unified-inbox`    | Live inbox projection, source-scoped facets, resolved launches, CMS triage, summary, and digest |
+| `plugins/unified-inbox`    | Live inbox projection, source facets, resolved launches, registered CMS triage, summary, digest |
 | `plugins/cms`              | Browser authoring routes + CMS config                                                           |
 
 ### Interface plugins
