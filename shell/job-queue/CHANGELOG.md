@@ -1,5 +1,18 @@
 # @brains/job-queue
 
+## 0.2.0-alpha.295
+
+### Patch Changes
+
+- [`476dfe2`](https://github.com/rizom-ai/brains/commit/476dfe27107d5bf39008dd4eb2cfba86396270aa) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Recover atomic enqueue from retryable libSQL commit conflicts by rolling back and replaying the complete write transaction. Release projection-admission reservations between attempts so replay cannot leak or double-commit admission state.
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.295
+  - @brains/db@0.2.0-alpha.295
+  - @brains/operation-context@0.2.0-alpha.295
+  - @brains/utils@0.2.0-alpha.295
+  - @brains/mcp-service@0.2.0-alpha.295
+
 ## 0.2.0-alpha.294
 
 ### Patch Changes

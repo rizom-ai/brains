@@ -275,6 +275,7 @@
     "core--inbox-recognizable-contacts",
     "core--inbox-source-facets",
     "core--inbox-thread-position",
+    "core--job-queue-commit-replay",
     "core--job-queue-wait-for-idle",
     "core--json-native-section-content",
     "core--mcp-sdk-1-30",
