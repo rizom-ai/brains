@@ -1,5 +1,20 @@
 # @brains/cms
 
+## 0.2.0-alpha.294
+
+### Minor Changes
+
+- [#139](https://github.com/rizom-ai/brains/pull/139) [`995d491`](https://github.com/rizom-ai/brains/commit/995d4910a2d6b10e3524664dd557ce2100d48173) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Fold new-mail triage into the shared Inbox, retire the parallel Email Triage CMS workspace, advertise the mounted Inbox as an Admin interaction, and link new-only email Dashboard counts to canonical source-scoped Inbox filters while retaining history in Mail Items.
+
+### Patch Changes
+
+- Updated dependencies [[`995d491`](https://github.com/rizom-ai/brains/commit/995d4910a2d6b10e3524664dd557ce2100d48173)]:
+  - @brains/plugins@0.2.0-alpha.294
+  - @brains/auth-service@0.2.0-alpha.294
+  - @brains/console-theme@0.2.0-alpha.294
+  - @brains/contracts@0.2.0-alpha.294
+  - @brains/utils@0.2.0-alpha.294
+
 ## 0.2.0-alpha.293
 
 ### Patch Changes
