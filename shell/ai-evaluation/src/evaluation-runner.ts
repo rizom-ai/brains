@@ -18,13 +18,29 @@ export async function runEvaluations(
 ): Promise<void> {
   const summary = await runEvaluationsWithReporters(
     options,
-    createDefaultReporters(options),
+    selectReporters(options),
   );
 
-  // Exit with error code if any tests failed
-  if (summary.failedTests > 0) {
-    process.exit(1);
+  const code = exitCodeForSummary(summary);
+  if (code !== 0) {
+    process.exit(code);
   }
+}
+
+/**
+ * The exit code a finished run should produce.
+ *
+ * Separated from `runEvaluations` so the decision is testable without a
+ * `process.exit` that would take the test runner down with it.
+ *
+ * A run that executed no tests fails. CI invokes this with tag and id filters,
+ * and a filter that matches nothing would otherwise report success while having
+ * verified nothing at all — the same silent-green failure mode Phase 0 removed
+ * from the test scripts.
+ */
+export function exitCodeForSummary(summary: EvaluationSummary): number {
+  if (summary.totalTests === 0) return 1;
+  return summary.failedTests > 0 ? 1 : 0;
 }
 
 /**
@@ -34,7 +50,10 @@ export async function runEvaluations(
 export async function runEvaluationsCollect(
   options: RunEvaluationsOptions,
 ): Promise<EvaluationSummary> {
-  return runEvaluationsWithReporters(options, createCollectReporters(options));
+  return runEvaluationsWithReporters(
+    options,
+    selectReporters(options, { collectOnly: true }),
+  );
 }
 
 async function runEvaluationsWithReporters(
@@ -61,10 +80,31 @@ async function runEvaluationsWithReporters(
   });
 
   logEvaluationStart(options, testCasesDir, resultsDir);
-  return evaluationService.runEvaluations(buildEvaluationOptions(options));
+  return evaluationService.runEvaluations(toEvaluationOptions(options));
 }
 
-function createDefaultReporters(options: RunEvaluationsOptions): IReporter[] {
+export interface SelectReportersOptions {
+  /**
+   * Collect the summary for a caller that will report on it later, rather than
+   * writing a report of this run. Multi-model comparison uses this: each model's
+   * run would otherwise overwrite the previous one's markdown and baseline.
+   */
+  collectOnly?: boolean;
+}
+
+/**
+ * Which reporters an invocation produces.
+ *
+ * Exported because it is the part of a CLI run most easily got wrong and least
+ * visible when it is: a missing reporter loses output nobody notices, and a
+ * comparison reporter added to a collect run overwrites a baseline.
+ */
+export function selectReporters(
+  options: RunEvaluationsOptions,
+  { collectOnly = false }: SelectReportersOptions = {},
+): IReporter[] {
+  if (collectOnly) return createBaseReporters(options);
+
   const resultsDir =
     options.resultsDir ?? resolvePath(process.cwd(), "eval-results");
 
@@ -87,10 +127,6 @@ function createDefaultReporters(options: RunEvaluationsOptions): IReporter[] {
   ];
 }
 
-function createCollectReporters(options: RunEvaluationsOptions): IReporter[] {
-  return createBaseReporters(options);
-}
-
 function createBaseReporters(options: RunEvaluationsOptions): IReporter[] {
   const resultsDir =
     options.resultsDir ?? resolvePath(process.cwd(), "eval-results");
@@ -102,7 +138,14 @@ function createBaseReporters(options: RunEvaluationsOptions): IReporter[] {
   ];
 }
 
-function buildEvaluationOptions(
+/**
+ * Map CLI flags onto the options the evaluation service takes.
+ *
+ * Exported for the same reason as selectReporters: an empty tags or ids list
+ * means "no filter", and forwarding it as an empty list would select no test
+ * cases and report a vacuous pass.
+ */
+export function toEvaluationOptions(
   options: RunEvaluationsOptions,
 ): EvaluationOptions {
   const evalOptions: EvaluationOptions = {
