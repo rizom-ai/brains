@@ -4,6 +4,7 @@ import {
   type ServicePluginContext,
   type Tool,
 } from "@brains/plugins";
+import { normalizeSameOriginPath } from "@brains/plugins/internal/same-origin-path";
 import { z } from "@brains/utils/zod";
 import packageJson from "../package.json";
 import { registerUnifiedInboxDashboardWidget } from "./dashboard-widget";
@@ -49,10 +50,20 @@ export class UnifiedInboxPlugin extends ServicePlugin<
   ): Promise<void> {
     const dataSource = this.getDataSource();
     const operator = this.getOperator();
-    const workspaceUrl = await registerUnifiedInboxCmsWorkspace(
-      context,
-      operator,
+    const workspaceUrl = normalizeSameOriginPath(
+      await registerUnifiedInboxCmsWorkspace(context, operator),
     );
+    if (workspaceUrl) {
+      context.interactions.register({
+        id: "unified-inbox",
+        label: "Inbox",
+        description: "Review source-owned items that need operator attention.",
+        href: workspaceUrl,
+        kind: "admin",
+        priority: 20,
+        visibility: "admin",
+      });
+    }
     await registerUnifiedInboxDashboardWidget(context, operator, workspaceUrl);
     registerUnifiedInboxDigest(context, dataSource, { workspaceUrl });
   }

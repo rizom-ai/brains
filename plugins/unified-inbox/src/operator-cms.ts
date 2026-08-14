@@ -5,6 +5,7 @@ import {
   type CmsWorkspaceRegistration,
   type ServicePluginContext,
 } from "@brains/plugins";
+import { setSameOriginSearchParams } from "@brains/plugins/internal/same-origin-path";
 import type { InboxOperatorService } from "./operator-service";
 import {
   inboxActionOutcomeSchema,
@@ -90,24 +91,7 @@ function createContactHref(
   registeredHref: string,
   personId: string,
 ): string | undefined {
-  if (
-    registeredHref.length > 2_048 ||
-    !registeredHref.startsWith("/") ||
-    registeredHref.startsWith("//") ||
-    registeredHref.includes("\\") ||
-    /[\p{Cc}\p{Cf}]/u.test(registeredHref)
-  ) {
-    return undefined;
-  }
-  try {
-    const url = new URL(registeredHref, "https://brains.invalid");
-    if (url.origin !== "https://brains.invalid") return undefined;
-    url.searchParams.set("person", personId);
-    const target = `${url.pathname}${url.search}${url.hash}`;
-    return target.length <= 2_048 ? target : undefined;
-  } catch {
-    return undefined;
-  }
+  return setSameOriginSearchParams(registeredHref, [["person", personId]]);
 }
 
 function assertInboxAdmin(actor: CmsWorkspaceActor): void {

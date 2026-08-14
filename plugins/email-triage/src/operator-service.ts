@@ -9,22 +9,19 @@ import {
   type MailStatus,
 } from "./entity/schemas/mail-item";
 import {
-  mailTriageFilterSchema,
   mailTriageListItemSchema,
   mailTriageListResultSchema,
   mailTriageStatusActionResultSchema,
   mailTriageStatusActionSchema,
   mailTriageSummarySchema,
-  mailTriageWorkspaceSnapshotSchema,
   type MailTriageFilter,
   type MailTriageListItem,
   type MailTriageListResult,
   type MailTriageStatusActionResult,
   type MailTriageSummary,
-  type MailTriageWorkspaceSnapshot,
 } from "./schemas/operator";
 
-const WORKSPACE_ITEM_LIMIT = 100;
+const INBOX_ITEM_LIMIT = 100;
 
 type OperatorContext = Pick<
   ServicePluginContext,
@@ -76,44 +73,17 @@ export class MailTriageOperatorService {
     });
   }
 
-  async summary(): Promise<MailTriageSummary> {
-    const [
-      total,
-      newCount,
-      newHigh,
-      reviewedHigh,
-      newNeedsReply,
-      reviewedNeedsReply,
-      newUnclassified,
-      reviewedUnclassified,
-    ] = await Promise.all([
-      this.count({}),
-      this.count({ status: "new" }),
-      this.count({ status: "new", priority: "high" }),
-      this.count({ status: "reviewed", priority: "high" }),
-      this.count({ status: "new", needsReply: true }),
-      this.count({ status: "reviewed", needsReply: true }),
-      this.count({ status: "new", category: null }),
-      this.count({ status: "reviewed", category: null }),
-    ]);
-
-    return mailTriageSummarySchema.parse({
-      total,
-      new: newCount,
-      high: newHigh + reviewedHigh,
-      needsReply: newNeedsReply + reviewedNeedsReply,
-      unclassified: newUnclassified + reviewedUnclassified,
-    });
+  async listInboxItems(): Promise<MailTriageListItem[]> {
+    return (await this.list({ status: "new", limit: INBOX_ITEM_LIMIT })).items;
   }
 
-  async snapshot(): Promise<MailTriageWorkspaceSnapshot> {
-    const [items, summary] = await Promise.all([
-      this.list(mailTriageFilterSchema.parse({ limit: WORKSPACE_ITEM_LIMIT })),
-      this.summary(),
-    ]);
-    return mailTriageWorkspaceSnapshotSchema.parse({
-      summary,
-      items: items.items,
+  async summary(): Promise<MailTriageSummary> {
+    const items = await this.listInboxItems();
+    return mailTriageSummarySchema.parse({
+      new: items.length,
+      high: items.filter((item) => item.priority === "high").length,
+      needsReply: items.filter((item) => item.needsReply).length,
+      unclassified: items.filter((item) => item.category === null).length,
     });
   }
 
@@ -160,20 +130,6 @@ export class MailTriageOperatorService {
     });
 
     return mailTriageStatusActionResultSchema.parse({ id: action.id, status });
-  }
-
-  private async count(
-    filters: Omit<MailTriageFilter, "limit">,
-  ): Promise<number> {
-    return this.context.entityService.countEntities({
-      entityType: "mail-item",
-      options: {
-        filter: {
-          metadata: metadataFilter(filters),
-          visibilityScope: "restricted",
-        },
-      },
-    });
   }
 }
 

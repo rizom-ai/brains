@@ -8,8 +8,6 @@ import {
   type DirectorySyncWorkspaceActionResult,
   type InboxWorkspaceAction,
   type InboxWorkspaceActionResult,
-  type MailTriageStatusAction,
-  type MailTriageStatusActionResult,
   type PublishingAction,
   type PublishingActionResult,
   type SiteWorkspaceAction,
@@ -52,11 +50,6 @@ export interface DirectorySyncWorkspaceActionInput {
   action: DirectorySyncWorkspaceAction;
 }
 
-export interface MailTriageWorkspaceActionInput {
-  workspaceId: string;
-  action: MailTriageStatusAction;
-}
-
 export interface InboxWorkspaceActionInput {
   workspaceId: string;
   action: InboxWorkspaceAction;
@@ -95,15 +88,6 @@ export function runDirectorySyncWorkspaceAction(
   input: DirectorySyncWorkspaceActionInput,
 ): Promise<DirectorySyncWorkspaceActionResult> {
   return runWorkspaceAction<DirectorySyncWorkspaceActionResult>(
-    input.workspaceId,
-    input.action,
-  );
-}
-
-export function runMailTriageWorkspaceAction(
-  input: MailTriageWorkspaceActionInput,
-): Promise<MailTriageStatusActionResult> {
-  return runWorkspaceAction<MailTriageStatusActionResult>(
     input.workspaceId,
     input.action,
   );

@@ -31,7 +31,7 @@ bunx varlock scan --staged
 
 # Format staged files only (fast!)
 echo "📐 Formatting staged files..."
-bunx lint-staged
+bunx lint-staged --no-stash
 
 # Keep the generated roadmap visual in sync with its source (docs/roadmap.md).
 # Only runs when the roadmap or a plan changed, so normal commits stay fast.

@@ -14,7 +14,8 @@ The opt-in plugin provides:
 
 - an Admin-only CMS **Inbox** workspace with linkable server-side source, urgency, and
   source-scoped facet filters, bounded transient paging, list/detail triage,
-  destination-owned follow-up launches, and confirmation-gated actions;
+  destination-owned follow-up launches, and confirmation-gated actions; once registered,
+  its returned workspace URL is advertised as the Admin-only `unified-inbox` interaction;
 - an access-checked open-count badge in the CMS workspace rail;
 - a read-only Admin Dashboard summary containing at most five redacted entries;
 - the bounded Admin `inbox_list` headless reader, available without browser
@@ -123,5 +124,8 @@ surfaces continue to work and delivery follows the recurring-check retry path.
 
 The shell-owned `recurring-checks` source is available without email or notification
 channels. The first external production source is `mail-items`, registered by
-`@brains/email-triage`. The synthetic pilot posture is documented in
+`@brains/email-triage`. New mail is operated here; reviewed, handled, and archived records
+remain in the standard **Mail Items** CMS collection. Source widgets resolve the registered
+`unified-inbox` interaction at request time, so custom CMS mounts and plugin ready order do
+not change their filter links. The synthetic pilot posture is documented in
 [`packages/brain-cli/test-apps/unified-inbox`](../../packages/brain-cli/test-apps/unified-inbox/README.md).

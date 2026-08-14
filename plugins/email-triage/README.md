@@ -12,10 +12,12 @@ The capability is explicit opt-in. It is a compound package containing the triag
 - discards obvious bulk mail deterministically, before any model call
 - classifies each remaining message with one structured model call into a `mail-item`
 - owns acknowledgement of raw inbound mail, so a failure holds the mailbox cursor rather than losing a message
-- registers an Admin-only Email Triage CMS workspace with combined filters and typed status actions
-- contributes a compact dashboard count linking to that workspace
 - registers a `mail-items` inbox source for `@brains/unified-inbox`, with source-scoped
   category, mail-priority, and needs-reply facets for workspace and headless filtering
+- contributes new-only Dashboard counts that resolve the registered Inbox interaction at
+  request time and link to matching source/facet filters without guessing a CMS mount
+- retains reviewed, handled, and archived records in the standard **Mail Items** CMS
+  collection and through the status-aware `email_triage_list` tool
 
 ## The mailbox stays canonical
 
@@ -97,6 +99,8 @@ Classification attempts are counted by hashed message identifier in scoped runti
 | `email_triage_list` | list items with combined category, priority, status, and `needsReply` filters |
 
 Ordinary entity operations use `system_get`, `system_update`, and `system_delete`.
+New mail is operated through the shared Inbox; the **Mail Items** collection remains the
+chronological history and direct correction surface.
 
 ## Configuration
 

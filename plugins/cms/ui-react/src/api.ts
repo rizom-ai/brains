@@ -30,7 +30,6 @@ export interface CmsWorkspaceInfo {
     | "PublishingWorkspace"
     | "SiteWorkspace"
     | "DirectorySyncWorkspace"
-    | "EmailTriageWorkspace"
     | "UnifiedInboxWorkspace";
   priority: number;
   urlQuery?: true;
@@ -198,39 +197,6 @@ export interface DirectorySyncWorkspaceSnapshot {
   issues: DirectorySyncIssue[];
 }
 
-export type MailTriageCategory =
-  "opportunity" | "recruiting" | "work" | "administrative" | "personal";
-
-export type MailTriagePriority = "high" | "normal" | "low";
-export type MailTriageStatus = "new" | "reviewed" | "handled" | "archived";
-
-export interface MailTriageListItem {
-  id: string;
-  title: string;
-  category: MailTriageCategory | null;
-  priority: MailTriagePriority;
-  status: MailTriageStatus;
-  needsReply: boolean;
-  receivedAt: string;
-  summary: string;
-  senderLabel?: string;
-  personId?: string;
-  threadOrdinal?: number;
-  organization?: string;
-  requestedActions: string[];
-}
-
-export interface MailTriageWorkspaceSnapshot {
-  summary: {
-    total: number;
-    new: number;
-    high: number;
-    needsReply: number;
-    unclassified: number;
-  };
-  items: MailTriageListItem[];
-}
-
 export interface InboxWorkspaceFacetDefinition {
   key: string;
   label: string;
@@ -321,11 +287,6 @@ export type CmsWorkspaceData =
     }
   | {
       id: string;
-      rendererName: "EmailTriageWorkspace";
-      data: MailTriageWorkspaceSnapshot;
-    }
-  | {
-      id: string;
       rendererName: "UnifiedInboxWorkspace";
       data: InboxWorkspaceSnapshot;
     };
@@ -363,16 +324,6 @@ export interface DirectorySyncWorkspaceActionResult {
   runId?: string;
   jobId?: string;
   batchId?: string;
-}
-
-export interface MailTriageStatusAction {
-  type: "mark-reviewed" | "mark-handled" | "archive";
-  id: string;
-}
-
-export interface MailTriageStatusActionResult {
-  id: string;
-  status: MailTriageStatus;
 }
 
 export interface SiteWorkspaceActionResult {

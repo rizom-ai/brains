@@ -62,7 +62,10 @@ The bundled renderer vocabulary is deliberately narrow:
 - `PublishingWorkspace` operates the content-pipeline queue and publication failures;
 - `SiteWorkspace` operates site-builder preview and production builds;
 - `DirectorySyncWorkspace` operates directory/Git sync status and manual sync requests;
-- `EmailTriageWorkspace` operates the retained-mail triage desk;
 - `UnifiedInboxWorkspace` operates source-owned attention and linkable stable filters.
+
+New mail is triaged through `UnifiedInboxWorkspace`; reviewed and resolved records remain
+available through the standard **Mail Items** entity collection rather than a second
+operations workspace.
 
 Providers own snapshots, validation, authorization, and actions. The CMS owns authenticated transport, navigation, rendering, and targeted query invalidation. Runtime React components are never accepted through registration.

@@ -79,7 +79,6 @@ export {
 } from "./operator-service";
 export { MailTriageInboxSource } from "./inbox-source";
 export { createEmailTriageListTool } from "./operator-tool";
-export { registerEmailTriageCmsWorkspace } from "./operator-cms";
 export {
   MailTriageDashboardWidget,
   registerEmailTriageDashboardWidget,
@@ -98,7 +97,6 @@ export {
   mailTriageListResultSchema,
   mailTriageListToolOutputSchema,
   mailTriageSummarySchema,
-  mailTriageWorkspaceSnapshotSchema,
   mailTriageStatusActionSchema,
   mailTriageStatusActionResultSchema,
   mailTriageDashboardDataSchema,
@@ -107,7 +105,6 @@ export {
   type MailTriageListResult,
   type MailTriageListToolOutput,
   type MailTriageSummary,
-  type MailTriageWorkspaceSnapshot,
   type MailTriageStatusAction,
   type MailTriageStatusActionResult,
   type MailTriageDashboardData,

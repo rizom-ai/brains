@@ -10,7 +10,6 @@ import {
   mailTriageListResultSchema,
   mailTriageStatusActionResultSchema,
   mailTriageStatusActionSchema,
-  mailTriageWorkspaceSnapshotSchema,
   type MailCategory,
   type MailPriority,
   type MailStatus,
@@ -189,7 +188,7 @@ describe("mail triage operator service", () => {
     }
   });
 
-  it("builds a bounded workspace snapshot with operational counts", async () => {
+  it("keeps dashboard attention counts new-only while retaining reviewed history", async () => {
     const harness = createOperatorHarness();
     await harness.installPlugin(new MailItemPlugin());
     await persistItem(harness, {
@@ -204,30 +203,30 @@ describe("mail triage operator service", () => {
       id: "reviewed",
       title: "Reviewed work",
       category: "work",
-      priority: "normal",
+      priority: "high",
       status: "reviewed",
-      needsReply: false,
+      needsReply: true,
       receivedAt: "2026-08-03T08:00:00.000Z",
     });
 
     const operator = new MailTriageOperatorService(
       harness.getServiceContext("email-triage"),
     );
-    const snapshot = mailTriageWorkspaceSnapshotSchema.parse(
-      await operator.snapshot(),
-    );
 
-    expect(snapshot.summary).toEqual({
-      total: 2,
+    expect(await operator.summary()).toEqual({
       new: 1,
       high: 1,
       needsReply: 1,
       unclassified: 0,
     });
-    expect(snapshot.items.map((item) => item.title)).toEqual([
-      "Urgent administration",
-      "Reviewed work",
-    ]);
+    expect(
+      (
+        await operator.list({
+          status: "reviewed",
+          limit: 100,
+        })
+      ).items.map((item) => item.title),
+    ).toEqual(["Reviewed work"]);
   });
 
   it("enforces Admin status actions and updates through one typed path", async () => {

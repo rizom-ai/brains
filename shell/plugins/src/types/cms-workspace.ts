@@ -31,7 +31,6 @@ export type CmsWorkspaceRendererName =
   | "PublishingWorkspace"
   | "SiteWorkspace"
   | "DirectorySyncWorkspace"
-  | "EmailTriageWorkspace"
   | "UnifiedInboxWorkspace";
 
 export interface CmsWorkspaceRegistration {

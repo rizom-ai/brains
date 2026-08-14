@@ -194,6 +194,17 @@ describe("InboxDataSource", () => {
     expect(events).toEqual(["workspace", "dashboard", "digest"]);
     if (!widget || !check)
       throw new Error("Operator surfaces did not register");
+    expect((await shell.getAppInfo()).interactions).toContainEqual({
+      id: "unified-inbox",
+      label: "Inbox",
+      description: "Review source-owned items that need operator attention.",
+      href: "/studio/workspaces/inbox",
+      kind: "admin",
+      pluginId: "unified-inbox",
+      priority: 20,
+      visibility: "admin",
+      status: "available",
+    });
     expect(
       await widget.dataProvider({
         caller: null,
@@ -206,6 +217,48 @@ describe("InboxDataSource", () => {
     expect(digest.alerts?.[0]?.body).toContain(
       "Open Inbox: https://brain.test/studio/workspaces/inbox",
     );
+  });
+
+  it("does not advertise or forward an invalid CMS workspace target", async () => {
+    const harness = createPluginHarness<UnifiedInboxPlugin>({
+      logContext: "unified-inbox-invalid-target-test",
+    });
+    const shell = harness.getMockShell();
+    let widget: DashboardWidgetRegistration | undefined;
+    shell
+      .getMessageBus()
+      .subscribe<CmsWorkspaceRegistration, { workspaceUrl: string }>(
+        CMS_WORKSPACE_REGISTER_MESSAGE,
+        async () => ({
+          success: true,
+          data: { workspaceUrl: "https://evil.test/inbox" },
+        }),
+      );
+    shell
+      .getMessageBus()
+      .subscribe<DashboardWidgetRegistration>(
+        DASHBOARD_CHANNELS.registerWidget,
+        async (message) => {
+          widget = message.payload;
+          return { success: true };
+        },
+      );
+
+    const plugin = new UnifiedInboxPlugin();
+    await harness.installPlugin(plugin);
+    await harness.finalizeRegistration();
+    await plugin.ready();
+
+    expect((await shell.getAppInfo()).interactions).not.toContainEqual(
+      expect.objectContaining({ id: "unified-inbox" }),
+    );
+    if (!widget) throw new Error("Inbox widget was not registered");
+    expect(
+      await widget.dataProvider({
+        caller: null,
+        signal: new AbortController().signal,
+      }),
+    ).not.toHaveProperty("managementUrl");
   });
 
   it("answers the headless tool without webserver, CMS, or Dashboard plugins", async () => {
@@ -234,6 +287,9 @@ describe("InboxDataSource", () => {
     expect(harness.getMockShell().hasPlugin("webserver")).toBe(false);
     expect(harness.getMockShell().hasPlugin("cms")).toBe(false);
     expect(harness.getMockShell().hasPlugin("dashboard")).toBe(false);
+    expect(
+      (await harness.getMockShell().getAppInfo()).interactions,
+    ).not.toContainEqual(expect.objectContaining({ id: "unified-inbox" }));
     expect(capabilities.tools.map((tool) => tool.name)).toEqual(["inbox_list"]);
     expect(await harness.executeTool("inbox_list", {})).toMatchObject({
       success: true,

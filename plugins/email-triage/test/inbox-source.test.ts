@@ -146,10 +146,12 @@ describe("mail triage inbox source", () => {
       status: "reviewed",
     });
 
-    const source = new MailTriageInboxSource(
-      new MailTriageOperatorService(harness.getServiceContext("email-triage")),
-      { isReady: async (): Promise<boolean> => true },
+    const operator = new MailTriageOperatorService(
+      harness.getServiceContext("email-triage"),
     );
+    const source = new MailTriageInboxSource(operator, {
+      isReady: async (): Promise<boolean> => true,
+    });
     const items = inboxItemListSchema.parse(await source.list());
 
     expect(source.sourceId).toBe("mail-items");
@@ -235,6 +237,36 @@ describe("mail triage inbox source", () => {
         ],
       },
     ]);
+    expect(await operator.summary()).toMatchObject({
+      new: items.length,
+      high: items.filter((item) => item.facets?.["mail-priority"] === "high")
+        .length,
+      needsReply: items.filter(
+        (item) => item.facets?.["needs-reply"] === "true",
+      ).length,
+      unclassified: items.filter(
+        (item) => item.facets?.["category"] === "unclassified",
+      ).length,
+    });
+
+    const oldDeskMatches = await operator.list({
+      category: "work",
+      priority: "high",
+      status: "new",
+      needsReply: true,
+      limit: 100,
+    });
+    expect(
+      items
+        .filter(
+          (item) =>
+            item.facets?.["category"] === "work" &&
+            item.facets["mail-priority"] === "high" &&
+            item.facets["needs-reply"] === "true",
+        )
+        .map((item) => item.id),
+    ).toEqual(oldDeskMatches.items.map((item) => item.id));
+
     for (const sourceValue of [
       "Mailbox subject high",
       "Mailbox body high",

@@ -2,6 +2,7 @@ import {
   createListToolOutputSchema,
   type ListToolOutput,
 } from "@brains/plugins";
+import { normalizeSameOriginPath } from "@brains/plugins/internal/same-origin-path";
 import { z } from "@brains/utils/zod";
 import {
   mailCategorySchema,
@@ -103,7 +104,6 @@ export const mailTriageListToolOutputSchema: z.ZodType<
 > = createListToolOutputSchema(mailTriageListResultSchema);
 
 interface MailTriageSummaryValue {
-  total: number;
   new: number;
   high: number;
   needsReply: number;
@@ -114,24 +114,10 @@ export const mailTriageSummarySchema: z.ZodType<
   MailTriageSummaryValue,
   MailTriageSummaryValue
 > = z.strictObject({
-  total: z.number().int().nonnegative(),
   new: z.number().int().nonnegative(),
   high: z.number().int().nonnegative(),
   needsReply: z.number().int().nonnegative(),
   unclassified: z.number().int().nonnegative(),
-});
-
-interface MailTriageWorkspaceSnapshotValue {
-  summary: MailTriageSummaryValue;
-  items: MailTriageListItemValue[];
-}
-
-export const mailTriageWorkspaceSnapshotSchema: z.ZodType<
-  MailTriageWorkspaceSnapshotValue,
-  MailTriageWorkspaceSnapshotValue
-> = z.strictObject({
-  summary: mailTriageSummarySchema,
-  items: z.array(mailTriageListItemSchema),
 });
 
 interface MarkReviewedActionValue {
@@ -189,9 +175,34 @@ export const mailTriageStatusActionResultSchema: z.ZodType<
   status: mailStatusSchema,
 });
 
+interface MailTriageDashboardLinksValue {
+  new: string;
+  high: string;
+  needsReply: string;
+  unclassified: string;
+}
+
+const mailTriageDashboardHrefSchema = z
+  .string()
+  .min(1)
+  .max(2_048)
+  .refine((value) => normalizeSameOriginPath(value) === value, {
+    message: "Expected a canonical same-origin dashboard path",
+  });
+
+const mailTriageDashboardLinksSchema: z.ZodType<
+  MailTriageDashboardLinksValue,
+  MailTriageDashboardLinksValue
+> = z.strictObject({
+  new: mailTriageDashboardHrefSchema,
+  high: mailTriageDashboardHrefSchema,
+  needsReply: mailTriageDashboardHrefSchema,
+  unclassified: mailTriageDashboardHrefSchema,
+});
+
 interface MailTriageDashboardDataValue {
   summary: MailTriageSummaryValue;
-  managementUrl?: string | undefined;
+  links?: MailTriageDashboardLinksValue | undefined;
 }
 
 export const mailTriageDashboardDataSchema: z.ZodType<
@@ -199,7 +210,7 @@ export const mailTriageDashboardDataSchema: z.ZodType<
   MailTriageDashboardDataValue
 > = z.strictObject({
   summary: mailTriageSummarySchema,
-  managementUrl: z.string().min(1).optional(),
+  links: mailTriageDashboardLinksSchema.optional(),
 });
 
 export type MailTriageFilter = z.output<typeof mailTriageFilterSchema>;
@@ -209,9 +220,6 @@ export type MailTriageListToolOutput = z.output<
   typeof mailTriageListToolOutputSchema
 >;
 export type MailTriageSummary = z.output<typeof mailTriageSummarySchema>;
-export type MailTriageWorkspaceSnapshot = z.output<
-  typeof mailTriageWorkspaceSnapshotSchema
->;
 export type MailTriageStatusAction = z.output<
   typeof mailTriageStatusActionSchema
 >;
@@ -220,4 +228,7 @@ export type MailTriageStatusActionResult = z.output<
 >;
 export type MailTriageDashboardData = z.output<
   typeof mailTriageDashboardDataSchema
+>;
+export type MailTriageDashboardLinks = NonNullable<
+  MailTriageDashboardData["links"]
 >;
