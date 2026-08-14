@@ -18,8 +18,9 @@ ownership per-process.
 This plan changes the earlier wait-only decision, and the reordered problem statement is
 why: a fixed stable Bun addresses only the second defect below, never the first. A future
 fixed Bun therefore remains valuable defense in depth but is **not** the delivery
-dependency for this workaround. The workaround may ship on Bun 1.3.11 only after the
-affected-runtime acceptance matrix below passes unchanged.
+dependency for this workaround. The workaround ships on Bun 1.3.14 — the newest release
+that still carries the defect — and only after the affected-runtime acceptance matrix
+below passes unchanged.
 
 ## Problem statement
 
@@ -229,7 +230,7 @@ The wrapper, not the broker's JavaScript promise, owns command safety:
 
 Wrapper dependencies are already present and must not be treated as a missing install:
 `oven/bun:<version>-slim` ships `flock`, `setsid`, `timeout`, and `bash` at `/usr/bin`
-(verified against `oven/bun:1.3.11-slim`), on top of the image's explicit curl,
+(verified against `oven/bun:1.3.11-slim` and `1.3.14-slim`), on top of the image's curl,
 ca-certificates, Git, and tini. The real gap is proof, not installation — add a
 packaged-image check that every wrapper dependency resolves at runtime, so a future
 base-image change cannot silently remove one.
@@ -397,7 +398,8 @@ Tests first on Linux — landed:
 
 Gate 1 **passes on Bun 1.3.11**: 25 consecutive detached wrappers were observed to their
 terminal record with no lost completion, without ever awaiting a child. Gate 2 passes via
-the termination tests above. Re-run both on 1.3.14 in Phase 7 rather than assuming.
+the termination tests above. Both are re-run on the shipped runtime, 1.3.14, in Phase 7
+rather than assumed to carry over.
 
 If gate 1 ever fails, keep the same protocol, journal, and wrapper, and replace only the
 broker's observation mechanism with a long-lived POSIX/native helper. Do not fall back to
@@ -688,11 +690,26 @@ history.
 The workaround is specifically required to pass on the affected runtime; a canary-only
 pass is insufficient.
 
-The canonical image currently defaults to `ARG BUN_VERSION=1.3.10`, which this matrix does
-not cover. Raise that default to 1.3.11 as part of this work, so the shipped image is a
-runtime the matrix actually proves, and record the pin in the changeset.
+**The image is pinned to Bun 1.3.14, and the matrix runs on 1.3.14 only.**
 
-Run in the packaged Linux/container runtime on Bun 1.3.11 and separately on 1.3.14:
+The reasoning, because it corrects an earlier mistake in this plan. Deployed images take
+the Dockerfile default — the fleet build passes `BRAIN_VERSION` and `SITE_PACKAGES` and
+nothing else — so production ran **1.3.10**, not 1.3.11 as this plan previously claimed.
+That voids the one argument for pinning 1.3.11: there was no runtime to hold constant,
+since 1.3.11 was already a bump. With the pin moving regardless, an intermediate version
+buys nothing.
+
+1.3.14 does not fix the defect — `oven-sh/bun#26580` was reproduced on it — but that no
+longer decides anything. The broker removes the defect independently of the runtime, which
+is exactly why the Bun fix was demoted from delivery dependency to defence in depth. The
+runtime choice is therefore ordinary version hygiene, and 1.3.14 is the newest affected
+release, so proving the workaround there is the strongest affected-runtime evidence
+available short of the fixed one.
+
+1.3.11 is dropped from the required set: keeping it doubles a container matrix to prove a
+version that would no longer run anywhere.
+
+Run in the packaged Linux/container runtime on Bun 1.3.14:
 
 1. focused protocol/wrapper/process-group tests, plus the packaged-image check that every
    wrapper dependency (`flock`, `setsid`, `timeout`, `bash`) resolves at runtime;
@@ -785,7 +802,7 @@ This plan is complete when:
 - timeout/crash tests prove lock retention through complete process-group termination;
 - duplicate and lost acknowledgements cannot duplicate Git mutations;
 - checkpoint replay closes every Git-to-queue crash window;
-- Bun 1.3.11 and 1.3.14 pass the complete affected-runtime matrix;
+- Bun 1.3.14 — the pinned, still-affected runtime — passes the complete acceptance matrix;
 - normal CI and an independent scheduled soak pass without retries;
 - operational health surfaces broker failures while readiness/liveness remain correct;
 - no secret enters durable state or logs;
