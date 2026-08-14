@@ -1,7 +1,9 @@
 /** @jsxImportSource preact */
+import { DECLARATIVE_DASHBOARD_WIDGET_RENDERER } from "@brains/plugins";
 import { formatLabel } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
 import type { JSX } from "preact";
+import { DeclarativeWidgetBody } from "./declarative-widget";
 import type { RenderableWidgetData } from "./types";
 import {
   CardHeader,
@@ -246,7 +248,10 @@ function PipelineBody({ widget }: RendererProps): JSX.Element {
   );
 }
 
-function WidgetBody({ widget }: RendererProps): JSX.Element {
+function WidgetBody({
+  widget,
+  cmsPath,
+}: RendererProps & { cmsPath: string | undefined }): JSX.Element {
   if (widget.component) {
     const Component = widget.component;
     return (
@@ -267,6 +272,8 @@ function WidgetBody({ widget }: RendererProps): JSX.Element {
   }
 
   switch (widget.widget.rendererName) {
+    case DECLARATIVE_DASHBOARD_WIDGET_RENDERER:
+      return <DeclarativeWidgetBody widget={widget} cmsPath={cmsPath} />;
     case "PipelineWidget":
       return <PipelineBody widget={widget} />;
     case "ListWidget":
@@ -279,9 +286,11 @@ function WidgetBody({ widget }: RendererProps): JSX.Element {
 export function WidgetCard({
   widget,
   featured = false,
+  cmsPath,
 }: {
   widget: RenderableWidgetData;
   featured?: boolean;
+  cmsPath?: string | undefined;
 }): JSX.Element {
   const isCompact = COMPACT_WIDGET_RENDERERS.has(widget.widget.rendererName);
   const className = featured
@@ -293,7 +302,7 @@ export function WidgetCard({
       <CardHeader title={widget.widget.title}>
         <CountChip widget={widget} />
       </CardHeader>
-      <WidgetBody widget={widget} />
+      <WidgetBody widget={widget} cmsPath={cmsPath} />
     </article>
   );
 }

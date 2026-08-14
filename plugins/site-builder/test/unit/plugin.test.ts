@@ -6,6 +6,7 @@ import type { PluginCapabilities } from "@brains/plugins/test";
 import {
   createTemplate,
   type AnchorProfile,
+  type DashboardWidgetProviderContext,
   type CmsWorkspaceActor,
   type CmsWorkspaceRegistration,
 } from "@brains/plugins";
@@ -50,7 +51,7 @@ interface DashboardWidgetRegistration {
   visibility: string;
   section: string;
   clientStyles: string;
-  dataProvider: () => Promise<unknown>;
+  dataProvider: (context: DashboardWidgetProviderContext) => Promise<unknown>;
   digestProvider: (data: unknown) => unknown;
 }
 
@@ -331,7 +332,10 @@ describe("SiteBuilderPlugin", () => {
       visibility: "admin",
     });
     expect(dashboardWidget?.clientStyles).toContain(".site-health-widget");
-    const dashboardData = await dashboardWidget?.dataProvider();
+    const dashboardData = await dashboardWidget?.dataProvider({
+      caller: null,
+      signal: new AbortController().signal,
+    });
     expect(dashboardData).toMatchObject({
       site: { title: "Test Site" },
       managementUrl: "/cms/workspaces/site",

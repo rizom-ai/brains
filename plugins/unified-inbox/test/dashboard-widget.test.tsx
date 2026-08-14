@@ -93,7 +93,12 @@ describe("UnifiedInboxDashboardWidget", () => {
       component: UnifiedInboxDashboardWidget,
     });
     if (!registration) throw new Error("Inbox widget was not registered");
-    expect(await registration.dataProvider()).toEqual(dashboardData);
+    expect(
+      await registration.dataProvider({
+        caller: null,
+        signal: new AbortController().signal,
+      }),
+    ).toEqual(dashboardData);
     expect(registration.digestProvider?.(dashboardData)).toEqual({
       digest: [
         { label: "Open", value: "2", tone: "warn" },

@@ -77,21 +77,26 @@ describe("public operator definitions", () => {
       config: z.object({ prefix: z.string() }),
       accountSettings,
       setup: ({ config }) => ({ offset: config.prefix.length }),
-      dashboardWidgets: (context) => [
-        widget.bind(context, async ({ config, state, settings }) => {
-          expectTypeOf(config.prefix).toEqualTypeOf<string>();
-          expectTypeOf(state.offset).toEqualTypeOf<number>();
-          // The token field is declared secret, so operator callbacks never
-          // receive it: view data is serialized to the browser.
-          expectTypeOf(settings).toEqualTypeOf<{
-            endpoint: string;
-          } | null>();
-          return {
-            label: settings?.endpoint ?? config.prefix,
-            count: state.offset,
-          };
-        }),
-      ],
+      dashboardWidgets: (context) => {
+        expectTypeOf(context.accountSettings).toEqualTypeOf<
+          typeof accountSettings
+        >();
+        return [
+          widget.bind(context, async ({ config, state, settings }) => {
+            expectTypeOf(config.prefix).toEqualTypeOf<string>();
+            expectTypeOf(state.offset).toEqualTypeOf<number>();
+            // The token field is declared secret, so operator callbacks never
+            // receive it: view data is serialized to the browser.
+            expectTypeOf(settings).toEqualTypeOf<{
+              endpoint: string;
+            } | null>();
+            return {
+              label: settings?.endpoint ?? config.prefix,
+              count: state.offset,
+            };
+          }),
+        ];
+      },
       cmsWorkspaces: (context) => {
         const action = refresh.bind(context, ({ input, config, state }) => ({
           refreshed: `${config.prefix}:${input.id}:${state.offset}`,

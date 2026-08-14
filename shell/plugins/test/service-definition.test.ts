@@ -332,7 +332,7 @@ describe("declarative service definitions", () => {
     ).toThrow("must be positive");
   });
 
-  it("refuses operator declarations until their runtime exists", async () => {
+  it("keeps dashboard declarations inert without a host and still refuses CMS declarations", async () => {
     const widget = defineDashboardWidget({
       id: "library",
       title: "Library",
@@ -357,15 +357,27 @@ describe("declarative service definitions", () => {
         { name: "@fixture/reading-operator", version: "0.1.0" },
       );
       if (!plugin) throw new Error("Service plugin was not created");
-      await createPluginHarness().installPlugin(plugin);
+      const harness = createPluginHarness();
+      await harness.installPlugin(plugin);
+      await harness.finalizeRegistration();
     };
 
+    let loads = 0;
     expect(
       install({
         dashboardWidgets: (context) => [
-          widget.bind(context, () => ({ count: 0 })),
+          widget.bind(context, ({ settings }) => {
+            expectTypeOf(settings).toEqualTypeOf<null>();
+            loads += 1;
+            return { count: 0 };
+          }),
         ],
       }),
-    ).rejects.toThrow("dashboard widgets require the operator runtime");
+    ).resolves.toBeUndefined();
+    expect(loads).toBe(0);
+
+    expect(install({ cmsWorkspaces: () => [] })).rejects.toThrow(
+      "CMS workspaces require the operator runtime",
+    );
   });
 });

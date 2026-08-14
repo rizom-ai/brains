@@ -10,6 +10,24 @@ import {
   WidgetListItem,
   WidgetTabs,
 } from "@brains/ui-library";
+import { DeclarativeWidgetBody } from "../src/render/declarative-widget";
+import type { RenderableWidgetData } from "../src/render/types";
+
+function declarativeWidget(data: unknown): RenderableWidgetData {
+  return {
+    widget: {
+      id: "declarative",
+      pluginId: "fixture",
+      title: "Declarative widget",
+      group: "knowledge",
+      priority: 10,
+      section: "secondary",
+      rendererName: "host-owned-declarative",
+      visibility: "trusted",
+    },
+    data,
+  };
+}
 
 describe("widget UI primitives", () => {
   it("creates stable DOM-safe widget instance ids", () => {
@@ -57,6 +75,72 @@ describe("widget UI primitives", () => {
     expect(html).toContain('data-ui-tabs-default="first"');
     expect(html).toContain('data-ui-panel="second"');
     expect(html).toContain("hidden");
+  });
+
+  it("renders validated declarative views with host-owned entity links", () => {
+    const html = render(
+      <DeclarativeWidgetBody
+        cmsPath="/cms"
+        widget={declarativeWidget({
+          view: {
+            title: "Queue <script>alert('nope')</script>",
+            blocks: [
+              {
+                type: "table",
+                id: "queue",
+                columns: [
+                  { key: "title", label: "Title" },
+                  { key: "state", label: "State" },
+                ],
+                rows: [
+                  {
+                    id: "row-1",
+                    cells: { title: "First", state: "ready" },
+                    link: {
+                      kind: "entity",
+                      entityType: "bookmark",
+                      id: "saved-1",
+                    },
+                  },
+                ],
+                empty: "No rows.",
+              },
+            ],
+          },
+        })}
+      />,
+    );
+
+    expect(html).toContain("Queue &lt;script>alert('nope')&lt;/script>");
+    expect(html).not.toContain("<script>alert('nope')</script>");
+    expect(html).toContain('class="operator-table"');
+    expect(html).toContain('href="/cms/entities/bookmark/saved-1"');
+  });
+
+  it("rejects unsafe links before the generic renderer emits HTML", () => {
+    const html = render(
+      <DeclarativeWidgetBody
+        cmsPath="/cms"
+        widget={declarativeWidget({
+          view: {
+            blocks: [
+              {
+                type: "links",
+                items: [
+                  {
+                    label: "Unsafe",
+                    target: { kind: "external", href: "javascript:alert(1)" },
+                  },
+                ],
+              },
+            ],
+          },
+        })}
+      />,
+    );
+
+    expect(html).toContain("Widget data is unavailable.");
+    expect(html).not.toContain("javascript:alert(1)");
   });
 
   it("renders declarative filter controls and row values", () => {

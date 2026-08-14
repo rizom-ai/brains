@@ -85,7 +85,7 @@ Types:
 - `ServicePackageDefinition`
 - `WorkspaceActionDefinition`
 
-The additive milestone reserves these operator schemas and executor bindings as its accepted Phase 1 contract. Phase 2 account-settings runtime work is implemented on its review branch: it adds encrypted auth-DB persistence, redacted Account forms, principal-isolated access, and runtime-owned account-daemon reconciliation. Request-scoped service settings are supplied only when the later Dashboard/CMS hosts invoke those callbacks. The overall operator surface is not runtime-complete until Dashboard/CMS registration, rendering, packed evidence, and release nomination land in later phases. The runtime already owns tool wrapping, confirmation replay, job scoping, queue execution, retry, deadlines, progress, cancellation, and restart recovery.
+These operator schemas and executor bindings are the accepted public contract. The account-settings runtime provides encrypted auth-DB persistence, redacted Account forms, principal isolation, and runtime-owned account-daemon reconciliation. Declarative Dashboard widgets now register through a host-owned adapter and generic semantic renderer; callbacks receive the canonical caller, secret-redacted current-principal settings, visibility-scoped entities, typed jobs, and cancellation. A missing optional Dashboard host leaves widgets inert, while execution-only workers never bind or register operator callbacks. CMS hosting and packed standalone evidence remain later phases, so the combined Dashboard/CMS operator surface is not yet runtime-complete.
 
 ## `@rizom/brain/interfaces`
 

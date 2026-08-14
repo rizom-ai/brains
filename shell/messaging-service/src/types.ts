@@ -102,6 +102,8 @@ export interface IMessageBus {
     filter?: SubscriptionFilter,
   ): () => void;
 
+  hasHandlers?(type: string): boolean;
+
   unsubscribe<T = unknown, R = unknown>(
     type: string,
     handler: MessageHandler<T, R>,

@@ -3,15 +3,15 @@
 ## Status
 
 **Approved as a `0.2.x` additive milestone (scope decided 2026-08-10; Phase 0
-contract decisions accepted 2026-08-12).** Dashboard widgets and CMS workspaces
-exist for built-in packages, but external declarative packages cannot use the
-new contracts end to end until their runtime phases land. Phase 1 public
-schemas, definition bindings, inference checks, and ledger curation shipped in
-PR #123. Phase 2 account-settings persistence, Account forms, and runtime-owned
-`forAccounts` supervision are implemented on `feat/public-operator-phase2` and
-await review. Request-scoped settings access lands with the Dashboard/CMS hosts
-that invoke those callbacks. Dashboard/CMS host adapters, packing,
-publication, workflow dispatch, and stable-release actions remain later work.
+contract decisions accepted 2026-08-12).** Phase 1 public schemas, definition
+bindings, inference checks, and ledger curation shipped in PR #123. Phase 2
+encrypted account-settings persistence, Account forms, and runtime-owned
+`forAccounts` supervision shipped in PR #132. Phase 3 now implements the
+Dashboard host adapter and generic semantic renderer on
+`feat/public-operator-phase3`: request-scoped widget callbacks receive the
+canonical caller, secret-redacted settings, visibility-scoped entities, typed
+jobs, and cancellation. CMS hosting, packed standalone evidence, built-in
+alignment, and release nomination remain later phases.
 
 Scope: this plan does **not** gate `v0.2.0`. Stable nomination proceeds on the
 current frozen surface. The design is purely additive — optional
@@ -254,11 +254,13 @@ widgets/workspaces or execute their providers. Author callbacks receive an
 `AbortSignal`; the runtime owns cancellation, registration order, rollback,
 unregistration, and shutdown.
 
-Until that runtime lands, a plugin that declares account settings, widgets, or
-workspaces fails to install with a message naming the missing runtime, matching
-how an account-bound daemon already refuses. The contracts are public so authors
-can write and typecheck against them ahead of the hosts; accepting a declaration
-and registering nothing would be indistinguishable from a broken plugin.
+Account settings still fail finalization without auth-service and its encryption
+key, and CMS workspace declarations fail until the Phase 4 host exists. The
+Phase 3 Dashboard adapter treats an absent optional Dashboard host as an inert
+capability: it does not execute providers, and a composed host either accepts
+the validated registration or produces a bounded package/service/widget
+failure. The contracts remain public so authors can write and typecheck against
+them ahead of the remaining hosts.
 
 ### 8. Per-account plugin settings are part of this contract
 
@@ -604,9 +606,9 @@ Exit: the golden package typechecks against generated local declarations.
 
 ### Phase 2: account settings runtime
 
-**Implemented on the Phase 2 branch; awaiting review.** The implementation uses
-one app-scoped account-settings registry, an auth-DB backend with AES-GCM
-authenticated encryption keyed by the deployment-provided
+**Shipped in PR #132.** The implementation uses one app-scoped
+account-settings registry, an auth-DB backend with AES-GCM authenticated
+encryption keyed by the deployment-provided
 `ACCOUNT_SETTINGS_ENCRYPTION_KEY`, redacted Account form descriptors, and
 runtime-owned per-principal daemon reconciliation. The runtime fails
 finalization when a package declares account settings without the auth
@@ -642,16 +644,30 @@ Phases 3–4.
 
 ### Phase 3: dashboard runtime
 
-1. Add runtime-owned registration/finalization/rollback around declarative
-   widgets.
-2. Pass canonical caller and signal to providers.
-3. Validate data, digest, attention, and view output.
-4. Render the generic widget in all supported placements.
-5. Prove permission filtering and absence-host behavior.
-6. Prove web-only registration and worker exclusion.
+**Implemented on `feat/public-operator-phase3`; validation and review remain.**
 
-Exit: a packed widget renders through the running Dashboard without private
-imports or author lifecycle code.
+1. Runtime-owned finalization registers declarative widgets only after service
+   setup, rolls back partial acquisition, unregisters in reverse order, and
+   aborts in-flight providers during shutdown.
+2. The Dashboard route resolves the optional session and passes the canonical
+   caller plus the request signal; the adapter combines request and service
+   lifecycle cancellation.
+3. Provider data, digest/attention output, semantic views, links, bounds, and
+   row identities are validated before rendering or serialization.
+4. One host-owned renderer covers every Dashboard placement without exposing
+   built-in renderer names, components, scripts, styles, or private assets.
+5. Entity reads derive visibility from the canonical caller, settings are
+   secret-redacted, jobs resolve through typed definitions, and minimum
+   permission is checked before provider execution.
+6. Focused evidence covers authenticated caller propagation, public/trusted/
+   admin filtering, safe escaped HTML, safe links, missing-host inert behavior,
+   host rejection rollback, cancellation, shutdown cleanup, and execution-only
+   worker exclusion.
+
+Exit: an in-tree declarative service renders through the running Dashboard
+without private imports or author lifecycle code. Packed standalone evidence is
+intentionally Phase 5 so the Dashboard and CMS capabilities are exercised in
+one isolated consumer.
 
 ### Phase 4: CMS runtime
 
@@ -808,9 +824,10 @@ one.
     account.
 22. Every settings schema field carries a field declaration, and a compile-check
     proves a widget, workspace, or action cannot read a field declared `secret`.
-23. A plugin declaring account settings, widgets, or workspaces before their
-    runtime exists fails to install with a message naming the missing runtime,
-    rather than registering nothing.
+23. Account-settings declarations fail without auth-service and its encryption
+    key, CMS declarations fail until their host runtime exists, and Dashboard
+    declarations remain healthy and inert when the optional Dashboard host is
+    absent.
 
 ## Risks and mitigations
 

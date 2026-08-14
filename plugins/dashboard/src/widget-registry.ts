@@ -1,10 +1,16 @@
 import type { WidgetComponent } from "@brains/ui-library";
-import { PermissionService, type UserPermissionLevel } from "@brains/plugins";
+import {
+  PermissionService,
+  type DashboardWidgetProviderContext,
+  type UserPermissionLevel,
+} from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
 
 export type { WidgetComponent, WidgetComponentProps } from "@brains/ui-library";
-export type WidgetDataProvider = () => Promise<unknown>;
+export type WidgetDataProvider = (
+  context: DashboardWidgetProviderContext,
+) => Promise<unknown>;
 /** Derives live digest lines / attention counts from the widget's fetched data. */
 export type WidgetDigestProvider = (data: unknown) => {
   digest?: DashboardDigestLine[];

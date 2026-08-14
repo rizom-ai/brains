@@ -1,5 +1,6 @@
 import type {
   BaseDataSourceContext,
+  DashboardWidgetProviderContext,
   DataSource,
   DataSourceSchema,
 } from "@brains/plugins";
@@ -36,6 +37,7 @@ export class DashboardDataSource implements DataSource {
     options: {
       permissionLevel?: WidgetVisibility;
       widgets?: StoredRegisteredWidget[];
+      providerContext?: DashboardWidgetProviderContext;
     } = {},
   ): Promise<DashboardData> {
     const widgets: Record<string, WidgetData> = {};
@@ -47,10 +49,15 @@ export class DashboardDataSource implements DataSource {
         }),
       });
 
+    const providerContext = options.providerContext ?? {
+      caller: null,
+      signal: new AbortController().signal,
+    };
+
     // Fetch all widget data in parallel
     const results = await Promise.allSettled(
       registeredWidgets.map(async (widget) => {
-        const data = await widget.dataProvider();
+        const data = await widget.dataProvider(providerContext);
         const {
           dataProvider: _,
           digestProvider: _digestProvider,

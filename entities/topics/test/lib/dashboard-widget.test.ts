@@ -2,6 +2,7 @@ import { describe, expect, it, mock } from "bun:test";
 import {
   SYSTEM_CHANNELS,
   type BaseEntity,
+  type DashboardWidgetProviderContext,
   type EntityPluginContext,
 } from "@brains/plugins";
 import { registerTopicsDashboardWidget } from "../../src/lib/dashboard-widget";
@@ -36,18 +37,19 @@ describe("registerTopicsDashboardWidget", () => {
 
     let registeredWidget:
       | {
-          dataProvider: () => Promise<{
+          dataProvider: (context: DashboardWidgetProviderContext) => Promise<{
             items: Array<Record<string, unknown>>;
           }>;
         }
       | undefined;
     const registerWidget = mock(
       async (widget: {
-        dataProvider: () => Promise<{
+        dataProvider: (context: DashboardWidgetProviderContext) => Promise<{
           items: Array<Record<string, unknown>>;
         }>;
-      }): Promise<void> => {
+      }): Promise<boolean> => {
         registeredWidget = widget;
+        return true;
       },
     );
     const subscribe = mock(
@@ -91,7 +93,10 @@ describe("registerTopicsDashboardWidget", () => {
     expect(registeredWidget).toBeDefined();
     if (!registeredWidget) throw new Error("Widget was not registered");
 
-    const data = await registeredWidget.dataProvider();
+    const data = await registeredWidget.dataProvider({
+      caller: null,
+      signal: new AbortController().signal,
+    });
 
     expect(data.items).toEqual([
       {

@@ -194,7 +194,12 @@ describe("InboxDataSource", () => {
     expect(events).toEqual(["workspace", "dashboard", "digest"]);
     if (!widget || !check)
       throw new Error("Operator surfaces did not register");
-    expect(await widget.dataProvider()).toMatchObject({
+    expect(
+      await widget.dataProvider({
+        caller: null,
+        signal: new AbortController().signal,
+      }),
+    ).toMatchObject({
       managementUrl: "/studio/workspaces/inbox",
     });
     const digest = await check.run({ signal: new AbortController().signal });

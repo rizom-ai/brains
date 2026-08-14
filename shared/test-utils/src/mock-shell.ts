@@ -313,6 +313,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
         messageHandlers.get(type)?.delete(handler);
       };
     },
+    hasHandlers: (type: string) => (messageHandlers.get(type)?.size ?? 0) > 0,
     unsubscribe: () => {},
     getSubscriptions: () => Array.from(messageHandlers.keys()),
   } as unknown as MessageBus;

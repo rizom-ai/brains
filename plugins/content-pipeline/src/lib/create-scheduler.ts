@@ -88,7 +88,8 @@ function createMessageBusAdapter(context: ServicePluginContext): IMessageBus {
   };
 
   const subscribe: IMessageBus["subscribe"] = () => () => {};
+  const hasHandlers: IMessageBus["hasHandlers"] = () => false;
   const unsubscribe: IMessageBus["unsubscribe"] = () => {};
 
-  return { send, subscribe, unsubscribe };
+  return { send, subscribe, hasHandlers, unsubscribe };
 }

@@ -751,10 +751,19 @@ export {
   type CmsWorkspaceRendererName,
 } from "./types/cms-workspace";
 export { registerCmsWorkspace } from "./service/cms-workspace-registration";
-export type {
-  DashboardWidgetRegistration,
-  IDashboardNamespace,
+export {
+  DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
+  type DashboardWidgetProviderContext,
+  type DashboardWidgetRegistration,
+  type IDashboardNamespace,
 } from "./base/dashboard-namespace";
+export {
+  safeParseRuntimeDashboardWidgetData,
+  type RuntimeDashboardOperatorView,
+  type RuntimeDashboardWidgetData,
+  type RuntimeOperatorLinkTarget,
+  type RuntimeOperatorScalar,
+} from "./operator/operator-view-runtime";
 export {
   RouteDefinitionSchema,
   NavigationSlots,

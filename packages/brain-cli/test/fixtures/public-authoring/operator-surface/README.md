@@ -1,10 +1,11 @@
-# Reading operator surface — Phase 1 contract
+# Reading operator surface — public contract fixture
 
 This standalone package is the checked authoring target for the additive public
 operator-surface contract. It compiles against the local public service entry,
-and every imported helper is classified in the stable export ledger. It is not
-yet packed or presented as a runtime-complete API; registration, hosts, storage,
-and rendering land in later phases.
+and every imported helper is classified in the stable export ledger. Account
+settings and the Dashboard host runtime are implemented; CMS hosting and the
+combined packed standalone proof remain later phases, so this fixture is not
+yet presented as a runtime-complete API.
 
 The target package demonstrates one service-family import and three related
 capabilities. Definitions are validated and frozen at module scope; their

@@ -344,7 +344,11 @@ export function createBasePluginContext(
 
     messaging,
 
-    dashboard: createDashboardNamespace(messaging, pluginId),
+    dashboard: createDashboardNamespace(
+      messaging,
+      pluginId,
+      (channel) => shell.getMessageBus().hasHandlers?.(channel) ?? false,
+    ),
 
     jobs: createJobsNamespace(shell, pluginId),
 

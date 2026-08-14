@@ -1,5 +1,8 @@
 import { beforeEach, describe, expect, it } from "bun:test";
-import type { UserPermissionLevel } from "@brains/plugins";
+import type {
+  DashboardWidgetProviderContext,
+  UserPermissionLevel,
+} from "@brains/plugins";
 import {
   baseEntitySchema,
   createMockShell,
@@ -26,12 +29,19 @@ interface DashboardWidgetPayload {
   priority: number;
   rendererName: string;
   visibility: UserPermissionLevel;
-  dataProvider: () => Promise<PipelineWidgetData>;
+  dataProvider: (
+    context: DashboardWidgetProviderContext,
+  ) => Promise<PipelineWidgetData>;
   digestProvider: (data: unknown) => {
     digest: Array<{ label: string; value: string; tone?: string }>;
     needsAttention: number;
   };
 }
+
+const dashboardProviderContext: DashboardWidgetProviderContext = {
+  caller: null,
+  signal: new AbortController().signal,
+};
 
 describe("dashboard widget registration", () => {
   let context: ServicePluginContext;
@@ -117,7 +127,7 @@ describe("dashboard widget registration", () => {
     await deps.queueManager.add("social-post", "queued-post");
 
     await registerDashboardWidget(context, "content-pipeline", deps);
-    const data = await widgetPayload?.dataProvider();
+    const data = await widgetPayload?.dataProvider(dashboardProviderContext);
 
     expect(data?.summary).toEqual({
       draft: 1,
@@ -194,13 +204,15 @@ describe("dashboard widget registration", () => {
       ...deps,
       managementUrl: "/studio/workspaces/publishing",
     });
-    expect((await widgetPayload?.dataProvider())?.managementUrl).toBe(
-      "/studio/workspaces/publishing",
-    );
+    expect(
+      (await widgetPayload?.dataProvider(dashboardProviderContext))
+        ?.managementUrl,
+    ).toBe("/studio/workspaces/publishing");
 
     await registerDashboardWidget(context, "content-pipeline", deps);
     expect(
-      (await widgetPayload?.dataProvider())?.managementUrl,
+      (await widgetPayload?.dataProvider(dashboardProviderContext))
+        ?.managementUrl,
     ).toBeUndefined();
   });
 
@@ -262,7 +274,7 @@ describe("dashboard widget registration", () => {
     ];
 
     await registerDashboardWidget(context, "content-pipeline", deps);
-    const data = await widgetPayload?.dataProvider();
+    const data = await widgetPayload?.dataProvider(dashboardProviderContext);
 
     expect(data?.generating).toEqual([
       {

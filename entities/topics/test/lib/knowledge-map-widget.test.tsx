@@ -69,7 +69,10 @@ describe("knowledgeMapWidgetRegistration", () => {
     expect(registration.clientStyles).toContain(".kmap");
     expect(registration.clientStyles).toContain(".kmap-field");
 
-    const data = await registration.dataProvider();
+    const data = await registration.dataProvider({
+      caller: null,
+      signal: new AbortController().signal,
+    });
     expect(data.zones.map((zone) => zone.name)).toEqual(["Future of Work"]);
     expect(data.counts).toEqual({ entities: 2, topics: 1 });
 
@@ -96,7 +99,7 @@ describe("registerKnowledgeMapDashboardWidget", () => {
       dashboard: {
         registerWidget: (widget) => {
           registered.push(widget);
-          return Promise.resolve();
+          return Promise.resolve(true);
         },
       },
     };

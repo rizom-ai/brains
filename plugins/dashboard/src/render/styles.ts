@@ -9,6 +9,7 @@ import { CONSOLE_THEME_CSS } from "@brains/console-theme";
 import compatibilityStyles from "./styles/compatibility.css" with { type: "text" };
 import foundationStyles from "./styles/foundation.css" with { type: "text" };
 import overviewStyles from "./styles/overview.css" with { type: "text" };
+import operatorViewStyles from "./styles/operator-view.css" with { type: "text" };
 import systemStyles from "./styles/system.css" with { type: "text" };
 import widgetPrimitiveStyles from "./styles/widget-primitives.css" with { type: "text" };
 
@@ -17,6 +18,8 @@ export const DASHBOARD_STYLES: string = `${CONSOLE_THEME_CSS}
 ${foundationStyles}
 
 ${overviewStyles}
+
+${operatorViewStyles}
 
 ${systemStyles}
 

@@ -1,9 +1,14 @@
 import type {
+  DashboardWidgetProviderContext,
   Tool,
   ServicePluginContext,
   WebRouteDefinition,
 } from "@brains/plugins";
-import { PermissionService, ServicePlugin } from "@brains/plugins";
+import {
+  DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
+  PermissionService,
+  ServicePlugin,
+} from "@brains/plugins";
 import {
   DASHBOARD_CHANNELS,
   ENTITY_CHANNELS,
@@ -87,10 +92,11 @@ const registerWidgetPayloadSchema = z
     component: z.custom<WidgetComponent>().optional(),
     clientStyles: z.string().optional(),
     clientScript: z.string().optional(),
-    dataProvider: z.custom<() => Promise<unknown>>(
-      (value) => typeof value === "function",
-      { message: "Expected dashboard widget data provider function" },
-    ),
+    dataProvider: z.custom<
+      (context: DashboardWidgetProviderContext) => Promise<unknown>
+    >((value) => typeof value === "function", {
+      message: "Expected dashboard widget data provider function",
+    }),
     digestProvider: z
       .custom<WidgetDigestProvider>((value) => typeof value === "function", {
         message: "Expected dashboard widget digest provider function",
@@ -98,7 +104,11 @@ const registerWidgetPayloadSchema = z
       .optional(),
   })
   .superRefine((payload, refinementContext) => {
-    if (!isBuiltInWidgetRenderer(payload.rendererName) && !payload.component) {
+    if (
+      !isBuiltInWidgetRenderer(payload.rendererName) &&
+      payload.rendererName !== DECLARATIVE_DASHBOARD_WIDGET_RENDERER &&
+      !payload.component
+    ) {
       refinementContext.addIssue({
         code: "custom",
         message: "Custom dashboard widgets must register a Preact component.",
@@ -185,9 +195,9 @@ function createRegisteredWidget(
     ...(payload.component ? { component: payload.component } : {}),
     ...(payload.clientStyles ? { clientStyles: payload.clientStyles } : {}),
     ...(payload.clientScript ? { clientScript: payload.clientScript } : {}),
-    dataProvider: payload.dataProvider as () => Promise<unknown>,
+    dataProvider: payload.dataProvider,
     ...(payload.digestProvider
-      ? { digestProvider: payload.digestProvider as WidgetDigestProvider }
+      ? { digestProvider: payload.digestProvider }
       : {}),
   };
 }
@@ -432,6 +442,19 @@ export class DashboardPlugin extends ServicePlugin<
               this.datasource.getDashboardData({
                 permissionLevel,
                 widgets: visibleWidgets,
+                providerContext: {
+                  caller: principal
+                    ? {
+                        actor: {
+                          id: principal.userId,
+                          displayName: principal.displayName,
+                        },
+                        permission: principal.permissionLevel,
+                        isAnchor: principal.isAnchor,
+                      }
+                    : null,
+                  signal: request.signal,
+                },
               }),
               ctx.appInfo(),
               this.getDirectorySyncStatus(),

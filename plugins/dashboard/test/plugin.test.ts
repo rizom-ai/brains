@@ -1,5 +1,9 @@
 import { describe, expect, it, beforeEach, afterEach } from "bun:test";
-import type { WebRouteDefinition } from "@brains/plugins";
+import {
+  DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
+  type DashboardWidgetProviderContext,
+  type WebRouteDefinition,
+} from "@brains/plugins";
 import { AuthServicePlugin } from "@brains/auth-service";
 import { h } from "preact";
 import type { WidgetComponentProps } from "../src";
@@ -495,6 +499,97 @@ describe("DashboardPlugin", () => {
       expect(html).toContain("MCP");
       expect(html).not.toContain("CMS");
       expect(html).not.toContain('href="#people"');
+    });
+
+    it("passes the authenticated caller and request cancellation to declarative widgets", async () => {
+      const authPlugin = new AuthServicePlugin({
+        storageDir: `/tmp/dashboard-declarative-auth-${Date.now()}`,
+      });
+      await harness.installPlugin(authPlugin);
+      const trustedUser = await authPlugin.getService().createUser({
+        displayName: "Mira Reyes",
+        role: "trusted",
+        status: "active",
+      });
+      const session = await authPlugin
+        .getService()
+        .createAuthSession(trustedUser.userId);
+      const cookie = session.cookie.split(";")[0] ?? session.cookie;
+      const providerContexts: DashboardWidgetProviderContext[] = [];
+      let hiddenProviderCalls = 0;
+
+      await harness.sendMessage("dashboard:register-widget", {
+        id: "declarative-reader",
+        pluginId: "reader",
+        group: "knowledge",
+        title: "Reader widget",
+        visibility: "trusted",
+        rendererName: DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
+        dataProvider: async (context: DashboardWidgetProviderContext) => {
+          providerContexts.push(context);
+          return {
+            view: {
+              title: "Reading <script>alert('nope')</script>",
+              blocks: [
+                {
+                  type: "stats",
+                  items: [{ label: "Saved", value: 3, tone: "good" }],
+                },
+                {
+                  type: "links",
+                  items: [
+                    {
+                      label: "Reading source",
+                      target: {
+                        kind: "external",
+                        href: "https://reading.example/library",
+                      },
+                    },
+                  ],
+                },
+              ],
+            },
+          };
+        },
+      });
+      await harness.sendMessage("dashboard:register-widget", {
+        id: "anchor-only",
+        pluginId: "reader",
+        group: "knowledge",
+        title: "Anchor only",
+        visibility: "admin",
+        rendererName: DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
+        dataProvider: async () => {
+          hiddenProviderCalls += 1;
+          return { view: { blocks: [] } };
+        },
+      });
+
+      const route = plugin
+        .getWebRoutes()
+        .find((candidate) => candidate.path === "/dashboard");
+      const abortController = new AbortController();
+      const response = await route?.handler(
+        new Request("http://brain/dashboard", {
+          headers: { Cookie: cookie },
+          signal: abortController.signal,
+        }),
+      );
+      const html = await response?.text();
+
+      expect(providerContexts).toHaveLength(1);
+      expect(providerContexts[0]?.caller).toEqual({
+        actor: { id: trustedUser.userId, displayName: "Mira Reyes" },
+        permission: "trusted",
+        isAnchor: false,
+      });
+      expect(hiddenProviderCalls).toBe(0);
+      expect(html).toContain("operator-view");
+      expect(html).toContain("Reading &lt;script>alert('nope')&lt;/script>");
+      expect(html).not.toContain("<script>alert('nope')</script>");
+      expect(html).toContain('href="https://reading.example/library"');
+      abortController.abort();
+      expect(providerContexts[0]?.signal.aborted).toBeTrue();
     });
 
     it("should show Admin endpoints and interactions without embedding People", async () => {

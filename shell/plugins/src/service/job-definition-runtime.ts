@@ -1,9 +1,11 @@
-import type { AnyServiceJobDefinition } from "./service-definition-contract";
+interface RuntimeJobDefinition {
+  readonly name: string;
+}
 
-const runtimeTypes = new WeakMap<AnyServiceJobDefinition, string>();
+const runtimeTypes = new WeakMap<object, string>();
 
 export function bindServiceJobRuntimeType(
-  definition: AnyServiceJobDefinition,
+  definition: RuntimeJobDefinition,
   runtimeType: string,
 ): void {
   const existing = runtimeTypes.get(definition);
@@ -16,7 +18,7 @@ export function bindServiceJobRuntimeType(
 }
 
 export function unbindServiceJobRuntimeType(
-  definition: AnyServiceJobDefinition,
+  definition: RuntimeJobDefinition,
   runtimeType: string,
 ): void {
   if (runtimeTypes.get(definition) === runtimeType) {
@@ -25,7 +27,7 @@ export function unbindServiceJobRuntimeType(
 }
 
 export function getServiceJobRuntimeType(
-  definition: AnyServiceJobDefinition,
+  definition: RuntimeJobDefinition,
 ): string {
   const runtimeType = runtimeTypes.get(definition);
   if (!runtimeType) {

@@ -62,12 +62,16 @@ export type SecretSettingsKeys<
  * itself: reading one is a compile error rather than a review question. Full
  * values stay available to server-only paths such as account-bound daemons.
  */
+/** Keep the no-settings case as `never`; `Omit<never, K>` widens to `{}`. */
+type PreserveNever<T> = T extends unknown ? unknown : never;
+
 export type RedactedAccountSettingsValue<
   TDefinition extends AnyAccountSettingsDefinition,
 > = Omit<
   AccountSettingsValue<TDefinition>,
   Extract<SecretSettingsKeys<TDefinition>, string>
->;
+> &
+  PreserveNever<TDefinition>;
 
 export function defineAccountSettings<
   TSchema extends AccountSettingsSchema,

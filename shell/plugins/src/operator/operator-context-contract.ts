@@ -113,9 +113,9 @@ export interface OperatorBaseContext<
    * Operator data reaches the browser, so secrets are excluded from the type
    * rather than left to author discipline.
    */
-  readonly settings: TAccountSettings extends AnyAccountSettingsDefinition
-    ? RedactedAccountSettingsValue<TAccountSettings> | null
-    : null;
+  readonly settings: RedactedAccountSettingsValue<
+    NonNullable<TAccountSettings>
+  > | null;
   readonly entities: OperatorEntityReader;
   readonly jobs: OperatorJobs;
   readonly permissions: OperatorPermissions;

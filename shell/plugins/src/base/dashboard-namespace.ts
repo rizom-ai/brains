@@ -1,5 +1,14 @@
 import { DASHBOARD_CHANNELS } from "@brains/contracts";
+import type { OperatorCaller } from "../operator/operator-context-contract";
 import type { IMessagingNamespace } from "./context-types";
+
+export const DECLARATIVE_DASHBOARD_WIDGET_RENDERER =
+  "DeclarativeOperatorWidget";
+
+export interface DashboardWidgetProviderContext {
+  readonly caller: OperatorCaller | null;
+  readonly signal: AbortSignal;
+}
 
 /**
  * A widget's registration, minus `pluginId` — the namespace fills that in from
@@ -19,7 +28,7 @@ export interface DashboardWidgetRegistration {
   title: string;
   group: string;
   rendererName: string;
-  dataProvider: () => Promise<unknown>;
+  dataProvider: (context: DashboardWidgetProviderContext) => Promise<unknown>;
   description?: string | undefined;
   priority?: number | undefined;
   section?: "primary" | "secondary" | "sidebar" | undefined;
@@ -42,28 +51,44 @@ export interface DashboardWidgetRegistration {
 
 /** Dashboard namespace — widget contribution. */
 export interface IDashboardNamespace {
-  /** Contribute a widget to the dashboard. No-op when no dashboard is mounted. */
-  registerWidget: (widget: DashboardWidgetRegistration) => Promise<void>;
-  /** Withdraw this plugin's widgets, or one of them by id. */
-  unregisterWidget: (widgetId?: string) => Promise<void>;
+  /** Contribute a widget. Returns false when no Dashboard host is mounted. */
+  registerWidget: (widget: DashboardWidgetRegistration) => Promise<boolean>;
+  /** Withdraw widgets. Returns false when no Dashboard host is mounted. */
+  unregisterWidget: (widgetId?: string) => Promise<boolean>;
+}
+
+function dashboardResponse(
+  operation: "register" | "unregister",
+  response: Awaited<ReturnType<IMessagingNamespace["send"]>>,
+): boolean {
+  if ("success" in response && response.success) return true;
+  const error = "error" in response ? response.error : undefined;
+  throw new Error(
+    `Dashboard widget ${operation} failed: ${error ?? "unknown host error"}`,
+  );
 }
 
 export function createDashboardNamespace(
   messaging: IMessagingNamespace,
   pluginId: string,
+  hasHandler: (channel: string) => boolean,
 ): IDashboardNamespace {
   return {
-    registerWidget: async (widget): Promise<void> => {
-      await messaging.send({
+    registerWidget: async (widget): Promise<boolean> => {
+      if (!hasHandler(DASHBOARD_CHANNELS.registerWidget)) return false;
+      const response = await messaging.send({
         type: DASHBOARD_CHANNELS.registerWidget,
         payload: { ...widget, pluginId },
       });
+      return dashboardResponse("register", response);
     },
-    unregisterWidget: async (widgetId): Promise<void> => {
-      await messaging.send({
+    unregisterWidget: async (widgetId): Promise<boolean> => {
+      if (!hasHandler(DASHBOARD_CHANNELS.unregisterWidget)) return false;
+      const response = await messaging.send({
         type: DASHBOARD_CHANNELS.unregisterWidget,
         payload: { pluginId, ...(widgetId ? { widgetId } : {}) },
       });
+      return dashboardResponse("unregister", response);
     },
   };
 }

@@ -17,8 +17,18 @@ import {
 } from "@brains/templates";
 import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
-import type { PluginCapabilities, IShell } from "../interfaces";
+import type {
+  PluginCapabilities,
+  PluginRegistrationContext,
+  IShell,
+} from "../interfaces";
 import type { AnyAccountSettingsDefinition } from "../operator/account-settings-definition-contract";
+import type { AccountSettingsRegistration } from "../operator/account-settings-registry";
+import { createDeclarativeDashboardWidgetRegistration } from "../operator/dashboard-widget-runtime";
+import type {
+  AnyDashboardWidgetDefinition,
+  BoundDashboardWidget,
+} from "../operator/operator-definition-contract";
 import {
   identityConfigSchema,
   type InstalledPluginPackageMetadata,
@@ -29,7 +39,7 @@ import type { ServicePluginContext } from "./context";
 import type {
   AnyServiceJobDefinition,
   AnyServiceToolDefinition,
-  ServiceDefinitionInput,
+  NormalizedServiceDefinitionInput,
   ServiceJobBinding,
   ServiceJobReference,
   ServiceJobStatus,
@@ -152,7 +162,7 @@ class DeclarativeServicePlugin<
   TViewSchemas extends ServiceSchemaMap,
   TAccountSettings extends AnyAccountSettingsDefinition | undefined,
 > extends ServicePlugin<z.output<TConfigSchema>, z.output<TConfigSchema>> {
-  private readonly definition: ServiceDefinitionInput<
+  private readonly definition: NormalizedServiceDefinitionInput<
     TConfigSchema,
     TState,
     TPromptSchemas,
@@ -164,13 +174,23 @@ class DeclarativeServicePlugin<
   private readonly toolContext = new AsyncLocalStorage<ToolContext>();
   private readonly cleanups: Array<() => void | Promise<void>> = [];
   private readonly registeredJobs = new Set<AnyServiceJobDefinition>();
+  private readonly operatorAbortController = new AbortController();
+  private readonly registeredDashboardWidgetIds: string[] = [];
+  private accountSettingsRegistration:
+    AccountSettingsRegistration<NonNullable<TAccountSettings>> | undefined;
+  private dashboardWidgetBindings: readonly BoundDashboardWidget<
+    AnyDashboardWidgetDefinition,
+    z.output<TConfigSchema>,
+    TState,
+    TAccountSettings
+  >[] = [];
   private scopedShell: IShell | undefined;
   private state: TState | undefined;
   private tools: Tool[] | undefined;
   private resources: Resource[] | undefined;
 
   constructor(
-    definition: ServiceDefinitionInput<
+    definition: NormalizedServiceDefinitionInput<
       TConfigSchema,
       TState,
       TPromptSchemas,
@@ -187,29 +207,27 @@ class DeclarativeServicePlugin<
     this.publicId = definition.id;
   }
 
-  public override register(shell: IShell): Promise<PluginCapabilities> {
+  public override register(
+    shell: IShell,
+    registrationContext?: PluginRegistrationContext,
+  ): Promise<PluginCapabilities> {
     this.scopedShell = shell;
-    return super.register(shell);
+    return super.register(shell, registrationContext);
   }
 
   protected override async onRegister(
     context: ServicePluginContext,
   ): Promise<void> {
     await super.onRegister(context);
-    // Account settings are hosted by the web runtime. Operator hosts remain a
-    // later phase, so refuse those declarations rather than dropping them.
-    if (this.definition.dashboardWidgets) {
-      throw new Error(
-        `Service "${this.publicId}" dashboard widgets require the operator runtime`,
-      );
-    }
-    if (this.definition.cmsWorkspaces) {
+    // Operator hosts are web-only. CMS remains a later runtime phase, so fail
+    // loudly in the web process while keeping execution-only workers inert.
+    if (this.definition.cmsWorkspaces && !context.executionOnly) {
       throw new Error(
         `Service "${this.publicId}" CMS workspaces require the operator runtime`,
       );
     }
     if (this.definition.accountSettings && !context.executionOnly) {
-      context.accountSettings.register({
+      this.accountSettingsRegistration = context.accountSettings.register({
         ownerPluginId: this.id,
         packageName: this.packageName,
         definitionId: this.definition.id,
@@ -226,6 +244,25 @@ class DeclarativeServicePlugin<
           },
         })
       : (Object.freeze({}) as TState);
+
+    if (this.definition.dashboardWidgets && !context.executionOnly) {
+      const bindings = this.definition.dashboardWidgets({
+        config: this.config,
+        state: this.requireState(),
+        accountSettings: this.definition.accountSettings,
+      });
+      const ids = new Set<string>();
+      for (const binding of bindings) {
+        const id = binding.definition.id;
+        if (ids.has(id)) {
+          throw new Error(
+            `Service "${this.publicId}" package "${this.packageName}" registers dashboard widget "${id}" more than once; return each local widget definition once`,
+          );
+        }
+        ids.add(id);
+      }
+      this.dashboardWidgetBindings = Object.freeze([...bindings]);
+    }
 
     const templates = this.templateFormatter();
     context.templates.register(this.runtimeTemplates(), this.id);
@@ -262,6 +299,55 @@ class DeclarativeServicePlugin<
       throw new Error(
         `Service "${this.publicId}" account settings require auth-service and an account settings encryption key`,
       );
+    }
+    if (context.executionOnly || this.dashboardWidgetBindings.length === 0) {
+      return;
+    }
+
+    const acquired: string[] = [];
+    try {
+      for (const binding of this.dashboardWidgetBindings) {
+        const registration = createDeclarativeDashboardWidgetRegistration({
+          publicServiceId: this.publicId,
+          packageName: this.packageName,
+          config: this.config,
+          state: this.requireState(),
+          ...(this.accountSettingsRegistration
+            ? {
+                accountSettingsRegistration: this.accountSettingsRegistration,
+              }
+            : {}),
+          binding,
+          context,
+          runtimeSignal: this.operatorAbortController.signal,
+        });
+        let registered: boolean;
+        try {
+          registered = await context.dashboard.registerWidget(registration);
+        } catch (error) {
+          throw new Error(
+            `Service "${this.publicId}" package "${this.packageName}" dashboard widget "${binding.definition.id}" host registration failed; correct the declaration or Dashboard configuration: ${getErrorMessage(error)}`,
+            { cause: error },
+          );
+        }
+        if (!registered) {
+          await this.rollbackDashboardWidgets(context, acquired);
+          this.logger.debug(
+            "Dashboard host absent; declarative widgets are inert",
+            {
+              serviceId: this.publicId,
+              packageName: this.packageName,
+              widgetCount: this.dashboardWidgetBindings.length,
+            },
+          );
+          return;
+        }
+        acquired.push(binding.definition.id);
+      }
+      this.registeredDashboardWidgetIds.push(...acquired);
+    } catch (error) {
+      await this.rollbackDashboardWidgets(context, acquired);
+      throw error;
     }
   }
 
@@ -309,6 +395,14 @@ class DeclarativeServicePlugin<
   }
 
   protected override async onShutdown(): Promise<void> {
+    this.operatorAbortController.abort(
+      new Error(`Service "${this.publicId}" is shutting down`),
+    );
+    await this.rollbackDashboardWidgets(
+      this.getContext(),
+      this.registeredDashboardWidgetIds.splice(0),
+    );
+    this.dashboardWidgetBindings = [];
     this.tools = undefined;
     this.resources = undefined;
     for (const job of this.registeredJobs) {
@@ -317,6 +411,26 @@ class DeclarativeServicePlugin<
     this.registeredJobs.clear();
     for (const cleanup of this.cleanups.splice(0).reverse()) {
       await cleanup();
+    }
+  }
+
+  private async rollbackDashboardWidgets(
+    context: ServicePluginContext,
+    widgetIds: readonly string[],
+  ): Promise<void> {
+    for (const widgetId of [...widgetIds].reverse()) {
+      try {
+        await context.dashboard.unregisterWidget(widgetId);
+      } catch (error) {
+        this.logger.error("Failed to unregister declarative dashboard widget", {
+          serviceId: this.publicId,
+          packageName: this.packageName,
+          widgetId,
+          error: getErrorMessage(error),
+        });
+      }
+      const index = this.registeredDashboardWidgetIds.lastIndexOf(widgetId);
+      if (index >= 0) this.registeredDashboardWidgetIds.splice(index, 1);
     }
   }
 
@@ -568,7 +682,7 @@ export function createDeclarativeServicePlugin<
   TViewSchemas extends ServiceSchemaMap,
   TAccountSettings extends AnyAccountSettingsDefinition | undefined,
 >(
-  definition: ServiceDefinitionInput<
+  definition: NormalizedServiceDefinitionInput<
     TConfigSchema,
     TState,
     TPromptSchemas,

@@ -257,7 +257,7 @@ export interface ServiceViewDefinition<TSchema extends ServiceSchema> {
   };
 }
 
-export interface ServiceDefinitionInput<
+interface ServiceDefinitionCore<
   TConfigSchema extends z.ZodType<object, object>,
   TState extends object,
   TPromptSchemas extends ServiceSchemaMap,
@@ -267,7 +267,6 @@ export interface ServiceDefinitionInput<
 > {
   readonly id: string;
   readonly config: TConfigSchema;
-  readonly accountSettings?: TAccountSettings | undefined;
   readonly setup?:
     | ((context: {
         readonly config: z.output<TConfigSchema>;
@@ -350,3 +349,38 @@ export interface ServiceDefinitionInput<
       >[])
     | undefined;
 }
+
+export type NormalizedServiceDefinitionInput<
+  TConfigSchema extends z.ZodType<object, object>,
+  TState extends object,
+  TPromptSchemas extends ServiceSchemaMap,
+  TTemplateSchemas extends ServiceSchemaMap,
+  TViewSchemas extends ServiceSchemaMap,
+  TAccountSettings extends AnyAccountSettingsDefinition | undefined,
+> = ServiceDefinitionCore<
+  TConfigSchema,
+  TState,
+  TPromptSchemas,
+  TTemplateSchemas,
+  TViewSchemas,
+  TAccountSettings
+> & { readonly accountSettings: TAccountSettings };
+
+export type ServiceDefinitionInput<
+  TConfigSchema extends z.ZodType<object, object>,
+  TState extends object,
+  TPromptSchemas extends ServiceSchemaMap,
+  TTemplateSchemas extends ServiceSchemaMap,
+  TViewSchemas extends ServiceSchemaMap,
+  TAccountSettings extends AnyAccountSettingsDefinition | undefined,
+> = ServiceDefinitionCore<
+  TConfigSchema,
+  TState,
+  TPromptSchemas,
+  TTemplateSchemas,
+  TViewSchemas,
+  TAccountSettings
+> &
+  (TAccountSettings extends AnyAccountSettingsDefinition
+    ? { readonly accountSettings: TAccountSettings }
+    : { readonly accountSettings?: undefined });

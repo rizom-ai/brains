@@ -26,6 +26,7 @@ export function WidgetTabPanel({
   const hasSystemBuiltIns = tab.group === "system";
   const hasKnowledgeBuiltIns = tab.group === "knowledge";
   const hasSidebar = tab.widgets.sidebar.length > 0 || hasSystemBuiltIns;
+  const cmsPath = input.surfaces?.find((surface) => surface.id === "cms")?.href;
 
   return (
     <section
@@ -63,6 +64,7 @@ export function WidgetTabPanel({
             <WidgetCard
               key={`${widget.widget.pluginId}:${widget.widget.id}`}
               widget={widget}
+              cmsPath={cmsPath}
             />
           ))}
         </div>
@@ -85,6 +87,7 @@ export function WidgetTabPanel({
               <WidgetCard
                 key={`${widget.widget.pluginId}:${widget.widget.id}`}
                 widget={widget}
+                cmsPath={cmsPath}
               />
             ))}
           </div>

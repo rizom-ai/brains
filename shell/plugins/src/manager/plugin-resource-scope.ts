@@ -100,6 +100,7 @@ export function createPluginScopedShell(
   }>();
   const scopedMessageBus: IMessageBus = {
     send: (request) => messageBus.send(request),
+    hasHandlers: (type) => messageBus.hasHandlers?.(type) ?? false,
     subscribe: <T = unknown, R = unknown>(
       type: string,
       handler: MessageHandler<T, R>,

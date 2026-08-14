@@ -5,6 +5,7 @@ import {
   PUBLISH_MESSAGES,
 } from "../src/types/messages";
 import type { PublishProvider } from "@brains/contracts";
+import type { DashboardWidgetProviderContext } from "@brains/plugins";
 import { PermissionService } from "@brains/templates";
 import {
   createPluginHarness,
@@ -102,22 +103,30 @@ describe("ContentPipelinePlugin", () => {
     });
 
     it("passes the resolved CMS workspace URL to the dashboard digest", async () => {
-      let dashboardDataProvider: (() => Promise<unknown>) | undefined;
+      let dashboardDataProvider:
+        | ((context: DashboardWidgetProviderContext) => Promise<unknown>)
+        | undefined;
       harness.subscribe("cms:register-workspace", async () => ({
         success: true,
         data: { workspaceUrl: "/studio/workspaces/publishing" },
       }));
-      harness.subscribe<{ dataProvider: () => Promise<unknown> }>(
-        "dashboard:register-widget",
-        async (message) => {
-          dashboardDataProvider = message.payload.dataProvider;
-          return { success: true };
-        },
-      );
+      harness.subscribe<{
+        dataProvider: (
+          context: DashboardWidgetProviderContext,
+        ) => Promise<unknown>;
+      }>("dashboard:register-widget", async (message) => {
+        dashboardDataProvider = message.payload.dataProvider;
+        return { success: true };
+      });
 
       await plugin.ready();
 
-      expect(await dashboardDataProvider?.()).toMatchObject({
+      expect(
+        await dashboardDataProvider?.({
+          caller: null,
+          signal: new AbortController().signal,
+        }),
+      ).toMatchObject({
         managementUrl: "/studio/workspaces/publishing",
       });
     });

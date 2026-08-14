@@ -1,5 +1,8 @@
 import { SYSTEM_CHANNELS } from "@brains/plugins";
-import type { DashboardWidgetRegistration } from "@brains/plugins";
+import type {
+  DashboardWidgetProviderContext,
+  DashboardWidgetRegistration,
+} from "@brains/plugins";
 import {
   buildKnowledgeMapData,
   knowledgeMapDataSchema,
@@ -23,7 +26,9 @@ export interface KnowledgeMapWidgetRegistration {
   rendererName: string;
   component: typeof KnowledgeMapWidget;
   clientStyles: string;
-  dataProvider: () => Promise<KnowledgeMapData>;
+  dataProvider: (
+    context: DashboardWidgetProviderContext,
+  ) => Promise<KnowledgeMapData>;
   digestProvider: (data: unknown) => {
     digest: { label: string; value: string }[];
   };
@@ -42,7 +47,7 @@ export interface KnowledgeMapWidgetContext extends KnowledgeMapDataContext {
     ): () => void;
   };
   dashboard: {
-    registerWidget(widget: DashboardWidgetRegistration): Promise<void>;
+    registerWidget(widget: DashboardWidgetRegistration): Promise<boolean>;
   };
 }
 

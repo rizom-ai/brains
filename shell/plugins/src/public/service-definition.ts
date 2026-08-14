@@ -6,6 +6,7 @@ import {
 import { createDeclarativeServicePlugin } from "../service/declarative-service-plugin";
 import type { AnyAccountSettingsDefinition } from "../operator/account-settings-definition-contract";
 import type {
+  NormalizedServiceDefinitionInput,
   ServiceDefinitionInput,
   ServiceSchemaMap,
 } from "../service/service-definition-contract";
@@ -68,15 +69,15 @@ export type ServicePackageDefinition<
   TConfigSchema extends z.ZodType<object, object>,
 > = PluginPackageDefinition<TConfigSchema, "service">;
 
-export function defineServicePlugin<
+function createServicePackage<
   TConfigSchema extends z.ZodType<object, object>,
-  TState extends object = Record<never, never>,
-  TPromptSchemas extends ServiceSchemaMap = Record<never, never>,
-  TTemplateSchemas extends ServiceSchemaMap = Record<never, never>,
-  TViewSchemas extends ServiceSchemaMap = Record<never, never>,
-  TAccountSettings extends AnyAccountSettingsDefinition | undefined = undefined,
+  TState extends object,
+  TPromptSchemas extends ServiceSchemaMap,
+  TTemplateSchemas extends ServiceSchemaMap,
+  TViewSchemas extends ServiceSchemaMap,
+  TAccountSettings extends AnyAccountSettingsDefinition | undefined,
 >(
-  definition: ServiceDefinitionInput<
+  definition: NormalizedServiceDefinitionInput<
     TConfigSchema,
     TState,
     TPromptSchemas,
@@ -97,4 +98,86 @@ export function defineServicePlugin<
         scope(definition.id),
       ),
   });
+}
+
+export function defineServicePlugin<
+  TConfigSchema extends z.ZodType<object, object>,
+  TState extends object = Record<never, never>,
+  TPromptSchemas extends ServiceSchemaMap = Record<never, never>,
+  TTemplateSchemas extends ServiceSchemaMap = Record<never, never>,
+  TViewSchemas extends ServiceSchemaMap = Record<never, never>,
+  TAccountSettings extends AnyAccountSettingsDefinition =
+    AnyAccountSettingsDefinition,
+>(
+  definition: ServiceDefinitionInput<
+    TConfigSchema,
+    TState,
+    TPromptSchemas,
+    TTemplateSchemas,
+    TViewSchemas,
+    TAccountSettings
+  >,
+): ServicePackageDefinition<TConfigSchema>;
+export function defineServicePlugin<
+  TConfigSchema extends z.ZodType<object, object>,
+  TState extends object = Record<never, never>,
+  TPromptSchemas extends ServiceSchemaMap = Record<never, never>,
+  TTemplateSchemas extends ServiceSchemaMap = Record<never, never>,
+  TViewSchemas extends ServiceSchemaMap = Record<never, never>,
+  TAccountSettings extends undefined = undefined,
+>(
+  definition: ServiceDefinitionInput<
+    TConfigSchema,
+    TState,
+    TPromptSchemas,
+    TTemplateSchemas,
+    TViewSchemas,
+    TAccountSettings
+  >,
+): ServicePackageDefinition<TConfigSchema>;
+export function defineServicePlugin<
+  TConfigSchema extends z.ZodType<object, object>,
+  TState extends object,
+  TPromptSchemas extends ServiceSchemaMap,
+  TTemplateSchemas extends ServiceSchemaMap,
+  TViewSchemas extends ServiceSchemaMap,
+>(
+  definition:
+    | ServiceDefinitionInput<
+        TConfigSchema,
+        TState,
+        TPromptSchemas,
+        TTemplateSchemas,
+        TViewSchemas,
+        AnyAccountSettingsDefinition
+      >
+    | ServiceDefinitionInput<
+        TConfigSchema,
+        TState,
+        TPromptSchemas,
+        TTemplateSchemas,
+        TViewSchemas,
+        undefined
+      >,
+): ServicePackageDefinition<TConfigSchema> {
+  if (definition.accountSettings !== undefined) {
+    const normalized: NormalizedServiceDefinitionInput<
+      TConfigSchema,
+      TState,
+      TPromptSchemas,
+      TTemplateSchemas,
+      TViewSchemas,
+      AnyAccountSettingsDefinition
+    > = { ...definition, accountSettings: definition.accountSettings };
+    return createServicePackage(normalized);
+  }
+  const normalized: NormalizedServiceDefinitionInput<
+    TConfigSchema,
+    TState,
+    TPromptSchemas,
+    TTemplateSchemas,
+    TViewSchemas,
+    undefined
+  > = { ...definition, accountSettings: undefined };
+  return createServicePackage(normalized);
 }

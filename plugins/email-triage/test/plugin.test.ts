@@ -267,7 +267,12 @@ Prioritize collaboration connected to Project Aurora.`,
       visibility: "admin",
     });
     if (!widget) throw new Error("Dashboard widget was not registered");
-    expect(await widget.dataProvider()).toEqual({
+    expect(
+      await widget.dataProvider({
+        caller: null,
+        signal: new AbortController().signal,
+      }),
+    ).toEqual({
       summary: {
         total: 1,
         new: 0,
