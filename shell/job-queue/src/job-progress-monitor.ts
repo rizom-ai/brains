@@ -6,7 +6,7 @@ import type {
   IJobProgressMonitor,
   ProgressNotification,
 } from "@brains/utils/progress";
-import type { MessageBus } from "@brains/messaging-service";
+import type { IMessageBus } from "@brains/messaging-service";
 import type { IBatchJobManager, IJobQueueService, JobInfo } from "./types";
 import { JobContextSchema, type JobContext } from "./schema/types";
 import type { BatchJobStatus } from "./batch-schemas";
@@ -35,7 +35,7 @@ export type JobProgressMonitorMode =
  */
 export class JobProgressMonitor implements IJobProgressMonitor {
   private jobQueueService: IJobQueueService;
-  private messageBus: MessageBus;
+  private messageBus: IMessageBus;
   private batchJobManager: IBatchJobManager;
   private logger: Logger;
   private readonly mode: JobProgressMonitorMode;
@@ -44,7 +44,7 @@ export class JobProgressMonitor implements IJobProgressMonitor {
   private polling = false;
   public static createFresh(
     jobQueueService: IJobQueueService,
-    messageBus: MessageBus,
+    messageBus: IMessageBus,
     batchJobManager: IBatchJobManager,
     logger: Logger,
     mode: JobProgressMonitorMode = "combined",
@@ -60,7 +60,7 @@ export class JobProgressMonitor implements IJobProgressMonitor {
 
   private constructor(
     jobQueueService: IJobQueueService,
-    messageBus: MessageBus,
+    messageBus: IMessageBus,
     batchJobManager: IBatchJobManager,
     logger: Logger,
     mode: JobProgressMonitorMode,

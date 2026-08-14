@@ -11,9 +11,9 @@ import {
   createThread,
   expectDiscordConfirmationContext,
   setupChatInterfaceTest,
+  withToolActivity,
 } from "./harness/chat-interface-harness";
 import type {
-  ChatInterfaceWithToolActivity,
   MockActionEvent,
   MockPostMessage,
   MockSentMessage,
@@ -364,7 +364,7 @@ describe("ChatInterface approvals", () => {
 
   it("consolidates successful Slack approvals into the resolved card", async () => {
     const plugin = new ChatInterface({ adapters: { slack: baseSlackConfig } });
-    const toolInterface = plugin as unknown as ChatInterfaceWithToolActivity;
+    const toolInterface = withToolActivity(plugin);
     const threadId = "slack:C123:1712345678.000100";
     suite.agentService.chat.mockImplementationOnce(
       async (_message, conversationId) => {
@@ -535,7 +535,7 @@ describe("ChatInterface approvals", () => {
 
   it("consolidates failed Slack approvals into the resolved card", async () => {
     const plugin = new ChatInterface({ adapters: { slack: baseSlackConfig } });
-    const toolInterface = plugin as unknown as ChatInterfaceWithToolActivity;
+    const toolInterface = withToolActivity(plugin);
     const threadId = "slack:C123:1712345678.000100";
     suite.agentService.chat.mockResolvedValueOnce({
       text: "Please confirm this action.",

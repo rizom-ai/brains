@@ -22,7 +22,7 @@ import {
 } from "@brains/test-utils";
 import { createMockMessageBus } from "@brains/messaging-service/test";
 import type { Logger } from "@brains/utils/logger";
-import type { MessageBus } from "@brains/messaging-service";
+import type { IMessageBus } from "@brains/messaging-service";
 
 const testRootJobId = "test-root-job-id";
 
@@ -61,7 +61,7 @@ describe("JobProgressMonitor", () => {
   let monitor: JobProgressMonitor;
   let mockJobQueueService: IJobQueueService;
   let mockBatchJobManager: IBatchJobManager;
-  let mockMessageBus: MessageBus;
+  let mockMessageBus: IMessageBus;
   let mockLogger: Logger;
 
   let getStatusMock: Mock<(id: string) => Promise<JobQueue | null>>;

@@ -820,3 +820,18 @@ export function setupChatInterfaceTest(): ChatInterfaceTestContext {
 
   return context;
 }
+
+/**
+ * Reach the protected tool-activity hook.
+ *
+ * The tests drive this directly because a tool event arrives mid-turn, from
+ * inside the agent call they are already stubbing; going through messaging
+ * would mean rebuilding that turn. `protected` is not reachable from outside
+ * the class, so a widening is unavoidable — but it belongs here, named once,
+ * rather than repeated at every call site where it reads like an ordinary cast.
+ */
+export function withToolActivity(
+  plugin: ChatInterfaceInstance,
+): ChatInterfaceWithToolActivity {
+  return plugin as ChatInterfaceWithToolActivity;
+}

@@ -14,7 +14,7 @@ import type {
   RegisteredHttpRoute,
   SharedHostAdmission,
 } from "@brains/plugins/internal/http-routes";
-import { createMockMessageBus, type IMessageBus } from "@brains/plugins/test";
+import { createMockMessageBus } from "@brains/plugins/test";
 import {
   ServerManager,
   type ServerManagerOptions,
@@ -814,7 +814,7 @@ describe("ServerManager (in-process)", () => {
           data: { success: true, data: { subscribed: true } },
         },
       },
-    }) as unknown as IMessageBus;
+    });
 
     manager = new ServerManager({
       logger: createSilentLogger("test"),
@@ -996,7 +996,7 @@ describe("ServerManager (in-process)", () => {
           data: { success: true, data: { registeredLate: true } },
         },
       },
-    }) as unknown as IMessageBus;
+    });
 
     manager = new ServerManager({
       logger: createSilentLogger("test"),

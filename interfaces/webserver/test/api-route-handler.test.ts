@@ -26,7 +26,7 @@ describe("createApiRouteHandler", () => {
           data: { success: true, data: { subscribed: true } },
         },
       },
-    }) as unknown as IMessageBus;
+    });
     app = new Hono();
   });
 
@@ -190,7 +190,7 @@ describe("createApiRouteHandler", () => {
             data: { success: false, error: "Invalid email" },
           },
         },
-      }) as unknown as IMessageBus;
+      });
 
       const route = createMockRoute({
         successRedirect: "/subscribe/thanks",
