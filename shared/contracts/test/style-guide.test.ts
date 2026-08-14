@@ -5,12 +5,13 @@ import {
   fetchVoiceGuidance,
 } from "../src";
 
-const guideContent = `---
-name: Test guide
-voice:
-  summary: Friendly
----
-Write clearly.`;
+// The style guide lives in entity metadata, decoded from frontmatter on
+// import; content carries only the free-text guidance body.
+const guideEntity = {
+  id: "style-guide",
+  content: "Write clearly.",
+  metadata: { name: "Test guide", voice: { summary: "Friendly" } },
+};
 
 describe("fetchStyleGuide", () => {
   it("returns the default style guide when no entity exists", async () => {
@@ -30,8 +31,7 @@ describe("fetchStyleGuide", () => {
 
   it("parses the stored style-guide entity", async () => {
     const guide = await fetchStyleGuide({
-      getEntity: () =>
-        Promise.resolve({ id: "style-guide", content: guideContent }),
+      getEntity: () => Promise.resolve(guideEntity),
     });
 
     expect(guide.name).toBe("Test guide");
@@ -42,7 +42,11 @@ describe("fetchStyleGuide", () => {
   it("falls back to the default guide when the reader returns another entity", async () => {
     const guide = await fetchStyleGuide({
       getEntity: () =>
-        Promise.resolve({ id: "sunset-image", content: "not a style guide" }),
+        Promise.resolve({
+          id: "sunset-image",
+          content: "not a style guide",
+          metadata: {},
+        }),
     });
 
     expect(guide).toEqual(DEFAULT_STYLE_GUIDE);
@@ -52,8 +56,7 @@ describe("fetchStyleGuide", () => {
 describe("fetchVoiceGuidance", () => {
   it("formats the fetched guide's voice facet with the shared body", async () => {
     const guidance = await fetchVoiceGuidance({
-      getEntity: () =>
-        Promise.resolve({ id: "style-guide", content: guideContent }),
+      getEntity: () => Promise.resolve(guideEntity),
     });
 
     expect(guidance).toBe("Voice: Friendly\nWrite clearly.");

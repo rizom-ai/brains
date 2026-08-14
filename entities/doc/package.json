@@ -5,13 +5,11 @@
   "description": "Documentation entity type — markdown docs as first-class brain content",
   "dependencies": {
     "@brains/plugins": "workspace:*",
-    "@brains/templates": "workspace:*",
     "@brains/ui-library": "workspace:*",
     "@brains/utils": "workspace:*",
     "react": "^19.2.7"
   },
   "devDependencies": {
-    "@brains/test-utils": "workspace:*",
     "@brains/typescript-config": "workspace:*",
     "@types/react": "^19.2.17",
     "bun-types": "^1.4.0",

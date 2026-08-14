@@ -4,7 +4,7 @@ import {
   evaluateSummaryEligibility,
   getConversationSpaceId,
 } from "../../src/lib/summary-space-eligibility";
-import { matchSpaceSelector } from "@brains/templates";
+import { matchSpaceSelector } from "@brains/plugins";
 
 const conversation: Conversation = {
   id: "conv-1",

@@ -3,10 +3,10 @@ import type {
   ServicePluginContext,
 } from "@brains/plugins";
 import {
-  ConfirmationArgsStore,
+  createConfirmationGate,
   type Tool,
   type ToolResponse,
-} from "@brains/mcp-service";
+} from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import { AgentAdapter } from "../adapters/agent-adapter";
 import { AGENT_ENTITY_TYPE } from "../lib/constants";
@@ -111,7 +111,10 @@ export function createAgentConnectTool(
   fetchFn: FetchFn = globalThis.fetch,
 ): Tool {
   const toolName = "agent_connect";
-  const confirmationArgsStore = new ConfirmationArgsStore();
+  const confirmations = createConfirmationGate({
+    label: "agent connection",
+    requestNoun: "connection",
+  });
 
   return {
     name: toolName,
@@ -153,21 +156,12 @@ export function createAgentConnectTool(
       }
 
       if (input.confirmed) {
-        const token = input.confirmationToken;
-        const validation = confirmationArgsStore.validate(token, input);
-        if (validation.status === "missing") {
-          return {
-            success: false,
-            error:
-              "No pending agent connection confirmation found. Please request connection again and confirm the new approval.",
-          };
-        }
-        if (validation.status === "mismatch") {
-          return {
-            success: false,
-            error:
-              "Confirmed agent connection arguments do not match the pending approval. Please request connection again and confirm the new approval.",
-          };
+        const rejection = confirmations.validateConfirmed(
+          input.confirmationToken,
+          input,
+        );
+        if (rejection) {
+          return rejection;
         }
 
         const card = await fetchAgentCard(normalized.fetchTarget, fetchFn);
@@ -204,7 +198,7 @@ export function createAgentConnectTool(
         };
       }
 
-      const confirmationArgs = confirmationArgsStore.create<AgentConnectInput>(
+      const confirmationArgs = confirmations.buildArgs<AgentConnectInput>(
         (confirmationToken) => ({
           source: input.source,
           confirmed: true,

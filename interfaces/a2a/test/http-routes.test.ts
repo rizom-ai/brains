@@ -11,7 +11,7 @@ import type { AgentResponse } from "@brains/plugins";
 import { keyFingerprint, signRequest } from "@brains/http-signatures";
 import { createPluginHarness } from "@brains/plugins/test";
 import { createSilentLogger } from "@brains/test-utils";
-import { PermissionService } from "@brains/templates";
+import { PermissionService } from "@brains/plugins";
 import { A2AInterface } from "../src/a2a-interface";
 
 describe("A2A HTTP routes", () => {

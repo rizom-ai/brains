@@ -12,20 +12,20 @@ import type {
 import {
   EntityPlugin,
   SYSTEM_CHANNELS,
+  createTemplate,
+  paginationInfoSchema,
   parseMarkdownWithFrontmatter,
   generateMarkdownWithFrontmatter,
 } from "@brains/plugins";
 import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
 import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
-import { paginationInfoSchema } from "@brains/plugins";
 import {
   PUBLISH_CHANNELS,
   type PublishProvider,
   type PublishResult,
 } from "@brains/contracts";
 import { PROJECT_CHANNELS } from "./project-channels";
-import { createTemplate } from "@brains/templates";
 import { fetchStyleGuide, formatVoiceGuidance } from "@brains/contracts";
 import {
   projectSchema,

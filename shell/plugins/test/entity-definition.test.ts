@@ -202,4 +202,183 @@ describe("entity package definitions", () => {
       metadata: { title: "Hello" },
     });
   });
+
+  it("registers declared entity-type config with the entity registry", async () => {
+    // System-configuration entity types opt out of search embeddings and
+    // projection sourcing. Without a declarative slot for this, the
+    // surface silently takes the embeddable/projectionSource defaults of
+    // true, which would start embedding configuration as user content.
+    const setting = defineEntity({
+      type: "setting",
+      purpose: "System configuration, not user content.",
+      metadata: z.object({ target: z.string() }),
+      config: {
+        embeddable: false,
+        projectionSource: false,
+        projectionSourceRole: "excluded",
+      },
+    });
+    const definition = defineEntityPackage({
+      id: "settings",
+      entities: [setting],
+    });
+    const plugin = createEntityPackagePlugins(
+      definition.entities,
+      definition.projections,
+      { name: "@fixture/settings", version: "0.1.0" },
+      (id) => `@fixture/settings:${id}`,
+    )[0];
+    if (!plugin) throw new Error("Setting entity plugin was not created");
+
+    const harness = createPluginHarness({
+      logger: createSilentLogger("entity-config-test"),
+    });
+    await harness.installPlugin(plugin);
+
+    expect(
+      harness.getEntityService().getEntityTypeConfig("setting"),
+    ).toMatchObject({
+      embeddable: false,
+      projectionSource: false,
+      projectionSourceRole: "excluded",
+    });
+
+    harness.reset();
+  });
+
+  it("registers no entity-type overrides when config is not declared", async () => {
+    const plain = defineEntity({
+      type: "plain",
+      purpose: "An ordinary entity that takes the defaults.",
+      metadata: z.object({ title: z.string() }),
+    });
+    const definition = defineEntityPackage({
+      id: "plain-pkg",
+      entities: [plain],
+    });
+    const plugin = createEntityPackagePlugins(
+      definition.entities,
+      definition.projections,
+      { name: "@fixture/plain", version: "0.1.0" },
+      (id) => `@fixture/plain:${id}`,
+    )[0];
+    if (!plugin) throw new Error("Plain entity plugin was not created");
+
+    const harness = createPluginHarness({
+      logger: createSilentLogger("entity-config-default-test"),
+    });
+    await harness.installPlugin(plugin);
+
+    expect(harness.getEntityService().getEntityTypeConfig("plain")).toEqual({});
+
+    harness.reset();
+  });
+});
+
+describe("declarative entity seeding", () => {
+  const seeded = defineEntity({
+    type: "house-style",
+    purpose: "A singleton the brain needs present even before anyone edits it.",
+    metadata: z.object({}),
+    seed: {
+      on: "content-sync-completed",
+      id: "house-style",
+      content: () => "# House style\n\nWrite plainly.",
+    },
+  });
+
+  async function installSeeded(): Promise<
+    ReturnType<typeof createPluginHarness>
+  > {
+    const plugin = createEntityPackagePlugins(
+      [seeded],
+      [],
+      { name: "@fixture/house-style", version: "0.1.0" },
+      (id) => `@fixture/house-style:${id}`,
+    )[0];
+    if (!plugin) throw new Error("Seeded entity plugin was not created");
+    const harness = createPluginHarness({
+      logger: createSilentLogger("seed-test"),
+    });
+    await harness.installPlugin(plugin);
+    return harness;
+  }
+
+  async function readSeed(
+    harness: ReturnType<typeof createPluginHarness>,
+  ): Promise<unknown> {
+    return harness.getEntityService().getEntity({
+      entityType: "house-style",
+      id: "house-style",
+    });
+  }
+
+  it("does not create the entity before the signal fires", async () => {
+    const harness = await installSeeded();
+    expect(await readSeed(harness)).toBeNull();
+    harness.reset();
+  });
+
+  it("creates the entity when the signal fires", async () => {
+    const harness = await installSeeded();
+    await harness.sendMessage("sync:initial:completed", {});
+
+    const entity = await readSeed(harness);
+    expect(entity).toMatchObject({
+      id: "house-style",
+      entityType: "house-style",
+    });
+    expect((entity as { content: string }).content).toContain("Write plainly.");
+
+    harness.reset();
+  });
+
+  it("leaves an existing entity untouched", async () => {
+    const harness = await installSeeded();
+    await harness.getEntityService().createEntity({
+      entity: {
+        id: "house-style",
+        entityType: "house-style",
+        content: "# House style\n\nAuthored by a human.",
+        metadata: {},
+      },
+    });
+
+    await harness.sendMessage("sync:initial:completed", {});
+
+    const entity = await readSeed(harness);
+    expect((entity as { content: string }).content).toContain(
+      "Authored by a human.",
+    );
+
+    harness.reset();
+  });
+
+  it("is inert for entities that declare no seed", async () => {
+    const plain = defineEntity({
+      type: "unseeded",
+      purpose: "No seed declared.",
+      metadata: z.object({}),
+    });
+    const plugin = createEntityPackagePlugins(
+      [plain],
+      [],
+      { name: "@fixture/unseeded", version: "0.1.0" },
+      (id) => `@fixture/unseeded:${id}`,
+    )[0];
+    if (!plugin) throw new Error("Unseeded entity plugin was not created");
+    const harness = createPluginHarness({
+      logger: createSilentLogger("seed-inert-test"),
+    });
+    await harness.installPlugin(plugin);
+
+    await harness.sendMessage("sync:initial:completed", {});
+    expect(
+      await harness
+        .getEntityService()
+        .getEntity({ entityType: "unseeded", id: "unseeded" }),
+    ).toBeNull();
+
+    harness.reset();
+  });
 });

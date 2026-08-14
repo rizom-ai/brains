@@ -1,7 +1,6 @@
 import { z } from "@brains/utils/zod";
-import { paginationInfoSchema } from "@brains/plugins";
-import { createTemplate } from "@brains/templates";
-import type { Template } from "@brains/templates";
+import { createTemplate, paginationInfoSchema } from "@brains/plugins";
+import type { Template } from "@brains/plugins";
 import { linkedinTemplate } from "../templates/linkedin-template";
 import {
   SocialPostListTemplate,

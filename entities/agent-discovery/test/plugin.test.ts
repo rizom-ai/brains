@@ -854,6 +854,27 @@ describe("AgentDiscoveryPlugin", () => {
     harness.reset();
   });
 
+  it("rejects confirmed agent_connect without a minted confirmation token", async () => {
+    const harness = createPluginHarness<Plugin>({});
+
+    await harness.installPlugin(new AgentDiscoveryPlugin());
+    await harness.installPlugin(new AgentToolsPlugin());
+
+    const result = await harness.executeTool("agent_connect", {
+      source: { kind: "url", url: "fabricated.example" },
+      confirmed: true,
+      confirmationToken: "not-a-real-token",
+    });
+
+    expect(result).toEqual({
+      success: false,
+      error:
+        "No pending agent connection confirmation found. Please request connection again and confirm the new approval.",
+    });
+
+    harness.reset();
+  });
+
   it("agent_connect approves an existing discovered agent", async () => {
     const harness = createPluginHarness<Plugin>({});
     const fetchMock = createMockAgentCardFetch({

@@ -5,13 +5,13 @@
   "dependencies": {
     "@brains/auth-service": "workspace:*",
     "@brains/contracts": "workspace:*",
-    "@brains/mcp-service": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/utils": "workspace:*",
     "@modelcontextprotocol/server": "^2.0.0"
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",
+    "@brains/test-utils": "workspace:*",
     "@brains/typescript-config": "workspace:*",
     "@types/bun": "^1.4.0",
     "@types/cors": "^2.8.17",

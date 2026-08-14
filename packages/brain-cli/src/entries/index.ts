@@ -1,21 +1,9 @@
-/** Public root authoring surface for brain definitions and typed composition. */
+/**
+ * Layer 3 re-export of the layer 1 authoring surface (`@brains/sdk`).
+ *
+ * The contract lives in `packages/brain-sdk`; this file exists so the
+ * published `@rizom/brain` specifier keeps resolving to the identical
+ * symbols. Add exports to the SDK package, never here.
+ */
 
-export {
-  defineBrain,
-  defineBundle,
-} from "@brains/app/contracts/brain-definition";
-export { use } from "@brains/app";
-export type {
-  BrainAnchorConfigKind,
-  BrainDefinition,
-  BrainIdentity,
-  BrainMode,
-  BundleConfigContribution,
-  BundlePermissionContribution,
-  CapabilityBundleDefinition,
-  ConfiguredPluginDefinition,
-  DeploymentConfigInput,
-  PermissionConfig,
-  PluginPackageDefinition,
-  ReasoningEffort,
-} from "@brains/app/contracts/brain-definition";
+export * from "@brains/sdk";

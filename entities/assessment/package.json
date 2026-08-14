@@ -5,8 +5,6 @@
   "description": "Assessment outputs and capability-profile analysis",
   "dependencies": {
     "@brains/content-formatters": "workspace:*",
-    "@brains/contracts": "workspace:*",
-    "@brains/dashboard": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/utils": "workspace:*",
     "react": "^19.2.7"

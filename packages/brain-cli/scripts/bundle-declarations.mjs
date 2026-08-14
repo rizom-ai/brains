@@ -22,6 +22,10 @@ const declarationInlinePackages = [
   { name: "@brains/site-composition", dir: "shared/site-composition" },
   { name: "@brains/theme-base", dir: "shared/theme-base" },
   { name: "@brains/plugins", dir: "shell/plugins" },
+  // Layer 1 authoring surface. The public entries under src/entries are thin
+  // re-exports of this package, so its declarations must inline or the leak
+  // guard rejects the resulting `@brains/sdk` import.
+  { name: "@brains/sdk", dir: "packages/brain-sdk" },
 ];
 
 // Subpaths that exist for runtime/tooling reasons but must not be inlined into

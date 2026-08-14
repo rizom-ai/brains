@@ -3,6 +3,8 @@ import { createEntityPackagePlugins } from "../entity/declarative-entity-plugin"
 import type {
   AnyEntityDefinition,
   EntityDefinition,
+  EntityDefinitionConfig,
+  EntitySeedDefinition,
   EntityMarkdownCodec,
   EntityMetadataSchema,
   ProjectionDefinition,
@@ -17,11 +19,14 @@ export type {
   AnyEntityDefinition,
   EncodedEntityMarkdown,
   EntityDefinition,
+  EntityDefinitionConfig,
   EntityMarkdownCodec,
   EntityMarkdownDocument,
   EntityMetadataSchema,
   EntityOf,
   EntityVisibility,
+  EntitySeedDefinition,
+  EntitySeedTrigger,
   EntityWriteInput,
   ProjectionDefinition,
   ProjectionTarget,
@@ -35,6 +40,8 @@ export function defineEntity<
   readonly purpose: string;
   readonly metadata: TMetadataSchema;
   readonly markdown?: EntityMarkdownCodec<TMetadataSchema> | undefined;
+  readonly config?: EntityDefinitionConfig | undefined;
+  readonly seed?: EntitySeedDefinition<TMetadataSchema> | undefined;
 }): EntityDefinition<TType, TMetadataSchema> {
   assertLocalId(definition.type, "Entity type");
   if (!definition.purpose.trim()) {
