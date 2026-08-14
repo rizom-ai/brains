@@ -7,7 +7,7 @@ import {
   rm,
   writeFile,
 } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { availableParallelism, tmpdir } from "node:os";
 import { join } from "node:path";
 import { Database } from "bun:sqlite";
 
@@ -18,6 +18,13 @@ const FILE_COUNT = Number(process.env["IMPORT_BURST_FILE_COUNT"] ?? 350);
 const PULL_TIMEOUT_MS = 150_000;
 const HEALTH_TIMEOUT_MS = 1_000;
 const MAX_HEALTH_LATENCY_MS = 500;
+const MAX_SUSTAINED_CPU_SATURATION_MS = 5_000;
+const MAX_RSS_BYTES = 1_280 * 1024 * 1024;
+const MAX_RSS_GROWTH_BYTES = 320 * 1024 * 1024;
+const CPU_SATURATION_FRACTION = 0.9;
+const RESOURCE_SAMPLE_EVERY = 4;
+const PACKAGED_RUNTIME_CPU_LIMIT = 2;
+const HEALTH_ENDPOINTS = ["live", "ready", "operate"] as const;
 const IMPORT_BATCH_SIZE = 50;
 const IMPORT_BARRIER_SCHEDULED_FOR = Date.UTC(2100, 0, 1);
 const IMPORT_BARRIER_TRIGGER = "hold_import_burst_jobs";
@@ -28,12 +35,225 @@ interface ProcessInfo {
   state: string;
   name: string;
   command: string;
+  cpuTicks: number;
+  rssBytes: number;
 }
+
+type RuntimeRole = "web" | "worker";
+type RuntimeRolePids = Record<RuntimeRole, number>;
+
+interface ResourceSample {
+  atMs: number;
+  cpuTicksByPid: ReadonlyMap<number, number>;
+  rssBytes: number;
+}
+
+interface ResourceUsageSnapshot {
+  maxCpuCores: number;
+  maxCpuFraction: number;
+  maxSustainedCpuSaturationMs: number;
+  baselineRssBytes: number;
+  maxRssBytes: number;
+  maxRssGrowthBytes: number;
+  finalRssBytes: number;
+  finalRssGrowthBytes: number;
+}
+
+class ResourceUsageTracker {
+  private readonly clockTicksPerSecond: number;
+  private readonly cpuCapacity: number;
+  private readonly saturationFraction: number;
+  private previous: ResourceSample | undefined;
+  private consecutiveSaturationMs = 0;
+  private readonly usage: ResourceUsageSnapshot = {
+    maxCpuCores: 0,
+    maxCpuFraction: 0,
+    maxSustainedCpuSaturationMs: 0,
+    baselineRssBytes: 0,
+    maxRssBytes: 0,
+    maxRssGrowthBytes: 0,
+    finalRssBytes: 0,
+    finalRssGrowthBytes: 0,
+  };
+
+  constructor(options: {
+    clockTicksPerSecond: number;
+    cpuCapacity: number;
+    saturationFraction: number;
+  }) {
+    this.clockTicksPerSecond = options.clockTicksPerSecond;
+    this.cpuCapacity = options.cpuCapacity;
+    this.saturationFraction = options.saturationFraction;
+  }
+
+  observe(sample: ResourceSample): void {
+    const previous = this.previous;
+    if (!previous) {
+      this.usage.baselineRssBytes = sample.rssBytes;
+      this.usage.maxRssBytes = sample.rssBytes;
+      this.usage.finalRssBytes = sample.rssBytes;
+      this.previous = sample;
+      return;
+    }
+
+    const elapsedMs = sample.atMs - previous.atMs;
+    if (elapsedMs > 0) {
+      let elapsedTicks = 0;
+      for (const [pid, currentTicks] of sample.cpuTicksByPid) {
+        const previousTicks = previous.cpuTicksByPid.get(pid);
+        if (previousTicks !== undefined && currentTicks >= previousTicks) {
+          elapsedTicks += currentTicks - previousTicks;
+        }
+      }
+      const cpuCores =
+        elapsedTicks / this.clockTicksPerSecond / (elapsedMs / 1_000);
+      const cpuFraction = cpuCores / this.cpuCapacity;
+      this.usage.maxCpuCores = Math.max(this.usage.maxCpuCores, cpuCores);
+      this.usage.maxCpuFraction = Math.max(
+        this.usage.maxCpuFraction,
+        cpuFraction,
+      );
+      this.consecutiveSaturationMs =
+        cpuFraction >= this.saturationFraction
+          ? this.consecutiveSaturationMs + elapsedMs
+          : 0;
+      this.usage.maxSustainedCpuSaturationMs = Math.max(
+        this.usage.maxSustainedCpuSaturationMs,
+        this.consecutiveSaturationMs,
+      );
+    }
+
+    this.usage.maxRssBytes = Math.max(this.usage.maxRssBytes, sample.rssBytes);
+    this.usage.maxRssGrowthBytes = Math.max(
+      this.usage.maxRssGrowthBytes,
+      sample.rssBytes - this.usage.baselineRssBytes,
+    );
+    this.usage.finalRssBytes = sample.rssBytes;
+    this.usage.finalRssGrowthBytes =
+      sample.rssBytes - this.usage.baselineRssBytes;
+    this.previous = sample;
+  }
+
+  snapshot(): ResourceUsageSnapshot {
+    return { ...this.usage };
+  }
+}
+
+function resourceSample(
+  atMs: number,
+  cpuTicksByPid: readonly (readonly [number, number])[],
+  rssBytes: number,
+): ResourceSample {
+  return {
+    atMs,
+    cpuTicksByPid: new Map(cpuTicksByPid),
+    rssBytes,
+  };
+}
+
+function parseProcStatCpuTicks(stat: string): number {
+  const commandEnd = stat.lastIndexOf(")");
+  if (commandEnd < 0) throw new Error("Malformed /proc stat record");
+  const fields = stat
+    .slice(commandEnd + 1)
+    .trim()
+    .split(/\s+/);
+  const userTicks = Number(fields[11]);
+  const systemTicks = Number(fields[12]);
+  if (!Number.isFinite(userTicks) || !Number.isFinite(systemTicks)) {
+    throw new Error("Malformed /proc CPU tick fields");
+  }
+  return userTicks + systemTicks;
+}
+
+function parseCpuMax(value: string, hostParallelism: number): number {
+  const [quotaValue, periodValue] = value.trim().split(/\s+/);
+  if (quotaValue === "max") return hostParallelism;
+  const quota = Number(quotaValue);
+  const period = Number(periodValue);
+  if (!Number.isFinite(quota) || !Number.isFinite(period) || period <= 0) {
+    throw new Error("Malformed cgroup cpu.max value");
+  }
+  return Math.min(hostParallelism, quota / period);
+}
+
+function parseCpuList(value: string): number[] {
+  const cpus = value
+    .trim()
+    .split(",")
+    .flatMap((part) => {
+      const [startValue, endValue] = part.split("-");
+      const start = Number(startValue);
+      const end = endValue === undefined ? start : Number(endValue);
+      if (
+        !Number.isInteger(start) ||
+        !Number.isInteger(end) ||
+        start < 0 ||
+        end < start
+      ) {
+        throw new Error("Malformed Linux CPU list");
+      }
+      return Array.from({ length: end - start + 1 }, (_, offset) => {
+        return start + offset;
+      });
+    });
+  if (cpus.length === 0) throw new Error("Linux CPU list is empty");
+  return cpus;
+}
+
+function limitedCpuList(value: string, limit: number): string {
+  return parseCpuList(value).slice(0, limit).join(",");
+}
+
+class RoleContinuityTracker {
+  private readonly expected: RuntimeRolePids;
+  private readonly observedFailures = new Set<string>();
+
+  constructor(expected: RuntimeRolePids) {
+    this.expected = expected;
+  }
+
+  observe(observed: Partial<RuntimeRolePids>): void {
+    for (const role of ["web", "worker"] as const) {
+      const expectedPid = this.expected[role];
+      const observedPid = observed[role];
+      if (observedPid === undefined) {
+        this.observedFailures.add(
+          `${role} child disappeared (expected pid ${expectedPid})`,
+        );
+      } else if (observedPid !== expectedPid) {
+        this.observedFailures.add(
+          `${role} child restarted (expected pid ${expectedPid}, observed pid ${observedPid})`,
+        );
+      }
+    }
+  }
+
+  failures(): string[] {
+    return [...this.observedFailures];
+  }
+}
+
+type HealthEndpoint = (typeof HEALTH_ENDPOINTS)[number];
+type HealthLatency = Record<HealthEndpoint, number>;
+
+type RuntimeResourceReport = ResourceUsageSnapshot & {
+  bunVersion: string;
+  durationMs: number;
+  samples: number;
+  cpuCapacity: number;
+  maxHealthLatencyMs: HealthLatency;
+  maxPersistentZombies: number;
+  roleContinuityFailures: string[];
+  failures: string[];
+};
 
 interface HealthMonitor {
   failures: string[];
   maxLatencyMs: number;
+  maxLatencyByEndpointMs: HealthLatency;
   maxPersistentZombies: number;
+  report(): RuntimeResourceReport;
   stop(): Promise<void>;
 }
 
@@ -92,16 +312,22 @@ async function readProcessTable(): Promise<ProcessInfo[]> {
         .filter((entry) => entry.isDirectory() && /^\d+$/.test(entry.name))
         .map(async (entry): Promise<ProcessInfo | undefined> => {
           try {
-            const status = await readFile(`/proc/${entry.name}/status`, "utf8");
-            const command = (
-              await readFile(`/proc/${entry.name}/cmdline`, "utf8")
-            ).replaceAll("\0", " ");
+            const [status, commandLine, stat] = await Promise.all([
+              readFile(`/proc/${entry.name}/status`, "utf8"),
+              readFile(`/proc/${entry.name}/cmdline`, "utf8"),
+              readFile(`/proc/${entry.name}/stat`, "utf8"),
+            ]);
+            const rssKilobytes = Number(
+              /^VmRSS:\s+(\d+)\s+kB$/m.exec(status)?.[1] ?? "0",
+            );
             return {
               pid: Number(entry.name),
               parentPid: Number(/^PPid:\s+(\d+)$/m.exec(status)?.[1]),
               state: /^State:\s+(\S)/m.exec(status)?.[1] ?? "?",
               name: /^Name:\s+(.+)$/m.exec(status)?.[1] ?? "unknown",
-              command,
+              command: commandLine.replaceAll("\0", " "),
+              cpuTicks: parseProcStatCpuTicks(stat),
+              rssBytes: rssKilobytes * 1024,
             };
           } catch {
             return undefined;
@@ -111,8 +337,10 @@ async function readProcessTable(): Promise<ProcessInfo[]> {
   ).filter((entry): entry is ProcessInfo => entry !== undefined);
 }
 
-async function readDescendants(parentPid: number): Promise<ProcessInfo[]> {
-  const processes = await readProcessTable();
+function selectProcessTree(
+  processes: readonly ProcessInfo[],
+  parentPid: number,
+): ProcessInfo[] {
   const expand = (pids: ReadonlySet<number>): ReadonlySet<number> => {
     const next = new Set([
       ...pids,
@@ -122,11 +350,30 @@ async function readDescendants(parentPid: number): Promise<ProcessInfo[]> {
     ]);
     return next.size === pids.size ? next : expand(next);
   };
-  const descendantPids = expand(new Set([parentPid]));
-  return processes.filter(
-    (processInfo) =>
-      processInfo.pid !== parentPid && descendantPids.has(processInfo.pid),
+  const processPids = expand(new Set([parentPid]));
+  return processes.filter((processInfo) => processPids.has(processInfo.pid));
+}
+
+function findRuntimeRolePids(
+  processes: readonly ProcessInfo[],
+): Partial<RuntimeRolePids> {
+  const result: Partial<RuntimeRolePids> = {};
+  for (const processInfo of processes) {
+    const role = processInfo.command.match(/--child=(web|worker)/)?.[1];
+    if (role === "web") result.web = processInfo.pid;
+    if (role === "worker") result.worker = processInfo.pid;
+  }
+  return result;
+}
+
+async function readDescendants(parentPid: number): Promise<ProcessInfo[]> {
+  return (await readProcessTree(parentPid)).filter(
+    (processInfo) => processInfo.pid !== parentPid,
   );
+}
+
+async function readProcessTree(parentPid: number): Promise<ProcessInfo[]> {
+  return selectProcessTree(await readProcessTable(), parentPid);
 }
 
 /** Recursively poll until the probe yields a value or the deadline passes. */
@@ -170,50 +417,179 @@ async function waitForHealth(
   );
 }
 
-function startHealthMonitor(
-  url: string,
+function readClockTicksPerSecond(): number {
+  const result = Bun.spawnSync(["getconf", "CLK_TCK"], {
+    stdout: "pipe",
+    stderr: "pipe",
+  });
+  const value = Number(new TextDecoder().decode(result.stdout).trim());
+  if (result.exitCode !== 0 || !Number.isFinite(value) || value <= 0) {
+    throw new Error("Unable to determine Linux clock ticks per second");
+  }
+  return value;
+}
+
+async function readAllowedCpuList(pid: number): Promise<string> {
+  const status = await readFile(`/proc/${pid}/status`, "utf8");
+  const value = /^Cpus_allowed_list:\s+(.+)$/m.exec(status)?.[1];
+  if (!value) throw new Error(`Process ${pid} has no CPU affinity record`);
+  return value.trim();
+}
+
+async function readCpuCapacity(pid: number): Promise<number> {
+  const affinityParallelism = parseCpuList(
+    await readAllowedCpuList(pid),
+  ).length;
+  const hostParallelism = Math.max(
+    1,
+    Math.min(availableParallelism(), affinityParallelism),
+  );
+  try {
+    return Math.max(
+      0.1,
+      parseCpuMax(
+        await readFile("/sys/fs/cgroup/cpu.max", "utf8"),
+        hostParallelism,
+      ),
+    );
+  } catch {
+    try {
+      const [quotaValue, periodValue] = await Promise.all([
+        readFile("/sys/fs/cgroup/cpu/cpu.cfs_quota_us", "utf8"),
+        readFile("/sys/fs/cgroup/cpu/cpu.cfs_period_us", "utf8"),
+      ]);
+      const quota = Number(quotaValue.trim());
+      const period = Number(periodValue.trim());
+      return quota > 0 && period > 0
+        ? Math.max(0.1, Math.min(hostParallelism, quota / period))
+        : hostParallelism;
+    } catch {
+      return hostParallelism;
+    }
+  }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function describeHealthFailure(body: string): string {
+  try {
+    const payload: unknown = JSON.parse(body);
+    if (!isRecord(payload) || !Array.isArray(payload["checks"])) {
+      return body.slice(0, 500);
+    }
+    const failures = payload["checks"]
+      .filter(isRecord)
+      .filter((check) => check["status"] !== "healthy")
+      .map((check) => {
+        const name = String(check["name"] ?? "unknown");
+        const status = String(check["status"] ?? "unknown");
+        const message = String(check["message"] ?? "no message");
+        return `${name}=${status} (${message})`;
+      });
+    return failures.length > 0 ? failures.join(", ") : "no failing check";
+  } catch {
+    return body.slice(0, 500);
+  }
+}
+
+async function startHealthMonitor(
+  baseUrl: string,
   supervisor: Bun.ReadableSubprocess,
-): HealthMonitor {
+  expectedRolePids: RuntimeRolePids,
+): Promise<HealthMonitor> {
   let stopped = false;
+  let sampleCount = 0;
+  const startedAt = Date.now();
+  const cpuCapacity = await readCpuCapacity(supervisor.pid);
+  const resourceTracker = new ResourceUsageTracker({
+    clockTicksPerSecond: readClockTicksPerSecond(),
+    cpuCapacity,
+    saturationFraction: CPU_SATURATION_FRACTION,
+  });
+  const roleTracker = new RoleContinuityTracker(expectedRolePids);
   const zombieTracker = new PersistentZombieTracker();
+  const recordFailure = (failure: string): void => {
+    if (!monitor.failures.includes(failure)) monitor.failures.push(failure);
+  };
   const monitor: HealthMonitor = {
     failures: [],
     maxLatencyMs: 0,
+    maxLatencyByEndpointMs: { live: 0, ready: 0, operate: 0 },
     maxPersistentZombies: 0,
+    report(): RuntimeResourceReport {
+      return {
+        bunVersion: Bun.version,
+        durationMs: Date.now() - startedAt,
+        samples: sampleCount,
+        cpuCapacity,
+        ...resourceTracker.snapshot(),
+        maxHealthLatencyMs: { ...monitor.maxLatencyByEndpointMs },
+        maxPersistentZombies: monitor.maxPersistentZombies,
+        roleContinuityFailures: roleTracker.failures(),
+        failures: [...monitor.failures],
+      };
+    },
     async stop(): Promise<void> {
       stopped = true;
       await monitoring;
     },
   };
-  const sample = async (sampleIndex: number): Promise<void> => {
-    if (stopped) return;
+  const sampleHealth = async (endpoint: HealthEndpoint): Promise<void> => {
     const startedAt = performance.now();
     try {
-      const response = await fetch(url, {
+      const response = await fetch(`${baseUrl}/health/${endpoint}`, {
         signal: AbortSignal.timeout(HEALTH_TIMEOUT_MS),
       });
       if (!response.ok) {
-        monitor.failures.push(`HTTP ${response.status}`);
+        const body = await response.text();
+        recordFailure(
+          `${endpoint}: HTTP ${response.status}: ${describeHealthFailure(body)}`,
+        );
       }
     } catch (error) {
-      monitor.failures.push(String(error));
+      recordFailure(`${endpoint}: ${String(error)}`);
     }
-    monitor.maxLatencyMs = Math.max(
-      monitor.maxLatencyMs,
-      performance.now() - startedAt,
+    const latencyMs = performance.now() - startedAt;
+    monitor.maxLatencyByEndpointMs[endpoint] = Math.max(
+      monitor.maxLatencyByEndpointMs[endpoint],
+      latencyMs,
     );
+    monitor.maxLatencyMs = Math.max(monitor.maxLatencyMs, latencyMs);
+  };
+  const sample = async (sampleIndex: number): Promise<void> => {
+    if (stopped) return;
+    await Promise.all(HEALTH_ENDPOINTS.map(sampleHealth));
+    sampleCount++;
 
-    if (sampleIndex % 4 === 0) {
-      const zombies = (await readDescendants(supervisor.pid)).filter(
-        (processInfo) => processInfo.state === "Z",
+    if (sampleIndex % RESOURCE_SAMPLE_EVERY === 0) {
+      const processTree = await readProcessTree(supervisor.pid);
+      const descendants = processTree.filter(
+        (processInfo) => processInfo.pid !== supervisor.pid,
       );
-      const persistentZombies = zombieTracker.observe(zombies);
+      resourceTracker.observe({
+        atMs: Date.now(),
+        cpuTicksByPid: new Map(
+          processTree.map(({ pid, cpuTicks }) => [pid, cpuTicks]),
+        ),
+        rssBytes: processTree.reduce(
+          (total, processInfo) => total + processInfo.rssBytes,
+          0,
+        ),
+      });
+      roleTracker.observe(findRuntimeRolePids(descendants));
+      roleTracker.failures().forEach(recordFailure);
+
+      const persistentZombies = zombieTracker.observe(
+        descendants.filter((processInfo) => processInfo.state === "Z"),
+      );
       monitor.maxPersistentZombies = Math.max(
         monitor.maxPersistentZombies,
         persistentZombies.length,
       );
       if (persistentZombies.length > 0) {
-        monitor.failures.push(
+        recordFailure(
           `persistent zombie children: ${persistentZombies
             .map(({ pid, parentPid, name }) => `${pid}/${parentPid} ${name}`)
             .join(", ")}`,
@@ -670,6 +1046,7 @@ it.skipIf(!RUN_SOAK)(
     let stdout: Promise<string> | undefined;
     let stderr: Promise<string> | undefined;
     let monitor: HealthMonitor | undefined;
+    let resourceReport: RuntimeResourceReport | undefined;
     let importBarrier: DurableImportJobBarrier | undefined;
     let failure: unknown;
 
@@ -738,7 +1115,19 @@ plugins:
 `,
       );
 
-      supervisor = Bun.spawn(["bun", brainEntrypoint, "start"], {
+      const allowedCpuList = await readAllowedCpuList(process.pid);
+      const supervisorCommand =
+        parseCpuList(allowedCpuList).length > PACKAGED_RUNTIME_CPU_LIMIT
+          ? [
+              "taskset",
+              "--cpu-list",
+              limitedCpuList(allowedCpuList, PACKAGED_RUNTIME_CPU_LIMIT),
+              "bun",
+              brainEntrypoint,
+              "start",
+            ]
+          : ["bun", brainEntrypoint, "start"];
+      supervisor = Bun.spawn(supervisorCommand, {
         cwd: appDir,
         detached: true,
         env: {
@@ -752,25 +1141,25 @@ plugins:
       stdout = new Response(supervisor.stdout).text();
       stderr = new Response(supervisor.stderr).text();
 
-      const healthUrl = `http://127.0.0.1:${productionPort}/health/live`;
-      await waitForHealth(healthUrl, supervisor);
+      const healthBaseUrl = `http://127.0.0.1:${productionPort}`;
+      await waitForHealth(`${healthBaseUrl}/health/live`, supervisor);
       // The worker child boots a few seconds after web first serves health.
       const supervisorPid = supervisor.pid;
-      const roles = await pollUntil(
+      const rolePids = await pollUntil(
         Date.now() + 30_000,
         500,
         async () => {
-          const found = (await readDescendants(supervisorPid))
-            .map(({ command }) => command.match(/--child=(web|worker)/)?.[1])
-            .filter((role): role is string => role !== undefined)
-            .sort();
-          return found.includes("web") && found.includes("worker")
-            ? found
+          const found = findRuntimeRolePids(
+            await readDescendants(supervisorPid),
+          );
+          return found.web !== undefined && found.worker !== undefined
+            ? { web: found.web, worker: found.worker }
             : undefined;
         },
         () => new Error("Timed out waiting for web and worker children"),
       );
-      expect(roles).toEqual(["web", "worker"]);
+      expect(rolePids.web).not.toBe(rolePids.worker);
+      await waitForHealth(`${healthBaseUrl}/health/operate`, supervisor);
 
       const databasePath = join(appDir, "data", "brain.db");
       const jobDatabasePath = join(appDir, "data", "brain-jobs.db");
@@ -788,7 +1177,7 @@ plugins:
         () => new Error("Timed out waiting for baseline note import"),
       );
 
-      monitor = startHealthMonitor(healthUrl, supervisor);
+      monitor = await startHealthMonitor(healthBaseUrl, supervisor, rolePids);
       await commitBurst(writerDir, "add");
       const finalProbePath = join(
         appDir,
@@ -866,10 +1255,23 @@ plugins:
         countProbeNotesWithMarker(databasePath, "Update marker: delayed."),
       ).toBe(0);
       await monitor.stop();
+      resourceReport = monitor.report();
 
       expect(monitor.failures).toEqual([]);
-      expect(monitor.maxPersistentZombies).toBe(0);
-      expect(monitor.maxLatencyMs).toBeLessThan(MAX_HEALTH_LATENCY_MS);
+      expect(resourceReport.roleContinuityFailures).toEqual([]);
+      expect(resourceReport.maxPersistentZombies).toBe(0);
+      expect(resourceReport.maxSustainedCpuSaturationMs).toBeLessThan(
+        MAX_SUSTAINED_CPU_SATURATION_MS,
+      );
+      expect(resourceReport.maxRssBytes).toBeLessThan(MAX_RSS_BYTES);
+      expect(resourceReport.maxRssGrowthBytes).toBeLessThan(
+        MAX_RSS_GROWTH_BYTES,
+      );
+      for (const endpoint of HEALTH_ENDPOINTS) {
+        expect(resourceReport.maxHealthLatencyMs[endpoint]).toBeLessThan(
+          MAX_HEALTH_LATENCY_MS,
+        );
+      }
     } catch (error) {
       failure = error;
     } finally {
@@ -879,6 +1281,12 @@ plugins:
         failure ??= error;
       }
       await monitor?.stop();
+      if (monitor) {
+        resourceReport ??= monitor.report();
+        console.info(
+          `IMPORT_BURST_RESOURCE_REPORT ${JSON.stringify(resourceReport)}`,
+        );
+      }
       if (supervisor) await stopProcessGroup(supervisor);
       const logs = [await stdout, await stderr].filter(Boolean).join("\n");
       if (failure) {
@@ -896,6 +1304,78 @@ plugins:
   },
   360_000,
 );
+
+it("tracks sustained CPU saturation separately from a transient spike", () => {
+  const tracker = new ResourceUsageTracker({
+    clockTicksPerSecond: 100,
+    cpuCapacity: 2,
+    saturationFraction: 0.9,
+  });
+
+  tracker.observe(resourceSample(0, [[10, 0]], 100));
+  tracker.observe(resourceSample(1_000, [[10, 190]], 120));
+  tracker.observe(resourceSample(2_000, [[10, 200]], 110));
+  tracker.observe(resourceSample(3_000, [[10, 390]], 140));
+  tracker.observe(resourceSample(4_000, [[10, 580]], 150));
+
+  expect(tracker.snapshot()).toEqual({
+    maxCpuCores: 1.9,
+    maxCpuFraction: 0.95,
+    maxSustainedCpuSaturationMs: 2_000,
+    baselineRssBytes: 100,
+    maxRssBytes: 150,
+    maxRssGrowthBytes: 50,
+    finalRssBytes: 150,
+    finalRssGrowthBytes: 50,
+  });
+});
+
+it("does not count a replacement process's historical CPU time", () => {
+  const tracker = new ResourceUsageTracker({
+    clockTicksPerSecond: 100,
+    cpuCapacity: 2,
+    saturationFraction: 0.9,
+  });
+
+  tracker.observe(resourceSample(0, [[10, 100]], 100));
+  tracker.observe(resourceSample(1_000, [[11, 10_000]], 100));
+
+  expect(tracker.snapshot().maxCpuCores).toBe(0);
+});
+
+it("parses process CPU ticks when the command name contains spaces", () => {
+  const fields = Array.from({ length: 13 }, () => "0");
+  fields[0] = "S";
+  fields[11] = "40";
+  fields[12] = "6";
+
+  expect(parseProcStatCpuTicks(`123 (brain worker) ${fields.join(" ")}`)).toBe(
+    46,
+  );
+});
+
+it("uses a cgroup CPU quota when it is below host parallelism", () => {
+  expect(parseCpuMax("200000 100000", 8)).toBe(2);
+  expect(parseCpuMax("max 100000", 8)).toBe(8);
+});
+
+it("limits the packaged runtime to the first two allowed CPUs", () => {
+  expect(parseCpuList("0-2,5,7-8")).toEqual([0, 1, 2, 5, 7, 8]);
+  expect(limitedCpuList("3,5-7", 2)).toBe("3,5");
+});
+
+it("reports missing and replaced supervised runtime roles once", () => {
+  const tracker = new RoleContinuityTracker({ web: 10, worker: 11 });
+
+  tracker.observe({ web: 10 });
+  tracker.observe({ web: 12, worker: 11 });
+  tracker.observe({ web: 12, worker: 11 });
+
+  expect(tracker.failures()).toEqual([
+    "worker child disappeared (expected pid 11)",
+    "web child restarted (expected pid 10, observed pid 12)",
+  ]);
+});
 
 it("holds queued imports durably without blocking later job types", async () => {
   const root = await mkdtemp(join(tmpdir(), "import-job-barrier-"));
@@ -961,6 +1441,8 @@ it("ignores a transient zombie that is reaped before the next sample", () => {
     state: "Z",
     name: "sh",
     command: "",
+    cpuTicks: 0,
+    rssBytes: 0,
   };
 
   expect(tracker.observe([zombie])).toEqual([]);
@@ -976,6 +1458,8 @@ it("reports the same zombie when it survives consecutive samples", () => {
     state: "Z",
     name: "git",
     command: "",
+    cpuTicks: 0,
+    rssBytes: 0,
   };
 
   expect(tracker.observe([zombie])).toEqual([]);

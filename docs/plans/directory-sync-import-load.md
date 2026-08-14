@@ -385,3 +385,31 @@ A new remote `load` run remains blocked on completion of the separate Git execut
 acceptance plan, still requires explicit approval, and must complete all seven phases with
 zero external AI calls, health failures, restarts, OOMs, or zombies, followed by cleanup to
 the seven-note baseline, zero probes, and Git parity.
+
+### 6.5 Gate resource saturation and runtime lockups
+
+Throughput and queue drain do not by themselves prove acceptable performance. The nightly
+packaged soak now constrains the supervised runtime to two CPUs and records a standing
+resource/lockup report across `/health/live`, `/health/ready`, and `/health/operate`. It
+fails on any health error, child-role restart, persistent zombie, endpoint latency at or
+above 500 ms, five seconds of continuous CPU use at or above 90% of available capacity,
+aggregate process-tree RSS at or above 1,280 MiB, or RSS growth at or above 320 MiB. The
+report is emitted even when a correctness barrier fails, so lockups retain their resource
+evidence rather than timing out silently.
+
+The first affected-runtime diagnostics on Bun 1.3.11 failed without retrying. In one run,
+Git merged the delayed 350-file update and advanced `origin/main`, but the seven expected
+import jobs were never queued. In a second run, Git merged the ordinary update while the
+database remained at the eight jobs from startup and add; health requests reached their
+one-second timeout and one persistent zombie was observed. This is the known
+merged-but-not-queued lost-completion class, not a throughput result, and keeps stable-Bun
+acceptance blocked on the separate broker track.
+
+The same two-CPU 350-file add/update/delayed-update/delete gate then passed unchanged on
+the previously isolated fixed build, Bun `1.4.0-canary.1+da3851e57`. Across 904 monitor
+samples, peak CPU was 0.854 cores (42.7% of the two-core capacity), continuous saturation
+was zero, peak aggregate RSS was 945,934,336 bytes with 188,751,872 bytes of growth, and
+final RSS growth was 161,787,904 bytes. Maximum live/ready/operate latencies were
+18.9/43.1/44.7 ms; no health failure, child restart, or persistent zombie occurred. This
+is diagnostic evidence only: the mutable canary remains unpinned, and remote smoke remains
+approval-gated.
