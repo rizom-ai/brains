@@ -43,7 +43,7 @@ Phase 3 gave each shared mock one definition. All five local `createMockEntitySe
 
 Typing the overrides on two of those conversions caught malformed fixtures the untyped bags had hidden: entities built with `createdAt`/`updatedAt` where `BaseEntity` has `created`/`updated`, and with no `contentHash` or `visibility`. Nothing read those fields, so nothing failed.
 
-Three caveats to the baseline. Test files themselves contain 156 `as unknown as` casts across 80 files (94 in `shell/` alone), almost always on inline partial mocks — so the "no casts in test files" property that `test-utils`' header aims for does not hold today; Phase 6 addresses it. `shell/ai-service/test/agent-service.test.ts` is the one file in the repo that reads private service state via `Reflect.get` (the conversation-actor registry probes); Phase 5 replaces those probes while it has the file open. And root-level `scripts/` is linted by nothing — `scripts/lint.mjs` drives turbo, which only visits workspace packages, and the repository root is not one — so the script tests Phase 0 just wired up are unreachable from ESLint; Phase 6 fixes that alongside its own rules.
+Three caveats to the baseline. Test files themselves contain 156 `as unknown as` casts across 80 files (94 in `shell/` alone), almost always on inline partial mocks — so the "no casts in test files" property that `test-utils`' header aims for does not hold today; Phase 6 addresses it. `shell/ai-service/test/agent-service.test.ts` was the one file in the repo that read private service state via `Reflect.get` (the conversation-actor registry probes); Phase 5 step 5 has since replaced them with an introspection accessor. And root-level `scripts/` is linted by nothing — `scripts/lint.mjs` drives turbo, which only visits workspace packages, and the repository root is not one — so the script tests Phase 0 just wired up are unreachable from ESLint; Phase 6 fixes that alongside its own rules.
 
 A static "modules never imported by a test" sweep flagged 25 of 53 modules in `shell/core`. That signal was checked and is mostly transitive-coverage noise — barrel modules such as `messageBus.ts` pull in their collaborators, and the init/shutdown paths it flagged are covered. Only `shell/ai-evaluation` survived the check as a genuine hole. This plan does not act on that sweep beyond Phase 4.
 
@@ -73,7 +73,9 @@ No test imports any of these, directly or transitively. Model fan-out, reporter 
 
 Tests contain ~120 fixed sleeps (`await new Promise((r) => setTimeout(r, N))` and equivalents), concentrated in `shared/utils` (28), `plugins/directory-sync` (21), `shell/job-queue` (17), `interfaces/a2a` (12), and `interfaces/chat` (10). They split into two families:
 
-- **Synchronization sleeps** — `setTimeout(resolve, 100) // Wait for jobs` in `sync-job-race-condition.test.ts` and siblings. These encode a guess about scheduler latency: too short is flaky under load, long enough to be safe is wasted wall clock on every run. `directory-sync` at 25.4s is the slowest package in the suite largely for this reason.
+> This was the baseline reading, and the two-family split turned out to be wrong. Migrating four packages found five families; see "What the sleeps actually were" under Phase 5. The count is 57 as of the `interfaces/chat` migration, and note it under-reports packages that wrap `setTimeout` in a local helper.
+
+- **Synchronization sleeps** — `setTimeout(resolve, 100) // Wait for jobs` in `sync-job-race-condition.test.ts` and siblings. These encode a guess about scheduler latency: too short is flaky under load, long enough to be safe is wasted wall clock on every run. (The baseline also blamed `directory-sync`'s 25.4s on this; that proved wrong — see the Phase 5 gate.)
 - **Time-semantics tests** — `debounce.test.ts` and `logger-file.test.ts`, where elapsed time is the behavior under test, currently driven by real 30–80ms timers.
 
 There is no shared wait-for-condition helper anywhere in the repo, which is why the pattern keeps being written by hand. Bun 1.3's test runner supports `jest.useFakeTimers` / `advanceTimersByTime`, so the time-semantics family has a deterministic alternative too.
@@ -201,23 +203,46 @@ Gate:
 
 Partially shipped. Done: `waitUntil` exists in `@brains/test-utils` with its own tests (steps 1–2); the `Reflect.get` probes are replaced by an introspection accessor on `AgentService` (5); `debounce` and `logger-file` run on fake timers (6); the packed transport ports bind at run time and two concurrent suites no longer collide (step 7); and the inline-`mkdtemp` leak is closed for its three biggest sources — `plugins/cms`, `plugins/playbooks` and `packages/brains-ops` each leak zero directories per package run, via tracked helpers in `@brains/plugins/test` and `@brains/test-utils` (most of step 8).
 
-Step 3 is most of the way through `plugins/directory-sync`: nine of its fourteen sleeps are converted across five files, leaving only `sync-job-race-condition.test.ts` (4) and the deliberate latency simulation inside `git-lock.test.ts`. Still open: the rest of step 3, all of step 4, the residual ~159-directory leak under a full concurrent run whose cause is not yet explained plus the bun install-staging leak (rest of 8, and 9), and the ESLint ban (10), which must come after the migrations it polices.
+Steps 3 and 4 are complete. `plugins/directory-sync` has one sleep left, the deliberate latency simulation inside `git-lock.test.ts`; `interfaces/a2a` has none; and `shell/job-queue`, `interfaces/chat` and `shell/ai-service` retain only sleeps that are not synchronization. Repo-wide the count is 93 → 57.
 
-Converting `git-lock.test.ts` found a dead half. Its name promises that auto-commit and periodic-sync never overlap, but `commitAndPush` gates on `getStatus().hasChanges` while the test overrode `hasLocalChanges`, which that path never reads — so the auto-commit returned early, never took the lock, and `maxConcurrent === 1` held on periodic syncs alone. The 300ms sleep is what hid it: long enough that something had always happened, without ever asking what. This is the argument for the phase in miniature — a duration cannot tell you _which_ work ran, so it cannot notice when half of it stops running.
+What remains in the step-4 packages is deliberate, not skipped. `interfaces/chat`'s seven are all `setTimeout(resolve, 0)` — one turn of the macrotask queue before a negative assertion, a yield rather than a duration. `shell/job-queue`'s seven are five timestamp-separation sleeps (below) and two that model how long a handler runs.
 
-One sleep is not synchronization and is staying. `git-lock.test.ts` sleeps 50ms _inside_ the mocked git operations to model how long they take; remove it and there is no window in which an overlap could be observed. Step 10's ESLint rule therefore needs a sanctioned way to express "this models duration" — a named helper or a documented disable — rather than banning the idiom outright.
+Still open: the residual ~159-directory leak under a full concurrent run whose cause is not yet explained plus the bun install-staging leak (rest of 8, and 9), and the ESLint ban (10), which must come after the migrations it polices.
 
-A third pattern turned up that is neither family. `file-operations.test.ts` slept 10ms so a rewritten file would get a different mtime — a wall-clock dependency the fake-timer alternative cannot help with, since `statSync` reads the real filesystem. Backdating the file with `utimesSync` removes the sleep and strengthens the assertion: a skipped write is now proved by a full minute of unchanged mtime rather than by timestamp granularity. Expect more of these in step 4 — sleeps that are neither waiting nor measuring time, but manufacturing a distinguishable before-state.
+### What the sleeps actually were
+
+The phase assumed two families, synchronization and time-semantics. Migrating five packages found six, and the distinction matters because only the first is a defect:
+
+1. **Synchronization** — waiting for work to finish. Every one converted to `waitUntil` on the state the assertion already reads. The best signals were already public and typed: `worker.getStats()` in `job-queue`, task status in `a2a`, the exported file in `directory-sync`.
+2. **Ordering, expressed as a race** — the mock-only tests in `sync-job-race-condition.test.ts` and the "slow agent" tests in `a2a`. These do not need to wait at all; completion becomes a deferred the test releases, which states the ordering exactly and removes the timers entirely.
+3. **Time-semantics** — elapsed time is the behaviour. `chat`'s three 510ms sleeps were out-waiting `PROGRESS_EDIT_THROTTLE_MS`, the 500ms progress-edit throttle in `shell/plugins`. `setSystemTime` moves `Date.now()` past the window exactly. Note that `jest.useFakeTimers` is the wrong tool when the code under test only reads the clock: freezing timers stalls the async flow the test is driving.
+4. **Duration models** — a sleep _inside_ a mock, standing for how long a real operation takes. `git-lock`'s 50ms and `job-queue`'s handler delays are the window in which an overlap could be observed; removing them removes the test.
+5. **Distinguishable state** — manufacturing a before-state, not waiting. `file-operations` slept so a rewritten file would get a different mtime, fixed with `utimesSync` backdating. `job-queue-service`'s five remain because the equivalent fix is a production change: `JobQueueService` stamps rows with a bare `Date.now()`, so consecutive enqueues tie unless the test sleeps between them. Injecting a clock — which `JobQueueWorker` already accepts — would remove all five, and that is a design decision this phase does not own.
+
+6. **Waiting out a window before a negative assertion** — the most common survivor, and the only one present in every package migrated. When the expected outcome is that nothing happens (a retry that must not be reported, an actor that must not be evicted, a queued turn that must not start), there is no event to wait for, so the test must let the window pass and then look. Where a positive signal exists that implies the window closed, prefer it: `job-queue`'s retry test waits for the job to be _counted_, because once the worker has tallied it the reporting decision is already made. Where none exists, the sleep stays.
+
+Families 4, 5 and 6 are the reason step 10 cannot be a flat ban on the sleep idiom. The rule needs a sanctioned form — a named helper such as `simulateWork(ms)` or `pastIdleActorTtl()`, or a documented disable carrying the reason — or it will be suppressed ad hoc at exactly the sites where the intent is most worth stating. `ai-service` now carries two such helpers as a worked example.
+
+The general rule the migration settled on: wait on the state the assertion reads, not on a proxy for it. Every conversion that went wrong went wrong by waiting on something adjacent — a completion flag shared with another cycle, a duration long enough that something must have happened.
+
+### Two dead tests the sleeps were hiding
+
+Converting `git-lock.test.ts` found a dead half. Its name promises that auto-commit and periodic-sync never overlap, but `commitAndPush` gates on `getStatus().hasChanges` while the test overrode `hasLocalChanges`, which that path never reads — so the auto-commit returned early, never took the lock, and `maxConcurrent === 1` held on periodic syncs alone. The 300ms sleep is what hid it: long enough that something had always happened, without ever asking what.
+
+`sync-job-race-condition.test.ts` had the same shape one level up. Its two-cycle tests shared a completion flag while each import scheduled a timer outliving its own cycle, so the first cycle's timer fired during the second cycle's sleep and supplied the state that cycle was waiting for. It passed by out-waiting every timer regardless of which had run.
+
+Both are the argument for the phase in miniature: a duration cannot tell you _which_ work ran, so it cannot notice when half of it stops running. Expect the remaining packages to hide the same thing — and note that both were found by converting, not by reading.
 
 1. Write `waitUntil`'s own tests in `shared/test-utils`: resolves when the predicate turns true, rejects with the predicate's description at the deadline, never busy-loops.
 2. Implement `waitUntil` per decision 7.
-3. Migrate `plugins/directory-sync` — it has the largest concentration of synchronization sleeps (21).
+3. ~~Migrate `plugins/directory-sync`.~~ Done. `sync-job-race-condition.test.ts` was the hard case as predicted, and the answer was not a better wait: the tests are mock-only ordering documentation, so each queued job became a deferred the test releases. An earlier attempt to wait on the shared `jobsCompleted` flag failed and was reverted, for the reason recorded above.
 
-   Do **not** treat `sync-job-race-condition.test.ts` as the easy first case, despite appearances. Its sleeps look like they wait for a `jobsCompleted` flag, but the flag is shared across two import/export cycles within a single test and across tests in the describe block, and the mocks schedule timers that outlive the cycle that created them. Waiting on the flag returns early against a stale value; the fixed 100ms sleep passed only by out-waiting every timer regardless of state. An attempt at this conversion failed and was reverted. The file needs its shared state understood — probably reset per cycle, or the wait moved onto the state the assertion actually reads (`entityInDB`) rather than the completion flag — before any sleep in it is removed.
+4. Migrate `shell/job-queue`, `interfaces/a2a`, `interfaces/chat`, and `shell/ai-service` the same way, preferring a direct await on an observable completion over polling wherever one exists.
 
-   Start with the files whose sleeps guard a single, locally-owned signal.
+   Done. `shell/ai-service` turned out to be mostly a different defect: seven `while (...) { await delay(1) }` poll loops, hand-rolled because no shared helper existed when they were written. They had no deadline, so a condition that never came true hung the suite rather than failing it — `waitUntil` supplies one. Note that `waitUntil` does not narrow types the way `while (!x)` did, so a captured `let` needs binding to a `const` after the wait; a cast there would violate Phase 6.
 
-4. Migrate `shell/job-queue` (17), `interfaces/a2a` (12), `interfaces/chat` (10), and `shell/ai-service` (13 `delay()` calls in `agent-service.test.ts`) the same way, preferring a direct await on an observable completion over polling wherever one exists.
+   Both `ai-service` and `a2a` wrap `setTimeout` in a local `delay()`, so a repo-wide grep for the sleep idiom under-reports them — worth knowing before step 10's rule is written against the idiom rather than against the helper.
+
 5. While `agent-service.test.ts` is open: replace its `Reflect.get` probes of the private conversation-actor registry with a package-internal introspection accessor on `AgentService` (actor count and snapshot). The probes already guard against shape drift at runtime; an accessor moves that guarantee to compile time and stops a private-field rename from silently breaking lifecycle assertions.
 6. Convert the time-semantics family — `shared/utils` `debounce.test.ts` and `logger-file.test.ts` — to fake timers.
 7. Replace the hardcoded `14010`/`14020` in `public-authoring-phase5-packed.test.ts` with `port: 0` and read back the assigned port, matching what `import-burst-stability.test.ts` already does.
@@ -225,15 +250,18 @@ A third pattern turned up that is neither family. `file-operations.test.ts` slep
 9. Make the packed-authoring tests pack into a directory they own and delete, so bun does not stage 113M per run into `/tmp` and leave it there when an install is interrupted.
 10. Land the ESLint `no-restricted-syntax` ban on the sleep idiom in test files, with `waitUntil` and fake timers as the documented alternatives.
 
+    Two things the migration changed about this step. The rule needs a sanctioned form for families 4 and 5 above — a named `simulateWork(ms)` helper reads better than a disable comment, because the call site then states the intent rather than suppressing a complaint about it. And it must match the helpers too: `ai-service` and `a2a` both wrap `setTimeout` in a local `delay()`, so a rule written only against `new Promise(... setTimeout ...)` would pass a file that is entirely sleeps.
+
 Gate:
 
 - No fixed-duration sleep used as synchronization remains in the migrated packages.
 - No test binds a hardcoded port; two suites can run concurrently without EADDRINUSE.
-- `directory-sync`'s suite time drops measurably (it is 25.4s today).
 - Debounce and logger tests pass with fake timers and no real-time dependence.
 - No test reads private service state via `Reflect.get`.
 - A full suite run leaves no directory behind in the system temp dir.
-- The ESLint rule fails on a reintroduced sleep.
+- The ESLint rule fails on a reintroduced sleep, and on a sleep behind a local helper.
+
+This originally also gated on `directory-sync`'s suite time dropping measurably from 25.4s. That gate was wrong and is withdrawn: removing every synchronization sleep in the package moved it 28.7s → 28.2s, because its runtime is dominated by real git operations rather than by waiting. Where the sleeps did dominate, the effect is large and worth recording — `chat-interface-tool-status` 1.98s → 453ms, `job-queue-worker` 1.91s → 1.30s, `entity-updated-subscriber` 770ms → 469ms. Speed was never the justification for this phase (see non-goals); the reason to remove a sleep is that it cannot say what it is waiting for.
 
 ### Phase 6 — No unsafe casts in test files
 
