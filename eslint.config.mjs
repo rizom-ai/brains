@@ -59,6 +59,37 @@ export default [
     },
   },
   {
+    // Test files in the layers Phase 6 has cleared.
+    //
+    // A cast on an inline mock does the same damage as one in a shared factory,
+    // just locally: it asserts a shape instead of checking it, so the mock goes
+    // stale silently while the test keeps passing. Every cast removed from
+    // these layers was hiding something — a handler declared to take no
+    // argument where the real one is passed a message, a provider asserting a
+    // return shape its contract does not promise, a private method reached
+    // through the class.
+    //
+    // Reach for, in order: a shared factory from `@brains/test-utils`, an
+    // honest narrow type (`Pick<...>` or a local interface), or narrowing the
+    // parameter of the code under test when it asks for more than it uses.
+    //
+    // Enabled per layer as each one reaches zero, so the layers already done
+    // cannot regress while the rest are outstanding. Add a layer here when its
+    // count hits zero — `interfaces`, `plugins` and `shell` remain.
+    files: ["packages/**/test/**/*.ts", "entities/**/test/**/*.{ts,tsx}"],
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector:
+            "TSAsExpression > TSAsExpression > TSUnknownKeyword.typeAnnotation",
+          message:
+            "Do not use `as unknown as` in a test. Use a @brains/test-utils factory, an honest narrow type, or narrow the parameter of the code under test.",
+        },
+      ],
+    },
+  },
+  {
     // Tests in these packages synchronize on conditions, not on durations.
     //
     // `await new Promise((r) => setTimeout(r, N))` cannot say what it is
