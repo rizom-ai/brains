@@ -420,7 +420,41 @@ observing that the checkout exists on disk. `bootstrap` is accepted only while i
 not, every other class only once it does. The transition is verified, not asserted by a
 client.
 
-#### Phase 3b — supervisor refactor (remaining)
+#### Phase 3b — supervisor refactor
+
+**Done.** Roles are policy-driven: `BrainChildRole` gains `git-broker`, readiness message
+types and restart budgets are per role, and the worker-scoped knobs became one
+`restartPolicies` table. The broker starts first and web spawns only on `broker-ready`;
+on the way down web and worker are signalled first and the broker only once both have
+closed, because its wrapper may still hold the checkout lock for a request in flight.
+
+`--child=git-broker` runs `runGitBrokerChild`, which deliberately **does not boot a
+Brain** — the broker owns Git execution and nothing else, so it has no entities, jobs, or
+HTTP surface. That is what makes it cheap to start before web and safe to stop after it.
+
+**`gitBroker` defaults to `false`.** Nothing routes Git through the broker until Phase 5,
+so enabling the child now would add a process that no caller uses. Flip the default in
+Phase 5, in the same change that converts the runners — not before.
+
+Existing web and worker behaviour is unchanged, and the existing supervisor tests prove
+it: they were not modified, they simply do not opt into the broker.
+
+Two smaller decisions worth keeping:
+
+- The wrapper's text import needs a **sibling `git-wrapper.sh.d.ts`**, not an ambient
+  `*.sh` wildcard and not a triple-slash reference — the wildcard is invisible to other
+  packages that typecheck these sources, and the reference form is banned by lint. A
+  sibling declaration resolves relative to the importing file, so it works everywhere.
+- The broker's runtime directory resolves from `BRAIN_GIT_BROKER_RUNTIME_DIR`, then
+  `XDG_DATA_HOME`, then a `.brain-runtime` directory beside the working directory. It is
+  never inside the checkout: the socket and journal must survive a checkout being
+  replaced, and must never be committed.
+
+Remaining for a later phase, once callers exist: shutdown that drains in-flight requests
+rather than relying on the wrapper's externally recoverable record, and surfacing broker
+outage on `/health/operate`.
+
+The original scoping notes for this phase follow.
 
 This is a supervisor refactor, not an added child; size it accordingly.
 `process-supervisor.ts` hardcodes `BrainChildRole = "web" | "worker"`, rejects any other

@@ -23,7 +23,8 @@
       "types": "./src/index.ts",
       "import": "./src/index.ts"
     },
-    "./env-schema": "./src/env-schema.ts"
+    "./env-schema": "./src/env-schema.ts",
+    "./broker": "./src/lib/broker/index.ts"
   },
   "main": "./src/index.ts",
   "peerDependencies": {},

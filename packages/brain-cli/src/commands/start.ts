@@ -115,6 +115,13 @@ export async function start(
       };
     }
 
+    // The broker owns Git execution and nothing else, so it never boots a
+    // Brain — no entities, no jobs, no HTTP surface.
+    if (childRole === "git-broker") {
+      const { runGitBrokerChild } = await import("../lib/git-broker-child");
+      return runGitBrokerChild(cwd);
+    }
+
     const config = parseBrainYaml(cwd);
 
     // In-process boot — the package bundles the canonical definition. Explicitly

@@ -2,6 +2,7 @@ import { describe, expect, it, mock } from "bun:test";
 import { EventEmitter } from "node:events";
 import type { CommandResult } from "../src/lib/command-result";
 import {
+  parseBrainChildRole,
   startWorkerHeartbeat,
   superviseRuntimeChildren,
   type SupervisorClock,
@@ -56,7 +57,7 @@ function createHarness(): TestHarness {
     return child;
   });
   const reportIncident = mock((_incident: Record<string, unknown>) => {});
-  const reportReady = mock((_role: "web" | "worker") => {});
+  const reportReady = mock((_role: "git-broker" | "web" | "worker") => {});
   const advanceTo = (timestamp: number): void => {
     now = timestamp;
   };
@@ -365,5 +366,181 @@ describe("bundled process supervisor", () => {
     worker.emit("close", null, "SIGKILL");
     web.emit("close", null, "SIGKILL");
     expect(await supervised).toEqual({ success: true });
+  });
+});
+
+/**
+ * The Git broker owns a checkout across process boundaries, so it must be
+ * ready before anything that runs Git starts, and it must outlive them on the
+ * way down — otherwise a shutdown strands a request whose wrapper still holds
+ * the advisory lock.
+ */
+describe("git broker supervision", () => {
+  function superviseWithBroker(harness: TestHarness): Promise<CommandResult> {
+    return superviseRuntimeChildren("/brain", "/dist/brain.js", {
+      spawnImpl: harness.spawnImpl,
+      processImpl: harness.processEvents,
+      clock: harness.clock,
+      startupTimeoutMs: 100,
+      shutdownGraceMs: 50,
+      workerRestartBaseMs: 10,
+      workerRestartBudget: 3,
+      workerRestartWindowMs: 3_600,
+      workerHeartbeatIntervalMs: 20,
+      gitBroker: true,
+      brokerRestartBaseMs: 10,
+      brokerRestartBudget: 2,
+      brokerRestartWindowMs: 3_600,
+      reportIncident: harness.reportIncident,
+      reportReady: harness.reportReady,
+    });
+  }
+
+  it("accepts the broker child role and still rejects unknown ones", () => {
+    expect(parseBrainChildRole(["--child=git-broker"])).toBe("git-broker");
+    expect(parseBrainChildRole(["--child=web"])).toBe("web");
+    expect(parseBrainChildRole([])).toBeUndefined();
+    expect(() => parseBrainChildRole(["--child=nonsense"])).toThrow(
+      'Invalid internal Brain child role "nonsense"',
+    );
+  });
+
+  it("starts the broker first and web only once it is ready", async () => {
+    const harness = createHarness();
+    const supervised = superviseWithBroker(harness);
+
+    expect(harness.spawnImpl).toHaveBeenCalledTimes(1);
+    expect(harness.spawnImpl.mock.calls[0]?.[1]).toEqual([
+      "/dist/brain.js",
+      "start",
+      "--child=git-broker",
+    ]);
+
+    const broker = harness.children[0];
+    if (!broker) throw new Error("Expected broker child");
+    broker.emit("message", { type: "broker-ready" });
+
+    expect(harness.reportReady).toHaveBeenCalledWith("git-broker");
+    expect(harness.spawnImpl).toHaveBeenCalledTimes(2);
+    expect(harness.spawnImpl.mock.calls[1]?.[1]).toEqual([
+      "/dist/brain.js",
+      "start",
+      "--child=web",
+    ]);
+
+    const web = harness.children[1];
+    if (!web) throw new Error("Expected web child");
+    web.emit("message", { type: "runtime-ready" });
+    const worker = harness.children[2];
+    if (!worker) throw new Error("Expected worker child");
+    worker.emit("message", { type: "worker-ready" });
+
+    harness.processEvents.emit("SIGTERM");
+    worker.emit("close", null, "SIGTERM");
+    web.emit("close", null, "SIGTERM");
+    broker.emit("close", null, "SIGTERM");
+    expect(await supervised).toEqual({ success: true });
+  });
+
+  it("stops the broker only after web and worker have closed", async () => {
+    const harness = createHarness();
+    const supervised = superviseWithBroker(harness);
+    const broker = harness.children[0];
+    if (!broker) throw new Error("Expected broker child");
+    broker.emit("message", { type: "broker-ready" });
+    const web = harness.children[1];
+    if (!web) throw new Error("Expected web child");
+    web.emit("message", { type: "runtime-ready" });
+    const worker = harness.children[2];
+    if (!worker) throw new Error("Expected worker child");
+    worker.emit("message", { type: "worker-ready" });
+
+    harness.processEvents.emit("SIGTERM");
+    expect(web.kill).toHaveBeenCalledWith("SIGTERM");
+    expect(worker.kill).toHaveBeenCalledWith("SIGTERM");
+    // A wrapper may still hold the checkout lock for an in-flight request.
+    expect(broker.kill).not.toHaveBeenCalled();
+
+    worker.emit("close", null, "SIGTERM");
+    expect(broker.kill).not.toHaveBeenCalled();
+    web.emit("close", null, "SIGTERM");
+    expect(broker.kill).toHaveBeenCalledWith("SIGTERM");
+
+    broker.emit("close", null, "SIGTERM");
+    expect(await supervised).toEqual({ success: true });
+  });
+
+  it("restarts an exited broker without respawning web", async () => {
+    const harness = createHarness();
+    const supervised = superviseWithBroker(harness);
+    const broker = harness.children[0];
+    if (!broker) throw new Error("Expected broker child");
+    broker.emit("message", { type: "broker-ready" });
+    const web = harness.children[1];
+    if (!web) throw new Error("Expected web child");
+    web.emit("message", { type: "runtime-ready" });
+
+    broker.emit("close", 1, null);
+    expect(harness.reportIncident).toHaveBeenCalledWith({
+      type: "git-broker-exited",
+      code: 1,
+      signal: null,
+      ready: true,
+    });
+
+    harness.advanceTo(10);
+    harness.fireTimer(10);
+    const replacement = harness.children[3];
+    if (!replacement) throw new Error("Expected replacement broker");
+    expect(harness.spawnImpl.mock.calls[3]?.[1]).toEqual([
+      "/dist/brain.js",
+      "start",
+      "--child=git-broker",
+    ]);
+    replacement.emit("message", { type: "broker-ready" });
+    // Web already exists; a broker restart must not start a second one.
+    expect(harness.spawnImpl).toHaveBeenCalledTimes(4);
+
+    const worker = harness.children[2];
+    if (!worker) throw new Error("Expected worker child");
+    harness.processEvents.emit("SIGTERM");
+    worker.emit("close", null, "SIGTERM");
+    web.emit("close", null, "SIGTERM");
+    replacement.emit("close", null, "SIGTERM");
+    expect(await supervised).toEqual({ success: true });
+  });
+
+  it("fails and shuts down when the broker restart budget is exhausted", async () => {
+    const harness = createHarness();
+    const supervised = superviseWithBroker(harness);
+    const first = harness.children[0];
+    if (!first) throw new Error("Expected broker child");
+    first.emit("message", { type: "broker-ready" });
+    const web = harness.children[1];
+    if (!web) throw new Error("Expected web child");
+    web.emit("message", { type: "runtime-ready" });
+
+    first.emit("close", 1, null);
+    harness.advanceTo(10);
+    harness.fireTimer(10);
+    const second = harness.children[3];
+    if (!second) throw new Error("Expected a second broker");
+    second.emit("close", 1, null);
+
+    expect(harness.reportIncident).toHaveBeenCalledWith({
+      type: "git-broker-supervision-exhausted",
+      attempts: 2,
+      windowMs: 3_600,
+    });
+
+    const worker = harness.children[2];
+    if (!worker) throw new Error("Expected worker child");
+    worker.emit("close", null, "SIGTERM");
+    web.emit("close", null, "SIGTERM");
+    expect(await supervised).toEqual({
+      success: false,
+      message: "Brain git-broker restart budget exhausted after 2 attempts",
+      exitCode: 1,
+    });
   });
 });
