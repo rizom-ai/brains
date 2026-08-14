@@ -35,9 +35,21 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Build packaged runtime
+        id: build
         run: bunx turbo run build --filter=@rizom/brain
 
+      - name: Run feature-enabled resource gate
+        env:
+          MOCKED_AI_IMPORT_COUNT: 350
+          MOCKED_AI_SERVICE_DELAY_MS: 100
+          MOCKED_AI_CPU_LIMIT: 2
+        run: |
+          set -o pipefail
+          bun test packages/brain-cli/test/import-burst-feature-load.test.ts \
+            2>&1 | tee "$RUNNER_TEMP/directory-sync-feature-resource.log"
+
       - name: Run directory-sync import soak
+        if: ${{ steps.build.outcome == 'success' && !cancelled() }}
         env:
           RUN_IMPORT_BURST_SOAK: 1
           IMPORT_BURST_FILE_COUNT: 350
@@ -53,7 +65,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: directory-sync-import-soak-${{ github.run_id }}
-          path: ${{ runner.temp }}/directory-sync-import-soak.log
+          path: |
+            ${{ runner.temp }}/directory-sync-feature-resource.log
+            ${{ runner.temp }}/directory-sync-import-soak.log
           if-no-files-found: warn
 
       - name: Notify operator of soak failure
