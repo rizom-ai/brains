@@ -58,6 +58,36 @@ export interface AuthAccountSessionSummary {
   expiresAt: number;
 }
 
+export interface AuthAccountPluginSettingsField {
+  name: string;
+  label: string;
+  control: "text" | "url" | "number" | "checkbox";
+  secret: boolean;
+  required: boolean;
+  value?: string | number | boolean | null | undefined;
+  set?: boolean | undefined;
+}
+
+export interface AuthAccountPluginSettingsForm {
+  id: string;
+  title: string;
+  description?: string | undefined;
+  configured: boolean;
+  revision: number | null;
+  fields: readonly AuthAccountPluginSettingsField[];
+}
+
+export type AuthAccountPluginSettingsMutation =
+  | {
+      action: "save";
+      definitionId: string;
+      values: Record<string, unknown>;
+    }
+  | {
+      action: "delete";
+      definitionId: string;
+    };
+
 export interface AuthAccountSnapshot {
   displayName: string;
   role: AuthAccountRole;
@@ -69,6 +99,7 @@ export interface AuthAccountSnapshot {
   profileEntityId?: string;
   passkeys: AuthAccountPasskey[];
   connectedChannels: AuthAccountConnectedChannel[];
+  pluginSettings: readonly AuthAccountPluginSettingsForm[];
   sessions: AuthAccountSessionSummary[];
 }
 

@@ -3,6 +3,7 @@ import type {
   RuntimeInterfacePrincipalState,
 } from "@brains/contracts";
 import type {
+  AccountSettingsRegistry,
   ChannelDeliveryProvider,
   ChannelDescriptor,
 } from "@brains/plugins";
@@ -124,6 +125,11 @@ export interface AuthServiceOptions {
   invitationDeliveryRecoveryStaleMs?: number;
   /** Stale unconsented OAuth-client maintenance interval. Defaults to one hour. */
   oauthClientMaintenanceIntervalMs?: number;
+  /** Deployment secret used to encrypt per-account plugin settings at rest. */
+  accountSettingsEncryptionKey?: string;
+  /** Notify the app-scoped registry after an account is permanently removed. */
+  onAccountDeleted?: (actorId: string) => void;
+  accountSettingsRegistry?: AccountSettingsRegistry;
   logger?: Logger;
 }
 
@@ -137,6 +143,7 @@ export class AuthService {
     ((channelType: string) => ChannelDescriptor | undefined) | undefined;
   private readonly listChannelDescriptors:
     (() => ChannelDescriptor[]) | undefined;
+  private readonly accountSettingsRegistry: AccountSettingsRegistry | undefined;
   private readonly logger: Logger | undefined;
 
   constructor(options: AuthServiceOptions) {
@@ -144,6 +151,7 @@ export class AuthService {
     this.getInvitationDeliveryProvider = options.getInvitationDeliveryProvider;
     this.getChannelDescriptor = options.getChannelDescriptor;
     this.listChannelDescriptors = options.listChannelDescriptors;
+    this.accountSettingsRegistry = options.accountSettingsRegistry;
     this.logger = options.logger;
     const isChannelTypeRegistered =
       options.isChannelTypeRegistered ??
@@ -206,6 +214,12 @@ export class AuthService {
               options.oauthClientMaintenanceIntervalMs,
           }
         : {}),
+      ...(options.accountSettingsEncryptionKey
+        ? { accountSettingsEncryptionKey: options.accountSettingsEncryptionKey }
+        : {}),
+      ...(options.onAccountDeleted
+        ? { onAccountDeleted: options.onAccountDeleted }
+        : {}),
       ...(options.logger ? { logger: options.logger } : {}),
     });
     this.requestRouter = new AuthRequestRouter({
@@ -263,6 +277,12 @@ export class AuthService {
     return this.runtime
       .getInterfacePrincipalStore()
       .resolve(interfaceType, subject);
+  }
+
+  getAccountSettingsBackend(): ReturnType<
+    AuthRuntime["getAccountSettingsStore"]
+  > {
+    return this.runtime.getAccountSettingsStore();
   }
 
   async hasPasskeyCredentials(): Promise<boolean> {
@@ -762,6 +782,9 @@ export class AuthService {
           : undefined;
       },
       account: this.runtime.getAccountService(),
+      ...(this.accountSettingsRegistry
+        ? { accountSettings: this.accountSettingsRegistry }
+        : {}),
     });
   }
 

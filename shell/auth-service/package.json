@@ -25,6 +25,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./account-contracts": "./src/account-contracts.ts",
+    "./env-schema": "./src/env-schema.ts",
     "./admin-contracts": "./src/admin-contracts.ts"
   },
   "files": [

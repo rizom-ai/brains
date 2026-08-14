@@ -196,14 +196,8 @@ class DeclarativeServicePlugin<
     context: ServicePluginContext,
   ): Promise<void> {
     await super.onRegister(context);
-    // The contracts are public so authors can write and typecheck against them,
-    // but no host consumes them yet. Refuse loudly rather than accept a
-    // declaration and silently register nothing.
-    if (this.definition.accountSettings) {
-      throw new Error(
-        `Service "${this.publicId}" account settings require the account-settings runtime`,
-      );
-    }
+    // Account settings are hosted by the web runtime. Operator hosts remain a
+    // later phase, so refuse those declarations rather than dropping them.
     if (this.definition.dashboardWidgets) {
       throw new Error(
         `Service "${this.publicId}" dashboard widgets require the operator runtime`,
@@ -213,6 +207,14 @@ class DeclarativeServicePlugin<
       throw new Error(
         `Service "${this.publicId}" CMS workspaces require the operator runtime`,
       );
+    }
+    if (this.definition.accountSettings && !context.executionOnly) {
+      context.accountSettings.register({
+        ownerPluginId: this.id,
+        packageName: this.packageName,
+        definitionId: this.definition.id,
+        definition: this.definition.accountSettings,
+      });
     }
     this.state = this.definition.setup
       ? await this.definition.setup({
@@ -245,6 +247,20 @@ class DeclarativeServicePlugin<
       context.jobs.registerHandler(
         job.name,
         runtimeJobHandler(binding, context, templates),
+      );
+    }
+  }
+
+  protected override async onRegistrationComplete(
+    context: ServicePluginContext,
+  ): Promise<void> {
+    if (
+      this.definition.accountSettings &&
+      !context.executionOnly &&
+      !context.accountSettings.hasBackend()
+    ) {
+      throw new Error(
+        `Service "${this.publicId}" account settings require auth-service and an account settings encryption key`,
       );
     }
   }

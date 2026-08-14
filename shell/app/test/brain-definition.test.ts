@@ -128,6 +128,22 @@ describe("resolve", () => {
     expect(instances).toHaveLength(2);
   });
 
+  test("injects the account-settings deployment key into auth-service", () => {
+    const authFactory = createMockPluginFactory("auth-service");
+    const def = defineBrain({
+      name: "test",
+      version: "1.0.0",
+      capabilities: [["auth-service", authFactory, undefined]],
+      interfaces: [],
+    });
+
+    resolve(def, { ACCOUNT_SETTINGS_ENCRYPTION_KEY: "deployment-secret" });
+
+    expect(authFactory.lastConfig).toMatchObject({
+      accountSettingsEncryptionKey: "deployment-secret",
+    });
+  });
+
   test("should pass env to interface env mappers", () => {
     let capturedConfig: PluginConfig | undefined;
 

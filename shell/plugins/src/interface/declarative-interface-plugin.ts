@@ -1,5 +1,7 @@
 import type { UserPermissionLevel } from "@brains/templates";
 import type { AnyAccountSettingsDefinition } from "../operator/account-settings-definition-contract";
+import { createAccountDaemon } from "../operator/account-daemon-supervisor";
+import type { AccountSettingsRegistration } from "../operator/account-settings-registry";
 import type { z } from "@brains/utils/zod";
 import {
   identityConfigSchema,
@@ -30,6 +32,7 @@ class DeclarativeInterfacePlugin<
     TConfigSchema,
     TAccountSettings
   >;
+  private accountSettingsRegistration: AccountSettingsRegistration | undefined;
   private routes: WebRouteDefinition[] = [];
   private hasRequiredDaemon = false;
 
@@ -47,6 +50,14 @@ class DeclarativeInterfacePlugin<
     context: InterfacePluginContext,
   ): Promise<void> {
     await super.onRegister(context);
+    if (this.definition.accountSettings) {
+      this.accountSettingsRegistration = context.accountSettings.register({
+        ownerPluginId: this.id,
+        packageName: this.packageName,
+        definitionId: this.definition.id,
+        definition: this.definition.accountSettings,
+      });
+    }
     const jobs = this.jobs(context);
     const routeDefinitions =
       this.definition.routes?.({ config: this.config, jobs }) ?? [];
@@ -71,11 +82,32 @@ class DeclarativeInterfacePlugin<
             `Interface "${this.definition.id}" account-bound daemon "${daemon.id}" must reference its attached account settings`,
           );
         }
-        throw new Error(
-          `Interface "${this.definition.id}" account-bound daemon "${daemon.id}" requires the account-settings runtime`,
+        const registration = this.accountSettingsRegistration;
+        if (!registration) {
+          throw new Error(
+            `Interface "${this.definition.id}" account-bound daemon "${daemon.id}" has no registered account settings`,
+          );
+        }
+        context.daemons.register(
+          daemon.id,
+          createAccountDaemon(daemon, registration, context.accountSettings),
         );
+        continue;
       }
       context.daemons.register(daemon.id, createDeclarativeDaemon(daemon));
+    }
+  }
+
+  protected override async onRegistrationComplete(
+    context: InterfacePluginContext,
+  ): Promise<void> {
+    if (
+      this.accountSettingsRegistration &&
+      !context.accountSettings.hasBackend()
+    ) {
+      throw new Error(
+        `Interface "${this.definition.id}" account settings require auth-service and an account settings encryption key`,
+      );
     }
   }
 
@@ -88,6 +120,7 @@ class DeclarativeInterfacePlugin<
   }
 
   protected override async onShutdown(): Promise<void> {
+    this.accountSettingsRegistration = undefined;
     this.routes = [];
     this.hasRequiredDaemon = false;
     await super.onShutdown();

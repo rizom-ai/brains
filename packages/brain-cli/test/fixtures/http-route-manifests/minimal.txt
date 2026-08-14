@@ -33,6 +33,7 @@ auth-service|handler|OPTIONS|/token|exact|true
 auth-service|handler|POST|/auth/account/mutations|exact|true
 auth-service|handler|POST|/auth/account/passkeys/options|exact|true
 auth-service|handler|POST|/auth/account/passkeys/verify|exact|true
+auth-service|handler|POST|/auth/account/plugin-settings|exact|true
 auth-service|handler|POST|/auth/admin/mutations|exact|true
 auth-service|handler|POST|/auth/admin/reconciliation|exact|true
 auth-service|handler|POST|/authorize|exact|true

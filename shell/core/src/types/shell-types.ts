@@ -27,6 +27,7 @@ import type {
   TemplateRegistry,
 } from "@brains/templates";
 import type {
+  AccountSettingsRegistry,
   AttachmentRegistry,
   ChannelRegistry,
   InboxFollowUpRegistry,
@@ -78,6 +79,7 @@ export interface ShellServices {
   inboxRegistry: InboxRegistry;
   inboxFollowUpRegistry: InboxFollowUpRegistry;
   operationalHealthRegistry: OperationalHealthRegistry;
+  accountSettingsRegistry: AccountSettingsRegistry;
   agentService: IAgentService;
   attachmentRegistry: AttachmentRegistry;
   runtimeUploadRegistry: RuntimeUploadRegistry;
@@ -116,4 +118,5 @@ export interface ShellDependencies {
   inboxRegistry?: InboxRegistry;
   inboxFollowUpRegistry?: InboxFollowUpRegistry;
   operationalHealthRegistry?: OperationalHealthRegistry;
+  accountSettingsRegistry?: AccountSettingsRegistry;
 }

@@ -69,6 +69,18 @@ export {
 
 export { InterfacePlugin } from "./interface/interface-plugin";
 export {
+  AccountSettingsRegistry,
+  type AccountSettingsBackend,
+  type AccountSettingsForm,
+  type AccountSettingsFormField,
+  type AccountSettingsRegistration,
+  type AccountSettingsStorageIdentity,
+  type AccountSettingsStoredValues,
+  type ConfiguredAccountSettings,
+  type RegisterAccountSettingsInput,
+  type StoredAccountSettings,
+} from "./operator/account-settings-registry";
+export {
   ChannelRegistry,
   type ChannelDeliveryInput,
   type ChannelDeliveryProvider,

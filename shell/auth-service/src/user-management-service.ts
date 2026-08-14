@@ -16,6 +16,7 @@ export interface AuthUserManagementServiceOptions {
   sessions: Pick<AuthSessionPersistence, "revokeSessionsForSubject">;
   refreshTokens: Pick<RefreshTokenPersistence, "revokeTokensForSubject">;
   consumeTargetedSetupTokensForUser(userId: string): Promise<number>;
+  onUserDeleted?(userId: string): void;
 }
 
 export class AuthUserManagementService {
@@ -32,6 +33,7 @@ export class AuthUserManagementService {
   private readonly consumeTargetedSetupTokensForUser: (
     userId: string,
   ) => Promise<number>;
+  private readonly onUserDeleted: ((userId: string) => void) | undefined;
 
   constructor(options: AuthUserManagementServiceOptions) {
     this.users = options.users;
@@ -40,6 +42,7 @@ export class AuthUserManagementService {
     this.refreshTokens = options.refreshTokens;
     this.consumeTargetedSetupTokensForUser =
       options.consumeTargetedSetupTokensForUser;
+    this.onUserDeleted = options.onUserDeleted;
   }
 
   async createUser(
@@ -110,6 +113,7 @@ export class AuthUserManagementService {
     context: AuthMutationContext = {},
   ): Promise<AuthUser> {
     const deleted = await this.users.deleteSuspendedUser(userId);
+    this.onUserDeleted?.(userId);
     await this.audit.append({
       ...auditActor(context),
       action: "auth.user.deleted",

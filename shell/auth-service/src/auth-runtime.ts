@@ -4,6 +4,7 @@ import type {
 } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import { AuthAccountService } from "./account-service";
+import { AuthAccountSettingsStore } from "./account-settings-store";
 import type { AuthBrainAnchorConfigKind } from "./admin-contracts";
 import { AuthAdministrationService } from "./administration-service";
 import { AuthAuditStore } from "./audit-store";
@@ -75,6 +76,8 @@ export interface AuthRuntimeOptions {
   invitationDeliveryRecoveryIntervalMs?: number;
   invitationDeliveryRecoveryStaleMs?: number;
   oauthClientMaintenanceIntervalMs?: number;
+  accountSettingsEncryptionKey?: string;
+  onAccountDeleted?: (actorId: string) => void;
   logger?: Logger;
 }
 
@@ -109,7 +112,10 @@ export class AuthRuntime {
   private readonly invitationDeliveryRecoveryStaleMs: number;
   private readonly resolveProfileDisplayName:
     ((profileEntityId: string) => Promise<string | undefined>) | undefined;
+  private readonly accountSettingsEncryptionKey: string | undefined;
+  private readonly onAccountDeleted: ((actorId: string) => void) | undefined;
   private readonly logger: Logger | undefined;
+  private accountSettingsStore: AuthAccountSettingsStore | undefined;
   private userStore: AuthUserStore | undefined;
   private identityReconciliationService:
     IdentityReconciliationService | undefined;
@@ -147,6 +153,8 @@ export class AuthRuntime {
       options.invitationDeliveryRecoveryStaleMs ??
       DEFAULT_INVITATION_DELIVERY_RECOVERY_STALE_MS;
     this.resolveProfileDisplayName = options.resolveProfileDisplayName;
+    this.accountSettingsEncryptionKey = options.accountSettingsEncryptionKey;
+    this.onAccountDeleted = options.onAccountDeleted;
     this.logger = options.logger;
     this.runtimeDatabase = new AuthRuntimeDatabase({
       storageDir: options.storageDir,
@@ -318,6 +326,9 @@ export class AuthRuntime {
       refreshTokens: this.refreshTokenStore,
       consumeTargetedSetupTokensForUser: (userId): Promise<number> =>
         this.setupFlow.consumeTargetedSetupTokensForUser(userId),
+      ...(this.onAccountDeleted
+        ? { onUserDeleted: this.onAccountDeleted }
+        : {}),
     });
     this.principalService = new AuthPrincipalService({
       issuer: this.issuer,
@@ -410,6 +421,15 @@ export class AuthRuntime {
 
   getAuditStore(): AuthAuditStore {
     return required(this.auditStore);
+  }
+
+  getAccountSettingsStore(): AuthAccountSettingsStore | undefined {
+    if (!this.accountSettingsEncryptionKey) return undefined;
+    this.accountSettingsStore ??= new AuthAccountSettingsStore(
+      this.runtimeDatabase.db,
+      this.accountSettingsEncryptionKey,
+    );
+    return this.accountSettingsStore;
   }
 
   hasPasskeyCredentials(): Promise<boolean> {

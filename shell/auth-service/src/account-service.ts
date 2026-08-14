@@ -77,6 +77,7 @@ export class AuthAccountService {
       connectedChannels: identities.flatMap((identity) =>
         connectedChannelSummary(identity, this.isChannelTypeRegistered),
       ),
+      pluginSettings: [],
       sessions: sessions.map((session) =>
         sessionSummary(session, context.sessionId),
       ),

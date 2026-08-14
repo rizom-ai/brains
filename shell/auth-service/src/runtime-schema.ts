@@ -960,6 +960,67 @@ export const setupTokenDeliveries: SetupTokenDeliveriesTable = sqliteTable(
   }),
 );
 
+type AuthAccountPluginSettingsTable = AuthTable<
+  "auth_account_plugin_settings",
+  {
+    packageName: AuthTextColumn<
+      "auth_account_plugin_settings",
+      "package_name",
+      true
+    >;
+    definitionId: AuthTextColumn<
+      "auth_account_plugin_settings",
+      "definition_id",
+      true
+    >;
+    actorId: AuthTextColumn<"auth_account_plugin_settings", "actor_id", true>;
+    payload: AuthTextColumn<"auth_account_plugin_settings", "payload", true>;
+    revision: AuthIntegerColumn<
+      "auth_account_plugin_settings",
+      "revision",
+      true
+    >;
+    createdAt: AuthIntegerColumn<
+      "auth_account_plugin_settings",
+      "created_at",
+      true
+    >;
+    updatedAt: AuthIntegerColumn<
+      "auth_account_plugin_settings",
+      "updated_at",
+      true
+    >;
+  }
+>;
+
+export const authAccountPluginSettings: AuthAccountPluginSettingsTable =
+  sqliteTable(
+    "auth_account_plugin_settings",
+    {
+      packageName: text("package_name").notNull(),
+      definitionId: text("definition_id").notNull(),
+      actorId: text("actor_id")
+        .notNull()
+        .references(() => authUsers.id, { onDelete: "cascade" }),
+      payload: text("payload").notNull(),
+      revision: integer("revision").notNull(),
+      createdAt: integer("created_at").notNull(),
+      updatedAt: integer("updated_at").notNull(),
+    },
+    (table) => ({
+      primaryKey: primaryKey({
+        columns: [table.packageName, table.definitionId, table.actorId],
+      }),
+      actorIdIdx: index("idx_auth_account_plugin_settings_actor_id").on(
+        table.actorId,
+      ),
+      revisionCheck: check(
+        "auth_account_plugin_settings_revision_check",
+        sql`${table.revision} > 0`,
+      ),
+    }),
+  );
+
 type AuthAuditEventsTable = AuthTable<
   "auth_audit_events",
   {
@@ -1033,6 +1094,7 @@ export const a2aPeerTrust: A2aPeerTrustTable = sqliteTable(
 export const authRuntimeSchema: {
   a2aPeerTrust: A2aPeerTrustTable;
   authAccessSeedState: AuthAccessSeedStateTable;
+  authAccountPluginSettings: AuthAccountPluginSettingsTable;
   authAuditEvents: AuthAuditEventsTable;
   authBrainAnchor: AuthBrainAnchorTable;
   authIdentities: PersonIdentityClaimsTable;
@@ -1054,6 +1116,7 @@ export const authRuntimeSchema: {
 } = {
   a2aPeerTrust,
   authAccessSeedState,
+  authAccountPluginSettings,
   authAuditEvents,
   authBrainAnchor,
   authIdentities,

@@ -61,9 +61,17 @@ function applyPluginDefaults(
     site: SitePackage | undefined;
     theme: string | undefined;
     anchor: NonNullable<BrainDefinition["anchor"]>;
+    accountSettingsEncryptionKey: string | undefined;
   },
 ): void {
-  const { webserverEnabled, siteBuilderEnabled, site, theme, anchor } = options;
+  const {
+    webserverEnabled,
+    siteBuilderEnabled,
+    site,
+    theme,
+    anchor,
+    accountSettingsEncryptionKey,
+  } = options;
 
   if (webserverEnabled) {
     const webserverExplicit = pluginOverrides["webserver"] ?? {};
@@ -100,6 +108,7 @@ function applyPluginDefaults(
   pluginOverrides["auth-service"] = {
     ...authServiceExplicit,
     anchor,
+    ...(accountSettingsEncryptionKey ? { accountSettingsEncryptionKey } : {}),
   };
 
   if (theme !== undefined) {
@@ -348,6 +357,7 @@ function resolveRuntimeDefinition(
     site,
     theme,
     anchor: effectiveAnchor,
+    accountSettingsEncryptionKey: env["ACCOUNT_SETTINGS_ENCRYPTION_KEY"],
   });
 
   // Instantiate capabilities — each plugin gets only its own

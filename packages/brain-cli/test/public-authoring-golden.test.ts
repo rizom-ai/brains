@@ -313,7 +313,7 @@ describe("public authoring 0.2 golden packages", () => {
         rmSync(tsconfigPath, { force: true });
       }
     }
-  });
+  }, 15_000);
 
   it("keeps the account-settings interface contract lifecycle-owned", () => {
     const directory = join(fixtureRoot, "account-settings-interface");

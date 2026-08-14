@@ -57,6 +57,7 @@ import type { IChannelRegistry } from "./channel-registry";
 import type { IInboxRegistry } from "./inbox-registry";
 import type { IInboxFollowUpRegistry } from "./inbox-follow-up-registry";
 import type { IOperationalHealthRegistry } from "./operational-health-registry";
+import type { AccountSettingsRegistry } from "./operator/account-settings-registry";
 import type {
   AnchorProfile,
   BrainCharacter,
@@ -246,6 +247,7 @@ export interface IShell {
   getInboxRegistry(): IInboxRegistry;
   getInboxFollowUpRegistry(): IInboxFollowUpRegistry;
   getOperationalHealthRegistry(): IOperationalHealthRegistry;
+  getAccountSettingsRegistry(): AccountSettingsRegistry;
 
   // Domain — bare domain string (e.g. "yeehaa.io"), undefined for local dev
   getDomain(): string | undefined;

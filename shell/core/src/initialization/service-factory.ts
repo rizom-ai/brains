@@ -13,6 +13,7 @@ import { ProfileKindRegistry } from "@brains/identity-service";
 import { MCPService } from "@brains/mcp-service";
 import { MessageBus } from "@brains/messaging-service";
 import {
+  AccountSettingsRegistry,
   AttachmentRegistry,
   ChannelRegistry,
   InboxFollowUpRegistry,
@@ -106,6 +107,8 @@ export function createShellServices(options: {
     dependencies?.inboxFollowUpRegistry ?? new InboxFollowUpRegistry(logger);
   const operationalHealthRegistry =
     dependencies?.operationalHealthRegistry ?? new OperationalHealthRegistry();
+  const accountSettingsRegistry =
+    dependencies?.accountSettingsRegistry ?? new AccountSettingsRegistry();
   const attachmentRegistry =
     dependencies?.attachmentRegistry ?? AttachmentRegistry.createFresh();
   const runtimeUploadRegistry =
@@ -301,6 +304,7 @@ export function createShellServices(options: {
     inboxRegistry,
     inboxFollowUpRegistry,
     operationalHealthRegistry,
+    accountSettingsRegistry,
     agentService,
     attachmentRegistry,
     runtimeUploadRegistry,

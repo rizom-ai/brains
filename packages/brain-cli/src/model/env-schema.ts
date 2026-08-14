@@ -1,5 +1,6 @@
 import { analyticsEnvSchema } from "@brains/analytics/env-schema";
 import { atprotoEnvSchema } from "@brains/atproto/env-schema";
+import { authServiceEnvSchema } from "@brains/auth-service/env-schema";
 import { shellEnvVars } from "@brains/core/env-schema";
 import { directorySyncEnvSchema } from "@brains/directory-sync/env-schema";
 import { chatEnvSchema } from "@brains/chat/env-schema";
@@ -12,6 +13,7 @@ import type { EnvVarDecl } from "@brains/utils/env-schema";
 /** Environment declarations for the canonical catalog and its fixed bundles. */
 export const canonicalEnvSchema: EnvVarDecl[] = [
   ...shellEnvVars(),
+  ...authServiceEnvSchema,
   ...directorySyncEnvSchema,
   ...chatEnvSchema,
   ...atprotoEnvSchema,

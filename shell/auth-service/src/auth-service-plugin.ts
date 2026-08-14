@@ -58,6 +58,7 @@ export interface AuthServiceConfig {
   replica?: AuthRuntimeReplicaOptions | undefined;
   setupTokenTtlSeconds: number;
   setupEmail?: SetupEmailConfig | undefined;
+  accountSettingsEncryptionKey?: string | undefined;
 }
 
 export interface AuthServiceConfigInput {
@@ -69,6 +70,7 @@ export interface AuthServiceConfigInput {
   replica?: AuthRuntimeReplicaOptions | undefined;
   setupTokenTtlSeconds?: number | undefined;
   setupEmail?: SetupEmailConfig | undefined;
+  accountSettingsEncryptionKey?: string | undefined;
 }
 
 const authRuntimeReplicaSchema: z.ZodType<
@@ -112,6 +114,8 @@ const authServiceConfigSchema: z.ZodType<
     .default(DEFAULT_SETUP_TOKEN_TTL_SECONDS),
   /** Optional first-passkey setup email recipient or template. */
   setupEmail: setupEmailSchema.optional(),
+  /** Deployment secret for encrypted per-account plugin settings. */
+  accountSettingsEncryptionKey: z.string().min(32).optional(),
 });
 
 type PasskeySetupToolData =
@@ -161,6 +165,7 @@ export class AuthServicePlugin extends ServicePlugin<
   AuthServiceConfigInput
 > {
   private service: AuthService | undefined;
+  private unbindAccountSettings: (() => void) | undefined;
   private unsubscribePrincipalResolver: (() => void) | undefined;
 
   constructor(config: AuthServiceConfigInput = {}) {
@@ -192,6 +197,16 @@ export class AuthServicePlugin extends ServicePlugin<
         ? { allowLocalhostIssuers: this.config.allowLocalhostIssuers }
         : {}),
       setupTokenTtlSeconds: this.config.setupTokenTtlSeconds,
+      ...(this.config.accountSettingsEncryptionKey
+        ? {
+            accountSettingsEncryptionKey:
+              this.config.accountSettingsEncryptionKey,
+          }
+        : {}),
+      onAccountDeleted: (actorId): void => {
+        context.accountSettings.accountDeleted(actorId);
+      },
+      accountSettingsRegistry: context.accountSettings,
       autoStartInvitationDeliveryRecovery: false,
       getInvitationDeliveryProvider: (
         channelType,
@@ -206,6 +221,12 @@ export class AuthServicePlugin extends ServicePlugin<
       logger: context.logger,
     });
     await this.service.initialize();
+    const accountSettingsBackend = this.service.getAccountSettingsBackend();
+    if (accountSettingsBackend) {
+      this.unbindAccountSettings = context.accountSettings.bindBackend(
+        accountSettingsBackend,
+      );
+    }
     const principalState =
       await this.service.initializeConfiguredInterfacePrincipals(
         context.permissions.getConfiguredPrincipalSeeds(),
@@ -258,6 +279,8 @@ export class AuthServicePlugin extends ServicePlugin<
   protected override async onShutdown(): Promise<void> {
     this.unsubscribePrincipalResolver?.();
     this.unsubscribePrincipalResolver = undefined;
+    this.unbindAccountSettings?.();
+    this.unbindAccountSettings = undefined;
     if (activeAuthService === this.service) {
       activeAuthService = undefined;
     }
@@ -432,6 +455,12 @@ export class AuthServicePlugin extends ServicePlugin<
       },
       {
         path: "/auth/account/mutations",
+        method: "POST",
+        public: true,
+        handler,
+      },
+      {
+        path: "/auth/account/plugin-settings",
         method: "POST",
         public: true,
         handler,

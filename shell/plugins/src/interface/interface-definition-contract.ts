@@ -216,6 +216,17 @@ export interface MessageInterfaceDefinitionInput<
         readonly config: z.output<TConfigSchema>;
       }) => TState | Promise<TState>)
     | undefined;
+  readonly daemons?:
+    | ((context: {
+        readonly config: z.output<TConfigSchema>;
+        readonly state: TState;
+      }) => readonly (
+        | InterfaceDaemonDefinition
+        | (TAccountSettings extends AnyAccountSettingsDefinition
+            ? AccountInterfaceDaemonDefinition<TAccountSettings>
+            : never)
+      )[])
+    | undefined;
   readonly listen?:
     | ((context: {
         readonly config: z.output<TConfigSchema>;
