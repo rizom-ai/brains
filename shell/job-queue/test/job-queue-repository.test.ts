@@ -25,14 +25,18 @@ class BusyCommitError extends Error {
   public readonly code = "SQLITE_BUSY";
 }
 
-class CommitConflictTransaction implements Transaction {
-  public commitCalls = 0;
-  private readonly delegate: Transaction;
-  private readonly failures: number;
+interface CommitConflictState {
+  commitCalls: number;
+  remainingFailures: number;
+}
 
-  constructor(delegate: Transaction, failures: number) {
+class CommitConflictTransaction implements Transaction {
+  private readonly delegate: Transaction;
+  private readonly state: CommitConflictState;
+
+  constructor(delegate: Transaction, state: CommitConflictState) {
     this.delegate = delegate;
-    this.failures = failures;
+    this.state = state;
   }
 
   public execute(statement: InStatement): Promise<ResultSet> {
@@ -52,8 +56,9 @@ class CommitConflictTransaction implements Transaction {
   }
 
   public async commit(): Promise<void> {
-    this.commitCalls++;
-    if (this.commitCalls <= this.failures) {
+    this.state.commitCalls++;
+    if (this.state.remainingFailures > 0) {
+      this.state.remainingFailures--;
       throw new BusyCommitError("database is locked");
     }
     await this.delegate.commit();
@@ -692,16 +697,20 @@ describe("JobQueueRepository fenced attempts", () => {
     }
   });
 
-  it("retries commit conflicts without replaying the transaction body", async () => {
+  it("replays the transaction after commit conflicts", async () => {
     const database = createJobQueueDatabase(config);
-    let wrappedTransaction: CommitConflictTransaction | undefined;
-    const transactionClient: JobQueueWriteTransactionClient = {
-      transaction: async (mode) => {
-        const transaction = await database.client.transaction(mode);
-        wrappedTransaction = new CommitConflictTransaction(transaction, 2);
-        return wrappedTransaction;
-      },
+    const commitState: CommitConflictState = {
+      commitCalls: 0,
+      remainingFailures: 2,
     };
+    const transaction = mock(
+      async (mode: "write") =>
+        new CommitConflictTransaction(
+          await database.client.transaction(mode),
+          commitState,
+        ),
+    );
+    const transactionClient: JobQueueWriteTransactionClient = { transaction };
     const committingRepository = new JobQueueRepository(
       database.db,
       transactionClient,
@@ -709,6 +718,7 @@ describe("JobQueueRepository fenced attempts", () => {
       createSilentLogger(),
     );
     const beforeInsert = mock(async () => {});
+    const onInsertRollback = mock(() => {});
     const job = createAtomicTestJob({ type: "type:a" });
 
     try {
@@ -716,15 +726,84 @@ describe("JobQueueRepository fenced attempts", () => {
         jobData: job,
         strategy: "skip",
         beforeInsert,
+        onInsertRollback,
       });
-      if (!wrappedTransaction) {
-        throw new Error("Expected a wrapped write transaction");
-      }
 
       expect(decision).toEqual({ kind: "inserted", jobId: job.id });
-      expect(wrappedTransaction.commitCalls).toBe(3);
-      expect(beforeInsert).toHaveBeenCalledTimes(1);
+      expect(commitState.commitCalls).toBe(3);
+      expect(transaction).toHaveBeenCalledTimes(3);
+      expect(beforeInsert).toHaveBeenCalledTimes(3);
+      expect(onInsertRollback).toHaveBeenCalledTimes(2);
       expect((await committingRepository.getStatus(job.id))?.status).toBe(
+        JOB_STATUS.PENDING,
+      );
+    } finally {
+      database.client.close();
+    }
+  });
+
+  it("releases insert preparation when replay resolves to a duplicate", async () => {
+    const database = createJobQueueDatabase(config);
+    const commitState: CommitConflictState = {
+      commitCalls: 0,
+      remainingFailures: 1,
+    };
+    const duplicate = createTestJob({
+      id: "competing-job",
+      type: "type:a",
+      metadata: {
+        operationType: "data_processing",
+        rootJobId: "competing-job",
+        deduplicationKey: "retry-key",
+      },
+    });
+    let transactionCalls = 0;
+    const transactionClient: JobQueueWriteTransactionClient = {
+      transaction: async (mode) => {
+        transactionCalls++;
+        if (transactionCalls === 2) {
+          await committingRepository.insert(duplicate);
+        }
+        return new CommitConflictTransaction(
+          await database.client.transaction(mode),
+          commitState,
+        );
+      },
+    };
+    const committingRepository = new JobQueueRepository(
+      database.db,
+      transactionClient,
+      `${database.url}:commit-retry-to-skip-test`,
+      createSilentLogger(),
+    );
+    const beforeInsert = mock(async () => {});
+    const onInsertRollback = mock(() => {});
+    const job = createAtomicTestJob({
+      type: "type:a",
+      metadata: {
+        operationType: "data_processing",
+        rootJobId: "retrying-job",
+        deduplicationKey: "retry-key",
+      },
+    });
+
+    try {
+      const decision = await committingRepository.enqueueAtomic({
+        jobData: job,
+        strategy: "skip",
+        deduplicationKey: "retry-key",
+        beforeInsert,
+        onInsertRollback,
+      });
+
+      expect(decision).toEqual({
+        kind: "skipped",
+        jobId: duplicate.id,
+      });
+      expect(beforeInsert).toHaveBeenCalledTimes(1);
+      expect(onInsertRollback).toHaveBeenCalledTimes(1);
+      expect(await committingRepository.getStatus(job.id)).toBeNull();
+      expect((await committingRepository.getStatus(duplicate.id))?.status).toBe(
         JOB_STATUS.PENDING,
       );
     } finally {
@@ -734,13 +813,16 @@ describe("JobQueueRepository fenced attempts", () => {
 
   it("outlasts commit contention beyond any fixed attempt cap", async () => {
     const database = createJobQueueDatabase(config);
-    let wrappedTransaction: CommitConflictTransaction | undefined;
+    const commitState: CommitConflictState = {
+      commitCalls: 0,
+      remainingFailures: 8,
+    };
     const transactionClient: JobQueueWriteTransactionClient = {
-      transaction: async (mode) => {
-        const transaction = await database.client.transaction(mode);
-        wrappedTransaction = new CommitConflictTransaction(transaction, 8);
-        return wrappedTransaction;
-      },
+      transaction: async (mode) =>
+        new CommitConflictTransaction(
+          await database.client.transaction(mode),
+          commitState,
+        ),
     };
     const committingRepository = new JobQueueRepository(
       database.db,
@@ -748,29 +830,38 @@ describe("JobQueueRepository fenced attempts", () => {
       `${database.url}:commit-contention-test`,
       createSilentLogger(),
     );
+    const beforeInsert = mock(async () => {});
+    const onInsertRollback = mock(() => {});
     const job = createAtomicTestJob({ type: "type:a" });
 
     try {
       const decision = await committingRepository.enqueueAtomic({
         jobData: job,
         strategy: "skip",
-        beforeInsert: mock(async () => {}),
+        beforeInsert,
+        onInsertRollback,
       });
 
       expect(decision).toEqual({ kind: "inserted", jobId: job.id });
-      expect(wrappedTransaction?.commitCalls).toBe(9);
+      expect(commitState.commitCalls).toBe(9);
+      expect(beforeInsert).toHaveBeenCalledTimes(9);
+      expect(onInsertRollback).toHaveBeenCalledTimes(8);
     } finally {
       database.client.close();
     }
   });
 
-  it("rolls back after commit conflict exhaustion without replaying insertion", async () => {
+  it("rolls back every replayed insertion after commit conflict exhaustion", async () => {
     const database = createJobQueueDatabase(config);
+    const commitState: CommitConflictState = {
+      commitCalls: 0,
+      remainingFailures: Number.POSITIVE_INFINITY,
+    };
     const transactionClient: JobQueueWriteTransactionClient = {
       transaction: async (mode) =>
         new CommitConflictTransaction(
           await database.client.transaction(mode),
-          Number.POSITIVE_INFINITY,
+          commitState,
         ),
     };
     const committingRepository = new JobQueueRepository(
@@ -781,6 +872,7 @@ describe("JobQueueRepository fenced attempts", () => {
       { writeRetryBudgetMs: 60 },
     );
     const beforeInsert = mock(async () => {});
+    const onInsertRollback = mock(() => {});
     const job = createAtomicTestJob({ type: "type:a" });
 
     try {
@@ -789,11 +881,15 @@ describe("JobQueueRepository fenced attempts", () => {
           jobData: job,
           strategy: "skip",
           beforeInsert,
+          onInsertRollback,
         }),
       ).rejects.toThrow(
         /Failed to commit atomic enqueue transaction for type "type:a" within \d+ms/,
       );
-      expect(beforeInsert).toHaveBeenCalledTimes(1);
+      expect(beforeInsert.mock.calls.length).toBeGreaterThan(1);
+      expect(onInsertRollback).toHaveBeenCalledTimes(
+        beforeInsert.mock.calls.length,
+      );
       expect(await committingRepository.getStatus(job.id)).toBeNull();
     } finally {
       database.client.close();

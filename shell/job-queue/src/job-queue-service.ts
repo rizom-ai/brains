@@ -270,6 +270,11 @@ export class JobQueueService implements IJobQueueService {
     };
 
     let admissionReservation: ProjectionJobAdmissionReservation | undefined;
+    const rollbackAdmissionReservation = (): void => {
+      admissionReservation?.rollback();
+      admissionReservation = undefined;
+    };
+
     try {
       const decision = await this.repository.enqueueAtomic({
         jobData,
@@ -279,8 +284,10 @@ export class JobQueueService implements IJobQueueService {
           admissionReservation =
             await this.projectionAdmission?.reserveJobAdmission(provenance);
         },
+        onInsertRollback: rollbackAdmissionReservation,
       });
       admissionReservation?.commit();
+      admissionReservation = undefined;
 
       if (decision.kind === "skipped") {
         this.logger.debug("Skipping duplicate job (already pending)", {
@@ -309,7 +316,7 @@ export class JobQueueService implements IJobQueueService {
 
       return decision.jobId;
     } catch (error) {
-      admissionReservation?.rollback();
+      rollbackAdmissionReservation();
       this.logger.error("Failed to enqueue job", {
         type,
         error: getErrorMessage(error),

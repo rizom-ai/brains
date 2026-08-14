@@ -74,6 +74,7 @@ export interface AtomicEnqueueRequest {
   strategy?: DeduplicationStrategy | undefined;
   deduplicationKey?: string | undefined;
   beforeInsert?: (() => Promise<void>) | undefined;
+  onInsertRollback?: (() => void) | undefined;
 }
 
 export interface JobQueueWriteTransactionClient {
@@ -130,26 +131,62 @@ export class JobQueueRepository {
     request: AtomicEnqueueRequest,
   ): Promise<EnqueueDecision> {
     return writeTransactions.run(this.databaseUrl, async () => {
-      const transaction = await this.acquireWriteTransaction(request);
+      const deadline = Date.now() + this.writeRetryBudgetMs;
+      let commitAttempt = 1;
 
-      try {
-        const decision = await this.decideEnqueue(transaction, request);
-        await this.commitWriteTransaction(transaction, request);
-        return decision;
-      } catch (error) {
-        if (!transaction.closed) {
-          try {
-            await transaction.rollback();
-          } catch (rollbackError) {
-            this.logger.error("Failed to roll back atomic enqueue", {
-              type: request.jobData.type,
-              rollbackError,
-            });
+      for (;;) {
+        const transaction = await this.acquireWriteTransaction(
+          request,
+          deadline,
+        );
+        const insertPreparation = { prepared: false };
+        let commitStarted = false;
+
+        try {
+          const decision = await this.decideEnqueue(
+            transaction,
+            request,
+            () => {
+              insertPreparation.prepared = true;
+            },
+          );
+          commitStarted = true;
+          await transaction.commit();
+          return decision;
+        } catch (error) {
+          // libSQL can leave a failed COMMIT with a statement in progress, so
+          // retry the complete transaction rather than reusing a poisoned one.
+          const retryCommit =
+            commitStarted &&
+            this.isSerializationConflict(error) &&
+            !transaction.closed;
+          let rollbackSucceeded = true;
+
+          if (!transaction.closed) {
+            try {
+              await transaction.rollback();
+            } catch (rollbackError) {
+              rollbackSucceeded = false;
+              this.logger.error("Failed to roll back atomic enqueue", {
+                type: request.jobData.type,
+                rollbackError,
+              });
+            }
           }
+          if (insertPreparation.prepared) request.onInsertRollback?.();
+          if (!retryCommit || !rollbackSucceeded) throw error;
+
+          await this.waitForConflictRetry(
+            "commit",
+            request,
+            deadline,
+            commitAttempt,
+            error,
+          );
+          commitAttempt++;
+        } finally {
+          transaction.close();
         }
-        throw error;
-      } finally {
-        transaction.close();
       }
     });
   }
@@ -157,11 +194,16 @@ export class JobQueueRepository {
   private async decideEnqueue(
     transaction: Transaction,
     request: AtomicEnqueueRequest,
+    markInsertPrepared: () => void,
   ): Promise<EnqueueDecision> {
     const { jobData, strategy, deduplicationKey, beforeInsert } = request;
     const effectiveStrategy = strategy ?? "none";
-    const insert = async (): Promise<void> => {
+    const prepareInsert = async (): Promise<void> => {
       await beforeInsert?.();
+      markInsertPrepared();
+    };
+    const insert = async (): Promise<void> => {
+      await prepareInsert();
       await this.insertJob(transaction, jobData);
     };
 
@@ -200,7 +242,7 @@ export class JobQueueRepository {
       return { kind: "coalesced", jobId: duplicate.id };
     }
 
-    await beforeInsert?.();
+    await prepareInsert();
     const now = Date.now();
     const replaced = await transaction.execute({
       sql: `UPDATE \`job_queue\`
@@ -304,29 +346,36 @@ export class JobQueueRepository {
     return JSON.stringify(value);
   }
 
-  private commitWriteTransaction(
-    transaction: Transaction,
-    request: AtomicEnqueueRequest,
-  ): Promise<void> {
-    return this.retryOnConflict(
-      "commit",
-      request,
-      async () => {
-        await transaction.commit();
-      },
-      (error) => this.isSerializationConflict(error) && !transaction.closed,
-    );
-  }
-
   private acquireWriteTransaction(
     request: AtomicEnqueueRequest,
+    deadline: number,
   ): Promise<Transaction> {
     return this.retryOnConflict(
       "acquire",
       request,
       () => this.transactionClient.transaction("write"),
       (error) => this.isSerializationConflict(error),
+      deadline,
     );
+  }
+
+  private async waitForConflictRetry(
+    phase: "acquire" | "commit",
+    request: AtomicEnqueueRequest,
+    deadline: number,
+    attempt: number,
+    cause: unknown,
+  ): Promise<void> {
+    const backoff = Math.min(
+      WRITE_RETRY_BASE_DELAY_MS * 2 ** (attempt - 1),
+      WRITE_RETRY_MAX_DELAY_MS,
+    );
+    // Jitter half the window so contending processes fall out of lockstep.
+    const delay = backoff / 2 + Math.random() * (backoff / 2);
+    if (Date.now() + delay >= deadline) {
+      throw this.transactionConflictError(phase, request, attempt, cause);
+    }
+    await new Promise((resolve) => setTimeout(resolve, delay));
   }
 
   private async retryOnConflict<T>(
@@ -341,16 +390,7 @@ export class JobQueueRepository {
       return await operation();
     } catch (error) {
       if (!isRetryable(error)) throw error;
-      const backoff = Math.min(
-        WRITE_RETRY_BASE_DELAY_MS * 2 ** (attempt - 1),
-        WRITE_RETRY_MAX_DELAY_MS,
-      );
-      // Jitter half the window so contending processes fall out of lockstep.
-      const delay = backoff / 2 + Math.random() * (backoff / 2);
-      if (Date.now() + delay >= deadline) {
-        throw this.transactionConflictError(phase, request, attempt, error);
-      }
-      await new Promise((resolve) => setTimeout(resolve, delay));
+      await this.waitForConflictRetry(phase, request, deadline, attempt, error);
       return this.retryOnConflict(
         phase,
         request,
