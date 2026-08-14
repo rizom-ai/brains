@@ -8,8 +8,8 @@ import type {
   ResolvedSiteInfoBody,
   SiteInfoEntity,
   SiteInfoBody,
-} from "../schemas/site-info-schema";
-import { SiteInfoAdapter } from "../adapters/site-info-adapter";
+} from "../entity/schema";
+import { SiteInfoAdapter } from "../entity/adapter";
 
 /**
  * Site Info Service

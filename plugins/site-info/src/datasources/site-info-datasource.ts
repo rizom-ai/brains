@@ -4,8 +4,8 @@ import type {
   DataSourceSchema,
 } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
-import { SiteInfoAdapter } from "../adapters/site-info-adapter";
-import type { SiteInfoBody } from "../schemas/site-info-schema";
+import { SiteInfoAdapter } from "../entity/adapter";
+import type { SiteInfoBody } from "../entity/schema";
 
 const adapter = new SiteInfoAdapter();
 
