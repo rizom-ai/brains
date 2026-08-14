@@ -1,7 +1,7 @@
 {
   "name": "@brains/web-chat",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.288",
+  "version": "0.2.0-alpha.289",
   "description": "Web chat interface for Brains",
   "dependencies": {
     "@ai-sdk/react": "^3.0.208",

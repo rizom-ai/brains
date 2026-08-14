@@ -220,6 +220,7 @@
     "content-pipeline-scheduler-lifecycle",
     "conventional-site-package-merge",
     "conversation-service-effect-layer",
+    "core--account-settings-runtime",
     "core--atomic-job-deduplication",
     "core--background-work-supervision",
     "core--batch-enqueue-validation-only-mode",

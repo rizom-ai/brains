@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.289
+
+### Patch Changes
+
+- [#132](https://github.com/rizom-ai/brains/pull/132) [`ddc0d0c`](https://github.com/rizom-ai/brains/commit/ddc0d0cd2cf4990ae8e917d390e551da92982b60) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add encrypted per-account plugin settings, schema-derived Account forms, and runtime-owned `forAccounts` daemon supervision for declarative service and interface packages.
+
 ## 0.2.0-alpha.288
 
 ### Patch Changes
