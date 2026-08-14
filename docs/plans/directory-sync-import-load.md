@@ -413,3 +413,31 @@ final RSS growth was 161,787,904 bytes. Maximum live/ready/operate latencies wer
 18.9/43.1/44.7 ms; no health failure, child restart, or persistent zombie occurred. This
 is diagnostic evidence only: the mutable canary remains unpinned, and remote smoke remains
 approval-gated.
+
+The nightly job now runs a second, feature-enabled resource gate before the Git soak so a
+stable-runtime Git lockup cannot hide AI-path CPU evidence. It constrains the current
+process to two CPUs, executes 350 add plus 350 update operations with embeddings and topic
+extraction enabled against 100 ms local mocks, and samples process CPU, RSS, and event-loop
+delay every 100 ms. The fixture suppresses per-embedding info logs so the test runner does
+not retain 700 diagnostic objects as an artificial memory load. Before final RSS sampling,
+the monitor stops its recurring sampler and leaves the process idle for five seconds; it
+does not force garbage collection. The gate fails on five seconds of 90% CPU saturation,
+500 ms event-loop delay, 1,216 MiB peak RSS, 768 MiB RSS growth, 1,152 MiB final RSS, or
+704 MiB final RSS growth.
+
+The initial tighter RSS limits exposed Bun test-runner garbage-collection variance rather
+than a different workload: one diagnostic execution retained 6.58 million JSC objects in
+a 399 MB heap and ended at 1,113,501,696 bytes RSS after the idle window, while an identical
+execution retained 2.14 million objects in a 151 MB heap and ended at 636,235,776 bytes.
+Both completed the same 704 embeddings and 176 object calls with drained queues. The
+permanent limits therefore cover the observed deferred-collection envelope without an
+acceptance-only forced GC; structured reports preserve both the phase peaks and settled
+RSS for regression analysis.
+
+The two-CPU feature gate passed in 65.8 seconds: peak CPU was 1.573 cores (78.7% of
+capacity), continuous saturation was zero, and maximum event-loop delay was 287.6 ms. Peak
+RSS was 732,246,016 bytes with 285,839,360 bytes of growth; after five idle seconds final
+RSS was 654,307,328 bytes with 207,900,672 bytes of retained growth. All 1,608 add/update
+readiness samples remained operational and ready, both phases drained to zero, and no
+external AI provider was reachable. This is the closest hermetic comparison to the prior
+smoke peak of 199.72% CPU, but it remains local rather than smoke evidence.

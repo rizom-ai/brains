@@ -1467,7 +1467,7 @@ it("reports the same zombie when it survives consecutive samples", () => {
   expect(tracker.observe([zombie])).toEqual([zombie]);
 });
 
-it("runs the packaged import-burst soak nightly in one isolated CI job", async () => {
+it("runs both directory-sync acceptance gates nightly in one isolated CI job", async () => {
   const repoRoot = join(import.meta.dir, "..", "..", "..");
   const workflow = await readFile(
     join(repoRoot, ".github", "workflows", "directory-sync-import-soak.yml"),
@@ -1480,10 +1480,20 @@ it("runs the packaged import-burst soak nightly in one isolated CI job", async (
   expect(workflow).toContain("group: directory-sync-import-soak");
   expect(workflow).toContain("RUN_IMPORT_BURST_SOAK: 1");
   expect(workflow).toContain("IMPORT_BURST_FILE_COUNT: 350");
+  expect(workflow).toContain("MOCKED_AI_IMPORT_COUNT: 350");
+  expect(workflow).toContain("MOCKED_AI_SERVICE_DELAY_MS: 100");
+  expect(workflow).toContain("MOCKED_AI_CPU_LIMIT: 2");
   expect(workflow).toContain("bunx turbo run build --filter=@rizom/brain");
+  expect(workflow).toContain(
+    "bun test packages/brain-cli/test/import-burst-feature-load.test.ts",
+  );
   expect(workflow).toContain(
     "bun test packages/brain-cli/test/import-burst-stability.test.ts",
   );
+  expect(workflow).toContain(
+    "if: ${{ steps.build.outcome == 'success' && !cancelled() }}",
+  );
+  expect(workflow).toContain("directory-sync-feature-resource.log");
   expect(workflow).toContain("set -o pipefail");
   expect(workflow).toContain("issues: write");
   expect(workflow).toContain("if: failure()");

@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from "bun:test";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { tmpdir } from "node:os";
+import { availableParallelism, tmpdir } from "node:os";
 import { Shell } from "@brains/core";
 import { MigrationManager, resolve } from "@brains/app";
 import { DirectorySyncPlugin } from "@brains/directory-sync";
@@ -17,6 +17,11 @@ import {
   MockLoadTracker,
   type MockLoadSnapshot,
 } from "./helpers/mocked-ai-load-services";
+import {
+  constrainCurrentProcessCpu,
+  startProcessResourceMonitor,
+  type ProcessResourceSnapshot,
+} from "./helpers/process-resource-monitor";
 
 const IMPORT_COUNT = Number.parseInt(
   process.env["MOCKED_AI_IMPORT_COUNT"] ?? "40",
@@ -29,6 +34,15 @@ const SERVICE_DELAY_MS = Number.parseInt(
 const IMPORT_TIMEOUT_MS = 120_000;
 const SETTLE_TIMEOUT_MS = 120_000;
 const POLL_INTERVAL_MS = 25;
+const RESOURCE_POLL_INTERVAL_MS = 100;
+const CPU_SATURATION_FRACTION = 0.9;
+const MAX_SUSTAINED_CPU_SATURATION_MS = 5_000;
+const MAX_EVENT_LOOP_DELAY_MS = 500;
+const RESOURCE_SETTLE_MS = 5_000;
+const MAX_RSS_BYTES = 1_216 * 1024 * 1024;
+const MAX_RSS_GROWTH_BYTES = 768 * 1024 * 1024;
+const MAX_FINAL_RSS_BYTES = 1_152 * 1024 * 1024;
+const MAX_FINAL_RSS_GROWTH_BYTES = 704 * 1024 * 1024;
 /** Work cascades here, so an empty queue only counts after it stays empty. */
 const QUIET_MS = 250;
 
@@ -77,6 +91,12 @@ interface FeatureLoadReport {
   importCount: number;
   serviceDelayMs: number;
   durationMs: number;
+  cpuCapacity: number;
+  resources: ProcessResourceSnapshot;
+  resourceCheckpoints: {
+    add: ProcessResourceSnapshot;
+    update: ProcessResourceSnapshot;
+  };
   ai: MockLoadSnapshot;
   phases: {
     add: FeatureLoadPhaseReport;
@@ -205,6 +225,7 @@ describe("directory import burst with locally mocked AI features", () => {
       await rm(tempRoot, { recursive: true, force: true });
       tempRoot = undefined;
     }
+    Logger.resetInstance();
   });
 
   it(
@@ -216,6 +237,20 @@ describe("directory import burst with locally mocked AI features", () => {
       if (!Number.isFinite(SERVICE_DELAY_MS) || SERVICE_DELAY_MS < 0) {
         throw new Error("MOCKED_AI_SERVICE_DELAY_MS must be non-negative");
       }
+      const configuredCpuLimit = process.env["MOCKED_AI_CPU_LIMIT"]
+        ? Number.parseInt(process.env["MOCKED_AI_CPU_LIMIT"], 10)
+        : undefined;
+      if (
+        configuredCpuLimit !== undefined &&
+        (!Number.isInteger(configuredCpuLimit) || configuredCpuLimit < 1)
+      ) {
+        throw new Error("MOCKED_AI_CPU_LIMIT must be a positive integer");
+      }
+      const resourceAcceptanceEnabled = configuredCpuLimit !== undefined;
+      const cpuCapacity =
+        configuredCpuLimit === undefined
+          ? availableParallelism()
+          : await constrainCurrentProcessCpu(configuredCpuLimit);
 
       tempRoot = await mkdtemp(join(tmpdir(), "mocked-ai-load-"));
       const dataDir = join(tempRoot, "brain-data");
@@ -228,7 +263,8 @@ describe("directory import burst with locally mocked AI features", () => {
         dimensions: 1536,
       });
 
-      const logger = Logger.createFresh({ level: LogLevel.ERROR });
+      Logger.resetInstance();
+      const logger = Logger.getInstance({ level: LogLevel.ERROR });
       const databaseUrl = `file:${join(tempRoot, "brain.db")}`;
       const jobQueueDatabaseUrl = `file:${join(tempRoot, "jobs.db")}`;
       const conversationDatabaseUrl = `file:${join(tempRoot, "conversations.db")}`;
@@ -448,26 +484,68 @@ describe("directory import burst with locally mocked AI features", () => {
         };
       };
 
+      const resourceMonitor = startProcessResourceMonitor({
+        intervalMs: RESOURCE_POLL_INTERVAL_MS,
+        cpuCapacity,
+        saturationFraction: CPU_SATURATION_FRACTION,
+      });
       const startedAt = Date.now();
-      const add = await runPhase(
-        "add",
-        (snapshot) => snapshot.completedProbeEmbeddingCalls,
-      );
-      const update = await runPhase(
-        "update",
-        (snapshot) => snapshot.completedUpdateEmbeddingCalls,
-      );
+      let resources: ProcessResourceSnapshot | undefined;
+      let phases:
+        | { add: FeatureLoadPhaseReport; update: FeatureLoadPhaseReport }
+        | undefined;
+      let resourceCheckpoints:
+        | {
+            add: ProcessResourceSnapshot;
+            update: ProcessResourceSnapshot;
+          }
+        | undefined;
+      try {
+        const add = await runPhase(
+          "add",
+          (snapshot) => snapshot.completedProbeEmbeddingCalls,
+        );
+        const addResources = resourceMonitor.snapshot();
+        const update = await runPhase(
+          "update",
+          (snapshot) => snapshot.completedUpdateEmbeddingCalls,
+        );
+        const updateResources = resourceMonitor.snapshot();
+        phases = { add, update };
+        resourceCheckpoints = {
+          add: addResources,
+          update: updateResources,
+        };
+      } finally {
+        resources = await resourceMonitor.stop({
+          finalSampleDelayMs: RESOURCE_SETTLE_MS,
+        });
+        console.info(
+          `MOCKED_AI_RESOURCE_REPORT ${JSON.stringify({ cpuCapacity, ...resources })}`,
+        );
+      }
+      const { add, update } = phases;
       const snapshot = tracker.snapshot();
       const report: FeatureLoadReport = {
         importCount: IMPORT_COUNT,
         serviceDelayMs: SERVICE_DELAY_MS,
         durationMs: Date.now() - startedAt,
+        cpuCapacity,
+        resources,
+        resourceCheckpoints,
         ai: snapshot,
-        phases: { add, update },
+        phases,
       };
 
       console.info(`MOCKED_AI_LOAD_REPORT ${JSON.stringify(report)}`);
 
+      // The dedicated resource lane gives this fixture explicit two-CPU
+      // affinity and no concurrent repository suites. The default suite may
+      // share a runner with unrelated work, allowing one additional extraction
+      // pass while the event loop is externally descheduled.
+      const maxObjectCallsPerPhase = resourceAcceptanceEnabled
+        ? Math.ceil(IMPORT_COUNT / 4) + 8
+        : Math.ceil(IMPORT_COUNT / 2) + 3;
       const assertPhase = (
         phase: FeatureLoadPhaseReport,
         expectedUpdateEmbeddings: number,
@@ -480,7 +558,7 @@ describe("directory import burst with locally mocked AI features", () => {
         );
         expect(phase.ai.objectCalls).toBeGreaterThan(0);
         expect(phase.ai.objectCalls).toBeLessThanOrEqual(
-          Math.ceil(IMPORT_COUNT / 4) + 8,
+          maxObjectCallsPerPhase,
         );
         expect(phase.queue.maxPending).toBeLessThanOrEqual(IMPORT_COUNT + 3);
         expect(phase.queue.maxProcessing).toBeLessThanOrEqual(4);
@@ -498,6 +576,22 @@ describe("directory import burst with locally mocked AI features", () => {
 
       assertPhase(add, 0);
       assertPhase(update, IMPORT_COUNT);
+      expect(resources.samples).toBeGreaterThan(1);
+      expect(resources.maxCpuCores).toBeGreaterThan(0);
+      if (resourceAcceptanceEnabled) {
+        expect(resources.maxSustainedCpuSaturationMs).toBeLessThan(
+          MAX_SUSTAINED_CPU_SATURATION_MS,
+        );
+        expect(resources.maxEventLoopDelayMs).toBeLessThan(
+          MAX_EVENT_LOOP_DELAY_MS,
+        );
+        expect(resources.maxRssBytes).toBeLessThan(MAX_RSS_BYTES);
+        expect(resources.maxRssGrowthBytes).toBeLessThan(MAX_RSS_GROWTH_BYTES);
+        expect(resources.finalRssBytes).toBeLessThan(MAX_FINAL_RSS_BYTES);
+        expect(resources.finalRssGrowthBytes).toBeLessThan(
+          MAX_FINAL_RSS_GROWTH_BYTES,
+        );
+      }
       expect(snapshot.probeEmbeddingCalls).toBe(IMPORT_COUNT * 2);
       expect(snapshot.completedProbeEmbeddingCalls).toBe(IMPORT_COUNT * 2);
       expect(snapshot.updateEmbeddingCalls).toBe(IMPORT_COUNT);
@@ -505,7 +599,7 @@ describe("directory import burst with locally mocked AI features", () => {
       expect(snapshot.embeddingCalls).toBeLessThanOrEqual(IMPORT_COUNT * 2 + 8);
       expect(snapshot.objectCalls).toBeGreaterThan(0);
       expect(snapshot.objectCalls).toBeLessThanOrEqual(
-        Math.ceil(IMPORT_COUNT / 4) * 2 + 16,
+        maxObjectCallsPerPhase * 2,
       );
       expect(snapshot.activeCalls).toBe(0);
       expect(snapshot.maxConcurrentCalls).toBeGreaterThan(1);
