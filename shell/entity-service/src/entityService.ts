@@ -1,6 +1,6 @@
 import { SHELL_CHANNELS } from "@brains/contracts";
 import type { Client } from "@libsql/client";
-import { applySqlitePragmas } from "@brains/db";
+import { applySqlitePragmas, closeSqliteClient } from "@brains/db";
 import { createEntityDatabase, type EntityDB } from "./db";
 import type {
   EntityDbConfig,
@@ -90,11 +90,22 @@ export class EntityService implements IEntityService {
   private contentResolver: ContentResolver;
   private embeddingHandlerRegistered = false;
   private indexReady = false;
+  private closePromise: Promise<void> | null = null;
 
-  /**
-   * Close the underlying database connections.
-   */
+  /** Begin closing without changing the existing synchronous service contract. */
   public close(): void {
+    void this.closeAsync().catch((error) => {
+      this.logger.error("Failed to close entity storage", error);
+    });
+  }
+
+  /** Await handler release and the database handle's durable close. */
+  public closeAsync(): Promise<void> {
+    this.closePromise ??= this.closeOwnedResources();
+    return this.closePromise;
+  }
+
+  private async closeOwnedResources(): Promise<void> {
     let firstError: unknown;
     let failed = false;
     this.jobOutbox.abandon();
@@ -108,7 +119,7 @@ export class EntityService implements IEntityService {
       failed = true;
     }
     try {
-      this.dbClient.close();
+      await closeSqliteClient(this.dbClient);
     } catch (error) {
       if (!failed) firstError = error;
       failed = true;

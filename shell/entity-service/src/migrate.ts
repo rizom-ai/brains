@@ -1,5 +1,6 @@
 #!/usr/bin/env bun
 import {
+  closeSqliteClient,
   createSqliteDatabase,
   refuseDirectMigrationRun,
   resolveMigrationsFolder,
@@ -34,7 +35,7 @@ export async function preparePortableEntitySearch(
     await client.execute("DROP TABLE IF EXISTS entity_fts");
     await client.execute("PRAGMA wal_checkpoint(TRUNCATE)");
   } finally {
-    client.close();
+    await closeSqliteClient(client);
   }
 }
 

@@ -1,5 +1,5 @@
 import { CONVERSATION_CHANNELS } from "./conversation-channels";
-import { applySqlitePragmas } from "@brains/db";
+import { applySqlitePragmas, closeSqliteClient } from "@brains/db";
 import { createConversationDatabase } from "./database";
 import type { ConversationDB } from "./database";
 import { coerceConversationMetadata } from "./metadata";
@@ -43,6 +43,8 @@ export class ConversationService implements IConversationService {
   private dbClient: Client | null = null;
   private dbUrl: string | null = null;
   private pragmaInitialization: Promise<void> | null = null;
+  private pragmaInitializationSettled = false;
+  private closePromise: Promise<void> | null = null;
 
   constructor(
     db: ConversationDB,
@@ -67,7 +69,9 @@ export class ConversationService implements IConversationService {
    * runtime connection — migrations setting it is not enough.
    */
   public initialize(): Promise<void> {
-    this.pragmaInitialization ??= this.applyPragmas();
+    this.pragmaInitialization ??= this.applyPragmas().finally(() => {
+      this.pragmaInitializationSettled = true;
+    });
     return this.pragmaInitialization;
   }
 
@@ -94,11 +98,26 @@ export class ConversationService implements IConversationService {
     return this.dbClient;
   }
 
-  /**
-   * Close the underlying database connection.
-   */
+  /** Begin closing without changing the existing synchronous service contract. */
   public close(): void {
-    this.dbClient?.close();
+    void this.closeAsync().catch((error) => {
+      this.logger.error("Failed to close conversation storage", error);
+    });
+  }
+
+  /** Await readiness work and the database handle's durable close. */
+  public closeAsync(): Promise<void> {
+    this.closePromise ??= this.closeStorage();
+    return this.closePromise;
+  }
+
+  private closeStorage(): Promise<void> {
+    const client = this.dbClient;
+    if (!client) return Promise.resolve();
+    if (this.pragmaInitialization && !this.pragmaInitializationSettled) {
+      return this.pragmaInitialization.then(() => closeSqliteClient(client));
+    }
+    return closeSqliteClient(client);
   }
 
   /** Create a fresh instance around a caller-owned database handle. */

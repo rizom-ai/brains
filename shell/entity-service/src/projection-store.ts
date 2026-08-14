@@ -132,6 +132,10 @@ export interface IProjectionStore {
   getActiveWave(): Promise<ProjectionWave | null>;
   completeWave(waveId: string, completedAt: number): Promise<ProjectionWave>;
   failWave(waveId: string, failedAt: number): Promise<ProjectionWave>;
+  failWaveWithIncident(input: ProjectionIncidentInput): Promise<ProjectionWave>;
+  getUnresolvedProjectionIncidentDiagnostics(
+    limit?: number,
+  ): Promise<ProjectionIncidentDiagnostics>;
   putWaveRules(
     waveId: string,
     rules: readonly ProjectionWaveRuleInput[],

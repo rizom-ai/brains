@@ -4,7 +4,7 @@ import { join } from "path";
 import type { ConversationDbConfig } from "../../src/types";
 import { createConversationDatabase } from "../../src/database";
 import { migrate } from "drizzle-orm/libsql/migrator";
-import type { SqliteEngine } from "@brains/db";
+import { closeSqliteClient, type SqliteEngine } from "@brains/db";
 
 /**
  * Create a temporary test conversation database
@@ -37,7 +37,7 @@ export async function createTestConversationDatabase(): Promise<{
   // Cleanup function
   const cleanup = async (): Promise<void> => {
     // Close the database connection
-    client.close();
+    await closeSqliteClient(client);
 
     // Remove temporary directory
     await rm(tempDir, { recursive: true, force: true });

@@ -269,7 +269,6 @@ describe("directory import burst with locally mocked AI features", () => {
       const jobQueueDatabaseUrl = `file:${join(tempRoot, "jobs.db")}`;
       const conversationDatabaseUrl = `file:${join(tempRoot, "conversations.db")}`;
       const runtimeStateDatabaseUrl = `file:${join(tempRoot, "runtime-state.db")}`;
-      const embeddingDatabaseUrl = `file:${join(tempRoot, "embeddings.db")}`;
       await new MigrationManager(logger).runAllMigrations({
         database: databaseUrl,
         jobQueueDatabase: jobQueueDatabaseUrl,
@@ -326,7 +325,6 @@ describe("directory import burst with locally mocked AI features", () => {
           jobQueueDatabase: { url: jobQueueDatabaseUrl },
           conversationDatabase: { url: conversationDatabaseUrl },
           runtimeStateDatabase: { url: runtimeStateDatabaseUrl },
-          embeddingDatabase: { url: embeddingDatabaseUrl },
           dataDir,
           ai: {
             apiKey: MOCK_LOAD_API_KEY,

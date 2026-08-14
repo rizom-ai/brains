@@ -87,11 +87,12 @@ async function waitForEntity(
   entityType: string,
   id: string,
   expectedContent: string,
-  runtime?: ReturnType<typeof startRuntime>,
+  recordShutdown: (output: string) => void,
 ): Promise<string> {
-  const deadline = Date.now() + 30_000;
+  const deadline = Date.now() + 45_000;
   let lastDiagnostic = "entity was not queried";
   while (Date.now() < deadline) {
+    recordShutdown(await runProjectionRuntimeSlice(consumerDirectory));
     try {
       const output = await invokeTool(consumerDirectory, "system_get", {
         entityType,
@@ -102,13 +103,9 @@ async function waitForEntity(
     } catch (error) {
       lastDiagnostic = getErrorMessage(error);
     }
-    await Bun.sleep(250);
   }
-  const runtimeDiagnostic = runtime
-    ? combinedOutput(runtime.getOutput())
-    : "runtime output unavailable";
   throw new Error(
-    `Timed out waiting for ${entityType}:${id} to contain ${JSON.stringify(expectedContent)}\n${lastDiagnostic}\n--- runtime ---\n${runtimeDiagnostic}`,
+    `Timed out waiting for ${entityType}:${id} to contain ${JSON.stringify(expectedContent)}\n${lastDiagnostic}`,
   );
 }
 
@@ -116,11 +113,12 @@ async function waitForEntityMissing(
   consumerDirectory: string,
   entityType: string,
   id: string,
-  runtime: ReturnType<typeof startRuntime>,
+  recordShutdown: (output: string) => void,
 ): Promise<void> {
-  const deadline = Date.now() + 30_000;
+  const deadline = Date.now() + 45_000;
   let lastDiagnostic = "entity was not queried";
   while (Date.now() < deadline) {
+    recordShutdown(await runProjectionRuntimeSlice(consumerDirectory));
     try {
       lastDiagnostic = await invokeTool(consumerDirectory, "system_get", {
         entityType,
@@ -131,10 +129,9 @@ async function waitForEntityMissing(
       if (message.includes("not found")) return;
       lastDiagnostic = message;
     }
-    await Bun.sleep(250);
   }
   throw new Error(
-    `Timed out waiting for ${entityType}:${id} deletion\n${lastDiagnostic}\n--- runtime ---\n${combinedOutput(runtime.getOutput())}`,
+    `Timed out waiting for ${entityType}:${id} deletion\n${lastDiagnostic}`,
   );
 }
 
@@ -152,12 +149,29 @@ async function stopRuntime(
   return combinedOutput(result);
 }
 
+async function runProjectionRuntimeSlice(
+  consumerDirectory: string,
+): Promise<string> {
+  const runtime = startRuntime(consumerDirectory);
+  try {
+    await runtime.waitForOutput("Brain worker runtime ready");
+    await Bun.sleep(1_000);
+  } catch (error) {
+    await stopRuntime(runtime);
+    throw error;
+  }
+  return stopRuntime(runtime);
+}
+
 describe("public authoring Phase 2 packed entity contract", () => {
   it("persists typed markdown entities and converges projections across restart", async () => {
     const temporaryDirectory = await mkdtemp(
       join(tmpdir(), "public-authoring-phase2-"),
     );
-    let runtime: ReturnType<typeof startRuntime> | undefined;
+    const shutdownOutputs: string[] = [];
+    const recordShutdown = (output: string): void => {
+      shutdownOutputs.push(output);
+    };
     try {
       const tarballDirectory = join(temporaryDirectory, "tarballs");
       const tarballs = new Map(
@@ -286,20 +300,15 @@ describe("public authoring Phase 2 packed entity contract", () => {
         ),
       ).rejects.toThrow("not found");
 
-      runtime = startRuntime(consumerDirectory);
-      await runtime.waitForOutput("Brain worker runtime ready");
       const digest = await waitForEntity(
         consumerDirectory,
         "reading-digest",
         "deep-focus",
         "Hermetic quokka reading notes",
-        runtime,
+        recordShutdown,
       );
       expect(digest).toContain('"wordCount": 4');
       expect(digest).toContain('"visibility": "public"');
-
-      await stopRuntime(runtime);
-      runtime = undefined;
 
       const durable = await invokeTool(consumerDirectory, "system_get", {
         entityType: "bookmark",
@@ -323,39 +332,31 @@ describe("public authoring Phase 2 packed entity contract", () => {
       });
       expect(revisedSource).toContain('"title": "Deep Focus Revised"');
 
-      runtime = startRuntime(consumerDirectory);
-      await runtime.waitForOutput("Brain worker runtime ready");
       const revisedDigest = await waitForEntity(
         consumerDirectory,
         "reading-digest",
         "deep-focus",
         "Deep Focus Revised",
-        runtime,
+        recordShutdown,
       );
       expect(revisedDigest).toContain('"title": "Deep Focus Revised"');
-
-      await stopRuntime(runtime);
-      runtime = undefined;
       await invokeTool(
         consumerDirectory,
         "system_delete",
         { entityType: "bookmark", id: "deep-focus" },
         { confirm: true },
       );
-      runtime = startRuntime(consumerDirectory);
-      await runtime.waitForOutput("Brain worker runtime ready");
       await waitForEntityMissing(
         consumerDirectory,
         "reading-digest",
         "deep-focus",
-        runtime,
+        recordShutdown,
       );
 
-      const shutdown = await stopRuntime(runtime);
-      runtime = undefined;
-      expect(shutdown).not.toContain("missed its worker heartbeat");
+      expect(shutdownOutputs.join("\n")).not.toContain(
+        "missed its worker heartbeat",
+      );
     } finally {
-      if (runtime) await stopRuntime(runtime);
       await rm(temporaryDirectory, { recursive: true, force: true });
     }
   }, 240_000);

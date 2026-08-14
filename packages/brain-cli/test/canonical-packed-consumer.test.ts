@@ -8,6 +8,7 @@ import {
   installPackedConsumer,
   packPackages,
   runCommand,
+  startCommand,
 } from "./helpers/packed-consumer";
 
 const packageDirectory = join(import.meta.dir, "..");
@@ -67,7 +68,7 @@ describe("canonical packed consumer", () => {
       );
       expect(combinedOutput(startup)).toContain("Dashboard plugin registered");
 
-      const fencedWorker = await runCommand(
+      const fencedWorker = await startCommand(
         ["bun", "run", "brain", "start", "--startup-check"],
         consumerDirectory,
         {
@@ -76,9 +77,8 @@ describe("canonical packed consumer", () => {
             BRAINS_DB_ENGINE: "turso",
             BRAINS_FORBID_LOCAL_DATABASE_OPEN: "1",
           },
-          timeoutMs: 90_000,
         },
-      );
+      ).completed;
       expect(fencedWorker.exitCode).not.toBe(0);
       expect(combinedOutput(fencedWorker)).toContain(
         "Local SQLite opens are forbidden in this process",

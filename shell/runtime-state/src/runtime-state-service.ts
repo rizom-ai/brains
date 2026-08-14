@@ -1,6 +1,6 @@
 import type { Client } from "@libsql/client";
 import { Logger } from "@brains/utils/logger";
-import { applySqlitePragmas } from "@brains/db";
+import { applySqlitePragmas, closeSqliteClient } from "@brains/db";
 import { createRuntimeStateDatabase, type RuntimeStateDB } from "./db";
 import { RuntimeStateStore } from "./runtime-state-store";
 import type {
@@ -18,7 +18,8 @@ export class RuntimeStateService implements IRuntimeStateService {
   private walInitialization: Promise<void> | null = null;
   private walInitializationSettled = false;
   private closeRequested = false;
-  private clientClosed = false;
+  private closePromise: Promise<void> | null = null;
+  private clientClosePromise: Promise<void> | null = null;
 
   static createFresh(
     config: RuntimeStateServiceConfig,
@@ -38,7 +39,9 @@ export class RuntimeStateService implements IRuntimeStateService {
   /** Settle non-fatal database readiness work before the shell becomes ready. */
   initialize(): Promise<void> {
     if (this.closeRequested) return Promise.resolve();
-    this.walInitialization ??= this.initializeWALMode();
+    this.walInitialization ??= this.initializeWALMode().finally(() => {
+      this.walInitializationSettled = true;
+    });
     return this.walInitialization;
   }
 
@@ -50,9 +53,6 @@ export class RuntimeStateService implements IRuntimeStateService {
         "Failed to enable runtime state WAL mode (non-fatal)",
         error,
       );
-    } finally {
-      this.walInitializationSettled = true;
-      if (this.closeRequested) this.closeClient();
     }
   }
 
@@ -61,15 +61,27 @@ export class RuntimeStateService implements IRuntimeStateService {
   }
 
   close(): void {
-    this.closeRequested = true;
-    if (!this.walInitialization || this.walInitializationSettled) {
-      this.closeClient();
-    }
+    void this.closeAsync().catch((error) => {
+      this.logger.error("Failed to close runtime state storage", error);
+    });
   }
 
-  private closeClient(): void {
-    if (this.clientClosed) return;
-    this.clientClosed = true;
-    this.client.close();
+  closeAsync(): Promise<void> {
+    this.closeRequested = true;
+    this.closePromise ??= this.closeStorage();
+    return this.closePromise;
+  }
+
+  private closeStorage(): Promise<void> {
+    if (this.walInitialization && !this.walInitializationSettled) {
+      return this.walInitialization.then(() => this.closeClient());
+    }
+    return this.closeClient();
+  }
+
+  private closeClient(): Promise<void> {
+    if (this.clientClosePromise) return this.clientClosePromise;
+    this.clientClosePromise = closeSqliteClient(this.client);
+    return this.clientClosePromise;
   }
 }

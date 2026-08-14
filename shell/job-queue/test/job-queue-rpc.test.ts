@@ -117,11 +117,29 @@ describe("job queue owner RPC", () => {
       workerSessionId: "session-1",
       leaseDurationMs: 30_000,
     };
+    const sessionStartedAt = Date.now();
     await worker.startWorkerSession(
       claim.workerSlotId,
       claim.workerSessionId,
       60_000,
     );
+    expect(
+      await worker.getDiagnostics(sessionStartedAt + 30_000),
+    ).toMatchObject({
+      duePending: 1,
+      oldestDuePendingAgeMs: expect.any(Number),
+      workerSessions: { active: 1, stale: 0 },
+    });
+    expect(
+      await worker.heartbeatWorkerSession(
+        claim.workerSlotId,
+        claim.workerSessionId,
+        120_000,
+      ),
+    ).toBe(true);
+    expect(
+      await worker.getDiagnostics(sessionStartedAt + 90_000),
+    ).toMatchObject({ workerSessions: { active: 1, stale: 0 } });
     const job = await worker.dequeue(claim);
 
     expect(job).toMatchObject({

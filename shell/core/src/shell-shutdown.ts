@@ -9,6 +9,23 @@ interface EntityJobOutboxOwner {
   flushJobOutbox(): Promise<number>;
 }
 
+interface DurableCloseOwner {
+  closeAsync(): Promise<void>;
+}
+
+function ownsDurableClose(service: object): service is DurableCloseOwner {
+  return "closeAsync" in service && typeof service.closeAsync === "function";
+}
+
+function registerDurableClose(
+  lifecycle: ShellLifecycle,
+  service: object,
+): void {
+  if (ownsDurableClose(service)) {
+    lifecycle.addFinalizer(() => service.closeAsync());
+  }
+}
+
 function ownsEntityJobOutbox(service: object): service is EntityJobOutboxOwner {
   return (
     "flushJobOutbox" in service && typeof service.flushJobOutbox === "function"
@@ -24,6 +41,13 @@ export function registerShellRuntimeFinalizers(
   lifecycle: ShellLifecycle,
   services: ShellServices,
 ): void {
+  // These run after runtime and outbox finalizers but before package scopes
+  // issue their compatibility close(). Keep the job database last.
+  registerDurableClose(lifecycle, services.jobQueueService);
+  registerDurableClose(lifecycle, services.runtimeStateService);
+  registerDurableClose(lifecycle, services.conversationService);
+  registerDurableClose(lifecycle, services.entityService);
+
   // Scope finalizers run in reverse registration order. A worker must drain
   // its runtime before closing the shared endpoint client because worker-session
   // cleanup uses that client.

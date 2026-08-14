@@ -2,7 +2,7 @@
 
 ## Status
 
-Complete through Phase 5F; MVCC remains deliberately gated. The engine spike
+Complete through Phase 5G; MVCC remains deliberately gated. The engine spike
 is done on `work/turso-spike` (commits
 `23d7d468d`, `d02c4c0cd`): `@brains/db` has a `createTursoClient` adapter that
 presents the libSQL `Client` surface over `@tursodatabase/database@0.7.2`, and
@@ -20,7 +20,11 @@ Review uncovered that Turso's persisted native-FTS schema syntax is not
 parseable by libSQL, mitigated at the time by a tested break-glass command
 (`brain-rollback-entities-to-libsql`). Phase 5D removed native FTS entirely,
 so that command and the `index_method` flag guarded a state no released build
-could produce; Phase 5F deleted them before the branch merges.
+could produce; Phase 5F deleted them before the branch merges. Rebase validation
+then exposed a final ownership violation: `multiprocess_wal` still allowed
+short-lived headless commands to become additional local openers. Phase 5G
+removes that mode, makes headless shutdown await native durability, and keeps
+packed projection checks in exclusive owner epochs.
 
 The corrected production-shaped benchmark reopened the search-backend
 question, and the owner decided it: both engine-specific search indexes are
@@ -659,8 +663,9 @@ Deleted, because nothing outside this branch can hold a native index:
 - `dropTursoIndexForFallback`, its maintenance module, malformed-schema
   detection, and the second cleanup pass. The remaining `entity_fts` cleanup is
   one libSQL pass.
-- the `index_method` experimental flag. `multiprocess_wal` is now the adapter's
-  only experimental flag.
+- the `index_method` experimental flag. `multiprocess_wal` remained temporarily
+  for WAL-era parity and Phase 5G removes it after the single-owner boundary is
+  enforced.
 - `brain-rollback-entities-to-libsql` end to end: entity-service implementation
   and export, CLI bin and bundle target, tests, and operator documentation.
   Fallback is now a clean shutdown followed by a
@@ -689,6 +694,41 @@ released-libSQL `entity_fts` cleanup still runs; a populated released database
 upgrades under Turso without data loss; direct libSQL fallback preserves entity,
 embedding, outbox, and search state; dual-engine suites pass; and the packed
 consumer exercises the env-var fallback without a rollback command.
+
+#### Phase 5G — Enforce one opener and durable headless shutdown — DONE
+
+Rebasing onto the released background-work contracts exposed two omissions that
+package-local suites did not cover:
+
+- the projection and queue RPC facades lacked the new incident diagnostics and
+  due-work fields, and worker-session expiry had to cross the remote queue
+  boundary;
+- `multiprocess_wal` remained enabled after Phases 5A–5B had made web the sole
+  database owner. Repeated packed headless commands could acknowledge writes
+  that disappeared on reopen, while direct headless reads during a running web
+  owner could erase the owner's later projection commits.
+
+The adapter now opens local Turso files without `multiprocess_wal`. Parent
+migrations, a standalone headless command, or the web process owns each local
+file for its whole epoch; the worker continues to use the private endpoint.
+A second direct opener fails closed rather than silently participating. Packed
+projection evidence therefore stops the runtime before opening a headless query
+and restarts bounded runtime slices until the durable condition is visible.
+
+Turso's native close is asynchronous even though the emulated libSQL `Client`
+contract exposes `close(): void`. `closeSqliteClient()` now awaits admitted
+operations, a truncating WAL checkpoint, the native close, and transient
+sidecar cleanup. Migrations and the shell's ordered database finalizers use
+that path, and headless CLI commands
+stop the app instead of calling `process.exit()` with live database handles.
+The remote projection contract now carries terminal incidents and bounded
+incident diagnostics; queue RPC carries worker expiry and all operational
+queue fields.
+
+**Phase 5G exit: met.** Three consecutive packed Phase 2 create/update/delete
+runs converge across exclusive owner restarts; native close durability, remote
+projection incidents, queue diagnostics, worker expiry, and the renumbered
+migration chain have focused coverage.
 
 ## Non-goals
 
