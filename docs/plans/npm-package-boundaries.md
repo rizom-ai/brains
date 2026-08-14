@@ -66,7 +66,7 @@ Published from `@rizom/brain`, not separate `@brains/*` npm packages unless a la
 - `@rizom/brain/templates`
 - `@rizom/brain/deploy`
 - `@rizom/brain/cli` (bin) and `@rizom/brain/tsconfig.instance.json` (tooling asset, not an authoring surface)
-- no `@rizom/brain/ui` subpath: the UI library publishes separately as `@rizom/ui` (see Milestone B decision)
+- no `@rizom/brain/ui` subpath: the UI library publishes separately as `@rizom/brain-ui` (see Milestone B decision)
 
 Site authoring is no longer a `@rizom/brain` subpath: `./site` and
 `./themes` were removed and the public site surface is the separate
@@ -219,7 +219,7 @@ problem without any surface change.
 With contracts and these slices on the SDK, publishable-clean goes from
 1 package to 3: `prompt`, `style-guide`, `wishlist`. Necessary but not
 sufficient. It clears the two most-shared blockers and exposes the next
-tier: `ui-library` (11 packages, now decided — publish as `@rizom/ui`),
+tier: `ui-library` (11 packages, now decided — publish as `@rizom/brain-ui`),
 `content-formatters` (8), `atproto-contracts` (8),
 `media-page-composer` (4).
 
@@ -380,7 +380,7 @@ did:
 There is deliberately no `@rizom/brain/utils` subpath: the name would
 invite exactly the accretion this plan is trying to avoid.
 
-## Decision: publish the UI library as `@rizom/ui` (Milestone B, decided 2026-08-14)
+## Decision: publish the UI library as `@rizom/brain-ui` (Milestone B, decided 2026-08-14)
 
 Supersedes "keep UI private until there is a narrow public surface",
 which deferred the call pending measurement. The measurement:
@@ -396,8 +396,14 @@ which deferred the call pending measurement. The measurement:
   primitives.
 - The package is ~6300 lines.
 
-**Decision: publish it as `@rizom/ui`, a separate package on its own
-release lane.** Not a `@rizom/brain` subpath.
+**Decision: publish it as `@rizom/brain-ui`, a separate package on its
+own release lane.** Not a `@rizom/brain` subpath.
+
+Name corrected during implementation: `@rizom/ui` is already taken by
+`shared/rizom-ui`, a publishable Apache-2.0 package of Rizom _brand_
+primitives (`Wordmark`, `Ecosystem`, `SideNav`) consumed by
+`sites/rizom`. Different thing, so the component library takes
+`@rizom/brain-ui` and joins the `@rizom/brain*` family.
 
 Why not the other two options the earlier decision listed:
 
@@ -811,7 +817,7 @@ full two-axis analysis:
 | ----------------------------- | -------- | ------------------------------------------------------------------- |
 | `@brains/utils`               | 17       | Plan already decided: never publish wholesale, curate into subpaths |
 | `@brains/contracts`           | 12       | Undecided                                                           |
-| `@brains/ui-library`          | 11       | Decided 2026-08-14: publish as `@rizom/ui`                          |
+| `@brains/ui-library`          | 11       | Decided 2026-08-14: publish as `@rizom/brain-ui`                    |
 | `@brains/atproto-contracts`   | 8        | Undecided                                                           |
 | `@brains/content-formatters`  | 8        | Undecided                                                           |
 | `@brains/media-page-composer` | 4        | Undecided                                                           |
@@ -1012,16 +1018,29 @@ guard will reject the leaked `@brains/*` import.
 ### Milestone B: UI/template publishing
 
 Decided 2026-08-14 — see "Decision: publish the UI library as
-`@rizom/ui`" above. The three candidate shapes were resolved by
+`@rizom/brain-ui`" above. The three candidate shapes were resolved by
 measurement: 11 packages, ~20 concentrated components, ~6300 lines, so
 a separate package on its own release lane wins over package-local
 duplication or a renderer-contract wrapper.
 
-Remaining work for this milestone: create `@rizom/ui` with a curated
-export surface (ledger entry plus stable-API section, not a wholesale
-re-export), settle the `preact` peer-dependency contract, resolve
-overlap with `@brains/theme-*` and `@brains/rizom-ui`, then migrate the
-first UI-heavy package as the proof before broad rollout.
+**Structural move landed 2026-08-14.** `shared/ui-library` moved to
+`packages/ui` as the publishable `@rizom/brain-ui`. It now has zero
+private-workspace dependencies: `z` comes from `zod` directly and
+`escapeHtml` was inlined, both following the `@rizom/site` precedent,
+and `NavigationItem` now comes from `@rizom/site`, where it originates.
+`preact` stays a peer dependency. All 21 consumers across `entities/`,
+`plugins/`, `shared/`, and `sites/` were repointed, and the three tier
+rules in `.dependency-cruiser.js` now allow `packages/ui/`.
+
+Overlap check, which the earlier note flagged: `@brains/theme-*` and
+`shared/rizom-ui` are consumed only by other theme packages and
+`sites/rizom`, never by entity packages, so they need no boundary work
+here.
+
+Remaining for this milestone: curate the published export surface (it
+still exports all ~50 components; a published package needs a ledger
+entry and a stable-API section, not a wholesale barrel), then migrate
+the first UI-heavy package as the proof.
 
 ## First release scope
 
@@ -1029,7 +1048,7 @@ No official plugin/entity packages are targets for the first public release. The
 
 `@brains/prompt` is the first proof package for the later official-plugin publishing path, not a required first-release package.
 
-The UI/template public-surface decision was made on 2026-08-14: publish as `@rizom/ui`. Implementing it is required before publishing TSX-heavy official packages.
+The UI/template public-surface decision was made on 2026-08-14: publish as `@rizom/brain-ui`. Implementing it is required before publishing TSX-heavy official packages.
 
 ## Success criteria
 

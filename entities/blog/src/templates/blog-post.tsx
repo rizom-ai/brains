@@ -1,11 +1,6 @@
 import type { JSX } from "react";
 import { calculateReadingTime } from "@brains/sdk/entities";
-import {
-  MarkdownContent,
-  Head,
-  CoverImage,
-  formatDate,
-} from "@brains/ui-library";
+import { MarkdownContent, Head, CoverImage, formatDate } from "@rizom/brain-ui";
 import type { BlogPostView } from "./blog-view-schema";
 
 export interface BlogPostProps {

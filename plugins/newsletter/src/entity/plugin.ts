@@ -19,7 +19,7 @@ import {
 import { BUTTONDOWN_CHANNELS } from "../buttondown-channels";
 import { createElement as h } from "react";
 import { fetchVoiceGuidance } from "@brains/contracts";
-import { NewsletterSignup } from "@brains/ui-library";
+import { NewsletterSignup } from "@rizom/brain-ui";
 import { newsletterSchema, type Newsletter } from "./schemas/newsletter";
 import {
   newsletterAdapter,

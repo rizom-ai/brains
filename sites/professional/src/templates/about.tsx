@@ -5,7 +5,7 @@ import {
   MarkdownContent,
   tagVariants,
   LinkButton,
-} from "@brains/ui-library";
+} from "@rizom/brain-ui";
 
 /**
  * About page data structure

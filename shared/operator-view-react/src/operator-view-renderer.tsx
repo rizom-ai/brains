@@ -11,7 +11,7 @@ import type {
   RuntimePreparedConfirmation,
   RuntimeOperatorScalar,
 } from "@brains/plugins";
-import { WidgetTabs } from "@brains/ui-library";
+import { WidgetTabs } from "@rizom/brain-ui";
 import {
   createContext,
   useContext,

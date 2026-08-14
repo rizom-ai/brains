@@ -2,7 +2,7 @@ import type { JSX } from "react";
 import {
   MarkdownContent,
   formatDate as formatDateStyled,
-} from "@brains/ui-library";
+} from "@rizom/brain-ui";
 import { z } from "@brains/sdk/entities";
 import type { MediaPageTemplate } from "@brains/media-page-composer";
 

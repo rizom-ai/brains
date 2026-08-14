@@ -5,8 +5,9 @@
   "description": "Documentation entity type — markdown docs as first-class brain content",
   "dependencies": {
     "@brains/sdk": "workspace:*",
-    "@brains/ui-library": "workspace:*",
+    "@rizom/brain-ui": "workspace:*",
     "@brains/utils": "workspace:*",
+    "@rizom/brain-ui": "workspace:*",
     "react": "^19.2.7"
   },
   "devDependencies": {

@@ -11,8 +11,8 @@
     "@brains/site-engine": "workspace:*",
     "@brains/site-info": "workspace:*",
     "@brains/templates": "workspace:*",
-    "@brains/ui-library": "workspace:*",
     "@brains/utils": "workspace:*",
+    "@rizom/brain-ui": "workspace:*",
     "react": "^19.2.7"
   },
   "devDependencies": {

@@ -1,4 +1,4 @@
-import type { ImageRenderer } from "@brains/ui-library";
+import type { ImageRenderer } from "@rizom/brain-ui";
 import type { Logger } from "@brains/utils/logger";
 import { pLimit } from "@brains/utils/p-limit";
 import { promises as fs } from "fs";

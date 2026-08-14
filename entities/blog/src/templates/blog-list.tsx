@@ -1,7 +1,7 @@
 import type { JSX } from "react";
 import type { BlogPostView } from "./blog-view-schema";
 import type { PaginationInfo } from "@brains/sdk/entities";
-import { ContentArchive, type ContentItem, Head } from "@brains/ui-library";
+import { ContentArchive, type ContentItem, Head } from "@rizom/brain-ui";
 
 export interface BlogListProps {
   posts: BlogPostView[];

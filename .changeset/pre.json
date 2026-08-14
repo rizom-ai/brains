@@ -50,7 +50,7 @@
     "@brains/theme-swiss": "0.2.0",
     "@brains/theme-yeehaa": "0.2.0",
     "@brains/typescript-config": "0.2.0",
-    "@brains/ui-library": "0.2.0",
+    "@rizom/brain-ui": "0.2.0",
     "@brains/utils": "0.2.0",
     "@brains/ai-evaluation": "0.2.0",
     "@brains/ai-service": "0.2.0",

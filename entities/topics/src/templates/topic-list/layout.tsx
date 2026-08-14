@@ -7,7 +7,7 @@ import {
   ListPageHeader,
   EmptyState,
   formatDate,
-} from "@brains/ui-library";
+} from "@rizom/brain-ui";
 
 export const TopicListLayout = ({
   topics,

@@ -9,7 +9,7 @@ import {
   StatusBadge,
   Card,
   type BreadcrumbItem,
-} from "@brains/ui-library";
+} from "@rizom/brain-ui";
 type NewsletterTemplateStatus =
   "generating" | "draft" | "queued" | "published" | "failed";
 
