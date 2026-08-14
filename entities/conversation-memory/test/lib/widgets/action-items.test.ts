@@ -1,6 +1,9 @@
 import { describe, expect, it, mock } from "bun:test";
 import { SYSTEM_CHANNELS, type EntityPluginContext } from "@brains/plugins";
-import { createTestEntity } from "@brains/test-utils";
+import {
+  createMockEntityPluginContext,
+  createTestEntity,
+} from "@brains/test-utils";
 import {
   buildActionItemsWidgetData,
   registerActionItemsWidget,
@@ -63,11 +66,9 @@ describe("buildActionItemsWidgetData", () => {
         end: "2026-05-09T12:00:00.000Z",
       }),
     ];
-    const context = {
-      entityService: {
-        listEntities: mock(async () => items),
-      },
-    } as unknown as EntityPluginContext;
+    const context = createMockEntityPluginContext({
+      listEntitiesImpl: async () => items,
+    });
 
     const data = await buildActionItemsWidgetData(
       context,
@@ -98,9 +99,9 @@ describe("buildActionItemsWidgetData", () => {
         channelId: "raw-channel-id",
       }),
     ];
-    const context = {
-      entityService: { listEntities: mock(async () => items) },
-    } as unknown as EntityPluginContext;
+    const context = createMockEntityPluginContext({
+      listEntitiesImpl: async () => items,
+    });
 
     const data = await buildActionItemsWidgetData(
       context,

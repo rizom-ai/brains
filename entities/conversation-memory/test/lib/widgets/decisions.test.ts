@@ -1,6 +1,9 @@
 import { describe, expect, it, mock } from "bun:test";
 import { SYSTEM_CHANNELS, type EntityPluginContext } from "@brains/plugins";
-import { createTestEntity } from "@brains/test-utils";
+import {
+  createMockEntityPluginContext,
+  createTestEntity,
+} from "@brains/test-utils";
 import {
   buildDecisionsWidgetData,
   registerDecisionsWidget,
@@ -61,9 +64,9 @@ describe("buildDecisionsWidgetData", () => {
         end: "2026-05-09T01:00:00.000Z",
       }),
     ];
-    const context = {
-      entityService: { listEntities: mock(async () => items) },
-    } as unknown as EntityPluginContext;
+    const context = createMockEntityPluginContext({
+      listEntitiesImpl: async () => items,
+    });
 
     const data = await buildDecisionsWidgetData(context);
     expect(data.items.map((item) => item.id)).toEqual([
@@ -87,9 +90,9 @@ describe("buildDecisionsWidgetData", () => {
         end: "2026-05-01T00:00:00.000Z",
       }),
     ];
-    const context = {
-      entityService: { listEntities: mock(async () => items) },
-    } as unknown as EntityPluginContext;
+    const context = createMockEntityPluginContext({
+      listEntitiesImpl: async () => items,
+    });
 
     const data = await buildDecisionsWidgetData(context);
     expect(data.items[0]?.meta).toContain("Apr 28 – May 1");
