@@ -1,14 +1,13 @@
 import { describe, expect, it } from "bun:test";
+import { createTempDirSync } from "@brains/test-utils";
 import { spawnSync } from "node:child_process";
 import {
   chmodSync,
-  mkdtempSync,
   mkdirSync,
   readFileSync,
   readdirSync,
   writeFileSync,
 } from "node:fs";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   BRAIN_WATCHDOG_LABEL_FILTER,
@@ -48,7 +47,7 @@ function expectValidBash(script: string): void {
 function createWatchdogHarness(
   containers: readonly FakeContainer[],
 ): WatchdogHarness {
-  const root = mkdtempSync(join(tmpdir(), "brain-watchdog-test-"));
+  const root = createTempDirSync("brain-watchdog-test-");
   const binDir = join(root, "bin");
   const incidentDir = join(root, "incidents");
   const stateDir = join(root, "state");
@@ -213,7 +212,7 @@ describe("health watchdog deployment artifacts", () => {
   });
 
   it("keeps a zero-match post-install diagnostic non-fatal", () => {
-    const root = mkdtempSync(join(tmpdir(), "brain-watchdog-install-test-"));
+    const root = createTempDirSync("brain-watchdog-install-test-");
     const binDir = join(root, "bin");
     mkdirSync(binDir);
     writeFileSync(join(binDir, "id"), "#!/usr/bin/env bash\necho 1000\n");

@@ -1,4 +1,5 @@
 import { rm } from "node:fs/promises";
+import { createTempDir } from "@brains/test-utils";
 import { join } from "node:path";
 import { describe, it, expect, beforeEach, afterEach, spyOn } from "bun:test";
 import { ImagePlugin } from "../src/image-plugin";
@@ -16,7 +17,7 @@ describe("ImagePlugin", () => {
     enqueuedJobs = [];
     registeredHandlers = new Map();
     harness = createPluginHarness({
-      dataDir: `/tmp/test-image-${crypto.randomUUID()}`,
+      dataDir: await createTempDir("test-image-"),
     });
     const shell = harness.getMockShell();
     const jobQueue = shell.getJobQueueService();

@@ -1,10 +1,7 @@
 import { describe, expect, it } from "bun:test";
-import { mkdtemp } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import { AuthServicePlugin } from "@brains/auth-service";
 import type { WebRouteDefinition } from "@brains/plugins";
-import { createMockShell } from "@brains/test-utils";
+import { createMockShell, createTempDir } from "@brains/test-utils";
 import { adminPlugin } from "../src";
 
 function findRoute(
@@ -54,7 +51,7 @@ describe("admin console plugin", () => {
   it("serves an instrument-climate shell to Admins", async () => {
     const shell = createMockShell({ domain: "brain.test" });
     const authPlugin = new AuthServicePlugin({
-      storageDir: await mkdtemp(join(tmpdir(), "brains-people-auth-")),
+      storageDir: await createTempDir("brains-people-auth-"),
     });
     await authPlugin.register(shell);
     const admin = await authPlugin.getService().createUser({
@@ -93,7 +90,7 @@ describe("admin console plugin", () => {
   it("ignores malformed person targets", async () => {
     const shell = createMockShell({ domain: "brain.test" });
     const authPlugin = new AuthServicePlugin({
-      storageDir: await mkdtemp(join(tmpdir(), "brains-people-auth-")),
+      storageDir: await createTempDir("brains-people-auth-"),
     });
     await authPlugin.register(shell);
     const admin = await authPlugin.getService().createUser({
@@ -119,7 +116,7 @@ describe("admin console plugin", () => {
   it("redirects authenticated non-Admins to their own account surface", async () => {
     const shell = createMockShell({ domain: "brain.test" });
     const authPlugin = new AuthServicePlugin({
-      storageDir: await mkdtemp(join(tmpdir(), "brains-people-auth-")),
+      storageDir: await createTempDir("brains-people-auth-"),
     });
     await authPlugin.register(shell);
     const trusted = await authPlugin.getService().createUser({

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from "bun:test";
-import { mkdtempSync, readFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { createTempDirSync } from "@brains/test-utils";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   backendBootstrapEnvSchema,
@@ -188,10 +188,7 @@ describe("deploy templates", () => {
   });
 
   it("writes multiline GitHub env values with heredoc syntax", () => {
-    const envPath = join(
-      mkdtempSync(join(tmpdir(), "deploy-support-env-")),
-      "env",
-    );
+    const envPath = join(createTempDirSync("deploy-support-env-"), "env");
     process.env["GITHUB_ENV"] = envPath;
 
     writeGitHubEnv("CERTIFICATE_PEM", "line 1\nline 2");

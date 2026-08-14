@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import { cpSync, mkdtempSync } from "fs";
-import { tmpdir } from "os";
+import { createTempDataDirSync } from "../../src/test/temp-dir";
+import { cpSync } from "fs";
 import { join } from "path";
 import {
   bindHttpRouteSnapshot,
@@ -28,7 +28,7 @@ async function importDuplicatedModules(): Promise<
     import.meta.dir,
     "../../src/internal/http-route-snapshot.ts",
   );
-  const dir = mkdtempSync(join(tmpdir(), "route-snapshot-dup-"));
+  const dir = createTempDataDirSync("route-snapshot-dup-");
   const copyA = join(dir, "copy-a.ts");
   const copyB = join(dir, "copy-b.ts");
   cpSync(sourcePath, copyA);

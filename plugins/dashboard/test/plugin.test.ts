@@ -4,6 +4,7 @@ import {
   type DashboardWidgetProviderContext,
   type WebRouteDefinition,
 } from "@brains/plugins";
+import { createTempDir } from "@brains/test-utils";
 import { AuthServicePlugin } from "@brains/auth-service";
 import { h } from "preact";
 import type { WidgetComponentProps } from "../src";
@@ -125,7 +126,7 @@ describe("DashboardPlugin", () => {
 
     it("should require Admin access for the console jump", async () => {
       const authPlugin = new AuthServicePlugin({
-        storageDir: `/tmp/dashboard-jump-trusted-${Date.now()}`,
+        storageDir: await createTempDir("dashboard-jump-trusted-"),
       });
       await harness.installPlugin(authPlugin);
       const trusted = await authPlugin.getService().createUser({
@@ -151,7 +152,7 @@ describe("DashboardPlugin", () => {
 
     it("should return grouped jump doors for an authenticated user", async () => {
       const authPlugin = new AuthServicePlugin({
-        storageDir: `/tmp/dashboard-jump-auth-${Date.now()}`,
+        storageDir: await createTempDir("dashboard-jump-auth-"),
       });
       await harness.installPlugin(authPlugin);
       const session = await authPlugin.getService().createAuthSession();
@@ -198,7 +199,7 @@ describe("DashboardPlugin", () => {
 
     it("should map search hits to CMS doors, falling back to ids", async () => {
       const authPlugin = new AuthServicePlugin({
-        storageDir: `/tmp/dashboard-jump-entities-${Date.now()}`,
+        storageDir: await createTempDir("dashboard-jump-entities-"),
       });
       await harness.installPlugin(authPlugin);
       const session = await authPlugin.getService().createAuthSession();
@@ -283,7 +284,7 @@ describe("DashboardPlugin", () => {
 
     it("should degrade to tab doors alone when search fails", async () => {
       const authPlugin = new AuthServicePlugin({
-        storageDir: `/tmp/dashboard-jump-degrade-${Date.now()}`,
+        storageDir: await createTempDir("dashboard-jump-degrade-"),
       });
       await harness.installPlugin(authPlugin);
       const session = await authPlugin.getService().createAuthSession();
@@ -458,7 +459,7 @@ describe("DashboardPlugin", () => {
 
     it("should retain the authenticated user's actual dashboard role", async () => {
       const authPlugin = new AuthServicePlugin({
-        storageDir: `/tmp/dashboard-trusted-auth-${Date.now()}`,
+        storageDir: await createTempDir("dashboard-trusted-auth-"),
       });
       await harness.installPlugin(authPlugin);
       const trustedUser = await authPlugin.getService().createUser({
@@ -594,7 +595,7 @@ describe("DashboardPlugin", () => {
 
     it("should show Admin endpoints and interactions without embedding People", async () => {
       const authPlugin = new AuthServicePlugin({
-        storageDir: `/tmp/dashboard-auth-${Date.now()}`,
+        storageDir: await createTempDir("dashboard-auth-"),
       });
       await harness.installPlugin(authPlugin);
       const adminUser = await authPlugin.getService().createUser({
