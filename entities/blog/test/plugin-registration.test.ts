@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach } from "bun:test";
-import { SYSTEM_CHANNELS } from "@brains/plugins";
+import { PermissionService, SYSTEM_CHANNELS } from "@brains/plugins";
 import { BlogPlugin } from "../src/plugin";
-import { PermissionService } from "@brains/templates";
 import {
   createPluginHarness,
   type PluginTestHarness,

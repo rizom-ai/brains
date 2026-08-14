@@ -1,4 +1,4 @@
-import { createTemplate } from "@brains/templates";
+import { createTemplate } from "@brains/plugins";
 import { linkDetailDataSchema, type LinkDetailData } from "./schema";
 import { LinkDetailLayout } from "./layout";
 

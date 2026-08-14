@@ -4,10 +4,10 @@
   "version": "0.2.0-alpha.349",
   "description": "Prompt entity type — AI prompts as editable markdown entities",
   "dependencies": {
-    "@brains/plugins": "workspace:*",
-    "@brains/utils": "workspace:*"
+    "@brains/sdk": "workspace:*"
   },
   "devDependencies": {
+    "@brains/plugins": "workspace:*",
     "@brains/test-utils": "workspace:*",
     "@brains/typescript-config": "workspace:*",
     "bun-types": "^1.4.0",

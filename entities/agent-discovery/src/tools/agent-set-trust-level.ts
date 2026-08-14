@@ -6,10 +6,10 @@ import type {
   ServicePluginContext,
 } from "@brains/plugins";
 import {
-  ConfirmationArgsStore,
+  createConfirmationGate,
   type Tool,
   type ToolResponse,
-} from "@brains/mcp-service";
+} from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import { AGENT_ENTITY_TYPE } from "../lib/constants";
 import { extractDomain, type FetchFn } from "../lib/fetch-agent-card";
@@ -100,7 +100,10 @@ export function createAgentSetTrustLevelTool(
   fetchFn: FetchFn = globalThis.fetch,
 ): Tool {
   const toolName = "agent_set_trust_level";
-  const confirmationArgsStore = new ConfirmationArgsStore();
+  const confirmations = createConfirmationGate({
+    label: "agent trust",
+    requestNoun: "the trust change",
+  });
 
   return {
     name: toolName,
@@ -139,23 +142,12 @@ export function createAgentSetTrustLevelTool(
 
       const input = parsed.data;
       if (input.confirmed) {
-        const validation = confirmationArgsStore.validate(
+        const rejection = confirmations.validateConfirmed(
           input.confirmationToken,
           input,
         );
-        if (validation.status === "missing") {
-          return {
-            success: false,
-            error:
-              "No pending agent trust confirmation found. Please request the trust change again and confirm the new approval.",
-          };
-        }
-        if (validation.status === "mismatch") {
-          return {
-            success: false,
-            error:
-              "Confirmed agent trust arguments do not match the pending approval. Please request the trust change again and confirm the new approval.",
-          };
+        if (rejection) {
+          return rejection;
         }
 
         if (input.level === "trusted") {
@@ -208,18 +200,17 @@ export function createAgentSetTrustLevelTool(
         };
       }
 
-      const confirmationArgs =
-        confirmationArgsStore.create<AgentSetTrustLevelInput>(
-          (confirmationToken) => ({
-            agent: resolved.domain,
-            level: input.level,
-            confirmed: true,
-            confirmationToken,
-            ...(keyFingerprintForTrust
-              ? { keyFingerprint: keyFingerprintForTrust }
-              : {}),
-          }),
-        );
+      const confirmationArgs = confirmations.buildArgs<AgentSetTrustLevelInput>(
+        (confirmationToken) => ({
+          agent: resolved.domain,
+          level: input.level,
+          confirmed: true,
+          confirmationToken,
+          ...(keyFingerprintForTrust
+            ? { keyFingerprint: keyFingerprintForTrust }
+            : {}),
+        }),
+      );
 
       const isTrusted = input.level === "trusted";
       return {

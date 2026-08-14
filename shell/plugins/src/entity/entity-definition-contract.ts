@@ -1,3 +1,4 @@
+import type { ProjectionSourceRole } from "@brains/entity-service";
 import type { z } from "@brains/utils/zod";
 
 export type EntityVisibility = "public" | "shared" | "restricted";
@@ -25,6 +26,51 @@ export interface EntityMarkdownCodec<
   ): EncodedEntityMarkdown;
 }
 
+/**
+ * Declarative subset of EntityTypeConfig an author may set. Omitted
+ * fields keep the runtime defaults (`embeddable` and `projectionSource`
+ * both default to true), so this only needs to carry deliberate opt-outs
+ * such as system-configuration types that must stay out of search
+ * embeddings and out of projection sourcing.
+ */
+export interface EntityDefinitionConfig {
+  // Bare optionals, not `| undefined` unions: the repo runs
+  // exactOptionalPropertyTypes, and these must stay assignable to
+  // EntityTypeConfig, which declares them the same way.
+  readonly weight?: number;
+  readonly embeddable?: boolean;
+  readonly projectionSource?: boolean;
+  readonly projectionSourceRole?: ProjectionSourceRole;
+}
+
+/**
+ * Lifecycle moments a seed may attach to. Named rather than raw channel
+ * strings so the public surface does not leak internal channel names.
+ *
+ * `content-sync-completed` fires once the initial content sync has
+ * finished, which is the only safe point to write a default: seeding
+ * earlier would race synced content and could resurrect something the
+ * author deleted upstream.
+ */
+export type EntitySeedTrigger = "content-sync-completed";
+
+/**
+ * Declares a default entity the brain should hold even before anyone
+ * edits one — a singleton like a house style guide.
+ *
+ * Seeding is create-if-absent: an existing entity with this id is never
+ * overwritten, so a seed cannot clobber authored content.
+ */
+export interface EntitySeedDefinition<
+  TMetadataSchema extends EntityMetadataSchema,
+> {
+  readonly on: EntitySeedTrigger;
+  readonly id: string;
+  /** Lazy so the default is only built when it is actually needed. */
+  readonly content: () => string;
+  readonly metadata?: z.input<TMetadataSchema>;
+}
+
 export interface EntityDefinition<
   TType extends string = string,
   TMetadataSchema extends EntityMetadataSchema = EntityMetadataSchema,
@@ -34,6 +80,8 @@ export interface EntityDefinition<
   readonly purpose: string;
   readonly metadata: TMetadataSchema;
   readonly markdown?: EntityMarkdownCodec<TMetadataSchema> | undefined;
+  readonly config?: EntityDefinitionConfig | undefined;
+  readonly seed?: EntitySeedDefinition<TMetadataSchema> | undefined;
 }
 
 export type AnyEntityDefinition = EntityDefinition<

@@ -149,13 +149,47 @@ Types:
 
 - `EncodedEntityMarkdown`
 - `EntityDefinition`
+- `EntityDefinitionConfig`
 - `EntityMarkdownCodec`
 - `EntityMarkdownDocument`
 - `EntityOf`
 - `EntityPackageDefinition`
+- `EntitySeedDefinition`
+- `EntitySeedTrigger`
 - `ProjectionDefinition`
 
 The runtime owns base entity fields, persistence, markdown validation, search indexing, projection scheduling, and worker execution.
+
+`EntityDefinitionConfig` is the optional `config` slot on `defineEntity`. It carries deliberate opt-outs — `embeddable`, `projectionSource`, `projectionSourceRole`, `weight` — for entity types that are system configuration rather than user content. Omitted fields keep the runtime defaults.
+
+`EntitySeedDefinition` is the optional `seed` slot. It declares a default entity the brain should hold before anyone authors one, created only when `EntitySeedTrigger` fires and only if no entity with that id exists, so a seed can never overwrite authored content.
+
+Style guide contract:
+
+- `DEFAULT_STYLE_GUIDE`
+- `fetchStyleGuide`
+- `fetchVoiceGuidance`
+- `formatStyleGuidance`
+- `formatVisualGuidance`
+- `formatVoiceGuidance`
+- `parseStyleGuideContent`
+- `styleGuideFromEntity`
+- `styleGuideFrontmatterSchema`
+- `styleGuideMessagingSchema`
+- `styleGuideVisualSchema`
+- `styleGuideVoiceSchema`
+
+Style guide types:
+
+- `FormattedStyleGuidance`
+- `StyleGuide`
+- `StyleGuideEntityReader`
+- `StyleGuideFrontmatter`
+- `StyleGuideMessaging`
+- `StyleGuideVisual`
+- `StyleGuideVoice`
+
+The brain's house style is a singleton entity. Packages that generate prose or imagery read it through `fetchStyleGuide` and render it with the `format*` helpers rather than reaching for the entity directly.
 
 ## `@rizom/brain/services`
 

@@ -7,9 +7,13 @@ import type { IMCPService } from "@brains/mcp-service";
  * bun mocks that return empty/no-op values; `getMcpServer` and
  * `createMcpServer` throw because the real MCP server is from the
  * `@modelcontextprotocol/server` framework and cannot be stubbed without
- * unsafe casts. Override these in your test if you need them.
+ * unsafe casts. Pass `overrides` for the members your test needs; that
+ * parameter also supplies contextual typing, so callers never need to name
+ * `IMCPService` themselves.
  */
-export function createMockMCPService(): IMCPService {
+export function createMockMCPService(
+  overrides: Partial<IMCPService> = {},
+): IMCPService {
   const mcpServerNotMocked = (): never => {
     throw new Error(
       "Mock MCP service has no real McpServer — override getMcpServer/createMcpServer in the test that needs it.",
@@ -32,5 +36,6 @@ export function createMockMCPService(): IMCPService {
     createMcpServer: mock(mcpServerNotMocked),
     setPermissionLevel: mock(() => {}),
     setProtocolMode: mock(() => {}),
+    ...overrides,
   };
 }

@@ -6,18 +6,30 @@ import {
   generateMarkdownWithFrontmatter,
   parseMarkdownWithFrontmatter,
   type EntityAdapter,
+  type EntityTypeConfig,
   type ProjectionJsonObject,
   type ProjectionWriteIntent,
 } from "@brains/entity-service";
+import { DIRECTORY_SYNC_CHANNELS } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 import { EntityPlugin, emptyEntityPluginConfigSchema } from "./entity-plugin";
+import type { EntityPluginContext } from "./context";
 import { defineProjectionRule, type ProjectionRule } from "./projection-rule";
 import type { InstalledPluginPackageMetadata } from "../package-definition";
 import type {
   AnyEntityDefinition,
   EntityOf,
+  EntitySeedTrigger,
   ProjectionDefinition,
 } from "./entity-definition-contract";
+
+/**
+ * Named seed triggers map to internal channels here, so the public
+ * surface never names a channel directly.
+ */
+const SEED_TRIGGER_CHANNELS: Record<EntitySeedTrigger, string> = {
+  "content-sync-completed": DIRECTORY_SYNC_CHANNELS.initialCompleted,
+};
 
 const rawFrontmatterSchema = z.record(z.string(), z.unknown());
 
@@ -230,6 +242,8 @@ class DeclarativeEntityPlugin extends EntityPlugin<
 > {
   private readonly projections: readonly ProjectionDefinition[];
   private readonly scope: (localId: string) => string;
+  private readonly entityTypeConfig: EntityTypeConfig | undefined;
+  private readonly seed: AnyEntityDefinition["seed"];
   public readonly entityType: string;
   public readonly schema: z.ZodType<EntityOf<AnyEntityDefinition>, unknown>;
   public readonly adapter: EntityAdapter<
@@ -249,6 +263,45 @@ class DeclarativeEntityPlugin extends EntityPlugin<
     this.entityType = definition.type;
     this.schema = entitySchema(definition);
     this.adapter = entityAdapter(definition);
+    // Undefined when undeclared, so the runtime keeps its own defaults
+    // rather than this surface pinning them.
+    this.entityTypeConfig = definition.config
+      ? { ...definition.config }
+      : undefined;
+    this.seed = definition.seed;
+  }
+
+  protected override getEntityTypeConfig(): EntityTypeConfig | undefined {
+    return this.entityTypeConfig;
+  }
+
+  protected override async onRegister(
+    context: EntityPluginContext,
+  ): Promise<void> {
+    const seed = this.seed;
+    if (!seed) return;
+
+    context.messaging.subscribe(
+      SEED_TRIGGER_CHANNELS[seed.on],
+      async (): Promise<{ success: true }> => {
+        // Create-if-absent: a seed must never overwrite authored content.
+        const existing = await context.entityService.getEntity({
+          entityType: this.entityType,
+          id: seed.id,
+        });
+        if (existing) return { success: true };
+
+        await context.entityService.createEntity({
+          entity: {
+            id: seed.id,
+            entityType: this.entityType,
+            content: seed.content(),
+            metadata: seed.metadata ?? {},
+          },
+        });
+        return { success: true };
+      },
+    );
   }
 
   protected override getProjectionRules(): ProjectionRule[] {

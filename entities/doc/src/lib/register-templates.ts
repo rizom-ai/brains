@@ -1,7 +1,10 @@
-import { createTemplate } from "@brains/templates";
-import type { Template } from "@brains/templates";
+import {
+  contentVisibilitySchema,
+  createTemplate,
+  paginationInfoSchema,
+} from "@brains/plugins";
+import type { Template } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
-import { contentVisibilitySchema, paginationInfoSchema } from "@brains/plugins";
 import { DocListTemplate, type DocListProps } from "../templates/doc-list";
 import {
   DocDetailTemplate,

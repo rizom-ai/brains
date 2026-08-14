@@ -2,7 +2,6 @@ import { describe, expect, it, beforeEach, afterEach } from "bun:test";
 import { McpServer } from "@modelcontextprotocol/server";
 import { MCPInterface } from "../src/mcp-interface";
 import { createPluginHarness } from "@brains/plugins/test";
-import type { IMCPService } from "@brains/mcp-service";
 import { createMockMCPService, createSilentLogger } from "@brains/test-utils";
 
 describe("MCPInterface", () => {
@@ -19,8 +18,7 @@ describe("MCPInterface", () => {
       permissionLevels,
       protocolModes,
     };
-    const mockTransport: IMCPService = {
-      ...createMockMCPService(),
+    const mockTransport = createMockMCPService({
       getMcpServer: (): McpServer => mcpServer,
       createMcpServer: (): McpServer =>
         new McpServer({ name: "test-server", version: "1.0.0" }),
@@ -30,9 +28,10 @@ describe("MCPInterface", () => {
       setProtocolMode: (mode): void => {
         calls.protocolModes.push(mode);
       },
-    };
+    });
 
-    harness.getMockShell().getMCPService = (): IMCPService => mockTransport;
+    harness.getMockShell().getMCPService = (): typeof mockTransport =>
+      mockTransport;
     return calls;
   }
 

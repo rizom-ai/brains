@@ -1,30 +1,9 @@
-/** Declarative public entity authoring surface. */
+/**
+ * Layer 3 re-export of the layer 1 authoring surface (`@brains/sdk`).
+ *
+ * The contract lives in `packages/brain-sdk`; this file exists so the
+ * published `@rizom/brain/entities` specifier keeps resolving to the identical
+ * symbols. Add exports to the SDK package, never here.
+ */
 
-export { z } from "@brains/utils/zod";
-export {
-  defineEntity,
-  defineEntityPackage,
-  defineProjection,
-} from "@brains/plugins";
-export type {
-  EncodedEntityMarkdown,
-  EntityDefinition,
-  EntityMarkdownCodec,
-  EntityMarkdownDocument,
-  EntityOf,
-  EntityPackageDefinition,
-  ProjectionDefinition,
-} from "@brains/plugins";
-
-export type {
-  BaseEntity,
-  EntityInput,
-  EntityMutationResult,
-  SearchResult,
-  ListOptions,
-  SearchOptions,
-  PaginationInfo,
-  PaginateOptions,
-  PaginateResult,
-  FrontmatterConfig,
-} from "@brains/entity-service";
+export * from "@brains/sdk/entities";

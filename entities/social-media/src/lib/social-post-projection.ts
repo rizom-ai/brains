@@ -5,7 +5,7 @@ import {
   type ProjectionRule,
   type ProjectionWriteIntent,
 } from "@brains/plugins";
-import { formatVoiceGuidance, parseStyleGuideContent } from "@brains/contracts";
+import { formatVoiceGuidance, styleGuideFromEntity } from "@brains/contracts";
 import { slugify } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
 import { socialPostAdapter } from "../adapters/social-post-adapter";
@@ -94,7 +94,7 @@ async function selectSocialPostInput(
     })
     .sort();
   const voiceGuidance = styleGuideEntity
-    ? formatVoiceGuidance(parseStyleGuideContent(styleGuideEntity.content))
+    ? formatVoiceGuidance(styleGuideFromEntity(styleGuideEntity))
     : "";
 
   return {

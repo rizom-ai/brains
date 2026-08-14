@@ -1,8 +1,16 @@
 import {
   defineBrain,
   type BrainDefinition,
+  type CapabilityBundleDefinition,
+  type CapabilityEntry,
   type PluginConfig,
 } from "@brains/app";
+import {
+  bindPluginPackageMetadata,
+  instantiatePluginPackageDefinition,
+  type Plugin,
+  type PluginPackageDefinition,
+} from "@brains/plugins";
 import { A2AInterface } from "@brains/a2a";
 import { adminPlugin } from "@brains/admin";
 import { agentDiscovery } from "@brains/agent-discovery";
@@ -33,7 +41,7 @@ import { obsidianVaultPlugin } from "@brains/obsidian-vault";
 import { playbookPlugin, playbooksPlugin } from "@brains/playbooks";
 import { portfolioPlugin } from "@brains/portfolio";
 import { profilePlugin } from "@brains/profile";
-import { promptPlugin } from "@brains/prompt";
+import promptPackage from "@brains/prompt";
 import { onboardingPlugin } from "@brains/onboarding";
 import { seriesPlugin } from "@brains/series";
 import { siteBuilderPlugin } from "@brains/site-builder-plugin";
@@ -41,7 +49,7 @@ import { siteContentPlugin } from "@brains/site-content";
 import { siteInfoPlugin } from "@brains/site-info";
 import { socialMediaPlugin } from "@brains/social-media";
 import { stockPhotoPlugin } from "@brains/stock-photo";
-import { styleGuidePlugin } from "@brains/style-guide";
+import styleGuidePackage from "@brains/style-guide";
 import { topicsPlugin } from "@brains/topics";
 import { unifiedInboxPlugin } from "@brains/unified-inbox";
 import { WebChatInterface } from "@brains/web-chat";
@@ -93,6 +101,39 @@ export {
   WEB_BUNDLE_ID,
 };
 
+/**
+ * Bridge a declaratively-defined package (`defineEntityPackage` and friends)
+ * into the canonical brain's capability list.
+ *
+ * Packages resolved from a `brain.yaml` package ref get their installed
+ * metadata bound by the package registry. The canonical brain imports its
+ * members directly instead, so nothing binds metadata for them — this does
+ * it from the workspace package name, then adapts the definition to the
+ * `[id, factory, config]` capability shape.
+ *
+ * This lives in layer 3 on purpose: instantiation is the composer's job, so
+ * declaratively-authored packages never need to reach for shell internals.
+ */
+function packageCapability(
+  id: string,
+  packageName: string,
+  definition: PluginPackageDefinition,
+): CapabilityEntry {
+  const metadata = { name: packageName, version: packageJson.version };
+  bindPluginPackageMetadata(definition, metadata);
+  return [
+    id,
+    (config): Plugin[] =>
+      instantiatePluginPackageDefinition(definition, config, metadata),
+    undefined,
+  ];
+}
+
+export const CORE_BUNDLE_ID = "core";
+export const SITE_BUNDLE_ID = "site";
+export const PUBLISHING_BUNDLE_ID = "publishing";
+export const TEAM_BUNDLE_ID = "team";
+
 /** Canonical catalog and active capability-bundle taxonomy. */
 export const canonicalBrain: BrainDefinition = defineBrain({
   name: "brain",
@@ -101,9 +142,9 @@ export const canonicalBrain: BrainDefinition = defineBrain({
   model: "gpt-5.6-luna",
   reasoningEffort: "low",
   capabilities: [
-    ["prompt", promptPlugin, undefined],
+    packageCapability("prompt", "@brains/prompt", promptPackage),
     ["profile", profilePlugin, undefined],
-    ["style-guide", styleGuidePlugin, undefined],
+    packageCapability("style-guide", "@brains/style-guide", styleGuidePackage),
     ["image", imagePlugin, undefined],
     ["document", documentPlugin, undefined],
     ["note", notePlugin, undefined],

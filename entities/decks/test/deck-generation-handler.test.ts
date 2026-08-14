@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, spyOn } from "bun:test";
 import type { EntityPluginContext } from "@brains/plugins";
-import { styleGuideAdapter, type StyleGuideEntity } from "@brains/style-guide";
+import type { StyleGuideEntity } from "@brains/style-guide";
 import {
   createMockEntityPluginContext,
   createMockProgressReporter,
@@ -45,11 +45,11 @@ describe("DeckGenerationJobHandler", () => {
     it("passes anchor voice style guidance into deck generation", async () => {
       const styleEntity = createTestEntity<StyleGuideEntity>("style-guide", {
         id: "style-guide",
-        content: styleGuideAdapter.createStyleGuideContent({
+        content: "",
+        metadata: {
           name: "Deck voice",
           voice: { summary: "Decisive and evidence-led" },
-        }),
-        metadata: {},
+        },
       });
       const getEntity = spyOn(mockContext.entityService, "getEntity");
       getEntity.mockResolvedValueOnce(styleEntity).mockResolvedValueOnce(null);
