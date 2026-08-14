@@ -271,6 +271,7 @@
     "core--inbox-follow-up-kinds",
     "core--inbox-linkable-filters",
     "core--inbox-recognizable-contacts",
+    "core--inbox-source-facets",
     "core--inbox-thread-position",
     "core--job-queue-wait-for-idle",
     "core--json-native-section-content",

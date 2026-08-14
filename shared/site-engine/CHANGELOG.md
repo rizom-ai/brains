@@ -1,5 +1,16 @@
 # @brains/site-engine
 
+## 0.2.0-alpha.292
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/image@0.2.0-alpha.292
+  - @brains/site-composition@0.2.0-alpha.292
+  - @brains/ui-library@0.2.0-alpha.292
+  - @brains/utils@0.2.0-alpha.292
+  - @brains/entity-service@0.2.0-alpha.292
+
 ## 0.2.0-alpha.291
 
 ### Patch Changes

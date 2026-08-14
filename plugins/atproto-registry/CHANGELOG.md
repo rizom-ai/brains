@@ -1,5 +1,14 @@
 # @brains/atproto-registry
 
+## 0.2.0-alpha.292
+
+### Patch Changes
+
+- Updated dependencies [[`7fc21a2`](https://github.com/rizom-ai/brains/commit/7fc21a277c3e81779c65d9a95809c0d53682406f)]:
+  - @brains/plugins@0.2.0-alpha.292
+  - @brains/atproto-contracts@0.2.0-alpha.292
+  - @brains/utils@0.2.0-alpha.292
+
 ## 0.2.0-alpha.291
 
 ### Patch Changes

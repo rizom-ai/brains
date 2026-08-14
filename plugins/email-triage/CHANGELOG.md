@@ -1,5 +1,19 @@
 # @brains/email-triage
 
+## 0.2.0-alpha.292
+
+### Minor Changes
+
+- [#137](https://github.com/rizom-ai/brains/pull/137) [`7fc21a2`](https://github.com/rizom-ai/brains/commit/7fc21a277c3e81779c65d9a95809c0d53682406f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add bounded source-scoped Inbox facets with source-owned vocabularies, validated item values, shared workspace and headless filtering, canonical facet URLs, selected-source CMS controls, and category, priority, and reply facets for new mail.
+
+### Patch Changes
+
+- Updated dependencies [[`7fc21a2`](https://github.com/rizom-ai/brains/commit/7fc21a277c3e81779c65d9a95809c0d53682406f)]:
+  - @brains/plugins@0.2.0-alpha.292
+  - @brains/contracts@0.2.0-alpha.292
+  - @brains/ui-library@0.2.0-alpha.292
+  - @brains/utils@0.2.0-alpha.292
+
 ## 0.2.0-alpha.291
 
 ### Patch Changes
