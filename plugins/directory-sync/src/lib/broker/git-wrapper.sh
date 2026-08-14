@@ -204,10 +204,21 @@ stderr_bytes="$(file_size "$stderr_file")"
 truncated=false
 
 # Step 6: bound the captured output, then write the terminal result.
+#
+# Shrink only. `truncate -s N` on a smaller file *grows* it, padding with NUL
+# bytes — which would turn an empty stderr into megabytes of NULs and inflate
+# the encoded result far past the bound it was meant to enforce.
+shrink_to() {
+  local size
+  size="$(file_size "$1")"
+  if [ "$size" -gt "$2" ]; then
+    truncate -s "$2" "$1" 2>/dev/null && truncated=true
+  fi
+}
+
 if [ "$outcome" = "overflow" ] || [ $((stdout_bytes + stderr_bytes)) -gt "$max_output_bytes" ]; then
-  truncate -s "$max_output_bytes" "$stdout_file" 2>/dev/null
-  truncate -s "$max_output_bytes" "$stderr_file" 2>/dev/null
-  truncated=true
+  shrink_to "$stdout_file" "$max_output_bytes"
+  shrink_to "$stderr_file" "$max_output_bytes"
   stdout_bytes="$(file_size "$stdout_file")"
   stderr_bytes="$(file_size "$stderr_file")"
 fi

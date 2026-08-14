@@ -1,5 +1,6 @@
-import { readFile } from "fs/promises";
+import { chmod, mkdir, readFile, writeFile } from "fs/promises";
 import { join } from "path";
+import wrapperSource from "./git-wrapper.sh" with { type: "text" };
 
 /**
  * TypeScript side of the OS-owned command wrapper.
@@ -13,13 +14,29 @@ import { join } from "path";
  * recovers a request after a crash. Normal path and recovery path are one.
  */
 
-export const GIT_WRAPPER_PATH: string = join(import.meta.dir, "git-wrapper.sh");
+/**
+ * The wrapper is imported as text and written to disk at runtime rather than
+ * resolved next to this module. `@rizom/brain` ships as a bundle, so
+ * `import.meta.dir` does not point at a directory containing the script; a
+ * text import is inlined by the bundler, which keeps one source of truth and
+ * makes development and production take the same path.
+ */
+export async function materializeWrapper(runtimeDir: string): Promise<string> {
+  await mkdir(runtimeDir, { recursive: true, mode: 0o700 });
+  const path = join(runtimeDir, "git-wrapper.sh");
+  await writeFile(path, wrapperSource, { mode: 0o700 });
+  // writeFile only applies mode on creation, so an existing file from an
+  // earlier version keeps its old permissions without this.
+  await chmod(path, 0o700);
+  return path;
+}
 
 export interface WrapperConfig {
   requestId: string;
   journalDir: string;
   lockFile: string;
   checkout: string;
+  wrapperPath: string;
   args: readonly string[];
   timeoutMs?: number | undefined;
   maxOutputBytes?: number | undefined;
@@ -96,7 +113,7 @@ function toOutcome(value: string | undefined): WrapperTerminalState["outcome"] {
  * a handle: there is no completion promise to await, by design.
  */
 export function spawnWrapper(config: WrapperConfig): number {
-  const child = Bun.spawn([GIT_WRAPPER_PATH, ...config.args], {
+  const child = Bun.spawn([config.wrapperPath, ...config.args], {
     // The wrapper cd's into the checkout itself; keeping the spawn cwd
     // elsewhere means a replaced checkout cannot strand the wrapper.
     cwd: config.journalDir,

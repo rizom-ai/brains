@@ -3,12 +3,16 @@ import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
+  materializeWrapper,
   readWrapperActive,
   readWrapperOutput,
   readWrapperTerminal,
   spawnWrapper,
 } from "../../../src/lib/broker/wrapper";
-import type { WrapperTerminalState } from "../../../src/lib/broker/wrapper";
+import type {
+  WrapperConfig,
+  WrapperTerminalState,
+} from "../../../src/lib/broker/wrapper";
 
 /**
  * Phase 2 of docs/plans/directory-sync-git-execution-broker.md.
@@ -21,6 +25,12 @@ import type { WrapperTerminalState } from "../../../src/lib/broker/wrapper";
 const LINUX = process.platform === "linux";
 
 let scratch: string | undefined;
+let wrapperPath = "";
+
+/** Every spawn goes through the materialized wrapper, as production does. */
+function spawn(config: Omit<WrapperConfig, "wrapperPath">): number {
+  return spawnWrapper({ ...config, wrapperPath });
+}
 
 interface Harness {
   journalDir: string;
@@ -30,6 +40,7 @@ interface Harness {
 
 async function harness(): Promise<Harness> {
   scratch = await mkdtemp(join(tmpdir(), "broker-wrapper-"));
+  wrapperPath = await materializeWrapper(join(scratch, "runtime"));
   return {
     journalDir: scratch,
     checkout: scratch,
@@ -90,7 +101,7 @@ describe.skipIf(!LINUX)("git broker wrapper", () => {
   it("runs a command and records a terminal result the broker never awaited", async () => {
     const { journalDir, checkout, lockFile } = await harness();
 
-    spawnWrapper({
+    spawn({
       requestId: "req_basic00000001",
       journalDir,
       checkout,
@@ -109,7 +120,7 @@ describe.skipIf(!LINUX)("git broker wrapper", () => {
   it("reports a non-zero exit without treating it as a timeout", async () => {
     const { journalDir, checkout, lockFile } = await harness();
 
-    spawnWrapper({
+    spawn({
       requestId: "req_failure0000001",
       journalDir,
       checkout,
@@ -136,7 +147,7 @@ describe.skipIf(!LINUX)("git broker wrapper", () => {
       "mark",
     ];
 
-    spawnWrapper({
+    spawn({
       requestId: "req_lockfirst00001",
       journalDir,
       checkout,
@@ -144,7 +155,7 @@ describe.skipIf(!LINUX)("git broker wrapper", () => {
       args: script("a"),
     });
     await Bun.sleep(50);
-    spawnWrapper({
+    spawn({
       requestId: "req_locksecond0001",
       journalDir,
       checkout,
@@ -172,14 +183,14 @@ describe.skipIf(!LINUX)("git broker wrapper", () => {
       "mark",
     ];
 
-    spawnWrapper({
+    spawn({
       requestId: "req_parallelone001",
       journalDir,
       checkout,
       lockFile: join(journalDir, "one.lock"),
       args: script("a"),
     });
-    spawnWrapper({
+    spawn({
       requestId: "req_paralleltwo001",
       journalDir,
       checkout,
@@ -199,7 +210,7 @@ describe.skipIf(!LINUX)("git broker wrapper", () => {
   it("kills, waits, and proves the group empty before releasing the lock", async () => {
     const { journalDir, checkout, lockFile } = await harness();
 
-    spawnWrapper({
+    spawn({
       requestId: "req_silentgroup001",
       journalDir,
       checkout,
@@ -233,7 +244,7 @@ describe.skipIf(!LINUX)("git broker wrapper", () => {
     // terminal result may appear while that group can still mutate the
     // checkout. Without the ignored signal there is no observable window at
     // all, because SIGKILL is immediate.
-    spawnWrapper({
+    spawn({
       requestId: "req_stubborn00001",
       journalDir,
       checkout,
@@ -273,7 +284,7 @@ describe.skipIf(!LINUX)("git broker wrapper", () => {
   it("kills a descendant that inherited the output pipes", async () => {
     const { journalDir, checkout, lockFile } = await harness();
 
-    spawnWrapper({
+    spawn({
       requestId: "req_descendant0001",
       journalDir,
       checkout,
@@ -302,7 +313,7 @@ describe.skipIf(!LINUX)("git broker wrapper", () => {
   it("advances byte counters while the command is still running", async () => {
     const { journalDir, checkout, lockFile } = await harness();
 
-    spawnWrapper({
+    spawn({
       requestId: "req_progress000001",
       journalDir,
       checkout,
@@ -334,7 +345,7 @@ describe.skipIf(!LINUX)("git broker wrapper", () => {
 
     // Each burst is well inside the deadline, but the total run is far past
     // it: a deadline that did not reset would kill this.
-    spawnWrapper({
+    spawn({
       requestId: "req_deadline000001",
       journalDir,
       checkout,
@@ -357,7 +368,7 @@ describe.skipIf(!LINUX)("git broker wrapper", () => {
   it("preserves spaces, newlines, and NUL-delimited records byte for byte", async () => {
     const { journalDir, checkout, lockFile } = await harness();
 
-    spawnWrapper({
+    spawn({
       requestId: "req_bytes00000001",
       journalDir,
       checkout,
@@ -380,7 +391,7 @@ describe.skipIf(!LINUX)("git broker wrapper", () => {
   it("bounds overflowing output and terminates the command", async () => {
     const { journalDir, checkout, lockFile } = await harness();
 
-    spawnWrapper({
+    spawn({
       requestId: "req_overflow000001",
       journalDir,
       checkout,
@@ -403,6 +414,32 @@ describe.skipIf(!LINUX)("git broker wrapper", () => {
     expect(output.stdout.length).toBeLessThanOrEqual(2048);
   }, 30_000);
 
+  it("shrinks oversized output without padding the empty stream", async () => {
+    const { journalDir, checkout, lockFile } = await harness();
+    await writeFile(join(checkout, "big.txt"), "x".repeat(64 * 1024));
+
+    // `truncate -s N` on a *smaller* file grows it, padding with NUL bytes.
+    // Applied blindly to an empty stderr that turns 0 bytes into N bytes of
+    // NULs, which then inflate enormously once encoded for the wire.
+    spawn({
+      requestId: "req_shrink00000001",
+      journalDir,
+      checkout,
+      lockFile,
+      pollMs: 20,
+      maxOutputBytes: 8192,
+      timeoutMs: 10_000,
+      args: ["-c", "alias.dump=!cat big.txt", "dump"],
+    });
+
+    const terminal = await awaitTerminal(journalDir, "req_shrink00000001");
+    const output = await readWrapperOutput(journalDir, "req_shrink00000001");
+
+    expect(terminal?.truncated).toBe(true);
+    expect(output.stdout.length).toBe(8192);
+    expect(output.stderr.length).toBe(0);
+  }, 30_000);
+
   // Phase 2 gate 1. Every later phase rests on this: the broker observes a
   // detached wrapper's durable artifacts instead of awaiting a child, so the
   // completion Bun 1.3.11 can drop is never on the critical path. If this ever
@@ -420,7 +457,7 @@ describe.skipIf(!LINUX)("git broker wrapper", () => {
       ): Promise<string[]> => {
         const accumulated = await previous;
         const requestId = `req_gate${String(index).padStart(10, "0")}`;
-        spawnWrapper({
+        spawn({
           requestId,
           journalDir,
           checkout,
@@ -455,6 +492,7 @@ describe.skipIf(!LINUX)("git broker wrapper", () => {
           journalDir: ${JSON.stringify(journalDir)},
           checkout: ${JSON.stringify(checkout)},
           lockFile: ${JSON.stringify(lockFile)},
+          wrapperPath: ${JSON.stringify(wrapperPath)},
           args: ["-c", "alias.slow=!sh -c 'sleep 1; printf done'", "slow"],
         });
         console.log("spawned");

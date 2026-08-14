@@ -392,6 +392,36 @@ Two findings worth carrying:
 
 ### Phase 3 — Broker service and supervision
 
+Split in two. **Phase 3a — broker service is done**
+(`src/lib/broker/{server,client,registry,socket-writer}.ts`): the Unix-socket server,
+per-repository serialization with the wrapper's `flock` as the authority, the checkout
+registry, the `BrokerGitCommandRunner` behind the existing `GitCommandRunner` interface,
+and end-to-end tests over a real socket, real wrapper, and real Git. **Phase 3b — the
+supervisor refactor is not started.**
+
+Two transport bugs found here that a green unit suite had missed, both of which produce
+exactly the silent wedge this plan exists to remove:
+
+- **A frame limit below the output bound strands results.** `MAX_FRAME_BYTES` was 64 KiB
+  while a checkout may declare megabytes of `maxOutputBytes`; the oversized frame threw
+  inside the send path, was swallowed, and the caller waited forever for a command that
+  had already finished. The frame limit is now 8 MiB with `maxOutputBytes` capped at
+  4 MiB at registration, and an unframeable result shrinks rather than disappears.
+- **Ignoring partial writes strands them too.** `socket.write` accepts fewer bytes than
+  requested once the kernel buffer fills, so a multi-megabyte result arrived truncated and
+  never decoded. All writes now go through a backpressure-aware writer flushed on `drain`.
+
+Treat any silent drop on the result path as a release blocker, not a performance detail:
+the client has no timeout of its own, by design, because the wrapper owns the deadline.
+
+Registration state resolved the bootstrap chicken-and-egg without a new message type:
+`register-checkout` _declares_ a repository, and the broker itself promotes it to ready by
+observing that the checkout exists on disk. `bootstrap` is accepted only while it does
+not, every other class only once it does. The transition is verified, not asserted by a
+client.
+
+#### Phase 3b — supervisor refactor (remaining)
+
 This is a supervisor refactor, not an added child; size it accordingly.
 `process-supervisor.ts` hardcodes `BrainChildRole = "web" | "worker"`, rejects any other
 `--child=` value, treats the web child's exit as the command result (`webExitResult`), and

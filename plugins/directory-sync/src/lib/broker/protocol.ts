@@ -11,8 +11,16 @@ import { containsUrlCredentials, redactSecrets } from "./redaction";
 
 export const BROKER_PROTOCOL_VERSION = 1;
 
-/** Frames are small: the largest real message is a bounded result body. */
-export const MAX_FRAME_BYTES: number = 64 * 1024;
+/**
+ * Frames must be able to carry a full bounded result body. Git output such as
+ * `show` of a large blob or `status` in a big tree routinely runs to megabytes,
+ * so the frame limit is set above the per-checkout output bound rather than
+ * below it — a smaller frame limit silently strands results.
+ */
+export const MAX_FRAME_BYTES: number = 8 * 1024 * 1024;
+
+/** Ceiling for a checkout's declared `maxOutputBytes`, enforced at registration. */
+export const MAX_OUTPUT_BYTES: number = 4 * 1024 * 1024;
 export const MAX_ARGUMENT_BYTES: number = 4096;
 export const MAX_ARGUMENT_COUNT: number = 64;
 
@@ -52,7 +60,7 @@ export interface ProgressMessage {
   type: "progress";
   version: number;
   requestId: string;
-  phase: "started" | "running" | "terminating";
+  phase: "starting" | "running" | "terminating";
   observedAt: string;
   stdoutBytes: number;
   stderrBytes: number;
@@ -98,16 +106,11 @@ export type BrokerMessage =
 const SUBCOMMANDS_BY_CLASS: Readonly<
   Record<GitOperationClass, ReadonlySet<string>>
 > = {
-  inspect: new Set([
-    "status",
-    "rev-parse",
-    "log",
-    "diff",
-    "show",
-    "cat-file",
-    "remote",
-  ]),
-  mutate: new Set(["add", "commit", "checkout", "rm", "config"]),
+  inspect: new Set(["status", "rev-parse", "log", "diff", "show", "cat-file"]),
+  // `config` and `remote` sit here rather than in `inspect` because their
+  // read and write forms differ only by argument. Classifying by capability
+  // rather than by intent keeps the boundary checkable from argv alone.
+  mutate: new Set(["add", "commit", "checkout", "rm", "config", "remote"]),
   network: new Set(["fetch", "pull", "push", "ls-remote"]),
   bootstrap: new Set([
     "ls-remote",
@@ -165,7 +168,7 @@ const registerCheckoutObject = z.object({
   branch: z.string().min(1),
   remoteFingerprint: z.string().length(64),
   timeoutMs: z.number().int().positive(),
-  maxOutputBytes: z.number().int().positive(),
+  maxOutputBytes: z.number().int().positive().max(MAX_OUTPUT_BYTES),
 });
 
 const executeObject = z.object({
@@ -181,7 +184,7 @@ const progressObject = z.object({
   type: z.literal("progress"),
   version: versionField,
   requestId: requestIdField,
-  phase: z.enum(["started", "running", "terminating"]),
+  phase: z.enum(["starting", "running", "terminating"]),
   observedAt: timestampField,
   stdoutBytes: z.number().int().nonnegative(),
   stderrBytes: z.number().int().nonnegative(),
@@ -324,6 +327,30 @@ export class FrameDecoder {
     this.#buffer = this.#buffer.slice(FRAME_HEADER_BYTES + length);
     return this.#drain([...decoded, message]);
   }
+}
+
+/**
+ * Pick the narrowest ordinary class that permits this subcommand. `bootstrap`
+ * is never inferred: it widens what is allowed, so a caller must ask for it
+ * explicitly and the registry decides whether the checkout is still in a state
+ * where it applies.
+ */
+export function classifyGitArgs(
+  args: readonly string[],
+): GitOperationClass | null {
+  const subcommand = args[0];
+  if (subcommand === undefined) return null;
+
+  const ordered: readonly GitOperationClass[] = [
+    "inspect",
+    "mutate",
+    "network",
+  ];
+  return (
+    ordered.find((operationClass) =>
+      SUBCOMMANDS_BY_CLASS[operationClass].has(subcommand),
+    ) ?? null
+  );
 }
 
 /**
