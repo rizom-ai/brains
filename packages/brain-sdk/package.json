@@ -1,0 +1,56 @@
+{
+  "name": "@brains/sdk",
+  "license": "AGPL-3.0-only",
+  "version": "0.2.0-alpha.289",
+  "description": "Layer 1 authoring surface: the curated plugin/entity/interface contract that @rizom/brain re-exports and in-repo packages import directly",
+  "dependencies": {
+    "@brains/app": "workspace:*",
+    "@brains/contracts": "workspace:*",
+    "@brains/deploy-support": "workspace:*",
+    "@brains/entity-service": "workspace:*",
+    "@brains/plugins": "workspace:*",
+    "@brains/templates": "workspace:*",
+    "@brains/utils": "workspace:*"
+  },
+  "devDependencies": {
+    "@brains/eslint-config": "workspace:*",
+    "@brains/typescript-config": "workspace:*",
+    "bun-types": "^1.3.14",
+    "eslint": "^10.5.0",
+    "typescript": "^7.0.2"
+  },
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./plugins": {
+      "types": "./src/plugins.ts",
+      "default": "./src/plugins.ts"
+    },
+    "./entities": {
+      "types": "./src/entities.ts",
+      "default": "./src/entities.ts"
+    },
+    "./services": {
+      "types": "./src/services.ts",
+      "default": "./src/services.ts"
+    },
+    "./interfaces": {
+      "types": "./src/interfaces.ts",
+      "default": "./src/interfaces.ts"
+    },
+    "./templates": {
+      "types": "./src/templates.ts",
+      "default": "./src/templates.ts"
+    }
+  },
+  "main": "src/index.ts",
+  "private": true,
+  "scripts": {
+    "lint": "eslint . --max-warnings 0",
+    "lint:fix": "eslint . --max-warnings 0 --fix",
+    "typecheck": "tsc --noEmit"
+  },
+  "types": "src/index.ts"
+}

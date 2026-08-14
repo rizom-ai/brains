@@ -1,5 +1,5 @@
 import { z } from "@brains/utils/zod";
-import { createTemplate, type Template } from "@brains/templates";
+import { createTemplate, type Template } from "@brains/plugins";
 
 export interface SeriesDescription {
   description: string;

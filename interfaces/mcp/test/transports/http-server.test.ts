@@ -9,7 +9,7 @@ import {
 } from "bun:test";
 import { StreamableHTTPServer } from "../../src/transports/http-server";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { IMCPTransport, ToolVisibility } from "@brains/mcp-service";
+import type { IMCPTransport, ToolVisibility } from "@brains/plugins";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import type { TransportLogger } from "../../src/transports/types";
 

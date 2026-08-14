@@ -247,6 +247,7 @@ export {
   type AnyEntityDefinition,
   type EncodedEntityMarkdown,
   type EntityDefinition,
+  type EntityDefinitionConfig,
   type EntityMarkdownCodec,
   type EntityMarkdownDocument,
   type EntityOf,
@@ -718,11 +719,13 @@ export {
 // ============================================================================
 
 export {
+  createConfirmationGate,
   createTool,
   createResource,
   toolSuccess,
   toolError,
   toolResultSchema,
+  type ConfirmationGate,
   type ToolResult,
   type ToolErrorResult,
 } from "@brains/mcp-service";

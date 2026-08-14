@@ -4,7 +4,7 @@ import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
 import type { ActorRef } from "@brains/contracts";
-import type { IMCPTransport, ToolVisibility } from "@brains/mcp-service";
+import type { IMCPTransport, ToolVisibility } from "@brains/plugins";
 import type { TransportLogger } from "./types";
 import { createConsoleLogger, adaptLogger } from "./types";
 import { SessionEvictionSupervisor } from "./session-eviction-supervisor";

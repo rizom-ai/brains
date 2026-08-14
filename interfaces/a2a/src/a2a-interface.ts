@@ -10,18 +10,22 @@ import {
 } from "@brains/http-signatures";
 import {
   InterfacePlugin,
+  skillDataSchema,
   type InterfacePluginContext,
+  type SkillData,
   type Tool,
   type WebRouteDefinition,
 } from "@brains/plugins";
-import type { Daemon, AgentNamespace } from "@brains/plugins";
-import type { UserPermissionLevel } from "@brains/templates";
+import type {
+  AgentNamespace,
+  Daemon,
+  UserPermissionLevel,
+} from "@brains/plugins";
 import type { AgentCard } from "@a2a-js/sdk";
 import { Hono } from "hono";
 import { a2aConfigSchema, type A2AConfig, type A2AConfigInput } from "./config";
 import { buildAgentCard } from "./agent-card";
 import { buildAgentDirectory } from "./agent-directory";
-import { skillDataSchema, type SkillData } from "@brains/plugins";
 import { TaskManager } from "./task-manager";
 import { A2ATurnSupervisor } from "./turn-supervisor";
 import {

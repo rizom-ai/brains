@@ -145,6 +145,7 @@ export {
   formatVisualGuidance,
   formatVoiceGuidance,
   parseStyleGuideContent,
+  styleGuideFromEntity,
   type StyleGuideEntityReader,
   styleGuideFrontmatterSchema,
   styleGuideMessagingSchema,

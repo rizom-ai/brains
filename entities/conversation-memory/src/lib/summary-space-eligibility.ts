@@ -1,5 +1,5 @@
 import type { Conversation } from "@brains/plugins";
-import { matchSpaceSelector } from "@brains/templates";
+import { matchSpaceSelector } from "@brains/plugins";
 
 export type SummaryEligibilityReason =
   "configured-space" | "no-spaces-configured" | "space-not-configured";

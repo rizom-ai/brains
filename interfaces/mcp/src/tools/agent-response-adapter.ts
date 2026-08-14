@@ -1,5 +1,5 @@
 import type { AgentResponse, ToolResultData } from "@brains/contracts";
-import type { ToolResponse } from "@brains/mcp-service";
+import type { ToolResponse } from "@brains/plugins";
 
 interface ReadYourWritesHandle {
   toolName: string;

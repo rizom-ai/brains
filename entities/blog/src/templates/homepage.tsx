@@ -1,6 +1,6 @@
 import type { JSX } from "preact";
 import { z } from "@brains/utils/zod";
-import { createTemplate } from "@brains/templates";
+import { createTemplate } from "@brains/plugins";
 import { BlogPostTemplate } from "./blog-post";
 import { Head, useMarkdownToHtml } from "@brains/ui-library";
 import {

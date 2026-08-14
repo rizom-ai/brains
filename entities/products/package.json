@@ -5,15 +5,14 @@
   "description": "Product entity management and overview page for marketing showcase",
   "dependencies": {
     "@brains/content-formatters": "workspace:*",
-    "@brains/contracts": "workspace:*",
     "@brains/media-page-composer": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/ui-library": "workspace:*",
     "@brains/utils": "workspace:*"
   },
   "devDependencies": {
-    "@brains/app": "workspace:*",
     "@brains/eslint-config": "workspace:*",
+    "@brains/test-utils": "workspace:*",
     "@brains/typescript-config": "workspace:*",
     "@types/bun": "^1.3.14",
     "bun-types": "^1.3.14",

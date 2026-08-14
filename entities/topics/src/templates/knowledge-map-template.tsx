@@ -1,7 +1,7 @@
 /** @jsxImportSource preact */
 import type { JSX } from "preact";
-import { createTemplate } from "@brains/templates";
-import type { Template } from "@brains/templates";
+import { createTemplate } from "@brains/plugins";
+import type { Template } from "@brains/plugins";
 import { StructuredContentFormatter } from "@brains/content-formatters";
 import { z } from "@brains/utils/zod";
 import { KnowledgeMap, knowledgeMapStyles } from "../widgets/knowledge-map";

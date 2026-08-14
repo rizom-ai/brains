@@ -1,39 +1,9 @@
-/** Declarative service authoring contract. */
+/**
+ * Layer 3 re-export of the layer 1 authoring surface (`@brains/sdk`).
+ *
+ * The contract lives in `packages/brain-sdk`; this file exists so the
+ * published `@rizom/brain/services` specifier keeps resolving to the identical
+ * symbols. Add exports to the SDK package, never here.
+ */
 
-export {
-  defineAccountSettings,
-  defineCmsWorkspace,
-  defineDashboardWidget,
-  defineEntityCatalog,
-  defineJob,
-  defineServicePlugin,
-  defineTool,
-  defineWorkspaceAction,
-} from "@brains/plugins";
-export type {
-  AccountSettingsDefinition,
-  AccountSettingsFieldDefinition,
-  AccountSettingsValue,
-  CmsWorkspaceDefinition,
-  CmsWorkspaceView,
-  CmsWorkspaceViewBlock,
-  DashboardDigest,
-  DashboardOperatorView,
-  DashboardOperatorViewBlock,
-  DashboardWidgetDefinition,
-  OperatorCaller,
-  OperatorCapabilityDefinition,
-  OperatorEntityCatalogDefinition,
-  OperatorEntityReader,
-  OperatorQueryReader,
-  OperatorView,
-  OperatorViewBlock,
-  ServiceJobDefinition,
-  ServiceJobReference,
-  ServiceJobStatus,
-  ServicePackageDefinition,
-  WorkspaceActionConfirmation,
-  WorkspaceActionDefinition,
-  WorkspacePreparedConfirmation,
-} from "@brains/plugins";
-export { z } from "@brains/utils/zod";
+export * from "@brains/sdk/services";

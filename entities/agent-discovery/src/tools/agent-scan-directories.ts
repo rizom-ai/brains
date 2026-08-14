@@ -1,8 +1,9 @@
 import type {
   EntityPluginContext,
   ServicePluginContext,
+  Tool,
+  ToolResponse,
 } from "@brains/plugins";
-import type { Tool, ToolResponse } from "@brains/mcp-service";
 import { z } from "@brains/utils/zod";
 import { AgentAdapter } from "../adapters/agent-adapter";
 import { AGENT_ENTITY_TYPE } from "../lib/constants";

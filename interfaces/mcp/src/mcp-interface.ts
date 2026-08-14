@@ -7,10 +7,9 @@ import {
   type JobContext,
   type WebRouteDefinition,
 } from "@brains/plugins";
-import type { Daemon, DaemonHealth } from "@brains/plugins";
+import type { Daemon, DaemonHealth, IMCPTransport } from "@brains/plugins";
 import { StdioMCPServer } from "./transports/stdio-server";
 import { StreamableHTTPServer } from "./transports/http-server";
-import type { IMCPTransport } from "@brains/mcp-service";
 import { getActiveAuthService } from "@brains/auth-service";
 import { mcpConfigSchema, type MCPConfig, type MCPConfigInput } from "./config";
 import { createMCPTools } from "./tools";

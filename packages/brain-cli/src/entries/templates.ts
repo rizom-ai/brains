@@ -1,26 +1,9 @@
-/** Curated public template and render authoring surface. */
+/**
+ * Layer 3 re-export of the layer 1 authoring surface (`@brains/sdk`).
+ *
+ * The contract lives in `packages/brain-sdk`; this file exists so the
+ * published `@rizom/brain/templates` specifier keeps resolving to the identical
+ * symbols. Add exports to the SDK package, never here.
+ */
 
-export {
-  createTemplate,
-  createTypedComponent,
-  TemplateSchema,
-  ViewTemplateSchema,
-  SiteBuilderOptionsSchema,
-  BuildResultSchema,
-  SiteContentEntityTypeSchema,
-} from "@brains/templates";
-
-export type {
-  Template,
-  TemplateInput,
-  ComponentType,
-  RuntimeScript,
-  ViewTemplate,
-  ViewTemplateRegistry,
-  WebRenderer,
-  OutputFormat,
-  SiteBuilder,
-  SiteBuilderOptions,
-  BuildResult,
-  SiteContentEntityType,
-} from "@brains/templates";
+export * from "@brains/sdk/templates";
