@@ -1,6 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import type {
   ClaimProjectionWaveInput,
+  ProjectionDirtyInput,
   ProjectionIncidentInput,
   ProjectionWave,
   ProjectionWaveInput,
@@ -35,6 +36,7 @@ class MemoryProjectionStore implements ProjectionWaveStore {
   completed = false;
   active = false;
   pending = true;
+  latestMarkedAt = 0;
   readonly completedRuleIds = new Set<string>();
   readonly failedWaveIds: string[] = [];
   readonly incidents: ProjectionIncidentInput[] = [];
@@ -56,6 +58,20 @@ class MemoryProjectionStore implements ProjectionWaveStore {
     this.claimedWave.graphFingerprint = input.graphFingerprint;
     this.active = true;
     return Promise.resolve(this.claimedWave);
+  }
+
+  listPendingInputs(): Promise<ProjectionDirtyInput[]> {
+    if (!this.pending) return Promise.resolve([]);
+    return Promise.resolve(
+      this.inputs.map((input) => ({
+        generation: input.generation,
+        sourceType: input.sourceType,
+        sourceId: input.sourceId,
+        revision: input.revision,
+        operation: input.operation,
+        markedAt: this.latestMarkedAt,
+      })),
+    );
   }
 
   listWaveInputs(_waveId: string): Promise<ProjectionWaveInput[]> {
@@ -192,6 +208,17 @@ const topicRule = defineProjectionRule({
   derive: async () => [],
 });
 
+const delayedTopicRule = defineProjectionRule({
+  id: "topics",
+  version: "1",
+  sources: [{ kind: "entity", types: ["document"] }],
+  targetType: "topic",
+  sourceChangeBatchDelayMs: 1_000,
+  inputSchema: z.object({}),
+  selectInput: async () => ({}),
+  derive: async () => [],
+});
+
 const skillRule = defineProjectionRule({
   id: "skills",
   version: "1",
@@ -277,6 +304,53 @@ describe("ProjectionWaveScheduler", () => {
     );
     expect(store.queuedRules).toEqual([
       { waveId: "wave-1", ruleId: "topics", jobId: "job-1" },
+    ]);
+  });
+
+  it("honors sourceChangeBatchDelayMs and reschedules from the latest input", async () => {
+    const store = new MemoryProjectionStore(documentInputs(2));
+    store.latestMarkedAt = 100;
+    const queue = new MemoryProjectionQueue();
+    let now = 100;
+    const scheduled: Array<{
+      delayMs: number;
+      wakeup: () => Promise<void>;
+      cancelled: boolean;
+    }> = [];
+    const scheduler = new ProjectionWaveScheduler({
+      store,
+      queue,
+      graph,
+      rules: [delayedTopicRule, skillRule],
+      createWaveId: (): string => "wave-1",
+      now: (): number => now,
+      scheduleWakeup: (delayMs, wakeup) => {
+        const entry = { delayMs, wakeup, cancelled: false };
+        scheduled.push(entry);
+        return (): void => {
+          entry.cancelled = true;
+        };
+      },
+    });
+
+    await scheduler.startNextWave();
+
+    expect(queue.requests).toEqual([]);
+    expect(scheduled).toHaveLength(1);
+    expect(scheduled[0]?.delayMs).toBe(1_000);
+
+    now = 500;
+    store.latestMarkedAt = 500;
+    await scheduler.startNextWave();
+
+    expect(scheduled[0]?.cancelled).toBe(true);
+    expect(scheduled[1]?.delayMs).toBe(1_000);
+
+    now = 1_500;
+    await scheduled[1]?.wakeup();
+
+    expect(queue.requests.map(({ data }) => data)).toEqual([
+      { waveId: "wave-1", ruleId: "topics" },
     ]);
   });
 

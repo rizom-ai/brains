@@ -46,6 +46,7 @@ describe("ProjectionRule", () => {
       version: "1",
       sources: [{ kind: "entity", types: ["document"] }],
       targetType: "topic",
+      sourceChangeBatchDelayMs: 250,
       inputSchema: z.object({
         sources: z.array(z.object({ id: z.string() })),
       }),
@@ -57,6 +58,7 @@ describe("ProjectionRule", () => {
     expect(Object.isFrozen(rule.sources)).toBe(true);
     expect(Object.isFrozen(rule.sources[0])).toBe(true);
     expect(Object.isFrozen(rule.sources[0]?.types)).toBe(true);
+    expect(rule.sourceChangeBatchDelayMs).toBe(250);
     const selectedInput = await rule.selectInput(
       { waveId: "wave-1", inputs: [] },
       inputContext,
@@ -67,7 +69,19 @@ describe("ProjectionRule", () => {
     expect(rule.fingerprint(selectedInput)).toMatch(/^[a-f0-9]{64}$/);
   });
 
-  it("rejects malformed rule metadata before registration", () => {
+  it("defaults to immediate admission and rejects malformed rule metadata", () => {
+    expect(
+      defineProjectionRule({
+        id: "immediate",
+        version: "1",
+        sources: [{ kind: "entity", types: ["document"] }],
+        targetType: "topic",
+        inputSchema: emptyInputSchema,
+        selectInput: async () => ({}),
+        derive: async () => [],
+      }).sourceChangeBatchDelayMs,
+    ).toBe(0);
+
     expect(() =>
       defineProjectionRule({
         id: "",

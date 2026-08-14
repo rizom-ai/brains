@@ -315,6 +315,7 @@ export function createTopicProjectionRule(
       },
     ],
     targetType: TOPIC_ENTITY_TYPE,
+    sourceChangeBatchDelayMs: config.sourceChangeBatchDelayMs,
     inputSchema: topicWaveInputSchema,
     selectInput: async (_trigger, context) =>
       selectTopicWaveInput(context, config),

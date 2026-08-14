@@ -72,6 +72,7 @@ export interface ProjectionRule {
   readonly version: string;
   readonly sources: readonly ProjectionRuleEntitySource[];
   readonly targetType: string;
+  readonly sourceChangeBatchDelayMs: number;
   readonly inputSchema: z.ZodType<ProjectionJsonObject>;
   readonly selectInput: (
     trigger: ProjectionWaveTrigger,
@@ -101,6 +102,7 @@ export interface ProjectionRuleDefinition<
   readonly version: string;
   readonly sources: readonly ProjectionRuleEntitySource[];
   readonly targetType: string;
+  readonly sourceChangeBatchDelayMs?: number | undefined;
   readonly inputSchema: z.ZodType<TInput>;
   readonly selectInput: (
     trigger: ProjectionWaveTrigger,
@@ -125,6 +127,7 @@ const ProjectionRuleMetadataSchema = z.strictObject({
     }),
   ),
   targetType: z.string().trim().min(1),
+  sourceChangeBatchDelayMs: z.number().int().nonnegative().default(0),
 });
 
 export function defineProjectionRule<TInput extends ProjectionJsonObject>(
@@ -135,6 +138,7 @@ export function defineProjectionRule<TInput extends ProjectionJsonObject>(
     version: input.version,
     sources: input.sources,
     targetType: input.targetType,
+    sourceChangeBatchDelayMs: input.sourceChangeBatchDelayMs,
   });
   if (typeof input.selectInput !== "function") {
     throw new Error(`Projection rule "${metadata.id}" must select input`);
@@ -161,6 +165,7 @@ export function defineProjectionRule<TInput extends ProjectionJsonObject>(
     version: metadata.version,
     sources: Object.freeze(sources),
     targetType: metadata.targetType,
+    sourceChangeBatchDelayMs: metadata.sourceChangeBatchDelayMs,
     inputSchema: input.inputSchema,
     selectInput: async (
       trigger: ProjectionWaveTrigger,

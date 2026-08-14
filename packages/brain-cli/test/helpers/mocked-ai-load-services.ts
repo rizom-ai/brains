@@ -16,6 +16,7 @@ import type {
 import { MockLanguageModelV3 } from "ai/test";
 
 export const MOCK_LOAD_PROBE_MARKER = "Mocked AI feature-load probe";
+export const MOCK_LOAD_UPDATE_MARKER = "Mocked AI feature-load update";
 
 /** The shell config and the mock must agree, so both read these. */
 export const MOCK_LOAD_MODEL = "openai:gpt-4o-mini";
@@ -25,6 +26,9 @@ export interface MockLoadSnapshot {
   embeddingCalls: number;
   probeEmbeddingCalls: number;
   completedProbeEmbeddingCalls: number;
+  updateEmbeddingCalls: number;
+  completedUpdateEmbeddingCalls: number;
+  maxConcurrentUpdateEmbeddingCalls: number;
   objectCalls: number;
   textCalls: number;
   activeCalls: number;
@@ -37,15 +41,27 @@ export class MockLoadTracker {
   private embeddingCalls = 0;
   private probeEmbeddingCalls = 0;
   private completedProbeEmbeddingCalls = 0;
+  private updateEmbeddingCalls = 0;
+  private completedUpdateEmbeddingCalls = 0;
+  private activeUpdateEmbeddingCalls = 0;
+  private maxConcurrentUpdateEmbeddingCalls = 0;
   private objectCalls = 0;
   private textCalls = 0;
   private activeCalls = 0;
   private maxConcurrentCalls = 0;
 
-  begin(kind: MockCallKind, probe = false): () => void {
+  begin(kind: MockCallKind, probe = false, update = false): () => void {
     if (kind === "embedding") {
       this.embeddingCalls++;
       if (probe) this.probeEmbeddingCalls++;
+      if (update) {
+        this.updateEmbeddingCalls++;
+        this.activeUpdateEmbeddingCalls++;
+        this.maxConcurrentUpdateEmbeddingCalls = Math.max(
+          this.maxConcurrentUpdateEmbeddingCalls,
+          this.activeUpdateEmbeddingCalls,
+        );
+      }
     }
     if (kind === "object") this.objectCalls++;
     if (kind === "text") this.textCalls++;
@@ -62,6 +78,10 @@ export class MockLoadTracker {
       if (kind === "embedding" && probe) {
         this.completedProbeEmbeddingCalls++;
       }
+      if (kind === "embedding" && update) {
+        this.completedUpdateEmbeddingCalls++;
+        this.activeUpdateEmbeddingCalls--;
+      }
       this.activeCalls--;
     };
   }
@@ -71,6 +91,9 @@ export class MockLoadTracker {
       embeddingCalls: this.embeddingCalls,
       probeEmbeddingCalls: this.probeEmbeddingCalls,
       completedProbeEmbeddingCalls: this.completedProbeEmbeddingCalls,
+      updateEmbeddingCalls: this.updateEmbeddingCalls,
+      completedUpdateEmbeddingCalls: this.completedUpdateEmbeddingCalls,
+      maxConcurrentUpdateEmbeddingCalls: this.maxConcurrentUpdateEmbeddingCalls,
       objectCalls: this.objectCalls,
       textCalls: this.textCalls,
       activeCalls: this.activeCalls,
@@ -117,6 +140,7 @@ export class MockLoadEmbeddingService implements IEmbeddingService {
     const finish = this.tracker.begin(
       "embedding",
       text.includes(MOCK_LOAD_PROBE_MARKER),
+      text.includes(MOCK_LOAD_UPDATE_MARKER),
     );
     try {
       await delay(this.delayMs, signal);

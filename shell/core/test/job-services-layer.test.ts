@@ -18,6 +18,7 @@ import {
 import type { ShellDependencies } from "../src/types/shell-types";
 
 const logger = createSilentLogger("job-services-layer-test");
+const workerConcurrency = 4;
 
 class TrackingProgressMonitor implements IJobProgressMonitor {
   private readonly order: string[];
@@ -115,12 +116,14 @@ describe("job service layers", () => {
     const first = initializeJobServices({
       dependencies: undefined,
       jobQueueConfig: { url: "file::memory:" },
+      workerConcurrency,
       messageBus,
       logger,
     });
     const second = initializeJobServices({
       dependencies: undefined,
       jobQueueConfig: { url: "file::memory:" },
+      workerConcurrency,
       messageBus,
       logger,
     });
@@ -141,6 +144,7 @@ describe("job service layers", () => {
     const services = initializeJobServices({
       dependencies: createInjectedDependencies({ order }),
       jobQueueConfig: { url: "file::memory:" },
+      workerConcurrency,
       messageBus: MessageBus.createFresh(logger),
       logger,
     });
@@ -156,6 +160,7 @@ describe("job service layers", () => {
     const services = initializeJobServices({
       dependencies: createInjectedDependencies({ order }),
       jobQueueConfig: { url: "file::memory:" },
+      workerConcurrency,
       messageBus: MessageBus.createFresh(logger),
       logger,
     });
@@ -178,6 +183,7 @@ describe("job service layers", () => {
         batchFailure: new Error("batch stop failed"),
       }),
       jobQueueConfig: { url: "file::memory:" },
+      workerConcurrency,
       messageBus: MessageBus.createFresh(logger),
       logger,
     });
