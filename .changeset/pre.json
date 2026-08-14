@@ -225,6 +225,7 @@
     "core--background-work-supervision",
     "core--batch-enqueue-validation-only-mode",
     "core--boot-and-roundtrip-hardening",
+    "core--bounded-parallel-ai-load",
     "core--brain-definition-profile-kind",
     "core--bundle-resolver-integration",
     "core--bundle-split-boot",

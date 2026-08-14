@@ -1,5 +1,18 @@
 # @brains/job-queue
 
+## 0.2.0-alpha.291
+
+### Patch Changes
+
+- [#136](https://github.com/rizom-ai/brains/pull/136) [`3ed9cfe`](https://github.com/rizom-ai/brains/commit/3ed9cfe0636ee55dac9bf74506d743a6a84eb6f8) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Run background jobs with schema-configured bounded parallelism and honor the existing topic source-change batch delay before projection-wave admission, preventing parallel imports from causing repeated full-corpus topic extraction.
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.291
+  - @brains/db@0.2.0-alpha.291
+  - @brains/operation-context@0.2.0-alpha.291
+  - @brains/utils@0.2.0-alpha.291
+  - @brains/mcp-service@0.2.0-alpha.291
+
 ## 0.2.0-alpha.290
 
 ### Patch Changes
