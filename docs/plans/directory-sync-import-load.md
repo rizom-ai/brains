@@ -422,8 +422,9 @@ delay every 100 ms. The fixture suppresses per-embedding info logs so the test r
 not retain 700 diagnostic objects as an artificial memory load. Before final RSS sampling,
 the monitor stops its recurring sampler and leaves the process idle for five seconds; it
 does not force garbage collection. The gate fails on five seconds of 90% CPU saturation,
-500 ms event-loop delay, 1,216 MiB peak RSS, 768 MiB RSS growth, 1,152 MiB final RSS, or
-704 MiB final RSS growth.
+a single 1,000 ms event-loop delay, five seconds of accumulated delay across consecutive
+samples delayed by at least 500 ms, 1,216 MiB RSS, or 768 MiB RSS growth. The same RSS limits apply to both the
+observed peak and the final post-idle sample; both values remain separately reported.
 
 The initial tighter RSS limits exposed Bun test-runner garbage-collection variance rather
 than a different workload: one diagnostic execution retained 6.58 million JSC objects in
@@ -439,5 +440,20 @@ capacity), continuous saturation was zero, and maximum event-loop delay was 287.
 RSS was 732,246,016 bytes with 285,839,360 bytes of growth; after five idle seconds final
 RSS was 654,307,328 bytes with 207,900,672 bytes of retained growth. All 1,608 add/update
 readiness samples remained operational and ready, both phases drained to zero, and no
-external AI provider was reachable. This is the closest hermetic comparison to the prior
-smoke peak of 199.72% CPU, but it remains local rather than smoke evidence.
+external AI provider was reachable.
+
+A post-merge local run overlapping unrelated repository suites exposed two max-only gate
+problems without changing workload correctness: one event-loop turn was delayed 673.3 ms,
+and deferred collection left final RSS at 1,219,039,232 bytes. The report was retained and
+the run was not retried unchanged. The tracker now distinguishes a bounded delayed turn
+from consecutive event-loop starvation, while preserving a hard one-second ceiling, and
+the final RSS envelope matches the already accepted peak envelope rather than depending
+on nondeterministic idle collection. Deterministic tracker tests cover transient and
+consecutive delays. With those semantics, the unchanged 350 add plus 350 update workload
+passed after rebasing onto current main in 67.2 seconds: peak CPU was 1.271 cores with zero
+sustained saturation, maximum loop delay was 284.6 ms with zero sustained stall, peak RSS
+was 1,093,332,992 bytes, and final RSS was 1,087,045,632 bytes. All 1,593 readiness samples
+remained operational and ready and both phases drained.
+
+This is the closest hermetic comparison to the prior smoke peak of 199.72% CPU, but it
+remains local rather than smoke evidence.

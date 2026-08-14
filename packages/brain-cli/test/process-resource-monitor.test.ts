@@ -11,6 +11,7 @@ describe("ProcessResourceTracker", () => {
       cpuCapacity: 2,
       saturationFraction: 0.9,
       expectedSampleIntervalMs: 100,
+      eventLoopStallThresholdMs: 500,
     });
 
     tracker.observe({ atMs: 0, cpuMicros: 0, rssBytes: 100 });
@@ -25,6 +26,7 @@ describe("ProcessResourceTracker", () => {
       maxCpuFraction: 0.95,
       maxSustainedCpuSaturationMs: 2_000,
       maxEventLoopDelayMs: 900,
+      maxSustainedEventLoopDelayMs: 3_600,
       baselineRssBytes: 100,
       maxRssBytes: 150,
       maxRssGrowthBytes: 50,
@@ -38,6 +40,7 @@ describe("ProcessResourceTracker", () => {
       cpuCapacity: 2,
       saturationFraction: 0.9,
       expectedSampleIntervalMs: 100,
+      eventLoopStallThresholdMs: 500,
     });
 
     tracker.observe({ atMs: 1_000, cpuMicros: 100, rssBytes: 100 });
@@ -52,6 +55,7 @@ describe("ProcessResourceTracker", () => {
       cpuCapacity: 2,
       saturationFraction: 0.9,
       expectedSampleIntervalMs: 100,
+      eventLoopStallThresholdMs: 500,
     });
 
     tracker.observe({ atMs: 0, cpuMicros: 0, rssBytes: 100 });
@@ -64,12 +68,31 @@ describe("ProcessResourceTracker", () => {
       maxCpuFraction: 0.5,
       maxSustainedCpuSaturationMs: 0,
       maxEventLoopDelayMs: 0,
+      maxSustainedEventLoopDelayMs: 0,
       baselineRssBytes: 100,
       maxRssBytes: 150,
       maxRssGrowthBytes: 50,
       finalRssBytes: 120,
       finalRssGrowthBytes: 20,
     });
+  });
+
+  it("separates one delayed turn from sustained event-loop stalls", () => {
+    const tracker = new ProcessResourceTracker({
+      cpuCapacity: 2,
+      saturationFraction: 0.9,
+      expectedSampleIntervalMs: 100,
+      eventLoopStallThresholdMs: 500,
+    });
+
+    tracker.observe({ atMs: 0, cpuMicros: 0, rssBytes: 100 });
+    tracker.observe({ atMs: 800, cpuMicros: 0, rssBytes: 100 });
+    tracker.observe({ atMs: 900, cpuMicros: 0, rssBytes: 100 });
+    tracker.observe({ atMs: 1_700, cpuMicros: 0, rssBytes: 100 });
+    tracker.observe({ atMs: 2_500, cpuMicros: 0, rssBytes: 100 });
+
+    expect(tracker.snapshot().maxEventLoopDelayMs).toBe(700);
+    expect(tracker.snapshot().maxSustainedEventLoopDelayMs).toBe(1_400);
   });
 });
 
