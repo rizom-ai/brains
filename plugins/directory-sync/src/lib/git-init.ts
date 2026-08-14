@@ -2,6 +2,7 @@ import type { OwnedGit } from "./owned-git";
 import type { Logger } from "@brains/utils/logger";
 import { checkoutGitBranch } from "./git-branch";
 import { prepareGitRepository } from "./git-repository";
+import type { GitRunnerFactory } from "./git-runner-factory";
 
 export interface GitInitializeOptions {
   logger: Logger;
@@ -11,6 +12,7 @@ export interface GitInitializeOptions {
   branch: string;
   timeoutMs: number;
   signal?: AbortSignal | undefined;
+  runnerFactory?: GitRunnerFactory | undefined;
   authorName?: string | undefined;
   authorEmail?: string | undefined;
 }
@@ -27,6 +29,7 @@ export async function initializeGitRepository(
     branch,
     timeoutMs,
     signal,
+    runnerFactory,
     authorName,
     authorEmail,
   } = options;
@@ -41,6 +44,7 @@ export async function initializeGitRepository(
     branch,
     timeoutMs,
     signal,
+    runnerFactory,
   });
 
   await configureIdentity(git, authorName, authorEmail);

@@ -25,7 +25,8 @@ import {
   tryResolveRemoteHead,
 } from "./git-pull";
 import { getGitStatus, hasGitLocalChanges } from "./git-status";
-import { OwnedGitProcessRunner } from "./git-stall";
+import { defaultGitRunnerFactory } from "./git-runner-factory";
+import type { GitRunnerFactory } from "./git-runner-factory";
 
 export type { GitSyncOptions } from "./git-options";
 export type { GitSyncStatus, PullResult } from "../types";
@@ -47,6 +48,7 @@ export class GitSync implements IGitSync {
   private readonly authToken: string | undefined;
   private readonly dataDir: string;
   private readonly timeoutMs: number;
+  private readonly runnerFactory: GitRunnerFactory;
   private readonly lock = new SerialQueue();
   private readonly lifecycleController = new AbortController();
   private readonly activeOperations = new Set<Promise<unknown>>();
@@ -74,11 +76,15 @@ export class GitSync implements IGitSync {
     this.authorEmail = options.authorEmail;
     this.authToken = options.authToken;
     this.timeoutMs = options.timeoutMs ?? DEFAULT_GIT_TIMEOUT_MS;
+    this.runnerFactory = options.runnerFactory ?? defaultGitRunnerFactory;
   }
 
   private get git(): OwnedGit {
     this._git ??= new OwnedGit(
-      new OwnedGitProcessRunner(this.net, this.lifecycleController.signal),
+      this.runnerFactory({
+        ...this.net,
+        signal: this.lifecycleController.signal,
+      }),
     );
     return this._git;
   }
@@ -92,7 +98,13 @@ export class GitSync implements IGitSync {
    */
   initialize(): Promise<void> {
     return this.runOperation(async () => {
-      this._git = await initializeGitRepository({
+      // The client returned here is a *bootstrap* client: it may run clone,
+      // init, and branch repair against a checkout that does not exist yet.
+      // Its life ends with bootstrap. Keeping it would send every later
+      // command under the bootstrap operation class, which the broker refuses
+      // once the checkout is real — so discard it and let the lazy getter
+      // build an ordinary client.
+      await initializeGitRepository({
         logger: this.logger,
         dataDir: this.dataDir,
         remoteUrl: this.remoteUrl,
@@ -103,9 +115,11 @@ export class GitSync implements IGitSync {
         branch: this.branch,
         timeoutMs: this.timeoutMs,
         signal: this.lifecycleController.signal,
+        runnerFactory: this.runnerFactory,
         authorName: this.authorName,
         authorEmail: this.authorEmail,
       });
+      this._git = null;
     });
   }
 

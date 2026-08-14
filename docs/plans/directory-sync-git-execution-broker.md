@@ -483,6 +483,32 @@ Tests first:
 
 ### Phase 4 — Runner composition seam
 
+**Done** — `src/lib/git-runner-factory.ts` is now the only place a runner is constructed,
+and a test walks the source tree to assert exactly that. The factory is threaded through
+`GitSyncOptions`, `initializeGitRepository`, `prepareGitRepository`, and `hasGitHead`;
+`OwnedGitProcessRunner` remains its only implementation, so behaviour is unchanged.
+
+The seam carries one flag, `bootstrap`, rather than a full operation class: the class is
+derivable from argv, but whether a command is repository preparation is not. Everything
+else the client infers.
+
+One defect the seam exposed, which would have broken the brain immediately after Phase 5
+landed: **`GitSync.initialize()` kept the bootstrap client for all later work.** Every
+ordinary command would then have been sent under the bootstrap class, which the broker
+refuses once the checkout exists. The bootstrap client's life now ends with bootstrap and
+the lazy getter builds an ordinary one. This is worth remembering as a shape, not just a
+fix — a long-lived handle acquired during a privileged phase silently keeps that
+privilege.
+
+Dropped from this phase with a reason: the planned test for _"the advisory lock covers a
+bootstrap clone against a concurrent registered command on the same path"_ is not
+writable, because the registry makes those two states mutually exclusive — `bootstrap` is
+refused once the checkout exists and every other class is refused before it does. There is
+no legitimate concurrency to test. The lock still covers them, since both key on the same
+repository.
+
+The original scoping notes follow.
+
 There is no composition point today. `OwnedGitProcessRunner` is constructed inline at six
 sites: `git-repository.ts:51,95,116,137`, `git-sync.ts:81`, and `git-state.ts:11`. Phase 5
 cannot "swap the runner at composition time" until a seam exists.

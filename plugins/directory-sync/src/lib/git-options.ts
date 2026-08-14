@@ -1,5 +1,6 @@
 import { sha256Hex } from "@brains/utils/hash";
 import type { Logger } from "@brains/utils/logger";
+import type { GitRunnerFactory } from "./git-runner-factory";
 
 /**
  * Stall timeout for network git operations (pull/push): if git produces no
@@ -20,6 +21,8 @@ export interface GitSyncOptions {
   authorEmail?: string | undefined;
   /** Stall timeout for git operations in ms (defaults to DEFAULT_GIT_TIMEOUT_MS). */
   timeoutMs?: number | undefined;
+  /** Execution boundary for every Git command this checkout runs. */
+  runnerFactory?: GitRunnerFactory | undefined;
 }
 
 export function resolveGitRemoteUrl(options: GitSyncOptions): string {

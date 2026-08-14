@@ -3,7 +3,8 @@ import { mkdir, mkdtemp, readFile, rename, rm, writeFile } from "fs/promises";
 import { basename, join } from "path";
 import type { Logger } from "@brains/utils/logger";
 import { pathExists } from "./fs-utils";
-import { OwnedGitProcessRunner } from "./git-stall";
+import { defaultGitRunnerFactory } from "./git-runner-factory";
+import type { GitRunnerFactory } from "./git-runner-factory";
 
 export interface PrepareGitRepositoryOptions {
   logger: Logger;
@@ -13,6 +14,7 @@ export interface PrepareGitRepositoryOptions {
   branch: string;
   timeoutMs: number;
   signal?: AbortSignal | undefined;
+  runnerFactory?: GitRunnerFactory | undefined;
 }
 
 export async function prepareGitRepository(
@@ -26,6 +28,7 @@ export async function prepareGitRepository(
     branch,
     timeoutMs,
     signal,
+    runnerFactory = defaultGitRunnerFactory,
   } = options;
   const gitDir = join(dataDir, ".git");
 
@@ -41,14 +44,17 @@ export async function prepareGitRepository(
         branch,
         timeoutMs,
         signal,
+        runnerFactory,
       });
     } else {
-      await gitInit(dataDir, branch, timeoutMs, signal);
+      await gitInit(dataDir, branch, timeoutMs, runnerFactory, signal);
     }
   }
 
+  // Still bootstrap: the caller uses this client for branch repair and remote
+  // configuration before the checkout is registered.
   const git = new OwnedGit(
-    new OwnedGitProcessRunner({ baseDir: dataDir, timeoutMs }, signal),
+    runnerFactory({ baseDir: dataDir, timeoutMs, bootstrap: true, signal }),
   );
 
   await repairInvalidPlaceholderHead({ logger, dataDir, branch });
@@ -68,6 +74,7 @@ async function prepareRepositoryFromRemote(options: {
   branch: string;
   timeoutMs: number;
   signal?: AbortSignal | undefined;
+  runnerFactory: GitRunnerFactory;
 }): Promise<void> {
   const {
     logger,
@@ -77,6 +84,7 @@ async function prepareRepositoryFromRemote(options: {
     branch,
     timeoutMs,
     signal,
+    runnerFactory,
   } = options;
 
   const initLocally = async (
@@ -87,15 +95,17 @@ async function prepareRepositoryFromRemote(options: {
     if (cleanupDir) {
       await rm(cleanupDir, { recursive: true, force: true });
     }
-    await gitInit(dataDir, branch, timeoutMs, signal);
+    await gitInit(dataDir, branch, timeoutMs, runnerFactory, signal);
   };
 
   let remoteHasHistory: boolean;
   try {
-    const refs = await new OwnedGitProcessRunner(
-      { baseDir: dataDir, timeoutMs },
+    const refs = await runnerFactory({
+      baseDir: dataDir,
+      timeoutMs,
+      bootstrap: true,
       signal,
-    ).run(["ls-remote", "--heads", authenticatedUrl]);
+    }).run(["ls-remote", "--heads", authenticatedUrl]);
     remoteHasHistory = refs.trim().length > 0;
   } catch {
     if (signal?.aborted) throw signal.reason;
@@ -113,10 +123,12 @@ async function prepareRepositoryFromRemote(options: {
   );
 
   try {
-    await new OwnedGitProcessRunner(
-      { baseDir: parentDir, timeoutMs },
+    await runnerFactory({
+      baseDir: parentDir,
+      timeoutMs,
+      bootstrap: true,
       signal,
-    ).run(["clone", authenticatedUrl, cloneDir]);
+    }).run(["clone", authenticatedUrl, cloneDir]);
     await rm(dataDir, { recursive: true, force: true });
     await rename(cloneDir, dataDir);
   } catch {
@@ -132,12 +144,15 @@ async function gitInit(
   dataDir: string,
   branch: string,
   timeoutMs: number,
+  runnerFactory: GitRunnerFactory,
   signal?: AbortSignal,
 ): Promise<void> {
-  await new OwnedGitProcessRunner({ baseDir: dataDir, timeoutMs }, signal).run([
-    "init",
-    `--initial-branch=${branch}`,
-  ]);
+  await runnerFactory({
+    baseDir: dataDir,
+    timeoutMs,
+    bootstrap: true,
+    signal,
+  }).run(["init", `--initial-branch=${branch}`]);
 }
 
 async function repairInvalidPlaceholderHead(options: {
