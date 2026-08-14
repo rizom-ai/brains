@@ -215,6 +215,9 @@ export function createMockJobQueueService(
       ),
     ),
     getRegisteredTypes: mock(() => returns.getRegisteredTypes ?? []),
+    // Nothing is ever dequeued here, so the queue is idle by construction and
+    // settles immediately rather than polling for a quiet window.
+    waitForIdle: mock(() => Promise.resolve()),
     close: mock(() => {}),
   } satisfies IJobQueueService;
 }

@@ -952,6 +952,8 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
     endWorkerSession: async () => true,
     renewAttemptLease: async () => true,
     recordAttemptProgress: async () => true,
+    // Idle by construction, for the same reason: nothing is ever dequeued.
+    waitForIdle: async () => {},
     close: () => {},
   };
 
