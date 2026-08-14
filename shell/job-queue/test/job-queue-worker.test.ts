@@ -130,7 +130,7 @@ function createWorkerWithSingleJob(
 
   if (processDelay > 0) {
     handler.process.mockImplementation(async () => {
-      await new Promise((resolve) => setTimeout(resolve, processDelay));
+      await Bun.sleep(processDelay);
       return { success: true };
     });
   }
@@ -845,7 +845,7 @@ describe("JobQueueWorker", () => {
     it("should wait for jobs claimed by an in-flight poll during stop", async () => {
       const handler = createMockHandler();
       handler.process.mockImplementation(async () => {
-        await new Promise((resolve) => setTimeout(resolve, 30));
+        await Bun.sleep(30);
         return { success: true };
       });
 

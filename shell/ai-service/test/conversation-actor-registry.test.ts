@@ -73,8 +73,7 @@ function deferred<T>(): {
   return { promise, resolve, reject };
 }
 
-const delay = (ms: number): Promise<void> =>
-  new Promise((resolve) => setTimeout(resolve, ms));
+const delay = (ms: number): Promise<void> => Bun.sleep(ms);
 
 function withRegistryTestClock(
   idleTtlMs: number,

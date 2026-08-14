@@ -48,7 +48,7 @@ const mockAgentFactory = mock(
 );
 
 function delay(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+  return Bun.sleep(ms);
 }
 
 /** The `conversationActorIdleTtlMs` every eviction test below configures. */
@@ -2795,11 +2795,11 @@ describe("AgentService", () => {
         },
       );
 
-      const timeout = new Promise<never>((_, reject) => {
-        setTimeout(
-          () => reject(new Error("bystander chat stalled the queue")),
-          1000,
-        );
+      // A deadline guard rather than a wait: the race below fails loudly with
+      // this message if the queue stalls, instead of hanging until the runner
+      // times out with no explanation.
+      const timeout = Bun.sleep(1000).then((): never => {
+        throw new Error("bystander chat stalled the queue");
       });
 
       const bystanderResponse = (await Promise.race([

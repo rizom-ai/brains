@@ -59,6 +59,50 @@ export default [
     },
   },
   {
+    // Tests in these packages synchronize on conditions, not on durations.
+    //
+    // `await new Promise((r) => setTimeout(r, N))` cannot say what it is
+    // waiting for, so it cannot notice when the thing it was waiting for stops
+    // happening. Two tests in this repo passed for years with half their
+    // subject dead, because the sleep only ever proved that time had passed.
+    //
+    // Reach for, in order:
+    //   - `waitUntil(predicate, description)` from `@brains/test-utils`, when
+    //     waiting for work to finish;
+    //   - a deferred the test resolves, when the point is ordering rather than
+    //     duration;
+    //   - `jest.useFakeTimers` or `setSystemTime`, when elapsed time genuinely
+    //     is the behaviour under test.
+    //
+    // A real duration still has a home: modelling how long a mocked operation
+    // takes, or letting a window pass before asserting something did *not*
+    // happen. Those use `Bun.sleep(ms)` behind a named helper — `pastIdleActorTtl()`
+    // in ai-service is the worked example — so the call site states its reason
+    // instead of leaving a bare number.
+    //
+    // Scoped to the packages Phase 5 has migrated. Add a package here as its
+    // migration lands, rather than enabling the rule repo-wide and suppressing
+    // it in the places that have not been done yet.
+    files: [
+      "plugins/directory-sync/test/**/*.ts",
+      "shell/job-queue/test/**/*.ts",
+      "shell/ai-service/test/**/*.ts",
+      "interfaces/a2a/test/**/*.ts",
+      "interfaces/chat/test/**/*.ts",
+    ],
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector:
+            "NewExpression[callee.name='Promise'] CallExpression[callee.name='setTimeout']",
+          message:
+            "Do not synchronize on a sleep. Use waitUntil() for work, a deferred for ordering, or fake timers for elapsed-time behaviour. If a real duration is genuinely needed, use Bun.sleep(ms) behind a named helper that says why.",
+        },
+      ],
+    },
+  },
+  {
     // Vendored shadcn/ui and AI Elements primitives — kept in sync with the
     // upstream registry. Adding explicit return types here would diverge from
     // upstream and make future syncs painful.

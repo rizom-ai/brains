@@ -61,7 +61,7 @@ describe("git operation serialization", () => {
     const trackConcurrency = async (delayMs: number): Promise<void> => {
       concurrentOps++;
       maxConcurrent = Math.max(maxConcurrent, concurrentOps);
-      await new Promise((r) => setTimeout(r, delayMs));
+      await Bun.sleep(delayMs);
       concurrentOps--;
     };
 

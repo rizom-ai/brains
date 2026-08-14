@@ -206,18 +206,11 @@ slug: ecosystem-architecture
 
       // Simulate concurrent imports with staggered job completion
       const simulateConcurrentImports = async (): Promise<void> => {
-        const jobs = files.map((file, index) => {
-          return new Promise<void>((resolve) => {
-            // Jobs complete at different times
-            setTimeout(
-              () => {
-                // Subscriber writes after each job completes
-                writtenFiles.set(file.id, file.content);
-                resolve();
-              },
-              10 + index * 20,
-            );
-          });
+        // Each import's job completes independently. The delays that used to
+        // stagger these were unobservable: the assertions read the map by key,
+        // so completion order cannot affect the result either way.
+        const jobs = files.map(async (file) => {
+          writtenFiles.set(file.id, file.content);
         });
 
         await Promise.all(jobs);
@@ -324,40 +317,44 @@ slug: test-series
       const filesOnDisk: Map<string, string> = new Map();
 
       // HISTORICAL BUGGY FLOW: sync() with export
-      const simulateBuggyPluginInitialSync = async (): Promise<
-        Map<string, string>
-      > => {
+      const simulateBuggyPluginInitialSync = async (): Promise<{
+        duringWindow: Map<string, string>;
+        afterSubscriber: Map<string, string>;
+      }> => {
         // Step 1: old sync() did import then export immediately.
         // Export read OLD db content and wrote it to file.
         filesOnDisk.set("series-test-series.md", dbContent); // OLD content!
 
-        // Step 2: asynchronous import-side work later catches up.
-        await new Promise<void>((resolve) => {
-          setTimeout(() => {
-            // Job completes, updates DB
-            dbContent = newContentWithCover;
-            // Subscriber writes correct content
-            filesOnDisk.set("series-test-series.md", newContentWithCover);
-            resolve();
-          }, 50);
-        });
+        // This is the window. Capture what git would have committed had
+        // sync:initial:completed been emitted here.
+        const duringWindow = new Map(filesOnDisk);
 
-        // Step 3: sync:initial:completed emitted
-        // git-sync commits
-        return new Map(filesOnDisk);
+        // Step 2: asynchronous import-side work later catches up. No delay is
+        // needed to model "later" — nothing else is in flight, so a sleep here
+        // would only cost wall clock without making the ordering any more real.
+        dbContent = newContentWithCover;
+        filesOnDisk.set("series-test-series.md", newContentWithCover);
+
+        // Step 3: sync:initial:completed emitted, git-sync commits
+        return { duringWindow, afterSubscriber: new Map(filesOnDisk) };
       };
 
-      const gitSyncCommitContent = await simulateBuggyPluginInitialSync();
+      const { duringWindow, afterSubscriber } =
+        await simulateBuggyPluginInitialSync();
 
-      // In the buggy flow, the file DOES end up correct because subscriber overwrites
-      // But there's a window where the file had wrong content
-      // If completion were emitted during that window, git could commit wrong content.
-      expect(gitSyncCommitContent.get("series-test-series.md")).toContain(
-        "coverImageId: series-test-cover",
+      // The point of the test: during the window the file held stale content,
+      // so a commit triggered then would have captured it. Asserting only the
+      // end state — as this test used to — passes whether or not the window
+      // exists, which is the whole thing it is meant to document.
+      expect(duringWindow.get("series-test-series.md")).not.toContain(
+        "coverImageId",
       );
 
-      // The test passes because subscriber eventually fixes it.
-      // The fix (removing export) eliminates the intermediate wrong state entirely.
+      // The subscriber does eventually fix it; removing export from sync()
+      // eliminates the intermediate wrong state entirely.
+      expect(afterSubscriber.get("series-test-series.md")).toContain(
+        "coverImageId: series-test-cover",
+      );
     });
   });
 });

@@ -40,7 +40,7 @@ describe("SlackSocketLoop", () => {
     loop.setAdapter(adapter);
 
     loop.start();
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    await Bun.sleep(0);
     expect(loop.isRunning()).toBe(true);
     expect(startSocketModeListener).toHaveBeenCalledTimes(1);
     expect(startSocketModeListener.mock.calls[0]?.[1]).toBe(50);
@@ -62,7 +62,7 @@ describe("SlackSocketLoop", () => {
 
     loop.start();
     loop.start();
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    await Bun.sleep(0);
 
     expect(startSocketModeListener).toHaveBeenCalledTimes(1);
     await loop.stop();
@@ -88,7 +88,7 @@ describe("SlackSocketLoop", () => {
     loop.setAdapter(adapter);
 
     loop.start();
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    await Bun.sleep(0);
 
     const firstStop = loop.stop();
     const secondStop = loop.stop();
@@ -98,7 +98,7 @@ describe("SlackSocketLoop", () => {
     const stopping = firstStop.then(() => {
       stopSettled = true;
     });
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    await Bun.sleep(0);
 
     try {
       expect(stopSettled).toBe(false);

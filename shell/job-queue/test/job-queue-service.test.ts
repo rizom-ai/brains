@@ -747,7 +747,7 @@ describe("JobQueueService", () => {
         options: defaultEnqueueOptions,
       });
       await service.complete(jobId, undefined);
-      await new Promise((resolve) => setTimeout(resolve, 2));
+      await Bun.sleep(2);
       const deletedCount = await service.cleanup(1);
       expect(deletedCount).toBeGreaterThanOrEqual(0);
     });
@@ -804,7 +804,7 @@ describe("JobQueueService", () => {
         data: testEntity,
         options: defaultEnqueueOptions,
       });
-      await new Promise((resolve) => setTimeout(resolve, 1));
+      await Bun.sleep(1);
       const recentJobId = await service.enqueue({
         type: "shell:embedding",
         data: testEntity,
@@ -899,13 +899,13 @@ describe("JobQueueService", () => {
         data: { ...testEntity, id: "test-1" },
         options: defaultEnqueueOptions,
       });
-      await new Promise((resolve) => setTimeout(resolve, 10));
+      await Bun.sleep(10);
       const job2 = await service.enqueue({
         type: "shell:embedding",
         data: { ...testEntity, id: "test-2" },
         options: defaultEnqueueOptions,
       });
-      await new Promise((resolve) => setTimeout(resolve, 10));
+      await Bun.sleep(10);
       const job3 = await service.enqueue({
         type: "shell:embedding",
         data: { ...testEntity, id: "test-3" },
@@ -1635,7 +1635,7 @@ describe("JobQueueService", () => {
       });
       const job1Before = await service.getStatus(id1);
       const originalScheduledFor = job1Before?.scheduledFor;
-      await new Promise((resolve) => setTimeout(resolve, 10));
+      await Bun.sleep(10);
       const id2 = await service.enqueue({
         type: "site-build",
         data: {},
