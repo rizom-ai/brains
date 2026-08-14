@@ -15,9 +15,11 @@ import { SerialQueue } from "@brains/utils/serial-queue";
 import {
   DEFAULT_GIT_TIMEOUT_MS,
   getAuthenticatedGitUrl,
+  getCheckoutRepositoryKey,
   getGitRemoteFingerprint,
   resolveGitRemoteUrl,
 } from "./git-options";
+import { createBrokerGitRunnerFactory } from "./broker-runner-factory";
 import type { GitSyncOptions } from "./git-options";
 import {
   getChangedPaths,
@@ -76,7 +78,18 @@ export class GitSync implements IGitSync {
     this.authorEmail = options.authorEmail;
     this.authToken = options.authToken;
     this.timeoutMs = options.timeoutMs ?? DEFAULT_GIT_TIMEOUT_MS;
-    this.runnerFactory = options.runnerFactory ?? defaultGitRunnerFactory;
+    this.runnerFactory =
+      options.runnerFactory ??
+      (options.brokerSocketPath
+        ? createBrokerGitRunnerFactory({
+            socketPath: options.brokerSocketPath,
+            repositoryKey: getCheckoutRepositoryKey(this.dataDir),
+            checkoutPath: this.dataDir,
+            branch: this.branch,
+            remoteFingerprint: this.remoteFingerprint,
+            timeoutMs: this.timeoutMs,
+          })
+        : defaultGitRunnerFactory);
   }
 
   private get git(): OwnedGit {

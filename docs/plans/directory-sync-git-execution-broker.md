@@ -536,6 +536,53 @@ Tests first:
 
 ### Phase 5 — Route every Git path
 
+**Done.** `createBrokerGitRunnerFactory` supplies the runner whenever a broker socket is
+present, `gitBroker` now defaults on, and the supervisor exports one
+`BRAIN_GIT_BROKER_SOCKET` to every child so web and worker cannot disagree with the broker
+about which checkout owner they share. Registration is lazy and idempotent inside the
+factory rather than a separate lifecycle step, so no caller can forget it and a broker
+restart recovers on the next command.
+
+The Phase 0 reproduction now passes through the real stack: two `GitSync` owners of one
+checkout commit concurrently without colliding on the HEAD ref, even though their
+in-memory `SerialQueue`s are still separate. That is the defect closed end to end.
+
+**The bootstrap boundary had to move, and this is the correction that matters.** Phase 3a
+made `bootstrap` legal only while the checkout was absent and every other class legal only
+once it existed. That is wrong: `git init` creates the checkout _partway through_
+bootstrap, and the remaining preparation — remote configuration, identity, branch repair,
+the initial commit — legitimately runs against a real repository. Routed end to end, the
+brain bootstrapped and then refused its own next command.
+
+The rule is now asymmetric, and deliberately so:
+
+- `bootstrap` covers only the commands that run against a checkout which does not exist
+  yet — remote probe, clone, init — and is refused the moment the checkout appears. The
+  widest allow-list closes as early as it possibly can.
+- Ordinary classes carry no reverse restriction. An ordinary command issued before the
+  checkout exists simply fails in Git, which is a truthful error. Forbidding it would have
+  forced every post-init preparation command to stay `bootstrap` forever, holding the
+  widest allow-list open indefinitely — the opposite of the goal.
+
+Three direct-execution sites remain in directory-sync, and a test pins that list so a
+fourth cannot appear unnoticed:
+
+- `lib/broker/wrapper.ts` — spawns the wrapper. This is the boundary.
+- `lib/git-stall.ts` — the in-process runner, still used when no broker owns the checkout.
+- `lib/content-remote-bootstrap.ts` — local `file://` seed bootstrap. It builds a
+  throwaway worktree and a bare remote and never touches the managed checkout, so it sits
+  outside the ownership the broker exists to hold, and its `spawnSync` has no asynchronous
+  completion to lose. Kept deliberately, not overlooked.
+
+**One residual risk worth naming.** The in-process runner is still reachable: it is what
+runs when `BRAIN_GIT_BROKER_SOCKET` is absent. That is correct for unsupervised runs —
+tests, `--chat`, and brains started with `gitBroker: false` — but it means a supervised
+brain that somehow lost the variable would silently fall back to the defective path rather
+than fail. Phase 7's packaged-image check should assert a supervised brain actually
+reaches its broker, rather than assuming the variable arrived.
+
+The original routing list follows.
+
 Use the broker-backed `OwnedGit` runner for:
 
 - repository probe, clone, init, branch repair, and remote configuration;

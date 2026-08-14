@@ -5,19 +5,15 @@ import type { ExecuteMessage, RegisterCheckoutMessage } from "./protocol";
 /**
  * Which checkouts this broker owns, and what may be run against them.
  *
- * Registration is the boundary between bootstrap and ordinary work. A
- * repository is *declared* by `register-checkout` before its checkout exists,
- * during which only the `bootstrap` class is accepted. It becomes *ready* when
- * the checkout is actually present on disk — the broker verifies that itself
- * rather than trusting a client to announce it — after which `bootstrap` is
- * refused and every other class is accepted.
+ * `bootstrap` is the widest allow-list, so it closes as early as it can: it
+ * covers only the commands that run against a checkout which does not exist
+ * yet — the remote probe, clone, and init — and the broker refuses it the
+ * moment the checkout appears on disk. That the checkout exists is verified
+ * here rather than announced by a client.
  */
 
 export type RegistryErrorCode =
-  | "identity-drift"
-  | "unknown-repository"
-  | "bootstrap-after-registration"
-  | "not-bootstrapped";
+  "identity-drift" | "unknown-repository" | "bootstrap-after-registration";
 
 export class RegistryError extends Error {
   readonly code: RegistryErrorCode;
@@ -122,18 +118,22 @@ export class CheckoutRegistry {
       );
     }
 
-    const ready = await this.#checkoutExists(declared.checkoutPath);
-
-    if (message.operationClass === "bootstrap" && ready) {
+    // `bootstrap` covers only the commands that run against a checkout which
+    // does not exist yet — the remote probe, clone, and init. Everything the
+    // client does afterwards (remote configuration, identity, branch repair,
+    // the initial commit) runs against a real repository and uses an ordinary
+    // class, so the widest allow-list closes the moment the checkout appears.
+    //
+    // The reverse restriction is deliberately absent: an ordinary command
+    // issued before the checkout exists simply fails in Git, which is a
+    // truthful error, and forbidding it here bought nothing.
+    if (
+      message.operationClass === "bootstrap" &&
+      (await this.#checkoutExists(declared.checkoutPath))
+    ) {
       throw new RegistryError(
         "bootstrap-after-registration",
         `Repository "${message.repositoryKey}" is already checked out; bootstrap is no longer accepted`,
-      );
-    }
-    if (message.operationClass !== "bootstrap" && !ready) {
-      throw new RegistryError(
-        "not-bootstrapped",
-        `Repository "${message.repositoryKey}" has no checkout yet; only bootstrap is accepted`,
       );
     }
 

@@ -1,5 +1,10 @@
 import { spawn, type SpawnOptions } from "node:child_process";
+import { join } from "node:path";
 import type { CommandResult } from "./command-result";
+import {
+  GIT_BROKER_RUNTIME_DIR_ENV,
+  resolveGitBrokerRuntimeDir,
+} from "./git-broker-child";
 import type {
   SignalProcess,
   SpawnBunRunnerDependencies,
@@ -150,6 +155,7 @@ interface RuntimeSupervisorOptions {
   shutdownGraceMs: number;
   workerHeartbeatIntervalMs: number;
   gitBroker: boolean;
+  brokerEnv: Readonly<Record<string, string>>;
   restartPolicies: Readonly<Partial<Record<BrainChildRole, RestartPolicy>>>;
   reportIncident: (incident: Record<string, unknown>) => void;
   reportReady: (role: BrainChildRole) => void;
@@ -453,7 +459,9 @@ function runRuntimeSupervisor(
         {
           cwd: options.cwd,
           stdio: ["inherit", "inherit", "inherit", "ipc"],
-          env: options.processImpl.env,
+          // Every child resolves the same socket, so web and worker cannot
+          // disagree with the broker about which checkout owner they share.
+          env: { ...options.processImpl.env, ...options.brokerEnv },
         } satisfies SpawnOptions,
       );
       const child: ManagedChild = {
@@ -533,6 +541,12 @@ export function superviseRuntimeChildren(
   entrypointPath: string,
   dependencies: ProcessSupervisorDependencies = {},
 ): Promise<CommandResult> {
+  const gitBroker = dependencies.gitBroker ?? true;
+  const brokerRuntimeDir = resolveGitBrokerRuntimeDir(
+    cwd,
+    (dependencies.processImpl ?? process).env,
+  );
+
   return runRuntimeSupervisor({
     cwd,
     entrypointPath,
@@ -543,7 +557,13 @@ export function superviseRuntimeChildren(
     shutdownGraceMs: dependencies.shutdownGraceMs ?? 15_000,
     workerHeartbeatIntervalMs:
       dependencies.workerHeartbeatIntervalMs ?? WORKER_HEARTBEAT_INTERVAL_MS,
-    gitBroker: dependencies.gitBroker ?? false,
+    gitBroker,
+    brokerEnv: gitBroker
+      ? {
+          [GIT_BROKER_RUNTIME_DIR_ENV]: brokerRuntimeDir,
+          BRAIN_GIT_BROKER_SOCKET: join(brokerRuntimeDir, "git-broker.sock"),
+        }
+      : {},
     restartPolicies: {
       worker: {
         baseMs: dependencies.workerRestartBaseMs ?? 1_000,

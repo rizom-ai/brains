@@ -23,6 +23,25 @@ export interface GitSyncOptions {
   timeoutMs?: number | undefined;
   /** Execution boundary for every Git command this checkout runs. */
   runnerFactory?: GitRunnerFactory | undefined;
+  /** Unix socket of the Git broker that owns this checkout, when supervised. */
+  brokerSocketPath?: string | undefined;
+}
+
+/** The socket the supervisor exported for this instance's Git broker. */
+export function resolveBrokerSocketPath(
+  env: Record<string, string | undefined>,
+): string | undefined {
+  const socketPath = env["BRAIN_GIT_BROKER_SOCKET"];
+  return socketPath && socketPath.length > 0 ? socketPath : undefined;
+}
+
+/**
+ * Stable, wire-safe identity for a checkout. Hashed rather than derived from
+ * the path so the repository key never carries a filesystem layout — and so it
+ * always satisfies the protocol's key charset.
+ */
+export function getCheckoutRepositoryKey(dataDir: string): string {
+  return sha256Hex(dataDir).slice(0, 32);
 }
 
 export function resolveGitRemoteUrl(options: GitSyncOptions): string {

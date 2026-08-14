@@ -189,6 +189,9 @@ describe("builtin process supervision", () => {
         entrypointPath: "/tmp/brain.js",
         spawnImpl,
         processImpl: fakeProcess,
+        // This test covers the web/worker ordering start() sets up; broker
+        // ordering has its own coverage in the supervisor suite.
+        gitBroker: false,
       },
     );
 

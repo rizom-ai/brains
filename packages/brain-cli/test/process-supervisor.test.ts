@@ -83,11 +83,17 @@ function createHarness(): TestHarness {
   };
 }
 
+/**
+ * The web/worker suite runs without a broker on purpose: these assertions are
+ * about the two runtime children, and a brain with no Git checkout supervises
+ * exactly this shape. Broker ordering is covered separately below.
+ */
 function supervise(harness: TestHarness): Promise<CommandResult> {
   return superviseRuntimeChildren("/brain", "/dist/brain.js", {
     spawnImpl: harness.spawnImpl,
     processImpl: harness.processEvents,
     clock: harness.clock,
+    gitBroker: false,
     startupTimeoutMs: 100,
     shutdownGraceMs: 50,
     workerRestartBaseMs: 10,
@@ -437,6 +443,31 @@ describe("git broker supervision", () => {
 
     harness.processEvents.emit("SIGTERM");
     worker.emit("close", null, "SIGTERM");
+    web.emit("close", null, "SIGTERM");
+    broker.emit("close", null, "SIGTERM");
+    expect(await supervised).toEqual({ success: true });
+  });
+
+  it("gives every child the same broker socket", async () => {
+    const harness = createHarness();
+    const supervised = superviseWithBroker(harness);
+    const broker = harness.children[0];
+    if (!broker) throw new Error("Expected broker child");
+    broker.emit("message", { type: "broker-ready" });
+
+    const envs = harness.spawnImpl.mock.calls.map(
+      (call) => (call[2] as { env: Record<string, string> }).env,
+    );
+    const sockets = new Set(envs.map((env) => env["BRAIN_GIT_BROKER_SOCKET"]));
+
+    // Web and worker must not be able to disagree with the broker about which
+    // checkout owner they share.
+    expect(sockets.size).toBe(1);
+    expect([...sockets][0]).toContain("git-broker.sock");
+
+    const web = harness.children[1];
+    if (!web) throw new Error("Expected web child");
+    harness.processEvents.emit("SIGTERM");
     web.emit("close", null, "SIGTERM");
     broker.emit("close", null, "SIGTERM");
     expect(await supervised).toEqual({ success: true });

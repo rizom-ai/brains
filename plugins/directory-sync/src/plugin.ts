@@ -2,6 +2,7 @@ import type { Plugin, ServicePluginContext, Tool } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
 import { DirectorySync } from "./lib/directory-sync";
 import { GitSync } from "./lib/git-sync";
+import { resolveBrokerSocketPath } from "./lib/git-options";
 import {
   directorySyncConfigSchema,
   type DirectorySyncConfig,
@@ -457,6 +458,13 @@ export class DirectorySyncPlugin extends ServicePlugin<
       authToken: git.authToken,
       authorName: git.authorName,
       authorEmail: git.authorEmail,
+      // When a broker owns this checkout, every Git command in this process
+      // goes over its socket instead of spawning a child here. Absent the
+      // socket the runner falls back to in-process execution, which is what
+      // tests and brains without a supervised broker use.
+      ...(resolveBrokerSocketPath(process.env)
+        ? { brokerSocketPath: resolveBrokerSocketPath(process.env) }
+        : {}),
     });
     await gitSync.initialize();
     this.logger.info("Git integration enabled", { repo: git.repo });

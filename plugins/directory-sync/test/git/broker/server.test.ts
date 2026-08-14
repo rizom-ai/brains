@@ -322,7 +322,7 @@ describe.skipIf(!LINUX)("git broker server", () => {
     expect(accepted).toBe("");
   }, 30_000);
 
-  it("refuses an ordinary class before the checkout is bootstrapped", async () => {
+  it("lets Git report an ordinary command run before the checkout exists", async () => {
     const harness = await startBroker({ withCheckout: false });
     await declare(harness);
 
@@ -333,7 +333,13 @@ describe.skipIf(!LINUX)("git broker server", () => {
         (error: unknown) => String(error),
       );
 
-    expect(outcome).toContain("only bootstrap is accepted");
+    // The registry deliberately does not forbid this. Git's own error is
+    // truthful and more useful than a registry refusal, and forbidding it
+    // would have meant classifying every post-init bootstrap command — the
+    // config, branch repair, and initial commit that follow `git init` — as
+    // bootstrap forever, keeping the widest allow-list open indefinitely.
+    expect(outcome).toContain("exited with");
+    expect(outcome).not.toContain("only bootstrap is accepted");
   }, 30_000);
 
   it("never repeats a mutation when the same request id arrives twice", async () => {

@@ -51,10 +51,11 @@ export async function prepareGitRepository(
     }
   }
 
-  // Still bootstrap: the caller uses this client for branch repair and remote
-  // configuration before the checkout is registered.
+  // Ordinary, not bootstrap: by this point the checkout exists, and the
+  // caller uses this client for remote configuration, identity, and branch
+  // repair — commands that run against a real repository.
   const git = new OwnedGit(
-    runnerFactory({ baseDir: dataDir, timeoutMs, bootstrap: true, signal }),
+    runnerFactory({ baseDir: dataDir, timeoutMs, signal }),
   );
 
   await repairInvalidPlaceholderHead({ logger, dataDir, branch });
