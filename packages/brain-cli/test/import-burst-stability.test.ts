@@ -37,7 +37,7 @@ interface HealthMonitor {
   stop(): Promise<void>;
 }
 
-const ZOMBIE_PERSISTENCE_SAMPLES = 2;
+const ZOMBIE_PERSISTENCE_SAMPLES = 3;
 
 /** Distinguishes a normal wait/reap window from a child left permanently dead. */
 class PersistentZombieTracker {
@@ -978,6 +978,7 @@ it("reports the same zombie when it survives consecutive samples", () => {
     command: "",
   };
 
+  expect(tracker.observe([zombie])).toEqual([]);
   expect(tracker.observe([zombie])).toEqual([]);
   expect(tracker.observe([zombie])).toEqual([zombie]);
 });
