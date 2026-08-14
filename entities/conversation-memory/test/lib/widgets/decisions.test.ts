@@ -1,5 +1,5 @@
-import { describe, expect, it, mock } from "bun:test";
-import { SYSTEM_CHANNELS, type EntityPluginContext } from "@brains/plugins";
+import { describe, expect, it } from "bun:test";
+import { SYSTEM_CHANNELS } from "@brains/plugins";
 import {
   createMockEntityPluginContext,
   createTestEntity,
@@ -102,32 +102,26 @@ describe("buildDecisionsWidgetData", () => {
 
 describe("registerDecisionsWidget", () => {
   it("registers a widget on plugins-registered", async () => {
-    let readyHandler: (() => Promise<{ success: boolean }>) | undefined;
-    let payload: Record<string, unknown> | undefined;
-    const registerWidget = mock(async (widget: unknown) => {
-      payload = widget as Record<string, unknown>;
+    const context = createMockEntityPluginContext({
+      listEntitiesImpl: async () => [],
     });
-    const subscribe = mock(
-      (
-        _topic: string,
-        handler: () => Promise<{ success: boolean }>,
-      ): (() => void) => {
-        readyHandler = handler;
-        return (): void => undefined;
-      },
-    );
-    const context = {
-      messaging: { subscribe },
-      dashboard: { registerWidget },
-      entityService: { listEntities: mock(async () => []) },
-    } as unknown as EntityPluginContext;
 
     registerDecisionsWidget({ context });
-    expect(subscribe).toHaveBeenCalledWith(
+    expect(context.messaging.subscribe).toHaveBeenCalledWith(
       SYSTEM_CHANNELS.pluginsRegistered,
       expect.any(Function),
     );
-    await readyHandler?.();
+
+    // Publish the real message rather than capturing the handler: this is the
+    // path production takes, and the registration below is the evidence.
+    await context.messaging.send({
+      type: SYSTEM_CHANNELS.pluginsRegistered,
+      payload: {},
+    });
+
+    const [registerCall] = context.dashboard.registerWidget.mock.calls;
+    const payload = registerCall?.[0];
+    if (!payload) throw new Error("widget was not registered");
 
     expect(payload).toMatchObject({
       id: "conversation-memory:decisions",

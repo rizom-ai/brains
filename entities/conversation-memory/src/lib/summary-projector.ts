@@ -67,6 +67,49 @@ export interface ProjectSummaryResult {
   skipReason?: SummaryEligibilityReason | "unchanged" | "ai-skip";
 }
 
+/** Lower-cased and whitespace-collapsed, for label matching. */
+export function normalizeForAttribution(value: string): string {
+  return value.toLocaleLowerCase().replace(/\s+/g, " ").trim();
+}
+
+/**
+ * The actors whose display name, username or reference key appears in the text.
+ *
+ * A module-level function rather than a private method: it depends on nothing
+ * but its arguments, and its test previously had to cast the projector to reach
+ * it. Attribution is subtle enough to deserve testing directly instead of
+ * through a whole projection run.
+ */
+export function getActorsMentionedInText(
+  text: string,
+  actors: ConversationMessageActor[],
+): MemoryActorReference[] {
+  const normalizedText = normalizeForAttribution(text);
+  const seen = new Set<string>();
+  const matches: MemoryActorReference[] = [];
+
+  for (const actor of actors) {
+    const key = actorRefKey(actor.identity);
+    if (seen.has(key)) continue;
+    const labels = [
+      actor.displayName,
+      actor.username,
+      actorRefKey(actor.identity),
+    ]
+      .filter((label): label is string => Boolean(label?.trim()))
+      .map((label) => normalizeForAttribution(label));
+    if (!labels.some((label) => normalizedText.includes(label))) continue;
+
+    seen.add(key);
+    matches.push({
+      identity: actor.identity,
+      ...(actor.displayName ? { displayName: actor.displayName } : {}),
+    });
+  }
+
+  return matches;
+}
+
 export class SummaryProjector {
   private readonly context: EntityPluginContext;
   private readonly logger: Logger;
@@ -385,10 +428,7 @@ export class SummaryProjector {
     messages: Message[],
   ): DecisionEntity {
     const itemActors = this.getActorsForMemoryItem(item, messages);
-    const attributedActors = this.getActorsMentionedInText(
-      item.text,
-      itemActors,
-    );
+    const attributedActors = getActorsMentionedInText(item.text, itemActors);
     const metadata: DecisionMetadata = {
       conversationId: summaryMetadata.conversationId,
       channelId: summaryMetadata.channelId,
@@ -439,7 +479,7 @@ export class SummaryProjector {
   ): ActionItemEntity {
     const itemMessages = this.getMessagesForMemoryItem(item, messages);
     const itemActors = this.getMessageActors(itemMessages);
-    const assignedActors = this.getActorsMentionedInText(item.text, itemActors);
+    const assignedActors = getActorsMentionedInText(item.text, itemActors);
     const requesterActors = this.getActionItemRequesterActors(
       item.text,
       itemMessages,
@@ -552,36 +592,6 @@ export class SummaryProjector {
     });
   }
 
-  private getActorsMentionedInText(
-    text: string,
-    actors: ConversationMessageActor[],
-  ): MemoryActorReference[] {
-    const normalizedText = this.normalizeForAttribution(text);
-    const seen = new Set<string>();
-    const matches: MemoryActorReference[] = [];
-
-    for (const actor of actors) {
-      const key = this.actorIdentityKey(actor);
-      if (seen.has(key)) continue;
-      const labels = [
-        actor.displayName,
-        actor.username,
-        actorRefKey(actor.identity),
-      ]
-        .filter((label): label is string => Boolean(label?.trim()))
-        .map((label) => this.normalizeForAttribution(label));
-      if (!labels.some((label) => normalizedText.includes(label))) continue;
-
-      seen.add(key);
-      matches.push({
-        identity: actor.identity,
-        ...(actor.displayName ? { displayName: actor.displayName } : {}),
-      });
-    }
-
-    return matches;
-  }
-
   private getActionItemRequesterActors(
     text: string,
     messages: Message[],
@@ -634,7 +644,7 @@ export class SummaryProjector {
     text: string,
     messages: Message[],
   ): MemoryActorReference[] {
-    const mentionedActors = this.getActorsMentionedInText(
+    const mentionedActors = getActorsMentionedInText(
       text,
       this.getMessageActors(messages),
     );
@@ -673,11 +683,11 @@ export class SummaryProjector {
     text: string,
     actors: MemoryActorReference[],
   ): boolean {
-    const normalizedText = this.normalizeForAttribution(text);
+    const normalizedText = normalizeForAttribution(text);
     return actors.some((actor) => {
       const labels = [actor.displayName, actorRefKey(actor.identity)]
         .filter((label): label is string => Boolean(label?.trim()))
-        .map((label) => this.normalizeForAttribution(label));
+        .map((label) => normalizeForAttribution(label));
       return labels.some((label) => normalizedText.includes(label));
     });
   }
@@ -686,10 +696,6 @@ export class SummaryProjector {
     identity: ConversationMessageActor["identity"];
   }): string {
     return actorRefKey(actor.identity);
-  }
-
-  private normalizeForAttribution(value: string): string {
-    return value.toLocaleLowerCase().replace(/\s+/g, " ").trim();
   }
 
   private memoryEntityId(

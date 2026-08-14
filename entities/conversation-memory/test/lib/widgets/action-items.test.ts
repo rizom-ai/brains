@@ -1,5 +1,5 @@
-import { describe, expect, it, mock } from "bun:test";
-import { SYSTEM_CHANNELS, type EntityPluginContext } from "@brains/plugins";
+import { describe, expect, it } from "bun:test";
+import { SYSTEM_CHANNELS } from "@brains/plugins";
 import {
   createMockEntityPluginContext,
   createTestEntity,
@@ -113,37 +113,31 @@ describe("buildActionItemsWidgetData", () => {
 
 describe("registerActionItemsWidget", () => {
   it("registers a widget on plugins-registered", async () => {
-    let readyHandler: (() => Promise<{ success: boolean }>) | undefined;
-    let payload: Record<string, unknown> | undefined;
-    const registerWidget = mock(async (widget: unknown) => {
-      payload = widget as Record<string, unknown>;
+    const context = createMockEntityPluginContext({
+      listEntitiesImpl: async () => [],
     });
-    const subscribe = mock(
-      (
-        _topic: string,
-        handler: () => Promise<{ success: boolean }>,
-      ): (() => void) => {
-        readyHandler = handler;
-        return (): void => undefined;
-      },
-    );
-    const context = {
-      messaging: { subscribe },
-      dashboard: { registerWidget },
-      entityService: { listEntities: mock(async () => []) },
-    } as unknown as EntityPluginContext;
 
     registerActionItemsWidget({ context });
-    expect(subscribe).toHaveBeenCalledWith(
+    expect(context.messaging.subscribe).toHaveBeenCalledWith(
       SYSTEM_CHANNELS.pluginsRegistered,
       expect.any(Function),
     );
-    await readyHandler?.();
 
-    const digestProvider = payload?.["digestProvider"] as (data: unknown) => {
-      digest: Array<{ label: string; value: string; tone?: string }>;
-      needsAttention: number;
-    };
+    // Publish the real message rather than capturing the handler: this is the
+    // path production takes, and the registration below is the evidence.
+    await context.messaging.send({
+      type: SYSTEM_CHANNELS.pluginsRegistered,
+      payload: {},
+    });
+
+    const [registerCall] = context.dashboard.registerWidget.mock.calls;
+    const payload = registerCall?.[0];
+    if (!payload) throw new Error("widget was not registered");
+
+    // digestProvider is declared on DashboardWidgetRegistration, so it needs
+    // neither an index access nor a cast now that payload carries that type.
+    const { digestProvider } = payload;
+    if (!digestProvider) throw new Error("widget declared no digest provider");
 
     expect(payload).toMatchObject({
       id: "conversation-memory:action-items",
