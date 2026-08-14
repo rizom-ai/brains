@@ -725,6 +725,23 @@ responsibilities, and `plugins/AGENTS.md` describes the 1:1 entity +
 service case as a compound package under `plugins/`. By those rules,
 several of these are misfiled.
 
+**First recategorisation landed 2026-08-14: `@brains/site-info` moved
+to `plugins/`.** It is genuinely compound, not merely awkward: one
+entity plus a 178-line `SiteInfoService` that is 1:1 with it, resolving
+the entity against config defaults and identity fallbacks and
+publishing the result to `plugins/site-builder` over
+`SITE_METADATA_GET_CHANNEL`, re-broadcasting on change. That resolution
+needs identity access and package config, neither of which
+`defineEntity` has or should have. Entity schema, types and adapter now
+sit under `src/entity/` per `plugins/AGENTS.md`; the package name is
+unchanged, deliberately, to avoid the consumed-prerelease-changeset
+churn that renaming the UI library caused.
+
+The alternative considered and rejected: fold the resolution into
+`site-builder` and leave site-info a pure entity. That moves
+site-info's own defaulting rules into another package and hands
+`site-builder` identity access.
+
 **Consequence for the roadmap.** "Migrate entity packages one at a time
 onto the declarative entity surface" is the wrong frame. The declarative
 _entity_ surface is close to complete for things that are actually

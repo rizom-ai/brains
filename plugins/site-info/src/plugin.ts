@@ -14,8 +14,8 @@ import {
   siteInfoSchema,
   type SiteInfoEntity,
   type SiteInfoBody,
-} from "./schemas/site-info-schema";
-import { SiteInfoAdapter } from "./adapters/site-info-adapter";
+} from "./entity/schema";
+import { SiteInfoAdapter } from "./entity/adapter";
 import { SiteInfoService } from "./services/site-info-service";
 import { SiteInfoDataSource } from "./datasources/site-info-datasource";
 import packageJson from "../package.json";

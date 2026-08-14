@@ -1,5 +1,5 @@
 export { SiteInfoPlugin, siteInfoPlugin } from "./plugin";
-export { SiteInfoAdapter } from "./adapters/site-info-adapter";
+export { SiteInfoAdapter } from "./entity/adapter";
 export { SiteInfoService } from "./services/site-info-service";
 export { fetchSiteInfo } from "@brains/site-composition";
 export { SiteInfoDataSource } from "./datasources/site-info-datasource";
@@ -8,18 +8,18 @@ export {
   requireCta,
 } from "./datasources/site-datasource-helpers";
 
-export type { SiteInfo } from "./schemas/site-info";
-export { SiteInfoSchema } from "./schemas/site-info";
+export type { SiteInfo } from "./entity/types";
+export { SiteInfoSchema } from "./entity/types";
 
 export type {
   SiteInfoEntity,
   SiteInfoBody,
   SiteInfoCTA,
   SiteInfoMetadata,
-} from "./schemas/site-info-schema";
+} from "./entity/schema";
 export {
   siteInfoSchema,
   siteInfoBodySchema,
   siteInfoCTASchema,
   siteInfoMetadataSchema,
-} from "./schemas/site-info-schema";
+} from "./entity/schema";
