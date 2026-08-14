@@ -281,15 +281,29 @@ budget and reports an incident rather than restarting the entire container indef
 
 Work from PR #124; do not implement directly on `main`.
 
-Add deterministic tests that fail with the current in-process runner:
+Add deterministic tests that fail with the current in-process runner. **Done** — see
+`plugins/directory-sync/test/git/git-broker-reproductions.test.ts`:
 
-- Git exits and writes complete output while its Bun completion promise is withheld;
-- a web auto-commit request and worker pull target the same checkout concurrently;
-- the client disconnects after Git mutation but before acknowledgement;
-- the broker dies while the wrapper and Git process group are active.
+- Git exits and writes complete output while its Bun completion promise is withheld. The
+  injected child settles neither `exited` nor `reaped`; the stall deadline fires and kills
+  the group, but the runner still never settles, so the `SerialQueue` turn is never
+  released. Fails on `firstSettled: false`.
+- A web auto-commit and a worker pull target the same checkout concurrently. Two `GitSync`
+  instances over one `dataDir` both enter `withLock`. Fails on `maxActive: 2`.
+- Opt-in real-Git counterpart (`RUN_GIT_OWNERSHIP_REPRO=1`, Linux): two owners committing
+  to one checkout fail with `cannot lock ref 'HEAD'`.
+
+Each is an `it.failing` tripwire rather than a skipped or deleted test: green while the
+defect exists, red the moment the broker removes it, which is the signal to drop
+`.failing` and keep the assertion as a regression test.
+
+The plan's other two Phase 0 reproductions — client disconnect after mutation but before
+acknowledgement, and broker death with the wrapper still live — move to Phase 1. Both are
+statements about request IDs and the durable journal, so neither can be expressed before
+Phase 1 defines that contract; written here they would assert against stubs rather than
+reproduce anything. They are listed in Phase 1 below, not dropped.
 
 Use barriers and injected process/protocol interfaces, not timing-sensitive polling.
-Retain the upstream-style real Git reproduction as an opt-in Linux test.
 
 ### Phase 1 — Protocol and durable journal
 
@@ -302,7 +316,13 @@ Tests first:
 - duplicate request IDs return the same result and never call the executor twice;
 - partial journal writes are ignored/quarantined safely;
 - credentials cannot appear in serialized records or errors;
-- checkout registration rejects identity/path drift.
+- checkout registration rejects identity/path drift;
+- a client that disconnects after Git mutation but before acknowledgement leaves the
+  request recoverable by ID, and reconnecting never repeats the mutation (moved from
+  Phase 0 — needs the request-ID contract to be expressible);
+- a broker that dies while a wrapper and its Git process group are active leaves an active
+  record that a replacement broker resolves without re-issuing the command (moved from
+  Phase 0 for the same reason).
 
 ### Phase 2 — Wrapper and advisory lock
 
