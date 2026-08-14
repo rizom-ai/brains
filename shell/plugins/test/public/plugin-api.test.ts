@@ -54,7 +54,23 @@ describe("public plugin API", () => {
         context.inbox.registerSource({
           sourceId: "public-test",
           displayName: "Public test",
-          list: async () => [],
+          facets: [
+            {
+              key: "review-state",
+              label: "Review state",
+              values: [{ value: "requested", label: "Requested" }],
+            },
+          ],
+          list: async () => [
+            {
+              id: "public-item",
+              title: "Public item",
+              receivedAt: "2026-08-13T09:00:00.000Z",
+              urgency: "normal",
+              facets: { "review-state": "requested" },
+              actions: [],
+            },
+          ],
           act: async () => undefined,
         });
       }
@@ -81,9 +97,14 @@ describe("public plugin API", () => {
     await harness.finalizeRegistration();
 
     expect(seen).toEqual(["register:test-service"]);
-    expect(
-      harness.getMockShell().getInboxRegistry().getSource("public-test"),
-    ).toBeDefined();
+    const publicSource = harness
+      .getMockShell()
+      .getInboxRegistry()
+      .getSource("public-test");
+    expect(publicSource?.facets?.[0]?.key).toBe("review-state");
+    expect((await publicSource?.list())?.[0]?.facets).toEqual({
+      "review-state": "requested",
+    });
     expect(capabilities.tools.map((tool) => tool.name)).toContain(
       "test-service_ping",
     );

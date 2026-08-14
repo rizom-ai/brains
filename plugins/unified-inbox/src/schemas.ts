@@ -1,13 +1,18 @@
 import {
   createListToolOutputSchema,
   inboxContactSchema,
+  inboxFacetsSchema,
   inboxIdSchema,
   inboxItemIdSchema,
   inboxItemSchema,
+  inboxSourceDescriptorSchema,
   inboxSourceMetadataSchema,
   inboxUrgencySchema,
   resolvedInboxFollowUpSchema,
+  type InboxFacets,
   type InboxItem,
+  type InboxSource,
+  type InboxSourceDescriptor,
   type ResolvedInboxFollowUp,
   type InboxSourceMetadata,
   type ListToolOutput,
@@ -56,29 +61,41 @@ export const inboxProjectionSchema: z.ZodType<
 interface InboxListFilterValue {
   sourceId?: string | undefined;
   urgency?: "high" | "normal" | undefined;
+  facets?: InboxFacets | undefined;
   limit: number;
 }
 
 interface InboxListFilterInputValue {
   sourceId?: string | undefined;
   urgency?: "high" | "normal" | undefined;
+  facets?: InboxFacets | undefined;
   limit?: number | undefined;
 }
 
 export const inboxListFilterShape: {
   sourceId: z.ZodOptional<typeof inboxIdSchema>;
   urgency: z.ZodOptional<typeof inboxUrgencySchema>;
+  facets: z.ZodOptional<typeof inboxFacetsSchema>;
   limit: z.ZodDefault<z.ZodNumber>;
 } = {
   sourceId: inboxIdSchema.optional(),
   urgency: inboxUrgencySchema.optional(),
+  facets: inboxFacetsSchema.optional(),
   limit: z.number().int().min(1).max(100).default(50),
 };
 
 export const inboxListFilterSchema: z.ZodType<
   InboxListFilterValue,
   InboxListFilterInputValue
-> = z.strictObject(inboxListFilterShape);
+> = z.strictObject(inboxListFilterShape).superRefine((filter, context) => {
+  if (filter.facets !== undefined && filter.sourceId === undefined) {
+    context.addIssue({
+      code: "custom",
+      path: ["sourceId"],
+      message: "Inbox facet filters require a source",
+    });
+  }
+});
 
 interface InboxListItemValue {
   title: string;
@@ -130,6 +147,7 @@ export const inboxListResultSchema: z.ZodType<
 interface InboxWorkspaceQueryValue {
   sourceId?: string | undefined;
   urgency?: "high" | "normal" | undefined;
+  facets?: InboxFacets | undefined;
   offset: number;
   limit: number;
 }
@@ -154,6 +172,7 @@ export const inboxWorkspaceQuerySchema: z.ZodType<
 > = z.strictObject({
   sourceId: inboxIdSchema.optional(),
   urgency: inboxUrgencySchema.optional(),
+  facets: inboxFacetsSchema.optional(),
   offset: inboxWorkspaceOffsetSchema.default(0),
   limit: inboxWorkspaceLimitSchema.default(50),
 });
@@ -161,29 +180,59 @@ export const inboxWorkspaceQuerySchema: z.ZodType<
 /** Normalize each URL/request field independently so one bad filter fails open. */
 export function normalizeInboxWorkspaceQuery(
   input: unknown,
-  sourceIds: readonly string[],
+  sources: readonly InboxSource[],
 ): InboxWorkspaceQueryValue {
   const raw =
     typeof input === "object" && input !== null && !Array.isArray(input)
       ? (input as Record<string, unknown>)
       : {};
   const sourceId = inboxIdSchema.safeParse(raw["sourceId"]);
+  const source = sourceId.success
+    ? sources.find((candidate) => candidate.sourceId === sourceId.data)
+    : undefined;
   const urgency = inboxUrgencySchema.safeParse(raw["urgency"]);
   const offset = inboxWorkspaceOffsetSchema.safeParse(raw["offset"]);
   const limit = inboxWorkspaceLimitSchema.safeParse(raw["limit"]);
-  const knownSources = new Set(sourceIds);
+  const facets = source
+    ? normalizeDeclaredFacets(
+        Object.fromEntries(
+          Object.entries(raw).flatMap(([key, value]) =>
+            key.startsWith("facet.") ? [[key.slice(6), value]] : [],
+          ),
+        ),
+        source,
+      )
+    : undefined;
   return inboxWorkspaceQuerySchema.parse({
-    ...(sourceId.success && knownSources.has(sourceId.data)
-      ? { sourceId: sourceId.data }
-      : {}),
+    ...(source ? { sourceId: source.sourceId } : {}),
     ...(urgency.success ? { urgency: urgency.data } : {}),
+    ...(facets ? { facets } : {}),
     offset: offset.success ? offset.data : 0,
     limit: limit.success ? limit.data : 50,
   });
 }
 
+export function normalizeInboxListFilter(
+  filter: InboxListFilterValue,
+  sources: readonly InboxSource[],
+): InboxListFilterValue {
+  const source = filter.sourceId
+    ? sources.find((candidate) => candidate.sourceId === filter.sourceId)
+    : undefined;
+  const facets =
+    source && filter.facets
+      ? normalizeDeclaredFacets(filter.facets, source)
+      : undefined;
+  return {
+    ...(filter.sourceId ? { sourceId: filter.sourceId } : {}),
+    ...(filter.urgency ? { urgency: filter.urgency } : {}),
+    ...(facets ? { facets } : {}),
+    limit: filter.limit,
+  };
+}
+
 interface InboxSourceAvailabilityValue {
-  source: InboxSourceMetadata;
+  source: InboxSourceDescriptor;
   open: number;
   high: number;
   available: boolean;
@@ -193,7 +242,7 @@ export const inboxSourceAvailabilitySchema: z.ZodType<
   InboxSourceAvailabilityValue,
   InboxSourceAvailabilityValue
 > = z.strictObject({
-  source: inboxSourceMetadataSchema,
+  source: inboxSourceDescriptorSchema,
   open: z.number().int().nonnegative(),
   high: z.number().int().nonnegative(),
   available: z.boolean(),
@@ -378,6 +427,24 @@ export const inboxListToolOutputSchema: z.ZodType<
   ListToolOutput<InboxListResultValue>,
   ListToolOutput<InboxListResultValue>
 > = createListToolOutputSchema(inboxListResultSchema);
+
+function normalizeDeclaredFacets(
+  input: Record<string, unknown>,
+  source: Pick<InboxSource, "facets">,
+): InboxFacets | undefined {
+  const selected = Object.fromEntries(
+    (source.facets ?? []).flatMap((definition) => {
+      const value = input[definition.key];
+      return typeof value === "string" &&
+        definition.values.some((option) => option.value === value)
+        ? [[definition.key, value]]
+        : [];
+    }),
+  );
+  return Object.keys(selected).length > 0
+    ? inboxFacetsSchema.parse(selected)
+    : undefined;
+}
 
 function isSafeSameOriginPath(value: string): boolean {
   if (

@@ -25,6 +25,7 @@ function item(
     threadOrdinal: 4,
     receivedAt,
     urgency,
+    facets: { category: urgency === "high" ? "work" : "opportunity" },
     entityRef: { entityType: "mail-item", entityId: `private-${id}` },
     actions: [{ id: "dismiss", label: "Dismiss" }],
   };
@@ -39,6 +40,16 @@ function createToolFixture(items?: InboxItem[]): {
     registry.registerSource("mail-plugin", {
       sourceId: "mail-items",
       displayName: "Email Triage",
+      facets: [
+        {
+          key: "category",
+          label: "Category",
+          values: [
+            { value: "work", label: "Work" },
+            { value: "opportunity", label: "Opportunity" },
+          ],
+        },
+      ],
       list: async () => items,
       act: async () => undefined,
     });
@@ -70,7 +81,12 @@ describe("inbox_list tool", () => {
     const { tool } = createToolFixture(attentionItems);
     const result = inboxListToolOutputSchema.parse(
       await tool.handler(
-        { sourceId: "mail-items", urgency: "high", limit: 1 },
+        {
+          sourceId: "mail-items",
+          urgency: "high",
+          facets: { category: "work" },
+          limit: 1,
+        },
         adminContext,
       ),
     );
@@ -108,6 +124,7 @@ describe("inbox_list tool", () => {
       {
         sourceId: "mail-items",
         urgency: "normal",
+        "facet.category": "opportunity",
         offset: 0,
         limit: 50,
       },
@@ -115,7 +132,12 @@ describe("inbox_list tool", () => {
     );
     const result = inboxListToolOutputSchema.parse(
       await tool.handler(
-        { sourceId: "mail-items", urgency: "normal", limit: 50 },
+        {
+          sourceId: "mail-items",
+          urgency: "normal",
+          facets: { category: "opportunity" },
+          limit: 50,
+        },
         adminContext,
       ),
     );
@@ -133,6 +155,17 @@ describe("inbox_list tool", () => {
         },
       })),
     );
+  });
+
+  it("rejects source-scoped facets without a selected source", async () => {
+    const { tool } = createToolFixture(attentionItems);
+
+    expect(
+      await tool.handler({ facets: { category: "work" } }, adminContext),
+    ).toEqual({
+      success: false,
+      error: "Invalid unified inbox filters",
+    });
   });
 
   it("returns an empty result when no source is registered", async () => {

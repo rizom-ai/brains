@@ -10,7 +10,28 @@ const data: InboxWorkspaceSnapshot = {
   summary: { open: 61, high: 1 },
   sources: [
     {
-      source: { sourceId: "mail-items", displayName: "Email Triage" },
+      source: {
+        sourceId: "mail-items",
+        displayName: "Email Triage",
+        facets: [
+          {
+            key: "category",
+            label: "Category",
+            values: [
+              { value: "work", label: "Work" },
+              { value: "opportunity", label: "Opportunity" },
+            ],
+          },
+          {
+            key: "needs-reply",
+            label: "Needs reply",
+            values: [
+              { value: "true", label: "Yes" },
+              { value: "false", label: "No" },
+            ],
+          },
+        ],
+      },
       open: 60,
       high: 1,
       available: true,
@@ -33,6 +54,7 @@ const data: InboxWorkspaceSnapshot = {
         threadOrdinal: 2,
         receivedAt: "2026-08-08T09:00:00.000Z",
         urgency: "high",
+        facets: { category: "work", "needs-reply": "true" },
         entityRef: { entityType: "mail-item", entityId: "mail-1" },
         actions: [{ id: "archive", label: "Archive", confirm: true }],
       },
@@ -86,6 +108,9 @@ describe("UnifiedInboxWorkspace", () => {
     expect(html).toContain("Email Triage");
     expect(html).toContain("Candidates is temporarily unavailable");
     expect(html).toContain('value="mail-items" selected=""');
+    expect(html).toContain("Category");
+    expect(html).toContain("Needs reply");
+    expect(html).toContain('name="facet.category"');
     expect(html).toContain("Load more");
     expect(html).toContain('aria-live="polite"');
     expect(html).not.toContain("A content-safe summary.");
@@ -133,6 +158,21 @@ describe("UnifiedInboxWorkspace", () => {
 
     expect(html).not.toContain('class="inbox-contact"');
     expect(html).not.toContain("Unknown contact");
+  });
+
+  it("hides source-scoped facets while all sources are selected", () => {
+    const html = renderToStaticMarkup(
+      createElement(UnifiedInboxWorkspace, {
+        data,
+        query: {},
+        onQueryChange: () => {},
+        onFollowUp: () => {},
+        onAction: async () => ({ kind: "completed" as const }),
+      }),
+    );
+
+    expect(html).not.toContain('name="facet.category"');
+    expect(html).not.toContain('name="facet.needs-reply"');
   });
 
   it("renders a stable filtered empty state without a paging control", () => {
@@ -295,6 +335,54 @@ describe("UnifiedInboxWorkspace query changes", () => {
     ]);
   });
 
+  it("publishes selected-source facets as canonical URL filters", async () => {
+    const changes: Array<{
+      request: Record<string, string | number | undefined>;
+      urlQuery?: Record<string, string | number | undefined> | undefined;
+    }> = [];
+    await act(async () => {
+      root.render(
+        createElement(UnifiedInboxWorkspace, {
+          data,
+          query: { sourceId: "mail-items" },
+          onQueryChange: (request, urlQuery) => {
+            changes.push({ request, ...(urlQuery ? { urlQuery } : {}) });
+          },
+          onFollowUp: () => {},
+          onAction: async () => ({ kind: "completed" as const }),
+        }),
+      );
+    });
+    const category = windowInstance.document.querySelector(
+      'select[name="facet.category"]',
+    );
+    if (!(category instanceof windowInstance.HTMLSelectElement)) {
+      throw new Error("Missing category facet filter");
+    }
+
+    await act(async () => {
+      category.value = "work";
+      category.dispatchEvent(
+        new windowInstance.Event("change", { bubbles: true }),
+      );
+    });
+
+    expect(changes).toEqual([
+      {
+        request: {
+          sourceId: "mail-items",
+          "facet.category": "work",
+          offset: 0,
+          limit: 50,
+        },
+        urlQuery: {
+          sourceId: "mail-items",
+          "facet.category": "work",
+        },
+      },
+    ]);
+  });
+
   it("keeps Load more paging transient", async () => {
     const changes: Array<{
       request: Record<string, string | number | undefined>;
@@ -329,6 +417,37 @@ describe("UnifiedInboxWorkspace query changes", () => {
           offset: data.entries.length,
           limit: 50,
         },
+      },
+    ]);
+  });
+
+  it("canonicalizes malformed and cross-source facet URL fields", async () => {
+    const changes: Array<{
+      request: Record<string, string | number | undefined>;
+      urlQuery?: Record<string, string | number | undefined> | undefined;
+    }> = [];
+    await act(async () => {
+      root.render(
+        createElement(UnifiedInboxWorkspace, {
+          data,
+          query: {
+            sourceId: "mail-items",
+            "facet.category": "undeclared",
+            "facet.other-source": "value",
+          },
+          onQueryChange: (request, urlQuery) => {
+            changes.push({ request, ...(urlQuery ? { urlQuery } : {}) });
+          },
+          onFollowUp: () => {},
+          onAction: async () => ({ kind: "completed" as const }),
+        }),
+      );
+    });
+
+    expect(changes).toEqual([
+      {
+        request: { sourceId: "mail-items", offset: 0, limit: 50 },
+        urlQuery: { sourceId: "mail-items" },
       },
     ]);
   });

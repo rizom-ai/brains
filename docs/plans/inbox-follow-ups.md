@@ -3,8 +3,8 @@
 ## Status
 
 **Active.** Builds directly on the shipped unified inbox (contract, CMS
-workspace, digest). Phases 0a, 0b, 1, 7, and 8 are implemented; Phases 2–6
-remain planned. UX mockup:
+workspace, digest). Phases 0a, 0b, 1, 2, 3, 7, and 8 are implemented;
+Phases 4–6 remain planned. UX mockup:
 [inbox-follow-ups-mockup.html](./inbox-follow-ups-mockup.html).
 
 `unified-inbox` is being promoted from an explicit opt-in to a `core` bundle
@@ -29,15 +29,17 @@ with different chrome.
 
 - The inbox contract (`shell/plugins/src/inbox-registry.ts`) gives every item
   `id`, content-safe `title`/`summary`, `receivedAt`, `urgency`, optional
-  `entityRef`, and source-owned `actions`. Actions mutate source state through
-  `act` and resolve items out of the projection. The Admin-only `inbox_list`
-  tool is the headless reader: it returns source metadata plus a strict allowlist
+  `entityRef`, bounded source-scoped `facets`, and source-owned `actions`.
+  Sources declare each facet's bounded vocabulary during registration. Actions
+  mutate source state through `act` and resolve items out of the projection. The
+  Admin-only `inbox_list` tool is the headless reader: it returns source metadata plus a strict allowlist
   of `title`/`summary`/`urgency`/`receivedAt`/`contact`, while omitting item IDs,
   entity references, actions, and source detail.
-- The Inbox workspace already renders **Open source entity** from `entityRef` —
-  the only non-resolution affordance an item has. It is hard-coded in the
-  renderer; there is no contract through which another plugin can contribute a
-  launch.
+- The finalized Inbox follow-up registry lets destinations contribute
+  permission- and capability-gated launches without source-owned URLs. CMS owns
+  **Open source entity** and **Capture as note**; web-chat owns **Discuss in
+  chat**. The workspace receives only each bounded page's resolved presentation
+  targets.
 - App-scoped, owner-aware contribution registries are the established pattern
   for this shape. `ChannelRegistry` and `InboxRegistry` close registration with
   an explicit finalize step; the CMS workspace and interaction registries are
@@ -79,15 +81,13 @@ with different chrome.
   permission-checked email source-read operation. This plan owns that shared
   primitive in Phase 6; reply drafting consumes it rather than defining a
   second source-read contract.
-- Web-chat has no composer-prefill handoff. Its mounted path is configurable,
-  but it advertises the authoritative path as the `web-chat` interaction.
-- The CMS has no URL-addressable create mode or create-with-prefill navigation
-  target: `parseCmsPath` (`plugins/cms/src/cms-paths.ts`) recognizes home,
-  collection, entity, and workspace paths only.
-- The CMS container holds per-workspace request state (`workspaceQueries` in
-  `plugins/cms/ui-react/src/App.tsx`) but never reads filter state from the URL.
-  Current Inbox paging assumes an initial offset of zero; rehydrating a URL at
-  `offset=50` would load page two alone and then request that same offset again.
+- Web-chat accepts a validated one-shot composer prefill at its configurable,
+  registered interaction path; it never submits automatically.
+- CMS supports collision-free URL-addressable create mode plus validated
+  one-shot history-state prefill. Reloading creates no durable content.
+- The CMS container opts the Inbox into stable URL query state. Source,
+  urgency, and source-declared facet filters canonicalize into the URL, while
+  offset and limit remain transient so reload always starts at page one.
 
 ## Core decisions
 
@@ -466,8 +466,8 @@ Tests are written first inside each phase.
   renders no follow-up group rather than an empty labelled one; every
   destination reauthorizes direct entry; configured non-default mounts;
   oversized or malformed state, XSS, and URL encoding remain inert.
-- **Phase 3 — Source-scoped facets.** Add facet definitions and item values to
-  the contract, generic operator filtering, selected-source rendering, and
+- **Phase 3 — Source-scoped facets (implemented).** Add facet definitions and
+  item values to the contract, generic operator filtering, selected-source rendering, and
   canonical URL keys. Mail declares category, mail-priority, and needs-reply.
   _Tests:_ all bounds and duplicate definitions; undeclared values rejected;
   facets hidden with All sources; combined facet + urgency filtering; missing

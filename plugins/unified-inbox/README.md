@@ -12,9 +12,9 @@ failures.
 
 The opt-in plugin provides:
 
-- an Admin-only CMS **Inbox** workspace with linkable server-side source/urgency filters,
-  bounded transient paging, list/detail triage, destination-owned follow-up launches, and
-  confirmation-gated actions;
+- an Admin-only CMS **Inbox** workspace with linkable server-side source, urgency, and
+  source-scoped facet filters, bounded transient paging, list/detail triage,
+  destination-owned follow-up launches, and confirmation-gated actions;
 - an access-checked open-count badge in the CMS workspace rail;
 - a read-only Admin Dashboard summary containing at most five redacted entries;
 - the bounded Admin `inbox_list` headless reader, available without browser
@@ -25,9 +25,9 @@ The opt-in plugin provides:
 Actions always re-list the owning source and verify that the requested item and action are
 still offered. Confirmed actions are revalidated immediately before dispatch. Browser
 responses never expose source exception text, and completed actions return no inbox
-projection; the client invalidates and reloads the live view. Stable source and urgency
-filters use the workspace URL, while paging remains in-memory: direct entry and reload
-always start at offset zero. Unknown or malformed filter values are removed instead of
+projection; the client invalidates and reloads the live view. Stable source, urgency, and
+selected-source facet filters use the workspace URL, while paging remains in-memory: direct
+entry and reload always start at offset zero. Unknown or malformed filter values are removed instead of
 failing or producing a private provider error.
 
 Follow-ups launch another surface without resolving the item. Destination plugins register
@@ -49,8 +49,9 @@ itself.
 `inbox_list` is directly available to Admin MCP clients in basic mode, including stdio
 brains with no webserver, CMS, or Dashboard. It returns source metadata and only the
 content-safe `title`, `summary`, `contact`, `receivedAt`, and `urgency` item fields. Item
-IDs, source-entity references, resolution actions, source detail, and private source
-locators are omitted.
+IDs, source-entity references, resolution actions, source detail, private source locators,
+and item facet values are omitted. Source-declared facets can still filter the headless
+result through its bounded `facets` input when that source is selected.
 
 ## Source contract
 
@@ -60,6 +61,16 @@ Register a source during plugin registration:
 context.inbox.registerSource({
   sourceId: "review-items",
   displayName: "Review items",
+  facets: [
+    {
+      key: "review-state",
+      label: "Review state",
+      values: [
+        { value: "requested", label: "Requested" },
+        { value: "blocked", label: "Blocked" },
+      ],
+    },
+  ],
   list: async () => [
     {
       id: "item-1",
@@ -70,6 +81,7 @@ context.inbox.registerSource({
       receivedAt: new Date().toISOString(),
       urgency: "normal",
       entityRef: { entityType: "review-item", entityId: "item-1" },
+      facets: { "review-state": "requested" },
       actions: [{ id: "resolve", label: "Resolve", confirm: true }],
     },
   ],
@@ -78,6 +90,12 @@ context.inbox.registerSource({
   },
 });
 ```
+
+Facet definitions and item values are bounded and validated together: undeclared keys or
+values reject that source result. Facets are filtering metadata, not generic tags or Inbox
+state. Their controls appear only after selecting the declaring source, so two sources may
+reuse a key without sharing its vocabulary. Stable workspace URL keys use
+`facet.<key>=<value>`; paging remains transient.
 
 Titles, summaries, and contact labels must be safe for browser transport. `contact` is a
 structured person relationship rather than a presentation byline: `label` is bounded

@@ -13,7 +13,7 @@ export function createInboxListTool(
   return createAdminListTool({
     name: "inbox_list",
     description:
-      "List live content-safe operator attention across registered inbox sources, optionally filtered by source or urgency",
+      "List live content-safe operator attention across registered inbox sources, optionally filtered by source, urgency, or source-declared facets",
     inputSchema: inboxListFilterShape,
     filterSchema: inboxListFilterSchema,
     outputSchema: inboxListToolOutputSchema,

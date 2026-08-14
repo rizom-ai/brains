@@ -231,6 +231,12 @@ export interface MailTriageWorkspaceSnapshot {
   items: MailTriageListItem[];
 }
 
+export interface InboxWorkspaceFacetDefinition {
+  key: string;
+  label: string;
+  values: Array<{ value: string; label: string }>;
+}
+
 export interface InboxWorkspaceFollowUp {
   kind: string;
   label: string;
@@ -248,6 +254,7 @@ export interface InboxWorkspaceEntry {
     threadOrdinal?: number;
     receivedAt: string;
     urgency: "high" | "normal";
+    facets?: Record<string, string>;
     entityRef?: { entityType: string; entityId: string };
     actions: Array<{ id: string; label: string; confirm?: boolean }>;
   };
@@ -258,7 +265,11 @@ export interface InboxWorkspaceEntry {
 export interface InboxWorkspaceSnapshot {
   summary: { open: number; high: number };
   sources: Array<{
-    source: { sourceId: string; displayName: string };
+    source: {
+      sourceId: string;
+      displayName: string;
+      facets?: InboxWorkspaceFacetDefinition[];
+    };
     open: number;
     high: number;
     available: boolean;
