@@ -1,5 +1,5 @@
 import type { JSX } from "preact";
-import { Head, MarkdownContent, Card, CoverImage } from "@brains/ui-library";
+import { Head, MarkdownContent, Card, CoverImage } from "@rizom/brain-ui";
 import type { ProjectView } from "./project-view";
 
 export interface ProjectDetailProps {

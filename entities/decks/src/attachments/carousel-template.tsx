@@ -1,5 +1,5 @@
 import type { JSX } from "preact";
-import { splitWordmark, useMarkdownToHtml } from "@brains/ui-library";
+import { splitWordmark, useMarkdownToHtml } from "@rizom/brain-ui";
 import { z } from "@brains/sdk/entities";
 import type { MediaPageTemplate } from "@brains/media-page-composer";
 

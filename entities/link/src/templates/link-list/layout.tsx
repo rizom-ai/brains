@@ -8,7 +8,7 @@ import {
   EmptyState,
   formatDate,
   LinkButton,
-} from "@brains/ui-library";
+} from "@rizom/brain-ui";
 
 export const LinkListLayout = ({
   links,

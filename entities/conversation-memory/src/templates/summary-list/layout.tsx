@@ -8,7 +8,7 @@ import {
   EmptyState,
   formatDate,
   StatBadge,
-} from "@brains/ui-library";
+} from "@rizom/brain-ui";
 
 export const SummaryListLayout = ({
   summaries,

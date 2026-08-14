@@ -1,6 +1,6 @@
 import type { JSX } from "preact";
 import type { BlogPostView } from "./blog-view-schema";
-import { Card } from "@brains/ui-library";
+import { Card } from "@rizom/brain-ui";
 
 export interface SeriesSidebarProps {
   currentPost: BlogPostView;

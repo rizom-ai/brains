@@ -7,7 +7,7 @@ import {
   StatusBadge,
   Card,
   formatDate,
-} from "@brains/ui-library";
+} from "@rizom/brain-ui";
 import type { SocialPostView } from "./social-post-view";
 
 export interface SocialPostListProps {

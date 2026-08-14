@@ -1,6 +1,6 @@
 import type { JSX } from "preact";
 import type { EnrichedDeckListData } from "./schema";
-import { ContentArchive, type ContentItem } from "@brains/ui-library";
+import { ContentArchive, type ContentItem } from "@rizom/brain-ui";
 
 const DECK_DISPLAY_LABEL = "Presentations";
 

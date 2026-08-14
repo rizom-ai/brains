@@ -1,6 +1,6 @@
 import type { JSX } from "preact";
 import type { PaginationInfo } from "@brains/plugins";
-import { Head, Pagination } from "@brains/ui-library";
+import { Head, Pagination } from "@rizom/brain-ui";
 import type { AgentStatus } from "../schemas/agent";
 import type { AgentView } from "./agent-view";
 import {

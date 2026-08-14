@@ -14,7 +14,7 @@ import {
   Card,
   CardTitle,
   CardMetadata,
-} from "@brains/ui-library";
+} from "@rizom/brain-ui";
 type NewsletterTemplateStatus =
   "generating" | "draft" | "queued" | "published" | "failed";
 

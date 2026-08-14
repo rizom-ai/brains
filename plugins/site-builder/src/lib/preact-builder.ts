@@ -12,7 +12,7 @@ import {
   HeadProvider,
   ImageRendererProvider,
   type HeadProps,
-} from "@brains/ui-library";
+} from "@rizom/brain-ui";
 import type { ComponentChildren } from "preact";
 import { dirname, join } from "path";
 import { promises as fs } from "fs";

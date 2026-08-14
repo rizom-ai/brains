@@ -2,7 +2,7 @@ import type { JSX } from "preact";
 import { z } from "@brains/sdk/entities";
 import { createTemplate } from "@brains/sdk/entities";
 import { BlogPostTemplate } from "./blog-post";
-import { Head, useMarkdownToHtml } from "@brains/ui-library";
+import { Head, useMarkdownToHtml } from "@rizom/brain-ui";
 import {
   blogViewSchema,
   type BlogPostView,

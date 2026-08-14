@@ -8,8 +8,8 @@
     "@brains/console-theme": "workspace:*",
     "@brains/contracts": "workspace:*",
     "@brains/plugins": "workspace:*",
-    "@brains/ui-library": "workspace:*",
     "@brains/utils": "workspace:*",
+    "@rizom/brain-ui": "workspace:*",
     "preact": "^10.27.2",
     "preact-render-to-string": "^6.7.0"
   },

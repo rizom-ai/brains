@@ -2,7 +2,7 @@
 "@rizom/theme-default": patch
 "@brains/theme-base": patch
 "@brains/theme-rizom": patch
-"@brains/ui-library": patch
+"@rizom/brain-ui": patch
 "@brains/site-professional": patch
 "@brains/site-builder-plugin": patch
 "@brains/site-info": patch

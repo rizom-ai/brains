@@ -4,7 +4,7 @@ import { Button } from "./Button";
 import { LinkButton } from "./LinkButton";
 import { ThemeToggle } from "./ThemeToggle";
 import { cn } from "./lib/utils";
-import type { NavigationItem } from "@brains/plugins";
+import type { NavigationItem } from "@rizom/site";
 
 /**
  * Compact header component props

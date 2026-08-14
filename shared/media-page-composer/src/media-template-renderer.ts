@@ -1,6 +1,6 @@
 import { h } from "preact";
 import { render } from "preact-render-to-string";
-import { HeadProvider, ImageRendererProvider } from "@brains/ui-library";
+import { HeadProvider, ImageRendererProvider } from "@rizom/brain-ui";
 import {
   createHTMLShell,
   HeadCollector,

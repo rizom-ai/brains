@@ -1,4 +1,4 @@
-import type { HeadProps, HeadCollectorInterface } from "@brains/ui-library";
+import type { HeadProps, HeadCollectorInterface } from "@rizom/brain-ui";
 
 /**
  * Simple head collector for SSR

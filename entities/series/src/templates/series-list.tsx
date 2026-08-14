@@ -9,7 +9,7 @@ import {
   Head,
   Breadcrumb,
   type BreadcrumbItem,
-} from "@brains/ui-library";
+} from "@rizom/brain-ui";
 import type { SeriesListItem } from "../schemas/series";
 
 export interface SeriesListProps {

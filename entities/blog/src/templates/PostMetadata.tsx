@@ -1,5 +1,5 @@
 import type { JSX } from "preact";
-import { formatDate } from "@brains/ui-library";
+import { formatDate } from "@rizom/brain-ui";
 
 export interface PostMetadataProps {
   publishedAt?: string | undefined;

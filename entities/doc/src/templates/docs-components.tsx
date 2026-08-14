@@ -1,5 +1,5 @@
 import type { ComponentChildren, JSX } from "preact";
-import { Head } from "@brains/ui-library";
+import { Head } from "@rizom/brain-ui";
 import type { DocWithData } from "../schemas/doc";
 import {
   DocsDesignStyles,

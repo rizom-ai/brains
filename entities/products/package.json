@@ -7,7 +7,7 @@
     "@brains/content-formatters": "workspace:*",
     "@brains/media-page-composer": "workspace:*",
     "@brains/sdk": "workspace:*",
-    "@brains/ui-library": "workspace:*"
+    "@rizom/brain-ui": "workspace:*"
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",

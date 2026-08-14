@@ -1,4 +1,4 @@
-import type { ImageRenderer } from "@brains/ui-library";
+import type { ImageRenderer } from "@rizom/brain-ui";
 
 /** Pre-resolved image ready for rendering in static site output. */
 export interface ResolvedSiteImage {

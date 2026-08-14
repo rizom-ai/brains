@@ -11,7 +11,7 @@ import {
   Head,
   Breadcrumb,
   type BreadcrumbItem,
-} from "@brains/ui-library";
+} from "@rizom/brain-ui";
 
 /**
  * A member entity in the series — generic, not blog-specific.

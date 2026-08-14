@@ -5,7 +5,7 @@ import type { EntityCount } from "./types";
 import {
   CardHeader,
   WidgetPrimitiveEmptyState as EmptyState,
-} from "@brains/ui-library";
+} from "@rizom/brain-ui";
 
 function BreakdownRow({
   entityType,

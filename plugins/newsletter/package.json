@@ -6,8 +6,8 @@
   "dependencies": {
     "@brains/contracts": "workspace:*",
     "@brains/plugins": "workspace:*",
-    "@brains/ui-library": "workspace:*",
     "@brains/utils": "workspace:*",
+    "@rizom/brain-ui": "workspace:*",
     "preact": "^10.27.2"
   },
   "devDependencies": {

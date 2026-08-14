@@ -16,7 +16,7 @@ import {
   WidgetListItem,
   WidgetStatusPill,
   WidgetTabs,
-} from "@brains/ui-library";
+} from "@rizom/brain-ui";
 import type { ComponentChildren, JSX } from "preact";
 import type { RenderableWidgetData } from "./types";
 

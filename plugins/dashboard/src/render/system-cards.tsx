@@ -6,7 +6,7 @@ import {
   KeyValueList,
   WidgetActionLink,
   WidgetActions,
-} from "@brains/ui-library";
+} from "@rizom/brain-ui";
 import { formatClock, formatTimestamp } from "./format";
 import type { DashboardJobProgressItem, DashboardRenderInput } from "./types";
 

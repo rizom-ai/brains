@@ -3,7 +3,7 @@ import type { JSX } from "preact";
 import {
   CardHeader,
   WidgetPrimitiveEmptyState as EmptyState,
-} from "@brains/ui-library";
+} from "@rizom/brain-ui";
 import {
   countTabWidgets,
   getTabWidgets,

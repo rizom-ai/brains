@@ -1,5 +1,5 @@
 import type { JSX } from "preact";
-import { MarkdownContent } from "@brains/ui-library";
+import { MarkdownContent } from "@rizom/brain-ui";
 import type { DocWithData } from "../schemas/doc";
 import { docsClasses, groupDocs, romanNumeral, sortDocs } from "./docs-design";
 import {

@@ -1,6 +1,6 @@
 import type { JSX } from "preact";
 import { z } from "@brains/sdk/entities";
-import { OgCard } from "@brains/ui-library";
+import { OgCard } from "@rizom/brain-ui";
 import type { MediaPageTemplate } from "@brains/media-page-composer";
 
 export const PROJECT_OG_IMAGE_ATTACHMENT_TYPE = "og-image";

@@ -1,6 +1,6 @@
 import type { JSX } from "preact";
 import { z } from "@brains/sdk/entities";
-import { OgCard, formatDate as formatDateStyled } from "@brains/ui-library";
+import { OgCard, formatDate as formatDateStyled } from "@rizom/brain-ui";
 import type { MediaPageTemplate } from "@brains/media-page-composer";
 
 export const BLOG_OG_IMAGE_ATTACHMENT_TYPE = "og-image";

@@ -7,7 +7,7 @@ import {
   Card,
   TagsList,
   MarkdownContent,
-} from "@brains/ui-library";
+} from "@rizom/brain-ui";
 
 export interface ProductsPageProps {
   overview: OverviewView;

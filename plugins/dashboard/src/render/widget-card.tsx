@@ -1,5 +1,5 @@
 /** @jsxImportSource preact */
-import { CardHeader } from "@brains/ui-library";
+import { CardHeader } from "@rizom/brain-ui";
 import type { JSX } from "preact";
 import { DeclarativeWidgetBody } from "./declarative-widget";
 import type { RenderableWidgetData } from "./types";

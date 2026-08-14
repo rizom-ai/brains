@@ -1,4 +1,15 @@
-import { escapeHtml as escapeHtmlString } from "@brains/utils/string-utils";
+/**
+ * Inlined rather than imported from `@brains/utils`, which is a private
+ * workspace this published package must not depend on.
+ */
+function escapeHtmlString(value: string): string {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll(String.fromCharCode(34), "&quot;")
+    .replaceAll(String.fromCharCode(39), "&#39;");
+}
 
 const MERMAID_BLOCK_PATTERN =
   /<pre><code class="language-mermaid">([\s\S]*?)<\/code><\/pre>/g;

@@ -3,7 +3,7 @@ import { promises as fs } from "fs";
 import { tmpdir } from "os";
 import { join, relative } from "path";
 import { createSilentLogger } from "@brains/test-utils";
-import { Head } from "@brains/ui-library";
+import { Head } from "@rizom/brain-ui";
 import type { LayoutComponent } from "@brains/site-engine";
 import { z } from "@brains/utils/zod";
 import { Fragment, h, type VNode } from "preact";

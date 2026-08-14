@@ -1,6 +1,6 @@
 import type { JSX } from "preact";
 import type { ProductView } from "./product-view";
-import { Head, StatusBadge, TagsList, LinkButton } from "@brains/ui-library";
+import { Head, StatusBadge, TagsList, LinkButton } from "@rizom/brain-ui";
 
 export interface ProductDetailProps {
   product: ProductView;
