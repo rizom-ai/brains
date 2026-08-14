@@ -347,33 +347,48 @@ Checkout registration and identity/path-drift rejection move to Phase 3, which o
 
 ### Phase 2 — Wrapper and advisory lock
 
-Implement the wrapper and prove lock/reap behavior independently of the broker.
+Implement the wrapper and prove lock/reap behavior independently of the broker. **Done** —
+`src/lib/broker/git-wrapper.sh` plus its `wrapper.ts` observation surface.
 
-Tests first on Linux:
+The wrapper writes key=value records, not JSON, and leaves captured bytes in their own
+files. Escaping arbitrary Git output into JSON from shell is a bug farm; TypeScript keeps
+ownership of the JSON and Zod contracts, and the raw bytes stay byte-exact.
+
+Tests first on Linux — landed:
 
 - two wrappers for one checkout never overlap;
 - different checkouts may proceed independently;
 - output resets the inactivity deadline;
-- a silent process group is killed, waited, and absent before lock release;
+- a silent process group is killed, waited, and absent before the terminal result;
+- a SIGTERM-ignoring group publishes no terminal result while it is still alive;
 - descendants holding output pipes are killed and disappear;
-- killing the broker does not drop the wrapper's lock;
-- killing the client does not duplicate the operation;
-- paths and output containing spaces, newlines, and NUL-delimited porcelain records are
-  preserved byte-for-byte;
+- killing the starter does not drop the wrapper's lock — an orphaned wrapper still reaches
+  a terminal result;
+- paths and output containing spaces, newlines, and NUL bytes are preserved byte-for-byte;
 - output overflow is bounded and safely terminated;
-- byte counters advance in the active record while the command runs, not only at exit;
-- the broker never awaits the wrapper child and never blocks for the command duration: it
-  answers `status` and emits `progress` while Git is still running.
+- byte counters advance in the active record while the command runs, not only at exit.
 
-Two gates on the affected runtime (Bun 1.3.11), because every later phase depends on them:
+Gate 1 **passes on Bun 1.3.11**: 25 consecutive detached wrappers were observed to their
+terminal record with no lost completion, without ever awaiting a child. Gate 2 passes via
+the termination tests above. Re-run both on 1.3.14 in Phase 7 rather than assuming.
 
-1. broker-side observation of a detached wrapper resumes reliably across repeated cycles —
-   the broker sees byte advance and then the terminal record without awaiting the child;
-2. the wrapper proves process-group termination independently of the broker.
-
-If gate 1 fails, keep the same protocol, journal, and wrapper, and replace only the
+If gate 1 ever fails, keep the same protocol, journal, and wrapper, and replace only the
 broker's observation mechanism with a long-lived POSIX/native helper. Do not fall back to
 blocking the broker event loop, and do not fall back to app-process polling.
+
+Two findings worth carrying:
+
+- **One safety step has no executable test, by nature.** The pre-`wait` loop that proves
+  the group is empty after SIGKILL cannot be observed from another process: SIGKILL is
+  immediate, and `wait` on the runner already reaps the group in the common path. Deleting
+  that loop fails no test. It is kept as defence for orphaned grandchildren, and that case
+  _is_ covered — deleting the post-exit reap does fail the pipe-holding-descendant test.
+  Do not treat the loop as tested; treat it as justified.
+- **The wrapper is a file, and `@rizom/brain` ships as a bundle.** `import.meta.dir` will
+  not locate `git-wrapper.sh` next to `dist/brain.js`. Phase 3 must resolve this — prefer
+  embedding the script as a string and writing it into the instance runtime directory at
+  mode `0700` on broker start, over adding asset-copy plumbing to the bundler. Phase 7's
+  packaged-image check must then assert the wrapper resolves and runs from the image.
 
 ### Phase 3 — Broker service and supervision
 
