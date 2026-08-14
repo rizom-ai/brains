@@ -1,6 +1,10 @@
 import { describe, expect, it, beforeEach, mock, afterEach } from "bun:test";
 import { AgentService } from "../src/agent-service";
-import { createMockMCPService, createSilentLogger } from "@brains/test-utils";
+import {
+  createMockMCPService,
+  createSilentLogger,
+  waitUntil,
+} from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
 import { MCPService, type IMCPService, type Tool } from "@brains/mcp-service";
 import type {
@@ -45,6 +49,27 @@ const mockAgentFactory = mock(
 
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/** The `conversationActorIdleTtlMs` every eviction test below configures. */
+const IDLE_ACTOR_TTL_MS = 5;
+
+/**
+ * Sleeps well past the idle TTL so an eviction sweep would have run if it were
+ * going to. Only for asserting an actor is *still* there: there is no event to
+ * wait for when the expected outcome is that nothing happens.
+ */
+function pastIdleActorTtl(): Promise<void> {
+  return delay(IDLE_ACTOR_TTL_MS * 5);
+}
+
+/**
+ * Gives every already-scheduled continuation room to run, then lets the caller
+ * assert it did not run. Same reason as above — this is the one case `waitUntil`
+ * cannot express, so it stays a sleep but says so.
+ */
+function withoutStartingQueuedWork(): Promise<void> {
+  return delay(10);
 }
 
 function expectNoSystemMessages(messages: ModelMessage[]): void {
@@ -197,12 +222,13 @@ describe("AgentService", () => {
       );
 
       const first = service.chat("first", "test-conversation");
-      while (mockGenerate.mock.calls.length === 0) {
-        await delay(1);
-      }
+      await waitUntil(
+        () => mockGenerate.mock.calls.length > 0,
+        "the first turn to reach the model",
+      );
       const second = service.chat("second", "test-conversation");
 
-      await delay(10);
+      await withoutStartingQueuedWork();
       expect(mockGenerate).toHaveBeenCalledTimes(1);
 
       releaseFirst();
@@ -250,9 +276,14 @@ describe("AgentService", () => {
         undefined,
         controller.signal,
       );
-      while (!modelSignal) {
-        await delay(1);
-      }
+      await waitUntil(
+        () => modelSignal !== undefined,
+        "the model call to expose its abort signal",
+      );
+      // Captured into a const because narrowing a closure-assigned `let` does
+      // not survive the awaits between here and the assertion.
+      const capturedSignal = modelSignal;
+      if (!capturedSignal) throw new Error("model signal was never captured");
 
       controller.abort(abortReason);
 
@@ -263,7 +294,7 @@ describe("AgentService", () => {
         receivedError = error;
       }
       expect(receivedError).toBe(abortReason);
-      expect(modelSignal.aborted).toBe(true);
+      expect(capturedSignal.aborted).toBe(true);
       await service.shutdown();
     });
 
@@ -285,9 +316,10 @@ describe("AgentService", () => {
         { agentFactory: mockAgentFactory },
       );
       const first = service.chat("first", "test-conversation");
-      while (mockGenerate.mock.calls.length === 0) {
-        await delay(1);
-      }
+      await waitUntil(
+        () => mockGenerate.mock.calls.length > 0,
+        "the first turn to reach the model",
+      );
       const controller = new AbortController();
       const abortReason = new Error("queued request cancelled");
       const second = service.chat(
@@ -309,7 +341,7 @@ describe("AgentService", () => {
 
       releaseFirst();
       await first;
-      await delay(1);
+      await withoutStartingQueuedWork();
       expect(mockGenerate).toHaveBeenCalledTimes(1);
       await service.shutdown();
     });
@@ -343,9 +375,14 @@ describe("AgentService", () => {
       const active = service
         .chat("first", "test-conversation")
         .catch((error: unknown) => error);
-      while (!modelSignal) {
-        await delay(1);
-      }
+      await waitUntil(
+        () => modelSignal !== undefined,
+        "the model call to expose its abort signal",
+      );
+      // Captured into a const because narrowing a closure-assigned `let` does
+      // not survive the awaits between here and the assertion.
+      const capturedSignal = modelSignal;
+      if (!capturedSignal) throw new Error("model signal was never captured");
       const queued = service
         .chat("second", "test-conversation")
         .catch((error: unknown) => error);
@@ -360,7 +397,7 @@ describe("AgentService", () => {
       expect(activeError).toEqual(
         new Error("Agent service has been shut down"),
       );
-      expect(modelSignal.aborted).toBe(true);
+      expect(capturedSignal.aborted).toBe(true);
       expect(mockGenerate).toHaveBeenCalledTimes(1);
       expect(
         await service
@@ -2200,9 +2237,10 @@ describe("AgentService", () => {
       );
 
       const first = service.chat("first", "test-conversation");
-      while (mockGenerate.mock.calls.length === 0) {
-        await delay(1);
-      }
+      await waitUntil(
+        () => mockGenerate.mock.calls.length > 0,
+        "the first turn to reach the model",
+      );
       const second = service.chat("second", "test-conversation");
 
       releaseFirst();
@@ -2498,9 +2536,10 @@ describe("AgentService", () => {
         "test-conversation",
         adminConfirmationContext,
       );
-      while (mockGenerate.mock.calls.length === 0) {
-        await delay(1);
-      }
+      await waitUntil(
+        () => mockGenerate.mock.calls.length > 0,
+        "the first turn to reach the model",
+      );
       const second = service.chat(
         "new topic instead",
         "test-conversation",
@@ -4046,9 +4085,10 @@ describe("AgentService", () => {
       await service.chat("hello", "test-conversation");
       expect(getConversationActorCount(service)).toBe(1);
 
-      await delay(25);
-
-      expect(getConversationActorCount(service)).toBe(0);
+      await waitUntil(
+        () => getConversationActorCount(service) === 0,
+        "the idle conversation actor to be evicted",
+      );
     });
 
     it("does not evict actors while awaiting confirmation", async () => {
@@ -4092,7 +4132,7 @@ describe("AgentService", () => {
         userPermissionLevel: "admin",
         interfaceType: "evaluation",
       });
-      await delay(25);
+      await pastIdleActorTtl();
 
       expect(getConversationActorCount(service)).toBe(1);
     });
@@ -4120,11 +4160,12 @@ describe("AgentService", () => {
       );
 
       const first = service.chat("first", "test-conversation");
-      while (mockGenerate.mock.calls.length === 0) {
-        await delay(1);
-      }
+      await waitUntil(
+        () => mockGenerate.mock.calls.length > 0,
+        "the first turn to reach the model",
+      );
       const second = service.chat("second", "test-conversation");
-      await delay(25);
+      await pastIdleActorTtl();
 
       expect(getConversationActorCount(service)).toBe(1);
 
@@ -4143,8 +4184,10 @@ describe("AgentService", () => {
       );
 
       await service.chat("hello", "test-conversation");
-      await delay(25);
-      expect(getConversationActorCount(service)).toBe(0);
+      await waitUntil(
+        () => getConversationActorCount(service) === 0,
+        "the idle conversation actor to be evicted",
+      );
 
       mockAgentGenerateResult = {
         text: "welcome back",
