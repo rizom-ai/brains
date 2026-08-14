@@ -637,6 +637,37 @@ spaces retain behavior.
 
 ### Phase 6 — Crash and handoff recovery
 
+**Done.** The four broker-side crash points are covered by
+`test/git/broker/recovery.test.ts`; the four downstream handoff points were already
+covered by `reconciliation-checkpoint.test.ts` and were verified rather than rewritten.
+
+`GitExecutor.reconcile()` runs before the broker starts listening, so a client can never
+reach an executor that still believes a dead wrapper owns its checkout. It classifies each
+active record three ways:
+
+- **owned** — the wrapper is still alive. Its advisory lock is still held and it will reach
+  a terminal result on its own; a replacement must not touch it.
+- **completed** — the wrapper finished and the result was simply never acknowledged. The
+  active record is cleared and the result stays replayable by request ID.
+- **abandoned** — the wrapper died without writing a result. The outcome is _genuinely
+  unknown_, so the record is retired rather than deleted or retried. It is never
+  re-executed: a retry is a fresh request with a fresh ID, and the checkout's real state is
+  re-derived by the reconciliation checkpoint rather than by replaying a command that may
+  already have applied.
+
+That third case is the one worth stating plainly. Before this, an active record whose
+wrapper had died blocked its request ID forever and left the checkout looking permanently
+busy in `status`.
+
+**One bug found by mutation testing, not by the suite passing.** Re-executing a request ID
+observed the _previous_ run's wrapper terminal record and returned a stale result
+instantly, while a second wrapper was still spawned and mutating the checkout. The ledger
+masks it in practice, but masking is not sufficient for the duplicate-mutation invariant —
+so the executor now clears prior wrapper artifacts before spawning, which turns that
+failure loud. The replay test only started catching a broken ledger after that fix.
+
+The original crash-point list follows.
+
 Exercise crash points after:
 
 - lock acquisition;

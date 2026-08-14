@@ -2,7 +2,7 @@ import { chmod, unlink } from "fs/promises";
 import { join } from "path";
 import { getErrorMessage } from "@brains/utils/error";
 import { GitExecutor } from "./executor";
-import type { GitExecutorOptions } from "./executor";
+import type { ExecutorReconciliation, GitExecutorOptions } from "./executor";
 import type { TerminalRequestRecord } from "./journal";
 import {
   BROKER_PROTOCOL_VERSION,
@@ -67,11 +67,18 @@ function shrinkToFit(message: BrokerMessage): BrokerMessage {
 export class GitBrokerServer {
   readonly socketPath: string;
   readonly executor: GitExecutor;
+  /** What the previous life of this journal left behind. */
+  readonly reconciliation: ExecutorReconciliation;
   #server: { stop(closeActiveConnections?: boolean): void } | null = null;
 
-  private constructor(socketPath: string, executor: GitExecutor) {
+  private constructor(
+    socketPath: string,
+    executor: GitExecutor,
+    reconciliation: ExecutorReconciliation,
+  ) {
     this.socketPath = socketPath;
     this.executor = executor;
+    this.reconciliation = reconciliation;
   }
 
   get journalDir(): string {
@@ -96,7 +103,13 @@ export class GitBrokerServer {
     }
     await unlink(socketPath).catch(() => undefined);
 
-    const broker = new GitBrokerServer(socketPath, executor);
+    // Reconcile before listening: a client must never reach an executor that
+    // still believes a dead wrapper owns its checkout.
+    const broker = new GitBrokerServer(
+      socketPath,
+      executor,
+      await executor.reconcile(),
+    );
     await broker.#listen();
     return broker;
   }

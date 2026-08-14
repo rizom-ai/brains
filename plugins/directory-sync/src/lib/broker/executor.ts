@@ -14,6 +14,7 @@ import { BROKER_PROTOCOL_VERSION } from "./protocol";
 import { CheckoutRegistry } from "./registry";
 import type { CheckoutRegistryOptions } from "./registry";
 import {
+  clearWrapperArtifacts,
   materializeWrapper,
   readWrapperActive,
   readWrapperOutput,
@@ -51,6 +52,29 @@ export interface GitExecutorOptions {
     ((repositoryKey: string) => Readonly<Record<string, string>>) | undefined;
 }
 
+/** Outcome of reconciling the journal against wrappers from a previous life. */
+export interface ExecutorReconciliation {
+  /** Still owned by a live wrapper holding the advisory lock. */
+  owned: string[];
+  /** Finished; the result was simply never acknowledged. */
+  completed: string[];
+  /** Wrapper died without a result. Outcome unknown; never re-executed. */
+  abandoned: string[];
+  /** Records too damaged to trust, moved aside. */
+  quarantined: string[];
+}
+
+/** True when a process id is still present. */
+function processExists(pid: number): boolean {
+  if (pid <= 0) return false;
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /** Byte progress observed while a command is still running. */
 export type ExecutionProgress = (state: WrapperActiveState) => void;
 
@@ -60,6 +84,7 @@ export class GitExecutor {
   readonly brokerId: string;
 
   readonly #registry: CheckoutRegistry;
+  readonly #journal: BrokerJournal;
   readonly #ledger: BrokerRequestLedger;
   readonly #queues = new Map<string, SerialQueue>();
   readonly #active = new Set<string>();
@@ -85,6 +110,7 @@ export class GitExecutor {
     this.journalDir = init.journalDir;
     this.brokerId = init.brokerId;
     this.#registry = init.registry;
+    this.#journal = init.journal;
     this.#ledger = new BrokerRequestLedger(init.journal);
     this.#observeIntervalMs = init.observeIntervalMs;
     this.#wrapperPollMs = init.wrapperPollMs;
@@ -113,6 +139,59 @@ export class GitExecutor {
 
   register(message: RegisterCheckoutMessage): void {
     this.#registry.register(message);
+  }
+
+  /**
+   * Reconcile the journal against the wrappers that were running when this
+   * process last stopped. A request whose wrapper is still alive stays owned —
+   * its advisory lock is still held and it will reach a terminal result on its
+   * own. One whose wrapper finished is simply unacknowledged. One whose wrapper
+   * died without writing a result has a genuinely unknown outcome: it is
+   * retired, never re-executed, and the checkout's real state is re-derived by
+   * the reconciliation checkpoint rather than by replaying a command that may
+   * already have applied.
+   */
+  async reconcile(): Promise<ExecutorReconciliation> {
+    const quarantined = await this.#journal.quarantineCorrupt();
+    const active = await this.#journal.listActive();
+
+    const classified = await Promise.all(
+      active.map(async (record) => {
+        const wrapper = await readWrapperActive(
+          this.journalDir,
+          record.requestId,
+        );
+        if (wrapper && processExists(wrapper.wrapperPid)) {
+          this.#active.add(record.requestId);
+          return { requestId: record.requestId, state: "owned" as const };
+        }
+
+        const terminal = await readWrapperTerminal(
+          this.journalDir,
+          record.requestId,
+        );
+        if (terminal) {
+          await this.#journal.clearActive(record.requestId);
+          return { requestId: record.requestId, state: "completed" as const };
+        }
+
+        await this.#journal.abandonActive(record.requestId);
+        return { requestId: record.requestId, state: "abandoned" as const };
+      }),
+    );
+
+    const of = (state: string): string[] =>
+      classified
+        .filter((entry) => entry.state === state)
+        .map((entry) => entry.requestId)
+        .sort();
+
+    return {
+      owned: of("owned"),
+      completed: of("completed"),
+      abandoned: of("abandoned"),
+      quarantined,
+    };
   }
 
   status(): StatusMessage {
@@ -166,6 +245,10 @@ export class GitExecutor {
       repositoryKey: string;
     },
   ): Promise<TerminalRequestRecord> {
+    // A request id is executed once; clearing any earlier artifacts means a
+    // re-execution cannot observe the previous run and return a stale result.
+    await clearWrapperArtifacts(this.journalDir, request.requestId);
+
     spawnWrapper({
       requestId: request.requestId,
       journalDir: this.journalDir,

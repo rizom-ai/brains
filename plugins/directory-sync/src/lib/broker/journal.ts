@@ -32,6 +32,7 @@ const ACTIVE_PREFIX = "active-";
 const TERMINAL_PREFIX = "terminal-";
 const RECORD_SUFFIX = ".json";
 const QUARANTINE_DIRECTORY = "quarantine";
+const ABANDONED_DIRECTORY = "abandoned";
 const TEMP_PREFIX = ".tmp-";
 
 export interface ActiveRequestRecord {
@@ -156,6 +157,24 @@ export class BrokerJournal {
     await unlink(join(this.directory, this.#activeName(requestId))).catch(
       () => undefined,
     );
+  }
+
+  /**
+   * Retire an active record whose wrapper died without reaching a terminal
+   * result. Moved aside rather than deleted: its outcome is genuinely unknown,
+   * and the record is the only evidence the request ever ran. It is never
+   * re-executed — a retry would be a fresh request with a fresh id, and the
+   * checkout's true state is re-derived from Git by the reconciliation
+   * checkpoint rather than by replaying a command that may already have
+   * applied.
+   */
+  async abandonActive(requestId: string): Promise<void> {
+    const abandoned = join(this.directory, ABANDONED_DIRECTORY);
+    await mkdir(abandoned, { recursive: true, mode: 0o700 });
+    await rename(
+      join(this.directory, this.#activeName(requestId)),
+      join(abandoned, this.#activeName(requestId)),
+    ).catch(() => undefined);
   }
 
   async writeTerminal(record: TerminalRequestRecord): Promise<void> {

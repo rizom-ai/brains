@@ -1,4 +1,4 @@
-import { chmod, mkdir, readFile, writeFile } from "fs/promises";
+import { chmod, mkdir, readFile, unlink, writeFile } from "fs/promises";
 import { join } from "path";
 import wrapperSource from "./git-wrapper.sh" with { type: "text" };
 
@@ -147,6 +147,27 @@ export function spawnWrapper(config: WrapperConfig): number {
   // result is read from the journal rather than from a completion callback.
   child.unref();
   return child.pid;
+}
+
+/**
+ * Remove any artifacts left by an earlier run of this request id.
+ *
+ * Without this, observing a re-executed request would read the *previous*
+ * run's terminal record and return instantly — reporting a stale result while
+ * a second wrapper was still running and mutating the checkout. The ledger
+ * should already prevent a second execution; this makes the failure loud
+ * rather than silent if it ever does not.
+ */
+export async function clearWrapperArtifacts(
+  journalDir: string,
+  requestId: string,
+): Promise<void> {
+  const base = wrapperBase(journalDir, requestId);
+  await Promise.all(
+    [".active", ".terminal", ".stdout", ".stderr", ".pgid"].map((suffix) =>
+      unlink(`${base}${suffix}`).catch(() => undefined),
+    ),
+  );
 }
 
 export async function readWrapperActive(
