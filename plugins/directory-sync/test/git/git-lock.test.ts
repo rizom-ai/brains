@@ -7,44 +7,8 @@ import {
   createMockServicePluginContext,
   waitUntil,
 } from "@brains/test-utils";
-import type { ServicePluginContext } from "@brains/plugins";
 import type { PullResult } from "../../src/lib/git-sync";
 import { createMockDirectorySync, createMockGitSync } from "../fixtures";
-
-function createTestMessaging(): {
-  messaging: ServicePluginContext["messaging"];
-} {
-  const subs = new Map<string, Array<(msg: unknown) => Promise<unknown>>>();
-
-  const messaging = {
-    subscribe: (
-      channel: string,
-      handler: (msg: unknown) => Promise<unknown>,
-    ): (() => void) => {
-      const list = subs.get(channel) ?? [];
-      list.push(handler);
-      subs.set(channel, list);
-      return (): void => {
-        const arr = subs.get(channel);
-        if (arr)
-          subs.set(
-            channel,
-            arr.filter((h) => h !== handler),
-          );
-      };
-    },
-    send: async (request: {
-      type: string;
-      payload: unknown;
-    }): Promise<unknown> => {
-      const list = subs.get(request.type) ?? [];
-      for (const h of list) await h({ payload: request.payload });
-      return { success: true };
-    },
-  } as unknown as ServicePluginContext["messaging"];
-
-  return { messaging };
-}
 
 describe("git operation serialization", () => {
   let runtime: DirectorySyncRuntime | undefined;
@@ -109,7 +73,10 @@ describe("git operation serialization", () => {
       withLock,
     });
 
-    const { messaging } = createTestMessaging();
+    // Real messaging from the factory rather than a stand-in: auto-commit
+    // subscribes through it and the test drives events with its send, so the
+    // pub/sub path under test is the production one.
+    const { messaging } = createMockServicePluginContext();
     runtime = new DirectorySyncRuntime();
 
     setupGitAutoCommit(messaging, git, 10, createSilentLogger(), runtime);

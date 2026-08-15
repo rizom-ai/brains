@@ -201,15 +201,14 @@ describe("UnifiedInboxWorkspace query changes", () => {
     windowInstance = new Window({
       url: "https://brain.test/cms/workspaces/inbox",
     });
-    const win = windowInstance as unknown as Window & Record<string, unknown>;
     Object.assign(globalThis, {
       window: windowInstance,
       document: windowInstance.document,
       navigator: windowInstance.navigator,
-      HTMLElement: win.HTMLElement,
-      Element: win.Element,
-      Node: win.Node,
-      Event: win.Event,
+      HTMLElement: windowInstance.HTMLElement,
+      Element: windowInstance.Element,
+      Node: windowInstance.Node,
+      Event: windowInstance.Event,
       IS_REACT_ACT_ENVIRONMENT: true,
     });
     // globalThis.document is the happy-dom document assigned above, but typed
