@@ -124,12 +124,11 @@ describe("AuthRuntimeDatabase", () => {
   it("deduplicates concurrent first-start migrations", async () => {
     const storageDir = await tempStorageDir();
     const database = new AuthRuntimeDatabase({ storageDir });
-    const instrumented = database as unknown as {
-      prepareLocalDatabasePath(): Promise<void>;
-    };
-    const prepare = instrumented.prepareLocalDatabasePath.bind(database);
+    // Element access rather than an assertion: it reaches the private member
+    // while keeping its real signature, so a change to it fails here.
+    const prepare = database["prepareLocalDatabasePath"].bind(database);
     let prepareCalls = 0;
-    instrumented.prepareLocalDatabasePath = async (): Promise<void> => {
+    database["prepareLocalDatabasePath"] = async (): Promise<void> => {
       prepareCalls += 1;
       await prepare();
     };

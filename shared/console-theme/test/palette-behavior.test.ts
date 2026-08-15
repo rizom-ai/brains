@@ -117,7 +117,10 @@ beforeEach(() => {
     },
   });
 
-  const fetchStub = (input: string): Promise<Response> => {
+  // Typed as fetch is, so it can be installed without an assertion. The
+  // script under test ships to browsers and calls the global directly, so
+  // replacing the global is the only seam there is.
+  const respond = (input: string | Request | URL): Promise<Response> => {
     fetchCalls.push(String(input));
     const { status, body } = fetchResponse();
     return Promise.resolve(
@@ -128,13 +131,21 @@ beforeEach(() => {
     );
   };
 
+  // fetch carries a static preconnect, so a bare function is not a stand-in
+  // for it. Attaching one lets the stub be installed without an assertion.
+  const fetchStub: typeof globalThis.fetch = Object.assign(respond, {
+    preconnect: (): void => {},
+  });
+
   Object.assign(globalThis, {
     window,
     document: window.document,
     KeyboardEvent: window.KeyboardEvent,
   });
-  window.fetch = fetchStub as unknown as typeof window.fetch;
-  globalThis.fetch = fetchStub as unknown as typeof globalThis.fetch;
+  // Only the global: the script is eval'd in this realm, so its bare fetch
+  // resolves here. Assigning window.fetch as well would need a second stub,
+  // since happy-dom declares its own Request type.
+  globalThis.fetch = fetchStub;
 
   eval(CONSOLE_PALETTE_SCRIPT);
 });
