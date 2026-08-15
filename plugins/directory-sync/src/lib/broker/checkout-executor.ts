@@ -12,6 +12,7 @@ import {
 } from "./git-reconciliation-state";
 import type { ReconciliationIdentity } from "./git-reconciliation-state";
 import { getGitStatus, hasGitLocalChanges } from "./git-status";
+import { buildGitCredentialEnv } from "./git-credentials";
 import { parseGitOperationResult } from "./operations";
 import type { GitOperation, GitOperationResult } from "./operations";
 
@@ -36,8 +37,11 @@ export interface CheckoutExecutorOptions {
   dataDir: string;
   branch: string;
   remoteUrl: string;
-  /** Used only for network operations; never written to `.git/config`. */
-  authenticatedUrl: string;
+  /**
+   * Turned into environment-supplied Git config for each network child, so it
+   * never reaches `.git/config` or argv. See `git-credentials.ts`.
+   */
+  authToken?: string | undefined;
   remoteFingerprint: string;
   timeoutMs: number;
   authorName?: string | undefined;
@@ -87,10 +91,22 @@ export class CheckoutOperationExecutor {
     return this.#git;
   }
 
-  get #net(): { baseDir: string; timeoutMs: number } {
+  get #credentialEnv(): Record<string, string> {
+    return buildGitCredentialEnv(
+      this.#options.remoteUrl,
+      this.#options.authToken,
+    );
+  }
+
+  get #net(): {
+    baseDir: string;
+    timeoutMs: number;
+    credentialEnv: Record<string, string>;
+  } {
     return {
       baseDir: this.#options.dataDir,
       timeoutMs: this.#options.timeoutMs,
+      credentialEnv: this.#credentialEnv,
     };
   }
 
@@ -106,7 +122,7 @@ export class CheckoutOperationExecutor {
           logger,
           dataDir: this.#options.dataDir,
           remoteUrl,
-          authenticatedUrl: this.#options.authenticatedUrl,
+          credentialEnv: this.#credentialEnv,
           branch,
           timeoutMs: this.#options.timeoutMs,
           ...(runOptions.signal ? { signal: runOptions.signal } : {}),

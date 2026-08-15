@@ -9,6 +9,11 @@ export interface GitNetwork {
   clock?: Clock.Clock | undefined;
   /** Credential-free progress signal; receives no command output. */
   onProgress?: (() => void) | undefined;
+  /**
+   * Git configuration supplied through the environment, which is where a
+   * credential goes: not the remote URL, not argv, not `.git/config`.
+   */
+  credentialEnv?: Record<string, string> | undefined;
 }
 
 /** Thrown when a git network operation produces no output for too long. */
@@ -42,6 +47,9 @@ export async function runGitCommandWithStallTimeout(
     stdout: "pipe",
     stderr: "pipe",
     detached: true,
+    ...(net.credentialEnv
+      ? { env: { ...process.env, ...net.credentialEnv } }
+      : {}),
   });
   const cancelStallTimer = (): void => {
     if (!timerFiber) return;

@@ -46,7 +46,6 @@ async function harness(now: () => number): Promise<Harness> {
             dataDir: checkout,
             branch: "main",
             remoteUrl: "",
-            authenticatedUrl: "",
             remoteFingerprint: identity.remoteFingerprint,
             timeoutMs: 30_000,
             authorName: "Test",

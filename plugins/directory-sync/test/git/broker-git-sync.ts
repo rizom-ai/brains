@@ -7,7 +7,6 @@ import { BrokerGitSync } from "../../src/lib/broker/git-sync-client";
 import { GitBrokerServer } from "../../src/lib/broker/server";
 import {
   DEFAULT_GIT_TIMEOUT_MS,
-  getAuthenticatedGitUrl,
   getGitRemoteFingerprint,
   resolveGitRemoteUrl,
 } from "../../src/lib/git-options";
@@ -53,7 +52,9 @@ export async function startTestBroker(
     dataDir: options.dataDir,
     branch,
     remoteUrl,
-    authenticatedUrl: getAuthenticatedGitUrl(remoteUrl, options.authToken),
+    ...(options.authToken === undefined
+      ? {}
+      : { authToken: options.authToken }),
     remoteFingerprint: getGitRemoteFingerprint(remoteUrl),
     timeoutMs: options.timeoutMs ?? DEFAULT_GIT_TIMEOUT_MS,
     authorName: options.authorName,

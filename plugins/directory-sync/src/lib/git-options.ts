@@ -29,19 +29,6 @@ export function resolveGitRemoteUrl(options: GitSyncOptions): string {
   );
 }
 
-export function getAuthenticatedGitUrl(
-  remoteUrl: string,
-  authToken?: string,
-): string {
-  if (!authToken || !remoteUrl.startsWith("https://")) {
-    return remoteUrl;
-  }
-  const url = new URL(remoteUrl);
-  url.username = authToken;
-  url.password = "";
-  return url.toString();
-}
-
 /** Stable repository identity that never persists URL credentials. */
 export function getGitRemoteFingerprint(remoteUrl: string): string {
   let credentialFreeUrl = remoteUrl;

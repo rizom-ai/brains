@@ -10,7 +10,8 @@ export interface PrepareGitRepositoryOptions {
   logger: Logger;
   dataDir: string;
   remoteUrl: string;
-  authenticatedUrl: string;
+  /** Supplied to each Git child; never written to the checkout. */
+  credentialEnv: Record<string, string>;
   branch: string;
   timeoutMs: number;
   signal?: AbortSignal | undefined;
@@ -23,7 +24,7 @@ export async function prepareGitRepository(
     logger,
     dataDir,
     remoteUrl,
-    authenticatedUrl,
+    credentialEnv,
     branch,
     timeoutMs,
     signal,
@@ -38,7 +39,7 @@ export async function prepareGitRepository(
         logger,
         dataDir,
         remoteUrl,
-        authenticatedUrl,
+        credentialEnv,
         branch,
         timeoutMs,
         signal,
@@ -53,7 +54,7 @@ export async function prepareGitRepository(
   await repairInvalidPlaceholderHead({ logger, dataDir, branch });
 
   if (remoteUrl) {
-    await configureRemote(git, authenticatedUrl);
+    await configureRemote(git, remoteUrl);
   }
 
   return git;
@@ -63,7 +64,7 @@ async function prepareRepositoryFromRemote(options: {
   logger: Logger;
   dataDir: string;
   remoteUrl: string;
-  authenticatedUrl: string;
+  credentialEnv: Record<string, string>;
   branch: string;
   timeoutMs: number;
   signal?: AbortSignal | undefined;
@@ -72,7 +73,7 @@ async function prepareRepositoryFromRemote(options: {
     logger,
     dataDir,
     remoteUrl,
-    authenticatedUrl,
+    credentialEnv,
     branch,
     timeoutMs,
     signal,
@@ -92,8 +93,8 @@ async function prepareRepositoryFromRemote(options: {
   let remoteHasHistory: boolean;
   try {
     const refs = await runGitCommandWithStallTimeout(
-      { baseDir: dataDir, timeoutMs },
-      ["ls-remote", "--heads", authenticatedUrl],
+      { baseDir: dataDir, timeoutMs, credentialEnv },
+      ["ls-remote", "--heads", remoteUrl],
       signal,
     );
     remoteHasHistory = refs.trim().length > 0;
@@ -114,8 +115,8 @@ async function prepareRepositoryFromRemote(options: {
 
   try {
     await runGitCommandWithStallTimeout(
-      { baseDir: parentDir, timeoutMs },
-      ["clone", authenticatedUrl, cloneDir],
+      { baseDir: parentDir, timeoutMs, credentialEnv },
+      ["clone", remoteUrl, cloneDir],
       signal,
     );
     await rm(dataDir, { recursive: true, force: true });
@@ -154,15 +155,21 @@ async function repairInvalidPlaceholderHead(options: {
   await writeFile(headPath, `ref: refs/heads/${branch}\n`);
 }
 
+/**
+ * The remote is stored credential-free.
+ *
+ * It used to be stored authenticated, which put the token in `.git/config` —
+ * inside the very checkout that then gets cloned, backed up, and synced.
+ */
 async function configureRemote(
   git: SimpleGit,
-  authenticatedUrl: string,
+  remoteUrl: string,
 ): Promise<void> {
   const remotes = await git.getRemotes(true);
   const origin = remotes.find((r) => r.name === "origin");
   if (origin) {
-    await git.remote(["set-url", "origin", authenticatedUrl]);
+    await git.remote(["set-url", "origin", remoteUrl]);
   } else {
-    await git.addRemote("origin", authenticatedUrl);
+    await git.addRemote("origin", remoteUrl);
   }
 }

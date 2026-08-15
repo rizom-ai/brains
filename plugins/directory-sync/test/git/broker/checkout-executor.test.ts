@@ -68,7 +68,6 @@ function executorFor(dataDir: string): CheckoutOperationExecutor {
     dataDir,
     branch: "main",
     remoteUrl: "",
-    authenticatedUrl: "",
     remoteFingerprint: sha256Hex(""),
     timeoutMs: 30_000,
     authorName: "Test",

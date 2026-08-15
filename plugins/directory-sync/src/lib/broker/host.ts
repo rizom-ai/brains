@@ -3,7 +3,6 @@ import type { Logger } from "@brains/utils/logger";
 import { directorySyncConfigSchema } from "../../types/config";
 import {
   DEFAULT_GIT_TIMEOUT_MS,
-  getAuthenticatedGitUrl,
   getGitRemoteFingerprint,
   resolveGitRemoteUrl,
 } from "../git-options";
@@ -68,7 +67,7 @@ export async function startGitBrokerHost(
     dataDir: checkoutPath,
     branch: git.branch,
     remoteUrl,
-    authenticatedUrl: getAuthenticatedGitUrl(remoteUrl, git.authToken),
+    ...(git.authToken === undefined ? {} : { authToken: git.authToken }),
     remoteFingerprint: getGitRemoteFingerprint(remoteUrl),
     timeoutMs: DEFAULT_GIT_TIMEOUT_MS,
     authorName: git.authorName,

@@ -7,7 +7,8 @@ export interface GitInitializeOptions {
   logger: Logger;
   dataDir: string;
   remoteUrl: string;
-  authenticatedUrl: string;
+  /** Supplied to each Git child; never written to the checkout. */
+  credentialEnv: Record<string, string>;
   branch: string;
   timeoutMs: number;
   signal?: AbortSignal | undefined;
@@ -23,7 +24,7 @@ export async function initializeGitRepository(
     logger,
     dataDir,
     remoteUrl,
-    authenticatedUrl,
+    credentialEnv,
     branch,
     timeoutMs,
     signal,
@@ -37,7 +38,7 @@ export async function initializeGitRepository(
     logger,
     dataDir,
     remoteUrl,
-    authenticatedUrl,
+    credentialEnv,
     branch,
     timeoutMs,
     signal,

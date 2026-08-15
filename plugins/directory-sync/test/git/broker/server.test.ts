@@ -87,7 +87,6 @@ async function startBroker(): Promise<Harness> {
             dataDir: checkout,
             branch: "main",
             remoteUrl: "",
-            authenticatedUrl: "",
             remoteFingerprint: FINGERPRINT,
             timeoutMs: 30_000,
             authorName: "Test",

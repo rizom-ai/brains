@@ -35,7 +35,6 @@ async function harness(): Promise<{
             dataDir: checkout,
             branch: "main",
             remoteUrl: "",
-            authenticatedUrl: "",
             remoteFingerprint: FINGERPRINT,
             timeoutMs: 30_000,
             authorName: "Test",
