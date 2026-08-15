@@ -40,7 +40,16 @@ Use one supervised, semantic Git broker as the checkout owner:
 Remove the shell wrapper, `flock`, `setsid`, `timeout`, and undeclared coreutils
 requirements. Do not replace them with another ambient helper. A fixed Bun release remains
 valuable defense in depth but is not required if fail-closed recovery passes on the
-shipped affected runtime.
+shipped affected runtime — **provided losses stay rare**.
+
+Fail closed is a correctness property and says nothing about how often it fires. Each
+firing costs a broker-group restart, and a lost completion during recovery escalates to
+the whole runtime, so frequency is an availability property here in a way it was not when
+a loss wedged a single operation. The export-stall investigation reached that wedge
+repeatedly across 350-file soaks, and no phase currently measures the rate. Phase 7
+therefore records observed lost-completion frequency, and above roughly one loss per full
+acceptance run the fixed Bun release becomes a release dependency rather than defense in
+depth: recovery that fires continuously is still an outage.
 
 ## Problem statement
 
@@ -200,6 +209,15 @@ Git. They must not host PID-scoped brokers that can independently own the same c
 
 A Brain with no Git configuration does not start the broker and does not acquire Git
 runtime dependencies.
+
+One app-process Git executor survives and needs a stated disposition, because it otherwise
+contradicts the done criterion that web and worker execute no Git child:
+`lib/content-remote-bootstrap.ts` seeds a local `file://` content remote. It runs only for
+that configuration, builds a throwaway worktree and a bare remote, and never touches a
+managed checkout — so it sits outside the ownership this plan establishes rather than
+being an exception to it. Keep it in the app process, and pin the boundary with a test
+proving it never opens a registered checkout path. If that stops holding, it moves behind
+the broker as a semantic operation rather than gaining an exemption.
 
 ### Canonical ownership endpoint
 
@@ -365,6 +383,16 @@ The lost-completion reproduction must use an injected `simple-git` execution bou
 it remains deterministic and does not depend on reproducing a Bun scheduler failure in
 ordinary CI.
 
+**The concurrency reproduction must assert operation atomicity, not the absence of
+errors.** This is not hypothetical: the superseded implementation's version asserted only
+that two owners committing concurrently produced no rejection, and it passed, because
+command-level exclusion genuinely does prevent ref-lock collisions. Rewritten to force the
+interleaving, the same scenario shows one owner's `add -A` staging and committing the
+other owner's file — filesystem exclusion intact, semantics broken. Assert that each
+owner's commit contains exactly its own changes, and pause one owner mid-operation so the
+interleaving occurs on every run rather than when scheduling happens to allow it. Bound
+that pause, so correct operation-level ownership does not deadlock.
+
 ### Phase 1 — Remove the superseded wrapper design
 
 Delete or revert:
@@ -467,7 +495,8 @@ Run on the packaged Linux runtime with the shipped affected Bun version, current
 
 1. focused broker/protocol/supervisor/recovery tests;
 2. deterministic lost-completion broker-group recovery plus full-runtime fallback;
-3. 100-cycle commit/push/pull process-inventory soak;
+3. 100-cycle commit/push/pull process-inventory soak, recording observed lost-completion
+   frequency;
 4. three unchanged 350-file packaged soaks with persistence and deletion barriers;
 5. full install, build, typecheck, lint, unit, package, and startup checks;
 6. one independent scheduled soak with retained Bun version, journal summary, queue
@@ -528,7 +557,7 @@ Code completion does not authorize deployment.
 This plan is complete when:
 
 - `simple-git` is constructed only inside the broker;
-- app web/worker processes execute no Git child;
+- app web/worker processes execute no Git child against a managed checkout;
 - one broker serializes complete operations for each checkout;
 - a Brain without Git starts no broker;
 - production has no shell wrapper, native helper, or ambient dependency beyond `git`;
