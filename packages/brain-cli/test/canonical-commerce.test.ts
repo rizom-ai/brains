@@ -141,19 +141,22 @@ describe("canonical commerce posture", () => {
   });
 
   test("keeps optional commerce-adjacent capabilities independently selectable", () => {
-    for (const id of [
-      "atproto-registry",
-      "social-media",
-      "wishlist",
-      "obsidian-vault",
-      "docs",
-    ]) {
+    // A capability and the plugin id it registers. They differ for
+    // declarative entity packages, whose plugin ids are package-scoped.
+    const cases: ReadonlyArray<{ capability: string; pluginId: string }> = [
+      { capability: "atproto-registry", pluginId: "atproto-registry" },
+      { capability: "social-media", pluginId: "social-media" },
+      { capability: "wishlist", pluginId: "wishlist" },
+      { capability: "obsidian-vault", pluginId: "obsidian-vault" },
+      { capability: "docs", pluginId: "@brains/doc:doc" },
+    ];
+    for (const { capability, pluginId } of cases) {
       const resolved = resolve(
         canonicalBrain,
         {},
-        commerceOverrides({ add: [id] }),
+        commerceOverrides({ add: [capability] }),
       );
-      expect(pluginIds(resolved)).toContain(id);
+      expect(pluginIds(resolved)).toContain(pluginId);
     }
   });
 });

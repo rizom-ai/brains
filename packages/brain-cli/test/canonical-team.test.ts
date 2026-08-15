@@ -138,7 +138,14 @@ describe("canonical team bundle", () => {
 
     expect(resolved.profileKind).toBe("team");
     const ids = pluginIds(resolved);
-    for (const id of ["conversation-memory", "docs", "site-builder", "mcp"]) {
+    // Declarative entity packages register scoped plugin ids, so docs is
+    // "@brains/doc:doc" rather than the capability id "docs".
+    for (const id of [
+      "conversation-memory",
+      "@brains/doc:doc",
+      "site-builder",
+      "mcp",
+    ]) {
       expect(ids).toContain(id);
     }
     expect(pluginConfig(resolved, "topics")).toMatchObject({
@@ -168,7 +175,7 @@ describe("canonical team bundle", () => {
     );
 
     expect(pluginIds(resolved)).not.toContain("conversation-memory");
-    expect(pluginIds(resolved)).not.toContain("docs");
+    expect(pluginIds(resolved)).not.toContain("@brains/doc:doc");
     expect(
       resolved.permissions?.rules?.some((rule) =>
         rule.pattern.startsWith("docs:"),

@@ -4,12 +4,13 @@
   "version": "0.2.0-alpha.306",
   "description": "Documentation entity type — markdown docs as first-class brain content",
   "dependencies": {
-    "@brains/plugins": "workspace:*",
+    "@brains/sdk": "workspace:*",
     "@brains/ui-library": "workspace:*",
-    "@brains/utils": "workspace:*",
     "preact": "^10.27.2"
   },
   "devDependencies": {
+    "@brains/plugins": "workspace:*",
+    "@brains/test-utils": "workspace:*",
     "@brains/typescript-config": "workspace:*",
     "bun-types": "^1.3.14",
     "typescript": "^7.0.2"

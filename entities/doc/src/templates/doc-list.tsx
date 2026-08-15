@@ -1,5 +1,5 @@
 import type { JSX } from "preact";
-import type { PaginationInfo } from "@brains/plugins";
+import type { PaginationInfo } from "@brains/sdk/entities";
 import type { DocWithData } from "../schemas/doc";
 import { groupDocs, sortDocs } from "./docs-design";
 import {
