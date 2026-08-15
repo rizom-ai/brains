@@ -790,20 +790,21 @@ inventory of every current operator surface.
 Exit: every entry has a recorded capability profile and the slice assignment
 below.
 
-**4b — Walking skeleton.** Take Top Wishes and the public reading-workspace
-fixture through the public definition and normalization path. Add
+**4b — Walking skeleton.** Take the public reading fixture's Dashboard widget
+and CMS workspace through the public definition and normalization path. Add
 package-scoped CMS registration/unregistration and the base
 `CmsWorkspaceView` React renderer while preserving authenticated actor
 derivation and CSRF.
 
-Exit: one current widget and the public workspace render, act, unregister, and
-restart through supported host behavior using only the shipped base vocabulary.
+Exit: the public widget and workspace render, act, unregister, and restart
+through supported host behavior using only the shipped base vocabulary.
 
 **4c — Collections, composition, and host launches.** Extend row annotations,
 tabs, local filters, matrix presentation, semantic grouping, and typed
 host-owned launch intents. Convert Skills, SWOT, Agent Network, Open Action
 Items, Conversation Memory Coverage, Recent Decisions, Recent Conversation
-Memory, Topics, Publication Pipeline, Email Triage, Site Health, and Inbox.
+Memory, Topics, Top Wishes, Publication Pipeline, Email Triage, Site Health,
+and Inbox.
 
 Exit: every non-spatial Dashboard widget uses the public path; no converted
 widget supplies a component, script, stylesheet, renderer name, or raw internal
