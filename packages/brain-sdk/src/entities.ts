@@ -44,6 +44,8 @@ export type {
   DataSourceDefinition,
   EntityAttachmentDeclaration,
   EntityDataSourceDefinition,
+  EntityEvalContext,
+  EntityEvalDeclaration,
   EntityGenerationContext,
   EntityGenerationDeclaration,
   EntityGenerationEntityAccess,

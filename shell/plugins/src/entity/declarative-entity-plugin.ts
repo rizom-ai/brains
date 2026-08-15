@@ -8,6 +8,7 @@ import {
   type DataSource,
   type BaseEntity,
   type ListOptions,
+  type EntityInput,
   type EntityAdapter,
   type EntityTypeConfig,
   type ProjectionJsonObject,
@@ -259,6 +260,7 @@ class DeclarativeEntityPlugin extends EntityPlugin<
   private readonly dataSources: AnyEntityDefinition["dataSources"];
   private readonly attachments: AnyEntityDefinition["attachments"];
   private readonly generation: AnyEntityDefinition["generation"];
+  private readonly evals: AnyEntityDefinition["evals"];
   private readonly projectionRules: AnyEntityDefinition["projectionRules"];
   private readonly atproto: AnyEntityDefinition["atproto"];
   private readonly releaseOnShutdown: Array<() => void> = [];
@@ -291,6 +293,7 @@ class DeclarativeEntityPlugin extends EntityPlugin<
     this.dataSources = definition.dataSources;
     this.attachments = definition.attachments;
     this.generation = definition.generation;
+    this.evals = definition.evals;
     this.projectionRules = definition.projectionRules;
     this.atproto = definition.atproto;
   }
@@ -334,6 +337,16 @@ class DeclarativeEntityPlugin extends EntityPlugin<
   protected override async onRegister(
     context: EntityPluginContext,
   ): Promise<void> {
+    for (const [handlerId, handler] of Object.entries(this.evals ?? {})) {
+      context.eval.registerHandler(handlerId, (input) =>
+        handler(input, {
+          ai: context.ai,
+          logger: this.logger,
+          entities: this.entityAccess(context),
+        }),
+      );
+    }
+
     if (this.atproto) {
       this.releaseOnShutdown.push(
         AtprotoProjectionRegistry.getInstance().register(this.atproto),
@@ -383,23 +396,6 @@ class DeclarativeEntityPlugin extends EntityPlugin<
     const generation = this.generation;
     if (!generation) return null;
 
-    const entityService = context.entityService;
-    const entities: EntityGenerationEntityAccess = {
-      listEntities: <T extends BaseEntity>(request: {
-        entityType: string;
-        options?: ListOptions;
-      }): Promise<T[]> => entityService.listEntities<T>(request),
-      getEntity: <T extends BaseEntity>(request: {
-        entityType: string;
-        id: string;
-      }): Promise<T | null> => entityService.getEntity<T>(request),
-      getEntityTypes: (): string[] => entityService.getEntityTypes(),
-      updateEntity: <T extends BaseEntity>(request: {
-        entity: T;
-      }): Promise<{ entityId: string; jobId: string }> =>
-        entityService.updateEntity(request),
-    };
-
     return {
       // Input is the author's declared schema, so a malformed job is
       // rejected before their code runs.
@@ -412,8 +408,33 @@ class DeclarativeEntityPlugin extends EntityPlugin<
           input: data,
           ai: context.ai,
           logger: this.logger,
-          entities,
+          entities: this.entityAccess(context),
         }),
+    };
+  }
+
+  private entityAccess(
+    context: EntityPluginContext,
+  ): EntityGenerationEntityAccess {
+    const entityService = context.entityService;
+    return {
+      listEntities: <T extends BaseEntity>(request: {
+        entityType: string;
+        options?: ListOptions;
+      }): Promise<T[]> => entityService.listEntities<T>(request),
+      getEntity: <T extends BaseEntity>(request: {
+        entityType: string;
+        id: string;
+      }): Promise<T | null> => entityService.getEntity<T>(request),
+      getEntityTypes: (): string[] => entityService.getEntityTypes(),
+      createEntity: <T extends BaseEntity>(request: {
+        entity: EntityInput<T>;
+      }): Promise<{ entityId: string; jobId: string }> =>
+        entityService.createEntity(request),
+      updateEntity: <T extends BaseEntity>(request: {
+        entity: T;
+      }): Promise<{ entityId: string; jobId: string }> =>
+        entityService.updateEntity(request),
     };
   }
 
