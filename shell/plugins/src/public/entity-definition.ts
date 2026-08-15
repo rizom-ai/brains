@@ -8,6 +8,7 @@ import type {
   AnyEntityDefinition,
   EntityAttachmentDeclaration,
   EntityDefinition,
+  EntityEvalDeclaration,
   EntityGenerationDeclaration,
   EntityDefinitionConfig,
   EntitySeedDefinition,
@@ -55,6 +56,7 @@ export function defineEntity<
   readonly generation?: EntityGenerationDeclaration<TInputSchema> | undefined;
   readonly projectionRules?: readonly ProjectionRule[] | undefined;
   readonly atproto?: AtprotoProjection | undefined;
+  readonly evals?: EntityEvalDeclaration | undefined;
 }): EntityDefinition<TType, TMetadataSchema> {
   assertLocalId(definition.type, "Entity type");
   if (!definition.purpose.trim()) {

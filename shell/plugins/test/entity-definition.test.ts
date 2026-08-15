@@ -8,6 +8,7 @@ import {
 } from "../src/entity/declarative-entity-plugin";
 import type { PublishMediaData } from "@brains/contracts";
 import type { JobHandler } from "@brains/job-queue";
+import type { EvalHandler } from "@brains/ai-evaluation";
 import {
   AtprotoProjectionRegistry,
   canonicalAtprotoLexicons,
@@ -514,6 +515,64 @@ describe("entity package definitions", () => {
     expect(
       AtprotoProjectionRegistry.getInstance().get("guide"),
     ).toBeUndefined();
+
+    harness.reset();
+  });
+
+  it("registers declared eval handlers with the same context generation gets", async () => {
+    // Nine packages register eval handlers from onRegister. Declared, they
+    // are named functions over the shared entity capability context, so
+    // registration is the runtime's job rather than each package's.
+    const guide = defineEntity({
+      type: "guide",
+      purpose: "A guide with evals.",
+      metadata: z.object({ title: z.string() }),
+      evals: {
+        summarize: async (input, { entities }) => {
+          const guides = await entities.listEntities({ entityType: "guide" });
+          return { input, count: guides.length };
+        },
+      },
+    });
+    const definition = defineEntityPackage({ id: "guides", entities: [guide] });
+    const plugin = createEntityPackagePlugins(
+      definition.entities,
+      definition.projections,
+      { name: "@fixture/guides", version: "0.1.0" },
+      (id) => `@fixture/guides:${id}`,
+    )[0];
+    if (!plugin) throw new Error("Guide entity plugin was not created");
+
+    const harness = createPluginHarness({
+      logger: createSilentLogger("entity-eval-test"),
+    });
+    const handlers = new Map<string, EvalHandler>();
+    const mockShell = harness.getMockShell();
+    mockShell.registerEvalHandler = (
+      _pluginId: string,
+      handlerId: string,
+      handler: EvalHandler,
+    ): void => {
+      handlers.set(handlerId, handler);
+    };
+
+    await harness.installPlugin(plugin);
+
+    await harness.getEntityService().createEntity({
+      entity: {
+        id: "first",
+        entityType: "guide",
+        content: "A guide",
+        metadata: { title: "First" },
+      },
+    });
+
+    const handler = handlers.get("summarize");
+    if (!handler) throw new Error("Eval handler was not registered");
+    expect(await handler({ topic: "rivers" })).toEqual({
+      input: { topic: "rivers" },
+      count: 1,
+    });
 
     harness.reset();
   });

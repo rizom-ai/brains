@@ -200,6 +200,8 @@
         "EntityAttachmentDeclaration",
         "EntityDataSourceDefinition",
         "EntityDetailContext",
+        "EntityEvalContext",
+        "EntityEvalDeclaration",
         "EntityGenerationContext",
         "EntityGenerationDeclaration",
         "EntityGenerationEntityAccess",

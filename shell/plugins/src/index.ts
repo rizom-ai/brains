@@ -243,6 +243,8 @@ export {
 } from "./package-definition";
 export type {
   EntityAttachmentDeclaration,
+  EntityEvalContext,
+  EntityEvalDeclaration,
   EntityGenerationContext,
   EntityGenerationDeclaration,
   EntityGenerationEntityAccess,
