@@ -243,6 +243,7 @@ export {
 } from "./package-definition";
 export type {
   EntityAttachmentDeclaration,
+  EntityConversationReader,
   EntityCreateRoute,
   EntityCreateRouting,
   EntityEvalContext,

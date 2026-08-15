@@ -48,6 +48,7 @@ slug: systems-series
       ai: context.ai,
       logger: createSilentLogger("test"),
       entities: context.entityService,
+      conversations: context.conversations,
     });
 
     expect(context.ai.generate).toHaveBeenCalledWith(
