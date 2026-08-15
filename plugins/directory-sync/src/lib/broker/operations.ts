@@ -24,6 +24,14 @@ import type { GitReconciliationCheckpoint } from "../../types";
  *    moves inside operations whose results carry what the caller needs, and
  *    durability stays with the reconciliation checkpoint rather than a held
  *    lock.
+ *
+ * `commit-and-push` exists because splitting that one sequence is unsafe in a
+ * way splitting the others is not. Auto-export commits, pushes, and then
+ * advances the reconciliation checkpoint to the resulting HEAD — "everything
+ * to here is already queue work". If another owner pulls remote changes
+ * between the push and the capture, the checkpoint moves past changes that
+ * were never enqueued and they are silently never imported. The lease hid that
+ * coupling; one owned operation makes it structural.
  */
 
 export const GIT_OPERATIONS = [
@@ -32,6 +40,7 @@ export const GIT_OPERATIONS = [
   "has-local-changes",
   "commit",
   "push",
+  "commit-and-push",
   "pull",
   "get-reconciliation-delta",
   "get-checkpoint",
@@ -47,6 +56,7 @@ export type GitOperation =
   | { name: "has-local-changes" }
   | { name: "commit"; message?: string | undefined }
   | { name: "push" }
+  | { name: "commit-and-push" }
   | { name: "pull" }
   | {
       name: "get-reconciliation-delta";
@@ -58,7 +68,13 @@ export type GitOperation =
 
 /** Operations that may change the checkout, and so must never be replayed. */
 export const MUTATING_OPERATIONS: ReadonlySet<GitOperationName> =
-  new Set<GitOperationName>(["initialize", "commit", "push", "pull"]);
+  new Set<GitOperationName>([
+    "initialize",
+    "commit",
+    "push",
+    "commit-and-push",
+    "pull",
+  ]);
 
 export const gitOperationSchema: z.ZodType<GitOperation, GitOperation> =
   z.discriminatedUnion("name", [
@@ -69,6 +85,7 @@ export const gitOperationSchema: z.ZodType<GitOperation, GitOperation> =
       .object({ name: z.literal("commit"), message: z.string().optional() })
       .strict(),
     z.object({ name: z.literal("push") }).strict(),
+    z.object({ name: z.literal("commit-and-push") }).strict(),
     z.object({ name: z.literal("pull") }).strict(),
     z
       .object({
@@ -101,7 +118,14 @@ export const gitOperationSchema: z.ZodType<GitOperation, GitOperation> =
       .strict(),
   ]);
 
-/** True when running this operation twice could duplicate a mutation. */
-export function isMutatingOperation(operation: GitOperation): boolean {
+/**
+ * True when running this operation twice could duplicate a mutation.
+ *
+ * Takes only the discriminant, so a caller holding a name — a journal entry,
+ * a test enumerating the set — does not have to fabricate an operation.
+ */
+export function isMutatingOperation(
+  operation: Pick<GitOperation, "name">,
+): boolean {
   return MUTATING_OPERATIONS.has(operation.name);
 }

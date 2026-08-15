@@ -1,142 +1,71 @@
-import { describe, it, expect, mock, afterEach } from "bun:test";
-import { setupGitAutoCommit } from "../../src/lib/git-auto-commit";
-import { setupPeriodicGitSync } from "../../src/lib/git-periodic-sync";
-import { DirectorySyncRuntime } from "../../src/lib/directory-sync-runtime";
+import { afterEach, describe, expect, it } from "bun:test";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { createSilentLogger } from "@brains/test-utils";
+import { GitSync } from "../../src/lib/git-sync";
 import {
-  createSilentLogger,
-  createMockServicePluginContext,
-} from "@brains/test-utils";
-import type { ServicePluginContext } from "@brains/plugins";
-import type { PullResult } from "../../src/lib/git-sync";
-import { createMockDirectorySync, createMockGitSync } from "../fixtures";
+  commitTouching,
+  installOneShotSlowPreCommit,
+  untilExists,
+} from "./real-git";
 
-function createTestMessaging(): {
-  messaging: ServicePluginContext["messaging"];
-} {
-  const subs = new Map<string, Array<(msg: unknown) => Promise<unknown>>>();
+/**
+ * `GitSync` holds a turn for every operation it runs, not only the ones a
+ * caller remembered to wrap.
+ *
+ * This file used to assert serialization by handing the mock its own
+ * `withLock`, so it measured the test's lock rather than the implementation's
+ * — and the implementation had none, because the lease was opt-in and only
+ * composite callers took it. The lease is gone (see
+ * `src/lib/broker/operations.ts`); serialization is now a property of the
+ * operations themselves, so it is asserted against real Git.
+ *
+ * Ownership *across* processes is the broker's job and stays failing in
+ * `operation-atomicity.test.ts`.
+ */
 
-  const messaging = {
-    subscribe: (
-      channel: string,
-      handler: (msg: unknown) => Promise<unknown>,
-    ): (() => void) => {
-      const list = subs.get(channel) ?? [];
-      list.push(handler);
-      subs.set(channel, list);
-      return (): void => {
-        const arr = subs.get(channel);
-        if (arr)
-          subs.set(
-            channel,
-            arr.filter((h) => h !== handler),
-          );
-      };
-    },
-    send: async (request: {
-      type: string;
-      payload: unknown;
-    }): Promise<unknown> => {
-      const list = subs.get(request.type) ?? [];
-      for (const h of list) await h({ payload: request.payload });
-      return { success: true };
-    },
-  } as unknown as ServicePluginContext["messaging"];
+const LINUX = process.platform === "linux";
 
-  return { messaging };
-}
+let scratch: string | undefined;
 
-describe("git operation serialization", () => {
-  let runtime: DirectorySyncRuntime | undefined;
+afterEach(async () => {
+  if (scratch) await rm(scratch, { recursive: true, force: true });
+  scratch = undefined;
+});
 
-  afterEach(async () => {
-    await runtime?.close();
-    runtime = undefined;
-  });
-
-  it("should not run auto-commit and periodic-sync git ops concurrently", async () => {
-    let concurrentOps = 0;
-    let maxConcurrent = 0;
-
-    const trackConcurrency = async (delayMs: number): Promise<void> => {
-      concurrentOps++;
-      maxConcurrent = Math.max(maxConcurrent, concurrentOps);
-      await new Promise((r) => setTimeout(r, delayMs));
-      concurrentOps--;
-    };
-
-    const commitMock = mock(async () => trackConcurrency(50));
-    const pushMock = mock(async () => trackConcurrency(50));
-    const pullMock = mock(async (): Promise<PullResult> => {
-      await trackConcurrency(50);
-      return { files: ["a.md"] };
+describe.skipIf(!LINUX)("git operation serialization", () => {
+  it("keeps one caller's commit free of another caller's work", async () => {
+    scratch = await mkdtemp(join(tmpdir(), "git-serialization-"));
+    const dataDir = join(scratch, "checkout");
+    const git = new GitSync({
+      logger: createSilentLogger(),
+      dataDir,
+      branch: "main",
+      authorName: "Test",
+      authorEmail: "test@example.com",
     });
 
-    // Real lock implementation to test serialization
-    let lockQueue: Promise<void> = Promise.resolve();
-    const withLock = <T>(fn: () => Promise<T>): Promise<T> => {
-      let resolve: (() => void) | undefined;
-      const next = new Promise<void>((r) => {
-        resolve = r;
-      });
-      const prev = lockQueue;
-      lockQueue = next;
-      return prev.then(async () => {
-        try {
-          return await fn();
-        } finally {
-          resolve?.();
-        }
-      });
-    };
+    await git.initialize();
+    const started = await installOneShotSlowPreCommit(dataDir, scratch);
 
-    const git = createMockGitSync({
-      commit: commitMock,
-      push: pushMock,
-      pull: pullMock,
-      hasLocalChanges: mock(async () => true),
-      withLock,
-    });
+    await writeFile(join(dataDir, "first.md"), "first\n");
+    const first = git.commit("first change");
 
-    const { messaging } = createTestMessaging();
-    runtime = new DirectorySyncRuntime();
+    // The second file appears only once the first commit is past staging,
+    // so `add -A` can only sweep it up if the operations interleave.
+    expect(await untilExists(started)).toBe(true);
+    await writeFile(join(dataDir, "second.md"), "second\n");
+    const second = git.commit("second change");
 
-    setupGitAutoCommit(messaging, git, 10, createSilentLogger(), runtime);
-    setupPeriodicGitSync(
-      git,
-      createMockDirectorySync(),
-      createMockServicePluginContext(),
-      0.001,
-      createSilentLogger(),
-      runtime,
-      {
-        pullAndQueue: (options) =>
-          options.gitSync.withLock(async () => {
-            const pull = await options.gitSync.pull(options.signal);
-            return {
-              mode: "incremental",
-              files: pull.files,
-              deletedFiles: pull.deletedFiles ?? [],
-              batch: null,
-              checkpointAdvanced: false,
-            };
-          }),
-      },
-    );
+    // Settled, not all: without a turn per operation the second commit dies
+    // on Git's index lock, and the assertions below are what should say so —
+    // a rejection here would hide whether the commits were isolated.
+    await Promise.allSettled([first, second]);
 
-    // Trigger auto-commit
-    await messaging.send({
-      type: "entity:created",
-      payload: {
-        entity: {},
-        entityType: "post",
-        entityId: "1",
-      },
-    });
+    expect(await commitTouching(dataDir, "first.md")).toEqual(["first.md"]);
+    expect(await commitTouching(dataDir, "second.md")).toEqual(["second.md"]);
 
-    // Let both run for a while
-    await new Promise((r) => setTimeout(r, 300));
-
-    // Git operations should never overlap
-    expect(maxConcurrent).toBe(1);
-  });
+    await git.cleanup();
+  }, 120_000);
 });

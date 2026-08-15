@@ -6,7 +6,7 @@ import {
   gitOperationSchema,
   isMutatingOperation,
 } from "../../../src/lib/broker/operations";
-import type { GitOperation } from "../../../src/lib/broker/operations";
+import type { GitOperationName } from "../../../src/lib/broker/operations";
 
 /**
  * Phase 2 of docs/plans/directory-sync-git-execution-broker.md.
@@ -28,19 +28,21 @@ describe("git operation contract", () => {
     ].map((match) => match[1] ?? "");
 
     // `hasRemote` reads configuration rather than the checkout, and `cleanup`
-    // is client lifecycle. `withLock` is deliberately absent: it is the lease
-    // the plan forbids, and its sequencing moves inside operations.
-    const clientSide = new Set(["hasRemote", "cleanup", "withLock"]);
+    // is client lifecycle. There is no `withLock` to exempt: the lease the
+    // plan forbids is gone, and its sequencing moved inside operations.
+    const clientSide = new Set(["hasRemote", "cleanup"]);
+    expect(methods).not.toContain("withLock");
     const needingOperations = methods.filter(
       (method) => method.length > 0 && !clientSide.has(method),
     );
 
-    const covered: Record<string, GitOperation["name"]> = {
+    const covered: Record<string, GitOperationName> = {
       initialize: "initialize",
       getStatus: "get-status",
       hasLocalChanges: "has-local-changes",
       commit: "commit",
       push: "push",
+      commitAndPush: "commit-and-push",
       pull: "pull",
       getReconciliationDelta: "get-reconciliation-delta",
       log: "log-file",
@@ -97,13 +99,14 @@ describe("git operation contract", () => {
 
   it("marks exactly the operations that can change the checkout", () => {
     const mutating = GIT_OPERATIONS.filter((name) =>
-      isMutatingOperation({ name } as GitOperation),
+      isMutatingOperation({ name }),
     );
 
     // Recovery may replay a read, never a mutation whose acknowledgement was
     // lost — so this list is what the journal must treat as ambiguous.
     expect([...mutating].sort()).toEqual([
       "commit",
+      "commit-and-push",
       "initialize",
       "pull",
       "push",

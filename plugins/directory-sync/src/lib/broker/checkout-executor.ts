@@ -56,6 +56,10 @@ export interface GitOperationResultMap {
   "has-local-changes": boolean;
   commit: void;
   push: void;
+  "commit-and-push": {
+    pushed: boolean;
+    checkpoint: GitReconciliationCheckpoint | null;
+  };
   pull: PullResult;
   "get-reconciliation-delta": GitReconciliationDelta;
   "get-checkpoint": GitReconciliationCheckpoint;
@@ -150,6 +154,35 @@ export class CheckoutOperationExecutor {
 
       case "push":
         return pushGitChanges(logger, branch, this.#net, runOptions.signal);
+
+      case "commit-and-push": {
+        // One turn covers status, commit, push, and the checkpoint derived
+        // from the resulting HEAD, so nothing can move HEAD between the push
+        // and the capture that advances past it.
+        const status = await getGitStatus(
+          this.#client,
+          logger,
+          branch,
+          remoteUrl,
+        );
+        if (!status.isRepo) {
+          throw new Error("Git repository is unavailable");
+        }
+        if (!status.hasChanges && status.ahead === 0) {
+          return { pushed: false, checkpoint: null };
+        }
+        if (status.hasChanges) {
+          await commitGitChanges(this.#client, logger);
+        }
+        await pushGitChanges(logger, branch, this.#net, runOptions.signal);
+        return {
+          pushed: true,
+          checkpoint: await getCurrentReconciliationCheckpoint(
+            this.#client,
+            this.identity,
+          ),
+        };
+      }
 
       case "pull":
         return pullGitChanges(

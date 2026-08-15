@@ -92,12 +92,21 @@ export interface IDirectorySync {
  * Consumers accept this instead of the class, enabling clean test mocks.
  */
 export interface IGitSync {
-  withLock<T>(fn: () => Promise<T>, signal?: AbortSignal): Promise<T>;
   initialize(): Promise<void>;
   hasRemote(): boolean;
   getStatus(): Promise<GitSyncStatus>;
   hasLocalChanges(): Promise<boolean>;
   commit(message?: string): Promise<void>;
+  /**
+   * Commit, push, and report the checkpoint of the resulting HEAD as one
+   * owned operation. Split into steps, another owner's pull can land between
+   * the push and the capture, advancing the checkpoint past changes that were
+   * never enqueued.
+   */
+  commitAndPush(): Promise<{
+    pushed: boolean;
+    checkpoint: GitReconciliationCheckpoint | null;
+  }>;
   push(signal?: AbortSignal): Promise<void>;
   pull(signal?: AbortSignal, onProgress?: () => void): Promise<PullResult>;
   getReconciliationDelta(

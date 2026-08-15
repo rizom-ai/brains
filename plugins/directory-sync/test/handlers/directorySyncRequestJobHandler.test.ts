@@ -5,61 +5,52 @@ import {
   createSilentLogger,
 } from "@brains/test-utils";
 import { DirectorySyncRequestJobHandler } from "../../src/handlers/directorySyncRequestJobHandler";
-import type { IGitSync } from "../../src/types";
+import type { GitReconciliationResult } from "../../src/lib/git-reconciliation";
 import { createMockDirectorySync, createMockGitSync } from "../fixtures";
 
 function createReconciliation(): ConstructorParameters<
   typeof DirectorySyncRequestJobHandler
 >[4] {
   return {
-    pullAndQueue: (options) =>
-      options.gitSync.withLock(async () => {
-        const pull = await options.gitSync.pull(
-          options.signal,
-          options.onGitProgress,
-        );
-        await options.directorySync.recordPendingPullDeletes(
-          pull.deletedFiles ?? [],
-        );
-        if (pull.files.length === 0) {
-          return {
-            mode: "incremental",
-            files: [],
-            deletedFiles: [],
-            batch: null,
-            checkpointAdvanced: true,
-          };
-        }
-        const batch = await options.directorySync.queueSyncBatch(
-          options.context,
-          options.source,
-          options.metadata,
-          pull.files,
-          pull.deletedFiles,
-        );
-        if (batch) options.directorySync.suppressWatchPaths(pull.files);
+    pullAndQueue: async (options): Promise<GitReconciliationResult> => {
+      const pull = await options.gitSync.pull(
+        options.signal,
+        options.onGitProgress,
+      );
+      await options.directorySync.recordPendingPullDeletes(
+        pull.deletedFiles ?? [],
+      );
+      if (pull.files.length === 0) {
         return {
           mode: "incremental",
-          files: pull.files,
-          deletedFiles: pull.deletedFiles ?? [],
-          batch,
-          checkpointAdvanced: batch !== null,
+          files: [],
+          deletedFiles: [],
+          batch: null,
+          checkpointAdvanced: true,
         };
-      }),
+      }
+      const batch = await options.directorySync.queueSyncBatch(
+        options.context,
+        options.source,
+        options.metadata,
+        pull.files,
+        pull.deletedFiles,
+      );
+      if (batch) options.directorySync.suppressWatchPaths(pull.files);
+      return {
+        mode: "incremental",
+        files: pull.files,
+        deletedFiles: pull.deletedFiles ?? [],
+        batch,
+        checkpointAdvanced: batch !== null,
+      };
+    },
   };
 }
 
 describe("DirectorySyncRequestJobHandler", () => {
-  it("pulls and queues the sync batch under the git lock", async () => {
+  it("pulls, then queues the sync batch", async () => {
     const calls: string[] = [];
-    const withLock: IGitSync["withLock"] = async <T>(
-      fn: () => Promise<T>,
-    ): Promise<T> => {
-      calls.push("lock:start");
-      const result = await fn();
-      calls.push("lock:end");
-      return result;
-    };
     const progress = mock(() => {});
     const createProgressObserver = mock((runId: string) => {
       expect(runId).toBe("run-1");
@@ -97,7 +88,7 @@ describe("DirectorySyncRequestJobHandler", () => {
           recordPendingPullDeletes,
           suppressWatchPaths,
         }),
-      () => createMockGitSync({ withLock, pull }),
+      () => createMockGitSync({ pull }),
       createReconciliation(),
       { createProgressObserver } as never,
     );
@@ -113,7 +104,7 @@ describe("DirectorySyncRequestJobHandler", () => {
       createMockProgressReporter(),
     );
 
-    expect(calls).toEqual(["lock:start", "pull", "queue", "lock:end"]);
+    expect(calls).toEqual(["pull", "queue"]);
     expect(createProgressObserver).toHaveBeenCalledWith("run-1");
     expect(progress).toHaveBeenCalledTimes(2);
     expect(recordPendingPullDeletes).toHaveBeenCalledWith(["deleted.md"]);

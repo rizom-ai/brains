@@ -129,9 +129,16 @@ describe("setupGitAutoCommit", () => {
             calls.push("push");
           }),
         });
+        // The checkpoint is produced inside the same owned operation, so the
+        // test asserts the value that operation returned rather than which
+        // GitSync it was read from afterwards.
+        const expected = yield* Effect.promise(async () => {
+          const { checkpoint } = await git.getReconciliationDelta();
+          return checkpoint;
+        });
         const reconciliation = {
-          captureCurrentUnderLock: mock(async (capturedGit) => {
-            expect(capturedGit).toBe(git);
+          saveCheckpoint: mock(async (checkpoint) => {
+            expect(checkpoint).toEqual(expected);
             calls.push("checkpoint");
           }),
         };

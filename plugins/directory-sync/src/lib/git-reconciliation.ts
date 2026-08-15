@@ -76,39 +76,36 @@ export class GitReconciliationService {
 
   /** Capture HEAD after a synchronous full initial sync has completed. */
   async captureCurrent(gitSync: IGitSync): Promise<void> {
-    await gitSync.withLock(() => this.captureCurrentUnderLock(gitSync));
-  }
-
-  /** Advance after a DB-origin commit while its caller already owns the Git lock. */
-  async captureCurrentUnderLock(gitSync: IGitSync): Promise<void> {
     const delta = await gitSync.getReconciliationDelta(undefined);
     await this.saveCheckpoint(delta.checkpoint);
   }
 
   /** Pull, derive all work since the durable checkpoint, queue, then advance. */
-  pullAndQueue(
+  async pullAndQueue(
     options: QueueReconciliationOptions,
   ): Promise<GitReconciliationResult> {
-    return options.gitSync.withLock(async () => {
-      await options.gitSync.pull(options.signal, options.onGitProgress);
-      options.signal?.throwIfAborted();
-      return this.queueCurrentDelta(options);
-    }, options.signal);
+    // Safe to compose: the delta is derived from the durable checkpoint to
+    // current HEAD, so an interleaved commit widens it rather than skipping
+    // it, and the checkpoint only advances once the batch is durable.
+    await options.gitSync.pull(options.signal, options.onGitProgress);
+    options.signal?.throwIfAborted();
+    return this.queueCurrentDelta(options);
   }
 
   /** Replay an already-mutated checkout during startup without another pull. */
   replayAndQueue(
     options: QueueReconciliationOptions,
   ): Promise<GitReconciliationResult> {
-    return options.gitSync.withLock(
-      () => this.queueCurrentDelta(options),
-      options.signal,
-    );
+    return this.queueCurrentDelta(options);
   }
 
   private async queueCurrentDelta(
     options: QueueReconciliationOptions,
   ): Promise<GitReconciliationResult> {
+    // The lease used to refuse a cancelled turn on the caller's behalf. It is
+    // gone, so refusing is this method's job: nothing below is worth starting
+    // once the caller has given up on it.
+    options.signal?.throwIfAborted();
     const previous = await this.getCheckpoint();
     const delta = await options.gitSync.getReconciliationDelta(previous);
 

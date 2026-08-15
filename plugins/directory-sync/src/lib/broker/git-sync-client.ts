@@ -74,6 +74,15 @@ export class BrokerGitSync {
     return this.#connection.execute(this.#checkoutPath, { name: "push" });
   }
 
+  commitAndPush(): Promise<{
+    pushed: boolean;
+    checkpoint: GitReconciliationCheckpoint | null;
+  }> {
+    return this.#connection.execute(this.#checkoutPath, {
+      name: "commit-and-push",
+    });
+  }
+
   pull(_signal?: AbortSignal, onProgress?: () => void): Promise<PullResult> {
     // Progress still reaches the caller, so operation-status freshness is
     // preserved; a healthy slow pull must not read as stalled.

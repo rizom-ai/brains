@@ -51,6 +51,35 @@ function incremental(
 }
 
 describe("GitReconciliationService", () => {
+  it("queues nothing once its caller has aborted", async () => {
+    // The lease used to carry the abort: `withLock(fn, signal)` refused a
+    // cancelled turn. With sequencing inside operations, the check has to be
+    // stated here, or a shutdown mid-replay still enqueues a batch.
+    const context = createContext();
+    const service = new GitReconciliationService(context.runtimeState);
+    await service.saveCheckpoint(BASELINE);
+    const queueSyncBatch = mock(async () => null);
+    const getReconciliationDelta = mock(async () => incremental());
+
+    const outcome = await service
+      .replayAndQueue({
+        gitSync: createMockGitSync({ getReconciliationDelta }),
+        directorySync: createMockDirectorySync({ queueSyncBatch }),
+        context,
+        source: "startup-replay",
+        signal: AbortSignal.abort(new Error("shutting down")),
+      })
+      .then(
+        () => undefined,
+        (error: unknown) => error,
+      );
+
+    expect(outcome).toBeInstanceOf(Error);
+    expect(getReconciliationDelta).not.toHaveBeenCalled();
+    expect(queueSyncBatch).not.toHaveBeenCalled();
+    expect(await service.getCheckpoint()).toEqual(BASELINE);
+  });
+
   it("pulls, durably queues the checkpoint delta, then advances the checkpoint", async () => {
     const context = createContext();
     const service = new GitReconciliationService(context.runtimeState);
@@ -266,7 +295,7 @@ describe("GitReconciliationService", () => {
       execSync("git push", { cwd: writerDir, stdio: "ignore" });
 
       // Simulate process loss after Git changed HEAD but before durable enqueue.
-      await gitSync.withLock(() => gitSync.pull());
+      await gitSync.pull();
 
       const queueSyncBatch = mock(async () => ({
         batchId: "recovered-batch",

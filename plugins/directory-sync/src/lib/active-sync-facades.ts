@@ -51,13 +51,12 @@ export function createDirectorySyncFacade(
 /** Stable Promise facade that resolves the active Git generation per call. */
 export function createGitSyncFacade(getActive: () => IGitSync): IGitSync {
   return {
-    withLock: <T>(fn: () => Promise<T>, signal?: AbortSignal): Promise<T> =>
-      getActive().withLock(fn, signal),
     initialize: () => getActive().initialize(),
     hasRemote: () => getActive().hasRemote(),
     getStatus: () => getActive().getStatus(),
     hasLocalChanges: () => getActive().hasLocalChanges(),
     commit: (message) => getActive().commit(message),
+    commitAndPush: () => getActive().commitAndPush(),
     push: (signal) => getActive().push(signal),
     pull: (signal) => getActive().pull(signal),
     getReconciliationDelta: (checkpoint) =>

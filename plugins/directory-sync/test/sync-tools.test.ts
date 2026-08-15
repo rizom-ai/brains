@@ -61,7 +61,7 @@ function createMockGitSync(): {
   gitSync: IGitSync;
   pullMock: ReturnType<typeof mock>;
   getStatusMock: ReturnType<typeof mock>;
-  withLockCallCount: { value: number };
+  commitAndPushMock: ReturnType<typeof mock>;
 } {
   const pullMock = mock(() =>
     Promise.resolve({ files: [], alreadyUpToDate: true }),
@@ -78,20 +78,19 @@ function createMockGitSync(): {
       files: [],
     }),
   );
-  const withLockCallCount = { value: 0 };
+  const commitAndPushMock = mock(() =>
+    Promise.resolve({ pushed: false, checkpoint: null }),
+  );
 
   return {
     gitSync: createBaseMockGS({
       pull: pullMock,
       getStatus: getStatusMock,
-      withLock: async <T>(fn: () => Promise<T>): Promise<T> => {
-        withLockCallCount.value++;
-        return fn();
-      },
+      commitAndPush: commitAndPushMock,
     }),
     pullMock,
     getStatusMock,
-    withLockCallCount,
+    commitAndPushMock,
   };
 }
 
@@ -470,9 +469,9 @@ describe("sync tool", () => {
     );
   });
 
-  it("should leave git locking and batch queueing to the sync-request job", async () => {
+  it("should leave git work and batch queueing to the sync-request job", async () => {
     const { directorySync, queueSyncBatchMock } = createMockDirectorySync();
-    const { gitSync, pullMock, withLockCallCount } = createMockGitSync();
+    const { gitSync, pullMock, commitAndPushMock } = createMockGitSync();
 
     const tools = createDirectorySyncTools(
       directorySync,
@@ -483,7 +482,7 @@ describe("sync tool", () => {
     const syncTool = findTool(tools, "directory_sync");
     await syncTool.handler({ action: "sync" }, toolContext);
 
-    expect(withLockCallCount.value).toBe(0);
+    expect(commitAndPushMock).not.toHaveBeenCalled();
     expect(pullMock).not.toHaveBeenCalled();
     expect(queueSyncBatchMock).not.toHaveBeenCalled();
   });

@@ -22,7 +22,7 @@ export function setupGitAutoCommit(
   debounceMs: number,
   logger: Logger,
   runtime: DirectorySyncScheduler,
-  reconciliation?: Pick<GitReconciliationService, "captureCurrentUnderLock">,
+  reconciliation?: Pick<GitReconciliationService, "saveCheckpoint">,
   operationStatus?: DirectorySyncOperationStatusService,
 ): void {
   const getGitSync =
@@ -30,22 +30,11 @@ export function setupGitAutoCommit(
   const commitAndPush = async (): Promise<void> => {
     const git = getGitSync();
     try {
-      const pushed = await git.withLock(async () => {
-        const status = await git.getStatus();
-        if (!status.isRepo) {
-          throw new Error("Git repository is unavailable");
-        }
-        if (!status.hasChanges && status.ahead === 0) {
-          return false;
-        }
-        if (status.hasChanges) {
-          await git.commit();
-        }
-        await git.push();
-        await reconciliation?.captureCurrentUnderLock(git);
-        return true;
-      });
+      const { pushed, checkpoint } = await git.commitAndPush();
       if (!pushed) return;
+      // The checkpoint comes from inside the same owned operation, so nothing
+      // can have moved HEAD between the push and this advance.
+      if (checkpoint) await reconciliation?.saveCheckpoint(checkpoint);
 
       await operationStatus?.clearIssues(["git"]);
       await operationStatus?.recordTerminal(

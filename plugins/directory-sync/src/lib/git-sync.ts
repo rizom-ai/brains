@@ -22,7 +22,10 @@ import {
 import type { GitSyncOptions } from "./git-options";
 import { pullGitChanges } from "./git-pull";
 import { getGitStatus, hasGitLocalChanges } from "./git-status";
-import { getReconciliationDelta } from "./git-reconciliation-state";
+import {
+  getCurrentReconciliationCheckpoint,
+  getReconciliationDelta,
+} from "./git-reconciliation-state";
 import type { ReconciliationIdentity } from "./git-reconciliation-state";
 
 export type { GitSyncOptions } from "./git-options";
@@ -45,22 +48,15 @@ export class GitSync implements IGitSync {
   private readonly authToken: string | undefined;
   private readonly dataDir: string;
   private readonly timeoutMs: number;
+  /**
+   * One turn per operation — auto-commit and periodic sync cannot interleave
+   * inside each other's commit or pull.
+   */
   private readonly lock = new SerialQueue();
   private readonly lifecycleController = new AbortController();
   private readonly activeOperations = new Set<Promise<unknown>>();
   private acceptingOperations = true;
   private cleanupPromise: Promise<void> | null = null;
-
-  /**
-   * Serialize git operations — prevents auto-commit and periodic-sync
-   * from racing each other on commit/push/pull.
-   */
-  withLock<T>(fn: () => Promise<T>, signal?: AbortSignal): Promise<T> {
-    if (!this.acceptingOperations) {
-      return Promise.reject(new Error("Git sync is shutting down"));
-    }
-    return this.lock.run(fn, this.getOperationSignal(signal));
-  }
 
   constructor(options: GitSyncOptions) {
     this.logger = options.logger;
@@ -143,6 +139,48 @@ export class GitSync implements IGitSync {
     );
   }
 
+  /**
+   * Status, commit, push, and the checkpoint of the resulting HEAD in one
+   * turn. Splitting it lets another owner's pull land between the push and
+   * the capture, advancing the checkpoint past changes that were never
+   * enqueued — see the note in `lib/broker/operations.ts`.
+   */
+  commitAndPush(): Promise<{
+    pushed: boolean;
+    checkpoint: GitReconciliationCheckpoint | null;
+  }> {
+    return this.runOperation(async () => {
+      const status = await getGitStatus(
+        this.git,
+        this.logger,
+        this.branch,
+        this.remoteUrl,
+      );
+      if (!status.isRepo) {
+        throw new Error("Git repository is unavailable");
+      }
+      if (!status.hasChanges && status.ahead === 0) {
+        return { pushed: false, checkpoint: null };
+      }
+      if (status.hasChanges) {
+        await commitGitChanges(this.git, this.logger);
+      }
+      await pushGitChanges(
+        this.logger,
+        this.branch,
+        this.net,
+        this.getOperationSignal(),
+      );
+      return {
+        pushed: true,
+        checkpoint: await getCurrentReconciliationCheckpoint(
+          this.git,
+          this.identity,
+        ),
+      };
+    });
+  }
+
   pull(signal?: AbortSignal, onProgress?: () => void): Promise<PullResult> {
     return this.runOperation(() =>
       pullGitChanges(
@@ -191,6 +229,11 @@ export class GitSync implements IGitSync {
       : this.lifecycleController.signal;
   }
 
+  /**
+   * One turn per operation. This used to only track an operation for shutdown
+   * accounting, which is why two callers could interleave inside a single
+   * commit: the lock was opt-in and only composite callers took it.
+   */
   private runOperation<T>(operation: () => Promise<T>): Promise<T> {
     if (!this.acceptingOperations) {
       return Promise.reject(new Error("Git sync is shutting down"));
@@ -198,9 +241,11 @@ export class GitSync implements IGitSync {
 
     let tracked: Promise<T>;
     try {
-      tracked = Promise.resolve(operation()).finally(() => {
-        this.activeOperations.delete(tracked);
-      });
+      tracked = this.lock
+        .run(operation, this.getOperationSignal())
+        .finally(() => {
+          this.activeOperations.delete(tracked);
+        });
     } catch (error) {
       return Promise.reject(error);
     }

@@ -153,10 +153,6 @@ export function createMockDirectorySync(
 
 export function createMockGitSync(overrides: Partial<IGitSync> = {}): IGitSync {
   const base: IGitSync = {
-    withLock: <T>(fn: () => Promise<T>, signal?: AbortSignal): Promise<T> => {
-      signal?.throwIfAborted();
-      return fn();
-    },
     initialize: mock(async () => {}),
     hasRemote: () => true,
     getStatus: mock(async () => ({
@@ -170,6 +166,20 @@ export function createMockGitSync(overrides: Partial<IGitSync> = {}): IGitSync {
     hasLocalChanges: mock(async () => false),
     commit: mock(async () => {}),
     push: mock(async () => {}),
+    // Composed from this same object rather than stubbed, so a test that
+    // overrides `commit`/`push`/`getStatus` still observes the ordering the
+    // real implementations have.
+    commitAndPush: async () => {
+      const status = await sync.getStatus();
+      if (!status.isRepo) throw new Error("Git repository is unavailable");
+      if (!status.hasChanges && status.ahead === 0) {
+        return { pushed: false, checkpoint: null };
+      }
+      if (status.hasChanges) await sync.commit();
+      await sync.push();
+      const { checkpoint } = await sync.getReconciliationDelta();
+      return { pushed: true, checkpoint };
+    },
     pull: mock(async () => ({ files: [] })),
     getReconciliationDelta: mock(async () => ({
       mode: "full" as const,
@@ -184,5 +194,6 @@ export function createMockGitSync(overrides: Partial<IGitSync> = {}): IGitSync {
     show: mock(async () => ""),
     cleanup: async () => {},
   };
-  return Object.assign(base, overrides);
+  const sync: IGitSync = Object.assign(base, overrides);
+  return sync;
 }
