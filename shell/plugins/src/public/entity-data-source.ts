@@ -120,14 +120,16 @@ export function defineEntityDataSource<
  * these two methods take and return plain data.
  */
 export interface EntityQueryReader {
-  list<T extends BaseEntity>(request: {
+  listEntities<T extends BaseEntity>(request: {
     entityType: string;
     options?: ListOptions;
   }): Promise<T[]>;
-  get<T extends BaseEntity>(request: {
+  getEntity<T extends BaseEntity>(request: {
     entityType: string;
     id: string;
   }): Promise<T | null>;
+  /** Entity types currently registered, for sources that span them. */
+  getEntityTypes(): string[];
 }
 
 /**
@@ -202,14 +204,15 @@ export function createDeclarativeDataSource(
     ): Promise<T> {
       const entityService = context.entityService;
       const entities: EntityQueryReader = {
-        list: <T extends BaseEntity>(request: {
+        listEntities: <T extends BaseEntity>(request: {
           entityType: string;
           options?: ListOptions;
         }): Promise<T[]> => entityService.listEntities<T>(request),
-        get: <T extends BaseEntity>(request: {
+        getEntity: <T extends BaseEntity>(request: {
           entityType: string;
           id: string;
         }): Promise<T | null> => entityService.getEntity<T>(request),
+        getEntityTypes: (): string[] => entityService.getEntityTypes(),
       };
       return outputSchema.parse(await definition.fetch(query, entities));
     },

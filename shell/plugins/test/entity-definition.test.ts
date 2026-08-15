@@ -8,6 +8,10 @@ import {
 } from "../src/entity/declarative-entity-plugin";
 import type { PublishMediaData } from "@brains/contracts";
 import type { JobHandler } from "@brains/job-queue";
+import {
+  AtprotoProjectionRegistry,
+  canonicalAtprotoLexicons,
+} from "@brains/atproto-contracts";
 import type { AttachmentProvider } from "../src";
 import {
   createTemplate,
@@ -16,6 +20,7 @@ import {
   defineEntityDataSource,
   defineEntityPackage,
   defineProjection,
+  defineProjectionRule,
   instantiatePluginPackageDefinition,
   type EntityOf,
 } from "../src";
@@ -332,8 +337,11 @@ describe("entity package definitions", () => {
           description: "Guides plus the current notice",
           fetch: async (_query, entities) => {
             const [guides, notices] = await Promise.all([
-              entities.list({ entityType: "guide" }),
-              entities.list({ entityType: "notice", options: { limit: 1 } }),
+              entities.listEntities({ entityType: "guide" }),
+              entities.listEntities({
+                entityType: "notice",
+                options: { limit: 1 },
+              }),
             ]);
             return {
               guides: guides.map(({ id }) => id),
@@ -448,6 +456,64 @@ describe("entity package definitions", () => {
     expect(handler.validateAndParse({ topic: "rivers" })).toEqual({
       topic: "rivers",
     });
+
+    harness.reset();
+  });
+
+  it("exposes declared projection rules and registers an atproto projection", async () => {
+    // Some entities are derived from every other type rather than from one
+    // named source, which defineProjection cannot express: it pairs a
+    // single source definition with a single target. Such an entity
+    // declares a projection rule instead, and the runtime surfaces it as
+    // one of the plugin's capabilities.
+    const rule = defineProjectionRule({
+      id: "guide-projection",
+      version: "1",
+      sources: [{ kind: "entity", types: ["*"], excludeTypes: ["guide"] }],
+      targetType: "guide",
+      inputSchema: z.object({ titles: z.array(z.string()) }),
+      selectInput: async () => ({ titles: [] }),
+      derive: async () => [],
+    });
+    const guide = defineEntity({
+      type: "guide",
+      purpose: "A guide derived from everything else.",
+      metadata: z.object({ title: z.string() }),
+      projectionRules: [rule],
+      atproto: {
+        entityType: "guide",
+        collection: "ai.rizom.brain.series",
+        lexicon: canonicalAtprotoLexicons["ai.rizom.brain.series"],
+        buildRecord: async () => ({ $type: "ai.rizom.brain.series" }),
+      },
+    });
+    const definition = defineEntityPackage({ id: "guides", entities: [guide] });
+    const plugin = createEntityPackagePlugins(
+      definition.entities,
+      definition.projections,
+      { name: "@fixture/guides", version: "0.1.0" },
+      (id) => `@fixture/guides:${id}`,
+    )[0];
+    if (!plugin) throw new Error("Guide entity plugin was not created");
+
+    const harness = createPluginHarness({
+      logger: createSilentLogger("entity-projection-test"),
+    });
+    const capabilities = await harness.installPlugin(plugin);
+
+    expect(capabilities.projectionRules?.map(({ id }) => id)).toEqual([
+      "guide-projection",
+    ]);
+    expect(
+      AtprotoProjectionRegistry.getInstance().get("guide")?.collection,
+    ).toBe("ai.rizom.brain.series");
+
+    // The runtime owns teardown, so the registry does not leak across
+    // plugin lifecycles.
+    await plugin.shutdown?.();
+    expect(
+      AtprotoProjectionRegistry.getInstance().get("guide"),
+    ).toBeUndefined();
 
     harness.reset();
   });

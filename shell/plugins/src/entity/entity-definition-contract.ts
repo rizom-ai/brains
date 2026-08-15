@@ -7,7 +7,9 @@ import type { Template } from "@brains/templates";
 import type { AnchorProfile } from "../contracts/identity";
 import type { IEntityAINamespace } from "./ai-types";
 import type { LoggerContract } from "@brains/utils/logger";
+import type { AtprotoProjection } from "@brains/atproto-contracts";
 import type { AttachmentProvider } from "../service/attachment-registry";
+import type { ProjectionRule } from "./projection-rule";
 import type { AnyDataSourceDeclaration } from "../public/entity-data-source";
 import type { z } from "@brains/utils/zod";
 
@@ -108,6 +110,17 @@ export interface EntityDefinition<
    * declared schema before calling `handle`.
    */
   readonly generation?: EntityGenerationDeclaration | undefined;
+  /**
+   * Projection rules for an entity derived from many source types rather
+   * than from one named source. `defineProjection` pairs a single source
+   * definition with a single target and cannot express that.
+   */
+  readonly projectionRules?: readonly ProjectionRule[] | undefined;
+  /**
+   * AT Protocol projection for this entity type. The runtime registers it
+   * with the shared registry and releases it on shutdown.
+   */
+  readonly atproto?: AtprotoProjection | undefined;
 }
 
 /**
@@ -122,20 +135,24 @@ export interface EntityGenerationContext {
   readonly entities: EntityGenerationEntityAccess;
 }
 
+/**
+ * Reads and the one write a generation handler needs. Method names match
+ * the entity service so migrating a handler off the plugin context is a
+ * swap of the object, not a rewrite of every call.
+ */
 export interface EntityGenerationEntityAccess {
-  list<T extends BaseEntity>(request: {
+  listEntities<T extends BaseEntity>(request: {
     entityType: string;
     options?: ListOptions;
   }): Promise<T[]>;
-  get<T extends BaseEntity>(request: {
+  getEntity<T extends BaseEntity>(request: {
     entityType: string;
     id: string;
   }): Promise<T | null>;
-  /** Entity types currently registered, for sources that span them. */
   getEntityTypes(): string[];
-  update<T extends BaseEntity>(
-    entity: T,
-  ): Promise<{ entityId: string; jobId: string }>;
+  updateEntity<T extends BaseEntity>(request: {
+    entity: T;
+  }): Promise<{ entityId: string; jobId: string }>;
 }
 
 export interface EntityGenerationDeclaration<
