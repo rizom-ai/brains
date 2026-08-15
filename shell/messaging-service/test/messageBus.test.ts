@@ -249,14 +249,16 @@ describe("MessageBus", () => {
     });
 
     it("should continue to the next handler after an invalid response", async () => {
-      const invalidHandler = mock(
-        () => ({ invalid: true }) as unknown as { success: true },
-      );
+      const invalidHandler = mock(() => ({ invalid: true }));
       const successHandler = mock(() => ({
         success: true,
         data: { result: "success" },
       }));
 
+      // @ts-expect-error deliberately the wrong response shape: handlers come
+      // from plugins, so the bus validates what they return at runtime, and
+      // this drives that path. An expect-error rather than a cast, so it fails
+      // if the handler type ever admits this.
       messageBus.subscribe("test.message", invalidHandler);
       messageBus.subscribe("test.message", successHandler);
 
@@ -273,14 +275,14 @@ describe("MessageBus", () => {
     });
 
     it("should continue to the next handler after an invalid success value", async () => {
-      const invalidHandler = mock(
-        () => ({ success: "yes" }) as unknown as { success: true },
-      );
+      const invalidHandler = mock(() => ({ success: "yes" }));
       const successHandler = mock(() => ({
         success: true,
         data: { result: "success" },
       }));
 
+      // @ts-expect-error deliberately a non-boolean success, for the same
+      // reason: the bus validates handler responses at runtime.
       messageBus.subscribe("test.message", invalidHandler);
       messageBus.subscribe("test.message", successHandler);
 
@@ -748,12 +750,12 @@ describe("MessageBus", () => {
     });
 
     it("should continue broadcast delivery after an invalid response", async () => {
-      const invalidHandler = mock(
-        () => ({ invalid: true }) as unknown as { success: true },
-      );
+      const invalidHandler = mock(() => ({ invalid: true }));
       const handler2 = mock(() => ({ success: true }));
       const handler3 = mock(() => ({ noop: true }) as const);
 
+      // @ts-expect-error deliberately the wrong response shape: handlers come
+      // from plugins, so the bus validates what they return at runtime.
       messageBus.subscribe("test.broadcast", invalidHandler);
       messageBus.subscribe("test.broadcast", handler2);
       messageBus.subscribe("test.broadcast", handler3);

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, spyOn, type Mock } from "bun:test";
+import { describe, it, expect, beforeEach, spyOn } from "bun:test";
 import { BrainCharacterService } from "../src/brain-character-service";
 import type {
   IEntityService,
@@ -7,6 +7,8 @@ import type {
 import {
   createSilentLogger,
   createMockEntityService,
+  spyOnEntityGet,
+  spyOnEntityCreate,
   createTestEntity,
 } from "@brains/test-utils";
 import type { BrainCharacterEntity } from "../src/brain-character-schema";
@@ -18,8 +20,8 @@ describe("BrainCharacterService", () => {
 
   let mockEntityService: IEntityService;
   let characterService: BrainCharacterService;
-  let getEntitySpy: Mock<(...args: unknown[]) => Promise<unknown>>;
-  let createEntitySpy: Mock<(...args: unknown[]) => Promise<unknown>>;
+  let getEntitySpy: ReturnType<typeof spyOnEntityGet>;
+  let createEntitySpy: ReturnType<typeof spyOnEntityCreate>;
 
   beforeEach(() => {
     // Default implementations
@@ -32,14 +34,8 @@ describe("BrainCharacterService", () => {
 
     // Create mock using factory, then override implementations
     mockEntityService = createMockEntityService();
-    getEntitySpy = spyOn(
-      mockEntityService,
-      "getEntity",
-    ) as unknown as typeof getEntitySpy;
-    createEntitySpy = spyOn(
-      mockEntityService,
-      "createEntity",
-    ) as unknown as typeof createEntitySpy;
+    getEntitySpy = spyOnEntityGet(mockEntityService);
+    createEntitySpy = spyOnEntityCreate(mockEntityService);
 
     getEntitySpy.mockImplementation(async () => mockGetEntityImpl());
     createEntitySpy.mockImplementation(async () => mockCreateEntityImpl());

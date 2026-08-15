@@ -106,7 +106,9 @@ describe("matchesFilter", () => {
     });
 
     it("rejects a message whose source is undefined when source filter is set", () => {
-      const message = makeMessage({ source: undefined as unknown as string });
+      // @ts-expect-error deliberately missing source: messages cross a process
+      // boundary, so the matcher must handle one arriving without it.
+      const message = makeMessage({ source: undefined });
       expect(matchesFilter(message, { source: "plugin:alpha" })).toBe(false);
     });
   });

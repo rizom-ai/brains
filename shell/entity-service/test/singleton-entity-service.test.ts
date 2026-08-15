@@ -1,8 +1,10 @@
-import { describe, it, expect, beforeEach, spyOn, type Mock } from "bun:test";
+import { describe, it, expect, beforeEach } from "bun:test";
 import { SingletonEntityService } from "../src/singleton-entity-service";
 import type { EntityService, BaseEntity } from "../src/types";
 import {
   createMockEntityService,
+  spyOnEntityGet,
+  spyOnEntityCreate,
   createSilentLogger,
   createTestEntity,
 } from "@brains/test-utils";
@@ -35,19 +37,13 @@ describe("SingletonEntityService", () => {
 
   let mockEntityService: EntityService;
   let service: TestSingletonService;
-  let getEntitySpy: Mock<(...args: unknown[]) => Promise<unknown>>;
-  let createEntitySpy: Mock<(...args: unknown[]) => Promise<unknown>>;
+  let getEntitySpy: ReturnType<typeof spyOnEntityGet>;
+  let createEntitySpy: ReturnType<typeof spyOnEntityCreate>;
 
   beforeEach(() => {
     mockEntityService = createMockEntityService();
-    getEntitySpy = spyOn(
-      mockEntityService,
-      "getEntity",
-    ) as unknown as typeof getEntitySpy;
-    createEntitySpy = spyOn(
-      mockEntityService,
-      "createEntity",
-    ) as unknown as typeof createEntitySpy;
+    getEntitySpy = spyOnEntityGet(mockEntityService);
+    createEntitySpy = spyOnEntityCreate(mockEntityService);
 
     service = new TestSingletonService(
       mockEntityService,

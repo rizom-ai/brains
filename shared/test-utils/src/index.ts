@@ -120,3 +120,6 @@ export {
 
 // Wait for a condition rather than a guessed duration
 export { waitUntil, type WaitUntilOptions } from "./wait-until";
+
+export { spyOnEntityGet, spyOnEntityCreate } from "./spy-on-entity-service";
+export { genericSpy } from "./generic-spy";

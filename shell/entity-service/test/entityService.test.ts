@@ -4,6 +4,7 @@ import { createClient } from "@libsql/client";
 import { dirname, join } from "node:path";
 import { z } from "@brains/utils/zod";
 import { EntityService } from "../src/entityService";
+import { genericSpy } from "@brains/test-utils";
 import { EntityRegistry } from "../src/entityRegistry";
 import { baseEntitySchema } from "../src/types";
 import { BaseEntityAdapter } from "../src/adapters/base-entity-adapter";
@@ -294,10 +295,12 @@ describe("EntityService", (): void => {
       parseFrontMatter: mock(() => ({})),
       generateFrontMatter: mock(() => ""),
     };
-    const mockGetAdapter = mock(
-      () => mockAdapter,
-    ) as unknown as typeof entityRegistry.getAdapter;
-    entityRegistry.getAdapter = mockGetAdapter;
+    // getAdapter is generic, and mock() erases type parameters; genericSpy
+    // re-applies the member signature and names that as the only reason. The
+    // mock itself is kept so the call can still be asserted.
+    const mockGetAdapter = mock(() => mockAdapter);
+    entityRegistry.getAdapter =
+      genericSpy<typeof entityRegistry.getAdapter>(mockGetAdapter);
 
     expect(() => {
       entityRegistry.validateEntity("note", testEntity);

@@ -1,4 +1,5 @@
 import { describe, expect, test, beforeEach } from "bun:test";
+import { createMockProgressReporter } from "@brains/test-utils";
 import { EmbeddingJobHandler } from "../src/handlers/embeddingJobHandler";
 import type {
   EntityService as IEntityService,
@@ -6,13 +7,12 @@ import type {
   BaseEntity,
 } from "../src/types";
 import { createMockEntityService, createTestEntity } from "@brains/test-utils";
-import type { ProgressReporter } from "@brains/utils/progress";
 import { computeContentHash } from "@brains/utils/hash";
 import { mockEmbeddingService } from "./helpers/mock-services";
 
-const mockProgressReporter = {
-  report: async () => {},
-} as unknown as ProgressReporter;
+// The shared factory rather than a two-line stand-in: it stays in step with
+// ProgressReporter and records what the handler reported.
+const mockProgressReporter = createMockProgressReporter();
 
 /**
  * The shared factory's members are recording spies, so `storeEmbedding` can be
