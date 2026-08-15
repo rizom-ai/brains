@@ -2,7 +2,7 @@ import { readdir, mkdir, copyFile } from "fs/promises";
 import { join, resolve } from "path";
 import type { Logger } from "@brains/utils/logger";
 import { pathExists } from "./fs-utils";
-import { hasGitHead } from "./git-state";
+import type { IGitSync } from "../types";
 
 /**
  * Check whether a brain-data directory is effectively empty.
@@ -17,6 +17,7 @@ import { hasGitHead } from "./git-state";
 export async function isBrainDataEmpty(
   brainDataPath: string,
   logger: Logger,
+  gitSync?: Pick<IGitSync, "getStatus">,
 ): Promise<boolean> {
   if (!(await pathExists(brainDataPath))) {
     return true;
@@ -31,14 +32,21 @@ export async function isBrainDataEmpty(
     return false;
   }
 
-  if (await hasGitHead(brainDataPath)) {
-    logger.debug(
-      "Git repository with history detected - skipping seed content",
-      {
-        path: brainDataPath,
-      },
-    );
-    return false;
+  // Asked of the checkout owner rather than run here: a Git child in this
+  // process against a managed checkout is exactly what the broker removes.
+  // Without a configured remote there is no owner and no managed checkout, so
+  // there is nothing to protect.
+  if (gitSync) {
+    const status = await gitSync.getStatus();
+    if (status.isRepo && status.lastCommit !== undefined) {
+      logger.debug(
+        "Git repository with history detected - skipping seed content",
+        {
+          path: brainDataPath,
+        },
+      );
+      return false;
+    }
   }
 
   return true;
@@ -73,13 +81,14 @@ export async function copySeedContentIfNeeded(
   dataDir: string,
   logger: Logger,
   seedContentPath?: string,
+  gitSync?: Pick<IGitSync, "getStatus">,
 ): Promise<void> {
   const brainDataPath = resolve(process.cwd(), dataDir);
   seedContentPath = seedContentPath
     ? resolve(seedContentPath)
     : resolve(process.cwd(), "seed-content");
 
-  const isEmpty = await isBrainDataEmpty(brainDataPath, logger);
+  const isEmpty = await isBrainDataEmpty(brainDataPath, logger, gitSync);
 
   if (isEmpty && (await pathExists(seedContentPath))) {
     logger.debug("Copying seed content to brain-data directory");

@@ -1,6 +1,6 @@
 import type { SimpleGit } from "simple-git";
 import type { Logger } from "@brains/utils/logger";
-import type { GitSyncStatus } from "../types";
+import type { GitSyncStatus } from "../../types";
 
 export async function getGitStatus(
   git: SimpleGit,

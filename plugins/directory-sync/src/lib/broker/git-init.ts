@@ -1,6 +1,6 @@
 import type { SimpleGit } from "simple-git";
 import type { Logger } from "@brains/utils/logger";
-import { checkoutGitBranch } from "./git-branch";
+import { checkoutGitBranch } from "../git-branch";
 import { prepareGitRepository } from "./git-repository";
 
 export interface GitInitializeOptions {

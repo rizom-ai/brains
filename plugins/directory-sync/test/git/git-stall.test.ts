@@ -2,7 +2,7 @@ import { describe, expect, it } from "bun:test";
 import {
   GitStallError,
   runGitCommandWithStallTimeout,
-} from "../../src/lib/git-stall";
+} from "../../src/lib/broker/git-stall";
 
 describe("runGitCommandWithStallTimeout", () => {
   it("returns stdout for a completing command", async () => {

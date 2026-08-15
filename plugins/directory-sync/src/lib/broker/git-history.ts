@@ -1,5 +1,5 @@
 import type { SimpleGit } from "simple-git";
-import type { GitLogEntry } from "../types/results";
+import type { GitLogEntry } from "../../types/results";
 
 /**
  * Get commit history for a specific file.

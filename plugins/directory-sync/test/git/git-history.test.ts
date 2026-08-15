@@ -2,7 +2,8 @@ import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { mkdirSync, writeFileSync, existsSync, rmSync, mkdtempSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
-import { GitSync } from "../../src/lib/git-sync";
+import { createBrokerGitSync } from "./broker-git-sync";
+import type { IGitSync } from "../../src/types";
 import { createSilentLogger } from "@brains/test-utils";
 import type { GitLogEntry } from "../../src/types";
 
@@ -16,14 +17,14 @@ function at(entries: GitLogEntry[], index: number): GitLogEntry {
 describe("GitSync history", () => {
   let testDir: string;
   let dataDir: string;
-  let gitSync: GitSync;
+  let gitSync: IGitSync;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     testDir = mkdtempSync(join(tmpdir(), "test-git-history-"));
     dataDir = join(testDir, "brain-data");
     mkdirSync(dataDir, { recursive: true });
 
-    gitSync = new GitSync({
+    gitSync = await createBrokerGitSync({
       logger: createSilentLogger(),
       dataDir,
       authorName: "Test",

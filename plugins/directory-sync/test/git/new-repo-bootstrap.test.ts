@@ -10,14 +10,15 @@ import {
 import { join } from "path";
 import { tmpdir } from "os";
 import { execSync } from "child_process";
-import { GitSync } from "../../src/lib/git-sync";
+import { createBrokerGitSync } from "./broker-git-sync";
+import type { IGitSync } from "../../src/types";
 import { createSilentLogger } from "@brains/test-utils";
 
 describe("GitSync new-repo bootstrap regression", () => {
   let testDir: string;
   let remoteDir: string;
   let dataDir: string;
-  let gitSync: GitSync | undefined;
+  let gitSync: IGitSync | undefined;
 
   beforeEach(() => {
     testDir = mkdtempSync(join(tmpdir(), "test-git-bootstrap-"));
@@ -41,8 +42,8 @@ describe("GitSync new-repo bootstrap regression", () => {
     }
   });
 
-  function createGitSync(branch = "main"): GitSync {
-    gitSync = new GitSync({
+  async function createGitSync(branch = "main"): Promise<IGitSync> {
+    gitSync = await createBrokerGitSync({
       logger: createSilentLogger(),
       dataDir,
       gitUrl: remoteDir,
@@ -82,7 +83,7 @@ describe("GitSync new-repo bootstrap regression", () => {
     mkdirSync(join(dataDir, "note"), { recursive: true });
     writeFileSync(join(dataDir, "note", "welcome.md"), "# Welcome");
 
-    const gs = createGitSync();
+    const gs = await createGitSync();
     await gs.initialize();
 
     expect(headFile()).toBe("ref: refs/heads/main");
@@ -101,7 +102,7 @@ describe("GitSync new-repo bootstrap regression", () => {
     });
     writeFileSync(join(dataDir, ".git", "HEAD"), "ref: refs/heads/.invalid\n");
 
-    const gs = createGitSync();
+    const gs = await createGitSync();
     await gs.initialize();
 
     expect(headFile()).toBe("ref: refs/heads/main");
@@ -120,7 +121,7 @@ describe("GitSync new-repo bootstrap regression", () => {
   it("uses the configured non-default branch for empty-remote bootstrap", async () => {
     writeDefault();
 
-    const gs = createGitSync("trunk");
+    const gs = await createGitSync("trunk");
     await gs.initialize();
 
     expect(headFile()).toBe("ref: refs/heads/trunk");
@@ -153,7 +154,7 @@ describe("GitSync new-repo bootstrap regression", () => {
 
     writeDefault();
 
-    const gs = createGitSync();
+    const gs = await createGitSync();
     await gs.initialize();
     await gs.pull();
 

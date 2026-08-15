@@ -2,7 +2,7 @@ import type { SimpleGit } from "simple-git";
 import type {
   GitReconciliationCheckpoint,
   GitReconciliationDelta,
-} from "../types";
+} from "../../types";
 import { getChangedPaths, tryResolveRemoteHead } from "./git-pull";
 
 /**

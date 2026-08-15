@@ -34,6 +34,28 @@ interface Pending {
   onProgress?: (() => void) | undefined;
 }
 
+/**
+ * A caller that gives up stops waiting; the broker does not stop working.
+ *
+ * Cancelling here is a statement about this process — a shutting-down job has
+ * no one left to hand a result to — not about the operation. The broker keeps
+ * its turn and carries the mutation to a terminal result, which is what keeps
+ * an abandoned request from becoming an unconfirmed unlock.
+ */
+function abandonOnAbort(
+  signal: AbortSignal,
+  pending: Map<string, Pending>,
+  requestId: string,
+  reject: (error: unknown) => void,
+): () => void {
+  const onAbort = (): void => {
+    if (!pending.delete(requestId)) return;
+    reject(signal.reason);
+  };
+  signal.addEventListener("abort", onAbort, { once: true });
+  return (): void => signal.removeEventListener("abort", onAbort);
+}
+
 export class BrokerConnection {
   readonly #socketPath: string;
   readonly #pending = new Map<string, Pending>();
@@ -71,8 +93,22 @@ export class BrokerConnection {
   }
 
   close(): void {
+    if (this.#closed) return;
+    // Closing is this process letting go, not the operation ending. Whoever is
+    // still waiting learns that now; hanging them would be the one outcome a
+    // shutdown must not produce.
+    const waiting = [...this.#pending.values()];
+    this.#pending.clear();
     this.#closed = true;
     this.#socket?.end();
+    waiting.forEach((pending) => {
+      pending.reject(
+        new BrokerUnavailableError(
+          this.#socketPath,
+          "client closed the connection",
+        ),
+      );
+    });
   }
 
   #receive(message: BrokerMessage): void {
@@ -143,23 +179,39 @@ export class BrokerConnection {
   async execute<TOperation extends GitOperation>(
     checkoutPath: string,
     operation: TOperation,
-    runOptions: { onProgress?: (() => void) | undefined } = {},
+    runOptions: {
+      onProgress?: (() => void) | undefined;
+      signal?: AbortSignal | undefined;
+    } = {},
   ): Promise<GitOperationResult<TOperation["name"]>> {
+    runOptions.signal?.throwIfAborted();
     const requestId = `req_${createId(12)}`;
     const settled = Promise.withResolvers<unknown>();
     this.#pending.set(requestId, {
       ...settled,
       ...(runOptions.onProgress ? { onProgress: runOptions.onProgress } : {}),
     });
+    const stopWatchingAbort = runOptions.signal
+      ? abandonOnAbort(
+          runOptions.signal,
+          this.#pending,
+          requestId,
+          settled.reject,
+        )
+      : (): void => {};
 
-    this.#send({
-      type: "execute-operation",
-      version: BROKER_PROTOCOL_VERSION,
-      requestId,
-      checkoutPath,
-      operation,
-    });
+    try {
+      this.#send({
+        type: "execute-operation",
+        version: BROKER_PROTOCOL_VERSION,
+        requestId,
+        checkoutPath,
+        operation,
+      });
 
-    return (await settled.promise) as GitOperationResult<TOperation["name"]>;
+      return (await settled.promise) as GitOperationResult<TOperation["name"]>;
+    } finally {
+      stopWatchingAbort();
+    }
   }
 }

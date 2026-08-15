@@ -70,8 +70,12 @@ export class BrokerGitSync {
     });
   }
 
-  push(): Promise<void> {
-    return this.#connection.execute(this.#checkoutPath, { name: "push" });
+  push(signal?: AbortSignal): Promise<void> {
+    return this.#connection.execute(
+      this.#checkoutPath,
+      { name: "push" },
+      { ...(signal ? { signal } : {}) },
+    );
   }
 
   commitAndPush(): Promise<{
@@ -83,13 +87,16 @@ export class BrokerGitSync {
     });
   }
 
-  pull(_signal?: AbortSignal, onProgress?: () => void): Promise<PullResult> {
+  pull(signal?: AbortSignal, onProgress?: () => void): Promise<PullResult> {
     // Progress still reaches the caller, so operation-status freshness is
     // preserved; a healthy slow pull must not read as stalled.
     return this.#connection.execute(
       this.#checkoutPath,
       { name: "pull" },
-      { ...(onProgress ? { onProgress } : {}) },
+      {
+        ...(onProgress ? { onProgress } : {}),
+        ...(signal ? { signal } : {}),
+      },
     );
   }
 

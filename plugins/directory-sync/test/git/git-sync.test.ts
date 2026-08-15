@@ -4,8 +4,8 @@ import { join } from "path";
 import { tmpdir } from "os";
 import { execSync } from "child_process";
 import { createServer, type AddressInfo, type Socket } from "net";
-import { GitSync } from "../../src/lib/git-sync";
-import { GitStallError } from "../../src/lib/git-stall";
+import { createBrokerGitSync } from "./broker-git-sync";
+import type { IGitSync } from "../../src/types";
 import type { GitReconciliationCheckpoint } from "../../src/types";
 import { getGitRemoteFingerprint } from "../../src/lib/git-options";
 import { createSilentLogger } from "@brains/test-utils";
@@ -49,7 +49,7 @@ describe("GitSync (simplified)", () => {
   let testDir: string;
   let remoteDir: string;
   let dataDir: string;
-  let gitSync: GitSync;
+  let gitSync: IGitSync;
 
   beforeEach(() => {
     testDir = mkdtempSync(join(tmpdir(), "test-git-sync-"));
@@ -73,15 +73,15 @@ describe("GitSync (simplified)", () => {
     }
   });
 
-  function createGitSync(
+  async function createGitSync(
     opts: {
       repo?: string;
       gitUrl?: string;
       authToken?: string;
       timeoutMs?: number;
     } = {},
-  ): GitSync {
-    gitSync = new GitSync({
+  ): Promise<IGitSync> {
+    gitSync = await createBrokerGitSync({
       logger: createSilentLogger(),
       dataDir,
       repo: opts.repo,
@@ -96,13 +96,13 @@ describe("GitSync (simplified)", () => {
 
   describe("initialize", () => {
     it("should init a git repo in dataDir", async () => {
-      const gs = createGitSync();
+      const gs = await createGitSync();
       await gs.initialize();
       expect(existsSync(join(dataDir, ".git"))).toBe(true);
     });
 
     it("should set remote when gitUrl is provided", async () => {
-      const gs = createGitSync();
+      const gs = await createGitSync();
       await gs.initialize();
       const remote = execSync("git remote get-url origin", {
         cwd: dataDir,
@@ -119,7 +119,7 @@ describe("GitSync (simplified)", () => {
       mkdirSync(join(dataDir, "nested"), { recursive: true });
       writeFileSync(join(dataDir, "nested", "child.md"), "# Child");
 
-      const gs = createGitSync();
+      const gs = await createGitSync();
       await gs.initialize();
 
       // First (and only) commit should contain the seed files, not just
@@ -136,25 +136,25 @@ describe("GitSync (simplified)", () => {
     });
 
     it("should preserve checkout errors instead of masking them as branch creation failures", async () => {
-      const gs = createGitSync();
+      const gs = await createGitSync();
       await gs.initialize();
 
       writeFileSync(join(dataDir, ".git", "index.lock"), "");
 
-      const gs2 = createGitSync();
+      const gs2 = await createGitSync();
       expect(gs2.initialize()).rejects.toThrow(/index\.lock/);
     });
   });
 
   describe("hasRemote", () => {
     it("should return true when remote is configured", async () => {
-      const gs = createGitSync();
+      const gs = await createGitSync();
       await gs.initialize();
       expect(gs.hasRemote()).toBe(true);
     });
 
     it("should return false when no remote", async () => {
-      const gs = new GitSync({
+      const gs = await createBrokerGitSync({
         logger: createSilentLogger(),
         dataDir,
         authorName: "Test",
@@ -167,7 +167,7 @@ describe("GitSync (simplified)", () => {
 
   describe("commit", () => {
     it("should stage and commit all changes", async () => {
-      const gs = createGitSync();
+      const gs = await createGitSync();
       await gs.initialize();
 
       writeFileSync(join(dataDir, "test.md"), "# Hello");
@@ -181,7 +181,7 @@ describe("GitSync (simplified)", () => {
     });
 
     it("should not fail when nothing to commit", async () => {
-      const gs = createGitSync();
+      const gs = await createGitSync();
       await gs.initialize();
 
       // Create initial commit so we have a branch
@@ -195,7 +195,7 @@ describe("GitSync (simplified)", () => {
 
   describe("push", () => {
     it("should push commits to remote", async () => {
-      const gs = createGitSync();
+      const gs = await createGitSync();
       await gs.initialize();
 
       writeFileSync(join(dataDir, "test.md"), "# Hello");
@@ -219,7 +219,7 @@ describe("GitSync (simplified)", () => {
       // initial content never left the local machine.
       writeFileSync(join(dataDir, "bootstrap-seed.md"), "# Bootstrap");
 
-      const gs = createGitSync();
+      const gs = await createGitSync();
       await gs.initialize();
 
       // Sanity: remote has no branches yet
@@ -246,7 +246,7 @@ describe("GitSync (simplified)", () => {
     });
 
     it("should return changed file paths", async () => {
-      const gs = createGitSync();
+      const gs = await createGitSync();
       await gs.initialize();
 
       // Push an initial commit so main branch exists
@@ -271,7 +271,7 @@ describe("GitSync (simplified)", () => {
     });
 
     it("returns both sides of a remote rename", async () => {
-      const gs = createGitSync();
+      const gs = await createGitSync();
       await gs.initialize();
 
       mkdirSync(join(dataDir, "post"), { recursive: true });
@@ -300,7 +300,7 @@ describe("GitSync (simplified)", () => {
     });
 
     it("keeps remote deletions authoritative over a committed local modification", async () => {
-      const gs = createGitSync();
+      const gs = await createGitSync();
       await gs.initialize();
 
       mkdirSync(join(dataDir, "post"), { recursive: true });
@@ -347,7 +347,7 @@ describe("GitSync (simplified)", () => {
     });
 
     it("should return empty files array when no changes", async () => {
-      const gs = createGitSync();
+      const gs = await createGitSync();
       await gs.initialize();
 
       writeFileSync(join(dataDir, ".gitkeep"), "");
@@ -361,7 +361,7 @@ describe("GitSync (simplified)", () => {
 
   describe("reconciliation delta", () => {
     async function createBaseline(
-      gs: GitSync,
+      gs: IGitSync,
     ): Promise<GitReconciliationCheckpoint> {
       writeFileSync(join(dataDir, "baseline.md"), "# Baseline");
       await gs.commit("baseline");
@@ -372,7 +372,7 @@ describe("GitSync (simplified)", () => {
     }
 
     it("derives incremental checkout changes and only remote-authoritative deletions", async () => {
-      const gs = createGitSync();
+      const gs = await createGitSync();
       await gs.initialize();
       const checkpoint = await createBaseline(gs);
 
@@ -411,7 +411,7 @@ describe("GitSync (simplified)", () => {
     });
 
     it("does not classify a local export deletion as a remote deletion", async () => {
-      const gs = createGitSync();
+      const gs = await createGitSync();
       await gs.initialize();
       const checkpoint = await createBaseline(gs);
 
@@ -427,7 +427,7 @@ describe("GitSync (simplified)", () => {
     });
 
     it("falls back when repository identity or checkpoint ancestry is invalid", async () => {
-      const gs = createGitSync();
+      const gs = await createGitSync();
       await gs.initialize();
       const checkpoint = await createBaseline(gs);
 
@@ -470,7 +470,7 @@ describe("GitSync (simplified)", () => {
     });
 
     it("treats a checkpoint captured after local push as already reconciled", async () => {
-      const gs = createGitSync();
+      const gs = await createGitSync();
       await gs.initialize();
       await createBaseline(gs);
 
@@ -507,7 +507,7 @@ describe("GitSync (simplified)", () => {
       const { port, connected, close } = await startUnresponsiveServer();
       try {
         const start = performance.now();
-        const gs = createGitSync({
+        const gs = await createGitSync({
           gitUrl: `git://127.0.0.1:${port}/repo.git`,
           timeoutMs: STALL_MS,
         });
@@ -523,7 +523,7 @@ describe("GitSync (simplified)", () => {
     }, 20_000);
 
     it("pull still succeeds and returns changes when a timeout is configured", async () => {
-      const gs = createGitSync({ timeoutMs: 10_000 });
+      const gs = await createGitSync({ timeoutMs: 10_000 });
       await gs.initialize();
 
       writeFileSync(join(dataDir, ".gitkeep"), "");
@@ -548,7 +548,7 @@ describe("GitSync (simplified)", () => {
     it("pull rejects with GitStallError when the remote is unresponsive", async () => {
       const { port, close } = await startUnresponsiveServer();
       try {
-        const gs = createGitSync({ timeoutMs: STALL_MS });
+        const gs = await createGitSync({ timeoutMs: STALL_MS });
         await gs.initialize();
         writeFileSync(join(dataDir, ".gitkeep"), "");
         await gs.commit("initial");
@@ -569,7 +569,7 @@ describe("GitSync (simplified)", () => {
         const elapsed = performance.now() - start;
 
         // Rejected via the stall path specifically — not an instant failure.
-        expect(error).toBeInstanceOf(GitStallError);
+        expect(String(error)).toContain("Git operation stalled");
         // Waited roughly the stall window, and nowhere near hanging.
         expect(elapsed).toBeGreaterThanOrEqual(STALL_MS * 0.8);
         expect(elapsed).toBeLessThan(10_000);
@@ -581,7 +581,7 @@ describe("GitSync (simplified)", () => {
     it("push rejects with GitStallError when the remote is unresponsive", async () => {
       const { port, close } = await startUnresponsiveServer();
       try {
-        const gs = createGitSync({ timeoutMs: STALL_MS });
+        const gs = await createGitSync({ timeoutMs: STALL_MS });
         await gs.initialize();
         writeFileSync(join(dataDir, "note.md"), "# Note");
         await gs.commit("initial");
@@ -600,7 +600,7 @@ describe("GitSync (simplified)", () => {
         }
         const elapsed = performance.now() - start;
 
-        expect(error).toBeInstanceOf(GitStallError);
+        expect(String(error)).toContain("Git operation stalled");
         expect(elapsed).toBeGreaterThanOrEqual(STALL_MS * 0.8);
         expect(elapsed).toBeLessThan(10_000);
       } finally {
@@ -609,7 +609,7 @@ describe("GitSync (simplified)", () => {
     }, 20_000);
 
     it("preserves caller abort reason during pull", async () => {
-      const gs = createGitSync({ timeoutMs: 10_000 });
+      const gs = await createGitSync({ timeoutMs: 10_000 });
       await gs.initialize();
       writeFileSync(join(dataDir, ".gitkeep"), "");
       await gs.commit("initial");
@@ -628,7 +628,7 @@ describe("GitSync (simplified)", () => {
     });
 
     it("preserves caller abort reason during push", async () => {
-      const gs = createGitSync({ timeoutMs: 10_000 });
+      const gs = await createGitSync({ timeoutMs: 10_000 });
       await gs.initialize();
       writeFileSync(join(dataDir, "note.md"), "# Note");
       await gs.commit("initial");
@@ -646,10 +646,10 @@ describe("GitSync (simplified)", () => {
       }
     });
 
-    it("cleanup aborts and drains an active Git child", async () => {
+    it("stops waiting on cleanup without disowning the operation", async () => {
       const { port, connected, close } = await startUnresponsiveServer();
       try {
-        const gs = createGitSync({ timeoutMs: 10_000 });
+        const gs = await createGitSync({ timeoutMs: 10_000 });
         await gs.initialize();
         writeFileSync(join(dataDir, ".gitkeep"), "");
         await gs.commit("initial");
@@ -660,15 +660,18 @@ describe("GitSync (simplified)", () => {
 
         const pulling = gs.pull();
         await connected;
+        // Client lifecycle only. The operation stays owned by the broker and
+        // reaches a terminal result whether this client watches or not —
+        // disowning it here is what would turn a lost completion into a
+        // duplicate mutation.
         await gs.cleanup();
 
         const error = await pulling.catch((reason: unknown) => reason);
-        expect(error).toBeInstanceOf(Error);
-        if (!(error instanceof Error)) throw new Error("Expected pull to fail");
-        expect(error.message).toBe("Git sync is shutting down");
-        void expect(gs.getStatus()).rejects.toThrow(
-          "Git sync is shutting down",
-        );
+        expect(String(error)).toContain("unavailable");
+        const afterClose = await gs
+          .getStatus()
+          .catch((reason: unknown) => reason);
+        expect(String(afterClose)).toContain("unavailable");
       } finally {
         await close();
       }
@@ -678,7 +681,7 @@ describe("GitSync (simplified)", () => {
       const { port, close } = await startUnresponsiveServer();
       try {
         // Start with a working remote so we can prove recovery against it.
-        const gs = createGitSync({ timeoutMs: STALL_MS });
+        const gs = await createGitSync({ timeoutMs: STALL_MS });
         await gs.initialize();
         writeFileSync(join(dataDir, ".gitkeep"), "");
         await gs.commit("initial");
@@ -695,7 +698,7 @@ describe("GitSync (simplified)", () => {
         } catch (e) {
           stallError = e;
         }
-        expect(stallError).toBeInstanceOf(GitStallError);
+        expect(String(stallError)).toContain("Git operation stalled");
 
         // Restore the working remote — subsequent operations must succeed
         // promptly, proving the stalled task left no held lock or blocked
@@ -718,7 +721,7 @@ describe("GitSync (simplified)", () => {
 
   describe("getStatus", () => {
     it("should return repo status", async () => {
-      const gs = createGitSync();
+      const gs = await createGitSync();
       await gs.initialize();
 
       writeFileSync(join(dataDir, "test.md"), "# Hello");

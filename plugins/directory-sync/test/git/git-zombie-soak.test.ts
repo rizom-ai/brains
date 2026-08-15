@@ -10,7 +10,7 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createSilentLogger } from "@brains/test-utils";
-import { GitSync } from "../../src/lib/git-sync";
+import { createBrokerGitSync } from "./broker-git-sync";
 
 const RUN_SOAK =
   process.platform === "linux" && process.env["RUN_GIT_ZOMBIE_SOAK"] === "1";
@@ -70,7 +70,7 @@ it.skipIf(!RUN_SOAK)(
     await run(["git", "init", "--bare", "--initial-branch=main"], remoteDir);
 
     const baselineZombies = await countDirectZombieChildren(process.pid);
-    const gitSync = new GitSync({
+    const gitSync = await createBrokerGitSync({
       logger: createSilentLogger("git-zombie-soak"),
       dataDir,
       gitUrl: remoteDir,

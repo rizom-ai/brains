@@ -9,7 +9,7 @@ import {
   createMockShell,
 } from "@brains/test-utils";
 import { GitReconciliationService } from "../../src/lib/git-reconciliation";
-import { GitSync } from "../../src/lib/git-sync";
+import { createBrokerGitSync } from "./broker-git-sync";
 import type {
   GitReconciliationCheckpoint,
   GitReconciliationDelta,
@@ -263,7 +263,7 @@ describe("GitReconciliationService", () => {
       cwd: remoteDir,
       stdio: "ignore",
     });
-    const gitSync = new GitSync({
+    const gitSync = await createBrokerGitSync({
       logger: createContext().logger,
       dataDir,
       gitUrl: remoteDir,

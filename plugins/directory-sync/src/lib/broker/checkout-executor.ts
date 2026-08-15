@@ -9,16 +9,16 @@ import type {
   GitSyncStatus,
   PullResult,
 } from "../../types";
-import { commitGitChanges, pushGitChanges } from "../git-commit";
-import { getFileHistory, showFileAtCommit } from "../git-history";
-import { initializeGitRepository } from "../git-init";
-import { pullGitChanges } from "../git-pull";
+import { commitGitChanges, pushGitChanges } from "./git-commit";
+import { getFileHistory, showFileAtCommit } from "./git-history";
+import { initializeGitRepository } from "./git-init";
+import { pullGitChanges } from "./git-pull";
 import {
   getCurrentReconciliationCheckpoint,
   getReconciliationDelta,
-} from "../git-reconciliation-state";
-import type { ReconciliationIdentity } from "../git-reconciliation-state";
-import { getGitStatus, hasGitLocalChanges } from "../git-status";
+} from "./git-reconciliation-state";
+import type { ReconciliationIdentity } from "./git-reconciliation-state";
+import { getGitStatus, hasGitLocalChanges } from "./git-status";
 import type { GitOperation, GitOperationName } from "./operations";
 
 /**

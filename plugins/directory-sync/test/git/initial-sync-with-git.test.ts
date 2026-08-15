@@ -3,7 +3,7 @@ import { mkdirSync, writeFileSync, existsSync, rmSync, mkdtempSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
 import { execSync } from "child_process";
-import { GitSync } from "../../src/lib/git-sync";
+import { createBrokerGitSync } from "./broker-git-sync";
 import { createSilentLogger } from "@brains/test-utils";
 
 /**
@@ -53,7 +53,7 @@ describe("Git-aware initial sync", () => {
     });
 
     // Initialize clones the repo — files are on disk immediately
-    const gs = new GitSync({
+    const gs = await createBrokerGitSync({
       logger: createSilentLogger(),
       dataDir,
       gitUrl: remoteDir,
@@ -74,7 +74,7 @@ describe("Git-aware initial sync", () => {
 
   it("should return only changed files on subsequent pull", async () => {
     // Setup: local repo with initial content pushed
-    const gs = new GitSync({
+    const gs = await createBrokerGitSync({
       logger: createSilentLogger(),
       dataDir,
       gitUrl: remoteDir,
@@ -109,7 +109,7 @@ describe("Git-aware initial sync", () => {
   });
 
   it("should handle first startup with no remote content", async () => {
-    const gs = new GitSync({
+    const gs = await createBrokerGitSync({
       logger: createSilentLogger(),
       dataDir,
       gitUrl: remoteDir,

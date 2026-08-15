@@ -1,9 +1,9 @@
 import type { SimpleGit } from "simple-git";
 import { getErrorMessage } from "@brains/utils/error";
 import type { Logger } from "@brains/utils/logger";
-import type { PullResult } from "../types";
+import type { PullResult } from "../../types";
 import { commitGitChanges, pushGitChanges } from "./git-commit";
-import { reconcileRemoteDeletedFiles } from "./git-remote-deletion-reconciliation";
+import { reconcileRemoteDeletedFiles } from "../git-remote-deletion-reconciliation";
 import { GitStallError, runGitCommandWithStallTimeout } from "./git-stall";
 import type { GitNetwork } from "./git-stall";
 

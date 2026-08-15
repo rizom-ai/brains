@@ -8,7 +8,7 @@ import {
 import { setupPeriodicGitSync } from "../../src/lib/git-periodic-sync";
 import { DirectorySyncRuntime } from "../../src/lib/directory-sync-runtime";
 import type { GitReconciliationResult } from "../../src/lib/git-reconciliation";
-import type { PullResult } from "../../src/lib/git-sync";
+import type { PullResult } from "../../src/types";
 import type { BatchResult } from "../../src/lib/batch-operations";
 import { createMockDirectorySync, createMockGitSync } from "../fixtures";
 
