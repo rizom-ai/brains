@@ -36,6 +36,21 @@ Existing raw scripts and URLs identify user outcomes that the host must retain;
 they do not justify carrying those implementation mechanisms into the public
 contract.
 
+## Phase 4 slice assignment
+
+| Slice                                                          | Surfaces                                                                                                                                                                                   |
+| -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 4b — Walking skeleton                                          | Top Wishes; public reading-workspace fixture                                                                                                                                               |
+| 4c — Collections, composition, and host launches               | Skills; SWOT; Agent Network; Open Action Items; Conversation Memory Coverage; Recent Decisions; Recent Conversation Memory; Topics; Publication Pipeline; Email Triage; Site Health; Inbox |
+| 4d — Spatial presentation                                      | Agent Proximity; Knowledge Map                                                                                                                                                             |
+| 4e — Operational CMS foundations                               | Directory Sync; Site                                                                                                                                                                       |
+| 4f — Server state, dynamic catalogs, and prepared confirmation | Unified Inbox; Publishing                                                                                                                                                                  |
+| 4g — Closeout                                                  | All converted surfaces and removal of private renderer paths                                                                                                                               |
+
+The reading-workspace fixture in 4b is not a built-in inventory entry. It is the
+smallest existing public CMS contract and therefore the walking-skeleton proof
+before the richer built-in workspaces are converted.
+
 ## Dashboard inventory
 
 ### 1. Agent Network
