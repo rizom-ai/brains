@@ -30,6 +30,7 @@ import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
 import type {
   AnyEntityDefinition,
   EntityGenerationEntityAccess,
+  EntityJobDeclaration,
   EntityOf,
   EntitySeedTrigger,
   ProjectionDefinition,
@@ -261,6 +262,8 @@ class DeclarativeEntityPlugin extends EntityPlugin<
   private readonly attachments: AnyEntityDefinition["attachments"];
   private readonly generation: AnyEntityDefinition["generation"];
   private readonly evals: AnyEntityDefinition["evals"];
+  private readonly jobs: AnyEntityDefinition["jobs"];
+  private readonly instructions: AnyEntityDefinition["instructions"];
   private readonly projectionRules: AnyEntityDefinition["projectionRules"];
   private readonly atproto: AnyEntityDefinition["atproto"];
   private readonly releaseOnShutdown: Array<() => void> = [];
@@ -294,6 +297,8 @@ class DeclarativeEntityPlugin extends EntityPlugin<
     this.attachments = definition.attachments;
     this.generation = definition.generation;
     this.evals = definition.evals;
+    this.jobs = definition.jobs;
+    this.instructions = definition.instructions;
     this.projectionRules = definition.projectionRules;
     this.atproto = definition.atproto;
   }
@@ -337,6 +342,13 @@ class DeclarativeEntityPlugin extends EntityPlugin<
   protected override async onRegister(
     context: EntityPluginContext,
   ): Promise<void> {
+    for (const [jobType, declaration] of Object.entries(this.jobs ?? {})) {
+      context.jobs.registerHandler(
+        jobType,
+        this.jobHandler(declaration, context),
+      );
+    }
+
     for (const [handlerId, handler] of Object.entries(this.evals ?? {})) {
       context.eval.registerHandler(handlerId, (input) =>
         handler(input, {
@@ -390,21 +402,29 @@ class DeclarativeEntityPlugin extends EntityPlugin<
     );
   }
 
+  protected override async getInstructions(): Promise<string> {
+    return this.instructions ?? "";
+  }
+
   protected override createGenerationHandler(
     context: EntityPluginContext,
   ): JobHandler | null {
-    const generation = this.generation;
-    if (!generation) return null;
+    return this.generation ? this.jobHandler(this.generation, context) : null;
+  }
 
+  private jobHandler(
+    declaration: EntityJobDeclaration,
+    context: EntityPluginContext,
+  ): JobHandler {
     return {
-      // Input is the author's declared schema, so a malformed job is
+      // Input is the author\u0027s declared schema, so a malformed job is
       // rejected before their code runs.
       validateAndParse: (data: unknown): unknown => {
-        const parsed = generation.input.safeParse(data);
+        const parsed = declaration.input.safeParse(data);
         return parsed.success ? parsed.data : null;
       },
       process: async (data: unknown): Promise<unknown> =>
-        generation.handle({
+        declaration.handle({
           input: data,
           ai: context.ai,
           logger: this.logger,

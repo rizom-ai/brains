@@ -247,6 +247,7 @@ export type {
   EntityGenerationContext,
   EntityGenerationDeclaration,
   EntityGenerationEntityAccess,
+  EntityJobDeclaration,
   MediaAttachmentContext,
 } from "./entity/entity-definition-contract";
 export {
