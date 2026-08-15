@@ -17,11 +17,13 @@ import { z } from "@brains/utils/zod";
 
 import {
   assertDirectorySyncStressTarget,
+  directorySyncStressPlanSchema,
   directorySyncStressProfileSchema,
   resolveDirectorySyncStressPlan,
   runDirectorySyncStressPlan,
   type DirectorySyncStressDriver,
   type DirectorySyncStressPhase,
+  type DirectorySyncStressPlan,
   type DirectorySyncStressProfile,
   type DirectorySyncStressReport,
   type StressBaseline,
@@ -72,6 +74,7 @@ export interface DeployedDirectorySyncStressOptions {
   rootDir: string;
   handle: string;
   profile: DirectorySyncStressProfile;
+  plan?: DirectorySyncStressPlan;
   confirmation: string;
   artifactsDir?: string;
   env?: NodeJS.ProcessEnv;
@@ -159,12 +162,22 @@ export async function runDeployedDirectorySyncStress(
     contentRepo: user.contentRepo,
     confirmation: options.confirmation,
   });
-  assertHermeticDirectorySyncPosture(user);
+  const profile = directorySyncStressProfileSchema.parse(options.profile);
+  const plan = options.plan
+    ? directorySyncStressPlanSchema.parse(options.plan)
+    : resolveDirectorySyncStressPlan(profile);
+  if (plan.profile !== profile) {
+    throw new Error(
+      `Directory-sync stress plan profile ${plan.profile} does not match requested profile ${profile}`,
+    );
+  }
+  if ((plan.maximumExternalAiCalls ?? 0) === 0) {
+    assertHermeticDirectorySyncPosture(user);
+  }
 
   const environment = requiredEnvironmentSchema.parse(
     options.env ?? process.env,
   );
-  const profile = directorySyncStressProfileSchema.parse(options.profile);
   const driver = new SystemDirectorySyncStressDriver({
     runId,
     artifactsDir,
@@ -181,10 +194,7 @@ export async function runDeployedDirectorySyncStress(
 
   let report: DirectorySyncStressReport;
   try {
-    report = await runDirectorySyncStressPlan(
-      resolveDirectorySyncStressPlan(profile),
-      driver,
-    );
+    report = await runDirectorySyncStressPlan(plan, driver);
   } finally {
     await driver.dispose();
   }

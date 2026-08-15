@@ -3,6 +3,7 @@ import { mkdtemp, mkdir, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 
+import { resolveDirectorySyncStressPlan } from "../src/directory-sync-stress";
 import {
   cleanupDirectorySyncStress,
   listProbeFiles,
@@ -517,6 +518,37 @@ describe("deployed directory-sync stress driver", () => {
         logger() {},
       }),
     ).rejects.toThrow("requires embeddingEnabled: false");
+  });
+
+  it("allows feature-enabled smoke only with an explicit external AI cap", async () => {
+    const system = new ScriptedStressSystem({
+      runtimeLog:
+        "[2026-08-06T06:01:00.000Z] [EmbeddingJobHandler] ai:usage {\n",
+    });
+    const rootDir = await createSmokePilotRepo();
+    await writeFile(
+      join(rootDir, "users", "smoke.yaml"),
+      "handle: smoke\ndiscord:\n  enabled: false\n",
+    );
+    const plan = resolveDirectorySyncStressPlan("regression");
+    plan.maximumExternalAiCalls = 1;
+
+    const result = await runDeployedDirectorySyncStress({
+      rootDir,
+      handle: "smoke",
+      profile: "regression",
+      plan,
+      confirmation: "stress:smoke",
+      env: environment,
+      fetchImpl: system.fetchImpl,
+      commandRunner: system.commandRunner,
+      now: system.now,
+      sleep: system.sleep,
+      logger() {},
+    });
+
+    expect(result.report.success).toBe(true);
+    expect(result.report.metrics.externalAiCalls).toBe(1);
   });
 
   it("excludes tolerated warmup failures from the gate but preserves them as evidence", async () => {

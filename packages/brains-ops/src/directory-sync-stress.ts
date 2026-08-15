@@ -17,6 +17,7 @@ export interface DirectorySyncStressPhase {
 export interface DirectorySyncStressPlan {
   profile: DirectorySyncStressProfile;
   maximumProbeCount: number;
+  maximumExternalAiCalls?: number | undefined;
   phases: DirectorySyncStressPhase[];
 }
 
@@ -103,6 +104,12 @@ export const directorySyncStressPlanSchema: z.ZodType<DirectorySyncStressPlan> =
   z.object({
     profile: directorySyncStressProfileSchema,
     maximumProbeCount: z.number().int().positive().max(700),
+    maximumExternalAiCalls: z
+      .number()
+      .int()
+      .nonnegative()
+      .max(10_000)
+      .optional(),
     phases: z.array(directorySyncStressPhaseSchema).min(1),
   });
 
@@ -387,7 +394,10 @@ export async function runDirectorySyncStressPlan(
     }
   }
 
-  failure ??= stressMetricsFailure(metrics);
+  failure ??= stressMetricsFailure(
+    metrics,
+    validatedPlan.maximumExternalAiCalls ?? 0,
+  );
 
   return directorySyncStressReportSchema.parse({
     profile: validatedPlan.profile,
@@ -405,14 +415,17 @@ export async function runDirectorySyncStressPlan(
 
 export function stressMetricsFailure(
   metrics: StressMetrics,
+  maximumExternalAiCalls = 0,
 ): string | undefined {
   const healthFailure = metrics.health.find((sample) => !sample.ok);
   if (healthFailure) {
     return `health: ${healthFailure.endpoint} unavailable`;
   }
   const externalAiCalls = metrics.externalAiCalls ?? 0;
-  if (externalAiCalls > 0) {
-    return `external AI: observed ${externalAiCalls} call(s)`;
+  if (externalAiCalls > maximumExternalAiCalls) {
+    return maximumExternalAiCalls === 0
+      ? `external AI: observed ${externalAiCalls} call(s)`
+      : `external AI: observed ${externalAiCalls} call(s), cap ${maximumExternalAiCalls}`;
   }
   if (metrics.container?.oomKilled) {
     return "container: OOM killed";
