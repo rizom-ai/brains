@@ -1,7 +1,7 @@
 {
   "name": "@brains/content-pipeline",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.295",
+  "version": "0.2.0-alpha.296",
   "description": "Content pipeline plugin for managing entity publishing queues, scheduling, and generation",
   "dependencies": {
     "@brains/contracts": "workspace:*",

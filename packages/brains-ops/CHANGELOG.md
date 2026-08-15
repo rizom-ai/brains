@@ -1,5 +1,11 @@
 # @brains/ops
 
+## 0.2.0-alpha.296
+
+### Patch Changes
+
+- [#143](https://github.com/rizom-ai/brains/pull/143) [`a76d0cb`](https://github.com/rizom-ai/brains/commit/a76d0cb3fa4723112a9c455669e52f9a42a5b337) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Allow explicitly approved smoke-only directory-sync plans to set a bounded external AI call allowance while preserving the default hermetic zero-call gate.
+
 ## 0.2.0-alpha.295
 
 ## 0.2.0-alpha.294
