@@ -50,7 +50,7 @@ function createHarness(): TestHarness {
   const processEvents = Object.assign(new EventEmitter(), {
     env: process.env,
     // A negative pid is the whole point: it names the group, not the leader.
-    kill: mock((pid: number, signal?: NodeJS.Signals) => {
+    kill: mock((pid: number, signal?: NodeJS.Signals | 0) => {
       signalsForProcess.push(`group${pid}:${String(signal)}`);
       return true;
     }),
@@ -141,6 +141,8 @@ function superviseWithBroker(harness: TestHarness): Promise<CommandResult> {
     gitBroker: { socketPath: "/run/brain/git-broker.sock" },
     brokerHeartbeatIntervalMs: 20,
     brokerProgressTimeoutMs: 1_000,
+    brokerGroupProbeIntervalMs: 10,
+    brokerGroupProbeAttempts: 3,
   });
 }
 
@@ -274,36 +276,27 @@ describe("bundled process supervisor", () => {
     });
   });
 
-  it("fails the whole runtime when the broker exits under healthy roles", async () => {
+  it("fails the runtime when the broker dies before it is ready", async () => {
     const harness = createHarness();
     const supervised = superviseWithBroker(harness);
     const broker = harness.children[0];
     if (!broker) throw new Error("Expected broker child");
-    broker.emit("message", { type: "broker-ready" });
-    const web = harness.children[1];
-    if (!web) throw new Error("Expected web child");
-    web.emit("message", { type: "runtime-ready" });
-    const worker = harness.children[2];
-    if (!worker) throw new Error("Expected worker child");
-    worker.emit("message", { type: "worker-ready" });
 
-    // Until group absence can be proven, a lost owner is the fail-safe case,
-    // not a replaceable one: the runtime exits for external cleanup rather
-    // than starting a second broker that might race a surviving Git child.
+    // Nothing to replace: the roles that need an owner were never started,
+    // and a runtime that cannot produce a first owner will not produce a
+    // second one either.
     broker.emit("close", 1, null);
     expect(harness.reportIncident).toHaveBeenCalledWith({
       type: "git-broker-exited",
       code: 1,
       signal: null,
-      ready: true,
+      ready: false,
     });
-    expect(harness.spawnImpl).toHaveBeenCalledTimes(3);
+    expect(harness.spawnImpl).toHaveBeenCalledTimes(1);
 
-    worker.emit("close", null, "SIGTERM");
-    web.emit("close", null, "SIGTERM");
     expect(await supervised).toEqual({
       success: false,
-      message: "Brain git broker exited with code 1",
+      message: "Brain git broker exited before it was ready",
       exitCode: 1,
     });
   });
@@ -327,15 +320,15 @@ describe("bundled process supervisor", () => {
       intervalMs: 20,
     });
     expect(harness.processEvents.kill).toHaveBeenCalledWith(-1000, "SIGTERM");
+    // Healthy roles are untouched: terminating a stalled owner is not an
+    // outage for web and worker.
+    expect(web.kill).not.toHaveBeenCalled();
 
+    harness.processEvents.emit("SIGTERM");
     harness.children[2]?.emit("close", null, "SIGTERM");
     web.emit("close", null, "SIGTERM");
     broker.emit("close", null, "SIGTERM");
-    expect(await supervised).toEqual({
-      success: false,
-      message: "Brain git broker stopped reporting activity",
-      exitCode: 1,
-    });
+    expect(await supervised).toEqual({ success: true });
   });
 
   it("terminates the broker group when an operation stops advancing", async () => {
@@ -370,14 +363,11 @@ describe("bundled process supervisor", () => {
     });
     expect(harness.processEvents.kill).toHaveBeenCalledWith(-1000, "SIGTERM");
 
+    harness.processEvents.emit("SIGTERM");
     harness.children[2]?.emit("close", null, "SIGTERM");
     harness.children[1]?.emit("close", null, "SIGTERM");
     broker.emit("close", null, "SIGTERM");
-    expect(await supervised).toEqual({
-      success: false,
-      message: "Brain git broker stopped making progress",
-      exitCode: 1,
-    });
+    expect(await supervised).toEqual({ success: true });
   });
 
   it("leaves a slow operation alone while it keeps advancing", async () => {
@@ -424,6 +414,113 @@ describe("bundled process supervisor", () => {
     web.emit("close", null, "SIGTERM");
     broker.emit("close", null, "SIGTERM");
     expect(await supervised).toEqual({ success: true });
+  });
+
+  it("starts one replacement once the old group is proven gone", async () => {
+    const harness = createHarness();
+    // The probe answers "still there" once, then ESRCH — the only evidence
+    // that every Git descendant of the old owner is actually gone.
+    let alive = true;
+    harness.processEvents.kill.mockImplementation(
+      (pid: number, signal?: NodeJS.Signals | 0) => {
+        harness.signals.push(`group${pid}:${String(signal)}`);
+        if (signal !== 0) return true;
+        if (alive) {
+          alive = false;
+          return true;
+        }
+        const gone: NodeJS.ErrnoException = new Error("no such process");
+        gone.code = "ESRCH";
+        throw gone;
+      },
+    );
+
+    const supervised = superviseWithBroker(harness);
+    const broker = harness.children[0];
+    if (!broker) throw new Error("Expected broker child");
+    broker.emit("message", { type: "broker-ready" });
+    const web = harness.children[1];
+    if (!web) throw new Error("Expected web child");
+    web.emit("message", { type: "runtime-ready" });
+    const worker = harness.children[2];
+    if (!worker) throw new Error("Expected worker child");
+    worker.emit("message", { type: "worker-ready" });
+
+    harness.fireTimer(60);
+
+    // The first probe runs as soon as the old owner closes, and still finds
+    // the group, so nothing may start yet.
+    broker.emit("close", null, "SIGTERM");
+    expect(harness.spawnImpl).toHaveBeenCalledTimes(3);
+
+    harness.fireTimer(10);
+    expect(harness.reportIncident).toHaveBeenCalledWith({
+      type: "git-broker-group-absent",
+      attempts: 2,
+    });
+    expect(harness.spawnImpl).toHaveBeenCalledTimes(4);
+    expect(harness.spawnImpl).toHaveBeenLastCalledWith(
+      "bun",
+      ["/dist/brain.js", "start", "--child=git-broker"],
+      expect.objectContaining({ detached: true }),
+    );
+
+    // Healthy roles were never signalled: a proven-safe replacement is not an
+    // outage for web and worker.
+    expect(web.kill).not.toHaveBeenCalled();
+    expect(worker.kill).not.toHaveBeenCalled();
+
+    const replacement = harness.children[3];
+    if (!replacement) throw new Error("Expected a replacement broker");
+    replacement.emit("message", { type: "broker-ready" });
+    expect(harness.reportReady).toHaveBeenLastCalledWith("git-broker");
+
+    harness.processEvents.emit("SIGTERM");
+    worker.emit("close", null, "SIGTERM");
+    web.emit("close", null, "SIGTERM");
+    replacement.emit("close", null, "SIGTERM");
+    expect(await supervised).toEqual({ success: true });
+  });
+
+  it("fails the runtime when the old group cannot be proven gone", async () => {
+    const harness = createHarness();
+    // The probe keeps finding the group: something of the old owner survives.
+    harness.processEvents.kill.mockImplementation(
+      (pid: number, signal?: NodeJS.Signals | 0) => {
+        harness.signals.push(`group${pid}:${String(signal)}`);
+        return true;
+      },
+    );
+
+    const supervised = superviseWithBroker(harness);
+    const broker = harness.children[0];
+    if (!broker) throw new Error("Expected broker child");
+    broker.emit("message", { type: "broker-ready" });
+    const web = harness.children[1];
+    if (!web) throw new Error("Expected web child");
+    web.emit("message", { type: "runtime-ready" });
+
+    harness.fireTimer(60);
+    broker.emit("close", null, "SIGKILL");
+    harness.fireTimer(10);
+    harness.fireTimer(10);
+
+    // A surviving Git child of the old owner could still be writing to the
+    // checkout, so a second owner must never start beside it.
+    expect(harness.spawnImpl).toHaveBeenCalledTimes(3);
+    expect(harness.reportIncident).toHaveBeenCalledWith({
+      type: "git-broker-group-absence-unproven",
+      attempts: 3,
+    });
+
+    harness.children[2]?.emit("close", null, "SIGTERM");
+    web.emit("close", null, "SIGTERM");
+    expect(await supervised).toEqual({
+      success: false,
+      message:
+        "Brain git broker process group could not be proven gone; the runtime is exiting for external cleanup",
+      exitCode: 1,
+    });
   });
 
   it("stops web and worker before the broker on shutdown", async () => {

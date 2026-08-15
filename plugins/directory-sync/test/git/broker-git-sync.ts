@@ -69,17 +69,16 @@ export async function startTestBroker(
   const running: RunningTestBroker = {
     server,
     connect: async (): Promise<BrokerGitSync> => {
-      const connection = await BrokerConnection.connect(server.socketPath);
-      await connection.registerCheckout({
+      const gitSync = new BrokerGitSync({
+        connect: (): Promise<BrokerConnection> =>
+          BrokerConnection.connect(server.socketPath),
         checkoutPath: options.dataDir,
         branch,
         remoteFingerprint: checkout.remoteFingerprint,
-      });
-      return new BrokerGitSync({
-        connection,
-        checkoutPath: options.dataDir,
         remoteUrl,
       });
+      await gitSync.attach();
+      return gitSync;
     },
   };
   started.push(running);

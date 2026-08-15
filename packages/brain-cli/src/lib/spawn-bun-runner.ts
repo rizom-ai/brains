@@ -24,8 +24,11 @@ export type SpawnImpl = (
 
 export interface SignalProcess {
   env: NodeJS.ProcessEnv;
-  /** Negative pid signals a process group, which is how the broker is stopped. */
-  kill(pid: number, signal?: NodeJS.Signals): boolean;
+  /**
+   * Negative pid signals a process group, which is how the broker is stopped.
+   * Signal 0 delivers nothing and only asks whether the group still exists.
+   */
+  kill(pid: number, signal?: NodeJS.Signals | 0): boolean;
   on(event: "SIGINT" | "SIGTERM" | "exit", listener: () => void): unknown;
   removeListener(
     event: "SIGINT" | "SIGTERM" | "exit",

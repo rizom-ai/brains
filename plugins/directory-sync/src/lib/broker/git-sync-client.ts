@@ -5,7 +5,10 @@ import type {
   GitSyncStatus,
   PullResult,
 } from "../../types";
+import { BrokerUnavailableError } from "./client";
 import type { BrokerConnection } from "./client";
+import { isMutatingOperation } from "./operations";
+import type { GitOperation, GitOperationResult } from "./operations";
 
 /**
  * `IGitSync` over the broker.
@@ -21,77 +24,140 @@ import type { BrokerConnection } from "./client";
  * operations under it, so it never made a single operation atomic anyway.
  * Its sequencing moves into operations whose typed results carry what the
  * caller needs.
+ *
+ * The owner can be replaced underneath a running role — that is the point of a
+ * proven-safe replacement, which leaves web and worker up — so this reattaches
+ * rather than staying broken. What it will not do is decide that an
+ * interrupted mutation never happened; see `#run`.
  */
 
 export interface BrokerGitSyncOptions {
-  connection: BrokerConnection;
+  /** Opens a connection to whichever broker currently owns the socket. */
+  connect: () => Promise<BrokerConnection>;
   checkoutPath: string;
+  branch: string;
+  remoteFingerprint: string;
   /** Client-side configuration; reading it needs no Git. */
   remoteUrl: string;
 }
 
 export class BrokerGitSync {
-  readonly #connection: BrokerConnection;
-  readonly #checkoutPath: string;
-  readonly #remoteUrl: string;
+  readonly #options: BrokerGitSyncOptions;
+  #connection: BrokerConnection | null = null;
+  #closed = false;
 
   constructor(options: BrokerGitSyncOptions) {
-    this.#connection = options.connection;
-    this.#checkoutPath = options.checkoutPath;
-    this.#remoteUrl = options.remoteUrl;
+    this.#options = options;
+  }
+
+  /** Attach to the current owner, registering this checkout with it. */
+  async attach(): Promise<void> {
+    await this.#link();
+  }
+
+  async #link(): Promise<BrokerConnection> {
+    if (this.#closed) {
+      // Reattaching is for an owner that was replaced, not for a client that
+      // shut itself down. Reconnecting here would resurrect a role mid-exit.
+      throw new BrokerUnavailableError(
+        this.#options.checkoutPath,
+        "this client has been cleaned up",
+      );
+    }
+    if (this.#connection) return this.#connection;
+    const connection = await this.#options.connect();
+    try {
+      // Registration is where identity is checked, so a replacement owning a
+      // different repository is refused here rather than silently adopted.
+      await connection.registerCheckout({
+        checkoutPath: this.#options.checkoutPath,
+        branch: this.#options.branch,
+        remoteFingerprint: this.#options.remoteFingerprint,
+      });
+    } catch (error) {
+      connection.close();
+      throw error;
+    }
+    this.#connection = connection;
+    return connection;
+  }
+
+  /**
+   * Run one operation, surviving a replaced owner without inventing history.
+   *
+   * A read is replayable: nothing it observed can have changed because this
+   * process lost a socket. A mutation is not. If its acknowledgement is lost
+   * to a replaced broker, whether it landed is unknowable from here, and
+   * re-running it from intent is how one commit becomes two. That is reported
+   * to the caller instead — reconciliation from repository state is what
+   * resolves it, never a retry.
+   */
+  async #run<TOperation extends GitOperation>(
+    operation: TOperation,
+    runOptions: {
+      onProgress?: (() => void) | undefined;
+      signal?: AbortSignal | undefined;
+    } = {},
+  ): Promise<GitOperationResult<TOperation["name"]>> {
+    const connection = await this.#link();
+    try {
+      return await connection.execute(
+        this.#options.checkoutPath,
+        operation,
+        runOptions,
+      );
+    } catch (error) {
+      if (!(error instanceof BrokerUnavailableError)) throw error;
+      this.#connection = null;
+      if (isMutatingOperation(operation)) throw error;
+
+      const replacement = await this.#link();
+      return replacement.execute(
+        this.#options.checkoutPath,
+        operation,
+        runOptions,
+      );
+    }
   }
 
   hasRemote(): boolean {
-    return this.#remoteUrl.length > 0;
+    return this.#options.remoteUrl.length > 0;
   }
 
   initialize(): Promise<void> {
-    return this.#connection.execute(this.#checkoutPath, {
-      name: "initialize",
-    });
+    return this.#run({ name: "initialize" });
   }
 
   getStatus(): Promise<GitSyncStatus> {
-    return this.#connection.execute(this.#checkoutPath, {
-      name: "get-status",
-    });
+    return this.#run({ name: "get-status" });
   }
 
   hasLocalChanges(): Promise<boolean> {
-    return this.#connection.execute(this.#checkoutPath, {
-      name: "has-local-changes",
-    });
+    return this.#run({ name: "has-local-changes" });
   }
 
   commit(message?: string): Promise<void> {
-    return this.#connection.execute(this.#checkoutPath, {
+    return this.#run({
       name: "commit",
       ...(message === undefined ? {} : { message }),
     });
   }
 
   push(signal?: AbortSignal): Promise<void> {
-    return this.#connection.execute(
-      this.#checkoutPath,
-      { name: "push" },
-      { ...(signal ? { signal } : {}) },
-    );
+    return this.#run({ name: "push" }, { ...(signal ? { signal } : {}) });
   }
 
   commitAndPush(): Promise<{
     pushed: boolean;
     checkpoint: GitReconciliationCheckpoint | null;
   }> {
-    return this.#connection.execute(this.#checkoutPath, {
-      name: "commit-and-push",
-    });
+    return this.#run({ name: "commit-and-push" });
   }
 
   pull(signal?: AbortSignal, onProgress?: () => void): Promise<PullResult> {
     // Progress still reaches the caller, so operation-status freshness is
     // preserved; a healthy slow pull must not read as stalled.
-    return this.#connection.execute(
-      this.#checkoutPath,
+    return this.#run(
       { name: "pull" },
       {
         ...(onProgress ? { onProgress } : {}),
@@ -103,20 +169,18 @@ export class BrokerGitSync {
   getReconciliationDelta(
     checkpoint?: GitReconciliationCheckpoint,
   ): Promise<GitReconciliationDelta> {
-    return this.#connection.execute(this.#checkoutPath, {
+    return this.#run({
       name: "get-reconciliation-delta",
       ...(checkpoint === undefined ? {} : { checkpoint }),
     });
   }
 
   getCheckpoint(): Promise<GitReconciliationCheckpoint> {
-    return this.#connection.execute(this.#checkoutPath, {
-      name: "get-checkpoint",
-    });
+    return this.#run({ name: "get-checkpoint" });
   }
 
   log(filePath: string, limit?: number): Promise<GitLogEntry[]> {
-    return this.#connection.execute(this.#checkoutPath, {
+    return this.#run({
       name: "log-file",
       filePath,
       ...(limit === undefined ? {} : { limit }),
@@ -124,16 +188,14 @@ export class BrokerGitSync {
   }
 
   show(sha: string, filePath: string): Promise<string> {
-    return this.#connection.execute(this.#checkoutPath, {
-      name: "show-file",
-      sha,
-      filePath,
-    });
+    return this.#run({ name: "show-file", sha, filePath });
   }
 
   async cleanup(): Promise<void> {
     // Client lifecycle only. The broker owns any operation still running and
     // carries it to a terminal result whether this client watches or not.
-    this.#connection.close();
+    this.#closed = true;
+    this.#connection?.close();
+    this.#connection = null;
   }
 }

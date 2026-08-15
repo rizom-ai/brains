@@ -36,25 +36,21 @@ export async function connectGitSync(
     );
   }
 
-  const connection = await BrokerConnection.connect(socketPath);
-  try {
-    // Registration is where identity is checked. A broker that owns a
-    // different path, branch, or remote refuses here rather than quietly
-    // becoming the owner of something this role did not mean.
-    await connection.registerCheckout({
-      checkoutPath: options.checkoutPath,
-      branch: options.branch,
-      remoteFingerprint: getGitRemoteFingerprint(options.remoteUrl),
-    });
-  } catch (error) {
-    connection.close();
-    throw error;
-  }
-
-  options.logger.debug("Connected to the Git broker", { socketPath });
-  return new BrokerGitSync({
-    connection,
+  const gitSync = new BrokerGitSync({
+    // Re-opened rather than held: a proven-safe broker replacement leaves this
+    // role running, and it has to be able to find the new owner.
+    connect: (): Promise<BrokerConnection> =>
+      BrokerConnection.connect(socketPath),
     checkoutPath: options.checkoutPath,
+    branch: options.branch,
+    remoteFingerprint: getGitRemoteFingerprint(options.remoteUrl),
     remoteUrl: options.remoteUrl,
   });
+
+  // Eagerly, so a misassembled runtime fails at startup rather than at the
+  // first commit. Registration is where identity is checked: a broker that
+  // owns a different path, branch, or remote refuses here.
+  await gitSync.attach();
+  options.logger.debug("Connected to the Git broker", { socketPath });
+  return gitSync;
 }

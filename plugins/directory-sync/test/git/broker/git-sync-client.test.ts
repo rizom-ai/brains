@@ -44,21 +44,18 @@ async function harness(): Promise<{
         : undefined,
   });
 
-  const connection = await BrokerConnection.connect(broker.socketPath);
-  await connection.registerCheckout({
+  const socketPath = broker.socketPath;
+  const client = new BrokerGitSync({
+    connect: (): Promise<BrokerConnection> =>
+      BrokerConnection.connect(socketPath),
     checkoutPath: checkout,
     branch: "main",
     remoteFingerprint: FINGERPRINT,
+    remoteUrl: "",
   });
+  await client.attach();
 
-  return {
-    client: new BrokerGitSync({
-      connection,
-      checkoutPath: checkout,
-      remoteUrl: "",
-    }),
-    checkout,
-  };
+  return { client, checkout };
 }
 
 afterEach(async () => {

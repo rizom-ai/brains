@@ -48,6 +48,10 @@ const MISSED_BROKER_HEARTBEATS_BEFORE_TERMINATION = 3;
  */
 export const BROKER_PROGRESS_TIMEOUT_MS = 300_000;
 
+/** How the old owner's group is proven gone before a replacement may start. */
+export const BROKER_GROUP_PROBE_INTERVAL_MS = 500;
+export const BROKER_GROUP_PROBE_ATTEMPTS = 20;
+
 export interface WorkerHeartbeatClock {
   setInterval(callback: () => void, intervalMs: number): WorkerHeartbeatTimer;
   clearInterval(handle: WorkerHeartbeatTimer): void;
@@ -71,6 +75,8 @@ export interface ProcessSupervisorDependencies extends SpawnBunRunnerDependencie
   workerHeartbeatIntervalMs?: number;
   brokerHeartbeatIntervalMs?: number;
   brokerProgressTimeoutMs?: number;
+  brokerGroupProbeIntervalMs?: number;
+  brokerGroupProbeAttempts?: number;
   reportIncident?: (incident: Record<string, unknown>) => void;
   reportReady?: (role: SupervisedChildRole) => void;
   gitBroker?: GitBrokerSpec;
@@ -128,6 +134,16 @@ function readHeartbeat(value: unknown): Heartbeat | undefined {
     return undefined;
   }
   return { activeRequestIds, oldestActiveProgressAt };
+}
+
+/** ESRCH is the only answer that means "gone". */
+function isNoSuchProcess(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    error.code === "ESRCH"
+  );
 }
 
 function hasMessageType(value: unknown, type: string): boolean {
@@ -214,6 +230,8 @@ interface RuntimeSupervisorOptions {
   workerHeartbeatIntervalMs: number;
   brokerHeartbeatIntervalMs: number;
   brokerProgressTimeoutMs: number;
+  brokerGroupProbeIntervalMs: number;
+  brokerGroupProbeAttempts: number;
   reportIncident: (incident: Record<string, unknown>) => void;
   reportReady: (role: SupervisedChildRole) => void;
   gitBroker: GitBrokerSpec | undefined;
@@ -382,10 +400,87 @@ function runRuntimeSupervisor(
      * the group is the first half of that proof; the probe that establishes it
      * is what a replacement will need before it may start.
      */
+    /**
+     * A stalled owner is terminated, not disowned.
+     *
+     * Signalling the group starts the same proof an exited broker needs: the
+     * replacement waits on `replaceBrokerWhenGroupIsGone`, driven by the close
+     * this signal produces.
+     */
     const failBroker = (message: string): void => {
-      finalResult ??= { success: false, message, exitCode: 1 };
-      stopEverything();
-      maybeFinish();
+      void message;
+      signalChild(broker, "SIGTERM");
+      if (broker) brokerTerminationDeadline(broker);
+    };
+
+    /** Escalate once, so a group that ignores SIGTERM still stops. */
+    const brokerTerminationDeadline = (child: ManagedChild): void => {
+      if (child.heartbeatTimer !== undefined) {
+        options.clock.clearTimeout(child.heartbeatTimer);
+        child.heartbeatTimer = undefined;
+      }
+      options.clock.setTimeout(() => {
+        signalChild(child, "SIGKILL");
+      }, options.shutdownGraceMs);
+    };
+
+    /**
+     * Is every member of the old owner's group gone?
+     *
+     * Signal 0 delivers nothing and only reports reachability, so ESRCH is the
+     * evidence. Anything else — still reachable, or an error that does not say
+     * "gone" — is not proof, and the absence of proof is what forbids a
+     * replacement rather than merely delaying one.
+     */
+    const groupIsAbsent = (pid: number): boolean => {
+      try {
+        options.processImpl.kill(-pid, 0);
+        return false;
+      } catch (error) {
+        return isNoSuchProcess(error);
+      }
+    };
+
+    /**
+     * Replace the owner only after proving the old group absent.
+     *
+     * A surviving Git child of the old broker can still be writing to the
+     * checkout. Starting a second owner beside it would put two writers on one
+     * repository, which is the failure this whole design exists to remove — so
+     * unproven absence fails the entire runtime for external cleanup instead.
+     */
+    const replaceBrokerWhenGroupIsGone = (pid: number, attempt = 1): void => {
+      if (settled || parentShutdownRequested || finalResult) return;
+
+      if (groupIsAbsent(pid)) {
+        options.reportIncident({
+          type: "git-broker-group-absent",
+          attempts: attempt,
+        });
+        broker = undefined;
+        spawnChild("git-broker");
+        return;
+      }
+
+      if (attempt >= options.brokerGroupProbeAttempts) {
+        options.reportIncident({
+          type: "git-broker-group-absence-unproven",
+          attempts: attempt,
+        });
+        finalResult ??= {
+          success: false,
+          message:
+            "Brain git broker process group could not be proven gone; the runtime is exiting for external cleanup",
+          exitCode: 1,
+        };
+        stopEverything();
+        maybeFinish();
+        return;
+      }
+
+      options.clock.setTimeout(() => {
+        replaceBrokerWhenGroupIsGone(pid, attempt + 1);
+      }, options.brokerGroupProbeIntervalMs);
     };
 
     const maybeFinish = (): void => {
@@ -493,13 +588,27 @@ function runRuntimeSupervisor(
       child.process.removeListener("message", child.handleMessage);
 
       if (child.role === "git-broker") {
-        if (!parentShutdownRequested) {
+        if (!parentShutdownRequested && !finalResult) {
           options.reportIncident({
             type: "git-broker-exited",
             code,
             signal,
             ready: child.ready,
           });
+        }
+        // A broker that never became ready has nothing to replace: the roles
+        // that need it were never started, and the runtime is misassembled.
+        const pid = child.process.pid;
+        if (
+          !parentShutdownRequested &&
+          child.ready &&
+          pid !== undefined &&
+          !finalResult
+        ) {
+          replaceBrokerWhenGroupIsGone(pid);
+          return;
+        }
+        if (!parentShutdownRequested) {
           finalResult ??= brokerExitResult(child, code);
           stopEverything();
         }
@@ -576,8 +685,10 @@ function runRuntimeSupervisor(
           options.reportReady(role);
           armBrokerWatchdog(child);
           // Only now may a Git-capable role start: there is no app-process
-          // fallback for it to fall back to.
-          spawnChild("web");
+          // fallback for it to fall back to. A replacement owner does not
+          // restart the roles that outlived the one it replaced — leaving them
+          // running is the whole point of a proven-safe replacement.
+          if (web === undefined) spawnChild("web");
           return;
         }
         if (role === "git-broker" && child.ready) {
@@ -673,6 +784,10 @@ export function superviseRuntimeChildren(
       dependencies.brokerHeartbeatIntervalMs ?? BROKER_HEARTBEAT_INTERVAL_MS,
     brokerProgressTimeoutMs:
       dependencies.brokerProgressTimeoutMs ?? BROKER_PROGRESS_TIMEOUT_MS,
+    brokerGroupProbeIntervalMs:
+      dependencies.brokerGroupProbeIntervalMs ?? BROKER_GROUP_PROBE_INTERVAL_MS,
+    brokerGroupProbeAttempts:
+      dependencies.brokerGroupProbeAttempts ?? BROKER_GROUP_PROBE_ATTEMPTS,
     gitBroker: dependencies.gitBroker,
     reportIncident:
       dependencies.reportIncident ??
