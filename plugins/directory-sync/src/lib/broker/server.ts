@@ -39,6 +39,15 @@ export interface GitBrokerServerOptions {
   ) => CheckoutExecutorOptions | undefined;
 }
 
+/**
+ * The one place this path is spelled. The supervisor hands it to every role
+ * and the broker binds it, so a second derivation would be a way for owner
+ * and clients to disagree about which socket is the singleton boundary.
+ */
+export function gitBrokerSocketPath(runtimeDir: string): string {
+  return join(runtimeDir, "git-broker.sock");
+}
+
 export class BrokerStartupError extends Error {
   constructor(message: string) {
     super(message);
@@ -84,7 +93,7 @@ export class GitBrokerServer {
   ): Promise<GitBrokerServer> {
     await mkdir(options.runtimeDir, { recursive: true, mode: 0o700 });
     await chmod(options.runtimeDir, 0o700);
-    const socketPath = join(options.runtimeDir, "git-broker.sock");
+    const socketPath = gitBrokerSocketPath(options.runtimeDir);
 
     // A stale socket is only stale if nothing answers. Unlinking without
     // probing would let a second broker evict a live owner, which is exactly

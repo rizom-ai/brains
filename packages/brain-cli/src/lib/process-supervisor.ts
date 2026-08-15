@@ -8,6 +8,25 @@ import type {
 } from "./spawn-bun-runner";
 
 export type BrainChildRole = "web" | "worker";
+
+/**
+ * Every process this supervisor owns. `git-broker` is not a Brain role — it
+ * boots no shell and serves no traffic; it owns the managed checkout so web and
+ * worker never execute Git themselves.
+ */
+export type SupervisedChildRole = BrainChildRole | "git-broker";
+
+/**
+ * Present only for a Brain with Git configured. Its absence is what makes a
+ * Brain without Git start no broker.
+ */
+export interface GitBrokerSpec {
+  /** Handed to every role; the broker binds it, the app roles connect to it. */
+  readonly socketPath: string;
+}
+
+/** Where each role finds its checkout owner. */
+export const GIT_BROKER_SOCKET_ENV = "BRAIN_GIT_BROKER_SOCKET";
 type SupervisorTimer = ReturnType<typeof setTimeout> | number;
 type WorkerHeartbeatTimer = ReturnType<typeof setInterval> | number;
 
@@ -36,7 +55,8 @@ export interface ProcessSupervisorDependencies extends SpawnBunRunnerDependencie
   workerRestartWindowMs?: number;
   workerHeartbeatIntervalMs?: number;
   reportIncident?: (incident: Record<string, unknown>) => void;
-  reportReady?: (role: BrainChildRole) => void;
+  reportReady?: (role: SupervisedChildRole) => void;
+  gitBroker?: GitBrokerSpec;
 }
 
 const defaultClock: SupervisorClock = {
@@ -60,12 +80,12 @@ export function startWorkerHeartbeat(
 
 export function parseBrainChildRole(
   argv: readonly string[],
-): BrainChildRole | undefined {
+): SupervisedChildRole | undefined {
   const childArg = argv.find((arg) => arg.startsWith("--child="));
   if (!childArg) return undefined;
 
   const role = childArg.slice("--child=".length);
-  if (role === "web" || role === "worker") return role;
+  if (role === "web" || role === "worker" || role === "git-broker") return role;
   throw new Error(`Invalid internal Brain child role "${role}"`);
 }
 
@@ -76,6 +96,39 @@ function hasMessageType(value: unknown, type: string): boolean {
     "type" in value &&
     value.type === type
   );
+}
+
+/**
+ * A lost checkout owner is terminal, not restartable.
+ *
+ * Replacing it would mean starting a second owner while a Git child of the
+ * first may still be running against the same checkout. Until the supervisor
+ * can prove that process group absent, the honest move is to fail the whole
+ * runtime and let external supervision remove the tree.
+ */
+function brokerExitResult(
+  child: ManagedChild,
+  code: number | null,
+): CommandResult {
+  if (child.startupTimedOut) {
+    return {
+      success: false,
+      message: "Brain git broker missed its ready deadline",
+      exitCode: 1,
+    };
+  }
+  if (!child.ready) {
+    return {
+      success: false,
+      message: "Brain git broker exited before it was ready",
+      exitCode: code ?? 1,
+    };
+  }
+  return {
+    success: false,
+    message: `Brain git broker exited with code ${code}`,
+    exitCode: code ?? 1,
+  };
 }
 
 function webExitResult(
@@ -119,11 +172,12 @@ interface RuntimeSupervisorOptions {
   workerRestartWindowMs: number;
   workerHeartbeatIntervalMs: number;
   reportIncident: (incident: Record<string, unknown>) => void;
-  reportReady: (role: BrainChildRole) => void;
+  reportReady: (role: SupervisedChildRole) => void;
+  gitBroker: GitBrokerSpec | undefined;
 }
 
 interface ManagedChild {
-  readonly role: BrainChildRole;
+  readonly role: SupervisedChildRole;
   readonly process: SpawnedProcess;
   ready: boolean;
   closed: boolean;
@@ -140,7 +194,9 @@ function runRuntimeSupervisor(
   return new Promise((resolve) => {
     let settled = false;
     let parentShutdownRequested = false;
-    let webResult: CommandResult | undefined;
+    /** The runtime's outcome once something terminal has decided it. */
+    let finalResult: CommandResult | undefined;
+    let broker: ManagedChild | undefined;
     let web: ManagedChild | undefined;
     let worker: ManagedChild | undefined;
     let forceKillTimer: SupervisorTimer | undefined;
@@ -149,7 +205,7 @@ function runRuntimeSupervisor(
     const workerAttempts: number[] = [];
 
     const activeChildren = (): ManagedChild[] =>
-      [web, worker].filter(
+      [broker, web, worker].filter(
         (child): child is ManagedChild => child !== undefined && !child.closed,
       );
 
@@ -174,6 +230,7 @@ function runRuntimeSupervisor(
       if (workerRestartTimer !== undefined) {
         options.clock.clearTimeout(workerRestartTimer);
       }
+      if (broker) clearChildTimers(broker);
       if (web) clearChildTimers(web);
       if (worker) clearChildTimers(worker);
     };
@@ -230,19 +287,23 @@ function runRuntimeSupervisor(
 
     const maybeFinish = (): void => {
       if (activeChildren().length > 0) return;
-      if (webResult) {
-        finish(webResult);
+      if (finalResult) {
+        finish(finalResult);
       } else if (parentShutdownRequested) {
         finish({ success: true });
       }
     };
 
     const requestChildrenShutdown = (signal: "SIGINT" | "SIGTERM"): void => {
+      // The owner outlives its clients. A role still finishing a Git request
+      // must not find the socket gone underneath it.
       signalChild(worker, signal);
       signalChild(web, signal);
+      signalChild(broker, signal);
       forceKillTimer ??= options.clock.setTimeout(() => {
         signalChild(worker, "SIGKILL");
         signalChild(web, "SIGKILL");
+        signalChild(broker, "SIGKILL");
       }, options.shutdownGraceMs);
     };
 
@@ -260,7 +321,7 @@ function runRuntimeSupervisor(
       if (
         settled ||
         parentShutdownRequested ||
-        webResult ||
+        finalResult ||
         !web?.ready ||
         web.closed ||
         (worker !== undefined && !worker.closed) ||
@@ -283,7 +344,7 @@ function runRuntimeSupervisor(
           attempts: workerAttempts.length,
           windowMs: options.workerRestartWindowMs,
         });
-        webResult = {
+        finalResult = {
           success: false,
           message: `Brain worker restart budget exhausted after ${workerAttempts.length} attempts`,
           exitCode: 1,
@@ -309,6 +370,15 @@ function runRuntimeSupervisor(
       }, delayMs);
     };
 
+    const stopEverything = (): void => {
+      parentShutdownRequested = true;
+      if (workerRestartTimer !== undefined) {
+        options.clock.clearTimeout(workerRestartTimer);
+        workerRestartTimer = undefined;
+      }
+      requestChildrenShutdown("SIGTERM");
+    };
+
     const handleChildClose = (
       child: ManagedChild,
       code: number | null,
@@ -319,20 +389,31 @@ function runRuntimeSupervisor(
       clearChildTimers(child);
       child.process.removeListener("message", child.handleMessage);
 
-      if (child.role === "web") {
+      if (child.role === "git-broker") {
         if (!parentShutdownRequested) {
-          webResult = webExitResult(child, code);
-          if (workerRestartTimer !== undefined) {
-            options.clock.clearTimeout(workerRestartTimer);
-            workerRestartTimer = undefined;
-          }
-          requestChildrenShutdown("SIGTERM");
+          options.reportIncident({
+            type: "git-broker-exited",
+            code,
+            signal,
+            ready: child.ready,
+          });
+          finalResult ??= brokerExitResult(child, code);
+          stopEverything();
         }
         maybeFinish();
         return;
       }
 
-      if (parentShutdownRequested || webResult) {
+      if (child.role === "web") {
+        if (!parentShutdownRequested) {
+          finalResult ??= webExitResult(child, code);
+          stopEverything();
+        }
+        maybeFinish();
+        return;
+      }
+
+      if (parentShutdownRequested || finalResult) {
         maybeFinish();
         return;
       }
@@ -347,8 +428,8 @@ function runRuntimeSupervisor(
       scheduleWorker();
     };
 
-    const spawnChild = (role: BrainChildRole): void => {
-      if (settled || parentShutdownRequested || webResult) return;
+    const spawnChild = (role: SupervisedChildRole): void => {
+      if (settled || parentShutdownRequested || finalResult) return;
       if (role === "worker") workerAttempts.push(options.clock.now());
 
       const childProcess = options.spawnImpl(
@@ -357,7 +438,15 @@ function runRuntimeSupervisor(
         {
           cwd: options.cwd,
           stdio: ["inherit", "inherit", "inherit", "ipc"],
-          env: options.processImpl.env,
+          // The broker leads its own process group so its Git children can be
+          // terminated as a unit without touching web or worker.
+          detached: role === "git-broker",
+          env: options.gitBroker
+            ? {
+                ...options.processImpl.env,
+                [GIT_BROKER_SOCKET_ENV]: options.gitBroker.socketPath,
+              }
+            : options.processImpl.env,
         } satisfies SpawnOptions,
       );
       const child: ManagedChild = {
@@ -371,11 +460,22 @@ function runRuntimeSupervisor(
         heartbeatTimer: undefined,
         handleMessage: () => {},
       };
-      if (role === "web") web = child;
+      if (role === "git-broker") broker = child;
+      else if (role === "web") web = child;
       else worker = child;
 
       child.handleMessage = (message: unknown): void => {
         if (child.closed) return;
+        if (role === "git-broker" && hasMessageType(message, "broker-ready")) {
+          if (child.ready) return;
+          child.ready = true;
+          clearChildTimers(child);
+          options.reportReady(role);
+          // Only now may a Git-capable role start: there is no app-process
+          // fallback for it to fall back to.
+          spawnChild("web");
+          return;
+        }
         if (role === "web" && hasMessageType(message, "runtime-ready")) {
           if (child.ready) return;
           child.ready = true;
@@ -434,7 +534,7 @@ function runRuntimeSupervisor(
     options.processImpl.on("SIGINT", handleSigint);
     options.processImpl.on("SIGTERM", handleSigterm);
     options.processImpl.on("exit", handleParentExit);
-    spawnChild("web");
+    spawnChild(options.gitBroker ? "git-broker" : "web");
   });
 }
 
@@ -457,6 +557,7 @@ export function superviseRuntimeChildren(
     workerRestartWindowMs: dependencies.workerRestartWindowMs ?? 3_600_000,
     workerHeartbeatIntervalMs:
       dependencies.workerHeartbeatIntervalMs ?? WORKER_HEARTBEAT_INTERVAL_MS,
+    gitBroker: dependencies.gitBroker,
     reportIncident:
       dependencies.reportIncident ??
       ((incident): void => {

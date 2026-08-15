@@ -14,11 +14,17 @@ import { spawnBunRunner } from "../lib/spawn-bun-runner";
 import {
   parseBrainChildRole,
   superviseRuntimeChildren,
-  type BrainChildRole,
   type ProcessSupervisorDependencies,
+  type SupervisedChildRole,
 } from "../lib/process-supervisor";
+import { resolveGitBrokerSpec } from "../lib/git-broker-spec";
+import {
+  runGitBrokerChild,
+  type GitBrokerChildDependencies,
+} from "../lib/git-broker-child";
 
-type StartDependencies = ProcessSupervisorDependencies;
+type StartDependencies = ProcessSupervisorDependencies &
+  GitBrokerChildDependencies;
 
 /**
  * Detect monorepo root by walking up looking for bun.lock.
@@ -103,7 +109,7 @@ export async function start(
       };
     }
 
-    let childRole: BrainChildRole | undefined;
+    let childRole: SupervisedChildRole | undefined;
     try {
       childRole = parseBrainChildRole(
         dependencies.argv ?? process.argv.slice(2),
@@ -116,6 +122,12 @@ export async function start(
     }
 
     const config = parseBrainYaml(cwd);
+
+    // The broker owns a checkout, not a Brain: it boots no shell and needs no
+    // definition, so it returns before any of that is loaded.
+    if (childRole === "git-broker") {
+      return runGitBrokerChild(cwd, config, dependencies);
+    }
 
     // In-process boot — the package bundles the canonical definition. Explicitly
     // scoped external definitions remain dynamically authorable.
@@ -136,11 +148,11 @@ export async function start(
           chat: false,
           operation: "migrate",
         });
-        return await superviseRuntimeChildren(
-          cwd,
-          entrypointPath,
-          dependencies,
-        );
+        const gitBroker = resolveGitBrokerSpec(cwd, config);
+        return await superviseRuntimeChildren(cwd, entrypointPath, {
+          ...dependencies,
+          ...(gitBroker ? { gitBroker } : {}),
+        });
       }
 
       const bootedBrain = await bootBrain(cwd, definition, {

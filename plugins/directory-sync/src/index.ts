@@ -8,6 +8,15 @@ export { DirectorySyncPlugin } from "./plugin";
 export { DirectorySync } from "./lib/directory-sync";
 export { DirectorySyncStatusFormatter } from "./formatters/directorySyncStatusFormatter";
 
+/**
+ * The broker child's entry points. The supervisor decides whether a broker
+ * runs at all and where it listens, so it needs the socket-path rule and the
+ * checkout rule without booting a Brain.
+ */
+export { startGitBrokerHost, resolveCheckoutPath } from "./lib/broker/host";
+export type { GitBrokerHostOptions } from "./lib/broker/host";
+export { gitBrokerSocketPath, GitBrokerServer } from "./lib/broker/server";
+
 export type {
   CleanupResult,
   DirectorySyncConfig,
