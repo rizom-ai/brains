@@ -127,7 +127,8 @@ describe("canonical commerce posture", () => {
         },
       },
     });
-    expect(pluginIds(resolved)).toContain("products");
+    // Declarative entity packages register one scoped plugin per entity.
+    expect(pluginIds(resolved)).toContain("@brains/products:product");
   });
 
   test("retains universal core transport posture", () => {

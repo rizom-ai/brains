@@ -20,6 +20,7 @@ import type {
   IEntityService,
   IEntityRegistry,
 } from "@brains/entity-service";
+import type { IAttachmentsNamespace } from "../service/attachment-registry";
 import { createMockShell, type MockShell } from "@brains/test-utils";
 import {
   createServicePluginContext,
@@ -261,6 +262,13 @@ export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
    */
   getTemplates(): Map<string, Template> {
     return this.mockShell.getTemplates();
+  }
+
+  /**
+   * Get the attachment registry
+   */
+  getAttachments(): IAttachmentsNamespace {
+    return this.mockShell.getAttachmentRegistry();
   }
 
   /**

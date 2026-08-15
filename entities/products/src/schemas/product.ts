@@ -1,5 +1,5 @@
-import { z } from "@brains/utils/zod";
-import { baseEntityParserSchema } from "@brains/plugins";
+import { z } from "@brains/sdk/entities";
+import { baseEntityParserSchema } from "@brains/sdk/entities";
 
 /**
  * Product availability — maturity stage, not a publish workflow status
@@ -83,6 +83,7 @@ type ProductMetadataSchema = z.ZodObject<{
   name: z.ZodString;
   availability: z.ZodType<ProductAvailability, ProductAvailability>;
   order: z.ZodNumber;
+  ogImageId: z.ZodOptional<z.ZodString>;
   slug: z.ZodString;
 }>;
 
@@ -92,6 +93,10 @@ export const productMetadataSchema: ProductMetadataSchema =
       name: true,
       availability: true,
       order: true,
+      // Carried in metadata, not just frontmatter: the declarative markdown
+      // codec encodes from metadata, so anything omitted here is lost on
+      // write.
+      ogImageId: true,
     })
     .extend({
       slug: z.string(),

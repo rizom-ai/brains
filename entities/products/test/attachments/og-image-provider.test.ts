@@ -1,6 +1,25 @@
 import { beforeEach, describe, expect, it, mock } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
-import { ProductsPlugin } from "../../src/plugin";
+import {
+  bindPluginPackageMetadata,
+  instantiatePluginPackageDefinition,
+} from "@brains/plugins";
+import productsPackage from "../../src";
+
+const PACKAGE_METADATA = { name: "@brains/products", version: "0.0.0-test" };
+
+function productPlugin(): Parameters<
+  ReturnType<typeof createPluginHarness>["installPlugin"]
+>[0] {
+  bindPluginPackageMetadata(productsPackage, PACKAGE_METADATA);
+  const plugin = instantiatePluginPackageDefinition(
+    productsPackage,
+    {},
+    PACKAGE_METADATA,
+  )[0];
+  if (!plugin) throw new Error("Product entity plugin was not created");
+  return plugin;
+}
 import { createProductOgImageProvider } from "../../src/attachments/og-image-provider";
 import type { Product } from "../../src/schemas/product";
 
@@ -38,8 +57,8 @@ describe("Product OG image attachment provider", () => {
   beforeEach(() => {});
 
   it("registers a product OG image attachment provider", async () => {
-    const harness = createPluginHarness<ProductsPlugin>();
-    await harness.installPlugin(new ProductsPlugin());
+    const harness = createPluginHarness();
+    await harness.installPlugin(productPlugin());
 
     const context = harness.getEntityContext("test");
     expect(context.attachments.hasProvider("product", "og-image")).toBe(true);
@@ -54,8 +73,8 @@ describe("Product OG image attachment provider", () => {
       expect(html).toContain("working memory layer");
       return TINY_PNG;
     });
-    const harness = createPluginHarness<ProductsPlugin>();
-    await harness.installPlugin(new ProductsPlugin());
+    const harness = createPluginHarness();
+    await harness.installPlugin(productPlugin());
     await harness.getEntityService().createEntity({ entity: sampleProduct });
 
     const provider = createProductOgImageProvider(

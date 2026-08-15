@@ -41,7 +41,7 @@ import { notificationsPlugin } from "@brains/notifications";
 import { obsidianVaultPlugin } from "@brains/obsidian-vault";
 import { playbookPlugin, playbooksPlugin } from "@brains/playbooks";
 import { portfolioPlugin } from "@brains/portfolio";
-import { productsPlugin } from "@brains/products";
+import productsPackage from "@brains/products";
 import { profilePlugin } from "@brains/profile";
 import promptPackage from "@brains/prompt";
 import { onboardingPlugin } from "@brains/onboarding";
@@ -391,7 +391,7 @@ export const canonicalBrain: BrainDefinition = defineBrain({
     ["conversation-memory", conversationMemoryPlugin, undefined],
     packageCapability("docs", "@brains/doc", docPackage),
 
-    ["products", productsPlugin, undefined],
+    packageCapability("products", "@brains/products", productsPackage),
     ["obsidian-vault", obsidianVaultPlugin, { autoSync: true }],
     ["email-workflows", emailWorkflows, undefined],
     ["unified-inbox", unifiedInboxPlugin, undefined],

@@ -240,11 +240,19 @@ export {
   type PluginPackageDefinition,
   type PluginPackageFamily,
 } from "./package-definition";
+export type {
+  EntityAttachmentDeclaration,
+  MediaAttachmentContext,
+} from "./entity/entity-definition-contract";
 export {
+  defineDataSource,
   defineEntityDataSource,
+  type AnyDataSourceDeclaration,
   type AnyEntityDataSourceDefinition,
+  type DataSourceDefinition,
   type EntityDataSourceDefinition,
   type EntityDetailContext,
+  type EntityQueryReader,
 } from "./public/entity-data-source";
 export {
   defineEntity,

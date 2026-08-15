@@ -10,7 +10,7 @@ Re-fact-checked against the tree 2026-08-14:
 - Declaration cleanliness is already guarded: `findInternalDeclarationImports` in `packages/brain-cli/scripts/build.ts` fails the build when generated declarations contain `@brains/*` imports.
 - `bun run arch:check` submits the Git-selected TypeScript/JavaScript inventory to one dependency-cruiser graph, asserts workspace-family coverage, and enforces circular, unresolved, plugin, entity, and interface boundaries in dedicated CI. It does not yet include the published-official-plugin dependency rule from migration step 4. Its existing tier rules permit any `shell/*` import, so they do not constrain which shell package an entity or interface reaches for.
 - The blessed `z` root export (utils section below) is implemented from the public `@rizom/brain` root entry, so external plugin fixtures no longer declare their own `zod` dependency.
-- Milestone A is DONE (`@brains/prompt`) and A2 is DONE (`@brains/style-guide`). Package-by-package migration then stopped: see "Reframing: most `entities/` packages are not entities" below. Publishable-clean is 3 of 18 (`@brains/prompt`, `@brains/style-guide`, `@brains/doc`) after the style-guide contract was promoted onto the SDK — 18, not 19, since `@brains/site-info` moved to `plugins/`; authoring shape and dependency shape are separate achievements this plan had been conflating. Measured 2026-08-15: the next step is declarative-surface capability _and_ dependency promotion together, not either alone. Only 3 packages are declarative; the other 14 still extend `EntityPlugin` and need templates, datasources, or handlers that `defineEntity` does not have, so promoting dependencies alone frees no package. See "Decision: promote `@brains/contracts` and curated `@brains/utils` slices".
+- Milestone A is DONE (`@brains/prompt`) and A2 is DONE (`@brains/style-guide`). Package-by-package migration then stopped: see "Reframing: most `entities/` packages are not entities" below. Publishable-clean is 4 of 18 (`@brains/prompt`, `@brains/style-guide`, `@brains/doc`, `@brains/products`) after the style-guide contract was promoted onto the SDK — 18, not 19, since `@brains/site-info` moved to `plugins/`; authoring shape and dependency shape are separate achievements this plan had been conflating. Measured 2026-08-15: the next step is declarative-surface capability _and_ dependency promotion together, not either alone. Only 4 packages are declarative; the other 13 still extend `EntityPlugin` and need templates, datasources, or handlers that `defineEntity` does not have, so promoting dependencies alone frees no package. See "Decision: promote `@brains/contracts` and curated `@brains/utils` slices".
 - A repo-wide inventory of all 19 entity and 7 interface packages (migration step 1, applied beyond `@brains/note`) is recorded under "Related finding: internal facade bypass audit" below.
 
 New external-facing plugin/entity work should not add private `@brains/*` shortcut imports when a suitable public `@rizom/brain/*` surface exists or should be added. Existing packages can migrate package-by-package, but new work should move toward the public-only shape instead of deepening private coupling.
@@ -312,8 +312,33 @@ Contracts does have a consumer today, so the order inverts:
    Publishable-clean is 3 of 18. Its plugin id became the package-scoped
    `@brains/doc:doc`, matching `prompt` and `style-guide`; capability ids
    are unchanged, so only plugin-id assertions moved.
-   `@brains/products` is freed by the same pair and is the next
-   migration.
+   **`@brains/products` followed, and needed two more capabilities.**
+   Attachments are now declarative — the entity declares the attachment
+   type and a provider factory, and the runtime owns registration and
+   teardown, so no package holds unregister handles. That required the
+   same structural treatment one level down:
+   `MediaAttachmentContext` in `@brains/media-page-composer` was a
+   `Pick<EntityPluginContext, "entityService" | …>`, which names the
+   runtime service; it is now an interface naming the four members
+   providers actually use.
+
+   Products also reads two entity types in one data source, which the
+   entity-backed form cannot express. `defineDataSource` is the general
+   form: one `fetch` over a narrow `EntityQueryReader` (`list` and
+   `get`), with the runtime validating the returned data against the
+   caller's schema. That keeps both the entity service and the schema
+   type off the public surface, and subsumes the entity-backed form,
+   which stays as sugar for the common case.
+
+   Publishable-clean is 4 of 18. Two more incidental findings: products'
+   `route` config was declared and never read, and `ogImageId` had to
+   move into product metadata for the same reason `sourcePath` did in
+   doc.
+
+   The remaining 13 packages all need at least one of: generation
+   handlers (8), eval handlers (9), dashboard widgets (5), job handlers
+   (5), instructions (5), or create interception (5). No single
+   capability frees a package on its own from here.
 
    Two ledger notes: the twelve new symbols are
    `advanced-with-consumer`, not `stable`, because their consumer is an

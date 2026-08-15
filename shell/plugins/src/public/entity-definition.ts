@@ -1,9 +1,10 @@
 import type { Template } from "@brains/templates";
-import type { AnyEntityDataSourceDefinition } from "./entity-data-source";
+import type { AnyDataSourceDeclaration } from "./entity-data-source";
 import { z } from "@brains/utils/zod";
 import { createEntityPackagePlugins } from "../entity/declarative-entity-plugin";
 import type {
   AnyEntityDefinition,
+  EntityAttachmentDeclaration,
   EntityDefinition,
   EntityDefinitionConfig,
   EntitySeedDefinition,
@@ -45,7 +46,8 @@ export function defineEntity<
   readonly config?: EntityDefinitionConfig | undefined;
   readonly seed?: EntitySeedDefinition<TMetadataSchema> | undefined;
   readonly templates?: Record<string, Template> | undefined;
-  readonly dataSources?: readonly AnyEntityDataSourceDefinition[] | undefined;
+  readonly dataSources?: readonly AnyDataSourceDeclaration[] | undefined;
+  readonly attachments?: readonly EntityAttachmentDeclaration[] | undefined;
 }): EntityDefinition<TType, TMetadataSchema> {
   assertLocalId(definition.type, "Entity type");
   if (!definition.purpose.trim()) {

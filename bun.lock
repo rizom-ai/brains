@@ -259,12 +259,18 @@
       "dependencies": {
         "@brains/content-formatters": "workspace:*",
         "@brains/media-page-composer": "workspace:*",
+<<<<<<<
         "@brains/plugins": "workspace:*",
         "@brains/ui-library": "workspace:*",
         "@brains/utils": "workspace:*",
+=======
+        "@brains/sdk": "workspace:*",
+        "@rizom/brain-ui": "workspace:*",
+>>>>>>>
       },
       "devDependencies": {
         "@brains/eslint-config": "workspace:*",
+        "@brains/plugins": "workspace:*",
         "@brains/test-utils": "workspace:*",
         "@brains/typescript-config": "workspace:*",
         "@types/bun": "^1.3.14",

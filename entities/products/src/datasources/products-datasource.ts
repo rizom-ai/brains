@@ -1,11 +1,9 @@
-import type {
-  DataSource,
-  DataSourceSchema,
-  BaseDataSourceContext,
-} from "@brains/plugins";
-import { parseMarkdownWithFrontmatter } from "@brains/plugins";
-import type { Logger } from "@brains/utils/logger";
-import { z } from "@brains/utils/zod";
+import {
+  defineDataSource,
+  parseMarkdownWithFrontmatter,
+  z,
+  type DataSourceDefinition,
+} from "@brains/sdk/entities";
 import type { Product } from "../schemas/product";
 import {
   productFrontmatterSchema,
@@ -30,29 +28,24 @@ const querySchema = z.object({
     .optional(),
 });
 
-type ProductsQuery = z.output<typeof querySchema>;
+const overviewFormatter = new OverviewBodyFormatter();
+const productFormatter = new ProductBodyFormatter();
 
 /**
  * Parse product entity into template-ready format.
  * Frontmatter holds identity + metadata, body is parsed as structured content.
  */
-function parseProductData(
-  entity: Product,
-  formatter: ProductBodyFormatter,
-): ProductWithData {
+function parseProductData(entity: Product): ProductWithData {
   const parsed = parseMarkdownWithFrontmatter(
     entity.content,
     productFrontmatterSchema,
   );
 
-  const body = formatter.parse(parsed.content);
-  const labels = formatter.getLabels();
-
   return productWithDataSchema.parse({
     ...entity,
     frontmatter: parsed.metadata,
-    body,
-    labels,
+    body: productFormatter.parse(parsed.content),
+    labels: productFormatter.getLabels(),
   });
 }
 
@@ -60,113 +53,67 @@ function parseProductData(
  * Parse overview entity into template-ready format.
  * Frontmatter holds headline/tagline, body is parsed as structured content.
  */
-function parseOverviewData(
-  entity: Overview,
-  formatter: OverviewBodyFormatter,
-): OverviewWithData {
+function parseOverviewData(entity: Overview): OverviewWithData {
   const parsed = parseMarkdownWithFrontmatter(
     entity.content,
     overviewFrontmatterSchema,
   );
 
-  const body = formatter.parse(parsed.content);
-  const labels = formatter.getLabels();
-
   return overviewWithDataSchema.parse({
     ...entity,
     frontmatter: parsed.metadata,
-    body,
-    labels,
+    body: overviewFormatter.parse(parsed.content),
+    labels: overviewFormatter.getLabels(),
   });
 }
 
 /**
- * DataSource for fetching products and overview entities.
- * Products are sorted by order field. Overview is a singleton entity.
+ * Products and the overview singleton, for the products page.
+ *
+ * This reads two entity types, so it is declared in the general form: the
+ * runtime hands it a narrow entity reader rather than the entity service.
  */
-export class ProductsDataSource implements DataSource {
-  private readonly logger: Logger;
-  public readonly id = "products:entities";
-  public readonly name = "Products Entity DataSource";
-  public readonly description =
-    "Fetches products and overview for the products page";
+export const productsDataSource: DataSourceDefinition = defineDataSource({
+  id: "entities",
+  name: "Products Entity DataSource",
+  description: "Fetches products and overview for the products page",
+  fetch: async (query, entities) => {
+    const params = querySchema.parse(query);
 
-  private readonly overviewFormatter = new OverviewBodyFormatter();
-  private readonly productFormatter = new ProductBodyFormatter();
-
-  constructor(logger: Logger) {
-    this.logger = logger;
-    this.logger.debug("ProductsDataSource initialized");
-  }
-
-  async fetch<T>(
-    query: unknown,
-    outputSchema: DataSourceSchema<T>,
-    context: BaseDataSourceContext,
-  ): Promise<T> {
-    const params: ProductsQuery = querySchema.parse(query);
-    const entityService = context.entityService;
-
-    // Fetch overview entity
-    if (params.entityType === "products-overview") {
-      const entities = await entityService.listEntities<Overview>({
+    const readOverview = async (): Promise<OverviewWithData> => {
+      const found = await entities.list<Overview>({
         entityType: "products-overview",
         options: { limit: 1 },
       });
+      const overview = found[0];
+      if (!overview) throw new Error("Products overview entity not found");
+      return parseOverviewData(overview);
+    };
 
-      const overview = entities[0];
-      if (!overview) {
-        throw new Error("Products overview entity not found");
-      }
-
-      const data = parseOverviewData(overview, this.overviewFormatter);
-      return outputSchema.parse(data);
+    if (params.entityType === "products-overview") {
+      return readOverview();
     }
 
-    // Fetch single product by slug
     if (params.query?.id) {
-      const entities = await entityService.listEntities<Product>({
+      const found = await entities.list<Product>({
         entityType: "product",
-        options: {
-          filter: { metadata: { slug: params.query.id } },
-          limit: 1,
-        },
+        options: { filter: { metadata: { slug: params.query.id } }, limit: 1 },
       });
-
-      const product = entities[0];
+      const product = found[0];
       if (!product) {
         throw new Error(`Product not found: ${params.query.id}`);
       }
-
-      return outputSchema.parse({
-        product: parseProductData(product, this.productFormatter),
-      });
+      return { product: parseProductData(product) };
     }
 
-    // Fetch all products sorted by order + overview for list page
-    const [overviewEntities, productEntities] = await Promise.all([
-      entityService.listEntities<Overview>({
-        entityType: "products-overview",
-        options: { limit: 1 },
-      }),
-      entityService.listEntities<Product>({
+    const [overview, products] = await Promise.all([
+      readOverview(),
+      entities.list<Product>({
         entityType: "product",
-        options: {
-          sortFields: [{ field: "order", direction: "asc" }],
-        },
+        options: { sortFields: [{ field: "order", direction: "asc" }] },
       }),
     ]);
 
-    const overview = overviewEntities[0];
-    if (!overview) {
-      throw new Error("Products overview entity not found");
-    }
-
-    return outputSchema.parse({
-      overview: parseOverviewData(overview, this.overviewFormatter),
-      products: productEntities.map((p) =>
-        parseProductData(p, this.productFormatter),
-      ),
-    });
-  }
-}
+    return { overview, products: products.map(parseProductData) };
+  },
+});

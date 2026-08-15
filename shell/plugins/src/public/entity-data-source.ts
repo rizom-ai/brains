@@ -2,7 +2,9 @@ import type { JsonObject, JsonObjectOutputGuard } from "@brains/contracts";
 import type {
   BaseDataSourceContext,
   BaseEntity,
+  DataSource,
   DataSourceSchema,
+  ListOptions,
   PaginationInfo,
   SortField,
 } from "@brains/entity-service";
@@ -111,6 +113,53 @@ export function defineEntityDataSource<
 }
 
 /**
+ * Entity reads, narrowed to what a data source needs.
+ *
+ * This is what stands in for `entityService` on the public surface. The
+ * service itself reaches the projection store and cannot be published;
+ * these two methods take and return plain data.
+ */
+export interface EntityQueryReader {
+  list<T extends BaseEntity>(request: {
+    entityType: string;
+    options?: ListOptions;
+  }): Promise<T[]>;
+  get<T extends BaseEntity>(request: {
+    entityType: string;
+    id: string;
+  }): Promise<T | null>;
+}
+
+/**
+ * A data source in its general form: one `fetch` over a narrow entity
+ * reader. Use this when a source spans entity types or answers queries
+ * that are not list-and-detail; `defineEntityDataSource` is the sugar for
+ * the common single-type case.
+ *
+ * The author returns plain data and the runtime validates it against the
+ * caller's schema, so no schema type reaches the public surface either.
+ */
+export interface DataSourceDefinition {
+  readonly kind: "rizom-data-source";
+  readonly id: string;
+  readonly name: string;
+  readonly description: string;
+  fetch(query: unknown, entities: EntityQueryReader): Promise<unknown>;
+}
+
+export function defineDataSource(definition: {
+  readonly id: string;
+  readonly name: string;
+  readonly description: string;
+  fetch(query: unknown, entities: EntityQueryReader): Promise<unknown>;
+}): DataSourceDefinition {
+  return Object.freeze({
+    kind: "rizom-data-source" as const,
+    ...definition,
+  });
+}
+
+/**
  * A declared data source with its transform type erased, which is how an
  * entity definition stores a heterogeneous list of them.
  *
@@ -131,6 +180,40 @@ export interface AnyEntityDataSourceDefinition {
     query: BaseQuery,
   ): JsonObject;
   detail?(context: EntityDetailContext<unknown>): unknown;
+}
+
+/** Either declared form, as an entity definition stores them. */
+export type AnyDataSourceDeclaration =
+  AnyEntityDataSourceDefinition | DataSourceDefinition;
+
+/** Bind a general declared data source to the runtime. */
+export function createDeclarativeDataSource(
+  definition: DataSourceDefinition,
+  scopedId: string,
+): DataSource {
+  return {
+    id: scopedId,
+    name: definition.name,
+    description: definition.description,
+    async fetch<T>(
+      query: unknown,
+      outputSchema: DataSourceSchema<T>,
+      context: BaseDataSourceContext,
+    ): Promise<T> {
+      const entityService = context.entityService;
+      const entities: EntityQueryReader = {
+        list: <T extends BaseEntity>(request: {
+          entityType: string;
+          options?: ListOptions;
+        }): Promise<T[]> => entityService.listEntities<T>(request),
+        get: <T extends BaseEntity>(request: {
+          entityType: string;
+          id: string;
+        }): Promise<T | null> => entityService.getEntity<T>(request),
+      };
+      return outputSchema.parse(await definition.fetch(query, entities));
+    },
+  };
 }
 
 export function createDeclarativeEntityDataSource(
