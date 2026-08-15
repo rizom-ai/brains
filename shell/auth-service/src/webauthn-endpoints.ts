@@ -12,10 +12,29 @@ import type { ResolvedSetupToken, SetupFlow } from "./setup-flow";
 import { issuerFromRequest, isSecureRequest } from "./issuer";
 import { jsonResponse, oauthErrorResponse } from "./http-responses";
 
+/** The passkey operations these endpoints drive. */
+export type EndpointPasskeys = Pick<
+  PasskeyService,
+  | "hasCredentials"
+  | "generateRegistrationOptions"
+  | "verifyRegistrationResponse"
+  | "generateAuthenticationOptions"
+  | "verifyAuthenticationResponse"
+>;
+
+/** The one session operation these endpoints perform. */
+export type EndpointSessions = Pick<AuthSessionPersistence, "createSession">;
+
+/** The setup-token operations these endpoints perform. */
+export type EndpointSetupFlow = Pick<
+  SetupFlow,
+  "resolveSetupToken" | "hasConflictingAccountSession" | "consumeSetupToken"
+>;
+
 export interface WebAuthnEndpointsOptions {
-  passkeyService: PasskeyService;
-  sessionStore: AuthSessionPersistence;
-  setupFlow: SetupFlow;
+  passkeyService: EndpointPasskeys;
+  sessionStore: EndpointSessions;
+  setupFlow: EndpointSetupFlow;
   registrationUserProvider: (
     userId?: string,
   ) => Promise<PasskeyRegistrationUser>;
@@ -39,9 +58,9 @@ export interface WebAuthnEndpointsOptions {
  * session cookie.
  */
 export class WebAuthnEndpoints {
-  private readonly passkeyService: PasskeyService;
-  private readonly sessionStore: AuthSessionPersistence;
-  private readonly setupFlow: SetupFlow;
+  private readonly passkeyService: EndpointPasskeys;
+  private readonly sessionStore: EndpointSessions;
+  private readonly setupFlow: EndpointSetupFlow;
   private readonly registrationUserProvider: (
     userId?: string,
   ) => Promise<PasskeyRegistrationUser>;
