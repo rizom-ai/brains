@@ -32,6 +32,7 @@ const FRAME_HEADER_BYTES = 4;
 export interface RegisterCheckoutMessage {
   type: "register-checkout";
   version: number;
+  requestId: string;
   checkoutPath: string;
   branch: string;
   remoteFingerprint: string;
@@ -63,9 +64,16 @@ export interface ResultMessage {
   error: string | null;
 }
 
+export interface QueryMessage {
+  type: "query";
+  version: number;
+  requestId: string;
+}
+
 export interface StatusMessage {
   type: "status";
   version: number;
+  requestId: string;
   brokerId: string;
   checkouts: string[];
   activeRequestIds: string[];
@@ -81,6 +89,7 @@ export interface HeartbeatMessage {
 
 export type BrokerMessage =
   | RegisterCheckoutMessage
+  | QueryMessage
   | ExecuteOperationMessage
   | ProgressMessage
   | ResultMessage
@@ -114,6 +123,7 @@ export const brokerMessageSchema: z.ZodType<BrokerMessage, BrokerMessage> =
       .object({
         type: z.literal("register-checkout"),
         version,
+        requestId,
         checkoutPath: z.string().min(1),
         branch: z.string().min(1),
         remoteFingerprint: z.string().min(1),
@@ -147,10 +157,12 @@ export const brokerMessageSchema: z.ZodType<BrokerMessage, BrokerMessage> =
         error: z.string().nullable(),
       })
       .strict(),
+    z.object({ type: z.literal("query"), version, requestId }).strict(),
     z
       .object({
         type: z.literal("status"),
         version,
+        requestId,
         brokerId: z.string().min(1),
         checkouts: z.array(z.string()),
         activeRequestIds: z.array(requestId),
