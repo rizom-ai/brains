@@ -13,6 +13,7 @@ import type {
   EmailReplyDraftSourceResult,
   EmailReplyDraftWorkspaceSnapshot,
 } from "./api";
+import { ConfirmDialog } from "./confirm-dialog";
 import { formatUpdated } from "./ui-utils";
 
 interface DraftFeedback {
@@ -43,10 +44,24 @@ export function EmailReplyDraftWorkspace(props: {
   const { data, onAction, onSource } = props;
   const [text, setText] = useState(data.draft?.text ?? "");
   const [revision, setRevision] = useState(data.draft?.revision ?? 0);
+  const [status, setStatus] = useState<"draft" | "sent">(
+    data.draft?.status ?? "draft",
+  );
+  const [updatedAt, setUpdatedAt] = useState(data.draft?.updatedAt);
+  const [sentAt, setSentAt] = useState(
+    data.draft?.status === "sent" ? data.draft.sentAt : undefined,
+  );
   const [savedText, setSavedText] = useState(data.draft?.text ?? "");
-  const [pending, setPending] = useState<"generate" | "save" | null>(null);
+  const [pending, setPending] = useState<"generate" | "save" | "send" | null>(
+    null,
+  );
   const [feedback, setFeedback] = useState<DraftFeedback | null>(null);
   const [sourceState, setSourceState] = useState<DraftSourceState | null>(null);
+  const [confirmation, setConfirmation] = useState<{
+    action: Extract<EmailReplyDraftAction, { type: "send" }>;
+    summary: string;
+    trigger: HTMLButtonElement;
+  } | null>(null);
   const sourceAbortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
@@ -54,7 +69,11 @@ export function EmailReplyDraftWorkspace(props: {
     setText(nextText);
     setSavedText(nextText);
     setRevision(data.draft?.revision ?? 0);
+    setStatus(data.draft?.status ?? "draft");
+    setUpdatedAt(data.draft?.updatedAt);
+    setSentAt(data.draft?.status === "sent" ? data.draft.sentAt : undefined);
     setFeedback(null);
+    setConfirmation(null);
   }, [data]);
 
   const loadSource = useCallback(
@@ -94,26 +113,45 @@ export function EmailReplyDraftWorkspace(props: {
   }, [data.mailItemId, loadSource]);
 
   const run = useCallback(
-    async (action: EmailReplyDraftAction): Promise<void> => {
+    async (
+      action: EmailReplyDraftAction,
+      trigger?: HTMLButtonElement,
+    ): Promise<void> => {
       setPending(action.type);
       setFeedback(null);
       try {
         const result = await onAction(action);
+        if (result.kind === "confirmation") {
+          if (action.type === "send" && trigger) {
+            setConfirmation({ action, summary: result.summary, trigger });
+          }
+          return;
+        }
         if (result.kind === "error") {
+          setConfirmation(null);
           setFeedback({ message: result.error, error: true });
           return;
         }
+        setConfirmation(null);
         setText(result.draft.text);
         setSavedText(result.draft.text);
         setRevision(result.draft.revision);
+        setStatus(result.draft.status);
+        setUpdatedAt(result.draft.updatedAt);
+        setSentAt(
+          result.draft.status === "sent" ? result.draft.sentAt : undefined,
+        );
         setFeedback({
           message:
-            action.type === "generate"
-              ? "Reply draft generated."
-              : "Draft saved.",
+            result.kind === "sent"
+              ? "Reply sent."
+              : action.type === "generate"
+                ? "Reply draft generated."
+                : "Draft saved.",
           error: false,
         });
       } catch {
+        setConfirmation(null);
         setFeedback({ message: "Reply draft operation failed", error: true });
       } finally {
         setPending(null);
@@ -151,9 +189,10 @@ export function EmailReplyDraftWorkspace(props: {
             Brain. Nothing is sent from this workspace.
           </p>
         </div>
-        {data.draft && (
+        {revision > 0 && updatedAt && (
           <small>
-            revision {revision} · updated {formatUpdated(data.draft.updatedAt)}
+            revision {revision} · {status === "sent" ? "sent" : "updated"}{" "}
+            {formatUpdated(sentAt ?? updatedAt)}
           </small>
         )}
       </header>
@@ -248,6 +287,34 @@ export function EmailReplyDraftWorkspace(props: {
             >
               {pending === "save" ? "Saving…" : "Save draft"}
             </button>
+            <button
+              type="button"
+              className="btn danger"
+              disabled={
+                revision === 0 ||
+                dirty ||
+                !source ||
+                status === "sent" ||
+                pending !== null
+              }
+              onClick={(event) =>
+                void run(
+                  {
+                    type: "send",
+                    mailItemId,
+                    revision,
+                    confirmed: false,
+                  },
+                  event.currentTarget,
+                )
+              }
+            >
+              {pending === "send"
+                ? "Sending…"
+                : status === "sent"
+                  ? "Reply sent"
+                  : "Send reply"}
+            </button>
           </footer>
           <p
             className={feedback?.error ? "status status-error" : "status"}
@@ -257,6 +324,32 @@ export function EmailReplyDraftWorkspace(props: {
           </p>
         </section>
       </div>
+
+      {confirmation && (
+        <ConfirmDialog
+          mark="↗"
+          title="Send this reply?"
+          titleId="email-reply-send-title"
+          cancelLabel="Keep editing"
+          confirmLabel="Send reply"
+          pending={pending === "send"}
+          confirmClassName="danger"
+          onCancel={() => {
+            const trigger = confirmation.trigger;
+            setConfirmation(null);
+            window.setTimeout(() => trigger.focus(), 0);
+          }}
+          onConfirm={() =>
+            void run(
+              { ...confirmation.action, confirmed: true },
+              confirmation.trigger,
+            )
+          }
+        >
+          <p>{confirmation.summary}</p>
+          <p>The current saved revision will be emailed immediately.</p>
+        </ConfirmDialog>
+      )}
     </main>
   );
 }

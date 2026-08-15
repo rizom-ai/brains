@@ -376,9 +376,6 @@ Mail Items collection retains chronological history.
 - **No automatic contact creation or fuzzy reconciliation.** Unknown senders
   stay unresolved until a verified Auth identity exists; names, domains,
   classifications, and model output never create or merge People records.
-- **Approval-gated sending.** Reply generation and editing ship through
-  `@brains/email-workflows`; threading and explicit send approval remain in
-  [email-reply-drafting.md](./email-reply-drafting.md).
 - **No durable copies of originals.** The private locator row is transport
   metadata, not message content. Original content remains in the mailbox and
   is never copied into Brain storage.

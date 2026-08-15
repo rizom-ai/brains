@@ -85,6 +85,7 @@ export {
   type ChannelDeliveryInput,
   type ChannelDeliveryProvider,
   type ChannelDeliveryResult,
+  type ChannelDeliveryThreading,
   type ChannelDescriptor,
   type ChannelSubjectPattern,
   type IChannelRegistry,

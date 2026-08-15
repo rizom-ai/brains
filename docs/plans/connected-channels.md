@@ -67,6 +67,7 @@ interface ChannelDeliveryProvider {
     subject: string;
     text: string;
     idempotencyKey: string;
+    threading?: { inReplyTo: string; references: string[] };
   }): Promise<
     | { status: "sent"; providerDeliveryId?: string }
     | { status: "failed"; failureCode: string }
@@ -74,7 +75,7 @@ interface ChannelDeliveryProvider {
 }
 ```
 
-Only one active provider may own a channel type. Registration order is finalized before provider preflight or outbox recovery begins. `isAvailable()` reflects runtime configuration, not merely installed code. Every send receives the durable invitation-attempt id as its idempotency key and returns provider acceptance truth without recipient or secret content in errors.
+Only one active provider may own a channel type. Registration order is finalized before provider preflight or outbox recovery begins. `isAvailable()` reflects runtime configuration, not merely installed code. Every send receives a caller-owned durable idempotency key and returns provider acceptance truth without recipient or secret content in errors. Optional threading metadata is transport-neutral; the Email interface maps it to `In-Reply-To` and ordered `References`, while providers that do not support threading may ignore it.
 
 `@brains/email` registers the Email descriptor and, when its Resend transport is configured, the Email provider. `@brains/notifications` remains channel-agnostic. Discord/Slack interfaces register their descriptors and may register providers when they can privately message a subject. Auth-service consults the registry by channel type and never imports channel- or transport-specific contracts.
 

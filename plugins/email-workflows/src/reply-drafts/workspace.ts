@@ -8,6 +8,10 @@ import { setSameOriginSearchParams } from "@brains/plugins/internal/same-origin-
 import { z } from "@brains/utils/zod";
 import {
   DraftRevisionConflictError,
+  DraftSendRevisionConflictError,
+  EmailDeliveryFailedError,
+  EmailDeliveryUnavailableError,
+  EmailReplySourceUnavailableError,
   type EmailReplyDraftOperator,
 } from "./operator";
 import {
@@ -105,7 +109,24 @@ export async function registerEmailReplyDraftWorkspace(
           error: "Invalid draft action",
         });
       }
+      if (action.data.type === "send" && !action.data.confirmed) {
+        return emailReplyDraftActionOutcomeSchema.parse({
+          kind: "confirmation",
+          summary: `Send reply revision ${action.data.revision}?`,
+        });
+      }
       try {
+        if (action.data.type === "send") {
+          return emailReplyDraftActionOutcomeSchema.parse({
+            kind: "sent",
+            draft: await operator.sendConfirmed(
+              action.data.mailItemId,
+              action.data.revision,
+              { permissionLevel: actor.userPermissionLevel },
+              signal,
+            ),
+          });
+        }
         const draft =
           action.data.type === "generate"
             ? await operator.generate(
@@ -124,24 +145,49 @@ export async function registerEmailReplyDraftWorkspace(
           draft,
         });
       } catch (error) {
-        if (error instanceof DraftRevisionConflictError) {
-          return emailReplyDraftActionOutcomeSchema.parse({
-            kind: "error",
-            error: "Draft changed; reload before saving",
-          });
-        }
+        const fixedError = draftActionError(action.data.type, error);
         return emailReplyDraftActionOutcomeSchema.parse({
           kind: "error",
-          error:
-            action.data.type === "generate"
-              ? "Draft generation failed"
-              : "Draft save failed",
+          error: fixedError,
         });
       }
     },
   };
 
   return registerCmsWorkspace(context, registration);
+}
+
+function draftActionError(
+  type: "generate" | "save" | "send",
+  error: unknown,
+):
+  | "Draft generation failed"
+  | "Draft save failed"
+  | "Draft changed; reload before saving"
+  | "Draft changed; review before sending"
+  | "Email delivery is unavailable"
+  | "Original content is unavailable"
+  | "Email delivery failed" {
+  if (error instanceof DraftRevisionConflictError) {
+    return "Draft changed; reload before saving";
+  }
+  if (error instanceof DraftSendRevisionConflictError) {
+    return "Draft changed; review before sending";
+  }
+  if (error instanceof EmailDeliveryUnavailableError) {
+    return "Email delivery is unavailable";
+  }
+  if (error instanceof EmailReplySourceUnavailableError) {
+    return "Original content is unavailable";
+  }
+  if (error instanceof EmailDeliveryFailedError) {
+    return "Email delivery failed";
+  }
+  return type === "generate"
+    ? "Draft generation failed"
+    : type === "save"
+      ? "Draft save failed"
+      : "Email delivery failed";
 }
 
 function queryMailItemId(input: unknown): string | undefined {

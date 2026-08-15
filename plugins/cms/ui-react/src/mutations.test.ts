@@ -186,6 +186,7 @@ describe("CMS email reply draft mutation", () => {
           draft: {
             text: "Authored reply",
             revision: 2,
+            status: "draft",
             updatedAt: "2026-08-05T10:00:00.000Z",
           },
         },
@@ -214,6 +215,49 @@ describe("CMS email reply draft mutation", () => {
     expect(result).toMatchObject({
       kind: "draft",
       draft: { text: "Authored reply", revision: 2 },
+    });
+  });
+
+  it("posts the explicitly confirmed saved revision for sending", async () => {
+    let payload: unknown;
+    mockFetch(async (_url, options) => {
+      payload = JSON.parse(String(options.body));
+      return Response.json({
+        result: {
+          kind: "sent",
+          draft: {
+            text: "Authored reply",
+            revision: 2,
+            status: "sent",
+            updatedAt: "2026-08-05T10:01:00.000Z",
+            sentAt: "2026-08-05T10:01:00.000Z",
+          },
+        },
+      });
+    });
+
+    const result = await runEmailReplyDraftAction({
+      workspaceId: "email-reply-drafts",
+      action: {
+        type: "send",
+        mailItemId: `mail-${"a".repeat(64)}`,
+        revision: 2,
+        confirmed: true,
+      },
+    });
+
+    expect(payload).toEqual({
+      id: "email-reply-drafts",
+      action: {
+        type: "send",
+        mailItemId: `mail-${"a".repeat(64)}`,
+        revision: 2,
+        confirmed: true,
+      },
+    });
+    expect(result).toMatchObject({
+      kind: "sent",
+      draft: { revision: 2, status: "sent" },
     });
   });
 });

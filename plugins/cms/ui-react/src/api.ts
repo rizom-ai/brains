@@ -287,13 +287,24 @@ export type InboxWorkspaceDetailResult =
       error: "Original content is unavailable";
     };
 
+export type EmailReplyDraftView =
+  | {
+      text: string;
+      revision: number;
+      status: "draft";
+      updatedAt: string;
+    }
+  | {
+      text: string;
+      revision: number;
+      status: "sent";
+      updatedAt: string;
+      sentAt: string;
+    };
+
 export interface EmailReplyDraftWorkspaceSnapshot {
   mailItemId: string | null;
-  draft: {
-    text: string;
-    revision: number;
-    updatedAt: string;
-  } | null;
+  draft: EmailReplyDraftView | null;
 }
 
 export interface EmailReplyDraftSourceRequest {
@@ -325,12 +336,26 @@ export type EmailReplyDraftAction =
       mailItemId: string;
       text: string;
       baseRevision: number;
+    }
+  | {
+      type: "send";
+      mailItemId: string;
+      revision: number;
+      confirmed: boolean;
     };
 
 export type EmailReplyDraftActionResult =
   | {
       kind: "draft";
-      draft: { text: string; revision: number; updatedAt: string };
+      draft: EmailReplyDraftView;
+    }
+  | {
+      kind: "confirmation";
+      summary: string;
+    }
+  | {
+      kind: "sent";
+      draft: Extract<EmailReplyDraftView, { status: "sent" }>;
     }
   | {
       kind: "error";
@@ -338,7 +363,11 @@ export type EmailReplyDraftActionResult =
         | "Invalid draft action"
         | "Draft generation failed"
         | "Draft save failed"
-        | "Draft changed; reload before saving";
+        | "Draft changed; reload before saving"
+        | "Draft changed; review before sending"
+        | "Email delivery is unavailable"
+        | "Original content is unavailable"
+        | "Email delivery failed";
     };
 
 export type CmsWorkspaceData =

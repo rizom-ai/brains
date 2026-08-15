@@ -1,25 +1,39 @@
 import { baseEntityParserSchema, inboxItemIdSchema } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 
+export const emailReplyDraftStatusSchema: z.ZodEnum<{
+  draft: "draft";
+  sent: "sent";
+}> = z.enum(["draft", "sent"]);
+
 type EmailReplyDraftFrontmatterSchema = z.ZodObject<{
   mailItemId: typeof inboxItemIdSchema;
   revision: z.ZodNumber;
-  status: z.ZodLiteral<"draft">;
+  status: typeof emailReplyDraftStatusSchema;
   updatedAt: ReturnType<typeof z.iso.datetime>;
+  sentAt: z.ZodOptional<ReturnType<typeof z.iso.datetime>>;
+  providerDeliveryId: z.ZodOptional<z.ZodString>;
 }>;
 
 export const emailReplyDraftFrontmatterSchema: EmailReplyDraftFrontmatterSchema =
   z.strictObject({
     mailItemId: inboxItemIdSchema,
     revision: z.number().int().positive(),
-    status: z.literal("draft"),
+    status: emailReplyDraftStatusSchema,
     updatedAt: z.iso.datetime(),
+    sentAt: z.iso.datetime().optional(),
+    providerDeliveryId: z.string().trim().min(1).max(1_000).optional(),
   });
 
 type EmailReplyDraftMetadataSchema = z.ZodObject<
   Pick<
     EmailReplyDraftFrontmatterSchema["shape"],
-    "mailItemId" | "revision" | "status" | "updatedAt"
+    | "mailItemId"
+    | "revision"
+    | "status"
+    | "updatedAt"
+    | "sentAt"
+    | "providerDeliveryId"
   >
 >;
 
@@ -29,6 +43,8 @@ const emailReplyDraftMetadataSchema: EmailReplyDraftMetadataSchema =
     revision: true,
     status: true,
     updatedAt: true,
+    sentAt: true,
+    providerDeliveryId: true,
   });
 
 export const emailReplyDraftSchema: ReturnType<
@@ -47,6 +63,9 @@ export const emailReplyTextSchema: z.ZodType<string, string> = z
   .min(1)
   .max(20_000);
 
+export type EmailReplyDraftStatus = z.output<
+  typeof emailReplyDraftStatusSchema
+>;
 export type EmailReplyDraftFrontmatter = z.output<
   typeof emailReplyDraftFrontmatterSchema
 >;
