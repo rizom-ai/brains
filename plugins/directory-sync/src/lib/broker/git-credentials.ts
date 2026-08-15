@@ -29,18 +29,31 @@ export function buildGitCredentialEnv(
   remoteUrl: string,
   token: string | undefined,
 ): Record<string, string> {
-  const base = { ...GIT_NON_INTERACTIVE_ENV };
+  // Always reset the helper chain. An ambient helper — a user keychain, a
+  // cached store — could answer for the broker from somewhere this process
+  // never chose, which is a credential nobody here can account for.
+  const config: Array<[string, string]> = [["credential.helper", ""]];
+
   // SSH and file:// authenticate outside Git's HTTP layer, so an HTTP header
   // would be both useless and one more place for a token to sit.
-  if (!token || !remoteUrl.startsWith("https://")) return base;
+  if (token && remoteUrl.startsWith("https://")) {
+    const authorization = Buffer.from(`x-access-token:${token}`).toString(
+      "base64",
+    );
+    config.push([
+      `http.${remoteUrl}.extraheader`,
+      `Authorization: Basic ${authorization}`,
+    ]);
+  }
 
-  const authorization = Buffer.from(`x-access-token:${token}`).toString(
-    "base64",
-  );
   return {
-    ...base,
-    GIT_CONFIG_COUNT: "1",
-    GIT_CONFIG_KEY_0: `http.${remoteUrl}.extraheader`,
-    GIT_CONFIG_VALUE_0: `Authorization: Basic ${authorization}`,
+    ...GIT_NON_INTERACTIVE_ENV,
+    GIT_CONFIG_COUNT: String(config.length),
+    ...Object.fromEntries(
+      config.flatMap(([key, value], index) => [
+        [`GIT_CONFIG_KEY_${index}`, key],
+        [`GIT_CONFIG_VALUE_${index}`, value],
+      ]),
+    ),
   };
 }

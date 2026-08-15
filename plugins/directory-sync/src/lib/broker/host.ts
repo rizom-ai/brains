@@ -4,6 +4,7 @@ import { directorySyncConfigSchema } from "../../types/config";
 import {
   DEFAULT_GIT_TIMEOUT_MS,
   getGitRemoteFingerprint,
+  resolveGitCredential,
   resolveGitRemoteUrl,
 } from "../git-options";
 import { BrokerStartupError, GitBrokerServer } from "./server";
@@ -43,14 +44,16 @@ export async function startGitBrokerHost(
 ): Promise<GitBrokerServer> {
   const config = directorySyncConfigSchema.parse(options.pluginConfig ?? {});
   const git = config.git;
-  const remoteUrl = git
-    ? resolveGitRemoteUrl({
-        logger: options.logger,
-        dataDir: options.dataDir,
-        repo: git.repo,
-        gitUrl: git.gitUrl,
-      })
-    : "";
+  const configured = {
+    logger: options.logger,
+    dataDir: options.dataDir,
+    ...(git?.repo === undefined ? {} : { repo: git.repo }),
+    ...(git?.gitUrl === undefined ? {} : { gitUrl: git.gitUrl }),
+    ...(git?.authToken === undefined ? {} : { authToken: git.authToken }),
+  };
+  const remoteUrl = git ? resolveGitRemoteUrl(configured) : "";
+  // Wherever it was configured, the credential travels per process.
+  const authToken = git ? resolveGitCredential(configured) : undefined;
   if (!git || remoteUrl.length === 0) {
     throw new BrokerStartupError(
       "This Brain configures no Git remote, so there is no checkout to own",
@@ -67,7 +70,7 @@ export async function startGitBrokerHost(
     dataDir: checkoutPath,
     branch: git.branch,
     remoteUrl,
-    ...(git.authToken === undefined ? {} : { authToken: git.authToken }),
+    ...(authToken === undefined ? {} : { authToken }),
     remoteFingerprint: getGitRemoteFingerprint(remoteUrl),
     timeoutMs: DEFAULT_GIT_TIMEOUT_MS,
     authorName: git.authorName,

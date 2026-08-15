@@ -17,13 +17,22 @@ import {
 const TOKEN = "ghp_exampletoken0123456789";
 const REMOTE = "https://github.com/rizom-ai/content.git";
 
+/** The Git configuration these variables actually carry. */
+function configPairs(env: Record<string, string>): Map<string, string> {
+  const count = Number(env["GIT_CONFIG_COUNT"] ?? "0");
+  return new Map(
+    Array.from({ length: count }, (_, index) => [
+      env[`GIT_CONFIG_KEY_${index}`] ?? "",
+      env[`GIT_CONFIG_VALUE_${index}`] ?? "",
+    ]),
+  );
+}
+
 describe("git credentials", () => {
   it("supplies an authorization header rather than a credential in a URL", () => {
-    const env = buildGitCredentialEnv(REMOTE, TOKEN);
+    const pairs = configPairs(buildGitCredentialEnv(REMOTE, TOKEN));
 
-    expect(env["GIT_CONFIG_COUNT"]).toBe("1");
-    expect(env["GIT_CONFIG_KEY_0"]).toBe(`http.${REMOTE}.extraheader`);
-    expect(env["GIT_CONFIG_VALUE_0"]).toBe(
+    expect(pairs.get(`http.${REMOTE}.extraheader`)).toBe(
       `Authorization: Basic ${Buffer.from(`x-access-token:${TOKEN}`).toString("base64")}`,
     );
   });
@@ -36,14 +45,16 @@ describe("git credentials", () => {
     expect(Object.values(env).join("\n")).not.toContain(TOKEN);
   });
 
-  it("adds nothing when there is no token to supply", () => {
-    expect(buildGitCredentialEnv(REMOTE, undefined)).toEqual(
-      GIT_NON_INTERACTIVE_ENV,
-    );
-    expect(buildGitCredentialEnv(REMOTE, "")).toEqual(GIT_NON_INTERACTIVE_ENV);
+  it("carries no authorization when there is no token to supply", () => {
+    // The helper reset still applies: having no token of our own is not a
+    // reason to let an ambient one answer instead.
+    for (const token of [undefined, ""]) {
+      const pairs = configPairs(buildGitCredentialEnv(REMOTE, token));
+      expect([...pairs.keys()]).toEqual(["credential.helper"]);
+    }
   });
 
-  it("adds nothing for transports that carry their own credentials", () => {
+  it("adds no authorization for transports that carry their own", () => {
     // SSH and file:// authenticate outside Git's HTTP layer, so an HTTP header
     // would be both useless and a place for a token to sit.
     for (const remote of [
@@ -51,9 +62,8 @@ describe("git credentials", () => {
       "file:///srv/content.git",
       "ssh://git@github.com/rizom-ai/content.git",
     ]) {
-      expect(buildGitCredentialEnv(remote, TOKEN)).toEqual(
-        GIT_NON_INTERACTIVE_ENV,
-      );
+      const pairs = configPairs(buildGitCredentialEnv(remote, TOKEN));
+      expect([...pairs.keys()]).toEqual(["credential.helper"]);
     }
   });
 

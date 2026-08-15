@@ -22,11 +22,63 @@ export interface GitSyncOptions {
   timeoutMs?: number | undefined;
 }
 
+/**
+ * Separate a credential from the address it was configured with.
+ *
+ * A `gitUrl` may legitimately arrive as
+ * `https://x-access-token:TOKEN@host/repo.git` — that is how remotes were
+ * configured before this plan. Writing it verbatim to `origin` puts the
+ * token in `.git/config`, inside the checkout that is then cloned, backed
+ * up and synced, which safety invariant 6 forbids for every accepted
+ * configuration and not only for the separate token field.
+ *
+ * The credential is not rejected, because rejecting would break a working
+ * deployment for a reason the runtime can fix itself. It is moved to where
+ * credentials belong: supplied per process, never persisted.
+ */
+export function splitGitRemoteCredential(url: string): {
+  remoteUrl: string;
+  token: string | undefined;
+} {
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    // SCP-style addresses and local paths carry no URL userinfo.
+    return { remoteUrl: url, token: undefined };
+  }
+  if (!parsed.username && !parsed.password) {
+    return { remoteUrl: url, token: undefined };
+  }
+
+  // Git's convention puts the secret in whichever half is present: a bare
+  // `https://TOKEN@host` carries it as the username.
+  const token = parsed.password || parsed.username;
+  parsed.username = "";
+  parsed.password = "";
+  return { remoteUrl: parsed.toString(), token: token || undefined };
+}
+
+/** The address to talk to, never the credential to talk with. */
 export function resolveGitRemoteUrl(options: GitSyncOptions): string {
-  return (
+  const configured =
     options.gitUrl ??
-    (options.repo ? `https://github.com/${options.repo}.git` : "")
-  );
+    (options.repo ? `https://github.com/${options.repo}.git` : "");
+  return splitGitRemoteCredential(configured).remoteUrl;
+}
+
+/**
+ * The credential to use, wherever it was configured.
+ *
+ * An explicit `authToken` wins: it is the supported form, and a stale
+ * credential left in a URL should not quietly override it.
+ */
+export function resolveGitCredential(
+  options: GitSyncOptions,
+): string | undefined {
+  if (options.authToken) return options.authToken;
+  const configured = options.gitUrl ?? "";
+  return splitGitRemoteCredential(configured).token;
 }
 
 /** Stable repository identity that never persists URL credentials. */
