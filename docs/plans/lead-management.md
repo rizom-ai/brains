@@ -173,7 +173,7 @@ the reworked `entities/opportunity` package landing first.
 
 - Raw email intake, classification, acknowledgement, and mail-item UX —
   [`@brains/email-workflows`](../../plugins/email-workflows/README.md).
-- Reply drafting and delivery — [email-reply-drafting.md](./email-reply-drafting.md).
+- Reply drafting and delivery — [`@brains/email-workflows`](../../plugins/email-workflows/README.md).
 - Scoring rubric, ranking, focus, and heartbeat —
   [bd-priority-engine.md](./bd-priority-engine.md).
 - Treating every sender/domain match as one record.
@@ -189,5 +189,5 @@ the reworked `entities/opportunity` package landing first.
   entity and the committed-state surfaces.
 - [`@brains/unified-inbox`](../../plugins/unified-inbox/README.md) — attention remains on open mail items to avoid
   duplicate entries.
-- [email-reply-drafting.md](./email-reply-drafting.md) — future per-mail-item draft and
-  send workflow with optional lead context.
+- [`@brains/email-workflows`](../../plugins/email-workflows/README.md) — owns the
+  per-mail-item draft and confirmed send workflow; lead context remains optional.
