@@ -31,6 +31,7 @@ export class BrokerOperationError extends Error {
 interface Pending {
   resolve(value: unknown): void;
   reject(error: unknown): void;
+  onProgress?: (() => void) | undefined;
 }
 
 export class BrokerConnection {
@@ -75,6 +76,10 @@ export class BrokerConnection {
   }
 
   #receive(message: BrokerMessage): void {
+    if (message.type === "progress") {
+      this.#pending.get(message.requestId)?.onProgress?.();
+      return;
+    }
     if (message.type !== "status" && message.type !== "result") return;
 
     const pending = this.#pending.get(message.requestId);
@@ -138,10 +143,14 @@ export class BrokerConnection {
   async execute<TOperation extends GitOperation>(
     checkoutPath: string,
     operation: TOperation,
+    runOptions: { onProgress?: (() => void) | undefined } = {},
   ): Promise<GitOperationResult<TOperation["name"]>> {
     const requestId = `req_${createId(12)}`;
     const settled = Promise.withResolvers<unknown>();
-    this.#pending.set(requestId, settled);
+    this.#pending.set(requestId, {
+      ...settled,
+      ...(runOptions.onProgress ? { onProgress: runOptions.onProgress } : {}),
+    });
 
     this.#send({
       type: "execute-operation",

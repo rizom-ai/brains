@@ -253,7 +253,19 @@ export class GitBrokerServer {
 
     this.#active.set(message.requestId, message.checkoutPath);
     try {
-      const value = await executor.execute(message.operation);
+      const value = await executor.execute(message.operation, {
+        // Keeps the caller's operation-status heartbeat fresh through a long
+        // clone or pull; without it a healthy slow operation looks stalled.
+        onProgress: (): void => {
+          this.#send(writer, {
+            type: "progress",
+            version: BROKER_PROTOCOL_VERSION,
+            requestId: message.requestId,
+            phase: "running",
+            observedAt: new Date().toISOString(),
+          });
+        },
+      });
       this.#send(writer, {
         type: "result",
         version: BROKER_PROTOCOL_VERSION,
