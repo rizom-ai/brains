@@ -1,5 +1,6 @@
 import type {
   BaseEntity,
+  EntityInput,
   ListOptions,
   ProjectionSourceRole,
 } from "@brains/entity-service";
@@ -121,6 +122,8 @@ export interface EntityDefinition<
    * with the shared registry and releases it on shutdown.
    */
   readonly atproto?: AtprotoProjection | undefined;
+  /** Eval handlers, keyed by handler id. */
+  readonly evals?: EntityEvalDeclaration | undefined;
 }
 
 /**
@@ -150,10 +153,29 @@ export interface EntityGenerationEntityAccess {
     id: string;
   }): Promise<T | null>;
   getEntityTypes(): string[];
+  createEntity<T extends BaseEntity>(request: {
+    entity: EntityInput<T>;
+  }): Promise<{ entityId: string; jobId: string }>;
   updateEntity<T extends BaseEntity>(request: {
     entity: T;
   }): Promise<{ entityId: string; jobId: string }>;
 }
+
+/**
+ * What a declared eval handler is given. Evals exercise the same
+ * capabilities generation does, so they share its context rather than
+ * getting a parallel one.
+ */
+export type EntityEvalContext = EntityGenerationContext;
+
+/**
+ * Eval handlers for this entity type, keyed by handler id. The runtime
+ * registers each with the eval namespace.
+ */
+export type EntityEvalDeclaration = Record<
+  string,
+  (input: unknown, context: EntityEvalContext) => Promise<unknown>
+>;
 
 export interface EntityGenerationDeclaration<
   TInputSchema extends z.ZodType = z.ZodType,
