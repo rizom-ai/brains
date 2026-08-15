@@ -2,8 +2,8 @@ import type {
   AttachmentProvider,
   AttachmentProviderMetadata,
   AttachmentResolveRequest,
+  AnchorProfile,
   BaseEntity,
-  EntityPluginContext,
 } from "@brains/plugins";
 import type { PublishMediaData } from "@brains/contracts";
 import { slugify } from "@brains/utils/string-utils";
@@ -11,11 +11,32 @@ import { renderOgImagePng, type ScreenshotPng } from "./og-image";
 import { renderPrintablePdf, type RenderPdf } from "./printable";
 import type { MediaPageTemplate } from "./types";
 
-/** The slice of the entity plugin context media attachment providers need. */
-export type MediaAttachmentContext = Pick<
-  EntityPluginContext,
-  "entityService" | "themeCSS" | "identity" | "domain"
->;
+/**
+ * The slice of the entity plugin context media attachment providers need,
+ * spelled out structurally rather than as a `Pick` of the runtime context.
+ *
+ * A `Pick` names `entityService`, which reaches the projection store, so it
+ * cannot cross the published declaration boundary — the generated
+ * declarations inline every referenced type, and the inlined copy of a
+ * runtime service is nominally distinct from the original. Naming only the
+ * four members providers actually use keeps this plain data.
+ *
+ * `EntityPluginContext` satisfies it structurally, so the runtime passes
+ * itself unchanged.
+ */
+export interface MediaAttachmentContext {
+  readonly domain: string | undefined;
+  readonly themeCSS: string;
+  readonly identity: {
+    getProfile(): AnchorProfile;
+  };
+  readonly entityService: {
+    getEntity<T extends BaseEntity>(request: {
+      entityType: string;
+      id: string;
+    }): Promise<T | null>;
+  };
+}
 
 /** Context-derived values every template content builder ends up needing. */
 export interface MediaContentHelpers {

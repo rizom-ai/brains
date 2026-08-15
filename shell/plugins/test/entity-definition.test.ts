@@ -6,8 +6,11 @@ import {
   createEntityPackagePlugins,
   deriveProjectionUpserts,
 } from "../src/entity/declarative-entity-plugin";
+import type { PublishMediaData } from "@brains/contracts";
+import type { AttachmentProvider } from "../src";
 import {
   createTemplate,
+  defineDataSource,
   defineEntity,
   defineEntityDataSource,
   defineEntityPackage,
@@ -303,6 +306,142 @@ describe("entity package definitions", () => {
         { entityService: harness.getEntityService() },
       ),
     ).toEqual({ guides: [{ id: "first" }] });
+
+    harness.reset();
+  });
+
+  it("serves a declared data source that reads more than one entity type", async () => {
+    // Not every data source is one entity type with list and detail views.
+    // The general form hands the author a narrow entity reader instead of
+    // the entity service, so reading across types costs nothing on the
+    // public surface.
+    const guide = defineEntity({
+      type: "guide",
+      purpose: "A guide.",
+      metadata: z.object({ title: z.string() }),
+    });
+    const notice = defineEntity({
+      type: "notice",
+      purpose: "A site-wide notice.",
+      metadata: z.object({ body: z.string() }),
+      dataSources: [
+        defineDataSource({
+          id: "page",
+          name: "Guide page",
+          description: "Guides plus the current notice",
+          fetch: async (_query, entities) => {
+            const [guides, notices] = await Promise.all([
+              entities.list({ entityType: "guide" }),
+              entities.list({ entityType: "notice", options: { limit: 1 } }),
+            ]);
+            return {
+              guides: guides.map(({ id }) => id),
+              notice: notices[0]?.id ?? null,
+            };
+          },
+        }),
+      ],
+    });
+    const definition = defineEntityPackage({
+      id: "guides",
+      entities: [guide, notice],
+    });
+    const plugins = createEntityPackagePlugins(
+      definition.entities,
+      definition.projections,
+      { name: "@fixture/guides", version: "0.1.0" },
+      (id) => `@fixture/guides:${id}`,
+    );
+
+    const harness = createPluginHarness({
+      logger: createSilentLogger("entity-multi-datasource-test"),
+    });
+    for (const plugin of plugins) await harness.installPlugin(plugin);
+
+    await harness.getEntityService().createEntity({
+      entity: {
+        id: "first",
+        entityType: "guide",
+        content: "A guide",
+        metadata: { title: "First" },
+      },
+    });
+    await harness.getEntityService().createEntity({
+      entity: {
+        id: "banner",
+        entityType: "notice",
+        content: "Notice",
+        metadata: { body: "Hello" },
+      },
+    });
+
+    const dataSource = harness.getDataSources().get("@fixture/guides:page");
+    if (!dataSource?.fetch) throw new Error("Data source was not registered");
+
+    expect(
+      await dataSource.fetch(
+        {},
+        z.object({
+          guides: z.array(z.string()),
+          notice: z.string().nullable(),
+        }),
+        { entityService: harness.getEntityService() },
+      ),
+    ).toEqual({ guides: ["first"], notice: "banner" });
+
+    harness.reset();
+  });
+
+  it("registers declared attachment providers and releases them on shutdown", async () => {
+    // Attachment providers are the last thing keeping several entity
+    // packages on an onRegister hook. The author declares the attachment
+    // type and a factory; the runtime owns registration and teardown, so
+    // no package has to hold its own unregister handles.
+    const resolved = {
+      type: "document" as const,
+      data: Buffer.from("pdf bytes"),
+      mimeType: "application/pdf" as const,
+      filename: "guide.pdf",
+    };
+    const guide = defineEntity({
+      type: "guide",
+      purpose: "A guide with a printable artifact.",
+      metadata: z.object({ title: z.string() }),
+      attachments: [
+        {
+          type: "printable",
+          provider: (): AttachmentProvider => ({
+            resolve: (): PublishMediaData => resolved,
+          }),
+        },
+      ],
+    });
+    const definition = defineEntityPackage({ id: "guides", entities: [guide] });
+    const plugin = createEntityPackagePlugins(
+      definition.entities,
+      definition.projections,
+      { name: "@fixture/guides", version: "0.1.0" },
+      (id) => `@fixture/guides:${id}`,
+    )[0];
+    if (!plugin) throw new Error("Guide entity plugin was not created");
+
+    const harness = createPluginHarness({
+      logger: createSilentLogger("entity-attachment-test"),
+    });
+    await harness.installPlugin(plugin);
+
+    const attachments = harness.getAttachments();
+    expect(attachments.hasProvider("guide", "printable")).toBe(true);
+    expect(
+      await attachments.resolve({
+        sourceEntityType: "guide",
+        sourceEntityId: "first",
+        attachmentType: "printable",
+      }),
+    ).toEqual(resolved);
+
+    await plugin.shutdown?.();
+    expect(attachments.hasProvider("guide", "printable")).toBe(false);
 
     harness.reset();
   });

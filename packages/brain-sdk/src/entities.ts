@@ -30,23 +30,30 @@ export {
   baseEntityParserSchema,
   contentVisibilitySchema,
   createTemplate,
+  defineDataSource,
   defineEntityDataSource,
   paginationInfoSchema,
   parseMarkdownWithFrontmatter,
 } from "@brains/plugins";
 export type {
+  AnyDataSourceDeclaration,
   AnyEntityDataSourceDefinition,
   BaseQuery,
+  DataSourceDefinition,
+  EntityAttachmentDeclaration,
   EntityDataSourceDefinition,
   EntityDetailContext,
+  EntityQueryReader,
+  MediaAttachmentContext,
   NavigationResult,
   SortField,
   Template,
 } from "@brains/plugins";
 
-// Text helpers used when authoring entity ids and slugs. Promoted from
-// @brains/utils/string-utils; consumer today is @brains/doc.
+// Text and markdown helpers used when authoring entities. Promoted from
+// @brains/utils; consumers today are @brains/doc and @brains/products.
 export { slugify } from "@brains/utils/string-utils";
+export { parseMarkdown } from "@brains/utils/markdown";
 
 export type {
   BaseEntity,

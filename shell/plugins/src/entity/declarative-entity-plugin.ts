@@ -12,7 +12,10 @@ import {
   type ProjectionWriteIntent,
 } from "@brains/entity-service";
 import type { Template } from "@brains/templates";
-import { createDeclarativeEntityDataSource } from "../public/entity-data-source";
+import {
+  createDeclarativeDataSource,
+  createDeclarativeEntityDataSource,
+} from "../public/entity-data-source";
 import { DIRECTORY_SYNC_CHANNELS } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 import { EntityPlugin, emptyEntityPluginConfigSchema } from "./entity-plugin";
@@ -249,6 +252,8 @@ class DeclarativeEntityPlugin extends EntityPlugin<
   private readonly seed: AnyEntityDefinition["seed"];
   private readonly templates: AnyEntityDefinition["templates"];
   private readonly dataSources: AnyEntityDefinition["dataSources"];
+  private readonly attachments: AnyEntityDefinition["attachments"];
+  private readonly releaseAttachments: Array<() => void> = [];
   public readonly entityType: string;
   public readonly schema: z.ZodType<EntityOf<AnyEntityDefinition>, unknown>;
   public readonly adapter: EntityAdapter<
@@ -276,6 +281,7 @@ class DeclarativeEntityPlugin extends EntityPlugin<
     this.seed = definition.seed;
     this.templates = definition.templates;
     this.dataSources = definition.dataSources;
+    this.attachments = definition.attachments;
   }
 
   protected override getEntityTypeConfig(): EntityTypeConfig | undefined {
@@ -304,17 +310,30 @@ class DeclarativeEntityPlugin extends EntityPlugin<
     // Scoped here so two packages can each declare a data source called
     // "entities" without colliding.
     return (this.dataSources ?? []).map((definition) =>
-      createDeclarativeEntityDataSource(
-        definition,
-        this.scope(definition.id),
-        this.logger,
-      ),
+      definition.kind === "rizom-data-source"
+        ? createDeclarativeDataSource(definition, this.scope(definition.id))
+        : createDeclarativeEntityDataSource(
+            definition,
+            this.scope(definition.id),
+            this.logger,
+          ),
     );
   }
 
   protected override async onRegister(
     context: EntityPluginContext,
   ): Promise<void> {
+    // The runtime keeps the unregister handles so an author never has to.
+    for (const attachment of this.attachments ?? []) {
+      this.releaseAttachments.push(
+        context.attachments.register(
+          this.entityType,
+          attachment.type,
+          attachment.provider(context),
+        ),
+      );
+    }
+
     const seed = this.seed;
     if (!seed) return;
 
@@ -339,6 +358,10 @@ class DeclarativeEntityPlugin extends EntityPlugin<
         return { success: true };
       },
     );
+  }
+
+  protected override async onShutdown(): Promise<void> {
+    for (const release of this.releaseAttachments.splice(0)) release();
   }
 
   protected override getProjectionRules(): ProjectionRule[] {

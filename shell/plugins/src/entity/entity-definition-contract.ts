@@ -1,6 +1,8 @@
-import type { ProjectionSourceRole } from "@brains/entity-service";
+import type { BaseEntity, ProjectionSourceRole } from "@brains/entity-service";
 import type { Template } from "@brains/templates";
-import type { AnyEntityDataSourceDefinition } from "../public/entity-data-source";
+import type { AnchorProfile } from "../contracts/identity";
+import type { AttachmentProvider } from "../service/attachment-registry";
+import type { AnyDataSourceDeclaration } from "../public/entity-data-source";
 import type { z } from "@brains/utils/zod";
 
 export type EntityVisibility = "public" | "shared" | "restricted";
@@ -87,7 +89,45 @@ export interface EntityDefinition<
   /** Keyed by local template name; the runtime scopes them to the plugin. */
   readonly templates?: Record<string, Template> | undefined;
   /** Declared data sources; the runtime scopes their ids to the package. */
-  readonly dataSources?: readonly AnyEntityDataSourceDefinition[] | undefined;
+  readonly dataSources?: readonly AnyDataSourceDeclaration[] | undefined;
+  /**
+   * Source-derived publish artifacts for this entity type. The runtime owns
+   * registration and teardown, so a package never holds unregister handles
+   * of its own.
+   */
+  readonly attachments?: readonly EntityAttachmentDeclaration[] | undefined;
+}
+
+/**
+ * An attachment provider, declared.
+ *
+ * The provider is a factory rather than an instance because it needs the
+ * media context — theme CSS, identity, domain, and entity reads — which
+ * only exists once the plugin is registered.
+ */
+export interface EntityAttachmentDeclaration {
+  /** Semantic attachment type, e.g. "printable" or "og-image". */
+  readonly type: string;
+  readonly provider: (context: MediaAttachmentContext) => AttachmentProvider;
+}
+
+/**
+ * What an attachment provider is built with: the four members media
+ * providers actually use, named structurally so this stays publishable.
+ * `EntityPluginContext` satisfies it.
+ */
+export interface MediaAttachmentContext {
+  readonly domain: string | undefined;
+  readonly themeCSS: string;
+  readonly identity: {
+    getProfile(): AnchorProfile;
+  };
+  readonly entityService: {
+    getEntity<T extends BaseEntity>(request: {
+      entityType: string;
+      id: string;
+    }): Promise<T | null>;
+  };
 }
 
 export type AnyEntityDefinition = EntityDefinition<
