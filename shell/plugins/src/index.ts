@@ -242,6 +242,12 @@ export {
   type PluginPackageFamily,
 } from "./package-definition";
 export {
+  defineEntityDataSource,
+  type AnyEntityDataSourceDefinition,
+  type EntityDataSourceDefinition,
+  type EntityDetailContext,
+} from "./public/entity-data-source";
+export {
   defineEntity,
   defineEntityPackage,
   defineProjection,

@@ -16,6 +16,38 @@ export type {
   ProjectionDefinition,
 } from "@brains/plugins";
 
+// Entity presentation. An entity package that renders anything declares
+// templates and the data sources behind them; without these on the public
+// surface it has to reach into @brains/plugins and cannot be published.
+// Named consumer: @brains/doc.
+//
+// `defineEntityDataSource` is deliberately the only way to declare one.
+// The runtime `DataSource` interface cannot be published: its `fetch` takes
+// a context carrying a scoped entity service, which reaches the projection
+// store, so exporting it would drag the entity-service runtime into the
+// generated declarations.
+export {
+  baseEntityParserSchema,
+  contentVisibilitySchema,
+  createTemplate,
+  defineEntityDataSource,
+  paginationInfoSchema,
+  parseMarkdownWithFrontmatter,
+} from "@brains/plugins";
+export type {
+  AnyEntityDataSourceDefinition,
+  BaseQuery,
+  EntityDataSourceDefinition,
+  EntityDetailContext,
+  NavigationResult,
+  SortField,
+  Template,
+} from "@brains/plugins";
+
+// Text helpers used when authoring entity ids and slugs. Promoted from
+// @brains/utils/string-utils; consumer today is @brains/doc.
+export { slugify } from "@brains/utils/string-utils";
+
 export type {
   BaseEntity,
   EntityInput,

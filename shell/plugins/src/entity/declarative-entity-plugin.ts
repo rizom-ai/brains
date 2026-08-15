@@ -5,12 +5,14 @@ import {
   generateFrontmatter,
   generateMarkdownWithFrontmatter,
   parseMarkdownWithFrontmatter,
+  type DataSource,
   type EntityAdapter,
   type EntityTypeConfig,
   type ProjectionJsonObject,
   type ProjectionWriteIntent,
 } from "@brains/entity-service";
 import type { Template } from "@brains/templates";
+import { createDeclarativeEntityDataSource } from "../public/entity-data-source";
 import { DIRECTORY_SYNC_CHANNELS } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 import { EntityPlugin, emptyEntityPluginConfigSchema } from "./entity-plugin";
@@ -246,6 +248,7 @@ class DeclarativeEntityPlugin extends EntityPlugin<
   private readonly entityTypeConfig: EntityTypeConfig | undefined;
   private readonly seed: AnyEntityDefinition["seed"];
   private readonly templates: AnyEntityDefinition["templates"];
+  private readonly dataSources: AnyEntityDefinition["dataSources"];
   public readonly entityType: string;
   public readonly schema: z.ZodType<EntityOf<AnyEntityDefinition>, unknown>;
   public readonly adapter: EntityAdapter<
@@ -272,6 +275,7 @@ class DeclarativeEntityPlugin extends EntityPlugin<
       : undefined;
     this.seed = definition.seed;
     this.templates = definition.templates;
+    this.dataSources = definition.dataSources;
   }
 
   protected override getEntityTypeConfig(): EntityTypeConfig | undefined {
@@ -279,7 +283,33 @@ class DeclarativeEntityPlugin extends EntityPlugin<
   }
 
   protected override getTemplates(): Record<string, Template> | null {
-    return this.templates ?? null;
+    const templates = this.templates;
+    if (!templates) return null;
+    // Authors declare local data source ids; a template pointing at one of
+    // this entity's own data sources has to follow it to the scoped id the
+    // runtime registered. An id declared elsewhere is left alone, so a
+    // template can still reference another package's data source.
+    const local = new Set((this.dataSources ?? []).map(({ id }) => id));
+    return Object.fromEntries(
+      Object.entries(templates).map(([name, template]) => [
+        name,
+        template.dataSourceId && local.has(template.dataSourceId)
+          ? { ...template, dataSourceId: this.scope(template.dataSourceId) }
+          : template,
+      ]),
+    );
+  }
+
+  protected override getDataSources(): DataSource[] {
+    // Scoped here so two packages can each declare a data source called
+    // "entities" without colliding.
+    return (this.dataSources ?? []).map((definition) =>
+      createDeclarativeEntityDataSource(
+        definition,
+        this.scope(definition.id),
+        this.logger,
+      ),
+    );
   }
 
   protected override async onRegister(
