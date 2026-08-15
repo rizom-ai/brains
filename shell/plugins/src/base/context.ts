@@ -101,6 +101,13 @@ export interface BasePluginContext {
   /** Data directory for storing entity files */
   readonly dataDir: string;
 
+  /**
+   * Where this Brain's Git checkout owner listens, or undefined when it has
+   * none. A runtime endpoint the shell resolves, so no plugin has to read
+   * the environment to find it.
+   */
+  readonly gitBrokerSocket: string | undefined;
+
   /** Bare domain string (e.g. "yeehaa.io"), undefined for local dev */
   readonly domain: string | undefined;
 
@@ -363,6 +370,7 @@ export function createBasePluginContext(
     conversations: createConversationsNamespace(shell),
 
     dataDir: shell.getDataDir(),
+    gitBrokerSocket: shell.getGitBrokerSocket(),
 
     eval: executionOnly
       ? { registerHandler: (): void => {} }

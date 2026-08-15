@@ -17,7 +17,7 @@ import { BrokerGitSync } from "./git-sync-client";
 export const GIT_BROKER_SOCKET_ENV = "BRAIN_GIT_BROKER_SOCKET";
 
 export interface ConnectGitSyncOptions {
-  /** Usually `process.env[GIT_BROKER_SOCKET_ENV]`, absent if unset. */
+  /** From `context.gitBrokerSocket`; absent when this Brain has no owner. */
   socketPath: string | undefined;
   checkoutPath: string;
   branch: string;

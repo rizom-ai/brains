@@ -25,6 +25,33 @@ export function resolveStandardPaths(
   };
 }
 
+/**
+ * Where this role's Git checkout owner listens.
+ *
+ * A runtime handoff from the supervisor, not a preference: it is absent from
+ * `brain.yaml` on purpose, because two roles pointed at different sockets
+ * means either two owners or none. Resolved here for the same reason the
+ * storage paths are — environment policy belongs to this layer, and nothing
+ * downstream should have to read the environment to find it.
+ */
+export function resolveGitBrokerSocket(
+  env: NodeJS.ProcessEnv = process.env,
+): string | undefined {
+  const socketPath = env["BRAIN_GIT_BROKER_SOCKET"];
+  if (!socketPath) return undefined;
+
+  // A unix socket address is bounded, and the kernel truncates rather than
+  // refusing. Truncation would leave roles bound to different paths, which is
+  // precisely two owners, so this fails at boot instead.
+  const MAX_UNIX_SOCKET_PATH = 107;
+  if (Buffer.byteLength(socketPath) > MAX_UNIX_SOCKET_PATH) {
+    throw new Error(
+      `Git broker socket path is too long for a unix socket (${Buffer.byteLength(socketPath)} > ${MAX_UNIX_SOCKET_PATH} bytes): ${socketPath}`,
+    );
+  }
+  return socketPath;
+}
+
 export function resolveStandardConfig(
   env: NodeJS.ProcessEnv = process.env,
 ): StandardConfig {

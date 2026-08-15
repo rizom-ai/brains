@@ -103,6 +103,8 @@ export interface MockShellOptions {
   agentService?: IAgentService;
   conversationService?: IConversationService;
   dataDir?: string;
+  /** Where a fake checkout owner listens; undefined for a Brain without Git. */
+  gitBrokerSocket?: string;
   /** Bare domain string (e.g. "yeehaa.io") for identity.getSiteUrl/getPreviewUrl */
   domain?: string;
   /** Local runtime site URL (e.g. "http://localhost:8080") */
@@ -849,6 +851,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
 
     // Data directory
     getDataDir: () => options.dataDir ?? "/tmp/mock-shell-test-data",
+    getGitBrokerSocket: () => options.gitBrokerSocket,
 
     // App metadata
     getAppInfo: async (): Promise<RuntimeAppInfo> => ({

@@ -262,6 +262,10 @@ export interface IShell {
   // Default: ./brain-data, can be overridden for evals or custom deployments
   getDataDir(): string;
 
+  // Where the Git checkout owner listens, when this Brain has one.
+  // Assigned by the supervisor; undefined for a Brain without Git.
+  getGitBrokerSocket(): string | undefined;
+
   // App metadata and runtime health
   getAppInfo(): Promise<RuntimeAppInfo>;
   getRuntimeReadiness(): Promise<RuntimeReadiness>;

@@ -1,7 +1,12 @@
 import type { Plugin, ServicePluginContext, Tool } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
 import { DirectorySync } from "./lib/directory-sync";
-import { connectGitSync, GIT_BROKER_SOCKET_ENV } from "./lib/broker/connect";
+import { connectGitSync } from "./lib/broker/connect";
+import {
+  BROKER_PROGRESS_TIMEOUT_MS,
+  createBrokerHealthCheck,
+} from "./lib/broker/health";
+import type { BrokerGitSync } from "./lib/broker/git-sync-client";
 import { resolveGitRemoteUrl } from "./lib/git-options";
 import { createOwnerReplacementHandler } from "./lib/git-owner-replacement";
 import type { IGitSync } from "./types";
@@ -43,6 +48,8 @@ export class DirectorySyncPlugin extends ServicePlugin<
 > {
   private directorySync: DirectorySync | undefined;
   private gitSync: IGitSync | undefined;
+  /** The same client as `gitSync`, kept for questions only it can answer. */
+  private brokerClient: BrokerGitSync | undefined;
   private operationStatus: DirectorySyncOperationStatusService | undefined;
   private gitReconciliation: GitReconciliationService | undefined;
   private workspaceProvider: DirectorySyncWorkspaceProvider | undefined;
@@ -76,6 +83,13 @@ export class DirectorySyncPlugin extends ServicePlugin<
       throw new Error("DirectorySync service not initialized");
     }
     return this.directorySync;
+  }
+
+  private requireBrokerClient(): BrokerGitSync {
+    if (!this.brokerClient) {
+      throw new Error("No Git checkout owner has been connected yet");
+    }
+    return this.brokerClient;
   }
 
   private requireGitSync(): IGitSync {
@@ -139,6 +153,20 @@ export class DirectorySyncPlugin extends ServicePlugin<
       context.operationalHealth.register("git-progress", () =>
         this.requireOperationStatus().getOperationalHealth(),
       );
+      // Two different questions. The first is what this role believes about
+      // its own sync run; the second is what the checkout owner reports
+      // about the work it is actually holding, which is the only place a
+      // wedged Git child is visible at all.
+      if (this.isGitConfigured()) {
+        context.operationalHealth.register(
+          "git-broker",
+          createBrokerHealthCheck({
+            probe: () => this.requireBrokerClient().activity(),
+            now: (): number => Date.now(),
+            progressTimeoutMs: BROKER_PROGRESS_TIMEOUT_MS,
+          }),
+        );
+      }
     }
     this.gitReconciliation = new GitReconciliationService(context.runtimeState);
 
@@ -460,7 +488,7 @@ export class DirectorySyncPlugin extends ServicePlugin<
     if (!git) throw new Error("Git configuration is unavailable");
 
     const gitSync = await connectGitSync({
-      socketPath: process.env[GIT_BROKER_SOCKET_ENV],
+      socketPath: this.getContext().gitBrokerSocket,
       checkoutPath: syncPath,
       branch: git.branch,
       remoteUrl: resolveGitRemoteUrl({
@@ -483,6 +511,7 @@ export class DirectorySyncPlugin extends ServicePlugin<
       }),
     });
     await gitSync.initialize();
+    this.brokerClient = gitSync;
     this.logger.info("Git integration enabled", { repo: git.repo });
     return gitSync;
   }

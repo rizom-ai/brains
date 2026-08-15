@@ -3,7 +3,10 @@ import { type AppConfig, type AppConfigInput, appConfigSchema } from "./types";
 import { Logger, LogLevel } from "@brains/utils/logger";
 import { MigrationManager } from "./migration-manager";
 import { preferLocalUrlsForRuntime } from "./runtime-env";
-import { resolveStandardConfig } from "./standard-paths";
+import {
+  resolveGitBrokerSocket,
+  resolveStandardConfig,
+} from "./standard-paths";
 import { Effect, Exit, Scope } from "@brains/utils/effect";
 import type { Fiber } from "@brains/utils/effect";
 import type { RuntimeProcessRole } from "@brains/core";
@@ -116,6 +119,7 @@ export class App {
     shellConfig.runtimeStateDatabase ??= standard.runtimeStateDatabase;
     shellConfig.embeddingDatabase ??= standard.embeddingDatabase;
     shellConfig.embedding ??= standard.embedding;
+    shellConfig.gitBrokerSocket ??= resolveGitBrokerSocket();
   }
 
   private applySimpleConfigOverrides(shellConfig: ShellConfig): void {

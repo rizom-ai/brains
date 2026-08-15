@@ -1,5 +1,8 @@
 import { spawn, type SpawnOptions } from "node:child_process";
-import { GIT_BROKER_SOCKET_ENV } from "@brains/directory-sync";
+import {
+  BROKER_PROGRESS_TIMEOUT_MS,
+  GIT_BROKER_SOCKET_ENV,
+} from "@brains/directory-sync";
 import type { CommandResult } from "./command-result";
 import type {
   SignalProcess,
@@ -38,15 +41,9 @@ const MISSED_WORKER_HEARTBEATS_BEFORE_RESTART = 3;
 export const BROKER_HEARTBEAT_INTERVAL_MS = 5_000;
 const MISSED_BROKER_HEARTBEATS_BEFORE_TERMINATION = 3;
 
-/**
- * How long an operation may show no progress before its owner is considered
- * wedged.
- *
- * Comfortably longer than the broker's own 120s stall timeout, so an operation
- * the broker is already about to fail is not taken from it — and short enough
- * that a lost child completion does not hold the checkout indefinitely.
- */
-export const BROKER_PROGRESS_TIMEOUT_MS = 300_000;
+// One policy, defined with the broker it describes, so a health report and a
+// termination decision cannot disagree about what stalled means.
+export { BROKER_PROGRESS_TIMEOUT_MS };
 
 /** How the old owner's group is proven gone before a replacement may start. */
 export const BROKER_GROUP_PROBE_INTERVAL_MS = 500;

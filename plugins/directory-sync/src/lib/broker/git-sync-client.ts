@@ -139,6 +139,25 @@ export class BrokerGitSync {
     }
   }
 
+  /**
+   * What the owner currently holds, for a health check to report on.
+   *
+   * Asked through this client rather than a fresh connection of its own,
+   * so the answer describes the owner this role is actually working
+   * through — and so nothing else has to know where the socket is.
+   */
+  async activity(): Promise<{
+    activeRequestIds: string[];
+    oldestActiveProgressAt: number | null;
+  }> {
+    const connection = await this.#link();
+    const status = await connection.status();
+    return {
+      activeRequestIds: status.activeRequestIds,
+      oldestActiveProgressAt: status.oldestActiveProgressAt,
+    };
+  }
+
   hasRemote(): boolean {
     return this.#options.remoteUrl.length > 0;
   }
