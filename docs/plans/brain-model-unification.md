@@ -17,7 +17,7 @@ Two things are open.
 foundation, universal entity types, discovery, and every I/O surface. It cannot express a
 brain without a webserver, without a chat interface, or without any individual entity
 type; the only escape is `remove:` lists, the anti-pattern bundles were introduced to
-eliminate. This plan now targets nine capability bundles plus one policy bundle. Because
+eliminate. This plan now targets eight capability bundles plus one policy bundle. Because
 `v0.2.0` exists to freeze the composition contract, the taxonomy lands **before** stable,
 not after: certifying a contract already scheduled for replacement would force every
 deployed brain to migrate `bundles:` twice.
@@ -193,7 +193,8 @@ pending-approval queue and inbound A2A tasks from unapproved peers are later can
 
 | Bundle       | Config                                                                                                     | Permissions                                                                                           | Eval exclusions       |
 | ------------ | ---------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- | --------------------- |
-| _definition_ | —                                                                                                          | `"*": admin` entity actions; `cli:* → admin`; `mcp:stdio → admin`                                     | —                     |
+| _platform_   | —                                                                                                          | `"*": admin` entity actions                                                                           | —                     |
+| _definition_ | —                                                                                                          | `cli:* → admin`; `mcp:stdio → admin`                                                                  | —                     |
 | `core`       | —                                                                                                          | —                                                                                                     | mcp                   |
 | `web`        | dashboard `{routePath: "/"}`                                                                               | `mcp:http → public`                                                                                   | webserver, dashboard  |
 | `chat`       | —                                                                                                          | `discord:* → public`; `web-chat:* → admin`                                                            | chat, web-chat, email |
@@ -202,9 +203,11 @@ pending-approval queue and inbound A2A tasks from unapproved peers are later can
 | `federation` | —                                                                                                          | —                                                                                                     | atproto               |
 | `team`       | conversation-memory `{memoryVisibility: "shared"}`; topics `{extractableStatuses: ["published", "draft"]}` | trusted create/update on note, link, image, decision, action-item, doc; `mcp:http → admin` over `web` | —                     |
 
-The platform permission baseline moves out of `core` onto the definition itself, because
-it is posture-independent and must hold for `bundles: [core]` regardless of which bundles
-attach policy above it. Bundles may only widen it.
+The posture-independent transport baseline moves out of `core` onto the definition itself,
+because it must hold for `bundles: [core]` regardless of which bundles attach policy above
+it. The shell's existing admin-only entity-action fallback remains a platform safeguard;
+it must not be removed from external definitions as a side effect of this work. Bundles may
+only widen these baselines.
 
 `publishing` and `team` additionally contribute their agent instruction fragments.
 
@@ -281,8 +284,31 @@ following are additive.
 
 Wanted but separable: bundle-level `requires`, wired to the plugin `dependencies` field
 that is declared and never read in the selection path. Without it, `bundles: [site]` alone
-resolves cleanly into a brain registering routes nothing serves. The prerequisites would be
-`site → web`, `publishing → site, media`, and `team → chat, media`.
+resolves cleanly into a brain registering routes nothing serves. The prerequisites would
+be `chat → web`, `site → web`, `publishing → media`, and `team → chat, media`. Publishing
+intentionally does not require `site`: external-channel publishing without a site is a
+settled posture.
+
+## Worktree coordination
+
+Phase 8 invalidates every `bundles:` selection in the repository at once. Any worktree
+carrying a `brain.yaml`, eval fixture, or test-app selection must therefore be merged or
+explicitly ported before the flip, not after it. The phases before the flip are additive
+and can proceed alongside open work.
+
+| Worktree                               | Overlap                                                                           | Disposition                                                                                      |
+| -------------------------------------- | --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| inbox surfaces / email threading       | renamed `email-triage` to `email-workflows`; owns Phase 6's delivery              | Merged on `origin/main`; retain its catalog ID and delivery behavior through Phase 8.            |
+| `work/test-suite-hardening`            | modifies `shell/app/test/bundle-resolution.test.ts`; puts the eval CLI under test | Land before Phase 3 and before Phase 7, or take the test merge deliberately.                     |
+| `work/professional-profile-v2`         | edits the `canonical-brain.ts` capabilities array                                 | Merge independently. LinkedIn import and the OAuth broker remain opt-ins and never enter `core`. |
+| `feat/opportunity-priority-engine`     | adds a capability                                                                 | Merge independently as an explicit opt-in. It must not enter a bundle during unification.        |
+| `feat/durable-binary-assets-migration` | touches `shell/app/src/app.ts` and `types.ts`; informs `media`                    | No resolver overlap. Merge on its own schedule.                                                  |
+| `work/turso-migration`                 | touches `shell/app/src/app.ts` and `cli.ts`                                       | No resolver overlap. Merge on its own schedule.                                                  |
+
+Phases 1 and 2 have no live collision and are the recommended starting point: they are pure
+resolver work, they do not depend on the taxonomy being final, and together they are what
+makes `bundles: [core]` bootable. Phase 10 is independent of the taxonomy entirely and may
+run in parallel with any of Phases 1 through 7.
 
 ## Phasing
 
@@ -291,10 +317,11 @@ begins with the failing test that defines it.
 
 ### Phase 1 — Definition-level permission baseline
 
-Move the platform baseline from the `core` bundle to `BrainDefinition.permissions`. Prove
-the effective policy for every current bundle selection is byte-identical before and
-after, and that a selection excluding the `admin` member still yields the admin-only
-baseline.
+Move the posture-independent `cli:*` and `mcp:stdio` rules from the `core` bundle to
+`BrainDefinition.permissions`; retain the shell-level admin-only entity-action safeguard.
+Prove the effective policy for every current bundle selection is byte-identical before and
+after, and that a selection excluding the `admin` and `mcp` members still yields the
+transport baseline.
 
 ### Phase 2 — Resolver-derived MCP transport
 
@@ -452,7 +479,7 @@ without operator authorization.
 
 ## Completion criteria
 
-- one canonical definition, nine capability bundles, and one policy bundle remain;
+- one canonical definition, eight capability bundles, and one policy bundle remain;
 - `bundles: [core]` boots headless and is covered by a startup test;
 - headless, personal, professional, team, commerce, and external-plugin fixtures resolve
   from explicit bundles and additions;
