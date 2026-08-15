@@ -1144,3 +1144,85 @@ because a package's declared dependency list is the input to the step-4
 enforcement rule — that rule cannot be written against dependency lists
 that are simultaneously over- and under-stated. Category B is absorbed
 by the auth decision above and the public-surface expansion in step 2.
+
+## Blocker audit: capability or misplacement? (2026-08-15)
+
+Nine declarative capabilities landed and no package became publishable,
+so the remaining blockers were audited one at a time against a single
+question: **does this entity legitimately need this, or is it a sign the
+code is in the wrong package?**
+
+The question came from `@brains/note`. It needs the uploads namespace —
+but only because its upload-import job lives there. That job reads bytes
+from the web-chat upload store and extracts markdown; only its last step
+is about notes, and `extractMarkdownFromUpload` is not note logic. A
+narrow uploads reader would have made note publishable while preserving
+a coupling that should not exist, and locked it in behind a public
+contract where it is far harder to remove. The surface could not express
+it because it should not.
+
+### A. Not a capability — boilerplate that disappears
+
+- **`SYSTEM_CHANNELS.pluginsRegistered` in `wishlist`,
+  `conversation-memory`, `assessment`, `agent-discovery`.** All four
+  subscribe to exactly one lifecycle event, and all four do exactly one
+  thing in it: register a dashboard widget. This is not a messaging
+  need; it is waiting for a hook to announce a static fact.
+  `defineDashboardWidget` already exists and the runtime owns
+  registration order, so these vanish when the widgets convert under the
+  operator plan's Phase 4. **Four of the eight messaging blockers are
+  not messaging blockers.**
+- **`themeCSS` in `decks`.** A local `Pick<…, "entityService" |
+"themeCSS" | "identity" | "domain">` — a second copy of the media
+  attachment context, which is now a promoted structural contract. Use
+  it rather than re-deriving it.
+
+### B. Misplaced code — move it, do not expose it
+
+- **`uploads` in `@brains/note`.** As above. The fix is for whatever
+  owns the upload to extract the markdown and create a note from
+  content.
+- **`uploads` in `image` and `document`** are not yet judged. Holding
+  bytes may genuinely be the point for those two; the same question has
+  to be asked rather than assumed either way.
+
+### C. Genuine capability, wrong expression
+
+- **`PUBLISH_CHANNELS.{register,execute,reportSuccess,reportFailure}` in
+  `blog`, `decks`, `portfolio`, `social-media`.** Real participation in
+  a named pipeline: "I publish entity type X, here is how, here is how
+  it went." Currently four channel constants plus a lifecycle
+  subscription. Wants declarative publish participation, in the same
+  spirit as create routing — the package declares that it publishes, the
+  runtime owns the protocol.
+
+### D. Genuine and narrow — mechanical, same treatment as before
+
+`entityService.deleteEntity` / `upsertEntity` / `searchWithDistances` /
+`getEntityTypeConfig`; `permissions.assertEntityActionAllowed`;
+`identity.getProfile`; `conversations.getMessages` / `list`;
+`runtimeState.scoped`. Each narrows an existing service to what is
+actually used.
+
+Package config is the one structural gap here: `defineEntityPackage`
+hardcodes an empty config schema, and `@brains/link` reads
+`jinaApiKey` inside a job handler. Config is package-scoped while
+handlers are entity-scoped, so this needs a shape decision rather than
+another narrowing.
+
+### E. Cross-package reach — most suspect, audit before building
+
+`social-media` sends on `GENERATE_CHANNELS` and `IMAGE_CHANNELS`;
+`topics` listens on `SHELL_CHANNELS.embedding` and calls
+`semantic.project` and `insights.register`; `agent-discovery` uses
+`recurringChecks` and `semantic`. These are packages asking other
+packages to do work. Each deserves the note question before any contract
+is designed for it.
+
+### What this changes
+
+The remaining work is not "add the missing capabilities". It is, in
+order: let the operator conversion delete category A, move category B,
+design one declarative publish participation for category C, and only
+then promote the narrow slices in category D against consumers that
+survive the question.
