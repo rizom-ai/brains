@@ -122,7 +122,7 @@
     "@brains/email": "0.2.0-alpha.235",
     "@brains/db": "0.2.0-alpha.229",
     "@brains/onboarding": "0.2.0-alpha.243",
-    "@brains/email-triage": "0.2.0-alpha.247",
+    "@brains/email-workflows": "0.2.0-alpha.247",
     "@brains/unified-inbox": "0.2.0-alpha.250",
     "@brains/operation-context": "0.2.0-alpha.240"
   },

@@ -1,6 +1,6 @@
 ---
 "@brains/cms": patch
-"@brains/email-triage": patch
+"@brains/email-workflows": patch
 "@brains/entity-service": patch
 "@brains/plugins": patch
 "@brains/unified-inbox": patch

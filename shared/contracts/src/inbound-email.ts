@@ -39,6 +39,7 @@ interface InboundEmailValue {
   sourceRef: string;
   threadId?: string | undefined;
   from: InboundEmailAddressValue;
+  replyTo?: InboundEmailAddressValue | undefined;
   to: InboundEmailAddressValue[];
   subject: string;
   receivedAt: string;
@@ -48,6 +49,8 @@ interface InboundEmailValue {
     listUnsubscribe?: string | undefined;
     autoSubmitted?: string | undefined;
     precedence?: string | undefined;
+    inReplyTo?: string | undefined;
+    references?: string[] | undefined;
   };
   sender?: InboundEmailSenderValue | undefined;
 }
@@ -60,6 +63,7 @@ export const inboundEmailSchema: z.ZodType<
   sourceRef: z.string().min(1),
   threadId: z.string().min(1).optional(),
   from: inboundEmailAddressSchema,
+  replyTo: inboundEmailAddressSchema.optional(),
   to: z.array(inboundEmailAddressSchema),
   subject: z.string(),
   receivedAt: z.iso.datetime(),
@@ -69,6 +73,8 @@ export const inboundEmailSchema: z.ZodType<
     listUnsubscribe: z.string().min(1).optional(),
     autoSubmitted: z.string().min(1).optional(),
     precedence: z.string().min(1).optional(),
+    inReplyTo: z.string().min(1).optional(),
+    references: z.array(z.string().min(1)).optional(),
   }),
   sender: inboundEmailSenderSchema.optional(),
 });

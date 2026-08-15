@@ -1,5 +1,5 @@
 ---
-"@brains/email-triage": minor
+"@brains/email-workflows": minor
 "@rizom/brain": patch
 ---
 

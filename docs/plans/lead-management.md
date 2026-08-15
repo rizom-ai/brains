@@ -3,7 +3,7 @@
 ## Status
 
 **Proposed, gated on the shipped
-[`@brains/email-triage`](../../plugins/email-triage/README.md) and on the shared
+[`@brains/email-workflows`](../../plugins/email-workflows/README.md) and on the shared
 `opportunity` entity owned by
 [bd-priority-engine.md](./bd-priority-engine.md).** Decided 2026-08-04: a lead is not a
 separate entity. It is an `opportunity` in the `lead` lifecycle state. This plugin
@@ -115,7 +115,7 @@ consumer with a defined write set (decision 9).
 ## Configuration
 
 ```yaml
-add: [email-triage, lead-management]
+add: [email-workflows, lead-management]
 
 plugins:
   lead-management:
@@ -172,7 +172,7 @@ the reworked `entities/opportunity` package landing first.
 ## Out of scope
 
 - Raw email intake, classification, acknowledgement, and mail-item UX —
-  [`@brains/email-triage`](../../plugins/email-triage/README.md).
+  [`@brains/email-workflows`](../../plugins/email-workflows/README.md).
 - Reply drafting and delivery — [email-reply-drafting.md](./email-reply-drafting.md).
 - Scoring rubric, ranking, focus, and heartbeat —
   [bd-priority-engine.md](./bd-priority-engine.md).
@@ -183,7 +183,7 @@ the reworked `entities/opportunity` package landing first.
 
 ## Related plans
 
-- [`@brains/email-triage`](../../plugins/email-triage/README.md) — shipped; required
+- [`@brains/email-workflows`](../../plugins/email-workflows/README.md) — shipped; required
   durable source records.
 - [bd-priority-engine.md](./bd-priority-engine.md) — owns the shared `opportunity`
   entity and the committed-state surfaces.

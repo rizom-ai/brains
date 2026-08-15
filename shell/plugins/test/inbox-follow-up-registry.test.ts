@@ -67,7 +67,7 @@ describe("InboxFollowUpRegistry", () => {
     );
     expect(
       await registry.resolveUniversal({
-        sourceId: "email-triage",
+        sourceId: "email-workflows",
         item: item(),
         actor,
       }),
@@ -141,7 +141,7 @@ describe("InboxFollowUpRegistry", () => {
     registry.finalize();
 
     const resolved = await registry.resolveUniversal({
-      sourceId: "email-triage",
+      sourceId: "email-workflows",
       item: item(),
       actor,
     });
@@ -152,6 +152,118 @@ describe("InboxFollowUpRegistry", () => {
       "open-entity",
     ]);
     expect(declaredResolved).toBe(false);
+  });
+
+  it("resolves validated declared kinds before universal kinds", async () => {
+    const registry = new InboxFollowUpRegistry();
+    let receivedInput: unknown;
+    let universalApplyCalls = 0;
+    registry.registerKind("cms", {
+      ...universal({
+        applies: ({ item: candidate }) => {
+          universalApplyCalls += 1;
+          return candidate.entityRef !== undefined;
+        },
+      }),
+    });
+    registry.registerKind("drafting", {
+      kind: "draft-reply",
+      label: "Draft reply",
+      priority: 900,
+      mode: "declared",
+      permissionLevel: "admin",
+      contextSchema: z.strictObject({
+        mailItemId: z.string().regex(/^opaque-/),
+      }),
+      applies: (input) => {
+        receivedInput = input;
+        return input.item.entityRef?.entityType === "mail-item";
+      },
+      resolve: () => ({ href: "/drafts/compose", state: { version: 1 } }),
+    });
+    registry.finalize();
+
+    const resolved = await registry.resolve({
+      sourceId: "email-workflows",
+      item: item({
+        followUps: [
+          {
+            kind: "draft-reply",
+            context: { mailItemId: "opaque-mail-1" },
+          },
+          {
+            kind: "unregistered-kind",
+            context: { value: "hidden" },
+          },
+          {
+            kind: "open-entity",
+            context: { value: "must-not-promote-universal" },
+          },
+        ],
+      }),
+      actor,
+    });
+
+    expect(resolved).toEqual([
+      {
+        kind: "draft-reply",
+        label: "Draft reply",
+        href: "/drafts/compose",
+        state: { version: 1 },
+      },
+      {
+        kind: "open-entity",
+        label: "Open source entity",
+        href: "/cms/entities/mail-item/mail-1",
+      },
+    ]);
+    expect(receivedInput).toMatchObject({
+      sourceId: "email-workflows",
+      item: { id: "mail-1" },
+      actor,
+      context: { mailItemId: "opaque-mail-1" },
+    });
+    expect(universalApplyCalls).toBe(1);
+    expect(JSON.stringify(resolved)).not.toContain("opaque-mail-1");
+  });
+
+  it("hides destination-schema failures before declared predicates or resolvers", async () => {
+    const registry = new InboxFollowUpRegistry();
+    let predicateCalls = 0;
+    let resolverCalls = 0;
+    registry.registerKind("drafting", {
+      kind: "draft-reply",
+      label: "Draft reply",
+      priority: 1,
+      mode: "declared",
+      permissionLevel: "admin",
+      contextSchema: z.strictObject({
+        mailItemId: z.string().regex(/^mail-/),
+      }),
+      applies: () => {
+        predicateCalls += 1;
+        return true;
+      },
+      resolve: () => {
+        resolverCalls += 1;
+        return { href: "/drafts/compose" };
+      },
+    });
+    registry.finalize();
+
+    expect(
+      await registry.resolve({
+        sourceId: "email-workflows",
+        item: item({
+          followUps: [
+            { kind: "draft-reply", context: { mailItemId: "invalid" } },
+          ],
+        }),
+        actor,
+      }),
+    ).toEqual([]);
+    expect(predicateCalls).toBe(0);
+    expect(resolverCalls).toBe(0);
   });
 
   it("applies presentation permission and item predicates before resolving", async () => {
@@ -171,14 +283,14 @@ describe("InboxFollowUpRegistry", () => {
 
     expect(
       await registry.resolveUniversal({
-        sourceId: "email-triage",
+        sourceId: "email-workflows",
         item: item({ entityRef: undefined }),
         actor,
       }),
     ).toEqual([]);
     expect(
       await registry.resolveUniversal({
-        sourceId: "email-triage",
+        sourceId: "email-workflows",
         item: item(),
         actor: { permissionLevel: "trusted" },
       }),
@@ -199,7 +311,7 @@ describe("InboxFollowUpRegistry", () => {
 
     expect(
       await registry.resolveUniversal({
-        sourceId: "email-triage",
+        sourceId: "email-workflows",
         item: item(),
         actor,
       }),
@@ -226,7 +338,7 @@ describe("InboxFollowUpRegistry", () => {
     registry.finalize();
 
     const [resolved] = await registry.resolveUniversal({
-      sourceId: "email-triage",
+      sourceId: "email-workflows",
       item: item(),
       actor,
     });
@@ -264,7 +376,7 @@ describe("InboxFollowUpRegistry", () => {
 
     expect(
       await registry.resolveUniversal({
-        sourceId: "email-triage",
+        sourceId: "email-workflows",
         item: item(),
         actor,
       }),
@@ -298,7 +410,7 @@ describe("InboxFollowUpRegistry", () => {
 
     expect(
       await registry.resolveUniversal({
-        sourceId: "email-triage",
+        sourceId: "email-workflows",
         item: item(),
         actor,
       }),
@@ -321,7 +433,7 @@ describe("InboxFollowUpRegistry", () => {
     expect(registry.listKinds()).toEqual([]);
     expect(
       await registry.resolveUniversal({
-        sourceId: "email-triage",
+        sourceId: "email-workflows",
         item: item(),
         actor,
       }),

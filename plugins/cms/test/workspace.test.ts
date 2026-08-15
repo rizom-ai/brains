@@ -125,7 +125,7 @@ describe("optional CMS workspaces", () => {
 
     expect(
       await shell.getInboxFollowUpRegistry().resolveUniversal({
-        sourceId: "email-triage",
+        sourceId: "email-workflows",
         actor: { permissionLevel: "admin" },
         item: {
           id: "mail-1",
@@ -195,7 +195,7 @@ describe("optional CMS workspaces", () => {
     shell.getInboxFollowUpRegistry().finalize();
 
     const resolved = await shell.getInboxFollowUpRegistry().resolveUniversal({
-      sourceId: "email-triage",
+      sourceId: "email-workflows",
       actor: { permissionLevel: "admin" },
       item: {
         id: "mail-1",
@@ -237,8 +237,8 @@ describe("optional CMS workspaces", () => {
     const plugin = cmsPlugin();
     await plugin.register(shell);
     const legacyRegistration = {
-      id: "email-triage",
-      pluginId: "email-triage",
+      id: "email-workflows",
+      pluginId: "email-workflows",
       label: "Email Triage",
       rendererName: "EmailTriageWorkspace",
       priority: 30,
@@ -270,6 +270,28 @@ describe("optional CMS workspaces", () => {
     expect(response).toEqual({
       success: true,
       data: { workspaceUrl: "/cms/workspaces/inbox" },
+    });
+  });
+
+  it("accepts the typed email reply draft workspace renderer", async () => {
+    const shell = createMockShell({ domain: "yeehaa.io" });
+    const plugin = cmsPlugin();
+    await plugin.register(shell);
+
+    expect(
+      await registerWorkspace(shell, {
+        id: "email-reply-drafts",
+        pluginId: "email-workflows",
+        label: "Reply drafts",
+        rendererName: "EmailReplyDraftWorkspace",
+        priority: 21,
+        urlQuery: true,
+        accessHandler: (actor) => actor.userPermissionLevel === "admin",
+        dataProvider: async () => ({ mailItemId: null }),
+      }),
+    ).toEqual({
+      success: true,
+      data: { workspaceUrl: "/cms/workspaces/email-reply-drafts" },
     });
   });
 
@@ -567,7 +589,11 @@ describe("optional CMS workspaces", () => {
     const cookie = await createSessionCookie(shell);
     const plugin = cmsPlugin();
     await plugin.register(shell);
-    const calls: Array<{ action: unknown; actor: unknown }> = [];
+    const calls: Array<{
+      action: unknown;
+      actor: unknown;
+      signal: AbortSignal | undefined;
+    }> = [];
     await registerWorkspace(shell, {
       id: "publishing",
       pluginId: "content-pipeline",
@@ -576,8 +602,8 @@ describe("optional CMS workspaces", () => {
       priority: 40,
       accessHandler: () => true,
       dataProvider: async () => ({}),
-      actionHandler: async (action, actor) => {
-        calls.push({ action, actor });
+      actionHandler: async (action, actor, signal) => {
+        calls.push({ action, actor, signal });
         return { accepted: true };
       },
     });
@@ -599,6 +625,7 @@ describe("optional CMS workspaces", () => {
       }),
     );
     expect(response.status).toBe(200);
+    expect(response.headers.get("Cache-Control")).toBe("no-store");
     expect(await response.json()).toEqual({ result: { accepted: true } });
     expect(calls).toHaveLength(1);
     expect(calls[0]).toEqual({
@@ -610,6 +637,7 @@ describe("optional CMS workspaces", () => {
         visibilityScope: "restricted",
         isAnchor: true,
       }),
+      signal: expect.any(AbortSignal),
     });
   });
 });

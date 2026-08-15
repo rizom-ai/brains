@@ -115,6 +115,7 @@ export function createInboxFollowUpsNamespace(
     },
     listKinds: () => registry.listKinds(),
     getKind: (kind) => registry.getKind(kind),
+    resolve: (input) => registry.resolve(input),
     resolveUniversal: (input) => registry.resolveUniversal(input),
   };
 }

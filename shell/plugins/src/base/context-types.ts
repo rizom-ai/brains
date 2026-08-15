@@ -144,6 +144,9 @@ export interface IInboxFollowUpsNamespace {
   registerKind(registration: InboxFollowUpKindRegistration): void;
   listKinds(): RegisteredInboxFollowUpKind[];
   getKind(kind: string): RegisteredInboxFollowUpKind | undefined;
+  resolve(
+    input: Omit<InboxFollowUpResolutionInput, "context">,
+  ): Promise<ResolvedInboxFollowUp[]>;
   resolveUniversal(
     input: Omit<InboxFollowUpResolutionInput, "context">,
   ): Promise<ResolvedInboxFollowUp[]>;

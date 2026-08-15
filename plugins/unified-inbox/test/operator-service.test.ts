@@ -10,6 +10,7 @@ import {
   InboxDataSource,
   InboxOperatorService,
   inboxActionOutcomeSchema,
+  inboxDetailOutcomeSchema,
   inboxListResultSchema,
   inboxWorkspaceQuerySchema,
 } from "../src";
@@ -159,6 +160,7 @@ describe("InboxOperatorService", () => {
         },
       ],
     });
+    expect(snapshot.entries[0]?.detailAvailable).toBe(false);
     expect(
       inboxWorkspaceQuerySchema.safeParse({ offset: 0, limit: 101 }).success,
     ).toBe(false);
@@ -337,6 +339,72 @@ describe("InboxOperatorService", () => {
     ]);
     expect(JSON.stringify(headless)).not.toContain("discuss-in-chat");
     expect(JSON.stringify(headless)).not.toContain("mail-opaque");
+  });
+
+  it("revalidates offered items and fixes private source-detail failures", async () => {
+    let open = true;
+    let detailReads = 0;
+    const registry = new InboxRegistry();
+    registry.registerSource("mail-plugin", {
+      sourceId: "mail-items",
+      displayName: "Email Triage",
+      list: async () => (open ? [attentionItem()] : []),
+      resolveDetail: async (_itemId, actor, signal) => {
+        detailReads += 1;
+        expect(actor).toEqual({ permissionLevel: "admin" });
+        expect(signal.aborted).toBe(false);
+        return {
+          kind: "plain",
+          text: "Original private message",
+          truncated: false,
+        };
+      },
+      act: async () => undefined,
+    });
+    registry.finalize();
+    const followUps = new InboxFollowUpRegistry();
+    followUps.finalize();
+    const service = new InboxOperatorService(
+      registry,
+      new InboxDataSource(registry),
+      followUps,
+    );
+    const request = {
+      type: "detail" as const,
+      sourceId: "mail-items",
+      itemId: "mail-opaque",
+    };
+
+    expect(
+      inboxDetailOutcomeSchema.parse(
+        await service.detail(request, { permissionLevel: "admin" }),
+      ),
+    ).toEqual({
+      kind: "detail",
+      detail: {
+        kind: "plain",
+        text: "Original private message",
+        truncated: false,
+      },
+    });
+    expect(detailReads).toBe(1);
+
+    expect(
+      await service.detail(request, { permissionLevel: "trusted" }),
+    ).toEqual({
+      kind: "detail-unavailable",
+      error: "Original content is unavailable",
+    });
+    expect(detailReads).toBe(1);
+
+    open = false;
+    expect(await service.detail(request, { permissionLevel: "admin" })).toEqual(
+      {
+        kind: "detail-unavailable",
+        error: "Original content is unavailable",
+      },
+    );
+    expect(detailReads).toBe(1);
   });
 
   it("requires confirmation before dispatching flagged actions and returns no projection after execution", async () => {

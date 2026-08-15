@@ -24,21 +24,24 @@ The opt-in plugin provides:
   CMS is absent.
 
 Actions always re-list the owning source and verify that the requested item and action are
-still offered. Confirmed actions are revalidated immediately before dispatch. Browser
-responses never expose source exception text, and completed actions return no inbox
-projection; the client invalidates and reloads the live view. Stable source, urgency, and
+still offered. Confirmed actions are revalidated immediately before dispatch. Optional
+source detail is also revalidated, Admin-only, bounded to plain text, requested with abort
+and timeout signals, returned with `Cache-Control: no-store`, and kept only in component
+state. Browser responses never expose source exception text, and completed actions return
+no inbox projection; the client invalidates and reloads the live view. Stable source, urgency, and
 selected-source facet filters use the workspace URL, while paging remains in-memory: direct
 entry and reload always start at offset zero. Unknown or malformed filter values are removed instead of
 failing or producing a private provider error.
 
-Follow-ups launch another surface without resolving the item. Destination plugins register
+Follow-ups launch another surface without resolving the item. Destination owners register
 kinds during plugin registration and own labels, applicability, permission gates, final
-same-origin target resolution, and optional bounded history state. The workspace receives
-only resolved `{ kind, label, href, state? }` targets for its current bounded page; raw
-resolvers never enter browser or headless output. CMS contributes **Open source entity**
-and capability-gated **Capture as note**. Web chat contributes **Discuss in chat** when
-that interface is installed. Note and chat handoffs are one-shot prefills and never save or
-send automatically.
+same-origin target resolution, and optional bounded history state. Sources may name bounded
+source-specific declarations, but cannot choose their labels or targets. The workspace
+receives only resolved `{ kind, label, href, state? }` targets for its current bounded page;
+raw declaration context and resolvers never enter browser or headless output. CMS contributes
+**Open source entity** and capability-gated **Capture as note**. Web chat contributes
+**Discuss in chat**. `@brains/email-workflows` declares and resolves **Draft reply** to its
+real Admin drafting workspace. No handoff sends automatically.
 
 The shell registers **Recurring checks** as the first core source. Returned alerts remain
 one open item per condition episode until an Admin resolves them. Notification delivery is
@@ -83,9 +86,17 @@ context.inbox.registerSource({
       urgency: "normal",
       entityRef: { entityType: "review-item", entityId: "item-1" },
       facets: { "review-state": "requested" },
+      followUps: [
+        { kind: "review-candidate", context: { candidateId: "item-1" } },
+      ],
       actions: [{ id: "resolve", label: "Resolve", confirm: true }],
     },
   ],
+  resolveDetail: async (itemId, actor, signal) => ({
+    kind: "plain",
+    text: await readBoundedPrivateSource(itemId, actor, signal),
+    truncated: false,
+  }),
   act: async (itemId, actionId, actor) => {
     // Re-check source-owned authorization and mutate source state here.
   },
@@ -124,7 +135,7 @@ surfaces continue to work and delivery follows the recurring-check retry path.
 
 The shell-owned `recurring-checks` source is available without email or notification
 channels. The first external production source is `mail-items`, registered by
-`@brains/email-triage`. New mail is operated here; reviewed, handled, and archived records
+`@brains/email-workflows`. New mail is operated here; reviewed, handled, and archived records
 remain in the standard **Mail Items** CMS collection. Source widgets resolve the registered
 `unified-inbox` interaction at request time, so custom CMS mounts and plugin ready order do
 not change their filter links. The synthetic pilot posture is documented in

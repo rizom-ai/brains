@@ -10,6 +10,8 @@ import {
 import type {
   InboxWorkspaceAction,
   InboxWorkspaceActionResult,
+  InboxWorkspaceDetailRequest,
+  InboxWorkspaceDetailResult,
   InboxWorkspaceEntry,
   InboxWorkspaceFacetDefinition,
   InboxWorkspaceFollowUp,
@@ -45,6 +47,13 @@ function sourceFilterValue(value: string): string | undefined {
 
 function urgencyFilterValue(value: string): "high" | "normal" | undefined {
   return value === "high" || value === "normal" ? value : undefined;
+}
+
+function unavailableDetail(): Promise<InboxWorkspaceDetailResult> {
+  return Promise.resolve({
+    kind: "detail-unavailable",
+    error: "Original content is unavailable",
+  });
 }
 
 interface WorkspaceFilters {
@@ -83,6 +92,15 @@ interface InboxFeedback {
   isError: boolean;
 }
 
+type InboxDetailState =
+  | { entryKey: string; status: "loading" }
+  | {
+      entryKey: string;
+      status: "available";
+      detail: Extract<InboxWorkspaceDetailResult, { kind: "detail" }>["detail"];
+    }
+  | { entryKey: string; status: "unavailable" };
+
 export function InboxContact(props: {
   contact: NonNullable<InboxWorkspaceEntry["item"]["contact"]>;
   href?: string | undefined;
@@ -115,8 +133,15 @@ export function UnifiedInboxWorkspace(props: {
   onAction: (
     action: InboxWorkspaceAction,
   ) => Promise<InboxWorkspaceActionResult>;
+  onDetail?:
+    | ((
+        request: InboxWorkspaceDetailRequest,
+        signal: AbortSignal,
+      ) => Promise<InboxWorkspaceDetailResult>)
+    | undefined;
 }): ReactElement {
   const { data, query, onQueryChange, onFollowUp, onAction } = props;
+  const onDetail = props.onDetail ?? unavailableDetail;
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<InboxFeedback | null>(null);
   const [confirmation, setConfirmation] = useState<{
@@ -128,7 +153,9 @@ export function UnifiedInboxWorkspace(props: {
   // replaces the accumulation so filter changes and post-action re-lists
   // drop resolved rows instead of merging them back in.
   const [entries, setEntries] = useState<InboxWorkspaceEntry[]>(data.entries);
+  const [detail, setDetail] = useState<InboxDetailState | null>(null);
   const detailHeadingRef = useRef<HTMLHeadingElement>(null);
+  const detailAbortRef = useRef<AbortController | null>(null);
   const originRef = useRef<HTMLButtonElement | null>(null);
   const action = useWorkspaceAction<InboxWorkspaceActionResult>();
 
@@ -146,6 +173,13 @@ export function UnifiedInboxWorkspace(props: {
   useEffect(() => {
     if (selected) detailHeadingRef.current?.focus();
   }, [selected]);
+
+  useEffect(
+    (): (() => void) => (): void => {
+      detailAbortRef.current?.abort();
+    },
+    [],
+  );
 
   const requestedSource =
     typeof query["sourceId"] === "string" ? query["sourceId"] : undefined;
@@ -209,22 +243,67 @@ export function UnifiedInboxWorkspace(props: {
     urgencyFilter,
   ]);
 
+  const loadDetail = useCallback(
+    (entry: InboxWorkspaceEntry): void => {
+      detailAbortRef.current?.abort();
+      const controller = new AbortController();
+      detailAbortRef.current = controller;
+      const key = entryKey(entry);
+      setDetail({ entryKey: key, status: "loading" });
+      void onDetail(
+        {
+          type: "detail",
+          sourceId: entry.source.sourceId,
+          itemId: entry.item.id,
+        },
+        controller.signal,
+      ).then(
+        (result) => {
+          if (controller.signal.aborted) return;
+          setDetail(
+            result.kind === "detail"
+              ? { entryKey: key, status: "available", detail: result.detail }
+              : { entryKey: key, status: "unavailable" },
+          );
+        },
+        () => {
+          if (!controller.signal.aborted) {
+            setDetail({ entryKey: key, status: "unavailable" });
+          }
+        },
+      );
+    },
+    [onDetail],
+  );
+
   const selectEntry = useCallback(
     (entry: InboxWorkspaceEntry, trigger: HTMLButtonElement): void => {
       originRef.current = trigger;
       setSelectedKey(entryKey(entry));
       setFeedback(null);
+      if (entry.detailAvailable === true) loadDetail(entry);
+      else {
+        detailAbortRef.current?.abort();
+        detailAbortRef.current = null;
+        setDetail(null);
+      }
     },
-    [],
+    [loadDetail],
   );
 
   const backToList = useCallback((): void => {
+    detailAbortRef.current?.abort();
+    detailAbortRef.current = null;
+    setDetail(null);
     setSelectedKey(null);
     window.setTimeout(() => originRef.current?.focus(), 0);
   }, []);
 
   const changeFilters = useCallback(
     (filters: WorkspaceFilters): void => {
+      detailAbortRef.current?.abort();
+      detailAbortRef.current = null;
+      setDetail(null);
       setSelectedKey(null);
       originRef.current = null;
       setFeedback(null);
@@ -276,6 +355,9 @@ export function UnifiedInboxWorkspace(props: {
         setFeedback({ message: result.error, isError: true });
       } else {
         setFeedback({ message: "Inbox updated.", isError: false });
+        detailAbortRef.current?.abort();
+        detailAbortRef.current = null;
+        setDetail(null);
         setSelectedKey(null);
         onQueryChange(
           filteredQuery(
@@ -559,6 +641,44 @@ export function UnifiedInboxWorkspace(props: {
                 <p className="inbox-detail-summary is-muted">
                   This source supplied no additional summary.
                 </p>
+              )}
+              {selected.detailAvailable === true && (
+                <section
+                  className="inbox-source-detail"
+                  aria-label={`Original content for ${selected.item.title}`}
+                >
+                  <header>
+                    <span>Original content</span>
+                    <small>Read on demand · not copied into Brain</small>
+                  </header>
+                  {detail?.entryKey === entryKey(selected) &&
+                  detail.status === "loading" ? (
+                    <p role="status">Loading original content…</p>
+                  ) : detail?.entryKey === entryKey(selected) &&
+                    detail.status === "available" ? (
+                    <>
+                      <pre tabIndex={0}>
+                        {detail.detail.text ||
+                          "This message has no plain-text content."}
+                      </pre>
+                      {detail.detail.truncated && (
+                        <small>
+                          Only the first part of this message is shown.
+                        </small>
+                      )}
+                    </>
+                  ) : (
+                    <div role="status">
+                      <p>Original content is unavailable.</p>
+                      <button
+                        type="button"
+                        onClick={() => loadDetail(selected)}
+                      >
+                        Retry
+                      </button>
+                    </div>
+                  )}
+                </section>
               )}
               {selected.followUps.length > 0 && (
                 <section

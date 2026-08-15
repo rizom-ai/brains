@@ -3,7 +3,7 @@
 "@brains/cms": minor
 "@brains/contracts": minor
 "@brains/email": minor
-"@brains/email-triage": minor
+"@brains/email-workflows": minor
 "@brains/plugins": minor
 "@brains/unified-inbox": minor
 "@rizom/brain": patch

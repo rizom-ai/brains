@@ -3,7 +3,7 @@
 "@brains/directory-sync": patch
 "@brains/email": patch
 "@brains/notifications": patch
-"@brains/email-triage": patch
+"@brains/email-workflows": patch
 ---
 
 Harden provider boundaries and the entity round-trip against failures visible
@@ -14,6 +14,6 @@ quarantined (`.invalid`) file as ours, not a user deletion — together these
 stop restricted entities from being quarantined and then destroyed moments
 after creation. Optional email transport settings and the notifications
 default recipient treat empty env interpolations as absent so inbound-only
-postures boot as documented. The email-triage classifier sends a flat wire
+postures boot as documented. The email-workflows classifier sends a flat wire
 schema (OpenAI strict structured outputs reject root-level unions) and maps it
 onto the unchanged domain decision union.

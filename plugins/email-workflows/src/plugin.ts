@@ -17,25 +17,37 @@ import { registerEmailTriageDashboardWidget } from "./operator-dashboard-widget"
 import { MailTriageOperatorService } from "./operator-service";
 import { createEmailTriageListTool } from "./operator-tool";
 import {
-  emailTriageConfigSchema,
-  type EmailTriageConfig,
-  type EmailTriageConfigInput,
+  DEFAULT_EMAIL_REPLY_DRAFT_PROMPT,
+  EMAIL_REPLY_DRAFT_PROMPT_TARGET,
+  EmailReplyDraftOperator,
+} from "./reply-drafts/operator";
+import {
+  registerEmailReplyDraftFollowUp,
+  registerEmailReplyDraftWorkspace,
+} from "./reply-drafts/workspace";
+import {
+  emailWorkflowsConfigSchema,
+  type EmailWorkflowsConfig,
+  type EmailWorkflowsConfigInput,
 } from "./schemas/config";
+import { EmailWorkflowsSourceReader } from "./source-read";
 import {
   MailThreadOrdinalCoordinator,
   threadOrdinalStateSchema,
 } from "./thread-ordinal-coordinator";
 import { EmailTriageProcessor } from "./triage-processor";
 
-export class EmailTriagePlugin extends ServicePlugin<
-  EmailTriageConfig,
-  EmailTriageConfigInput
+export class EmailWorkflowsPlugin extends ServicePlugin<
+  EmailWorkflowsConfig,
+  EmailWorkflowsConfigInput
 > {
   private operator: MailTriageOperatorService | undefined;
   private threadOrdinals: MailThreadOrdinalCoordinator | undefined;
+  private replyDraftOperator: EmailReplyDraftOperator | undefined;
+  private replyDraftWorkspaceUrl: string | undefined;
 
   constructor() {
-    super("email-triage", packageJson, {}, emailTriageConfigSchema);
+    super("email-workflows", packageJson, {}, emailWorkflowsConfigSchema);
   }
 
   protected override async onRegister(
@@ -45,22 +57,45 @@ export class EmailTriagePlugin extends ServicePlugin<
     this.threadOrdinals = new MailThreadOrdinalCoordinator({
       entityService: context.entityService,
       state: context.runtimeState.scoped({
-        namespace: "email-triage.thread-ordinals",
+        namespace: "email-workflows.thread-ordinals",
         schema: threadOrdinalStateSchema,
       }),
     });
+    const sourceReader = new EmailWorkflowsSourceReader(context, this.operator);
     context.inbox.registerSource(
-      new MailTriageInboxSource(this.operator, this.threadOrdinals),
+      new MailTriageInboxSource(
+        this.operator,
+        this.threadOrdinals,
+        sourceReader,
+      ),
     );
-    const classificationPrompt = await context.prompts.resolve(
-      EMAIL_TRIAGE_CLASSIFICATION_PROMPT_TARGET,
-      DEFAULT_EMAIL_TRIAGE_CLASSIFICATION_PROMPT,
-    );
+    const [classificationPrompt, replyDraftPrompt] = await Promise.all([
+      context.prompts.resolve(
+        EMAIL_TRIAGE_CLASSIFICATION_PROMPT_TARGET,
+        DEFAULT_EMAIL_TRIAGE_CLASSIFICATION_PROMPT,
+      ),
+      context.prompts.resolve(
+        EMAIL_REPLY_DRAFT_PROMPT_TARGET,
+        DEFAULT_EMAIL_REPLY_DRAFT_PROMPT,
+      ),
+    ]);
+    if (!context.executionOnly) {
+      this.replyDraftOperator = new EmailReplyDraftOperator({
+        context,
+        ai: context.ai,
+        sourceReader,
+        prompt: replyDraftPrompt,
+      });
+      registerEmailReplyDraftFollowUp(
+        context,
+        () => this.replyDraftWorkspaceUrl,
+      );
+    }
     const processor = new EmailTriageProcessor({
       repository: new EntityMailItemRepository(context.entityService),
       threadOrdinals: this.threadOrdinals,
       attempts: context.runtimeState.scoped({
-        namespace: "email-triage.classification-attempts",
+        namespace: "email-workflows.classification-attempts",
         schema: z.number().int().min(1).max(3),
       }),
       classify: createMailClassifier(context.ai, classificationPrompt),
@@ -75,7 +110,16 @@ export class EmailTriagePlugin extends ServicePlugin<
   protected override async onReady(
     context: ServicePluginContext,
   ): Promise<void> {
-    if (!context.executionOnly) await this.getThreadOrdinals().initialize();
+    if (!context.executionOnly) {
+      await this.getThreadOrdinals().initialize();
+      const replyDraftOperator = this.replyDraftOperator;
+      if (replyDraftOperator) {
+        this.replyDraftWorkspaceUrl = await registerEmailReplyDraftWorkspace(
+          context,
+          replyDraftOperator,
+        );
+      }
+    }
     await registerEmailTriageDashboardWidget(context, this.getOperator());
   }
 

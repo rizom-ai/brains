@@ -1,17 +1,20 @@
 import { PluginConfigValidationError, type Plugin } from "@brains/plugins";
 import { MailItemPlugin } from "./entity/plugin";
-import { EmailTriagePlugin } from "./plugin";
+import { EmailWorkflowsPlugin } from "./plugin";
+import { EmailReplyDraftEntityPlugin } from "./reply-drafts/entity/plugin";
 import {
-  emailTriageConfigSchema,
-  type EmailTriageConfigInput,
+  emailWorkflowsConfigSchema,
+  type EmailWorkflowsConfigInput,
 } from "./schemas/config";
 
-export function emailTriage(): Plugin[];
-export function emailTriage(config: EmailTriageConfigInput = {}): Plugin[] {
-  const parsed = emailTriageConfigSchema.safeParse(config);
+export function emailWorkflows(): Plugin[];
+export function emailWorkflows(
+  config: EmailWorkflowsConfigInput = {},
+): Plugin[] {
+  const parsed = emailWorkflowsConfigSchema.safeParse(config);
   if (!parsed.success) {
     throw new PluginConfigValidationError(
-      "email-triage",
+      "email-workflows",
       parsed.error.issues.map((issue) => ({
         path: issue.path.map(String).join("."),
         code: issue.code,
@@ -19,11 +22,15 @@ export function emailTriage(config: EmailTriageConfigInput = {}): Plugin[] {
       })),
     );
   }
-  return [new MailItemPlugin(), new EmailTriagePlugin()];
+  return [
+    new MailItemPlugin(),
+    new EmailReplyDraftEntityPlugin(),
+    new EmailWorkflowsPlugin(),
+  ];
 }
 
 export { MailItemPlugin } from "./entity/plugin";
-export { EmailTriagePlugin } from "./plugin";
+export { EmailWorkflowsPlugin } from "./plugin";
 export {
   MailItemAdapter,
   mailItemAdapter,

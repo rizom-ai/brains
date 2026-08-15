@@ -190,6 +190,12 @@ describe("inbox_list tool", () => {
           entityType: "mail-item",
           entityId: "sender@example.com",
         },
+        followUps: [
+          {
+            kind: "draft-reply",
+            context: { mailItemId: "private-follow-up-context" },
+          },
+        ],
         actions: [
           {
             id: "dismiss",
@@ -204,6 +210,7 @@ describe("inbox_list tool", () => {
     expect(serialized).not.toContain("sender-hash-8ab1");
     expect(serialized).not.toContain("sender@example.com");
     expect(serialized).not.toContain("private transport content");
+    expect(serialized).not.toContain("private-follow-up-context");
     expect(serialized).not.toContain("entityRef");
     expect(serialized).not.toContain("actions");
     expect(serialized).not.toContain("threadOrdinal");

@@ -44,7 +44,7 @@ const expectedCatalogIds = [
   "docs",
   "products",
   "obsidian-vault",
-  "email-triage",
+  "email-workflows",
   "unified-inbox",
   "mcp",
   "email",
@@ -151,7 +151,7 @@ describe("canonical brain core", () => {
     expect(resolvedIds).toContain("atproto-registry");
     expect(resolvedIds).not.toContain("atproto");
     expect(resolvedIds).not.toContain("site-builder");
-    expect(resolvedIds).not.toContain("email-triage");
+    expect(resolvedIds).not.toContain("email-workflows");
     expect(resolvedIds).not.toContain("unified-inbox");
   });
 

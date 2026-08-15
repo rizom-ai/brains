@@ -1,10 +1,9 @@
-# Plan: Inbox follow-ups and the email-triage fold
+# Plan: Inbox follow-ups and the email-workflows fold
 
 ## Status
 
-**Active.** Builds directly on the shipped unified inbox (contract, CMS
-workspace, digest). Phases 0a, 0b, 1, 2, 3, 4, 7, and 8 are implemented;
-Phases 5–6 remain planned. UX mockup:
+**Implemented.** Builds directly on the shipped unified inbox (contract, CMS
+workspace, digest). Phases 0a, 0b, and 1–8 are implemented. UX mockup:
 [inbox-follow-ups-mockup.html](./inbox-follow-ups-mockup.html).
 
 `unified-inbox` is being promoted from an explicit opt-in to a `core` bundle
@@ -53,10 +52,10 @@ Mail Items collection retains chronological history.
   mail item, so it supplies chronological history and direct field inspection.
   This fold intentionally retires the old desk's status-filter bar.
 - The inbox source lists only `status: "new"` items
-  (`plugins/email-triage/src/inbox-source.ts`) — the Inbox is open attention
+  (`plugins/email-workflows/src/inbox-source.ts`) — the Inbox is open attention
   only, by design. It maps mail priority `low` to inbox urgency `normal`, while
   the source-scoped mail-priority facet preserves that distinction for filters.
-- The email-triage Dashboard summary uses new-only high-priority, needs-reply,
+- The email-workflows Dashboard summary uses new-only high-priority, needs-reply,
   and unclassified counts. Its links resolve the registered `unified-inbox`
   interaction at data-provider time and target canonical source/facet URLs, so
   custom CMS mounts and reversed plugin ready order do not change the result.
@@ -66,13 +65,16 @@ Mail Items collection retains chronological history.
   hashing normalizes mixed-case addresses at the boundary, and only active,
   verified, non-revoked Auth identities resolve. A hashed `threadKey` and its
   migration-gated ordinal live in indexed metadata for bounded position lookup.
-- The current IMAP `sourceRef` is a one-way SHA-256 hash of mailbox,
-  UIDVALIDITY, and UID. The email interface stores no corresponding locator,
-  so refs written before a locator store exists cannot be resolved on demand.
-- [email-reply-drafting.md](./email-reply-drafting.md) requires a
-  permission-checked email source-read operation. This plan owns that shared
-  primitive in Phase 6; reply drafting consumes it rather than defining a
-  second source-read contract.
+- The IMAP `sourceRef` is a one-way SHA-256 hash of mailbox, UIDVALIDITY, and
+  UID. Before inbound publication, the email interface records the matching
+  private locator in scoped durable runtime state. Admin-only source reads
+  verify the current mailbox generation and fetch only that UID with bounded
+  bytes; refs written before the locator store, expired rows, and changed
+  mailbox generations fail closed.
+- `@brains/email-workflows` owns triage and reply drafting as one installable
+  email feature. Its internal drafting component consumes the shared source
+  reader, registers the declared `draft-reply` destination and CMS workspace,
+  and persists only newly authored reply text.
 - Web-chat accepts a validated one-shot composer prefill at its configurable,
   registered interaction path; it never submits automatically.
 - CMS supports collision-free URL-addressable create mode plus validated
@@ -154,7 +156,7 @@ Mail Items collection retains chronological history.
 
    The plugin that owns the destination registers the kind: web-chat registers
    `discuss-in-chat`; CMS registers `capture-as-note` and `open-entity`;
-   [email-reply-drafting.md](./email-reply-drafting.md) registers `draft-reply`;
+   `@brains/email-workflows` registers `draft-reply` from its internal reply-draft component;
    and the atproto and lead plans register their own. Nothing about a target
    route lives in unified-inbox.
 
@@ -245,7 +247,7 @@ Mail Items collection retains chronological history.
    Organization and requested-action fields remain available through **Open
    source entity**. The Mail Items collection is the chronological history and
    direct correction surface; no generic collection filtering was added. The
-   email-triage Dashboard widget uses `status: "new"` for its high-priority,
+   email-workflows Dashboard widget uses `status: "new"` for its high-priority,
    needs-reply, and unclassified counts, labels them accordingly, and targets
    matching source/facet Inbox URLs through the registered interaction. This is
    a deliberate reduction from the old reviewed-item desk, not a claim that the
@@ -304,51 +306,40 @@ Mail Items collection retains chronological history.
    migration protocol completes.
 
 9. **Expanded detail is transient, bounded, and hostile-rendered.** The inbox
-   contract gains optional `resolveDetail(itemId, actor, signal)`, returning
-   the strict shape `{ kind: "plain-text", text, truncated }` with a 100 KiB
-   text limit. The operator service first re-lists the source and verifies the
-   item is still offered, then supplies an `AbortSignal` with a ten-second
-   timeout. Both surface and source require Admin. CMS requests detail by
-   same-origin POST; responses use
-   `Cache-Control: no-store`. The client keeps the result only in component
-   state and clears it on collapse, selection change, or unmount.
+   contract has optional `resolveDetail(itemId, actor, signal)`, returning the
+   strict shape `{ kind: "plain", text, truncated }` with a 100,000-character
+   text limit. The operator first re-lists the source and verifies the item is
+   still offered, then combines request cancellation with a ten-second timeout.
+   Both surface and source require Admin. CMS requests detail by same-origin
+   POST; responses use `Cache-Control: no-store`. The client keeps the result
+   only in component state and clears it on collapse, selection change, or
+   unmount.
 
-   Email resolves the exact source ref, fetches at most 256 KiB, ignores
-   attachments, uses parsed plain text when available, and otherwise converts
-   HTML to text server-side with scripts, styles, links, and remote resources
-   removed. React renders the returned string as text, never HTML. In the
-   **View original** flow, source bytes and parsed content never enter an
-   entity, runtime state, job payload, log, model call, React Query cache, or
-   provider-error response. Reply drafting may pass the same transient result
-   to its separately delimited structured-generation boundary. Detail failures
-   return one fixed unavailable message.
+   Email resolves the exact source ref, fetches at most 1 MiB, ignores
+   attachments, and returns at most 100,000 characters of parsed plain text.
+   React renders the string as text, never HTML. Source bytes and parsed content
+   never enter an entity, runtime-state value, job payload, log, React Query
+   cache, or provider-error response. Reply generation passes the same
+   transient result only to its separately delimited structured-generation
+   boundary. Every failure returns the fixed unavailable outcome.
 
-10. **Opaque IMAP refs get a resolvable private locator.** Phase 6 adds an
-    email-interface-owned private SQLite locator store under runtime data,
-    never Git or entity storage. Before publishing an inbound event, intake
-    idempotently records the existing hashed `sourceRef` to
-    `{ mailbox, uidValidity, uid }`; failure prevents event publication and
-    cursor advancement. Rows contain no message content, address, subject,
-    header, or Message-ID. `sourceReadRetentionDays` defaults to 180 and is
-    bounded from 1 to 3,650 days; pruning removes only locator rows. Source read
-    looks up the ref, verifies current mailbox and UIDVALIDITY, and fetches only
-    that UID. Refs created before the store ships, expired rows, changed
-    UIDVALIDITY, and missing messages all return the same fixed unavailable
-    result; there is no unbounded mailbox scan or backfill.
+10. **Opaque IMAP refs have a resolvable private locator.** The email interface
+    owns a private scoped runtime-state store, never Git or entity storage.
+    Before publishing an inbound event, intake idempotently records the existing
+    hashed `sourceRef` to `{ mailbox, uidValidity, uid, recordedAt }`; failure
+    prevents event publication and cursor advancement. Values contain no
+    message content, address, subject, header, or Message-ID. Retention is
+    bounded to 90 days and 20,000 locators. Source read verifies current
+    UIDVALIDITY and fetches only the located UID. Old, missing, expired, and
+    generation-mismatched refs all return the same fixed unavailable result;
+    there is no mailbox scan or backfill.
 
-    The email interface exposes a typed request/response handler on the
-    existing in-memory app message bus in the web runtime, where interface and
-    service plugins coexist. The request carries the authenticated actor and
-    the interface independently enforces Admin. The invariant is stated
-    without assuming a particular process model: the source-read handler is
-    registered only where interface plugins run, and any boot that excludes
-    interface plugins — present or future worker processes — must not gain a
-    source-dependent detail or drafting handler; original content never
-    crosses process IPC or enters a job payload. The CMS detail request and
-    reply-draft generation execute in the web process. A future worker-side
-    consumer requires a separate IPC design and review. This plan owns the
-    locator and source-read contract; reply drafting and future web-side
-    consumers import that one contract.
+    The email interface exposes one typed request/response handler on the
+    in-memory app message bus. The request carries the actor and the interface
+    independently enforces Admin. Interface plugins remain web-process-only;
+    execution-only email workflow registration exposes no drafting destination,
+    original content never crosses process IPC, and draft generation executes
+    in the web process.
 
 11. **The projection is core; every surface here is a channel.** Under the
     bundle taxonomy in [brain-model-unification.md](./brain-model-unification.md),
@@ -385,9 +376,9 @@ Mail Items collection retains chronological history.
 - **No automatic contact creation or fuzzy reconciliation.** Unknown senders
   stay unresolved until a verified Auth identity exists; names, domains,
   classifications, and model output never create or merge People records.
-- **Reply drafting itself** — delivered by
-  [email-reply-drafting.md](./email-reply-drafting.md); this plan renders its
-  registered entry point and owns the shared source-read primitive.
+- **Approval-gated sending.** Reply generation and editing ship through
+  `@brains/email-workflows`; threading and explicit send approval remain in
+  [email-reply-drafting.md](./email-reply-drafting.md).
 - **No durable copies of originals.** The private locator row is transport
   metadata, not message content. Original content remains in the mailbox and
   is never copied into Brain storage.
@@ -474,13 +465,14 @@ Tests are written first inside each phase.
   for new items; reviewed records remain reachable in Mail Items; no dead
   routes, guessed CMS mounts, or widget differences under reversed plugin
   ready order.
-- **Phase 5 — Source-declared kinds.** Add the bounded, flat
+- **Phase 5 — Source-declared kinds (implemented).** Add the bounded, flat
   `followUps?: { kind, context }[]` declarations to `InboxItem`, and have
-  email-triage declare `draft-reply` on `needsReply` items with the opaque
+  email-workflows declare `draft-reply` on `needsReply` items with the opaque
   mail-item ID as context;
-  [email-reply-drafting.md](./email-reply-drafting.md) registers that declared
-  kind, its context schema, and its resolver. No URL construction enters this
-  phase. _Tests:_ declaration count, duplicate-kind, key/value/control, flatness,
+  the internal reply-draft component of `@brains/email-workflows` registers
+  that declared kind, its context schema, and its real registered CMS
+  destination. No URL construction belongs to the source. _Tests:_ declaration
+  count, duplicate-kind, key/value/control, flatness,
   and context bounds; generic parsing preserves opaque values; destination
   schema rejection hides the launch before predicate/resolver execution;
   unregistered or universal kinds named by a source render nothing; the
@@ -491,7 +483,7 @@ Tests are written first inside each phase.
   label, permission, state, or target; absent reply-drafting registration
   renders nothing; direct entry is reauthorized; non-default registered route
   is used.
-- **Phase 6 — Locator-backed transient original view.** Add the private locator
+- **Phase 6 — Locator-backed transient original view (implemented).** Add the private locator
   store and source-read message contract, then `resolveDetail` and the CMS
   expander. _Tests:_ locator write precedes event/cursor commit; retry upsert;
   restart durability; old/missing/expired/UIDVALIDITY-mismatched refs are the
@@ -543,9 +535,10 @@ Tests are written first inside each phase.
   surfaces in `web` and the digest in `chat`. Phases 7 and 8 here are the
   conditions of that promotion.
 
-- [email-reply-drafting.md](./email-reply-drafting.md) — consumes the source-read
-  operation Phase 6 owns, and registers the `draft-reply` follow-up kind with
-  its own resolver; email-triage only declares the kind on `needsReply` items.
+- [email-reply-drafting.md](./email-reply-drafting.md) — the internal reply-draft
+  component consumes the Phase 6 source-read operation and registers the
+  `draft-reply` kind and resolver; the mail-items source only declares that kind
+  on `needsReply` items.
 - [atproto-integration.md](./atproto-integration.md) — registers its own
   review/invite kinds and declares them on candidate items; may expose a
   bounded plain-text profile through `resolveDetail`.

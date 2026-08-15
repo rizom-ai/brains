@@ -58,6 +58,7 @@ const data: InboxWorkspaceSnapshot = {
         entityRef: { entityType: "mail-item", entityId: "mail-1" },
         actions: [{ id: "archive", label: "Archive", confirm: true }],
       },
+      detailAvailable: true,
       contactHref: "/access?person=prsn_sam",
       followUps: [
         {
@@ -266,6 +267,64 @@ describe("UnifiedInboxWorkspace query changes", () => {
     await act(async () => discuss.click());
 
     expect(opened).toEqual(firstEntry.followUps.slice(0, 1));
+  });
+
+  it("loads private plain detail lazily and aborts it when detail closes", async () => {
+    const requests: Array<{
+      request: unknown;
+      signal: AbortSignal;
+    }> = [];
+    await act(async () => {
+      root.render(
+        createElement(UnifiedInboxWorkspace, {
+          data,
+          query: {},
+          onQueryChange: () => {},
+          onFollowUp: () => {},
+          onAction: async () => ({ kind: "completed" as const }),
+          onDetail: async (request, signal) => {
+            requests.push({ request, signal });
+            return {
+              kind: "detail" as const,
+              detail: {
+                kind: "plain" as const,
+                text: "Original private message body",
+                truncated: true,
+              },
+            };
+          },
+        }),
+      );
+    });
+    const row = windowInstance.document.querySelector(".inbox-row");
+    if (!(row instanceof windowInstance.HTMLButtonElement)) {
+      throw new Error("Missing inbox row");
+    }
+
+    await act(async () => row.click());
+
+    expect(requests[0]?.request).toEqual({
+      type: "detail",
+      sourceId: "mail-items",
+      itemId: "mail-1",
+    });
+    expect(requests[0]?.signal.aborted).toBe(false);
+    const sourceDetail = windowInstance.document.querySelector(
+      ".inbox-source-detail",
+    );
+    expect(sourceDetail?.textContent).toContain(
+      "Original private message body",
+    );
+    expect(sourceDetail?.textContent).toContain(
+      "Only the first part of this message is shown",
+    );
+
+    const back = windowInstance.document.querySelector(".inbox-detail-back");
+    if (!(back instanceof windowInstance.HTMLButtonElement)) {
+      throw new Error("Missing inbox detail back button");
+    }
+    await act(async () => back.click());
+    expect(requests[0]?.signal.aborted).toBe(true);
   });
 
   it("renders no follow-up group or legacy entity button when none resolve", async () => {

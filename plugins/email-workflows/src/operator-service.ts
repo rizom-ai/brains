@@ -77,6 +77,19 @@ export class MailTriageOperatorService {
     return (await this.list({ status: "new", limit: INBOX_ITEM_LIMIT })).items;
   }
 
+  async getSourceRef(id: string, actor: OperatorActor): Promise<string> {
+    assertMailTriageAdmin(actor);
+    const entity = await this.context.entityService.getEntity<MailItemEntity>({
+      entityType: "mail-item",
+      id,
+      visibilityScope: "restricted",
+    });
+    if (!entity) throw new Error("Mail item not found");
+    const parsedEntity = mailItemSchema.parse(entity);
+    return mailItemAdapter.parseMailItemContent(parsedEntity.content)
+      .frontmatter.source.ref;
+  }
+
   async summary(): Promise<MailTriageSummary> {
     const items = await this.listInboxItems();
     return mailTriageSummarySchema.parse({

@@ -56,7 +56,7 @@
     "@brains/doc": "workspace:*",
     "@brains/document-plugin": "workspace:*",
     "@brains/email": "workspace:*",
-    "@brains/email-triage": "workspace:*",
+    "@brains/email-workflows": "workspace:*",
     "@brains/eslint-config": "workspace:*",
     "@brains/image-plugin": "workspace:*",
     "@brains/link": "workspace:*",

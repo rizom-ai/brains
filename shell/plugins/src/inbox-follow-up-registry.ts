@@ -70,6 +70,9 @@ export interface IInboxFollowUpRegistry {
   finalize(): void;
   listKinds(): RegisteredInboxFollowUpKind[];
   getKind(kind: string): RegisteredInboxFollowUpKind | undefined;
+  resolve(
+    input: Omit<InboxFollowUpResolutionInput, "context">,
+  ): Promise<ResolvedInboxFollowUp[]>;
   resolveUniversal(
     input: Omit<InboxFollowUpResolutionInput, "context">,
   ): Promise<ResolvedInboxFollowUp[]>;
@@ -212,6 +215,47 @@ export class InboxFollowUpRegistry implements IInboxFollowUpRegistry {
   getKind(kind: string): RegisteredInboxFollowUpKind | undefined {
     this.assertFinalized();
     return this.activeKinds.get(inboxIdSchema.parse(kind));
+  }
+
+  async resolve(
+    input: Omit<InboxFollowUpResolutionInput, "context">,
+  ): Promise<ResolvedInboxFollowUp[]> {
+    this.assertFinalized();
+    const normalizedInput: InboxFollowUpResolutionInput = Object.freeze({
+      sourceId: inboxIdSchema.parse(input.sourceId),
+      item: inboxItemSchema.parse(input.item),
+      actor: inboxActorSchema.parse(input.actor),
+    });
+    const declarations = new Map(
+      (normalizedInput.item.followUps ?? []).map((declaration) => [
+        declaration.kind,
+        declaration.context,
+      ]),
+    );
+    const kinds = this.listKinds();
+    const declared = await Promise.all(
+      kinds
+        .filter((kind) => kind.mode === "declared")
+        .map(async (kind) => {
+          const context = declarations.get(kind.kind);
+          if (!context || !kind.contextSchema) return undefined;
+          const parsedContext = kind.contextSchema.safeParse(context);
+          if (!parsedContext.success) return undefined;
+          return resolveKind(
+            kind,
+            Object.freeze({ ...normalizedInput, context: parsedContext.data }),
+            this.logger,
+          );
+        }),
+    );
+    const universal = await Promise.all(
+      kinds
+        .filter((kind) => kind.mode === "universal")
+        .map(async (kind) => resolveKind(kind, normalizedInput, this.logger)),
+    );
+    return [...declared, ...universal].filter(
+      (target): target is ResolvedInboxFollowUp => target !== undefined,
+    );
   }
 
   async resolveUniversal(

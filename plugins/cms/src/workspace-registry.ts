@@ -13,6 +13,7 @@ const workspaceRegistrationSchema = z.object({
     "SiteWorkspace",
     "DirectorySyncWorkspace",
     "UnifiedInboxWorkspace",
+    "EmailReplyDraftWorkspace",
   ]),
   priority: z.number().int(),
   urlQuery: z.literal(true).optional(),

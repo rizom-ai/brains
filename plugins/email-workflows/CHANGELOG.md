@@ -1,4 +1,4 @@
-# @brains/email-triage
+# @brains/email-workflows
 
 ## 0.2.0-alpha.296
 

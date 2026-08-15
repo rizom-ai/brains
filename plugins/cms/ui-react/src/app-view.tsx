@@ -5,10 +5,17 @@ import type {
   CmsWorkspaceInfo,
   DirectorySyncWorkspaceActionResult,
   DirectorySyncWorkspaceSnapshot,
+  EmailReplyDraftAction,
+  EmailReplyDraftActionResult,
+  EmailReplyDraftSourceRequest,
+  EmailReplyDraftSourceResult,
+  EmailReplyDraftWorkspaceSnapshot,
   EntitySummary,
   EntityTypeInfo,
   InboxWorkspaceAction,
   InboxWorkspaceActionResult,
+  InboxWorkspaceDetailRequest,
+  InboxWorkspaceDetailResult,
   InboxWorkspaceFollowUp,
   InboxWorkspaceSnapshot,
   PublicationPipelineSnapshot,
@@ -24,6 +31,7 @@ import { BodyEditor, type BodyMode } from "./body-editor";
 import { ConfirmDialog } from "./confirm-dialog";
 import type { CmsWorkspaceQuery } from "./queries";
 import { DirectorySyncWorkspace } from "./directory-sync-workspace";
+import { EmailReplyDraftWorkspace } from "./email-reply-draft-workspace";
 import { UnifiedInboxWorkspace } from "./unified-inbox-workspace";
 import {
   Field,
@@ -82,6 +90,7 @@ export interface CmsAppViewProps {
   siteWorkspaceData: SiteWorkspaceSnapshot | null;
   directorySyncWorkspaceData: DirectorySyncWorkspaceSnapshot | null;
   inboxWorkspaceData: InboxWorkspaceSnapshot | null;
+  emailReplyDraftWorkspaceData?: EmailReplyDraftWorkspaceSnapshot | null;
   workspaceQuery: CmsWorkspaceQuery;
   entityType: string | null;
   entities: EntitySummary[] | null;
@@ -115,6 +124,21 @@ export interface CmsAppViewProps {
   performInboxAction: (
     action: InboxWorkspaceAction,
   ) => Promise<InboxWorkspaceActionResult>;
+  performInboxDetail?:
+    | ((
+        request: InboxWorkspaceDetailRequest,
+        signal: AbortSignal,
+      ) => Promise<InboxWorkspaceDetailResult>)
+    | undefined;
+  performEmailReplyDraftAction?:
+    | ((action: EmailReplyDraftAction) => Promise<EmailReplyDraftActionResult>)
+    | undefined;
+  performEmailReplyDraftSource?:
+    | ((
+        request: EmailReplyDraftSourceRequest,
+        signal: AbortSignal,
+      ) => Promise<EmailReplyDraftSourceResult>)
+    | undefined;
   onWorkspaceQueryChange: (
     workspaceId: string,
     query: CmsWorkspaceQuery,
@@ -186,6 +210,7 @@ export function CmsAppView(props: CmsAppViewProps): ReactElement {
     siteWorkspaceData,
     directorySyncWorkspaceData,
     inboxWorkspaceData,
+    emailReplyDraftWorkspaceData,
     workspaceQuery,
     entityType,
     entities,
@@ -213,6 +238,9 @@ export function CmsAppView(props: CmsAppViewProps): ReactElement {
     performSiteAction,
     performDirectorySyncAction,
     performInboxAction,
+    performInboxDetail,
+    performEmailReplyDraftAction,
+    performEmailReplyDraftSource,
     onWorkspaceQueryChange,
     startCreate,
     openEntity,
@@ -336,6 +364,16 @@ export function CmsAppView(props: CmsAppViewProps): ReactElement {
               }
               onFollowUp={openInboxFollowUp}
               onAction={performInboxAction}
+              onDetail={performInboxDetail}
+            />
+          ) : emailReplyDraftWorkspaceData &&
+            performEmailReplyDraftAction &&
+            performEmailReplyDraftSource ? (
+            <EmailReplyDraftWorkspace
+              key={emailReplyDraftWorkspaceData.mailItemId ?? "empty"}
+              data={emailReplyDraftWorkspaceData}
+              onAction={performEmailReplyDraftAction}
+              onSource={performEmailReplyDraftSource}
             />
           ) : null
         ) : !editing ? (

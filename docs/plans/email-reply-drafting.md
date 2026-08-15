@@ -2,14 +2,15 @@
 
 ## Status
 
-**Proposed, gated on the shipped
-[`@brains/email-triage`](../../plugins/email-triage/README.md), Phase 6 of
-[inbox-follow-ups.md](./inbox-follow-ups.md), and a focused review.** Email triage
-persists only a safe derived `mail-item`; it does not copy the original email. The
-inbox follow-up plan owns the private IMAP locator and permission-checked source-read
-contract; this plan consumes that one operation. Lead context from
-[lead-management.md](./lead-management.md) is optional enrichment, not the source of
-threading or recipient truth.
+**Active. Source-read integration and reply generation/editing are implemented;
+threaded delivery and approval-gated sending remain planned.**
+[`@brains/email-workflows`](../../plugins/email-workflows/README.md) groups triage and
+reply drafting as one installable email feature while retaining internal source and
+destination ownership. Email triage persists only a safe derived `mail-item`; the
+email interface owns the private IMAP locator and source read, and reply drafting
+persists only newly authored text. Lead context from
+[lead-management.md](./lead-management.md) remains optional enrichment, not the source
+of recipient truth.
 
 ## Goal
 
@@ -21,13 +22,15 @@ or accept it, and send a correctly threaded reply only after explicit approval.
 
 - Outbound email works: `interfaces/email` registers the `email`
   `ChannelDeliveryProvider`; senders resolve it through the channel registry.
-- Inbound email publishes parsed `EMAIL_INBOUND` events, but it exposes no durable
-  on-demand source-read operation today.
+- Inbound email records a private locator before publishing `EMAIL_INBOUND` and
+  exposes an Admin-only, bounded on-demand source-read operation in the web process.
 - `ChannelDeliveryInput` has no threading fields — `recipient`, `subject`, `text`,
   `html?`, `sensitivity`, and `idempotencyKey` only.
-- The planned mail-item entity deliberately contains no original body, subject, address,
-  or raw message identifier. This plan therefore cannot draft correctly by reading
+- The mail-item entity deliberately contains no original body, subject, address, or raw
+  message identifier. Drafting resolves the mailbox source on demand rather than reading
   entity content.
+- The registered **Draft reply** destination opens an Admin-only CMS workspace that can
+  generate, edit, and revision reply text. It never sends automatically.
 
 ## Core decisions
 
@@ -45,9 +48,10 @@ or accept it, and send a correctly threaded reply only after explicit approval.
 3. **Drafting is structured generation, not agent chat.** The fetched email is delimited
    as untrusted source material. Voice and response guidance are explicit plugin
    configuration/profile context. No inbound instruction can enter an agent loop.
-4. **Drafts are separate, per-mail-item records.** A future `email-reply-draft` entity
-   stores only Brain-authored reply text, revision, and send state. It links to one mail
-   item and optionally one lead; draft lifecycle does not overload lead status.
+4. **Drafts are separate, per-mail-item records.** The restricted
+   `email-reply-draft` entity stores only Brain-authored reply text, revision, and draft
+   state. It links to one mail item; draft lifecycle does not overload mail or lead
+   status, and optimistic revisions reject stale edits.
 5. **Threading extends the shared delivery contract.** Add optional
    `threading?: { inReplyTo: string; references: string[] }` to
    `ChannelDeliveryInput`. The email provider maps it to RFC 5322 headers; providers
@@ -65,14 +69,14 @@ or accept it, and send a correctly threaded reply only after explicit approval.
 
 Tests are written and observed failing before implementation in every phase.
 
-- **Phase 0 — Source-read integration gate.** Consume the shipped source-read contract;
-  refuse to register draft operations when the capability is absent, and map its fixed
-  unavailable outcome without provider detail. Do not add another email-interface
-  reader or locator. _Tests first:_ web capability-present/absent registration; worker
-  registration exposes no source-backed operation; actor forwarding; valid/unavailable
-  result handling; no source content copied into plugin state, IPC, logs, or job
-  payloads; source bytes released after generation.
-- **Phase 1 — Draft entity + generation.** Finalize the `email-reply-draft` schema and a
+- **Phase 0 — Source-read integration gate (implemented).** Consume the shipped
+  source-read contract and map an absent or unavailable provider to one fixed outcome
+  without provider detail. Existing authored drafts remain editable when the mailbox is
+  temporarily unavailable. Do not add another email-interface reader or locator.
+  _Tests first:_ worker registration exposes no drafting destination; actor forwarding;
+  valid/unavailable result handling; no source content copied into plugin state, IPC,
+  logs, or job payloads; source bytes released after generation.
+- **Phase 1 — Draft entity + generation (implemented).** Finalize the `email-reply-draft` schema and a
   confirmation-neutral draft operation that fetches the source, generates reply text,
   stores only the reply, and increments revision. _Tests first:_ raw source never
   persists; redraft creates a new revision; lead context optional; untrusted source is
@@ -94,7 +98,7 @@ Tests are written and observed failing before implementation in every phase.
 
 ## Related plans
 
-- [`@brains/email-triage`](../../plugins/email-triage/README.md) — shipped; owns the
+- [`@brains/email-workflows`](../../plugins/email-workflows/README.md) — shipped; owns the
   derived mail item and opaque source reference.
 - [lead-management.md](./lead-management.md) — optional business context.
 - [connected-channels.md](./connected-channels.md) — delivery-provider contract extended

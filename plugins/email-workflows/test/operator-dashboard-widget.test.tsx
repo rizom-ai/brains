@@ -67,7 +67,7 @@ async function captureWidget(input: {
     registerInboxInteraction(harness, input.href);
   }
   await registerEmailTriageDashboardWidget(
-    harness.getServiceContext("email-triage"),
+    harness.getServiceContext("email-workflows"),
     { summary: async () => summary },
   );
   if (input.interaction === "after") {

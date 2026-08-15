@@ -179,7 +179,7 @@ consequences of it:
   dedicated tool there is no way for a `[core]` brain to ask the question the capability
   is named after.
 - **The inbox needs a core source.** Exactly one `InboxSource` is registered anywhere
-  today: `email-triage`'s, which is an opt-in needing the `email` interface from `chat`.
+  today: `email-workflows`'s, which is an opt-in needing the `email` interface from `chat`.
   Shipping core membership without a core-owned source would produce an inbox that is
   empty by construction rather than empty by circumstance.
 
@@ -217,7 +217,7 @@ These stay outside default bundles unless a new product decision is recorded:
 - docs;
 - wishlist;
 - assessment (SWOT);
-- email-triage;
+- email-workflows;
 - low-level chat adapter surfaces not selected by the built-in interfaces;
 - opportunity-prioritization;
 - LinkedIn import and the managed OAuth broker;

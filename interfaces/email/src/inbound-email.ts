@@ -36,6 +36,7 @@ export interface InboundEmailSourceMessage {
   source: Uint8Array;
   receivedAt: Date;
   threadId?: string | undefined;
+  sourceTruncated?: boolean | undefined;
 }
 
 export interface InboundEmailClient {
@@ -43,6 +44,11 @@ export interface InboundEmailClient {
   /** Select a mailbox and return its IMAP UIDVALIDITY as a decimal string. */
   selectMailbox: (mailbox: string) => Promise<string>;
   fetchMessages: (afterUid: number) => AsyncIterable<InboundEmailSourceMessage>;
+  fetchMessage?: (
+    uid: number,
+    maxBytes: number,
+    signal: AbortSignal,
+  ) => Promise<InboundEmailSourceMessage | undefined>;
   waitForChanges: (signal: AbortSignal) => Promise<void>;
   disconnect: () => Promise<void>;
 }
@@ -98,6 +104,47 @@ export function createInboundEmailClient(
           receivedAt: new Date(message.internalDate),
           ...(message.threadId ? { threadId: message.threadId } : {}),
         };
+      }
+    },
+    fetchMessage: async (
+      uid: number,
+      maxBytes: number,
+      signal: AbortSignal,
+    ): Promise<InboundEmailSourceMessage | undefined> => {
+      if (signal.aborted) throw signal.reason;
+      const abort = (): void => client.close();
+      signal.addEventListener("abort", abort, { once: true });
+      try {
+        const message = await client.fetchOne(
+          String(uid),
+          {
+            uid: true,
+            source: { maxLength: maxBytes },
+            size: true,
+            internalDate: true,
+            threadId: true,
+          },
+          { uid: true },
+        );
+        if (
+          !message ||
+          message.uid !== uid ||
+          !message.source ||
+          !message.internalDate
+        ) {
+          return undefined;
+        }
+        return {
+          uid,
+          source: message.source,
+          receivedAt: new Date(message.internalDate),
+          ...(message.threadId ? { threadId: message.threadId } : {}),
+          ...(message.size !== undefined && message.source.length < message.size
+            ? { sourceTruncated: true }
+            : {}),
+        };
+      } finally {
+        signal.removeEventListener("abort", abort);
       }
     },
     waitForChanges: (signal: AbortSignal): Promise<void> => {
@@ -174,6 +221,14 @@ export interface InboundEmailIntakeDependencies {
   publish: MessageSender;
   resolveSender?:
     ((address: string) => Promise<InboundEmailSender | undefined>) | undefined;
+  recordSourceLocator?:
+    | ((
+        sourceRef: string,
+        selection: InboundEmailSelection,
+        uid: number,
+      ) => Promise<void>)
+    | undefined;
+  pruneSourceLocators?: (() => Promise<void>) | undefined;
   logger: Logger;
 }
 
@@ -182,7 +237,14 @@ export async function intakeInboundEmail(
   selection: InboundEmailSelection,
   dependencies: InboundEmailIntakeDependencies,
 ): Promise<number> {
-  const { cursor, publish, resolveSender, logger } = dependencies;
+  const {
+    cursor,
+    publish,
+    resolveSender,
+    recordSourceLocator,
+    pruneSourceLocators,
+    logger,
+  } = dependencies;
   const storedCursor = await cursor.get("cursor");
   // A UID cursor is meaningful only within one mailbox generation; distinct
   // mailboxes can share a UIDVALIDITY value, so both fields gate reuse.
@@ -215,6 +277,21 @@ export async function intakeInboundEmail(
       });
       cursorUid = sourceMessage.uid;
       continue;
+    }
+
+    if (recordSourceLocator) {
+      try {
+        await recordSourceLocator(
+          email.sourceRef,
+          selection,
+          sourceMessage.uid,
+        );
+      } catch {
+        logger.warn("Inbound email source locator could not be recorded", {
+          uid: sourceMessage.uid,
+        });
+        break;
+      }
     }
 
     if (resolveSender) {
@@ -257,6 +334,14 @@ export async function intakeInboundEmail(
     });
   }
 
+  if (pruneSourceLocators) {
+    try {
+      await pruneSourceLocators();
+    } catch {
+      logger.warn("Inbound email source locator retention failed");
+    }
+  }
+
   return processed;
 }
 
@@ -276,12 +361,15 @@ export async function parseInboundEmail(
     parsed.messageId,
     sourceMessage.source,
   );
+  const replyTo = firstAddress(parsed.replyTo);
+  const references = normalizeReferences(parsed.references);
   const html = typeof parsed.html === "string" ? parsed.html : undefined;
   const email: InboundEmail = {
     messageId,
     sourceRef,
     ...(sourceMessage.threadId ? { threadId: sourceMessage.threadId } : {}),
     from,
+    ...(replyTo ? { replyTo } : {}),
     to: addresses(parsed.to),
     subject: parsed.subject ?? "",
     receivedAt: sourceMessage.receivedAt.toISOString(),
@@ -295,6 +383,10 @@ export async function parseInboundEmail(
       ),
       ...optionalHeader(parsed.headerLines, "auto-submitted", "autoSubmitted"),
       ...optionalHeader(parsed.headerLines, "precedence", "precedence"),
+      ...(parsed.inReplyTo?.trim()
+        ? { inReplyTo: parsed.inReplyTo.trim() }
+        : {}),
+      ...(references.length > 0 ? { references } : {}),
     },
   };
   return inboundEmailSchema.parse(email);
@@ -338,6 +430,12 @@ function toAddress(value: {
   if (!address) return [];
   const name = value.name.trim();
   return [{ address, ...(name ? { name } : {}) }];
+}
+
+function normalizeReferences(input: string | string[] | undefined): string[] {
+  return (typeof input === "string" ? [input] : (input ?? []))
+    .map((reference) => reference.trim())
+    .filter((reference) => reference.length > 0);
 }
 
 function optionalHeader(

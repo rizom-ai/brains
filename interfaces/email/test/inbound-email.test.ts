@@ -107,6 +107,14 @@ function createFakeClient(
         if (message.uid >= afterUid) yield message;
       }
     },
+    fetchMessage: async (
+      uid: number,
+      _maxBytes: number,
+      signal: AbortSignal,
+    ): Promise<InboundEmailSourceMessage | undefined> => {
+      if (signal.aborted) throw signal.reason;
+      return messages.find((message) => message.uid === uid);
+    },
     waitForChanges: waitForAbort,
     disconnect: async (): Promise<void> => {},
   };
@@ -127,6 +135,51 @@ describe("inbound email intake", () => {
     ).not.toBe(sourceRef);
     expect(sourceRef).toMatch(/^imap:[a-f0-9]{64}$/);
     expect(sourceRef).not.toContain(selection.mailbox);
+  });
+
+  it("records the private source locator before inbound publication", async () => {
+    const message = await fixtureMessage(7, "plain.eml");
+    const harness = createPluginHarness();
+    const cursor = harness
+      .getMockShell()
+      .getRuntimeState()
+      .scoped({
+        namespace: "email.inbound.locator-order-test",
+        schema: z.strictObject({
+          mailbox: z.string(),
+          uidValidity: z.string(),
+          lastUid: z.number().int().nonnegative(),
+        }),
+      });
+    let recorded = false;
+    const expectedRef = createInboundEmailSourceRef(
+      { mailbox: "INBOX", uidValidity: "42" },
+      7,
+    );
+
+    await intakeInboundEmail(
+      createFakeClient([message], [], "42"),
+      { mailbox: "INBOX", uidValidity: "42" },
+      {
+        cursor,
+        recordSourceLocator: async (sourceRef, selection, uid) => {
+          expect({ sourceRef, selection, uid }).toEqual({
+            sourceRef: expectedRef,
+            selection: { mailbox: "INBOX", uidValidity: "42" },
+            uid: 7,
+          });
+          recorded = true;
+        },
+        publish: async () => {
+          expect(recorded).toBe(true);
+          return { success: false, error: "retry" };
+        },
+        logger: createMockLogger(),
+      },
+    );
+
+    expect(recorded).toBe(true);
+    expect((await cursor.get("cursor"))?.lastUid).toBe(0);
   });
 
   it("parses plain, HTML, multipart, and missing Message-ID fixtures", async () => {
