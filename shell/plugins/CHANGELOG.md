@@ -1,5 +1,30 @@
 # @brains/plugins
 
+## 0.2.0-alpha.298
+
+### Minor Changes
+
+- [#145](https://github.com/rizom-ai/brains/pull/145) [`9666d4a`](https://github.com/rizom-ai/brains/commit/9666d4af711d4a65ea2f071e757178f2639c6325) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add bounded email threading metadata and ship explicit confirmation-gated sending for saved reply-draft revisions. Recipients, subjects, and reply headers are resolved from fresh mailbox source reads; stable per-revision idempotency and persisted provider acceptance keep retries safe without storing original messages.
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.298
+  - @brains/contracts@0.2.0-alpha.298
+  - @brains/site-composition@0.2.0-alpha.298
+  - @brains/utils@0.2.0-alpha.298
+  - @brains/ai-service@0.2.0-alpha.298
+  - @brains/content-service@0.2.0-alpha.298
+  - @brains/conversation-service@0.2.0-alpha.298
+  - @brains/entity-service@0.2.0-alpha.298
+  - @brains/identity-service@0.2.0-alpha.298
+  - @brains/job-queue@0.2.0-alpha.298
+  - @brains/mcp-service@0.2.0-alpha.298
+  - @brains/messaging-service@0.2.0-alpha.298
+  - @brains/recurring-checks@0.2.0-alpha.298
+  - @brains/runtime-state@0.2.0-alpha.298
+  - @brains/templates@0.2.0-alpha.298
+
 ## 0.2.0-alpha.297
 
 ### Minor Changes

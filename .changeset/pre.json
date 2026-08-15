@@ -262,6 +262,7 @@
     "core--email-triage-prompt-entity",
     "core--email-triage-routing",
     "core--email-workflows-source-drafting",
+    "core--email-workflows-threaded-send",
     "core--enqueue-retry-time-budget",
     "core--fenced-job-attempts",
     "core--fix-professional-profile-view-schema",

@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.298
+
+### Patch Changes
+
+- [#145](https://github.com/rizom-ai/brains/pull/145) [`9666d4a`](https://github.com/rizom-ai/brains/commit/9666d4af711d4a65ea2f071e757178f2639c6325) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add bounded email threading metadata and ship explicit confirmation-gated sending for saved reply-draft revisions. Recipients, subjects, and reply headers are resolved from fresh mailbox source reads; stable per-revision idempotency and persisted provider acceptance keep retries safe without storing original messages.
+
 ## 0.2.0-alpha.297
 
 ### Patch Changes

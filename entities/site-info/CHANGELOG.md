@@ -1,5 +1,16 @@
 # @brains/site-info
 
+## 0.2.0-alpha.298
+
+### Patch Changes
+
+- Updated dependencies [[`9666d4a`](https://github.com/rizom-ai/brains/commit/9666d4af711d4a65ea2f071e757178f2639c6325)]:
+  - @brains/plugins@0.2.0-alpha.298
+  - @brains/contracts@0.2.0-alpha.298
+  - @brains/site-composition@0.2.0-alpha.298
+  - @brains/utils@0.2.0-alpha.298
+  - @brains/entity-service@0.2.0-alpha.298
+
 ## 0.2.0-alpha.297
 
 ### Patch Changes
