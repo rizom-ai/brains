@@ -1,5 +1,17 @@
 # @brains/ai-evaluation
 
+## 0.2.0-alpha.297
+
+### Patch Changes
+
+- Updated dependencies [[`f6d93c7`](https://github.com/rizom-ai/brains/commit/f6d93c7aa49acccd691b049b090a7fdbbe7b6a1a)]:
+  - @brains/plugins@0.2.0-alpha.297
+  - @brains/content-formatters@0.2.0-alpha.297
+  - @brains/ai-service@0.2.0-alpha.297
+  - @brains/templates@0.2.0-alpha.297
+  - @brains/app@0.2.0-alpha.297
+  - @brains/utils@0.2.0-alpha.297
+
 ## 0.2.0-alpha.296
 
 ### Patch Changes

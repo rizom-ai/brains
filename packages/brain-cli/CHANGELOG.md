@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.297
+
+### Patch Changes
+
+- [#144](https://github.com/rizom-ai/brains/pull/144) [`f6d93c7`](https://github.com/rizom-ai/brains/commit/f6d93c7aa49acccd691b049b090a7fdbbe7b6a1a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Rename the email workflow package, add destination-resolved source-specific Inbox follow-ups, and ship private locator-backed IMAP detail reads plus an Admin-only reply drafting workspace. Original messages remain mailbox-owned and non-persistent; only operator-authored reply drafts are stored.
+
 ## 0.2.0-alpha.296
 
 ## 0.2.0-alpha.295

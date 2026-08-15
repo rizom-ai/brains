@@ -1,5 +1,18 @@
 # @brains/unified-inbox
 
+## 0.2.0-alpha.297
+
+### Minor Changes
+
+- [#144](https://github.com/rizom-ai/brains/pull/144) [`f6d93c7`](https://github.com/rizom-ai/brains/commit/f6d93c7aa49acccd691b049b090a7fdbbe7b6a1a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Rename the email workflow package, add destination-resolved source-specific Inbox follow-ups, and ship private locator-backed IMAP detail reads plus an Admin-only reply drafting workspace. Original messages remain mailbox-owned and non-persistent; only operator-authored reply drafts are stored.
+
+### Patch Changes
+
+- Updated dependencies [[`f6d93c7`](https://github.com/rizom-ai/brains/commit/f6d93c7aa49acccd691b049b090a7fdbbe7b6a1a)]:
+  - @brains/plugins@0.2.0-alpha.297
+  - @brains/ui-library@0.2.0-alpha.297
+  - @brains/utils@0.2.0-alpha.297
+
 ## 0.2.0-alpha.296
 
 ### Patch Changes

@@ -1,5 +1,30 @@
 # @brains/plugins
 
+## 0.2.0-alpha.297
+
+### Minor Changes
+
+- [#144](https://github.com/rizom-ai/brains/pull/144) [`f6d93c7`](https://github.com/rizom-ai/brains/commit/f6d93c7aa49acccd691b049b090a7fdbbe7b6a1a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Rename the email workflow package, add destination-resolved source-specific Inbox follow-ups, and ship private locator-backed IMAP detail reads plus an Admin-only reply drafting workspace. Original messages remain mailbox-owned and non-persistent; only operator-authored reply drafts are stored.
+
+### Patch Changes
+
+- Updated dependencies [[`f6d93c7`](https://github.com/rizom-ai/brains/commit/f6d93c7aa49acccd691b049b090a7fdbbe7b6a1a)]:
+  - @brains/contracts@0.2.0-alpha.297
+  - @brains/content-formatters@0.2.0-alpha.297
+  - @brains/ai-service@0.2.0-alpha.297
+  - @brains/content-service@0.2.0-alpha.297
+  - @brains/conversation-service@0.2.0-alpha.297
+  - @brains/entity-service@0.2.0-alpha.297
+  - @brains/job-queue@0.2.0-alpha.297
+  - @brains/mcp-service@0.2.0-alpha.297
+  - @brains/messaging-service@0.2.0-alpha.297
+  - @brains/templates@0.2.0-alpha.297
+  - @brains/site-composition@0.2.0-alpha.297
+  - @brains/identity-service@0.2.0-alpha.297
+  - @brains/recurring-checks@0.2.0-alpha.297
+  - @brains/utils@0.2.0-alpha.297
+  - @brains/runtime-state@0.2.0-alpha.297
+
 ## 0.2.0-alpha.296
 
 ### Patch Changes
