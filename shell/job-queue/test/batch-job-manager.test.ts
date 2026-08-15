@@ -20,7 +20,7 @@ function batchOpts(overrides: Partial<JobOptions> = {}): JobOptions {
   return { ...defaultBatchOptions, ...overrides };
 }
 
-class MockEmbeddingHandler {
+class MockEmbeddingHandler implements JobHandler {
   public processCallCount = 0;
   public shouldFail = false;
 
@@ -55,10 +55,7 @@ describe("BatchJobManager", () => {
     batchManager = BatchJobManager.createFresh(jobQueueService, logger);
 
     embeddingHandler = new MockEmbeddingHandler();
-    jobQueueService.registerHandler(
-      "embedding",
-      embeddingHandler as unknown as JobHandler,
-    );
+    jobQueueService.registerHandler("embedding", embeddingHandler);
   });
 
   afterEach(async () => {
@@ -243,10 +240,7 @@ describe("BatchJobManager", () => {
         handlerRegistrationMode: "validation-only",
       });
       webBatchManager = BatchJobManager.createFresh(webService, logger);
-      webService.registerHandler(
-        "embedding",
-        new MockEmbeddingHandler() as unknown as JobHandler,
-      );
+      webService.registerHandler("embedding", new MockEmbeddingHandler());
     });
 
     afterEach(async () => {
@@ -480,13 +474,10 @@ describe("BatchJobManager", () => {
   });
 
   describe("cleanup memoization", () => {
-    interface BatchEntry {
-      terminalAt?: number;
-    }
-    const peekEntry = (id: string): BatchEntry | undefined =>
-      (
-        batchManager as unknown as { batches: Map<string, BatchEntry> }
-      ).batches.get(id);
+    const peekEntry = (
+      id: string,
+    ): { terminalAt: number | undefined } | undefined =>
+      batchManager.inspectRetention(id);
 
     async function driveBatchToCompletion(batchId: string): Promise<void> {
       await batchManager.enqueueBatch(
@@ -567,13 +558,9 @@ describe("BatchJobManager", () => {
     it("should run cleanup on schedule and stop when stopped", async () => {
       const program = Effect.gen(function* () {
         const clock = yield* TestClock.testClock();
-        // Keep the clock seam out of the package's public Promise API.
-        const createWithClock = BatchJobManager.createFresh as unknown as (
-          queue: JobQueueService,
-          logger: ReturnType<typeof createSilentLogger>,
-          options: { clock: typeof clock },
-        ) => BatchJobManager;
-        const testManager = createWithClock(
+        // createFresh takes options directly now; the overload that hid them
+        // from callers is gone.
+        const testManager = BatchJobManager.createFresh(
           jobQueueService,
           createSilentLogger(),
           { clock },

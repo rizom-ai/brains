@@ -134,10 +134,7 @@ describe("JobQueueService", () => {
     it("should allow multiple handlers for different job types", () => {
       const handler2 = new TestJobHandler();
       service.registerHandler("shell:embedding", testHandler);
-      service.registerHandler(
-        "shell:content-generation",
-        handler2 as unknown as JobHandler<"content-generation">,
-      );
+      service.registerHandler("shell:content-generation", handler2);
       const types = service.getRegisteredTypes();
       expect(types.length).toBe(2);
       expect(types).toContain("shell:embedding");
@@ -511,8 +508,7 @@ describe("JobQueueService", () => {
         createSilentLogger(),
         { handlerRegistrationMode: "execution-only" },
       );
-      const projectionHandler =
-        testHandler as unknown as JobHandler<"shell:projection-rule">;
+      const projectionHandler = testHandler;
       scheduler.registerHandler(
         "shell:projection-rule",
         projectionHandler,

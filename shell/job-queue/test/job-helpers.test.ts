@@ -1,6 +1,7 @@
 import { describe, expect, it, mock } from "bun:test";
 import { createEnqueueJobFn } from "../src/job-helpers";
 import type { IJobQueueService } from "../src/types";
+import type { JobEnqueuer } from "../src/job-helpers";
 
 describe("createEnqueueJobFn", () => {
   it("copies authenticated requester attribution into private job metadata", async () => {
@@ -8,7 +9,7 @@ describe("createEnqueueJobFn", () => {
       async (_request: Parameters<IJobQueueService["enqueue"]>[0]) => "job-1",
     );
     const enqueueJob = createEnqueueJobFn(
-      { enqueue } as unknown as IJobQueueService,
+      { enqueue } satisfies JobEnqueuer,
       "site-content",
       true,
     );
@@ -49,7 +50,7 @@ describe("createEnqueueJobFn", () => {
       async (_request: Parameters<IJobQueueService["enqueue"]>[0]) => "job-1",
     );
     const enqueueJob = createEnqueueJobFn(
-      { enqueue } as unknown as IJobQueueService,
+      { enqueue } satisfies JobEnqueuer,
       "site-content",
       true,
     );
@@ -85,7 +86,7 @@ describe("createEnqueueJobFn", () => {
       async (_request: Parameters<IJobQueueService["enqueue"]>[0]) => "job-1",
     );
     const enqueueJob = createEnqueueJobFn(
-      { enqueue } as unknown as IJobQueueService,
+      { enqueue } satisfies JobEnqueuer,
       "site-content",
       true,
     );

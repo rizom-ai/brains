@@ -1,11 +1,11 @@
 import { describe, test, expect, beforeEach, mock } from "bun:test";
+import { fakeEntityDb } from "./helpers/fake-entity-db";
 import { EntitySearch } from "../src/entity-search";
 import { EntityRegistry } from "../src/entityRegistry";
 import { EntitySerializer } from "../src/entity-serializer";
 import { createSilentLogger } from "@brains/test-utils";
 import type { Logger } from "@brains/utils/logger";
-import type { IEmbeddingService } from "../src/embedding-types";
-import type { EntityDB } from "../src/db";
+import type { QueryEmbedder } from "../src/entity-search";
 import { z } from "@brains/utils/zod";
 import { baseEntitySchema } from "../src/types";
 import { BaseEntityAdapter } from "../src/adapters/base-entity-adapter";
@@ -94,18 +94,15 @@ describe("EntitySearch weight behavior", () => {
       new TestAdapter("deck"),
     );
 
+    // generateEmbedding is the whole surface search uses.
     const mockEmbeddingService = {
-      dimensions: MOCK_DIMENSIONS,
       generateEmbedding: mock(() =>
         Promise.resolve({
           embedding: new Float32Array(MOCK_DIMENSIONS).fill(0.1),
           usage: { tokens: 10 },
         }),
       ),
-      generateEmbeddings: mock(() =>
-        Promise.resolve({ embeddings: [], usage: { tokens: 0 } }),
-      ),
-    } as unknown as IEmbeddingService;
+    } satisfies QueryEmbedder;
 
     mockSelectFn = mock(() => Promise.resolve([]));
 
@@ -118,9 +115,7 @@ describe("EntitySearch weight behavior", () => {
       offset: mockSelectFn,
     };
 
-    const mockDb = {
-      select: mock(() => chainableMock),
-    } as unknown as EntityDB;
+    const mockDb = fakeEntityDb(() => chainableMock);
 
     const serializer = new EntitySerializer(entityRegistry, logger);
 

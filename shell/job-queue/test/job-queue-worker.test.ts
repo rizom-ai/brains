@@ -102,15 +102,9 @@ function createWorkerWithClock(
   config: JobQueueWorkerConfig,
   clock: Clock.Clock,
 ): JobQueueWorker {
-  // Keep the clock seam out of the package's public Promise API.
-  const createWithClock = JobQueueWorker.createFresh as unknown as (
-    jobQueueService: IJobQueueService,
-    monitor: IJobProgressMonitor,
-    logger: ReturnType<typeof createSilentLogger>,
-    workerConfig: JobQueueWorkerConfig,
-    runtimeOptions: { clock: Clock.Clock },
-  ) => JobQueueWorker;
-  return createWithClock(
+  // createFresh already declares runtimeOptions; the cast this replaces
+  // re-stated a signature that was there all along.
+  return JobQueueWorker.createFresh(
     service,
     progressMonitor,
     createSilentLogger(),
