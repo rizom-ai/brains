@@ -3,6 +3,7 @@ import { mkdtemp, mkdir, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 
+import { resolveDirectorySyncStressPlan } from "../src/directory-sync-stress";
 import {
   cleanupDirectorySyncStress,
   listProbeFiles,
@@ -27,6 +28,7 @@ interface ScriptedSystemOptions {
   rejectRuntimeMonitor?: boolean;
   runtimeLog?: string;
   containerStartedAt?: string[];
+  queueNeverAdvances?: boolean;
 }
 
 const environment = {
@@ -79,6 +81,7 @@ class ScriptedStressSystem {
   private containerInspectCalls = 0;
   private remainingWarmupFailures: number;
   private renameNoteCounts: number[];
+  private completedImports = 0;
 
   constructor(options: ScriptedSystemOptions = {}) {
     this.options = options;
@@ -210,6 +213,18 @@ class ScriptedStressSystem {
         entities: 41 + probeNotes,
         entityCounts: [{ entityType: "note", count: 7 + probeNotes }],
       },
+      resources: {
+        queue: {
+          totals: { pending: 0, processing: 0 },
+          byType: [
+            {
+              type: "directory-sync:directory-import",
+              status: "completed",
+              count: this.completedImports,
+            },
+          ],
+        },
+      },
     });
   };
 
@@ -259,6 +274,14 @@ class ScriptedStressSystem {
       return ok();
     }
     if (command === "git") {
+      if (
+        args[0] === "push" &&
+        args[1] === "origin" &&
+        args[2] === "main" &&
+        !this.options.queueNeverAdvances
+      ) {
+        this.completedImports += 100;
+      }
       if (args[0] === "rev-parse" && args[1] === "HEAD^{tree}") {
         return ok("baseline-tree\n");
       }
@@ -469,6 +492,17 @@ describe("deployed directory-sync stress driver", () => {
     expect(runtimeLogsIndex).toBeGreaterThan(backupDeletionIndex);
   });
 
+  it("requires durable import completion and queue drain for each phase", async () => {
+    const system = new ScriptedStressSystem({ queueNeverAdvances: true });
+    const { result } = await runScriptedProfile("regression", system);
+
+    expect(result.report.success).toBe(false);
+    expect(result.report.failure).toContain(
+      "add20: health did not observe 1 completed import job(s) with a drained queue",
+    );
+    expect(result.report.phases.map((phase) => phase.id)).toEqual(["add20"]);
+  });
+
   it("detects a watchdog restart even when Docker RestartCount stays zero", async () => {
     const system = new ScriptedStressSystem({
       containerStartedAt: [
@@ -517,6 +551,37 @@ describe("deployed directory-sync stress driver", () => {
         logger() {},
       }),
     ).rejects.toThrow("requires embeddingEnabled: false");
+  });
+
+  it("allows feature-enabled smoke only with an explicit external AI cap", async () => {
+    const system = new ScriptedStressSystem({
+      runtimeLog:
+        "[2026-08-06T06:01:00.000Z] [EmbeddingJobHandler] ai:usage {\n",
+    });
+    const rootDir = await createSmokePilotRepo();
+    await writeFile(
+      join(rootDir, "users", "smoke.yaml"),
+      "handle: smoke\ndiscord:\n  enabled: false\n",
+    );
+    const plan = resolveDirectorySyncStressPlan("regression");
+    plan.maximumExternalAiCalls = 1;
+
+    const result = await runDeployedDirectorySyncStress({
+      rootDir,
+      handle: "smoke",
+      profile: "regression",
+      plan,
+      confirmation: "stress:smoke",
+      env: environment,
+      fetchImpl: system.fetchImpl,
+      commandRunner: system.commandRunner,
+      now: system.now,
+      sleep: system.sleep,
+      logger() {},
+    });
+
+    expect(result.report.success).toBe(true);
+    expect(result.report.metrics.externalAiCalls).toBe(1);
   });
 
   it("excludes tolerated warmup failures from the gate but preserves them as evidence", async () => {

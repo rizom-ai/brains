@@ -457,3 +457,30 @@ remained operational and ready and both phases drained.
 
 This is the closest hermetic comparison to the prior smoke peak of 199.72% CPU, but it
 remains local rather than smoke evidence.
+
+An explicitly approved, narrower smoke comparison then ran only the add ramp and one
+350-file update on Brain alpha.295; it did not run rename or delete as acceptance phases.
+The operator plan capped external AI at 1,000 calls and required the expected durable
+import-job completions plus two consecutive drained-queue samples for every phase. All
+four phases passed: `add50` in 38.610 seconds, `add150` in 119.095 seconds, `add350` in
+134.259 seconds, and `update350a` in 125.237 seconds. The gate observed exactly 700
+embedding calls, 272 successful health samples, and zero health failure. Maximum response
+times were 626 ms for live, 1,026 ms for ready, and 1,186 ms for operate.
+
+Independent Docker sampling recorded a 104.15% peak CPU, 47.85% below the retained
+alpha.275 peak of 199.72%. Peak Docker memory was 1,294,932,640 bytes, with 191,126,045
+bytes of growth from the first sample; this is container memory rather than the packaged
+process-tree RSS metric and is retained separately. The add/update gate therefore provides
+smoke evidence that CPU behavior improved without reproducing the prior saturation or
+health failure during those phases.
+
+The complete run is nevertheless retained as failed and was not retried. After the gate
+ended, cleanup pushed the probe-removal commit. Health requests then began timing out while
+Docker CPU remained mostly 5–18% and memory remained between 1.189 and 1.194 GiB. Three
+consecutive five-second Docker health-check timeouts made the container unhealthy, and the
+host watchdog restarted it once. Startup reconciliation restored 51 entities, seven notes,
+zero probes, an empty queue, one worker, and zero zombies; both driver cleanup and the
+independently credentialed cleanup passed and restored the original content tree. This is
+separate Git/delete-runtime lockup evidence: it does not erase the bounded add/update
+resource comparison, but it prevents whole-run acceptance and keeps rename/delete on the
+Git broker track.

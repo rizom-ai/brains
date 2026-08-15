@@ -167,13 +167,18 @@ describe("directory-sync stress observations", () => {
         runtime: [],
       }),
     ).toBe("health: /health/ready unavailable");
-    expect(
-      stressMetricsFailure({
-        health: [],
-        runtime: [],
-        externalAiCalls: 2,
-      }),
-    ).toBe("external AI: observed 2 call(s)");
+    const externalAiMetrics = {
+      health: [],
+      runtime: [],
+      externalAiCalls: 2,
+    };
+    expect(stressMetricsFailure(externalAiMetrics)).toBe(
+      "external AI: observed 2 call(s)",
+    );
+    expect(stressMetricsFailure(externalAiMetrics, 2)).toBeUndefined();
+    expect(stressMetricsFailure(externalAiMetrics, 1)).toBe(
+      "external AI: observed 2 call(s), cap 1",
+    );
     expect(
       stressMetricsFailure({
         health: [],
@@ -221,6 +226,36 @@ describe("directory-sync stress observations", () => {
 });
 
 describe("directory-sync stress orchestration", () => {
+  it("accepts external AI usage within an explicit plan cap", async () => {
+    const plan = resolveDirectorySyncStressPlan("regression");
+    plan.maximumExternalAiCalls = 2;
+    const driver: DirectorySyncStressDriver = {
+      async prepare() {
+        return { entities: 41, notes: 7, version: "0.2.0-alpha.295" };
+      },
+      async startMonitoring() {},
+      async executePhase(phase) {
+        return {
+          id: phase.id,
+          operation: phase.operation,
+          count: phase.count,
+          success: true,
+        };
+      },
+      async cleanup() {
+        return { success: true, probesRemaining: 0 };
+      },
+      async stopMonitoring() {
+        return { health: [], runtime: [], externalAiCalls: 2 };
+      },
+    };
+
+    const report = await runDirectorySyncStressPlan(plan, driver);
+
+    expect(report.success).toBe(true);
+    expect(report.metrics.externalAiCalls).toBe(2);
+  });
+
   it("cleans up when monitoring fails to start", async () => {
     const calls: string[] = [];
     const driver: DirectorySyncStressDriver = {
