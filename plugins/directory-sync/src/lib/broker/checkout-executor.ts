@@ -2,13 +2,6 @@ import simpleGit from "simple-git";
 import type { SimpleGit } from "simple-git";
 import type { Logger } from "@brains/utils/logger";
 import { SerialQueue } from "@brains/utils/serial-queue";
-import type {
-  GitLogEntry,
-  GitReconciliationCheckpoint,
-  GitReconciliationDelta,
-  GitSyncStatus,
-  PullResult,
-} from "../../types";
 import { commitGitChanges, pushGitChanges } from "./git-commit";
 import { getFileHistory, showFileAtCommit } from "./git-history";
 import { initializeGitRepository } from "./git-init";
@@ -19,7 +12,8 @@ import {
 } from "./git-reconciliation-state";
 import type { ReconciliationIdentity } from "./git-reconciliation-state";
 import { getGitStatus, hasGitLocalChanges } from "./git-status";
-import type { GitOperation, GitOperationName } from "./operations";
+import { parseGitOperationResult } from "./operations";
+import type { GitOperation, GitOperationResult } from "./operations";
 
 /**
  * Runs semantic Git operations for exactly one checkout.
@@ -50,27 +44,6 @@ export interface CheckoutExecutorOptions {
   authorEmail?: string | undefined;
 }
 
-export interface GitOperationResultMap {
-  initialize: void;
-  "get-status": GitSyncStatus;
-  "has-local-changes": boolean;
-  commit: void;
-  push: void;
-  "commit-and-push": {
-    pushed: boolean;
-    checkpoint: GitReconciliationCheckpoint | null;
-  };
-  pull: PullResult;
-  "get-reconciliation-delta": GitReconciliationDelta;
-  "get-checkpoint": GitReconciliationCheckpoint;
-  "log-file": GitLogEntry[];
-  "show-file": string;
-}
-
-export type GitOperationResult<
-  TName extends GitOperationName = GitOperationName,
-> = GitOperationResultMap[TName];
-
 export interface OperationRunOptions {
   signal?: AbortSignal | undefined;
   onProgress?: (() => void) | undefined;
@@ -100,10 +73,13 @@ export class CheckoutOperationExecutor {
     operation: TOperation,
     runOptions: OperationRunOptions = {},
   ): Promise<GitOperationResult<TOperation["name"]>> {
-    return this.#queue.run(
-      () => this.#dispatch(operation, runOptions),
-      runOptions.signal,
-    ) as Promise<GitOperationResult<TOperation["name"]>>;
+    // Checked on the way out as well as on the way in: the contract is what
+    // makes the result typed, and a broker bug should surface here rather than
+    // as a well-formed lie to whoever asked.
+    return this.#queue.run(async () => {
+      const value = await this.#dispatch(operation, runOptions);
+      return parseGitOperationResult<TOperation["name"]>(operation.name, value);
+    }, runOptions.signal);
   }
 
   get #client(): SimpleGit {

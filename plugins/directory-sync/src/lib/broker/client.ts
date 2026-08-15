@@ -1,9 +1,9 @@
 import { createId } from "@brains/utils/id";
 import { BROKER_PROTOCOL_VERSION, FrameDecoder, encodeFrame } from "./protocol";
-import type { BrokerMessage, StatusMessage } from "./protocol";
+import type { BrokerMessage, ResultMessage, StatusMessage } from "./protocol";
 import { SocketWriter } from "./socket-writer";
-import type { GitOperation } from "./operations";
-import type { GitOperationResult } from "./checkout-executor";
+import { parseGitOperationResult } from "./operations";
+import type { GitOperation, GitOperationResult } from "./operations";
 
 /**
  * A connection to the Git broker.
@@ -28,8 +28,10 @@ export class BrokerOperationError extends Error {
   }
 }
 
+type Reply = StatusMessage | ResultMessage;
+
 interface Pending {
-  resolve(value: unknown): void;
+  resolve(message: Reply): void;
   reject(error: unknown): void;
   onProgress?: (() => void) | undefined;
 }
@@ -54,6 +56,13 @@ function abandonOnAbort(
   };
   signal.addEventListener("abort", onAbort, { once: true });
   return (): void => signal.removeEventListener("abort", onAbort);
+}
+
+function expectStatus(reply: Reply): StatusMessage {
+  if (reply.type !== "status") {
+    throw new BrokerOperationError("The broker answered with no status");
+  }
+  return reply;
 }
 
 export class BrokerConnection {
@@ -130,7 +139,7 @@ export class BrokerConnection {
       pending.reject(new BrokerOperationError(message.error ?? "unknown"));
       return;
     }
-    pending.resolve(message.value);
+    pending.resolve(message);
   }
 
   /** Every in-flight caller learns the broker is gone rather than hanging. */
@@ -157,7 +166,7 @@ export class BrokerConnection {
     remoteFingerprint: string;
   }): Promise<StatusMessage> {
     const requestId = `req_${createId(12)}`;
-    const settled = Promise.withResolvers<unknown>();
+    const settled = Promise.withResolvers<Reply>();
     this.#pending.set(requestId, settled);
     this.#send({
       type: "register-checkout",
@@ -165,15 +174,15 @@ export class BrokerConnection {
       requestId,
       ...declaration,
     });
-    return (await settled.promise) as StatusMessage;
+    return expectStatus(await settled.promise);
   }
 
   async status(): Promise<StatusMessage> {
     const requestId = `req_${createId(12)}`;
-    const settled = Promise.withResolvers<unknown>();
+    const settled = Promise.withResolvers<Reply>();
     this.#pending.set(requestId, settled);
     this.#send({ type: "query", version: BROKER_PROTOCOL_VERSION, requestId });
-    return (await settled.promise) as StatusMessage;
+    return expectStatus(await settled.promise);
   }
 
   async execute<TOperation extends GitOperation>(
@@ -186,7 +195,7 @@ export class BrokerConnection {
   ): Promise<GitOperationResult<TOperation["name"]>> {
     runOptions.signal?.throwIfAborted();
     const requestId = `req_${createId(12)}`;
-    const settled = Promise.withResolvers<unknown>();
+    const settled = Promise.withResolvers<Reply>();
     this.#pending.set(requestId, {
       ...settled,
       ...(runOptions.onProgress ? { onProgress: runOptions.onProgress } : {}),
@@ -209,7 +218,16 @@ export class BrokerConnection {
         operation,
       });
 
-      return (await settled.promise) as GitOperationResult<TOperation["name"]>;
+      const reply = await settled.promise;
+      if (reply.type !== "result") {
+        throw new BrokerOperationError(
+          "The broker answered an operation with a status frame",
+        );
+      }
+      return parseGitOperationResult<TOperation["name"]>(
+        operation.name,
+        reply.value,
+      );
     } finally {
       stopWatchingAbort();
     }
