@@ -19,7 +19,7 @@ function asRecord(value: unknown): Record<string, unknown> {
 }
 
 describe("canonical unified inbox test app", () => {
-  test("keeps email triage and unified inbox opt-in with explicit IMAP settings", () => {
+  test("keeps email workflows and unified inbox opt-in with explicit IMAP settings", () => {
     const yaml = readFileSync(join(testAppDirectory, "brain.yaml"), "utf8");
     const config = asRecord(fromYaml<unknown>(yaml));
     const plugins = asRecord(config["plugins"]);
@@ -29,7 +29,7 @@ describe("canonical unified inbox test app", () => {
     const defaultRecipient = asRecord(notifications["defaultRecipient"]);
 
     expect(config["bundles"]).toEqual(["core"]);
-    expect(config["add"]).toEqual(["email-triage", "unified-inbox"]);
+    expect(config["add"]).toEqual(["email-workflows", "unified-inbox"]);
     expect(imap).toMatchObject({
       host: "imap.test.invalid",
       port: 993,

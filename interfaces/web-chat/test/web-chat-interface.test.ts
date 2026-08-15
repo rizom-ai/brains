@@ -334,7 +334,7 @@ describe("WebChatInterface", () => {
         .getMockShell()
         .getInboxFollowUpRegistry()
         .resolveUniversal({
-          sourceId: "email-triage",
+          sourceId: "email-workflows",
           actor: { permissionLevel: "admin" },
           item: {
             id: "mail-1",

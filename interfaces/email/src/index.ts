@@ -1,7 +1,12 @@
 import {
   AUTH_PRINCIPAL_RESOLVE_CHANNEL,
+  EMAIL_SOURCE_READ,
   authPrincipalResolveResponseSchema,
   createExternalActorId,
+  emailSourceReadRequestSchema,
+  emailSourceReadResponseSchema,
+  type EmailSourceReadRequest,
+  type EmailSourceReadResponse,
   type InboundEmailSender,
 } from "@brains/contracts";
 import {
@@ -27,6 +32,11 @@ import {
   InboundEmailSupervisor,
   type InboundEmailSleep,
 } from "./inbound-supervisor";
+import {
+  EmailSourceLocatorStore,
+  emailSourceLocatorSchema,
+} from "./source-locator-store";
+import { readEmailSource } from "./source-reader";
 
 export {
   EMAIL_INBOUND,
@@ -132,6 +142,7 @@ export class EmailInterface extends MessageInterfacePlugin<
   private readonly imapClientFactory: InboundEmailClientFactory;
   private readonly inboundSleep: InboundEmailSleep | undefined;
   private inboundCursor?: IRuntimeStateStore<InboundEmailCursor>;
+  private sourceLocators?: EmailSourceLocatorStore;
 
   constructor(
     config: EmailConfigInput = {},
@@ -159,6 +170,9 @@ export class EmailInterface extends MessageInterfacePlugin<
             address,
           ): Promise<InboundEmailSender | undefined> =>
             this.resolveInboundSender(address),
+          recordSourceLocator: async (sourceRef, selection, uid) =>
+            this.getSourceLocators().record(sourceRef, selection, uid),
+          pruneSourceLocators: async () => this.getSourceLocators().prune(),
           logger: this.logger,
         }),
       logger: this.logger,
@@ -211,6 +225,19 @@ export class EmailInterface extends MessageInterfacePlugin<
           lastUid: z.number().int().nonnegative(),
         }),
       });
+      this.sourceLocators = new EmailSourceLocatorStore(
+        context.runtimeState.scoped({
+          namespace: "email.inbound.source-locators",
+          schema: emailSourceLocatorSchema,
+        }),
+      );
+      context.messaging.subscribe<EmailSourceReadRequest>(
+        EMAIL_SOURCE_READ,
+        async (message) => ({
+          success: true,
+          data: await this.readSource(message.payload),
+        }),
+      );
     }
     context.channels.registerDescriptor({
       type: "email",
@@ -277,6 +304,38 @@ export class EmailInterface extends MessageInterfacePlugin<
       throw new Error("Inbound email cursor is unavailable");
     }
     return this.inboundCursor;
+  }
+
+  private getSourceLocators(): EmailSourceLocatorStore {
+    if (!this.sourceLocators) {
+      throw new Error("Inbound email source locators are unavailable");
+    }
+    return this.sourceLocators;
+  }
+
+  private async readSource(input: unknown): Promise<EmailSourceReadResponse> {
+    const request = emailSourceReadRequestSchema.safeParse(input);
+    if (!request.success || request.data.actor.permissionLevel !== "admin") {
+      return { kind: "unavailable" };
+    }
+    const config = this.config.imap;
+    if (!config) return { kind: "unavailable" };
+
+    try {
+      const locator = await this.getSourceLocators().resolve(
+        request.data.sourceRef,
+      );
+      if (!locator) return { kind: "unavailable" };
+      const timeout = AbortSignal.timeout(10_000);
+      const signal = request.data.signal
+        ? AbortSignal.any([request.data.signal, timeout])
+        : timeout;
+      return emailSourceReadResponseSchema.parse(
+        await readEmailSource(config, this.imapClientFactory, locator, signal),
+      );
+    } catch {
+      return { kind: "unavailable" };
+    }
   }
 
   private async deliver(input: ChannelDeliveryInput): Promise<

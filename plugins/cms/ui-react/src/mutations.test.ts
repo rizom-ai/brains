@@ -4,6 +4,8 @@ import {
   removeEntity,
   runCmsWorkspaceAction,
   runDirectorySyncWorkspaceAction,
+  runEmailReplyDraftAction,
+  runEmailReplyDraftSource,
   runInboxWorkspaceAction,
   runSiteWorkspaceAction,
   saveEntity,
@@ -132,6 +134,87 @@ describe("CMS Unified Inbox workspace mutation", () => {
       },
     });
     expect(result).toEqual({ kind: "completed" });
+  });
+});
+
+describe("CMS email reply draft mutation", () => {
+  it("reads private source outside query state with request cancellation", async () => {
+    let payload: unknown;
+    let signal: AbortSignal | null | undefined;
+    mockFetch(async (_url, options) => {
+      payload = JSON.parse(String(options.body));
+      signal = options.signal;
+      return Response.json({
+        result: {
+          kind: "source",
+          source: {
+            from: { address: "sender@example.com" },
+            subject: "Subject",
+            receivedAt: "2026-08-05T09:00:00.000Z",
+            text: "Private source",
+            truncated: false,
+          },
+        },
+      });
+    });
+    const controller = new AbortController();
+
+    const result = await runEmailReplyDraftSource({
+      workspaceId: "email-reply-drafts",
+      request: { type: "source", mailItemId: `mail-${"a".repeat(64)}` },
+      signal: controller.signal,
+    });
+
+    expect(payload).toEqual({
+      id: "email-reply-drafts",
+      action: { type: "source", mailItemId: `mail-${"a".repeat(64)}` },
+    });
+    expect(signal).toBe(controller.signal);
+    expect(result).toMatchObject({
+      kind: "source",
+      source: { text: "Private source" },
+    });
+  });
+
+  it("posts only the authored draft revision", async () => {
+    let payload: unknown;
+    mockFetch(async (_url, options) => {
+      payload = JSON.parse(String(options.body));
+      return Response.json({
+        result: {
+          kind: "draft",
+          draft: {
+            text: "Authored reply",
+            revision: 2,
+            updatedAt: "2026-08-05T10:00:00.000Z",
+          },
+        },
+      });
+    });
+
+    const result = await runEmailReplyDraftAction({
+      workspaceId: "email-reply-drafts",
+      action: {
+        type: "save",
+        mailItemId: `mail-${"a".repeat(64)}`,
+        text: "Authored reply",
+        baseRevision: 1,
+      },
+    });
+
+    expect(payload).toEqual({
+      id: "email-reply-drafts",
+      action: {
+        type: "save",
+        mailItemId: `mail-${"a".repeat(64)}`,
+        text: "Authored reply",
+        baseRevision: 1,
+      },
+    });
+    expect(result).toMatchObject({
+      kind: "draft",
+      draft: { text: "Authored reply", revision: 2 },
+    });
   });
 });
 

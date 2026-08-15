@@ -1,8 +1,8 @@
 {
-  "name": "@brains/email-triage",
+  "name": "@brains/email-workflows",
   "license": "AGPL-3.0-only",
   "version": "0.2.0-alpha.296",
-  "description": "Safe derived triage for inbound email",
+  "description": "Safe email triage, reply drafting, approval, and delivery workflows",
   "dependencies": {
     "@brains/contracts": "workspace:*",
     "@brains/plugins": "workspace:*",

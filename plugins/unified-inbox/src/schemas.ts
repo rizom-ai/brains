@@ -3,6 +3,7 @@ import {
   inboxContactSchema,
   inboxFacetsSchema,
   inboxIdSchema,
+  inboxItemDetailSchema,
   inboxItemIdSchema,
   inboxItemSchema,
   inboxSourceDescriptorSchema,
@@ -11,6 +12,7 @@ import {
   resolvedInboxFollowUpSchema,
   type InboxFacets,
   type InboxItem,
+  type InboxItemDetail,
   type InboxSource,
   type InboxSourceDescriptor,
   type ResolvedInboxFollowUp,
@@ -248,7 +250,14 @@ export const inboxSourceAvailabilitySchema: z.ZodType<
   available: z.boolean(),
 });
 
-interface InboxWorkspaceEntryValue extends InboxProjectionEntryValue {
+type InboxWorkspaceItem = Omit<InboxItem, "followUps">;
+const inboxWorkspaceItemSchema: z.ZodType<InboxWorkspaceItem, InboxItem> =
+  inboxItemSchema.transform(({ followUps: _followUps, ...item }) => item);
+
+interface InboxWorkspaceEntryValue {
+  source: InboxSourceMetadata;
+  item: InboxWorkspaceItem;
+  detailAvailable: boolean;
   contactHref?: string | undefined;
   followUps: ResolvedInboxFollowUp[];
 }
@@ -265,7 +274,8 @@ export const inboxWorkspaceEntrySchema: z.ZodType<
   InboxWorkspaceEntryValue
 > = z.strictObject({
   source: inboxSourceMetadataSchema,
-  item: inboxItemSchema,
+  item: inboxWorkspaceItemSchema,
+  detailAvailable: z.boolean(),
   contactHref: inboxContactHrefSchema.optional(),
   followUps: z.array(resolvedInboxFollowUpSchema).max(100),
 });
@@ -361,6 +371,45 @@ export const inboxActionRequestSchema: z.ZodType<
   actionId: inboxIdSchema,
   confirmed: z.boolean().default(false),
 });
+
+interface InboxDetailRequestValue {
+  type: "detail";
+  sourceId: string;
+  itemId: string;
+}
+
+export const inboxDetailRequestSchema: z.ZodType<
+  InboxDetailRequestValue,
+  InboxDetailRequestValue
+> = z.strictObject({
+  type: z.literal("detail"),
+  sourceId: inboxIdSchema,
+  itemId: inboxItemIdSchema,
+});
+
+interface InboxDetailAvailableValue {
+  kind: "detail";
+  detail: InboxItemDetail;
+}
+
+interface InboxDetailUnavailableValue {
+  kind: "detail-unavailable";
+  error: "Original content is unavailable";
+}
+
+type InboxDetailOutcomeValue =
+  InboxDetailAvailableValue | InboxDetailUnavailableValue;
+
+export const inboxDetailOutcomeSchema: z.ZodType<
+  InboxDetailOutcomeValue,
+  InboxDetailOutcomeValue
+> = z.discriminatedUnion("kind", [
+  z.strictObject({ kind: z.literal("detail"), detail: inboxItemDetailSchema }),
+  z.strictObject({
+    kind: z.literal("detail-unavailable"),
+    error: z.literal("Original content is unavailable"),
+  }),
+]);
 
 interface InboxActionConfirmationValue {
   kind: "confirmation";
@@ -481,5 +530,7 @@ export type InboxWorkspaceSnapshot = z.output<
 >;
 export type InboxDashboardData = z.output<typeof inboxDashboardDataSchema>;
 export type InboxActionRequest = z.output<typeof inboxActionRequestSchema>;
+export type InboxDetailRequest = z.output<typeof inboxDetailRequestSchema>;
+export type InboxDetailOutcome = z.output<typeof inboxDetailOutcomeSchema>;
 export type InboxActionOutcome = z.output<typeof inboxActionOutcomeSchema>;
 export type InboxListToolOutput = z.output<typeof inboxListToolOutputSchema>;

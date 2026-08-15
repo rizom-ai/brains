@@ -21,6 +21,8 @@ export {
   inboxDashboardDataSchema,
   inboxActionRequestSchema,
   inboxActionOutcomeSchema,
+  inboxDetailRequestSchema,
+  inboxDetailOutcomeSchema,
   inboxListToolOutputSchema,
   type InboxProjection,
   type InboxProjectionEntry,
@@ -35,6 +37,8 @@ export {
   type InboxDashboardData,
   type InboxActionRequest,
   type InboxActionOutcome,
+  type InboxDetailRequest,
+  type InboxDetailOutcome,
   type InboxListToolOutput,
   type InboxDigestAlert,
 } from "./schemas";

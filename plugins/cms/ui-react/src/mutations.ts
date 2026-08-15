@@ -6,8 +6,14 @@ import {
   uploadFile,
   type DirectorySyncWorkspaceAction,
   type DirectorySyncWorkspaceActionResult,
+  type EmailReplyDraftAction,
+  type EmailReplyDraftActionResult,
+  type EmailReplyDraftSourceRequest,
+  type EmailReplyDraftSourceResult,
   type InboxWorkspaceAction,
   type InboxWorkspaceActionResult,
+  type InboxWorkspaceDetailRequest,
+  type InboxWorkspaceDetailResult,
   type PublishingAction,
   type PublishingActionResult,
   type SiteWorkspaceAction,
@@ -55,6 +61,23 @@ export interface InboxWorkspaceActionInput {
   action: InboxWorkspaceAction;
 }
 
+export interface EmailReplyDraftActionInput {
+  workspaceId: string;
+  action: EmailReplyDraftAction;
+}
+
+export interface EmailReplyDraftSourceInput {
+  workspaceId: string;
+  request: EmailReplyDraftSourceRequest;
+  signal: AbortSignal;
+}
+
+export interface InboxWorkspaceDetailInput {
+  workspaceId: string;
+  request: InboxWorkspaceDetailRequest;
+  signal: AbortSignal;
+}
+
 export interface UploadImageResult {
   entityId: string;
   jobId?: string;
@@ -99,6 +122,35 @@ export function runInboxWorkspaceAction(
   return runWorkspaceAction<InboxWorkspaceActionResult>(
     input.workspaceId,
     input.action,
+  );
+}
+
+export function runEmailReplyDraftAction(
+  input: EmailReplyDraftActionInput,
+): Promise<EmailReplyDraftActionResult> {
+  return runWorkspaceAction<EmailReplyDraftActionResult>(
+    input.workspaceId,
+    input.action,
+  );
+}
+
+export function runEmailReplyDraftSource(
+  input: EmailReplyDraftSourceInput,
+): Promise<EmailReplyDraftSourceResult> {
+  return runWorkspaceAction<EmailReplyDraftSourceResult>(
+    input.workspaceId,
+    input.request,
+    input.signal,
+  );
+}
+
+export function runInboxWorkspaceDetail(
+  input: InboxWorkspaceDetailInput,
+): Promise<InboxWorkspaceDetailResult> {
+  return runWorkspaceAction<InboxWorkspaceDetailResult>(
+    input.workspaceId,
+    input.request,
+    input.signal,
   );
 }
 

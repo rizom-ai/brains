@@ -13,7 +13,7 @@ export function createEmailTriageListTool(
   return createAdminListTool({
     name: "email_triage_list",
     description:
-      "List safe derived email-triage items with combined category, priority, status, and reply filters",
+      "List safe derived email-workflows items with combined category, priority, status, and reply filters",
     inputSchema: mailTriageFilterShape,
     filterSchema: mailTriageFilterSchema,
     outputSchema: mailTriageListToolOutputSchema,

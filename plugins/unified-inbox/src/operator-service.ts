@@ -11,6 +11,8 @@ import {
   type InboxActionOutcome,
   type InboxActionRequest,
   type InboxDashboardData,
+  type InboxDetailOutcome,
+  type InboxDetailRequest,
   type InboxListFilter,
   type InboxListResult,
   type InboxProjection,
@@ -20,7 +22,7 @@ import {
 } from "./schemas";
 
 type InboxSourceRegistry = Pick<IInboxRegistry, "getSource" | "listSources">;
-type InboxFollowUpCatalog = Pick<IInboxFollowUpRegistry, "resolveUniversal">;
+type InboxFollowUpCatalog = Pick<IInboxFollowUpRegistry, "resolve">;
 type InboxProjectionReader = Pick<InboxDataSource, "getInboxData">;
 
 interface SourceCounts {
@@ -75,7 +77,10 @@ export class InboxOperatorService {
       entries: await Promise.all(
         page.map(async (entry) => ({
           ...entry,
-          followUps: await this.followUps.resolveUniversal({
+          detailAvailable:
+            this.registry.getSource(entry.source.sourceId)?.resolveDetail !==
+            undefined,
+          followUps: await this.followUps.resolve({
             sourceId: entry.source.sourceId,
             item: entry.item,
             actor,
@@ -114,6 +119,34 @@ export class InboxOperatorService {
 
   async badge(): Promise<number> {
     return (await this.dataSource.getInboxData()).entries.length;
+  }
+
+  async detail(
+    request: InboxDetailRequest,
+    actor: InboxActor,
+    requestSignal?: AbortSignal,
+  ): Promise<InboxDetailOutcome> {
+    if (actor.permissionLevel !== "admin") {
+      return detailUnavailable();
+    }
+    const source = this.registry.getSource(request.sourceId);
+    if (!source?.resolveDetail) return detailUnavailable();
+
+    try {
+      const offered = (await source.list()).some(
+        (candidate) => candidate.id === request.itemId,
+      );
+      if (!offered) return detailUnavailable();
+      const timeout = AbortSignal.timeout(10_000);
+      const signal = requestSignal
+        ? AbortSignal.any([requestSignal, timeout])
+        : timeout;
+      if (signal.aborted) return detailUnavailable();
+      const detail = await source.resolveDetail(request.itemId, actor, signal);
+      return { kind: "detail", detail };
+    } catch {
+      return detailUnavailable();
+    }
   }
 
   async act(
@@ -155,6 +188,13 @@ export class InboxOperatorService {
       available: !unavailable.has(source.sourceId),
     }));
   }
+}
+
+function detailUnavailable(): InboxDetailOutcome {
+  return {
+    kind: "detail-unavailable",
+    error: "Original content is unavailable",
+  };
 }
 
 function countBySource(

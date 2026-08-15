@@ -98,7 +98,7 @@ export async function registerEmailTriageDashboardWidget(
   operator: Pick<MailTriageOperatorService, "summary">,
 ): Promise<void> {
   await context.dashboard.registerWidget({
-    id: "email-triage",
+    id: "email-workflows",
     title: "Email Triage",
     description: "New restricted derived mail requiring operator attention",
     group: "communication",

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { beforeEach, describe, expect, it } from "bun:test";
 import {
   DASHBOARD_CHANNELS,
   EMAIL_INBOUND,
@@ -6,19 +6,21 @@ import {
 } from "@brains/contracts";
 import {
   CMS_WORKSPACE_REGISTER_MESSAGE,
+  resetPromptCache,
   type CmsWorkspaceRegistration,
   type DashboardWidgetRegistration,
 } from "@brains/plugins";
 import { createPluginHarness } from "@brains/plugins/test";
-import { createMockLogger } from "@brains/test-utils";
+import { createMockLogger, createMockShell } from "@brains/test-utils";
 
 import {
-  EmailTriagePlugin,
+  EmailWorkflowsPlugin,
   MailItemPlugin,
   createMailItemProjection,
-  emailTriage,
+  emailWorkflows,
   type RetainedMailClassification,
 } from "../src";
+import { EmailReplyDraftEntityPlugin } from "../src/reply-drafts/entity/plugin";
 
 const inbound: InboundEmail = {
   messageId: "<plugin-test@example.com>",
@@ -30,6 +32,26 @@ const inbound: InboundEmail = {
   text: "Would you be available to collaborate next month?",
   headers: { autoSubmitted: "no" },
 };
+
+const adminActor = {
+  interfaceType: "cms" as const,
+  userId: "admin-user",
+  actor: { kind: "user" as const, userId: "admin-user" },
+  userPermissionLevel: "admin" as const,
+  visibilityScope: "restricted" as const,
+  isAnchor: true,
+};
+
+function requireActionWorkspace(
+  workspace: CmsWorkspaceRegistration | undefined,
+): CmsWorkspaceRegistration & {
+  actionHandler: NonNullable<CmsWorkspaceRegistration["actionHandler"]>;
+} {
+  if (!workspace?.actionHandler) {
+    throw new Error("Reply draft workspace was not registered");
+  }
+  return { ...workspace, actionHandler: workspace.actionHandler };
+}
 
 const classification: RetainedMailClassification = {
   decision: "retain",
@@ -56,19 +78,37 @@ const wireClassification = {
   },
 };
 
-describe("email triage plugin", () => {
+describe("email workflow plugin", () => {
+  beforeEach(() => resetPromptCache());
+
   it("activates the entity and service without a parallel prompt config", () => {
     expect(() =>
-      Reflect.apply(emailTriage, undefined, [
+      Reflect.apply(emailWorkflows, undefined, [
         { instructions: "Prioritize collaboration." },
       ]),
     ).toThrow();
     expect(
-      emailTriage().map((plugin) => ({ id: plugin.id, type: plugin.type })),
+      emailWorkflows().map((plugin) => ({ id: plugin.id, type: plugin.type })),
     ).toEqual([
       { id: "mail-item", type: "entity" },
-      { id: "email-triage", type: "service" },
+      { id: "email-reply-draft", type: "entity" },
+      { id: "email-workflows", type: "service" },
     ]);
+  });
+
+  it("does not expose source-backed drafting in execution-only workers", async () => {
+    const shell = createMockShell();
+    const plugin = new EmailWorkflowsPlugin();
+
+    await plugin.register(shell, { executionOnly: true });
+    shell.getInboxFollowUpRegistry().finalize();
+
+    expect(
+      shell
+        .getInboxFollowUpRegistry()
+        .listKinds()
+        .some((kind) => kind.kind === "draft-reply"),
+    ).toBe(false);
   });
 
   it("subscribes to EMAIL_INBOUND and persists before acknowledging", async () => {
@@ -87,23 +127,23 @@ describe("email triage plugin", () => {
 
     await harness.getEntityService().createEntity({
       entity: {
-        id: "email-triage-classification",
+        id: "email-workflows-classification",
         entityType: "prompt",
         content: `---
 title: Email Triage Classification
-target: email-triage:classification
+target: email-workflows:classification
 ---
 Prioritize collaboration connected to Project Aurora.`,
         metadata: {
           title: "Email Triage Classification",
-          target: "email-triage:classification",
+          target: "email-workflows:classification",
         },
         created: inbound.receivedAt,
         updated: inbound.receivedAt,
       },
     });
     await harness.installPlugin(new MailItemPlugin());
-    await harness.installPlugin(new EmailTriagePlugin());
+    await harness.installPlugin(new EmailWorkflowsPlugin());
 
     const response = await harness.getMockShell().getMessageBus().send({
       type: EMAIL_INBOUND,
@@ -128,7 +168,7 @@ Prioritize collaboration connected to Project Aurora.`,
     expect(items[0]?.visibility).toBe("restricted");
   });
 
-  it("registers the Admin tool, inbox source, and compact dashboard without a parallel CMS workspace", async () => {
+  it("registers triage and reply drafting as one email workflow", async () => {
     const harness = createPluginHarness();
     const entityService = harness.getEntityService();
     entityService.countEntities = async (request): Promise<number> =>
@@ -147,7 +187,7 @@ Prioritize collaboration connected to Project Aurora.`,
         workspace = message.payload;
         return {
           success: true,
-          data: { workspaceUrl: "/cms/workspaces/email-triage" },
+          data: { workspaceUrl: "/cms/workspaces/email-reply-drafts" },
         };
       },
     );
@@ -160,6 +200,7 @@ Prioritize collaboration connected to Project Aurora.`,
     );
 
     await harness.installPlugin(new MailItemPlugin());
+    await harness.installPlugin(new EmailReplyDraftEntityPlugin());
     await harness.getEntityService().createEntity({
       entity: {
         ...createMailItemProjection(inbound, classification),
@@ -167,7 +208,7 @@ Prioritize collaboration connected to Project Aurora.`,
         updated: inbound.receivedAt,
       },
     });
-    const plugin = new EmailTriagePlugin();
+    const plugin = new EmailWorkflowsPlugin();
     const capabilities = await harness.installPlugin(plugin);
     await harness.finalizeRegistration();
     await plugin.ready();
@@ -215,9 +256,54 @@ Prioritize collaboration connected to Project Aurora.`,
       },
     });
 
-    expect(workspace).toBeUndefined();
-    const itemId = openItems?.[0]?.id;
-    if (!itemId || !inboxSource) throw new Error("Inbox item was not listed");
+    expect(workspace).toMatchObject({
+      id: "email-reply-drafts",
+      pluginId: "email-workflows",
+      label: "Reply drafts",
+      rendererName: "EmailReplyDraftWorkspace",
+      urlQuery: true,
+    });
+    const replyWorkspace = requireActionWorkspace(workspace);
+    const openItem = openItems?.[0];
+    const itemId = openItem?.id;
+    if (!itemId || !inboxSource) {
+      throw new Error("Inbox item was not listed");
+    }
+    expect(
+      await replyWorkspace.dataProvider(adminActor, { mailItemId: itemId }),
+    ).toEqual({ mailItemId: itemId, draft: null });
+    expect(
+      await replyWorkspace.actionHandler(
+        { type: "source", mailItemId: itemId },
+        adminActor,
+      ),
+    ).toEqual({
+      kind: "source-unavailable",
+      error: "Original content is unavailable",
+    });
+    expect(
+      await replyWorkspace.actionHandler(
+        { type: "generate", mailItemId: itemId },
+        adminActor,
+      ),
+    ).toEqual({ kind: "error", error: "Draft generation failed" });
+    expect(openItem.followUps).toEqual([
+      { kind: "draft-reply", context: { mailItemId: itemId } },
+    ]);
+    expect(
+      await harness
+        .getMockShell()
+        .getInboxFollowUpRegistry()
+        .resolve({
+          sourceId: "mail-items",
+          item: openItem,
+          actor: { permissionLevel: "admin" },
+        }),
+    ).toContainEqual({
+      kind: "draft-reply",
+      label: "Draft reply",
+      href: `/cms/workspaces/email-reply-drafts?mailItemId=${itemId}`,
+    });
     await inboxSource.act(itemId, "mark-reviewed", {
       permissionLevel: "admin",
     });
@@ -243,8 +329,8 @@ Prioritize collaboration connected to Project Aurora.`,
       visibility: "admin",
     });
     expect(widget).toMatchObject({
-      pluginId: "email-triage",
-      id: "email-triage",
+      pluginId: "email-workflows",
+      id: "email-workflows",
       title: "Email Triage",
       rendererName: "CustomWidget",
       visibility: "admin",

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "bun:test";
+import { z } from "@brains/utils/zod";
 import {
   CMS_WORKSPACE_REGISTER_MESSAGE,
   InboxRegistry,
@@ -33,6 +34,12 @@ const item: InboxItem = {
   receivedAt: "2026-08-08T09:00:00.000Z",
   urgency: "high",
   entityRef: { entityType: "mail-item", entityId: "mail-1" },
+  followUps: [
+    {
+      kind: "draft-reply",
+      context: { mailItemId: "private-context-mail-1" },
+    },
+  ],
   actions: [{ id: "archive", label: "Archive", confirm: true }],
 };
 
@@ -42,6 +49,7 @@ async function setup(options?: {
 }): Promise<{
   workspace: CmsWorkspaceRegistration;
   actors: InboxActor[];
+  detailActors: InboxActor[];
   withdraw(): void;
 }> {
   const shell = createMockShell({ domain: "brain.test" });
@@ -72,11 +80,21 @@ async function setup(options?: {
     );
   let open = true;
   const actors: InboxActor[] = [];
+  const detailActors: InboxActor[] = [];
   const registry = new InboxRegistry();
   registry.registerSource("mail-plugin", {
     sourceId: "mail-items",
     displayName: "Email Triage",
     list: async () => (open ? [item] : []),
+    resolveDetail: async (_itemId, actor, signal) => {
+      expect(signal).toBeInstanceOf(AbortSignal);
+      detailActors.push(actor);
+      return {
+        kind: "plain",
+        text: "Original private message",
+        truncated: false,
+      };
+    },
     act: async (_itemId, _actionId, actor) => {
       actors.push(actor);
       if (options?.failAction) throw new Error("private mailbox failure");
@@ -94,6 +112,18 @@ async function setup(options?: {
     applies: ({ item: candidate }) => candidate.entityRef !== undefined,
     resolve: () => ({ href: "/talk" }),
   });
+  followUps.registerKind("drafting", {
+    kind: "draft-reply",
+    label: "Draft reply",
+    priority: 900,
+    mode: "declared",
+    permissionLevel: "admin",
+    contextSchema: z.strictObject({
+      mailItemId: z.literal("private-context-mail-1"),
+    }),
+    applies: () => true,
+    resolve: () => ({ href: "/draft" }),
+  });
   followUps.finalize();
   const operator = new InboxOperatorService(
     registry,
@@ -108,6 +138,7 @@ async function setup(options?: {
   return {
     workspace,
     actors,
+    detailActors,
     withdraw: (): void => {
       open = false;
     },
@@ -158,6 +189,11 @@ describe("unified inbox CMS registration", () => {
           contactHref: "/access/people?view=members&person=prsn_sam%2Fid",
           followUps: [
             {
+              kind: "draft-reply",
+              label: "Draft reply",
+              href: "/draft",
+            },
+            {
               kind: "discuss-in-chat",
               label: "Discuss in chat",
               href: "/talk",
@@ -172,6 +208,8 @@ describe("unified inbox CMS registration", () => {
         entries: [{ ...snapshot.entries[0], contactHref: "https://evil.test" }],
       }).success,
     ).toBe(false);
+    expect(JSON.stringify(snapshot)).not.toContain("private-context-mail-1");
+    expect(snapshot.entries[0]?.item).not.toHaveProperty("followUps");
     expect(await fixture.workspace.badgeProvider?.(admin)).toBe(1);
 
     const canonicalized = inboxWorkspaceSnapshotSchema.parse(
@@ -202,6 +240,41 @@ describe("unified inbox CMS registration", () => {
       personId: "prsn_sam/id",
     });
     expect(snapshot.entries[0]).not.toHaveProperty("contactHref");
+  });
+
+  it("loads private detail through an Admin-only no-store workspace action", async () => {
+    const fixture = await setup();
+    if (!fixture.workspace.actionHandler) {
+      throw new Error("Missing action handler");
+    }
+
+    expect(
+      await fixture.workspace.actionHandler(
+        { type: "detail", sourceId: "mail-items", itemId: "mail-1" },
+        admin,
+        new AbortController().signal,
+      ),
+    ).toEqual({
+      kind: "detail",
+      detail: {
+        kind: "plain",
+        text: "Original private message",
+        truncated: false,
+      },
+    });
+    expect(fixture.detailActors).toEqual([{ permissionLevel: "admin" }]);
+
+    fixture.withdraw();
+    expect(
+      await fixture.workspace.actionHandler(
+        { type: "detail", sourceId: "mail-items", itemId: "mail-1" },
+        admin,
+      ),
+    ).toEqual({
+      kind: "detail-unavailable",
+      error: "Original content is unavailable",
+    });
+    expect(fixture.detailActors).toHaveLength(1);
   });
 
   it("server-gates confirmation and re-checks withdrawn actions", async () => {

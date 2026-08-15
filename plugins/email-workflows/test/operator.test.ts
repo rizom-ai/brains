@@ -74,7 +74,7 @@ async function persistItem(
   });
   if (input.status && input.status !== "new") {
     const operator = new MailTriageOperatorService(
-      harness.getServiceContext("email-triage"),
+      harness.getServiceContext("email-workflows"),
     );
     await operator.act(
       {
@@ -144,7 +144,7 @@ describe("mail triage operator service", () => {
     };
     entityService.listEntities = trackingList;
     const operator = new MailTriageOperatorService(
-      harness.getServiceContext("email-triage"),
+      harness.getServiceContext("email-workflows"),
     );
     const result = mailTriageListResultSchema.parse(
       await operator.list({
@@ -210,7 +210,7 @@ describe("mail triage operator service", () => {
     });
 
     const operator = new MailTriageOperatorService(
-      harness.getServiceContext("email-triage"),
+      harness.getServiceContext("email-workflows"),
     );
 
     expect(await operator.summary()).toEqual({
@@ -240,7 +240,7 @@ describe("mail triage operator service", () => {
       needsReply: true,
     });
     const operator = new MailTriageOperatorService(
-      harness.getServiceContext("email-triage"),
+      harness.getServiceContext("email-workflows"),
     );
 
     expect(

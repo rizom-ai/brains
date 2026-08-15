@@ -508,6 +508,7 @@ async function handleGetWorkspace(
         data: await workspace.dataProvider(
           actor,
           workspaceQueryFromSearchParams(searchParams),
+          request.signal,
         ),
       },
     });
@@ -557,7 +558,11 @@ async function handleWorkspaceAction(
 
   try {
     return jsonResponse({
-      result: await workspace.actionHandler(payload.action, actor),
+      result: await workspace.actionHandler(
+        payload.action,
+        actor,
+        request.signal,
+      ),
     });
   } catch (error) {
     return jsonResponse(

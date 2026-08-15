@@ -242,8 +242,8 @@ const archive = defineWorkspaceAction({
   output: statusActionResult,
 });
 
-const emailTriageWorkspace = defineCmsWorkspace({
-  id: "email-triage",
+const emailWorkflowsWorkspace = defineCmsWorkspace({
+  id: "email-workflows",
   label: "Email Triage",
   priority: 30,
   permission: "admin",
@@ -305,7 +305,7 @@ cmsWorkspaces: (context) => {
     state.archive(input.id, caller),
   );
   return [
-    emailTriageWorkspace.bind(context, {
+    emailWorkflowsWorkspace.bind(context, {
       actions: [reviewedHandler, handledHandler, archiveHandler],
       load: ({ state, signal }) => state.snapshot(signal),
     }),

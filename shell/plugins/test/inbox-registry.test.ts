@@ -6,6 +6,7 @@ import {
   inboxItemSchema,
   type InboxActor,
   type InboxItem,
+  type InboxItemDetail,
   type InboxSource,
 } from "../src/inbox-registry";
 import { ServicePlugin } from "../src/service/service-plugin";
@@ -30,12 +31,18 @@ function source(
       actionId: string,
       actor: InboxActor,
     ) => Promise<void>;
+    onDetail?: (
+      itemId: string,
+      actor: InboxActor,
+      signal: AbortSignal,
+    ) => Promise<InboxItemDetail>;
   } = {},
 ): InboxSource {
   return {
     sourceId,
     displayName: `Source ${sourceId}`,
     list: async () => [sourceItem(sourceId)],
+    ...(options.onDetail ? { resolveDetail: options.onDetail } : {}),
     act: options.onAct ?? (async (): Promise<void> => undefined),
   };
 }
@@ -57,6 +64,12 @@ describe("InboxRegistry", () => {
           "mail-priority": "high",
           "needs-reply": "true",
         },
+        followUps: [
+          {
+            kind: "draft-reply",
+            context: { mailItemId: "  opaque/mail-id?=  " },
+          },
+        ],
         actions: [
           { id: "review", label: "Mark reviewed" },
           { id: "archive", label: "Archive", confirm: true },
@@ -76,6 +89,12 @@ describe("InboxRegistry", () => {
         "mail-priority": "high",
         "needs-reply": "true",
       },
+      followUps: [
+        {
+          kind: "draft-reply",
+          context: { mailItemId: "  opaque/mail-id?=  " },
+        },
+      ],
       actions: [
         { id: "review", label: "Mark reviewed" },
         { id: "archive", label: "Archive", confirm: true },
@@ -152,6 +171,66 @@ describe("InboxRegistry", () => {
         ],
       }).success,
     ).toBe(false);
+  });
+
+  it("validates bounded flat source follow-up declarations", () => {
+    const base = {
+      id: "mail-1",
+      title: "Derived mail summary",
+      receivedAt: "2026-08-04T09:00:00.000Z",
+      urgency: "normal" as const,
+      actions: [],
+    };
+    const declaration = {
+      kind: "draft-reply",
+      context: { mailItemId: "opaque/mail-id?=value" },
+    };
+
+    expect(
+      inboxItemSchema.parse({ ...base, followUps: [declaration] }).followUps,
+    ).toEqual([declaration]);
+
+    for (const followUps of [
+      Array.from({ length: 9 }, (_, index) => ({
+        kind: `follow-up-${index}`,
+        context: { value: String(index) },
+      })),
+      [declaration, declaration],
+      [{ kind: "Draft-Reply", context: { mailItemId: "mail-1" } }],
+      [
+        {
+          kind: "draft-reply",
+          context: Object.fromEntries(
+            Array.from({ length: 9 }, (_, index) => [
+              `value${index}`,
+              String(index),
+            ]),
+          ),
+        },
+      ],
+      [{ kind: "draft-reply", context: { "Invalid-key": "value" } }],
+      [{ kind: "draft-reply", context: { ["x".repeat(41)]: "value" } }],
+      [{ kind: "draft-reply", context: { mailItemId: "" } }],
+      [{ kind: "draft-reply", context: { mailItemId: "x".repeat(301) } }],
+      [{ kind: "draft-reply", context: { mailItemId: "unsafe\u0000value" } }],
+      [
+        {
+          kind: "draft-reply",
+          context: { mailItemId: { nested: true } },
+        },
+      ],
+      [
+        {
+          ...declaration,
+          label: "Source-owned label",
+          href: "/source-owned-target",
+        },
+      ],
+    ]) {
+      expect(inboxItemSchema.safeParse({ ...base, followUps }).success).toBe(
+        false,
+      );
+    }
   });
 
   it("validates bounded source facet definitions and source-owned item values", async () => {
@@ -294,11 +373,17 @@ describe("InboxRegistry", () => {
       actionId: string;
       actor: InboxActor;
     }> = [];
+    const details: Array<{ itemId: string; actor: InboxActor }> = [];
     registry.registerSource(
       "mail-plugin",
       source("mail-items", {
         onAct: async (itemId, actionId, actor) => {
           actions.push({ itemId, actionId, actor });
+        },
+        onDetail: async (itemId, actor, signal) => {
+          expect(signal.aborted).toBe(false);
+          details.push({ itemId, actor });
+          return { kind: "plain", text: "Private source", truncated: false };
         },
       }),
     );
@@ -310,6 +395,16 @@ describe("InboxRegistry", () => {
     const registered = registry.getSource("mail-items");
     expect(registered?.displayName).toBe("Source mail-items");
     expect(await registered?.list()).toHaveLength(1);
+    expect(
+      await registered?.resolveDetail?.(
+        "mail-items-1",
+        { permissionLevel: "admin" },
+        new AbortController().signal,
+      ),
+    ).toEqual({ kind: "plain", text: "Private source", truncated: false });
+    expect(details).toEqual([
+      { itemId: "mail-items-1", actor: { permissionLevel: "admin" } },
+    ]);
     await registered?.act("mail-items-1", "dismiss", {
       permissionLevel: "admin",
     });

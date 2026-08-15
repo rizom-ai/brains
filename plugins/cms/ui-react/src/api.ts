@@ -30,7 +30,8 @@ export interface CmsWorkspaceInfo {
     | "PublishingWorkspace"
     | "SiteWorkspace"
     | "DirectorySyncWorkspace"
-    | "UnifiedInboxWorkspace";
+    | "UnifiedInboxWorkspace"
+    | "EmailReplyDraftWorkspace";
   priority: number;
   urlQuery?: true;
   entityTypes: string[];
@@ -224,6 +225,7 @@ export interface InboxWorkspaceEntry {
     entityRef?: { entityType: string; entityId: string };
     actions: Array<{ id: string; label: string; confirm?: boolean }>;
   };
+  detailAvailable?: boolean;
   contactHref?: string;
   followUps: InboxWorkspaceFollowUp[];
 }
@@ -269,6 +271,76 @@ export type InboxWorkspaceActionResult =
   | { kind: "completed" }
   | { kind: "error"; error: "Invalid inbox action" | "Inbox action failed" };
 
+export interface InboxWorkspaceDetailRequest {
+  type: "detail";
+  sourceId: string;
+  itemId: string;
+}
+
+export type InboxWorkspaceDetailResult =
+  | {
+      kind: "detail";
+      detail: { kind: "plain"; text: string; truncated: boolean };
+    }
+  | {
+      kind: "detail-unavailable";
+      error: "Original content is unavailable";
+    };
+
+export interface EmailReplyDraftWorkspaceSnapshot {
+  mailItemId: string | null;
+  draft: {
+    text: string;
+    revision: number;
+    updatedAt: string;
+  } | null;
+}
+
+export interface EmailReplyDraftSourceRequest {
+  type: "source";
+  mailItemId: string;
+}
+
+export type EmailReplyDraftSourceResult =
+  | {
+      kind: "source";
+      source: {
+        from: { name?: string; address: string };
+        replyTo?: { name?: string; address: string };
+        subject: string;
+        receivedAt: string;
+        text: string;
+        truncated: boolean;
+      };
+    }
+  | {
+      kind: "source-unavailable";
+      error: "Original content is unavailable";
+    };
+
+export type EmailReplyDraftAction =
+  | { type: "generate"; mailItemId: string }
+  | {
+      type: "save";
+      mailItemId: string;
+      text: string;
+      baseRevision: number;
+    };
+
+export type EmailReplyDraftActionResult =
+  | {
+      kind: "draft";
+      draft: { text: string; revision: number; updatedAt: string };
+    }
+  | {
+      kind: "error";
+      error:
+        | "Invalid draft action"
+        | "Draft generation failed"
+        | "Draft save failed"
+        | "Draft changed; reload before saving";
+    };
+
 export type CmsWorkspaceData =
   | {
       id: string;
@@ -289,6 +361,11 @@ export type CmsWorkspaceData =
       id: string;
       rendererName: "UnifiedInboxWorkspace";
       data: InboxWorkspaceSnapshot;
+    }
+  | {
+      id: string;
+      rendererName: "EmailReplyDraftWorkspace";
+      data: EmailReplyDraftWorkspaceSnapshot;
     };
 
 export interface PublishConfirmationArgs {
@@ -495,6 +572,7 @@ export async function fetchWorkspace(
 export async function runWorkspaceAction<TResult>(
   id: string,
   action: unknown,
+  signal?: AbortSignal,
 ): Promise<TResult> {
   const { result } = await requestJson<{ result: TResult }>(
     cmsApiPath("workspace"),
@@ -502,6 +580,7 @@ export async function runWorkspaceAction<TResult>(
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id, action }),
+      ...(signal ? { signal } : {}),
     },
   );
   return result;

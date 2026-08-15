@@ -75,6 +75,14 @@ export {
   type InboundEmailSender,
 } from "./inbound-email";
 export {
+  EMAIL_SOURCE_READ,
+  emailSourceReadRequestSchema,
+  emailSourceReadResponseSchema,
+  type EmailSourceMessage,
+  type EmailSourceReadRequest,
+  type EmailSourceReadResponse,
+} from "./email-source-read";
+export {
   hashInterfacePrincipal,
   normalizeInterfacePrincipal,
   parseConfiguredInterfacePrincipal,

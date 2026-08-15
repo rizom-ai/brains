@@ -169,15 +169,15 @@ Plans:
 
 - [astryx-adoption.md](./plans/astryx-adoption.md) — exploratory, demand-gated Astryx pilot for the React web-chat console, with explicit Preact boundaries and a go/no-go gate before any CMS or shared adoption.
 - [operator-console-pwa.md](./plans/operator-console-pwa.md) — add an optional installable, network-first PWA shell for Dashboard/CMS/web-chat with conservative caching, explicit service-worker scope, standalone safe-area behavior, and no offline-authoring claim.
-- [inbox-follow-ups.md](./plans/inbox-follow-ups.md) — turn the shipped Inbox into a launch pad with safe follow-up navigation, source-scoped facets, recognizable mail linked to verified People identities, one open-attention CMS surface, and bounded transient source detail.
 - [brain-web-chat-sdk-adapter.md](./plans/brain-web-chat-sdk-adapter.md) — parked strategy; how browser web-chat can share Chat SDK semantics with Discord/Slack/etc. without losing Brain-specific web-chat features.
 - [chat-interface-forms-modals.md](./plans/chat-interface-forms-modals.md) — parked; transport-neutral structured forms that render as platform-native UI (Discord modals, Slack/Teams forms, web-chat dialogs) once adapter support exists.
 - [message-feedback.md](./plans/message-feedback.md) — parked; transport-neutral thumbs-up/down feedback capture from chat interfaces, pending a real feedback sink/use case.
 
 Shipped from this section:
 
-- inbound email intake — `interfaces/email` owns the inbound half of the email channel (IMAP daemon, at-least-once `EMAIL_INBOUND` events, sender identity enrichment), completing connected-channels decision 4. Deliberately non-conversational: inbound mail never reaches agent chat;
-- [the unified inbox](../plugins/unified-inbox/README.md) — live source-owned attention, an Admin CMS triage workspace and rail badge, read-only Dashboard summary, bounded `inbox_list` tool, first `mail-items` source, and title-only daily digest without a second store. Agent candidates and stale-opportunity alerts can register as later sources.
+- inbound email intake — `interfaces/email` owns the inbound half of the email channel (IMAP daemon, at-least-once `EMAIL_INBOUND` events, sender identity enrichment), plus the private locator-backed bounded source reader used by Admin detail and drafting. Deliberately non-conversational: inbound mail never reaches agent chat;
+- [the unified inbox](../plugins/unified-inbox/README.md) and [follow-up plan](./plans/inbox-follow-ups.md) — live source-owned attention, Admin CMS and headless readers, linkable facets, verified contacts, destination-owned universal and source-declared launches, bounded transient source detail, recurring-check and mail sources, and title-only digest without a second store;
+- [`@brains/email-workflows`](../plugins/email-workflows/README.md) — one opt-in email feature package grouping safe derived triage, new-mail Inbox projection, and the real revisioned **Draft reply** workspace while persisting no original mailbox content.
 
 ### 6. Ecosystem
 
@@ -197,7 +197,7 @@ Plans:
 - [atproto-integration.md](./plans/atproto-integration.md) — active prototype for distribution/discovery; outbound publishing, registry contracts/routes, and the first bounded discovery slice are implemented. Remaining work is OAuth hardening, configurable discovery/Jetstream, and later ingestion/feed work.
 - [bd-priority-engine.md](./plans/bd-priority-engine.md) — **in progress on `feat/opportunity-priority-engine`**: capture, deterministic ranking, focus/state suggestions, and the first dashboard slice exist in the worktree. Composition and eval hardening remain; stale-opportunity alerts should now register with the shared recurring-check infrastructure.
 - [lead-management.md](./plans/lead-management.md) — **email triage has shipped; now gated on the shared `opportunity` entity**: turn configured mail categories into restricted leads, use bounded AI resolution to consolidate multiple mail items per opportunity, and provide reversible merge/split/reassignment before optional promotion into `@brains/business-development`.
-- [email-reply-drafting.md](./plans/email-reply-drafting.md) — **last of the sequence**, unblocked by the shipped email triage: fetch original mail on demand, store only Brain-authored drafts, extend the delivery-provider threading contract, and require confirmation before sending; lead context is optional.
+- [email-reply-drafting.md](./plans/email-reply-drafting.md) — source reads plus generated/editable revisioned drafts have shipped in `@brains/email-workflows`; remaining phases extend the delivery-provider threading contract and require explicit confirmation before sending. Lead context stays optional.
 
 ### 7. Keep the framework sustainable
 

@@ -10,6 +10,8 @@ import type { InboxOperatorService } from "./operator-service";
 import {
   inboxActionOutcomeSchema,
   inboxActionRequestSchema,
+  inboxDetailOutcomeSchema,
+  inboxDetailRequestSchema,
   inboxWorkspaceSnapshotSchema,
 } from "./schemas";
 
@@ -55,8 +57,18 @@ export async function registerUnifiedInboxCmsWorkspace(
         }),
       });
     },
-    actionHandler: async (input, actor) => {
+    actionHandler: async (input, actor, signal) => {
       assertInboxAdmin(actor);
+      const detailRequest = inboxDetailRequestSchema.safeParse(input);
+      if (detailRequest.success) {
+        return inboxDetailOutcomeSchema.parse(
+          await operator.detail(
+            detailRequest.data,
+            { permissionLevel: actor.userPermissionLevel },
+            signal,
+          ),
+        );
+      }
       const request = inboxActionRequestSchema.safeParse(input);
       if (!request.success) {
         return inboxActionOutcomeSchema.parse({

@@ -92,6 +92,54 @@ export const inboxFacetsSchema: z.ZodType<InboxFacetsValue, InboxFacetsValue> =
       message: "Inbox items may declare at most eight facets",
     });
 
+const inboxFollowUpContextKeySchema = z
+  .string()
+  .regex(/^[a-z][A-Za-z0-9]{0,39}$/);
+const inboxFollowUpContextValueSchema = z
+  .string()
+  .min(1)
+  .max(300)
+  .refine((value) => !/[\p{Cc}\p{Cf}]/u.test(value), {
+    message: "Inbox follow-up context values cannot contain controls",
+  });
+
+interface InboxFollowUpDeclarationValue {
+  kind: string;
+  context: Record<string, string>;
+}
+
+const inboxFollowUpDeclarationSchema: z.ZodType<
+  InboxFollowUpDeclarationValue,
+  InboxFollowUpDeclarationValue
+> = z.strictObject({
+  kind: inboxIdSchema,
+  context: z
+    .record(inboxFollowUpContextKeySchema, inboxFollowUpContextValueSchema)
+    .refine((context) => Object.keys(context).length <= 8, {
+      message: "Inbox follow-up context may contain at most eight entries",
+    }),
+});
+
+const inboxFollowUpDeclarationsSchema: z.ZodType<
+  InboxFollowUpDeclarationValue[],
+  InboxFollowUpDeclarationValue[]
+> = z
+  .array(inboxFollowUpDeclarationSchema)
+  .max(8)
+  .superRefine((declarations, context) => {
+    const kinds = new Set<string>();
+    for (const declaration of declarations) {
+      if (kinds.has(declaration.kind)) {
+        context.addIssue({
+          code: "custom",
+          path: [],
+          message: `Duplicate inbox follow-up kind: ${declaration.kind}`,
+        });
+      }
+      kinds.add(declaration.kind);
+    }
+  });
+
 interface InboxActionValue {
   id: string;
   label: string;
@@ -141,6 +189,7 @@ interface InboxItemValue {
   urgency: "high" | "normal";
   entityRef?: InboxEntityRefValue | undefined;
   facets?: InboxFacetsValue | undefined;
+  followUps?: InboxFollowUpDeclarationValue[] | undefined;
   actions: InboxActionValue[];
 }
 
@@ -160,6 +209,7 @@ export const inboxItemSchema: z.ZodType<InboxItemValue, InboxItemValue> = z
     urgency: inboxUrgencySchema,
     entityRef: inboxEntityRefSchema.optional(),
     facets: inboxFacetsSchema.optional(),
+    followUps: inboxFollowUpDeclarationsSchema.optional(),
     actions: z.array(inboxActionSchema).max(10),
   })
   .superRefine((item, context) => {
@@ -190,6 +240,21 @@ export const inboxActorSchema: z.ZodType<InboxActorValue, InboxActorValue> =
     permissionLevel: z.enum(["admin", "trusted", "public"]),
   });
 
+interface InboxItemDetailValue {
+  kind: "plain";
+  text: string;
+  truncated: boolean;
+}
+
+export const inboxItemDetailSchema: z.ZodType<
+  InboxItemDetailValue,
+  InboxItemDetailValue
+> = z.strictObject({
+  kind: z.literal("plain"),
+  text: z.string().max(100_000),
+  truncated: z.boolean(),
+});
+
 interface InboxSourceMetadataValue {
   sourceId: string;
   displayName: string;
@@ -217,6 +282,9 @@ export const inboxSourceDescriptorSchema: z.ZodType<
 });
 
 export type InboxAction = z.output<typeof inboxActionSchema>;
+export type InboxFollowUpDeclaration = z.output<
+  typeof inboxFollowUpDeclarationSchema
+>;
 export type InboxEntityRef = z.output<typeof inboxEntityRefSchema>;
 export type InboxContact = z.output<typeof inboxContactSchema>;
 export type InboxFacetOption = z.output<typeof inboxFacetOptionSchema>;
@@ -224,6 +292,7 @@ export type InboxFacetDefinition = z.output<typeof inboxFacetDefinitionSchema>;
 export type InboxFacets = z.output<typeof inboxFacetsSchema>;
 export type InboxItem = z.output<typeof inboxItemSchema>;
 export type InboxActor = z.output<typeof inboxActorSchema>;
+export type InboxItemDetail = z.output<typeof inboxItemDetailSchema>;
 export type InboxSourceMetadata = z.output<typeof inboxSourceMetadataSchema>;
 export type InboxSourceDescriptor = z.output<
   typeof inboxSourceDescriptorSchema
@@ -231,6 +300,11 @@ export type InboxSourceDescriptor = z.output<
 
 export interface InboxSource extends InboxSourceDescriptor {
   list(): Promise<InboxItem[]>;
+  resolveDetail?(
+    itemId: string,
+    actor: InboxActor,
+    signal: AbortSignal,
+  ): Promise<InboxItemDetail>;
   act(itemId: string, actionId: string, actor: InboxActor): Promise<void>;
 }
 
@@ -354,6 +428,26 @@ function normalizeSource(
       }
       return items.map(freezeItem);
     },
+    ...(source.resolveDetail
+      ? {
+          resolveDetail: async (
+            itemId: string,
+            actor: InboxActor,
+            signal: AbortSignal,
+          ): Promise<InboxItemDetail> => {
+            if (!(signal instanceof AbortSignal)) {
+              throw new Error("Inbox detail signal is invalid");
+            }
+            return inboxItemDetailSchema.parse(
+              await source.resolveDetail?.(
+                inboxItemIdSchema.parse(itemId),
+                inboxActorSchema.parse(actor),
+                signal,
+              ),
+            );
+          },
+        }
+      : {}),
     act: async (
       itemId: string,
       actionId: string,
@@ -374,7 +468,15 @@ function freezeItem(item: InboxItem): InboxItem {
   const actions: InboxAction[] = item.actions.map((action) =>
     Object.freeze({ ...action }),
   );
+  const followUps: InboxFollowUpDeclaration[] | undefined = item.followUps?.map(
+    (followUp) =>
+      Object.freeze({
+        ...followUp,
+        context: Object.freeze({ ...followUp.context }),
+      }),
+  );
   Object.freeze(actions);
+  if (followUps) Object.freeze(followUps);
   return Object.freeze({
     ...item,
     ...(item.contact ? { contact: Object.freeze({ ...item.contact }) } : {}),
@@ -382,6 +484,7 @@ function freezeItem(item: InboxItem): InboxItem {
       ? { entityRef: Object.freeze({ ...item.entityRef }) }
       : {}),
     ...(item.facets ? { facets: Object.freeze({ ...item.facets }) } : {}),
+    ...(followUps ? { followUps } : {}),
     actions,
   });
 }

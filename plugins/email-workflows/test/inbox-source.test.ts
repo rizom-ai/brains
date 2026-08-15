@@ -50,6 +50,7 @@ async function persistItem(
     priority: MailPriority;
     receivedAt: string;
     status?: MailStatus;
+    needsReply?: boolean;
     sender?: InboundEmail["sender"];
     threadId?: string;
     threadOrdinal?: number;
@@ -65,7 +66,7 @@ async function persistItem(
     title: input.title,
     category: "work",
     priority: input.priority,
-    needsReply: true,
+    needsReply: input.needsReply ?? true,
     requestedActions: ["Review the request"],
     summary: input.summary,
   });
@@ -82,7 +83,7 @@ async function persistItem(
   });
   if (input.status && input.status !== "new") {
     const operator = new MailTriageOperatorService(
-      harness.getServiceContext("email-triage"),
+      harness.getServiceContext("email-workflows"),
     );
     await operator.act(
       {
@@ -136,6 +137,7 @@ describe("mail triage inbox source", () => {
       summary: "A project contact shared a routine progress update.",
       priority: "normal",
       receivedAt: "2026-08-05T10:00:00.000Z",
+      needsReply: false,
     });
     await persistItem(harness, {
       id: "reviewed",
@@ -147,7 +149,7 @@ describe("mail triage inbox source", () => {
     });
 
     const operator = new MailTriageOperatorService(
-      harness.getServiceContext("email-triage"),
+      harness.getServiceContext("email-workflows"),
     );
     const source = new MailTriageInboxSource(operator, {
       isReady: async (): Promise<boolean> => true,
@@ -198,7 +200,7 @@ describe("mail triage inbox source", () => {
         facets: {
           category: "work",
           "mail-priority": "normal",
-          "needs-reply": "true",
+          "needs-reply": "false",
         },
         entityRef: {
           entityType: "mail-item",
@@ -230,6 +232,14 @@ describe("mail triage inbox source", () => {
           entityType: "mail-item",
           entityId: expect.stringMatching(/^mail-[a-f0-9]{64}$/),
         },
+        followUps: [
+          {
+            kind: "draft-reply",
+            context: {
+              mailItemId: expect.stringMatching(/^mail-[a-f0-9]{64}$/),
+            },
+          },
+        ],
         actions: [
           { id: "mark-reviewed", label: "Mark reviewed" },
           { id: "mark-handled", label: "Mark handled" },
@@ -305,7 +315,9 @@ describe("mail triage inbox source", () => {
       receivedAt,
     });
     const source = new MailTriageInboxSource(
-      new MailTriageOperatorService(harness.getServiceContext("email-triage")),
+      new MailTriageOperatorService(
+        harness.getServiceContext("email-workflows"),
+      ),
     );
 
     expect(
@@ -342,7 +354,9 @@ describe("mail triage inbox source", () => {
       threadOrdinal: 3,
     });
     const source = new MailTriageInboxSource(
-      new MailTriageOperatorService(harness.getServiceContext("email-triage")),
+      new MailTriageOperatorService(
+        harness.getServiceContext("email-workflows"),
+      ),
       { isReady: async (): Promise<boolean> => false },
     );
 
@@ -356,7 +370,9 @@ describe("mail triage inbox source", () => {
     const harness = createOperatorHarness();
     await harness.installPlugin(new MailItemPlugin());
     const source = new MailTriageInboxSource(
-      new MailTriageOperatorService(harness.getServiceContext("email-triage")),
+      new MailTriageOperatorService(
+        harness.getServiceContext("email-workflows"),
+      ),
     );
 
     expect(await source.list()).toEqual([]);

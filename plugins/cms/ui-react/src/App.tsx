@@ -22,9 +22,15 @@ import {
   type AgentTarget,
   type CmsWorkspaceInfo,
   type DirectorySyncWorkspaceActionResult,
+  type EmailReplyDraftAction,
+  type EmailReplyDraftActionResult,
+  type EmailReplyDraftSourceRequest,
+  type EmailReplyDraftSourceResult,
   type FieldAssistResponse,
   type InboxWorkspaceAction,
   type InboxWorkspaceActionResult,
+  type InboxWorkspaceDetailRequest,
+  type InboxWorkspaceDetailResult,
   type InboxWorkspaceFollowUp,
   type PublishingAction,
   type PublishingActionResult,
@@ -55,7 +61,10 @@ import {
   removeEntity,
   runCmsWorkspaceAction,
   runDirectorySyncWorkspaceAction,
+  runEmailReplyDraftAction,
+  runEmailReplyDraftSource,
   runInboxWorkspaceAction,
+  runInboxWorkspaceDetail,
   runSiteWorkspaceAction,
   saveEntity,
   type SaveEntityInput,
@@ -229,6 +238,9 @@ export function App(): ReactElement {
   const inboxWorkspaceActionMutation = useMutation({
     mutationFn: runInboxWorkspaceAction,
   });
+  const emailReplyDraftActionMutation = useMutation({
+    mutationFn: runEmailReplyDraftAction,
+  });
   const deleting = deleteEntityMutation.isPending;
   const publicationWorkspaceData =
     activeWorkspace?.rendererName === "PublishingWorkspace" &&
@@ -248,6 +260,11 @@ export function App(): ReactElement {
   const inboxWorkspaceData =
     activeWorkspace?.rendererName === "UnifiedInboxWorkspace" &&
     workspaceResponse?.rendererName === "UnifiedInboxWorkspace"
+      ? workspaceResponse.data
+      : null;
+  const emailReplyDraftWorkspaceData =
+    activeWorkspace?.rendererName === "EmailReplyDraftWorkspace" &&
+    workspaceResponse?.rendererName === "EmailReplyDraftWorkspace"
       ? workspaceResponse.data
       : null;
 
@@ -851,6 +868,58 @@ export function App(): ReactElement {
     [inboxWorkspaceActionMutation, queryClient, workspaces],
   );
 
+  const performEmailReplyDraftAction = useCallback(
+    async (
+      action: EmailReplyDraftAction,
+    ): Promise<EmailReplyDraftActionResult> => {
+      const capability = workspaces.find(
+        (workspace) => workspace.rendererName === "EmailReplyDraftWorkspace",
+      );
+      if (!capability) throw new Error("Email reply drafting is unavailable");
+      return emailReplyDraftActionMutation.mutateAsync({
+        workspaceId: capability.id,
+        action,
+      });
+    },
+    [emailReplyDraftActionMutation, workspaces],
+  );
+
+  const performEmailReplyDraftSource = useCallback(
+    async (
+      request: EmailReplyDraftSourceRequest,
+      signal: AbortSignal,
+    ): Promise<EmailReplyDraftSourceResult> => {
+      const capability = workspaces.find(
+        (workspace) => workspace.rendererName === "EmailReplyDraftWorkspace",
+      );
+      if (!capability) throw new Error("Email reply drafting is unavailable");
+      return runEmailReplyDraftSource({
+        workspaceId: capability.id,
+        request,
+        signal,
+      });
+    },
+    [workspaces],
+  );
+
+  const performInboxDetail = useCallback(
+    async (
+      request: InboxWorkspaceDetailRequest,
+      signal: AbortSignal,
+    ): Promise<InboxWorkspaceDetailResult> => {
+      const capability = workspaces.find(
+        (workspace) => workspace.rendererName === "UnifiedInboxWorkspace",
+      );
+      if (!capability) throw new Error("Unified inbox is unavailable");
+      return runInboxWorkspaceDetail({
+        workspaceId: capability.id,
+        request,
+        signal,
+      });
+    },
+    [workspaces],
+  );
+
   const changeWorkspaceQuery = useCallback(
     (
       workspaceId: string,
@@ -904,6 +973,7 @@ export function App(): ReactElement {
       siteWorkspaceData={siteWorkspaceData}
       directorySyncWorkspaceData={directorySyncWorkspaceData}
       inboxWorkspaceData={inboxWorkspaceData}
+      emailReplyDraftWorkspaceData={emailReplyDraftWorkspaceData}
       workspaceQuery={workspaceRequestQuery}
       entityType={entityType}
       entities={entities}
@@ -931,6 +1001,9 @@ export function App(): ReactElement {
       performSiteAction={performSiteAction}
       performDirectorySyncAction={performDirectorySyncAction}
       performInboxAction={performInboxAction}
+      performInboxDetail={performInboxDetail}
+      performEmailReplyDraftAction={performEmailReplyDraftAction}
+      performEmailReplyDraftSource={performEmailReplyDraftSource}
       onWorkspaceQueryChange={changeWorkspaceQuery}
       startCreate={startCreate}
       openEntity={openEntity}

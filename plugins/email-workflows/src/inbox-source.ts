@@ -4,6 +4,7 @@ import {
   type InboxActor,
   type InboxFacetDefinition,
   type InboxItem,
+  type InboxItemDetail,
   type InboxSource,
 } from "@brains/plugins";
 import type { MailTriageOperatorService } from "./operator-service";
@@ -11,6 +12,7 @@ import {
   mailTriageStatusActionSchema,
   type MailTriageListItem,
 } from "./schemas/operator";
+import type { EmailWorkflowsSourceReader } from "./source-read";
 
 const MAIL_FACETS: InboxFacetDefinition[] = [
   {
@@ -51,13 +53,17 @@ export class MailTriageInboxSource implements InboxSource {
 
   private readonly operator: MailTriageOperatorService;
   private readonly readiness: { isReady(): Promise<boolean> } | undefined;
+  private readonly sourceReader:
+    Pick<EmailWorkflowsSourceReader, "read"> | undefined;
 
   constructor(
     operator: MailTriageOperatorService,
     readiness?: { isReady(): Promise<boolean> },
+    sourceReader?: Pick<EmailWorkflowsSourceReader, "read">,
   ) {
     this.operator = operator;
     this.readiness = readiness;
+    this.sourceReader = sourceReader;
   }
 
   async list(): Promise<InboxItem[]> {
@@ -68,6 +74,23 @@ export class MailTriageInboxSource implements InboxSource {
     return inboxItemListSchema.parse(
       result.map((item) => toInboxItem(item, threadOrdinalsReady)),
     );
+  }
+
+  async resolveDetail(
+    itemId: string,
+    actor: InboxActor,
+    signal: AbortSignal,
+  ): Promise<InboxItemDetail> {
+    if (!this.sourceReader) throw new Error("Mail source is unavailable");
+    const source = await this.sourceReader.read({ itemId, actor, signal });
+    if (source.kind !== "available") {
+      throw new Error("Mail source is unavailable");
+    }
+    return {
+      kind: "plain",
+      text: source.message.text,
+      truncated: source.message.truncated,
+    };
   }
 
   async act(
@@ -115,6 +138,16 @@ function toInboxItem(
       "needs-reply": String(item.needsReply),
     },
     entityRef: { entityType: "mail-item", entityId: item.id },
+    ...(item.needsReply
+      ? {
+          followUps: [
+            {
+              kind: "draft-reply",
+              context: { mailItemId: item.id },
+            },
+          ],
+        }
+      : {}),
     actions: inboxActions(),
   };
 }

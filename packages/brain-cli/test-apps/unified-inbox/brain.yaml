@@ -5,7 +5,7 @@ bundles:
   - core
 
 add:
-  - email-triage
+  - email-workflows
   - unified-inbox
 
 plugins:

@@ -71,7 +71,9 @@ export type {
   InboxFacetDefinition,
   InboxFacetOption,
   InboxFacets,
+  InboxFollowUpDeclaration,
   InboxItem,
+  InboxItemDetail,
   InboxSource,
   InboxSourceMetadata,
 } from "../inbox-registry";
