@@ -1,12 +1,16 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it, spyOn } from "bun:test";
 import type {
   IRuntimeStateStore,
   RuntimeStateRecordValue,
 } from "@brains/runtime-state";
-import { InboxRegistry } from "@brains/plugins";
+import { InboxRegistry, PluginManager } from "@brains/plugins";
 import { Shell, type ShellDependencies } from "../src/shell";
 import type { ShellConfigInput } from "../src/config";
-import { createSilentLogger } from "@brains/test-utils";
+import {
+  createMockJobQueueService,
+  createMockShell,
+  createSilentLogger,
+} from "@brains/test-utils";
 import { createTestDirectory } from "@brains/test-utils";
 
 function createTestConfig(dir: string): ShellConfigInput {
@@ -31,6 +35,19 @@ describe("Shell service construction", () => {
     let runtimeStateCloseCalls = 0;
     let jobQueueCloseCalls = 0;
     const inboxRegistry = new InboxRegistry();
+
+    const jobQueueService = createMockJobQueueService();
+    spyOn(jobQueueService, "close").mockImplementation(() => {
+      jobQueueCloseCalls++;
+    });
+
+    const pluginManager = PluginManager.createFresh(
+      createSilentLogger("test"),
+      createMockShell().getDaemonRegistry(),
+    );
+    spyOn(pluginManager, "setShell").mockImplementation((): never => {
+      throw constructionError;
+    });
 
     const dependencies: ShellDependencies = {
       logger: createSilentLogger("test"),
@@ -65,24 +82,19 @@ describe("Shell service construction", () => {
         stop: async (): Promise<void> => {},
         abandon: (): void => {},
         namespace: () => ({ register: () => () => {} }),
-        unregisterPlugin: (): void => {},
+        unregisterPlugin: async (): Promise<void> => {},
         listOpenAlerts: async () => [],
         resolveOpenAlert: async (): Promise<void> => {},
-      } as unknown as NonNullable<ShellDependencies["recurringCheckService"]>,
+      },
       inboxRegistry,
-      jobQueueService: {
-        close: (): void => {
-          jobQueueCloseCalls++;
-        },
-        registerHandler: (): void => {},
-        getActiveJobs: async () => [],
-        getStatus: async () => null,
-      } as unknown as NonNullable<ShellDependencies["jobQueueService"]>,
-      pluginManager: {
-        setShell: (): never => {
-          throw constructionError;
-        },
-      } as unknown as NonNullable<ShellDependencies["pluginManager"]>,
+      // The shared factory rather than a four-method stand-in: IJobQueueService
+      // has two dozen members, and the cast this replaces meant the fake could
+      // drift from any of them.
+      jobQueueService,
+      // A real PluginManager with setShell made to throw: it is a class, so no
+      // literal could ever satisfy it, and the failure this test needs is one
+      // method's behaviour rather than a different object.
+      pluginManager,
     };
 
     try {

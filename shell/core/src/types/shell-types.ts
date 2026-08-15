@@ -43,6 +43,25 @@ import type { IJobProgressMonitor } from "@brains/utils/progress";
 import type { ProjectionRuntimeSupervisor } from "../projection-runtime-supervisor";
 import type { OperationContext } from "@brains/operation-context";
 
+/**
+ * The recurring-check surface the shell wires.
+ *
+ * RecurringCheckService is a class, so declaring it here made this dependency
+ * nominally typed and a test could not supply a stand-in. recurring-check-inbox-source
+ * already takes a Pick of the same service; this makes the shell consistent
+ * with it.
+ */
+export type ShellRecurringChecks = Pick<
+  RecurringCheckService,
+  | "start"
+  | "stop"
+  | "abandon"
+  | "namespace"
+  | "unregisterPlugin"
+  | "listOpenAlerts"
+  | "resolveOpenAlert"
+>;
+
 export interface JobServicesLifecycle {
   closeRuntime(): Promise<void>;
 }
@@ -84,7 +103,7 @@ export interface ShellServices {
   attachmentRegistry: AttachmentRegistry;
   runtimeUploadRegistry: RuntimeUploadRegistry;
   runtimeStateService: IRuntimeStateService;
-  recurringCheckService: RecurringCheckService;
+  recurringCheckService: ShellRecurringChecks;
 }
 
 export interface ShellDependencies {
@@ -112,7 +131,7 @@ export interface ShellDependencies {
   attachmentRegistry?: AttachmentRegistry;
   runtimeUploadRegistry?: RuntimeUploadRegistry;
   runtimeStateService?: IRuntimeStateService;
-  recurringCheckService?: RecurringCheckService;
+  recurringCheckService?: ShellRecurringChecks;
   profileKindRegistry?: ProfileKindRegistry;
   channelRegistry?: ChannelRegistry;
   inboxRegistry?: InboxRegistry;

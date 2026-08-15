@@ -1,7 +1,5 @@
 import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { materializePrompts, resetPromptCache } from "@brains/plugins";
-import type { IEntityService } from "@brains/entity-service";
-import type { TemplateRegistry } from "@brains/templates";
 
 describe("materializePrompts", () => {
   let mockEntityService: {
@@ -33,8 +31,8 @@ describe("materializePrompts", () => {
     };
 
     const count = await materializePrompts(
-      mockTemplateRegistry as unknown as TemplateRegistry,
-      mockEntityService as unknown as IEntityService,
+      mockTemplateRegistry,
+      mockEntityService,
     );
 
     expect(count).toBe(2);
@@ -52,10 +50,7 @@ describe("materializePrompts", () => {
       ]),
     };
 
-    await materializePrompts(
-      mockTemplateRegistry as unknown as TemplateRegistry,
-      mockEntityService as unknown as IEntityService,
-    );
+    await materializePrompts(mockTemplateRegistry, mockEntityService);
 
     expect(mockEntityService.getEntity).toHaveBeenCalledWith({
       entityType: "prompt",
@@ -72,8 +67,8 @@ describe("materializePrompts", () => {
     };
 
     const count = await materializePrompts(
-      mockTemplateRegistry as unknown as TemplateRegistry,
-      mockEntityService as unknown as IEntityService,
+      mockTemplateRegistry,
+      mockEntityService,
     );
 
     expect(count).toBe(0);
@@ -86,8 +81,8 @@ describe("materializePrompts", () => {
     };
 
     const count = await materializePrompts(
-      mockTemplateRegistry as unknown as TemplateRegistry,
-      mockEntityService as unknown as IEntityService,
+      mockTemplateRegistry,
+      mockEntityService,
     );
 
     expect(count).toBe(0);
