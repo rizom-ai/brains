@@ -1,4 +1,5 @@
 import { spawn, type SpawnOptions } from "node:child_process";
+import { GIT_BROKER_SOCKET_ENV } from "@brains/directory-sync";
 import type { CommandResult } from "./command-result";
 import type {
   SignalProcess,
@@ -25,8 +26,9 @@ export interface GitBrokerSpec {
   readonly socketPath: string;
 }
 
-/** Where each role finds its checkout owner. */
-export const GIT_BROKER_SOCKET_ENV = "BRAIN_GIT_BROKER_SOCKET";
+// Defined by the package that consumes it, so the supervisor and the roles
+// cannot disagree about the name of the handoff.
+export { GIT_BROKER_SOCKET_ENV };
 type SupervisorTimer = ReturnType<typeof setTimeout> | number;
 type WorkerHeartbeatTimer = ReturnType<typeof setInterval> | number;
 

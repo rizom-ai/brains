@@ -5,7 +5,7 @@ import { getErrorMessage } from "@brains/utils/error";
 import type { CommandResult } from "./command-result";
 import type { BrainYamlConfig } from "./brain-yaml";
 import { BRAIN_DEFAULT_DATA_DIR } from "./git-broker-spec";
-import { GIT_BROKER_SOCKET_ENV } from "./process-supervisor";
+import { GIT_BROKER_SOCKET_ENV } from "@brains/directory-sync";
 
 /**
  * The `--child=git-broker` role.

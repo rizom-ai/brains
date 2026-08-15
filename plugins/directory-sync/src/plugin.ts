@@ -1,7 +1,9 @@
 import type { Plugin, ServicePluginContext, Tool } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
 import { DirectorySync } from "./lib/directory-sync";
-import { GitSync } from "./lib/git-sync";
+import { connectGitSync, GIT_BROKER_SOCKET_ENV } from "./lib/broker/connect";
+import { resolveGitRemoteUrl } from "./lib/git-options";
+import type { IGitSync } from "./types";
 import {
   directorySyncConfigSchema,
   type DirectorySyncConfig,
@@ -39,7 +41,7 @@ export class DirectorySyncPlugin extends ServicePlugin<
   DirectorySyncConfigInput
 > {
   private directorySync: DirectorySync | undefined;
-  private gitSync: GitSync | undefined;
+  private gitSync: IGitSync | undefined;
   private operationStatus: DirectorySyncOperationStatusService | undefined;
   private gitReconciliation: GitReconciliationService | undefined;
   private workspaceProvider: DirectorySyncWorkspaceProvider | undefined;
@@ -75,7 +77,7 @@ export class DirectorySyncPlugin extends ServicePlugin<
     return this.directorySync;
   }
 
-  private requireGitSync(): GitSync {
+  private requireGitSync(): IGitSync {
     if (!this.gitSync) {
       throw new Error("GitSync service not initialized");
     }
@@ -274,7 +276,7 @@ export class DirectorySyncPlugin extends ServicePlugin<
         pluginId: this.id,
         config: this.config,
         getDirectorySync: (): DirectorySync => this.requireDirectorySync(),
-        getGitSync: (): GitSync | undefined => this.gitSync,
+        getGitSync: (): IGitSync | undefined => this.gitSync,
         operationStatus: this.operationStatus,
       });
 
@@ -336,7 +338,7 @@ export class DirectorySyncPlugin extends ServicePlugin<
     const context = this.getContext();
     const candidateRuntime = new DirectorySyncRuntime();
     const candidateDirectorySync = this.createDirectorySync(context, syncPath);
-    let candidateGitSync: GitSync | undefined;
+    let candidateGitSync: IGitSync | undefined;
 
     try {
       await candidateDirectorySync.initializeDirectory();
@@ -444,19 +446,29 @@ export class DirectorySyncPlugin extends ServicePlugin<
     });
   }
 
-  private async initializeGitSync(syncPath: string): Promise<GitSync> {
+  /**
+   * Reach the checkout's owner. This role executes no Git itself, and there is
+   * no in-process path to fall back to: a missing socket fails registration
+   * rather than quietly making this process a second owner.
+   *
+   * The token stays in this role's configuration and never reaches the broker;
+   * the broker resolves its own authenticated remote from the same brain.yaml.
+   */
+  private async initializeGitSync(syncPath: string): Promise<IGitSync> {
     const git = this.config.git;
     if (!git) throw new Error("Git configuration is unavailable");
 
-    const gitSync = new GitSync({
-      logger: this.logger.child("GitSync"),
-      dataDir: syncPath,
-      repo: git.repo,
-      gitUrl: git.gitUrl,
+    const gitSync = await connectGitSync({
+      socketPath: process.env[GIT_BROKER_SOCKET_ENV],
+      checkoutPath: syncPath,
       branch: git.branch,
-      authToken: git.authToken,
-      authorName: git.authorName,
-      authorEmail: git.authorEmail,
+      remoteUrl: resolveGitRemoteUrl({
+        logger: this.logger,
+        dataDir: syncPath,
+        repo: git.repo,
+        gitUrl: git.gitUrl,
+      }),
+      logger: this.logger.child("GitSync"),
     });
     await gitSync.initialize();
     this.logger.info("Git integration enabled", { repo: git.repo });
@@ -508,7 +520,7 @@ export class DirectorySyncPlugin extends ServicePlugin<
   private async stopGeneration(
     runtime: DirectorySyncRuntime,
     directorySync: DirectorySync | undefined,
-    gitSync: GitSync | undefined,
+    gitSync: IGitSync | undefined,
   ): Promise<void> {
     const failures: unknown[] = [];
     try {
@@ -532,7 +544,7 @@ export class DirectorySyncPlugin extends ServicePlugin<
   private async abandonCandidate(
     runtime: DirectorySyncRuntime,
     directorySync: DirectorySync,
-    gitSync: GitSync | undefined,
+    gitSync: IGitSync | undefined,
   ): Promise<void> {
     try {
       await runtime.close();

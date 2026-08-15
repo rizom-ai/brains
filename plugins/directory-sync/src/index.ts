@@ -16,6 +16,7 @@ export { DirectorySyncStatusFormatter } from "./formatters/directorySyncStatusFo
 export { startGitBrokerHost, resolveCheckoutPath } from "./lib/broker/host";
 export type { GitBrokerHostOptions } from "./lib/broker/host";
 export { gitBrokerSocketPath, GitBrokerServer } from "./lib/broker/server";
+export { GIT_BROKER_SOCKET_ENV } from "./lib/broker/connect";
 
 export type {
   CleanupResult,
