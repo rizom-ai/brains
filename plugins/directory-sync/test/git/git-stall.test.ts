@@ -4,6 +4,22 @@ import {
   runGitCommandWithStallTimeout,
 } from "../../src/lib/git-stall";
 
+/**
+ * A git invocation that produces no output until it is killed.
+ *
+ * These two tests need nothing more than that: one asserts the stall
+ * timeout fires, the other that an abort reason propagates. They used to run
+ * `git daemon`, which serves the purpose but binds a port to do it — and
+ * ignores the `--port=0` they asked for, taking the fixed 9418 instead. Two
+ * checkouts on one machine therefore could not run this file at the same
+ * time, and the loser failed with `Address already in use` far from anything
+ * it was testing.
+ *
+ * An alias that sleeps is silent in the same way and contends with nothing.
+ * The first test in this file already drives git through an alias.
+ */
+const SILENT_CHILD = ["-c", "alias.stall=!sleep 30", "stall"];
+
 describe("runGitCommandWithStallTimeout", () => {
   it("returns stdout for a completing command", async () => {
     const stdout = await runGitCommandWithStallTimeout(
@@ -49,10 +65,9 @@ describe("runGitCommandWithStallTimeout", () => {
   });
 
   it("kills a silent child and throws GitStallError", async () => {
-    // `git daemon` listens silently until killed, independent of stdin.
     const outcome = await runGitCommandWithStallTimeout(
       { baseDir: process.cwd(), timeoutMs: 150 },
-      ["daemon", "--listen=127.0.0.1", "--port=0", "--base-path=."],
+      SILENT_CHILD,
     ).then(
       () => undefined,
       (error: unknown) => error,
@@ -65,7 +80,7 @@ describe("runGitCommandWithStallTimeout", () => {
     const reason = new Error("caller cancelled");
     const outcome = runGitCommandWithStallTimeout(
       { baseDir: process.cwd(), timeoutMs: 10_000 },
-      ["daemon", "--listen=127.0.0.1", "--port=0", "--base-path=."],
+      SILENT_CHILD,
       controller.signal,
     ).then(
       () => undefined,
