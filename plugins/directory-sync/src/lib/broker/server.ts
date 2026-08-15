@@ -3,6 +3,8 @@ import { join, resolve } from "path";
 import { createId } from "@brains/utils/id";
 import { getErrorMessage } from "@brains/utils/error";
 import { CheckoutOperationExecutor } from "./checkout-executor";
+import { isMutatingOperation } from "./operations";
+import type { GitOperationName } from "./operations";
 import type { CheckoutExecutorOptions } from "./checkout-executor";
 import { BROKER_PROTOCOL_VERSION, FrameDecoder, encodeFrame } from "./protocol";
 import type {
@@ -34,6 +36,8 @@ export interface GitBrokerServerOptions {
   brokerId?: string | undefined;
   /** Injected so supervision facts can be asserted without waiting. */
   now?: (() => number) | undefined;
+  /** How many answered reads stay replayable; mutations are never dropped. */
+  answeredWindow?: number | undefined;
   /**
    * Checkout configuration by canonical path. Resolved here rather than sent,
    * so a token never enters a protocol frame.
@@ -53,12 +57,22 @@ export function gitBrokerSocketPath(runtimeDir: string): string {
 }
 
 /**
- * How many answered requests stay replayable.
+ * How many answered *reads* stay replayable.
  *
- * A retry follows its original closely, so this only has to outlive a lost
- * acknowledgement — not the generation.
+ * Only reads are forgotten: a mutation retried after the window would run a
+ * second time, which is the duplicate this ledger exists to prevent.
  */
 const ANSWERED_WINDOW = 256;
+
+type Settled = { ok: true; value: unknown } | { ok: false; error: unknown };
+
+interface LedgerEntry {
+  checkoutPath: string;
+  operation: GitOperationName;
+  /** Mutations are never forgotten while this generation lives. */
+  mutating: boolean;
+  settled: Promise<Settled>;
+}
 
 export class BrokerStartupError extends Error {
   constructor(message: string) {
@@ -94,14 +108,14 @@ export class GitBrokerServer {
   readonly #resolveCheckout: GitBrokerServerOptions["resolveCheckout"];
   readonly #now: () => number;
   /**
-   * Results this generation has already produced, by request id.
+   * Every request this generation has been asked to run, by id.
    *
-   * A client whose acknowledgement was lost retries with the same id, and
-   * running the work again would turn one commit into two. Bounded, because
-   * a retry follows its original closely; anything older than the window is
-   * a request nobody is still waiting on.
+   * A request id is a promise that the work happens once, so the entry is
+   * created before the work starts: a duplicate that arrives while the first
+   * is still running joins it instead of starting a second commit.
    */
-  readonly #answered = new Map<string, unknown>();
+  readonly #ledger = new Map<string, LedgerEntry>();
+  readonly #answeredWindow: number;
   readonly #journal: BrokerJournal | null;
   #server: { stop(closeActiveConnections?: boolean): void } | null = null;
 
@@ -111,12 +125,14 @@ export class GitBrokerServer {
     resolveCheckout: GitBrokerServerOptions["resolveCheckout"],
     now: () => number,
     journal: BrokerJournal | null,
+    answeredWindow: number,
   ) {
     this.socketPath = socketPath;
     this.brokerId = brokerId;
     this.#resolveCheckout = resolveCheckout;
     this.#now = now;
     this.#journal = journal;
+    this.#answeredWindow = answeredWindow;
   }
 
   /**
@@ -174,6 +190,7 @@ export class GitBrokerServer {
       await BrokerJournal.open(options.runtimeDir, {
         ...(options.now ? { now: options.now } : {}),
       }),
+      options.answeredWindow ?? ANSWERED_WINDOW,
     );
     await broker.#listen();
     return broker;
@@ -285,17 +302,6 @@ export class GitBrokerServer {
     );
   }
 
-  #remember(requestId: string, value: unknown): void {
-    this.#answered.set(requestId, value);
-    // Oldest first, so the window always covers the most recent work.
-    for (const stale of [...this.#answered.keys()].slice(
-      0,
-      Math.max(0, this.#answered.size - ANSWERED_WINDOW),
-    )) {
-      this.#answered.delete(stale);
-    }
-  }
-
   async #handle(writer: SocketWriter, message: BrokerMessage): Promise<void> {
     if (message.type === "register-checkout") {
       try {
@@ -325,6 +331,29 @@ export class GitBrokerServer {
     writer: SocketWriter,
     message: ExecuteOperationMessage,
   ): Promise<void> {
+    const existing = this.#ledger.get(message.requestId);
+    if (existing) {
+      if (
+        existing.checkoutPath !== message.checkoutPath ||
+        existing.operation !== message.operation.name
+      ) {
+        // Answers are indistinguishable across operations — a commit and a
+        // push both answer with nothing — so replaying one for the other
+        // would report a push that never reached the remote.
+        this.#fail(
+          writer,
+          message.requestId,
+          new Error(
+            `Request ${message.requestId} is already used for ${existing.operation} on ${existing.checkoutPath}`,
+          ),
+        );
+        return;
+      }
+      // Either already answered, or still running and about to be.
+      this.#reply(writer, message.requestId, await existing.settled);
+      return;
+    }
+
     const executor = this.#executors.get(resolve(message.checkoutPath));
     if (!executor) {
       this.#fail(
@@ -335,19 +364,22 @@ export class GitBrokerServer {
       return;
     }
 
-    // Answered already: the client lost the reply, not the outcome.
-    if (this.#answered.has(message.requestId)) {
-      this.#send(writer, {
-        type: "result",
-        version: BROKER_PROTOCOL_VERSION,
-        requestId: message.requestId,
-        outcome: "ok",
-        value: this.#answered.get(message.requestId) ?? null,
-        error: null,
-      });
-      return;
-    }
+    const settled = this.#run(writer, message, executor);
+    this.#ledger.set(message.requestId, {
+      checkoutPath: message.checkoutPath,
+      operation: message.operation.name,
+      mutating: isMutatingOperation(message.operation),
+      settled,
+    });
+    this.#forget();
+    this.#reply(writer, message.requestId, await settled);
+  }
 
+  async #run(
+    writer: SocketWriter,
+    message: ExecuteOperationMessage,
+    executor: CheckoutOperationExecutor,
+  ): Promise<Settled> {
     this.#active.set(message.requestId, {
       checkoutPath: message.checkoutPath,
       progressAt: this.#now(),
@@ -357,6 +389,7 @@ export class GitBrokerServer {
       checkoutPath: message.checkoutPath,
       operation: message.operation.name,
     });
+
     try {
       const value = await executor.execute(message.operation, {
         // Keeps the caller's operation-status heartbeat fresh through a long
@@ -373,23 +406,49 @@ export class GitBrokerServer {
           });
         },
       });
-      this.#remember(message.requestId, value ?? null);
       await this.#journal?.recordSettled(message.requestId, "ok");
-      this.#send(writer, {
-        type: "result",
-        version: BROKER_PROTOCOL_VERSION,
-        requestId: message.requestId,
-        outcome: "ok",
-        value: value ?? null,
-        error: null,
-      });
+      return { ok: true, value: value ?? null };
     } catch (error) {
-      // A failure is terminal for this request but not an answer to
-      // replay: the caller decides whether to try again, with a new id.
+      // Terminal for this id. A caller that wants another attempt asks with
+      // a new one: whether this attempt mutated is not knowable from here.
       await this.#journal?.recordSettled(message.requestId, "error");
-      this.#fail(writer, message.requestId, error);
+      return { ok: false, error };
     } finally {
       this.#active.delete(message.requestId);
+    }
+  }
+
+  #reply(writer: SocketWriter, requestId: string, settled: Settled): void {
+    if (!settled.ok) {
+      this.#fail(writer, requestId, settled.error);
+      return;
+    }
+    this.#send(writer, {
+      type: "result",
+      version: BROKER_PROTOCOL_VERSION,
+      requestId,
+      outcome: "ok",
+      value: settled.value,
+      error: null,
+    });
+  }
+
+  /**
+   * Forget answered reads once the window has rolled past them.
+   *
+   * Mutations are kept for the whole generation. A retry can arrive late, and
+   * forgetting a commit because reads happened since is indistinguishable —
+   * from the client's side — from never having run it.
+   */
+  #forget(): void {
+    const forgettable = [...this.#ledger.entries()].filter(
+      ([, entry]) => !entry.mutating,
+    );
+    for (const [requestId] of forgettable.slice(
+      0,
+      Math.max(0, forgettable.length - this.#answeredWindow),
+    )) {
+      this.#ledger.delete(requestId);
     }
   }
 }

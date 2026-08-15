@@ -68,6 +68,8 @@ function expectStatus(reply: Reply): StatusMessage {
 export class BrokerConnection {
   readonly #socketPath: string;
   readonly #pending = new Map<string, Pending>();
+  /** In-flight replies by request id, so a duplicate joins rather than races. */
+  readonly #waiters = new Map<string, Promise<Reply>>();
   #writer: SocketWriter | null = null;
   #socket: { end(): void } | null = null;
   #closed = false;
@@ -227,7 +229,24 @@ export class BrokerConnection {
     },
   ): Promise<GitOperationResult<TOperation["name"]>> {
     runOptions.signal?.throwIfAborted();
+    // One waiter per id. Keying pending requests by id means a second call
+    // with the same id would otherwise replace the first, stranding whoever
+    // was already waiting on an answer that never arrives.
+    const inFlight = this.#waiters.get(requestId);
+    if (inFlight) {
+      const reply = await inFlight;
+      if (reply.type !== "result") {
+        throw new BrokerOperationError(
+          "The broker answered an operation with a status frame",
+        );
+      }
+      return parseGitOperationResult<TOperation["name"]>(
+        operation.name,
+        reply.value,
+      );
+    }
     const settled = Promise.withResolvers<Reply>();
+    this.#waiters.set(requestId, settled.promise);
     this.#pending.set(requestId, {
       ...settled,
       ...(runOptions.onProgress ? { onProgress: runOptions.onProgress } : {}),
@@ -262,6 +281,7 @@ export class BrokerConnection {
       );
     } finally {
       stopWatchingAbort();
+      this.#waiters.delete(requestId);
     }
   }
 }

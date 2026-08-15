@@ -22,6 +22,10 @@ export {
   createBrokerHealthCheck,
   probeBrokerActivity,
 } from "./lib/broker/health";
+// Reaching a broker directly is what a recovery proof has to do: it observes
+// the owner from outside rather than through a role that trusts it.
+export { BrokerConnection } from "./lib/broker/client";
+export { getGitRemoteFingerprint } from "./lib/git-options";
 
 export type {
   CleanupResult,

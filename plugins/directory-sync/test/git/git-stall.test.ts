@@ -4,6 +4,23 @@ import {
   runGitCommandWithStallTimeout,
 } from "../../src/lib/broker/git-stall";
 
+/**
+ * A port nobody else in this run is using.
+ *
+ * `git daemon --port=0` does not pick one: it binds 9418, so two runs — or
+ * one leaked daemon — collide, and the failure looks like a regression in
+ * the code under test rather than a stale process.
+ */
+function freePort(): number {
+  const probe = Bun.listen({
+    hostname: "127.0.0.1",
+    port: 0,
+    socket: { data: (): void => {} },
+  });
+  const { port } = probe;
+  probe.stop(true);
+  return port;
+}
 describe("runGitCommandWithStallTimeout", () => {
   it("returns stdout for a completing command", async () => {
     const stdout = await runGitCommandWithStallTimeout(
@@ -52,7 +69,7 @@ describe("runGitCommandWithStallTimeout", () => {
     // `git daemon` listens silently until killed, independent of stdin.
     const outcome = await runGitCommandWithStallTimeout(
       { baseDir: process.cwd(), timeoutMs: 150 },
-      ["daemon", "--listen=127.0.0.1", "--port=0", "--base-path=."],
+      ["daemon", "--listen=127.0.0.1", `--port=${freePort()}`, "--base-path=."],
     ).then(
       () => undefined,
       (error: unknown) => error,
@@ -65,7 +82,7 @@ describe("runGitCommandWithStallTimeout", () => {
     const reason = new Error("caller cancelled");
     const outcome = runGitCommandWithStallTimeout(
       { baseDir: process.cwd(), timeoutMs: 10_000 },
-      ["daemon", "--listen=127.0.0.1", "--port=0", "--base-path=."],
+      ["daemon", "--listen=127.0.0.1", `--port=${freePort()}`, "--base-path=."],
       controller.signal,
     ).then(
       () => undefined,
