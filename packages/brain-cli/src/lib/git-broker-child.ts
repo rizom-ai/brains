@@ -6,6 +6,7 @@ import type { CommandResult } from "./command-result";
 import type { BrainYamlConfig } from "./brain-yaml";
 import { BRAIN_DEFAULT_DATA_DIR } from "./git-broker-spec";
 import { GIT_BROKER_SOCKET_ENV } from "@brains/directory-sync";
+import { BROKER_HEARTBEAT_INTERVAL_MS } from "./process-supervisor";
 
 /**
  * The `--child=git-broker` role.
@@ -24,11 +25,30 @@ interface BrokerChildProcess {
 /** Structural on purpose: the child only ever stops what it started. */
 interface RunningBroker {
   stop(): Promise<void>;
+  activity: {
+    activeRequestIds: string[];
+    oldestActiveProgressAt: number | null;
+  };
 }
+
+interface HeartbeatClock {
+  setInterval(callback: () => void, intervalMs: number): unknown;
+  clearInterval(handle: unknown): void;
+}
+
+const defaultHeartbeatClock: HeartbeatClock = {
+  setInterval: (callback, intervalMs) => setInterval(callback, intervalMs),
+  clearInterval: (handle) => {
+    if (typeof handle === "number" || typeof handle === "object") {
+      clearInterval(handle as never);
+    }
+  },
+};
 
 export interface GitBrokerChildDependencies {
   processImpl?: BrokerChildProcess;
   startHost?: (options: GitBrokerHostOptions) => Promise<RunningBroker>;
+  heartbeatClock?: HeartbeatClock;
 }
 
 export async function runGitBrokerChild(
@@ -69,11 +89,24 @@ export async function runGitBrokerChild(
   }
 
   processImpl.send?.({ type: "broker-ready" });
+
+  // Not a liveness ping. A wedged owner keeps running, so what the supervisor
+  // needs is what is active and when it last moved — silence and a stalled
+  // timestamp are the two ways an owner goes bad without exiting.
+  const clock = dependencies.heartbeatClock ?? defaultHeartbeatClock;
+  const beating = clock.setInterval(() => {
+    processImpl.send?.({
+      type: "broker-heartbeat",
+      ...started.broker.activity,
+    });
+  }, BROKER_HEARTBEAT_INTERVAL_MS);
+
   await new Promise<void>((resolve) => {
     processImpl.on("SIGTERM", resolve);
     processImpl.on("SIGINT", resolve);
   });
 
+  clock.clearInterval(beating);
   await started.broker.stop();
   return { success: true };
 }

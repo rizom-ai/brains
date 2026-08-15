@@ -29,6 +29,7 @@ describe("git broker child", () => {
   it("refuses to run without a supervisor-assigned socket", async () => {
     const startHost = mock(async () => ({
       stop: async (): Promise<void> => {},
+      activity: { activeRequestIds: [], oldestActiveProgressAt: null },
     }));
 
     const result = await runGitBrokerChild("/brain", CONFIG, {
@@ -63,9 +64,54 @@ describe("git broker child", () => {
     expect(processImpl.send).not.toHaveBeenCalled();
   });
 
+  it("beats with the activity its supervisor watches", async () => {
+    const activity = {
+      activeRequestIds: ["req_running001"],
+      oldestActiveProgressAt: 1_234,
+    };
+    let beat = (): void => {
+      throw new Error("Heartbeat interval was not registered");
+    };
+    const processImpl = createProcess({
+      [GIT_BROKER_SOCKET_ENV]: "/run/brain/git-broker.sock",
+    });
+
+    const running = runGitBrokerChild("/brain", CONFIG, {
+      processImpl,
+      startHost: async () => ({
+        stop: async (): Promise<void> => {},
+        activity,
+      }),
+      heartbeatClock: {
+        setInterval: (callback: () => void, intervalMs: number): number => {
+          beat = callback;
+          expect(intervalMs).toBe(5_000);
+          return 1;
+        },
+        clearInterval: () => {},
+      },
+    });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    // A wedged owner does not exit, so the supervisor needs facts, not a
+    // liveness ping: what is active, and when it last moved.
+    beat();
+    expect(processImpl.send).toHaveBeenLastCalledWith({
+      type: "broker-heartbeat",
+      activeRequestIds: ["req_running001"],
+      oldestActiveProgressAt: 1_234,
+    });
+
+    processImpl.emit("SIGTERM");
+    expect(await running).toEqual({ success: true });
+  });
+
   it("reports ready to its supervisor and stops only on request", async () => {
     const stop = mock(async () => {});
-    const startHost = mock(async () => ({ stop }));
+    const startHost = mock(async () => ({
+      stop,
+      activity: { activeRequestIds: [], oldestActiveProgressAt: null },
+    }));
     const processImpl = createProcess({
       [GIT_BROKER_SOCKET_ENV]: "/run/brain/git-broker.sock",
     });

@@ -30,6 +30,8 @@ export interface GitBrokerServerOptions {
   /** Instance-owned runtime directory; never inside a checkout. */
   runtimeDir: string;
   brokerId?: string | undefined;
+  /** Injected so supervision facts can be asserted without waiting. */
+  now?: (() => number) | undefined;
   /**
    * Checkout configuration by canonical path. Resolved here rather than sent,
    * so a token never enters a protocol frame.
@@ -74,18 +76,44 @@ export class GitBrokerServer {
   readonly brokerId: string;
 
   readonly #executors = new Map<string, CheckoutOperationExecutor>();
-  readonly #active = new Map<string, string>();
+  /** Request id to when that operation last showed it was still moving. */
+  readonly #active = new Map<
+    string,
+    { checkoutPath: string; progressAt: number }
+  >();
   readonly #resolveCheckout: GitBrokerServerOptions["resolveCheckout"];
+  readonly #now: () => number;
   #server: { stop(closeActiveConnections?: boolean): void } | null = null;
 
   private constructor(
     socketPath: string,
     brokerId: string,
     resolveCheckout: GitBrokerServerOptions["resolveCheckout"],
+    now: () => number,
   ) {
     this.socketPath = socketPath;
     this.brokerId = brokerId;
     this.#resolveCheckout = resolveCheckout;
+    this.#now = now;
+  }
+
+  /**
+   * What supervision reads to tell a wedged owner from a busy one.
+   *
+   * A wedged broker does not exit, so there is no process event to wait for.
+   * These are the durable facts instead.
+   */
+  get activity(): {
+    activeRequestIds: string[];
+    oldestActiveProgressAt: number | null;
+  } {
+    const active = [...this.#active.entries()];
+    return {
+      activeRequestIds: active.map(([requestId]) => requestId).sort(),
+      oldestActiveProgressAt: active.length
+        ? Math.min(...active.map(([, entry]) => entry.progressAt))
+        : null,
+    };
   }
 
   static async start(
@@ -109,6 +137,7 @@ export class GitBrokerServer {
       socketPath,
       options.brokerId ?? createId(10),
       options.resolveCheckout,
+      options.now ?? Date.now,
     );
     await broker.#listen();
     return broker;
@@ -190,8 +219,7 @@ export class GitBrokerServer {
       requestId,
       brokerId: this.brokerId,
       checkouts: this.registeredCheckouts,
-      activeRequestIds: [...this.#active.keys()].sort(),
-      oldestActiveStartedAt: null,
+      ...this.activity,
     });
   }
 
@@ -260,12 +288,17 @@ export class GitBrokerServer {
       return;
     }
 
-    this.#active.set(message.requestId, message.checkoutPath);
+    this.#active.set(message.requestId, {
+      checkoutPath: message.checkoutPath,
+      progressAt: this.#now(),
+    });
     try {
       const value = await executor.execute(message.operation, {
         // Keeps the caller's operation-status heartbeat fresh through a long
         // clone or pull; without it a healthy slow operation looks stalled.
         onProgress: (): void => {
+          const entry = this.#active.get(message.requestId);
+          if (entry) entry.progressAt = this.#now();
           this.#send(writer, {
             type: "progress",
             version: BROKER_PROTOCOL_VERSION,

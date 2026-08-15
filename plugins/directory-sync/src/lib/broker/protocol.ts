@@ -77,7 +77,12 @@ export interface StatusMessage {
   brokerId: string;
   checkouts: string[];
   activeRequestIds: string[];
-  oldestActiveStartedAt: string | null;
+  /**
+   * Epoch millis of the least recently advanced active operation, or null when
+   * nothing is active. Progress age, not start age: a slow clone that keeps
+   * producing output is healthy, and one that stops is not.
+   */
+  oldestActiveProgressAt: number | null;
 }
 
 export interface HeartbeatMessage {
@@ -166,7 +171,7 @@ export const brokerMessageSchema: z.ZodType<BrokerMessage, BrokerMessage> =
         brokerId: z.string().min(1),
         checkouts: z.array(z.string()),
         activeRequestIds: z.array(requestId),
-        oldestActiveStartedAt: timestamp.nullable(),
+        oldestActiveProgressAt: z.number().int().nonnegative().nullable(),
       })
       .strict(),
     z

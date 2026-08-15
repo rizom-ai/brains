@@ -47,7 +47,7 @@ async function rogueBroker(value: unknown): Promise<string> {
                 brokerId: "rogue",
                 checkouts: [message.checkoutPath],
                 activeRequestIds: [],
-                oldestActiveStartedAt: null,
+                oldestActiveProgressAt: null,
               }),
             );
             return;

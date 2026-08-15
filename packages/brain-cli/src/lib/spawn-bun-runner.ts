@@ -4,6 +4,8 @@ import type { CommandResult } from "./command-result";
 export interface SpawnedProcess {
   exitCode: number | null;
   killed: boolean;
+  /** Absent until the child is spawned; the broker's process group leader. */
+  pid?: number | undefined;
   kill(signal?: number | NodeJS.Signals): boolean;
   on(event: "error", listener: (error: Error) => void): this;
   on(
@@ -22,6 +24,8 @@ export type SpawnImpl = (
 
 export interface SignalProcess {
   env: NodeJS.ProcessEnv;
+  /** Negative pid signals a process group, which is how the broker is stopped. */
+  kill(pid: number, signal?: NodeJS.Signals): boolean;
   on(event: "SIGINT" | "SIGTERM" | "exit", listener: () => void): unknown;
   removeListener(
     event: "SIGINT" | "SIGTERM" | "exit",

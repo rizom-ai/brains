@@ -35,6 +35,19 @@ type WorkerHeartbeatTimer = ReturnType<typeof setInterval> | number;
 export const WORKER_HEARTBEAT_INTERVAL_MS = 5_000;
 const MISSED_WORKER_HEARTBEATS_BEFORE_RESTART = 3;
 
+export const BROKER_HEARTBEAT_INTERVAL_MS = 5_000;
+const MISSED_BROKER_HEARTBEATS_BEFORE_TERMINATION = 3;
+
+/**
+ * How long an operation may show no progress before its owner is considered
+ * wedged.
+ *
+ * Comfortably longer than the broker's own 120s stall timeout, so an operation
+ * the broker is already about to fail is not taken from it — and short enough
+ * that a lost child completion does not hold the checkout indefinitely.
+ */
+export const BROKER_PROGRESS_TIMEOUT_MS = 300_000;
+
 export interface WorkerHeartbeatClock {
   setInterval(callback: () => void, intervalMs: number): WorkerHeartbeatTimer;
   clearInterval(handle: WorkerHeartbeatTimer): void;
@@ -56,6 +69,8 @@ export interface ProcessSupervisorDependencies extends SpawnBunRunnerDependencie
   workerRestartBudget?: number;
   workerRestartWindowMs?: number;
   workerHeartbeatIntervalMs?: number;
+  brokerHeartbeatIntervalMs?: number;
+  brokerProgressTimeoutMs?: number;
   reportIncident?: (incident: Record<string, unknown>) => void;
   reportReady?: (role: SupervisedChildRole) => void;
   gitBroker?: GitBrokerSpec;
@@ -89,6 +104,30 @@ export function parseBrainChildRole(
   const role = childArg.slice("--child=".length);
   if (role === "web" || role === "worker" || role === "git-broker") return role;
   throw new Error(`Invalid internal Brain child role "${role}"`);
+}
+
+interface Heartbeat {
+  activeRequestIds: string[];
+  oldestActiveProgressAt: number | null;
+}
+
+/** Structural, and unparseable beats are ignored rather than trusted. */
+function readHeartbeat(value: unknown): Heartbeat | undefined {
+  if (!hasMessageType(value, "broker-heartbeat")) return undefined;
+  if (typeof value !== "object" || value === null) return undefined;
+  if (!("activeRequestIds" in value) || !("oldestActiveProgressAt" in value)) {
+    return undefined;
+  }
+  const { activeRequestIds, oldestActiveProgressAt } = value;
+  if (!Array.isArray(activeRequestIds)) return undefined;
+  if (!activeRequestIds.every((id) => typeof id === "string")) return undefined;
+  if (
+    oldestActiveProgressAt !== null &&
+    typeof oldestActiveProgressAt !== "number"
+  ) {
+    return undefined;
+  }
+  return { activeRequestIds, oldestActiveProgressAt };
 }
 
 function hasMessageType(value: unknown, type: string): boolean {
@@ -173,6 +212,8 @@ interface RuntimeSupervisorOptions {
   workerRestartBudget: number;
   workerRestartWindowMs: number;
   workerHeartbeatIntervalMs: number;
+  brokerHeartbeatIntervalMs: number;
+  brokerProgressTimeoutMs: number;
   reportIncident: (incident: Record<string, unknown>) => void;
   reportReady: (role: SupervisedChildRole) => void;
   gitBroker: GitBrokerSpec | undefined;
@@ -250,6 +291,13 @@ function runRuntimeSupervisor(
     ): void => {
       if (!child || child.closed || child.process.exitCode !== null) return;
       try {
+        // The broker's Git children inherit its process group, so the group is
+        // what has to stop. A broker that exits while a Git child survives is
+        // exactly the state no replacement may ever start into.
+        if (child.role === "git-broker" && child.process.pid !== undefined) {
+          options.processImpl.kill(-child.process.pid, signal);
+          return;
+        }
         child.process.kill(signal);
       } catch {
         // The child won the race and has already exited.
@@ -285,6 +333,59 @@ function runRuntimeSupervisor(
         });
         signalChild(child, "SIGKILL");
       }, options.workerHeartbeatIntervalMs * MISSED_WORKER_HEARTBEATS_BEFORE_RESTART);
+    };
+
+    /**
+     * Silence is the only signal a wedged owner gives.
+     *
+     * It does not exit — that is the shape of the defect being survived — so
+     * there is no process event to wait for, and the parent watches these
+     * facts rather than depending on a health request arriving.
+     */
+    const armBrokerWatchdog = (child: ManagedChild): void => {
+      if (!child.ready || child.closed || parentShutdownRequested) return;
+      if (child.heartbeatTimer !== undefined) {
+        options.clock.clearTimeout(child.heartbeatTimer);
+      }
+      child.heartbeatTimer = options.clock.setTimeout(() => {
+        child.heartbeatTimer = undefined;
+        if (child.closed || parentShutdownRequested) return;
+        options.reportIncident({
+          type: "git-broker-heartbeat-timeout",
+          missedBeats: MISSED_BROKER_HEARTBEATS_BEFORE_TERMINATION,
+          intervalMs: options.brokerHeartbeatIntervalMs,
+        });
+        failBroker("Brain git broker stopped reporting activity");
+      }, options.brokerHeartbeatIntervalMs * MISSED_BROKER_HEARTBEATS_BEFORE_TERMINATION);
+    };
+
+    const observeBrokerProgress = (
+      child: ManagedChild,
+      beat: Heartbeat,
+    ): void => {
+      if (beat.oldestActiveProgressAt === null) return;
+      const staleMs = options.clock.now() - beat.oldestActiveProgressAt;
+      if (staleMs < options.brokerProgressTimeoutMs) return;
+      // The broker itself is answering; the Git child underneath it is not.
+      options.reportIncident({
+        type: "git-broker-progress-stale",
+        activeRequestIds: beat.activeRequestIds,
+        staleMs,
+        timeoutMs: options.brokerProgressTimeoutMs,
+      });
+      failBroker("Brain git broker stopped making progress");
+      void child;
+    };
+
+    /**
+     * A lost owner is terminal until group absence can be proven. Signalling
+     * the group is the first half of that proof; the probe that establishes it
+     * is what a replacement will need before it may start.
+     */
+    const failBroker = (message: string): void => {
+      finalResult ??= { success: false, message, exitCode: 1 };
+      stopEverything();
+      maybeFinish();
     };
 
     const maybeFinish = (): void => {
@@ -473,9 +574,18 @@ function runRuntimeSupervisor(
           child.ready = true;
           clearChildTimers(child);
           options.reportReady(role);
+          armBrokerWatchdog(child);
           // Only now may a Git-capable role start: there is no app-process
           // fallback for it to fall back to.
           spawnChild("web");
+          return;
+        }
+        if (role === "git-broker" && child.ready) {
+          const beat = readHeartbeat(message);
+          if (beat) {
+            armBrokerWatchdog(child);
+            observeBrokerProgress(child, beat);
+          }
           return;
         }
         if (role === "web" && hasMessageType(message, "runtime-ready")) {
@@ -559,6 +669,10 @@ export function superviseRuntimeChildren(
     workerRestartWindowMs: dependencies.workerRestartWindowMs ?? 3_600_000,
     workerHeartbeatIntervalMs:
       dependencies.workerHeartbeatIntervalMs ?? WORKER_HEARTBEAT_INTERVAL_MS,
+    brokerHeartbeatIntervalMs:
+      dependencies.brokerHeartbeatIntervalMs ?? BROKER_HEARTBEAT_INTERVAL_MS,
+    brokerProgressTimeoutMs:
+      dependencies.brokerProgressTimeoutMs ?? BROKER_PROGRESS_TIMEOUT_MS,
     gitBroker: dependencies.gitBroker,
     reportIncident:
       dependencies.reportIncident ??

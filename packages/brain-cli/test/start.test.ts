@@ -64,8 +64,10 @@ describe("start subprocess lifecycle", () => {
 
     const fakeProcess = new EventEmitter() as EventEmitter & {
       env: NodeJS.ProcessEnv;
+      kill: (pid: number, signal?: NodeJS.Signals) => boolean;
     };
     fakeProcess.env = process.env;
+    fakeProcess.kill = (): boolean => true;
 
     const child = new EventEmitter() as EventEmitter & {
       kill: ReturnType<typeof mock>;
@@ -88,10 +90,7 @@ describe("start subprocess lifecycle", () => {
         { chat: false },
         {
           spawnImpl,
-          processImpl: fakeProcess as unknown as Pick<
-            NodeJS.Process,
-            "env" | "on" | "removeListener"
-          >,
+          processImpl: fakeProcess,
         },
       );
 
@@ -149,8 +148,10 @@ describe("builtin process supervision", () => {
   it("spawns web then worker children instead of booting the parent runtime", async () => {
     const fakeProcess = new EventEmitter() as EventEmitter & {
       env: NodeJS.ProcessEnv;
+      kill: (pid: number, signal?: NodeJS.Signals) => boolean;
     };
     fakeProcess.env = process.env;
+    fakeProcess.kill = (): boolean => true;
     const child = new EventEmitter() as EventEmitter & {
       kill: ReturnType<typeof mock>;
       exitCode: number | null;
