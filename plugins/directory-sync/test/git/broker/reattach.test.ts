@@ -90,6 +90,38 @@ describe.skipIf(!LINUX)("reattaching to a replacement owner", () => {
     await gitSync.cleanup();
   }, 60_000);
 
+  it("reports that the owner changed, exactly once per replacement", async () => {
+    const owned = await ownedCheckout();
+    const replacements: string[] = [];
+    const gitSync = await connectGitSync({
+      socketPath: owned.socketPath,
+      checkoutPath: owned.checkoutPath,
+      branch: "main",
+      remoteUrl: owned.gitUrl,
+      logger: createSilentLogger(),
+      onOwnerReplaced: (brokerId) => {
+        replacements.push(brokerId);
+      },
+    });
+    await gitSync.initialize();
+    expect(replacements).toEqual([]);
+
+    await owned.restart();
+
+    // Whatever the old owner was in the middle of is ambiguous now, and only
+    // the repository can settle it. The caller has to be told, or a mutation
+    // that landed without an acknowledgement is never reconciled.
+    await gitSync.getStatus();
+    expect(replacements).toHaveLength(1);
+
+    // Still the same owner: reattaching is not by itself a replacement.
+    await gitSync.getStatus();
+    await gitSync.hasLocalChanges();
+    expect(replacements).toHaveLength(1);
+
+    await gitSync.cleanup();
+  }, 60_000);
+
   it("refuses to re-run a mutation the old owner may have finished", async () => {
     const owned = await ownedCheckout();
     const gitSync = await connectGitSync({

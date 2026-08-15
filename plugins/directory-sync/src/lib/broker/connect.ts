@@ -24,6 +24,8 @@ export interface ConnectGitSyncOptions {
   /** Credential-free; the broker resolves any authenticated form itself. */
   remoteUrl: string;
   logger: Logger;
+  /** See `BrokerGitSyncOptions.onOwnerReplaced`. */
+  onOwnerReplaced?: ((brokerId: string) => void) | undefined;
 }
 
 export async function connectGitSync(
@@ -45,6 +47,9 @@ export async function connectGitSync(
     branch: options.branch,
     remoteFingerprint: getGitRemoteFingerprint(options.remoteUrl),
     remoteUrl: options.remoteUrl,
+    ...(options.onOwnerReplaced
+      ? { onOwnerReplaced: options.onOwnerReplaced }
+      : {}),
   });
 
   // Eagerly, so a misassembled runtime fails at startup rather than at the

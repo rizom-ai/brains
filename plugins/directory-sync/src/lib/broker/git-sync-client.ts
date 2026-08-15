@@ -7,6 +7,7 @@ import type {
 } from "../../types";
 import { BrokerUnavailableError } from "./client";
 import type { BrokerConnection } from "./client";
+import type { StatusMessage } from "./protocol";
 import { isMutatingOperation } from "./operations";
 import type { GitOperation, GitOperationResult } from "./operations";
 
@@ -39,11 +40,19 @@ export interface BrokerGitSyncOptions {
   remoteFingerprint: string;
   /** Client-side configuration; reading it needs no Git. */
   remoteUrl: string;
+  /**
+   * Called when this checkout is registered with a *different* broker than
+   * before. Whatever the old owner was in the middle of is ambiguous now, and
+   * only the repository can settle it — so the caller reconciles rather than
+   * assuming its last mutation did or did not land.
+   */
+  onOwnerReplaced?: ((brokerId: string) => void) | undefined;
 }
 
 export class BrokerGitSync {
   readonly #options: BrokerGitSyncOptions;
   #connection: BrokerConnection | null = null;
+  #ownerId: string | null = null;
   #closed = false;
 
   constructor(options: BrokerGitSyncOptions) {
@@ -66,10 +75,11 @@ export class BrokerGitSync {
     }
     if (this.#connection) return this.#connection;
     const connection = await this.#options.connect();
+    let status: StatusMessage;
     try {
       // Registration is where identity is checked, so a replacement owning a
       // different repository is refused here rather than silently adopted.
-      await connection.registerCheckout({
+      status = await connection.registerCheckout({
         checkoutPath: this.#options.checkoutPath,
         branch: this.#options.branch,
         remoteFingerprint: this.#options.remoteFingerprint,
@@ -79,6 +89,15 @@ export class BrokerGitSync {
       throw error;
     }
     this.#connection = connection;
+
+    // The broker announces its own identity, so a replacement is a fact rather
+    // than an inference from a dropped socket: reconnecting to the same owner
+    // after a blip is not a replacement.
+    const previousOwner = this.#ownerId;
+    this.#ownerId = status.brokerId;
+    if (previousOwner !== null && previousOwner !== status.brokerId) {
+      this.#options.onOwnerReplaced?.(status.brokerId);
+    }
     return connection;
   }
 

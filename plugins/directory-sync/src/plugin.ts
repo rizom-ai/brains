@@ -3,6 +3,7 @@ import { ServicePlugin } from "@brains/plugins";
 import { DirectorySync } from "./lib/directory-sync";
 import { connectGitSync, GIT_BROKER_SOCKET_ENV } from "./lib/broker/connect";
 import { resolveGitRemoteUrl } from "./lib/git-options";
+import { createOwnerReplacementHandler } from "./lib/git-owner-replacement";
 import type { IGitSync } from "./types";
 import {
   directorySyncConfigSchema,
@@ -469,6 +470,17 @@ export class DirectorySyncPlugin extends ServicePlugin<
         gitUrl: git.gitUrl,
       }),
       logger: this.logger.child("GitSync"),
+      onOwnerReplaced: createOwnerReplacementHandler({
+        logger: this.logger.child("GitOwner"),
+        scheduler: this.runtimeScheduler,
+        replay: () =>
+          this.requireGitReconciliation().replayAndQueue({
+            gitSync: this.requireGitSync(),
+            directorySync: this.requireDirectorySync(),
+            context: this.getContext(),
+            source: "broker-replacement-replay",
+          }),
+      }),
     });
     await gitSync.initialize();
     this.logger.info("Git integration enabled", { repo: git.repo });
