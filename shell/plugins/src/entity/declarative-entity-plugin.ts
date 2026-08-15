@@ -25,6 +25,7 @@ import type { EntityPluginContext } from "./context";
 import { defineProjectionRule, type ProjectionRule } from "./projection-rule";
 import type { InstalledPluginPackageMetadata } from "../package-definition";
 import type { JobHandler } from "@brains/job-queue";
+import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
 import type {
   AnyEntityDefinition,
   EntityGenerationEntityAccess,
@@ -258,7 +259,9 @@ class DeclarativeEntityPlugin extends EntityPlugin<
   private readonly dataSources: AnyEntityDefinition["dataSources"];
   private readonly attachments: AnyEntityDefinition["attachments"];
   private readonly generation: AnyEntityDefinition["generation"];
-  private readonly releaseAttachments: Array<() => void> = [];
+  private readonly projectionRules: AnyEntityDefinition["projectionRules"];
+  private readonly atproto: AnyEntityDefinition["atproto"];
+  private readonly releaseOnShutdown: Array<() => void> = [];
   public readonly entityType: string;
   public readonly schema: z.ZodType<EntityOf<AnyEntityDefinition>, unknown>;
   public readonly adapter: EntityAdapter<
@@ -288,6 +291,8 @@ class DeclarativeEntityPlugin extends EntityPlugin<
     this.dataSources = definition.dataSources;
     this.attachments = definition.attachments;
     this.generation = definition.generation;
+    this.projectionRules = definition.projectionRules;
+    this.atproto = definition.atproto;
   }
 
   protected override getEntityTypeConfig(): EntityTypeConfig | undefined {
@@ -329,9 +334,15 @@ class DeclarativeEntityPlugin extends EntityPlugin<
   protected override async onRegister(
     context: EntityPluginContext,
   ): Promise<void> {
+    if (this.atproto) {
+      this.releaseOnShutdown.push(
+        AtprotoProjectionRegistry.getInstance().register(this.atproto),
+      );
+    }
+
     // The runtime keeps the unregister handles so an author never has to.
     for (const attachment of this.attachments ?? []) {
-      this.releaseAttachments.push(
+      this.releaseOnShutdown.push(
         context.attachments.register(
           this.entityType,
           attachment.type,
@@ -374,19 +385,19 @@ class DeclarativeEntityPlugin extends EntityPlugin<
 
     const entityService = context.entityService;
     const entities: EntityGenerationEntityAccess = {
-      list: <T extends BaseEntity>(request: {
+      listEntities: <T extends BaseEntity>(request: {
         entityType: string;
         options?: ListOptions;
       }): Promise<T[]> => entityService.listEntities<T>(request),
-      get: <T extends BaseEntity>(request: {
+      getEntity: <T extends BaseEntity>(request: {
         entityType: string;
         id: string;
       }): Promise<T | null> => entityService.getEntity<T>(request),
       getEntityTypes: (): string[] => entityService.getEntityTypes(),
-      update: <T extends BaseEntity>(
-        entity: T,
-      ): Promise<{ entityId: string; jobId: string }> =>
-        entityService.updateEntity({ entity }),
+      updateEntity: <T extends BaseEntity>(request: {
+        entity: T;
+      }): Promise<{ entityId: string; jobId: string }> =>
+        entityService.updateEntity(request),
     };
 
     return {
@@ -407,13 +418,19 @@ class DeclarativeEntityPlugin extends EntityPlugin<
   }
 
   protected override async onShutdown(): Promise<void> {
-    for (const release of this.releaseAttachments.splice(0)) release();
+    for (const release of this.releaseOnShutdown.splice(0)) release();
   }
 
   protected override getProjectionRules(): ProjectionRule[] {
-    return this.projections.map((projection) =>
-      projectionRule(projection, this.version, this.scope),
-    );
+    // Rules declared outright come through as-is; they already carry their
+    // own id, since an entity derived from many sources has no single
+    // source definition to scope against.
+    return [
+      ...this.projections.map((projection) =>
+        projectionRule(projection, this.version, this.scope),
+      ),
+      ...(this.projectionRules ?? []),
+    ];
   }
 }
 

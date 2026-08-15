@@ -1,4 +1,6 @@
 import type { Template } from "@brains/templates";
+import type { AtprotoProjection } from "@brains/atproto-contracts";
+import type { ProjectionRule } from "../entity/projection-rule";
 import type { AnyDataSourceDeclaration } from "./entity-data-source";
 import { z } from "@brains/utils/zod";
 import { createEntityPackagePlugins } from "../entity/declarative-entity-plugin";
@@ -51,6 +53,8 @@ export function defineEntity<
   readonly dataSources?: readonly AnyDataSourceDeclaration[] | undefined;
   readonly attachments?: readonly EntityAttachmentDeclaration[] | undefined;
   readonly generation?: EntityGenerationDeclaration<TInputSchema> | undefined;
+  readonly projectionRules?: readonly ProjectionRule[] | undefined;
+  readonly atproto?: AtprotoProjection | undefined;
 }): EntityDefinition<TType, TMetadataSchema> {
   assertLocalId(definition.type, "Entity type");
   if (!definition.purpose.trim()) {
