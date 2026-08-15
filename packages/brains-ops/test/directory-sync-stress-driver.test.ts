@@ -28,6 +28,7 @@ interface ScriptedSystemOptions {
   rejectRuntimeMonitor?: boolean;
   runtimeLog?: string;
   containerStartedAt?: string[];
+  queueNeverAdvances?: boolean;
 }
 
 const environment = {
@@ -80,6 +81,7 @@ class ScriptedStressSystem {
   private containerInspectCalls = 0;
   private remainingWarmupFailures: number;
   private renameNoteCounts: number[];
+  private completedImports = 0;
 
   constructor(options: ScriptedSystemOptions = {}) {
     this.options = options;
@@ -211,6 +213,18 @@ class ScriptedStressSystem {
         entities: 41 + probeNotes,
         entityCounts: [{ entityType: "note", count: 7 + probeNotes }],
       },
+      resources: {
+        queue: {
+          totals: { pending: 0, processing: 0 },
+          byType: [
+            {
+              type: "directory-sync:directory-import",
+              status: "completed",
+              count: this.completedImports,
+            },
+          ],
+        },
+      },
     });
   };
 
@@ -260,6 +274,14 @@ class ScriptedStressSystem {
       return ok();
     }
     if (command === "git") {
+      if (
+        args[0] === "push" &&
+        args[1] === "origin" &&
+        args[2] === "main" &&
+        !this.options.queueNeverAdvances
+      ) {
+        this.completedImports += 100;
+      }
       if (args[0] === "rev-parse" && args[1] === "HEAD^{tree}") {
         return ok("baseline-tree\n");
       }
@@ -468,6 +490,17 @@ describe("deployed directory-sync stress driver", () => {
     );
     expect(backupDeletionIndex).toBeGreaterThan(-1);
     expect(runtimeLogsIndex).toBeGreaterThan(backupDeletionIndex);
+  });
+
+  it("requires durable import completion and queue drain for each phase", async () => {
+    const system = new ScriptedStressSystem({ queueNeverAdvances: true });
+    const { result } = await runScriptedProfile("regression", system);
+
+    expect(result.report.success).toBe(false);
+    expect(result.report.failure).toContain(
+      "add20: health did not observe 1 completed import job(s) with a drained queue",
+    );
+    expect(result.report.phases.map((phase) => phase.id)).toEqual(["add20"]);
   });
 
   it("detects a watchdog restart even when Docker RestartCount stays zero", async () => {

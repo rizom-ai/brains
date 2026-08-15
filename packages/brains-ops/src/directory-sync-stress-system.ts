@@ -70,6 +70,32 @@ const hetznerServersSchema = z.object({
   ),
 });
 
+const stressQueueHealthPayloadSchema = z.object({
+  status: z.literal("ready"),
+  operationalStatus: z.literal("operational"),
+  resources: z.object({
+    queue: z.object({
+      totals: z.object({
+        pending: z.number().int().nonnegative(),
+        processing: z.number().int().nonnegative(),
+      }),
+      byType: z.array(
+        z.object({
+          type: z.string(),
+          status: z.string(),
+          count: z.number().int().nonnegative(),
+        }),
+      ),
+    }),
+  }),
+});
+
+interface StressQueueSnapshot {
+  pending: number;
+  processing: number;
+  completedImports: number;
+}
+
 export interface DeployedDirectorySyncStressOptions {
   rootDir: string;
   handle: string;
@@ -518,6 +544,13 @@ class SystemDirectorySyncStressDriver implements DirectorySyncStressDriver {
     await checkout.sync();
     const healthSampleOffset = this.#monitor.healthSamples.length;
     const started = this.#options.now().getTime();
+    const queueBefore = await this.#readQueueSnapshot();
+    if (queueBefore?.pending !== 0 || queueBefore.processing !== 0) {
+      return failedPhase(
+        phase,
+        "health did not provide a drained queue before the phase",
+      );
+    }
 
     await applyDirectorySyncStressPhase(checkout.dir, phase);
     await checkout.commitAll(`test(directory-sync): stress ${phase.id}`);
@@ -573,6 +606,21 @@ class SystemDirectorySyncStressDriver implements DirectorySyncStressDriver {
 
     if (phase.operation !== "rename" && phase.settleMs > 0) {
       await this.#options.sleep(phase.settleMs);
+    }
+
+    const expectedImportJobs =
+      phase.operation === "delete" ? 0 : Math.ceil(phase.count / 50);
+    const queueDrained = await this.#waitForQueueDrain(
+      queueBefore.completedImports + expectedImportJobs,
+      20 * 60_000,
+    );
+    if (!queueDrained) {
+      return failedPhase(
+        phase,
+        `health did not observe ${expectedImportJobs} completed import job(s) with a drained queue`,
+        commitLatencyMs,
+        persistenceLatencyMs,
+      );
     }
 
     const healthFailure = this.#monitor.healthSamples
@@ -807,6 +855,60 @@ class SystemDirectorySyncStressDriver implements DirectorySyncStressDriver {
       await this.#options.sleep(5_000);
     }
     return undefined;
+  }
+
+  async #readQueueSnapshot(): Promise<StressQueueSnapshot | undefined> {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 20_000);
+    try {
+      const response = await this.#options.fetchImpl(
+        `https://${this.#options.user.domain}/health/operate`,
+        { method: "GET", signal: controller.signal },
+      );
+      if (!response.ok) return undefined;
+      const payload = stressQueueHealthPayloadSchema.parse(
+        await response.json(),
+      );
+      const completedImports = payload.resources.queue.byType
+        .filter(
+          (entry) =>
+            entry.type === "directory-sync:directory-import" &&
+            entry.status === "completed",
+        )
+        .reduce((total, entry) => total + entry.count, 0);
+      return {
+        pending: payload.resources.queue.totals.pending,
+        processing: payload.resources.queue.totals.processing,
+        completedImports,
+      };
+    } catch {
+      return undefined;
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
+  async #waitForQueueDrain(
+    minimumCompletedImports: number,
+    timeoutMs: number,
+  ): Promise<boolean> {
+    const started = this.#options.now().getTime();
+    let consecutiveMatches = 0;
+    while (this.#options.now().getTime() - started < timeoutMs) {
+      const queue = await this.#readQueueSnapshot();
+      if (
+        queue?.pending === 0 &&
+        queue.processing === 0 &&
+        queue.completedImports >= minimumCompletedImports
+      ) {
+        consecutiveMatches += 1;
+        if (consecutiveMatches === 2) return true;
+      } else {
+        consecutiveMatches = 0;
+      }
+      await this.#options.sleep(5_000);
+    }
+    return false;
   }
 
   async #sampleRuntime(): Promise<StressRuntimeSample | undefined> {
