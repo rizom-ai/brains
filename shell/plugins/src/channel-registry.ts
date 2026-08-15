@@ -17,6 +17,11 @@ export interface ChannelDescriptor {
 
 export type ChannelDeliverySensitivity = "normal" | "secret";
 
+export interface ChannelDeliveryThreading {
+  inReplyTo: string;
+  references: string[];
+}
+
 export interface ChannelDeliveryInput {
   recipient: string;
   subject: string;
@@ -29,6 +34,8 @@ export interface ChannelDeliveryInput {
    * cannot honour it should treat every delivery as secret.
    */
   sensitivity?: ChannelDeliverySensitivity | undefined;
+  /** Optional transport threading metadata. Unsupported channels may ignore it. */
+  threading?: ChannelDeliveryThreading | undefined;
 }
 
 export type ChannelDeliveryResult =

@@ -23,11 +23,11 @@ The capability is explicit opt-in. It is one compound email workflow package con
 - reads the original through the email interface's private locator-backed IMAP operation,
   renders bounded plain text with `no-store`, and releases source bytes after each request
 - generates and saves revisioned `email-reply-draft` entities containing only newly authored
-  reply text; generation never sends mail
+  reply text, then sends only the current saved revision after an explicit Admin confirmation
 
 ## The mailbox stays canonical
 
-Brain never persists the body, HTML, exact subject, raw addresses, recipients, headers, attachments, or raw `Message-ID`. The inbound contract carries an opaque, transport-owned `sourceRef`; the email interface privately maps it to mailbox, UIDVALIDITY, and UID before publication. Admin-only detail and drafting operations resolve that locator on demand with bounded reads. Reading remains a mailbox operation, and unavailable, expired, or mismatched locators fail closed with no provider detail.
+Brain never persists the body, HTML, exact subject, raw addresses, recipients, headers, attachments, or raw `Message-ID`. The inbound contract carries an opaque, transport-owned `sourceRef`; the email interface privately maps it to mailbox, UIDVALIDITY, and UID before publication. Admin-only detail, drafting, and send operations resolve that locator on demand with bounded reads. Reading remains a mailbox operation, and unavailable, expired, or mismatched locators fail closed with no provider detail.
 
 Observability holds to the same line. Logs never contain source bodies, exact subjects, addresses, model prompts, model output, credentials, mailbox names, or transport exception messages. Fixed operation messages may carry only a derived item ID or count.
 
@@ -102,7 +102,9 @@ Classification attempts are counted by hashed message identifier in scoped runti
 
 Mail items with `needsReply: true` declare the source-specific `draft-reply` follow-up using only their opaque mail-item ID. The destination registration, context schema, permission gate, CMS route, and label are owned inside this package's reply-draft component. Raw declaration context is resolved server-side and never appears in Inbox item output.
 
-The **Reply drafts** workspace fetches the original only for the active Admin request. The original is rendered as plain text and is not stored in entities, runtime state, jobs, logs, or React Query. Structured generation treats the bounded source as delimited untrusted data and uses the editable `email-workflows:reply-drafting` prompt. Only the generated or operator-edited reply body, mail-item link, revision, and timestamps enter the restricted `email-reply-draft` entity. Optimistic revisions reject stale saves. Nothing sends automatically; delivery remains a later approval-gated phase.
+The **Reply drafts** workspace fetches the original only for the active Admin request. The original is rendered as plain text and is not stored in entities, runtime state, jobs, logs, or React Query. Structured generation treats the bounded source as delimited untrusted data and uses the editable `email-workflows:reply-drafting` prompt. Only the generated or operator-edited reply body, mail-item link, revision, timestamps, delivery status, and accepted provider delivery ID enter the restricted `email-reply-draft` entity. Optimistic revisions reject stale saves and sends.
+
+Sending is a separate explicit confirmation. The confirmed operation reloads the saved revision, re-fetches the source, derives the recipient, `Re:` subject, `In-Reply-To`, and ordered `References` from that fresh mailbox truth, and calls the registered Email provider with secret sensitivity. The draft ID plus revision forms a stable idempotency key. Provider failure leaves the draft editable; provider acceptance records sent state once, and another edit creates a new unsent revision. Nothing sends automatically.
 
 ## Tools
 
@@ -128,8 +130,8 @@ To also install the shared live aggregation DataSource and digest participation:
 add: [email-workflows, unified-inbox]
 ```
 
-The existing `plugins.email.imap` block remains the transport configuration. Triage does not enable IMAP.
+The existing `plugins.email.imap` block remains the source transport configuration. Triage does not enable IMAP. Confirmed sending uses the same Email interface's configured outbound `apiKey` and `from`; without them the workspace keeps drafts editable and reports delivery as unavailable.
 
 ## Scope
 
-Lead creation, semantic consolidation, and merge/split belong to lead management. Approval-gated sending and threading remain planned email workflow phases; the shipped drafting workspace never sends. Opportunity scoring and ranking belong to the priority engine. Cross-source ordering, shared operator surfaces, confirmation routing, and digest behavior are owned by `@brains/unified-inbox`. Attachments, full mailbox search, automatic sending, and non-email intake are out of scope.
+Lead creation, semantic consolidation, and merge/split belong to lead management. Opportunity scoring and ranking belong to the priority engine. Cross-source ordering, shared operator surfaces, confirmation routing, and digest behavior are owned by `@brains/unified-inbox`. Attachments, full mailbox search, automatic or scheduled sending, follow-up sequences, and non-email intake are out of scope.

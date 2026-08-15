@@ -5,6 +5,7 @@ export type {
   ChannelDeliveryInput,
   ChannelDeliveryProvider,
   ChannelDeliveryResult,
+  ChannelDeliveryThreading,
   ChannelDescriptor,
   ChannelSubjectPattern,
   JobProgressEvent,

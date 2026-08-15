@@ -2,6 +2,7 @@ import type { EmailSourceMessage } from "@brains/contracts";
 import {
   assertCmsWorkspaceAdmin,
   inboxItemIdSchema,
+  type ChannelDeliveryProvider,
   type IEntityAINamespace,
   type InboxActor,
   type ServicePluginContext,
@@ -22,6 +23,7 @@ import {
   type DraftSourceView,
   type DraftView,
   type EmailReplyDraftWorkspaceSnapshot,
+  type SentDraftView,
 } from "./schemas";
 
 const generatedReplySchema = z.strictObject({
@@ -38,7 +40,7 @@ Return only newly authored reply text. Do not quote the source message or includ
 
 type DraftOperatorContext = Pick<
   ServicePluginContext,
-  "entityService" | "permissions"
+  "channels" | "entityService" | "permissions"
 >;
 
 interface DraftActor {
@@ -166,6 +168,111 @@ export class EmailReplyDraftOperator {
     });
   }
 
+  async sendConfirmed(
+    rawItemId: string,
+    revision: number,
+    actor: InboxActor,
+    signal?: AbortSignal,
+  ): Promise<SentDraftView> {
+    assertDraftAdmin(actor);
+    const mailItemId = inboxItemIdSchema.parse(rawItemId);
+    const expectedRevision = z.number().int().positive().parse(revision);
+    return this.operations.run(mailItemId, async () => {
+      const current = await this.load(mailItemId);
+      if (current?.metadata.revision !== expectedRevision) {
+        throw new DraftSendRevisionConflictError();
+      }
+      const parsed = emailReplyDraftAdapter.parseContent(current.content);
+      if (parsed.frontmatter.revision !== expectedRevision) {
+        throw new DraftSendRevisionConflictError();
+      }
+      const view = toDraftView(current);
+      if (view.status === "sent") return view;
+      this.context.permissions.assertEntityActionAllowed(
+        "email-reply-draft",
+        "update",
+        actorToEntityActor(actor),
+      );
+
+      const provider = this.emailProvider();
+      let available = false;
+      try {
+        available = await provider.isAvailable();
+      } catch {
+        // Provider details stay private; callers receive one fixed outcome.
+      }
+      if (!available) throw new EmailDeliveryUnavailableError();
+
+      const source = await this.sourceReader.read({
+        itemId: mailItemId,
+        actor,
+        signal: signal ?? AbortSignal.timeout(10_000),
+      });
+      if (source.kind !== "available") {
+        throw new EmailReplySourceUnavailableError();
+      }
+      if (signal?.aborted) throw new EmailReplySourceUnavailableError();
+
+      let result: Awaited<ReturnType<typeof provider.send>>;
+      try {
+        result = await provider.send({
+          recipient: (source.message.replyTo ?? source.message.from).address,
+          subject: replySubject(source.message.subject),
+          text: parsed.replyText,
+          idempotencyKey: `${draftId(mailItemId)}-revision-${expectedRevision}`,
+          sensitivity: "secret",
+          threading: {
+            inReplyTo: source.message.messageId,
+            references: replyReferences(source.message),
+          },
+        });
+      } catch {
+        throw new EmailDeliveryFailedError();
+      }
+      if (result.status !== "sent") throw new EmailDeliveryFailedError();
+
+      const sentAt = this.now().toISOString();
+      const frontmatter = {
+        ...parsed.frontmatter,
+        status: "sent" as const,
+        updatedAt: sentAt,
+        sentAt,
+        ...(result.providerDeliveryId
+          ? { providerDeliveryId: result.providerDeliveryId }
+          : {}),
+      };
+      const content = emailReplyDraftAdapter.createContent(
+        frontmatter,
+        parsed.replyText,
+      );
+      await this.context.entityService.updateEntity({
+        entity: {
+          ...current,
+          content,
+          metadata: frontmatter,
+          updated: sentAt,
+        },
+      });
+      return {
+        text: parsed.replyText,
+        revision: expectedRevision,
+        status: "sent",
+        updatedAt: sentAt,
+        sentAt,
+      };
+    });
+  }
+
+  private emailProvider(): ChannelDeliveryProvider {
+    try {
+      const provider = this.context.channels.getDeliveryProvider("email");
+      if (provider) return provider;
+    } catch {
+      // Registry availability is intentionally collapsed below.
+    }
+    throw new EmailDeliveryUnavailableError();
+  }
+
   private async load(
     mailItemId: string,
   ): Promise<EmailReplyDraftEntity | undefined> {
@@ -228,7 +335,12 @@ export class EmailReplyDraftOperator {
         },
       });
     }
-    return draftViewSchema.parse({ text: replyText, revision, updatedAt });
+    return draftViewSchema.parse({
+      text: replyText,
+      revision,
+      status: "draft",
+      updatedAt,
+    });
   }
 }
 
@@ -260,6 +372,34 @@ export class DraftRevisionConflictError extends Error {
   constructor() {
     super("Draft revision conflict");
     this.name = "DraftRevisionConflictError";
+  }
+}
+
+export class DraftSendRevisionConflictError extends Error {
+  constructor() {
+    super("Draft changed before sending");
+    this.name = "DraftSendRevisionConflictError";
+  }
+}
+
+export class EmailDeliveryUnavailableError extends Error {
+  constructor() {
+    super("Email delivery is unavailable");
+    this.name = "EmailDeliveryUnavailableError";
+  }
+}
+
+export class EmailReplySourceUnavailableError extends Error {
+  constructor() {
+    super("Original content is unavailable");
+    this.name = "EmailReplySourceUnavailableError";
+  }
+}
+
+export class EmailDeliveryFailedError extends Error {
+  constructor() {
+    super("Email delivery failed");
+    this.name = "EmailDeliveryFailedError";
   }
 }
 
@@ -307,12 +447,34 @@ function draftId(mailItemId: string): string {
   return `email-reply-${sha256Hex(mailItemId)}`;
 }
 
+function replySubject(subject: string): string {
+  const normalized = subject.trim();
+  if (/^re\s*:/i.test(normalized)) return normalized;
+  return `Re: ${normalized || "(no subject)"}`;
+}
+
+function replyReferences(source: EmailSourceMessage): string[] {
+  const prior =
+    source.references.length > 0
+      ? source.references
+      : source.inReplyTo
+        ? [source.inReplyTo]
+        : [];
+  const ordered = prior.filter(
+    (reference, index) =>
+      reference !== source.messageId && prior.indexOf(reference) === index,
+  );
+  return [...ordered.slice(-99), source.messageId];
+}
+
 function toDraftView(entity: EmailReplyDraftEntity): DraftView {
   const parsed = emailReplyDraftAdapter.parseContent(entity.content);
   return draftViewSchema.parse({
     text: parsed.replyText,
     revision: parsed.frontmatter.revision,
+    status: parsed.frontmatter.status,
     updatedAt: parsed.frontmatter.updatedAt,
+    ...(parsed.frontmatter.sentAt ? { sentAt: parsed.frontmatter.sentAt } : {}),
   });
 }
 

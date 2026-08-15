@@ -287,6 +287,51 @@ Prioritize collaboration connected to Project Aurora.`,
         adminActor,
       ),
     ).toEqual({ kind: "error", error: "Draft generation failed" });
+    expect(
+      await replyWorkspace.actionHandler(
+        {
+          type: "save",
+          mailItemId: itemId,
+          text: "Operator-authored reply",
+          baseRevision: 0,
+        },
+        adminActor,
+      ),
+    ).toMatchObject({
+      kind: "draft",
+      draft: { revision: 1, status: "draft" },
+    });
+    expect(
+      await replyWorkspace.actionHandler(
+        {
+          type: "send",
+          mailItemId: itemId,
+          revision: 1,
+          confirmed: false,
+        },
+        adminActor,
+      ),
+    ).toEqual({
+      kind: "confirmation",
+      summary: "Send reply revision 1?",
+    });
+    expect(
+      await replyWorkspace.actionHandler(
+        {
+          type: "send",
+          mailItemId: itemId,
+          revision: 1,
+          confirmed: true,
+        },
+        adminActor,
+      ),
+    ).toEqual({
+      kind: "error",
+      error: "Email delivery is unavailable",
+    });
+    expect(
+      await replyWorkspace.dataProvider(adminActor, { mailItemId: itemId }),
+    ).toMatchObject({ draft: { revision: 1, status: "draft" } });
     expect(openItem.followUps).toEqual([
       { kind: "draft-reply", context: { mailItemId: itemId } },
     ]);

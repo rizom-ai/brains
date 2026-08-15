@@ -70,7 +70,7 @@ describe("EmailReplyDraftWorkspace", () => {
     windowInstance.close();
   });
 
-  it("generates, edits, and saves a draft without offering send", async () => {
+  it("generates, edits, saves, and explicitly confirms a send", async () => {
     const mailItemId = data.mailItemId;
     if (!mailItemId) throw new Error("Missing fixture mail item ID");
     const actions: EmailReplyDraftAction[] = [];
@@ -81,12 +81,30 @@ describe("EmailReplyDraftWorkspace", () => {
           onSource: async () => ({ kind: "source" as const, source }),
           onAction: async (action) => {
             actions.push(action);
+            if (action.type === "send") {
+              return action.confirmed
+                ? {
+                    kind: "sent" as const,
+                    draft: {
+                      text: "Operator-edited reply",
+                      revision: 2,
+                      status: "sent" as const,
+                      updatedAt: "2026-08-05T10:00:00.000Z",
+                      sentAt: "2026-08-05T10:01:00.000Z",
+                    },
+                  }
+                : {
+                    kind: "confirmation" as const,
+                    summary: "Send reply revision 2?",
+                  };
+            }
             return {
               kind: "draft" as const,
               draft: {
                 text:
                   action.type === "generate" ? "Generated reply" : action.text,
                 revision: actions.length,
+                status: "draft" as const,
                 updatedAt: "2026-08-05T10:00:00.000Z",
               },
             };
@@ -99,10 +117,6 @@ describe("EmailReplyDraftWorkspace", () => {
       "Could we meet next week? <script>unsafe()</script>",
     );
     expect(windowInstance.document.querySelector("script")).toBeNull();
-    expect(windowInstance.document.body.textContent).not.toContain(
-      "Send reply",
-    );
-
     const generate = [
       ...windowInstance.document.querySelectorAll("button"),
     ].find((button) => button.textContent === "Generate draft");
@@ -134,6 +148,17 @@ describe("EmailReplyDraftWorkspace", () => {
     }
     await act(async () => save.click());
 
+    const send = [...windowInstance.document.querySelectorAll("button")].find(
+      (button) => button.textContent === "Send reply",
+    );
+    if (!(send instanceof windowInstance.HTMLButtonElement)) {
+      throw new Error("Missing send button");
+    }
+    await act(async () => send.click());
+    const dialog = windowInstance.document.querySelector(
+      '[role="alertdialog"]',
+    );
+    expect(dialog?.textContent).toContain("Send reply revision 2?");
     expect(actions).toEqual([
       { type: "generate", mailItemId },
       {
@@ -142,6 +167,25 @@ describe("EmailReplyDraftWorkspace", () => {
         text: "Operator-edited reply",
         baseRevision: 1,
       },
+      {
+        type: "send",
+        mailItemId,
+        revision: 2,
+        confirmed: false,
+      },
     ]);
+
+    const confirm = dialog?.querySelectorAll("button")[1];
+    if (!(confirm instanceof windowInstance.HTMLButtonElement)) {
+      throw new Error("Missing send confirmation button");
+    }
+    await act(async () => confirm.click());
+    expect(actions.at(-1)).toEqual({
+      type: "send",
+      mailItemId,
+      revision: 2,
+      confirmed: true,
+    });
+    expect(windowInstance.document.body.textContent).toContain("Reply sent.");
   });
 });

@@ -2,8 +2,8 @@
 
 ## Status
 
-**Active. Source-read integration and reply generation/editing are implemented;
-threaded delivery and approval-gated sending remain planned.**
+**Implemented. Source reads, reply generation/editing, threaded delivery, and
+approval-gated sending are shipped.**
 [`@brains/email-workflows`](../../plugins/email-workflows/README.md) groups triage and
 reply drafting as one installable email feature while retaining internal source and
 destination ownership. Email triage persists only a safe derived `mail-item`; the
@@ -24,13 +24,14 @@ or accept it, and send a correctly threaded reply only after explicit approval.
   `ChannelDeliveryProvider`; senders resolve it through the channel registry.
 - Inbound email records a private locator before publishing `EMAIL_INBOUND` and
   exposes an Admin-only, bounded on-demand source-read operation in the web process.
-- `ChannelDeliveryInput` has no threading fields — `recipient`, `subject`, `text`,
-  `html?`, `sensitivity`, and `idempotencyKey` only.
+- `ChannelDeliveryInput` carries optional bounded threading metadata alongside
+  `recipient`, `subject`, `text`, `html?`, `sensitivity`, and `idempotencyKey`.
 - The mail-item entity deliberately contains no original body, subject, address, or raw
   message identifier. Drafting resolves the mailbox source on demand rather than reading
   entity content.
 - The registered **Draft reply** destination opens an Admin-only CMS workspace that can
-  generate, edit, and revision reply text. It never sends automatically.
+  generate, edit, revision, and explicitly send the current saved reply. It never sends
+  automatically.
 
 ## Core decisions
 
@@ -49,10 +50,11 @@ or accept it, and send a correctly threaded reply only after explicit approval.
    as untrusted source material. Voice and response guidance are explicit plugin
    configuration/profile context. No inbound instruction can enter an agent loop.
 4. **Drafts are separate, per-mail-item records.** The restricted
-   `email-reply-draft` entity stores only Brain-authored reply text, revision, and draft
-   state. It links to one mail item; draft lifecycle does not overload mail or lead
-   status, and optimistic revisions reject stale edits.
-5. **Threading extends the shared delivery contract.** Add optional
+   `email-reply-draft` entity stores only Brain-authored reply text, revision, delivery
+   status/timestamps, and an optional accepted provider delivery ID. It links to one mail
+   item; draft lifecycle does not overload mail or lead status, and optimistic revisions
+   reject stale edits.
+5. **Threading extends the shared delivery contract.** Carry optional
    `threading?: { inReplyTo: string; references: string[] }` to
    `ChannelDeliveryInput`. The email provider maps it to RFC 5322 headers; providers
    that do not support threading ignore it and existing senders remain unchanged.
@@ -81,10 +83,10 @@ Tests are written and observed failing before implementation in every phase.
   stores only the reply, and increments revision. _Tests first:_ raw source never
   persists; redraft creates a new revision; lead context optional; untrusted source is
   delimited; no content in logs.
-- **Phase 2 — Threading contract.** Extend `ChannelDeliveryInput` and map threading to
+- **Phase 2 — Threading contract (implemented).** Extend `ChannelDeliveryInput` and map threading to
   email-provider headers. _Tests first:_ schema accepts/omits threading; `In-Reply-To`
   and `References` ordering; existing notification delivery remains byte-identical.
-- **Phase 3 — Approval + send.** Confirmation-gated send of the current revision through
+- **Phase 3 — Approval + send (implemented).** Confirmation-gated send of the current revision through
   the email provider. _Tests first:_ unconfirmed invocation sends nothing; recipient
   and subject come from fresh source resolution; idempotency stability; failure keeps
   the draft editable; success records delivery ID exactly once.
@@ -99,7 +101,7 @@ Tests are written and observed failing before implementation in every phase.
 ## Related plans
 
 - [`@brains/email-workflows`](../../plugins/email-workflows/README.md) — shipped; owns the
-  derived mail item and opaque source reference.
+  derived mail item, reply revisions, confirmation, and delivery orchestration.
 - [lead-management.md](./lead-management.md) — optional business context.
 - [connected-channels.md](./connected-channels.md) — delivery-provider contract extended
   for threading.

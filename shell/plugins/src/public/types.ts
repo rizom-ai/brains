@@ -61,6 +61,7 @@ export type {
   ChannelDeliveryInput,
   ChannelDeliveryProvider,
   ChannelDeliveryResult,
+  ChannelDeliveryThreading,
   ChannelDescriptor,
   ChannelSubjectPattern,
 } from "../channel-registry";

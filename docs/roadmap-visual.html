@@ -70,7 +70,7 @@
     <header class="header">
       <h1>Brains Strategic Roadmap</h1>
       <p>One brain, composed from capability bundles. What used to be three models (rover, relay, ranger) is a single brain whose posture — from personal publishing to shared team memory — is selected by bundles at deploy time. The bet: one brain that scales from a single person to a collective without switching products.</p>
-      <div class="updated">Last updated: 2026-08-08 · generated from docs/roadmap.md</div>
+      <div class="updated">Last updated: 2026-08-15 · generated from docs/roadmap.md</div>
     </header>
     <div class="legend">
         <span class="legend-item"><span class="legend-dot dot-active"></span>Active</span>
@@ -276,14 +276,6 @@
           <div class="card-desc">**in progress on <code>feat/opportunity-priority-engine</code>**: capture, deterministic ranking, focus/state suggestions, and the first dashboard slice exist in the worktree. Composition and eval hardening remain; stale-opportunity alerts should now register with the shared recurring-check infrastructure.</div>
           <div class="card-file">bd-priority-engine.md</div>
         </div>
-        <div class="card status-active">
-          <div class="card-head">
-            <span class="card-name">Email reply drafting and sending</span>
-            <span class="badge badge-active">Active</span>
-          </div>
-          <div class="card-desc">source reads plus generated/editable revisioned drafts have shipped in <code>@brains/email-workflows</code>; remaining phases extend the delivery-provider threading contract and require explicit confirmation before sending. Lead context stays optional.</div>
-          <div class="card-file">email-reply-drafting.md</div>
-        </div>
         <div class="card status-partial">
           <div class="card-head">
             <span class="card-name">AT Protocol Integration</span>
@@ -291,6 +283,14 @@
           </div>
           <div class="card-desc">active prototype for distribution/discovery; outbound publishing, registry contracts/routes, and the first bounded discovery slice are implemented. Remaining work is OAuth hardening, configurable discovery/Jetstream, and later ingestion/feed work.</div>
           <div class="card-file">atproto-integration.md</div>
+        </div>
+        <div class="card status-partial">
+          <div class="card-head">
+            <span class="card-name">Email reply drafting and sending</span>
+            <span class="badge badge-partial">In progress</span>
+          </div>
+          <div class="card-desc">implemented in <code>@brains/email-workflows</code>: source-backed generated/editable revisions, delivery-provider threading, stable send idempotency, and explicit confirmation before sending. Lead context stays optional.</div>
+          <div class="card-file">email-reply-drafting.md</div>
         </div>
         <div class="card status-proposed">
           <div class="card-head">

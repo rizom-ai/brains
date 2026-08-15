@@ -109,8 +109,25 @@ const emailConfigSchema: z.ZodType<EmailConfig, EmailConfigInput> = z.object({
 
 const resendEmailResponseSchema: z.ZodType<ResendEmailResponse, unknown> =
   z.looseObject({
-    id: z.string().optional(),
+    id: z.string().trim().min(1).max(1_000).optional(),
   });
+
+type EmailDeliveryThreading = NonNullable<ChannelDeliveryInput["threading"]>;
+const emailMessageIdSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(2_000)
+  .refine((value) => !/[\p{Cc}\p{Cf}]/u.test(value), {
+    message: "Email threading identifiers cannot contain controls",
+  });
+const emailDeliveryThreadingSchema: z.ZodType<
+  EmailDeliveryThreading,
+  EmailDeliveryThreading
+> = z.strictObject({
+  inReplyTo: emailMessageIdSchema,
+  references: z.array(emailMessageIdSchema).max(100),
+});
 
 export type EmailSendResult =
   { status: "sent"; id?: string } | { status: "failed" };
@@ -353,6 +370,9 @@ export class EmailInterface extends MessageInterfacePlugin<
         subject: input.subject,
         text: input.text,
         ...(input.html ? { html: input.html } : {}),
+        ...(input.threading
+          ? { threading: emailDeliveryThreadingSchema.parse(input.threading) }
+          : {}),
         idempotencyKey: input.idempotencyKey,
       });
       return result.status === "sent"
@@ -383,6 +403,7 @@ export class EmailInterface extends MessageInterfacePlugin<
     subject: string;
     text: string;
     html?: string | undefined;
+    threading?: EmailDeliveryThreading | undefined;
     idempotencyKey?: string | undefined;
   }): Promise<EmailSendResult> {
     const apiKey = this.config.apiKey;
@@ -406,6 +427,14 @@ export class EmailInterface extends MessageInterfacePlugin<
         subject: input.subject,
         text: input.text,
         ...(input.html ? { html: input.html } : {}),
+        ...(input.threading
+          ? {
+              headers: {
+                "In-Reply-To": input.threading.inReplyTo,
+                References: input.threading.references.join(" "),
+              },
+            }
+          : {}),
       }),
     });
 

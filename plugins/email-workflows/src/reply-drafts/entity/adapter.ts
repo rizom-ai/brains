@@ -27,9 +27,12 @@ export class EmailReplyDraftAdapter extends BaseEntityAdapter<
     frontmatter: EmailReplyDraftFrontmatter,
     replyText: string,
   ): string {
+    const parsedFrontmatter =
+      emailReplyDraftFrontmatterSchema.parse(frontmatter);
+    assertDraftState(parsedFrontmatter);
     return this.buildMarkdown(
       emailReplyTextSchema.parse(replyText),
-      emailReplyDraftFrontmatterSchema.parse(frontmatter),
+      parsedFrontmatter,
     );
   }
 
@@ -37,11 +40,13 @@ export class EmailReplyDraftAdapter extends BaseEntityAdapter<
     frontmatter: EmailReplyDraftFrontmatter;
     replyText: string;
   } {
+    const frontmatter = this.parseFrontMatter(
+      content,
+      emailReplyDraftFrontmatterSchema,
+    );
+    assertDraftState(frontmatter);
     return {
-      frontmatter: this.parseFrontMatter(
-        content,
-        emailReplyDraftFrontmatterSchema,
-      ),
+      frontmatter,
       replyText: emailReplyTextSchema.parse(this.extractBody(content).trim()),
     };
   }
@@ -58,3 +63,16 @@ export class EmailReplyDraftAdapter extends BaseEntityAdapter<
 
 export const emailReplyDraftAdapter: EmailReplyDraftAdapter =
   new EmailReplyDraftAdapter();
+
+function assertDraftState(frontmatter: EmailReplyDraftFrontmatter): void {
+  if (frontmatter.status === "sent" && !frontmatter.sentAt) {
+    throw new Error("Sent email reply drafts require a sent timestamp");
+  }
+  if (
+    frontmatter.status === "draft" &&
+    (frontmatter.sentAt !== undefined ||
+      frontmatter.providerDeliveryId !== undefined)
+  ) {
+    throw new Error("Unsent email reply drafts cannot have delivery metadata");
+  }
+}

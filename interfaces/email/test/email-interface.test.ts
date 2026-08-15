@@ -352,6 +352,87 @@ describe("EmailInterface", () => {
     });
   });
 
+  it("maps ordered reply threading into Resend headers", async () => {
+    const fetchImpl = mock(
+      async (_input: string | URL | Request) =>
+        new Response(JSON.stringify({ id: "resend_reply_1" }), { status: 200 }),
+    );
+    const harness = createPluginHarness<EmailInterface>();
+
+    await harness.installPlugin(
+      new EmailInterface(
+        {
+          transport: "resend",
+          apiKey: "resend-key",
+          from: "Operator <operator@example.com>",
+        },
+        { fetchImpl },
+      ),
+    );
+    await harness.finalizeRegistration();
+
+    const provider = harness
+      .getMockShell()
+      .getChannelRegistry()
+      .getDeliveryProvider("email");
+    expect(
+      await provider?.send({
+        recipient: "sender@example.com",
+        subject: "Re: Project update",
+        text: "Thanks for the update.",
+        idempotencyKey: "email-reply-1-revision-2",
+        sensitivity: "secret",
+        threading: {
+          inReplyTo: "<message@example.com>",
+          references: [
+            "<root@example.com>",
+            "<parent@example.com>",
+            "<message@example.com>",
+          ],
+        },
+      }),
+    ).toEqual({
+      status: "sent",
+      providerDeliveryId: "resend_reply_1",
+    });
+    expect(fetchImpl).toHaveBeenCalledWith("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: "Bearer resend-key",
+        "Content-Type": "application/json",
+        "Idempotency-Key": "email-reply-1-revision-2",
+      },
+      body: JSON.stringify({
+        from: "Operator <operator@example.com>",
+        to: "sender@example.com",
+        subject: "Re: Project update",
+        text: "Thanks for the update.",
+        headers: {
+          "In-Reply-To": "<message@example.com>",
+          References:
+            "<root@example.com> <parent@example.com> <message@example.com>",
+        },
+      }),
+    });
+    expect(
+      await provider?.send({
+        recipient: "sender@example.com",
+        subject: "Re: Project update",
+        text: "Unsafe threading must not send.",
+        idempotencyKey: "email-reply-unsafe",
+        sensitivity: "secret",
+        threading: {
+          inReplyTo: "<message@example.com>\r\nBcc: other@example.com",
+          references: [],
+        },
+      }),
+    ).toEqual({
+      status: "failed",
+      failureCode: "email_delivery_failed",
+    });
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+  });
+
   it("returns a generic failure without echoing secret message content", async () => {
     const fetchImpl = mock(
       async (_input: string | URL | Request) =>

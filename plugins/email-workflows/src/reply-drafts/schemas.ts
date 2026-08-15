@@ -1,18 +1,44 @@
 import { inboxItemIdSchema } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 
-interface DraftViewValue {
+interface UnsentDraftViewValue {
   text: string;
   revision: number;
+  status: "draft";
   updatedAt: string;
 }
 
-export const draftViewSchema: z.ZodType<DraftViewValue, DraftViewValue> =
+interface SentDraftViewValue {
+  text: string;
+  revision: number;
+  status: "sent";
+  updatedAt: string;
+  sentAt: string;
+}
+
+type DraftViewValue = UnsentDraftViewValue | SentDraftViewValue;
+
+const unsentDraftViewSchema: z.ZodType<
+  UnsentDraftViewValue,
+  UnsentDraftViewValue
+> = z.strictObject({
+  text: z.string().min(1).max(20_000),
+  revision: z.number().int().positive(),
+  status: z.literal("draft"),
+  updatedAt: z.iso.datetime(),
+});
+
+const sentDraftViewSchema: z.ZodType<SentDraftViewValue, SentDraftViewValue> =
   z.strictObject({
     text: z.string().min(1).max(20_000),
     revision: z.number().int().positive(),
+    status: z.literal("sent"),
     updatedAt: z.iso.datetime(),
+    sentAt: z.iso.datetime(),
   });
+
+export const draftViewSchema: z.ZodType<DraftViewValue, DraftViewValue> =
+  z.union([unsentDraftViewSchema, sentDraftViewSchema]);
 
 interface DraftSourceAddressValue {
   name?: string | undefined;
@@ -128,17 +154,48 @@ const saveDraftActionSchema: z.ZodType<
   baseRevision: z.number().int().nonnegative(),
 });
 
+interface SendDraftActionValue {
+  type: "send";
+  mailItemId: string;
+  revision: number;
+  confirmed: boolean;
+}
+
+const sendDraftActionSchema: z.ZodType<
+  SendDraftActionValue,
+  SendDraftActionValue
+> = z.strictObject({
+  type: z.literal("send"),
+  mailItemId: inboxItemIdSchema,
+  revision: z.number().int().positive(),
+  confirmed: z.boolean(),
+});
+
 type EmailReplyDraftActionValue =
-  GenerateDraftActionValue | SaveDraftActionValue;
+  GenerateDraftActionValue | SaveDraftActionValue | SendDraftActionValue;
 
 export const emailReplyDraftActionSchema: z.ZodType<
   EmailReplyDraftActionValue,
   EmailReplyDraftActionValue
-> = z.union([generateDraftActionSchema, saveDraftActionSchema]);
+> = z.union([
+  generateDraftActionSchema,
+  saveDraftActionSchema,
+  sendDraftActionSchema,
+]);
 
 interface DraftCompletedOutcomeValue {
   kind: "draft";
   draft: DraftViewValue;
+}
+
+interface SendConfirmationOutcomeValue {
+  kind: "confirmation";
+  summary: string;
+}
+
+interface SendCompletedOutcomeValue {
+  kind: "sent";
+  draft: SentDraftViewValue;
 }
 
 interface DraftErrorOutcomeValue {
@@ -147,11 +204,18 @@ interface DraftErrorOutcomeValue {
     | "Invalid draft action"
     | "Draft generation failed"
     | "Draft save failed"
-    | "Draft changed; reload before saving";
+    | "Draft changed; reload before saving"
+    | "Draft changed; review before sending"
+    | "Email delivery is unavailable"
+    | "Original content is unavailable"
+    | "Email delivery failed";
 }
 
 type EmailReplyDraftActionOutcomeValue =
-  DraftCompletedOutcomeValue | DraftErrorOutcomeValue;
+  | DraftCompletedOutcomeValue
+  | SendConfirmationOutcomeValue
+  | SendCompletedOutcomeValue
+  | DraftErrorOutcomeValue;
 
 export const emailReplyDraftActionOutcomeSchema: z.ZodType<
   EmailReplyDraftActionOutcomeValue,
@@ -159,17 +223,28 @@ export const emailReplyDraftActionOutcomeSchema: z.ZodType<
 > = z.union([
   z.strictObject({ kind: z.literal("draft"), draft: draftViewSchema }),
   z.strictObject({
+    kind: z.literal("confirmation"),
+    summary: z.string().trim().min(1).max(200),
+  }),
+  z.strictObject({ kind: z.literal("sent"), draft: sentDraftViewSchema }),
+  z.strictObject({
     kind: z.literal("error"),
     error: z.enum([
       "Invalid draft action",
       "Draft generation failed",
       "Draft save failed",
       "Draft changed; reload before saving",
+      "Draft changed; review before sending",
+      "Email delivery is unavailable",
+      "Original content is unavailable",
+      "Email delivery failed",
     ]),
   }),
 ]);
 
-export type DraftView = z.output<typeof draftViewSchema>;
+export type UnsentDraftView = UnsentDraftViewValue;
+export type SentDraftView = SentDraftViewValue;
+export type DraftView = DraftViewValue;
 export type DraftSourceView = z.output<typeof draftSourceViewSchema>;
 export type EmailReplyDraftSourceRequest = z.output<
   typeof emailReplyDraftSourceRequestSchema

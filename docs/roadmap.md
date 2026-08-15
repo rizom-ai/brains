@@ -1,6 +1,6 @@
 # brains roadmap
 
-Last updated: 2026-08-08
+Last updated: 2026-08-15
 
 This roadmap is the public-facing view of where `brains` is headed.
 
@@ -175,9 +175,9 @@ Plans:
 
 Shipped from this section:
 
-- inbound email intake — `interfaces/email` owns the inbound half of the email channel (IMAP daemon, at-least-once `EMAIL_INBOUND` events, sender identity enrichment), plus the private locator-backed bounded source reader used by Admin detail and drafting. Deliberately non-conversational: inbound mail never reaches agent chat;
+- inbound email intake — `interfaces/email` owns the inbound half of the email channel (IMAP daemon, at-least-once `EMAIL_INBOUND` events, sender identity enrichment), plus the private locator-backed bounded source reader used by Admin detail, drafting, and confirmed sends. Deliberately non-conversational: inbound mail never reaches agent chat;
 - [the unified inbox](../plugins/unified-inbox/README.md) and [follow-up plan](./plans/inbox-follow-ups.md) — live source-owned attention, Admin CMS and headless readers, linkable facets, verified contacts, destination-owned universal and source-declared launches, bounded transient source detail, recurring-check and mail sources, and title-only digest without a second store;
-- [`@brains/email-workflows`](../plugins/email-workflows/README.md) — one opt-in email feature package grouping safe derived triage, new-mail Inbox projection, and the real revisioned **Draft reply** workspace while persisting no original mailbox content.
+- [`@brains/email-workflows`](../plugins/email-workflows/README.md) — one opt-in email feature package grouping safe derived triage, new-mail Inbox projection, and the real revisioned **Draft reply** workspace with explicit threaded sending while persisting no original mailbox content.
 
 ### 6. Ecosystem
 
@@ -197,7 +197,7 @@ Plans:
 - [atproto-integration.md](./plans/atproto-integration.md) — active prototype for distribution/discovery; outbound publishing, registry contracts/routes, and the first bounded discovery slice are implemented. Remaining work is OAuth hardening, configurable discovery/Jetstream, and later ingestion/feed work.
 - [bd-priority-engine.md](./plans/bd-priority-engine.md) — **in progress on `feat/opportunity-priority-engine`**: capture, deterministic ranking, focus/state suggestions, and the first dashboard slice exist in the worktree. Composition and eval hardening remain; stale-opportunity alerts should now register with the shared recurring-check infrastructure.
 - [lead-management.md](./plans/lead-management.md) — **email triage has shipped; now gated on the shared `opportunity` entity**: turn configured mail categories into restricted leads, use bounded AI resolution to consolidate multiple mail items per opportunity, and provide reversible merge/split/reassignment before optional promotion into `@brains/business-development`.
-- [email-reply-drafting.md](./plans/email-reply-drafting.md) — source reads plus generated/editable revisioned drafts have shipped in `@brains/email-workflows`; remaining phases extend the delivery-provider threading contract and require explicit confirmation before sending. Lead context stays optional.
+- [email-reply-drafting.md](./plans/email-reply-drafting.md) — implemented in `@brains/email-workflows`: source-backed generated/editable revisions, delivery-provider threading, stable send idempotency, and explicit confirmation before sending. Lead context stays optional.
 
 ### 7. Keep the framework sustainable
 

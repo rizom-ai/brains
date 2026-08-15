@@ -1771,7 +1771,8 @@
   gap: 8px;
   margin-top: 20px;
 }
-.modal-actions .btn.danger {
+.modal-actions .btn.danger,
+.reply-composer > footer .btn.danger {
   border-color: var(--console-err);
   background: var(--console-err);
   color: var(--console-card);
@@ -2436,6 +2437,7 @@
 }
 .reply-composer > footer {
   display: flex;
+  flex-wrap: wrap;
   justify-content: flex-end;
   gap: 8px;
   padding: 12px;
