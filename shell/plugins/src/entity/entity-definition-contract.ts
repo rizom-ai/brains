@@ -1,6 +1,12 @@
-import type { BaseEntity, ProjectionSourceRole } from "@brains/entity-service";
+import type {
+  BaseEntity,
+  ListOptions,
+  ProjectionSourceRole,
+} from "@brains/entity-service";
 import type { Template } from "@brains/templates";
 import type { AnchorProfile } from "../contracts/identity";
+import type { IEntityAINamespace } from "./ai-types";
+import type { LoggerContract } from "@brains/utils/logger";
 import type { AttachmentProvider } from "../service/attachment-registry";
 import type { AnyDataSourceDeclaration } from "../public/entity-data-source";
 import type { z } from "@brains/utils/zod";
@@ -96,6 +102,53 @@ export interface EntityDefinition<
    * of its own.
    */
   readonly attachments?: readonly EntityAttachmentDeclaration[] | undefined;
+  /**
+   * Content generation for this entity type. The runtime registers it as
+   * the `{entityType}:generation` job and validates input against the
+   * declared schema before calling `handle`.
+   */
+  readonly generation?: EntityGenerationDeclaration | undefined;
+}
+
+/**
+ * What a generation handler is given: AI generation, entity access, and a
+ * logger. Every member is a narrow contract rather than the plugin
+ * context, so nothing here drags a runtime service into the published
+ * declarations.
+ */
+export interface EntityGenerationContext {
+  readonly ai: IEntityAINamespace;
+  readonly logger: LoggerContract;
+  readonly entities: EntityGenerationEntityAccess;
+}
+
+export interface EntityGenerationEntityAccess {
+  list<T extends BaseEntity>(request: {
+    entityType: string;
+    options?: ListOptions;
+  }): Promise<T[]>;
+  get<T extends BaseEntity>(request: {
+    entityType: string;
+    id: string;
+  }): Promise<T | null>;
+  /** Entity types currently registered, for sources that span them. */
+  getEntityTypes(): string[];
+  update<T extends BaseEntity>(
+    entity: T,
+  ): Promise<{ entityId: string; jobId: string }>;
+}
+
+export interface EntityGenerationDeclaration<
+  TInputSchema extends z.ZodType = z.ZodType,
+> {
+  /** Job input is parsed with this before `handle` runs. */
+  readonly input: TInputSchema;
+  handle(args: {
+    readonly input: z.output<TInputSchema>;
+    readonly ai: IEntityAINamespace;
+    readonly logger: LoggerContract;
+    readonly entities: EntityGenerationEntityAccess;
+  }): Promise<unknown>;
 }
 
 /**

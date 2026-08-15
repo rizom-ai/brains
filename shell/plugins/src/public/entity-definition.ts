@@ -6,6 +6,7 @@ import type {
   AnyEntityDefinition,
   EntityAttachmentDeclaration,
   EntityDefinition,
+  EntityGenerationDeclaration,
   EntityDefinitionConfig,
   EntitySeedDefinition,
   EntityMarkdownCodec,
@@ -38,6 +39,7 @@ export type {
 export function defineEntity<
   const TType extends string,
   TMetadataSchema extends EntityMetadataSchema,
+  TInputSchema extends z.ZodType = z.ZodType,
 >(definition: {
   readonly type: TType;
   readonly purpose: string;
@@ -48,6 +50,7 @@ export function defineEntity<
   readonly templates?: Record<string, Template> | undefined;
   readonly dataSources?: readonly AnyDataSourceDeclaration[] | undefined;
   readonly attachments?: readonly EntityAttachmentDeclaration[] | undefined;
+  readonly generation?: EntityGenerationDeclaration<TInputSchema> | undefined;
 }): EntityDefinition<TType, TMetadataSchema> {
   assertLocalId(definition.type, "Entity type");
   if (!definition.purpose.trim()) {

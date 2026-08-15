@@ -6,6 +6,8 @@ import {
   generateMarkdownWithFrontmatter,
   parseMarkdownWithFrontmatter,
   type DataSource,
+  type BaseEntity,
+  type ListOptions,
   type EntityAdapter,
   type EntityTypeConfig,
   type ProjectionJsonObject,
@@ -22,8 +24,10 @@ import { EntityPlugin, emptyEntityPluginConfigSchema } from "./entity-plugin";
 import type { EntityPluginContext } from "./context";
 import { defineProjectionRule, type ProjectionRule } from "./projection-rule";
 import type { InstalledPluginPackageMetadata } from "../package-definition";
+import type { JobHandler } from "@brains/job-queue";
 import type {
   AnyEntityDefinition,
+  EntityGenerationEntityAccess,
   EntityOf,
   EntitySeedTrigger,
   ProjectionDefinition,
@@ -253,6 +257,7 @@ class DeclarativeEntityPlugin extends EntityPlugin<
   private readonly templates: AnyEntityDefinition["templates"];
   private readonly dataSources: AnyEntityDefinition["dataSources"];
   private readonly attachments: AnyEntityDefinition["attachments"];
+  private readonly generation: AnyEntityDefinition["generation"];
   private readonly releaseAttachments: Array<() => void> = [];
   public readonly entityType: string;
   public readonly schema: z.ZodType<EntityOf<AnyEntityDefinition>, unknown>;
@@ -282,6 +287,7 @@ class DeclarativeEntityPlugin extends EntityPlugin<
     this.templates = definition.templates;
     this.dataSources = definition.dataSources;
     this.attachments = definition.attachments;
+    this.generation = definition.generation;
   }
 
   protected override getEntityTypeConfig(): EntityTypeConfig | undefined {
@@ -358,6 +364,46 @@ class DeclarativeEntityPlugin extends EntityPlugin<
         return { success: true };
       },
     );
+  }
+
+  protected override createGenerationHandler(
+    context: EntityPluginContext,
+  ): JobHandler | null {
+    const generation = this.generation;
+    if (!generation) return null;
+
+    const entityService = context.entityService;
+    const entities: EntityGenerationEntityAccess = {
+      list: <T extends BaseEntity>(request: {
+        entityType: string;
+        options?: ListOptions;
+      }): Promise<T[]> => entityService.listEntities<T>(request),
+      get: <T extends BaseEntity>(request: {
+        entityType: string;
+        id: string;
+      }): Promise<T | null> => entityService.getEntity<T>(request),
+      getEntityTypes: (): string[] => entityService.getEntityTypes(),
+      update: <T extends BaseEntity>(
+        entity: T,
+      ): Promise<{ entityId: string; jobId: string }> =>
+        entityService.updateEntity({ entity }),
+    };
+
+    return {
+      // Input is the author's declared schema, so a malformed job is
+      // rejected before their code runs.
+      validateAndParse: (data: unknown): unknown => {
+        const parsed = generation.input.safeParse(data);
+        return parsed.success ? parsed.data : null;
+      },
+      process: async (data: unknown): Promise<unknown> =>
+        generation.handle({
+          input: data,
+          ai: context.ai,
+          logger: this.logger,
+          entities,
+        }),
+    };
   }
 
   protected override async onShutdown(): Promise<void> {
