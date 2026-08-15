@@ -3,6 +3,8 @@ import type {
   EntityInput,
   ListOptions,
   ProjectionSourceRole,
+  SearchOptions,
+  SearchResult,
 } from "@brains/entity-service";
 import type { Template } from "@brains/templates";
 import type { AnchorProfile } from "../contracts/identity";
@@ -178,6 +180,18 @@ export interface EntityGenerationContext {
   readonly ai: IEntityAINamespace;
   readonly logger: LoggerContract;
   readonly entities: EntityGenerationEntityAccess;
+  readonly conversations: EntityConversationReader;
+}
+
+/**
+ * Conversation lookup, narrowed to the read entity packages actually do:
+ * resolving where a captured item came from. The full namespace also
+ * lists and searches, which no entity needs.
+ */
+export interface EntityConversationReader {
+  get(
+    conversationId: string,
+  ): Promise<{ channelName?: string | undefined } | null>;
 }
 
 /**
@@ -195,6 +209,10 @@ export interface EntityGenerationEntityAccess {
     id: string;
   }): Promise<T | null>;
   getEntityTypes(): string[];
+  search<T extends BaseEntity = BaseEntity>(request: {
+    query: string;
+    options?: SearchOptions;
+  }): Promise<SearchResult<T>[]>;
   createEntity<T extends BaseEntity>(request: {
     entity: EntityInput<T>;
   }): Promise<{ entityId: string; jobId: string }>;
@@ -233,6 +251,7 @@ export interface EntityJobDeclaration<
     readonly ai: IEntityAINamespace;
     readonly logger: LoggerContract;
     readonly entities: EntityGenerationEntityAccess;
+    readonly conversations: EntityConversationReader;
   }): Promise<unknown>;
 }
 

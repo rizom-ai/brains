@@ -8,6 +8,8 @@ import {
   type DataSource,
   type BaseEntity,
   type ListOptions,
+  type SearchOptions,
+  type SearchResult,
   type EntityInput,
   type EntityAdapter,
   type EntityTypeConfig,
@@ -409,6 +411,7 @@ class DeclarativeEntityPlugin extends EntityPlugin<
           ai: context.ai,
           logger: this.logger,
           entities: this.entityAccess(context),
+          conversations: context.conversations,
         }),
       );
     }
@@ -483,6 +486,7 @@ class DeclarativeEntityPlugin extends EntityPlugin<
           ai: context.ai,
           logger: this.logger,
           entities: this.entityAccess(context),
+          conversations: context.conversations,
         }),
     };
   }
@@ -501,6 +505,10 @@ class DeclarativeEntityPlugin extends EntityPlugin<
         id: string;
       }): Promise<T | null> => entityService.getEntity<T>(request),
       getEntityTypes: (): string[] => entityService.getEntityTypes(),
+      search: <T extends BaseEntity = BaseEntity>(request: {
+        query: string;
+        options?: SearchOptions;
+      }): Promise<SearchResult<T>[]> => entityService.search<T>(request),
       createEntity: <T extends BaseEntity>(request: {
         entity: EntityInput<T>;
       }): Promise<{ entityId: string; jobId: string }> =>

@@ -280,6 +280,7 @@
         "ContentFormatter",
         "DataSourceDefinition",
         "EntityAttachmentDeclaration",
+        "EntityConversationReader",
         "EntityCreateRoute",
         "EntityCreateRouting",
         "EntityDataSourceDefinition",
