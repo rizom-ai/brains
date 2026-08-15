@@ -1,7 +1,6 @@
 import {
   formatContentDispositionHeader,
   type IRuntimeStateNamespace,
-  type RuntimeUploadStore,
   type WebRouteDefinition,
 } from "@brains/plugins";
 import type {
@@ -11,7 +10,7 @@ import type {
   MessageContext,
   Thread,
 } from "chat";
-import type { ChatWebhookMap } from "./types";
+import type { ChatWebhookMap, ChatUploadReader } from "./types";
 import type {
   DiscordChatAdapterConfig,
   SlackChatAdapterConfig,
@@ -73,7 +72,7 @@ interface ChatSdkAppHostDeps {
   discord: DiscordChatAdapterConfig | undefined;
   slack: SlackChatAdapterConfig | undefined;
   /** Lazy: runtime upload stores are only available once the plugin is registered. */
-  getUploadStore: (platform: ChatPlatform) => RuntimeUploadStore | undefined;
+  getUploadStore: (platform: ChatPlatform) => ChatUploadReader | undefined;
   /** Construct the Chat SDK app (see createChatSdkApp); injected so this stays SDK-free. */
   buildApp: (runtimeState: IRuntimeStateNamespace) => ChatSdkApp;
 }

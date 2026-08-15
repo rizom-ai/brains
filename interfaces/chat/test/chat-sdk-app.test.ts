@@ -1,6 +1,7 @@
 import { describe, it, expect, mock } from "bun:test";
 import type { Mock } from "bun:test";
-import type { RuntimeUploadStore, WebRouteDefinition } from "@brains/plugins";
+import type { WebRouteDefinition } from "@brains/plugins";
+import type { ChatUploadReader } from "../src/types";
 import { ChatSdkAppHost, type ChatSdkApp } from "../src/chat-sdk-app";
 import type {
   DiscordChatAdapterConfig,
@@ -67,9 +68,7 @@ function createFakeApp(options?: { withWebhook?: boolean }): FakeApp {
   };
 }
 
-function createUploadStore(
-  read?: RuntimeUploadStore["read"],
-): RuntimeUploadStore {
+function createUploadStore(read?: ChatUploadReader["read"]): ChatUploadReader {
   return {
     read:
       read ??
@@ -78,17 +77,19 @@ function createUploadStore(
           id,
           filename: "report.pdf",
           mediaType: "application/pdf",
-          ref: "discord-chat-upload",
+          ref: { kind: "discord-chat-upload", id },
+          sizeBytes: 8,
+          createdAt: "2026-01-01T00:00:00.000Z",
         },
         content: Buffer.from("%PDF-1.7"),
       })),
-  } as unknown as RuntimeUploadStore;
+  } satisfies ChatUploadReader;
 }
 
 function makeApp(options?: {
   discord?: DiscordChatAdapterConfig | undefined;
   slack?: SlackChatAdapterConfig | undefined;
-  uploadStore?: RuntimeUploadStore | undefined;
+  uploadStore?: ChatUploadReader | undefined;
   app?: FakeApp;
   build?: boolean;
 }): {
@@ -101,7 +102,7 @@ function makeApp(options?: {
   const discordApp = new ChatSdkAppHost({
     discord: options && "discord" in options ? options.discord : DISCORD_CONFIG,
     slack: options && "slack" in options ? options.slack : SLACK_CONFIG,
-    getUploadStore: (): RuntimeUploadStore | undefined =>
+    getUploadStore: (): ChatUploadReader | undefined =>
       options && "uploadStore" in options
         ? options.uploadStore
         : createUploadStore(),

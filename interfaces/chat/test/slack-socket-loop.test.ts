@@ -1,9 +1,10 @@
 import { describe, expect, it, mock } from "bun:test";
 import { SlackSocketLoop } from "../src/slack-socket-loop";
-import type { GatewayListenerOptions, SlackChatAdapter } from "../src/types";
+import type { GatewayListenerOptions } from "../src/types";
+import type { SocketModeListener } from "../src/slack-socket-loop";
 
 function createAdapter(): {
-  adapter: SlackChatAdapter;
+  adapter: SocketModeListener;
   startSocketModeListener: ReturnType<typeof mock>;
 } {
   const startSocketModeListener = mock(
@@ -21,10 +22,8 @@ function createAdapter(): {
       }),
   );
   return {
-    adapter: {
-      name: "slack",
-      startSocketModeListener,
-    } as unknown as SlackChatAdapter,
+    // startSocketModeListener is the whole surface the loop uses.
+    adapter: { startSocketModeListener } satisfies SocketModeListener,
     startSocketModeListener,
   };
 }
