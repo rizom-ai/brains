@@ -81,7 +81,7 @@ export const productsDataSource: DataSourceDefinition = defineDataSource({
     const params = querySchema.parse(query);
 
     const readOverview = async (): Promise<OverviewWithData> => {
-      const found = await entities.list<Overview>({
+      const found = await entities.listEntities<Overview>({
         entityType: "products-overview",
         options: { limit: 1 },
       });
@@ -95,7 +95,7 @@ export const productsDataSource: DataSourceDefinition = defineDataSource({
     }
 
     if (params.query?.id) {
-      const found = await entities.list<Product>({
+      const found = await entities.listEntities<Product>({
         entityType: "product",
         options: { filter: { metadata: { slug: params.query.id } }, limit: 1 },
       });
@@ -108,7 +108,7 @@ export const productsDataSource: DataSourceDefinition = defineDataSource({
 
     const [overview, products] = await Promise.all([
       readOverview(),
-      entities.list<Product>({
+      entities.listEntities<Product>({
         entityType: "product",
         options: { sortFields: [{ field: "order", direction: "asc" }] },
       }),

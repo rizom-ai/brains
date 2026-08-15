@@ -1,11 +1,14 @@
 import {
   ProjectionJsonObjectSchema,
   ProjectionWriteIntentSchema,
-  type IEntityService,
+  type BaseEntity,
+  type EntityTypeConfig,
+  type GetEntityRequest,
+  type ListEntitiesRequest,
   type ProjectionJsonObject,
   type ProjectionWriteIntent,
 } from "@brains/entity-service";
-import type { Logger } from "@brains/utils/logger";
+import type { LoggerContract } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
 import type { RuntimeAppInfo } from "../contracts/runtime-app-info";
 import type { IEntityAINamespace } from "./ai-types";
@@ -40,14 +43,24 @@ export interface ProjectionWaveTrigger {
   readonly inputs: readonly ProjectionWaveInput[];
 }
 
-export type ProjectionEntityReader = Pick<
-  IEntityService,
-  | "getEntity"
-  | "listEntities"
-  | "getEntityTypes"
-  | "hasEntityType"
-  | "getEntityTypeConfig"
->;
+/**
+ * Entity reads available to a projection rule, spelled out structurally.
+ *
+ * This was a `Pick` of the entity service interface, which cannot cross
+ * the published declaration boundary — the generated declarations inline
+ * every referenced type, and an inlined runtime service is nominally
+ * distinct from the original. The runtime service satisfies this
+ * structurally, so it passes itself unchanged.
+ */
+export interface ProjectionEntityReader {
+  getEntity<T extends BaseEntity>(request: GetEntityRequest): Promise<T | null>;
+  listEntities<T extends BaseEntity>(
+    request: ListEntitiesRequest,
+  ): Promise<T[]>;
+  getEntityTypes(): string[];
+  hasEntityType(type: string): boolean;
+  getEntityTypeConfig(type: string): EntityTypeConfig;
+}
 
 export interface ProjectionInputContext {
   readonly entities: ProjectionEntityReader;
@@ -64,7 +77,7 @@ export interface ProjectionExecutionContext {
     IEntityAINamespace,
     "query" | "generate" | "generateObject" | "generateImage"
   >;
-  readonly logger: Logger;
+  readonly logger: LoggerContract;
 }
 
 export interface ProjectionRule {

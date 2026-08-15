@@ -1799,6 +1799,7 @@
       "version": "0.2.0-alpha.306",
       "dependencies": {
         "@brains/ai-service": "workspace:*",
+        "@brains/atproto-contracts": "workspace:*",
         "@brains/content-formatters": "workspace:*",
         "@brains/content-service": "workspace:*",
         "@brains/contracts": "workspace:*",

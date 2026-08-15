@@ -1,4 +1,4 @@
-import type { BaseEntity, IEntityService } from "@brains/entity-service";
+import type { BaseEntity } from "@brains/entity-service";
 import type { AtprotoLexicon } from "./lexicon";
 import type { AtprotoBlobRef, AtprotoBrainPostRecord } from "./records";
 
@@ -57,7 +57,15 @@ export interface AtprotoPdsClientLike {
  * ServicePluginContext (which satisfies this interface structurally).
  */
 export interface AtprotoProjectionContext {
-  entityService: IEntityService;
+  entityService: {
+    getEntity<T extends BaseEntity>(request: {
+      entityType: string;
+      id: string;
+    }): Promise<T | null>;
+    updateEntity<T extends BaseEntity>(request: {
+      entity: T;
+    }): Promise<{ entityId: string; jobId: string }>;
+  };
 }
 
 export interface AtprotoProjectionBuildInput {
