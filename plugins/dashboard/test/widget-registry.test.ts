@@ -72,6 +72,10 @@ describe("DashboardWidgetRegistry", () => {
 
     it("should reject a widget without a group", () => {
       expect(() =>
+        // @ts-expect-error deliberately missing group: register is typed for
+        // callers but parses at runtime, because a widget can arrive from a
+        // plugin that bypassed the types. An expect-error rather than a cast,
+        // so this fails the build if group ever becomes optional.
         registry.register({
           id: "legacy-widget",
           pluginId: "legacy-plugin",
@@ -80,7 +84,7 @@ describe("DashboardWidgetRegistry", () => {
           priority: 10,
           rendererName: "StatsWidget",
           dataProvider: async () => ({}),
-        } as unknown as RegisteredWidget),
+        }),
       ).toThrow();
       expect(registry.size).toBe(0);
     });

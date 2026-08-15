@@ -11,6 +11,20 @@ import type { WidgetComponentProps } from "../src";
 import { DashboardPlugin } from "../src/plugin";
 import { createPluginHarness } from "@brains/plugins/test";
 
+/**
+ * The readiness status, derived from the method rather than imported.
+ *
+ * IndexReadinessStatus is not exported from @brains/plugins and dashboard does
+ * not depend on entity-service, so deriving keeps the stub in step with the
+ * real signature without a new export or a cast.
+ */
+type HarnessEntityService = ReturnType<
+  ReturnType<typeof createPluginHarness>["getEntityService"]
+>;
+type IndexReadiness = Awaited<
+  ReturnType<HarnessEntityService["awaitIndexReady"]>
+>;
+
 describe("DashboardPlugin", () => {
   let harness: ReturnType<typeof createPluginHarness>;
   let plugin: DashboardPlugin;
@@ -159,17 +173,27 @@ describe("DashboardPlugin", () => {
       const cookie = session.cookie.split(";")[0] ?? session.cookie;
       harness.getMockShell().registerPlugin({
         id: "admin",
+        version: "1.0.0",
+        type: "service" as const,
+        packageName: "@brains/admin",
+        // A real registration: the jump palette only reads getWebRoutes, but
+        // registerPlugin takes a whole Plugin, and supplying one keeps this
+        // checked against the interface instead of asserted past it.
+        register: async () => ({
+          tools: [],
+          resources: [],
+          commands: [],
+          handlers: [],
+        }),
         getWebRoutes: () => [
           {
             path: "/admin",
-            method: "GET",
+            method: "GET" as const,
             public: true,
             handler: async (): Promise<Response> => new Response("ok"),
           },
         ],
-      } as unknown as Parameters<
-        ReturnType<typeof harness.getMockShell>["registerPlugin"]
-      >[0]);
+      });
 
       const route = plugin
         .getWebRoutes()
@@ -208,15 +232,24 @@ describe("DashboardPlugin", () => {
       const shell = harness.getMockShell();
       shell.registerPlugin({
         id: "cms",
+        version: "1.0.0",
+        type: "service" as const,
+        packageName: "@brains/cms",
+        register: async () => ({
+          tools: [],
+          resources: [],
+          commands: [],
+          handlers: [],
+        }),
         getWebRoutes: () => [
           {
             path: "/cms",
-            method: "GET",
+            method: "GET" as const,
             public: true,
             handler: async (): Promise<Response> => new Response("ok"),
           },
         ],
-      } as unknown as Parameters<typeof shell.registerPlugin>[0]);
+      });
 
       const entityService = shell.getEntityService();
       entityService.search = (async () => [
@@ -401,32 +434,24 @@ describe("DashboardPlugin", () => {
           managementUrl: "/studio/workspaces/sync",
         },
       }));
-      (
-        harness.getEntityService() as unknown as {
-          awaitIndexReady: () => Promise<{
-            ready: boolean;
-            degraded: boolean;
-            activeEmbeddingJobs: number;
-            missingEmbeddings: number;
-            staleEmbeddings: number;
-            failedEmbeddings: number;
-          }>;
-        }
-      ).awaitIndexReady = async (): Promise<{
-        ready: boolean;
-        degraded: boolean;
-        activeEmbeddingJobs: number;
-        missingEmbeddings: number;
-        staleEmbeddings: number;
-        failedEmbeddings: number;
-      }> => ({
-        ready: true,
-        degraded: false,
-        activeEmbeddingJobs: 0,
-        missingEmbeddings: 0,
-        staleEmbeddings: 0,
-        failedEmbeddings: 0,
-      });
+      // Assigned against the real signature: the cast this replaces declared a
+      // zero-argument awaitIndexReady returning an inline shape, where the
+      // interface takes options and returns IndexReadinessStatus.
+      // No annotation: the assignment target supplies the contextual type, so
+      // the literal is checked against the real IndexReadinessStatus. The cast
+      // this replaces declared a zero-argument method returning an inline
+      // shape, where the interface takes options.
+      harness.getEntityService().awaitIndexReady =
+        async (): Promise<IndexReadiness> => ({
+          ready: true,
+          degraded: false,
+          activeEmbeddingJobs: 0,
+          missingEmbeddings: 0,
+          staleEmbeddings: 0,
+          failedEmbeddings: 0,
+          embeddableEntities: 0,
+          embeddedEntities: 0,
+        });
 
       await harness.sendMessage("entity:updated", {
         entityType: "note",
