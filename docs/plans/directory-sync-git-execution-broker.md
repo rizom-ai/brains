@@ -2,333 +2,490 @@
 
 ## Status
 
-Handoff-ready. This plan owns **Git runtime safety only**. Directory-sync import
-performance, AI-call fan-out, queue throughput, and the 350-file performance gates stay
-in [`directory-sync-import-load.md`](./directory-sync-import-load.md) and must not be
-used to expand this scope.
+Active — design correction accepted; implementation must restart from updated `main`.
+This plan owns **Git runtime safety only**. Directory-sync import performance, AI-call
+fan-out, queue throughput, and the 350-file performance gates stay in
+[`directory-sync-import-load.md`](./directory-sync-import-load.md).
 
-The preferred implementation starts from draft PR
-[#124](https://github.com/rizom-ai/brains/pull/124), branch
-`fix/directory-sync-owned-git-processes`, currently at `82c0415e8`. That PR provides a
-narrow `OwnedGit` API, removes directory-sync's `simple-git` execution paths, and has
-green current-main CI. It is intentionally unmerged because its in-process Bun runner
-cannot recover a completion notification that Bun loses.
+Draft PR [#124](https://github.com/rizom-ai/brains/pull/124) and worktree
+`~/Documents/brains-worktrees/directory-sync-owned-git-processes` preserve the reviewed
+wrapper implementation at `272f2c949`. That implementation introduced an OS-owned shell
+wrapper and removed `simple-git`; this plan supersedes both decisions. Keep the draft and
+worktree as evidence, but do not continue implementation there.
 
-This plan changes the earlier wait-only decision: a future fixed stable Bun remains
-valuable defense in depth, but is **not** the delivery dependency for this workaround.
-The workaround may ship on Bun 1.3.11 only after the affected-runtime acceptance matrix
-below passes unchanged.
+Merge this plan to `main` first. Then create a new implementation worktree and branch from
+the updated `origin/main`; carry no wrapper implementation commits forward. Do not publish,
+deploy, restart production, or run a remote workload from this work.
+
+## Decision summary
+
+Use one supervised, semantic Git broker as the checkout owner:
+
+- web and worker never spawn Git;
+- the broker serializes complete Git operations, not individual commands;
+- the broker uses `simple-git` for Git semantics and child execution;
+- `simple-git` is not the ownership or recovery boundary;
+- a missing Git completion fails closed: the operation remains owned and is never retried
+  or unlocked in-process;
+- stale progress or broker failure stops Git admission and terminates the broker's complete
+  process group;
+- web and worker stay available while the supervisor proves the broker/Git process group
+  is gone, starts a replacement broker, and reconciles before reopening Git admission;
+- if process-group termination cannot be proven, the supervisor fails the complete Brain
+  runtime and external supervision performs the final cleanup;
+- startup reconciliation derives the actual repository state rather than replaying an
+  ambiguous mutation;
+- the only ambient runtime executable required by directory-sync is `git`.
+
+Remove the shell wrapper, `flock`, `setsid`, `timeout`, and undeclared coreutils
+requirements. Do not replace them with another ambient helper. A fixed Bun release remains
+valuable defense in depth but is not required if fail-closed recovery passes on the
+shipped affected runtime.
 
 ## Problem statement
 
-Bun 1.3.11 and 1.3.14 can lose asynchronous child-process completion after Git has
-finished. When directory-sync awaits that completion while holding its in-memory
-`SerialQueue` turn:
+Three related problems require one owner at the operation boundary.
 
-- the completed pull never reaches changed-path enqueue;
-- later pull, push, commit, and DB→Git auto-export work remains blocked;
-- in-process timers, Workers, Node `child_process` compatibility APIs, and completion
-  sentinels cannot safely release the lock;
-- restart clears the in-memory lock, but the affected process cannot prove when it is
-  safe to do so itself.
+### 1. Checkout ownership is per process
 
-There is also a process-role ownership gap: web-owned auto-export and worker-owned
-`sync-request` handlers construct separate `GitSync` instances and therefore separate
-in-memory queues for the same checkout. The workaround must establish one cross-process
-owner rather than adding another per-process mutex.
+Directory-sync runs in web and worker. Each plugin instance currently has its own
+in-memory `SerialQueue`, so auto-export and pull can enter independent queues for the same
+checkout. No Bun version or Git client library fixes that. One broker must own the
+checkout across process roles.
 
-## Goal
+### 2. Bun can lose Git child completion
 
-Move Git execution and checkout serialization outside the web and worker Bun event loops
-so a lost app-process child completion cannot wedge or prematurely release checkout
-ownership.
+On Bun 1.3.11 and 1.3.14, this can remain pending after Git has exited:
 
-One supervised broker must:
+```ts
+const child = Bun.spawn(["git", "pull"]);
+const exitCode = await child.exited;
+```
 
-1. serialize every Git command for a checkout across web and worker processes;
-2. delegate each command to an OS-owned wrapper that holds an advisory checkout lock;
-3. enforce an inactivity timeout, kill the complete Git process group, and wait until it
-   can no longer mutate the checkout before releasing that lock;
-4. record a credential-free durable request/result before acknowledging completion;
-5. recover safely if the client, broker, or container stops at any instruction boundary;
-6. preserve the merged reconciliation-checkpoint and request-driven operational-health
-   behavior already on `main`.
+The observable failure is:
+
+1. Git mutates the checkout and exits at the operating-system level;
+2. Bun does not resolve the child-completion continuation;
+3. the caller waits forever while retaining its serialized turn;
+4. a retry is unsafe because the mutation may already have succeeded.
+
+`simple-git` is not known to be defective. It waits through Bun's Node child-process
+compatibility layer and therefore observes the same runtime failure. Replacing it with
+`Bun.spawn` does not help. `Promise.race`, an in-process timer, a Worker, or an abort does
+not establish that the complete Git process tree is gone; the measured reproduction also
+failed to resume the owner's timer.
+
+The upstream Bun fix passed isolated canary evidence, but no immutable fixed stable release
+currently carries it.
+
+### 3. A Git operation is more than one command
+
+Command-level `flock` is not enough. A commit operation may run status, conflict
+resolution, add, marker checks, commit, and rev-parse. A pull may commit local changes,
+pull, resolve conflicts, derive changed paths, and reconcile remote deletions. Allowing a
+second process to interleave between those commands preserves filesystem exclusion while
+breaking operation semantics.
+
+The broker must serialize complete operations such as `initialize`, `commit`, `pull`, and
+`push`. It must not expose a lease that an application process can forget to release.
+
+## Why the safeguard is safe
+
+A timeout followed by unlock or retry is unsafe: timeout does not answer whether Git
+finished, remains active, or left descendants touching the checkout.
+
+The accepted safeguard is **fail closed and replace only the proven-dead owner**:
+
+1. the broker durably records the request before starting the operation;
+2. the broker retains the per-checkout operation turn until it has a terminal result;
+3. progress updates a credential-free durable heartbeat;
+4. if completion is lost, the request remains active and the turn remains held;
+5. request-driven health and supervisor monitoring detect stale progress and close Git
+   admission;
+6. the supervisor terminates the broker's dedicated process group, including Git
+   descendants, without relying only on the affected child-completion Promise;
+7. only after an OS process-group probe proves that group empty may it start a replacement
+   broker;
+8. the replacement reconciles the journal, repository, and durable handoff checkpoint
+   before reporting ready and reopening Git admission;
+9. web and worker remain running throughout broker recovery;
+10. if the supervisor cannot prove the broker process group empty, it does not replace the
+    broker: it fails the complete Brain runtime so external supervision can remove the old
+    process tree before replacement.
+
+The tradeoff is explicit: a rare Bun completion loss briefly degrades Git operations and
+restarts the broker. The rest of the app remains available when ownership termination is
+proven; full-runtime restart is the fail-safe, not the normal recovery path.
+
+## Goals
+
+1. Give every managed checkout exactly one owner across web and worker.
+2. Serialize complete directory-sync Git operations.
+3. Keep Git child execution outside app process event loops.
+4. Fail closed on unknown command outcome.
+5. Recover through broker-only replacement when process-group termination is proven, with
+   full-runtime external recovery as the fail-safe.
+6. Preserve remote-deletion authority and Git-to-queue checkpoints.
+7. Preserve authenticated HTTPS, SSH, `file://`, and unauthenticated HTTPS behavior.
+8. Require no ambient runtime executable beyond `git`.
 
 ## Non-goals
 
-- Do not change import batching, parsing, topic extraction, embeddings, AI concurrency,
-  or queue priorities.
-- Do not rerun or reinterpret the performance investigation in this PR.
-- Do not remove Git serialization or race two commands to avoid a hang.
+- Do not change import batching, parsing, embeddings, topic extraction, AI concurrency, or
+  queue priorities.
 - Do not make `/health/live` or `/health/ready` depend on repository reachability.
-- Do not attribute the historical alpha.262 production incident without fresh evidence.
-- Do not deploy, restart, change watchdog policy, or run a remote workload without
-  separate approval.
-- Do not add a compatibility shim that remains after all callers use the broker.
+- Do not release a checkout turn merely because a deadline elapsed.
+- Do not replace a broker until its complete process group is proven gone.
+- Do not stop healthy web or worker roles for an ordinary proven-safe broker replacement.
+- Do not run two brokers for one Brain instance or use PID-scoped hosted brokers.
+- Do not introduce a shell/native wrapper, `flock`, `setsid`, `timeout`, or coreutils
+  runtime contract.
+- Do not implement a manual replacement for `simple-git` status, log, remote, or commit
+  semantics unless a demonstrated gap requires one narrow parser.
+- Do not attribute the historical alpha.262 incident without fresh evidence.
+- Do not deploy, restart, alter watchdog policy, or run remote load without separate
+  approval.
 
 ## Safety invariants
 
-These are release blockers, not preferences:
+These are release blockers.
 
-1. **One checkout owner.** Web, worker, startup recovery, auto-commit, periodic pull,
-   tools, initial clone/init, remote bootstrap, and cleanup all use the same broker and
-   advisory lock.
-2. **No unconfirmed unlock.** A timeout may settle only after the command wrapper has
-   killed/waited the Git process group. Client cancellation detaches the caller but does
-   not unlock or stop tracking the request; the wrapper continues to a safe terminal
-   result under its advisory lock.
-3. **No duplicate mutation.** Request IDs are idempotent. Broker/client recovery cannot
-   repeat `commit`, conflict resolution, or push merely because an acknowledgement was
-   lost.
-4. **Remote deletion remains authoritative.** Existing pending-delete and reconciliation
+1. **One semantic owner.** Every managed Git operation reaches one broker, and the broker
+   holds one per-checkout turn for the complete operation.
+2. **No unconfirmed unlock.** A timeout or lost completion never releases ownership or
+   triggers an in-process retry.
+3. **Proven broker replacement.** Broker exit, stale progress, or missed heartbeat closes
+   Git admission and terminates the broker process group. A replacement starts only after
+   that group and every Git descendant are proven absent.
+4. **Full-runtime fail-safe.** If broker process-group termination cannot be proven, no
+   broker replacement starts; the complete Brain runtime exits for external cleanup.
+5. **No duplicate mutation.** Request IDs are idempotent while the broker lives; after a
+   crash, ambiguous mutations are reconciled from repository state, never replayed from
+   intent.
+6. **Credential-free durability.** Tokens and authenticated URLs never enter `.git/config`,
+   argv, socket messages, journals, runtime-state rows, errors, metrics, or logs.
+7. **Remote deletion remains authoritative.** Existing pending-delete and reconciliation
    behavior is unchanged.
-5. **Credential-free durability.** Tokens and authenticated URLs never enter the socket
-   path, journal, runtime-state rows, errors, metrics, or logs. Store a credential-free
-   origin URL and pass authentication ephemerally through the broker environment.
-6. **Bounded output.** stdout/stderr capture has explicit limits; overflow terminates and
-   reaps the command before returning a sanitized error.
-7. **Request-driven health.** Durable progress age may degrade `/health/operate` but not
-   routing readiness or liveness.
-8. **No casts.** Use explicit Zod contracts and structural interfaces; do not introduce
-   `as`, `as unknown`, or equivalent assertions in the owned-Git/broker change.
+8. **Request-driven health.** Durable progress age may degrade `/health/operate`; routing
+   readiness and liveness remain independent.
+9. **Bounded data.** Protocol frames and retained stdout/stderr are bounded and sanitized.
+10. **No ambient helper dependencies.** Production requires Bun and `git`, not a particular
+    shell or Linux userland.
+11. **No casts.** Use Zod contracts and structural interfaces without `as`, `as unknown`,
+    or equivalent assertions in this change.
 
-## Proposed architecture
+## Architecture
 
-### Broker process
+```text
+web process ───┐
+               ├─ typed GitSync broker client ── Unix socket ── git-broker process
+worker process ┘                                      │
+                                                      ├─ checkout registry
+                                                      ├─ per-checkout operation queue
+                                                      ├─ durable request/progress journal
+                                                      └─ simple-git ── git
 
-Add one internal `git-broker` child to the existing Brain process supervisor. Start it
-before the web child and report broker readiness before web/worker runtime startup may
-continue. Stop web and worker first; stop the broker only after active requests have
-drained or their wrappers have entered the externally recoverable state.
+parent supervisor ── broker heartbeat/progress watchdog ── broker-group replacement
+external supervisor ── full-runtime cleanup only when broker-group proof fails
+```
 
-The broker implementation belongs to the compound directory-sync package. Brain CLI
-owns only child orchestration and environment wiring. Do not move Git semantics into
-shell internals.
+### One broker, no fallback
 
-Web and worker connect to a Unix-domain socket. The socket:
+The broker starts before web and worker. Both receive the same socket path. A Brain with
+Git configured must not boot Git-capable app roles until the broker is ready.
 
-- lives under an instance-owned runtime directory, not inside the checkout;
-- is mode `0600` and parent directory mode `0700`;
-- is bound by exactly one broker;
-- is removed as stale only after a connection probe proves no live broker owns it;
-- accepts schema-versioned, length-bounded messages.
+There is no app-process Git fallback. Interactive, startup-check, and development paths
+must either start the same broker child or inject a structural fake that executes no real
+Git. They must not host PID-scoped brokers that can independently own the same checkout.
 
-### Command protocol
+A Brain with no Git configuration does not start the broker and does not acquire Git
+runtime dependencies.
 
-Define Zod schemas for:
+### Canonical ownership endpoint
 
-- `register-checkout`: repository key, canonical checkout path, branch, credential-free
-  remote fingerprint, timeout/output policy;
-- `execute`: protocol version, request ID, repository key, narrow Git argument array,
-  and operation class;
-- `progress`: request ID, phase, sanitized timestamp, output byte counts;
-- `result`: request ID, exit/signal/timeout classification, bounded stdout/stderr, start
-  and completion timestamps;
-- `status`: broker identity, registered repositories, active request IDs, and durable
-  progress without commands, URLs, paths outside the registered root, or credentials.
+The broker runtime endpoint derives from the Brain instance and intended checkout identity,
+not a PID. Bootstrap canonicalizes the nearest existing parent plus the intended checkout
+name; after clone/init, registration verifies the physical path and refuses identity drift
+or a second key for the same checkout.
 
-The executable is always `git`; clients cannot select an arbitrary program. The broker
-adds `-c maintenance.auto=false`. Canonicalize the registered checkout once and reject
-unknown repository keys, path changes, NUL bytes, oversized arguments, and unsupported
-operation classes.
+Socket binding is the live singleton boundary. A stale socket is never removed by an app
+process. The parent supervisor may replace it only after terminating the broker's dedicated
+process group and proving that group absent. If that proof fails, local unsupervised
+operation fails closed and the supervised runtime exits rather than guessing that a stale
+owner is safe to evict.
 
-The existing `OwnedGit` client remains the only Git semantic API. Replace
-`OwnedGitProcessRunner` at composition time with a `BrokerGitCommandRunner`; do not make
-call sites know about IPC.
+This design guarantees one owner across process roles within the supported single-instance
+Brain topology. Running two independently supervised Brain instances over one writable
+checkout is unsupported and must be rejected by deployment/configuration validation.
 
-### OS-owned command wrapper
+### Semantic protocol
 
-The broker must not use `Bun.spawn().exited` for individual Git commands. The preferred
-candidate is a synchronous broker-to-wrapper boundary (`Bun.spawnSync`) because upstream
-and local evidence distinguish the working synchronous wait path from the broken async
-completion path. It is acceptable for the dedicated broker to block; it is not a routing
-or job worker process.
+Do not expose arbitrary Git argv or a client-held checkout lease. Define Zod messages for:
 
-The wrapper, not the broker's JavaScript promise, owns command safety:
+- `register-checkout`: canonical identity, branch, credential-free remote fingerprint,
+  timeout/progress policy;
+- `execute-operation`: request ID and one closed semantic operation;
+- `progress`: request ID, phase, sanitized timestamp, and bounded byte counts;
+- `result`: request ID and operation-specific typed result;
+- `status`: broker identity, registered checkouts, active requests, and oldest progress;
+- `heartbeat`: broker identity and monotonic activity timestamp.
 
-1. acquire `flock` on a deterministic lock file outside the replaceable checkout;
-2. atomically create the request's active record;
-3. start Git in a dedicated session/process group via `setsid`;
-4. redirect stdout/stderr to mode-`0600` bounded files and monitor byte progress outside
-   the app Bun event loop;
-5. on inactivity timeout, signal the process group, escalate to `SIGKILL`, `wait`
-   the direct child, and verify the process group is empty;
-6. atomically write the terminal result;
-7. release `flock` only after step 5 or confirmed normal group exit.
+Initial operation set:
 
-Add explicit runtime dependencies for the wrapper (`flock`, `setsid`, and the required
-core utilities) to the canonical Docker image rather than assuming a developer machine.
-The image currently uses `oven/bun:<version>-slim` and installs only curl, certificates,
-Git, and tini.
+- `initialize`
+- `get-status`
+- `has-local-changes`
+- `commit`
+- `push`
+- `pull`
+- `get-reconciliation-delta`
+- `get-checkpoint`
+- `log-file`
+- `show-file`
 
-A broker crash must not release `flock`: the separately owned wrapper continues to a
-terminal result. A replacement broker reads the active record and returns/waits for that
-result instead of issuing the mutation again. A client crash is handled the same way.
+The broker executes each operation from start to terminal result under one queue turn.
+Business sequences currently spread across app-side `git-*.ts` modules move behind this
+semantic boundary. The existing `IGitSync` contract becomes the client-facing seam so
+callers and test fakes do not learn protocol details.
+
+### `simple-git` placement
+
+Keep `simple-git` as a packaged dependency of the compound directory-sync package, but
+construct it only inside the broker process. Use its structured status, log, remote, and
+commit behavior rather than maintaining duplicate parsers in app code. Use `raw` only for
+operations with no suitable narrow API, preserving explicit argument tests.
+
+`simple-git` is a Git adapter, not a safety boundary. If its Promise never settles because
+Bun loses child completion, the broker's durable request remains active and the fail-closed
+supervision path takes over.
 
 ### Authentication
 
-Stop writing authenticated HTTPS URLs to `.git/config`. Configure the credential-free
-remote URL and provide authentication only in the wrapper environment using the existing
-resolved secret. Hosted Brain startup must normalize the configured token into a broker-
-inherited secret environment entry; structurally injected test/embedding clients use an
-ephemeral credential provider. Do not send the token in a journaled request. If a
-standalone direct `authToken` value cannot cross the boundary without durable or logged
-material, reject that configuration with a migration error rather than retaining an
-unsafe compatibility path. Durable records contain only the existing remote fingerprint.
-Redact URL userinfo and authorization material at both broker and client boundaries.
+Configure only a credential-free remote URL. Provide HTTPS authentication ephemerally
+through Git's environment-supplied configuration (`GIT_CONFIG_COUNT`,
+`GIT_CONFIG_KEY_n`, and `GIT_CONFIG_VALUE_n`) or an equally helper-free provider whose
+secret comes from the broker's inherited environment or an injected test provider. Set
+non-interactive Git behavior explicitly. Do not add an askpass script or credential helper
+executable.
 
-Local `file://`, SSH, and unauthenticated HTTPS remotes continue to work. Test each
-transport without network access except for mocked loopback fixtures.
+Do not send tokens over the broker socket. If a structurally injected standalone token
+cannot reach the broker without durable transport, reject that configuration with a clear
+migration error rather than writing it to `.git/config`.
 
-### Recovery and health
+Test private HTTPS through a local fixture and assert that the token is absent from:
 
-Keep the existing `directory-sync.git-reconciliation` checkpoint authoritative for the
-Git-to-job handoff. Broker durability answers “did this Git command finish safely?”; the
-checkpoint answers “was the resulting HEAD durably converted into queue work?” Do not
-combine those responsibilities.
+- `.git/config`;
+- process arguments;
+- protocol frames;
+- request/progress journals;
+- stdout/stderr, errors, and logs.
+
+### Progress, timeout, and health
+
+The broker writes an active request before calling `simple-git` and updates progress while
+output advances. The client continues to invoke `onGitProgress`, preserving existing
+operation-status freshness.
+
+A library timeout may request child termination, but it does not authorize unlock or
+retry. If the operation Promise does not reach a terminal result, durable progress becomes
+stale.
+
+Health is evaluated from durable facts on request:
+
+- broker heartbeat missing or stale;
+- active operation progress older than its policy;
+- broker socket unavailable;
+- ambiguous request left by a failed generation.
+
+These degrade `/health/operate` with sanitized facts. `/health/live` and `/health/ready`
+remain independent. The parent supervisor also watches broker heartbeat/progress so
+recovery does not depend on an HTTP request arriving.
+
+### Supervision
+
+Spawn the broker as a dedicated process-group leader. `simple-git` Git children inherit
+that process group; disable Git hooks and automatic maintenance so managed commands cannot
+escape it. The supervisor must not depend solely on the broker child's completion Promise
+to decide that ownership ended.
+
+The normal recovery lifecycle is:
+
+1. start broker and record its process-group identity;
+2. wait for broker readiness;
+3. start web, then worker;
+4. on broker exit/stall, close Git admission while web and worker remain available;
+5. reject or durably hold new Git requests without app-process fallback;
+6. signal the broker process group, escalate to `SIGKILL`, and probe the group through OS
+   process APIs until every member is absent;
+7. if absence is proven, start one replacement broker;
+8. reconcile ambiguous journal state, Git state, and the durable handoff checkpoint;
+9. report broker ready and reopen Git admission.
+
+If step 6 cannot prove the group absent within the bounded recovery policy, do not start a
+replacement. Signal web and worker, exit the parent runtime non-zero, and let the external
+supervisor remove the complete container/process tree before starting a new generation.
+
+Normal shutdown stops Git admission, drains terminal operations where possible, then stops
+web and worker before the broker and parent. An operation still ambiguous is never declared
+successful merely to make shutdown fast.
+
+### Durable recovery and checkpoint
+
+The broker journal answers: “what request was active, and did this generation record a
+terminal result?” The existing `directory-sync.git-reconciliation` checkpoint answers:
+“was the resulting Git state converted into durable queue work?” Keep those concerns
+separate.
 
 On startup:
 
-1. broker reconciles active wrapper records and refuses the checkout while a live wrapper
-   owns it;
-2. completed unacknowledged requests become queryable by request ID;
-3. directory-sync validates repository identity/branch and runs existing checkpoint
-   replay;
-4. stale operation history records the interrupted handoff and recovery result;
-5. only then may ordinary periodic/auto-commit work resume.
+1. read the previous credential-free broker journal;
+2. classify terminal and ambiguous requests without replaying intent;
+3. validate checkout identity, branch, and remote fingerprint;
+4. inspect the actual HEAD, index, merge state, and remote refs;
+5. run existing checkpoint replay and remote-delete reconciliation;
+6. record the recovery outcome in sanitized operation history;
+7. only then permit periodic pull or auto-commit.
 
-A broker outage or over-age active request degrades `/health/operate` with sanitized
-facts. `/health/live` and `/health/ready` remain independent. Broker supervision has its
-own bounded restart budget and reports an incident rather than restarting the entire
-container indefinitely.
+A lost acknowledgement within a live broker is replayable by request ID. A request made
+ambiguous by broker replacement or full-runtime failure is not automatically re-executed,
+even with the same ID.
 
 ## Implementation phases
 
-### Phase 0 — Preserve the red reproductions
+### Phase 0 — Preserve the evidence
 
-Work from PR #124; do not implement directly on `main`.
+Keep deterministic reproductions for:
 
-Add deterministic tests that fail with the current in-process runner:
+- Bun Git child exits while completion remains pending;
+- web auto-commit and worker pull target one checkout concurrently;
+- client disconnect after mutation before acknowledgement;
+- broker loss during a mutating operation.
 
-- Git exits and writes complete output while its Bun completion promise is withheld;
-- a web auto-commit request and worker pull target the same checkout concurrently;
-- the client disconnects after Git mutation but before acknowledgement;
-- the broker dies while the wrapper and Git process group are active.
+The lost-completion reproduction must use an injected `simple-git` execution boundary so
+it remains deterministic and does not depend on reproducing a Bun scheduler failure in
+ordinary CI.
 
-Use barriers and injected process/protocol interfaces, not timing-sensitive polling.
-Retain the upstream-style real Git reproduction as an opt-in Linux test.
+### Phase 1 — Remove the superseded wrapper design
 
-### Phase 1 — Protocol and durable journal
+Delete or revert:
 
-Implement schemas, message framing, request IDs, atomic mode-`0600` records, bounded
-capture, redaction, and idempotent lookup before executing real Git.
+- `git-wrapper.sh` and its materialization/observation code;
+- wrapper artifact formats and dependency checks;
+- `flock`, `setsid`, `timeout`, bash, and coreutils assumptions;
+- PID-scoped hosted brokers;
+- command-level ownership claims;
+- manual `OwnedGit` parsing that merely duplicates `simple-git`.
 
-Tests first:
+Restore `simple-git` as a runtime dependency, but do not restore app-process construction
+or direct execution.
 
-- malformed/version-mismatched/oversized messages are rejected;
-- duplicate request IDs return the same result and never call the executor twice;
-- partial journal writes are ignored/quarantined safely;
-- credentials cannot appear in serialized records or errors;
-- checkout registration rejects identity/path drift.
+Tests first: package/build inspection proves no wrapper asset and no ambient helper lookup
+remains, while app web/worker source contains no `simpleGit()` construction.
 
-### Phase 2 — Wrapper and advisory lock
+### Phase 2 — Semantic broker ownership
 
-Implement the wrapper and prove lock/reap behavior independently of the broker.
-
-Tests first on Linux:
-
-- two wrappers for one checkout never overlap;
-- different checkouts may proceed independently;
-- output resets the inactivity deadline;
-- a silent process group is killed, waited, and absent before lock release;
-- descendants holding output pipes are killed and disappear;
-- killing the broker does not drop the wrapper's lock;
-- killing the client does not duplicate the operation;
-- paths and output containing spaces, newlines, and NUL-delimited porcelain records are
-  preserved byte-for-byte;
-- output overflow is bounded and safely terminated.
-
-Do not continue if `spawnSync` itself reproduces lost completion or cannot prove group
-termination. In that case keep the same protocol/journal and replace only the broker's
-executor with a long-lived POSIX/native helper; do not fall back to app-process polling.
-
-### Phase 3 — Broker service and supervision
-
-Add the broker child role and Unix-socket client.
+Define the typed operation protocol and move complete Git operation sequences into the
+broker. One queue turn covers each semantic operation. Preserve the existing `IGitSync`
+API at callers.
 
 Tests first:
 
-- broker is ready before web/worker startup;
-- web and worker share one registered checkout owner;
-- broker restart budget/cooldown is bounded;
-- shutdown drains or leaves an externally recoverable active record;
-- stale socket handling cannot evict a live broker;
-- socket permissions are `0600` and journal directory permissions are `0700`;
-- direct/in-process test shells can inject a structural runner without starting a broker.
+- two clients cannot interleave commands within one commit or pull;
+- independent checkouts can proceed concurrently;
+- duplicate request IDs return one result and execute one mutation;
+- malformed, oversized, or unknown operations are rejected;
+- status, logs, remotes, no-op commits, conflicts, renames, detached HEAD, and unusual
+  paths retain real-Git behavior through `simple-git`.
 
-### Phase 4 — Route every Git path
+### Phase 3 — Fail-closed broker supervision
 
-Use the broker-backed `OwnedGit` runner for:
+Add heartbeat/progress monitoring and broker-only process-group recovery. Full-runtime
+shutdown is the fallback only when group termination cannot be proven.
 
-- repository probe, clone, init, branch repair, and remote configuration;
-- status, rev-parse, logs, diff, show/index inspection;
-- add, commit, conflict checkout/rm, and remote-deletion reconciliation;
-- fetch/pull/merge and push;
-- local content-remote bootstrap;
-- auto-commit, periodic sync, initial sync, startup replay, tools, and worker
-  `sync-request` handling.
+Tests first with deterministic barriers:
 
-After conversion, repository searches must find no `simpleGit()` execution and no direct
-`Bun.spawn`, Node `spawn`, or `spawnSync("git", …)` path in directory-sync outside the
-broker/wrapper implementation and explicit test fixtures. Remove `simple-git` only after
-porcelain status, logs, remotes, clean commits, conflicts, renames, and paths containing
-spaces retain behavior.
+- broker ready precedes web/worker startup;
+- broker and all Git descendants share one dedicated process group;
+- missing completion leaves the checkout turn held and closes Git admission;
+- stale progress terminates that group without stopping healthy web/worker roles;
+- no replacement starts before an OS process-group probe proves the old group absent;
+- the replacement reconciles before Git admission reopens;
+- unproven group termination stops web/worker and exits the parent non-zero;
+- graceful shutdown order and ambiguous-operation handling remain safe;
+- a Brain without Git starts no broker.
 
-### Phase 5 — Crash and handoff recovery
+### Phase 4 — Authentication and bounded protocol
 
-Exercise crash points after:
+Implement credential-free remote configuration and ephemeral child authentication. Bound
+frames and retained output without introducing shell helpers.
 
-- lock acquisition;
-- Git start;
-- Git exit before result write;
-- result write before socket acknowledgement;
-- pull merge before changed-path derivation;
-- changed-path derivation before queue enqueue;
-- enqueue before checkpoint advance;
-- local commit before push and before checkpoint capture.
+Tests first:
 
-For every case prove checkout convergence, idempotent replay, remote-delete authority,
-zero duplicate commits, zero orphaned process groups, and a truthful sanitized operation
-history.
+- local authenticated HTTPS clone, pull, and push pass;
+- SSH, `file://`, and unauthenticated HTTPS retain behavior;
+- token searches across config, argv, frames, journals, errors, and logs return zero;
+- output overflow returns a truthful bounded error and does not unlock/retry.
 
-### Phase 6 — Affected-runtime acceptance
+### Phase 5 — Health and durable recovery
 
-The workaround is specifically required to pass on the affected runtime; a canary-only
-pass is insufficient.
+Wire request-driven broker health into `/health/operate`, preserve routing health, and join
+broker journal recovery with the existing reconciliation checkpoint.
 
-Run in the packaged Linux/container runtime on Bun 1.3.11 and separately on 1.3.14:
+Tests first:
 
-1. focused protocol/wrapper/process-group tests;
-2. 100-cycle commit/push/pull zombie soak;
-3. three unchanged 350-file packaged soaks with persistence and deterministic deletion
-   barriers;
-4. forced broker termination during pull, followed by broker restart and checkpoint
-   replay;
-5. full install, build, typecheck, lint, unit, package, and supervisor-startup checks;
-6. one independent scheduled soak with retained Bun version, broker journal summary,
-   queue convergence, and process inventory.
+- stale progress and unavailable socket degrade only operational health;
+- `oldestActiveStartedAt` and progress age are truthful;
+- result-before-ack reconnect returns the recorded result once;
+- broker replacement never replays ambiguous intent;
+- replacement reconciliation converges HEAD, queue work, remote deletes, and checkpoint
+  without duplicate commits;
+- full-runtime fallback preserves the same convergence when group proof fails.
 
-Also run the same matrix on the fixed immutable Bun release when it exists. That result is
-defense-in-depth evidence, not permission to skip affected-runtime proof.
+### Phase 6 — Broker-group termination and fallback proof
+
+Build a packaged harness that deliberately withholds Git completion after a real mutation.
+The primary path must prove:
+
+1. the operation stays owned and Git admission closes;
+2. operational health degrades while web and worker remain live/ready;
+3. the supervisor terminates the broker/Git process group;
+4. an OS probe proves no group member survives;
+5. exactly one replacement broker starts and reconciles before admission reopens;
+6. repository, queue, remote-delete, and checkpoint state converge without duplicate
+   mutation.
+
+A second injected case must make group-absence proof fail and prove that no replacement
+broker starts, the full runtime exits failed, external supervision removes the old process
+tree, and the next runtime converges.
+
+These are the safety proofs that replace wrapper process-group management. Do not
+substitute a unit test that merely observes signals.
+
+### Phase 7 — Affected-runtime acceptance
+
+Run on the packaged Linux runtime with the shipped affected Bun version, currently 1.3.14:
+
+1. focused broker/protocol/supervisor/recovery tests;
+2. deterministic lost-completion broker-group recovery plus full-runtime fallback;
+3. 100-cycle commit/push/pull process-inventory soak;
+4. three unchanged 350-file packaged soaks with persistence and deletion barriers;
+5. full install, build, typecheck, lint, unit, package, and startup checks;
+6. one independent scheduled soak with retained Bun version, journal summary, queue
+   convergence, and process inventory.
+
+Run the same matrix on the first immutable fixed Bun release when available. The fixed
+runtime is defense in depth, not permission to skip affected-runtime recovery evidence.
+Never retry an unexplained failure.
 
 ## Validation commands
 
-Use the shortest relevant commands while iterating; preserve piped exit codes.
+Use the shortest relevant command while iterating and preserve piped exit codes:
 
 ```sh
 bun install --frozen-lockfile
 bun run --filter @brains/directory-sync test
 bun run --filter @brains/directory-sync typecheck
+bun test packages/brain-cli/test/process-supervisor.test.ts
 bun run lint
 bun run typecheck
 bun run build --filter=@rizom/brain
@@ -336,61 +493,59 @@ RUN_IMPORT_BURST_SOAK=1 IMPORT_BURST_FILE_COUNT=350 \
   bun test packages/brain-cli/test/import-burst-stability.test.ts
 ```
 
-Add dedicated broker test scripts rather than hiding the affected-runtime matrix behind a
-generic retry. Never retry an unexplained failed soak.
+Add named scripts for broker-group recovery, full-runtime fallback, and the affected-Bun
+matrix. Do not hide them behind retries or repurpose deployment workflows.
 
 ## Review and PR strategy
 
-- Keep PR #124 draft while the broker is incomplete.
-- Prefer stacking broker work on its branch or a child worktree, then update/squash #124
-  so the owned client and safe execution boundary ship together. Do not merge/release the
-  mechanical conversion alone.
-- Keep commits phase-sized: protocol/journal, wrapper, supervision, routing, recovery,
-  acceptance infrastructure.
-- Require a changeset for the directory-sync/Brain runtime behavior and any ops/deploy
-  template changes.
-- Generated rollout files remain CI-owned.
+- Merge this plan to `main` before implementation.
+- Preserve PR #124 and its worktree as superseded evidence; do not rewrite them into the
+  new design.
+- After this plan merges, create a new implementation branch/worktree from updated
+  `origin/main` and open a replacement PR.
+- Mark PR #124 superseded when the replacement PR establishes its red-test baseline.
+- Correct new changesets and comments to describe semantic ownership, proven broker-group
+  replacement, full-runtime fallback, and broker-local `simple-git`.
+- Require a changeset for Brain runtime behavior.
+- Keep generated rollout files CI-owned.
 
 ## Rollout
 
 Code completion does not authorize deployment.
 
-1. Merge only after affected-runtime and scheduled acceptance passes.
+1. Merge only after affected-runtime and independent scheduled acceptance pass.
 2. Publish a new Brain alpha and update smoke desired state in a separate approved change.
-3. Before restart: collect fresh read-only evidence, backup, and DB/Git parity proof.
-4. Deploy to smoke only with explicit approval; first verify passive broker health,
-   process inventory, queue drain, and checkpoint state.
-5. A remote load is a separate performance/acceptance action requiring separate approval.
-6. Roll back the image/config if broker startup or passive parity fails; never hard-reset
+3. Before restart, collect fresh read-only evidence, backup, and DB/Git parity proof.
+4. Deploy to smoke only with explicit approval.
+5. Verify passive broker health, process inventory, queue drain, and checkpoint state
+   before any remote load.
+6. A remote load requires separate approval and reversible cleanup.
+7. Roll back the image/config if broker startup or passive parity fails; never hard-reset
    or force-push content as rollback.
-
-## Handoff checklist
-
-1. Read this file, [`directory-sync-export-stall.md`](./directory-sync-export-stall.md),
-   and Phase 6 history in
-   [`directory-sync-import-load.md`](./directory-sync-import-load.md).
-2. Inspect PR #124 and worktree
-   `~/Documents/brains-worktrees/directory-sync-owned-git-processes` without discarding
-   unrelated worktrees.
-3. Rebase onto current `origin/main` and rerun its 515-test directory-sync baseline.
-4. Start with Phase 0 red tests; do not begin with process-supervisor production code.
-5. Record each disproved design in this plan or the PR. Do not blind-retry lost
-   completions.
-6. Keep the separate dirty
-   `directory-sync-persistent-zombie-gate` worktree untouched.
-7. Do not alter production, rover-pilot desired state, watchdog policy, or smoke load.
 
 ## Done criteria
 
 This plan is complete when:
 
-- app web/worker processes execute no Git child process;
-- one broker serializes all commands for a checkout across process roles;
-- timeout/crash tests prove lock retention through complete process-group termination;
-- duplicate and lost acknowledgements cannot duplicate Git mutations;
-- checkpoint replay closes every Git-to-queue crash window;
-- Bun 1.3.11 and 1.3.14 pass the complete affected-runtime matrix;
-- normal CI and an independent scheduled soak pass without retries;
-- operational health surfaces broker failures while readiness/liveness remain correct;
-- no secret enters durable state or logs;
-- PR #124 (or its replacement) merges with the broker, not before it.
+- `simple-git` is constructed only inside the broker;
+- app web/worker processes execute no Git child;
+- one broker serializes complete operations for each checkout;
+- a Brain without Git starts no broker;
+- production has no shell wrapper, native helper, or ambient dependency beyond `git`;
+- timeout/lost completion never unlocks or retries in-process;
+- broker stall/exit closes Git admission and replacement waits for proven process-group
+  absence;
+- healthy web/worker roles remain available during proven-safe broker replacement;
+- inability to prove broker-group absence starts no replacement and fails the whole runtime
+  for external cleanup;
+- authenticated transport is ephemeral and no secret enters config, argv, protocol,
+  durable state, errors, or logs;
+- durable request recovery and the Git reconciliation checkpoint prevent duplicate
+  mutation and close every Git-to-queue crash window;
+- remote deletion remains authoritative;
+- operational health reports broker failure and stale progress while readiness/liveness
+  remain correct;
+- Bun 1.3.14 passes the complete affected-runtime matrix without retries;
+- normal CI and an independent scheduled soak pass;
+- plan, comments, and changesets describe the final design accurately;
+- PR #124 or its replacement merges only with all evidence retained.
