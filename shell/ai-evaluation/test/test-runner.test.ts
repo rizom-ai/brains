@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, mock } from "bun:test";
+import { describe, it, expect, beforeEach, mock, type Mock } from "bun:test";
 
 import { TestRunner } from "../src/test-runner";
 import type { TestCase } from "../src/schemas";
@@ -6,7 +6,12 @@ import type { IAgentService, AgentResponse } from "@brains/ai-service";
 import type { IRuntimeUploadsNamespace } from "@brains/plugins";
 
 describe("TestRunner", () => {
-  let mockAgentService: IAgentService;
+  // Typed so chat keeps the spy it is built with. Annotating this as a plain
+  // IAgentService erased that, and six assertions had to widen the member back
+  // to reach its recorded calls.
+  let mockAgentService: IAgentService & {
+    chat: Mock<IAgentService["chat"]>;
+  };
   let testRunner: TestRunner;
 
   const createMockResponse = (
@@ -57,9 +62,7 @@ describe("TestRunner", () => {
 
       await testRunner.runTest(testCase);
 
-      const calls = (
-        mockAgentService.chat as unknown as { mock: { calls: unknown[][] } }
-      ).mock.calls;
+      const calls = mockAgentService.chat.mock.calls;
       expect(calls[0]?.[2]).toEqual({
         userPermissionLevel: "admin",
         interfaceType: "evaluation",
@@ -84,9 +87,7 @@ describe("TestRunner", () => {
 
       await testRunner.runTest(testCase);
 
-      const calls = (
-        mockAgentService.chat as unknown as { mock: { calls: unknown[][] } }
-      ).mock.calls;
+      const calls = mockAgentService.chat.mock.calls;
       expect(calls[0]?.[2]).toEqual({
         userPermissionLevel: "trusted",
         isAnchor: true,
@@ -157,9 +158,7 @@ describe("TestRunner", () => {
 
       await testRunner.runTest(testCase);
 
-      const calls = (
-        mockAgentService.chat as unknown as { mock: { calls: unknown[][] } }
-      ).mock.calls;
+      const calls = mockAgentService.chat.mock.calls;
       expect(calls).toHaveLength(2);
       expect(calls[0]?.[1]).toBe(calls[1]?.[1]);
       expect(calls[0]?.[2]).toEqual({
@@ -231,9 +230,7 @@ describe("TestRunner", () => {
 
       await testRunner.runTest(testCase);
 
-      const calls = (
-        mockAgentService.chat as unknown as { mock: { calls: unknown[][] } }
-      ).mock.calls;
+      const calls = mockAgentService.chat.mock.calls;
       expect(calls[0]?.[2]).toEqual({
         userPermissionLevel: "admin",
         interfaceType: "evaluation",
@@ -348,9 +345,7 @@ describe("TestRunner", () => {
 
       await testRunner.runTest(testCase);
 
-      const calls = (
-        mockAgentService.chat as unknown as { mock: { calls: unknown[][] } }
-      ).mock.calls;
+      const calls = mockAgentService.chat.mock.calls;
       expect(calls[1]?.[2]).toEqual({
         userPermissionLevel: "admin",
         interfaceType: "evaluation",
@@ -713,9 +708,7 @@ describe("TestRunner", () => {
 
       await testRunner.runTest(testCase);
 
-      const calls = (
-        mockAgentService.chat as unknown as { mock: { calls: unknown[][] } }
-      ).mock.calls;
+      const calls = mockAgentService.chat.mock.calls;
       expect(calls[0]?.[2]).toEqual({
         userPermissionLevel: "admin",
         interfaceType: "evaluation",
