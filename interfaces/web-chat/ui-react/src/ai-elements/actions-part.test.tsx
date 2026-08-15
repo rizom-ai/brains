@@ -1,3 +1,4 @@
+/** @jsxImportSource react */
 import { describe, expect, it } from "bun:test";
 import type { EventChatAction } from "@brains/contracts";
 import { createElement } from "react";

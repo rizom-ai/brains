@@ -1,3 +1,4 @@
+/** @jsxImportSource react */
 import type { FormEvent, ReactElement, ReactNode } from "react";
 
 export function ModalFrame(props: {

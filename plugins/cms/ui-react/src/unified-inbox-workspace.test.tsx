@@ -1,3 +1,4 @@
+/** @jsxImportSource react */
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
@@ -211,9 +212,12 @@ describe("UnifiedInboxWorkspace query changes", () => {
       Event: win.Event,
       IS_REACT_ACT_ENVIRONMENT: true,
     });
-    const container = windowInstance.document.createElement("div");
-    windowInstance.document.body.append(container);
-    root = createRoot(container as unknown as HTMLElement);
+    // globalThis.document is the happy-dom document assigned above, but typed
+    // as lib.dom's — so the element it makes is the one createRoot declares,
+    // and the object at runtime is still happy-dom's.
+    const container = document.createElement("div");
+    document.body.append(container);
+    root = createRoot(container);
   });
 
   afterEach(async () => {

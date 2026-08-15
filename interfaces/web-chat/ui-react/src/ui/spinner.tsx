@@ -1,3 +1,4 @@
+/** @jsxImportSource react */
 import { Loader2Icon } from "lucide-react";
 
 import { cn } from "@/ui-react/src/lib/utils";

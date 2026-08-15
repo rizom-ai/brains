@@ -1,3 +1,4 @@
+/** @jsxImportSource react */
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, type ReactElement } from "react";
 import type { CmsWorkspaceInfo, EntityTypeInfo, FieldDescriptor } from "./api";
