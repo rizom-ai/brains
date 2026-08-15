@@ -10,7 +10,7 @@ Re-fact-checked against the tree 2026-08-14:
 - Declaration cleanliness is already guarded: `findInternalDeclarationImports` in `packages/brain-cli/scripts/build.ts` fails the build when generated declarations contain `@brains/*` imports.
 - `bun run arch:check` submits the Git-selected TypeScript/JavaScript inventory to one dependency-cruiser graph, asserts workspace-family coverage, and enforces circular, unresolved, plugin, entity, and interface boundaries in dedicated CI. It does not yet include the published-official-plugin dependency rule from migration step 4. Its existing tier rules permit any `shell/*` import, so they do not constrain which shell package an entity or interface reaches for.
 - The blessed `z` root export (utils section below) is implemented from the public `@rizom/brain` root entry, so external plugin fixtures no longer declare their own `zod` dependency.
-- Milestone A is DONE (`@brains/prompt`) and A2 is DONE (`@brains/style-guide`). Package-by-package migration then stopped: see "Reframing: most `entities/` packages are not entities" below. Publishable-clean is 2 of 19 (`@brains/prompt`, `@brains/style-guide`) after the style-guide contract was promoted onto the SDK; authoring shape and dependency shape are separate achievements this plan had been conflating. The next step is dependency promotion, not more entity capabilities — see "Decision: promote `@brains/contracts` and curated `@brains/utils` slices".
+- Milestone A is DONE (`@brains/prompt`) and A2 is DONE (`@brains/style-guide`). Package-by-package migration then stopped: see "Reframing: most `entities/` packages are not entities" below. Publishable-clean is 2 of 18 (`@brains/prompt`, `@brains/style-guide`) after the style-guide contract was promoted onto the SDK — 18, not 19, since `@brains/site-info` moved to `plugins/`; authoring shape and dependency shape are separate achievements this plan had been conflating. The next step is dependency promotion, not more entity capabilities — see "Decision: promote `@brains/contracts` and curated `@brains/utils` slices".
 - A repo-wide inventory of all 19 entity and 7 interface packages (migration step 1, applied beyond `@brains/note`) is recorded under "Related finding: internal facade bypass audit" below.
 
 New external-facing plugin/entity work should not add private `@brains/*` shortcut imports when a suitable public `@rizom/brain/*` surface exists or should be added. Existing packages can migrate package-by-package, but new work should move toward the public-only shape instead of deepening private coupling.
@@ -252,8 +252,9 @@ Contracts does have a consumer today, so the order inverts:
 3. **Promote the utils slices as one unit**, alongside the first
    package that needs them. All seven together, since no package is
    freed by a subset. This clears utils for 13 of 17; the other four
-   (`agent-discovery`, `conversation-memory`, `site-info`,
-   `social-media`) also touch tail subpaths — `safe-public-fetch`,
+   (`agent-discovery`, `conversation-memory`, `social-media`, and
+   `site-info` — now a plugin rather than an entity, but on the same
+   promotion path) also touch tail subpaths — `safe-public-fetch`,
    `p-limit`, `sort`, `env-schema`, `fetch-like` — which are on the
    plan's existing non-candidate list and need refactoring out rather
    than promoting.
