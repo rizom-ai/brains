@@ -9,6 +9,7 @@ import {
 import type { PublishMediaData } from "@brains/contracts";
 import type { JobHandler } from "@brains/job-queue";
 import type { EvalHandler } from "@brains/ai-evaluation";
+import type { EntityJobDeclaration } from "../src";
 import {
   AtprotoProjectionRegistry,
   canonicalAtprotoLexicons,
@@ -573,6 +574,68 @@ describe("entity package definitions", () => {
       input: { topic: "rivers" },
       count: 1,
     });
+
+    harness.reset();
+  });
+
+  it("registers declared jobs and surfaces declared instructions", async () => {
+    // Generation is just a job the runtime names for you, so both go
+    // through the same declaration shape and the same validated handler.
+    const reindexJob: EntityJobDeclaration<
+      z.ZodObject<{ guideId: z.ZodString }>
+    > = {
+      input: z.object({ guideId: z.string() }),
+      handle: async ({ input }) => ({ reindexed: input.guideId }),
+    };
+    const guide = defineEntity({
+      type: "guide",
+      purpose: "A guide with a job.",
+      metadata: z.object({ title: z.string() }),
+      instructions: "Reach for a guide when the user wants a walkthrough.",
+      jobs: { "guide:reindex": reindexJob },
+    });
+    const definition = defineEntityPackage({ id: "guides", entities: [guide] });
+    const plugin = createEntityPackagePlugins(
+      definition.entities,
+      definition.projections,
+      { name: "@fixture/guides", version: "0.1.0" },
+      (id) => `@fixture/guides:${id}`,
+    )[0];
+    if (!plugin) throw new Error("Guide entity plugin was not created");
+
+    const harness = createPluginHarness({
+      logger: createSilentLogger("entity-jobs-test"),
+    });
+    const handlers = new Map<string, JobHandler>();
+    const mockShell = harness.getMockShell();
+    const jobQueue = mockShell.getJobQueueService();
+    const trackingJobQueue = {
+      ...jobQueue,
+      registerHandler: (type: string, handler: JobHandler): void => {
+        handlers.set(type, handler);
+      },
+    };
+    mockShell.getJobQueueService = (): ReturnType<
+      typeof mockShell.getJobQueueService
+    > => trackingJobQueue;
+
+    const capabilities = await harness.installPlugin(plugin);
+
+    expect(capabilities.instructions).toBe(
+      "Reach for a guide when the user wants a walkthrough.",
+    );
+
+    const handler = handlers.get("guide:reindex");
+    if (!handler) throw new Error("Job handler was not registered");
+    expect(handler.validateAndParse({ nope: true })).toBeNull();
+    expect(
+      await handler.process(
+        { guideId: "first" },
+        "job-1",
+        { report: async (): Promise<void> => {} } as never,
+        new AbortController().signal,
+      ),
+    ).toEqual({ reindexed: "first" });
 
     harness.reset();
   });

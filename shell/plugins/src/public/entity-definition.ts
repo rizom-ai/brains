@@ -10,6 +10,7 @@ import type {
   EntityDefinition,
   EntityEvalDeclaration,
   EntityGenerationDeclaration,
+  EntityJobDeclaration,
   EntityDefinitionConfig,
   EntitySeedDefinition,
   EntityMarkdownCodec,
@@ -57,6 +58,8 @@ export function defineEntity<
   readonly projectionRules?: readonly ProjectionRule[] | undefined;
   readonly atproto?: AtprotoProjection | undefined;
   readonly evals?: EntityEvalDeclaration | undefined;
+  readonly jobs?: Record<string, EntityJobDeclaration> | undefined;
+  readonly instructions?: string | undefined;
 }): EntityDefinition<TType, TMetadataSchema> {
   assertLocalId(definition.type, "Entity type");
   if (!definition.purpose.trim()) {

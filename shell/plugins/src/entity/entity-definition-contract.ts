@@ -124,6 +124,13 @@ export interface EntityDefinition<
   readonly atproto?: AtprotoProjection | undefined;
   /** Eval handlers, keyed by handler id. */
   readonly evals?: EntityEvalDeclaration | undefined;
+  /** Durable job handlers, keyed by job type. */
+  readonly jobs?: Record<string, EntityJobDeclaration> | undefined;
+  /**
+   * Agent instructions for this entity type — how and when an agent
+   * should reach for it. Plain text, since the agent reads it directly.
+   */
+  readonly instructions?: string | undefined;
 }
 
 /**
@@ -177,10 +184,14 @@ export type EntityEvalDeclaration = Record<
   (input: unknown, context: EntityEvalContext) => Promise<unknown>
 >;
 
-export interface EntityGenerationDeclaration<
+/**
+ * A durable job this entity handles: an input schema plus one function.
+ * The runtime parses job input with the schema before `handle` runs, so a
+ * malformed job never reaches the author's code.
+ */
+export interface EntityJobDeclaration<
   TInputSchema extends z.ZodType = z.ZodType,
 > {
-  /** Job input is parsed with this before `handle` runs. */
   readonly input: TInputSchema;
   handle(args: {
     readonly input: z.output<TInputSchema>;
@@ -189,6 +200,14 @@ export interface EntityGenerationDeclaration<
     readonly entities: EntityGenerationEntityAccess;
   }): Promise<unknown>;
 }
+
+/**
+ * Content generation is a job like any other — the runtime just names it
+ * `{entityType}:generation` — so it shares the job shape.
+ */
+export type EntityGenerationDeclaration<
+  TInputSchema extends z.ZodType = z.ZodType,
+> = EntityJobDeclaration<TInputSchema>;
 
 /**
  * An attachment provider, declared.

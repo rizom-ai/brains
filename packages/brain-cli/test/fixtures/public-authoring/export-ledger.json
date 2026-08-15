@@ -288,6 +288,7 @@
         "EntityGenerationDeclaration",
         "EntityGenerationEntityAccess",
         "EntityInput",
+        "EntityJobDeclaration",
         "EntityMutationResult",
         "EntityQueryReader",
         "FrontmatterConfig",
