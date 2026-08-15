@@ -5,6 +5,17 @@ import { createSilentLogger } from "@brains/test-utils";
 import { promises as fs } from "fs";
 
 // Type for accessing private methods in tests
+/**
+ * The two private writers this suite drives directly.
+ *
+ * They are private on PreactBuilder and use its logger and output directory,
+ * so there is no public route to them short of a whole build. The widening is
+ * unavoidable; naming it here keeps it to one place with its reason attached.
+ */
+function asTestable(builder: PreactBuilder): PreactBuilderTestable {
+  return builder as unknown as PreactBuilderTestable;
+}
+
 interface PreactBuilderTestable {
   writePublicAssets(
     assets: Record<string, string>,
@@ -27,7 +38,7 @@ describe("PreactBuilder - Snapshotted Public Assets", () => {
       outputDir: "/tmp/output",
     };
     builder = new PreactBuilder(options);
-    testableBuilder = builder as unknown as PreactBuilderTestable;
+    testableBuilder = asTestable(builder);
   });
 
   test("writes nested binary assets from the prepared snapshot", async () => {
@@ -80,7 +91,7 @@ describe("PreactBuilder - Inline Static Assets (from SitePackage)", () => {
       outputDir: "/tmp/output",
     };
     builder = new PreactBuilder(options);
-    testableBuilder = builder as unknown as PreactBuilderTestable;
+    testableBuilder = asTestable(builder);
   });
 
   test("should write each inline static asset under the output dir", async () => {

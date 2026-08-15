@@ -14,6 +14,16 @@ import {
 import { EntityUrlGenerator } from "@brains/site-composition";
 import { resolveSiteMetadata } from "../lib/site-metadata";
 import type { SiteBuildStatusService } from "../lib/site-build-status";
+
+/**
+ * The four transitions this handler records. The service does more; asking for
+ * all of it meant a test could not record a subset without asserting it was
+ * the whole service.
+ */
+export type BuildStatusRecorder = Pick<
+  SiteBuildStatusService,
+  "markBuilding" | "markSuccess" | "markCancelled" | "markFailure"
+>;
 import { getErrorMessage } from "@brains/utils/error";
 
 export interface SiteBuildJobHandlerConfig {
@@ -32,7 +42,7 @@ export interface SiteBuildJobHandlerConfig {
   getHeadScripts?: (() => string[]) | undefined;
   /** Inline static assets supplied by the SitePackage (e.g. canvas scripts) */
   staticAssets?: Record<string, string> | undefined;
-  statusService?: SiteBuildStatusService | undefined;
+  statusService?: BuildStatusRecorder | undefined;
   onBuildStarted?:
     | ((
         environment: "preview" | "production",

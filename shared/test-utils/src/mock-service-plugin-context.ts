@@ -112,6 +112,7 @@ type SpiedNamespace =
   | "prompts"
   | "endpoints"
   | "interactions"
+  | "attachments"
   | "profileKinds"
   | "jobs";
 
@@ -167,6 +168,7 @@ export function createMockServicePluginContext(
     prompts: spyOnMembers(context.prompts),
     endpoints: spyOnMembers(context.endpoints),
     interactions: spyOnMembers(context.interactions),
+    attachments: spyOnMembers(context.attachments),
     profileKinds: {
       ...spyOnMembers(context.profileKinds),
       getResolved: mock(() => options.profileSelection ?? null),
