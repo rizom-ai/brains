@@ -1,4 +1,4 @@
-import { describe, it, expect, mock, spyOn } from "bun:test";
+import { describe, it, expect, mock, spyOn, type Mock } from "bun:test";
 import {
   persistImportEntity,
   type ImportPersistenceDeps,
@@ -61,9 +61,23 @@ function createImportResult(): ImportResult {
   };
 }
 
+/**
+ * The deps with upsertEntity still typed as the spy it is.
+ *
+ * Declaring the builder's result as plain ImportPersistenceDeps erased that,
+ * so reading a captured entity back meant asserting the member had a .mock.
+ */
+type MockImportPersistenceDeps = ImportPersistenceDeps & {
+  entityService: ImportPersistenceDeps["entityService"] & {
+    upsertEntity: Mock<
+      (request: { entity: BaseEntity }) => Promise<{ jobId: string }>
+    >;
+  };
+};
+
 function createMockDeps(
   existing: BaseEntity | null = null,
-): ImportPersistenceDeps {
+): MockImportPersistenceDeps {
   const getEntity = mock((): Promise<BaseEntity | null> =>
     Promise.resolve(existing),
   );
@@ -94,12 +108,8 @@ function createMockDeps(
   };
 }
 
-function upsertedEntity(deps: ImportPersistenceDeps): BaseEntity {
-  const call = (
-    deps.entityService.upsertEntity as unknown as {
-      mock: { calls: [{ entity: BaseEntity }][] };
-    }
-  ).mock.calls[0];
+function upsertedEntity(deps: MockImportPersistenceDeps): BaseEntity {
+  const call = deps.entityService.upsertEntity.mock.calls[0];
   if (!call) throw new Error("upsertEntity was not called");
   return call[0].entity;
 }

@@ -1,4 +1,5 @@
 import { describe, it, expect, mock } from "bun:test";
+import { createMockServicePluginContext } from "@brains/test-utils";
 import { SYSTEM_CHANNELS } from "@brains/plugins";
 import { setupInitialSync } from "../../src/lib/initial-sync";
 import { createSilentLogger } from "@brains/test-utils";
@@ -11,36 +12,11 @@ import {
 } from "../fixtures";
 
 function createMockContext(): {
-  context: Parameters<typeof setupInitialSync>[0];
-  handlers: Map<string, (...args: unknown[]) => Promise<unknown>>;
+  context: ReturnType<typeof createMockServicePluginContext>;
 } {
-  const handlers = new Map<string, (...args: unknown[]) => Promise<unknown>>();
-  return {
-    context: {
-      dataDir: "/tmp/test",
-      messaging: {
-        subscribe: (
-          type: string,
-          handler: (...args: unknown[]) => Promise<unknown>,
-        ): (() => void) => {
-          handlers.set(type, handler);
-          return (): void => {
-            handlers.delete(type);
-          };
-        },
-        send: mock(async () => ({ success: true })),
-      },
-      jobs: {
-        getStatus: mock(async () => null),
-        getBatchStatus: mock(async () => ({
-          status: "completed",
-          completedOperations: 1,
-          failedOperations: 0,
-        })),
-      },
-    } as unknown as Parameters<typeof setupInitialSync>[0],
-    handlers,
-  };
+  // The factory's messaging is real, so setupInitialSync subscribes to the
+  // actual bus and the test publishes to drive it — no captured handlers.
+  return { context: createMockServicePluginContext({ dataDir: "/tmp/test" }) };
 }
 
 const baseConfig: DirectorySyncConfig = {
@@ -59,7 +35,7 @@ const baseConfig: DirectorySyncConfig = {
 
 describe("setupInitialSync with git", () => {
   it("should call gitSync.pull() before sync()", async () => {
-    const { context, handlers } = createMockContext();
+    const { context } = createMockContext();
     const callOrder: string[] = [];
 
     const ds = createMockDirectorySync({
@@ -97,15 +73,16 @@ describe("setupInitialSync with git", () => {
       reconciliation,
     );
 
-    const handler = handlers.get(SYSTEM_CHANNELS.pluginsRegistered);
-    expect(handler).toBeDefined();
-    if (handler) await handler();
+    await context.messaging.send({
+      type: SYSTEM_CHANNELS.pluginsRegistered,
+      payload: {},
+    });
 
     expect(callOrder).toEqual(["pull", "record-deletes", "sync", "checkpoint"]);
   });
 
   it("tracks Git output and records interrupted-pull recovery", async () => {
-    const { context, handlers } = createMockContext();
+    const { context } = createMockContext();
     const onGitProgress = mock(() => {});
     const onGitRecoverySucceeded = mock(async () => {});
     const onGitRecoveryFailed = mock(async () => {});
@@ -130,8 +107,10 @@ describe("setupInitialSync with git", () => {
       },
     );
 
-    const handler = handlers.get(SYSTEM_CHANNELS.pluginsRegistered);
-    if (handler) await handler();
+    await context.messaging.send({
+      type: SYSTEM_CHANNELS.pluginsRegistered,
+      payload: {},
+    });
 
     expect(onGitProgress).toHaveBeenCalledTimes(2);
     expect(onGitRecoverySucceeded).toHaveBeenCalledTimes(1);
@@ -139,7 +118,7 @@ describe("setupInitialSync with git", () => {
   });
 
   it("should call sync when gitSync is not provided", async () => {
-    const { context, handlers } = createMockContext();
+    const { context } = createMockContext();
     const syncMock = mock(async () => ({
       export: emptyExportResult(),
       import: emptyImportResult(),
@@ -149,21 +128,25 @@ describe("setupInitialSync with git", () => {
 
     setupInitialSync(context, () => ds, baseConfig, createSilentLogger());
 
-    const handler = handlers.get(SYSTEM_CHANNELS.pluginsRegistered);
-    if (handler) await handler();
+    await context.messaging.send({
+      type: SYSTEM_CHANNELS.pluginsRegistered,
+      payload: {},
+    });
 
     expect(syncMock).toHaveBeenCalledTimes(1);
   });
 
   it("should emit sync:initial:completed after sync", async () => {
-    const { context, handlers } = createMockContext();
+    const { context } = createMockContext();
     const ds = createMockDirectorySync();
     const gs = createMockGitSync();
 
     setupInitialSync(context, () => ds, baseConfig, createSilentLogger(), gs);
 
-    const handler = handlers.get(SYSTEM_CHANNELS.pluginsRegistered);
-    if (handler) await handler();
+    await context.messaging.send({
+      type: SYSTEM_CHANNELS.pluginsRegistered,
+      payload: {},
+    });
 
     expect(context.messaging.send).toHaveBeenCalledWith({
       type: SYSTEM_CHANNELS.initialSyncCompleted,
@@ -173,7 +156,7 @@ describe("setupInitialSync with git", () => {
   });
 
   it("should emit sync:initial:completed with success:false when pull fails", async () => {
-    const { context, handlers } = createMockContext();
+    const { context } = createMockContext();
     const ds = createMockDirectorySync();
     const gs = createMockGitSync({
       pull: mock(async () => {
@@ -183,8 +166,10 @@ describe("setupInitialSync with git", () => {
 
     setupInitialSync(context, () => ds, baseConfig, createSilentLogger(), gs);
 
-    const handler = handlers.get(SYSTEM_CHANNELS.pluginsRegistered);
-    if (handler) await handler();
+    await context.messaging.send({
+      type: SYSTEM_CHANNELS.pluginsRegistered,
+      payload: {},
+    });
 
     expect(context.messaging.send).toHaveBeenCalledWith({
       type: SYSTEM_CHANNELS.initialSyncCompleted,
@@ -197,7 +182,7 @@ describe("setupInitialSync with git", () => {
   });
 
   it("should emit sync:initial:completed with success:false when sync fails", async () => {
-    const { context, handlers } = createMockContext();
+    const { context } = createMockContext();
     const ds = createMockDirectorySync({
       sync: mock(async () => {
         throw new Error("DB locked");
@@ -206,8 +191,10 @@ describe("setupInitialSync with git", () => {
 
     setupInitialSync(context, () => ds, baseConfig, createSilentLogger());
 
-    const handler = handlers.get(SYSTEM_CHANNELS.pluginsRegistered);
-    if (handler) await handler();
+    await context.messaging.send({
+      type: SYSTEM_CHANNELS.pluginsRegistered,
+      payload: {},
+    });
 
     expect(context.messaging.send).toHaveBeenCalledWith({
       type: SYSTEM_CHANNELS.initialSyncCompleted,

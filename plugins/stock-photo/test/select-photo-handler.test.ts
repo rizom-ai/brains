@@ -4,7 +4,7 @@ import {
   ProgressReporter,
   type ProgressNotification,
 } from "@brains/utils/progress";
-import type { IEntityService } from "@brains/plugins";
+import type { StockPhotoEntityWriter } from "../src/lib/set-cover-image";
 import { SelectPhotoJobHandler } from "../src/handlers/select-photo-handler";
 import type { SelectPhotoJobData } from "../src/handlers/select-photo-handler";
 import type { StockPhotoProvider } from "../src/lib/types";
@@ -36,10 +36,9 @@ function createProvider(): StockPhotoProvider {
 
 function createEntityService(
   overrides: Record<string, unknown> = {},
-): IEntityService {
+): StockPhotoEntityWriter {
   return {
     getEntity: async () => null,
-    listEntities: async () => [],
     createEntity: async () => ({
       entityId: "abc123",
       jobId: "job-1",
@@ -51,7 +50,7 @@ function createEntityService(
       skipped: false,
     }),
     ...overrides,
-  } as unknown as IEntityService;
+  } satisfies StockPhotoEntityWriter;
 }
 
 function createProgressReporter(): ProgressReporter {

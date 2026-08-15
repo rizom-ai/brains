@@ -1,5 +1,5 @@
 import { BaseJobHandler } from "@brains/plugins";
-import type { IEntityService } from "@brains/plugins";
+import type { StockPhotoEntityWriter } from "../lib/set-cover-image";
 import type { Logger } from "@brains/utils/logger";
 import type { ProgressReporter } from "@brains/utils/progress";
 import { z } from "@brains/utils/zod";
@@ -47,7 +47,7 @@ export interface SelectPhotoJobResult {
 
 export interface SelectPhotoHandlerDeps {
   provider: StockPhotoProvider;
-  entityService: IEntityService;
+  entityService: StockPhotoEntityWriter;
   fetchImage: FetchImageFn;
 }
 

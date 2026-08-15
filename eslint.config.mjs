@@ -75,12 +75,14 @@ export default [
     //
     // Enabled per layer as each one reaches zero, so the layers already done
     // cannot regress while the rest are outstanding. Add a layer here when its
-    // count hits zero — `plugins` and `shell` remain.
+    // count hits zero — `shell` remains.
     files: [
       "packages/**/test/**/*.ts",
       "entities/**/test/**/*.{ts,tsx}",
       "interfaces/**/test/**/*.{ts,tsx}",
       "interfaces/**/src/**/*.test.{ts,tsx}",
+      "plugins/**/test/**/*.{ts,tsx}",
+      "plugins/**/src/**/*.test.{ts,tsx}",
     ],
     rules: {
       "no-restricted-syntax": [

@@ -334,64 +334,90 @@ export class PreactBuilder implements StaticSiteBuilder {
     assets: Record<string, string>,
     signal: AbortSignal,
   ): Promise<void> {
-    signal.throwIfAborted();
-    const entries = Object.entries(assets);
-    if (entries.length === 0) return;
-
-    this.logger.debug(`Writing ${entries.length} snapshotted public asset(s)`);
-    for (const [assetPath, contentBase64] of entries) {
-      signal.throwIfAborted();
-      const destPath = resolveSafeOutputFile(this.outputDir, assetPath);
-      await fs.mkdir(dirname(destPath), { recursive: true });
-      await fs.writeFile(destPath, Buffer.from(contentBase64, "base64"), {
-        signal,
-      });
-      this.logger.debug(`Wrote public asset: ${assetPath}`);
-    }
+    return writePublicAssets(assets, signal, this.outputDir, this.logger);
   }
 
-  /**
-   * Write in-memory static assets supplied by a SitePackage.
-   *
-   * Keys are output paths relative to the output directory (leading
-   * slash optional); values are file contents as strings. The method
-   * ensures the parent directory exists, then writes each file.
-   *
-   * Used by site packages that ship their own static files (canvas
-   * scripts, fonts, etc.) without requiring the consuming app to set
-   * up a `public/` directory.
-   */
   private async writeInlineStaticAssets(
     assets: Record<string, string> | undefined,
     signal: AbortSignal,
   ): Promise<void> {
-    signal.throwIfAborted();
-    if (!assets) return;
-    const entries = Object.entries(assets);
-    if (entries.length === 0) return;
-
-    this.logger.debug(
-      `Writing ${entries.length} inline static asset(s) from SitePackage`,
-    );
-
-    const writeResults = await Promise.allSettled(
-      entries.map(async ([rawPath, content]) => {
-        signal.throwIfAborted();
-        const destPath = resolveSafeOutputFile(this.outputDir, rawPath);
-        await fs.mkdir(dirname(destPath), { recursive: true });
-        await fs.writeFile(destPath, content, {
-          encoding: "utf-8",
-          signal,
-        });
-        this.logger.debug(`Wrote inline static asset: ${rawPath}`);
-      }),
-    );
-    signal.throwIfAborted();
-    const rejectedWrite = writeResults.find(
-      (result): result is PromiseRejectedResult => result.status === "rejected",
-    );
-    if (rejectedWrite) throw rejectedWrite.reason;
+    return writeInlineStaticAssets(assets, signal, this.outputDir, this.logger);
   }
+}
+
+/**
+ * Write snapshotted public assets to the output directory.
+ *
+ * A module function rather than a private method: it needs only the output
+ * directory and a logger, and its test previously had to widen the builder to
+ * reach it. Asset writing is fiddly enough — safe paths, abort handling — to
+ * deserve testing directly rather than through a whole build.
+ */
+export async function writePublicAssets(
+  assets: Record<string, string>,
+  signal: AbortSignal,
+  outputDir: string,
+  logger: Logger,
+): Promise<void> {
+  signal.throwIfAborted();
+  const entries = Object.entries(assets);
+  if (entries.length === 0) return;
+
+  logger.debug(`Writing ${entries.length} snapshotted public asset(s)`);
+  for (const [assetPath, contentBase64] of entries) {
+    signal.throwIfAborted();
+    const destPath = resolveSafeOutputFile(outputDir, assetPath);
+    await fs.mkdir(dirname(destPath), { recursive: true });
+    await fs.writeFile(destPath, Buffer.from(contentBase64, "base64"), {
+      signal,
+    });
+    logger.debug(`Wrote public asset: ${assetPath}`);
+  }
+}
+
+/**
+ * Write in-memory static assets supplied by a SitePackage.
+ *
+ * Keys are output paths relative to the output directory (leading slash
+ * optional); values are file contents as strings. Ensures the parent directory
+ * exists, then writes each file.
+ *
+ * Used by site packages that ship their own static files (canvas scripts,
+ * fonts, etc.) without requiring the consuming app to set up a `public/`
+ * directory.
+ */
+export async function writeInlineStaticAssets(
+  assets: Record<string, string> | undefined,
+  signal: AbortSignal,
+  outputDir: string,
+  logger: Logger,
+): Promise<void> {
+  signal.throwIfAborted();
+  if (!assets) return;
+  const entries = Object.entries(assets);
+  if (entries.length === 0) return;
+
+  logger.debug(
+    `Writing ${entries.length} inline static asset(s) from SitePackage`,
+  );
+
+  const writeResults = await Promise.allSettled(
+    entries.map(async ([rawPath, content]) => {
+      signal.throwIfAborted();
+      const destPath = resolveSafeOutputFile(outputDir, rawPath);
+      await fs.mkdir(dirname(destPath), { recursive: true });
+      await fs.writeFile(destPath, content, {
+        encoding: "utf-8",
+        signal,
+      });
+      logger.debug(`Wrote inline static asset: ${rawPath}`);
+    }),
+  );
+  signal.throwIfAborted();
+  const rejectedWrite = writeResults.find(
+    (result): result is PromiseRejectedResult => result.status === "rejected",
+  );
+  if (rejectedWrite) throw rejectedWrite.reason;
 }
 
 /**
