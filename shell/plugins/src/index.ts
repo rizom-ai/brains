@@ -243,6 +243,9 @@ export {
 } from "./package-definition";
 export type {
   EntityAttachmentDeclaration,
+  EntityGenerationContext,
+  EntityGenerationDeclaration,
+  EntityGenerationEntityAccess,
   MediaAttachmentContext,
 } from "./entity/entity-definition-contract";
 export {
