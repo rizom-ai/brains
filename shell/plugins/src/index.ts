@@ -242,6 +242,8 @@ export {
 } from "./package-definition";
 export type {
   EntityAttachmentDeclaration,
+  EntityCreateRoute,
+  EntityCreateRouting,
   EntityEvalContext,
   EntityEvalDeclaration,
   EntityGenerationContext,

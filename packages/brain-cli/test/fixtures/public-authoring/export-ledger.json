@@ -198,6 +198,8 @@
         "ContentFormatter",
         "DataSourceDefinition",
         "EntityAttachmentDeclaration",
+        "EntityCreateRoute",
+        "EntityCreateRouting",
         "EntityDataSourceDefinition",
         "EntityDetailContext",
         "EntityEvalContext",
