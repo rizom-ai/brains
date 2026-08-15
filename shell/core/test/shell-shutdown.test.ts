@@ -216,11 +216,7 @@ describe("Shell shutdown", () => {
             stop: async () => {
               order.push("daemon-stopped");
 
-              const shellWithServices = shellInstance as unknown as {
-                services: { jobQueueWorker: { isWorkerRunning(): boolean } };
-              };
-              workerRunningDuringDaemonStop =
-                shellWithServices.services.jobQueueWorker.isWorkerRunning();
+              workerRunningDuringDaemonStop = shell.isJobQueueWorkerRunning();
 
               // Databases must outlive daemons: shutdown closes them last.
               await shellInstance

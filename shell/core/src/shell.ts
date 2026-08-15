@@ -489,6 +489,18 @@ export class Shell implements IShell {
     return this.services.recurringCheckService.namespace(pluginId);
   }
 
+  /**
+   * Whether the job queue worker is currently running.
+   *
+   * Startup ordering tests need this — the worker must not be processing
+   * before plugins are ready — and no other public method reports it, so they
+   * were reaching into services. One of them reached for a top-level
+   * jobQueueWorker that does not exist, so its guard could never fail.
+   */
+  public isJobQueueWorkerRunning(): boolean {
+    return this.services.jobQueueWorker.isWorkerRunning();
+  }
+
   public getMessageBus(): IMessageBus {
     return this.services.messageBus;
   }

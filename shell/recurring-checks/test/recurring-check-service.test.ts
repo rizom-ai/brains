@@ -3,11 +3,7 @@ import { createSilentLogger } from "@brains/test-utils";
 import { Effect } from "@brains/utils/effect";
 import type { Clock } from "@brains/utils/effect";
 import { TestClock, TestContext } from "@brains/utils/effect/test";
-import type {
-  IJobQueueService,
-  JobHandler,
-  JobQueueEnqueueRequest,
-} from "@brains/job-queue";
+import type { JobHandler, JobQueueEnqueueRequest } from "@brains/job-queue";
 import type {
   IRuntimeStateNamespace,
   IRuntimeStateStore,
@@ -192,7 +188,7 @@ function createService(
     brainId: "brain.example",
     scheduler,
     runtimeState: state,
-    jobQueue: queue as unknown as IJobQueueService,
+    jobQueue: queue,
     logger,
     ...(options.clock
       ? { clock: options.clock }

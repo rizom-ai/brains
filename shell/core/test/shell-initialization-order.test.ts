@@ -361,12 +361,7 @@ describe("Shell initialization order", () => {
     expect(initOrder).not.toContain("shell-ready");
     expect(initOrder).not.toContain("daemon-started");
 
-    const shellWithServices = shell as unknown as {
-      services: { jobQueueWorker: { isWorkerRunning(): boolean } };
-    };
-    expect(shellWithServices.services.jobQueueWorker.isWorkerRunning()).toBe(
-      false,
-    );
+    expect(shell.isJobQueueWorkerRunning()).toBe(false);
   });
 
   it("should not call ready hooks in register-only mode", async () => {
@@ -407,12 +402,10 @@ describe("Shell initialization order", () => {
         shellInstance
           .getMessageBus()
           .subscribe(SYSTEM_CHANNELS.pluginsRegistered, async () => {
-            const shellAny = shellInstance as unknown as {
-              jobQueueWorker?: { isWorkerRunning(): boolean };
-            };
-
-            jobQueueWorkerRunning =
-              shellAny.jobQueueWorker?.isWorkerRunning() ?? false;
+            // Read through the accessor. This previously reached for a
+            // top-level jobQueueWorker that does not exist, so the flag was
+            // always false and the guard below could never fire.
+            jobQueueWorkerRunning = shell.isJobQueueWorkerRunning();
 
             if (jobQueueWorkerRunning) {
               initOrder.push(
