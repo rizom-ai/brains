@@ -10,6 +10,11 @@ import type { PublishMediaData } from "@brains/contracts";
 import type { JobHandler } from "@brains/job-queue";
 import type { EvalHandler } from "@brains/ai-evaluation";
 import type { EntityJobDeclaration } from "../src";
+import type {
+  CreateExecutionContext,
+  CreateInput,
+  CreateInterceptionResult,
+} from "@brains/entity-service";
 import {
   AtprotoProjectionRegistry,
   canonicalAtprotoLexicons,
@@ -636,6 +641,87 @@ describe("entity package definitions", () => {
         new AbortController().signal,
       ),
     ).toEqual({ reindexed: "first" });
+
+    harness.reset();
+  });
+
+  it("routes create by input shape and reports the outcome itself", async () => {
+    // Deliberately data rather than a callback. A create callback is
+    // arbitrary code whose reported outcome the runtime has to take on
+    // trust — a package could claim it created something it did not.
+    // Routing lets the runtime enqueue and report, so the outcome
+    // describes what actually happened.
+    const guide = defineEntity({
+      type: "guide",
+      purpose: "A guide that can be generated.",
+      metadata: z.object({ title: z.string() }),
+      create: {
+        fromPrompt: { delegate: "guide:generation" },
+        fromContent: { reject: "Guides are generated, not pasted." },
+      },
+    });
+    const definition = defineEntityPackage({ id: "guides", entities: [guide] });
+    const plugin = createEntityPackagePlugins(
+      definition.entities,
+      definition.projections,
+      { name: "@fixture/guides", version: "0.1.0" },
+      (id) => `@fixture/guides:${id}`,
+    )[0];
+    if (!plugin) throw new Error("Guide entity plugin was not created");
+
+    const harness = createPluginHarness({
+      logger: createSilentLogger("entity-create-routing-test"),
+    });
+    let interceptor:
+      | ((
+          input: CreateInput,
+          executionContext: CreateExecutionContext,
+        ) => Promise<CreateInterceptionResult>)
+      | undefined;
+    const registry = harness.getEntityRegistry();
+    registry.registerCreateInterceptor = (
+      _entityType: string,
+      registered: typeof interceptor,
+    ): void => {
+      interceptor = registered;
+    };
+
+    await harness.installPlugin(plugin);
+    if (!interceptor) throw new Error("Create interceptor was not registered");
+
+    const executionContext = {} as CreateExecutionContext;
+
+    // A shape with no declared route is left to ordinary creation.
+    expect(
+      await interceptor(
+        { entityType: "guide", title: "Plain" },
+        executionContext,
+      ),
+    ).toMatchObject({ kind: "continue" });
+
+    expect(
+      await interceptor(
+        { entityType: "guide", content: "# Pasted" },
+        executionContext,
+      ),
+    ).toEqual({
+      kind: "handled",
+      result: {
+        success: false,
+        error: "Guides are generated, not pasted.",
+      },
+    });
+
+    const delegated = await interceptor(
+      { entityType: "guide", prompt: "rivers" },
+      executionContext,
+    );
+    if (delegated.kind !== "handled" || !delegated.result.success) {
+      throw new Error("Prompt create should delegate to the declared job");
+    }
+    // The runtime supplies the job id; the package never names an outcome.
+    expect(delegated.result.data.status).toBe("generating");
+    expect(delegated.result.data.jobId).toBeTruthy();
 
     harness.reset();
   });

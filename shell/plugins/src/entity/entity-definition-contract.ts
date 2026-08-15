@@ -131,6 +131,41 @@ export interface EntityDefinition<
    * should reach for it. Plain text, since the agent reads it directly.
    */
   readonly instructions?: string | undefined;
+  /**
+   * How `system_create` behaves for this entity type, routed by the shape
+   * of the create input.
+   */
+  readonly create?: EntityCreateRouting | undefined;
+}
+
+/**
+ * What to do with a create request of a given input shape: hand it to a
+ * declared job, or refuse it with a message.
+ *
+ * Deliberately data rather than a callback. A callback in the create path
+ * is arbitrary code whose reported outcome the runtime has to take on
+ * trust — a package could claim it created something it did not. Here the
+ * runtime enqueues the job and reports the outcome itself, so a package
+ * cannot misreport what happened.
+ */
+export type EntityCreateRoute =
+  { readonly delegate: string } | { readonly reject: string };
+
+/**
+ * Create inputs are already discriminated by how the caller expressed
+ * what they want, so routing keys off that rather than an author-supplied
+ * predicate:
+ *
+ * - `fromPrompt`: the caller described what they want in words.
+ * - `fromUpload`: the caller referenced an uploaded file.
+ * - `fromContent`: the caller supplied the content outright.
+ *
+ * An unlisted shape proceeds to ordinary creation.
+ */
+export interface EntityCreateRouting {
+  readonly fromPrompt?: EntityCreateRoute | undefined;
+  readonly fromUpload?: EntityCreateRoute | undefined;
+  readonly fromContent?: EntityCreateRoute | undefined;
 }
 
 /**

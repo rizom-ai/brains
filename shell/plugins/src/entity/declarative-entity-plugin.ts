@@ -12,6 +12,7 @@ import {
   type EntityAdapter,
   type EntityTypeConfig,
   type ProjectionJsonObject,
+  type CreateInput,
   type ProjectionWriteIntent,
 } from "@brains/entity-service";
 import type { Template } from "@brains/templates";
@@ -30,11 +31,28 @@ import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
 import type {
   AnyEntityDefinition,
   EntityGenerationEntityAccess,
+  EntityCreateRoute,
+  EntityCreateRouting,
   EntityJobDeclaration,
   EntityOf,
   EntitySeedTrigger,
   ProjectionDefinition,
 } from "./entity-definition-contract";
+
+/**
+ * Which declared route a create request takes. Ordered most specific
+ * first: an upload reference is a stronger signal than the prompt that
+ * may accompany it.
+ */
+function selectCreateRoute(
+  routing: EntityCreateRouting,
+  input: CreateInput,
+): EntityCreateRoute | undefined {
+  if (input.from) return routing.fromUpload;
+  if (input.content) return routing.fromContent;
+  if (input.prompt) return routing.fromPrompt;
+  return undefined;
+}
 
 /**
  * Named seed triggers map to internal channels here, so the public
@@ -264,6 +282,7 @@ class DeclarativeEntityPlugin extends EntityPlugin<
   private readonly evals: AnyEntityDefinition["evals"];
   private readonly jobs: AnyEntityDefinition["jobs"];
   private readonly instructions: AnyEntityDefinition["instructions"];
+  private readonly create: AnyEntityDefinition["create"];
   private readonly projectionRules: AnyEntityDefinition["projectionRules"];
   private readonly atproto: AnyEntityDefinition["atproto"];
   private readonly releaseOnShutdown: Array<() => void> = [];
@@ -299,6 +318,7 @@ class DeclarativeEntityPlugin extends EntityPlugin<
     this.evals = definition.evals;
     this.jobs = definition.jobs;
     this.instructions = definition.instructions;
+    this.create = definition.create;
     this.projectionRules = definition.projectionRules;
     this.atproto = definition.atproto;
   }
@@ -342,6 +362,40 @@ class DeclarativeEntityPlugin extends EntityPlugin<
   protected override async onRegister(
     context: EntityPluginContext,
   ): Promise<void> {
+    if (this.create) {
+      const routing = this.create;
+      context.entities.registerCreateInterceptor(
+        this.entityType,
+        async (input, executionContext) => {
+          const route = selectCreateRoute(routing, input);
+          if (!route) return { kind: "continue", input };
+
+          if ("reject" in route) {
+            return {
+              kind: "handled",
+              result: { success: false, error: route.reject },
+            };
+          }
+
+          // The runtime enqueues and reports, so the outcome describes what
+          // actually happened rather than what the package claims happened.
+          const jobId = await context.jobs.enqueue({
+            type: route.delegate,
+            data: input,
+            toolContext: executionContext,
+            options: {
+              source: this.id,
+              metadata: { operationType: "content_operations" },
+            },
+          });
+          return {
+            kind: "handled",
+            result: { success: true, data: { status: "generating", jobId } },
+          };
+        },
+      );
+    }
+
     for (const [jobType, declaration] of Object.entries(this.jobs ?? {})) {
       context.jobs.registerHandler(
         jobType,

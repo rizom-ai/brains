@@ -43,6 +43,8 @@ export type {
   BaseQuery,
   DataSourceDefinition,
   EntityAttachmentDeclaration,
+  EntityCreateRoute,
+  EntityCreateRouting,
   EntityDataSourceDefinition,
   EntityEvalContext,
   EntityEvalDeclaration,

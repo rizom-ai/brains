@@ -7,6 +7,7 @@ import { createEntityPackagePlugins } from "../entity/declarative-entity-plugin"
 import type {
   AnyEntityDefinition,
   EntityAttachmentDeclaration,
+  EntityCreateRouting,
   EntityDefinition,
   EntityEvalDeclaration,
   EntityGenerationDeclaration,
@@ -60,6 +61,7 @@ export function defineEntity<
   readonly evals?: EntityEvalDeclaration | undefined;
   readonly jobs?: Record<string, EntityJobDeclaration> | undefined;
   readonly instructions?: string | undefined;
+  readonly create?: EntityCreateRouting | undefined;
 }): EntityDefinition<TType, TMetadataSchema> {
   assertLocalId(definition.type, "Entity type");
   if (!definition.purpose.trim()) {
