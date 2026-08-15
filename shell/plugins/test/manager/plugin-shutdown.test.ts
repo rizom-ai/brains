@@ -25,7 +25,7 @@ describe("Plugin shutdown lifecycle", () => {
       logger,
       mockShell.getDaemonRegistry(),
     );
-    pluginManager.setShell(mockShell as unknown as IShell);
+    pluginManager.setShell(mockShell);
   });
 
   test("rejects follow-up registration from a ready hook", async () => {

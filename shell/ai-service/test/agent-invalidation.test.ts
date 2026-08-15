@@ -5,7 +5,7 @@ import type {
   IBrainCharacterService,
   IAnchorProfileService,
 } from "@brains/identity-service";
-import type { IConversationService } from "@brains/conversation-service";
+import type { AgentConversationStore } from "../src/turn-processor";
 import type { BrainAgentConfig } from "../src/brain-agent";
 import type { BrainAgent } from "../src/agent-types";
 
@@ -36,9 +36,7 @@ describe("AgentService invalidation", () => {
         startConversation: mock(() => Promise.resolve("conv-1")),
         addMessage: mock(() => Promise.resolve()),
         getMessages: mock(() => Promise.resolve([])),
-        getConversation: mock(() => Promise.resolve(null)),
-        searchConversations: mock(() => Promise.resolve([])),
-      } as unknown as IConversationService,
+      } satisfies AgentConversationStore,
       {
         getCharacter: () => ({
           name: "Test Brain",
@@ -106,9 +104,7 @@ describe("AgentService invalidation", () => {
         startConversation: mock(() => Promise.resolve("conv-1")),
         addMessage: mock(() => Promise.resolve()),
         getMessages: mock(() => Promise.resolve([])),
-        getConversation: mock(() => Promise.resolve(null)),
-        searchConversations: mock(() => Promise.resolve([])),
-      } as unknown as IConversationService,
+      } satisfies AgentConversationStore,
       {
         getCharacter: () => ({
           name: "Brain",

@@ -1,7 +1,7 @@
 import { type Logger } from "@brains/utils/logger";
+import type { AgentConversationStore } from "./turn-processor";
 import { parseConfirmationResponse } from "@brains/utils/confirmation-response";
 import type { IMCPService } from "@brains/mcp-service";
-import type { IConversationService } from "@brains/conversation-service";
 import type {
   IBrainCharacterService,
   IAnchorProfileService,
@@ -97,7 +97,7 @@ export class AgentService implements IAgentService {
 
   public static createFresh(
     mcpService: IMCPService,
-    conversationService: IConversationService,
+    conversationService: AgentConversationStore,
     identityService: IBrainCharacterService,
     profileService: IAnchorProfileService,
     logger: Logger,
@@ -118,7 +118,7 @@ export class AgentService implements IAgentService {
    */
   private constructor(
     mcpService: IMCPService,
-    conversationService: IConversationService,
+    conversationService: AgentConversationStore,
     identityService: IBrainCharacterService,
     profileService: IAnchorProfileService,
     logger: Logger,

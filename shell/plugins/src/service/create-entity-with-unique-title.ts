@@ -2,6 +2,19 @@ import type { EntityPluginContext } from "../entity/context";
 import { z } from "@brains/utils/zod";
 
 /**
+ * The context members this helper reads.
+ *
+ * One entity lookup, one AI call and the logger — asking for a whole
+ * EntityPluginContext meant a test had to assert two stand-in namespaces were
+ * the real ones.
+ */
+export interface UniqueTitleContext {
+  entityService: Pick<EntityPluginContext["entityService"], "getEntity">;
+  ai: Pick<EntityPluginContext["ai"], "generateObject">;
+  logger: EntityPluginContext["logger"];
+}
+
+/**
  * Parameters for resolving a unique title before entity creation.
  */
 export interface EnsureUniqueTitleParams {
@@ -14,7 +27,7 @@ export interface EnsureUniqueTitleParams {
   /** Prompt hint for the AI when it needs to regenerate */
   regeneratePrompt: string;
   /** Service context (needs entityService, ai, logger) */
-  context: Pick<EntityPluginContext, "entityService" | "ai" | "logger">;
+  context: UniqueTitleContext;
 }
 
 /**

@@ -60,9 +60,21 @@ import { buildConfirmedActionResult } from "./confirmed-action";
 import { buildMessageMetadata, withMessageMetadata } from "./message-metadata";
 import { toTokenUsage } from "./generation-options";
 
+/**
+ * The conversation operations the agent performs.
+ *
+ * IConversationService also lists, searches and reads single conversations;
+ * asking for all of it meant a test could not supply three methods without
+ * asserting it was the whole service.
+ */
+export type AgentConversationStore = Pick<
+  IConversationService,
+  "startConversation" | "addMessage" | "getMessages"
+>;
+
 export interface TurnProcessorDeps {
   logger: Logger;
-  conversationService: IConversationService;
+  conversationService: AgentConversationStore;
   mcpService: IMCPService;
   identityService: IBrainCharacterService;
   /** Lazy agent access so invalidation stays with AgentService. */

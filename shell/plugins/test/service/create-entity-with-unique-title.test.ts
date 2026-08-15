@@ -1,10 +1,10 @@
 import { describe, expect, test, mock } from "bun:test";
 import { ensureUniqueTitle } from "../../src/service/create-entity-with-unique-title";
 import type { BaseEntity } from "@brains/entity-service";
-import type { EntityPluginContext } from "../../src/entity/context";
-import { createSilentLogger } from "@brains/test-utils";
+import type { UniqueTitleContext } from "../../src/service/create-entity-with-unique-title";
+import { createSilentLogger, genericSpy } from "@brains/test-utils";
 
-type MockContext = Pick<EntityPluginContext, "entityService" | "ai" | "logger">;
+type MockContext = UniqueTitleContext;
 
 function createMockContext(
   existingIds: Set<string>,
@@ -36,10 +36,20 @@ function createMockContext(
 
   return {
     context: {
+      // getEntity and generateObject are the whole surface the helper uses.
+      // genericSpy re-applies the type parameter mock() erased on getEntity.
       entityService: {
-        getEntity,
-      } as unknown as EntityPluginContext["entityService"],
-      ai: { generateObject } as unknown as EntityPluginContext["ai"],
+        getEntity:
+          genericSpy<UniqueTitleContext["entityService"]["getEntity"]>(
+            getEntity,
+          ),
+      },
+      ai: {
+        generateObject:
+          genericSpy<UniqueTitleContext["ai"]["generateObject"]>(
+            generateObject,
+          ),
+      },
       logger: createSilentLogger(),
     },
     mocks: { generateObject },
