@@ -37,8 +37,9 @@ export function registerEmailReplyDraftFollowUp(
     mode: "declared",
     permissionLevel: "admin",
     contextSchema: draftContextSchema,
-    applies: ({ sourceId, item }) =>
-      sourceId === "mail-items" && item.entityRef?.entityType === "mail-item",
+    // Narrow on item shape only: a destination that tests `sourceId` against
+    // known sources reintroduces the coupling the follow-up contract removes.
+    applies: ({ item }) => item.entityRef?.entityType === "mail-item",
     resolve: ({ context: followUpContext }) => {
       const workspaceUrl = getWorkspaceUrl();
       if (!workspaceUrl || !followUpContext) return undefined;

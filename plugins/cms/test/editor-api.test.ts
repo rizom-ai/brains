@@ -27,10 +27,15 @@ const noteFrontmatterSchema = z.object({
   error: z.string().optional(),
 });
 
+// Derived, restricted types (mail-item is the shipped example) declare strict
+// frontmatter, so any stray key is a hard rejection rather than a silent strip.
+const briefFrontmatterSchema = z.strictObject({ title: z.string() });
+
 const frontmatterSchemas: Record<string, z.ZodObject<z.ZodRawShape>> = {
   post: postFrontmatterSchema,
   "site-info": siteInfoFrontmatterSchema,
   note: noteFrontmatterSchema,
+  brief: briefFrontmatterSchema,
 };
 
 const entityIdPayloadSchema = z.object({ entityId: z.string() });
@@ -135,6 +140,16 @@ function createEditorTestShell(): MockShell {
     new TestAdapter({
       entityType: "note",
       frontmatterSchema: noteFrontmatterSchema,
+      isSingleton: false,
+      hasBody: true,
+    }),
+  );
+  registry.registerEntityType(
+    "brief",
+    baseEntitySchema,
+    new TestAdapter({
+      entityType: "brief",
+      frontmatterSchema: briefFrontmatterSchema,
       isSingleton: false,
       hasBody: true,
     }),
@@ -928,6 +943,49 @@ describe("cms editor api", () => {
       id: "rule-note",
     });
     expect(stored?.content).toBe(newBody);
+  });
+
+  it("saves a restricted entity whose loaded draft carries the system visibility key", async () => {
+    const shell = createEditorTestShell();
+    const cookie = await createSessionCookie(shell);
+    await shell.getEntityService().createEntity({
+      entity: {
+        id: "restricted-brief",
+        entityType: "brief",
+        content:
+          "---\ntitle: Restricted\nvisibility: restricted\n---\n\nBody.\n",
+        metadata: { title: "Restricted" },
+        visibility: "restricted",
+        created: "2026-07-01T00:00:00.000Z",
+        updated: "2026-07-01T00:00:00.000Z",
+      },
+    });
+    const plugin = await registerPlugin(shell);
+
+    // Non-public entities carry `visibility` in their exported frontmatter, so
+    // the editor loads it into the draft and sends it straight back. It is a
+    // system field, not a domain one, and must never reach domain validation.
+    const update = await findRoute(plugin, "/cms/api/entities", "PUT").handler(
+      apiRequest("/cms/api/entities", {
+        cookie,
+        method: "PUT",
+        body: {
+          entityType: "brief",
+          id: "restricted-brief",
+          frontmatter: { title: "Restricted", visibility: "restricted" },
+          body: "Edited.\n",
+        },
+      }),
+    );
+
+    expect(update.status).toBe(200);
+    const stored = await shell.getEntityService().getEntity({
+      entityType: "brief",
+      id: "restricted-brief",
+      visibilityScope: "restricted",
+    });
+    expect(stored?.visibility).toBe("restricted");
+    expect(stored?.content).toContain("Edited.");
   });
 
   it("rejects frontmatter writes to raw types", async () => {

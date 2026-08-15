@@ -42,9 +42,25 @@ describe("workspace URL queries", () => {
       { replace: (href) => calls.push(href) },
       "/studio/workspaces/inbox",
       { urgency: "normal", offset: 50 },
+      "/studio/workspaces/inbox",
     );
 
     expect(calls).toEqual(["/studio/workspaces/inbox?urgency=normal"]);
+  });
+
+  it("never rewrites a route the operator has already navigated away to", () => {
+    const calls: string[] = [];
+
+    // A follow-up launch pushes its own destination; canonicalisation must not
+    // win that race and drag the operator back to the workspace.
+    replaceWorkspaceUrlQuery(
+      { replace: (href) => calls.push(href) },
+      "/studio/workspaces/inbox",
+      { urgency: "normal" },
+      "/studio/entities/note",
+    );
+
+    expect(calls).toEqual([]);
   });
 
   it("makes reload after transient paging start from the stable first-page query", () => {

@@ -283,6 +283,7 @@ export function App(): ReactElement {
         router.history,
         pathname,
         initialUrlWorkspaceQuery,
+        window.location.pathname,
       );
     }
   }, [
@@ -931,7 +932,12 @@ export function App(): ReactElement {
       if (workspace?.urlQuery === true && canonicalUrlQuery !== undefined) {
         const pathname = cmsWorkspacePath(cmsBasePath, workspaceId);
         urlSearch = workspaceUrlSearch(canonicalUrlQuery);
-        replaceWorkspaceUrlQuery(router.history, pathname, canonicalUrlQuery);
+        replaceWorkspaceUrlQuery(
+          router.history,
+          pathname,
+          canonicalUrlQuery,
+          window.location.pathname,
+        );
       }
       setWorkspaceQueries((current) => ({
         ...current,

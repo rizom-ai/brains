@@ -151,7 +151,10 @@ export async function handleUpdateEntity(
   // the form, the entity service is never called with invalid frontmatter.
   const frontmatter = raw
     ? z.object({}).safeParse({})
-    : schema.safeParse(payload.frontmatter);
+    : // `visibility` is a system field the editor loads from a non-public
+      // entity's frontmatter and sends straight back. It is resolved above and
+      // must not reach a strict domain schema, which would reject it.
+      schema.safeParse(stripCmsPolicyMetadata(payload.frontmatter));
   if (!frontmatter.success) {
     return jsonResponse(
       { error: "Invalid frontmatter", issues: frontmatter.error.issues },
@@ -344,7 +347,10 @@ export async function handleCreateEntity(
 
   const frontmatter = raw
     ? z.object({}).safeParse({})
-    : schema.safeParse(payload.frontmatter);
+    : // `visibility` is a system field the editor loads from a non-public
+      // entity's frontmatter and sends straight back. It is resolved above and
+      // must not reach a strict domain schema, which would reject it.
+      schema.safeParse(stripCmsPolicyMetadata(payload.frontmatter));
   if (!frontmatter.success) {
     return jsonResponse(
       { error: "Invalid frontmatter", issues: frontmatter.error.issues },

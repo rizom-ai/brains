@@ -39,11 +39,18 @@ export function workspaceUrlHref(
   return `${pathname}${workspaceUrlSearch(query)}`;
 }
 
-/** Canonical filter changes replace their current history entry, never push. */
+/**
+ * Canonical filter changes replace their current history entry, never push —
+ * and only while the workspace is still the open route. A follow-up launch
+ * navigates away in the same tick, so an unguarded replace would rewrite the
+ * launched destination back to the workspace and discard its handoff state.
+ */
 export function replaceWorkspaceUrlQuery(
   history: { replace(href: string): void },
   pathname: string,
   query: CmsWorkspaceQuery,
+  currentPathname: string,
 ): void {
+  if (currentPathname !== pathname) return;
   history.replace(workspaceUrlHref(pathname, query));
 }
