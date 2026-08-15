@@ -29,15 +29,15 @@ proves otherwise.
 `docs/feature-overview.md` no longer implies external plugins can already
 provide these capabilities; that correction shipped with this scope decision.
 
-A 2026-08-15 review against the code corrected three things: the CMS inventory
-counted four renderer branches where five ship (Email Triage was dropped as
-superseded, but its workspace still registers); the non-goal forbidding
-publication of the UI library contradicted the Milestone B decision in
-[`npm-package-boundaries.md`](./npm-package-boundaries.md), and is now stated as
-the boundary it was meant to hold — components are not an operator-authoring
-input whatever their package's publication status; and Phase 4 was resliced
-vertically so each step converts real surfaces end to end rather than building
-the whole protocol before anything renders.
+A 2026-08-15 review against the code corrected two things: the non-goal
+forbidding publication of the UI library contradicted the Milestone B decision
+in [`npm-package-boundaries.md`](./npm-package-boundaries.md), and is now stated
+as the boundary it was meant to hold — components are not an
+operator-authoring input whatever their package's publication status; and Phase
+4 was resliced vertically so each step converts real surfaces end to end rather
+than building the whole protocol before anything renders. A proposed fifth CMS
+entry was rejected by repository evidence: `995d4910a` retired the Email Triage
+workspace, and the current CMS test explicitly rejects its legacy renderer.
 
 ### Phase 0 refinement record (drafted 2026-08-11)
 
@@ -50,12 +50,9 @@ them. Phase 1 now compiles
 both fixtures against local public entries and classifies the accepted helpers
 in the stable ledger; packing and runtime behavior remain later-phase evidence.
 `PORTS.md` beside the operator fixture records the historical Directory Sync,
-Site, Email Triage, and Publishing sketches. Unified Inbox has since been added
-alongside the triage workspace proof — it replaced that sketch as the fixture
-target, but `plugins/email-triage/src/operator-cms.ts` still registers
-`EmailTriageWorkspace`, so five first-party renderer names ship today. The
-complete current widget/workspace inventory must supersede that sketch during
-Phase 4.
+Site, Email Triage, and Publishing sketches. Unified Inbox replaced Email
+Triage as the shipping triage workspace in `995d4910a`; the complete current
+widget/workspace inventory must supersede that historical sketch during Phase 4.
 
 Owner review accepted the five findings below before Phase 1:
 
@@ -176,7 +173,7 @@ The minimum useful outcome is:
 | Dashboard widget | Private `context.dashboard.registerWidget()` and `DashboardWidgetRegistration`                             | Requires private context/types, string `rendererName`, registration timing, and optional UI objects |
 | CMS workspace    | Private `registerCmsWorkspace()` over `cms:register-workspace` messaging                                   | Requires private messaging/types, author-supplied plugin ID, and a first-party renderer allowlist   |
 | Dashboard UI     | UI-library component (`@rizom/brain-ui`) plus optional raw client style/script strings                     | Direct UI dependency and unstable rendering implementation                                          |
-| CMS UI           | Hard-coded React branches for five first-party renderer names                                              | External code cannot provide a renderer and the names describe built-in products                    |
+| CMS UI           | Hard-coded React branches for four first-party renderer names                                              | External code cannot provide a renderer and the names describe built-in products                    |
 | Lifecycle        | Dashboard registration coordinates through the all-plugins-registered event; CMS has no unregister message | Authors would need runtime ordering knowledge and CMS cleanup is incomplete                         |
 | Security/data    | Dashboard providers receive no canonical caller; CMS handlers receive a private actor                      | No shared public principal-scoped data/action contract                                              |
 
@@ -593,10 +590,10 @@ query descriptors, and allowed typed action descriptors.
 Add lifecycle-complete CMS unregistration. Scope workspace keys by installed
 package plus local workspace ID so unrelated external packages cannot collide.
 Routes may use a runtime-safe scoped segment while displaying the local label.
-In the isolated implementation worktree, replace all five current private CMS
-renderer branches — Publishing, Site, Directory Sync, Email Triage, and Unified
-Inbox — with the same public definition/normalization path and remove the
-renderer-name allowlist before merge.
+In the isolated implementation worktree, replace all four current private CMS
+renderer branches — Publishing, Site, Directory Sync, and Unified Inbox — with
+the same public definition/normalization path and remove the renderer-name
+allowlist before merge.
 
 ### Typed entity and job access
 
@@ -767,15 +764,13 @@ one isolated consumer.
 ### Phase 4: complete semantic protocol and CMS runtime
 
 Implementation occurs in one isolated worktree based on this plan. No partial
-renderer transition lands on main: main sees one merge, after slice 4f.
+renderer transition lands on main: main sees one merge, after slice 4g.
 
 Inside the worktree the work is sliced vertically. Each slice after 4a converts
-a real surface end to end — definition, normalization, host rendering, and
-proof — and extends the closed vocabulary only by what that slice's surfaces
-demand. Converted surfaces run through the public path from the slice that
-converts them; unconverted ones keep their private renderer until their turn.
-The slice order is chosen so each new capability is introduced by the surface
-that first requires it.
+real surfaces end to end — definition, normalization, host rendering, and proof
+— and extends the closed vocabulary only by what those surfaces demand.
+Converted surfaces run through the public path from the slice that converts
+them; unconverted ones keep their private renderer until their turn.
 
 **4a — Inventory.** Replace the historical four-workspace sketch with a checked
 inventory of every current operator surface.
@@ -784,44 +779,65 @@ inventory of every current operator surface.
   Items, Conversation Memory Coverage, Recent Decisions, Recent Conversation
   Memory, Topics, Knowledge Map, Top Wishes, Publication Pipeline, Email
   Triage, Site Health, and Inbox.
-- CMS entries: Directory Sync, Site, Publishing, Email Triage, and Unified
-  Inbox. Email Triage is not superseded by Unified Inbox: both register
-  workspaces and both appear in the current renderer-name allowlist, so
-  omitting either leaves the allowlist in place and fails criterion 25.
+- CMS entries: Directory Sync, Site, Publishing, and Unified Inbox. The retired
+  Email Triage renderer is a negative compatibility test, not a current
+  workspace.
 - For each entry record its information, interactions, query behavior, dynamic
   catalogs, authorization, confirmation, navigation, responsive semantics, and
   accessibility behavior. Visual implementation details do not become author
   fields.
 
-Exit: every entry has a recorded capability profile, and each is assigned to
-one of the slices below.
+Exit: every entry has a recorded capability profile and the slice assignment
+below.
 
-**4b — Walking skeleton.** Take the two simplest inventory entries — one
-Dashboard widget on stats/list primitives (Site Health or Top Wishes) and one
-CMS workspace — through the public definition and normalization path, including
-package-scoped CMS registration/unregistration and the `CmsWorkspaceView`
-renderer in the React host, preserving authenticated actor derivation and CSRF.
+**4b — Walking skeleton.** Take Top Wishes and the public reading-workspace
+fixture through the public definition and normalization path. Add
+package-scoped CMS registration/unregistration and the base
+`CmsWorkspaceView` React renderer while preserving authenticated actor
+derivation and CSRF.
 
-Exit: one widget and one workspace render, act, unregister, and restart through
-public HTTP behavior on base vocabulary alone.
+Exit: one current widget and the public workspace render, act, unregister, and
+restart through supported host behavior using only the shipped base vocabulary.
 
-**4c — Server-driven query state.** Convert the table-shaped surfaces that
-demand it: Directory Sync, Unified Inbox, and Email Triage. Add typed
-host-owned query state for server filtering, sorting, paging, selection,
-facets, and canonical deep links, plus typed row actions.
+**4c — Collections, composition, and host launches.** Extend row annotations,
+tabs, local filters, matrix presentation, semantic grouping, and typed
+host-owned launch intents. Convert Skills, SWOT, Agent Network, Open Action
+Items, Conversation Memory Coverage, Recent Decisions, Recent Conversation
+Memory, Topics, Publication Pipeline, Email Triage, Site Health, and Inbox.
 
-**4d — Relational and pipeline presentation.** Convert Knowledge Map, Agent
-Network, Agent Proximity, Publication Pipeline, and the Site workspace. Add
-only the graph, matrix, and pipeline primitives those entries demonstrate.
+Exit: every non-spatial Dashboard widget uses the public path; no converted
+widget supplies a component, script, stylesheet, renderer name, or raw internal
+route.
 
-**4e — Dynamic catalogs and confirmation.** Convert Publishing and the
-remaining Conversation Memory, Topics, SWOT, Skills, and Inbox entries. Add
-caller-filtered catalogs of immutable typed entity/action definitions for
-provider-discovered coverage and source-owned actions, and host-owned static
-and prepared confirmation with stale-content, replay, caller, capability,
-input, revision, and expiry checks.
+**4d — Spatial presentation.** Add only the normalized Cartesian/radial map,
+zone, cluster, relationship, legend, selection, and accessible-detail semantics
+demonstrated by Knowledge Map and Agent Proximity. Convert both widgets.
 
-**4f — Close out the private paths.** With every inventoried surface converted,
+Exit: every Dashboard widget uses the public path, including the two spatial
+surfaces, without author SVG, CSS, or browser script.
+
+**4e — Operational CMS foundations.** Convert Directory Sync and Site. Add the
+semantic grouping, directional flow, meter, active-progress, conditional typed
+action, typed entity link, and host-owned static-confirmation behavior those
+workspaces demonstrate.
+
+Exit: both operational workspaces render and act through the public CMS path
+with equivalent information, authorization, feedback, and responsive reading
+order.
+
+**4f — Server state, dynamic catalogs, and prepared confirmation.** Convert
+Unified Inbox and Publishing. Add typed canonical query state for server
+filtering, sorting, paging, append/reset, selection, dynamic facets, and deep
+links; caller-filtered catalogs of immutable typed entity/action/launch
+definitions; master/detail behavior; destination-scoped reordering; and
+host-owned prepared confirmation with stale-content, replay, caller,
+capability, input, revision, and expiry checks.
+
+Exit: both dynamic workspaces render, query, navigate, confirm, and act through
+typed public contracts without opaque commands, entity-type strings, or
+resolved author hrefs.
+
+**4g — Close out the private paths.** With every inventoried surface converted,
 remove private Dashboard component/asset registration and CMS renderer-name
 branching, then prove the cross-cutting properties against the whole converted
 set:
