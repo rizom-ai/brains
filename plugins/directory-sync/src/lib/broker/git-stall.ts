@@ -1,3 +1,4 @@
+import { readdir, readFile } from "fs/promises";
 import { Effect, Fiber } from "@brains/utils/effect";
 import type { Clock } from "@brains/utils/effect";
 
@@ -46,7 +47,11 @@ export async function runGitCommandWithStallTimeout(
     cwd: baseDir,
     stdout: "pipe",
     stderr: "pipe",
-    detached: true,
+    // Deliberately not detached. A detached child leads a process group of its
+    // own, which is invisible to the supervisor probing the broker group — it
+    // would see ESRCH, call the checkout unowned, and start a replacement
+    // beside a push still writing to it. Staying in the broker group is what
+    // makes "every Git descendant is gone" provable.
     ...(net.credentialEnv
       ? { env: { ...process.env, ...net.credentialEnv } }
       : {}),
@@ -72,13 +77,18 @@ export async function runGitCommandWithStallTimeout(
       await Effect.runPromise(Fiber.interrupt(activeTimer));
     }
   };
+  /**
+   * Kill this child and anything it started.
+   *
+   * Signalling the group is not available here: the group is the broker
+   * group, and signalling that would take the broker down with it. But Git
+   * forks — a daemon runs its listener in a child, transports run in helpers
+   * — so killing only the direct child leaves work alive that nobody is
+   * watching.
+   */
   const kill = (): void => {
     if (child.exitCode !== null) return;
-    try {
-      process.kill(-child.pid, "SIGKILL");
-    } catch {
-      child.kill("SIGKILL");
-    }
+    void killSubtree(child.pid);
   };
   const captureOutput = (
     stream: ReadableStream<Uint8Array>,
@@ -165,5 +175,46 @@ export async function runGitCommandWithStallTimeout(
     signal?.removeEventListener("abort", onAbort);
     await settleStallTimer();
     await operation.catch(() => undefined);
+  }
+}
+
+/** Every transitive child of `pid`, read from procfs. */
+async function descendantsOf(pid: number): Promise<number[]> {
+  const parents = new Map<number, number>();
+  const entries = await readdir("/proc").catch(() => []);
+  for (const entry of entries) {
+    if (!/^\d+$/.test(entry)) continue;
+    const stat = await readFile(`/proc/${entry}/stat`, "utf-8").catch(
+      () => undefined,
+    );
+    if (!stat) continue;
+    // The command may contain spaces and parentheses, so fields are counted
+    // from the closing paren; ppid is the second of them.
+    const ppid = Number(stat.slice(stat.lastIndexOf(")") + 2).split(" ")[1]);
+    if (Number.isFinite(ppid)) parents.set(Number(entry), ppid);
+  }
+
+  const found: number[] = [];
+  const collect = (parent: number): void => {
+    for (const [candidate, ppid] of parents) {
+      if (ppid !== parent || found.includes(candidate)) continue;
+      found.push(candidate);
+      collect(candidate);
+    }
+  };
+  collect(pid);
+  return found;
+}
+
+async function killSubtree(pid: number): Promise<void> {
+  // Collected before the root dies: a process reparented by its parent's
+  // death can no longer be traced back to it.
+  const descendants = await descendantsOf(pid);
+  for (const target of [pid, ...descendants]) {
+    try {
+      process.kill(target, "SIGKILL");
+    } catch {
+      // Already gone, which is the outcome being asked for.
+    }
   }
 }
