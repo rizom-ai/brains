@@ -1,5 +1,5 @@
-import { describe, expect, it } from "bun:test";
-import type { Logger } from "@brains/utils/logger";
+import { describe, expect, it, spyOn } from "bun:test";
+import { createSilentLogger } from "@brains/test-utils";
 import { resolveProfileDisplayNameSafely } from "../src/profile-display-name";
 
 describe("resolveProfileDisplayNameSafely", () => {
@@ -40,11 +40,14 @@ describe("resolveProfileDisplayNameSafely", () => {
 
   it("fails closed and logs when the resolver throws", async () => {
     const warnings: Array<{ message: string; context?: unknown }> = [];
-    const logger = {
-      warn: (message: string, context?: unknown) => {
+    // The shared silent logger with warn spied: it implements the whole
+    // Logger, and the spy records what the resolver reported.
+    const logger = createSilentLogger();
+    spyOn(logger, "warn").mockImplementation(
+      (message: string, context?: unknown) => {
         warnings.push({ message, context });
       },
-    } as unknown as Logger;
+    );
 
     const result = await resolveProfileDisplayNameSafely(
       async () => {

@@ -28,8 +28,8 @@ describe("Typed Message Channels", () => {
     });
 
     it("should return false for null and undefined", () => {
-      expect(isChannel(null as unknown as string)).toBe(false);
-      expect(isChannel(undefined as unknown as string)).toBe(false);
+      expect(isChannel(null)).toBe(false);
+      expect(isChannel(undefined)).toBe(false);
     });
   });
 
