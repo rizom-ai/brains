@@ -5,7 +5,7 @@ import {
   type InterfacePluginContext,
   type MessageInterfacePluginContext,
   type MessageInterfaceOutput,
-  type RuntimeUploadStore,
+  type ScopedRuntimeUploadStore,
   type ToolActivityEvent,
   type ToolStatusUpdate,
 } from "@brains/plugins";
@@ -112,7 +112,7 @@ export class ChatInterface extends MessageInterfacePlugin<
     logger: this.logger,
   });
   private readonly chatInputBuilder = new ChatInputBuilder({
-    getUploadStore: (platform: string): RuntimeUploadStore | undefined =>
+    getUploadStore: (platform: string): ScopedRuntimeUploadStore | undefined =>
       platform === "discord" || platform === "slack"
         ? this.uploadCoordinator.getCanonicalStore()
         : undefined,
@@ -187,7 +187,7 @@ export class ChatInterface extends MessageInterfacePlugin<
     this.chatApp = new ChatSdkAppHost({
       discord: this.config.adapters.discord,
       slack: this.config.adapters.slack,
-      getUploadStore: (platform): RuntimeUploadStore | undefined =>
+      getUploadStore: (platform): ScopedRuntimeUploadStore | undefined =>
         this.uploadCoordinator.getPlatformStore(platform),
       buildApp: (runtimeState): ChatSdkApp =>
         createChatSdkApp({

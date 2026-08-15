@@ -86,7 +86,6 @@ export class ConversationActorRegistry<TActor extends { stop(): void }> {
   private closed = false;
   private readonly clock: Clock.Clock | undefined;
 
-  constructor(options: ConversationActorRegistryOptions<TActor>);
   constructor(
     options: ConversationActorRegistryOptions<TActor>,
     runtimeOptions?: ConversationActorRegistryRuntimeOptions,

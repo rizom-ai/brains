@@ -1,5 +1,5 @@
 import type { Adapter, Thread } from "chat";
-import type { RuntimeUploadStore } from "@brains/plugins";
+import type { ScopedRuntimeUploadStore } from "@brains/plugins";
 
 /**
  * A thread with opaque per-thread state. This package never reads or
@@ -39,14 +39,14 @@ export interface SlackChatAdapter extends Adapter {
 /**
  * The part of the upload store the chat interface uses.
  *
- * Every consumer here only calls read; asking for the whole RuntimeUploadStore
+ * Every consumer here only calls read; asking for the whole upload store
  * meant a test fake had to assert it was one. Pick keeps the signature in step
  * with the real store.
  */
-export type ChatUploadReader = Pick<RuntimeUploadStore, "read">;
+export type ChatUploadReader = Pick<ScopedRuntimeUploadStore, "read">;
 
 /** The upload surface the input builder uses: it also stores what it receives. */
-export type ChatUploadStore = Pick<RuntimeUploadStore, "read" | "save">;
+export type ChatUploadStore = Pick<ScopedRuntimeUploadStore, "read" | "save">;
 
 export interface ChatAdapterMap {
   discord?: DiscordChatAdapter;

@@ -2,7 +2,7 @@ import {
   MessageUploadContinuity,
   type ChatAttachment,
   type InterfacePluginContext,
-  type RuntimeUploadStore,
+  type ScopedRuntimeUploadStore,
 } from "@brains/plugins";
 import {
   chatAttachmentFromStoredUpload,
@@ -49,13 +49,15 @@ export class ChatUploadCoordinator {
     this.continuity.slack.clear();
   }
 
-  getCanonicalStore(): RuntimeUploadStore | undefined {
+  getCanonicalStore(): ScopedRuntimeUploadStore | undefined {
     return this.deps
       .getContext()
       ?.uploads.scoped(createCanonicalChatUploadStoreScope());
   }
 
-  getPlatformStore(platform: ChatPlatform): RuntimeUploadStore | undefined {
+  getPlatformStore(
+    platform: ChatPlatform,
+  ): ScopedRuntimeUploadStore | undefined {
     const scope =
       platform === "discord"
         ? createDiscordChatUploadStoreScope()

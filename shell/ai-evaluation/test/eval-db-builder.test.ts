@@ -3,7 +3,7 @@ import { createTempDir } from "@brains/test-utils";
 import { mkdir, readFile, rm, writeFile } from "fs/promises";
 import { join } from "path";
 import { afterEach, describe, expect, it } from "bun:test";
-import type { AppConfig } from "@brains/app";
+import type { SeedContentConfig } from "../src/eval-environment";
 
 import { copyBuiltDatabases } from "../src/eval-db-builder";
 import { resolveEvaluationContentDirectory } from "../src/eval-environment";
@@ -59,7 +59,7 @@ describe("eval DB builder", () => {
           config: { seedContentPath: suiteContentDir },
         },
       ],
-    } as unknown as AppConfig;
+    } satisfies SeedContentConfig;
     expect(resolveEvaluationContentDirectory({ config })).toBe(suiteContentDir);
 
     copyBuiltDatabases(evalDbBase, suiteContentDir);
