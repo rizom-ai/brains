@@ -1,8 +1,18 @@
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import type { TransportLogger } from "./types";
 import { createStderrLogger, adaptLogger } from "./types";
 import type { Logger } from "@brains/utils/logger";
+
+/**
+ * The part of an MCP server this transport uses.
+ *
+ * Declared here rather than importing McpServer: connect is the only member
+ * touched, and asking for the whole SDK class meant a test could not supply a
+ * stand-in without asserting it was one.
+ */
+export interface ConnectableMcpServer {
+  connect(transport: StdioServerTransport): Promise<void>;
+}
 
 export interface StdioMCPServerConfig {
   logger?: Logger | TransportLogger;
@@ -14,7 +24,7 @@ export interface StdioMCPServerConfig {
  * Does NOT create its own MCP server - accepts one via connectMCPServer
  */
 export class StdioMCPServer {
-  private mcpServer: McpServer | null = null;
+  private mcpServer: ConnectableMcpServer | null = null;
   private transport: StdioServerTransport | null = null;
   private readonly config: StdioMCPServerConfig;
   private readonly logger: TransportLogger;
@@ -34,7 +44,7 @@ export class StdioMCPServer {
   /**
    * Connect an MCP server to this transport
    */
-  public connectMCPServer(mcpServer: McpServer): void {
+  public connectMCPServer(mcpServer: ConnectableMcpServer): void {
     this.mcpServer = mcpServer;
     this.logger.debug("MCP server connected to stdio transport");
   }
