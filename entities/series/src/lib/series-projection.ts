@@ -4,9 +4,9 @@ import {
   type BaseEntity,
   type ProjectionRule,
   type ProjectionWriteIntent,
-} from "@brains/plugins";
-import { slugify } from "@brains/utils/string-utils";
-import { z } from "@brains/utils/zod";
+} from "@brains/sdk/entities";
+import { slugify } from "@brains/sdk/entities";
+import { z } from "@brains/sdk/entities";
 import { createSeriesBodyFormatter } from "../schemas/series";
 import { getSeriesName } from "./series-metadata";
 

@@ -1,6 +1,9 @@
-import { StructuredContentFormatter } from "@brains/content-formatters";
-import { baseEntityParserSchema } from "@brains/plugins";
-import { z } from "@brains/utils/zod";
+import {
+  StructuredContentFormatter,
+  baseEntityParserSchema,
+  parseMarkdownWithFrontmatter,
+  z,
+} from "@brains/sdk/entities";
 
 type NullableStringSchema = z.ZodDefault<z.ZodNullable<z.ZodString>>;
 type NullableNumberSchema = z.ZodDefault<z.ZodNullable<z.ZodNumber>>;
@@ -23,9 +26,13 @@ export type SeriesFrontmatter = z.output<typeof seriesFrontmatterSchema>;
 export const seriesMetadataSchema: z.ZodObject<{
   title: z.ZodString;
   slug: z.ZodString;
+  coverImageId: NullableStringSchema;
 }> = z.object({
   title: z.string(),
   slug: z.string(),
+  // Carried in metadata, not just frontmatter: the declarative markdown
+  // codec encodes from metadata, so anything omitted here is lost on write.
+  coverImageId: z.string().nullable().default(null),
 });
 
 export type SeriesMetadata = z.output<typeof seriesMetadataSchema>;
@@ -100,4 +107,21 @@ export function createSeriesBodyFormatter(
     title,
     mappings: [{ key: "description", label: "Description", type: "string" }],
   });
+}
+
+/**
+ * Parse a series entity's structured body. Returns an empty body when the
+ * markdown has no valid frontmatter, since a malformed series should
+ * render as empty rather than fail the page.
+ */
+export function parseSeriesBody(markdown: string): SeriesBody {
+  try {
+    const { content, metadata } = parseMarkdownWithFrontmatter(
+      markdown,
+      seriesFrontmatterSchema,
+    );
+    return createSeriesBodyFormatter(metadata.title).parse(content);
+  } catch {
+    return {};
+  }
 }

@@ -28,6 +28,7 @@ export type {
 // generated declarations.
 export {
   baseEntityParserSchema,
+  generateMarkdownWithFrontmatter,
   contentVisibilitySchema,
   createTemplate,
   defineDataSource,
@@ -55,15 +56,34 @@ export type {
   ProjectionInputContext,
   ProjectionRule,
   ProjectionRuleDefinition,
+  ProjectionWriteIntent,
   ProjectionWaveTrigger,
   NavigationResult,
   SortField,
   Template,
 } from "@brains/plugins";
 
+// Structured body content. Entities that keep prose in markdown sections
+// rather than frontmatter parse and format it with this; consumer today
+// is @brains/series.
+export { StructuredContentFormatter } from "@brains/content-formatters";
+export type { ContentFormatter } from "@brains/content-formatters";
+export type { JsonValue } from "@brains/contracts";
+
+// AT Protocol projection, for entities that publish records. The runtime
+// owns registration, so the registry itself stays internal — an author
+// only builds the projection.
+export { canonicalAtprotoLexicons } from "@brains/atproto-contracts";
+export type {
+  AtprotoBrainSeriesRecord,
+  AtprotoProjection,
+  AtprotoProjectionBuildInput,
+} from "@brains/atproto-contracts";
+
 // Text and markdown helpers used when authoring entities. Promoted from
 // @brains/utils; consumers today are @brains/doc and @brains/products.
 export { slugify } from "@brains/utils/string-utils";
+export { computeContentHash } from "@brains/utils/hash";
 export { parseMarkdown } from "@brains/utils/markdown";
 
 export type {
