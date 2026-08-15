@@ -29,6 +29,16 @@ proves otherwise.
 `docs/feature-overview.md` no longer implies external plugins can already
 provide these capabilities; that correction shipped with this scope decision.
 
+A 2026-08-15 review against the code corrected three things: the CMS inventory
+counted four renderer branches where five ship (Email Triage was dropped as
+superseded, but its workspace still registers); the non-goal forbidding
+publication of the UI library contradicted the Milestone B decision in
+[`npm-package-boundaries.md`](./npm-package-boundaries.md), and is now stated as
+the boundary it was meant to hold — components are not an operator-authoring
+input whatever their package's publication status; and Phase 4 was resliced
+vertically so each step converts real surfaces end to end rather than building
+the whole protocol before anything renders.
+
 ### Phase 0 refinement record (drafted 2026-08-11)
 
 The source-first service target now lives at
@@ -40,9 +50,12 @@ them. Phase 1 now compiles
 both fixtures against local public entries and classifies the accepted helpers
 in the stable ledger; packing and runtime behavior remain later-phase evidence.
 `PORTS.md` beside the operator fixture records the historical Directory Sync,
-Site, Email Triage, and Publishing sketches. Unified Inbox has since replaced
-the original triage workspace proof, and the complete current widget/workspace
-inventory must supersede that sketch during Phase 4.
+Site, Email Triage, and Publishing sketches. Unified Inbox has since been added
+alongside the triage workspace proof — it replaced that sketch as the fixture
+target, but `plugins/email-triage/src/operator-cms.ts` still registers
+`EmailTriageWorkspace`, so five first-party renderer names ship today. The
+complete current widget/workspace inventory must supersede that sketch during
+Phase 4.
 
 Owner review accepted the five findings below before Phase 1:
 
@@ -162,8 +175,8 @@ The minimum useful outcome is:
 | Account settings | Deployment-owned `brain.yaml`/environment config; Account owns profile, passkeys, and sessions             | No package-declared per-principal schema, encrypted plugin secret store, form, or callback binding  |
 | Dashboard widget | Private `context.dashboard.registerWidget()` and `DashboardWidgetRegistration`                             | Requires private context/types, string `rendererName`, registration timing, and optional UI objects |
 | CMS workspace    | Private `registerCmsWorkspace()` over `cms:register-workspace` messaging                                   | Requires private messaging/types, author-supplied plugin ID, and a first-party renderer allowlist   |
-| Dashboard UI     | `@brains/ui-library` component plus optional raw client style/script strings                               | Private UI dependency and unstable rendering implementation                                         |
-| CMS UI           | Hard-coded React branches for four first-party renderer names                                              | External code cannot provide a renderer and the names describe built-in products                    |
+| Dashboard UI     | UI-library component (`@rizom/brain-ui`) plus optional raw client style/script strings                     | Direct UI dependency and unstable rendering implementation                                          |
+| CMS UI           | Hard-coded React branches for five first-party renderer names                                              | External code cannot provide a renderer and the names describe built-in products                    |
 | Lifecycle        | Dashboard registration coordinates through the all-plugins-registered event; CMS has no unregister message | Authors would need runtime ordering knowledge and CMS cleanup is incomplete                         |
 | Security/data    | Dashboard providers receive no canonical caller; CMS handlers receive a private actor                      | No shared public principal-scoped data/action contract                                              |
 
@@ -206,8 +219,13 @@ capabilities in either family without creating a new plugin family.
 
 ### 2. Expose complete semantic presentation, not private UI
 
-Do not export `@brains/ui-library`, React/Preact implementation components,
-`rendererName`, arbitrary component values, raw HTML/CSS, or client scripts.
+Do not export React/Preact implementation components, `rendererName`, arbitrary
+component values, raw HTML/CSS, or client scripts through the operator
+authoring contract. The UI library ships separately as `@rizom/brain-ui` under
+the Milestone B decision in [`npm-package-boundaries.md`](./npm-package-boundaries.md);
+that publication is a site- and theme-authoring surface and does not make
+components a legal operator-authoring input. The operator contract admits no
+component value regardless of whether its package is published.
 Both hosts consume one JSON-native semantic protocol with typed
 `DashboardView` and `CmsWorkspaceView` profiles.
 
@@ -575,9 +593,10 @@ query descriptors, and allowed typed action descriptors.
 Add lifecycle-complete CMS unregistration. Scope workspace keys by installed
 package plus local workspace ID so unrelated external packages cannot collide.
 Routes may use a runtime-safe scoped segment while displaying the local label.
-In the isolated implementation worktree, replace all four current private CMS
-renderer branches with the same public definition/normalization path and
-remove the renderer-name allowlist before merge.
+In the isolated implementation worktree, replace all five current private CMS
+renderer branches — Publishing, Site, Directory Sync, Email Triage, and Unified
+Inbox — with the same public definition/normalization path and remove the
+renderer-name allowlist before merge.
 
 ### Typed entity and job access
 
@@ -748,39 +767,70 @@ one isolated consumer.
 ### Phase 4: complete semantic protocol and CMS runtime
 
 Implementation occurs in one isolated worktree based on this plan. No partial
-renderer transition lands on main.
+renderer transition lands on main: main sees one merge, after slice 4f.
 
-1. Replace the historical four-workspace sketch with a checked inventory of
-   every current operator surface.
-2. Prove these Dashboard entries: Agent Network, Agent Proximity, Skills, SWOT,
-   Open Action Items, Conversation Memory Coverage, Recent Decisions, Recent
-   Conversation Memory, Topics, Knowledge Map, Top Wishes, Publication
-   Pipeline, Email Triage, Site Health, and Inbox.
-3. Prove these CMS entries: Directory Sync, Site, Publishing, and Unified Inbox.
-4. For each entry, record its information, interactions, query behavior,
-   dynamic catalogs, authorization, confirmation, navigation, responsive
-   semantics, and accessibility behavior. Visual implementation details do not
-   become author fields.
-5. Extend the closed semantic vocabulary and typed Dashboard/CMS profiles only
-   where at least one inventory entry demonstrates need. The resulting set must
-   express every entry without private components, renderer names, raw browser
-   assets, opaque action commands, or unvalidated query state.
-6. Add typed host-owned query state for server filtering, sorting, paging,
-   selection, facets, and canonical deep links.
-7. Add caller-filtered catalogs of immutable typed entity/action definitions
-   for provider-discovered coverage and source-owned actions.
-8. Add host-owned static and prepared confirmation, including stale-content,
-   replay, caller, capability, input, revision, and expiry checks.
-9. Add package-scoped CMS registration/unregistration and the complete React
-   host renderer while preserving authenticated actor derivation and CSRF.
-10. Convert every inventoried built-in to the same definition and normalization
-    path; remove private Dashboard component/asset registration and CMS
-    renderer-name branching before merge.
-11. Prove denied callers cannot discover workspace coverage, fetch data,
-    prepare confirmations, or execute actions; prove workers never register or
-    invoke operator callbacks.
-12. Prove absent Dashboard/CMS hosts produce no registration, callback,
-    failure, or diagnostic, while present hosts fail loudly on invalid content.
+Inside the worktree the work is sliced vertically. Each slice after 4a converts
+a real surface end to end — definition, normalization, host rendering, and
+proof — and extends the closed vocabulary only by what that slice's surfaces
+demand. Converted surfaces run through the public path from the slice that
+converts them; unconverted ones keep their private renderer until their turn.
+The slice order is chosen so each new capability is introduced by the surface
+that first requires it.
+
+**4a — Inventory.** Replace the historical four-workspace sketch with a checked
+inventory of every current operator surface.
+
+- Dashboard entries: Agent Network, Agent Proximity, Skills, SWOT, Open Action
+  Items, Conversation Memory Coverage, Recent Decisions, Recent Conversation
+  Memory, Topics, Knowledge Map, Top Wishes, Publication Pipeline, Email
+  Triage, Site Health, and Inbox.
+- CMS entries: Directory Sync, Site, Publishing, Email Triage, and Unified
+  Inbox. Email Triage is not superseded by Unified Inbox: both register
+  workspaces and both appear in the current renderer-name allowlist, so
+  omitting either leaves the allowlist in place and fails criterion 25.
+- For each entry record its information, interactions, query behavior, dynamic
+  catalogs, authorization, confirmation, navigation, responsive semantics, and
+  accessibility behavior. Visual implementation details do not become author
+  fields.
+
+Exit: every entry has a recorded capability profile, and each is assigned to
+one of the slices below.
+
+**4b — Walking skeleton.** Take the two simplest inventory entries — one
+Dashboard widget on stats/list primitives (Site Health or Top Wishes) and one
+CMS workspace — through the public definition and normalization path, including
+package-scoped CMS registration/unregistration and the `CmsWorkspaceView`
+renderer in the React host, preserving authenticated actor derivation and CSRF.
+
+Exit: one widget and one workspace render, act, unregister, and restart through
+public HTTP behavior on base vocabulary alone.
+
+**4c — Server-driven query state.** Convert the table-shaped surfaces that
+demand it: Directory Sync, Unified Inbox, and Email Triage. Add typed
+host-owned query state for server filtering, sorting, paging, selection,
+facets, and canonical deep links, plus typed row actions.
+
+**4d — Relational and pipeline presentation.** Convert Knowledge Map, Agent
+Network, Agent Proximity, Publication Pipeline, and the Site workspace. Add
+only the graph, matrix, and pipeline primitives those entries demonstrate.
+
+**4e — Dynamic catalogs and confirmation.** Convert Publishing and the
+remaining Conversation Memory, Topics, SWOT, Skills, and Inbox entries. Add
+caller-filtered catalogs of immutable typed entity/action definitions for
+provider-discovered coverage and source-owned actions, and host-owned static
+and prepared confirmation with stale-content, replay, caller, capability,
+input, revision, and expiry checks.
+
+**4f — Close out the private paths.** With every inventoried surface converted,
+remove private Dashboard component/asset registration and CMS renderer-name
+branching, then prove the cross-cutting properties against the whole converted
+set:
+
+1. denied callers cannot discover workspace coverage, fetch data, prepare
+   confirmations, or execute actions;
+2. workers never register or invoke operator callbacks;
+3. absent Dashboard/CMS hosts produce no registration, callback, failure, or
+   diagnostic, while present hosts fail loudly on invalid content.
 
 Exit: all current built-ins and the public fixture run through one semantic
 contract; CMS lists, loads, queries, renders, confirms, acts, unregisters, and
@@ -970,8 +1020,9 @@ one.
 - **Registration timing leaks back to authors.** Collect definitions and wait on
   runtime finalization internally; reject author-facing ready-event hooks.
 - **Rich UI pressure recreates a component escape hatch.** Extend only audited
-  host-rendered semantic primitives; do not publish private UI packages or use
-  a later custom-UI promise to waive a current completeness case.
+  host-rendered semantic primitives; do not route authors to `@rizom/brain-ui`
+  components or use a later custom-UI promise to waive a current completeness
+  case.
 - **The feature delays `0.2` indefinitely.** Scope is already fixed outside
   `v0.2.0`; Phase 0 approval covers only the API shape. Stable `v0.2.0` ships on
   the frozen surface and this lands additively afterward rather than gating
@@ -979,7 +1030,10 @@ one.
 
 ## Explicit non-goals
 
-- publishing `@brains/ui-library`;
+- admitting `@rizom/brain-ui` (formerly `@brains/ui-library`) components as an
+  operator-authoring input — its separate publication is decided in
+  [`npm-package-boundaries.md`](./npm-package-boundaries.md) and grants the
+  operator contract nothing;
 - arbitrary external React/Preact component loading;
 - raw HTML, CSS, or JavaScript injection in stable operator definitions;
 - replacing the Dashboard or CMS host packages;
