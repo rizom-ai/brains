@@ -1,0 +1,430 @@
+# Current operator-surface capability inventory
+
+## Purpose
+
+This is the Phase 4 completeness baseline required by
+`docs/plans/public-operator-surface-authoring.md`. It inventories every
+first-party Dashboard widget and CMS workspace present when the completeness
+revision was accepted.
+
+A public semantic protocol is complete only when every entry below has running
+conformance evidence through the same definition and normalization path used by
+an external package. No private renderer, component, script, stylesheet,
+renderer name, raw internal URL, or opaque command counts as public contract
+evidence.
+
+“Equivalent” means preserving information, available operations, caller and
+permission behavior, interaction state, accessibility meaning, and responsive
+intent. Exact markup, CSS, animation, decorative geometry, and private route
+spelling are host implementation details.
+
+## Accepted boundaries applied to the inventory
+
+- Dashboard widgets and CMS workspaces remain independent declarations.
+- Dashboard and CMS own markup, browser behavior, routes, and internal links.
+- Authors return closed, typed semantic views; they do not return UI code or a
+  generic DOM tree.
+- Shared primitives use typed Dashboard and CMS profiles.
+- Definitions are immutable. Data, view results, query options, and
+  caller-filtered typed catalogs may vary at runtime.
+- Dashboard may be anonymous. CMS is authenticated.
+- Workspace actions are typed, workspace-scoped capabilities.
+- Account secrets are absent from all operator callback contexts.
+- An absent host performs no observable work.
+
+Existing raw scripts and URLs identify user outcomes that the host must retain;
+they do not justify carrying those implementation mechanisms into the public
+contract.
+
+## Dashboard inventory
+
+### 1. Agent Network
+
+Sources:
+
+- `entities/agent-discovery/src/lib/agent-dashboard.ts`
+- `entities/agent-discovery/src/widgets/agent-network-widget.tsx`
+- `entities/agent-discovery/src/widgets/agent-network-widget-script.ts`
+
+Required semantics:
+
+- two top-level views with counts: agents and skills;
+- nested agent-kind tabs for all, person, team, and organization;
+- local skill filtering by dynamically supplied tags and counts;
+- list rows with stable IDs, descriptions, multiple tags, status, and source;
+- conditional admin-only “invite person” launch for eligible external peers;
+- empty states and keyboard-operable tabs/filters.
+
+The current session-storage script and `/admin` path become a typed host-owned
+launch intent. They are not author script or route fields.
+
+### 2. Agent Proximity
+
+Sources:
+
+- `entities/agent-discovery/src/lib/proximity-map-schema.ts`
+- `entities/agent-discovery/src/widgets/proximity-map.tsx`
+- `entities/agent-discovery/src/widgets/proximity-map-script.ts`
+
+Required semantics:
+
+- a radial relationship map centered on identity or a centroid fallback;
+- typed nodes with kind, status, tags, normalized distance, and bearing;
+- clusters with membership and internal links;
+- second-order sightings linked to one or more introducing nodes;
+- distance strata, legend, active/pending/archive distinctions, and counts;
+- hover, focus, click, and touch selection with bounded text-only detail;
+- selection emphasis that preserves related nodes and dims unrelated content;
+- an accessible map label and keyboard-focusable data points;
+- a deterministic responsive layout.
+
+The organic SVG paths, spores, shimmer, exact coordinates, and animation are
+host rendering choices. Distance, bearing, membership, and relationships are
+semantic data.
+
+### 3. Skills
+
+Source: `entities/agent-discovery/src/lib/skill-dashboard.ts`
+
+Required semantics:
+
+- bounded list with stable IDs and labels;
+- deterministic empty state.
+
+### 4. SWOT
+
+Sources:
+
+- `entities/assessment/src/plugin.ts`
+- `entities/assessment/src/widgets/swot-widget.tsx`
+
+Required semantics:
+
+- explicit generating state;
+- a labeled two-by-two matrix of strengths, weaknesses, opportunities, and
+  threats;
+- ordered items with title and optional detail in each cell;
+- distinct semantic tone per cell;
+- accessible matrix/grid labeling and responsive collapse behavior.
+
+### 5. Open Action Items
+
+Source: `entities/conversation-memory/src/lib/widgets/action-items.ts`
+
+Required semantics:
+
+- stable list rows with title, optional description, multiple metadata values,
+  and status;
+- uncapped open-item digest and attention count while display rows remain
+  bounded;
+- status-first, recency-second ordering.
+
+### 6. Conversation Memory Coverage
+
+Source: `entities/conversation-memory/src/lib/widgets/coverage.ts`
+
+Required semantics:
+
+- stable list rows with count and status annotations;
+- disabled, active, current, stale, pending, and fractional coverage states;
+- deterministic ordering and bounded recent detail.
+
+### 7. Recent Decisions
+
+Source: `entities/conversation-memory/src/lib/widgets/decisions.ts`
+
+Required semantics:
+
+- stable list rows with optional description, multiple metadata values, and
+  active/superseded state;
+- state-first, recency-second ordering.
+
+### 8. Recent Conversation Memory
+
+Sources:
+
+- `entities/conversation-memory/src/lib/widgets/recent-memory.ts`
+- `entities/conversation-memory/src/lib/widgets/recent-memory-widget.tsx`
+
+Required semantics:
+
+- local tabs for all recent entries and one recent entry per channel;
+- tab counts;
+- stable list rows with title, key point, channel, time range, and message
+  count;
+- keyboard-operable tabs and deterministic empty states.
+
+### 9. Topics
+
+Source: `entities/topics/src/lib/dashboard-widget.ts`
+
+Required semantics:
+
+- recency-ordered bounded list with stable IDs, title, and optional summary;
+- latest-topic digest and deterministic empty state.
+
+### 10. Knowledge Map
+
+Sources:
+
+- `entities/topics/src/lib/knowledge-map-data.ts`
+- `entities/topics/src/widgets/knowledge-map.tsx`
+
+Required semantics:
+
+- a deterministic normalized two-dimensional semantic projection;
+- typed points with stable ID, entity definition/reference, label, category,
+  coordinates, and optional zone membership;
+- labeled topic zones with coordinates and member IDs;
+- visible distinctions for published, skill, high-signal, and background
+  points;
+- zone relationships derived from shared membership;
+- a legend and bounded non-colliding labels;
+- a complete accessible text description of the projection;
+- responsive host layout without exposing SVG or CSS.
+
+The current blob paths, glow, mist, label-placement algorithm, and exact SVG are
+host implementation. Coordinates, categories, zones, and membership are
+semantic.
+
+### 11. Top Wishes
+
+Source: `entities/wishlist/src/index.ts`
+
+Required semantics:
+
+- demand-ordered list with stable IDs, title, count, priority, and status;
+- top-wish digest and deterministic empty state.
+
+### 12. Publication Pipeline
+
+Sources:
+
+- `plugins/content-pipeline/src/lib/dashboard-widget.ts`
+- `plugins/dashboard/src/render/widget-card.tsx`
+
+Required semantics:
+
+- queued, generating, needs-attention, and published statistics;
+- bounded publication failures with title and bounded error text;
+- digest and attention count;
+- a host-owned launch to the installed publishing surface when available.
+
+The widget does not reference or own the Publishing workspace. The host launch
+is optional navigation metadata resolved outside both declarations.
+
+### 13. Email Triage
+
+Sources:
+
+- `plugins/email-triage/src/operator-dashboard-widget.tsx`
+- `plugins/email-triage/src/schemas/operator.ts`
+
+Required semantics:
+
+- new, high-priority, needs-reply, and unclassified statistics;
+- digest and high-priority attention count;
+- host-owned launches into the installed Inbox with canonical source/facet
+  query state when such a launch is available.
+
+The current provider-built Inbox URL is replaced by a host-owned typed launch;
+the widget remains independent from the Inbox workspace definition.
+
+### 14. Site Health
+
+Source: `plugins/site-builder/src/lib/dashboard-widget.ts`
+
+Required semantics:
+
+- preview and production environment state with bounded details;
+- active, cancelled, failed, current, not-built, and unavailable states;
+- failure notices;
+- safe external preview/live links;
+- digest and failure attention count;
+- optional host-owned launch to the installed Site workspace.
+
+### 15. Inbox
+
+Sources:
+
+- `plugins/unified-inbox/src/dashboard-widget.tsx`
+- `plugins/unified-inbox/src/schemas.ts`
+
+Required semantics:
+
+- open, high-priority, available-source, and unavailable-source statistics;
+- bounded recent item list with source, received time, and urgency;
+- unavailable-source notice and clear empty state;
+- digest and high-priority attention count;
+- optional host-owned launch to the installed Inbox surface.
+
+## CMS workspace inventory
+
+### 1. Directory Sync
+
+Sources:
+
+- `plugins/directory-sync/src/lib/cms-workspace.ts`
+- `plugins/cms/ui-react/src/directory-sync-workspace.tsx`
+
+Required semantics:
+
+- health header and last-settled status;
+- file, entity-type, branch, issue, and remote-delta statistics;
+- a directional Entity DB → directory → optional Git flow;
+- typed Sync Now action with disabled/busy state;
+- active-run progress and state;
+- recent ordered runs with outcome, source, metrics, and completion time;
+- issue notices with optional paths;
+- automation and source facts;
+- entity-type coverage meters;
+- responsive primary/aside grouping and accessible labels.
+
+### 2. Site
+
+Sources:
+
+- `plugins/site-builder/src/lib/site-workspace.ts`
+- `plugins/cms/ui-react/src/site-workspace.tsx`
+
+Required semantics:
+
+- paired preview and production environment cards;
+- environment state, URL, last success, warnings, active work, and failure;
+- typed preview and production build actions with disabled/busy state;
+- host-owned static production confirmation;
+- recent ordered builds with outcome and result;
+- automation facts and bounded registered-route list;
+- safe external site links and host-owned entity navigation for site metadata;
+- responsive grouping and accessible action/status feedback.
+
+### 3. Publishing
+
+Sources:
+
+- `plugins/content-pipeline/src/lib/cms-workspace.ts`
+- `plugins/cms/ui-react/src/publishing-workspace.tsx`
+- `plugins/content-pipeline/src/provider-registry.ts`
+
+Required semantics:
+
+- caller-filtered dynamic entity coverage from publish-provider registrations;
+- queued, generating, needs-attention, and published statistics;
+- an ordered, destination-scoped queue with typed entity links;
+- caller-visible reorder positions mapped safely to absolute queue positions;
+- conditional reorder/remove row actions with busy state;
+- generating-job list with entity targets and status;
+- failure list with entity targets, bounded errors, and retry actions;
+- queue, remove, reorder, retry, and publish action definitions;
+- provider-prepared publication confirmation with bounded preview, content-hash
+  binding, token, expiry, caller/action/input binding, and replay protection;
+- typed host-owned navigation to dynamically covered entity editors.
+
+Provider registrations must carry typed entity definitions rather than only
+entity-type strings before they can satisfy the public catalog contract.
+
+### 4. Unified Inbox
+
+Sources:
+
+- `plugins/unified-inbox/src/operator-cms.ts`
+- `plugins/unified-inbox/src/operator-service.ts`
+- `plugins/unified-inbox/src/schemas.ts`
+- `plugins/cms/ui-react/src/unified-inbox-workspace.tsx`
+- `shell/plugins/src/inbox-registry.ts`
+- `shell/plugins/src/inbox-follow-up-registry.ts`
+
+Required semantics:
+
+- summary counts and per-source availability;
+- typed canonical query state for source, urgency, dynamic source facets,
+  offset, limit, and selected detail;
+- server-side filtering and paging with append/reset behavior;
+- caller-visible source errors without internal error disclosure;
+- a keyboard-accessible master/detail presentation with focus return;
+- item title, summary, contact, thread ordinal, source, urgency, received time,
+  and typed entity reference;
+- caller-filtered dynamic action definitions supplied by source packages;
+- conditional action availability and busy/error/success feedback;
+- host-owned prepared confirmation for source actions requiring confirmation;
+- caller-filtered typed follow-up launches supplied by destination packages;
+- canonical URL updates and responsive single-pane fallback.
+
+Inbox source actions and follow-ups currently use string IDs, unknown command
+payloads, and resolved hrefs. They must become catalogs of immutable typed
+definitions and host-owned launch targets before this workspace satisfies the
+public contract.
+
+## Semantic capability families demonstrated
+
+The inventory demonstrates the following families. Names here describe needs;
+they are not frozen public type names.
+
+1. **Content:** headings, descriptions, stats, key/value facts, notices, lists,
+   tables, empty states, and bounded status feedback.
+2. **Annotations:** tone, state, count, tags, multiple metadata values, badges,
+   time, progress, and disabled/busy state.
+3. **Composition:** ordered groups, cards, responsive grids, tabs, nested tabs,
+   split master/detail presentation, and primary/aside intent.
+4. **Local interaction:** tab selection, declared local filters, item selection,
+   keyboard focus, touch/hover detail, legends, and related-item emphasis.
+5. **Server interaction:** typed canonical query state, dynamic facets,
+   filtering, sorting, paging, append/reset, selection, and deep links.
+6. **Relational presentation:** matrices, directional flows, coverage meters,
+   normalized Cartesian maps, radial maps, nodes, links, zones, clusters,
+   membership, sightings, legends, and bounded semantic detail.
+7. **Capabilities:** static and caller-filtered typed entity/action catalogs,
+   conditional row/item actions, reordering, static confirmation, prepared
+   confirmation, and typed output.
+8. **Navigation:** safe external links, typed entity targets, and host-owned
+   launch intents with validated state. No author route is part of the view.
+9. **Security/lifecycle:** caller admission, narrow authorization, CSRF,
+   secret-redacted settings, cancellation, cleanup, worker exclusion, and
+   absent-host no-op behavior.
+10. **Accessibility:** semantic labels, keyboard operation, deterministic focus,
+    text alternatives for spatial views, live status feedback, and responsive
+    reading order.
+
+## Current contract gaps
+
+The shipped base contract already covers stats, key/value facts, notices,
+links, lists, tables, safe text, entity/external targets, digest/attention,
+caller-scoped reads/jobs/settings, lifecycle cancellation, and Dashboard
+registration.
+
+Phase 4 must close these demonstrated gaps:
+
+- typed Dashboard/CMS view profiles and semantic composition;
+- tags, multiple metadata values, counts, states, and richer row annotations;
+- tabs, local filters, selection, and master/detail behavior;
+- matrix, directional flow, meter, Cartesian map, and radial map semantics;
+- typed workspace query schemas and canonical host URL state;
+- caller-filtered catalogs of immutable entity/action definitions;
+- host-owned launch-intent definitions and validated launch state;
+- Dashboard host interactions currently implemented by author scripts;
+- package-scoped CMS registration and unregistration;
+- conditional typed actions, ordered reordering, and dynamic action catalogs;
+- secure prepared confirmation and replay protection;
+- CMS profile normalization/rendering and complete authorization gates; and
+- removal of private Dashboard component/assets and CMS renderer-name dispatch.
+
+## Existing evidence to preserve or replace
+
+Representative current tests include:
+
+- `entities/agent-discovery/test/agent-network-widget.test.tsx`;
+- `entities/agent-discovery/test/proximity-map-widget.test.tsx`;
+- `entities/topics/test/lib/knowledge-map-widget.test.tsx`;
+- `plugins/email-triage/test/operator-dashboard-widget.test.tsx`;
+- `plugins/site-builder/test/unit/dashboard-widget.test.ts`;
+- `plugins/unified-inbox/test/dashboard-widget.test.tsx`;
+- `plugins/cms/ui-react/src/app.test.tsx`;
+- `plugins/cms/ui-react/src/unified-inbox-workspace.test.tsx`;
+- `plugins/directory-sync/test/cms-workspace.test.ts`;
+- `plugins/content-pipeline/test/cms-workspace.test.ts`; and
+- `plugins/cms/test/workspace.test.ts`.
+
+Porting may replace implementation-specific assertions, but each visible
+information, interaction, permission, confirmation, accessibility, and
+lifecycle requirement above needs equivalent checked evidence before the old
+renderer path is removed.

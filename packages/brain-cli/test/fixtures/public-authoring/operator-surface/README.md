@@ -26,5 +26,6 @@ The `>=0.2.1 <0.3.0` peer range is provisional because this additive milestone
 does not gate `v0.2.0`. Phase 7 must replace the lower bound with the first
 actual `0.2.x` version containing the accepted contract.
 
-See [PORTS.md](./PORTS.md) for the four built-in port sketches and the contract
-gaps they exposed.
+See [CAPABILITY_INVENTORY.md](./CAPABILITY_INVENTORY.md) for the current
+Phase 4 completeness baseline. [PORTS.md](./PORTS.md) remains the historical
+four-workspace Phase 1 sketch.
