@@ -7,6 +7,7 @@ import {
   deriveProjectionUpserts,
 } from "../src/entity/declarative-entity-plugin";
 import type { PublishMediaData } from "@brains/contracts";
+import type { JobHandler } from "@brains/job-queue";
 import type { AttachmentProvider } from "../src";
 import {
   createTemplate,
@@ -388,6 +389,65 @@ describe("entity package definitions", () => {
         { entityService: harness.getEntityService() },
       ),
     ).toEqual({ guides: ["first"], notice: "banner" });
+
+    harness.reset();
+  });
+
+  it("registers a declared generation handler under the entity type", async () => {
+    // Eight packages override createGenerationHandler to build a JobHandler
+    // from the plugin context. Declared, it is an input schema plus one
+    // function over a narrowed context: AI generation and entity access,
+    // with the runtime owning job registration and input validation.
+    const guide = defineEntity({
+      type: "guide",
+      purpose: "A generated guide.",
+      metadata: z.object({ title: z.string() }),
+      generation: {
+        input: z.object({ topic: z.string() }),
+        handle: async ({ input, ai }) => {
+          const generated = await ai.generate<{ title: string }>({
+            prompt: `Write about ${input.topic}`,
+            templateName: "guide",
+          });
+          return { title: generated.title };
+        },
+      },
+    });
+    const definition = defineEntityPackage({ id: "guides", entities: [guide] });
+    const plugin = createEntityPackagePlugins(
+      definition.entities,
+      definition.projections,
+      { name: "@fixture/guides", version: "0.1.0" },
+      (id) => `@fixture/guides:${id}`,
+    )[0];
+    if (!plugin) throw new Error("Guide entity plugin was not created");
+
+    const harness = createPluginHarness({
+      logger: createSilentLogger("entity-generation-test"),
+    });
+    const handlers = new Map<string, JobHandler>();
+    const mockShell = harness.getMockShell();
+    const jobQueue = mockShell.getJobQueueService();
+    const trackingJobQueue = {
+      ...jobQueue,
+      registerHandler: (type: string, handler: JobHandler): void => {
+        handlers.set(type, handler);
+      },
+    };
+    mockShell.getJobQueueService = (): ReturnType<
+      typeof mockShell.getJobQueueService
+    > => trackingJobQueue;
+
+    await harness.installPlugin(plugin);
+
+    const handler = handlers.get("guide:generation");
+    if (!handler) throw new Error("Generation handler was not registered");
+
+    // Input is validated by the declared schema, not by the author.
+    expect(handler.validateAndParse({ nope: true })).toBeNull();
+    expect(handler.validateAndParse({ topic: "rivers" })).toEqual({
+      topic: "rivers",
+    });
 
     harness.reset();
   });
