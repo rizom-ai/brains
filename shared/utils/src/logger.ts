@@ -33,6 +33,24 @@ export interface LoggerOptions {
   logFile?: string;
 }
 
+/**
+ * The logging capability, as a structural contract.
+ *
+ * `Logger` itself cannot cross a public package boundary: it carries private
+ * fields, and the published declarations inline their types rather than
+ * importing `@brains/*`, so the inlined copy is nominally distinct from this
+ * one and nothing is assignable between them. Anything handed to plugin
+ * authors is typed as this interface, which inlines cleanly. `Logger`
+ * satisfies it structurally.
+ */
+export interface LoggerContract {
+  debug(message: string, ...args: unknown[]): void;
+  info(message: string, ...args: unknown[]): void;
+  warn(message: string, ...args: unknown[]): void;
+  error(message: string, ...args: unknown[]): void;
+  child(context: string): LoggerContract;
+}
+
 export class Logger {
   /** The singleton instance */
   private static instance: Logger | null = null;
