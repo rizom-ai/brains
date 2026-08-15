@@ -58,6 +58,14 @@ export interface BrokerJournalOptions {
 
 export class BrokerJournal {
   readonly ambiguous: AmbiguousRequest[];
+  /**
+   * False when the previous generation's record could not be read whole.
+   *
+   * Then `ambiguous` is a floor, not an inventory: something may have been
+   * in flight that left no readable trace, so recovery must reconcile from
+   * repository state rather than concluding nothing was running.
+   */
+  readonly evidenceComplete: boolean;
 
   readonly #path: string;
   readonly #now: () => number;
@@ -67,11 +75,12 @@ export class BrokerJournal {
 
   private constructor(
     path: string,
-    ambiguous: AmbiguousRequest[],
+    previous: { ambiguous: AmbiguousRequest[]; complete: boolean },
     options: BrokerJournalOptions,
   ) {
     this.#path = path;
-    this.ambiguous = ambiguous;
+    this.ambiguous = previous.ambiguous;
+    this.evidenceComplete = previous.complete;
     this.#now = options.now ?? Date.now;
     this.#maxBytes = options.maxBytes ?? DEFAULT_MAX_BYTES;
   }
@@ -89,17 +98,20 @@ export class BrokerJournal {
   ): Promise<BrokerJournal> {
     await mkdir(runtimeDir, { recursive: true, mode: 0o700 });
     const path = join(runtimeDir, JOURNAL_FILE);
-    const previous = await readFile(path, "utf-8").catch(() => "");
-    const ambiguous = unsettled(previous);
+    const contents = await readFile(path, "utf-8").catch(() => "");
+    const previous = unsettled(contents);
 
-    if (previous.length > 0) {
+    // Rotated whether or not it parsed. A damaged record is the only
+    // account of what the lost generation was doing, and discarding it to
+    // start cleanly would destroy the evidence with the problem.
+    if (contents.length > 0) {
       await rename(path, join(runtimeDir, PREVIOUS_FILE)).catch(
         () => undefined,
       );
     }
     await writeFile(path, "", { mode: 0o600 });
 
-    return new BrokerJournal(path, ambiguous, options);
+    return new BrokerJournal(path, previous, options);
   }
 
   async recordStart(start: JournalStart): Promise<void> {
@@ -144,11 +156,31 @@ export class BrokerJournal {
   }
 }
 
-function unsettled(contents: string): AmbiguousRequest[] {
+/**
+ * Read what the previous generation left, tolerating a crash mid-append.
+ *
+ * A process killed while appending leaves a partial final line. Parsing it
+ * as if it were whole threw, and the throw happened during startup — so the
+ * broker could not start, and neither could its replacement. That is an
+ * outage no restart clears, which makes strictness here the more dangerous
+ * choice.
+ */
+function unsettled(contents: string): {
+  ambiguous: AmbiguousRequest[];
+  complete: boolean;
+} {
   const open = new Map<string, AmbiguousRequest>();
+  let complete = true;
+
   for (const line of contents.split("\n")) {
     if (line.length === 0) continue;
-    const parsed: unknown = JSON.parse(line);
+
+    const parsed = parseLine(line);
+    if (parsed === undefined) {
+      // Unreadable: it may have been a start nobody will ever see settle.
+      complete = false;
+      continue;
+    }
 
     const started = startedSchema.safeParse(parsed);
     if (started.success) {
@@ -156,7 +188,21 @@ function unsettled(contents: string): AmbiguousRequest[] {
       continue;
     }
     const settled = settledSchema.safeParse(parsed);
-    if (settled.success) open.delete(settled.data.requestId);
+    if (settled.success) {
+      open.delete(settled.data.requestId);
+      continue;
+    }
+    // Well-formed JSON that is neither record: also unaccounted for.
+    complete = false;
   }
-  return [...open.values()];
+
+  return { ambiguous: [...open.values()], complete };
+}
+
+function parseLine(line: string): unknown {
+  try {
+    return JSON.parse(line);
+  } catch {
+    return undefined;
+  }
 }

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "bun:test";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { appendFile, mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { BrokerJournal } from "../../../src/lib/broker/journal";
@@ -142,5 +142,74 @@ describe("broker journal", () => {
       "requestId",
       "startedAt",
     ]);
+  });
+
+  it("starts after a crash left a half-written line", async () => {
+    const dir = await runtimeDir();
+    const first = await BrokerJournal.open(dir);
+    await first.recordStart({
+      requestId: "req_complete00001",
+      checkoutPath: "/brain/brain-data",
+      operation: "commit",
+    });
+
+    // A crash mid-append leaves exactly this: a valid record, then a partial
+    // one. Parsing it as if it were whole made both the broker and its
+    // replacement fail to start, which is an outage no restart can clear.
+    await appendFile(
+      join(dir, "broker-journal.jsonl"),
+      '{"requestId":"req_torn0000000001","checkoutPath":"/brain/bra',
+    );
+
+    const replacement = await BrokerJournal.open(dir);
+    expect(replacement.ambiguous.map((entry) => entry.requestId)).toEqual([
+      "req_complete00001",
+    ]);
+
+    // And again: a generation that cannot start is not recovered by trying
+    // once more, so the loop has to be broken rather than survived.
+    const third = await BrokerJournal.open(dir);
+    expect(third.ambiguous).toEqual([]);
+  });
+
+  it("says its evidence was incomplete rather than reporting nothing", async () => {
+    const dir = await runtimeDir();
+    const first = await BrokerJournal.open(dir);
+    await first.recordStart({
+      requestId: "req_before0000001",
+      checkoutPath: "/brain/brain-data",
+      operation: "push",
+    });
+    await first.recordSettled("req_before0000001", "ok");
+    await appendFile(
+      join(dir, "broker-journal.jsonl"),
+      '{"requestId":"req_torn',
+    );
+
+    // Every record read was settled, so the honest answer is not 'nothing was
+    // in flight' — it is 'I cannot tell'. Recovery has to reconcile from the
+    // repository either way.
+    const replacement = await BrokerJournal.open(dir);
+    expect(replacement.ambiguous).toEqual([]);
+    expect(replacement.evidenceComplete).toBe(false);
+  });
+
+  it("keeps the damaged record for whoever investigates", async () => {
+    const dir = await runtimeDir();
+    await BrokerJournal.open(dir);
+    await appendFile(
+      join(dir, "broker-journal.jsonl"),
+      '{"requestId":"req_evidence00001',
+    );
+
+    await BrokerJournal.open(dir);
+
+    // Rotated, not discarded: the corruption is the only account of what the
+    // lost generation was doing.
+    const kept = await readFile(
+      join(dir, "broker-journal.prev.jsonl"),
+      "utf-8",
+    );
+    expect(kept).toContain("req_evidence00001");
   });
 });
