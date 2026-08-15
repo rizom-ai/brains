@@ -1,4 +1,5 @@
 import type { ProjectionSourceRole } from "@brains/entity-service";
+import type { Template } from "@brains/templates";
 import type { z } from "@brains/utils/zod";
 
 export type EntityVisibility = "public" | "shared" | "restricted";
@@ -82,6 +83,8 @@ export interface EntityDefinition<
   readonly markdown?: EntityMarkdownCodec<TMetadataSchema> | undefined;
   readonly config?: EntityDefinitionConfig | undefined;
   readonly seed?: EntitySeedDefinition<TMetadataSchema> | undefined;
+  /** Keyed by local template name; the runtime scopes them to the plugin. */
+  readonly templates?: Record<string, Template> | undefined;
 }
 
 export type AnyEntityDefinition = EntityDefinition<

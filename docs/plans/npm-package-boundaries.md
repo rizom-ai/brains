@@ -10,7 +10,7 @@ Re-fact-checked against the tree 2026-08-14:
 - Declaration cleanliness is already guarded: `findInternalDeclarationImports` in `packages/brain-cli/scripts/build.ts` fails the build when generated declarations contain `@brains/*` imports.
 - `bun run arch:check` submits the Git-selected TypeScript/JavaScript inventory to one dependency-cruiser graph, asserts workspace-family coverage, and enforces circular, unresolved, plugin, entity, and interface boundaries in dedicated CI. It does not yet include the published-official-plugin dependency rule from migration step 4. Its existing tier rules permit any `shell/*` import, so they do not constrain which shell package an entity or interface reaches for.
 - The blessed `z` root export (utils section below) is implemented from the public `@rizom/brain` root entry, so external plugin fixtures no longer declare their own `zod` dependency.
-- Milestone A is DONE (`@brains/prompt`) and A2 is DONE (`@brains/style-guide`). Package-by-package migration then stopped: see "Reframing: most `entities/` packages are not entities" below. Publishable-clean is 2 of 18 (`@brains/prompt`, `@brains/style-guide`) after the style-guide contract was promoted onto the SDK — 18, not 19, since `@brains/site-info` moved to `plugins/`; authoring shape and dependency shape are separate achievements this plan had been conflating. The next step is dependency promotion, not more entity capabilities — see "Decision: promote `@brains/contracts` and curated `@brains/utils` slices".
+- Milestone A is DONE (`@brains/prompt`) and A2 is DONE (`@brains/style-guide`). Package-by-package migration then stopped: see "Reframing: most `entities/` packages are not entities" below. Publishable-clean is 2 of 18 (`@brains/prompt`, `@brains/style-guide`) after the style-guide contract was promoted onto the SDK — 18, not 19, since `@brains/site-info` moved to `plugins/`; authoring shape and dependency shape are separate achievements this plan had been conflating. Measured 2026-08-15: the next step is declarative-surface capability _and_ dependency promotion together, not either alone. Only these 2 packages are declarative; the other 15 still extend `EntityPlugin` and need templates, datasources, or handlers that `defineEntity` does not have, so promoting dependencies alone frees no package. See "Decision: promote `@brains/contracts` and curated `@brains/utils` slices".
 - A repo-wide inventory of all 19 entity and 7 interface packages (migration step 1, applied beyond `@brains/note`) is recorded under "Related finding: internal facade bypass audit" below.
 
 New external-facing plugin/entity work should not add private `@brains/*` shortcut imports when a suitable public `@rizom/brain/*` surface exists or should be added. Existing packages can migrate package-by-package, but new work should move toward the public-only shape instead of deepening private coupling.
@@ -240,18 +240,76 @@ Contracts does have a consumer today, so the order inverts:
 1. **Promote the style-guide contract module** onto the SDK —
    **DONE 2026-08-14**. Named consumer: `@brains/style-guide`, which is
    now publishable-clean; its `src` imports only `@brains/sdk/entities`.
-   Publishable-clean is 2 of 19. Promotion required three edits beyond
+   Publishable-clean is 2 of 18. Promotion required three edits beyond
    the re-export, each caught by an existing gate rather than
    remembered: `@brains/contracts` added to the SDK package (already in
    the declaration-inline allowlist), the new symbols classified in the
    export ledger, and the same symbols published in
    `docs/public-release/AUTHORING_API_0.2.md`, the frozen stable-API
    document. Any future promotion pays the same three.
-2. **Promote the remaining entity-facing contract modules** as their
+2. **Extend the declarative surface, one capability at a time, with a
+   named migrating consumer** — measured 2026-08-15, this is what
+   actually blocks everything below it. Only `prompt` and `style-guide`
+   are declarative; the other 15 entity packages all still extend
+   `EntityPlugin`. `defineEntity`/`defineEntityPackage` accept type,
+   purpose, metadata, markdown codec, config, seed, and projections and
+   nothing else, while every remaining package needs at least one of
+   templates (12 packages), datasources (10), or handlers/tools/widgets
+   (14). So dependency promotion alone frees nobody: a class-based
+   package that stops importing `@brains/utils` still imports
+   `@brains/plugins` for `EntityPlugin` and is no closer to
+   publishable-clean.
+
+   The first capability pair looked like templates and datasources,
+   proven by `@brains/doc` — 396 lines, one test, and the only
+   class-based package whose sole needs are templates, datasources, and
+   an entity type config. Templates work: a `templates` slot on
+   `defineEntity` registers through the existing `EntityPlugin` hook and
+   `Template` inlines cleanly into the published declarations.
+
+   **Datasources do not, and the reason is structural — measured
+   2026-08-15 by attempting it.** The published declarations may not
+   import `@brains/*` (`findInternalDeclarationImports` fails the build),
+   so every referenced type is inlined into `dist/*.d.ts`. A type that
+   inlines to something nominally distinct from its source is therefore
+   unusable across the boundary, and the golden-fixture compile catches
+   it because one fixture resolves the surface through `dist` while
+   another resolves it through source.
+
+   Two types fail that test:
+
+   - `Logger` is a class with six private fields. Inlined, it is a
+     different type — "separate declarations of a private property
+     'level'" — so nothing is assignable. Fixed by
+     `LoggerContract` in `@brains/utils/logger`, a structural interface
+     `Logger` satisfies; `BaseEntityDataSource` now takes the contract.
+     Any future promotion of a class with private state hits the same
+     wall and needs the same treatment.
+   - `DataSource` is worse: its `fetch` takes `BaseDataSourceContext`,
+     which carries a scoped `entityService`, which reaches
+     `ProjectionStore`. Publishing the datasource API therefore drags the
+     entity-service runtime across the boundary. No structural wrapper
+     fixes this in passing — it needs a _public_ data source contract
+     that does not hand the author a runtime service.
+
+   So the templates slot is implemented and tested, but it cannot ship
+   alone: the only clean consumer needs both halves, and a `templates`
+   slot without `createTemplate` on the public surface is unusable. The
+   next slice is designing that public data source contract; `@brains/doc`
+   remains its proof consumer, and `@brains/products` is freed by the
+   same pair.
+
+3. **Promote the remaining entity-facing contract modules** as their
    consumers migrate, not before.
-3. **Promote the utils slices as one unit**, alongside the first
-   package that needs them. All seven together, since no package is
-   freed by a subset. This clears utils for 13 of 17; the other four
+4. **Promote the utils slices**, alongside the first package that needs
+   them. `@brains/doc` needs exactly two — `slugify` and the `Logger`
+   type — so those two go with its migration and the rest keep waiting
+   for their own consumers. The earlier "all seven as one unit" reading
+   was wrong: it came from measuring which packages a _subset_ frees
+   while assuming the authoring shape was already solved. It is the
+   declarative capability, not the slice count, that frees a package.
+
+   Promoting all seven eventually clears utils for 13 of 17; the other four
    (`agent-discovery`, `conversation-memory`, `social-media`, and
    `site-info` — now a plugin rather than an entity, but on the same
    promotion path) also touch tail subpaths — `safe-public-fetch`,

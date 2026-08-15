@@ -10,6 +10,7 @@ import {
   type ProjectionJsonObject,
   type ProjectionWriteIntent,
 } from "@brains/entity-service";
+import type { Template } from "@brains/templates";
 import { DIRECTORY_SYNC_CHANNELS } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 import { EntityPlugin, emptyEntityPluginConfigSchema } from "./entity-plugin";
@@ -244,6 +245,7 @@ class DeclarativeEntityPlugin extends EntityPlugin<
   private readonly scope: (localId: string) => string;
   private readonly entityTypeConfig: EntityTypeConfig | undefined;
   private readonly seed: AnyEntityDefinition["seed"];
+  private readonly templates: AnyEntityDefinition["templates"];
   public readonly entityType: string;
   public readonly schema: z.ZodType<EntityOf<AnyEntityDefinition>, unknown>;
   public readonly adapter: EntityAdapter<
@@ -269,10 +271,15 @@ class DeclarativeEntityPlugin extends EntityPlugin<
       ? { ...definition.config }
       : undefined;
     this.seed = definition.seed;
+    this.templates = definition.templates;
   }
 
   protected override getEntityTypeConfig(): EntityTypeConfig | undefined {
     return this.entityTypeConfig;
+  }
+
+  protected override getTemplates(): Record<string, Template> | null {
+    return this.templates ?? null;
   }
 
   protected override async onRegister(

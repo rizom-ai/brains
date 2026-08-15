@@ -1,3 +1,4 @@
+import type { Template } from "@brains/templates";
 import { z } from "@brains/utils/zod";
 import { createEntityPackagePlugins } from "../entity/declarative-entity-plugin";
 import type {
@@ -42,6 +43,7 @@ export function defineEntity<
   readonly markdown?: EntityMarkdownCodec<TMetadataSchema> | undefined;
   readonly config?: EntityDefinitionConfig | undefined;
   readonly seed?: EntitySeedDefinition<TMetadataSchema> | undefined;
+  readonly templates?: Record<string, Template> | undefined;
 }): EntityDefinition<TType, TMetadataSchema> {
   assertLocalId(definition.type, "Entity type");
   if (!definition.purpose.trim()) {

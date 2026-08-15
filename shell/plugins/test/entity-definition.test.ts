@@ -7,6 +7,7 @@ import {
   deriveProjectionUpserts,
 } from "../src/entity/declarative-entity-plugin";
 import {
+  createTemplate,
   defineEntity,
   defineEntityPackage,
   defineProjection,
@@ -201,6 +202,48 @@ describe("entity package definitions", () => {
       content: "Article body",
       metadata: { title: "Hello" },
     });
+  });
+
+  it("registers declared templates with the shell", async () => {
+    // Without a declarative slot for templates, an entity package that
+    // renders anything has to extend EntityPlugin and override
+    // getTemplates(), which is what keeps 12 of the entity packages on
+    // the private @brains/plugins import.
+    const guide = defineEntity({
+      type: "guide",
+      purpose: "A rendered guide.",
+      metadata: z.object({ title: z.string() }),
+      templates: {
+        "guide-list": createTemplate({
+          name: "guide-list",
+          description: "Lists guides",
+          schema: z.object({ titles: z.array(z.string()) }),
+          requiredPermission: "public",
+        }),
+      },
+    });
+    const definition = defineEntityPackage({
+      id: "guides",
+      entities: [guide],
+    });
+    const plugin = createEntityPackagePlugins(
+      definition.entities,
+      definition.projections,
+      { name: "@fixture/guides", version: "0.1.0" },
+      (id) => `@fixture/guides:${id}`,
+    )[0];
+    if (!plugin) throw new Error("Guide entity plugin was not created");
+
+    const harness = createPluginHarness({
+      logger: createSilentLogger("entity-template-test"),
+    });
+    await harness.installPlugin(plugin);
+
+    expect([...harness.getTemplates().keys()]).toContain(
+      "@fixture/guides:guide:guide-list",
+    );
+
+    harness.reset();
   });
 
   it("registers declared entity-type config with the entity registry", async () => {
