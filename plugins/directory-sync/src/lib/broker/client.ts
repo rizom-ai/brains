@@ -185,6 +185,22 @@ export class BrokerConnection {
     return expectStatus(await settled.promise);
   }
 
+  /**
+   * Run an operation under a caller-chosen id, so a lost reply can be asked
+   * for again without the work being done twice.
+   */
+  executeWithId<TOperation extends GitOperation>(
+    requestId: string,
+    checkoutPath: string,
+    operation: TOperation,
+    runOptions: {
+      onProgress?: (() => void) | undefined;
+      signal?: AbortSignal | undefined;
+    } = {},
+  ): Promise<GitOperationResult<TOperation["name"]>> {
+    return this.#execute(requestId, checkoutPath, operation, runOptions);
+  }
+
   async execute<TOperation extends GitOperation>(
     checkoutPath: string,
     operation: TOperation,
@@ -193,8 +209,24 @@ export class BrokerConnection {
       signal?: AbortSignal | undefined;
     } = {},
   ): Promise<GitOperationResult<TOperation["name"]>> {
+    return this.#execute(
+      `req_${createId(12)}`,
+      checkoutPath,
+      operation,
+      runOptions,
+    );
+  }
+
+  async #execute<TOperation extends GitOperation>(
+    requestId: string,
+    checkoutPath: string,
+    operation: TOperation,
+    runOptions: {
+      onProgress?: (() => void) | undefined;
+      signal?: AbortSignal | undefined;
+    },
+  ): Promise<GitOperationResult<TOperation["name"]>> {
     runOptions.signal?.throwIfAborted();
-    const requestId = `req_${createId(12)}`;
     const settled = Promise.withResolvers<Reply>();
     this.#pending.set(requestId, {
       ...settled,

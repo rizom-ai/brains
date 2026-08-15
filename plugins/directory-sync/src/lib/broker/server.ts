@@ -10,6 +10,8 @@ import type {
   ExecuteOperationMessage,
   RegisterCheckoutMessage,
 } from "./protocol";
+import { BrokerJournal } from "./journal";
+import type { AmbiguousRequest } from "./journal";
 import { SocketWriter } from "./socket-writer";
 import type { WritableSocket } from "./socket-writer";
 
@@ -50,6 +52,14 @@ export function gitBrokerSocketPath(runtimeDir: string): string {
   return join(runtimeDir, "git-broker.sock");
 }
 
+/**
+ * How many answered requests stay replayable.
+ *
+ * A retry follows its original closely, so this only has to outlive a lost
+ * acknowledgement — not the generation.
+ */
+const ANSWERED_WINDOW = 256;
+
 export class BrokerStartupError extends Error {
   constructor(message: string) {
     super(message);
@@ -83,6 +93,16 @@ export class GitBrokerServer {
   >();
   readonly #resolveCheckout: GitBrokerServerOptions["resolveCheckout"];
   readonly #now: () => number;
+  /**
+   * Results this generation has already produced, by request id.
+   *
+   * A client whose acknowledgement was lost retries with the same id, and
+   * running the work again would turn one commit into two. Bounded, because
+   * a retry follows its original closely; anything older than the window is
+   * a request nobody is still waiting on.
+   */
+  readonly #answered = new Map<string, unknown>();
+  readonly #journal: BrokerJournal | null;
   #server: { stop(closeActiveConnections?: boolean): void } | null = null;
 
   private constructor(
@@ -90,11 +110,24 @@ export class GitBrokerServer {
     brokerId: string,
     resolveCheckout: GitBrokerServerOptions["resolveCheckout"],
     now: () => number,
+    journal: BrokerJournal | null,
   ) {
     this.socketPath = socketPath;
     this.brokerId = brokerId;
     this.#resolveCheckout = resolveCheckout;
     this.#now = now;
+    this.#journal = journal;
+  }
+
+  /**
+   * What the previous generation was running and never finished.
+   *
+   * Reported, not resolved: a mutation left ambiguous by a replacement is
+   * never re-executed from intent, because only the repository knows
+   * whether it landed.
+   */
+  get ambiguousRequests(): readonly AmbiguousRequest[] {
+    return this.#journal?.ambiguous ?? [];
   }
 
   /**
@@ -138,6 +171,9 @@ export class GitBrokerServer {
       options.brokerId ?? createId(10),
       options.resolveCheckout,
       options.now ?? Date.now,
+      await BrokerJournal.open(options.runtimeDir, {
+        ...(options.now ? { now: options.now } : {}),
+      }),
     );
     await broker.#listen();
     return broker;
@@ -249,6 +285,17 @@ export class GitBrokerServer {
     );
   }
 
+  #remember(requestId: string, value: unknown): void {
+    this.#answered.set(requestId, value);
+    // Oldest first, so the window always covers the most recent work.
+    for (const stale of [...this.#answered.keys()].slice(
+      0,
+      Math.max(0, this.#answered.size - ANSWERED_WINDOW),
+    )) {
+      this.#answered.delete(stale);
+    }
+  }
+
   async #handle(writer: SocketWriter, message: BrokerMessage): Promise<void> {
     if (message.type === "register-checkout") {
       try {
@@ -288,9 +335,27 @@ export class GitBrokerServer {
       return;
     }
 
+    // Answered already: the client lost the reply, not the outcome.
+    if (this.#answered.has(message.requestId)) {
+      this.#send(writer, {
+        type: "result",
+        version: BROKER_PROTOCOL_VERSION,
+        requestId: message.requestId,
+        outcome: "ok",
+        value: this.#answered.get(message.requestId) ?? null,
+        error: null,
+      });
+      return;
+    }
+
     this.#active.set(message.requestId, {
       checkoutPath: message.checkoutPath,
       progressAt: this.#now(),
+    });
+    await this.#journal?.recordStart({
+      requestId: message.requestId,
+      checkoutPath: message.checkoutPath,
+      operation: message.operation.name,
     });
     try {
       const value = await executor.execute(message.operation, {
@@ -308,6 +373,8 @@ export class GitBrokerServer {
           });
         },
       });
+      this.#remember(message.requestId, value ?? null);
+      await this.#journal?.recordSettled(message.requestId, "ok");
       this.#send(writer, {
         type: "result",
         version: BROKER_PROTOCOL_VERSION,
@@ -317,6 +384,9 @@ export class GitBrokerServer {
         error: null,
       });
     } catch (error) {
+      // A failure is terminal for this request but not an answer to
+      // replay: the caller decides whether to try again, with a new id.
+      await this.#journal?.recordSettled(message.requestId, "error");
       this.#fail(writer, message.requestId, error);
     } finally {
       this.#active.delete(message.requestId);
