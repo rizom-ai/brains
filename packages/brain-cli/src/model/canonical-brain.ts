@@ -120,18 +120,9 @@ export const coreBundle: CapabilityBundleDefinition = defineBundle({
       config: { entityActions: { link: trustedContentEntityActions } },
     },
     {
-      member: "admin",
-      config: {
-        rules: [{ pattern: "cli:*", level: "admin" }],
-      },
-    },
-    {
       member: "mcp",
       config: {
-        rules: [
-          { pattern: "mcp:stdio", level: "admin" },
-          { pattern: "mcp:http", level: "public" },
-        ],
+        rules: [{ pattern: "mcp:http", level: "public" }],
       },
     },
     {
@@ -374,6 +365,12 @@ export const canonicalBrain: BrainDefinition = defineBrain({
     ["a2a", A2AInterface, (): PluginConfig => ({})],
   ],
   bundles: [coreBundle, siteBundle, publishingBundle, teamBundle],
+  permissions: {
+    rules: [
+      { pattern: "cli:*", level: "admin" },
+      { pattern: "mcp:stdio", level: "admin" },
+    ],
+  },
   deployment: {
     cdn: {
       enabled: true,

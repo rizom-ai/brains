@@ -108,6 +108,58 @@ function pluginConfig(id: string): Record<string, unknown> | undefined {
   return isRecord(config) ? config : undefined;
 }
 
+type DefinitionPermissionRule = NonNullable<
+  NonNullable<BrainDefinition["permissions"]>["rules"]
+>[number];
+
+const cliPermissionRule = {
+  pattern: "cli:*",
+  level: "admin",
+} satisfies DefinitionPermissionRule;
+const mcpStdioPermissionRule = {
+  pattern: "mcp:stdio",
+  level: "admin",
+} satisfies DefinitionPermissionRule;
+const definitionPermissionBaseline = {
+  rules: [cliPermissionRule, mcpStdioPermissionRule],
+} satisfies NonNullable<BrainDefinition["permissions"]>;
+
+function withLegacyPermissionLayout(): BrainDefinition {
+  const { permissions: _permissions, ...withoutDefinitionPermissions } =
+    canonicalBrain;
+
+  return {
+    ...withoutDefinitionPermissions,
+    bundles: (canonicalBrain.bundles ?? []).map((bundle) => {
+      if (bundle.id !== "core") return bundle;
+
+      return {
+        ...bundle,
+        permissions: (bundle.permissions ?? []).flatMap((contribution) => {
+          if (contribution.member !== "mcp") return [contribution];
+
+          return [
+            {
+              member: "admin",
+              config: { rules: [cliPermissionRule] },
+            },
+            {
+              ...contribution,
+              config: {
+                ...contribution.config,
+                rules: [
+                  mcpStdioPermissionRule,
+                  ...(contribution.config.rules ?? []),
+                ],
+              },
+            },
+          ];
+        }),
+      };
+    }),
+  };
+}
+
 describe("canonical brain core", () => {
   test("owns one complete model-neutral catalog", () => {
     expect(catalogIds(canonicalBrain)).toEqual(expectedCatalogIds);
@@ -155,12 +207,45 @@ describe("canonical brain core", () => {
     expect(resolvedIds).not.toContain("unified-inbox");
   });
 
-  test("attaches transport permissions and eval exclusions to core members", () => {
+  test("keeps current posture policies byte-identical after baseline relocation", () => {
+    expect(canonicalBrain.permissions).toEqual(definitionPermissionBaseline);
+
+    const legacyDefinition = withLegacyPermissionLayout();
+    const currentPostures = [
+      { bundles: ["core"] },
+      { bundles: ["core", "site", "publishing"] },
+      { bundles: ["core", "site"], add: ["products"] },
+      { bundles: ["core", "site", "team"] },
+    ];
+
+    for (const posture of currentPostures) {
+      const current = resolve(canonicalBrain, {}, posture).permissions;
+      const legacy = resolve(legacyDefinition, {}, posture).permissions;
+      expect(JSON.stringify(current)).toBe(JSON.stringify(legacy));
+    }
+  });
+
+  test("keeps definition rules when their former core members are removed", () => {
+    const resolved = resolve(
+      canonicalBrain,
+      {},
+      {
+        bundles: ["core"],
+        remove: ["admin", "mcp"],
+      },
+    );
+
+    expect(resolved.permissions?.rules).toEqual([
+      ...definitionPermissionBaseline.rules,
+      { pattern: "discord:*", level: "public" },
+      { pattern: "web-chat:*", level: "admin" },
+    ]);
+  });
+
+  test("closes channel permissions and eval exclusions with core members", () => {
     const resolved = resolve(canonicalBrain, {}, { bundles: ["core"] });
     expect(resolved.permissions?.rules).toEqual(
       expect.arrayContaining([
-        { pattern: "cli:*", level: "admin" },
-        { pattern: "mcp:stdio", level: "admin" },
         { pattern: "mcp:http", level: "public" },
         { pattern: "discord:*", level: "public" },
         { pattern: "web-chat:*", level: "admin" },

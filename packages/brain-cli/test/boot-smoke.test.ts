@@ -67,14 +67,18 @@ async function waitForListening(
   return outcome ?? { log, listening: false };
 }
 
+function buildBinary(): void {
+  const build = Bun.spawnSync(["bun", "scripts/build.ts"], {
+    cwd: packageDir,
+    stdout: "pipe",
+    stderr: "pipe",
+  });
+  expect(build.exitCode).toBe(0);
+}
+
 describe("built binary boot smoke", () => {
   it("boots the canonical model and serves HTTP", async () => {
-    const build = Bun.spawnSync(["bun", "scripts/build.ts"], {
-      cwd: packageDir,
-      stdout: "pipe",
-      stderr: "pipe",
-    });
-    expect(build.exitCode).toBe(0);
+    buildBinary();
 
     const instanceDir = mkdtempSync(join(tmpdir(), "brain-boot-smoke-"));
     const productionPort = freePort();
@@ -125,6 +129,57 @@ describe("built binary boot smoke", () => {
     } finally {
       proc.kill();
       await proc.exited;
+      rmSync(instanceDir, { recursive: true, force: true });
+    }
+  }, 240_000);
+
+  it("passes startup checks without a webserver", () => {
+    buildBinary();
+
+    const instanceDir = mkdtempSync(join(tmpdir(), "brain-headless-smoke-"));
+    try {
+      writeFileSync(
+        join(instanceDir, "brain.yaml"),
+        [
+          "brain: brain",
+          "anchor: person",
+          "kind: professional",
+          "bundles:",
+          "  - core",
+          "remove:",
+          "  - webserver",
+          "plugins:",
+          "  onboarding:",
+          "    enabled: false",
+          "",
+        ].join("\n"),
+      );
+
+      const startup = Bun.spawnSync(
+        [
+          "bun",
+          join(packageDir, "dist", "brain.js"),
+          "start",
+          "--startup-check",
+        ],
+        {
+          cwd: instanceDir,
+          env: {
+            ...process.env,
+            AI_API_KEY: "placeholder-boot-smoke",
+            XDG_DATA_HOME: join(instanceDir, "xdg-data"),
+          },
+          stdout: "pipe",
+          stderr: "pipe",
+        },
+      );
+      const output = `${startup.stdout.toString()}${startup.stderr.toString()}`;
+
+      expect(startup.exitCode, output).toBe(0);
+      expect(output).toContain("A2A interface registered in tool-only mode");
+      expect(output).not.toContain("Production server listening");
+      expect(output).not.toContain("MCP HTTP transport requires the webserver");
+    } finally {
       rmSync(instanceDir, { recursive: true, force: true });
     }
   }, 240_000);

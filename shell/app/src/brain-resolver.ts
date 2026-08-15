@@ -85,6 +85,12 @@ function applyPluginDefaults(
     );
   }
 
+  const mcpExplicit = pluginOverrides["mcp"] ?? {};
+  pluginOverrides["mcp"] = deepMerge(
+    { transport: webserverEnabled ? "http" : "stdio" },
+    mcpExplicit,
+  );
+
   if (site || theme !== undefined) {
     const siteBuilderExplicit = pluginOverrides["site-builder"] ?? {};
     const siteBuilderDefaults: Record<string, unknown> = {
@@ -117,12 +123,6 @@ function applyPluginDefaults(
     pluginOverrides["dashboard"] = deepMerge(
       dashboardDefaults,
       dashboardExplicit,
-    );
-
-    const dashboardRootExplicit = pluginOverrides["dashboard-root"] ?? {};
-    pluginOverrides["dashboard-root"] = deepMerge(
-      dashboardDefaults,
-      dashboardRootExplicit,
     );
   }
 }
