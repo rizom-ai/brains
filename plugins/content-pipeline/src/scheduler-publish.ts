@@ -5,7 +5,7 @@ import { getErrorMessage } from "@brains/utils/error";
  * Contains the provider publishing execution logic.
  */
 
-import type { IMessageBus } from "@brains/plugins";
+import type { SchedulerMessagePublisher } from "./scheduler-generation";
 import type { QueueEntry } from "./queue-manager";
 import type { RetryTracker } from "./retry-tracker";
 import type { PublishEntityExecutor } from "./publish-executor";
@@ -17,7 +17,7 @@ import { PUBLISH_MESSAGES } from "./types/messages";
 
 export interface PublishDeps {
   retryTracker: RetryTracker;
-  messageBus?: IMessageBus | undefined;
+  messageBus?: SchedulerMessagePublisher | undefined;
   publishExecutor?: Pick<PublishEntityExecutor, "publish"> | undefined;
   onPublish?: ((event: PublishSuccessEvent) => void) | undefined;
   onFailed?: ((event: PublishFailedEvent) => void) | undefined;

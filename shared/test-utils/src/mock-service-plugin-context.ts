@@ -16,7 +16,7 @@ import {
 import { createMockLogger } from "./mock-logger";
 import { createMockShell } from "./mock-shell";
 import { genericSpy } from "./generic-spy";
-import { spyOnMembers } from "./spy-on-members";
+import { spyOnMembers, type SpiedMembers } from "./spy-on-members";
 
 /**
  * Return value configuration for mock service plugin context methods
@@ -91,9 +91,41 @@ export interface MockServicePluginContextOptions {
  * expect(mockContext.jobs.enqueue).toHaveBeenCalledWith("my-job", expect.any(Object), null);
  * ```
  */
+/**
+ * The namespaces this factory wraps in recording spies.
+ *
+ * Named so the return type can expose them, for the same reason the entity
+ * factory does: declaring the result as a plain ServicePluginContext hid the
+ * spies from the type system, so a test needing a captured argument had no
+ * typed route to it and reached for a cast instead.
+ *
+ * messaging stays off the list — some of its members go through genericSpy,
+ * which re-applies a generic signature that mock() had erased and cannot also
+ * carry a precisely-typed Mock. Its calls are still recorded and assertable
+ * with toHaveBeenCalledWith.
+ */
+type SpiedNamespace =
+  | "entities"
+  | "templates"
+  | "views"
+  | "conversations"
+  | "prompts"
+  | "endpoints"
+  | "interactions"
+  | "profileKinds"
+  | "jobs";
+
+/** A ServicePluginContext whose spied namespaces report their calls. */
+export type MockServicePluginContext = Omit<
+  ServicePluginContext,
+  SpiedNamespace
+> & {
+  [K in SpiedNamespace]: SpiedMembers<ServicePluginContext[K]>;
+};
+
 export function createMockServicePluginContext(
   options: MockServicePluginContextOptions = {},
-): ServicePluginContext {
+): MockServicePluginContext {
   const {
     entityTypes = [],
     pluginId = "test-plugin",

@@ -31,6 +31,7 @@ export { createMockProgressReporter } from "./mock-progress-reporter";
 // Service plugin context mocks
 export {
   createMockServicePluginContext,
+  type MockServicePluginContext,
   type MockServicePluginContextOptions,
   type MockServicePluginContextReturns,
 } from "./mock-service-plugin-context";
