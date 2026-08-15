@@ -1,20 +1,19 @@
-import type {
-  DataSource,
-  DataSourceSchema,
-  BaseDataSourceContext,
-  IEntityService,
-  BaseEntity,
-} from "@brains/plugins";
-import { parseMarkdownWithFrontmatter } from "@brains/plugins";
-import type { Logger } from "@brains/utils/logger";
-import { z } from "@brains/utils/zod";
+import {
+  defineDataSource,
+  parseMarkdownWithFrontmatter,
+  z,
+  type BaseEntity,
+  type DataSourceDefinition,
+  type EntityQueryReader,
+} from "@brains/sdk/entities";
 import type { Series } from "../schemas/series";
 import {
+  parseSeriesBody,
   seriesFrontmatterSchema,
   seriesWithDataSchema,
   type SeriesWithData,
 } from "../schemas/series";
-import { seriesAdapter } from "../adapters/series-adapter";
+
 import { getSeriesName, compareBySeriesIndex } from "../lib/series-metadata";
 
 // DynamicRouteGenerator format (entityType + query)
@@ -76,194 +75,159 @@ function parseSeriesData(entity: Series): SeriesWithData {
  * DataSource for fetching series data.
  * Cross-content: counts entities from ALL types with seriesName metadata.
  */
-export class SeriesDataSource implements DataSource {
-  private readonly logger: Logger;
-  public readonly id = "series:entities";
-  public readonly name = "Series DataSource";
-  public readonly description = "Fetches series list and detail data";
-
-  constructor(logger: Logger) {
-    this.logger = logger;
-  }
-
-  async fetch<T>(
-    query: unknown,
-    outputSchema: DataSourceSchema<T>,
-    context: BaseDataSourceContext,
-  ): Promise<T> {
+export const seriesDataSource: DataSourceDefinition = defineDataSource({
+  id: "entities",
+  name: "Series DataSource",
+  description: "Fetches series list and detail data",
+  fetch: async (query, entities) => {
     const params = normalizeQuery(query);
-    const entityService = context.entityService;
 
     if (params.type === "list") {
-      return this.fetchSeriesList(outputSchema, entityService);
+      return fetchSeriesList(entities);
     }
 
     if (params.seriesName) {
-      return this.fetchSeriesDetail(
-        params.seriesName,
-        outputSchema,
-        entityService,
-      );
+      return fetchSeriesDetail(params.seriesName, entities);
     }
 
     if (params.seriesSlug) {
-      return this.fetchSeriesDetailBySlug(
-        params.seriesSlug,
-        outputSchema,
-        entityService,
-      );
+      return fetchSeriesDetailBySlug(params.seriesSlug, entities);
     }
 
     throw new Error(
       "Invalid series query: must specify seriesName or slug for detail",
     );
-  }
+  },
+});
 
-  private async fetchSeriesList<T>(
-    outputSchema: DataSourceSchema<T>,
-    entityService: IEntityService,
-  ): Promise<T> {
-    const seriesEntities = await entityService.listEntities<Series>({
-      entityType: "series",
-    });
+async function fetchSeriesList(entities: EntityQueryReader): Promise<unknown> {
+  const seriesEntities = await entities.listEntities<Series>({
+    entityType: "series",
+  });
 
-    // Count entities per series across ALL entity types
-    const entityCounts = await this.countEntitiesPerSeries(entityService);
+  // Count entities per series across ALL entity types
+  const entityCounts = await countEntitiesPerSeries(entities);
 
-    const series = seriesEntities.map((entity) => {
-      const parsed = parseSeriesData(entity);
-      const body = seriesAdapter.parseBody(entity.content);
-      return {
-        ...parsed,
-        description: body.description,
-        postCount: entityCounts.get(entity.metadata.title) ?? 0,
-      };
-    });
-
-    this.logger.debug(`Found ${series.length} series entities`);
-    return outputSchema.parse({ series });
-  }
-
-  private async fetchSeriesDetail<T>(
-    seriesName: string,
-    outputSchema: DataSourceSchema<T>,
-    entityService: IEntityService,
-    seriesEntity?: Series,
-  ): Promise<T> {
-    if (!seriesEntity) {
-      const candidates = await entityService.listEntities<Series>({
-        entityType: "series",
-        options: {
-          filter: { metadata: { title: seriesName } },
-        },
-      });
-      seriesEntity = candidates[0];
-    }
-
-    if (!seriesEntity) {
-      throw new Error(`Series not found: ${seriesName}`);
-    }
-
-    const series = parseSeriesData(seriesEntity);
-    const body = seriesAdapter.parseBody(seriesEntity.content);
-
-    // Fetch entities from all types that belong to this series
-    const members = await this.getSeriesMembers(seriesName, entityService);
-
-    this.logger.debug(
-      `Found ${members.length} entities in series "${seriesName}"`,
-    );
-
-    return outputSchema.parse({
-      seriesName,
-      posts: members,
-      series: {
-        ...series,
-        description: body.description,
-        postCount: members.length,
-      },
+  const series = seriesEntities.map((entity) => {
+    const parsed = parseSeriesData(entity);
+    const body = parseSeriesBody(entity.content);
+    return {
+      ...parsed,
       description: body.description,
-    });
-  }
+      postCount: entityCounts.get(entity.metadata.title) ?? 0,
+    };
+  });
+  return { series };
+}
 
-  private async fetchSeriesDetailBySlug<T>(
-    seriesSlug: string,
-    outputSchema: DataSourceSchema<T>,
-    entityService: IEntityService,
-  ): Promise<T> {
-    const candidates = await entityService.listEntities<Series>({
+async function fetchSeriesDetail(
+  seriesName: string,
+  entities: EntityQueryReader,
+  seriesEntity?: Series,
+): Promise<unknown> {
+  if (!seriesEntity) {
+    const candidates = await entities.listEntities<Series>({
       entityType: "series",
       options: {
-        filter: { metadata: { slug: seriesSlug } },
+        filter: { metadata: { title: seriesName } },
       },
     });
-
-    const seriesEntity = candidates[0];
-    if (!seriesEntity) {
-      // Consistent with fetchSeriesDetail: a missing series is a not-found,
-      // not a renderable empty page. The detail schema requires `series`, so
-      // returning a partial payload here would throw an opaque ZodError —
-      // throw a clear error the route can turn into a 404 instead.
-      throw new Error(`Series not found with slug: ${seriesSlug}`);
-    }
-
-    return this.fetchSeriesDetail(
-      seriesEntity.metadata.title,
-      outputSchema,
-      entityService,
-      seriesEntity,
-    );
+    seriesEntity = candidates[0];
   }
 
-  /**
-   * Count entities per series across all entity types.
-   */
-  private async countEntitiesPerSeries(
-    entityService: IEntityService,
-  ): Promise<Map<string, number>> {
-    const counts = new Map<string, number>();
-    const types = entityService.getEntityTypes();
+  if (!seriesEntity) {
+    throw new Error(`Series not found: ${seriesName}`);
+  }
 
-    for (const type of types) {
-      if (type === "series") continue;
-      const entities = await entityService.listEntities({
-        entityType: type,
-      });
-      for (const entity of entities) {
-        const name = getSeriesName(entity);
-        if (name) {
-          counts.set(name, (counts.get(name) ?? 0) + 1);
-        }
+  const series = parseSeriesData(seriesEntity);
+  const body = parseSeriesBody(seriesEntity.content);
+
+  // Fetch entities from all types that belong to this series
+  const members = await getSeriesMembers(seriesName, entities);
+
+  return {
+    seriesName,
+    posts: members,
+    series: {
+      ...series,
+      description: body.description,
+      postCount: members.length,
+    },
+    description: body.description,
+  };
+}
+
+async function fetchSeriesDetailBySlug(
+  seriesSlug: string,
+  entities: EntityQueryReader,
+): Promise<unknown> {
+  const candidates = await entities.listEntities<Series>({
+    entityType: "series",
+    options: {
+      filter: { metadata: { slug: seriesSlug } },
+    },
+  });
+
+  const seriesEntity = candidates[0];
+  if (!seriesEntity) {
+    // Consistent with fetchSeriesDetail: a missing series is a not-found,
+    // not a renderable empty page. The detail schema requires `series`, so
+    // returning a partial payload here would throw an opaque ZodError —
+    // throw a clear error the route can turn into a 404 instead.
+    throw new Error(`Series not found with slug: ${seriesSlug}`);
+  }
+
+  return fetchSeriesDetail(seriesEntity.metadata.title, entities, seriesEntity);
+}
+
+/**
+ * Count entities per series across all entity types.
+ */
+async function countEntitiesPerSeries(
+  entities: EntityQueryReader,
+): Promise<Map<string, number>> {
+  const counts = new Map<string, number>();
+  const types = entities.getEntityTypes();
+
+  for (const type of types) {
+    if (type === "series") continue;
+    const members = await entities.listEntities({
+      entityType: type,
+    });
+    for (const entity of members) {
+      const name = getSeriesName(entity);
+      if (name) {
+        counts.set(name, (counts.get(name) ?? 0) + 1);
       }
     }
-
-    return counts;
   }
 
-  /**
-   * Get all entities belonging to a series, sorted by seriesIndex.
-   */
-  private async getSeriesMembers(
-    seriesName: string,
-    entityService: IEntityService,
-  ): Promise<BaseEntity[]> {
-    const members: BaseEntity[] = [];
-    const types = entityService.getEntityTypes();
+  return counts;
+}
 
-    for (const type of types) {
-      if (type === "series") continue;
-      const entities = await entityService.listEntities({
-        entityType: type,
-        options: {
-          filter: { metadata: { seriesName } },
-        },
-      });
-      members.push(...entities);
-    }
+/**
+ * Get all entities belonging to a series, sorted by seriesIndex.
+ */
+async function getSeriesMembers(
+  seriesName: string,
+  entities: EntityQueryReader,
+): Promise<BaseEntity[]> {
+  const members: BaseEntity[] = [];
+  const types = entities.getEntityTypes();
 
-    // Sort by seriesIndex; members without an index sort last.
-    members.sort(compareBySeriesIndex);
-
-    return members;
+  for (const type of types) {
+    if (type === "series") continue;
+    const found = await entities.listEntities({
+      entityType: type,
+      options: {
+        filter: { metadata: { seriesName } },
+      },
+    });
+    members.push(...found);
   }
+
+  // Sort by seriesIndex; members without an index sort last.
+  members.sort(compareBySeriesIndex);
+
+  return members;
 }

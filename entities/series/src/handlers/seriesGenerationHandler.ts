@@ -1,11 +1,11 @@
-import type { EntityPluginContext, JobHandler } from "@brains/plugins";
 import {
-  parseMarkdownWithFrontmatter,
   generateMarkdownWithFrontmatter,
-} from "@brains/plugins";
-import type { Logger } from "@brains/utils/logger";
-import { z } from "@brains/utils/zod";
-import { computeContentHash } from "@brains/utils/hash";
+  parseMarkdownWithFrontmatter,
+  z,
+  computeContentHash,
+  type EntityGenerationDeclaration,
+  type EntityGenerationEntityAccess,
+} from "@brains/sdk/entities";
 import type { Series } from "../schemas/series";
 import {
   seriesFrontmatterSchema,
@@ -39,24 +39,17 @@ const memberSummarySchema: z.ZodType<MemberSummary> = z.object({
  * Generation handler for series entities.
  * Generates AI descriptions from the series' member entities.
  */
-export class SeriesGenerationHandler implements JobHandler<
-  string,
-  SeriesGenerationJobData
-> {
-  private readonly logger: Logger;
-  private readonly context: EntityPluginContext;
-  constructor(logger: Logger, context: EntityPluginContext) {
-    this.logger = logger;
-    this.context = context;
-  }
-
-  async process(data: SeriesGenerationJobData): Promise<unknown> {
+export const seriesGeneration: EntityGenerationDeclaration<
+  typeof seriesGenerationJobSchema
+> = {
+  input: seriesGenerationJobSchema,
+  handle: async ({ input: data, ai, entities }) => {
     const seriesId = data.seriesId ?? data.title;
     if (!seriesId) {
       return { success: false, error: "seriesId or title required" };
     }
 
-    const series = await this.context.entityService.getEntity<Series>({
+    const series = await entities.getEntity<Series>({
       entityType: "series",
       id: seriesId,
     });
@@ -65,7 +58,10 @@ export class SeriesGenerationHandler implements JobHandler<
     }
 
     // Gather member content summaries across all entity types
-    const summaries = await this.gatherMemberSummaries(series.metadata.title);
+    const summaries = await gatherMemberSummaries(
+      series.metadata.title,
+      entities,
+    );
     if (summaries.length === 0) {
       return {
         success: false,
@@ -77,7 +73,7 @@ export class SeriesGenerationHandler implements JobHandler<
       data.prompt ??
       `Series name: ${series.metadata.title}\n\nContent in this series:\n${summaries.join("\n")}`;
 
-    const generated = await this.context.ai.generate<{
+    const generated = await ai.generate<{
       description: string;
     }>({
       prompt,
@@ -101,16 +97,14 @@ export class SeriesGenerationHandler implements JobHandler<
       parsed.metadata,
     );
 
-    await this.context.entities.update({
-      ...series,
-      content: finalContent,
-      contentHash: computeContentHash(finalContent),
-      updated: new Date().toISOString(),
+    await entities.updateEntity({
+      entity: {
+        ...series,
+        content: finalContent,
+        contentHash: computeContentHash(finalContent),
+        updated: new Date().toISOString(),
+      },
     });
-
-    this.logger.info(
-      `Enhanced series "${series.metadata.title}" with description`,
-    );
 
     return {
       success: true,
@@ -119,35 +113,33 @@ export class SeriesGenerationHandler implements JobHandler<
       description: generated.description,
       memberCount: summaries.length,
     };
-  }
+  },
+};
 
-  validateAndParse(data: unknown): SeriesGenerationJobData | null {
-    const result = seriesGenerationJobSchema.safeParse(data);
-    return result.success ? result.data : null;
-  }
+async function gatherMemberSummaries(
+  seriesName: string,
+  entities: EntityGenerationEntityAccess,
+): Promise<string[]> {
+  const summaries: string[] = [];
+  const types = entities.getEntityTypes();
 
-  private async gatherMemberSummaries(seriesName: string): Promise<string[]> {
-    const summaries: string[] = [];
-    const types = this.context.entityService.getEntityTypes();
-
-    for (const type of types) {
-      if (type === "series") continue;
-      const entities = await this.context.entityService.listEntities({
-        entityType: type,
-        options: {
-          filter: { metadata: { seriesName } },
-          // Deliberate cap: these summaries feed an AI prompt, so bound the
-          // context size rather than walk every member of a huge series.
-          limit: 100,
-        },
-      });
-      for (const entity of entities) {
-        const parsed = memberSummarySchema.safeParse(entity.metadata);
-        const { title, excerpt } = parsed.success ? parsed.data : {};
-        summaries.push(`- "${title ?? entity.id}": ${excerpt ?? ""}`);
-      }
+  for (const type of types) {
+    if (type === "series") continue;
+    const found = await entities.listEntities({
+      entityType: type,
+      options: {
+        filter: { metadata: { seriesName } },
+        // Deliberate cap: these summaries feed an AI prompt, so bound the
+        // context size rather than walk every member of a huge series.
+        limit: 100,
+      },
+    });
+    for (const entity of found) {
+      const parsed = memberSummarySchema.safeParse(entity.metadata);
+      const { title, excerpt } = parsed.success ? parsed.data : {};
+      summaries.push(`- "${title ?? entity.id}": ${excerpt ?? ""}`);
     }
-
-    return summaries;
   }
+
+  return summaries;
 }

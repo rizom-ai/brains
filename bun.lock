@@ -259,14 +259,8 @@
       "dependencies": {
         "@brains/content-formatters": "workspace:*",
         "@brains/media-page-composer": "workspace:*",
-<<<<<<<
-        "@brains/plugins": "workspace:*",
-        "@brains/ui-library": "workspace:*",
-        "@brains/utils": "workspace:*",
-=======
         "@brains/sdk": "workspace:*",
-        "@rizom/brain-ui": "workspace:*",
->>>>>>>
+        "@brains/ui-library": "workspace:*",
       },
       "devDependencies": {
         "@brains/eslint-config": "workspace:*",
@@ -297,15 +291,12 @@
       "name": "@brains/series",
       "version": "0.2.0-alpha.306",
       "dependencies": {
-        "@brains/atproto-contracts": "workspace:*",
-        "@brains/content-formatters": "workspace:*",
-        "@brains/contracts": "workspace:*",
-        "@brains/plugins": "workspace:*",
+        "@brains/sdk": "workspace:*",
         "@brains/ui-library": "workspace:*",
-        "@brains/utils": "workspace:*",
       },
       "devDependencies": {
         "@brains/eslint-config": "workspace:*",
+        "@brains/plugins": "workspace:*",
         "@brains/test-utils": "workspace:*",
         "@brains/typescript-config": "workspace:*",
         "@types/bun": "^1.3.14",
@@ -656,6 +647,8 @@
       "version": "0.2.0-alpha.289",
       "dependencies": {
         "@brains/app": "workspace:*",
+        "@brains/atproto-contracts": "workspace:*",
+        "@brains/content-formatters": "workspace:*",
         "@brains/contracts": "workspace:*",
         "@brains/deploy-support": "workspace:*",
         "@brains/entity-service": "workspace:*",

@@ -1,4 +1,4 @@
-import type { JsonValue } from "@brains/contracts";
+import type { JsonValue } from "@brains/sdk/entities";
 import type { JSX } from "preact";
 import type { SeriesListItem } from "../schemas/series";
 import {

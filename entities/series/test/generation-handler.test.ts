@@ -1,11 +1,11 @@
 import { describe, expect, it } from "bun:test";
-import type { EntityPluginContext } from "@brains/plugins";
+
 import {
   createMockEntityPluginContext,
   createSilentLogger,
   createTestEntity,
 } from "@brains/test-utils";
-import { SeriesGenerationHandler } from "../src/handlers/seriesGenerationHandler";
+import { seriesGeneration } from "../src/handlers/seriesGenerationHandler";
 import type { Series } from "../src/schemas/series";
 
 describe("SeriesGenerationHandler", () => {
@@ -17,9 +17,13 @@ title: Systems Series
 slug: systems-series
 ---
 `,
-      metadata: { title: "Systems Series", slug: "systems-series" },
+      metadata: {
+        title: "Systems Series",
+        slug: "systems-series",
+        coverImageId: null,
+      },
     });
-    const context: EntityPluginContext = createMockEntityPluginContext({
+    const context = createMockEntityPluginContext({
       entityTypes: ["series", "post"],
       returns: {
         ai: { generate: { description: "A connected set of systems notes." } },
@@ -39,12 +43,12 @@ slug: systems-series
             ]
           : [],
     });
-    const handler = new SeriesGenerationHandler(
-      createSilentLogger("test"),
-      context,
-    );
-
-    await handler.process({ seriesId: "systems-series" });
+    await seriesGeneration.handle({
+      input: { seriesId: "systems-series" },
+      ai: context.ai,
+      logger: createSilentLogger("test"),
+      entities: context.entityService,
+    });
 
     expect(context.ai.generate).toHaveBeenCalledWith(
       expect.objectContaining({
