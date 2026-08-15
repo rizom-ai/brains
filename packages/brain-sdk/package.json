@@ -5,6 +5,8 @@
   "description": "Layer 1 authoring surface: the curated plugin/entity/interface contract that @rizom/brain re-exports and in-repo packages import directly",
   "dependencies": {
     "@brains/app": "workspace:*",
+    "@brains/atproto-contracts": "workspace:*",
+    "@brains/content-formatters": "workspace:*",
     "@brains/contracts": "workspace:*",
     "@brains/deploy-support": "workspace:*",
     "@brains/entity-service": "workspace:*",
