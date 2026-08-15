@@ -20,12 +20,10 @@ import {
   resolveGitRemoteUrl,
 } from "./git-options";
 import type { GitSyncOptions } from "./git-options";
-import {
-  getChangedPaths,
-  pullGitChanges,
-  tryResolveRemoteHead,
-} from "./git-pull";
+import { pullGitChanges } from "./git-pull";
 import { getGitStatus, hasGitLocalChanges } from "./git-status";
+import { getReconciliationDelta } from "./git-reconciliation-state";
+import type { ReconciliationIdentity } from "./git-reconciliation-state";
 
 export type { GitSyncOptions } from "./git-options";
 export type { GitSyncStatus, PullResult } from "../types";
@@ -79,6 +77,10 @@ export class GitSync implements IGitSync {
   private get git(): SimpleGit {
     this._git ??= simpleGit(this.dataDir);
     return this._git;
+  }
+
+  private get identity(): ReconciliationIdentity {
+    return { branch: this.branch, remoteFingerprint: this.remoteFingerprint };
   }
 
   private get net(): { baseDir: string; timeoutMs: number } {
@@ -156,73 +158,9 @@ export class GitSync implements IGitSync {
   getReconciliationDelta(
     checkpoint?: GitReconciliationCheckpoint,
   ): Promise<GitReconciliationDelta> {
-    return this.runOperation(async () => {
-      const current = await this.getCurrentReconciliationCheckpoint();
-      if (!checkpoint) {
-        return {
-          mode: "full",
-          checkpoint: current,
-          reason: "missing-checkpoint",
-        };
-      }
-      if (checkpoint.remoteFingerprint !== this.remoteFingerprint) {
-        return {
-          mode: "full",
-          checkpoint: current,
-          reason: "repository-identity-mismatch",
-        };
-      }
-      if (checkpoint.branch !== this.branch) {
-        return {
-          mode: "full",
-          checkpoint: current,
-          reason: "branch-mismatch",
-        };
-      }
-      if (!(await this.commitExists(checkpoint.lastReconciledGitHead))) {
-        return {
-          mode: "full",
-          checkpoint: current,
-          reason: "missing-local-checkpoint",
-        };
-      }
-      if (
-        !(await this.isAncestor(
-          checkpoint.lastReconciledGitHead,
-          current.lastReconciledGitHead,
-        ))
-      ) {
-        return {
-          mode: "full",
-          checkpoint: current,
-          reason: "non-ancestor-local-checkpoint",
-        };
-      }
-
-      const localChanges =
-        checkpoint.lastReconciledGitHead === current.lastReconciledGitHead
-          ? { files: [], deletedFiles: [] }
-          : await getChangedPaths(
-              this.git,
-              checkpoint.lastReconciledGitHead,
-              current.lastReconciledGitHead,
-            );
-      const remoteChanges = await this.getRemoteChanges(checkpoint, current);
-      if (!remoteChanges) {
-        return {
-          mode: "full",
-          checkpoint: current,
-          reason: "remote-checkpoint-mismatch",
-        };
-      }
-
-      return {
-        mode: "incremental",
-        checkpoint: current,
-        files: localChanges.files,
-        deletedFiles: remoteChanges.deletedFiles,
-      };
-    });
+    return this.runOperation(() =>
+      getReconciliationDelta(this.git, this.identity, checkpoint),
+    );
   }
 
   log(filePath: string, limit?: number): Promise<GitLogEntry[]> {
@@ -251,59 +189,6 @@ export class GitSync implements IGitSync {
     return signal
       ? AbortSignal.any([this.lifecycleController.signal, signal])
       : this.lifecycleController.signal;
-  }
-
-  private async getCurrentReconciliationCheckpoint(): Promise<GitReconciliationCheckpoint> {
-    const lastObservedRemoteHead = await tryResolveRemoteHead(
-      this.git,
-      this.branch,
-    );
-    return {
-      remoteFingerprint: this.remoteFingerprint,
-      branch: this.branch,
-      lastReconciledGitHead: await this.git.revparse(["HEAD"]),
-      ...(lastObservedRemoteHead ? { lastObservedRemoteHead } : {}),
-    };
-  }
-
-  private async getRemoteChanges(
-    previous: GitReconciliationCheckpoint,
-    current: GitReconciliationCheckpoint,
-  ): Promise<{ deletedFiles: string[] } | undefined> {
-    const previousHead = previous.lastObservedRemoteHead;
-    const currentHead = current.lastObservedRemoteHead;
-    if (!previousHead && !currentHead) return { deletedFiles: [] };
-    if (!previousHead || !currentHead) return undefined;
-    if (!(await this.commitExists(previousHead))) return undefined;
-    if (!(await this.isAncestor(previousHead, currentHead))) return undefined;
-    if (previousHead === currentHead) return { deletedFiles: [] };
-    const changes = await getChangedPaths(this.git, previousHead, currentHead);
-    return { deletedFiles: changes.deletedFiles };
-  }
-
-  private async commitExists(commit: string): Promise<boolean> {
-    try {
-      await this.git.raw(["cat-file", "-e", `${commit}^{commit}`]);
-      return true;
-    } catch {
-      return false;
-    }
-  }
-
-  private async isAncestor(
-    ancestor: string,
-    descendant: string,
-  ): Promise<boolean> {
-    try {
-      const mergeBase = await this.git.raw([
-        "merge-base",
-        ancestor,
-        descendant,
-      ]);
-      return mergeBase.trim() === ancestor;
-    } catch {
-      return false;
-    }
   }
 
   private runOperation<T>(operation: () => Promise<T>): Promise<T> {
