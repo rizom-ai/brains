@@ -527,8 +527,11 @@ describe("bundle permission integration", () => {
             {
               member: "alpha",
               config: {
+                // @ts-expect-error deliberately an invalid rule level: the
+                // validation under test is a runtime one, so the test has to
+                // supply a value the type forbids.
                 rules: [{ pattern: "invalid:*", level: "anchor" }],
-              } as unknown as PermissionConfig,
+              },
             },
           ],
         }),

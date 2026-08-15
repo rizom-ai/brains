@@ -2,7 +2,6 @@ import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { SeedDataManager, type FileSystem } from "../src/seed-data-manager";
 import { createMockLogger } from "@brains/test-utils";
 import type { Logger } from "@brains/utils/logger";
-import type * as fs from "fs/promises";
 import * as path from "path";
 
 describe("SeedDataManager", () => {
@@ -17,10 +16,11 @@ describe("SeedDataManager", () => {
 
     mockFs = {
       readdir: mock(() => Promise.resolve([])),
+      readdirWithFileTypes: mock(() => Promise.resolve([])),
       mkdir: mock(() => Promise.resolve(undefined)),
       access: mock(() => Promise.resolve()),
       copyFile: mock(() => Promise.resolve()),
-    } as unknown as FileSystem;
+    } satisfies FileSystem;
 
     seedDataManager = new SeedDataManager(
       mockLogger,
@@ -47,9 +47,7 @@ describe("SeedDataManager", () => {
     });
 
     it("should skip initialization if brain-data is not empty", async () => {
-      mockFs.readdir = mock(() =>
-        Promise.resolve(["file1.md", "file2.md"]),
-      ) as unknown as typeof fs.readdir;
+      mockFs.readdir = mock(() => Promise.resolve(["file1.md", "file2.md"]));
 
       await seedDataManager.initialize();
 
@@ -60,11 +58,13 @@ describe("SeedDataManager", () => {
     });
 
     it("should copy seed content when brain-data is empty", async () => {
-      let readdirCallCount = 0;
-      mockFs.readdir = mock(() => {
-        readdirCallCount++;
-        if (readdirCallCount === 1) return Promise.resolve([]);
-        if (readdirCallCount === 2)
+      // The two directory reads are separate members now, so each stub says
+      // which call it answers instead of counting invocations.
+      mockFs.readdir = mock(() => Promise.resolve([]));
+      let withTypesCalls = 0;
+      mockFs.readdirWithFileTypes = mock(() => {
+        withTypesCalls++;
+        if (withTypesCalls === 1)
           return Promise.resolve([
             { name: "file1.md", isDirectory: (): boolean => false },
             { name: "subdir", isDirectory: (): boolean => true },
@@ -72,7 +72,7 @@ describe("SeedDataManager", () => {
         return Promise.resolve([
           { name: "file2.md", isDirectory: (): boolean => false },
         ]);
-      }) as unknown as typeof fs.readdir;
+      });
       mockFs.access = mock(() => Promise.resolve());
       mockFs.copyFile = mock(() => Promise.resolve());
       mockFs.mkdir = mock(() => Promise.resolve(undefined));
@@ -105,11 +105,11 @@ describe("SeedDataManager", () => {
     });
 
     it("should recursively copy directories", async () => {
-      let readdirCallCount = 0;
-      mockFs.readdir = mock(() => {
-        readdirCallCount++;
-        if (readdirCallCount === 1) return Promise.resolve([]);
-        if (readdirCallCount === 2)
+      mockFs.readdir = mock(() => Promise.resolve([]));
+      let withTypesCalls = 0;
+      mockFs.readdirWithFileTypes = mock(() => {
+        withTypesCalls++;
+        if (withTypesCalls === 1)
           return Promise.resolve([
             { name: "dir1", isDirectory: (): boolean => true },
             { name: "file1.md", isDirectory: (): boolean => false },
@@ -117,7 +117,7 @@ describe("SeedDataManager", () => {
         return Promise.resolve([
           { name: "file2.md", isDirectory: (): boolean => false },
         ]);
-      }) as unknown as typeof fs.readdir;
+      });
       mockFs.access = mock(() => Promise.resolve());
       mockFs.copyFile = mock(() => Promise.resolve());
       mockFs.mkdir = mock(() => Promise.resolve(undefined));

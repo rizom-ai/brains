@@ -1,4 +1,12 @@
-import { describe, expect, it, mock, beforeEach, afterEach } from "bun:test";
+import {
+  describe,
+  expect,
+  it,
+  mock,
+  beforeEach,
+  afterEach,
+  spyOn,
+} from "bun:test";
 import { handleCLI } from "../src/cli";
 import { App } from "../src/app";
 import { defineConfig } from "../src/config";
@@ -124,10 +132,14 @@ describe("handleCLI", () => {
   });
 
   it("should handle --startup-check by initializing without running", async () => {
-    const initialize = mock(() => Promise.resolve());
-    const stop = mock(() => Promise.resolve());
-    const createSpy = mock(() => ({ initialize, stop }));
-    App.create = createSpy as unknown as typeof App.create;
+    // A real App with its two methods spied, rather than a two-method literal:
+    // App is a class, so no literal could ever satisfy typeof App.create, and
+    // the CLI only needs initialize and stop to be observable.
+    const app = originalCreate(testConfig);
+    const initialize = spyOn(app, "initialize").mockResolvedValue(undefined);
+    const stop = spyOn(app, "stop").mockResolvedValue(undefined);
+    const createSpy = mock(() => app);
+    App.create = createSpy;
     process.argv = ["bun", ".brain-entrypoint.ts", "--startup-check"];
 
     await handleCLI(testConfig);

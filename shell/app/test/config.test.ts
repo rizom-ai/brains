@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { defineConfig } from "../src/config";
 import type { AppConfigInput } from "../src/types";
-import type { Plugin } from "@brains/plugins";
+import type { Plugin, PluginCapabilities } from "@brains/plugins";
 
 const mockPlugin = {
   id: "test-plugin",
@@ -9,8 +9,13 @@ const mockPlugin = {
   description: "Test plugin",
   type: "service",
   packageName: "@test/plugin",
-  register: async () => ({ tools: [], resources: [] }),
-} as unknown as Plugin;
+  // The literal satisfied Plugin all along; the cast it carried was never
+  // needed, and hid that fact.
+  register: async (): Promise<PluginCapabilities> => ({
+    tools: [],
+    resources: [],
+  }),
+} satisfies Plugin;
 
 describe("defineConfig", () => {
   const validConfig: AppConfigInput = {
