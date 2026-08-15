@@ -9,6 +9,7 @@ import {
 import {
   createTemplate,
   defineEntity,
+  defineEntityDataSource,
   defineEntityPackage,
   defineProjection,
   instantiatePluginPackageDefinition,
@@ -242,6 +243,66 @@ describe("entity package definitions", () => {
     expect([...harness.getTemplates().keys()]).toContain(
       "@fixture/guides:guide:guide-list",
     );
+
+    harness.reset();
+  });
+
+  it("registers a declared entity data source and serves list queries", async () => {
+    // The author declares config plus pure transform/build functions. The
+    // runtime keeps every entity read on its own side, so nothing about
+    // entityService, DataSource, or BaseDataSourceContext has to reach the
+    // public surface — those types drag the runtime across the published
+    // declaration boundary and cannot be promoted.
+    const guide = defineEntity({
+      type: "guide",
+      purpose: "A guide backed by a data source.",
+      metadata: z.object({ title: z.string() }),
+      dataSources: [
+        defineEntityDataSource({
+          id: "entities",
+          name: "Guide entities",
+          description: "Lists guides for templates",
+          entityType: "guide",
+          defaultSort: [{ field: "created", direction: "desc" }],
+          transform: (entity) => ({ id: entity.id }),
+          list: (items) => ({ guides: items }),
+        }),
+      ],
+    });
+    const definition = defineEntityPackage({ id: "guides", entities: [guide] });
+    const plugin = createEntityPackagePlugins(
+      definition.entities,
+      definition.projections,
+      { name: "@fixture/guides", version: "0.1.0" },
+      (id) => `@fixture/guides:${id}`,
+    )[0];
+    if (!plugin) throw new Error("Guide entity plugin was not created");
+
+    const harness = createPluginHarness({
+      logger: createSilentLogger("entity-datasource-test"),
+    });
+    await harness.installPlugin(plugin);
+
+    // Scoped by the runtime, so two packages may each declare "entities".
+    const dataSource = harness.getDataSources().get("@fixture/guides:entities");
+    if (!dataSource?.fetch) throw new Error("Data source was not registered");
+
+    await harness.getEntityService().createEntity({
+      entity: {
+        id: "first",
+        entityType: "guide",
+        content: "A guide",
+        metadata: { title: "First" },
+      },
+    });
+
+    expect(
+      await dataSource.fetch(
+        {},
+        z.object({ guides: z.array(z.object({ id: z.string() })) }),
+        { entityService: harness.getEntityService() },
+      ),
+    ).toEqual({ guides: [{ id: "first" }] });
 
     harness.reset();
   });

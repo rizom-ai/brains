@@ -1,16 +1,12 @@
 import {
-  BaseEntityDataSource,
+  defineEntityDataSource,
   parseMarkdownWithFrontmatter,
-} from "@brains/plugins";
+} from "@brains/sdk/entities";
 import type {
-  BaseDataSourceContext,
-  DataSourceSchema,
+  AnyEntityDataSourceDefinition,
   BaseQuery,
-  NavigationResult,
   PaginationInfo,
-  EntityDataSourceConfig,
-} from "@brains/plugins";
-import type { Logger } from "@brains/utils/logger";
+} from "@brains/sdk/entities";
 import type { Doc } from "../schemas/doc";
 import {
   docFrontmatterSchema,
@@ -19,19 +15,6 @@ import {
 } from "../schemas/doc";
 
 export type { DocWithData };
-
-interface DocDetailData {
-  doc: DocWithData;
-  docs: DocWithData[];
-  prevDoc: DocWithData | null;
-  nextDoc: DocWithData | null;
-}
-
-interface DocListData {
-  docs: DocWithData[];
-  pagination: PaginationInfo | null;
-  baseUrl: string | null;
-}
 
 function sortDocsForDisplay(docs: DocWithData[]): DocWithData[] {
   return [...docs].sort((a, b) => {
@@ -54,93 +37,46 @@ export function parseDocData(entity: Doc): DocWithData {
   });
 }
 
-export class DocDataSource extends BaseEntityDataSource<
-  Doc,
-  DocWithData,
-  DocListData
-> {
-  readonly id = "docs:entities";
-  readonly name = "Docs Entity DataSource";
-  readonly description = "Fetches and transforms doc entities for rendering";
-
-  protected readonly config: EntityDataSourceConfig = {
+/**
+ * Docs render as one long ordered set rather than paged results, so the
+ * list view takes a high limit and reports no pagination, and the detail
+ * view derives prev/next from the display order rather than the storage
+ * sort.
+ */
+export const docDataSource: AnyEntityDataSourceDefinition =
+  defineEntityDataSource({
+    id: "entities",
+    name: "Docs Entity DataSource",
+    description: "Fetches and transforms doc entities for rendering",
     entityType: "doc",
     defaultSort: [
-      { field: "order" as const, direction: "asc" as const },
-      { field: "section" as const, direction: "asc" as const },
-      { field: "title" as const, direction: "asc" as const },
+      { field: "order", direction: "asc" },
+      { field: "section", direction: "asc" },
+      { field: "title", direction: "asc" },
     ],
-    defaultLimit: 100,
+    defaultLimit: 1000,
     enableNavigation: true,
-  };
-
-  constructor(logger: Logger) {
-    super(logger);
-  }
-
-  protected transformEntity(entity: Doc): DocWithData {
-    return parseDocData(entity);
-  }
-
-  override async fetch<T>(
-    query: unknown,
-    outputSchema: DataSourceSchema<T>,
-    context: BaseDataSourceContext,
-  ): Promise<T> {
-    const params = this.parseQuery(query);
-
-    if (!params.query.id) {
-      const list = await this.fetchList(
-        { ...params.query, limit: 1000, page: undefined, pageSize: undefined },
-        context.entityService,
-      );
-      return outputSchema.parse(
-        this.buildListResult(list.items, null, params.query),
-      );
-    }
-
-    const [detail, list] = await Promise.all([
-      this.fetchDetail(params.query.id, context.entityService),
-      this.fetchList({ limit: 1000 }, context.entityService),
-    ]);
-
-    const docs = sortDocsForDisplay(list.items);
-    const currentIndex = docs.findIndex((item) => item.id === detail.item.id);
-    const prevDoc = currentIndex > 0 ? docs[currentIndex - 1] : null;
-    const nextDoc =
-      currentIndex >= 0 && currentIndex < docs.length - 1
-        ? docs[currentIndex + 1]
-        : null;
-
-    return outputSchema.parse({
-      doc: detail.item,
-      docs,
-      prevDoc,
-      nextDoc,
-    });
-  }
-
-  protected override buildDetailResult(
-    item: DocWithData,
-    navigation: NavigationResult<DocWithData> | null,
-  ): DocDetailData {
-    return {
-      doc: item,
-      docs: [item],
-      prevDoc: navigation?.prev ?? null,
-      nextDoc: navigation?.next ?? null,
-    };
-  }
-
-  protected buildListResult(
-    items: DocWithData[],
-    pagination: PaginationInfo | null,
-    query: BaseQuery,
-  ): DocListData {
-    return {
+    transform: (entity: Doc): DocWithData => parseDocData(entity),
+    list: (
+      items: DocWithData[],
+      _pagination: PaginationInfo | null,
+      query: BaseQuery,
+    ) => ({
       docs: sortDocsForDisplay(items),
-      pagination,
+      pagination: null,
       baseUrl: query.baseUrl ?? null,
-    };
-  }
-}
+    }),
+    detail: ({ item, siblings }) => {
+      const docs = sortDocsForDisplay([...siblings]);
+      const index = docs.findIndex((entry) => entry.id === item.id);
+      return {
+        doc: item,
+        docs,
+        prevDoc: index > 0 ? (docs[index - 1] ?? null) : null,
+        nextDoc:
+          index >= 0 && index < docs.length - 1
+            ? (docs[index + 1] ?? null)
+            : null,
+      };
+    },
+  });

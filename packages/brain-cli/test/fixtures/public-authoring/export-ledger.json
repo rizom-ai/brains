@@ -270,16 +270,30 @@
         "z"
       ],
       "advanced-with-consumer": [
+        "AnyEntityDataSourceDefinition",
         "BaseEntity",
+        "BaseQuery",
+        "EntityDataSourceDefinition",
+        "EntityDetailContext",
         "EntityInput",
         "EntityMutationResult",
         "FrontmatterConfig",
         "ListOptions",
+        "NavigationResult",
         "PaginateOptions",
         "PaginateResult",
         "PaginationInfo",
         "SearchOptions",
-        "SearchResult"
+        "SearchResult",
+        "SortField",
+        "Template",
+        "baseEntityParserSchema",
+        "contentVisibilitySchema",
+        "createTemplate",
+        "defineEntityDataSource",
+        "paginationInfoSchema",
+        "parseMarkdownWithFrontmatter",
+        "slugify"
       ],
       "internal/removable": [
         "BaseDataSourceContext",
@@ -298,9 +312,7 @@
         "buildPaginationInfo",
         "generateFrontmatter",
         "generateMarkdownWithFrontmatter",
-        "paginateItems",
-        "paginationInfoSchema",
-        "parseMarkdownWithFrontmatter"
+        "paginateItems"
       ]
     },
     "@rizom/brain/services": {

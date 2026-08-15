@@ -2,9 +2,9 @@ import {
   contentVisibilitySchema,
   createTemplate,
   paginationInfoSchema,
-} from "@brains/plugins";
-import type { Template } from "@brains/plugins";
-import { z } from "@brains/utils/zod";
+} from "@brains/sdk/entities";
+import type { Template } from "@brains/sdk/entities";
+import { z } from "@brains/sdk/entities";
 import { DocListTemplate, type DocListProps } from "../templates/doc-list";
 import {
   DocDetailTemplate,

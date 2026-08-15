@@ -148,12 +148,14 @@
       "name": "@brains/doc",
       "version": "0.2.0-alpha.349",
       "dependencies": {
-        "@brains/plugins": "workspace:*",
+        "@brains/sdk": "workspace:*",
         "@brains/ui-library": "workspace:*",
         "@brains/utils": "workspace:*",
         "react": "^19.2.7",
       },
       "devDependencies": {
+        "@brains/plugins": "workspace:*",
+        "@brains/test-utils": "workspace:*",
         "@brains/typescript-config": "workspace:*",
         "@types/react": "^19.2.17",
         "bun-types": "^1.4.0",
