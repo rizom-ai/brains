@@ -38,6 +38,9 @@ export async function markEntityPublished<
     status: "published",
     [publishTimestampField]: publishedAt,
     platformId: result.id,
+    // Only the provider can build this: the URL format lives inside it, so
+    // platformId alone does not let anything downstream reconstruct it.
+    ...(result.url === undefined ? {} : { platformUrl: result.url }),
     ...getPublishResultMetadata(result.id, options.publishResultIdField),
   };
 
