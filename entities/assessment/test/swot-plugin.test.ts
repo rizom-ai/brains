@@ -1,9 +1,11 @@
 import { beforeEach, describe, expect, it, mock } from "bun:test";
 import { randomUUID } from "node:crypto";
-import { SYSTEM_CHANNELS } from "@brains/plugins";
+import {
+  DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
+  SYSTEM_CHANNELS,
+} from "@brains/plugins";
 import { createPluginHarness } from "@brains/plugins/test";
 import { SwotAssessmentPlugin } from "../src";
-import { swotWidgetStyles } from "../src/widgets/swot-widget";
 
 describe("SwotAssessmentPlugin", () => {
   let harness: ReturnType<typeof createPluginHarness>;
@@ -12,11 +14,6 @@ describe("SwotAssessmentPlugin", () => {
     harness = createPluginHarness({
       dataDir: `/tmp/test-swot-${randomUUID()}`,
     });
-  });
-
-  it("owns its dashboard widget styles", () => {
-    expect(swotWidgetStyles).toContain(".swot-cell");
-    expect(swotWidgetStyles).toContain("@container dashboard-card");
   });
 
   it("registers SWOT as a terminal scheduler-owned projection", async () => {
@@ -63,7 +60,6 @@ describe("SwotAssessmentPlugin", () => {
       id: string;
       group: string;
       rendererName: string;
-      hasClientStyles: boolean;
     }> = [];
 
     harness.subscribe("dashboard:register-widget", async (message) => {
@@ -71,13 +67,11 @@ describe("SwotAssessmentPlugin", () => {
         id: string;
         group: string;
         rendererName: string;
-        clientStyles?: unknown;
       };
       registrations.push({
         id: payload.id,
         group: payload.group,
         rendererName: payload.rendererName,
-        hasClientStyles: typeof payload.clientStyles === "string",
       });
       return { success: true };
     });
@@ -89,8 +83,7 @@ describe("SwotAssessmentPlugin", () => {
       {
         id: "swot",
         group: "network",
-        rendererName: "SwotWidget",
-        hasClientStyles: true,
+        rendererName: DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
       },
     ]);
   });

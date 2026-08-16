@@ -4,18 +4,14 @@ export type { DashboardConfig, DashboardConfigInput } from "./plugin";
 
 // Widget registry exports
 export {
-  BUILT_IN_WIDGET_RENDERERS,
   DashboardWidgetRegistry,
   dashboardDigestLineSchema,
   dashboardWidgetSchema,
-  isBuiltInWidgetRenderer,
 } from "./widget-registry";
 export type {
   RegisteredWidget,
   DashboardDigestLine,
   DashboardWidgetMeta,
-  WidgetComponent,
-  WidgetComponentProps,
   WidgetDataProvider,
   WidgetVisibility,
 } from "./widget-registry";
@@ -28,31 +24,6 @@ export type {
   WidgetData,
   WidgetDigestLine,
 } from "./widget-schema";
-
-// Shared SSR primitives for custom dashboard widgets
-export {
-  createWidgetInstanceId,
-  formatDate,
-  WidgetPrimitiveEmptyState as EmptyState,
-  KeyValueList,
-  WidgetActionLink,
-  WidgetActions,
-  WidgetEmptyState,
-  WidgetFilter,
-  WidgetList,
-  WidgetListItem,
-  WidgetMetaLine,
-  WidgetStatusPill,
-  WidgetTabs,
-  WidgetTags,
-} from "@brains/ui-library";
-export type {
-  KeyValueItem,
-  WidgetDataAttributes,
-  WidgetElementProps,
-  WidgetFilterOption,
-  WidgetTabDefinition,
-} from "@brains/ui-library";
 
 // Page renderer, exposed for the root console visual-regression script
 export { renderDashboardPageHtml } from "./dashboard-page";

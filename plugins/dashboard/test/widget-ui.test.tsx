@@ -22,7 +22,7 @@ function declarativeWidget(data: unknown): RenderableWidgetData {
       group: "knowledge",
       priority: 10,
       section: "secondary",
-      rendererName: "host-owned-declarative",
+      rendererName: "DeclarativeOperatorWidget",
       visibility: "trusted",
     },
     data,
@@ -80,7 +80,7 @@ describe("widget UI primitives", () => {
   it("renders validated declarative views with host-owned entity links", () => {
     const html = render(
       <DeclarativeWidgetBody
-        cmsPath="/cms"
+        launchPaths={{ cmsPath: "/cms" }}
         widget={declarativeWidget({
           view: {
             title: "Queue <script>alert('nope')</script>",
@@ -117,10 +117,171 @@ describe("widget UI primitives", () => {
     expect(html).toContain('href="/cms/entities/bookmark/saved-1"');
   });
 
+  it("resolves closed CMS launch intents to scoped declarative workspaces", () => {
+    const html = render(
+      <DeclarativeWidgetBody
+        launchPaths={{ cmsPath: "/cms" }}
+        widget={declarativeWidget({
+          view: {
+            blocks: [
+              {
+                type: "links",
+                items: [
+                  {
+                    label: "Publishing",
+                    target: {
+                      kind: "launch",
+                      launch: { target: "publishing" },
+                    },
+                  },
+                  {
+                    label: "Site",
+                    target: {
+                      kind: "launch",
+                      launch: { target: "site" },
+                    },
+                  },
+                  {
+                    label: "Inbox",
+                    target: {
+                      kind: "launch",
+                      launch: { target: "inbox" },
+                    },
+                  },
+                ],
+              },
+            ],
+          },
+        })}
+      />,
+    );
+
+    expect(html).toContain(
+      'href="/cms/workspaces/content-pipeline%3Apublishing"',
+    );
+    expect(html).toContain('href="/cms/workspaces/site-builder%3Asite"');
+    expect(html).toContain('href="/cms/workspaces/unified-inbox%3Ainbox"');
+  });
+
+  it("renders normalized spatial semantics with keyboard-focusable points and text detail", () => {
+    const html = render(
+      <DeclarativeWidgetBody
+        launchPaths={{}}
+        widget={declarativeWidget({
+          view: {
+            blocks: [
+              {
+                type: "spatial",
+                layout: "radial",
+                id: "network",
+                label: "Agent proximity",
+                description: "Agents arranged by semantic distance.",
+                centerLabel: "Brain identity",
+                centerKind: "identity",
+                points: [
+                  {
+                    id: "agent-a",
+                    label: "Agent A",
+                    kind: "person",
+                    status: "approved",
+                    distance: 0.25,
+                    bearing: 90,
+                    relatedIds: ["agent-b"],
+                    tone: "good",
+                  },
+                  {
+                    id: "agent-b",
+                    label: "Agent B",
+                    kind: "team",
+                    status: "discovered",
+                    distance: 0.7,
+                    bearing: 220,
+                    relatedIds: ["agent-a"],
+                    tone: "warn",
+                  },
+                ],
+                relationships: [
+                  {
+                    sourceId: "agent-a",
+                    targetId: "agent-b",
+                    tone: "good",
+                  },
+                ],
+                strata: [
+                  { id: "near", label: "Near", maxDistance: 0.5 },
+                  { id: "far", label: "Far", maxDistance: 1 },
+                ],
+                legend: [
+                  { label: "Approved", tone: "good" },
+                  { label: "Pending", tone: "warn" },
+                ],
+              },
+            ],
+          },
+        })}
+      />,
+    );
+
+    expect(html).toContain('data-ui-spatial="true"');
+    expect(html).toContain('data-ui-spatial-point="agent-a"');
+    expect(html).toContain('aria-controls="network-detail-agent-a"');
+    expect(html).toContain("Agents arranged by semantic distance.");
+    expect(html).toContain("person · approved");
+  });
+
+  it("renders host-owned grouping, flow, meters, and active progress", () => {
+    const html = render(
+      <DeclarativeWidgetBody
+        launchPaths={{}}
+        widget={declarativeWidget({
+          view: {
+            blocks: [
+              {
+                type: "group",
+                id: "automation",
+                label: "Automation",
+                items: [{ id: "watcher", label: "Watcher", value: true }],
+              },
+              {
+                type: "flow",
+                id: "pipeline",
+                label: "Content flow",
+                direction: "bidirectional",
+                steps: [
+                  { id: "files", label: "Files", status: "complete" },
+                  { id: "store", label: "Store", status: "active" },
+                ],
+              },
+              {
+                type: "meters",
+                id: "health",
+                items: [{ id: "routes", label: "Routes", value: 4, max: 10 }],
+              },
+              {
+                type: "progress",
+                id: "build",
+                label: "Preview build",
+                state: "building",
+                progress: 0.5,
+              },
+            ],
+          },
+        })}
+      />,
+    );
+
+    expect(html).toContain("Automation");
+    expect(html).toContain('data-direction="bidirectional"');
+    expect(html).toContain('data-status="active"');
+    expect(html).toContain('<progress value="4" max="10">');
+    expect(html).toContain("Preview build");
+    expect(html).toContain('value="0.5"');
+  });
+
   it("rejects unsafe links before the generic renderer emits HTML", () => {
     const html = render(
       <DeclarativeWidgetBody
-        cmsPath="/cms"
+        launchPaths={{ cmsPath: "/cms" }}
         widget={declarativeWidget({
           view: {
             blocks: [

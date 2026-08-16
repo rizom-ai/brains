@@ -81,10 +81,7 @@ export {
 } from "./operator-service";
 export { MailTriageInboxSource } from "./inbox-source";
 export { createEmailTriageListTool } from "./operator-tool";
-export {
-  MailTriageDashboardWidget,
-  registerEmailTriageDashboardWidget,
-} from "./operator-dashboard-widget";
+export { registerEmailTriageDashboardWidget } from "./operator-dashboard-widget";
 export {
   retainedMailClassificationSchema,
   discardedMailClassificationSchema,

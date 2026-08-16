@@ -1,5 +1,9 @@
 import { describe, expect, it } from "bun:test";
-import type { Conversation, Message } from "@brains/plugins";
+import {
+  DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
+  type Conversation,
+  type Message,
+} from "@brains/plugins";
 import {
   buildSummaryCoverageData,
   registerSummaryCoverageWidget,
@@ -219,12 +223,12 @@ describe("registerSummaryCoverageWidget", () => {
     if (!payload) throw new Error("widget was not registered");
 
     expect(payload).toMatchObject({
-      id: "conversation-memory:coverage",
+      id: "coverage",
       title: "Conversation memory coverage",
       group: "system",
       section: "secondary",
       priority: 80,
-      rendererName: "ListWidget",
+      rendererName: DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
       visibility: "admin",
     });
   });

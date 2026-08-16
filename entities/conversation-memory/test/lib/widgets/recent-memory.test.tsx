@@ -1,11 +1,8 @@
-/** @jsxImportSource preact */
 import { describe, expect, it } from "bun:test";
-import { render } from "preact-render-to-string";
 import { createMockEntityPluginContext } from "@brains/test-utils";
 import { SummaryAdapter } from "../../../src/adapters/summary-adapter";
 import { createMockSummaryEntity } from "../../fixtures/summary-entities";
 import { buildRecentConversationMemoryData } from "../../../src/lib/widgets/recent-memory";
-import { RecentConversationMemoryWidget } from "../../../src/lib/widgets/recent-memory-widget";
 import type { SummaryEntity, SummaryEntry } from "../../../src/schemas/summary";
 
 const adapter = new SummaryAdapter();
@@ -109,59 +106,5 @@ describe("buildRecentConversationMemoryData", () => {
     expect(ops?.title).toBe("Ops planning");
     expect(ops?.keyPoint).toBe("deploy plan");
     expect(ops?.messageCount).toBe(9);
-  });
-});
-
-describe("RecentConversationMemoryWidget", () => {
-  it("renders both panels with view tabs", () => {
-    const html = render(
-      <RecentConversationMemoryWidget
-        title="Recent conversation memory"
-        data={{
-          all: [
-            {
-              id: "s-design#0",
-              title: "Design A",
-              keyPoint: "decision on A",
-              channelName: "Design",
-              channelId: "design",
-              timeRange: {
-                start: "2026-05-09T00:00:00.000Z",
-                end: "2026-05-09T00:00:00.000Z",
-              },
-              messageCount: 5,
-            },
-          ],
-          byChannel: [
-            {
-              id: "s-ops#0",
-              title: "Ops planning",
-              keyPoint: "deploy plan",
-              channelName: "Ops",
-              channelId: "ops",
-              timeRange: {
-                start: "2026-05-09T12:00:00.000Z",
-                end: "2026-05-09T12:00:00.000Z",
-              },
-              messageCount: 9,
-            },
-          ],
-        }}
-      />,
-    );
-
-    expect(html).toContain("data-recent-memory-widget");
-    expect(html).toContain('data-recent-memory-view-tab="all"');
-    expect(html).toContain('data-recent-memory-view-tab="byChannel"');
-    expect(html).toContain('data-recent-memory-panel="all"');
-    expect(html).toContain('data-recent-memory-panel="byChannel"');
-    expect(html).toContain('data-ui-tabs-default="all"');
-    expect(html).toContain('data-ui-tab="byChannel"');
-    expect(html).toContain('data-ui-panel="byChannel"');
-    expect(html).toContain('role="tabpanel"');
-    expect(html).toContain("Design A");
-    expect(html).toContain("Ops planning");
-    expect(html).toContain("#Design");
-    expect(html).toContain("9 msgs");
   });
 });

@@ -53,18 +53,11 @@ const adminActor: CmsWorkspaceActor = {
   isAnchor: true,
 };
 
-const confirmationResultSchema = z.object({
-  needsConfirmation: z.literal(true),
-  args: z.object({
-    confirmed: z.literal(true),
-    confirmationToken: z.string(),
-    contentHash: z.string(),
-    expiresAt: z.string(),
-  }),
-});
-const failedResultSchema = z.object({
-  success: z.literal(false),
-  error: z.string(),
+const preparedConfirmationSchema = z.object({
+  kind: z.literal("prepared-confirmation"),
+  token: z.string().uuid(),
+  summary: z.string(),
+  expiresAt: z.string().datetime(),
 });
 const successResultSchema = z.object({ success: z.literal(true) });
 
@@ -77,7 +70,7 @@ describe("content-pipeline CMS workspace registration", () => {
 
     const queueManager = QueueManager.createFresh();
     const providerRegistry = ProviderRegistry.createFresh();
-    const href = await registerCmsWorkspace(context, "content-pipeline", {
+    const href = await registerCmsWorkspace(context, {
       providerRegistry,
       queueManager,
       publicationQueueService: new PublicationQueueService(
@@ -91,7 +84,7 @@ describe("content-pipeline CMS workspace registration", () => {
     expect(href).toBeUndefined();
   });
 
-  it("registers the Publishing renderer backed by the canonical snapshot", async () => {
+  it("registers the declarative Publishing workspace backed by the canonical snapshot", async () => {
     const shell = createMockShell();
     const context = createServicePluginContext(shell, "content-pipeline");
     context.entities.register(
@@ -128,7 +121,7 @@ describe("content-pipeline CMS workspace registration", () => {
       };
     });
 
-    const href = await registerCmsWorkspace(context, "content-pipeline", {
+    const href = await registerCmsWorkspace(context, {
       providerRegistry: providers,
       queueManager: queue,
       publicationQueueService: new PublicationQueueService(context, queue),
@@ -141,10 +134,10 @@ describe("content-pipeline CMS workspace registration", () => {
 
     expect(href).toBe("/cms/workspaces/publishing");
     expect(registration).toMatchObject({
-      id: "publishing",
+      id: "content-pipeline:publishing",
       pluginId: "content-pipeline",
       label: "Publishing",
-      rendererName: "PublishingWorkspace",
+      rendererName: "DeclarativeOperatorWorkspace",
       priority: 40,
     });
     if (!registration) throw new Error("Workspace was not registered");
@@ -156,15 +149,12 @@ describe("content-pipeline CMS workspace registration", () => {
         : registration.entityTypes,
     ).toEqual(["social-post"]);
     expect(await registration.accessHandler(adminActor)).toBe(true);
-    expect(await registration.dataProvider(adminActor)).toMatchObject({
-      summary: { queued: 1 },
-      queue: [
-        expect.objectContaining({
-          entityId: "queued-post",
-          destination: "linkedin",
-        }),
-      ],
+    const workspace = await registration.dataProvider(adminActor);
+    expect(workspace).toMatchObject({
+      view: { title: "Publishing desk" },
     });
+    expect(JSON.stringify(workspace)).toContain('"title":"Queued post"');
+    expect(JSON.stringify(workspace)).toContain('"entityType":"social-post"');
   });
 
   it("owns validated queue, reorder, remove, and retry actions", async () => {
@@ -211,7 +201,7 @@ describe("content-pipeline CMS workspace registration", () => {
         data: { workspaceUrl: "/cms/workspaces/publishing" },
       };
     });
-    await registerCmsWorkspace(context, "content-pipeline", {
+    await registerCmsWorkspace(context, {
       providerRegistry: providers,
       queueManager: queue,
       publicationQueueService: queueService,
@@ -226,19 +216,27 @@ describe("content-pipeline CMS workspace registration", () => {
     const actor = adminActor;
 
     await act?.(
-      { type: "queue", entityType: "social-post", entityId: "first" },
-      actor,
-    );
-    await act?.(
-      { type: "queue", entityType: "social-post", entityId: "second" },
+      {
+        actionId: "queue",
+        input: { entityType: "social-post", entityId: "first" },
+      },
       actor,
     );
     await act?.(
       {
-        type: "reorder",
-        entityType: "social-post",
-        entityId: "second",
-        position: 1,
+        actionId: "queue",
+        input: { entityType: "social-post", entityId: "second" },
+      },
+      actor,
+    );
+    await act?.(
+      {
+        actionId: "reorder",
+        input: {
+          entityType: "social-post",
+          entityId: "second",
+          position: 1,
+        },
       },
       actor,
     );
@@ -247,7 +245,10 @@ describe("content-pipeline CMS workspace registration", () => {
     ).toEqual(["second", "first"]);
 
     await act?.(
-      { type: "remove", entityType: "social-post", entityId: "first" },
+      {
+        actionId: "remove",
+        input: { entityType: "social-post", entityId: "first" },
+      },
       actor,
     );
     expect(
@@ -263,9 +264,11 @@ describe("content-pipeline CMS workspace registration", () => {
     try {
       await act?.(
         {
-          type: "queue",
-          entityType: "social-post",
-          entityId: "failed-for-queue",
+          actionId: "queue",
+          input: {
+            entityType: "social-post",
+            entityId: "failed-for-queue",
+          },
         },
         actor,
       );
@@ -275,12 +278,13 @@ describe("content-pipeline CMS workspace registration", () => {
     if (!(invalidTransitionError instanceof Error)) {
       throw new Error("Expected invalid transition to fail");
     }
-    expect(invalidTransitionError.message).toContain(
-      "Only draft entities can be queued",
-    );
+    expect(invalidTransitionError.message).toContain('action "queue" failed');
 
     await act?.(
-      { type: "retry", entityType: "social-post", entityId: "failed" },
+      {
+        actionId: "retry",
+        input: { entityType: "social-post", entityId: "failed" },
+      },
       actor,
     );
     expect(
@@ -295,7 +299,7 @@ describe("content-pipeline CMS workspace registration", () => {
 
     let invalidActionError: unknown;
     try {
-      await act?.({ type: "launch", entityType: "social-post" }, actor);
+      await act?.({ actionId: "launch", input: {} }, actor);
     } catch (error) {
       invalidActionError = error;
     }
@@ -303,7 +307,7 @@ describe("content-pipeline CMS workspace registration", () => {
       throw new Error("Expected invalid action to fail");
     }
     expect(invalidActionError.message).toContain(
-      "Invalid publishing workspace action",
+      'does not declare action "launch"',
     );
   });
 
@@ -381,7 +385,7 @@ describe("content-pipeline CMS workspace registration", () => {
         data: { workspaceUrl: "/cms/workspaces/publishing" },
       };
     });
-    await registerCmsWorkspace(context, "content-pipeline", {
+    await registerCmsWorkspace(context, {
       providerRegistry: providers,
       queueManager: queue,
       publicationQueueService: new PublicationQueueService(context, queue),
@@ -398,19 +402,22 @@ describe("content-pipeline CMS workspace registration", () => {
     expect(
       await Promise.resolve(registration.accessHandler(trustedActor)),
     ).toBe(true);
-    expect(await registration.dataProvider(trustedActor)).toMatchObject({
-      summary: { draft: 1, queued: 1 },
-      // Renumbered to the caller's view: no gap betrays the hidden
-      // restricted entry queued at absolute position 1.
-      queue: [{ entityId: "shared-queued", position: 1 }],
+    const trustedWorkspace = await registration.dataProvider(trustedActor);
+    expect(trustedWorkspace).toMatchObject({
+      view: { title: "Publishing desk" },
     });
+    const trustedSerialized = JSON.stringify(trustedWorkspace);
+    expect(trustedSerialized).toContain("shared-queued");
+    expect(trustedSerialized).not.toContain("restricted-queued");
     expect(
       await registration.actionHandler(
         {
-          type: "reorder",
-          entityType: "social-post",
-          entityId: "shared-queued",
-          position: 1,
+          actionId: "reorder",
+          input: {
+            entityType: "social-post",
+            entityId: "shared-queued",
+            position: 1,
+          },
         },
         trustedActor,
       ),
@@ -423,13 +430,15 @@ describe("content-pipeline CMS workspace registration", () => {
     expect(
       registration.actionHandler(
         {
-          type: "queue",
-          entityType: "social-post",
-          entityId: "shared-draft",
+          actionId: "queue",
+          input: {
+            entityType: "social-post",
+            entityId: "shared-draft",
+          },
         },
         trustedActor,
       ),
-    ).rejects.toThrow("admin permission");
+    ).rejects.toThrow('action "queue" failed');
   });
 
   it("reuses confirmed publishing with content-hash protection", async () => {
@@ -472,7 +481,7 @@ describe("content-pipeline CMS workspace registration", () => {
         data: { workspaceUrl: "/cms/workspaces/publishing" },
       };
     });
-    await registerCmsWorkspace(context, "content-pipeline", {
+    await registerCmsWorkspace(context, {
       providerRegistry: providers,
       queueManager: queue,
       publicationQueueService: queueService,
@@ -483,17 +492,17 @@ describe("content-pipeline CMS workspace registration", () => {
       }),
     });
     const actor = adminActor;
-    const first = confirmationResultSchema.parse(
+    const publishInput = {
+      entityType: "social-post",
+      entityId: "draft-post",
+    };
+    const first = preparedConfirmationSchema.parse(
       await registration?.actionHandler?.(
-        {
-          type: "publish",
-          entityType: "social-post",
-          entityId: "draft-post",
-        },
+        { actionId: "publish", input: publishInput, mode: "prepare" },
         actor,
       ),
     );
-    expect(first.needsConfirmation).toBe(true);
+    expect(first.summary).toContain("Draft post");
 
     const entity = await context.entityService.getEntity({
       entityType: "social-post",
@@ -503,43 +512,46 @@ describe("content-pipeline CMS workspace registration", () => {
     await context.entityService.updateEntity({
       entity: { ...entity, content: "Changed after confirmation" },
     });
-    const stale = failedResultSchema.parse(
-      await registration?.actionHandler?.(
+    expect(
+      registration?.actionHandler?.(
         {
-          type: "publish",
-          entityType: "social-post",
-          entityId: "draft-post",
-          confirmation: first.args,
+          actionId: "publish",
+          input: publishInput,
+          confirmationToken: first.token,
         },
         actor,
       ),
-    );
-    expect(stale.success).toBe(false);
-    expect(stale.error).toContain("changed after confirmation");
+    ).rejects.toThrow("invalid or stale");
     expect(publishCalls).toBe(0);
 
-    const fresh = confirmationResultSchema.parse(
+    const fresh = preparedConfirmationSchema.parse(
       await registration?.actionHandler?.(
-        {
-          type: "publish",
-          entityType: "social-post",
-          entityId: "draft-post",
-        },
+        { actionId: "publish", input: publishInput, mode: "prepare" },
         actor,
       ),
     );
     const published = successResultSchema.parse(
       await registration?.actionHandler?.(
         {
-          type: "publish",
-          entityType: "social-post",
-          entityId: "draft-post",
-          confirmation: fresh.args,
+          actionId: "publish",
+          input: publishInput,
+          confirmationToken: fresh.token,
         },
         actor,
       ),
     );
     expect(published.success).toBe(true);
+    expect(publishCalls).toBe(1);
+    expect(
+      registration?.actionHandler?.(
+        {
+          actionId: "publish",
+          input: publishInput,
+          confirmationToken: fresh.token,
+        },
+        actor,
+      ),
+    ).rejects.toThrow("invalid or stale");
     expect(publishCalls).toBe(1);
     expect(
       (

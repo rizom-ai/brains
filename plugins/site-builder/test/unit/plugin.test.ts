@@ -4,7 +4,9 @@ import { SiteBuilderPlugin } from "../../src/plugin";
 import { createPluginHarness } from "@brains/plugins/test";
 import type { PluginCapabilities } from "@brains/plugins/test";
 import {
+  DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
   createTemplate,
+  safeParseRuntimeDashboardWidgetData,
   type AnchorProfile,
   type DashboardWidgetProviderContext,
   type CmsWorkspaceActor,
@@ -50,7 +52,6 @@ interface DashboardWidgetRegistration {
   rendererName: string;
   visibility: string;
   section: string;
-  clientStyles: string;
   dataProvider: (context: DashboardWidgetProviderContext) => Promise<unknown>;
   digestProvider: (data: unknown) => unknown;
 }
@@ -266,10 +267,10 @@ describe("SiteBuilderPlugin", () => {
     await plugin.ready();
 
     expect(registration).toMatchObject({
-      id: "site",
+      id: "site-builder:site",
       pluginId: "site-builder",
       label: "Site",
-      rendererName: "SiteWorkspace",
+      rendererName: "DeclarativeOperatorWorkspace",
       priority: 50,
     });
     if (!registration) throw new Error("Expected CMS workspace registration");
@@ -284,65 +285,87 @@ describe("SiteBuilderPlugin", () => {
       await Promise.resolve(registration.accessHandler(adminWorkspaceActor)),
     ).toBe(true);
     expect(registration.dataProvider(publicWorkspaceActor)).rejects.toThrow(
-      "access denied",
+      "admission policy",
     );
-    expect(await registration.dataProvider(adminWorkspaceActor)).toMatchObject({
-      site: { title: "Test Site" },
-      routes: [{ id: "home", path: "/", title: "Home" }],
+    const initialWorkspace =
+      await registration.dataProvider(adminWorkspaceActor);
+    expect(initialWorkspace).toMatchObject({
+      view: { title: "Test Site" },
     });
+    expect(JSON.stringify(initialWorkspace)).toContain('"id":"routes"');
+    expect(JSON.stringify(initialWorkspace)).toContain('"path":"/"');
 
     const result = await actionHandler(
-      { type: "build-preview" },
+      { actionId: "build-preview", input: {} },
       adminWorkspaceActor,
     );
     expect(result).toEqual({ accepted: true, environment: "preview" });
     await new Promise((resolve) => setTimeout(resolve, 10));
-    expect(await registration.dataProvider(adminWorkspaceActor)).toMatchObject({
-      environments: [
-        {
-          environment: "preview",
-          active: {
-            state: "queued",
-          },
-        },
-        { environment: "production" },
-      ],
-    });
+    const previewWorkspace =
+      await registration.dataProvider(adminWorkspaceActor);
+    expect(JSON.stringify(previewWorkspace)).toContain('"id":"preview-build"');
+    expect(JSON.stringify(previewWorkspace)).toContain('"state":"queued"');
     expect(
-      actionHandler({ type: "build-production" }, adminWorkspaceActor),
-    ).rejects.toThrow("Invalid site workspace action");
+      actionHandler(
+        { actionId: "missing-action", input: {} },
+        adminWorkspaceActor,
+      ),
+    ).rejects.toThrow("does not declare action");
     expect(
       await actionHandler(
-        { type: "build-production", confirmed: true },
+        { actionId: "build-production", input: {} },
         adminWorkspaceActor,
       ),
     ).toEqual({ accepted: true, environment: "production" });
     await new Promise((resolve) => setTimeout(resolve, 10));
-    expect(await registration.dataProvider(adminWorkspaceActor)).toMatchObject({
-      environments: [
-        { environment: "preview", active: { state: "queued" } },
-        { environment: "production", active: { state: "queued" } },
-      ],
-    });
+    const productionWorkspace =
+      await registration.dataProvider(adminWorkspaceActor);
+    expect(JSON.stringify(productionWorkspace)).toContain(
+      '"id":"production-build"',
+    );
+    expect(JSON.stringify(productionWorkspace)).toContain(
+      '"confirmation":{"kind":"static","message":"Build and publish the production site now?"}',
+    );
     expect(dashboardWidget).toMatchObject({
       id: "site-health",
       group: "publishing",
       section: "sidebar",
-      rendererName: "SiteHealthWidget",
+      rendererName: DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
       visibility: "admin",
     });
-    expect(dashboardWidget?.clientStyles).toContain(".site-health-widget");
     const dashboardData = await dashboardWidget?.dataProvider({
-      caller: null,
+      caller: {
+        actor: { id: "operator" },
+        permission: "admin",
+        isAnchor: true,
+      },
       signal: new AbortController().signal,
     });
-    expect(dashboardData).toMatchObject({
-      site: { title: "Test Site" },
-      managementUrl: "/cms/workspaces/site",
+    const parsedDashboard = safeParseRuntimeDashboardWidgetData(dashboardData);
+    expect(parsedDashboard.success).toBe(true);
+    if (!parsedDashboard.success) throw new Error("Expected dashboard data");
+    expect(parsedDashboard.data.view.blocks.map((block) => block.type)).toEqual(
+      ["stats", "key-values", "links"],
+    );
+    expect(parsedDashboard.data.view.blocks[2]).toEqual({
+      type: "links",
+      items: [
+        {
+          label: "Open in CMS",
+          target: {
+            kind: "launch",
+            launch: { target: "site" },
+          },
+        },
+      ],
     });
-    expect(dashboardWidget?.digestProvider(dashboardData)).toMatchObject({
-      needsOperator: 0,
-    });
+    expect(JSON.stringify(dashboardData)).not.toContain("/cms/workspaces/site");
+    expect(parsedDashboard.data.digest).toMatchObject({ attention: 0 });
+    expect(dashboardWidget?.digestProvider(parsedDashboard.data)).toMatchObject(
+      {
+        needsAttention: 0,
+      },
+    );
   });
 
   it("admits policy-enabled Trusted preview without granting production", async () => {
@@ -400,21 +423,28 @@ describe("SiteBuilderPlugin", () => {
     expect(
       await Promise.resolve(registration.accessHandler(trustedWorkspaceActor)),
     ).toBe(true);
-    expect(
-      await registration.dataProvider(trustedWorkspaceActor),
-    ).toMatchObject({ site: { title: "Test Site" } });
+    const trustedWorkspace = await registration.dataProvider(
+      trustedWorkspaceActor,
+    );
+    expect(trustedWorkspace).toMatchObject({ view: { title: "Test Site" } });
+    expect(JSON.stringify(trustedWorkspace)).toContain(
+      '"actionId":"build-preview"',
+    );
+    expect(JSON.stringify(trustedWorkspace)).not.toContain(
+      '"actionId":"build-production"',
+    );
     expect(
       await registration.actionHandler(
-        { type: "build-preview" },
+        { actionId: "build-preview", input: {} },
         trustedWorkspaceActor,
       ),
     ).toEqual({ accepted: true, environment: "preview" });
     expect(
       registration.actionHandler(
-        { type: "build-production", confirmed: true },
+        { actionId: "build-production", input: {} },
         trustedWorkspaceActor,
       ),
-    ).rejects.toThrow("admin permission");
+    ).rejects.toThrow("minimum permission");
   });
 
   it("should provide site builder tools", async () => {

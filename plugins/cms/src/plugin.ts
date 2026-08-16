@@ -2,11 +2,16 @@ import { getActiveAuthService } from "@brains/auth-service";
 import type {
   CmsWorkspaceRegistration,
   CmsWorkspaceRegistrationResult,
+  CmsWorkspaceUnregistration,
   ServicePluginContext,
   UserPermissionLevel,
   WebRouteDefinition,
 } from "@brains/plugins";
-import { CMS_WORKSPACE_REGISTER_MESSAGE, ServicePlugin } from "@brains/plugins";
+import {
+  CMS_WORKSPACE_REGISTER_MESSAGE,
+  CMS_WORKSPACE_UNREGISTER_MESSAGE,
+  ServicePlugin,
+} from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import type { CmsEntityDisplayMap } from "./config";
 import { cmsCreatePath, cmsEntityPath, cmsWorkspacePath } from "./cms-paths";
@@ -187,6 +192,16 @@ export class CmsPlugin extends ServicePlugin<
         };
       }
     });
+    context.messaging.subscribe<CmsWorkspaceUnregistration>(
+      CMS_WORKSPACE_UNREGISTER_MESSAGE,
+      (message) => {
+        this.workspaceRegistry.unregister(
+          message.payload.pluginId,
+          message.payload.workspaceId,
+        );
+        return { success: true };
+      },
+    );
   }
 
   override getWebRoutes(): WebRouteDefinition[] {

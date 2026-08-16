@@ -108,7 +108,7 @@ function createReadFixture(): {
     id: "directory-sync",
     pluginId: "directory-sync",
     label: "Directory Sync",
-    rendererName: "DirectorySyncWorkspace",
+    rendererName: "DeclarativeOperatorWorkspace",
     priority: 10,
     accessHandler: (actor) => actor.userPermissionLevel === "admin",
     dataProvider: async (): Promise<Record<string, never>> => ({}),

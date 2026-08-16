@@ -275,37 +275,42 @@ function dashboardInput(): DashboardRenderInput {
           group: "publishing",
           section: "primary",
           priority: 10,
-          rendererName: "PipelineWidget",
+          rendererName: "DeclarativeOperatorWidget",
           visibility: "public",
         },
         data: {
-          summary: { draft: 2, queued: 4, published: 13, failed: 0 },
-          items: [
-            {
-              id: "q1",
-              title: "Domain as identity",
-              type: "post",
-              status: "queued",
-            },
-            {
-              id: "d1",
-              title: "Verdigris pigments",
-              type: "note",
-              status: "draft",
-            },
-          ],
-          generating: [
-            {
-              id: "job-1",
-              label: "og-image",
-              target: "post/domain-as-identity",
-              status: "processing",
-            },
-          ],
+          view: {
+            blocks: [
+              {
+                type: "stats",
+                items: [
+                  { label: "Draft", value: 2 },
+                  { label: "Queued", value: 4, tone: "warn" },
+                  { label: "Published", value: 13, tone: "good" },
+                ],
+              },
+              {
+                type: "list",
+                id: "pipeline-items",
+                empty: "Nothing queued.",
+                items: [
+                  {
+                    id: "q1",
+                    title: "Domain as identity",
+                    badges: [{ label: "queued", tone: "warn" }],
+                  },
+                  {
+                    id: "d1",
+                    title: "Verdigris pigments",
+                    badges: [{ label: "draft" }],
+                  },
+                ],
+              },
+            ],
+          },
         },
       },
     },
-    widgetScripts: [],
     activityLog: [
       {
         action: "created",

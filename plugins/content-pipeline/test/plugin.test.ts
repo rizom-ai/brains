@@ -102,7 +102,7 @@ describe("ContentPipelinePlugin", () => {
       expect(plugin.getScheduler().isRunning()).toBe(true);
     });
 
-    it("passes the resolved CMS workspace URL to the dashboard digest", async () => {
+    it("keeps the dashboard launch independent from the CMS registration URL", async () => {
       let dashboardDataProvider:
         | ((context: DashboardWidgetProviderContext) => Promise<unknown>)
         | undefined;
@@ -121,14 +121,36 @@ describe("ContentPipelinePlugin", () => {
 
       await plugin.ready();
 
-      expect(
-        await dashboardDataProvider?.({
-          caller: null,
-          signal: new AbortController().signal,
-        }),
-      ).toMatchObject({
-        managementUrl: "/studio/workspaces/publishing",
+      const data = await dashboardDataProvider?.({
+        caller: {
+          actor: { id: "user:admin" },
+          permission: "admin",
+          isAnchor: true,
+        },
+        signal: new AbortController().signal,
       });
+      expect(data).toMatchObject({
+        view: {
+          blocks: [
+            {},
+            {},
+            {
+              type: "links",
+              items: [
+                {
+                  target: {
+                    kind: "launch",
+                    launch: { target: "publishing" },
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      });
+      expect(JSON.stringify(data)).not.toContain(
+        "/studio/workspaces/publishing",
+      );
     });
   });
 

@@ -1,4 +1,8 @@
 /** @jsxImportSource react */
+import type {
+  RuntimeOperatorActionControl,
+  RuntimeOperatorLaunchIntent,
+} from "@brains/plugins";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useBlocker, useRouter, useRouterState } from "@tanstack/react-router";
 import {
@@ -12,31 +16,21 @@ import {
 } from "react";
 import {
   cmsCollectionPath,
+  cmsCreatePath,
   cmsEntityPath,
   cmsWorkspacePath,
   parseCmsPath,
 } from "../../src/cms-paths";
+import { createCmsCreatePrefillState } from "../../src/create-prefill-contract";
 import { CmsAppStatus, CmsAppView, type MobileEditorPane } from "./app-view";
 import {
   ApiError,
   requestFieldAssist,
   type AgentTarget,
   type CmsWorkspaceInfo,
-  type DirectorySyncWorkspaceActionResult,
-  type EmailReplyDraftAction,
-  type EmailReplyDraftActionResult,
-  type EmailReplyDraftSourceRequest,
-  type EmailReplyDraftSourceResult,
   type FieldAssistResponse,
-  type InboxWorkspaceAction,
-  type InboxWorkspaceActionResult,
-  type InboxWorkspaceDetailRequest,
-  type InboxWorkspaceDetailResult,
-  type InboxWorkspaceFollowUp,
   type PublishingAction,
   type PublishingActionResult,
-  type SiteWorkspaceAction,
-  type SiteWorkspaceActionResult,
 } from "./api";
 import type { BodyMode } from "./body-editor";
 import { getCmsRouterBasePath } from "./cms-router";
@@ -60,20 +54,14 @@ import {
 import { derivePipeline } from "./editor-status";
 import {
   removeEntity,
-  runCmsWorkspaceAction,
-  runDirectorySyncWorkspaceAction,
-  runEmailReplyDraftAction,
-  runEmailReplyDraftSource,
-  runInboxWorkspaceAction,
-  runInboxWorkspaceDetail,
-  runSiteWorkspaceAction,
+  runDeclarativeWorkspaceAction,
   saveEntity,
   type SaveEntityInput,
 } from "./mutations";
 import {
   isPublishConfirmation,
   isPublishingActionError,
-} from "./publishing-workspace";
+} from "./publication-actions";
 import {
   agentTargetsQueryOptions,
   cmsKeys,
@@ -87,7 +75,6 @@ import {
   type CmsWorkspaceQuery,
 } from "./queries";
 import { emptyDraft, errorMessage } from "./ui-utils";
-import { navigateToInboxFollowUp } from "./follow-up-navigation";
 import {
   initialWorkspaceUrlQuery,
   replaceWorkspaceUrlQuery,
@@ -102,6 +89,16 @@ const EMPTY_WORKSPACE_QUERY: CmsWorkspaceQuery = {};
 interface WorkspaceQueryState {
   query: CmsWorkspaceQuery;
   urlSearch?: string | undefined;
+}
+
+function consoleSurfaceHref(
+  id: "account" | "admin" | "web-chat",
+): string | undefined {
+  return (
+    document
+      .querySelector(`[data-console-surface="${id}"]`)
+      ?.getAttribute("href") ?? undefined
+  );
 }
 
 export function App(): ReactElement {
@@ -227,47 +224,24 @@ export function App(): ReactElement {
   });
   const saveEntityMutation = useMutation({ mutationFn: saveEntity });
   const deleteEntityMutation = useMutation({ mutationFn: removeEntity });
-  const workspaceActionMutation = useMutation({
-    mutationFn: runCmsWorkspaceAction,
-  });
-  const siteWorkspaceActionMutation = useMutation({
-    mutationFn: runSiteWorkspaceAction,
-  });
-  const directorySyncWorkspaceActionMutation = useMutation({
-    mutationFn: runDirectorySyncWorkspaceAction,
-  });
-  const inboxWorkspaceActionMutation = useMutation({
-    mutationFn: runInboxWorkspaceAction,
-  });
-  const emailReplyDraftActionMutation = useMutation({
-    mutationFn: runEmailReplyDraftAction,
+  const declarativeWorkspaceActionMutation = useMutation({
+    mutationFn: runDeclarativeWorkspaceAction,
   });
   const deleting = deleteEntityMutation.isPending;
-  const publicationWorkspaceData =
-    activeWorkspace?.rendererName === "PublishingWorkspace" &&
-    workspaceResponse?.rendererName === "PublishingWorkspace"
-      ? workspaceResponse.data
-      : null;
-  const siteWorkspaceData =
-    activeWorkspace?.rendererName === "SiteWorkspace" &&
-    workspaceResponse?.rendererName === "SiteWorkspace"
-      ? workspaceResponse.data
-      : null;
-  const directorySyncWorkspaceData =
-    activeWorkspace?.rendererName === "DirectorySyncWorkspace" &&
-    workspaceResponse?.rendererName === "DirectorySyncWorkspace"
-      ? workspaceResponse.data
-      : null;
-  const inboxWorkspaceData =
-    activeWorkspace?.rendererName === "UnifiedInboxWorkspace" &&
-    workspaceResponse?.rendererName === "UnifiedInboxWorkspace"
-      ? workspaceResponse.data
-      : null;
-  const emailReplyDraftWorkspaceData =
-    activeWorkspace?.rendererName === "EmailReplyDraftWorkspace" &&
-    workspaceResponse?.rendererName === "EmailReplyDraftWorkspace"
-      ? workspaceResponse.data
-      : null;
+  const declarativeWorkspaceData =
+    activeWorkspace && workspaceResponse ? workspaceResponse.data : null;
+
+  useEffect(() => {
+    if (!activeWorkspaceId || !declarativeWorkspaceData?.refreshAfterMs) {
+      return undefined;
+    }
+    const timer = window.setTimeout(() => {
+      void queryClient.invalidateQueries({
+        queryKey: cmsKeys.workspace(activeWorkspaceId),
+      });
+    }, declarativeWorkspaceData.refreshAfterMs);
+    return (): void => window.clearTimeout(timer);
+  }, [activeWorkspaceId, declarativeWorkspaceData, queryClient]);
 
   useEffect(() => {
     if (
@@ -337,31 +311,6 @@ export function App(): ReactElement {
     setActiveWorkspaceId(null);
     setEntityType(nextType);
   }, [routeTarget, types, workspaces]);
-
-  useEffect(() => {
-    if (!activeWorkspaceId || !siteWorkspaceData) return undefined;
-    if (!siteWorkspaceData.environments.some((entry) => entry.active)) {
-      return undefined;
-    }
-    const timer = window.setTimeout(() => {
-      void queryClient.invalidateQueries({
-        queryKey: cmsKeys.workspace(activeWorkspaceId),
-      });
-    }, 1000);
-    return (): void => window.clearTimeout(timer);
-  }, [activeWorkspaceId, queryClient, siteWorkspaceData]);
-
-  useEffect(() => {
-    if (!activeWorkspaceId || !directorySyncWorkspaceData?.activeRun) {
-      return undefined;
-    }
-    const timer = window.setTimeout(() => {
-      void queryClient.invalidateQueries({
-        queryKey: cmsKeys.workspace(activeWorkspaceId),
-      });
-    }, 1000);
-    return (): void => window.clearTimeout(timer);
-  }, [activeWorkspaceId, directorySyncWorkspaceData, queryClient]);
 
   // After a save, poll the pipeline until the auto-commit lands. Every poll
   // updates syncStatus, which re-runs this effect until the view settles or
@@ -558,17 +507,114 @@ export function App(): ReactElement {
     [cmsBasePath, router.history],
   );
 
-  const openInboxFollowUp = useCallback(
-    (followUp: InboxWorkspaceFollowUp): void => {
-      navigateToInboxFollowUp(followUp, {
-        cmsBasePath,
-        routerPush: (href, state) => router.history.push(href, state as never),
-        browserPushState: (state, title, href) =>
-          window.history.pushState(state, title, href),
-        reload: () => window.location.reload(),
-      });
+  const captureInboxAsNote = useCallback(
+    (
+      title: string,
+      summary: string | undefined,
+      entityType: string,
+      entityId: string,
+    ): void => {
+      router.history.push(
+        cmsCreatePath(cmsBasePath, "note"),
+        createCmsCreatePrefillState(
+          title,
+          `entity://${encodeURIComponent(entityType)}/${encodeURIComponent(entityId)}`,
+          summary,
+        ),
+      );
     },
     [cmsBasePath, router.history],
+  );
+
+  const discussInboxInChat = useCallback(
+    (sourceId: string, itemId: string, label: string): void => {
+      const href = consoleSurfaceHref("web-chat");
+      if (!href) return;
+      window.history.pushState(
+        {
+          webChatPrefill: {
+            version: 2,
+            text: "Help me understand this Inbox item and decide what to do next.",
+            context: { sourceId, itemId, label },
+          },
+        },
+        "",
+        href,
+      );
+      window.location.reload();
+    },
+    [],
+  );
+
+  const openWorkspaceLaunch = useCallback(
+    (launch: RuntimeOperatorLaunchIntent): void => {
+      switch (launch.target) {
+        case "account-settings": {
+          const href = consoleSurfaceHref("account");
+          if (href) window.location.assign(href);
+          return;
+        }
+        case "admin-peer-invite": {
+          const href = consoleSurfaceHref("admin");
+          if (!href) return;
+          const url = new URL(href, window.location.href);
+          url.searchParams.set("peerId", launch.peerId);
+          url.searchParams.set("displayName", launch.displayName);
+          window.location.assign(url.href);
+          return;
+        }
+        case "inbox": {
+          const query: Record<string, string> = {};
+          if ("source" in launch) {
+            query["sourceId"] = "mail-items";
+            if (launch.filter === "high-priority") {
+              query["facet.mail-priority"] = "high";
+            } else if (launch.filter === "needs-reply") {
+              query["facet.needs-reply"] = "true";
+            } else if (launch.filter === "unclassified") {
+              query["facet.category"] = "unclassified";
+            }
+          }
+          router.history.push(
+            workspaceUrlHref(
+              cmsWorkspacePath(cmsBasePath, "unified-inbox:inbox"),
+              query,
+            ),
+          );
+          return;
+        }
+        case "publishing":
+          router.history.push(
+            cmsWorkspacePath(cmsBasePath, "content-pipeline:publishing"),
+          );
+          return;
+        case "site":
+          router.history.push(
+            cmsWorkspacePath(cmsBasePath, "site-builder:site"),
+          );
+          return;
+        case "inbox-open-entity":
+          openWorkspaceEntity(launch.entityType, launch.entityId);
+          return;
+        case "inbox-capture-note":
+          captureInboxAsNote(
+            launch.title,
+            launch.summary,
+            launch.entityType,
+            launch.entityId,
+          );
+          return;
+        case "inbox-discuss-in-chat":
+          discussInboxInChat(launch.sourceId, launch.itemId, launch.label);
+      }
+    },
+    [
+      captureInboxAsNote,
+      cmsBasePath,
+      discussInboxInChat,
+      openWorkspaceEntity,
+      router.history,
+    ],
   );
 
   const selectEntityType = useCallback(
@@ -783,15 +829,83 @@ export function App(): ReactElement {
     async (action: PublishingAction): Promise<PublishingActionResult> => {
       const capability = workspaces.find(
         (workspace) =>
-          workspace.rendererName === "PublishingWorkspace" &&
+          workspace.pluginId === "content-pipeline" &&
           workspace.entityTypes.includes(action.entityType),
       );
       if (!capability) throw new Error("Publishing is unavailable");
 
-      const result = await workspaceActionMutation.mutateAsync({
+      const input = {
+        entityType: action.entityType,
+        entityId: action.entityId,
+        ...(action.type === "reorder" ? { position: action.position } : {}),
+      };
+      if (action.type === "publish" && !action.confirmation) {
+        const prepared = await declarativeWorkspaceActionMutation.mutateAsync({
+          workspaceId: capability.id,
+          action: {
+            actionId: "publish",
+            label: "Publish now",
+            input,
+            invocation: { mode: "prepare" },
+          },
+        });
+        if (
+          typeof prepared !== "object" ||
+          prepared === null ||
+          !("kind" in prepared) ||
+          prepared.kind !== "prepared-confirmation" ||
+          !("token" in prepared) ||
+          typeof prepared.token !== "string" ||
+          !("summary" in prepared) ||
+          typeof prepared.summary !== "string" ||
+          !("expiresAt" in prepared) ||
+          typeof prepared.expiresAt !== "string"
+        ) {
+          throw new Error("Publishing confirmation is unavailable");
+        }
+        return {
+          needsConfirmation: true,
+          summary: prepared.summary,
+          args: {
+            confirmed: true,
+            confirmationToken: prepared.token,
+            contentHash: prepared.token,
+            expiresAt: prepared.expiresAt,
+          },
+        };
+      }
+      const rawResult = await declarativeWorkspaceActionMutation.mutateAsync({
         workspaceId: capability.id,
-        action,
+        action: {
+          actionId: action.type,
+          label: action.type,
+          input,
+          ...(action.type === "publish" && action.confirmation
+            ? {
+                invocation: {
+                  mode: "execute",
+                  token: action.confirmation.confirmationToken,
+                },
+              }
+            : {}),
+        },
       });
+      if (typeof rawResult !== "object" || rawResult === null) {
+        throw new Error("Publishing returned an invalid result");
+      }
+      const result: PublishingActionResult =
+        "success" in rawResult && rawResult.success === false
+          ? {
+              success: false,
+              error:
+                "error" in rawResult && typeof rawResult.error === "string"
+                  ? rawResult.error
+                  : "Publishing failed",
+              ...("code" in rawResult && typeof rawResult.code === "string"
+                ? { code: rawResult.code }
+                : {}),
+            }
+          : { success: true };
       if (!isPublishingActionError(result) && !isPublishConfirmation(result)) {
         await invalidateAfterWorkspaceAction(queryClient, capability.id);
         if (
@@ -809,117 +923,24 @@ export function App(): ReactElement {
       mode,
       openEntity,
       queryClient,
-      workspaceActionMutation,
+      declarativeWorkspaceActionMutation,
       workspaces,
     ],
   );
 
-  const performSiteAction = useCallback(
-    async (action: SiteWorkspaceAction): Promise<SiteWorkspaceActionResult> => {
-      const capability = workspaces.find(
-        (workspace) => workspace.rendererName === "SiteWorkspace",
-      );
-      if (!capability) throw new Error("Site builder is unavailable");
-
-      const result = await siteWorkspaceActionMutation.mutateAsync({
-        workspaceId: capability.id,
-        action,
-      });
-      await invalidateAfterWorkspaceAction(queryClient, capability.id);
-      return result;
-    },
-    [queryClient, siteWorkspaceActionMutation, workspaces],
-  );
-
-  const performDirectorySyncAction =
-    useCallback(async (): Promise<DirectorySyncWorkspaceActionResult> => {
-      const capability = workspaces.find(
-        (workspace) => workspace.rendererName === "DirectorySyncWorkspace",
-      );
-      if (!capability) throw new Error("Directory sync is unavailable");
-
-      const result = await directorySyncWorkspaceActionMutation.mutateAsync({
-        workspaceId: capability.id,
-        action: { type: "sync-now" },
-      });
-      await Promise.all([
-        invalidateAfterWorkspaceAction(queryClient, capability.id),
-        queryClient.invalidateQueries({ queryKey: cmsKeys.syncStatus() }),
-      ]);
-      return result;
-    }, [directorySyncWorkspaceActionMutation, queryClient, workspaces]);
-
-  const performInboxAction = useCallback(
-    async (
-      action: InboxWorkspaceAction,
-    ): Promise<InboxWorkspaceActionResult> => {
-      const capability = workspaces.find(
-        (workspace) => workspace.rendererName === "UnifiedInboxWorkspace",
-      );
-      if (!capability) throw new Error("Unified inbox is unavailable");
-
-      const result = await inboxWorkspaceActionMutation.mutateAsync({
-        workspaceId: capability.id,
-        action,
-      });
-      if (result.kind === "completed") {
-        await invalidateAfterWorkspaceAction(queryClient, capability.id);
+  const performDeclarativeAction = useCallback(
+    async (action: RuntimeOperatorActionControl): Promise<unknown> => {
+      if (!activeWorkspaceId) {
+        throw new Error("Declarative workspace is unavailable");
       }
-      return result;
-    },
-    [inboxWorkspaceActionMutation, queryClient, workspaces],
-  );
-
-  const performEmailReplyDraftAction = useCallback(
-    async (
-      action: EmailReplyDraftAction,
-    ): Promise<EmailReplyDraftActionResult> => {
-      const capability = workspaces.find(
-        (workspace) => workspace.rendererName === "EmailReplyDraftWorkspace",
-      );
-      if (!capability) throw new Error("Email reply drafting is unavailable");
-      return emailReplyDraftActionMutation.mutateAsync({
-        workspaceId: capability.id,
+      const result = await declarativeWorkspaceActionMutation.mutateAsync({
+        workspaceId: activeWorkspaceId,
         action,
       });
+      await invalidateAfterWorkspaceAction(queryClient, activeWorkspaceId);
+      return result;
     },
-    [emailReplyDraftActionMutation, workspaces],
-  );
-
-  const performEmailReplyDraftSource = useCallback(
-    async (
-      request: EmailReplyDraftSourceRequest,
-      signal: AbortSignal,
-    ): Promise<EmailReplyDraftSourceResult> => {
-      const capability = workspaces.find(
-        (workspace) => workspace.rendererName === "EmailReplyDraftWorkspace",
-      );
-      if (!capability) throw new Error("Email reply drafting is unavailable");
-      return runEmailReplyDraftSource({
-        workspaceId: capability.id,
-        request,
-        signal,
-      });
-    },
-    [workspaces],
-  );
-
-  const performInboxDetail = useCallback(
-    async (
-      request: InboxWorkspaceDetailRequest,
-      signal: AbortSignal,
-    ): Promise<InboxWorkspaceDetailResult> => {
-      const capability = workspaces.find(
-        (workspace) => workspace.rendererName === "UnifiedInboxWorkspace",
-      );
-      if (!capability) throw new Error("Unified inbox is unavailable");
-      return runInboxWorkspaceDetail({
-        workspaceId: capability.id,
-        request,
-        signal,
-      });
-    },
-    [workspaces],
+    [activeWorkspaceId, declarativeWorkspaceActionMutation, queryClient],
   );
 
   const changeWorkspaceQuery = useCallback(
@@ -976,11 +997,7 @@ export function App(): ReactElement {
       types={types}
       workspaces={workspaces}
       workspaceError={workspaceError}
-      publicationWorkspaceData={publicationWorkspaceData}
-      siteWorkspaceData={siteWorkspaceData}
-      directorySyncWorkspaceData={directorySyncWorkspaceData}
-      inboxWorkspaceData={inboxWorkspaceData}
-      emailReplyDraftWorkspaceData={emailReplyDraftWorkspaceData}
+      declarativeWorkspaceData={declarativeWorkspaceData}
       workspaceQuery={workspaceRequestQuery}
       entityType={entityType}
       entities={entities}
@@ -1003,14 +1020,9 @@ export function App(): ReactElement {
       selectEntityType={selectEntityType}
       selectWorkspace={selectWorkspace}
       openWorkspaceEntity={openWorkspaceEntity}
-      openInboxFollowUp={openInboxFollowUp}
+      openWorkspaceLaunch={openWorkspaceLaunch}
       performPublishingAction={performPublishingAction}
-      performSiteAction={performSiteAction}
-      performDirectorySyncAction={performDirectorySyncAction}
-      performInboxAction={performInboxAction}
-      performInboxDetail={performInboxDetail}
-      performEmailReplyDraftAction={performEmailReplyDraftAction}
-      performEmailReplyDraftSource={performEmailReplyDraftSource}
+      performDeclarativeAction={performDeclarativeAction}
       onWorkspaceQueryChange={changeWorkspaceQuery}
       startCreate={startCreate}
       openEntity={openEntity}

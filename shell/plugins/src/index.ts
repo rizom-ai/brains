@@ -260,6 +260,7 @@ export {
   defineAccountSettings,
   defineCmsWorkspace,
   defineDashboardWidget,
+  defineEntityCatalog,
   defineJob,
   defineServicePlugin,
   defineTool,
@@ -270,17 +271,26 @@ export {
   type AnyServiceJobDefinition,
   type AnyServiceToolDefinition,
   type CmsWorkspaceDefinition,
+  type CmsWorkspaceView,
+  type CmsWorkspaceViewBlock,
   type DashboardDigest,
+  type DashboardOperatorView,
+  type DashboardOperatorViewBlock,
   type DashboardWidgetDefinition,
   type OperatorCaller,
+  type OperatorCapabilityDefinition,
+  type OperatorEntityCatalogDefinition,
   type OperatorEntityReader,
+  type OperatorQueryReader,
   type OperatorView,
   type OperatorViewBlock,
   type ServiceJobDefinition,
   type ServiceJobReference,
   type ServiceJobStatus,
   type ServicePackageDefinition,
+  type WorkspaceActionConfirmation,
   type WorkspaceActionDefinition,
+  type WorkspacePreparedConfirmation,
 } from "./public/service-definition";
 export {
   defineDaemon,
@@ -748,26 +758,38 @@ export type {
 export { jsonResponse, jsonError } from "./types/web-routes";
 export {
   CMS_WORKSPACE_REGISTER_MESSAGE,
+  CMS_WORKSPACE_UNREGISTER_MESSAGE,
+  DECLARATIVE_CMS_WORKSPACE_RENDERER,
   assertCmsWorkspaceAdmin,
   type CmsWorkspaceActor,
   type CmsWorkspaceDescriptor,
   type CmsWorkspaceRegistration,
   type CmsWorkspaceRegistrationResult,
   type CmsWorkspaceRendererName,
+  type CmsWorkspaceUnregistration,
 } from "./types/cms-workspace";
-export { registerCmsWorkspace } from "./service/cms-workspace-registration";
 export {
   DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
   type DashboardWidgetProviderContext,
   type DashboardWidgetRegistration,
   type IDashboardNamespace,
 } from "./base/dashboard-namespace";
+export { registerBuiltInCmsWorkspace } from "./operator/cms-workspace-runtime";
+export { registerBuiltInDashboardWidget } from "./operator/dashboard-widget-runtime";
 export {
+  safeParseRuntimeCmsOperatorView,
   safeParseRuntimeDashboardWidgetData,
+  type RuntimeCmsOperatorPanelBlock,
+  type RuntimeCmsOperatorView,
+  type RuntimeCmsWorkspaceData,
+  type RuntimeDashboardOperatorPanelBlock,
   type RuntimeDashboardOperatorView,
   type RuntimeDashboardWidgetData,
+  type RuntimeOperatorActionControl,
+  type RuntimeOperatorLaunchIntent,
   type RuntimeOperatorLinkTarget,
   type RuntimeOperatorScalar,
+  type RuntimePreparedConfirmation,
 } from "./operator/operator-view-runtime";
 export {
   RouteDefinitionSchema,

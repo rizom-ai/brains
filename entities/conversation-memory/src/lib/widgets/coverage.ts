@@ -1,8 +1,11 @@
 import {
   SYSTEM_CHANNELS,
+  defineDashboardWidget,
+  registerBuiltInDashboardWidget,
   type Conversation,
   type EntityPluginContext,
 } from "@brains/plugins";
+import { z } from "@brains/utils/zod";
 import type { SummaryEntity } from "../../schemas/summary";
 import type { SummaryConfig } from "../../schemas/summary-config";
 import { SUMMARY_ENTITY_TYPE } from "../constants";
@@ -10,7 +13,7 @@ import { SummarySourceReader } from "../summary-source-reader";
 import { evaluateSummaryEligibility } from "../summary-space-eligibility";
 
 const MAX_RECENT_SUMMARY_ITEMS = 6;
-const COVERAGE_WIDGET_ID = "conversation-memory:coverage";
+const COVERAGE_WIDGET_ID = "coverage";
 
 interface SummaryWidgetItem {
   id: string;
@@ -22,6 +25,54 @@ interface SummaryWidgetItem {
 export interface SummaryDashboardData {
   items: SummaryWidgetItem[];
 }
+
+const summaryCoverageDataSchema = z.object({
+  items: z.array(
+    z.object({
+      id: z.string(),
+      name: z.string(),
+      count: z.number().optional(),
+      status: z.string().optional(),
+    }),
+  ),
+});
+
+function coverageTone(status: string | undefined): "good" | "warn" | "neutral" {
+  if (status === "current" || status === "active") return "good";
+  if (status === "stale" || status === "pending") return "warn";
+  return "neutral";
+}
+
+const summaryCoverageWidget = defineDashboardWidget({
+  id: COVERAGE_WIDGET_ID,
+  title: "Conversation memory coverage",
+  group: "system",
+  placement: "secondary",
+  priority: 80,
+  permission: "admin",
+  data: summaryCoverageDataSchema,
+  view: ({ data }) => ({
+    blocks: [
+      {
+        type: "list",
+        id: "coverage",
+        empty: "No conversation memory coverage available.",
+        items: data.items.map((item) => ({
+          id: item.id,
+          title: item.name,
+          ...(item.count !== undefined ? { count: item.count } : {}),
+          ...(item.status
+            ? {
+                badges: [
+                  { label: item.status, tone: coverageTone(item.status) },
+                ],
+              }
+            : {}),
+        })),
+      },
+    ],
+  }),
+});
 
 function getSummaryLabel(summary: SummaryEntity): string {
   const channelName = summary.metadata.channelName?.trim();
@@ -169,15 +220,13 @@ export function registerSummaryCoverageWidget(params: {
   context.messaging.subscribe(
     SYSTEM_CHANNELS.pluginsRegistered,
     async (): Promise<{ success: boolean }> => {
-      await context.dashboard.registerWidget({
-        id: COVERAGE_WIDGET_ID,
-        title: "Conversation memory coverage",
-        group: "system",
-        section: "secondary",
-        priority: 80,
-        rendererName: "ListWidget",
-        visibility: "admin",
-        dataProvider: () => buildSummaryCoverageData({ context, config }),
+      await registerBuiltInDashboardWidget({
+        context,
+        definition: summaryCoverageWidget,
+        load: ({ signal }) => {
+          signal.throwIfAborted();
+          return buildSummaryCoverageData({ context, config });
+        },
       });
       return { success: true };
     },

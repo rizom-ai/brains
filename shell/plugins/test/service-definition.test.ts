@@ -332,7 +332,7 @@ describe("declarative service definitions", () => {
     ).toThrow("must be positive");
   });
 
-  it("keeps dashboard declarations inert without a host and still refuses CMS declarations", async () => {
+  it("does not bind operator declarations when their hosts are absent", async () => {
     const widget = defineDashboardWidget({
       id: "library",
       title: "Library",
@@ -376,8 +376,15 @@ describe("declarative service definitions", () => {
     ).resolves.toBeUndefined();
     expect(loads).toBe(0);
 
-    expect(install({ cmsWorkspaces: () => [] })).rejects.toThrow(
-      "CMS workspaces require the operator runtime",
-    );
+    let cmsFactories = 0;
+    expect(
+      install({
+        cmsWorkspaces: () => {
+          cmsFactories += 1;
+          return [];
+        },
+      }),
+    ).resolves.toBeUndefined();
+    expect(cmsFactories).toBe(0);
   });
 });

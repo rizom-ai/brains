@@ -14,9 +14,15 @@ import type {
   OperatorBaseContext,
   OperatorBindingBrand,
   OperatorBindingContext,
+  OperatorQueryReader,
   OperatorSchema,
 } from "./operator-context-contract";
-import type { DashboardDigest, OperatorView } from "./operator-view-contract";
+import type {
+  CmsWorkspaceView,
+  DashboardDigest,
+  DashboardOperatorView,
+  OperatorEntityCatalogDefinition,
+} from "./operator-view-contract";
 import type {
   AnyWorkspaceActionDefinition,
   BoundWorkspaceAction,
@@ -38,7 +44,9 @@ export interface DashboardWidgetDefinition<
   readonly digest?:
     | ((context: { readonly data: z.output<TDataSchema> }) => DashboardDigest)
     | undefined;
-  view(context: { readonly data: z.output<TDataSchema> }): OperatorView<never>;
+  view(context: {
+    readonly data: z.output<TDataSchema>;
+  }): DashboardOperatorView;
   bind<
     TConfig,
     TState extends object,
@@ -167,13 +175,20 @@ export interface CmsWorkspaceDefinition<
   readonly priority?: number | undefined;
   readonly permission: UserPermissionLevel;
   readonly entities?: readonly AnyEntityDefinition[] | undefined;
+  readonly entityCatalog?: OperatorEntityCatalogDefinition | undefined;
+  readonly query?: OperatorSchema | undefined;
   readonly data: TDataSchema;
   readonly actions: TActions;
   readonly badge?:
     ((context: { readonly data: z.output<TDataSchema> }) => number) | undefined;
+  readonly refresh?:
+    | ((context: {
+        readonly data: z.output<TDataSchema>;
+      }) => number | undefined)
+    | undefined;
   view(context: {
     readonly data: z.output<TDataSchema>;
-  }): OperatorView<TActions[number]>;
+  }): CmsWorkspaceView<TActions[number]>;
   bind<
     TConfig,
     TState extends object,
@@ -183,12 +198,23 @@ export interface CmsWorkspaceDefinition<
     input: {
       readonly authorize?:
         | ((
-            context: OperatorBaseContext<TConfig, TState, TAccountSettings>,
+            context: OperatorBaseContext<TConfig, TState, TAccountSettings> & {
+              readonly query: OperatorQueryReader;
+            },
           ) => boolean | Promise<boolean>)
         | undefined;
       readonly load: (
-        context: OperatorBaseContext<TConfig, TState, TAccountSettings>,
+        context: OperatorBaseContext<TConfig, TState, TAccountSettings> & {
+          readonly query: OperatorQueryReader;
+        },
       ) => z.input<TDataSchema> | Promise<z.input<TDataSchema>>;
+      readonly listEntityTypes?:
+        | ((
+            context: OperatorBaseContext<TConfig, TState, TAccountSettings> & {
+              readonly query: OperatorQueryReader;
+            },
+          ) => readonly string[] | Promise<readonly string[]>)
+        | undefined;
       readonly actions: readonly BoundWorkspaceAction<
         TActions[number],
         TConfig,
@@ -210,6 +236,37 @@ export type AnyCmsWorkspaceDefinition = CmsWorkspaceDefinition<
   readonly AnyWorkspaceActionDefinition[]
 >;
 
+const cmsWorkspaceExecutor: unique symbol = Symbol(
+  "rizom.cms-workspace-executor",
+);
+
+interface CmsWorkspaceExecutor<
+  TDefinition extends AnyCmsWorkspaceDefinition,
+  TConfig,
+  TState extends object,
+  TAccountSettings extends AnyAccountSettingsDefinition | undefined,
+> {
+  readonly authorize?:
+    | ((
+        context: OperatorBaseContext<TConfig, TState, TAccountSettings> & {
+          readonly query: OperatorQueryReader;
+        },
+      ) => boolean | Promise<boolean>)
+    | undefined;
+  readonly load: (
+    context: OperatorBaseContext<TConfig, TState, TAccountSettings> & {
+      readonly query: OperatorQueryReader;
+    },
+  ) => z.input<TDefinition["data"]> | Promise<z.input<TDefinition["data"]>>;
+  readonly listEntityTypes?:
+    | ((
+        context: OperatorBaseContext<TConfig, TState, TAccountSettings> & {
+          readonly query: OperatorQueryReader;
+        },
+      ) => readonly string[] | Promise<readonly string[]>)
+    | undefined;
+}
+
 export interface CmsWorkspaceBinding<
   TDefinition extends AnyCmsWorkspaceDefinition = AnyCmsWorkspaceDefinition,
   TConfig = unknown,
@@ -225,6 +282,9 @@ export interface CmsWorkspaceBinding<
     TState,
     TAccountSettings
   >[];
+  readonly [cmsWorkspaceExecutor]?:
+    | CmsWorkspaceExecutor<TDefinition, TConfig, TState, TAccountSettings>
+    | undefined;
 }
 
 export type BoundCmsWorkspace<
@@ -236,19 +296,6 @@ export type BoundCmsWorkspace<
 > = CmsWorkspaceBinding<TDefinition, TConfig, TState, TAccountSettings> &
   OperatorBindingBrand<TConfig, TState, TAccountSettings>;
 
-interface CmsWorkspaceExecutor {
-  readonly authorize?:
-    | ((
-        context: OperatorBaseContext<unknown, object, undefined>,
-      ) => boolean | Promise<boolean>)
-    | undefined;
-  readonly load: (
-    context: OperatorBaseContext<unknown, object, undefined>,
-  ) => unknown | Promise<unknown>;
-}
-
-const cmsWorkspaceExecutors = new WeakMap<object, CmsWorkspaceExecutor>();
-
 export function getCmsWorkspaceExecutor<
   TDefinition extends AnyCmsWorkspaceDefinition,
   TConfig,
@@ -256,32 +303,14 @@ export function getCmsWorkspaceExecutor<
   TAccountSettings extends AnyAccountSettingsDefinition | undefined,
 >(
   binding: BoundCmsWorkspace<TDefinition, TConfig, TState, TAccountSettings>,
-): {
-  readonly authorize?:
-    | ((
-        context: OperatorBaseContext<TConfig, TState, TAccountSettings>,
-      ) => boolean | Promise<boolean>)
-    | undefined;
-  readonly load: (
-    context: OperatorBaseContext<TConfig, TState, TAccountSettings>,
-  ) => z.input<TDefinition["data"]> | Promise<z.input<TDefinition["data"]>>;
-} {
-  const executor = cmsWorkspaceExecutors.get(binding);
+): CmsWorkspaceExecutor<TDefinition, TConfig, TState, TAccountSettings> {
+  const executor = binding[cmsWorkspaceExecutor];
   if (!executor) {
     throw new Error(
       `CMS workspace "${binding.definition.id}" was not bound by defineCmsWorkspace().bind()`,
     );
   }
-  return executor as {
-    readonly authorize?:
-      | ((
-          context: OperatorBaseContext<TConfig, TState, TAccountSettings>,
-        ) => boolean | Promise<boolean>)
-      | undefined;
-    readonly load: (
-      context: OperatorBaseContext<TConfig, TState, TAccountSettings>,
-    ) => z.input<TDefinition["data"]> | Promise<z.input<TDefinition["data"]>>;
-  };
+  return executor;
 }
 
 export function defineCmsWorkspace<
@@ -328,6 +357,14 @@ export function defineCmsWorkspace<
       : {}),
     actions: Object.freeze([...definition.actions]) as TActions,
     bind(_context, input) {
+      if (
+        (workspace.entityCatalog !== undefined) !==
+        (input.listEntityTypes !== undefined)
+      ) {
+        throw new Error(
+          `CMS workspace "${workspace.id}" must bind one entity-type catalog callback exactly when it declares entityCatalog`,
+        );
+      }
       const boundActions = new Set<AnyWorkspaceActionDefinition>();
       for (const action of input.actions) {
         if (!workspace.actions.includes(action.definition)) {
@@ -350,16 +387,18 @@ export function defineCmsWorkspace<
         }
       }
 
-      const binding = Object.freeze({
-        kind: "rizom-cms-workspace-binding" as const,
+      return Object.freeze({
+        kind: "rizom-cms-workspace-binding",
         definition: workspace,
         actions: Object.freeze([...input.actions]),
+        [cmsWorkspaceExecutor]: Object.freeze({
+          ...(input.authorize ? { authorize: input.authorize } : {}),
+          load: input.load,
+          ...(input.listEntityTypes
+            ? { listEntityTypes: input.listEntityTypes }
+            : {}),
+        }),
       });
-      cmsWorkspaceExecutors.set(binding, {
-        authorize: input.authorize as CmsWorkspaceExecutor["authorize"],
-        load: input.load as CmsWorkspaceExecutor["load"],
-      });
-      return binding;
     },
   };
   return Object.freeze(workspace);

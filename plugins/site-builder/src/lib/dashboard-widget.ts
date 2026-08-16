@@ -1,7 +1,11 @@
-import type { ServicePluginContext } from "@brains/plugins";
+import {
+  defineDashboardWidget,
+  registerBuiltInDashboardWidget,
+  type DashboardOperatorViewBlock,
+  type ServicePluginContext,
+} from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import { h, type ComponentChild } from "preact";
-import siteHealthWidgetStyles from "./dashboard-widget.css" with { type: "text" };
 import type { SiteWorkspaceProvider } from "./site-workspace";
 
 const environmentSchema = z.object({
@@ -44,6 +48,144 @@ const siteHealthWidgetDataSchema = z.object({
 
 type SiteHealthWidgetData = z.output<typeof siteHealthWidgetDataSchema>;
 type EnvironmentHealth = z.output<typeof environmentSchema>;
+
+function boundedDetail(value: string): string {
+  return value.length <= 500 ? value : `${value.slice(0, 497)}…`;
+}
+
+function failureBlocks(
+  failures: readonly EnvironmentHealth[],
+): DashboardOperatorViewBlock[] {
+  if (failures.length === 0) return [];
+  return [
+    {
+      type: "notice",
+      id: "build-failures",
+      title: "Build failures",
+      text: failures
+        .map(
+          (failure) =>
+            `${failure.environment}: ${boundedDetail(failure.lastFailure?.message ?? "Build failed without details.")}`,
+        )
+        .join("\n"),
+      tone: "error",
+    },
+  ];
+}
+
+function siteLinks(data: SiteHealthWidgetData): DashboardOperatorViewBlock {
+  return {
+    type: "links",
+    items: [
+      ...(data.site.previewUrl
+        ? [
+            {
+              label: "Open preview",
+              target: { external: data.site.previewUrl },
+            },
+          ]
+        : []),
+      ...(data.site.liveUrl
+        ? [
+            {
+              label: "Open live",
+              target: { external: data.site.liveUrl },
+            },
+          ]
+        : []),
+      {
+        label: "Open in CMS",
+        target: { launch: { target: "site" } },
+      },
+    ],
+  };
+}
+
+const siteHealthWidget = defineDashboardWidget({
+  id: "site-health",
+  title: "Site health",
+  description: "Preview and live build status",
+  group: "publishing",
+  placement: "sidebar",
+  priority: 50,
+  permission: "admin",
+  data: siteHealthWidgetDataSchema,
+  digest: ({ data }) => {
+    const preview = data.environments.find(
+      (environment) => environment.environment === "preview",
+    );
+    const production = data.environments.find(
+      (environment) => environment.environment === "production",
+    );
+    const failures = data.environments.filter(
+      (environment) => environment.lastFailure !== undefined,
+    ).length;
+    return {
+      items: [
+        {
+          label: "Preview",
+          value: preview ? environmentState(preview) : "unavailable",
+          tone: preview?.lastFailure ? "warn" : "good",
+        },
+        {
+          label: "Live",
+          value: production ? environmentState(production) : "unavailable",
+          tone: production?.lastFailure ? "warn" : "good",
+        },
+      ],
+      attention: failures,
+    };
+  },
+  view: ({ data }) => {
+    const preview = data.environments.find(
+      (environment) => environment.environment === "preview",
+    );
+    const production = data.environments.find(
+      (environment) => environment.environment === "production",
+    );
+    const failures = data.environments.filter(
+      (environment) => environment.lastFailure !== undefined,
+    );
+    return {
+      blocks: [
+        {
+          type: "stats",
+          items: [
+            {
+              label: "Preview",
+              value: preview ? environmentState(preview) : "unavailable",
+              tone: preview?.lastFailure ? "warn" : "good",
+            },
+            {
+              label: "Live",
+              value: production ? environmentState(production) : "unavailable",
+              tone: production?.lastFailure ? "warn" : "good",
+            },
+          ],
+        },
+        {
+          type: "key-values",
+          items: [
+            {
+              label: "Preview detail",
+              value: preview
+                ? boundedDetail(environmentDetail(preview))
+                : "Unavailable",
+            },
+            {
+              label: "Live detail",
+              value: production
+                ? boundedDetail(environmentDetail(production))
+                : "Unavailable",
+            },
+          ],
+        },
+        ...failureBlocks(failures),
+        siteLinks(data),
+      ],
+    };
+  },
+});
 
 interface SiteHealthWidgetProps {
   title: string;
@@ -179,58 +321,18 @@ export function SiteHealthWidget(props: SiteHealthWidgetProps): ComponentChild {
   ]);
 }
 
-function deriveSiteDigest(data: unknown): {
-  digest: Array<{ label: string; value: string; tone?: "good" | "warn" }>;
-  needsOperator: number;
-} {
-  const parsed = siteHealthWidgetDataSchema.parse(data);
-  const preview = parsed.environments.find(
-    (environment) => environment.environment === "preview",
-  );
-  const production = parsed.environments.find(
-    (environment) => environment.environment === "production",
-  );
-  const failures = parsed.environments.filter(
-    (environment) => environment.lastFailure !== undefined,
-  ).length;
-
-  return {
-    digest: [
-      {
-        label: "Preview",
-        value: preview ? environmentState(preview) : "unavailable",
-        ...(preview?.lastFailure ? { tone: "warn" } : { tone: "good" }),
-      },
-      {
-        label: "Live",
-        value: production ? environmentState(production) : "unavailable",
-        ...(production?.lastFailure ? { tone: "warn" } : { tone: "good" }),
-      },
-    ],
-    needsOperator: failures,
-  };
-}
-
 export async function registerSiteHealthWidget(
   context: ServicePluginContext,
   provider: SiteWorkspaceProvider,
-  managementUrl?: string,
 ): Promise<void> {
-  await context.dashboard.registerWidget({
-    id: "site-health",
-    title: "Site health",
-    description: "Preview and live build status",
-    group: "publishing",
-    section: "sidebar",
-    priority: 50,
-    rendererName: "SiteHealthWidget",
-    visibility: "admin",
-    component: SiteHealthWidget,
-    clientStyles: siteHealthWidgetStyles,
-    dataProvider: async (): Promise<SiteHealthWidgetData> => ({
-      ...(await provider.getSnapshot()),
-      ...(managementUrl ? { managementUrl } : {}),
-    }),
-    digestProvider: deriveSiteDigest,
+  await registerBuiltInDashboardWidget({
+    context,
+    definition: siteHealthWidget,
+    load: async ({ signal }): Promise<SiteHealthWidgetData> => {
+      signal.throwIfAborted();
+      const snapshot = await provider.getSnapshot();
+      signal.throwIfAborted();
+      return snapshot;
+    },
   });
 }

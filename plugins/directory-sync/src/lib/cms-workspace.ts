@@ -1,10 +1,12 @@
 import {
-  PermissionService,
-  registerCmsWorkspace as sendWorkspaceRegistration,
-  type CmsWorkspaceRegistration,
+  defineCmsWorkspace,
+  defineWorkspaceAction,
+  registerBuiltInCmsWorkspace,
+  type OperatorViewBlock,
   type ServicePluginContext,
   type ToolContext,
 } from "@brains/plugins";
+import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
 import { basename } from "path";
 import type {
@@ -20,16 +22,10 @@ import type {
   RecentDirectorySyncRun,
 } from "./directory-sync-operation-status";
 import { requestDirectorySync } from "./request-directory-sync";
-import { getErrorMessage } from "@brains/utils/error";
 
 export interface DirectorySyncWorkspaceAction {
   type: "sync-now";
 }
-
-const directorySyncWorkspaceActionSchema: z.ZodType<DirectorySyncWorkspaceAction> =
-  z.object({
-    type: z.literal("sync-now"),
-  });
 
 export interface DirectorySyncWorkspaceSnapshot {
   health: "healthy" | "active" | "attention";
@@ -137,9 +133,251 @@ const directorySyncWorkspaceSnapshotSchema: z.ZodType<DirectorySyncWorkspaceSnap
     ),
   });
 
+const syncNowAction = defineWorkspaceAction({
+  name: "sync-now",
+  label: "Sync now",
+  permission: "admin",
+  input: z.object({}),
+  output: z.object({
+    accepted: z.boolean(),
+    status: z.string().min(1),
+    runId: z.string().min(1).optional(),
+    jobId: z.string().min(1).optional(),
+    batchId: z.string().min(1).optional(),
+  }),
+});
+
+function activeProgress(
+  run: ActiveDirectorySyncRun,
+): Extract<OperatorViewBlock, { type: "progress" }> {
+  const total = run.imported + run.skipped + run.failed + run.quarantined;
+  return {
+    type: "progress",
+    id: "active-sync",
+    label: "Directory sync",
+    state: run.state,
+    detail: `${total} files handled · ${run.exported} exported`,
+    startedAt: run.startedAt,
+    updatedAt: run.lastProgressAt,
+    tone: run.failed > 0 || run.quarantined > 0 ? "warn" : "neutral",
+  };
+}
+
+const directorySyncWorkspace = defineCmsWorkspace({
+  id: "sync",
+  label: "Sync",
+  permission: "admin",
+  data: directorySyncWorkspaceSnapshotSchema,
+  actions: [syncNowAction],
+  refresh: ({ data }) => (data.activeRun ? 1_000 : undefined),
+  view: ({ data }) => {
+    type SyncViewBlock = OperatorViewBlock<typeof syncNowAction>;
+    type SyncFlowStep = Extract<
+      SyncViewBlock,
+      { type: "flow" }
+    >["steps"][number];
+    const gitFlowSteps: SyncFlowStep[] = [];
+    if (data.git) {
+      gitFlowSteps.push({
+        id: "git",
+        label: data.git.remoteLabel ?? data.git.branch,
+        status: data.issues.some((issue) => issue.kind === "git")
+          ? "failed"
+          : data.git.hasChanges || data.git.ahead > 0 || data.git.behind > 0
+            ? "active"
+            : "complete",
+        detail: `${data.git.ahead} ahead · ${data.git.behind} behind`,
+      });
+    }
+    const activeBlocks: SyncViewBlock[] = data.activeRun
+      ? [activeProgress(data.activeRun)]
+      : [];
+    const changedFileBlocks: SyncViewBlock[] = data.git?.changedFiles.length
+      ? [
+          {
+            type: "list",
+            id: "changed-files",
+            empty: "No changed files.",
+            items: data.git.changedFiles.map((file, index) => ({
+              id: `changed-${index + 1}`,
+              title: file.path,
+              badges: [{ label: file.status }],
+            })),
+          },
+        ]
+      : [];
+    const blocks: SyncViewBlock[] = [
+      {
+        type: "stats",
+        id: "sync-summary",
+        items: [
+          { label: "Files", value: data.directory.totalFiles },
+          {
+            label: "Entity types",
+            value: Object.keys(data.directory.byEntityType).length,
+          },
+          { label: "Issues", value: data.issues.length },
+          { label: "Health", value: data.health },
+        ],
+      },
+      {
+        type: "flow",
+        id: "sync-flow",
+        label: "Content flow",
+        direction: data.git ? "bidirectional" : "forward",
+        steps: [
+          {
+            id: "directory",
+            label: data.directory.displayPath,
+            status: data.directory.exists ? "complete" : "failed",
+            detail: data.directory.watching
+              ? "Watching for changes"
+              : "Watcher stopped",
+          },
+          {
+            id: "scanner",
+            label: "Scanner",
+            status: data.activeRun ? "active" : "idle",
+            detail: data.activeRun?.state,
+          },
+          {
+            id: "entities",
+            label: "Entity store",
+            status: data.issues.some((issue) => issue.kind === "import")
+              ? "failed"
+              : data.directory.totalFiles > 0
+                ? "complete"
+                : "idle",
+          },
+          ...gitFlowSteps,
+        ],
+      },
+      {
+        type: "group",
+        id: "sync-automation",
+        label: "Automation",
+        items: [
+          {
+            id: "automatic",
+            label: "Automatic sync",
+            value: data.automation.autoSync,
+          },
+          {
+            id: "watch",
+            label: "Watch interval",
+            value: `${data.automation.watchIntervalMs} ms`,
+          },
+          {
+            id: "delete",
+            label: "Delete removed files",
+            value: data.automation.deleteOnFileRemoval,
+          },
+          ...(data.automation.remoteIntervalMinutes === undefined
+            ? []
+            : [
+                {
+                  id: "remote",
+                  label: "Remote interval",
+                  value: `${data.automation.remoteIntervalMinutes} min`,
+                },
+              ]),
+        ],
+      },
+      {
+        type: "meters",
+        id: "sync-meters",
+        items: [
+          {
+            id: "files",
+            label: "Content files",
+            value: data.directory.totalFiles,
+          },
+          {
+            id: "issues",
+            label: "Issues",
+            value: data.issues.length,
+            tone: data.issues.length > 0 ? "warn" : "good",
+          },
+          ...(data.git
+            ? [
+                { id: "ahead", label: "Commits ahead", value: data.git.ahead },
+                {
+                  id: "behind",
+                  label: "Commits behind",
+                  value: data.git.behind,
+                },
+              ]
+            : []),
+        ],
+      },
+      ...activeBlocks,
+      {
+        type: "table",
+        id: "entity-types",
+        empty: "No entity files have been indexed.",
+        columns: [
+          { key: "type", label: "Entity type" },
+          { key: "count", label: "Files", align: "end" },
+        ],
+        rows: Object.entries(data.directory.byEntityType).map(
+          ([type, count]) => ({
+            id: type,
+            cells: { type, count },
+          }),
+        ),
+      },
+      {
+        type: "list",
+        id: "recent-runs",
+        empty: "No directory sync runs have completed yet.",
+        items: data.recentRuns.map((run) => ({
+          id: run.id,
+          title: `${run.source} · ${run.outcome}`,
+          description: run.summary,
+          badges: [{ label: run.outcome }],
+          tone:
+            run.outcome === "succeeded"
+              ? "good"
+              : run.outcome === "failed"
+                ? "error"
+                : "warn",
+          metadata: [
+            `Imported: ${run.imported}`,
+            `Exported: ${run.exported}`,
+            `Completed: ${run.completedAt}`,
+          ],
+        })),
+      },
+      ...changedFileBlocks,
+      {
+        type: "list",
+        id: "sync-issues",
+        empty: "No sync issues need attention.",
+        items: data.issues.map((issue) => ({
+          id: issue.id,
+          title: issue.kind,
+          description: issue.message,
+          badges: [{ label: "attention", tone: "warn" }],
+          tone: "warn",
+          metadata: [
+            ...(issue.path ? [`Path: ${issue.path}`] : []),
+            `Occurred: ${issue.occurredAt}`,
+          ],
+        })),
+      },
+      {
+        type: "action",
+        id: "sync-now",
+        action: syncNowAction,
+        input: {},
+      },
+    ];
+    return { title: "Directory sync", blocks };
+  },
+});
+
 export interface DirectorySyncWorkspaceProviderOptions {
   context: ServicePluginContext;
-  pluginId: string;
   config: DirectorySyncConfig;
   getDirectorySync: () => IDirectorySync;
   getGitSync: () => IGitSync | undefined;
@@ -149,6 +387,7 @@ export interface DirectorySyncWorkspaceProviderOptions {
 /** Optional CMS provider. directory-sync owns data and actions; CMS owns rendering. */
 export class DirectorySyncWorkspaceProvider {
   private readonly options: DirectorySyncWorkspaceProviderOptions;
+  private registered = false;
 
   constructor(options: DirectorySyncWorkspaceProviderOptions) {
     this.options = options;
@@ -157,7 +396,6 @@ export class DirectorySyncWorkspaceProvider {
   async getSnapshot(): Promise<DirectorySyncWorkspaceSnapshot> {
     const directory = await this.options.getDirectorySync().getStatus();
     this.options.operationStatus.setSyncPath(directory.syncPath);
-
     let gitStatus: GitSyncStatus | undefined;
     const gitSync = this.options.getGitSync();
     if (gitSync) {
@@ -177,7 +415,6 @@ export class DirectorySyncWorkspaceProvider {
         });
       }
     }
-
     if (!directory.exists) {
       await this.options.operationStatus.recordIssue({
         kind: "source",
@@ -186,19 +423,16 @@ export class DirectorySyncWorkspaceProvider {
     } else {
       await this.options.operationStatus.clearIssues(["source"]);
     }
-
     const operations = await this.options.operationStatus.getSnapshot();
     const lastSettledAt =
       operations.recentRuns[0]?.completedAt ??
       directory.lastSync?.toISOString();
-    const health = operations.activeRun
-      ? "active"
-      : operations.issues.length > 0
-        ? "attention"
-        : "healthy";
-
     return directorySyncWorkspaceSnapshotSchema.parse({
-      health,
+      health: operations.activeRun
+        ? "active"
+        : operations.issues.length > 0
+          ? "attention"
+          : "healthy",
       directory: {
         displayPath: basename(directory.syncPath) || "brain-data",
         exists: directory.exists,
@@ -226,60 +460,56 @@ export class DirectorySyncWorkspaceProvider {
   }
 
   async registerCmsWorkspace(): Promise<string | undefined> {
-    const registration: CmsWorkspaceRegistration = {
-      id: "sync",
-      pluginId: this.options.pluginId,
-      label: "Sync",
-      rendererName: "DirectorySyncWorkspace",
-      priority: 60,
-      accessHandler: (actor) =>
-        PermissionService.hasPermission(actor.userPermissionLevel, "admin"),
-      dataProvider: async (actor) => {
-        if (
-          !PermissionService.hasPermission(actor.userPermissionLevel, "admin")
-        ) {
-          throw new Error("Directory sync requires admin permission");
-        }
-        return this.getSnapshot();
-      },
-      actionHandler: async (request, actor) => {
-        if (
-          !PermissionService.hasPermission(actor.userPermissionLevel, "admin")
-        ) {
-          throw new Error("Directory sync requires admin permission");
-        }
-        const action = directorySyncWorkspaceActionSchema.safeParse(request);
-        if (!action.success) {
-          throw new Error("Invalid directory sync workspace action");
-        }
+    const result = await registerBuiltInCmsWorkspace({
+      context: this.options.context,
+      definition: directorySyncWorkspace,
+      bind: (context) =>
+        directorySyncWorkspace.bind(context, {
+          load: () => this.getSnapshot(),
+          actions: [
+            syncNowAction.bind(context, async ({ caller }) => {
+              if (!caller) {
+                throw new Error(
+                  "Directory sync requires an authenticated caller",
+                );
+              }
+              const toolContext: ToolContext = {
+                interfaceType: "cms",
+                actor: { kind: "user", userId: caller.actor.id },
+                userPermissionLevel: caller.permission,
+              };
+              const result = await requestDirectorySync({
+                context: this.options.context,
+                directorySync: this.options.getDirectorySync(),
+                source: `cms:${caller.actor.id}`,
+                interfaceType: "cms",
+                toolContext,
+                gitSync: this.options.getGitSync(),
+                operationStatus: this.options.operationStatus,
+              });
+              return {
+                accepted: result.status === "queued",
+                status: result.status,
+                ...(result.runId ? { runId: result.runId } : {}),
+                ...(result.gitPulled ? { jobId: result.jobId } : {}),
+                ...(!result.gitPulled && result.status === "queued"
+                  ? { batchId: result.batchId }
+                  : {}),
+              };
+            }),
+          ],
+        }),
+    });
+    this.registered = result !== false;
+    return result === false ? undefined : result.workspaceUrl;
+  }
 
-        const toolContext: ToolContext = {
-          interfaceType: "cms",
-          actor: actor.actor,
-          userPermissionLevel: actor.userPermissionLevel,
-        };
-        const result = await requestDirectorySync({
-          context: this.options.context,
-          directorySync: this.options.getDirectorySync(),
-          source: `cms:${actor.userId}`,
-          interfaceType: "cms",
-          toolContext,
-          gitSync: this.options.getGitSync(),
-          operationStatus: this.options.operationStatus,
-        });
-        return {
-          accepted: result.status === "queued",
-          status: result.status,
-          ...(result.runId ? { runId: result.runId } : {}),
-          ...(result.gitPulled ? { jobId: result.jobId } : {}),
-          ...(!result.gitPulled && result.status === "queued"
-            ? { batchId: result.batchId }
-            : {}),
-        };
-      },
-    };
-
-    return sendWorkspaceRegistration(this.options.context, registration);
+  async unregisterCmsWorkspace(): Promise<void> {
+    if (!this.registered) return;
+    await this.options.context.cms.unregisterWorkspace(
+      `${this.options.context.pluginId}:sync`,
+    );
+    this.registered = false;
   }
 
   private toSafeGitStatus(
@@ -316,7 +546,6 @@ function safeRemoteLabel(config: DirectorySyncConfig): string | undefined {
   const value = config.git?.gitUrl;
   if (!value) return undefined;
   if (value.startsWith("file:")) return "local remote";
-
   try {
     const url = new URL(value);
     const path = url.pathname.replace(/^\//, "").replace(/\.git$/, "");

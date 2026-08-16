@@ -29,7 +29,7 @@ Transport calls belong in `api.ts`; query and mutation wrappers belong in `queri
 - saves refresh the affected list and sync status, then explicitly reopen the saved detail with its fresh content hash;
 - deletes remove the affected detail and refresh its list and sync status;
 - image uploads refresh only image-list, navigation-count, and sync-status data;
-- publishing and site-build actions refresh only their workspace snapshot;
+- declarative workspace actions refresh only their workspace snapshot and any badge-bearing navigation;
 - sync polling invalidates only `cmsKeys.syncStatus()`.
 
 Do not optimistically rewrite entity content or advance the pinned content hash. The entity service remains authoritative for byte-identical no-op saves and content-hash conflicts. Tests must cover exact request counts, stale responses, deduplication, draft preservation, and invalidation with `@brains/test-utils` `mockFetch` before a server-state path is migrated.
@@ -47,25 +47,12 @@ Reloading opens an empty draft, and direct entry still passes normal CMS authent
 entity availability, and create-policy checks. CMS also owns the registered **Open source
 entity** target, so the Inbox renderer never constructs entity URLs itself.
 
-Workspace providers may opt into renderer-owned stable URL filters with `urlQuery: true`.
-The CMS hydrates those filters from the raw search string and replaces their canonical URL
-without guessing provider semantics. `offset` and `limit` are always transient request
-state: they are neither hydrated nor serialized, so reload starts from the first page.
-Workspaces without the capability ignore URL search entirely.
+Workspace definitions may opt into host-owned stable URL filters with a typed query schema. The CMS hydrates declared filters from the raw search string, validates them on the server, and replaces their canonical URL without guessing provider semantics. Paging remains transient request state, so reload starts from the first page. Workspaces without a query declaration ignore URL search entirely.
 
 ## Optional workspaces
 
-Service plugins may register a CMS-owned renderer through `cms:register-workspace`. Registrations are ordered by `priority`, duplicate IDs are rejected, and no provider is required for the CMS to start.
+Service plugins declare workspaces with `defineCmsWorkspace()`. The runtime scopes IDs, registers after setup, unregisters on shutdown, and sends only `DeclarativeOperatorWorkspace` registrations to the CMS. Registrations are ordered by `priority`, duplicate IDs are rejected, and no provider is required for the CMS to start.
 
-The bundled renderer vocabulary is deliberately narrow:
+Every workspace uses the same closed host-rendered vocabulary: content blocks, composition, queries, spatial and relational views, typed actions, dynamic catalogs, launch intents, and static or prepared confirmation. Publishing, Site, Directory Sync, and Unified Inbox all use this path; there are no specialized renderer names or private browser implementations.
 
-- `PublishingWorkspace` operates the content-pipeline queue and publication failures;
-- `SiteWorkspace` operates site-builder preview and production builds;
-- `DirectorySyncWorkspace` operates directory/Git sync status and manual sync requests;
-- `UnifiedInboxWorkspace` operates source-owned attention and linkable stable filters.
-
-New mail is triaged through `UnifiedInboxWorkspace`; reviewed and resolved records remain
-available through the standard **Mail Items** entity collection rather than a second
-operations workspace.
-
-Providers own snapshots, validation, authorization, and actions. The CMS owns authenticated transport, navigation, rendering, and targeted query invalidation. Runtime React components are never accepted through registration.
+Providers own schema-valid data, permission narrowing, and action execution. The CMS owns authentication, transport, navigation, validation, rendering, accessibility, query URLs, confirmation tokens, and targeted invalidation. Runtime React components, HTML, CSS, scripts, and private URLs are never accepted through registration.

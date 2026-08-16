@@ -28,6 +28,8 @@ export class UnifiedInboxPlugin extends ServicePlugin<
 > {
   private dataSource: InboxDataSource | undefined;
   private operator: InboxOperatorService | undefined;
+  private pluginContext: ServicePluginContext | undefined;
+  private cmsRegistered = false;
 
   constructor() {
     super("unified-inbox", packageJson, {}, unifiedInboxConfigSchema);
@@ -36,6 +38,7 @@ export class UnifiedInboxPlugin extends ServicePlugin<
   protected override async onRegister(
     context: ServicePluginContext,
   ): Promise<void> {
+    this.pluginContext = context;
     this.dataSource = new InboxDataSource(context.inbox);
     this.operator = new InboxOperatorService(
       context.inbox,
@@ -53,6 +56,7 @@ export class UnifiedInboxPlugin extends ServicePlugin<
     const workspaceUrl = normalizeSameOriginPath(
       await registerUnifiedInboxCmsWorkspace(context, operator),
     );
+    this.cmsRegistered = workspaceUrl !== undefined;
     if (workspaceUrl) {
       context.interactions.register({
         id: "unified-inbox",
@@ -64,8 +68,15 @@ export class UnifiedInboxPlugin extends ServicePlugin<
         visibility: "admin",
       });
     }
-    await registerUnifiedInboxDashboardWidget(context, operator, workspaceUrl);
+    await registerUnifiedInboxDashboardWidget(context, operator);
     registerUnifiedInboxDigest(context, dataSource, { workspaceUrl });
+  }
+
+  protected override async onShutdown(): Promise<void> {
+    if (this.cmsRegistered) {
+      await this.pluginContext?.cms.unregisterWorkspace("unified-inbox:inbox");
+      this.cmsRegistered = false;
+    }
   }
 
   protected override async getTools(): Promise<Tool[]> {

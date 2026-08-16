@@ -1,12 +1,11 @@
-/** @jsxImportSource preact */
 import { describe, expect, it } from "bun:test";
 import { DASHBOARD_CHANNELS } from "@brains/contracts";
-import type { DashboardWidgetRegistration } from "@brains/plugins";
-import { createPluginHarness } from "@brains/plugins/test";
-import { render } from "preact-render-to-string";
 import {
-  MailTriageDashboardWidget,
-  mailTriageDashboardDataSchema,
+  safeParseRuntimeDashboardWidgetData,
+  type DashboardWidgetRegistration,
+} from "@brains/plugins";
+import { createPluginHarness } from "@brains/plugins/test";
+import {
   registerEmailTriageDashboardWidget,
   type MailTriageSummary,
 } from "../src";
@@ -18,20 +17,22 @@ const summary: MailTriageSummary = {
   unclassified: 1,
 };
 
-const links = {
-  new: "/studio/workspaces/inbox?sourceId=mail-items",
-  high: "/studio/workspaces/inbox?sourceId=mail-items&facet.mail-priority=high",
-  needsReply:
-    "/studio/workspaces/inbox?sourceId=mail-items&facet.needs-reply=true",
-  unclassified:
-    "/studio/workspaces/inbox?sourceId=mail-items&facet.category=unclassified",
-};
-
 function dashboardReadContext(): {
-  caller: null;
+  caller: {
+    actor: { id: string };
+    permission: "admin";
+    isAnchor: true;
+  };
   signal: AbortSignal;
 } {
-  return { caller: null, signal: new AbortController().signal };
+  return {
+    caller: {
+      actor: { id: "user:admin" },
+      permission: "admin",
+      isAnchor: true,
+    },
+    signal: new AbortController().signal,
+  };
 }
 
 function registerInboxInteraction(
@@ -77,42 +78,31 @@ async function captureWidget(input: {
   return registration;
 }
 
-describe("MailTriageDashboardWidget", () => {
-  it("links each new-only count to its canonical Inbox source facet", () => {
-    const data = mailTriageDashboardDataSchema.parse({ summary, links });
-    const html = render(
-      <MailTriageDashboardWidget title="Email Triage" data={data} />,
-    );
-
-    expect(html).toContain("New mail");
-    expect(html).toContain("New high priority");
-    expect(html).toContain("New needs reply");
-    expect(html).toContain("New unclassified");
-    expect(html).toContain(
-      'href="/studio/workspaces/inbox?sourceId=mail-items"',
-    );
-    expect(html).toContain("facet.mail-priority=high");
-    expect(html).toContain("facet.needs-reply=true");
-    expect(html).toContain("facet.category=unclassified");
-    expect(html).toContain("Open new mail");
-    expect(html).not.toContain("Open mail desk");
-  });
-
-  it("resolves the registered Inbox destination at data-provider time", async () => {
+describe("Email triage declarative Dashboard widget", () => {
+  it("emits typed Inbox launches without resolving a workspace URL", async () => {
     const [emailFirst, inboxFirst] = await Promise.all([
       captureWidget({ interaction: "after" }),
       captureWidget({ interaction: "before" }),
     ]);
 
-    expect(await emailFirst.dataProvider(dashboardReadContext())).toEqual({
-      summary,
-      links,
+    const emailResult = await emailFirst.dataProvider(dashboardReadContext());
+    const inboxResult = await inboxFirst.dataProvider(dashboardReadContext());
+    expect(emailResult).toEqual(inboxResult);
+    const parsed = safeParseRuntimeDashboardWidgetData(emailResult);
+    expect(parsed.success).toBeTrue();
+    if (!parsed.success) throw new Error("Expected normalized email data");
+    const emailData = parsed.data;
+    const linkBlock = emailData.view.blocks[1];
+    expect(linkBlock?.type).toBe("links");
+    if (linkBlock?.type !== "links") throw new Error("Expected Inbox links");
+    expect(linkBlock.items[0]).toEqual({
+      label: "Open new mail",
+      target: {
+        kind: "launch",
+        launch: { target: "inbox", source: "mail" },
+      },
     });
-    expect(await inboxFirst.dataProvider(dashboardReadContext())).toEqual({
-      summary,
-      links,
-    });
-    expect(emailFirst.digestProvider?.({ summary, links })).toEqual({
+    expect(emailFirst.digestProvider?.(emailData)).toEqual({
       digest: [
         { label: "New mail", value: "4", tone: "warn" },
         { label: "New needs reply", value: "3", tone: "warn" },
@@ -121,17 +111,16 @@ describe("MailTriageDashboardWidget", () => {
     });
   });
 
-  it("omits links instead of guessing or trusting an invalid CMS mount", async () => {
+  it("keeps launch semantics independent from missing or invalid interactions", async () => {
     const [missing, invalid] = await Promise.all([
       captureWidget({ interaction: "never" }),
       captureWidget({ interaction: "before", href: "https://evil.test" }),
     ]);
 
-    expect(await missing.dataProvider(dashboardReadContext())).toEqual({
-      summary,
-    });
-    expect(await invalid.dataProvider(dashboardReadContext())).toEqual({
-      summary,
-    });
+    const missingData = await missing.dataProvider(dashboardReadContext());
+    const invalidData = await invalid.dataProvider(dashboardReadContext());
+    expect(missingData).toEqual(invalidData);
+    expect(JSON.stringify(missingData)).not.toContain("evil.test");
+    expect(JSON.stringify(missingData)).not.toContain("managementUrl");
   });
 });

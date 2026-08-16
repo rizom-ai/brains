@@ -90,7 +90,7 @@ describe("account console plugin", () => {
       expect(html).toContain('<html lang="en" data-climate="instrument">');
       expect(html).toContain('class="console-strip"');
       expect(html).toContain(
-        'class="surface-nav-link is-active" href="/account"',
+        'class="surface-nav-link is-active" href="/account" data-console-surface="account"',
       );
       expect(html).toContain(`data-account-role="${role}"`);
       expect(html).toContain('data-account-name="Mira Reyes"');

@@ -184,31 +184,8 @@ export {
 } from "./WidgetPrimitives";
 export type {
   KeyValueItem,
-  WidgetComponent,
-  WidgetComponentProps,
   WidgetDataAttributes,
   WidgetElementProps,
   WidgetFilterOption,
   WidgetTabDefinition,
 } from "./WidgetPrimitives";
-
-// Widget renderers for dashboard
-export {
-  StatsWidget,
-  ListWidget,
-  CustomWidget,
-  PipelineWidget,
-  IdentityWidget,
-  ProfileWidget,
-  SystemWidget,
-} from "./widgets";
-export type {
-  BaseWidgetProps,
-  StatsWidgetProps,
-  ListWidgetProps,
-  CustomWidgetProps,
-  PipelineWidgetProps,
-  IdentityWidgetProps,
-  ProfileWidgetProps,
-  SystemWidgetProps,
-} from "./widgets";

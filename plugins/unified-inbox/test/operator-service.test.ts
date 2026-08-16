@@ -466,7 +466,7 @@ describe("InboxOperatorService", () => {
       followUps,
     );
 
-    const dashboard = await service.dashboard("/cms/workspaces/inbox");
+    const dashboard = await service.dashboard();
     const serialized = JSON.stringify(dashboard);
 
     expect(dashboard.entries).toHaveLength(5);
@@ -477,7 +477,6 @@ describe("InboxOperatorService", () => {
         availableSources: 1,
         unavailableSources: 0,
       },
-      managementUrl: "/cms/workspaces/inbox",
     });
     expect(Object.keys(dashboard.entries[0] ?? {})).toEqual([
       "sourceLabel",

@@ -5,8 +5,7 @@ import { SUMMARY_ENTITY_TYPE } from "../constants";
 import { SummaryAdapter } from "../../adapters/summary-adapter";
 
 const MAX_ITEMS = 6;
-const WIDGET_ID = "conversation-memory:recent";
-const WIDGET_RENDERER = "RecentConversationMemoryWidget";
+const WIDGET_ID = "recent";
 
 const summaryAdapter = new SummaryAdapter();
 
@@ -117,5 +116,3 @@ export async function buildRecentConversationMemoryData(
 }
 
 export const RECENT_MEMORY_WIDGET_ID: typeof WIDGET_ID = WIDGET_ID;
-export const RECENT_MEMORY_WIDGET_RENDERER: typeof WIDGET_RENDERER =
-  WIDGET_RENDERER;

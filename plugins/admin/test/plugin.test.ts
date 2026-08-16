@@ -84,7 +84,9 @@ describe("admin console plugin", () => {
     expect(html).not.toContain("data-people-interfaces");
     expect(html).toContain("Mira Reyes");
     expect(html).toMatch(/src="\/admin\/assets\/app\.js\?v=[a-z0-9]+"/);
-    expect(html).toContain('class="surface-nav-link is-active" href="/admin"');
+    expect(html).toContain(
+      'class="surface-nav-link is-active" href="/admin" data-console-surface="admin"',
+    );
   });
 
   it("ignores malformed person targets", async () => {

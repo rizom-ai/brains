@@ -389,7 +389,7 @@ describe("CMS Trusted rollout gate", () => {
         id: "test-workspace",
         pluginId: "test-workspace",
         label: "Test workspace",
-        rendererName: "PublishingWorkspace",
+        rendererName: "DeclarativeOperatorWorkspace",
         priority: 1,
         accessHandler: () => true,
         dataProvider: async () => {

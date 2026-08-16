@@ -69,24 +69,6 @@ export function DashboardDocument({
             dangerouslySetInnerHTML={{ __html: DASHBOARD_STYLES }}
           />
         )}
-        {input.assetUrls
-          ? input.assetUrls.widgetStyles.map((href) => (
-              <link
-                key={href}
-                data-dashboard-widget-styles
-                rel="stylesheet"
-                href={href}
-              />
-            ))
-          : input.widgetStyles &&
-            input.widgetStyles.length > 0 && (
-              <style
-                data-dashboard-widget-styles
-                dangerouslySetInnerHTML={{
-                  __html: input.widgetStyles.join("\n\n"),
-                }}
-              />
-            )}
       </head>
       <body data-auth-role={input.authAccess?.principal?.role}>
         <ConsoleStrip
@@ -149,16 +131,6 @@ export function DashboardDocument({
             <script dangerouslySetInnerHTML={{ __html: DASHBOARD_UI_SCRIPT }} />
           </>
         )}
-        {input.assetUrls
-          ? input.assetUrls.widgetScripts.map((src) => (
-              <script key={src} data-dashboard-widget-script src={src} />
-            ))
-          : input.widgetScripts.map((script, index) => (
-              <script
-                key={`widget-script:${index}`}
-                dangerouslySetInnerHTML={{ __html: script }}
-              />
-            ))}
       </body>
     </html>
   );

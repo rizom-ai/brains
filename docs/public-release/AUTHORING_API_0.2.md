@@ -61,6 +61,7 @@ Definitions and schema vocabulary:
 - `defineAccountSettings`
 - `defineCmsWorkspace`
 - `defineDashboardWidget`
+- `defineEntityCatalog`
 - `defineJob`
 - `defineServicePlugin`
 - `defineTool`
@@ -73,19 +74,28 @@ Types:
 - `AccountSettingsFieldDefinition`
 - `AccountSettingsValue`
 - `CmsWorkspaceDefinition`
+- `CmsWorkspaceView`
+- `CmsWorkspaceViewBlock`
 - `DashboardDigest`
+- `DashboardOperatorView`
+- `DashboardOperatorViewBlock`
 - `DashboardWidgetDefinition`
 - `OperatorCaller`
+- `OperatorCapabilityDefinition`
+- `OperatorEntityCatalogDefinition`
 - `OperatorEntityReader`
+- `OperatorQueryReader`
 - `OperatorView`
 - `OperatorViewBlock`
 - `ServiceJobDefinition`
 - `ServiceJobReference`
 - `ServiceJobStatus`
 - `ServicePackageDefinition`
+- `WorkspaceActionConfirmation`
 - `WorkspaceActionDefinition`
+- `WorkspacePreparedConfirmation`
 
-These operator schemas and executor bindings are the accepted public contract. The account-settings runtime provides encrypted auth-DB persistence, redacted Account forms, principal isolation, and runtime-owned account-daemon reconciliation. Declarative Dashboard widgets now register through a host-owned adapter and generic semantic renderer; callbacks receive the canonical caller, secret-redacted current-principal settings, visibility-scoped entities, typed jobs, and cancellation. A missing optional Dashboard host leaves widgets inert, while execution-only workers never bind or register operator callbacks. CMS hosting and packed standalone evidence remain later phases, so the combined Dashboard/CMS operator surface is not yet runtime-complete.
+These operator schemas and executor bindings are the accepted public contract. The account-settings runtime provides encrypted auth-DB persistence, redacted Account forms, principal isolation, and runtime-owned account-daemon reconciliation. Dashboard widgets and CMS workspaces register through host-owned semantic renderers; callbacks receive the canonical caller, secret-redacted current-principal settings, visibility-scoped entities, typed jobs, and cancellation. CMS adds schema-validated query state, typed dynamic catalogs, and caller/input/revision/expiry/single-use prepared confirmations. Missing optional hosts leave declarations inert, and execution-only workers never bind or register operator callbacks. The packed operator fixture compiles Account settings, Dashboard, and CMS authoring together without browser UI code.
 
 ## `@rizom/brain/interfaces`
 
@@ -175,4 +185,4 @@ Internal `@brains/*` packages, runtime classes, contexts, registries, queue type
 
 ## Compatibility rule
 
-A `0.2.x` candidate must compile and run the frozen entity, service, generic-interface, message-interface, site, and brain-definition fixtures without source changes. Additive stable exports require an updated ledger and compatibility fixture; breaking these names or behaviors requires a later minor release.
+A `0.2.x` candidate must compile and run the frozen entity, service, operator-surface, generic-interface, message-interface, site, and brain-definition fixtures without source changes. Additive stable exports require an updated ledger and compatibility fixture; breaking these names or behaviors requires a later minor release.

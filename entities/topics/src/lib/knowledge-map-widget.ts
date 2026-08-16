@@ -1,100 +1,113 @@
-import { SYSTEM_CHANNELS } from "@brains/plugins";
-import type {
-  DashboardWidgetProviderContext,
-  DashboardWidgetRegistration,
+import {
+  SYSTEM_CHANNELS,
+  defineDashboardWidget,
+  registerBuiltInDashboardWidget,
+  type EntityPluginContext,
 } from "@brains/plugins";
 import {
   buildKnowledgeMapData,
   knowledgeMapDataSchema,
-  type KnowledgeMapData,
-  type KnowledgeMapDataContext,
 } from "./knowledge-map-data";
-import {
-  KnowledgeMapWidget,
-  knowledgeMapStyles,
-} from "../widgets/knowledge-map";
 
 export const KNOWLEDGE_MAP_WIDGET_ID = "topics-knowledge-map";
-const KNOWLEDGE_MAP_WIDGET_RENDERER = "KnowledgeMapWidget";
 
-export interface KnowledgeMapWidgetRegistration {
-  id: string;
-  title: string;
-  group: string;
-  section: "primary" | "secondary" | "sidebar";
-  priority: number;
-  rendererName: string;
-  component: typeof KnowledgeMapWidget;
-  clientStyles: string;
-  dataProvider: (
-    context: DashboardWidgetProviderContext,
-  ) => Promise<KnowledgeMapData>;
-  digestProvider: (data: unknown) => {
-    digest: { label: string; value: string }[];
-  };
+function knowledgePointId(entityType: string, id: string): string {
+  return `${entityType}:${id}`;
 }
 
-/**
- * The narrow context this registration actually uses: the builder's data
- * context plus the minimal messaging surface. The full plugin context
- * satisfies it structurally — no adapters, no casts.
- */
-export interface KnowledgeMapWidgetContext extends KnowledgeMapDataContext {
-  messaging: {
-    subscribe(
-      channel: string,
-      handler: () => Promise<{ success: boolean }>,
-    ): () => void;
-  };
-  dashboard: {
-    registerWidget(widget: DashboardWidgetRegistration): Promise<boolean>;
-  };
-}
-
-/**
- * The knowledge map on the console dashboard: the corpus as a sky, next to
- * the agent network. Data comes from the live semantic projection; the digest
- * carries the honest counts.
- */
-export function knowledgeMapWidgetRegistration(
-  context: KnowledgeMapDataContext,
-): KnowledgeMapWidgetRegistration {
-  return {
-    id: KNOWLEDGE_MAP_WIDGET_ID,
-    title: "Knowledge Map",
-    group: "knowledge",
-    section: "primary",
-    priority: 30,
-    rendererName: KNOWLEDGE_MAP_WIDGET_RENDERER,
-    component: KnowledgeMapWidget,
-    clientStyles: knowledgeMapStyles,
-    dataProvider: async (): Promise<KnowledgeMapData> =>
-      buildKnowledgeMapData(context),
-    digestProvider: (
-      data: unknown,
-    ): { digest: { label: string; value: string }[] } => {
-      const parsed = knowledgeMapDataSchema.parse(data);
-      return {
-        digest: [
-          { label: "Entities", value: String(parsed.counts.entities) },
-          { label: "Topics", value: String(parsed.counts.topics) },
+const knowledgeMapWidget = defineDashboardWidget({
+  id: KNOWLEDGE_MAP_WIDGET_ID,
+  title: "Knowledge Map",
+  group: "knowledge",
+  placement: "primary",
+  priority: 30,
+  permission: "public",
+  data: knowledgeMapDataSchema,
+  digest: ({ data }) => ({
+    items: [
+      { label: "Entities", value: String(data.counts.entities) },
+      { label: "Topics", value: String(data.counts.topics) },
+    ],
+  }),
+  view: ({ data }) => ({
+    blocks: [
+      {
+        type: "spatial",
+        layout: "cartesian",
+        id: "knowledge-map",
+        label: "Knowledge map",
+        description: `${data.counts.entities} projected entities arranged around ${data.counts.topics} topic zones. Published work, skills, high-signal knowledge, and background sources remain available in the text detail for this map.`,
+        points: data.points.map((point) => ({
+          id: knowledgePointId(point.entityType, point.id),
+          label: point.title,
+          category: point.kind === "pearl" ? "high-signal" : point.kind,
+          x: point.x,
+          y: point.y,
+          ...(point.zoneId ? { zoneId: `topic:${point.zoneId}` } : {}),
+          tone:
+            point.kind === "published"
+              ? "good"
+              : point.kind === "pearl"
+                ? "warn"
+                : "neutral",
+          details: [point.entityType],
+        })),
+        zones: data.zones.map((zone) => ({
+          id: `topic:${zone.id}`,
+          label: zone.name,
+          x: zone.x,
+          y: zone.y,
+          memberIds: data.points
+            .filter((point) => zone.memberIds.includes(point.id))
+            .map((point) => knowledgePointId(point.entityType, point.id)),
+        })),
+        relationships: data.zones.flatMap((zone) =>
+          data.points
+            .filter((point) => point.zoneId === zone.id)
+            .map(
+              (
+                point,
+              ): {
+                sourceId: string;
+                targetId: string;
+                tone: "neutral";
+              } => ({
+                sourceId: `topic:${zone.id}`,
+                targetId: knowledgePointId(point.entityType, point.id),
+                tone: "neutral",
+              }),
+            ),
+        ),
+        legend: [
+          { label: "Published", tone: "good" },
+          { label: "Skill", tone: "neutral" },
+          { label: "High signal", tone: "warn" },
+          { label: "Background", tone: "neutral" },
+          { label: "Topic zone", tone: "neutral" },
         ],
-      };
-    },
-  };
-}
+      },
+    ],
+  }),
+});
 
+/** Register the semantic corpus projection after the Dashboard host mounts. */
 export function registerKnowledgeMapDashboardWidget(params: {
-  context: KnowledgeMapWidgetContext;
+  context: EntityPluginContext;
 }): void {
   const { context } = params;
-
   context.messaging.subscribe(
     SYSTEM_CHANNELS.pluginsRegistered,
     async (): Promise<{ success: boolean }> => {
-      await context.dashboard.registerWidget(
-        knowledgeMapWidgetRegistration(context),
-      );
+      await registerBuiltInDashboardWidget({
+        context,
+        definition: knowledgeMapWidget,
+        load: async ({ signal }) => {
+          signal.throwIfAborted();
+          const data = await buildKnowledgeMapData(context);
+          signal.throwIfAborted();
+          return data;
+        },
+      });
       return { success: true };
     },
   );

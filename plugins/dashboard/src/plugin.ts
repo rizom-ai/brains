@@ -17,14 +17,9 @@ import {
 } from "@brains/contracts";
 import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
-import {
-  BUILT_IN_WIDGET_RENDERERS,
-  DashboardWidgetRegistry,
-  isBuiltInWidgetRenderer,
-} from "./widget-registry";
+import { DashboardWidgetRegistry } from "./widget-registry";
 import type {
   RegisteredWidget,
-  WidgetComponent,
   WidgetDigestProvider,
   WidgetVisibility,
 } from "./widget-registry";
@@ -39,7 +34,6 @@ import {
   buildConsoleJumpGroups,
   type ConsoleJumpEntityHit,
 } from "./console-jump";
-import { resolveWidgetsForRender } from "./render/resolve-widgets";
 import type {
   DashboardActivityEvent,
   DashboardJobProgressItem,
@@ -75,10 +69,9 @@ const registerWidgetPayloadSchema = z
     group: z.string().min(1),
     priority: z.number().default(50),
     section: z.enum(["primary", "secondary", "sidebar"]).default("primary"),
-    rendererName: z.string(),
+    rendererName: z.literal(DECLARATIVE_DASHBOARD_WIDGET_RENDERER),
     visibility: z.enum(["public", "trusted", "admin"]).default("public"),
     needsAttention: z.number().int().nonnegative().optional(),
-    needsOperator: z.number().int().nonnegative().optional(),
     digest: z
       .array(
         z.object({
@@ -89,9 +82,6 @@ const registerWidgetPayloadSchema = z
       )
       .max(4)
       .optional(),
-    component: z.custom<WidgetComponent>().optional(),
-    clientStyles: z.string().optional(),
-    clientScript: z.string().optional(),
     dataProvider: z.custom<
       (context: DashboardWidgetProviderContext) => Promise<unknown>
     >((value) => typeof value === "function", {
@@ -103,25 +93,7 @@ const registerWidgetPayloadSchema = z
       })
       .optional(),
   })
-  .superRefine((payload, refinementContext) => {
-    if (
-      !isBuiltInWidgetRenderer(payload.rendererName) &&
-      payload.rendererName !== DECLARATIVE_DASHBOARD_WIDGET_RENDERER &&
-      !payload.component
-    ) {
-      refinementContext.addIssue({
-        code: "custom",
-        message: "Custom dashboard widgets must register a Preact component.",
-        path: ["component"],
-      });
-    }
-  })
-  .transform(({ needsOperator, ...payload }) => ({
-    ...payload,
-    ...(payload.needsAttention === undefined && needsOperator !== undefined
-      ? { needsAttention: needsOperator }
-      : {}),
-  }));
+  .strict();
 
 const unregisterWidgetPayloadSchema = z.object({
   pluginId: z.string(),
@@ -192,9 +164,6 @@ function createRegisteredWidget(
       needsAttention: payload.needsAttention,
     }),
     ...(payload.digest ? { digest: payload.digest } : {}),
-    ...(payload.component ? { component: payload.component } : {}),
-    ...(payload.clientStyles ? { clientStyles: payload.clientStyles } : {}),
-    ...(payload.clientScript ? { clientScript: payload.clientScript } : {}),
     dataProvider: payload.dataProvider,
     ...(payload.digestProvider
       ? { digestProvider: payload.digestProvider }
@@ -372,9 +341,6 @@ export class DashboardPlugin extends ServicePlugin<
             widgetId: payload.id,
             pluginId: payload.pluginId,
             rendererName: payload.rendererName,
-            builtIn: BUILT_IN_WIDGET_RENDERERS.includes(
-              payload.rendererName as (typeof BUILT_IN_WIDGET_RENDERERS)[number],
-            ),
           });
           return { success: true };
         } catch (error) {
@@ -493,22 +459,14 @@ export class DashboardPlugin extends ServicePlugin<
           const requestUrl = new URL(request.url);
           const returnTo = `${requestUrl.pathname}${requestUrl.search}`;
           const encodedReturnTo = encodeURIComponent(returnTo);
-          const resolvedWidgets = resolveWidgetsForRender(
-            dashboardData.widgets,
-            this.widgetRegistry,
-          );
           const assetUrls = this.assetRegistry.createRenderUrls({
             themeCSS: this.config.themeCSS,
-            widgetStyles: resolvedWidgets.widgetStyles,
-            widgetScripts: resolvedWidgets.widgetScripts,
           });
 
           const input: DashboardRenderInput = {
             title,
             baseUrl,
-            widgets: resolvedWidgets.widgets,
-            widgetStyles: resolvedWidgets.widgetStyles,
-            widgetScripts: resolvedWidgets.widgetScripts,
+            widgets: dashboardData.widgets,
             assetUrls,
             dashboardPath: this.config.routePath,
             surfaces: deriveConsoleSurfaces(ctx.webRoutes.getRoutes(), {

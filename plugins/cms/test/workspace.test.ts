@@ -3,6 +3,8 @@ import { afterEach, describe, expect, it } from "bun:test";
 import { AuthServicePlugin } from "@brains/auth-service";
 import {
   BaseEntityAdapter,
+  CMS_WORKSPACE_UNREGISTER_MESSAGE,
+  DECLARATIVE_CMS_WORKSPACE_RENDERER,
   baseEntitySchema,
   type BaseEntity,
   type CmsWorkspaceRegistration,
@@ -93,6 +95,18 @@ async function registerWorkspace(
     type: "cms:register-workspace",
     payload: registration,
     sender: registration.pluginId,
+  });
+}
+
+async function unregisterWorkspace(
+  shell: MockShell,
+  pluginId: string,
+  workspaceId?: string,
+): Promise<unknown> {
+  return shell.getMessageBus().send({
+    type: CMS_WORKSPACE_UNREGISTER_MESSAGE,
+    payload: { pluginId, ...(workspaceId ? { workspaceId } : {}) },
+    sender: pluginId,
   });
 }
 
@@ -220,7 +234,7 @@ describe("optional CMS workspaces", () => {
       id: "publishing",
       pluginId: "content-pipeline",
       label: "Publishing",
-      rendererName: "PublishingWorkspace",
+      rendererName: "DeclarativeOperatorWorkspace",
       priority: 40,
       entityTypes: ["post", "newsletter"],
       accessHandler: () => true,
@@ -230,6 +244,38 @@ describe("optional CMS workspaces", () => {
     expect(response).toEqual({
       success: true,
       data: { workspaceUrl: "/studio/workspaces/publishing" },
+    });
+  });
+
+  it("unregisters only workspaces owned by the requesting plugin", async () => {
+    const shell = createMockShell({ domain: "yeehaa.io" });
+    const plugin = cmsPlugin();
+    await plugin.register(shell);
+    const registration: CmsWorkspaceRegistration = {
+      id: "publishing",
+      pluginId: "content-pipeline",
+      label: "Publishing",
+      rendererName: "DeclarativeOperatorWorkspace",
+      priority: 40,
+      accessHandler: () => true,
+      dataProvider: async () => ({}),
+    };
+
+    expect(await registerWorkspace(shell, registration)).toMatchObject({
+      success: true,
+    });
+    expect(
+      await unregisterWorkspace(shell, "other-plugin", registration.id),
+    ).toMatchObject({ success: true });
+    expect(await registerWorkspace(shell, registration)).toMatchObject({
+      success: false,
+    });
+
+    expect(
+      await unregisterWorkspace(shell, registration.pluginId, registration.id),
+    ).toMatchObject({ success: true });
+    expect(await registerWorkspace(shell, registration)).toMatchObject({
+      success: true,
     });
   });
 
@@ -258,25 +304,22 @@ describe("optional CMS workspaces", () => {
     });
   });
 
-  it("accepts the typed Unified Inbox workspace renderer", async () => {
+  it("accepts the host-owned declarative workspace renderer", async () => {
     const shell = createMockShell({ domain: "yeehaa.io" });
     const plugin = cmsPlugin();
     await plugin.register(shell);
 
-    const response = await registerWorkspace(shell, {
-      id: "inbox",
-      pluginId: "unified-inbox",
-      label: "Inbox",
-      rendererName: "UnifiedInboxWorkspace",
-      priority: 20,
-      accessHandler: (actor) => actor.userPermissionLevel === "admin",
-      dataProvider: async () => ({ entries: [] }),
-    });
-
-    expect(response).toEqual({
-      success: true,
-      data: { workspaceUrl: "/cms/workspaces/inbox" },
-    });
+    expect(
+      await registerWorkspace(shell, {
+        id: "reading",
+        pluginId: "reading-operator",
+        label: "Reading",
+        rendererName: DECLARATIVE_CMS_WORKSPACE_RENDERER,
+        priority: 50,
+        accessHandler: () => true,
+        dataProvider: async () => ({ view: { blocks: [] } }),
+      }),
+    ).toMatchObject({ success: true });
   });
 
   it("accepts the typed email reply draft workspace renderer", async () => {
@@ -310,7 +353,7 @@ describe("optional CMS workspaces", () => {
       id: "inbox",
       pluginId: "unified-inbox",
       label: "Inbox",
-      rendererName: "UnifiedInboxWorkspace",
+      rendererName: "DeclarativeOperatorWorkspace",
       priority: 20,
       urlQuery: true,
       accessHandler: () => true,
@@ -320,7 +363,7 @@ describe("optional CMS workspaces", () => {
       id: "publishing",
       pluginId: "content-pipeline",
       label: "Publishing",
-      rendererName: "PublishingWorkspace",
+      rendererName: "DeclarativeOperatorWorkspace",
       priority: 40,
       accessHandler: () => true,
       dataProvider: async () => ({ queue: [] }),
@@ -351,7 +394,7 @@ describe("optional CMS workspaces", () => {
       id: "publishing",
       pluginId: "content-pipeline",
       label: "Publishing",
-      rendererName: "PublishingWorkspace",
+      rendererName: "DeclarativeOperatorWorkspace",
       priority: 40,
       entityTypes: ["post"],
       accessHandler: () => true,
@@ -369,7 +412,7 @@ describe("optional CMS workspaces", () => {
         id: "publishing",
         pluginId: "content-pipeline",
         label: "Publishing",
-        rendererName: "PublishingWorkspace",
+        rendererName: "DeclarativeOperatorWorkspace",
         priority: 40,
         entityTypes: ["post"],
       },
@@ -388,7 +431,7 @@ describe("optional CMS workspaces", () => {
     expect(await response.json()).toEqual({
       workspace: {
         id: "publishing",
-        rendererName: "PublishingWorkspace",
+        rendererName: "DeclarativeOperatorWorkspace",
         data: { summary: { queued: 2 } },
       },
     });
@@ -403,7 +446,7 @@ describe("optional CMS workspaces", () => {
       id: "publishing",
       pluginId: "content-pipeline",
       label: "Publishing",
-      rendererName: "PublishingWorkspace",
+      rendererName: "DeclarativeOperatorWorkspace",
       priority: 40,
       // Providers with per-actor publishable types resolve them against the
       // real caller instead of disclosing the full registered list.
@@ -436,7 +479,7 @@ describe("optional CMS workspaces", () => {
       id: "inbox",
       pluginId: "unified-inbox",
       label: "Inbox",
-      rendererName: "UnifiedInboxWorkspace",
+      rendererName: "DeclarativeOperatorWorkspace",
       priority: 20,
       accessHandler: () => true,
       dataProvider: async (_actor, query) => {
@@ -473,7 +516,7 @@ describe("optional CMS workspaces", () => {
       id: "inbox",
       pluginId: "unified-inbox",
       label: "Inbox",
-      rendererName: "UnifiedInboxWorkspace",
+      rendererName: "DeclarativeOperatorWorkspace",
       priority: 20,
       accessHandler: () => true,
       dataProvider: async () => ({}),
@@ -483,7 +526,7 @@ describe("optional CMS workspaces", () => {
       id: "broken",
       pluginId: "broken-plugin",
       label: "Broken",
-      rendererName: "DirectorySyncWorkspace",
+      rendererName: "DeclarativeOperatorWorkspace",
       priority: 21,
       accessHandler: () => true,
       dataProvider: async () => ({}),
@@ -495,7 +538,7 @@ describe("optional CMS workspaces", () => {
       id: "denied",
       pluginId: "denied-plugin",
       label: "Denied",
-      rendererName: "DirectorySyncWorkspace",
+      rendererName: "DeclarativeOperatorWorkspace",
       priority: 22,
       accessHandler: () => false,
       dataProvider: async () => ({}),
@@ -528,7 +571,7 @@ describe("optional CMS workspaces", () => {
       id: "site",
       pluginId: "site-builder",
       label: "Site",
-      rendererName: "SiteWorkspace",
+      rendererName: "DeclarativeOperatorWorkspace",
       priority: 50,
       accessHandler: () => true,
       dataProvider: async () => ({}),
@@ -537,7 +580,7 @@ describe("optional CMS workspaces", () => {
       id: "sync",
       pluginId: "directory-sync",
       label: "Sync",
-      rendererName: "DirectorySyncWorkspace",
+      rendererName: "DeclarativeOperatorWorkspace",
       priority: 60,
       accessHandler: () => true,
       dataProvider: async () => ({}),
@@ -546,7 +589,7 @@ describe("optional CMS workspaces", () => {
       id: "publishing",
       pluginId: "content-pipeline",
       label: "Publishing",
-      rendererName: "PublishingWorkspace",
+      rendererName: "DeclarativeOperatorWorkspace",
       priority: 40,
       accessHandler: () => true,
       dataProvider: async () => ({}),
@@ -569,7 +612,7 @@ describe("optional CMS workspaces", () => {
       id: "site",
       pluginId: "site-builder",
       label: "Site",
-      rendererName: "SiteWorkspace",
+      rendererName: "DeclarativeOperatorWorkspace",
       priority: 50,
       accessHandler: () => true,
       dataProvider: async () => ({ source: "original" }),
@@ -578,7 +621,7 @@ describe("optional CMS workspaces", () => {
       id: "site",
       pluginId: "other-plugin",
       label: "Other site",
-      rendererName: "SiteWorkspace",
+      rendererName: "DeclarativeOperatorWorkspace",
       priority: 10,
       accessHandler: () => true,
       dataProvider: async () => ({ source: "duplicate" }),
@@ -604,7 +647,7 @@ describe("optional CMS workspaces", () => {
       id: "publishing",
       pluginId: "content-pipeline",
       label: "Publishing",
-      rendererName: "PublishingWorkspace",
+      rendererName: "DeclarativeOperatorWorkspace",
       priority: 40,
       accessHandler: () => true,
       dataProvider: async () => ({}),

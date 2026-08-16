@@ -1,5 +1,8 @@
 import { describe, expect, it } from "bun:test";
-import { SYSTEM_CHANNELS } from "@brains/plugins";
+import {
+  DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
+  SYSTEM_CHANNELS,
+} from "@brains/plugins";
 import {
   createMockEntityPluginContext,
   createTestEntity,
@@ -140,22 +143,16 @@ describe("registerActionItemsWidget", () => {
     if (!digestProvider) throw new Error("widget declared no digest provider");
 
     expect(payload).toMatchObject({
-      id: "conversation-memory:action-items",
+      id: "action-items",
       title: "Open action items",
       group: "knowledge",
       section: "secondary",
       priority: 25,
-      rendererName: "ListWidget",
+      rendererName: DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
       digestProvider: expect.any(Function),
     });
-    const derived = digestProvider({ items: [], openCount: 3 });
-    expect(derived.digest).toEqual([
-      { label: "Open actions", value: "3", tone: "warn" },
-    ]);
-    expect(derived.needsAttention).toBe(3);
-
-    const idle = digestProvider({ items: [], openCount: 0 });
-    expect(idle.digest).toEqual([{ label: "Open actions", value: "0" }]);
-    expect(idle.needsAttention).toBe(0);
+    expect(payload?.["component"]).toBeUndefined();
+    expect(payload?.["clientStyles"]).toBeUndefined();
+    expect(payload?.["clientScript"]).toBeUndefined();
   });
 });

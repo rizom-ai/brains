@@ -8,13 +8,7 @@ const workspaceRegistrationSchema = z.object({
   id: z.string().trim().min(1),
   pluginId: z.string().trim().min(1),
   label: z.string().trim().min(1),
-  rendererName: z.enum([
-    "PublishingWorkspace",
-    "SiteWorkspace",
-    "DirectorySyncWorkspace",
-    "UnifiedInboxWorkspace",
-    "EmailReplyDraftWorkspace",
-  ]),
+  rendererName: z.literal("DeclarativeOperatorWorkspace"),
   priority: z.number().int(),
   urlQuery: z.literal(true).optional(),
   entityTypes: z
@@ -77,7 +71,7 @@ export class CmsWorkspaceRegistry {
       label: parsed.label,
       rendererName: parsed.rendererName,
       priority: parsed.priority,
-      ...(parsed.urlQuery ? { urlQuery: true as const } : {}),
+      ...(parsed.urlQuery ? { urlQuery: true } : {}),
       entityTypes: parsed.entityTypes,
       accessHandler: parsed.accessHandler,
       dataProvider: parsed.dataProvider,
@@ -90,6 +84,20 @@ export class CmsWorkspaceRegistry {
 
   get(id: string): StoredCmsWorkspace | undefined {
     return this.workspaces.get(id);
+  }
+
+  unregister(pluginId: string, workspaceId?: string): number {
+    let removed = 0;
+    for (const [id, workspace] of this.workspaces) {
+      if (
+        workspace.pluginId === pluginId &&
+        (workspaceId === undefined || workspace.id === workspaceId)
+      ) {
+        this.workspaces.delete(id);
+        removed += 1;
+      }
+    }
+    return removed;
   }
 
   async listDescriptors(

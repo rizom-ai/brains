@@ -48,8 +48,6 @@ export class DashboardAssetRegistry {
 
   createRenderUrls(options: {
     themeCSS?: string | undefined;
-    widgetStyles: string[];
-    widgetScripts: string[];
   }): DashboardAssetUrls {
     return {
       dashboardStyles: this.dashboardStylesUrl,
@@ -62,12 +60,6 @@ export class DashboardAssetRegistry {
           options.themeCSS,
         ),
       }),
-      widgetStyles: Array.from(new Set(options.widgetStyles)).map((styles) =>
-        this.register("widget", "css", "text/css; charset=utf-8", styles),
-      ),
-      widgetScripts: Array.from(new Set(options.widgetScripts)).map((script) =>
-        this.register("widget", "js", "text/javascript; charset=utf-8", script),
-      ),
     };
   }
 
@@ -94,7 +86,7 @@ export class DashboardAssetRegistry {
   }
 
   private register(
-    name: "dashboard" | "theme" | "widget",
+    name: "dashboard" | "theme",
     extension: "css" | "js",
     contentType: string,
     content: string,

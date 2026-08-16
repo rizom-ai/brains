@@ -1,39 +1,26 @@
 /** @jsxImportSource react */
+import type {
+  RuntimeCmsWorkspaceData,
+  RuntimeOperatorActionControl,
+  RuntimeOperatorLaunchIntent,
+} from "@brains/plugins";
 import type { Dispatch, ReactElement, SetStateAction } from "react";
 import { styles } from "./app-styles";
 import type {
   AgentTarget,
   CmsWorkspaceInfo,
-  DirectorySyncWorkspaceActionResult,
-  DirectorySyncWorkspaceSnapshot,
-  EmailReplyDraftAction,
-  EmailReplyDraftActionResult,
-  EmailReplyDraftSourceRequest,
-  EmailReplyDraftSourceResult,
-  EmailReplyDraftWorkspaceSnapshot,
   EntitySummary,
   EntityTypeInfo,
-  InboxWorkspaceAction,
-  InboxWorkspaceActionResult,
-  InboxWorkspaceDetailRequest,
-  InboxWorkspaceDetailResult,
-  InboxWorkspaceFollowUp,
-  InboxWorkspaceSnapshot,
-  PublicationPipelineSnapshot,
   PublishingAction,
   PublishingActionResult,
-  SiteWorkspaceAction,
-  SiteWorkspaceActionResult,
-  SiteWorkspaceSnapshot,
   SyncStatus,
   TypeSchema,
 } from "./api";
 import { BodyEditor, type BodyMode } from "./body-editor";
 import { ConfirmDialog } from "./confirm-dialog";
 import type { CmsWorkspaceQuery } from "./queries";
-import { DirectorySyncWorkspace } from "./directory-sync-workspace";
-import { EmailReplyDraftWorkspace } from "./email-reply-draft-workspace";
-import { UnifiedInboxWorkspace } from "./unified-inbox-workspace";
+import declarativeWorkspaceStyles from "./declarative-workspace.css" with { type: "text" };
+import { DeclarativeWorkspace } from "./declarative-workspace";
 import {
   Field,
   FieldAssistControls,
@@ -53,12 +40,8 @@ import {
   PipelineStations,
   SaveStateNotice,
 } from "./editor-status";
-import {
-  PublicationActions,
-  PublishingWorkspace,
-} from "./publishing-workspace";
+import { PublicationActions } from "./publication-actions";
 import responsiveStyles from "./responsive.css" with { type: "text" };
-import { SiteWorkspace } from "./site-workspace";
 import {
   entityPublicationState,
   entityTitle,
@@ -87,11 +70,7 @@ export interface CmsAppViewProps {
   types: EntityTypeInfo[];
   workspaces: CmsWorkspaceInfo[];
   workspaceError: string | null;
-  publicationWorkspaceData: PublicationPipelineSnapshot | null;
-  siteWorkspaceData: SiteWorkspaceSnapshot | null;
-  directorySyncWorkspaceData: DirectorySyncWorkspaceSnapshot | null;
-  inboxWorkspaceData: InboxWorkspaceSnapshot | null;
-  emailReplyDraftWorkspaceData?: EmailReplyDraftWorkspaceSnapshot | null;
+  declarativeWorkspaceData: RuntimeCmsWorkspaceData | null;
   workspaceQuery: CmsWorkspaceQuery;
   entityType: string | null;
   entities: EntitySummary[] | null;
@@ -114,32 +93,13 @@ export interface CmsAppViewProps {
   selectEntityType: (entityType: string) => void;
   selectWorkspace: (workspaceId: string) => void;
   openWorkspaceEntity: (entityType: string, entityId: string) => void;
-  openInboxFollowUp: (followUp: InboxWorkspaceFollowUp) => void;
+  openWorkspaceLaunch: (launch: RuntimeOperatorLaunchIntent) => void;
   performPublishingAction: (
     action: PublishingAction,
   ) => Promise<PublishingActionResult>;
-  performSiteAction: (
-    action: SiteWorkspaceAction,
-  ) => Promise<SiteWorkspaceActionResult>;
-  performDirectorySyncAction: () => Promise<DirectorySyncWorkspaceActionResult>;
-  performInboxAction: (
-    action: InboxWorkspaceAction,
-  ) => Promise<InboxWorkspaceActionResult>;
-  performInboxDetail?:
-    | ((
-        request: InboxWorkspaceDetailRequest,
-        signal: AbortSignal,
-      ) => Promise<InboxWorkspaceDetailResult>)
-    | undefined;
-  performEmailReplyDraftAction?:
-    | ((action: EmailReplyDraftAction) => Promise<EmailReplyDraftActionResult>)
-    | undefined;
-  performEmailReplyDraftSource?:
-    | ((
-        request: EmailReplyDraftSourceRequest,
-        signal: AbortSignal,
-      ) => Promise<EmailReplyDraftSourceResult>)
-    | undefined;
+  performDeclarativeAction: (
+    action: RuntimeOperatorActionControl,
+  ) => Promise<unknown>;
   onWorkspaceQueryChange: (
     workspaceId: string,
     query: CmsWorkspaceQuery,
@@ -155,31 +115,13 @@ export interface CmsAppViewProps {
   onNavigationProceed: () => void;
 }
 
-/**
- * Server-registered badges (`CmsWorkspaceDescriptor.badge`) are authoritative
- * and always present in the navigation payload. The client-side derivations
- * below are fallbacks for workspaces whose plugins predate `badgeProvider`;
- * they only produce a count while that workspace's own data is loaded and
- * disappear as each plugin adopts `badgeProvider`.
- */
-function workspaceRailBadges(input: {
-  workspaces: CmsWorkspaceInfo[];
-  publicationWorkspaceData: PublicationPipelineSnapshot | null;
-  siteWorkspaceData: SiteWorkspaceSnapshot | null;
-  directorySyncWorkspaceData: DirectorySyncWorkspaceSnapshot | null;
-}): Record<string, number> {
-  const fallbacks: Record<string, number | undefined> = {
-    publishing: input.publicationWorkspaceData?.summary.needsOperator,
-    site: input.siteWorkspaceData?.environments.filter(
-      (entry) => entry.lastFailure !== undefined,
-    ).length,
-    sync: input.directorySyncWorkspaceData?.issues.length,
-  };
+function workspaceRailBadges(
+  workspaces: CmsWorkspaceInfo[],
+): Record<string, number> {
   return Object.fromEntries(
-    input.workspaces.flatMap((workspace) => {
-      const badge = workspace.badge ?? fallbacks[workspace.id];
-      return badge === undefined ? [] : [[workspace.id, badge]];
-    }),
+    workspaces.flatMap((workspace) =>
+      workspace.badge === undefined ? [] : [[workspace.id, workspace.badge]],
+    ),
   );
 }
 
@@ -189,7 +131,7 @@ export function CmsAppStatus(props: {
 }): ReactElement {
   return (
     <div className="studio">
-      <style>{`${styles}\n${visualRefreshStyles}\n${responsiveStyles}`}</style>
+      <style>{`${styles}\n${visualRefreshStyles}\n${responsiveStyles}\n${declarativeWorkspaceStyles}`}</style>
       <p
         className={
           props.error ? "status status-error boot-status" : "status boot-status"
@@ -207,11 +149,7 @@ export function CmsAppView(props: CmsAppViewProps): ReactElement {
     types,
     workspaces,
     workspaceError,
-    publicationWorkspaceData,
-    siteWorkspaceData,
-    directorySyncWorkspaceData,
-    inboxWorkspaceData,
-    emailReplyDraftWorkspaceData,
+    declarativeWorkspaceData,
     workspaceQuery,
     entityType,
     entities,
@@ -234,14 +172,9 @@ export function CmsAppView(props: CmsAppViewProps): ReactElement {
     selectEntityType,
     selectWorkspace,
     openWorkspaceEntity,
-    openInboxFollowUp,
+    openWorkspaceLaunch,
     performPublishingAction,
-    performSiteAction,
-    performDirectorySyncAction,
-    performInboxAction,
-    performInboxDetail,
-    performEmailReplyDraftAction,
-    performEmailReplyDraftSource,
+    performDeclarativeAction,
     onWorkspaceQueryChange,
     startCreate,
     openEntity,
@@ -282,7 +215,7 @@ export function CmsAppView(props: CmsAppViewProps): ReactElement {
   const syncPending = syncStatus?.git?.hasChanges === true;
   const publicationWorkspace = workspaces.find(
     (workspace) =>
-      workspace.rendererName === "PublishingWorkspace" &&
+      workspace.pluginId === "content-pipeline" &&
       workspace.entityTypes.includes(selectedEntityType),
   );
   return (
@@ -292,7 +225,7 @@ export function CmsAppView(props: CmsAppViewProps): ReactElement {
         activeWorkspaceId ? "workspace" : editing ? "editor" : "listing"
       }
     >
-      <style>{`${styles}\n${visualRefreshStyles}\n${responsiveStyles}`}</style>
+      <style>{`${styles}\n${visualRefreshStyles}\n${responsiveStyles}\n${declarativeWorkspaceStyles}`}</style>
       <header className="crumbbar">
         <span className="crumb">
           {editing && !entitySchema.isSingleton ? (
@@ -319,62 +252,28 @@ export function CmsAppView(props: CmsAppViewProps): ReactElement {
             onSelect={selectEntityType}
             workspaces={workspaces}
             activeWorkspace={activeWorkspaceId}
-            workspaceBadges={workspaceRailBadges({
-              workspaces,
-              publicationWorkspaceData,
-              siteWorkspaceData,
-              directorySyncWorkspaceData,
-            })}
+            workspaceBadges={workspaceRailBadges(workspaces)}
             onSelectWorkspace={selectWorkspace}
           />
         </aside>
         {activeWorkspaceId ? (
           workspaceError ? (
-            <main className="publishing-workspace">
+            <main className="declarative-workspace">
               <p className="status status-error">{workspaceError}</p>
             </main>
-          ) : publicationWorkspaceData ? (
-            <PublishingWorkspace
-              data={publicationWorkspaceData}
+          ) : declarativeWorkspaceData ? (
+            <DeclarativeWorkspace
+              data={declarativeWorkspaceData}
               onOpenEntity={openWorkspaceEntity}
-              onAction={performPublishingAction}
-            />
-          ) : siteWorkspaceData ? (
-            <SiteWorkspace
-              data={siteWorkspaceData}
-              onAction={performSiteAction}
-              {...(types.some((info) => info.entityType === "site-info")
-                ? { onOpenSiteInfo: () => selectEntityType("site-info") }
-                : {})}
-            />
-          ) : directorySyncWorkspaceData ? (
-            <DirectorySyncWorkspace
-              data={directorySyncWorkspaceData}
-              onAction={performDirectorySyncAction}
-            />
-          ) : inboxWorkspaceData && activeWorkspaceId ? (
-            <UnifiedInboxWorkspace
-              data={inboxWorkspaceData}
+              onLaunch={openWorkspaceLaunch}
+              onAction={performDeclarativeAction}
               query={workspaceQuery}
-              onQueryChange={(query, canonicalUrlQuery) =>
-                onWorkspaceQueryChange(
-                  activeWorkspaceId,
-                  query,
-                  canonicalUrlQuery,
-                )
-              }
-              onFollowUp={openInboxFollowUp}
-              onAction={performInboxAction}
-              onDetail={performInboxDetail}
-            />
-          ) : emailReplyDraftWorkspaceData &&
-            performEmailReplyDraftAction &&
-            performEmailReplyDraftSource ? (
-            <EmailReplyDraftWorkspace
-              key={emailReplyDraftWorkspaceData.mailItemId ?? "empty"}
-              data={emailReplyDraftWorkspaceData}
-              onAction={performEmailReplyDraftAction}
-              onSource={performEmailReplyDraftSource}
+              {...(activeWorkspaceId
+                ? {
+                    onQueryChange: (query: CmsWorkspaceQuery) =>
+                      onWorkspaceQueryChange(activeWorkspaceId, query),
+                  }
+                : {})}
             />
           ) : null
         ) : !editing ? (

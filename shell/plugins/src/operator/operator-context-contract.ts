@@ -34,6 +34,11 @@ export interface OperatorCaller {
   readonly isAnchor: boolean;
 }
 
+export interface OperatorQueryReader {
+  /** Read the host-validated query through the exact schema declared by the workspace. */
+  get<TSchema extends OperatorSchema>(schema: TSchema): z.output<TSchema>;
+}
+
 export interface OperatorEntityReader {
   get<TDefinition extends AnyEntityDefinition>(
     definition: TDefinition,

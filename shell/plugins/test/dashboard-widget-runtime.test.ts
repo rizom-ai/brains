@@ -16,6 +16,7 @@ import {
   type DashboardWidgetRegistration,
   type StoredAccountSettings,
 } from "../src";
+import { safeParseRuntimeDashboardOperatorView } from "../src/operator/operator-view-runtime";
 
 const readingItem = defineEntity({
   type: "reading-item",
@@ -343,12 +344,48 @@ describe("declarative dashboard widget runtime", () => {
         ],
       }),
     });
+    const invalidSpatialWidget = defineDashboardWidget({
+      id: "invalid-spatial",
+      title: "Invalid spatial",
+      group: "knowledge",
+      placement: "primary",
+      permission: "public",
+      data: z.object({}),
+      view: () => ({
+        blocks: [
+          {
+            type: "spatial",
+            layout: "radial",
+            id: "map",
+            label: "Invalid map",
+            description: "A map with a dangling relationship.",
+            centerLabel: "Center",
+            centerKind: "centroid",
+            points: [
+              {
+                id: "point-a",
+                label: "Point A",
+                kind: "agent",
+                status: "active",
+                distance: 0.5,
+                bearing: 90,
+                relatedIds: ["missing-point"],
+              },
+            ],
+            relationships: [{ sourceId: "point-a", targetId: "missing-point" }],
+            strata: [{ id: "far", label: "Far", maxDistance: 1 }],
+            legend: [],
+          },
+        ],
+      }),
+    });
     const definition = defineServicePlugin({
       id: "invalid-operator",
       config: z.object({}),
       dashboardWidgets: (context) => [
         invalidDataWidget.bind(context, () => ({ count: "wrong" })),
         unsafeViewWidget.bind(context, () => ({ count: 1 })),
+        invalidSpatialWidget.bind(context, () => ({})),
       ],
     });
     const shell = createMockShell({
@@ -388,7 +425,69 @@ describe("declarative dashboard widget runtime", () => {
     ).rejects.toThrow(
       'dashboard widget "unsafe-view" returned an invalid view',
     );
+    expect(
+      registrations.get("invalid-spatial")?.dataProvider(providerContext),
+    ).rejects.toThrow("Related point");
     await plugin.shutdown?.();
+  });
+
+  it("rejects host-normalized links and CMS-only launch intents from author views", () => {
+    const normalized = safeParseRuntimeDashboardOperatorView({
+      blocks: [
+        {
+          type: "links",
+          items: [
+            {
+              label: "Forged",
+              target: {
+                kind: "entity",
+                entityType: "private-record",
+                id: "forged",
+              },
+            },
+          ],
+        },
+      ],
+    });
+    expect(normalized).toMatchObject({
+      success: false,
+      issues: [
+        {
+          path: ["blocks", 0, "items", 0, "target"],
+          message: expect.stringContaining("normalized host target"),
+        },
+      ],
+    });
+
+    const cmsOnly = safeParseRuntimeDashboardOperatorView({
+      blocks: [
+        {
+          type: "links",
+          items: [
+            {
+              label: "Capture",
+              target: {
+                launch: {
+                  target: "inbox-capture-note",
+                  title: "Captured",
+                  entityType: "mail-item",
+                  entityId: "mail-1",
+                },
+              },
+            },
+          ],
+        },
+      ],
+    });
+    expect(cmsOnly).toMatchObject({
+      success: false,
+      issues: [
+        {
+          path: ["blocks", 0, "items", 0, "target", "launch", "target"],
+          message: expect.stringContaining("only in CMS workspaces"),
+        },
+      ],
+    });
   });
 
   it("rejects duplicate local widget IDs before host registration", async () => {
@@ -419,7 +518,8 @@ describe("declarative dashboard widget runtime", () => {
     });
 
     const plugin = instantiate(definition);
-    expect(plugin.register(shell)).rejects.toThrow(
+    await plugin.register(shell);
+    expect(plugin.finalizeRegistration?.()).rejects.toThrow(
       'Service "duplicate-operator" package "@fixture/reading-operator" registers dashboard widget "duplicate" more than once',
     );
     expect(registrations).toBe(0);

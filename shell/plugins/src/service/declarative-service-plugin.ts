@@ -24,9 +24,12 @@ import type {
 } from "../interfaces";
 import type { AnyAccountSettingsDefinition } from "../operator/account-settings-definition-contract";
 import type { AccountSettingsRegistration } from "../operator/account-settings-registry";
+import { createDeclarativeCmsWorkspaceRegistration } from "../operator/cms-workspace-runtime";
 import { createDeclarativeDashboardWidgetRegistration } from "../operator/dashboard-widget-runtime";
 import type {
+  AnyCmsWorkspaceDefinition,
   AnyDashboardWidgetDefinition,
+  BoundCmsWorkspace,
   BoundDashboardWidget,
 } from "../operator/operator-definition-contract";
 import {
@@ -175,9 +178,16 @@ class DeclarativeServicePlugin<
   private readonly cleanups: Array<() => void | Promise<void>> = [];
   private readonly registeredJobs = new Set<AnyServiceJobDefinition>();
   private readonly operatorAbortController = new AbortController();
+  private readonly registeredCmsWorkspaceIds: string[] = [];
   private readonly registeredDashboardWidgetIds: string[] = [];
   private accountSettingsRegistration:
     AccountSettingsRegistration<NonNullable<TAccountSettings>> | undefined;
+  private cmsWorkspaceBindings: readonly BoundCmsWorkspace<
+    AnyCmsWorkspaceDefinition,
+    z.output<TConfigSchema>,
+    TState,
+    TAccountSettings
+  >[] = [];
   private dashboardWidgetBindings: readonly BoundDashboardWidget<
     AnyDashboardWidgetDefinition,
     z.output<TConfigSchema>,
@@ -219,13 +229,6 @@ class DeclarativeServicePlugin<
     context: ServicePluginContext,
   ): Promise<void> {
     await super.onRegister(context);
-    // Operator hosts are web-only. CMS remains a later runtime phase, so fail
-    // loudly in the web process while keeping execution-only workers inert.
-    if (this.definition.cmsWorkspaces && !context.executionOnly) {
-      throw new Error(
-        `Service "${this.publicId}" CMS workspaces require the operator runtime`,
-      );
-    }
     if (this.definition.accountSettings && !context.executionOnly) {
       this.accountSettingsRegistration = context.accountSettings.register({
         ownerPluginId: this.id,
@@ -244,25 +247,6 @@ class DeclarativeServicePlugin<
           },
         })
       : (Object.freeze({}) as TState);
-
-    if (this.definition.dashboardWidgets && !context.executionOnly) {
-      const bindings = this.definition.dashboardWidgets({
-        config: this.config,
-        state: this.requireState(),
-        accountSettings: this.definition.accountSettings,
-      });
-      const ids = new Set<string>();
-      for (const binding of bindings) {
-        const id = binding.definition.id;
-        if (ids.has(id)) {
-          throw new Error(
-            `Service "${this.publicId}" package "${this.packageName}" registers dashboard widget "${id}" more than once; return each local widget definition once`,
-          );
-        }
-        ids.add(id);
-      }
-      this.dashboardWidgetBindings = Object.freeze([...bindings]);
-    }
 
     const templates = this.templateFormatter();
     context.templates.register(this.runtimeTemplates(), this.id);
@@ -300,12 +284,46 @@ class DeclarativeServicePlugin<
         `Service "${this.publicId}" account settings require auth-service and an account settings encryption key`,
       );
     }
-    if (context.executionOnly || this.dashboardWidgetBindings.length === 0) {
-      return;
-    }
+    if (context.executionOnly) return;
+    this.bindOperatorDefinitions(context);
 
-    const acquired: string[] = [];
+    const acquiredCms: string[] = [];
+    const acquiredDashboard: string[] = [];
     try {
+      for (const binding of this.cmsWorkspaceBindings) {
+        const runtimeWorkspaceId = `${this.id}:${binding.definition.id}`;
+        const registration = createDeclarativeCmsWorkspaceRegistration({
+          publicServiceId: this.publicId,
+          packageName: this.packageName,
+          runtimeWorkspaceId,
+          config: this.config,
+          state: this.requireState(),
+          ...(this.accountSettingsRegistration
+            ? {
+                accountSettingsRegistration: this.accountSettingsRegistration,
+              }
+            : {}),
+          binding,
+          context,
+          runtimeSignal: this.operatorAbortController.signal,
+        });
+        try {
+          const result = await context.cms.registerWorkspace(registration);
+          if (result === false) {
+            await this.rollbackCmsWorkspaces(context, acquiredCms);
+            acquiredCms.splice(0);
+            break;
+          }
+        } catch (error) {
+          throw new Error(
+            `Service "${this.publicId}" package "${this.packageName}" CMS workspace "${binding.definition.id}" host registration failed; correct the declaration or CMS configuration: ${getErrorMessage(error)}`,
+            { cause: error },
+          );
+        }
+        acquiredCms.push(runtimeWorkspaceId);
+      }
+      this.registeredCmsWorkspaceIds.push(...acquiredCms);
+
       for (const binding of this.dashboardWidgetBindings) {
         const registration = createDeclarativeDashboardWidgetRegistration({
           publicServiceId: this.publicId,
@@ -321,32 +339,26 @@ class DeclarativeServicePlugin<
           context,
           runtimeSignal: this.operatorAbortController.signal,
         });
-        let registered: boolean;
         try {
-          registered = await context.dashboard.registerWidget(registration);
+          const registered =
+            await context.dashboard.registerWidget(registration);
+          if (!registered) {
+            await this.rollbackDashboardWidgets(context, acquiredDashboard);
+            acquiredDashboard.splice(0);
+            break;
+          }
         } catch (error) {
           throw new Error(
             `Service "${this.publicId}" package "${this.packageName}" dashboard widget "${binding.definition.id}" host registration failed; correct the declaration or Dashboard configuration: ${getErrorMessage(error)}`,
             { cause: error },
           );
         }
-        if (!registered) {
-          await this.rollbackDashboardWidgets(context, acquired);
-          this.logger.debug(
-            "Dashboard host absent; declarative widgets are inert",
-            {
-              serviceId: this.publicId,
-              packageName: this.packageName,
-              widgetCount: this.dashboardWidgetBindings.length,
-            },
-          );
-          return;
-        }
-        acquired.push(binding.definition.id);
+        acquiredDashboard.push(binding.definition.id);
       }
-      this.registeredDashboardWidgetIds.push(...acquired);
+      this.registeredDashboardWidgetIds.push(...acquiredDashboard);
     } catch (error) {
-      await this.rollbackDashboardWidgets(context, acquired);
+      await this.rollbackDashboardWidgets(context, acquiredDashboard);
+      await this.rollbackCmsWorkspaces(context, acquiredCms);
       throw error;
     }
   }
@@ -402,6 +414,11 @@ class DeclarativeServicePlugin<
       this.getContext(),
       this.registeredDashboardWidgetIds.splice(0),
     );
+    await this.rollbackCmsWorkspaces(
+      this.getContext(),
+      this.registeredCmsWorkspaceIds.splice(0),
+    );
+    this.cmsWorkspaceBindings = [];
     this.dashboardWidgetBindings = [];
     this.tools = undefined;
     this.resources = undefined;
@@ -411,6 +428,66 @@ class DeclarativeServicePlugin<
     this.registeredJobs.clear();
     for (const cleanup of this.cleanups.splice(0).reverse()) {
       await cleanup();
+    }
+  }
+
+  private bindOperatorDefinitions(context: ServicePluginContext): void {
+    if (this.definition.dashboardWidgets && context.dashboard.isAvailable()) {
+      const bindings = this.definition.dashboardWidgets({
+        config: this.config,
+        state: this.requireState(),
+        accountSettings: this.definition.accountSettings,
+      });
+      const ids = new Set<string>();
+      for (const binding of bindings) {
+        const id = binding.definition.id;
+        if (ids.has(id)) {
+          throw new Error(
+            `Service "${this.publicId}" package "${this.packageName}" registers dashboard widget "${id}" more than once; return each local widget definition once`,
+          );
+        }
+        ids.add(id);
+      }
+      this.dashboardWidgetBindings = Object.freeze([...bindings]);
+    }
+
+    if (this.definition.cmsWorkspaces && context.cms.isAvailable()) {
+      const bindings = this.definition.cmsWorkspaces({
+        config: this.config,
+        state: this.requireState(),
+        accountSettings: this.definition.accountSettings,
+      });
+      const ids = new Set<string>();
+      for (const binding of bindings) {
+        const id = binding.definition.id;
+        if (ids.has(id)) {
+          throw new Error(
+            `Service "${this.publicId}" package "${this.packageName}" registers CMS workspace "${id}" more than once; return each local workspace definition once`,
+          );
+        }
+        ids.add(id);
+      }
+      this.cmsWorkspaceBindings = Object.freeze([...bindings]);
+    }
+  }
+
+  private async rollbackCmsWorkspaces(
+    context: ServicePluginContext,
+    workspaceIds: readonly string[],
+  ): Promise<void> {
+    for (const workspaceId of [...workspaceIds].reverse()) {
+      try {
+        await context.cms.unregisterWorkspace(workspaceId);
+      } catch (error) {
+        this.logger.error("Failed to unregister declarative CMS workspace", {
+          serviceId: this.publicId,
+          packageName: this.packageName,
+          workspaceId,
+          error: getErrorMessage(error),
+        });
+      }
+      const index = this.registeredCmsWorkspaceIds.lastIndexOf(workspaceId);
+      if (index >= 0) this.registeredCmsWorkspaceIds.splice(index, 1);
     }
   }
 

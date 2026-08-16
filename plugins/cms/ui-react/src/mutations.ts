@@ -1,23 +1,10 @@
+import type { RuntimeOperatorActionControl } from "@brains/plugins";
 import {
   createEntity,
   deleteEntity,
   runWorkspaceAction,
   updateEntity,
   uploadFile,
-  type DirectorySyncWorkspaceAction,
-  type DirectorySyncWorkspaceActionResult,
-  type EmailReplyDraftAction,
-  type EmailReplyDraftActionResult,
-  type EmailReplyDraftSourceRequest,
-  type EmailReplyDraftSourceResult,
-  type InboxWorkspaceAction,
-  type InboxWorkspaceActionResult,
-  type InboxWorkspaceDetailRequest,
-  type InboxWorkspaceDetailResult,
-  type PublishingAction,
-  type PublishingActionResult,
-  type SiteWorkspaceAction,
-  type SiteWorkspaceActionResult,
 } from "./api";
 
 export type SaveEntityInput =
@@ -41,41 +28,9 @@ export interface DeleteEntityInput {
   id: string;
 }
 
-export interface CmsWorkspaceActionInput {
+export interface DeclarativeWorkspaceActionInput {
   workspaceId: string;
-  action: PublishingAction;
-}
-
-export interface SiteWorkspaceActionInput {
-  workspaceId: string;
-  action: SiteWorkspaceAction;
-}
-
-export interface DirectorySyncWorkspaceActionInput {
-  workspaceId: string;
-  action: DirectorySyncWorkspaceAction;
-}
-
-export interface InboxWorkspaceActionInput {
-  workspaceId: string;
-  action: InboxWorkspaceAction;
-}
-
-export interface EmailReplyDraftActionInput {
-  workspaceId: string;
-  action: EmailReplyDraftAction;
-}
-
-export interface EmailReplyDraftSourceInput {
-  workspaceId: string;
-  request: EmailReplyDraftSourceRequest;
-  signal: AbortSignal;
-}
-
-export interface InboxWorkspaceDetailInput {
-  workspaceId: string;
-  request: InboxWorkspaceDetailRequest;
-  signal: AbortSignal;
+  action: RuntimeOperatorActionControl;
 }
 
 export interface UploadImageResult {
@@ -89,69 +44,21 @@ export interface SaveEntityResult {
   skipped?: boolean;
 }
 
-export function runCmsWorkspaceAction(
-  input: CmsWorkspaceActionInput,
-): Promise<PublishingActionResult> {
-  return runWorkspaceAction<PublishingActionResult>(
-    input.workspaceId,
-    input.action,
-  );
-}
-
-export function runSiteWorkspaceAction(
-  input: SiteWorkspaceActionInput,
-): Promise<SiteWorkspaceActionResult> {
-  return runWorkspaceAction<SiteWorkspaceActionResult>(
-    input.workspaceId,
-    input.action,
-  );
-}
-
-export function runDirectorySyncWorkspaceAction(
-  input: DirectorySyncWorkspaceActionInput,
-): Promise<DirectorySyncWorkspaceActionResult> {
-  return runWorkspaceAction<DirectorySyncWorkspaceActionResult>(
-    input.workspaceId,
-    input.action,
-  );
-}
-
-export function runInboxWorkspaceAction(
-  input: InboxWorkspaceActionInput,
-): Promise<InboxWorkspaceActionResult> {
-  return runWorkspaceAction<InboxWorkspaceActionResult>(
-    input.workspaceId,
-    input.action,
-  );
-}
-
-export function runEmailReplyDraftAction(
-  input: EmailReplyDraftActionInput,
-): Promise<EmailReplyDraftActionResult> {
-  return runWorkspaceAction<EmailReplyDraftActionResult>(
-    input.workspaceId,
-    input.action,
-  );
-}
-
-export function runEmailReplyDraftSource(
-  input: EmailReplyDraftSourceInput,
-): Promise<EmailReplyDraftSourceResult> {
-  return runWorkspaceAction<EmailReplyDraftSourceResult>(
-    input.workspaceId,
-    input.request,
-    input.signal,
-  );
-}
-
-export function runInboxWorkspaceDetail(
-  input: InboxWorkspaceDetailInput,
-): Promise<InboxWorkspaceDetailResult> {
-  return runWorkspaceAction<InboxWorkspaceDetailResult>(
-    input.workspaceId,
-    input.request,
-    input.signal,
-  );
+export function runDeclarativeWorkspaceAction(
+  input: DeclarativeWorkspaceActionInput,
+): Promise<unknown> {
+  return runWorkspaceAction(input.workspaceId, {
+    actionId: input.action.actionId,
+    input: input.action.input,
+    ...(input.action.invocation?.mode === "prepare"
+      ? { mode: "prepare" }
+      : input.action.invocation?.mode === "execute"
+        ? {
+            mode: "execute",
+            confirmationToken: input.action.invocation.token,
+          }
+        : {}),
+  });
 }
 
 export function uploadImage(file: File): Promise<UploadImageResult> {

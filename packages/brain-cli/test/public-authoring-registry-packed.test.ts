@@ -53,7 +53,7 @@ async function declarationText(directory: string): Promise<string> {
 }
 
 it.skipIf(!runRegistryEvidence)(
-  "packs all six authoring packages against one nominated published alpha",
+  "packs all seven authoring packages against one nominated published alpha",
   async () => {
     const brainVersion = requiredVersion(
       "RIZOM_PUBLIC_API_BRAIN_VERSION",
@@ -83,6 +83,7 @@ it.skipIf(!runRegistryEvidence)(
         "interface",
         "message-interface",
         "brain-definition",
+        "operator-surface",
       ]) {
         const fixtureDirectory = join(publicFixtureRoot, fixtureName);
         const fixtureManifest = JSON.parse(
@@ -102,7 +103,7 @@ it.skipIf(!runRegistryEvidence)(
         );
         tarballs.set(...packed);
       }
-      expect(tarballs.size).toBe(6);
+      expect(tarballs.size).toBe(7);
 
       const consumerDirectory = join(temporaryDirectory, "consumer");
       await installPackedConsumer(

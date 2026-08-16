@@ -331,7 +331,6 @@ interface InboxDashboardDataValue {
     unavailableSources: number;
   };
   entries: InboxDashboardEntryValue[];
-  managementUrl?: string | undefined;
 }
 
 export const inboxDashboardDataSchema: z.ZodType<
@@ -345,7 +344,6 @@ export const inboxDashboardDataSchema: z.ZodType<
     unavailableSources: z.number().int().nonnegative(),
   }),
   entries: z.array(inboxDashboardEntrySchema).max(5),
-  managementUrl: z.string().trim().min(1).max(2_048).optional(),
 });
 
 interface InboxActionRequestValue {

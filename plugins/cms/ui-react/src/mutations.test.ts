@@ -2,12 +2,7 @@ import { afterEach, describe, expect, it } from "bun:test";
 import { mockFetch } from "@brains/test-utils";
 import {
   removeEntity,
-  runCmsWorkspaceAction,
-  runDirectorySyncWorkspaceAction,
-  runEmailReplyDraftAction,
-  runEmailReplyDraftSource,
-  runInboxWorkspaceAction,
-  runSiteWorkspaceAction,
+  runDeclarativeWorkspaceAction,
   saveEntity,
   uploadImage,
 } from "./mutations";
@@ -18,247 +13,73 @@ afterEach(() => {
   globalThis.fetch = originalFetch;
 });
 
-describe("CMS workspace mutation", () => {
-  it("posts one typed action to the encoded workspace", async () => {
-    let requests = 0;
-    let requestedUrl = "";
-    let method: string | undefined;
+describe("declarative CMS workspace mutation", () => {
+  it("posts the normalized action id and JSON input", async () => {
     let payload: unknown;
-    mockFetch(async (url, options) => {
-      requests += 1;
-      requestedUrl = url;
-      method = options.method;
+    mockFetch(async (_url, options) => {
       payload = JSON.parse(String(options.body));
+      return Response.json({ result: { refreshed: "saved-1" } });
+    });
+
+    const result = await runDeclarativeWorkspaceAction({
+      workspaceId: "@fixture/reading-operator:reading-operator:library",
+      action: {
+        actionId: "refresh",
+        label: "Refresh",
+        input: { id: "saved-1" },
+      },
+    });
+
+    expect(payload).toEqual({
+      id: "@fixture/reading-operator:reading-operator:library",
+      action: { actionId: "refresh", input: { id: "saved-1" } },
+    });
+    expect(result).toEqual({ refreshed: "saved-1" });
+  });
+
+  it("carries host-owned prepared confirmation phases", async () => {
+    const payloads: unknown[] = [];
+    mockFetch(async (_url, options) => {
+      payloads.push(JSON.parse(String(options.body)));
       return Response.json({ result: { success: true } });
     });
+    const action = {
+      actionId: "publish",
+      label: "Publish",
+      input: { entityType: "post", entityId: "post-1" },
+    };
 
-    const result = await runCmsWorkspaceAction({
-      workspaceId: "publishing/desk",
+    await runDeclarativeWorkspaceAction({
+      workspaceId: "content-pipeline:publishing",
+      action: { ...action, invocation: { mode: "prepare" } },
+    });
+    await runDeclarativeWorkspaceAction({
+      workspaceId: "content-pipeline:publishing",
       action: {
-        type: "queue",
-        entityType: "post",
-        entityId: "field-notes",
+        ...action,
+        invocation: { mode: "execute", token: "confirmation-token" },
       },
     });
 
-    expect(requestedUrl).toBe("/cms/api/workspace");
-    expect(method).toBe("POST");
-    expect(payload).toEqual({
-      id: "publishing/desk",
-      action: {
-        type: "queue",
-        entityType: "post",
-        entityId: "field-notes",
-      },
-    });
-    expect(result).toEqual({ success: true });
-    expect(requests).toBe(1);
-  });
-});
-
-describe("CMS Site workspace mutation", () => {
-  it("requires the typed production confirmation payload", async () => {
-    let payload: unknown;
-    mockFetch(async (_url, options) => {
-      payload = JSON.parse(String(options.body));
-      return Response.json({
-        result: { accepted: true, environment: "production" },
-      });
-    });
-
-    const result = await runSiteWorkspaceAction({
-      workspaceId: "site",
-      action: { type: "build-production", confirmed: true },
-    });
-
-    expect(payload).toEqual({
-      id: "site",
-      action: { type: "build-production", confirmed: true },
-    });
-    expect(result).toEqual({ accepted: true, environment: "production" });
-  });
-});
-
-describe("CMS Directory Sync workspace mutation", () => {
-  it("posts only the normal Sync now action", async () => {
-    let payload: unknown;
-    mockFetch(async (_url, options) => {
-      payload = JSON.parse(String(options.body));
-      return Response.json({
-        result: { accepted: true, status: "queued", runId: "run-1" },
-      });
-    });
-
-    const result = await runDirectorySyncWorkspaceAction({
-      workspaceId: "sync",
-      action: { type: "sync-now" },
-    });
-
-    expect(payload).toEqual({
-      id: "sync",
-      action: { type: "sync-now" },
-    });
-    expect(result).toEqual({
-      accepted: true,
-      status: "queued",
-      runId: "run-1",
-    });
-  });
-});
-
-describe("CMS Unified Inbox workspace mutation", () => {
-  it("posts the exact server-confirmed inbox action", async () => {
-    let payload: unknown;
-    mockFetch(async (_url, options) => {
-      payload = JSON.parse(String(options.body));
-      return Response.json({ result: { kind: "completed" } });
-    });
-
-    const result = await runInboxWorkspaceAction({
-      workspaceId: "inbox",
-      action: {
-        sourceId: "mail-items",
-        itemId: "mail-1",
-        actionId: "archive",
-        confirmed: true,
-      },
-    });
-
-    expect(payload).toEqual({
-      id: "inbox",
-      action: {
-        sourceId: "mail-items",
-        itemId: "mail-1",
-        actionId: "archive",
-        confirmed: true,
-      },
-    });
-    expect(result).toEqual({ kind: "completed" });
-  });
-});
-
-describe("CMS email reply draft mutation", () => {
-  it("reads private source outside query state with request cancellation", async () => {
-    let payload: unknown;
-    let signal: AbortSignal | null | undefined;
-    mockFetch(async (_url, options) => {
-      payload = JSON.parse(String(options.body));
-      signal = options.signal;
-      return Response.json({
-        result: {
-          kind: "source",
-          source: {
-            from: { address: "sender@example.com" },
-            subject: "Subject",
-            receivedAt: "2026-08-05T09:00:00.000Z",
-            text: "Private source",
-            truncated: false,
-          },
+    expect(payloads).toEqual([
+      {
+        id: "content-pipeline:publishing",
+        action: {
+          actionId: "publish",
+          input: { entityType: "post", entityId: "post-1" },
+          mode: "prepare",
         },
-      });
-    });
-    const controller = new AbortController();
-
-    const result = await runEmailReplyDraftSource({
-      workspaceId: "email-reply-drafts",
-      request: { type: "source", mailItemId: `mail-${"a".repeat(64)}` },
-      signal: controller.signal,
-    });
-
-    expect(payload).toEqual({
-      id: "email-reply-drafts",
-      action: { type: "source", mailItemId: `mail-${"a".repeat(64)}` },
-    });
-    expect(signal).toBe(controller.signal);
-    expect(result).toMatchObject({
-      kind: "source",
-      source: { text: "Private source" },
-    });
-  });
-
-  it("posts only the authored draft revision", async () => {
-    let payload: unknown;
-    mockFetch(async (_url, options) => {
-      payload = JSON.parse(String(options.body));
-      return Response.json({
-        result: {
-          kind: "draft",
-          draft: {
-            text: "Authored reply",
-            revision: 2,
-            status: "draft",
-            updatedAt: "2026-08-05T10:00:00.000Z",
-          },
+      },
+      {
+        id: "content-pipeline:publishing",
+        action: {
+          actionId: "publish",
+          input: { entityType: "post", entityId: "post-1" },
+          mode: "execute",
+          confirmationToken: "confirmation-token",
         },
-      });
-    });
-
-    const result = await runEmailReplyDraftAction({
-      workspaceId: "email-reply-drafts",
-      action: {
-        type: "save",
-        mailItemId: `mail-${"a".repeat(64)}`,
-        text: "Authored reply",
-        baseRevision: 1,
       },
-    });
-
-    expect(payload).toEqual({
-      id: "email-reply-drafts",
-      action: {
-        type: "save",
-        mailItemId: `mail-${"a".repeat(64)}`,
-        text: "Authored reply",
-        baseRevision: 1,
-      },
-    });
-    expect(result).toMatchObject({
-      kind: "draft",
-      draft: { text: "Authored reply", revision: 2 },
-    });
-  });
-
-  it("posts the explicitly confirmed saved revision for sending", async () => {
-    let payload: unknown;
-    mockFetch(async (_url, options) => {
-      payload = JSON.parse(String(options.body));
-      return Response.json({
-        result: {
-          kind: "sent",
-          draft: {
-            text: "Authored reply",
-            revision: 2,
-            status: "sent",
-            updatedAt: "2026-08-05T10:01:00.000Z",
-            sentAt: "2026-08-05T10:01:00.000Z",
-          },
-        },
-      });
-    });
-
-    const result = await runEmailReplyDraftAction({
-      workspaceId: "email-reply-drafts",
-      action: {
-        type: "send",
-        mailItemId: `mail-${"a".repeat(64)}`,
-        revision: 2,
-        confirmed: true,
-      },
-    });
-
-    expect(payload).toEqual({
-      id: "email-reply-drafts",
-      action: {
-        type: "send",
-        mailItemId: `mail-${"a".repeat(64)}`,
-        revision: 2,
-        confirmed: true,
-      },
-    });
-    expect(result).toMatchObject({
-      kind: "sent",
-      draft: { revision: 2, status: "sent" },
-    });
+    ]);
   });
 });
 

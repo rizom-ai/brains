@@ -25,7 +25,7 @@ export function renderConsoleStripHtml({
   const links = surfaces
     .map(
       (surface) =>
-        `<a class="surface-nav-link${surface.isActive ? " is-active" : ""}" href="${surface.href}">${surface.label}</a>`,
+        `<a class="surface-nav-link${surface.isActive ? " is-active" : ""}" href="${surface.href}" data-console-surface="${surface.id}">${surface.label}</a>`,
     )
     .join("");
   return (

@@ -94,11 +94,11 @@ describe("DirectorySyncPlugin", () => {
 
     it("should register the optional CMS Sync workspace", () => {
       expect(workspaceRegistration).toMatchObject({
-        id: "sync",
+        id: "directory-sync:sync",
         pluginId: "directory-sync",
         label: "Sync",
-        rendererName: "DirectorySyncWorkspace",
-        priority: 60,
+        rendererName: "DeclarativeOperatorWorkspace",
+        priority: 50,
       });
     });
   });

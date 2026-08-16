@@ -6,8 +6,6 @@ import {
 } from "@brains/plugins";
 import { createTempDir } from "@brains/test-utils";
 import { AuthServicePlugin } from "@brains/auth-service";
-import { h } from "preact";
-import type { WidgetComponentProps } from "../src";
 import { DashboardPlugin } from "../src/plugin";
 import { createPluginHarness } from "@brains/plugins/test";
 
@@ -405,7 +403,7 @@ describe("DashboardPlugin", () => {
         group: "publishing",
         section: "primary",
         priority: 10,
-        rendererName: "PipelineWidget",
+        rendererName: "DeclarativeOperatorWidget",
         visibility: "admin",
         dataProvider: async () => ({ summary: {}, items: [] }),
       });
@@ -685,7 +683,7 @@ describe("DashboardPlugin", () => {
         title: "Test Widget",
         section: "primary",
         priority: 10,
-        rendererName: "StatsWidget",
+        rendererName: "DeclarativeOperatorWidget",
         dataProvider: async () => ({ count: 42 }),
       });
 
@@ -700,24 +698,6 @@ describe("DashboardPlugin", () => {
       });
     });
 
-    it("normalizes deprecated attention counts received over messaging", async () => {
-      await harness.sendMessage("dashboard:register-widget", {
-        id: "legacy-attention-widget",
-        pluginId: "legacy-plugin",
-        group: "knowledge",
-        title: "Legacy Attention Widget",
-        rendererName: "StatsWidget",
-        needsOperator: 2,
-        dataProvider: async () => ({}),
-      });
-
-      expect(
-        plugin
-          .getWidgetRegistry()
-          ?.get("legacy-plugin", "legacy-attention-widget"),
-      ).toMatchObject({ needsAttention: 2 });
-    });
-
     it("should unregister widget when receiving dashboard:unregister-widget message", async () => {
       await harness.sendMessage("dashboard:register-widget", {
         id: "test-widget",
@@ -726,7 +706,7 @@ describe("DashboardPlugin", () => {
         title: "Test Widget",
         section: "primary",
         priority: 10,
-        rendererName: "StatsWidget",
+        rendererName: "DeclarativeOperatorWidget",
         dataProvider: async () => ({ count: 42 }),
       });
 
@@ -749,7 +729,7 @@ describe("DashboardPlugin", () => {
         title: "Widget 1",
         section: "primary",
         priority: 10,
-        rendererName: "StatsWidget",
+        rendererName: "DeclarativeOperatorWidget",
         dataProvider: async () => ({}),
       });
 
@@ -760,7 +740,7 @@ describe("DashboardPlugin", () => {
         title: "Widget 2",
         section: "secondary",
         priority: 20,
-        rendererName: "ListWidget",
+        rendererName: "DeclarativeOperatorWidget",
         dataProvider: async () => ({}),
       });
 
@@ -801,7 +781,7 @@ describe("DashboardPlugin", () => {
         title: "Legacy Widget",
         section: "primary",
         priority: 10,
-        rendererName: "StatsWidget",
+        rendererName: "DeclarativeOperatorWidget",
         dataProvider: async () => ({ ok: true }),
       });
 
@@ -811,7 +791,7 @@ describe("DashboardPlugin", () => {
       expect(testPluginWidgets).toHaveLength(0);
     });
 
-    it("should reject a custom renderer without a component", async () => {
+    it("should reject nondeclarative renderer names", async () => {
       await harness.sendMessage("dashboard:register-widget", {
         id: "broken-widget",
         pluginId: "test-plugin",
@@ -829,75 +809,24 @@ describe("DashboardPlugin", () => {
       expect(testPluginWidgets).toHaveLength(0);
     });
 
-    it("should register and render a plugin-provided widget component", async () => {
+    it("should reject plugin-owned browser assets", async () => {
       await harness.sendMessage("dashboard:register-widget", {
-        id: "swot",
-        pluginId: "swot",
+        id: "private-browser-widget",
+        pluginId: "test-plugin",
         group: "knowledge",
-        title: "SWOT",
-        section: "secondary",
-        priority: 14,
-        rendererName: "SwotWidget",
-        component: ({ data }: WidgetComponentProps) => {
-          const input = data as {
-            strengths: Array<{ title: string }>;
-          };
-          return h(
-            "div",
-            { "data-swot-widget": "true" },
-            h("h3", {}, "Strengths"),
-            h("p", {}, input.strengths[0]?.title ?? "—"),
-          );
-        },
-        clientStyles: "[data-swot-widget] { display: grid; }",
-        clientScript: "window.__swotBoot = true;",
-        dataProvider: async () => ({
-          strengths: [{ title: "Research & writing" }],
-        }),
+        title: "Private browser widget",
+        rendererName: "DeclarativeOperatorWidget",
+        component: () => null,
+        clientStyles: ".private-widget {}",
+        clientScript: "window.privateWidget = true;",
+        dataProvider: async () => ({ view: { blocks: [] } }),
       });
 
-      const routes = plugin.getWebRoutes();
-      const response = await routes[0]?.handler(
-        new Request("http://brain/dashboard"),
-      );
-      const html = await response?.text();
-
-      expect(html).toContain("data-swot-widget");
-      expect(html).toContain("Strengths");
-      expect(html).toContain("Research &amp; writing");
-      expect(html).not.toContain("[data-swot-widget] { display: grid; }");
-      expect(html?.indexOf("data-dashboard-styles")).toBeLessThan(
-        html?.indexOf("data-dashboard-widget-styles") ?? -1,
-      );
-      expect(html).not.toContain("window.__swotBoot = true;");
-
-      const stylePath = html?.match(
-        /data-dashboard-widget-styles[^>]*href="([^"]+)"/,
-      )?.[1];
-      const scriptPath = html?.match(
-        /data-dashboard-widget-script[^>]*src="([^"]+)"/,
-      )?.[1];
-      expect(stylePath).toMatch(
-        /^\/dashboard\/assets\/widget\.[a-f0-9]{64}\.css$/,
-      );
-      expect(scriptPath).toMatch(
-        /^\/dashboard\/assets\/widget\.[a-f0-9]{64}\.js$/,
-      );
-
-      const assetRoutes = plugin.getWebRoutes();
-      const styleResponse = await assetRoutes
-        .find((route) => route.path === stylePath)
-        ?.handler(new Request(`http://brain${stylePath}`));
-      const scriptResponse = await assetRoutes
-        .find((route) => route.path === scriptPath)
-        ?.handler(new Request(`http://brain${scriptPath}`));
-      expect(await styleResponse?.text()).toBe(
-        "[data-swot-widget] { display: grid; }",
-      );
-      expect(await scriptResponse?.text()).toBe("window.__swotBoot = true;");
-      expect(styleResponse?.headers.get("cache-control")).toContain(
-        "immutable",
-      );
+      expect(
+        plugin
+          .getWidgetRegistry()
+          ?.get("test-plugin", "private-browser-widget"),
+      ).toBeUndefined();
     });
   });
 });

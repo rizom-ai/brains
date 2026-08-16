@@ -161,13 +161,18 @@ describe("public operator definitions", () => {
       await getDashboardWidgetLoader(widgetBinding)(runtimeContext),
     ).toEqual({ label: "read", count: 4 });
     expect(
-      await getWorkspaceActionExecutor(actionBinding)({
+      await getWorkspaceActionExecutor(actionBinding).execute({
         ...runtimeContext,
         input: { id: "saved" },
       }),
     ).toEqual({ refreshed: "saved" });
     expect(
-      await getCmsWorkspaceExecutor(workspaceBinding).load(runtimeContext),
+      await getCmsWorkspaceExecutor(workspaceBinding).load({
+        ...runtimeContext,
+        query: {
+          get: (schema) => schema.parse({}),
+        },
+      }),
     ).toEqual({ count: 4 });
     expect(widget).not.toHaveProperty("load");
     expect(refresh).not.toHaveProperty("execute");

@@ -312,7 +312,6 @@ export class DirectorySyncPlugin extends ServicePlugin<
     if (!context.executionOnly) {
       this.workspaceProvider = new DirectorySyncWorkspaceProvider({
         context,
-        pluginId: this.id,
         config: this.config,
         getDirectorySync: (): DirectorySync => this.requireDirectorySync(),
         getGitSync: (): IGitSync | undefined => this.gitSync,
@@ -349,6 +348,7 @@ export class DirectorySyncPlugin extends ServicePlugin<
 
   protected override async onShutdown(): Promise<void> {
     this.shutdownStarted = true;
+    await this.workspaceProvider?.unregisterCmsWorkspace();
     await this.configurationQueue;
     await this.stopGeneration(this.runtime, this.directorySync, this.gitSync);
 

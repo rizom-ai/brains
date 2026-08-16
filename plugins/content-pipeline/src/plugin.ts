@@ -33,6 +33,7 @@ export class ContentPipelinePlugin extends ServicePlugin<
   private publishAssetRegistry!: PublishAssetRegistry;
   private publishAssetPreflight!: PublishAssetPreflight;
   private scheduler!: ContentScheduler;
+  private cmsRegistered = false;
 
   constructor(config: ContentPipelineConfigInput = {}) {
     super("content-pipeline", packageJson, config, contentPipelineConfigSchema);
@@ -90,18 +91,18 @@ export class ContentPipelinePlugin extends ServicePlugin<
     await this.publicationQueueService.reconcile(
       this.providerRegistry.getRegisteredTypes(),
     );
-    const cmsWorkspaceUrl = await registerCmsWorkspace(context, this.id, {
+    const workspaceUrl = await registerCmsWorkspace(context, {
       providerRegistry: this.providerRegistry,
       queueManager: this.queueManager,
       publicationQueueService: this.publicationQueueService,
       retryTracker: this.retryTracker,
       publishExecutor: this.publishExecutor,
     });
-    await registerDashboardWidget(context, this.id, {
+    this.cmsRegistered = workspaceUrl !== undefined;
+    await registerDashboardWidget(context, {
       providerRegistry: this.providerRegistry,
       queueManager: this.queueManager,
       retryTracker: this.retryTracker,
-      ...(cmsWorkspaceUrl ? { managementUrl: cmsWorkspaceUrl } : {}),
     });
     await this.scheduler.start();
 
@@ -156,6 +157,12 @@ export class ContentPipelinePlugin extends ServicePlugin<
   }
 
   protected override async onShutdown(): Promise<void> {
+    if (this.cmsRegistered) {
+      await this.pluginContext?.cms.unregisterWorkspace(
+        "content-pipeline:publishing",
+      );
+      this.cmsRegistered = false;
+    }
     await this.scheduler.stop();
   }
 }

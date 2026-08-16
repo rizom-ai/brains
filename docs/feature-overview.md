@@ -384,10 +384,14 @@ The plugin system supports:
 - **Interface plugins** for user and agent transports;
 - custom templates, data sources, site routes, and publishing providers.
 
-Dashboard widgets and CMS workspaces are currently built-in capabilities only;
-external packages cannot yet author them. The public contract for both is
-planned as a `0.2.x` additive milestone
-([plan](plans/public-operator-surface-authoring.md)).
+External service packages can declare encrypted per-account settings,
+Dashboard widgets, and authenticated CMS workspaces through the public `0.2.x`
+authoring API. Widgets and workspaces return closed semantic views rendered by
+the host; packages do not ship browser components, HTML, CSS, scripts, renderer
+names, or private routes. Typed query state, dynamic catalogs, workspace
+actions, and prepared confirmations cover the current first-party surfaces
+([authoring guide](external-plugin-authoring.md),
+[architecture plan](plans/public-operator-surface-authoring.md)).
 
 ## Current boundaries
 

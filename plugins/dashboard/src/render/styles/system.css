@@ -380,99 +380,6 @@ table.jobs {
   color: var(--console-accent);
 }
 
-.pipeline-digest {
-  display: grid;
-  gap: 14px;
-}
-.pipeline-metrics {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  margin: 0;
-  border: 1px solid var(--console-rule-strong);
-  border-radius: 8px;
-  overflow: hidden;
-}
-.pipeline-metric {
-  min-width: 0;
-  padding: 12px 10px;
-  border-right: 1px solid var(--console-rule-strong);
-  background: var(--console-card-soft);
-}
-.pipeline-metric:last-child {
-  border-right: 0;
-}
-.pipeline-metric dt {
-  overflow: hidden;
-  color: var(--console-text-muted);
-  font-family: var(--console-mono);
-  font-size: 8px;
-  letter-spacing: 0.08em;
-  text-overflow: ellipsis;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-.pipeline-metric dd {
-  margin-top: 5px;
-  color: var(--console-text);
-  font-family: var(--console-display);
-  font-size: 24px;
-  font-variation-settings: "SOFT" 45;
-  font-weight: 540;
-  line-height: 1;
-}
-.pipeline-metric--warn dd {
-  color: var(--console-warn);
-}
-.pipeline-metric--ok dd {
-  color: var(--console-ok);
-}
-.pipeline-failures {
-  display: grid;
-  gap: 8px;
-  padding-top: 2px;
-}
-.pipeline-failures h4 {
-  color: var(--console-err);
-  font-family: var(--console-mono);
-  font-size: 9px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-.pipeline-failure {
-  display: grid;
-  grid-template-columns: minmax(90px, 0.45fr) minmax(0, 1fr);
-  gap: 10px;
-  padding: 7px 0;
-  border-top: 1px solid var(--console-rule);
-}
-.pipeline-failure strong {
-  color: var(--console-text);
-  font-family: var(--console-display);
-  font-size: 13px;
-  font-weight: 530;
-}
-.pipeline-failure span {
-  color: var(--console-err);
-  font-family: var(--console-mono);
-  font-size: 9px;
-  line-height: 1.45;
-}
-@container dashboard-card (max-width: 430px) {
-  .pipeline-metrics {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-  .pipeline-metric:nth-child(2) {
-    border-right: 0;
-  }
-  .pipeline-metric:nth-child(-n + 2) {
-    border-bottom: 1px solid var(--console-rule-strong);
-  }
-  .pipeline-failure {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 3px;
-  }
-}
-
 @media (max-width: 640px) {
   .card--entity-summary {
     padding: 18px 16px 20px;
@@ -613,14 +520,5 @@ table.jobs {
   }
   .index-gauge-copy span {
     font-size: 11px;
-  }
-  .pipeline-metric dt {
-    font-size: 9px;
-  }
-  .pipeline-failure strong {
-    font-size: 14px;
-  }
-  .pipeline-failure span {
-    font-size: 10px;
   }
 }

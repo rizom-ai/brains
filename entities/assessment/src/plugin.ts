@@ -7,18 +7,111 @@ import type {
 import {
   EntityPlugin,
   SYSTEM_CHANNELS,
+  defineDashboardWidget,
   emptyEntityPluginConfigSchema,
+  registerBuiltInDashboardWidget,
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
-import { swotEntitySchema, type SwotEntity } from "./schemas/swot";
+import {
+  swotEntitySchema,
+  swotFrontmatterSchema,
+  type SwotEntity,
+} from "./schemas/swot";
 
-const swotDigestSourceSchema = z.object({
-  status: z.enum(["ready", "generating"]),
+const swotWidgetDataSchema = z.discriminatedUnion("status", [
+  z.object({ status: z.literal("generating") }),
+  swotFrontmatterSchema.extend({ status: z.literal("ready") }),
+]);
+
+const swotWidget = defineDashboardWidget({
+  id: "swot",
+  title: "SWOT",
+  group: "network",
+  placement: "secondary",
+  priority: 14,
+  permission: "public",
+  data: swotWidgetDataSchema,
+  digest: ({ data }) => ({
+    items: [
+      {
+        label: "SWOT",
+        value: data.status === "ready" ? "Ready" : "Generating",
+        tone: data.status === "ready" ? "good" : "warn",
+      },
+    ],
+  }),
+  view: ({ data }) => {
+    if (data.status === "generating") {
+      return {
+        blocks: [
+          {
+            type: "notice",
+            tone: "neutral",
+            text: "Generating the current SWOT assessment.",
+          },
+        ],
+      };
+    }
+    return {
+      blocks: [
+        {
+          type: "matrix",
+          id: "swot-matrix",
+          columns: 2,
+          cells: [
+            {
+              id: "strengths",
+              label: "Strengths",
+              tone: "good",
+              empty: "No strengths recorded.",
+              items: data.strengths.map((item, index) => ({
+                id: `strength-${index}`,
+                title: item.title,
+                ...(item.detail ? { description: item.detail } : {}),
+              })),
+            },
+            {
+              id: "weaknesses",
+              label: "Weaknesses",
+              tone: "warn",
+              empty: "No weaknesses recorded.",
+              items: data.weaknesses.map((item, index) => ({
+                id: `weakness-${index}`,
+                title: item.title,
+                ...(item.detail ? { description: item.detail } : {}),
+              })),
+            },
+            {
+              id: "opportunities",
+              label: "Opportunities",
+              tone: "good",
+              empty: "No opportunities recorded.",
+              items: data.opportunities.map((item, index) => ({
+                id: `opportunity-${index}`,
+                title: item.title,
+                ...(item.detail ? { description: item.detail } : {}),
+              })),
+            },
+            {
+              id: "threats",
+              label: "Threats",
+              tone: "error",
+              empty: "No threats recorded.",
+              items: data.threats.map((item, index) => ({
+                id: `threat-${index}`,
+                title: item.title,
+                ...(item.detail ? { description: item.detail } : {}),
+              })),
+            },
+          ],
+        },
+      ],
+    };
+  },
 });
 
 import { SwotAdapter } from "./adapters/swot-adapter";
 import { SwotDerivationHandler } from "./handlers/swot-derivation-handler";
-import { SwotWidget, swotWidgetStyles } from "./widgets/swot-widget";
 import { ProgressReporter } from "@brains/utils/progress";
 import { createSwotProjectionRule } from "./lib/swot-projection";
 import packageJson from "../package.json";
@@ -86,35 +179,19 @@ export class SwotAssessmentPlugin extends EntityPlugin<
     context.messaging.subscribe(
       SYSTEM_CHANNELS.pluginsRegistered,
       async (): Promise<{ success: boolean }> => {
-        await context.dashboard.registerWidget({
-          id: "swot",
-          title: "SWOT",
-          group: "network",
-          section: "secondary",
-          priority: 14,
-          rendererName: "SwotWidget",
-          digestProvider: (data: unknown) => {
-            const { status } = swotDigestSourceSchema.parse(data);
-            return {
-              digest: [
-                {
-                  label: "SWOT",
-                  value: status === "ready" ? "Ready" : "Generating",
-                  tone: status === "ready" ? "good" : "warn",
-                },
-              ],
-            };
-          },
-          component: SwotWidget,
-          clientStyles: swotWidgetStyles,
-          dataProvider: async () => {
+        await registerBuiltInDashboardWidget({
+          context,
+          definition: swotWidget,
+          load: async ({
+            signal,
+          }): Promise<z.input<typeof swotWidgetDataSchema>> => {
+            signal.throwIfAborted();
             const swot = await context.entityService.getEntity<SwotEntity>({
               entityType: "swot",
               id: "swot",
             });
-
+            signal.throwIfAborted();
             if (!swot) return { status: "generating" };
-
             const { frontmatter } = swotAdapter.parseSwotContent(swot.content);
             return { status: "ready", ...frontmatter };
           },

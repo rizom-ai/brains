@@ -55,11 +55,11 @@ before built-ins from several plugin families are converted.
 
 ### 1. Agent Network
 
-Sources:
+Implementation source:
 
 - `entities/agent-discovery/src/lib/agent-dashboard.ts`
-- `entities/agent-discovery/src/widgets/agent-network-widget.tsx`
-- `entities/agent-discovery/src/widgets/agent-network-widget-script.ts`
+
+The former Dashboard component, stylesheet, and script were removed in 4g.
 
 Required semantics:
 
@@ -75,11 +75,12 @@ launch intent. They are not author script or route fields.
 
 ### 2. Agent Proximity
 
-Sources:
+Dashboard implementation sources:
 
+- `entities/agent-discovery/src/lib/agent-dashboard.ts`
 - `entities/agent-discovery/src/lib/proximity-map-schema.ts`
-- `entities/agent-discovery/src/widgets/proximity-map.tsx`
-- `entities/agent-discovery/src/widgets/proximity-map-script.ts`
+
+The Preact map and script remain only for the independent public site template; Dashboard no longer registers either.
 
 Required semantics:
 
@@ -108,10 +109,7 @@ Required semantics:
 
 ### 4. SWOT
 
-Sources:
-
-- `entities/assessment/src/plugin.ts`
-- `entities/assessment/src/widgets/swot-widget.tsx`
+Implementation source: `entities/assessment/src/plugin.ts`. The former Dashboard component and stylesheet were removed in 4g.
 
 Required semantics:
 
@@ -156,10 +154,12 @@ Required semantics:
 
 ### 8. Recent Conversation Memory
 
-Sources:
+Implementation sources:
 
 - `entities/conversation-memory/src/lib/widgets/recent-memory.ts`
-- `entities/conversation-memory/src/lib/widgets/recent-memory-widget.tsx`
+- `entities/conversation-memory/src/lib/widgets/recent-memory-register.ts`
+
+The former Dashboard component was removed in 4g.
 
 Required semantics:
 
@@ -277,10 +277,10 @@ Required semantics:
 
 ### 1. Directory Sync
 
-Sources:
+Implementation sources:
 
 - `plugins/directory-sync/src/lib/cms-workspace.ts`
-- `plugins/cms/ui-react/src/directory-sync-workspace.tsx`
+- `plugins/cms/ui-react/src/declarative-workspace.tsx`
 
 Required semantics:
 
@@ -297,10 +297,10 @@ Required semantics:
 
 ### 2. Site
 
-Sources:
+Implementation sources:
 
 - `plugins/site-builder/src/lib/site-workspace.ts`
-- `plugins/cms/ui-react/src/site-workspace.tsx`
+- `plugins/cms/ui-react/src/declarative-workspace.tsx`
 
 Required semantics:
 
@@ -318,7 +318,7 @@ Required semantics:
 Sources:
 
 - `plugins/content-pipeline/src/lib/cms-workspace.ts`
-- `plugins/cms/ui-react/src/publishing-workspace.tsx`
+- `plugins/cms/ui-react/src/declarative-workspace.tsx`
 - `plugins/content-pipeline/src/provider-registry.ts`
 
 Required semantics:
@@ -345,7 +345,7 @@ Sources:
 - `plugins/unified-inbox/src/operator-cms.ts`
 - `plugins/unified-inbox/src/operator-service.ts`
 - `plugins/unified-inbox/src/schemas.ts`
-- `plugins/cms/ui-react/src/unified-inbox-workspace.tsx`
+- `plugins/cms/ui-react/src/declarative-workspace.tsx`
 - `shell/plugins/src/inbox-registry.ts`
 - `shell/plugins/src/inbox-follow-up-registry.ts`
 
@@ -400,46 +400,45 @@ they are not frozen public type names.
     text alternatives for spatial views, live status feedback, and responsive
     reading order.
 
-## Current contract gaps
+## Completion evidence
 
-The shipped base contract already covers stats, key/value facts, notices,
-links, lists, tables, safe text, entity/external targets, digest/attention,
-caller-scoped reads/jobs/settings, lifecycle cancellation, and Dashboard
-registration.
+Phase 4 closes every demonstrated gap above:
 
-Phase 4 must close these demonstrated gaps:
+- distinct typed Dashboard and CMS profiles normalize the complete closed
+  primitive vocabulary;
+- Dashboard tabs, filters, matrices, spatial interaction, launches, and
+  accessibility are host-owned;
+- CMS query state, paging, catalogs, grouping, flow, meters, progress, actions,
+  launches, and responsive rendering are host-owned;
+- prepared confirmation is caller-, action-, input-, revision-, expiry-, and
+  one-use-bound;
+- permission floors, narrow-only policy, caller-scoped entities, redacted
+  settings, cancellation, cleanup, worker exclusion, and absent-host no-op
+  behavior are runtime-enforced;
+- all 15 Dashboard and four CMS registrations use the public definition,
+  binding, validation, normalization, permission, and host-rendering paths; and
+- Dashboard accepts only `DeclarativeOperatorWidget`, CMS accepts only
+  `DeclarativeOperatorWorkspace`, and the former private components, assets,
+  mutations, snapshot types, tests, and renderer dispatch were removed.
 
-- typed Dashboard/CMS view profiles and semantic composition;
-- tags, multiple metadata values, counts, states, and richer row annotations;
-- tabs, local filters, selection, and master/detail behavior;
-- matrix, directional flow, meter, Cartesian map, and radial map semantics;
-- typed workspace query schemas and canonical host URL state;
-- caller-filtered catalogs of immutable entity/action definitions;
-- host-owned launch-intent definitions and validated launch state;
-- Dashboard host interactions currently implemented by author scripts;
-- package-scoped CMS registration and unregistration;
-- conditional typed actions, ordered reordering, and dynamic action catalogs;
-- secure prepared confirmation and replay protection;
-- CMS profile normalization/rendering and complete authorization gates; and
-- removal of private Dashboard component/assets and CMS renderer-name dispatch.
+Representative checked evidence:
 
-## Existing evidence to preserve or replace
-
-Representative current tests include:
-
-- `entities/agent-discovery/test/agent-network-widget.test.tsx`;
-- `entities/agent-discovery/test/proximity-map-widget.test.tsx`;
+- `shell/plugins/test/dashboard-widget-runtime.test.ts`;
+- `shell/plugins/test/cms-workspace-runtime.test.ts`;
+- `plugins/dashboard/test/widget-ui.test.tsx`;
+- `plugins/dashboard/test/ui-script.test.ts`;
+- `plugins/cms/test/declarative-workspace.test.ts`;
+- `plugins/cms/ui-react/src/declarative-workspace.test.tsx`;
+- `entities/agent-discovery/test/plugin.test.ts`;
 - `entities/topics/test/lib/knowledge-map-widget.test.tsx`;
-- `plugins/email-triage/test/operator-dashboard-widget.test.tsx`;
-- `plugins/site-builder/test/unit/dashboard-widget.test.ts`;
-- `plugins/unified-inbox/test/dashboard-widget.test.tsx`;
-- `plugins/cms/ui-react/src/app.test.tsx`;
-- `plugins/cms/ui-react/src/unified-inbox-workspace.test.tsx`;
+- `plugins/email-triage/test/operator-dashboard-widget.test.ts`;
+- `plugins/site-builder/test/unit/plugin.test.ts`;
+- `plugins/unified-inbox/test/dashboard-widget.test.ts`;
+- `plugins/unified-inbox/test/operator-cms.test.ts`;
 - `plugins/directory-sync/test/cms-workspace.test.ts`;
 - `plugins/content-pipeline/test/cms-workspace.test.ts`; and
-- `plugins/cms/test/workspace.test.ts`.
+- `packages/brain-cli/test/public-authoring-phase6-packed.test.ts`.
 
-Porting may replace implementation-specific assertions, but each visible
-information, interaction, permission, confirmation, accessibility, and
-lifecycle requirement above needs equivalent checked evidence before the old
-renderer path is removed.
+The Preact spatial renderers still used by public site templates are independent
+site presentation, not Dashboard registrations or operator-authoring escape
+hatches.

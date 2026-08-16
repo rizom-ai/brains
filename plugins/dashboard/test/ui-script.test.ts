@@ -205,6 +205,44 @@ describe("dashboard tab behavior", () => {
   });
 });
 
+describe("dashboard spatial behavior", () => {
+  it("selects points on click and focus, preserves related points, and clears with Escape", () => {
+    window.document.body.innerHTML = `
+      <figure data-ui-spatial>
+        <button id="a" data-ui-spatial-point="a" data-ui-spatial-related='["b"]' aria-pressed="false">A</button>
+        <button id="b" data-ui-spatial-point="b" data-ui-spatial-related="[]" aria-pressed="false">B</button>
+        <button id="c" data-ui-spatial-point="c" data-ui-spatial-related="[]" aria-pressed="false">C</button>
+        <article id="detail-a" data-ui-spatial-detail="a" hidden>A detail</article>
+        <article id="detail-b" data-ui-spatial-detail="b" hidden>B detail</article>
+      </figure>`;
+
+    runScript();
+    click("#a");
+
+    expect(
+      element("[data-ui-spatial]").getAttribute("data-ui-spatial-active"),
+    ).toBe("a");
+    expect(element("#a").classList.contains("is-selected")).toBe(true);
+    expect(element("#a").getAttribute("aria-pressed")).toBe("true");
+    expect(element("#b").classList.contains("is-related")).toBe(true);
+    expect(element("#c").classList.contains("is-related")).toBe(false);
+    expect(element("#detail-a").hasAttribute("hidden")).toBe(false);
+
+    focus("#b");
+    expect(
+      element("[data-ui-spatial]").getAttribute("data-ui-spatial-active"),
+    ).toBe("b");
+    expect(element("#detail-b").hasAttribute("hidden")).toBe(false);
+
+    keydown("#b", "Escape");
+    expect(
+      element("[data-ui-spatial]").hasAttribute("data-ui-spatial-active"),
+    ).toBe(false);
+    expect(element("#b").getAttribute("aria-pressed")).toBe("false");
+    expect(element("#detail-b").hasAttribute("hidden")).toBe(true);
+  });
+});
+
 describe("dashboard filter behavior", () => {
   it("filters multi-value rows, updates controls, and reveals an empty state", () => {
     window.document.body.innerHTML = `

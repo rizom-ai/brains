@@ -202,6 +202,28 @@ export function PeopleApp(props: PeopleAppProps): ReactElement {
 
   useEffect(() => {
     if (!isAdmin || typeof window === "undefined") return;
+    const search = new URLSearchParams(window.location.search);
+    const peerId = search.get("peerId")?.trim();
+    if (peerId) {
+      const displayName = search.get("displayName")?.trim();
+      search.delete("peerId");
+      search.delete("displayName");
+      const query = search.toString();
+      window.history.replaceState(
+        null,
+        "",
+        `${window.location.pathname}${query ? `?${query}` : ""}${window.location.hash}`,
+      );
+      setView("invitations");
+      setModal({
+        kind: "add",
+        draft: {
+          peerId,
+          ...(displayName ? { displayName } : {}),
+        },
+      });
+      return;
+    }
     const raw = window.sessionStorage.getItem(PEER_INVITATION_STORAGE_KEY);
     if (!raw) return;
     window.sessionStorage.removeItem(PEER_INVITATION_STORAGE_KEY);

@@ -2,7 +2,10 @@ import { afterEach, describe, it, expect } from "bun:test";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { SYSTEM_CHANNELS } from "@brains/plugins";
+import {
+  DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
+  SYSTEM_CHANNELS,
+} from "@brains/plugins";
 import {
   createPluginHarness,
   expectConfirmation,
@@ -1263,9 +1266,6 @@ describe("AgentDiscoveryPlugin", () => {
       id: string;
       group: string;
       rendererName: string;
-      hasComponent: boolean;
-      hasClientStyles: boolean;
-      hasClientScript: boolean;
     }> = [];
 
     harness.subscribe("dashboard:register-widget", async (message) => {
@@ -1273,17 +1273,11 @@ describe("AgentDiscoveryPlugin", () => {
         id: string;
         group: string;
         rendererName: string;
-        component?: unknown;
-        clientStyles?: unknown;
-        clientScript?: unknown;
       };
       registrations.push({
         id: payload.id,
         group: payload.group,
         rendererName: payload.rendererName,
-        hasComponent: typeof payload.component === "function",
-        hasClientStyles: typeof payload.clientStyles === "string",
-        hasClientScript: typeof payload.clientScript === "string",
       });
       return { success: true };
     });
@@ -1295,18 +1289,12 @@ describe("AgentDiscoveryPlugin", () => {
       {
         id: "agent-network",
         group: "network",
-        rendererName: "AgentNetworkWidget",
-        hasComponent: true,
-        hasClientStyles: true,
-        hasClientScript: true,
+        rendererName: DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
       },
       {
         id: "agent-proximity",
         group: "network",
-        rendererName: "AgentProximityWidget",
-        hasComponent: true,
-        hasClientStyles: true,
-        hasClientScript: true,
+        rendererName: DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
       },
     ]);
 

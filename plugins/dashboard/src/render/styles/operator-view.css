@@ -121,6 +121,268 @@
 .operator-align--end {
   text-align: right;
 }
+.operator-matrix {
+  display: grid;
+  grid-template-columns: repeat(
+    var(--operator-matrix-columns, 2),
+    minmax(0, 1fr)
+  );
+  gap: 12px;
+}
+.operator-matrix-cell {
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid var(--console-rule);
+  border-top: 3px solid var(--console-text-muted);
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--console-card-soft) 65%, transparent);
+}
+.operator-matrix-cell[data-tone="good"] {
+  border-top-color: var(--console-ok);
+}
+.operator-matrix-cell[data-tone="warn"] {
+  border-top-color: var(--console-warn);
+}
+.operator-matrix-cell[data-tone="error"] {
+  border-top-color: var(--console-err);
+}
+.operator-matrix-cell h5 {
+  margin: 0 0 10px;
+  color: var(--console-text);
+  font-family: var(--console-display);
+  font-size: 15px;
+}
+.operator-spatial {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+}
+.operator-spatial-canvas {
+  position: relative;
+  min-height: clamp(280px, 42vw, 480px);
+  overflow: hidden;
+  border: 1px solid var(--console-rule);
+  border-radius: 8px;
+  background:
+    radial-gradient(
+      circle at center,
+      transparent 0 30%,
+      var(--console-card-soft) 100%
+    ),
+    var(--console-card);
+}
+.operator-spatial-lines,
+.operator-spatial-points {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.operator-spatial-lines ellipse,
+.operator-spatial-lines circle {
+  fill: none;
+  stroke: var(--console-rule-strong);
+  stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
+}
+.operator-spatial-lines .operator-spatial-zone {
+  fill: color-mix(in srgb, var(--console-accent) 5%, transparent);
+  stroke-dasharray: 4 6;
+}
+.operator-spatial-lines line {
+  stroke: var(--console-rule-strong);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+.operator-spatial-lines line[data-tone="good"] {
+  stroke: var(--console-ok);
+}
+.operator-spatial-lines line[data-tone="warn"] {
+  stroke: var(--console-warn);
+}
+.operator-spatial-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 2;
+  max-width: 120px;
+  padding: 6px 9px;
+  border: 1px solid var(--console-rule-accent);
+  border-radius: 999px;
+  background: var(--console-card);
+  color: var(--console-text);
+  font-family: var(--console-mono);
+  font-size: 10px;
+  text-align: center;
+  transform: translate(-50%, -50%);
+}
+.operator-spatial-point {
+  position: absolute;
+  z-index: 3;
+  display: grid;
+  grid-template-columns: auto minmax(0, auto);
+  gap: 5px;
+  align-items: center;
+  max-width: 150px;
+  padding: 3px 6px;
+  border: 0;
+  background: color-mix(in srgb, var(--console-card) 88%, transparent);
+  color: var(--console-text-dim);
+  font-family: var(--console-mono);
+  font-size: 9px;
+  line-height: 1.2;
+  text-align: left;
+  transform: translate(-50%, -50%);
+  cursor: pointer;
+  transition:
+    opacity 120ms ease,
+    color 120ms ease;
+}
+.operator-spatial-point > span:first-child {
+  width: 9px;
+  height: 9px;
+  border: 2px solid var(--console-text-muted);
+  border-radius: 50%;
+  background: var(--console-card);
+}
+.operator-spatial-point[data-tone="good"] > span:first-child {
+  border-color: var(--console-ok);
+}
+.operator-spatial-point[data-tone="warn"] > span:first-child {
+  border-color: var(--console-warn);
+}
+.operator-spatial-point[data-tone="error"] > span:first-child {
+  border-color: var(--console-err);
+}
+.operator-spatial-point:hover,
+.operator-spatial-point:focus-visible,
+.operator-spatial-point.is-selected,
+.operator-spatial-point.is-related {
+  z-index: 4;
+  color: var(--console-accent);
+  outline: 1px solid var(--console-rule-accent);
+  outline-offset: 2px;
+}
+.operator-spatial[data-ui-spatial-active]
+  .operator-spatial-point:not(.is-selected):not(.is-related) {
+  opacity: 0.3;
+}
+.operator-spatial-description {
+  margin: 0;
+  color: var(--console-text-muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+.operator-spatial-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  margin: 8px 0 0;
+  padding: 0;
+  color: var(--console-text-muted);
+  font-family: var(--console-mono);
+  font-size: 9px;
+  list-style: none;
+}
+.operator-spatial-legend li::before {
+  content: "";
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 5px;
+  border: 1px solid currentcolor;
+  border-radius: 50%;
+}
+.operator-spatial-details article {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+  color: var(--console-text-muted);
+  font-size: 11px;
+}
+.operator-spatial-details article[hidden] {
+  display: none;
+}
+.operator-spatial-details strong {
+  color: var(--console-text);
+}
+
+.operator-group dl,
+.operator-meters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+.operator-group dl > div,
+.operator-meters > div,
+.operator-progress {
+  padding: 10px;
+  border: 1px solid var(--console-border);
+  border-radius: 8px;
+  background: var(--console-surface);
+}
+.operator-group dt,
+.operator-meters dt {
+  color: var(--console-text-muted);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.operator-group dd,
+.operator-meters dd {
+  margin: 3px 0 0;
+  font-weight: 650;
+}
+.operator-group small,
+.operator-flow small,
+.operator-progress small {
+  display: block;
+  color: var(--console-text-muted);
+}
+.operator-flow ol {
+  display: flex;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow-x: auto;
+}
+.operator-flow li {
+  min-width: 8rem;
+  padding: 9px 16px 9px 0;
+}
+.operator-flow li > span {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 6px;
+  border: 2px solid var(--console-border);
+  border-radius: 50%;
+}
+.operator-flow li[data-status="active"] > span,
+.operator-flow li[data-status="complete"] > span {
+  border-color: var(--console-accent);
+  background: var(--console-accent);
+}
+.operator-flow li[data-status="failed"] > span {
+  border-color: var(--console-error);
+  background: var(--console-error);
+}
+.operator-meters progress,
+.operator-progress progress {
+  display: block;
+  width: 100%;
+  margin-top: 6px;
+  accent-color: var(--console-accent);
+}
+.operator-progress header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+.operator-progress p {
+  margin: 8px 0;
+}
 
 @media (max-width: 640px) {
   .operator-stats {
@@ -129,5 +391,8 @@
   .operator-stat:nth-child(odd) {
     border-left: none;
     padding-left: 0;
+  }
+  .operator-matrix {
+    grid-template-columns: 1fr;
   }
 }

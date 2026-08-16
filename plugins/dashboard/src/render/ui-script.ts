@@ -150,6 +150,79 @@ export const DASHBOARD_UI_SCRIPT = `(function () {
     activate(fallback);
   }
 
+  function spatialRelated(point) {
+    var raw = point.getAttribute("data-ui-spatial-related");
+    if (!raw) return [];
+    try {
+      var parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (error) {
+      return [];
+    }
+  }
+
+  function setupSpatial(root) {
+    var points = ownedBy(root, "[data-ui-spatial-point]", "[data-ui-spatial]");
+    var details = ownedBy(root, "[data-ui-spatial-detail]", "[data-ui-spatial]");
+    if (!points.length) return;
+
+    function activate(id) {
+      root.setAttribute("data-ui-spatial-active", id);
+      var selected = points.find(function (point) {
+        return point.getAttribute("data-ui-spatial-point") === id;
+      });
+      var related = selected ? spatialRelated(selected) : [];
+      points.forEach(function (point) {
+        var pointId = point.getAttribute("data-ui-spatial-point") || "";
+        var pointRelated = spatialRelated(point);
+        var isSelected = pointId === id;
+        var isRelated = related.indexOf(pointId) !== -1 || pointRelated.indexOf(id) !== -1;
+        point.classList.toggle("is-selected", isSelected);
+        point.classList.toggle("is-related", isRelated);
+        point.setAttribute("aria-pressed", isSelected ? "true" : "false");
+      });
+      details.forEach(function (detail) {
+        detail.toggleAttribute(
+          "hidden",
+          detail.getAttribute("data-ui-spatial-detail") !== id,
+        );
+      });
+    }
+
+    function clear() {
+      root.removeAttribute("data-ui-spatial-active");
+      points.forEach(function (point) {
+        point.classList.remove("is-selected", "is-related");
+        point.setAttribute("aria-pressed", "false");
+      });
+      details.forEach(function (detail) {
+        detail.setAttribute("hidden", "");
+      });
+    }
+
+    root.addEventListener("click", function (event) {
+      var target = event.target;
+      var point = target && target.closest
+        ? target.closest("[data-ui-spatial-point]")
+        : null;
+      if (!point || point.closest("[data-ui-spatial]") !== root) return;
+      var id = point.getAttribute("data-ui-spatial-point");
+      if (id) activate(id);
+    });
+    root.addEventListener("focusin", function (event) {
+      var target = event.target;
+      var point = target && target.closest
+        ? target.closest("[data-ui-spatial-point]")
+        : null;
+      if (!point || point.closest("[data-ui-spatial]") !== root) return;
+      var id = point.getAttribute("data-ui-spatial-point");
+      if (id) activate(id);
+    });
+    root.addEventListener("keydown", function (event) {
+      if (event.key === "Escape") clear();
+    });
+  }
+
   var tabRoots = Array.prototype.slice.call(document.querySelectorAll("[data-ui-tabs]"));
   if (tabRoots.length) {
     document.documentElement.classList.add("dashboard-tabs-ready");
@@ -158,4 +231,7 @@ export const DASHBOARD_UI_SCRIPT = `(function () {
 
   var filterRoots = Array.prototype.slice.call(document.querySelectorAll("[data-ui-filter]"));
   filterRoots.forEach(setupFilter);
+
+  var spatialRoots = Array.prototype.slice.call(document.querySelectorAll("[data-ui-spatial]"));
+  spatialRoots.forEach(setupSpatial);
 })();`;

@@ -6,12 +6,77 @@ import type {
   CreateInput,
   CreateInterceptionResult,
 } from "@brains/plugins";
-import { EntityPlugin, SYSTEM_CHANNELS } from "@brains/plugins";
+import {
+  EntityPlugin,
+  SYSTEM_CHANNELS,
+  defineDashboardWidget,
+  registerBuiltInDashboardWidget,
+} from "@brains/plugins";
 import { z } from "@brains/utils/zod";
-import { wishSchema, type WishEntity } from "./schemas/wish";
+import {
+  wishPrioritySchema,
+  wishSchema,
+  wishStatusSchema,
+  type WishEntity,
+} from "./schemas/wish";
 
-const wishDigestSourceSchema = z.object({
-  items: z.array(z.object({ name: z.string(), count: z.number() })),
+const wishWidgetDataSchema = z.object({
+  items: z.array(
+    z.object({
+      id: z.string(),
+      name: z.string(),
+      count: z.number().int().nonnegative(),
+      priority: wishPrioritySchema,
+      status: wishStatusSchema,
+    }),
+  ),
+});
+
+function priorityTone(
+  priority: z.output<typeof wishPrioritySchema>,
+): "error" | "warn" | "neutral" {
+  if (priority === "critical") return "error";
+  if (priority === "high") return "warn";
+  return "neutral";
+}
+
+const topWishesWidget = defineDashboardWidget({
+  id: "top-wishes",
+  title: "Top Wishes",
+  group: "knowledge",
+  placement: "secondary",
+  priority: 30,
+  permission: "public",
+  data: wishWidgetDataSchema,
+  digest: ({ data }) => {
+    const top = data.items[0];
+    return {
+      items: top
+        ? [{ label: "Top wish", value: `${top.name} · ×${top.count}` }]
+        : [{ label: "Wishes", value: "none yet" }],
+    };
+  },
+  view: ({ data }) => ({
+    blocks: [
+      {
+        type: "list",
+        id: "wishes",
+        empty: "No wishes yet.",
+        items: data.items.map((wish) => ({
+          id: wish.id,
+          title: wish.name,
+          count: wish.count,
+          badges: [
+            { label: wish.priority, tone: priorityTone(wish.priority) },
+            {
+              label: wish.status,
+              tone: wish.status === "done" ? "good" : "neutral",
+            },
+          ],
+        })),
+      },
+    ],
+  }),
 });
 import {
   wishlistConfigSchema,
@@ -95,40 +160,24 @@ export class WishlistPlugin extends EntityPlugin<
   ): Promise<void> {
     // Dashboard widget
     context.messaging.subscribe(SYSTEM_CHANNELS.pluginsRegistered, async () => {
-      await context.dashboard.registerWidget({
-        id: "top-wishes",
-        title: "Top Wishes",
-        group: "knowledge",
-        section: "secondary",
-        priority: 30,
-        rendererName: "ListWidget",
-        digestProvider: (data: unknown) => {
-          const { items } = wishDigestSourceSchema.parse(data);
-          const top = items[0];
-          return {
-            digest: top
-              ? [
-                  {
-                    label: "Top wish",
-                    value: `${top.name} · ×${top.count}`,
-                  },
-                ]
-              : [{ label: "Wishes", value: "none yet" }],
-          };
-        },
-        dataProvider: async () => {
+      await registerBuiltInDashboardWidget({
+        context,
+        definition: topWishesWidget,
+        load: async ({ signal }) => {
+          signal.throwIfAborted();
           const wishes = await context.entityService.listEntities<WishEntity>({
             entityType: "wish",
             options: { limit: 10 },
           });
+          signal.throwIfAborted();
           sortWishesByDemand(wishes);
           return {
-            items: wishes.map((w) => ({
-              id: w.id,
-              name: w.metadata.title,
-              count: w.metadata.requested,
-              priority: w.metadata.priority,
-              status: w.metadata.status,
+            items: wishes.map((wish) => ({
+              id: wish.id,
+              name: wish.metadata.title,
+              count: wish.metadata.requested,
+              priority: wish.metadata.priority,
+              status: wish.metadata.status,
             })),
           };
         },

@@ -137,7 +137,7 @@ describe("InboxDataSource", () => {
     });
   });
 
-  it("hands the custom CMS destination to Dashboard and digest in order", async () => {
+  it("keeps Dashboard semantic while handing the CMS destination to interactions and digest", async () => {
     const harness = createPluginHarness<UnifiedInboxPlugin>({
       domain: "brain.test",
       logContext: "unified-inbox-order-test",
@@ -205,14 +205,47 @@ describe("InboxDataSource", () => {
       visibility: "admin",
       status: "available",
     });
-    expect(
-      await widget.dataProvider({
-        caller: null,
-        signal: new AbortController().signal,
-      }),
-    ).toMatchObject({
-      managementUrl: "/studio/workspaces/inbox",
+    const dashboardData = await widget.dataProvider({
+      caller: {
+        actor: { id: "user:admin" },
+        permission: "admin",
+        isAnchor: true,
+      },
+      signal: new AbortController().signal,
     });
+    if (
+      dashboardData === null ||
+      typeof dashboardData !== "object" ||
+      !("view" in dashboardData) ||
+      dashboardData.view === null ||
+      typeof dashboardData.view !== "object" ||
+      !("blocks" in dashboardData.view) ||
+      !Array.isArray(dashboardData.view.blocks)
+    ) {
+      throw new Error("Expected normalized Inbox dashboard data");
+    }
+    const launch = dashboardData.view.blocks.find(
+      (block) =>
+        block !== null &&
+        typeof block === "object" &&
+        "type" in block &&
+        block.type === "links",
+    );
+    expect(launch).toEqual({
+      type: "links",
+      items: [
+        {
+          label: "Open Inbox",
+          target: {
+            kind: "launch",
+            launch: { target: "inbox" },
+          },
+        },
+      ],
+    });
+    expect(JSON.stringify(dashboardData)).not.toContain(
+      "/studio/workspaces/inbox",
+    );
     const digest = await check.run({ signal: new AbortController().signal });
     expect(digest.alerts?.[0]?.body).toContain(
       "Open Inbox: https://brain.test/studio/workspaces/inbox",
@@ -253,12 +286,16 @@ describe("InboxDataSource", () => {
       expect.objectContaining({ id: "unified-inbox" }),
     );
     if (!widget) throw new Error("Inbox widget was not registered");
-    expect(
-      await widget.dataProvider({
-        caller: null,
-        signal: new AbortController().signal,
-      }),
-    ).not.toHaveProperty("managementUrl");
+    const dashboardData = await widget.dataProvider({
+      caller: {
+        actor: { id: "user:admin" },
+        permission: "admin",
+        isAnchor: true,
+      },
+      signal: new AbortController().signal,
+    });
+    expect(JSON.stringify(dashboardData)).not.toContain("evil.test");
+    expect(dashboardData).not.toHaveProperty("managementUrl");
   });
 
   it("answers the headless tool without webserver, CMS, or Dashboard plugins", async () => {

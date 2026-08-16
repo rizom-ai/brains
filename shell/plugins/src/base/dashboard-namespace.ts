@@ -27,7 +27,7 @@ export interface DashboardWidgetRegistration {
   id: string;
   title: string;
   group: string;
-  rendererName: string;
+  rendererName: typeof DECLARATIVE_DASHBOARD_WIDGET_RENDERER;
   dataProvider: (context: DashboardWidgetProviderContext) => Promise<unknown>;
   description?: string | undefined;
   priority?: number | undefined;
@@ -40,17 +40,14 @@ export interface DashboardWidgetRegistration {
     | ((data: unknown) => {
         digest?: DashboardDigestLine[];
         needsAttention?: number;
-        /** @deprecated Use needsAttention. */
-        needsOperator?: number;
       })
     | undefined;
-  component?: unknown;
-  clientStyles?: string | undefined;
-  clientScript?: string | undefined;
 }
 
 /** Dashboard namespace — widget contribution. */
 export interface IDashboardNamespace {
+  /** Whether a Dashboard host is currently mounted. */
+  isAvailable(): boolean;
   /** Contribute a widget. Returns false when no Dashboard host is mounted. */
   registerWidget: (widget: DashboardWidgetRegistration) => Promise<boolean>;
   /** Withdraw widgets. Returns false when no Dashboard host is mounted. */
@@ -74,6 +71,7 @@ export function createDashboardNamespace(
   hasHandler: (channel: string) => boolean,
 ): IDashboardNamespace {
   return {
+    isAvailable: (): boolean => hasHandler(DASHBOARD_CHANNELS.registerWidget),
     registerWidget: async (widget): Promise<boolean> => {
       if (!hasHandler(DASHBOARD_CHANNELS.registerWidget)) return false;
       const response = await messaging.send({

@@ -1,16 +1,5 @@
 /** @jsxImportSource preact */
-import type { ComponentChildren, ComponentType, JSX } from "preact";
-
-export interface WidgetComponentProps {
-  title: string;
-  description?: string;
-  data: unknown;
-  pluginId?: string;
-  widgetId?: string;
-  instanceId?: string;
-}
-
-export type WidgetComponent = ComponentType<WidgetComponentProps>;
+import type { ComponentChildren, JSX } from "preact";
 
 function classes(...values: Array<string | false | null | undefined>): string {
   return values.filter(Boolean).join(" ");

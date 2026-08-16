@@ -1,5 +1,8 @@
 import { describe, expect, it } from "bun:test";
-import { SYSTEM_CHANNELS } from "@brains/plugins";
+import {
+  DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
+  SYSTEM_CHANNELS,
+} from "@brains/plugins";
 import {
   createMockEntityPluginContext,
   createTestEntity,
@@ -124,12 +127,12 @@ describe("registerDecisionsWidget", () => {
     if (!payload) throw new Error("widget was not registered");
 
     expect(payload).toMatchObject({
-      id: "conversation-memory:decisions",
+      id: "decisions",
       title: "Recent decisions",
       group: "knowledge",
       section: "secondary",
       priority: 30,
-      rendererName: "ListWidget",
+      rendererName: DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
     });
   });
 });

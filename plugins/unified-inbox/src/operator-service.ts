@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import type {
   IInboxFollowUpRegistry,
   IInboxRegistry,
@@ -94,7 +95,7 @@ export class InboxOperatorService {
     };
   }
 
-  async dashboard(managementUrl?: string): Promise<InboxDashboardData> {
+  async dashboard(): Promise<InboxDashboardData> {
     const projection = await this.dataSource.getInboxData();
     const counts = countBySource(projection.entries);
     const sources = this.sourceAvailability(projection, counts);
@@ -113,7 +114,6 @@ export class InboxOperatorService {
         title: entry.item.title,
         receivedAt: entry.item.receivedAt,
       })),
-      ...(managementUrl ? { managementUrl } : {}),
     };
   }
 
@@ -147,6 +147,34 @@ export class InboxOperatorService {
     } catch {
       return detailUnavailable();
     }
+  }
+
+  async prepareAction(request: Omit<InboxActionRequest, "confirmed">): Promise<{
+    summary: string;
+    revision: string;
+  }> {
+    const source = this.registry.getSource(request.sourceId);
+    const offered = source
+      ? await findOfferedAction(source, request.itemId, request.actionId)
+      : undefined;
+    if (!source || !offered) {
+      throw new Error("Inbox item or action not found");
+    }
+    return {
+      summary: `${offered.action.label} "${offered.title}"?`,
+      revision: createHash("sha256")
+        .update(
+          JSON.stringify({
+            sourceId: request.sourceId,
+            itemId: request.itemId,
+            actionId: offered.action.id,
+            actionLabel: offered.action.label,
+            confirm: offered.action.confirm === true,
+            title: offered.title,
+          }),
+        )
+        .digest("hex"),
+    };
   }
 
   async act(

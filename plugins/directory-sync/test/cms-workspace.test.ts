@@ -99,7 +99,6 @@ describe("directory-sync CMS workspace", () => {
     });
     const provider = new DirectorySyncWorkspaceProvider({
       context,
-      pluginId: "directory-sync",
       config,
       getDirectorySync: (): IDirectorySync => directorySync,
       getGitSync: (): IGitSync => gitSync,
@@ -111,10 +110,10 @@ describe("directory-sync CMS workspace", () => {
     );
     const registration = getRegistration();
     expect(registration).toMatchObject({
-      id: "sync",
+      id: "directory-sync:sync",
       label: "Sync",
-      rendererName: "DirectorySyncWorkspace",
-      priority: 60,
+      rendererName: "DeclarativeOperatorWorkspace",
+      priority: 50,
     });
     if (!registration) throw new Error("Workspace was not registered");
 
@@ -125,9 +124,9 @@ describe("directory-sync CMS workspace", () => {
       true,
     );
     expect(registration.dataProvider(publicActor)).rejects.toThrow(
-      "admin permission",
+      "admission policy",
     );
-    const snapshot = await registration.dataProvider(adminActor);
+    const snapshot = await provider.getSnapshot();
     expect(snapshot).toMatchObject({
       health: "healthy",
       directory: {
@@ -141,6 +140,13 @@ describe("directory-sync CMS workspace", () => {
         changedFiles: [{ path: "note/one.md", status: "M" }],
       },
     });
+    const rendered = await registration.dataProvider(adminActor);
+    expect(rendered).toMatchObject({
+      view: { title: "Directory sync" },
+    });
+    expect(JSON.stringify(rendered)).toContain('"type":"flow"');
+    expect(JSON.stringify(rendered)).toContain('"direction":"bidirectional"');
+    expect(JSON.stringify(rendered)).toContain('"type":"meters"');
     expect(JSON.stringify(snapshot)).not.toContain("secret");
     expect(JSON.stringify(snapshot)).not.toContain("/private/runtime");
   });
@@ -156,7 +162,6 @@ describe("directory-sync CMS workspace", () => {
     await operationStatus.initialize();
     const provider = new DirectorySyncWorkspaceProvider({
       context,
-      pluginId: "directory-sync",
       config: directorySyncConfigSchema.parse({
         autoSync: false,
         initialSync: false,
@@ -173,11 +178,14 @@ describe("directory-sync CMS workspace", () => {
     }
 
     expect(
-      registration.actionHandler({ type: "sync-now" }, publicActor),
-    ).rejects.toThrow("admin permission");
+      registration.actionHandler(
+        { actionId: "sync-now", input: {} },
+        publicActor,
+      ),
+    ).rejects.toThrow("admission policy");
 
     const result = await registration.actionHandler(
-      { type: "sync-now" },
+      { actionId: "sync-now", input: {} },
       adminActor,
     );
     expect(result).toMatchObject({

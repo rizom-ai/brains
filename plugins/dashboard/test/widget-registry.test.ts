@@ -21,33 +21,13 @@ describe("DashboardWidgetRegistry", () => {
         title: "Test Widget",
         section: "primary",
         priority: 10,
-        rendererName: "StatsWidget",
+        rendererName: "DeclarativeOperatorWidget",
         dataProvider: async () => ({ count: 42 }),
       };
 
       registry.register(widget);
 
       expect(registry.size).toBe(1);
-    });
-
-    it("should store package-owned client assets", () => {
-      registry.register({
-        id: "styled-widget",
-        pluginId: "test-plugin",
-        group: "knowledge",
-        title: "Styled Widget",
-        section: "primary",
-        priority: 10,
-        rendererName: "StatsWidget",
-        clientStyles: ".styled-widget { display: grid; }",
-        clientScript: "window.__styledWidget = true;",
-        dataProvider: async () => ({}),
-      });
-
-      expect(registry.get("test-plugin", "styled-widget")).toMatchObject({
-        clientStyles: ".styled-widget { display: grid; }",
-        clientScript: "window.__styledWidget = true;",
-      });
     });
 
     it("should store the widget rendererName and group", () => {
@@ -58,7 +38,7 @@ describe("DashboardWidgetRegistry", () => {
         group: "publishing",
         section: "primary",
         priority: 10,
-        rendererName: "ListWidget",
+        rendererName: "DeclarativeOperatorWidget",
         dataProvider: async () => ({ count: 42 }),
       };
 
@@ -66,7 +46,7 @@ describe("DashboardWidgetRegistry", () => {
 
       expect(registry.size).toBe(1);
       const widgets = registry.list();
-      expect(widgets[0]?.rendererName).toBe("ListWidget");
+      expect(widgets[0]?.rendererName).toBe("DeclarativeOperatorWidget");
       expect(widgets[0]?.group).toBe("publishing");
     });
 
@@ -82,7 +62,7 @@ describe("DashboardWidgetRegistry", () => {
           title: "Legacy Widget",
           section: "sidebar",
           priority: 10,
-          rendererName: "StatsWidget",
+          rendererName: "DeclarativeOperatorWidget",
           dataProvider: async () => ({}),
         }),
       ).toThrow();
@@ -97,7 +77,7 @@ describe("DashboardWidgetRegistry", () => {
         title: "Test Widget 1",
         section: "primary",
         priority: 10,
-        rendererName: "StatsWidget",
+        rendererName: "DeclarativeOperatorWidget",
         dataProvider: async () => ({ count: 1 }),
       };
 
@@ -108,7 +88,7 @@ describe("DashboardWidgetRegistry", () => {
         title: "Test Widget 2",
         section: "primary",
         priority: 20,
-        rendererName: "StatsWidget",
+        rendererName: "DeclarativeOperatorWidget",
         dataProvider: async () => ({ count: 2 }),
       };
 
@@ -133,7 +113,7 @@ describe("DashboardWidgetRegistry", () => {
         title: "Test Widget",
         section: "primary",
         priority: 10,
-        rendererName: "StatsWidget",
+        rendererName: "DeclarativeOperatorWidget",
         dataProvider: async () => ({}),
       };
 
@@ -152,7 +132,7 @@ describe("DashboardWidgetRegistry", () => {
         title: "Widget 1",
         section: "primary",
         priority: 10,
-        rendererName: "StatsWidget",
+        rendererName: "DeclarativeOperatorWidget",
         dataProvider: async () => ({}),
       };
 
@@ -163,7 +143,7 @@ describe("DashboardWidgetRegistry", () => {
         title: "Widget 2",
         section: "secondary",
         priority: 20,
-        rendererName: "ListWidget",
+        rendererName: "DeclarativeOperatorWidget",
         dataProvider: async () => ({}),
       };
 
@@ -174,7 +154,7 @@ describe("DashboardWidgetRegistry", () => {
         title: "Widget 3",
         section: "sidebar",
         priority: 30,
-        rendererName: "CustomWidget",
+        rendererName: "DeclarativeOperatorWidget",
         dataProvider: async () => ({}),
       };
 
@@ -204,7 +184,7 @@ describe("DashboardWidgetRegistry", () => {
           title: "High Priority",
           section: "primary",
           priority: 50,
-          rendererName: "StatsWidget",
+          rendererName: "DeclarativeOperatorWidget",
           dataProvider: async () => ({}),
         },
         {
@@ -214,7 +194,7 @@ describe("DashboardWidgetRegistry", () => {
           title: "Low Priority",
           section: "primary",
           priority: 10,
-          rendererName: "StatsWidget",
+          rendererName: "DeclarativeOperatorWidget",
           dataProvider: async () => ({}),
         },
         {
@@ -224,7 +204,7 @@ describe("DashboardWidgetRegistry", () => {
           title: "Mid Priority",
           section: "primary",
           priority: 30,
-          rendererName: "StatsWidget",
+          rendererName: "DeclarativeOperatorWidget",
           dataProvider: async () => ({}),
         },
       ];
@@ -249,7 +229,7 @@ describe("DashboardWidgetRegistry", () => {
           title: "Primary",
           section: "primary",
           priority: 10,
-          rendererName: "StatsWidget",
+          rendererName: "DeclarativeOperatorWidget",
           dataProvider: async () => ({}),
         },
         {
@@ -259,7 +239,7 @@ describe("DashboardWidgetRegistry", () => {
           title: "Sidebar",
           section: "sidebar",
           priority: 10,
-          rendererName: "CustomWidget",
+          rendererName: "DeclarativeOperatorWidget",
           dataProvider: async () => ({}),
         },
         {
@@ -269,7 +249,7 @@ describe("DashboardWidgetRegistry", () => {
           title: "Secondary",
           section: "secondary",
           priority: 10,
-          rendererName: "ListWidget",
+          rendererName: "DeclarativeOperatorWidget",
           dataProvider: async () => ({}),
         },
       ];

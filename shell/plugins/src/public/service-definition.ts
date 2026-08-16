@@ -28,11 +28,23 @@ export type {
 export type {
   OperatorCaller,
   OperatorEntityReader,
+  OperatorQueryReader,
 } from "../operator/operator-context-contract";
 export { defineWorkspaceAction } from "../operator/workspace-action-definition-contract";
-export type { WorkspaceActionDefinition } from "../operator/workspace-action-definition-contract";
 export type {
+  WorkspaceActionConfirmation,
+  WorkspaceActionDefinition,
+  WorkspacePreparedConfirmation,
+} from "../operator/workspace-action-definition-contract";
+export { defineEntityCatalog } from "../operator/operator-view-contract";
+export type {
+  CmsWorkspaceView,
+  CmsWorkspaceViewBlock,
   DashboardDigest,
+  DashboardOperatorView,
+  DashboardOperatorViewBlock,
+  OperatorCapabilityDefinition,
+  OperatorEntityCatalogDefinition,
   OperatorView,
   OperatorViewBlock,
 } from "../operator/operator-view-contract";

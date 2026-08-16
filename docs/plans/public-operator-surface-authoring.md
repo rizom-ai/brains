@@ -12,12 +12,14 @@ in PR #132. Phase 3 Dashboard execution and host rendering shipped in
 request-scoped widget callbacks receive the canonical caller, secret-redacted
 settings, visibility-scoped entities, typed jobs, and cancellation.
 
-Before CMS implementation begins, the 2026-08-14 revision requires the public
-semantic contract to express every current first-party Dashboard widget and CMS
-workspace. The protocol remains host-rendered and admits no author React,
-Preact, HTML, CSS, script, renderer-name, or private-component escape hatch.
-CMS hosting, complete built-in conformance, packed standalone evidence,
-documentation alignment, and release nomination remain.
+Phase 4 is implementation-complete: the shared semantic protocol expresses all
+15 first-party Dashboard widgets and all four CMS workspaces through distinct
+typed host profiles. CMS hosting, typed query state and catalogs, prepared
+confirmation, complete built-in conformance, packed Account/Dashboard/CMS
+evidence, documentation, and private-renderer removal are checked. The protocol
+remains host-rendered and admits no author React, Preact, HTML, CSS, script,
+renderer-name, private-component, or private-URL escape hatch. Release
+nomination remains separate.
 
 Scope: this plan does **not** gate `v0.2.0`. Stable nomination proceeds on the
 current frozen surface. The authoring additions continue through the `0.2.x`

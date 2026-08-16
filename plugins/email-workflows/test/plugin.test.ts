@@ -6,6 +6,7 @@ import {
 } from "@brains/contracts";
 import {
   CMS_WORKSPACE_REGISTER_MESSAGE,
+  DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
   resetPromptCache,
   type CmsWorkspaceRegistration,
   type DashboardWidgetRegistration,
@@ -285,30 +286,33 @@ Prioritize collaboration connected to Project Aurora.`,
       pluginId: "email-workflows",
       id: "email-workflows",
       title: "Email Triage",
-      rendererName: "CustomWidget",
+      rendererName: DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
       visibility: "admin",
     });
     if (!widget) throw new Error("Dashboard widget was not registered");
-    expect(
-      await widget.dataProvider({
-        caller: null,
-        signal: new AbortController().signal,
-      }),
-    ).toEqual({
-      summary: {
-        new: 0,
-        high: 0,
-        needsReply: 0,
-        unclassified: 0,
+    const data = await widget.dataProvider({
+      caller: {
+        actor: { id: "user:admin" },
+        permission: "admin",
+        isAnchor: true,
       },
-      links: {
-        new: "/studio/workspaces/inbox?sourceId=mail-items",
-        high: "/studio/workspaces/inbox?sourceId=mail-items&facet.mail-priority=high",
-        needsReply:
-          "/studio/workspaces/inbox?sourceId=mail-items&facet.needs-reply=true",
-        unclassified:
-          "/studio/workspaces/inbox?sourceId=mail-items&facet.category=unclassified",
-      },
+      signal: new AbortController().signal,
     });
+    if (
+      data === null ||
+      typeof data !== "object" ||
+      !("view" in data) ||
+      data.view === null ||
+      typeof data.view !== "object" ||
+      !("blocks" in data.view) ||
+      !Array.isArray(data.view.blocks)
+    ) {
+      throw new Error("Expected normalized Email Triage view");
+    }
+    expect(data.view.blocks[1]).toMatchObject({ type: "links" });
+    expect(JSON.stringify(data.view.blocks[1])).toContain(
+      '"launch":{"target":"inbox","source":"mail"}',
+    );
+    expect(JSON.stringify(data)).not.toContain("/studio/workspaces/inbox");
   });
 });

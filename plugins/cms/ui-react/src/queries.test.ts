@@ -125,7 +125,7 @@ describe("CMS navigation query", () => {
             id: "publishing",
             pluginId: "content-pipeline",
             label: "Publishing",
-            rendererName: "PublishingWorkspace",
+            rendererName: "DeclarativeOperatorWorkspace",
             priority: 40,
             entityTypes: ["post"],
           },
@@ -178,20 +178,17 @@ describe("CMS workspace query", () => {
       return Response.json({
         workspace: {
           id: "publishing",
-          rendererName: "PublishingWorkspace",
+          rendererName: "DeclarativeOperatorWorkspace",
           data: {
-            summary: {
-              draft: 0,
-              queued: 1,
-              generating: 0,
-              failed: 0,
-              published: 0,
-              needsOperator: 0,
+            view: {
+              title: "Publishing desk",
+              blocks: [
+                {
+                  type: "stats",
+                  items: [{ label: "Queued", value: 1 }],
+                },
+              ],
             },
-            queue: [],
-            generating: [],
-            failures: [],
-            publishableEntityTypes: ["post"],
           },
         },
       });
@@ -210,10 +207,7 @@ describe("CMS workspace query", () => {
       "publishing",
       {},
     ]);
-    if (first.rendererName !== "PublishingWorkspace") {
-      throw new Error("Expected Publishing workspace data");
-    }
-    expect(first.data.summary.queued).toBe(1);
+    expect(first.data.view.title).toBe("Publishing desk");
     expect(second).toBe(first);
     expect(requests).toBe(1);
     client.clear();
@@ -226,15 +220,9 @@ describe("CMS workspace query", () => {
       return Response.json({
         workspace: {
           id: "inbox",
-          rendererName: "UnifiedInboxWorkspace",
+          rendererName: "DeclarativeOperatorWorkspace",
           data: {
-            summary: { open: 0, high: 0 },
-            sources: [],
-            entries: [],
-            errors: [],
-            total: 0,
-            offset: 50,
-            limit: 50,
+            view: { title: "Inbox", blocks: [] },
           },
         },
       });

@@ -1,5 +1,9 @@
 import { describe, expect, it } from "bun:test";
-import { SYSTEM_CHANNELS, type BaseEntity } from "@brains/plugins";
+import {
+  DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
+  SYSTEM_CHANNELS,
+  type BaseEntity,
+} from "@brains/plugins";
 import { createMockEntityPluginContext } from "@brains/test-utils";
 import { registerTopicsDashboardWidget } from "../../src/lib/dashboard-widget";
 import { TopicAdapter } from "../../src/lib/topic-adapter";
@@ -56,7 +60,7 @@ describe("registerTopicsDashboardWidget", () => {
       expect.objectContaining({
         id: "topics",
         group: "knowledge",
-        rendererName: "ListWidget",
+        rendererName: DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
         digestProvider: expect.any(Function),
       }),
     );
@@ -73,11 +77,14 @@ describe("registerTopicsDashboardWidget", () => {
       signal: new AbortController().signal,
     });
 
-    expect(data).toEqual({
+    expect(data.view.blocks[0]).toEqual({
+      type: "list",
+      id: "topics",
+      empty: "No topics yet.",
       items: [
         {
           id: "human-ai-collaboration",
-          name: "Human-AI Collaboration",
+          title: "Human-AI Collaboration",
           description: "Humans and AI systems work together.",
         },
       ],

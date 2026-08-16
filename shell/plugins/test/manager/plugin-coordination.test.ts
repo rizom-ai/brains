@@ -27,7 +27,7 @@ function createWidgetPayload(
     title: id,
     section: "primary",
     priority: 50,
-    rendererName: "StatsWidget",
+    rendererName: "DeclarativeOperatorWidget",
     dataProvider: async () => ({}),
   };
 }
@@ -130,13 +130,13 @@ describe("Plugin Coordination: Dashboard Widget Registration Timing", () => {
         ...createWidgetPayload("job-status", "system"),
         section: "secondary",
         priority: 20,
-        rendererName: "ListWidget",
+        rendererName: "DeclarativeOperatorWidget",
       });
       await harness.sendMessage("dashboard:register-widget", {
         ...createWidgetPayload("identity", "system"),
         section: "sidebar",
         priority: 5,
-        rendererName: "CustomWidget",
+        rendererName: "DeclarativeOperatorWidget",
       });
       return { success: true };
     });

@@ -31,7 +31,7 @@ function setup(): {
     id: "trusted-workspace",
     pluginId: "test-provider",
     label: "Trusted workspace",
-    rendererName: "PublishingWorkspace",
+    rendererName: "DeclarativeOperatorWorkspace",
     priority: 10,
     accessHandler: (actor) => actor.userPermissionLevel === "trusted",
     dataProvider: async (actor) => {
@@ -47,7 +47,7 @@ function setup(): {
     id: "admin-workspace",
     pluginId: "private-provider",
     label: "Admin workspace",
-    rendererName: "DirectorySyncWorkspace",
+    rendererName: "DeclarativeOperatorWorkspace",
     priority: 20,
     accessHandler: (actor) => actor.userPermissionLevel === "admin",
     dataProvider: async () => {

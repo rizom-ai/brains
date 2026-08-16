@@ -7,7 +7,7 @@ import {
   defineServicePlugin,
   defineWorkspaceAction,
   z,
-  type OperatorViewBlock,
+  type DashboardOperatorViewBlock,
 } from "@rizom/brain/services";
 
 // Account settings are principal-owned rather than deployment-owned. Field
@@ -34,6 +34,7 @@ const readingAccountSettings = defineAccountSettings({
 const refreshDigest = defineWorkspaceAction({
   name: "refresh-digest",
   label: "Refresh digest",
+  confirmation: { kind: "prepared" },
   input: z.object({ bookmarkId: z.string() }),
   output: z.object({ jobId: z.string() }),
   permission: "trusted",
@@ -46,8 +47,13 @@ const readingRow = z.object({
   wordCount: z.number().int().nonnegative().optional(),
 });
 
+const readingWorkspaceQuery = z.object({
+  tag: z.string().optional(),
+});
+
 const readingWorkspaceData = z.object({
   connected: z.boolean(),
+  selectedTag: z.string().optional(),
   bookmarks: z.array(readingRow),
   digestCount: z.number().int().nonnegative(),
 });
@@ -59,6 +65,7 @@ const readingWorkspace = defineCmsWorkspace({
   priority: 40,
   permission: "trusted",
   entities: [bookmark, readingDigest],
+  query: readingWorkspaceQuery,
   data: readingWorkspaceData,
   actions: [refreshDigest],
 
@@ -66,6 +73,23 @@ const readingWorkspace = defineCmsWorkspace({
     return {
       title: "Reading library",
       blocks: [
+        {
+          type: "query",
+          id: "reading-query",
+          controls: [
+            {
+              key: "tag",
+              label: "Tag",
+              value: data.selectedTag,
+              allLabel: "All tags",
+              options: [
+                ...new Set(data.bookmarks.flatMap((saved) => saved.tags)),
+              ]
+                .sort()
+                .map((tag) => ({ value: tag, label: tag })),
+            },
+          ],
+        },
         {
           type: "stats",
           items: [
@@ -141,7 +165,7 @@ const readingWidget = defineDashboardWidget({
   },
 
   view({ data }) {
-    const stats: OperatorViewBlock = {
+    const stats: DashboardOperatorViewBlock = {
       type: "stats",
       items: [
         { label: "Saved", value: data.bookmarks },
@@ -203,23 +227,34 @@ export default defineServicePlugin({
         const job = await jobs.enqueue(compileReadingDigest, input);
         return { jobId: job.id };
       },
+      ({ input }) => ({
+        summary: `Refresh the digest for ${input.bookmarkId}?`,
+        revision: input.bookmarkId,
+      }),
     );
 
     return [
       readingWorkspace.bind(context, {
         actions: [refreshDigestHandler],
-        async load({ entities, settings, signal }) {
+        async load({ entities, settings, signal, query }) {
           signal.throwIfAborted();
-          const [bookmarks, digests] = await Promise.all([
+          const selected = query.get(readingWorkspaceQuery);
+          const [allBookmarks, digests] = await Promise.all([
             entities.list(bookmark),
             entities.list(readingDigest),
           ]);
           const digestByBookmark = new Map(
             digests.map((digest) => [digest.metadata.bookmarkId, digest]),
           );
+          const bookmarks = selected.tag
+            ? allBookmarks.filter((saved) =>
+                saved.metadata.tags.includes(selected.tag ?? ""),
+              )
+            : allBookmarks;
 
           return {
             connected: settings !== null,
+            ...(selected.tag ? { selectedTag: selected.tag } : {}),
             bookmarks: bookmarks.map((saved) => {
               const digest = digestByBookmark.get(saved.id);
               return {

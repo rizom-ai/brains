@@ -1,0 +1,20 @@
+{
+  "name": "@fixture/public-authoring-operator-consumer",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "smoke": "bun import-smoke.ts"
+  },
+  "dependencies": {
+    "@fixture/mailbox-connection": "0.1.0",
+    "@fixture/reading-entities": "0.1.0",
+    "@fixture/reading-insights": "0.1.0",
+    "@fixture/reading-operator": "0.1.0",
+    "@rizom/brain": "0.2.0-alpha.295"
+  },
+  "devDependencies": {
+    "typescript": "^7.0.2"
+  }
+}

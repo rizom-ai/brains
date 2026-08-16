@@ -121,6 +121,8 @@ describe("renderConsoleStripHtml", () => {
     const html = renderConsoleStripHtml({ surfaces, sessionHref: "/logout" });
 
     expect(html).toContain("Authenticated");
+    expect(html).toContain('data-console-surface="dashboard"');
+    expect(html).toContain('data-console-surface="cms"');
     expect(html).not.toContain("Operator");
   });
 

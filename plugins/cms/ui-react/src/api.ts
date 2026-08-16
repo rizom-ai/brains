@@ -1,3 +1,5 @@
+import type { RuntimeCmsWorkspaceData } from "@brains/plugins";
+
 /**
  * Typed client for the CMS editor API served by plugins/cms.
  * Routes live under the configured CMS path and require an authenticated browser session.
@@ -26,12 +28,7 @@ export interface CmsWorkspaceInfo {
   id: string;
   pluginId: string;
   label: string;
-  rendererName:
-    | "PublishingWorkspace"
-    | "SiteWorkspace"
-    | "DirectorySyncWorkspace"
-    | "UnifiedInboxWorkspace"
-    | "EmailReplyDraftWorkspace";
+  rendererName: "DeclarativeOperatorWorkspace";
   priority: number;
   urlQuery?: true;
   entityTypes: string[];
@@ -43,359 +40,11 @@ export interface CmsNavigation {
   workspaces: CmsWorkspaceInfo[];
 }
 
-export interface PublicationQueueItem {
-  entityId: string;
-  entityType: string;
-  title: string;
-  position: number;
-  queuedAt: string;
-  destination: string;
-  scheduledFor?: string;
-}
-
-export interface PublicationJobItem {
+export interface CmsWorkspaceData {
   id: string;
-  label: string;
-  target: string;
-  status: "pending" | "processing";
+  rendererName: "DeclarativeOperatorWorkspace";
+  data: RuntimeCmsWorkspaceData;
 }
-
-export interface PublicationFailureItem {
-  entityId: string;
-  entityType: string;
-  title: string;
-  error: string;
-  retryCount: number;
-}
-
-export interface PublicationPipelineSnapshot {
-  summary: {
-    draft: number;
-    queued: number;
-    generating: number;
-    failed: number;
-    published: number;
-    needsOperator: number;
-  };
-  queue: PublicationQueueItem[];
-  generating: PublicationJobItem[];
-  failures: PublicationFailureItem[];
-  publishableEntityTypes: string[];
-}
-
-export interface SiteBuildSuccess {
-  jobId: string;
-  completedAt: string;
-  routesBuilt: number;
-  warnings: string[];
-}
-
-export interface SiteBuildFailure {
-  jobId: string;
-  completedAt: string;
-  message: string;
-}
-
-export interface SiteEnvironmentSnapshot {
-  environment: "preview" | "production";
-  active?: {
-    jobId?: string;
-    state: "debouncing" | "queued" | "building";
-    requestedAt: string;
-    startedAt?: string;
-  };
-  lastSuccess?: SiteBuildSuccess;
-  lastFailure?: SiteBuildFailure;
-}
-
-export interface SiteWorkspaceSnapshot {
-  site: {
-    title: string;
-    previewUrl?: string;
-    liveUrl?: string;
-  };
-  automation: {
-    autoRebuild: boolean;
-    debounceMs: number;
-    defaultEnvironment: "preview" | "production";
-  };
-  environments: SiteEnvironmentSnapshot[];
-  recentBuilds: Array<{
-    jobId: string;
-    environment: "preview" | "production";
-    outcome: "succeeded" | "failed";
-    completedAt: string;
-    routesBuilt?: number;
-    warnings?: string[];
-    message?: string;
-  }>;
-  routes: Array<{ id: string; path: string; title: string }>;
-}
-
-export interface DirectorySyncRunMetrics {
-  imported: number;
-  skipped: number;
-  failed: number;
-  quarantined: number;
-  exported: number;
-}
-
-export interface DirectorySyncActiveRun extends DirectorySyncRunMetrics {
-  id: string;
-  source: "manual" | "periodic" | "watcher" | "save";
-  state: "pulling" | "scanning" | "importing" | "settling";
-  startedAt: string;
-  jobId?: string;
-  batchId?: string;
-}
-
-export interface DirectorySyncRecentRun extends DirectorySyncRunMetrics {
-  id: string;
-  source: "manual" | "periodic" | "watcher" | "save";
-  outcome: "succeeded" | "attention" | "failed";
-  startedAt: string;
-  completedAt: string;
-  summary: string;
-}
-
-export interface DirectorySyncIssue {
-  id: string;
-  kind: "quarantined" | "import" | "export" | "git" | "source";
-  path?: string;
-  message: string;
-  occurredAt: string;
-}
-
-export interface DirectorySyncWorkspaceSnapshot {
-  health: "healthy" | "active" | "attention";
-  directory: {
-    displayPath: string;
-    exists: boolean;
-    watching: boolean;
-    totalFiles: number;
-    byEntityType: Record<string, number>;
-    lastSettledAt?: string;
-  };
-  git: {
-    branch: string;
-    remoteLabel?: string;
-    hasChanges: boolean;
-    ahead: number;
-    behind: number;
-    lastCommit?: string;
-    changedFiles: Array<{ path: string; status: string }>;
-    changedFilesTruncated: boolean;
-  } | null;
-  automation: {
-    autoSync: boolean;
-    watchIntervalMs: number;
-    remoteIntervalMinutes?: number;
-    commitDebounceMs?: number;
-    deleteOnFileRemoval: boolean;
-  };
-  activeRun?: DirectorySyncActiveRun;
-  recentRuns: DirectorySyncRecentRun[];
-  issues: DirectorySyncIssue[];
-}
-
-export interface InboxWorkspaceFacetDefinition {
-  key: string;
-  label: string;
-  values: Array<{ value: string; label: string }>;
-}
-
-export interface InboxWorkspaceFollowUp {
-  kind: string;
-  label: string;
-  href: string;
-  state?: Record<string, unknown>;
-}
-
-export interface InboxWorkspaceEntry {
-  source: { sourceId: string; displayName: string };
-  item: {
-    id: string;
-    title: string;
-    summary?: string;
-    contact?: { label: string; personId?: string };
-    threadOrdinal?: number;
-    receivedAt: string;
-    urgency: "high" | "normal";
-    facets?: Record<string, string>;
-    entityRef?: { entityType: string; entityId: string };
-    actions: Array<{ id: string; label: string; confirm?: boolean }>;
-  };
-  detailAvailable?: boolean;
-  contactHref?: string;
-  followUps: InboxWorkspaceFollowUp[];
-}
-
-export interface InboxWorkspaceSnapshot {
-  summary: { open: number; high: number };
-  sources: Array<{
-    source: {
-      sourceId: string;
-      displayName: string;
-      facets?: InboxWorkspaceFacetDefinition[];
-    };
-    open: number;
-    high: number;
-    available: boolean;
-  }>;
-  entries: InboxWorkspaceEntry[];
-  errors: Array<{
-    source: { sourceId: string; displayName: string };
-    error: "Source unavailable";
-  }>;
-  total: number;
-  offset: number;
-  limit: number;
-}
-
-export interface InboxWorkspaceQuery {
-  sourceId?: string;
-  urgency?: "high" | "normal";
-  offset: number;
-  limit: number;
-}
-
-export interface InboxWorkspaceAction {
-  sourceId: string;
-  itemId: string;
-  actionId: string;
-  confirmed?: boolean;
-}
-
-export type InboxWorkspaceActionResult =
-  | { kind: "confirmation"; summary: string }
-  | { kind: "completed" }
-  | { kind: "error"; error: "Invalid inbox action" | "Inbox action failed" };
-
-export interface InboxWorkspaceDetailRequest {
-  type: "detail";
-  sourceId: string;
-  itemId: string;
-}
-
-export type InboxWorkspaceDetailResult =
-  | {
-      kind: "detail";
-      detail: { kind: "plain"; text: string; truncated: boolean };
-    }
-  | {
-      kind: "detail-unavailable";
-      error: "Original content is unavailable";
-    };
-
-export type EmailReplyDraftView =
-  | {
-      text: string;
-      revision: number;
-      status: "draft";
-      updatedAt: string;
-    }
-  | {
-      text: string;
-      revision: number;
-      status: "sent";
-      updatedAt: string;
-      sentAt: string;
-    };
-
-export interface EmailReplyDraftWorkspaceSnapshot {
-  mailItemId: string | null;
-  draft: EmailReplyDraftView | null;
-}
-
-export interface EmailReplyDraftSourceRequest {
-  type: "source";
-  mailItemId: string;
-}
-
-export type EmailReplyDraftSourceResult =
-  | {
-      kind: "source";
-      source: {
-        from: { name?: string; address: string };
-        replyTo?: { name?: string; address: string };
-        subject: string;
-        receivedAt: string;
-        text: string;
-        truncated: boolean;
-      };
-    }
-  | {
-      kind: "source-unavailable";
-      error: "Original content is unavailable";
-    };
-
-export type EmailReplyDraftAction =
-  | { type: "generate"; mailItemId: string }
-  | {
-      type: "save";
-      mailItemId: string;
-      text: string;
-      baseRevision: number;
-    }
-  | {
-      type: "send";
-      mailItemId: string;
-      revision: number;
-      confirmed: boolean;
-    };
-
-export type EmailReplyDraftActionResult =
-  | {
-      kind: "draft";
-      draft: EmailReplyDraftView;
-    }
-  | {
-      kind: "confirmation";
-      summary: string;
-    }
-  | {
-      kind: "sent";
-      draft: Extract<EmailReplyDraftView, { status: "sent" }>;
-    }
-  | {
-      kind: "error";
-      error:
-        | "Invalid draft action"
-        | "Draft generation failed"
-        | "Draft save failed"
-        | "Draft changed; reload before saving"
-        | "Draft changed; review before sending"
-        | "Email delivery is unavailable"
-        | "Original content is unavailable"
-        | "Email delivery failed";
-    };
-
-export type CmsWorkspaceData =
-  | {
-      id: string;
-      rendererName: "PublishingWorkspace";
-      data: PublicationPipelineSnapshot;
-    }
-  | {
-      id: string;
-      rendererName: "SiteWorkspace";
-      data: SiteWorkspaceSnapshot;
-    }
-  | {
-      id: string;
-      rendererName: "DirectorySyncWorkspace";
-      data: DirectorySyncWorkspaceSnapshot;
-    }
-  | {
-      id: string;
-      rendererName: "UnifiedInboxWorkspace";
-      data: InboxWorkspaceSnapshot;
-    }
-  | {
-      id: string;
-      rendererName: "EmailReplyDraftWorkspace";
-      data: EmailReplyDraftWorkspaceSnapshot;
-    };
 
 export interface PublishConfirmationArgs {
   confirmed: true;
@@ -416,26 +65,6 @@ export type PublishingAction =
       type: "publish";
       confirmation?: PublishConfirmationArgs;
     } & PublishingTargetAction);
-
-export type SiteWorkspaceAction =
-  { type: "build-preview" } | { type: "build-production"; confirmed: true };
-
-export interface DirectorySyncWorkspaceAction {
-  type: "sync-now";
-}
-
-export interface DirectorySyncWorkspaceActionResult {
-  accepted: boolean;
-  status: "queued" | "settled";
-  runId?: string;
-  jobId?: string;
-  batchId?: string;
-}
-
-export interface SiteWorkspaceActionResult {
-  accepted: true;
-  environment: "preview" | "production";
-}
 
 export type PublishingActionResult =
   | { success: true; [key: string]: unknown }
@@ -601,7 +230,6 @@ export async function fetchWorkspace(
 export async function runWorkspaceAction<TResult>(
   id: string,
   action: unknown,
-  signal?: AbortSignal,
 ): Promise<TResult> {
   const { result } = await requestJson<{ result: TResult }>(
     cmsApiPath("workspace"),
@@ -609,7 +237,6 @@ export async function runWorkspaceAction<TResult>(
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id, action }),
-      ...(signal ? { signal } : {}),
     },
   );
   return result;

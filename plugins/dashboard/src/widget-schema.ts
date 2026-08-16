@@ -1,6 +1,6 @@
+import { DECLARATIVE_DASHBOARD_WIDGET_RENDERER } from "@brains/plugins";
 import type {
   DashboardWidgetSection,
-  WidgetComponent,
   WidgetVisibility,
 } from "./widget-registry";
 import { z } from "@brains/utils/zod";
@@ -31,11 +31,10 @@ export interface WidgetMeta {
   group: string;
   priority: number;
   section: DashboardWidgetSection;
-  rendererName: string;
+  rendererName: typeof DECLARATIVE_DASHBOARD_WIDGET_RENDERER;
   visibility: WidgetVisibility;
   needsAttention?: number | undefined;
   digest?: WidgetDigestLine[] | undefined;
-  component?: WidgetComponent | undefined;
 }
 
 export const widgetMetaSchema: z.ZodType<WidgetMeta, WidgetMeta> = z.object({
@@ -46,11 +45,10 @@ export const widgetMetaSchema: z.ZodType<WidgetMeta, WidgetMeta> = z.object({
   group: z.string().min(1),
   priority: z.number(),
   section: z.enum(["primary", "secondary", "sidebar"]),
-  rendererName: z.string(),
+  rendererName: z.literal(DECLARATIVE_DASHBOARD_WIDGET_RENDERER),
   visibility: widgetVisibilitySchema,
   needsAttention: z.number().int().nonnegative().optional(),
   digest: z.array(widgetDigestLineSchema).max(4).optional(),
-  component: z.custom<WidgetComponent>().optional(),
 });
 
 export interface WidgetData {

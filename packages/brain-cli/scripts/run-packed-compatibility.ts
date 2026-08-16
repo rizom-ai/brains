@@ -15,6 +15,7 @@ const compatibilityTests = [
   "packages/brain-cli/test/public-authoring-phase3-packed.test.ts",
   "packages/brain-cli/test/public-authoring-phase4-packed.test.ts",
   "packages/brain-cli/test/public-authoring-phase5-packed.test.ts",
+  "packages/brain-cli/test/public-authoring-phase6-packed.test.ts",
 ] as const;
 
 let activeChild: ReturnType<typeof Bun.spawn> | undefined;

@@ -1,4 +1,9 @@
-import { SYSTEM_CHANNELS, type EntityPluginContext } from "@brains/plugins";
+import {
+  SYSTEM_CHANNELS,
+  defineDashboardWidget,
+  registerBuiltInDashboardWidget,
+  type EntityPluginContext,
+} from "@brains/plugins";
 import { firstSentence } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
 import type { ActionItemEntity } from "../../schemas/conversation-memory";
@@ -6,7 +11,7 @@ import { ACTION_ITEM_ENTITY_TYPE } from "../constants";
 import { channelLabel, formatAge } from "./format";
 
 const MAX_ITEMS = 6;
-const WIDGET_ID = "conversation-memory:action-items";
+const WIDGET_ID = "action-items";
 
 export interface ActionItemWidgetItem {
   id: string;
@@ -22,8 +27,63 @@ export interface ActionItemsWidgetData {
   openCount: number;
 }
 
-const actionItemsDigestSourceSchema = z.object({
-  openCount: z.number(),
+const actionItemsWidgetDataSchema = z.object({
+  items: z.array(
+    z.object({
+      id: z.string(),
+      name: z.string(),
+      description: z.string().optional(),
+      meta: z.array(z.string()),
+      status: z.enum(["open", "done", "dropped"]),
+    }),
+  ),
+  openCount: z.number().int().nonnegative(),
+});
+
+const actionItemsWidget = defineDashboardWidget({
+  id: WIDGET_ID,
+  title: "Open action items",
+  group: "knowledge",
+  placement: "secondary",
+  priority: 25,
+  permission: "public",
+  data: actionItemsWidgetDataSchema,
+  digest: ({ data }) => ({
+    items: [
+      {
+        label: "Open actions",
+        value: String(data.openCount),
+        ...(data.openCount > 0 ? { tone: "warn" } : {}),
+      },
+    ],
+    attention: data.openCount,
+  }),
+  view: ({ data }) => ({
+    blocks: [
+      {
+        type: "list",
+        id: "action-items",
+        empty: "No action items yet.",
+        items: data.items.map((item) => ({
+          id: item.id,
+          title: item.name,
+          ...(item.description ? { description: item.description } : {}),
+          metadata: item.meta,
+          badges: [
+            {
+              label: item.status,
+              tone:
+                item.status === "open"
+                  ? "warn"
+                  : item.status === "done"
+                    ? "good"
+                    : "neutral",
+            },
+          ],
+        })),
+      },
+    ],
+  }),
 });
 
 function statusOrder(status: ActionItemEntity["metadata"]["status"]): number {
@@ -91,26 +151,12 @@ export function registerActionItemsWidget(params: {
   context.messaging.subscribe(
     SYSTEM_CHANNELS.pluginsRegistered,
     async (): Promise<{ success: boolean }> => {
-      await context.dashboard.registerWidget({
-        id: WIDGET_ID,
-        title: "Open action items",
-        group: "knowledge",
-        section: "secondary",
-        priority: 25,
-        rendererName: "ListWidget",
-        dataProvider: () => buildActionItemsWidgetData(context),
-        digestProvider: (data: unknown) => {
-          const { openCount } = actionItemsDigestSourceSchema.parse(data);
-          return {
-            digest: [
-              {
-                label: "Open actions",
-                value: String(openCount),
-                ...(openCount > 0 ? { tone: "warn" } : {}),
-              },
-            ],
-            needsAttention: openCount,
-          };
+      await registerBuiltInDashboardWidget({
+        context,
+        definition: actionItemsWidget,
+        load: ({ signal }) => {
+          signal.throwIfAborted();
+          return buildActionItemsWidgetData(context);
         },
       });
       return { success: true };

@@ -38,7 +38,7 @@ describe("DashboardDataSource", () => {
         title: "Entity Stats",
         section: "primary",
         priority: 10,
-        rendererName: "StatsWidget",
+        rendererName: "DeclarativeOperatorWidget",
         dataProvider: async () => ({ notes: 42, links: 15 }),
       };
 
@@ -49,7 +49,7 @@ describe("DashboardDataSource", () => {
         title: "Active Jobs",
         section: "secondary",
         priority: 20,
-        rendererName: "ListWidget",
+        rendererName: "DeclarativeOperatorWidget",
         dataProvider: async () => ({ items: ["job1", "job2"] }),
       };
 
@@ -85,7 +85,7 @@ describe("DashboardDataSource", () => {
         title: "Good Widget",
         section: "primary",
         priority: 10,
-        rendererName: "StatsWidget",
+        rendererName: "DeclarativeOperatorWidget",
         dataProvider: async () => ({ value: 123 }),
       };
 
@@ -96,7 +96,7 @@ describe("DashboardDataSource", () => {
         title: "Bad Widget",
         section: "primary",
         priority: 20,
-        rendererName: "StatsWidget",
+        rendererName: "DeclarativeOperatorWidget",
         dataProvider: async () => {
           throw new Error("Data fetch failed");
         },
@@ -130,7 +130,7 @@ describe("DashboardDataSource", () => {
         title: "Public",
         section: "primary",
         priority: 10,
-        rendererName: "StatsWidget",
+        rendererName: "DeclarativeOperatorWidget",
         dataProvider: async () => ({ value: "public" }),
       });
       registry.register({
@@ -140,7 +140,7 @@ describe("DashboardDataSource", () => {
         title: "Trusted",
         section: "primary",
         priority: 20,
-        rendererName: "StatsWidget",
+        rendererName: "DeclarativeOperatorWidget",
         visibility: "trusted",
         dataProvider: async () => ({ value: "trusted" }),
       });
@@ -151,7 +151,7 @@ describe("DashboardDataSource", () => {
         title: "Admin",
         section: "primary",
         priority: 30,
-        rendererName: "StatsWidget",
+        rendererName: "DeclarativeOperatorWidget",
         visibility: "admin",
         dataProvider: async () => ({ value: "admin" }),
       });
@@ -186,9 +186,7 @@ describe("DashboardDataSource", () => {
         description: "A test widget",
         section: "primary",
         priority: 10,
-        rendererName: "CustomWidget",
-        clientStyles: ".test-widget {}",
-        clientScript: "window.__testWidget = true;",
+        rendererName: "DeclarativeOperatorWidget",
         dataProvider: async () => ({ value: 1 }),
       };
 
@@ -210,11 +208,10 @@ describe("DashboardDataSource", () => {
         expect(widgetData.widget.section).toBe("primary");
         expect(widgetData.widget.group).toBe("knowledge");
         expect(widgetData.widget.priority).toBe(10);
-        expect(widgetData.widget.rendererName).toBe("CustomWidget");
-        // Runtime providers and client assets should not leak into data.
+        expect(widgetData.widget.rendererName).toBe(
+          "DeclarativeOperatorWidget",
+        );
         expect(widgetData.widget).not.toHaveProperty("dataProvider");
-        expect(widgetData.widget).not.toHaveProperty("clientStyles");
-        expect(widgetData.widget).not.toHaveProperty("clientScript");
       }
     });
   });
@@ -228,7 +225,7 @@ describe("DashboardDataSource", () => {
         title: "Pipeline",
         section: "primary",
         priority: 10,
-        rendererName: "PipelineWidget",
+        rendererName: "DeclarativeOperatorWidget",
         // Static fallbacks that the provider should override.
         digest: [{ label: "Workflow", value: "static" }],
         needsAttention: 0,
@@ -255,26 +252,6 @@ describe("DashboardDataSource", () => {
       expect(widget?.widget.needsAttention).toBe(2);
     });
 
-    it("normalizes deprecated live attention counts", async () => {
-      registry.register({
-        id: "legacy-live-count",
-        pluginId: "legacy",
-        group: "publishing",
-        title: "Legacy Live Count",
-        rendererName: "StatsWidget",
-        dataProvider: async () => ({ open: 4 }),
-        digestProvider: (data) => ({
-          needsOperator: (data as { open: number }).open,
-        }),
-      });
-
-      const result = await datasource.getDashboardData();
-
-      expect(
-        result.widgets["legacy:legacy-live-count"]?.widget.needsAttention,
-      ).toBe(4);
-    });
-
     it("should fall back to the static digest when the provider throws", async () => {
       registry.register({
         id: "flaky",
@@ -283,7 +260,7 @@ describe("DashboardDataSource", () => {
         title: "Flaky",
         section: "primary",
         priority: 10,
-        rendererName: "StatsWidget",
+        rendererName: "DeclarativeOperatorWidget",
         digest: [{ label: "Static", value: "kept" }],
         needsAttention: 1,
         dataProvider: async () => ({ ok: true }),

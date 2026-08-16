@@ -2,10 +2,7 @@ export { InboxDataSource } from "./inbox-datasource";
 export { InboxOperatorService } from "./operator-service";
 export { createInboxListTool } from "./inbox-tool";
 export { createUnifiedInboxDigest, registerUnifiedInboxDigest } from "./digest";
-export {
-  UnifiedInboxDashboardWidget,
-  registerUnifiedInboxDashboardWidget,
-} from "./dashboard-widget";
+export { registerUnifiedInboxDashboardWidget } from "./dashboard-widget";
 export { registerUnifiedInboxCmsWorkspace } from "./operator-cms";
 export { UnifiedInboxPlugin, unifiedInboxPlugin } from "./plugin";
 export {

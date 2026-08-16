@@ -1,12 +1,12 @@
 # Public authoring `0.2` reference packages
 
-These six standalone packages are the executable reference for the external
-`0.2.x` authoring API. They are deliberately one cohesive example rather than
+The six original standalone packages plus the two additive operator packages
+are the executable reference for the external `0.2.x` authoring API. They are deliberately one cohesive example rather than
 six unrelated snippets: a Brain that saves bookmarks, derives reading digests,
 accepts webhook and Campfire events, and renders a reading-library site.
 
-> **Last exact registry evidence:** `@rizom/brain@0.2.0-alpha.272` and
-> `@rizom/site@0.2.0-alpha.233`. These are review candidates, not stable release
+> **Last exact six-package registry baseline:** `@rizom/brain@0.2.0-alpha.272`
+> and `@rizom/site@0.2.0-alpha.233`. These are review candidates, not stable release
 > recommendations.
 
 Start with the practical guide at `docs/external-plugin-authoring.md`. Use this
@@ -39,14 +39,16 @@ configuration that have actually passed the package boundary.
 
 ## Read in this order
 
-| Step | Package                                                 | What it demonstrates                                                                                          |
-| ---- | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| 1    | [`entity`](./entity/src/index.ts)                       | `defineEntity`, inferred `EntityOf`, definition-based projection, typed target writes                         |
-| 2    | [`service`](./service/src/index.ts)                     | Parsed config/setup state, resources/prompts/templates/views, reusable job contract, handler, tools           |
-| 3    | [`interface`](./interface/src/index.ts)                 | Public and protocol routes, runtime-derived caller, cross-package job enqueue, supervised daemon              |
-| 4    | [`message-interface`](./message-interface/src/index.ts) | Channel/recipient declaration, authenticated inbound messages, lazy attachments, normalized send/edit/deliver |
-| 5    | [`site`](./site/src/index.tsx)                          | One-import site definition, typed content, routes/layout, entity display, CSS, head script, static asset      |
-| 6    | [`brain-definition`](./brain-definition/src/index.ts)   | Typed `use()`, configured definitions, bundle membership, identity, and site selection                        |
+| Step | Package                                                                   | What it demonstrates                                                                                          |
+| ---- | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| 1    | [`entity`](./entity/src/index.ts)                                         | `defineEntity`, inferred `EntityOf`, definition-based projection, typed target writes                         |
+| 2    | [`service`](./service/src/index.ts)                                       | Parsed config/setup state, resources/prompts/templates/views, reusable job contract, handler, tools           |
+| 3    | [`interface`](./interface/src/index.ts)                                   | Public and protocol routes, runtime-derived caller, cross-package job enqueue, supervised daemon              |
+| 4    | [`message-interface`](./message-interface/src/index.ts)                   | Channel/recipient declaration, authenticated inbound messages, lazy attachments, normalized send/edit/deliver |
+| 5    | [`site`](./site/src/index.tsx)                                            | One-import site definition, typed content, routes/layout, entity display, CSS, head script, static asset      |
+| 6    | [`brain-definition`](./brain-definition/src/index.ts)                     | Typed `use()`, configured definitions, bundle membership, identity, and site selection                        |
+| 7    | [`operator-surface`](./operator-surface/src/index.ts)                     | Account settings, Dashboard semantics, CMS query state/catalogs/actions, and prepared confirmation            |
+| 8    | [`account-settings-interface`](./account-settings-interface/src/index.ts) | Interface-family account settings and runtime-owned account daemon lifecycle                                  |
 
 The message transport keeps its ordinary protocol client in
 [`campfire-client.ts`](./message-interface/src/campfire-client.ts). That split
@@ -57,15 +59,17 @@ its transport SDK code.
 
 [`operator-surface`](./operator-surface/) and
 [`account-settings-interface`](./account-settings-interface/) are the checked
-Phase 1 contract fixtures for the approved post-`v0.2.0` Dashboard, CMS, and
-per-account settings milestone. The second fixture keeps the IMAP proof in the
-interface family that owns inbound connection lifecycle. Both compile against
-local public entries, and their approved exports are classified in the stable
-ledger. They remain excluded from packing and runtime evidence until the later
-host/storage phases land; their provisional `>=0.2.1` peer lower bounds must
-advance to the first release that actually contains the complete contract. The
-operator fixture's [built-in port sketches](./operator-surface/PORTS.md) record
-what the generic contract can express and what should remain private.
+fixtures for the post-`v0.2.0` Dashboard, CMS, and per-account settings
+milestone. The second fixture keeps the IMAP proof in the interface family that
+owns inbound connection lifecycle. Their approved exports are classified in
+the stable ledger, and the Phase 6 packed consumer installs both with the
+entity/service dependencies from one immutable Brain tarball. The operator
+fixture compiles typed Dashboard and CMS profiles, host-owned query state,
+dynamic entity catalogs, and prepared confirmation without UI code. Their
+provisional `>=0.2.1` peer lower bounds must advance to the first release that
+actually contains the complete contract. The operator fixture's
+[capability inventory](./operator-surface/CAPABILITY_INVENTORY.md) records the
+checked built-in equivalence boundary.
 
 ## Entity-to-template flow
 
@@ -177,7 +181,7 @@ each scenario keeps isolated mutable state:
 bun run test:packed:compat
 ```
 
-The five local packed files are intentionally skipped by ordinary `bun test`
+The six local packed files are intentionally skipped by ordinary `bun test`
 unless `RIZOM_PUBLIC_API_PACKED_EVIDENCE=1`; use the command above rather than
 setting the flag directly. The canonical packed consumer remains in ordinary
 tests.
@@ -192,7 +196,7 @@ bun test packages/brain-cli/test/public-authoring-registry-packed.test.ts
 ```
 
 It verifies installed versions, licenses, declarations, export maps, removed
-entry points, all six fixture builds, and standalone startup. It refuses ranges
+entry points, all seven non-site fixture builds, and standalone startup. It refuses ranges
 and requires every golden Brain peer lower bound to match the nominated alpha.
 
 ## Contract files

@@ -3,6 +3,9 @@ import type { ContentVisibility } from "@brains/entity-service";
 import type { UserPermissionLevel } from "@brains/templates";
 
 export const CMS_WORKSPACE_REGISTER_MESSAGE = "cms:register-workspace";
+export const CMS_WORKSPACE_UNREGISTER_MESSAGE = "cms:unregister-workspace";
+export const DECLARATIVE_CMS_WORKSPACE_RENDERER =
+  "DeclarativeOperatorWorkspace";
 
 export interface CmsWorkspaceActor {
   interfaceType: "cms";
@@ -28,11 +31,7 @@ export function assertCmsWorkspaceAdmin(
 
 /** Optional server-side capability hosted by the first-party CMS. */
 export type CmsWorkspaceRendererName =
-  | "PublishingWorkspace"
-  | "SiteWorkspace"
-  | "DirectorySyncWorkspace"
-  | "UnifiedInboxWorkspace"
-  | "EmailReplyDraftWorkspace";
+  typeof DECLARATIVE_CMS_WORKSPACE_RENDERER;
 
 export interface CmsWorkspaceRegistration {
   id: string;
@@ -86,4 +85,9 @@ export interface CmsWorkspaceDescriptor {
 
 export interface CmsWorkspaceRegistrationResult {
   workspaceUrl: string;
+}
+
+export interface CmsWorkspaceUnregistration {
+  pluginId: string;
+  workspaceId?: string | undefined;
 }

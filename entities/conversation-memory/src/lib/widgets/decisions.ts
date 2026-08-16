@@ -1,11 +1,17 @@
-import { SYSTEM_CHANNELS, type EntityPluginContext } from "@brains/plugins";
+import {
+  SYSTEM_CHANNELS,
+  defineDashboardWidget,
+  registerBuiltInDashboardWidget,
+  type EntityPluginContext,
+} from "@brains/plugins";
+import { z } from "@brains/utils/zod";
 import { firstSentence } from "@brains/utils/string-utils";
 import type { DecisionEntity } from "../../schemas/conversation-memory";
 import { DECISION_ENTITY_TYPE } from "../constants";
 import { channelLabel, formatTimeRange } from "./format";
 
 const MAX_ITEMS = 6;
-const WIDGET_ID = "conversation-memory:decisions";
+const WIDGET_ID = "decisions";
 
 export interface DecisionWidgetItem {
   id: string;
@@ -18,6 +24,49 @@ export interface DecisionWidgetItem {
 export interface DecisionsWidgetData {
   items: DecisionWidgetItem[];
 }
+
+const decisionsWidgetDataSchema = z.object({
+  items: z.array(
+    z.object({
+      id: z.string(),
+      name: z.string(),
+      description: z.string().optional(),
+      meta: z.array(z.string()),
+      status: z.enum(["active", "superseded"]),
+    }),
+  ),
+});
+
+const decisionsWidget = defineDashboardWidget({
+  id: WIDGET_ID,
+  title: "Recent decisions",
+  group: "knowledge",
+  placement: "secondary",
+  priority: 30,
+  permission: "public",
+  data: decisionsWidgetDataSchema,
+  view: ({ data }) => ({
+    blocks: [
+      {
+        type: "list",
+        id: "decisions",
+        empty: "No decisions recorded yet.",
+        items: data.items.map((item) => ({
+          id: item.id,
+          title: item.name,
+          ...(item.description ? { description: item.description } : {}),
+          metadata: item.meta,
+          badges: [
+            {
+              label: item.status,
+              tone: item.status === "active" ? "good" : "neutral",
+            },
+          ],
+        })),
+      },
+    ],
+  }),
+});
 
 function statusOrder(status: DecisionEntity["metadata"]["status"]): number {
   return status === "active" ? 0 : 1;
@@ -74,14 +123,13 @@ export function registerDecisionsWidget(params: {
   context.messaging.subscribe(
     SYSTEM_CHANNELS.pluginsRegistered,
     async (): Promise<{ success: boolean }> => {
-      await context.dashboard.registerWidget({
-        id: WIDGET_ID,
-        title: "Recent decisions",
-        group: "knowledge",
-        section: "secondary",
-        priority: 30,
-        rendererName: "ListWidget",
-        dataProvider: () => buildDecisionsWidgetData(context),
+      await registerBuiltInDashboardWidget({
+        context,
+        definition: decisionsWidget,
+        load: ({ signal }) => {
+          signal.throwIfAborted();
+          return buildDecisionsWidgetData(context);
+        },
       });
       return { success: true };
     },

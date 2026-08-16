@@ -19,7 +19,6 @@ export function assessment(config: unknown = {}): Plugin[] {
 }
 
 export { SwotAdapter, swotAdapter } from "./adapters/swot-adapter";
-export { SwotWidget } from "./widgets/swot-widget";
 export {
   buildCapabilityProfiles,
   buildCapabilityProfilesFromEntities,

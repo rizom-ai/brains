@@ -2,14 +2,13 @@
 import { describe, expect, test } from "bun:test";
 import { render } from "preact-render-to-string";
 import {
-  AgentProximityWidget,
   ProximityMap,
   proximityMapWidgetStyles,
 } from "../src/widgets/proximity-map";
 import { proximityMapScript } from "../src/widgets/proximity-map-script";
 import type { ProximityMapData } from "../src/lib/proximity-map-schema";
 
-test("proximity map owns its dashboard styles", () => {
+test("proximity map owns its site styles", () => {
   expect(proximityMapWidgetStyles).toContain(".proximity-field");
   expect(proximityMapWidgetStyles).toContain("prefers-reduced-motion");
 });
@@ -215,33 +214,6 @@ describe("ProximityMap", () => {
     expect(render(<ProximityMap data={data} />)).not.toContain(
       "proximity-field--dense",
     );
-  });
-
-  test("renders a useful empty state and centroid notice", () => {
-    const html = render(
-      <AgentProximityWidget
-        title="Agent Proximity"
-        data={{
-          center: { kind: "centroid" },
-          nodes: [],
-          clusters: [],
-          sightings: [],
-          distanceRange: { min: 0, max: 0 },
-          pendingCount: 2,
-        }}
-      />,
-    );
-
-    expect(html).toContain("No indexed agents yet");
-    expect(html).toContain("Identity not indexed yet");
-  });
-
-  test("fails closed on invalid widget data", () => {
-    const html = render(
-      <AgentProximityWidget title="Agent Proximity" data={{ nodes: [] }} />,
-    );
-
-    expect(html).toContain("Nothing to show yet");
   });
 });
 

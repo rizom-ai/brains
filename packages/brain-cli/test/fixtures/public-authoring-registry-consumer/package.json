@@ -7,6 +7,7 @@
   },
   "dependencies": {
     "@fixture/reader-brain": "file:__BRAIN_DEFINITION_TARBALL__",
+    "@fixture/reading-operator": "0.1.0",
     "@rizom/brain": "__NOMINATED_BRAIN_VERSION__"
   }
 }

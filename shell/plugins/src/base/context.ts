@@ -34,6 +34,7 @@ import {
   createPluginsNamespace,
   createProfileKindsNamespace,
 } from "./namespaces";
+import { createCmsNamespace, type ICmsNamespace } from "./cms-namespace";
 import { createDashboardNamespace } from "./dashboard-namespace";
 import type { IDashboardNamespace } from "./dashboard-namespace";
 import type {
@@ -202,6 +203,9 @@ export interface BasePluginContext {
   /** Dashboard widget contribution */
   readonly dashboard: IDashboardNamespace;
 
+  /** CMS workspace contribution */
+  readonly cms: ICmsNamespace;
+
   // ============================================================================
   // Job Queue (monitoring + scoped write)
   // ============================================================================
@@ -352,6 +356,11 @@ export function createBasePluginContext(
     messaging,
 
     dashboard: createDashboardNamespace(
+      messaging,
+      pluginId,
+      (channel) => shell.getMessageBus().hasHandlers?.(channel) ?? false,
+    ),
+    cms: createCmsNamespace(
       messaging,
       pluginId,
       (channel) => shell.getMessageBus().hasHandlers?.(channel) ?? false,
