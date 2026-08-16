@@ -1,0 +1,388 @@
+import { afterEach, describe, expect, it } from "bun:test";
+import { spawn } from "node:child_process";
+import {
+  mkdir,
+  mkdtemp,
+  readFile,
+  readdir,
+  rm,
+  writeFile,
+} from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import {
+  BrokerConnection,
+  createBrokerHealthCheck,
+  getGitRemoteFingerprint,
+  gitBrokerSocketPath,
+  probeBrokerActivity,
+} from "@brains/directory-sync";
+import { superviseRuntimeChildren } from "../src/lib/process-supervisor";
+import type { CommandResult } from "../src/lib/command-result";
+
+/**
+ * Phase 6 of docs/plans/directory-sync-git-execution-broker.md.
+ *
+ * The plan is explicit that this may not be a unit test observing signals, so
+ * everything here is real: a real supervisor spawning real child processes, a
+ * real broker owning a real Git checkout, a real mutation, and a real Git
+ * child whose completion never arrives. The only thing injected is the stall
+ * itself — a `post-commit` hook that blocks after the commit object is
+ * written, which is what a lost child completion looks like from outside.
+ */
+
+const LINUX = process.platform === "linux";
+const ENTRY = join(import.meta.dir, "fixtures", "broker-runtime-child.ts");
+
+let scratch: string | undefined;
+let supervised: Promise<CommandResult> | undefined;
+
+interface Harness {
+  root: string;
+  checkout: string;
+  socketPath: string;
+  supervised: Promise<CommandResult>;
+}
+
+async function run(command: string[], cwd: string): Promise<string> {
+  const child = Bun.spawn(command, { cwd, stdout: "pipe", stderr: "pipe" });
+  const [out, err] = await Promise.all([
+    new Response(child.stdout).text(),
+    new Response(child.stderr).text(),
+    child.exited,
+  ]);
+  return `${out}${err}`;
+}
+
+async function until<T>(
+  what: string,
+  attempt: () => Promise<T | undefined>,
+  budgetMs = 20_000,
+): Promise<T> {
+  const deadline = Date.now() + budgetMs;
+  const poll = async (): Promise<T> => {
+    const value = await attempt();
+    if (value !== undefined) return value;
+    if (Date.now() >= deadline) {
+      throw new Error(`timed out waiting for ${what}`);
+    }
+    await Bun.sleep(50);
+    return poll();
+  };
+  return poll();
+}
+
+async function readPid(path: string): Promise<number | undefined> {
+  const text = await readFile(path, "utf-8").catch(() => undefined);
+  return text ? Number(text) : undefined;
+}
+
+function isAlive(pid: number): boolean {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** A Brain with Git configured, supervised exactly as production is. */
+async function runtime(
+  options: { groupAlwaysPresent?: boolean } = {},
+): Promise<Harness> {
+  scratch = await mkdtemp(join(tmpdir(), "broker-recovery-"));
+  const root = scratch;
+  const checkout = join(root, "brain-data");
+  const remote = join(root, "content.git");
+  await mkdir(checkout, { recursive: true });
+  await run(["git", "init", "--bare", "content.git"], root);
+
+  // Read by the child from its working directory, the way the real child
+  // reads `brain.yaml` — the harness invents no configuration channel.
+  await writeFile(
+    join(root, "brain-config.json"),
+    JSON.stringify({
+      plugins: {
+        "directory-sync": {
+          git: {
+            gitUrl: `file://${remote}`,
+            branch: "main",
+            authorName: "Test",
+            authorEmail: "test@example.com",
+          },
+        },
+      },
+    }),
+  );
+
+  const socketPath = gitBrokerSocketPath(join(root, ".brain-runtime"));
+  supervised = superviseRuntimeChildren(root, ENTRY, {
+    spawnImpl: spawn,
+    processImpl: options.groupAlwaysPresent
+      ? Object.assign(Object.create(process), {
+          // Signals are delivered for real; only the *answer* about whether
+          // the group is gone is withheld.
+          kill: (pid: number, signal?: NodeJS.Signals | 0): boolean => {
+            if (signal === 0) return true;
+            return process.kill(pid, signal);
+          },
+        })
+      : process,
+    gitBroker: { socketPath },
+    startupTimeoutMs: 30_000,
+    shutdownGraceMs: 1_000,
+    // The heartbeat cadence is one shared constant; overriding only the
+    // supervisor half would starve a healthy child of the beats it expects.
+    brokerProgressTimeoutMs: 1_500,
+    brokerGroupProbeIntervalMs: 100,
+    brokerGroupProbeAttempts: 40,
+    reportIncident: () => {},
+    reportReady: () => {},
+  });
+
+  // The endpoint itself is the precondition, not a role that implies one.
+  // A unix socket is not a regular file, so its existence is proved by
+  // connecting to it rather than by looking for it.
+  await until(
+    "the broker socket",
+    async () => {
+      const reached = await BrokerConnection.connect(socketPath).then(
+        (connection) => {
+          connection.close();
+          return true;
+        },
+        () => undefined,
+      );
+      if (reached) return true;
+      const failure = await readFile(join(root, "broker.error"), "utf-8").catch(
+        () => undefined,
+      );
+      if (failure) throw new Error(`The broker child failed: ${failure}`);
+      return undefined;
+    },
+    30_000,
+  );
+  await until("the worker to start", async () =>
+    (await readPid(join(root, "worker.pid"))) === undefined ? undefined : true,
+  );
+  return { root, checkout, socketPath, supervised };
+}
+
+afterEach(async () => {
+  process.emit("SIGTERM");
+  await supervised?.catch(() => undefined);
+  supervised = undefined;
+  if (scratch) await rm(scratch, { recursive: true, force: true });
+  scratch = undefined;
+});
+
+/**
+ * A remote that accepts the connection and then says nothing.
+ *
+ * This is how completion is withheld after a real mutation: the commit is
+ * written and durable, and the push that follows it never finishes. Hooks
+ * cannot be used — managed operations refuse to run them — and depending on
+ * the Bun defect to reproduce itself would make the proof unrepeatable.
+ */
+function silentRemote(): { gitUrl: string; stop: () => void } {
+  const server = Bun.listen({
+    hostname: "127.0.0.1",
+    port: 0,
+    socket: { data: (): void => {}, open: (): void => {} },
+  });
+  return {
+    gitUrl: `git://127.0.0.1:${server.port}/repo.git`,
+    stop: (): void => {
+      server.stop(true);
+    },
+  };
+}
+
+/** Processes in `group`, read from the OS rather than inferred. */
+async function membersOfGroup(group: number): Promise<number[]> {
+  const entries = await readdir("/proc").catch(() => []);
+  const members: number[] = [];
+  for (const entry of entries) {
+    if (!/^\d+$/.test(entry)) continue;
+    const stat = await readFile(`/proc/${entry}/stat`, "utf-8").catch(
+      () => undefined,
+    );
+    if (!stat) continue;
+    const fields = stat.slice(stat.lastIndexOf(")") + 2).split(" ");
+    if (Number(fields[2]) === group) members.push(Number(entry));
+  }
+  return members;
+}
+describe.skipIf(!LINUX)("a broker that stops completing work", () => {
+  it("is replaced, once, without the roles it served going down", async () => {
+    const harness = await runtime();
+    const webPid = await readPid(join(harness.root, "web.pid"));
+    const workerPid = await readPid(join(harness.root, "worker.pid"));
+    const firstBroker = await readPid(join(harness.root, "broker.pid"));
+    if (!webPid || !workerPid || !firstBroker) {
+      throw new Error("Expected all three roles to have started");
+    }
+
+    const client = await BrokerConnection.connect(harness.socketPath);
+    await client.registerCheckout({
+      checkoutPath: harness.checkout,
+      branch: "main",
+      remoteFingerprint: getGitRemoteFingerprint(
+        `file://${join(harness.root, "content.git")}`,
+      ),
+    });
+    await client.execute(harness.checkout, { name: "initialize" });
+
+    // A real mutation whose completion never arrives: the commit is written,
+    // then the push waits on a remote that never answers.
+    const remote = silentRemote();
+    await run(
+      ["git", "remote", "set-url", "origin", remote.gitUrl],
+      harness.checkout,
+    );
+    await writeFile(join(harness.checkout, "note.md"), "owned\n");
+    const stalled = client
+      .execute(harness.checkout, { name: "commit-and-push" })
+      .then(
+        () => undefined,
+        (error: unknown) => error,
+      );
+
+    // 1. The operation stays owned: the turn is held, and the request is
+    //    still active because nothing has told the broker it finished.
+    await until("an operation to take the turn", async () => {
+      const probe = await probeBrokerActivity(harness.socketPath)().catch(
+        () => undefined,
+      );
+      return probe && probe.activeRequestIds.length > 0 ? true : undefined;
+    });
+
+    // 2. Operational health degrades, while the roles it serves stay up.
+    const health = await createBrokerHealthCheck({
+      probe: probeBrokerActivity(harness.socketPath),
+      now: () => Date.now(),
+      progressTimeoutMs: 1,
+    })();
+    expect(health.status).toBe("degraded");
+    expect(isAlive(webPid)).toBe(true);
+    expect(isAlive(workerPid)).toBe(true);
+
+    // 3 and 4. The supervisor terminates the group and proves it absent. The
+    //    broker leads its own group, so its Git children are in it — their
+    //    death is the evidence that the group went, not just the broker.
+    const gitChildren = await until(
+      "git children in the broker group",
+      async () => {
+        const members = await membersOfGroup(firstBroker);
+        return members.length > 1 ? members : undefined;
+      },
+    );
+    expect(gitChildren.length).toBeGreaterThan(1);
+
+    await until(
+      "the old broker to exit",
+      async () => (isAlive(firstBroker) ? undefined : true),
+      60_000,
+    );
+    await until(
+      "the old group to be empty",
+      async () => {
+        const members = await membersOfGroup(firstBroker);
+        return members.length === 0 ? true : undefined;
+      },
+      60_000,
+    );
+
+    // 5. Exactly one replacement, and the roles were never restarted.
+    const secondBroker = await until(
+      "a replacement broker",
+      async () => {
+        const pid = await readPid(join(harness.root, "broker.pid"));
+        return pid !== undefined && pid !== firstBroker ? pid : undefined;
+      },
+      60_000,
+    );
+
+    const starts = await readFile(join(harness.root, "broker.starts"), "utf-8");
+    expect(starts.trim().split("\n")).toEqual([
+      String(firstBroker),
+      String(secondBroker),
+    ]);
+    expect(isAlive(webPid)).toBe(true);
+    expect(isAlive(workerPid)).toBe(true);
+
+    // 6. The mutation that landed is present exactly once, and the client
+    //    that lost its owner is told so rather than re-running it.
+    expect(String(await stalled)).toContain("unavailable");
+    // Counted against the file the mutation touched: establishing the branch
+    // is its own commit, and the claim here is about the work, not the
+    // repository's whole history.
+    const landed = await run(
+      ["git", "log", "--format=%H", "--", "note.md"],
+      harness.checkout,
+    );
+    expect(landed.trim().split("\n").filter(Boolean)).toHaveLength(1);
+
+    remote.stop();
+    client.close();
+  }, 300_000);
+
+  it("starts no replacement when the old group cannot be proven gone", async () => {
+    // The injection is the probe's answer, not a process that resists SIGKILL:
+    // an unkillable process is not constructible on demand, and the decision
+    // under test is what the supervisor does when absence cannot be
+    // established. Everything else here is real — real children, a real
+    // broker, a real mutation left incomplete.
+    const harness = await runtime({ groupAlwaysPresent: true });
+    const webPid = await readPid(join(harness.root, "web.pid"));
+    const firstBroker = await readPid(join(harness.root, "broker.pid"));
+    if (!webPid || !firstBroker) {
+      throw new Error("Expected the roles to have started");
+    }
+
+    const client = await BrokerConnection.connect(harness.socketPath);
+    await client.registerCheckout({
+      checkoutPath: harness.checkout,
+      branch: "main",
+      remoteFingerprint: getGitRemoteFingerprint(
+        `file://${join(harness.root, "content.git")}`,
+      ),
+    });
+    await client.execute(harness.checkout, { name: "initialize" });
+
+    const remote = silentRemote();
+    await run(
+      ["git", "remote", "set-url", "origin", remote.gitUrl],
+      harness.checkout,
+    );
+    await writeFile(join(harness.checkout, "note.md"), "owned\n");
+    const stalled = client
+      .execute(harness.checkout, { name: "commit-and-push" })
+      .then(
+        () => undefined,
+        (error: unknown) => error,
+      );
+
+    // The whole runtime fails rather than replacing an owner whose Git
+    // children might still be writing to the checkout.
+    const result = await harness.supervised;
+    expect(result.success).toBe(false);
+    expect(result.message).toContain("could not be proven gone");
+
+    // Exactly one broker ever ran: no replacement was started beside it.
+    const starts = await readFile(join(harness.root, "broker.starts"), "utf-8");
+    expect(starts.trim().split("\n")).toEqual([String(firstBroker)]);
+
+    // And the roles were stopped, so external supervision can remove the
+    // whole tree before a new generation starts.
+    await until(
+      "the roles to stop",
+      async () => (isAlive(webPid) ? undefined : true),
+      30_000,
+    );
+
+    void stalled;
+    remote.stop();
+    client.close();
+  }, 300_000);
+});
