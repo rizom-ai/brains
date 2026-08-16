@@ -18,6 +18,7 @@ import {
   type SupervisedChildRole,
 } from "../lib/process-supervisor";
 import { resolveGitBrokerSpec } from "../lib/git-broker-spec";
+import { withGitBrokerSidecar } from "../lib/git-broker-sidecar";
 import {
   runGitBrokerChild,
   type GitBrokerChildDependencies,
@@ -92,12 +93,17 @@ export async function start(
     if (flags.chat) args.push("--cli");
     if (flags.mode === "startup-check") args.push("--startup-check");
 
-    return spawnBunRunner({
-      cwd,
-      args,
-      failureMessage: (code) => `Brain exited with code ${code}`,
-      ...dependencies,
-    });
+    // Development boots a real Brain against a real checkout, so it needs
+    // a real owner. Without one a Git-configured Brain simply fails to
+    // register the plugin.
+    return withGitBrokerSidecar(cwd, parseBrainYaml(cwd), () =>
+      spawnBunRunner({
+        cwd,
+        args,
+        failureMessage: (code) => `Brain exited with code ${code}`,
+        ...dependencies,
+      }),
+    );
   }
 
   if (hasCanonicalDefinition()) {
@@ -155,16 +161,20 @@ export async function start(
         });
       }
 
-      const bootedBrain = await bootBrain(cwd, definition, {
-        ...flags,
-        ...(childRole && {
-          childRole,
-          migrationsCompleted: true,
-        }),
+      // Chat and startup-check boot in place rather than under the
+      // supervisor, and a Git-configured Brain needs an owner either way.
+      await withGitBrokerSidecar(cwd, config, async () => {
+        const bootedBrain = await bootBrain(cwd, definition, {
+          ...flags,
+          ...(childRole && {
+            childRole,
+            migrationsCompleted: true,
+          }),
+        });
+        if (flags.mode === "startup-check") {
+          await bootedBrain?.stop?.();
+        }
       });
-      if (flags.mode === "startup-check") {
-        await bootedBrain?.stop?.();
-      }
       return { success: true };
     } catch (error) {
       return {
