@@ -211,6 +211,7 @@
         "EntityInput",
         "EntityJobDeclaration",
         "EntityMutationResult",
+        "EntityPublishDeclaration",
         "EntityQueryReader",
         "FrontmatterConfig",
         "IEntityAINamespace",

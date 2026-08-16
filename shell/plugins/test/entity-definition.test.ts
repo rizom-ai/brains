@@ -21,6 +21,7 @@ import {
 } from "@brains/atproto-contracts";
 import type { AttachmentProvider } from "../src";
 import {
+  SYSTEM_CHANNELS,
   createTemplate,
   defineDataSource,
   defineEntity,
@@ -722,6 +723,55 @@ describe("entity package definitions", () => {
     // The runtime supplies the job id; the package never names an outcome.
     expect(delegated.result.data.status).toBe("generating");
     expect(delegated.result.data.jobId).toBeTruthy();
+
+    harness.reset();
+  });
+
+  it("registers a declared publish provider once the pipeline is listening", async () => {
+    // The four publishing packages each deferred this to plugins-registered
+    // by hand, so the publish pipeline had subscribed before they announced
+    // themselves. That ordering is the runtime's problem, not an author's.
+    const provider = {
+      name: "internal",
+      publish: async (): Promise<{ id: string }> => ({ id: "internal" }),
+    };
+    const guide = defineEntity({
+      type: "guide",
+      purpose: "A publishable guide.",
+      metadata: z.object({ title: z.string() }),
+      publish: { provider, resultIdField: "platformGuideId" },
+    });
+    const definition = defineEntityPackage({ id: "guides", entities: [guide] });
+    const plugin = createEntityPackagePlugins(
+      definition.entities,
+      definition.projections,
+      { name: "@fixture/guides", version: "0.1.0" },
+      (id) => `@fixture/guides:${id}`,
+    )[0];
+    if (!plugin) throw new Error("Guide entity plugin was not created");
+
+    const harness = createPluginHarness({
+      logger: createSilentLogger("entity-publish-test"),
+    });
+    const registered: unknown[] = [];
+    harness.subscribe("publish:register", async (msg) => {
+      registered.push(msg.payload);
+      return { success: true };
+    });
+
+    await harness.installPlugin(plugin);
+    // Nothing is announced until the pipeline has had its chance to subscribe.
+    expect(registered).toHaveLength(0);
+
+    await harness.sendMessage(SYSTEM_CHANNELS.pluginsRegistered, {});
+
+    expect(registered).toEqual([
+      {
+        entityType: "guide",
+        provider,
+        config: { publishResultIdField: "platformGuideId" },
+      },
+    ]);
 
     harness.reset();
   });

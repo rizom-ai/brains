@@ -22,9 +22,10 @@ import {
   createDeclarativeDataSource,
   createDeclarativeEntityDataSource,
 } from "../public/entity-data-source";
-import { DIRECTORY_SYNC_CHANNELS } from "@brains/contracts";
+import { DIRECTORY_SYNC_CHANNELS, PUBLISH_CHANNELS } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 import { EntityPlugin, emptyEntityPluginConfigSchema } from "./entity-plugin";
+import { SYSTEM_CHANNELS } from "../system-channels";
 import type { EntityPluginContext } from "./context";
 import { defineProjectionRule, type ProjectionRule } from "./projection-rule";
 import type { InstalledPluginPackageMetadata } from "../package-definition";
@@ -285,6 +286,7 @@ class DeclarativeEntityPlugin extends EntityPlugin<
   private readonly jobs: AnyEntityDefinition["jobs"];
   private readonly instructions: AnyEntityDefinition["instructions"];
   private readonly create: AnyEntityDefinition["create"];
+  private readonly publish: AnyEntityDefinition["publish"];
   private readonly projectionRules: AnyEntityDefinition["projectionRules"];
   private readonly atproto: AnyEntityDefinition["atproto"];
   private readonly releaseOnShutdown: Array<() => void> = [];
@@ -321,6 +323,7 @@ class DeclarativeEntityPlugin extends EntityPlugin<
     this.jobs = definition.jobs;
     this.instructions = definition.instructions;
     this.create = definition.create;
+    this.publish = definition.publish;
     this.projectionRules = definition.projectionRules;
     this.atproto = definition.atproto;
   }
@@ -413,6 +416,33 @@ class DeclarativeEntityPlugin extends EntityPlugin<
           entities: this.entityAccess(context),
           conversations: context.conversations,
         }),
+      );
+    }
+
+    const publish = this.publish;
+    if (publish) {
+      // Deferred so the publish pipeline has subscribed before we announce;
+      // packages used to hand-roll this ordering one at a time.
+      context.messaging.subscribe(
+        SYSTEM_CHANNELS.pluginsRegistered,
+        async (): Promise<{ success: true }> => {
+          await context.messaging.send({
+            type: PUBLISH_CHANNELS.register,
+            payload: {
+              entityType: this.entityType,
+              provider: publish.provider,
+              config: {
+                ...(publish.resultIdField === undefined
+                  ? {}
+                  : { publishResultIdField: publish.resultIdField }),
+                ...(publish.timestampField === undefined
+                  ? {}
+                  : { publishTimestampField: publish.timestampField }),
+              },
+            },
+          });
+          return { success: true };
+        },
       );
     }
 
