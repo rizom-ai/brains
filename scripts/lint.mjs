@@ -39,4 +39,27 @@ const proc = Bun.spawn(
   },
 );
 
-process.exit(await proc.exited);
+const turboExit = await proc.exited;
+
+/*
+ * Turbo only visits workspace packages, so this directory linted nothing —
+ * including the guard tests that protect every other package. eslint runs over
+ * it directly here, under the same compat loader, so one command still covers
+ * the whole repository.
+ *
+ * It runs even when turbo failed, so a lint run reports every problem rather
+ * than only those in whichever half failed first.
+ */
+const scriptsProc = Bun.spawn(
+  ["bunx", "eslint", "scripts", "--max-warnings", "0", ...eslintArgs],
+  {
+    env: { ...process.env, NODE_OPTIONS: nodeOptions },
+    stdin: "inherit",
+    stdout: "inherit",
+    stderr: "inherit",
+  },
+);
+
+const scriptsExit = await scriptsProc.exited;
+
+process.exit(turboExit !== 0 ? turboExit : scriptsExit);

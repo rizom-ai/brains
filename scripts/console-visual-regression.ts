@@ -1,4 +1,5 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { getErrorMessage } from "@brains/utils/error";
 import path from "node:path";
 import { chromium, type Page } from "playwright-core";
 import sharp from "sharp";
@@ -752,7 +753,7 @@ try {
             const marker = Array.from(document.querySelectorAll("p"))
               .reverse()
               .find((node) =>
-                node.textContent?.includes("Queued for the trust series"),
+                node.textContent.includes("Queued for the trust series"),
               );
             const tops: number[] = [];
             let node: HTMLElement | null = marker ?? null;
@@ -843,9 +844,7 @@ try {
             }
           } catch (error) {
             await writeFile(path.join(ARTIFACT_DIR, name), image);
-            failures.push(
-              `${name}: ${error instanceof Error ? error.message : String(error)}`,
-            );
+            failures.push(`${name}: ${getErrorMessage(error)}`);
           }
         }
         await page.close();

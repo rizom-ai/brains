@@ -150,6 +150,48 @@ export default [
     },
   },
   {
+    // Repository-root scripts.
+    //
+    // `bun scripts/lint.mjs` drives turbo, and turbo only visits workspace
+    // packages, so nothing linted this directory at all. That included the
+    // guard tests — the wiring inventory, the architecture check, the
+    // deprecation verifier — which exist to protect every other package.
+    //
+    // These files run under Bun with Node globals available; the shared config
+    // already lists them in `allowDefaultProject` but never declared what they
+    // may reference, so every `process` read them as undefined.
+    files: ["scripts/**/*.{ts,mjs,cjs,js}"],
+    languageOptions: {
+      globals: {
+        Buffer: "readonly",
+        Bun: "readonly",
+        console: "readonly",
+        fetch: "readonly",
+        process: "readonly",
+        URL: "readonly",
+        setTimeout: "readonly",
+        clearTimeout: "readonly",
+        TextDecoder: "readonly",
+        TextEncoder: "readonly",
+      },
+    },
+  },
+  {
+    // CommonJS by necessity: this one is loaded through NODE_OPTIONS
+    // --require, which cannot take an ES module.
+    files: ["scripts/**/*.cjs"],
+    languageOptions: {
+      globals: {
+        __dirname: "readonly",
+        module: "writable",
+        require: "readonly",
+      },
+    },
+    rules: {
+      "@typescript-eslint/no-require-imports": "off",
+    },
+  },
+  {
     // Vendored shadcn/ui and AI Elements primitives — kept in sync with the
     // upstream registry. Adding explicit return types here would diverge from
     // upstream and make future syncs painful.

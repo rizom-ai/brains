@@ -3,6 +3,7 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { basename, join, normalize, relative, sep } from "node:path";
+import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
 
 const repositoryRoot = process.cwd();
@@ -184,10 +185,6 @@ try {
     `Legacy code inventory OK (${coveredCount} owned paths, ${exemptCount} exemptions)`,
   );
 } catch (error) {
-  console.error(
-    error instanceof Error
-      ? error.message
-      : "Legacy code inventory check failed",
-  );
+  console.error(getErrorMessage(error, "Legacy code inventory check failed"));
   process.exit(1);
 }

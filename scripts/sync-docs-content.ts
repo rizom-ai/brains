@@ -356,6 +356,6 @@ try {
   const entries = parseManifest(readFileSync(manifestPath, "utf8"));
   syncDocs(entries, args.outDir, args.check);
 } catch (error) {
-  console.error(error instanceof Error ? error.message : String(error));
+  console.error(getErrorMessage(error));
   process.exit(1);
 }
