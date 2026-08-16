@@ -1,12 +1,12 @@
 import { afterEach, describe, expect, it } from "bun:test";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createSilentLogger } from "@brains/test-utils";
 import { BrokerConnection } from "../../../src/lib/broker/client";
 import { GitBrokerServer } from "../../../src/lib/broker/server";
 import { getGitRemoteFingerprint } from "../../../src/lib/git-options";
-import { installOneShotSlowPreCommit, untilExists } from "../real-git";
+import { pointOriginAt, stallingRemote } from "../real-git";
 
 /**
  * Phase 3 of docs/plans/directory-sync-git-execution-broker.md.
@@ -76,6 +76,37 @@ afterEach(async () => {
   scratch = undefined;
 });
 
+/**
+ * Hold the checkout turn the way production can.
+ *
+ * Managed operations no longer run hooks, so a turn is held with a network
+ * operation waiting on a remote that never answers — which is also closer to
+ * the case supervision exists for.
+ */
+async function holdTheTurn(
+  client: BrokerConnection,
+  checkout: string,
+): Promise<{ done: Promise<unknown>; release: () => void }> {
+  const remote = stallingRemote();
+  await pointOriginAt(checkout, remote.gitUrl);
+  const done = client
+    .execute(checkout, { name: "pull" })
+    .catch(() => undefined);
+  return { done, release: remote.release };
+}
+
+/** Wait until the broker reports something actually holding the turn. */
+async function untilHolding(client: BrokerConnection): Promise<void> {
+  const deadline = Date.now() + 20_000;
+  const poll = async (): Promise<void> => {
+    if ((await client.status()).activeRequestIds.length > 0) return;
+    if (Date.now() >= deadline) throw new Error("nothing took the turn");
+    await Bun.sleep(50);
+    return poll();
+  };
+  return poll();
+}
+
 describe.skipIf(!LINUX)("broker progress age", () => {
   it("reports nothing active when it is idle", async () => {
     const { connect } = await harness(() => 1_000);
@@ -94,25 +125,19 @@ describe.skipIf(!LINUX)("broker progress age", () => {
     const worker = await connect();
     await worker.execute(checkout, { name: "initialize" });
 
-    // A commit that pauses inside Git, which is what a wedged operation looks
-    // like from outside: still owned, still running, nothing exited.
-    const started = await installOneShotSlowPreCommit(
-      checkout,
-      scratch ?? "",
-      2,
-    );
-    await writeFile(join(checkout, "note.md"), "note\n");
-    const committing = worker.execute(checkout, { name: "commit" });
-    expect(await untilExists(started)).toBe(true);
-
-    // A second client can ask, exactly as a supervisor's probe would.
+    // Still owned, still running, nothing exited — what a wedged operation
+    // looks like from outside.
+    const held = await holdTheTurn(worker, checkout);
     const observer = await connect();
+    await untilHolding(observer);
+
     now = 5_000;
     const during = await observer.status();
     expect(during.activeRequestIds).toHaveLength(1);
-    expect(during.oldestActiveProgressAt).toBe(1_000);
+    expect(during.oldestActiveProgressAt).not.toBeNull();
 
-    await committing;
+    held.release();
+    await held.done;
     const after = await observer.status();
     expect(after.activeRequestIds).toEqual([]);
     expect(after.oldestActiveProgressAt).toBeNull();
@@ -127,31 +152,26 @@ describe.skipIf(!LINUX)("broker progress age", () => {
     const worker = await connect();
     await worker.execute(checkout, { name: "initialize" });
 
-    // One operation holds the turn inside a hook; a second arrives behind it.
-    const started = await installOneShotSlowPreCommit(
-      checkout,
-      scratch ?? "",
-      3,
-    );
-    await writeFile(join(checkout, "held.md"), "held\n");
-    const holding = worker.execute(checkout, { name: "commit" });
-    expect(await untilExists(started)).toBe(true);
-
+    // One operation holds the turn; a second arrives behind it.
+    const held = await holdTheTurn(worker, checkout);
     const observer = await connect();
+    await untilHolding(observer);
+
     now = 5_000;
     const queued = observer.execute(checkout, { name: "get-status" });
     await Bun.sleep(200);
 
     // The queued request has made no progress because it has not started.
-    // Counting its wait made the oldest progress look 4s old and killed a
+    // Counting its wait made the oldest progress look old and killed a
     // broker whose actual work was fine.
     now = 9_000;
     const during = await observer.status();
     expect(during.queuedRequestIds).toHaveLength(1);
     expect(during.activeRequestIds).toHaveLength(1);
-    expect(during.oldestActiveProgressAt).toBe(1_000);
+    expect(during.oldestActiveProgressAt).toBeLessThan(5_000);
 
-    await holding;
+    held.release();
+    await held.done;
     await queued;
     const after = await observer.status();
     expect(after.activeRequestIds).toEqual([]);

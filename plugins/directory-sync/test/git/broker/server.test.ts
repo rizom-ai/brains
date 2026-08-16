@@ -1,15 +1,15 @@
 import { afterEach, describe, expect, it } from "bun:test";
-import { mkdir, mkdtemp, rm, stat, writeFile } from "node:fs/promises";
+import { mkdtemp, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createSilentLogger } from "@brains/test-utils";
+import { pointOriginAt, stallingRemote } from "../real-git";
 import { sha256Hex } from "@brains/utils/hash";
 import { BrokerConnection } from "../../../src/lib/broker/client";
 import {
   BrokerStartupError,
   GitBrokerServer,
 } from "../../../src/lib/broker/server";
-import { pathExists } from "../../../src/lib/fs-utils";
 
 /**
  * Phase 2, end to end over a real Unix socket.
@@ -54,17 +54,6 @@ async function commitTouching(
     .split("\n")
     .filter(Boolean)
     .sort();
-}
-
-async function untilExists(path: string, budgetMs = 10_000): Promise<boolean> {
-  const deadline = Date.now() + budgetMs;
-  const poll = async (): Promise<boolean> => {
-    if (await pathExists(path)) return true;
-    if (Date.now() >= deadline) return false;
-    await Bun.sleep(10);
-    return poll();
-  };
-  return poll();
 }
 
 interface Harness {
@@ -139,48 +128,31 @@ describe.skipIf(!LINUX)("git broker server", () => {
     client.close();
   }, 60_000);
 
-  it("keeps one connection's commit free of another connection's work", async () => {
+  it("runs no connection's work inside another connection's turn", async () => {
     const harness = await startBroker();
     const web = await connect(harness);
-    await web.execute(harness.checkout, { name: "initialize" });
     const worker = await connect(harness);
+    await web.execute(harness.checkout, { name: "initialize" });
 
-    const hooks = join(scratch ?? "", "hooks");
-    const started = join(scratch ?? "", "hook-started");
-    await mkdir(hooks, { recursive: true });
-    await writeFile(
-      join(hooks, "pre-commit"),
-      [
-        "#!/bin/sh",
-        `if [ ! -e "${started}" ]; then`,
-        `  touch "${started}"`,
-        "  sleep 1.5",
-        "fi",
-        "exit 0",
-      ].join("\n"),
-      { mode: 0o755 },
-    );
-    await git(["config", "core.hooksPath", hooks], harness.checkout);
+    // One connection holds the turn on a remote that never answers; the
+    // other's commit must wait rather than run inside it.
+    const remote = stallingRemote();
+    await pointOriginAt(harness.checkout, remote.gitUrl);
+    const held = web
+      .execute(harness.checkout, { name: "pull" })
+      .catch(() => undefined);
+    await Bun.sleep(300);
 
-    await writeFile(join(harness.checkout, "web.md"), "web work\n");
-    const webCommit = web.execute(harness.checkout, {
-      name: "commit",
-      message: "web change",
-    });
-
-    expect(await untilExists(started)).toBe(true);
     await writeFile(join(harness.checkout, "worker.md"), "worker work\n");
-    const workerCommit = worker.execute(harness.checkout, {
+    const queued = worker.execute(harness.checkout, {
       name: "commit",
-      message: "worker change",
     });
+    await Bun.sleep(300);
+    expect(await commitTouching(harness.checkout, "worker.md")).toEqual([]);
 
-    await Promise.all([webCommit, workerCommit]);
-
-    // Two connections, one owner: neither commit may contain the other's file.
-    expect(await commitTouching(harness.checkout, "web.md")).toEqual([
-      "web.md",
-    ]);
+    remote.release();
+    await held;
+    await queued;
     expect(await commitTouching(harness.checkout, "worker.md")).toEqual([
       "worker.md",
     ]);

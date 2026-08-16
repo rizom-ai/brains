@@ -523,7 +523,7 @@ describe("bundled process supervisor", () => {
     });
   });
 
-  it("stops web and worker before the broker on shutdown", async () => {
+  it("keeps the owner alive until the roles it serves have exited", async () => {
     const harness = createHarness();
     const supervised = superviseWithBroker(harness);
     const broker = harness.children[0];
@@ -538,17 +538,47 @@ describe("bundled process supervisor", () => {
 
     harness.processEvents.emit("SIGTERM");
 
-    // The owner outlives its clients: a role still finishing a Git request
-    // must not find the socket gone. The broker is signalled as a group, since
-    // its Git children inherit that group and have to stop with it.
+    // Signal order is not the property. A role can be signalled and still be
+    // mid-request; taking the socket away then is exactly the loss the
+    // ordering was meant to prevent.
+    expect(harness.signals).toEqual(["2:SIGTERM", "1:SIGTERM"]);
+
+    worker.emit("close", null, "SIGTERM");
+    expect(harness.signals).toEqual(["2:SIGTERM", "1:SIGTERM"]);
+
+    web.emit("close", null, "SIGTERM");
     expect(harness.signals).toEqual([
       "2:SIGTERM",
       "1:SIGTERM",
       "group-1000:SIGTERM",
     ]);
 
+    broker.emit("close", null, "SIGTERM");
+    expect(await supervised).toEqual({ success: true });
+  });
+
+  it("stops the owner anyway when a role will not exit", async () => {
+    const harness = createHarness();
+    const supervised = superviseWithBroker(harness);
+    const broker = harness.children[0];
+    if (!broker) throw new Error("Expected broker child");
+    broker.emit("message", { type: "broker-ready" });
+    const web = harness.children[1];
+    if (!web) throw new Error("Expected web child");
+    web.emit("message", { type: "runtime-ready" });
+    const worker = harness.children[2];
+    if (!worker) throw new Error("Expected worker child");
+    worker.emit("message", { type: "worker-ready" });
+
+    harness.processEvents.emit("SIGTERM");
     worker.emit("close", null, "SIGTERM");
-    web.emit("close", null, "SIGTERM");
+
+    // Waiting for a role that never exits would keep the whole runtime up
+    // forever, so the grace deadline stops the owner regardless.
+    harness.fireTimer(50);
+    expect(harness.signals).toContain("group-1000:SIGTERM");
+
+    web.emit("close", null, "SIGKILL");
     broker.emit("close", null, "SIGTERM");
     expect(await supervised).toEqual({ success: true });
   });

@@ -12,7 +12,10 @@ import {
 } from "./git-reconciliation-state";
 import type { ReconciliationIdentity } from "./git-reconciliation-state";
 import { getGitStatus, hasGitLocalChanges } from "./git-status";
-import { buildGitCredentialEnv } from "./git-credentials";
+import {
+  buildGitCredentialEnv,
+  MANAGED_GIT_CONFIG_ARGS,
+} from "./git-credentials";
 import { parseGitOperationResult } from "./operations";
 import type { GitOperation, GitOperationResult } from "./operations";
 
@@ -95,7 +98,14 @@ export class CheckoutOperationExecutor {
   }
 
   get #client(): SimpleGit {
-    this.#git ??= simpleGit(this.#options.dataDir);
+    // Local operations are managed too: a `pre-commit` hook runs inside
+    // the checkout turn just as surely as a network one does. The rules
+    // travel as environment-supplied config, the same way the credential
+    // does, so nothing lands in argv or in the repository.
+    this.#git ??= simpleGit(this.#options.dataDir, {
+      config: MANAGED_GIT_CONFIG_ARGS,
+      unsafe: { allowUnsafeHooksPath: true },
+    });
     return this.#git;
   }
 

@@ -86,3 +86,43 @@ export async function installOneShotSlowPreCommit(
   await runGit(["config", "core.hooksPath", hooks], checkout);
   return started;
 }
+
+/**
+ * A remote that accepts the connection and then says nothing.
+ *
+ * Holding a checkout turn used to be staged with a slow `pre-commit` hook, but
+ * managed operations no longer run hooks — so the turn is held the way
+ * production actually can hold one: a network operation waiting on a remote
+ * that never answers. `release()` closes the connection, which lets Git fail
+ * and the turn finish.
+ */
+export function stallingRemote(): {
+  gitUrl: string;
+  release(): void;
+} {
+  const server = Bun.listen({
+    hostname: "127.0.0.1",
+    port: 0,
+    socket: { data: (): void => {}, open: (): void => {} },
+  });
+  return {
+    gitUrl: `git://127.0.0.1:${server.port}/repo.git`,
+    release: (): void => {
+      server.stop(true);
+    },
+  };
+}
+
+/** Point an initialized checkout at a remote, without going through Git sync. */
+export async function pointOriginAt(
+  checkout: string,
+  gitUrl: string,
+): Promise<void> {
+  const existing = await runGit(["remote"], checkout);
+  await runGit(
+    existing.includes("origin")
+      ? ["remote", "set-url", "origin", gitUrl]
+      : ["remote", "add", "origin", gitUrl],
+    checkout,
+  );
+}

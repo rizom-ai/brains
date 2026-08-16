@@ -252,6 +252,7 @@ function runRuntimeSupervisor(
   return new Promise((resolve) => {
     let settled = false;
     let parentShutdownRequested = false;
+    let shutdownSignal: "SIGINT" | "SIGTERM" | undefined;
     /** The runtime's outcome once something terminal has decided it. */
     let finalResult: CommandResult | undefined;
     let broker: ManagedChild | undefined;
@@ -489,17 +490,37 @@ function runRuntimeSupervisor(
       }
     };
 
+    /**
+     * Stop the roles, and only then the owner they were using.
+     *
+     * Signalling in order is not enough: a role that has been signalled can
+     * still be finishing a Git request, and taking the socket away then is
+     * exactly the loss the ordering exists to prevent. So the broker is
+     * signalled once web and worker have actually exited — or once the grace
+     * deadline says a role is never going to.
+     */
     const requestChildrenShutdown = (signal: "SIGINT" | "SIGTERM"): void => {
-      // The owner outlives its clients. A role still finishing a Git request
-      // must not find the socket gone underneath it.
+      shutdownSignal = signal;
       signalChild(worker, signal);
       signalChild(web, signal);
-      signalChild(broker, signal);
+      stopBrokerWhenRolesAreGone();
       forceKillTimer ??= options.clock.setTimeout(() => {
         signalChild(worker, "SIGKILL");
         signalChild(web, "SIGKILL");
+        // Waiting on a role that will not exit would keep the whole runtime
+        // up forever, so the owner stops regardless at this point.
+        signalChild(broker, signal);
         signalChild(broker, "SIGKILL");
       }, options.shutdownGraceMs);
+    };
+
+    const stopBrokerWhenRolesAreGone = (): void => {
+      if (shutdownSignal === undefined) return;
+      const roles = [web, worker].filter(
+        (child): child is ManagedChild => child !== undefined && !child.closed,
+      );
+      if (roles.length > 0) return;
+      signalChild(broker, shutdownSignal);
     };
 
     const requestParentShutdown = (signal: "SIGINT" | "SIGTERM"): void => {
@@ -583,6 +604,9 @@ function runRuntimeSupervisor(
       child.closed = true;
       clearChildTimers(child);
       child.process.removeListener("message", child.handleMessage);
+
+      // A role exiting may be the last thing the owner was waiting for.
+      if (child.role !== "git-broker") stopBrokerWhenRolesAreGone();
 
       if (child.role === "git-broker") {
         if (!parentShutdownRequested && !finalResult) {

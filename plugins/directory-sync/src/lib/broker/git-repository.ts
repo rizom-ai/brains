@@ -4,7 +4,16 @@ import { mkdir, mkdtemp, readFile, rename, rm, writeFile } from "fs/promises";
 import { basename, join } from "path";
 import type { Logger } from "@brains/utils/logger";
 import { pathExists } from "../fs-utils";
+import { MANAGED_GIT_CONFIG_ARGS } from "./git-credentials";
 import { runGitCommandWithStallTimeout } from "./git-stall";
+
+/** Every local Git process here runs under the managed rules. */
+function managedGit(dataDir: string): SimpleGit {
+  return simpleGit(dataDir, {
+    config: MANAGED_GIT_CONFIG_ARGS,
+    unsafe: { allowUnsafeHooksPath: true },
+  });
+}
 
 export interface PrepareGitRepositoryOptions {
   logger: Logger;
@@ -52,7 +61,7 @@ export async function prepareGitRepository(
     }
   }
 
-  const git = simpleGit(dataDir);
+  const git = managedGit(dataDir);
 
   await repairInvalidPlaceholderHead({ logger, dataDir, branch });
 
@@ -146,7 +155,7 @@ async function prepareRepositoryFromRemote(options: {
 }
 
 async function gitInit(dataDir: string, branch: string): Promise<void> {
-  await simpleGit(dataDir).raw(["init", `--initial-branch=${branch}`]);
+  await managedGit(dataDir).raw(["init", `--initial-branch=${branch}`]);
 }
 
 async function repairInvalidPlaceholderHead(options: {

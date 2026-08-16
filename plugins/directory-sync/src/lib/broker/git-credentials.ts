@@ -25,6 +25,34 @@ export const GIT_NON_INTERACTIVE_ENV: Readonly<Record<string, string>> = {
   GIT_TERMINAL_PROMPT: "0",
 };
 
+/**
+ * Configuration every managed Git process runs under.
+ *
+ * Hooks are arbitrary code the broker did not sanction, running inside the
+ * checkout turn and inside the process group the supervisor may be about
+ * to prove empty: a hook can hold the turn indefinitely, or detach and
+ * outlive the group. Automatic maintenance can do the same by forking work
+ * that outlasts the command that triggered it. Neither can escape what
+ * never runs.
+ */
+export const MANAGED_GIT_CONFIG: ReadonlyArray<readonly [string, string]> = [
+  ["core.hooksPath", "/dev/null"],
+  ["maintenance.auto", "false"],
+];
+
+/**
+ * The same rules as `-c` arguments, for `simple-git`.
+ *
+ * `simple-git` refuses `core.hooksPath` unless `allowUnsafeHooksPath` is set.
+ * That guard is aimed at callers *pointing* hooks somewhere attacker-owned;
+ * this points them at nothing, which is the direction the guard exists to
+ * protect. Passing them as env config instead is not an option there: a
+ * replaced child environment trips a separate guard on inherited variables.
+ */
+export const MANAGED_GIT_CONFIG_ARGS: string[] = MANAGED_GIT_CONFIG.map(
+  ([key, value]) => `${key}=${value}`,
+);
+
 export function buildGitCredentialEnv(
   remoteUrl: string,
   token: string | undefined,
@@ -32,7 +60,10 @@ export function buildGitCredentialEnv(
   // Always reset the helper chain. An ambient helper — a user keychain, a
   // cached store — could answer for the broker from somewhere this process
   // never chose, which is a credential nobody here can account for.
-  const config: Array<[string, string]> = [["credential.helper", ""]];
+  const config: Array<[string, string]> = [
+    ["credential.helper", ""],
+    ...MANAGED_GIT_CONFIG.map(([key, value]): [string, string] => [key, value]),
+  ];
 
   // SSH and file:// authenticate outside Git's HTTP layer, so an HTTP header
   // would be both useless and one more place for a token to sit.

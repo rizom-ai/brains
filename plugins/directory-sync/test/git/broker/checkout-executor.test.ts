@@ -1,11 +1,11 @@
 import { afterEach, describe, expect, it } from "bun:test";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createSilentLogger } from "@brains/test-utils";
+import { pointOriginAt, stallingRemote } from "../real-git";
 import { sha256Hex } from "@brains/utils/hash";
 import { CheckoutOperationExecutor } from "../../../src/lib/broker/checkout-executor";
-import { pathExists } from "../../../src/lib/fs-utils";
 
 /**
  * Phase 2 of docs/plans/directory-sync-git-execution-broker.md.
@@ -49,17 +49,6 @@ async function commitTouching(
     .split("\n")
     .filter(Boolean)
     .sort();
-}
-
-async function untilExists(path: string, budgetMs = 10_000): Promise<boolean> {
-  const deadline = Date.now() + budgetMs;
-  const poll = async (): Promise<boolean> => {
-    if (await pathExists(path)) return true;
-    if (Date.now() >= deadline) return false;
-    await Bun.sleep(10);
-    return poll();
-  };
-  return poll();
 }
 
 function executorFor(dataDir: string): CheckoutOperationExecutor {
@@ -121,7 +110,7 @@ describe.skipIf(!LINUX)("checkout operation executor", () => {
     expect(delta.mode).toBe("incremental");
   }, 60_000);
 
-  it("keeps one caller's commit free of another caller's work", async () => {
+  it("runs no caller's work inside another caller's turn", async () => {
     scratch = await mkdtemp(join(tmpdir(), "checkout-executor-atomic-"));
     const dataDir = join(scratch, "checkout");
     // One executor is the owner. Two callers reach it, as web and worker will
@@ -129,38 +118,30 @@ describe.skipIf(!LINUX)("checkout operation executor", () => {
     const executor = executorFor(dataDir);
     await executor.execute({ name: "initialize" });
 
-    const hooks = join(scratch, "hooks");
-    const started = join(scratch, "hook-started");
-    await mkdir(hooks, { recursive: true });
-    await writeFile(
-      join(hooks, "pre-commit"),
-      [
-        "#!/bin/sh",
-        `if [ ! -e "${started}" ]; then`,
-        `  touch "${started}"`,
-        "  sleep 1.5",
-        "fi",
-        "exit 0",
-      ].join("\n"),
-      { mode: 0o755 },
-    );
-    await git(["config", "core.hooksPath", hooks], dataDir);
+    // The turn is held by a network operation waiting on a remote that
+    // never answers. It used to be held from inside a commit by a slow
+    // `pre-commit` hook — the window where `add -A` swept up the other
+    // caller's file — but managed operations no longer run hooks, so that
+    // window is unreachable now rather than merely unobserved.
+    const remote = stallingRemote();
+    await pointOriginAt(dataDir, remote.gitUrl);
+    const held = executor.execute({ name: "pull" }).catch(() => undefined);
+    await Bun.sleep(300);
 
-    await writeFile(join(dataDir, "web.md"), "web work\n");
-    const first = executor.execute({ name: "commit", message: "web change" });
-
-    // The second caller's file lands while the first is inside its commit —
-    // the window that previously let `add -A` sweep it up.
-    expect(await untilExists(started)).toBe(true);
     await writeFile(join(dataDir, "worker.md"), "worker work\n");
-    const second = executor.execute({
+    const queued = executor.execute({
       name: "commit",
       message: "worker change",
     });
+    await Bun.sleep(300);
 
-    await Promise.all([first, second]);
+    // Nothing of the second caller's has run while the first holds the turn.
+    expect(await commitTouching(dataDir, "worker.md")).toEqual([]);
 
-    expect(await commitTouching(dataDir, "web.md")).toEqual(["web.md"]);
+    remote.release();
+    await held;
+    await queued;
+
     expect(await commitTouching(dataDir, "worker.md")).toEqual(["worker.md"]);
   }, 120_000);
 

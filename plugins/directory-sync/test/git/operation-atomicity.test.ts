@@ -4,11 +4,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createSilentLogger } from "@brains/test-utils";
 import { startTestBroker } from "./broker-git-sync";
-import {
-  commitTouching,
-  installOneShotSlowPreCommit,
-  untilExists,
-} from "./real-git";
+import { commitTouching, pointOriginAt, stallingRemote } from "./real-git";
+import type { GitBrokerServer } from "../../src/lib/broker/server";
 
 /**
  * Phase 0 evidence for docs/plans/directory-sync-git-execution-broker.md.
@@ -38,8 +35,19 @@ afterEach(async () => {
   scratch = undefined;
 });
 
+/** Wait until the owner reports a turn actually being held. */
+async function untilHolding(server: GitBrokerServer): Promise<void> {
+  const deadline = Date.now() + 20_000;
+  const poll = async (): Promise<void> => {
+    if (server.activity.activeRequestIds.length > 0) return;
+    if (Date.now() >= deadline) throw new Error("nothing took the turn");
+    await Bun.sleep(50);
+    return poll();
+  };
+  return poll();
+}
 describe.skipIf(!LINUX)("git operation atomicity", () => {
-  it("keeps one role's commit free of another role's work", async () => {
+  it("runs no role's work inside another role's turn", async () => {
     scratch = await mkdtemp(join(tmpdir(), "operation-atomicity-"));
     const dataDir = join(scratch, "checkout");
     const base = {
@@ -56,23 +64,30 @@ describe.skipIf(!LINUX)("git operation atomicity", () => {
     await web.initialize();
     const worker = await broker.connect();
 
-    // The hook pauses the first commit between staging and committing —
-    // the window a second owner can occupy. No production seam is involved:
-    // this is real Git.
-    const started = await installOneShotSlowPreCommit(dataDir, scratch);
+    // Web takes the turn and keeps it: a network operation against a remote
+    // that never answers. This used to be staged with a slow `pre-commit`
+    // hook, which held the turn from inside a commit — the precise window
+    // where `add -A` swept up another role's file. Managed operations no
+    // longer run hooks, so that window is now unreachable rather than merely
+    // unobserved, and what remains to prove is that nothing runs inside
+    // someone else's turn at all.
+    const remote = stallingRemote();
+    await pointOriginAt(dataDir, remote.gitUrl);
+    const held = web.pull().catch(() => undefined);
+    await untilHolding(broker.server);
 
-    await writeFile(join(dataDir, "web.md"), "web work\n");
-    const webCommit = web.commit("web change");
-
-    // The worker's file appears only once web is inside its commit, so
-    // `add -A` cannot sweep it up unless the operations truly interleave.
-    expect(await untilExists(started)).toBe(true);
     await writeFile(join(dataDir, "worker.md"), "worker work\n");
     const workerCommit = worker.commit("worker change");
+    await Bun.sleep(300);
 
-    await Promise.allSettled([webCommit, workerCommit]);
+    // Still nothing committed: the worker is queued, not running.
+    expect(await commitTouching(dataDir, "worker.md")).toEqual([]);
 
-    expect(await commitTouching(dataDir, "web.md")).toEqual(["web.md"]);
+    remote.release();
+    await held;
+    await workerCommit;
+
+    // And when it does run, it commits its own work and only its own.
     expect(await commitTouching(dataDir, "worker.md")).toEqual(["worker.md"]);
 
     await web.cleanup();

@@ -50,7 +50,8 @@ describe("git credentials", () => {
     // reason to let an ambient one answer instead.
     for (const token of [undefined, ""]) {
       const pairs = configPairs(buildGitCredentialEnv(REMOTE, token));
-      expect([...pairs.keys()]).toEqual(["credential.helper"]);
+      expect([...pairs.keys()]).not.toContain(`http.${REMOTE}.extraheader`);
+      expect(pairs.get("credential.helper")).toBe("");
     }
   });
 
@@ -63,7 +64,8 @@ describe("git credentials", () => {
       "ssh://git@github.com/rizom-ai/content.git",
     ]) {
       const pairs = configPairs(buildGitCredentialEnv(remote, TOKEN));
-      expect([...pairs.keys()]).toEqual(["credential.helper"]);
+      expect([...pairs.keys()].join(" ")).not.toContain("extraheader");
+      expect(pairs.get("credential.helper")).toBe("");
     }
   });
 
