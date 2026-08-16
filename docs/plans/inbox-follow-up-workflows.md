@@ -2,7 +2,7 @@
 
 ## Status
 
-**Proposed — revised 2026-08-15. Awaiting implementation approval.** Runtime review showed that Inbox follow-up routes existed but the destination workflows did not receive enough useful context. The launch-navigation and restricted-entity save defects found during that review have since landed on `main` in `2703663a1`.
+**Implemented on `main` in `e9042c9e0` — automated validation complete; authenticated browser acceptance pending.** Runtime review showed that Inbox follow-up routes existed but the destination workflows did not receive enough useful context. The launch-navigation and restricted-entity save defects found during that review landed in `2703663a1`.
 
 This revision deliberately removes reply drafting from the active product scope. The drafting and approval-gated sending implementation is solid enough to retain, but its destination and UI are not ready to expose. The implementation remains dormant and tested while the visible Inbox focuses on two useful follow-ups: Chat and note Capture.
 
