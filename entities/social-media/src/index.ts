@@ -52,9 +52,6 @@ export {
   GenerationJobHandler,
   generationJobSchema,
   type GenerationJobData,
-  PublishExecuteHandler,
-  type PublishExecuteHandlerConfig,
-  type PublishExecutePayload,
 } from "./handlers";
 
 // Provider exports (uses PublishProvider from @brains/contracts)

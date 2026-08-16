@@ -15,7 +15,6 @@ import { PUBLISH_CHANNELS } from "@brains/contracts";
 import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
 import { fetchSiteInfo } from "@brains/site-composition";
 import { fetchStyleGuide, formatVoiceGuidance } from "@brains/contracts";
-import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
 import { deckAdapter } from "./adapters/deck-adapter";
 import { deckTemplate } from "./templates/deck-template";
@@ -106,7 +105,6 @@ export class DecksPlugin extends EntityPlugin<
     context: EntityPluginContext,
   ): Promise<void> {
     this.deferPublishRegistration(context);
-    this.subscribeToPublishExecute(context);
     this.registerCarouselAttachmentProvider(context);
     this.registerOgImageAttachmentProvider(context);
     this.registerEvalHandlers(context);
@@ -140,69 +138,6 @@ export class DecksPlugin extends EntityPlugin<
           config: { executionMode: "provider" },
         },
       });
-      return { success: true };
-    });
-  }
-
-  private subscribeToPublishExecute(context: EntityPluginContext): void {
-    context.messaging.subscribe<
-      { entityType: string; entityId: string },
-      { success: boolean }
-    >(PUBLISH_CHANNELS.execute, async (msg) => {
-      const { entityType, entityId } = msg.payload;
-      if (entityType !== "deck") return { success: true };
-
-      try {
-        const deck = await context.entityService.getEntity<DeckEntity>({
-          entityType: "deck",
-          id: entityId,
-        });
-        if (!deck) {
-          await context.messaging.send({
-            type: PUBLISH_CHANNELS.reportFailure,
-            payload: {
-              entityType,
-              entityId,
-              error: `Deck not found: ${entityId}`,
-            },
-          });
-          return { success: true };
-        }
-
-        if (deck.metadata.status === "published") return { success: true };
-
-        const publishedAt = new Date().toISOString();
-        const updatedDeck: DeckEntity = {
-          ...deck,
-          metadata: { ...deck.metadata, status: "published", publishedAt },
-        };
-
-        await context.entityService.updateEntity({
-          entity: {
-            ...updatedDeck,
-            content: this.adapter.toMarkdown(updatedDeck),
-          },
-        });
-
-        await context.messaging.send({
-          type: PUBLISH_CHANNELS.reportSuccess,
-          payload: {
-            entityType,
-            entityId,
-            result: { id: entityId },
-          },
-        });
-      } catch (error) {
-        await context.messaging.send({
-          type: PUBLISH_CHANNELS.reportFailure,
-          payload: {
-            entityType,
-            entityId,
-            error: getErrorMessage(error),
-          },
-        });
-      }
-
       return { success: true };
     });
   }
