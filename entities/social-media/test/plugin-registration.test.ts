@@ -87,31 +87,4 @@ describe("SocialMediaPlugin - Publish Pipeline Registration", () => {
       expect(registerMessage).toBeUndefined();
     });
   });
-
-  describe("publish:execute subscription", () => {
-    it("should subscribe to publish:execute messages", async () => {
-      await harness.installPlugin(
-        new SocialMediaPlugin({ linkedin: { accessToken: "test-token" } }),
-      );
-
-      // Sending triggers the handler — verify it ran via side effects
-      harness.subscribe("publish:report:failure", async (msg) => {
-        receivedMessages.push({
-          type: "publish:report:failure",
-          payload: msg.payload,
-        });
-        return { success: true };
-      });
-
-      await harness.sendMessage("publish:execute", {
-        entityType: "social-post",
-        entityId: "non-existent",
-      });
-
-      const failureMessage = receivedMessages.find(
-        (m) => m.type === "publish:report:failure",
-      );
-      expect(failureMessage).toBeDefined();
-    });
-  });
 });

@@ -16,10 +16,7 @@ import { blogConfigSchema } from "./config";
 import { BlogGenerationJobHandler } from "./handlers/blogGenerationJobHandler";
 import { BlogDataSource } from "./datasources/blog-datasource";
 import { getTemplates } from "./lib/register-templates";
-import {
-  registerWithPublishPipeline,
-  subscribeToPublishExecute,
-} from "./lib/publish-handler";
+import { registerWithPublishPipeline } from "./lib/publish-handler";
 import { subscribeToSiteBuildStaging } from "./lib/rss-handler";
 import { registerEvalHandlers } from "./lib/eval-handlers";
 import { createBlogAtprotoProjection } from "./atproto-projection";
@@ -82,7 +79,6 @@ export class BlogPlugin extends EntityPlugin<
 
     // Publish pipeline and RSS subscriptions
     registerWithPublishPipeline(context, this.logger);
-    subscribeToPublishExecute(context, this.logger);
     subscribeToSiteBuildStaging(context, this.logger);
     registerEvalHandlers(context);
     this.unregisterPrintableAttachmentProvider = context.attachments.register(
