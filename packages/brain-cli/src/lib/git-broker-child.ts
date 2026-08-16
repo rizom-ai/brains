@@ -31,17 +31,24 @@ interface RunningBroker {
   };
 }
 
+/**
+ * The heartbeat's timer, as a pair that cancels what it started.
+ *
+ * The handle used to be passed back as `unknown` and cast on the way out.
+ * Returning the canceller instead means the type never has to be recovered,
+ * which is the assertion invariant 11 forbids doing away rather than hidden
+ * behind a runtime check that could not actually prove it.
+ */
 interface HeartbeatClock {
-  setInterval(callback: () => void, intervalMs: number): unknown;
-  clearInterval(handle: unknown): void;
+  setInterval(callback: () => void, intervalMs: number): () => void;
 }
 
 const defaultHeartbeatClock: HeartbeatClock = {
-  setInterval: (callback, intervalMs) => setInterval(callback, intervalMs),
-  clearInterval: (handle) => {
-    if (typeof handle === "number" || typeof handle === "object") {
-      clearInterval(handle as never);
-    }
+  setInterval: (callback, intervalMs) => {
+    const timer = setInterval(callback, intervalMs);
+    return (): void => {
+      clearInterval(timer);
+    };
   },
 };
 
@@ -94,7 +101,7 @@ export async function runGitBrokerChild(
   // needs is what is active and when it last moved — silence and a stalled
   // timestamp are the two ways an owner goes bad without exiting.
   const clock = dependencies.heartbeatClock ?? defaultHeartbeatClock;
-  const beating = clock.setInterval(() => {
+  const stopBeating = clock.setInterval(() => {
     processImpl.send?.({
       type: "broker-heartbeat",
       ...started.broker.activity,
@@ -106,7 +113,7 @@ export async function runGitBrokerChild(
     processImpl.on("SIGINT", resolve);
   });
 
-  clock.clearInterval(beating);
+  stopBeating();
   await started.broker.stop();
   return { success: true };
 }

@@ -83,12 +83,14 @@ describe("git broker child", () => {
         activity,
       }),
       heartbeatClock: {
-        setInterval: (callback: () => void, intervalMs: number): number => {
+        setInterval: (
+          callback: () => void,
+          intervalMs: number,
+        ): (() => void) => {
           beat = callback;
           expect(intervalMs).toBe(5_000);
-          return 1;
+          return (): void => {};
         },
-        clearInterval: () => {},
       },
     });
     await new Promise((resolve) => setTimeout(resolve, 0));

@@ -1,4 +1,6 @@
 import { dirname, resolve } from "path";
+import { canonicalCheckoutPath } from "./checkout-identity";
+import type { CheckoutExecutorOptions } from "./checkout-executor";
 import type { Logger } from "@brains/utils/logger";
 import { directorySyncConfigSchema } from "../../types/config";
 import {
@@ -60,11 +62,13 @@ export async function startGitBrokerHost(
     );
   }
 
-  const checkoutPath = resolveCheckoutPath({
-    cwd: options.cwd,
-    dataDir: options.dataDir,
-    syncPath: config.syncPath,
-  });
+  const checkoutPath = await canonicalCheckoutPath(
+    resolveCheckoutPath({
+      cwd: options.cwd,
+      dataDir: options.dataDir,
+      syncPath: config.syncPath,
+    }),
+  );
   const checkout = {
     logger: options.logger.child("GitBroker"),
     dataDir: checkoutPath,
@@ -79,6 +83,7 @@ export async function startGitBrokerHost(
 
   return GitBrokerServer.start({
     runtimeDir: dirname(options.socketPath),
-    resolveCheckout: (path) => (path === checkoutPath ? checkout : undefined),
+    resolveCheckout: (path): CheckoutExecutorOptions | undefined =>
+      path === checkoutPath ? checkout : undefined,
   });
 }

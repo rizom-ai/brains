@@ -1,8 +1,9 @@
 import { chmod, mkdir, unlink } from "fs/promises";
-import { join, resolve } from "path";
+import { join } from "path";
 import { createId } from "@brains/utils/id";
 import { getErrorMessage } from "@brains/utils/error";
 import { ActiveRequests } from "./active-requests";
+import { canonicalCheckoutPath } from "./checkout-identity";
 import type { ActivitySnapshot } from "./active-requests";
 import { CheckoutOperationExecutor } from "./checkout-executor";
 import { isMutatingOperation } from "./operations";
@@ -301,8 +302,11 @@ export class GitBrokerServer {
     });
   }
 
-  #register(message: RegisterCheckoutMessage): void {
-    const checkoutPath = resolve(message.checkoutPath);
+  async #register(message: RegisterCheckoutMessage): Promise<void> {
+    // Physical identity: a role reaching this checkout through a symlink
+    // means the same working tree, and refusing it would leave that role
+    // with no owner for a checkout that already has one.
+    const checkoutPath = await canonicalCheckoutPath(message.checkoutPath);
     const existing = this.#executors.get(checkoutPath);
     const configured = this.#resolveCheckout(checkoutPath);
 
@@ -330,7 +334,7 @@ export class GitBrokerServer {
   async #handle(writer: SocketWriter, message: BrokerMessage): Promise<void> {
     if (message.type === "register-checkout") {
       try {
-        this.#register(message);
+        await this.#register(message);
       } catch (error) {
         // Correlated by request id: an uncorrelated failure would leave the
         // caller waiting on a reply that never arrives, which is the silent
@@ -398,7 +402,9 @@ export class GitBrokerServer {
       return;
     }
 
-    const executor = this.#executors.get(resolve(message.checkoutPath));
+    const executor = this.#executors.get(
+      await canonicalCheckoutPath(message.checkoutPath),
+    );
     if (!executor) {
       this.#fail(
         writer,
