@@ -15,6 +15,9 @@ import { runGitCommandWithStallTimeout } from "../../../src/lib/broker/git-stall
  */
 
 const LINUX = process.platform === "linux";
+// The fixture needs a certificate. `openssl` is a test-only dependency — production
+// requires nothing beyond `git` — so its absence skips rather than fails.
+const HAS_OPENSSL = Bun.which("openssl") !== null;
 const TOKEN = "ghp_liveremote0123456789";
 const EXPECTED_AUTH = `Basic ${Buffer.from(`x-access-token:${TOKEN}`).toString("base64")}`;
 
@@ -173,7 +176,7 @@ afterEach(async () => {
   scratch = undefined;
 });
 
-describe.skipIf(!LINUX)("a private https remote", () => {
+describe.skipIf(!LINUX || !HAS_OPENSSL)("a private https remote", () => {
   it("clones, fetches, and pushes with an environment-supplied credential", async () => {
     const remote = await authenticatedRemote();
     const checkout = join(scratch ?? "", "checkout");
