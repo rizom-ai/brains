@@ -1450,6 +1450,59 @@ describe("AgentService", () => {
       );
     });
 
+    it("keeps transient Inbox attachment content out of conversation storage", async () => {
+      const persistedMessages: Parameters<
+        IConversationService["addMessage"]
+      >[0][] = [];
+      mockConversationService.addMessage = async (message): Promise<void> => {
+        persistedMessages.push(message);
+      };
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService as IConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory },
+      );
+      const sourceText =
+        "Original synthetic mailbox body with private-source-marker.";
+
+      await service.chat("Help me assess this", "test-conversation", {
+        attachments: [
+          {
+            kind: "text",
+            filename: "inbox-source.txt",
+            mediaType: "text/plain",
+            content: sourceText,
+            sizeBytes: sourceText.length,
+          },
+        ],
+      });
+
+      expect(JSON.stringify(mockGenerate.mock.calls[0]?.[0])).toContain(
+        sourceText,
+      );
+      const persistedUserMessage = persistedMessages[0];
+      expect(persistedUserMessage).toEqual(
+        expect.objectContaining({
+          role: "user",
+          content: "Help me assess this",
+          metadata: expect.objectContaining({
+            attachments: [
+              {
+                kind: "text",
+                filename: "inbox-source.txt",
+                mediaType: "text/plain",
+                sizeBytes: sourceText.length,
+              },
+            ],
+          }),
+        }),
+      );
+      expect(JSON.stringify(persistedUserMessage)).not.toContain(sourceText);
+    });
+
     it("should save messages to ConversationService", async () => {
       const service = AgentService.createFresh(
         mockMCPService,
