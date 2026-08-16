@@ -1,4 +1,5 @@
-import { describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "bun:test";
+import { readFile, readdir } from "node:fs/promises";
 import {
   GitStallError,
   runGitCommandWithStallTimeout,
@@ -21,6 +22,36 @@ function freePort(): number {
   probe.stop(true);
   return port;
 }
+/**
+ * Reap anything the fixture left in this process group.
+ *
+ * `git daemon` forks its listener and lets the parent exit, so the survivor
+ * is reparented and cannot be traced from the process that started it. In
+ * production the broker's process group is what collects it; here the test
+ * runner's group is, and leaving it running would hold a port against the
+ * next run.
+ */
+afterEach(async () => {
+  const stat = await readFile("/proc/self/stat", "utf-8").catch(() => "");
+  if (!stat) return;
+  const own = Number(stat.slice(stat.lastIndexOf(")") + 2).split(" ")[2]);
+  const entries = await readdir("/proc").catch(() => []);
+  for (const entry of entries) {
+    if (!/^\d+$/.test(entry)) continue;
+    const other = await readFile(`/proc/${entry}/stat`, "utf-8").catch(
+      () => undefined,
+    );
+    if (!other) continue;
+    const command = other.slice(other.indexOf("(") + 1, other.lastIndexOf(")"));
+    const fields = other.slice(other.lastIndexOf(")") + 2).split(" ");
+    if (Number(fields[2]) !== own || !command.includes("git-daemon")) continue;
+    try {
+      process.kill(Number(entry), "SIGKILL");
+    } catch {
+      // Already gone, which is the outcome being asked for.
+    }
+  }
+});
 describe("runGitCommandWithStallTimeout", () => {
   it("returns stdout for a completing command", async () => {
     const stdout = await runGitCommandWithStallTimeout(

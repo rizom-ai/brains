@@ -97,7 +97,17 @@ export async function runGitCommandWithStallTimeout(
    */
   const kill = (): void => {
     if (child.exitCode !== null) return;
-    void killSubtree(child.pid);
+    // The direct child dies now, synchronously. Sweeping its descendants
+    // needs procfs and therefore a turn of the event loop, and a process
+    // that exits in the meantime would leave the command itself running —
+    // which is how a stalled `git daemon` survived the test that killed it.
+    const root = child.pid;
+    try {
+      process.kill(root, "SIGKILL");
+    } catch {
+      // Already gone, which is the outcome being asked for.
+    }
+    void killSubtree(root);
   };
   const captureOutput = (
     stream: ReadableStream<Uint8Array>,
@@ -224,10 +234,11 @@ async function descendantsOf(pid: number): Promise<number[]> {
 }
 
 async function killSubtree(pid: number): Promise<void> {
-  // Collected before the root dies: a process reparented by its parent's
-  // death can no longer be traced back to it.
+  // The root is already being killed; this is for whatever it started.
+  // Reparenting means some of it may no longer be traceable, which is why
+  // the broker's process group is the backstop rather than this sweep.
   const descendants = await descendantsOf(pid);
-  for (const target of [pid, ...descendants]) {
+  for (const target of descendants) {
     try {
       process.kill(target, "SIGKILL");
     } catch {

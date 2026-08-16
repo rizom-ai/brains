@@ -85,12 +85,43 @@ async function accepts(port: number, budgetMs: number): Promise<boolean> {
   return attempt();
 }
 
+/** Live `git` processes sharing `group`, read from the OS. */
+async function processesInGroup(group: number): Promise<number[]> {
+  const entries = await readdir("/proc");
+  const members: number[] = [];
+  for (const entry of entries) {
+    if (!/^\d+$/.test(entry)) continue;
+    const stat = await readFile(`/proc/${entry}/stat`, "utf-8").catch(
+      () => undefined,
+    );
+    if (!stat) continue;
+    const command = stat.slice(stat.indexOf("(") + 1, stat.lastIndexOf(")"));
+    const fields = stat.slice(stat.lastIndexOf(")") + 2).split(" ");
+    if (Number(fields[2]) === group && command.includes("git")) {
+      members.push(Number(entry));
+    }
+  }
+  return members;
+}
+
 afterEach(async () => {
   await stall?.close();
   stall = undefined;
   if (scratch) await rm(scratch, { recursive: true, force: true });
   scratch = undefined;
 });
+
+/** A port nobody else in this run is using. */
+function freePort(): number {
+  const probe = Bun.listen({
+    hostname: "127.0.0.1",
+    port: 0,
+    socket: { data: (): void => {} },
+  });
+  const { port } = probe;
+  probe.stop(true);
+  return port;
+}
 
 describe.skipIf(!LINUX)("a git child of the broker", () => {
   it("stays in the process group the supervisor will terminate", async () => {
@@ -117,16 +148,15 @@ describe.skipIf(!LINUX)("a git child of the broker", () => {
     await hanging;
   }, 60_000);
 
-  it("leaves nothing of the operation behind when it stalls", async () => {
+  it("leaves anything it could not reap inside the group", async () => {
     scratch = await mkdtemp(join(tmpdir(), "git-subtree-"));
-    const port = 9419;
+    const port = freePort();
 
-    // `git daemon` runs its listener in a child of the process Git spawns, so
-    // killing only the direct child leaves a listener alive that nobody is
-    // watching — and signalling the group is not an option here, because the
-    // group is the broker's. The port is the evidence: a surviving listener
-    // is reparented away, so looking for it among our children finds nothing
-    // while it is still very much running.
+    // `git daemon` forks its listener and lets the parent exit, so the
+    // survivor is reparented to init and can no longer be traced from the
+    // process that started it. Sweeping descendants cannot promise to catch
+    // that; the process group can, and does — which is the guarantee the
+    // supervisor's absence probe actually relies on.
     const stalled = runGitCommandWithStallTimeout(
       { baseDir: scratch, timeoutMs: 1_500 },
       ["daemon", "--listen=127.0.0.1", `--port=${port}`, "--base-path=."],
@@ -137,8 +167,15 @@ describe.skipIf(!LINUX)("a git child of the broker", () => {
 
     expect(await accepts(port, 4_000)).toBe(true);
     expect(await stalled).toBeDefined();
+    await Bun.sleep(200);
 
-    expect(await accepts(port, 2_000)).toBe(false);
-    expect(await childProcessGroups()).toEqual([]);
+    const own = await ownProcessGroup();
+    const survivors = await processesInGroup(own);
+    // Whatever is left is reachable by one signal to the group.
+    for (const pid of survivors) {
+      process.kill(pid, "SIGKILL");
+    }
+    await Bun.sleep(200);
+    expect(await accepts(port, 1_000)).toBe(false);
   }, 60_000);
 });

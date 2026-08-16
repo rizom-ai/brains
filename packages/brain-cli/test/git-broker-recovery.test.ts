@@ -17,7 +17,9 @@ import {
   gitBrokerSocketPath,
   probeBrokerActivity,
 } from "@brains/directory-sync";
+import { EventEmitter } from "node:events";
 import { superviseRuntimeChildren } from "../src/lib/process-supervisor";
+import type { SignalProcess } from "../src/lib/spawn-bun-runner";
 import type { CommandResult } from "../src/lib/command-result";
 
 /**
@@ -36,9 +38,11 @@ const ENTRY = join(import.meta.dir, "fixtures", "broker-runtime-child.ts");
 
 let scratch: string | undefined;
 let supervised: Promise<CommandResult> | undefined;
+let shutdownRuntime: (() => void) | undefined;
 
 interface Harness {
   root: string;
+  shutdown: () => void;
   checkout: string;
   socketPath: string;
   supervised: Promise<CommandResult>;
@@ -86,6 +90,32 @@ function isAlive(pid: number): boolean {
   }
 }
 
+/**
+ * A process surface of this harness own.
+ *
+ * Signals are delivered for real — group termination has to be real for the
+ * proof to mean anything — but the SIGINT/SIGTERM/exit listeners live on an
+ * emitter this test owns. Sharing the runner process meant another test
+ * shutdown signal reached this supervisor and stopped it mid-proof.
+ */
+function isolatedProcess(options: { groupAlwaysPresent?: boolean } = {}): {
+  emitter: EventEmitter;
+  impl: SignalProcess;
+} {
+  const emitter = new EventEmitter();
+  const impl: SignalProcess = {
+    env: process.env,
+    kill: (pid: number, signal?: NodeJS.Signals | 0): boolean => {
+      if (options.groupAlwaysPresent && signal === 0) return true;
+      return process.kill(pid, signal);
+    },
+    on: (event, listener) => emitter.on(event, listener),
+    removeListener: (event, listener) =>
+      emitter.removeListener(event, listener),
+  };
+  return { emitter, impl };
+}
+
 /** A Brain with Git configured, supervised exactly as production is. */
 async function runtime(
   options: { groupAlwaysPresent?: boolean } = {},
@@ -115,19 +145,13 @@ async function runtime(
     }),
   );
 
+  const runtimeProcess = isolatedProcess(
+    options.groupAlwaysPresent ? { groupAlwaysPresent: true } : {},
+  );
   const socketPath = gitBrokerSocketPath(join(root, ".brain-runtime"));
   supervised = superviseRuntimeChildren(root, ENTRY, {
     spawnImpl: spawn,
-    processImpl: options.groupAlwaysPresent
-      ? Object.assign(Object.create(process), {
-          // Signals are delivered for real; only the *answer* about whether
-          // the group is gone is withheld.
-          kill: (pid: number, signal?: NodeJS.Signals | 0): boolean => {
-            if (signal === 0) return true;
-            return process.kill(pid, signal);
-          },
-        })
-      : process,
+    processImpl: runtimeProcess.impl,
     gitBroker: { socketPath },
     startupTimeoutMs: 30_000,
     shutdownGraceMs: 1_000,
@@ -165,13 +189,20 @@ async function runtime(
   await until("the worker to start", async () =>
     (await readPid(join(root, "worker.pid"))) === undefined ? undefined : true,
   );
-  return { root, checkout, socketPath, supervised };
+  return {
+    root,
+    checkout,
+    socketPath,
+    supervised,
+    shutdown: (): void => void runtimeProcess.emitter.emit("SIGTERM"),
+  };
 }
 
 afterEach(async () => {
-  process.emit("SIGTERM");
+  shutdownRuntime?.();
   await supervised?.catch(() => undefined);
   supervised = undefined;
+  shutdownRuntime = undefined;
   if (scratch) await rm(scratch, { recursive: true, force: true });
   scratch = undefined;
 });
@@ -198,7 +229,13 @@ function silentRemote(): { gitUrl: string; stop: () => void } {
   };
 }
 
-/** Processes in `group`, read from the OS rather than inferred. */
+/**
+ * Live processes in `group`, read from the OS rather than inferred.
+ *
+ * A zombie is excluded deliberately: it is an exit status nobody has
+ * collected, holding no memory, no file descriptors, and no claim on the
+ * checkout. What matters is whether anything can still run.
+ */
 async function membersOfGroup(group: number): Promise<number[]> {
   const entries = await readdir("/proc").catch(() => []);
   const members: number[] = [];
@@ -209,6 +246,7 @@ async function membersOfGroup(group: number): Promise<number[]> {
     );
     if (!stat) continue;
     const fields = stat.slice(stat.lastIndexOf(")") + 2).split(" ");
+    if (fields[0] === "Z") continue;
     if (Number(fields[2]) === group) members.push(Number(entry));
   }
   return members;
@@ -216,6 +254,7 @@ async function membersOfGroup(group: number): Promise<number[]> {
 describe.skipIf(!LINUX)("a broker that stops completing work", () => {
   it("is replaced, once, without the roles it served going down", async () => {
     const harness = await runtime();
+    shutdownRuntime = harness.shutdown;
     const webPid = await readPid(join(harness.root, "web.pid"));
     const workerPid = await readPid(join(harness.root, "worker.pid"));
     const firstBroker = await readPid(join(harness.root, "broker.pid"));
@@ -285,10 +324,14 @@ describe.skipIf(!LINUX)("a broker that stops completing work", () => {
       60_000,
     );
     await until(
-      "the old group to be empty",
+      "every git child of the old owner to die",
       async () => {
-        const members = await membersOfGroup(firstBroker);
-        return members.length === 0 ? true : undefined;
+        // By pid, not by group: this suite spawns hundreds of processes, so
+        // the kernel can recycle the old broker's pid as another group's
+        // leader — and then an unrelated process answers for a group that
+        // is long gone.
+        const alive = gitChildren.filter((pid) => isAlive(pid));
+        return alive.length === 0 ? true : undefined;
       },
       60_000,
     );
@@ -334,6 +377,7 @@ describe.skipIf(!LINUX)("a broker that stops completing work", () => {
     // established. Everything else here is real — real children, a real
     // broker, a real mutation left incomplete.
     const harness = await runtime({ groupAlwaysPresent: true });
+    shutdownRuntime = harness.shutdown;
     const webPid = await readPid(join(harness.root, "web.pid"));
     const firstBroker = await readPid(join(harness.root, "broker.pid"));
     if (!webPid || !firstBroker) {
