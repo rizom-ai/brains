@@ -1231,3 +1231,75 @@ order: let the operator conversion delete category A, move category B,
 design one declarative publish participation for category C, and only
 then promote the narrow slices in category D against consumers that
 survive the question.
+
+## Design: declarative publish participation (2026-08-15)
+
+Category C of the blocker audit. `blog`, `decks`, `portfolio` and
+`social-media` each participate in the publish pipeline owned by
+`plugins/content-pipeline`, and each hand-rolls the same protocol.
+
+### What a package writes today
+
+Two subscriptions and two sends, per package:
+
+1. Subscribe `SYSTEM_CHANNELS.pluginsRegistered`, then send
+   `publish:register` with `{ entityType, provider, config }`.
+2. Subscribe `publish:execute` — a broadcast every publisher receives —
+   filter on `entityType`, assert the publish permission, load the
+   entity, do the work, then send `publish:report:success` or
+   `publish:report:failure`.
+
+Everything except "do the work" is protocol correctness, and each
+package re-implements it. Three consequences, in increasing order of
+seriousness:
+
+- `config: { executionMode: "provider" }` appears in three of the four.
+  `PublishExecutionMode` has exactly one value, so it is noise.
+- Every publisher receives every other entity type's publish request and
+  is trusted to ignore it. Correct today; one missing filter from being
+  a cross-type write.
+- **Each package asserts the publish permission itself, and picks its own
+  fallback when the caller context is absent.** `blog` defaults to
+  `admin`. That is a security-relevant default, made independently in
+  four packages, none of which is the authority on it.
+
+### Proposed declaration
+
+```ts
+publish: {
+  resultIdField?: string,      // where the provider's id is stored
+  timestampField?: string,     // where the publish time is stored
+  publish(context: { entity, caller }): Promise<{ id: string }>,
+}
+```
+
+The runtime owns registration timing, entity-type filtering, permission
+assertion, entity loading, and success/failure reporting. It reports
+failure when `publish` throws, so a package cannot forget to report. The
+package supplies only the work.
+
+The permission default stops being a package decision. That alone
+justifies the change independently of publishing.
+
+### Why this is safe to do incrementally
+
+The declaration binds on the entity side and emits the same messages
+`content-pipeline` already consumes. No change to the pipeline, no
+protocol version, no coordinated migration — a package converts when it
+converts, and unconverted packages keep working unchanged.
+
+### Deliberately out of scope
+
+`social-media` also sends on `GENERATE_CHANNELS` and `IMAGE_CHANNELS`,
+asking other packages to do work for it. That is category E, and it gets
+the note question before any contract is designed for it. Converting its
+publish participation does not require resolving it.
+
+### Open question
+
+Whether `{ id: string }` is the whole provider result. Every current
+provider returns just an id, and `publishResultIdField` /
+`publishTimestampField` suggest the pipeline stores only an id and a
+time. Worth confirming against `content-pipeline`'s provider registry
+before freezing the return type, since widening it later is additive but
+narrowing it is not.
