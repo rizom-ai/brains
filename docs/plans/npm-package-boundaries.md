@@ -1295,11 +1295,28 @@ asking other packages to do work for it. That is category E, and it gets
 the note question before any contract is designed for it. Converting its
 publish participation does not require resolving it.
 
-### Open question
+### Return type: confirmed, and it was not `{ id }`
 
-Whether `{ id: string }` is the whole provider result. Every current
-provider returns just an id, and `publishResultIdField` /
-`publishTimestampField` suggest the pipeline stores only an id and a
-time. Worth confirming against `content-pipeline`'s provider registry
-before freezing the return type, since widening it later is additive but
-narrowing it is not.
+`PublishResult` is `{ id, url?, metadata? }`, and the LinkedIn client
+populates `url` in two places. Freezing the declaration at `{ id }` would
+have silently dropped a real field — exactly the narrowing that cannot be
+undone.
+
+Checking further found the pipeline read only `result.id`, so that URL
+was computed and discarded. Judged a bug rather than minimalism, and
+fixed: the URL format lives inside the provider, so `platformId` alone
+does not let anything downstream reconstruct it. `markEntityPublished`
+now stores it as `platformUrl` when present. (`enrichedSocialPostSchema`
+has a `url`, but that is site-builder enrichment — the post's URL on our
+own site — and was never a home for the platform URL.)
+
+`result.metadata` remains unread by anything, and no provider populates
+it either. Left in place as inert rather than lossy.
+
+The provider input also does not match the first sketch. Providers take
+`(content, metadata, imageData?, documentData?)` and may implement
+`validateCredentials()`; `social-media` uses all of it. The pipeline
+renders content and media before calling the provider, so a declaration
+shaped `publish({ entity, caller })` would push that rendering into every
+package. The declaration should take rendered content and media, and
+return `PublishResult` unchanged.
