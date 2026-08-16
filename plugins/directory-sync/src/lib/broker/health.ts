@@ -24,7 +24,11 @@ export const BROKER_PROGRESS_TIMEOUT_MS = 300_000;
 
 export interface BrokerActivity {
   activeRequestIds: string[];
+  queuedRequestIds: string[];
   oldestActiveProgressAt: number | null;
+  /** Work the previous generation left with no observed outcome. */
+  ambiguousRequestIds: string[];
+  evidenceComplete: boolean;
 }
 
 export interface BrokerHealthOptions {
@@ -55,7 +59,10 @@ export function probeBrokerActivity(
       const status = await connection.status();
       return {
         activeRequestIds: status.activeRequestIds,
+        queuedRequestIds: status.queuedRequestIds,
         oldestActiveProgressAt: status.oldestActiveProgressAt,
+        ambiguousRequestIds: status.ambiguousRequestIds,
+        evidenceComplete: status.evidenceComplete,
       };
     } finally {
       connection.close();
@@ -80,6 +87,21 @@ export function createBrokerHealthCheck(
       };
     }
 
+    // Reported before staleness: a replacement carrying unresolved work is
+    // degraded whether or not anything is running right now.
+    if (activity.ambiguousRequestIds.length > 0 || !activity.evidenceComplete) {
+      return {
+        status: "degraded",
+        message: activity.evidenceComplete
+          ? `Previous Git owner left ${activity.ambiguousRequestIds.length} request(s) unaccounted for`
+          : "Previous Git owner's record could not be read whole",
+        details: {
+          ambiguousRequestIds: activity.ambiguousRequestIds,
+          evidenceComplete: activity.evidenceComplete,
+        },
+      };
+    }
+
     if (activity.oldestActiveProgressAt === null) {
       return { status: "healthy" };
     }
@@ -94,6 +116,7 @@ export function createBrokerHealthCheck(
       message: `Git operation has made no progress for ${staleMs}ms`,
       details: {
         activeRequestIds: activity.activeRequestIds,
+        queuedRequestIds: activity.queuedRequestIds,
         staleMs,
         timeoutMs: options.progressTimeoutMs,
       },
@@ -106,6 +129,9 @@ function isActivity(value: unknown): value is BrokerActivity {
     typeof value === "object" &&
     value !== null &&
     "activeRequestIds" in value &&
+    "queuedRequestIds" in value &&
+    "ambiguousRequestIds" in value &&
+    "evidenceComplete" in value &&
     "oldestActiveProgressAt" in value
   );
 }

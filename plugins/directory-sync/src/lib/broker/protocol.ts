@@ -79,6 +79,10 @@ export interface StatusMessage {
   activeRequestIds: string[];
   /** Accepted and waiting for a turn; waiting is not stalling. */
   queuedRequestIds: string[];
+  /** Requests the previous generation started and never settled. */
+  ambiguousRequestIds: string[];
+  /** False when the previous generation's record could not be read whole. */
+  evidenceComplete: boolean;
   /**
    * Epoch millis of the least recently advanced active operation, or null when
    * nothing is active. Progress age, not start age: a slow clone that keeps
@@ -174,6 +178,8 @@ export const brokerMessageSchema: z.ZodType<BrokerMessage, BrokerMessage> =
         checkouts: z.array(z.string()),
         activeRequestIds: z.array(requestId),
         queuedRequestIds: z.array(requestId),
+        ambiguousRequestIds: z.array(requestId),
+        evidenceComplete: z.boolean(),
         oldestActiveProgressAt: z.number().int().nonnegative().nullable(),
       })
       .strict(),

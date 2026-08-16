@@ -271,6 +271,10 @@ export class GitBrokerServer {
       brokerId: this.brokerId,
       checkouts: this.registeredCheckouts,
       ...this.activity,
+      ambiguousRequestIds: this.ambiguousRequests.map(
+        (request) => request.requestId,
+      ),
+      evidenceComplete: this.#journal?.evidenceComplete ?? true,
     });
   }
 

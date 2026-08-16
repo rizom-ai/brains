@@ -5,8 +5,8 @@ import { connectGitSync } from "./lib/broker/connect";
 import {
   BROKER_PROGRESS_TIMEOUT_MS,
   createBrokerHealthCheck,
+  probeBrokerActivity,
 } from "./lib/broker/health";
-import type { BrokerGitSync } from "./lib/broker/git-sync-client";
 import { resolveGitRemoteUrl } from "./lib/git-options";
 import { createOwnerReplacementHandler } from "./lib/git-owner-replacement";
 import type { IGitSync } from "./types";
@@ -48,8 +48,6 @@ export class DirectorySyncPlugin extends ServicePlugin<
 > {
   private directorySync: DirectorySync | undefined;
   private gitSync: IGitSync | undefined;
-  /** The same client as `gitSync`, kept for questions only it can answer. */
-  private brokerClient: BrokerGitSync | undefined;
   private operationStatus: DirectorySyncOperationStatusService | undefined;
   private gitReconciliation: GitReconciliationService | undefined;
   private workspaceProvider: DirectorySyncWorkspaceProvider | undefined;
@@ -83,13 +81,6 @@ export class DirectorySyncPlugin extends ServicePlugin<
       throw new Error("DirectorySync service not initialized");
     }
     return this.directorySync;
-  }
-
-  private requireBrokerClient(): BrokerGitSync {
-    if (!this.brokerClient) {
-      throw new Error("No Git checkout owner has been connected yet");
-    }
-    return this.brokerClient;
   }
 
   private requireGitSync(): IGitSync {
@@ -157,11 +148,15 @@ export class DirectorySyncPlugin extends ServicePlugin<
       // its own sync run; the second is what the checkout owner reports
       // about the work it is actually holding, which is the only place a
       // wedged Git child is visible at all.
-      if (this.isGitConfigured()) {
+      const socketPath = context.gitBrokerSocket;
+      if (this.isGitConfigured() && socketPath !== undefined) {
         context.operationalHealth.register(
           "git-broker",
           createBrokerHealthCheck({
-            probe: () => this.requireBrokerClient().activity(),
+            // A fresh read-only connection. Asking through this role's own
+            // client would let a health request reattach, notice a new
+            // owner, and schedule durable replay — writes from a read.
+            probe: probeBrokerActivity(socketPath),
             now: (): number => Date.now(),
             progressTimeoutMs: BROKER_PROGRESS_TIMEOUT_MS,
           }),
@@ -511,7 +506,6 @@ export class DirectorySyncPlugin extends ServicePlugin<
       }),
     });
     await gitSync.initialize();
-    this.brokerClient = gitSync;
     this.logger.info("Git integration enabled", { repo: git.repo });
     return gitSync;
   }

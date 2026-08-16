@@ -48,6 +48,8 @@ async function rogueBroker(value: unknown): Promise<string> {
                 checkouts: [message.checkoutPath],
                 activeRequestIds: [],
                 queuedRequestIds: [],
+                ambiguousRequestIds: [],
+                evidenceComplete: true,
                 oldestActiveProgressAt: null,
               }),
             );

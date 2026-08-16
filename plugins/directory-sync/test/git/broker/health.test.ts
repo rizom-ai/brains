@@ -1,5 +1,6 @@
 import { describe, expect, it, mock } from "bun:test";
 import { createBrokerHealthCheck } from "../../../src/lib/broker/health";
+import type { BrokerActivity } from "../../../src/lib/broker/health";
 
 /**
  * Phase 5 of docs/plans/directory-sync-git-execution-broker.md.
@@ -10,16 +11,17 @@ import { createBrokerHealthCheck } from "../../../src/lib/broker/health";
  * not a reason to take the Brain out of rotation.
  */
 
+/** A healthy owner: something running, nothing inherited. */
 const FRESH = {
   activeRequestIds: ["req_working0001"],
+  queuedRequestIds: [],
   oldestActiveProgressAt: 9_500,
+  ambiguousRequestIds: [],
+  evidenceComplete: true,
 };
 
 function check(
-  probe: () => Promise<{
-    activeRequestIds: string[];
-    oldestActiveProgressAt: number | null;
-  }>,
+  probe: () => Promise<BrokerActivity>,
   now = 10_000,
 ): ReturnType<typeof createBrokerHealthCheck> {
   return createBrokerHealthCheck({
@@ -32,6 +34,7 @@ function check(
 describe("broker health", () => {
   it("is healthy when the owner is idle", async () => {
     const result = await check(async () => ({
+      ...FRESH,
       activeRequestIds: [],
       oldestActiveProgressAt: null,
     }))();
@@ -49,6 +52,7 @@ describe("broker health", () => {
 
   it("degrades when an operation stops advancing", async () => {
     const result = await check(async () => ({
+      ...FRESH,
       activeRequestIds: ["req_stuck00001"],
       oldestActiveProgressAt: 8_000,
     }))();
@@ -81,5 +85,33 @@ describe("broker health", () => {
     await check(probe)();
 
     expect(probe).toHaveBeenCalledTimes(1);
+  });
+
+  it("degrades while a replacement carries unresolved work", async () => {
+    // A replacement that inherited an unsettled mutation is not healthy just
+    // because it is idle: something may have landed that nobody enqueued.
+    const result = await check(async () => ({
+      ...FRESH,
+      activeRequestIds: [],
+      oldestActiveProgressAt: null,
+      ambiguousRequestIds: ["req_inherited0001"],
+    }))();
+
+    expect(result.status).toBe("degraded");
+    expect(result.details).toMatchObject({
+      ambiguousRequestIds: ["req_inherited0001"],
+    });
+  });
+
+  it("degrades when the previous record could not be read whole", async () => {
+    const result = await check(async () => ({
+      ...FRESH,
+      activeRequestIds: [],
+      oldestActiveProgressAt: null,
+      evidenceComplete: false,
+    }))();
+
+    expect(result.status).toBe("degraded");
+    expect(result.message).toContain("whole");
   });
 });
