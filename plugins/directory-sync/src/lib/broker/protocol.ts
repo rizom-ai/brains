@@ -64,6 +64,19 @@ export interface ResultMessage {
   error: string | null;
 }
 
+/**
+ * A role reporting that it has reconciled what the previous owner left.
+ *
+ * The broker cannot do this itself: the queue and the durable checkpoint
+ * live in the app. So it holds mutations until one role says the checkout
+ * has been accounted for.
+ */
+export interface OpenAdmissionMessage {
+  type: "open-admission";
+  version: number;
+  requestId: string;
+}
+
 export interface QueryMessage {
   type: "query";
   version: number;
@@ -83,6 +96,8 @@ export interface StatusMessage {
   ambiguousRequestIds: string[];
   /** False when the previous generation's record could not be read whole. */
   evidenceComplete: boolean;
+  /** False while this owner is holding mutations pending reconciliation. */
+  admitsMutations: boolean;
   /**
    * Epoch millis of the least recently advanced active operation, or null when
    * nothing is active. Progress age, not start age: a slow clone that keeps
@@ -101,6 +116,7 @@ export interface HeartbeatMessage {
 export type BrokerMessage =
   | RegisterCheckoutMessage
   | QueryMessage
+  | OpenAdmissionMessage
   | ExecuteOperationMessage
   | ProgressMessage
   | ResultMessage
@@ -170,6 +186,9 @@ export const brokerMessageSchema: z.ZodType<BrokerMessage, BrokerMessage> =
       .strict(),
     z.object({ type: z.literal("query"), version, requestId }).strict(),
     z
+      .object({ type: z.literal("open-admission"), version, requestId })
+      .strict(),
+    z
       .object({
         type: z.literal("status"),
         version,
@@ -180,6 +199,7 @@ export const brokerMessageSchema: z.ZodType<BrokerMessage, BrokerMessage> =
         queuedRequestIds: z.array(requestId),
         ambiguousRequestIds: z.array(requestId),
         evidenceComplete: z.boolean(),
+        admitsMutations: z.boolean(),
         oldestActiveProgressAt: z.number().int().nonnegative().nullable(),
       })
       .strict(),

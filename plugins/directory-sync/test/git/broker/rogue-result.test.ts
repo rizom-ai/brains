@@ -50,6 +50,7 @@ async function rogueBroker(value: unknown): Promise<string> {
                 queuedRequestIds: [],
                 ambiguousRequestIds: [],
                 evidenceComplete: true,
+                admitsMutations: true,
                 oldestActiveProgressAt: null,
               }),
             );

@@ -179,6 +179,24 @@ export class BrokerConnection {
     return expectStatus(await settled.promise);
   }
 
+  /**
+   * Tell the owner this role has reconciled what its predecessor left.
+   *
+   * Only a role that can see the queue and the durable checkpoint can know
+   * that, which is why the broker waits to be told rather than deciding.
+   */
+  async openAdmission(): Promise<StatusMessage> {
+    const requestId = `req_${createId(12)}`;
+    const settled = Promise.withResolvers<Reply>();
+    this.#pending.set(requestId, settled);
+    this.#send({
+      type: "open-admission",
+      version: BROKER_PROTOCOL_VERSION,
+      requestId,
+    });
+    return expectStatus(await settled.promise);
+  }
+
   async status(): Promise<StatusMessage> {
     const requestId = `req_${createId(12)}`;
     const settled = Promise.withResolvers<Reply>();

@@ -158,6 +158,23 @@ export class BrokerGitSync {
     };
   }
 
+  /** Whether the owner is currently willing to change the checkout. */
+  async admitsMutations(): Promise<boolean> {
+    const connection = await this.#link();
+    return (await connection.status()).admitsMutations;
+  }
+
+  /**
+   * Report that this role has reconciled what the previous owner left.
+   *
+   * The broker cannot know this: the queue and the durable checkpoint live
+   * here, not there.
+   */
+  async openAdmission(): Promise<void> {
+    const connection = await this.#link();
+    await connection.openAdmission();
+  }
+
   hasRemote(): boolean {
     return this.#options.remoteUrl.length > 0;
   }

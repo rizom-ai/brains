@@ -115,6 +115,15 @@ export class GitBrokerServer {
    */
   readonly #ledger = new Map<string, LedgerEntry>();
   readonly #answeredWindow: number;
+  /**
+   * Whether this owner will run work that changes the checkout.
+   *
+   * A replacement inherits a checkout nobody has accounted for, so it
+   * starts closed and a role opens it after reconciling. An owner whose
+   * predecessor left a whole record with nothing outstanding has nothing
+   * to reconcile, and waiting there would be cost without safety.
+   */
+  #admitsMutations: boolean;
   readonly #journal: BrokerJournal | null;
   #server: { stop(closeActiveConnections?: boolean): void } | null = null;
 
@@ -132,6 +141,14 @@ export class GitBrokerServer {
     this.#now = now;
     this.#journal = journal;
     this.#answeredWindow = answeredWindow;
+    this.#admitsMutations =
+      (journal?.ambiguous.length ?? 0) === 0 &&
+      (journal?.evidenceComplete ?? true);
+  }
+
+  /** Reconciliation is complete; this owner may change the checkout again. */
+  openAdmission(): void {
+    this.#admitsMutations = true;
   }
 
   /**
@@ -275,6 +292,7 @@ export class GitBrokerServer {
         (request) => request.requestId,
       ),
       evidenceComplete: this.#journal?.evidenceComplete ?? true,
+      admitsMutations: this.#admitsMutations,
     });
   }
 
@@ -324,6 +342,12 @@ export class GitBrokerServer {
       return;
     }
 
+    if (message.type === "open-admission") {
+      this.openAdmission();
+      this.#status(writer, message.requestId);
+      return;
+    }
+
     if (message.type === "execute-operation") {
       await this.#execute(writer, message);
     }
@@ -353,6 +377,19 @@ export class GitBrokerServer {
       }
       // Either already answered, or still running and about to be.
       this.#reply(writer, message.requestId, await existing.settled);
+      return;
+    }
+
+    if (!this.#admitsMutations && isMutatingOperation(message.operation)) {
+      // Reads stay open: reconciliation is made of reads, and refusing
+      // them would leave the checkout closed forever.
+      this.#fail(
+        writer,
+        message.requestId,
+        new Error(
+          "Git admission is closed while the previous owner's work is reconciled",
+        ),
+      );
       return;
     }
 

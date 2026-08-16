@@ -2,6 +2,7 @@ import type { Plugin, ServicePluginContext, Tool } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
 import { DirectorySync } from "./lib/directory-sync";
 import { connectGitSync } from "./lib/broker/connect";
+import type { BrokerGitSync } from "./lib/broker/git-sync-client";
 import {
   BROKER_PROGRESS_TIMEOUT_MS,
   createBrokerHealthCheck,
@@ -48,6 +49,12 @@ export class DirectorySyncPlugin extends ServicePlugin<
 > {
   private directorySync: DirectorySync | undefined;
   private gitSync: IGitSync | undefined;
+  /**
+   * The same client as `gitSync`, kept for the two questions only the
+   * broker protocol can answer: whether it is admitting mutations, and
+   * being told that this role has reconciled.
+   */
+  private brokerClient: BrokerGitSync | undefined;
   private operationStatus: DirectorySyncOperationStatusService | undefined;
   private gitReconciliation: GitReconciliationService | undefined;
   private workspaceProvider: DirectorySyncWorkspaceProvider | undefined;
@@ -206,6 +213,14 @@ export class DirectorySyncPlugin extends ServicePlugin<
         }
         throw error;
       }
+      // A replacement owner holds mutations until someone has accounted
+      // for what the lost generation left. Only a scheduling role can do
+      // that — the queue and the checkpoint live here — and only one of
+      // them should, so the worker never opens admission.
+      if (!context.executionOnly) {
+        await this.reconcileInheritedWork(context);
+      }
+
       context.jobs.registerHandler(
         "sync-request",
         new DirectorySyncRequestJobHandler(
@@ -493,21 +508,57 @@ export class DirectorySyncPlugin extends ServicePlugin<
         gitUrl: git.gitUrl,
       }),
       logger: this.logger.child("GitSync"),
-      onOwnerReplaced: createOwnerReplacementHandler({
-        logger: this.logger.child("GitOwner"),
-        scheduler: this.runtimeScheduler,
-        replay: () =>
-          this.requireGitReconciliation().replayAndQueue({
-            gitSync: this.requireGitSync(),
-            directorySync: this.requireDirectorySync(),
-            context: this.getContext(),
-            source: "broker-replacement-replay",
+      // Only a scheduling role reconciles. Two roles noticing the same
+      // replacement would queue the same delta twice.
+      ...(this.getContext().executionOnly
+        ? {}
+        : {
+            onOwnerReplaced: createOwnerReplacementHandler({
+              logger: this.logger.child("GitOwner"),
+              scheduler: this.runtimeScheduler,
+              replay: async (): Promise<void> => {
+                await this.requireGitReconciliation().replayAndQueue({
+                  gitSync: this.requireGitSync(),
+                  directorySync: this.requireDirectorySync(),
+                  context: this.getContext(),
+                  source: "broker-replacement-replay",
+                });
+                // Only now may anything change the checkout again.
+                await this.brokerClient?.openAdmission();
+              },
+            }),
           }),
-      }),
     });
+    this.brokerClient = gitSync;
     await gitSync.initialize();
     this.logger.info("Git integration enabled", { repo: git.repo });
     return gitSync;
+  }
+
+  /**
+   * Account for whatever the previous owner left, then reopen admission.
+   *
+   * Replaying from the durable checkpoint queues anything that reached the
+   * checkout without being enqueued, and queues nothing if the lost
+   * operation never landed. Only reads are needed for that, which is why
+   * the broker keeps them open while it holds mutations.
+   */
+  private async reconcileInheritedWork(
+    context: ServicePluginContext,
+  ): Promise<void> {
+    const client = this.brokerClient;
+    if (!client || (await client.admitsMutations())) return;
+
+    this.logger.warn(
+      "Git owner is holding mutations; reconciling inherited work",
+    );
+    await this.requireGitReconciliation().replayAndQueue({
+      gitSync: this.requireGitSync(),
+      directorySync: this.requireDirectorySync(),
+      context,
+      source: "inherited-work-replay",
+    });
+    await client.openAdmission();
   }
 
   private async startBackgroundWork(): Promise<void> {
