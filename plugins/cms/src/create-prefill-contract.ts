@@ -8,10 +8,26 @@ const safeText = (max: number): z.ZodString =>
     .max(max)
     .refine((value) => !/[\p{Cc}\p{Cf}]/u.test(value));
 
+const safeBody = (max: number): z.ZodString =>
+  z
+    .string()
+    .trim()
+    .min(1)
+    .max(max)
+    .refine((value) =>
+      Array.from(value).every(
+        (character) =>
+          character === "\n" ||
+          character === "\t" ||
+          !/[\p{Cc}\p{Cf}]/u.test(character),
+      ),
+    );
+
 export interface CmsCreatePrefill {
-  version: 1;
+  version: 2;
   entityType: "note";
   title: string;
+  body?: string | undefined;
   backlink: string;
 }
 
@@ -23,9 +39,10 @@ export const cmsCreatePrefillSchema: z.ZodType<
   CmsCreatePrefill,
   CmsCreatePrefill
 > = z.strictObject({
-  version: z.literal(1),
+  version: z.literal(2),
   entityType: z.literal("note"),
   title: safeText(160),
+  body: safeBody(1_000).optional(),
   backlink: safeText(500).regex(/^entity:\/\/[^/]+\/.+$/),
 });
 
@@ -37,12 +54,14 @@ export const cmsCreatePrefillStateSchema: z.ZodType<
 export function createCmsCreatePrefillState(
   title: string,
   backlink: string,
+  body?: string,
 ): CmsCreatePrefillState {
   return cmsCreatePrefillStateSchema.parse({
     cmsCreatePrefill: {
-      version: 1,
+      version: 2,
       entityType: "note",
       title,
+      ...(body ? { body } : {}),
       backlink,
     },
   });

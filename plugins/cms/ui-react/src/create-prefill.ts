@@ -28,6 +28,9 @@ export function consumeCmsCreatePrefill(
   clear();
   return {
     title: parsed.data.cmsCreatePrefill.title,
+    ...(parsed.data.cmsCreatePrefill.body
+      ? { body: parsed.data.cmsCreatePrefill.body }
+      : {}),
     backlink: parsed.data.cmsCreatePrefill.backlink,
   };
 }
@@ -41,8 +44,9 @@ export function createPrefilledDraft(
   if (fields.some((field) => field.name === "title")) {
     draft["title"] = prefill.title;
   }
+  const sourceSection = `## Source\n\n[Open the Inbox item](${prefill.backlink})`;
   return {
     draft,
-    body: `Source: ${prefill.backlink}`,
+    body: prefill.body ? `${prefill.body}\n\n${sourceSection}` : sourceSection,
   };
 }

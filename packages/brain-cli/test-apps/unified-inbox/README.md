@@ -1,8 +1,8 @@
 # Unified inbox test app
 
-This canonical posture exercises inbound email workflows, private source reads, shared
-Inbox surfaces, generated reply drafts, source-owned actions, and the daily digest. Use a
-dedicated mailbox containing synthetic messages only.
+This canonical posture exercises inbound email workflows, private source reads,
+source-backed Chat, content-safe note Capture, source-owned actions, and the daily digest.
+Use a dedicated mailbox containing synthetic messages only.
 Never point it at a personal or production mailbox.
 
 ## Setup
@@ -18,9 +18,8 @@ Never point it at a personal or production mailbox.
 2. Add a capped `AI_API_KEY`, `IMAP_USER`, and app-specific `IMAP_PASSWORD` to `.env`.
 3. Replace the explicit `imap.test.invalid` host in `brain.yaml` with the test mailbox's
    IMAP host. Keep port, mailbox, poll mode, and interval explicit in YAML.
-4. To exercise actual digest delivery and confirmed reply sending, also configure the
-   three `SETUP_EMAIL_*` values in `.env`. They provide the existing Resend transport
-   and notification recipient.
+4. To exercise actual digest delivery, also configure the three `SETUP_EMAIL_*` values
+   in `.env`. They provide the existing Resend transport and notification recipient.
 
 ## Run
 
@@ -37,12 +36,11 @@ Send synthetic messages that cover high-priority actionable mail, normal mail, r
 requests, and strong bulk/list signals. Open
 <http://localhost:8080/cms/workspaces/inbox> and verify server-side source/urgency
 filters, list/detail navigation, transient original-message reads, confirmation, and
-paging. For a synthetic item needing a reply, open **Draft reply**, generate and edit a
-revision, then verify only the authored reply text appears in the restricted draft entity.
-With the outbound transport configured, explicitly confirm **Send reply** and verify the
-synthetic destination receives one `Re:` message with the expected `In-Reply-To` and
-ordered `References`; retrying the same saved revision must not create another accepted
-message. Dashboard should expose only a five-entry read-only summary whose **Open Inbox**
+paging. Open **Discuss in chat** and verify the new conversation can answer a question
+requiring the selected synthetic email body without placing that body in browser history
+state. Open **Capture as note** and verify the unsaved note contains the safe summary and a
+readable source link. Confirm that Inbox and CMS expose no reply-draft follow-up, workspace,
+or entity collection. Dashboard should expose only a five-entry read-only summary whose **Open Inbox**
 link returns to that workspace;
 `inbox_list` remains the chat read surface. If digest delivery is configured, verify its
 link resolves to the same workspace. Only restricted derived titles and content-safe

@@ -130,7 +130,7 @@ describe("optional CMS workspaces", () => {
         item: {
           id: "mail-1",
           title: "Review the proposal",
-          summary: "Classifier summary must not be copied.",
+          summary: "A collaboration proposal needs an operator decision.",
           receivedAt: "2026-08-13T08:00:00.000Z",
           urgency: "high",
           entityRef: { entityType: "note", entityId: "new" },
@@ -144,9 +144,10 @@ describe("optional CMS workspaces", () => {
         href: "/studio/entities/note?mode=create",
         state: {
           cmsCreatePrefill: {
-            version: 1,
+            version: 2,
             entityType: "note",
             title: "Review the proposal",
+            body: "A collaboration proposal needs an operator decision.",
             backlink: "entity://note/new",
           },
         },

@@ -6,21 +6,29 @@ import {
 
 const validState = {
   webChatPrefill: {
-    version: 1,
-    text: "About inbox item: Review the proposal (mail-item/mail-1)",
+    version: 2,
+    text: "Help me understand this Inbox item and decide what to do next.",
+    context: {
+      sourceId: "mail-items",
+      itemId: "mail-1",
+      label: "Review the proposal",
+    },
   },
 };
 
 describe("Inbox chat prefill", () => {
-  it("consumes the composer handoff exactly once", () => {
+  it("consumes the composer and source handoff exactly once", () => {
     let state: unknown = validState;
-    const consume = (): string =>
+    const consume = (): ReturnType<typeof consumeInboxChatPrefill> =>
       consumeInboxChatPrefill(state, () => {
         state = null;
       });
 
-    expect(consume()).toBe(validState.webChatPrefill.text);
-    expect(consume()).toBe("");
+    expect(consume()).toEqual({
+      text: validState.webChatPrefill.text,
+      context: validState.webChatPrefill.context,
+    });
+    expect(consume()).toBeUndefined();
   });
 
   it("removes only the consumed handoff from router history state", () => {
@@ -33,24 +41,43 @@ describe("Inbox chat prefill", () => {
     ).toEqual({ __TSR_index: 2, __TSR_key: "router-key" });
   });
 
-  it("preserves hostile-looking text as inert composer input", () => {
-    const text = '<img src=x onerror="window.prefillExecuted=true">';
+  it("preserves hostile-looking labels as inert UI text", () => {
+    const label = '<img src=x onerror="window.prefillExecuted=true">';
 
     expect(
       consumeInboxChatPrefill(
-        { webChatPrefill: { version: 1, text } },
+        {
+          webChatPrefill: {
+            ...validState.webChatPrefill,
+            context: { ...validState.webChatPrefill.context, label },
+          },
+        },
         () => {},
       ),
-    ).toBe(text);
+    ).toEqual({
+      text: validState.webChatPrefill.text,
+      context: { ...validState.webChatPrefill.context, label },
+    });
   });
 
   it.each([
     null,
     {},
-    { webChatPrefill: { version: 2, text: "wrong version" } },
-    { webChatPrefill: { version: 1, text: "" } },
-    { webChatPrefill: { version: 1, text: "x".repeat(501) } },
-    { webChatPrefill: { version: 1, text: "hello", extra: true } },
+    { webChatPrefill: { ...validState.webChatPrefill, version: 1 } },
+    { webChatPrefill: { ...validState.webChatPrefill, text: "" } },
+    {
+      webChatPrefill: {
+        ...validState.webChatPrefill,
+        text: "x".repeat(501),
+      },
+    },
+    {
+      webChatPrefill: {
+        ...validState.webChatPrefill,
+        context: { ...validState.webChatPrefill.context, sourceId: "INVALID" },
+      },
+    },
+    { webChatPrefill: { ...validState.webChatPrefill, extra: true } },
   ])("ignores malformed handoff state", (state) => {
     let cleared = false;
 
@@ -58,7 +85,7 @@ describe("Inbox chat prefill", () => {
       consumeInboxChatPrefill(state, () => {
         cleared = true;
       }),
-    ).toBe("");
+    ).toBeUndefined();
     expect(cleared).toBe(false);
   });
 });

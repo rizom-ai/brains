@@ -5,6 +5,10 @@ import {
   resolveInlineUploadPart as resolveInlineUploadFilePart,
   resolveReferencedUpload as resolveReferencedUploadPart,
 } from "./upload-handlers";
+import {
+  webChatInboxContextSchema,
+  type WebChatInboxContext,
+} from "./inbox-prefill-contract";
 
 interface TextPart {
   type: "text";
@@ -48,6 +52,7 @@ export interface ChatRequest {
   id?: string | undefined;
   messages: UiMessage[];
   trigger?: string | undefined;
+  inboxContext?: WebChatInboxContext | undefined;
 }
 
 const textPartSchema: z.ZodType<TextPart> = z.object({
@@ -86,6 +91,7 @@ export const chatRequestSchema: z.ZodType<ChatRequest> = z.object({
   id: z.string().optional(),
   messages: z.array(uiMessageSchema).min(1),
   trigger: z.string().optional(),
+  inboxContext: webChatInboxContextSchema.optional(),
 });
 
 const uploadRefSchema = z.object({

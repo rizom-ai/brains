@@ -138,16 +138,6 @@ function toInboxItem(
       "needs-reply": String(item.needsReply),
     },
     entityRef: { entityType: "mail-item", entityId: item.id },
-    ...(item.needsReply
-      ? {
-          followUps: [
-            {
-              kind: "draft-reply",
-              context: { mailItemId: item.id },
-            },
-          ],
-        }
-      : {}),
     actions: inboxActions(),
   };
 }

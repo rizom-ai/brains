@@ -144,6 +144,7 @@ export class CmsPlugin extends ServicePlugin<
           state: createCmsCreatePrefillState(
             item.title,
             entityBacklink(item.entityRef.entityType, item.entityRef.entityId),
+            safeInboxSummary(item.summary),
           ),
         };
       },
@@ -206,6 +207,21 @@ export class CmsPlugin extends ServicePlugin<
       },
     });
   }
+}
+
+function safeInboxSummary(summary: string | undefined): string | undefined {
+  if (!summary) return undefined;
+  const normalized = Array.from(summary.replace(/\r\n?/g, "\n"))
+    .map((character) =>
+      character === "\n" ||
+      character === "\t" ||
+      !/[\p{Cc}\p{Cf}]/u.test(character)
+        ? character
+        : " ",
+    )
+    .join("")
+    .trim();
+  return normalized || undefined;
 }
 
 export function cmsPlugin(config: CmsPluginConfigInput = {}): CmsPlugin {

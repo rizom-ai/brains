@@ -111,6 +111,62 @@ describe("startup session restoration", () => {
     queryClient.clear();
   });
 
+  it("starts a fresh conversation with visible Inbox context", async () => {
+    windowInstance.history.replaceState(
+      {
+        webChatPrefill: {
+          version: 2,
+          text: "Help me understand this Inbox item and decide what to do next.",
+          context: {
+            sourceId: "mail-items",
+            itemId: "mail-1",
+            label: "Project question",
+          },
+        },
+      },
+      "",
+      "/chat",
+    );
+    const queryClient = createWebChatQueryClient();
+
+    await act(async () => {
+      root.render(
+        createElement(
+          QueryClientProvider,
+          { client: queryClient },
+          createElement(App),
+        ),
+      );
+    });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    });
+
+    expect(fetchCalls).toEqual(["/api/chat/sessions"]);
+    const app = windowInstance.document.querySelector("[data-web-chat-app]");
+    expect(app?.getAttribute("data-conversation-id")).toMatch(/^web-/);
+    expect(app?.getAttribute("data-conversation-id")).not.toBe("web-persisted");
+    const textarea = windowInstance.document.querySelector("#web-chat-input");
+    expect((textarea as HTMLTextAreaElement | null)?.value).toBe(
+      "Help me understand this Inbox item and decide what to do next.",
+    );
+    expect(windowInstance.document.body.textContent).toContain(
+      "Project question",
+    );
+    const detach = windowInstance.document.querySelector(
+      '[aria-label="Detach Inbox context: Project question"]',
+    );
+    if (!(detach instanceof windowInstance.HTMLButtonElement)) {
+      throw new Error("Inbox context detach control was not rendered");
+    }
+    await act(async () => detach.click());
+    expect(windowInstance.document.body.textContent).not.toContain(
+      "Project question",
+    );
+    expect(windowInstance.history.state).toEqual({});
+    queryClient.clear();
+  });
+
   it("does not restore approval buttons after the action was resolved", async () => {
     historyMessages = [
       {

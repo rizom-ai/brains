@@ -14,9 +14,10 @@ const titleField: FieldDescriptor = {
 };
 
 const validPrefill = {
-  version: 1,
+  version: 2,
   entityType: "note",
   title: "Review the proposal",
+  body: "A collaboration proposal needs an operator decision.",
   backlink: "entity://mail-item/mail%2F1",
 };
 
@@ -25,7 +26,7 @@ function historyState(): Record<string, unknown> {
 }
 
 describe("CMS create prefill", () => {
-  it("consumes an exact note handoff into an unsaved title and backlink-only body", () => {
+  it("consumes a content-safe note handoff into a useful unsaved draft", () => {
     let cleared = false;
     const prefill = consumeCmsCreatePrefill(historyState(), "note", () => {
       cleared = true;
@@ -33,11 +34,18 @@ describe("CMS create prefill", () => {
 
     expect(prefill).toEqual({
       title: "Review the proposal",
+      body: "A collaboration proposal needs an operator decision.",
       backlink: "entity://mail-item/mail%2F1",
     });
     expect(createPrefilledDraft([titleField], prefill)).toEqual({
       draft: { title: "Review the proposal" },
-      body: "Source: entity://mail-item/mail%2F1",
+      body: [
+        "A collaboration proposal needs an operator decision.",
+        "",
+        "## Source",
+        "",
+        "[Open the Inbox item](entity://mail-item/mail%2F1)",
+      ].join("\n"),
     });
     expect(cleared).toBe(true);
   });
@@ -72,7 +80,7 @@ describe("CMS create prefill", () => {
   it.each([
     null,
     {},
-    { cmsCreatePrefill: { ...validPrefill, version: 2 } },
+    { cmsCreatePrefill: { ...validPrefill, version: 1 } },
     {
       cmsCreatePrefill: {
         ...validPrefill,
@@ -82,7 +90,7 @@ describe("CMS create prefill", () => {
     {
       cmsCreatePrefill: {
         ...validPrefill,
-        summary: "Classifier text must not enter a note.",
+        body: "x".repeat(1_001),
       },
     },
     {
@@ -101,7 +109,7 @@ describe("CMS create prefill", () => {
     expect(cleared).toBe(false);
   });
 
-  it("does not invent a title field when the capture schema has none", () => {
+  it("renders a readable source section when no summary is available", () => {
     expect(
       createPrefilledDraft([], {
         title: "Review the proposal",
@@ -109,7 +117,7 @@ describe("CMS create prefill", () => {
       }),
     ).toEqual({
       draft: {},
-      body: "Source: entity://mail-item/mail-1",
+      body: "## Source\n\n[Open the Inbox item](entity://mail-item/mail-1)",
     });
   });
 });

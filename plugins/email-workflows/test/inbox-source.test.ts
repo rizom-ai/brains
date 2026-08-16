@@ -232,14 +232,6 @@ describe("mail triage inbox source", () => {
           entityType: "mail-item",
           entityId: expect.stringMatching(/^mail-[a-f0-9]{64}$/),
         },
-        followUps: [
-          {
-            kind: "draft-reply",
-            context: {
-              mailItemId: expect.stringMatching(/^mail-[a-f0-9]{64}$/),
-            },
-          },
-        ],
         actions: [
           { id: "mark-reviewed", label: "Mark reviewed" },
           { id: "mark-handled", label: "Mark handled" },

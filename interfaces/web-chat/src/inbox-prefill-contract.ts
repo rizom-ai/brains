@@ -1,25 +1,46 @@
+import { inboxIdSchema, inboxItemIdSchema } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 
+export interface WebChatInboxContext {
+  sourceId: string;
+  itemId: string;
+  label: string;
+}
+
 export interface WebChatInboxPrefill {
-  version: 1;
+  version: 2;
   text: string;
+  context: WebChatInboxContext;
 }
 
 export interface WebChatInboxPrefillState {
   webChatPrefill: WebChatInboxPrefill;
 }
 
+const safeText = (max: number): z.ZodString =>
+  z
+    .string()
+    .trim()
+    .min(1)
+    .max(max)
+    .refine((value) => !/[\p{Cc}\p{Cf}]/u.test(value));
+
+export const webChatInboxContextSchema: z.ZodType<
+  WebChatInboxContext,
+  WebChatInboxContext
+> = z.strictObject({
+  sourceId: inboxIdSchema,
+  itemId: inboxItemIdSchema,
+  label: safeText(160),
+});
+
 export const webChatInboxPrefillSchema: z.ZodType<
   WebChatInboxPrefill,
   WebChatInboxPrefill
 > = z.strictObject({
-  version: z.literal(1),
-  text: z
-    .string()
-    .min(1)
-    .max(500)
-    .refine((value) => value.trim().length > 0)
-    .refine((value) => !/[\p{Cc}\p{Cf}]/u.test(value)),
+  version: z.literal(2),
+  text: safeText(500),
+  context: webChatInboxContextSchema,
 });
 
 export const webChatInboxPrefillStateSchema: z.ZodType<
@@ -29,8 +50,9 @@ export const webChatInboxPrefillStateSchema: z.ZodType<
 
 export function createWebChatInboxPrefillState(
   text: string,
+  context: WebChatInboxContext,
 ): WebChatInboxPrefillState {
   return webChatInboxPrefillStateSchema.parse({
-    webChatPrefill: { version: 1, text },
+    webChatPrefill: { version: 2, text, context },
   });
 }

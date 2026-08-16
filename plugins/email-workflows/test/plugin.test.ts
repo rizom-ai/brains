@@ -20,7 +20,6 @@ import {
   emailWorkflows,
   type RetainedMailClassification,
 } from "../src";
-import { EmailReplyDraftEntityPlugin } from "../src/reply-drafts/entity/plugin";
 
 const inbound: InboundEmail = {
   messageId: "<plugin-test@example.com>",
@@ -32,26 +31,6 @@ const inbound: InboundEmail = {
   text: "Would you be available to collaborate next month?",
   headers: { autoSubmitted: "no" },
 };
-
-const adminActor = {
-  interfaceType: "cms" as const,
-  userId: "admin-user",
-  actor: { kind: "user" as const, userId: "admin-user" },
-  userPermissionLevel: "admin" as const,
-  visibilityScope: "restricted" as const,
-  isAnchor: true,
-};
-
-function requireActionWorkspace(
-  workspace: CmsWorkspaceRegistration | undefined,
-): CmsWorkspaceRegistration & {
-  actionHandler: NonNullable<CmsWorkspaceRegistration["actionHandler"]>;
-} {
-  if (!workspace?.actionHandler) {
-    throw new Error("Reply draft workspace was not registered");
-  }
-  return { ...workspace, actionHandler: workspace.actionHandler };
-}
 
 const classification: RetainedMailClassification = {
   decision: "retain",
@@ -91,7 +70,6 @@ describe("email workflow plugin", () => {
       emailWorkflows().map((plugin) => ({ id: plugin.id, type: plugin.type })),
     ).toEqual([
       { id: "mail-item", type: "entity" },
-      { id: "email-reply-draft", type: "entity" },
       { id: "email-workflows", type: "service" },
     ]);
   });
@@ -168,7 +146,7 @@ Prioritize collaboration connected to Project Aurora.`,
     expect(items[0]?.visibility).toBe("restricted");
   });
 
-  it("registers triage and reply drafting as one email workflow", async () => {
+  it("registers triage without composing reply drafting", async () => {
     const harness = createPluginHarness();
     const entityService = harness.getEntityService();
     entityService.countEntities = async (request): Promise<number> =>
@@ -200,7 +178,6 @@ Prioritize collaboration connected to Project Aurora.`,
     );
 
     await harness.installPlugin(new MailItemPlugin());
-    await harness.installPlugin(new EmailReplyDraftEntityPlugin());
     await harness.getEntityService().createEntity({
       entity: {
         ...createMailItemProjection(inbound, classification),
@@ -256,85 +233,20 @@ Prioritize collaboration connected to Project Aurora.`,
       },
     });
 
-    expect(workspace).toMatchObject({
-      id: "email-reply-drafts",
-      pluginId: "email-workflows",
-      label: "Reply drafts",
-      rendererName: "EmailReplyDraftWorkspace",
-      urlQuery: true,
-    });
-    const replyWorkspace = requireActionWorkspace(workspace);
+    expect(workspace).toBeUndefined();
+    expect(
+      harness
+        .getMockShell()
+        .getInboxFollowUpRegistry()
+        .listKinds()
+        .some((kind) => kind.kind === "draft-reply"),
+    ).toBe(false);
     const openItem = openItems?.[0];
     const itemId = openItem?.id;
     if (!itemId || !inboxSource) {
       throw new Error("Inbox item was not listed");
     }
-    expect(
-      await replyWorkspace.dataProvider(adminActor, { mailItemId: itemId }),
-    ).toEqual({ mailItemId: itemId, draft: null });
-    expect(
-      await replyWorkspace.actionHandler(
-        { type: "source", mailItemId: itemId },
-        adminActor,
-      ),
-    ).toEqual({
-      kind: "source-unavailable",
-      error: "Original content is unavailable",
-    });
-    expect(
-      await replyWorkspace.actionHandler(
-        { type: "generate", mailItemId: itemId },
-        adminActor,
-      ),
-    ).toEqual({ kind: "error", error: "Draft generation failed" });
-    expect(
-      await replyWorkspace.actionHandler(
-        {
-          type: "save",
-          mailItemId: itemId,
-          text: "Operator-authored reply",
-          baseRevision: 0,
-        },
-        adminActor,
-      ),
-    ).toMatchObject({
-      kind: "draft",
-      draft: { revision: 1, status: "draft" },
-    });
-    expect(
-      await replyWorkspace.actionHandler(
-        {
-          type: "send",
-          mailItemId: itemId,
-          revision: 1,
-          confirmed: false,
-        },
-        adminActor,
-      ),
-    ).toEqual({
-      kind: "confirmation",
-      summary: "Send reply revision 1?",
-    });
-    expect(
-      await replyWorkspace.actionHandler(
-        {
-          type: "send",
-          mailItemId: itemId,
-          revision: 1,
-          confirmed: true,
-        },
-        adminActor,
-      ),
-    ).toEqual({
-      kind: "error",
-      error: "Email delivery is unavailable",
-    });
-    expect(
-      await replyWorkspace.dataProvider(adminActor, { mailItemId: itemId }),
-    ).toMatchObject({ draft: { revision: 1, status: "draft" } });
-    expect(openItem.followUps).toEqual([
-      { kind: "draft-reply", context: { mailItemId: itemId } },
-    ]);
+    expect(openItem.followUps).toBeUndefined();
     expect(
       await harness
         .getMockShell()
@@ -344,11 +256,7 @@ Prioritize collaboration connected to Project Aurora.`,
           item: openItem,
           actor: { permissionLevel: "admin" },
         }),
-    ).toContainEqual({
-      kind: "draft-reply",
-      label: "Draft reply",
-      href: `/cms/workspaces/email-reply-drafts?mailItemId=${itemId}`,
-    });
+    ).toEqual([]);
     await inboxSource.act(itemId, "mark-reviewed", {
       permissionLevel: "admin",
     });

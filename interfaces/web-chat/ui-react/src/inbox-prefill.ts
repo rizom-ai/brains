@@ -1,4 +1,12 @@
-import { webChatInboxPrefillStateSchema } from "../../src/inbox-prefill-contract";
+import {
+  webChatInboxPrefillStateSchema,
+  type WebChatInboxContext,
+} from "../../src/inbox-prefill-contract";
+
+export interface InboxChatHandoff {
+  text: string;
+  context: WebChatInboxContext;
+}
 
 export function withoutInboxChatPrefill(
   state: Record<string, unknown>,
@@ -7,13 +15,16 @@ export function withoutInboxChatPrefill(
   return remaining;
 }
 
-/** Consume a one-shot Inbox composer handoff without submitting it. */
+/** Consume a one-shot Inbox handoff without submitting it. */
 export function consumeInboxChatPrefill(
   state: unknown,
   clear: () => void,
-): string {
+): InboxChatHandoff | undefined {
   const parsed = webChatInboxPrefillStateSchema.safeParse(state);
-  if (!parsed.success) return "";
+  if (!parsed.success) return undefined;
   clear();
-  return parsed.data.webChatPrefill.text;
+  return {
+    text: parsed.data.webChatPrefill.text,
+    context: parsed.data.webChatPrefill.context,
+  };
 }

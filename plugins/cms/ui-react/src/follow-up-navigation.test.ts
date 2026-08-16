@@ -3,9 +3,10 @@ import { navigateToInboxFollowUp } from "./follow-up-navigation";
 
 const state = {
   cmsCreatePrefill: {
-    version: 1,
+    version: 2,
     entityType: "note",
     title: "Review the proposal",
+    body: "A collaboration proposal needs an operator decision.",
     backlink: "entity://mail-item/mail-1",
   },
 };

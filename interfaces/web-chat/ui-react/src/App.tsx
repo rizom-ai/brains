@@ -72,7 +72,7 @@ type UploadNotice = { tone: "success" | "error"; message: string } | null;
 const emptySessions: WebChatSession[] = [];
 
 export function App(): React.ReactElement {
-  const [input, setInput] = useState(() =>
+  const [inboxHandoff] = useState(() =>
     consumeInboxChatPrefill(window.history.state, () => {
       window.history.replaceState(
         withoutInboxChatPrefill(
@@ -83,15 +83,22 @@ export function App(): React.ReactElement {
       );
     }),
   );
-  const [conversationId, setConversationId] = useState(() =>
-    getBrowserConversationId(),
+  const [input, setInput] = useState(inboxHandoff?.text ?? "");
+  const [inboxContext, setInboxContext] = useState(
+    inboxHandoff?.context ?? null,
   );
+  const [conversationId, setConversationId] = useState(() => {
+    if (!inboxHandoff) return getBrowserConversationId();
+    const next = createConversationId();
+    rememberConversationId(next);
+    return next;
+  });
   const queryClient = useQueryClient();
   const sessionsQuery = useQuery(sessionListQueryOptions());
   const sessions = sessionsQuery.data ?? emptySessions;
   const sessionError = sessionsQuery.error?.message ?? null;
   const [historyError, setHistoryError] = useState<string | null>(null);
-  const startupRestoreAttemptedRef = useRef(false);
+  const startupRestoreAttemptedRef = useRef(inboxHandoff !== undefined);
   const switchRequestIdRef = useRef(0);
   const [loadingConversationId, setLoadingConversationId] = useState<
     string | null
@@ -159,6 +166,7 @@ export function App(): React.ReactElement {
     setInitialMessages([]);
     setConversationId(next);
     setInput("");
+    setInboxContext(null);
   }
 
   const sessionMutations = useSessionMutations({
@@ -232,6 +240,7 @@ export function App(): React.ReactElement {
         setInitialMessages(nextMessages);
         setConversationId(nextConversationId);
         setInput("");
+        setInboxContext(null);
         closeDrawer();
         focusPromptTextarea(promptInputRef.current);
       },
@@ -290,11 +299,15 @@ export function App(): React.ReactElement {
     upsertPendingSession(submission.title);
     setInput("");
     const { payload } = submission;
-    void sendMessage(payload)
+    void sendMessage(
+      payload,
+      inboxContext ? { body: { inboxContext } } : undefined,
+    )
       .catch((error: unknown) => {
         const effect = classifySubmitError(error, "send");
         if (effect.uploadNotice) setUploadNotice(effect.uploadNotice);
         setHistoryError(effect.historyError);
+        if (text) setInput((current) => current || text);
       })
       .finally(() => {
         void queryClient.invalidateQueries({
@@ -629,6 +642,21 @@ export function App(): React.ReactElement {
         >
           <label htmlFor="web-chat-input">Message</label>
           <PromptInputHeader>
+            {inboxContext ? (
+              <div className="web-chat-inbox-context" role="status">
+                <span className="web-chat-inbox-context-kicker">Inbox</span>
+                <span className="web-chat-inbox-context-label">
+                  {inboxContext.label}
+                </span>
+                <button
+                  type="button"
+                  aria-label={`Detach Inbox context: ${inboxContext.label}`}
+                  onClick={() => setInboxContext(null)}
+                >
+                  Detach
+                </button>
+              </div>
+            ) : null}
             <PromptAttachmentList />
           </PromptInputHeader>
           <PromptInputTextarea

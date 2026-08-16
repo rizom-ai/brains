@@ -1,7 +1,6 @@
 import { PluginConfigValidationError, type Plugin } from "@brains/plugins";
 import { MailItemPlugin } from "./entity/plugin";
 import { EmailWorkflowsPlugin } from "./plugin";
-import { EmailReplyDraftEntityPlugin } from "./reply-drafts/entity/plugin";
 import {
   emailWorkflowsConfigSchema,
   type EmailWorkflowsConfigInput,
@@ -22,11 +21,7 @@ export function emailWorkflows(
       })),
     );
   }
-  return [
-    new MailItemPlugin(),
-    new EmailReplyDraftEntityPlugin(),
-    new EmailWorkflowsPlugin(),
-  ];
+  return [new MailItemPlugin(), new EmailWorkflowsPlugin()];
 }
 
 export { MailItemPlugin } from "./entity/plugin";

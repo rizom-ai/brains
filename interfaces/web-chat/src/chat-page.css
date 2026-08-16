@@ -1708,6 +1708,48 @@ details.web-chat-data-part[open] > summary > .web-chat-data-part-chevron {
   background: rgb(from var(--console-err) r g b / 0.1);
   color: var(--console-err);
 }
+.web-chat-inbox-context {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid rgb(from var(--console-accent) r g b / 0.34);
+  background: rgb(from var(--console-accent) r g b / 0.09);
+}
+.web-chat-inbox-context-kicker {
+  color: var(--console-accent);
+  font-family: var(--console-mono);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+.web-chat-inbox-context-label {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--console-text);
+  font-size: 12px;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.web-chat-inbox-context button {
+  padding: 0.2rem 0.4rem;
+  border: 0;
+  background: transparent;
+  color: var(--console-text-dim);
+  cursor: pointer;
+  font-family: var(--console-mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.web-chat-inbox-context button:hover,
+.web-chat-inbox-context button:focus-visible {
+  color: var(--console-accent);
+}
 .web-chat-prompt-attachments {
   display: flex;
   flex-wrap: wrap;

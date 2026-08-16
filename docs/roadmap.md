@@ -178,7 +178,7 @@ Shipped from this section:
 
 - inbound email intake — `interfaces/email` owns the inbound half of the email channel (IMAP daemon, at-least-once `EMAIL_INBOUND` events, sender identity enrichment), plus the private locator-backed bounded source reader used by Admin detail, drafting, and confirmed sends. Deliberately non-conversational: inbound mail never reaches agent chat;
 - [the unified inbox](../plugins/unified-inbox/README.md) — live source-owned attention, Admin CMS and headless readers, linkable facets, verified contacts, destination-owned universal and source-declared launches, bounded transient source detail, recurring-check and mail sources, and title-only digest without a second store;
-- [`@brains/email-workflows`](../plugins/email-workflows/README.md) — one opt-in email feature package grouping safe derived triage, new-mail Inbox projection, and the real revisioned **Draft reply** workspace with explicit threaded sending while persisting no original mailbox content.
+- [`@brains/email-workflows`](../plugins/email-workflows/README.md) — one opt-in email feature package grouping safe derived triage, new-mail Inbox projection, and private bounded source reads while retaining its tested reply backend dormant and outside runtime composition.
 
 ### 6. Ecosystem
 

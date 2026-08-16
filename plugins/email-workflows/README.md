@@ -2,9 +2,9 @@
 
 Safe derived mailbox attention for brain instances.
 
-`email-workflows` answers "what arrived and needs me?" and "how should I reply?" without copying the mailbox into Brain storage. Obvious bulk mail is discarded conservatively, meaningful mail becomes a restricted derived `mail-item`, and the original message stays exclusively in the mailbox.
+`email-workflows` answers "what arrived and needs me?" without copying the mailbox into Brain storage. Obvious bulk mail is discarded conservatively, meaningful mail becomes a restricted derived `mail-item`, and the original message stays exclusively in the mailbox.
 
-The capability is explicit opt-in. It is one compound email workflow package containing the triage service, its `mail-item` entity, and the destination-owned reply-draft entity and workspace. It enters the canonical catalog but no fixed bundle, and `brain init` never emits it.
+The capability is explicit opt-in. Its active runtime composition contains the triage service and `mail-item` entity. The package retains a tested reply-drafting and confirmed-delivery backend, but does not compose its entity, follow-up, prompt, or workspace while that product surface is dormant. The package enters the canonical catalog but no fixed bundle, and `brain init` never emits it.
 
 ## What it does
 
@@ -18,16 +18,13 @@ The capability is explicit opt-in. It is one compound email workflow package con
   request time and link to matching source/facet filters without guessing a CMS mount
 - retains reviewed, handled, and archived records in the standard **Mail Items** CMS
   collection and through the status-aware `email_triage_list` tool
-- declares **Draft reply** only for mail that needs a response and resolves it to the
-  package's registered Admin workspace rather than a guessed CMS route
 - reads the original through the email interface's private locator-backed IMAP operation,
   renders bounded plain text with `no-store`, and releases source bytes after each request
-- generates and saves revisioned `email-reply-draft` entities containing only newly authored
-  reply text, then sends only the current saved revision after an explicit Admin confirmation
+- exposes no active reply-draft entity, Inbox follow-up, CMS workspace, or sending control
 
 ## The mailbox stays canonical
 
-Brain never persists the body, HTML, exact subject, raw addresses, recipients, headers, attachments, or raw `Message-ID`. The inbound contract carries an opaque, transport-owned `sourceRef`; the email interface privately maps it to mailbox, UIDVALIDITY, and UID before publication. Admin-only detail, drafting, and send operations resolve that locator on demand with bounded reads. Reading remains a mailbox operation, and unavailable, expired, or mismatched locators fail closed with no provider detail.
+Brain never persists the body, HTML, exact subject, raw addresses, recipients, headers, attachments, or raw `Message-ID`. The inbound contract carries an opaque, transport-owned `sourceRef`; the email interface privately maps it to mailbox, UIDVALIDITY, and UID before publication. Permission-checked Inbox detail and discussion resolve that locator on demand with bounded reads. Reading remains a mailbox operation, and unavailable, expired, or mismatched locators fail closed with no provider detail.
 
 Observability holds to the same line. Logs never contain source bodies, exact subjects, addresses, model prompts, model output, credentials, mailbox names, or transport exception messages. Fixed operation messages may carry only a derived item ID or count.
 
@@ -86,7 +83,7 @@ A normal projection always carries one category. `null` is reserved for the syst
 
 Deterministic filtering is deliberately conservative. A sender named `noreply`, or a single automatic-submission header, never suffices to discard mail — only multiple strong bulk signals (for example `List-Unsubscribe` plus bulk/list precedence) skip the model. Useful automated security, finance, booking, and support messages stay eligible.
 
-The email is delimited as untrusted source material and never enters agent chat. The editable `email-workflows:classification` prompt supplies the routing rubric and may tune prioritization, but cannot expand the enum; the safety envelope, output schema, untrusted-source boundaries, and persistence validator are code-owned.
+Classification delimits the email as untrusted source material and does not create a conversation. A later explicit **Discuss in chat** request may resolve the same source transiently for an authenticated agent turn without copying it into conversation storage. The editable `email-workflows:classification` prompt supplies the routing rubric and may tune prioritization, but cannot expand the enum; the safety envelope, output schema, untrusted-source boundaries, and persistence validator are code-owned.
 
 ## Acknowledgement and poison handling
 
@@ -98,13 +95,11 @@ Triage is the sole acknowledgement owner for raw inbound mail:
 
 Classification attempts are counted by hashed message identifier in scoped runtime state — the same mechanism the mailbox cursor uses. The first two failures stay unacknowledged. After the third, triage persists a safe high-priority `category=null` fallback titled "Unclassified email", containing no source content and directing the operator to the mailbox. Database failure still holds the cursor. Attempt counters are deleted as soon as a message resolves, so the state holds counters only for messages currently wedged.
 
-## Reply drafting
+## Dormant reply backend
 
-Mail items with `needsReply: true` declare the source-specific `draft-reply` follow-up using only their opaque mail-item ID. The destination registration, context schema, permission gate, CMS route, and label are owned inside this package's reply-draft component. Raw declaration context is resolved server-side and never appears in Inbox item output.
+The package retains the source-backed reply operator, revisioned entity schema, threading rules, explicit confirmation boundary, and revision-scoped delivery idempotency as tested source code. They are not part of `emailWorkflows()` runtime composition: the factory does not install the reply entity, and the service does not resolve its prompt or register its operator, follow-up, or workspace. Existing draft files remain untouched but are not exposed through CMS.
 
-The **Reply drafts** workspace fetches the original only for the active Admin request. The original is rendered as plain text and is not stored in entities, runtime state, jobs, logs, or React Query. Structured generation treats the bounded source as delimited untrusted data and uses the editable `email-workflows:reply-drafting` prompt. Only the generated or operator-edited reply body, mail-item link, revision, timestamps, delivery status, and accepted provider delivery ID enter the restricted `email-reply-draft` entity. Optimistic revisions reject stale saves and sends.
-
-Sending is a separate explicit confirmation. The confirmed operation reloads the saved revision, re-fetches the source, derives the recipient, `Re:` subject, `In-Reply-To`, and ordered `References` from that fresh mailbox truth, and calls the registered Email provider with secret sensitivity. The draft ID plus revision forms a stable idempotency key. Provider failure leaves the draft editable; provider acceptance records sent state once, and another edit creates a new unsent revision. Nothing sends automatically.
+Re-enabling reply drafting requires a separate product decision covering its destination, UI, existing revisions, and runtime migration. There is deliberately no configuration flag that exposes the unfinished surface.
 
 ## Tools
 
@@ -130,7 +125,7 @@ To also install the shared live aggregation DataSource and digest participation:
 add: [email-workflows, unified-inbox]
 ```
 
-The existing `plugins.email.imap` block remains the source transport configuration. Triage does not enable IMAP. Confirmed sending uses the same Email interface's configured outbound `apiKey` and `from`; without them the workspace keeps drafts editable and reports delivery as unavailable.
+The existing `plugins.email.imap` block remains the source transport configuration. Triage does not enable IMAP. Outbound Email configuration is not required because this package currently registers no sending surface.
 
 ## Scope
 

@@ -39,9 +39,11 @@ same-origin target resolution, and optional bounded history state. Sources may n
 source-specific declarations, but cannot choose their labels or targets. The workspace
 receives only resolved `{ kind, label, href, state? }` targets for its current bounded page;
 raw declaration context and resolvers never enter browser or headless output. CMS contributes
-**Open source entity** and capability-gated **Capture as note**. Web chat contributes
-**Discuss in chat**. `@brains/email-workflows` declares and resolves **Draft reply** to its
-real Admin drafting workspace. No handoff sends automatically.
+**Open source entity** and capability-gated **Capture as note**, prefilled with the safe
+Inbox summary and a source link. Web chat contributes **Discuss in chat** for sources with
+permission-checked detail, resolving that source transiently on attached turns without
+copying it into browser handoff state or conversation storage. Reply drafting is dormant and
+contributes no Inbox launch.
 
 The shell registers **Recurring checks** as the first core source. Returned alerts remain
 one open item per condition episode until an Admin resolves them. Notification delivery is
