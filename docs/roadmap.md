@@ -167,7 +167,7 @@ The chat and editing surfaces brains speak through, kept transport-neutral so Di
 
 Plans:
 
-- [inbox-follow-up-workflows.md](./plans/inbox-follow-up-workflows.md) — turn the shipped Chat, note-capture, and reply destinations into useful one-click workflows with live source-backed discussion, content-safe note drafts, idempotent initial reply generation, and authenticated UX proof.
+- [inbox-follow-up-workflows.md](./plans/inbox-follow-up-workflows.md) — make Chat and note Capture useful with live source-backed discussion and content-safe note drafts, while removing unfinished reply-drafting surfaces from runtime composition and retaining their tested backend dormant.
 - [astryx-adoption.md](./plans/astryx-adoption.md) — exploratory, demand-gated Astryx pilot for the React web-chat console, with explicit Preact boundaries and a go/no-go gate before any CMS or shared adoption.
 - [operator-console-pwa.md](./plans/operator-console-pwa.md) — add an optional installable, network-first PWA shell for Dashboard/CMS/web-chat with conservative caching, explicit service-worker scope, standalone safe-area behavior, and no offline-authoring claim.
 - [brain-web-chat-sdk-adapter.md](./plans/brain-web-chat-sdk-adapter.md) — parked strategy; how browser web-chat can share Chat SDK semantics with Discord/Slack/etc. without losing Brain-specific web-chat features.
