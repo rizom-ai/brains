@@ -63,6 +63,7 @@ interface InspectableMcpServer {
 }
 
 function inspectMcpServer(server: McpServer): InspectableMcpServer {
+  // eslint-disable-next-line no-restricted-syntax -- deliberate; the comment above explains why
   return server as unknown as InspectableMcpServer;
 }
 

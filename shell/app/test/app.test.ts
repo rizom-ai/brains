@@ -32,6 +32,7 @@ const createMockShell = (): ShellInstance => {
     getPluginManager: mock(() => ({
       registerPlugin: mock(() => {}),
     })),
+    // eslint-disable-next-line no-restricted-syntax -- deliberate; the comment above explains why
   } as unknown as ShellInstance;
 };
 

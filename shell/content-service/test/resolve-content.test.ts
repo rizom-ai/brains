@@ -855,6 +855,7 @@ describe("ContentService.resolveContent", () => {
         // forwards the whole interface, so narrowing the dependency is not
         // available either.
         entityService:
+          // eslint-disable-next-line no-restricted-syntax -- deliberate; the comment above explains why
           classBasedService as unknown as typeof mockDependencies.entityService,
       };
       const classContentService = new ContentService(classDependencies);

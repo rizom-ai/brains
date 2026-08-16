@@ -10,6 +10,32 @@ const compat = new FlatCompat({
   recommendedConfig: js.configs.recommended,
 });
 
+/*
+ * `no-restricted-syntax` entries are shared rather than written per block.
+ *
+ * Flat config replaces a rule's options when a later block sets the same rule —
+ * it does not merge them. Two blocks below both restrict syntax in test files,
+ * and for a while the second silently switched the first off wherever their
+ * file lists overlapped: the cast ban was inert in every package covered by the
+ * sleep ban, including two layers this branch had already declared locked.
+ *
+ * Composing the entries from these constants makes that impossible to
+ * reintroduce, because a block that wants one restriction has to name the
+ * others it keeps.
+ */
+const NO_UNSAFE_TEST_CAST = {
+  selector: "TSAsExpression > TSAsExpression > TSUnknownKeyword.typeAnnotation",
+  message:
+    "Do not use `as unknown as` in a test. Use a @brains/test-utils factory, an honest narrow type, or narrow the parameter of the code under test.",
+};
+
+const NO_SLEEP_SYNCHRONIZATION = {
+  selector:
+    "NewExpression[callee.name='Promise'] CallExpression[callee.name='setTimeout']",
+  message:
+    "Do not synchronize on a sleep. Use waitUntil() for work, a deferred for ordering, or fake timers for elapsed-time behaviour. If a real duration is genuinely needed, use Bun.sleep(ms) behind a named helper that says why.",
+};
+
 export default [
   {
     ignores: [
@@ -76,24 +102,9 @@ export default [
     // Enabled per layer as each one reaches zero, so the layers already done
     // cannot regress while the rest are outstanding. Add a layer here when its
     // count hits zero — `shell` remains.
-    files: [
-      "packages/**/test/**/*.ts",
-      "entities/**/test/**/*.{ts,tsx}",
-      "interfaces/**/test/**/*.{ts,tsx}",
-      "interfaces/**/src/**/*.test.{ts,tsx}",
-      "plugins/**/test/**/*.{ts,tsx}",
-      "plugins/**/src/**/*.test.{ts,tsx}",
-    ],
+    files: ["**/*.test.{ts,tsx}"],
     rules: {
-      "no-restricted-syntax": [
-        "error",
-        {
-          selector:
-            "TSAsExpression > TSAsExpression > TSUnknownKeyword.typeAnnotation",
-          message:
-            "Do not use `as unknown as` in a test. Use a @brains/test-utils factory, an honest narrow type, or narrow the parameter of the code under test.",
-        },
-      ],
+      "no-restricted-syntax": ["error", NO_UNSAFE_TEST_CAST],
     },
   },
   {
@@ -129,14 +140,12 @@ export default [
       "interfaces/chat/test/**/*.ts",
     ],
     rules: {
+      // Both entries: this block's files are test files, so the cast ban
+      // applies to them too and would otherwise be replaced by this one.
       "no-restricted-syntax": [
         "error",
-        {
-          selector:
-            "NewExpression[callee.name='Promise'] CallExpression[callee.name='setTimeout']",
-          message:
-            "Do not synchronize on a sleep. Use waitUntil() for work, a deferred for ordering, or fake timers for elapsed-time behaviour. If a real duration is genuinely needed, use Bun.sleep(ms) behind a named helper that says why.",
-        },
+        NO_UNSAFE_TEST_CAST,
+        NO_SLEEP_SYNCHRONIZATION,
       ],
     },
   },
