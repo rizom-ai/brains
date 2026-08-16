@@ -1,11 +1,10 @@
 import { describe, it, expect, beforeEach } from "bun:test";
-import { PermissionService, SYSTEM_CHANNELS } from "@brains/plugins";
+import { SYSTEM_CHANNELS } from "@brains/plugins";
 import { BlogPlugin } from "../src/plugin";
 import {
   createPluginHarness,
   type PluginTestHarness,
 } from "@brains/plugins/test";
-import type { BlogPost } from "../src/schemas/blog-post";
 import { createMockPost } from "./fixtures/blog-entities";
 import { promises as fs } from "fs";
 import { tmpdir } from "os";
@@ -128,141 +127,6 @@ describe("BlogPlugin - Publish Pipeline Integration", () => {
         "publish-assets:register",
         "publish:register",
       ]);
-    });
-  });
-
-  describe("publish:execute handler", () => {
-    it("should subscribe to publish:execute messages", async () => {
-      await harness.installPlugin(new BlogPlugin({}));
-
-      await harness.sendMessage("publish:execute", {
-        entityType: "post",
-        entityId: "non-existent",
-      });
-
-      const failureMessage = receivedMessages.find(
-        (m) => m.type === "publish:report:failure",
-      );
-      expect(failureMessage).toBeDefined();
-    });
-
-    it("should report failure when entity not found", async () => {
-      await harness.installPlugin(new BlogPlugin({}));
-
-      await harness.sendMessage("publish:execute", {
-        entityType: "post",
-        entityId: "non-existent",
-      });
-
-      const failureMessage = receivedMessages.find(
-        (m) => m.type === "publish:report:failure",
-      );
-      expect(failureMessage).toBeDefined();
-      expect(failureMessage?.payload).toMatchObject({
-        entityType: "post",
-        entityId: "non-existent",
-      });
-    });
-
-    it("should skip non-post entity types", async () => {
-      await harness.installPlugin(new BlogPlugin({}));
-
-      await harness.sendMessage("publish:execute", {
-        entityType: "social-post",
-        entityId: "post-1",
-      });
-
-      const reportMessages = receivedMessages.filter((m) =>
-        m.type.startsWith("publish:report"),
-      );
-      expect(reportMessages).toHaveLength(0);
-    });
-
-    it("requires publish permission before publishing a draft post", async () => {
-      const localHarness = createPluginHarness<BlogPlugin>({
-        dataDir: "/tmp/test-blog-permissions",
-      });
-      localHarness.setPermissionService(
-        new PermissionService({
-          entityActions: { post: { publish: "admin" } },
-        }),
-      );
-      const messages: Array<{ type: string; payload: unknown }> = [];
-      localHarness.subscribe("publish:report:failure", async (msg) => {
-        messages.push({ type: "publish:report:failure", payload: msg.payload });
-        return { success: true };
-      });
-      await localHarness.installPlugin(new BlogPlugin({}));
-      const entityService = localHarness.getEntityService();
-      await entityService.createEntity({ entity: sampleDraftPost });
-
-      await localHarness.sendMessage("publish:execute", {
-        entityType: "post",
-        entityId: "post-1",
-        authContext: { userPermissionLevel: "trusted" },
-      });
-
-      const updatedPost = await entityService.getEntity<BlogPost>({
-        entityType: "post",
-        id: "post-1",
-      });
-      expect(updatedPost?.metadata.status).toBe("draft");
-      expect(messages[0]?.payload).toMatchObject({
-        entityType: "post",
-        entityId: "post-1",
-      });
-    });
-
-    it("should report success when publishing draft post", async () => {
-      await harness.installPlugin(new BlogPlugin({}));
-
-      const entityService = harness.getEntityService();
-      await entityService.createEntity({ entity: sampleDraftPost });
-
-      await harness.sendMessage("publish:execute", {
-        entityType: "post",
-        entityId: "post-1",
-      });
-
-      const successMessage = receivedMessages.find(
-        (m) => m.type === "publish:report:success",
-      );
-      expect(successMessage).toBeDefined();
-      expect(successMessage?.payload).toMatchObject({
-        entityType: "post",
-        entityId: "post-1",
-      });
-
-      const updatedPost = await entityService.getEntity<BlogPost>({
-        entityType: "post",
-        id: "post-1",
-      });
-      expect(updatedPost?.metadata.status).toBe("published");
-    });
-
-    it("should skip already published posts", async () => {
-      await harness.installPlugin(new BlogPlugin({}));
-
-      const publishedPost = createMockPost(
-        "post-1",
-        "Test Post",
-        "test-post",
-        "published",
-        { publishedAt: "2025-01-01T00:00:00.000Z" },
-      );
-
-      const entityService = harness.getEntityService();
-      await entityService.createEntity({ entity: publishedPost });
-
-      await harness.sendMessage("publish:execute", {
-        entityType: "post",
-        entityId: "post-1",
-      });
-
-      const reportMessages = receivedMessages.filter((m) =>
-        m.type.startsWith("publish:report"),
-      );
-      expect(reportMessages).toHaveLength(0);
     });
   });
 

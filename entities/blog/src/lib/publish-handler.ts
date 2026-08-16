@@ -1,11 +1,7 @@
-import { getErrorMessage } from "@brains/utils/error";
-import type { EntityPluginContext, ToolContext } from "@brains/plugins";
-import { parseMarkdownWithFrontmatter, SYSTEM_CHANNELS } from "@brains/plugins";
+import type { EntityPluginContext } from "@brains/plugins";
+import { SYSTEM_CHANNELS } from "@brains/plugins";
 import { PUBLISH_CHANNELS } from "@brains/contracts";
 import type { Logger } from "@brains/utils/logger";
-import type { BlogPost } from "../schemas/blog-post";
-import { blogPostFrontmatterSchema } from "../schemas/blog-post";
-import { blogPostAdapter } from "../adapters/blog-post-adapter";
 
 export function registerWithPublishPipeline(
   context: EntityPluginContext,
@@ -31,110 +27,4 @@ export function registerWithPublishPipeline(
     logger.info("Registered post with publish-pipeline");
     return { success: true };
   });
-}
-
-export function subscribeToPublishExecute(
-  context: EntityPluginContext,
-  logger: Logger,
-): void {
-  context.messaging.subscribe<
-    {
-      entityType: string;
-      entityId: string;
-      authContext?: {
-        userPermissionLevel?: ToolContext["userPermissionLevel"];
-      };
-    },
-    { success: boolean }
-  >(PUBLISH_CHANNELS.execute, async (msg) => {
-    const { entityType, entityId, authContext } = msg.payload;
-
-    if (entityType !== "post") {
-      return { success: true };
-    }
-
-    try {
-      context.permissions.assertEntityActionAllowed(
-        entityType,
-        "publish",
-        authContext ?? { userPermissionLevel: "admin" },
-      );
-      const post = await context.entityService.getEntity<BlogPost>({
-        entityType: "post",
-        id: entityId,
-      });
-
-      if (!post) {
-        await context.messaging.send({
-          type: PUBLISH_CHANNELS.reportFailure,
-          payload: {
-            entityType,
-            entityId,
-            error: `Post not found: ${entityId}`,
-          },
-        });
-        return { success: true };
-      }
-
-      if (post.metadata.status === "published") {
-        logger.debug(`Post already published: ${entityId}`);
-        return { success: true };
-      }
-
-      const parsed = parseMarkdownWithFrontmatter(
-        post.content,
-        blogPostFrontmatterSchema,
-      );
-
-      const publishedAt = new Date().toISOString();
-      const updatedFrontmatter = {
-        ...parsed.metadata,
-        status: "published" as const,
-        publishedAt,
-      };
-
-      const updatedContent = blogPostAdapter.createPostContent(
-        updatedFrontmatter,
-        parsed.content,
-      );
-
-      await context.entityService.updateEntity({
-        entity: {
-          ...post,
-          content: updatedContent,
-          metadata: {
-            ...post.metadata,
-            status: "published",
-            publishedAt,
-          },
-        },
-      });
-
-      await context.messaging.send({
-        type: PUBLISH_CHANNELS.reportSuccess,
-        payload: {
-          entityType,
-          entityId,
-          result: { id: entityId },
-        },
-      });
-
-      logger.info(`Published post: ${entityId}`);
-    } catch (error) {
-      const errorMessage = getErrorMessage(error);
-      await context.messaging.send({
-        type: PUBLISH_CHANNELS.reportFailure,
-        payload: {
-          entityType,
-          entityId,
-          error: errorMessage,
-        },
-      });
-      logger.error(`Failed to publish post: ${errorMessage}`);
-    }
-
-    return { success: true };
-  });
-
-  logger.debug("Subscribed to publish:execute messages");
 }

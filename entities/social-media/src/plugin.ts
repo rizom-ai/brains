@@ -18,10 +18,7 @@ import type { PublishProvider } from "@brains/contracts";
 import { createLinkedInProvider } from "./lib/linkedin-client";
 import { getTemplates } from "./lib/register-templates";
 import { registerEvalHandlers } from "./lib/eval-handlers";
-import {
-  registerWithPublishPipeline,
-  subscribeToPublishExecute,
-} from "./lib/publish-handler";
+import { registerWithPublishPipeline } from "./lib/publish-handler";
 import { subscribeToGenerateExecute } from "./lib/auto-generate";
 import { createSocialPostAtprotoProjection } from "./atproto-projection";
 import { createSocialPostProjectionRule } from "./lib/social-post-projection";
@@ -83,7 +80,6 @@ export class SocialMediaPlugin extends EntityPlugin<
     this.initializeProviders();
 
     registerWithPublishPipeline(context, this.providers, this.logger);
-    subscribeToPublishExecute(context, this.providers, this.logger);
 
     if (this.config.autoGenerateOnBlogPublish) {
       this.logger.info("Scheduler-owned auto-generation enabled");
