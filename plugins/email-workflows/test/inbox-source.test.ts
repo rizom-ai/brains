@@ -237,18 +237,6 @@ describe("mail triage inbox source", () => {
         ],
       },
     ]);
-    expect(await operator.summary()).toMatchObject({
-      new: items.length,
-      high: items.filter((item) => item.facets?.["mail-priority"] === "high")
-        .length,
-      needsReply: items.filter(
-        (item) => item.facets?.["needs-reply"] === "true",
-      ).length,
-      unclassified: items.filter(
-        (item) => item.facets?.["category"] === "unclassified",
-      ).length,
-    });
-
     const oldDeskMatches = await operator.list({
       category: "work",
       priority: "high",

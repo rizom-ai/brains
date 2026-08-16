@@ -81,7 +81,6 @@ export {
 } from "./operator-service";
 export { MailTriageInboxSource } from "./inbox-source";
 export { createEmailTriageListTool } from "./operator-tool";
-export { registerEmailTriageDashboardWidget } from "./operator-dashboard-widget";
 export {
   retainedMailClassificationSchema,
   discardedMailClassificationSchema,
@@ -95,16 +94,12 @@ export {
   mailTriageListItemSchema,
   mailTriageListResultSchema,
   mailTriageListToolOutputSchema,
-  mailTriageSummarySchema,
   mailTriageStatusActionSchema,
   mailTriageStatusActionResultSchema,
-  mailTriageDashboardDataSchema,
   type MailTriageFilter,
   type MailTriageListItem,
   type MailTriageListResult,
   type MailTriageListToolOutput,
-  type MailTriageSummary,
   type MailTriageStatusAction,
   type MailTriageStatusActionResult,
-  type MailTriageDashboardData,
 } from "./schemas/operator";

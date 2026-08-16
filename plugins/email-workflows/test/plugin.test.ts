@@ -1,15 +1,9 @@
 import { beforeEach, describe, expect, it } from "bun:test";
-import {
-  DASHBOARD_CHANNELS,
-  EMAIL_INBOUND,
-  type InboundEmail,
-} from "@brains/contracts";
+import { EMAIL_INBOUND, type InboundEmail } from "@brains/contracts";
 import {
   CMS_WORKSPACE_REGISTER_MESSAGE,
-  DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
   resetPromptCache,
   type CmsWorkspaceRegistration,
-  type DashboardWidgetRegistration,
 } from "@brains/plugins";
 import { createPluginHarness } from "@brains/plugins/test";
 import { createMockLogger, createMockShell } from "@brains/test-utils";
@@ -147,7 +141,7 @@ Prioritize collaboration connected to Project Aurora.`,
     expect(items[0]?.visibility).toBe("restricted");
   });
 
-  it("registers triage without composing reply drafting", async () => {
+  it("registers triage without reply drafting or a parallel workspace", async () => {
     const harness = createPluginHarness();
     const entityService = harness.getEntityService();
     entityService.countEntities = async (request): Promise<number> =>
@@ -158,8 +152,6 @@ Prioritize collaboration connected to Project Aurora.`,
         })
       ).length;
     let workspace: CmsWorkspaceRegistration | undefined;
-    let widget:
-      (DashboardWidgetRegistration & { pluginId: string }) | undefined;
     harness.subscribe<CmsWorkspaceRegistration, { workspaceUrl: string }>(
       CMS_WORKSPACE_REGISTER_MESSAGE,
       async (message) => {
@@ -170,14 +162,6 @@ Prioritize collaboration connected to Project Aurora.`,
         };
       },
     );
-    harness.subscribe<DashboardWidgetRegistration & { pluginId: string }>(
-      DASHBOARD_CHANNELS.registerWidget,
-      async (message) => {
-        widget = message.payload;
-        return { success: true };
-      },
-    );
-
     await harness.installPlugin(new MailItemPlugin());
     await harness.getEntityService().createEntity({
       entity: {
@@ -271,48 +255,5 @@ Prioritize collaboration connected to Project Aurora.`,
         items: [{ id: itemId, title: "Possible collaboration" }],
       },
     });
-
-    harness.getMockShell().registerInteraction({
-      id: "unified-inbox",
-      label: "Inbox",
-      description: "Review source-owned items that need operator attention.",
-      href: "/studio/workspaces/inbox",
-      kind: "admin",
-      pluginId: "unified-inbox",
-      priority: 20,
-      visibility: "admin",
-    });
-    expect(widget).toMatchObject({
-      pluginId: "email-workflows",
-      id: "email-workflows",
-      title: "Email Triage",
-      rendererName: DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
-      visibility: "admin",
-    });
-    if (!widget) throw new Error("Dashboard widget was not registered");
-    const data = await widget.dataProvider({
-      caller: {
-        actor: { id: "user:admin" },
-        permission: "admin",
-        isAnchor: true,
-      },
-      signal: new AbortController().signal,
-    });
-    if (
-      data === null ||
-      typeof data !== "object" ||
-      !("view" in data) ||
-      data.view === null ||
-      typeof data.view !== "object" ||
-      !("blocks" in data.view) ||
-      !Array.isArray(data.view.blocks)
-    ) {
-      throw new Error("Expected normalized Email Triage view");
-    }
-    expect(data.view.blocks[1]).toMatchObject({ type: "links" });
-    expect(JSON.stringify(data.view.blocks[1])).toContain(
-      '"launch":{"target":"inbox","source":"mail"}',
-    );
-    expect(JSON.stringify(data)).not.toContain("/studio/workspaces/inbox");
   });
 });

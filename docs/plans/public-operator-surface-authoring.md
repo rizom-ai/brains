@@ -13,7 +13,7 @@ request-scoped widget callbacks receive the canonical caller, secret-redacted
 settings, visibility-scoped entities, typed jobs, and cancellation.
 
 Phase 4 is implementation-complete: the shared semantic protocol expresses all
-15 first-party Dashboard widgets and all four CMS workspaces through distinct
+14 first-party Dashboard widgets and all four CMS workspaces through distinct
 typed host profiles. CMS hosting, typed query state and catalogs, prepared
 confirmation, complete built-in conformance, packed Account/Dashboard/CMS
 evidence, documentation, and private-renderer removal are checked. The protocol
@@ -779,8 +779,8 @@ inventory of every current operator surface.
 
 - Dashboard entries: Agent Network, Agent Proximity, Skills, SWOT, Open Action
   Items, Conversation Memory Coverage, Recent Decisions, Recent Conversation
-  Memory, Topics, Knowledge Map, Top Wishes, Publication Pipeline, Email
-  Triage, Site Health, and Inbox.
+  Memory, Topics, Knowledge Map, Top Wishes, Publication Pipeline, Site Health,
+  and Inbox.
 - CMS entries: Directory Sync, Site, Publishing, and Unified Inbox. The retired
   Email Triage renderer is a negative compatibility test, not a current
   workspace.
@@ -805,8 +805,7 @@ through supported host behavior using only the shipped base vocabulary.
 tabs, local filters, matrix presentation, semantic grouping, and typed
 host-owned launch intents. Convert Skills, SWOT, Agent Network, Open Action
 Items, Conversation Memory Coverage, Recent Decisions, Recent Conversation
-Memory, Topics, Top Wishes, Publication Pipeline, Email Triage, Site Health,
-and Inbox.
+Memory, Topics, Top Wishes, Publication Pipeline, Site Health, and Inbox.
 
 Exit: every non-spatial Dashboard widget uses the public path; no converted
 widget supplies a component, script, stylesheet, renderer name, or raw internal

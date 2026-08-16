@@ -38,14 +38,14 @@ contract.
 
 ## Phase 4 slice assignment
 
-| Slice                                                          | Surfaces                                                                                                                                                                                               |
-| -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 4b — Walking skeleton                                          | Public reading fixture's Dashboard widget and CMS workspace                                                                                                                                            |
-| 4c — Collections, composition, and host launches               | Skills; SWOT; Agent Network; Open Action Items; Conversation Memory Coverage; Recent Decisions; Recent Conversation Memory; Topics; Top Wishes; Publication Pipeline; Email Triage; Site Health; Inbox |
-| 4d — Spatial presentation                                      | Agent Proximity; Knowledge Map                                                                                                                                                                         |
-| 4e — Operational CMS foundations                               | Directory Sync; Site                                                                                                                                                                                   |
-| 4f — Server state, dynamic catalogs, and prepared confirmation | Unified Inbox; Publishing                                                                                                                                                                              |
-| 4g — Closeout                                                  | All converted surfaces and removal of private renderer paths                                                                                                                                           |
+| Slice                                                          | Surfaces                                                                                                                                                                                 |
+| -------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 4b — Walking skeleton                                          | Public reading fixture's Dashboard widget and CMS workspace                                                                                                                              |
+| 4c — Collections, composition, and host launches               | Skills; SWOT; Agent Network; Open Action Items; Conversation Memory Coverage; Recent Decisions; Recent Conversation Memory; Topics; Top Wishes; Publication Pipeline; Site Health; Inbox |
+| 4d — Spatial presentation                                      | Agent Proximity; Knowledge Map                                                                                                                                                           |
+| 4e — Operational CMS foundations                               | Directory Sync; Site                                                                                                                                                                     |
+| 4f — Server state, dynamic catalogs, and prepared confirmation | Unified Inbox; Publishing                                                                                                                                                                |
+| 4g — Closeout                                                  | All converted surfaces and removal of private renderer paths                                                                                                                             |
 
 The reading fixture in 4b is not a built-in inventory entry. It is the smallest
 existing public Dashboard/CMS pair and therefore the walking-skeleton proof
@@ -228,24 +228,7 @@ Required semantics:
 The widget does not reference or own the Publishing workspace. The host launch
 is optional navigation metadata resolved outside both declarations.
 
-### 13. Email Triage
-
-Sources:
-
-- `plugins/email-triage/src/operator-dashboard-widget.tsx`
-- `plugins/email-triage/src/schemas/operator.ts`
-
-Required semantics:
-
-- new, high-priority, needs-reply, and unclassified statistics;
-- digest and high-priority attention count;
-- host-owned launches into the installed Inbox with canonical source/facet
-  query state when such a launch is available.
-
-The current provider-built Inbox URL is replaced by a host-owned typed launch;
-the widget remains independent from the Inbox workspace definition.
-
-### 14. Site Health
+### 13. Site Health
 
 Source: `plugins/site-builder/src/lib/dashboard-widget.ts`
 
@@ -258,11 +241,11 @@ Required semantics:
 - digest and failure attention count;
 - optional host-owned launch to the installed Site workspace.
 
-### 15. Inbox
+### 14. Inbox
 
 Sources:
 
-- `plugins/unified-inbox/src/dashboard-widget.tsx`
+- `plugins/unified-inbox/src/dashboard-widget.ts`
 - `plugins/unified-inbox/src/schemas.ts`
 
 Required semantics:
@@ -415,7 +398,7 @@ Phase 4 closes every demonstrated gap above:
 - permission floors, narrow-only policy, caller-scoped entities, redacted
   settings, cancellation, cleanup, worker exclusion, and absent-host no-op
   behavior are runtime-enforced;
-- all 15 Dashboard and four CMS registrations use the public definition,
+- all 14 Dashboard and four CMS registrations use the public definition,
   binding, validation, normalization, permission, and host-rendering paths; and
 - Dashboard accepts only `DeclarativeOperatorWidget`, CMS accepts only
   `DeclarativeOperatorWorkspace`, and the former private components, assets,
@@ -431,7 +414,6 @@ Representative checked evidence:
 - `plugins/cms/ui-react/src/declarative-workspace.test.tsx`;
 - `entities/agent-discovery/test/plugin.test.ts`;
 - `entities/topics/test/lib/knowledge-map-widget.test.tsx`;
-- `plugins/email-triage/test/operator-dashboard-widget.test.ts`;
 - `plugins/site-builder/test/unit/plugin.test.ts`;
 - `plugins/unified-inbox/test/dashboard-widget.test.ts`;
 - `plugins/unified-inbox/test/operator-cms.test.ts`;

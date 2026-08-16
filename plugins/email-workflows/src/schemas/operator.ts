@@ -102,23 +102,6 @@ export const mailTriageListToolOutputSchema: z.ZodType<
   ListToolOutput<MailTriageListResultValue>
 > = createListToolOutputSchema(mailTriageListResultSchema);
 
-interface MailTriageSummaryValue {
-  new: number;
-  high: number;
-  needsReply: number;
-  unclassified: number;
-}
-
-export const mailTriageSummarySchema: z.ZodType<
-  MailTriageSummaryValue,
-  MailTriageSummaryValue
-> = z.strictObject({
-  new: z.number().int().nonnegative(),
-  high: z.number().int().nonnegative(),
-  needsReply: z.number().int().nonnegative(),
-  unclassified: z.number().int().nonnegative(),
-});
-
 interface MarkReviewedActionValue {
   type: "mark-reviewed";
   id: string;
@@ -174,30 +157,15 @@ export const mailTriageStatusActionResultSchema: z.ZodType<
   status: mailStatusSchema,
 });
 
-interface MailTriageDashboardDataValue {
-  summary: MailTriageSummaryValue;
-}
-
-export const mailTriageDashboardDataSchema: z.ZodType<
-  MailTriageDashboardDataValue,
-  MailTriageDashboardDataValue
-> = z.strictObject({
-  summary: mailTriageSummarySchema,
-});
-
 export type MailTriageFilter = z.output<typeof mailTriageFilterSchema>;
 export type MailTriageListItem = z.output<typeof mailTriageListItemSchema>;
 export type MailTriageListResult = z.output<typeof mailTriageListResultSchema>;
 export type MailTriageListToolOutput = z.output<
   typeof mailTriageListToolOutputSchema
 >;
-export type MailTriageSummary = z.output<typeof mailTriageSummarySchema>;
 export type MailTriageStatusAction = z.output<
   typeof mailTriageStatusActionSchema
 >;
 export type MailTriageStatusActionResult = z.output<
   typeof mailTriageStatusActionResultSchema
->;
-export type MailTriageDashboardData = z.output<
-  typeof mailTriageDashboardDataSchema
 >;

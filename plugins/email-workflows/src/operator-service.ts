@@ -13,12 +13,10 @@ import {
   mailTriageListResultSchema,
   mailTriageStatusActionResultSchema,
   mailTriageStatusActionSchema,
-  mailTriageSummarySchema,
   type MailTriageFilter,
   type MailTriageListItem,
   type MailTriageListResult,
   type MailTriageStatusActionResult,
-  type MailTriageSummary,
 } from "./schemas/operator";
 
 const INBOX_ITEM_LIMIT = 100;
@@ -88,16 +86,6 @@ export class MailTriageOperatorService {
     const parsedEntity = mailItemSchema.parse(entity);
     return mailItemAdapter.parseMailItemContent(parsedEntity.content)
       .frontmatter.source.ref;
-  }
-
-  async summary(): Promise<MailTriageSummary> {
-    const items = await this.listInboxItems();
-    return mailTriageSummarySchema.parse({
-      new: items.length,
-      high: items.filter((item) => item.priority === "high").length,
-      needsReply: items.filter((item) => item.needsReply).length,
-      unclassified: items.filter((item) => item.category === null).length,
-    });
   }
 
   async act(

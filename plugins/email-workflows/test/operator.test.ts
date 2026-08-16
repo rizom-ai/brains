@@ -188,7 +188,7 @@ describe("mail triage operator service", () => {
     }
   });
 
-  it("keeps dashboard attention counts new-only while retaining reviewed history", async () => {
+  it("keeps inbox attention new-only while retaining reviewed history", async () => {
     const harness = createOperatorHarness();
     await harness.installPlugin(new MailItemPlugin());
     await persistItem(harness, {
@@ -213,12 +213,9 @@ describe("mail triage operator service", () => {
       harness.getServiceContext("email-workflows"),
     );
 
-    expect(await operator.summary()).toEqual({
-      new: 1,
-      high: 1,
-      needsReply: 1,
-      unclassified: 0,
-    });
+    expect((await operator.listInboxItems()).map((item) => item.title)).toEqual(
+      ["Urgent administration"],
+    );
     expect(
       (
         await operator.list({

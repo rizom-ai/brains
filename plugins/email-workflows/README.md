@@ -16,8 +16,6 @@ The capability is explicit opt-in. Its active runtime composition contains the t
   category, mail-priority, and needs-reply facets for workspace and headless filtering
 - offers two decisive Inbox exits: **Done** records completed work as handled, while
   **Dismiss** archives an item that needs no work; review is implicit when opening an item
-- contributes new-only Dashboard counts that resolve the registered Inbox interaction at
-  request time and link to matching source/facet filters without guessing a CMS mount
 - retains reviewed, handled, and archived records in the standard **Mail Items** CMS
   collection and through the status-aware `email_triage_list` tool
 - reads the original through the email interface's private locator-backed IMAP operation,

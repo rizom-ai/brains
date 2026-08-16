@@ -13,7 +13,6 @@ import {
   EMAIL_TRIAGE_CLASSIFICATION_PROMPT_TARGET,
 } from "./lib/classifier";
 import { EntityMailItemRepository } from "./mail-item-repository";
-import { registerEmailTriageDashboardWidget } from "./operator-dashboard-widget";
 import { MailTriageOperatorService } from "./operator-service";
 import { createEmailTriageListTool } from "./operator-tool";
 import {
@@ -81,10 +80,7 @@ export class EmailWorkflowsPlugin extends ServicePlugin<
   protected override async onReady(
     context: ServicePluginContext,
   ): Promise<void> {
-    if (!context.executionOnly) {
-      await this.getThreadOrdinals().initialize();
-    }
-    await registerEmailTriageDashboardWidget(context, this.getOperator());
+    if (!context.executionOnly) await this.getThreadOrdinals().initialize();
   }
 
   protected override async getTools(): Promise<Tool[]> {
