@@ -1,5 +1,20 @@
 # @brains/web-chat
 
+## 0.2.0-alpha.299
+
+### Minor Changes
+
+- [`e9042c9`](https://github.com/rizom-ai/brains/commit/e9042c9e048e449bb2a93769a3a44d01485a8ea2) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Make Inbox follow-ups useful by attaching permission-checked source detail transiently to fresh Web Chat conversations and prefilling note Capture with the safe Inbox summary plus a readable backlink. Remove reply-draft entities, follow-ups, prompts, and workspaces from default runtime composition while retaining the tested drafting and confirmed-delivery backend dormant.
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.299
+  - @brains/contracts@0.2.0-alpha.299
+  - @brains/utils@0.2.0-alpha.299
+  - @brains/auth-service@0.2.0-alpha.299
+  - @brains/plugins@0.2.0-alpha.299
+
 ## 0.2.0-alpha.298
 
 ### Patch Changes

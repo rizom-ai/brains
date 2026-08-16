@@ -1,5 +1,36 @@
 # @brains/email-workflows
 
+## 0.2.0-alpha.299
+
+### Minor Changes
+
+- [`e9042c9`](https://github.com/rizom-ai/brains/commit/e9042c9e048e449bb2a93769a3a44d01485a8ea2) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Make Inbox follow-ups useful by attaching permission-checked source detail transiently to fresh Web Chat conversations and prefilling note Capture with the safe Inbox summary plus a readable backlink. Remove reply-draft entities, follow-ups, prompts, and workspaces from default runtime composition while retaining the tested drafting and confirmed-delivery backend dormant.
+
+### Patch Changes
+
+- [`e9042c9`](https://github.com/rizom-ai/brains/commit/e9042c9e048e449bb2a93769a3a44d01485a8ea2) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Stop the CMS workspace URL canonicalisation from clobbering follow-up launches:
+  it replaced the route while the operator was navigating away, so a launched
+  destination was rewritten back to the workspace and its handoff state discarded
+  — note capture lost its prefill and chat lost its composer text entirely,
+  because a non-CMS target reloads after the replace has already won.
+  Canonicalisation now runs only while the workspace is still the open route.
+
+  Strip the system `visibility` key before domain frontmatter validation on entity
+  create and update. It is read for policy and then left in the payload, so any
+  non-public entity with a strict frontmatter schema — `mail-item` and
+  `email-reply-draft` among them — failed to save with `Unrecognized key:
+"visibility"`.
+
+  Narrow the `draft-reply` follow-up predicate to item shape alone; testing
+  `sourceId` against a known source reintroduced the coupling the follow-up
+  registry exists to remove.
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.299
+  - @brains/ui-library@0.2.0-alpha.299
+  - @brains/utils@0.2.0-alpha.299
+  - @brains/plugins@0.2.0-alpha.299
+
 ## 0.2.0-alpha.298
 
 ### Minor Changes
