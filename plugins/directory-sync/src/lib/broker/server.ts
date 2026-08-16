@@ -8,7 +8,12 @@ import { CheckoutOperationExecutor } from "./checkout-executor";
 import { isMutatingOperation } from "./operations";
 import type { GitOperationName } from "./operations";
 import type { CheckoutExecutorOptions } from "./checkout-executor";
-import { BROKER_PROTOCOL_VERSION, FrameDecoder, encodeFrame } from "./protocol";
+import {
+  BROKER_PROTOCOL_VERSION,
+  FrameDecoder,
+  MAX_PAYLOAD_BYTES,
+  encodeFrame,
+} from "./protocol";
 import type {
   BrokerMessage,
   ExecuteOperationMessage,
@@ -446,6 +451,15 @@ export class GitBrokerServer {
           });
         },
       });
+      // Checked before it is recorded. An oversized answer used to be
+      // remembered first and found unsendable second, which left a stored
+      // value that every retry re-derived and re-failed on.
+      const encoded = Buffer.byteLength(JSON.stringify(value ?? null));
+      if (encoded > MAX_PAYLOAD_BYTES) {
+        throw new Error(
+          `Operation ${message.operation.name} produced ${encoded} bytes; the limit is ${MAX_PAYLOAD_BYTES}`,
+        );
+      }
       await this.#journal?.recordSettled(message.requestId, "ok");
       return { ok: true, value: value ?? null };
     } catch (error) {

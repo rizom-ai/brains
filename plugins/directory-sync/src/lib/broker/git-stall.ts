@@ -17,6 +17,15 @@ export interface GitNetwork {
   credentialEnv?: Record<string, string> | undefined;
 }
 
+/**
+ * How much of a command's output is kept.
+ *
+ * Output is diagnostic; a bounded tail of it answers every question the
+ * broker asks of it, and an unbounded one is a way for a misbehaving
+ * command to exhaust the owner.
+ */
+const MAX_RETAINED_OUTPUT = 256 * 1024;
+
 /** Thrown when a git network operation produces no output for too long. */
 export class GitStallError extends Error {
   constructor(stallMs: number) {
@@ -106,6 +115,14 @@ export async function runGitCommandWithStallTimeout(
       armStall();
       net.onProgress?.();
       output += decoder.decode(chunk.value, { stream: true });
+      // Retained while reading, so the ceiling has to apply while reading:
+      // a command that writes without end would otherwise be held whole in
+      // the one process that must stay alive to own the checkout.
+      if (output.length > MAX_RETAINED_OUTPUT) {
+        output = `${output.slice(0, MAX_RETAINED_OUTPUT)}\n[output truncated at ${MAX_RETAINED_OUTPUT} characters]`;
+        kill();
+        return output;
+      }
       return readToEnd();
     };
     const done = readToEnd().finally(() => {
