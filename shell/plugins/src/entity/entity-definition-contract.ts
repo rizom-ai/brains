@@ -11,6 +11,7 @@ import type { AnchorProfile } from "../contracts/identity";
 import type { IEntityAINamespace } from "./ai-types";
 import type { LoggerContract } from "@brains/utils/logger";
 import type { AtprotoProjection } from "@brains/atproto-contracts";
+import type { PublishProvider } from "@brains/contracts";
 import type { AttachmentProvider } from "../service/attachment-registry";
 import type { ProjectionRule } from "./projection-rule";
 import type { AnyDataSourceDeclaration } from "../public/entity-data-source";
@@ -138,6 +139,27 @@ export interface EntityDefinition<
    * of the create input.
    */
   readonly create?: EntityCreateRouting | undefined;
+  /**
+   * Publish participation. The runtime announces the provider to the
+   * publish pipeline once that pipeline is listening, which is the only
+   * live part of the publish protocol an entity package takes part in.
+   */
+  readonly publish?: EntityPublishDeclaration | undefined;
+}
+
+/**
+ * A publish provider plus where its result is recorded.
+ *
+ * The pipeline owns everything else: it prepares content, resolves
+ * attachments and media, calls the provider, and records publish state.
+ * A package supplies the provider and nothing more.
+ */
+export interface EntityPublishDeclaration {
+  readonly provider: PublishProvider;
+  /** Metadata/frontmatter field for the provider result id. */
+  readonly resultIdField?: string | undefined;
+  /** Metadata/frontmatter field for the publish timestamp. */
+  readonly timestampField?: string | undefined;
 }
 
 /**

@@ -8,6 +8,7 @@ import type {
   AnyEntityDefinition,
   EntityAttachmentDeclaration,
   EntityCreateRouting,
+  EntityPublishDeclaration,
   EntityDefinition,
   EntityEvalDeclaration,
   EntityGenerationDeclaration,
@@ -62,6 +63,7 @@ export function defineEntity<
   readonly jobs?: Record<string, EntityJobDeclaration> | undefined;
   readonly instructions?: string | undefined;
   readonly create?: EntityCreateRouting | undefined;
+  readonly publish?: EntityPublishDeclaration | undefined;
 }): EntityDefinition<TType, TMetadataSchema> {
   assertLocalId(definition.type, "Entity type");
   if (!definition.purpose.trim()) {

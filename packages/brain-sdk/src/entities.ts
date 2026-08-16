@@ -53,6 +53,7 @@ export type {
   EntityGenerationDeclaration,
   EntityGenerationEntityAccess,
   EntityJobDeclaration,
+  EntityPublishDeclaration,
   IEntityAINamespace,
   EntityDetailContext,
   EntityQueryReader,
