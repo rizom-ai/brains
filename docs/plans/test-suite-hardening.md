@@ -2,9 +2,14 @@
 
 ## Status
 
-**In progress — 2026-08-09; Phases 0, 1, 2, 3 and 5 complete. Phases 4 and 6 remain.** This is not a rescue plan: the suite is green and structurally healthy today. Every remaining phase targets a drift mechanism or a dead spot rather than failing behavior, so no phase gates a release. Phases are independently shippable and ordered so each one makes the next safer.
+**Complete — 2026-08-16; all phases landed.** This was not a rescue plan: the suite was green and structurally healthy throughout. Every phase targeted a drift mechanism or a dead spot rather than failing behavior, so none gated a release.
 
-Phase 5 is worth reading before starting either remaining phase, for one recurring reason: three of its findings were defects the plan had not predicted, and all three were found by _converting_ code rather than by reading it. Two tests were partly dead — one had never exercised half of what its name promised — and the leak it closed was misattributed to packages that were already clean. Expect the same of the estimates below.
+Two deviations from the written gates, both deliberate:
+
+- **Phase 6 leaves four casts in test files rather than zero**, plus three in test helpers. Each is an external or nominal type with no honest shape to check against — an AI SDK result, the MCP SDK's internals, drizzle's query builder, a `Shell` no test can construct without a database, a Chat SDK version mismatch, and a deliberately partial class instance that is itself the subject of a regression test. Every one carries its reason at the call site behind a named suppression, so they are greppable rather than invisible. The lint rule enforces the rest.
+- **Phase 6's "no mock behavior changed" did not hold.** Correcting the system-command mocks against the interfaces they replace changed `attachments.register` to return `void` rather than `boolean`, and gave absent members stubs that throw. Both are moves toward the real services, but they are behavior changes.
+
+Phase 5 set the pattern the rest of the work repeated: its three findings were defects the plan had not predicted, and all three surfaced by _converting_ code rather than by reading it. Two tests were partly dead — one had never exercised half of what its name promised — and the leak it closed was misattributed to packages that were already clean. Every later phase found the same, listed under the phases below.
 
 ## Goal
 
@@ -183,9 +188,19 @@ Fake timers (`jest.useFakeTimers` / `advanceTimersByTime`, supported in Bun 1.3)
 
 An ESLint `no-restricted-syntax` rule bans the `new Promise(... setTimeout ...)` sleep idiom in test files once migration lands, so the pattern cannot quietly return.
 
-## Remaining implementation phases
+## Implementation phases
 
-Each phase is independently shippable and starts with its test. Phases 4 and 5 may be reordered against each other; Phase 6 comes last.
+Each phase was independently shippable and started with its test. Phase 6 came last.
+
+What the work found, beyond what the phases predicted — the pattern from Phase 5 held throughout, and every one of these came from _converting_ code rather than reading it:
+
+- A startup guard in `shell-initialization-order` read a property that does not exist, so its flag was unconditionally false and neither its assertion nor its marker could ever fail. Production was correct; the guard was dead.
+- The webauthn tests' session fake returned `{ token, cookie, record }` where the API returns `{ subject, cookie, expiresAt }` — a different shape entirely, in three tests, all passing.
+- The system-command mocks were checked against nothing at all: `attachments.register` returned the wrong type and accepted providers the real namespace rejects.
+- The cast ban was inert in five packages, because flat config replaces rather than merges a rule's options and the sleep ban set the same rule. Two of those packages were in layers already reported as locked.
+- Nothing linted `scripts/`, including the guard tests that protect every other package.
+- `BatchJobManager`, `RemoteAgentService` and `ConversationActorRegistry` each declared a lone constructor overload that hid a parameter their implementation accepted, so tests cast the class to a signature it already had.
+- A queue-pacing assertion measured how late a 25ms poll landed rather than how the pipeline behaved, and failed under load for that reason.
 
 ### Phase 4 — The evaluation CLI chain is under test
 
