@@ -2,7 +2,7 @@
   "name": "@brains/email-workflows",
   "license": "AGPL-3.0-only",
   "version": "0.2.0-alpha.298",
-  "description": "Safe email triage, reply drafting, approval, and delivery workflows",
+  "description": "Safe email triage and source-backed Inbox detail workflows",
   "dependencies": {
     "@brains/contracts": "workspace:*",
     "@brains/plugins": "workspace:*",
