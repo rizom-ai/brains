@@ -120,4 +120,44 @@ describe.skipIf(!LINUX)("broker progress age", () => {
     worker.close();
     observer.close();
   }, 60_000);
+
+  it("counts a queued request as waiting, not as stalled work", async () => {
+    let now = 1_000;
+    const { checkout, connect } = await harness(() => now);
+    const worker = await connect();
+    await worker.execute(checkout, { name: "initialize" });
+
+    // One operation holds the turn inside a hook; a second arrives behind it.
+    const started = await installOneShotSlowPreCommit(
+      checkout,
+      scratch ?? "",
+      3,
+    );
+    await writeFile(join(checkout, "held.md"), "held\n");
+    const holding = worker.execute(checkout, { name: "commit" });
+    expect(await untilExists(started)).toBe(true);
+
+    const observer = await connect();
+    now = 5_000;
+    const queued = observer.execute(checkout, { name: "get-status" });
+    await Bun.sleep(200);
+
+    // The queued request has made no progress because it has not started.
+    // Counting its wait made the oldest progress look 4s old and killed a
+    // broker whose actual work was fine.
+    now = 9_000;
+    const during = await observer.status();
+    expect(during.queuedRequestIds).toHaveLength(1);
+    expect(during.activeRequestIds).toHaveLength(1);
+    expect(during.oldestActiveProgressAt).toBe(1_000);
+
+    await holding;
+    await queued;
+    const after = await observer.status();
+    expect(after.activeRequestIds).toEqual([]);
+    expect(after.queuedRequestIds).toEqual([]);
+
+    worker.close();
+    observer.close();
+  }, 60_000);
 });

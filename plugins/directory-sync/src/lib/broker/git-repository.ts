@@ -14,6 +14,7 @@ export interface PrepareGitRepositoryOptions {
   credentialEnv: Record<string, string>;
   branch: string;
   timeoutMs: number;
+  onProgress?: (() => void) | undefined;
   signal?: AbortSignal | undefined;
 }
 
@@ -27,6 +28,7 @@ export async function prepareGitRepository(
     credentialEnv,
     branch,
     timeoutMs,
+    onProgress,
     signal,
   } = options;
   const gitDir = join(dataDir, ".git");
@@ -42,7 +44,8 @@ export async function prepareGitRepository(
         credentialEnv,
         branch,
         timeoutMs,
-        signal,
+        ...(onProgress ? { onProgress } : {}),
+        ...(signal ? { signal } : {}),
       });
     } else {
       await gitInit(dataDir, branch);
@@ -67,6 +70,7 @@ async function prepareRepositoryFromRemote(options: {
   credentialEnv: Record<string, string>;
   branch: string;
   timeoutMs: number;
+  onProgress?: (() => void) | undefined;
   signal?: AbortSignal | undefined;
 }): Promise<void> {
   const {
@@ -76,6 +80,7 @@ async function prepareRepositoryFromRemote(options: {
     credentialEnv,
     branch,
     timeoutMs,
+    onProgress,
     signal,
   } = options;
 
@@ -93,7 +98,12 @@ async function prepareRepositoryFromRemote(options: {
   let remoteHasHistory: boolean;
   try {
     const refs = await runGitCommandWithStallTimeout(
-      { baseDir: dataDir, timeoutMs, credentialEnv },
+      {
+        baseDir: dataDir,
+        timeoutMs,
+        credentialEnv,
+        ...(onProgress ? { onProgress } : {}),
+      },
       ["ls-remote", "--heads", remoteUrl],
       signal,
     );
@@ -115,7 +125,12 @@ async function prepareRepositoryFromRemote(options: {
 
   try {
     await runGitCommandWithStallTimeout(
-      { baseDir: parentDir, timeoutMs, credentialEnv },
+      {
+        baseDir: parentDir,
+        timeoutMs,
+        credentialEnv,
+        ...(onProgress ? { onProgress } : {}),
+      },
       ["clone", remoteUrl, cloneDir],
       signal,
     );

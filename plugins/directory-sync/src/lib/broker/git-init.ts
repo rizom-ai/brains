@@ -11,6 +11,7 @@ export interface GitInitializeOptions {
   credentialEnv: Record<string, string>;
   branch: string;
   timeoutMs: number;
+  onProgress?: (() => void) | undefined;
   signal?: AbortSignal | undefined;
   authorName?: string | undefined;
   authorEmail?: string | undefined;
@@ -27,6 +28,7 @@ export async function initializeGitRepository(
     credentialEnv,
     branch,
     timeoutMs,
+    onProgress,
     signal,
     authorName,
     authorEmail,
@@ -41,7 +43,8 @@ export async function initializeGitRepository(
     credentialEnv,
     branch,
     timeoutMs,
-    signal,
+    ...(onProgress ? { onProgress } : {}),
+    ...(signal ? { signal } : {}),
   });
 
   await configureIdentity(git, authorName, authorEmail);

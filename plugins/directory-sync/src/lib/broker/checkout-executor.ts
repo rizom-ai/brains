@@ -51,6 +51,13 @@ export interface CheckoutExecutorOptions {
 export interface OperationRunOptions {
   signal?: AbortSignal | undefined;
   onProgress?: (() => void) | undefined;
+  /**
+   * Called once the operation holds the checkout turn.
+   *
+   * Waiting in the queue is not stalling, so nothing may judge this
+   * request's progress until it has actually started.
+   */
+  onStart?: (() => void) | undefined;
 }
 
 export class CheckoutOperationExecutor {
@@ -81,6 +88,7 @@ export class CheckoutOperationExecutor {
     // makes the result typed, and a broker bug should surface here rather than
     // as a well-formed lie to whoever asked.
     return this.#queue.run(async () => {
+      runOptions.onStart?.();
       const value = await this.#dispatch(operation, runOptions);
       return parseGitOperationResult<TOperation["name"]>(operation.name, value);
     }, runOptions.signal);
@@ -98,15 +106,24 @@ export class CheckoutOperationExecutor {
     );
   }
 
-  get #net(): {
+  /**
+   * Network settings for one operation, including its progress signal.
+   *
+   * Only `pull` used to carry it, so a clone or a push that ran longer
+   * than the stale-progress policy was terminated for making no progress
+   * while transferring perfectly well.
+   */
+  #netFor(runOptions: OperationRunOptions): {
     baseDir: string;
     timeoutMs: number;
     credentialEnv: Record<string, string>;
+    onProgress?: (() => void) | undefined;
   } {
     return {
       baseDir: this.#options.dataDir,
       timeoutMs: this.#options.timeoutMs,
       credentialEnv: this.#credentialEnv,
+      ...(runOptions.onProgress ? { onProgress: runOptions.onProgress } : {}),
     };
   }
 
@@ -125,6 +142,9 @@ export class CheckoutOperationExecutor {
           credentialEnv: this.#credentialEnv,
           branch,
           timeoutMs: this.#options.timeoutMs,
+          ...(runOptions.onProgress
+            ? { onProgress: runOptions.onProgress }
+            : {}),
           ...(runOptions.signal ? { signal: runOptions.signal } : {}),
           ...(this.#options.authorName
             ? { authorName: this.#options.authorName }
@@ -145,7 +165,12 @@ export class CheckoutOperationExecutor {
         return commitGitChanges(this.#client, logger, operation.message);
 
       case "push":
-        return pushGitChanges(logger, branch, this.#net, runOptions.signal);
+        return pushGitChanges(
+          logger,
+          branch,
+          this.#netFor(runOptions),
+          runOptions.signal,
+        );
 
       case "commit-and-push": {
         // One turn covers status, commit, push, and the checkpoint derived
@@ -166,7 +191,12 @@ export class CheckoutOperationExecutor {
         if (status.hasChanges) {
           await commitGitChanges(this.#client, logger);
         }
-        await pushGitChanges(logger, branch, this.#net, runOptions.signal);
+        await pushGitChanges(
+          logger,
+          branch,
+          this.#netFor(runOptions),
+          runOptions.signal,
+        );
         return {
           pushed: true,
           checkpoint: await getCurrentReconciliationCheckpoint(
@@ -181,12 +211,7 @@ export class CheckoutOperationExecutor {
           this.#client,
           logger,
           branch,
-          {
-            ...this.#net,
-            ...(runOptions.onProgress
-              ? { onProgress: runOptions.onProgress }
-              : {}),
-          },
+          this.#netFor(runOptions),
           runOptions.signal,
         );
 

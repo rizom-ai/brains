@@ -2,6 +2,8 @@ import { chmod, mkdir, unlink } from "fs/promises";
 import { join, resolve } from "path";
 import { createId } from "@brains/utils/id";
 import { getErrorMessage } from "@brains/utils/error";
+import { ActiveRequests } from "./active-requests";
+import type { ActivitySnapshot } from "./active-requests";
 import { CheckoutOperationExecutor } from "./checkout-executor";
 import { isMutatingOperation } from "./operations";
 import type { GitOperationName } from "./operations";
@@ -101,10 +103,7 @@ export class GitBrokerServer {
 
   readonly #executors = new Map<string, CheckoutOperationExecutor>();
   /** Request id to when that operation last showed it was still moving. */
-  readonly #active = new Map<
-    string,
-    { checkoutPath: string; progressAt: number }
-  >();
+  readonly #active = new ActiveRequests();
   readonly #resolveCheckout: GitBrokerServerOptions["resolveCheckout"];
   readonly #now: () => number;
   /**
@@ -152,17 +151,16 @@ export class GitBrokerServer {
    * A wedged broker does not exit, so there is no process event to wait for.
    * These are the durable facts instead.
    */
-  get activity(): {
-    activeRequestIds: string[];
-    oldestActiveProgressAt: number | null;
-  } {
-    const active = [...this.#active.entries()];
-    return {
-      activeRequestIds: active.map(([requestId]) => requestId).sort(),
-      oldestActiveProgressAt: active.length
-        ? Math.min(...active.map(([, entry]) => entry.progressAt))
-        : null,
-    };
+  /**
+   * What supervision reads to tell a wedged owner from a busy one.
+   *
+   * A wedged broker does not exit, so there is no process event to wait
+   * for. These are the durable facts instead — and they separate the one
+   * request holding the checkout from those still waiting for it, because
+   * a queue that is waiting is not a broker that is stuck.
+   */
+  get activity(): ActivitySnapshot {
+    return this.#active.snapshot();
   }
 
   static async start(
@@ -380,10 +378,9 @@ export class GitBrokerServer {
     message: ExecuteOperationMessage,
     executor: CheckoutOperationExecutor,
   ): Promise<Settled> {
-    this.#active.set(message.requestId, {
-      checkoutPath: message.checkoutPath,
-      progressAt: this.#now(),
-    });
+    // Accepted, not started: it may sit behind another operation, and that
+    // wait must not read as this broker failing to make progress.
+    this.#active.accept(message.requestId, message.checkoutPath, this.#now());
     await this.#journal?.recordStart({
       requestId: message.requestId,
       checkoutPath: message.checkoutPath,
@@ -392,11 +389,13 @@ export class GitBrokerServer {
 
     try {
       const value = await executor.execute(message.operation, {
+        onStart: (): void => {
+          this.#active.start(message.requestId, this.#now());
+        },
         // Keeps the caller's operation-status heartbeat fresh through a long
         // clone or pull; without it a healthy slow operation looks stalled.
         onProgress: (): void => {
-          const entry = this.#active.get(message.requestId);
-          if (entry) entry.progressAt = this.#now();
+          this.#active.progress(message.requestId, this.#now());
           this.#send(writer, {
             type: "progress",
             version: BROKER_PROTOCOL_VERSION,
@@ -414,7 +413,7 @@ export class GitBrokerServer {
       await this.#journal?.recordSettled(message.requestId, "error");
       return { ok: false, error };
     } finally {
-      this.#active.delete(message.requestId);
+      this.#active.finish(message.requestId);
     }
   }
 
