@@ -4,12 +4,36 @@ import { join } from "node:path";
 import { fromYaml } from "@brains/utils/yaml";
 import packageJson from "../package.json";
 
+const repositoryRoot = join(import.meta.dir, "..", "..", "..");
 const testAppDirectory = join(
   import.meta.dir,
   "..",
   "test-apps",
   "unified-inbox",
 );
+const TEST_APP_CONFIG = "packages/brain-cli/test-apps/unified-inbox/brain.yaml";
+
+/**
+ * The configuration as it would be committed, not as it sits on disk.
+ *
+ * Pointing this checkout at a real mailbox is how the inbox gets exercised
+ * end to end, so the working copy is a scratch surface by design. What has to
+ * stay true is what lands in the repository: an unresolvable host, and no live
+ * mail server carried in with it. Reading the staged content asserts exactly
+ * that, and stops a local live-mail run from failing a suite it has nothing to
+ * do with.
+ */
+function stagedFile(path: string): string {
+  const shown = Bun.spawnSync(["git", "show", `:${path}`], {
+    cwd: repositoryRoot,
+  });
+  if (!shown.success) {
+    throw new Error(
+      `Expected ${path} to be tracked by git: ${shown.stderr.toString().trim()}`,
+    );
+  }
+  return shown.stdout.toString();
+}
 
 function asRecord(value: unknown): Record<string, unknown> {
   if (value === null || typeof value !== "object" || Array.isArray(value)) {
@@ -20,7 +44,7 @@ function asRecord(value: unknown): Record<string, unknown> {
 
 describe("canonical unified inbox test app", () => {
   test("keeps email workflows and unified inbox opt-in with explicit IMAP settings", () => {
-    const yaml = readFileSync(join(testAppDirectory, "brain.yaml"), "utf8");
+    const yaml = stagedFile(TEST_APP_CONFIG);
     const config = asRecord(fromYaml<unknown>(yaml));
     const plugins = asRecord(config["plugins"]);
     const email = asRecord(plugins["email"]);
