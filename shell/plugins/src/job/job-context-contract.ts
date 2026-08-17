@@ -55,6 +55,27 @@ export interface JobEntityAccess {
     entity: EntityInput<T>,
   ): Promise<EntityMutationResult>;
   update<T extends BaseEntity>(entity: T): Promise<EntityMutationResult>;
+  /**
+   * Record a durable placeholder before starting slow enrichment, so the
+   * next turn can find the accepted item immediately.
+   *
+   * Idempotent: an existing entity with this id is returned untouched rather
+   * than overwritten. The runtime does the lookup at full visibility — a
+   * placeholder the caller could not otherwise see still counts as existing —
+   * which is why this is a runtime call and not something a package assembles
+   * from `get` and `create`.
+   */
+  createPending<T extends BaseEntity>(
+    entity: EntityInput<T> & { readonly id: string },
+  ): Promise<{ entityId: string; created: boolean }>;
+  /**
+   * Store the enriched result, updating the placeholder if one exists and
+   * creating the entity outright if it does not.
+   */
+  saveProcessed<T extends BaseEntity>(
+    entity: EntityInput<T> & { readonly id: string },
+    options?: { readonly expectedContentHash?: string | undefined },
+  ): Promise<EntityMutationResult>;
 }
 
 export interface JobMessagePublisher {

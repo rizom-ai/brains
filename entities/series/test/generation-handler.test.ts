@@ -50,6 +50,12 @@ slug: systems-series
       entities: {
         ...context.entityService,
         get: async () => null,
+        createPending: async () => ({ entityId: "x", created: true }),
+        saveProcessed: async () => ({
+          entityId: "x",
+          jobId: "j",
+          skipped: false,
+        }),
         create: async () => ({ entityId: "x", jobId: "j", skipped: false }),
         update: async () => ({ entityId: "x", jobId: "j", skipped: false }),
       },
