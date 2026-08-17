@@ -14,7 +14,7 @@ Application runtime that resolves a `BrainDefinition` plus instance overrides in
 
 ## Resolution
 
-For the canonical definition, instances select explicit bundles. Definition order controls membership, config, instructions, eval exclusions, and permission contributions. Resolution applies eval exclusions, `add`, and `remove`, then merges instance overrides. Removed members contribute no attached policy.
+For the canonical definition, instances select explicit bundles. Definition order controls membership, config, instructions, eval exclusions, and permission contributions. Policy-only bundles may target any member of the definition catalog, but contributions attach only while that member is active. Resolution applies eval exclusions, `add`, and `remove`, then merges instance overrides. Removed members contribute no attached policy.
 
 Capability callbacks receive:
 

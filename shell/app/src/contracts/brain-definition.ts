@@ -44,14 +44,16 @@ export interface BundlePermissionContribution<
 
 export interface CapabilityBundleDefinition<
   TMember extends ConfiguredPluginDefinition = ConfiguredPluginDefinition,
+  TPolicyTarget extends ConfiguredPluginDefinition = TMember,
 > {
   readonly id: string;
   readonly members: readonly TMember[];
-  readonly config?: readonly BundleConfigContribution<TMember>[] | undefined;
+  readonly config?:
+    readonly BundleConfigContribution<TPolicyTarget>[] | undefined;
   readonly permissions?:
-    readonly BundlePermissionContribution<TMember>[] | undefined;
+    readonly BundlePermissionContribution<TPolicyTarget>[] | undefined;
   readonly agentInstructions?: readonly string[] | undefined;
-  readonly evalDisable?: readonly TMember[] | undefined;
+  readonly evalDisable?: readonly TPolicyTarget[] | undefined;
 }
 
 export interface BrainDefinition<
@@ -67,7 +69,8 @@ export interface BrainDefinition<
   readonly site?: SiteDefinition | undefined;
   readonly theme?: string | undefined;
   readonly plugins: readonly TPlugin[];
-  readonly bundles?: readonly CapabilityBundleDefinition<TPlugin>[] | undefined;
+  readonly bundles?:
+    readonly CapabilityBundleDefinition<TPlugin, TPlugin>[] | undefined;
   readonly permissions?: PermissionConfig | undefined;
   readonly deployment?: DeploymentConfigInput | undefined;
   readonly evalDisable?: readonly TPlugin[] | undefined;
@@ -102,33 +105,33 @@ function assertUniqueMembers(
 
 export function defineBundle<
   const TMembers extends readonly ConfiguredPluginDefinition[],
+  const TPolicyTarget extends ConfiguredPluginDefinition = TMembers[number],
 >(
-  definition: CapabilityBundleDefinition<TMembers[number]> & {
+  definition: CapabilityBundleDefinition<TMembers[number], TPolicyTarget> & {
     readonly members: TMembers;
   },
-): CapabilityBundleDefinition<TMembers[number]> {
+): CapabilityBundleDefinition<TMembers[number], TPolicyTarget> {
   assertId(definition.id, "Bundle id");
   assertUniqueMembers(definition.members, `Bundle "${definition.id}"`);
-  const members = new Set<ConfiguredPluginDefinition>(definition.members);
 
   for (const contribution of definition.config ?? []) {
-    if (!members.has(contribution.member)) {
+    if (!isConfiguredPluginDefinition(contribution.member)) {
       throw new Error(
-        `Bundle "${definition.id}" config references a plugin outside its members`,
+        `Bundle "${definition.id}" config contains a value that was not returned by use()`,
       );
     }
   }
   for (const contribution of definition.permissions ?? []) {
-    if (!members.has(contribution.member)) {
+    if (!isConfiguredPluginDefinition(contribution.member)) {
       throw new Error(
-        `Bundle "${definition.id}" permissions reference a plugin outside its members`,
+        `Bundle "${definition.id}" permissions contains a value that was not returned by use()`,
       );
     }
   }
   for (const member of definition.evalDisable ?? []) {
-    if (!members.has(member)) {
+    if (!isConfiguredPluginDefinition(member)) {
       throw new Error(
-        `Bundle "${definition.id}" evalDisable references a plugin outside its members`,
+        `Bundle "${definition.id}" evalDisable contains a value that was not returned by use()`,
       );
     }
   }
@@ -178,6 +181,27 @@ export function defineBrain<
       if (!plugins.has(member)) {
         throw new Error(
           `Brain "${definition.name}" bundle "${bundle.id}" references a plugin outside its catalog`,
+        );
+      }
+    }
+    for (const contribution of bundle.config ?? []) {
+      if (!plugins.has(contribution.member)) {
+        throw new Error(
+          `Brain "${definition.name}" bundle "${bundle.id}" config references a plugin outside its catalog`,
+        );
+      }
+    }
+    for (const contribution of bundle.permissions ?? []) {
+      if (!plugins.has(contribution.member)) {
+        throw new Error(
+          `Brain "${definition.name}" bundle "${bundle.id}" permissions reference a plugin outside its catalog`,
+        );
+      }
+    }
+    for (const member of bundle.evalDisable ?? []) {
+      if (!plugins.has(member)) {
+        throw new Error(
+          `Brain "${definition.name}" bundle "${bundle.id}" evalDisable references a plugin outside its catalog`,
         );
       }
     }
