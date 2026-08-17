@@ -1,6 +1,6 @@
+import { createTempDir } from "@brains/test-utils";
 import { describe, expect, it } from "bun:test";
-import { mkdtemp, mkdir, readFile, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 
 import type { ResolvedUser } from "../src/load-registry";
@@ -12,7 +12,7 @@ import { writeUsersTable } from "../src/render-users-table";
 import { getErrorMessage } from "@brains/utils/error";
 
 async function createPilotRepo(files: Record<string, string>): Promise<string> {
-  const root = await mkdtemp(join(tmpdir(), "rover-pilot-reconcile-"));
+  const root = await createTempDir("rover-pilot-reconcile-");
 
   for (const [relativePath, content] of Object.entries(files)) {
     const filePath = join(root, relativePath);

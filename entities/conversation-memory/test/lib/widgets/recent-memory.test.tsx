@@ -1,7 +1,7 @@
 /** @jsxImportSource preact */
-import { describe, expect, it, mock } from "bun:test";
+import { describe, expect, it } from "bun:test";
 import { render } from "preact-render-to-string";
-import type { EntityPluginContext } from "@brains/plugins";
+import { createMockEntityPluginContext } from "@brains/test-utils";
 import { SummaryAdapter } from "../../../src/adapters/summary-adapter";
 import { createMockSummaryEntity } from "../../fixtures/summary-entities";
 import { buildRecentConversationMemoryData } from "../../../src/lib/widgets/recent-memory";
@@ -90,9 +90,9 @@ describe("buildRecentConversationMemoryData", () => {
         ],
       }),
     ];
-    const context = {
-      entityService: { listEntities: mock(async () => summaries) },
-    } as unknown as EntityPluginContext;
+    const context = createMockEntityPluginContext({
+      listEntitiesImpl: async () => summaries,
+    });
 
     const data = await buildRecentConversationMemoryData(context);
 

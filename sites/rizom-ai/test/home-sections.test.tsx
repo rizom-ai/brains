@@ -36,9 +36,9 @@ function renderSection(id: string, props: Record<string, unknown>): string {
   const def = home?.sections[id];
   if (!def) throw new Error(`home section "${id}" missing`);
   const parsed = sectionSchema(id).parse(props) as Record<string, unknown>;
-  const component = def.component as unknown as ComponentType<
-    Record<string, unknown>
-  >;
+  /* The group carries components opaquely for the same reason it carries
+     schemas that way; narrow once, as sectionSchema above does. */
+  const component = def.component as ComponentType<Record<string, unknown>>;
   return render(h(component, parsed));
 }
 

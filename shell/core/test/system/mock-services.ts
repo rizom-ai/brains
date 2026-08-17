@@ -1,12 +1,32 @@
+/* eslint-disable @typescript-eslint/explicit-function-return-type --
+ * The two behaviour objects below carry no annotation on purpose: several of
+ * their members stand in for generic ones, and a concrete return can never
+ * satisfy a signature whose type parameter the caller chooses. Without an
+ * annotation the rule stops exempting them as typed function expressions.
+ *
+ * Their shapes are still checked — Object.assign folds each into a value
+ * annotated with the real service type — so per-member return types would add
+ * noise without adding safety. Before this file dropped its assertions the
+ * same functions were exempt for the same reason, just implicitly.
+ */
 import type { SystemServices } from "../../src/system/types";
-import { createSilentLogger } from "@brains/test-utils";
 import {
+  createMockEntityService,
+  createSilentLogger,
+} from "@brains/test-utils";
+import {
+  EntityRegistry,
   getVisibleContentVisibilities,
   parseMarkdownWithFrontmatter,
   type BaseEntity,
   type EntitySearchRequest,
   type ListEntitiesRequest,
 } from "@brains/entity-service";
+import type {
+  AttachmentProvider,
+  AttachmentResolveRequest,
+} from "@brains/plugins";
+import type { PublishMediaData } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 import { PermissionService } from "@brains/templates";
 
@@ -94,7 +114,9 @@ export function createMockSystemServices(
     metadata: { title: input.title, status: "generating" },
   });
 
-  const entityRegistry = {
+  // Unannotated for the same reason as the entity service behaviour below:
+  // getAdapter stands in for a generic member.
+  const entityRegistryBehaviour = {
     getAdapter: (
       type: string,
     ): {
@@ -215,7 +237,13 @@ export function createMockSystemServices(
             : mediaType === pattern,
         ),
       ),
-  } as unknown as SystemServices["entityRegistry"];
+  };
+
+  /** The behaviour above, over a real registry, as with the entity service. */
+  const entityRegistry: SystemServices["entityRegistry"] = Object.assign(
+    EntityRegistry.createFresh(createSilentLogger()),
+    entityRegistryBehaviour,
+  );
 
   const markdownCreates: Array<{
     entityType: string;
@@ -226,7 +254,10 @@ export function createMockSystemServices(
   let lastCreateRequest: unknown;
   let lastUpdateRequest: unknown;
 
-  const entityService = {
+  // The in-memory behaviour these tests drive. Left unannotated: several of
+  // these members stand in for generic ones, and a concrete return can never
+  // satisfy a signature whose type parameter the caller chooses.
+  const entityServiceBehaviour = {
     search: async (request: EntitySearchRequest) => {
       const scope = request.options?.visibilityScope;
       const allowed = scope
@@ -351,7 +382,21 @@ export function createMockSystemServices(
     },
     serializeEntity: (entity: BaseEntity) => JSON.stringify(entity),
     deserializeEntity: (md: string) => ({ content: md }) as BaseEntity,
-  } as unknown as SystemServices["entityService"];
+  };
+
+  /**
+   * The behaviour above, over a complete entity service.
+   *
+   * Object.assign returns the intersection of the two, which is assignable to
+   * IEntityService without an assertion — the factory contributes every member
+   * this fake never implemented, and the behaviour overrides the handful the
+   * tests drive. The cast this replaces covered the whole object, so none of
+   * those members was checked against the interface at all.
+   */
+  const entityService: SystemServices["entityService"] = Object.assign(
+    createMockEntityService(),
+    entityServiceBehaviour,
+  );
 
   const enqueuedJobs: Array<{
     type: string;
@@ -375,38 +420,52 @@ export function createMockSystemServices(
     getActiveBatches: async () => [],
     getBatchStatus: async () => null,
     getStatus: async () => null,
-  } as unknown as SystemServices["jobs"];
+    // An accessor the tests read; declared in the annotation below so it is an
+    // addition to the namespace rather than an unchecked extra.
+  } satisfies SystemServices["jobs"] & {
+    getLastEnqueued: () => { type: string; data: unknown } | undefined;
+  };
 
-  const conversationService = {
+  // Members the system commands never reach throw rather than being absent, so
+  // a command that starts calling one says so instead of receiving undefined.
+  const unreached = (name: string) => (): never => {
+    throw new Error(`${name} is not reachable from the system commands`);
+  };
+
+  const conversationService: SystemServices["conversationService"] = {
     getConversation: async () => null,
     listConversations: async () => [],
     searchConversations: async () => [],
     getMessages: async () => [],
-  } as unknown as SystemServices["conversationService"];
+    startConversation: unreached("startConversation"),
+    addMessage: unreached("addMessage"),
+    countMessages: unreached("countMessages"),
+    updateConversationMetadata: unreached("updateConversationMetadata"),
+    deleteConversation: unreached("deleteConversation"),
+    close: unreached("close"),
+  };
 
-  const runtimeUploads = {
-    scoped: (): {
-      readRecord: () => Promise<never>;
-      read: () => Promise<never>;
-    } => ({
+  const runtimeUploads: SystemServices["runtimeUploads"] = {
+    scoped: () => ({
       readRecord: async (): Promise<never> => {
         throw new Error("Upload ref not found");
       },
       read: async (): Promise<never> => {
         throw new Error("Upload ref not found");
       },
+      save: unreached("save"),
+      remove: unreached("remove"),
+      toResponseBody: unreached("toResponseBody"),
+      prune: unreached("prune"),
+      getUploadDir: unreached("getUploadDir"),
     }),
-  } as unknown as SystemServices["runtimeUploads"];
+  };
 
-  const attachmentProviders = new Map<
-    string,
-    {
-      metadata?: ReturnType<
-        SystemServices["attachments"]["getProviderMetadata"]
-      >;
-      resolve: (...args: unknown[]) => unknown;
-    }
-  >();
+  // AttachmentProvider rather than a locally invented shape: the fake declared
+  // resolve as (...args: unknown[]) => unknown, which accepts providers the
+  // real namespace would reject and returns something no caller could use. The
+  // cast that used to sit at the end of this object hid both.
+  const attachmentProviders = new Map<string, AttachmentProvider>();
   const attachmentKey = (
     sourceEntityType: string,
     attachmentType: string,
@@ -415,21 +474,17 @@ export function createMockSystemServices(
     register: (
       sourceEntityType: string,
       attachmentType: string,
-      provider: {
-        metadata?: ReturnType<
-          SystemServices["attachments"]["getProviderMetadata"]
-        >;
-        resolve: (...args: unknown[]) => unknown;
-      },
-    ): (() => boolean) => {
+      provider: AttachmentProvider,
+    ): (() => void) => {
       const key = attachmentKey(sourceEntityType, attachmentType);
       attachmentProviders.set(key, provider);
-      return (): boolean => attachmentProviders.delete(key);
+      return (): void => {
+        attachmentProviders.delete(key);
+      };
     },
-    resolve: async (request: {
-      sourceEntityType: string;
-      attachmentType: string;
-    }) => {
+    resolve: async (
+      request: AttachmentResolveRequest,
+    ): Promise<PublishMediaData | undefined> => {
       const provider = attachmentProviders.get(
         attachmentKey(request.sourceEntityType, request.attachmentType),
       );
@@ -440,7 +495,7 @@ export function createMockSystemServices(
     getProviderMetadata: (sourceEntityType: string, attachmentType: string) =>
       attachmentProviders.get(attachmentKey(sourceEntityType, attachmentType))
         ?.metadata,
-  } as unknown as SystemServices["attachments"];
+  } satisfies SystemServices["attachments"];
 
   return {
     entityService,

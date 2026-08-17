@@ -96,8 +96,10 @@ describe("InboxFollowUpRegistry", () => {
     expect(() =>
       registry.registerKind("drafting", {
         ...universal({ kind: "draft-reply", mode: "declared" }),
+        // The type permits an absent schema; the registry rejects it at
+        // runtime, which is what this asserts.
         contextSchema: undefined,
-      } as unknown as InboxFollowUpKindRegistration),
+      }),
     ).toThrow("Declared inbox follow-up kinds require a context schema");
   });
 

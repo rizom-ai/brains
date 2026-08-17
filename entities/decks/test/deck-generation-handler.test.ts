@@ -26,7 +26,11 @@ describe("DeckGenerationJobHandler", () => {
         entityService: {
           getEntity: null,
           listEntities: [],
-          createEntity: { entityId: "test-id" },
+          createEntity: {
+            entityId: "test-id",
+            jobId: "mock-job-id",
+            skipped: false,
+          },
         },
       },
     });

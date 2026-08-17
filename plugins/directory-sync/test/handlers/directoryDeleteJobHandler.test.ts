@@ -162,7 +162,6 @@ describe("DirectoryDeleteJobHandler", () => {
 
     it("should reject invalid data", async () => {
       const mockContext = createMockServicePluginContext();
-      const mockProgressReporter = createMockProgressReporter();
       const handler = new DirectoryDeleteJobHandler(
         logger,
         mockContext,
@@ -175,12 +174,11 @@ describe("DirectoryDeleteJobHandler", () => {
         // missing entityId
       };
 
-      const promise = handler.process(
-        invalidData as unknown as typeof validData,
-        jobId,
-        mockProgressReporter,
-      );
-      expect(promise).rejects.toThrow();
+      // validateAndParse is the member built to take untrusted payloads —
+      // BaseJobHandler runs it before a job is durably enqueued, so this is the
+      // guard that actually keeps malformed data out of the queue. It accepts
+      // unknown, so the invalid object goes in as it is, with no cast.
+      expect(handler.validateAndParse(invalidData)).toBeNull();
     });
 
     it("should report progress correctly", async () => {

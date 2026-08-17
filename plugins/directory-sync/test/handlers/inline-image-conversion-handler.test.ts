@@ -50,7 +50,11 @@ describe("InlineImageConversionJobHandler", () => {
       returns: {
         entityService: {
           listEntities: [],
-          createEntity: { entityId: "test-image-id", jobId: "job-1" },
+          createEntity: {
+            entityId: "test-image-id",
+            jobId: "job-1",
+            skipped: false,
+          },
         },
       },
     });

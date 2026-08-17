@@ -1,17 +1,21 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { Window, type Element as HappyDOMElement } from "happy-dom";
+import { Window, type HTMLElement as HappyDOMHTMLElement } from "happy-dom";
 import { DASHBOARD_UI_SCRIPT } from "../src/render/ui-script";
 
 let window: Window;
 
-function element(selector: string): HappyDOMElement {
+function element(selector: string): HappyDOMHTMLElement {
   const match = window.document.querySelector(selector);
   if (!match) throw new Error(`Missing test element: ${selector}`);
+  // instanceof rather than an assertion: focus() is on HTMLElement, not
+  // Element, and this narrows to it by actually checking.
+  if (!(match instanceof window.HTMLElement))
+    throw new Error(`Not an HTMLElement: ${selector}`);
   return match;
 }
 
 function focus(selector: string): void {
-  (element(selector) as unknown as { focus: () => void }).focus();
+  element(selector).focus();
 }
 
 function click(selector: string): void {

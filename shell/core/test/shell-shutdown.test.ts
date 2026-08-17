@@ -3,7 +3,7 @@ import { createTestShellConfig } from "./helpers/test-config";
 import { Shell, type ShellDependencies } from "../src/shell";
 import type { Plugin } from "@brains/plugins";
 import { createSilentLogger } from "@brains/test-utils";
-import { createTestDirectory } from "./helpers/test-db";
+import { createTestDirectory } from "@brains/test-utils";
 import { migrateEntities } from "@brains/entity-service/migrate";
 import { migrateJobQueue } from "@brains/job-queue/migrate";
 import { migrateConversations } from "@brains/conversation-service/migrate";
@@ -216,11 +216,7 @@ describe("Shell shutdown", () => {
             stop: async () => {
               order.push("daemon-stopped");
 
-              const shellWithServices = shellInstance as unknown as {
-                services: { jobQueueWorker: { isWorkerRunning(): boolean } };
-              };
-              workerRunningDuringDaemonStop =
-                shellWithServices.services.jobQueueWorker.isWorkerRunning();
+              workerRunningDuringDaemonStop = shell.isJobQueueWorkerRunning();
 
               // Databases must outlive daemons: shutdown closes them last.
               await shellInstance

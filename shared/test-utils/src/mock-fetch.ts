@@ -11,8 +11,14 @@ export type FetchHandler = (
 
 /**
  * Replace `globalThis.fetch` with a mock function.
- * The cast from `Mock<FetchHandler>` to `typeof fetch` is centralized here
- * so test files don't need `as unknown as typeof fetch`.
+ *
+ * Unlike the other factories here, this one cannot be checked against the type
+ * it stands in for: `FetchHandler` deliberately returns a `Partial<Response>`
+ * so tests can supply just `ok`/`status`/`json`, and no partial object is
+ * assignable to `typeof fetch`. Requiring real `Response` instances would make
+ * every call site heavier for no added safety, since what is being replaced is
+ * a global rather than an injected collaborator. The cast is kept here, once,
+ * rather than repeated in every test file.
  *
  * @example
  * ```ts
@@ -23,5 +29,9 @@ export type FetchHandler = (
  * ```
  */
 export function mockFetch(handler: FetchHandler): void {
+  // A partial-Response fetch double has no assignable form to check against,
+  // and what is replaced here is a global rather than an injected
+  // collaborator, so there is no interface for it to drift from.
+  // eslint-disable-next-line no-restricted-syntax -- see the note above
   globalThis.fetch = mock(handler) as unknown as typeof fetch;
 }

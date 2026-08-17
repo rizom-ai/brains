@@ -2,7 +2,11 @@ import { describe, expect, it } from "bun:test";
 import type { IConversationService } from "@brains/conversation-service";
 import type { Tool, ToolContext } from "@brains/mcp-service";
 import type { UploadSaveHandler } from "@brains/entity-service";
-import type { SystemServices } from "../../src/system/types";
+import type {
+  IRuntimeUploadsNamespace,
+  RuntimeUploadRecord,
+  ScopedRuntimeUploadStore,
+} from "@brains/plugins";
 import { createSystemTools } from "../../src/system/tools";
 import { createInputSchema } from "../../src/system/schemas";
 import { createMockSystemServices } from "./mock-services";
@@ -48,25 +52,16 @@ function buildServices(input: {
   uploadHandler?: UploadSaveHandler;
 }): ReturnType<typeof createMockSystemServices> {
   const mediaType = input.mediaType ?? "application/pdf";
-  const runtimeUploads = {
-    scoped: (): {
-      readRecord: () => Promise<{
-        id: string;
-        ref: { kind: string; id: string };
-        filename: string;
-        mediaType: string;
-        sizeBytes: number;
-        createdAt: string;
-      }>;
-    } => ({
-      readRecord: async (): Promise<{
-        id: string;
-        ref: { kind: string; id: string };
-        filename: string;
-        mediaType: string;
-        sizeBytes: number;
-        createdAt: string;
-      }> => ({
+  // The whole scoped store surface. Only readRecord is exercised here; the
+  // rest throw so an unexpected call names itself rather than returning
+  // undefined. Before, scoped() returned the RuntimeUploadStore class, so this
+  // stub had to be asserted past fourteen members including private fields.
+  const unexpected = (name: string) => (): never => {
+    throw new Error(name + " was not expected in this test");
+  };
+  const runtimeUploads: IRuntimeUploadsNamespace = {
+    scoped: (): ScopedRuntimeUploadStore => ({
+      readRecord: async (): Promise<RuntimeUploadRecord> => ({
         id: uploadId,
         ref: { kind: "upload", id: uploadId },
         filename: "report.pdf",
@@ -74,13 +69,19 @@ function buildServices(input: {
         sizeBytes: 12,
         createdAt: new Date(0).toISOString(),
       }),
+      save: unexpected("save"),
+      read: unexpected("read"),
+      toResponseBody: unexpected("toResponseBody"),
+      prune: unexpected("prune"),
+      getUploadDir: unexpected("getUploadDir"),
+      remove: unexpected("remove"),
     }),
   };
 
   const services = createMockSystemServices({
     conversationService: conversationWithUpload(),
     runtimeUploads,
-  } as unknown as Partial<SystemServices>);
+  });
   services.registerEntityTypes(["note", "document", "image"]);
   if (input.uploadHandler) {
     services.entityRegistry.registerUploadSaveHandler({

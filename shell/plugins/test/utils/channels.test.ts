@@ -3,7 +3,7 @@ import { z } from "@brains/utils/zod";
 import type { BaseMessage } from "@brains/messaging-service";
 import { defineChannel, isChannel } from "../../src/utils/channels";
 import { createBasePluginContext } from "../../src/base/context";
-import { createMockShell } from "../../src/test/mock-shell";
+import { createMockShell } from "@brains/test-utils";
 import { createSilentLogger } from "@brains/test-utils";
 
 describe("Typed Message Channels", () => {
@@ -28,8 +28,8 @@ describe("Typed Message Channels", () => {
     });
 
     it("should return false for null and undefined", () => {
-      expect(isChannel(null as unknown as string)).toBe(false);
-      expect(isChannel(undefined as unknown as string)).toBe(false);
+      expect(isChannel(null)).toBe(false);
+      expect(isChannel(undefined)).toBe(false);
     });
   });
 

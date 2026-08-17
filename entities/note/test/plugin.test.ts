@@ -1,4 +1,5 @@
 import { describe, expect, it, beforeEach, afterEach } from "bun:test";
+import { createTempDir } from "@brains/test-utils";
 import { NotePlugin } from "../src/plugin";
 import { createPluginHarness } from "@brains/plugins/test";
 import type { PluginCapabilities } from "@brains/plugins/test";
@@ -22,7 +23,7 @@ describe("NotePlugin", () => {
 
   beforeEach(async () => {
     harness = createPluginHarness({
-      dataDir: `/tmp/test-datadir-${crypto.randomUUID()}`,
+      dataDir: await createTempDir("test-datadir-note-"),
     });
     enqueuedJobs = [];
     registeredHandlers = new Map();

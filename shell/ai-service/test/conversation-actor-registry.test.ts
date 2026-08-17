@@ -48,13 +48,12 @@ function createRegistry(options?: {
       : {}),
   };
 
-  // Keep the clock seam out of the package's public Promise API.
-  const RegistryWithClock = ConversationActorRegistry as unknown as new (
-    registryOptions: ConversationActorRegistryOptions<FakeActor>,
-    runtimeOptions?: { clock: Clock.Clock },
-  ) => ConversationActorRegistry<FakeActor>;
+  // The constructor declares runtimeOptions directly now; the overload that
+  // hid them from callers is gone.
   const registry = options?.clock
-    ? new RegistryWithClock(registryOptions, { clock: options.clock })
+    ? new ConversationActorRegistry<FakeActor>(registryOptions, {
+        clock: options.clock,
+      })
     : new ConversationActorRegistry<FakeActor>(registryOptions);
   return { registry, created };
 }
@@ -73,8 +72,7 @@ function deferred<T>(): {
   return { promise, resolve, reject };
 }
 
-const delay = (ms: number): Promise<void> =>
-  new Promise((resolve) => setTimeout(resolve, ms));
+const delay = (ms: number): Promise<void> => Bun.sleep(ms);
 
 function withRegistryTestClock(
   idleTtlMs: number,

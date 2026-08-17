@@ -22,6 +22,13 @@ const richSchema = z.object({
 function richTemplate(): ReturnType<typeof sectionToTemplate> {
   return sectionToTemplate(
     "hero",
+    // @ts-expect-error richSchema has an optional field, and defineSection's
+    // JsonObjectOutputGuard deliberately rejects output containing undefined.
+    // The runtime supports optional fields — section-templates peels optional,
+    // nullable and default wrappers, and the assertions below cover that — so
+    // the guard and the runtime disagree about what a section may declare.
+    // Kept as an expected error rather than dropping the field, which would
+    // delete the coverage without resolving the disagreement.
     defineSection(richSchema, noop, { title: "Hero", description: "d" }),
   );
 }
@@ -117,6 +124,10 @@ describe("sectionToTemplate", () => {
     expect(() =>
       sectionToTemplate(
         "x",
+        // @ts-expect-error a non-object schema is rejected by the guard at
+        // compile time as well as by sectionToTemplate at run time. Asserting
+        // both is the point: an author who bypasses the type still gets a
+        // clear failure rather than a malformed template.
         defineSection(z.string(), noop, { title: "X", description: "d" }),
       ),
     ).toThrow(/must be a zod object/);

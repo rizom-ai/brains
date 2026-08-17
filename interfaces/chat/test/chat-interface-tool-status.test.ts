@@ -1,4 +1,4 @@
-import { describe, it, expect, mock } from "bun:test";
+import { describe, it, expect, mock, afterEach, setSystemTime } from "bun:test";
 import { PermissionService } from "@brains/plugins/test";
 import {
   ChatInterface,
@@ -10,14 +10,28 @@ import {
   createThread,
   isJobProcessingPost,
   setupChatInterfaceTest,
+  withToolActivity,
 } from "./harness/chat-interface-harness";
-import type {
-  ChatInterfaceWithToolActivity,
-  MockPostMessage,
-} from "./harness/chat-interface-harness";
+import type { MockPostMessage } from "./harness/chat-interface-harness";
 
 describe("ChatInterface tool status and progress", () => {
   const suite = setupChatInterfaceTest();
+
+  /**
+   * ProgressMessageCoordinator throttles progress edits to one per 500ms of
+   * wall clock, measured with Date.now(). Elapsed time is genuinely the
+   * behaviour here, so these tests move the clock past the window rather than
+   * sleeping through it — exact instead of "510ms should be enough", and it
+   * gives back half a second per test. The literal tracks
+   * PROGRESS_EDIT_THROTTLE_MS in shell/plugins, which is module-private.
+   */
+  const advancePastProgressThrottle = (): void => {
+    setSystemTime(new Date(Date.now() + 501));
+  };
+
+  afterEach(() => {
+    setSystemTime();
+  });
 
   it("edits Discord tool activity status messages after the agent response", async () => {
     const statusMessage = createSentMessage("status-1");
@@ -34,7 +48,7 @@ describe("ChatInterface tool status and progress", () => {
     const plugin = createPlugin();
     await suite.harness.installPlugin(plugin);
     const chat = MockChatSdk.instances[0];
-    const toolInterface = plugin as unknown as ChatInterfaceWithToolActivity;
+    const toolInterface = withToolActivity(plugin);
     suite.agentService.chat.mockImplementationOnce(
       async (_message, conversationId) => {
         await toolInterface.handleToolActivityEvent({
@@ -94,7 +108,7 @@ describe("ChatInterface tool status and progress", () => {
     const plugin = createPlugin();
     await suite.harness.installPlugin(plugin);
     const chat = MockChatSdk.instances[0];
-    const toolInterface = plugin as unknown as ChatInterfaceWithToolActivity;
+    const toolInterface = withToolActivity(plugin);
     suite.agentService.chat.mockImplementationOnce(
       async (_message, conversationId) => {
         await toolInterface.handleToolActivityEvent({
@@ -150,9 +164,7 @@ describe("ChatInterface tool status and progress", () => {
     await chat?.handlers.mentions[0]?.(thread, createMessage());
     thread.post.mockClear();
 
-    await (
-      plugin as unknown as ChatInterfaceWithToolActivity
-    ).handleToolActivityEvent({
+    await withToolActivity(plugin).handleToolActivityEvent({
       type: "tool:invoking",
       toolName: "system_publish",
       conversationId: "web-chat-session",
@@ -172,9 +184,7 @@ describe("ChatInterface tool status and progress", () => {
     await chat?.handlers.mentions[0]?.(thread, createMessage());
     thread.post.mockClear();
 
-    await (
-      plugin as unknown as ChatInterfaceWithToolActivity
-    ).handleToolActivityEvent({
+    await withToolActivity(plugin).handleToolActivityEvent({
       type: "tool:failed",
       toolName: "system_publish",
       conversationId: "discord-discord:guild-123:channel-123:thread-456",
@@ -193,7 +203,7 @@ describe("ChatInterface tool status and progress", () => {
 
   it("removes completed Slack tool status when the final response arrives", async () => {
     const plugin = new ChatInterface({ adapters: { slack: baseSlackConfig } });
-    const toolInterface = plugin as unknown as ChatInterfaceWithToolActivity;
+    const toolInterface = withToolActivity(plugin);
     const threadId = "slack:C123:1712345678.000100";
     suite.agentService.chat.mockImplementationOnce(
       async (_message, conversationId) => {
@@ -301,7 +311,7 @@ describe("ChatInterface tool status and progress", () => {
     const chat = MockChatSdk.instances[0];
 
     await chat?.handlers.mentions[0]?.(thread, createMessage());
-    await new Promise((resolve) => setTimeout(resolve, 510));
+    advancePastProgressThrottle();
     await suite.harness.sendMessage("job-progress", {
       id: "job-slack",
       type: "job",
@@ -427,7 +437,7 @@ describe("ChatInterface tool status and progress", () => {
     const chat = MockChatSdk.instances[0];
 
     await chat?.handlers.mentions[0]?.(thread, createMessage());
-    await new Promise((resolve) => setTimeout(resolve, 510));
+    advancePastProgressThrottle();
     await suite.harness.sendMessage("job-progress", {
       id: "job-123",
       type: "job",
@@ -479,7 +489,7 @@ describe("ChatInterface tool status and progress", () => {
     const chat = MockChatSdk.instances[0];
 
     await chat?.handlers.mentions[0]?.(thread, createMessage());
-    await new Promise((resolve) => setTimeout(resolve, 510));
+    advancePastProgressThrottle();
     await suite.harness.sendMessage("job-progress", {
       id: "artifact-job-123",
       type: "job",

@@ -1,57 +1,25 @@
-import { afterEach, describe, expect, it } from "bun:test";
-import { readFile, readdir } from "node:fs/promises";
+import { describe, expect, it } from "bun:test";
 import {
   GitStallError,
   runGitCommandWithStallTimeout,
 } from "../../src/lib/broker/git-stall";
 
 /**
- * A port nobody else in this run is using.
+ * A git invocation that produces no output until it is killed.
  *
- * `git daemon --port=0` does not pick one: it binds 9418, so two runs — or
- * one leaked daemon — collide, and the failure looks like a regression in
- * the code under test rather than a stale process.
- */
-function freePort(): number {
-  const probe = Bun.listen({
-    hostname: "127.0.0.1",
-    port: 0,
-    socket: { data: (): void => {} },
-  });
-  const { port } = probe;
-  probe.stop(true);
-  return port;
-}
-/**
- * Reap anything the fixture left in this process group.
+ * These two tests need nothing more than that: one asserts the stall
+ * timeout fires, the other that an abort reason propagates. They used to run
+ * `git daemon`, which serves the purpose but binds a port to do it — and
+ * ignores the `--port=0` they asked for, taking the fixed 9418 instead. Two
+ * checkouts on one machine therefore could not run this file at the same
+ * time, and the loser failed with `Address already in use` far from anything
+ * it was testing.
  *
- * `git daemon` forks its listener and lets the parent exit, so the survivor
- * is reparented and cannot be traced from the process that started it. In
- * production the broker's process group is what collects it; here the test
- * runner's group is, and leaving it running would hold a port against the
- * next run.
+ * An alias that sleeps is silent in the same way and contends with nothing.
+ * The first test in this file already drives git through an alias.
  */
-afterEach(async () => {
-  const stat = await readFile("/proc/self/stat", "utf-8").catch(() => "");
-  if (!stat) return;
-  const own = Number(stat.slice(stat.lastIndexOf(")") + 2).split(" ")[2]);
-  const entries = await readdir("/proc").catch(() => []);
-  for (const entry of entries) {
-    if (!/^\d+$/.test(entry)) continue;
-    const other = await readFile(`/proc/${entry}/stat`, "utf-8").catch(
-      () => undefined,
-    );
-    if (!other) continue;
-    const command = other.slice(other.indexOf("(") + 1, other.lastIndexOf(")"));
-    const fields = other.slice(other.lastIndexOf(")") + 2).split(" ");
-    if (Number(fields[2]) !== own || !command.includes("git-daemon")) continue;
-    try {
-      process.kill(Number(entry), "SIGKILL");
-    } catch {
-      // Already gone, which is the outcome being asked for.
-    }
-  }
-});
+const SILENT_CHILD = ["-c", "alias.stall=!sleep 30", "stall"];
+
 describe("runGitCommandWithStallTimeout", () => {
   it("returns stdout for a completing command", async () => {
     const stdout = await runGitCommandWithStallTimeout(
@@ -97,10 +65,9 @@ describe("runGitCommandWithStallTimeout", () => {
   });
 
   it("kills a silent child and throws GitStallError", async () => {
-    // `git daemon` listens silently until killed, independent of stdin.
     const outcome = await runGitCommandWithStallTimeout(
       { baseDir: process.cwd(), timeoutMs: 150 },
-      ["daemon", "--listen=127.0.0.1", `--port=${freePort()}`, "--base-path=."],
+      SILENT_CHILD,
     ).then(
       () => undefined,
       (error: unknown) => error,
@@ -113,7 +80,7 @@ describe("runGitCommandWithStallTimeout", () => {
     const reason = new Error("caller cancelled");
     const outcome = runGitCommandWithStallTimeout(
       { baseDir: process.cwd(), timeoutMs: 10_000 },
-      ["daemon", "--listen=127.0.0.1", `--port=${freePort()}`, "--base-path=."],
+      SILENT_CHILD,
       controller.signal,
     ).then(
       () => undefined,

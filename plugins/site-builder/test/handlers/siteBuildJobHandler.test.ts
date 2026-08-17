@@ -8,7 +8,7 @@ import {
   createMockMessageSender,
 } from "@brains/test-utils";
 import { ProgressReporter } from "@brains/utils/progress";
-import type { SiteBuildStatusService } from "../../src/lib/site-build-status";
+import type { BuildStatusRecorder } from "../../src/handlers/siteBuildJobHandler";
 
 describe("SiteBuildJobHandler", () => {
   let handler: SiteBuildJobHandler;
@@ -219,10 +219,15 @@ describe("SiteBuildJobHandler", () => {
 
   it("records a cancelled build without emitting completion", async () => {
     const markCancelled = mock(async () => undefined);
-    const statusService = {
+    // All four transitions, because the handler optional-chains the service
+    // rather than each method. Only markCancelled is asserted; the rest are
+    // present so the recorder is a whole one, checked rather than asserted.
+    const statusService: BuildStatusRecorder = {
       markBuilding: mock(async () => undefined),
+      markSuccess: mock(async () => undefined),
+      markFailure: mock(async () => undefined),
       markCancelled,
-    } as unknown as SiteBuildStatusService;
+    };
     const cancelledBuilder: ISiteBuilder = {
       build: mock(async () => ({
         success: false,

@@ -1,11 +1,12 @@
 import { inspect } from "node:util";
+import { fakeEntityDb } from "./helpers/fake-entity-db";
+import type { EntityDB } from "../src/db";
 import { describe, test, expect, mock } from "bun:test";
 import { EntitySearch, MAX_SEARCH_QUERY_CHARS } from "../src/entity-search";
 import { EntityRegistry } from "../src/entityRegistry";
 import { EntitySerializer } from "../src/entity-serializer";
 import { createMockLogger, createSilentLogger } from "@brains/test-utils";
-import type { EntityDB } from "../src/db";
-import type { IEmbeddingService } from "../src/embedding-types";
+import type { QueryEmbedder } from "../src/entity-search";
 import { MOCK_DIMENSIONS } from "./helpers/mock-services";
 
 interface SearchChain {
@@ -31,9 +32,7 @@ function createSearchDb(onWhere?: (condition: unknown) => void): EntityDB {
     offset: selectResult,
   };
 
-  return {
-    select: mock(() => chainableMock),
-  } as unknown as EntityDB;
+  return fakeEntityDb(() => chainableMock);
 }
 
 function createDistanceDb(): EntityDB {
@@ -43,9 +42,7 @@ function createDistanceDb(): EntityDB {
     orderBy: mock(() => Promise.resolve([])),
   };
 
-  return {
-    select: mock(() => chainableMock),
-  } as unknown as EntityDB;
+  return fakeEntityDb(() => chainableMock);
 }
 
 function createEntitySearch(options?: {
@@ -53,25 +50,23 @@ function createEntitySearch(options?: {
   db?: EntityDB;
 }): {
   entitySearch: EntitySearch;
-  embeddingService: IEmbeddingService;
+  embeddingService: QueryEmbedder;
   logger: ReturnType<typeof createMockLogger>;
 } {
   const logger = options?.logger ?? createSilentLogger();
   const entityRegistry = EntityRegistry.createFresh(logger);
   const serializer = new EntitySerializer(entityRegistry, logger);
 
+  // generateEmbedding is the whole surface search uses; dimensions and
+  // generateEmbeddings were on the old fake and nothing called them.
   const embeddingService = {
-    dimensions: MOCK_DIMENSIONS,
     generateEmbedding: mock(() =>
       Promise.resolve({
         embedding: new Float32Array(MOCK_DIMENSIONS).fill(0.1),
         usage: { tokens: 10 },
       }),
     ),
-    generateEmbeddings: mock(() =>
-      Promise.resolve({ embeddings: [], usage: { tokens: 0 } }),
-    ),
-  } as unknown as IEmbeddingService;
+  } satisfies QueryEmbedder;
 
   const entitySearch = new EntitySearch(
     options?.db ?? createSearchDb(),

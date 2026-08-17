@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import { mkdtemp, readFile, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { createTempDir } from "@brains/test-utils";
+import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
 import {
@@ -11,7 +11,7 @@ import {
 
 describe("hasPrebuiltEvalDatabase", () => {
   it("reports whether the prepared environment copied a prebuilt entity database", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "eval-settle-"));
+    const dir = await createTempDir("eval-settle-");
     const evalDbBase = join(dir, "brain-eval-1");
 
     expect(hasPrebuiltEvalDatabase(evalDbBase)).toBe(false);

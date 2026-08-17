@@ -6,26 +6,23 @@ import { ProviderRegistry } from "../src/provider-registry";
 import { RetryTracker } from "../src/retry-tracker";
 import { TestSchedulerBackend } from "@brains/scheduler/test";
 import { PUBLISH_MESSAGES } from "../src/types/messages";
-import type { IMessageBus } from "@brains/plugins";
+import type { SchedulerMessagePublisher } from "../src/scheduler-generation";
 import { createMockLogger } from "@brains/test-utils";
 
 type SchedulerConfigOverrides = Partial<SchedulerConfig>;
 
 // Mock message bus
-function createMockMessageBus(): IMessageBus & {
+function createMockMessageBus(): SchedulerMessagePublisher & {
   _sentMessages: Array<{ type: string; payload: unknown }>;
 } {
   const sentMessages: Array<{ type: string; payload: unknown }> = [];
 
   return {
-    subscribe: mock(() => () => {}),
     send: mock(async (request: { type: string; payload: unknown }) => {
       sentMessages.push({ type: request.type, payload: request.payload });
       return { success: true };
     }),
     _sentMessages: sentMessages,
-  } as unknown as IMessageBus & {
-    _sentMessages: Array<{ type: string; payload: unknown }>;
   };
 }
 

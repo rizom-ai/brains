@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { createTestShellConfig } from "./helpers/test-config";
 import { Shell, type ShellDependencies } from "../src/shell";
 import { createSilentLogger } from "@brains/test-utils";
-import { createTestDirectory } from "./helpers/test-db";
+import { createTestDirectory } from "@brains/test-utils";
 import type { Plugin, Daemon } from "@brains/plugins";
 import { InterfacePlugin, SYSTEM_CHANNELS } from "@brains/plugins";
 import { migrateEntities } from "@brains/entity-service/migrate";

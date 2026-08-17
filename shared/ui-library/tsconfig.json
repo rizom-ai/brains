@@ -4,8 +4,8 @@
     "jsx": "react-jsx",
     "jsxImportSource": "preact",
     "lib": ["DOM", "ES2022"],
-    "rootDir": "./src",
+    "rootDir": ".",
     "isolatedDeclarations": true
   },
-  "include": ["src"]
+  "include": ["src/**/*", "test/**/*"]
 }

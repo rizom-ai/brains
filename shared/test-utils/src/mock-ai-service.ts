@@ -1,5 +1,6 @@
 import { mock } from "bun:test";
 import type { IAIService } from "@brains/ai-service";
+import { genericSpy } from "./generic-spy";
 
 /**
  * Options for configuring mock AI service return values
@@ -63,14 +64,25 @@ export function createMockAIService(
         usage: generateTextReturn.usage ?? defaultUsage,
       }),
     ),
-    generateObject: mock(() =>
+    generateObject: genericSpy<IAIService["generateObject"]>(
+      mock(() =>
+        Promise.resolve({ object: generateObjectReturn, usage: defaultUsage }),
+      ),
+    ),
+    judge: genericSpy<IAIService["judge"]>(
+      mock(() =>
+        Promise.resolve({ verdict: generateObjectReturn, usage: defaultUsage }),
+      ),
+    ),
+    generateImage: mock(() =>
       Promise.resolve({
-        object: generateObjectReturn,
-        usage: defaultUsage,
+        base64: "",
+        dataUrl: "data:image/png;base64,",
       }),
     ),
+    canGenerateImages: mock(() => false),
     updateConfig: mock(() => {}),
     getConfig: mock(() => configReturn),
     getModel: mock(() => ({}) as ReturnType<IAIService["getModel"]>),
-  } as unknown as IAIService;
+  } satisfies IAIService;
 }

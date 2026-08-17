@@ -16,8 +16,14 @@ const AUTO_COMMIT_KEY = "git-auto-commit";
  * written the file, so a leading-edge commit can strand that export. Pending
  * delays are replaceable; once commit/push starts, the runtime drains it.
  */
+/** The one messaging method auto-commit uses: it listens, it never sends. */
+export type AutoCommitMessaging = Pick<
+  ServicePluginContext["messaging"],
+  "subscribe"
+>;
+
 export function setupGitAutoCommit(
-  messaging: ServicePluginContext["messaging"],
+  messaging: AutoCommitMessaging,
   gitSync: IGitSync | (() => IGitSync),
   debounceMs: number,
   logger: Logger,

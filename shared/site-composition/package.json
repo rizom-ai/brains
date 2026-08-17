@@ -1,7 +1,7 @@
 {
   "name": "@brains/site-composition",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.299",
+  "version": "0.2.0-alpha.302",
   "description": "Shared site composition contract and merge helpers",
   "dependencies": {
     "@brains/content-formatters": "workspace:*",

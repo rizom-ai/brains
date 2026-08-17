@@ -45,7 +45,11 @@ describe("ImageGenerationJobHandler", () => {
     context = createMockEntityPluginContext({
       returns: {
         entityService: {
-          createEntity: { entityId: "test-image", jobId: "job-123" },
+          createEntity: {
+            entityId: "test-image",
+            jobId: "job-123",
+            skipped: false,
+          },
           getEntity: null,
         },
         ai: {
@@ -206,7 +210,11 @@ describe("ImageGenerationJobHandler", () => {
         returns: {
           entityService: {
             getEntity: existingImage,
-            updateEntity: { entityId: "sunset-image", jobId: "job-123" },
+            updateEntity: {
+              entityId: "sunset-image",
+              jobId: "job-123",
+              skipped: false,
+            },
           },
           ai: {
             canGenerateImages: true,
@@ -261,7 +269,11 @@ describe("ImageGenerationJobHandler", () => {
           entityService: {
             getEntity: existingImage, // Image already exists
             deleteEntity: true,
-            createEntity: { entityId: "sunset-image", jobId: "job-123" },
+            createEntity: {
+              entityId: "sunset-image",
+              jobId: "job-123",
+              skipped: false,
+            },
           },
           ai: {
             canGenerateImages: true,
@@ -374,7 +386,11 @@ describe("ImageGenerationJobHandler", () => {
       const targetContext = createMockEntityPluginContext({
         returns: {
           entityService: {
-            createEntity: { entityId: "test-image", jobId: "job-123" },
+            createEntity: {
+              entityId: "test-image",
+              jobId: "job-123",
+              skipped: false,
+            },
           },
           ai: {
             canGenerateImages: true,
@@ -431,7 +447,11 @@ describe("ImageGenerationJobHandler", () => {
       const targetContext = createMockEntityPluginContext({
         returns: {
           entityService: {
-            createEntity: { entityId: "test-image", jobId: "job-123" },
+            createEntity: {
+              entityId: "test-image",
+              jobId: "job-123",
+              skipped: false,
+            },
           },
           ai: {
             canGenerateImages: true,
@@ -502,7 +522,11 @@ describe("ImageGenerationJobHandler", () => {
       const distillContext = createMockEntityPluginContext({
         returns: {
           entityService: {
-            createEntity: { entityId: "test-image", jobId: "job-123" },
+            createEntity: {
+              entityId: "test-image",
+              jobId: "job-123",
+              skipped: false,
+            },
             getEntity: null,
           },
           ai: {

@@ -1,3 +1,4 @@
+/** @jsxImportSource react */
 import {
   AUTH_ADMIN_MUTATION_ACTIONS,
   AUTH_USER_ROLES,

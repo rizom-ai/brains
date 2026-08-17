@@ -1,6 +1,16 @@
 import type { InsightHandler } from "@brains/plugins";
 import { toISODateString, getYesterday, getDaysAgo } from "@brains/utils/date";
 import type { CloudflareClient } from "../lib/cloudflare-client";
+
+/**
+ * The two queries this insight runs. CloudflareClient does far more; asking for
+ * all of it meant a test could not supply two readings without asserting it was
+ * a whole client.
+ */
+export type TrafficStatsClient = Pick<
+  CloudflareClient,
+  "getWebsiteStats" | "getTopPages"
+>;
 import { getErrorMessage } from "@brains/utils/error";
 
 const OVERVIEW_DAYS = 7;
@@ -12,7 +22,7 @@ const TOP_PAGES_LIMIT = 10;
  * Gracefully degrades when client is unavailable or API fails.
  */
 export function createTrafficOverviewInsight(
-  client: CloudflareClient | undefined,
+  client: TrafficStatsClient | undefined,
 ): InsightHandler {
   return async () => {
     if (!client) {

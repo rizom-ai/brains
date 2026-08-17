@@ -28,7 +28,11 @@ function createMockContext(): EntityPluginContext {
         },
       },
       entityService: {
-        createEntity: { entityId: "project-123" },
+        createEntity: {
+          entityId: "project-123",
+          jobId: "mock-job-id",
+          skipped: false,
+        },
         getEntity: null,
         listEntities: [],
       },
@@ -164,7 +168,11 @@ describe("ProjectGenerationJobHandler", () => {
       const failingContext = createMockEntityPluginContext({
         returns: {
           entityService: {
-            createEntity: { entityId: "project-123" },
+            createEntity: {
+              entityId: "project-123",
+              jobId: "mock-job-id",
+              skipped: false,
+            },
             getEntity: null,
             listEntities: [],
           },

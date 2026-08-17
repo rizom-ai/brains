@@ -143,7 +143,7 @@ describe("ChatInterface mount", () => {
     expect(webhook?.status).toBe(404);
 
     await registry.startPlugin("chat");
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    await Bun.sleep(0);
     await registry.stopPlugin("chat");
 
     expect(lastAdapter.slack?.startSocketModeListener).toHaveBeenCalled();
@@ -165,7 +165,7 @@ describe("ChatInterface mount", () => {
     const registry = suite.harness.getMockShell().getDaemonRegistry();
 
     await registry.startPlugin("chat");
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    await Bun.sleep(0);
     await registry.stopPlugin("chat");
 
     expect(lastAdapter.discord?.startGatewayListener).toHaveBeenCalled();

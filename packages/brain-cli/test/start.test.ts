@@ -90,6 +90,8 @@ describe("start subprocess lifecycle", () => {
         { chat: false },
         {
           spawnImpl,
+          // No cast: SignalProcess is already the narrow structural type the
+          // supervisor needs, and an EventEmitter carrying `env` satisfies it.
           processImpl: fakeProcess,
         },
       );

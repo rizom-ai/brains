@@ -1,4 +1,3 @@
-/* global Buffer, console, process */
 /* eslint-disable @typescript-eslint/explicit-function-return-type */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";

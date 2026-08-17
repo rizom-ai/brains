@@ -96,8 +96,6 @@ export function defineChannel<TPayload, TResponse = unknown>(
 /**
  * Type guard to check if something is a Channel
  */
-export function isChannel<T, R>(
-  value: string | Channel<T, R>,
-): value is Channel<T, R> {
+export function isChannel<T, R>(value: unknown): value is Channel<T, R> {
   return channelSchema.safeParse(value).success;
 }

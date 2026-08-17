@@ -1,5 +1,5 @@
-import { mkdir, mkdtemp, readFile, writeFile, stat } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { mkdir, readFile, writeFile, stat } from "node:fs/promises";
+import { createTempDir } from "@brains/test-utils";
 import { join } from "node:path";
 import { describe, expect, test } from "bun:test";
 import {
@@ -9,7 +9,7 @@ import {
 import { runWithPreparedPublishManifests } from "../src/publish-workspace";
 
 async function createPackage(manifest: unknown): Promise<string> {
-  const dir = await mkdtemp(join(tmpdir(), "publish-manifest-"));
+  const dir = await createTempDir("publish-manifest-");
   await writeFile(
     join(dir, "package.json"),
     `${JSON.stringify(manifest, null, 2)}\n`,

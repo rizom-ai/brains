@@ -66,9 +66,12 @@ describe("defineBundle", () => {
   });
 
   test("keeps permission policy values opaque", () => {
-    const futurePermissionConfig = {
+    const futurePermissionConfig: PermissionConfig = {
+      // @ts-expect-error deliberately a policy this release does not know:
+      // the point of the test is that bundles carry permission config through
+      // opaquely, so a newer plugin can ship one an older shell has never seen.
       futurePolicy: { level: "future-level" },
-    } as unknown as PermissionConfig;
+    };
 
     expect(
       defineBundle({

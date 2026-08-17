@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { Window } from "happy-dom";
+import type { Element } from "happy-dom";
 import { CONSOLE_PALETTE_SCRIPT } from "../src";
 
 /**
@@ -13,6 +14,36 @@ interface JumpGroups {
     label: string;
     items: Array<{ title: string; href: string; sub?: string; tag?: string }>;
   }>;
+}
+
+/**
+ * The one property a hosting surface is allowed to add to the window for the
+ * palette to find. Named rather than cast so the contract between the palette
+ * script and its host is stated somewhere a reader can find it.
+ */
+interface ConsoleJumpHost {
+  __consoleJumpLocal?: (query: string) => unknown;
+}
+
+function hostingSurface(target: Window): ConsoleJumpHost {
+  return target as Window & ConsoleJumpHost;
+}
+
+/**
+ * Narrow by instanceof rather than casting. happy-dom builds its own element
+ * classes, so a cast to the global `HTMLInputElement` asserts a relationship
+ * that does not exist — and it would keep passing if the selector stopped
+ * matching an input at all, which is the failure the cast was hiding.
+ */
+function requireInput(
+  win: Window,
+  selector: string,
+): InstanceType<Window["HTMLInputElement"]> {
+  const element = win.document.querySelector(selector);
+  if (!(element instanceof win.HTMLInputElement)) {
+    throw new Error(selector + " did not match an input element");
+  }
+  return element;
 }
 
 let window: Window;
@@ -86,7 +117,10 @@ beforeEach(() => {
     },
   });
 
-  const fetchStub = (input: string): Promise<Response> => {
+  // Typed as fetch is, so it can be installed without an assertion. The
+  // script under test ships to browsers and calls the global directly, so
+  // replacing the global is the only seam there is.
+  const respond = (input: string | Request | URL): Promise<Response> => {
     fetchCalls.push(String(input));
     const { status, body } = fetchResponse();
     return Promise.resolve(
@@ -97,13 +131,21 @@ beforeEach(() => {
     );
   };
 
+  // fetch carries a static preconnect, so a bare function is not a stand-in
+  // for it. Attaching one lets the stub be installed without an assertion.
+  const fetchStub: typeof globalThis.fetch = Object.assign(respond, {
+    preconnect: (): void => {},
+  });
+
   Object.assign(globalThis, {
     window,
     document: window.document,
     KeyboardEvent: window.KeyboardEvent,
   });
-  window.fetch = fetchStub as unknown as typeof window.fetch;
-  globalThis.fetch = fetchStub as unknown as typeof globalThis.fetch;
+  // Only the global: the script is eval'd in this realm, so its bare fetch
+  // resolves here. Assigning window.fetch as well would need a second stub,
+  // since happy-dom declares its own Request type.
+  globalThis.fetch = fetchStub;
 
   eval(CONSOLE_PALETTE_SCRIPT);
 });
@@ -136,9 +178,7 @@ describe("console palette behavior", () => {
 
   it("debounces typed queries into encoded requests", async () => {
     await openPalette();
-    const input = window.document.querySelector(
-      ".cp-input",
-    ) as unknown as HTMLInputElement;
+    const input = requireInput(window, ".cp-input");
     input.value = "verd igris";
     input.dispatchEvent(new window.Event("input", { bubbles: true }));
     await settle();
@@ -155,7 +195,7 @@ describe("console palette behavior", () => {
 
   it("moves the selection with arrows and wraps around", async () => {
     await openPalette();
-    const input = window.document.querySelector(".cp-input") as Element;
+    const input = requireInput(window, ".cp-input");
 
     input.dispatchEvent(
       new window.KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true }),
@@ -214,9 +254,7 @@ describe("console palette behavior", () => {
   });
 
   it("appends the hosting surface's local groups", async () => {
-    (window as unknown as Record<string, unknown>)["__consoleJumpLocal"] = (
-      query: string,
-    ): unknown => [
+    hostingSurface(window).__consoleJumpLocal = (query: string): unknown => [
       {
         label: "Conversations",
         items: [

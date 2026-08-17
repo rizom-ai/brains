@@ -3,13 +3,13 @@
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 
-type ManifestEntry = {
+interface ManifestEntry {
   id?: string;
   title?: string;
   section?: string;
   order?: number;
   source?: string;
-};
+}
 
 const root = process.cwd();
 const manifestPath = path.join(root, "docs", "docs-manifest.yaml");

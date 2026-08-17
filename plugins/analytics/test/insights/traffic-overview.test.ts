@@ -1,13 +1,13 @@
 import { describe, it, expect, mock } from "bun:test";
 import { createTrafficOverviewInsight } from "../../src/insights/traffic-overview";
-import type { CloudflareClient } from "../../src/lib/cloudflare-client";
+import type { TrafficStatsClient } from "../../src/insights/traffic-overview";
 import type { ICoreEntityService } from "@brains/plugins";
 
 const mockEntityService = {} as ICoreEntityService;
 
 function createMockClient(
-  overrides: Partial<CloudflareClient> = {},
-): CloudflareClient {
+  overrides: Partial<TrafficStatsClient> = {},
+): TrafficStatsClient {
   return {
     getWebsiteStats: mock(async () => ({
       pageviews: 1200,
@@ -22,7 +22,7 @@ function createMockClient(
       { path: "/", views: 150 },
     ]),
     ...overrides,
-  } as unknown as CloudflareClient;
+  } satisfies TrafficStatsClient;
 }
 
 describe("traffic-overview insight", () => {

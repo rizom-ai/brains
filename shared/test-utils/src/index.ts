@@ -4,9 +4,11 @@
  * Shared test utilities for the brains project.
  * Provides mock builders and helpers to reduce test boilerplate.
  *
- * All mock factories return properly typed objects (Logger, IEntityService, etc.)
- * with the `as unknown as` cast centralized inside the factory function.
- * This means test files don't need any unsafe casts.
+ * Every factory is checked against the type it stands in for — `satisfies` on
+ * the literal, `PublicSurface<T>` for class types, `genericSpy` where bun's
+ * `mock()` erases type parameters — so interface drift fails to compile here
+ * rather than leaving a silently stale mock. Test files need no casts of
+ * their own.
  */
 
 // Logger utilities
@@ -29,6 +31,7 @@ export { createMockProgressReporter } from "./mock-progress-reporter";
 // Service plugin context mocks
 export {
   createMockServicePluginContext,
+  type MockServicePluginContext,
   type MockServicePluginContextOptions,
   type MockServicePluginContextReturns,
 } from "./mock-service-plugin-context";
@@ -96,3 +99,27 @@ export { createMockAppInfo } from "./mock-app-info";
 
 // MCP service mock
 export { createMockMCPService } from "./mock-mcp-service";
+
+// Isolated file-backed database for one test, with one cleanup contract
+export {
+  createTestDatabase,
+  type ClosableClient,
+  type TestDatabase,
+  type TestDatabaseOptions,
+} from "./test-database";
+
+// Isolated temp directory for one test
+export { createTestDirectory, type TestDirectory } from "./test-database";
+
+// Temp directories that remove themselves after the test file
+export {
+  createTempDir,
+  createTempDirSync,
+  removeTrackedTempDirs,
+} from "./test-database";
+
+// Wait for a condition rather than a guessed duration
+export { waitUntil, type WaitUntilOptions } from "./wait-until";
+
+export { spyOnEntityGet, spyOnEntityCreate } from "./spy-on-entity-service";
+export { genericSpy } from "./generic-spy";

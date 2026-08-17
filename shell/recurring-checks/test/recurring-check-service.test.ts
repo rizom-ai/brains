@@ -1,12 +1,9 @@
 import { describe, expect, it } from "bun:test";
+import { createSilentLogger } from "@brains/test-utils";
 import { Effect } from "@brains/utils/effect";
 import type { Clock } from "@brains/utils/effect";
 import { TestClock, TestContext } from "@brains/utils/effect/test";
-import type {
-  IJobQueueService,
-  JobHandler,
-  JobQueueEnqueueRequest,
-} from "@brains/job-queue";
+import type { JobHandler, JobQueueEnqueueRequest } from "@brains/job-queue";
 import type {
   IRuntimeStateNamespace,
   IRuntimeStateStore,
@@ -19,7 +16,6 @@ import type {
   SchedulerBackend,
   SchedulerCallback,
 } from "@brains/scheduler";
-import type { Logger } from "@brains/utils/logger";
 import {
   RECURRING_CHECK_JOB_TYPE,
   RecurringCheckService,
@@ -154,11 +150,7 @@ class DrainingSchedulerBackend implements SchedulerBackend {
   }
 }
 
-const logger = {
-  child: (): Logger => logger,
-  debug: (): void => {},
-  error: (): void => {},
-} as unknown as Logger;
+const logger = createSilentLogger();
 
 interface CreateServiceOptions {
   now?: Date;
@@ -196,7 +188,7 @@ function createService(
     brainId: "brain.example",
     scheduler,
     runtimeState: state,
-    jobQueue: queue as unknown as IJobQueueService,
+    jobQueue: queue,
     logger,
     ...(options.clock
       ? { clock: options.clock }

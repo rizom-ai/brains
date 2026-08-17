@@ -14,12 +14,13 @@ import type {
   RegisteredHttpRoute,
   SharedHostAdmission,
 } from "@brains/plugins/internal/http-routes";
-import { createMockMessageBus, type IMessageBus } from "@brains/plugins/test";
+import { createMockMessageBus } from "@brains/plugins/test";
 import {
   ServerManager,
   type ServerManagerOptions,
   WEBSERVER_IDLE_TIMEOUT_SECONDS,
   isPathContained,
+  type ServeFn,
 } from "../src/server-manager";
 
 describe("ServerManager (in-process)", () => {
@@ -814,7 +815,7 @@ describe("ServerManager (in-process)", () => {
           data: { success: true, data: { subscribed: true } },
         },
       },
-    }) as unknown as IMessageBus;
+    });
 
     manager = new ServerManager({
       logger: createSilentLogger("test"),
@@ -996,7 +997,7 @@ describe("ServerManager (in-process)", () => {
           data: { success: true, data: { registeredLate: true } },
         },
       },
-    }) as unknown as IMessageBus;
+    });
 
     manager = new ServerManager({
       logger: createSilentLogger("test"),
@@ -1053,21 +1054,20 @@ describe("ServerManager (in-process)", () => {
   describe("Bun.serve idle timeout", () => {
     function captureServeOptions(): {
       options: () => { idleTimeout?: number } | undefined;
-      serve: typeof Bun.serve;
+      serve: ServeFn;
     } {
       let captured: { idleTimeout?: number } | undefined;
-      const serve = ((opts: { idleTimeout?: number }) => {
+      // port and stop are the whole surface ServerManager uses, so the fake
+      // server can be exactly that and still be checked.
+      const serve: ServeFn = (opts) => {
         captured = opts;
-        return {
-          port: 12345,
-          stop: () => {},
-        } as unknown as ReturnType<typeof Bun.serve>;
-      }) as unknown as typeof Bun.serve;
+        return { port: 12345, stop: (): void => {} };
+      };
       return { options: () => captured, serve };
     }
 
     function setupWithServe(
-      serve: typeof Bun.serve,
+      serve: ServeFn,
       idleTimeout?: number,
     ): ServerManager {
       testDir = mkdtempSync(join(tmpdir(), "webserver-idle-"));

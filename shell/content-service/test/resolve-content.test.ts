@@ -848,7 +848,14 @@ describe("ContentService.resolveContent", () => {
       // Create new ContentService with class-based entity service
       const classDependencies: ContentServiceDependencies = {
         ...mockDependencies,
+        // Deliberately a partial class instance. The regression under test is
+        // that createScopedEntityService proxies prototype methods, which a
+        // spread of a class instance loses — so the stand-in has to be a class,
+        // and completing IEntityService on it would bury the point. The proxy
+        // forwards the whole interface, so narrowing the dependency is not
+        // available either.
         entityService:
+          // eslint-disable-next-line no-restricted-syntax -- deliberate; the comment above explains why
           classBasedService as unknown as typeof mockDependencies.entityService,
       };
       const classContentService = new ContentService(classDependencies);

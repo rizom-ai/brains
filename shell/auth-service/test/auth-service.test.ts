@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it, spyOn } from "bun:test";
 import { createClient } from "@libsql/client";
 import { mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { join } from "node:path";
@@ -790,19 +790,16 @@ describe("AuthService", () => {
       { actorUserId: user.userId },
     );
     let verificationCount = 0;
-    const passkeyService = service["runtime"].passkeyService as unknown as {
-      verifyRegistrationResponse: () => Promise<{
-        verified: boolean;
-        subject: string;
-      }>;
-    };
-    passkeyService.verifyRegistrationResponse = async (): Promise<{
-      verified: boolean;
-      subject: string;
-    }> => {
+    // spyOn against the real member rather than an assertion that restates
+    // its signature: if verifyRegistrationResponse changes, this stops
+    // compiling instead of silently standing in for the old shape.
+    spyOn(
+      service["runtime"].passkeyService,
+      "verifyRegistrationResponse",
+    ).mockImplementation(async () => {
       verificationCount += 1;
       return { verified: true, subject: user.userId };
-    };
+    });
     const token = new URL(registration.setupUrl).searchParams.get("token");
     if (!token) throw new Error("Expected targeted setup token");
     const request = (): Request =>

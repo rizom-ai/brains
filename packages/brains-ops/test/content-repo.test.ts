@@ -1,13 +1,13 @@
+import { createTempDir } from "@brains/test-utils";
 import { describe, expect, it } from "bun:test";
 import { execFileSync } from "node:child_process";
-import { mkdtemp, mkdir, readFile, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 
 import { onboardUser } from "../src/onboard-user";
 
 async function createPilotRepo(files: Record<string, string>): Promise<string> {
-  const root = await mkdtemp(join(tmpdir(), "brains-ops-content-repo-"));
+  const root = await createTempDir("brains-ops-content-repo-");
 
   for (const [relativePath, content] of Object.entries(files)) {
     const filePath = join(root, relativePath);
@@ -26,7 +26,7 @@ function runGit(args: string[], cwd?: string): string {
 }
 
 async function createBareRemote(): Promise<string> {
-  const root = await mkdtemp(join(tmpdir(), "brains-ops-content-remote-"));
+  const root = await createTempDir("brains-ops-content-remote-");
   const remotePath = join(root, "remote.git");
   runGit(["init", "--bare", remotePath]);
   return remotePath;
@@ -36,9 +36,7 @@ async function populateRemote(
   remotePath: string,
   files: Record<string, string>,
 ): Promise<void> {
-  const worktree = await mkdtemp(
-    join(tmpdir(), "brains-ops-content-worktree-"),
-  );
+  const worktree = await createTempDir("brains-ops-content-worktree-");
   runGit(["clone", remotePath, worktree]);
   runGit(["config", "user.name", "Test User"], worktree);
   runGit(["config", "user.email", "test@example.com"], worktree);

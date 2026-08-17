@@ -1,5 +1,53 @@
 # @brains/agent-discovery
 
+## 0.2.0-alpha.302
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.302
+  - @brains/atproto-contracts@0.2.0-alpha.302
+  - @brains/content-formatters@0.2.0-alpha.302
+  - @brains/contracts@0.2.0-alpha.302
+  - @brains/http-signatures@0.2.0-alpha.302
+  - @brains/ui-library@0.2.0-alpha.302
+  - @brains/utils@0.2.0-alpha.302
+  - @brains/auth-service@0.2.0-alpha.302
+  - @brains/plugins@0.2.0-alpha.302
+  - @brains/templates@0.2.0-alpha.302
+
+## 0.2.0-alpha.301
+
+### Patch Changes
+
+- Updated dependencies [[`b2fd00c`](https://github.com/rizom-ai/brains/commit/b2fd00c1550e0b9a386484e07a53546106f793ce)]:
+  - @brains/plugins@0.2.0-alpha.301
+  - @brains/auth-service@0.2.0-alpha.301
+  - @brains/dashboard@0.2.0-alpha.301
+  - @brains/atproto-contracts@0.2.0-alpha.301
+  - @brains/content-formatters@0.2.0-alpha.301
+  - @brains/contracts@0.2.0-alpha.301
+  - @brains/http-signatures@0.2.0-alpha.301
+  - @brains/ui-library@0.2.0-alpha.301
+  - @brains/utils@0.2.0-alpha.301
+  - @brains/templates@0.2.0-alpha.301
+
+## 0.2.0-alpha.300
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.300
+  - @brains/atproto-contracts@0.2.0-alpha.300
+  - @brains/content-formatters@0.2.0-alpha.300
+  - @brains/contracts@0.2.0-alpha.300
+  - @brains/http-signatures@0.2.0-alpha.300
+  - @brains/ui-library@0.2.0-alpha.300
+  - @brains/utils@0.2.0-alpha.300
+  - @brains/auth-service@0.2.0-alpha.300
+  - @brains/plugins@0.2.0-alpha.300
+  - @brains/templates@0.2.0-alpha.300
+
 ## 0.2.0-alpha.299
 
 ### Patch Changes

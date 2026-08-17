@@ -86,7 +86,6 @@ export class ConversationActorRegistry<TActor extends { stop(): void }> {
   private closed = false;
   private readonly clock: Clock.Clock | undefined;
 
-  constructor(options: ConversationActorRegistryOptions<TActor>);
   constructor(
     options: ConversationActorRegistryOptions<TActor>,
     runtimeOptions?: ConversationActorRegistryRuntimeOptions,
@@ -117,6 +116,11 @@ export class ConversationActorRegistry<TActor extends { stop(): void }> {
   /** Get the conversation's actor without creating one. */
   public peek(conversationId: string): TActor | undefined {
     return this.actors.get(conversationId);
+  }
+
+  /** How many conversations currently hold a live actor. */
+  public get size(): number {
+    return this.actors.size;
   }
 
   /**

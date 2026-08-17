@@ -171,6 +171,7 @@ export {
   defaultRuntimeUploadRetentionMs,
   defaultRuntimeUploadMaxCount,
   type IRuntimeUploadsNamespace,
+  type ScopedRuntimeUploadStore,
   type ResolvedRuntimeUpload,
   type RuntimeUploadRecord,
   type RuntimeUploadRef,

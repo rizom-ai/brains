@@ -1,7 +1,7 @@
+import { createTempDir } from "@brains/test-utils";
 import { describe, expect, it } from "bun:test";
 import { execFileSync, spawnSync } from "node:child_process";
-import { mkdir, mkdtemp, readFile, symlink, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { mkdir, readFile, symlink, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 
 import {
@@ -59,7 +59,7 @@ async function encryptForRecipient(
 
 describe("rover-pilot custom-domain deploy scripts", () => {
   it("resolves fleet and custom domain aliases without confusing matching handles", async () => {
-    const root = await mkdtemp(join(tmpdir(), "brains-ops-domains-"));
+    const root = await createTempDir("brains-ops-domains-");
     const repo = join(root, "rover-pilot");
     const outputPath = join(root, "github-output.txt");
 
@@ -159,7 +159,7 @@ describe("rover-pilot custom-domain deploy scripts", () => {
   });
 
   it("round-trips real PEM files and leaves shared TLS env untouched when absent", async () => {
-    const root = await mkdtemp(join(tmpdir(), "brains-ops-tls-decrypt-"));
+    const root = await createTempDir("brains-ops-tls-decrypt-");
     const repo = join(root, "rover-pilot");
     const envPath = join(root, "github-env.txt");
     const outputPath = join(root, "github-output.txt");

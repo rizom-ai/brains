@@ -51,7 +51,6 @@
   "scripts": {
     "arch:check": "bun scripts/architecture-check.ts",
     "arch:graph": "bun scripts/architecture-check.ts --reporter dot | dot -T svg > dependency-graph.svg",
-    "arch:test": "bun test scripts/architecture-check.test.ts",
     "build": "turbo run build",
     "changeset": "bun scripts/release-lane.ts add",
     "changeset:check": "bun scripts/release-lane.ts check",
@@ -85,9 +84,8 @@
     "roadmap:build": "bun scripts/build-roadmap-visual.ts",
     "roadmap:check": "bun scripts/build-roadmap-visual.ts --check",
     "test": "turbo run test",
-    "test:all": "bun run test:unit && bun run test:integration",
     "test:packed:compat": "bun --filter @rizom/brain test:packed:compat",
-    "test:integration": "bun test test/integration",
+    "test:scripts": "bun test scripts/",
     "test:unit": "turbo run test",
     "typecheck": "turbo run typecheck",
     "visual:console": "bun scripts/console-visual-regression.ts",

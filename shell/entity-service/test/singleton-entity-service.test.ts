@@ -1,8 +1,13 @@
-import { describe, it, expect, beforeEach, spyOn, type Mock } from "bun:test";
+import { describe, it, expect, beforeEach } from "bun:test";
 import { SingletonEntityService } from "../src/singleton-entity-service";
 import type { EntityService, BaseEntity } from "../src/types";
-import type { ProjectionStore } from "../src/projection-store";
-import { createSilentLogger, createTestEntity } from "@brains/test-utils";
+import {
+  createMockEntityService,
+  spyOnEntityGet,
+  spyOnEntityCreate,
+  createSilentLogger,
+  createTestEntity,
+} from "@brains/test-utils";
 
 interface TestBody {
   title: string;
@@ -23,73 +28,6 @@ class TestSingletonService extends SingletonEntityService<TestBody> {
   }
 }
 
-function createMockEntityService(): EntityService {
-  return {
-    getProjectionStore: (): ProjectionStore => {
-      throw new Error("Projection store is not used by singleton tests");
-    },
-    setProjectionWakeup: (): (() => void) => () => {},
-    reconcileProjectionTargets: async (): Promise<void> => {},
-    getEntity: async () => null,
-    getEntityRaw: async () => null,
-    listEntities: async () => [],
-    search: async () => [],
-    projectSemanticSpace: async () => ({
-      origin: { kind: "centroid" },
-      points: [],
-      neighbors: [],
-      distanceRange: { min: 0, max: 0 },
-    }),
-    getEntityTypes: () => [],
-    hasEntityType: () => false,
-    countEntities: async () => 0,
-    getEntityCounts: async () => [],
-    getEntityTypeConfig: () => ({}),
-    getWeightMap: () => ({}),
-    createEntity: async () => ({
-      entityId: "test",
-      jobId: "job-123",
-      skipped: false,
-    }),
-    createEntityFromMarkdown: async () => ({
-      entityId: "test",
-      jobId: "job-123",
-      skipped: false,
-    }),
-    updateEntity: async () => ({
-      entityId: "test",
-      jobId: "job-123",
-      skipped: false,
-    }),
-    deleteEntity: async () => true,
-    upsertEntity: async () => ({
-      entityId: "test",
-      jobId: "job-123",
-      created: true,
-      skipped: false,
-    }),
-    serializeEntity: () => "",
-    deserializeEntity: () => ({}),
-    getAsyncJobStatus: async () => null,
-    storeEmbedding: async () => undefined,
-    backfillMissingEmbeddings: async () => ({ queued: 0, skipped: 0 }),
-    isIndexReady: () => true,
-    awaitIndexReady: async () => ({
-      ready: true,
-      degraded: false,
-      activeEmbeddingJobs: 0,
-      missingEmbeddings: 0,
-      staleEmbeddings: 0,
-      failedEmbeddings: 0,
-      embeddableEntities: 0,
-      embeddedEntities: 0,
-    }),
-    searchWithDistances: async () => [],
-    countEmbeddings: async () => 0,
-    initialize: async () => undefined,
-  };
-}
-
 describe("SingletonEntityService", () => {
   const defaultBody: TestBody = {
     title: "Default Title",
@@ -99,19 +37,13 @@ describe("SingletonEntityService", () => {
 
   let mockEntityService: EntityService;
   let service: TestSingletonService;
-  let getEntitySpy: Mock<(...args: unknown[]) => Promise<unknown>>;
-  let createEntitySpy: Mock<(...args: unknown[]) => Promise<unknown>>;
+  let getEntitySpy: ReturnType<typeof spyOnEntityGet>;
+  let createEntitySpy: ReturnType<typeof spyOnEntityCreate>;
 
   beforeEach(() => {
     mockEntityService = createMockEntityService();
-    getEntitySpy = spyOn(
-      mockEntityService,
-      "getEntity",
-    ) as unknown as typeof getEntitySpy;
-    createEntitySpy = spyOn(
-      mockEntityService,
-      "createEntity",
-    ) as unknown as typeof createEntitySpy;
+    getEntitySpy = spyOnEntityGet(mockEntityService);
+    createEntitySpy = spyOnEntityCreate(mockEntityService);
 
     service = new TestSingletonService(
       mockEntityService,

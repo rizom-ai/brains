@@ -13,7 +13,7 @@ import type {
  */
 export interface MockJobQueueServiceReturns {
   enqueue?: string;
-  dequeue?: unknown | null;
+  dequeue?: JobInfo | null;
   getStatus?: JobInfo | null;
   getStatusByEntityId?: JobInfo | null;
   getHandler?: JobHandler | undefined;
@@ -215,5 +215,9 @@ export function createMockJobQueueService(
       ),
     ),
     getRegisteredTypes: mock(() => returns.getRegisteredTypes ?? []),
-  } as unknown as IJobQueueService;
+    // Nothing is ever dequeued here, so the queue is idle by construction and
+    // settles immediately rather than polling for a quiet window.
+    waitForIdle: mock(() => Promise.resolve()),
+    close: mock(() => {}),
+  } satisfies IJobQueueService;
 }

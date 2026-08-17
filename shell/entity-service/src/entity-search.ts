@@ -19,6 +19,15 @@ import {
   type SemanticEmbedding,
 } from "./semantic-space";
 
+/**
+ * The one embedding call search makes: it embeds the prepared query.
+ *
+ * IEmbeddingService also generates in batches and reports its dimensions;
+ * asking for all of it meant a test could not supply one function without
+ * asserting it was the whole service.
+ */
+export type QueryEmbedder = Pick<IEmbeddingService, "generateEmbedding">;
+
 export const MAX_SEARCH_QUERY_CHARS = 12_000;
 const MAX_VECTOR_DISTANCE = 0.82;
 
@@ -69,14 +78,14 @@ const entityMetadataSchema = z.preprocess(
  */
 export class EntitySearch {
   private db: EntitySearchDB;
-  private embeddingService: IEmbeddingService;
+  private embeddingService: QueryEmbedder;
   private serializer: EntitySerializer;
   private logger: Logger;
   private readonly embeddingsEnabled: boolean;
 
   constructor(
     db: EntitySearchDB,
-    embeddingService: IEmbeddingService,
+    embeddingService: QueryEmbedder,
     serializer: EntitySerializer,
     logger: Logger,
     embeddingsEnabled = true,

@@ -1,4 +1,4 @@
-import type { IMessageBus } from "@brains/plugins";
+import type { SchedulerMessagePublisher } from "../scheduler-generation";
 import type { PublishResult } from "@brains/contracts";
 import type { Logger } from "@brains/utils/logger";
 import type { QueueManager } from "../queue-manager";
@@ -57,7 +57,7 @@ export interface SchedulerConfig {
    */
   generationConditions?: Record<string, GenerationCondition>;
   /** Optional message bus for publish/generation events */
-  messageBus?: IMessageBus;
+  messageBus?: SchedulerMessagePublisher;
   /** Shared executor for provider publishing and durable publish state updates. */
   publishExecutor?: Pick<PublishEntityExecutor, "publish">;
   /** Callback on successful publish */

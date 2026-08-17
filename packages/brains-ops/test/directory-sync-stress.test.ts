@@ -1,6 +1,6 @@
+import { createTempDir } from "@brains/test-utils";
 import { describe, expect, it } from "bun:test";
-import { mkdtemp, readFile, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
 import {
@@ -88,7 +88,7 @@ describe("directory-sync stress safety", () => {
 
 describe("directory-sync stress probe lifecycle", () => {
   it("adds, updates, renames, and removes only deterministic probe files", async () => {
-    const root = await mkdtemp(join(tmpdir(), "directory-sync-stress-test-"));
+    const root = await createTempDir("directory-sync-stress-test-");
     await writeFile(join(root, "keep.md"), "keep\n");
 
     await applyDirectorySyncStressPhase(root, {

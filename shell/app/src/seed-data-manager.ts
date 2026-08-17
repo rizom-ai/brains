@@ -2,11 +2,43 @@ import type { Logger } from "@brains/utils/logger";
 import * as fs from "fs/promises";
 import * as path from "path";
 
+/**
+ * The filesystem calls this manager makes, as it makes them.
+ *
+ * Declared rather than aliased to `typeof fs.readdir` and friends: node types
+ * those as overload sets spanning encodings, Buffers and Dirents, and no stand-in
+ * can satisfy an overload set structurally. The real fs functions are assignable
+ * to these signatures, so production is unaffected, and a test can supply four
+ * functions that get checked.
+ */
+/** A directory entry, as this manager reads it. */
+export interface DirectoryEntry {
+  name: string;
+  isDirectory(): boolean;
+}
+
+/**
+ * The filesystem calls this manager makes, as it makes them.
+ *
+ * Declared rather than aliased to `typeof fs.readdir` and friends: node types
+ * those as overload sets spanning encodings, Buffers and Dirents, and nothing
+ * can satisfy an overload set structurally — which is why every test stub here
+ * used to be asserted into place.
+ *
+ * The two directory reads are separate members for the same reason. They are
+ * genuinely two different calls, and splitting them means each has one
+ * signature a stub can implement, rather than one overloaded member that none
+ * can.
+ */
 export interface FileSystem {
-  readdir: typeof fs.readdir;
-  mkdir: typeof fs.mkdir;
-  access: typeof fs.access;
-  copyFile: typeof fs.copyFile;
+  readdir(path: string): Promise<string[]>;
+  readdirWithFileTypes(path: string): Promise<DirectoryEntry[]>;
+  mkdir(
+    path: string,
+    options: { recursive: true },
+  ): Promise<string | undefined>;
+  access(path: string): Promise<void>;
+  copyFile(src: string, dest: string): Promise<void>;
 }
 
 export class SeedDataManager {
@@ -26,7 +58,20 @@ export class SeedDataManager {
       brainDataDir ?? path.resolve(process.cwd(), "brain-data");
     this.seedContentDir =
       seedContentDir ?? path.resolve(process.cwd(), "seed-content");
-    this.fs = fileSystem ?? fs;
+    // node's fs satisfies every member except the split directory read, which
+    // it spells as an option rather than a second function.
+    this.fs = fileSystem ?? {
+      readdir: (dir: string): Promise<string[]> => fs.readdir(dir),
+      readdirWithFileTypes: (dir: string): Promise<DirectoryEntry[]> =>
+        fs.readdir(dir, { withFileTypes: true }),
+      mkdir: (
+        dir: string,
+        options: { recursive: true },
+      ): Promise<string | undefined> => fs.mkdir(dir, options),
+      access: (target: string): Promise<void> => fs.access(target),
+      copyFile: (src: string, dest: string): Promise<void> =>
+        fs.copyFile(src, dest),
+    };
   }
 
   public async initialize(): Promise<void> {
@@ -76,7 +121,7 @@ export class SeedDataManager {
   }
 
   private async copyDirectory(src: string, dest: string): Promise<void> {
-    const entries = await this.fs.readdir(src, { withFileTypes: true });
+    const entries = await this.fs.readdirWithFileTypes(src);
 
     for (const entry of entries) {
       const srcPath = path.join(src, entry.name);

@@ -1,5 +1,36 @@
 # @brains/email
 
+## 0.2.0-alpha.302
+
+### Patch Changes
+
+- [`fb765a1`](https://github.com/rizom-ai/brains/commit/fb765a19809c9a4125236d21ba3400e0e01386ab) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Keep a persistent IMAP error listener between interval polls so socket timeouts trigger the existing reconnect path instead of crashing the runtime.
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.302
+  - @brains/utils@0.2.0-alpha.302
+  - @brains/plugins@0.2.0-alpha.302
+
+## 0.2.0-alpha.301
+
+### Patch Changes
+
+- Updated dependencies [[`b2fd00c`](https://github.com/rizom-ai/brains/commit/b2fd00c1550e0b9a386484e07a53546106f793ce)]:
+  - @brains/plugins@0.2.0-alpha.301
+  - @brains/contracts@0.2.0-alpha.301
+  - @brains/utils@0.2.0-alpha.301
+
+## 0.2.0-alpha.300
+
+### Patch Changes
+
+- [`f575fd1`](https://github.com/rizom-ai/brains/commit/f575fd154d1309e37831e33eb15c0eb87e3e6af6) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Retry IMAP TLS hostname connections over IPv4 when Bun cannot read certificate names from the IPv6 peer, preserving normal certificate validation and restoring source-backed Inbox reads.
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.300
+  - @brains/utils@0.2.0-alpha.300
+  - @brains/plugins@0.2.0-alpha.300
+
 ## 0.2.0-alpha.299
 
 ### Patch Changes

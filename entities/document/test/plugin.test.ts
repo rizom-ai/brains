@@ -1,4 +1,5 @@
 import { describe, expect, it, spyOn } from "bun:test";
+import { createTempDir } from "@brains/test-utils";
 import { createPluginHarness } from "@brains/plugins/test";
 import { DocumentPlugin, documentPlugin } from "../src";
 
@@ -45,7 +46,7 @@ describe("DocumentPlugin", () => {
 
   it("handles system_create document from a source attachment by enqueueing generation", async () => {
     const harness = createPluginHarness<DocumentPlugin>({
-      dataDir: `/tmp/test-document-source-${crypto.randomUUID()}`,
+      dataDir: await createTempDir("test-document-source-"),
     });
     await harness.installPlugin(new DocumentPlugin());
     const interceptor = harness
@@ -114,7 +115,7 @@ describe("DocumentPlugin", () => {
 
   it("promotes an uploaded PDF into a durable document entity", async () => {
     const harness = createPluginHarness<DocumentPlugin>({
-      dataDir: `/tmp/test-document-upload-${crypto.randomUUID()}`,
+      dataDir: await createTempDir("test-document-upload-"),
     });
     await harness.installPlugin(new DocumentPlugin());
     const store = harness
@@ -197,7 +198,7 @@ describe("DocumentPlugin", () => {
 
   it("rejects non-PDF upload promotion to document", async () => {
     const harness = createPluginHarness<DocumentPlugin>({
-      dataDir: `/tmp/test-document-upload-${crypto.randomUUID()}`,
+      dataDir: await createTempDir("test-document-upload-"),
     });
     await harness.installPlugin(new DocumentPlugin());
     const store = harness

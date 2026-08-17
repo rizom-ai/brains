@@ -1,31 +1,18 @@
 import { describe, test, expect, mock, beforeEach } from "bun:test";
 import { RebuildManager } from "../../src/lib/auto-rebuild";
 import { createTestConfig } from "../test-helpers";
-import type { ServicePluginContext } from "@brains/plugins";
-
-function createMockContext(): ServicePluginContext {
-  return {
-    messaging: {
-      subscribeExecution: mock(() => () => {}),
-      send: mock(() => Promise.resolve()),
-    },
-    jobs: {
-      enqueue: mock(() => Promise.resolve("job-1")),
-    },
-    logger: {
-      debug: mock(() => {}),
-      info: mock(() => {}),
-      warn: mock(() => {}),
-      error: mock(() => {}),
-    },
-  } as unknown as ServicePluginContext;
-}
+import {
+  createMockServicePluginContext,
+  type MockServicePluginContext,
+} from "@brains/test-utils";
 
 describe("RebuildManager", () => {
-  let context: ServicePluginContext;
+  let context: MockServicePluginContext;
 
   beforeEach(() => {
-    context = createMockContext();
+    context = createMockServicePluginContext({
+      returns: { jobsEnqueue: "job-1" },
+    });
   });
 
   test("successful projection waves enqueue a build before acknowledgment", async () => {

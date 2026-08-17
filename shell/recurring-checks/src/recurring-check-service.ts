@@ -97,6 +97,17 @@ interface RegisteredCheck {
   releasePromise?: Promise<void> | undefined;
 }
 
+/**
+ * The job-queue operations recurring checks perform.
+ *
+ * IJobQueueService carries two dozen members; asking for all of them meant a
+ * test could not supply three without asserting it was the whole service.
+ */
+export type RecurringCheckJobQueue = Pick<
+  IJobQueueService,
+  "enqueue" | "registerHandler" | "unregisterHandler"
+>;
+
 export interface RecurringCheckDelivery {
   /** Return false when no delivery channel is currently registered. */
   deliver(alert: RecurringAlert): Promise<boolean | void>;
@@ -106,7 +117,7 @@ export interface RecurringCheckServiceOptions {
   brainId: string;
   scheduler: SchedulerBackend;
   runtimeState: IRuntimeStateNamespace;
-  jobQueue: IJobQueueService;
+  jobQueue: RecurringCheckJobQueue;
   delivery: RecurringCheckDelivery;
   logger: Logger;
   /** Effect clock shared with scheduler tests. Defaults to the live clock. */
@@ -126,7 +137,7 @@ export class RecurringCheckService {
   private readonly brainId: string;
   private readonly scheduler: SchedulerBackend;
   private readonly state: IRuntimeStateStore<RecurringCheckState>;
-  private readonly jobQueue: IJobQueueService;
+  private readonly jobQueue: RecurringCheckJobQueue;
   private readonly delivery: RecurringCheckDelivery;
   private readonly logger: Logger;
   private readonly clock: Clock.Clock | undefined;

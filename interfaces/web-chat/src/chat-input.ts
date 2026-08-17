@@ -1,4 +1,7 @@
-import { type ChatAttachment, type RuntimeUploadStore } from "@brains/plugins";
+import {
+  type ChatAttachment,
+  type ScopedRuntimeUploadStore,
+} from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import { webChatUploadIdPattern, webChatUploadRefKind } from "./upload-store";
 import {
@@ -114,7 +117,7 @@ export interface ParsedUserInput {
 }
 
 interface ChatInputDeps {
-  uploadStore: RuntimeUploadStore;
+  uploadStore: ScopedRuntimeUploadStore;
 }
 
 export async function extractLastUserInput(

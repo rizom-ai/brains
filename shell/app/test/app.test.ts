@@ -15,6 +15,16 @@ afterEach(() => {
 });
 
 // Create a mock Shell
+/**
+ * A stand-in Shell for tests about App's orchestration.
+ *
+ * Shell is a class with a large surface, and App exposes getShell(): Shell as
+ * public API, so narrowing the injection parameter would change that return
+ * type for every consumer. Constructing a real Shell needs a full config and a
+ * database, which these tests — about initialize/shutdown ordering — have no
+ * use for. The widening is unavoidable; it lives in this one factory so it is
+ * named once rather than at each call site.
+ */
 const createMockShell = (): ShellInstance => {
   return {
     initialize: mock(() => Promise.resolve()),
@@ -22,6 +32,7 @@ const createMockShell = (): ShellInstance => {
     getPluginManager: mock(() => ({
       registerPlugin: mock(() => {}),
     })),
+    // eslint-disable-next-line no-restricted-syntax -- deliberate; the comment above explains why
   } as unknown as ShellInstance;
 };
 

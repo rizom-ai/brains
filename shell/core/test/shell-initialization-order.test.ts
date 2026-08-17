@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { createTestShellConfig } from "./helpers/test-config";
 import { Shell, type ShellDependencies } from "../src/shell";
 import { createSilentLogger } from "@brains/test-utils";
-import { createTestDirectory } from "./helpers/test-db";
+import { createTestDirectory } from "@brains/test-utils";
 import type { Daemon, Plugin } from "@brains/plugins";
 import { SYSTEM_CHANNELS } from "@brains/plugins";
 import { migrateEntities } from "@brains/entity-service/migrate";
@@ -361,12 +361,7 @@ describe("Shell initialization order", () => {
     expect(initOrder).not.toContain("shell-ready");
     expect(initOrder).not.toContain("daemon-started");
 
-    const shellWithServices = shell as unknown as {
-      services: { jobQueueWorker: { isWorkerRunning(): boolean } };
-    };
-    expect(shellWithServices.services.jobQueueWorker.isWorkerRunning()).toBe(
-      false,
-    );
+    expect(shell.isJobQueueWorkerRunning()).toBe(false);
   });
 
   it("should not call ready hooks in register-only mode", async () => {
@@ -407,12 +402,10 @@ describe("Shell initialization order", () => {
         shellInstance
           .getMessageBus()
           .subscribe(SYSTEM_CHANNELS.pluginsRegistered, async () => {
-            const shellAny = shellInstance as unknown as {
-              jobQueueWorker?: { isWorkerRunning(): boolean };
-            };
-
-            jobQueueWorkerRunning =
-              shellAny.jobQueueWorker?.isWorkerRunning() ?? false;
+            // Read through the accessor. This previously reached for a
+            // top-level jobQueueWorker that does not exist, so the flag was
+            // always false and the guard below could never fire.
+            jobQueueWorkerRunning = shell.isJobQueueWorkerRunning();
 
             if (jobQueueWorkerRunning) {
               initOrder.push(

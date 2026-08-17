@@ -1,15 +1,13 @@
-import { describe, expect, it, mock } from "bun:test";
-import type {
-  Conversation,
-  EntityPluginContext,
-  Message,
-} from "@brains/plugins";
+import { describe, expect, it } from "bun:test";
+import type { Conversation, Message } from "@brains/plugins";
 import {
   buildSummaryCoverageData,
   registerSummaryCoverageWidget,
 } from "../../../src/lib/widgets/coverage";
 import { summaryConfigSchema } from "../../../src/schemas/summary-config";
 import type { SummaryEntity } from "../../../src/schemas/summary";
+import { createMockEntityPluginContext } from "@brains/test-utils";
+import { SYSTEM_CHANNELS } from "@brains/plugins";
 
 const defaultMemoryVisibility = summaryConfigSchema.parse({}).memoryVisibility;
 
@@ -69,15 +67,19 @@ function createMessages(conversationId: string): Message[] {
 describe("buildSummaryCoverageData", () => {
   it("reports disabled memory when no spaces are configured", async () => {
     const summaries = [createSummary()];
-    const context = {
+    const base = createMockEntityPluginContext({
       spaces: [],
-      entityService: {
-        listEntities: mock(async (): Promise<SummaryEntity[]> => summaries),
-      },
+      listEntitiesImpl: async (): Promise<SummaryEntity[]> => summaries,
+    });
+    // Only the conversation reads this case needs; the rest of the namespace
+    // stays the factory's real implementation.
+    const context = {
+      ...base,
       conversations: {
-        list: mock(async (): Promise<Conversation[]> => []),
+        ...base.conversations,
+        list: async (): Promise<Conversation[]> => [],
       },
-    } as unknown as EntityPluginContext;
+    };
 
     const data = await buildSummaryCoverageData({
       context,
@@ -130,27 +132,23 @@ describe("buildSummaryCoverageData", () => {
       }),
     ];
 
-    const context = {
+    const base = createMockEntityPluginContext({
       spaces: ["mcp:team"],
-      entityService: {
-        listEntities: mock(async (): Promise<SummaryEntity[]> => summaries),
-      },
+      listEntitiesImpl: async (): Promise<SummaryEntity[]> => summaries,
+    });
+    const context = {
+      ...base,
       conversations: {
-        list: mock(async (): Promise<Conversation[]> => conversations),
-        get: mock(
-          async (conversationId: string): Promise<Conversation | null> => {
-            return (
-              conversations.find(
-                (conversation) => conversation.id === conversationId,
-              ) ?? null
-            );
-          },
-        ),
-        getMessages: mock((conversationId: string): Promise<Message[]> => {
-          return Promise.resolve(createMessages(conversationId));
-        }),
+        ...base.conversations,
+        list: async (): Promise<Conversation[]> => conversations,
+        get: async (conversationId: string): Promise<Conversation | null> =>
+          conversations.find(
+            (conversation) => conversation.id === conversationId,
+          ) ?? null,
+        getMessages: (conversationId: string): Promise<Message[]> =>
+          Promise.resolve(createMessages(conversationId)),
       },
-    } as unknown as EntityPluginContext;
+    };
 
     const data = await buildSummaryCoverageData({
       context,
@@ -194,37 +192,31 @@ describe("buildSummaryCoverageData", () => {
 
 describe("registerSummaryCoverageWidget", () => {
   it("registers an Admin-only coverage widget", async () => {
-    let readyHandler: (() => Promise<{ success: boolean }>) | undefined;
-    let payload: Record<string, unknown> | undefined;
-    const registerWidget = mock(async (widget: unknown) => {
-      payload = widget as Record<string, unknown>;
-    });
-    const subscribe = mock(
-      (
-        _topic: string,
-        handler: () => Promise<{ success: boolean }>,
-      ): (() => void) => {
-        readyHandler = handler;
-        return (): void => undefined;
-      },
-    );
-    const context = {
+    const base = createMockEntityPluginContext({
       spaces: [],
-      messaging: { subscribe },
-      dashboard: { registerWidget },
-      entityService: {
-        listEntities: mock(async (): Promise<SummaryEntity[]> => []),
-      },
+      listEntitiesImpl: async (): Promise<SummaryEntity[]> => [],
+    });
+    const context = {
+      ...base,
       conversations: {
-        list: mock(async (): Promise<Conversation[]> => []),
+        ...base.conversations,
+        list: async (): Promise<Conversation[]> => [],
       },
-    } as unknown as EntityPluginContext;
+    };
 
     registerSummaryCoverageWidget({
       context,
       config: summaryConfigSchema.parse({}),
     });
-    await readyHandler?.();
+    // Publish the real message rather than capturing the handler.
+    await context.messaging.send({
+      type: SYSTEM_CHANNELS.pluginsRegistered,
+      payload: {},
+    });
+
+    const [registerCall] = context.dashboard.registerWidget.mock.calls;
+    const payload = registerCall?.[0];
+    if (!payload) throw new Error("widget was not registered");
 
     expect(payload).toMatchObject({
       id: "conversation-memory:coverage",

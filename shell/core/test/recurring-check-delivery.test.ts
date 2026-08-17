@@ -1,17 +1,16 @@
 import { describe, expect, it } from "bun:test";
+import { createSilentLogger } from "@brains/test-utils";
 import { MessageBus } from "@brains/messaging-service";
 import {
   NOTIFICATIONS_SEND,
   type SendNotificationInput,
   type SendNotificationResult,
 } from "@brains/notification-contracts";
-import type { Logger } from "@brains/utils/logger";
 import { createRecurringCheckDelivery } from "../src/initialization/recurring-check-delivery";
 
-const logger = {
-  child: (): Logger => logger,
-  debug: (): void => {},
-} as unknown as Logger;
+// The shared factory rather than a two-method stand-in: it implements the
+// whole Logger and stays in step with it.
+const logger = createSilentLogger();
 
 const alert = {
   dedupeKey: "database-down",

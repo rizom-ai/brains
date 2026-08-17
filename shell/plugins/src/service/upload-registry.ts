@@ -81,9 +81,27 @@ const runtimeUploadRecordSchema = z.object({
   metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
+/**
+ * The store surface consumers get, rather than the class that implements it.
+ *
+ * Declaring the class here made every consumer depend on its private fields
+ * too, so nothing could stand in for a scoped store without asserting it was
+ * one. The class satisfies this by construction.
+ */
+export type ScopedRuntimeUploadStore = Pick<
+  RuntimeUploadStore,
+  | "save"
+  | "read"
+  | "readRecord"
+  | "toResponseBody"
+  | "prune"
+  | "getUploadDir"
+  | "remove"
+>;
+
 export interface IRuntimeUploadsNamespace {
   /** Create a scoped runtime upload store for an interface/plugin namespace. */
-  scoped(options: RuntimeUploadScopeOptions): RuntimeUploadStore;
+  scoped(options: RuntimeUploadScopeOptions): ScopedRuntimeUploadStore;
 }
 
 export function createRuntimeUploadsNamespace(

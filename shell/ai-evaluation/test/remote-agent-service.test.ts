@@ -1,16 +1,11 @@
 import { afterEach, describe, expect, it, mock } from "bun:test";
 import { Effect } from "@brains/utils/effect";
-import type { Clock } from "@brains/utils/effect";
 import { TestClock, TestContext } from "@brains/utils/effect/test";
 
 import { RemoteAgentService } from "../src/remote-agent-service";
 
-const originalFetch = globalThis.fetch;
-
 describe("RemoteAgentService", () => {
-  afterEach(() => {
-    globalThis.fetch = originalFetch;
-  });
+  afterEach(() => {});
 
   it("should send explicit approval ids when confirming remote actions", async () => {
     const fetchMock = mock(
@@ -23,9 +18,11 @@ describe("RemoteAgentService", () => {
           { headers: { "Content-Type": "application/json" } },
         ),
     );
-    globalThis.fetch = fetchMock as unknown as typeof fetch;
 
-    const service = new RemoteAgentService({ baseUrl: "http://brain.test" });
+    const service = new RemoteAgentService(
+      { baseUrl: "http://brain.test" },
+      { fetchImpl: fetchMock },
+    );
     await service.confirmPendingAction(
       "conversation-1",
       true,
@@ -76,9 +73,11 @@ describe("RemoteAgentService", () => {
           { headers: { "Content-Type": "application/json" } },
         ),
     );
-    globalThis.fetch = fetchMock as unknown as typeof fetch;
 
-    const service = new RemoteAgentService({ baseUrl: "http://brain.test" });
+    const service = new RemoteAgentService(
+      { baseUrl: "http://brain.test" },
+      { fetchImpl: fetchMock },
+    );
     const response = await service.chat("change things", "conversation-1");
 
     expect(fetchMock.mock.calls[0]?.[0]).toBe(
@@ -101,8 +100,10 @@ describe("RemoteAgentService", () => {
           );
         }),
     );
-    globalThis.fetch = fetchMock as unknown as typeof fetch;
-    const service = new RemoteAgentService({ baseUrl: "http://brain.test" });
+    const service = new RemoteAgentService(
+      { baseUrl: "http://brain.test" },
+      { fetchImpl: fetchMock },
+    );
     const controller = new AbortController();
     const request = service.chat(
       "hello",
@@ -131,18 +132,13 @@ describe("RemoteAgentService", () => {
           );
         }),
     );
-    globalThis.fetch = fetchMock as unknown as typeof fetch;
 
     await Effect.runPromise(
       Effect.gen(function* () {
         const clock = yield* TestClock.testClock();
-        const ServiceWithClock = RemoteAgentService as unknown as new (
-          config: { baseUrl: string; timeoutMs: number },
-          runtimeOptions: { clock: Clock.Clock },
-        ) => RemoteAgentService;
-        const service = new ServiceWithClock(
+        const service = new RemoteAgentService(
           { baseUrl: "http://brain.test", timeoutMs: 100 },
-          { clock },
+          { clock, fetchImpl: fetchMock },
         );
         const request = service
           .chat("hello", "conversation-1")
@@ -178,9 +174,11 @@ describe("RemoteAgentService", () => {
           { headers: { "Content-Type": "application/json" } },
         ),
     );
-    globalThis.fetch = fetchMock as unknown as typeof fetch;
 
-    const service = new RemoteAgentService({ baseUrl: "http://brain.test" });
+    const service = new RemoteAgentService(
+      { baseUrl: "http://brain.test" },
+      { fetchImpl: fetchMock },
+    );
     const response = await service.chat("delete note", "conversation-1");
 
     expect(response.pendingConfirmations).toBeUndefined();

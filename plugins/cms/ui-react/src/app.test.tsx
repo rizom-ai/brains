@@ -1,3 +1,4 @@
+/** @jsxImportSource react */
 import { describe, expect, it } from "bun:test";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { createElement } from "react";

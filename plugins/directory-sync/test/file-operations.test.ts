@@ -8,6 +8,7 @@ import {
   readFileSync,
   statSync,
   mkdtempSync,
+  utimesSync,
 } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
@@ -656,11 +657,12 @@ describe("FileOperations", () => {
         metadata: {},
       });
 
-      // Get file mtime before write attempt
+      // Backdate the file so a rewrite would move its mtime forward by a full
+      // minute. Asserting on that is deterministic, where sleeping briefly and
+      // hoping the clock ticked depends on filesystem timestamp granularity.
+      const backdated = new Date(Date.now() - 60_000);
+      utimesSync(filePath, backdated, backdated);
       const mtimeBefore = statSync(filePath).mtime.getTime();
-
-      // Small delay to ensure mtime would change if file is written
-      await new Promise((resolve) => setTimeout(resolve, 10));
 
       // Try to write
       await fileOps.writeEntity(entity);
@@ -717,8 +719,10 @@ describe("FileOperations", () => {
       const filePath = join(testDir, "image", "test-image.png");
       writeFileSync(filePath, TINY_PNG_BYTES);
 
+      // Backdated for the same reason as the topic case above.
+      const backdated = new Date(Date.now() - 60_000);
+      utimesSync(filePath, backdated, backdated);
       const mtimeBefore = statSync(filePath).mtime.getTime();
-      await new Promise((resolve) => setTimeout(resolve, 10));
 
       const entity = createTestEntity("image", {
         id: "test-image",

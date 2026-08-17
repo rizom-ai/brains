@@ -1,5 +1,62 @@
 # @brains/test-utils
 
+## 0.2.0-alpha.302
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.302
+  - @brains/utils@0.2.0-alpha.302
+  - @brains/ai-service@0.2.0-alpha.302
+  - @brains/content-service@0.2.0-alpha.302
+  - @brains/conversation-service@0.2.0-alpha.302
+  - @brains/entity-service@0.2.0-alpha.302
+  - @brains/identity-service@0.2.0-alpha.302
+  - @brains/job-queue@0.2.0-alpha.302
+  - @brains/mcp-service@0.2.0-alpha.302
+  - @brains/messaging-service@0.2.0-alpha.302
+  - @brains/plugins@0.2.0-alpha.302
+  - @brains/runtime-state@0.2.0-alpha.302
+  - @brains/templates@0.2.0-alpha.302
+
+## 0.2.0-alpha.301
+
+### Patch Changes
+
+- Updated dependencies [[`b2fd00c`](https://github.com/rizom-ai/brains/commit/b2fd00c1550e0b9a386484e07a53546106f793ce)]:
+  - @brains/plugins@0.2.0-alpha.301
+  - @brains/job-queue@0.2.0-alpha.301
+  - @brains/entity-service@0.2.0-alpha.301
+  - @brains/ai-service@0.2.0-alpha.301
+  - @brains/content-service@0.2.0-alpha.301
+  - @brains/identity-service@0.2.0-alpha.301
+  - @brains/contracts@0.2.0-alpha.301
+  - @brains/utils@0.2.0-alpha.301
+  - @brains/conversation-service@0.2.0-alpha.301
+  - @brains/mcp-service@0.2.0-alpha.301
+  - @brains/messaging-service@0.2.0-alpha.301
+  - @brains/runtime-state@0.2.0-alpha.301
+  - @brains/templates@0.2.0-alpha.301
+
+## 0.2.0-alpha.300
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.300
+  - @brains/utils@0.2.0-alpha.300
+  - @brains/ai-service@0.2.0-alpha.300
+  - @brains/content-service@0.2.0-alpha.300
+  - @brains/conversation-service@0.2.0-alpha.300
+  - @brains/entity-service@0.2.0-alpha.300
+  - @brains/identity-service@0.2.0-alpha.300
+  - @brains/job-queue@0.2.0-alpha.300
+  - @brains/mcp-service@0.2.0-alpha.300
+  - @brains/messaging-service@0.2.0-alpha.300
+  - @brains/plugins@0.2.0-alpha.300
+  - @brains/runtime-state@0.2.0-alpha.300
+  - @brains/templates@0.2.0-alpha.300
+
 ## 0.2.0-alpha.299
 
 ### Patch Changes

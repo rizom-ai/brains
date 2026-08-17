@@ -1,9 +1,15 @@
 import { describe, it, expect, beforeEach } from "bun:test";
+import {
+  createMockEntityService as createSharedEntityService,
+  createTestEntity,
+} from "@brains/test-utils";
 import { createStockPhotoTools } from "../src/tools";
 import type { StockPhotoProvider, SearchResult } from "../src/lib/types";
 import type {
   Tool,
   IEntityService,
+  BaseEntity,
+  EntityMutationResult,
   ToolContext,
   ServicePluginContext,
 } from "@brains/plugins";
@@ -32,36 +38,52 @@ function createMockProvider(
 
 // -- Mock entity service --
 
-function createMockEntityService(
-  overrides: Record<string, unknown> = {},
+/**
+ * Thin wrapper over the shared factory: the base is a complete, type-checked
+ * IEntityService, and a test supplies only the behaviour it cares about.
+ *
+ * The overrides are declared as the concrete shapes a test writes rather than
+ * `Partial<IEntityService>`. Those members are generic, and a handler returning
+ * a specific entity type can never satisfy `<T extends BaseEntity>` for an
+ * arbitrary T, so the generic form would be unusable here.
+ */
+interface EntityServiceOverrides {
+  listEntities?: () => Promise<BaseEntity[]>;
+  getEntity?: (request: {
+    entityType: string;
+    id: string;
+  }) => Promise<BaseEntity | null>;
+  createEntity?: () => Promise<EntityMutationResult>;
+  updateEntity?: (request: {
+    entity: { id: string };
+  }) => Promise<EntityMutationResult>;
+}
+
+function createEntityServiceWith(
+  overrides: EntityServiceOverrides = {},
 ): IEntityService {
+  const base = createSharedEntityService({
+    ...(overrides.listEntities
+      ? { listEntitiesImpl: overrides.listEntities }
+      : {}),
+    ...(overrides.getEntity ? { getEntityImpl: overrides.getEntity } : {}),
+  });
+
   return {
-    getEntity: async () => null,
-    getEntityRaw: async () => null,
-    listEntities: async () => [],
-    search: async () => [],
-    getEntityTypes: () => [],
-    hasEntityType: () => false,
-    getEntityCount: async () => 0,
-    createEntity: async () => ({
-      entityId: "test-id",
-      jobId: "job-1",
-      skipped: false,
-    }),
-    updateEntity: async () => ({
-      entityId: "test-id",
-      jobId: "job-2",
-      skipped: false,
-    }),
-    deleteEntity: async () => true,
-    upsertEntity: async () => ({
-      entityId: "test-id",
-      jobId: "job-3",
-      skipped: false,
-      created: true,
-    }),
-    ...overrides,
-  } as unknown as IEntityService;
+    ...base,
+    ...(overrides.createEntity
+      ? {
+          createEntity:
+            overrides.createEntity as IEntityService["createEntity"],
+        }
+      : {}),
+    ...(overrides.updateEntity
+      ? {
+          updateEntity:
+            overrides.updateEntity as IEntityService["updateEntity"],
+        }
+      : {}),
+  };
 }
 
 // -- Minimal PNG data URL for testing --
@@ -91,7 +113,7 @@ describe("stock-photo tools", () => {
 
   beforeEach(() => {
     provider = createMockProvider();
-    entityService = createMockEntityService();
+    entityService = createEntityServiceWith();
     enqueuedJobs = [];
     jobs = {
       enqueue: async (request): Promise<string> => {
@@ -277,16 +299,13 @@ describe("stock-photo tools", () => {
     });
 
     it("should reuse existing image entity by sourceUrl", async () => {
-      entityService = createMockEntityService({
+      entityService = createEntityServiceWith({
         listEntities: async () => [
-          {
+          createTestEntity<BaseEntity>("image", {
             id: "existing-id",
-            entityType: "image",
             content: TINY_PNG_DATA_URL,
             metadata: { sourceUrl: validInput.imageUrl },
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          },
+          }),
         ],
       });
 
@@ -310,7 +329,7 @@ describe("stock-photo tools", () => {
     it("should report cover as pending when queuing with a target entity", async () => {
       let updatedEntity: unknown;
 
-      entityService = createMockEntityService({
+      entityService = createEntityServiceWith({
         createEntity: async () => ({
           entityId: "abc123",
           jobId: "job-1",
@@ -318,14 +337,11 @@ describe("stock-photo tools", () => {
         }),
         getEntity: async (request: { entityType: string; id: string }) => {
           if (request.id === "my-post") {
-            return {
+            return createTestEntity<BaseEntity>("post", {
               id: "my-post",
-              entityType: "post",
               content: "test",
               metadata: { title: "My Post", status: "draft" },
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString(),
-            };
+            });
           }
           return null;
         },
@@ -369,27 +385,21 @@ describe("stock-photo tools", () => {
     it("should set cover image immediately when the photo already exists", async () => {
       let updatedEntity: { metadata?: Record<string, unknown> } | undefined;
 
-      entityService = createMockEntityService({
+      entityService = createEntityServiceWith({
         listEntities: async () => [
-          {
+          createTestEntity<BaseEntity>("image", {
             id: "existing-id",
-            entityType: "image",
             content: TINY_PNG_DATA_URL,
             metadata: { sourceUrl: validInput.imageUrl },
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          },
+          }),
         ],
         getEntity: async (request: { entityType: string; id: string }) => {
           if (request.id === "my-post") {
-            return {
+            return createTestEntity<BaseEntity>("post", {
               id: "my-post",
-              entityType: "post",
               content: "test",
               metadata: { title: "My Post" },
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString(),
-            };
+            });
           }
           return null;
         },
@@ -434,16 +444,13 @@ describe("stock-photo tools", () => {
     });
 
     it("should report cover as not set when the photo exists but the target is missing", async () => {
-      entityService = createMockEntityService({
+      entityService = createEntityServiceWith({
         listEntities: async () => [
-          {
+          createTestEntity<BaseEntity>("image", {
             id: "existing-id",
-            entityType: "image",
             content: TINY_PNG_DATA_URL,
             metadata: { sourceUrl: validInput.imageUrl },
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          },
+          }),
         ],
       });
 

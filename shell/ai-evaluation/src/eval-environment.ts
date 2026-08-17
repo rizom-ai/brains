@@ -124,9 +124,20 @@ function copyEvaluationContent(
   }
 }
 
+/**
+ * The part of the app config this reads: the plugin list, to find the
+ * directory-sync entry and its seed content path.
+ *
+ * AppConfig is far wider, and asking for all of it meant a test could not pass
+ * a two-field literal without asserting it was one.
+ */
+export interface SeedContentConfig {
+  plugins?: readonly { id: string; config?: unknown }[] | undefined;
+}
+
 export function resolveEvaluationContentDirectory(options: {
   brainModelPath?: string | undefined;
-  config?: AppConfig | undefined;
+  config?: SeedContentConfig | undefined;
 }): string | undefined {
   const { brainModelPath, config } = options;
   const configuredSeedContentPath = getConfiguredSeedContentPath(config);
@@ -149,12 +160,15 @@ export function resolveEvaluationContentDirectory(options: {
 }
 
 function getConfiguredSeedContentPath(
-  config: AppConfig | undefined,
+  config: SeedContentConfig | undefined,
 ): string | undefined {
   const directorySync = config?.plugins?.find(
     (plugin) => plugin.id === "directory-sync",
-  ) as { config?: { seedContentPath?: unknown } } | undefined;
-  const seedContentPath = directorySync?.config?.seedContentPath;
+  );
+  const seedContentPath =
+    typeof directorySync?.config === "object" && directorySync.config !== null
+      ? (directorySync.config as { seedContentPath?: unknown }).seedContentPath
+      : undefined;
   return typeof seedContentPath === "string" ? seedContentPath : undefined;
 }
 

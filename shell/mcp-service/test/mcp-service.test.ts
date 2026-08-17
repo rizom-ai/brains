@@ -42,6 +42,16 @@ interface InspectableRegisteredResourceTemplate {
   resourceTemplate: InspectableResourceTemplate;
 }
 
+/**
+ * The SDK server as its own internals.
+ *
+ * McpServer keeps its registrations in underscore-prefixed fields that are not
+ * on its public type. Asserting what a plugin registered means reading them,
+ * and there is nothing to write a satisfies against — the shape belongs to the
+ * SDK, not to us. The widening lives in inspectMcpServer below so it is named
+ * once, and these interfaces record what the tests rely on, so an SDK upgrade
+ * that moves them fails here rather than silently reporting nothing.
+ */
 interface InspectableMcpServer {
   _registeredTools: Record<string, InspectableRegisteredTool>;
   _registeredResources: Record<string, unknown>;
@@ -53,6 +63,7 @@ interface InspectableMcpServer {
 }
 
 function inspectMcpServer(server: McpServer): InspectableMcpServer {
+  // eslint-disable-next-line no-restricted-syntax -- deliberate; the comment above explains why
   return server as unknown as InspectableMcpServer;
 }
 

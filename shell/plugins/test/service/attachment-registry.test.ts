@@ -4,7 +4,7 @@ import { createSilentLogger } from "@brains/test-utils";
 import { AttachmentRegistry } from "../../src/service/attachment-registry";
 import { createEntityPluginContext } from "../../src/entity/context";
 import { createServicePluginContext } from "../../src/service/context";
-import { createMockShell } from "../../src/test/mock-shell";
+import { createMockShell } from "@brains/test-utils";
 
 function createPdfAttachment(filename: string): PublishMediaData {
   return {

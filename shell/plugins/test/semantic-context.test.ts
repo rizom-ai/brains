@@ -1,6 +1,6 @@
 import { describe, expect, it, mock } from "bun:test";
 import { createBasePluginContext } from "../src/base/context";
-import { createMockShell } from "../src/test/mock-shell";
+import { createMockShell } from "@brains/test-utils";
 
 describe("plugin semantic context", () => {
   it("exposes semantic projection without exposing raw embedding access", async () => {

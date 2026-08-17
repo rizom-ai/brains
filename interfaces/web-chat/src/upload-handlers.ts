@@ -4,7 +4,7 @@ import {
   type ChatAttachment,
   type ResolvedRuntimeUpload,
   type RuntimeUploadRecord,
-  type RuntimeUploadStore,
+  type ScopedRuntimeUploadStore,
 } from "@brains/plugins";
 import {
   defaultWebChatUploadFilename,
@@ -24,7 +24,7 @@ type AuthSessionResolver = (request: Request) => Promise<boolean>;
 
 interface UploadHandlerDeps {
   resolveAuthSession: AuthSessionResolver;
-  getUploadStore: () => RuntimeUploadStore;
+  getUploadStore: () => ScopedRuntimeUploadStore;
 }
 
 export async function handleUploadRequest(
@@ -143,7 +143,7 @@ export function resolveInlineUploadPart(file: {
 
 export async function resolveReferencedUpload(
   uploadId: string,
-  uploadStore: RuntimeUploadStore,
+  uploadStore: ScopedRuntimeUploadStore,
 ): Promise<ChatAttachment | Response> {
   const resolved = await readStoredUpload(uploadId, uploadStore);
   if (resolved instanceof Response) return resolved;
@@ -160,7 +160,7 @@ export async function resolveReferencedUpload(
 
 async function readStoredUpload(
   uploadId: string,
-  uploadStore: RuntimeUploadStore,
+  uploadStore: ScopedRuntimeUploadStore,
 ): Promise<ResolvedRuntimeUpload | Response> {
   try {
     return await uploadStore.read(uploadId);

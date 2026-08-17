@@ -6,10 +6,9 @@ import {
   sanitizeUploadFilename,
   validateMessageUpload,
   type ChatAttachment,
-  type RuntimeUploadStore,
 } from "@brains/plugins";
 import type { Message } from "chat";
-import type { ChatThread } from "./types";
+import type { ChatThread, ChatUploadStore } from "./types";
 
 export interface AgentInput {
   message: string;
@@ -25,7 +24,7 @@ interface ThreadIdParts {
 
 interface ChatInputBuilderDeps {
   /** Return the platform's scoped upload store, or undefined when ingestion is unsupported. */
-  getUploadStore: (platform: string) => RuntimeUploadStore | undefined;
+  getUploadStore: (platform: string) => ChatUploadStore | undefined;
   getThreadIdParts: (threadId: string) => ThreadIdParts;
   logger: {
     error: (message: string, context?: Record<string, unknown>) => void;

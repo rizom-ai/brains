@@ -1,3 +1,4 @@
+/** @jsxImportSource react */
 import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
 import { markdown } from "@codemirror/lang-markdown";
 import {

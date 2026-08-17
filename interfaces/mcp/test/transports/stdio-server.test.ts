@@ -1,24 +1,22 @@
 import { describe, expect, it, beforeEach, afterEach, mock } from "bun:test";
 import { StdioMCPServer } from "../../src/transports/stdio-server";
 import { createSilentLogger } from "@brains/test-utils";
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { ConnectableMcpServer } from "../../src/transports/stdio-server";
 
 describe("StdioMCPServer", () => {
   let stdioServer: StdioMCPServer;
-  let mockMcpServer: McpServer;
+  let mockMcpServer: ConnectableMcpServer;
 
   beforeEach(() => {
     stdioServer = StdioMCPServer.createFresh({
       logger: createSilentLogger(),
     });
 
-    // Create a mock MCP server
+    // connect is the whole surface the transport uses; close, tool and
+    // resource were on the old fake but nothing ever called them.
     mockMcpServer = {
       connect: mock(() => Promise.resolve()),
-      close: mock(() => Promise.resolve()),
-      tool: mock(() => {}),
-      resource: mock(() => {}),
-    } as unknown as McpServer;
+    } satisfies ConnectableMcpServer;
   });
 
   afterEach(() => {

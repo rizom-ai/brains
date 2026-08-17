@@ -1,6 +1,6 @@
-import { mkdtemp, rm, writeFile } from "fs/promises";
+import { rm, writeFile } from "fs/promises";
+import { createTempDir } from "@brains/test-utils";
 import { join } from "path";
-import { tmpdir } from "os";
 import { describe, expect, it, mock } from "bun:test";
 
 import type {
@@ -108,7 +108,7 @@ expectedOutput:
 
 describe("EvaluationService", () => {
   it("expands permission matrix cases into per-level runs", async () => {
-    const testCaseDirectory = await mkdtemp(join(tmpdir(), "ai-eval-"));
+    const testCaseDirectory = await createTempDir("ai-eval-");
 
     try {
       await writeFile(
@@ -176,7 +176,7 @@ permissions:
   });
 
   it("can run a single expanded permission matrix level by suffixed id", async () => {
-    const testCaseDirectory = await mkdtemp(join(tmpdir(), "ai-eval-"));
+    const testCaseDirectory = await createTempDir("ai-eval-");
 
     try {
       await writeFile(
@@ -225,7 +225,7 @@ permissions:
   });
 
   it("seeds runtime uploads for sequential agent runs", async () => {
-    const testCaseDirectory = await mkdtemp(join(tmpdir(), "ai-eval-"));
+    const testCaseDirectory = await createTempDir("ai-eval-");
 
     try {
       await writeFile(
@@ -256,7 +256,7 @@ successCriteria:
 `,
       );
 
-      const uploadDataDir = await mkdtemp(join(tmpdir(), "ai-eval-uploads-"));
+      const uploadDataDir = await createTempDir("ai-eval-uploads-");
       const runtimeUploads = RuntimeUploadRegistry.createFresh({
         dataDir: uploadDataDir,
       });
@@ -291,7 +291,7 @@ successCriteria:
   });
 
   it("runs agent tests with a concurrency limit while preserving result order", async () => {
-    const testCaseDirectory = await mkdtemp(join(tmpdir(), "ai-eval-"));
+    const testCaseDirectory = await createTempDir("ai-eval-");
 
     try {
       await Promise.all(
@@ -346,7 +346,7 @@ successCriteria:
   });
 
   it("preserves mixed agent and plugin test order", async () => {
-    const testCaseDirectory = await mkdtemp(join(tmpdir(), "ai-eval-"));
+    const testCaseDirectory = await createTempDir("ai-eval-");
 
     try {
       await writeAgentTestCase(testCaseDirectory, 0);
@@ -382,7 +382,7 @@ successCriteria:
   });
 
   it("waits for the semantic index before running agent tests", async () => {
-    const testCaseDirectory = await mkdtemp(join(tmpdir(), "ai-eval-"));
+    const testCaseDirectory = await createTempDir("ai-eval-");
 
     try {
       await writeAgentTestCase(testCaseDirectory, 0);

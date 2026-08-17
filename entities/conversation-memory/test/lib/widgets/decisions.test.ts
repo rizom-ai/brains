@@ -1,6 +1,9 @@
-import { describe, expect, it, mock } from "bun:test";
-import { SYSTEM_CHANNELS, type EntityPluginContext } from "@brains/plugins";
-import { createTestEntity } from "@brains/test-utils";
+import { describe, expect, it } from "bun:test";
+import { SYSTEM_CHANNELS } from "@brains/plugins";
+import {
+  createMockEntityPluginContext,
+  createTestEntity,
+} from "@brains/test-utils";
 import {
   buildDecisionsWidgetData,
   registerDecisionsWidget,
@@ -61,9 +64,9 @@ describe("buildDecisionsWidgetData", () => {
         end: "2026-05-09T01:00:00.000Z",
       }),
     ];
-    const context = {
-      entityService: { listEntities: mock(async () => items) },
-    } as unknown as EntityPluginContext;
+    const context = createMockEntityPluginContext({
+      listEntitiesImpl: async () => items,
+    });
 
     const data = await buildDecisionsWidgetData(context);
     expect(data.items.map((item) => item.id)).toEqual([
@@ -87,9 +90,9 @@ describe("buildDecisionsWidgetData", () => {
         end: "2026-05-01T00:00:00.000Z",
       }),
     ];
-    const context = {
-      entityService: { listEntities: mock(async () => items) },
-    } as unknown as EntityPluginContext;
+    const context = createMockEntityPluginContext({
+      listEntitiesImpl: async () => items,
+    });
 
     const data = await buildDecisionsWidgetData(context);
     expect(data.items[0]?.meta).toContain("Apr 28 – May 1");
@@ -99,32 +102,26 @@ describe("buildDecisionsWidgetData", () => {
 
 describe("registerDecisionsWidget", () => {
   it("registers a widget on plugins-registered", async () => {
-    let readyHandler: (() => Promise<{ success: boolean }>) | undefined;
-    let payload: Record<string, unknown> | undefined;
-    const registerWidget = mock(async (widget: unknown) => {
-      payload = widget as Record<string, unknown>;
+    const context = createMockEntityPluginContext({
+      listEntitiesImpl: async () => [],
     });
-    const subscribe = mock(
-      (
-        _topic: string,
-        handler: () => Promise<{ success: boolean }>,
-      ): (() => void) => {
-        readyHandler = handler;
-        return (): void => undefined;
-      },
-    );
-    const context = {
-      messaging: { subscribe },
-      dashboard: { registerWidget },
-      entityService: { listEntities: mock(async () => []) },
-    } as unknown as EntityPluginContext;
 
     registerDecisionsWidget({ context });
-    expect(subscribe).toHaveBeenCalledWith(
+    expect(context.messaging.subscribe).toHaveBeenCalledWith(
       SYSTEM_CHANNELS.pluginsRegistered,
       expect.any(Function),
     );
-    await readyHandler?.();
+
+    // Publish the real message rather than capturing the handler: this is the
+    // path production takes, and the registration below is the evidence.
+    await context.messaging.send({
+      type: SYSTEM_CHANNELS.pluginsRegistered,
+      payload: {},
+    });
+
+    const [registerCall] = context.dashboard.registerWidget.mock.calls;
+    const payload = registerCall?.[0];
+    if (!payload) throw new Error("widget was not registered");
 
     expect(payload).toMatchObject({
       id: "conversation-memory:decisions",

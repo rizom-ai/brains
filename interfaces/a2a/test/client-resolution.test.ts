@@ -1,6 +1,14 @@
 import { describe, it, expect, mock } from "bun:test";
 import { createAgentCallTool } from "../src/client";
-import type { ICoreEntityService, ToolResponse } from "@brains/plugins";
+import type {
+  ICoreEntityService,
+  ToolResponse,
+  BaseEntity,
+} from "@brains/plugins";
+import {
+  createMockEntityService as createSharedEntityService,
+  createTestEntity,
+} from "@brains/test-utils";
 
 function isError(
   result: ToolResponse,
@@ -65,29 +73,17 @@ function createCardFetch(cardEndpointUrl: string): ReturnType<typeof mock> {
   });
 }
 
-function createMockEntityService(
-  entities: Map<
-    string,
-    {
-      id: string;
-      entityType: string;
-      content: string;
-      metadata: Record<string, unknown>;
-    }
-  >,
+/**
+ * Serve reads from a caller-supplied map. Everything else comes from the
+ * shared factory, so this cannot fall behind the entity-service interface.
+ */
+function createEntityServiceFrom(
+  entities: Map<string, BaseEntity>,
 ): ICoreEntityService {
-  return {
-    getEntity: mock(async (request: { entityType: string; id: string }) => {
-      return entities.get(request.id) ?? null;
-    }),
-    hasEntityType: () => true,
-    getEntityTypes: () => ["agent"],
-    listEntities: mock(async () => []),
-    search: mock(async () => []),
-    countEntities: mock(async () => 0),
-    getEntityCounts: mock(async () => []),
-    getWeightMap: () => ({}),
-  } as unknown as ICoreEntityService;
+  return createSharedEntityService({
+    entityTypes: ["agent"],
+    getEntityImpl: async (request) => entities.get(request.id) ?? null,
+  });
 }
 
 const toolContext = {
@@ -108,22 +104,24 @@ describe("agent_call agent resolution", () => {
   });
   it("should resolve an approved saved agent by domain from the entity service", async () => {
     const entities = new Map();
-    entities.set("yeehaa.io", {
-      id: "yeehaa.io",
-      entityType: "agent",
-      content:
-        "---\nname: Yeehaa\nurl: 'https://yeehaa.io/a2a'\nstatus: approved\n---",
-      metadata: {
-        name: "Yeehaa",
-        url: "https://yeehaa.io/a2a",
-        status: "approved",
-      },
-    });
+    entities.set(
+      "yeehaa.io",
+      createTestEntity<BaseEntity>("agent", {
+        id: "yeehaa.io",
+        content:
+          "---\nname: Yeehaa\nurl: 'https://yeehaa.io/a2a'\nstatus: approved\n---",
+        metadata: {
+          name: "Yeehaa",
+          url: "https://yeehaa.io/a2a",
+          status: "approved",
+        },
+      }),
+    );
 
     const fetchFn = createMockFetch();
     const tool = createAgentCallTool({
       fetch: fetchFn,
-      entityService: createMockEntityService(entities),
+      entityService: createEntityServiceFrom(entities),
     });
 
     const result = await tool.handler(
@@ -137,22 +135,24 @@ describe("agent_call agent resolution", () => {
 
   it("should normalize an HTTPS URL for a saved agent to its hostname and contact over HTTPS", async () => {
     const entities = new Map();
-    entities.set("yeehaa.io", {
-      id: "yeehaa.io",
-      entityType: "agent",
-      content:
-        "---\nname: Yeehaa\nurl: 'https://yeehaa.io/a2a'\nstatus: approved\n---",
-      metadata: {
-        name: "Yeehaa",
-        url: "https://yeehaa.io/a2a",
-        status: "approved",
-      },
-    });
+    entities.set(
+      "yeehaa.io",
+      createTestEntity<BaseEntity>("agent", {
+        id: "yeehaa.io",
+        content:
+          "---\nname: Yeehaa\nurl: 'https://yeehaa.io/a2a'\nstatus: approved\n---",
+        metadata: {
+          name: "Yeehaa",
+          url: "https://yeehaa.io/a2a",
+          status: "approved",
+        },
+      }),
+    );
 
     const fetchFn = createMockFetch();
     const tool = createAgentCallTool({
       fetch: fetchFn,
-      entityService: createMockEntityService(entities),
+      entityService: createEntityServiceFrom(entities),
     });
 
     const result = await tool.handler(
@@ -169,17 +169,20 @@ describe("agent_call agent resolution", () => {
 
   it("should refuse discovered agents until approved", async () => {
     const entities = new Map();
-    entities.set("old.io", {
-      id: "old.io",
-      entityType: "agent",
-      content: "---\nname: Old\nurl: 'https://old.io'\nstatus: discovered\n---",
-      metadata: { name: "Old", status: "discovered" },
-    });
+    entities.set(
+      "old.io",
+      createTestEntity<BaseEntity>("agent", {
+        id: "old.io",
+        content:
+          "---\nname: Old\nurl: 'https://old.io'\nstatus: discovered\n---",
+        metadata: { name: "Old", status: "discovered" },
+      }),
+    );
 
     const fetchFn = createMockFetch();
     const tool = createAgentCallTool({
       fetch: fetchFn,
-      entityService: createMockEntityService(entities),
+      entityService: createEntityServiceFrom(entities),
     });
 
     const result = await tool.handler(
@@ -197,18 +200,20 @@ describe("agent_call agent resolution", () => {
 
   it("should refuse archived agents before any network contact", async () => {
     const entities = new Map();
-    entities.set("archived.io", {
-      id: "archived.io",
-      entityType: "agent",
-      content:
-        "---\nname: Archived\nurl: 'https://archived.io'\nstatus: archived\n---",
-      metadata: { name: "Archived", status: "archived" },
-    });
+    entities.set(
+      "archived.io",
+      createTestEntity<BaseEntity>("agent", {
+        id: "archived.io",
+        content:
+          "---\nname: Archived\nurl: 'https://archived.io'\nstatus: archived\n---",
+        metadata: { name: "Archived", status: "archived" },
+      }),
+    );
 
     const fetchFn = createMockFetch();
     const tool = createAgentCallTool({
       fetch: fetchFn,
-      entityService: createMockEntityService(entities),
+      entityService: createEntityServiceFrom(entities),
     });
 
     const result = await tool.handler(
@@ -228,7 +233,7 @@ describe("agent_call agent resolution", () => {
     const fetchFn = createMockFetch();
     const tool = createAgentCallTool({
       fetch: fetchFn,
-      entityService: createMockEntityService(new Map()),
+      entityService: createEntityServiceFrom(new Map()),
     });
 
     const result = await tool.handler(
@@ -260,7 +265,7 @@ describe("agent_call agent resolution", () => {
     const fetchFn = createMockFetch();
     const tool = createAgentCallTool({
       fetch: fetchFn,
-      entityService: createMockEntityService(new Map()),
+      entityService: createEntityServiceFrom(new Map()),
     });
 
     const result = await tool.handler(
@@ -282,7 +287,7 @@ describe("agent_call agent resolution", () => {
     const fetchFn = createMockFetch();
     const tool = createAgentCallTool({
       fetch: fetchFn,
-      entityService: createMockEntityService(new Map()),
+      entityService: createEntityServiceFrom(new Map()),
     });
 
     const result = await tool.handler(
@@ -310,7 +315,7 @@ describe("agent_call agent resolution", () => {
     const fetchFn = createCardFetch("http://localhost:8080/a2a");
     const tool = createAgentCallTool({
       fetch: fetchFn,
-      entityService: createMockEntityService(new Map()),
+      entityService: createEntityServiceFrom(new Map()),
     });
 
     const result = await tool.handler(
@@ -330,7 +335,7 @@ describe("agent_call agent resolution", () => {
     const fetchFn = createCardFetch("https://attacker.example/a2a");
     const tool = createAgentCallTool({
       fetch: fetchFn,
-      entityService: createMockEntityService(new Map()),
+      entityService: createEntityServiceFrom(new Map()),
     });
 
     const result = await tool.handler(
@@ -347,22 +352,24 @@ describe("agent_call agent resolution", () => {
 
   it("should reject an approved agent card whose url points at a non-HTTPS endpoint", async () => {
     const entities = new Map();
-    entities.set("yeehaa.io", {
-      id: "yeehaa.io",
-      entityType: "agent",
-      content:
-        "---\nname: Yeehaa\nurl: 'https://yeehaa.io/a2a'\nstatus: approved\n---",
-      metadata: {
-        name: "Yeehaa",
-        url: "https://yeehaa.io/a2a",
-        status: "approved",
-      },
-    });
+    entities.set(
+      "yeehaa.io",
+      createTestEntity<BaseEntity>("agent", {
+        id: "yeehaa.io",
+        content:
+          "---\nname: Yeehaa\nurl: 'https://yeehaa.io/a2a'\nstatus: approved\n---",
+        metadata: {
+          name: "Yeehaa",
+          url: "https://yeehaa.io/a2a",
+          status: "approved",
+        },
+      }),
+    );
 
     const fetchFn = createCardFetch("http://localhost:8080/a2a");
     const tool = createAgentCallTool({
       fetch: fetchFn,
-      entityService: createMockEntityService(entities),
+      entityService: createEntityServiceFrom(entities),
     });
 
     const result = await tool.handler(
@@ -379,22 +386,24 @@ describe("agent_call agent resolution", () => {
 
   it("should reject an approved agent card whose url points at an unrelated host", async () => {
     const entities = new Map();
-    entities.set("yeehaa.io", {
-      id: "yeehaa.io",
-      entityType: "agent",
-      content:
-        "---\nname: Yeehaa\nurl: 'https://yeehaa.io/a2a'\nstatus: approved\n---",
-      metadata: {
-        name: "Yeehaa",
-        url: "https://yeehaa.io/a2a",
-        status: "approved",
-      },
-    });
+    entities.set(
+      "yeehaa.io",
+      createTestEntity<BaseEntity>("agent", {
+        id: "yeehaa.io",
+        content:
+          "---\nname: Yeehaa\nurl: 'https://yeehaa.io/a2a'\nstatus: approved\n---",
+        metadata: {
+          name: "Yeehaa",
+          url: "https://yeehaa.io/a2a",
+          status: "approved",
+        },
+      }),
+    );
 
     const fetchFn = createCardFetch("https://attacker.example/a2a");
     const tool = createAgentCallTool({
       fetch: fetchFn,
-      entityService: createMockEntityService(entities),
+      entityService: createEntityServiceFrom(entities),
     });
 
     const result = await tool.handler(
@@ -413,7 +422,7 @@ describe("agent_call agent resolution", () => {
     const fetchFn = createMockFetch();
     const tool = createAgentCallTool({
       fetch: fetchFn,
-      entityService: createMockEntityService(new Map()),
+      entityService: createEntityServiceFrom(new Map()),
     });
 
     const result = await tool.handler(

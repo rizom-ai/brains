@@ -1,11 +1,25 @@
-import type { SimpleGit } from "simple-git";
 import type { Logger } from "@brains/utils/logger";
 import { unlink } from "fs/promises";
 import { pathExists } from "./fs-utils";
 import { resolveInSyncPath } from "./path-utils";
 
+/**
+ * The three git commands this reconciliation runs, as it consumes them.
+ *
+ * Declared rather than Picked from SimpleGit because simple-git returns a
+ * chainable Response<T> — a Promise<T> intersected with the whole client — so
+ * a Pick would still demand a full client from anything standing in. The real
+ * Response<T> is assignable to these promises, and awaiting is all this code
+ * does with them.
+ */
+export interface ReconciliationGit {
+  add(files: string[]): Promise<unknown>;
+  diff(options: string[]): Promise<string>;
+  commit(message: string): Promise<unknown>;
+}
+
 export interface RemoteDeletionReconciliationOptions {
-  git: SimpleGit;
+  git: ReconciliationGit;
   logger: Logger;
   syncPath: string;
   deletedFiles: string[];

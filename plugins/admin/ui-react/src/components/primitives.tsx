@@ -1,3 +1,4 @@
+/** @jsxImportSource react */
 import type { ReactElement, ReactNode } from "react";
 
 export function Button(props: {

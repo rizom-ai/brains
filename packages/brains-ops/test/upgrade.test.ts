@@ -1,12 +1,12 @@
+import { createTempDir } from "@brains/test-utils";
 import { describe, expect, it } from "bun:test";
-import { mkdtemp, mkdir, readFile, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
 import { upgradePilotRepo, type UpgradeExec } from "../src/upgrade";
 
 async function makeRepo(pinnedVersion: string): Promise<string> {
-  const root = await mkdtemp(join(tmpdir(), "brains-ops-upgrade-"));
+  const root = await createTempDir("brains-ops-upgrade-");
   const repo = join(root, "rover-pilot");
   await mkdir(repo, { recursive: true });
   await writeFile(
@@ -97,7 +97,7 @@ describe("upgradePilotRepo", () => {
   });
 
   it("rejects a repo without an @rizom/ops pin", async () => {
-    const root = await mkdtemp(join(tmpdir(), "brains-ops-upgrade-"));
+    const root = await createTempDir("brains-ops-upgrade-");
     const repo = join(root, "rover-pilot");
     await mkdir(repo, { recursive: true });
     await writeFile(join(repo, "package.json"), '{"name":"not-a-pilot"}\n');

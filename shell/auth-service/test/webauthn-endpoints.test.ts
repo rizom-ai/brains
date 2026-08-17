@@ -1,36 +1,74 @@
 import { describe, expect, it } from "bun:test";
-import type { PasskeyService } from "../src/passkey-service";
-import type { AuthSessionPersistence } from "../src/session-store";
-import type { SetupFlow } from "../src/setup-flow";
-import { WebAuthnEndpoints } from "../src/webauthn-endpoints";
+import type { CreateAuthSessionResult } from "../src/session-store";
+import {
+  WebAuthnEndpoints,
+  type EndpointPasskeys,
+  type EndpointSessions,
+  type EndpointSetupFlow,
+} from "../src/webauthn-endpoints";
+
+/**
+ * A passkey surface for one flow.
+ *
+ * Each test drives a single endpoint, so it supplies the two or three
+ * methods that flow calls. The rest throw rather than being quietly absent:
+ * if an endpoint ever starts calling one, the test says so instead of
+ * passing on a stub that returned undefined.
+ */
+function passkeys(overrides: Partial<EndpointPasskeys>): EndpointPasskeys {
+  const unexpected = (name: string) => (): never => {
+    throw new Error(name + " was not expected in this flow");
+  };
+  return {
+    hasCredentials: unexpected("hasCredentials"),
+    generateRegistrationOptions: unexpected("generateRegistrationOptions"),
+    verifyRegistrationResponse: unexpected("verifyRegistrationResponse"),
+    generateAuthenticationOptions: unexpected("generateAuthenticationOptions"),
+    verifyAuthenticationResponse: unexpected("verifyAuthenticationResponse"),
+    ...overrides,
+  };
+}
+
+/**
+ * A setup-flow surface for one flow, for the same reason as {@link passkeys}:
+ * each test supplies what its endpoint calls, and the rest throw if reached.
+ */
+function setup(overrides: Partial<EndpointSetupFlow>): EndpointSetupFlow {
+  const unexpected = (name: string) => (): never => {
+    throw new Error(name + " was not expected in this flow");
+  };
+  return {
+    resolveSetupToken: unexpected("resolveSetupToken"),
+    hasConflictingAccountSession: unexpected("hasConflictingAccountSession"),
+    consumeSetupToken: unexpected("consumeSetupToken"),
+    ...overrides,
+  };
+}
 
 describe("WebAuthnEndpoints", () => {
   it("completes targeted invited-user registration before creating a session", async () => {
     const calls: string[] = [];
     const endpoints = new WebAuthnEndpoints({
-      passkeyService: {
+      passkeyService: passkeys({
         hasCredentials: async () => true,
         verifyRegistrationResponse: async () => ({
           verified: true,
           subject: "usr_invited",
         }),
-      } as unknown as PasskeyService,
+      }),
       sessionStore: {
-        createSession: async (subject: string) => {
+        createSession: async (
+          subject: string,
+        ): Promise<CreateAuthSessionResult> => {
           calls.push(`session:${subject}`);
           return {
-            token: "session-token",
+            subject,
             cookie: "brains_auth_session=session-token",
-            record: {
-              tokenHash: "hash",
-              subject,
-              expiresAt: Date.now() + 60_000,
-              createdAt: Date.now(),
-            },
+            expiresAt: Date.now() + 60_000,
           };
         },
-      } as unknown as AuthSessionPersistence,
-      setupFlow: {
+      } satisfies EndpointSessions,
+      setupFlow: setup({
         resolveSetupToken: async () => ({
           token: "setup-token",
           targetUserId: "usr_invited",
@@ -40,7 +78,7 @@ describe("WebAuthnEndpoints", () => {
         consumeSetupToken: async () => {
           calls.push("consume");
         },
-      } as unknown as SetupFlow,
+      }),
       registrationUserProvider: async (): Promise<{
         subject: string;
         userName: string;
@@ -80,27 +118,28 @@ describe("WebAuthnEndpoints", () => {
   it("rejects a suspended or mismatched delivery before persisting a passkey", async () => {
     const calls: string[] = [];
     const endpoints = new WebAuthnEndpoints({
-      passkeyService: {
+      passkeyService: passkeys({
         hasCredentials: async () => true,
         verifyRegistrationResponse: async () => {
           calls.push("verify");
           return { verified: true, subject: "usr_invited" };
         },
-      } as unknown as PasskeyService,
+      }),
       sessionStore: {
-        createSession: async () => {
-          calls.push("session");
-          throw new Error("Session creation must not run");
-        },
-      } as unknown as AuthSessionPersistence,
-      setupFlow: {
+        createSession: async (): Promise<CreateAuthSessionResult> => ({
+          subject: "usr_invited",
+          cookie: "brains_auth_session=session-token",
+          expiresAt: Date.now() + 60_000,
+        }),
+      } satisfies EndpointSessions,
+      setupFlow: setup({
         resolveSetupToken: async () => ({
           token: "setup-token",
           targetUserId: "usr_invited",
           deliveryClaimId: "aid_wrong_person",
         }),
         hasConflictingAccountSession: async () => false,
-      } as unknown as SetupFlow,
+      }),
       registrationUserProvider: async (): Promise<{
         subject: string;
         userName: string;
@@ -147,29 +186,26 @@ describe("WebAuthnEndpoints", () => {
   it("binds the authenticated session to the verified passkey subject", async () => {
     const calls: string[] = [];
     const endpoints = new WebAuthnEndpoints({
-      passkeyService: {
+      passkeyService: passkeys({
         hasCredentials: async () => true,
         verifyAuthenticationResponse: async () => ({
           verified: true,
           subject: "usr_member",
         }),
-      } as unknown as PasskeyService,
+      }),
       sessionStore: {
-        createSession: async (subject: string) => {
+        createSession: async (
+          subject: string,
+        ): Promise<CreateAuthSessionResult> => {
           calls.push(`session:${subject}`);
           return {
-            token: "session-token",
+            subject,
             cookie: "brains_auth_session=session-token",
-            record: {
-              tokenHash: "hash",
-              subject,
-              expiresAt: Date.now() + 60_000,
-              createdAt: Date.now(),
-            },
+            expiresAt: Date.now() + 60_000,
           };
         },
-      } as unknown as AuthSessionPersistence,
-      setupFlow: {} as unknown as SetupFlow,
+      } satisfies EndpointSessions,
+      setupFlow: setup({}),
       registrationUserProvider: async (): Promise<{
         subject: string;
         userName: string;

@@ -1,3 +1,4 @@
+/** @jsxImportSource react */
 import { useCallback, type ReactElement } from "react";
 import type {
   DirectorySyncWorkspaceActionResult,

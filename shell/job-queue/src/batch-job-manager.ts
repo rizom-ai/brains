@@ -76,10 +76,6 @@ export class BatchJobManager {
   public static createFresh(
     jobQueue: IJobQueueService,
     logger: Logger,
-  ): BatchJobManager;
-  public static createFresh(
-    jobQueue: IJobQueueService,
-    logger: Logger,
     options?: BatchJobManagerOptions,
   ): BatchJobManager {
     return new BatchJobManager(jobQueue, logger, options);
@@ -436,6 +432,21 @@ export class BatchJobManager {
    * status once they are at least cutoff-old, matching the pre-memoization
    * behavior. This keeps un-observed terminal batches from leaking forever.
    */
+  /**
+   * Retention bookkeeping for one batch, or undefined once it has been swept.
+   *
+   * terminalAt and an entry's presence are internal to cleanup(), and no other
+   * public method reports either, so a test asserting on the retention window
+   * had to reach into the map. A read-only view keeps that check possible
+   * without exposing the entry itself.
+   */
+  inspectRetention(
+    batchId: string,
+  ): { readonly terminalAt: number | undefined } | undefined {
+    const entry = this.batches.get(batchId);
+    return entry ? { terminalAt: entry.terminalAt } : undefined;
+  }
+
   async cleanup(olderThanMs: number): Promise<number> {
     const cutoffTime = Date.now() - olderThanMs;
     let cleaned = 0;

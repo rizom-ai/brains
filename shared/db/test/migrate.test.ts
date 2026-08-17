@@ -1,10 +1,32 @@
-import { describe, expect, it } from "bun:test";
+import { afterAll, describe, expect, it } from "bun:test";
+import { rmSync } from "node:fs";
 import { mkdtemp, mkdir, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Logger, LogLevel } from "@brains/utils/logger";
 import { runPackageMigrations } from "../src/migrate";
 import type { PragmaClient } from "../src/sqlite";
+
+/**
+ * Tracked locally rather than through `createTempDir` in `@brains/test-utils`:
+ * that package depends on `@brains/entity-service`, which depends on this one,
+ * so declaring it here is the dependency cycle turbo rejects outright. The
+ * helper itself needs nothing from the workspace, so the real fix is to move it
+ * to a leaf package — a boundary change this phase does not own.
+ */
+const tempDirs: string[] = [];
+
+async function tempDir(prefix: string): Promise<string> {
+  const dir = await mkdtemp(join(tmpdir(), prefix));
+  tempDirs.push(dir);
+  return dir;
+}
+
+afterAll(() => {
+  tempDirs
+    .splice(0)
+    .forEach((dir) => rmSync(dir, { recursive: true, force: true }));
+});
 
 function silentLogger(): Logger {
   return Logger.createFresh({ level: LogLevel.NONE });
@@ -15,7 +37,7 @@ function silentLogger(): Logger {
  * drizzle-kit generates alongside it.
  */
 async function createMigrationsFolder(sql: string): Promise<string> {
-  const dir = await mkdtemp(join(tmpdir(), "brains-db-migrate-"));
+  const dir = await tempDir("brains-db-migrate-");
   await writeFile(join(dir, "0000_init.sql"), sql);
   await mkdir(join(dir, "meta"), { recursive: true });
   await writeFile(
@@ -36,7 +58,7 @@ describe("runPackageMigrations", () => {
     const migrationsFolder = await createMigrationsFolder(
       "CREATE TABLE widgets (id text PRIMARY KEY NOT NULL);",
     );
-    const dbDir = await mkdtemp(join(tmpdir(), "brains-db-file-"));
+    const dbDir = await tempDir("brains-db-file-");
     const url = `file:${join(dbDir, "test.db")}`;
 
     await runPackageMigrations({
@@ -64,7 +86,7 @@ describe("runPackageMigrations", () => {
     const migrationsFolder = await createMigrationsFolder(
       "CREATE TABLE gadgets (id text PRIMARY KEY NOT NULL);",
     );
-    const dbDir = await mkdtemp(join(tmpdir(), "brains-db-file-"));
+    const dbDir = await tempDir("brains-db-file-");
     const url = `file:${join(dbDir, "test.db")}`;
 
     await runPackageMigrations({
@@ -89,7 +111,7 @@ describe("runPackageMigrations", () => {
     const migrationsFolder = await createMigrationsFolder(
       "CREATE TABLE things (id text PRIMARY KEY NOT NULL);",
     );
-    const dbDir = await mkdtemp(join(tmpdir(), "brains-db-file-"));
+    const dbDir = await tempDir("brains-db-file-");
     const url = `file:${join(dbDir, "test.db")}`;
 
     await runPackageMigrations({
@@ -119,7 +141,7 @@ describe("runPackageMigrations", () => {
 
   it("closes the client and rethrows when a migration fails", async () => {
     const migrationsFolder = await createMigrationsFolder("NOT VALID SQL;");
-    const dbDir = await mkdtemp(join(tmpdir(), "brains-db-file-"));
+    const dbDir = await tempDir("brains-db-file-");
     const url = `file:${join(dbDir, "test.db")}`;
 
     let thrown: unknown;

@@ -1,5 +1,6 @@
 import { mock } from "bun:test";
 import { Logger, LogLevel } from "@brains/utils/logger";
+import type { PublicSurface } from "./public-surface";
 
 /**
  * Create a silent logger for tests
@@ -31,8 +32,10 @@ export function createTestLogger(
 /**
  * Create a mock Logger for testing with spyable methods
  *
- * Returns a Logger-typed object where all methods are bun mock functions.
- * The cast is centralized here so test files don't need `as unknown as` casts.
+ * Returns a Logger-typed object where all methods are bun mock functions, so
+ * test files need no casts of their own. The literal is declared against
+ * `PublicSurface<Logger>`, so a new or changed public Logger method fails to
+ * compile here rather than leaving a silently incomplete mock.
  *
  * Use when you need to assert that specific log calls were made
  *
@@ -46,13 +49,17 @@ export function createTestLogger(
  * ```
  */
 export function createMockLogger(): Logger {
-  const mockLogger = {
+  const mockLogger: PublicSurface<Logger> = {
+    silly: mock(() => {}),
+    verbose: mock(() => {}),
     debug: mock(() => {}),
     info: mock(() => {}),
     warn: mock(() => {}),
     error: mock(() => {}),
-    child: mock(() => mockLogger),
+    child: mock((): Logger => mockLogger as Logger),
+    setUseStderr: mock(() => {}),
   };
 
-  return mockLogger as unknown as Logger;
+  // Only the nominal private-field gap remains; the shape is checked above.
+  return mockLogger as Logger;
 }

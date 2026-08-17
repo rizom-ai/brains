@@ -1,7 +1,7 @@
 {
   "name": "@brains/core",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.299",
+  "version": "0.2.0-alpha.302",
   "dependencies": {
     "@brains/contracts": "workspace:*",
     "@brains/image": "workspace:*",
@@ -26,6 +26,7 @@
     "@brains/job-queue": "workspace:*",
     "@brains/mcp-service": "workspace:*",
     "@brains/messaging-service": "workspace:*",
+    "@brains/test-utils": "workspace:*",
     "@brains/typescript-config": "workspace:*",
     "@types/bun": "^1.3.14",
     "eslint": "^10.5.0",

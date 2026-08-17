@@ -9,7 +9,10 @@ import {
   createMockEntityPluginContext,
   createSilentLogger,
 } from "@brains/test-utils";
-import { SummaryProjector } from "../../src/lib/summary-projector";
+import {
+  getActorsMentionedInText,
+  SummaryProjector,
+} from "../../src/lib/summary-projector";
 import { SummaryAdapter } from "../../src/adapters/summary-adapter";
 import { summaryConfigSchema } from "../../src/schemas/summary-config";
 import type { SummaryEntry } from "../../src/schemas/summary";
@@ -206,25 +209,15 @@ describe("SummaryProjector", () => {
   });
 
   it("attributes label-less actors by their stable actor key", () => {
-    const projector = new SummaryProjector(
-      createMockEntityPluginContext(),
-      createSilentLogger(),
-      summaryConfigSchema.parse({}),
-    );
+    // No projector needed: attribution is a pure function now, so this tests
+    // it directly instead of building a projector to reach a private method.
     const actor: ConversationMessageActor = {
       identity: { kind: "external", externalActorId: "ext_label_less" },
       interfaceType: "mcp",
       role: "user",
     };
-    const internal = projector as unknown as {
-      getActorsMentionedInText(
-        text: string,
-        actors: ConversationMessageActor[],
-      ): Array<{ identity: ConversationMessageActor["identity"] }>;
-    };
-
     expect(
-      internal.getActorsMentionedInText(
+      getActorsMentionedInText(
         "external:ext_label_less will update the checklist",
         [actor],
       ),

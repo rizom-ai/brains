@@ -1,10 +1,6 @@
+import { createTestPipelineContext } from "../pipeline-context";
 import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
 import { SITE_CHANNELS } from "@brains/contracts";
-import { RouteRegistry } from "@brains/site-engine";
-import {
-  createMockServicePluginContext,
-  createSilentLogger,
-} from "@brains/test-utils";
 import { promises as fs } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
@@ -13,30 +9,12 @@ import type { SiteBuildStagingPayload } from "../../src/types/job-types";
 import { runSiteBuild } from "../../src/lib/run-site-build";
 import type { StaticSiteBuilderFactory } from "../../src/lib/static-site-builder";
 import {
-  createSiteBuilderServices,
   createTestSiteBuildOutputLifecycle,
   TestLayout,
 } from "../test-helpers";
 
 function createPipelineContext(): BuildPipelineContext {
-  const logger = createSilentLogger();
-  const context = createMockServicePluginContext({ logger });
-  const routeRegistry = new RouteRegistry(logger);
-  routeRegistry.register({
-    id: "home",
-    path: "/",
-    title: "Home",
-    description: "Home route",
-    layout: "default",
-    sections: [],
-  });
-  return {
-    logger,
-    services: createSiteBuilderServices(context),
-    routeRegistry,
-    profileService: { getProfile: () => ({}) },
-    entityDisplay: undefined,
-  };
+  return createTestPipelineContext().pipeline;
 }
 
 describe("runSiteBuild transactional output", () => {

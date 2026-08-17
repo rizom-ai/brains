@@ -524,14 +524,7 @@ describe("ConversationService", () => {
         },
       });
 
-      const updated = await (
-        service as unknown as {
-          updateConversationMetadata: (request: {
-            conversationId: string;
-            metadata: Record<string, unknown>;
-          }) => Promise<boolean>;
-        }
-      ).updateConversationMetadata({
+      const updated = await service.updateConversationMetadata({
         conversationId,
         metadata: { title: "Renamed thread" },
       });
@@ -549,14 +542,7 @@ describe("ConversationService", () => {
     });
 
     it("should report false when updating metadata for a missing conversation", async () => {
-      const updated = await (
-        service as unknown as {
-          updateConversationMetadata: (request: {
-            conversationId: string;
-            metadata: Record<string, unknown>;
-          }) => Promise<boolean>;
-        }
-      ).updateConversationMetadata({
+      const updated = await service.updateConversationMetadata({
         conversationId: "missing-conversation",
         metadata: { title: "Missing" },
       });

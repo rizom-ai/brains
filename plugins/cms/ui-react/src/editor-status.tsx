@@ -1,3 +1,4 @@
+/** @jsxImportSource react */
 import type { ReactElement } from "react";
 import type { GitSyncState } from "./api";
 import { ConfirmDialog } from "./confirm-dialog";

@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, mock, spyOn } from "bun:test";
+import { afterEach, describe, expect, it, mock } from "bun:test";
 import type { RouteDefinition } from "@brains/site-composition";
 import {
   RouteRegistry,
@@ -40,7 +40,7 @@ function createPipelineContext(
   const routeRegistry = new RouteRegistry(logger);
   for (const route of routes) routeRegistry.register(route);
 
-  spyOn(context.views, "get").mockImplementation((name) => {
+  context.views.get.mockImplementation((name) => {
     if (name !== "fixture:hero") return undefined;
     return {
       name,

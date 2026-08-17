@@ -1,7 +1,7 @@
+import { createTempDirSync } from "@brains/test-utils";
 import { describe, expect, it } from "bun:test";
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
@@ -147,7 +147,7 @@ describe("@rizom/ops package metadata", () => {
       });
       expect(build.status).toBe(0);
 
-      const packDir = mkdtempSync(join(tmpdir(), "rizom-ops-pack-"));
+      const packDir = createTempDirSync("rizom-ops-pack-");
       const pack = spawnSync("npm", ["pack", "--pack-destination", packDir], {
         cwd: packageDir,
         encoding: "utf8",
@@ -160,7 +160,7 @@ describe("@rizom/ops package metadata", () => {
         throw new Error("npm pack did not return a tarball filename");
       }
 
-      const projectDir = mkdtempSync(join(tmpdir(), "rizom-ops-smoke-"));
+      const projectDir = createTempDirSync("rizom-ops-smoke-");
       writeFileSync(
         join(projectDir, "package.json"),
         JSON.stringify(

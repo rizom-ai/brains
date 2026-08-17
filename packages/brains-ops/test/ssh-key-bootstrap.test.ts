@@ -1,3 +1,4 @@
+import { createTempDirSync } from "@brains/test-utils";
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import {
   existsSync,
@@ -6,10 +7,8 @@ import {
   rmSync,
   statSync,
   writeFileSync,
-  mkdtempSync,
 } from "node:fs";
 import { dirname, join } from "node:path";
-import { tmpdir } from "node:os";
 import { z } from "@brains/utils/zod";
 
 import {
@@ -27,7 +26,7 @@ describe("pilot ssh key bootstrap", () => {
   let testDir: string;
 
   beforeEach(() => {
-    testDir = mkdtempSync(join(tmpdir(), "brains-ops-ssh-key-"));
+    testDir = createTempDirSync("brains-ops-ssh-key-");
   });
 
   afterEach(() => {

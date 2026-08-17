@@ -7,7 +7,7 @@ import {
   baseEntitySchema,
   emptyFrontmatterSchema,
 } from "@brains/plugins/test";
-import { createTestEntity } from "@brains/test-utils";
+import { createTestEntity, waitUntil } from "@brains/test-utils";
 import { join } from "path";
 import { tmpdir } from "os";
 import { existsSync, rmSync, readFileSync, mkdirSync, mkdtempSync } from "fs";
@@ -128,11 +128,11 @@ slug: test-series
         entityId: entity.id,
       });
 
-      // Give subscriber time to process
-      await new Promise((resolve) => setTimeout(resolve, 100));
-
       const filePath = join(seriesDir, `${entity.id}.md`);
-      expect(existsSync(filePath)).toBe(true);
+      await waitUntil(
+        () => existsSync(filePath),
+        "the subscriber to export the updated series",
+      );
 
       const fileContent = readFileSync(filePath, "utf-8");
       expect(fileContent).toContain("coverImageId: series-test-cover");
@@ -173,10 +173,11 @@ Some content here.`;
         entityId: entity.id,
       });
 
-      await new Promise((resolve) => setTimeout(resolve, 100));
-
       const filePath = join(seriesDir, `${entity.id}.md`);
-      expect(existsSync(filePath)).toBe(true);
+      await waitUntil(
+        () => existsSync(filePath),
+        "the subscriber to export the updated series",
+      );
 
       const fileContent = readFileSync(filePath, "utf-8");
       expect(fileContent).toContain("coverImageId: series-ecosystem-cover");
@@ -236,12 +237,13 @@ slug: test-series
         entityId: staleEntity.id,
       });
 
-      await new Promise((resolve) => setTimeout(resolve, 100));
-
       // Check that file was written with CURRENT content (from DB), not stale payload
       const filePath = join(seriesDir, "series-stale-test.md");
+      await waitUntil(
+        () => existsSync(filePath),
+        "the subscriber to export the stale-event series",
+      );
 
-      expect(existsSync(filePath)).toBe(true);
       const fileContent = readFileSync(filePath, "utf-8");
 
       // Should have coverImageId from current DB entity, not stale payload

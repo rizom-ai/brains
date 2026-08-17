@@ -6,13 +6,13 @@ import {
   mock,
   afterEach,
   spyOn,
-  type Mock,
 } from "bun:test";
 import { AIService } from "../src/aiService";
 import { createSilentLogger, createTestLogger } from "@brains/test-utils";
 import { LogLevel } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
 import * as ai from "ai";
+import type { LanguageModelUsage } from "ai";
 import * as anthropicSdk from "@ai-sdk/anthropic";
 
 // Valid 1x1 PNG image as base64
@@ -70,28 +70,43 @@ void mock.module("@ai-sdk/google", () => ({
   ),
 }));
 
+/**
+ * A generateObject result carrying the two fields these tests assert on.
+ *
+ * GenerateObjectResult also declares reasoning, finishReason, warnings,
+ * request, response, providerMetadata and toJsonResponse. None of that is
+ * what the service under test reads, and writing it out at both call sites
+ * would bury the fields that matter.
+ *
+ * The widening lives here so it is named once, and the parameters stay
+ * typed: a drift in the object or the usage shape still fails to compile,
+ * which is how the missing per-modality token details were found.
+ */
+function objectResult<T>(
+  object: T,
+  usage: LanguageModelUsage,
+): Awaited<ReturnType<typeof ai.generateObject>> {
+  // eslint-disable-next-line no-restricted-syntax -- deliberate; the comment above explains why
+  return { object, usage } as unknown as Awaited<
+    ReturnType<typeof ai.generateObject>
+  >;
+}
+
 describe("AIService", () => {
   let logger: ReturnType<typeof createSilentLogger>;
-  let generateTextSpy: Mock<(...args: unknown[]) => Promise<unknown>>;
-  let generateObjectSpy: Mock<(...args: unknown[]) => Promise<unknown>>;
-  let generateImageSpy: Mock<(...args: unknown[]) => Promise<unknown>>;
+  // Derived from spyOn rather than declared loose and asserted into: the SDK
+  // members are generic, and spyOn's own return type already accounts for that.
+  let generateTextSpy: ReturnType<typeof spyOn<typeof ai, "generateText">>;
+  let generateObjectSpy: ReturnType<typeof spyOn<typeof ai, "generateObject">>;
+  let generateImageSpy: ReturnType<typeof spyOn<typeof ai, "generateImage">>;
 
   beforeEach(() => {
     logger = createSilentLogger();
 
     // Set up spies
-    generateTextSpy = spyOn(
-      ai,
-      "generateText",
-    ) as unknown as typeof generateTextSpy;
-    generateObjectSpy = spyOn(
-      ai,
-      "generateObject",
-    ) as unknown as typeof generateObjectSpy;
-    generateImageSpy = spyOn(
-      ai,
-      "generateImage",
-    ) as unknown as typeof generateImageSpy;
+    generateTextSpy = spyOn(ai, "generateText");
+    generateObjectSpy = spyOn(ai, "generateObject");
+    generateImageSpy = spyOn(ai, "generateImage");
 
     // Reset mocks
     generateTextSpy.mockClear();
@@ -371,14 +386,24 @@ describe("AIService", () => {
         logger,
       );
       const schema = z.object({ met: z.boolean(), reason: z.string() });
-      generateObjectSpy.mockResolvedValueOnce({
-        object: { met: true, reason: "Evidence satisfies the goal." },
-        usage: {
-          inputTokens: 8,
-          outputTokens: 5,
-          totalTokens: 13,
-        },
-      });
+      generateObjectSpy.mockResolvedValueOnce(
+        objectResult(
+          { met: true, reason: "Evidence satisfies the goal." },
+          {
+            inputTokens: 8,
+            outputTokens: 5,
+            totalTokens: 13,
+            // LanguageModelUsage carries per-modality detail; the loose spy type
+            // this replaces let these stubs omit it entirely.
+            inputTokenDetails: {
+              noCacheTokens: 8,
+              cacheReadTokens: 0,
+              cacheWriteTokens: 0,
+            },
+            outputTokenDetails: { textTokens: 5, reasoningTokens: 0 },
+          },
+        ),
+      );
 
       const result = await service.judge({
         instruction: "Decide whether the goal is met.",
@@ -406,10 +431,22 @@ describe("AIService", () => {
       );
       const schema = z.object({ met: z.boolean() });
       const signal = new AbortController().signal;
-      generateObjectSpy.mockResolvedValueOnce({
-        object: { met: true },
-        usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
-      });
+      generateObjectSpy.mockResolvedValueOnce(
+        objectResult(
+          { met: true },
+          {
+            inputTokens: 1,
+            outputTokens: 1,
+            totalTokens: 2,
+            inputTokenDetails: {
+              noCacheTokens: 1,
+              cacheReadTokens: 0,
+              cacheWriteTokens: 0,
+            },
+            outputTokenDetails: { textTokens: 1, reasoningTokens: 0 },
+          },
+        ),
+      );
 
       await service.judge({
         instruction: "Judge this.",

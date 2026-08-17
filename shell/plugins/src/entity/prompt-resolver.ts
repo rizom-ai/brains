@@ -30,8 +30,14 @@ const promptCache = new Map<string, string>();
  *
  * Results are cached — subsequent calls for the same target skip the DB.
  */
+/** The entity reads and writes prompt resolution performs. */
+export type PromptEntityStore = Pick<
+  IEntityService,
+  "getEntity" | "createEntity"
+>;
+
 export async function resolvePrompt(
-  entityService: IEntityService,
+  entityService: PromptEntityStore,
   target: string,
   fallback: string,
 ): Promise<string> {
@@ -94,9 +100,12 @@ export function resetPromptCache(): void {
  * Materialize prompt entities for every registered template that carries a
  * basePrompt. Returns the number of templates materialized.
  */
+/** The template listing prompt materialization reads. */
+export type PromptTemplateSource = Pick<TemplateRegistry, "list">;
+
 export async function materializePrompts(
-  templateRegistry: TemplateRegistry,
-  entityService: IEntityService,
+  templateRegistry: PromptTemplateSource,
+  entityService: PromptEntityStore,
 ): Promise<number> {
   const promptTemplates = templateRegistry
     .list()

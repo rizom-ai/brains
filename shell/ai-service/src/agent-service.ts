@@ -1,7 +1,7 @@
 import { type Logger } from "@brains/utils/logger";
+import type { AgentConversationStore } from "./turn-processor";
 import { parseConfirmationResponse } from "@brains/utils/confirmation-response";
 import type { IMCPService } from "@brains/mcp-service";
-import type { IConversationService } from "@brains/conversation-service";
 import type {
   IBrainCharacterService,
   IAnchorProfileService,
@@ -97,7 +97,7 @@ export class AgentService implements IAgentService {
 
   public static createFresh(
     mcpService: IMCPService,
-    conversationService: IConversationService,
+    conversationService: AgentConversationStore,
     identityService: IBrainCharacterService,
     profileService: IAnchorProfileService,
     logger: Logger,
@@ -118,7 +118,7 @@ export class AgentService implements IAgentService {
    */
   private constructor(
     mcpService: IMCPService,
-    conversationService: IConversationService,
+    conversationService: AgentConversationStore,
     identityService: IBrainCharacterService,
     profileService: IAnchorProfileService,
     logger: Logger,
@@ -159,6 +159,18 @@ export class AgentService implements IAgentService {
       (conversationId, response, context) =>
         this.turns.persistCancelledAction(conversationId, response, context),
     );
+  }
+
+  /**
+   * The live per-conversation actor registry.
+   *
+   * Read-only in practice: callers observe actor lifetime and machine state
+   * through `peek` and `size`. Exposed so lifecycle assertions and diagnostics
+   * do not have to reach through the private field with `Reflect.get`, which
+   * turns a rename into a runtime failure instead of a compile error.
+   */
+  public getConversationActors(): ConversationActorRegistry<ConversationActor> {
+    return this.conversationActors;
   }
 
   /**

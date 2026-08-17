@@ -33,7 +33,11 @@ describe("DirectorySync - Non-blocking Image Conversion", () => {
     mockEntityService = createMockEntityService({
       entityTypes: ["post", "image"],
       returns: {
-        createEntity: { entityId: "test-image-id", jobId: "job-1" },
+        createEntity: {
+          entityId: "test-image-id",
+          jobId: "job-1",
+          skipped: false,
+        },
       },
     });
 

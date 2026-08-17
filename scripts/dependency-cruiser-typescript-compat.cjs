@@ -1,5 +1,4 @@
-/* global __dirname, require */
-/* eslint-disable @typescript-eslint/explicit-function-return-type, @typescript-eslint/no-require-imports */
+/* eslint-disable @typescript-eslint/explicit-function-return-type */
 const Module = require("node:module");
 const { join } = require("node:path");
 const { pathToFileURL } = require("node:url");

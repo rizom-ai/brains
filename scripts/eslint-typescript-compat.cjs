@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/explicit-function-return-type -- patches Module._resolveFilename, whose signature is node internal */
 const Module = require("node:module");
 
 const originalResolveFilename = Module._resolveFilename;

@@ -32,7 +32,7 @@ import { z } from "@brains/utils/zod";
 import { Shell, type ShellDependencies } from "../src/shell";
 import { PROJECTION_RULE_JOB_TYPE } from "../src/projection-wave-scheduler";
 import { createTestShellConfig } from "./helpers/test-config";
-import { createTestDirectory } from "./helpers/test-db";
+import { createTestDirectory } from "@brains/test-utils";
 
 class ProjectionTargetAdapter extends BaseEntityAdapter<BaseEntity> {
   constructor() {

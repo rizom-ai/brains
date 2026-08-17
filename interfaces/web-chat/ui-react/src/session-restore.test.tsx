@@ -32,19 +32,18 @@ beforeEach(() => {
   historyMessages = [
     { id: "old-message", role: "user", content: "Before reload" },
   ];
-  const win = windowInstance as unknown as Window & Record<string, unknown>;
   Object.assign(globalThis, {
     window: windowInstance,
     document: windowInstance.document,
     localStorage: windowInstance.localStorage,
     navigator: windowInstance.navigator,
-    HTMLElement: win.HTMLElement,
-    Element: win.Element,
-    Node: win.Node,
-    Event: win.Event,
-    CustomEvent: win.CustomEvent,
-    MutationObserver: win.MutationObserver,
-    ResizeObserver: win.ResizeObserver,
+    HTMLElement: windowInstance.HTMLElement,
+    Element: windowInstance.Element,
+    Node: windowInstance.Node,
+    Event: windowInstance.Event,
+    CustomEvent: windowInstance.CustomEvent,
+    MutationObserver: windowInstance.MutationObserver,
+    ResizeObserver: windowInstance.ResizeObserver,
     requestAnimationFrame:
       windowInstance.requestAnimationFrame.bind(windowInstance),
     cancelAnimationFrame:
@@ -76,9 +75,12 @@ beforeEach(() => {
     throw new Error(`Unexpected fetch: ${url}`);
   }) as typeof fetch;
 
-  const container = windowInstance.document.createElement("div");
-  windowInstance.document.body.append(container);
-  root = createRoot(container as unknown as HTMLElement);
+  // globalThis.document is the happy-dom document assigned above, but typed as
+  // lib.dom's — so the element it makes is the one React's createRoot declares,
+  // and the object at runtime is still happy-dom's.
+  const container = document.createElement("div");
+  document.body.append(container);
+  root = createRoot(container);
 });
 
 afterEach(async () => {

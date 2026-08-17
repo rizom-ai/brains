@@ -26,17 +26,27 @@ export interface RemoteAgentServiceConfig {
   timeoutMs?: number | undefined;
 }
 
-interface RemoteAgentServiceRuntimeOptions {
+/** The one shape of fetch this service calls. */
+export type FetchImpl = (url: string, init: RequestInit) => Promise<Response>;
+
+export interface RemoteAgentServiceRuntimeOptions {
   clock?: Clock.Clock;
+  /**
+   * Injected so a test can answer requests without replacing globalThis.fetch.
+   * Declared as the single call this service makes rather than `typeof fetch`,
+   * whose overloads span Request, URL and string and cannot be satisfied by a
+   * stand-in.
+   */
+  fetchImpl?: FetchImpl;
 }
 
 export class RemoteAgentService implements IAgentService {
   private readonly baseUrl: string;
   private readonly authToken?: string | undefined;
   private readonly timeoutMs: number;
+  private readonly fetchImpl: FetchImpl;
   private readonly clock: Clock.Clock | undefined;
 
-  constructor(config: RemoteAgentServiceConfig);
   constructor(
     config: RemoteAgentServiceConfig,
     runtimeOptions?: RemoteAgentServiceRuntimeOptions,
@@ -45,6 +55,7 @@ export class RemoteAgentService implements IAgentService {
     this.authToken = config.authToken;
     this.timeoutMs = config.timeoutMs ?? 30_000;
     this.clock = runtimeOptions?.clock;
+    this.fetchImpl = runtimeOptions?.fetchImpl ?? fetch;
   }
 
   async chat(
@@ -84,7 +95,7 @@ export class RemoteAgentService implements IAgentService {
   ): Promise<AgentResponse> {
     const request = Effect.tryPromise({
       try: async (requestSignal) => {
-        const response = await fetch(`${this.baseUrl}${path}`, {
+        const response = await this.fetchImpl(`${this.baseUrl}${path}`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

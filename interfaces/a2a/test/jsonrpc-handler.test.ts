@@ -8,6 +8,7 @@ import {
 } from "../src/jsonrpc-handler";
 import type { AgentNamespace, AgentResponse } from "@brains/plugins";
 import type { Task } from "@a2a-js/sdk";
+import { waitUntil } from "@brains/test-utils";
 
 const OK_USAGE = { promptTokens: 0, completionTokens: 0, totalTokens: 0 };
 const OK_RESPONSE: AgentResponse = { text: "ok", usage: OK_USAGE };
@@ -40,6 +41,23 @@ function createCustomAgentService(
 ): AgentNamespace {
   const base = createMockAgentService();
   return { ...base, ...overrides };
+}
+
+/**
+ * message/send returns as soon as the task is accepted and finishes the turn in
+ * the background, so tests that read the outcome must wait for the task to leave
+ * its in-flight states. Waiting on the state the assertion reads also reports
+ * the state it got stuck in, where a sleep could only report "still working".
+ */
+async function waitForTaskState(
+  taskManager: TaskManager,
+  taskId: string,
+  state: Task["status"]["state"],
+): Promise<void> {
+  await waitUntil(
+    () => taskManager.getTask(taskId)?.task.status.state === state,
+    `task ${taskId} to reach "${state}"`,
+  );
 }
 
 /**
@@ -256,8 +274,7 @@ describe("JSON-RPC Handler", () => {
 
       const task = expectSuccess(response);
 
-      // Wait for background processing
-      await new Promise((r) => setTimeout(r, 10));
+      await waitForTaskState(taskManager, task.id, "failed");
 
       const failed = taskManager.getTask(task.id);
       expect(failed?.task.status.state).toBe("failed");
@@ -314,8 +331,7 @@ describe("JSON-RPC Handler", () => {
       );
       const taskId = expectSuccess(sendResponse).id;
 
-      // Wait for background processing
-      await new Promise((r) => setTimeout(r, 10));
+      await waitForTaskState(taskManager, taskId, "completed");
 
       // Then get it
       const getResponse = await handleJsonRpc(
@@ -345,8 +361,8 @@ describe("JSON-RPC Handler", () => {
           callerDomain: "peer-a.example",
         },
       );
-      await new Promise((r) => setTimeout(r, 10));
       const taskId = expectSuccess(sendResponse).id;
+      await waitForTaskState(taskManager, taskId, "completed");
 
       const getResponse = await handleJsonRpc(
         rpcRequest("tasks/get", { id: taskId, historyLength: 1 }),
@@ -474,8 +490,8 @@ describe("JSON-RPC Handler", () => {
       );
       const taskId = expectSuccess(sendResponse).id;
 
-      // Wait for background processing to complete
-      await new Promise((r) => setTimeout(r, 10));
+      // Cancel only means something once the turn has actually landed
+      await waitForTaskState(taskManager, taskId, "completed");
 
       const cancelResponse = await handleJsonRpc(
         rpcRequest("tasks/cancel", { id: taskId }),
@@ -569,12 +585,17 @@ describe("JSON-RPC Handler", () => {
 
   describe("message/send (non-blocking)", () => {
     it("should return working task immediately without awaiting agent", async () => {
-      // Agent that takes a long time — non-blocking should NOT wait for it
+      // Agent that has not returned — non-blocking should NOT wait for it.
+      // Gating on a promise rather than a 5s timer states "still running"
+      // exactly, and leaves no timer outliving the test.
       let agentCalled = false;
+      const agentGate = Promise.withResolvers<void>();
+      const agentFinished = Promise.withResolvers<void>();
       const slowAgent = createCustomAgentService({
         chat: async () => {
           agentCalled = true;
-          await new Promise((r) => setTimeout(r, 5000));
+          await agentGate.promise;
+          agentFinished.resolve();
           return { text: "done", usage: OK_USAGE };
         },
       });
@@ -591,6 +612,10 @@ describe("JSON-RPC Handler", () => {
       expect(task.status.state).toBe("working");
       // Agent was called (fire-and-forget), but we didn't wait for it
       expect(agentCalled).toBe(true);
+
+      // Release it so the background turn unwinds before the test ends.
+      agentGate.resolve();
+      await agentFinished.promise;
     });
 
     it("should complete task in background after returning working", async () => {
@@ -598,10 +623,13 @@ describe("JSON-RPC Handler", () => {
         text: "Background result",
       });
 
-      // Agent responds after a short delay
+      // Agent held open until the test releases it, so the task is guaranteed
+      // to still be "working" when the response is checked below. A 50ms delay
+      // only made that likely.
+      const agentGate = Promise.withResolvers<void>();
       const delayedAgent: AgentNamespace = {
         chat: async (...args) => {
-          await new Promise((r) => setTimeout(r, 50));
+          await agentGate.promise;
           return agentDone.chat(...args);
         },
         confirmPendingAction: agentDone.confirmPendingAction,
@@ -619,8 +647,9 @@ describe("JSON-RPC Handler", () => {
       const task = expectSuccess(response);
       expect(task.status.state).toBe("working");
 
-      // Wait for background processing to complete
-      await new Promise((r) => setTimeout(r, 100));
+      // Let the agent answer, then wait for the background turn to land it
+      agentGate.resolve();
+      await waitForTaskState(taskManager, task.id, "completed");
 
       // Task should now be completed
       const completed = taskManager.getTask(task.id);
@@ -647,9 +676,9 @@ describe("JSON-RPC Handler", () => {
 
       const task = expectSuccess(response);
 
-      // Background processing may complete before or after return,
-      // so wait a tick then verify the task reached "failed"
-      await new Promise((r) => setTimeout(r, 10));
+      // Background processing may complete before or after return, so wait for
+      // the state itself rather than for a tick that assumes it is quick.
+      await waitForTaskState(taskManager, task.id, "failed");
 
       const failed = taskManager.getTask(task.id);
       expect(failed?.task.status.state).toBe("failed");
@@ -919,10 +948,13 @@ describe("JSON-RPC Handler", () => {
     });
 
     it("should not throw when consumer disconnects early", async () => {
-      // Slow agent — consumer will cancel before it completes
+      // Agent held open so the consumer is guaranteed to cancel mid-turn
+      const agentGate = Promise.withResolvers<void>();
+      const agentFinished = Promise.withResolvers<void>();
       const slowAgent = createCustomAgentService({
         chat: async () => {
-          await new Promise((r) => setTimeout(r, 5000));
+          await agentGate.promise;
+          agentFinished.resolve();
           return { text: "late", usage: OK_USAGE };
         },
       });
@@ -945,8 +977,11 @@ describe("JSON-RPC Handler", () => {
       await reader.read(); // get working event
       await reader.cancel(); // disconnect
 
-      // Should not throw — give background a tick
-      await new Promise((r) => setTimeout(r, 50));
+      // Let the agent answer into a stream nobody is reading. Awaiting the turn
+      // to actually finish is what proves it did not throw; a fixed tick only
+      // proved that 50ms had passed, whether or not the turn had got there.
+      agentGate.resolve();
+      await agentFinished.promise;
     });
   });
 });

@@ -1,7 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { mkdtemp } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { createTempDataDir } from "@brains/plugins/test";
 import { AuthServicePlugin } from "@brains/auth-service";
 import type { WebRouteDefinition } from "@brains/plugins";
 import { createMockShell, type MockShell } from "@brains/test-utils";
@@ -71,7 +69,7 @@ describe("cms plugin", () => {
   it("grants CMS access to an active Trusted session", async () => {
     const shell = createCmsTestShell();
     const authPlugin = new AuthServicePlugin({
-      storageDir: await mkdtemp(join(tmpdir(), "brains-cms-auth-")),
+      storageDir: await createTempDataDir("brains-cms-auth-"),
     });
     await authPlugin.register(shell);
     const trusted = await authPlugin.getService().createUser({

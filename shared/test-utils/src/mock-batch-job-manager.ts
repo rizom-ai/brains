@@ -1,5 +1,9 @@
 import { mock } from "bun:test";
-import type { IBatchJobManager } from "@brains/job-queue";
+import type {
+  Batch,
+  BatchJobStatus,
+  IBatchJobManager,
+} from "@brains/job-queue";
 
 /**
  * Options for configuring mock BatchJobManager behavior
@@ -13,15 +17,16 @@ export interface MockBatchJobManagerOptions {
  */
 export interface MockBatchJobManagerReturns {
   enqueueBatch?: string;
-  getBatchStatus?: unknown | null;
-  getActiveBatches?: unknown[];
+  getBatchStatus?: BatchJobStatus | null;
+  getActiveBatches?: Batch[];
 }
 
 /**
  * Create a mock IBatchJobManager for testing
  *
- * Returns an IBatchJobManager-typed object where all methods are bun mock functions.
- * The cast is centralized here so test files don't need `as unknown as` casts.
+ * Returns an IBatchJobManager-typed object where all methods are bun mock
+ * functions. The literal is type-checked, so interface drift fails to compile
+ * here rather than leaving a stale mock.
  *
  * @example
  * ```typescript
@@ -42,7 +47,9 @@ export function createMockBatchJobManager(
 ): IBatchJobManager {
   const returns = options.returns ?? {};
 
-  const mockManager = {
+  const mockManager: IBatchJobManager = {
+    start: mock(() => {}),
+    stop: mock(() => {}),
     registerBatch: mock(() => {}),
     enqueueBatch: mock(() =>
       Promise.resolve(returns.enqueueBatch ?? "batch-id"),
@@ -53,5 +60,5 @@ export function createMockBatchJobManager(
     ),
   };
 
-  return mockManager as unknown as IBatchJobManager;
+  return mockManager;
 }

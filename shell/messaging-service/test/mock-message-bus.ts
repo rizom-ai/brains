@@ -1,5 +1,5 @@
 import { mock } from "bun:test";
-import type { MessageBus, MessageResponse } from "../src";
+import type { IMessageBus, MessageResponse } from "../src";
 
 /**
  * Options for configuring mock message bus return values.
@@ -21,9 +21,19 @@ export interface MockMessageBusOptions {
 /**
  * Create a mock message bus with all methods pre-configured.
  */
+/**
+ * Returns the interface rather than the MessageBus class.
+ *
+ * MessageBus is a class, so declaring it here made the result nominally typed:
+ * every consumer wanting an IMessageBus had to cast, and four of them did. The
+ * one assertion left is the generic-erasure case `genericSpy` covers
+ * elsewhere — `send<T, R>` cannot be expressed by `mock()` — and it cannot
+ * be used here, since @brains/test-utils depends on this package and declaring
+ * it back would cycle. One cast here beats one at every call site.
+ */
 export function createMockMessageBus(
   options: MockMessageBusOptions = {},
-): MessageBus {
+): IMessageBus {
   const { returns = {} } = options;
   const defaultSendResult = returns.send ?? { success: true };
 
@@ -37,5 +47,5 @@ export function createMockMessageBus(
     getHandlerCount: mock(() => returns.getHandlerCount ?? 0),
     getTargetedHandlerCount: mock(() => returns.getTargetedHandlerCount ?? 0),
     validateMessage: mock(() => ({ valid: true, data: {} })),
-  } as unknown as MessageBus;
+  } as unknown as IMessageBus;
 }

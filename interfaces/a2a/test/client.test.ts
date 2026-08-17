@@ -705,7 +705,10 @@ describe("A2A Client", () => {
         return result;
       });
       await cancelStarted;
-      await new Promise((resolve) => setTimeout(resolve, 0));
+      // One turn of the macrotask queue, not a duration: the assertion below is
+      // that the call has *not* settled, so the point is to give every already
+      // scheduled continuation a chance to run and then find it still pending.
+      await Bun.sleep(0);
 
       try {
         expect(callSettled).toBe(false);

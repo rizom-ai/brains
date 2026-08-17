@@ -1,3 +1,4 @@
+/** @jsxImportSource react */
 import type { Dispatch, ReactElement, SetStateAction } from "react";
 import { styles } from "./app-styles";
 import type {

@@ -1,5 +1,6 @@
-import { describe, expect, it, mock } from "bun:test";
-import type { BaseEntity, ServicePluginContext } from "@brains/plugins";
+import { describe, expect, it, type mock } from "bun:test";
+import type { BaseEntity } from "@brains/plugins";
+import { createMockServicePluginContext } from "@brains/test-utils";
 import { PublishAssetPreflight } from "../src/publish-asset-preflight";
 import { PublishAssetRegistry } from "../src/publish-assets";
 
@@ -36,18 +37,18 @@ function createPreflight(options: { hasProvider?: boolean } = {}): {
     jobType: "image:image-render-source",
   });
 
-  const enqueue = mock(async () => "job-1");
-  const context = {
-    attachments: {
-      hasProvider: mock(() => options.hasProvider ?? true),
-    },
-    jobs: { enqueue },
-    logger: { debug: mock(() => {}), warn: mock(() => {}) },
-  } as unknown as Pick<ServicePluginContext, "attachments" | "jobs" | "logger">;
+  // The factory's namespaces are real and spied, so the preflight runs against
+  // the actual attachments and jobs implementations.
+  const context = createMockServicePluginContext({
+    returns: { jobsEnqueue: "job-1" },
+  });
+  context.attachments.hasProvider.mockImplementation(
+    () => options.hasProvider ?? true,
+  );
 
   return {
     preflight: new PublishAssetPreflight({ context, registry }),
-    enqueue,
+    enqueue: context.jobs.enqueue,
   };
 }
 

@@ -1,10 +1,10 @@
 import { mock } from "bun:test";
-import type {
-  EntityPluginContext,
-  IEntityService,
-  BaseEntity,
-  MessageSendRequest,
-  ResolvedProfileSelection,
+import {
+  createEntityPluginContext,
+  type EntityPluginContext,
+  type IEntityService,
+  type BaseEntity,
+  type ResolvedProfileSelection,
 } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import type { PublishMediaData } from "@brains/contracts";
@@ -13,7 +13,40 @@ import {
   type MockEntityServiceReturns,
 } from "./mock-entity-service";
 import { createMockLogger } from "./mock-logger";
-import { createMockAppInfo } from "./mock-app-info";
+import { createMockShell } from "./mock-shell";
+import { genericSpy } from "./generic-spy";
+import { spyOnMembers, type SpiedMembers } from "./spy-on-members";
+
+/**
+ * The namespaces this factory wraps in recording spies.
+ *
+ * Named so the return type can expose them. Declaring the factory's result as
+ * a plain EntityPluginContext hid the spies from the type system, so a test
+ * that needed to read a captured argument had no typed route to it and reached
+ * for a cast instead — which is what several of the casts Phase 6 removes were.
+ *
+ * messaging and ai are spied too but stay off this list: some of their members
+ * go through genericSpy, which re-applies a generic signature that mock() had
+ * erased and cannot also carry a precisely-typed Mock. Their calls are still
+ * recorded and still assertable with toHaveBeenCalledWith; only reading a
+ * captured argument back off them needs another route.
+ */
+type SpiedNamespace =
+  | "entities"
+  | "prompts"
+  | "conversations"
+  | "attachments"
+  | "profileKinds"
+  | "jobs"
+  | "dashboard";
+
+/** An EntityPluginContext whose spied namespaces report their calls. */
+export type MockEntityPluginContext = Omit<
+  EntityPluginContext,
+  SpiedNamespace
+> & {
+  [K in SpiedNamespace]: SpiedMembers<EntityPluginContext[K]>;
+};
 
 /**
  * Return value configuration for AI namespace methods
@@ -42,7 +75,7 @@ export interface MockEntityPluginContextOptions {
     ai?: MockAIReturns;
     jobsEnqueue?: string;
     attachmentsResolve?: () => Promise<PublishMediaData | undefined>;
-    messagingSend?: (request: MessageSendRequest) => Promise<unknown>;
+    messagingSend?: EntityPluginContext["messaging"]["send"];
   };
   listEntitiesImpl?: (request: { entityType: string }) => Promise<BaseEntity[]>;
 }
@@ -54,7 +87,7 @@ export interface MockEntityPluginContextOptions {
  */
 export function createMockEntityPluginContext(
   options: MockEntityPluginContextOptions = {},
-): EntityPluginContext {
+): MockEntityPluginContext {
   const {
     entityTypes = [],
     pluginId = "test-plugin",
@@ -73,115 +106,69 @@ export function createMockEntityPluginContext(
     });
   const logger = options.logger ?? createMockLogger();
 
+  const shell = createMockShell({ logger, entityService, dataDir, spaces });
+
+  // Build the real context, then layer only what the options configure. The
+  // factory guarantees every member exists and stays in step with the
+  // interface, so this file cannot drift the way a hand-written literal did.
+  const context = createEntityPluginContext(shell, pluginId);
+
+  const ai = returns.ai;
+
   return {
-    entityService,
-    logger,
-    pluginId,
-    dataDir,
-
-    entities: {
-      register: mock(() => {}),
-      getAdapter: mock(() => undefined),
-      extendFrontmatterSchema: mock(() => {}),
-      getEffectiveFrontmatterSchema: mock(() => undefined),
-      update: mock(() =>
-        Promise.resolve({ entityId: "mock-id", jobId: "mock-job" }),
-      ),
-      registerDataSource: mock(() => {}),
+    ...context,
+    // Namespaces tests assert against are wrapped so the factory's real
+    // behaviour still runs while calls are recorded.
+    entities: spyOnMembers(context.entities),
+    prompts: spyOnMembers(context.prompts),
+    conversations: spyOnMembers(context.conversations),
+    attachments: {
+      ...spyOnMembers(context.attachments),
+      ...(returns.attachmentsResolve
+        ? { resolve: mock(returns.attachmentsResolve) }
+        : {}),
+      ...(returns.attachmentsResolve ? { hasProvider: mock(() => true) } : {}),
     },
-
-    ai: {
-      query: mock(() => Promise.resolve({ message: "mock response" })),
-      generate: mock(() => Promise.resolve(returns.ai?.generate ?? {})),
-      generateImage: mock(() => {
-        if (returns.ai?.generateImageError) {
-          return Promise.reject(returns.ai.generateImageError);
-        }
-        return Promise.resolve(
-          returns.ai?.generateImage ?? {
-            base64: "mock-base64",
-            dataUrl: "data:image/png;base64,mock-base64",
-          },
-        );
-      }),
-      canGenerateImages: mock(() => returns.ai?.canGenerateImages ?? false),
-      generateObject: mock(() =>
-        Promise.resolve({ object: returns.ai?.generateObject ?? {} }),
-      ),
-    },
-
-    prompts: {
-      resolve: mock((_target: string, fallback: string) =>
-        Promise.resolve(fallback),
-      ),
-    },
-
     profileKinds: {
-      register: mock(() => {}),
+      ...spyOnMembers(context.profileKinds),
       getResolved: mock(() => options.profileSelection ?? null),
-      getSelectedDefinition: mock(() => undefined),
     },
-
-    identity: {
-      get: mock(() => ({ name: "Test Brain", values: [] })),
-      getProfile: mock(() => ({ name: "Test Profile", role: "", purpose: "" })),
-      getAppInfo: mock(() =>
-        Promise.resolve({
-          version: "0.0.0",
-          model: "test-model",
-          plugins: [],
-        }),
-      ),
-    },
-
-    appInfo: mock(() => Promise.resolve(createMockAppInfo())),
-
-    domain: undefined,
-    spaces,
-    siteUrl: undefined,
-    localSiteUrl: undefined,
-    previewUrl: undefined,
-    preferLocalUrls: false,
-
-    conversations: {
-      get: mock(() => Promise.resolve(null)),
-      search: mock(() => Promise.resolve([])),
-      list: mock(() => Promise.resolve([])),
-      getMessages: mock(() => Promise.resolve([])),
-      countMessages: mock(() => Promise.resolve(0)),
-    },
-
     jobs: {
+      ...spyOnMembers(context.jobs),
       enqueue: mock(() =>
         Promise.resolve(returns.jobsEnqueue ?? "mock-job-id"),
       ),
-      enqueueBatch: mock(() => Promise.resolve("mock-batch-id")),
-      registerHandler: mock(() => {}),
-      getStatus: mock(() => Promise.resolve(null)),
-      getActiveJobs: mock(() => Promise.resolve([])),
-      getActiveBatches: mock(() => Promise.resolve([])),
-      getBatchStatus: mock(() => Promise.resolve(null)),
     },
-
-    attachments: {
-      register: mock(() => () => {}),
-      resolve: mock(
-        returns.attachmentsResolve ??
-          ((): Promise<PublishMediaData | undefined> =>
-            Promise.resolve(undefined)),
-      ),
-      hasProvider: mock(() => returns.attachmentsResolve !== undefined),
-    },
-
-    eval: {
-      registerHandler: mock(() => {}),
-    },
-
+    dashboard: spyOnMembers(context.dashboard),
     messaging: {
-      send: mock(
-        returns.messagingSend ?? ((): Promise<void> => Promise.resolve()),
-      ),
-      subscribe: mock(() => () => {}),
+      ...spyOnMembers(context.messaging),
+      ...(returns.messagingSend
+        ? {
+            send: genericSpy<EntityPluginContext["messaging"]["send"]>(
+              mock(returns.messagingSend),
+            ),
+          }
+        : {}),
     },
-  } as unknown as EntityPluginContext;
+    ai: {
+      ...spyOnMembers(context.ai),
+      generate: genericSpy<EntityPluginContext["ai"]["generate"]>(
+        mock(() => Promise.resolve(ai?.generate ?? {})),
+      ),
+      generateObject: genericSpy<EntityPluginContext["ai"]["generateObject"]>(
+        mock(() => Promise.resolve({ object: ai?.generateObject ?? {} })),
+      ),
+      generateImage: mock(() =>
+        ai?.generateImageError
+          ? Promise.reject(ai.generateImageError)
+          : Promise.resolve(
+              ai?.generateImage ?? {
+                base64: "mock-base64",
+                dataUrl: "data:image/png;base64,mock-base64",
+              },
+            ),
+      ),
+      canGenerateImages: mock(() => ai?.canGenerateImages ?? false),
+    },
+  };
 }

@@ -2,7 +2,7 @@
  * Test utilities for plugin development
  * Import from "@brains/plugins/test" instead of deep paths
  */
-export { createMockShell, type MockShell } from "./src/test/mock-shell";
+export { createMockShell, type MockShell } from "@brains/test-utils";
 export {
   PluginTestHarness,
   createPluginHarness,
@@ -11,7 +11,11 @@ export {
   expectConfirmation,
   type HarnessOptions,
 } from "./src/test/harness";
-export { createTempDataDir, createTempDataDirSync } from "./src/test/temp-dir";
+export {
+  createTempDataDir,
+  createTempDataDirSync,
+  removeTrackedTempDataDirs,
+} from "./src/test/temp-dir";
 
 // Re-export commonly used types and schemas for test convenience
 export type {

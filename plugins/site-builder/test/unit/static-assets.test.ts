@@ -1,34 +1,14 @@
-import { describe, test, expect, beforeEach, mock } from "bun:test";
-import { PreactBuilder } from "../../src/lib/preact-builder";
-import type { StaticSiteBuilderOptions } from "../../src/lib/static-site-builder";
+import { describe, test, expect, mock } from "bun:test";
+import {
+  writeInlineStaticAssets,
+  writePublicAssets,
+} from "../../src/lib/preact-builder";
 import { createSilentLogger } from "@brains/test-utils";
 import { promises as fs } from "fs";
 
-// Type for accessing private methods in tests
-interface PreactBuilderTestable {
-  writePublicAssets(
-    assets: Record<string, string>,
-    signal: AbortSignal,
-  ): Promise<void>;
-  writeInlineStaticAssets(
-    assets: Record<string, string> | undefined,
-    signal: AbortSignal,
-  ): Promise<void>;
-}
-
 describe("PreactBuilder - Snapshotted Public Assets", () => {
-  let builder: PreactBuilder;
-  let testableBuilder: PreactBuilderTestable;
-
-  beforeEach(() => {
-    const options: StaticSiteBuilderOptions = {
-      logger: createSilentLogger(),
-      workingDir: "/tmp/working",
-      outputDir: "/tmp/output",
-    };
-    builder = new PreactBuilder(options);
-    testableBuilder = builder as unknown as PreactBuilderTestable;
-  });
+  const outputDir = "/tmp/output";
+  const logger = createSilentLogger();
 
   test("writes nested binary assets from the prepared snapshot", async () => {
     const originalMkdir = fs.mkdir;
@@ -41,11 +21,13 @@ describe("PreactBuilder - Snapshotted Public Assets", () => {
     }) as typeof fs.writeFile;
 
     try {
-      await testableBuilder.writePublicAssets(
+      await writePublicAssets(
         {
           "icons/favicon.bin": Buffer.from([0, 1, 2, 3]).toString("base64"),
         },
         new AbortController().signal,
+        outputDir,
+        logger,
       );
 
       expect(writes).toHaveLength(1);
@@ -61,27 +43,19 @@ describe("PreactBuilder - Snapshotted Public Assets", () => {
 
   test("rejects snapshotted paths that escape output", async () => {
     expect(
-      testableBuilder.writePublicAssets(
+      writePublicAssets(
         { "../outside.bin": "AA==" },
         new AbortController().signal,
+        outputDir,
+        logger,
       ),
     ).rejects.toThrow("path contains a .. segment");
   });
 });
 
 describe("PreactBuilder - Inline Static Assets (from SitePackage)", () => {
-  let builder: PreactBuilder;
-  let testableBuilder: PreactBuilderTestable;
-
-  beforeEach(() => {
-    const options: StaticSiteBuilderOptions = {
-      logger: createSilentLogger(),
-      workingDir: "/tmp/working",
-      outputDir: "/tmp/output",
-    };
-    builder = new PreactBuilder(options);
-    testableBuilder = builder as unknown as PreactBuilderTestable;
-  });
+  const outputDir = "/tmp/output";
+  const logger = createSilentLogger();
 
   test("should write each inline static asset under the output dir", async () => {
     // Given a SitePackage that ships in-memory static assets (e.g.
@@ -102,12 +76,14 @@ describe("PreactBuilder - Inline Static Assets (from SitePackage)", () => {
     }) as typeof fs.writeFile;
 
     try {
-      await testableBuilder.writeInlineStaticAssets(
+      await writeInlineStaticAssets(
         {
           "/canvases/tree.js": "(function(){/* tree */})();",
           "/canvases/constellation.js": "(function(){/* constellation */})();",
         },
         new AbortController().signal,
+        outputDir,
+        logger,
       );
 
       // One writeFile per asset
@@ -138,9 +114,11 @@ describe("PreactBuilder - Inline Static Assets (from SitePackage)", () => {
     fs.writeFile = writeFileMock as typeof fs.writeFile;
 
     try {
-      await testableBuilder.writeInlineStaticAssets(
+      await writeInlineStaticAssets(
         {},
         new AbortController().signal,
+        outputDir,
+        logger,
       );
       expect(writeFileMock).not.toHaveBeenCalled();
     } finally {
@@ -154,9 +132,11 @@ describe("PreactBuilder - Inline Static Assets (from SitePackage)", () => {
     fs.writeFile = writeFileMock as typeof fs.writeFile;
 
     try {
-      await testableBuilder.writeInlineStaticAssets(
+      await writeInlineStaticAssets(
         undefined,
         new AbortController().signal,
+        outputDir,
+        logger,
       );
       expect(writeFileMock).not.toHaveBeenCalled();
     } finally {
@@ -178,12 +158,14 @@ describe("PreactBuilder - Inline Static Assets (from SitePackage)", () => {
     }) as typeof fs.writeFile;
 
     try {
-      await testableBuilder.writeInlineStaticAssets(
+      await writeInlineStaticAssets(
         {
           "/canvases/tree.js": "a",
           "canvases/relative.js": "b",
         },
         new AbortController().signal,
+        outputDir,
+        logger,
       );
 
       // Neither file should be written at a filesystem-root path
@@ -205,11 +187,13 @@ describe("PreactBuilder - Inline Static Assets (from SitePackage)", () => {
     fs.writeFile = writeFileMock as typeof fs.writeFile;
 
     try {
-      const writePromise = testableBuilder.writeInlineStaticAssets(
+      const writePromise = writeInlineStaticAssets(
         {
           "../outside.js": "unsafe",
         },
         new AbortController().signal,
+        outputDir,
+        logger,
       );
       expect(writePromise).rejects.toThrow("path contains a .. segment");
       await writePromise.catch(() => undefined);

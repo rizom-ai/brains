@@ -1,3 +1,4 @@
+/** @jsxImportSource react */
 import { useCallback, useState, type ReactElement } from "react";
 import type {
   SiteEnvironmentSnapshot,

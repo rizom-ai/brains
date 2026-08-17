@@ -15,8 +15,16 @@ describe("DirectoryImportJobHandler", () => {
       returns: {
         entityService: {
           getEntity: null,
-          createEntity: { entityId: "test" },
-          updateEntity: { entityId: "test" },
+          createEntity: {
+            entityId: "test",
+            jobId: "mock-job-id",
+            skipped: false,
+          },
+          updateEntity: {
+            entityId: "test",
+            jobId: "mock-job-id",
+            skipped: false,
+          },
         },
       },
     });

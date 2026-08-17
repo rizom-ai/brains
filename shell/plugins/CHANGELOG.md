@@ -1,5 +1,88 @@
 # @brains/plugins
 
+## 0.2.0-alpha.302
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.302
+  - @brains/contracts@0.2.0-alpha.302
+  - @brains/site-composition@0.2.0-alpha.302
+  - @brains/utils@0.2.0-alpha.302
+  - @brains/ai-service@0.2.0-alpha.302
+  - @brains/content-service@0.2.0-alpha.302
+  - @brains/conversation-service@0.2.0-alpha.302
+  - @brains/entity-service@0.2.0-alpha.302
+  - @brains/identity-service@0.2.0-alpha.302
+  - @brains/job-queue@0.2.0-alpha.302
+  - @brains/mcp-service@0.2.0-alpha.302
+  - @brains/messaging-service@0.2.0-alpha.302
+  - @brains/recurring-checks@0.2.0-alpha.302
+  - @brains/runtime-state@0.2.0-alpha.302
+  - @brains/templates@0.2.0-alpha.302
+
+## 0.2.0-alpha.301
+
+### Patch Changes
+
+- [`b2fd00c`](https://github.com/rizom-ai/brains/commit/b2fd00c1550e0b9a386484e07a53546106f793ce) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Narrow service dependencies to the members their consumers actually call, so a
+  stand-in can be checked against them rather than asserted into place.
+
+  Most of this is additive or loosening: a function that asked for a whole
+  `IEntityService`, `IConversationService`, `IJobQueueService`, `PasskeyService`
+  or `SimpleGit` now asks for the two or three methods it uses, which accepts
+  strictly more than before. Several constructors dropped a lone overload that
+  hid a `runtimeOptions` parameter their implementations already accepted, and a
+  few internals became module-level exports.
+
+  One change narrows rather than widens: `IRuntimeUploadsNamespace.scoped()`
+  returns `ScopedRuntimeUploadStore` — the seven methods the store offers —
+  instead of the concrete `RuntimeUploadStore` class. Code calling those methods
+  is unaffected; code reaching into the class's private fields is not, which was
+  the point.
+
+  `shell/ai-evaluation` also drops an `eval` script that pointed at a directory
+  with no eval config and so could never run. The canonical entry point,
+  `cd packages/brain-cli && bun run eval`, is unchanged.
+
+- Updated dependencies [[`b2fd00c`](https://github.com/rizom-ai/brains/commit/b2fd00c1550e0b9a386484e07a53546106f793ce)]:
+  - @brains/job-queue@0.2.0-alpha.301
+  - @brains/entity-service@0.2.0-alpha.301
+  - @brains/ai-service@0.2.0-alpha.301
+  - @brains/recurring-checks@0.2.0-alpha.301
+  - @brains/content-service@0.2.0-alpha.301
+  - @brains/identity-service@0.2.0-alpha.301
+  - @brains/content-formatters@0.2.0-alpha.301
+  - @brains/contracts@0.2.0-alpha.301
+  - @brains/site-composition@0.2.0-alpha.301
+  - @brains/utils@0.2.0-alpha.301
+  - @brains/conversation-service@0.2.0-alpha.301
+  - @brains/mcp-service@0.2.0-alpha.301
+  - @brains/messaging-service@0.2.0-alpha.301
+  - @brains/runtime-state@0.2.0-alpha.301
+  - @brains/templates@0.2.0-alpha.301
+
+## 0.2.0-alpha.300
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.300
+  - @brains/contracts@0.2.0-alpha.300
+  - @brains/site-composition@0.2.0-alpha.300
+  - @brains/utils@0.2.0-alpha.300
+  - @brains/ai-service@0.2.0-alpha.300
+  - @brains/content-service@0.2.0-alpha.300
+  - @brains/conversation-service@0.2.0-alpha.300
+  - @brains/entity-service@0.2.0-alpha.300
+  - @brains/identity-service@0.2.0-alpha.300
+  - @brains/job-queue@0.2.0-alpha.300
+  - @brains/mcp-service@0.2.0-alpha.300
+  - @brains/messaging-service@0.2.0-alpha.300
+  - @brains/recurring-checks@0.2.0-alpha.300
+  - @brains/runtime-state@0.2.0-alpha.300
+  - @brains/templates@0.2.0-alpha.300
+
 ## 0.2.0-alpha.299
 
 ### Patch Changes

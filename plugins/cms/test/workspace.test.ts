@@ -237,16 +237,21 @@ describe("optional CMS workspaces", () => {
     const shell = createMockShell({ domain: "yeehaa.io" });
     const plugin = cmsPlugin();
     await plugin.register(shell);
-    const legacyRegistration = {
+    const legacyRegistration: CmsWorkspaceRegistration = {
       id: "email-workflows",
       pluginId: "email-workflows",
       label: "Email Triage",
+      // @ts-expect-error EmailTriageWorkspace was retired from the renderer
+      // union, and this asserts the runtime check still turns it away — a
+      // plugin compiled against an older release can still send it. An
+      // expect-error rather than a cast, so it fails the build if the name is
+      // ever reinstated.
       rendererName: "EmailTriageWorkspace",
       priority: 30,
       entityTypes: ["mail-item"],
       accessHandler: () => true,
       dataProvider: async () => ({ items: [] }),
-    } as unknown as CmsWorkspaceRegistration;
+    };
 
     expect(await registerWorkspace(shell, legacyRegistration)).toMatchObject({
       success: false,

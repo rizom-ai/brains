@@ -1,7 +1,7 @@
+import { createTempDir } from "@brains/test-utils";
 import { describe, expect, it } from "bun:test";
 import { execFileSync } from "node:child_process";
 import {
-  mkdtemp,
   mkdir,
   readFile,
   readdir,
@@ -11,7 +11,6 @@ import {
   writeFile,
 } from "node:fs/promises";
 import { existsSync } from "node:fs";
-import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { parse as parseYaml } from "yaml";
 
@@ -123,7 +122,7 @@ async function linkOpsPackage(repoDir: string): Promise<void> {
 
 describe("initPilotRepo", () => {
   it("creates the private rover-pilot repo skeleton", async () => {
-    const root = await mkdtemp(join(tmpdir(), "brains-ops-init-"));
+    const root = await createTempDir("brains-ops-init-");
     const repo = join(root, "rover-pilot");
 
     await initPilotRepo(repo);
@@ -688,7 +687,7 @@ describe("initPilotRepo", () => {
   });
 
   it("reconciles known stale generated deploy artifacts on rerun", async () => {
-    const root = await mkdtemp(join(tmpdir(), "brains-ops-init-"));
+    const root = await createTempDir("brains-ops-init-");
     const repo = join(root, "rover-pilot");
 
     await initPilotRepo(repo);
@@ -725,7 +724,7 @@ describe("initPilotRepo", () => {
   });
 
   it("reconciles prior generated deploy scripts on rerun", async () => {
-    const root = await mkdtemp(join(tmpdir(), "brains-ops-init-"));
+    const root = await createTempDir("brains-ops-init-");
     const repo = join(root, "rover-pilot");
 
     await initPilotRepo(repo);
@@ -767,7 +766,7 @@ describe("initPilotRepo", () => {
   });
 
   it("keeps operator-owned deploy script content on rerun", async () => {
-    const root = await mkdtemp(join(tmpdir(), "brains-ops-init-"));
+    const root = await createTempDir("brains-ops-init-");
     const repo = join(root, "rover-pilot");
 
     await initPilotRepo(repo);
@@ -787,7 +786,7 @@ describe("initPilotRepo", () => {
   });
 
   it("reconciles prior generated tooling workflows on rerun", async () => {
-    const root = await mkdtemp(join(tmpdir(), "brains-ops-init-"));
+    const root = await createTempDir("brains-ops-init-");
     const repo = join(root, "rover-pilot");
 
     await initPilotRepo(repo);
@@ -822,7 +821,7 @@ describe("initPilotRepo", () => {
   });
 
   it("keeps first-run example content deleted by the operator on rerun", async () => {
-    const root = await mkdtemp(join(tmpdir(), "brains-ops-init-"));
+    const root = await createTempDir("brains-ops-init-");
     const repo = join(root, "rover-pilot");
 
     await initPilotRepo(repo);
@@ -849,7 +848,7 @@ describe("initPilotRepo", () => {
   });
 
   it("scaffolds an Upgrade workflow that stages tooling bumps as PRs", async () => {
-    const root = await mkdtemp(join(tmpdir(), "brains-ops-init-"));
+    const root = await createTempDir("brains-ops-init-");
     const repo = join(root, "rover-pilot");
 
     await initPilotRepo(repo);
@@ -929,7 +928,7 @@ describe("initPilotRepo", () => {
   });
 
   it("reconciles generated ATProto deploy env artifacts on rerun", async () => {
-    const root = await mkdtemp(join(tmpdir(), "brains-ops-init-"));
+    const root = await createTempDir("brains-ops-init-");
     const repo = join(root, "rover-pilot");
 
     await initPilotRepo(repo);
@@ -979,7 +978,7 @@ describe("initPilotRepo", () => {
   });
 
   it("reconciles stale deploy volume mounts on rerun", async () => {
-    const root = await mkdtemp(join(tmpdir(), "brains-ops-init-"));
+    const root = await createTempDir("brains-ops-init-");
     const repo = join(root, "rover-pilot");
 
     await initPilotRepo(repo);
@@ -1002,7 +1001,7 @@ describe("initPilotRepo", () => {
   });
 
   it("preserves custom deploy artifacts on rerun", async () => {
-    const root = await mkdtemp(join(tmpdir(), "brains-ops-init-"));
+    const root = await createTempDir("brains-ops-init-");
     const repo = join(root, "rover-pilot");
 
     await initPilotRepo(repo);
@@ -1023,7 +1022,7 @@ describe("initPilotRepo", () => {
   });
 
   it("preserves existing human-edited files on rerun", async () => {
-    const root = await mkdtemp(join(tmpdir(), "brains-ops-init-"));
+    const root = await createTempDir("brains-ops-init-");
     const repo = join(root, "rover-pilot");
 
     await mkdir(repo, { recursive: true });
@@ -1042,7 +1041,7 @@ describe("initPilotRepo", () => {
   });
 
   it("resolve-deploy-handles returns the dispatched handle", async () => {
-    const root = await mkdtemp(join(tmpdir(), "brains-ops-init-"));
+    const root = await createTempDir("brains-ops-init-");
     const repo = join(root, "rover-pilot");
     const outputPath = join(root, "github-output.txt");
 
@@ -1070,7 +1069,7 @@ describe("initPilotRepo", () => {
   });
 
   it("resolve-deploy-handles returns changed user handles for push events", async () => {
-    const root = await mkdtemp(join(tmpdir(), "brains-ops-init-"));
+    const root = await createTempDir("brains-ops-init-");
     const repo = join(root, "rover-pilot");
     const outputPath = join(root, "github-output.txt");
 
@@ -1108,7 +1107,7 @@ describe("initPilotRepo", () => {
   });
 
   it("resolve-deploy-handles deploys the reconciled brain.yaml, not the raw registry file", async () => {
-    const root = await mkdtemp(join(tmpdir(), "brains-ops-init-"));
+    const root = await createTempDir("brains-ops-init-");
     const repo = join(root, "rover-pilot");
     const outputPath = join(root, "github-output.txt");
 
@@ -1174,7 +1173,7 @@ describe("initPilotRepo", () => {
   });
 
   it("resolve-deploy-handles returns changed user handles for workflow_run events", async () => {
-    const root = await mkdtemp(join(tmpdir(), "brains-ops-init-"));
+    const root = await createTempDir("brains-ops-init-");
     const repo = join(root, "rover-pilot");
     const outputPath = join(root, "github-output.txt");
 
@@ -1211,7 +1210,7 @@ describe("initPilotRepo", () => {
   });
 
   it("resolve-deploy-handles returns changed user handles for generated content seed updates", async () => {
-    const root = await mkdtemp(join(tmpdir(), "brains-ops-init-"));
+    const root = await createTempDir("brains-ops-init-");
     const repo = join(root, "rover-pilot");
     const outputPath = join(root, "github-output.txt");
 
@@ -1258,7 +1257,7 @@ describe("initPilotRepo", () => {
   });
 
   it("resolve-deploy-handles returns no handles for contract-only push events", async () => {
-    const root = await mkdtemp(join(tmpdir(), "brains-ops-init-"));
+    const root = await createTempDir("brains-ops-init-");
     const repo = join(root, "rover-pilot");
     const outputPath = join(root, "github-output.txt");
 
@@ -1295,7 +1294,7 @@ describe("initPilotRepo", () => {
   });
 
   it("resolve-deploy-handles handles first-push zero before sha", async () => {
-    const root = await mkdtemp(join(tmpdir(), "brains-ops-init-"));
+    const root = await createTempDir("brains-ops-init-");
     const repo = join(root, "rover-pilot");
     const outputPath = join(root, "github-output.txt");
 

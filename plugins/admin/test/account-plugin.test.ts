@@ -1,10 +1,7 @@
 import { describe, expect, it } from "bun:test";
-import { mkdtemp } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import { AuthServicePlugin } from "@brains/auth-service";
 import type { WebRouteDefinition } from "@brains/plugins";
-import { createMockShell } from "@brains/test-utils";
+import { createMockShell, createTempDir } from "@brains/test-utils";
 import { accountPlugin } from "../src";
 
 function findRoute(
@@ -24,7 +21,7 @@ async function createAuthenticatedAccount(
 }> {
   const shell = createMockShell({ domain: "brain.test" });
   const authPlugin = new AuthServicePlugin({
-    storageDir: await mkdtemp(join(tmpdir(), "brains-account-auth-")),
+    storageDir: await createTempDir("brains-account-auth-"),
   });
   await authPlugin.register(shell);
   const user = await authPlugin.getService().createUser({

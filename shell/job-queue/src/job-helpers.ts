@@ -12,6 +12,17 @@ import { createId } from "@brains/utils/id";
 import type { ToolContext } from "@brains/mcp-service";
 
 /**
+ * The one job-queue method these helpers call.
+ *
+ * IJobQueueService is a large surface; asking for all of it meant a test could
+ * not supply an enqueue without asserting it was the whole service.
+ */
+export type JobEnqueuer = Pick<IJobQueueService, "enqueue">;
+
+/** The one method the handler-registration helper calls. */
+export type JobHandlerRegistrar = Pick<IJobQueueService, "registerHandler">;
+
+/**
  * Type for the enqueueJob function created by the helper
  */
 export interface EnqueueJobRequest {
@@ -74,7 +85,7 @@ export interface JobsNamespace {
  * @param scopeJobType - Whether to auto-scope job types with pluginId (true for service plugins)
  */
 export function createEnqueueJobFn(
-  jobQueueService: IJobQueueService,
+  jobQueueService: JobEnqueuer,
   pluginId: string,
   scopeJobType: boolean,
 ): EnqueueJobFn {
@@ -185,7 +196,7 @@ export type RegisterHandlerFn = <T = unknown, R = unknown>(
  * Handles automatic type scoping with pluginId.
  */
 export function createRegisterHandlerFn(
-  jobQueueService: IJobQueueService,
+  jobQueueService: JobHandlerRegistrar,
   pluginId: string,
 ): RegisterHandlerFn {
   return (type, handler) => {

@@ -37,7 +37,7 @@ export interface ServerManagerOptions {
    */
   idleTimeout?: number;
   /** Override for `Bun.serve`, for tests. Defaults to `Bun.serve`. */
-  serve?: typeof Bun.serve;
+  serve?: ServeFn;
 }
 
 const CACHE_IMMUTABLE = "public, max-age=31536000, immutable";
@@ -84,11 +84,28 @@ interface AppOptions {
  * Runs Hono servers via Bun.serve() directly — no child process.
  * Serves static files with clean URLs, cache headers, image fast-path, and 404s.
  */
+/**
+ * What this manager needs of a running server: the port it bound and a way to
+ * stop it. Bun's Server type is far wider, and asking for all of it meant a
+ * test could not stand one in without asserting it was one.
+ */
+export interface RunningServer {
+  readonly port: number | undefined;
+  stop(): Promise<void> | void;
+}
+
+/** The options this manager passes, and the server it expects back. */
+export type ServeFn = (options: {
+  port: number;
+  idleTimeout: number;
+  fetch: (req: Request) => Promise<Response> | Response;
+}) => RunningServer;
+
 export class ServerManager {
   private logger: Logger;
   private options: ServerManagerOptions;
   private routes: readonly RegisteredHttpRoute[] = Object.freeze([]);
-  private productionServer: ReturnType<typeof Bun.serve> | null = null;
+  private productionServer: RunningServer | null = null;
 
   private isPreviewHost(host: string | null): boolean {
     if (!host) {

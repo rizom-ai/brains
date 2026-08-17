@@ -1,3 +1,4 @@
+import type { EventEmitter } from "node:events";
 import { isIP } from "node:net";
 import type { ConnectionOptions } from "node:tls";
 import { ImapFlow } from "imapflow";
@@ -211,7 +212,7 @@ export function createInboundEmailClient(
 function createImapFlow(config: EmailImapConfig, family?: 4): ImapFlow {
   const tls: (ConnectionOptions & { family: 4 }) | undefined =
     family === 4 ? { family } : undefined;
-  return new ImapFlow({
+  const client = new ImapFlow({
     host: config.host,
     port: config.port,
     secure: true,
@@ -221,6 +222,15 @@ function createImapFlow(config: EmailImapConfig, family?: 4): ImapFlow {
     logger: false,
     ...(tls ? { tls } : {}),
   });
+  preventUnhandledImapErrors(client);
+  return client;
+}
+
+export function preventUnhandledImapErrors(client: EventEmitter): void {
+  // Operation promises surface transport failures to the supervisor. Keep a
+  // listener attached between interval polls so EventEmitter does not turn a
+  // socket timeout into an uncaught exception before reconnection can run.
+  client.on("error", () => undefined);
 }
 
 function shouldRetryImapTlsOverIpv4(host: string, error: unknown): boolean {
