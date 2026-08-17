@@ -130,6 +130,10 @@ function createServicePackage<
         definition.projections ?? [],
         metadata,
         scope,
+        // Jobs this package declares belong to the service plugin, so a
+        // create route naming one has to resolve there rather than against
+        // the entity plugin that declared the route.
+        scope(definition.id),
       ),
     ],
   });
