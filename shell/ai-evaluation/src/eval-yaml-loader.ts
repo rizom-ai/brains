@@ -1,7 +1,13 @@
 import { fromYaml } from "@brains/utils/yaml";
 import { z } from "@brains/utils/zod";
 import { defineConfig, type AppConfig } from "@brains/app";
-import { pluginMetadataSchema, type Plugin } from "@brains/plugins";
+import {
+  bindPluginPackageMetadata,
+  instantiatePluginPackageDefinition,
+  isPluginPackageDefinition,
+  pluginMetadataSchema,
+  type Plugin,
+} from "@brains/plugins";
 import { resolveProviderKey } from "./multi-model";
 import { getErrorMessage } from "@brains/utils/error";
 
@@ -69,6 +75,27 @@ async function resolvePluginExport(
   for (const [exportName, candidate] of candidates) {
     if (isPlugin(candidate)) {
       return candidate;
+    }
+
+    // A declaratively-authored package exports a definition rather than a
+    // plugin factory. Its eval handlers belong to the first plugin it
+    // produces — the service half for a package that declares both.
+    if (isPluginPackageDefinition(candidate)) {
+      try {
+        const metadata = { name: pluginPackageName, version: "0.0.0-eval" };
+        bindPluginPackageMetadata(candidate, metadata);
+        const [plugin] = instantiatePluginPackageDefinition(
+          candidate,
+          pluginConfig,
+          metadata,
+        );
+        if (plugin) return plugin;
+      } catch (error) {
+        errors.push(
+          `${exportName} via package definition failed: ${getErrorMessage(error)}`,
+        );
+      }
+      continue;
     }
 
     if (typeof candidate !== "function") {

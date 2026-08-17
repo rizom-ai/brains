@@ -261,6 +261,7 @@ export type {
   JobTemplateFormatter,
 } from "./job/job-context-contract";
 export {
+  createDeclarativeEntityDataSource,
   defineDataSource,
   defineEntityDataSource,
   type AnyDataSourceDeclaration,

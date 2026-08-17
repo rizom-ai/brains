@@ -5,10 +5,10 @@ import { LinkListFormatter } from "./formatter";
 
 export const linkListTemplate: ReturnType<typeof createTemplate<LinkListData>> =
   createTemplate<LinkListData>({
-    name: "link:link-list",
+    name: "link-list",
     description: "List view of all captured links",
     schema: linkListSchema,
-    dataSourceId: "link:entities",
+    dataSourceId: "entities",
     requiredPermission: "public",
     formatter: new LinkListFormatter(),
     layout: {
