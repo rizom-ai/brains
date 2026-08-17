@@ -337,17 +337,20 @@ policy-only bundle with zero members contributes valid policy; contributions to 
 members still fail validation; conflicting contributions without an explicit `overrides`
 still fail; a contribution to an inactive member is absent from the resolution.
 
-### Phase 4 — Define the new bundles alongside the old
+### Phase 4 — Define the target bundles beside the active registry
 
-Add the nine bundle definitions to the canonical definition without changing any
-selection. Tests assert the exact resolved member set, config, permissions, instructions,
-and eval exclusions for each recipe selection. This is where the taxonomy is proven
-correct while the shipped contract still runs.
+Define the complete nine-bundle target set without appending it to
+`canonicalBrain.bundles`: four target IDs overlap the active four-bundle registry, so both
+sets cannot inhabit one definition. Tests replace the bundle property on a cloned canonical
+definition and assert the exact resolved member set, config, permissions, instructions, and
+eval exclusions for each recipe selection. This proves the taxonomy while the shipped
+contract still runs and avoids temporary IDs or dual-format runtime behavior.
 
 ### Phase 5 — Walking skeleton: boot headless
 
-Select `bundles: [core]` in a test app and prove it boots with no HTTP listener, exposes
-MCP over stdio, syncs its vault, and answers a tool call. This is the first proof the
+Select `bundles: [core]` against the target definition in a test app and prove it boots
+with no HTTP listener, exposes MCP over stdio, syncs its vault, and answers a tool call.
+The active packaged registry remains unchanged until Phase 8. This is the first proof the
 split is real rather than structural.
 
 ### Phase 6 — Make the inbox answerable headless
