@@ -65,6 +65,8 @@ export interface ServiceProgressReporter {
   report(input: ServiceJobProgress): Promise<void>;
 }
 
+export type ServiceEvalHandler = (input: unknown) => Promise<unknown>;
+
 export interface ServiceTemplateFormatter {
   format<TValue>(name: string, value: TValue): string;
 }
@@ -343,6 +345,19 @@ interface ServiceDefinitionCore<
         readonly config: z.output<TConfigSchema>;
         readonly state: TState;
       }) => readonly ServiceJobBinding[])
+    | undefined;
+  /**
+   * Eval handlers, keyed by the `handler:` name their test cases use.
+   *
+   * A function of config and state for the same reason `jobs` is: an eval
+   * that exercises an integration needs the same credentials the integration
+   * uses, and the entity-side `evals` slot deliberately has no config.
+   */
+  readonly evals?:
+    | ((context: {
+        readonly config: z.output<TConfigSchema>;
+        readonly state: TState;
+      }) => Record<string, ServiceEvalHandler>)
     | undefined;
   readonly tools?:
     | ((context: {
