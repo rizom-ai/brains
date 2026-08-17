@@ -1,5 +1,16 @@
 # @brains/site-engine
 
+## 0.2.0-alpha.301
+
+### Patch Changes
+
+- Updated dependencies [[`b2fd00c`](https://github.com/rizom-ai/brains/commit/b2fd00c1550e0b9a386484e07a53546106f793ce)]:
+  - @brains/entity-service@0.2.0-alpha.301
+  - @brains/image@0.2.0-alpha.301
+  - @brains/site-composition@0.2.0-alpha.301
+  - @brains/ui-library@0.2.0-alpha.301
+  - @brains/utils@0.2.0-alpha.301
+
 ## 0.2.0-alpha.300
 
 ### Patch Changes

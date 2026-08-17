@@ -1,5 +1,39 @@
 # @brains/ai-service
 
+## 0.2.0-alpha.301
+
+### Patch Changes
+
+- [`b2fd00c`](https://github.com/rizom-ai/brains/commit/b2fd00c1550e0b9a386484e07a53546106f793ce) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Narrow service dependencies to the members their consumers actually call, so a
+  stand-in can be checked against them rather than asserted into place.
+
+  Most of this is additive or loosening: a function that asked for a whole
+  `IEntityService`, `IConversationService`, `IJobQueueService`, `PasskeyService`
+  or `SimpleGit` now asks for the two or three methods it uses, which accepts
+  strictly more than before. Several constructors dropped a lone overload that
+  hid a `runtimeOptions` parameter their implementations already accepted, and a
+  few internals became module-level exports.
+
+  One change narrows rather than widens: `IRuntimeUploadsNamespace.scoped()`
+  returns `ScopedRuntimeUploadStore` — the seven methods the store offers —
+  instead of the concrete `RuntimeUploadStore` class. Code calling those methods
+  is unaffected; code reaching into the class's private fields is not, which was
+  the point.
+
+  `shell/ai-evaluation` also drops an `eval` script that pointed at a directory
+  with no eval config and so could never run. The canonical entry point,
+  `cd packages/brain-cli && bun run eval`, is unchanged.
+
+- Updated dependencies [[`b2fd00c`](https://github.com/rizom-ai/brains/commit/b2fd00c1550e0b9a386484e07a53546106f793ce)]:
+  - @brains/entity-service@0.2.0-alpha.301
+  - @brains/identity-service@0.2.0-alpha.301
+  - @brains/contracts@0.2.0-alpha.301
+  - @brains/utils@0.2.0-alpha.301
+  - @brains/conversation-service@0.2.0-alpha.301
+  - @brains/mcp-service@0.2.0-alpha.301
+  - @brains/messaging-service@0.2.0-alpha.301
+  - @brains/templates@0.2.0-alpha.301
+
 ## 0.2.0-alpha.300
 
 ### Patch Changes

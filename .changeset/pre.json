@@ -320,6 +320,7 @@
     "core--status-palette-light-mode",
     "core--supervised-worker-split",
     "core--system-create-visibility",
+    "core--test-suite-hardening-type-narrowing",
     "core--theme-package-build-helper",
     "core--unified-inbox-foundation",
     "core--unified-inbox-headless-reader",
