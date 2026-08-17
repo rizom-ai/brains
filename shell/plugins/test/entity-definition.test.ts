@@ -587,11 +587,18 @@ describe("entity package definitions", () => {
   it("registers declared jobs and surfaces declared instructions", async () => {
     // Generation is just a job the runtime names for you, so both go
     // through the same declaration shape and the same validated handler.
+    const reported: number[] = [];
     const reindexJob: EntityJobDeclaration<
       z.ZodObject<{ guideId: z.ZodString }>
     > = {
       input: z.object({ guideId: z.string() }),
-      handle: async ({ input }) => ({ reindexed: input.guideId }),
+      // Five packages report progress from job handlers. A declarative job
+      // that could not would silently drop it on conversion.
+      handle: async ({ input, progress }) => {
+        await progress.report({ progress: 50, message: "halfway" });
+        reported.push(50);
+        return { reindexed: input.guideId };
+      },
     };
     const guide = defineEntity({
       type: "guide",
@@ -642,6 +649,7 @@ describe("entity package definitions", () => {
         new AbortController().signal,
       ),
     ).toEqual({ reindexed: "first" });
+    expect(reported).toEqual([50]);
 
     harness.reset();
   });

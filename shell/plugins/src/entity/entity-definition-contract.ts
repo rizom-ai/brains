@@ -10,6 +10,7 @@ import type { Template } from "@brains/templates";
 import type { AnchorProfile } from "../contracts/identity";
 import type { IEntityAINamespace } from "./ai-types";
 import type { LoggerContract } from "@brains/utils/logger";
+import type { ProgressContract } from "@brains/utils/progress";
 import type { AtprotoProjection } from "@brains/atproto-contracts";
 import type { PublishProvider } from "@brains/contracts";
 import type { AttachmentProvider } from "../service/attachment-registry";
@@ -274,6 +275,7 @@ export interface EntityJobDeclaration<
     readonly logger: LoggerContract;
     readonly entities: EntityGenerationEntityAccess;
     readonly conversations: EntityConversationReader;
+    readonly progress: ProgressContract;
   }): Promise<unknown>;
 }
 

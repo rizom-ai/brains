@@ -17,6 +17,19 @@ export type ProgressCallback = (
 ) => Promise<void>;
 
 /**
+ * Progress reporting, as a structural contract.
+ *
+ * `ProgressReporter` itself cannot cross a public package boundary: it has
+ * private fields and a private constructor, so the copy inlined into the
+ * published declarations is nominally distinct from this one. Anything
+ * handed to plugin authors is typed as this interface, which inlines
+ * cleanly. `ProgressReporter` satisfies it.
+ */
+export interface ProgressContract {
+  report(notification: ProgressNotification): Promise<void>;
+}
+
+/**
  * A simple utility class for managing progress reporting in nested operations
  *
  * @example
