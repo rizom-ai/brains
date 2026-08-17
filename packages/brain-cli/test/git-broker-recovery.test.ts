@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from "bun:test";
 import { spawn } from "node:child_process";
+import { readFileSync, readdirSync } from "node:fs";
 import {
   mkdir,
   mkdtemp,
@@ -39,6 +40,10 @@ const ENTRY = join(import.meta.dir, "fixtures", "broker-runtime-child.ts");
 let scratch: string | undefined;
 let supervised: Promise<CommandResult> | undefined;
 let shutdownRuntime: (() => void) | undefined;
+/** Set once the supervised runtime ends, however it ends. */
+let runtimeStopped: string | undefined;
+/** What the old owner's group still held when absence went unproven. */
+let unprovenGroup: string | undefined;
 
 interface Harness {
   root: string;
@@ -58,6 +63,37 @@ async function run(command: string[], cwd: string): Promise<string> {
   return `${out}${err}`;
 }
 
+/**
+ * What is still in `group`, captured synchronously.
+ *
+ * Taken at the moment absence goes unproven, so the answer describes the
+ * state the supervisor actually saw rather than whatever settles afterwards.
+ */
+function groupSnapshot(group: number): string[] {
+  const members: string[] = [];
+  for (const entry of readdirSync("/proc")) {
+    if (!/^\d+$/.test(entry)) continue;
+    let stat: string;
+    try {
+      stat = readFileSync(`/proc/${entry}/stat`, "utf-8");
+    } catch {
+      continue;
+    }
+    const fields = stat.slice(stat.lastIndexOf(")") + 2).split(" ");
+    if (Number(fields[2]) !== group) continue;
+    const name = stat.slice(stat.indexOf("(") + 1, stat.lastIndexOf(")"));
+    members.push(`${entry}:${fields[0]}:${name}`);
+  }
+  return members;
+}
+/**
+ * Wait for something the runtime is supposed to do.
+ *
+ * The runtime is allowed to stop instead — a fail-closed exit is a designed
+ * outcome, not a hang — so a wait that outlives it reports how it ended
+ * rather than running out its budget. Otherwise a refusal to replace an owner
+ * is indistinguishable from a slow one.
+ */
 async function until<T>(
   what: string,
   attempt: () => Promise<T | undefined>,
@@ -67,6 +103,12 @@ async function until<T>(
   const poll = async (): Promise<T> => {
     const value = await attempt();
     if (value !== undefined) return value;
+    if (runtimeStopped !== undefined) {
+      throw new Error(
+        `the runtime stopped while waiting for ${what}: ${runtimeStopped}` +
+          (unprovenGroup ? ` (${unprovenGroup})` : ""),
+      );
+    }
     if (Date.now() >= deadline) {
       throw new Error(`timed out waiting for ${what}`);
     }
@@ -160,9 +202,25 @@ async function runtime(
     brokerProgressTimeoutMs: 1_500,
     brokerGroupProbeIntervalMs: 100,
     brokerGroupProbeAttempts: 40,
-    reportIncident: () => {},
+    reportIncident: (incident) => {
+      // An unproven group is the one failure whose cause is gone by the
+      // time the assertion runs, so it is recorded where it happens.
+      if (incident["type"] !== "git-broker-group-absence-unproven") return;
+      const pid = Number(
+        readFileSync(join(root, "broker.pid"), "utf-8").trim(),
+      );
+      unprovenGroup = `group ${pid} held ${JSON.stringify(groupSnapshot(pid))}`;
+    },
     reportReady: () => {},
   });
+  void supervised.then(
+    (result) => {
+      runtimeStopped = JSON.stringify(result);
+    },
+    (error: unknown) => {
+      runtimeStopped = String(error);
+    },
+  );
 
   // The endpoint itself is the precondition, not a role that implies one.
   // A unix socket is not a regular file, so its existence is proved by
@@ -203,6 +261,8 @@ afterEach(async () => {
   await supervised?.catch(() => undefined);
   supervised = undefined;
   shutdownRuntime = undefined;
+  runtimeStopped = undefined;
+  unprovenGroup = undefined;
   if (scratch) await rm(scratch, { recursive: true, force: true });
   scratch = undefined;
 });

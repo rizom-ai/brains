@@ -256,6 +256,8 @@ function runRuntimeSupervisor(
     /** The runtime's outcome once something terminal has decided it. */
     let finalResult: CommandResult | undefined;
     let broker: ManagedChild | undefined;
+    /** A pending group SIGKILL, owed until the group is proven gone. */
+    let brokerEscalation: SupervisorTimer | undefined;
     let web: ManagedChild | undefined;
     let worker: ManagedChild | undefined;
     let forceKillTimer: SupervisorTimer | undefined;
@@ -305,15 +307,18 @@ function runRuntimeSupervisor(
       child: ManagedChild | undefined,
       signal: NodeJS.Signals,
     ): void => {
-      if (!child || child.closed || child.process.exitCode !== null) return;
+      if (!child) return;
       try {
         // The broker's Git children inherit its process group, so the group is
-        // what has to stop. A broker that exits while a Git child survives is
-        // exactly the state no replacement may ever start into.
+        // what has to stop — and the leader's own exit says nothing about the
+        // rest of it. A broker that exits while a Git child survives is exactly
+        // the state no replacement may ever start into, so the group is still
+        // signalled when there is no leader left to receive it.
         if (child.role === "git-broker" && child.process.pid !== undefined) {
           options.processImpl.kill(-child.process.pid, signal);
           return;
         }
+        if (child.closed || child.process.exitCode !== null) return;
         child.process.kill(signal);
       } catch {
         // The child won the race and has already exited.
@@ -411,15 +416,30 @@ function runRuntimeSupervisor(
       if (broker) brokerTerminationDeadline(broker);
     };
 
-    /** Escalate once, so a group that ignores SIGTERM still stops. */
+    /**
+     * Escalate once, so a group that ignores SIGTERM still stops.
+     *
+     * The handle is kept because the escalation outlives the leader: once the
+     * group is proven empty its id is free for the kernel to hand to something
+     * else — possibly the replacement broker — and a signal arriving then would
+     * kill the very owner it was meant to protect.
+     */
     const brokerTerminationDeadline = (child: ManagedChild): void => {
       if (child.heartbeatTimer !== undefined) {
         options.clock.clearTimeout(child.heartbeatTimer);
         child.heartbeatTimer = undefined;
       }
-      options.clock.setTimeout(() => {
+      brokerEscalation = options.clock.setTimeout(() => {
+        brokerEscalation = undefined;
         signalChild(child, "SIGKILL");
       }, options.shutdownGraceMs);
+    };
+
+    /** Nothing is owed to a group that is gone. */
+    const cancelBrokerEscalation = (): void => {
+      if (brokerEscalation === undefined) return;
+      options.clock.clearTimeout(brokerEscalation);
+      brokerEscalation = undefined;
     };
 
     /**
@@ -455,6 +475,7 @@ function runRuntimeSupervisor(
           type: "git-broker-group-absent",
           attempts: attempt,
         });
+        cancelBrokerEscalation();
         broker = undefined;
         spawnChild("git-broker");
         return;

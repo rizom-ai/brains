@@ -331,6 +331,36 @@ describe("bundled process supervisor", () => {
     expect(await supervised).toEqual({ success: true });
   });
 
+  it("escalates to the whole group even after the owner itself has exited", async () => {
+    const harness = createHarness();
+    const supervised = superviseWithBroker(harness);
+    const broker = harness.children[0];
+    if (!broker) throw new Error("Expected broker child");
+    broker.emit("message", { type: "broker-ready" });
+    const web = harness.children[1];
+    if (!web) throw new Error("Expected web child");
+    web.emit("message", { type: "runtime-ready" });
+
+    harness.fireTimer(60);
+    expect(harness.processEvents.kill).toHaveBeenCalledWith(-1000, "SIGTERM");
+
+    // The owner takes the SIGTERM and goes. Its Git child does not have to:
+    // a process blocked on a remote that never answers outlives its parent,
+    // and it is still holding the checkout the replacement wants.
+    broker.emit("close", null, "SIGTERM");
+
+    // So the escalation is owed to the group, not to the leader. Skipping it
+    // because the leader is gone leaves the survivor running forever, and the
+    // absence it is waiting for can never be proven.
+    harness.fireTimer(50);
+    expect(harness.processEvents.kill).toHaveBeenCalledWith(-1000, "SIGKILL");
+
+    harness.processEvents.emit("SIGTERM");
+    web.emit("close", null, "SIGTERM");
+    harness.children[2]?.emit("close", null, "SIGTERM");
+    expect(await supervised).toEqual({ success: true });
+  });
+
   it("terminates the broker group when an operation stops advancing", async () => {
     const harness = createHarness();
     const supervised = superviseWithBroker(harness);
@@ -469,6 +499,12 @@ describe("bundled process supervisor", () => {
     // outage for web and worker.
     expect(web.kill).not.toHaveBeenCalled();
     expect(worker.kill).not.toHaveBeenCalled();
+
+    // And nothing is still owed to the old group. Its id is free now, and the
+    // kernel is free to hand it to the replacement that just started — so a
+    // surviving escalation would be aimed at the new owner.
+    expect(() => harness.fireTimer(50)).toThrow();
+    expect(harness.signals).not.toContain("group1000:SIGKILL");
 
     const replacement = harness.children[3];
     if (!replacement) throw new Error("Expected a replacement broker");
