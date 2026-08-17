@@ -30,6 +30,7 @@ import type { EntityPluginContext } from "./context";
 import { defineProjectionRule, type ProjectionRule } from "./projection-rule";
 import type { InstalledPluginPackageMetadata } from "../package-definition";
 import type { JobHandler } from "@brains/job-queue";
+import type { ProgressContract } from "@brains/utils/progress";
 import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
 import type {
   AnyEntityDefinition,
@@ -510,9 +511,14 @@ class DeclarativeEntityPlugin extends EntityPlugin<
         const parsed = declaration.input.safeParse(data);
         return parsed.success ? parsed.data : null;
       },
-      process: async (data: unknown): Promise<unknown> =>
+      process: async (
+        data: unknown,
+        _jobId: string,
+        progress: ProgressContract,
+      ): Promise<unknown> =>
         declaration.handle({
           input: data,
+          progress,
           ai: context.ai,
           logger: this.logger,
           entities: this.entityAccess(context),
