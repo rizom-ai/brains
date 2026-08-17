@@ -26,7 +26,7 @@ import { cmsPlugin } from "@brains/cms";
 import { contentPipelinePlugin } from "@brains/content-pipeline";
 import { conversationMemoryPlugin } from "@brains/conversation-memory";
 import { dashboardPlugin } from "@brains/dashboard";
-import { decksPlugin } from "@brains/decks";
+import decksPackage from "@brains/decks";
 import { directorySync } from "@brains/directory-sync";
 import docPackage from "@brains/doc";
 import { documentPlugin } from "@brains/document-plugin";
@@ -339,7 +339,7 @@ export const canonicalBrain: BrainDefinition = defineBrain({
     packageCapability("link", "@brains/link", linkPackage),
     ["wishlist", wishlistPlugin, undefined],
     ["topics", topicsPlugin, undefined],
-    ["decks", decksPlugin, undefined],
+    packageCapability("decks", "@brains/decks", decksPackage),
     [
       "directory-sync",
       directorySync,

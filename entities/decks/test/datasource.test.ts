@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, spyOn } from "bun:test";
-import { DeckDataSource } from "../src/datasources/deck-datasource";
+import { deckDataSource } from "../src/datasources/deck-datasource";
+import { createDeclarativeEntityDataSource } from "@brains/plugins";
 import type { DeckEntity } from "../src/schemas/deck";
 import type {
   BaseEntity,
@@ -12,7 +13,7 @@ import { createMockLogger, createMockEntityService } from "@brains/test-utils";
 import { createMockDeckEntity } from "./fixtures/deck-entities";
 
 describe("DeckDataSource", () => {
-  let datasource: DeckDataSource;
+  let datasource: ReturnType<typeof createDeclarativeEntityDataSource>;
   let mockEntityService: IEntityService;
   let mockLogger: Logger;
   let mockContext: BaseDataSourceContext;
@@ -42,7 +43,11 @@ describe("DeckDataSource", () => {
     mockEntityService = createMockEntityService();
     mockContext = { entityService: mockEntityService };
 
-    datasource = new DeckDataSource(mockLogger);
+    datasource = createDeclarativeEntityDataSource(
+      deckDataSource,
+      "@brains/decks:entities",
+      mockLogger,
+    );
   });
 
   describe("fetchDeckList", () => {
@@ -255,7 +260,7 @@ coverImageId: cover-img-1
 
   describe("metadata", () => {
     it("should have correct datasource ID", () => {
-      expect(datasource.id).toBe("decks:entities");
+      expect(datasource.id).toBe("@brains/decks:entities");
     });
 
     it("should have descriptive name and description", () => {

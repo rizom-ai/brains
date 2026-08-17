@@ -147,7 +147,8 @@ describe("canonical brain core", () => {
       resolve(canonicalBrain, {}, { bundles: ["core"] }).plugins?.map(
         (plugin) => plugin.id,
       ) ?? [];
-    expect(resolvedIds).toContain("decks");
+    // Declaratively-authored packages scope their plugin ids to the package.
+    expect(resolvedIds).toContain("@brains/decks:deck");
     expect(resolvedIds).toContain("atproto-registry");
     expect(resolvedIds).not.toContain("atproto");
     expect(resolvedIds).not.toContain("site-builder");

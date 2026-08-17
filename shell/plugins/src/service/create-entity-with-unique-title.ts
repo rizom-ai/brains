@@ -1,4 +1,4 @@
-import type { EntityPluginContext } from "../entity/context";
+import type { BaseEntity } from "@brains/entity-service";
 import { z } from "@brains/utils/zod";
 
 /**
@@ -8,10 +8,22 @@ import { z } from "@brains/utils/zod";
  * EntityPluginContext meant a test had to assert two stand-in namespaces were
  * the real ones.
  */
+// Structural rather than a Pick of the plugin context: a job handler holds
+// only the narrow job context, and has to be able to satisfy this.
 export interface UniqueTitleContext {
-  entityService: Pick<EntityPluginContext["entityService"], "getEntity">;
-  ai: Pick<EntityPluginContext["ai"], "generateObject">;
-  logger: EntityPluginContext["logger"];
+  entityService: {
+    getEntity(request: {
+      entityType: string;
+      id: string;
+    }): Promise<BaseEntity | null>;
+  };
+  ai: {
+    generateObject<T>(
+      prompt: string,
+      schema: z.ZodType<T>,
+    ): Promise<{ object: T }>;
+  };
+  logger: { debug(message: string): void };
 }
 
 /**
