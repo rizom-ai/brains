@@ -9,7 +9,10 @@ import {
   resolveBrokerProgressTimeoutMs,
 } from "./lib/broker/health";
 import { resolveGitRemoteUrl } from "./lib/git-options";
-import { createOwnerReplacementHandler } from "./lib/git-owner-replacement";
+import {
+  createOwnerRecoveryReplay,
+  createOwnerReplacementHandler,
+} from "./lib/git-owner-replacement";
 import type { IGitSync } from "./types";
 import {
   directorySyncConfigSchema,
@@ -71,7 +74,6 @@ export class DirectorySyncPlugin extends ServicePlugin<
    * broker protocol can answer: whether it is admitting mutations, and
    * being told that this role has reconciled.
    */
-  private brokerClient: BrokerGitSync | undefined;
   private operationStatus: DirectorySyncOperationStatusService | undefined;
   private gitReconciliation: GitReconciliationService | undefined;
   private workspaceProvider: DirectorySyncWorkspaceProvider | undefined;
@@ -226,7 +228,10 @@ export class DirectorySyncPlugin extends ServicePlugin<
       let connectedGitSync: BrokerGitSync;
       try {
         if (!context.executionOnly) await this.bootstrapContentRemote();
-        connectedGitSync = await this.connectToGitBroker(syncPath);
+        connectedGitSync = await this.connectToGitBroker(
+          syncPath,
+          this.requireDirectorySync(),
+        );
         this.gitSync = connectedGitSync;
       } catch (error) {
         if (!context.executionOnly && interruptedPull) {
@@ -426,7 +431,10 @@ export class DirectorySyncPlugin extends ServicePlugin<
         );
       }
       if (this.isGitConfigured()) {
-        candidateGitSync = await this.connectToGitBroker(syncPath);
+        candidateGitSync = await this.connectToGitBroker(
+          syncPath,
+          candidateDirectorySync,
+        );
         await this.reconcileInheritedWork(
           context,
           candidateGitSync,
@@ -535,30 +543,30 @@ export class DirectorySyncPlugin extends ServicePlugin<
    * The token stays in this role's configuration and never reaches the broker;
    * the broker resolves its own authenticated remote from the same brain.yaml.
    */
-  private async connectToGitBroker(syncPath: string): Promise<BrokerGitSync> {
+  private async connectToGitBroker(
+    syncPath: string,
+    directorySync: DirectorySync,
+  ): Promise<BrokerGitSync> {
     const git = this.config.git;
     if (!git) throw new Error("Git configuration is unavailable");
 
+    const attached: { gitSync?: BrokerGitSync } = {};
     const replacementRecovery = this.getContext().executionOnly
       ? undefined
       : createOwnerReplacementHandler({
           logger: this.logger.child("GitOwner"),
           scheduler: this.runtimeScheduler,
-          replay: async (): Promise<void> => {
-            const client = this.brokerClient;
-            if (!client) throw new Error("Git broker client is unavailable");
-            // A transient socket drop can reconnect to the same healthy owner.
-            // Reconciliation is needed only when the owner says its inherited
-            // generation is still held closed.
-            if (await client.admitsMutations()) return;
-            await this.requireGitReconciliation().replayAndQueue({
-              gitSync: this.requireGitSync(),
-              directorySync: this.requireDirectorySync(),
-              context: this.getContext(),
-              source: "broker-replacement-replay",
-            });
-            await client.openAdmission();
-          },
+          replay: createOwnerRecoveryReplay({
+            client: (): BrokerGitSync | undefined => attached.gitSync,
+            replay: async (client): Promise<void> => {
+              await this.requireGitReconciliation().replayAndQueue({
+                gitSync: client,
+                directorySync,
+                context: this.getContext(),
+                source: "broker-replacement-replay",
+              });
+            },
+          }),
         });
 
     const gitSync = await connectGitSync({
@@ -583,7 +591,7 @@ export class DirectorySyncPlugin extends ServicePlugin<
           }
         : {}),
     });
-    this.brokerClient = gitSync;
+    attached.gitSync = gitSync;
     return gitSync;
   }
 

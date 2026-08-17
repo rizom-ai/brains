@@ -15,6 +15,33 @@ import type { DirectorySyncScheduler } from "./directory-sync-runtime";
  * nothing at all if the lost operation never landed.
  */
 
+export interface OwnerRecoveryClient {
+  admitsMutations(): Promise<boolean>;
+  openAdmission(): Promise<unknown>;
+}
+
+/**
+ * Bind replay and admission to one attached generation.
+ *
+ * A failed candidate must not overwrite global recovery state for the active
+ * generation, and a candidate must never be opened after replaying a different
+ * checkout. Keeping the client in this closure makes that identity structural.
+ */
+export function createOwnerRecoveryReplay<
+  TClient extends OwnerRecoveryClient,
+>(options: {
+  client: () => TClient | undefined;
+  replay: (client: TClient) => Promise<unknown>;
+}): () => Promise<void> {
+  return async (): Promise<void> => {
+    const client = options.client();
+    if (!client) throw new Error("Git broker client is unavailable");
+    if (await client.admitsMutations()) return;
+    await options.replay(client);
+    await client.openAdmission();
+  };
+}
+
 export interface OwnerReplacementOptions {
   logger: Logger;
   scheduler: DirectorySyncScheduler;

@@ -16,9 +16,10 @@ wrapper implementation at `272f2c949`. That implementation introduced an OS-owne
 wrapper and removed `simple-git`; this plan supersedes both decisions. Keep the draft and
 worktree as evidence, but do not continue implementation there.
 
-Merge this plan to `main` first. Then create a new implementation worktree and branch from
-the updated `origin/main`; carry no wrapper implementation commits forward. Do not publish,
-deploy, restart production, or run a remote workload from this work.
+The semantic-broker foundation has since landed on `main`. This corrective branch is based
+on the current `origin/main`, keeps the plan active, and adds the Phase 6 recovery fixes and
+proofs without carrying wrapper commits forward. Do not publish, deploy, restart production,
+or run a remote workload from this work.
 
 ## Decision summary
 
@@ -505,7 +506,8 @@ Local Phase 6 evidence on affected Bun 1.3.11:
 
 ### Phase 7 — Affected-runtime acceptance
 
-Run on the packaged Linux runtime with the shipped affected Bun version, currently 1.3.14:
+Run on the packaged Linux runtime with the shipped affected Bun version, currently 1.3.14.
+Remote or scheduled execution requires explicit approval before dispatch:
 
 1. focused broker/protocol/supervisor/recovery tests;
 2. deterministic lost-completion broker-group recovery plus full-runtime fallback;
@@ -542,12 +544,12 @@ matrix. Do not hide them behind retries or repurpose deployment workflows.
 
 ## Review and PR strategy
 
-- Merge this plan to `main` before implementation.
+- Keep this plan active through Phase 7, merge, release, and approved smoke validation.
 - Preserve PR #124 and its worktree as superseded evidence; do not rewrite them into the
   new design.
-- After this plan merges, create a new implementation branch/worktree from updated
-  `origin/main` and open a replacement PR.
-- Mark PR #124 superseded when the replacement PR establishes its red-test baseline.
+- Open the corrective replacement PR from the isolated Phase 6 branch only after the
+  affected-runtime and approved scheduled acceptance matrix passes.
+- Do not modify or close PR #124 without separate approval.
 - Correct new changesets and comments to describe semantic ownership, proven broker-group
   replacement, full-runtime fallback, and broker-local `simple-git`.
 - Require a changeset for Brain runtime behavior.

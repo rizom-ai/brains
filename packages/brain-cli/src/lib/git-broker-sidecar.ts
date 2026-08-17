@@ -184,15 +184,26 @@ async function stopSidecar(
     ),
   ]);
 
-  if (!closedGracefully && pid !== undefined) {
-    processImpl.kill(-pid, "SIGKILL");
-  } else if (!closedGracefully) {
-    sidecar.child.kill("SIGKILL");
+  if (pid === undefined) {
+    if (!closedGracefully) {
+      sidecar.child.kill("SIGKILL");
+      await sidecar.closed;
+    }
+    return;
   }
 
-  if (pid === undefined) {
-    if (!closedGracefully) await sidecar.closed;
-    return;
+  // A leader that closes cleanly can still leave a Git descendant in its
+  // detached process group. Probe once before escalation, but do not mistake
+  // the leader's close event for proof that the complete group is absent.
+  if (closedGracefully && groupIsAbsent(processImpl, pid)) return;
+
+  try {
+    processImpl.kill(-pid, "SIGKILL");
+  } catch (error) {
+    // The group can finish between the grace race and escalation. ESRCH is
+    // already the absence fact the following probe needs; other failures
+    // remain terminal because they do not prove the group is gone.
+    if (!isNoSuchProcess(error)) throw error;
   }
 
   if (

@@ -30,7 +30,10 @@ interface SidecarChild extends EventEmitter {
   kill: ReturnType<typeof mock>;
 }
 
-function sidecarHarness(): {
+function sidecarHarness(
+  closeOnSignal = true,
+  groupSurvivesLeader = false,
+): {
   children: SidecarChild[];
   spawnImpl: ReturnType<typeof mock>;
   processImpl: EventEmitter & {
@@ -45,16 +48,24 @@ function sidecarHarness(): {
       exitCode: null,
       killed: false,
       kill: mock((_signal?: number | NodeJS.Signals) => {
-        queueMicrotask(() => child.emit("close", 0, "SIGTERM"));
+        if (closeOnSignal) {
+          queueMicrotask(() => child.emit("close", 0, "SIGTERM"));
+        }
         return true;
       }),
     });
     children.push(child);
     return child;
   });
+  let groupAlive = groupSurvivesLeader;
   const processImpl = Object.assign(new EventEmitter(), {
     env: {},
-    kill: mock((_pid: number, _signal?: NodeJS.Signals | 0) => {
+    kill: mock((_pid: number, signal?: NodeJS.Signals | 0) => {
+      if (signal === "SIGKILL" && groupAlive) {
+        groupAlive = false;
+        return true;
+      }
+      if (signal === 0 && groupAlive) return true;
       throw Object.assign(new Error("gone"), { code: "ESRCH" });
     }),
   });
@@ -115,6 +126,55 @@ describe("a git-configured brain outside the supervisor", () => {
     expect(harness.processImpl.env[GIT_BROKER_SOCKET_ENV]).toBeUndefined();
     expect(harness.processImpl.env[GIT_BROKER_CHECKOUT_ENV]).toBeUndefined();
     expect(child.kill).toHaveBeenCalledWith("SIGTERM");
+  });
+
+  it("kills descendants left after the owner exits gracefully", async () => {
+    scratch = await mkdtemp(join(tmpdir(), "broker-sidecar-descendant-"));
+    const harness = sidecarHarness(true, true);
+
+    const pending = withGitBrokerSidecar(
+      scratch,
+      GIT_CONFIGURED,
+      () => Promise.resolve("booted"),
+      {
+        ...dependencies(harness),
+        groupProbeAttempts: 1,
+      },
+    );
+    const child = harness.children[0];
+    if (!child) throw new Error("Expected broker child");
+    child.emit("message", { type: "broker-ready" });
+
+    expect(await pending).toBe("booted");
+    expect(harness.processImpl.kill).toHaveBeenCalledWith(
+      -child.pid,
+      "SIGKILL",
+    );
+  });
+
+  it("accepts ESRCH when the group exits during SIGKILL escalation", async () => {
+    scratch = await mkdtemp(join(tmpdir(), "broker-sidecar-kill-race-"));
+    const harness = sidecarHarness(false);
+
+    const pending = withGitBrokerSidecar(
+      scratch,
+      GIT_CONFIGURED,
+      () => Promise.resolve("booted"),
+      {
+        ...dependencies(harness),
+        shutdownGraceMs: 0,
+        groupProbeAttempts: 1,
+      },
+    );
+    const child = harness.children[0];
+    if (!child) throw new Error("Expected broker child");
+    child.emit("message", { type: "broker-ready" });
+
+    expect(await pending).toBe("booted");
+    expect(harness.processImpl.kill).toHaveBeenCalledWith(
+      -child.pid,
+      "SIGKILL",
+    );
   });
 
   it("starts nothing for a brain without git", async () => {

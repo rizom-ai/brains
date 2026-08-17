@@ -1,6 +1,9 @@
 import { describe, expect, it, mock } from "bun:test";
 import { createSilentLogger } from "@brains/test-utils";
-import { createOwnerReplacementHandler } from "../../src/lib/git-owner-replacement";
+import {
+  createOwnerRecoveryReplay,
+  createOwnerReplacementHandler,
+} from "../../src/lib/git-owner-replacement";
 
 /**
  * Phase 3 of docs/plans/directory-sync-git-execution-broker.md.
@@ -30,6 +33,32 @@ function scheduler(): {
 }
 
 describe("replaced git owner", () => {
+  it("reconciles and opens the same attached generation", async () => {
+    const active = {
+      admitsMutations: mock(async () => false),
+      openAdmission: mock(async () => {}),
+    };
+    const candidate = {
+      admitsMutations: mock(async () => false),
+      openAdmission: mock(async () => {}),
+    };
+    const replay = mock(async (client: typeof candidate) => {
+      expect(client).toBe(candidate);
+    });
+    const recover = createOwnerRecoveryReplay({
+      client: () => candidate,
+      replay,
+    });
+
+    await recover();
+
+    expect(candidate.admitsMutations).toHaveBeenCalledTimes(1);
+    expect(replay).toHaveBeenCalledTimes(1);
+    expect(candidate.openAdmission).toHaveBeenCalledTimes(1);
+    expect(active.admitsMutations).not.toHaveBeenCalled();
+    expect(active.openAdmission).not.toHaveBeenCalled();
+  });
+
   it("replays from the checkout rather than re-running the lost intent", async () => {
     const replay = mock(async () => {});
     const runtime = scheduler();
