@@ -49,6 +49,7 @@ slug: systems-series
       logger: createSilentLogger("test"),
       entities: context.entityService,
       conversations: context.conversations,
+      progress: { report: async (): Promise<void> => {} },
     });
 
     expect(context.ai.generate).toHaveBeenCalledWith(
