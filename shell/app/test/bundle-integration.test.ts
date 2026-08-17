@@ -404,7 +404,7 @@ describe("bundle permission integration", () => {
         }),
         defineBundle({
           id: "team",
-          members: ["alpha"],
+          members: [],
           permissions: [
             {
               member: "alpha",
