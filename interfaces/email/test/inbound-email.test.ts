@@ -1,4 +1,5 @@
 import { describe, expect, it } from "bun:test";
+import { EventEmitter } from "node:events";
 import {
   AUTH_PRINCIPAL_RESOLVE_CHANNEL,
   authPrincipalResolveRequestSchema,
@@ -22,6 +23,7 @@ import {
   connectImapWithIpv4TlsFallback,
   intakeInboundEmail,
   parseInboundEmail,
+  preventUnhandledImapErrors,
 } from "../src/inbound-email";
 
 const imapConfig: EmailImapConfig = {
@@ -36,7 +38,21 @@ const imapConfig: EmailImapConfig = {
 
 const mailboxReceivedAt = new Date("2026-04-15T09:00:00.000Z");
 
-describe("IMAP TLS connection fallback", () => {
+describe("IMAP transport safeguards", () => {
+  it("keeps socket errors between interval polls from crashing the process", () => {
+    const client = new EventEmitter();
+    preventUnhandledImapErrors(client);
+
+    expect(() =>
+      client.emit(
+        "error",
+        Object.assign(new Error("Socket timeout"), {
+          code: "ETIMEOUT",
+        }),
+      ),
+    ).not.toThrow();
+  });
+
   it("retries a hostname over IPv4 after Bun loses IPv6 certificate names", async () => {
     const families: Array<4 | undefined> = [];
     const result = await connectImapWithIpv4TlsFallback(
