@@ -1,17 +1,17 @@
 import { beforeEach, describe, expect, it, spyOn } from "bun:test";
 import { SYSTEM_CHANNELS, type EvalHandler } from "@brains/plugins";
-import { DecksPlugin } from "../src/plugin";
+import { deckEntityPlugin } from "./helpers/install";
 import {
   createPluginHarness,
   type PluginTestHarness,
 } from "@brains/plugins/test";
 
 describe("DecksPlugin - Publish Pipeline Integration", () => {
-  let harness: PluginTestHarness<DecksPlugin>;
+  let harness: PluginTestHarness;
   let receivedMessages: Array<{ type: string; payload: unknown }>;
 
   beforeEach(async () => {
-    harness = createPluginHarness<DecksPlugin>({ dataDir: "/tmp/test-decks" });
+    harness = createPluginHarness({ dataDir: "/tmp/test-decks" });
     receivedMessages = [];
 
     for (const eventType of [
@@ -38,7 +38,7 @@ describe("DecksPlugin - Publish Pipeline Integration", () => {
         "generateContent",
       ).mockResolvedValue({ description: "Source-matched description" });
 
-      await harness.installPlugin(new DecksPlugin());
+      await harness.installPlugin(deckEntityPlugin());
       if (!descriptionHandler) {
         throw new Error("Deck description eval handler was not registered");
       }
@@ -58,7 +58,7 @@ describe("DecksPlugin - Publish Pipeline Integration", () => {
 
   describe("provider registration", () => {
     it("should send publish:register message after plugins-registered with internal provider", async () => {
-      await harness.installPlugin(new DecksPlugin());
+      await harness.installPlugin(deckEntityPlugin());
 
       expect(
         receivedMessages.find((m) => m.type === "publish:register"),

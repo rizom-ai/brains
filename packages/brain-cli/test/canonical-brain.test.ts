@@ -157,6 +157,10 @@ describe("canonical brain core", () => {
     expect(resolvedIds).toContain("unified-inbox");
     expect(resolvedIds).not.toContain("webserver");
     expect(resolvedIds).not.toContain("notifications");
+    expect(resolvedIds).toContain("atproto-registry");
+    expect(resolvedIds).not.toContain("atproto");
+    expect(resolvedIds).not.toContain("site-builder");
+    expect(resolvedIds).not.toContain("email-workflows");
   });
 
   test("keeps posture-independent permissions on the definition", () => {
