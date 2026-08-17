@@ -278,6 +278,15 @@ export interface MediaAttachmentContext {
       entityType: string;
       id: string;
     }): Promise<T | null>;
+    /**
+     * Present because a media provider may need a singleton it cannot name by
+     * id — decks resolves the site's theme mode this way before rendering a
+     * carousel.
+     */
+    listEntities<T extends BaseEntity>(request: {
+      entityType: string;
+      options?: { limit?: number };
+    }): Promise<T[]>;
   };
 }
 
