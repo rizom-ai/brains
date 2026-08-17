@@ -4,8 +4,6 @@ import { runGitBrokerChild } from "../src/lib/git-broker-child";
 import { GIT_BROKER_SOCKET_ENV } from "../src/lib/process-supervisor";
 
 /**
- * Phase 3 of docs/plans/directory-sync-git-execution-broker.md.
- *
  * The broker child's contract with its supervisor: it is told where to listen,
  * it reports ready once it is, and it stops only when asked.
  */

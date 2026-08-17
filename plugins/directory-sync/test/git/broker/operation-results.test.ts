@@ -13,8 +13,8 @@ import type {
  *
  * Everything else in the protocol is a strict Zod contract; the result was
  * `unknown` widened by an assertion, which means a broker returning the wrong
- * shape produced a value the caller believed was typed. Safety invariant 11
- * of docs/plans/directory-sync-git-execution-broker.md forbids exactly that.
+ * shape produced a value the caller believed was typed. No cast may stand
+ * between the socket and a typed value; parsing is what earns the type.
  */
 
 const CHECKPOINT = {

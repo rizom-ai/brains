@@ -24,9 +24,7 @@ import type { SignalProcess } from "../src/lib/spawn-bun-runner";
 import type { CommandResult } from "../src/lib/command-result";
 
 /**
- * Phase 6 of docs/plans/directory-sync-git-execution-broker.md.
- *
- * The plan is explicit that this may not be a unit test observing signals, so
+ * Proving recovery means proving it, not observing signals against a mock, so
  * everything here is real: a real supervisor spawning real child processes, a
  * real broker owning a real Git checkout, a real mutation, and a real Git
  * child whose completion never arrives. Even the stall is real — a push to a

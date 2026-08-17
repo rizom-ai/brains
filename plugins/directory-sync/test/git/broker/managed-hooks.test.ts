@@ -12,9 +12,9 @@ import { commitTouching, runGit } from "../real-git";
  * Managed operations run with hooks disabled. A hook is arbitrary code the
  * broker did not sanction, running inside the checkout turn and inside the
  * broker's process group — it can block the turn indefinitely, or detach and
- * outlive the group the supervisor is about to prove empty. The plan requires
- * that hooks and automatic maintenance cannot escape the broker, and the
- * simplest way to guarantee that is not to run them.
+ * outlive the group the supervisor is about to prove empty. Neither hooks nor
+ * automatic maintenance may escape the broker, and the simplest way to
+ * guarantee that is not to run them.
  */
 
 const LINUX = process.platform === "linux";

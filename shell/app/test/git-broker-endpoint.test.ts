@@ -2,8 +2,6 @@ import { describe, expect, it } from "bun:test";
 import { resolveGitBrokerSocket } from "../src/standard-paths";
 
 /**
- * Phase 5 of docs/plans/directory-sync-git-execution-broker.md.
- *
  * The broker endpoint is a runtime handoff, not a preference. It derives from
  * the Brain instance rather than being configured, because two roles pointed
  * at different sockets means either two owners or none — the one failure the

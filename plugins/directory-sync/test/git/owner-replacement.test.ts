@@ -3,8 +3,6 @@ import { createSilentLogger } from "@brains/test-utils";
 import { createOwnerReplacementHandler } from "../../src/lib/git-owner-replacement";
 
 /**
- * Phase 3 of docs/plans/directory-sync-git-execution-broker.md.
- *
  * A replaced broker leaves this role running with an ambiguous past: whatever
  * the old owner was executing may or may not have landed, and the client
  * deliberately refuses to re-run it from intent. Repository state settles it.

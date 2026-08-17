@@ -8,18 +8,15 @@ import { commitTouching, pointOriginAt, stallingRemote } from "./real-git";
 import type { GitBrokerServer } from "../../src/lib/broker/server";
 
 /**
- * Phase 0 evidence for docs/plans/directory-sync-git-execution-broker.md.
- *
  * A Git operation is more than one command: a commit is `status`, `add -A`,
  * marker checks, `commit`. Ownership that serializes commands rather than
  * operations lets a second owner run inside the first owner's operation,
  * where `add -A` stages the whole working tree — including the other owner's
  * files.
  *
- * The plan requires this reproduction to assert operation atomicity rather
- * than the absence of errors, because an earlier version asserted only that
- * concurrent commits produced no rejection and passed while the operations
- * interleaved.
+ * So this asserts operation atomicity rather than the absence of errors. An
+ * earlier version asserted only that concurrent commits produced no rejection,
+ * and passed while the operations interleaved.
  *
  * It failed for as long as web and worker each executed Git themselves. It
  * passes now because both reach one owner, which holds a queue turn for the

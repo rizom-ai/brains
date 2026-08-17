@@ -9,8 +9,6 @@ import { getGitRemoteFingerprint } from "../../../src/lib/git-options";
 import { pointOriginAt, stallingRemote } from "../real-git";
 
 /**
- * Phase 3 of docs/plans/directory-sync-git-execution-broker.md.
- *
  * A wedged owner does not exit — that is the whole shape of the Bun defect
  * this design has to survive — so supervision cannot wait for a process to
  * die. It watches durable facts instead: what is active, and how long since

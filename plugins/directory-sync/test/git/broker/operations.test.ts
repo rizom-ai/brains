@@ -9,8 +9,6 @@ import {
 import type { GitOperationName } from "../../../src/lib/broker/operations";
 
 /**
- * Phase 2 of docs/plans/directory-sync-git-execution-broker.md.
- *
  * The operation set is the ownership boundary, so it is pinned rather than
  * left to drift: every checkout-touching method callers have must map to an
  * operation, and nothing may reach Git outside one.

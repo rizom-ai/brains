@@ -7,8 +7,6 @@ import {
 } from "../src/lib/git-broker-spec";
 
 /**
- * Phase 3 of docs/plans/directory-sync-git-execution-broker.md.
- *
  * Whether a broker starts at all is decided here, from the same `brain.yaml`
  * the app roles read.
  */

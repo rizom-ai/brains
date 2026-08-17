@@ -3,8 +3,6 @@ import { createBrokerHealthCheck } from "../../../src/lib/broker/health";
 import type { BrokerActivity } from "../../../src/lib/broker/health";
 
 /**
- * Phase 5 of docs/plans/directory-sync-git-execution-broker.md.
- *
  * Health is evaluated from durable facts on request, not from a background
  * poller: the question is what the owner is doing right now. `/health/live`
  * and `/health/ready` stay independent — a checkout that cannot be written is
