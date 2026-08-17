@@ -110,6 +110,9 @@ describe("@rizom/ops package metadata", () => {
       encoding: "utf8",
     });
     expect(build.status).toBe(0);
+    expect(
+      readFileSync(join(packageDir, "dist", "brains-ops.js"), "utf8"),
+    ).toContain("watchdog-smoke-brain");
 
     const pack = spawnSync("npm", ["pack", "--json", "--dry-run"], {
       cwd: packageDir,
@@ -132,6 +135,11 @@ describe("@rizom/ops package metadata", () => {
     expect(
       filePaths.has(
         "templates/rover-pilot/.github/workflows/directory-sync-stress.yml",
+      ),
+    ).toBeTrue();
+    expect(
+      filePaths.has(
+        "templates/rover-pilot/.github/workflows/health-watchdog-smoke.yml",
       ),
     ).toBeTrue();
     // Timeout: cold `bun run build` + `npm pack --dry-run` exceeds bun's
@@ -201,15 +209,28 @@ describe("@rizom/ops package metadata", () => {
           join(projectDir, "demo", "docs", "canonical-crossover-record.md"),
         ),
       ).toBeTrue();
+      expect(
+        existsSync(
+          join(
+            projectDir,
+            "demo",
+            ".github",
+            "workflows",
+            "health-watchdog-smoke.yml",
+          ),
+        ),
+      ).toBeTrue();
 
       writeFileSync(
         join(projectDir, "smoke.ts"),
         [
-          'import { parseArgs } from "@rizom/ops";',
+          'import { parseArgs, renderHealthWatchdogSmokeRemoteScript } from "@rizom/ops";',
           'import { parseEnvSchema, parseEnvSchemaFile } from "@rizom/ops/deploy";',
           'import { writeFileSync } from "node:fs";',
           'const parsed = parseArgs(["render", "demo"]);',
           'if (parsed.command !== "render") throw new Error("bad command");',
+          "const watchdogSmoke = renderHealthWatchdogSmokeRemoteScript();",
+          'if (!watchdogSmoke.includes("$installed_watchdog")) throw new Error("missing installed watchdog smoke");',
           'writeFileSync(".env.schema", "# @required\\nSECRET=\\n", "utf8");',
           'const inline = parseEnvSchema("# @required\\nSECRET=\\n");',
           'const file = parseEnvSchemaFile(".env.schema");',

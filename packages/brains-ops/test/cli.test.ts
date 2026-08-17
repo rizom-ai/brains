@@ -155,6 +155,27 @@ describe("brains-ops parseArgs", () => {
     });
   });
 
+  it("parses health watchdog smoke workflow options", () => {
+    const result = parseArgs([
+      "smoke:health-watchdog",
+      "/tmp/rover-pilot",
+      "smoke",
+      "--confirm",
+      "watchdog-smoke:smoke",
+      "--run-id",
+      "gha-123-1",
+      "--artifacts-dir",
+      "/tmp/artifacts",
+    ]);
+    expect(result.command).toBe("smoke:health-watchdog");
+    expect(result.args).toEqual(["/tmp/rover-pilot", "smoke"]);
+    expect(result.flags).toMatchObject({
+      confirm: "watchdog-smoke:smoke",
+      "run-id": "gha-123-1",
+      "artifacts-dir": "/tmp/artifacts",
+    });
+  });
+
   it("parses the write-free directory-sync credential check", () => {
     const result = parseArgs([
       "stress:directory-sync:verify-access",
@@ -473,6 +494,84 @@ discord:
       success: true,
       message:
         "Passed regression directory-sync stress for smoke; artifacts: /tmp/artifacts",
+    });
+  });
+
+  it("runs injected health watchdog smoke and cleanup drivers", async () => {
+    const smoke = await runCommand(
+      {
+        command: "smoke:health-watchdog",
+        args: ["/tmp/rover-pilot", "smoke"],
+        flags: {
+          confirm: "watchdog-smoke:smoke",
+          "run-id": "gha-123-1",
+          "artifacts-dir": "/tmp/artifacts",
+        },
+      },
+      {
+        async healthWatchdogSmokeRunner(options) {
+          expect(options).toMatchObject({
+            rootDir: "/tmp/rover-pilot",
+            handle: "smoke",
+            confirmation: "watchdog-smoke:smoke",
+            runId: "gha-123-1",
+            artifactsDir: "/tmp/artifacts",
+          });
+          return {
+            success: true,
+            runId: "gha-123-1",
+            artifactsDir: "/tmp/artifacts",
+            target: {
+              handle: "smoke",
+              domain: "smoke.rizom.ai",
+              serverIp: "203.0.113.10",
+            },
+          };
+        },
+      },
+    );
+    const cleanup = await runCommand(
+      {
+        command: "smoke:health-watchdog:cleanup",
+        args: ["/tmp/rover-pilot", "smoke"],
+        flags: {
+          confirm: "watchdog-smoke:smoke",
+          "run-id": "gha-123-1",
+          "artifacts-dir": "/tmp/cleanup",
+        },
+      },
+      {
+        async healthWatchdogSmokeCleanupRunner(options) {
+          expect(options).toMatchObject({
+            rootDir: "/tmp/rover-pilot",
+            handle: "smoke",
+            confirmation: "watchdog-smoke:smoke",
+            runId: "gha-123-1",
+            artifactsDir: "/tmp/cleanup",
+          });
+          return {
+            success: true,
+            runId: "gha-123-1",
+            artifactsDir: "/tmp/cleanup",
+            target: {
+              handle: "smoke",
+              domain: "smoke.rizom.ai",
+              serverIp: "203.0.113.10",
+            },
+          };
+        },
+      },
+    );
+
+    expect(smoke).toEqual({
+      success: true,
+      message:
+        "Passed health watchdog smoke for smoke; artifacts: /tmp/artifacts",
+    });
+    expect(cleanup).toEqual({
+      success: true,
+      message:
+        "Cleaned health watchdog smoke fixtures for smoke; artifacts: /tmp/cleanup",
     });
   });
 

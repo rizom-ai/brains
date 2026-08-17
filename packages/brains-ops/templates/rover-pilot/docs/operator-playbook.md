@@ -10,6 +10,7 @@ Treat these as checked-in deploy artifacts in the pilot repo:
 - `.github/workflows/build.yml`
 - `.github/workflows/deploy.yml`
 - `.github/workflows/directory-sync-stress.yml`
+- `.github/workflows/health-watchdog-smoke.yml`
 - `.github/workflows/reconcile.yml`
 
 `.env.schema` is the single source of truth for required and sensitive deploy vars.
@@ -87,6 +88,14 @@ Profiles are deterministic and reversible:
 The workflow loads operator credentials through Bitwarden/Varlock, but it is separate from Deploy and cannot deploy an image. It creates a rollback branch before the first content write, gates on health timeouts, watchdog restarts, and external AI usage during the monitored workload window, preserves warmup and cleanup samples as evidence, uploads JSON/Markdown/runtime artifacts, and runs an independent idempotent cleanup job with `if: always()`. Once cleanup confirms that no probes remain, it also prunes retained `ops/directory-sync-stress-backup-*` branches; if probes remain, the branches stay available for recovery.
 
 Treat any gated health failure, restart, OOM, residual probe, or entity-baseline drift as a failed gate. Do not restart the target during measurement. Recovery is a separate operator action after evidence collection.
+
+## Health watchdog smoke gate
+
+Use the manual `Health Watchdog Smoke` workflow only after the `smoke` fleet user has completed a normal Deploy run. The workflow shares the `deploy-<handle>` concurrency group, resolves the server from pilot desired state through Hetzner, loads the existing deploy SSH key through Bitwarden/Varlock, and refuses targets whose handle and domain do not identify smoke. Confirm with `watchdog-smoke:<handle>`.
+
+The smoke does not deploy or replace the installed systemd units. It verifies that the installed watchdog exactly matches the packaged canonical payload, then exercises that installed script. It also verifies the deployed rover image label, exact-label selector, active timer, and `/health/live` Docker healthcheck. While holding the timer's global lock, it creates temporary containers for eligible unhealthy, unrelated service-labelled unhealthy, false-labelled unhealthy, and eligible healthy cases. It then requires exactly three eligible restarts followed by budget suppression, diagnostics and state only for the eligible fixture, and no restart of the deployed rover or ineligible fixtures.
+
+The primary job uploads remote incident, state, and command evidence. An independent `if: always()` cleanup job removes deterministic fixture names and remote temporary files using the same workflow run ID. Treat missing evidence, unexpected eligibility, deployed-container movement, cleanup failure, or any non-smoke target rejection as a failed gate.
 
 ## Stale deploy lock recovery
 

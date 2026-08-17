@@ -152,6 +152,11 @@ describe("initPilotRepo", () => {
       ),
     ).toBe(true);
     expect(
+      existsSync(
+        join(repo, ".github", "workflows", "health-watchdog-smoke.yml"),
+      ),
+    ).toBe(true);
+    expect(
       existsSync(join(repo, ".github", "actions", "varlock-env", "action.yml")),
     ).toBe(true);
     expect(
@@ -309,6 +314,28 @@ describe("initPilotRepo", () => {
       "github.event_name == 'schedule' && 'stress:smoke' || inputs.confirm",
     );
     expect(stressWorkflow).toContain("PROFILE_INPUT: ${{");
+
+    const watchdogWorkflow = await readFile(
+      join(repo, ".github", "workflows", "health-watchdog-smoke.yml"),
+      "utf8",
+    );
+    expect(watchdogWorkflow).toContain("workflow_dispatch:");
+    expect(watchdogWorkflow).toContain("group: deploy-${{ inputs.handle }}");
+    expect(watchdogWorkflow).toContain("BWS_ACCESS_TOKEN");
+    expect(watchdogWorkflow).toContain("smoke:health-watchdog");
+    expect(watchdogWorkflow).toContain("smoke:health-watchdog:cleanup");
+    expect(watchdogWorkflow).toContain("needs: smoke");
+    expect(watchdogWorkflow).toContain("if: always()");
+    expect(watchdogWorkflow).toContain("actions/upload-artifact@v4");
+    expect(watchdogWorkflow).not.toContain("schedule:");
+    expect(watchdogWorkflow).not.toContain("push:");
+    const watchdogRunBlocks =
+      watchdogWorkflow.match(/run: \|\n(?: {10}.*\n)*/g) ?? [];
+    expect(watchdogRunBlocks.join("\n")).not.toMatch(
+      /\$\{\{ inputs\.(?:handle|confirm) \}\}/,
+    );
+    expect(watchdogWorkflow).toContain("HANDLE_INPUT: ${{ inputs.handle }}");
+    expect(watchdogWorkflow).toContain("CONFIRM_INPUT: ${{ inputs.confirm }}");
 
     const varlockAction = await readFile(
       join(repo, ".github", "actions", "varlock-env", "action.yml"),

@@ -39,6 +39,10 @@ import type {
   runDeployedDirectorySyncStress,
   verifyDirectorySyncStressAccess,
 } from "./directory-sync-stress-system";
+import type {
+  cleanupHealthWatchdogSmoke,
+  runHealthWatchdogSmoke,
+} from "./health-watchdog-smoke";
 
 export interface CommandResult {
   success: boolean;
@@ -61,6 +65,9 @@ export interface CommandDependencies extends LoadPilotRegistryOptions {
     typeof verifyDirectorySyncStressAccess | undefined;
   directorySyncStressCleanupRunner?:
     typeof cleanupDirectorySyncStress | undefined;
+  healthWatchdogSmokeRunner?: typeof runHealthWatchdogSmoke | undefined;
+  healthWatchdogSmokeCleanupRunner?:
+    typeof cleanupHealthWatchdogSmoke | undefined;
 }
 
 type OpsCommand = CommandDefinition<CommandDependencies, CommandResult>;
@@ -519,6 +526,96 @@ const directorySyncStressCleanup: OpsCommand = defineCommand({
   },
 });
 
+const healthWatchdogSmokeFlags: FlagDefinitions = {
+  confirm: {
+    type: "string",
+    placeholder: "watchdog-smoke:<handle>",
+    description: "Explicit smoke target confirmation",
+  },
+  "run-id": {
+    type: "string",
+    placeholder: "<id>",
+    description: "Stable workflow run identifier used for cleanup",
+  },
+  "artifacts-dir": {
+    type: "string",
+    placeholder: "<path>",
+    description: "Directory for remote smoke evidence",
+  },
+};
+
+const healthWatchdogSmoke: OpsCommand = defineCommand({
+  name: "smoke:health-watchdog",
+  usage:
+    "<repo> <handle> --confirm watchdog-smoke:<handle> --run-id <id> [--artifacts-dir <path>]",
+  description: "Run the smoke-fleet host watchdog isolation check",
+  flags: healthWatchdogSmokeFlags,
+  run: async ({ args, flags }, dependencies): Promise<CommandResult> => {
+    const repo = args[0];
+    const handle = args[1];
+    const confirmation = getStringFlag(flags, "confirm");
+    const runId = getStringFlag(flags, "run-id");
+    if (!repo || !handle || !confirmation || !runId) {
+      return usageFailure(healthWatchdogSmoke);
+    }
+
+    const runner =
+      dependencies.healthWatchdogSmokeRunner ??
+      (await import("./health-watchdog-smoke")).runHealthWatchdogSmoke;
+    const artifactsDir = getStringFlag(flags, "artifacts-dir");
+    const result = await runner({
+      rootDir: repo,
+      handle,
+      confirmation,
+      runId,
+      ...(artifactsDir ? { artifactsDir } : {}),
+      ...(dependencies.env ? { env: dependencies.env } : {}),
+      ...(dependencies.fetchImpl ? { fetchImpl: dependencies.fetchImpl } : {}),
+      ...(dependencies.logger ? { logger: dependencies.logger } : {}),
+    });
+    return {
+      success: result.success,
+      message: `Passed health watchdog smoke for ${handle}; artifacts: ${result.artifactsDir}`,
+    };
+  },
+});
+
+const healthWatchdogSmokeCleanup: OpsCommand = defineCommand({
+  name: "smoke:health-watchdog:cleanup",
+  usage:
+    "<repo> <handle> --confirm watchdog-smoke:<handle> --run-id <id> [--artifacts-dir <path>]",
+  description: "Remove residual smoke-fleet watchdog fixtures",
+  flags: healthWatchdogSmokeFlags,
+  run: async ({ args, flags }, dependencies): Promise<CommandResult> => {
+    const repo = args[0];
+    const handle = args[1];
+    const confirmation = getStringFlag(flags, "confirm");
+    const runId = getStringFlag(flags, "run-id");
+    if (!repo || !handle || !confirmation || !runId) {
+      return usageFailure(healthWatchdogSmokeCleanup);
+    }
+
+    const runner =
+      dependencies.healthWatchdogSmokeCleanupRunner ??
+      (await import("./health-watchdog-smoke")).cleanupHealthWatchdogSmoke;
+    const artifactsDir = getStringFlag(flags, "artifacts-dir");
+    const result = await runner({
+      rootDir: repo,
+      handle,
+      confirmation,
+      runId,
+      ...(artifactsDir ? { artifactsDir } : {}),
+      ...(dependencies.env ? { env: dependencies.env } : {}),
+      ...(dependencies.fetchImpl ? { fetchImpl: dependencies.fetchImpl } : {}),
+      ...(dependencies.logger ? { logger: dependencies.logger } : {}),
+    });
+    return {
+      success: result.success,
+      message: `Cleaned health watchdog smoke fixtures for ${handle}; artifacts: ${result.artifactsDir}`,
+    };
+  },
+});
+
 const verifyUser: OpsCommand = defineCommand({
   name: "verify-user",
   usage: "<repo> <handle>",
@@ -677,6 +774,8 @@ export const commands: readonly CommandDefinition<
   directorySyncStress,
   directorySyncStressAccess,
   directorySyncStressCleanup,
+  healthWatchdogSmoke,
+  healthWatchdogSmokeCleanup,
   verifyUser,
   reconcileCohortCommand,
   reconcileAllCommand,

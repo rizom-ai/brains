@@ -1,0 +1,95 @@
+name: Health Watchdog Smoke
+
+on:
+  workflow_dispatch:
+    inputs:
+      handle:
+        description: Smoke fleet handle only
+        required: true
+        type: string
+        default: smoke
+      confirm:
+        description: Type watchdog-smoke:<handle> to confirm temporary container restarts
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-${{ inputs.handle }}
+  cancel-in-progress: false
+
+env:
+  WATCHDOG_SMOKE_RUN_ID: gha-${{ github.run_id }}-${{ github.run_attempt }}
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Install operator tooling
+        run: bun install
+
+      - name: Load Bitwarden environment through Varlock
+        uses: ./.github/actions/varlock-env
+        env:
+          BWS_ACCESS_TOKEN: ${{ secrets.BWS_ACCESS_TOKEN }}
+
+      - name: Run fleet watchdog isolation smoke
+        env:
+          HANDLE_INPUT: ${{ inputs.handle }}
+          CONFIRM_INPUT: ${{ inputs.confirm }}
+        run: |
+          bunx brains-ops smoke:health-watchdog "$GITHUB_WORKSPACE" "$HANDLE_INPUT" \
+            --confirm "$CONFIRM_INPUT" \
+            --run-id "$WATCHDOG_SMOKE_RUN_ID" \
+            --artifacts-dir "$RUNNER_TEMP/health-watchdog-smoke"
+
+      - name: Upload watchdog smoke evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: health-watchdog-smoke-${{ inputs.handle }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/health-watchdog-smoke
+          if-no-files-found: warn
+
+  cleanup:
+    needs: smoke
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Install operator tooling
+        run: bun install
+
+      - name: Load Bitwarden environment through Varlock
+        uses: ./.github/actions/varlock-env
+        env:
+          BWS_ACCESS_TOKEN: ${{ secrets.BWS_ACCESS_TOKEN }}
+
+      - name: Remove residual watchdog smoke fixtures
+        env:
+          HANDLE_INPUT: ${{ inputs.handle }}
+          CONFIRM_INPUT: ${{ inputs.confirm }}
+        run: |
+          bunx brains-ops smoke:health-watchdog:cleanup "$GITHUB_WORKSPACE" "$HANDLE_INPUT" \
+            --confirm "$CONFIRM_INPUT" \
+            --run-id "$WATCHDOG_SMOKE_RUN_ID" \
+            --artifacts-dir "$RUNNER_TEMP/health-watchdog-smoke-cleanup"
+
+      - name: Upload watchdog smoke cleanup evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: health-watchdog-smoke-cleanup-${{ inputs.handle }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/health-watchdog-smoke-cleanup
+          if-no-files-found: warn

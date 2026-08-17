@@ -66,6 +66,17 @@ export {
   type VerifyDirectorySyncStressAccessOptions,
   type VerifyDirectorySyncStressAccessResult,
 } from "./directory-sync-stress-system";
+export {
+  assertHealthWatchdogSmokeTarget,
+  cleanupHealthWatchdogSmoke,
+  renderHealthWatchdogSmokeRemoteScript,
+  runHealthWatchdogSmoke,
+  type CleanupHealthWatchdogSmokeOptions,
+  type CleanupHealthWatchdogSmokeResult,
+  type HealthWatchdogSmokeOptions,
+  type HealthWatchdogSmokeResult,
+  type HealthWatchdogSmokeTarget,
+} from "./health-watchdog-smoke";
 export { runCommand, type CommandResult } from "./run-command";
 export {
   pilotSchema,

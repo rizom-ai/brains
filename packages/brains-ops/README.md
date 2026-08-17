@@ -18,6 +18,8 @@ Operator CLI package for managing pilot brain fleet registry repos.
 - `brains-ops stress:directory-sync <repo> <handle> --profile <regression|load|stress> --confirm stress:<handle>` — runs a smoke-only, reversible directory-sync workload and writes structured evidence
 - `brains-ops stress:directory-sync:verify-access <repo> <handle> --confirm stress:<handle>` — clones the smoke content repository and verifies push authorization with `git push --dry-run`, without creating a ref or starting a workload
 - `brains-ops stress:directory-sync:cleanup <repo> <handle> --confirm stress:<handle>` — idempotently removes residual stress probes
+- `brains-ops smoke:health-watchdog <repo> <handle> --confirm watchdog-smoke:<handle> --run-id <id>` — verifies fleet watchdog selection and restart-budget isolation on the smoke host
+- `brains-ops smoke:health-watchdog:cleanup <repo> <handle> --confirm watchdog-smoke:<handle> --run-id <id>` — removes deterministic residual watchdog smoke fixtures
 - `brains-ops reconcile-cohort <repo> <cohort>`
 - `brains-ops reconcile-all <repo>`
 - `brains-ops reconcile-all <repo> --dry-run` — reconciles an isolated copy twice with external content-repository access blocked, lists both passes' changed files, and requires second-pass zero drift
@@ -38,6 +40,10 @@ topicExtractionEnabled: false
 - `stress`: continue the same deterministic ramp to 700 files and 200 renames.
 
 Each run creates a rollback branch, gates on health failures during the monitored workload window, preserves warmup and cleanup health samples as evidence without poisoning that gate, samples container CPU/memory/PIDs, detects watchdog restarts even when Docker's restart counter remains zero, rejects external AI usage, waits for Git and entity persistence, and always attempts cleanup. JSON, Markdown, runtime logs, and samples are written under `.brains-ops/stress/` unless `--artifacts-dir` is supplied. The scaffolded `Directory Sync Stress` workflow runs a weekly regression and supports manual profiles. Its manual `verify_only` mode exercises the Bitwarden/Varlock content credential path through clone and a dry-run push, skips the workload, and does not schedule cleanup. Workload runs retain a separate `always()` cleanup job. Successful idempotent cleanup also prunes retained stress backup branches; branches remain available when probes remain for recovery. The workflow never deploys or targets a non-smoke user.
+
+## Health watchdog smoke
+
+The scaffolded manual `Health Watchdog Smoke` workflow uses the same pilot desired state, Hetzner lookup, Bitwarden/Varlock deploy key, and `deploy-<handle>` concurrency boundary as fleet deployment. It refuses non-smoke handles/domains and requires `watchdog-smoke:<handle>` confirmation. The runner requires the installed watchdog to match the packaged canonical payload, exercises that installed script, and verifies the deployed image label, active timer, exact selector, liveness healthcheck, diagnostics, negative container isolation, and three-per-hour restart budget without restarting the deployed rover. Evidence is uploaded from `RUNNER_TEMP`; an independent `always()` cleanup job removes deterministic temporary containers and remote files.
 
 ## Scope
 

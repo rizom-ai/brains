@@ -27,6 +27,7 @@ const starterFilePaths = [
   ".github/workflows/build.yml",
   ".github/workflows/deploy.yml",
   ".github/workflows/directory-sync-stress.yml",
+  ".github/workflows/health-watchdog-smoke.yml",
   ".github/workflows/reconcile.yml",
   ".github/workflows/upgrade.yml",
   "deploy/Dockerfile",
@@ -223,9 +224,9 @@ const stalenessChecks: Partial<Record<StarterFilePath, StalenessCheck>> = {
   ),
   "deploy/scripts/sync-content-repo.ts":
     hasOpsScriptFingerprint("GIT_SYNC_TOKEN"),
-  // Tooling workflows must track the template. directory-sync-stress.yml is
-  // deliberately absent: operators tune it in-repo, and a reconcile must not
-  // revert that.
+  // Tooling workflows must track the template. directory-sync-stress.yml and
+  // health-watchdog-smoke.yml are deliberately absent: operators tune them
+  // in-repo, and a reconcile must not revert that.
   ".github/workflows/build.yml": hasOpsScriptFingerprint(
     "resolve-missing-images.ts",
   ),
