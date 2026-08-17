@@ -29,9 +29,11 @@ import type { CommandResult } from "../src/lib/command-result";
  * The plan is explicit that this may not be a unit test observing signals, so
  * everything here is real: a real supervisor spawning real child processes, a
  * real broker owning a real Git checkout, a real mutation, and a real Git
- * child whose completion never arrives. The only thing injected is the stall
- * itself — a `post-commit` hook that blocks after the commit object is
- * written, which is what a lost child completion looks like from outside.
+ * child whose completion never arrives. Even the stall is real — a push to a
+ * remote that accepts the connection and then says nothing, which is what a
+ * lost child completion looks like from outside. Managed operations run no
+ * hooks, so a hook could not have staged it, and depending on the Bun defect
+ * itself would make the proof unrepeatable.
  */
 
 const LINUX = process.platform === "linux";
@@ -133,11 +135,11 @@ function isAlive(pid: number): boolean {
 }
 
 /**
- * A process surface of this harness own.
+ * A process surface of this harness's own.
  *
  * Signals are delivered for real — group termination has to be real for the
  * proof to mean anything — but the SIGINT/SIGTERM/exit listeners live on an
- * emitter this test owns. Sharing the runner process meant another test
+ * emitter this test owns. Sharing the runner's process meant another test's
  * shutdown signal reached this supervisor and stopped it mid-proof.
  */
 function isolatedProcess(options: { groupAlwaysPresent?: boolean } = {}): {
