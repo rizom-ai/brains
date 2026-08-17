@@ -34,18 +34,13 @@ describe("SocialMediaPlugin - Publish Pipeline Registration", () => {
       });
     });
 
-    it("registers auto-generation only as a scheduler-owned rule", async () => {
+    it("contributes no projection rule", async () => {
       const capabilities = await harness.installPlugin(
-        new SocialMediaPlugin({ autoGenerateOnBlogPublish: true }),
+        new SocialMediaPlugin({}),
       );
 
       expect("projections" in capabilities).toBe(false);
-      expect(capabilities.projectionRules).toHaveLength(1);
-      expect(capabilities.projectionRules?.[0]).toMatchObject({
-        id: "social-post-generation",
-        targetType: "social-post",
-        sources: [{ kind: "entity", types: ["post"] }],
-      });
+      expect(capabilities.projectionRules).toBeUndefined();
     });
   });
 

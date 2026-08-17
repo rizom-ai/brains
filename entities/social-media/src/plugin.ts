@@ -4,7 +4,6 @@ import type {
   DataSource,
   Template,
   EntityTypeConfig,
-  ProjectionRule,
 } from "@brains/plugins";
 import { EntityPlugin } from "@brains/plugins";
 import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
@@ -21,7 +20,6 @@ import { registerEvalHandlers } from "./lib/eval-handlers";
 import { registerWithPublishPipeline } from "./lib/publish-handler";
 import { subscribeToGenerateExecute } from "./lib/auto-generate";
 import { createSocialPostAtprotoProjection } from "./atproto-projection";
-import { createSocialPostProjectionRule } from "./lib/social-post-projection";
 import packageJson from "../package.json";
 
 export class SocialMediaPlugin extends EntityPlugin<
@@ -66,24 +64,12 @@ export class SocialMediaPlugin extends EntityPlugin<
     };
   }
 
-  protected override getProjectionRules(
-    _context: EntityPluginContext,
-  ): ProjectionRule[] {
-    return this.config.autoGenerateOnBlogPublish
-      ? [createSocialPostProjectionRule()]
-      : [];
-  }
-
   protected override async onRegister(
     context: EntityPluginContext,
   ): Promise<void> {
     this.initializeProviders();
 
     registerWithPublishPipeline(context, this.providers, this.logger);
-
-    if (this.config.autoGenerateOnBlogPublish) {
-      this.logger.info("Scheduler-owned auto-generation enabled");
-    }
 
     subscribeToGenerateExecute(context, this.logger);
     registerEvalHandlers(context);
