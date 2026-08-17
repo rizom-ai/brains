@@ -84,6 +84,7 @@
     "roadmap:build": "bun scripts/build-roadmap-visual.ts",
     "roadmap:check": "bun scripts/build-roadmap-visual.ts --check",
     "test": "turbo run test",
+    "test:git-broker-recovery": "bun run --filter @rizom/brain build && RUN_GIT_BROKER_PACKAGED_RECOVERY=1 bun test packages/brain-cli/test/git-broker-packaged-recovery.test.ts",
     "test:packed:compat": "bun --filter @rizom/brain test:packed:compat",
     "test:scripts": "bun test scripts/",
     "test:unit": "turbo run test",

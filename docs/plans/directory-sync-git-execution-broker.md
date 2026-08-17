@@ -2,8 +2,11 @@
 
 ## Status
 
-Active — design correction accepted; implementation must restart from updated `main`.
-This plan owns **Git runtime safety only**. Directory-sync import performance, AI-call
+Active — implementation Phases 0–6 are complete locally and Phase 7 acceptance is
+pending. The packaged primary recovery and full-runtime fallback gates passed on affected
+Bun 1.3.11 after rebasing onto `origin/main`; Bun 1.3.14, scheduled acceptance, PR merge,
+release, deployment, and smoke validation have not run. This plan owns **Git runtime safety
+only**. Directory-sync import performance, AI-call
 fan-out, queue throughput, and the 350-file performance gates stay in
 [`directory-sync-import-load.md`](./directory-sync-import-load.md).
 
@@ -489,6 +492,17 @@ tree, and the next runtime converges.
 These are the safety proofs that replace wrapper process-group management. Do not
 substitute a unit test that merely observes signals.
 
+Local Phase 6 evidence on affected Bun 1.3.11:
+
+- `bun run --filter @rizom/brain build` passed against the packaged `dist/brain.js`;
+- packaged primary recovery passed with live/ready continuity, operational degradation,
+  proven old-group absence, one replacement, remote deletion, queue drain, and durable
+  local/remote checkpoint convergence;
+- packaged unproven-absence fallback passed with no replacement, failed full-runtime exit,
+  external tree cleanup, and successful next-runtime convergence;
+- the deterministic fault is injected only after a real pull and its Git children finish,
+  matching the lost-completion shape rather than substituting a hanging network request.
+
 ### Phase 7 — Affected-runtime acceptance
 
 Run on the packaged Linux runtime with the shipped affected Bun version, currently 1.3.14:
@@ -518,6 +532,7 @@ bun test packages/brain-cli/test/process-supervisor.test.ts
 bun run lint
 bun run typecheck
 bun run build --filter=@rizom/brain
+bun run test:git-broker-recovery
 RUN_IMPORT_BURST_SOAK=1 IMPORT_BURST_FILE_COUNT=350 \
   bun test packages/brain-cli/test/import-burst-stability.test.ts
 ```

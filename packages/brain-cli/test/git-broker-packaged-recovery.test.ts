@@ -2,7 +2,15 @@ import { afterEach, describe, expect, it } from "bun:test";
 import { Database } from "bun:sqlite";
 import { spawn } from "node:child_process";
 import { EventEmitter } from "node:events";
-import { mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import {
+  access,
+  mkdtemp,
+  readFile,
+  readdir,
+  rm,
+  unlink,
+  writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -145,7 +153,7 @@ function runtimeProcess(groupAlwaysPresent: boolean): {
       env: {
         ...process.env,
         AI_API_KEY: "packaged-recovery-test-key",
-        [GIT_BROKER_TEST_WITHHOLD_COMPLETION_ENV]: "commit-and-push",
+        [GIT_BROKER_TEST_WITHHOLD_COMPLETION_ENV]: "pull",
         [GIT_BROKER_TEST_PROGRESS_TIMEOUT_ENV]: "500",
       },
       kill: (pid, signal): boolean => {
@@ -220,6 +228,7 @@ async function createApp(): Promise<{
   root: string;
   checkout: string;
   remote: string;
+  writer: string;
   healthBaseUrl: string;
 }> {
   const root = await mkdtemp(join(tmpdir(), "packaged-broker-recovery-"));
@@ -271,7 +280,7 @@ plugins:
     enableAutoExtraction: false
   directory-sync:
     autoSync: true
-    initialSync: true
+    initialSync: false
     seedContent: false
     syncInterval: 1
     commitDebounce: 100
@@ -294,6 +303,7 @@ plugins:
     root,
     checkout: join(root, "brain-data"),
     remote,
+    writer,
     healthBaseUrl: `http://127.0.0.1:${productionPort}`,
   };
 }
@@ -312,6 +322,89 @@ async function connect(app: {
     remoteFingerprint: getGitRemoteFingerprint(`file://${app.remote}`),
   });
   return connection;
+}
+
+function countNotesWithMarker(root: string, marker: string): number {
+  const database = new Database(join(root, "data", "brain.db"), {
+    readonly: true,
+  });
+  try {
+    const row = database
+      .query<{ count: number }, [string]>(
+        `SELECT count(*) AS count
+         FROM entities
+         WHERE "entityType" = 'note' AND instr(content, ?) > 0`,
+      )
+      .get(marker);
+    return row?.count ?? 0;
+  } finally {
+    database.close();
+  }
+}
+
+function durableCheckpoint(root: string):
+  | {
+      lastReconciledGitHead?: string;
+      lastObservedRemoteHead?: string;
+    }
+  | undefined {
+  const database = new Database(join(root, "data", "runtime-state.db"), {
+    readonly: true,
+  });
+  try {
+    const row = database
+      .query<{ value: string }, []>(
+        `SELECT value FROM runtime_state_records
+         WHERE namespace = 'directory-sync.git-reconciliation'
+           AND key = 'current'`,
+      )
+      .get();
+    if (!row) return undefined;
+    const stored: {
+      checkpoint?: {
+        lastReconciledGitHead?: string;
+        lastObservedRemoteHead?: string;
+      };
+    } = JSON.parse(row.value);
+    return stored.checkpoint;
+  } finally {
+    database.close();
+  }
+}
+
+async function pathExists(path: string): Promise<boolean> {
+  return access(path).then(
+    () => true,
+    () => false,
+  );
+}
+
+async function commitRemoteTransition(
+  writer: string,
+  removedPath: string,
+  addedPath: string,
+  marker: string,
+): Promise<void> {
+  await unlink(join(writer, removedPath));
+  await writeFile(
+    join(writer, addedPath),
+    `---\ntitle: "Recovered Remote Note"\n---\n\n${marker}\n`,
+  );
+  await run(["git", "add", "-A"], writer);
+  await run(
+    [
+      "git",
+      "-c",
+      "user.name=Recovery Test",
+      "-c",
+      "user.email=recovery@example.com",
+      "commit",
+      "-m",
+      `remote transition for ${addedPath}`,
+    ],
+    writer,
+  );
+  await run(["git", "push", "origin", "main"], writer);
 }
 
 function pendingJobCount(root: string): number {
@@ -333,6 +426,18 @@ function pendingJobCount(root: string): number {
 afterEach(async () => {
   await cleanup?.();
   cleanup = undefined;
+});
+
+it("exposes the packaged recovery proof as a named repository gate", async () => {
+  const manifest: { scripts?: Record<string, string> } = JSON.parse(
+    await readFile(
+      join(import.meta.dir, "..", "..", "..", "package.json"),
+      "utf-8",
+    ),
+  );
+  expect(manifest.scripts?.["test:git-broker-recovery"]).toContain(
+    "RUN_GIT_BROKER_PACKAGED_RECOVERY=1",
+  );
 });
 
 describe.skipIf(!LINUX || !RUN_PACKAGED)(
@@ -364,17 +469,21 @@ describe.skipIf(!LINUX || !RUN_PACKAGED)(
         throw new Error("Expected packaged broker, web, and worker children");
       }
 
-      const client = await connect(app);
-      await writeFile(
-        join(app.checkout, "lost-completion.md"),
-        '---\ntitle: "Lost Completion"\n---\n\nlanded once\n',
+      await until("the baseline note to persist", async () =>
+        countNotesWithMarker(app.root, "baseline") === 1 ? true : undefined,
       );
-      const lost = client
-        .execute(app.checkout, { name: "commit-and-push" })
-        .then(
-          () => undefined,
-          (error: unknown) => String(error),
-        );
+      await commitRemoteTransition(
+        app.writer,
+        "baseline.md",
+        "recovered-remote.md",
+        "recovered through broker replacement",
+      );
+
+      const client = await connect(app);
+      const lost = client.execute(app.checkout, { name: "pull" }).then(
+        () => undefined,
+        (error: unknown) => String(error),
+      );
       await until("the withheld operation", async () => {
         const activity = await probeBrokerActivity(
           gitBrokerSocketPath(join(app.root, ".brain-runtime")),
@@ -418,6 +527,39 @@ describe.skipIf(!LINUX || !RUN_PACKAGED)(
       expect(status.admitsMutations).toBe(true);
       replacementClient.close();
 
+      await until(
+        "repository, remote-delete, and queue convergence",
+        async () => {
+          if (pendingJobCount(app.root) !== 0) return undefined;
+          if (await pathExists(join(app.checkout, "baseline.md"))) {
+            return undefined;
+          }
+          if (!(await pathExists(join(app.checkout, "recovered-remote.md")))) {
+            return undefined;
+          }
+          if (countNotesWithMarker(app.root, "baseline") !== 0)
+            return undefined;
+          return countNotesWithMarker(
+            app.root,
+            "recovered through broker replacement",
+          ) === 1
+            ? true
+            : undefined;
+        },
+      );
+      const remoteHead = (
+        await run(
+          ["git", "--git-dir", app.remote, "rev-parse", "main"],
+          app.root,
+        )
+      ).trim();
+      const localHead = (
+        await run(["git", "rev-parse", "HEAD"], app.checkout)
+      ).trim();
+      expect(durableCheckpoint(app.root)).toMatchObject({
+        lastReconciledGitHead: localHead,
+        lastObservedRemoteHead: remoteHead,
+      });
       const commits = await run(
         [
           "git",
@@ -426,14 +568,11 @@ describe.skipIf(!LINUX || !RUN_PACKAGED)(
           "log",
           "--format=%H",
           "--",
-          "lost-completion.md",
+          "recovered-remote.md",
         ],
         app.root,
       );
       expect(commits.trim().split("\n").filter(Boolean)).toHaveLength(1);
-      await until("the durable queue to drain", async () =>
-        pendingJobCount(app.root) === 0 ? true : undefined,
-      );
 
       client.close();
       controller.stop();
@@ -460,17 +599,21 @@ describe.skipIf(!LINUX || !RUN_PACKAGED)(
       );
       if (!firstBroker) throw new Error("Expected packaged broker child");
 
-      const client = await connect(app);
-      await writeFile(
-        join(app.checkout, "fallback-completion.md"),
-        '---\ntitle: "Fallback Completion"\n---\n\nlanded once\n',
+      await until("the fallback baseline note to persist", async () =>
+        countNotesWithMarker(app.root, "baseline") === 1 ? true : undefined,
       );
-      const lost = client
-        .execute(app.checkout, { name: "commit-and-push" })
-        .then(
-          () => undefined,
-          (error: unknown) => String(error),
-        );
+      await commitRemoteTransition(
+        app.writer,
+        "baseline.md",
+        "fallback-remote.md",
+        "recovered after full-runtime fallback",
+      );
+
+      const client = await connect(app);
+      const lost = client.execute(app.checkout, { name: "pull" }).then(
+        () => undefined,
+        (error: unknown) => String(error),
+      );
       const failed = await controller.result;
       expect(failed.success).toBe(false);
       expect(failed.message).toContain("could not be proven gone");
@@ -496,6 +639,39 @@ describe.skipIf(!LINUX || !RUN_PACKAGED)(
       expect(status.admitsMutations).toBe(true);
       recovered.close();
 
+      await until(
+        "fallback repository, delete, and queue convergence",
+        async () => {
+          if (pendingJobCount(app.root) !== 0) return undefined;
+          if (await pathExists(join(app.checkout, "baseline.md"))) {
+            return undefined;
+          }
+          if (!(await pathExists(join(app.checkout, "fallback-remote.md")))) {
+            return undefined;
+          }
+          if (countNotesWithMarker(app.root, "baseline") !== 0)
+            return undefined;
+          return countNotesWithMarker(
+            app.root,
+            "recovered after full-runtime fallback",
+          ) === 1
+            ? true
+            : undefined;
+        },
+      );
+      const remoteHead = (
+        await run(
+          ["git", "--git-dir", app.remote, "rev-parse", "main"],
+          app.root,
+        )
+      ).trim();
+      const localHead = (
+        await run(["git", "rev-parse", "HEAD"], app.checkout)
+      ).trim();
+      expect(durableCheckpoint(app.root)).toMatchObject({
+        lastReconciledGitHead: localHead,
+        lastObservedRemoteHead: remoteHead,
+      });
       const commits = await run(
         [
           "git",
@@ -504,14 +680,11 @@ describe.skipIf(!LINUX || !RUN_PACKAGED)(
           "log",
           "--format=%H",
           "--",
-          "fallback-completion.md",
+          "fallback-remote.md",
         ],
         app.root,
       );
       expect(commits.trim().split("\n").filter(Boolean)).toHaveLength(1);
-      await until("the recovered durable queue to drain", async () =>
-        pendingJobCount(app.root) === 0 ? true : undefined,
-      );
 
       controller.stop();
       expect(await controller.result).toEqual({ success: true });
