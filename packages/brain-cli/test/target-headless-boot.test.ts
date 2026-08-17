@@ -13,6 +13,7 @@ import {
   getDefaultEnvironment,
   StdioClientTransport,
 } from "@modelcontextprotocol/sdk/client/stdio.js";
+import { waitUntil } from "@brains/test-utils";
 
 const appEntrypoint = join(
   import.meta.dir,
@@ -113,14 +114,41 @@ plugins:
         "A headless brain imported this note before serving its first MCP request.",
       );
 
-      const inbox = await client.callTool({
-        name: "inbox_list",
-        arguments: {},
-      });
-      expect(inbox.isError).not.toBe(true);
-      expect(JSON.parse(textContent(inbox))).toEqual({
+      let inboxText = "";
+      await waitUntil(
+        async () => {
+          const inbox = await client.callTool({
+            name: "inbox_list",
+            arguments: {},
+          });
+          expect(inbox.isError).not.toBe(true);
+          inboxText = textContent(inbox);
+          return inboxText.includes("Headless recurring check failed");
+        },
+        "the failed recurring check to reach the headless Inbox",
+        { timeoutMs: 10_000, intervalMs: 50 },
+      );
+      expect(JSON.parse(inboxText)).toEqual({
         success: true,
-        data: { entries: [], errors: [], total: 0 },
+        data: {
+          entries: [
+            {
+              source: {
+                sourceId: "recurring-checks",
+                displayName: "Recurring checks",
+              },
+              item: {
+                title: "Headless recurring check failed",
+                summary:
+                  "The target core retained this alert without a notification channel.",
+                receivedAt: expect.any(String),
+                urgency: "high",
+              },
+            },
+          ],
+          errors: [],
+          total: 1,
+        },
       });
       expect(
         existsSync(join(instanceDirectory, "brain-data", "headless-proof.md")),

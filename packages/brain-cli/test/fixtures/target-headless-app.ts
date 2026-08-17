@@ -27,6 +27,9 @@ const mcpConfig =
 if (plugins.some(({ id }) => id === "webserver")) {
   throw new Error("Target headless app unexpectedly selected webserver");
 }
+if (plugins.some(({ id }) => id === "notifications")) {
+  throw new Error("Target headless app unexpectedly selected notifications");
+}
 if (mcpConfig?.["transport"] !== "stdio") {
   throw new Error("Target headless app did not resolve MCP stdio transport");
 }
@@ -50,5 +53,21 @@ process.once("SIGINT", () => void stop());
 process.once("SIGTERM", () => void stop());
 
 await app.initialize();
+app
+  .getShell()
+  .getRecurringChecks("target-headless")
+  .register({
+    id: "failure",
+    cadence: "daily",
+    run: async () => ({
+      alerts: [
+        {
+          dedupeKey: "headless-failure",
+          title: "Headless recurring check failed",
+          body: "The target core retained this alert without a notification channel.",
+        },
+      ],
+    }),
+  });
 await app.start();
 process.stdin.resume();
