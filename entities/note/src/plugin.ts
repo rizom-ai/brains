@@ -8,13 +8,11 @@ import type {
   CreateExecutionContext,
   CreateInterceptionResult,
 } from "@brains/plugins";
-import { EntityPlugin } from "@brains/plugins";
+import { EntityPlugin, emptyEntityPluginConfigSchema } from "@brains/plugins";
 import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
 import { z } from "@brains/utils/zod";
 import { noteSchema, type Note } from "./schemas/note";
 import { noteAdapter, type NoteAdapter } from "./adapters/note-adapter";
-import type { NoteConfig, NoteConfigInput } from "./config";
-import { noteConfigSchema } from "./config";
 import { noteGenerationTemplate } from "./templates/generation-template";
 import { NoteGenerationJobHandler } from "./handlers/noteGenerationJobHandler";
 import { UploadMarkdownImportJobHandler } from "./handlers/uploadMarkdownImportJobHandler";
@@ -42,16 +40,16 @@ const generateNoteEvalInputSchema: z.ZodType<GenerateNoteEvalInput> = z.object({
 
 export class NotePlugin extends EntityPlugin<
   Note,
-  NoteConfig,
-  NoteConfigInput
+  Record<string, never>,
+  Record<string, never>
 > {
   readonly entityType: typeof noteAdapter.entityType = noteAdapter.entityType;
   readonly schema: typeof noteSchema = noteSchema;
   readonly adapter: NoteAdapter = noteAdapter;
   private unregisterAtprotoProjection: (() => void) | undefined;
 
-  constructor(config: NoteConfigInput = {}) {
-    super("note", packageJson, config, noteConfigSchema);
+  constructor() {
+    super("note", packageJson, {}, emptyEntityPluginConfigSchema);
   }
 
   protected override getEntityTypeConfig(): EntityTypeConfig | undefined {
@@ -213,6 +211,6 @@ export class NotePlugin extends EntityPlugin<
   }
 }
 
-export function notePlugin(config: NoteConfigInput = {}): Plugin {
-  return new NotePlugin(config);
+export function notePlugin(): Plugin {
+  return new NotePlugin();
 }

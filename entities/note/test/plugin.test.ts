@@ -42,7 +42,7 @@ describe("NotePlugin", () => {
       getHandler: (type) => registeredHandlers.get(type),
     });
 
-    plugin = new NotePlugin({});
+    plugin = new NotePlugin();
     capabilities = await harness.installPlugin(plugin);
   });
 

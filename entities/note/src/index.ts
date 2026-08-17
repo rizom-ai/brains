@@ -21,13 +21,6 @@ export {
 // Adapter exports
 export { NoteAdapter, noteAdapter } from "./adapters/note-adapter";
 
-// Config exports
-export {
-  noteConfigSchema,
-  type NoteConfig,
-  type NoteConfigInput,
-} from "./config";
-
 // Handler exports
 export {
   NoteGenerationJobHandler,

@@ -64,7 +64,7 @@ describe("note ATProto projection", () => {
 
   it("registers the note projection when the note plugin registers", async () => {
     const harness = createPluginHarness({ dataDir: "/tmp/test-note-atproto" });
-    await harness.installPlugin(new NotePlugin({}));
+    await harness.installPlugin(new NotePlugin());
 
     const projection = AtprotoProjectionRegistry.getInstance().get("note");
 
