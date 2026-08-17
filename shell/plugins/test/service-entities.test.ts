@@ -57,11 +57,33 @@ async function runCaptureJob(
   const logger = createSilentLogger("service-entity-write-spike");
   const shell = createMockShell({ logger });
   const entityService = shell.getEntityService();
-  let created: unknown = null;
-  entityService.createEntity = (async (request: { entity: unknown }) => {
-    created = request.entity;
-    return { entityId: "bookmark-1", jobId: "job-1", skipped: false };
+  const stored = new Map<string, Record<string, unknown>>();
+  let written: unknown = null;
+  entityService.createEntity = (async (request: {
+    entity: Record<string, unknown>;
+  }) => {
+    written = request.entity;
+    stored.set(String(request.entity["id"]), request.entity);
+    return {
+      entityId: String(request.entity["id"]),
+      jobId: "job-1",
+      skipped: false,
+    };
   }) as typeof entityService.createEntity;
+  entityService.updateEntity = (async (request: {
+    entity: Record<string, unknown>;
+  }) => {
+    written = request.entity;
+    stored.set(String(request.entity["id"]), request.entity);
+    return {
+      entityId: String(request.entity["id"]),
+      jobId: "job-1",
+      skipped: false,
+    };
+  }) as typeof entityService.updateEntity;
+  entityService.getEntity = (async (request: { id: string }) =>
+    stored.get(request.id) ?? null) as typeof entityService.getEntity;
+  shell.getEntityService = (): typeof entityService => entityService;
 
   const queue = shell.getJobQueueService();
   const handlers = new Map<string, { process: JobProcess }>();
@@ -96,7 +118,7 @@ async function runCaptureJob(
   await entry[1].process({ url: "https://example.com" }, "job-1", {
     report: async (): Promise<void> => {},
   });
-  return created;
+  return written;
 }
 
 type JobProcess = (
@@ -256,6 +278,64 @@ describe("service package declaring entities", () => {
     const handler = registered.get("fetchWithKey");
     expect(handler).toBeDefined();
     expect(await handler?.({})).toEqual({ usedKey: "secret" });
+  });
+
+  // A capture job accepts something now and enriches it later, so it needs a
+  // durable placeholder the next turn can find. The runtime owns that
+  // protocol — including the restricted-scope read that finds a placeholder
+  // the caller cannot otherwise see — so a package never names a visibility
+  // scope.
+  it("creates a pending placeholder and completes it, without naming a scope", async () => {
+    const definition = defineServicePlugin({
+      id: "bookmarks",
+      config: z.object({}),
+      entities: [bookmark],
+      setup: () => ({}),
+      jobs: () => [
+        captureJob().handle(async ({ input, entities }) => {
+          const pending = await entities.createPending({
+            id: "bookmark-1",
+            entityType: "bookmark",
+            content: "pending",
+            metadata: { url: input.url },
+          });
+          await entities.saveProcessed({
+            id: pending.entityId,
+            entityType: "bookmark",
+            content: "captured",
+            metadata: { url: input.url },
+          });
+          return { fetchedWith: "none" };
+        }),
+      ],
+    });
+
+    const saved = await runCaptureJob(definition);
+    expect(saved).toMatchObject({ content: "captured" });
+  });
+
+  it("refuses a pending write to an entity type the package does not declare", async () => {
+    const definition = defineServicePlugin({
+      id: "trespasser",
+      config: z.object({}),
+      entities: [],
+      setup: () => ({}),
+      jobs: () => [
+        captureJob().handle(async ({ entities }) => {
+          await entities.createPending({
+            id: "bookmark-1",
+            entityType: "bookmark",
+            content: "not mine",
+            metadata: { url: "https://example.com" },
+          });
+          return { fetchedWith: "none" };
+        }),
+      ],
+    });
+
+    expect(runCaptureJob(definition)).rejects.toThrow(
+      /may only write entity types it declares/,
+    );
   });
 
   it("still emits only a service plugin when no entities are declared", () => {
