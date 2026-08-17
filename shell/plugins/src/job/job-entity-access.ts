@@ -9,6 +9,10 @@ import type {
 } from "@brains/entity-service";
 import type { JobEntityAccess } from "./job-context-contract";
 import { parseDefinitionEntity } from "../entity/entity-schema";
+import {
+  createPendingEntity,
+  saveProcessedEntity,
+} from "../entity/pending-ingestion";
 import type {
   AnyEntityDefinition,
   EntityOf,
@@ -70,6 +74,27 @@ export function createJobEntityAccess(
     ): Promise<EntityMutationResult> => {
       assertOwned(entity.entityType);
       return entityService.updateEntity({ entity });
+    },
+    createPending: async <T extends BaseEntity>(
+      entity: EntityInput<T> & { readonly id: string },
+    ): Promise<{ entityId: string; created: boolean }> => {
+      assertOwned(entity.entityType);
+      const result = await createPendingEntity({ entityService, entity });
+      return { entityId: result.entityId, created: result.created };
+    },
+    saveProcessed: async <T extends BaseEntity>(
+      entity: EntityInput<T> & { readonly id: string },
+      options?: { readonly expectedContentHash?: string | undefined },
+    ): Promise<EntityMutationResult> => {
+      assertOwned(entity.entityType);
+      const result = await saveProcessedEntity({
+        entityService,
+        entity,
+        ...(options?.expectedContentHash === undefined
+          ? {}
+          : { expectedContentHash: options.expectedContentHash }),
+      });
+      return result.mutation;
     },
   };
 }
