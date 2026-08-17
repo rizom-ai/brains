@@ -1,5 +1,16 @@
 # @brains/email
 
+## 0.2.0-alpha.302
+
+### Patch Changes
+
+- [`fb765a1`](https://github.com/rizom-ai/brains/commit/fb765a19809c9a4125236d21ba3400e0e01386ab) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Keep a persistent IMAP error listener between interval polls so socket timeouts trigger the existing reconnect path instead of crashing the runtime.
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.302
+  - @brains/utils@0.2.0-alpha.302
+  - @brains/plugins@0.2.0-alpha.302
+
 ## 0.2.0-alpha.301
 
 ### Patch Changes
