@@ -259,6 +259,7 @@
     "core--directory-sync-stress-harness",
     "core--drop-themes-subpath",
     "core--durable-job-progress",
+    "core--email-imap-ipv4-tls-fallback",
     "core--email-triage-inbox-source",
     "core--email-triage-prompt-entity",
     "core--email-triage-routing",

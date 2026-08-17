@@ -1,5 +1,16 @@
 # @brains/email
 
+## 0.2.0-alpha.300
+
+### Patch Changes
+
+- [`f575fd1`](https://github.com/rizom-ai/brains/commit/f575fd154d1309e37831e33eb15c0eb87e3e6af6) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Retry IMAP TLS hostname connections over IPv4 when Bun cannot read certificate names from the IPv6 peer, preserving normal certificate validation and restoring source-backed Inbox reads.
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.300
+  - @brains/utils@0.2.0-alpha.300
+  - @brains/plugins@0.2.0-alpha.300
+
 ## 0.2.0-alpha.299
 
 ### Patch Changes
