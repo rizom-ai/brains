@@ -214,6 +214,50 @@ describe("service package declaring entities", () => {
     );
   });
 
+  // Eval test cases exercise the same integration the jobs do, so they need
+  // the same credentials. The entity-side evals slot deliberately has none.
+  it("registers eval handlers that can read config", async () => {
+    const definition = defineServicePlugin({
+      id: "bookmarks",
+      config: z.object({ apiKey: z.string().default("anonymous") }),
+      entities: [bookmark],
+      setup: ({ config }) => ({ apiKey: config.apiKey }),
+      evals: ({ state }) => ({
+        fetchWithKey: async (): Promise<{ usedKey: string }> => ({
+          usedKey: state.apiKey,
+        }),
+      }),
+    });
+    const plugins = instantiatePluginPackageDefinition(
+      definition,
+      { apiKey: "secret" },
+      { name: "@fixture/bookmarks", version: "0.1.0" },
+    );
+
+    const logger = createSilentLogger("service-evals");
+    const shell = createMockShell({ logger });
+    const registered = new Map<string, (input: unknown) => Promise<unknown>>();
+    shell.registerEvalHandler = ((
+      _pluginId: string,
+      handlerId: string,
+      handler: (input: unknown) => Promise<unknown>,
+    ): void => {
+      registered.set(handlerId, handler);
+    }) as typeof shell.registerEvalHandler;
+
+    const manager = PluginManager.createFresh(
+      logger,
+      shell.getDaemonRegistry(),
+    );
+    manager.setShell(shell);
+    for (const plugin of plugins) manager.registerPlugin(plugin);
+    await manager.initializePlugins();
+
+    const handler = registered.get("fetchWithKey");
+    expect(handler).toBeDefined();
+    expect(await handler?.({})).toEqual({ usedKey: "secret" });
+  });
+
   it("still emits only a service plugin when no entities are declared", () => {
     const definition = defineServicePlugin({
       id: "plain",

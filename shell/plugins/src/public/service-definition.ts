@@ -57,6 +57,7 @@ export type {
   ServiceDefinitionInput,
   ServiceEntityAccess,
   ServiceEntityReader,
+  ServiceEvalHandler,
   ServiceInputSchema,
   ServiceJobBinding,
   ServiceJobDefinition,

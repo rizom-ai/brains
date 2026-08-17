@@ -277,6 +277,12 @@ class DeclarativeServicePlugin<
     context.templates.register(this.runtimeTemplates(), this.id);
     this.registerPrompts();
 
+    const evals =
+      this.definition.evals?.({ config: this.config, state: this.state }) ?? {};
+    for (const [handlerId, handler] of Object.entries(evals)) {
+      context.eval.registerHandler(handlerId, handler);
+    }
+
     const bindings =
       this.definition.jobs?.({ config: this.config, state: this.state }) ?? [];
     const names = new Set<string>();
