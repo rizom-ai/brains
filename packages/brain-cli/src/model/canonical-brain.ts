@@ -238,10 +238,6 @@ export const publishingBundle: CapabilityBundleDefinition = defineBundle({
       },
     },
     {
-      member: "social-media",
-      value: { autoGenerateOnBlogPublish: true },
-    },
-    {
       member: "newsletter",
       value: { doubleOptIn: true },
     },

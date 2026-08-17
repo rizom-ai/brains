@@ -6,15 +6,13 @@ import {
 } from "@brains/plugins/test";
 import { SocialMediaPlugin } from "../src/plugin";
 
-async function install(config: {
-  autoGenerateOnBlogPublish: boolean;
-}): Promise<{
+async function install(): Promise<{
   capabilities: PluginCapabilities;
   enqueue: ReturnType<typeof mock>;
   harness: PluginTestHarness<SocialMediaPlugin>;
 }> {
   const harness = createPluginHarness<SocialMediaPlugin>({
-    dataDir: `/tmp/test-social-media-${String(config.autoGenerateOnBlogPublish)}`,
+    dataDir: "/tmp/test-social-media",
   });
   const enqueue = mock(async () => "job-1");
   const jobQueue = harness.getMockShell().getJobQueueService();
@@ -22,34 +20,23 @@ async function install(config: {
     ...jobQueue,
     enqueue,
   });
-  const capabilities = await harness.installPlugin(
-    new SocialMediaPlugin(config),
-  );
+  const capabilities = await harness.installPlugin(new SocialMediaPlugin({}));
   return { capabilities, enqueue, harness };
 }
 
 describe("SocialMediaPlugin projection scheduling boundary", () => {
-  it("does not register a projection rule when auto generation is disabled", async () => {
-    const { capabilities } = await install({
-      autoGenerateOnBlogPublish: false,
-    });
+  // Social posts are generated only when something explicitly asks for them,
+  // through generate:execute. The package does not derive them from blog
+  // activity, so it contributes no projection rule at all.
+  it("registers no projection rule", async () => {
+    const { capabilities } = await install();
 
     expect(capabilities.projectionRules).toBeUndefined();
     expect("projections" in capabilities).toBe(false);
   });
 
-  it("registers one scheduler-owned rule and no event-driven auto-generation", async () => {
-    const { capabilities, enqueue, harness } = await install({
-      autoGenerateOnBlogPublish: true,
-    });
-
-    expect("projections" in capabilities).toBe(false);
-    expect(capabilities.projectionRules).toHaveLength(1);
-    expect(capabilities.projectionRules?.[0]).toMatchObject({
-      id: "social-post-generation",
-      sources: [{ kind: "entity", types: ["post"] }],
-      targetType: "social-post",
-    });
+  it("does not auto-generate from blog post activity", async () => {
+    const { enqueue, harness } = await install();
 
     await harness.sendMessage("entity:updated", {
       entityType: "post",

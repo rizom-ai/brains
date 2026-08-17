@@ -116,9 +116,6 @@ describe("canonical personal bundles", () => {
         "social-post": "0 10 * * *",
       },
     });
-    expect(pluginConfig(resolved, "social-media")).toMatchObject({
-      autoGenerateOnBlogPublish: true,
-    });
     expect(pluginConfig(resolved, "buttondown")).toMatchObject({
       doubleOptIn: true,
     });
