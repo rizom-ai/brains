@@ -18,7 +18,11 @@ import {
   type InboundEmailSourceMessage,
 } from "../src";
 import { z } from "@brains/utils/zod";
-import { intakeInboundEmail, parseInboundEmail } from "../src/inbound-email";
+import {
+  connectImapWithIpv4TlsFallback,
+  intakeInboundEmail,
+  parseInboundEmail,
+} from "../src/inbound-email";
 
 const imapConfig: EmailImapConfig = {
   host: "imap.example.com",
@@ -31,6 +35,47 @@ const imapConfig: EmailImapConfig = {
 };
 
 const mailboxReceivedAt = new Date("2026-04-15T09:00:00.000Z");
+
+describe("IMAP TLS connection fallback", () => {
+  it("retries a hostname over IPv4 after Bun loses IPv6 certificate names", async () => {
+    const families: Array<4 | undefined> = [];
+    const result = await connectImapWithIpv4TlsFallback(
+      "imap.example.com",
+      async (family) => {
+        families.push(family);
+        if (family === undefined) {
+          throw Object.assign(new Error("certificate names unavailable"), {
+            code: "ERR_TLS_CERT_ALTNAME_INVALID",
+          });
+        }
+        return "connected";
+      },
+    );
+
+    expect(result).toBe("connected");
+    expect(families).toEqual([undefined, 4]);
+  });
+
+  it("does not weaken hostname validation for other failures or IP hosts", async () => {
+    const certificateError = Object.assign(new Error("certificate mismatch"), {
+      code: "ERR_TLS_CERT_ALTNAME_INVALID",
+    });
+    const connectionError = Object.assign(new Error("connection refused"), {
+      code: "ECONNREFUSED",
+    });
+
+    expect(
+      connectImapWithIpv4TlsFallback("imap.example.com", async () => {
+        throw connectionError;
+      }),
+    ).rejects.toBe(connectionError);
+    expect(
+      connectImapWithIpv4TlsFallback("192.0.2.1", async () => {
+        throw certificateError;
+      }),
+    ).rejects.toBe(certificateError);
+  });
+});
 
 async function fixtureMessage(
   uid: number,

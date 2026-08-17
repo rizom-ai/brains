@@ -1,3 +1,5 @@
+import { isIP } from "node:net";
+import type { ConnectionOptions } from "node:tls";
 import { ImapFlow } from "imapflow";
 import { simpleParser, type AddressObject, type HeaderLines } from "mailparser";
 import {
@@ -57,22 +59,36 @@ export type InboundEmailClientFactory = (
   config: EmailImapConfig,
 ) => InboundEmailClient;
 
+export async function connectImapWithIpv4TlsFallback<T>(
+  host: string,
+  connect: (family?: 4) => Promise<T>,
+): Promise<T> {
+  try {
+    return await connect();
+  } catch (error) {
+    if (!shouldRetryImapTlsOverIpv4(host, error)) throw error;
+    return connect(4);
+  }
+}
+
 export function createInboundEmailClient(
   config: EmailImapConfig,
 ): InboundEmailClient {
-  const client = new ImapFlow({
-    host: config.host,
-    port: config.port,
-    secure: true,
-    auth: { user: config.user, pass: config.password },
-    disableAutoIdle: true,
-    maxIdleTime: config.pollIntervalMs,
-    logger: false,
-  });
+  let client = createImapFlow(config);
 
   return {
     connect: async (): Promise<void> => {
-      await client.connect();
+      client = await connectImapWithIpv4TlsFallback(
+        config.host,
+        async (family) => {
+          if (family === 4) {
+            client.close();
+            client = createImapFlow(config, family);
+          }
+          await client.connect();
+          return client;
+        },
+      );
     },
     selectMailbox: async (mailbox: string): Promise<string> => {
       const selected = await client.mailboxOpen(mailbox, { readOnly: true });
@@ -190,6 +206,29 @@ export function createInboundEmailClient(
       }
     },
   };
+}
+
+function createImapFlow(config: EmailImapConfig, family?: 4): ImapFlow {
+  const tls: (ConnectionOptions & { family: 4 }) | undefined =
+    family === 4 ? { family } : undefined;
+  return new ImapFlow({
+    host: config.host,
+    port: config.port,
+    secure: true,
+    auth: { user: config.user, pass: config.password },
+    disableAutoIdle: true,
+    maxIdleTime: config.pollIntervalMs,
+    logger: false,
+    ...(tls ? { tls } : {}),
+  });
+}
+
+function shouldRetryImapTlsOverIpv4(host: string, error: unknown): boolean {
+  if (isIP(host) !== 0) return false;
+  if (typeof error !== "object" || error === null || !("code" in error)) {
+    return false;
+  }
+  return error.code === "ERR_TLS_CERT_ALTNAME_INVALID";
 }
 
 /** The mailbox generation a UID cursor is valid for. */
