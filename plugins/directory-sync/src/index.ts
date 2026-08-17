@@ -22,8 +22,10 @@ export {
 } from "./lib/broker/connect";
 export {
   BROKER_PROGRESS_TIMEOUT_MS,
+  GIT_BROKER_TEST_PROGRESS_TIMEOUT_ENV,
   createBrokerHealthCheck,
   probeBrokerActivity,
+  resolveBrokerProgressTimeoutMs,
 } from "./lib/broker/health";
 // Reaching a broker directly is what a recovery proof has to do: it observes
 // the owner from outside rather than through a role that trusts it.

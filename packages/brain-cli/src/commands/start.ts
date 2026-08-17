@@ -86,6 +86,23 @@ export async function start(
     };
   }
 
+  let childRole: SupervisedChildRole | undefined;
+  try {
+    childRole = parseBrainChildRole(dependencies.argv ?? process.argv.slice(2));
+  } catch (error) {
+    return {
+      success: false,
+      message: getErrorMessage(error),
+    };
+  }
+  const config = parseBrainYaml(cwd);
+
+  // The broker child must be recognized before monorepo runner selection;
+  // otherwise a development sidecar recursively starts another sidecar.
+  if (childRole === "git-broker") {
+    return runGitBrokerChild(cwd, config, dependencies);
+  }
+
   const runner = findRunner(cwd);
 
   if (runner) {
@@ -96,13 +113,17 @@ export async function start(
     // Development boots a real Brain against a real checkout, so it needs
     // a real owner. Without one a Git-configured Brain simply fails to
     // register the plugin.
-    return withGitBrokerSidecar(cwd, parseBrainYaml(cwd), () =>
-      spawnBunRunner({
-        cwd,
-        args,
-        failureMessage: (code) => `Brain exited with code ${code}`,
-        ...dependencies,
-      }),
+    return withGitBrokerSidecar(
+      cwd,
+      config,
+      () =>
+        spawnBunRunner({
+          cwd,
+          args,
+          failureMessage: (code) => `Brain exited with code ${code}`,
+          ...dependencies,
+        }),
+      dependencies,
     );
   }
 
@@ -113,26 +134,6 @@ export async function start(
         success: false,
         message: keyCheck.message ?? "AI_API_KEY is not set.",
       };
-    }
-
-    let childRole: SupervisedChildRole | undefined;
-    try {
-      childRole = parseBrainChildRole(
-        dependencies.argv ?? process.argv.slice(2),
-      );
-    } catch (error) {
-      return {
-        success: false,
-        message: getErrorMessage(error),
-      };
-    }
-
-    const config = parseBrainYaml(cwd);
-
-    // The broker owns a checkout, not a Brain: it boots no shell and needs no
-    // definition, so it returns before any of that is loaded.
-    if (childRole === "git-broker") {
-      return runGitBrokerChild(cwd, config, dependencies);
     }
 
     // In-process boot — the package bundles the canonical definition. Explicitly
@@ -161,9 +162,7 @@ export async function start(
         });
       }
 
-      // Chat and startup-check boot in place rather than under the
-      // supervisor, and a Git-configured Brain needs an owner either way.
-      await withGitBrokerSidecar(cwd, config, async () => {
+      const bootInPlace = async (): Promise<void> => {
         const bootedBrain = await bootBrain(cwd, definition, {
           ...flags,
           ...(childRole && {
@@ -174,7 +173,18 @@ export async function start(
         if (flags.mode === "startup-check") {
           await bootedBrain?.stop?.();
         }
-      });
+      };
+
+      if (childRole) {
+        // Supervised app roles already received the owner's socket from their
+        // parent. Starting a sidecar here would create a second broker inside
+        // each web/worker child and collide with the owner that started them.
+        await bootInPlace();
+      } else {
+        // Chat and startup-check boot in place rather than under the full
+        // supervisor, so they own one separate broker child for their run.
+        await withGitBrokerSidecar(cwd, config, bootInPlace, dependencies);
+      }
       return { success: true };
     } catch (error) {
       return {

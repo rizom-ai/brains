@@ -21,7 +21,7 @@ import type {
   RegisterCheckoutMessage,
 } from "./protocol";
 import { BrokerJournal } from "./journal";
-import type { AmbiguousRequest } from "./journal";
+import type { AmbiguousRequest, JournalStart } from "./journal";
 import { SocketWriter } from "./socket-writer";
 import type { WritableSocket } from "./socket-writer";
 
@@ -38,6 +38,14 @@ import type { WritableSocket } from "./socket-writer";
  * authenticated remote, from its own environment.
  */
 
+export interface GitBrokerJournal {
+  readonly ambiguous: readonly AmbiguousRequest[];
+  readonly evidenceComplete: boolean;
+  readonly inheritedGeneration: boolean;
+  recordStart(start: JournalStart): Promise<void>;
+  recordSettled(requestId: string, outcome: "ok" | "error"): Promise<void>;
+}
+
 export interface GitBrokerServerOptions {
   /** Instance-owned runtime directory; never inside a checkout. */
   runtimeDir: string;
@@ -46,6 +54,8 @@ export interface GitBrokerServerOptions {
   now?: (() => number) | undefined;
   /** How many answered reads stay replayable; mutations are never dropped. */
   answeredWindow?: number | undefined;
+  /** Durable record override for failure-boundary tests. */
+  journal?: GitBrokerJournal | undefined;
   /**
    * Checkout configuration by canonical path. Resolved here rather than sent,
    * so a token never enters a protocol frame.
@@ -77,9 +87,14 @@ type Settled = { ok: true; value: unknown } | { ok: false; error: unknown };
 interface LedgerEntry {
   checkoutPath: string;
   operation: GitOperationName;
+  operationIdentity: string;
   /** Mutations are never forgotten while this generation lives. */
   mutating: boolean;
   settled: Promise<Settled>;
+}
+
+function operationIdentity(message: ExecuteOperationMessage): string {
+  return JSON.stringify(message.operation);
 }
 
 export class BrokerStartupError extends Error {
@@ -130,7 +145,8 @@ export class GitBrokerServer {
    * to reconcile, and waiting there would be cost without safety.
    */
   #admitsMutations: boolean;
-  readonly #journal: BrokerJournal | null;
+  #recoveryPending: boolean;
+  readonly #journal: GitBrokerJournal | null;
   #server: { stop(closeActiveConnections?: boolean): void } | null = null;
 
   private constructor(
@@ -138,7 +154,7 @@ export class GitBrokerServer {
     brokerId: string,
     resolveCheckout: GitBrokerServerOptions["resolveCheckout"],
     now: () => number,
-    journal: BrokerJournal | null,
+    journal: GitBrokerJournal | null,
     answeredWindow: number,
   ) {
     this.socketPath = socketPath;
@@ -147,14 +163,23 @@ export class GitBrokerServer {
     this.#now = now;
     this.#journal = journal;
     this.#answeredWindow = answeredWindow;
-    this.#admitsMutations =
-      (journal?.ambiguous.length ?? 0) === 0 &&
-      (journal?.evidenceComplete ?? true);
+    // A settled broker record proves only that Git returned to the broker. It
+    // cannot prove the role received that answer and advanced its durable
+    // checkpoint, so every inherited generation reconciles before mutation.
+    this.#recoveryPending = journal?.inheritedGeneration ?? false;
+    this.#admitsMutations = !this.#recoveryPending;
   }
 
   /** Reconciliation is complete; this owner may change the checkout again. */
   openAdmission(): void {
+    this.#recoveryPending = false;
     this.#admitsMutations = true;
+  }
+
+  /** A durable-boundary or supervisor failure makes mutation unsafe. */
+  closeAdmission(): void {
+    this.#recoveryPending = true;
+    this.#admitsMutations = false;
   }
 
   /**
@@ -208,9 +233,10 @@ export class GitBrokerServer {
       options.brokerId ?? createId(10),
       options.resolveCheckout,
       options.now ?? Date.now,
-      await BrokerJournal.open(options.runtimeDir, {
-        ...(options.now ? { now: options.now } : {}),
-      }),
+      options.journal ??
+        (await BrokerJournal.open(options.runtimeDir, {
+          ...(options.now ? { now: options.now } : {}),
+        })),
       options.answeredWindow ?? ANSWERED_WINDOW,
     );
     await broker.#listen();
@@ -298,6 +324,7 @@ export class GitBrokerServer {
         (request) => request.requestId,
       ),
       evidenceComplete: this.#journal?.evidenceComplete ?? true,
+      recoveryPending: this.#recoveryPending,
       admitsMutations: this.#admitsMutations,
     });
   }
@@ -370,7 +397,7 @@ export class GitBrokerServer {
     if (existing) {
       if (
         existing.checkoutPath !== message.checkoutPath ||
-        existing.operation !== message.operation.name
+        existing.operationIdentity !== operationIdentity(message)
       ) {
         // Answers are indistinguishable across operations — a commit and a
         // push both answer with nothing — so replaying one for the other
@@ -418,6 +445,7 @@ export class GitBrokerServer {
     this.#ledger.set(message.requestId, {
       checkoutPath: message.checkoutPath,
       operation: message.operation.name,
+      operationIdentity: operationIdentity(message),
       mutating: isMutatingOperation(message.operation),
       settled,
     });
@@ -433,46 +461,81 @@ export class GitBrokerServer {
     // Accepted, not started: it may sit behind another operation, and that
     // wait must not read as this broker failing to make progress.
     this.#active.accept(message.requestId, message.checkoutPath, this.#now());
-    await this.#journal?.recordStart({
-      requestId: message.requestId,
-      checkoutPath: message.checkoutPath,
-      operation: message.operation.name,
-    });
 
     try {
-      const value = await executor.execute(message.operation, {
-        onStart: (): void => {
-          this.#active.start(message.requestId, this.#now());
-        },
-        // Keeps the caller's operation-status heartbeat fresh through a long
-        // clone or pull; without it a healthy slow operation looks stalled.
-        onProgress: (): void => {
-          this.#active.progress(message.requestId, this.#now());
-          this.#send(writer, {
-            type: "progress",
-            version: BROKER_PROTOCOL_VERSION,
-            requestId: message.requestId,
-            phase: "running",
-            observedAt: new Date().toISOString(),
-          });
-        },
-      });
-      // Checked before it is recorded. An oversized answer used to be
-      // remembered first and found unsendable second, which left a stored
-      // value that every retry re-derived and re-failed on.
-      const encoded = Buffer.byteLength(JSON.stringify(value ?? null));
-      if (encoded > MAX_PAYLOAD_BYTES) {
-        throw new Error(
-          `Operation ${message.operation.name} produced ${encoded} bytes; the limit is ${MAX_PAYLOAD_BYTES}`,
-        );
+      try {
+        await this.#journal?.recordStart({
+          requestId: message.requestId,
+          checkoutPath: message.checkoutPath,
+          operation: message.operation.name,
+        });
+      } catch (error) {
+        // Nothing may execute unless ownership is durable. More importantly,
+        // the correlated error keeps the caller from waiting forever on a
+        // request the broker silently abandoned.
+        this.closeAdmission();
+        return {
+          ok: false,
+          error: new Error(
+            `Git broker journal start failed; mutation admission is closed: ${getErrorMessage(error)}`,
+          ),
+        };
       }
-      await this.#journal?.recordSettled(message.requestId, "ok");
-      return { ok: true, value: value ?? null };
-    } catch (error) {
-      // Terminal for this id. A caller that wants another attempt asks with
-      // a new one: whether this attempt mutated is not knowable from here.
-      await this.#journal?.recordSettled(message.requestId, "error");
-      return { ok: false, error };
+
+      let settled: Settled;
+      try {
+        const value = await executor.execute(message.operation, {
+          onStart: (): void => {
+            this.#active.start(message.requestId, this.#now());
+          },
+          // Keeps the caller's operation-status heartbeat fresh through a long
+          // clone or pull; without it a healthy slow operation looks stalled.
+          onProgress: (): void => {
+            this.#active.progress(message.requestId, this.#now());
+            this.#send(writer, {
+              type: "progress",
+              version: BROKER_PROTOCOL_VERSION,
+              requestId: message.requestId,
+              phase: "running",
+              observedAt: new Date().toISOString(),
+            });
+          },
+        });
+        // Checked before it is recorded. An oversized answer used to be
+        // remembered first and found unsendable second, which left a stored
+        // value that every retry re-derived and re-failed on.
+        const encoded = Buffer.byteLength(JSON.stringify(value ?? null));
+        if (encoded > MAX_PAYLOAD_BYTES) {
+          throw new Error(
+            `Operation ${message.operation.name} produced ${encoded} bytes; the limit is ${MAX_PAYLOAD_BYTES}`,
+          );
+        }
+        settled = { ok: true, value: value ?? null };
+      } catch (error) {
+        // Terminal for this id. A caller that wants another attempt asks with
+        // a new one: whether this attempt mutated is not knowable from here.
+        settled = { ok: false, error };
+      }
+
+      try {
+        await this.#journal?.recordSettled(
+          message.requestId,
+          settled.ok ? "ok" : "error",
+        );
+      } catch (error) {
+        // Git may already have changed the checkout. Without a durable settle
+        // record its outcome is ambiguous, so fail closed and make that fact a
+        // terminal correlated answer rather than losing completion again.
+        this.closeAdmission();
+        return {
+          ok: false,
+          error: new Error(
+            `Git broker journal settled write failed; mutation admission is closed: ${getErrorMessage(error)}`,
+          ),
+        };
+      }
+
+      return settled;
     } finally {
       this.#active.finish(message.requestId);
     }

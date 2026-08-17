@@ -40,7 +40,7 @@ import type {
  * coupling; one owned operation makes it structural.
  */
 
-export const GIT_OPERATIONS = [
+export const GIT_OPERATIONS: readonly [
   "initialize",
   "get-status",
   "has-local-changes",
@@ -52,7 +52,19 @@ export const GIT_OPERATIONS = [
   "get-checkpoint",
   "log-file",
   "show-file",
-] as const;
+] = [
+  "initialize",
+  "get-status",
+  "has-local-changes",
+  "commit",
+  "push",
+  "commit-and-push",
+  "pull",
+  "get-reconciliation-delta",
+  "get-checkpoint",
+  "log-file",
+  "show-file",
+];
 
 export type GitOperationName = (typeof GIT_OPERATIONS)[number];
 

@@ -10,6 +10,7 @@ import {
 
 interface TestChild extends EventEmitter {
   kill: ReturnType<typeof mock>;
+  send: ReturnType<typeof mock>;
   exitCode: number | null;
   killed: boolean;
   pid: number;
@@ -38,6 +39,7 @@ function createChild(index: number, signals: string[]): TestChild {
       signals.push(`${index}:${String(signal)}`);
       return true;
     }),
+    send: mock((_message: unknown) => true),
     exitCode: null,
     killed: false,
     // A real pid so group signalling can be asserted rather than assumed.
@@ -122,8 +124,8 @@ function supervise(harness: TestHarness): Promise<CommandResult> {
 
 /**
  * A Brain with Git configured. The socket path is the supervisor's to hand
- * out: one endpoint, decided by the process that starts the owner, so no role
- * can guess its way to a second one.
+ * out — see docs/plans/directory-sync-git-execution-broker.md, "Canonical
+ * ownership endpoint".
  */
 function superviseWithBroker(harness: TestHarness): Promise<CommandResult> {
   return superviseRuntimeChildren("/brain", "/dist/brain.js", {
@@ -396,6 +398,9 @@ describe("bundled process supervisor", () => {
       activeRequestIds: ["req_stuck0001"],
       staleMs: 1_000,
       timeoutMs: 1_000,
+    });
+    expect(broker.send).toHaveBeenCalledWith({
+      type: "broker-close-admission",
     });
     expect(harness.processEvents.kill).toHaveBeenCalledWith(-1000, "SIGTERM");
 

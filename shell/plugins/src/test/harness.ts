@@ -42,6 +42,8 @@ export interface HarnessOptions {
   preferLocalUrls?: boolean;
   /** Optional composition-selected semantic profile kind */
   profileKind?: string;
+  /** Broker endpoint supplied to service-plugin contexts in integration tests. */
+  gitBrokerSocket?: string;
 }
 
 /**
@@ -65,6 +67,7 @@ export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
       localSiteUrl?: string;
       preferLocalUrls?: boolean;
       profileKind?: string;
+      gitBrokerSocket?: string;
     } = { logger };
     if (options.dataDir !== undefined) {
       mockShellOptions.dataDir = options.dataDir;
@@ -80,6 +83,9 @@ export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
     }
     if (options.profileKind !== undefined) {
       mockShellOptions.profileKind = options.profileKind;
+    }
+    if (options.gitBrokerSocket !== undefined) {
+      mockShellOptions.gitBrokerSocket = options.gitBrokerSocket;
     }
     this.mockShell = createMockShell(mockShellOptions);
   }

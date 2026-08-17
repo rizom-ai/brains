@@ -2,6 +2,7 @@ import { appendFile, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { runGitBrokerChild } from "../../src/lib/git-broker-child";
 import type { BrainYamlConfig } from "../../src/lib/brain-yaml";
+import type { CommandResult } from "../../src/lib/command-result";
 
 /**
  * The child side of the Phase 6 harness.
@@ -38,9 +39,9 @@ async function readConfig(): Promise<BrainYamlConfig> {
 if (role === "git-broker") {
   await announce("broker");
   const result = await runGitBrokerChild(root, await readConfig()).catch(
-    async (error: unknown) => {
+    async (error: unknown): Promise<CommandResult> => {
       await writeFile(join(root, "broker.error"), String(error));
-      return { success: false } as const;
+      return { success: false };
     },
   );
   if (!result.success) {

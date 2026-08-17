@@ -5,6 +5,8 @@ import { join } from "node:path";
 import { runGitCommandWithStallTimeout } from "../../../src/lib/broker/git-stall";
 
 /**
+ * Phase 6 of docs/plans/directory-sync-git-execution-broker.md.
+ *
  * Safety invariant 3: broker replacement waits until "that group and every Git
  * descendant are proven absent". That proof is a probe of the broker's process
  * group, so a Git child that leads a group of its own is invisible to it — the

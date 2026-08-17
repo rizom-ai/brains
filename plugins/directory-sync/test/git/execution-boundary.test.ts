@@ -3,6 +3,8 @@ import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
 
 /**
+ * Phase 1 of docs/plans/directory-sync-git-execution-broker.md.
+ *
  * Two properties are locked here. The first three assertions already hold and
  * must keep holding: production requires Bun and `git`, not a shell wrapper or
  * an undeclared userland contract. The superseded implementation shipped
@@ -17,7 +19,7 @@ import { join } from "node:path";
 
 const SOURCE_ROOT = join(import.meta.dir, "../../src");
 
-/** Direct Git execution is permitted only here: it runs before any owner. */
+/** Direct Git execution is permitted only here; see the plan's Phase 1 note. */
 const SEED_BOOTSTRAP = "lib/content-remote-bootstrap.ts";
 
 async function sourcePaths(dir: string): Promise<string[]> {
@@ -87,9 +89,9 @@ describe("git execution boundary", () => {
   });
 
   it("declares simple-git as a runtime dependency", async () => {
-    const manifest = JSON.parse(
+    const manifest: { dependencies?: Record<string, string> } = JSON.parse(
       await readFile(join(import.meta.dir, "../../package.json"), "utf-8"),
-    ) as { dependencies?: Record<string, string> };
+    );
 
     expect(Object.keys(manifest.dependencies ?? {})).toContain("simple-git");
   });

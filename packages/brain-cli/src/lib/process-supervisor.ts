@@ -415,6 +415,10 @@ function runRuntimeSupervisor(
      */
     const failBroker = (message: string): void => {
       void message;
+      // The owner is still responsive in the stale-operation case. Close its
+      // mutation gate before termination so no newly accepted request can sit
+      // behind the doomed turn while the group is being removed.
+      broker?.process.send?.({ type: "broker-close-admission" });
       signalChild(broker, "SIGTERM");
       if (broker) brokerTerminationDeadline(broker);
     };

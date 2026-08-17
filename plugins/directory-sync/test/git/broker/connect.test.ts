@@ -10,6 +10,8 @@ import { gitBrokerSocketPath } from "../../../src/lib/broker/server";
 import type { GitBrokerServer } from "../../../src/lib/broker/server";
 
 /**
+ * Completing Phase 2 of docs/plans/directory-sync-git-execution-broker.md.
+ *
  * An app role reaches Git only through its checkout's owner. What is asserted
  * here is mostly what does *not* happen: no socket means no Git, and a broker
  * that owns something else is refused rather than used.

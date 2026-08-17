@@ -58,6 +58,8 @@ export interface BrokerJournalOptions {
 
 export class BrokerJournal {
   readonly ambiguous: AmbiguousRequest[];
+  /** True whenever an earlier broker generation created the current record. */
+  readonly inheritedGeneration: boolean;
   /**
    * False when the previous generation's record could not be read whole.
    *
@@ -76,10 +78,12 @@ export class BrokerJournal {
   private constructor(
     path: string,
     previous: { ambiguous: AmbiguousRequest[]; complete: boolean },
+    inheritedGeneration: boolean,
     options: BrokerJournalOptions,
   ) {
     this.#path = path;
     this.ambiguous = previous.ambiguous;
+    this.inheritedGeneration = inheritedGeneration;
     this.evidenceComplete = previous.complete;
     this.#now = options.now ?? Date.now;
     this.#maxBytes = options.maxBytes ?? DEFAULT_MAX_BYTES;
@@ -98,7 +102,14 @@ export class BrokerJournal {
   ): Promise<BrokerJournal> {
     await mkdir(runtimeDir, { recursive: true, mode: 0o700 });
     const path = join(runtimeDir, JOURNAL_FILE);
-    const contents = await readFile(path, "utf-8").catch(() => "");
+    let inheritedGeneration = true;
+    const contents = await readFile(path, "utf-8").catch((error: unknown) => {
+      if (isNoEntry(error)) {
+        inheritedGeneration = false;
+        return "";
+      }
+      throw error;
+    });
     const previous = unsettled(contents);
 
     // Rotated whether or not it parsed. A damaged record is the only
@@ -111,7 +122,7 @@ export class BrokerJournal {
     }
     await writeFile(path, "", { mode: 0o600 });
 
-    return new BrokerJournal(path, previous, options);
+    return new BrokerJournal(path, previous, inheritedGeneration, options);
   }
 
   async recordStart(start: JournalStart): Promise<void> {
@@ -128,10 +139,13 @@ export class BrokerJournal {
     requestId: string,
     outcome: "ok" | "error",
   ): Promise<void> {
-    this.#open.delete(requestId);
     await this.#append(
       JSON.stringify({ requestId, settledAt: this.#now(), outcome }),
     );
+    // Keep it open in memory until the settle record itself is durable. If the
+    // append fails, compaction must retain the ambiguity rather than erase the
+    // only fact recovery has.
+    this.#open.delete(requestId);
   }
 
   async #append(line: string): Promise<void> {
@@ -205,4 +219,13 @@ function parseLine(line: string): unknown {
   } catch {
     return undefined;
   }
+}
+
+function isNoEntry(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    error.code === "ENOENT"
+  );
 }

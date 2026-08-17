@@ -95,17 +95,21 @@ afterEach(async () => {
 });
 
 describe.skipIf(!LINUX)("git admission", () => {
-  it("is open for an owner that inherited a clean record", async () => {
+  it("holds every replacement until durable handoff is reconciled", async () => {
     const owned = await ownedCheckout();
     const connection = await owned.connect();
     await connection.execute(owned.checkout, { name: "initialize" });
 
-    // An ordinary restart after a clean shutdown has nothing to reconcile, so
-    // making every restart wait would be a cost with no safety behind it.
+    // A terminal broker record does not prove the caller received the result
+    // or advanced its durable queue checkpoint. Every inherited generation
+    // therefore starts closed, including one whose journal is syntactically
+    // complete and contains no unsettled request.
     await owned.restart();
     const replacement = await owned.connect();
-    const status = await replacement.status();
-    expect(status.admitsMutations).toBe(true);
+    expect((await replacement.status()).admitsMutations).toBe(false);
+
+    await replacement.openAdmission();
+    expect((await replacement.status()).admitsMutations).toBe(true);
 
     connection.close();
     replacement.close();
