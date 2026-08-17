@@ -644,16 +644,50 @@ export function App(): React.ReactElement {
           <PromptInputHeader>
             {inboxContext ? (
               <div className="web-chat-inbox-context" role="status">
+                <span
+                  className="web-chat-inbox-context-icon"
+                  aria-hidden="true"
+                >
+                  <svg
+                    viewBox="0 0 16 16"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.35"
+                  >
+                    <rect x="2.25" y="3.5" width="11.5" height="9" rx="1.5" />
+                    <path
+                      d="m3.25 5 4.75 3.75L12.75 5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </span>
                 <span className="web-chat-inbox-context-kicker">Inbox</span>
-                <span className="web-chat-inbox-context-label">
+                <span
+                  className="web-chat-inbox-context-divider"
+                  aria-hidden="true"
+                />
+                <span
+                  className="web-chat-inbox-context-label"
+                  title={inboxContext.label}
+                >
                   {inboxContext.label}
                 </span>
                 <button
                   type="button"
                   aria-label={`Detach Inbox context: ${inboxContext.label}`}
+                  title="Remove Inbox context"
                   onClick={() => setInboxContext(null)}
                 >
-                  Detach
+                  <svg
+                    viewBox="0 0 12 12"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.4"
+                    aria-hidden="true"
+                  >
+                    <path d="m3 3 6 6m0-6L3 9" strokeLinecap="round" />
+                  </svg>
                 </button>
               </div>
             ) : null}
