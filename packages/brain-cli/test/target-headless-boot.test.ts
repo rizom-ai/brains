@@ -112,6 +112,16 @@ plugins:
       expect(textContent(detail)).toContain(
         "A headless brain imported this note before serving its first MCP request.",
       );
+
+      const inbox = await client.callTool({
+        name: "inbox_list",
+        arguments: {},
+      });
+      expect(inbox.isError).not.toBe(true);
+      expect(JSON.parse(textContent(inbox))).toEqual({
+        success: true,
+        data: { entries: [], errors: [], total: 0 },
+      });
       expect(
         existsSync(join(instanceDirectory, "brain-data", "headless-proof.md")),
       ).toBe(true);
