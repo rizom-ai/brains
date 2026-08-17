@@ -12,9 +12,6 @@ function resolveProjectionConfig(): AppConfig {
 bundleContract: capability-bundles-v1
 bundles: [core, media, publishing]
 add: [assessment]
-plugins:
-  social-media:
-    autoGenerateOnBlogPublish: true
 `),
   );
 }
@@ -61,7 +58,6 @@ describe("full preset projection resilience", () => {
     expect(projectionIds).toEqual([
       "series-projection",
       "skill-derivation",
-      "social-post-generation",
       "swot-derivation",
       "topics-projection",
     ]);
@@ -83,9 +79,11 @@ describe("full preset projection resilience", () => {
     expect(edgeCauses.get("skill-derivation -> swot-derivation")).toEqual([
       "entity:skill",
     ]);
+    // No projection produces social posts any more, so nothing feeds
+    // topics-projection on `entity:social-post`.
     expect(
       edgeCauses.get("social-post-generation -> topics-projection"),
-    ).toEqual(["entity:social-post"]);
+    ).toBeUndefined();
     expect(graph.unknownSourceTypes).toEqual([]);
 
     await pluginManager.shutdownPlugins();

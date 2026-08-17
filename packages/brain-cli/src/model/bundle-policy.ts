@@ -36,10 +36,6 @@ export const publishingBundleConfig: BundleConfigContribution[] = [
     },
   },
   {
-    member: "social-media",
-    value: { autoGenerateOnBlogPublish: true },
-  },
-  {
     member: "newsletter",
     value: { doubleOptIn: true },
   },
