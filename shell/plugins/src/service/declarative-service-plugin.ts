@@ -36,8 +36,8 @@ import {
   identityConfigSchema,
   type InstalledPluginPackageMetadata,
 } from "../package-definition";
-import { parseDefinitionEntity } from "../entity/declarative-entity-plugin";
 import type { AnyEntityDefinition } from "../entity/entity-definition-contract";
+import { createJobEntityAccess } from "../job/job-entity-access";
 import { ServicePlugin } from "./service-plugin";
 import type { ServicePluginContext } from "./context";
 import type {
@@ -114,16 +114,6 @@ function runtimeJobHandler(
   serviceId: string,
 ): JobHandler<string, unknown, unknown> {
   const definition = binding.definition;
-  // Identity, not type name: an author can only reach a definition object
-  // this package declared, so a write to somebody else's entity type cannot
-  // be spelled rather than merely being rejected.
-  const assertOwned = (entityDefinition: AnyEntityDefinition): void => {
-    if (!owned.has(entityDefinition)) {
-      throw new Error(
-        `Service "${serviceId}" may only write entity types it declares, and "${entityDefinition.type}" is not one of them`,
-      );
-    }
-  };
   const handler = getServiceJobHandler(binding);
   return {
     ...(definition.deadline
@@ -144,30 +134,14 @@ function runtimeJobHandler(
         signal,
         progress,
         templates,
-        entities: {
-          async get(entityDefinition, id) {
-            const entity = await context.entityService.getEntity({
-              entityType: entityDefinition.type,
-              id,
-              visibilityScope: "restricted",
-            });
-            return entity
-              ? parseDefinitionEntity(entityDefinition, entity)
-              : null;
-          },
-          async create(entityDefinition, entity) {
-            assertOwned(entityDefinition);
-            return context.entityService.createEntity({
-              entity: { ...entity, entityType: entityDefinition.type },
-            });
-          },
-          async update(entityDefinition, entity) {
-            assertOwned(entityDefinition);
-            return context.entityService.updateEntity({
-              entity: { ...entity, entityType: entityDefinition.type },
-            });
-          },
-        },
+        entities: createJobEntityAccess(
+          context.entityService,
+          new Set([...owned].map(({ type }) => type)),
+          serviceId,
+        ),
+        ai: context.ai,
+        logger: context.logger,
+        conversations: context.conversations,
         messaging: {
           async publish(message): Promise<void> {
             await context.messaging.send({

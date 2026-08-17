@@ -1,16 +1,10 @@
 import {
   ProjectionJsonObjectSchema,
   applyVisibilityToMarkdown,
-  baseEntitySchema,
   generateFrontmatter,
   generateMarkdownWithFrontmatter,
   parseMarkdownWithFrontmatter,
   type DataSource,
-  type BaseEntity,
-  type ListOptions,
-  type SearchOptions,
-  type SearchResult,
-  type EntityInput,
   type EntityAdapter,
   type EntityTypeConfig,
   type ProjectionJsonObject,
@@ -32,9 +26,12 @@ import type { InstalledPluginPackageMetadata } from "../package-definition";
 import type { JobHandler } from "@brains/job-queue";
 import type { ProgressContract } from "@brains/utils/progress";
 import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
+import type { JobEntityAccess } from "../job/job-context-contract";
+import { createJobEntityAccess } from "../job/job-entity-access";
+import { entitySchema } from "./entity-schema";
+export { parseDefinitionEntity } from "./entity-schema";
 import type {
   AnyEntityDefinition,
-  EntityGenerationEntityAccess,
   EntityCreateRoute,
   EntityCreateRouting,
   EntityJobDeclaration,
@@ -77,32 +74,6 @@ const projectionEnvelopeSchema = z.object({
     }),
   ),
 });
-
-const entitySchemaCache = new WeakMap<
-  AnyEntityDefinition,
-  z.ZodType<EntityOf<AnyEntityDefinition>, unknown>
->();
-
-function entitySchema(
-  definition: AnyEntityDefinition,
-): z.ZodType<EntityOf<AnyEntityDefinition>, unknown> {
-  let schema = entitySchemaCache.get(definition);
-  if (!schema) {
-    schema = baseEntitySchema.extend({
-      entityType: z.literal(definition.type),
-      metadata: definition.metadata,
-    });
-    entitySchemaCache.set(definition, schema);
-  }
-  return schema;
-}
-
-export function parseDefinitionEntity<TDefinition extends AnyEntityDefinition>(
-  definition: TDefinition,
-  input: unknown,
-): EntityOf<TDefinition> {
-  return entitySchema(definition).parse(input) as EntityOf<TDefinition>;
-}
 
 function encodeParts(
   definition: AnyEntityDefinition,
@@ -515,45 +486,34 @@ class DeclarativeEntityPlugin extends EntityPlugin<
         data: unknown,
         _jobId: string,
         progress: ProgressContract,
+        signal: AbortSignal,
       ): Promise<unknown> =>
         declaration.handle({
           input: data,
           progress,
+          signal,
           ai: context.ai,
           logger: this.logger,
           entities: this.entityAccess(context),
+          messaging: {
+            publish: async (message): Promise<void> => {
+              await context.messaging.send({
+                type: message.topic,
+                payload: message.data,
+              });
+            },
+          },
           conversations: context.conversations,
         }),
     };
   }
 
-  private entityAccess(
-    context: EntityPluginContext,
-  ): EntityGenerationEntityAccess {
-    const entityService = context.entityService;
-    return {
-      listEntities: <T extends BaseEntity>(request: {
-        entityType: string;
-        options?: ListOptions;
-      }): Promise<T[]> => entityService.listEntities<T>(request),
-      getEntity: <T extends BaseEntity>(request: {
-        entityType: string;
-        id: string;
-      }): Promise<T | null> => entityService.getEntity<T>(request),
-      getEntityTypes: (): string[] => entityService.getEntityTypes(),
-      search: <T extends BaseEntity = BaseEntity>(request: {
-        query: string;
-        options?: SearchOptions;
-      }): Promise<SearchResult<T>[]> => entityService.search<T>(request),
-      createEntity: <T extends BaseEntity>(request: {
-        entity: EntityInput<T>;
-      }): Promise<{ entityId: string; jobId: string }> =>
-        entityService.createEntity(request),
-      updateEntity: <T extends BaseEntity>(request: {
-        entity: T;
-      }): Promise<{ entityId: string; jobId: string }> =>
-        entityService.updateEntity(request),
-    };
+  private entityAccess(context: EntityPluginContext): JobEntityAccess {
+    return createJobEntityAccess(
+      context.entityService,
+      new Set([this.entityType]),
+      this.id,
+    );
   }
 
   protected override async onShutdown(): Promise<void> {
