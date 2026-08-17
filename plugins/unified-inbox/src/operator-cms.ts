@@ -10,6 +10,7 @@ import {
 import { z } from "@brains/utils/zod";
 import type { InboxOperatorService } from "./operator-service";
 import {
+  inboxDetailOutcomeSchema,
   inboxWorkspaceQuerySchema,
   inboxWorkspaceSnapshotSchema,
 } from "./schemas";
@@ -64,6 +65,7 @@ const declarativeInboxQuerySchema = z.preprocess(
 const declarativeInboxDataSchema = z.object({
   query: inboxWorkspaceQuerySchema,
   snapshot: inboxWorkspaceSnapshotSchema,
+  detail: inboxDetailOutcomeSchema.optional(),
 });
 
 const inboxWorkspace = defineCmsWorkspace({
@@ -131,6 +133,27 @@ const inboxWorkspace = defineCmsWorkspace({
         tone: "warn",
       }),
     );
+    const detailBlocks: InboxViewBlock[] = data.detail
+      ? data.detail.kind === "detail"
+        ? [
+            {
+              type: "text",
+              id: "inbox-detail",
+              label: "Original content",
+              text: data.detail.detail.text,
+              truncated: data.detail.detail.truncated,
+            },
+          ]
+        : [
+            {
+              type: "notice",
+              id: "inbox-detail-unavailable",
+              title: "Original content",
+              text: data.detail.error,
+              tone: "warn",
+            },
+          ]
+      : [];
     const blocks: InboxViewBlock[] = [
       {
         type: "stats",
@@ -159,6 +182,7 @@ const inboxWorkspace = defineCmsWorkspace({
           total: snapshot.total,
         },
       },
+      ...detailBlocks,
       {
         type: "group",
         id: "source-health",
@@ -184,6 +208,18 @@ const inboxWorkspace = defineCmsWorkspace({
               target: {
                 entity: personEntity,
                 id: entry.item.contact.personId,
+              },
+            });
+          }
+          if (entry.detailAvailable) {
+            links.push({
+              label: "Read original",
+              target: {
+                launch: {
+                  target: "inbox-open-detail",
+                  sourceId: entry.source.sourceId,
+                  itemId: entry.item.id,
+                },
               },
             });
           }
@@ -282,14 +318,27 @@ export async function registerUnifiedInboxCmsWorkspace(
     definition: inboxWorkspace,
     bind: (bindingContext) =>
       inboxWorkspace.bind(bindingContext, {
-        load: async ({ query, caller }) => {
+        load: async ({ query, caller, signal }) => {
           if (!caller) throw new Error("Unified inbox requires authentication");
           const normalized = query.get(declarativeInboxQuerySchema);
+          const actor = { permissionLevel: caller.permission };
+          const snapshot = await operator.workspace(normalized, actor);
+          const detail =
+            normalized.detailSourceId && normalized.detailItemId
+              ? await operator.detail(
+                  {
+                    type: "detail",
+                    sourceId: normalized.detailSourceId,
+                    itemId: normalized.detailItemId,
+                  },
+                  actor,
+                  signal,
+                )
+              : undefined;
           return {
             query: normalized,
-            snapshot: await operator.workspace(normalized, {
-              permissionLevel: caller.permission,
-            }),
+            snapshot,
+            ...(detail ? { detail } : {}),
           };
         },
         actions: [

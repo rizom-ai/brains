@@ -1,4 +1,5 @@
 import { describe, expect, it } from "bun:test";
+import { DASHBOARD_CHANNELS } from "@brains/contracts";
 import {
   DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
   SYSTEM_CHANNELS,
@@ -119,6 +120,10 @@ describe("registerActionItemsWidget", () => {
     const context = createMockEntityPluginContext({
       listEntitiesImpl: async () => [],
     });
+    context.messaging.subscribe(
+      DASHBOARD_CHANNELS.registerWidget,
+      async () => ({ success: true }),
+    );
 
     registerActionItemsWidget({ context });
     expect(context.messaging.subscribe).toHaveBeenCalledWith(
@@ -151,8 +156,8 @@ describe("registerActionItemsWidget", () => {
       rendererName: DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
       digestProvider: expect.any(Function),
     });
-    expect(payload?.["component"]).toBeUndefined();
-    expect(payload?.["clientStyles"]).toBeUndefined();
-    expect(payload?.["clientScript"]).toBeUndefined();
+    expect(Object.hasOwn(payload, "component")).toBe(false);
+    expect(Object.hasOwn(payload, "clientStyles")).toBe(false);
+    expect(Object.hasOwn(payload, "clientScript")).toBe(false);
   });
 });

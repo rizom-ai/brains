@@ -207,6 +207,22 @@ function NoticeBlock({
   );
 }
 
+function TextBlock({
+  block,
+}: {
+  block: Extract<RuntimeBlock, { type: "text" }>;
+}): ReactElement {
+  return (
+    <article className="declarative-text">
+      {block.label && <h3>{block.label}</h3>}
+      <pre>{block.text}</pre>
+      {block.truncated === true && (
+        <small>Source content was truncated by its provider.</small>
+      )}
+    </article>
+  );
+}
+
 function LinksBlock(props: {
   block: Extract<RuntimeBlock, { type: "links" }>;
   onOpenEntity: (entityType: string, id: string) => void;
@@ -660,6 +676,8 @@ function PanelBlock(props: {
       return <KeyValuesBlock block={props.block} />;
     case "notice":
       return <NoticeBlock block={props.block} />;
+    case "text":
+      return <TextBlock block={props.block} />;
     case "group":
       return <GroupBlock block={props.block} />;
     case "flow":

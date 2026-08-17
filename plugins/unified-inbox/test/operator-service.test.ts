@@ -240,8 +240,7 @@ describe("InboxOperatorService", () => {
       {
         sourceId: "mail-items",
         urgency: "high",
-        "facet.category": "work",
-        "facet.needs-reply": "true",
+        facets: { category: "work", "needs-reply": "true" },
         offset: 0,
         limit: 50,
       },

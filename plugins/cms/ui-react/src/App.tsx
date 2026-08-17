@@ -59,6 +59,10 @@ import {
   type SaveEntityInput,
 } from "./mutations";
 import {
+  createInboxChatPrefillState,
+  inboxDetailWorkspaceHref,
+} from "./operator-launch";
+import {
   isPublishConfirmation,
   isPublishingActionError,
 } from "./publication-actions";
@@ -531,13 +535,7 @@ export function App(): ReactElement {
       const href = consoleSurfaceHref("web-chat");
       if (!href) return;
       window.history.pushState(
-        {
-          webChatPrefill: {
-            version: 2,
-            text: "Help me understand this Inbox item and decide what to do next.",
-            context: { sourceId, itemId, label },
-          },
-        },
+        createInboxChatPrefillState(sourceId, itemId, label),
         "",
         href,
       );
@@ -596,6 +594,16 @@ export function App(): ReactElement {
         case "inbox-open-entity":
           openWorkspaceEntity(launch.entityType, launch.entityId);
           return;
+        case "inbox-open-detail":
+          router.history.push(
+            inboxDetailWorkspaceHref(
+              cmsBasePath,
+              routeSearch,
+              launch.sourceId,
+              launch.itemId,
+            ),
+          );
+          return;
         case "inbox-capture-note":
           captureInboxAsNote(
             launch.title,
@@ -613,6 +621,7 @@ export function App(): ReactElement {
       cmsBasePath,
       discussInboxInChat,
       openWorkspaceEntity,
+      routeSearch,
       router.history,
     ],
   );

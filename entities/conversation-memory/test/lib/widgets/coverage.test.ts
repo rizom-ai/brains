@@ -1,4 +1,5 @@
 import { describe, expect, it } from "bun:test";
+import { DASHBOARD_CHANNELS } from "@brains/contracts";
 import {
   DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
   type Conversation,
@@ -207,6 +208,10 @@ describe("registerSummaryCoverageWidget", () => {
         list: async (): Promise<Conversation[]> => [],
       },
     };
+    context.messaging.subscribe(
+      DASHBOARD_CHANNELS.registerWidget,
+      async () => ({ success: true }),
+    );
 
     registerSummaryCoverageWidget({
       context,

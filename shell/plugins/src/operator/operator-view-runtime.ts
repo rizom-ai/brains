@@ -31,6 +31,11 @@ export type RuntimeOperatorLaunchIntent =
       readonly entityId: string;
     }
   | {
+      readonly target: "inbox-open-detail";
+      readonly sourceId: string;
+      readonly itemId: string;
+    }
+  | {
       readonly target: "inbox-capture-note";
       readonly title: string;
       readonly summary?: string | undefined;
@@ -85,6 +90,14 @@ export interface RuntimeOperatorNoticeBlock {
   readonly title?: string | undefined;
   readonly text: string;
   readonly tone?: RuntimeOperatorTone | undefined;
+}
+
+export interface RuntimeOperatorTextBlock {
+  readonly type: "text";
+  readonly id?: string | undefined;
+  readonly label?: string | undefined;
+  readonly text: string;
+  readonly truncated?: boolean | undefined;
 }
 
 export interface RuntimeOperatorGroupItem {
@@ -455,6 +468,7 @@ export type RuntimeCmsOperatorPanelBlock =
   | RuntimeOperatorStatsBlock
   | RuntimeOperatorKeyValuesBlock
   | RuntimeOperatorNoticeBlock
+  | RuntimeOperatorTextBlock
   | RuntimeOperatorGroupBlock
   | RuntimeOperatorFlowBlock
   | RuntimeOperatorMeterBlock
@@ -524,6 +538,7 @@ const identifierSchema = z.string().trim().min(1).max(120);
 const labelSchema = z.string().trim().min(1).max(160);
 const shortTextSchema = z.string().max(500);
 const textSchema = z.string().max(4_000);
+const longTextSchema = z.string().max(100_000);
 const toneSchema = z.enum(["good", "warn", "neutral", "error"]);
 const scalarSchema = z.union([
   z.string().max(2_000),
@@ -623,6 +638,13 @@ const launchIntentSchema = z.union([
       target: z.literal("inbox-open-entity"),
       entityType: identifierSchema,
       entityId: identifierSchema,
+    })
+    .strict(),
+  z
+    .object({
+      target: z.literal("inbox-open-detail"),
+      sourceId: identifierSchema,
+      itemId: z.string().trim().min(1).max(300),
     })
     .strict(),
   z
@@ -731,6 +753,16 @@ const noticeBlockSchema = z
     title: labelSchema.optional(),
     text: textSchema,
     tone: toneSchema.optional(),
+  })
+  .strict();
+
+const textBlockSchema = z
+  .object({
+    type: z.literal("text"),
+    id: identifierSchema.optional(),
+    label: labelSchema.optional(),
+    text: longTextSchema,
+    truncated: z.boolean().optional(),
   })
   .strict();
 
@@ -1589,6 +1621,7 @@ const cmsPanelBlockSchema = z.union([
   statsBlockSchema,
   keyValuesBlockSchema,
   noticeBlockSchema,
+  textBlockSchema,
   groupBlockSchema,
   flowBlockSchema,
   meterBlockSchema,
@@ -2053,6 +2086,7 @@ function inspectAuthorLinkTarget(
     profile === "dashboard" &&
     isUnknownRecord(launch) &&
     (launch["target"] === "inbox-open-entity" ||
+      launch["target"] === "inbox-open-detail" ||
       launch["target"] === "inbox-capture-note" ||
       launch["target"] === "inbox-discuss-in-chat")
   ) {

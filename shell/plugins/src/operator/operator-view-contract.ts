@@ -40,6 +40,14 @@ export interface OperatorNoticeBlock {
   readonly tone?: OperatorTone | undefined;
 }
 
+export interface OperatorTextBlock {
+  readonly type: "text";
+  readonly id?: string | undefined;
+  readonly label?: string | undefined;
+  readonly text: string;
+  readonly truncated?: boolean | undefined;
+}
+
 export interface OperatorGroupItem {
   readonly id: string;
   readonly label: string;
@@ -169,6 +177,11 @@ export type OperatorLaunchIntent =
       readonly target: "inbox-open-entity";
       readonly entityType: string;
       readonly entityId: string;
+    }
+  | {
+      readonly target: "inbox-open-detail";
+      readonly sourceId: string;
+      readonly itemId: string;
     }
   | {
       readonly target: "inbox-capture-note";
@@ -435,6 +448,7 @@ export type OperatorPanelBlock<
   | OperatorStatsBlock
   | OperatorKeyValuesBlock
   | OperatorNoticeBlock
+  | OperatorTextBlock
   | OperatorGroupBlock
   | OperatorFlowBlock
   | OperatorMeterBlock
@@ -491,6 +505,7 @@ export type DashboardOperatorLaunchIntent = Exclude<
   {
     readonly target:
       | "inbox-open-entity"
+      | "inbox-open-detail"
       | "inbox-capture-note"
       | "inbox-discuss-in-chat";
   }

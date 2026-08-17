@@ -117,6 +117,8 @@ function launchHref(
     case "site":
       return workspaceHref(paths.cmsPath, "site-builder:site");
     case "inbox-open-entity":
+    case "inbox-open-detail":
+    case "inbox-discuss-in-chat":
     case "inbox-capture-note":
       return undefined;
   }

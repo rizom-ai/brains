@@ -231,12 +231,12 @@ Both hosts consume one JSON-native semantic protocol with typed
 The protocol is a closed discriminated union of audited semantic primitives.
 The existing stats, key-values, notices, lists, tables, links, and typed action
 controls remain its base. Phase 4 adds only primitives demonstrated by the
-complete built-in inventory, including the structures needed for relational
-visualization, matrices, operational pipelines, host-managed query controls,
-paging, master/detail presentation, dynamic typed catalogs, and prepared
-confirmation. Semantic layout may express bounded intent such as density,
-span, grouping, or split presentation; it does not recreate CSS or a generic
-DOM tree.
+complete built-in inventory, including bounded host-rendered plain text and
+the structures needed for relational visualization, matrices, operational
+pipelines, host-managed query controls, paging, master/detail presentation,
+dynamic typed catalogs, and prepared confirmation. Semantic layout may
+express bounded intent such as density, span, grouping, or split presentation;
+it does not recreate CSS or a generic DOM tree.
 
 Text is escaped by the host. Links are validated. Action controls carry
 schema-validated payloads and definition references; authors do not construct

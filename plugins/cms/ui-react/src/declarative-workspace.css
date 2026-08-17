@@ -26,6 +26,7 @@
 
 .declarative-stats > div,
 .declarative-notice,
+.declarative-text,
 .declarative-key-values,
 .declarative-list > li {
   border: 1px solid var(--console-rule);
@@ -84,6 +85,30 @@
 
 .declarative-notice p {
   margin: 0.35rem 0 0;
+}
+
+.declarative-text {
+  padding: 1rem;
+}
+
+.declarative-text h3 {
+  margin: 0 0 0.75rem;
+}
+
+.declarative-text pre {
+  max-height: min(60vh, 48rem);
+  margin: 0;
+  overflow: auto;
+  color: var(--console-text);
+  font: inherit;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.declarative-text small {
+  display: block;
+  margin-top: 0.75rem;
+  color: var(--console-text-muted);
 }
 
 .declarative-links,

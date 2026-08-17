@@ -339,7 +339,8 @@ Required semantics:
   offset, limit, and selected detail;
 - server-side filtering and paging with append/reset behavior;
 - caller-visible source errors without internal error disclosure;
-- a keyboard-accessible master/detail presentation with focus return;
+- a keyboard-accessible server-driven master/detail presentation with bounded
+  host-rendered plain text;
 - item title, summary, contact, thread ordinal, source, urgency, received time,
   and typed entity reference;
 - caller-filtered dynamic action definitions supplied by source packages;
@@ -348,10 +349,11 @@ Required semantics:
 - caller-filtered typed follow-up launches supplied by destination packages;
 - canonical URL updates and responsive single-pane fallback.
 
-Inbox source actions and follow-ups currently use string IDs, unknown command
-payloads, and resolved hrefs. They must become catalogs of immutable typed
-definitions and host-owned launch targets before this workspace satisfies the
-public contract.
+Inbox source registrations retain provider-local IDs and resolved follow-up
+metadata behind the server boundary. The public workspace lifts offered actions
+into immutable typed capabilities and emits only host-owned detail, entity,
+Chat, and note-capture launch intents; private resolved hrefs and handoff state
+are never serialized.
 
 ## Semantic capability families demonstrated
 
@@ -391,8 +393,8 @@ Phase 4 closes every demonstrated gap above:
   primitive vocabulary;
 - Dashboard tabs, filters, matrices, spatial interaction, launches, and
   accessibility are host-owned;
-- CMS query state, paging, catalogs, grouping, flow, meters, progress, actions,
-  launches, and responsive rendering are host-owned;
+- CMS query state, paging, catalogs, grouping, flow, meters, progress, bounded
+  plain-text detail, actions, launches, and responsive rendering are host-owned;
 - prepared confirmation is caller-, action-, input-, revision-, expiry-, and
   one-use-bound;
 - permission floors, narrow-only policy, caller-scoped entities, redacted

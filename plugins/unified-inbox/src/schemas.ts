@@ -150,6 +150,8 @@ interface InboxWorkspaceQueryValue {
   sourceId?: string | undefined;
   urgency?: "high" | "normal" | undefined;
   facets?: InboxFacets | undefined;
+  detailSourceId?: string | undefined;
+  detailItemId?: string | undefined;
   offset: number;
   limit: number;
 }
@@ -171,23 +173,45 @@ const inboxWorkspaceLimitSchema = z.preprocess(
 export const inboxWorkspaceQuerySchema: z.ZodType<
   InboxWorkspaceQueryValue,
   unknown
-> = z.strictObject({
-  sourceId: inboxIdSchema.optional(),
-  urgency: inboxUrgencySchema.optional(),
-  facets: inboxFacetsSchema.optional(),
-  offset: inboxWorkspaceOffsetSchema.default(0),
-  limit: inboxWorkspaceLimitSchema.default(50),
-});
+> = z
+  .strictObject({
+    sourceId: inboxIdSchema.optional(),
+    urgency: inboxUrgencySchema.optional(),
+    facets: inboxFacetsSchema.optional(),
+    detailSourceId: inboxIdSchema.optional(),
+    detailItemId: inboxItemIdSchema.optional(),
+    offset: inboxWorkspaceOffsetSchema.default(0),
+    limit: inboxWorkspaceLimitSchema.default(50),
+  })
+  .superRefine((query, context) => {
+    if (
+      (query.detailSourceId === undefined) !==
+      (query.detailItemId === undefined)
+    ) {
+      context.addIssue({
+        code: "custom",
+        path: [
+          query.detailSourceId === undefined
+            ? "detailSourceId"
+            : "detailItemId",
+        ],
+        message: "Inbox detail selection requires both source and item IDs",
+      });
+    }
+  });
+
+function unknownRecord(input: unknown): Record<string, unknown> {
+  return typeof input === "object" && input !== null && !Array.isArray(input)
+    ? Object.fromEntries(Object.entries(input))
+    : {};
+}
 
 /** Normalize each URL/request field independently so one bad filter fails open. */
 export function normalizeInboxWorkspaceQuery(
   input: unknown,
   sources: readonly InboxSource[],
 ): InboxWorkspaceQueryValue {
-  const raw =
-    typeof input === "object" && input !== null && !Array.isArray(input)
-      ? (input as Record<string, unknown>)
-      : {};
+  const raw = unknownRecord(input);
   const sourceId = inboxIdSchema.safeParse(raw["sourceId"]);
   const source = sourceId.success
     ? sources.find((candidate) => candidate.sourceId === sourceId.data)
@@ -195,13 +219,20 @@ export function normalizeInboxWorkspaceQuery(
   const urgency = inboxUrgencySchema.safeParse(raw["urgency"]);
   const offset = inboxWorkspaceOffsetSchema.safeParse(raw["offset"]);
   const limit = inboxWorkspaceLimitSchema.safeParse(raw["limit"]);
+  const detailSourceId = inboxIdSchema.safeParse(raw["detailSourceId"]);
+  const detailItemId = inboxItemIdSchema.safeParse(raw["detailItemId"]);
+  const detailSource = detailSourceId.success
+    ? sources.find((candidate) => candidate.sourceId === detailSourceId.data)
+    : undefined;
+  const flatFacets = Object.fromEntries(
+    Object.entries(raw).flatMap(([key, value]) =>
+      key.startsWith("facet.") ? [[key.slice(6), value]] : [],
+    ),
+  );
+  const nestedFacets = unknownRecord(raw["facets"]);
   const facets = source
     ? normalizeDeclaredFacets(
-        Object.fromEntries(
-          Object.entries(raw).flatMap(([key, value]) =>
-            key.startsWith("facet.") ? [[key.slice(6), value]] : [],
-          ),
-        ),
+        Object.keys(nestedFacets).length > 0 ? nestedFacets : flatFacets,
         source,
       )
     : undefined;
@@ -209,6 +240,12 @@ export function normalizeInboxWorkspaceQuery(
     ...(source ? { sourceId: source.sourceId } : {}),
     ...(urgency.success ? { urgency: urgency.data } : {}),
     ...(facets ? { facets } : {}),
+    ...(detailSource && detailItemId.success
+      ? {
+          detailSourceId: detailSource.sourceId,
+          detailItemId: detailItemId.data,
+        }
+      : {}),
     offset: offset.success ? offset.data : 0,
     limit: limit.success ? limit.data : 50,
   });

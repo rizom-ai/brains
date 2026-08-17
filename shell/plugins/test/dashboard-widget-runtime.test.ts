@@ -488,6 +488,35 @@ describe("declarative dashboard widget runtime", () => {
         },
       ],
     });
+
+    const detailOnly = safeParseRuntimeDashboardOperatorView({
+      blocks: [
+        {
+          type: "links",
+          items: [
+            {
+              label: "Read original",
+              target: {
+                launch: {
+                  target: "inbox-open-detail",
+                  sourceId: "mail-items",
+                  itemId: "mail-1",
+                },
+              },
+            },
+          ],
+        },
+      ],
+    });
+    expect(detailOnly).toMatchObject({
+      success: false,
+      issues: [
+        {
+          path: ["blocks", 0, "items", 0, "target", "launch", "target"],
+          message: expect.stringContaining("only in CMS workspaces"),
+        },
+      ],
+    });
   });
 
   it("rejects duplicate local widget IDs before host registration", async () => {

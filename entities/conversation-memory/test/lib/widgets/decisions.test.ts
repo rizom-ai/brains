@@ -1,4 +1,5 @@
 import { describe, expect, it } from "bun:test";
+import { DASHBOARD_CHANNELS } from "@brains/contracts";
 import {
   DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
   SYSTEM_CHANNELS,
@@ -108,6 +109,10 @@ describe("registerDecisionsWidget", () => {
     const context = createMockEntityPluginContext({
       listEntitiesImpl: async () => [],
     });
+    context.messaging.subscribe(
+      DASHBOARD_CHANNELS.registerWidget,
+      async () => ({ success: true }),
+    );
 
     registerDecisionsWidget({ context });
     expect(context.messaging.subscribe).toHaveBeenCalledWith(

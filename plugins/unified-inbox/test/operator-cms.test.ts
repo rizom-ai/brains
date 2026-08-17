@@ -49,6 +49,7 @@ async function setup(options?: {
 }): Promise<{
   workspace: CmsWorkspaceRegistration;
   actors: InboxActor[];
+  detailActors: InboxActor[];
   withdraw(): void;
 }> {
   const shell = createMockShell({ domain: "brain.test" });
@@ -79,11 +80,20 @@ async function setup(options?: {
     );
   let open = true;
   const actors: InboxActor[] = [];
+  const detailActors: InboxActor[] = [];
   const registry = new InboxRegistry();
   registry.registerSource("mail-plugin", {
     sourceId: "mail-items",
     displayName: "Email Triage",
     list: async () => (open ? [item] : []),
+    resolveDetail: async (_itemId, actor) => {
+      detailActors.push(actor);
+      return {
+        kind: "plain",
+        text: "Original request\nwith bounded source detail.",
+        truncated: true,
+      };
+    },
     act: async (_itemId, _actionId, actor) => {
       actors.push(actor);
       if (options?.failAction) throw new Error("private mailbox failure");
@@ -136,6 +146,7 @@ async function setup(options?: {
   return {
     workspace,
     actors,
+    detailActors,
     withdraw: (): void => {
       open = false;
     },
@@ -164,6 +175,8 @@ describe("unified inbox CMS registration", () => {
     const workspace = await fixture.workspace.dataProvider(admin, {
       sourceId: "mail-items",
       urgency: "high",
+      detailSourceId: "mail-items",
+      detailItemId: "mail-1",
       offset: "0",
       limit: "1",
     });
@@ -174,17 +187,22 @@ describe("unified inbox CMS registration", () => {
     expect(serialized).toContain('"entityType":"person"');
     expect(serialized).toContain('"capabilityId":"archive"');
     expect(serialized).toContain('"kind":"prepared"');
+    expect(serialized).toContain('"target":"inbox-open-detail"');
+    expect(serialized).toContain('"type":"text"');
+    expect(serialized).toContain(
+      "Original request\\nwith bounded source detail.",
+    );
+    expect(serialized).toContain('"truncated":true');
     expect(serialized).toContain('"target":"inbox-discuss-in-chat"');
     expect(serialized).toContain('"sourceId":"mail-items"');
     expect(serialized).toContain('"itemId":"mail-1"');
     expect(serialized).toContain('"target":"inbox-open-entity"');
     expect(serialized).toContain('"target":"inbox-capture-note"');
-    expect(serialized).toContain(
-      '"summary":"A content-safe routing summary."',
-    );
+    expect(serialized).toContain('"summary":"A content-safe routing summary."');
     expect(serialized).not.toContain("/access/people");
     expect(serialized).not.toContain("/private/");
     expect(serialized).not.toContain("must-not-serialize");
+    expect(fixture.detailActors).toEqual([{ permissionLevel: "admin" }]);
     expect(await fixture.workspace.badgeProvider?.(admin)).toBe(1);
 
     expect(

@@ -322,26 +322,27 @@ describe("optional CMS workspaces", () => {
     ).toMatchObject({ success: true });
   });
 
-  it("accepts the typed email reply draft workspace renderer", async () => {
+  it("rejects the retired email reply draft workspace renderer", async () => {
     const shell = createMockShell({ domain: "yeehaa.io" });
     const plugin = cmsPlugin();
     await plugin.register(shell);
 
     expect(
-      await registerWorkspace(shell, {
-        id: "email-reply-drafts",
-        pluginId: "email-workflows",
-        label: "Reply drafts",
-        rendererName: "EmailReplyDraftWorkspace",
-        priority: 21,
-        urlQuery: true,
-        accessHandler: (actor) => actor.userPermissionLevel === "admin",
-        dataProvider: async () => ({ mailItemId: null }),
+      await shell.getMessageBus().send({
+        type: "cms:register-workspace",
+        payload: {
+          id: "email-reply-drafts",
+          pluginId: "email-workflows",
+          label: "Reply drafts",
+          rendererName: "EmailReplyDraftWorkspace",
+          priority: 21,
+          urlQuery: true,
+          accessHandler: () => true,
+          dataProvider: async () => ({ mailItemId: null }),
+        },
+        sender: "email-workflows",
       }),
-    ).toEqual({
-      success: true,
-      data: { workspaceUrl: "/cms/workspaces/email-reply-drafts" },
-    });
+    ).toMatchObject({ success: false });
   });
 
   it("exposes URL query capability only for opted-in workspaces", async () => {

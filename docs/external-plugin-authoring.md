@@ -348,11 +348,13 @@ blocks for authenticated CMS operations. CMS-only capabilities include:
   parsing and controls; the schema must accept `{}` and provide its initial
   defaults so the workspace has a canonical base URL state;
 - immutable caller-filtered action and entity catalogs;
+- bounded host-rendered plain text for authenticated source detail;
 - typed `defineWorkspaceAction()` inputs/outputs and permission floors;
 - static confirmation text or prepared confirmation bound to caller, action,
   input, revision, expiry, and one use; and
 - closed external, entity, Account, Admin, Inbox, Publishing, and Site launch
-  intents resolved by the host.
+  intents resolved by the host, including Inbox detail, Chat discussion, and
+  note-capture handoffs without author-supplied URLs.
 
 Widgets and workspaces do not reference or discover each other. A missing
 optional host is a true no-op, and execution-only workers do not bind operator

@@ -109,6 +109,12 @@ const readingWorkspace = defineCmsWorkspace({
           ],
         },
         {
+          type: "text",
+          id: "reading-guidance",
+          label: "Reader guide",
+          text: "Filter the library, then refresh any digest that needs an update.",
+        },
+        {
           type: "table",
           id: "bookmarks",
           empty: "No bookmarks have been saved yet.",

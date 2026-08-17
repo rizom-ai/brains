@@ -1,4 +1,5 @@
 import { describe, expect, it } from "bun:test";
+import { DASHBOARD_CHANNELS } from "@brains/contracts";
 import {
   DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
   SYSTEM_CHANNELS,
@@ -40,6 +41,10 @@ describe("registerTopicsDashboardWidget", () => {
     const context = createMockEntityPluginContext({
       listEntitiesImpl: async (): Promise<BaseEntity[]> => topics,
     });
+    context.messaging.subscribe(
+      DASHBOARD_CHANNELS.registerWidget,
+      async () => ({ success: true }),
+    );
 
     registerTopicsDashboardWidget({ context });
 
@@ -77,17 +82,31 @@ describe("registerTopicsDashboardWidget", () => {
       signal: new AbortController().signal,
     });
 
-    expect(data.view.blocks[0]).toEqual({
-      type: "list",
-      id: "topics",
-      empty: "No topics yet.",
-      items: [
-        {
-          id: "human-ai-collaboration",
-          title: "Human-AI Collaboration",
-          description: "Humans and AI systems work together.",
-        },
-      ],
+    expect(data).toEqual({
+      view: {
+        blocks: [
+          {
+            type: "list",
+            id: "topics",
+            empty: "No topics yet.",
+            items: [
+              {
+                id: "human-ai-collaboration",
+                title: "Human-AI Collaboration",
+                description: "Humans and AI systems work together.",
+              },
+            ],
+          },
+        ],
+      },
+      digest: {
+        items: [
+          {
+            label: "Latest topic",
+            value: "Human-AI Collaboration",
+          },
+        ],
+      },
     });
   });
 });

@@ -19,6 +19,13 @@ const data: RuntimeCmsWorkspaceData = {
         text: "Review <script>alert('unsafe')</script>",
       },
       {
+        type: "text",
+        id: "original-content",
+        label: "Original content",
+        text: "First line\n<script>alert('still unsafe')</script>",
+        truncated: true,
+      },
+      {
         type: "group",
         id: "automation",
         label: "Automation",
@@ -115,6 +122,9 @@ describe("DeclarativeWorkspace", () => {
     expect(html).toContain("one, two");
     expect(html).toContain("Refresh");
     expect(html).toContain("Review &lt;script&gt;");
+    expect(html).toContain("Original content");
+    expect(html).toContain("First line\n&lt;script&gt;");
+    expect(html).toContain("Source content was truncated by its provider.");
     expect(html).toContain("Automation");
     expect(html).toContain('data-direction="bidirectional"');
     expect(html).toContain('data-status="active"');
