@@ -1,6 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { z } from "@brains/utils/zod";
 import { createMockShell, createSilentLogger } from "@brains/test-utils";
+import { createPluginHarness } from "../src/test/harness";
 import { PluginManager } from "../src/manager/pluginManager";
 import { PluginStatus } from "../src/manager/types";
 import {
@@ -336,6 +337,64 @@ describe("service package declaring entities", () => {
     expect(runCaptureJob(definition)).rejects.toThrow(
       /may only write entity types it declares/,
     );
+  });
+
+  // The entity declares the route and the service declares the job, so the
+  // delegate has to resolve against the package rather than the entity
+  // plugin that declared it — otherwise a bare local name never finds the
+  // handler.
+  it("routes a create delegate to a job the service declares", async () => {
+    const captured = defineEntity({
+      type: "bookmark",
+      purpose: "A saved URL.",
+      metadata: z.object({ url: z.string() }),
+      create: { fromPrompt: { delegate: "capture-bookmark" } },
+    });
+    const definition = defineServicePlugin({
+      id: "capture",
+      config: z.object({}),
+      entities: [captured],
+      setup: () => ({}),
+      jobs: () => [captureJob().handle(async () => ({ fetchedWith: "none" }))],
+    });
+    const plugins = instantiatePluginPackageDefinition(
+      definition,
+      {},
+      { name: "@fixture/bookmarks", version: "0.1.0" },
+    );
+    const entityPlugin = plugins.find((plugin) => plugin.type === "entity");
+    if (!entityPlugin) throw new Error("Entity plugin was not created");
+
+    const harness = createPluginHarness({
+      logger: createSilentLogger("service-create-routing"),
+    });
+    let interceptor:
+      | ((input: unknown, executionContext: unknown) => Promise<unknown>)
+      | undefined;
+    const registry = harness.getEntityRegistry();
+    registry.registerCreateInterceptor = ((
+      _entityType: string,
+      registered: typeof interceptor,
+    ): void => {
+      interceptor = registered;
+    }) as typeof registry.registerCreateInterceptor;
+
+    const enqueued: string[] = [];
+    const shell = harness.getMockShell();
+    const jobQueue = shell.getJobQueueService();
+    jobQueue.enqueue = (async (request: { type: string }) => {
+      enqueued.push(request.type);
+      return "job-1";
+    }) as typeof jobQueue.enqueue;
+    shell.getJobQueueService = (): typeof jobQueue => jobQueue;
+
+    await harness.installPlugin(entityPlugin);
+    if (!interceptor) throw new Error("Create interceptor was not registered");
+
+    await interceptor({ entityType: "bookmark", prompt: "save this" }, {});
+
+    expect(enqueued).toEqual(["@fixture/bookmarks:capture:capture-bookmark"]);
+    harness.reset();
   });
 
   it("still emits only a service plugin when no entities are declared", () => {

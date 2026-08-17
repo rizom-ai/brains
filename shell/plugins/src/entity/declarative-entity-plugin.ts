@@ -259,6 +259,7 @@ class DeclarativeEntityPlugin extends EntityPlugin<
   private readonly instructions: AnyEntityDefinition["instructions"];
   private readonly create: AnyEntityDefinition["create"];
   private readonly publish: AnyEntityDefinition["publish"];
+  private readonly jobOwnerId: string | undefined;
   private readonly projectionRules: AnyEntityDefinition["projectionRules"];
   private readonly atproto: AnyEntityDefinition["atproto"];
   private readonly releaseOnShutdown: Array<() => void> = [];
@@ -274,6 +275,7 @@ class DeclarativeEntityPlugin extends EntityPlugin<
     projections: readonly ProjectionDefinition[],
     metadata: InstalledPluginPackageMetadata,
     scope: (localId: string) => string,
+    jobOwnerId?: string,
   ) {
     super(scope(definition.type), metadata, {}, emptyEntityPluginConfigSchema);
     this.projections = projections;
@@ -296,6 +298,7 @@ class DeclarativeEntityPlugin extends EntityPlugin<
     this.instructions = definition.instructions;
     this.create = definition.create;
     this.publish = definition.publish;
+    this.jobOwnerId = jobOwnerId;
     this.projectionRules = definition.projectionRules;
     this.atproto = definition.atproto;
   }
@@ -357,7 +360,13 @@ class DeclarativeEntityPlugin extends EntityPlugin<
           // The runtime enqueues and reports, so the outcome describes what
           // actually happened rather than what the package claims happened.
           const jobId = await context.jobs.enqueue({
-            type: route.delegate,
+            // A package may declare its entity and the job it delegates to in
+            // one definition, in which case the job belongs to the package
+            // rather than to this entity plugin. Qualify it here so the
+            // author still writes a bare local job name.
+            type: this.jobOwnerId
+              ? `${this.jobOwnerId}:${route.delegate}`
+              : route.delegate,
             data: input,
             toolContext: executionContext,
             options: {
@@ -538,6 +547,7 @@ export function createEntityPackagePlugins(
   projections: readonly ProjectionDefinition[],
   metadata: InstalledPluginPackageMetadata,
   scope: (localId: string) => string,
+  jobOwnerId?: string,
 ): DeclarativeEntityPlugin[] {
   return entities.map(
     (definition) =>
@@ -546,6 +556,7 @@ export function createEntityPackagePlugins(
         projections.filter(({ source }) => source === definition),
         metadata,
         scope,
+        jobOwnerId,
       ),
   );
 }
