@@ -13,10 +13,11 @@ that migration validation uses the intended tiers. The Turso branch must rerun
 `shell/core/test/projection-runtime-shell.test.ts` under both database engines;
 tiering must not hide an integration regression.
 
-Coordinate with [`test-suite-hardening.md`](./test-suite-hardening.md). That plan
-owns condition-based waiting, process cleanup, and temporary-resource cleanup.
-This plan owns **which tier runs when**, immutable artifact reuse, and the
-post-`0.2.0` compatibility lifecycle.
+Condition-based waiting, process cleanup, and temporary-resource cleanup shipped
+with the test-suite-hardening work and are no longer open questions: tests wait
+on `waitUntil` rather than sleeps, the packed harness reaps its own temp roots,
+and an ESLint rule fails a reintroduced sleep. This plan owns **which tier runs
+when**, immutable artifact reuse, and the post-`0.2.0` compatibility lifecycle.
 
 ## Goal
 
