@@ -4,6 +4,7 @@ import type {
   BaseEntity,
   DataSource,
   DataSourceSchema,
+  IEntityService,
   ListOptions,
   PaginationInfo,
   SortField,
@@ -47,7 +48,9 @@ export interface EntityDataSourceDefinition<
     pagination: PaginationInfo | null,
     query: BaseQuery,
   ): TListResult & JsonObjectOutputGuard<TListResult>;
-  detail?(context: EntityDetailContext<TTransformed>): unknown;
+  detail?(
+    context: EntityDetailContext<TTransformed>,
+  ): unknown | Promise<unknown>;
 }
 
 /**
@@ -61,6 +64,11 @@ export interface EntityDetailContext<TTransformed> {
   readonly item: TTransformed;
   readonly navigation: NavigationResult<TTransformed> | null;
   readonly siblings: readonly TTransformed[];
+  /**
+   * Reads for a detail view that has to resolve something outside its own
+   * type — decks pulls a cover image entity in before rendering.
+   */
+  readonly entities: EntityQueryReader;
 }
 
 export function defineEntityDataSource<
@@ -83,7 +91,9 @@ export function defineEntityDataSource<
     pagination: PaginationInfo | null,
     query: BaseQuery,
   ): TListResult & JsonObjectOutputGuard<TListResult>;
-  detail?(context: EntityDetailContext<TTransformed>): unknown;
+  detail?(
+    context: EntityDetailContext<TTransformed>,
+  ): unknown | Promise<unknown>;
 }): EntityDataSourceDefinition<TEntity, TTransformed, TListResult> {
   return Object.freeze({
     kind: "rizom-entity-data-source" as const,
@@ -181,12 +191,31 @@ export interface AnyEntityDataSourceDefinition {
     pagination: PaginationInfo | null,
     query: BaseQuery,
   ): JsonObject;
-  detail?(context: EntityDetailContext<unknown>): unknown;
+  detail?(context: EntityDetailContext<unknown>): unknown | Promise<unknown>;
 }
 
 /** Either declared form, as an entity definition stores them. */
 export type AnyDataSourceDeclaration =
   AnyEntityDataSourceDefinition | DataSourceDefinition;
+
+/** The narrow reader a declared data source sees, over the runtime service. */
+function entityQueryReader(entityService: {
+  listEntities: IEntityService["listEntities"];
+  getEntity: IEntityService["getEntity"];
+  getEntityTypes: IEntityService["getEntityTypes"];
+}): EntityQueryReader {
+  return {
+    listEntities: <T extends BaseEntity>(request: {
+      entityType: string;
+      options?: ListOptions;
+    }): Promise<T[]> => entityService.listEntities<T>(request),
+    getEntity: <T extends BaseEntity>(request: {
+      entityType: string;
+      id: string;
+    }): Promise<T | null> => entityService.getEntity<T>(request),
+    getEntityTypes: (): string[] => entityService.getEntityTypes(),
+  };
+}
 
 /** Bind a general declared data source to the runtime. */
 export function createDeclarativeDataSource(
@@ -202,18 +231,7 @@ export function createDeclarativeDataSource(
       outputSchema: DataSourceSchema<T>,
       context: BaseDataSourceContext,
     ): Promise<T> {
-      const entityService = context.entityService;
-      const entities: EntityQueryReader = {
-        listEntities: <T extends BaseEntity>(request: {
-          entityType: string;
-          options?: ListOptions;
-        }): Promise<T[]> => entityService.listEntities<T>(request),
-        getEntity: <T extends BaseEntity>(request: {
-          entityType: string;
-          id: string;
-        }): Promise<T | null> => entityService.getEntity<T>(request),
-        getEntityTypes: (): string[] => entityService.getEntityTypes(),
-      };
+      const entities = entityQueryReader(context.entityService);
       return outputSchema.parse(await definition.fetch(query, entities));
     },
   };
@@ -286,10 +304,11 @@ export function createDeclarativeEntityDataSource(
       ]);
 
       return outputSchema.parse(
-        detail({
+        await detail({
           item: resolved.item,
           navigation: resolved.navigation,
           siblings: siblings.items,
+          entities: entityQueryReader(entityService),
         }),
       );
     }
