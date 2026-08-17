@@ -36,7 +36,6 @@
   "main": "src/index.ts",
   "private": true,
   "scripts": {
-    "eval": "cd evals && bun run brain-eval",
     "lint": "eslint . --max-warnings 0",
     "lint:fix": "eslint . --max-warnings 0 --fix",
     "test": "bun test",
