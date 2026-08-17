@@ -177,7 +177,7 @@ describe("service package declaring entities", () => {
       setup: ({ config }) => ({ apiKey: config.apiKey }),
       jobs: ({ state }) => [
         captureJob().handle(async ({ input, entities }) => {
-          await entities.create(bookmark, {
+          await entities.create({
             entityType: "bookmark",
             content: `fetched ${input.url} with ${state.apiKey}`,
             metadata: { url: input.url },
@@ -199,7 +199,7 @@ describe("service package declaring entities", () => {
       setup: () => ({}),
       jobs: () => [
         captureJob().handle(async ({ entities }) => {
-          await entities.create(bookmark, {
+          await entities.create({
             entityType: "bookmark",
             content: "not mine",
             metadata: { url: "https://example.com" },

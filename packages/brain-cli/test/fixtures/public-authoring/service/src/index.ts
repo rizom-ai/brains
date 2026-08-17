@@ -135,7 +135,10 @@ export default defineServicePlugin({
         // Entity data reaches the template only through the declared render schema.
         await messaging.publish({
           topic: "digest-ready",
-          data: { ...result, markdown: templates.format("digest", result) },
+          data: {
+            ...result,
+            markdown: templates?.format("digest", result) ?? "",
+          },
         });
         return result;
       },

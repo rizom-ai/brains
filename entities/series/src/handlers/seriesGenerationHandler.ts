@@ -4,7 +4,7 @@ import {
   z,
   computeContentHash,
   type EntityGenerationDeclaration,
-  type EntityGenerationEntityAccess,
+  type JobEntityAccess,
 } from "@brains/sdk/entities";
 import type { Series } from "../schemas/series";
 import {
@@ -97,13 +97,11 @@ export const seriesGeneration: EntityGenerationDeclaration<
       parsed.metadata,
     );
 
-    await entities.updateEntity({
-      entity: {
-        ...series,
-        content: finalContent,
-        contentHash: computeContentHash(finalContent),
-        updated: new Date().toISOString(),
-      },
+    await entities.update({
+      ...series,
+      content: finalContent,
+      contentHash: computeContentHash(finalContent),
+      updated: new Date().toISOString(),
     });
 
     return {
@@ -118,7 +116,7 @@ export const seriesGeneration: EntityGenerationDeclaration<
 
 async function gatherMemberSummaries(
   seriesName: string,
-  entities: EntityGenerationEntityAccess,
+  entities: JobEntityAccess,
 ): Promise<string[]> {
   const summaries: string[] = [];
   const types = entities.getEntityTypes();

@@ -1,16 +1,12 @@
-import type {
-  BaseEntity,
-  EntityInput,
-  ListOptions,
-  ProjectionSourceRole,
-  SearchOptions,
-  SearchResult,
-} from "@brains/entity-service";
+import type { BaseEntity, ProjectionSourceRole } from "@brains/entity-service";
 import type { Template } from "@brains/templates";
 import type { AnchorProfile } from "../contracts/identity";
 import type { IEntityAINamespace } from "./ai-types";
 import type { LoggerContract } from "@brains/utils/logger";
-import type { ProgressContract } from "@brains/utils/progress";
+import type {
+  JobEntityAccess,
+  JobHandlerContext,
+} from "../job/job-context-contract";
 import type { AtprotoProjection } from "@brains/atproto-contracts";
 import type { PublishProvider } from "@brains/contracts";
 import type { AttachmentProvider } from "../service/attachment-registry";
@@ -202,7 +198,7 @@ export interface EntityCreateRouting {
 export interface EntityGenerationContext {
   readonly ai: IEntityAINamespace;
   readonly logger: LoggerContract;
-  readonly entities: EntityGenerationEntityAccess;
+  readonly entities: JobEntityAccess;
   readonly conversations: EntityConversationReader;
 }
 
@@ -215,33 +211,6 @@ export interface EntityConversationReader {
   get(
     conversationId: string,
   ): Promise<{ channelName?: string | undefined } | null>;
-}
-
-/**
- * Reads and the one write a generation handler needs. Method names match
- * the entity service so migrating a handler off the plugin context is a
- * swap of the object, not a rewrite of every call.
- */
-export interface EntityGenerationEntityAccess {
-  listEntities<T extends BaseEntity>(request: {
-    entityType: string;
-    options?: ListOptions;
-  }): Promise<T[]>;
-  getEntity<T extends BaseEntity>(request: {
-    entityType: string;
-    id: string;
-  }): Promise<T | null>;
-  getEntityTypes(): string[];
-  search<T extends BaseEntity = BaseEntity>(request: {
-    query: string;
-    options?: SearchOptions;
-  }): Promise<SearchResult<T>[]>;
-  createEntity<T extends BaseEntity>(request: {
-    entity: EntityInput<T>;
-  }): Promise<{ entityId: string; jobId: string }>;
-  updateEntity<T extends BaseEntity>(request: {
-    entity: T;
-  }): Promise<{ entityId: string; jobId: string }>;
 }
 
 /**
@@ -269,14 +238,7 @@ export interface EntityJobDeclaration<
   TInputSchema extends z.ZodType = z.ZodType,
 > {
   readonly input: TInputSchema;
-  handle(args: {
-    readonly input: z.output<TInputSchema>;
-    readonly ai: IEntityAINamespace;
-    readonly logger: LoggerContract;
-    readonly entities: EntityGenerationEntityAccess;
-    readonly conversations: EntityConversationReader;
-    readonly progress: ProgressContract;
-  }): Promise<unknown>;
+  handle(args: JobHandlerContext<z.output<TInputSchema>>): Promise<unknown>;
 }
 
 /**

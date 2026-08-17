@@ -249,11 +249,16 @@ export type {
   EntityEvalDeclaration,
   EntityGenerationContext,
   EntityGenerationDeclaration,
-  EntityGenerationEntityAccess,
   EntityJobDeclaration,
   EntityPublishDeclaration,
   MediaAttachmentContext,
 } from "./entity/entity-definition-contract";
+export type {
+  JobEntityAccess,
+  JobHandlerContext,
+  JobMessagePublisher,
+  JobTemplateFormatter,
+} from "./job/job-context-contract";
 export {
   defineDataSource,
   defineEntityDataSource,
