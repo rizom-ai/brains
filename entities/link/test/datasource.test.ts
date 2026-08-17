@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, spyOn } from "bun:test";
-import { LinksDataSource } from "../src/datasources/links-datasource";
+import { linksDataSource } from "../src/datasources/links-datasource";
+import { createDeclarativeEntityDataSource } from "@brains/plugins";
 import type { IEntityService, BaseDataSourceContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
@@ -11,7 +12,7 @@ import {
 } from "@brains/test-utils";
 
 describe("LinksDataSource", () => {
-  let datasource: LinksDataSource;
+  let datasource: ReturnType<typeof createDeclarativeEntityDataSource>;
   let mockEntityService: IEntityService;
   let mockLogger: Logger;
   let mockContext: BaseDataSourceContext;
@@ -53,7 +54,11 @@ Summary for ${title}`;
     mockEntityService = createMockEntityService();
     mockContext = { entityService: mockEntityService };
 
-    datasource = new LinksDataSource(mockLogger);
+    datasource = createDeclarativeEntityDataSource(
+      linksDataSource,
+      "@brains/link:entities",
+      mockLogger,
+    );
   });
 
   describe("fetchLinkList", () => {
@@ -151,7 +156,7 @@ Summary for ${title}`;
 
   describe("metadata", () => {
     it("should have correct datasource ID", () => {
-      expect(datasource.id).toBe("link:entities");
+      expect(datasource.id).toBe("@brains/link:entities");
     });
 
     it("should have descriptive name and description", () => {

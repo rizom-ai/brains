@@ -152,7 +152,7 @@ export class LinkService {
     // Extract content with AI
     const extractionResult =
       await this.context.ai.generate<LinkExtractionResult>({
-        templateName: "link:extraction",
+        templateName: "@brains/link:link:extraction",
         prompt: fetchResult.success
           ? `Extract structured information from this webpage content:\n\n${fetchResult.content}`
           : `The URL ${url} could not be fetched. Return success: false with error: "${fetchResult.error}"`,

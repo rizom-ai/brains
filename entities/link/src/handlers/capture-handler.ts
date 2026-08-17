@@ -1,9 +1,8 @@
-import { BaseJobHandler, saveProcessedEntity } from "@brains/plugins";
-import type { Logger } from "@brains/utils/logger";
-import type { ProgressReporter } from "@brains/utils/progress";
+import type { LoggerContract } from "@brains/utils/logger";
+import type { ProgressContract } from "@brains/utils/progress";
 import { z } from "@brains/utils/zod";
 import { PROGRESS_STEPS, JobResult } from "@brains/contracts";
-import type { EntityPluginContext } from "@brains/plugins";
+import type { IEntityAINamespace, JobEntityAccess } from "@brains/plugins";
 import { LinkAdapter } from "../adapters/link-adapter";
 import { UrlFetcher } from "../lib/url-fetcher";
 import { UrlUtils } from "../lib/url-utils";
@@ -67,25 +66,21 @@ export interface LinkCaptureJobHandlerOptions {
 /**
  * Job handler for link capture with AI extraction
  */
-export class LinkCaptureJobHandler extends BaseJobHandler<
-  "link-capture",
-  LinkCaptureJobData,
-  LinkCaptureResult
-> {
-  private readonly context: EntityPluginContext;
+export class LinkCaptureJobHandler {
+  private readonly logger: LoggerContract;
+  private readonly entities: JobEntityAccess;
+  private readonly ai: IEntityAINamespace;
   private linkAdapter: LinkAdapter;
   private urlFetcher: UrlFetcher;
 
   constructor(
-    logger: Logger,
-    context: EntityPluginContext,
+    logger: LoggerContract,
+    deps: { entities: JobEntityAccess; ai: IEntityAINamespace },
     options?: LinkCaptureJobHandlerOptions,
   ) {
-    super(logger, {
-      schema: linkCaptureJobSchema,
-      jobTypeName: "link-capture",
-    });
-    this.context = context;
+    this.logger = logger;
+    this.entities = deps.entities;
+    this.ai = deps.ai;
     this.linkAdapter = new LinkAdapter();
     this.urlFetcher = new UrlFetcher(
       options?.jinaApiKey ? { jinaApiKey: options.jinaApiKey } : undefined,
@@ -95,7 +90,7 @@ export class LinkCaptureJobHandler extends BaseJobHandler<
   async process(
     data: LinkCaptureJobData,
     jobId: string,
-    progressReporter: ProgressReporter,
+    progressReporter: ProgressContract,
   ): Promise<LinkCaptureResult> {
     const { url, metadata } = data;
 
@@ -115,7 +110,7 @@ export class LinkCaptureJobHandler extends BaseJobHandler<
         message: "Checking for existing link",
       });
 
-      const existingEntity = await this.context.entityService.getEntity({
+      const existingEntity = await this.entities.getEntity({
         entityType: "link",
         id: entityId,
       });
@@ -180,14 +175,11 @@ export class LinkCaptureJobHandler extends BaseJobHandler<
             capturedAt,
             source,
           });
-          await saveProcessedEntity({
-            entityService: this.context.entityService,
-            entity: {
-              id: entityId,
-              entityType: "link",
-              content,
-              metadata: { status: "pending", title },
-            },
+          await this.entities.saveProcessed({
+            id: entityId,
+            entityType: "link",
+            content,
+            metadata: { status: "pending", title },
           });
           return {
             success: false,
@@ -207,16 +199,15 @@ export class LinkCaptureJobHandler extends BaseJobHandler<
         message: "Extracting content with AI",
       });
 
-      const extractionResult =
-        await this.context.ai.generate<LinkExtractionResult>({
-          templateName: "link:extraction",
-          prompt: fetchResult.success
-            ? `Extract structured information from this webpage content:\n\n${fetchResult.content}`
-            : `The URL ${url} could not be fetched. Return success: false with error: "${fetchResult.error}"`,
-          data: { url, hasContent: fetchResult.success },
-          representedIdentity: "none",
-          interfacePermissionGrant: "public",
-        });
+      const extractionResult = await this.ai.generate<LinkExtractionResult>({
+        templateName: "@brains/link:link:extraction",
+        prompt: fetchResult.success
+          ? `Extract structured information from this webpage content:\n\n${fetchResult.content}`
+          : `The URL ${url} could not be fetched. Return success: false with error: "${fetchResult.error}"`,
+        data: { url, hasContent: fetchResult.success },
+        representedIdentity: "none",
+        interfacePermissionGrant: "public",
+      });
 
       this.logger.debug("AI extraction result", { result: extractionResult });
 
@@ -256,14 +247,11 @@ export class LinkCaptureJobHandler extends BaseJobHandler<
           source,
         });
 
-        const entity = await saveProcessedEntity({
-          entityService: this.context.entityService,
-          entity: {
-            id: entityId,
-            entityType: "link",
-            content,
-            metadata: { status: "pending", title },
-          },
+        const entity = await this.entities.saveProcessed({
+          id: entityId,
+          entityType: "link",
+          content,
+          metadata: { status: "pending", title },
         });
 
         await progressReporter.report({
@@ -299,14 +287,11 @@ export class LinkCaptureJobHandler extends BaseJobHandler<
         source,
       });
 
-      const entity = await saveProcessedEntity({
-        entityService: this.context.entityService,
-        entity: {
-          id: entityId,
-          entityType: "link",
-          content,
-          metadata: { status: "draft", title: extractionResult.title },
-        },
+      const entity = await this.entities.saveProcessed({
+        id: entityId,
+        entityType: "link",
+        content,
+        metadata: { status: "draft", title: extractionResult.title },
       });
 
       await progressReporter.report({
@@ -351,15 +336,6 @@ export class LinkCaptureJobHandler extends BaseJobHandler<
     return {
       ref: `${interfaceId}:local`,
       label: interfaceId.toUpperCase(),
-    };
-  }
-
-  protected override summarizeDataForLog(
-    data: LinkCaptureJobData,
-  ): Record<string, unknown> {
-    return {
-      url: data.url,
-      interfaceId: data.metadata?.interfaceId,
     };
   }
 }
