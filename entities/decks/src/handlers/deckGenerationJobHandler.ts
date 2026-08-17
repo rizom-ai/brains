@@ -3,7 +3,10 @@ import {
   ensureUniqueTitle,
   generateMarkdownWithFrontmatter,
 } from "@brains/plugins";
-import type { GeneratedContent } from "@brains/plugins";
+import type {
+  GeneratedContent,
+  EntityGenerationDeclaration,
+} from "@brains/plugins";
 import type { EntityPluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import type { ProgressReporter } from "@brains/utils/progress";
@@ -34,6 +37,32 @@ export const deckGenerationJobSchema: z.ZodObject<{
 });
 
 export type DeckGenerationJobData = z.output<typeof deckGenerationJobSchema>;
+
+const DEFAULT_DECK_PROMPT =
+  "Create a presentation about an interesting topic from my knowledge base";
+
+const SKELETON_DECK = (title: string): string =>
+  [
+    `# ${title}`,
+    "",
+    "---",
+    "",
+    "# Introduction",
+    "",
+    "Add your introduction here",
+    "",
+    "---",
+    "",
+    "# Main Content",
+    "",
+    "Add your main content here",
+    "",
+    "---",
+    "",
+    "# Conclusion",
+    "",
+    "Add your conclusion here",
+  ].join("\n");
 
 export const deckGenerationResultSchema: ReturnType<
   typeof generationResultSchema.extend<{
@@ -221,3 +250,114 @@ Add your conclusion here`;
     };
   }
 }
+
+/**
+ * Deck generation, declared.
+ *
+ * The runtime validates input and owns the job; this supplies the work and
+ * creates the deck. `skipAi` produces a skeleton so an author can start from
+ * a structure rather than a blank slide.
+ */
+export const deckGeneration: EntityGenerationDeclaration<
+  typeof deckGenerationJobSchema
+> = {
+  input: deckGenerationJobSchema,
+  handle: async ({ input, ai, logger, entities, progress }) => {
+    const { prompt, author, event, skipAi } = input;
+    let { title, content, description } = input;
+
+    if (skipAi) {
+      if (!title)
+        return {
+          success: false,
+          error: "Title is required when skipAi is true",
+        };
+      content = content ?? SKELETON_DECK(title);
+      description = description ?? `Presentation: ${title}`;
+      await progress.report({
+        progress: 50,
+        total: 100,
+        message: "Creating skeleton deck",
+      });
+    } else if (!title || !content) {
+      await progress.report({
+        progress: 10,
+        total: 100,
+        message: "Generating slide deck content with AI",
+      });
+      const voiceGuidance = formatVoiceGuidance(
+        await fetchStyleGuide(entities),
+      );
+      const generated = await ai.generate<{
+        title: string;
+        content: string;
+        description: string;
+      }>({
+        prompt: `${prompt ?? DEFAULT_DECK_PROMPT}${event ? `\n\nNote: This presentation is for "${event}".` : ""}`,
+        templateName: "decks:generation",
+        representedIdentity: "anchor",
+        ...(voiceGuidance && { styleGuide: { voice: voiceGuidance } }),
+      });
+      title = title ?? generated.title;
+      content = content ?? generated.content;
+      description = description ?? generated.description;
+      await progress.report({
+        progress: 50,
+        total: 100,
+        message: `Generated deck: "${title}"`,
+      });
+    } else if (!description) {
+      await progress.report({
+        progress: 30,
+        total: 100,
+        message: "Generating description with AI",
+      });
+      const descGenerated = await ai.generate<{ description: string }>({
+        prompt: `Title: ${title}\n\nContent:\n${content}`,
+        templateName: "decks:description",
+        representedIdentity: "none",
+      });
+      description = descGenerated.description;
+    }
+
+    if (!title || !content) {
+      return { success: false, error: "Title and content are required" };
+    }
+
+    const finalTitle = await ensureUniqueTitle({
+      entityType: "deck",
+      title,
+      deriveId: (candidate) => candidate,
+      regeneratePrompt:
+        "Generate a different presentation deck title on the same topic.",
+      context: { entityService: entities, ai, logger },
+    });
+    const slug = slugify(finalTitle);
+
+    const result = await entities.create({
+      id: finalTitle,
+      entityType: "deck",
+      content: generateMarkdownWithFrontmatter(content, {
+        title: finalTitle,
+        status: "draft",
+        slug,
+        description,
+        author,
+        event,
+      }),
+      metadata: { slug, title: finalTitle, status: "draft" },
+    });
+
+    await progress.report({
+      progress: 100,
+      total: 100,
+      message: `Saved deck: "${finalTitle}"`,
+    });
+    return {
+      success: true,
+      entityId: result.entityId,
+      title: finalTitle,
+      slug,
+    };
+  },
+};

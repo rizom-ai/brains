@@ -2,7 +2,7 @@ import { describe, expect, it, beforeEach } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
 import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
 import { createDeckAtprotoProjection } from "../src/atproto-projection";
-import { DecksPlugin } from "../src/plugin";
+import { deckEntityPlugin } from "./helpers/install";
 import type { DeckEntity } from "../src/schemas/deck";
 
 const deck: DeckEntity = {
@@ -59,7 +59,7 @@ describe("deck ATProto projection", () => {
 
   it("registers the deck projection when the decks plugin registers", async () => {
     const harness = createPluginHarness({ dataDir: "/tmp/test-deck-atproto" });
-    await harness.installPlugin(new DecksPlugin());
+    await harness.installPlugin(deckEntityPlugin());
 
     const projection = AtprotoProjectionRegistry.getInstance().get("deck");
 

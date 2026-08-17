@@ -1,4 +1,11 @@
-import type { AttachmentProvider, EntityPluginContext } from "@brains/plugins";
+import type {
+  AttachmentProvider,
+  MediaAttachmentContext,
+} from "@brains/plugins";
+import { fetchSiteInfo } from "@brains/site-composition";
+import { DECK_CAROUSEL_ATTACHMENT_TYPE } from "./carousel-template";
+
+export { DECK_CAROUSEL_ATTACHMENT_TYPE };
 import type { PublishMediaData } from "@brains/contracts";
 import {
   createMediaContentHelpers,
@@ -30,21 +37,41 @@ export interface DeckCarouselAttachmentProviderDeps {
  * count, so it drives the shared render primitive directly instead of going
  * through `createPrintableProvider`.
  */
+/**
+ * Build the carousel provider for the declarative attachment slot.
+ *
+ * Theme mode comes from the site-info singleton, which is why this reads
+ * entities rather than taking a mode: a carousel rendered in the wrong
+ * theme is worse than one rendered a moment later.
+ */
+export function createDeckCarouselProvider(
+  context: MediaAttachmentContext,
+  deps: DeckCarouselAttachmentProviderDeps = {},
+): AttachmentProvider {
+  return new DeckCarouselAttachmentProvider(context, {
+    ...deps,
+    getThemeMode:
+      deps.getThemeMode ??
+      (async (): Promise<"light" | "dark"> => {
+        try {
+          const info = await fetchSiteInfo(context.entityService);
+          return info.themeMode ?? "dark";
+        } catch {
+          return "dark";
+        }
+      }),
+  });
+}
+
 export class DeckCarouselAttachmentProvider implements AttachmentProvider {
   readonly metadata = { outputEntityType: "document" } as const;
 
-  private readonly context: Pick<
-    EntityPluginContext,
-    "entityService" | "themeCSS" | "identity" | "domain"
-  >;
+  private readonly context: MediaAttachmentContext;
   private readonly renderPdf: RenderPdf | undefined;
   private readonly getThemeMode: GetThemeMode;
 
   constructor(
-    context: Pick<
-      EntityPluginContext,
-      "entityService" | "themeCSS" | "identity" | "domain"
-    >,
+    context: MediaAttachmentContext,
     deps: DeckCarouselAttachmentProviderDeps = {},
   ) {
     this.context = context;

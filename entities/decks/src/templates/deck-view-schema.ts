@@ -1,7 +1,8 @@
 import { z } from "@brains/utils/zod";
 import { deckStatusSchema, type DeckStatus } from "../schemas/deck";
 
-interface DeckViewFrontmatter {
+// eslint-disable-next-line @typescript-eslint/consistent-type-definitions -- alias needed for the implicit index signature JsonObject requires
+type DeckViewFrontmatter = {
   title: string;
   slug: string | null;
   description: string | null;
@@ -11,9 +12,10 @@ interface DeckViewFrontmatter {
   event: string | null;
   coverImageId: string | null;
   ogImageId: string | null;
-}
+};
 
-interface DeckViewMetadata {
+// eslint-disable-next-line @typescript-eslint/consistent-type-definitions -- alias needed for the implicit index signature JsonObject requires
+type DeckViewMetadata = {
   title: string;
   description: string | null;
   status: DeckStatus;
@@ -21,9 +23,12 @@ interface DeckViewMetadata {
   coverImageId: string | null;
   slug: string;
   error: string | null;
-}
+};
 
-export interface DeckSchemaData {
+// A type alias, not an interface: rendered data must satisfy JsonObject, and
+// TypeScript only gives an implicit index signature to aliases.
+// eslint-disable-next-line @typescript-eslint/consistent-type-definitions -- see above
+export type DeckSchemaData = {
   id: string;
   entityType: "deck";
   content: string;
@@ -42,7 +47,7 @@ export interface DeckSchemaData {
   ogImageUrl: string | null;
   coverImageWidth: number | null;
   coverImageHeight: number | null;
-}
+};
 
 const visibilitySchema = z
   .union([z.enum(["public", "shared", "restricted"]), z.literal("private")])

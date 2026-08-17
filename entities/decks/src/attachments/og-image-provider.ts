@@ -12,6 +12,8 @@ import {
   type DeckOgImageTemplateData,
 } from "./og-image-template";
 
+export { DECK_OG_IMAGE_ATTACHMENT_TYPE };
+
 export const createDeckOgImageProvider: OgImageProviderFactory =
   createOgImageProvider<DeckEntity, DeckOgImageTemplateData>({
     sourceEntityType: "deck",
