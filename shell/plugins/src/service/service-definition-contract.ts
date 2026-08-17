@@ -1,11 +1,10 @@
 import type { UserPermissionLevel } from "@brains/templates";
-import type { EntityInput, EntityMutationResult } from "@brains/entity-service";
 import type { z } from "@brains/utils/zod";
 import type {
   AnyEntityDefinition,
-  EntityOf,
   ProjectionDefinition,
 } from "../entity/entity-definition-contract";
+import type { JobHandlerContext } from "../job/job-context-contract";
 import type { AnyAccountSettingsDefinition } from "../operator/account-settings-definition-contract";
 import type {
   AnyStudioWorkspaceDefinition,
@@ -20,33 +19,6 @@ export type ServiceSchema = z.ZodType<unknown, unknown>;
 export type ServiceInputSchema = z.ZodObject<z.ZodRawShape>;
 export type ServiceSchemaMap = Record<string, ServiceSchema>;
 export type ServiceDeadline = `${number}ms` | `${number}s` | `${number}m`;
-
-export interface ServiceEntityReader {
-  get<TDefinition extends AnyEntityDefinition>(
-    definition: TDefinition,
-    id: string,
-  ): Promise<EntityOf<TDefinition> | null>;
-}
-
-/**
- * Reads plus writes, for the entity types a package declares.
- *
- * A job that reaches the outside world usually has to store what it brought
- * back, so read-only access forces that work back into an entity job — which
- * cannot see config. Writes take the definition object rather than a type
- * name, and the runtime accepts only definitions this package declared in
- * `entities`. Ownership is therefore checkable at the call, not trusted.
- */
-export interface ServiceEntityAccess extends ServiceEntityReader {
-  create<TDefinition extends AnyEntityDefinition>(
-    definition: TDefinition,
-    entity: EntityInput<EntityOf<TDefinition>>,
-  ): Promise<EntityMutationResult>;
-  update<TDefinition extends AnyEntityDefinition>(
-    definition: TDefinition,
-    entity: EntityOf<TDefinition>,
-  ): Promise<EntityMutationResult>;
-}
 
 export interface ServiceMessagePublisher {
   publish(input: {
@@ -71,14 +43,7 @@ export interface ServiceTemplateFormatter {
   format<TValue>(name: string, value: TValue): string;
 }
 
-export interface ServiceJobHandlerContext<TInput> {
-  readonly input: TInput;
-  readonly entities: ServiceEntityAccess;
-  readonly messaging: ServiceMessagePublisher;
-  readonly progress: ServiceProgressReporter;
-  readonly signal: AbortSignal;
-  readonly templates: ServiceTemplateFormatter;
-}
+export type ServiceJobHandlerContext<TInput> = JobHandlerContext<TInput>;
 
 export type ServiceJobHandler<TInput, TOutput> = (
   context: ServiceJobHandlerContext<TInput>,

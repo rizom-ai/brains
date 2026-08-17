@@ -47,9 +47,16 @@ slug: systems-series
       input: { seriesId: "systems-series" },
       ai: context.ai,
       logger: createSilentLogger("test"),
-      entities: context.entityService,
+      entities: {
+        ...context.entityService,
+        get: async () => null,
+        create: async () => ({ entityId: "x", jobId: "j", skipped: false }),
+        update: async () => ({ entityId: "x", jobId: "j", skipped: false }),
+      },
       conversations: context.conversations,
       progress: { report: async (): Promise<void> => {} },
+      signal: new AbortController().signal,
+      messaging: { publish: async (): Promise<void> => {} },
     });
 
     expect(context.ai.generate).toHaveBeenCalledWith(
