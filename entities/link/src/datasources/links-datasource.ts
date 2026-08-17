@@ -1,136 +1,53 @@
-import { BaseEntityDataSource } from "@brains/plugins";
+import { defineEntityDataSource } from "@brains/plugins";
 import type {
-  BaseQuery,
-  NavigationResult,
-  PaginationInfo,
-  EntityDataSourceConfig,
-  IEntityService,
+  AnyEntityDataSourceDefinition,
+  BaseEntity,
 } from "@brains/plugins";
-import type { BaseEntity } from "@brains/plugins";
-import type { Logger } from "@brains/utils/logger";
-import { LinkAdapter } from "../adapters/link-adapter";
+import { linkAdapter } from "../adapters/link-adapter";
 import type { LinkSummary } from "../templates/link-list/schema";
 
-interface LinkDetailData {
-  link: LinkSummary;
-  prevLink: LinkSummary | null;
-  nextLink: LinkSummary | null;
-}
-
-interface LinkListData {
-  links: LinkSummary[];
-  totalCount: number;
+function toSummary(entity: BaseEntity): LinkSummary {
+  const { frontmatter, summary } = linkAdapter.parseLinkContent(entity.content);
+  return {
+    id: entity.id,
+    ...frontmatter,
+    description: frontmatter.description ?? null,
+    summary,
+  };
 }
 
 /**
- * DataSource for fetching and transforming link entities.
- * Handles list views and detail views with prev/next navigation.
+ * Links list and detail, with prev/next navigation.
  *
- * Overrides `fetchDetail` to use a single-pass approach: fetches
- * all entities once and derives the current item + navigation in memory,
- * avoiding a redundant second DB round-trip.
+ * The id is local: the runtime scopes it to the package, and templates
+ * naming it are rewritten to match.
  */
-export class LinksDataSource extends BaseEntityDataSource<
-  BaseEntity,
-  LinkSummary,
-  LinkListData
-> {
-  readonly id = "link:entities";
-  readonly name = "Links Entity DataSource";
-  readonly description = "Fetches and transforms link entities for rendering";
-
-  protected readonly config: EntityDataSourceConfig = {
+export const linksDataSource: AnyEntityDataSourceDefinition =
+  defineEntityDataSource({
+    id: "entities",
+    name: "Links Entity DataSource",
+    description: "Fetches and transforms link entities for rendering",
     entityType: "link",
-    defaultSort: [{ field: "capturedAt" as const, direction: "desc" as const }],
+    defaultSort: [{ field: "capturedAt", direction: "desc" }],
     defaultLimit: 1000,
-    lookupField: "id" as const,
+    lookupField: "id",
     enableNavigation: true,
-  };
-
-  private readonly adapter = new LinkAdapter();
-
-  constructor(logger: Logger) {
-    super(logger);
-    this.logger.debug("LinksDataSource initialized");
-  }
-
-  protected transformEntity(entity: BaseEntity): LinkSummary {
-    const { frontmatter, summary } = this.adapter.parseLinkContent(
-      entity.content,
-    );
-    return {
-      id: entity.id,
-      ...frontmatter,
-      description: frontmatter.description ?? null,
-      summary,
-    };
-  }
-
-  protected override buildDetailResult(
-    item: LinkSummary,
-    navigation: NavigationResult<LinkSummary> | null,
-  ): LinkDetailData {
-    return {
-      link: item,
-      prevLink: navigation?.prev ?? null,
-      nextLink: navigation?.next ?? null,
-    };
-  }
-
-  protected buildListResult(
-    items: LinkSummary[],
-    _pagination: PaginationInfo | null,
-    _query: BaseQuery,
-  ): LinkListData {
-    return {
+    navigationLimit: 1000,
+    transform: toSummary,
+    list: (items: LinkSummary[]) => ({
       links: items,
       totalCount: items.length,
-    };
-  }
-
-  /**
-   * Single-pass detail fetch: loads all entities once, finds the current
-   * item and prev/next in memory. Avoids the base class's two-call pattern
-   * (lookupEntity + resolveNavigation) since links are fetched in bulk anyway.
-   */
-  protected override async fetchDetail(
-    id: string,
-    entityService: IEntityService,
-  ): Promise<{
-    item: LinkSummary;
-    navigation: NavigationResult<LinkSummary> | null;
-  }> {
-    const allEntities = await entityService.listEntities<BaseEntity>({
-      entityType: this.config.entityType,
-      options: {
-        limit: this.config.navigationLimit ?? 1000,
-        sortFields: this.config.defaultSort,
-      },
-    });
-
-    const currentIndex = allEntities.findIndex((e) => e.id === id);
-    if (currentIndex === -1) {
-      throw new Error(`${this.config.entityType} not found: ${id}`);
-    }
-
-    const current = allEntities[currentIndex];
-    if (!current) {
-      throw new Error(`${this.config.entityType} not found: ${id}`);
-    }
-    const item = this.transformEntity(current);
-    const prevEntity =
-      currentIndex > 0 ? allEntities[currentIndex - 1] : undefined;
-    const nextEntity =
-      currentIndex < allEntities.length - 1
-        ? allEntities[currentIndex + 1]
-        : undefined;
-
-    return {
-      item,
-      navigation: {
-        prev: prevEntity ? this.transformEntity(prevEntity) : null,
-        next: nextEntity ? this.transformEntity(nextEntity) : null,
-      },
-    };
-  }
-}
+    }),
+    detail: ({ item, siblings }) => {
+      const links = [...siblings];
+      const index = links.findIndex((entry) => entry.id === item.id);
+      return {
+        link: item,
+        prevLink: index > 0 ? (links[index - 1] ?? null) : null,
+        nextLink:
+          index >= 0 && index < links.length - 1
+            ? (links[index + 1] ?? null)
+            : null,
+      };
+    },
+  });

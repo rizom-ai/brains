@@ -1,8 +1,13 @@
 import { describe, expect, it, beforeEach } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
 import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
+import packageJson from "../package.json";
 import { createLinkAtprotoProjection } from "../src/atproto-projection";
-import { LinkPlugin } from "../src/plugin";
+import linkPackage from "../src";
+import {
+  bindPluginPackageMetadata,
+  instantiatePluginPackageDefinition,
+} from "@brains/plugins";
 import { linkAdapter } from "../src/adapters/link-adapter";
 import type { LinkEntity } from "../src/schemas/link";
 
@@ -63,7 +68,17 @@ describe("link ATProto projection", () => {
 
   it("registers the link projection when the link plugin registers", async () => {
     const harness = createPluginHarness({ dataDir: "/tmp/test-link-atproto" });
-    await harness.installPlugin(new LinkPlugin({}));
+    bindPluginPackageMetadata(linkPackage, {
+      name: packageJson.name,
+      version: packageJson.version,
+    });
+    const entityPlugin = instantiatePluginPackageDefinition(
+      linkPackage,
+      {},
+      { name: packageJson.name, version: packageJson.version },
+    ).find((plugin) => plugin.type === "entity");
+    if (!entityPlugin) throw new Error("Link entity plugin was not created");
+    await harness.installPlugin(entityPlugin);
 
     const projection = AtprotoProjectionRegistry.getInstance().get("link");
 

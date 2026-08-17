@@ -33,7 +33,7 @@ import { documentPlugin } from "@brains/document-plugin";
 import { EmailInterface } from "@brains/email";
 import { emailWorkflows } from "@brains/email-workflows";
 import { imagePlugin } from "@brains/image-plugin";
-import { linkPlugin } from "@brains/link";
+import linkPackage from "@brains/link";
 import { MCPInterface } from "@brains/mcp";
 import { newsletter } from "@brains/newsletter";
 import { notePlugin } from "@brains/note";
@@ -336,7 +336,7 @@ export const canonicalBrain: BrainDefinition = defineBrain({
     ["image", imagePlugin, undefined],
     ["document", documentPlugin, undefined],
     ["note", notePlugin, undefined],
-    ["link", linkPlugin, undefined],
+    packageCapability("link", "@brains/link", linkPackage),
     ["wishlist", wishlistPlugin, undefined],
     ["topics", topicsPlugin, undefined],
     ["decks", decksPlugin, undefined],

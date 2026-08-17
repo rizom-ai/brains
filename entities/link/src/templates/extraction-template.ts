@@ -42,7 +42,7 @@ const linkExtractionSchema: z.ZodType<LinkExtractionResult> = z.object({
 export const linkExtractionTemplate: ReturnType<
   typeof createTemplate<LinkExtractionResult>
 > = createTemplate<LinkExtractionResult>({
-  name: "link:extraction",
+  name: "extraction",
   description: "Extract structured content from webpage markdown",
   dataSourceId: "shell:ai-content",
   schema: linkExtractionSchema,
