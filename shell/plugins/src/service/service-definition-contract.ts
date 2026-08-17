@@ -1,8 +1,10 @@
 import type { UserPermissionLevel } from "@brains/templates";
+import type { EntityInput, EntityMutationResult } from "@brains/entity-service";
 import type { z } from "@brains/utils/zod";
 import type {
   AnyEntityDefinition,
   EntityOf,
+  ProjectionDefinition,
 } from "../entity/entity-definition-contract";
 import type { AnyAccountSettingsDefinition } from "../operator/account-settings-definition-contract";
 import type {
@@ -24,6 +26,26 @@ export interface ServiceEntityReader {
     definition: TDefinition,
     id: string,
   ): Promise<EntityOf<TDefinition> | null>;
+}
+
+/**
+ * Reads plus writes, for the entity types a package declares.
+ *
+ * A job that reaches the outside world usually has to store what it brought
+ * back, so read-only access forces that work back into an entity job — which
+ * cannot see config. Writes take the definition object rather than a type
+ * name, and the runtime accepts only definitions this package declared in
+ * `entities`. Ownership is therefore checkable at the call, not trusted.
+ */
+export interface ServiceEntityAccess extends ServiceEntityReader {
+  create<TDefinition extends AnyEntityDefinition>(
+    definition: TDefinition,
+    entity: EntityInput<EntityOf<TDefinition>>,
+  ): Promise<EntityMutationResult>;
+  update<TDefinition extends AnyEntityDefinition>(
+    definition: TDefinition,
+    entity: EntityOf<TDefinition>,
+  ): Promise<EntityMutationResult>;
 }
 
 export interface ServiceMessagePublisher {
@@ -49,7 +71,7 @@ export interface ServiceTemplateFormatter {
 
 export interface ServiceJobHandlerContext<TInput> {
   readonly input: TInput;
-  readonly entities: ServiceEntityReader;
+  readonly entities: ServiceEntityAccess;
   readonly messaging: ServiceMessagePublisher;
   readonly progress: ServiceProgressReporter;
   readonly signal: AbortSignal;
@@ -267,6 +289,16 @@ interface ServiceDefinitionCore<
 > {
   readonly id: string;
   readonly config: TConfigSchema;
+  /**
+   * Entity types this package owns.
+   *
+   * Data, not a function of config: an entity declaration is static, and the
+   * runtime has to build its plugin synchronously at instantiation, before
+   * `setup` has produced any state. Behaviour that needs config — a job that
+   * reads an API key — belongs in `jobs`, which is a function of config.
+   */
+  readonly entities?: readonly AnyEntityDefinition[] | undefined;
+  readonly projections?: readonly ProjectionDefinition[] | undefined;
   readonly setup?:
     | ((context: {
         readonly config: z.output<TConfigSchema>;

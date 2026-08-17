@@ -4,6 +4,7 @@ import {
   type PluginPackageDefinition,
 } from "../package-definition";
 import { createDeclarativeServicePlugin } from "../service/declarative-service-plugin";
+import { createEntityPackagePlugins } from "../entity/declarative-entity-plugin";
 import type { AnyAccountSettingsDefinition } from "../operator/account-settings-definition-contract";
 import type {
   NormalizedServiceDefinitionInput,
@@ -54,6 +55,7 @@ export type {
   AnyServiceToolDefinition,
   ServiceDeadline,
   ServiceDefinitionInput,
+  ServiceEntityAccess,
   ServiceEntityReader,
   ServiceInputSchema,
   ServiceJobBinding,
@@ -102,13 +104,23 @@ function createServicePackage<
     family: "service",
     id: definition.id,
     config: definition.config,
-    instantiate: ({ config, package: metadata, scope }) =>
+    instantiate: ({ config, package: metadata, scope }) => [
       createDeclarativeServicePlugin(
         definition,
         config,
         metadata,
         scope(definition.id),
       ),
+      // One entity plugin per declared type, exactly as an entity package
+      // produces. A package that stores something and also does configured
+      // work declares both here rather than shipping as two packages.
+      ...createEntityPackagePlugins(
+        definition.entities ?? [],
+        definition.projections ?? [],
+        metadata,
+        scope,
+      ),
+    ],
   });
 }
 
