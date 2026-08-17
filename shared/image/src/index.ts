@@ -24,6 +24,7 @@ export {
   setCoverImageId,
   extractOgImageId,
   setOgImageId,
+  type ImageEntityReader,
 } from "./lib/image-resolver";
 
 // Markdown image utilities
