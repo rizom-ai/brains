@@ -1,211 +1,844 @@
+/* Operator workspaces are a first-class CMS surface, so they use the same
+   editorial materials as the entity listing beside them: a display-face head
+   over a strong rule, mono instrument labels, hairline separation instead of
+   boxes, and card fill reserved for surfaces you actually read. Semantic blocks
+   arrive as an ordered stream, so width and emphasis are decided here from the
+   block's meaning rather than requested by the author.
+
+   Rendered reference: docs/operator-workspace-mockups.html. */
+
 .declarative-workspace {
-  display: grid;
-  gap: 1.5rem;
-  padding: clamp(1rem, 3vw, 2.5rem);
+  min-height: 0;
+  padding: 26px 30px 34px;
+  overflow-y: auto;
 }
 
-.declarative-workspace > h2 {
-  margin: 0;
+/* ---- head: title, totals, and the rule that separates them from work ---- */
+
+.declarative-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 18px 28px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid var(--console-text);
 }
+
+.declarative-head h2 {
+  margin: 0;
+  color: var(--console-text);
+  font-family: var(--console-display);
+  font-size: 34px;
+  font-variation-settings:
+    "SOFT" 70,
+    "opsz" 60;
+  font-weight: 580;
+  letter-spacing: -0.01em;
+  line-height: 1.05;
+}
+
+/* Leading stats are workspace totals: a baseline-aligned readout beside the
+   title, not another card in the body. */
+.declarative-totals {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0;
+  margin: 0;
+  padding-bottom: 3px;
+}
+
+.declarative-totals > div {
+  padding: 0 18px;
+  border-left: 1px solid var(--console-rule-strong);
+}
+
+.declarative-totals > div:first-child {
+  padding-left: 0;
+  border-left: 0;
+}
+
+.declarative-totals > div:last-child {
+  padding-right: 0;
+}
+
+.declarative-totals dt {
+  color: var(--console-text-muted);
+  font-family: var(--console-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.declarative-totals dd {
+  margin: 3px 0 0;
+  color: var(--console-text);
+  font-family: var(--console-display);
+  font-size: 27px;
+  font-variation-settings: "SOFT" 40;
+  font-weight: 560;
+  letter-spacing: -0.01em;
+  line-height: 1;
+}
+
+.declarative-totals > div[data-tone="warn"] dd {
+  color: var(--console-warn);
+}
+
+.declarative-totals > div[data-tone="error"] dd {
+  color: var(--console-err);
+}
+
+.declarative-totals > div[data-tone="good"] dd {
+  color: var(--console-ok);
+}
+
+/* ---- body: meaning decides width ---------------------------------------- */
 
 .declarative-blocks {
   display: grid;
-  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  align-items: start;
+  gap: 26px 22px;
+  padding-top: 24px;
 }
 
 .declarative-blocks > section {
   min-width: 0;
 }
 
-.declarative-stats {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
-  gap: 0.75rem;
-  margin: 0;
+/* Collections, reading surfaces, and anything carrying its own controls take
+   the full measure; instrument readouts share a row. */
+.declarative-blocks > section[data-span="wide"] {
+  grid-column: 1 / -1;
 }
 
-.declarative-stats > div,
-.declarative-notice,
-.declarative-text,
-.declarative-key-values,
-.declarative-list > li {
-  border: 1px solid var(--console-rule);
-  border-radius: 0.75rem;
-  background: var(--console-card);
+/* Controls belong directly under the head, so they lose the block rhythm. */
+.declarative-blocks > section[data-block="query"] {
+  margin-top: -6px;
+}
+
+/* Section labels are instrument captions, not headlines. */
+.declarative-group h3,
+.declarative-flow h3,
+.declarative-text h3,
+.declarative-matrix h3,
+.declarative-spatial strong {
+  margin: 0 0 11px;
+  color: var(--console-text-muted);
+  font-family: var(--console-mono);
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+/* ---- stats in the body -------------------------------------------------- */
+
+.declarative-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
+  gap: 1px;
+  margin: 0;
+  background: var(--console-rule);
 }
 
 .declarative-stats > div {
-  padding: 1rem;
+  padding: 13px 16px 15px;
+  background: var(--console-frame);
 }
 
-.declarative-stats dt,
-.declarative-key-values dt {
+.declarative-stats dt {
   color: var(--console-text-muted);
-  font-size: 0.72rem;
-  letter-spacing: 0.06em;
+  font-family: var(--console-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
 }
 
 .declarative-stats dd {
-  margin: 0.35rem 0 0;
-  font-size: 1.4rem;
-  font-weight: 700;
+  margin: 6px 0 0;
+  color: var(--console-text);
+  font-family: var(--console-display);
+  font-size: 23px;
+  font-variation-settings: "SOFT" 40;
+  font-weight: 560;
+  line-height: 1;
 }
 
-.declarative-key-values {
+.declarative-stats > div[data-tone="warn"] dd {
+  color: var(--console-warn);
+}
+
+.declarative-stats > div[data-tone="error"] dd {
+  color: var(--console-err);
+}
+
+.declarative-stats > div[data-tone="good"] dd {
+  color: var(--console-ok);
+}
+
+/* ---- key/value and grouped readouts ------------------------------------- */
+
+.declarative-key-values,
+.declarative-group dl {
   margin: 0;
-  padding: 0.5rem 1rem;
+  border-top: 1px solid var(--console-rule-strong);
 }
 
-.declarative-key-values > div {
+.declarative-key-values > div,
+.declarative-group dl > div {
   display: flex;
+  align-items: baseline;
   justify-content: space-between;
-  gap: 1rem;
-  padding: 0.65rem 0;
+  gap: 16px;
+  padding: 9px 0;
   border-bottom: 1px solid var(--console-rule);
 }
 
-.declarative-key-values > div:last-child {
-  border-bottom: 0;
+.declarative-key-values dt,
+.declarative-group dt {
+  min-width: 0;
+  color: var(--console-text-dim);
+  font-size: 12.5px;
 }
 
-.declarative-key-values dd {
+.declarative-key-values dd,
+.declarative-group dd {
   margin: 0;
+  color: var(--console-text);
+  font-family: var(--console-mono);
+  font-size: 12px;
   text-align: right;
+  white-space: nowrap;
 }
+
+.declarative-group dl > div {
+  flex-wrap: wrap;
+}
+
+.declarative-group small {
+  flex-basis: 100%;
+  color: var(--console-text-muted);
+  font-size: 11px;
+}
+
+.declarative-group dl > div[data-tone="warn"] dd {
+  color: var(--console-warn);
+}
+
+.declarative-group dl > div[data-tone="error"] dd {
+  color: var(--console-err);
+}
+
+.declarative-group dl > div[data-tone="good"] dd {
+  color: var(--console-ok);
+}
+
+/* ---- notices: a marked banner, not a box -------------------------------- */
 
 .declarative-notice {
-  padding: 1rem;
+  padding: 11px 14px;
+  border-left: 2px solid var(--console-text-muted);
+  background: color-mix(in srgb, var(--console-text) 4%, transparent);
 }
 
-.declarative-notice[data-tone="warn"],
-.declarative-notice[data-tone="error"] {
-  border-color: var(--console-warn);
+.declarative-notice strong {
+  display: block;
+  color: var(--console-text);
+  font-size: 13px;
+  font-weight: 550;
 }
 
 .declarative-notice p {
-  margin: 0.35rem 0 0;
+  margin: 3px 0 0;
+  color: var(--console-text-dim);
+  font-size: 12.5px;
+  line-height: 1.5;
 }
+
+.declarative-notice[data-tone="warn"] {
+  border-left-color: var(--console-warn);
+  background: color-mix(in srgb, var(--console-warn) 7%, transparent);
+}
+
+.declarative-notice[data-tone="error"] {
+  border-left-color: var(--console-err);
+  background: color-mix(in srgb, var(--console-err) 7%, transparent);
+}
+
+.declarative-notice[data-tone="good"] {
+  border-left-color: var(--console-ok);
+  background: var(--console-ok-soft);
+}
+
+/* ---- source text: a reading panel --------------------------------------- */
 
 .declarative-text {
-  padding: 1rem;
-}
-
-.declarative-text h3 {
-  margin: 0 0 0.75rem;
+  padding: 16px 18px 18px;
+  border: 1px solid var(--console-rule-strong);
+  border-radius: 8px;
+  background: var(--console-card);
 }
 
 .declarative-text pre {
-  max-height: min(60vh, 48rem);
+  max-height: min(52vh, 40rem);
   margin: 0;
   overflow: auto;
-  color: var(--console-text);
-  font: inherit;
+  color: var(--console-text-dim);
+  font-family: var(--console-mono);
+  font-size: 12px;
+  line-height: 1.65;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
 
 .declarative-text small {
   display: block;
-  margin-top: 0.75rem;
+  margin-top: 11px;
   color: var(--console-text-muted);
+  font-family: var(--console-mono);
+  font-size: 10px;
 }
+
+/* ---- links and inline capabilities -------------------------------------- */
 
 .declarative-links,
 .declarative-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  align-items: center;
+  gap: 7px;
 }
 
+.declarative-links a,
 .declarative-inline-link {
   padding: 0;
   border: 0;
   background: none;
   color: var(--console-accent);
+  cursor: pointer;
   font: inherit;
   text-align: inherit;
-  text-decoration: underline;
-  cursor: pointer;
+  text-decoration: none;
+  text-underline-offset: 3px;
 }
 
+.declarative-links a:hover,
+.declarative-inline-link:hover {
+  text-decoration: underline;
+}
+
+/* A links block on its own reads as wayfinding, so space it like a nav row. */
+.declarative-blocks > section[data-block="links"] .declarative-links {
+  gap: 18px;
+  font-size: 12.5px;
+}
+
+.declarative-action-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.declarative-action-control .status {
+  color: var(--console-text-muted);
+  font-family: var(--console-mono);
+  font-size: 10px;
+}
+
+/* ---- lists: hairline rows in the listing's rhythm ----------------------- */
+
 .declarative-list {
-  display: grid;
-  gap: 0.6rem;
   margin: 0;
   padding: 0;
+  border-top: 1px solid var(--console-rule-strong);
   list-style: none;
 }
 
 .declarative-list > li {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  gap: 1rem;
-  padding: 0.85rem 1rem;
+  gap: 20px;
+  padding: 13px 6px 13px 0;
+  border-bottom: 1px solid var(--console-rule);
+}
+
+.declarative-list > li:hover {
+  background: var(--console-card);
+}
+
+.declarative-list > li > div:first-child {
+  min-width: 0;
+}
+
+.declarative-list strong {
+  color: var(--console-text);
+  font-family: var(--console-display);
+  font-size: 16px;
+  font-variation-settings:
+    "SOFT" 50,
+    "opsz" 30;
+  font-weight: 520;
+  letter-spacing: -0.005em;
 }
 
 .declarative-list p {
-  margin: 0.25rem 0;
+  margin: 3px 0 0;
+  color: var(--console-text-dim);
+  font-size: 12.5px;
+  line-height: 1.5;
 }
 
-.declarative-list small,
-.declarative-action-control small {
+.declarative-list small {
+  display: block;
+  margin-top: 5px;
   color: var(--console-text-muted);
+  font-family: var(--console-mono);
+  font-size: 10.5px;
 }
 
-.declarative-action-control,
-.declarative-list-trailing,
-.declarative-tags,
-.declarative-filter,
-.declarative-tabs > [role="tablist"] {
+.declarative-list .declarative-links {
+  margin-top: 7px;
+  font-size: 12px;
+}
+
+/* A row carrying a warning or failure states it in the margin. */
+.declarative-list > li[data-tone="warn"] {
+  box-shadow: inset 2px 0 0 var(--console-warn);
+}
+
+.declarative-list > li[data-tone="error"] {
+  box-shadow: inset 2px 0 0 var(--console-err);
+}
+
+.declarative-list > li[data-tone="good"] {
+  box-shadow: inset 2px 0 0 var(--console-ok);
+}
+
+.declarative-list-trailing {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.4rem;
+  justify-content: flex-end;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+.declarative-list-trailing > span:not(.declarative-badge) {
+  color: var(--console-text-dim);
+  font-family: var(--console-mono);
+  font-size: 13px;
+}
+
+.declarative-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 7px;
 }
 
 .declarative-tags > span,
 .declarative-badge {
-  padding: 0.15rem 0.45rem;
-  border: 1px solid var(--console-rule);
+  padding: 2px 9px;
   border-radius: 999px;
-  color: var(--console-text-muted);
-  font-size: 0.72rem;
+  background: color-mix(in srgb, var(--console-text) 7%, transparent);
+  color: var(--console-text-dim);
+  font-family: var(--console-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
 }
+
+.declarative-badge[data-tone="warn"] {
+  background: color-mix(in srgb, var(--console-warn) 15%, transparent);
+  color: var(--console-warn);
+}
+
+.declarative-badge[data-tone="error"] {
+  background: color-mix(in srgb, var(--console-err) 15%, transparent);
+  color: var(--console-err);
+}
+
+.declarative-badge[data-tone="good"] {
+  background: var(--console-ok-soft);
+  color: var(--console-ok);
+}
+
+/* ---- segmented controls: local filters and tabs ------------------------- */
 
 .declarative-filter,
 .declarative-tabs > [role="tablist"] {
-  margin-bottom: 0.75rem;
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+  margin-bottom: 14px;
+  padding: 3px;
+  border: 1px solid var(--console-rule-strong);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--console-card) 62%, transparent);
 }
 
 .declarative-filter button,
 .declarative-tabs [role="tab"] {
-  padding: 0.4rem 0.65rem;
-  border: 1px solid var(--console-rule);
-  border-radius: 999px;
-  background: var(--console-card);
+  min-height: 28px;
+  padding: 0 13px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
   color: var(--console-text-muted);
   cursor: pointer;
+  font-family: var(--console-ui);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.declarative-filter button:hover,
+.declarative-tabs [role="tab"]:hover {
+  color: var(--console-text);
 }
 
 .declarative-filter button[aria-pressed="true"],
 .declarative-tabs [role="tab"][aria-selected="true"] {
+  background: var(--console-text);
+  color: var(--console-frame);
+  font-weight: 500;
+}
+
+.declarative-filter button[data-emphasis="attention"] {
+  color: var(--console-warn);
+}
+
+/* ---- tables ------------------------------------------------------------- */
+
+.declarative-table-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.declarative-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.declarative-table th {
+  padding: 0 12px 9px 0;
+  border-bottom: 1px solid var(--console-text);
+  color: var(--console-text-muted);
+  font-family: var(--console-mono);
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-align: left;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.declarative-table td {
+  padding: 12px 12px 12px 0;
+  border-bottom: 1px solid var(--console-rule);
+  color: var(--console-text-dim);
+  font-size: 13px;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.declarative-table tbody tr:hover {
+  background: var(--console-card);
+}
+
+.declarative-table td:first-child {
+  color: var(--console-text);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.declarative-table [data-align="center"] {
+  text-align: center;
+}
+
+.declarative-table [data-align="end"] {
+  text-align: right;
+}
+
+/* The action column is the row's right edge: no trailing gutter, and its
+   controls hug that edge rather than drifting into the last data column. */
+.declarative-table th:last-child,
+.declarative-table td:last-child {
+  padding-right: 0;
+  padding-left: 20px;
+}
+
+.declarative-table td .declarative-actions {
+  justify-content: flex-end;
+}
+
+.declarative-empty {
+  margin: 0;
+  padding: 18px 0;
+  color: var(--console-text-muted);
+  font-size: 12.5px;
+}
+
+/* ---- query controls: a toolbar, not a panel ----------------------------- */
+
+.declarative-query {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 14px 18px;
+  padding-bottom: 4px;
+}
+
+.declarative-query > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.declarative-query label {
+  display: grid;
+  gap: 5px;
+  min-width: 9rem;
+  color: var(--console-text-muted);
+  font-family: var(--console-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.declarative-query select {
+  min-height: 32px;
+  padding: 0 9px;
+  border: 1px solid var(--console-rule-strong);
+  border-radius: 7px;
+  background: var(--console-card);
+  color: var(--console-text);
+  font-family: var(--console-ui);
+  font-size: 12.5px;
+}
+
+.declarative-query footer {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-left: auto;
+  color: var(--console-text-muted);
+  font-family: var(--console-mono);
+  font-size: 11px;
+}
+
+/* ---- meters and progress: instrument faces ------------------------------ */
+
+.declarative-meters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 16px 20px;
+  margin: 0;
+}
+
+.declarative-meters dt {
+  color: var(--console-text-muted);
+  font-family: var(--console-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.declarative-meters dd {
+  margin: 5px 0 0;
+  color: var(--console-text);
+  font-family: var(--console-mono);
+  font-size: 15px;
+}
+
+.declarative-progress {
+  padding: 14px 16px 16px;
+  border: 1px solid var(--console-rule-strong);
+  border-radius: 8px;
+  background: var(--console-card);
+}
+
+.declarative-progress header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.declarative-progress strong {
+  color: var(--console-text);
+  font-size: 13.5px;
+  font-weight: 550;
+}
+
+.declarative-progress header span {
+  color: var(--console-text-muted);
+  font-family: var(--console-mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.declarative-progress p {
+  margin: 8px 0 0;
+  color: var(--console-text-dim);
+  font-size: 12.5px;
+}
+
+.declarative-progress[data-tone="warn"] header span {
+  color: var(--console-warn);
+}
+
+.declarative-progress[data-tone="error"] header span {
+  color: var(--console-err);
+}
+
+.declarative-progress[data-tone="good"] header span {
+  color: var(--console-ok);
+}
+
+.declarative-meters progress,
+.declarative-progress progress {
+  display: block;
+  width: 100%;
+  height: 4px;
+  margin-top: 8px;
+  appearance: none;
+  border: 0;
+  border-radius: 999px;
+  background: var(--console-rule);
+}
+
+.declarative-meters progress::-webkit-progress-bar,
+.declarative-progress progress::-webkit-progress-bar {
+  border-radius: 999px;
+  background: var(--console-rule);
+}
+
+.declarative-meters progress::-webkit-progress-value,
+.declarative-progress progress::-webkit-progress-value {
+  border-radius: 999px;
+  background: var(--console-accent);
+}
+
+.declarative-meters progress::-moz-progress-bar,
+.declarative-progress progress::-moz-progress-bar {
+  border-radius: 999px;
+  background: var(--console-accent);
+}
+
+.declarative-meters > div[data-tone="warn"] dd {
+  color: var(--console-warn);
+}
+
+.declarative-meters > div[data-tone="error"] dd {
+  color: var(--console-err);
+}
+
+.declarative-meters > div[data-tone="good"] dd {
+  color: var(--console-ok);
+}
+
+.declarative-progress small,
+.declarative-flow small {
+  display: block;
+  color: var(--console-text-muted);
+  font-family: var(--console-mono);
+  font-size: 10px;
+}
+
+.declarative-progress small {
+  margin-top: 10px;
+}
+
+/* ---- flow: stations on a track ------------------------------------------ */
+
+.declarative-flow ol {
+  display: flex;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow-x: auto;
+}
+
+.declarative-flow li {
+  position: relative;
+  min-width: 8.5rem;
+  padding: 0 20px 0 0;
+  color: var(--console-text-muted);
+}
+
+/* The track runs between station marks rather than under the labels. */
+.declarative-flow li:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  top: 5px;
+  left: 14px;
+  right: 12px;
+  height: 1px;
+  background: var(--console-rule-strong);
+}
+
+.declarative-flow li > span {
+  display: block;
+  width: 9px;
+  height: 9px;
+  margin-bottom: 9px;
+  border: 1px solid var(--console-text-muted);
+  border-radius: 50%;
+  background: var(--console-frame);
+}
+
+.declarative-flow strong {
+  display: block;
+  color: var(--console-text-dim);
+  font-size: 12.5px;
+  font-weight: 500;
+}
+
+.declarative-flow li[data-status="complete"] > span,
+.declarative-flow li[data-status="active"] > span {
   border-color: var(--console-accent);
+  background: var(--console-accent);
+}
+
+.declarative-flow li[data-status="active"] strong,
+.declarative-flow li[data-status="complete"] strong {
   color: var(--console-text);
 }
 
+.declarative-flow li[data-status="active"] > span {
+  box-shadow: 0 0 0 3px var(--console-accent-soft);
+}
+
+.declarative-flow li[data-status="failed"] > span {
+  border-color: var(--console-err);
+  background: var(--console-err);
+}
+
+.declarative-flow li[data-status="failed"] strong {
+  color: var(--console-err);
+}
+
+/* ---- matrix and spatial summaries --------------------------------------- */
+
 .declarative-matrix {
   display: grid;
-  gap: 0.75rem;
+  gap: 18px;
 }
 
 .declarative-matrix > section {
   min-width: 0;
-  padding: 1rem;
-  border: 1px solid var(--console-rule);
-  border-top: 3px solid var(--console-text-muted);
-  border-radius: 0.75rem;
+  padding: 14px 16px 16px;
+  border: 1px solid var(--console-rule-strong);
+  border-top: 2px solid var(--console-text-muted);
+  border-radius: 8px;
   background: var(--console-card);
 }
 
@@ -221,192 +854,92 @@
   border-top-color: var(--console-err);
 }
 
-.declarative-matrix h3 {
-  margin-top: 0;
+.declarative-matrix .declarative-list {
+  border-top: 0;
+}
+
+.declarative-matrix .declarative-list > li:last-child {
+  border-bottom: 0;
 }
 
 .declarative-spatial {
   margin: 0;
-  padding: 1rem;
-  border: 1px solid var(--console-rule);
-  border-radius: 0.75rem;
+  padding: 14px 16px 16px;
+  border: 1px solid var(--console-rule-strong);
+  border-radius: 8px;
   background: var(--console-card);
 }
 
 .declarative-spatial figcaption p {
-  color: var(--console-text-muted);
+  margin: 0 0 12px;
+  color: var(--console-text-dim);
+  font-size: 12.5px;
 }
 
 .declarative-spatial ol {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
-  gap: 0.5rem;
-  padding-left: 1.25rem;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: 10px 18px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.declarative-spatial li {
+  padding-top: 8px;
+  border-top: 1px solid var(--console-rule);
+}
+
+.declarative-spatial li strong {
+  color: var(--console-text);
+  font-size: 13px;
+  font-weight: 500;
 }
 
 .declarative-spatial li span {
   display: block;
+  margin-top: 2px;
   color: var(--console-text-muted);
-  font-size: 0.78rem;
+  font-family: var(--console-mono);
+  font-size: 10px;
 }
 
-.declarative-table-scroll {
-  max-width: 100%;
-  overflow-x: auto;
-}
+/* ---- narrow viewports ---------------------------------------------------- */
 
-.declarative-table {
-  width: 100%;
-  border-collapse: collapse;
-}
+@media (max-width: 900px) {
+  .declarative-workspace {
+    padding: 20px 18px 28px;
+  }
 
-.declarative-table th,
-.declarative-table td {
-  padding: 0.75rem;
-  border-bottom: 1px solid var(--console-rule);
-  text-align: left;
-  vertical-align: middle;
-}
+  .declarative-head h2 {
+    font-size: 27px;
+  }
 
-.declarative-table [data-align="center"] {
-  text-align: center;
-}
-
-.declarative-table [data-align="end"] {
-  text-align: right;
-}
-
-.declarative-empty {
-  color: var(--console-text-muted);
-  font-style: italic;
-}
-
-.declarative-query {
-  display: grid;
-  gap: 0.75rem;
-  padding: 1rem;
-  border: 1px solid var(--console-rule);
-  border-radius: 0.75rem;
-  background: var(--console-card);
-}
-
-.declarative-query > div {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-}
-
-.declarative-query label {
-  display: grid;
-  gap: 0.3rem;
-  min-width: 10rem;
-  color: var(--console-text-muted);
-  font-size: 0.75rem;
-}
-
-.declarative-query select {
-  min-height: 2.25rem;
-}
-
-.declarative-query footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-}
-
-.declarative-group dl,
-.declarative-meters {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
-  gap: 0.75rem;
-  margin: 0;
-}
-
-.declarative-group dl > div,
-.declarative-meters > div,
-.declarative-progress {
-  padding: 1rem;
-  border: 1px solid var(--console-rule);
-  border-radius: 0.75rem;
-  background: var(--console-card);
-}
-
-.declarative-group dt,
-.declarative-meters dt {
-  color: var(--console-text-muted);
-  font-size: 0.72rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-.declarative-group dd,
-.declarative-meters dd {
-  margin: 0.35rem 0 0;
-  font-weight: 700;
-}
-
-.declarative-group small,
-.declarative-flow small,
-.declarative-progress small {
-  display: block;
-  color: var(--console-text-muted);
-}
-
-.declarative-flow ol {
-  display: flex;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  overflow-x: auto;
-}
-
-.declarative-flow li {
-  min-width: 9rem;
-  padding: 0.75rem 1.5rem 0.75rem 0;
-}
-
-.declarative-flow li > span {
-  display: inline-block;
-  width: 0.65rem;
-  height: 0.65rem;
-  margin-right: 0.5rem;
-  border: 2px solid var(--console-rule);
-  border-radius: 50%;
-}
-
-.declarative-flow li[data-status="active"] > span,
-.declarative-flow li[data-status="complete"] > span {
-  border-color: var(--console-accent);
-  background: var(--console-accent);
-}
-
-.declarative-flow li[data-status="failed"] > span {
-  border-color: var(--console-danger);
-  background: var(--console-danger);
-}
-
-.declarative-meters progress,
-.declarative-progress progress {
-  display: block;
-  width: 100%;
-  margin-top: 0.5rem;
-  accent-color: var(--console-accent);
-}
-
-.declarative-progress header {
-  display: flex;
-  justify-content: space-between;
-  gap: 1rem;
+  .declarative-totals dd {
+    font-size: 22px;
+  }
 }
 
 @media (max-width: 720px) {
-  .declarative-list > li {
-    align-items: stretch;
-    flex-direction: column;
+  .declarative-blocks {
+    grid-template-columns: 1fr;
   }
 
   .declarative-matrix {
     grid-template-columns: 1fr !important;
+  }
+
+  .declarative-list > li {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .declarative-list-trailing {
+    justify-content: flex-start;
+  }
+
+  .declarative-query label {
+    min-width: 100%;
   }
 }

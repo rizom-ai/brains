@@ -1,8 +1,13 @@
 /** @jsxImportSource react */
-import type { RuntimeCmsWorkspaceData } from "@brains/plugins";
-import { describe, expect, it } from "bun:test";
-import { createElement } from "react";
+import type {
+  RuntimeCmsWorkspaceData,
+  RuntimeOperatorActionControl,
+} from "@brains/plugins";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { act, createElement } from "react";
+import { createRoot, type Root } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
+import { Window } from "happy-dom";
 import { DeclarativeWorkspace } from "./declarative-workspace";
 
 const data: RuntimeCmsWorkspaceData = {
@@ -138,5 +143,230 @@ describe("DeclarativeWorkspace", () => {
       '<button type="button" class="declarative-inline-link">Open publishing</button>',
     );
     expect(html).not.toContain("<script>");
+  });
+
+  it("promotes leading totals into the workspace head instead of a body card", () => {
+    const html = renderToStaticMarkup(
+      createElement(DeclarativeWorkspace, {
+        data,
+        onAction: async () => ({}),
+        onOpenEntity: () => {},
+      }),
+    );
+
+    const head = html.slice(
+      html.indexOf('class="declarative-head"'),
+      html.indexOf('class="declarative-blocks"'),
+    );
+    expect(head).toContain("Reading library");
+    expect(head).toContain("declarative-totals");
+    expect(head).toContain("Saved");
+    // The hoisted stats must not also render as a body block.
+    expect(
+      html.slice(html.indexOf('class="declarative-blocks"')),
+    ).not.toContain("declarative-totals");
+  });
+
+  it("declares a layout span per block so the host grid can differentiate width", () => {
+    const html = renderToStaticMarkup(
+      createElement(DeclarativeWorkspace, {
+        data,
+        onAction: async () => ({}),
+        onOpenEntity: () => {},
+      }),
+    );
+
+    expect(html).toContain('data-block="table" data-span="wide"');
+    expect(html).toContain('data-block="group" data-span="compact"');
+    expect(html).toContain('data-block="meters" data-span="compact"');
+    expect(html).toContain('data-block="progress" data-span="compact"');
+    expect(html).toContain('data-block="notice" data-span="wide"');
+  });
+
+  it("ranks action buttons by consequence rather than styling them all alike", () => {
+    const html = renderToStaticMarkup(
+      createElement(DeclarativeWorkspace, {
+        data: {
+          view: {
+            title: "Directory sync",
+            blocks: [
+              {
+                type: "actions",
+                id: "sync-actions",
+                items: [
+                  { actionId: "sync", label: "Run sync now", input: {} },
+                  {
+                    actionId: "purge",
+                    label: "Purge exports",
+                    input: {},
+                    confirmation: { kind: "prepared" },
+                  },
+                ],
+              },
+              {
+                type: "list",
+                id: "runs",
+                empty: "No runs.",
+                items: [
+                  {
+                    id: "run-1",
+                    title: "Morning run",
+                    actions: [
+                      { actionId: "open", label: "Open", input: { id: "1" } },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+        },
+        onAction: async () => ({}),
+        onOpenEntity: () => {},
+      }),
+    );
+
+    // A standalone action is the workspace's primary call to action.
+    expect(html).toContain('class="btn">Run sync now');
+    // Needing confirmation is the signal that an action is consequential.
+    expect(html).toContain('class="btn danger">Purge exports');
+    // Row-level actions stay subordinate to the row they belong to.
+    expect(html).toContain('class="btn ghost">Open');
+  });
+});
+
+function confirmingWorkspace(
+  confirmation: RuntimeOperatorActionControl["confirmation"],
+): RuntimeCmsWorkspaceData {
+  return {
+    view: {
+      title: "Directory sync",
+      blocks: [
+        {
+          type: "actions",
+          id: "sync-actions",
+          items: [
+            {
+              actionId: "purge",
+              label: "Purge exports",
+              input: { scope: "all" },
+              ...(confirmation ? { confirmation } : {}),
+            },
+          ],
+        },
+      ],
+    },
+  };
+}
+
+describe("DeclarativeWorkspace confirmations", () => {
+  let windowInstance: Window;
+  let root: Root;
+  let container: HTMLElement;
+
+  beforeEach(() => {
+    windowInstance = new Window({
+      url: "https://brain.test/cms/workspaces/directory-sync",
+    });
+    Object.assign(globalThis, {
+      window: windowInstance,
+      document: windowInstance.document,
+      navigator: windowInstance.navigator,
+      HTMLElement: windowInstance.HTMLElement,
+      Element: windowInstance.Element,
+      Node: windowInstance.Node,
+      Event: windowInstance.Event,
+      IS_REACT_ACT_ENVIRONMENT: true,
+    });
+    // globalThis.document is the happy-dom document assigned above, but typed
+    // as lib.dom's — so the element it makes is the one createRoot declares,
+    // and the object at runtime is still happy-dom's.
+    container = document.createElement("div");
+    document.body.append(container);
+    root = createRoot(container);
+  });
+
+  afterEach(async () => {
+    await act(async () => root.unmount());
+    windowInstance.close();
+  });
+
+  const clickButton = async (label: string): Promise<void> => {
+    const button = Array.from(
+      container.querySelectorAll<HTMLButtonElement>("button"),
+    ).find((candidate) => String(candidate.textContent).trim() === label);
+    if (!button) throw new Error(`Expected a "${label}" button`);
+    await act(async () => button.click());
+  };
+
+  it("confirms static actions in the CMS dialog rather than a browser prompt", async () => {
+    const invocations: RuntimeOperatorActionControl[] = [];
+    await act(async () => {
+      root.render(
+        createElement(DeclarativeWorkspace, {
+          data: confirmingWorkspace({
+            kind: "static",
+            message: "Purge every exported file?",
+          }),
+          onAction: async (action) => {
+            invocations.push(action);
+            return {};
+          },
+          onOpenEntity: () => {},
+        }),
+      );
+    });
+
+    await clickButton("Purge exports");
+
+    const dialog = container.querySelector('[role="alertdialog"]');
+    expect(dialog).not.toBeNull();
+    expect(dialog?.textContent).toContain("Purge every exported file?");
+    expect(invocations).toHaveLength(0);
+
+    await clickButton("Cancel");
+    expect(container.querySelector('[role="alertdialog"]')).toBeNull();
+    expect(invocations).toHaveLength(0);
+
+    await clickButton("Purge exports");
+    await clickButton("Confirm action");
+    expect(invocations).toHaveLength(1);
+    expect(invocations[0]?.actionId).toBe("purge");
+  });
+
+  it("shows a prepared summary in the dialog and executes with its token", async () => {
+    const invocations: RuntimeOperatorActionControl[] = [];
+    await act(async () => {
+      root.render(
+        createElement(DeclarativeWorkspace, {
+          data: confirmingWorkspace({ kind: "prepared" }),
+          onAction: async (action) => {
+            invocations.push(action);
+            return action.invocation?.mode === "prepare"
+              ? {
+                  kind: "prepared-confirmation",
+                  token: "proof-1",
+                  summary: "Removes 12 exported files.",
+                  expiresAt: "2026-08-18T10:00:00.000Z",
+                }
+              : {};
+          },
+          onOpenEntity: () => {},
+        }),
+      );
+    });
+
+    await clickButton("Purge exports");
+
+    expect(invocations).toHaveLength(1);
+    expect(invocations[0]?.invocation?.mode).toBe("prepare");
+    const dialog = container.querySelector('[role="alertdialog"]');
+    expect(dialog?.textContent).toContain("Removes 12 exported files.");
+
+    await clickButton("Confirm action");
+    expect(invocations).toHaveLength(2);
+    expect(invocations[1]?.invocation).toEqual({
+      mode: "execute",
+      token: "proof-1",
+    });
   });
 });

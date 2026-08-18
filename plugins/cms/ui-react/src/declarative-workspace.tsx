@@ -9,7 +9,8 @@ import type {
   RuntimePreparedConfirmation,
   RuntimeOperatorScalar,
 } from "@brains/plugins";
-import { useState, type ReactElement, type ReactNode } from "react";
+import { useId, useState, type ReactElement, type ReactNode } from "react";
+import { ConfirmDialog } from "./confirm-dialog";
 import type { CmsWorkspaceQuery } from "./queries";
 
 type RuntimeBlock = RuntimeCmsOperatorView["blocks"][number];
@@ -85,66 +86,134 @@ function isPreparedConfirmation(
   );
 }
 
+interface AwaitingConfirmation {
+  readonly summary: string;
+  readonly invocation: RuntimeOperatorActionControl;
+}
+
+/**
+ * Consequence, not position, decides an action's weight: anything that asks for
+ * confirmation is marked, anything attached to a row stays subordinate to it,
+ * and a standalone action is the surface's primary call to action.
+ */
+function actionClassName(
+  action: RuntimeOperatorActionControl,
+  subordinate: boolean,
+): string {
+  if (action.confirmation) return "btn danger";
+  return subordinate ? "btn ghost" : "btn";
+}
+
 function ActionButton(props: {
   action: RuntimeOperatorActionControl;
   onAction: (action: RuntimeOperatorActionControl) => Promise<unknown>;
+  subordinate?: boolean;
 }): ReactElement {
+  const titleId = useId();
   const [pending, setPending] = useState(false);
   const [message, setMessage] = useState("");
+  const [failed, setFailed] = useState(false);
+  const [awaiting, setAwaiting] = useState<AwaitingConfirmation | null>(null);
 
-  const execute = async (): Promise<void> => {
-    const confirmation = props.action.confirmation;
-    if (
-      confirmation?.kind === "static" &&
-      !window.confirm(confirmation.message)
-    ) {
-      return;
-    }
+  const run = async (
+    invocation: RuntimeOperatorActionControl,
+  ): Promise<void> => {
     setPending(true);
     setMessage("");
+    setFailed(false);
     try {
-      let invocation = props.action;
-      if (confirmation?.kind === "prepared") {
-        const prepared = await props.onAction({
-          ...props.action,
-          invocation: { mode: "prepare" },
-        });
-        if (!isPreparedConfirmation(prepared)) {
-          throw new Error("Invalid prepared confirmation");
-        }
-        if (!window.confirm(prepared.summary)) return;
-        invocation = {
-          ...props.action,
-          invocation: { mode: "execute", token: prepared.token },
-        };
-      }
       await props.onAction(invocation);
       setMessage("Completed.");
     } catch {
       setMessage("Action failed.");
+      setFailed(true);
+    } finally {
+      setPending(false);
+      setAwaiting(null);
+    }
+  };
+
+  const start = async (): Promise<void> => {
+    const confirmation = props.action.confirmation;
+    if (confirmation?.kind === "static") {
+      setAwaiting({
+        summary: confirmation.message,
+        invocation: props.action,
+      });
+      return;
+    }
+    if (confirmation?.kind !== "prepared") {
+      await run(props.action);
+      return;
+    }
+    setPending(true);
+    setMessage("");
+    setFailed(false);
+    try {
+      const prepared = await props.onAction({
+        ...props.action,
+        invocation: { mode: "prepare" },
+      });
+      if (!isPreparedConfirmation(prepared)) {
+        throw new Error("Invalid prepared confirmation");
+      }
+      setAwaiting({
+        summary: prepared.summary,
+        invocation: {
+          ...props.action,
+          invocation: { mode: "execute", token: prepared.token },
+        },
+      });
+    } catch {
+      setMessage("Action failed.");
+      setFailed(true);
     } finally {
       setPending(false);
     }
   };
 
   return (
-    <span className="declarative-action-control">
-      <button
-        type="button"
-        className="btn"
-        disabled={pending || props.action.disabled === true}
-        onClick={() => void execute()}
-      >
-        {pending ? "Working…" : props.action.label}
-      </button>
-      {message && <small aria-live="polite">{message}</small>}
-    </span>
+    <>
+      <span className="declarative-action-control">
+        <button
+          type="button"
+          className={actionClassName(props.action, props.subordinate === true)}
+          disabled={pending || props.action.disabled === true}
+          onClick={() => void start()}
+        >
+          {pending ? "Working…" : props.action.label}
+        </button>
+        {message && (
+          <small
+            className={failed ? "status status-error" : "status"}
+            aria-live="polite"
+          >
+            {message}
+          </small>
+        )}
+      </span>
+      {awaiting && (
+        <ConfirmDialog
+          mark="!"
+          title="Run this workspace action?"
+          titleId={titleId}
+          cancelLabel="Cancel"
+          confirmLabel={pending ? "Working…" : "Confirm action"}
+          pending={pending}
+          onCancel={() => setAwaiting(null)}
+          onConfirm={() => void run(awaiting.invocation)}
+        >
+          <p>{awaiting.summary}</p>
+        </ConfirmDialog>
+      )}
+    </>
   );
 }
 
 function Actions(props: {
   actions: readonly RuntimeOperatorActionControl[];
   onAction: (action: RuntimeOperatorActionControl) => Promise<unknown>;
+  subordinate?: boolean;
 }): ReactElement | null {
   if (props.actions.length === 0) return null;
   return (
@@ -154,6 +223,7 @@ function Actions(props: {
           key={`${action.actionId}:${action.capabilityId ?? "static"}:${index}`}
           action={action}
           onAction={props.onAction}
+          subordinate={props.subordinate === true}
         />
       ))}
     </div>
@@ -162,11 +232,13 @@ function Actions(props: {
 
 function StatsBlock({
   block,
+  className = "declarative-stats",
 }: {
   block: Extract<RuntimeBlock, { type: "stats" }>;
+  className?: string;
 }): ReactElement {
   return (
-    <dl className="declarative-stats">
+    <dl className={className}>
       {block.items.map((item, index) => (
         <div key={`${item.label}:${index}`} data-tone={item.tone ?? "neutral"}>
           <dt>{item.label}</dt>
@@ -316,7 +388,11 @@ function ListItems(props: {
                   {badge.label}
                 </span>
               ))}
-              <Actions actions={item.actions ?? []} onAction={props.onAction} />
+              <Actions
+                actions={item.actions ?? []}
+                onAction={props.onAction}
+                subordinate
+              />
             </div>
           </li>
         );
@@ -401,7 +477,7 @@ function TableBlock(props: {
                 {column.label}
               </th>
             ))}
-            {hasActions && <th>Actions</th>}
+            {hasActions && <th data-align="end">Actions</th>}
           </tr>
         </thead>
         <tbody>
@@ -426,10 +502,11 @@ function TableBlock(props: {
                 );
               })}
               {hasActions && (
-                <td>
+                <td data-align="end">
                   <Actions
                     actions={row.actions ?? []}
                     onAction={props.onAction}
+                    subordinate
                   />
                 </td>
               )}
@@ -799,6 +876,22 @@ function ViewBlock(props: {
   );
 }
 
+/**
+ * Blocks that read as a narrow instrument panel share a row; everything that
+ * carries a collection, a reading surface, or its own controls claims the full
+ * measure. Authors declare meaning, so width stays a host decision.
+ */
+const COMPACT_BLOCKS: ReadonlySet<string> = new Set([
+  "key-values",
+  "group",
+  "meters",
+  "progress",
+]);
+
+function blockSpan(type: string): "compact" | "wide" {
+  return COMPACT_BLOCKS.has(type) ? "compact" : "wide";
+}
+
 export function DeclarativeWorkspace(props: {
   data: RuntimeCmsWorkspaceData;
   onAction: (action: RuntimeOperatorActionControl) => Promise<unknown>;
@@ -807,12 +900,31 @@ export function DeclarativeWorkspace(props: {
   query?: CmsWorkspaceQuery | undefined;
   onQueryChange?: ((query: CmsWorkspaceQuery) => void) | undefined;
 }): ReactElement {
+  const { title, blocks } = props.data.view;
+  // Leading stats are the workspace's totals, so they belong beside the title
+  // rather than in the body as one more card.
+  const [lead] = blocks;
+  const totals = lead?.type === "stats" ? lead : null;
+  const bodyBlocks = totals ? blocks.slice(1) : blocks;
+  const hasHead = Boolean(title) || totals !== null;
+
   return (
     <main className="declarative-workspace">
-      {props.data.view.title && <h2>{props.data.view.title}</h2>}
+      {hasHead && (
+        <header className="declarative-head">
+          <h2>{title}</h2>
+          {totals && (
+            <StatsBlock block={totals} className="declarative-totals" />
+          )}
+        </header>
+      )}
       <div className="declarative-blocks">
-        {props.data.view.blocks.map((block, index) => (
-          <section key={block.id ?? `${block.type}:${index}`}>
+        {bodyBlocks.map((block, index) => (
+          <section
+            key={block.id ?? `${block.type}:${index}`}
+            data-block={block.type}
+            data-span={blockSpan(block.type)}
+          >
             <ViewBlock
               block={block}
               onAction={props.onAction}
