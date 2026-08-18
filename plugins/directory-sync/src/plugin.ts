@@ -43,6 +43,23 @@ import "./types/job-augmentation";
 import packageJson from "../package.json";
 import { getErrorMessage } from "@brains/utils/error";
 
+export function resolveRuntimeSyncPath(options: {
+  configuredSyncPath: string | undefined;
+  dataDir: string;
+  gitConfigured: boolean;
+  gitBrokerCheckout: string | undefined;
+}): string {
+  if (options.gitConfigured) {
+    if (!options.gitBrokerCheckout) {
+      throw new Error(
+        "Git sync is configured but the broker checkout path is unavailable",
+      );
+    }
+    return options.gitBrokerCheckout;
+  }
+  return options.configuredSyncPath ?? options.dataDir;
+}
+
 export class DirectorySyncPlugin extends ServicePlugin<
   DirectorySyncConfig,
   DirectorySyncConfigInput
@@ -130,7 +147,12 @@ export class DirectorySyncPlugin extends ServicePlugin<
       },
     });
 
-    const syncPath = this.config.syncPath ?? context.dataDir;
+    const syncPath = resolveRuntimeSyncPath({
+      configuredSyncPath: this.config.syncPath,
+      dataDir: context.dataDir,
+      gitConfigured: this.isGitConfigured(),
+      gitBrokerCheckout: context.gitBrokerCheckout,
+    });
     this.directorySync = this.createDirectorySync(context, syncPath);
     try {
       await this.directorySync.initializeDirectory();

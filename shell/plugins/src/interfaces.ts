@@ -265,6 +265,7 @@ export interface IShell {
   // Where the Git checkout owner listens, when this Brain has one.
   // Assigned by the supervisor; undefined for a Brain without Git.
   getGitBrokerSocket(): string | undefined;
+  getGitBrokerCheckout(): string | undefined;
 
   // App metadata and runtime health
   getAppInfo(): Promise<RuntimeAppInfo>;

@@ -748,6 +748,10 @@ export class Shell implements IShell {
     return this.config.gitBrokerSocket;
   }
 
+  public getGitBrokerCheckout(): string | undefined {
+    return this.config.gitBrokerCheckout;
+  }
+
   public registerEvalHandler(
     pluginId: string,
     handlerId: string,

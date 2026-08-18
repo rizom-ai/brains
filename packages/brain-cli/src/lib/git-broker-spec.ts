@@ -68,5 +68,8 @@ export function resolveGitBrokerSpec(
     );
   }
 
-  return { socketPath: gitBrokerSocketPath(runtimeDir) };
+  return {
+    socketPath: gitBrokerSocketPath(runtimeDir),
+    checkoutPath,
+  };
 }

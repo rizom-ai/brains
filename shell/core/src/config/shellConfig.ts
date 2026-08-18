@@ -85,6 +85,8 @@ export interface ShellConfigSchemaOutput {
    * `brain.yaml`, because it is a runtime endpoint rather than a choice.
    */
   gitBrokerSocket?: string | undefined;
+  /** Absolute checkout path assigned with the broker socket. */
+  gitBrokerCheckout?: string | undefined;
   spaces: string[];
   siteBaseUrl?: string | undefined;
   localSiteUrl?: string | undefined;
@@ -139,6 +141,7 @@ export const shellConfigSchema: z.ZodType<ShellConfigSchemaOutput, unknown> =
     plugins: z.array(pluginMetadataSchema).default([]),
     dataDir: z.string().default("./brain-data"),
     gitBrokerSocket: z.string().min(1).optional(),
+    gitBrokerCheckout: z.string().min(1).optional(),
     spaces: z.array(z.string()).default([]),
     siteBaseUrl: z.string().optional(),
     localSiteUrl: z.string().optional(),
@@ -223,6 +226,9 @@ export function createShellConfig(
     ...(overrides.dataDir && { dataDir: overrides.dataDir }),
     ...(overrides.gitBrokerSocket && {
       gitBrokerSocket: overrides.gitBrokerSocket,
+    }),
+    ...(overrides.gitBrokerCheckout && {
+      gitBrokerCheckout: overrides.gitBrokerCheckout,
     }),
     ...(overrides.siteBaseUrl && { siteBaseUrl: overrides.siteBaseUrl }),
     ...(overrides.localSiteUrl && { localSiteUrl: overrides.localSiteUrl }),

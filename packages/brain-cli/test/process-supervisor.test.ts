@@ -138,7 +138,10 @@ function superviseWithBroker(harness: TestHarness): Promise<CommandResult> {
     workerHeartbeatIntervalMs: 20,
     reportIncident: harness.reportIncident,
     reportReady: harness.reportReady,
-    gitBroker: { socketPath: "/run/brain/git-broker.sock" },
+    gitBroker: {
+      socketPath: "/run/brain/git-broker.sock",
+      checkoutPath: "/brain/brain-data",
+    },
     brokerHeartbeatIntervalMs: 20,
     brokerProgressTimeoutMs: 1_000,
     brokerGroupProbeIntervalMs: 10,
@@ -194,7 +197,7 @@ describe("bundled process supervisor", () => {
     expect(await supervised).toEqual({ success: true });
   });
 
-  it("starts the git broker before web and hands every role its socket", async () => {
+  it("starts the git broker before web and hands every role its owner paths", async () => {
     const harness = createHarness();
     const supervised = superviseWithBroker(harness);
 
@@ -211,6 +214,7 @@ describe("bundled process supervisor", () => {
         stdio: ["inherit", "inherit", "inherit", "ipc"],
         env: expect.objectContaining({
           BRAIN_GIT_BROKER_SOCKET: "/run/brain/git-broker.sock",
+          BRAIN_GIT_BROKER_CHECKOUT: "/brain/brain-data",
         }),
       }),
     );
@@ -228,6 +232,7 @@ describe("bundled process supervisor", () => {
         detached: false,
         env: expect.objectContaining({
           BRAIN_GIT_BROKER_SOCKET: "/run/brain/git-broker.sock",
+          BRAIN_GIT_BROKER_CHECKOUT: "/brain/brain-data",
         }),
       }),
     );
@@ -242,6 +247,7 @@ describe("bundled process supervisor", () => {
         detached: false,
         env: expect.objectContaining({
           BRAIN_GIT_BROKER_SOCKET: "/run/brain/git-broker.sock",
+          BRAIN_GIT_BROKER_CHECKOUT: "/brain/brain-data",
         }),
       }),
     );

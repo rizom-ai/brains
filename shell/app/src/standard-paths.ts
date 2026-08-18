@@ -8,6 +8,7 @@
  */
 
 import { mkdir } from "fs/promises";
+import { isAbsolute } from "node:path";
 import {
   createStandardConfig,
   type StandardConfig,
@@ -34,6 +35,19 @@ export function resolveStandardPaths(
  * storage paths are — environment policy belongs to this layer, and nothing
  * downstream should have to read the environment to find it.
  */
+export function resolveGitBrokerCheckout(
+  env: NodeJS.ProcessEnv = process.env,
+): string | undefined {
+  const checkoutPath = env["BRAIN_GIT_BROKER_CHECKOUT"];
+  if (!checkoutPath) return undefined;
+  if (!isAbsolute(checkoutPath)) {
+    throw new Error(
+      `Git broker checkout path must be absolute: ${checkoutPath}`,
+    );
+  }
+  return checkoutPath;
+}
+
 export function resolveGitBrokerSocket(
   env: NodeJS.ProcessEnv = process.env,
 ): string | undefined {

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import {
+  resolveGitBrokerCheckout,
   resolveStandardConfig,
   resolveStandardPaths,
 } from "../src/standard-paths";
@@ -20,6 +21,20 @@ describe("resolveStandardPaths", () => {
       cacheDir: "./cache",
       distDir: "./dist",
     });
+  });
+});
+
+describe("resolveGitBrokerCheckout", () => {
+  it("accepts only the supervisor-assigned absolute checkout path", () => {
+    expect(
+      resolveGitBrokerCheckout({
+        BRAIN_GIT_BROKER_CHECKOUT: "/brain/brain-data",
+      }),
+    ).toBe("/brain/brain-data");
+    expect(resolveGitBrokerCheckout({})).toBeUndefined();
+    expect(() =>
+      resolveGitBrokerCheckout({ BRAIN_GIT_BROKER_CHECKOUT: "./brain-data" }),
+    ).toThrow("must be absolute");
   });
 });
 

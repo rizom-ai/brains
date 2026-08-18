@@ -2,7 +2,10 @@ import { afterEach, describe, expect, it } from "bun:test";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { GIT_BROKER_SOCKET_ENV } from "@brains/directory-sync";
+import {
+  GIT_BROKER_CHECKOUT_ENV,
+  GIT_BROKER_SOCKET_ENV,
+} from "@brains/directory-sync";
 import { withGitBrokerSidecar } from "../src/lib/git-broker-sidecar";
 
 /**
@@ -32,19 +35,27 @@ afterEach(async () => {
 });
 
 describe("a git-configured brain outside the supervisor", () => {
-  it("boots with an owner, and stops it afterwards", async () => {
+  it("hands the owner and its absolute checkout to the app role", async () => {
     scratch = await mkdtemp(join(tmpdir(), "broker-sidecar-"));
-    const seen: Array<string | undefined> = [];
+    const seen: Array<{
+      socket: string | undefined;
+      checkout: string | undefined;
+    }> = [];
 
     const result = await withGitBrokerSidecar(scratch, GIT_CONFIGURED, () => {
-      seen.push(process.env[GIT_BROKER_SOCKET_ENV]);
+      seen.push({
+        socket: process.env[GIT_BROKER_SOCKET_ENV],
+        checkout: process.env[GIT_BROKER_CHECKOUT_ENV],
+      });
       return Promise.resolve("booted");
     });
 
     expect(result).toBe("booted");
-    expect(seen[0]).toContain("git-broker.sock");
-    // The variable belongs to the run, not to the process that hosted it.
+    expect(seen[0]?.socket).toContain("git-broker.sock");
+    expect(seen[0]?.checkout).toBe(join(scratch, "brain-data"));
+    // The variables belong to the run, not to the process that hosted it.
     expect(process.env[GIT_BROKER_SOCKET_ENV]).toBeUndefined();
+    expect(process.env[GIT_BROKER_CHECKOUT_ENV]).toBeUndefined();
   }, 60_000);
 
   it("starts nothing for a brain without git", async () => {

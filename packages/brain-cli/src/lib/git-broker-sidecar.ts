@@ -1,4 +1,5 @@
 import {
+  GIT_BROKER_CHECKOUT_ENV,
   GIT_BROKER_SOCKET_ENV,
   startGitBrokerHost,
 } from "@brains/directory-sync";
@@ -8,6 +9,11 @@ import {
   BRAIN_DEFAULT_DATA_DIR,
   resolveGitBrokerSpec,
 } from "./git-broker-spec";
+
+function restoreEnvironment(name: string, value: string | undefined): void {
+  if (value === undefined) delete process.env[name];
+  else process.env[name] = value;
+}
 
 /**
  * An owner for the starts that are not the supervised one.
@@ -41,19 +47,18 @@ export async function withGitBrokerSidecar<T>(
 
   // The same handoff the supervisor makes to a child it spawned; here the
   // process being told is this one.
-  const previous = process.env[GIT_BROKER_SOCKET_ENV];
+  const previousSocket = process.env[GIT_BROKER_SOCKET_ENV];
+  const previousCheckout = process.env[GIT_BROKER_CHECKOUT_ENV];
   process.env[GIT_BROKER_SOCKET_ENV] = broker.socketPath;
+  process.env[GIT_BROKER_CHECKOUT_ENV] = spec.checkoutPath;
 
   try {
     return await run();
   } finally {
-    // Restored whatever happened: a leaked variable would point the next run
-    // at a socket nobody is listening on, and a leaked owner would hold it.
-    if (previous === undefined) {
-      delete process.env[GIT_BROKER_SOCKET_ENV];
-    } else {
-      process.env[GIT_BROKER_SOCKET_ENV] = previous;
-    }
+    // Restored whatever happened: leaked variables would point the next run
+    // at an owner or checkout that no longer belongs to it.
+    restoreEnvironment(GIT_BROKER_SOCKET_ENV, previousSocket);
+    restoreEnvironment(GIT_BROKER_CHECKOUT_ENV, previousCheckout);
     await broker.stop();
   }
 }

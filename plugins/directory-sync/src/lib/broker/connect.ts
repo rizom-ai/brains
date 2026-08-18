@@ -16,6 +16,9 @@ import { BrokerGitSync } from "./git-sync-client";
 /** Where the supervisor tells every role its checkout owner is listening. */
 export const GIT_BROKER_SOCKET_ENV = "BRAIN_GIT_BROKER_SOCKET";
 
+/** The absolute checkout path owned by that broker. */
+export const GIT_BROKER_CHECKOUT_ENV = "BRAIN_GIT_BROKER_CHECKOUT";
+
 export interface ConnectGitSyncOptions {
   /** From `context.gitBrokerSocket`; absent when this Brain has no owner. */
   socketPath: string | undefined;

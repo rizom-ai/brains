@@ -1,6 +1,7 @@
 import { spawn, type SpawnOptions } from "node:child_process";
 import {
   BROKER_PROGRESS_TIMEOUT_MS,
+  GIT_BROKER_CHECKOUT_ENV,
   GIT_BROKER_SOCKET_ENV,
 } from "@brains/directory-sync";
 import type { CommandResult } from "./command-result";
@@ -27,11 +28,13 @@ export type SupervisedChildRole = BrainChildRole | "git-broker";
 export interface GitBrokerSpec {
   /** Handed to every role; the broker binds it, the app roles connect to it. */
   readonly socketPath: string;
+  /** Absolute path the broker resolved from this Brain's configuration. */
+  readonly checkoutPath: string;
 }
 
 // Defined by the package that consumes it, so the supervisor and the roles
-// cannot disagree about the name of the handoff.
-export { GIT_BROKER_SOCKET_ENV };
+// cannot disagree about the names of the handoff.
+export { GIT_BROKER_CHECKOUT_ENV, GIT_BROKER_SOCKET_ENV };
 type SupervisorTimer = ReturnType<typeof setTimeout> | number;
 type WorkerHeartbeatTimer = ReturnType<typeof setInterval> | number;
 
@@ -699,6 +702,7 @@ function runRuntimeSupervisor(
             ? {
                 ...options.processImpl.env,
                 [GIT_BROKER_SOCKET_ENV]: options.gitBroker.socketPath,
+                [GIT_BROKER_CHECKOUT_ENV]: options.gitBroker.checkoutPath,
               }
             : options.processImpl.env,
         } satisfies SpawnOptions,

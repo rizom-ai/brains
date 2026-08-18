@@ -109,6 +109,9 @@ export interface BasePluginContext {
    */
   readonly gitBrokerSocket: string | undefined;
 
+  /** Absolute path owned by the Git broker, assigned with its socket. */
+  readonly gitBrokerCheckout: string | undefined;
+
   /** Bare domain string (e.g. "yeehaa.io"), undefined for local dev */
   readonly domain: string | undefined;
 
@@ -380,6 +383,7 @@ export function createBasePluginContext(
 
     dataDir: shell.getDataDir(),
     gitBrokerSocket: shell.getGitBrokerSocket(),
+    gitBrokerCheckout: shell.getGitBrokerCheckout(),
 
     eval: executionOnly
       ? { registerHandler: (): void => {} }

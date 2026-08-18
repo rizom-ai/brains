@@ -42,6 +42,7 @@ describe("git broker spec", () => {
     // clone or reset could remove the ownership boundary itself.
     expect(spec).toEqual({
       socketPath: join("/brain", ".brain-runtime", "git-broker.sock"),
+      checkoutPath: join("/brain", "brain-data"),
     });
   });
 

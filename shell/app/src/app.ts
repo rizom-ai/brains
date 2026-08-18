@@ -4,6 +4,7 @@ import { Logger, LogLevel } from "@brains/utils/logger";
 import { MigrationManager } from "./migration-manager";
 import { preferLocalUrlsForRuntime } from "./runtime-env";
 import {
+  resolveGitBrokerCheckout,
   resolveGitBrokerSocket,
   resolveStandardConfig,
 } from "./standard-paths";
@@ -120,6 +121,7 @@ export class App {
     shellConfig.embeddingDatabase ??= standard.embeddingDatabase;
     shellConfig.embedding ??= standard.embedding;
     shellConfig.gitBrokerSocket ??= resolveGitBrokerSocket();
+    shellConfig.gitBrokerCheckout ??= resolveGitBrokerCheckout();
   }
 
   private applySimpleConfigOverrides(shellConfig: ShellConfig): void {

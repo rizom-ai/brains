@@ -194,7 +194,7 @@ async function runtime(
   supervised = superviseRuntimeChildren(root, ENTRY, {
     spawnImpl: spawn,
     processImpl: runtimeProcess.impl,
-    gitBroker: { socketPath },
+    gitBroker: { socketPath, checkoutPath: join(root, "brain-data") },
     startupTimeoutMs: 30_000,
     shutdownGraceMs: 1_000,
     // The heartbeat cadence is one shared constant; overriding only the
