@@ -1,7 +1,7 @@
 {
   "name": "@brains/unified-inbox",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.305",
+  "version": "0.2.0-alpha.306",
   "description": "Live aggregation for source-owned operator attention",
   "dependencies": {
     "@brains/plugins": "workspace:*",

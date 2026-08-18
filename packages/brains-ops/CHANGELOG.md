@@ -1,5 +1,11 @@
 # @brains/ops
 
+## 0.2.0-alpha.306
+
+### Patch Changes
+
+- [`e90691d`](https://github.com/rizom-ai/brains/commit/e90691d57852edaf88e9c18bc5d8c13c61e0b6b3) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add a smoke-fleet workflow and operator commands that verify host watchdog ownership isolation, diagnostics, and restart budgeting through the existing fleet deployment credentials and cleanup path.
+
 ## 0.2.0-alpha.305
 
 ## 0.2.0-alpha.304

@@ -275,6 +275,7 @@
     "core--git-execution-broker",
     "core--health-probe-and-declared-type-message",
     "core--health-watchdog-container-scope",
+    "core--health-watchdog-deployment-smoke",
     "core--http-route-registry",
     "core--import-burst-git-child",
     "core--inbound-email-daemon",
