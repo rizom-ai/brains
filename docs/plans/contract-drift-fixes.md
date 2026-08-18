@@ -128,15 +128,33 @@ Every phase leaves the tree green and is independently revertable.
    `lexicon.id === "ai.rizom.brain.card"` branch.
 3. Verify the nine entity packages that publish records still round-trip.
 
-### Phase 3 — Subtraction
+### Phase 3 — Subtraction — **revised after checking provenance; nothing to do here**
 
-1. `rm -rf` the nine stale directories (untracked; nothing to preserve).
-2. Delete `plugins/email-workflows/src/reply-drafts/` and
-   `test/reply-draft-operator.test.ts`.
+The audit proposed deleting two things. Checking each before acting reversed both
+calls:
 
-Decision, not deferral: **delete rather than finish the wiring.** The subtree has
-no CMS workspace, no export, and no registration; reviving it is a feature
-decision that belongs to whoever wants the feature, and git history preserves it.
+1. **The nine stale directories are not in the repository.** They exist only as
+   untracked `.turbo`/`dist` leftovers in a long-lived working copy; a clean
+   checkout has none of them. There is no commit to make. The cleanup is a local
+   `rm -rf` in whichever working copy has accumulated them, not a change to the
+   tree.
+2. **`plugins/email-workflows/src/reply-drafts/` is live work, not dead code.**
+   It was added 2026-08-15 (`f6d93c7aa feat(inbox): add source-backed reply
+drafting`) and last touched 2026-08-17 (`c5bf4cfbf feat(operator): complete
+inbox semantic integration`), which is the current head of the active
+   `feat/public-operator-universal-semantics` worktree.
+
+The reviewer's observation was accurate as far as static analysis goes — the
+subtree really has no export, no registration, and no CMS workspace. The
+inference drawn from it was wrong. "Nothing imports it" distinguishes abandoned
+code from half-landed code only if you also look at when it was written; here it
+is a feature three days old with its wiring still in flight. Deleting it would
+have destroyed someone's in-progress work.
+
+Whoever finishes that feature owns the duplicate schemas it carries
+(`draftSourceAddressSchema`, the third `abortSignalSchema`, the
+`source-unavailable` outcome variant); they should collapse onto the shared ones
+as part of landing it, not have them deleted underneath.
 
 ### Phase 4 — Guard the published copies (fixes defect 3)
 
