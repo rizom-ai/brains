@@ -17,7 +17,8 @@ import { BlogGenerationJobHandler } from "./handlers/blogGenerationJobHandler";
 import { BlogDataSource } from "./datasources/blog-datasource";
 import { getTemplates } from "./lib/register-templates";
 import { registerWithPublishPipeline } from "./lib/publish-handler";
-import { subscribeToSiteBuildStaging } from "./lib/rss-handler";
+import { FeedRegistry } from "@brains/site-composition";
+import { postToFeedItem } from "./lib/feed";
 import { registerEvalHandlers } from "./lib/eval-handlers";
 import { createBlogAtprotoProjection } from "./atproto-projection";
 import { createBlogPrintableProvider } from "./attachments/printable-provider";
@@ -36,6 +37,7 @@ export class BlogPlugin extends EntityPlugin<
   readonly schema: typeof blogPostSchema = blogPostSchema;
   readonly adapter: typeof blogPostAdapter = blogPostAdapter;
   private unregisterAtprotoProjection: (() => void) | undefined;
+  private releaseFeed: (() => void) | undefined;
   private unregisterPrintableAttachmentProvider: (() => void) | undefined;
   private unregisterOgImageAttachmentProvider: (() => void) | undefined;
 
@@ -71,15 +73,14 @@ export class BlogPlugin extends EntityPlugin<
   protected override async onRegister(
     context: EntityPluginContext,
   ): Promise<void> {
-    // RSS datasource (dynamic import)
-    const { RSSDataSource } = await import("./datasources/rss-datasource");
-    context.entities.registerDataSource(
-      new RSSDataSource(this.logger.child("RSSDataSource")),
-    );
-
     // Publish pipeline and RSS subscriptions
     registerWithPublishPipeline(context, this.logger);
-    subscribeToSiteBuildStaging(context, this.logger);
+    this.releaseFeed = FeedRegistry.getInstance().register({
+      entityType: "post",
+      path: "feed.xml",
+      routePrefix: "posts",
+      toItem: postToFeedItem,
+    });
     registerEvalHandlers(context);
     this.unregisterPrintableAttachmentProvider = context.attachments.register(
       "post",
@@ -127,6 +128,8 @@ export class BlogPlugin extends EntityPlugin<
     this.unregisterOgImageAttachmentProvider = undefined;
     this.unregisterAtprotoProjection?.();
     this.unregisterAtprotoProjection = undefined;
+    this.releaseFeed?.();
+    this.releaseFeed = undefined;
   }
 }
 
