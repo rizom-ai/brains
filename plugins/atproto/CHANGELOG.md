@@ -1,5 +1,15 @@
 # @brains/atproto
 
+## 0.2.0-alpha.304
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.304
+  - @brains/contracts@0.2.0-alpha.304
+  - @brains/utils@0.2.0-alpha.304
+  - @brains/plugins@0.2.0-alpha.304
+
 ## 0.2.0-alpha.303
 
 ### Patch Changes

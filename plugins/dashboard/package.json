@@ -1,7 +1,7 @@
 {
   "name": "@brains/dashboard",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.303",
+  "version": "0.2.0-alpha.304",
   "description": "Dashboard plugin with extensible widget system",
   "dependencies": {
     "@brains/auth-service": "workspace:*",

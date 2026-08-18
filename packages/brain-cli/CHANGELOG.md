@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.304
+
+### Minor Changes
+
+- [`62aa30f`](https://github.com/rizom-ai/brains/commit/62aa30f84be1f9e1cfdbab98d1071d56fe443891) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add universal host-rendered Dashboard and CMS authoring semantics, typed workspace query state and catalogs, prepared confirmations, and built-in conformance through the public operator runtime. Remove the retired private widget/workspace renderers and browser assets so first-party and external surfaces share one validated host path.
+
 ## 0.2.0-alpha.303
 
 ### Patch Changes

@@ -329,6 +329,7 @@
     "core--unified-inbox-headless-reader",
     "core--unified-inbox-quality-pass",
     "core--unified-inbox-surfaces",
+    "core--universal-operator-semantics",
     "core--web-chat-inbox-context-capsule",
     "core--widget-card-and-rizom-ui-reuse",
     "core--worker-heartbeat-supervision",
