@@ -44,6 +44,8 @@ export interface HarnessOptions {
   profileKind?: string;
   /** Broker endpoint supplied to service-plugin contexts in integration tests. */
   gitBrokerSocket?: string;
+  /** Absolute broker-owned checkout supplied with that endpoint. */
+  gitBrokerCheckout?: string;
 }
 
 /**
@@ -68,6 +70,7 @@ export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
       preferLocalUrls?: boolean;
       profileKind?: string;
       gitBrokerSocket?: string;
+      gitBrokerCheckout?: string;
     } = { logger };
     if (options.dataDir !== undefined) {
       mockShellOptions.dataDir = options.dataDir;
@@ -86,6 +89,9 @@ export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
     }
     if (options.gitBrokerSocket !== undefined) {
       mockShellOptions.gitBrokerSocket = options.gitBrokerSocket;
+    }
+    if (options.gitBrokerCheckout !== undefined) {
+      mockShellOptions.gitBrokerCheckout = options.gitBrokerCheckout;
     }
     this.mockShell = createMockShell(mockShellOptions);
   }
@@ -109,6 +115,8 @@ export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
         localSiteUrl?: string;
         preferLocalUrls?: boolean;
         profileKind?: string;
+        gitBrokerSocket?: string;
+        gitBrokerCheckout?: string;
       } = {
         logger: createSilentLogger(context),
       };
@@ -126,6 +134,12 @@ export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
       }
       if (this.options.profileKind !== undefined) {
         mockShellOptions.profileKind = this.options.profileKind;
+      }
+      if (this.options.gitBrokerSocket !== undefined) {
+        mockShellOptions.gitBrokerSocket = this.options.gitBrokerSocket;
+      }
+      if (this.options.gitBrokerCheckout !== undefined) {
+        mockShellOptions.gitBrokerCheckout = this.options.gitBrokerCheckout;
       }
       this.mockShell = createMockShell(mockShellOptions);
     }

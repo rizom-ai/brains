@@ -246,6 +246,7 @@ describe("DirectorySyncPlugin", () => {
       const localHarness = createPluginHarness<DirectorySyncPlugin>({
         dataDir: checkout,
         gitBrokerSocket: socketPath,
+        gitBrokerCheckout: checkout,
       });
       const localPlugin = new DirectorySyncPlugin(pluginConfig);
 

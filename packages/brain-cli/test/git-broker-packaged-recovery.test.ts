@@ -29,6 +29,7 @@ import type { CommandResult } from "../src/lib/command-result";
 const LINUX = process.platform === "linux";
 const RUN_PACKAGED = process.env["RUN_GIT_BROKER_PACKAGED_RECOVERY"] === "1";
 const ENTRY = join(import.meta.dir, "..", "dist", "brain.js");
+const BROKER_ENTRY = join(import.meta.dir, "..", "dist", "git-broker.js");
 
 interface SpawnRecord {
   role: SupervisedChildRole;
@@ -181,7 +182,10 @@ function startRuntime(
   const spawnImpl: SpawnImpl = (command, args, options) => {
     const child = spawn(command, args, options);
     const roleArg = args.find((arg) => arg.startsWith("--child="));
-    const role = roleArg?.slice("--child=".length);
+    const role =
+      args[0] === BROKER_ENTRY
+        ? "git-broker"
+        : roleArg?.slice("--child=".length);
     if (
       child.pid !== undefined &&
       (role === "git-broker" || role === "web" || role === "worker")
@@ -196,6 +200,8 @@ function startRuntime(
     processImpl: processSurface.impl,
     gitBroker: {
       socketPath: gitBrokerSocketPath(join(appDir, ".brain-runtime")),
+      checkoutPath: join(appDir, "brain-data"),
+      entrypointPath: BROKER_ENTRY,
     },
     startupTimeoutMs: 60_000,
     shutdownGraceMs: 2_000,
