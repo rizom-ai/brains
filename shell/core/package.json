@@ -1,7 +1,7 @@
 {
   "name": "@brains/core",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.306",
+  "version": "0.2.0-alpha.307",
   "dependencies": {
     "@brains/contracts": "workspace:*",
     "@brains/image": "workspace:*",

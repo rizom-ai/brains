@@ -1,5 +1,13 @@
 # @rizom/brain
 
+## 0.2.0-alpha.307
+
+### Patch Changes
+
+- [`947bd44`](https://github.com/rizom-ai/brains/commit/947bd44edf379b9dfa70732dfd0b98c2655dae38) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Hand the Git broker's absolute checkout path to every app role alongside its socket.
+
+  Directory Sync now uses the broker-owned path instead of resolving a relative shell data directory again in another process. This prevents development and supervised runtimes from failing plugin initialization with `This broker owns no checkout` when their process working directories differ.
+
 ## 0.2.0-alpha.306
 
 ## 0.2.0-alpha.305
