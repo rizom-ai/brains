@@ -1,5 +1,44 @@
 # @brains/plugins
 
+## 0.2.0-alpha.303
+
+### Patch Changes
+
+- [`5ff2420`](https://github.com/rizom-ai/brains/commit/5ff2420e2173df8b9add5bfc05a91033ddd1d976) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Own every managed Git operation in a supervised broker process.
+
+  Web and worker no longer execute Git. A broker owns each checkout, serializes
+  complete operations rather than individual commands, and is started before any
+  Git-capable role — so two processes can no longer interleave inside one commit.
+  A lost Git completion fails closed: the operation stays owned and is never
+  retried or unlocked in place. The supervisor detects a wedged owner by
+  heartbeat silence or stale operation progress, terminates its process group,
+  and starts one replacement only after an OS probe proves that group absent;
+  when absence cannot be proven it exits the runtime for external cleanup rather
+  than risking a second writer.
+
+  Credentials are supplied per process and never persisted: a token configured in
+  a remote URL is separated from the address before anything logs, clones,
+  fingerprints, or configures `origin`, and inherited credential helpers are
+  refused. Managed operations run with repository hooks and automatic maintenance
+  disabled.
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.303
+  - @brains/contracts@0.2.0-alpha.303
+  - @brains/site-composition@0.2.0-alpha.303
+  - @brains/utils@0.2.0-alpha.303
+  - @brains/ai-service@0.2.0-alpha.303
+  - @brains/content-service@0.2.0-alpha.303
+  - @brains/conversation-service@0.2.0-alpha.303
+  - @brains/entity-service@0.2.0-alpha.303
+  - @brains/identity-service@0.2.0-alpha.303
+  - @brains/job-queue@0.2.0-alpha.303
+  - @brains/mcp-service@0.2.0-alpha.303
+  - @brains/messaging-service@0.2.0-alpha.303
+  - @brains/recurring-checks@0.2.0-alpha.303
+  - @brains/runtime-state@0.2.0-alpha.303
+  - @brains/templates@0.2.0-alpha.303
+
 ## 0.2.0-alpha.302
 
 ### Patch Changes

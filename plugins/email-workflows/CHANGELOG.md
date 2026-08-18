@@ -1,5 +1,17 @@
 # @brains/email-workflows
 
+## 0.2.0-alpha.303
+
+### Patch Changes
+
+- [`19f0a42`](https://github.com/rizom-ai/brains/commit/19f0a423e3f1d8ffb1678fc7820fb514a0582603) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Simplify email Inbox actions to **Done** for completed work and **Dismiss** for items requiring no work, removing the redundant Mark reviewed action from the active Inbox surface.
+
+- Updated dependencies [[`5ff2420`](https://github.com/rizom-ai/brains/commit/5ff2420e2173df8b9add5bfc05a91033ddd1d976)]:
+  - @brains/plugins@0.2.0-alpha.303
+  - @brains/contracts@0.2.0-alpha.303
+  - @brains/ui-library@0.2.0-alpha.303
+  - @brains/utils@0.2.0-alpha.303
+
 ## 0.2.0-alpha.302
 
 ### Patch Changes

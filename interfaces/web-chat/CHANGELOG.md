@@ -1,5 +1,18 @@
 # @brains/web-chat
 
+## 0.2.0-alpha.303
+
+### Patch Changes
+
+- [`82b3692`](https://github.com/rizom-ai/brains/commit/82b3692e2f26ac2d1cced888c774f5349aa2474a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Refine transient Inbox context into a compact source capsule with a visible item label and an accessible icon-only remove control.
+
+- Updated dependencies [[`5ff2420`](https://github.com/rizom-ai/brains/commit/5ff2420e2173df8b9add5bfc05a91033ddd1d976)]:
+  - @brains/plugins@0.2.0-alpha.303
+  - @brains/auth-service@0.2.0-alpha.303
+  - @brains/console-theme@0.2.0-alpha.303
+  - @brains/contracts@0.2.0-alpha.303
+  - @brains/utils@0.2.0-alpha.303
+
 ## 0.2.0-alpha.302
 
 ### Patch Changes
