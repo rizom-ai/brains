@@ -379,6 +379,15 @@ that the CMS workspace and Dashboard widget are `web` renderings and the digest 
 
 ### Phase 7 — Restructure the eval suites
 
+The target ladder is staged in `packages/brain-cli/brain.target.eval.yaml` beside the
+active manifest. As with the cloned definition used in Phase 4, the separate file is not a
+second runtime contract: the active registry cannot resolve its new IDs, and Phase 8 swaps
+it into the canonical filename with the registry. Dedicated `eval-content/target`
+fixtures cover postures whose membership changed; member-compatible professional and
+commerce content remains shared. This lets every target suite boot before the flip without
+weakening active eval coverage. Strict seed-type validation is opt-in for these curated
+fixtures and fails startup when a seeded entity type is not registered.
+
 `packages/brain-cli/brain.eval.yaml` declares five suites whose selections, names,
 inheritance chain, and seed directories each encode the old taxonomy. Re-pointing the
 `bundles:` lists is the smallest part of this.
@@ -400,8 +409,11 @@ inheritance chain, and seed directories each encode the old taxonomy. Re-pointin
   rather than import silently.
 - **Decide what evaluating a surface bundle means.** Eval exclusions now spread across
   `core`, `web`, and `chat`, so a `personal` suite running in `mode: eval` would have most
-  of what distinguishes it from `headless` disabled. Either the exclusions narrow, or that
-  suite asserts resolution and startup rather than model behavior.
+  of what distinguishes it from `headless` disabled. `headless`, `personal`, `team`, and
+  `commerce` therefore carry recipe-only tags and assert deterministic resolution and
+  startup rather than inheriting behavior cases for capabilities they no longer own.
+  `professional` retains the compatible `posture-personal` and `posture-publishing` model
+  cases because it owns those capabilities in the target taxonomy.
 
 Tests: each suite resolves to its intended member set; every entity type seeded in a
 suite's content directory is registered by that suite's selection; a suite seeding an

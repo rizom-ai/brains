@@ -30,6 +30,7 @@ import { DirectorySyncRequestJobHandler } from "./handlers";
 import { registerDirectorySyncJobHandlers } from "./lib/register-job-handlers";
 import { setupAutoSync, setupFileWatcher } from "./lib/auto-sync";
 import { setupInitialSync } from "./lib/initial-sync";
+import { validateSeedContentEntityTypes } from "./lib/file-discovery";
 import { setupGitAutoCommit } from "./lib/git-auto-commit";
 import { setupPeriodicGitSync } from "./lib/git-periodic-sync";
 import { bootstrapContentRemoteFromSeed } from "./lib/content-remote-bootstrap";
@@ -377,6 +378,13 @@ export class DirectorySyncPlugin extends ServicePlugin<
   }
 
   protected override async onReady(): Promise<void> {
+    if (this.config.seedContent && this.config.strictSeedEntityTypes) {
+      const context = this.getContext();
+      await validateSeedContentEntityTypes(
+        this.config.syncPath ?? context.dataDir,
+        context.entityService,
+      );
+    }
     await this.startBackgroundWork();
     this.readyState = true;
     this.cmsWorkspaceUrl = await this.workspaceProvider?.registerCmsWorkspace();
