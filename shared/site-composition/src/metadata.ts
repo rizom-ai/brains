@@ -17,7 +17,10 @@ export type {
 export const SITE_METADATA_GET_CHANNEL = "site:metadata:get";
 export const SITE_METADATA_UPDATED_CHANNEL = "site:metadata:updated";
 
-export const siteMetadataCTASchema: z.ZodType<SiteMetadataCTA> = z.object({
+export const siteMetadataCTASchema: z.ZodType<
+  SiteMetadataCTA,
+  SiteMetadataCTA
+> = z.object({
   heading: z.string().describe("Main CTA heading text"),
   buttonText: z.string().describe("Call-to-action button text"),
   buttonLink: z.string().describe("URL or anchor for the CTA button"),
@@ -27,13 +30,15 @@ export const siteMetadataCTASchema: z.ZodType<SiteMetadataCTA> = z.object({
  * beneath each section title (e.g. under "Essays"). Keys match section ids
  * the homepage template knows about ("essays", "presentations", "about", …).
  */
-export const siteMetadataSectionSchema: z.ZodType<SiteMetadataSection> =
-  z.object({
-    blurb: z
-      .string()
-      .optional()
-      .describe("Short italic subtitle under the section title"),
-  });
+export const siteMetadataSectionSchema: z.ZodType<
+  SiteMetadataSection,
+  SiteMetadataSection
+> = z.object({
+  blurb: z
+    .string()
+    .optional()
+    .describe("Short italic subtitle under the section title"),
+});
 
 type SiteMetadataSchema = z.ZodObject<{
   represents: z.ZodDefault<z.ZodEnum<{ brain: "brain"; anchor: "anchor" }>>;
@@ -80,6 +85,14 @@ export const siteMetadataSchema: SiteMetadataSchema = z.object({
     ),
 });
 
+/**
+ * Accepted input for {@link siteMetadataSchema}. Differs from `SiteMetadata` in
+ * that defaulted fields (`represents`) may be omitted. Consumers that validate
+ * caller-supplied metadata — plugin config, job payloads — must type their input
+ * with this, not with the parsed output.
+ */
+export type SiteMetadataInput = z.input<typeof siteMetadataSchema>;
+
 type SiteMetadataSchemaOutput = z.infer<typeof siteMetadataSchema>;
 type SiteMetadataCTASchemaOutput = z.infer<typeof siteMetadataCTASchema>;
 
@@ -104,43 +117,27 @@ const socialLinkSchema = z.object({
   label: z.string().optional().describe("Optional display label"),
 });
 
-/** Complete site information passed to layout components. */
-export const siteLayoutInfoSchema: z.ZodType<SiteLayoutInfo> = z.object({
-  represents: z
-    .enum(["brain", "anchor"])
-    .default("anchor")
-    .describe("Identity represented by the site"),
-  title: z.string().describe("The site's title"),
-  description: z.string().describe("The site's description"),
-  url: z.string().optional().describe("Canonical site URL"),
-  copyright: z.string(),
-  logo: z
-    .boolean()
-    .optional()
-    .describe("Whether to display logo instead of title text in header"),
-  themeMode: z
-    .enum(["light", "dark"])
-    .optional()
-    .describe("Default theme mode"),
-  analyticsScript: z.string().optional().describe("Analytics script HTML"),
-  cta: siteMetadataCTASchema
-    .optional()
-    .describe("Call-to-action configuration"),
-  sections: z
-    .record(z.string(), siteMetadataSectionSchema)
-    .optional()
-    .describe(
-      "Optional per-section blurbs, keyed by section id (e.g. 'essays', 'presentations', 'about'). Used by homepage templates that render editorial section headers.",
-    ),
-  navigation: z.object({
-    primary: z.array(NavigationItemSchema),
-    secondary: z.array(NavigationItemSchema),
-  }),
-  socialLinks: z
-    .array(socialLinkSchema)
-    .optional()
-    .describe("Social media links from profile metadata"),
-});
+/**
+ * Complete site information passed to layout components.
+ *
+ * Layout info is site metadata plus the navigation and social links the build
+ * resolves, with `copyright` promoted to required. It is derived from
+ * {@link siteMetadataSchema} rather than restated so the shared fields cannot
+ * drift — the TypeScript side already models this as
+ * `interface SiteLayoutInfo extends SiteMetadata`.
+ */
+export const siteLayoutInfoSchema: z.ZodType<SiteLayoutInfo> =
+  siteMetadataSchema.extend({
+    copyright: z.string(),
+    navigation: z.object({
+      primary: z.array(NavigationItemSchema),
+      secondary: z.array(NavigationItemSchema),
+    }),
+    socialLinks: z
+      .array(socialLinkSchema)
+      .optional()
+      .describe("Social media links from profile metadata"),
+  });
 
 type SiteLayoutInfoSchemaOutput = z.infer<typeof siteLayoutInfoSchema>;
 function expectSiteLayoutInfo(

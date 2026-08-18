@@ -1,5 +1,7 @@
-import { siteBuilderSiteMetadataSchema } from "./site-metadata-schema";
-import type { SiteMetadata } from "@brains/site-composition";
+import {
+  siteMetadataSchema,
+  type SiteMetadata,
+} from "@brains/site-composition";
 import { z } from "@brains/utils/zod";
 import type { SiteBuildDiagnostic } from "./site-builder-types";
 
@@ -22,7 +24,7 @@ export const siteBuildJobSchema: z.ZodType<SiteBuildJobData, SiteBuildJobData> =
     outputDir: z.string(),
     workingDir: z.string().optional(),
     enableContentGeneration: z.boolean().optional(),
-    siteConfig: siteBuilderSiteMetadataSchema.optional(),
+    siteConfig: siteMetadataSchema.optional(),
     inputGeneration: z.number().int().nonnegative().optional(),
   });
 

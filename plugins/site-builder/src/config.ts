@@ -3,12 +3,13 @@ import type { LayoutComponent } from "@brains/site-engine";
 import { z } from "@brains/utils/zod";
 import {
   NavigationSlots,
+  siteMetadataSchema,
   type EntityDisplayEntry,
   type RouteDefinition,
   type RouteDefinitionInput,
   type SiteMetadata,
+  type SiteMetadataInput,
 } from "@brains/site-composition";
-import { siteBuilderSiteMetadataSchema } from "./types/site-metadata-schema";
 
 /**
  * Entity display metadata per entity type.
@@ -45,7 +46,7 @@ interface SiteBuilderSchemaConfigInput {
   productionOutputDir?: string | undefined;
   sharedImagesDir?: string | undefined;
   workingDir?: string | undefined;
-  siteInfo?: SiteMetadata | undefined;
+  siteInfo?: SiteMetadataInput | undefined;
   themeCSS?: string | undefined;
   analyticsScript?: string | undefined;
   headScripts?: string[] | undefined;
@@ -125,7 +126,8 @@ export const siteBuilderConfigSchema: z.ZodType<
     .optional()
     .describe("Working directory for builds")
     .default("./.preact-work"),
-  siteInfo: siteBuilderSiteMetadataSchema.default({
+  siteInfo: siteMetadataSchema.default({
+    represents: "anchor",
     title: "Brain",
     description: "A knowledge management system",
   }),

@@ -1,8 +1,10 @@
-import type { SiteMetadata } from "@brains/site-composition";
+import {
+  siteMetadataSchema,
+  type SiteMetadata,
+} from "@brains/site-composition";
 import { type ProgressCallback } from "@brains/utils/progress";
 import { z } from "@brains/utils/zod";
 import type { LayoutComponent, LayoutSlots } from "@brains/site-engine";
-import { siteBuilderSiteMetadataSchema } from "./site-metadata-schema";
 
 /**
  * Site builder options schema
@@ -41,7 +43,7 @@ export const SiteBuilderOptionsSchema: z.ZodType<
   sharedImagesDir: z.string().default("./dist/images"),
   enableContentGeneration: z.boolean().default(false),
   cleanBeforeBuild: z.boolean().default(true),
-  siteConfig: siteBuilderSiteMetadataSchema,
+  siteConfig: siteMetadataSchema,
   layouts: z.record(z.string(), z.any()),
   themeCSS: z.string().optional(),
 });

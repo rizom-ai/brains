@@ -34,7 +34,12 @@ export {
   siteMetadataSchema,
   siteMetadataSectionSchema,
 } from "./metadata";
-export type { SiteLayoutInfo, SiteMetadata, SiteMetadataCTA } from "./metadata";
+export type {
+  SiteLayoutInfo,
+  SiteMetadata,
+  SiteMetadataCTA,
+  SiteMetadataInput,
+} from "./metadata";
 export {
   createSiteContentTemplate,
   createSiteContentTemplates,
