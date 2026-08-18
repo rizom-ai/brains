@@ -16,7 +16,11 @@ import {
   createDeclarativeDataSource,
   createDeclarativeEntityDataSource,
 } from "../public/entity-data-source";
-import { DIRECTORY_SYNC_CHANNELS, PUBLISH_CHANNELS } from "@brains/contracts";
+import {
+  DIRECTORY_SYNC_CHANNELS,
+  PUBLISH_ASSET_CHANNELS,
+  PUBLISH_CHANNELS,
+} from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 import { EntityPlugin, emptyEntityPluginConfigSchema } from "./entity-plugin";
 import { SYSTEM_CHANNELS } from "../system-channels";
@@ -260,6 +264,7 @@ class DeclarativeEntityPlugin extends EntityPlugin<
   private readonly instructions: AnyEntityDefinition["instructions"];
   private readonly create: AnyEntityDefinition["create"];
   private readonly publish: AnyEntityDefinition["publish"];
+  private readonly publishAssets: AnyEntityDefinition["publishAssets"];
   private readonly jobOwnerId: string | undefined;
   private readonly projectionRules: AnyEntityDefinition["projectionRules"];
   private readonly atproto: AnyEntityDefinition["atproto"];
@@ -300,6 +305,7 @@ class DeclarativeEntityPlugin extends EntityPlugin<
     this.instructions = definition.instructions;
     this.create = definition.create;
     this.publish = definition.publish;
+    this.publishAssets = definition.publishAssets;
     this.jobOwnerId = jobOwnerId;
     this.projectionRules = definition.projectionRules;
     this.atproto = definition.atproto;
@@ -400,6 +406,24 @@ class DeclarativeEntityPlugin extends EntityPlugin<
           entities: this.entityAccess(context),
           conversations: context.conversations,
         }),
+      );
+    }
+
+    const publishAssets = this.publishAssets ?? [];
+    if (publishAssets.length > 0) {
+      // Same deferral as publish: the pipeline has to be listening before
+      // anything announces to it.
+      context.messaging.subscribe(
+        SYSTEM_CHANNELS.pluginsRegistered,
+        async (): Promise<{ success: true }> => {
+          for (const asset of publishAssets) {
+            await context.messaging.send({
+              type: PUBLISH_ASSET_CHANNELS.register,
+              payload: { ...asset, entityType: this.entityType },
+            });
+          }
+          return { success: true };
+        },
       );
     }
 
@@ -528,6 +552,7 @@ class DeclarativeEntityPlugin extends EntityPlugin<
             },
           },
           conversations: context.conversations,
+          identity: context.identity,
         }),
     };
   }

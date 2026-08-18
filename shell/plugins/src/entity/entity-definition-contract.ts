@@ -55,6 +55,8 @@ export interface EntityDefinitionConfig {
   readonly embeddable?: boolean;
   readonly projectionSource?: boolean;
   readonly projectionSourceRole?: ProjectionSourceRole;
+  /** Which statuses count as publishable for this type. */
+  readonly publish?: { publishStatuses: string[] };
 }
 
 /**
@@ -144,6 +146,12 @@ export interface EntityDefinition<
    */
   readonly publish?: EntityPublishDeclaration | undefined;
   /**
+   * Media the publish pipeline must have before this entity type goes out —
+   * an OG image, say. The pipeline owns generation and the readiness check;
+   * this only says what is needed and where the result is recorded.
+   */
+  readonly publishAssets?: readonly EntityPublishAssetDeclaration[] | undefined;
+  /**
    * Syndication. The entity says how one of its entities becomes a feed
    * item; the site build decides which entities qualify, where the file
    * goes, and how a slug becomes a URL.
@@ -167,6 +175,34 @@ export interface EntityFeedDeclaration<TEntity> {
   /** Route prefix an item hangs off, e.g. "posts". */
   readonly routePrefix: string;
   toItem(entity: TEntity): FeedItem | null;
+}
+
+/**
+ * A publish artifact this entity type needs, and where its id is recorded.
+ *
+ * `entityType` is absent deliberately: the entity declaring this is the
+ * entity it applies to, so restating it would let the two disagree.
+ */
+export interface EntityPublishAssetDeclaration {
+  /** Attachment the asset is resolved from, e.g. "og-image". */
+  readonly attachmentType: string;
+  readonly mediaEntityType: "image" | "document";
+  /** Where the produced media id is recorded on the entity. */
+  readonly targetEntityField?:
+    | string
+    | { readonly location: "metadata" | "frontmatter"; readonly field: string }
+    | undefined;
+  /** Conditions under which the asset becomes required. */
+  readonly requiredWhen?:
+    | {
+        readonly status?: string | undefined;
+        readonly visibility?: string | undefined;
+      }
+    | undefined;
+  readonly autoGenerate?: boolean | undefined;
+  readonly requiredForPublish?: boolean | undefined;
+  /** Job that produces it when missing. */
+  readonly jobType?: string | undefined;
 }
 
 /**

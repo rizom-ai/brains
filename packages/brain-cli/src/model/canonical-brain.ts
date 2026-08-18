@@ -19,7 +19,7 @@ import { assessment } from "@brains/assessment";
 import { atprotoPlugin } from "@brains/atproto";
 import { atprotoRegistryPlugin } from "@brains/atproto-registry";
 import { authServicePlugin } from "@brains/auth-service";
-import { blogPlugin } from "@brains/blog";
+import blogPackage from "@brains/blog";
 import { ChatInterface, chatConfigFromEnv } from "@brains/chat";
 import { studioPlugin } from "@brains/studio";
 import { contentPipelinePlugin } from "@brains/content-pipeline";
@@ -178,7 +178,7 @@ export const canonicalBrain: BrainDefinition = defineBrain({
     ["site-builder", siteBuilderPlugin, undefined],
     ["analytics", analyticsPlugin, undefined],
 
-    ["blog", blogPlugin, undefined],
+    packageCapability("blog", "@brains/blog", blogPackage),
     packageCapability("series", "@brains/series", seriesPackage),
     packageCapability("portfolio", "@brains/portfolio", portfolioPackage),
     ["content-pipeline", contentPipelinePlugin, undefined],

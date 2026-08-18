@@ -60,6 +60,7 @@ slug: systems-series
         update: async () => ({ entityId: "x", jobId: "j", skipped: false }),
       },
       conversations: context.conversations,
+      identity: context.identity,
       progress: { report: async (): Promise<void> => {} },
       signal: new AbortController().signal,
       messaging: { publish: async (): Promise<void> => {} },
