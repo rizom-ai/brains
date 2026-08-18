@@ -306,6 +306,7 @@ Themes are resolved by brain instances, not embedded in site packages. A site de
 brain: brain
 bundles:
   - core
+  - web
   - site
 site:
   package: "@brains/site-mytheme"
@@ -390,6 +391,7 @@ Each brain instance picks a structural site package and a theme in `brain.yaml`:
 brain: brain
 bundles:
   - core
+  - web
   - site
 site:
   package: "@brains/site-default"
@@ -401,6 +403,7 @@ site:
 brain: brain
 bundles:
   - core
+  - web
   - site
 site:
   theme: "@brains/theme-rizom"

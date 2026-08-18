@@ -3,6 +3,9 @@ anchor: person
 kind: professional
 bundles:
   - core
+  - media
+  - web
+  - chat
 plugins:
   directory-sync:
     seedContentPath: ./seed-content

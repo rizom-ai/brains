@@ -12,8 +12,13 @@ domain: example.com
 
 bundles:
   - core
+  - media
+  - automation
+  - web
+  - chat
   - site
   - publishing
+  - federation
 
 add:
   - obsidian-vault
@@ -57,18 +62,29 @@ When omitted, the runtime uses the canonical definition. Explicitly scoped exter
 
 Required for the canonical definition. Select one or more fixed bundles:
 
-- `core` — knowledge, identity, administration, auth, and interfaces;
+- `core` — identity, markdown knowledge, Inbox, MCP stdio, A2A, and agent discovery;
+- `media` — documents and images;
+- `automation` — playbooks and onboarding;
+- `web` — HTTP, auth, account/admin, Dashboard, and CMS;
+- `chat` — platform chat, web chat, email, notifications, and conversation memory;
 - `site` — site metadata, content, building, and analytics;
-- `publishing` — blog, series, portfolio, pipeline, newsletter, social, and ATProto publishing;
-- `team` — team memory, documents, and trusted collaborative write posture.
+- `publishing` — blog, series, portfolio, decks, pipeline, newsletter, and social publishing;
+- `federation` — AT Protocol publication and registry capabilities;
+- `team` — policy-only shared-memory and trusted-collaboration defaults.
 
 Bundle effects compose in canonical definition order, not YAML list order.
 
 ```yaml
 bundles:
   - core
+  - media
+  - automation
+  - web
+  - chat
   - site
   - team
+add:
+  - docs
 ```
 
 ### `add` / `remove`
@@ -223,12 +239,13 @@ Common variables include `AI_API_KEY`, `AI_IMAGE_KEY`, `GIT_SYNC_TOKEN`, `DISCOR
 
 Recipes are scaffold-time conveniences only. `brain init --recipe` expands them into explicit YAML; recipe names have no runtime meaning.
 
-| Recipe     | Expansion                      |
-| ---------- | ------------------------------ |
-| `minimal`  | `core`                         |
-| `personal` | `core + site + publishing`     |
-| `team`     | `core + site + team`           |
-| `commerce` | `core + site`, plus `products` |
+| Recipe         | Expansion                                                                 |
+| -------------- | ------------------------------------------------------------------------- |
+| `headless`     | `core`                                                                    |
+| `personal`     | `core + media + web + chat`                                               |
+| `professional` | `core + media + automation + web + chat + site + publishing + federation` |
+| `team`         | `core + media + automation + web + chat + site + team`, plus `docs`       |
+| `commerce`     | `core + media + web + site`, plus `products`                              |
 
 Identity, seed content, site, theme, permissions, and secret references remain visible instance-owned choices.
 

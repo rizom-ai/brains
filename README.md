@@ -80,7 +80,7 @@ OAuth-capable clients can use the built-in browser/passkey login. `MCP_AUTH_TOKE
 A brain has three main pieces:
 
 1. **Content** — markdown files in `brain-data/`
-2. **Definition + bundles** — one ordered catalog with explicit `core`, `site`, `publishing`, and `team` selection
+2. **Definition + bundles** — one ordered catalog with eight capability bundles and the policy-only `team` bundle
 3. **Runtime** — the `brain` process that resolves selection, indexes content, serves tools, and optionally builds a site
 
 ```text
@@ -95,10 +95,11 @@ brain.yaml + brain-data/
 
 ## Recipes and postures
 
-- `minimal` — `core`
-- `personal` — `core + site + publishing`
-- `team` — `core + site + team`
-- `commerce` — `core + site`, plus `products`
+- `headless` — `core`
+- `personal` — `core + media + web + chat`
+- `professional` — `core + media + automation + web + chat + site + publishing + federation`
+- `team` — `core + media + automation + web + chat + site + team`, plus `docs`
+- `commerce` — `core + media + web + site`, plus `products`
 
 If you are trying `brains` for the first time, use `brain init --recipe personal`. Recipes expand to explicit YAML and have no runtime meaning.
 

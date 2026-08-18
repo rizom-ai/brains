@@ -34,6 +34,7 @@ Arrays are replaced unless a typed composition rule explicitly defines another b
 brain: brain
 bundles:
   - core
+  - web
   - site
 plugins:
   directory-sync:

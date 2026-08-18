@@ -1,8 +1,9 @@
 import type { InstanceOverrides } from "@brains/app";
 
 export const BRAIN_RECIPE_NAMES = [
-  "minimal",
+  "headless",
   "personal",
+  "professional",
   "team",
   "commerce",
 ] as const;
@@ -18,13 +19,30 @@ export function isBrainRecipeName(value: unknown): value is BrainRecipeName {
 export type BrainRecipeExpansion = Omit<InstanceOverrides, "brain" | "mode">;
 
 const recipes: Record<BrainRecipeName, BrainRecipeExpansion> = {
-  minimal: {
+  headless: {
     bundles: ["core"],
   },
   personal: {
     anchor: "person",
     kind: "professional",
-    bundles: ["core", "site", "publishing"],
+    bundles: ["core", "media", "web", "chat"],
+    plugins: {
+      "directory-sync": { seedContentPath: "./seed-content" },
+    },
+  },
+  professional: {
+    anchor: "person",
+    kind: "professional",
+    bundles: [
+      "core",
+      "media",
+      "automation",
+      "web",
+      "chat",
+      "site",
+      "publishing",
+      "federation",
+    ],
     site: {
       package: "@brains/site-default",
       theme: "@rizom/theme-default",
@@ -36,7 +54,8 @@ const recipes: Record<BrainRecipeName, BrainRecipeExpansion> = {
   team: {
     anchor: "team",
     kind: "team",
-    bundles: ["core", "site", "team"],
+    bundles: ["core", "media", "automation", "web", "chat", "site", "team"],
+    add: ["docs"],
     site: {
       package: "@brains/site-default",
       theme: "@brains/theme-rizom",
@@ -48,7 +67,7 @@ const recipes: Record<BrainRecipeName, BrainRecipeExpansion> = {
   commerce: {
     anchor: "organization",
     kind: "organization",
-    bundles: ["core", "site"],
+    bundles: ["core", "media", "web", "site"],
     add: ["products"],
     site: {
       package: "@rizom/site-rizom",

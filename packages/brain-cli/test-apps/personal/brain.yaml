@@ -3,32 +3,19 @@ anchor: person
 kind: professional
 bundles:
   - core
-  - site
-  - publishing
+  - media
+  - web
+  - chat
 
 add:
-  - web-chat
   - obsidian-vault
-
-site:
-  package: "@brains/site-personal"
-  theme: "@rizom/theme-default"
 
 plugins:
   directory-sync:
-    seedContentPath: ../../eval-content/personal
+    seedContentPath: ../../eval-content/recipes/personal
     autoSync: true
     initialSync: true
     git:
       repo: rizom-ai/canonical-personal-test-content
       gitUrl: file:///tmp/canonical-personal-test-content.git
       bootstrapFromSeed: true
-  onboarding:
-    enabled: true
-remove:
-  - series
-  - portfolio
-  - content-pipeline
-  - social-media
-  - newsletter
-  - stock-photo

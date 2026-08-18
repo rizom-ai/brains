@@ -73,7 +73,7 @@ const initCommand: BrainCommand = defineCommand({
       type: "string",
       placeholder: "<name>",
       description:
-        "Scaffold recipe: minimal, personal, team, commerce (default: personal)",
+        "Scaffold recipe: headless, personal, professional, team, commerce (default: personal)",
     },
     domain: {
       type: "string",

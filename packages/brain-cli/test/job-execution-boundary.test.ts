@@ -19,7 +19,7 @@ registerPackage("@rizom/theme-default", defaultTheme);
 const fullPresetYaml = `brain: brain
 anchor: person
 kind: professional
-bundles: [core, site, publishing, team]
+bundles: [core, media, automation, web, chat, site, publishing, federation, team]
 site:
   package: "@brains/site-default"
   theme: "@rizom/theme-default"

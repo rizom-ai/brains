@@ -3,56 +3,76 @@ anchor: person
 kind: professional
 bundles:
   - core
+  - media
+  - automation
+  - web
+  - chat
   - site
   - publishing
+  - federation
 mode: eval
 
+# Surface-only recipes use recipe tags and deterministic resolution/startup
+# tests; professional retains the compatible model-behavior cases.
 suites:
-  core:
+  headless:
     bundles:
       - core
     tags:
-      - bundle-core
+      - recipe-headless
     plugins:
       directory-sync:
-        seedContentPath: eval-content/core
+        seedContentPath: eval-content/recipes/headless
   personal:
-    extends: core
+    extends: headless
     bundles:
       - core
-      - site
-      - publishing
+      - media
+      - web
+      - chat
     tags:
-      - posture-personal
+      - recipe-personal
     plugins:
       directory-sync:
-        seedContentPath: eval-content/personal
-      site-builder:
-        autoRebuild: false
-  publishing:
+        seedContentPath: eval-content/recipes/personal
+  professional:
     extends: personal
     bundles:
       - core
+      - media
+      - automation
+      - web
+      - chat
       - site
       - publishing
+      - federation
     tags:
+      - posture-personal
       - posture-publishing
     plugins:
       directory-sync:
         seedContentPath: eval-content/publishing
+      site-builder:
+        autoRebuild: false
   team:
-    extends: core
+    extends: personal
     anchor: team
     kind: team
     bundles:
       - core
+      - media
+      - automation
+      - web
+      - chat
       - site
       - team
+    add:
+      - docs
     tags:
-      - posture-team
+      - recipe-team
     plugins:
       directory-sync:
-        seedContentPath: eval-content/team
+        seedContentPath: eval-content/recipes/team
       a2a:
         requestTimeoutMs: 1000
         streamIdleTimeoutMs: 1000
@@ -60,16 +80,18 @@ suites:
       site-builder:
         autoRebuild: false
   commerce:
-    extends: core
+    extends: personal
     anchor: organization
     kind: organization
     bundles:
       - core
+      - media
+      - web
       - site
     add:
       - products
     tags:
-      - posture-commerce
+      - recipe-commerce
     plugins:
       directory-sync:
         seedContentPath: eval-content/commerce
@@ -100,6 +122,7 @@ plugins:
     enabled: true
   directory-sync:
     seedContentPath: eval-content/publishing
+    strictSeedEntityTypes: true
     autoSync: false
     deleteOnFileRemoval: false
     git:

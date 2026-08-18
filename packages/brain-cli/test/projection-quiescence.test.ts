@@ -9,7 +9,8 @@ function resolveProjectionConfig(): AppConfig {
     canonicalBrain,
     {},
     parseInstanceOverrides(`brain: brain
-bundles: [core, publishing]
+bundles: [core, media, publishing]
+add: [assessment]
 plugins:
   social-media:
     autoGenerateOnBlogPublish: true

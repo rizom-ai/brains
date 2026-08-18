@@ -1,10 +1,5 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import {
-  App,
-  resolve,
-  resolveBundleSelection,
-  type BrainDefinition,
-} from "@brains/app";
+import { App, resolve, resolveBundleSelection } from "@brains/app";
 import {
   resolveEvalSelection,
   type EvalSelection,
@@ -20,10 +15,10 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve as resolvePath } from "node:path";
+import { canonicalBundles } from "../src/model/canonical-bundles";
 import { canonicalBrain } from "../src/model/canonical-brain";
-import { targetCanonicalBundles } from "../src/model/target-bundles";
 
-const manifestPath = join(import.meta.dir, "..", "brain.target.eval.yaml");
+const manifestPath = join(import.meta.dir, "..", "brain.eval.yaml");
 const packageDirectory = join(import.meta.dir, "..");
 const rawManifest = fromYaml<Record<string, unknown>>(
   readFileSync(manifestPath, "utf8"),
@@ -37,13 +32,9 @@ const suiteNames = [
 ] as const;
 type SuiteName = (typeof suiteNames)[number];
 
-const targetBrain: BrainDefinition = {
-  ...canonicalBrain,
-  bundles: targetCanonicalBundles,
-};
 const catalogIds = [
-  ...targetBrain.capabilities.map(([id]) => id),
-  ...targetBrain.interfaces.map(([id]) => id),
+  ...canonicalBrain.capabilities.map(([id]) => id),
+  ...canonicalBrain.interfaces.map(([id]) => id),
 ];
 const expectedMembers: Record<SuiteName, string> = {
   headless:
@@ -65,13 +56,17 @@ function suiteSelection(name: SuiteName): EvalSelection {
 function seedContentPath(selection: EvalSelection): string {
   const value = selection.plugins?.["directory-sync"]?.["seedContentPath"];
   if (typeof value !== "string") {
-    throw new Error("Target eval suite has no directory-sync seedContentPath");
+    throw new Error(
+      "Canonical eval suite has no directory-sync seedContentPath",
+    );
   }
   return resolvePath(packageDirectory, value);
 }
 
 function createTempDirectory(name: string): string {
-  const directory = mkdtempSync(join(tmpdir(), `brain-target-eval-${name}-`));
+  const directory = mkdtempSync(
+    join(tmpdir(), `brain-canonical-eval-${name}-`),
+  );
   tempDirectories.push(directory);
   return directory;
 }
@@ -106,8 +101,8 @@ function createSuiteApp(
     },
   };
   const resolved = resolve(
-    targetBrain,
-    { AI_API_KEY: "placeholder-target-eval-test" },
+    canonicalBrain,
+    { AI_API_KEY: "placeholder-canonical-eval-test" },
     {
       anchor:
         selection.anchor ??
@@ -146,7 +141,7 @@ afterEach(() => {
   }
 });
 
-describe("target eval recipe ladder", () => {
+describe("canonical eval recipe ladder", () => {
   test("stages the explicit suite names, selections, and inheritance chain", () => {
     expect(Object.keys(rawManifest["suites"] as object)).toEqual([
       ...suiteNames,
@@ -193,12 +188,12 @@ describe("target eval recipe ladder", () => {
     });
   });
 
-  test("resolves every suite to its exact target member set", () => {
+  test("resolves every suite to its exact canonical member set", () => {
     for (const name of suiteNames) {
       const selection = suiteSelection(name);
       const resolution = resolveBundleSelection({
         catalogIds,
-        definitions: targetCanonicalBundles,
+        definitions: canonicalBundles,
         selected: selection.bundles ?? [],
         ...(selection.add ? { add: selection.add } : {}),
         ...(selection.remove ? { remove: selection.remove } : {}),

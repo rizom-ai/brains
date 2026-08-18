@@ -2,7 +2,7 @@ brain: brain
 anchor: person
 kind: professional
 # Deliberately non-canonical order: resolution follows definition order.
-bundles: [publishing, site, core]
+bundles: [federation, publishing, site, chat, web, automation, media, core]
 site:
   package: "@brains/site-default"
   theme: "@rizom/theme-default"
