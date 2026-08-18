@@ -1,20 +1,14 @@
 import {
-  BaseEntityDataSource,
-  type BaseQuery,
-  type NavigationResult,
+  defineDataSource,
+  defineEntityDataSource,
+  type DataSourceDefinition,
+  type EntityDataSourceDefinition,
+  type EntityQueryReader,
   type PaginationInfo,
-  type EntityDataSourceConfig,
 } from "@brains/plugins";
-import type {
-  BaseDataSourceContext,
-  DataSourceSchema,
-  IEntityService,
-} from "@brains/plugins";
-import type { Logger } from "@brains/utils/logger";
 import { slugify } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
-import type { BlogPost } from "../schemas/blog-post";
-import type { BlogPostWithData } from "../schemas/blog-post";
+import type { BlogPost, BlogPostWithData } from "../schemas/blog-post";
 import { parsePostData as parsePostDataBase } from "./parse-helpers";
 import {
   blogViewSchema,
@@ -24,271 +18,127 @@ import {
 // Re-export for convenience
 export type { BlogPostWithData };
 
-type BlogPostTransformed = BlogPostWithData & { seriesUrl?: string };
+export type BlogPostTransformed = BlogPostWithData & { seriesUrl?: string };
 
-interface BlogQuery {
-  [key: string]: unknown;
-  id?: string | undefined;
-  limit?: number | undefined;
-  page?: number | undefined;
-  pageSize?: number | undefined;
-  baseUrl?: string | undefined;
-  latest?: boolean | undefined;
-  "metadata.seriesName"?: string | undefined;
-}
-
-interface BlogInput {
-  entityType?: string | undefined;
-  query?: BlogQuery | undefined;
-}
-
-const blogQuerySchema: z.ZodType<BlogQuery> = z.looseObject({
-  id: z.string().optional(),
-  limit: z.number().optional(),
-  page: z.number().optional(),
-  pageSize: z.number().optional(),
-  baseUrl: z.string().optional(),
-  latest: z.boolean().optional(),
-  "metadata.seriesName": z.string().optional(),
-});
-
-const blogInputSchema: z.ZodType<BlogInput> = z.looseObject({
-  entityType: z.string().optional(),
-  query: blogQuerySchema.optional(),
-});
-
-interface BlogDetailData {
-  post: BlogPostTransformed;
-  prevPost: BlogPostTransformed | null;
-  nextPost: BlogPostTransformed | null;
-  seriesPosts: BlogPostTransformed[] | null;
-}
-
-interface BlogListData {
-  posts: BlogSchemaData[];
-  pagination: PaginationInfo | null;
-  baseUrl: string | null;
-}
-
-function parsePostData(entity: BlogPost): BlogPostTransformed {
+export function parsePostData(entity: BlogPost): BlogPostTransformed {
   const post = parsePostDataBase(entity);
   const seriesName = post.frontmatter.seriesName;
   const seriesUrl = seriesName ? `/series/${slugify(seriesName)}` : undefined;
   return { ...post, ...(seriesUrl && { seriesUrl }) };
 }
 
+async function postsInSeries(
+  seriesName: string,
+  entities: EntityQueryReader,
+): Promise<BlogPostTransformed[]> {
+  const found = await entities.listEntities<BlogPost>({
+    entityType: "post",
+    options: {
+      limit: 100,
+      filter: { metadata: { seriesName } },
+      sortFields: [{ field: "seriesIndex", direction: "asc" }],
+    },
+  });
+  return found.map(parsePostData);
+}
+
 /**
- * DataSource for fetching and transforming blog post entities.
- * Handles list views, detail views, series views, and latest post.
+ * Posts as a list, and one post with its neighbours and series context.
+ *
+ * The detail view reads entities because a post's siblings in its series
+ * are not its siblings in the feed order the list uses.
  */
-export class BlogDataSource extends BaseEntityDataSource<
+export const blogDataSource: EntityDataSourceDefinition<
   BlogPost,
   BlogPostTransformed,
-  BlogListData
-> {
-  readonly id = "blog:entities";
-  readonly name = "Blog Entity DataSource";
-  readonly description =
-    "Fetches and transforms blog post entities for rendering";
-
-  protected readonly config: EntityDataSourceConfig = {
-    entityType: "post",
-    defaultSort: [
-      { field: "publishedAt" as const, direction: "desc" as const },
-    ],
-    defaultLimit: 10,
-    enableNavigation: true,
-  };
-
-  constructor(logger: Logger) {
-    super(logger);
-    this.logger.debug("BlogDataSource initialized");
+  {
+    posts: BlogSchemaData[];
+    pagination: PaginationInfo | null;
+    baseUrl: string | null;
   }
-
-  protected override parseQuery(query: unknown): {
-    entityType: string;
-    query: BlogQuery;
-  } {
-    const parsed = blogInputSchema.parse(query);
-    return {
-      entityType: parsed.entityType ?? this.config.entityType,
-      query: parsed.query ?? {},
-    };
-  }
-
-  protected transformEntity(entity: BlogPost): BlogPostTransformed {
-    return parsePostData(entity);
-  }
-
-  protected override buildDetailResult(
-    item: BlogPostTransformed,
-    navigation: NavigationResult<BlogPostTransformed> | null,
-  ): BlogDetailData {
-    // Note: seriesPosts is added in the overridden fetch for detail views
+> = defineEntityDataSource({
+  id: "entities",
+  name: "Blog Entity DataSource",
+  description: "Fetches and transforms blog post entities for rendering",
+  entityType: "post",
+  defaultSort: [{ field: "publishedAt", direction: "desc" }],
+  defaultLimit: 10,
+  enableNavigation: true,
+  transform: (entity: BlogPost): BlogPostTransformed => parsePostData(entity),
+  list: (items: BlogPostTransformed[], pagination, query) => ({
+    posts: items.map((item) => blogViewSchema.parse(item)),
+    pagination,
+    baseUrl: query.baseUrl ?? null,
+  }),
+  detail: async ({ item, navigation, entities }) => {
+    const seriesName = item.frontmatter.seriesName;
     return {
       post: item,
       prevPost: navigation?.prev ?? null,
       nextPost: navigation?.next ?? null,
-      seriesPosts: null as BlogPostTransformed[] | null,
+      seriesPosts: seriesName
+        ? await postsInSeries(seriesName, entities)
+        : null,
     };
-  }
+  },
+});
 
-  protected buildListResult(
-    items: BlogPostTransformed[],
-    pagination: PaginationInfo | null,
-    query: BaseQuery,
-  ): BlogListData {
-    return {
-      posts: items.map((item) => blogViewSchema.parse(item)),
-      pagination,
-      baseUrl: query.baseUrl ?? null,
-    };
-  }
+const latestQuerySchema = z.looseObject({});
 
-  /**
-   * Override fetch to handle custom query cases: latest and series.
-   * Standard list/detail flows delegate to the base class.
-   */
-  override async fetch<T>(
-    query: unknown,
-    outputSchema: DataSourceSchema<T>,
-    context: BaseDataSourceContext,
-  ): Promise<T> {
-    const { query: parsedQuery } = this.parseQuery(query);
-    const entityService = context.entityService;
-
-    // Case 1: Fetch latest published post
-    if (parsedQuery.latest) {
-      return this.fetchLatestPost(outputSchema, entityService);
-    }
-
-    // Case 2: Fetch single post by slug — custom because it enriches with seriesPosts
-    if (parsedQuery.id) {
-      return this.fetchSinglePost(parsedQuery.id, outputSchema, entityService);
-    }
-
-    // Case 3: Fetch posts in a series
-    if (parsedQuery["metadata.seriesName"]) {
-      return this.fetchSeriesPosts(
-        parsedQuery["metadata.seriesName"],
-        outputSchema,
-        entityService,
-      );
-    }
-
-    // Case 4: Standard paginated list
-    const { items, pagination } = await this.fetchList(
-      parsedQuery,
-      entityService,
-    );
-    return outputSchema.parse(
-      this.buildListResult(items, pagination, parsedQuery),
-    );
-  }
-
-  // ── Custom cases ──
-
-  /**
-   * Fetch the latest published blog post.
-   * Returns in detail format without navigation.
-   */
-  private async fetchLatestPost<T>(
-    outputSchema: DataSourceSchema<T>,
-    entityService: IEntityService,
-  ): Promise<T> {
-    const publishedPosts = await entityService.listEntities<BlogPost>({
-      entityType: this.config.entityType,
+/**
+ * The most recent published post, in the same shape as a detail view so a
+ * homepage can render it with the detail template.
+ */
+export const blogLatestDataSource: DataSourceDefinition = defineDataSource({
+  id: "latest",
+  name: "Latest Blog Post DataSource",
+  description: "Fetches the most recently published post",
+  fetch: async (query, entities) => {
+    latestQuerySchema.parse(query ?? {});
+    const published = await entities.listEntities<BlogPost>({
+      entityType: "post",
       options: {
         limit: 1,
         sortFields: [{ field: "publishedAt", direction: "desc" }],
       },
     });
 
-    if (publishedPosts.length === 0) {
-      this.logger.info("No published blog posts found for homepage");
-      throw new Error("NO_PUBLISHED_POSTS");
-    }
+    const latest = published[0];
+    // A brain with no posts yet is not an error the page can render around,
+    // so this stays the sentinel the caller already handles.
+    if (!latest) throw new Error("NO_PUBLISHED_POSTS");
 
-    const latestEntity = publishedPosts[0];
-    if (!latestEntity) {
-      throw new Error("Failed to retrieve latest blog post");
-    }
-
-    const post = parsePostData(latestEntity);
-    const seriesPosts = await this.fetchSeriesPostsForEntity(
-      latestEntity,
-      entityService,
-    );
-
-    return outputSchema.parse({
+    const post = parsePostData(latest);
+    const seriesName = post.frontmatter.seriesName;
+    return {
       post,
       prevPost: null,
       nextPost: null,
-      seriesPosts,
-    });
-  }
+      seriesPosts: seriesName
+        ? await postsInSeries(seriesName, entities)
+        : null,
+    };
+  },
+});
 
-  /**
-   * Fetch a single blog post by slug with prev/next navigation and series context.
-   * Parallelizes navigation and series fetch after the initial entity lookup.
-   */
-  private async fetchSinglePost<T>(
-    slug: string,
-    outputSchema: DataSourceSchema<T>,
-    entityService: IEntityService,
-  ): Promise<T> {
-    // Look up the entity first (needed to know seriesName and for navigation)
-    const entity = await this.lookupEntity(slug, entityService);
-    const item = this.transformEntity(entity);
+const seriesQuerySchema = z.looseObject({
+  seriesName: z.string(),
+  baseUrl: z.string().optional(),
+});
 
-    // Navigation and series fetch are independent — run in parallel
-    const [navigation, seriesPosts] = await Promise.all([
-      this.config.enableNavigation
-        ? this.resolveNavigation(entity, entityService)
-        : Promise.resolve(null),
-      item.frontmatter.seriesName
-        ? this.fetchPostsBySeries(item.frontmatter.seriesName, entityService)
-        : Promise.resolve(null),
-    ]);
-
-    return outputSchema.parse({
-      post: item,
-      prevPost: navigation?.prev ?? null,
-      nextPost: navigation?.next ?? null,
-      seriesPosts,
-    });
-  }
-
-  private async fetchPostsBySeries(
-    seriesName: string,
-    entityService: IEntityService,
-  ): Promise<BlogPostTransformed[]> {
-    const entities = await entityService.listEntities<BlogPost>({
-      entityType: this.config.entityType,
-      options: {
-        limit: 100,
-        filter: { metadata: { seriesName } },
-        sortFields: [{ field: "seriesIndex", direction: "asc" }],
-      },
-    });
-    return entities.map(parsePostData);
-  }
-
-  private async fetchSeriesPostsForEntity(
-    entity: BlogPost,
-    entityService: IEntityService,
-  ): Promise<BlogPostTransformed[] | null> {
-    const seriesName = entity.metadata.seriesName;
-    if (!seriesName) return null;
-    return this.fetchPostsBySeries(seriesName, entityService);
-  }
-
-  private async fetchSeriesPosts<T>(
-    seriesName: string,
-    outputSchema: DataSourceSchema<T>,
-    entityService: IEntityService,
-  ): Promise<T> {
-    const posts = await this.fetchPostsBySeries(seriesName, entityService);
-    return outputSchema.parse({ seriesName, posts });
-  }
-}
+/** Every post in one series, in reading order. */
+export const blogSeriesDataSource: DataSourceDefinition = defineDataSource({
+  id: "series",
+  name: "Blog Series DataSource",
+  description: "Fetches the posts of one series in reading order",
+  fetch: async (query, entities) => {
+    const params = seriesQuerySchema.parse(query ?? {});
+    const posts = await postsInSeries(params.seriesName, entities);
+    return {
+      seriesName: params.seriesName,
+      posts: posts.map((post) => blogViewSchema.parse(post)),
+      pagination: null,
+      baseUrl: params.baseUrl ?? null,
+    };
+  },
+});

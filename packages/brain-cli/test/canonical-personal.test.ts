@@ -173,7 +173,8 @@ describe("canonical personal bundles", () => {
       {},
       canonicalOverrides({ bundles: ["core", "publishing"] }),
     );
-    expect(pluginIds(publishingOnly)).toContain("blog");
+    // Declaratively-authored packages scope their plugin ids to the package.
+    expect(pluginIds(publishingOnly)).toContain("@brains/blog:post");
     expect(pluginIds(publishingOnly)).toContain("atproto");
     expect(pluginIds(publishingOnly)).not.toContain("site-builder");
   });

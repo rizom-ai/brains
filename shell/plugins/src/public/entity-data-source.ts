@@ -218,10 +218,15 @@ function entityQueryReader(entityService: {
 }
 
 /** Bind a general declared data source to the runtime. */
+/** Always provides fetch, unlike the optional member on DataSource. */
+export type FetchingDataSource = DataSource & {
+  fetch: NonNullable<DataSource["fetch"]>;
+};
+
 export function createDeclarativeDataSource(
   definition: DataSourceDefinition,
   scopedId: string,
-): DataSource {
+): FetchingDataSource {
   return {
     id: scopedId,
     name: definition.name,

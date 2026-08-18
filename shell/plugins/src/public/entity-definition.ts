@@ -8,6 +8,9 @@ import type {
   AnyEntityDefinition,
   EntityAttachmentDeclaration,
   EntityCreateRouting,
+  EntityPublishAssetDeclaration,
+  EntityFeedDeclaration,
+  EntityOf,
   EntityPublishDeclaration,
   EntityDefinition,
   EntityEvalDeclaration,
@@ -64,6 +67,10 @@ export function defineEntity<
   readonly instructions?: string | undefined;
   readonly create?: EntityCreateRouting | undefined;
   readonly publish?: EntityPublishDeclaration | undefined;
+  readonly publishAssets?: readonly EntityPublishAssetDeclaration[] | undefined;
+  readonly feed?:
+    | EntityFeedDeclaration<EntityOf<EntityDefinition<TType, TMetadataSchema>>>
+    | undefined;
 }): EntityDefinition<TType, TMetadataSchema> {
   assertLocalId(definition.type, "Entity type");
   if (!definition.purpose.trim()) {

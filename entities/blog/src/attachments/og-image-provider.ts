@@ -12,6 +12,8 @@ import {
   type BlogOgImageTemplateData,
 } from "./og-image-template";
 
+export { BLOG_OG_IMAGE_ATTACHMENT_TYPE };
+
 export const createBlogOgImageProvider: OgImageProviderFactory =
   createOgImageProvider<BlogPost, BlogOgImageTemplateData>({
     sourceEntityType: "post",

@@ -4,7 +4,35 @@ import {
   type BlogPostStatus,
 } from "../schemas/blog-post";
 
-interface BlogViewMetadata {
+// The schemas are the source of truth; every type here is derived from one
+// with z.output. That also gives the rendered shapes the implicit index
+// signature JsonObject requires, which a hand-written interface would not
+// have.
+
+type Visibility = "public" | "shared" | "restricted";
+
+const nullableString = (): z.ZodType<
+  string | null,
+  string | null | undefined
+> => z.string().nullable().default(null);
+const nullableNumber = (): z.ZodType<
+  number | null,
+  number | null | undefined
+> => z.number().nullable().default(null);
+
+const visibilitySchema: z.ZodType<
+  Visibility,
+  Visibility | "private" | undefined
+> = z
+  .union([z.enum(["public", "shared", "restricted"]), z.literal("private")])
+  .optional()
+  .transform((value) => {
+    if (value === undefined) return "public" as const;
+    if (value === "private") return "restricted" as const;
+    return value;
+  });
+
+const metadataSchema: z.ZodType<{
   title: string;
   status: BlogPostStatus;
   publishedAt: string | null;
@@ -12,9 +40,17 @@ interface BlogViewMetadata {
   seriesIndex: number | null;
   slug: string;
   error: string | null;
-}
+}> = z.object({
+  title: z.string(),
+  status: blogPostStatusSchema,
+  publishedAt: nullableString(),
+  seriesName: nullableString(),
+  seriesIndex: nullableNumber(),
+  slug: z.string(),
+  error: nullableString(),
+});
 
-interface BlogViewFrontmatter {
+const frontmatterSchema: z.ZodType<{
   title: string;
   slug: string | null;
   status: BlogPostStatus;
@@ -30,15 +66,37 @@ interface BlogViewFrontmatter {
   twitterCard: "summary" | "summary_large_image" | null;
   canonicalUrl: string | null;
   atprotoUri: string | null;
-}
+}> = z.object({
+  title: z.string(),
+  slug: nullableString(),
+  status: blogPostStatusSchema,
+  publishedAt: nullableString(),
+  excerpt: z.string(),
+  author: z.string(),
+  coverImageId: nullableString(),
+  ogImageId: nullableString(),
+  seriesName: nullableString(),
+  seriesIndex: nullableNumber(),
+  ogImage: nullableString(),
+  ogDescription: nullableString(),
+  twitterCard: z
+    .enum(["summary", "summary_large_image"])
+    .nullable()
+    .default(null),
+  canonicalUrl: nullableString(),
+  atprotoUri: nullableString(),
+});
 
-export interface BlogSchemaData {
+export type BlogViewMetadata = z.output<typeof metadataSchema>;
+export type BlogViewFrontmatter = z.output<typeof frontmatterSchema>;
+
+export const blogViewSchema: z.ZodType<{
   id: string;
   entityType: "post";
   content: string;
   created: string;
   updated: string;
-  visibility: "public" | "shared" | "restricted";
+  visibility: Visibility;
   metadata: BlogViewMetadata;
   contentHash: string;
   frontmatter: BlogViewFrontmatter;
@@ -54,52 +112,7 @@ export interface BlogSchemaData {
   coverImageHeight: number | null;
   coverImageSrcset: string | null;
   coverImageSizes: string | null;
-}
-
-const nullableString = z.string().nullable().default(null);
-const nullableNumber = z.number().nullable().default(null);
-
-const visibilitySchema = z
-  .union([z.enum(["public", "shared", "restricted"]), z.literal("private")])
-  .optional()
-  .transform((value) => {
-    if (value === undefined) return "public" as const;
-    if (value === "private") return "restricted" as const;
-    return value;
-  });
-
-const metadataSchema = z.object({
-  title: z.string(),
-  status: blogPostStatusSchema,
-  publishedAt: nullableString,
-  seriesName: nullableString,
-  seriesIndex: nullableNumber,
-  slug: z.string(),
-  error: nullableString,
-});
-
-const frontmatterSchema = z.object({
-  title: z.string(),
-  slug: nullableString,
-  status: blogPostStatusSchema,
-  publishedAt: nullableString,
-  excerpt: z.string(),
-  author: z.string(),
-  coverImageId: nullableString,
-  ogImageId: nullableString,
-  seriesName: nullableString,
-  seriesIndex: nullableNumber,
-  ogImage: nullableString,
-  ogDescription: nullableString,
-  twitterCard: z
-    .enum(["summary", "summary_large_image"])
-    .nullable()
-    .default(null),
-  canonicalUrl: nullableString,
-  atprotoUri: nullableString,
-});
-
-export const blogViewSchema: z.ZodType<BlogSchemaData> = z.object({
+}> = z.object({
   id: z.string(),
   entityType: z.literal("post"),
   content: z.string(),
@@ -110,18 +123,20 @@ export const blogViewSchema: z.ZodType<BlogSchemaData> = z.object({
   contentHash: z.string(),
   frontmatter: frontmatterSchema,
   body: z.string(),
-  url: nullableString,
-  typeLabel: nullableString,
-  listUrl: nullableString,
-  listLabel: nullableString,
-  seriesUrl: nullableString,
-  coverImageUrl: nullableString,
-  ogImageUrl: nullableString,
-  coverImageWidth: nullableNumber,
-  coverImageHeight: nullableNumber,
-  coverImageSrcset: nullableString,
-  coverImageSizes: nullableString,
+  url: nullableString(),
+  typeLabel: nullableString(),
+  listUrl: nullableString(),
+  listLabel: nullableString(),
+  seriesUrl: nullableString(),
+  coverImageUrl: nullableString(),
+  ogImageUrl: nullableString(),
+  coverImageWidth: nullableNumber(),
+  coverImageHeight: nullableNumber(),
+  coverImageSrcset: nullableString(),
+  coverImageSizes: nullableString(),
 });
+
+export type BlogSchemaData = z.output<typeof blogViewSchema>;
 
 export type BlogPostView = Omit<
   BlogSchemaData,

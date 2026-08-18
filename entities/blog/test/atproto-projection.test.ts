@@ -9,7 +9,7 @@ import {
 } from "@brains/test-utils";
 import { createPluginHarness } from "@brains/plugins/test";
 import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
-import { BlogPlugin } from "../src/plugin";
+import { postEntityPlugin } from "./helpers/install";
 import { createBlogAtprotoProjection } from "../src/atproto-projection";
 import { createMockPost } from "./fixtures/blog-entities";
 
@@ -148,11 +148,11 @@ describe("blog ATProto projection", () => {
   });
 
   it("registers the blog projection when the blog plugin registers", async () => {
-    const harness = createPluginHarness<BlogPlugin>({
+    const harness = createPluginHarness({
       dataDir: "/tmp/test-blog",
     });
 
-    await harness.installPlugin(new BlogPlugin({}));
+    await harness.installPlugin(postEntityPlugin());
 
     const projection = AtprotoProjectionRegistry.getInstance().get("post");
     expect(projection?.collection).toBe("ai.rizom.brain.post");

@@ -1,5 +1,13 @@
 import { describe, it, expect, beforeEach, spyOn } from "bun:test";
-import { BlogDataSource } from "../src/datasources/blog-datasource";
+import {
+  blogDataSource,
+  blogLatestDataSource,
+  blogSeriesDataSource,
+} from "../src/datasources/blog-datasource";
+import {
+  createDeclarativeDataSource,
+  createDeclarativeEntityDataSource,
+} from "@brains/plugins";
 import type { IEntityService, BaseDataSourceContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
@@ -44,7 +52,9 @@ const paginatedListSchema = z.object({
 });
 
 describe("BlogDataSource", () => {
-  let datasource: BlogDataSource;
+  let datasource: ReturnType<typeof createDeclarativeEntityDataSource>;
+  let latestSource: ReturnType<typeof createDeclarativeDataSource>;
+  let seriesSource: ReturnType<typeof createDeclarativeDataSource>;
   let mockEntityService: IEntityService;
   let mockLogger: Logger;
   let mockContext: BaseDataSourceContext;
@@ -54,7 +64,19 @@ describe("BlogDataSource", () => {
     mockEntityService = createMockEntityService();
     mockContext = { entityService: mockEntityService };
 
-    datasource = new BlogDataSource(mockLogger);
+    datasource = createDeclarativeEntityDataSource(
+      blogDataSource,
+      "@brains/blog:entities",
+      mockLogger,
+    );
+    latestSource = createDeclarativeDataSource(
+      blogLatestDataSource,
+      "@brains/blog:latest",
+    );
+    seriesSource = createDeclarativeDataSource(
+      blogSeriesDataSource,
+      "@brains/blog:series",
+    );
   });
 
   describe("fetchLatestPost", () => {
@@ -68,8 +90,8 @@ describe("BlogDataSource", () => {
       );
       spyOn(mockEntityService, "listEntities").mockResolvedValue([latestPost]);
 
-      const result = await datasource.fetch(
-        { entityType: "post", query: { latest: true } },
+      const result = await latestSource.fetch(
+        {},
         singlePostSchema,
         mockContext,
       );
@@ -93,8 +115,8 @@ describe("BlogDataSource", () => {
         latestPublished,
       ]);
 
-      const result = await datasource.fetch(
-        { entityType: "post", query: { latest: true } },
+      const result = await latestSource.fetch(
+        {},
         singlePostSchema,
         mockContext,
       );
@@ -107,11 +129,7 @@ describe("BlogDataSource", () => {
       spyOn(mockEntityService, "listEntities").mockResolvedValue([]);
 
       expect(
-        datasource.fetch(
-          { entityType: "post", query: { latest: true } },
-          singlePostSchema,
-          mockContext,
-        ),
+        latestSource.fetch({}, singlePostSchema, mockContext),
       ).rejects.toThrow("NO_PUBLISHED_POSTS");
     });
 
@@ -158,8 +176,8 @@ describe("BlogDataSource", () => {
         .mockResolvedValueOnce([latestPost])
         .mockResolvedValueOnce(seriesPosts);
 
-      const result = await datasource.fetch(
-        { entityType: "post", query: { latest: true } },
+      const result = await latestSource.fetch(
+        {},
         singlePostSchema,
         mockContext,
       );
@@ -191,8 +209,11 @@ describe("BlogDataSource", () => {
         }),
       ];
 
+      // Three reads, in order: the slug lookup, the sibling list the detail
+      // view is given, then prev/next navigation.
       spyOn(mockEntityService, "listEntities")
         .mockResolvedValueOnce([targetPost])
+        .mockResolvedValueOnce(allPostsSorted)
         .mockResolvedValueOnce(allPostsSorted);
 
       const result = await datasource.fetch(
@@ -287,8 +308,11 @@ describe("BlogDataSource", () => {
         ),
       ];
 
+      // Four reads: the slug lookup, the sibling list, prev/next navigation,
+      // then the post's series.
       spyOn(mockEntityService, "listEntities")
         .mockResolvedValueOnce([targetPost])
+        .mockResolvedValueOnce(allPostsSorted)
         .mockResolvedValueOnce(allPostsSorted)
         .mockResolvedValueOnce(seriesPosts);
 
@@ -320,8 +344,11 @@ describe("BlogDataSource", () => {
         }),
       ];
 
+      // Three reads, in order: the slug lookup, the sibling list the detail
+      // view is given, then prev/next navigation.
       spyOn(mockEntityService, "listEntities")
         .mockResolvedValueOnce([targetPost])
+        .mockResolvedValueOnce(allPostsSorted)
         .mockResolvedValueOnce(allPostsSorted);
 
       const result = await datasource.fetch(
@@ -351,8 +378,11 @@ describe("BlogDataSource", () => {
         targetPost,
       ];
 
+      // Three reads, in order: the slug lookup, the sibling list the detail
+      // view is given, then prev/next navigation.
       spyOn(mockEntityService, "listEntities")
         .mockResolvedValueOnce([targetPost])
+        .mockResolvedValueOnce(allPostsSorted)
         .mockResolvedValueOnce(allPostsSorted);
 
       const result = await datasource.fetch(
@@ -559,8 +589,8 @@ describe("BlogDataSource", () => {
         posts: z.array(z.any()),
       });
 
-      const result = await datasource.fetch(
-        { entityType: "post", query: { "metadata.seriesName": "My Series" } },
+      const result = await seriesSource.fetch(
+        { seriesName: "My Series" },
         schema,
         mockContext,
       );
@@ -600,8 +630,8 @@ describe("BlogDataSource", () => {
         posts: z.array(z.any()),
       });
 
-      const result = await datasource.fetch(
-        { entityType: "post", query: { "metadata.seriesName": "My Series" } },
+      const result = await seriesSource.fetch(
+        { seriesName: "My Series" },
         schema,
         mockContext,
       );
@@ -618,11 +648,8 @@ describe("BlogDataSource", () => {
         posts: z.array(z.any()),
       });
 
-      const result = await datasource.fetch(
-        {
-          entityType: "post",
-          query: { "metadata.seriesName": "Empty Series" },
-        },
+      const result = await seriesSource.fetch(
+        { seriesName: "Empty Series" },
         schema,
         mockContext,
       );
@@ -662,8 +689,8 @@ describe("BlogDataSource", () => {
         posts: z.array(z.any()),
       });
 
-      const result = await datasource.fetch(
-        { entityType: "post", query: { "metadata.seriesName": "My Series" } },
+      const result = await seriesSource.fetch(
+        { seriesName: "My Series" },
         schema,
         mockContext,
       );
@@ -849,7 +876,7 @@ describe("BlogDataSource", () => {
 
   describe("metadata", () => {
     it("should have correct datasource ID", () => {
-      expect(datasource.id).toBe("blog:entities");
+      expect(datasource.id).toBe("@brains/blog:entities");
     });
 
     it("should have descriptive name and description", () => {

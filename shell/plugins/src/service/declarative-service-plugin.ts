@@ -142,6 +142,7 @@ function runtimeJobHandler(
         ai: context.ai,
         logger: context.logger,
         conversations: context.conversations,
+        identity: context.identity,
         messaging: {
           async publish(message): Promise<void> {
             await context.messaging.send({

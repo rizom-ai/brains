@@ -130,6 +130,7 @@ describe("portfolio package", () => {
       logger: harness.getMockShell().getLogger(),
       entities,
       conversations: { get: async () => null },
+      identity: harness.getEntityContext("test").identity,
       messaging: { publish: async (): Promise<void> => {} },
       progress: { report: async (): Promise<void> => {} },
       signal: new AbortController().signal,

@@ -1,5 +1,27 @@
-export { BlogPlugin, blogPlugin } from "./plugin";
-export { blogConfigSchema, type BlogConfig } from "./config";
+/**
+ * Blog package.
+ *
+ * One entity: a published post. No configuration, so this is an entity
+ * package rather than a service one.
+ */
+
+import {
+  defineEntityPackage,
+  type EntityPackageDefinition,
+} from "@brains/plugins";
+import { post } from "./post-entity";
+
+const blogPackage: EntityPackageDefinition<
+  readonly [typeof post],
+  readonly []
+> = defineEntityPackage({ id: "blog", entities: [post] });
+
+export default blogPackage;
+
+export { post } from "./post-entity";
+export { postGeneration } from "./handlers/blogGenerationJobHandler";
+export { postToFeedItem } from "./lib/feed";
+
 export {
   blogPostSchema,
   blogPostWithDataSchema,
