@@ -30,6 +30,12 @@ function createPost(
   };
 }
 
+/**
+ * Stand-in for a canonical brain lexicon. It declares the same envelope the
+ * real ones do, because record schemas reject fields their lexicon does not
+ * declare — a stub narrower than what the projections under test emit would
+ * fail for a reason unrelated to the behaviour being tested.
+ */
 function createLexicon(id: string): AtprotoLexicon {
   return {
     lexicon: 1,
@@ -42,7 +48,16 @@ function createLexicon(id: string): AtprotoLexicon {
           type: "object",
           properties: {
             title: { type: "string" },
+            body: { type: "string" },
+            format: { type: "string" },
+            url: { type: "string", format: "uri" },
+            topics: { type: "array", items: { type: "string" } },
+            brainDid: { type: "string", format: "did" },
+            anchorDid: { type: "string", format: "did" },
+            sourceEntityType: { type: "string" },
+            sourceEntityId: { type: "string" },
             createdAt: { type: "string", format: "datetime" },
+            updatedAt: { type: "string", format: "datetime" },
           },
         },
       },

@@ -133,79 +133,24 @@ function buildAtprotoObjectShape(
   return shape;
 }
 
+// Records are a wire contract: a field the lexicon does not declare has no
+// agreed meaning, so it is rejected rather than carried along. The allowed key
+// set comes from the lexicon itself, which is why this holds for nested objects
+// and for lexicons added later without anyone maintaining a list.
 function buildAtprotoObjectSchema(
   property: AtprotoSchemaProperty | AtprotoLexiconObjectDef,
   defs: AtprotoLexicon["defs"],
 ): AtprotoRecordSchema {
-  return z.object(buildAtprotoObjectShape(property, defs)).passthrough();
-}
-
-function reportUnexpectedFields(
-  value: Record<string, unknown>,
-  allowedFields: Set<string>,
-  ctx: z.RefinementCtx,
-  path: Array<string | number> = [],
-): void {
-  const unexpected = Object.keys(value).filter(
-    (key) => !allowedFields.has(key),
-  );
-  if (unexpected.length === 0) return;
-  ctx.addIssue({
-    code: z.ZodIssueCode.custom,
-    path,
-    message: `unrecognized field(s): ${unexpected.join(", ")}`,
-  });
-}
-
-function refineBrainCardRecord(
-  value: Record<string, unknown>,
-  ctx: z.RefinementCtx,
-): void {
-  reportUnexpectedFields(
-    value,
-    new Set([
-      "$type",
-      "siteUrl",
-      "brain",
-      "anchor",
-      "skills",
-      "model",
-      "version",
-      "createdAt",
-      "updatedAt",
-    ]),
-    ctx,
-  );
-  if (isRecord(value["brain"])) {
-    reportUnexpectedFields(
-      value["brain"],
-      new Set(["did", "name", "role", "purpose", "values"]),
-      ctx,
-      ["brain"],
-    );
-  }
-  if (isRecord(value["anchor"])) {
-    reportUnexpectedFields(
-      value["anchor"],
-      new Set(["did", "name", "category", "kind"]),
-      ctx,
-      ["anchor"],
-    );
-  }
+  return z.strictObject(buildAtprotoObjectShape(property, defs));
 }
 
 export function buildAtprotoRecordSchema(
   lexicon: AtprotoLexicon,
 ): AtprotoRecordSchema {
-  const schema = z
-    .object({
-      ...buildAtprotoObjectShape(lexicon.defs.main.record, lexicon.defs),
-      $type: z.literal(lexicon.id).optional(),
-    })
-    .passthrough();
-  return lexicon.id === "ai.rizom.brain.card"
-    ? schema.superRefine(refineBrainCardRecord)
-    : schema;
+  return z.strictObject({
+    ...buildAtprotoObjectShape(lexicon.defs.main.record, lexicon.defs),
+    $type: z.literal(lexicon.id).optional(),
+  });
 }
 
 export type CanonicalAtprotoRecordSchemaId = CanonicalAtprotoLexiconId;
