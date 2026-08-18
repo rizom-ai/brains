@@ -14,6 +14,7 @@ import {
   defineJob,
   defineServicePlugin,
   instantiatePluginPackageDefinition,
+  SYSTEM_CHANNELS,
   type ServiceJobDefinition,
 } from "../src";
 
@@ -397,6 +398,91 @@ describe("service package declaring entities", () => {
 
     expect(enqueued).toEqual(["@fixture/bookmarks:capture:capture-bookmark"]);
     harness.reset();
+  });
+
+  // The entity-side `publish` slot takes a static provider, which is enough
+  // for a package that publishes to the site itself. A provider built from
+  // credentials cannot be static, so the service half declares it — the same
+  // reason `jobs` and `evals` are functions of config and the entity-side
+  // slots are not.
+  describe("a publish provider built from config", () => {
+    const linkedish = {
+      name: "linkedish",
+      publish: async (): Promise<{ id: string }> => ({ id: "remote-1" }),
+    };
+
+    function definePublishingPackage(): ReturnType<typeof defineServicePlugin> {
+      return defineServicePlugin({
+        id: "bookmarks",
+        config: z.object({ accessToken: z.string().optional() }),
+        entities: [bookmark],
+        publish: ({ config }) =>
+          config.accessToken
+            ? [
+                {
+                  entityType: "bookmark",
+                  provider: linkedish,
+                  resultIdField: "platformPostId",
+                },
+              ]
+            : [],
+      });
+    }
+
+    async function installWith(
+      config: object,
+    ): Promise<{
+      registered: unknown[];
+      harness: ReturnType<typeof createPluginHarness>;
+    }> {
+      const plugins = instantiatePluginPackageDefinition(
+        definePublishingPackage(),
+        config,
+        { name: "@fixture/bookmarks", version: "0.1.0" },
+      );
+      const harness = createPluginHarness({
+        logger: createSilentLogger("service-publish-test"),
+      });
+      const registered: unknown[] = [];
+      harness.subscribe("publish:register", async (msg) => {
+        registered.push(msg.payload);
+        return { success: true };
+      });
+      for (const plugin of plugins) await harness.installPlugin(plugin);
+      return { registered, harness };
+    }
+
+    it("announces the provider once the pipeline is listening", async () => {
+      const { registered, harness } = await installWith({
+        accessToken: "token-1",
+      });
+
+      // Same deferral the entity slot makes: nothing is announced before the
+      // pipeline has had its chance to subscribe.
+      expect(registered).toHaveLength(0);
+
+      await harness.sendMessage(SYSTEM_CHANNELS.pluginsRegistered, {});
+
+      expect(registered).toEqual([
+        {
+          entityType: "bookmark",
+          provider: linkedish,
+          config: { publishResultIdField: "platformPostId" },
+        },
+      ]);
+
+      harness.reset();
+    });
+
+    it("announces nothing when config supplies no credentials", async () => {
+      const { registered, harness } = await installWith({});
+
+      await harness.sendMessage(SYSTEM_CHANNELS.pluginsRegistered, {});
+
+      expect(registered).toEqual([]);
+
+      harness.reset();
+    });
   });
 
   it("still emits only a service plugin when no entities are declared", () => {

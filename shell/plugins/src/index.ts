@@ -338,6 +338,7 @@ export {
   type ServiceJobReference,
   type ServiceJobStatus,
   type ServicePackageDefinition,
+  type ServicePublishDeclaration,
   type WorkspaceActionConfirmation,
   type WorkspaceActionDefinition,
   type WorkspacePreparedConfirmation,
