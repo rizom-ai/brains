@@ -2,9 +2,9 @@
 
 ## Status
 
-Active — implementation Phases 0–6 are complete locally and Phase 7 acceptance is
-pending. The packaged primary recovery and full-runtime fallback gates passed on affected
-Bun 1.3.11 after rebasing onto `origin/main`; Bun 1.3.14, scheduled acceptance, PR merge,
+Active — implementation Phases 0–7 are complete. Local Phase 6 passed on affected Bun
+1.3.11, and the approved packaged/scheduled Phase 7 matrix passed on affected Bun 1.3.14
+in run 32105478832. The first immutable fixed Bun stable is still unavailable; PR merge,
 release, deployment, and smoke validation have not run. This plan owns **Git runtime safety
 only**. Directory-sync import performance, AI-call
 fan-out, queue throughput, and the 350-file performance gates stay in
@@ -526,7 +526,16 @@ is retained as a failed gate. Packaged recovery, fallback, feature resources, an
 retried unchanged: the full application bundle duplicated about 149 MB of avoidable broker
 RSS and crossed the unchanged 1.28 GiB soak ceiling, while the source recovery fixture used
 a broker PID file before its replacement socket was ready. The broker now has a lightweight
-entrypoint and the fixture waits on the endpoint itself; a changed-tree rerun remains pending.
+entrypoint and the fixture waits on the endpoint itself.
+
+The changed-tree rerun,
+[32105478832](https://github.com/rizom-ai/brains/actions/runs/32105478832), passed the
+complete matrix on Bun 1.3.14: packaged recovery and fallback, 100 cycles/300 Git
+operations with zero observed lost completions or zombies, the feature resource gate,
+three unchanged 350-file add/update/delayed-update/delete soaks, full core lint/typecheck/
+unit/build, startup checks, and package creation. All three soaks retained routing and
+operational health, process-role continuity, queue/deletion convergence, and the existing
+1.28 GiB RSS ceiling; peak RSS was 1,190,072,320, 1,209,253,888, and 1,210,306,560 bytes.
 
 Run the same matrix on the first immutable fixed Bun release when available. The fixed
 runtime is defense in depth, not permission to skip affected-runtime recovery evidence.
