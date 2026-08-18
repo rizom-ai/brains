@@ -1,5 +1,5 @@
 import { BaseGenerationJobHandler, ensureUniqueTitle } from "@brains/plugins";
-import { GENERATE_CHANNELS, IMAGE_CHANNELS } from "@brains/contracts";
+import { GENERATE_CHANNELS } from "@brains/contracts";
 import type { GeneratedContent } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import type { ProgressReporter } from "@brains/utils/progress";
@@ -38,7 +38,6 @@ export interface GenerationJobData {
   title?: string | undefined;
   content?: string | undefined;
   addToQueue?: boolean | undefined;
-  generateImage?: boolean | undefined;
   coverImage?: CoverImageJobData | undefined;
 }
 
@@ -53,13 +52,9 @@ export const generationJobSchema: z.ZodType<GenerationJobData> = z.object({
     .describe("Required when content is provided directly"),
   content: z.string().optional(),
   addToQueue: z.boolean().optional(),
-  generateImage: z
-    .boolean()
-    .optional()
-    .describe("Auto-generate cover image for post"),
   coverImage: coverImageJobSchema
     .optional()
-    .describe("Generic cover image generation request"),
+    .describe("Cover image generation request"),
 });
 
 export const socialMediaGenerationResultSchema: ReturnType<
@@ -83,6 +78,7 @@ export class GenerationJobHandler extends BaseGenerationJobHandler<
       schema: generationJobSchema,
       jobTypeName: "social-post-generation",
       entityType: "social-post",
+      coverImagePrompt: (title) => `Social media graphic for: ${title}`,
     });
   }
 
@@ -288,35 +284,11 @@ ${sourceEntity.content}`,
   }
 
   protected override async afterCreate(
-    data: GenerationJobData,
+    _data: GenerationJobData,
     entityId: string,
-    progressReporter: ProgressReporter,
-    generated: GeneratedContent,
+    _progressReporter: ProgressReporter,
+    _generated: GeneratedContent,
   ): Promise<void> {
-    // Queue image generation if requested
-    if (data.generateImage) {
-      await this.reportProgress(progressReporter, {
-        progress: 90,
-        message: "Queueing image generation",
-      });
-
-      const title = generated.title ?? "Social Post";
-      await this.context.jobs.enqueue({
-        type: IMAGE_CHANNELS.generate,
-        data: {
-          prompt: `Social media graphic for: ${title}`,
-          title: `${title} Image`,
-          aspectRatio: "16:9",
-          targetEntityType: "social-post",
-          targetEntityId: entityId,
-        },
-        toolContext: {
-          interfaceType: "job",
-          actor: { kind: "service", serviceId: "social-media-generation" },
-        },
-      });
-    }
-
     await this.context.messaging.send({
       type: GENERATE_CHANNELS.reportSuccess,
       payload: {
@@ -334,7 +306,6 @@ ${sourceEntity.content}`,
       hasPrompt: !!data.prompt,
       sourceEntityType: data.sourceEntityType,
       addToQueue: data.addToQueue ?? false,
-      generateImage: data.generateImage ?? false,
       coverImage: !!data.coverImage,
     };
   }

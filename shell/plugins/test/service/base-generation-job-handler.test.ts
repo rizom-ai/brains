@@ -16,6 +16,9 @@ import {
 const testJobSchema = z.object({
   entityId: z.string().optional(),
   shouldFail: z.boolean().optional(),
+  coverImage: z
+    .union([z.boolean(), z.object({ prompt: z.string().optional() })])
+    .optional(),
 });
 
 type TestJobData = z.output<typeof testJobSchema>;
@@ -88,6 +91,33 @@ class ConflictGenerationHandler extends BaseGenerationJobHandler<
       content:
         "---\ncategory: generated-category\nstatus: draft\n---\nGenerated body",
       metadata: { title: "Generated", status: "draft" },
+      title: "Generated",
+    };
+  }
+}
+
+/**
+ * An entity whose cover image is described in its own words rather than the
+ * runtime's editorial default.
+ */
+class CustomPromptGenerationHandler extends BaseGenerationJobHandler<
+  TestJobData,
+  GenerationResult
+> {
+  constructor(context: EntityPluginContext) {
+    super(context.logger, context, {
+      schema: testJobSchema,
+      jobTypeName: "custom-prompt-generation",
+      entityType: "social-post",
+      coverImagePrompt: (title) => `Social media graphic for: ${title}`,
+    });
+  }
+
+  protected async generate(): Promise<GeneratedContent> {
+    return {
+      id: "generated-id",
+      content: "Generated body",
+      metadata: { title: "Generated" },
       title: "Generated",
     };
   }
@@ -300,5 +330,77 @@ describe("BaseGenerationJobHandler", () => {
     expect(updatedEntity?.metadata["error"]).toBe("planned failure");
     expect(updatedEntity?.content).toContain("status: failed");
     expect(updatedEntity?.content).toContain("error: planned failure");
+  });
+
+  describe("cover image requests", () => {
+    function enqueuedCoverImage(
+      context: ReturnType<typeof createMockEntityPluginContext>,
+    ): { type: string; data: Record<string, unknown> } | undefined {
+      const call = context.jobs.enqueue.mock.calls.find(
+        ([request]) => request.type === "image:image-generate",
+      );
+      if (!call) return undefined;
+      const [request] = call;
+      return {
+        type: request.type,
+        data: request.data as Record<string, unknown>,
+      };
+    }
+
+    it("queues no image when the job asks for none", async () => {
+      const context = createMockEntityPluginContext();
+      const handler = new TestGenerationHandler(context);
+
+      await handler.process({}, "job-1", createProgressReporter());
+
+      expect(enqueuedCoverImage(context)).toBeUndefined();
+    });
+
+    it("describes the image in the runtime's editorial words by default", async () => {
+      const context = createMockEntityPluginContext();
+      const handler = new TestGenerationHandler(context);
+
+      await handler.process(
+        { coverImage: true },
+        "job-1",
+        createProgressReporter(),
+      );
+
+      expect(enqueuedCoverImage(context)?.data["prompt"]).toBe(
+        "Editorial cover image for: Generated. ",
+      );
+    });
+
+    // The words belong to the entity, not the runtime: a social post wants a
+    // graphic, not an editorial cover.
+    it("lets the entity describe its own cover image", async () => {
+      const context = createMockEntityPluginContext();
+      const handler = new CustomPromptGenerationHandler(context);
+
+      await handler.process(
+        { coverImage: true },
+        "job-1",
+        createProgressReporter(),
+      );
+
+      const enqueued = enqueuedCoverImage(context);
+      expect(enqueued?.data["prompt"]).toBe(
+        "Social media graphic for: Generated",
+      );
+      expect(enqueued?.data["targetEntityType"]).toBe("social-post");
+    });
+
+    it("prefers a prompt the caller supplied over the entity's template", async () => {
+      const context = createMockEntityPluginContext();
+      const handler = new CustomPromptGenerationHandler(context);
+
+      await handler.process(
+        { coverImage: { prompt: "A red bicycle" } },
+        "job-1",
+        createProgressReporter(),
+      );
+
+      expect(enqueuedCoverImage(context)?.data["prompt"]).toBe("A red bicycle");
+    });
   });
 });
