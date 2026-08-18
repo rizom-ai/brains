@@ -1,7 +1,7 @@
 {
   "name": "@brains/blog",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.304",
+  "version": "0.2.0-alpha.305",
   "description": "AI-powered blog post generation from existing brain content",
   "dependencies": {
     "@brains/atproto-contracts": "workspace:*",

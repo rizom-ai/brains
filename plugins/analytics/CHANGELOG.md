@@ -1,5 +1,14 @@
 # @brains/analytics
 
+## 0.2.0-alpha.305
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.305
+  - @brains/contracts@0.2.0-alpha.305
+  - @brains/utils@0.2.0-alpha.305
+
 ## 0.2.0-alpha.304
 
 ### Patch Changes

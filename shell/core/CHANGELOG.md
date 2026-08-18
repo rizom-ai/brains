@@ -1,5 +1,26 @@
 # @brains/core
 
+## 0.2.0-alpha.305
+
+### Patch Changes
+
+- [`f89fd53`](https://github.com/rizom-ai/brains/commit/f89fd530a426c949f5d056faa3bced55756f99ed) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Replace generic recurring-check Inbox rollups for agent sightings with individual, informative Agent sightings items. Each item identifies the agent and introducers, exposes bounded public-card context for discussion, links to its source entity, and offers confirmation-gated Connect or Dismiss actions.
+
+  Allow an individual recurring alert to remain channel-only without suppressing the same check's other Inbox alerts, and label generic recurring-alert acknowledgement honestly as **Dismiss**.
+
+- Updated dependencies [[`f89fd53`](https://github.com/rizom-ai/brains/commit/f89fd530a426c949f5d056faa3bced55756f99ed)]:
+  - @brains/recurring-checks@0.2.0-alpha.305
+  - @brains/plugins@0.2.0-alpha.305
+  - @brains/contracts@0.2.0-alpha.305
+  - @brains/image@0.2.0-alpha.305
+  - @brains/notification-contracts@0.2.0-alpha.305
+  - @brains/operation-context@0.2.0-alpha.305
+  - @brains/site-composition@0.2.0-alpha.305
+  - @brains/utils@0.2.0-alpha.305
+  - @brains/runtime-state@0.2.0-alpha.305
+  - @brains/scheduler@0.2.0-alpha.305
+  - @brains/templates@0.2.0-alpha.305
+
 ## 0.2.0-alpha.304
 
 ### Patch Changes
