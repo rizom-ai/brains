@@ -67,6 +67,7 @@ export interface TopicsPluginConfig {
   extractableStatuses: string[];
   enableAutoExtraction: boolean;
   extractionVisibility: TopicExtractionVisibility;
+  sourceChangeBatchDelayMs: number;
 }
 
 export interface TopicsPluginConfigInput {
@@ -89,6 +90,7 @@ export interface TopicsPluginConfigInput {
   extractableStatuses?: string[] | undefined;
   enableAutoExtraction?: boolean | undefined;
   extractionVisibility?: TopicExtractionVisibility | undefined;
+  sourceChangeBatchDelayMs?: number | undefined;
 }
 
 export const topicsPluginConfigSchema: z.ZodType<
@@ -202,4 +204,9 @@ export const topicsPluginConfigSchema: z.ZodType<
    * Visibility boundary for topic extraction sources and derived topics.
    */
   extractionVisibility: extractionVisibilitySchema.default("public"),
+
+  /**
+   * Delay before processing source-change batches, allowing bursts to coalesce.
+   */
+  sourceChangeBatchDelayMs: z.number().int().min(0).default(1000),
 });
