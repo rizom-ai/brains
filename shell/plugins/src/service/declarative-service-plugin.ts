@@ -1,5 +1,6 @@
 import { AsyncLocalStorage } from "node:async_hooks";
-import type { JsonObject } from "@brains/contracts";
+import { PUBLISH_CHANNELS, type JsonObject } from "@brains/contracts";
+import { SYSTEM_CHANNELS } from "../system-channels";
 import type { JobHandler, JobInfo } from "@brains/job-queue";
 import type { ProgressReporter } from "@brains/utils/progress";
 import {
@@ -282,6 +283,47 @@ class DeclarativeServicePlugin<
         ),
       );
     }
+
+    this.registerPublishProviders(context);
+  }
+
+  /**
+   * Announce declared publish providers once the pipeline is listening.
+   *
+   * Same deferral the entity-side slot makes — the publish pipeline has to
+   * have subscribed to publish:register before anything announces to it.
+   */
+  private registerPublishProviders(context: ServicePluginContext): void {
+    const declarations =
+      this.definition.publish?.({
+        config: this.config,
+        state: this.requireState(),
+      }) ?? [];
+    if (declarations.length === 0) return;
+
+    context.messaging.subscribe(
+      SYSTEM_CHANNELS.pluginsRegistered,
+      async (): Promise<{ success: true }> => {
+        for (const declaration of declarations) {
+          await context.messaging.send({
+            type: PUBLISH_CHANNELS.register,
+            payload: {
+              entityType: declaration.entityType,
+              provider: declaration.provider,
+              config: {
+                ...(declaration.resultIdField === undefined
+                  ? {}
+                  : { publishResultIdField: declaration.resultIdField }),
+                ...(declaration.timestampField === undefined
+                  ? {}
+                  : { publishTimestampField: declaration.timestampField }),
+              },
+            },
+          });
+        }
+        return { success: true };
+      },
+    );
   }
 
   protected override async onRegistrationComplete(

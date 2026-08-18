@@ -69,6 +69,7 @@ export type {
   ServiceMessagePublisher,
   ServiceProgressReporter,
   ServicePromptDefinition,
+  ServicePublishDeclaration,
   ServiceResourceDefinition,
   ServiceSchema,
   ServiceSchemaMap,
