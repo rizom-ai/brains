@@ -433,7 +433,12 @@ with no site; `[core, federation, web, site]` publishes one with a site URL.
 
 ### Phase 10 — Release the ops convergence fix
 
-Independent of the taxonomy and already required:
+**Complete and released.** PR #76 shipped the ownership and dry-run evidence fixes in
+`@rizom/ops@0.2.0-alpha.245`; the current `0.2.0-alpha.307` retains them. The package
+covers post-render reconciliation, two-pass convergence, blocked external access, and
+input preservation.
+
+Independent of the taxonomy, the completed slice:
 
 1. Keep `views/users.md` under the explicit users-table rendering path; reconciliation must
    not overwrite observational status.
