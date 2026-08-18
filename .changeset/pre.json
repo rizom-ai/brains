@@ -273,6 +273,7 @@
     "core--fenced-job-attempts",
     "core--fix-professional-profile-view-schema",
     "core--git-child-lifecycle",
+    "core--git-execution-broker-recovery-fixes",
     "core--git-execution-broker",
     "core--health-probe-and-declared-type-message",
     "core--health-watchdog-container-scope",
