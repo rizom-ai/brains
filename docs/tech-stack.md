@@ -233,7 +233,7 @@ The Brains project uses a modern, TypeScript-based stack optimized for building 
   - **ServicePlugin** — integrations (tools, job handlers, API routes, daemons)
   - **InterfacePlugin** — transports (MCP, Discord, A2A, webserver, CLI)
 - **Composite plugins** — factories may return `Plugin | Plugin[]`, letting one capability id register multiple sub-plugins (e.g. `@brains/newsletter` bundles entity + service)
-- The **canonical definition** declares `[id, factory, config]` catalog tuples; ordered `core`, `site`, `publishing`, and `team` bundles compose active members per instance
+- The **canonical definition** declares `[id, factory, config]` catalog tuples; eight ordered capability bundles plus policy-only `team` compose active members per instance
 
 ### Data Management
 

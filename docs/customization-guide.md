@@ -17,13 +17,18 @@ brain: brain
 domain: mybrain.example.com
 bundles:
   - core
+  - media
+  - automation
+  - web
+  - chat
   - site
   - publishing
+  - federation
 
 add:
   - stock-photo
 remove:
-  - discord
+  - newsletter
 
 site:
   package: "@acme/brain-site"

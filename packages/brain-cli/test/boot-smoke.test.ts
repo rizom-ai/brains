@@ -91,11 +91,11 @@ describe("built binary boot smoke", () => {
         "kind: professional",
         "bundles:",
         "  - core",
-        // An add:-ed plugin loads the shared library bundles at runtime,
-        // engaging the second copy of @brains/plugins that a core-only
-        // posture never touches — the cross-bundle path under test.
+        "  - web",
+        // An add:-ed plugin loads an opt-in capability alongside the shared
+        // runtime bundles, retaining the cross-bundle path under test.
         "add:",
-        "  - unified-inbox",
+        "  - wishlist",
         "plugins:",
         "  onboarding:",
         "    enabled: false",
@@ -146,8 +146,6 @@ describe("built binary boot smoke", () => {
           "kind: professional",
           "bundles:",
           "  - core",
-          "remove:",
-          "  - webserver",
           "plugins:",
           "  onboarding:",
           "    enabled: false",

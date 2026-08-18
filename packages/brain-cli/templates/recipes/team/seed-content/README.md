@@ -12,7 +12,6 @@ Included content typically covers:
 - `anchor-profile/` — the operator or owner profile
 - `site-info/` — site title, metadata, and presentation defaults
 - `site-content/` — editable homepage and about-page sections for the default site
-- `deck/` — example deck content
 - root `.md` files — supporting reference material
 
 ## How it is used

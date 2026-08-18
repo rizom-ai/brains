@@ -1,8 +1,6 @@
 import {
   defineBrain,
-  defineBundle,
   type BrainDefinition,
-  type CapabilityBundleDefinition,
   type PluginConfig,
 } from "@brains/app";
 import { A2AInterface } from "@brains/a2a";
@@ -52,186 +50,49 @@ import { WebserverInterface } from "@brains/webserver";
 import { wishlistPlugin } from "@brains/wishlist";
 import packageJson from "../../package.json" with { type: "json" };
 import {
-  publishingAgentInstructions,
-  publishingBundleConfig,
-  teamAgentInstructions,
-  teamBundleConfig,
-  trustedContentEntityActions,
-} from "./bundle-policy";
+  automationBundle,
+  AUTOMATION_BUNDLE_ID,
+  canonicalBundles,
+  chatBundle,
+  CHAT_BUNDLE_ID,
+  coreBundle,
+  CORE_BUNDLE_ID,
+  federationBundle,
+  FEDERATION_BUNDLE_ID,
+  mediaBundle,
+  MEDIA_BUNDLE_ID,
+  publishingBundle,
+  PUBLISHING_BUNDLE_ID,
+  siteBundle,
+  SITE_BUNDLE_ID,
+  teamBundle,
+  TEAM_BUNDLE_ID,
+  webBundle,
+  WEB_BUNDLE_ID,
+} from "./canonical-bundles";
 
-export const CORE_BUNDLE_ID = "core";
-export const SITE_BUNDLE_ID = "site";
-export const PUBLISHING_BUNDLE_ID = "publishing";
-export const TEAM_BUNDLE_ID = "team";
+export {
+  automationBundle,
+  AUTOMATION_BUNDLE_ID,
+  chatBundle,
+  CHAT_BUNDLE_ID,
+  coreBundle,
+  CORE_BUNDLE_ID,
+  federationBundle,
+  FEDERATION_BUNDLE_ID,
+  mediaBundle,
+  MEDIA_BUNDLE_ID,
+  publishingBundle,
+  PUBLISHING_BUNDLE_ID,
+  siteBundle,
+  SITE_BUNDLE_ID,
+  teamBundle,
+  TEAM_BUNDLE_ID,
+  webBundle,
+  WEB_BUNDLE_ID,
+};
 
-export const coreBundle: CapabilityBundleDefinition = defineBundle({
-  id: CORE_BUNDLE_ID,
-  members: [
-    "prompt",
-    "profile",
-    "style-guide",
-    "image",
-    "document",
-    "note",
-    "link",
-    "wishlist",
-    "topics",
-    "decks",
-    "directory-sync",
-    "atproto-registry",
-    "agents",
-    "assessment",
-    "auth-service",
-    "account",
-    "notifications",
-    "playbook",
-    "playbooks",
-    "onboarding",
-    "email",
-    "cms",
-    "dashboard",
-    "admin",
-    "mcp",
-    "webserver",
-    "web-chat",
-    "chat",
-    "a2a",
-  ],
-  config: [
-    {
-      member: "dashboard",
-      value: { routePath: "/" },
-    },
-  ],
-  permissions: [
-    {
-      member: "note",
-      config: { entityActions: { note: trustedContentEntityActions } },
-    },
-    {
-      member: "link",
-      config: { entityActions: { link: trustedContentEntityActions } },
-    },
-    {
-      member: "mcp",
-      config: {
-        rules: [{ pattern: "mcp:http", level: "public" }],
-      },
-    },
-    {
-      member: "chat",
-      config: {
-        rules: [{ pattern: "discord:*", level: "public" }],
-      },
-    },
-    {
-      member: "web-chat",
-      config: {
-        rules: [{ pattern: "web-chat:*", level: "admin" }],
-      },
-    },
-  ],
-  evalDisable: ["dashboard", "email", "mcp", "webserver", "web-chat", "chat"],
-});
-
-export const siteBundle: CapabilityBundleDefinition = defineBundle({
-  id: SITE_BUNDLE_ID,
-  members: [
-    "dashboard",
-    "site-info",
-    "site-content",
-    "site-builder",
-    "analytics",
-  ],
-  config: [
-    {
-      member: "dashboard",
-      value: { routePath: "/dashboard" },
-      overrides: CORE_BUNDLE_ID,
-    },
-  ],
-  evalDisable: ["dashboard", "analytics"],
-});
-
-export const publishingBundle: CapabilityBundleDefinition = defineBundle({
-  id: PUBLISHING_BUNDLE_ID,
-  members: [
-    "blog",
-    "series",
-    "portfolio",
-    "content-pipeline",
-    "social-media",
-    "newsletter",
-    "stock-photo",
-    "atproto",
-  ],
-  config: publishingBundleConfig,
-  agentInstructions: publishingAgentInstructions,
-  evalDisable: ["atproto"],
-});
-
-export const teamBundle: CapabilityBundleDefinition = defineBundle({
-  id: TEAM_BUNDLE_ID,
-  members: [
-    "image",
-    "note",
-    "link",
-    "topics",
-    "decks",
-    "mcp",
-    "chat",
-    "conversation-memory",
-    "docs",
-  ],
-  config: teamBundleConfig,
-  permissions: [
-    {
-      member: "image",
-      config: { entityActions: { image: trustedContentEntityActions } },
-    },
-    {
-      member: "note",
-      config: { entityActions: { note: trustedContentEntityActions } },
-    },
-    {
-      member: "link",
-      config: { entityActions: { link: trustedContentEntityActions } },
-    },
-    {
-      member: "decks",
-      config: { entityActions: { deck: trustedContentEntityActions } },
-    },
-    {
-      member: "docs",
-      config: { entityActions: { doc: trustedContentEntityActions } },
-    },
-    {
-      member: "conversation-memory",
-      config: {
-        entityActions: {
-          decision: trustedContentEntityActions,
-          "action-item": trustedContentEntityActions,
-        },
-      },
-    },
-    {
-      member: "mcp",
-      config: {
-        rules: [{ pattern: "mcp:http", level: "admin" }],
-      },
-      overrides: CORE_BUNDLE_ID,
-    },
-  ],
-  agentInstructions: teamAgentInstructions,
-});
-
-/**
- * Canonical catalog for the one-brain bundle model.
- *
- * Existing Rover, Relay, and Ranger definitions remain the production inputs
- * until the repository and fleet cross over together. This definition is built
- * and characterized in parallel; it does not contain retired capability aliases.
- */
+/** Canonical catalog and active capability-bundle taxonomy. */
 export const canonicalBrain: BrainDefinition = defineBrain({
   name: "brain",
   version: packageJson.version,
@@ -312,7 +173,7 @@ export const canonicalBrain: BrainDefinition = defineBrain({
     ],
     ["a2a", A2AInterface, (): PluginConfig => ({})],
   ],
-  bundles: [coreBundle, siteBundle, publishingBundle, teamBundle],
+  bundles: canonicalBundles,
   permissions: {
     rules: [
       { pattern: "cli:*", level: "admin" },

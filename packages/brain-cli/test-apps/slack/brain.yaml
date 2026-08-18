@@ -3,6 +3,8 @@ anchor: person
 kind: professional
 bundles:
   - core
+  - web
+  - chat
 
 permissions:
   rules:
@@ -28,5 +30,3 @@ plugins:
     git:
       repo: rizom-ai/canonical-slack-test-content
       gitUrl: file:///tmp/canonical-slack-test-content.git
-  onboarding:
-    enabled: false

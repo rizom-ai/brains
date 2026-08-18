@@ -92,7 +92,7 @@ describe("single canonical crossover", () => {
     const directory = mkdtempSync(join(tmpdir(), "canonical-recipe-"));
     try {
       const options: ScaffoldOptions = {
-        recipe: "personal",
+        recipe: "professional",
         domain: "person.example.com",
       };
       scaffold(directory, options);
@@ -101,9 +101,18 @@ describe("single canonical crossover", () => {
       expect(yaml).toContain("brain: brain");
       expect(yaml).toContain("anchor: person");
       expect(yaml).toContain("bundles:");
-      expect(yaml).toContain("- core");
-      expect(yaml).toContain("- site");
-      expect(yaml).toContain("- publishing");
+      for (const bundle of [
+        "core",
+        "media",
+        "automation",
+        "web",
+        "chat",
+        "site",
+        "publishing",
+        "federation",
+      ]) {
+        expect(yaml).toContain(`- ${bundle}`);
+      }
       expect(yaml).not.toContain("preset:");
       expect(existsSync(join(directory, "seed-content"))).toBe(true);
     } finally {
@@ -214,11 +223,22 @@ describe("single canonical crossover", () => {
     ];
     expect(configs.length).toBeGreaterThan(0);
 
+    const retiredCanonicalSelections = new Set([
+      "core,site",
+      "core,publishing,site",
+      "core,site,team",
+    ]);
     for (const path of configs) {
       const yaml = source(path);
       expect(yaml, path).not.toMatch(/^brain:\s*(rover|relay|ranger)\s*$/m);
       expect(yaml, path).not.toMatch(/^preset:/m);
       expect(yaml, path).toMatch(/^bundles:/m);
+
+      const parsed = parseInstanceOverrides(yaml);
+      if (parsed.brain === undefined || parsed.brain === "brain") {
+        const selection = [...(parsed.bundles ?? [])].sort().join(",");
+        expect(retiredCanonicalSelections.has(selection), path).toBe(false);
+      }
     }
   });
 });

@@ -3,7 +3,6 @@ import {
   resolve,
   resolveBundleSelection,
   type AppConfig,
-  type BrainDefinition,
   type BundleSelectionResolution,
   type ResolvedBundlePermissionContribution,
 } from "@brains/app";
@@ -12,18 +11,13 @@ import {
   teamAgentInstructions,
   trustedContentEntityActions,
 } from "../src/model/bundle-policy";
+import { canonicalBundles } from "../src/model/canonical-bundles";
 import { canonicalBrain } from "../src/model/canonical-brain";
-import { targetCanonicalBundles } from "../src/model/target-bundles";
 
 const catalogIds = [
   ...canonicalBrain.capabilities.map(([id]) => id),
   ...canonicalBrain.interfaces.map(([id]) => id),
 ];
-
-const targetBrain: BrainDefinition = {
-  ...canonicalBrain,
-  bundles: targetCanonicalBundles,
-};
 
 type TargetRecipeName =
   "headless" | "personal" | "professional" | "team" | "commerce";
@@ -267,7 +261,7 @@ function targetResolution(name: TargetRecipeName): BundleSelectionResolution {
   const recipe = targetRecipes[name];
   return resolveBundleSelection({
     catalogIds,
-    definitions: targetCanonicalBundles,
+    definitions: canonicalBundles,
     selected: recipe.bundles,
     ...(recipe.add ? { add: recipe.add } : {}),
   });
@@ -294,15 +288,9 @@ function permissionLevel(
     ?.level;
 }
 
-describe("target canonical bundle taxonomy", () => {
-  test("stays outside the active four-bundle registry until the flip", () => {
+describe("canonical bundle taxonomy", () => {
+  test("is the active nine-bundle registry", () => {
     expect(canonicalBrain.bundles?.map(({ id }) => id)).toEqual([
-      "core",
-      "site",
-      "publishing",
-      "team",
-    ]);
-    expect(targetCanonicalBundles.map(({ id }) => id)).toEqual([
       "core",
       "media",
       "automation",
@@ -313,11 +301,11 @@ describe("target canonical bundle taxonomy", () => {
       "federation",
       "team",
     ]);
-    expect(canonicalBrain.bundles).not.toBe(targetCanonicalBundles);
+    expect(canonicalBrain.bundles).toBe(canonicalBundles);
   });
 
   for (const name of Object.keys(targetRecipes) as TargetRecipeName[]) {
-    test(`${name} resolves the exact target member set`, () => {
+    test(`${name} resolves the exact canonical member set`, () => {
       const resolution = targetResolution(name);
       expect(resolution.activeBundles).toEqual(targetRecipes[name].bundles);
       expect(resolution.activeMembers).toEqual(expectedMembers[name]);
@@ -389,7 +377,7 @@ describe("target canonical bundle taxonomy", () => {
 
   test("team composes policy without owning members", () => {
     const resolution = targetResolution("team");
-    expect(targetCanonicalBundles.at(-1)?.members).toEqual([]);
+    expect(canonicalBundles.at(-1)?.members).toEqual([]);
     expect(resolution.configByMember).toEqual({
       topics: { extractableStatuses: ["published", "draft"] },
       dashboard: { routePath: "/dashboard" },
@@ -424,16 +412,16 @@ describe("target canonical bundle taxonomy", () => {
   });
 
   test("derives effective transport and team permission overrides", () => {
-    const headless = resolve(targetBrain, {}, targetRecipes.headless);
+    const headless = resolve(canonicalBrain, {}, targetRecipes.headless);
     expect(pluginConfig(headless, "mcp")?.["transport"]).toBe("stdio");
     expect(headless.plugins?.some(({ id }) => id === "webserver")).toBe(false);
     expect(permissionLevel(headless, "mcp:http")).toBeUndefined();
 
-    const personal = resolve(targetBrain, {}, targetRecipes.personal);
+    const personal = resolve(canonicalBrain, {}, targetRecipes.personal);
     expect(pluginConfig(personal, "mcp")?.["transport"]).toBe("http");
     expect(permissionLevel(personal, "mcp:http")).toBe("public");
 
-    const team = resolve(targetBrain, {}, targetRecipes.team);
+    const team = resolve(canonicalBrain, {}, targetRecipes.team);
     expect(permissionLevel(team, "mcp:http")).toBe("admin");
     for (const entityType of [
       "note",

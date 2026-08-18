@@ -3,8 +3,13 @@ anchor: person
 kind: professional
 bundles:
   - core
+  - media
+  - automation
+  - web
+  - chat
   - site
   - publishing
+  - federation
 domain: alex.example.com
 
 add:

@@ -18,7 +18,7 @@ import { waitUntil } from "@brains/test-utils";
 const appEntrypoint = join(
   import.meta.dir,
   "fixtures",
-  "target-headless-app.ts",
+  "canonical-headless-app.ts",
 );
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -38,10 +38,10 @@ function textContent(result: unknown): string {
     .join("\n");
 }
 
-describe("target headless walking skeleton", () => {
+describe("canonical headless walking skeleton", () => {
   test("boots core over MCP stdio, syncs its vault, and answers a tool", async () => {
     const instanceDirectory = mkdtempSync(
-      join(tmpdir(), "brain-target-headless-"),
+      join(tmpdir(), "brain-canonical-headless-"),
     );
     const seedDirectory = join(instanceDirectory, "seed-content");
     mkdirSync(seedDirectory, { recursive: true });
@@ -86,7 +86,7 @@ plugins:
       stderr += String(chunk);
     });
     const client = new Client({
-      name: "target-headless-test",
+      name: "canonical-headless-test",
       version: "1.0.0",
     });
     let connected = false;
@@ -140,7 +140,7 @@ plugins:
               item: {
                 title: "Headless recurring check failed",
                 summary:
-                  "The target core retained this alert without a notification channel.",
+                  "The canonical core retained this alert without a notification channel.",
                 receivedAt: expect.any(String),
                 urgency: "high",
               },

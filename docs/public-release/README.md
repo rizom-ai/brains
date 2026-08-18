@@ -105,8 +105,13 @@ The canonical brain is configured per instance via `brain.yaml`:
 brain: brain
 bundles:
   - core
+  - media
+  - automation
+  - web
+  - chat
   - site
   - publishing
+  - federation
 site:
   package: "@brains/site-default"
   theme: "@rizom/theme-default"

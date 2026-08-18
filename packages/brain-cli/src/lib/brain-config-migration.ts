@@ -53,6 +53,19 @@ const roverDefaultRemovals = [
   "stock-photo",
 ];
 
+const professionalBundles = [
+  "core",
+  "media",
+  "automation",
+  "web",
+  "chat",
+  "site",
+  "publishing",
+  "federation",
+];
+
+const teamCoreBundles = ["core", "media", "automation", "web", "chat", "team"];
+
 function normalizeModel(value: unknown): MigrationSourceModel {
   if (typeof value !== "string") {
     throw new Error('brain.yaml must contain a string "brain" field');
@@ -82,7 +95,7 @@ function migrationTarget(
   if (model === "rover") {
     if (preset === "core") {
       return {
-        ...expandBrainRecipe("minimal"),
+        ...expandBrainRecipe("headless"),
         anchor: "person",
         kind: "professional",
         bundles: ["core"],
@@ -90,18 +103,18 @@ function migrationTarget(
     }
     if (preset === "default") {
       return {
-        ...expandBrainRecipe("personal"),
+        ...expandBrainRecipe("professional"),
         anchor: "person",
-        bundles: ["core", "site", "publishing"],
+        bundles: professionalBundles,
         add: ["obsidian-vault"],
         remove: roverDefaultRemovals,
       };
     }
     if (preset === "full" || preset === "pro") {
       return {
-        ...expandBrainRecipe("personal"),
+        ...expandBrainRecipe("professional"),
         anchor: "person",
-        bundles: ["core", "site", "publishing"],
+        bundles: professionalBundles,
         add: ["obsidian-vault"],
       };
     }
@@ -112,7 +125,8 @@ function migrationTarget(
       return {
         anchor: "team",
         kind: "team",
-        bundles: ["core", "team"],
+        bundles: teamCoreBundles,
+        add: ["docs"],
         plugins: {
           "directory-sync": { seedContentPath: "./seed-content" },
         },
@@ -122,7 +136,7 @@ function migrationTarget(
       return {
         ...expandBrainRecipe("team"),
         anchor: "team",
-        bundles: ["core", "site", "team"],
+        bundles: ["core", "media", "automation", "web", "chat", "site", "team"],
       };
     }
   }
@@ -131,7 +145,7 @@ function migrationTarget(
     return {
       ...expandBrainRecipe("commerce"),
       anchor: "organization",
-      bundles: ["core", "site"],
+      bundles: ["core", "media", "web", "site"],
     };
   }
 

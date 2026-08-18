@@ -1,8 +1,11 @@
 brain: brain
 anchor: organization
 kind: organization
+# Deliberately non-canonical order: resolution follows definition order.
 bundles:
   - site
+  - web
+  - media
   - core
 add:
   - products

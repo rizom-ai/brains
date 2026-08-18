@@ -7,13 +7,18 @@ import {
   trustedContentEntityActions,
 } from "./bundle-policy";
 
-/**
- * The target taxonomy is intentionally not registered on canonicalBrain yet.
- * Tests resolve a cloned definition against this complete set; Phase 8 swaps
- * it into the active definition together with every checked-in selection.
- */
-export const targetCoreBundle: CapabilityBundleDefinition = defineBundle({
-  id: "core",
+export const CORE_BUNDLE_ID = "core";
+export const MEDIA_BUNDLE_ID = "media";
+export const AUTOMATION_BUNDLE_ID = "automation";
+export const WEB_BUNDLE_ID = "web";
+export const CHAT_BUNDLE_ID = "chat";
+export const SITE_BUNDLE_ID = "site";
+export const PUBLISHING_BUNDLE_ID = "publishing";
+export const FEDERATION_BUNDLE_ID = "federation";
+export const TEAM_BUNDLE_ID = "team";
+
+export const coreBundle: CapabilityBundleDefinition = defineBundle({
+  id: CORE_BUNDLE_ID,
   members: [
     "profile",
     "prompt",
@@ -30,18 +35,18 @@ export const targetCoreBundle: CapabilityBundleDefinition = defineBundle({
   evalDisable: ["mcp"],
 });
 
-export const targetMediaBundle: CapabilityBundleDefinition = defineBundle({
-  id: "media",
+export const mediaBundle: CapabilityBundleDefinition = defineBundle({
+  id: MEDIA_BUNDLE_ID,
   members: ["document", "image"],
 });
 
-export const targetAutomationBundle: CapabilityBundleDefinition = defineBundle({
-  id: "automation",
+export const automationBundle: CapabilityBundleDefinition = defineBundle({
+  id: AUTOMATION_BUNDLE_ID,
   members: ["playbook", "playbooks", "onboarding"],
 });
 
-export const targetWebBundle: CapabilityBundleDefinition = defineBundle({
-  id: "web",
+export const webBundle: CapabilityBundleDefinition = defineBundle({
+  id: WEB_BUNDLE_ID,
   members: [
     "webserver",
     "auth-service",
@@ -60,8 +65,8 @@ export const targetWebBundle: CapabilityBundleDefinition = defineBundle({
   evalDisable: ["webserver", "dashboard"],
 });
 
-export const targetChatBundle: CapabilityBundleDefinition = defineBundle({
-  id: "chat",
+export const chatBundle: CapabilityBundleDefinition = defineBundle({
+  id: CHAT_BUNDLE_ID,
   members: [
     "chat",
     "web-chat",
@@ -82,21 +87,21 @@ export const targetChatBundle: CapabilityBundleDefinition = defineBundle({
   evalDisable: ["chat", "web-chat", "email"],
 });
 
-export const targetSiteBundle: CapabilityBundleDefinition = defineBundle({
-  id: "site",
+export const siteBundle: CapabilityBundleDefinition = defineBundle({
+  id: SITE_BUNDLE_ID,
   members: ["site-info", "site-content", "site-builder", "analytics"],
   config: [
     {
       member: "dashboard",
       value: { routePath: "/dashboard" },
-      overrides: "web",
+      overrides: WEB_BUNDLE_ID,
     },
   ],
   evalDisable: ["analytics"],
 });
 
-export const targetPublishingBundle: CapabilityBundleDefinition = defineBundle({
-  id: "publishing",
+export const publishingBundle: CapabilityBundleDefinition = defineBundle({
+  id: PUBLISHING_BUNDLE_ID,
   members: [
     "blog",
     "series",
@@ -111,14 +116,14 @@ export const targetPublishingBundle: CapabilityBundleDefinition = defineBundle({
   agentInstructions: publishingAgentInstructions,
 });
 
-export const targetFederationBundle: CapabilityBundleDefinition = defineBundle({
-  id: "federation",
+export const federationBundle: CapabilityBundleDefinition = defineBundle({
+  id: FEDERATION_BUNDLE_ID,
   members: ["atproto", "atproto-registry"],
   evalDisable: ["atproto"],
 });
 
-export const targetTeamBundle: CapabilityBundleDefinition = defineBundle({
-  id: "team",
+export const teamBundle: CapabilityBundleDefinition = defineBundle({
+  id: TEAM_BUNDLE_ID,
   members: [],
   config: teamBundleConfig,
   permissions: [
@@ -150,20 +155,20 @@ export const targetTeamBundle: CapabilityBundleDefinition = defineBundle({
     {
       member: "mcp",
       config: { rules: [{ pattern: "mcp:http", level: "admin" }] },
-      overrides: "web",
+      overrides: WEB_BUNDLE_ID,
     },
   ],
   agentInstructions: teamAgentInstructions,
 });
 
-export const targetCanonicalBundles: CapabilityBundleDefinition[] = [
-  targetCoreBundle,
-  targetMediaBundle,
-  targetAutomationBundle,
-  targetWebBundle,
-  targetChatBundle,
-  targetSiteBundle,
-  targetPublishingBundle,
-  targetFederationBundle,
-  targetTeamBundle,
+export const canonicalBundles: CapabilityBundleDefinition[] = [
+  coreBundle,
+  mediaBundle,
+  automationBundle,
+  webBundle,
+  chatBundle,
+  siteBundle,
+  publishingBundle,
+  federationBundle,
+  teamBundle,
 ];

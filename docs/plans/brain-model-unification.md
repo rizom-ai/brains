@@ -1,6 +1,6 @@
 # Plan: Brain Model Unification — One Brain, Capability Bundles
 
-Last updated: 2026-08-10
+Last updated: 2026-08-18
 
 ## Status
 
@@ -10,19 +10,15 @@ and the preset contract, and published `@rizom/brain`, `@rizom/ops`, and `@rizom
 package is required to build, boot, evaluate, initialize, or deploy a brain. That work is
 done and is not restated here.
 
-Two things are open.
+One release operation remains open.
 
-**The bundle taxonomy is being replaced.** The shipped runtime composes from four bundles
-— `core`, `site`, `publishing`, `team` — where `core` is a 29-member unit fusing runtime
-foundation, universal entity types, discovery, and every I/O surface. It cannot express a
-brain without a webserver, without a chat interface, or without any individual entity
-type; the only escape is `remove:` lists, the anti-pattern bundles were introduced to
-eliminate. This plan now targets eight capability bundles plus one policy bundle. Because
-`v0.2.0` exists to freeze the composition contract, the taxonomy lands **before** stable,
-not after: certifying a contract already scheduled for replacement would force every
-deployed brain to migrate `bundles:` twice.
+**The repository bundle crossover is complete.** The canonical runtime, recipes, eval
+manifest, migration output, checked-in apps, fixtures, and active documentation now use
+eight capability bundles plus the policy-only `team` bundle. `bundles: [core]` is the
+headless posture and needs no webserver or notification channel. The prior four-bundle
+contract is no longer accepted by the canonical checked-in configurations.
 
-**The crossover has not executed.** An operator-approved branch canary exercised
+**The fleet crossover has not executed.** An operator-approved branch canary exercised
 `0.2.0-alpha.244` on `jo` and `smoke`; both coherent config/image pairs passed exact
 version, health, unauthenticated MCP, site, and CMS checks. The crossover then stopped at
 the post-deploy convergence gate: deploy finalization rendered live status into
@@ -296,14 +292,15 @@ carrying a `brain.yaml`, eval fixture, or test-app selection must therefore be m
 explicitly ported before the flip, not after it. The phases before the flip are additive
 and can proceed alongside open work.
 
-| Worktree                               | Overlap                                                                           | Disposition                                                                                      |
-| -------------------------------------- | --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| inbox surfaces / email threading       | renamed `email-triage` to `email-workflows`; owns Phase 6's delivery              | Merged on `origin/main`; retain its catalog ID and delivery behavior through Phase 8.            |
-| `work/test-suite-hardening`            | modifies `shell/app/test/bundle-resolution.test.ts`; puts the eval CLI under test | Merged on `origin/main` before Phase 3; preserve its resolver and eval coverage.                 |
-| `work/professional-profile-v2`         | edits the `canonical-brain.ts` capabilities array                                 | Merge independently. LinkedIn import and the OAuth broker remain opt-ins and never enter `core`. |
-| `feat/opportunity-priority-engine`     | adds a capability                                                                 | Merge independently as an explicit opt-in. It must not enter a bundle during unification.        |
-| `feat/durable-binary-assets-migration` | touches `shell/app/src/app.ts` and `types.ts`; informs `media`                    | No resolver overlap. Merge on its own schedule.                                                  |
-| `work/turso-migration`                 | touches `shell/app/src/app.ts` and `cli.ts`                                       | No resolver overlap. Merge on its own schedule.                                                  |
+| Worktree                               | Overlap                                                                           | Disposition                                                                                                                                  |
+| -------------------------------------- | --------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| inbox surfaces / email threading       | renamed `email-triage` to `email-workflows`; owns Phase 6's delivery              | Merged on `origin/main`; retain its catalog ID and delivery behavior through Phase 8.                                                        |
+| `work/test-suite-hardening`            | modifies `shell/app/test/bundle-resolution.test.ts`; puts the eval CLI under test | Merged on `origin/main` before Phase 3; preserve its resolver and eval coverage.                                                             |
+| `work/professional-profile-v2`         | edits the `canonical-brain.ts` capabilities array                                 | Deferred as WIP at crossover. Rebase onto the active taxonomy; LinkedIn import and the OAuth broker remain opt-ins and never enter a bundle. |
+| `work/plugin-api-boundaries`           | converts catalog factories, including `portfolio`, to package capabilities        | Deferred as WIP at crossover. Rebase its package conversions onto `canonical-brain.ts` without restoring the retired registry.               |
+| `feat/opportunity-priority-engine`     | adds a capability                                                                 | Merge independently as an explicit opt-in. It must not enter a bundle during unification.                                                    |
+| `feat/durable-binary-assets-migration` | touches `shell/app/src/app.ts` and `types.ts`; informs `media`                    | No resolver overlap. Merge on its own schedule.                                                                                              |
+| `work/turso-migration`                 | touches `shell/app/src/app.ts` and `cli.ts`                                       | No resolver overlap. Merge on its own schedule.                                                                                              |
 
 Phases 1 and 2 have no live collision and are the recommended starting point: they are pure
 resolver work, they do not depend on the taxonomy being final, and together they are what
@@ -379,14 +376,10 @@ that the CMS workspace and Dashboard widget are `web` renderings and the digest 
 
 ### Phase 7 — Restructure the eval suites
 
-The target ladder is staged in `packages/brain-cli/brain.target.eval.yaml` beside the
-active manifest. As with the cloned definition used in Phase 4, the separate file is not a
-second runtime contract: the active registry cannot resolve its new IDs, and Phase 8 swaps
-it into the canonical filename with the registry. Dedicated `eval-content/target`
-fixtures cover postures whose membership changed; member-compatible professional and
-commerce content remains shared. This lets every target suite boot before the flip without
-weakening active eval coverage. Strict seed-type validation is opt-in for these curated
-fixtures and fails startup when a seeded entity type is not registered.
+The recipe ladder is active in `packages/brain-cli/brain.eval.yaml`. Dedicated
+`eval-content/recipes` fixtures cover postures whose membership changed; member-compatible
+professional and commerce content remains shared. Strict seed-type validation is opt-in
+for these curated fixtures and fails startup when a seeded entity type is not registered.
 
 `packages/brain-cli/brain.eval.yaml` declares five suites whose selections, names,
 inheritance chain, and seed directories each encode the old taxonomy. Re-pointing the
@@ -420,6 +413,10 @@ suite's content directory is registered by that suite's selection; a suite seedi
 unregistered type fails.
 
 ### Phase 8 — Flip the contract
+
+**Complete in the repository.** The active registry, recipe output, eval manifest,
+migration output, apps, fixtures, and docs crossed together. Deferred WIP branches must
+rebase onto this taxonomy before merge; no compatibility registry was retained.
 
 Replace the four bundle definitions with the nine, update every checked-in app to the new
 selections, and update `brain config migrate` so legacy presets emit the new bundle lists.
@@ -498,8 +495,8 @@ without operator authorization.
 - `bundles: [core]` boots headless and is covered by a startup test;
 - headless, personal, professional, team, commerce, and external-plugin fixtures resolve
   from explicit bundles and additions;
-- no checked-in config or desired-state file references `core`/`site`/`publishing`/`team`
-  as the whole taxonomy;
+- no checked-in config or desired-state file uses the former four-bundle compositions as
+  the whole taxonomy;
 - configuration migration is documented and proven idempotent;
 - the active ops/runtime surface exposes only the canonical contract;
 - unified canaries and `yeehaa.io` are healthy on the nominated alpha;

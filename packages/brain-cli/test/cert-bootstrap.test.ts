@@ -41,7 +41,7 @@ describe("origin CA bootstrap", () => {
       join(testDir, "brain.yaml"),
       [
         "brain: brain",
-        "bundles: [core, site, publishing]",
+        "bundles: [core, media, automation, web, chat, site, publishing, federation]",
         "domain: mybrain.example.com",
         "",
       ].join("\n"),
