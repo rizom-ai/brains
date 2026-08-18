@@ -32,7 +32,7 @@ export interface AtprotoBrainCardAnchor extends Record<string, unknown> {
 
 export interface AtprotoBrainCardRecord extends Record<string, unknown> {
   $type?: "ai.rizom.brain.card";
-  siteUrl: string;
+  siteUrl?: string;
   brain: AtprotoBrainCardBrain;
   anchor: AtprotoBrainCardAnchor;
   skills: AtprotoBrainCardSkill[];

@@ -148,13 +148,13 @@ export const atprotoConfigSchema: z.ZodType<AtprotoConfig, AtprotoConfigInput> =
       .string()
       .optional()
       .describe(
-        "Optional Anchor DID referenced from records; defaults to did:web:<site-host>:anchor when omitted",
+        "Optional Anchor DID referenced from records; defaults to did:web:<site-host>:anchor with web, otherwise accountDid or the PDS repo DID",
       ),
     brainDid: z
       .string()
       .optional()
       .describe(
-        "Optional public brain DID referenced from records; defaults to did:web:<site-host> when omitted",
+        "Optional public brain DID referenced from records; defaults to did:web:<site-host> with web, otherwise the PDS repo DID",
       ),
     accountDid: z
       .string()

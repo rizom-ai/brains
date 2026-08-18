@@ -4,12 +4,11 @@
   "defs": {
     "main": {
       "type": "record",
-      "description": "Public discovery card for a Rizom brain. The operational A2A Agent Card is conventionally served at /.well-known/agent-card.json under siteUrl.",
+      "description": "Public discovery card for a Rizom brain. A web-capable brain may advertise its operational A2A Agent Card through siteUrl; federation-only brains remain discoverable through this PDS record.",
       "key": "literal:self",
       "record": {
         "type": "object",
         "required": [
-          "siteUrl",
           "brain",
           "anchor",
           "skills",
@@ -21,7 +20,7 @@
           "siteUrl": {
             "type": "string",
             "format": "uri",
-            "description": "Public site URL. Consumers derive the A2A Agent Card URL from this base."
+            "description": "Optional public web-channel URL. Consumers may derive the A2A Agent Card URL from this base when present."
           },
           "brain": {
             "type": "ref",

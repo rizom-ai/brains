@@ -131,14 +131,23 @@ export class AtprotoIdentityResolver {
   }
 
   /**
-   * Prove the card's brain owns the repo it was published to. The card claims
-   * a site and a `did:web`; the `did:web` document must claim the repo back.
-   * Without this, anyone could publish a card naming someone else's site.
+   * Prove the card's brain owns the repo it was published to. Federation-only
+   * cards use the repo DID directly. Web-channel cards bind their site through
+   * a `did:web` document that claims the repo back.
    */
   async verifyBrainCardIdentity(
     repoDid: string,
     record: AtprotoBrainCardRecord,
   ): Promise<void> {
+    if (!record.siteUrl) {
+      if (record.brain.did !== repoDid) {
+        throw new DiscoveryRejectionError(
+          "Headless brain card brain DID must match its repo DID",
+        );
+      }
+      return;
+    }
+
     let siteUrl: URL;
     try {
       siteUrl = new URL(record.siteUrl);
