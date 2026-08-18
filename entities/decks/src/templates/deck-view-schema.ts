@@ -1,8 +1,36 @@
 import { z } from "@brains/utils/zod";
 import { deckStatusSchema, type DeckStatus } from "../schemas/deck";
 
-// eslint-disable-next-line @typescript-eslint/consistent-type-definitions -- alias needed for the implicit index signature JsonObject requires
-type DeckViewFrontmatter = {
+// The schemas are the source of truth; every type here is derived from one
+// with z.output. That also gives the rendered shapes the implicit index
+// signature JsonObject requires, which a hand-written interface would not
+// have — so deriving is what keeps these renderable, not a style choice.
+
+type Visibility = "public" | "shared" | "restricted";
+
+const visibilitySchema: z.ZodType<
+  Visibility,
+  Visibility | "private" | undefined
+> = z
+  .union([z.enum(["public", "shared", "restricted"]), z.literal("private")])
+  .optional()
+  .transform((value) => {
+    if (value === undefined) return "public" as const;
+    if (value === "private") return "restricted" as const;
+    return value;
+  });
+
+const nullableString = (): z.ZodType<
+  string | null,
+  string | null | undefined
+> => z.string().nullable().default(null);
+
+const nullableNumber = (): z.ZodType<
+  number | null,
+  number | null | undefined
+> => z.number().nullable().default(null);
+
+const frontmatterSchema: z.ZodType<{
   title: string;
   slug: string | null;
   description: string | null;
@@ -12,10 +40,21 @@ type DeckViewFrontmatter = {
   event: string | null;
   coverImageId: string | null;
   ogImageId: string | null;
-};
+}> = z.object({
+  title: z.string(),
+  slug: nullableString(),
+  description: nullableString(),
+  author: nullableString(),
+  status: deckStatusSchema,
+  publishedAt: nullableString(),
+  event: nullableString(),
+  coverImageId: nullableString(),
+  ogImageId: nullableString(),
+});
 
-// eslint-disable-next-line @typescript-eslint/consistent-type-definitions -- alias needed for the implicit index signature JsonObject requires
-type DeckViewMetadata = {
+export type DeckViewFrontmatter = z.output<typeof frontmatterSchema>;
+
+const metadataSchema: z.ZodType<{
   title: string;
   description: string | null;
   status: DeckStatus;
@@ -23,18 +62,25 @@ type DeckViewMetadata = {
   coverImageId: string | null;
   slug: string;
   error: string | null;
-};
+}> = z.object({
+  title: z.string(),
+  description: nullableString(),
+  status: deckStatusSchema,
+  publishedAt: nullableString(),
+  coverImageId: nullableString(),
+  slug: z.string(),
+  error: nullableString(),
+});
 
-// A type alias, not an interface: rendered data must satisfy JsonObject, and
-// TypeScript only gives an implicit index signature to aliases.
-// eslint-disable-next-line @typescript-eslint/consistent-type-definitions -- see above
-export type DeckSchemaData = {
+export type DeckViewMetadata = z.output<typeof metadataSchema>;
+
+export const deckViewSchema: z.ZodType<{
   id: string;
   entityType: "deck";
   content: string;
   created: string;
   updated: string;
-  visibility: "public" | "shared" | "restricted";
+  visibility: Visibility;
   metadata: DeckViewMetadata;
   contentHash: string;
   frontmatter: DeckViewFrontmatter;
@@ -47,40 +93,7 @@ export type DeckSchemaData = {
   ogImageUrl: string | null;
   coverImageWidth: number | null;
   coverImageHeight: number | null;
-};
-
-const visibilitySchema = z
-  .union([z.enum(["public", "shared", "restricted"]), z.literal("private")])
-  .optional()
-  .transform((value) => {
-    if (value === undefined) return "public" as const;
-    if (value === "private") return "restricted" as const;
-    return value;
-  });
-
-const frontmatterSchema = z.object({
-  title: z.string(),
-  slug: z.string().nullable().default(null),
-  description: z.string().nullable().default(null),
-  author: z.string().nullable().default(null),
-  status: deckStatusSchema,
-  publishedAt: z.string().nullable().default(null),
-  event: z.string().nullable().default(null),
-  coverImageId: z.string().nullable().default(null),
-  ogImageId: z.string().nullable().default(null),
-});
-
-const metadataSchema = z.object({
-  title: z.string(),
-  description: z.string().nullable().default(null),
-  status: deckStatusSchema,
-  publishedAt: z.string().nullable().default(null),
-  coverImageId: z.string().nullable().default(null),
-  slug: z.string(),
-  error: z.string().nullable().default(null),
-});
-
-export const deckViewSchema: z.ZodType<DeckSchemaData> = z.object({
+}> = z.object({
   id: z.string(),
   entityType: z.literal("deck"),
   content: z.string(),
@@ -91,15 +104,17 @@ export const deckViewSchema: z.ZodType<DeckSchemaData> = z.object({
   contentHash: z.string(),
   frontmatter: frontmatterSchema,
   body: z.string(),
-  url: z.string().nullable().default(null),
-  typeLabel: z.string().nullable().default(null),
-  listUrl: z.string().nullable().default(null),
-  listLabel: z.string().nullable().default(null),
-  coverImageUrl: z.string().nullable().default(null),
-  ogImageUrl: z.string().nullable().default(null),
-  coverImageWidth: z.number().nullable().default(null),
-  coverImageHeight: z.number().nullable().default(null),
+  url: nullableString(),
+  typeLabel: nullableString(),
+  listUrl: nullableString(),
+  listLabel: nullableString(),
+  coverImageUrl: nullableString(),
+  ogImageUrl: nullableString(),
+  coverImageWidth: nullableNumber(),
+  coverImageHeight: nullableNumber(),
 });
+
+export type DeckSchemaData = z.output<typeof deckViewSchema>;
 
 export type DeckView = Omit<
   DeckSchemaData,
