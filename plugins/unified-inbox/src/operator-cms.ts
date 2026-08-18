@@ -15,6 +15,7 @@ import {
   inboxWorkspaceQuerySchema,
   inboxWorkspaceSnapshotSchema,
   splitInboxRowId,
+  type InboxWorkspaceSnapshot,
 } from "./schemas";
 
 const inboxCapabilitySchema = z.object({
@@ -70,6 +71,20 @@ const declarativeInboxDataSchema = z.object({
   detail: inboxDetailOutcomeSchema.optional(),
 });
 
+/**
+ * The filter is where a source is chosen, so it carries what distinguishes one:
+ * its open count, its urgent share, and whether it can be read at all. The
+ * option list covers every registered source regardless of the active filter,
+ * so an unreachable source stays visible even while filtered away from it.
+ */
+function sourceOptionLabel(
+  source: InboxWorkspaceSnapshot["sources"][number],
+): string {
+  const name = source.source.displayName;
+  if (!source.available) return `${name} · unavailable`;
+  return source.high > 0 ? `${name} · ${source.high} high` : name;
+}
+
 const inboxWorkspace = defineCmsWorkspace({
   id: "inbox",
   label: "Inbox",
@@ -100,7 +115,7 @@ const inboxWorkspace = defineCmsWorkspace({
         allLabel: "All sources",
         options: snapshot.sources.map((source) => ({
           value: source.source.sourceId,
-          label: source.source.displayName,
+          label: sourceOptionLabel(source),
           count: source.open,
         })),
       },
@@ -197,18 +212,6 @@ const inboxWorkspace = defineCmsWorkspace({
           limit: snapshot.limit,
           total: snapshot.total,
         },
-      },
-      {
-        type: "group",
-        id: "source-health",
-        label: "Source availability",
-        items: snapshot.sources.map((source) => ({
-          id: source.source.sourceId,
-          label: source.source.displayName,
-          value: source.available ? source.open : "Unavailable",
-          tone: source.available ? "neutral" : "warn",
-          description: `${source.high} high priority`,
-        })),
       },
       {
         type: "detail",

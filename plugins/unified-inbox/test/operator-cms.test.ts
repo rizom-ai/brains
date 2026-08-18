@@ -296,3 +296,20 @@ describe("unified inbox CMS registration", () => {
     ).rejects.toThrow("invalid action request");
   });
 });
+
+describe("unified inbox source availability", () => {
+  it("carries per-source urgency and availability on the source filter", async () => {
+    const fixture = await setup();
+    const workspace = await fixture.workspace.dataProvider(admin, {});
+    const serialized = JSON.stringify(workspace);
+
+    // The filter is where a source is chosen, so it carries what distinguishes
+    // one: its open count, its urgent share, and whether it can be read at all.
+    expect(serialized).toContain('"label":"Email Triage · 1 high"');
+
+    // Source availability is no longer a block of its own: name and open count
+    // duplicated the filter, and unavailability duplicated the error notice.
+    expect(serialized).not.toContain('"id":"source-health"');
+    expect(serialized).not.toContain("Source availability");
+  });
+});

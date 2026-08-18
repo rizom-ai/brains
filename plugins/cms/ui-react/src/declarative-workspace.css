@@ -489,11 +489,20 @@
 }
 
 /* A half-width collection has no room for a title-and-trailing row, so master
-   rows stack the way narrow viewports already do. */
+   rows stack the way narrow viewports already do.
+
+   Rows carry inset padding that the list gives back as negative margin: text
+   stays aligned with the head and filters above, while the open row's fill has
+   room to breathe around it instead of hugging its own marker. */
+.declarative-detail-master .declarative-list {
+  margin-inline: -12px;
+}
+
 .declarative-detail-master .declarative-list > li {
   align-items: stretch;
   flex-direction: column;
   gap: 8px;
+  padding-inline: 12px;
 }
 
 .declarative-detail-master .declarative-list-trailing {
@@ -545,6 +554,7 @@
 }
 
 .declarative-detail .declarative-list > li[aria-current="true"] {
+  border-radius: 6px;
   background: var(--console-card);
   box-shadow: inset 2px 0 0 var(--console-accent);
 }
