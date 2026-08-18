@@ -1,0 +1,130 @@
+brain: brain
+anchor: person
+kind: professional
+bundles:
+  - core
+  - media
+  - automation
+  - web
+  - chat
+  - site
+  - publishing
+  - federation
+mode: eval
+
+# Staged beside brain.eval.yaml until the atomic bundle-registry crossover.
+# The surface-only recipes use recipe tags and are covered by deterministic
+# resolution/startup tests; professional retains the compatible model cases.
+suites:
+  headless:
+    bundles:
+      - core
+    tags:
+      - recipe-headless
+    plugins:
+      directory-sync:
+        seedContentPath: eval-content/target/headless
+  personal:
+    extends: headless
+    bundles:
+      - core
+      - media
+      - web
+      - chat
+    tags:
+      - recipe-personal
+    plugins:
+      directory-sync:
+        seedContentPath: eval-content/target/personal
+  professional:
+    extends: personal
+    bundles:
+      - core
+      - media
+      - automation
+      - web
+      - chat
+      - site
+      - publishing
+      - federation
+    tags:
+      - posture-personal
+      - posture-publishing
+    plugins:
+      directory-sync:
+        seedContentPath: eval-content/publishing
+      site-builder:
+        autoRebuild: false
+  team:
+    extends: personal
+    anchor: team
+    kind: team
+    bundles:
+      - core
+      - media
+      - automation
+      - web
+      - chat
+      - site
+      - team
+    add:
+      - docs
+    tags:
+      - recipe-team
+    plugins:
+      directory-sync:
+        seedContentPath: eval-content/target/team
+      a2a:
+        requestTimeoutMs: 1000
+        streamIdleTimeoutMs: 1000
+        maxNetworkAttempts: 1
+      site-builder:
+        autoRebuild: false
+  commerce:
+    extends: personal
+    anchor: organization
+    kind: organization
+    bundles:
+      - core
+      - media
+      - web
+      - site
+    add:
+      - products
+    tags:
+      - recipe-commerce
+    plugins:
+      directory-sync:
+        seedContentPath: eval-content/commerce
+      site-builder:
+        autoRebuild: false
+
+models:
+  - gpt-5.6-luna
+judge: gpt-5.4-mini
+
+keys:
+  openai: ${OPENAI_API_KEY}
+
+permissions:
+  entityActions:
+    post:
+      update: trusted
+      publish: admin
+    social-post:
+      update: trusted
+      publish: admin
+    newsletter:
+      update: trusted
+      publish: admin
+
+plugins:
+  onboarding:
+    enabled: true
+  directory-sync:
+    seedContentPath: eval-content/publishing
+    strictSeedEntityTypes: true
+    autoSync: false
+    deleteOnFileRemoval: false
+    git:
+      gitUrl: "file://${EVAL_GIT_REMOTE}"
