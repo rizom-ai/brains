@@ -15,6 +15,7 @@ import {
 } from "../tools/agent-scan-directories";
 import { createAgentSetTrustLevelTool } from "../tools/agent-set-trust-level";
 import type { FetchFn } from "../lib/fetch-agent-card";
+import { AgentSightingsInboxSource } from "../inbox-source";
 import packageJson from "../../package.json";
 
 export interface AgentToolsConfig {
@@ -93,6 +94,8 @@ export class AgentToolsPlugin extends ServicePlugin<
         schema: atprotoConflictNotificationSchema,
       });
 
+    context.inbox.registerSource(new AgentSightingsInboxSource(context));
+
     context.messaging.subscribe(ATPROTO_BRAIN_DISCOVERED, async (message) => {
       if (!this.config.notifyOnNewAgents) return { success: true };
       const payload = atprotoBrainDiscoveryEventPayloadSchema.parse(
@@ -141,17 +144,23 @@ export class AgentToolsPlugin extends ServicePlugin<
           dedupeKey: string;
           title: string;
           body: string;
+          includeInInbox?: boolean | undefined;
         }> = [];
         if (result.created > 0) {
           const createdDomains = [...result.createdDomains].sort();
           const peers = [...result.introducingPeers].sort();
-          const countLabel = `${result.created} agent${result.created === 1 ? "" : "s"}`;
+          const visibleDomains = createdDomains.slice(0, 5).join(", ");
+          const overflow =
+            createdDomains.length > 5 ? ` +${createdDomains.length - 5}` : "";
           alerts.push({
             dedupeKey: `sightings:${computeContentHash(
               `${result.observedAt}\0${createdDomains.join("\0")}`,
             )}`,
-            title: "New agent sightings",
-            body: `${countLabel} sighted through ${peers.join(", ")}`,
+            // The dedicated source projects each sighting with its entity and
+            // decision actions; this rollup remains channel-only.
+            includeInInbox: false,
+            title: `${result.created} new agent sighting${result.created === 1 ? "" : "s"}`,
+            body: `Found ${visibleDomains}${overflow}, introduced through ${peers.join(", ")}. Review in Agent sightings.`,
           });
         }
 

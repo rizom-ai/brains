@@ -20,7 +20,7 @@ export function createRecurringCheckInboxSource(
         actions: [
           {
             id: RESOLVE_ACTION_ID,
-            label: "Resolve",
+            label: "Dismiss",
             confirm: true,
           },
         ],

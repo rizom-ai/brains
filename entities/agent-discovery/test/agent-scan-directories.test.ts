@@ -132,10 +132,12 @@ describe("agent_scan_directories", () => {
     const result = await check.run({ signal: new AbortController().signal });
 
     expect(check.deliverAlerts).toBe(false);
+    expect(check.includeInInbox).toBeUndefined();
     expect(result.alerts).toEqual([
       expect.objectContaining({
-        title: "New agent sightings",
-        body: "1 agent sighted through kai.brain",
+        includeInInbox: false,
+        title: "1 new agent sighting",
+        body: "Found vale.example, introduced through kai.brain. Review in Agent sightings.",
       }),
     ]);
     expect(
@@ -144,6 +146,24 @@ describe("agent_scan_directories", () => {
         id: "vale.example",
       }),
     ).not.toBeNull();
+    await harness.finalizeRegistration();
+    const inboxSource = harness
+      .getMockShell()
+      .getInboxRegistry()
+      .getSource("agent-sightings");
+    expect(inboxSource).toMatchObject({
+      sourceId: "agent-sightings",
+      displayName: "Agent sightings",
+    });
+    expect(await inboxSource?.list()).toMatchObject([
+      {
+        id: "vale.example",
+        actions: [
+          { id: "connect", label: "Connect" },
+          { id: "dismiss", label: "Dismiss" },
+        ],
+      },
+    ]);
     harness.reset();
   });
 
@@ -164,10 +184,12 @@ describe("agent_scan_directories", () => {
     const result = await check.run({ signal: new AbortController().signal });
 
     expect(check.deliverAlerts).toBe(true);
+    expect(check.includeInInbox).toBeUndefined();
     expect(result.alerts).toEqual([
       expect.objectContaining({
-        title: "New agent sightings",
-        body: "1 agent sighted through kai.brain",
+        includeInInbox: false,
+        title: "1 new agent sighting",
+        body: "Found vale.example, introduced through kai.brain. Review in Agent sightings.",
       }),
     ]);
     harness.reset();

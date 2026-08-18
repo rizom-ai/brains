@@ -35,6 +35,7 @@ const recurringAlertSchema: z.ZodType<RecurringAlert, RecurringAlert> =
     title: z.string().min(1),
     body: z.string().min(1),
     html: z.string().min(1).optional(),
+    includeInInbox: z.boolean().optional(),
   });
 
 const recurringCheckResultSchema: z.ZodType<
@@ -333,7 +334,9 @@ export class RecurringCheckService {
           checkSignal.throwIfAborted();
           await this.recordAlert(checkId, alert, {
             deliver: deliverAlerts,
-            includeInInbox: registered.definition.includeInInbox !== false,
+            includeInInbox:
+              alert.includeInInbox ??
+              registered.definition.includeInInbox !== false,
           });
         }
         await this.state.set(this.lastSuccessKey(checkId), {

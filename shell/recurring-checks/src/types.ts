@@ -8,6 +8,8 @@ export interface RecurringAlert {
   body: string;
   html?: string | undefined;
   sensitivity?: "normal" | "secret" | undefined;
+  /** Override the check-level Inbox projection policy for this alert. */
+  includeInInbox?: boolean | undefined;
 }
 
 export interface RecurringCheckResult {

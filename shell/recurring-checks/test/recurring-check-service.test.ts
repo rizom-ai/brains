@@ -722,6 +722,42 @@ describe("RecurringCheckService", () => {
     expect(await service.listOpenAlerts()).toEqual([]);
   });
 
+  it("lets one alert stay channel-only without hiding its check's other alerts", async () => {
+    const { service, delivered } = createService();
+    service.namespace("agents").register({
+      id: "directory-scan",
+      cadence: "daily",
+      run: async () => ({
+        alerts: [
+          {
+            dedupeKey: "sighting-rollup",
+            title: "New sighting",
+            body: "One new sighting.",
+            includeInInbox: false,
+          },
+          {
+            dedupeKey: "identity-conflict",
+            title: "Identity conflict",
+            body: "One identity conflict needs review.",
+          },
+        ],
+      }),
+    });
+
+    await service.runNow("agents:directory-scan");
+
+    expect(delivered).toEqual([
+      "One new sighting.",
+      "One identity conflict needs review.",
+    ]);
+    expect(await service.listOpenAlerts()).toEqual([
+      expect.objectContaining({
+        title: "Identity conflict",
+        body: "One identity conflict needs review.",
+      }),
+    ]);
+  });
+
   it("suppresses pending delivery while retaining open alerts", async () => {
     let attempts = 0;
     const { service, state } = createService({

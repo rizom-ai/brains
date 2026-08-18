@@ -37,7 +37,7 @@ describe("recurring-check Inbox source", () => {
         summary: openAlert.body,
         receivedAt: openAlert.observedAt,
         urgency: "high",
-        actions: [{ id: "resolve", label: "Resolve", confirm: true }],
+        actions: [{ id: "resolve", label: "Dismiss", confirm: true }],
       },
     ]);
   });
