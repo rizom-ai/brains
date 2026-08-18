@@ -2,6 +2,7 @@ import type { UserPermissionLevel } from "@brains/templates";
 import type { z } from "@brains/utils/zod";
 import type {
   AnyEntityDefinition,
+  EntityPublishDeclaration,
   ProjectionDefinition,
 } from "../entity/entity-definition-contract";
 import type { JobHandlerContext } from "../job/job-context-contract";
@@ -246,6 +247,16 @@ export interface ServiceViewDefinition<TSchema extends ServiceSchema> {
   };
 }
 
+/**
+ * A publish provider a service supplies, named with the entity type it serves.
+ *
+ * The entity-side declaration needs no entityType — it is attached to one.
+ * A service can serve any type its package declares, so it says which.
+ */
+export interface ServicePublishDeclaration extends EntityPublishDeclaration {
+  readonly entityType: string;
+}
+
 interface ServiceDefinitionCore<
   TConfigSchema extends z.ZodType<object, object>,
   TState extends object,
@@ -331,6 +342,20 @@ interface ServiceDefinitionCore<
         readonly jobs: ServiceJobs;
         readonly templates: ServiceTemplateFormatter;
       }) => readonly AnyServiceToolDefinition[])
+    | undefined;
+  /**
+   * Publish providers this package supplies, and the entity types they serve.
+   *
+   * A function of config and state, unlike the entity-side `publish` slot: a
+   * provider that reaches an external network is built from credentials, and
+   * a package with none configured supplies no provider at all. Return an
+   * empty list to publish nothing.
+   */
+  readonly publish?:
+    | ((context: {
+        readonly config: z.output<TConfigSchema>;
+        readonly state: TState;
+      }) => readonly ServicePublishDeclaration[])
     | undefined;
   readonly dashboardWidgets?:
     | ((
