@@ -1,12 +1,13 @@
-import { startGitBrokerHost } from "@brains/directory-sync";
-import type { GitBrokerHostOptions } from "@brains/directory-sync";
+import {
+  GIT_BROKER_SOCKET_ENV,
+  startGitBrokerHost,
+  type GitBrokerHostOptions,
+} from "@brains/directory-sync/broker-runtime";
 import { Logger } from "@brains/utils/logger";
 import { getErrorMessage } from "@brains/utils/error";
 import type { CommandResult } from "./command-result";
-import type { BrainYamlConfig } from "./brain-yaml";
 import { BRAIN_DEFAULT_DATA_DIR } from "./git-broker-spec";
-import { GIT_BROKER_SOCKET_ENV } from "@brains/directory-sync";
-import { BROKER_HEARTBEAT_INTERVAL_MS } from "./process-supervisor";
+import { BROKER_HEARTBEAT_INTERVAL_MS } from "./git-broker-policy";
 
 /** Internal deterministic fault used only by the packaged recovery gate. */
 export const GIT_BROKER_TEST_WITHHOLD_COMPLETION_ENV =
@@ -58,6 +59,10 @@ const defaultHeartbeatClock: HeartbeatClock = {
   },
 };
 
+export interface GitBrokerChildConfig {
+  plugins?: { "directory-sync"?: unknown } | undefined;
+}
+
 export interface GitBrokerChildDependencies {
   processImpl?: BrokerChildProcess;
   startHost?: (options: GitBrokerHostOptions) => Promise<RunningBroker>;
@@ -66,7 +71,7 @@ export interface GitBrokerChildDependencies {
 
 export async function runGitBrokerChild(
   cwd: string,
-  config: BrainYamlConfig,
+  config: GitBrokerChildConfig,
   dependencies: GitBrokerChildDependencies = {},
 ): Promise<CommandResult> {
   const processImpl = dependencies.processImpl ?? process;

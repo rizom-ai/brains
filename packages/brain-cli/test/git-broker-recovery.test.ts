@@ -395,7 +395,18 @@ describe.skipIf(!LINUX)("a broker that stops completing work", () => {
     // reconciled from repository facts. Historical ambiguity remains visible
     // for evidence, while health recovers only after admission is explicitly
     // opened by the scheduling side.
-    const replacement = await BrokerConnection.connect(harness.socketPath);
+    // The pid file is announced before the child finishes binding its socket.
+    // Wait on the endpoint itself so a faster affected runtime cannot turn
+    // replacement startup into a one-shot connection race.
+    const replacement = await until(
+      "the replacement broker socket",
+      async () =>
+        BrokerConnection.connect(harness.socketPath).then(
+          (connection) => connection,
+          () => undefined,
+        ),
+      60_000,
+    );
     await replacement.registerCheckout({
       checkoutPath: harness.checkout,
       branch: "main",

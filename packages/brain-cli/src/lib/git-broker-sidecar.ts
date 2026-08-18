@@ -4,7 +4,10 @@ import {
   GIT_BROKER_SOCKET_ENV,
 } from "@brains/directory-sync";
 import type { BrainYamlConfig } from "./brain-yaml";
-import { resolveGitBrokerSpec } from "./git-broker-spec";
+import {
+  resolveGitBrokerEntrypointPath,
+  resolveGitBrokerSpec,
+} from "./git-broker-spec";
 import type {
   SignalProcess,
   SpawnedProcess,
@@ -98,9 +101,12 @@ function spawnSidecar(
     throw new Error("Cannot start Git broker child without a Brain entrypoint");
   }
 
+  const brokerEntrypoint = resolveGitBrokerEntrypointPath(entrypointPath);
   const child = spawnImpl(
     "bun",
-    [entrypointPath, "start", "--child=git-broker"],
+    brokerEntrypoint
+      ? [brokerEntrypoint]
+      : [entrypointPath, "start", "--child=git-broker"],
     {
       cwd,
       stdio: ["ignore", "inherit", "inherit", "ipc"],

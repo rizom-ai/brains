@@ -26,6 +26,8 @@ or run a remote workload from this work.
 Use one supervised, semantic Git broker as the checkout owner:
 
 - web and worker never spawn Git;
+- the broker runs a lightweight package-owned entrypoint rather than loading a duplicate
+  full Brain application bundle;
 - the broker serializes complete Git operations, not individual commands;
 - the broker uses `simple-git` for Git semantics and child execution;
 - `simple-git` is not the ownership or recovery boundary;
@@ -517,6 +519,14 @@ Remote or scheduled execution requires explicit approval before dispatch:
 5. full install, build, typecheck, lint, unit, package, and startup checks;
 6. one independent scheduled soak with retained Bun version, journal summary, queue
    convergence, and process inventory.
+
+The first approved run, [32101933999](https://github.com/rizom-ai/brains/actions/runs/32101933999),
+is retained as a failed gate. Packaged recovery, fallback, feature resources, and the
+100-cycle inventory passed on Bun 1.3.14. It then exposed two blockers rather than being
+retried unchanged: the full application bundle duplicated about 149 MB of avoidable broker
+RSS and crossed the unchanged 1.28 GiB soak ceiling, while the source recovery fixture used
+a broker PID file before its replacement socket was ready. The broker now has a lightweight
+entrypoint and the fixture waits on the endpoint itself; a changed-tree rerun remains pending.
 
 Run the same matrix on the first immutable fixed Bun release when available. The fixed
 runtime is defense in depth, not permission to skip affected-runtime recovery evidence.

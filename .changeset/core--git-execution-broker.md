@@ -11,6 +11,8 @@ Own every managed Git operation in a supervised broker process.
 Web and worker no longer execute Git. A broker owns each checkout, serializes
 complete operations rather than individual commands, and is started before any
 Git-capable role — so two processes can no longer interleave inside one commit.
+The broker runs from a lightweight package-owned entrypoint instead of loading
+a duplicate full Brain application bundle.
 A lost Git completion fails closed: the operation stays owned and is never
 retried or unlocked in place. The supervisor detects a wedged owner by
 heartbeat silence or stale operation progress, terminates its process group,

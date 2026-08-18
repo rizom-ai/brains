@@ -17,7 +17,10 @@ import {
   type ProcessSupervisorDependencies,
   type SupervisedChildRole,
 } from "../lib/process-supervisor";
-import { resolveGitBrokerSpec } from "../lib/git-broker-spec";
+import {
+  resolveGitBrokerEntrypointPath,
+  resolveGitBrokerSpec,
+} from "../lib/git-broker-spec";
 import { withGitBrokerSidecar } from "../lib/git-broker-sidecar";
 import {
   runGitBrokerChild,
@@ -156,9 +159,20 @@ export async function start(
           operation: "migrate",
         });
         const gitBroker = resolveGitBrokerSpec(cwd, config);
+        const gitBrokerEntrypoint =
+          resolveGitBrokerEntrypointPath(entrypointPath);
         return await superviseRuntimeChildren(cwd, entrypointPath, {
           ...dependencies,
-          ...(gitBroker ? { gitBroker } : {}),
+          ...(gitBroker
+            ? {
+                gitBroker: {
+                  ...gitBroker,
+                  ...(gitBrokerEntrypoint
+                    ? { entrypointPath: gitBrokerEntrypoint }
+                    : {}),
+                },
+              }
+            : {}),
         });
       }
 

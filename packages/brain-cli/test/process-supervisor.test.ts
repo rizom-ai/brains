@@ -143,6 +143,7 @@ function superviseWithBroker(harness: TestHarness): Promise<CommandResult> {
     gitBroker: {
       socketPath: "/run/brain/git-broker.sock",
       checkoutPath: "/brain/brain-data",
+      entrypointPath: "/dist/git-broker.js",
     },
     brokerHeartbeatIntervalMs: 20,
     brokerProgressTimeoutMs: 1_000,
@@ -209,7 +210,7 @@ describe("bundled process supervisor", () => {
     expect(harness.spawnImpl).toHaveBeenCalledTimes(1);
     expect(harness.spawnImpl).toHaveBeenLastCalledWith(
       "bun",
-      ["/dist/brain.js", "start", "--child=git-broker"],
+      ["/dist/git-broker.js"],
       expect.objectContaining({
         cwd: "/brain",
         detached: true,
@@ -502,7 +503,7 @@ describe("bundled process supervisor", () => {
     expect(harness.spawnImpl).toHaveBeenCalledTimes(4);
     expect(harness.spawnImpl).toHaveBeenLastCalledWith(
       "bun",
-      ["/dist/brain.js", "start", "--child=git-broker"],
+      ["/dist/git-broker.js"],
       expect.objectContaining({ detached: true }),
     );
 

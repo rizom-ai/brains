@@ -5,6 +5,7 @@ import {
   GIT_BROKER_SOCKET_ENV,
 } from "@brains/directory-sync";
 import type { CommandResult } from "./command-result";
+import { BROKER_HEARTBEAT_INTERVAL_MS } from "./git-broker-policy";
 import type {
   SignalProcess,
   SpawnBunRunnerDependencies,
@@ -30,6 +31,8 @@ export interface GitBrokerSpec {
   readonly socketPath: string;
   /** Absolute path the broker resolved from this Brain's configuration. */
   readonly checkoutPath: string;
+  /** Lightweight broker-only bundle; falls back to the Brain entrypoint in tests. */
+  readonly entrypointPath?: string | undefined;
 }
 
 // Defined by the package that consumes it, so the supervisor and the roles
@@ -41,7 +44,7 @@ type WorkerHeartbeatTimer = ReturnType<typeof setInterval> | number;
 export const WORKER_HEARTBEAT_INTERVAL_MS = 5_000;
 const MISSED_WORKER_HEARTBEATS_BEFORE_RESTART = 3;
 
-export const BROKER_HEARTBEAT_INTERVAL_MS = 5_000;
+export { BROKER_HEARTBEAT_INTERVAL_MS };
 const MISSED_BROKER_HEARTBEATS_BEFORE_TERMINATION = 3;
 
 // One policy, defined with the broker it describes, so a health report and a
@@ -693,9 +696,13 @@ function runRuntimeSupervisor(
       if (settled || parentShutdownRequested || finalResult) return;
       if (role === "worker") workerAttempts.push(options.clock.now());
 
+      const brokerEntrypoint =
+        role === "git-broker" ? options.gitBroker?.entrypointPath : undefined;
       const childProcess = options.spawnImpl(
         "bun",
-        [options.entrypointPath, "start", `--child=${role}`],
+        brokerEntrypoint
+          ? [brokerEntrypoint]
+          : [options.entrypointPath, "start", `--child=${role}`],
         {
           cwd: options.cwd,
           stdio: ["inherit", "inherit", "inherit", "ipc"],
