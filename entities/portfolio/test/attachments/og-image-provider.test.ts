@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, mock } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
-import { PortfolioPlugin } from "../../src/plugin";
+import { projectEntityPlugin } from "../helpers/install";
 import { createProjectOgImageProvider } from "../../src/attachments/og-image-provider";
 import type { Project } from "../../src/schemas/project";
 
@@ -39,8 +39,8 @@ describe("Project OG image attachment provider", () => {
   beforeEach(() => {});
 
   it("registers a project OG image attachment provider", async () => {
-    const harness = createPluginHarness<PortfolioPlugin>();
-    await harness.installPlugin(new PortfolioPlugin());
+    const harness = createPluginHarness();
+    await harness.installPlugin(projectEntityPlugin());
 
     const context = harness.getEntityContext("test");
     expect(context.attachments.hasProvider("project", "og-image")).toBe(true);
@@ -55,8 +55,8 @@ describe("Project OG image attachment provider", () => {
       expect(html).toContain("slow infrastructure signals");
       return TINY_PNG;
     });
-    const harness = createPluginHarness<PortfolioPlugin>();
-    await harness.installPlugin(new PortfolioPlugin());
+    const harness = createPluginHarness();
+    await harness.installPlugin(projectEntityPlugin());
     await harness.getEntityService().createEntity({ entity: sampleProject });
 
     const provider = createProjectOgImageProvider(

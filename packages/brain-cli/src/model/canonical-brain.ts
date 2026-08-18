@@ -40,7 +40,7 @@ import { notePlugin } from "@brains/note";
 import { notificationsPlugin } from "@brains/notifications";
 import { obsidianVaultPlugin } from "@brains/obsidian-vault";
 import { playbookPlugin, playbooksPlugin } from "@brains/playbooks";
-import { portfolioPlugin } from "@brains/portfolio";
+import portfolioPackage from "@brains/portfolio";
 import productsPackage from "@brains/products";
 import { profilePlugin } from "@brains/profile";
 import promptPackage from "@brains/prompt";
@@ -369,7 +369,7 @@ export const canonicalBrain: BrainDefinition = defineBrain({
 
     ["blog", blogPlugin, undefined],
     packageCapability("series", "@brains/series", seriesPackage),
-    ["portfolio", portfolioPlugin, undefined],
+    packageCapability("portfolio", "@brains/portfolio", portfolioPackage),
     ["content-pipeline", contentPipelinePlugin, undefined],
     ["social-media", socialMediaPlugin, undefined],
     ["newsletter", newsletter, undefined],

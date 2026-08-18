@@ -12,6 +12,8 @@ import {
   type ProjectPrintableTemplateData,
 } from "./printable-template";
 
+export { PROJECT_PRINTABLE_ATTACHMENT_TYPE };
+
 export const createProjectPrintableProvider: PrintableProviderFactory =
   createPrintableProvider<Project, ProjectPrintableTemplateData>({
     sourceEntityType: "project",
