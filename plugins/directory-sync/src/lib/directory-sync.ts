@@ -1,7 +1,8 @@
-import type {
-  BaseEntity,
-  IEntityService,
-  ServicePluginContext,
+import {
+  createId,
+  type BaseEntity,
+  type IEntityService,
+  type ServicePluginContext,
 } from "@brains/plugins";
 import type { BatchMetadata, BatchResult } from "../types";
 import type { Logger } from "@brains/utils/logger";
@@ -143,14 +144,16 @@ export class DirectorySync implements IDirectorySync {
    * by entity:created/entity:updated subscribers when autoSync is enabled.
    */
   async sync(): Promise<SyncResult> {
-    return runDirectorySync({
-      logger: this.logger,
-      importEntities: this.importEntities.bind(this),
-      removeOrphanedEntities: this.removeOrphanedEntities.bind(this),
-      markSynced: (syncedAt) => {
-        this.lastSync = syncedAt;
-      },
-    });
+    return this.runBulkMutation("sync", () =>
+      runDirectorySync({
+        logger: this.logger,
+        importEntities: this.importEntitiesUnbatched.bind(this),
+        removeOrphanedEntities: this.removeOrphanedEntitiesUnbatched.bind(this),
+        markSynced: (syncedAt) => {
+          this.lastSync = syncedAt;
+        },
+      }),
+    );
   }
 
   async processEntityExport(entity: BaseEntity): Promise<{
@@ -180,12 +183,14 @@ export class DirectorySync implements IDirectorySync {
     reporter: ProgressReporter,
     batchSize: number,
   ): Promise<ImportResult> {
-    return importDirectoryEntitiesWithProgress(
-      this.progressOperations,
-      paths,
-      reporter,
-      batchSize,
-      this.importEntities.bind(this),
+    return this.runBulkMutation("import", () =>
+      importDirectoryEntitiesWithProgress(
+        this.progressOperations,
+        paths,
+        reporter,
+        batchSize,
+        this.importEntitiesUnbatched.bind(this),
+      ),
     );
   }
 
@@ -205,15 +210,40 @@ export class DirectorySync implements IDirectorySync {
   }
 
   async importEntities(paths?: string[]): Promise<ImportResult> {
-    return importDirectoryEntities(this.operationDeps, this.entityTypes, paths);
+    return this.runBulkMutation("import", () =>
+      this.importEntitiesUnbatched(paths),
+    );
   }
 
   async removeOrphanedEntities(): Promise<CleanupResult> {
+    return this.runBulkMutation("cleanup", () =>
+      this.removeOrphanedEntitiesUnbatched(),
+    );
+  }
+
+  private importEntitiesUnbatched(paths?: string[]): Promise<ImportResult> {
+    return importDirectoryEntities(this.operationDeps, this.entityTypes, paths);
+  }
+
+  private removeOrphanedEntitiesUnbatched(): Promise<CleanupResult> {
     return removeOrphanedDirectoryEntities(
       this.operationDeps,
       this.logger,
       this.deleteOnFileRemoval,
       this.entityTypes,
+    );
+  }
+
+  private runBulkMutation<TResult>(
+    operation: string,
+    mutation: () => Promise<TResult>,
+  ): Promise<TResult> {
+    return this.entityService.runBulkMutation(
+      {
+        source: "directory-sync",
+        operationId: `${operation}:${createId()}`,
+      },
+      mutation,
     );
   }
 

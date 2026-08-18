@@ -19,8 +19,10 @@ export {
   type ProjectionWriteIntent,
 } from "./projection-contracts";
 export {
+  ProjectionBatchFencedError,
   ProjectionStore,
   type ApplyProjectionRuleResultInput,
+  type ProjectionBatchDiagnostics,
   type ClaimProjectionWaveInput,
   type GetProjectionRuleMemoInput,
   type MarkProjectionDirtyInput,
@@ -38,6 +40,10 @@ export type {
   ProjectionWaveInput,
   ProjectionWaveRule,
 } from "./schema/projection-state";
+export type {
+  ProjectionBatch,
+  ProjectionBatchChild,
+} from "./schema/projection-batches";
 export {
   EntityValidationError,
   hasValidationIssues,
@@ -65,6 +71,13 @@ export type { EmbeddingDB } from "./db/embedding-db";
 
 export type {
   BaseEntity,
+  BulkMutationInput,
+  DurableBulkMutationChildInput,
+  DurableBulkMutationRootInput,
+  ProjectionBatchOwnedJob,
+  ProjectionBatchRecoveryResult,
+  ProjectionBatchRootReader,
+  SettleDurableBulkMutationChildInput,
   CreateCoverImageInput,
   CreateFromAttachmentInput,
   CreateFromConversationMessageInput,
@@ -104,6 +117,7 @@ export type {
   SearchWithDistancesRequest,
   EntityRegistry as IEntityRegistry,
   EntityService as IEntityService,
+  EntityServiceClient,
   ICoreEntityService,
   IEntitiesNamespace,
   EntityDbConfig,

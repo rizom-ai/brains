@@ -5,7 +5,7 @@ import type { Logger } from "@brains/utils/logger";
 import { pluralize } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
 import type { SiteImageLookup } from "@brains/site-engine";
-import type { IEntityService } from "@brains/plugins";
+import type { ServiceEntityService } from "@brains/plugins";
 import type { BuildPipelineContext } from "./build-pipeline-context";
 
 interface EntityWithSlug extends Record<string, unknown> {
@@ -205,7 +205,7 @@ function toAbsoluteUrl(url: string, siteUrl: string | undefined): string {
 
 async function resolveCoverImage(
   imageId: string | undefined,
-  entityService: IEntityService,
+  entityService: ServiceEntityService,
 ): Promise<
   | {
       url: string;
@@ -238,7 +238,7 @@ async function resolveCoverImage(
  * Scan all entities for coverImageId references to pre-resolve before rendering.
  */
 export async function collectAllImageIds(
-  entityService: IEntityService,
+  entityService: ServiceEntityService,
   logger: Logger,
 ): Promise<string[]> {
   const imageIds = new Set<string>();

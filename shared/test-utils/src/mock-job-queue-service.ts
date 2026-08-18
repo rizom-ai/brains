@@ -15,6 +15,7 @@ export interface MockJobQueueServiceReturns {
   enqueue?: string;
   dequeue?: JobInfo | null;
   getStatus?: JobInfo | null;
+  getJobsByRootJobId?: JobInfo[];
   getStatusByEntityId?: JobInfo | null;
   getHandler?: JobHandler | undefined;
   getValidator?: JobValidator | undefined;
@@ -169,6 +170,9 @@ export function createMockJobQueueService(
     }),
     update: mock(() => Promise.resolve(true)),
     getStatus: mock(() => Promise.resolve(returns.getStatus ?? null)),
+    getJobsByRootJobId: mock(() =>
+      Promise.resolve(returns.getJobsByRootJobId ?? []),
+    ),
     getStatusByEntityId: mock(() =>
       Promise.resolve(returns.getStatusByEntityId ?? null),
     ),

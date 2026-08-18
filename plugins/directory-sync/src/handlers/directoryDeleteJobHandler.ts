@@ -10,6 +10,10 @@ import {
   type DirectoryDeleteJobResult,
   type DirectoryDeleteTarget,
 } from "../types";
+import {
+  runDirectoryProjectionBatchChild,
+  settleDirectoryProjectionBatchChild,
+} from "../lib/projection-batch-job";
 
 export class DirectoryDeleteJobHandler extends BaseJobHandler<
   "directory-delete",
@@ -37,35 +41,67 @@ export class DirectoryDeleteJobHandler extends BaseJobHandler<
     _jobId: string,
     progressReporter: ProgressReporter,
   ): Promise<DirectoryDeleteJobResult> {
-    const validatedData = directoryDeleteJobSchema.parse(data);
-    const isBatch = "deletions" in validatedData;
-    const deletions = isBatch ? validatedData.deletions : [validatedData];
+    return runDirectoryProjectionBatchChild(
+      this.context,
+      data,
+      _jobId,
+      async (): Promise<DirectoryDeleteJobResult> => {
+        const validatedData = directoryDeleteJobSchema.parse(data);
+        const isBatch = "deletions" in validatedData;
+        const deletions = isBatch ? validatedData.deletions : [validatedData];
 
-    await progressReporter.report({
-      progress: 0,
-      total: deletions.length,
-      message:
-        deletions.length === 1
-          ? `Deleting ${deletions[0]?.entityType}:${deletions[0]?.entityId}`
-          : `Deleting ${deletions.length} entities`,
-    });
+        await progressReporter.report({
+          progress: 0,
+          total: deletions.length,
+          message:
+            deletions.length === 1
+              ? `Deleting ${deletions[0]?.entityType}:${deletions[0]?.entityId}`
+              : `Deleting ${deletions.length} entities`,
+        });
 
-    const results: DeleteResult[] = [];
-    for (const [index, deletion] of deletions.entries()) {
-      results.push(
-        await this.deleteEntity(
-          deletion,
-          index + 1,
-          deletions.length,
-          progressReporter,
-        ),
-      );
-    }
+        const results: DeleteResult[] = [];
+        for (const [index, deletion] of deletions.entries()) {
+          results.push(
+            await this.deleteEntity(
+              deletion,
+              index + 1,
+              deletions.length,
+              progressReporter,
+            ),
+          );
+        }
 
-    if (isBatch) return results;
-    const result = results[0];
-    if (!result) throw new Error("Directory delete job has no targets");
-    return result;
+        if (isBatch) return results;
+        const result = results[0];
+        if (!result) throw new Error("Directory delete job has no targets");
+        return result;
+      },
+    );
+  }
+
+  public async onTerminalSuccess(
+    data: DirectoryDeleteJobData,
+    jobId: string,
+  ): Promise<void> {
+    await settleDirectoryProjectionBatchChild(
+      this.context,
+      data,
+      jobId,
+      "completed",
+    );
+  }
+
+  public async onTerminalError(
+    _error: Error,
+    data: DirectoryDeleteJobData,
+    jobId: string,
+  ): Promise<void> {
+    await settleDirectoryProjectionBatchChild(
+      this.context,
+      data,
+      jobId,
+      "failed",
+    );
   }
 
   protected override summarizeDataForLog(

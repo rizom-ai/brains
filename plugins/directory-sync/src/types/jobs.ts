@@ -40,6 +40,23 @@ export const directorySyncRequestJobSchema: z.ZodType<
   channelId: z.string().optional(),
 });
 
+export interface DirectoryProjectionBatchRef {
+  operationId: string;
+  rootJobId: string;
+  childKey: string;
+  expectedChildren: number;
+}
+
+export const directoryProjectionBatchRefSchema: z.ZodType<
+  DirectoryProjectionBatchRef,
+  DirectoryProjectionBatchRef
+> = z.object({
+  operationId: z.string().min(1),
+  rootJobId: z.string().min(1),
+  childKey: z.string().min(1),
+  expectedChildren: z.number().int().positive(),
+});
+
 /**
  * Schema for directory import job data
  */
@@ -47,6 +64,7 @@ export interface DirectoryImportJobData {
   paths?: string[] | undefined;
   batchSize?: number | undefined;
   batchIndex?: number | undefined;
+  projectionBatch?: DirectoryProjectionBatchRef | undefined;
 }
 
 export const directoryImportJobSchema: z.ZodType<
@@ -56,6 +74,7 @@ export const directoryImportJobSchema: z.ZodType<
   paths: z.array(z.string()).optional(),
   batchSize: z.number().min(1).optional(),
   batchIndex: z.number().optional(),
+  projectionBatch: directoryProjectionBatchRefSchema.optional(),
 });
 
 /**
@@ -83,13 +102,11 @@ export interface DirectoryDeleteTarget {
   filePath: string;
 }
 
-export type DirectoryDeleteJobData =
-  DirectoryDeleteTarget | { deletions: DirectoryDeleteTarget[] };
+export type DirectoryDeleteJobData = (
+  DirectoryDeleteTarget | { deletions: DirectoryDeleteTarget[] }
+) & { projectionBatch?: DirectoryProjectionBatchRef | undefined };
 
-const directoryDeleteTargetSchema: z.ZodType<
-  DirectoryDeleteTarget,
-  DirectoryDeleteTarget
-> = z.object({
+const directoryDeleteTargetSchema = z.object({
   entityId: z.string(),
   entityType: z.string(),
   filePath: z.string(),
@@ -99,9 +116,12 @@ export const directoryDeleteJobSchema: z.ZodType<
   DirectoryDeleteJobData,
   DirectoryDeleteJobData
 > = z.union([
-  directoryDeleteTargetSchema,
+  directoryDeleteTargetSchema.extend({
+    projectionBatch: directoryProjectionBatchRefSchema.optional(),
+  }),
   z.object({
     deletions: z.array(directoryDeleteTargetSchema).min(1).max(50),
+    projectionBatch: directoryProjectionBatchRefSchema.optional(),
   }),
 ]);
 

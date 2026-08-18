@@ -84,8 +84,19 @@ describe("batch operations should not include exports (regression)", () => {
     const result = await makeManager().queueSyncBatch(context, "test", []);
 
     expect(enqueueBatch).toHaveBeenCalledWith(
-      [{ type: "directory-cleanup", data: {} }],
-      expect.anything(),
+      [
+        {
+          type: "directory-cleanup",
+          data: expect.objectContaining({
+            projectionBatch: expect.objectContaining({
+              operationId: expect.any(String),
+              childKey: "0:directory-cleanup",
+              expectedChildren: 1,
+            }),
+          }),
+        },
+      ],
+      expect.objectContaining({ rootJobId: expect.any(String) }),
     );
     expect(result).toMatchObject({
       batchId: "batch-cleanup",

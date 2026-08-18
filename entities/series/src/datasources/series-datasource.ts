@@ -2,7 +2,6 @@ import type {
   DataSource,
   DataSourceSchema,
   BaseDataSourceContext,
-  IEntityService,
   BaseEntity,
 } from "@brains/plugins";
 import { parseMarkdownWithFrontmatter } from "@brains/plugins";
@@ -121,7 +120,7 @@ export class SeriesDataSource implements DataSource {
 
   private async fetchSeriesList<T>(
     outputSchema: DataSourceSchema<T>,
-    entityService: IEntityService,
+    entityService: BaseDataSourceContext["entityService"],
   ): Promise<T> {
     const seriesEntities = await entityService.listEntities<Series>({
       entityType: "series",
@@ -147,7 +146,7 @@ export class SeriesDataSource implements DataSource {
   private async fetchSeriesDetail<T>(
     seriesName: string,
     outputSchema: DataSourceSchema<T>,
-    entityService: IEntityService,
+    entityService: BaseDataSourceContext["entityService"],
     seriesEntity?: Series,
   ): Promise<T> {
     if (!seriesEntity) {
@@ -189,7 +188,7 @@ export class SeriesDataSource implements DataSource {
   private async fetchSeriesDetailBySlug<T>(
     seriesSlug: string,
     outputSchema: DataSourceSchema<T>,
-    entityService: IEntityService,
+    entityService: BaseDataSourceContext["entityService"],
   ): Promise<T> {
     const candidates = await entityService.listEntities<Series>({
       entityType: "series",
@@ -219,7 +218,7 @@ export class SeriesDataSource implements DataSource {
    * Count entities per series across all entity types.
    */
   private async countEntitiesPerSeries(
-    entityService: IEntityService,
+    entityService: BaseDataSourceContext["entityService"],
   ): Promise<Map<string, number>> {
     const counts = new Map<string, number>();
     const types = entityService.getEntityTypes();
@@ -245,7 +244,7 @@ export class SeriesDataSource implements DataSource {
    */
   private async getSeriesMembers(
     seriesName: string,
-    entityService: IEntityService,
+    entityService: BaseDataSourceContext["entityService"],
   ): Promise<BaseEntity[]> {
     const members: BaseEntity[] = [];
     const types = entityService.getEntityTypes();

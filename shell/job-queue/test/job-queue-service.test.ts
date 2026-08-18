@@ -775,6 +775,26 @@ describe("JobQueueService", () => {
       expect(job?.type).toBe("shell:embedding");
       expect(job?.status).toBe("pending");
     });
+    it("lists terminal and active children by durable root job ID", async () => {
+      const rootJobId = "directory-root-1";
+      const firstId = await service.enqueue({
+        type: "shell:embedding",
+        data: testEntity,
+        options: enqueueOpts({ rootJobId }),
+      });
+      const secondId = await service.enqueue({
+        type: "shell:embedding",
+        data: { ...testEntity, id: "test-root-child-2" },
+        options: enqueueOpts({ rootJobId }),
+      });
+      await service.complete(firstId, {});
+
+      expect(
+        (await service.getJobsByRootJobId(rootJobId)).map(({ id }) => id),
+      ).toEqual([firstId, secondId]);
+      expect(await service.getJobsByRootJobId("another-root")).toEqual([]);
+    });
+
     it("should get job status by entity ID for embedding jobs", async () => {
       await service.enqueue({
         type: "shell:embedding",

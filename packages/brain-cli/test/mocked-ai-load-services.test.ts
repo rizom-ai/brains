@@ -45,6 +45,7 @@ describe("mocked feature-load services", () => {
       completedUpdateEmbeddingCalls: 2,
       maxConcurrentUpdateEmbeddingCalls: 2,
       objectCalls: 1,
+      objectCallsByProjection: { unattributed: 1 },
       textCalls: 0,
       activeCalls: 0,
       maxConcurrentCalls: 4,

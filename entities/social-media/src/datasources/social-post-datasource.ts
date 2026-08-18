@@ -5,11 +5,7 @@ import {
   type NavigationResult,
   type PaginationInfo,
 } from "@brains/plugins";
-import type {
-  BaseDataSourceContext,
-  DataSourceSchema,
-  IEntityService,
-} from "@brains/plugins";
+import type { BaseDataSourceContext, DataSourceSchema } from "@brains/plugins";
 import { parseMarkdownWithFrontmatter } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
@@ -208,7 +204,7 @@ export class SocialPostDataSource extends BaseEntityDataSource<
    */
   private async fetchNextInQueue<T>(
     outputSchema: DataSourceSchema<T>,
-    entityService: IEntityService,
+    entityService: BaseDataSourceContext["entityService"],
   ): Promise<T> {
     const entities = await entityService.listEntities<SocialPost>({
       entityType: this.config.entityType,

@@ -12,7 +12,7 @@ import {
   createEntitiesNamespace,
   createPromptsNamespace,
 } from "../entity/namespaces";
-import type { IEntityService } from "@brains/entity-service";
+import type { EntityServiceClient } from "@brains/entity-service";
 import type { ResolutionOptions } from "@brains/content-service";
 import type { RuntimeInterfacePrincipalState } from "@brains/contracts";
 import { TemplateCapabilities } from "@brains/templates";
@@ -89,13 +89,15 @@ export interface IServiceRuntimePermissionsNamespace {
   replaceRuntimePrincipalState(state: RuntimeInterfacePrincipalState): void;
 }
 
+export type ServiceEntityService = EntityServiceClient;
+
 export interface ServicePluginContext extends BasePluginContext {
   /** Auth-runtime projection hooks available only to service plugins. */
   readonly permissions: BasePluginContext["permissions"] &
     IServiceRuntimePermissionsNamespace;
 
   /** Full entity service with write operations */
-  readonly entityService: IEntityService;
+  readonly entityService: ServiceEntityService;
 
   /** Entity management namespace */
   readonly entities: IEntitiesNamespace;

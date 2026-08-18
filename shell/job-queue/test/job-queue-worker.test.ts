@@ -82,6 +82,7 @@ const testJob: JobInfo = {
 interface MockHandler {
   executionTimeoutMs?: number;
   process: ReturnType<typeof mock>;
+  onTerminalSuccess: ReturnType<typeof mock>;
   onError: ReturnType<typeof mock>;
   onTerminalError: ReturnType<typeof mock>;
   validateAndParse: ReturnType<typeof mock>;
@@ -90,6 +91,7 @@ interface MockHandler {
 function createMockHandler(): MockHandler {
   return {
     process: mock(() => Promise.resolve({ success: true })),
+    onTerminalSuccess: mock(() => Promise.resolve()),
     onError: mock(() => Promise.resolve()),
     onTerminalError: mock(() => Promise.resolve()),
     validateAndParse: mock(() => ({ id: "entity-123", content: "test" })),
@@ -926,6 +928,12 @@ describe("JobQueueWorker", () => {
         testJob.attemptId,
       );
       expect(result.mockService.fail).not.toHaveBeenCalled();
+      expect(handler.onTerminalSuccess).toHaveBeenCalledWith(
+        { id: "entity-123", content: "test" },
+        testJob.id,
+        expect.any(Object),
+        expect.any(AbortSignal),
+      );
     });
 
     it("should report failed status to progress monitor when handler returns failure", async () => {

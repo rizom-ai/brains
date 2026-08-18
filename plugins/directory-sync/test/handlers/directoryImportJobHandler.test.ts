@@ -4,6 +4,7 @@ import {
   createSilentLogger,
   createMockServicePluginContext,
   createMockProgressReporter,
+  createMockEntityService,
 } from "@brains/test-utils";
 import { createMockDirectorySync } from "../fixtures";
 
@@ -115,6 +116,56 @@ describe("DirectoryImportJobHandler", () => {
         reporter,
         25,
       );
+    });
+
+    it("holds and settles a shared durable projection batch child", async () => {
+      const entityService = createMockEntityService();
+      const runChild = mock(
+        async <TResult>(
+          _input: unknown,
+          mutation: () => Promise<TResult>,
+        ): Promise<TResult> => mutation(),
+      );
+      const settleChild = mock(async () => true);
+      entityService.runDurableBulkMutationChild =
+        runChild as typeof entityService.runDurableBulkMutationChild;
+      entityService.settleDurableBulkMutationChild = settleChild;
+      const context = createMockServicePluginContext({ entityService });
+      const testHandler = new DirectoryImportJobHandler(
+        createSilentLogger("test"),
+        context,
+        createMockDirectorySync(),
+      );
+      const data = {
+        paths: ["/path/to/series.md"],
+        projectionBatch: {
+          operationId: "root-1",
+          rootJobId: "root-1",
+          childKey: "0:directory-import",
+          expectedChildren: 2,
+        },
+      };
+
+      await testHandler.process(data, "job-1", createMockProgressReporter());
+      await testHandler.onTerminalSuccess(data, "job-1");
+
+      expect(runChild).toHaveBeenCalledWith(
+        {
+          source: "directory-sync",
+          operationId: "root-1",
+          rootJobId: "root-1",
+          childKey: "0:directory-import",
+          expectedChildren: 2,
+          jobId: "job-1",
+        },
+        expect.any(Function),
+      );
+      expect(settleChild).toHaveBeenCalledWith({
+        operationId: "root-1",
+        childKey: "0:directory-import",
+        jobId: "job-1",
+        outcome: "completed",
+      });
     });
   });
 });

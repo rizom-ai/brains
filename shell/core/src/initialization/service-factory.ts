@@ -210,6 +210,9 @@ export function createShellServices(options: {
       jobQueueService,
       messageBus,
       mutationAdmission: projectionRuntimeSupervisor,
+      ...(dependencies?.projectionRuntime?.now && {
+        projectionNow: dependencies.projectionRuntime.now,
+      }),
       dbConfig: createDatabaseConfig(config.database),
       embeddingDbConfig: createDatabaseConfig(config.embeddingDatabase),
       ...(dependencies?.entityService && {

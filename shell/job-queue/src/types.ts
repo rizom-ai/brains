@@ -141,6 +141,14 @@ export interface JobHandler<
   /**
    * Handle job failure (optional)
    */
+  /** Runs after successful terminal state is durably persisted. */
+  onTerminalSuccess?(
+    data: TInput,
+    jobId: string,
+    progressReporter: ProgressReporter,
+    signal: AbortSignal,
+  ): Promise<void>;
+
   onError?(
     error: Error,
     data: TInput,
@@ -307,6 +315,9 @@ export interface IJobQueueService {
    * Get job status by job ID
    */
   getStatus(jobId: string): Promise<JobInfo | null>;
+
+  /** Read all durable jobs belonging to one root operation. */
+  getJobsByRootJobId(rootJobId: string): Promise<JobInfo[]>;
 
   /**
    * Get job status by entity ID (for embedding jobs)

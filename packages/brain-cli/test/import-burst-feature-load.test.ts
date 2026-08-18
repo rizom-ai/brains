@@ -2,9 +2,10 @@ import { afterEach, describe, expect, it } from "bun:test";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { availableParallelism, tmpdir } from "node:os";
-import { Shell } from "@brains/core";
+import { Shell, type ProjectionRuleDiagnostic } from "@brains/core";
 import { MigrationManager, resolve } from "@brains/app";
 import { DirectorySyncPlugin } from "@brains/directory-sync";
+import { OperationContext } from "@brains/operation-context";
 import { Logger, LogLevel } from "@brains/utils/logger";
 import { canonicalBrain } from "../src/model/canonical-brain";
 import {
@@ -68,12 +69,14 @@ interface PhaseAICalls {
   updateEmbeddingCalls: number;
   completedUpdateEmbeddingCalls: number;
   objectCalls: number;
+  objectCallsByProjection: Record<string, number>;
   textCalls: number;
 }
 
 interface FeatureLoadPhaseReport {
   durationMs: number;
   ai: PhaseAICalls;
+  projectionDiagnostics: ProjectionRuleDiagnostic[];
   queue: {
     samples: number;
     maxPending: number;
@@ -100,6 +103,7 @@ interface FeatureLoadReport {
     update: ProcessResourceSnapshot;
   };
   ai: MockLoadSnapshot;
+  projectionDiagnostics: ProjectionRuleDiagnostic[];
   phases: {
     add: FeatureLoadPhaseReport;
     update: FeatureLoadPhaseReport;
@@ -185,6 +189,18 @@ async function writeImportedNotes(
   }
 }
 
+function diffCounts(
+  before: Record<string, number>,
+  after: Record<string, number>,
+): Record<string, number> {
+  return Object.fromEntries(
+    [...new Set([...Object.keys(before), ...Object.keys(after)])]
+      .sort()
+      .map((key) => [key, (after[key] ?? 0) - (before[key] ?? 0)])
+      .filter(([, count]) => count !== 0),
+  );
+}
+
 function diffAI(
   before: MockLoadSnapshot,
   after: MockLoadSnapshot,
@@ -200,6 +216,10 @@ function diffAI(
       after.completedUpdateEmbeddingCalls -
       before.completedUpdateEmbeddingCalls,
     objectCalls: after.objectCalls - before.objectCalls,
+    objectCallsByProjection: diffCounts(
+      before.objectCallsByProjection,
+      after.objectCallsByProjection,
+    ),
     textCalls: after.textCalls - before.textCalls,
   };
 }
@@ -257,8 +277,12 @@ describe("directory import burst with locally mocked AI features", () => {
       tempRoot = await mkdtemp(join(tmpdir(), "mocked-ai-load-"));
       const dataDir = join(tempRoot, "brain-data");
       const tracker = new MockLoadTracker();
+      const projectionDiagnostics: ProjectionRuleDiagnostic[] = [];
+      const operationContext = OperationContext.createFresh();
       const aiService = new MockLoadAIService(tracker, {
         delayMs: SERVICE_DELAY_MS,
+        getProjectionId: (): string | undefined =>
+          operationContext.current()?.provenance.projectionId,
       });
       const embeddingService = new MockLoadEmbeddingService(tracker, {
         delayMs: SERVICE_DELAY_MS,
@@ -344,7 +368,17 @@ describe("directory import burst with locally mocked AI features", () => {
             ? { agentInstructions: resolved.agentInstructions }
             : {}),
         },
-        { logger, aiService, embeddingService },
+        {
+          logger,
+          aiService,
+          embeddingService,
+          operationContext,
+          projectionRuntime: {
+            onDiagnostic: (diagnostic): void => {
+              projectionDiagnostics.push(diagnostic);
+            },
+          },
+        },
       );
       const runningShell = shell;
       await runningShell.initialize();
@@ -371,6 +405,7 @@ describe("directory import burst with locally mocked AI features", () => {
       ): Promise<FeatureLoadPhaseReport> => {
         await writeImportedNotes(dataDir, IMPORT_COUNT, phase);
         const before = tracker.snapshot();
+        const diagnosticStart = projectionDiagnostics.length;
         const samples: QueueSample[] = [];
         const sample = async (): Promise<QueueSample> => {
           const [diagnostics, readiness] = await Promise.all([
@@ -458,6 +493,7 @@ describe("directory import burst with locally mocked AI features", () => {
         return {
           durationMs: Date.now() - startedAt,
           ai: diffAI(before, after),
+          projectionDiagnostics: projectionDiagnostics.slice(diagnosticStart),
           queue: {
             samples: samples.length,
             maxPending: maxOf(samples, (entry) => entry.pending),
@@ -537,18 +573,15 @@ describe("directory import burst with locally mocked AI features", () => {
         resources,
         resourceCheckpoints,
         ai: snapshot,
+        projectionDiagnostics,
         phases,
       };
 
       console.info(`MOCKED_AI_LOAD_REPORT ${JSON.stringify(report)}`);
 
-      // The dedicated resource lane gives this fixture explicit two-CPU
-      // affinity and no concurrent repository suites. The default suite may
-      // share a runner with unrelated work, allowing one additional extraction
-      // pass while the event loop is externally descheduled.
-      const maxObjectCallsPerPhase = resourceAcceptanceEnabled
-        ? Math.ceil(IMPORT_COUNT / 4) + 8
-        : Math.ceil(IMPORT_COUNT / 2) + 3;
+      // One explicit Directory Sync mutation boundary admits one settled topic
+      // scan. Eight calls remain for bounded non-topic projection work.
+      const maxObjectCallsPerPhase = Math.ceil(IMPORT_COUNT / 4) + 8;
       const assertPhase = (
         phase: FeatureLoadPhaseReport,
         expectedUpdateEmbeddings: number,
@@ -563,12 +596,24 @@ describe("directory import burst with locally mocked AI features", () => {
         expect(phase.ai.objectCalls).toBeLessThanOrEqual(
           maxObjectCallsPerPhase,
         );
+        expect(phase.ai.objectCallsByProjection["topics-projection"]).toBe(
+          phase.ai.objectCalls,
+        );
+        const topicDerives = phase.projectionDiagnostics.filter(
+          (entry) =>
+            entry.ruleId === "topics-projection" &&
+            entry.event === "derive-completed",
+        );
+        expect(topicDerives).toHaveLength(1);
+        expect(new Set(topicDerives.map(({ waveId }) => waveId)).size).toBe(1);
+        expect(topicDerives[0]?.attemptNumber).toBe(1);
+        expect(topicDerives[0]?.inputFingerprint).toMatch(/^[a-f0-9]{64}$/);
         expect(phase.queue.maxPending).toBeLessThanOrEqual(IMPORT_COUNT + 3);
         expect(phase.queue.maxProcessing).toBeLessThanOrEqual(4);
         expect(phase.queue.maxEmbeddingOutstanding).toBeLessThanOrEqual(
           IMPORT_COUNT,
         );
-        expect(phase.queue.maxProjectionOutstanding).toBeLessThanOrEqual(3);
+        expect(phase.queue.maxProjectionOutstanding).toBeLessThanOrEqual(1);
         // Sampled, not invariant: this is the queue depth at the first 25ms
         // poll that observed every embedding complete, so its absolute value
         // tracks how late that poll landed. A busy runner stretches the poll,

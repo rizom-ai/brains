@@ -42,6 +42,7 @@ import type { Logger } from "@brains/utils/logger";
 import type { IJobProgressMonitor } from "@brains/utils/progress";
 import type { ProjectionRuntimeSupervisor } from "../projection-runtime-supervisor";
 import type { OperationContext } from "@brains/operation-context";
+import type { ProjectionRuntimeControls } from "../projection-runtime";
 
 /**
  * The recurring-check surface the shell wires.
@@ -110,6 +111,7 @@ export interface ShellDependencies {
   logger?: Logger;
   operationContext?: OperationContext;
   projectionRuntimeSupervisor?: ProjectionRuntimeSupervisor;
+  projectionRuntime?: ProjectionRuntimeControls;
   embeddingService?: IEmbeddingService;
   aiService?: IAIService;
   entityService?: IEntityService;

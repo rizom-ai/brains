@@ -1,5 +1,9 @@
 import type { ProjectionWaveReady } from "@brains/contracts";
-import type { JobHandler, JobQueueEnqueueRequest } from "@brains/job-queue";
+import type {
+  JobHandler,
+  JobInfo,
+  JobQueueEnqueueRequest,
+} from "@brains/job-queue";
 import type {
   ProjectionExecutionContext,
   ProjectionGraph,
@@ -9,6 +13,7 @@ import type {
 import type { Logger } from "@brains/utils/logger";
 import {
   ProjectionRuleJobHandler,
+  type ProjectionRuleDiagnostic,
   type ProjectionRuleExecutionStore,
   type ProjectionRuleJobHandlerOptions,
 } from "./projection-rule-job-handler";
@@ -28,6 +33,19 @@ export interface ProjectionRuntimeQueue extends ProjectionWaveQueue {
   unregisterHandler(type: string): void;
 }
 
+export interface ProjectionRuntimeControls {
+  now?: (() => number) | undefined;
+  sweepIntervalMs?: number | undefined;
+  scheduleSweep?:
+    | ((intervalMs: number, sweep: () => Promise<void>) => () => void)
+    | undefined;
+  scheduleWakeup?:
+    ((delayMs: number, wakeup: () => Promise<void>) => () => void) | undefined;
+  onDiagnostic?:
+    | ((diagnostic: ProjectionRuleDiagnostic) => void | Promise<void>)
+    | undefined;
+}
+
 export interface ProjectionRuntimeOptions {
   store: ProjectionRuntimeStore;
   queue: ProjectionRuntimeQueue;
@@ -41,6 +59,11 @@ export interface ProjectionRuntimeOptions {
   logger: Logger;
   createWaveId: () => string;
   now: () => number;
+  scheduleWakeup?: ProjectionRuntimeControls["scheduleWakeup"];
+  onDiagnostic?: ProjectionRuntimeControls["onDiagnostic"];
+  reconcileBatches?: (() => Promise<unknown>) | undefined;
+  sweepIntervalMs?: number | undefined;
+  scheduleSweep?: ProjectionRuntimeControls["scheduleSweep"];
   activationMode?: "scheduler" | "executor";
 }
 
@@ -62,12 +85,16 @@ export async function activateProjectionRuntime(
     beforeWaveCompletion: options.beforeWaveCompletion,
     onScheduledWakeupError: (error): void =>
       options.logger.error("Scheduled projection wakeup failed", error),
+    ...(options.scheduleWakeup && { scheduleWakeup: options.scheduleWakeup }),
     now: options.now,
   });
   const handler = new ProjectionRuleJobHandler({
     rules: options.rules,
     store: options.store,
     coordinator: scheduler,
+    getJobStatus: (jobId): Promise<JobInfo | null> =>
+      options.queue.getStatus(jobId),
+    ...(options.onDiagnostic && { onDiagnostic: options.onDiagnostic }),
     inputContext: options.inputContext,
     executionContext: options.executionContext,
     reconcileTargets: options.reconcileTargets,
@@ -76,14 +103,28 @@ export async function activateProjectionRuntime(
 
   options.queue.registerHandler(PROJECTION_RULE_JOB_TYPE, handler, "shell");
   let removeWakeup = (): void => {};
+  let removeSweep = (): void => {};
   try {
     if (options.activationMode !== "executor") {
-      removeWakeup = options.setWakeup(async (): Promise<void> => {
+      const sweep = async (): Promise<void> => {
+        await options.reconcileBatches?.();
         await scheduler.startNextWave();
-      });
-      await scheduler.startNextWave();
+      };
+      removeWakeup = options.setWakeup(sweep);
+      await sweep();
+      removeSweep = (options.scheduleSweep ?? scheduleIntervalSweep)(
+        options.sweepIntervalMs ?? 1_000,
+        async (): Promise<void> => {
+          try {
+            await sweep();
+          } catch (error) {
+            options.logger.error("Projection coordination sweep failed", error);
+          }
+        },
+      );
     }
   } catch (error) {
+    removeSweep();
     removeWakeup();
     options.queue.unregisterHandler(PROJECTION_RULE_JOB_TYPE);
     throw error;
@@ -99,9 +140,21 @@ export async function activateProjectionRuntime(
     dispose: (): void => {
       if (!active) return;
       active = false;
+      removeSweep();
       removeWakeup();
       scheduler.dispose();
       options.queue.unregisterHandler(PROJECTION_RULE_JOB_TYPE);
     },
   };
+}
+
+function scheduleIntervalSweep(
+  intervalMs: number,
+  sweep: () => Promise<void>,
+): () => void {
+  const timer = setInterval(() => {
+    void sweep();
+  }, intervalMs);
+  timer.unref();
+  return (): void => clearInterval(timer);
 }

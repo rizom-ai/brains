@@ -5,11 +5,7 @@ import {
   type PaginationInfo,
   type EntityDataSourceConfig,
 } from "@brains/plugins";
-import type {
-  BaseDataSourceContext,
-  DataSourceSchema,
-  IEntityService,
-} from "@brains/plugins";
+import type { BaseDataSourceContext, DataSourceSchema } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import { slugify } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
@@ -194,7 +190,7 @@ export class BlogDataSource extends BaseEntityDataSource<
    */
   private async fetchLatestPost<T>(
     outputSchema: DataSourceSchema<T>,
-    entityService: IEntityService,
+    entityService: BaseDataSourceContext["entityService"],
   ): Promise<T> {
     const publishedPosts = await entityService.listEntities<BlogPost>({
       entityType: this.config.entityType,
@@ -235,7 +231,7 @@ export class BlogDataSource extends BaseEntityDataSource<
   private async fetchSinglePost<T>(
     slug: string,
     outputSchema: DataSourceSchema<T>,
-    entityService: IEntityService,
+    entityService: BaseDataSourceContext["entityService"],
   ): Promise<T> {
     // Look up the entity first (needed to know seriesName and for navigation)
     const entity = await this.lookupEntity(slug, entityService);
@@ -261,7 +257,7 @@ export class BlogDataSource extends BaseEntityDataSource<
 
   private async fetchPostsBySeries(
     seriesName: string,
-    entityService: IEntityService,
+    entityService: BaseDataSourceContext["entityService"],
   ): Promise<BlogPostTransformed[]> {
     const entities = await entityService.listEntities<BlogPost>({
       entityType: this.config.entityType,
@@ -276,7 +272,7 @@ export class BlogDataSource extends BaseEntityDataSource<
 
   private async fetchSeriesPostsForEntity(
     entity: BlogPost,
-    entityService: IEntityService,
+    entityService: BaseDataSourceContext["entityService"],
   ): Promise<BlogPostTransformed[] | null> {
     const seriesName = entity.metadata.seriesName;
     if (!seriesName) return null;
@@ -286,7 +282,7 @@ export class BlogDataSource extends BaseEntityDataSource<
   private async fetchSeriesPosts<T>(
     seriesName: string,
     outputSchema: DataSourceSchema<T>,
-    entityService: IEntityService,
+    entityService: BaseDataSourceContext["entityService"],
   ): Promise<T> {
     const posts = await this.fetchPostsBySeries(seriesName, entityService);
     return outputSchema.parse({ seriesName, posts });

@@ -85,6 +85,7 @@ describe("JobProgressMonitor", () => {
       renewAttemptLease: mock(() => Promise.resolve(true)),
       recordAttemptProgress: recordAttemptProgressMock,
       getStatus: getStatusMock,
+      getJobsByRootJobId: mock(() => Promise.resolve([])),
       complete: mock(() => Promise.resolve(true)),
       fail: mock(() => Promise.resolve(true)),
       getActiveJobs: mock(() => Promise.resolve([])),

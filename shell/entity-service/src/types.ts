@@ -667,7 +667,7 @@ export interface BaseDataSourceContext {
    * Datasources should use this instead of their injected entityService
    * to ensure consistent filtering behavior across environments
    */
-  entityService: EntityService;
+  entityService: EntityServiceClient;
 }
 
 export type DataSourceSchema<T> = z.ZodType<T, unknown>;
@@ -884,10 +884,81 @@ export interface IndexReadinessStatus extends EmbeddingIndexStats {
   activeEmbeddingJobs: number;
 }
 
+export interface BulkMutationInput {
+  source: string;
+  operationId: string;
+}
+
+export interface DurableBulkMutationRootInput extends BulkMutationInput {
+  rootJobId: string;
+  expectedChildren: number;
+}
+
+export interface DurableBulkMutationChildInput extends DurableBulkMutationRootInput {
+  childKey: string;
+  jobId: string;
+}
+
+export interface ProjectionBatchOwnedJob {
+  jobId: string;
+  childKey: string;
+  status: "pending" | "processing" | "completed" | "failed";
+}
+
+export type ProjectionBatchRootReader = (
+  rootJobId: string,
+  operationId: string,
+) => Promise<readonly ProjectionBatchOwnedJob[]>;
+
+export interface ProjectionBatchRecoveryResult {
+  fencedCallbacks: number;
+  releasedDurableRoots: number;
+}
+
+export interface SettleDurableBulkMutationChildInput {
+  operationId: string;
+  childKey: string;
+  jobId: string;
+  outcome: "completed" | "failed";
+}
+
+export type EntityServiceClient = Omit<
+  EntityService,
+  | "getProjectionStore"
+  | "setProjectionWakeup"
+  | "prepareDurableBulkMutation"
+  | "finalizeDurableBulkMutationEnqueue"
+  | "failDurableBulkMutationEnqueue"
+  | "runDurableBulkMutationChild"
+  | "settleDurableBulkMutationChild"
+  | "recoverProjectionBatches"
+>;
+
 export interface EntityService extends ICoreEntityService {
   // Scheduler-owned projection coordination
   getProjectionStore(): ProjectionStore;
   setProjectionWakeup(wakeup: () => Promise<void>): () => void;
+
+  // Callback-scoped bulk mutation coordination
+  runBulkMutation<TResult>(
+    input: BulkMutationInput,
+    mutation: () => Promise<TResult>,
+  ): Promise<TResult>;
+  prepareDurableBulkMutation(
+    input: DurableBulkMutationRootInput,
+  ): Promise<void>;
+  finalizeDurableBulkMutationEnqueue(operationId: string): Promise<void>;
+  failDurableBulkMutationEnqueue(operationId: string): Promise<void>;
+  runDurableBulkMutationChild<TResult>(
+    input: DurableBulkMutationChildInput,
+    mutation: () => Promise<TResult>,
+  ): Promise<TResult>;
+  settleDurableBulkMutationChild(
+    input: SettleDurableBulkMutationChildInput,
+  ): Promise<boolean>;
+  recoverProjectionBatches(
+    readRoot: ProjectionBatchRootReader,
+  ): Promise<ProjectionBatchRecoveryResult>;
 
   // Mutations
   createEntity<T extends BaseEntity>(

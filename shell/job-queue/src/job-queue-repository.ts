@@ -668,6 +668,16 @@ export class JobQueueRepository {
     return jobs[0] ?? null;
   }
 
+  public async getJobsByRootJobId(rootJobId: string): Promise<JobInfo[]> {
+    return this.db
+      .select()
+      .from(jobQueue)
+      .where(
+        sql`json_extract(${jobQueue.metadata}, '$.rootJobId') = ${rootJobId}`,
+      )
+      .orderBy(asc(jobQueue.createdAt), asc(jobQueue.id));
+  }
+
   public async getStatusByEntityId(entityId: string): Promise<JobInfo | null> {
     const jobs = await this.db
       .select()

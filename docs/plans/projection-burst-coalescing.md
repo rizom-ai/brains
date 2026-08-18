@@ -2,7 +2,7 @@
 
 ## Status
 
-**Proposed 2026-08-18. No implementation or release is authorized by this plan.**
+**Implemented and validated 2026-08-18 in `fix/projection-burst-coalescing`. Release remains separately approval-gated.**
 
 This follows Core CI run `32103466790`, where the 40-note mocked-AI update phase made 33 mocked object calls against a bound of 23. The immediately preceding merged run `32102247188` made 11 calls for the same phase and passed. The controlled two-CPU feature lane has also completed 350-note add and update phases with 88 calls per phase against a bound of 96.
 
@@ -31,6 +31,7 @@ The observed run remained operational and drained to zero, so there is no curren
 - Prove the exact source of repeated extraction before changing scheduler semantics.
 - Make one logical bulk mutation visible to projection scheduling as one settled burst.
 - Keep every source revision durable during the burst.
+- Prevent a wave that overlaps a bulk boundary from applying a partially observed whole-corpus result.
 - Preserve one active projection wave, topological rule ordering, input fingerprinting, and atomic result application.
 - Preserve changes that arrive during active projection work; never discard a newer revision to reduce call count.
 - Remain correct across the supported web/worker process split and process crashes.
@@ -43,6 +44,7 @@ The observed run remained operational and drained to zero, so there is no curren
 - Increasing `sourceChangeBatchDelayMs` until the failure becomes unlikely.
 - Deduplicating solely by job key across wave IDs; distinct waves may represent real revisions and graph order.
 - Making projection derives mutate entities or manage their own task maps.
+- Exposing raw projection-batch open/close handles or scheduler stores to plugin authors. A callback-scoped bulk-mutation API and a durable-job option are allowed because ownership, fencing, and terminal release remain shell-controlled.
 - Reworking the shipped terminal projection incident machinery (`projectionIncidents` / `recoveryGeneration`, released in `@rizom/brain@0.2.0-alpha.284`); this plan composes with it, it does not replace it.
 - Reworking topic taxonomy, extraction prompts, or relevance policy.
 
@@ -93,16 +95,27 @@ Report object calls broken down per rule ID. The mocked total mixes topic extrac
 
 The 3× call count strongly suggests split full-corpus executions, but implementation must not treat that inference as proof.
 
+### Phase 0 result
+
+The deterministic pre-boundary fixture advanced the injected clock past the one-second quiet window after mutation 20 of one 40-note `DirectorySync.sync()` call. It recorded two distinct topic wave IDs, one attempt per job, selected source counts of 22 and 42 (including two baseline sources), and exactly 6 plus 11 topic object calls. No retry or intra-attempt repetition occurred. This confirms split waves from one logical directory import, so Phase 1 may proceed.
+
 ## Phase 1: Add a durable bulk-mutation projection boundary
 
 Proceed only if Phase 0 confirms split waves from one directory import.
 
-### 1.1 Keep the boundary in the entity/projection service
+### 1.1 Keep ownership in the entity/projection service
 
-Add an internal entity-service operation such as:
+First narrow `ServicePluginContext.entityService` so scheduler-only methods such as `getProjectionStore` and `setProjectionWakeup` are not part of the plugin authoring surface. They remain available to shell composition through the concrete entity service.
+
+Expose only two safe ways to identify bulk mutation ownership:
+
+1. a callback-scoped entity API for direct in-process work; and
+2. a durable root-job option for work split across queue children.
+
+The callback form is schema-validated and does not expose open/close handles:
 
 ```ts
-await projectionBatches.run(
+await entityService.runBulkMutation(
   {
     source: "directory-sync",
     operationId,
@@ -113,88 +126,122 @@ await projectionBatches.run(
 );
 ```
 
-The exact API is schema-validated and internal. External plugin authors do not receive a general ability to suspend projection processing.
+The entity service opens the boundary before invoking the callback and releases it in `finally`. An internal async scope attaches the fenced owner token to every mutation transaction performed by the callback. The durable-job form is opened by shell/job-queue integration before children become runnable and is released only from persisted root-job terminal state; plugins cannot close it directly.
 
-Directory Sync identifies the logical import boundary, while the entity/projection service owns its persistence and scheduling effect. The plugin must not manage projection task maps or reach into scheduler internals.
+Directory Sync identifies the logical operation and changed-entity count, while entity/projection and job-queue services own persistence, fencing, and scheduling. The plugin must not manage projection task maps or reach into scheduler internals.
 
-### 1.2 Persist the boundary
+### 1.2 Persist the boundary, owners, and fence epoch
 
-A process-local counter is insufficient because imports and projection scheduling may run in different roles. Persist a bounded projection batch record with at least:
+A process-local counter is insufficient because imports and projection scheduling may run in different roles. Persist bounded coordination state in the entity database beside the projection wave tables:
 
-- batch ID;
-- sanitized source/operation identity;
-- status: `open`, `closed`, or `abandoned`;
-- opened, last-progress, and closed timestamps; and
-- optional owning durable job ID when one exists.
+- a singleton monotonically increasing projection-admission epoch;
+- batch ID and sanitized source/operation identity;
+- status: `preparing`, `open`, `closed`, or `abandoned`;
+- opened, last-progress, terminal, and recovered timestamps;
+- owner kind: callback session or durable root job;
+- an opaque owner/fencing token;
+- durable root job ID and expected/enqueued child counts when applicable; and
+- first and highest dirty generation observed for the batch.
 
-Dirty inputs continue to be written atomically with entity mutations. The batch does not buffer entity writes in memory.
+`preparing` and `open` both block new wave claims. `preparing` covers the cross-database enqueue window: the barrier and root ID are persisted before the first child enqueue, durable job rows bind the children to that root, and entity-database child records are materialized at execution or recovery. Enqueue completion records the expected count. Partial enqueue failure keeps admission closed until every child that did enqueue is terminal; it then abandons the batch. It never drops the barrier while an unknown child may still mutate.
 
-The batch record lives in the entity database beside the projection wave tables. Invariant 2 is only enforceable if wave claiming checks open batches inside the same transaction that claims the wave; a record in the runtime-state or job-queue database cannot participate in that transaction. Directory Sync's operation-status service is the natural source of the sanitized source/operation identity, but its runtime-state persistence must not be the barrier itself.
+Dirty inputs continue to be written atomically with entity mutations. A mutation executed in a batch scope validates the owner token and advances batch progress in the same entity transaction as the entity row and dirty revision. A callback that resumes after its owner was fenced fails before writing, so stale-owner recovery cannot permit unbarriered mutations. The batch never buffers entity writes in memory.
 
-Use a migration only after the Phase 0 evidence proves this path is required. Validate all reads and writes with Zod-backed contracts.
+Each wave stores the admission epoch observed when it is claimed. Opening a batch advances the epoch. This durable epoch, rather than retained terminal rows, fences results from a wave that overlapped the boundary.
 
-### 1.3 Define admission precisely
+Directory Sync's operation-status service remains the natural source of sanitized operation identity, but its runtime-state persistence is not the barrier. Use a migration only after Phase 0 proves this path is required. Validate every read and write with Zod-backed contracts.
 
-While a bulk projection batch is open:
+### 1.3 Define admission and active-wave fencing precisely
+
+While any bulk projection batch is `preparing` or `open`:
 
 - dirty generations accumulate normally;
-- no whole-corpus projection wave may claim an intermediate snapshot;
+- no new projection wave may claim an intermediate snapshot;
 - embedding and other independently bounded per-entity work continue unless separately proven unsafe;
-- closing the last open batch schedules one wakeup using the latest dirty generation; and
+- closing the last barrier schedules one wakeup using the latest dirty generation; and
 - unrelated requests remain durable even if their projection is briefly delayed.
 
 Start with a global projection-admission barrier because a whole-corpus rule can observe partially imported state even when its triggering dirty input is unrelated. Do not claim that a source-scoped barrier is safe without proving rule visibility and graph reachability.
 
-Support nested callers by joining an existing operation batch or reference-counting through durable ownership; never open competing uncoordinated global barriers.
+Opening a batch does not block waiting for an already active wave, which could deadlock a single-slot worker behind that wave's queued rule. Instead:
 
-Write the admission tests before the implementation:
+1. a rule checks the admission epoch before selecting input and exits as superseded without deriving if its wave is already stale;
+2. `applyRuleResult` compares the wave epoch with the current epoch inside the atomic result transaction; and
+3. an epoch mismatch applies no intents or memo, marks the wave superseded without an incident, and requeues its claimed inputs using the same newer-revision-preserving logic as failed-wave recovery.
+
+This guarantees that a derive which read live entities while a batch opened cannot apply a partial result, even if the batch closed again before the derive finished. A successor after the last close observes the settled corpus. Work completed and atomically applied before the batch opened remains valid.
+
+Support nested callback callers by joining the same operation and reference-counting the owner token. Independently owned batches may coexist, but the coordinator treats them as one global admission count and wakes only when the last closes.
+
+Write the admission tests before implementation:
 
 - open → dirty writes → close → one claimed wave;
 - dirty writes from a second database client while open;
-- nested/joined boundary behavior;
-- active-wave plus open-successor behavior; and
-- pending ingress after close.
+- nested/joined and independently overlapping boundaries;
+- batch opens before select → no derive and a settled successor;
+- batch opens during derive → no intents or memo apply and a settled successor;
+- batch opens and closes during derive → the epoch still fences apply;
+- supersession preserves original claimed inputs when the batch touches unrelated types; and
+- pending ingress after close remains a successor revision.
 
-### 1.4 Make failure loud and recoverable
+### 1.4 Make failure loud, fenced, and recoverable
 
-An open batch must not strand projection forever.
+An open batch must not strand projection forever, and recovery must never authorize its former owner to resume unbarriered writes.
 
-- Normal success and handled failure close the boundary in `finally` after mutation settlement.
-- Startup detects an open batch left by a dead process, marks it abandoned, and wakes the scheduler with the already durable dirty inputs.
-- A live durable owner is not declared abandoned merely because another process starts.
-- Operational health reports the count and age of open/abandoned batches without exposing paths or content.
-- Stale recovery is idempotent, covered by the same generation cutoff rules as ordinary admission, and composes with the shipped `projectionIncidents` / `recoveryGeneration` cutoff semantics rather than introducing a parallel recovery mechanism.
-- No elapsed-time callback silently drops the barrier while its owner can still mutate data.
+- Normal callback success, handled failure, and cancellation release in `finally` after mutation settlement.
+- Callback sessions renew a bounded entity-database lease while active. Expiry alone does not silently release the barrier: recovery atomically fences the old token before abandonment, and every subsequent mutation transaction made by that stale scope is rejected.
+- Durable root-job ownership is live while any persisted child is pending or processing, independent of which process currently executes it.
+- Startup and the periodic sweep reconcile `preparing`/`open` records against callback leases and durable root-job rows. A second process preserves a live owner; a provably dead or terminal owner is closed or abandoned idempotently.
+- Operational health reports count and age of open, preparing, and unrecovered abandoned batches without paths, job payloads, or content.
+- Abandonment records a recovery generation. Completion of a wave covering that generation marks the batch recovered, composing with `projectionIncidents` / `recoveryGeneration` rather than creating a competing cutoff rule.
 
-Write the recovery tests before the implementation:
+Write recovery tests before implementation:
 
 - exception and cancellation release;
-- process-death/startup recovery; and
-- operational-health reporting for stale boundaries.
+- callback lease remains live across another process startup;
+- expired callback owner is fenced and a resumed mutation is rejected;
+- process death before callback close;
+- process death during batch enqueue, including partial enqueue;
+- terminal durable root closes after every child settles; and
+- operational-health reporting for preparing, stale, and unrecovered boundaries.
 
-### 1.5 Wake the scheduler across the process split
+### 1.5 Settle durable roots and wake across the process split
 
-The scheduler currently wakes only through an in-process callback registered in the web role; worker-role runtimes execute jobs without ever calling `startNextWave`, and no poller exists. A batch closed by a worker process must not wait for an unrelated web-role mutation:
+The existing `BatchJobManager` map is process-local and cannot be ownership authority. Add a durable root-job aggregate query over job rows and index the persisted root ID if the query plan requires it. Projection batch recovery and settlement use that query, never the in-memory batch map.
 
-- the web-role scheduler re-checks closed-batch and pending-dirty state on every existing wakeup; and
-- a bounded periodic sweep in the web role reads the entity database it already owns for closed batches and pending dirty inputs left by other processes.
+Add a shell-owned job lifecycle observer that runs only after a child completion or terminal failure is persisted. For a projection-batched root it:
 
-Do not add a cross-process notification bus for this; polling the owned entity database is sufficient and crash-safe. Write a test proving a worker-closed batch leads to one web-role wave without any web-role mutation.
+1. records the child terminal state;
+2. queries the durable root aggregate;
+3. closes the entity-database batch only when no bound child is pending or processing; and
+4. marks partial-enqueue roots abandoned after all children that actually enqueued are terminal.
+
+A crash after terminal job persistence but before the observer runs is repaired by the web-role sweep. Execution-only workers instantiate the coordinator/observer but do not register scheduler wake callbacks.
+
+The scheduler currently wakes only through an in-process callback registered in the web role. Therefore:
+
+- every ordinary wakeup re-checks barrier and pending-dirty state; and
+- a bounded periodic sweep in the web role reconciles owners and reads the entity database for newly unblocked pending inputs.
+
+Do not add a cross-process notification bus; polling the owned databases is sufficient and crash-safe. Test that the last child can close a batch in a worker process and one web-role wave starts without any web-role mutation.
 
 ## Phase 2: Preserve projection invariants
 
 Pin these invariants before wiring Directory Sync:
 
-1. Entity mutation and dirty revision remain one transaction.
-2. No wave claims while a bulk boundary is open.
-3. Closing a boundary claims every latest source revision exactly once into the next cutoff.
-4. A newer revision written after close remains pending for a successor.
-5. A crash between the final entity write and boundary close loses no revision.
-6. Two database clients observe the same open/closed state.
-7. Rule derives remain side-effect-free until atomic write-intent application.
-8. Completed fingerprints still reuse memoized intents.
-9. Failed-wave recovery does not replace newer pending ingress.
-10. Projection graph levels and downstream changed-target propagation remain unchanged.
+1. Entity mutation, owner-token validation, batch progress, and dirty revision remain one entity-database transaction.
+2. No wave claims while any bulk boundary is preparing or open.
+3. A wave whose admission epoch became stale applies neither intents nor memo entries.
+4. Superseding a wave requeues claimed inputs without replacing newer pending ingress.
+5. Closing the last boundary claims every latest source revision exactly once into the next cutoff.
+6. A newer revision written after close remains pending for a successor.
+7. A crash between the final entity write and boundary close loses no revision.
+8. Two database clients observe the same barrier, epoch, owner fencing, and terminal state.
+9. A fenced callback or job attempt cannot resume entity mutation.
+10. Rule derives remain side-effect-free until atomic write-intent application.
+11. Completed fingerprints still reuse memoized intents.
+12. Failed-wave incident recovery remains distinct from non-incident supersession and neither replaces newer ingress.
+13. Projection graph levels and downstream changed-target propagation remain unchanged.
 
 If any invariant requires replacing the wave model with per-rule reactive generations, stop and write a separate architecture proposal; do not grow this correction into an implicit scheduler rewrite.
 
@@ -202,14 +249,16 @@ Assert graph ordering and memo reuse unchanged with tests in this phase, before 
 
 ## Phase 3: Integrate Directory Sync
 
-- Open one projection batch around the entity-mutation portion of one directory import/sync batch.
-- Close it only after all intended entity writes for that logical batch settle.
-- Do not hold it across Git network operations, idle polling, unrelated media conversion, or later background jobs.
-- Preserve cancellation: completed writes remain dirty and become projectable after the batch is abandoned/closed.
-- Give direct in-process sync calls the same semantics as durable job execution.
-- Ensure execution-only workers can participate through the shared database without registering host UI callbacks.
+- Generate one sanitized operation ID before direct mutation or durable batch enqueue.
+- For direct `sync()`/import, use the callback-scoped API only around import and orphan-delete entity mutations.
+- For queued sync, open one `preparing` durable root boundary before the first child is enqueued; bind every import/delete/cleanup child that can mutate entities and finalize the bound count after enqueue.
+- Close only after all bound children reach persisted terminal state.
+- Do not hold the boundary across Git network operations, pre-import idle polling, unrelated media conversion, or later background jobs.
+- Preserve cancellation and partial failure: completed writes remain dirty; missing or terminally failed owners lead to fenced abandonment and recovery.
+- Give direct in-process sync the same admission epoch and mutation-token semantics as durable execution.
+- Ensure execution-only workers participate through shared databases and the lifecycle observer without registering host UI callbacks.
 
-Write the Directory Sync boundary tests (cancellation preservation, direct in-process sync parity, execution-only worker participation) before wiring the plugin.
+Write Directory Sync tests for cancellation preservation, direct parity, multiple import children under one boundary, partial enqueue failure, and execution-only worker settlement before wiring the plugin.
 
 Record batch duration and changed-entity count as bounded metrics. Do not record filenames or entity content.
 
@@ -245,6 +294,12 @@ Run, in order:
 
 Do not use a successful rerun of the unchanged shared test as acceptance evidence.
 
+### Implementation result
+
+The corrected deterministic 40-note add and update phases each produced one topic wave, one attempt, one fingerprint, 11 topic object calls, at most one outstanding projection job, complete embedding drain, and no degraded or not-ready sample.
+
+The controlled two-CPU 350-note lane completed add in 29.8 seconds and update in 31.5 seconds. Each phase produced one topic wave and 88 topic object calls, with shared AI concurrency four, projection outstanding one, final queue and AI counts zero, no degraded/not-ready samples, maximum event-loop delay 369 ms, maximum RSS 1.19 GB, and maximum RSS growth 740 MB. All strict resource and efficiency bounds passed.
+
 ## Phase 5: CI contract after the runtime correction
 
 Keep two distinct claims:
@@ -257,7 +312,8 @@ Only revise the ordinary object-call bound if the instrumented evidence proves t
 ## Rollout and observability
 
 - Ship behind no user-facing configuration flag; this is internal scheduling correctness.
-- Add bounded diagnostics for open batch age, abandoned-batch recovery, waves claimed after batch close, rule memo hits, and derives superseded before apply.
+- Add bounded diagnostics for preparing/open batch age, fenced-owner abandonment, abandoned-batch recovery, waves claimed after batch close, rule memo hits, and derives superseded before apply.
+- Retain terminal batch details for at most seven days and at most 100 records, while keeping the singleton admission epoch and unresolved recovery cutoffs. Run cleanup after recovery and from the bounded sweep; test both age and count limits.
 - Keep `/health/ready` independent unless an open batch actually prevents runtime readiness by an existing contract; expose stale state through operational health.
 - Update `docs/plans/directory-sync-import-load.md`, whose current statement that the time delay prevents repeated full-corpus waves is too strong under externally descheduled producers.
 - Add a changeset for affected runtime packages only after implementation scope is known.
@@ -268,8 +324,8 @@ Only revise the ordinary object-call bound if the instrumented evidence proves t
 Stop and reassess rather than widening scope if:
 
 - diagnostics show retries of one job rather than split waves;
-- a batch boundary would require exposing projection suspension publicly;
+- a batch boundary would require exposing raw open/close handles or scheduler stores publicly rather than callback/durable ownership;
 - the only safe implementation globally blocks projections across long Git/network operations;
-- crash recovery cannot distinguish a live owner from an abandoned batch;
+- callback fencing or durable root-job aggregation cannot distinguish a live owner from an abandoned batch;
 - full-corpus topic correctness requires processing every intermediate snapshot; or
 - the change cannot compose with the shipped projection incident recovery (`recoveryGeneration`) semantics.

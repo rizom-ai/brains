@@ -30,6 +30,7 @@ export interface MockLoadSnapshot {
   completedUpdateEmbeddingCalls: number;
   maxConcurrentUpdateEmbeddingCalls: number;
   objectCalls: number;
+  objectCallsByProjection: Record<string, number>;
   textCalls: number;
   activeCalls: number;
   maxConcurrentCalls: number;
@@ -46,11 +47,17 @@ export class MockLoadTracker {
   private activeUpdateEmbeddingCalls = 0;
   private maxConcurrentUpdateEmbeddingCalls = 0;
   private objectCalls = 0;
+  private readonly objectCallsByProjection = new Map<string, number>();
   private textCalls = 0;
   private activeCalls = 0;
   private maxConcurrentCalls = 0;
 
-  begin(kind: MockCallKind, probe = false, update = false): () => void {
+  begin(
+    kind: MockCallKind,
+    probe = false,
+    update = false,
+    projectionId?: string,
+  ): () => void {
     if (kind === "embedding") {
       this.embeddingCalls++;
       if (probe) this.probeEmbeddingCalls++;
@@ -63,7 +70,14 @@ export class MockLoadTracker {
         );
       }
     }
-    if (kind === "object") this.objectCalls++;
+    if (kind === "object") {
+      this.objectCalls++;
+      const attribution = projectionId ?? "unattributed";
+      this.objectCallsByProjection.set(
+        attribution,
+        (this.objectCallsByProjection.get(attribution) ?? 0) + 1,
+      );
+    }
     if (kind === "text") this.textCalls++;
     this.activeCalls++;
     this.maxConcurrentCalls = Math.max(
@@ -95,6 +109,11 @@ export class MockLoadTracker {
       completedUpdateEmbeddingCalls: this.completedUpdateEmbeddingCalls,
       maxConcurrentUpdateEmbeddingCalls: this.maxConcurrentUpdateEmbeddingCalls,
       objectCalls: this.objectCalls,
+      objectCallsByProjection: Object.fromEntries(
+        [...this.objectCallsByProjection].sort(([left], [right]) =>
+          left.localeCompare(right),
+        ),
+      ),
       textCalls: this.textCalls,
       activeCalls: this.activeCalls,
       maxConcurrentCalls: this.maxConcurrentCalls,
@@ -104,6 +123,7 @@ export class MockLoadTracker {
 
 interface MockLoadServiceOptions {
   delayMs: number;
+  getProjectionId?: (() => string | undefined) | undefined;
 }
 
 interface MockLoadEmbeddingOptions extends MockLoadServiceOptions {
@@ -172,6 +192,7 @@ export class MockLoadEmbeddingService implements IEmbeddingService {
 export class MockLoadAIService implements IAIService {
   private readonly tracker: MockLoadTracker;
   private readonly delayMs: number;
+  private readonly getProjectionId: () => string | undefined;
   private readonly model: LanguageModel;
   private config: AIModelConfig = {
     model: MOCK_LOAD_MODEL,
@@ -181,6 +202,8 @@ export class MockLoadAIService implements IAIService {
   constructor(tracker: MockLoadTracker, options: MockLoadServiceOptions) {
     this.tracker = tracker;
     this.delayMs = options.delayMs;
+    this.getProjectionId =
+      options.getProjectionId ?? ((): undefined => undefined);
     this.model = new MockLanguageModelV3({
       doGenerate: {
         content: [{ type: "text", text: "{}" }],
@@ -219,7 +242,12 @@ export class MockLoadAIService implements IAIService {
     schema: AIGenerationSchema<T>,
     signal?: AbortSignal,
   ): Promise<{ object: T; usage: typeof tokenUsage }> {
-    const finish = this.tracker.begin("object");
+    const finish = this.tracker.begin(
+      "object",
+      false,
+      false,
+      this.getProjectionId(),
+    );
     try {
       await delay(this.delayMs, signal);
       const candidates: unknown[] = [

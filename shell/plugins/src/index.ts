@@ -150,6 +150,7 @@ export {
 // Plugin contexts (needed for plugin initialization)
 export type {
   ServicePluginContext,
+  ServiceEntityService,
   IServiceTemplatesNamespace,
   IViewsNamespace,
 } from "./service/context";

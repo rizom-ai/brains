@@ -3,7 +3,7 @@ import type {
   BaseEntity,
   ProfileCategory,
   BrainCharacter,
-  IEntityService,
+  ServiceEntityService,
 } from "@brains/plugins";
 import {
   brainCharacterBodySchema,
@@ -296,7 +296,7 @@ export function createStarterAnchorProfileContent(
 }
 
 async function persistIdentityEntity(
-  entityService: IEntityService,
+  entityService: ServiceEntityService,
   existing: BaseEntity | null,
   entityType: "brain-character" | "anchor-profile",
   content: string,
@@ -320,7 +320,7 @@ async function persistIdentityEntity(
 }
 
 export async function seedOrMigrateStarterIdentity(options: {
-  entityService: IEntityService;
+  entityService: ServiceEntityService;
   identifier: string;
   profileKind?: string | undefined;
   profileCategory?: ProfileCategory | undefined;

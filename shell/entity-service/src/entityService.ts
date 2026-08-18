@@ -38,6 +38,12 @@ import type {
   UpsertEntityRequest,
   EntityTypeConfig,
   EntityMutationAdmission,
+  BulkMutationInput,
+  DurableBulkMutationChildInput,
+  DurableBulkMutationRootInput,
+  ProjectionBatchRecoveryResult,
+  ProjectionBatchRootReader,
+  SettleDurableBulkMutationChildInput,
   EntityRegistry as IEntityRegistry,
 } from "./types";
 import { embeddings } from "./schema/embeddings";
@@ -68,6 +74,8 @@ export interface EntityServiceOptions {
   jobQueueService?: IJobQueueService;
   messageBus?: EntityEventBus;
   mutationAdmission?: EntityMutationAdmission;
+  /** Clock used for durable projection-ingress timestamps. */
+  projectionNow?: (() => number) | undefined;
   dbConfig: EntityDbConfig;
   /** Embedding database config. Embeddings are stored in a dedicated
    *  database file, separate from entities. */
@@ -151,6 +159,7 @@ export class EntityService implements IEntityService {
     this.projectionStore = new ProjectionStore(
       this.db,
       options.mutationAdmission,
+      options.projectionNow ?? Date.now,
     );
 
     let searchDbClient: Client | undefined;
@@ -209,6 +218,7 @@ export class EntityService implements IEntityService {
           mutationAdmission: options.mutationAdmission,
         }),
         projectionStore: this.projectionStore,
+        projectionNow: options.projectionNow ?? Date.now,
         embeddingDb: this.embeddingDb,
         embeddingsEnabled,
       });
@@ -320,6 +330,69 @@ export class EntityService implements IEntityService {
 
   public setProjectionWakeup(wakeup: () => Promise<void>): () => void {
     return this.entityMutations.setProjectionWakeup(wakeup);
+  }
+
+  public async runBulkMutation<TResult>(
+    input: BulkMutationInput,
+    mutation: () => Promise<TResult>,
+  ): Promise<TResult> {
+    await this.initialize();
+    try {
+      return await this.projectionStore.runBulkMutation(input, mutation);
+    } finally {
+      await this.entityMutations.wakeProjectionScheduler();
+    }
+  }
+
+  public async prepareDurableBulkMutation(
+    input: DurableBulkMutationRootInput,
+  ): Promise<void> {
+    await this.initialize();
+    await this.projectionStore.prepareDurableBulkMutation(input);
+  }
+
+  public async finalizeDurableBulkMutationEnqueue(
+    operationId: string,
+  ): Promise<void> {
+    await this.initialize();
+    await this.projectionStore.finalizeDurableBulkMutationEnqueue(operationId);
+  }
+
+  public async failDurableBulkMutationEnqueue(
+    operationId: string,
+  ): Promise<void> {
+    await this.initialize();
+    await this.projectionStore.failDurableBulkMutationEnqueue(operationId);
+  }
+
+  public async runDurableBulkMutationChild<TResult>(
+    input: DurableBulkMutationChildInput,
+    mutation: () => Promise<TResult>,
+  ): Promise<TResult> {
+    await this.initialize();
+    return this.projectionStore.runDurableBulkMutationChild(input, mutation);
+  }
+
+  public async settleDurableBulkMutationChild(
+    input: SettleDurableBulkMutationChildInput,
+  ): Promise<boolean> {
+    await this.initialize();
+    const closed =
+      await this.projectionStore.settleDurableBulkMutationChild(input);
+    if (closed) await this.entityMutations.wakeProjectionScheduler();
+    return closed;
+  }
+
+  public async recoverProjectionBatches(
+    readRoot: ProjectionBatchRootReader,
+  ): Promise<ProjectionBatchRecoveryResult> {
+    await this.initialize();
+    const result =
+      await this.projectionStore.recoverProjectionBatches(readRoot);
+    if (result.fencedCallbacks + result.releasedDurableRoots > 0) {
+      await this.entityMutations.wakeProjectionScheduler();
+    }
+    return result;
   }
 
   // ── Mutations ─────────────────────────────────────────────────────

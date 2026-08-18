@@ -1,4 +1,4 @@
-import type { IEntityService, IRuntimeStateStore } from "@brains/plugins";
+import type { IRuntimeStateStore, ServiceEntityService } from "@brains/plugins";
 import { KeyedSerialQueue, SerialQueue } from "@brains/utils/serial-queue";
 import { z } from "@brains/utils/zod";
 import { mailItemAdapter } from "./entity/adapters/mail-item-adapter";
@@ -25,7 +25,7 @@ export const threadOrdinalStateSchema: z.ZodType<
 ]);
 
 interface MailThreadOrdinalCoordinatorOptions {
-  entityService: IEntityService;
+  entityService: ServiceEntityService;
   state: IRuntimeStateStore<ThreadOrdinalState>;
   pageSize?: number | undefined;
 }
@@ -34,7 +34,7 @@ type ProjectionWriter = (projection: MailItemProjection) => Promise<void>;
 
 /** Coordinates migration and ingress over the indexed mail thread position. */
 export class MailThreadOrdinalCoordinator {
-  private readonly entityService: IEntityService;
+  private readonly entityService: ServiceEntityService;
   private readonly state: IRuntimeStateStore<ThreadOrdinalState>;
   private readonly pageSize: number;
   private readonly ingressGate = new SharedExclusiveGate();

@@ -122,14 +122,18 @@ describe("queueSyncBatch should include images (regression)", () => {
       [
         {
           type: "directory-import",
-          data: {
+          data: expect.objectContaining({
             batchIndex: 0,
             paths: ["document/kept.pdf"],
             batchSize: 1,
-          },
+            projectionBatch: expect.objectContaining({
+              childKey: "0:directory-import",
+              expectedChildren: 1,
+            }),
+          }),
         },
       ],
-      expect.any(Object),
+      expect.objectContaining({ rootJobId: expect.any(String) }),
     );
   });
 
@@ -155,14 +159,18 @@ describe("queueSyncBatch should include images (regression)", () => {
       [
         {
           type: "directory-delete",
-          data: {
+          data: expect.objectContaining({
             entityType: "post",
             entityId: "resurrected",
             filePath: join(testDir, "post", "resurrected.md"),
-          },
+            projectionBatch: expect.objectContaining({
+              childKey: "0:directory-delete",
+              expectedChildren: 1,
+            }),
+          }),
         },
       ],
-      expect.any(Object),
+      expect.objectContaining({ rootJobId: expect.any(String) }),
     );
   });
 
@@ -237,14 +245,18 @@ describe("queueSyncBatch should include images (regression)", () => {
       [
         {
           type: "directory-delete",
-          data: {
+          data: expect.objectContaining({
             entityType: "post",
             entityId: "deleted",
             filePath: join(testDir, "post", "deleted.md"),
-          },
+            projectionBatch: expect.objectContaining({
+              childKey: "0:directory-delete",
+              expectedChildren: 1,
+            }),
+          }),
         },
       ],
-      expect.any(Object),
+      expect.objectContaining({ rootJobId: expect.any(String) }),
     );
   });
 });

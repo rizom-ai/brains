@@ -26,6 +26,7 @@ class MemoryProjectionStore implements ProjectionWaveStore {
     id: "wave-1",
     cutoffGeneration: 100,
     graphFingerprint: "graph-fingerprint",
+    admissionEpoch: 0,
     status: "running",
     startedAt: 10,
     completedAt: null,
@@ -43,6 +44,12 @@ class MemoryProjectionStore implements ProjectionWaveStore {
 
   constructor(inputs: ProjectionWaveInput[]) {
     this.inputs = inputs;
+  }
+
+  getWave(waveId: string): Promise<ProjectionWave | null> {
+    return Promise.resolve(
+      this.claimedWave.id === waveId ? this.claimedWave : null,
+    );
   }
 
   getActiveWave(): Promise<ProjectionWave | null> {
@@ -501,6 +508,30 @@ describe("ProjectionWaveScheduler", () => {
     expect(queue.requests.map(({ data }) => data)).toEqual([
       { waveId: "wave-2", ruleId: "topics" },
     ]);
+  });
+
+  it("does not create a terminal incident for a superseded sibling job", async () => {
+    const store = new MemoryProjectionStore(documentInputs(1));
+    store.claimedWave.status = "superseded";
+    store.claimedWave.completedAt = 25;
+    const scheduler = new ProjectionWaveScheduler({
+      store,
+      queue: new MemoryProjectionQueue(),
+      graph,
+      rules: [topicRule, skillRule],
+      createWaveId: (): string => "unused",
+      now: (): number => 30,
+    });
+
+    expect(
+      await scheduler.failActiveWaveWithIncident({
+        waveId: "wave-1",
+        ruleId: "topics",
+        jobId: "job-sibling",
+        failureReason: "Sibling observed supersession",
+      }),
+    ).toEqual(expect.objectContaining({ status: "superseded" }));
+    expect(store.incidents).toEqual([]);
   });
 
   it("fails an active wave after a terminal rule failure", async () => {

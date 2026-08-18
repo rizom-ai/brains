@@ -223,6 +223,9 @@ export class Shell implements IShell {
             ai: createAINamespace(this),
             logger: this.services.logger.child("ProjectionRuntime"),
           }),
+          ...(dependencies?.projectionRuntime && {
+            projectionRuntime: dependencies.projectionRuntime,
+          }),
         },
       );
 

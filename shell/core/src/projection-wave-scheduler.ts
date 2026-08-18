@@ -18,6 +18,7 @@ import {
 import { SerialQueue } from "@brains/utils/serial-queue";
 
 export interface ProjectionWaveStore {
+  getWave(waveId: string): Promise<ProjectionWave | null>;
   getActiveWave(): Promise<ProjectionWave | null>;
   listPendingInputs(): Promise<ProjectionDirtyInput[]>;
   claimPendingWave(
@@ -140,6 +141,19 @@ export class ProjectionWaveScheduler {
     return this.runExclusive(() => this.startNextWaveInternal());
   }
 
+  public continueAfterSupersession(
+    waveId: string,
+  ): Promise<ProjectionWave | null> {
+    return this.runExclusive(async () => {
+      const activeWave = await this.store.getActiveWave();
+      if (activeWave?.id === waveId) {
+        throw new Error(`Projection wave "${waveId}" was not superseded`);
+      }
+      if (activeWave) return this.advanceWave(activeWave);
+      return this.startNextWaveInternal();
+    });
+  }
+
   public failActiveWave(waveId: string): Promise<ProjectionWave> {
     return this.runExclusive(async () => {
       const activeWave = await this.store.getActiveWave();
@@ -159,6 +173,10 @@ export class ProjectionWaveScheduler {
         throw new Error(
           `Projection wave "${input.waveId}" is not active; "${activeWave.id}" is running`,
         );
+      }
+      if (!activeWave) {
+        const wave = await this.store.getWave(input.waveId);
+        if (wave?.status === "superseded") return wave;
       }
       return this.store.failWaveWithIncident({
         ...input,

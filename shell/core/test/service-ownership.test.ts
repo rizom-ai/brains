@@ -43,6 +43,7 @@ const dependencyAudit: Record<keyof ShellDependencies, DependencyAuditEntry> = {
   logger: { honoredByCore: true, cleanup: "none" },
   operationContext: { honoredByCore: true, cleanup: "none" },
   projectionRuntimeSupervisor: { honoredByCore: true, cleanup: "none" },
+  projectionRuntime: { honoredByCore: true, cleanup: "none" },
   embeddingService: { honoredByCore: true, cleanup: "none" },
   aiService: { honoredByCore: true, cleanup: "none" },
   entityService: { honoredByCore: true, cleanup: "close" },

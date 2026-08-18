@@ -1,4 +1,9 @@
-import type { Plugin, ServicePluginContext, Tool } from "@brains/plugins";
+import type {
+  IEntityService,
+  Plugin,
+  ServicePluginContext,
+  Tool,
+} from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
 import { DirectorySync } from "./lib/directory-sync";
 import { connectGitSync } from "./lib/broker/connect";
@@ -505,7 +510,7 @@ export class DirectorySyncPlugin extends ServicePlugin<
         entityTypes: this.config.entityTypes,
         deleteOnFileRemoval: this.config.deleteOnFileRemoval,
         maxImportFileBytes: this.config.maxImportFileBytes,
-        entityService: context.entityService,
+        entityService: context.entityService as IEntityService,
         logger: context.logger,
       },
       this.pendingDeletes,

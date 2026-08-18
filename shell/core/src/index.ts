@@ -6,6 +6,8 @@ export type {
   ShellRuntimeOptions,
 } from "./runtime-process-role";
 export { PROJECTION_RULE_JOB_TYPE } from "./projection-wave-scheduler";
+export type { ProjectionRuntimeControls } from "./projection-runtime";
+export type { ProjectionRuleDiagnostic } from "./projection-rule-job-handler";
 
 export {
   createShellConfig,

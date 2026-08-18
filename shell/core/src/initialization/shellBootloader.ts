@@ -12,10 +12,21 @@ import type { ShellLifecycle } from "./shell-lifecycle";
 import { runConcurrentPhase } from "../effect-runtime";
 import { Effect } from "@brains/utils/effect";
 import { createId } from "@brains/utils/id";
-import { activateProjectionRuntime } from "../projection-runtime";
+import { z } from "@brains/utils/zod";
+import {
+  activateProjectionRuntime,
+  type ProjectionRuntimeControls,
+} from "../projection-runtime";
 import type { RuntimeProcessRole } from "../runtime-process-role";
 
 const INDEX_READINESS_POLL_INTERVAL_MS = 250;
+
+const projectionBatchJobDataSchema = z.object({
+  projectionBatch: z.object({
+    operationId: z.string().min(1),
+    childKey: z.string().min(1),
+  }),
+});
 
 /**
  * Boot mode variants. Mutually exclusive — encoded as a single field so callers
@@ -41,6 +52,7 @@ export interface ShellBootloaderHooks {
   registerSystemCapabilities(): void;
   createProjectionInputContext(): ProjectionInputContext;
   createProjectionExecutionContext(): ProjectionExecutionContext;
+  projectionRuntime?: ProjectionRuntimeControls | undefined;
 }
 
 /**
@@ -160,7 +172,46 @@ export class ShellBootloader {
         },
         logger: this.services.logger,
         createWaveId: createId,
-        now: Date.now,
+        now: this.hooks.projectionRuntime?.now ?? Date.now,
+        ...(this.hooks.projectionRuntime?.scheduleWakeup && {
+          scheduleWakeup: this.hooks.projectionRuntime.scheduleWakeup,
+        }),
+        ...(this.hooks.projectionRuntime?.onDiagnostic && {
+          onDiagnostic: this.hooks.projectionRuntime.onDiagnostic,
+        }),
+        ...(this.hooks.projectionRuntime?.scheduleSweep && {
+          scheduleSweep: this.hooks.projectionRuntime.scheduleSweep,
+        }),
+        ...(this.hooks.projectionRuntime?.sweepIntervalMs !== undefined && {
+          sweepIntervalMs: this.hooks.projectionRuntime.sweepIntervalMs,
+        }),
+        reconcileBatches: () =>
+          this.services.entityService.recoverProjectionBatches(
+            async (rootJobId, operationId) => {
+              const jobs =
+                await this.services.jobQueueService.getJobsByRootJobId(
+                  rootJobId,
+                );
+              return jobs.flatMap((job) => {
+                const parsed = projectionBatchJobDataSchema.safeParse(
+                  JSON.parse(job.data),
+                );
+                if (
+                  !parsed.success ||
+                  parsed.data.projectionBatch.operationId !== operationId
+                ) {
+                  return [];
+                }
+                return [
+                  {
+                    jobId: job.id,
+                    childKey: parsed.data.projectionBatch.childKey,
+                    status: job.status,
+                  },
+                ];
+              });
+            },
+          ),
         activationMode:
           this.processRole === "worker" ? "executor" : "scheduler",
       });

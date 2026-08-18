@@ -1,4 +1,8 @@
-import type { ServicePluginContext, BatchOperation } from "@brains/plugins";
+import type {
+  BatchOperation,
+  IEntityService,
+  ServicePluginContext,
+} from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import { createId } from "@brains/plugins";
 import type {
@@ -92,11 +96,32 @@ export class BatchOperationsManager {
       return null;
     }
 
-    const batchId = await pluginContext.jobs.enqueueBatch(
-      batchData.operations,
-      {
+    const rootJobId = createId();
+    const expectedChildren = batchData.operations.length;
+    const operations = batchData.operations.map((operation, index) => ({
+      ...operation,
+      data: {
+        ...operation.data,
+        projectionBatch: {
+          operationId: rootJobId,
+          rootJobId,
+          childKey: `${index}:${operation.type}`,
+          expectedChildren,
+        },
+      },
+    }));
+    const coordinator = pluginContext.entityService as IEntityService;
+    await coordinator.prepareDurableBulkMutation({
+      source: "directory-sync",
+      operationId: rootJobId,
+      rootJobId,
+      expectedChildren,
+    });
+    let batchId: string;
+    try {
+      batchId = await pluginContext.jobs.enqueueBatch(operations, {
         source,
-        rootJobId: metadata?.rootJobId ?? createId(),
+        rootJobId,
         metadata: {
           progressToken: metadata?.progressToken,
           operationType: "file_operations",
@@ -106,8 +131,12 @@ export class BatchOperationsManager {
           interfaceType: metadata?.interfaceType,
           channelId: metadata?.channelId,
         },
-      },
-    );
+      });
+      await coordinator.finalizeDurableBulkMutationEnqueue(rootJobId);
+    } catch (error) {
+      await coordinator.failDurableBulkMutationEnqueue(rootJobId);
+      throw error;
+    }
 
     return {
       batchId,

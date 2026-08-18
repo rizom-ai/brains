@@ -590,6 +590,29 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
 
     reconcileProjectionTargets: async (): Promise<void> => {},
     setProjectionWakeup: () => (): void => {},
+    runBulkMutation: async <TResult>(
+      _input: { source: string; operationId: string },
+      mutation: () => Promise<TResult>,
+    ): Promise<TResult> => mutation(),
+    prepareDurableBulkMutation: async (): Promise<void> => {},
+    finalizeDurableBulkMutationEnqueue: async (): Promise<void> => {},
+    failDurableBulkMutationEnqueue: async (): Promise<void> => {},
+    runDurableBulkMutationChild: async <TResult>(
+      _input: {
+        source: string;
+        operationId: string;
+        rootJobId: string;
+        childKey: string;
+        expectedChildren: number;
+        jobId: string;
+      },
+      mutation: () => Promise<TResult>,
+    ): Promise<TResult> => mutation(),
+    settleDurableBulkMutationChild: async () => true,
+    recoverProjectionBatches: async () => ({
+      fencedCallbacks: 0,
+      releasedDurableRoots: 0,
+    }),
     // Projection storage is database-backed and cannot be faked usefully. Fail
     // loudly rather than hand back an empty stand-in, which would make a test
     // asserting projection behaviour silently meaningless.
@@ -912,6 +935,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
     fail: async () => true,
     update: async () => true,
     getStatus: async () => null,
+    getJobsByRootJobId: async () => [],
     getStats: async () => ({
       pending: 0,
       processing: 0,

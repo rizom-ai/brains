@@ -163,6 +163,29 @@ export function createMockEntityService(
       }),
     ),
     setProjectionWakeup: mock(() => () => {}),
+    runBulkMutation: async <TResult>(
+      _input: { source: string; operationId: string },
+      mutation: () => Promise<TResult>,
+    ): Promise<TResult> => mutation(),
+    prepareDurableBulkMutation: async (): Promise<void> => {},
+    finalizeDurableBulkMutationEnqueue: async (): Promise<void> => {},
+    failDurableBulkMutationEnqueue: async (): Promise<void> => {},
+    runDurableBulkMutationChild: async <TResult>(
+      _input: {
+        source: string;
+        operationId: string;
+        rootJobId: string;
+        childKey: string;
+        expectedChildren: number;
+        jobId: string;
+      },
+      mutation: () => Promise<TResult>,
+    ): Promise<TResult> => mutation(),
+    settleDurableBulkMutationChild: async () => true,
+    recoverProjectionBatches: async () => ({
+      fencedCallbacks: 0,
+      releasedDurableRoots: 0,
+    }),
     // Projection storage is database-backed and cannot be faked usefully.
     // Fail loudly rather than hand back an empty stand-in that would make a
     // test asserting projection behaviour silently meaningless.

@@ -5,7 +5,6 @@ import type {
   PluginRegistrationContext,
 } from "../interfaces";
 import type {
-  IEntityService,
   BaseEntity,
   EntityAdapter,
   EntityTypeConfig,
@@ -15,7 +14,7 @@ import type {
   EnqueueJobRequest,
   JobOptions,
 } from "@brains/job-queue";
-import type { ServicePluginContext } from "./context";
+import type { ServiceEntityService, ServicePluginContext } from "./context";
 import { createServicePluginContext } from "./context";
 import type { ApiRouteDefinition } from "../types/api-routes";
 import type { WebRouteDefinition } from "../types/web-routes";
@@ -68,7 +67,7 @@ export abstract class ServicePlugin<TConfig, TConfigInput> extends BasePlugin<
   /**
    * Get the entity service for direct access
    */
-  protected get entityService(): IEntityService {
+  protected get entityService(): ServiceEntityService {
     const context = this.getContext();
     return context.entityService;
   }

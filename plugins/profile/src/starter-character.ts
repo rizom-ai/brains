@@ -2,7 +2,7 @@ import type {
   BaseEntity,
   ProfileCategory,
   IEntityAINamespace,
-  IEntityService,
+  ServiceEntityService,
 } from "@brains/plugins";
 import { parseMarkdownWithFrontmatter } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
@@ -206,7 +206,7 @@ function contentTypePriority(entityType: string): number {
 }
 
 async function collectContentSignals(
-  entityService: IEntityService,
+  entityService: ServiceEntityService,
   counts: ReadonlyMap<string, number>,
 ): Promise<StarterCharacterContentSignal[]> {
   const candidateTypes = [...counts.entries()]
@@ -244,7 +244,7 @@ async function collectContentSignals(
 }
 
 export async function buildStarterCharacterBrief(options: {
-  entityService: IEntityService;
+  entityService: ServiceEntityService;
   profileKind?: string | undefined;
   profileCategory?: ProfileCategory | undefined;
   anchorEntity: BaseEntity | null;

@@ -131,6 +131,7 @@ export interface EntityMutationDeps {
   messageBus?: EntityEventBus;
   mutationAdmission?: EntityMutationAdmission;
   projectionStore: ProjectionStore;
+  projectionNow: () => number;
   /** Embedding DB for writes (separate from entity DB). */
   embeddingDb: EmbeddingDB;
   embeddingsEnabled: boolean;
@@ -150,6 +151,7 @@ export class EntityMutations {
   private messageBus?: EntityEventBus;
   private mutationAdmission?: EntityMutationAdmission;
   private readonly projectionStore: ProjectionStore;
+  private readonly projectionNow: () => number;
   private readonly embeddingsEnabled: boolean;
   private projectionWakeup: (() => Promise<void>) | undefined;
   private logger: Logger;
@@ -162,6 +164,7 @@ export class EntityMutations {
     this.entityQueries = deps.entityQueries;
     this.jobQueueService = deps.jobQueueService;
     this.projectionStore = deps.projectionStore;
+    this.projectionNow = deps.projectionNow;
     this.embeddingsEnabled = deps.embeddingsEnabled;
     this.logger = deps.logger.child("EntityMutations");
     if (deps.messageBus) {
@@ -252,7 +255,7 @@ export class EntityMutations {
           visibility: validatedEntity.visibility,
         }),
         operation: "upsert",
-        markedAt: Date.now(),
+        markedAt: this.projectionNow(),
       },
       async (transaction) => {
         await transaction.insert(entities).values({
@@ -422,7 +425,7 @@ export class EntityMutations {
             visibility: validatedEntity.visibility,
           }),
           operation: "upsert",
-          markedAt: Date.now(),
+          markedAt: this.projectionNow(),
         },
         async (transaction) => {
           const updateResult = await transaction
@@ -542,7 +545,7 @@ export class EntityMutations {
           visibility: priorData.visibility,
         })}`,
         operation: "delete",
-        markedAt: Date.now(),
+        markedAt: this.projectionNow(),
       },
       async (transaction) => {
         await transaction.run(
@@ -890,6 +893,10 @@ export class EntityMutations {
       `Could not deduplicate entity ID after 100 attempts, using random suffix: ${fallbackId}`,
     );
     return fallbackId;
+  }
+
+  public async wakeProjectionScheduler(): Promise<void> {
+    await this.notifyProjectionScheduler();
   }
 
   private async notifyProjectionScheduler(): Promise<void> {

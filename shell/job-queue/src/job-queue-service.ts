@@ -496,6 +496,10 @@ export class JobQueueService implements IJobQueueService {
     return this.repository.getStatus(jobId);
   }
 
+  public async getJobsByRootJobId(rootJobId: string): Promise<JobInfo[]> {
+    return this.repository.getJobsByRootJobId(rootJobId);
+  }
+
   public async getStatusByEntityId(entityId: string): Promise<JobInfo | null> {
     return this.repository.getStatusByEntityId(entityId);
   }

@@ -1,7 +1,7 @@
 import { z } from "@brains/utils/zod";
 import type {
   Tool,
-  IEntityService,
+  ServiceEntityService,
   ServicePluginContext,
 } from "@brains/plugins";
 import { createTool } from "@brains/plugins";
@@ -15,7 +15,7 @@ import { getErrorMessage } from "@brains/utils/error";
 
 export interface StockPhotoToolsDeps {
   provider: StockPhotoProvider;
-  entityService: IEntityService;
+  entityService: ServiceEntityService;
   fetchImage: FetchImageFn;
   jobs: ServicePluginContext["jobs"];
 }

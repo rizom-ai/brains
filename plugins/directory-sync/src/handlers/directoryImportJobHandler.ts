@@ -10,6 +10,10 @@ import {
 } from "../types";
 import type { DirectorySyncOperationStatusService } from "../lib/directory-sync-operation-status";
 import { getErrorMessage } from "@brains/utils/error";
+import {
+  runDirectoryProjectionBatchChild,
+  settleDirectoryProjectionBatchChild,
+} from "../lib/projection-batch-job";
 
 export class DirectoryImportJobHandler extends BaseJobHandler<
   "directory-import",
@@ -17,12 +21,13 @@ export class DirectoryImportJobHandler extends BaseJobHandler<
   ImportResult
 > {
   private directorySync: IDirectorySync;
+  private readonly context: ServicePluginContext;
   private readonly operationStatus:
     DirectorySyncOperationStatusService | undefined;
 
   constructor(
     logger: Logger,
-    _context: ServicePluginContext,
+    context: ServicePluginContext,
     directorySync: IDirectorySync,
     operationStatus?: DirectorySyncOperationStatusService,
   ) {
@@ -30,6 +35,7 @@ export class DirectoryImportJobHandler extends BaseJobHandler<
       schema: directoryImportJobSchema,
       jobTypeName: "directory-import",
     });
+    this.context = context;
     this.directorySync = directorySync;
     this.operationStatus = operationStatus;
   }
@@ -41,34 +47,66 @@ export class DirectoryImportJobHandler extends BaseJobHandler<
   ): Promise<ImportResult> {
     this.logger.debug("Processing directory import job", { jobId, data });
 
-    const startTime = Date.now();
+    return runDirectoryProjectionBatchChild(
+      this.context,
+      data,
+      jobId,
+      async (): Promise<ImportResult> => {
+        const startTime = Date.now();
 
-    try {
-      const result = await this.directorySync.importEntitiesWithProgress(
-        data.paths,
-        progressReporter,
-        data.batchSize ?? 100,
-      );
+        try {
+          const result = await this.directorySync.importEntitiesWithProgress(
+            data.paths,
+            progressReporter,
+            data.batchSize ?? 100,
+          );
 
-      this.logger.debug("Directory import job completed", {
-        jobId,
-        imported: result.imported,
-        skipped: result.skipped,
-        failed: result.failed,
-        quarantined: result.quarantined,
-        duration: Date.now() - startTime,
-      });
-      await this.operationStatus?.addImportResult(result);
+          this.logger.debug("Directory import job completed", {
+            jobId,
+            imported: result.imported,
+            skipped: result.skipped,
+            failed: result.failed,
+            quarantined: result.quarantined,
+            duration: Date.now() - startTime,
+          });
+          await this.operationStatus?.addImportResult(result);
 
-      return result;
-    } catch (error) {
-      this.logger.error("Directory import job failed", { jobId, error });
-      await this.operationStatus?.recordIssue({
-        kind: "import",
-        message: getErrorMessage(error, "Directory import failed"),
-      });
-      throw error;
-    }
+          return result;
+        } catch (error) {
+          this.logger.error("Directory import job failed", { jobId, error });
+          await this.operationStatus?.recordIssue({
+            kind: "import",
+            message: getErrorMessage(error, "Directory import failed"),
+          });
+          throw error;
+        }
+      },
+    );
+  }
+
+  public async onTerminalSuccess(
+    data: DirectoryImportJobData,
+    jobId: string,
+  ): Promise<void> {
+    await settleDirectoryProjectionBatchChild(
+      this.context,
+      data,
+      jobId,
+      "completed",
+    );
+  }
+
+  public async onTerminalError(
+    _error: Error,
+    data: DirectoryImportJobData,
+    jobId: string,
+  ): Promise<void> {
+    await settleDirectoryProjectionBatchChild(
+      this.context,
+      data,
+      jobId,
+      "failed",
+    );
   }
 
   protected override summarizeDataForLog(

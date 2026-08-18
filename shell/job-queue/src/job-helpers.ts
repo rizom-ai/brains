@@ -159,7 +159,7 @@ export function createEnqueueBatchFn(
   pluginId: string,
 ): EnqueueBatchFn {
   return async (operations, options) => {
-    const batchId = createId();
+    const batchId = options?.rootJobId ?? createId();
     const scopedOperations = operations.map((op) => ({
       ...op,
       type: op.type.includes(":") ? op.type : `${pluginId}:${op.type}`,

@@ -30,6 +30,14 @@ class MemoryRuntimeStore implements ProjectionRuntimeStore {
   private active: ProjectionWave | null = null;
   private pending = true;
   private rules: ProjectionWaveRule[] = [];
+  setPending(pending: boolean): void {
+    this.pending = pending;
+  }
+
+  getWave(waveId: string): Promise<ProjectionWave | null> {
+    return Promise.resolve(this.active?.id === waveId ? this.active : null);
+  }
+
   getActiveWave(): Promise<ProjectionWave | null> {
     return Promise.resolve(this.active);
   }
@@ -60,6 +68,7 @@ class MemoryRuntimeStore implements ProjectionRuntimeStore {
       id: input.waveId,
       cutoffGeneration: 1,
       graphFingerprint: input.graphFingerprint,
+      admissionEpoch: 0,
       status: "running",
       startedAt: input.startedAt,
       completedAt: null,
@@ -145,6 +154,10 @@ class MemoryRuntimeStore implements ProjectionRuntimeStore {
     };
     this.active = null;
     return Promise.resolve(completed);
+  }
+
+  supersedeWaveIfStale(): Promise<boolean> {
+    return Promise.resolve(false);
   }
 
   getRuleMemo(
@@ -239,6 +252,56 @@ const executionContext: ProjectionExecutionContext = {
 };
 
 describe("activateProjectionRuntime", () => {
+  it("sweeps worker-unblocked ingress without a web-role mutation", async () => {
+    const store = new MemoryRuntimeStore();
+    store.setPending(false);
+    const requests: JobQueueEnqueueRequest[] = [];
+    let scheduledSweep: (() => Promise<void>) | undefined;
+    let sweepCancelled = false;
+    let reconciliations = 0;
+    const runtime = await activateProjectionRuntime({
+      store,
+      queue: {
+        enqueue: async (request): Promise<string> => {
+          requests.push(request);
+          return "job-swept";
+        },
+        getStatus: async () => null,
+        registerHandler: (): void => {},
+        unregisterHandler: (): void => {},
+      },
+      setWakeup: (): (() => void) => () => {},
+      graph,
+      rules: [projectionRule],
+      inputContext,
+      executionContext,
+      reconcileTargets: async () => {},
+      beforeWaveCompletion: async () => {},
+      logger: createSilentLogger(),
+      createWaveId: () => "wave-swept",
+      now: () => 10,
+      reconcileBatches: async (): Promise<void> => {
+        reconciliations++;
+        if (reconciliations === 2) store.setPending(true);
+      },
+      scheduleSweep: (_intervalMs, sweep): (() => void) => {
+        scheduledSweep = sweep;
+        return (): void => {
+          sweepCancelled = true;
+        };
+      },
+    });
+
+    expect(requests).toEqual([]);
+    await scheduledSweep?.();
+    expect(requests.map(({ data }) => data)).toEqual([
+      { waveId: "wave-swept", ruleId: "document-summary" },
+    ]);
+
+    runtime.dispose();
+    expect(sweepCancelled).toBe(true);
+  });
+
   it("registers the framework handler before recovering pending work", async () => {
     const store = new MemoryRuntimeStore();
     const order: string[] = [];

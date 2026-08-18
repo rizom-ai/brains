@@ -5,6 +5,7 @@ const config: Config = defineSqliteDrizzleConfig({
   schema: [
     "./src/schema/entities.ts",
     "./src/schema/embeddings.ts",
+    "./src/schema/projection-batches.ts",
     "./src/schema/projection-state.ts",
   ],
   urlEnv: "DATABASE_URL",

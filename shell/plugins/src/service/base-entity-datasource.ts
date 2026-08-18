@@ -3,7 +3,7 @@ import type {
   DataSource,
   DataSourceSchema,
   BaseDataSourceContext,
-  IEntityService,
+  EntityServiceClient,
   BaseEntity,
   ListOptions,
   SortField,
@@ -218,7 +218,7 @@ export abstract class BaseEntityDataSource<
    */
   protected async fetchDetail(
     id: string,
-    entityService: IEntityService,
+    entityService: EntityServiceClient,
   ): Promise<{
     item: TTransformed;
     navigation: NavigationResult<TTransformed> | null;
@@ -239,7 +239,7 @@ export abstract class BaseEntityDataSource<
    */
   protected async fetchList(
     query: BaseQuery,
-    entityService: IEntityService,
+    entityService: EntityServiceClient,
     listOptions?: Partial<ListOptions>,
   ): Promise<{ items: TTransformed[]; pagination: PaginationInfo | null }> {
     const currentPage = query.page ?? 1;
@@ -284,7 +284,7 @@ export abstract class BaseEntityDataSource<
    */
   protected async resolveNavigation(
     entity: TEntity,
-    entityService: IEntityService,
+    entityService: EntityServiceClient,
     sortFields?: SortField[],
   ): Promise<NavigationResult<TTransformed>> {
     const limit = this.config.navigationLimit ?? 1000;
@@ -315,7 +315,7 @@ export abstract class BaseEntityDataSource<
    */
   protected async lookupEntity(
     id: string,
-    entityService: IEntityService,
+    entityService: EntityServiceClient,
   ): Promise<TEntity> {
     if (this.config.lookupField === "id") {
       const entity = await entityService.getEntity<TEntity>({

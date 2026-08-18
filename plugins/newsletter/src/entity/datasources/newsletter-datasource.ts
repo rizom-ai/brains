@@ -4,11 +4,7 @@ import {
   type EntityDataSourceConfig,
   type PaginationInfo,
 } from "@brains/plugins";
-import type {
-  BaseDataSourceContext,
-  DataSourceSchema,
-  IEntityService,
-} from "@brains/plugins";
+import type { BaseDataSourceContext, DataSourceSchema } from "@brains/plugins";
 import { parseMarkdownWithFrontmatter } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import { truncateText } from "@brains/utils/string-utils";
@@ -187,7 +183,7 @@ export class NewsletterDataSource extends BaseEntityDataSource<
   private async fetchSingleNewsletter<T>(
     id: string,
     outputSchema: DataSourceSchema<T>,
-    entityService: IEntityService,
+    entityService: BaseDataSourceContext["entityService"],
   ): Promise<T> {
     const newsletter = await entityService.getEntity<Newsletter>({
       entityType: this.config.entityType,

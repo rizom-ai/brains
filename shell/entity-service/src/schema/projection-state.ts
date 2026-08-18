@@ -9,7 +9,7 @@ import {
 } from "drizzle-orm/sqlite-core";
 import type { ProjectionWriteIntent } from "../projection-contracts";
 
-type ProjectionTextColumn<
+export type ProjectionTextColumn<
   TTable extends string,
   TName extends string,
   TNotNull extends boolean,
@@ -39,7 +39,7 @@ type ProjectionTextColumn<
   { length: number | undefined }
 >;
 
-type ProjectionIntegerColumn<
+export type ProjectionIntegerColumn<
   TTable extends string,
   TName extends string,
   TNotNull extends boolean,
@@ -150,14 +150,20 @@ type ProjectionWavesTable = SQLiteTableWithColumns<{
       "graph_fingerprint",
       true
     >;
+    admissionEpoch: ProjectionIntegerColumn<
+      "projection_waves",
+      "admission_epoch",
+      true,
+      true
+    >;
     status: ProjectionTextColumn<
       "projection_waves",
       "status",
       true,
       false,
       false,
-      "running" | "completed" | "failed",
-      ["running", "completed", "failed"]
+      "running" | "completed" | "failed" | "superseded",
+      ["running", "completed", "failed", "superseded"]
     >;
     startedAt: ProjectionIntegerColumn<"projection_waves", "started_at", true>;
     completedAt: ProjectionIntegerColumn<
@@ -332,8 +338,9 @@ export const projectionWaves: ProjectionWavesTable = sqliteTable(
     id: text("id").primaryKey(),
     cutoffGeneration: integer("cutoff_generation").notNull(),
     graphFingerprint: text("graph_fingerprint").notNull(),
+    admissionEpoch: integer("admission_epoch").notNull().default(0),
     status: text("status", {
-      enum: ["running", "completed", "failed"],
+      enum: ["running", "completed", "failed", "superseded"],
     }).notNull(),
     startedAt: integer("started_at").notNull(),
     completedAt: integer("completed_at"),

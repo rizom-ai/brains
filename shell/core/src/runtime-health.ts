@@ -1,6 +1,7 @@
 import { readdir, readFile } from "node:fs/promises";
 import { internalFullScope } from "@brains/entity-service";
 import type {
+  ProjectionBatchDiagnostics,
   ProjectionIncident,
   ProjectionIncidentDiagnostics,
   ProjectionWave,
@@ -35,6 +36,7 @@ interface ProjectionWaveReader {
   getUnresolvedProjectionIncidentDiagnostics(
     limit?: number,
   ): Promise<ProjectionIncidentDiagnostics>;
+  getProjectionBatchDiagnostics?(): Promise<ProjectionBatchDiagnostics>;
 }
 
 interface StrandedProjectionRule {
@@ -45,6 +47,7 @@ interface StrandedProjectionRule {
 
 interface ProjectionWaveDiagnostics {
   waveId: string | null;
+  batches: ProjectionBatchDiagnostics;
   strandedRules: StrandedProjectionRule[];
   incidentCount: number;
   incidents: ProjectionIncident[];
@@ -246,15 +249,24 @@ async function getProjectionWaveDiagnostics(
   options: RuntimeReadinessOptions,
 ): Promise<ProjectionWaveDiagnostics> {
   const store = options.entityService.getProjectionStore();
-  const [activeWave, incidentDiagnostics] = await Promise.all([
+  const [activeWave, incidentDiagnostics, batches] = await Promise.all([
     store.getActiveWave(),
     store.getUnresolvedProjectionIncidentDiagnostics(
       PROJECTION_INCIDENT_DETAILS_LIMIT,
     ),
+    store.getProjectionBatchDiagnostics?.() ??
+      Promise.resolve({
+        preparing: 0,
+        open: 0,
+        abandoned: 0,
+        oldestActiveAgeMs: null,
+        oldestProgressAgeMs: null,
+      }),
   ]);
   if (!activeWave) {
     return {
       waveId: null,
+      batches,
       strandedRules: [],
       incidentCount: incidentDiagnostics.total,
       incidents: incidentDiagnostics.incidents,
@@ -289,6 +301,7 @@ async function getProjectionWaveDiagnostics(
 
   return {
     waveId: activeWave.id,
+    batches,
     strandedRules,
     incidentCount: incidentDiagnostics.total,
     incidents: incidentDiagnostics.incidents,
@@ -298,6 +311,25 @@ async function getProjectionWaveDiagnostics(
 function projectionWaveCheck(
   diagnostics: ProjectionWaveDiagnostics,
 ): RuntimeHealthCheck {
+  if (diagnostics.batches.abandoned > 0) {
+    return {
+      name: "projection-waves",
+      status: "degraded",
+      message: `${diagnostics.batches.abandoned} projection batch(es) await recovery`,
+      details: { batches: diagnostics.batches },
+    };
+  }
+  if (
+    diagnostics.batches.oldestProgressAgeMs !== null &&
+    diagnostics.batches.oldestProgressAgeMs > 30_000
+  ) {
+    return {
+      name: "projection-waves",
+      status: "degraded",
+      message: "A projection batch has remained active beyond its lease window",
+      details: { batches: diagnostics.batches },
+    };
+  }
   if (diagnostics.incidentCount > 0) {
     return {
       name: "projection-waves",
@@ -321,7 +353,13 @@ function projectionWaveCheck(
     return {
       name: "projection-waves",
       status: "healthy",
-      message: "No active projection wave",
+      message:
+        diagnostics.batches.open + diagnostics.batches.preparing > 0
+          ? `${diagnostics.batches.open + diagnostics.batches.preparing} projection batch(es) active`
+          : "No active projection wave",
+      ...(diagnostics.batches.open + diagnostics.batches.preparing > 0 && {
+        details: { batches: diagnostics.batches },
+      }),
     };
   }
   if (diagnostics.strandedRules.length === 0) {

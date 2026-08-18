@@ -1,12 +1,12 @@
-import type { IEntityService } from "@brains/plugins";
+import type { ServiceEntityService } from "@brains/plugins";
 import type { MailItemEntity } from "./entity/schemas/mail-item";
 import type { MailItemProjection } from "./lib/mail-item-projection";
 import type { MailItemRepository } from "./triage-processor";
 
 export class EntityMailItemRepository implements MailItemRepository {
-  private readonly entityService: IEntityService;
+  private readonly entityService: ServiceEntityService;
 
-  constructor(entityService: IEntityService) {
+  constructor(entityService: ServiceEntityService) {
     this.entityService = entityService;
   }
 

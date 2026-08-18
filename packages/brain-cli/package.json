@@ -67,6 +67,7 @@
     "@brains/notifications": "workspace:*",
     "@brains/obsidian-vault": "workspace:*",
     "@brains/onboarding": "workspace:*",
+    "@brains/operation-context": "workspace:*",
     "@brains/playbooks": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/portfolio": "workspace:*",

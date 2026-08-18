@@ -803,6 +803,7 @@ export class JobQueueWorker {
         };
       }
 
+      await this.runHandlerSuccessCallback(handler, job, attemptId);
       await this.progressMonitor.handleJobStatusChange(
         job.id,
         "completed",
@@ -841,6 +842,43 @@ export class JobQueueWorker {
         status: JOB_STATUS.FAILED,
         error: processError.message,
       };
+    }
+  }
+
+  private async runHandlerSuccessCallback(
+    handler: JobHandler,
+    job: JobInfo,
+    attemptId: string,
+  ): Promise<void> {
+    const callback = handler.onTerminalSuccess;
+    if (!callback) return;
+    try {
+      const parsedData = handler.validateAndParse(JSON.parse(job.data));
+      if (parsedData === null) return;
+      const progressReporter = this.progressMonitor.createProgressReporter(
+        job.id,
+        attemptId,
+      );
+      const controller = new AbortController();
+      await this.executeWithDeadline(
+        `${job.type}:onTerminalSuccess`,
+        this.config.errorCallbackTimeoutMs,
+        controller,
+        () =>
+          callback.call(
+            handler,
+            parsedData,
+            job.id,
+            progressReporter,
+            controller.signal,
+          ),
+      );
+    } catch (error) {
+      this.logger.error("Terminal job success callback failed", {
+        jobId: job.id,
+        type: job.type,
+        error,
+      });
     }
   }
 

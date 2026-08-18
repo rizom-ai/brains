@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import type {
+  ProjectionBatchDiagnostics,
   ProjectionIncidentDiagnostics,
   ProjectionWave,
   ProjectionWaveRule,
@@ -276,6 +277,7 @@ describe("getRuntimeReadiness", () => {
           id: "wave-1",
           cutoffGeneration: 42,
           graphFingerprint: "graph-1",
+          admissionEpoch: 0,
           status: "running",
           startedAt: 100,
           completedAt: null,
@@ -435,6 +437,41 @@ describe("getRuntimeReadiness", () => {
           incidentCount: 12,
           incidentsTruncated: true,
         }),
+      }),
+    );
+  });
+
+  it("reports unrecovered projection batch abandonment as degraded", async () => {
+    const dependencies = createDependencies();
+    const baseStore = dependencies.entityService.getProjectionStore();
+    const readiness = await getRuntimeReadiness({
+      ...dependencies,
+      entityService: {
+        ...dependencies.entityService,
+        getProjectionStore: () => ({
+          ...baseStore,
+          getProjectionBatchDiagnostics:
+            async (): Promise<ProjectionBatchDiagnostics> => ({
+              preparing: 0,
+              open: 0,
+              abandoned: 1,
+              oldestActiveAgeMs: null,
+              oldestProgressAgeMs: null,
+            }),
+        }),
+      },
+      ...runtimeOptions,
+    });
+
+    expect(readiness.status).toBe("ready");
+    expect(readiness.operationalStatus).toBe("degraded");
+    expect(readiness.checks).toContainEqual(
+      expect.objectContaining({
+        name: "projection-waves",
+        status: "degraded",
+        details: {
+          batches: expect.objectContaining({ abandoned: 1 }),
+        },
       }),
     );
   });

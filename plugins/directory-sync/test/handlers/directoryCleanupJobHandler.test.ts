@@ -3,6 +3,7 @@ import { DirectoryCleanupJobHandler } from "../../src/handlers/directoryCleanupJ
 import {
   createSilentLogger,
   createMockProgressReporter,
+  createMockServicePluginContext,
 } from "@brains/test-utils";
 import { createMockDirectorySync } from "../fixtures";
 
@@ -18,6 +19,7 @@ describe("DirectoryCleanupJobHandler", () => {
 
     handler = new DirectoryCleanupJobHandler(
       createSilentLogger("test"),
+      createMockServicePluginContext(),
       createMockDirectorySync({
         removeOrphanedEntities: removeOrphanedEntitiesMock,
       }),

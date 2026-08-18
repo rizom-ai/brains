@@ -2,8 +2,10 @@ import { describe, expect, it, mock } from "bun:test";
 import type {
   ApplyProjectionRuleResultInput,
   GetProjectionRuleMemoInput,
+  ProjectionDirtyInput,
   ProjectionRuleMemoValue,
   ProjectionWriteIntent,
+  ProjectionWave,
   ProjectionWaveInput,
   ProjectionWaveRule,
 } from "@brains/entity-service";
@@ -16,6 +18,7 @@ import { ProgressReporter } from "@brains/utils/progress";
 import { z } from "@brains/utils/zod";
 import {
   ProjectionRuleJobHandler,
+  type ProjectionRuleDiagnostic,
   type ProjectionRuleExecutionStore,
   type ProjectionWaveCoordinator,
 } from "../src/projection-rule-job-handler";
@@ -51,6 +54,9 @@ class MemoryExecutionStore implements ProjectionRuleExecutionStore {
   readonly inputs: ProjectionWaveInput[];
   memo: ProjectionRuleMemoValue | null = null;
   applied: ApplyProjectionRuleResultInput | null = null;
+  staleBeforeSelection = false;
+  staleAtApply = false;
+  waveStatus: ProjectionWave["status"] = "running";
 
   constructor(inputCount: number) {
     this.inputs = Array.from({ length: inputCount }, (_unused, index) => ({
@@ -61,6 +67,26 @@ class MemoryExecutionStore implements ProjectionRuleExecutionStore {
       operation: "upsert",
       generation: index + 1,
     }));
+  }
+
+  getWave(): Promise<ProjectionWave> {
+    return Promise.resolve({
+      id: "wave-1",
+      cutoffGeneration: this.inputs.length,
+      graphFingerprint: "graph",
+      admissionEpoch: 0,
+      status: this.waveStatus,
+      startedAt: 10,
+      completedAt: null,
+    });
+  }
+
+  listPendingInputs(): Promise<ProjectionDirtyInput[]> {
+    return Promise.resolve([]);
+  }
+
+  supersedeWaveIfStale(): Promise<boolean> {
+    return Promise.resolve(this.staleBeforeSelection);
   }
 
   listWaveInputs(_waveId: string): Promise<ProjectionWaveInput[]> {
@@ -90,8 +116,9 @@ class MemoryExecutionStore implements ProjectionRuleExecutionStore {
 
   applyRuleResult(
     input: ApplyProjectionRuleResultInput,
-  ): Promise<ProjectionWaveRule> {
+  ): Promise<ProjectionWaveRule | null> {
     this.applied = input;
+    if (this.staleAtApply) return Promise.resolve(null);
     return Promise.resolve({
       waveId: input.waveId,
       ruleId: input.ruleId,
@@ -121,6 +148,7 @@ class MemoryExecutionStore implements ProjectionRuleExecutionStore {
 class MemoryCoordinator implements ProjectionWaveCoordinator {
   readonly advancedWaveIds: string[] = [];
   readonly failedWaveIds: string[] = [];
+  readonly continuedWaveIds: string[] = [];
   readonly incidents: Array<{
     waveId: string;
     ruleId: string;
@@ -135,6 +163,11 @@ class MemoryCoordinator implements ProjectionWaveCoordinator {
 
   failActiveWave(waveId: string): Promise<unknown> {
     this.failedWaveIds.push(waveId);
+    return Promise.resolve();
+  }
+
+  continueAfterSupersession(waveId: string): Promise<unknown> {
+    this.continuedWaveIds.push(waveId);
     return Promise.resolve();
   }
 
@@ -171,6 +204,7 @@ describe("ProjectionRuleJobHandler", () => {
     const store = new MemoryExecutionStore(100);
     const coordinator = new MemoryCoordinator();
     const reconcileTargets = mock(async () => {});
+    const diagnostics: ProjectionRuleDiagnostic[] = [];
     const handler = new ProjectionRuleJobHandler({
       rules: [rule],
       store,
@@ -178,6 +212,9 @@ describe("ProjectionRuleJobHandler", () => {
       inputContext,
       executionContext,
       reconcileTargets,
+      onDiagnostic: (diagnostic): void => {
+        diagnostics.push(diagnostic);
+      },
       now: (): number => 20,
     });
 
@@ -210,6 +247,144 @@ describe("ProjectionRuleJobHandler", () => {
       },
     ]);
     expect(coordinator.advancedWaveIds).toEqual(["wave-1"]);
+    expect(diagnostics.map(({ event }) => event)).toEqual([
+      "attempt-started",
+      "input-selected",
+      "memo-resolved",
+      "derive-started",
+      "derive-completed",
+      "apply-completed",
+    ]);
+    expect(diagnostics.at(-1)).toEqual(
+      expect.objectContaining({
+        waveId: "wave-1",
+        ruleId: "topics",
+        ruleVersion: "1",
+        jobId: "job-1",
+        attemptNumber: 1,
+        cutoffGeneration: 100,
+        selectedSourceCount: 100,
+        memoHit: false,
+        applyOutcome: "applied",
+        highestPendingGeneration: null,
+      }),
+    );
+  });
+
+  it("skips selection and derive when the wave is already stale", async () => {
+    const selectInput = mock(async () => ({ sourceCount: 1 }));
+    const derive = mock(async () => []);
+    const rule = defineProjectionRule({
+      id: "topics",
+      version: "1",
+      sources: [{ kind: "entity", types: ["document"] }],
+      targetType: "topic",
+      inputSchema: z.object({ sourceCount: z.number() }),
+      selectInput,
+      derive,
+    });
+    const store = new MemoryExecutionStore(1);
+    store.staleBeforeSelection = true;
+    const coordinator = new MemoryCoordinator();
+    const handler = new ProjectionRuleJobHandler({
+      rules: [rule],
+      store,
+      coordinator,
+      inputContext,
+      executionContext,
+      reconcileTargets: async (): Promise<void> => {},
+      now: (): number => 20,
+    });
+
+    const result = await handler.process(
+      { waveId: "wave-1", ruleId: "topics" },
+      "job-1",
+      progressReporter,
+      new AbortController().signal,
+    );
+
+    expect(result.outcome).toBe("superseded");
+    expect(selectInput).not.toHaveBeenCalled();
+    expect(derive).not.toHaveBeenCalled();
+    expect(coordinator.continuedWaveIds).toEqual(["wave-1"]);
+  });
+
+  it("treats another same-level job from an already superseded wave as complete", async () => {
+    const selectInput = mock(async () => ({ sourceCount: 1 }));
+    const rule = defineProjectionRule({
+      id: "topics",
+      version: "1",
+      sources: [{ kind: "entity", types: ["document"] }],
+      targetType: "topic",
+      inputSchema: z.object({ sourceCount: z.number() }),
+      selectInput,
+      derive: async () => [],
+    });
+    const store = new MemoryExecutionStore(1);
+    store.waveStatus = "superseded";
+    const coordinator = new MemoryCoordinator();
+    const handler = new ProjectionRuleJobHandler({
+      rules: [rule],
+      store,
+      coordinator,
+      inputContext,
+      executionContext,
+      reconcileTargets: async (): Promise<void> => {},
+      now: (): number => 20,
+    });
+
+    const result = await handler.process(
+      { waveId: "wave-1", ruleId: "topics" },
+      "job-2",
+      progressReporter,
+      new AbortController().signal,
+    );
+
+    expect(result.outcome).toBe("superseded");
+    expect(selectInput).not.toHaveBeenCalled();
+    expect(coordinator.continuedWaveIds).toEqual([]);
+    expect(coordinator.incidents).toEqual([]);
+  });
+
+  it("does not reconcile intents when the epoch changes during derive", async () => {
+    const derive = mock(async (): Promise<ProjectionWriteIntent[]> => [
+      { operation: "delete", entityType: "topic", id: "partial-topic" },
+    ]);
+    const rule = defineProjectionRule({
+      id: "topics",
+      version: "1",
+      sources: [{ kind: "entity", types: ["document"] }],
+      targetType: "topic",
+      inputSchema: z.object({ sourceCount: z.number() }),
+      selectInput: async (trigger) => ({ sourceCount: trigger.inputs.length }),
+      derive,
+    });
+    const store = new MemoryExecutionStore(1);
+    store.staleAtApply = true;
+    const coordinator = new MemoryCoordinator();
+    const reconcileTargets = mock(async (): Promise<void> => {});
+    const handler = new ProjectionRuleJobHandler({
+      rules: [rule],
+      store,
+      coordinator,
+      inputContext,
+      executionContext,
+      reconcileTargets,
+      now: (): number => 20,
+    });
+
+    const result = await handler.process(
+      { waveId: "wave-1", ruleId: "topics" },
+      "job-1",
+      progressReporter,
+      new AbortController().signal,
+    );
+
+    expect(result.outcome).toBe("superseded");
+    expect(derive).toHaveBeenCalledTimes(1);
+    expect(reconcileTargets).not.toHaveBeenCalled();
+    expect(coordinator.advancedWaveIds).toEqual([]);
+    expect(coordinator.continuedWaveIds).toEqual(["wave-1"]);
   });
 
   it("fails the active wave after terminal queue exhaustion", async () => {

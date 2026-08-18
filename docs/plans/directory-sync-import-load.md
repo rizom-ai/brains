@@ -376,10 +376,12 @@ readiness samples stayed routing-ready and operational with no degraded sample. 
 cannot contact an external AI provider.
 
 The shell job-worker concurrency is schema-validated, defaults to four, and remains
-configurable. Topic projection honors the existing `sourceChangeBatchDelayMs` setting so
-parallel workers do not split one source burst into repeated full-corpus projection waves.
-This replaces accidental global serialization without adding an unbounded AI fan-out,
-health-priority scheduler, or stale-job mechanism.
+configurable. `sourceChangeBatchDelayMs` absorbs ordinary short ingress gaps, but it cannot
+identify a logical import when the producer is externally descheduled beyond that window.
+Directory Sync therefore declares an explicit durable bulk-mutation boundary; projection
+ingress stays durable while one settled successor wave observes the complete batch. This
+replaces accidental global serialization without adding an unbounded AI fan-out or a
+health-priority scheduler.
 
 A new remote `load` run remains blocked on completion of the separate Git execution broker
 acceptance plan, still requires explicit approval, and must complete all seven phases with

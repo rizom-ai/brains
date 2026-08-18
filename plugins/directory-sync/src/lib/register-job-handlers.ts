@@ -62,6 +62,7 @@ export function registerDirectorySyncJobHandlers(
     "directory-cleanup",
     new DirectoryCleanupJobHandler(
       childLogger("DirectoryCleanupJobHandler"),
+      context,
       directorySync,
     ),
   );
