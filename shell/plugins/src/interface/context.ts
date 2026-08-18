@@ -4,6 +4,11 @@ import type {
   IPermissionsNamespace as IBasePermissionsNamespace,
 } from "../base/context";
 import { createBasePluginContext } from "../base/context";
+import type {
+  BasePluginContext as PublicBasePluginContext,
+  InterfacePluginContext as PublicInterfacePluginContext,
+  MessageInterfacePluginContext as PublicMessageInterfacePluginContext,
+} from "../public/types";
 import { createMessageInterfaceChannelsNamespace } from "../base/namespaces";
 import type { IMessageInterfaceChannelsNamespace } from "../base/context-types";
 import type {
@@ -119,7 +124,10 @@ export interface IInterfaceConversationsNamespace extends IConversationsNamespac
  * - `register*`: Register handlers/daemons (e.g., `registerDaemon`, `registerJobHandler`)
  * - Action verbs: Operations with side effects (e.g., `enqueueJob`, `addMessage`)
  */
-export interface InterfacePluginContext extends BasePluginContext {
+export interface InterfacePluginContext
+  extends
+    BasePluginContext,
+    Omit<PublicInterfacePluginContext, keyof PublicBasePluginContext> {
   // ============================================================================
   // Services
   // ============================================================================
@@ -200,7 +208,10 @@ export interface InterfacePluginContext extends BasePluginContext {
 }
 
 /** Context reserved for interfaces implementing the message-channel contract. */
-export interface MessageInterfacePluginContext extends InterfacePluginContext {
+export interface MessageInterfacePluginContext
+  extends
+    InterfacePluginContext,
+    Omit<PublicMessageInterfacePluginContext, keyof PublicBasePluginContext> {
   readonly channels: IMessageInterfaceChannelsNamespace;
 }
 

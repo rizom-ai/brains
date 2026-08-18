@@ -45,7 +45,7 @@ import type {
   MessageSender,
   MessageWithPayload,
 } from "../contracts/messaging";
-import type { IEntityAINamespace } from "../entity/context";
+import type { IEntityAINamespace } from "../entity/ai-types";
 import type {
   ChannelDeliveryProvider,
   ChannelDescriptor,

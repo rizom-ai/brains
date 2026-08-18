@@ -1,4 +1,5 @@
 import type { IShell } from "../interfaces";
+import type { BasePluginContext as PublicBasePluginContext } from "../public/types";
 import { type Logger } from "@brains/utils/logger";
 import { derivePreviewDomain } from "@brains/site-composition";
 import type {
@@ -6,8 +7,7 @@ import type {
   ProjectSemanticSpaceRequest,
   SemanticSpaceProjection,
 } from "@brains/entity-service";
-import type { JudgeInput, PluginRegistrationContext } from "../interfaces";
-import type { AppInfo } from "../contracts/app-info";
+import type { PluginRegistrationContext } from "../interfaces";
 import type { RuntimeReadiness } from "../contracts/runtime-health";
 import type { EntityDisplayEntry } from "@brains/site-composition";
 import type { JobsNamespace } from "@brains/job-queue";
@@ -38,18 +38,12 @@ import { createCmsNamespace, type ICmsNamespace } from "./cms-namespace";
 import { createDashboardNamespace } from "./dashboard-namespace";
 import type { IDashboardNamespace } from "./dashboard-namespace";
 import type {
-  IChannelsNamespace,
   IConversationsNamespace,
   IEndpointsNamespace,
-  IEvalNamespace,
-  IIdentityNamespace,
   IInboxFollowUpsNamespace,
-  IInboxNamespace,
   IInsightsNamespace,
   IInteractionsNamespace,
   IMessagingNamespace,
-  IOperationalHealthNamespace,
-  IPermissionsNamespace,
   IPluginsNamespace,
   IProfileKindsNamespace,
 } from "./context-types";
@@ -84,23 +78,24 @@ export type {
  *
  * Contains only capabilities that every plugin needs.
  * AI, templates, views, and transport are on sibling contexts.
+ *
+ * Extends the published context from `../public/types` (the surface shipped as
+ * `@rizom/brain/plugins`), which is deliberately narrower: members declared
+ * only here are withheld from external authors, and members redeclared here
+ * refine a weaker published type. The extends clause keeps the published
+ * surface honest — a member the SDK promises that the runtime lacks, or an
+ * incompatible refinement, fails to compile at this declaration.
  */
-export interface BasePluginContext {
+export interface BasePluginContext extends PublicBasePluginContext {
   // ============================================================================
   // Plugin Identity
   // ============================================================================
-
-  /** Unique plugin identifier */
-  readonly pluginId: string;
 
   /** Whether this context may register only durable execution dependencies. */
   readonly executionOnly: boolean;
 
   /** Logger instance for this plugin */
   readonly logger: Logger;
-
-  /** Data directory for storing entity files */
-  readonly dataDir: string;
 
   /**
    * Where this Brain's Git checkout owner listens, or undefined when it has
@@ -112,21 +107,6 @@ export interface BasePluginContext {
   /** Absolute path owned by the Git broker, assigned with its socket. */
   readonly gitBrokerCheckout: string | undefined;
 
-  /** Bare domain string (e.g. "yeehaa.io"), undefined for local dev */
-  readonly domain: string | undefined;
-
-  /** Production site URL derived from domain (e.g. "https://yeehaa.io"), undefined if no domain */
-  readonly siteUrl: string | undefined;
-
-  /** Local runtime site URL (e.g. "http://localhost:8080"), undefined when unavailable */
-  readonly localSiteUrl: string | undefined;
-
-  /** Preview site URL derived from domain (e.g. "https://preview.yeehaa.io" or "https://preview.recall.rizom.ai"), undefined if no domain */
-  readonly previewUrl: string | undefined;
-
-  /** Prefer local runtime URLs over public domain URLs when both exist. */
-  readonly preferLocalUrls: boolean;
-
   /** Active resolved theme CSS for site, dashboard, and media rendering. */
   readonly themeCSS: string;
 
@@ -136,27 +116,8 @@ export interface BasePluginContext {
   /** Shared conversation spaces for this brain/team */
   readonly spaces: string[];
 
-  /** Entity action policy assertions for plugin-owned tools and handlers. */
-  readonly permissions: IPermissionsNamespace;
-
-  /** App metadata (version, model, plugins) */
-  readonly appInfo: () => Promise<AppInfo>;
-
   /** Runtime dependency readiness and bounded resource signals. */
   readonly readiness: () => Promise<RuntimeReadiness>;
-
-  /** Register request-driven operational-health checks owned by this plugin. */
-  readonly operationalHealth: IOperationalHealthNamespace;
-
-  /** Bounded model-as-judge capability; schema-constrained verdicts only. */
-  readonly judge: <T>(input: JudgeInput<T>) => Promise<{
-    verdict: T;
-    usage: {
-      promptTokens: number;
-      completionTokens: number;
-      totalTokens: number;
-    };
-  }>;
 
   // ============================================================================
   // Entity Service (Read-Only)
@@ -165,29 +126,12 @@ export interface BasePluginContext {
   /** Core entity service with read-only operations */
   readonly entityService: ICoreEntityService;
 
-  /** Provider-independent semantic indexing operations. */
-  readonly semantic: ISemanticNamespace;
-
   // ============================================================================
   // Brain Identity & Profile
   // ============================================================================
 
-  /**
-   * Identity namespace
-   * - `identity.get()` - Get the brain's identity configuration
-   * - `identity.getProfile()` - Get the owner's profile
-   * - `identity.getAppInfo()` - Get app metadata
-   */
-  readonly identity: IIdentityNamespace;
-
   /** App-scoped semantic profile-kind catalog and selected resolution. */
   readonly profileKinds: IProfileKindsNamespace;
-
-  /** App-scoped channel metadata and delivery-provider catalog. */
-  readonly channels: IChannelsNamespace;
-
-  /** App-scoped source-owned attention registry. */
-  readonly inbox: IInboxNamespace;
 
   /** Destination-owned non-mutating Inbox follow-up catalog. */
   readonly inboxFollowUps: IInboxFollowUpsNamespace;
@@ -254,16 +198,6 @@ export interface BasePluginContext {
    * - `conversations.getMessages()` - Get messages from a conversation
    */
   readonly conversations: IConversationsNamespace;
-
-  // ============================================================================
-  // Evaluation
-  // ============================================================================
-
-  /**
-   * Eval namespace for plugin testing
-   * - `eval.registerHandler()` - Register an eval handler
-   */
-  readonly eval: IEvalNamespace;
 
   // ============================================================================
   // Insights

@@ -1,5 +1,9 @@
 import type { BasePluginContext, IPermissionsNamespace } from "../base/context";
 import { createBasePluginContext } from "../base/context";
+import type {
+  BasePluginContext as PublicBasePluginContext,
+  EntityPluginContext as PublicEntityPluginContext,
+} from "../public/types";
 import type { IShell, PluginRegistrationContext } from "../interfaces";
 import type { ContentGenerationConfig } from "../contracts/generation";
 import type {
@@ -74,7 +78,10 @@ export function createAINamespace(shell: IShell): IEntityAINamespace {
  * Includes: entity registration, AI generation, prompt resolution, messaging, jobs.
  * Excludes: templates, views, MCP registration, transport.
  */
-export interface EntityPluginContext extends BasePluginContext {
+export interface EntityPluginContext
+  extends
+    BasePluginContext,
+    Omit<PublicEntityPluginContext, keyof PublicBasePluginContext> {
   readonly entityService: IEntityService;
   readonly entities: EntityPluginEntitiesNamespace;
   readonly ai: IEntityAINamespace;
