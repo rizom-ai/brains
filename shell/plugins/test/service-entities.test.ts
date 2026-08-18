@@ -1,6 +1,11 @@
 import { describe, expect, it } from "bun:test";
 import { z } from "@brains/utils/zod";
-import { createMockShell, createSilentLogger } from "@brains/test-utils";
+import type { JobHandler } from "@brains/job-queue";
+import {
+  createMockProgressReporter,
+  createMockShell,
+  createSilentLogger,
+} from "@brains/test-utils";
 import { createPluginHarness } from "../src/test/harness";
 import { PluginManager } from "../src/manager/pluginManager";
 import { PluginStatus } from "../src/manager/types";
@@ -87,16 +92,16 @@ async function runCaptureJob(
   shell.getEntityService = (): typeof entityService => entityService;
 
   const queue = shell.getJobQueueService();
-  const handlers = new Map<string, { process: JobProcess }>();
+  const handlers = new Map<string, JobHandler>();
   const registerHandler = queue.registerHandler.bind(queue);
-  queue.registerHandler = ((
+  queue.registerHandler = (
     name: string,
-    handler: { process: JobProcess },
+    handler: JobHandler,
     pluginId?: string,
   ): void => {
     handlers.set(name, handler);
-    registerHandler(name, handler as never, pluginId);
-  }) as unknown as typeof queue.registerHandler;
+    registerHandler(name, handler, pluginId);
+  };
   // getJobQueueService builds a fresh object per call, so the override only
   // survives if the instance is pinned.
   shell.getJobQueueService = (): typeof queue => queue;
@@ -116,17 +121,14 @@ async function runCaptureJob(
     );
   }
   if (!entry) throw new Error("capture job handler was not registered");
-  await entry[1].process({ url: "https://example.com" }, "job-1", {
-    report: async (): Promise<void> => {},
-  });
+  await entry[1].process(
+    { url: "https://example.com" },
+    "job-1",
+    createMockProgressReporter(),
+    new AbortController().signal,
+  );
   return written;
 }
-
-type JobProcess = (
-  data: unknown,
-  jobId: string,
-  progress: { report(input: unknown): Promise<void> },
-) => Promise<unknown>;
 
 describe("service package declaring entities", () => {
   it("emits an entity plugin per declared type alongside the service plugin", () => {
