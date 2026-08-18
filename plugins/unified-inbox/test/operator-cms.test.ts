@@ -175,8 +175,7 @@ describe("unified inbox CMS registration", () => {
     const workspace = await fixture.workspace.dataProvider(admin, {
       sourceId: "mail-items",
       urgency: "high",
-      detailSourceId: "mail-items",
-      detailItemId: "mail-1",
+      selected: "mail-items:mail-1",
       offset: "0",
       limit: "1",
     });
@@ -187,7 +186,9 @@ describe("unified inbox CMS registration", () => {
     expect(serialized).toContain('"entityType":"person"');
     expect(serialized).toContain('"capabilityId":"archive"');
     expect(serialized).toContain('"kind":"prepared"');
-    expect(serialized).toContain('"target":"inbox-open-detail"');
+    expect(serialized).toContain('"kind":"detail"');
+    expect(serialized).toContain('"type":"detail"');
+    expect(serialized).toContain('"forId":"mail-items:mail-1"');
     expect(serialized).toContain('"type":"text"');
     expect(serialized).toContain(
       "Original request\\nwith bounded source detail.",

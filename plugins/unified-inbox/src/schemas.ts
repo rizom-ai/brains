@@ -150,10 +150,26 @@ interface InboxWorkspaceQueryValue {
   sourceId?: string | undefined;
   urgency?: "high" | "normal" | undefined;
   facets?: InboxFacets | undefined;
-  detailSourceId?: string | undefined;
-  detailItemId?: string | undefined;
+  /** Open row, keyed as `sourceId:itemId` to match the master collection. */
+  selected?: string | undefined;
   offset: number;
   limit: number;
+}
+
+/** Row identity for the workspace collection: one key the host can round-trip. */
+export function inboxRowId(sourceId: string, itemId: string): string {
+  return `${sourceId}:${itemId}`;
+}
+
+export function splitInboxRowId(
+  rowId: string,
+): { sourceId: string; itemId: string } | undefined {
+  const separator = rowId.indexOf(":");
+  if (separator <= 0 || separator === rowId.length - 1) return undefined;
+  return {
+    sourceId: rowId.slice(0, separator),
+    itemId: rowId.slice(separator + 1),
+  };
 }
 
 function queryInteger(value: unknown): unknown {
@@ -169,6 +185,7 @@ const inboxWorkspaceLimitSchema = z.preprocess(
   queryInteger,
   z.number().int().min(1).max(100),
 );
+const inboxRowIdSchema = z.string().trim().min(3).max(400);
 
 export const inboxWorkspaceQuerySchema: z.ZodType<
   InboxWorkspaceQueryValue,
@@ -178,24 +195,16 @@ export const inboxWorkspaceQuerySchema: z.ZodType<
     sourceId: inboxIdSchema.optional(),
     urgency: inboxUrgencySchema.optional(),
     facets: inboxFacetsSchema.optional(),
-    detailSourceId: inboxIdSchema.optional(),
-    detailItemId: inboxItemIdSchema.optional(),
+    selected: inboxRowIdSchema.optional(),
     offset: inboxWorkspaceOffsetSchema.default(0),
     limit: inboxWorkspaceLimitSchema.default(50),
   })
   .superRefine((query, context) => {
-    if (
-      (query.detailSourceId === undefined) !==
-      (query.detailItemId === undefined)
-    ) {
+    if (query.selected !== undefined && !splitInboxRowId(query.selected)) {
       context.addIssue({
         code: "custom",
-        path: [
-          query.detailSourceId === undefined
-            ? "detailSourceId"
-            : "detailItemId",
-        ],
-        message: "Inbox detail selection requires both source and item IDs",
+        path: ["selected"],
+        message: "Inbox selection must be a sourceId:itemId row key",
       });
     }
   });
@@ -219,10 +228,15 @@ export function normalizeInboxWorkspaceQuery(
   const urgency = inboxUrgencySchema.safeParse(raw["urgency"]);
   const offset = inboxWorkspaceOffsetSchema.safeParse(raw["offset"]);
   const limit = inboxWorkspaceLimitSchema.safeParse(raw["limit"]);
-  const detailSourceId = inboxIdSchema.safeParse(raw["detailSourceId"]);
-  const detailItemId = inboxItemIdSchema.safeParse(raw["detailItemId"]);
-  const detailSource = detailSourceId.success
-    ? sources.find((candidate) => candidate.sourceId === detailSourceId.data)
+  const selected = inboxRowIdSchema.safeParse(raw["selected"]);
+  const selection = selected.success
+    ? splitInboxRowId(selected.data)
+    : undefined;
+  const selectedSource = selection
+    ? sources.find((candidate) => candidate.sourceId === selection.sourceId)
+    : undefined;
+  const selectedItem = selection
+    ? inboxItemIdSchema.safeParse(selection.itemId)
     : undefined;
   const flatFacets = Object.fromEntries(
     Object.entries(raw).flatMap(([key, value]) =>
@@ -240,11 +254,8 @@ export function normalizeInboxWorkspaceQuery(
     ...(source ? { sourceId: source.sourceId } : {}),
     ...(urgency.success ? { urgency: urgency.data } : {}),
     ...(facets ? { facets } : {}),
-    ...(detailSource && detailItemId.success
-      ? {
-          detailSourceId: detailSource.sourceId,
-          detailItemId: detailItemId.data,
-        }
+    ...(selectedSource && selectedItem?.success
+      ? { selected: inboxRowId(selectedSource.sourceId, selectedItem.data) }
       : {}),
     offset: offset.success ? offset.data : 0,
     limit: limit.success ? limit.data : 50,

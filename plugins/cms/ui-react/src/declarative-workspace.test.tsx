@@ -370,3 +370,158 @@ describe("DeclarativeWorkspace confirmations", () => {
     });
   });
 });
+
+const detailData = (open?: {
+  forId: string;
+  title: string;
+}): RuntimeCmsWorkspaceData => ({
+  view: {
+    title: "Inbox",
+    blocks: [
+      {
+        type: "detail",
+        id: "inbox",
+        queryKey: "selected",
+        empty: "Select an item to read it.",
+        master: {
+          type: "list",
+          id: "inbox-items",
+          empty: "Nothing needs attention.",
+          items: [
+            {
+              id: "mail-1",
+              title: "Collaboration request",
+              link: { kind: "detail", itemId: "mail-1" },
+            },
+            { id: "mail-2", title: "Invoice awaiting approval" },
+          ],
+        },
+        ...(open
+          ? {
+              open: {
+                ...open,
+                blocks: [
+                  {
+                    type: "text",
+                    id: "original",
+                    text: "The original message body.",
+                  },
+                ],
+              },
+            }
+          : {}),
+      },
+    ],
+  },
+});
+
+describe("DeclarativeWorkspace master/detail", () => {
+  let windowInstance: Window;
+  let root: Root;
+  let container: HTMLElement;
+
+  beforeEach(() => {
+    windowInstance = new Window({ url: "https://brain.test/cms" });
+    Object.assign(globalThis, {
+      window: windowInstance,
+      document: windowInstance.document,
+      navigator: windowInstance.navigator,
+      HTMLElement: windowInstance.HTMLElement,
+      Element: windowInstance.Element,
+      Node: windowInstance.Node,
+      Event: windowInstance.Event,
+      IS_REACT_ACT_ENVIRONMENT: true,
+    });
+    container = document.createElement("div");
+    document.body.append(container);
+    root = createRoot(container);
+  });
+
+  afterEach(async () => {
+    await act(async () => root.unmount());
+    windowInstance.close();
+  });
+
+  it("renders the collection beside the open item and marks the open row", () => {
+    const html = renderToStaticMarkup(
+      createElement(DeclarativeWorkspace, {
+        data: detailData({ forId: "mail-1", title: "Collaboration request" }),
+        onAction: async () => ({}),
+        onOpenEntity: () => {},
+      }),
+    );
+
+    expect(html).toContain("declarative-detail-master");
+    expect(html).toContain("declarative-detail-pane");
+    expect(html).toContain('data-open="true"');
+    expect(html).toContain("The original message body.");
+    // The open row is marked from the detail's forId, not a per-item flag.
+    expect(html).toContain('aria-current="true"');
+    expect(html).not.toContain("Select an item to read it.");
+  });
+
+  it("shows the empty detail message when nothing is open", () => {
+    const html = renderToStaticMarkup(
+      createElement(DeclarativeWorkspace, {
+        data: detailData(),
+        onAction: async () => ({}),
+        onOpenEntity: () => {},
+      }),
+    );
+
+    expect(html).toContain("Select an item to read it.");
+    expect(html).toContain('data-open="false"');
+    expect(html).not.toContain('aria-current="true"');
+  });
+
+  it("opens a row through canonical query state rather than a navigation", async () => {
+    const queries: unknown[] = [];
+    await act(async () => {
+      root.render(
+        createElement(DeclarativeWorkspace, {
+          data: detailData(),
+          onAction: async () => ({}),
+          onOpenEntity: () => {},
+          query: { urgency: "high", offset: 20 },
+          onQueryChange: (query) => queries.push(query),
+        }),
+      );
+    });
+
+    const open = Array.from(
+      container.querySelectorAll<HTMLButtonElement>("button"),
+    ).find(
+      (candidate) =>
+        String(candidate.textContent).trim() === "Collaboration request",
+    );
+    if (!open) throw new Error("Expected an openable master row");
+    await act(async () => open.click());
+
+    expect(queries).toEqual([
+      { urgency: "high", offset: 0, selected: "mail-1" },
+    ]);
+  });
+
+  it("clears the open item from query state through the back control", async () => {
+    const queries: unknown[] = [];
+    await act(async () => {
+      root.render(
+        createElement(DeclarativeWorkspace, {
+          data: detailData({ forId: "mail-1", title: "Collaboration request" }),
+          onAction: async () => ({}),
+          onOpenEntity: () => {},
+          query: { urgency: "high", selected: "mail-1" },
+          onQueryChange: (query) => queries.push(query),
+        }),
+      );
+    });
+
+    const back = container.querySelector<HTMLButtonElement>(
+      ".declarative-detail-back",
+    );
+    if (!back) throw new Error("Expected a back control");
+    await act(async () => back.click());
+
+    expect(queries).toEqual([{ urgency: "high" }]);
+  });
+});

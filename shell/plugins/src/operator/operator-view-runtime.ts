@@ -31,11 +31,6 @@ export type RuntimeOperatorLaunchIntent =
       readonly entityId: string;
     }
   | {
-      readonly target: "inbox-open-detail";
-      readonly sourceId: string;
-      readonly itemId: string;
-    }
-  | {
       readonly target: "inbox-capture-note";
       readonly title: string;
       readonly summary?: string | undefined;
@@ -59,6 +54,15 @@ export type RuntimeOperatorLinkTarget =
   | {
       readonly kind: "launch";
       readonly launch: RuntimeOperatorLaunchIntent;
+    }
+  /**
+   * Opens a row of the enclosing detail block's master. The enclosing block is
+   * known lexically, so the target names no block and cannot dangle across the
+   * view.
+   */
+  | {
+      readonly kind: "detail";
+      readonly itemId: string;
     };
 
 export interface RuntimeOperatorStatItem {
@@ -495,8 +499,25 @@ export interface RuntimeCmsOperatorTabsBlock {
   }[];
 }
 
+export interface RuntimeCmsOperatorDetailBlock {
+  readonly type: "detail";
+  readonly id: string;
+  readonly queryKey: string;
+  readonly empty: string;
+  readonly master: RuntimeCmsOperatorListBlock | RuntimeCmsOperatorTableBlock;
+  readonly open?:
+    | {
+        readonly forId: string;
+        readonly title: string;
+        readonly blocks: readonly RuntimeCmsOperatorPanelBlock[];
+      }
+    | undefined;
+}
+
 export type RuntimeCmsOperatorBlock =
-  RuntimeCmsOperatorPanelBlock | RuntimeCmsOperatorTabsBlock;
+  | RuntimeCmsOperatorPanelBlock
+  | RuntimeCmsOperatorTabsBlock
+  | RuntimeCmsOperatorDetailBlock;
 
 export interface RuntimeCmsOperatorView {
   readonly title?: string | undefined;
@@ -535,6 +556,12 @@ export type RuntimeOperatorParseResult<T> =
     };
 
 const identifierSchema = z.string().trim().min(1).max(120);
+/**
+ * Row identity is opaque data, not an authored name: a collection row may be
+ * keyed by a composite source identity, so it is bounded more loosely than the
+ * identifiers an author chooses.
+ */
+const rowIdentifierSchema = z.string().trim().min(1).max(400);
 const labelSchema = z.string().trim().min(1).max(160);
 const shortTextSchema = z.string().max(500);
 const textSchema = z.string().max(4_000);
@@ -642,13 +669,6 @@ const launchIntentSchema = z.union([
     .strict(),
   z
     .object({
-      target: z.literal("inbox-open-detail"),
-      sourceId: identifierSchema,
-      itemId: z.string().trim().min(1).max(300),
-    })
-    .strict(),
-  z
-    .object({
       target: z.literal("inbox-capture-note"),
       title: shortTextSchema,
       summary: z.string().trim().min(1).max(1_000).optional(),
@@ -680,6 +700,12 @@ function launchLinkTarget(input: {
   return { kind: "launch", launch: input.launch };
 }
 
+function detailLinkTarget(input: {
+  readonly detail: { readonly itemId: string };
+}): RuntimeOperatorLinkTarget {
+  return { kind: "detail", itemId: input.detail.itemId };
+}
+
 const linkTargetSchema: z.ZodType<RuntimeOperatorLinkTarget, unknown> = z.union(
   [
     z
@@ -703,6 +729,10 @@ const linkTargetSchema: z.ZodType<RuntimeOperatorLinkTarget, unknown> = z.union(
       .strict()
       .transform(launchLinkTarget),
     z
+      .object({ detail: z.object({ itemId: rowIdentifierSchema }).strict() })
+      .strict()
+      .transform(detailLinkTarget),
+    z
       .object({ kind: z.literal("external"), href: safeExternalUrlSchema })
       .strict(),
     z
@@ -714,6 +744,9 @@ const linkTargetSchema: z.ZodType<RuntimeOperatorLinkTarget, unknown> = z.union(
       .strict(),
     z
       .object({ kind: z.literal("launch"), launch: launchIntentSchema })
+      .strict(),
+    z
+      .object({ kind: z.literal("detail"), itemId: rowIdentifierSchema })
       .strict(),
   ],
 );
@@ -946,7 +979,7 @@ const listFilterSchema = z
 
 const listItemSchema = z
   .object({
-    id: identifierSchema,
+    id: rowIdentifierSchema,
     title: shortTextSchema,
     description: textSchema.optional(),
     meta: shortTextSchema.optional(),
@@ -1026,7 +1059,7 @@ const tableCellSchema = z.union([
 ]);
 const tableRowSchema = z
   .object({
-    id: identifierSchema,
+    id: rowIdentifierSchema,
     cells: z.record(z.string(), tableCellSchema),
     link: linkTargetSchema.optional(),
   })
@@ -1677,10 +1710,59 @@ const cmsTabsBlockSchema = z
     }
   });
 
+/**
+ * Master/detail is a container in the same closed union as tabs: one collection
+ * plus the panels of whichever row is open. Nesting stays one level deep, and
+ * the open row is identified rather than flagged per item, so selection cannot
+ * disagree with the content it describes.
+ */
+const cmsDetailBlockSchema = z
+  .object({
+    type: z.literal("detail"),
+    id: identifierSchema,
+    /** Canonical query field the host writes with the open row's id. */
+    queryKey: identifierSchema,
+    empty: shortTextSchema,
+    master: z.union([cmsListBlockSchema, cmsTableBlockSchema]),
+    open: z
+      .object({
+        forId: rowIdentifierSchema,
+        title: labelSchema,
+        blocks: z.array(cmsPanelBlockSchema).max(30),
+      })
+      .strict()
+      .optional(),
+  })
+  .strict()
+  .superRefine((block, context) => {
+    if (!block.open) return;
+    const ids =
+      block.master.type === "list"
+        ? block.master.items.map((item) => item.id)
+        : block.master.rows.map((row) => row.id);
+    if (!ids.includes(block.open.forId)) {
+      context.addIssue({
+        code: "custom",
+        message: `Open detail "${block.open.forId}" has no matching ${
+          block.master.type === "list" ? "item" : "row"
+        } in its master`,
+        path: ["open", "forId"],
+      });
+    }
+  });
+
 const cmsViewSourceSchema = z
   .object({
     title: shortTextSchema.optional(),
-    blocks: z.array(z.union([cmsPanelBlockSchema, cmsTabsBlockSchema])).max(50),
+    blocks: z
+      .array(
+        z.union([
+          cmsPanelBlockSchema,
+          cmsTabsBlockSchema,
+          cmsDetailBlockSchema,
+        ]),
+      )
+      .max(50),
   })
   .strict()
   .superRefine((view, context) => {
@@ -1945,7 +2027,11 @@ function normalizeCmsBlock(
             permission,
           );
           issues.push(...normalized.issues);
-          if (normalized.block && normalized.block.type !== "tabs") {
+          if (
+            normalized.block &&
+            normalized.block.type !== "tabs" &&
+            normalized.block.type !== "detail"
+          ) {
             blocks.push(normalized.block);
           }
         }
@@ -1963,6 +2049,61 @@ function normalizeCmsBlock(
           label: block.label,
           defaultTab: block.defaultTab,
           tabs,
+        },
+        issues,
+      };
+    }
+    case "detail": {
+      const issues: RuntimeOperatorValidationIssue[] = [];
+      const master = normalizeCmsBlock(
+        block.master,
+        blockIndex,
+        declared,
+        permission,
+      );
+      issues.push(...master.issues);
+      const masterBlock = master.block;
+      if (
+        !masterBlock ||
+        (masterBlock.type !== "list" && masterBlock.type !== "table")
+      ) {
+        return { issues };
+      }
+      const openBlocks: RuntimeCmsOperatorPanelBlock[] = [];
+      for (const [panelIndex, panelBlock] of (
+        block.open?.blocks ?? []
+      ).entries()) {
+        const normalized = normalizeCmsBlock(
+          panelBlock,
+          panelIndex,
+          declared,
+          permission,
+        );
+        issues.push(...normalized.issues);
+        if (
+          normalized.block &&
+          normalized.block.type !== "tabs" &&
+          normalized.block.type !== "detail"
+        ) {
+          openBlocks.push(normalized.block);
+        }
+      }
+      return {
+        block: {
+          type: "detail",
+          id: block.id,
+          queryKey: block.queryKey,
+          empty: block.empty,
+          master: masterBlock,
+          ...(block.open
+            ? {
+                open: {
+                  forId: block.open.forId,
+                  title: block.open.title,
+                  blocks: openBlocks,
+                },
+              }
+            : {}),
         },
         issues,
       };
@@ -2067,12 +2208,24 @@ function inspectAuthorLinkTarget(
   path: readonly PropertyKey[],
   profile: "dashboard" | "cms",
   issues: RuntimeOperatorValidationIssue[],
+  insideDetailMaster = false,
 ): void {
   if (!isUnknownRecord(value)) return;
+  // A detail target names no block, so it is only meaningful where the
+  // enclosing detail is known: inside that detail's own master collection.
+  if (value["detail"] !== undefined && !insideDetailMaster) {
+    issues.push({
+      path,
+      message:
+        "A detail link is available only on rows of a detail block's master collection",
+    });
+    return;
+  }
   if (
     value["kind"] === "external" ||
     value["kind"] === "entity" ||
-    value["kind"] === "launch"
+    value["kind"] === "launch" ||
+    value["kind"] === "detail"
   ) {
     issues.push({
       path,
@@ -2086,7 +2239,6 @@ function inspectAuthorLinkTarget(
     profile === "dashboard" &&
     isUnknownRecord(launch) &&
     (launch["target"] === "inbox-open-entity" ||
-      launch["target"] === "inbox-open-detail" ||
       launch["target"] === "inbox-capture-note" ||
       launch["target"] === "inbox-discuss-in-chat")
   ) {
@@ -2102,6 +2254,7 @@ function inspectAuthorLinkItems(
   path: readonly PropertyKey[],
   profile: "dashboard" | "cms",
   issues: RuntimeOperatorValidationIssue[],
+  insideDetailMaster = false,
 ): void {
   if (!Array.isArray(value)) return;
   for (const [index, item] of value.entries()) {
@@ -2111,6 +2264,7 @@ function inspectAuthorLinkItems(
       [...path, index, "target"],
       profile,
       issues,
+      insideDetailMaster,
     );
   }
 }
@@ -2120,6 +2274,7 @@ function inspectAuthorListItems(
   path: readonly PropertyKey[],
   profile: "dashboard" | "cms",
   issues: RuntimeOperatorValidationIssue[],
+  insideDetailMaster = false,
 ): void {
   if (!Array.isArray(value)) return;
   for (const [index, item] of value.entries()) {
@@ -2129,12 +2284,14 @@ function inspectAuthorListItems(
       [...path, index, "link"],
       profile,
       issues,
+      insideDetailMaster,
     );
     inspectAuthorLinkItems(
       item["links"],
       [...path, index, "links"],
       profile,
       issues,
+      insideDetailMaster,
     );
   }
 }
@@ -2208,6 +2365,42 @@ function inspectAuthorBlocks(
               issues,
             );
           }
+        }
+        break;
+      }
+      case "detail": {
+        const master = block["master"];
+        if (isUnknownRecord(master)) {
+          const masterPath = [...blockPath, "master"];
+          inspectAuthorListItems(
+            master["items"],
+            [...masterPath, "items"],
+            profile,
+            issues,
+            true,
+          );
+          const rows = master["rows"];
+          if (Array.isArray(rows)) {
+            for (const [rowIndex, row] of rows.entries()) {
+              if (!isUnknownRecord(row)) continue;
+              inspectAuthorLinkTarget(
+                row["link"],
+                [...masterPath, "rows", rowIndex, "link"],
+                profile,
+                issues,
+                true,
+              );
+            }
+          }
+        }
+        const open = block["open"];
+        if (isUnknownRecord(open)) {
+          inspectAuthorBlocks(
+            open["blocks"],
+            [...blockPath, "open", "blocks"],
+            profile,
+            issues,
+          );
         }
         break;
       }

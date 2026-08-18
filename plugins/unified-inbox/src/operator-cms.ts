@@ -11,8 +11,10 @@ import { z } from "@brains/utils/zod";
 import type { InboxOperatorService } from "./operator-service";
 import {
   inboxDetailOutcomeSchema,
+  inboxRowId,
   inboxWorkspaceQuerySchema,
   inboxWorkspaceSnapshotSchema,
+  splitInboxRowId,
 } from "./schemas";
 
 const inboxCapabilitySchema = z.object({
@@ -133,12 +135,20 @@ const inboxWorkspace = defineCmsWorkspace({
         tone: "warn",
       }),
     );
-    const detailBlocks: InboxViewBlock[] = data.detail
+    type InboxPanelBlock = Extract<
+      InboxViewBlock,
+      { type: "detail" }
+    >["master"] extends never
+      ? never
+      : NonNullable<
+          Extract<InboxViewBlock, { type: "detail" }>["open"]
+        >["blocks"][number];
+    const detailPanels: InboxPanelBlock[] | undefined = data.detail
       ? data.detail.kind === "detail"
         ? [
             {
               type: "text",
-              id: "inbox-detail",
+              id: "inbox-detail-text",
               label: "Original content",
               text: data.detail.detail.text,
               truncated: data.detail.detail.truncated,
@@ -153,7 +163,13 @@ const inboxWorkspace = defineCmsWorkspace({
               tone: "warn",
             },
           ]
-      : [];
+      : undefined;
+    const selectedTitle = query.selected
+      ? snapshot.entries.find(
+          (entry) =>
+            inboxRowId(entry.source.sourceId, entry.item.id) === query.selected,
+        )?.item.title
+      : undefined;
     const blocks: InboxViewBlock[] = [
       {
         type: "stats",
@@ -182,7 +198,6 @@ const inboxWorkspace = defineCmsWorkspace({
           total: snapshot.total,
         },
       },
-      ...detailBlocks,
       {
         type: "group",
         id: "source-health",
@@ -196,112 +211,125 @@ const inboxWorkspace = defineCmsWorkspace({
         })),
       },
       {
-        type: "list",
-        id: "inbox-items",
-        empty: "Nothing needs attention for these filters.",
-        items: snapshot.entries.map((entry, index) => {
-          const entityRef = entry.item.entityRef;
-          const links: InboxLink[] = [];
-          if (entry.item.contact?.personId) {
-            links.push({
-              label: `Open contact ${entry.item.contact.label}`,
-              target: {
-                entity: personEntity,
-                id: entry.item.contact.personId,
+        type: "detail",
+        id: "inbox-detail",
+        queryKey: "selected",
+        empty: "Select an item to read its source content.",
+        ...(detailPanels && query.selected
+          ? {
+              open: {
+                forId: query.selected,
+                title: selectedTitle ?? "Original content",
+                blocks: detailPanels,
               },
-            });
-          }
-          if (entry.detailAvailable) {
-            links.push({
-              label: "Read original",
-              target: {
-                launch: {
-                  target: "inbox-open-detail",
-                  sourceId: entry.source.sourceId,
-                  itemId: entry.item.id,
-                },
-              },
-            });
-          }
-          for (const followUp of entry.followUps) {
-            if (followUp.kind === "discuss-in-chat") {
+            }
+          : {}),
+        master: {
+          type: "list",
+          id: "inbox-items",
+          empty: "Nothing needs attention for these filters.",
+          items: snapshot.entries.map((entry) => {
+            const entityRef = entry.item.entityRef;
+            const links: InboxLink[] = [];
+            if (entry.item.contact?.personId) {
               links.push({
-                label: followUp.label,
+                label: `Open contact ${entry.item.contact.label}`,
                 target: {
-                  launch: {
-                    target: "inbox-discuss-in-chat",
-                    sourceId: entry.source.sourceId,
-                    itemId: entry.item.id,
-                    label: entry.item.title,
-                  },
+                  entity: personEntity,
+                  id: entry.item.contact.personId,
                 },
               });
-            } else if (followUp.kind === "open-entity" && entityRef) {
+            }
+            if (entry.detailAvailable) {
               links.push({
-                label: followUp.label,
+                label: "Read original",
                 target: {
-                  launch: {
-                    target: "inbox-open-entity",
-                    entityType: entityRef.entityType,
-                    entityId: entityRef.entityId,
-                  },
-                },
-              });
-            } else if (followUp.kind === "capture-as-note" && entityRef) {
-              links.push({
-                label: followUp.label,
-                target: {
-                  launch: {
-                    target: "inbox-capture-note",
-                    title: entry.item.title,
-                    ...(entry.item.summary
-                      ? { summary: entry.item.summary }
-                      : {}),
-                    entityType: entityRef.entityType,
-                    entityId: entityRef.entityId,
+                  detail: {
+                    itemId: inboxRowId(entry.source.sourceId, entry.item.id),
                   },
                 },
               });
             }
-          }
-          return {
-            id: `inbox-item-${index + 1}`,
-            title: entry.item.title,
-            description: entry.item.summary,
-            metadata: [
-              entry.source.displayName,
-              entry.item.receivedAt,
-              ...(entry.item.threadOrdinal === undefined
-                ? []
-                : [`Message ${entry.item.threadOrdinal} in thread`]),
-            ],
-            badges: [
-              {
-                label: `${entry.item.urgency} priority`,
-                tone: entry.item.urgency === "high" ? "warn" : "neutral",
-              },
-            ],
-            ...(links.length > 0 ? { links } : {}),
-            actions: entry.item.actions.map((action) => {
-              const capability: OperatorCapabilityDefinition = {
-                id: action.id,
-                label: action.label,
-                ...(action.confirm === true
-                  ? { confirmation: "prepared" }
-                  : {}),
-              };
-              return {
-                action: runInboxAction,
-                capability,
-                input: {
-                  sourceId: entry.source.sourceId,
-                  itemId: entry.item.id,
-                  capability,
+            for (const followUp of entry.followUps) {
+              if (followUp.kind === "discuss-in-chat") {
+                links.push({
+                  label: followUp.label,
+                  target: {
+                    launch: {
+                      target: "inbox-discuss-in-chat",
+                      sourceId: entry.source.sourceId,
+                      itemId: entry.item.id,
+                      label: entry.item.title,
+                    },
+                  },
+                });
+              } else if (followUp.kind === "open-entity" && entityRef) {
+                links.push({
+                  label: followUp.label,
+                  target: {
+                    launch: {
+                      target: "inbox-open-entity",
+                      entityType: entityRef.entityType,
+                      entityId: entityRef.entityId,
+                    },
+                  },
+                });
+              } else if (followUp.kind === "capture-as-note" && entityRef) {
+                links.push({
+                  label: followUp.label,
+                  target: {
+                    launch: {
+                      target: "inbox-capture-note",
+                      title: entry.item.title,
+                      ...(entry.item.summary
+                        ? { summary: entry.item.summary }
+                        : {}),
+                      entityType: entityRef.entityType,
+                      entityId: entityRef.entityId,
+                    },
+                  },
+                });
+              }
+            }
+            return {
+              id: inboxRowId(entry.source.sourceId, entry.item.id),
+              title: entry.item.title,
+              description: entry.item.summary,
+              metadata: [
+                entry.source.displayName,
+                entry.item.receivedAt,
+                ...(entry.item.threadOrdinal === undefined
+                  ? []
+                  : [`Message ${entry.item.threadOrdinal} in thread`]),
+              ],
+              badges: [
+                {
+                  label: `${entry.item.urgency} priority`,
+                  tone: entry.item.urgency === "high" ? "warn" : "neutral",
                 },
-              };
-            }),
-          };
-        }),
+              ],
+              ...(links.length > 0 ? { links } : {}),
+              actions: entry.item.actions.map((action) => {
+                const capability: OperatorCapabilityDefinition = {
+                  id: action.id,
+                  label: action.label,
+                  ...(action.confirm === true
+                    ? { confirmation: "prepared" }
+                    : {}),
+                };
+                return {
+                  action: runInboxAction,
+                  capability,
+                  input: {
+                    sourceId: entry.source.sourceId,
+                    itemId: entry.item.id,
+                    capability,
+                  },
+                };
+              }),
+            };
+          }),
+        },
       },
       ...errorBlocks,
     ];
@@ -323,18 +351,20 @@ export async function registerUnifiedInboxCmsWorkspace(
           const normalized = query.get(declarativeInboxQuerySchema);
           const actor = { permissionLevel: caller.permission };
           const snapshot = await operator.workspace(normalized, actor);
-          const detail =
-            normalized.detailSourceId && normalized.detailItemId
-              ? await operator.detail(
-                  {
-                    type: "detail",
-                    sourceId: normalized.detailSourceId,
-                    itemId: normalized.detailItemId,
-                  },
-                  actor,
-                  signal,
-                )
-              : undefined;
+          const selection = normalized.selected
+            ? splitInboxRowId(normalized.selected)
+            : undefined;
+          const detail = selection
+            ? await operator.detail(
+                {
+                  type: "detail",
+                  sourceId: selection.sourceId,
+                  itemId: selection.itemId,
+                },
+                actor,
+                signal,
+              )
+            : undefined;
           return {
             query: normalized,
             snapshot,

@@ -1,6 +1,3 @@
-import { cmsWorkspacePath } from "../../src/cms-paths";
-import { workspaceUrlHref } from "./workspace-url-query";
-
 interface InboxChatPrefillState {
   readonly webChatPrefill: {
     readonly version: 2;
@@ -25,20 +22,4 @@ export function createInboxChatPrefillState(
       context: { sourceId, itemId, label },
     },
   };
-}
-
-export function inboxDetailWorkspaceHref(
-  cmsBasePath: string,
-  currentSearch: string,
-  sourceId: string,
-  itemId: string,
-): string {
-  return workspaceUrlHref(
-    cmsWorkspacePath(cmsBasePath, "unified-inbox:inbox"),
-    {
-      ...Object.fromEntries(new URLSearchParams(currentSearch)),
-      detailSourceId: sourceId,
-      detailItemId: itemId,
-    },
-  );
 }

@@ -1,5 +1,6 @@
 /** @jsxImportSource react */
 import type {
+  RuntimeCmsOperatorBlock,
   RuntimeCmsOperatorPanelBlock,
   RuntimeCmsOperatorView,
   RuntimeCmsWorkspaceData,
@@ -9,7 +10,16 @@ import type {
   RuntimePreparedConfirmation,
   RuntimeOperatorScalar,
 } from "@brains/plugins";
-import { useId, useState, type ReactElement, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type ReactElement,
+  type ReactNode,
+} from "react";
 import { ConfirmDialog } from "./confirm-dialog";
 import type { CmsWorkspaceQuery } from "./queries";
 
@@ -33,17 +43,40 @@ function displayCell(
     : displayScalar(value === undefined ? null : value);
 }
 
+/**
+ * A detail target names no block, so the handler comes from the enclosing
+ * detail rather than from a prop threaded through every collection. Outside a
+ * detail the context is absent and the link renders inert.
+ */
+const OpenDetailContext = createContext<((itemId: string) => void) | null>(
+  null,
+);
+
 function OperatorLink(props: {
   target: RuntimeOperatorLinkTarget;
   children: ReactNode;
   onOpenEntity: (entityType: string, id: string) => void;
   onLaunch: (launch: RuntimeOperatorLaunchIntent) => void;
 }): ReactElement {
+  const openDetail = useContext(OpenDetailContext);
   if (props.target.kind === "external") {
     return (
       <a href={props.target.href} target="_blank" rel="noreferrer">
         {props.children}
       </a>
+    );
+  }
+  if (props.target.kind === "detail") {
+    const { itemId } = props.target;
+    if (!openDetail) return <>{props.children}</>;
+    return (
+      <button
+        type="button"
+        className="declarative-inline-link"
+        onClick={() => openDetail(itemId)}
+      >
+        {props.children}
+      </button>
     );
   }
   if (props.target.kind === "launch") {
@@ -326,6 +359,7 @@ function ListItems(props: {
   onAction: (action: RuntimeOperatorActionControl) => Promise<unknown>;
   onOpenEntity: (entityType: string, id: string) => void;
   onLaunch: (launch: RuntimeOperatorLaunchIntent) => void;
+  openId?: string | undefined;
 }): ReactElement {
   return (
     <ol className="declarative-list">
@@ -335,7 +369,11 @@ function ListItems(props: {
           ...(item.metadata ?? []),
         ];
         return (
-          <li key={item.id} data-tone={item.tone ?? "neutral"}>
+          <li
+            key={item.id}
+            data-tone={item.tone ?? "neutral"}
+            {...(props.openId === item.id ? { "aria-current": "true" } : {})}
+          >
             <div>
               <strong>
                 {item.link ? (
@@ -406,6 +444,7 @@ function ListBlock(props: {
   onAction: (action: RuntimeOperatorActionControl) => Promise<unknown>;
   onOpenEntity: (entityType: string, id: string) => void;
   onLaunch: (launch: RuntimeOperatorLaunchIntent) => void;
+  openId?: string | undefined;
 }): ReactElement {
   const [activeFilter, setActiveFilter] = useState(
     props.block.filter?.defaultValue ?? "all",
@@ -449,6 +488,7 @@ function ListBlock(props: {
           onAction={props.onAction}
           onOpenEntity={props.onOpenEntity}
           onLaunch={props.onLaunch}
+          openId={props.openId}
         />
       )}
     </div>
@@ -460,6 +500,7 @@ function TableBlock(props: {
   onAction: (action: RuntimeOperatorActionControl) => Promise<unknown>;
   onOpenEntity: (entityType: string, id: string) => void;
   onLaunch: (launch: RuntimeOperatorLaunchIntent) => void;
+  openId?: string | undefined;
 }): ReactElement {
   if (props.block.rows.length === 0) {
     return <p className="declarative-empty">{props.block.empty}</p>;
@@ -482,7 +523,10 @@ function TableBlock(props: {
         </thead>
         <tbody>
           {props.block.rows.map((row) => (
-            <tr key={row.id}>
+            <tr
+              key={row.id}
+              {...(props.openId === row.id ? { "aria-current": "true" } : {})}
+            >
               {props.block.columns.map((column, index) => {
                 const value = displayCell(row.cells[column.key]);
                 return (
@@ -815,6 +859,104 @@ function PanelBlock(props: {
   }
 }
 
+/**
+ * Master/detail is rendered as two regions of one block: the collection keeps
+ * its place while the open row's panels render beside it. Opening and closing
+ * are canonical query changes, so the URL stays the source of truth and a
+ * reload restores the same pair.
+ */
+function DetailBlock(props: {
+  block: Extract<RuntimeCmsOperatorBlock, { type: "detail" }>;
+  onAction: (action: RuntimeOperatorActionControl) => Promise<unknown>;
+  onOpenEntity: (entityType: string, id: string) => void;
+  onLaunch: (launch: RuntimeOperatorLaunchIntent) => void;
+  query: CmsWorkspaceQuery;
+  onQueryChange: (query: CmsWorkspaceQuery) => void;
+}): ReactElement {
+  const { block, query, onQueryChange } = props;
+  const open = block.open;
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  const openedId = open?.forId;
+
+  useEffect(() => {
+    if (openedId) headingRef.current?.focus();
+  }, [openedId]);
+
+  const openItem = (itemId: string): void => {
+    onQueryChange({ ...query, offset: 0, [block.queryKey]: itemId });
+  };
+  const closeItem = (): void => {
+    const next = { ...query };
+    delete next[block.queryKey];
+    onQueryChange(next);
+  };
+
+  const master =
+    block.master.type === "list" ? (
+      <ListBlock
+        block={block.master}
+        onAction={props.onAction}
+        onOpenEntity={props.onOpenEntity}
+        onLaunch={props.onLaunch}
+        openId={openedId}
+      />
+    ) : (
+      <TableBlock
+        block={block.master}
+        onAction={props.onAction}
+        onOpenEntity={props.onOpenEntity}
+        onLaunch={props.onLaunch}
+        openId={openedId}
+      />
+    );
+
+  return (
+    <div className="declarative-detail" data-open={open ? "true" : "false"}>
+      <section className="declarative-detail-master" aria-label="Items">
+        <OpenDetailContext.Provider value={openItem}>
+          {master}
+        </OpenDetailContext.Provider>
+      </section>
+      <section
+        className="declarative-detail-pane"
+        aria-label={open ? open.title : "Detail"}
+      >
+        {open ? (
+          <>
+            <button
+              type="button"
+              className="declarative-detail-back"
+              onClick={closeItem}
+            >
+              ← Back
+            </button>
+            <h3 ref={headingRef} tabIndex={-1}>
+              {open.title}
+            </h3>
+            {open.blocks.map((panel, index) => (
+              <section
+                key={panel.id ?? `${panel.type}:${index}`}
+                data-block={panel.type}
+              >
+                <PanelBlock
+                  block={panel}
+                  onAction={props.onAction}
+                  onOpenEntity={props.onOpenEntity}
+                  onLaunch={props.onLaunch}
+                  query={query}
+                  onQueryChange={onQueryChange}
+                />
+              </section>
+            ))}
+          </>
+        ) : (
+          <p className="declarative-empty">{block.empty}</p>
+        )}
+      </section>
+    </div>
+  );
+}
+
 function ViewBlock(props: {
   block: RuntimeBlock;
   onAction: (action: RuntimeOperatorActionControl) => Promise<unknown>;
@@ -826,6 +968,18 @@ function ViewBlock(props: {
   const [activeTab, setActiveTab] = useState(
     props.block.type === "tabs" ? props.block.defaultTab : "",
   );
+  if (props.block.type === "detail") {
+    return (
+      <DetailBlock
+        block={props.block}
+        onAction={props.onAction}
+        onOpenEntity={props.onOpenEntity}
+        onLaunch={props.onLaunch}
+        query={props.query}
+        onQueryChange={props.onQueryChange}
+      />
+    );
+  }
   if (props.block.type !== "tabs") {
     return (
       <PanelBlock

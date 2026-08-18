@@ -489,6 +489,8 @@ describe("declarative dashboard widget runtime", () => {
       ],
     });
 
+    // Dashboard composes no detail blocks, so a detail target has no enclosing
+    // master to open and is rejected wherever it appears.
     const detailOnly = safeParseRuntimeDashboardOperatorView({
       blocks: [
         {
@@ -496,13 +498,7 @@ describe("declarative dashboard widget runtime", () => {
           items: [
             {
               label: "Read original",
-              target: {
-                launch: {
-                  target: "inbox-open-detail",
-                  sourceId: "mail-items",
-                  itemId: "mail-1",
-                },
-              },
+              target: { detail: { itemId: "mail-1" } },
             },
           ],
         },
@@ -512,8 +508,8 @@ describe("declarative dashboard widget runtime", () => {
       success: false,
       issues: [
         {
-          path: ["blocks", 0, "items", 0, "target", "launch", "target"],
-          message: expect.stringContaining("only in CMS workspaces"),
+          path: ["blocks", 0, "items", 0, "target"],
+          message: expect.stringContaining("detail block's master"),
         },
       ],
     });

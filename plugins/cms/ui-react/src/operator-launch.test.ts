@@ -1,23 +1,7 @@
 import { describe, expect, it } from "bun:test";
-import {
-  createInboxChatPrefillState,
-  inboxDetailWorkspaceHref,
-} from "./operator-launch";
+import { createInboxChatPrefillState } from "./operator-launch";
 
 describe("semantic operator launches", () => {
-  it("opens Inbox detail through typed query state at a custom CMS mount", () => {
-    expect(
-      inboxDetailWorkspaceHref(
-        "/studio",
-        "?sourceId=mail-items&urgency=high",
-        "mail-items",
-        "mail/1",
-      ),
-    ).toBe(
-      "/studio/workspaces/unified-inbox%3Ainbox?detailItemId=mail%2F1&detailSourceId=mail-items&sourceId=mail-items&urgency=high",
-    );
-  });
-
   it("creates only the destination-owned web-chat prefill state", () => {
     expect(
       createInboxChatPrefillState(

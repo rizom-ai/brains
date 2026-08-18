@@ -468,6 +468,92 @@
   color: var(--console-ok);
 }
 
+/* ---- master/detail ------------------------------------------------------- */
+
+/* Both regions stay present: the split is the surface's identity, so the
+   reading pane holds its place and states what it is waiting for. */
+.declarative-detail {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  gap: 26px;
+}
+
+.declarative-detail-master,
+.declarative-detail-pane {
+  min-width: 0;
+}
+
+.declarative-detail-pane {
+  padding-left: 26px;
+  border-left: 1px solid var(--console-rule-strong);
+}
+
+/* A half-width collection has no room for a title-and-trailing row, so master
+   rows stack the way narrow viewports already do. */
+.declarative-detail-master .declarative-list > li {
+  align-items: stretch;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.declarative-detail-master .declarative-list-trailing {
+  justify-content: flex-start;
+}
+
+.declarative-detail-master .declarative-list strong {
+  font-size: 15px;
+}
+
+.declarative-detail-pane > h3 {
+  margin: 0 0 14px;
+  color: var(--console-text);
+  font-family: var(--console-display);
+  font-size: 21px;
+  font-variation-settings:
+    "SOFT" 60,
+    "opsz" 40;
+  font-weight: 560;
+  letter-spacing: -0.005em;
+  line-height: 1.2;
+  outline: none;
+}
+
+.declarative-detail-pane > h3:focus-visible {
+  box-shadow: -10px 0 0 var(--console-accent);
+}
+
+.declarative-detail-pane > section + section {
+  margin-top: 18px;
+}
+
+/* Wide viewports keep the collection in view, so the back control is only
+   wayfinding for the stacked layout below. */
+.declarative-detail-back {
+  display: none;
+  margin-bottom: 12px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--console-text-dim);
+  cursor: pointer;
+  font-family: var(--console-mono);
+  font-size: 11px;
+}
+
+.declarative-detail-back:hover {
+  color: var(--console-accent-dim);
+}
+
+.declarative-detail .declarative-list > li[aria-current="true"] {
+  background: var(--console-card);
+  box-shadow: inset 2px 0 0 var(--console-accent);
+}
+
+.declarative-detail .declarative-table tr[aria-current="true"] {
+  background: var(--console-card);
+  box-shadow: inset 2px 0 0 var(--console-accent);
+}
+
 /* ---- segmented controls: local filters and tabs ------------------------- */
 
 .declarative-filter,
@@ -917,6 +1003,33 @@
 
   .declarative-totals dd {
     font-size: 22px;
+  }
+}
+
+/* Below the split threshold master/detail becomes a drill-down: one region at a
+   time, with the back control as the way out. */
+@media (max-width: 860px) {
+  .declarative-detail {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .declarative-detail .declarative-detail-pane {
+    padding-left: 0;
+    border-left: 0;
+  }
+
+  /* One region at a time: the collection until something is open, then the
+     reading pane with the back control as the way out. */
+  .declarative-detail[data-open="true"] .declarative-detail-master {
+    display: none;
+  }
+
+  .declarative-detail[data-open="false"] .declarative-detail-pane {
+    display: none;
+  }
+
+  .declarative-detail-back {
+    display: block;
   }
 }
 

@@ -117,7 +117,6 @@ function launchHref(
     case "site":
       return workspaceHref(paths.cmsPath, "site-builder:site");
     case "inbox-open-entity":
-    case "inbox-open-detail":
     case "inbox-discuss-in-chat":
     case "inbox-capture-note":
       return undefined;
@@ -136,6 +135,9 @@ function resolveLink(
     const href = launchHref(target.launch, paths);
     return href ? { href, external: false } : undefined;
   }
+  // Detail targets open a row of an enclosing detail block, which Dashboard
+  // never composes; validation rejects them before they reach a widget.
+  if (target.kind === "detail") return undefined;
   return paths.cmsPath
     ? {
         href: entityHref(paths.cmsPath, target.entityType, target.id),

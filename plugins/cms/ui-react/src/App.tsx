@@ -58,10 +58,7 @@ import {
   saveEntity,
   type SaveEntityInput,
 } from "./mutations";
-import {
-  createInboxChatPrefillState,
-  inboxDetailWorkspaceHref,
-} from "./operator-launch";
+import { createInboxChatPrefillState } from "./operator-launch";
 import {
   isPublishConfirmation,
   isPublishingActionError,
@@ -593,16 +590,6 @@ export function App(): ReactElement {
           return;
         case "inbox-open-entity":
           openWorkspaceEntity(launch.entityType, launch.entityId);
-          return;
-        case "inbox-open-detail":
-          router.history.push(
-            inboxDetailWorkspaceHref(
-              cmsBasePath,
-              routeSearch,
-              launch.sourceId,
-              launch.itemId,
-            ),
-          );
           return;
         case "inbox-capture-note":
           captureInboxAsNote(

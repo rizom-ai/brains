@@ -179,11 +179,6 @@ export type OperatorLaunchIntent =
       readonly entityId: string;
     }
   | {
-      readonly target: "inbox-open-detail";
-      readonly sourceId: string;
-      readonly itemId: string;
-    }
-  | {
       readonly target: "inbox-capture-note";
       readonly title: string;
       readonly summary?: string | undefined;
@@ -207,11 +202,20 @@ export interface OperatorLaunchLinkTarget {
   readonly launch: OperatorLaunchIntent;
 }
 
+/**
+ * Opens a row of the enclosing detail block's master. Legal only on rows of
+ * that master, so it names no block and cannot dangle across the view.
+ */
+export interface OperatorDetailLinkTarget {
+  readonly detail: { readonly itemId: string };
+}
+
 export type OperatorLinkTarget =
   | OperatorExternalLinkTarget
   | OperatorEntityLinkTarget
   | OperatorCatalogEntityLinkTarget
-  | OperatorLaunchLinkTarget;
+  | OperatorLaunchLinkTarget
+  | OperatorDetailLinkTarget;
 
 export interface OperatorLinkItem {
   readonly label: string;
@@ -481,9 +485,36 @@ export interface OperatorTabsBlock<
   readonly tabs: readonly OperatorTabPanel<TAction>[];
 }
 
+/**
+ * One collection plus the panels of whichever row is open. The open row is
+ * identified by `forId` rather than flagged per item, so the host derives
+ * selection from the content it is actually showing.
+ */
+export interface OperatorDetailBlock<
+  TAction extends AnyWorkspaceActionDefinition,
+> {
+  readonly type: "detail";
+  readonly id: string;
+  /** Canonical query field the host writes with the open row's id. */
+  readonly queryKey: string;
+  /** Rendered in the detail region while nothing is open. */
+  readonly empty: string;
+  readonly master: OperatorListBlock<TAction> | OperatorTableBlock<TAction>;
+  readonly open?:
+    | {
+        readonly forId: string;
+        readonly title: string;
+        readonly blocks: readonly OperatorPanelBlock<TAction>[];
+      }
+    | undefined;
+}
+
 export type OperatorViewBlock<
   TAction extends AnyWorkspaceActionDefinition = never,
-> = OperatorPanelBlock<TAction> | OperatorTabsBlock<TAction>;
+> =
+  | OperatorPanelBlock<TAction>
+  | OperatorTabsBlock<TAction>
+  | OperatorDetailBlock<TAction>;
 
 export interface OperatorView<
   TAction extends AnyWorkspaceActionDefinition = never,
@@ -504,15 +535,15 @@ export type DashboardOperatorLaunchIntent = Exclude<
   OperatorLaunchIntent,
   {
     readonly target:
-      | "inbox-open-entity"
-      | "inbox-open-detail"
-      | "inbox-capture-note"
-      | "inbox-discuss-in-chat";
+      "inbox-open-entity" | "inbox-capture-note" | "inbox-discuss-in-chat";
   }
 >;
 
 export type DashboardOperatorLinkTarget =
-  | Exclude<OperatorLinkTarget, OperatorLaunchLinkTarget>
+  | Exclude<
+      OperatorLinkTarget,
+      OperatorLaunchLinkTarget | OperatorDetailLinkTarget
+    >
   | { readonly launch: DashboardOperatorLaunchIntent };
 
 export interface DashboardOperatorLinkItem {

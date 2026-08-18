@@ -635,3 +635,162 @@ describe("declarative CMS workspace runtime", () => {
     expect(registrations).toBe(0);
   });
 });
+
+describe("operator detail composition", () => {
+  const masterList = {
+    type: "list" as const,
+    id: "inbox-items",
+    empty: "Nothing needs attention.",
+    items: [
+      {
+        id: "mail-1",
+        title: "Collaboration request",
+        link: { detail: { itemId: "mail-1" } },
+        // A master row reaches its detail through the same links array that
+        // carries its other typed links.
+        links: [
+          { label: "Read original", target: { detail: { itemId: "mail-1" } } },
+        ],
+      },
+      { id: "mail-2", title: "Invoice awaiting approval" },
+    ],
+  };
+
+  function detailView(
+    open: unknown,
+    master: unknown = masterList,
+  ): Record<string, unknown> {
+    return {
+      blocks: [
+        {
+          type: "detail",
+          id: "inbox",
+          queryKey: "selected",
+          empty: "Select an item to read it.",
+          master,
+          ...(open === undefined ? {} : { open }),
+        },
+      ],
+    };
+  }
+
+  it("carries the open item and its panels beside the master collection", () => {
+    const result = safeParseRuntimeCmsOperatorView(
+      detailView({
+        forId: "mail-1",
+        title: "Collaboration request",
+        blocks: [
+          { type: "text", id: "original", text: "The original message body." },
+        ],
+      }),
+      { actions: [], permission: "trusted" },
+    );
+
+    expect(result).toMatchObject({
+      success: true,
+      data: {
+        blocks: [
+          {
+            type: "detail",
+            id: "inbox",
+            master: { type: "list", id: "inbox-items" },
+            open: { forId: "mail-1", title: "Collaboration request" },
+          },
+        ],
+      },
+    });
+  });
+
+  it("normalizes an author detail link into a host detail target", () => {
+    const result = safeParseRuntimeCmsOperatorView(detailView(undefined), {
+      actions: [],
+      permission: "trusted",
+    });
+
+    expect(result).toMatchObject({
+      success: true,
+      data: {
+        blocks: [
+          {
+            master: {
+              items: [
+                { id: "mail-1", link: { kind: "detail", itemId: "mail-1" } },
+                { id: "mail-2" },
+              ],
+            },
+          },
+        ],
+      },
+    });
+  });
+
+  it("rejects an open detail that matches no row in its master", () => {
+    expect(
+      safeParseRuntimeCmsOperatorView(
+        detailView({ forId: "mail-404", title: "Missing", blocks: [] }),
+        { actions: [], permission: "trusted" },
+      ),
+    ).toMatchObject({
+      success: false,
+      issues: [
+        {
+          path: ["blocks", 0, "open", "forId"],
+          message: expect.stringContaining("mail-404"),
+        },
+      ],
+    });
+  });
+
+  it("rejects a container nested inside an open detail", () => {
+    const result = safeParseRuntimeCmsOperatorView(
+      detailView({
+        forId: "mail-1",
+        title: "Collaboration request",
+        blocks: [
+          {
+            type: "detail",
+            id: "nested",
+            queryKey: "nested-selected",
+            empty: "No selection.",
+            master: masterList,
+          },
+        ],
+      }),
+      { actions: [], permission: "trusted" },
+    );
+
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects a detail link outside a detail master", () => {
+    expect(
+      safeParseRuntimeCmsOperatorView(
+        {
+          blocks: [
+            {
+              type: "list",
+              id: "loose",
+              empty: "No items.",
+              items: [
+                {
+                  id: "loose-1",
+                  title: "Loose item",
+                  link: { detail: { itemId: "loose-1" } },
+                },
+              ],
+            },
+          ],
+        },
+        { actions: [], permission: "trusted" },
+      ),
+    ).toMatchObject({
+      success: false,
+      issues: [
+        {
+          path: ["blocks", 0, "items", 0, "link"],
+          message: expect.stringContaining("detail"),
+        },
+      ],
+    });
+  });
+});

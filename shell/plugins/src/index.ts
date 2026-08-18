@@ -779,6 +779,8 @@ export { registerBuiltInDashboardWidget } from "./operator/dashboard-widget-runt
 export {
   safeParseRuntimeCmsOperatorView,
   safeParseRuntimeDashboardWidgetData,
+  type RuntimeCmsOperatorBlock,
+  type RuntimeCmsOperatorDetailBlock,
   type RuntimeCmsOperatorPanelBlock,
   type RuntimeCmsOperatorView,
   type RuntimeCmsWorkspaceData,
