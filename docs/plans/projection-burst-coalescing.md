@@ -4,13 +4,15 @@
 
 **Proposed 2026-08-18. No implementation or release is authorized by this plan.**
 
-This follows Core CI run `32103466790`, where the 40-note mocked-AI update phase made 33 topic-extraction calls against a bound of 23. The immediately preceding merged run `32102247188` made 11 calls for the same phase and passed. The controlled two-CPU feature lane has also completed 350-note add and update phases with 88 calls per phase against a bound of 96.
+This follows Core CI run `32103466790`, where the 40-note mocked-AI update phase made 33 mocked object calls against a bound of 23. The immediately preceding merged run `32102247188` made 11 calls for the same phase and passed. The controlled two-CPU feature lane has also completed 350-note add and update phases with 88 calls per phase against a bound of 96.
+
+The failing run's load report also recorded a maximum sustained event-loop delay of roughly 1.8 seconds during the update phase — longer than the one-second topic quiet window — while `maxProjectionOutstanding` stayed at 1 throughout. Because the quiet window slides from the latest dirty input's `markedAt`, one stall longer than the window between two writes of a burst splits it. This is direct supporting evidence for the split-wave hypothesis and confirms the excess work is sequential repetition, not concurrency.
 
 Do not weaken the shared-runner assertion or rerun it unchanged before identifying whether the 33 calls came from distinct projection waves, repeated attempts of one wave, or another mechanism.
 
 ## Problem
 
-Topic extraction is a whole-corpus projection. One execution reads every eligible source and sends batches of up to four entities to AI. Forty sources normally require about eleven mocked object calls.
+Topic extraction is a whole-corpus projection. One execution reads every eligible source and sends batches of up to four entities to AI, so forty sources take ten topic calls per scan. The eleventh call in the passing phase comes from other AI projection rules the mock also serves (skill and SWOT projections). The 33-call failure is therefore not cleanly three topic scans; per-rule attribution is required before inferring wave counts.
 
 Projection ingress is already durable and generation-based:
 
@@ -41,10 +43,19 @@ The observed run remained operational and drained to zero, so there is no curren
 - Increasing `sourceChangeBatchDelayMs` until the failure becomes unlikely.
 - Deduplicating solely by job key across wave IDs; distinct waves may represent real revisions and graph order.
 - Making projection derives mutate entities or manage their own task maps.
-- Combining this with projection terminal-job self-healing; that remains separate work.
+- Reworking the shipped terminal projection incident machinery (`projectionIncidents` / `recoveryGeneration`, released in `@rizom/brain@0.2.0-alpha.284`); this plan composes with it, it does not replace it.
 - Reworking topic taxonomy, extraction prompts, or relevance policy.
 
 ## Phase 0: Establish causal evidence
+
+### 0.0 Make the scheduler deterministic in the load fixture
+
+The scheduler unit tests already inject `now` and `scheduleWakeup`, but `activateProjectionRuntime` does not plumb `scheduleWakeup` through to the wave scheduler, and the entity mutation path hardcodes `markedAt: Date.now()`. Before writing any reproduction test:
+
+- thread `scheduleWakeup` through `activateProjectionRuntime`; and
+- inject the clock used for `markedAt` in the entity mutation path.
+
+Without this, the deterministic pause required by 0.2 cannot be expressed in the feature-load fixture.
 
 ### 0.1 Attribute every mocked object call
 
@@ -70,7 +81,9 @@ Add deterministic tests that distinguish:
 2. **One wave/job with several attempts:** lease, retry, or fencing behavior repeated derive work.
 3. **One attempt with excess calls:** the topic batch loop or AI adapter repeated work internally.
 
-Use an injected clock/scheduler and an explicit pause between source writes. Do not depend on making CI busy enough to reproduce the failure.
+Use the injected clock/scheduler from 0.0 and an explicit pause between source writes. Do not depend on making CI busy enough to reproduce the failure.
+
+Report object calls broken down per rule ID. The mocked total mixes topic extraction with other AI projection rules, so a raw total cannot distinguish the three causes.
 
 ### 0.3 Choose the correction from evidence
 
@@ -116,6 +129,8 @@ A process-local counter is insufficient because imports and projection schedulin
 
 Dirty inputs continue to be written atomically with entity mutations. The batch does not buffer entity writes in memory.
 
+The batch record lives in the entity database beside the projection wave tables. Invariant 2 is only enforceable if wave claiming checks open batches inside the same transaction that claims the wave; a record in the runtime-state or job-queue database cannot participate in that transaction. Directory Sync's operation-status service is the natural source of the sanitized source/operation identity, but its runtime-state persistence must not be the barrier itself.
+
 Use a migration only after the Phase 0 evidence proves this path is required. Validate all reads and writes with Zod-backed contracts.
 
 ### 1.3 Define admission precisely
@@ -132,6 +147,14 @@ Start with a global projection-admission barrier because a whole-corpus rule can
 
 Support nested callers by joining an existing operation batch or reference-counting through durable ownership; never open competing uncoordinated global barriers.
 
+Write the admission tests before the implementation:
+
+- open → dirty writes → close → one claimed wave;
+- dirty writes from a second database client while open;
+- nested/joined boundary behavior;
+- active-wave plus open-successor behavior; and
+- pending ingress after close.
+
 ### 1.4 Make failure loud and recoverable
 
 An open batch must not strand projection forever.
@@ -140,8 +163,23 @@ An open batch must not strand projection forever.
 - Startup detects an open batch left by a dead process, marks it abandoned, and wakes the scheduler with the already durable dirty inputs.
 - A live durable owner is not declared abandoned merely because another process starts.
 - Operational health reports the count and age of open/abandoned batches without exposing paths or content.
-- Stale recovery is idempotent and covered by the same generation cutoff rules as ordinary admission.
+- Stale recovery is idempotent, covered by the same generation cutoff rules as ordinary admission, and composes with the shipped `projectionIncidents` / `recoveryGeneration` cutoff semantics rather than introducing a parallel recovery mechanism.
 - No elapsed-time callback silently drops the barrier while its owner can still mutate data.
+
+Write the recovery tests before the implementation:
+
+- exception and cancellation release;
+- process-death/startup recovery; and
+- operational-health reporting for stale boundaries.
+
+### 1.5 Wake the scheduler across the process split
+
+The scheduler currently wakes only through an in-process callback registered in the web role; worker-role runtimes execute jobs without ever calling `startNextWave`, and no poller exists. A batch closed by a worker process must not wait for an unrelated web-role mutation:
+
+- the web-role scheduler re-checks closed-batch and pending-dirty state on every existing wakeup; and
+- a bounded periodic sweep in the web role reads the entity database it already owns for closed batches and pending dirty inputs left by other processes.
+
+Do not add a cross-process notification bus for this; polling the owned entity database is sufficient and crash-safe. Write a test proving a worker-closed batch leads to one web-role wave without any web-role mutation.
 
 ## Phase 2: Preserve projection invariants
 
@@ -160,6 +198,8 @@ Pin these invariants before wiring Directory Sync:
 
 If any invariant requires replacing the wave model with per-rule reactive generations, stop and write a separate architecture proposal; do not grow this correction into an implicit scheduler rewrite.
 
+Assert graph ordering and memo reuse unchanged with tests in this phase, before any Directory Sync wiring.
+
 ## Phase 3: Integrate Directory Sync
 
 - Open one projection batch around the entity-mutation portion of one directory import/sync batch.
@@ -169,21 +209,13 @@ If any invariant requires replacing the wave model with per-rule reactive genera
 - Give direct in-process sync calls the same semantics as durable job execution.
 - Ensure execution-only workers can participate through the shared database without registering host UI callbacks.
 
+Write the Directory Sync boundary tests (cancellation preservation, direct in-process sync parity, execution-only worker participation) before wiring the plugin.
+
 Record batch duration and changed-entity count as bounded metrics. Do not record filenames or entity content.
 
 ## Phase 4: Verification
 
-### Focused store and scheduler tests
-
-- open → dirty writes → close → one claimed wave;
-- dirty writes from a second database client while open;
-- nested/joined boundary behavior;
-- exception and cancellation release;
-- process-death/startup recovery;
-- pending ingress after close;
-- active-wave plus open-successor behavior;
-- graph ordering and memo reuse unchanged; and
-- operational-health reporting for stale boundaries.
+The focused store and scheduler tests are written inside Phases 1–2, before their implementations. Phase 4 runs them as a complete suite and adds the load regression below; it does not introduce new focused tests.
 
 ### Deterministic load regression
 
@@ -240,4 +272,4 @@ Stop and reassess rather than widening scope if:
 - the only safe implementation globally blocks projections across long Git/network operations;
 - crash recovery cannot distinguish a live owner from an abandoned batch;
 - full-corpus topic correctness requires processing every intermediate snapshot; or
-- the change interferes with the separate projection terminal-job self-healing work.
+- the change cannot compose with the shipped projection incident recovery (`recoveryGeneration`) semantics.
