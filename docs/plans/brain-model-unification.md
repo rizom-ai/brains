@@ -426,7 +426,7 @@ difference recorded explicitly.
 
 ### Phase 9 — Unify the cards
 
-Share one public-skill extraction between the A2A card and the brain card, and make
+**Complete.** Share one public-skill extraction between the A2A card and the brain card, and make
 `siteUrl` and DID derivation channel-dependent. Tests: the two cards agree on skills for
 brains with and without skill entities; `[core, federation]` publishes a valid brain card
 with no site; `[core, federation, web, site]` publishes one with a site URL.

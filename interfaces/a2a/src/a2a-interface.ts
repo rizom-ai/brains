@@ -21,7 +21,6 @@ import { Hono } from "hono";
 import { a2aConfigSchema, type A2AConfig, type A2AConfigInput } from "./config";
 import { buildAgentCard } from "./agent-card";
 import { buildAgentDirectory } from "./agent-directory";
-import { skillDataSchema, type SkillData } from "@brains/plugins";
 import { TaskManager } from "./task-manager";
 import { A2ATurnSupervisor } from "./turn-supervisor";
 import {
@@ -122,26 +121,7 @@ export class A2AInterface extends InterfacePlugin<A2AConfig, A2AConfigInput> {
     const profile = context.identity.getProfile();
     const tools = context.tools.listForPermissionLevel("public");
 
-    // Query skill entities for Agent Card — metadata validated via schema
-    let skills: SkillData[] | undefined;
-    if (context.entityService.hasEntityType("skill")) {
-      try {
-        // Agent Card is publicly served — list only public skills so
-        // non-public skill metadata cannot leak through the discovery surface.
-        const entities = await context.entityService.listEntities({
-          entityType: "skill",
-          options: { filter: { visibilityScope: "public" } },
-        });
-        if (entities.length > 0) {
-          skills = entities
-            .map((e) => skillDataSchema.safeParse(e.metadata))
-            .filter((r) => r.success)
-            .map((r) => r.data);
-        }
-      } catch {
-        // Skill entities not available — fall back to tools
-      }
-    }
+    const skills = await context.publicSkills.list();
 
     this.agentCard = buildAgentCard({
       character,
@@ -153,7 +133,7 @@ export class A2AInterface extends InterfacePlugin<A2AConfig, A2AConfigInput> {
         : {}),
       profileKind: context.profileKinds.getResolved(),
       tools,
-      ...(skills ? { skills } : {}),
+      skills,
       authEnabled: false,
     });
 

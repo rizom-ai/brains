@@ -8,6 +8,7 @@ import {
   type AtprotoPdsClientLike,
 } from "@brains/atproto-contracts";
 import { AtprotoPlugin } from "../src/plugin";
+import { AtprotoIdentityResolver } from "../src/identity-resolver";
 
 const repoDid = "did:plc:peer";
 
@@ -127,6 +128,38 @@ function pdsClient(
 }
 
 describe("ATProto authoritative discovery boundary", () => {
+  it("binds federation-only card identity directly to its repo DID", async () => {
+    const fetch = mock(async (): Promise<Response> => {
+      throw new Error("Federation-only identity must not fetch did:web");
+    });
+    const resolver = new AtprotoIdentityResolver({
+      fetch,
+      pdsEndpoint: "https://pds.example.com",
+      identifier: "peer.example.com",
+      appPassword: "secret",
+      requestTimeoutMs: 1_000,
+    });
+    const headlessCard = card({
+      brain: { ...card().brain, did: repoDid },
+    });
+    delete headlessCard.siteUrl;
+
+    await resolver.verifyBrainCardIdentity(repoDid, headlessCard);
+    let mismatchError: unknown;
+    try {
+      await resolver.verifyBrainCardIdentity("did:plc:other", headlessCard);
+    } catch (error) {
+      mismatchError = error;
+    }
+
+    expect(mismatchError).toBeInstanceOf(Error);
+    expect(mismatchError).toHaveProperty(
+      "message",
+      "Headless brain card brain DID must match its repo DID",
+    );
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
   it("refetches a bound card and emits only the authoritative snapshot", async () => {
     const createPdsClient = mock(() => pdsClient());
     const plugin = new AtprotoPlugin(

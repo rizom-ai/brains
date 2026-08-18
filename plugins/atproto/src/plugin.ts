@@ -328,15 +328,19 @@ export class AtprotoPlugin extends ServicePlugin<
     context: ServicePluginContext,
     options: PublishBrainCardOptions = {},
   ): Promise<PublishBrainCardResult> {
-    const record = await buildBrainCardRecord(context, this.config);
-    validateAtprotoRecord(brainCardLexicon, record);
-    const repo = this.config.repoDid;
+    const configuredRepo = this.config.repoDid;
 
     if (options.dryRun) {
+      const record = await buildBrainCardRecord(
+        context,
+        this.config,
+        configuredRepo,
+      );
+      validateAtprotoRecord(brainCardLexicon, record);
       return {
         record,
         dryRun: true,
-        ...(repo && { repo }),
+        ...(configuredRepo && { repo: configuredRepo }),
       };
     }
 
@@ -349,7 +353,9 @@ export class AtprotoPlugin extends ServicePlugin<
 
     const client = this.createPdsClient(appPassword);
     const session = await client.createSession();
-    const targetRepo = repo ?? session.did;
+    const targetRepo = configuredRepo ?? session.did;
+    const record = await buildBrainCardRecord(context, this.config, targetRepo);
+    validateAtprotoRecord(brainCardLexicon, record);
     if (!client.putRecord) {
       throw new Error("AT Protocol PDS client does not support record upserts");
     }
@@ -833,6 +839,11 @@ export class AtprotoPlugin extends ServicePlugin<
     record: AtprotoBrainCardRecord,
     allowNewCandidate: boolean,
   ): Promise<boolean> {
+    if (!record.siteUrl) {
+      throw new DiscoveryRejectionError(
+        "Brain card does not advertise a callable web channel",
+      );
+    }
     const domain = new URL(record.siteUrl).hostname.toLowerCase();
     const deniedDomain = this.config.jetstream.denyDomains
       .map((entry) => entry.toLowerCase())
