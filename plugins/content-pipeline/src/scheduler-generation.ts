@@ -10,24 +10,9 @@ import type { GenerationCondition } from "./types/config";
 import type {
   GenerateExecuteEvent,
   GenerationConditionResult,
+  SchedulerMessagePublisher,
 } from "./types/scheduler";
 import { GENERATE_MESSAGES } from "./types/messages";
-
-/**
- * The publish side of the message bus, which is all the scheduler uses.
- *
- * Non-generic on purpose: the real bus's send<T, R> is assignable to this, and
- * a test can supply a plain function without the type parameters bun's mock()
- * erases. No caller here reads the response — every send is fire-and-forget.
- */
-export interface SchedulerMessagePublisher {
-  send(request: {
-    type: string;
-    payload: unknown;
-    sender?: string;
-    broadcast?: boolean;
-  }): Promise<unknown>;
-}
 
 export interface GenerationDeps {
   logger: Logger;

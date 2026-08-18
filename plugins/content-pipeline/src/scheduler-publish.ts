@@ -5,7 +5,7 @@ import { getErrorMessage } from "@brains/utils/error";
  * Contains the provider publishing execution logic.
  */
 
-import type { SchedulerMessagePublisher } from "./scheduler-generation";
+import type { SchedulerMessagePublisher } from "./types/scheduler";
 import type { QueueEntry } from "./queue-manager";
 import type { RetryTracker } from "./retry-tracker";
 import type { PublishEntityExecutor } from "./publish-executor";

@@ -6,7 +6,7 @@ import { ProviderRegistry } from "../src/provider-registry";
 import { RetryTracker } from "../src/retry-tracker";
 import { TestSchedulerBackend } from "@brains/scheduler/test";
 import { GENERATE_MESSAGES } from "../src/types/messages";
-import type { SchedulerMessagePublisher } from "../src/scheduler-generation";
+import type { SchedulerMessagePublisher } from "../src/types/scheduler";
 import { createMockLogger } from "@brains/test-utils";
 
 type SchedulerConfigOverrides = Partial<SchedulerConfig>;

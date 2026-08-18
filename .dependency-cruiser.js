@@ -162,7 +162,7 @@ module.exports = {
         path: "^((?!shell/|shared/|interfaces/|node_modules/).)*$",
         pathNot: [
           "\\.(test|spec)\\.(ts|tsx|js|jsx)$", // Allow test files
-          "^(bun:test|path|fs|fs/promises|crypto|os|url)$", // Allow Node.js/Bun builtins
+          "^(bun:test|path|fs|fs/promises|crypto|os|url|events|net|tls)$", // Allow Node.js/Bun builtins
         ],
       },
     },
