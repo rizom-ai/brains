@@ -1,17 +1,19 @@
 import { describe, expect, it, beforeEach, afterEach } from "bun:test";
-import { PortfolioPlugin } from "../src/plugin";
 import { createPluginHarness } from "@brains/plugins/test";
 import type { PluginCapabilities } from "@brains/plugins/test";
+import type { JobEntityAccess, Plugin } from "@brains/plugins";
+import portfolioPackage from "../src";
+import { projectGeneration } from "../src/handlers/generation-handler";
+import { projectEntityPlugin, PACKAGE_METADATA } from "./helpers/install";
 
-describe("PortfolioPlugin", () => {
+describe("portfolio package", () => {
   let harness: ReturnType<typeof createPluginHarness>;
-  let plugin: PortfolioPlugin;
+  let plugin: Plugin;
   let capabilities: PluginCapabilities;
 
   beforeEach(async () => {
     harness = createPluginHarness({ dataDir: "/tmp/test-datadir" });
-
-    plugin = new PortfolioPlugin({});
+    plugin = projectEntityPlugin();
     capabilities = await harness.installPlugin(plugin);
   });
 
@@ -19,107 +21,123 @@ describe("PortfolioPlugin", () => {
     harness.reset();
   });
 
-  describe("Plugin Registration", () => {
-    it("should register plugin with correct metadata", () => {
-      expect(plugin.id).toBe("portfolio");
-      expect(plugin.type).toBe("entity");
-      expect(plugin.version).toBeDefined();
-    });
+  it("declares one entity and no projections", () => {
+    expect(portfolioPackage.entities.map(({ type }) => type)).toEqual([
+      "project",
+    ]);
+    expect(portfolioPackage.projections).toEqual([]);
+  });
 
-    it("should not provide tools (entity creation via system_create)", () => {
-      expect(capabilities.tools).toHaveLength(0);
-    });
+  it("produces an entity plugin scoped to the package", () => {
+    expect(plugin.id).toBe(`${PACKAGE_METADATA.name}:project`);
+    expect(plugin.type).toBe("entity");
+    expect(plugin.version).toBe(PACKAGE_METADATA.version);
+  });
 
-    it("should not provide any resources", () => {
-      expect(capabilities.resources).toEqual([]);
-    });
+  it("provides no tools — projects are created through system_create", () => {
+    expect(capabilities.tools).toHaveLength(0);
+    expect(capabilities.resources).toEqual([]);
+  });
 
-    it("registers projects as secondary topic sources", () => {
-      expect(
-        harness.getEntityRegistry().getEntityTypeConfig("project"),
-      ).toMatchObject({ projectionSourceRole: "secondary" });
-    });
+  it("registers projects as secondary topic sources", () => {
+    expect(
+      harness.getEntityRegistry().getEntityTypeConfig("project"),
+    ).toMatchObject({ projectionSourceRole: "secondary" });
+  });
 
-    it("should enqueue generation with a year parsed from the prompt", async () => {
-      const localHarness = createPluginHarness({
-        dataDir: "/tmp/test-datadir-portfolio-enqueue",
-        logContext: "portfolio-plugin-test",
+  it("routes a described project to the generation job", async () => {
+    const localHarness = createPluginHarness({
+      dataDir: "/tmp/test-datadir-portfolio-enqueue",
+      logContext: "portfolio-plugin-test",
+    });
+    try {
+      const mockShell = localHarness.getMockShell();
+      const origJobQueue = mockShell.getJobQueueService();
+      const enqueued: Array<{ type: string; data: unknown }> = [];
+      mockShell.getJobQueueService = (): ReturnType<
+        typeof mockShell.getJobQueueService
+      > => ({
+        ...origJobQueue,
+        enqueue: async ({ type, data }): Promise<string> => {
+          enqueued.push({ type, data });
+          return "job-123";
+        },
       });
-      try {
-        const mockShell = localHarness.getMockShell();
-        const origJobQueue = mockShell.getJobQueueService();
-        const enqueued: Array<{ type: string; data: unknown }> = [];
-        mockShell.getJobQueueService = (): ReturnType<
-          typeof mockShell.getJobQueueService
-        > => ({
-          ...origJobQueue,
-          enqueue: async ({ type, data }): Promise<string> => {
-            enqueued.push({ type, data });
-            return "job-123";
-          },
-        });
 
-        await localHarness.installPlugin(new PortfolioPlugin({}));
+      await localHarness.installPlugin(projectEntityPlugin());
 
-        const interceptor = localHarness
-          .getEntityRegistry()
-          .getCreateInterceptor("project");
-        if (!interceptor)
-          throw new Error("Expected project create interceptor");
-
-        const result = await interceptor(
-          {
-            entityType: "project",
-            prompt:
-              "Create a portfolio case study for my API Gateway project from 2024",
-            title: "API Gateway",
-          },
-          {
-            interfaceType: "test",
-            actor: { kind: "user", userId: "test-user" },
-          },
-        );
-
-        expect(result).toMatchObject({
-          kind: "handled",
-          result: {
-            success: true,
-            data: { status: "generating" },
-          },
-        });
-
-        expect(enqueued).toEqual([
-          {
-            type: "project:generation",
-            data: {
-              prompt:
-                "Create a portfolio case study for my API Gateway project from 2024",
-              title: "API Gateway",
-              year: 2024,
-            },
-          },
-        ]);
-      } finally {
-        localHarness.reset();
-      }
-    });
-
-    it("should continue when no year can be parsed", async () => {
-      const interceptor = harness
+      const interceptor = localHarness
         .getEntityRegistry()
         .getCreateInterceptor("project");
       if (!interceptor) throw new Error("Expected project create interceptor");
 
-      const input = {
-        entityType: "project",
-        prompt: "Create a portfolio case study for my API Gateway project",
-      };
-      const result = await interceptor(input, {
-        interfaceType: "test",
-        actor: { kind: "user", userId: "test-user" },
+      const result = await interceptor(
+        {
+          entityType: "project",
+          prompt:
+            "Create a portfolio case study for my API Gateway project from 2024",
+          title: "API Gateway",
+        },
+        {
+          interfaceType: "test",
+          actor: { kind: "user", userId: "test-user" },
+        },
+      );
+
+      expect(result).toMatchObject({
+        kind: "handled",
+        result: { success: true, data: { status: "generating" } },
       });
 
-      expect(result).toEqual({ kind: "continue", input });
+      // The runtime hands the create request through as-is; the job reads
+      // the year out of it rather than the route parsing it first.
+      expect(enqueued).toHaveLength(1);
+      expect(enqueued[0]?.type).toBe("project:generation");
+      expect(enqueued[0]?.data).toMatchObject({
+        prompt:
+          "Create a portfolio case study for my API Gateway project from 2024",
+        title: "API Gateway",
+      });
+    } finally {
+      localHarness.reset();
+    }
+  });
+
+  // A project needs a year — it is required metadata — so a request without
+  // one is refused with a message rather than creating an entity that
+  // cannot validate.
+  it("refuses generation when no year can be found", async () => {
+    const entityService = harness.getEntityService();
+    const entities: JobEntityAccess = {
+      listEntities: (request) => entityService.listEntities(request),
+      getEntity: (request) => entityService.getEntity(request),
+      getEntityTypes: () => entityService.getEntityTypes(),
+      search: (request) => entityService.search(request),
+      get: async () => null,
+      create: (entity) => entityService.createEntity({ entity }),
+      update: (entity) => entityService.updateEntity({ entity }),
+      createPending: async () => ({ entityId: "x", created: true }),
+      saveProcessed: async () => ({
+        entityId: "x",
+        jobId: "j",
+        skipped: false,
+      }),
+    };
+
+    const result = await projectGeneration.handle({
+      input: { prompt: "Create a case study for my API Gateway project" },
+      ai: harness.getEntityContext("test").ai,
+      logger: harness.getMockShell().getLogger(),
+      entities,
+      conversations: { get: async () => null },
+      messaging: { publish: async (): Promise<void> => {} },
+      progress: { report: async (): Promise<void> => {} },
+      signal: new AbortController().signal,
+    });
+
+    expect(result).toMatchObject({
+      success: false,
+      error: expect.stringContaining("year"),
     });
   });
 });

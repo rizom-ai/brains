@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, spyOn } from "bun:test";
-import { ProjectDataSource } from "../src/datasources/project-datasource";
-import { PortfolioPlugin } from "../src/plugin";
+import { projectDataSource } from "../src/datasources/project-datasource";
+import { createDeclarativeEntityDataSource } from "@brains/plugins";
+import { projectEntityPlugin } from "./helpers/install";
 import { createPluginHarness } from "@brains/plugins/test";
 import type { Project } from "../src/schemas/project";
 import type { IEntityService, BaseDataSourceContext } from "@brains/plugins";
@@ -13,7 +14,7 @@ import {
 } from "@brains/test-utils";
 
 describe("ProjectDataSource", () => {
-  let datasource: ProjectDataSource;
+  let datasource: ReturnType<typeof createDeclarativeEntityDataSource>;
   let mockEntityService: IEntityService;
   let mockLogger: Logger;
   let mockContext: BaseDataSourceContext;
@@ -64,13 +65,18 @@ Outcome for ${title}`;
     mockContext = { entityService: mockEntityService };
 
     // Only pass logger to constructor
-    datasource = new ProjectDataSource(mockLogger);
+    datasource = createDeclarativeEntityDataSource(
+      projectDataSource,
+      "@brains/portfolio:entities",
+      mockLogger,
+    );
   });
 
   describe("fetchProjectList", () => {
     const listSchema = z.object({
       projects: z.array(z.any()),
       pagination: z.any().nullable(),
+      baseUrl: z.string().nullable(),
     });
 
     it("accepts datasource output before site URL enrichment", async () => {
@@ -88,12 +94,14 @@ Outcome for ${title}`;
         dataDir: "/tmp/test-portfolio-template-schema",
       });
       try {
-        await harness.installPlugin(new PortfolioPlugin({}));
+        await harness.installPlugin(projectEntityPlugin());
         const templateSchema = harness
           .getTemplates()
-          .get("portfolio:project-list")?.schema;
+          .get("@brains/portfolio:project:project-list")?.schema;
         if (!templateSchema)
-          throw new Error("portfolio:project-list template not found");
+          throw new Error(
+            "@brains/portfolio:project:project-list template not found",
+          );
 
         const result = await datasource.fetch(
           { entityType: "project", query: { page: 1, pageSize: 10 } },
@@ -105,7 +113,7 @@ Outcome for ${title}`;
         expect(parsed.projects).toHaveLength(1);
         expect(parsed.projects[0]?.url).toBeNull();
         expect(parsed.projects[0]?.typeLabel).toBeNull();
-        expect((result as { baseUrl: unknown }).baseUrl).toBeNull();
+        expect(parsed.baseUrl).toBeNull();
         expect(JSON.parse(JSON.stringify(result))).toStrictEqual(result);
       } finally {
         harness.reset();
@@ -260,8 +268,11 @@ Outcome for ${title}`;
       ];
 
       // First call: fetch by slug, Second call: fetch all for navigation
+      // Three reads, in order: the slug lookup, the sibling list the detail
+      // view is given, then prev/next navigation.
       spyOn(mockEntityService, "listEntities")
         .mockResolvedValueOnce([targetProject])
+        .mockResolvedValueOnce(allProjectsSorted)
         .mockResolvedValueOnce(allProjectsSorted);
 
       const result = await datasource.fetch(
@@ -300,8 +311,11 @@ Outcome for ${title}`;
       ];
 
       // First call: fetch by slug, Second call: fetch all for navigation
+      // Three reads, in order: the slug lookup, the sibling list the detail
+      // view is given, then prev/next navigation.
       spyOn(mockEntityService, "listEntities")
         .mockResolvedValueOnce([targetProject])
+        .mockResolvedValueOnce(publishedProjectsSorted)
         .mockResolvedValueOnce(publishedProjectsSorted);
 
       // The context's entityService is already scoped to return only published
@@ -368,7 +382,7 @@ A normalized public data API and dashboard.`,
 
   describe("metadata", () => {
     it("should have correct datasource ID", () => {
-      expect(datasource.id).toBe("portfolio:entities");
+      expect(datasource.id).toBe("@brains/portfolio:entities");
     });
 
     it("should have descriptive name and description", () => {

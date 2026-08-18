@@ -12,6 +12,8 @@ import {
   type ProjectOgImageTemplateData,
 } from "./og-image-template";
 
+export { PROJECT_OG_IMAGE_ATTACHMENT_TYPE };
+
 export const createProjectOgImageProvider: OgImageProviderFactory =
   createOgImageProvider<Project, ProjectOgImageTemplateData>({
     sourceEntityType: "project",
