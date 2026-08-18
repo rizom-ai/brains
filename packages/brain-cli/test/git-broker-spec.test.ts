@@ -1,17 +1,37 @@
 import { describe, expect, it } from "bun:test";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { shellConfigSchema } from "@brains/core";
 import {
   BRAIN_DEFAULT_DATA_DIR,
+  resolveGitBrokerEntrypointPath,
   resolveGitBrokerSpec,
 } from "../src/lib/git-broker-spec";
 
 /**
+ * Phase 3 of docs/plans/directory-sync-git-execution-broker.md.
+ *
  * Whether a broker starts at all is decided here, from the same `brain.yaml`
  * the app roles read.
  */
 
 describe("git broker spec", () => {
+  it("selects a lightweight sibling entrypoint only when it exists", () => {
+    const root = mkdtempSync(join(tmpdir(), "git-broker-entrypoint-"));
+    const brainEntrypoint = join(root, "brain.js");
+    const brokerEntrypoint = join(root, "git-broker.js");
+    try {
+      expect(resolveGitBrokerEntrypointPath(brainEntrypoint)).toBeUndefined();
+      writeFileSync(brokerEntrypoint, "// broker\n");
+      expect(resolveGitBrokerEntrypointPath(brainEntrypoint)).toBe(
+        brokerEntrypoint,
+      );
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
   it("starts no broker for a Brain without Git", () => {
     expect(resolveGitBrokerSpec("/brain", { brain: "brain" })).toBeUndefined();
     expect(

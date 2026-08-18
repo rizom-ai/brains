@@ -49,6 +49,8 @@ export interface CheckoutExecutorOptions {
   timeoutMs: number;
   authorName?: string | undefined;
   authorEmail?: string | undefined;
+  /** Deterministic completion-boundary fault used by real-process recovery tests. */
+  afterOperation?: ((operation: GitOperation) => Promise<void>) | undefined;
 }
 
 export interface OperationRunOptions {
@@ -93,6 +95,10 @@ export class CheckoutOperationExecutor {
     return this.#queue.run(async () => {
       runOptions.onStart?.();
       const value = await this.#dispatch(operation, runOptions);
+      // This seam is after the adapter returned: a fault here reproduces the
+      // affected Bun shape where Git exited and changed the checkout but the
+      // completion observed by the owner never settles.
+      await this.#options.afterOperation?.(operation);
       return parseGitOperationResult<TOperation["name"]>(operation.name, value);
     }, runOptions.signal);
   }

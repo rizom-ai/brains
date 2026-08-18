@@ -21,6 +21,18 @@ import { BrokerConnection } from "./client";
  * failing is not taken from it.
  */
 export const BROKER_PROGRESS_TIMEOUT_MS = 300_000;
+/** Internal only: shortens the real-process recovery fixture, never config. */
+export const GIT_BROKER_TEST_PROGRESS_TIMEOUT_ENV =
+  "BRAIN_TEST_GIT_BROKER_PROGRESS_TIMEOUT_MS";
+
+export function resolveBrokerProgressTimeoutMs(
+  env: NodeJS.ProcessEnv = process.env,
+): number {
+  const configured = Number(env[GIT_BROKER_TEST_PROGRESS_TIMEOUT_ENV]);
+  return Number.isFinite(configured) && configured > 0
+    ? configured
+    : BROKER_PROGRESS_TIMEOUT_MS;
+}
 
 export interface BrokerActivity {
   activeRequestIds: string[];
@@ -29,6 +41,8 @@ export interface BrokerActivity {
   /** Work the previous generation left with no observed outcome. */
   ambiguousRequestIds: string[];
   evidenceComplete: boolean;
+  /** Historical evidence degrades health only until replay accounts for it. */
+  recoveryPending: boolean;
 }
 
 export interface BrokerHealthOptions {
@@ -63,6 +77,7 @@ export function probeBrokerActivity(
         oldestActiveProgressAt: status.oldestActiveProgressAt,
         ambiguousRequestIds: status.ambiguousRequestIds,
         evidenceComplete: status.evidenceComplete,
+        recoveryPending: status.recoveryPending,
       };
     } finally {
       connection.close();
@@ -89,7 +104,7 @@ export function createBrokerHealthCheck(
 
     // Reported before staleness: a replacement carrying unresolved work is
     // degraded whether or not anything is running right now.
-    if (activity.ambiguousRequestIds.length > 0 || !activity.evidenceComplete) {
+    if (activity.recoveryPending) {
       return {
         status: "degraded",
         message: activity.evidenceComplete
@@ -132,6 +147,7 @@ function isActivity(value: unknown): value is BrokerActivity {
     "queuedRequestIds" in value &&
     "ambiguousRequestIds" in value &&
     "evidenceComplete" in value &&
+    "recoveryPending" in value &&
     "oldestActiveProgressAt" in value
   );
 }

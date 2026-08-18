@@ -96,6 +96,8 @@ export interface StatusMessage {
   ambiguousRequestIds: string[];
   /** False when the previous generation's record could not be read whole. */
   evidenceComplete: boolean;
+  /** True until the scheduling role reconciles an inherited generation. */
+  recoveryPending: boolean;
   /** False while this owner is holding mutations pending reconciliation. */
   admitsMutations: boolean;
   /**
@@ -199,6 +201,7 @@ export const brokerMessageSchema: z.ZodType<BrokerMessage, BrokerMessage> =
         queuedRequestIds: z.array(requestId),
         ambiguousRequestIds: z.array(requestId),
         evidenceComplete: z.boolean(),
+        recoveryPending: z.boolean(),
         admitsMutations: z.boolean(),
         oldestActiveProgressAt: z.number().int().nonnegative().nullable(),
       })

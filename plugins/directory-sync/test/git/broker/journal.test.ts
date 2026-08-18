@@ -5,6 +5,8 @@ import { join } from "node:path";
 import { BrokerJournal } from "../../../src/lib/broker/journal";
 
 /**
+ * Phase 5 of docs/plans/directory-sync-git-execution-broker.md.
+ *
  * The journal answers one question: what was this generation running, and did
  * it record a terminal result? It deliberately does not answer "what should
  * happen next" — a mutation left ambiguous by a broker replacement is never
@@ -29,6 +31,7 @@ describe("broker journal", () => {
     const dir = await runtimeDir();
     const first = await BrokerJournal.open(dir);
     expect(first.ambiguous).toEqual([]);
+    expect(first.inheritedGeneration).toBe(false);
 
     await first.recordStart({
       requestId: "req_settled0001",
@@ -45,6 +48,7 @@ describe("broker journal", () => {
     // The process dies here: no settled record for the push.
     const replacement = await BrokerJournal.open(dir);
 
+    expect(replacement.inheritedGeneration).toBe(true);
     expect(replacement.ambiguous).toHaveLength(1);
     expect(replacement.ambiguous[0]).toMatchObject({
       requestId: "req_lost00000001",
@@ -132,8 +136,10 @@ describe("broker journal", () => {
     // Only the shape of the work, never its content: a journal that recorded
     // arguments would be a place for a path or a token to persist.
     const written = await readFile(join(dir, "broker-journal.jsonl"), "utf-8");
-    const entry: unknown = JSON.parse(written.trim().split("\n")[0] ?? "{}");
-    expect(Object.keys(entry as Record<string, unknown>).sort()).toEqual([
+    const entry: Record<string, unknown> = JSON.parse(
+      written.trim().split("\n")[0] ?? "{}",
+    );
+    expect(Object.keys(entry).sort()).toEqual([
       "checkoutPath",
       "mutating",
       "operation",

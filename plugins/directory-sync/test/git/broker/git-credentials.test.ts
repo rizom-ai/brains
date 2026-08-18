@@ -5,6 +5,8 @@ import {
 } from "../../../src/lib/broker/git-credentials";
 
 /**
+ * Phase 4 of docs/plans/directory-sync-git-execution-broker.md.
+ *
  * Safety invariant 6: a token never enters `.git/config`, argv, socket
  * messages, journals, errors, or logs. Git offers four places to put a
  * credential — the URL on the command line, the repository config, a helper

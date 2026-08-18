@@ -36,6 +36,16 @@ interface Pending {
   onProgress?: (() => void) | undefined;
 }
 
+interface InFlightRequest {
+  checkoutPath: string;
+  operationIdentity: string;
+  reply: Promise<Reply>;
+}
+
+function operationIdentity(operation: GitOperation): string {
+  return JSON.stringify(operation);
+}
+
 /**
  * A caller that gives up stops waiting; the broker does not stop working.
  *
@@ -68,8 +78,9 @@ function expectStatus(reply: Reply): StatusMessage {
 export class BrokerConnection {
   readonly #socketPath: string;
   readonly #pending = new Map<string, Pending>();
-  /** In-flight replies by request id, so a duplicate joins rather than races. */
-  readonly #waiters = new Map<string, Promise<Reply>>();
+  readonly #unavailableListeners = new Set<() => void>();
+  /** In-flight replies by request id, bound to the exact work they represent. */
+  readonly #waiters = new Map<string, InFlightRequest>();
   #writer: SocketWriter | null = null;
   #socket: { end(): void } | null = null;
   #closed = false;
@@ -103,6 +114,14 @@ export class BrokerConnection {
     return connection;
   }
 
+  /** Observe an unexpected owner/socket loss; explicit client close is silent. */
+  onUnavailable(listener: () => void): () => void {
+    this.#unavailableListeners.add(listener);
+    return (): void => {
+      this.#unavailableListeners.delete(listener);
+    };
+  }
+
   close(): void {
     if (this.#closed) return;
     // Closing is this process letting go, not the operation ending. Whoever is
@@ -110,6 +129,7 @@ export class BrokerConnection {
     // shutdown must not produce.
     const waiting = [...this.#pending.values()];
     this.#pending.clear();
+    this.#unavailableListeners.clear();
     this.#closed = true;
     this.#socket?.end();
     waiting.forEach((pending) => {
@@ -153,6 +173,8 @@ export class BrokerConnection {
     waiting.forEach((pending) => {
       pending.reject(new BrokerUnavailableError(this.#socketPath, reason));
     });
+    this.#unavailableListeners.forEach((listener) => listener());
+    this.#unavailableListeners.clear();
   }
 
   #send(message: BrokerMessage): void {
@@ -252,7 +274,15 @@ export class BrokerConnection {
     // was already waiting on an answer that never arrives.
     const inFlight = this.#waiters.get(requestId);
     if (inFlight) {
-      const reply = await inFlight;
+      if (
+        inFlight.checkoutPath !== checkoutPath ||
+        inFlight.operationIdentity !== operationIdentity(operation)
+      ) {
+        throw new BrokerOperationError(
+          `Request ${requestId} is already used for different Git work`,
+        );
+      }
+      const reply = await inFlight.reply;
       if (reply.type !== "result") {
         throw new BrokerOperationError(
           "The broker answered an operation with a status frame",
@@ -264,7 +294,11 @@ export class BrokerConnection {
       );
     }
     const settled = Promise.withResolvers<Reply>();
-    this.#waiters.set(requestId, settled.promise);
+    this.#waiters.set(requestId, {
+      checkoutPath,
+      operationIdentity: operationIdentity(operation),
+      reply: settled.promise,
+    });
     this.#pending.set(requestId, {
       ...settled,
       ...(runOptions.onProgress ? { onProgress: runOptions.onProgress } : {}),

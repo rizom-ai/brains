@@ -1,4 +1,5 @@
-import { join, relative, resolve } from "path";
+import { existsSync } from "node:fs";
+import { dirname, join, relative, resolve } from "path";
 import { z } from "@brains/utils/zod";
 import {
   gitBrokerSocketPath,
@@ -24,6 +25,18 @@ export const BRAIN_DEFAULT_DATA_DIR = "./brain-data";
 
 /** Instance-owned, never inside a checkout Git can rewrite. */
 const RUNTIME_DIR_NAME = ".brain-runtime";
+
+/** Prefer the broker-only bundle/source beside a Brain entrypoint. */
+export function resolveGitBrokerEntrypointPath(
+  brainEntrypointPath: string,
+): string | undefined {
+  const directory = dirname(brainEntrypointPath);
+  for (const filename of ["git-broker.js", "git-broker-entrypoint.ts"]) {
+    const candidate = join(directory, filename);
+    if (existsSync(candidate)) return candidate;
+  }
+  return undefined;
+}
 
 /**
  * Only what this decision needs. Non-strict on purpose: the rest of the

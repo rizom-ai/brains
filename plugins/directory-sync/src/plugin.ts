@@ -4,12 +4,15 @@ import { DirectorySync } from "./lib/directory-sync";
 import { connectGitSync } from "./lib/broker/connect";
 import type { BrokerGitSync } from "./lib/broker/git-sync-client";
 import {
-  BROKER_PROGRESS_TIMEOUT_MS,
   createBrokerHealthCheck,
   probeBrokerActivity,
+  resolveBrokerProgressTimeoutMs,
 } from "./lib/broker/health";
 import { resolveGitRemoteUrl } from "./lib/git-options";
-import { createOwnerReplacementHandler } from "./lib/git-owner-replacement";
+import {
+  createOwnerRecoveryReplay,
+  createOwnerReplacementHandler,
+} from "./lib/git-owner-replacement";
 import type { IGitSync } from "./types";
 import {
   directorySyncConfigSchema,
@@ -71,7 +74,6 @@ export class DirectorySyncPlugin extends ServicePlugin<
    * broker protocol can answer: whether it is admitting mutations, and
    * being told that this role has reconciled.
    */
-  private brokerClient: BrokerGitSync | undefined;
   private operationStatus: DirectorySyncOperationStatusService | undefined;
   private gitReconciliation: GitReconciliationService | undefined;
   private workspaceProvider: DirectorySyncWorkspaceProvider | undefined;
@@ -187,7 +189,7 @@ export class DirectorySyncPlugin extends ServicePlugin<
             // owner, and schedule durable replay — writes from a read.
             probe: probeBrokerActivity(socketPath),
             now: (): number => Date.now(),
-            progressTimeoutMs: BROKER_PROGRESS_TIMEOUT_MS,
+            progressTimeoutMs: resolveBrokerProgressTimeoutMs(),
           }),
         );
       }
@@ -223,9 +225,14 @@ export class DirectorySyncPlugin extends ServicePlugin<
     }
 
     if (this.isGitConfigured()) {
+      let connectedGitSync: BrokerGitSync;
       try {
         if (!context.executionOnly) await this.bootstrapContentRemote();
-        this.gitSync = await this.initializeGitSync(syncPath);
+        connectedGitSync = await this.connectToGitBroker(
+          syncPath,
+          this.requireDirectorySync(),
+        );
+        this.gitSync = connectedGitSync;
       } catch (error) {
         if (!context.executionOnly && interruptedPull) {
           await this.operationStatus.finishInterruptedPull(interruptedPull.id, {
@@ -240,8 +247,20 @@ export class DirectorySyncPlugin extends ServicePlugin<
       // that — the queue and the checkpoint live here — and only one of
       // them should, so the worker never opens admission.
       if (!context.executionOnly) {
-        await this.reconcileInheritedWork(context);
+        await this.reconcileInheritedWork(
+          context,
+          connectedGitSync,
+          this.requireDirectorySync(),
+        );
       }
+      // `initialize` can clone, checkout, and configure the repository. It is
+      // intentionally after inherited-work replay: a replacement starts with
+      // mutation admission closed, so doing this first would prevent the role
+      // from ever reaching the reconciliation that opens it.
+      await connectedGitSync.initialize();
+      this.logger.info("Git integration enabled", {
+        repo: this.config.git?.repo,
+      });
 
       context.jobs.registerHandler(
         "sync-request",
@@ -399,7 +418,7 @@ export class DirectorySyncPlugin extends ServicePlugin<
     const context = this.getContext();
     const candidateRuntime = new DirectorySyncRuntime();
     const candidateDirectorySync = this.createDirectorySync(context, syncPath);
-    let candidateGitSync: IGitSync | undefined;
+    let candidateGitSync: BrokerGitSync | undefined;
 
     try {
       await candidateDirectorySync.initializeDirectory();
@@ -412,7 +431,16 @@ export class DirectorySyncPlugin extends ServicePlugin<
         );
       }
       if (this.isGitConfigured()) {
-        candidateGitSync = await this.initializeGitSync(syncPath);
+        candidateGitSync = await this.connectToGitBroker(
+          syncPath,
+          candidateDirectorySync,
+        );
+        await this.reconcileInheritedWork(
+          context,
+          candidateGitSync,
+          candidateDirectorySync,
+        );
+        await candidateGitSync.initialize();
       }
     } catch (error) {
       await this.abandonCandidate(
@@ -515,9 +543,31 @@ export class DirectorySyncPlugin extends ServicePlugin<
    * The token stays in this role's configuration and never reaches the broker;
    * the broker resolves its own authenticated remote from the same brain.yaml.
    */
-  private async initializeGitSync(syncPath: string): Promise<IGitSync> {
+  private async connectToGitBroker(
+    syncPath: string,
+    directorySync: DirectorySync,
+  ): Promise<BrokerGitSync> {
     const git = this.config.git;
     if (!git) throw new Error("Git configuration is unavailable");
+
+    const attached: { gitSync?: BrokerGitSync } = {};
+    const replacementRecovery = this.getContext().executionOnly
+      ? undefined
+      : createOwnerReplacementHandler({
+          logger: this.logger.child("GitOwner"),
+          scheduler: this.runtimeScheduler,
+          replay: createOwnerRecoveryReplay({
+            client: (): BrokerGitSync | undefined => attached.gitSync,
+            replay: async (client): Promise<void> => {
+              await this.requireGitReconciliation().replayAndQueue({
+                gitSync: client,
+                directorySync,
+                context: this.getContext(),
+                source: "broker-replacement-replay",
+              });
+            },
+          }),
+        });
 
     const gitSync = await connectGitSync({
       socketPath: this.getContext().gitBrokerSocket,
@@ -530,30 +580,18 @@ export class DirectorySyncPlugin extends ServicePlugin<
         gitUrl: git.gitUrl,
       }),
       logger: this.logger.child("GitSync"),
-      // Only a scheduling role reconciles. Two roles noticing the same
-      // replacement would queue the same delta twice.
-      ...(this.getContext().executionOnly
-        ? {}
-        : {
-            onOwnerReplaced: createOwnerReplacementHandler({
-              logger: this.logger.child("GitOwner"),
-              scheduler: this.runtimeScheduler,
-              replay: async (): Promise<void> => {
-                await this.requireGitReconciliation().replayAndQueue({
-                  gitSync: this.requireGitSync(),
-                  directorySync: this.requireDirectorySync(),
-                  context: this.getContext(),
-                  source: "broker-replacement-replay",
-                });
-                // Only now may anything change the checkout again.
-                await this.brokerClient?.openAdmission();
-              },
-            }),
-          }),
+      // Only a scheduling role reconciles. Connection loss schedules the
+      // work immediately; waiting for a later Git call could leave a quiet
+      // checkout closed forever after replacement.
+      ...(replacementRecovery
+        ? {
+            onOwnerUnavailable: (): void => {
+              replacementRecovery("pending replacement");
+            },
+          }
+        : {}),
     });
-    this.brokerClient = gitSync;
-    await gitSync.initialize();
-    this.logger.info("Git integration enabled", { repo: git.repo });
+    attached.gitSync = gitSync;
     return gitSync;
   }
 
@@ -567,20 +605,21 @@ export class DirectorySyncPlugin extends ServicePlugin<
    */
   private async reconcileInheritedWork(
     context: ServicePluginContext,
+    gitSync: BrokerGitSync,
+    directorySync: DirectorySync,
   ): Promise<void> {
-    const client = this.brokerClient;
-    if (!client || (await client.admitsMutations())) return;
+    if (await gitSync.admitsMutations()) return;
 
     this.logger.warn(
       "Git owner is holding mutations; reconciling inherited work",
     );
     await this.requireGitReconciliation().replayAndQueue({
-      gitSync: this.requireGitSync(),
-      directorySync: this.requireDirectorySync(),
+      gitSync,
+      directorySync,
       context,
       source: "inherited-work-replay",
     });
-    await client.openAdmission();
+    await gitSync.openAdmission();
   }
 
   private async startBackgroundWork(): Promise<void> {

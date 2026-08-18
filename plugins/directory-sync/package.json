@@ -24,6 +24,7 @@
       "types": "./src/index.ts",
       "import": "./src/index.ts"
     },
+    "./broker-runtime": "./src/broker-runtime.ts",
     "./env-schema": "./src/env-schema.ts"
   },
   "main": "./src/index.ts",

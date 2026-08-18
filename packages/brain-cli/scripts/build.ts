@@ -344,6 +344,16 @@ async function emitLibraryDeclarations(): Promise<void> {
   }
 }
 
+const brokerBuild = bundle({
+  name: "git-broker",
+  source: join(import.meta.dir, "..", "src", "git-broker-entrypoint.ts"),
+  sourcemap: "none",
+}).then(() => {
+  const outFile = join(outdir, "git-broker.js");
+  const stripped = readFileSync(outFile, "utf8").replace(/^#!.*\n/gm, "");
+  writeFileSync(outFile, `#!/usr/bin/env bun\n${stripped}`);
+});
+
 const cliBuild = bundle({
   name: "brain",
   source: join(import.meta.dir, "entrypoint.ts"),
@@ -369,7 +379,12 @@ for (const legacySiteArtifact of [
 const libraryBuild = bundleLibraries();
 
 // Declarations only need source files; run them concurrently with bundling.
-await Promise.all([cliBuild, libraryBuild, emitLibraryDeclarations()]);
+await Promise.all([
+  brokerBuild,
+  cliBuild,
+  libraryBuild,
+  emitLibraryDeclarations(),
+]);
 
 // ─── Copy package-owned onboarding assets ────────────────────────────────
 
@@ -441,6 +456,7 @@ function reportSize(name: string): void {
 }
 
 reportSize("brain");
+reportSize("git-broker");
 for (const entry of libraryEntries) {
   reportSize(entry.name);
 }

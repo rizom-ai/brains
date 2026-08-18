@@ -10,6 +10,8 @@ import type { GitBrokerServer } from "../../../src/lib/broker/server";
 import { commitTouching } from "../real-git";
 
 /**
+ * Phase 3 of docs/plans/directory-sync-git-execution-broker.md.
+ *
  * A proven-safe broker replacement leaves web and worker running, so those
  * roles have to reattach to the new owner. What they must not do is decide for
  * themselves that an interrupted mutation never happened: an acknowledgement
@@ -88,6 +90,30 @@ describe.skipIf(!LINUX)("reattaching to a replacement owner", () => {
     await gitSync.cleanup();
   }, 60_000);
 
+  it("reports owner loss without waiting for another Git request", async () => {
+    const owned = await ownedCheckout();
+    const unavailable = Promise.withResolvers<void>();
+    let reports = 0;
+    const gitSync = await connectGitSync({
+      socketPath: owned.socketPath,
+      checkoutPath: owned.checkoutPath,
+      branch: "main",
+      remoteUrl: owned.gitUrl,
+      logger: createSilentLogger(),
+      onOwnerUnavailable: () => {
+        reports += 1;
+        unavailable.resolve();
+      },
+    });
+    await gitSync.initialize();
+
+    await owned.restart();
+    await unavailable.promise;
+    expect(reports).toBe(1);
+
+    await gitSync.cleanup();
+  }, 60_000);
+
   it("reports that the owner changed, exactly once per replacement", async () => {
     const owned = await ownedCheckout();
     const replacements: string[] = [];
@@ -142,7 +168,12 @@ describe.skipIf(!LINUX)("reattaching to a replacement owner", () => {
       () => undefined,
       (error: unknown) => String(error),
     );
-    expect(interrupted).toContain("unavailable");
+    expect(interrupted).toContain("admission is closed");
+
+    // Reconciliation uses reads and explicitly opens this replacement. The
+    // interrupted mutation itself is never replayed from intent.
+    expect((await gitSync.getStatus()).isRepo).toBe(true);
+    await gitSync.openAdmission();
 
     // Only one commit exists for the file, whatever the caller does next.
     await gitSync.commit("second change");

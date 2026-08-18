@@ -9,6 +9,8 @@ import {
 import type { GitOperationName } from "../../../src/lib/broker/operations";
 
 /**
+ * Phase 2 of docs/plans/directory-sync-git-execution-broker.md.
+ *
  * The operation set is the ownership boundary, so it is pinned rather than
  * left to drift: every checkout-touching method callers have must map to an
  * operation, and nothing may reach Git outside one.
@@ -48,10 +50,9 @@ describe("git operation contract", () => {
     };
 
     expect(needingOperations.sort()).toEqual(Object.keys(covered).sort());
+    const operationNames: readonly string[] = GIT_OPERATIONS;
     expect(
-      Object.values(covered).every((name) =>
-        (GIT_OPERATIONS as readonly string[]).includes(name),
-      ),
+      Object.values(covered).every((name) => operationNames.includes(name)),
     ).toBe(true);
   });
 

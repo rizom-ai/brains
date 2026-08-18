@@ -10,6 +10,11 @@ import { join } from "path";
 import { tmpdir } from "os";
 import { existsSync, rmSync, mkdtempSync } from "fs";
 import { MockEntityAdapter } from "./fixtures";
+import { createSilentLogger } from "@brains/test-utils";
+import { BrokerConnection } from "../src/lib/broker/client";
+import { startGitBrokerHost } from "../src/lib/broker/host";
+import { gitBrokerSocketPath } from "../src/lib/broker/server";
+import { getGitRemoteFingerprint } from "../src/lib/git-options";
 
 const syncResponseData = z.object({ jobId: z.string() });
 
@@ -196,6 +201,68 @@ describe("DirectorySyncPlugin", () => {
   });
 
   describe("startup recovery", () => {
+    it("reconciles a replacement before running mutating initialization", async () => {
+      const root = mkdtempSync(join(tmpdir(), "test-broker-recovery-order-"));
+      const checkout = join(root, "checkout");
+      const runtimeDir = join(root, "runtime");
+      const socketPath = gitBrokerSocketPath(runtimeDir);
+      const gitUrl = `file://${join(root, "missing-remote.git")}`;
+      const pluginConfig = {
+        syncPath: checkout,
+        autoSync: false,
+        initialSync: false,
+        git: {
+          gitUrl,
+          branch: "main",
+          authorName: "Test",
+          authorEmail: "test@example.com",
+          bootstrapFromSeed: false,
+        },
+      };
+      const hostOptions = {
+        socketPath,
+        cwd: root,
+        dataDir: checkout,
+        pluginConfig,
+        logger: createSilentLogger(),
+      };
+
+      let owner = await startGitBrokerHost(hostOptions);
+      const seed = await BrokerConnection.connect(socketPath);
+      await seed.registerCheckout({
+        checkoutPath: checkout,
+        branch: "main",
+        remoteFingerprint: getGitRemoteFingerprint(gitUrl),
+      });
+      await seed.execute(checkout, { name: "initialize" });
+      seed.close();
+      await owner.stop();
+
+      // This owner inherits a fully settled record. It is still closed because
+      // the previous role may have lost the answer before advancing its queue
+      // checkpoint. Plugin registration must replay through reads, open
+      // admission, and only then perform mutating initialization.
+      owner = await startGitBrokerHost(hostOptions);
+      const localHarness = createPluginHarness<DirectorySyncPlugin>({
+        dataDir: checkout,
+        gitBrokerSocket: socketPath,
+        gitBrokerCheckout: checkout,
+      });
+      const localPlugin = new DirectorySyncPlugin(pluginConfig);
+
+      await localHarness.installPlugin(localPlugin);
+      const statusConnection = await BrokerConnection.connect(socketPath);
+      const status = await statusConnection.status();
+      expect(status.admitsMutations).toBe(true);
+      expect(status.recoveryPending).toBe(false);
+
+      statusConnection.close();
+      await localPlugin.shutdown?.();
+      localHarness.reset();
+      await owner.stop();
+      rmSync(root, { recursive: true, force: true });
+    }, 60_000);
+
     it("records an interrupted unlinked pull instead of silently clearing it", async () => {
       const path = mkdtempSync(join(tmpdir(), "test-interrupted-pull-"));
       const localHarness = createPluginHarness<DirectorySyncPlugin>({

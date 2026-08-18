@@ -4,6 +4,8 @@ import { runGitBrokerChild } from "../src/lib/git-broker-child";
 import { GIT_BROKER_SOCKET_ENV } from "../src/lib/process-supervisor";
 
 /**
+ * Phase 3 of docs/plans/directory-sync-git-execution-broker.md.
+ *
  * The broker child's contract with its supervisor: it is told where to listen,
  * it reports ready once it is, and it stops only when asked.
  */
@@ -27,6 +29,7 @@ describe("git broker child", () => {
   it("refuses to run without a supervisor-assigned socket", async () => {
     const startHost = mock(async () => ({
       stop: async (): Promise<void> => {},
+      closeAdmission: (): void => {},
       activity: { activeRequestIds: [], oldestActiveProgressAt: null },
     }));
 
@@ -78,6 +81,7 @@ describe("git broker child", () => {
       processImpl,
       startHost: async () => ({
         stop: async (): Promise<void> => {},
+        closeAdmission: (): void => {},
         activity,
       }),
       heartbeatClock: {
@@ -106,10 +110,33 @@ describe("git broker child", () => {
     expect(await running).toEqual({ success: true });
   });
 
+  it("closes mutation admission before supervisor termination", async () => {
+    const closeAdmission = mock(() => {});
+    const processImpl = createProcess({
+      [GIT_BROKER_SOCKET_ENV]: "/run/brain/git-broker.sock",
+    });
+    const running = runGitBrokerChild("/brain", CONFIG, {
+      processImpl,
+      startHost: async () => ({
+        stop: async (): Promise<void> => {},
+        closeAdmission,
+        activity: { activeRequestIds: [], oldestActiveProgressAt: null },
+      }),
+    });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    processImpl.emit("message", { type: "broker-close-admission" });
+    expect(closeAdmission).toHaveBeenCalledTimes(1);
+
+    processImpl.emit("SIGTERM");
+    expect(await running).toEqual({ success: true });
+  });
+
   it("reports ready to its supervisor and stops only on request", async () => {
     const stop = mock(async () => {});
     const startHost = mock(async () => ({
       stop,
+      closeAdmission: (): void => {},
       activity: { activeRequestIds: [], oldestActiveProgressAt: null },
     }));
     const processImpl = createProcess({

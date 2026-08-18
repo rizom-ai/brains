@@ -47,6 +47,8 @@ export interface BrokerGitSyncOptions {
    * assuming its last mutation did or did not land.
    */
   onOwnerReplaced?: ((brokerId: string) => void) | undefined;
+  /** Schedules reattachment/reconciliation without waiting for another call. */
+  onOwnerUnavailable?: (() => void) | undefined;
 }
 
 export class BrokerGitSync {
@@ -89,6 +91,11 @@ export class BrokerGitSync {
       throw error;
     }
     this.#connection = connection;
+    connection.onUnavailable(() => {
+      if (this.#connection !== connection || this.#closed) return;
+      this.#connection = null;
+      this.#options.onOwnerUnavailable?.();
+    });
 
     // The broker announces its own identity, so a replacement is a fact rather
     // than an inference from a dropped socket: reconnecting to the same owner

@@ -20,11 +20,14 @@ import {
 } from "@brains/directory-sync";
 import { EventEmitter } from "node:events";
 import { superviseRuntimeChildren } from "../src/lib/process-supervisor";
+import { GIT_BROKER_TEST_WITHHOLD_COMPLETION_ENV } from "../src/lib/git-broker-child";
 import type { SignalProcess } from "../src/lib/spawn-bun-runner";
 import type { CommandResult } from "../src/lib/command-result";
 
 /**
- * Proving recovery means proving it, not observing signals against a mock, so
+ * Phase 6 of docs/plans/directory-sync-git-execution-broker.md.
+ *
+ * The plan is explicit that this may not be a unit test observing signals, so
  * everything here is real: a real supervisor spawning real child processes, a
  * real broker owning a real Git checkout, a real mutation, and a real Git
  * child whose completion never arrives. Even the stall is real — a push to a
@@ -146,7 +149,10 @@ function isolatedProcess(options: { groupAlwaysPresent?: boolean } = {}): {
 } {
   const emitter = new EventEmitter();
   const impl: SignalProcess = {
-    env: process.env,
+    env: {
+      ...process.env,
+      [GIT_BROKER_TEST_WITHHOLD_COMPLETION_ENV]: "commit-and-push",
+    },
     kill: (pid: number, signal?: NodeJS.Signals | 0): boolean => {
       if (options.groupAlwaysPresent && signal === 0) return true;
       return process.kill(pid, signal);
@@ -268,28 +274,6 @@ afterEach(async () => {
 });
 
 /**
- * A remote that accepts the connection and then says nothing.
- *
- * This is how completion is withheld after a real mutation: the commit is
- * written and durable, and the push that follows it never finishes. Hooks
- * cannot be used — managed operations refuse to run them — and depending on
- * the Bun defect to reproduce itself would make the proof unrepeatable.
- */
-function silentRemote(): { gitUrl: string; stop: () => void } {
-  const server = Bun.listen({
-    hostname: "127.0.0.1",
-    port: 0,
-    socket: { data: (): void => {}, open: (): void => {} },
-  });
-  return {
-    gitUrl: `git://127.0.0.1:${server.port}/repo.git`,
-    stop: (): void => {
-      server.stop(true);
-    },
-  };
-}
-
-/**
  * Live processes in `group`, read from the OS rather than inferred.
  *
  * A zombie is excluded deliberately: it is an exit status nobody has
@@ -332,13 +316,9 @@ describe.skipIf(!LINUX)("a broker that stops completing work", () => {
     });
     await client.execute(harness.checkout, { name: "initialize" });
 
-    // A real mutation whose completion never arrives: the commit is written,
-    // then the push waits on a remote that never answers.
-    const remote = silentRemote();
-    await run(
-      ["git", "remote", "set-url", "origin", remote.gitUrl],
-      harness.checkout,
-    );
+    // A real mutation whose completion never arrives: commit and push return,
+    // their Git children exit, and the deterministic boundary withholds the
+    // completion exactly where affected Bun loses it.
     await writeFile(join(harness.checkout, "note.md"), "owned\n");
     const stalled = client
       .execute(harness.checkout, { name: "commit-and-push" })
@@ -369,14 +349,11 @@ describe.skipIf(!LINUX)("a broker that stops completing work", () => {
     // 3 and 4. The supervisor terminates the group and proves it absent. The
     //    broker leads its own group, so its Git children are in it — their
     //    death is the evidence that the group went, not just the broker.
-    const gitChildren = await until(
-      "git children in the broker group",
-      async () => {
-        const members = await membersOfGroup(firstBroker);
-        return members.length > 1 ? members : undefined;
-      },
-    );
-    expect(gitChildren.length).toBeGreaterThan(1);
+    const ownedGroup = await membersOfGroup(firstBroker);
+    // Git itself has completed: only the broker remains holding the unresolved
+    // completion and its serialized turn. This is the affected Bun shape, not
+    // a network request that merely remains in progress.
+    expect(ownedGroup).toEqual([firstBroker]);
 
     await until(
       "the old broker to exit",
@@ -390,7 +367,7 @@ describe.skipIf(!LINUX)("a broker that stops completing work", () => {
         // the kernel can recycle the old broker's pid as another group's
         // leader — and then an unrelated process answers for a group that
         // is long gone.
-        const alive = gitChildren.filter((pid) => isAlive(pid));
+        const alive = ownedGroup.filter((pid) => isAlive(pid));
         return alive.length === 0 ? true : undefined;
       },
       60_000,
@@ -414,6 +391,48 @@ describe.skipIf(!LINUX)("a broker that stops completing work", () => {
     expect(isAlive(webPid)).toBe(true);
     expect(isAlive(workerPid)).toBe(true);
 
+    // The replacement is reachable but fail-closed until durable state is
+    // reconciled from repository facts. Historical ambiguity remains visible
+    // for evidence, while health recovers only after admission is explicitly
+    // opened by the scheduling side.
+    // The pid file is announced before the child finishes binding its socket.
+    // Wait on the endpoint itself so a faster affected runtime cannot turn
+    // replacement startup into a one-shot connection race.
+    const replacement = await until(
+      "the replacement broker socket",
+      async () =>
+        BrokerConnection.connect(harness.socketPath).then(
+          (connection) => connection,
+          () => undefined,
+        ),
+      60_000,
+    );
+    await replacement.registerCheckout({
+      checkoutPath: harness.checkout,
+      branch: "main",
+      remoteFingerprint: getGitRemoteFingerprint(
+        `file://${join(harness.root, "content.git")}`,
+      ),
+    });
+    const pendingRecovery = await replacement.status();
+    expect(pendingRecovery.admitsMutations).toBe(false);
+    expect(pendingRecovery.recoveryPending).toBe(true);
+    const delta = await replacement.execute(harness.checkout, {
+      name: "get-reconciliation-delta",
+    });
+    expect(delta).toMatchObject({
+      mode: "full",
+      reason: "missing-checkpoint",
+    });
+    await replacement.openAdmission();
+    const recoveredHealth = await createBrokerHealthCheck({
+      probe: probeBrokerActivity(harness.socketPath),
+      now: () => Date.now(),
+      progressTimeoutMs: 1_000,
+    })();
+    expect(recoveredHealth.status).toBe("healthy");
+    replacement.close();
+
     // 6. The mutation that landed is present exactly once, and the client
     //    that lost its owner is told so rather than re-running it.
     expect(String(await stalled)).toContain("unavailable");
@@ -426,7 +445,6 @@ describe.skipIf(!LINUX)("a broker that stops completing work", () => {
     );
     expect(landed.trim().split("\n").filter(Boolean)).toHaveLength(1);
 
-    remote.stop();
     client.close();
   }, 300_000);
 
@@ -454,11 +472,6 @@ describe.skipIf(!LINUX)("a broker that stops completing work", () => {
     });
     await client.execute(harness.checkout, { name: "initialize" });
 
-    const remote = silentRemote();
-    await run(
-      ["git", "remote", "set-url", "origin", remote.gitUrl],
-      harness.checkout,
-    );
     await writeFile(join(harness.checkout, "note.md"), "owned\n");
     const stalled = client
       .execute(harness.checkout, { name: "commit-and-push" })
@@ -486,7 +499,6 @@ describe.skipIf(!LINUX)("a broker that stops completing work", () => {
     );
 
     void stalled;
-    remote.stop();
     client.close();
   }, 300_000);
 });

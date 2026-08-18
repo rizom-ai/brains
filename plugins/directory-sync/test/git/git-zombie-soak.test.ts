@@ -70,6 +70,7 @@ it.skipIf(!RUN_SOAK)(
     await run(["git", "init", "--bare", "--initial-branch=main"], remoteDir);
 
     const baselineZombies = await countDirectZombieChildren(process.pid);
+    let completedCycles = 0;
     const gitSync = await createBrokerGitSync({
       logger: createSilentLogger("git-zombie-soak"),
       dataDir,
@@ -86,13 +87,26 @@ it.skipIf(!RUN_SOAK)(
         await gitSync.commit(`soak ${cycle}`);
         await gitSync.push();
         await gitSync.pull();
+        completedCycles += 1;
       }
     } finally {
       await gitSync.cleanup();
       await rm(root, { recursive: true, force: true });
     }
 
-    expect(await countDirectZombieChildren(process.pid)).toBe(baselineZombies);
+    const finalZombies = await countDirectZombieChildren(process.pid);
+    console.info(
+      `GIT_BROKER_PROCESS_INVENTORY_REPORT ${JSON.stringify({
+        bunVersion: Bun.version,
+        requestedCycles: CYCLES,
+        completedCycles,
+        completedGitOperations: completedCycles * 3,
+        observedLostCompletions: CYCLES - completedCycles,
+        baselineZombies,
+        finalZombies,
+      })}`,
+    );
+    expect(finalZombies).toBe(baselineZombies);
   },
   120_000,
 );

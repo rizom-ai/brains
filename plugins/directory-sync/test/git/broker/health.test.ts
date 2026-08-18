@@ -1,8 +1,15 @@
 import { describe, expect, it, mock } from "bun:test";
-import { createBrokerHealthCheck } from "../../../src/lib/broker/health";
+import {
+  BROKER_PROGRESS_TIMEOUT_MS,
+  GIT_BROKER_TEST_PROGRESS_TIMEOUT_ENV,
+  createBrokerHealthCheck,
+  resolveBrokerProgressTimeoutMs,
+} from "../../../src/lib/broker/health";
 import type { BrokerActivity } from "../../../src/lib/broker/health";
 
 /**
+ * Phase 5 of docs/plans/directory-sync-git-execution-broker.md.
+ *
  * Health is evaluated from durable facts on request, not from a background
  * poller: the question is what the owner is doing right now. `/health/live`
  * and `/health/ready` stay independent — a checkout that cannot be written is
@@ -16,6 +23,7 @@ const FRESH = {
   oldestActiveProgressAt: 9_500,
   ambiguousRequestIds: [],
   evidenceComplete: true,
+  recoveryPending: false,
 };
 
 function check(
@@ -30,6 +38,19 @@ function check(
 }
 
 describe("broker health", () => {
+  it("uses a bounded test-only progress threshold when explicitly supplied", () => {
+    expect(
+      resolveBrokerProgressTimeoutMs({
+        [GIT_BROKER_TEST_PROGRESS_TIMEOUT_ENV]: "750",
+      }),
+    ).toBe(750);
+    expect(
+      resolveBrokerProgressTimeoutMs({
+        [GIT_BROKER_TEST_PROGRESS_TIMEOUT_ENV]: "not-a-number",
+      }),
+    ).toBe(BROKER_PROGRESS_TIMEOUT_MS);
+  });
+
   it("is healthy when the owner is idle", async () => {
     const result = await check(async () => ({
       ...FRESH,
@@ -93,6 +114,7 @@ describe("broker health", () => {
       activeRequestIds: [],
       oldestActiveProgressAt: null,
       ambiguousRequestIds: ["req_inherited0001"],
+      recoveryPending: true,
     }))();
 
     expect(result.status).toBe("degraded");
@@ -107,9 +129,23 @@ describe("broker health", () => {
       activeRequestIds: [],
       oldestActiveProgressAt: null,
       evidenceComplete: false,
+      recoveryPending: true,
     }))();
 
     expect(result.status).toBe("degraded");
     expect(result.message).toContain("whole");
+  });
+
+  it("becomes healthy once inherited work is reconciled", async () => {
+    const result = await check(async () => ({
+      ...FRESH,
+      activeRequestIds: [],
+      oldestActiveProgressAt: null,
+      ambiguousRequestIds: ["req_reconciled001"],
+      evidenceComplete: false,
+      recoveryPending: false,
+    }))();
+
+    expect(result.status).toBe("healthy");
   });
 });

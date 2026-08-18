@@ -1,4 +1,5 @@
 import type { Logger } from "@brains/utils/logger";
+import { getErrorMessage } from "@brains/utils/error";
 import type { DirectorySyncScheduler } from "./directory-sync-runtime";
 
 /**
@@ -14,6 +15,33 @@ import type { DirectorySyncScheduler } from "./directory-sync-runtime";
  * nothing at all if the lost operation never landed.
  */
 
+export interface OwnerRecoveryClient {
+  admitsMutations(): Promise<boolean>;
+  openAdmission(): Promise<unknown>;
+}
+
+/**
+ * Bind replay and admission to one attached generation.
+ *
+ * A failed candidate must not overwrite global recovery state for the active
+ * generation, and a candidate must never be opened after replaying a different
+ * checkout. Keeping the client in this closure makes that identity structural.
+ */
+export function createOwnerRecoveryReplay<
+  TClient extends OwnerRecoveryClient,
+>(options: {
+  client: () => TClient | undefined;
+  replay: (client: TClient) => Promise<unknown>;
+}): () => Promise<void> {
+  return async (): Promise<void> => {
+    const client = options.client();
+    if (!client) throw new Error("Git broker client is unavailable");
+    if (await client.admitsMutations()) return;
+    await options.replay(client);
+    await client.openAdmission();
+  };
+}
+
 export interface OwnerReplacementOptions {
   logger: Logger;
   scheduler: DirectorySyncScheduler;
@@ -23,6 +51,34 @@ export interface OwnerReplacementOptions {
 export function createOwnerReplacementHandler(
   options: OwnerReplacementOptions,
 ): (brokerId: string) => void {
+  let consecutiveFailures = 0;
+
+  const scheduleReplay = (delayMs: number): void => {
+    options.scheduler.scheduleTrailing(
+      "git-owner-replacement",
+      delayMs,
+      async (): Promise<void> => {
+        try {
+          await options.replay();
+          consecutiveFailures = 0;
+        } catch (error) {
+          consecutiveFailures += 1;
+          options.logger.error("Reconciling a replaced Git broker failed", {
+            error: getErrorMessage(error),
+            consecutiveFailures,
+          });
+          // Keep admission closed while retrying from durable state. The cap
+          // avoids both a tight failure loop and an ever-growing outage delay.
+          const retryDelayMs = Math.min(
+            1_000 * 2 ** (consecutiveFailures - 1),
+            30_000,
+          );
+          scheduleReplay(retryDelayMs);
+        }
+      },
+    );
+  };
+
   return (brokerId: string): void => {
     options.logger.warn(
       "Git broker was replaced; reconciling from the checkout",
@@ -30,21 +86,8 @@ export function createOwnerReplacementHandler(
     );
     // Scheduled rather than awaited: this is reported from inside the
     // operation that reattached, so replaying here would re-enter a client
-    // that is still mid-call.
-    options.scheduler.scheduleTrailing(
-      "git-owner-replacement",
-      0,
-      async (): Promise<void> => {
-        try {
-          await options.replay();
-        } catch (error) {
-          // A failed reconciliation must not take down a role that is
-          // otherwise healthy; the next trigger tries again.
-          options.logger.error("Reconciling a replaced Git broker failed", {
-            error,
-          });
-        }
-      },
-    );
+    // that is still mid-call. The keyed trailing schedule also collapses a
+    // burst of reports for one replacement into one replay.
+    scheduleReplay(0);
   };
 }

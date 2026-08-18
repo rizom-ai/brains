@@ -126,6 +126,30 @@ describe.skipIf(!LINUX)("one request id", () => {
     expect(await commitTouching(checkout, "second.md")).toEqual([]);
   }, 60_000);
 
+  it("refuses concurrent reuse for different work", async () => {
+    const { checkout, connect } = await ownedCheckout();
+    const connection = await connect();
+    await connection.execute(checkout, { name: "initialize" });
+    await writeFile(join(checkout, "note.md"), "note\n");
+
+    // The second call reaches the client's in-flight ledger before the first
+    // reply can arrive. It must still be bound to the operation and checkout;
+    // otherwise a commit's void reply can masquerade as a successful push.
+    const requestId = "req_concurrentmix1";
+    const commit = connection.executeWithId(requestId, checkout, {
+      name: "commit",
+    });
+    const mismatched = await connection
+      .executeWithId(requestId, checkout, { name: "push" })
+      .then(
+        () => undefined,
+        (error: unknown) => String(error),
+      );
+
+    expect(mismatched).toContain("already used");
+    await commit;
+  }, 60_000);
+
   it("refuses to answer for work it never did", async () => {
     const { checkout, connect } = await ownedCheckout();
     const connection = await connect();
@@ -139,6 +163,34 @@ describe.skipIf(!LINUX)("one request id", () => {
     // the other would report a push that never reached the remote.
     const mismatched = await connection
       .executeWithId(requestId, checkout, { name: "push" })
+      .then(
+        () => undefined,
+        (error: unknown) => String(error),
+      );
+
+    expect(mismatched).toContain("already used");
+  }, 60_000);
+
+  it("refuses an id reused for different operation arguments", async () => {
+    const { checkout, connect } = await ownedCheckout();
+    const connection = await connect();
+    await connection.execute(checkout, { name: "initialize" });
+    await writeFile(join(checkout, "first.md"), "first\n");
+    await writeFile(join(checkout, "second.md"), "second\n");
+    await connection.execute(checkout, { name: "commit" });
+
+    const requestId = "req_otherargument";
+    await connection.executeWithId(requestId, checkout, {
+      name: "show-file",
+      sha: "HEAD",
+      filePath: "first.md",
+    });
+    const mismatched = await connection
+      .executeWithId(requestId, checkout, {
+        name: "show-file",
+        sha: "HEAD",
+        filePath: "second.md",
+      })
       .then(
         () => undefined,
         (error: unknown) => String(error),

@@ -1,6 +1,7 @@
 import { dirname, resolve } from "path";
 import { canonicalCheckoutPath } from "./checkout-identity";
 import type { CheckoutExecutorOptions } from "./checkout-executor";
+import type { GitOperation } from "./operations";
 import type { Logger } from "@brains/utils/logger";
 import { directorySyncConfigSchema } from "../../types/config";
 import {
@@ -30,6 +31,8 @@ export interface GitBrokerHostOptions {
   /** `plugins.directory-sync` from `brain.yaml`, unvalidated. */
   pluginConfig: unknown;
   logger: Logger;
+  /** Internal real-process fault: withhold after Git itself has returned. */
+  testWithholdCompletionAfter?: string | undefined;
 }
 
 /** The checkout this Brain's directory-sync configuration points at. */
@@ -79,6 +82,14 @@ export async function startGitBrokerHost(
     timeoutMs: DEFAULT_GIT_TIMEOUT_MS,
     authorName: git.authorName,
     authorEmail: git.authorEmail,
+    ...(options.testWithholdCompletionAfter === undefined
+      ? {}
+      : {
+          afterOperation: async (operation: GitOperation): Promise<void> => {
+            if (operation.name !== options.testWithholdCompletionAfter) return;
+            await new Promise<void>(() => {});
+          },
+        }),
   };
 
   return GitBrokerServer.start({

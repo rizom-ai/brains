@@ -6,6 +6,8 @@ import { buildGitCredentialEnv } from "../../../src/lib/broker/git-credentials";
 import { runGitCommandWithStallTimeout } from "../../../src/lib/broker/git-stall";
 
 /**
+ * Phase 4 of docs/plans/directory-sync-git-execution-broker.md.
+ *
  * The credential mechanism is unit-tested, but "the header is well-formed" is
  * not the same claim as "a private remote actually lets us in". This drives
  * clone, fetch, and push against a real Git server over TLS that rejects

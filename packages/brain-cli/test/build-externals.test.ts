@@ -72,6 +72,12 @@ describe("brain-cli build config", () => {
     expect(externalsBlock).toMatch(/["']preact-render-to-string["']/);
   });
 
+  it("builds a broker-only runtime beside the full Brain bundle", () => {
+    expect(buildScript).toContain('name: "git-broker"');
+    expect(buildScript).toContain('"src", "git-broker-entrypoint.ts"');
+    expect(buildScript).toContain("brokerBuild");
+  });
+
   it("builds public library entries together with shared chunks", () => {
     expect(buildScript).toContain(
       "entrypoints: libraryEntries.map((entry) => entry.source)",

@@ -12,6 +12,8 @@ import type { GitBrokerServer } from "../../../src/lib/broker/server";
 import { BrokerConnection } from "../../../src/lib/broker/client";
 
 /**
+ * Phase 4 of docs/plans/directory-sync-git-execution-broker.md.
+ *
  * Invariant 6 is about where a token is *not*. These drive real Git with a
  * real token and then go looking for it.
  */

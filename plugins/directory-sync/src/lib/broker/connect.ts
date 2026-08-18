@@ -29,6 +29,8 @@ export interface ConnectGitSyncOptions {
   logger: Logger;
   /** See `BrokerGitSyncOptions.onOwnerReplaced`. */
   onOwnerReplaced?: ((brokerId: string) => void) | undefined;
+  /** See `BrokerGitSyncOptions.onOwnerUnavailable`. */
+  onOwnerUnavailable?: (() => void) | undefined;
 }
 
 export async function connectGitSync(
@@ -52,6 +54,9 @@ export async function connectGitSync(
     remoteUrl: options.remoteUrl,
     ...(options.onOwnerReplaced
       ? { onOwnerReplaced: options.onOwnerReplaced }
+      : {}),
+    ...(options.onOwnerUnavailable
+      ? { onOwnerUnavailable: options.onOwnerUnavailable }
       : {}),
   });
 

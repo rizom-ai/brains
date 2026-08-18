@@ -95,8 +95,23 @@ describe.skipIf(!LINUX)("an operational health request", () => {
       progressTimeoutMs: 60_000,
     })();
 
-    expect(health.status).toBe("healthy");
+    expect(health.status).toBe("degraded");
     expect(replacements).toEqual([]);
+
+    // Resolving recovery is an explicit write by the scheduling role, never a
+    // side effect of the probe. Once reported, historical ambiguity may remain
+    // visible without keeping operational health degraded forever.
+    const recovery = await import("../../../src/lib/broker/client").then(
+      ({ BrokerConnection }) => BrokerConnection.connect(owned.socketPath),
+    );
+    await recovery.openAdmission();
+    recovery.close();
+    const recovered = await createBrokerHealthCheck({
+      probe: probeBrokerActivity(owned.socketPath),
+      now: () => Date.now(),
+      progressTimeoutMs: 60_000,
+    })();
+    expect(recovered.status).toBe("healthy");
 
     await gitSync.cleanup();
   }, 60_000);
@@ -128,6 +143,7 @@ describe.skipIf(!LINUX)("an operational health request", () => {
     // case to be reportable at all.
     expect(status.ambiguousRequestIds).toEqual([]);
     expect(status.evidenceComplete).toBe(true);
+    expect(status.recoveryPending).toBe(false);
 
     connection.close();
   }, 60_000);

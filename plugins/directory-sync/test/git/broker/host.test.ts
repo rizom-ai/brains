@@ -10,6 +10,8 @@ import type { GitBrokerServer } from "../../../src/lib/broker/server";
 import { getGitRemoteFingerprint } from "../../../src/lib/git-options";
 
 /**
+ * Phase 3 of docs/plans/directory-sync-git-execution-broker.md.
+ *
  * The broker child owns one checkout and learns which one from the same
  * `brain.yaml` its app roles read. It resolves the remote — and any token —
  * from its own configuration, so nothing a client sends can widen what this

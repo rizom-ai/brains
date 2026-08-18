@@ -11,8 +11,8 @@ import { createMockGitSync } from "./fixtures";
  * question "does this checkout have history?" is now asked of its owner.
  *
  * It used to be answered by running `rev-parse` in the app process. That is a
- * Git child against a managed checkout, and the broker owns every one of
- * those: no role outside it executes Git.
+ * Git child against a managed checkout, which the broker design removes — see
+ * docs/plans/directory-sync-git-execution-broker.md.
  */
 
 let scratch: string | undefined;

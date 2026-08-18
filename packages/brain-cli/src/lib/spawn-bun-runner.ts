@@ -1,4 +1,4 @@
-import { spawn, type SpawnOptions } from "child_process";
+import { spawn, type ChildProcess, type SpawnOptions } from "child_process";
 import type { CommandResult } from "./command-result";
 
 export interface SpawnedProcess {
@@ -7,6 +7,7 @@ export interface SpawnedProcess {
   /** Absent until the child is spawned; the broker's process group leader. */
   pid?: number | undefined;
   kill(signal?: number | NodeJS.Signals): boolean;
+  send?: ChildProcess["send"] | undefined;
   on(event: "error", listener: (error: Error) => void): this;
   on(
     event: "close",
