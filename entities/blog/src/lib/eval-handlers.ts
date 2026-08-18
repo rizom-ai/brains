@@ -1,4 +1,7 @@
-import type { EntityPluginContext } from "@brains/plugins";
+import type {
+  EntityEvalDeclaration,
+  EntityPluginContext,
+} from "@brains/plugins";
 import { fetchStyleGuide, formatVoiceGuidance } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 
@@ -48,3 +51,29 @@ export function registerEvalHandlers(context: EntityPluginContext): void {
     });
   });
 }
+
+/**
+ * Eval handlers, keyed by the `handler:` name their test cases use. These
+ * run the same prompts and templates generation does, so a drift in either
+ * surfaces here rather than only in production.
+ */
+export const blogEvals: EntityEvalDeclaration = {
+  generatePost: async (input, { ai, entities }) => {
+    const parsed = generatePostInputSchema.parse(input);
+    const voiceGuidance = formatVoiceGuidance(await fetchStyleGuide(entities));
+    return ai.generate<{ title: string; content: string; excerpt: string }>({
+      prompt: `${parsed.prompt}${parsed.seriesName ? `\n\nNote: This is part of a series called "${parsed.seriesName}".` : ""}`,
+      templateName: "blog:generation",
+      representedIdentity: "anchor",
+      ...(voiceGuidance && { styleGuide: { voice: voiceGuidance } }),
+    });
+  },
+  generateExcerpt: async (input, { ai }) => {
+    const parsed = generateExcerptInputSchema.parse(input);
+    return ai.generate<{ excerpt: string }>({
+      prompt: `Title: ${parsed.title}\n\nContent:\n${parsed.content}`,
+      templateName: "blog:excerpt",
+      representedIdentity: "none",
+    });
+  },
+};

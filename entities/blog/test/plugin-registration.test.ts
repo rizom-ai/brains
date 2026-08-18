@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import { SYSTEM_CHANNELS } from "@brains/plugins";
-import { BlogPlugin } from "../src/plugin";
+import { postEntityPlugin } from "./helpers/install";
 import { FeedRegistry } from "@brains/site-composition";
 import { postToFeedItem } from "../src/lib/feed";
 import {
@@ -17,11 +17,11 @@ const sampleDraftPost = createMockPost(
 );
 
 describe("BlogPlugin - Publish Pipeline Integration", () => {
-  let harness: PluginTestHarness<BlogPlugin>;
+  let harness: PluginTestHarness;
   let receivedMessages: Array<{ type: string; payload: unknown }>;
 
   beforeEach(async () => {
-    harness = createPluginHarness<BlogPlugin>({ dataDir: "/tmp/test-blog" });
+    harness = createPluginHarness({ dataDir: "/tmp/test-blog" });
     receivedMessages = [];
 
     for (const eventType of [
@@ -39,7 +39,7 @@ describe("BlogPlugin - Publish Pipeline Integration", () => {
 
   describe("entity policy registration", () => {
     it("declares post publish statuses", async () => {
-      await harness.installPlugin(new BlogPlugin({}));
+      await harness.installPlugin(postEntityPlugin());
 
       expect(
         harness.getEntityRegistry().getEntityTypeConfig("post").publish,
@@ -51,7 +51,7 @@ describe("BlogPlugin - Publish Pipeline Integration", () => {
 
   describe("provider registration", () => {
     it("should send publish:register message after plugins-registered with internal provider", async () => {
-      await harness.installPlugin(new BlogPlugin({}));
+      await harness.installPlugin(postEntityPlugin());
 
       expect(
         receivedMessages.find((m) => m.type === "publish:register"),
@@ -75,7 +75,7 @@ describe("BlogPlugin - Publish Pipeline Integration", () => {
     });
 
     it("should register post OG images as publish assets after plugins-registered", async () => {
-      await harness.installPlugin(new BlogPlugin({}));
+      await harness.installPlugin(postEntityPlugin());
 
       expect(
         receivedMessages.find((m) => m.type === "publish-assets:register"),
@@ -103,10 +103,10 @@ describe("BlogPlugin - Publish Pipeline Integration", () => {
     });
 
     it("delivers deferred publish registrations to subscribers installed after blog", async () => {
-      const localHarness = createPluginHarness<BlogPlugin>({
+      const localHarness = createPluginHarness({
         dataDir: "/tmp/test-blog-late-publish-subscriber",
       });
-      await localHarness.installPlugin(new BlogPlugin({}));
+      await localHarness.installPlugin(postEntityPlugin());
       const lateMessages: Array<{ type: string; payload: unknown }> = [];
       for (const eventType of ["publish:register", "publish-assets:register"]) {
         localHarness.subscribe(eventType, async (msg) => {
@@ -134,7 +134,7 @@ describe("BlogPlugin - Publish Pipeline Integration", () => {
     // posts qualify and where the file goes, so nothing here touches an
     // output directory.
     it("registers a feed declaration for posts", async () => {
-      await harness.installPlugin(new BlogPlugin({}));
+      await harness.installPlugin(postEntityPlugin());
 
       const declaration = FeedRegistry.getInstance().get("post");
       expect(declaration).toMatchObject({

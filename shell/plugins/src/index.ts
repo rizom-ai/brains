@@ -251,6 +251,8 @@ export type {
   EntityGenerationContext,
   EntityGenerationDeclaration,
   EntityJobDeclaration,
+  EntityFeedDeclaration,
+  EntityPublishAssetDeclaration,
   EntityPublishDeclaration,
   MediaAttachmentContext,
 } from "./entity/entity-definition-contract";
@@ -260,13 +262,17 @@ export type {
   JobMessagePublisher,
   JobTemplateFormatter,
 } from "./job/job-context-contract";
+export { paginateItems } from "@brains/entity-service";
+export type { PaginateOptions, PaginateResult } from "@brains/entity-service";
 export {
+  createDeclarativeDataSource,
   createDeclarativeEntityDataSource,
   defineDataSource,
   defineEntityDataSource,
   type AnyDataSourceDeclaration,
   type AnyEntityDataSourceDefinition,
   type DataSourceDefinition,
+  type FetchingDataSource,
   type EntityDataSourceDefinition,
   type EntityDetailContext,
   type EntityQueryReader,

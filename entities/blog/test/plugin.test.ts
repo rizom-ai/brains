@@ -1,45 +1,17 @@
 import { describe, it, expect, beforeEach } from "bun:test";
-import type { BlogPlugin } from "../src/index";
-import { blogPlugin } from "../src/index";
 import { BlogPostAdapter } from "../src/adapters/blog-post-adapter";
 import type { BlogPost } from "../src/schemas/blog-post";
 import { blogPostFrontmatterSchema } from "../src/schemas/blog-post";
 import { createMockBlogPost } from "./fixtures/blog-entities";
 import { createTestEntity } from "@brains/test-utils";
-import packageJson from "../package.json";
+import { postEntityPlugin, PACKAGE_METADATA } from "./helpers/install";
 
-describe("BlogPlugin", () => {
-  let plugin: BlogPlugin;
-
-  beforeEach(() => {
-    plugin = blogPlugin({
-      defaultPrompt: "Write a blog post about my recent work",
-    }) as BlogPlugin;
-  });
-
-  describe("Plugin Configuration", () => {
-    it("should have correct plugin metadata", () => {
-      expect(plugin.id).toBe("blog");
-      expect(plugin.description).toContain("AI-powered blog post generation");
-      expect(plugin.version).toBe(packageJson.version);
-    });
-
-    it("should use default configuration when not provided", () => {
-      const defaultPlugin = blogPlugin({
-        defaultPrompt: "Write a blog post about my recent work and insights",
-      }) as BlogPlugin;
-      expect(defaultPlugin.id).toBe("blog");
-      expect(defaultPlugin.version).toBe(packageJson.version);
-    });
-
-    it("should accept custom configuration", () => {
-      const customPlugin = blogPlugin({
-        defaultPrompt: "Custom prompt here",
-      }) as BlogPlugin;
-
-      expect(customPlugin.id).toBe("blog");
-      expect(customPlugin.version).toBe(packageJson.version);
-    });
+describe("blog package", () => {
+  it("produces an entity plugin scoped to the package", () => {
+    const plugin = postEntityPlugin();
+    expect(plugin.id).toBe(`${PACKAGE_METADATA.name}:post`);
+    expect(plugin.type).toBe("entity");
+    expect(plugin.version).toBe(PACKAGE_METADATA.version);
   });
 
   describe("blogPostFrontmatterSchema", () => {

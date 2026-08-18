@@ -9,6 +9,7 @@ import type {
 import type { LoggerContract } from "@brains/utils/logger";
 import type { ProgressContract } from "@brains/utils/progress";
 import type { IEntityAINamespace } from "../entity/ai-types";
+import type { AnchorProfile } from "../contracts/identity";
 import type {
   AnyEntityDefinition,
   EntityOf,
@@ -107,6 +108,12 @@ export interface JobHandlerContext<TInput> {
   readonly ai: IEntityAINamespace;
   readonly logger: LoggerContract;
   readonly conversations: EntityConversationReader;
+  /**
+   * The brain the work is done on behalf of. A handler generating prose in
+   * the brain's voice needs its name and character; nothing here reaches
+   * the identity service itself.
+   */
+  readonly identity: { getProfile(): AnchorProfile };
   readonly messaging: JobMessagePublisher;
   readonly progress: ProgressContract;
   readonly signal: AbortSignal;

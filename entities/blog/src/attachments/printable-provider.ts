@@ -12,6 +12,8 @@ import {
   type BlogPrintableTemplateData,
 } from "./printable-template";
 
+export { BLOG_PRINTABLE_ATTACHMENT_TYPE };
+
 export const createBlogPrintableProvider: PrintableProviderFactory =
   createPrintableProvider<BlogPost, BlogPrintableTemplateData>({
     sourceEntityType: "post",

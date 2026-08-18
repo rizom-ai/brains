@@ -37,16 +37,16 @@ describe("Blog printable attachment provider", () => {
   beforeEach(() => {});
 
   it("registers a post printable attachment provider", async () => {
-    const harness = createPluginHarness<BlogPlugin>();
-    await harness.installPlugin(new BlogPlugin());
+    const harness = createPluginHarness();
+    await harness.installPlugin(postEntityPlugin());
 
     const context = harness.getEntityContext("test");
     expect(context.attachments.hasProvider("post", "printable")).toBe(true);
   });
 
   it("returns undefined for non-printable requests", async () => {
-    const harness = createPluginHarness<BlogPlugin>();
-    await harness.installPlugin(new BlogPlugin());
+    const harness = createPluginHarness();
+    await harness.installPlugin(postEntityPlugin());
     await harness.getEntityService().createEntity({ entity: samplePost });
 
     const provider = createBlogPrintableProvider({
@@ -80,8 +80,8 @@ describe("Blog printable attachment provider", () => {
       ).toMatchSnapshot();
       return Buffer.from("%PDF-post-printable");
     });
-    const harness = createPluginHarness<BlogPlugin>();
-    await harness.installPlugin(new BlogPlugin());
+    const harness = createPluginHarness();
+    await harness.installPlugin(postEntityPlugin());
     await harness.getEntityService().createEntity({ entity: samplePost });
 
     const provider = createBlogPrintableProvider(
