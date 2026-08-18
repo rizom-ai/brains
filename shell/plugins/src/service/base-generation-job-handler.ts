@@ -27,6 +27,15 @@ export interface GenerationJobHandlerConfig<TInput> {
   jobTypeName: string;
   /** Entity type being generated (e.g., "post", "note", "deck") */
   entityType: string;
+  /**
+   * How this entity describes its cover image, given the generated title.
+   *
+   * What a cover image should depict is the entity's knowledge, not the
+   * runtime's — a social post wants a graphic where a blog post wants an
+   * editorial cover. Omit to take the editorial default. A prompt supplied
+   * on the job data still wins over both.
+   */
+  coverImagePrompt?: (title: string) => string;
 }
 
 /**
@@ -164,6 +173,7 @@ export abstract class BaseGenerationJobHandler<
 > extends BaseJobHandler<string, TInput, TResult> {
   protected readonly context: EntityPluginContext;
   protected readonly entityType: string;
+  private readonly coverImagePrompt: ((title: string) => string) | undefined;
 
   constructor(
     logger: Logger,
@@ -176,6 +186,7 @@ export abstract class BaseGenerationJobHandler<
     });
     this.context = context;
     this.entityType = config.entityType;
+    this.coverImagePrompt = config.coverImagePrompt;
   }
 
   /**
@@ -467,7 +478,10 @@ export abstract class BaseGenerationJobHandler<
     await this.context.jobs.enqueue({
       type: IMAGE_CHANNELS.generate,
       data: {
-        prompt: coverImage.prompt ?? `Editorial cover image for: ${title}. `,
+        prompt:
+          coverImage.prompt ??
+          this.coverImagePrompt?.(title) ??
+          `Editorial cover image for: ${title}. `,
         title: `${title} Cover`,
         aspectRatio: "16:9",
         targetEntityType: this.entityType,
