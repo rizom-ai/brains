@@ -4,7 +4,8 @@
 
 Active — implementation Phases 0–7 are complete. Local Phase 6 passed on affected Bun
 1.3.11, and the approved packaged/scheduled Phase 7 matrix passed on affected Bun 1.3.14
-at the final rebased HEAD in run 32108673965. The first immutable fixed Bun stable is still
+at the final checkout-handoff rebased HEAD in run 32112427352. The first immutable fixed
+Bun stable is still
 unavailable; PR merge,
 release, deployment, and smoke validation have not run. This plan owns **Git runtime safety
 only**. Directory-sync import performance, AI-call
@@ -529,17 +530,18 @@ RSS and crossed the unchanged 1.28 GiB soak ceiling, while the source recovery f
 a broker PID file before its replacement socket was ready. The broker now has a lightweight
 entrypoint and the fixture waits on the endpoint itself.
 
-The first changed-tree rerun,
-[32105478832](https://github.com/rizom-ai/brains/actions/runs/32105478832), passed. After
-rebasing onto the next `origin/main`, the final rerun,
-[32108673965](https://github.com/rizom-ai/brains/actions/runs/32108673965), passed the
+The changed-tree reruns
+[32105478832](https://github.com/rizom-ai/brains/actions/runs/32105478832) and
+[32108673965](https://github.com/rizom-ai/brains/actions/runs/32108673965) passed. After
+rebasing the checkout-path handoff from the next `origin/main`, final run
+[32112427352](https://github.com/rizom-ai/brains/actions/runs/32112427352) passed the
 complete matrix again on Bun 1.3.14: packaged recovery and fallback, 100 cycles/300 Git
 operations with zero observed lost completions or zombies, the feature resource gate,
 three unchanged 350-file add/update/delayed-update/delete soaks, full core lint/typecheck/
 unit/build, startup checks, and package creation. All three final soaks retained routing
 and operational health, process-role continuity, queue/deletion convergence, and the
-existing 1.28 GiB RSS ceiling; peak RSS was 1,176,850,432, 1,192,984,576, and
-1,219,264,512 bytes.
+existing 1.28 GiB RSS ceiling; peak RSS was 1,216,335,872, 1,160,929,280, and
+1,145,937,920 bytes.
 
 Run the same matrix on the first immutable fixed Bun release when available. The fixed
 runtime is defense in depth, not permission to skip affected-runtime recovery evidence.
