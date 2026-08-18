@@ -294,6 +294,7 @@
     "core--media-provider-factories",
     "core--operational-health-semantics",
     "core--operator-contract-secret-boundary",
+    "core--operator-workspace-design",
     "core--ops-explicit-theme-version",
     "core--ops-incident-hardening",
     "core--ops-reconcile-view-convergence",

@@ -1,7 +1,7 @@
 {
   "name": "@brains/contracts",
   "license": "Apache-2.0",
-  "version": "0.2.0-alpha.307",
+  "version": "0.2.0-alpha.308",
   "dependencies": {
     "@brains/utils": "workspace:*"
   },

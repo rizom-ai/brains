@@ -1,7 +1,7 @@
 {
   "name": "@brains/site-builder-plugin",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.307",
+  "version": "0.2.0-alpha.308",
   "description": "Static site generation plugin for Brain system",
   "dependencies": {
     "@brains/contracts": "workspace:*",
