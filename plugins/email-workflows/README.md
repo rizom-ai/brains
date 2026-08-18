@@ -14,6 +14,8 @@ The capability is explicit opt-in. Its active runtime composition contains the t
 - owns acknowledgement of raw inbound mail, so a failure holds the mailbox cursor rather than losing a message
 - registers a `mail-items` inbox source for `@brains/unified-inbox`, with source-scoped
   category, mail-priority, and needs-reply facets for workspace and headless filtering
+- offers two decisive Inbox exits: **Done** records completed work as handled, while
+  **Dismiss** archives an item that needs no work; review is implicit when opening an item
 - contributes new-only Dashboard counts that resolve the registered Inbox interaction at
   request time and link to matching source/facet filters without guessing a CMS mount
 - retains reviewed, handled, and archived records in the standard **Mail Items** CMS

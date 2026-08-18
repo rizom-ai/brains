@@ -207,9 +207,8 @@ describe("mail triage inbox source", () => {
           entityId: expect.stringMatching(/^mail-[a-f0-9]{64}$/),
         },
         actions: [
-          { id: "mark-reviewed", label: "Mark reviewed" },
-          { id: "mark-handled", label: "Mark handled" },
-          { id: "archive", label: "Archive", confirm: true },
+          { id: "mark-handled", label: "Done" },
+          { id: "archive", label: "Dismiss", confirm: true },
         ],
       },
       {
@@ -233,9 +232,8 @@ describe("mail triage inbox source", () => {
           entityId: expect.stringMatching(/^mail-[a-f0-9]{64}$/),
         },
         actions: [
-          { id: "mark-reviewed", label: "Mark reviewed" },
-          { id: "mark-handled", label: "Mark handled" },
-          { id: "archive", label: "Archive", confirm: true },
+          { id: "mark-handled", label: "Done" },
+          { id: "archive", label: "Dismiss", confirm: true },
         ],
       },
     ]);

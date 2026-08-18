@@ -144,8 +144,7 @@ function toInboxItem(
 
 function inboxActions(): InboxAction[] {
   return [
-    { id: "mark-reviewed", label: "Mark reviewed" },
-    { id: "mark-handled", label: "Mark handled" },
-    { id: "archive", label: "Archive", confirm: true },
+    { id: "mark-handled", label: "Done" },
+    { id: "archive", label: "Dismiss", confirm: true },
   ];
 }
