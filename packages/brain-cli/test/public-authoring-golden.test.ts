@@ -17,10 +17,11 @@ const stableLedgerDocumentPath = join(
   "docs/public-release/AUTHORING_API_0.2.md",
 );
 
-// Frozen to the nominated published alpha. These values and the fixture
-// manifests advance together only when a pre-stable contract correction
-// requires nominating a new alpha.
+// The original six packages retain their first proven registry floor. The
+// additive operator fixtures name the first release containing their contract.
+// All floors remain pre-stable until the coordinated stable nomination.
 const nominatedBrainPeerRange = ">=0.2.0-alpha.272 <0.3.0";
+const additiveOperatorBrainPeerRange = ">=0.2.0-alpha.304 <0.3.0";
 const nominatedSiteVersion = "0.2.0-alpha.233";
 
 const categories = [
@@ -199,7 +200,9 @@ describe("public authoring 0.2 golden packages", () => {
     expect(manifest.name).toBe("@fixture/reading-operator");
     expect(manifest.type).toBe("module");
     expect(manifestSource).not.toContain("workspace:");
-    expect(manifest.peerDependencies?.["@rizom/brain"]).toBe(">=0.2.1 <0.3.0");
+    expect(manifest.peerDependencies?.["@rizom/brain"]).toBe(
+      additiveOperatorBrainPeerRange,
+    );
     expect(tsconfig.extends).toBeUndefined();
     expect([...publicNamedImports(source).keys()]).toEqual([
       "@rizom/brain/services",
@@ -330,7 +333,9 @@ describe("public authoring 0.2 golden packages", () => {
     expect(manifest.name).toBe("@fixture/mailbox-connection");
     expect(manifest.type).toBe("module");
     expect(manifestSource).not.toContain("workspace:");
-    expect(manifest.peerDependencies?.["@rizom/brain"]).toBe(">=0.2.1 <0.3.0");
+    expect(manifest.peerDependencies?.["@rizom/brain"]).toBe(
+      additiveOperatorBrainPeerRange,
+    );
     expect(tsconfig.extends).toBeUndefined();
     expect([...publicNamedImports(source).keys()]).toEqual([
       "@rizom/brain/interfaces",

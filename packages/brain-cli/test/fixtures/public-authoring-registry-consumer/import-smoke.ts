@@ -1,3 +1,4 @@
+import mailboxConnection from "@fixture/mailbox-connection";
 import reader from "@fixture/reader-brain";
 import readingOperator from "@fixture/reading-operator";
 
@@ -7,6 +8,15 @@ if (
 ) {
   throw new Error(
     "Packed Account, Dashboard, and CMS authoring did not import together",
+  );
+}
+
+if (
+  mailboxConnection.family !== "interface" ||
+  mailboxConnection.id !== "mailbox-connection"
+) {
+  throw new Error(
+    "Packed interface-family account settings did not import from the published contract",
   );
 }
 

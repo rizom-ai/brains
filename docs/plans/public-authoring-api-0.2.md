@@ -2,7 +2,7 @@
 
 ## Status
 
-**In progress:** implementation phases 1–5, the local Phase 6 export/documentation freeze, candidate publication, the exact-version registry matrix, and npm retirement are complete. The six golden packages compile, pack, install, and boot against `@rizom/brain@0.2.0-alpha.272` with `@rizom/site@0.2.0-alpha.233`. [Site Release evidence](https://github.com/rizom-ai/brains/actions/runs/31319970155) verifies all 73 published `@rizom/site-sections` alphas are deprecated with a migration pointer to `@rizom/site`. The packed and registry matrices prove the declarative contracts for all four required extension use cases:
+**In progress:** implementation phases 1–5, the local Phase 6 export/documentation freeze, candidate publication, the exact-version registry matrix, and npm retirement are complete. The six original golden packages retain their proven `@rizom/brain@0.2.0-alpha.272` compatibility floor. The expanded eight-package matrix also packs and imports both additive operator fixtures against their first containing release, `@rizom/brain@0.2.0-alpha.304`, with `@rizom/site@0.2.0-alpha.233`. [Site Release evidence](https://github.com/rizom-ai/brains/actions/runs/31319970155) verifies all 73 published `@rizom/site-sections` alphas are deprecated with a migration pointer to `@rizom/site`. The packed and registry matrices prove the declarative contracts for all four required extension use cases:
 
 1. custom entity types;
 2. custom service plugins;

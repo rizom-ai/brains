@@ -20,7 +20,8 @@ ownership of inbound event publication and acknowledgement; this fixture does
 not route raw mailbox content into agent chat.
 
 Like the operator fixture, this package compiles against the local public entry
-and its helpers are classified in the stable ledger. It is not packed or run yet:
-Phase 2 must implement encrypted storage and account-task reconciliation. Its
-provisional `>=0.2.1` lower bound must be replaced by the first release that
-ships the complete contract.
+and its helpers are classified in the stable ledger. Local Phase 6 evidence
+packs and runs its supervised account lifecycle, while the exact registry
+matrix packs and imports it from `@rizom/brain@0.2.0-alpha.304`. Its
+`>=0.2.0-alpha.304 <0.3.0` peer range names the first release containing this
+account-settings contract.

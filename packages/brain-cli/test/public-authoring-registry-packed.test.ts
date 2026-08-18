@@ -19,6 +19,7 @@ const consumerFixture = join(
 );
 const runRegistryEvidence = registryEvidenceEnabled();
 const exactVersionPattern = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/u;
+const originalAuthoringBrainPeerRange = ">=0.2.0-alpha.272 <0.3.0";
 
 function requiredVersion(variable: string, pattern: RegExp): string {
   const value = process.env[variable];
@@ -53,7 +54,7 @@ async function declarationText(directory: string): Promise<string> {
 }
 
 it.skipIf(!runRegistryEvidence)(
-  "packs all seven authoring packages against one nominated published alpha",
+  "packs all eight authoring packages against one nominated published alpha",
   async () => {
     const brainVersion = requiredVersion(
       "RIZOM_PUBLIC_API_BRAIN_VERSION",
@@ -84,6 +85,7 @@ it.skipIf(!runRegistryEvidence)(
         "message-interface",
         "brain-definition",
         "operator-surface",
+        "account-settings-interface",
       ]) {
         const fixtureDirectory = join(publicFixtureRoot, fixtureName);
         const fixtureManifest = JSON.parse(
@@ -92,7 +94,10 @@ it.skipIf(!runRegistryEvidence)(
           peerDependencies?: Record<string, string>;
         };
         expect(fixtureManifest.peerDependencies?.["@rizom/brain"]).toBe(
-          expectedBrainPeer,
+          fixtureName === "operator-surface" ||
+            fixtureName === "account-settings-interface"
+            ? expectedBrainPeer
+            : originalAuthoringBrainPeerRange,
         );
         const packed = await buildAndPackFixturePackage(
           fixtureDirectory,
@@ -103,7 +108,7 @@ it.skipIf(!runRegistryEvidence)(
         );
         tarballs.set(...packed);
       }
-      expect(tarballs.size).toBe(7);
+      expect(tarballs.size).toBe(8);
 
       const consumerDirectory = join(temporaryDirectory, "consumer");
       await installPackedConsumer(

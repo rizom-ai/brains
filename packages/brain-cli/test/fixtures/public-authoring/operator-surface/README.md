@@ -2,7 +2,9 @@
 
 This standalone package is the checked authoring target for the additive public
 operator-surface contract. It compiles against the local public service entry,
-and every imported helper is classified in the stable export ledger. Account settings, Dashboard, and CMS are runtime-complete, and the combined Phase 6 packed consumer installs all three contracts from standalone tarballs.
+and every imported helper is classified in the stable export ledger. The
+combined Phase 6 packed consumer installs the Account settings, Dashboard, and
+CMS contracts from standalone tarballs.
 
 The target package demonstrates one service-family import and three related
 capabilities. Definitions are validated and frozen at module scope; their
@@ -17,9 +19,14 @@ The source intentionally contains no package identity plumbing, registry call,
 host route, renderer name, UI-framework import, process role, or private
 workspace dependency. Dashboard and CMS receive their distinct typed semantic view profiles; the hosts own markup, themes, loading/error states, confirmation, routing, accessibility, query URLs, and lifecycle.
 
-The `>=0.2.1 <0.3.0` peer range is provisional because this additive milestone
-does not gate `v0.2.0`. Release nomination must replace the lower bound with the first actual `0.2.x` version containing the complete contract.
+The `>=0.2.0-alpha.304 <0.3.0` peer range names the first published Brain
+release containing the currently shipped contract. Exact registry evidence
+builds this fixture against that release without widening the eventual stable
+`0.2.x` baseline. This is compatibility evidence, not closure of the open
+composition gaps.
 
-See [CAPABILITY_INVENTORY.md](./CAPABILITY_INVENTORY.md) for the current
-Phase 4 completeness baseline. [PORTS.md](./PORTS.md) remains the historical
+See [CAPABILITY_INVENTORY.md](./CAPABILITY_INVENTORY.md) for the shipped
+capability inventory and the
+[operator composition plan](../../../../../../docs/plans/public-operator-surface-authoring.md)
+for the remaining gaps. [PORTS.md](./PORTS.md) remains the historical
 four-workspace Phase 1 sketch.

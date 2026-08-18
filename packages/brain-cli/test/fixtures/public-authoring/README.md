@@ -5,9 +5,11 @@ are the executable reference for the external `0.2.x` authoring API. They are de
 six unrelated snippets: a Brain that saves bookmarks, derives reading digests,
 accepts webhook and Campfire events, and renders a reading-library site.
 
-> **Last exact six-package registry baseline:** `@rizom/brain@0.2.0-alpha.272`
+> **Last exact eight-package registry baseline:** `@rizom/brain@0.2.0-alpha.304`
 > and `@rizom/site@0.2.0-alpha.233`. These are review candidates, not stable release
-> recommendations.
+> recommendations. The original six fixtures retain their proven
+> `>=0.2.0-alpha.272` compatibility floor; the two additive operator fixtures
+> require `>=0.2.0-alpha.304`.
 
 Start with the practical guide at `docs/external-plugin-authoring.md`. Use this
 directory when you want complete source, manifests, and TypeScript
@@ -66,8 +68,8 @@ the stable ledger, and the Phase 6 packed consumer installs both with the
 entity/service dependencies from one immutable Brain tarball. The operator
 fixture compiles typed Dashboard and CMS profiles, host-owned query state,
 dynamic entity catalogs, and prepared confirmation without UI code. Their
-provisional `>=0.2.1` peer lower bounds must advance to the first release that
-actually contains the complete contract. The operator fixture's
+`>=0.2.0-alpha.304` peer lower bounds name the first published release
+containing the contracts exercised by these fixtures. The operator fixture's
 [capability inventory](./operator-surface/CAPABILITY_INVENTORY.md) records the
 checked built-in equivalence boundary.
 
@@ -131,7 +133,8 @@ Every reference package has:
 - one default definition export;
 - generated JavaScript/declaration export paths;
 - a self-contained strict `tsconfig.json` with no monorepo `extends`;
-- the same nominated Brain peer lower bound;
+- the applicable proven Brain peer lower bound: alpha.272 for the original six
+  and alpha.304 for the additive operator fixtures;
 - only public family imports in author source.
 
 The test harness injects exact SDK development dependencies while building the
@@ -140,10 +143,10 @@ fixtures. A real external package should declare both:
 ```json
 {
   "peerDependencies": {
-    "@rizom/brain": ">=0.2.0-alpha.272 <0.3.0"
+    "@rizom/brain": ">=0.2.0-alpha.304 <0.3.0"
   },
   "devDependencies": {
-    "@rizom/brain": "0.2.0-alpha.272"
+    "@rizom/brain": "0.2.0-alpha.304"
   }
 }
 ```
@@ -190,14 +193,15 @@ The npm registry matrix is opt-in and exact-version only:
 
 ```bash
 RIZOM_PUBLIC_API_REGISTRY_EVIDENCE=1 \
-RIZOM_PUBLIC_API_BRAIN_VERSION=0.2.0-alpha.272 \
+RIZOM_PUBLIC_API_BRAIN_VERSION=0.2.0-alpha.304 \
 RIZOM_PUBLIC_API_SITE_VERSION=0.2.0-alpha.233 \
 bun test packages/brain-cli/test/public-authoring-registry-packed.test.ts
 ```
 
 It verifies installed versions, licenses, declarations, export maps, removed
-entry points, all seven non-site fixture builds, and standalone startup. It refuses ranges
-and requires every golden Brain peer lower bound to match the nominated alpha.
+entry points, all eight fixture builds, and standalone startup. It refuses
+ranges, preserves the original six fixtures' frozen alpha.272 floor, and
+requires both additive fixtures to match the nominated alpha.
 
 ## Contract files
 
