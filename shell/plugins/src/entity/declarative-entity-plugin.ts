@@ -26,6 +26,7 @@ import type { InstalledPluginPackageMetadata } from "../package-definition";
 import type { JobHandler } from "@brains/job-queue";
 import type { ProgressContract } from "@brains/utils/progress";
 import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
+import { FeedRegistry } from "@brains/site-composition";
 import type { JobEntityAccess } from "../job/job-context-contract";
 import { createJobEntityAccess } from "../job/job-entity-access";
 import { entitySchema } from "./entity-schema";
@@ -262,6 +263,7 @@ class DeclarativeEntityPlugin extends EntityPlugin<
   private readonly jobOwnerId: string | undefined;
   private readonly projectionRules: AnyEntityDefinition["projectionRules"];
   private readonly atproto: AnyEntityDefinition["atproto"];
+  private readonly feed: AnyEntityDefinition["feed"];
   private readonly releaseOnShutdown: Array<() => void> = [];
   public readonly entityType: string;
   public readonly schema: z.ZodType<EntityOf<AnyEntityDefinition>, unknown>;
@@ -301,6 +303,7 @@ class DeclarativeEntityPlugin extends EntityPlugin<
     this.jobOwnerId = jobOwnerId;
     this.projectionRules = definition.projectionRules;
     this.atproto = definition.atproto;
+    this.feed = definition.feed;
   }
 
   protected override getEntityTypeConfig(): EntityTypeConfig | undefined {
@@ -424,6 +427,18 @@ class DeclarativeEntityPlugin extends EntityPlugin<
           });
           return { success: true };
         },
+      );
+    }
+
+    const feed = this.feed;
+    if (feed) {
+      this.releaseOnShutdown.push(
+        FeedRegistry.getInstance().register({
+          entityType: this.entityType,
+          path: feed.path,
+          routePrefix: feed.routePrefix,
+          toItem: feed.toItem,
+        }),
       );
     }
 

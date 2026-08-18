@@ -8,6 +8,7 @@ import type {
   JobHandlerContext,
 } from "../job/job-context-contract";
 import type { AtprotoProjection } from "@brains/atproto-contracts";
+import type { FeedItem } from "@brains/site-composition";
 import type { PublishProvider } from "@brains/contracts";
 import type { AttachmentProvider } from "../service/attachment-registry";
 import type { ProjectionRule } from "./projection-rule";
@@ -142,6 +143,30 @@ export interface EntityDefinition<
    * live part of the publish protocol an entity package takes part in.
    */
   readonly publish?: EntityPublishDeclaration | undefined;
+  /**
+   * Syndication. The entity says how one of its entities becomes a feed
+   * item; the site build decides which entities qualify, where the file
+   * goes, and how a slug becomes a URL.
+   */
+  readonly feed?:
+    | EntityFeedDeclaration<EntityOf<EntityDefinition<TType, TMetadataSchema>>>
+    | undefined;
+}
+
+/**
+ * How this entity type contributes to a syndication feed.
+ *
+ * `toItem` returns null for an entity that should not appear — malformed,
+ * or missing what a reader needs. It does not decide whether unpublished
+ * entities appear: that is the build's call, since only it knows whether
+ * this is a preview.
+ */
+export interface EntityFeedDeclaration<TEntity> {
+  /** Path the feed is written to, relative to the build output. */
+  readonly path: string;
+  /** Route prefix an item hangs off, e.g. "posts". */
+  readonly routePrefix: string;
+  toItem(entity: TEntity): FeedItem | null;
 }
 
 /**

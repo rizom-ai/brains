@@ -77,3 +77,8 @@ export { EntityUrlGenerator } from "./entity-url-generator";
 export type { EntityDisplayMap } from "./entity-url-generator";
 export { extendSite, sitePackageSchema, themeCssSchema } from "./package";
 export type { SitePackage, SitePackageOverrides } from "./package";
+
+export { renderRssFeed } from "./feed";
+export type { FeedChannel, FeedItem } from "./feed";
+export { FeedRegistry } from "./feed-registry";
+export type { FeedDeclaration, FeedSourceEntity } from "./feed-registry";

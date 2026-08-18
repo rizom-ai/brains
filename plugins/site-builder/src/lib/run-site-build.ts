@@ -33,6 +33,7 @@ import {
 } from "./preflight-site-build";
 import type { StaticSiteBuilderFactory } from "./static-site-builder";
 import { writeSiteBuildSeoFiles } from "./seo-file-handler";
+import { writeSiteBuildFeeds } from "./feed-file-handler";
 import {
   TransactionalSiteBuildOutput,
   type SiteBuildOutputLifecycle,
@@ -267,6 +268,17 @@ export async function runSiteBuild(
       preparedBuild: preparation.preparedBuild,
       logger: options.pipelineContext.logger,
       siteUrl: baseUrl,
+      signal: options.signal,
+    });
+
+    await writeSiteBuildFeeds({
+      outputDir: outputTarget.generationDir,
+      entityService: options.pipelineContext.services.entityService,
+      environment: preparation.preparedBuild.environment,
+      siteTitle: preparation.preparedBuild.site.title,
+      siteDescription: preparation.preparedBuild.site.description,
+      siteUrl: baseUrl,
+      logger: options.pipelineContext.logger,
       signal: options.signal,
     });
 
