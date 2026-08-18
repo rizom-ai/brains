@@ -158,12 +158,41 @@ as part of landing it, not have them deleted underneath.
 
 ### Phase 4 — Guard the published copies (fixes defect 3)
 
-1. **Context types.** Delete the shadow `ServicePluginContext` /
-   `EntityPluginContext` declarations in `shell/plugins/src/public/types.ts` and
-   re-export the real ones from `service/context.ts` / `entity/context.ts`. If a
-   declaration-leak gate rejects that, fall back to a drift test asserting the
-   two shapes are mutually assignable — but re-export first, because the copies
-   exist by accident, not by constraint.
+1. **Context types — the audit's framing was wrong; corrected here.**
+
+   The audit reported the `public/types.ts` context declarations as accidental
+   copies that had drifted, and this plan originally proposed deleting them in
+   favour of re-exports. Measuring before acting reversed that.
+
+   `public/types.ts` is a **deliberately curated surface**. The real
+   `BasePluginContext` has 46 members; the published one has 23, and every
+   published member exists in the runtime type. The 23 withheld include `jobs`,
+   `runtimeState`, `plugins`, `dashboard`, `cms`, `endpoints`,
+   `recurringChecks`, `executionOnly` and `gitBrokerSocket` — internal plumbing
+   that external plugin authors must not see. `IViewsNamespace` and
+   `IServiceTemplatesNamespace` are additionally weakened to `unknown` so
+   internal `Template` / `ViewTemplate` types stay out of the generated
+   declarations. Re-exporting would have published all of it.
+
+   Identity is therefore the wrong invariant, and the "10 of 14 pairs differ"
+   measurement was just detecting intentional narrowing. The property that must
+   hold is one-directional: **the runtime type must satisfy the published type.**
+   Narrowing stays legal; the SDK promising a member the runtime lacks, or
+   typing a shared member incompatibly, does not — that is the failure that
+   reaches authors, whose code compiles against a shape the object never had.
+
+   Probed against that invariant, 14 of 15 pairs were already sound. The one
+   real defect: `Plugin.description` and `Plugin.dependencies` were declared
+   `?: string` / `?: string[]` while the runtime derives them from
+   `pluginMetadataSchema` as `| undefined`, which under
+   `exactOptionalPropertyTypes` the runtime type does not satisfy. Fixed, and
+   the invariant is now pinned by `test/public-surface-soundness.test.ts`.
+
+   This matters beyond the one fix: `feat/durable-binary-assets-migration` is
+   currently adding `assets` to both copies with **different types**
+   (`AssetStore` published, `IAssetsNamespace` internal). The guard was verified
+   to catch exactly that shape of change.
+
 2. **JSON types.** Keep the `packages/site` copy (the published SDK genuinely
    cannot import `@brains/contracts`) and add the guard the deploy scripts
    already demonstrate: a test asserting the two modules' source text matches,

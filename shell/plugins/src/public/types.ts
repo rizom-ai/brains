@@ -110,8 +110,8 @@ export interface Plugin {
   readonly version: string;
   readonly type: "core" | "entity" | "service" | "interface";
   readonly packageName: string;
-  readonly description?: string;
-  readonly dependencies?: string[];
+  readonly description?: string | undefined;
+  readonly dependencies?: string[] | undefined;
   finalizeRegistration?(): Promise<void>;
   ready?(): Promise<void>;
   shutdown?(): Promise<void>;
