@@ -238,6 +238,10 @@ brain-repo/
 apps/test-brain/brain-repo/
 apps/test-brain/.brain-repo/
 
+# Per-app runtime state (git-broker socket and journal); a live unix socket is
+# never a committable artifact.
+.brain-runtime/
+
 # Test files in root directory
 /test-*.js
 /test-*.ts
