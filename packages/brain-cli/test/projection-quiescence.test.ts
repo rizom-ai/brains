@@ -17,18 +17,19 @@ bundles: [core, publishing]
 // `@brains/prompt` is authored declaratively, and package definitions scope
 // their plugin ids by package name so independently published packages cannot
 // collide. Its capability id in the brain definition is still bare "prompt";
-// only the instantiated plugin id is namespaced. The rest are still legacy
-// factories and keep bare ids.
+// Instantiated package plugins carry namespaced ids; the rest are still
+// legacy factories and keep bare ones.
 const PROMPT_PLUGIN_ID = "@brains/prompt:prompt";
+const SWOT_PLUGIN_ID = "@brains/assessment:swot";
 
 function getProjectionPlugins(plugins: Plugin[]): Plugin[] {
-  const ids = new Set([PROMPT_PLUGIN_ID, "topics", "skill", "swot"]);
+  const ids = new Set([PROMPT_PLUGIN_ID, "topics", "skill", SWOT_PLUGIN_ID]);
   const selected = plugins.filter((plugin) => ids.has(plugin.id));
   expect(selected.map((plugin) => plugin.id)).toEqual([
     PROMPT_PLUGIN_ID,
     "topics",
     "skill",
-    "swot",
+    SWOT_PLUGIN_ID,
   ]);
   return selected;
 }

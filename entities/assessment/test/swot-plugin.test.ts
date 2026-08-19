@@ -5,9 +5,27 @@ import {
   SYSTEM_CHANNELS,
 } from "@brains/plugins";
 import { createPluginHarness } from "@brains/plugins/test";
-import { SwotAssessmentPlugin } from "../src";
+import {
+  bindPluginPackageMetadata,
+  instantiatePluginPackageDefinition,
+  type Plugin,
+} from "@brains/plugins";
+import assessmentPackage from "../src";
+import packageJson from "../package.json";
 
-describe("SwotAssessmentPlugin", () => {
+function swotEntityPlugin(): Plugin {
+  const metadata = { name: packageJson.name, version: packageJson.version };
+  bindPluginPackageMetadata(assessmentPackage, metadata);
+  const plugin = instantiatePluginPackageDefinition(
+    assessmentPackage,
+    {},
+    metadata,
+  )[0];
+  if (!plugin) throw new Error("SWOT entity plugin was not created");
+  return plugin;
+}
+
+describe("assessment package", () => {
   let harness: ReturnType<typeof createPluginHarness>;
 
   beforeEach(() => {
@@ -17,7 +35,7 @@ describe("SwotAssessmentPlugin", () => {
   });
 
   it("registers SWOT as a terminal scheduler-owned projection", async () => {
-    const plugin = new SwotAssessmentPlugin();
+    const plugin = swotEntityPlugin();
     const capabilities = await harness.installPlugin(plugin);
 
     expect(plugin.type).toBe("entity");
@@ -39,7 +57,7 @@ describe("SwotAssessmentPlugin", () => {
   });
 
   it("registers deriveSwot eval handler", async () => {
-    const plugin = new SwotAssessmentPlugin();
+    const plugin = swotEntityPlugin();
     const registrations: Array<{ pluginId: string; handlerId: string }> = [];
     const mockShell = harness.getMockShell();
 
@@ -50,12 +68,12 @@ describe("SwotAssessmentPlugin", () => {
     await harness.installPlugin(plugin);
 
     expect(registrations).toEqual([
-      { pluginId: "swot", handlerId: "deriveSwot" },
+      { pluginId: `${packageJson.name}:swot`, handlerId: "deriveSwot" },
     ]);
   });
 
   it("registers the standalone SWOT dashboard widget", async () => {
-    const plugin = new SwotAssessmentPlugin();
+    const plugin = swotEntityPlugin();
     const registrations: Array<{
       id: string;
       group: string;
@@ -98,7 +116,7 @@ describe("SwotAssessmentPlugin", () => {
       registerHandler,
     });
 
-    await harness.installPlugin(new SwotAssessmentPlugin());
+    await harness.installPlugin(swotEntityPlugin());
     await harness.sendMessage("sync:initial:completed", {}, "directory-sync");
     await harness.sendMessage(
       "entity:updated",

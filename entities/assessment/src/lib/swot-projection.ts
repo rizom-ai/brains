@@ -4,8 +4,8 @@ import {
   type BaseEntity,
   type ProjectionRule,
   type ProjectionWriteIntent,
-} from "@brains/plugins";
-import { z } from "@brains/utils/zod";
+} from "@brains/sdk/entities";
+import { z } from "@brains/sdk/entities";
 import { SwotAdapter } from "../adapters/swot-adapter";
 import {
   buildDraftPrompt,
@@ -15,7 +15,7 @@ import {
   buildRefinementPromptFromContext,
   getSemanticContent,
   validateRefinement,
-} from "../handlers/swot-derivation-handler";
+} from "./swot-prompts";
 import {
   swotDraftGenerationSchema,
   swotGenerationSchema,
@@ -31,7 +31,14 @@ const identitySchema = z.looseObject({
   profileCategory: z.enum(["person", "team", "organization"]).optional(),
 });
 
-const swotProjectionInputSchema = z.object({
+export const swotProjectionInputSchema: z.ZodObject<{
+  draftPrompt: z.ZodString;
+  refinementPrompt: z.ZodString;
+  promptContext: typeof ProjectionJsonObjectSchema;
+  totalInputs: z.ZodNumber;
+  derivedAt: z.ZodString;
+  model: z.ZodString;
+}> = z.object({
   draftPrompt: z.string(),
   refinementPrompt: z.string(),
   promptContext: ProjectionJsonObjectSchema,
@@ -40,7 +47,7 @@ const swotProjectionInputSchema = z.object({
   model: z.string(),
 });
 
-type SwotProjectionInput = z.output<typeof swotProjectionInputSchema>;
+export type SwotProjectionInput = z.output<typeof swotProjectionInputSchema>;
 
 function latestSourceUpdate(entities: readonly BaseEntity[]): string {
   return (
@@ -119,7 +126,12 @@ async function selectSwotInput(
   };
 }
 
-async function deriveSwotIntent(
+/**
+ * The derivation. Exported so the `deriveSwot` eval exercises this rather
+ * than a parallel copy — SwotDerivationHandler was that copy, and the eval
+ * measured it instead of what production runs.
+ */
+export async function deriveSwotIntent(
   input: SwotProjectionInput,
   context: Parameters<ProjectionRule["derive"]>[1],
   signal: AbortSignal,

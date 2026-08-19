@@ -2,6 +2,7 @@
 
 export { z } from "@brains/utils/zod";
 export {
+  ProjectionJsonObjectSchema,
   defineEntity,
   defineEntityPackage,
   defineProjection,
@@ -140,6 +141,15 @@ export type {
   AtprotoProjectionBuildInput,
   AtprotoProjectionContext,
 } from "@brains/atproto-contracts";
+
+// The brain's own identity and declared skills, which an entity assessing
+// its capabilities reads. Named consumer: @brains/assessment.
+export { anchorProfileKindSchema, skillDataSchema } from "@brains/plugins";
+export type {
+  AnchorProfileKind,
+  ProfileCategory,
+  SkillData,
+} from "@brains/plugins";
 
 // Text and markdown helpers used when authoring entities. Promoted from
 // @brains/utils; consumers today are @brains/doc and @brains/products.

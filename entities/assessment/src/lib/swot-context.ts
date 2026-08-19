@@ -1,10 +1,5 @@
-import type {
-  BaseEntity,
-  EntityPluginContext,
-  ProfileCategory,
-} from "@brains/plugins";
+import type { BaseEntity, ProfileCategory } from "@brains/sdk/entities";
 import {
-  buildCapabilityProfiles,
   buildCapabilityProfilesFromEntities,
   normalizeTags,
   type CapabilityProfile,
@@ -223,10 +218,4 @@ export function buildSwotContextFromEntities(params: {
       ...(params.identity && { identity: params.identity }),
     }),
   );
-}
-
-export async function buildSwotContext(
-  context: EntityPluginContext,
-): Promise<SwotContext> {
-  return buildSwotContextFromProfiles(await buildCapabilityProfiles(context));
 }
