@@ -7,7 +7,7 @@ setup:
 tags:
   - agent-discovery
   - multi-turn
-  - posture-personal
+  - recipe-professional
 
 turns:
   - userMessage: "I need branding advice from someone in my network."

@@ -7,7 +7,7 @@ type: multi_turn
 setup:
   permissionLevel: admin
 tags:
-  - posture-team
+  - recipe-team
   - team
   - scenario
   - real-user

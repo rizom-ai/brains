@@ -8,7 +8,7 @@ tags:
   - core
   - social-media
   - entity-crud
-  - posture-publishing
+  - recipe-professional
 
 turns:
   - userMessage: "Create a LinkedIn post about our latest product launch"

@@ -7,12 +7,15 @@ tags:
   - generation
   - context-aware
   - philosophy
-  - posture-personal
+  - recipe-professional
 plugin: decks
 handler: generateDeck
 
 input:
-  prompt: "Create a presentation about how philosophy informs software architecture"
+  prompt: >-
+    Create a presentation about how philosophy informs software architecture.
+    Keep the title short and evocative, and ground the narrative in concrete
+    references to Heidegger, Kittler, de Certeau, or Sloterdijk.
 
 expectedOutput:
   qualityCriteria:

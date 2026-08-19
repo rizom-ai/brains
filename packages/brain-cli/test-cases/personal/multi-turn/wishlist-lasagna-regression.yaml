@@ -5,6 +5,7 @@ type: multi_turn
 setup:
   permissionLevel: admin
 tags:
+  - requires-member-wishlist
   - wishlist
   - multi-turn
   - regression

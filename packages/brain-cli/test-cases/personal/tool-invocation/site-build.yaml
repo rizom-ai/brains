@@ -9,7 +9,7 @@ tags:
   - site-builder
   - tool-invocation
   - anti-hallucination
-  - posture-personal
+  - requires-built-site-runtime
 
 turns:
   - userMessage: "Build my website"

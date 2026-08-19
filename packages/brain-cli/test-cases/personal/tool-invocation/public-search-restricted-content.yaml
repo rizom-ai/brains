@@ -8,6 +8,7 @@ type: tool_invocation
 setup:
   permissionLevel: public
 tags:
+  - recipe-professional
   - core
   - search
   - visibility

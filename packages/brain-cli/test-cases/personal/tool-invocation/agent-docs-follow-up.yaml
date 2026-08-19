@@ -5,6 +5,7 @@ type: multi_turn
 setup:
   permissionLevel: admin
 tags:
+  - requires-external-network
   - agent-discovery
   - a2a
   - tool-invocation

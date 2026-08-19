@@ -9,7 +9,7 @@ tags:
   - image
   - cover
   - multi-turn
-  - posture-publishing
+  - recipe-professional
 
 turns:
   - userMessage: "Generate a LinkedIn post about the future of AI"

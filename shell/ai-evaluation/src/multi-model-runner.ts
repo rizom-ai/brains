@@ -191,26 +191,34 @@ async function runSingleModelIteration(
       })
     : shell.getAgentService();
 
-  const summary = await options.runEvaluationsCollect({
-    agentService,
-    aiService: judgeAiService,
-    ...(!options.remoteUrl
-      ? { runtimeUploads: shell.getRuntimeUploadRegistry() }
-      : {}),
-    testCasesDir: options.testCasesDirs,
-    skipLLMJudge: options.skipLLMJudge,
-    verbose: options.verbose,
-    parallel: options.parallel,
-    maxParallel: options.maxParallel,
-    ...(!options.remoteUrl && { indexReadiness: shell.getEntityService() }),
-    ...(options.tags && { tags: options.tags }),
-    ...(options.testCaseIds && { testCaseIds: options.testCaseIds }),
-    ...(options.testType && { testType: options.testType }),
-  });
+  try {
+    const summary = await options.runEvaluationsCollect({
+      agentService,
+      aiService: judgeAiService,
+      ...(!options.remoteUrl
+        ? { runtimeUploads: shell.getRuntimeUploadRegistry() }
+        : {}),
+      testCasesDir: options.testCasesDirs,
+      skipLLMJudge: options.skipLLMJudge,
+      verbose: options.verbose,
+      parallel: options.parallel,
+      maxParallel: options.maxParallel,
+      ...(!options.remoteUrl && { indexReadiness: shell.getEntityService() }),
+      ...(options.tags && { tags: options.tags }),
+      ...(options.testCaseIds && { testCaseIds: options.testCaseIds }),
+      ...(options.testType && { testType: options.testType }),
+    });
 
-  // Stop background services and close DB connections.
-  // The next bootEvalApp() → Shell.createFresh() handles resetting singleton references automatically.
-  await shell.shutdown();
-
-  return { model, summary };
+    // Cases can enqueue projection and embedding work. Settle it before Shell
+    // enters closing state so a final poll cannot start generation against an
+    // already uninitialized runtime.
+    if (!options.remoteUrl) {
+      await waitForJobsToDrain(shell.getJobQueueService());
+    }
+    return { model, summary };
+  } finally {
+    // Stop background services and close DB connections. The next
+    // bootEvalApp() → Shell.createFresh() resets singleton references.
+    await shell.shutdown();
+  }
 }

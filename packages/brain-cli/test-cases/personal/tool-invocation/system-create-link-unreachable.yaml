@@ -5,6 +5,7 @@ type: tool_invocation
 setup:
   permissionLevel: admin
 tags:
+  - requires-external-network
   - core
   - system
   - link

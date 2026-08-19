@@ -11,7 +11,7 @@ tags:
   - media
   - printable
   - document-create
-  - posture-publishing
+  - recipe-professional
 
 turns:
   - userMessage: "Save the blog post 'Resilience Is Not Redundancy' as a printable PDF"

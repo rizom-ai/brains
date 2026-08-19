@@ -8,7 +8,7 @@ tags:
   - core
   - list
   - entity-type-resolution
-  - posture-publishing
+  - recipe-professional
 
 turns:
   - userMessage: "Show me my case studies"

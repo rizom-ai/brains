@@ -8,6 +8,7 @@ setup:
   channelId: web-chat-eval-playbook-show
   channelName: Web Chat Eval
 tags:
+  - recipe-professional
   - onboarding
   - playbooks
   - multi-turn

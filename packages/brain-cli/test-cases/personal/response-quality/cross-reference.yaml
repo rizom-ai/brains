@@ -8,7 +8,7 @@ tags:
   - core
   - search
   - content-dependent
-  - posture-personal
+  - recipe-professional
 
 turns:
   - userMessage: "Which of my posts relate to the deck about distributed systems?"

@@ -3,7 +3,7 @@ name: Log unfulfillable request to wishlist
 description: Tests that the agent records a wish when it cannot fulfill a real-world action
 type: tool_invocation
 tags:
-  - posture-commerce
+  - requires-member-wishlist
   - wishlist
   - tool-invocation
   - proactive-behavior

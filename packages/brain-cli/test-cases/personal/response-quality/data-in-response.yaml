@@ -5,6 +5,7 @@ type: response_quality
 setup:
   permissionLevel: admin
 tags:
+  - recipe-headless
   - quality
   - formatted-output
   - data-display

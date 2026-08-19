@@ -6,6 +6,7 @@ type: tool_invocation
 setup:
   permissionLevel: admin
 tags:
+  - requires-external-network
   - agent-discovery
   - a2a
   - tool-invocation

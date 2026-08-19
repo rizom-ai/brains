@@ -1,0 +1,28 @@
+id: recipe-commerce-list-products
+name: Commerce brain lists products
+description: Verifies that the commerce recipe exposes its organization product catalog.
+type: tool_invocation
+setup:
+  permissionLevel: admin
+tags:
+  - recipe-commerce
+  - commerce
+  - products
+  - tool-invocation
+
+turns:
+  - userMessage: "List the products in our catalog."
+
+successCriteria:
+  expectedTools:
+    - toolName: system_list
+      shouldBeCalled: true
+      argsContain:
+        entityType: product
+  responseNotContains:
+    - "I cannot"
+    - "product capability is unavailable"
+
+efficiency:
+  maxToolCalls: 3
+  maxTokens: 20000

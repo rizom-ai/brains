@@ -8,6 +8,7 @@ setup:
   channelId: eval-web-chat-pdf-upload-summarize-latest-readonly
   channelName: Web Chat Eval
 tags:
+  - recipe-personal
   - web-chat
   - upload
   - pdf

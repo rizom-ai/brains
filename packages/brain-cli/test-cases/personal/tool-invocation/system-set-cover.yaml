@@ -8,7 +8,7 @@ tags:
   - core
   - image
   - cover
-  - posture-personal
+  - recipe-professional
 
 turns:
   - userMessage: "Set the image 'og-post-resilience-in-distributed-systems' as the cover for blog post 'resilience-in-distributed-systems'"

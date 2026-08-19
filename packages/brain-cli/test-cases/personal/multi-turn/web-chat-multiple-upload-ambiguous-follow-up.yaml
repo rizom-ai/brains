@@ -12,7 +12,7 @@ tags:
   - upload
   - regression
   - multi-turn
-  - posture-personal
+  - recipe-personal
 
 turns:
   - userMessage: ""
