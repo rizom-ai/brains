@@ -4,10 +4,14 @@ import {
   PendingApprovalTracker,
   PluginError,
   buildApprovalResultView,
+  buildResponsePlan,
   formatApprovalRequestText,
+  formatStructuredCardFallback,
   getPendingApprovalCards,
   getResolvedApprovalCard,
-  parseConfirmationResponse,
+  parseConfirmationIntent,
+  routeConfirmationResponse,
+  type AgentResponse,
   type ApprovalResolution,
   type StructuredChatCard,
   type ToolApprovalCard,
@@ -24,6 +28,17 @@ const APPROVAL_RESULT_MARKERS: Record<ApprovalResolution, string> = {
   completed: "✓",
   declined: "○",
   failed: "✗",
+};
+
+/**
+ * The terminal shows URLs as-is and hides nothing; permission filtering
+ * happened upstream (the CLI runs as the local administrator).
+ */
+const CARD_FALLBACK_OPTIONS = {
+  deniedCardIds: undefined,
+  resolveUrl: (url: string | undefined): string | undefined => url,
+  isHiddenUrl: (): boolean => false,
+  eventActionUnavailableLabel: undefined,
 };
 
 /**
@@ -264,11 +279,9 @@ export class CLIInterface extends MessageInterfacePlugin<
         nextApprovalIds,
       );
 
-      // Build response with tool results
-      const responseText = this.formatAgentResponseText(
-        response.text,
-        approvalCards,
-      );
+      // Render the full response plan: text, approval prompts, and the
+      // sources/actions/artifact cards other interfaces already show.
+      const responseText = this.renderAgentResponse(response);
 
       // Debug: log tool results
       this.logger.debug("Agent response received", {
@@ -298,6 +311,55 @@ export class CLIInterface extends MessageInterfacePlugin<
       // End processing - flushes any buffered completion messages
       this.endProcessingInput();
     }
+  }
+
+  /**
+   * Render an agent response for the terminal from the shared response plan.
+   *
+   * Approval-requested cards are gathered from both the plan's approvals
+   * directive and the supplemental stream (the plan only emits the approvals
+   * directive when the response carries pending confirmations; the CLI also
+   * treats bare approval-requested cards as confirmations), then rendered
+   * with the terminal's reply instructions. Every other card renders through
+   * the shared text fallback, so sources, actions, and artifacts reach the
+   * terminal instead of being dropped.
+   */
+  private renderAgentResponse(
+    response: Pick<
+      AgentResponse,
+      "text" | "cards" | "pendingConfirmations" | "toolResults"
+    >,
+  ): string {
+    const plan = buildResponsePlan(response, { deniedCardIds: undefined });
+    const approvalCards: ToolApprovalCard[] = [];
+    const cardBlocks: string[] = [];
+    let text = "";
+
+    for (const directive of plan.directives) {
+      switch (directive.kind) {
+        case "text":
+          text = directive.text;
+          break;
+        case "approvals":
+          approvalCards.push(...directive.cards);
+          break;
+        default:
+          if (
+            directive.card.kind === "tool-approval" &&
+            directive.card.state === "approval-requested"
+          ) {
+            approvalCards.push(directive.card);
+            break;
+          }
+          cardBlocks.push(
+            formatStructuredCardFallback(directive.card, CARD_FALLBACK_OPTIONS),
+          );
+      }
+    }
+
+    return [this.formatAgentResponseText(text, approvalCards), ...cardBlocks]
+      .filter((section) => section.trim().length > 0)
+      .join("\n\n");
   }
 
   /**
@@ -341,83 +403,56 @@ export class CLIInterface extends MessageInterfacePlugin<
       : `${marker} ${result.summary}`;
   }
 
-  private parseIndexedConfirmationResponse(
-    message: string,
-  ): { confirmed: boolean; index?: number } | undefined {
-    const match = /^(.*?)(?:\s+#?(\d+))?$/.exec(message.trim());
-    const responseText = match?.[1]?.trim() ?? message.trim();
-    const parsed = parseConfirmationResponse(responseText);
-    if (!parsed) return undefined;
-
-    const indexText = match?.[2];
-    if (!indexText) return { confirmed: parsed.confirmed };
-
-    return { confirmed: parsed.confirmed, index: Number(indexText) - 1 };
-  }
-
-  private getConfirmationHelpText(pendingApprovalIds: string[]): string {
-    if (pendingApprovalIds.length > 1) {
-      return "_Please reply with **yes 1** / **no 1** for the matching action._";
-    }
-    return "_Please reply with **yes** to confirm or **no/cancel** to abort._";
-  }
-
-  private resolvePendingApprovalSelection(
+  /**
+   * Terminal sugar: `yes 2` / `no #1` selects the nth pending approval. The
+   * index lowers into the approval id before the shared grammar routes the
+   * message, so all confirmation semantics — ambiguity notices, unknown-id
+   * handling, single-approval fallback — live in one place across interfaces.
+   */
+  private resolveApprovalIndexSugar(
     message: string,
     pendingApprovalIds: string[],
-  ): { confirmed: boolean; approvalId: string } | undefined {
-    const result = this.parseIndexedConfirmationResponse(message);
-    if (result === undefined) {
-      return undefined;
-    }
-
-    if (pendingApprovalIds.length > 1 && result.index === undefined) {
-      this.sendMessageToChannel({
-        channelId: null,
-        message:
-          "_Multiple approvals are pending. Reply with **yes 1** / **no 1** for the matching action._",
-      });
-      return undefined;
-    }
-
-    const selectedIndex = result.index ?? 0;
-    const approvalId = pendingApprovalIds[selectedIndex];
-    if (!approvalId) {
-      this.sendMessageToChannel({
-        channelId: null,
-        message: this.getConfirmationHelpText(pendingApprovalIds),
-      });
-      return undefined;
-    }
-
-    return { confirmed: result.confirmed, approvalId };
+  ): string {
+    const match = /^(.*?)\s+#?(\d+)$/.exec(message.trim());
+    if (!match?.[1] || !match[2]) return message;
+    const approvalId = pendingApprovalIds[Number(match[2]) - 1];
+    return approvalId ? `${match[1]} ${approvalId}` : message;
   }
 
   /**
-   * Handle confirmation responses (yes/no)
+   * Handle confirmation responses (yes/no) through the shared grammar.
+   * Returns false for non-confirmation input so topic changes fall through
+   * to AgentService, which owns the implicit-decline semantics.
    */
   private async handleConfirmationResponse(
     message: string,
     conversationId: string,
     pendingApprovalIds: string[],
   ): Promise<boolean> {
-    const approvalSelection = this.resolvePendingApprovalSelection(
-      message,
-      pendingApprovalIds,
-    );
-    if (!approvalSelection) return false;
+    const approvalIds = new Set(pendingApprovalIds);
+    if (!parseConfirmationIntent(message, approvalIds)) return false;
+
+    const routed = routeConfirmationResponse({
+      message: this.resolveApprovalIndexSugar(message, pendingApprovalIds),
+      approvalIds,
+    });
+    if (routed.kind === "not-confirmation") return false;
+    if (routed.kind === "notice") {
+      this.sendMessageToChannel({
+        channelId: null,
+        message: `_${routed.message}_`,
+      });
+      return true;
+    }
 
     // Clear selected pending confirmation before calling AgentService.
-    this.getApprovalTracker().removeApproval(
-      conversationId,
-      approvalSelection.approvalId,
-    );
+    this.getApprovalTracker().removeApproval(conversationId, routed.approvalId);
 
     // Call AgentService to confirm or cancel
     const response = await this.getAgentService().confirmPendingAction(
       conversationId,
-      approvalSelection.confirmed,
-      approvalSelection.approvalId,
+      routed.confirmed,
+      routed.approvalId,
       {
         userPermissionLevel: "admin",
         isAnchor: this.getContext().permissions.isAnchor("cli", "local"),
@@ -427,7 +462,7 @@ export class CLIInterface extends MessageInterfacePlugin<
     this.getApprovalTracker().syncFromResponse(
       conversationId,
       response,
-      approvalSelection.approvalId,
+      routed.approvalId,
     );
 
     // Send response to UI
