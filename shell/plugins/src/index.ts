@@ -483,7 +483,6 @@ export {
   BaseGenerationJobHandler,
   type GenerationJobHandlerConfig,
   type GeneratedContent,
-  type GenericCoverImageRequest,
 } from "./service/base-generation-job-handler";
 
 export type {
