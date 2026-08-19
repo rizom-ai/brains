@@ -12,6 +12,8 @@ export type OperatorScalar = string | number | boolean | null;
 export interface OperatorStatItem {
   readonly label: string;
   readonly value: string | number;
+  /** What the number counts, under the value. */
+  readonly caption?: string | undefined;
   readonly tone?: OperatorTone | undefined;
 }
 
@@ -504,9 +506,35 @@ export interface OperatorDetailBlock<
     | {
         readonly forId: string;
         readonly title: string;
-        readonly blocks: readonly OperatorPanelBlock<TAction>[];
+        readonly blocks: readonly OperatorRegionBlock<TAction>[];
       }
     | undefined;
+}
+
+export interface OperatorCardBlock<
+  TAction extends AnyWorkspaceActionDefinition,
+> {
+  readonly type: "card";
+  readonly id: string;
+  readonly label: string;
+  readonly tone?: OperatorTone | undefined;
+  readonly blocks: readonly OperatorPanelBlock<TAction>[];
+}
+
+export type OperatorRegionBlock<TAction extends AnyWorkspaceActionDefinition> =
+  OperatorPanelBlock<TAction> | OperatorCardBlock<TAction>;
+
+/**
+ * A column of work beside a rail of standing facts — the composition every
+ * operator surface wants. Regions hold panels and cards, one level deep.
+ */
+export interface OperatorColumnsBlock<
+  TAction extends AnyWorkspaceActionDefinition,
+> {
+  readonly type: "columns";
+  readonly id: string;
+  readonly primary: readonly OperatorRegionBlock<TAction>[];
+  readonly aside: readonly OperatorRegionBlock<TAction>[];
 }
 
 export type OperatorViewBlock<
@@ -514,12 +542,26 @@ export type OperatorViewBlock<
 > =
   | OperatorPanelBlock<TAction>
   | OperatorTabsBlock<TAction>
-  | OperatorDetailBlock<TAction>;
+  | OperatorDetailBlock<TAction>
+  | OperatorColumnsBlock<TAction>
+  | OperatorCardBlock<TAction>;
+
+/** Standing state of the surface itself, shown beside its title. */
+export interface OperatorViewStatus {
+  readonly label: string;
+  readonly detail?: string | undefined;
+  readonly tone?: OperatorTone | undefined;
+}
 
 export interface OperatorView<
   TAction extends AnyWorkspaceActionDefinition = never,
 > {
+  /** Domain the surface belongs to, above the title. */
+  readonly kicker?: string | undefined;
   readonly title?: string | undefined;
+  /** What the surface is for, in a sentence. */
+  readonly description?: string | undefined;
+  readonly status?: OperatorViewStatus | undefined;
   readonly blocks: readonly OperatorViewBlock<TAction>[];
 }
 

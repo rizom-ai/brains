@@ -2,6 +2,7 @@
 import type {
   RuntimeCmsOperatorBlock,
   RuntimeCmsOperatorPanelBlock,
+  RuntimeCmsOperatorRegionBlock,
   RuntimeCmsOperatorView,
   RuntimeCmsWorkspaceData,
   RuntimeOperatorActionControl,
@@ -276,6 +277,9 @@ function StatsBlock({
         <div key={`${item.label}:${index}`} data-tone={item.tone ?? "neutral"}>
           <dt>{item.label}</dt>
           <dd>{item.value}</dd>
+          {item.caption && (
+            <span className="declarative-stat-caption">{item.caption}</span>
+          )}
         </div>
       ))}
     </dl>
@@ -701,13 +705,34 @@ function QueryBlock(props: {
       </div>
       {pagination && (
         <footer>
+          {/* The window is replaced, not appended: a triage list is worked from
+              the top and its rows leave as they are handled, so an accumulating
+              list would shift under the operator. That makes saying which slice
+              is shown, and offering the way back, part of the control. */}
           <span>
-            {shown} of {pagination.total}
+            {pagination.total === 0
+              ? "Nothing to show"
+              : `${pagination.offset + 1}–${shown} of ${pagination.total}`}
           </span>
-          {shown < pagination.total && (
+          <span className="declarative-pager">
             <button
               type="button"
               className="btn ghost"
+              disabled={pagination.offset === 0}
+              onClick={() =>
+                props.onQueryChange({
+                  ...props.query,
+                  offset: Math.max(0, pagination.offset - pagination.limit),
+                  limit: pagination.limit,
+                })
+              }
+            >
+              Previous
+            </button>
+            <button
+              type="button"
+              className="btn ghost"
+              disabled={shown >= pagination.total}
               onClick={() =>
                 props.onQueryChange({
                   ...props.query,
@@ -716,9 +741,9 @@ function QueryBlock(props: {
                 })
               }
             >
-              {pagination.label ?? "Load more"}
+              {pagination.label ?? "Next"}
             </button>
-          )}
+          </span>
         </footer>
       )}
     </section>
@@ -874,13 +899,21 @@ function DetailBlock(props: {
   onQueryChange: (query: CmsWorkspaceQuery) => void;
 }): ReactElement {
   const { block, query, onQueryChange } = props;
-  const open = block.open;
   const headingRef = useRef<HTMLHeadingElement>(null);
-  const openedId = open?.forId;
+  // What the query asks for, not what has arrived: the two differ while a
+  // detail is loading, and a click must be answered immediately rather than
+  // waiting on a round-trip that may be slow.
+  const requestedRaw = query[block.queryKey];
+  const requested =
+    typeof requestedRaw === "string" && requestedRaw !== ""
+      ? requestedRaw
+      : undefined;
+  const open = block.open?.forId === requested ? block.open : undefined;
+  const pending = requested !== undefined && open === undefined;
 
   useEffect(() => {
-    if (openedId) headingRef.current?.focus();
-  }, [openedId]);
+    if (open) headingRef.current?.focus();
+  }, [open]);
 
   const openItem = (itemId: string): void => {
     onQueryChange({ ...query, offset: 0, [block.queryKey]: itemId });
@@ -898,7 +931,7 @@ function DetailBlock(props: {
         onAction={props.onAction}
         onOpenEntity={props.onOpenEntity}
         onLaunch={props.onLaunch}
-        openId={openedId}
+        openId={requested}
       />
     ) : (
       <TableBlock
@@ -906,53 +939,166 @@ function DetailBlock(props: {
         onAction={props.onAction}
         onOpenEntity={props.onOpenEntity}
         onLaunch={props.onLaunch}
-        openId={openedId}
+        openId={requested}
       />
     );
 
   return (
-    <div className="declarative-detail" data-open={open ? "true" : "false"}>
+    <div
+      className="declarative-detail"
+      data-open={requested === undefined ? "false" : "true"}
+    >
       <section className="declarative-detail-master" aria-label="Items">
         <OpenDetailContext.Provider value={openItem}>
           {master}
         </OpenDetailContext.Provider>
       </section>
-      <section
-        className="declarative-detail-pane"
-        aria-label={open ? open.title : "Detail"}
-      >
-        {open ? (
-          <>
-            <button
-              type="button"
-              className="declarative-detail-back"
-              onClick={closeItem}
-            >
-              ← Back
-            </button>
-            <h3 ref={headingRef} tabIndex={-1}>
-              {open.title}
-            </h3>
-            {open.blocks.map((panel, index) => (
-              <section
-                key={panel.id ?? `${panel.type}:${index}`}
-                data-block={panel.type}
+      {/* The reading pane exists only once something is asked for, so a
+          collection at rest keeps the full measure. */}
+      {requested !== undefined && (
+        <section
+          className="declarative-detail-pane"
+          aria-label={open ? open.title : "Detail"}
+        >
+          {open ? (
+            <>
+              <button
+                type="button"
+                className="declarative-detail-back"
+                onClick={closeItem}
               >
-                <PanelBlock
-                  block={panel}
-                  onAction={props.onAction}
-                  onOpenEntity={props.onOpenEntity}
-                  onLaunch={props.onLaunch}
-                  query={query}
-                  onQueryChange={onQueryChange}
-                />
-              </section>
-            ))}
-          </>
-        ) : (
-          <p className="declarative-empty">{block.empty}</p>
-        )}
-      </section>
+                ← Back
+              </button>
+              <h3 ref={headingRef} tabIndex={-1}>
+                {open.title}
+              </h3>
+              {open.blocks.map((panel, index) => (
+                <section
+                  key={panel.id ?? `${panel.type}:${index}`}
+                  data-block={panel.type}
+                >
+                  {panel.type === "card" ? (
+                    <CardBlock
+                      block={panel}
+                      onAction={props.onAction}
+                      onOpenEntity={props.onOpenEntity}
+                      onLaunch={props.onLaunch}
+                      query={query}
+                      onQueryChange={onQueryChange}
+                    />
+                  ) : (
+                    <PanelBlock
+                      block={panel}
+                      onAction={props.onAction}
+                      onOpenEntity={props.onOpenEntity}
+                      onLaunch={props.onLaunch}
+                      query={query}
+                      onQueryChange={onQueryChange}
+                    />
+                  )}
+                </section>
+              ))}
+            </>
+          ) : (
+            <>
+              <button
+                type="button"
+                className="declarative-detail-back"
+                onClick={closeItem}
+              >
+                ← Back
+              </button>
+              <p className="declarative-empty" aria-live="polite">
+                {pending ? "Loading…" : block.empty}
+              </p>
+            </>
+          )}
+        </section>
+      )}
+    </div>
+  );
+}
+
+function CardBlock(props: {
+  block: Extract<RuntimeCmsOperatorBlock, { type: "card" }>;
+  onAction: (action: RuntimeOperatorActionControl) => Promise<unknown>;
+  onOpenEntity: (entityType: string, id: string) => void;
+  onLaunch: (launch: RuntimeOperatorLaunchIntent) => void;
+  query: CmsWorkspaceQuery;
+  onQueryChange: (query: CmsWorkspaceQuery) => void;
+}): ReactElement {
+  return (
+    <section
+      className="declarative-card"
+      data-tone={props.block.tone ?? "neutral"}
+    >
+      <header>{props.block.label}</header>
+      {props.block.blocks.map((panel, index) => (
+        <div key={panel.id ?? `${panel.type}:${index}`} data-block={panel.type}>
+          <PanelBlock
+            block={panel}
+            onAction={props.onAction}
+            onOpenEntity={props.onOpenEntity}
+            onLaunch={props.onLaunch}
+            query={props.query}
+            onQueryChange={props.onQueryChange}
+          />
+        </div>
+      ))}
+    </section>
+  );
+}
+
+/**
+ * A column of work beside a rail of standing facts. Both regions hold panels
+ * and cards; the host owns the ratio and the narrow-viewport stacking.
+ */
+function ColumnsBlock(props: {
+  block: Extract<RuntimeCmsOperatorBlock, { type: "columns" }>;
+  onAction: (action: RuntimeOperatorActionControl) => Promise<unknown>;
+  onOpenEntity: (entityType: string, id: string) => void;
+  onLaunch: (launch: RuntimeOperatorLaunchIntent) => void;
+  query: CmsWorkspaceQuery;
+  onQueryChange: (query: CmsWorkspaceQuery) => void;
+}): ReactElement {
+  const region = (
+    entries: readonly RuntimeCmsOperatorRegionBlock[],
+    className: string,
+  ): ReactElement => (
+    <div className={className}>
+      {entries.map((entry, index) => (
+        <section
+          key={entry.id ?? `${entry.type}:${index}`}
+          data-block={entry.type}
+        >
+          {entry.type === "card" ? (
+            <CardBlock
+              block={entry}
+              onAction={props.onAction}
+              onOpenEntity={props.onOpenEntity}
+              onLaunch={props.onLaunch}
+              query={props.query}
+              onQueryChange={props.onQueryChange}
+            />
+          ) : (
+            <PanelBlock
+              block={entry}
+              onAction={props.onAction}
+              onOpenEntity={props.onOpenEntity}
+              onLaunch={props.onLaunch}
+              query={props.query}
+              onQueryChange={props.onQueryChange}
+            />
+          )}
+        </section>
+      ))}
+    </div>
+  );
+
+  return (
+    <div className="declarative-columns">
+      {region(props.block.primary, "declarative-column")}
+      {region(props.block.aside, "declarative-column declarative-aside")}
     </div>
   );
 }
@@ -968,6 +1114,30 @@ function ViewBlock(props: {
   const [activeTab, setActiveTab] = useState(
     props.block.type === "tabs" ? props.block.defaultTab : "",
   );
+  if (props.block.type === "columns") {
+    return (
+      <ColumnsBlock
+        block={props.block}
+        onAction={props.onAction}
+        onOpenEntity={props.onOpenEntity}
+        onLaunch={props.onLaunch}
+        query={props.query}
+        onQueryChange={props.onQueryChange}
+      />
+    );
+  }
+  if (props.block.type === "card") {
+    return (
+      <CardBlock
+        block={props.block}
+        onAction={props.onAction}
+        onOpenEntity={props.onOpenEntity}
+        onLaunch={props.onLaunch}
+        query={props.query}
+        onQueryChange={props.onQueryChange}
+      />
+    );
+  }
   if (props.block.type === "detail") {
     return (
       <DetailBlock
@@ -1060,16 +1230,36 @@ export function DeclarativeWorkspace(props: {
   const [lead] = blocks;
   const totals = lead?.type === "stats" ? lead : null;
   const bodyBlocks = totals ? blocks.slice(1) : blocks;
-  const hasHead = Boolean(title) || totals !== null;
+  const { kicker, description, status } = props.data.view;
+  const hasHead =
+    Boolean(title) ||
+    Boolean(kicker) ||
+    totals !== null ||
+    status !== undefined;
 
   return (
     <main className="declarative-workspace">
       {hasHead && (
         <header className="declarative-head">
-          <h2>{title}</h2>
-          {totals && (
-            <StatsBlock block={totals} className="declarative-totals" />
-          )}
+          <div className="declarative-head-copy">
+            {kicker && <span className="declarative-kicker">{kicker}</span>}
+            <h2>{title}</h2>
+            {description && <p>{description}</p>}
+          </div>
+          <div className="declarative-head-state">
+            {status && (
+              <strong
+                className="declarative-status-badge"
+                data-tone={status.tone ?? "neutral"}
+              >
+                {status.label}
+                {status.detail && <small>{status.detail}</small>}
+              </strong>
+            )}
+            {totals && (
+              <StatsBlock block={totals} className="declarative-totals" />
+            )}
+          </div>
         </header>
       )}
       <div className="declarative-blocks">

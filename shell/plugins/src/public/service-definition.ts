@@ -46,6 +46,10 @@ export type {
   OperatorCapabilityDefinition,
   OperatorEntityCatalogDefinition,
   OperatorView,
+  OperatorCardBlock,
+  OperatorColumnsBlock,
+  OperatorRegionBlock,
+  OperatorViewStatus,
   OperatorViewBlock,
 } from "../operator/operator-view-contract";
 export { defineJob, defineTool } from "../service/service-definition-contract";

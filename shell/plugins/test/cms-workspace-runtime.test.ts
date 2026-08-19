@@ -724,20 +724,18 @@ describe("operator detail composition", () => {
     });
   });
 
-  it("rejects an open detail that matches no row in its master", () => {
+  it("keeps the open detail when its row is outside the current page", () => {
+    // Paging or filtering can move the selected row out of the master. Losing
+    // the reading pane because the operator turned a page would be worse than
+    // leaving the list unmarked.
     expect(
       safeParseRuntimeCmsOperatorView(
-        detailView({ forId: "mail-404", title: "Missing", blocks: [] }),
+        detailView({ forId: "mail-404", title: "Off page", blocks: [] }),
         { actions: [], permission: "trusted" },
       ),
     ).toMatchObject({
-      success: false,
-      issues: [
-        {
-          path: ["blocks", 0, "open", "forId"],
-          message: expect.stringContaining("mail-404"),
-        },
-      ],
+      success: true,
+      data: { blocks: [{ open: { forId: "mail-404", title: "Off page" } }] },
     });
   });
 
@@ -792,5 +790,71 @@ describe("operator detail composition", () => {
         },
       ],
     });
+  });
+});
+
+describe("operator columns composition", () => {
+  it("normalizes a primary/aside split into typed regions", () => {
+    const result = safeParseRuntimeCmsOperatorView(
+      {
+        kicker: "Durability operations",
+        title: "Content sync",
+        blocks: [
+          {
+            type: "columns",
+            id: "sync-body",
+            primary: [
+              { type: "list", id: "runs", empty: "No runs.", items: [] },
+            ],
+            aside: [
+              {
+                type: "card",
+                id: "automation",
+                label: "Automation",
+                blocks: [
+                  {
+                    type: "key-values",
+                    id: "automation-kv",
+                    items: [{ label: "File watcher", value: "On" }],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+      { actions: [], permission: "trusted" },
+    );
+
+    expect(result).toMatchObject({
+      success: true,
+      data: {
+        kicker: "Durability operations",
+        blocks: [
+          {
+            type: "columns",
+            primary: [{ type: "list", id: "runs" }],
+            aside: [{ type: "card", id: "automation", label: "Automation" }],
+          },
+        ],
+      },
+    });
+  });
+
+  it("rejects a container nested inside a column region", () => {
+    const result = safeParseRuntimeCmsOperatorView(
+      {
+        blocks: [
+          {
+            type: "columns",
+            id: "outer",
+            primary: [{ type: "columns", id: "inner", primary: [], aside: [] }],
+            aside: [],
+          },
+        ],
+      },
+      { actions: [], permission: "trusted" },
+    );
+    expect(result.success).toBe(false);
   });
 });

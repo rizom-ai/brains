@@ -39,6 +39,9 @@ const runInboxAction = defineWorkspaceAction({
   output: z.object({ kind: z.literal("completed") }),
 });
 
+/** How much source text the reading pane shows before saying it stopped. */
+const DETAIL_TEXT_LIMIT = 4000;
+
 const personEntity = defineEntity({
   type: "person",
   purpose: "A known person associated with operator work",
@@ -85,6 +88,93 @@ function sourceOptionLabel(
   return source.high > 0 ? `${name} · ${source.high} high` : name;
 }
 
+type InboxEntry = InboxWorkspaceSnapshot["entries"][number];
+type InboxViewBlock = OperatorViewBlock<typeof runInboxAction>;
+type InboxLink = Extract<InboxViewBlock, { type: "links" }>["items"][number];
+type InboxPanelBlock = NonNullable<
+  Extract<InboxViewBlock, { type: "detail" }>["open"]
+>["blocks"][number];
+
+/** The verbs that clear an item, offered by its own source. */
+function entryActions(entry: InboxEntry): {
+  action: typeof runInboxAction;
+  capability: OperatorCapabilityDefinition;
+  input: {
+    sourceId: string;
+    itemId: string;
+    capability: OperatorCapabilityDefinition;
+  };
+}[] {
+  return entry.item.actions.map((action) => {
+    const capability: OperatorCapabilityDefinition = {
+      id: action.id,
+      label: action.label,
+      ...(action.confirm === true ? { confirmation: "prepared" } : {}),
+    };
+    return {
+      action: runInboxAction,
+      capability,
+      input: {
+        sourceId: entry.source.sourceId,
+        itemId: entry.item.id,
+        capability,
+      },
+    };
+  });
+}
+
+/** Where an item can be taken next, once it has been read. */
+function entryFollowUps(entry: InboxEntry): InboxLink[] {
+  const entityRef = entry.item.entityRef;
+  const links: InboxLink[] = [];
+  if (entry.item.contact?.personId) {
+    links.push({
+      label: `Open contact ${entry.item.contact.label}`,
+      target: { entity: personEntity, id: entry.item.contact.personId },
+    });
+  }
+  for (const followUp of entry.followUps) {
+    if (followUp.kind === "discuss-in-chat") {
+      links.push({
+        label: followUp.label,
+        target: {
+          launch: {
+            target: "inbox-discuss-in-chat",
+            sourceId: entry.source.sourceId,
+            itemId: entry.item.id,
+            label: entry.item.title,
+          },
+        },
+      });
+    } else if (followUp.kind === "open-entity" && entityRef) {
+      links.push({
+        label: followUp.label,
+        target: {
+          launch: {
+            target: "inbox-open-entity",
+            entityType: entityRef.entityType,
+            entityId: entityRef.entityId,
+          },
+        },
+      });
+    } else if (followUp.kind === "capture-as-note" && entityRef) {
+      links.push({
+        label: followUp.label,
+        target: {
+          launch: {
+            target: "inbox-capture-note",
+            title: entry.item.title,
+            ...(entry.item.summary ? { summary: entry.item.summary } : {}),
+            entityType: entityRef.entityType,
+            entityId: entityRef.entityId,
+          },
+        },
+      });
+    }
+  }
+  return links;
+}
+
 const inboxWorkspace = defineCmsWorkspace({
   id: "inbox",
   label: "Inbox",
@@ -95,11 +185,6 @@ const inboxWorkspace = defineCmsWorkspace({
   actions: [runInboxAction],
   badge: ({ data }) => data.snapshot.summary.open,
   view: ({ data }) => {
-    type InboxViewBlock = OperatorViewBlock<typeof runInboxAction>;
-    type InboxLink = Extract<
-      InboxViewBlock,
-      { type: "links" }
-    >["items"][number];
     const { query, snapshot } = data;
     const selectedSource = snapshot.sources.find(
       (source) => source.source.sourceId === query.sourceId,
@@ -150,14 +235,6 @@ const inboxWorkspace = defineCmsWorkspace({
         tone: "warn",
       }),
     );
-    type InboxPanelBlock = Extract<
-      InboxViewBlock,
-      { type: "detail" }
-    >["master"] extends never
-      ? never
-      : NonNullable<
-          Extract<InboxViewBlock, { type: "detail" }>["open"]
-        >["blocks"][number];
     const detailPanels: InboxPanelBlock[] | undefined = data.detail
       ? data.detail.kind === "detail"
         ? [
@@ -165,8 +242,10 @@ const inboxWorkspace = defineCmsWorkspace({
               type: "text",
               id: "inbox-detail-text",
               label: "Original content",
-              text: data.detail.detail.text,
-              truncated: data.detail.detail.truncated,
+              text: data.detail.detail.text.slice(0, DETAIL_TEXT_LIMIT),
+              truncated:
+                data.detail.detail.truncated ||
+                data.detail.detail.text.length > DETAIL_TEXT_LIMIT,
             },
           ]
         : [
@@ -179,27 +258,74 @@ const inboxWorkspace = defineCmsWorkspace({
             },
           ]
       : undefined;
-    const selectedTitle = query.selected
+    const selectedEntry = query.selected
       ? snapshot.entries.find(
           (entry) =>
             inboxRowId(entry.source.sourceId, entry.item.id) === query.selected,
-        )?.item.title
+        )
       : undefined;
+    const selectedTitle = selectedEntry?.item.title;
+    // The pane is where the item is read, so it carries where it can go next
+    // and the verbs that clear it — no going back to the row to act.
+    const selectedFollowUps = selectedEntry
+      ? entryFollowUps(selectedEntry)
+      : [];
+    const paneBlocks: InboxPanelBlock[] = [
+      ...(detailPanels ?? []),
+      ...(selectedFollowUps.length > 0
+        ? [
+            {
+              type: "card" as const,
+              id: "inbox-detail-follow-ups",
+              label: "Follow up",
+              blocks: [
+                {
+                  type: "links" as const,
+                  id: "inbox-follow-up-links",
+                  items: selectedFollowUps,
+                },
+              ],
+            } as InboxPanelBlock,
+          ]
+        : []),
+      ...(selectedEntry && entryActions(selectedEntry).length > 0
+        ? [
+            {
+              type: "card" as const,
+              id: "inbox-detail-actions",
+              label: "Available actions",
+              blocks: [
+                {
+                  type: "actions" as const,
+                  id: "inbox-action-controls",
+                  items: entryActions(selectedEntry),
+                },
+              ],
+            } as InboxPanelBlock,
+          ]
+        : []),
+    ];
     const blocks: InboxViewBlock[] = [
       {
         type: "stats",
         id: "inbox-summary",
         items: [
-          { label: "Open", value: snapshot.summary.open },
+          {
+            label: "Open",
+            value: snapshot.summary.open,
+            caption: "across sources",
+          },
           {
             label: "High priority",
             value: snapshot.summary.high,
+            caption:
+              snapshot.summary.high > 0 ? "needs attention" : "all clear",
             tone: snapshot.summary.high > 0 ? "warn" : "good",
           },
-          { label: "Matching", value: snapshot.total },
           {
-            label: "Sources online",
-            value: snapshot.sources.filter((source) => source.available).length,
+            label: "Matching",
+            value: snapshot.total,
+            caption: "current filter",
           },
         ],
       },
@@ -218,12 +344,12 @@ const inboxWorkspace = defineCmsWorkspace({
         id: "inbox-detail",
         queryKey: "selected",
         empty: "Select an item to read its source content.",
-        ...(detailPanels && query.selected
+        ...(query.selected && paneBlocks.length > 0
           ? {
               open: {
                 forId: query.selected,
                 title: selectedTitle ?? "Original content",
-                blocks: detailPanels,
+                blocks: paneBlocks,
               },
             }
           : {}),
@@ -231,112 +357,52 @@ const inboxWorkspace = defineCmsWorkspace({
           type: "list",
           id: "inbox-items",
           empty: "Nothing needs attention for these filters.",
-          items: snapshot.entries.map((entry) => {
-            const entityRef = entry.item.entityRef;
-            const links: InboxLink[] = [];
-            if (entry.item.contact?.personId) {
-              links.push({
-                label: `Open contact ${entry.item.contact.label}`,
-                target: {
-                  entity: personEntity,
-                  id: entry.item.contact.personId,
-                },
-              });
-            }
-            if (entry.detailAvailable) {
-              links.push({
-                label: "Read original",
-                target: {
-                  detail: {
-                    itemId: inboxRowId(entry.source.sourceId, entry.item.id),
-                  },
-                },
-              });
-            }
-            for (const followUp of entry.followUps) {
-              if (followUp.kind === "discuss-in-chat") {
-                links.push({
-                  label: followUp.label,
-                  target: {
-                    launch: {
-                      target: "inbox-discuss-in-chat",
-                      sourceId: entry.source.sourceId,
-                      itemId: entry.item.id,
-                      label: entry.item.title,
-                    },
-                  },
-                });
-              } else if (followUp.kind === "open-entity" && entityRef) {
-                links.push({
-                  label: followUp.label,
-                  target: {
-                    launch: {
-                      target: "inbox-open-entity",
-                      entityType: entityRef.entityType,
-                      entityId: entityRef.entityId,
-                    },
-                  },
-                });
-              } else if (followUp.kind === "capture-as-note" && entityRef) {
-                links.push({
-                  label: followUp.label,
-                  target: {
-                    launch: {
-                      target: "inbox-capture-note",
-                      title: entry.item.title,
-                      ...(entry.item.summary
-                        ? { summary: entry.item.summary }
-                        : {}),
-                      entityType: entityRef.entityType,
-                      entityId: entityRef.entityId,
-                    },
-                  },
-                });
-              }
-            }
-            return {
-              id: inboxRowId(entry.source.sourceId, entry.item.id),
-              title: entry.item.title,
-              description: entry.item.summary,
-              metadata: [
-                entry.source.displayName,
-                entry.item.receivedAt,
-                ...(entry.item.threadOrdinal === undefined
-                  ? []
-                  : [`Message ${entry.item.threadOrdinal} in thread`]),
-              ],
-              badges: [
-                {
-                  label: `${entry.item.urgency} priority`,
-                  tone: entry.item.urgency === "high" ? "warn" : "neutral",
-                },
-              ],
-              ...(links.length > 0 ? { links } : {}),
-              actions: entry.item.actions.map((action) => {
-                const capability: OperatorCapabilityDefinition = {
-                  id: action.id,
-                  label: action.label,
-                  ...(action.confirm === true
-                    ? { confirmation: "prepared" }
-                    : {}),
-                };
-                return {
-                  action: runInboxAction,
-                  capability,
-                  input: {
-                    sourceId: entry.source.sourceId,
-                    itemId: entry.item.id,
-                    capability,
-                  },
-                };
-              }),
-            };
-          }),
+          // A row carries what you scan and the verbs that clear it. Follow-ups
+          // — go elsewhere and do something — are decisions made after reading,
+          // so they live in the pane where the reading happens.
+          items: snapshot.entries.map((entry) => ({
+            id: inboxRowId(entry.source.sourceId, entry.item.id),
+            title: entry.item.title,
+            link: {
+              detail: {
+                itemId: inboxRowId(entry.source.sourceId, entry.item.id),
+              },
+            },
+            description: entry.item.summary,
+            metadata: [
+              entry.source.displayName,
+              entry.item.receivedAt,
+              ...(entry.item.threadOrdinal === undefined
+                ? []
+                : [`Message ${entry.item.threadOrdinal} in thread`]),
+            ],
+            badges: [
+              {
+                label: `${entry.item.urgency} priority`,
+                tone: entry.item.urgency === "high" ? "warn" : "neutral",
+              },
+            ],
+            actions: entryActions(entry),
+          })),
         },
       },
       ...errorBlocks,
     ];
-    return { title: "Inbox", blocks };
+    const online = snapshot.sources.filter((source) => source.available).length;
+    return {
+      kicker: "Live source-owned attention",
+      title: "Inbox",
+      description:
+        "Triage incoming work without creating a second copy of source state.",
+      status: {
+        label: `${online} of ${snapshot.sources.length} sources online`,
+        ...(online < snapshot.sources.length
+          ? { detail: "some sources unavailable" }
+          : {}),
+        tone: online < snapshot.sources.length ? "warn" : "good",
+      },
+      blocks,
+    };
   },
 });
 
@@ -357,17 +423,31 @@ export async function registerUnifiedInboxCmsWorkspace(
           const selection = normalized.selected
             ? splitInboxRowId(normalized.selected)
             : undefined;
-          const detail = selection
-            ? await operator.detail(
-                {
-                  type: "detail",
-                  sourceId: selection.sourceId,
-                  itemId: selection.itemId,
-                },
-                actor,
-                signal,
+          // A source that cannot be read is answered from the snapshot, so the
+          // pane opens at once instead of waiting on a fetch that will fail.
+          const selectedEntry = selection
+            ? snapshot.entries.find(
+                (entry) =>
+                  entry.source.sourceId === selection.sourceId &&
+                  entry.item.id === selection.itemId,
               )
             : undefined;
+          const detail = !selection
+            ? undefined
+            : selectedEntry?.detailAvailable === false
+              ? ({
+                  kind: "detail-unavailable",
+                  error: "Original content is unavailable",
+                } as const)
+              : await operator.detail(
+                  {
+                    type: "detail",
+                    sourceId: selection.sourceId,
+                    itemId: selection.itemId,
+                  },
+                  actor,
+                  signal,
+                );
           return {
             query: normalized,
             snapshot,

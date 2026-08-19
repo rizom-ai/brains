@@ -219,9 +219,25 @@ describe("unified inbox CMS registration", () => {
 
   it("uses typed contact links without depending on an Admin URL", async () => {
     const fixture = await setup({ adminHref: false });
-    const workspace = await fixture.workspace.dataProvider(admin, {});
+    // Follow-ups live in the reading pane, so a selection is what surfaces the
+    // contact link; the collection itself stays scannable.
+    const workspace = await fixture.workspace.dataProvider(admin, {
+      selected: "mail-items:mail-1",
+    });
     expect(JSON.stringify(workspace)).toContain('"entityType":"person"');
     expect(JSON.stringify(workspace)).not.toContain("/access/people");
+  });
+
+  it("keeps follow-ups out of the collection until an item is opened", async () => {
+    const fixture = await setup();
+    const closed = JSON.stringify(
+      await fixture.workspace.dataProvider(admin, {}),
+    );
+    expect(closed).not.toContain('"entityType":"person"');
+    expect(closed).not.toContain("inbox-detail-follow-ups");
+    // The verbs that clear an item stay on the row: triage should not require
+    // opening each item first.
+    expect(closed).toContain('"capabilityId":"archive"');
   });
 
   it("server-gates confirmation and re-checks withdrawn actions", async () => {

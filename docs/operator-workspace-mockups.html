@@ -1,12 +1,7 @@
-<!doctype html>
-<html lang="en" data-climate="paper">
-<head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Operator workspace design pass</title>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,300..900,30..100;1,9..144,300..900,30..100&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
-<style>
-/*
+<!doctype html><html lang="en" data-climate="instrument"><head><meta charset="utf-8" />
+<title>Operator workspace target</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..700&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>/*
  * Shared operator-console tokens and chrome.
  *
  * Instrument is the console's fixed bioluminescent identity. Paper is the
@@ -547,7 +542,6 @@
   .pulse { animation: none; }
 }
 
-
   .studio { display: flex; flex-direction: column; flex: 1; min-height: 0; }
   .boot-status { padding: 48px; }
   .spacer { flex: 1; }
@@ -713,1311 +707,22 @@
   .status { color: var(--console-text-dim); font-size: 13px; }
   .status-error { color: var(--console-accent-dim); }
   .status-ok { color: var(--console-ok); }
-
-/* CMS visual contract.
-   Detailed desktop styling follows docs/cms-editor-mockups.html. Responsive
-   composition remains in responsive.css and inherits this same material system. */
-
-.studio {
-  --console-mono: "IBM Plex Mono", ui-monospace, monospace;
-  background: var(--console-frame);
-}
-
-/* Surface-local context below the shared console strip. */
-.crumbbar {
-  height: 40px;
-  min-height: 40px;
-  padding-inline: 20px;
-  background:
-    linear-gradient(
-      to bottom,
-      color-mix(in srgb, white 24%, transparent),
-      transparent
-    ),
-    var(--console-frame);
-}
-.crumb {
-  color: var(--console-text-dim);
-}
-.crumb button {
-  border: 0;
-  padding: 0;
-  background: transparent;
-  color: inherit;
-  cursor: pointer;
-  font: inherit;
-}
-.crumb button:hover {
-  color: var(--console-accent-dim);
-}
-
-/* Library — quiet paper rail and dense editorial index. */
-.studio-body {
-  grid-template-columns: 232px minmax(0, 1fr);
-}
-.rail {
-  padding: 22px 0 26px;
-  background:
-    linear-gradient(
-      to right,
-      transparent 60%,
-      color-mix(in srgb, var(--console-text) 2.5%, transparent)
-    ),
-    var(--console-card-soft);
-}
-.rail-group {
-  padding-bottom: 18px;
-}
-.rail-title {
-  padding: 0 20px 8px;
-  color: var(--console-text-muted);
-  font-size: 10px;
-  letter-spacing: 0.2em;
-}
-.rail .type {
-  min-height: 0;
-  padding: 6px 20px;
-  color: var(--console-text-dim);
-}
-.rail .type:hover {
-  background: var(--console-card);
-}
-.rail .type.active {
-  border-left-color: var(--console-accent);
-  background: var(--console-card);
-  color: var(--console-text);
-}
-.rail .count {
-  padding: 0;
-  border: 0;
-  border-radius: 0;
-  color: var(--console-text-muted);
-  font-size: 11px;
-}
-
-.listing {
-  width: auto;
-  margin: 0;
-  padding: 26px 30px 34px;
-}
-.listing-head {
-  position: static;
-  align-items: flex-end;
-  padding-bottom: 16px;
-  border-bottom: 2px solid var(--console-text);
-}
-.listing-head::after {
-  display: none;
-}
-.listing-head h3 {
-  font-size: 34px;
-  font-variation-settings:
-    "SOFT" 70,
-    "opsz" 60;
-  font-weight: 580;
-  letter-spacing: -0.01em;
-}
-.listing-head .meta {
-  padding-bottom: 5px;
-  color: var(--console-text-muted);
-  font-size: 11.5px;
-  letter-spacing: 0;
-  text-transform: none;
-}
-.listing-head .btn {
-  min-height: 0;
-  margin-bottom: 2px;
-  border-color: var(--console-text);
-  border-radius: 7px;
-  background: var(--console-text);
-  color: var(--console-frame);
-  font-family: var(--console-ui);
-  font-size: 13px;
-  letter-spacing: 0;
-  text-transform: none;
-}
-.row {
-  grid-template-columns: 44px minmax(0, 1fr) 130px 150px 120px;
-  min-height: 0;
-  padding: 15px 4px 14px;
-  border-bottom-color: var(--console-rule-strong);
-}
-.row:hover {
-  background: var(--console-card);
-}
-.row .idx {
-  color: var(--console-text-muted);
-  font-size: 11px;
-}
-.row .title {
-  color: var(--console-text);
-  font-size: 17.5px;
-  font-variation-settings:
-    "SOFT" 50,
-    "opsz" 30;
-  font-weight: 520;
-  letter-spacing: -0.005em;
-}
-.row:hover .title {
-  color: var(--console-accent-dim);
-}
-.row .title small {
-  color: var(--console-text-muted);
-  font-size: 11px;
-  letter-spacing: 0;
-}
-.row .updated {
-  justify-self: auto;
-  color: var(--console-text-dim);
-  font-family: var(--console-ui);
-  font-size: 12.5px;
-  letter-spacing: 0;
-}
-.chip {
-  justify-self: start;
-  padding: 3px 10px;
-  border-radius: 999px;
-  font-family: var(--console-mono);
-  font-size: 10.5px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-.chip.published {
-  color: var(--console-ok);
-  background: var(--console-ok-soft);
-}
-.chip.draft {
-  color: var(--console-warn);
-  background: color-mix(in srgb, var(--console-warn) 13%, transparent);
-}
-.sync {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  color: var(--console-text-muted);
-  font-family: var(--console-mono);
-  font-size: 11px;
-}
-.sync-dot {
-  width: 6px;
-  height: 6px;
-  flex: 0 0 auto;
-  border-radius: 50%;
-  background: var(--console-ok);
-}
-.sync-dot.pending {
-  background: var(--console-warn);
-  animation: console-pulse 1.6s ease-in-out infinite;
-}
-
-/* Manuscript — frontmatter beside the literal source and reading proof. */
-.editor {
-  grid-template-columns: 330px minmax(0, 1fr);
-}
-.colophon {
-  padding: 26px 26px 60px;
-  background: var(--console-card-soft);
-}
-.form-title {
-  gap: 12px;
-  padding-bottom: 18px;
-  color: var(--console-text-muted);
-  font-size: 10px;
-  letter-spacing: 0.2em;
-}
-.form-title h2 {
-  margin: 0;
-  color: inherit;
-  font: inherit;
-  letter-spacing: inherit;
-  text-transform: uppercase;
-}
-.cms-form-mobile-label {
-  display: none;
-}
-.form-title > span {
-  color: var(--console-accent);
-  text-align: right;
-}
-.cms-mobile-save-status,
-.cms-mobile-more {
-  display: none;
-}
-.backlink {
-  display: none;
-}
-.field {
-  padding: 14px 0 16px;
-}
-.field-label {
-  color: var(--console-text-dim);
-}
-.field input[type="text"],
-.field input[type="number"],
-.field input[type="datetime-local"],
-.field select,
-.field textarea {
-  min-height: 0;
-  border-color: var(--console-rule-strong);
-  border-radius: 6px;
-  background: var(--console-card);
-}
-.field input[type="datetime-local"] {
-  width: 100%;
-  padding: 8px 11px;
-  border: 1px solid var(--console-rule-strong);
-  color: var(--console-text);
-  font: 12.5px var(--console-mono);
-  color-scheme: light;
-}
-[data-climate="instrument"] .field input[type="datetime-local"] {
-  color-scheme: dark;
-}
-.field textarea:disabled {
-  border-style: dashed;
-  background: color-mix(in srgb, var(--console-text) 3%, var(--console-card));
-  cursor: not-allowed;
-  opacity: 0.78;
-}
-.field input:user-invalid,
-.field select:user-invalid,
-.field textarea:user-invalid {
-  border-color: var(--console-err);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--console-err) 12%, transparent);
-}
-.field-inline input[type="checkbox"] {
-  position: relative;
-  width: 38px;
-  height: 22px;
-  appearance: none;
-  flex: 0 0 auto;
-  border: 1px solid var(--console-rule-strong);
-  border-radius: 999px;
-  outline: none;
-  background: var(--console-rule);
-  cursor: pointer;
-  transition:
-    background 150ms ease,
-    border-color 150ms ease;
-}
-.field-inline input[type="checkbox"]::after {
-  content: "";
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: var(--console-card);
-  box-shadow: 0 1px 3px color-mix(in srgb, black 28%, transparent);
-  transition: transform 150ms ease;
-}
-.field-inline input[type="checkbox"]:checked {
-  border-color: var(--console-ok);
-  background: var(--console-ok);
-}
-.field-inline input[type="checkbox"]:checked::after {
-  transform: translateX(16px);
-}
-.field-inline input[type="checkbox"]:focus-visible {
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--console-ok) 18%, transparent);
-}
-.field-image .image-ref {
-  align-items: stretch;
-}
-.field-image .image-ref code {
-  display: flex;
-  min-width: 0;
-  flex: 1;
-  align-items: center;
-}
-.upload-zone {
-  display: grid;
-  justify-items: center;
-  padding: 22px 16px;
-  border: 1.5px dashed var(--console-text-muted);
-  border-radius: 9px;
-  background: color-mix(in srgb, var(--console-card) 75%, transparent);
-  cursor: pointer;
-  text-align: center;
-  transition:
-    border-color 150ms ease,
-    background 150ms ease;
-}
-.upload-zone:hover,
-.upload-zone:focus-within {
-  border-color: var(--console-accent);
-  background: color-mix(in srgb, var(--console-accent) 4%, var(--console-card));
-}
-.upload-zone .upload-glyph {
-  color: var(--console-accent-dim);
-  font: 30px/1 var(--console-display);
-  font-variation-settings: "SOFT" 100;
-}
-.upload-zone strong {
-  margin-top: 8px;
-  color: var(--console-text);
-  font-size: 13px;
-  font-weight: 500;
-}
-.upload-zone small {
-  margin-top: 3px;
-  color: var(--console-text-muted);
-  font: 9.5px var(--console-mono);
-}
-.upload-zone input[type="file"] {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip-path: inset(50%);
-}
-.tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-.tag {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  min-height: 28px;
-  padding: 3px 5px 3px 10px;
-  border: 1px solid var(--console-rule-strong);
-  border-radius: 999px;
-  background: var(--console-card);
-  color: var(--console-text-dim);
-  font-size: 12px;
-}
-.tag button {
-  display: grid;
-  width: 20px;
-  height: 20px;
-  place-items: center;
-  border: 0;
-  border-radius: 50%;
-  background: transparent;
-  color: var(--console-text-muted);
-  cursor: pointer;
-  font: 13px/1 var(--console-mono);
-}
-.tag button:hover,
-.tag button:focus-visible {
-  background: var(--console-accent-soft);
-  color: var(--console-accent-dim);
-  outline: none;
-}
-.tag-add {
-  border-style: dashed;
-  padding-left: 9px;
-}
-.field .tag-add input[type="text"] {
-  width: 58px;
-  min-width: 0;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: var(--console-text);
-  font-size: 12px;
-  box-shadow: none;
-}
-.field .tag-add input[type="text"]::placeholder {
-  color: var(--console-text-muted);
-}
-.field .tag-add input[type="text"]:focus {
-  width: 86px;
-}
-
-.manuscript {
-  background: var(--console-card);
-}
-.body-toolbar {
-  min-height: 0;
-  padding: 12px 26px;
-  background: transparent;
-}
-.seg {
-  border-radius: 7px;
-  background: var(--console-card);
-}
-.seg .mode {
-  min-height: 0;
-  padding: 6px 14px;
-  font-size: 11.5px;
-}
-.seg .mode-active {
-  background: var(--console-text);
-  color: var(--console-frame);
-}
-.doc-meta {
-  color: var(--console-text-muted);
-  font-size: 11px;
-  letter-spacing: 0;
-}
-.assist-bar {
-  min-height: 0;
-  padding: 10px 26px;
-}
-.assist-bar[data-has-selection="false"] {
-  display: none;
-}
-.body-source .cm-content,
-.body-preview {
-  padding: 30px 34px;
-}
-.body-source .cm-scroller {
-  font-size: 13px;
-  line-height: 1.75;
-}
-.body-preview h1 {
-  font-size: 30px;
-  font-variation-settings:
-    "SOFT" 70,
-    "opsz" 90;
-  font-weight: 580;
-  letter-spacing: -0.01em;
-}
-.body-preview p,
-.body-preview li {
-  font-size: 15px;
-  line-height: 1.72;
-}
-.body-preview blockquote {
-  margin-block: 18px;
-  padding-left: 18px;
-  font-size: 16.5px;
-}
-.pipeline {
-  min-height: 58px;
-  padding-inline: 20px;
-  border-top-width: 2px;
-}
-.save-btn {
-  min-height: 0;
-  padding: 9px 22px;
-  border-radius: 7px;
-  font-family: var(--console-ui);
-  font-size: 13.5px;
-  letter-spacing: 0;
-  text-transform: none;
-}
-
-/* Optional publishing capability — an operational desk, not an entity list. */
-.rail-group--operations {
-  margin-block: 2px 16px;
-  padding-block: 15px 14px;
-  border-block: 1px solid var(--console-rule);
-}
-.workspace-type::before {
-  content: "⇥";
-  color: var(--console-text-muted);
-  font: 11px var(--console-mono);
-}
-.workspace-type.active::before {
-  color: var(--console-accent);
-}
-.rail .count--attention {
-  display: grid;
-  width: 18px;
-  height: 18px;
-  place-items: center;
-  border-radius: 50%;
-  background: var(--console-err);
-  color: var(--console-card);
-  font-size: 8px;
-  font-weight: 600;
-}
-/* Contextual publication controls remain visually separate from save state. */
-.publication-actions {
-  margin-top: 22px;
-  padding: 15px;
-  border: 1px solid var(--console-rule-strong);
-  border-left: 3px solid var(--console-accent);
-  border-radius: 7px;
-  background: var(--console-card);
-}
-.publication-actions > header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  color: var(--console-text-muted);
-  font: 9px var(--console-mono);
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-.publication-state {
-  color: var(--console-text-dim);
-  font-weight: 500;
-}
-.publication-state--queued {
-  color: var(--console-warn);
-}
-.publication-state--failed {
-  color: var(--console-err);
-}
-.publication-state--published {
-  color: var(--console-ok);
-}
-.publication-actions > p {
-  margin: 10px 0 0;
-  color: var(--console-text-muted);
-  font-size: 11px;
-  line-height: 1.45;
-}
-.publication-actions .publication-action-note {
-  color: var(--console-warn);
-}
-.publication-action-buttons {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 7px;
-  margin-top: 13px;
-}
-.publication-action-buttons .btn {
-  padding: 6px 9px;
-  font-size: 10px;
-}
-.publication-action-buttons .publication-publish-now {
-  border-color: var(--console-accent);
-  background: var(--console-accent);
-  color: var(--console-on-accent);
-}
-.publication-action-complete {
-  color: var(--console-ok) !important;
-  font-family: var(--console-mono);
-}
-.publication-modal .modal-mark {
-  color: var(--console-accent);
-}
-.publication-modal .publication-confirm-warning {
-  padding: 9px 11px;
-  border-left: 2px solid var(--console-warn);
-  background: color-mix(in srgb, var(--console-warn) 7%, transparent);
-  font: 10px/1.5 var(--console-mono);
-}
-.publication-modal .publish-confirm {
-  border-color: var(--console-accent);
-  background: var(--console-accent);
-  color: var(--console-on-accent);
-}
-
-/* Desktop manuscript drops the collection rail; the local crumb is its route back. */
-@media (min-width: 901px) {
-  .studio[data-view="editor"] .studio-body {
-    grid-template-columns: 1fr;
-  }
-  .studio[data-view="editor"] .rail {
-    display: none;
-  }
-  .editor {
-    grid-template-columns: 330px minmax(0, 1fr);
-    grid-template-rows: minmax(0, 1fr) auto;
-  }
-  .colophon {
-    grid-column: 1;
-    grid-row: 1 / 3;
-    min-height: 0;
-    overflow-y: auto;
-  }
-  .manuscript {
-    grid-column: 2;
-    grid-row: 1;
-    min-height: 0;
-    overflow: hidden;
-  }
-  .pipeline {
-    grid-column: 2;
-    grid-row: 2;
-    gap: 0;
-  }
-}
-
-/* Validation, conflicts, destructive actions, and overlays use the same
-   editorial materials as the default manuscript instead of browser chrome. */
-.status-error {
-  display: flex;
-  align-items: baseline;
-  gap: 7px;
-  color: var(--console-err);
-}
-.pipeline > .status {
-  margin-left: 14px;
-}
-.status-error::before {
-  content: "×";
-  font-family: var(--console-mono);
-  font-weight: 500;
-}
-.pipeline {
-  position: relative;
-}
-.pipeline .conflict {
-  position: absolute;
-  right: 16px;
-  bottom: calc(100% + 12px);
-  width: min(430px, calc(100vw - 32px));
-  max-width: 430px;
-  margin-inline: 0;
-  padding: 12px 14px;
-  border: 1px solid color-mix(in srgb, var(--console-warn) 45%, transparent);
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--console-warn) 7%, var(--console-card));
-  box-shadow: 0 12px 30px color-mix(in srgb, black 12%, transparent);
-}
-.conflict h4 {
-  margin-bottom: 4px;
-  color: var(--console-text);
-  font: 560 16px/1.2 var(--console-display);
-  font-variation-settings: "SOFT" 40;
-}
-.conflict p {
-  margin-bottom: 10px;
-  color: var(--console-text-dim);
-  font-size: 12px;
-}
-.conflict .btn {
-  padding: 6px 10px;
-  font-size: 11px;
-}
-.modal-scrim {
-  position: fixed;
-  z-index: 1200;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  padding: 24px;
-  background: color-mix(in srgb, var(--console-text) 38%, transparent);
-  backdrop-filter: blur(2px);
-}
-.delete-modal {
-  width: min(100%, 430px);
-  padding: 28px 30px 24px;
-  border: 1px solid var(--console-rule-strong);
-  border-radius: 9px;
-  background: var(--console-card);
-  box-shadow: 0 24px 70px color-mix(in srgb, black 22%, transparent);
-}
-.modal-mark {
-  color: var(--console-err);
-  font: 28px/1 var(--console-display);
-}
-.delete-modal h3 {
-  margin-top: 8px;
-  color: var(--console-text);
-  font: 580 23px/1.15 var(--console-display);
-  font-variation-settings:
-    "SOFT" 60,
-    "opsz" 40;
-}
-.delete-modal p {
-  margin-top: 11px;
-  color: var(--console-text-dim);
-  font-size: 13px;
-  line-height: 1.65;
-}
-.delete-modal code {
-  padding: 1px 5px;
-  border-radius: 4px;
-  background: var(--console-rule);
-  color: var(--console-text);
-  font: 11px var(--console-mono);
-}
-.modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  margin-top: 20px;
-}
-.modal-actions .btn.danger {
-  border-color: var(--console-err);
-  background: var(--console-err);
-  color: var(--console-card);
-}
-.modal-actions .btn:disabled {
-  cursor: wait;
-  opacity: 0.6;
-}
-
-/* Instrument is an authored equivalent, not a naive inversion of paper. */
-[data-climate="instrument"] .crumbbar {
-  background:
-    linear-gradient(
-      to bottom,
-      color-mix(in srgb, white 3%, transparent),
-      transparent
-    ),
-    var(--console-frame);
-}
-[data-climate="instrument"] .pipeline {
-  border-top-color: var(--console-accent);
-  background: var(--console-card-soft);
-  color: var(--console-text);
-}
-[data-climate="instrument"] .pipeline .station {
-  color: var(--console-text-muted);
-}
-[data-climate="instrument"] .pipeline .station.done,
-[data-climate="instrument"] .pipeline .station.active {
-  color: var(--console-text);
-}
-[data-climate="instrument"] .pipeline .station .dot {
-  border-color: var(--console-text-muted);
-}
-[data-climate="instrument"] .pipeline .track {
-  background: var(--console-rule-strong);
-}
-[data-climate="instrument"] .pipeline .commit-ref {
-  color: var(--console-text-muted);
-}
-[data-climate="instrument"] .pipeline .commit-ref b {
-  color: var(--console-text);
-}
-[data-climate="instrument"] .cms-mobile-save-status,
-[data-climate="instrument"] .cms-mobile-more summary {
-  color: var(--console-text);
-}
-[data-climate="instrument"] .cms-mobile-more summary {
-  border-color: var(--console-rule-strong);
-}
-
-/* CMS responsive composition. Desktop form/editor rules stay in App.tsx;
-   this module owns tablet collection switching and phone editing modes. */
-
-.cms-mobile-modes {
-  display: none;
-}
-
-@media (max-width: 900px) {
-  .studio-body {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto minmax(0, 1fr);
-    min-height: 0;
-  }
-  .rail {
-    overflow-x: auto;
-    padding: 9px 12px;
-    border-right: 0;
-    border-bottom: 1px solid var(--console-rule-strong);
-    background: var(--console-card-soft);
-    overscroll-behavior-inline: contain;
-    scrollbar-width: none;
-  }
-  .rail::-webkit-scrollbar {
-    display: none;
-  }
-  .rail-title {
-    display: none;
-  }
-  .types {
-    display: flex;
-  }
-  .rail-group {
-    display: contents;
-    padding: 0;
-  }
-  .rail ul {
-    display: flex;
-    gap: 6px;
-    width: max-content;
-  }
-  .rail .type {
-    width: auto;
-    min-height: 40px;
-    padding: 0 12px;
-    border: 1px solid var(--console-rule-strong);
-    border-radius: 999px;
-    white-space: nowrap;
-    /* Desktop rail rows align to baseline; pills must center their label. */
-    align-items: center;
-  }
-  .rail .type.active {
-    border-color: var(--console-rule-accent);
-    background: var(--console-accent-soft);
-  }
-  .rail .count,
-  .rail .singleton-mark {
-    margin-left: 7px;
-  }
-  .editor {
-    grid-template-columns: 260px minmax(0, 1fr);
-    /* The base grid's 1fr row bottoms out at content size; a tall colophon
-       would otherwise push the save bar past the viewport. */
-    grid-template-rows: minmax(0, 1fr) auto;
-  }
-  .cms-form-desktop-label {
-    display: none;
-  }
-  .cms-form-mobile-label {
-    display: inline;
-  }
-  .form-title h2 .cms-form-mobile-label {
-    color: var(--console-text);
-  }
-  .colophon {
-    grid-column: 1;
-    grid-row: 1 / 3;
-    min-height: 0;
-    overflow-y: auto;
-    padding-inline: 20px;
-  }
-  .manuscript {
-    min-height: 0;
-  }
-  .body-source .cm-content,
-  .body-preview {
-    padding-inline: 24px;
-  }
-  .track {
-    width: 34px;
-    margin-inline: 8px;
-  }
-  .commit-ref {
-    display: none;
-  }
-}
-
-@media (min-width: 641px) and (max-width: 900px) {
-  /* The tablet specimen is a colophon beside a reading manuscript, not a
-     squeezed desktop split editor. Source remains available on desktop and
-     in the dedicated phone Write pane. */
-  .body-editor:has(.body-panes.split) .body-toolbar,
-  .body-editor:has(.body-panes.split) .assist-bar {
-    display: none;
-  }
-  .body-panes.split {
-    grid-template-columns: minmax(0, 1fr);
-  }
-  .body-panes.split .body-source {
-    display: none;
-  }
-  .form-title {
-    align-items: baseline;
-    margin-bottom: 12px;
-    padding-bottom: 0;
-  }
-  .form-title h2 {
-    color: var(--console-text);
-    font-family: var(--console-display);
-    font-size: 22px;
-    font-variation-settings:
-      "SOFT" 62,
-      "opsz" 48;
-    font-weight: 540;
-    letter-spacing: -0.015em;
-    text-transform: none;
-  }
-  .form-title > span {
-    color: var(--console-accent);
-    font-size: 8px;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-  }
-  .pipeline {
-    grid-template-columns: auto minmax(0, 1fr) auto;
-    gap: 10px;
-    min-height: 58px;
-    padding: 7px 12px;
-  }
-  .pipeline .stations-wrap,
-  .pipeline > .btn.danger,
-  .pipeline > .spacer {
-    display: none;
-  }
-  .cms-mobile-save-status {
-    display: block;
-    min-width: 0;
-    overflow: hidden;
-    color: var(--console-bg);
-    font-family: var(--console-mono);
-    font-size: 8px;
-    letter-spacing: 0.05em;
-    line-height: 1.35;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  .cms-mobile-save-status b {
-    display: block;
-    overflow: hidden;
-    color: var(--console-ok);
-    font-size: 9px;
-    text-overflow: ellipsis;
-  }
-  .cms-mobile-more {
-    position: relative;
-    display: block;
-  }
-  .cms-mobile-more summary {
-    display: grid;
-    place-items: center;
-    width: var(--console-touch);
-    height: var(--console-touch);
-    border: 1px solid color-mix(in srgb, var(--console-bg) 25%, transparent);
-    border-radius: 50%;
-    color: var(--console-bg);
-    cursor: pointer;
-    font-family: var(--console-mono);
-    list-style: none;
-  }
-  .cms-mobile-more summary::-webkit-details-marker {
-    display: none;
-  }
-  .cms-mobile-more button {
-    position: absolute;
-    right: 0;
-    bottom: calc(100% + 8px);
-    min-width: 132px;
-    min-height: var(--console-touch);
-    border: 1px solid var(--console-err);
-    border-radius: 8px;
-    background: var(--console-card);
-    color: var(--console-err);
-  }
-}
-
-@media (max-width: 640px) {
-  .crumbbar {
-    min-height: 44px;
-    height: auto;
-    padding: 7px 12px;
-  }
-  .crumb {
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  .studio-body {
-    overflow: hidden;
-  }
-  .rail {
-    padding-inline: 10px;
-  }
-  .rail .type {
-    min-height: var(--console-touch);
-  }
-  .studio[data-view="editor"] .studio-body {
-    grid-template-rows: minmax(0, 1fr);
-  }
-  .studio[data-view="editor"] .rail {
-    display: none;
-  }
-  .listing {
-    min-width: 0;
-    overflow-y: auto;
-    padding: 18px 14px calc(32px + env(safe-area-inset-bottom));
-  }
-  .listing-head {
-    align-items: center;
-    gap: 9px;
-    padding-bottom: 13px;
-  }
-  .listing-head h3 {
-    font-size: 27px;
-  }
-  .listing-head .meta {
-    display: none;
-  }
-  .listing-head .btn {
-    min-height: var(--console-touch);
-    margin: 0 0 0 auto;
-  }
-  .row {
-    grid-template-columns: 28px minmax(0, 1fr) auto;
-    gap: 2px 10px;
-    min-height: 60px;
-    padding: 12px 2px;
-  }
-  .row .title {
-    min-width: 0;
-    font-size: 16px;
-  }
-  .row .title small {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  .row .chip,
-  .row .sync {
-    display: none;
-  }
-  /* Meta rides the title line instead of hanging as its own ragged row. */
-  .row .updated {
-    grid-column: 3;
-    grid-row: 1;
-    align-self: baseline;
-    font-family: var(--console-mono);
-    font-size: 9px;
-  }
-
-  .editor {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: 48px minmax(0, 1fr) auto;
-    overflow: hidden;
-  }
-  .cms-mobile-modes {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 4px;
-    padding: 7px 10px;
-    border-bottom: 1px solid var(--console-rule-strong);
-    background: var(--console-card-soft);
-  }
-  .cms-mobile-mode {
-    min-height: 34px;
-    border: 0;
-    border-radius: 7px;
-    background: transparent;
-    color: var(--console-text-muted);
-    font-family: var(--console-mono);
-    font-size: 9px;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-  }
-  .cms-mobile-mode.is-active {
-    background: var(--console-card);
-    color: var(--console-text);
-    box-shadow: 0 0 0 1px var(--console-rule-strong);
-  }
-  .colophon,
-  .manuscript {
-    grid-column: 1;
-    grid-row: 2;
-    min-width: 0;
-    overflow-y: auto;
-  }
-  .colophon {
-    padding: 16px 16px 80px;
-    border-right: 0;
-  }
-  .form-title {
-    align-items: baseline;
-    margin-bottom: 12px;
-    padding-bottom: 0;
-  }
-  .form-title h2 {
-    color: var(--console-text);
-    font-family: var(--console-display);
-    font-size: 25px;
-    font-variation-settings:
-      "SOFT" 62,
-      "opsz" 48;
-    font-weight: 540;
-    letter-spacing: -0.015em;
-    text-transform: none;
-  }
-  .form-title > span {
-    color: var(--console-accent);
-    font-size: 8px;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-  }
-  .backlink {
-    margin-bottom: 0;
-  }
-  .field {
-    padding-block: 12px;
-  }
-  .editor[data-mobile-pane="details"] .manuscript {
-    display: none;
-  }
-  .editor[data-mobile-pane="write"] .colophon,
-  .editor[data-mobile-pane="preview"] .colophon {
-    display: none;
-  }
-  .body-toolbar {
-    min-height: 44px;
-    padding: 7px 14px;
-  }
-  .body-modes {
-    display: none;
-  }
-  .doc-meta {
-    margin-left: 0;
-    font-size: 9px;
-  }
-  .assist-bar {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: 8px;
-    padding: 9px 12px;
-  }
-  .assist-bar input {
-    min-width: 0;
-    font-size: 16px;
-  }
-  .assist-bar select,
-  .assist-presets {
-    grid-column: 1 / -1;
-  }
-  .assist-bar select {
-    width: 100%;
-    max-width: none;
-  }
-  .assist-presets {
-    overflow-x: auto;
-  }
-  .assist-preset {
-    min-height: 30px;
-    white-space: nowrap;
-  }
-  .assist-meta {
-    display: none;
-  }
-  .assist-suggestion,
-  .assist-agent-answer {
-    align-items: stretch;
-    flex-wrap: wrap;
-    padding: 10px 12px;
-  }
-  .assist-preview,
-  .assist-answer-copy {
-    width: 100%;
-    max-height: 110px;
-  }
-  .body-panes,
-  .body-source,
-  .body-source .cm-editor {
-    min-height: 0;
-    height: 100%;
-  }
-  .body-panes.split {
-    grid-template-columns: 1fr;
-  }
-  .body-panes.split .body-preview {
-    display: none;
-  }
-  .body-source .cm-scroller {
-    font-size: 13px;
-  }
-  .body-source .cm-content,
-  .body-preview {
-    padding: 22px 16px 80px;
-  }
-  .body-preview {
-    overflow-y: auto;
-  }
-  .body-preview h1 {
-    font-size: 27px;
-  }
-  .field input[type="text"],
-  .field input[type="number"],
-  .field select,
-  .field textarea {
-    font-size: 16px;
-  }
-
-  .pipeline {
-    grid-column: 1;
-    grid-row: 3;
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr) auto;
-    gap: 10px;
-    min-height: 64px;
-    padding: 8px 12px calc(8px + env(safe-area-inset-bottom));
-  }
-  .save-btn,
-  .pipeline .btn.danger {
-    min-height: var(--console-touch);
-  }
-  .save-btn {
-    padding-inline: 18px;
-    border-radius: 8px;
-  }
-  .stations-wrap {
-    display: none;
-  }
-  .cms-mobile-save-status {
-    display: block;
-    min-width: 0;
-    overflow: hidden;
-    color: var(--console-bg);
-    font-family: var(--console-mono);
-    font-size: 8px;
-    letter-spacing: 0.05em;
-    line-height: 1.35;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  .cms-mobile-save-status b {
-    display: block;
-    overflow: hidden;
-    color: var(--console-ok);
-    font-size: 9px;
-    text-overflow: ellipsis;
-  }
-  .cms-mobile-more {
-    position: relative;
-    display: block;
-  }
-  .cms-mobile-more summary {
-    display: grid;
-    place-items: center;
-    width: var(--console-touch);
-    height: var(--console-touch);
-    border: 1px solid color-mix(in srgb, var(--console-bg) 25%, transparent);
-    border-radius: 50%;
-    color: var(--console-bg);
-    cursor: pointer;
-    font-family: var(--console-mono);
-    list-style: none;
-  }
-  .cms-mobile-more summary::-webkit-details-marker {
-    display: none;
-  }
-  .cms-mobile-more button {
-    position: absolute;
-    right: 0;
-    bottom: calc(100% + 8px);
-    min-width: 132px;
-    min-height: var(--console-touch);
-    border: 1px solid var(--console-err);
-    border-radius: 8px;
-    background: var(--console-card);
-    color: var(--console-err);
-  }
-  .pipeline > .btn.danger {
-    display: none;
-  }
-  .stations {
-    min-width: 0;
-    margin-left: 0;
-  }
-  .station {
-    gap: 5px;
-    font-size: 0;
-  }
-  .station .dot {
-    width: 10px;
-    height: 10px;
-  }
-  .track {
-    width: clamp(18px, 7vw, 32px);
-    margin-inline: 5px;
-  }
-  .pipeline .status {
-    overflow: hidden;
-    font-size: 9px;
-    text-overflow: ellipsis;
-  }
-  .pipeline > .spacer {
-    display: none;
-  }
-  .pipeline .btn.danger {
-    padding-inline: 10px;
-    font-size: 11px;
-  }
-}
-
 /* Operator workspaces are a first-class CMS surface, so they use the same
    editorial materials as the entity listing beside them: a display-face head
    over a strong rule, mono instrument labels, hairline separation instead of
    boxes, and card fill reserved for surfaces you actually read. Semantic blocks
    arrive as an ordered stream, so width and emphasis are decided here from the
-   block's meaning rather than requested by the author. */
+   block's meaning rather than requested by the author.
 
+   Rendered reference: docs/operator-workspace-mockups.html. */
+
+/* A capped measure keeps the head and the body on the same right edge. Without
+   it the title rule and totals run to the viewport while content sized to its
+   own needs sits far short of them, which reads as content stranded rather
+   than as a page with margin. */
 .declarative-workspace {
   min-height: 0;
+  max-width: 1080px;
   padding: 26px 30px 34px;
   overflow-y: auto;
 }
@@ -2105,11 +810,13 @@
 
 /* ---- body: meaning decides width ---------------------------------------- */
 
+/* Two tracks, not three: a lone instrument panel then leaves half a row rather
+   than two-thirds of one, and paired panels still sit side by side. */
 .declarative-blocks {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr));
   align-items: start;
-  gap: 26px 22px;
+  gap: 26px 40px;
   padding-top: 24px;
 }
 
@@ -2477,6 +1184,102 @@
   color: var(--console-ok);
 }
 
+/* ---- master/detail ------------------------------------------------------- */
+
+/* Both regions stay present: the split is the surface's identity, so the
+   reading pane holds its place and states what it is waiting for. */
+.declarative-detail {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  gap: 26px;
+}
+
+.declarative-detail-master,
+.declarative-detail-pane {
+  min-width: 0;
+}
+
+.declarative-detail-pane {
+  padding-left: 26px;
+  border-left: 1px solid var(--console-rule-strong);
+}
+
+/* A half-width collection has no room for a title-and-trailing row, so master
+   rows stack the way narrow viewports already do.
+
+   Rows carry inset padding that the list gives back as negative margin: text
+   stays aligned with the head and filters above, while the open row's fill has
+   room to breathe around it instead of hugging its own marker. */
+.declarative-detail-master .declarative-list {
+  margin-inline: -12px;
+}
+
+.declarative-detail-master .declarative-list > li {
+  align-items: stretch;
+  flex-direction: column;
+  gap: 8px;
+  padding-inline: 12px;
+}
+
+.declarative-detail-master .declarative-list-trailing {
+  justify-content: flex-start;
+}
+
+.declarative-detail-master .declarative-list strong {
+  font-size: 15px;
+}
+
+.declarative-detail-pane > h3 {
+  margin: 0 0 14px;
+  color: var(--console-text);
+  font-family: var(--console-display);
+  font-size: 21px;
+  font-variation-settings:
+    "SOFT" 60,
+    "opsz" 40;
+  font-weight: 560;
+  letter-spacing: -0.005em;
+  line-height: 1.2;
+  outline: none;
+}
+
+.declarative-detail-pane > h3:focus-visible {
+  box-shadow: -10px 0 0 var(--console-accent);
+}
+
+.declarative-detail-pane > section + section {
+  margin-top: 18px;
+}
+
+/* Wide viewports keep the collection in view, so the back control is only
+   wayfinding for the stacked layout below. */
+.declarative-detail-back {
+  display: none;
+  margin-bottom: 12px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--console-text-dim);
+  cursor: pointer;
+  font-family: var(--console-mono);
+  font-size: 11px;
+}
+
+.declarative-detail-back:hover {
+  color: var(--console-accent-dim);
+}
+
+.declarative-detail .declarative-list > li[aria-current="true"] {
+  border-radius: 6px;
+  background: var(--console-card);
+  box-shadow: inset 2px 0 0 var(--console-accent);
+}
+
+.declarative-detail .declarative-table tr[aria-current="true"] {
+  background: var(--console-card);
+  box-shadow: inset 2px 0 0 var(--console-accent);
+}
+
 /* ---- segmented controls: local filters and tabs ------------------------- */
 
 .declarative-filter,
@@ -2529,9 +1332,19 @@
   overflow-x: auto;
 }
 
+/* A table is as wide as its content needs, not as wide as the surface allows:
+   a two-column table must not strand its value half a screen from its label.
+   Wide tables still reach full measure and scroll inside their container. */
 .declarative-table {
-  width: 100%;
+  width: auto;
+  min-width: min(100%, 520px);
+  max-width: 100%;
   border-collapse: collapse;
+}
+
+.declarative-table th:not(:last-child),
+.declarative-table td:not(:last-child) {
+  padding-right: 40px;
 }
 
 .declarative-table th {
@@ -2929,6 +1742,33 @@
   }
 }
 
+/* Below the split threshold master/detail becomes a drill-down: one region at a
+   time, with the back control as the way out. */
+@media (max-width: 860px) {
+  .declarative-detail {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .declarative-detail .declarative-detail-pane {
+    padding-left: 0;
+    border-left: 0;
+  }
+
+  /* One region at a time: the collection until something is open, then the
+     reading pane with the back control as the way out. */
+  .declarative-detail[data-open="true"] .declarative-detail-master {
+    display: none;
+  }
+
+  .declarative-detail[data-open="false"] .declarative-detail-pane {
+    display: none;
+  }
+
+  .declarative-detail-back {
+    display: block;
+  }
+}
+
 @media (max-width: 720px) {
   .declarative-blocks {
     grid-template-columns: 1fr;
@@ -2953,62 +1793,215 @@
   }
 }
 
+.declarative-head { align-items: flex-start; }
+.declarative-head-copy { max-width: 46ch; }
+.declarative-kicker {
+  display: block; margin-bottom: 6px;
+  color: var(--console-accent);
+  font-family: var(--console-mono); font-size: 9px;
+  letter-spacing: .18em; text-transform: uppercase;
+}
+.declarative-head-copy p { margin-top: 7px; color: var(--console-text-dim); font-size: 13px; line-height: 1.5; }
+.declarative-head-state { display: grid; justify-items: end; gap: 12px; }
+.declarative-status-badge {
+  display: grid; justify-items: end; gap: 3px;
+  color: var(--console-text); font-size: 12.5px; font-weight: 550;
+}
+.declarative-status-badge > span { display: inline-flex; align-items: center; gap: 7px; }
+.declarative-status-badge > span::before {
+  content: ""; width: 6px; height: 6px; border-radius: 50%;
+  background: var(--console-text-muted);
+}
+.declarative-status-badge[data-tone="good"] { color: var(--console-ok); }
+.declarative-status-badge[data-tone="good"] > span::before { background: var(--console-ok); }
+.declarative-status-badge small {
+  color: var(--console-text-muted); font-family: var(--console-mono);
+  font-size: 9.5px; font-weight: 400;
+}
+/* runs read as a dense log, not cards */
+.declarative-column .declarative-list > li { padding: 9px 6px 9px 12px; }
+.declarative-column .declarative-list strong { font-size: 14px; }
+.declarative-column .declarative-list p { margin-top: 1px; font-size: 12px; }
+.declarative-column .declarative-list small { margin-top: 2px; }
+/* master rows: urgency reads with the title, not stranded below the meta */
+.declarative-detail-master .declarative-list > li { flex-direction: row; align-items: flex-start; gap: 10px; }
+.declarative-detail-master .declarative-list > li > div:first-child { flex: 1; min-width: 0; }
+.declarative-detail-master .declarative-list-trailing { justify-content: flex-end; padding-top: 2px; }
+.declarative-detail-pane .declarative-pane-head {
+  display: flex; align-items: baseline; gap: 10px; margin-bottom: 6px;
+  color: var(--console-text-muted); font-family: var(--console-mono); font-size: 9.5px;
+}
+/* stat caption */
+.declarative-totals .cap, .declarative-stats .cap {
+  display: block; margin-top: 4px;
+  color: var(--console-text-muted); font-family: var(--console-mono); font-size: 9px;
+}
+/* columns */
+.declarative-columns { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(250px, .6fr); gap: 30px; align-items: start; }
+.declarative-column { display: grid; align-content: start; gap: 26px; min-width: 0; }
+.declarative-aside { gap: 15px; }
+/* card */
+.declarative-card { padding: 15px 16px 16px; border: 1px solid var(--console-rule-strong); border-radius: 8px; background: var(--console-card); }
+.declarative-card > header {
+  margin-bottom: 10px; color: var(--console-text-muted);
+  font-family: var(--console-mono); font-size: 8.5px; letter-spacing: .14em; text-transform: uppercase;
+}
+.declarative-card[data-tone="good"] { border-left: 2px solid var(--console-ok); }
+.declarative-card[data-tone="warn"] { border-left: 2px solid var(--console-warn); }
+.declarative-card p { color: var(--console-text-dim); font-size: 12.5px; line-height: 1.5; }
+.declarative-card .declarative-key-values { border-top: 0; }
+.declarative-card .declarative-key-values > div:last-child { border-bottom: 0; }
+.declarative-card .declarative-meters { grid-template-columns: 1fr 1fr; gap: 12px; }
+
+/* page shell */
 * { margin: 0; padding: 0; box-sizing: border-box; }
-body { font-family: var(--console-ui); font-size: 14px; line-height: 1.5; background: #6b6459; -webkit-font-smoothing: antialiased; }
-.preview { margin: 26px auto; width: min(1240px, 96vw); border-radius: 10px; overflow: hidden; box-shadow: 0 18px 50px rgba(0,0,0,.3); background: var(--console-frame); color: var(--console-text); }
-.preview .studio { min-height: 640px; }
-.preview .studio-body { min-height: 600px; }
-.preview-label { width: min(1240px, 96vw); margin: 34px auto 0; font-family: ui-monospace, monospace; font-size: 11px; letter-spacing: .18em; text-transform: uppercase; color: rgba(255,255,255,.72); }
-</style>
-</head>
-<body>
-<p class="preview-label">Unified Inbox · paper</p>
-<section class="preview" data-climate="paper">
-    <div class="studio">
-      <div class="crumbbar"><span class="crumb">Content studio / <strong>Inbox</strong></span></div>
-      <div class="studio-body"><aside class="rail">
-    <div class="rail-group">
-      <div class="rail-title">Operations</div>
-      <ul><li><button class="type workspace-type active">Inbox</button></li><li><button class="type workspace-type">Directory sync</button></li><li><button class="type workspace-type">Site</button></li><li><button class="type workspace-type">Publishing</button></li></ul>
+body { background: #6b6459; font-family: var(--console-ui); font-size: 14px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
+.label { width: min(1280px,96vw); margin: 34px auto 8px; font-family: ui-monospace, monospace; font-size: 11px; letter-spacing: .18em; text-transform: uppercase; color: rgba(255,255,255,.72); }
+.frame { width: min(1280px,96vw); margin: 0 auto 26px; display: grid; grid-template-columns: 214px minmax(0,1fr); border-radius: 10px; overflow: hidden; box-shadow: 0 18px 50px rgba(0,0,0,.3); background: var(--console-frame); color: var(--console-text); min-height: 560px; }
+.rail { padding: 22px 0; border-right: 1px solid var(--console-rule-strong); background: var(--console-card-soft); }
+.rail-title { padding: 0 20px 8px; color: var(--console-text-muted); font-family: var(--console-mono); font-size: 10px; letter-spacing: .2em; text-transform: uppercase; }
+.rail a { display: flex; gap: 8px; padding: 6px 20px; border-left: 2px solid transparent; color: var(--console-text-dim); font-size: 13.5px; text-decoration: none; }
+.rail a.on { border-left-color: var(--console-accent); background: var(--console-card); color: var(--console-text); font-weight: 500; }
+.rail .n { margin-left: auto; font-family: var(--console-mono); font-size: 11px; color: var(--console-text-muted); }
+.rail-group { padding-bottom: 18px; }
+</style></head><body>
+<p class="label">Directory sync — target</p><div class="frame" data-climate="instrument"><nav class="rail">
+    <div class="rail-group"><div class="rail-title">Operations</div><a href="#" class="">Inbox<span class="n">14</span></a><a href="#" class="">Publishing</a><a href="#" class="on">Sync</a><a href="#" class="">Site</a></div>
+    <div class="rail-group"><div class="rail-title">Collections</div><a href="#">Notes<span class="n">4</span></a><a href="#">Links<span class="n">2</span></a><a href="#">Mail Items<span class="n">9</span></a><a href="#">Topics<span class="n">3</span></a></div></nav><main class="declarative-workspace">
+  <header class="declarative-head">
+    <div class="declarative-head-copy"><span class="declarative-kicker">Durability operations</span><h2>Content sync</h2><p>Keep the entity database, brain-data files, and the configured Git remote converged.</p></div>
+    <div class="declarative-head-state">
+      <strong class="declarative-status-badge" data-tone="good"><span>Healthy</span><small>last settled 4m ago</small></strong>
+      <dl class="declarative-totals"><div data-tone="neutral"><dt>Files</dt><dd>45</dd><span class="cap">markdown + images</span></div><div data-tone="neutral"><dt>Entity types</dt><dd>9</dd><span class="cap">within sync scope</span></div><div data-tone="neutral"><dt>Branch</dt><dd>main</dd><span class="cap">remote connected</span></div><div data-tone="neutral"><dt>Remote delta</dt><dd>0</dd><span class="cap">0 ahead · 0 behind</span></div></dl>
     </div>
-    <div class="rail-group">
-      <div class="rail-title">Collections</div>
-      <ul><li><button class="type">Note<span class="count">12</span></button></li><li><button class="type">Person<span class="count">12</span></button></li><li><button class="type">Topic<span class="count">12</span></button></li><li><button class="type">Project<span class="count">12</span></button></li></ul>
+  </header>
+  <div class="declarative-blocks"><section data-span="wide"><div class="declarative-columns">
+    <div class="declarative-column">
+      <section class="declarative-flow"><h3>Content flow</h3><ol><li data-status="complete"><span aria-hidden="true"></span><strong>Entity DB</strong><small>runtime records</small></li><li data-status="complete"><span aria-hidden="true"></span><strong>brain-data</strong><small>watching · 45 files</small></li><li data-status="active"><span aria-hidden="true"></span><strong>Git remote</strong><small>canonical-unified-inbox-test-content</small></li></ol></section>
+      <section><header style="margin-bottom:11px;color:var(--console-text-muted);font-family:var(--console-mono);font-size:8.5px;letter-spacing:.14em;text-transform:uppercase">Recent syncs</header>
+        <ol class="declarative-list"><li data-tone="good"><div><strong>periodic · succeeded</strong><p>Remote checked; no changes found</p><small>Imported 0 · Exported 0 · 15:53</small></div></li><li data-tone="good"><div><strong>periodic · succeeded</strong><p>Remote checked; no changes found</p><small>Imported 0 · Exported 0 · 15:51</small></div></li><li data-tone="good"><div><strong>periodic · succeeded</strong><p>Remote checked; no changes found</p><small>Imported 0 · Exported 0 · 15:49</small></div></li></ol></section>
     </div>
-  </aside><main class="declarative-workspace"><header class="declarative-head"><h2>Inbox</h2><dl class="declarative-totals"><div data-tone="neutral"><dt>Open</dt><dd>61</dd></div><div data-tone="warn"><dt>High priority</dt><dd>3</dd></div><div data-tone="neutral"><dt>Matching</dt><dd>24</dd></div><div data-tone="neutral"><dt>Sources online</dt><dd>2</dd></div></dl></header><div class="declarative-blocks"><section data-block="query" data-span="wide"><section class="declarative-query" aria-label="Workspace filters"><div><label><span>Source</span><select><option value="">All sources</option><option value="mail-items" selected="">Email (22)</option><option value="agent-candidates">Candidates (2)</option></select></label><label><span>Urgency</span><select><option value="" selected="">All urgency</option><option value="high">High priority (3)</option><option value="normal">Normal (21)</option></select></label><label><span>Category</span><select><option value="" selected="">All</option><option value="work">Work</option><option value="opportunity">Opportunity</option></select></label></div><footer><span>10 of 24</span><button type="button" class="btn ghost">Load more</button></footer></section></section><section data-block="group" data-span="compact"><section class="declarative-group" aria-labelledby="source-health-title"><h3 id="source-health-title">Source availability</h3><dl><div data-tone="neutral"><dt>Email</dt><dd>22</dd><small>3 high priority</small></div><div data-tone="warn"><dt>Candidates</dt><dd>Unavailable</dd><small>Last polled 14m ago</small></div></dl></section></section><section data-block="list" data-span="wide"><div><ol class="declarative-list"><li data-tone="warn"><div><strong>Time-sensitive collaboration request</strong><p>Sam is asking whether we can co-host the November workshop and needs an answer before Friday.</p><small>Sam Rivera · acme.io · message 2 in thread · Email · 2h ago</small><nav class="declarative-links" aria-label="Time-sensitive collaboration request links"><button type="button" class="declarative-inline-link">Open contact</button><button type="button" class="declarative-inline-link">Read original</button></nav></div><div class="declarative-list-trailing"><span class="declarative-badge" data-tone="warn">High</span><div class="declarative-actions"><span class="declarative-action-control"><button type="button" class="btn ghost">Draft reply</button></span><span class="declarative-action-control"><button type="button" class="btn danger">Archive</button></span></div></div></li><li data-tone="neutral"><div><strong>Invoice 2026-084 is awaiting approval</strong><p>Finance flagged this as blocking the quarterly close.</p><small>billing@vendor.tld · Email · yesterday</small><span class="declarative-tags"><span>finance</span><span>blocking</span></span></div><div class="declarative-list-trailing"><div class="declarative-actions"><span class="declarative-action-control"><button type="button" class="btn ghost">Draft reply</button></span></div></div></li><li data-tone="neutral"><div><strong>New agent sighting: rover.varias.io</strong><p>Advertised three skills that overlap the directory sync surface.</p><small>Candidates · 3d ago</small></div><div class="declarative-list-trailing"><span class="declarative-badge" data-tone="neutral">Untrusted</span><div class="declarative-actions"><span class="declarative-action-control"><button type="button" class="btn ghost">Review</button></span></div></div></li></ol></div></section><section data-block="notice" data-span="wide"><aside class="declarative-notice" data-tone="warn"><strong>Candidates</strong><p>This inbox source is temporarily unavailable.</p></aside></section></div></main></div>
+    <aside class="declarative-column declarative-aside">
+      <section class="declarative-card" data-tone="good"><header>No blockers</header><p>Directory exists, configured automation is available, and no unresolved operation failures are recorded.</p></section>
+      <section class="declarative-card" data-tone="neutral"><header>Automation</header><dl class="declarative-key-values"><div><dt>File watcher</dt><dd>On</dd></div><div><dt>Remote pull</dt><dd>Every 2m</dd></div><div><dt>Auto-commit</dt><dd>1s debounce</dd></div><div><dt>File removal</dt><dd>Deletes entity</dd></div></dl></section>
+      <section class="declarative-card" data-tone="neutral"><header>Source</header><dl class="declarative-key-values"><div><dt>Directory</dt><dd>brain-data</dd></div><div><dt>Branch</dt><dd>main</dd></div><div><dt>Remote</dt><dd>rizom-ai/canonical…</dd></div></dl></section>
+      <div class="declarative-actions"><span class="declarative-action-control"><button class="btn">Sync now</button></span></div>
+    </aside>
+  </div></section></div>
+</main></div>
+<p class="label">Site — target</p><div class="frame" data-climate="instrument"><nav class="rail">
+    <div class="rail-group"><div class="rail-title">Operations</div><a href="#" class="">Inbox<span class="n">14</span></a><a href="#" class="">Publishing</a><a href="#" class="">Sync</a><a href="#" class="on">Site</a></div>
+    <div class="rail-group"><div class="rail-title">Collections</div><a href="#">Notes<span class="n">4</span></a><a href="#">Links<span class="n">2</span></a><a href="#">Mail Items<span class="n">9</span></a><a href="#">Topics<span class="n">3</span></a></div></nav><main class="declarative-workspace">
+  <header class="declarative-head">
+    <div class="declarative-head-copy"><span class="declarative-kicker">Website operations</span><h2>Site control</h2><p>Build a proof with public drafts, then update the live site from published public content.</p></div>
+    <div class="declarative-head-state">
+      <strong class="declarative-status-badge" data-tone="neutral"><span>Eddie Kendricks</span><small>preview built 16:04</small></strong>
+      <dl class="declarative-totals"><div data-tone="neutral"><dt>Routes</dt><dd>31</dd><span class="cap">configured</span></div><div data-tone="neutral"><dt>Active builds</dt><dd>0</dd><span class="cap">none running</span></div><div data-tone="good"><dt>Warnings</dt><dd>0</dd><span class="cap">last build</span></div></dl>
     </div>
-  </section>
-<p class="preview-label">Directory Sync · paper</p>
-<section class="preview" data-climate="paper">
-    <div class="studio">
-      <div class="crumbbar"><span class="crumb">Content studio / <strong>Directory sync</strong></span></div>
-      <div class="studio-body"><aside class="rail">
-    <div class="rail-group">
-      <div class="rail-title">Operations</div>
-      <ul><li><button class="type workspace-type">Inbox</button></li><li><button class="type workspace-type active">Directory sync</button></li><li><button class="type workspace-type">Site</button></li><li><button class="type workspace-type">Publishing</button></li></ul>
+  </header>
+  <div class="declarative-blocks"><section data-span="wide"><div class="declarative-columns">
+    <div class="declarative-column">
+      <section class="declarative-flow"><h3>Release flow</h3><ol><li data-status="complete"><span aria-hidden="true"></span><strong>Routes</strong><small>31 configured</small></li><li data-status="active"><span aria-hidden="true"></span><strong>Preview</strong><small>built 16:04</small></li><li data-status="idle"><span aria-hidden="true"></span><strong>Production</strong><small>not released</small></li></ol></section>
+      <section><header style="margin-bottom:11px;color:var(--console-text-muted);font-family:var(--console-mono);font-size:8.5px;letter-spacing:.14em;text-transform:uppercase">Registered routes</header>
+        <div class="declarative-table-scroll"><table class="declarative-table"><thead><tr><th>Route</th><th>Path</th></tr></thead><tbody>
+          <tr><td>Home</td><td>/</td></tr><tr><td>About</td><td>/about</td></tr><tr><td>Links</td><td>/links</td></tr><tr><td>Topics</td><td>/topics</td></tr><tr><td>Topic: green-software-engineering</td><td>/topics/green-software-engineering</td></tr><tr><td>Agents</td><td>/agents</td></tr><tr><td>Posts</td><td>/posts</td></tr>
+        </tbody></table></div><p class="declarative-empty">24 further routes</p></section>
     </div>
-    <div class="rail-group">
-      <div class="rail-title">Collections</div>
-      <ul><li><button class="type">Note<span class="count">12</span></button></li><li><button class="type">Person<span class="count">12</span></button></li><li><button class="type">Topic<span class="count">12</span></button></li><li><button class="type">Project<span class="count">12</span></button></li></ul>
+    <aside class="declarative-column declarative-aside">
+      <section class="declarative-card" data-tone="good"><header>Preview</header><dl class="declarative-key-values"><div><dt>State</dt><dd>ready</dd></div><div><dt>Last build</dt><dd>18 Aug 16:04</dd></div><div><dt>Result</dt><dd>31 routes</dd></div></dl><div class="declarative-actions" style="margin-top:12px"><span class="declarative-action-control"><button class="btn">Build preview</button></span></div></section>
+      <section class="declarative-card" data-tone="neutral"><header>Live</header><dl class="declarative-key-values"><div><dt>State</dt><dd>never built</dd></div><div><dt>Last build</dt><dd>—</dd></div></dl><div class="declarative-actions" style="margin-top:12px"><span class="declarative-action-control"><button class="btn danger">Update live site</button></span></div></section>
+      <section class="declarative-card" data-tone="neutral"><header>Automation</header><dl class="declarative-key-values"><div><dt>Auto-rebuild</dt><dd>On</dd></div><div><dt>Default target</dt><dd>preview</dd></div><div><dt>Debounce</dt><dd>5s</dd></div></dl></section>
+    </aside>
+  </div></section></div>
+</main></div>
+<p class="label">Publishing — target</p><div class="frame" data-climate="instrument"><nav class="rail">
+    <div class="rail-group"><div class="rail-title">Operations</div><a href="#" class="">Inbox<span class="n">14</span></a><a href="#" class="on">Publishing</a><a href="#" class="">Sync</a><a href="#" class="">Site</a></div>
+    <div class="rail-group"><div class="rail-title">Collections</div><a href="#">Notes<span class="n">4</span></a><a href="#">Links<span class="n">2</span></a><a href="#">Mail Items<span class="n">9</span></a><a href="#">Topics<span class="n">3</span></a></div></nav><main class="declarative-workspace">
+  <header class="declarative-head">
+    <div class="declarative-head-copy"><span class="declarative-kicker">Publication operations</span><h2>Publishing desk</h2><p>Review intent, inspect dispatch order, and resolve publication failures beside the content they belong to.</p></div>
+    <div class="declarative-head-state">
+      <strong class="declarative-status-badge" data-tone="good"><span>Pipeline online</span><small>no active run</small></strong>
+      <dl class="declarative-totals"><div data-tone="neutral"><dt>Queued</dt><dd>2</dd><span class="cap">awaiting dispatch</span></div><div data-tone="neutral"><dt>Generating</dt><dd>1</dd><span class="cap">in progress</span></div><div data-tone="warn"><dt>Needs attention</dt><dd>1</dd><span class="cap">failed</span></div><div data-tone="neutral"><dt>Published</dt><dd>18</dd><span class="cap">all time</span></div></dl>
     </div>
-  </aside><main class="declarative-workspace"><header class="declarative-head"><h2>Directory sync</h2><dl class="declarative-totals"><div data-tone="neutral"><dt>Tracked</dt><dd>412</dd></div><div data-tone="warn"><dt>Pending</dt><dd>8</dd></div><div data-tone="good"><dt>Failed</dt><dd>0</dd></div></dl></header><div class="declarative-blocks"><section data-block="flow" data-span="wide"><section class="declarative-flow" aria-labelledby="sync-flow-title"><h3 id="sync-flow-title">Sync pipeline</h3><ol data-direction="forward"><li data-status="complete"><span aria-hidden="true"></span><strong>Scan</strong><small>412 files</small></li><li data-status="complete"><span aria-hidden="true"></span><strong>Parse</strong></li><li data-status="active"><span aria-hidden="true"></span><strong>Import</strong><small>8 left</small></li><li data-status="idle"><span aria-hidden="true"></span><strong>Index</strong></li></ol></section></section><section data-block="progress" data-span="compact"><section class="declarative-progress" data-tone="neutral"><header><strong>Import run</strong><span>running</span></header><progress value="0.72" max="1">72%</progress><p>Importing notes from the Obsidian vault.</p><small>Started 09:41 · Updated 09:44</small></section></section><section data-block="meters" data-span="compact"><dl class="declarative-meters"><div data-tone="neutral"><dt>Entities</dt><dd><span>412</span><progress value="412" max="500">412 / 500</progress></dd></div><div data-tone="neutral"><dt>Queue depth</dt><dd><span>8</span><progress value="8" max="50">8 / 50</progress></dd></div><div data-tone="good"><dt>Errors</dt><dd><span>0</span><progress value="0" max="10">0 / 10</progress></dd></div></dl></section><section data-block="key-values" data-span="compact"><dl class="declarative-key-values"><div><dt>Vault path</dt><dd>~/Documents/vault</dd></div><div><dt>Watch mode</dt><dd>Yes</dd></div><div><dt>Last full sync</dt><dd>today 09:12</dd></div></dl></section><section data-block="table" data-span="wide"><div class="declarative-table-scroll"><table class="declarative-table"><thead><tr><th data-align="start">File</th><th data-align="start">Entity</th><th data-align="start">State</th><th data-align="end">Updated</th><th data-align="end">Actions</th></tr></thead><tbody><tr><td data-align="start">notes/partnership.md</td><td data-align="start">note</td><td data-align="start">imported</td><td data-align="end">09:44</td><td data-align="end"><div class="declarative-actions"><span class="declarative-action-control"><button type="button" class="btn ghost">Open</button></span></div></td></tr><tr><td data-align="start">notes/roadmap.md</td><td data-align="start">note</td><td data-align="start">pending</td><td data-align="end">09:44</td><td data-align="end"></td></tr><tr><td data-align="start">people/sam.md</td><td data-align="start">person</td><td data-align="start">imported</td><td data-align="end">09:43</td><td data-align="end"></td></tr></tbody></table></div></section><section data-block="actions" data-span="wide"><div class="declarative-actions"><span class="declarative-action-control"><button type="button" class="btn">Run sync now</button></span><span class="declarative-action-control"><button type="button" class="btn danger">Purge exports</button></span></div></section></div></main></div>
+  </header>
+  <div class="declarative-blocks"><section data-span="wide"><div class="declarative-columns">
+    <div class="declarative-column">
+      <section class="declarative-flow"><h3>Publication flow</h3><ol><li data-status="idle"><span aria-hidden="true"></span><strong>Draft</strong><small>0 ready</small></li><li data-status="active"><span aria-hidden="true"></span><strong>Queued</strong><small>2 waiting</small></li><li data-status="active"><span aria-hidden="true"></span><strong>Generating</strong><small>1 active</small></li><li data-status="complete"><span aria-hidden="true"></span><strong>Published</strong><small>18 complete</small></li></ol></section>
+      <section><header style="margin-bottom:11px;color:var(--console-text-muted);font-family:var(--console-mono);font-size:8.5px;letter-spacing:.14em;text-transform:uppercase">Dispatch queue</header>
+        <ol class="declarative-list">
+          <li><div><strong>Green software engineering, revisited</strong><small>post/green-software-engineering · Site · in 2 hours</small></div>
+            <div class="declarative-list-trailing"><span class="declarative-badge">01</span><span class="declarative-action-control"><button class="btn ghost">Open</button></span></div></li>
+          <li><div><strong>August field notes</strong><small>post/august-field-notes · Newsletter · tomorrow 09:00</small></div>
+            <div class="declarative-list-trailing"><span class="declarative-badge">02</span><span class="declarative-action-control"><button class="btn ghost">Open</button></span></div></li>
+        </ol></section>
     </div>
-  </section>
-<p class="preview-label">Unified Inbox · instrument</p>
-<section class="preview" data-climate="instrument">
-    <div class="studio">
-      <div class="crumbbar"><span class="crumb">Content studio / <strong>Inbox</strong></span></div>
-      <div class="studio-body"><aside class="rail">
-    <div class="rail-group">
-      <div class="rail-title">Operations</div>
-      <ul><li><button class="type workspace-type active">Inbox</button></li><li><button class="type workspace-type">Directory sync</button></li><li><button class="type workspace-type">Site</button></li><li><button class="type workspace-type">Publishing</button></li></ul>
+    <aside class="declarative-column declarative-aside">
+      <section class="declarative-card" data-tone="neutral"><header>Generating now</header><p><strong style='color:var(--console-text)'>Site build</strong><br>post/august-field-notes · running</p></section>
+      <section class="declarative-card" data-tone="warn"><header>Needs attention</header><p><strong style='color:var(--console-text)'>Urban sensor platforms</strong><br>Newsletter transport rejected the payload.</p><div class='declarative-actions' style='margin-top:12px'><span class='declarative-action-control'><button class='btn danger'>Retry</button></span></div></section>
+    </aside>
+  </div></section></div>
+</main></div>
+<p class="label">Inbox — target</p><div class="frame" data-climate="instrument"><nav class="rail">
+    <div class="rail-group"><div class="rail-title">Operations</div><a href="#" class="on">Inbox<span class="n">14</span></a><a href="#" class="">Publishing</a><a href="#" class="">Sync</a><a href="#" class="">Site</a></div>
+    <div class="rail-group"><div class="rail-title">Collections</div><a href="#">Notes<span class="n">4</span></a><a href="#">Links<span class="n">2</span></a><a href="#">Mail Items<span class="n">9</span></a><a href="#">Topics<span class="n">3</span></a></div></nav><main class="declarative-workspace">
+  <header class="declarative-head">
+    <div class="declarative-head-copy"><span class="declarative-kicker">Live source-owned attention</span><h2>Inbox</h2><p>Triage incoming work without creating a second copy of source state.</p></div>
+    <div class="declarative-head-state">
+      <strong class="declarative-status-badge" data-tone="neutral"><span>3 sources online</span><small>Candidates unavailable</small></strong>
+      <dl class="declarative-totals"><div data-tone="neutral"><dt>Open</dt><dd>14</dd><span class="cap">across sources</span></div><div data-tone="warn"><dt>High priority</dt><dd>7</dd><span class="cap">needs attention</span></div><div data-tone="neutral"><dt>Matching</dt><dd>14</dd><span class="cap">current filter</span></div></dl>
     </div>
-    <div class="rail-group">
-      <div class="rail-title">Collections</div>
-      <ul><li><button class="type">Note<span class="count">12</span></button></li><li><button class="type">Person<span class="count">12</span></button></li><li><button class="type">Topic<span class="count">12</span></button></li><li><button class="type">Project<span class="count">12</span></button></li></ul>
+  </header>
+  <div class="declarative-blocks">
+    <section data-block="query" data-span="wide"><section class="declarative-query">
+      <div><label><span>Source</span><select><option>All sources</option></select></label>
+        <label><span>Urgency</span><select><option>All urgency</option></select></label></div>
+      <footer><span>14 of 14</span></footer></section></section>
+    <section data-span="wide"><div class="declarative-detail" data-open="true">
+      <section class="declarative-detail-master">
+        <ol class="declarative-list">
+          <li><div><strong>New agent sightings</strong><p>1 agent sighted through yeehaa.io</p><small>Recurring checks · 17:28</small></div><div class="declarative-list-trailing"><span class="declarative-badge" data-tone="warn">high</span></div></li>
+          <li aria-current="true"><div><strong>Unclassified email</strong><p>Review the original message in the mailbox.</p><small>Email Triage · 16:23</small></div><div class="declarative-list-trailing"><span class="declarative-badge" data-tone="warn">high</span></div></li>
+          <li><div><strong>Sam · sam.rizom.ai</strong><p>Arcane Scribe is Sam's Knowledge Context Agent.</p><small>Agent sightings · 15:07</small></div><div class="declarative-list-trailing"><span class="declarative-badge">normal</span></div></li>
+        </ol></section>
+      <section class="declarative-detail-pane">
+        <p class="declarative-pane-head"><span class="declarative-badge" data-tone="warn">high priority</span><span>15 Aug 16:23</span></p>
+        <h3>Unclassified email</h3>
+        <section data-block="key-values"><dl class="declarative-key-values"><div><dt>Contact</dt><dd>Sam Rivera · acme.io</dd></div><div><dt>Thread</dt><dd>message 2</dd></div><div><dt>Source</dt><dd>Email Triage</dd></div></dl></section>
+        <section data-block="text"><article class="declarative-text"><h3>Original content</h3><pre>Hi — following up on the workshop idea.
+
+We have the November 14 slot held, but the venue needs a
+decision by Friday or it goes back in the pool.
+
+— Sam</pre><small>Read on demand · not copied into Brain</small></article></section>
+        <section data-block="actions"><div class="declarative-actions">
+          <span class="declarative-action-control"><button class="btn">Done</button></span>
+          <span class="declarative-action-control"><button class="btn danger">Dismiss</button></span></div></section>
+      </section>
+    </div></section>
+  </div>
+</main></div>
+<p class="label">Directory sync — target · paper</p><div class="frame" data-climate="paper"><nav class="rail">
+    <div class="rail-group"><div class="rail-title">Operations</div><a href="#" class="">Inbox<span class="n">14</span></a><a href="#" class="">Publishing</a><a href="#" class="on">Sync</a><a href="#" class="">Site</a></div>
+    <div class="rail-group"><div class="rail-title">Collections</div><a href="#">Notes<span class="n">4</span></a><a href="#">Links<span class="n">2</span></a><a href="#">Mail Items<span class="n">9</span></a><a href="#">Topics<span class="n">3</span></a></div></nav><main class="declarative-workspace">
+  <header class="declarative-head">
+    <div class="declarative-head-copy"><span class="declarative-kicker">Durability operations</span><h2>Content sync</h2><p>Keep the entity database, brain-data files, and the configured Git remote converged.</p></div>
+    <div class="declarative-head-state">
+      <strong class="declarative-status-badge" data-tone="good"><span>Healthy</span><small>last settled 4m ago</small></strong>
+      <dl class="declarative-totals"><div data-tone="neutral"><dt>Files</dt><dd>45</dd><span class="cap">markdown + images</span></div><div data-tone="neutral"><dt>Entity types</dt><dd>9</dd><span class="cap">within sync scope</span></div><div data-tone="neutral"><dt>Branch</dt><dd>main</dd><span class="cap">remote connected</span></div><div data-tone="neutral"><dt>Remote delta</dt><dd>0</dd><span class="cap">0 ahead · 0 behind</span></div></dl>
     </div>
-  </aside><main class="declarative-workspace"><header class="declarative-head"><h2>Inbox</h2><dl class="declarative-totals"><div data-tone="neutral"><dt>Open</dt><dd>61</dd></div><div data-tone="warn"><dt>High priority</dt><dd>3</dd></div><div data-tone="neutral"><dt>Matching</dt><dd>24</dd></div><div data-tone="neutral"><dt>Sources online</dt><dd>2</dd></div></dl></header><div class="declarative-blocks"><section data-block="query" data-span="wide"><section class="declarative-query" aria-label="Workspace filters"><div><label><span>Source</span><select><option value="">All sources</option><option value="mail-items" selected="">Email (22)</option><option value="agent-candidates">Candidates (2)</option></select></label><label><span>Urgency</span><select><option value="" selected="">All urgency</option><option value="high">High priority (3)</option><option value="normal">Normal (21)</option></select></label><label><span>Category</span><select><option value="" selected="">All</option><option value="work">Work</option><option value="opportunity">Opportunity</option></select></label></div><footer><span>10 of 24</span><button type="button" class="btn ghost">Load more</button></footer></section></section><section data-block="group" data-span="compact"><section class="declarative-group" aria-labelledby="source-health-title"><h3 id="source-health-title">Source availability</h3><dl><div data-tone="neutral"><dt>Email</dt><dd>22</dd><small>3 high priority</small></div><div data-tone="warn"><dt>Candidates</dt><dd>Unavailable</dd><small>Last polled 14m ago</small></div></dl></section></section><section data-block="list" data-span="wide"><div><ol class="declarative-list"><li data-tone="warn"><div><strong>Time-sensitive collaboration request</strong><p>Sam is asking whether we can co-host the November workshop and needs an answer before Friday.</p><small>Sam Rivera · acme.io · message 2 in thread · Email · 2h ago</small><nav class="declarative-links" aria-label="Time-sensitive collaboration request links"><button type="button" class="declarative-inline-link">Open contact</button><button type="button" class="declarative-inline-link">Read original</button></nav></div><div class="declarative-list-trailing"><span class="declarative-badge" data-tone="warn">High</span><div class="declarative-actions"><span class="declarative-action-control"><button type="button" class="btn ghost">Draft reply</button></span><span class="declarative-action-control"><button type="button" class="btn danger">Archive</button></span></div></div></li><li data-tone="neutral"><div><strong>Invoice 2026-084 is awaiting approval</strong><p>Finance flagged this as blocking the quarterly close.</p><small>billing@vendor.tld · Email · yesterday</small><span class="declarative-tags"><span>finance</span><span>blocking</span></span></div><div class="declarative-list-trailing"><div class="declarative-actions"><span class="declarative-action-control"><button type="button" class="btn ghost">Draft reply</button></span></div></div></li><li data-tone="neutral"><div><strong>New agent sighting: rover.varias.io</strong><p>Advertised three skills that overlap the directory sync surface.</p><small>Candidates · 3d ago</small></div><div class="declarative-list-trailing"><span class="declarative-badge" data-tone="neutral">Untrusted</span><div class="declarative-actions"><span class="declarative-action-control"><button type="button" class="btn ghost">Review</button></span></div></div></li></ol></div></section><section data-block="notice" data-span="wide"><aside class="declarative-notice" data-tone="warn"><strong>Candidates</strong><p>This inbox source is temporarily unavailable.</p></aside></section></div></main></div>
+  </header>
+  <div class="declarative-blocks"><section data-span="wide"><div class="declarative-columns">
+    <div class="declarative-column">
+      <section class="declarative-flow"><h3>Content flow</h3><ol><li data-status="complete"><span aria-hidden="true"></span><strong>Entity DB</strong><small>runtime records</small></li><li data-status="complete"><span aria-hidden="true"></span><strong>brain-data</strong><small>watching · 45 files</small></li><li data-status="active"><span aria-hidden="true"></span><strong>Git remote</strong><small>canonical-unified-inbox-test-content</small></li></ol></section>
+      <section><header style="margin-bottom:11px;color:var(--console-text-muted);font-family:var(--console-mono);font-size:8.5px;letter-spacing:.14em;text-transform:uppercase">Recent syncs</header>
+        <ol class="declarative-list"><li data-tone="good"><div><strong>periodic · succeeded</strong><p>Remote checked; no changes found</p><small>Imported 0 · Exported 0 · 15:53</small></div></li><li data-tone="good"><div><strong>periodic · succeeded</strong><p>Remote checked; no changes found</p><small>Imported 0 · Exported 0 · 15:51</small></div></li><li data-tone="good"><div><strong>periodic · succeeded</strong><p>Remote checked; no changes found</p><small>Imported 0 · Exported 0 · 15:49</small></div></li></ol></section>
     </div>
-  </section>
-</body>
-</html>
+    <aside class="declarative-column declarative-aside">
+      <section class="declarative-card" data-tone="good"><header>No blockers</header><p>Directory exists, configured automation is available, and no unresolved operation failures are recorded.</p></section>
+      <section class="declarative-card" data-tone="neutral"><header>Automation</header><dl class="declarative-key-values"><div><dt>File watcher</dt><dd>On</dd></div><div><dt>Remote pull</dt><dd>Every 2m</dd></div><div><dt>Auto-commit</dt><dd>1s debounce</dd></div><div><dt>File removal</dt><dd>Deletes entity</dd></div></dl></section>
+      <section class="declarative-card" data-tone="neutral"><header>Source</header><dl class="declarative-key-values"><div><dt>Directory</dt><dd>brain-data</dd></div><div><dt>Branch</dt><dd>main</dd></div><div><dt>Remote</dt><dd>rizom-ai/canonical…</dd></div></dl></section>
+      <div class="declarative-actions"><span class="declarative-action-control"><button class="btn">Sync now</button></span></div>
+    </aside>
+  </div></section></div>
+</main></div>
+</body></html>

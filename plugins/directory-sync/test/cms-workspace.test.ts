@@ -142,8 +142,9 @@ describe("directory-sync CMS workspace", () => {
     });
     const rendered = await registration.dataProvider(adminActor);
     expect(rendered).toMatchObject({
-      view: { title: "Directory sync" },
+      view: { title: "Content sync", kicker: "Durability operations" },
     });
+    expect(JSON.stringify(rendered)).toContain('"type":"columns"');
     expect(JSON.stringify(rendered)).toContain('"type":"flow"');
     expect(JSON.stringify(rendered)).toContain('"direction":"bidirectional"');
     expect(JSON.stringify(rendered)).toContain('"type":"meters"');

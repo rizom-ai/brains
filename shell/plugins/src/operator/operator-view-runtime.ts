@@ -68,6 +68,7 @@ export type RuntimeOperatorLinkTarget =
 export interface RuntimeOperatorStatItem {
   readonly label: string;
   readonly value: string | number;
+  readonly caption?: string | undefined;
   readonly tone?: RuntimeOperatorTone | undefined;
 }
 
@@ -509,18 +510,47 @@ export interface RuntimeCmsOperatorDetailBlock {
     | {
         readonly forId: string;
         readonly title: string;
-        readonly blocks: readonly RuntimeCmsOperatorPanelBlock[];
+        readonly blocks: readonly RuntimeCmsOperatorRegionBlock[];
       }
     | undefined;
+}
+
+export interface RuntimeCmsOperatorCardBlock {
+  readonly type: "card";
+  readonly id: string;
+  readonly label: string;
+  readonly tone?: "good" | "warn" | "neutral" | "error" | undefined;
+  readonly blocks: readonly RuntimeCmsOperatorPanelBlock[];
+}
+
+export type RuntimeCmsOperatorRegionBlock =
+  RuntimeCmsOperatorPanelBlock | RuntimeCmsOperatorCardBlock;
+
+export interface RuntimeCmsOperatorColumnsBlock {
+  readonly type: "columns";
+  readonly id: string;
+  readonly primary: readonly RuntimeCmsOperatorRegionBlock[];
+  readonly aside: readonly RuntimeCmsOperatorRegionBlock[];
 }
 
 export type RuntimeCmsOperatorBlock =
   | RuntimeCmsOperatorPanelBlock
   | RuntimeCmsOperatorTabsBlock
-  | RuntimeCmsOperatorDetailBlock;
+  | RuntimeCmsOperatorDetailBlock
+  | RuntimeCmsOperatorColumnsBlock
+  | RuntimeCmsOperatorCardBlock;
+
+export interface RuntimeCmsOperatorViewStatus {
+  readonly label: string;
+  readonly detail?: string | undefined;
+  readonly tone?: "good" | "warn" | "neutral" | "error" | undefined;
+}
 
 export interface RuntimeCmsOperatorView {
+  readonly kicker?: string | undefined;
   readonly title?: string | undefined;
+  readonly description?: string | undefined;
+  readonly status?: RuntimeCmsOperatorViewStatus | undefined;
   readonly blocks: readonly RuntimeCmsOperatorBlock[];
 }
 
@@ -755,6 +785,8 @@ const statItemSchema = z
   .object({
     label: labelSchema,
     value: z.union([z.string().max(500), z.number().finite()]),
+    /** What the number counts, under the value. */
+    caption: shortTextSchema.optional(),
     tone: toneSchema.optional(),
   })
   .strict();
@@ -1716,6 +1748,18 @@ const cmsTabsBlockSchema = z
  * the open row is identified rather than flagged per item, so selection cannot
  * disagree with the content it describes.
  */
+/* A card groups panels under one caption so a group of related facts reads
+   as one thing rather than as loose blocks. */
+const cmsCardBlockSchema = z
+  .object({
+    type: z.literal("card"),
+    id: identifierSchema,
+    label: labelSchema,
+    tone: toneSchema.optional(),
+    blocks: z.array(cmsPanelBlockSchema).max(12),
+  })
+  .strict();
+
 const cmsDetailBlockSchema = z
   .object({
     type: z.literal("detail"),
@@ -1728,38 +1772,55 @@ const cmsDetailBlockSchema = z
       .object({
         forId: rowIdentifierSchema,
         title: labelSchema,
-        blocks: z.array(cmsPanelBlockSchema).max(30),
+        blocks: z
+          .array(z.union([cmsPanelBlockSchema, cmsCardBlockSchema]))
+          .max(30),
       })
       .strict()
       .optional(),
   })
-  .strict()
-  .superRefine((block, context) => {
-    if (!block.open) return;
-    const ids =
-      block.master.type === "list"
-        ? block.master.items.map((item) => item.id)
-        : block.master.rows.map((row) => row.id);
-    if (!ids.includes(block.open.forId)) {
-      context.addIssue({
-        code: "custom",
-        message: `Open detail "${block.open.forId}" has no matching ${
-          block.master.type === "list" ? "item" : "row"
-        } in its master`,
-        path: ["open", "forId"],
-      });
-    }
-  });
+  .strict();
+
+/* A card groups panels under one caption so an aside reads as a stack of
+   related facts rather than loose blocks. */
+/* `forId` marks the open row where the master contains it. It is deliberately
+   not required to match: a paged or filtered collection can hold a selection
+   whose row is not in the current window, and losing the reading pane because
+   the operator turned a page would be worse than an unmarked list. */
+
+/* The composition every operator surface wants: a column of work beside a rail
+   of standing facts. Regions hold panels and cards, one level deep. */
+const cmsColumnsBlockSchema = z
+  .object({
+    type: z.literal("columns"),
+    id: identifierSchema,
+    primary: z
+      .array(z.union([cmsPanelBlockSchema, cmsCardBlockSchema]))
+      .max(20),
+    aside: z.array(z.union([cmsPanelBlockSchema, cmsCardBlockSchema])).max(12),
+  })
+  .strict();
 
 const cmsViewSourceSchema = z
   .object({
+    kicker: labelSchema.optional(),
     title: shortTextSchema.optional(),
+    description: textSchema.optional(),
+    status: z
+      .object({
+        label: labelSchema,
+        detail: shortTextSchema.optional(),
+        tone: toneSchema.optional(),
+      })
+      .strict()
+      .optional(),
     blocks: z
       .array(
         z.union([
           cmsPanelBlockSchema,
           cmsTabsBlockSchema,
           cmsDetailBlockSchema,
+          cmsColumnsBlockSchema,
         ]),
       )
       .max(50),
@@ -1782,6 +1843,21 @@ const cmsViewSourceSchema = z
 
 type CmsViewSource = z.output<typeof cmsViewSourceSchema>;
 type CmsBlockSource = CmsViewSource["blocks"][number];
+type CmsRegionSource = z.output<
+  typeof cmsColumnsBlockSchema
+>["primary"][number];
+
+/** Panels may nest in containers; containers may not nest in each other. */
+function isPanelBlock(
+  block: RuntimeCmsOperatorBlock,
+): block is RuntimeCmsOperatorPanelBlock {
+  return (
+    block.type !== "tabs" &&
+    block.type !== "detail" &&
+    block.type !== "columns" &&
+    block.type !== "card"
+  );
+}
 
 const jsonValueSchema: z.ZodType<JsonValue, unknown> = z.json();
 
@@ -1888,7 +1964,7 @@ function actionBlock(
 }
 
 function normalizeCmsBlock(
-  block: CmsBlockSource,
+  block: CmsBlockSource | CmsRegionSource,
   blockIndex: number,
   declared: readonly AnyWorkspaceActionDefinition[],
   permission: UserPermissionLevel,
@@ -2027,11 +2103,7 @@ function normalizeCmsBlock(
             permission,
           );
           issues.push(...normalized.issues);
-          if (
-            normalized.block &&
-            normalized.block.type !== "tabs" &&
-            normalized.block.type !== "detail"
-          ) {
+          if (normalized.block && isPanelBlock(normalized.block)) {
             blocks.push(normalized.block);
           }
         }
@@ -2053,6 +2125,66 @@ function normalizeCmsBlock(
         issues,
       };
     }
+    case "card": {
+      const issues: RuntimeOperatorValidationIssue[] = [];
+      const panels: RuntimeCmsOperatorPanelBlock[] = [];
+      for (const [panelIndex, panel] of block.blocks.entries()) {
+        const normalized = normalizeCmsBlock(
+          panel,
+          panelIndex,
+          declared,
+          permission,
+        );
+        issues.push(...normalized.issues);
+        if (normalized.block && isPanelBlock(normalized.block)) {
+          panels.push(normalized.block);
+        }
+      }
+      return {
+        block: {
+          type: "card",
+          id: block.id,
+          label: block.label,
+          ...(block.tone ? { tone: block.tone } : {}),
+          blocks: panels,
+        },
+        issues,
+      };
+    }
+    case "columns": {
+      const issues: RuntimeOperatorValidationIssue[] = [];
+      const region = (
+        entries: readonly CmsRegionSource[],
+      ): RuntimeCmsOperatorRegionBlock[] => {
+        const out: RuntimeCmsOperatorRegionBlock[] = [];
+        for (const [index, entry] of entries.entries()) {
+          const normalized = normalizeCmsBlock(
+            entry,
+            index,
+            declared,
+            permission,
+          );
+          issues.push(...normalized.issues);
+          const candidate = normalized.block;
+          if (
+            candidate &&
+            (isPanelBlock(candidate) || candidate.type === "card")
+          ) {
+            out.push(candidate);
+          }
+        }
+        return out;
+      };
+      return {
+        block: {
+          type: "columns",
+          id: block.id,
+          primary: region(block.primary),
+          aside: region(block.aside),
+        },
+        issues,
+      };
+    }
     case "detail": {
       const issues: RuntimeOperatorValidationIssue[] = [];
       const master = normalizeCmsBlock(
@@ -2069,7 +2201,7 @@ function normalizeCmsBlock(
       ) {
         return { issues };
       }
-      const openBlocks: RuntimeCmsOperatorPanelBlock[] = [];
+      const openBlocks: RuntimeCmsOperatorRegionBlock[] = [];
       for (const [panelIndex, panelBlock] of (
         block.open?.blocks ?? []
       ).entries()) {
@@ -2080,12 +2212,12 @@ function normalizeCmsBlock(
           permission,
         );
         issues.push(...normalized.issues);
+        const candidate = normalized.block;
         if (
-          normalized.block &&
-          normalized.block.type !== "tabs" &&
-          normalized.block.type !== "detail"
+          candidate &&
+          (isPanelBlock(candidate) || candidate.type === "card")
         ) {
-          openBlocks.push(normalized.block);
+          openBlocks.push(candidate);
         }
       }
       return {
@@ -2462,7 +2594,12 @@ export function safeParseRuntimeCmsOperatorView(
   return {
     success: true,
     data: Object.freeze({
+      ...(parsed.data.kicker ? { kicker: parsed.data.kicker } : {}),
       ...(parsed.data.title ? { title: parsed.data.title } : {}),
+      ...(parsed.data.description
+        ? { description: parsed.data.description }
+        : {}),
+      ...(parsed.data.status ? { status: parsed.data.status } : {}),
       blocks: Object.freeze(blocks),
     }),
   };

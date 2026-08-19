@@ -290,7 +290,11 @@ describe("SiteBuilderPlugin", () => {
     const initialWorkspace =
       await registration.dataProvider(adminWorkspaceActor);
     expect(initialWorkspace).toMatchObject({
-      view: { title: "Test Site" },
+      view: {
+        title: "Site control",
+        kicker: "Website operations",
+        status: { label: "Test Site" },
+      },
     });
     expect(JSON.stringify(initialWorkspace)).toContain('"id":"routes"');
     expect(JSON.stringify(initialWorkspace)).toContain('"path":"/"');
@@ -426,7 +430,9 @@ describe("SiteBuilderPlugin", () => {
     const trustedWorkspace = await registration.dataProvider(
       trustedWorkspaceActor,
     );
-    expect(trustedWorkspace).toMatchObject({ view: { title: "Test Site" } });
+    expect(trustedWorkspace).toMatchObject({
+      view: { title: "Site control", status: { label: "Test Site" } },
+    });
     expect(JSON.stringify(trustedWorkspace)).toContain(
       '"actionId":"build-preview"',
     );

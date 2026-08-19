@@ -2,6 +2,7 @@ import {
   defineCmsWorkspace,
   defineWorkspaceAction,
   registerBuiltInCmsWorkspace,
+  type OperatorRegionBlock,
   type OperatorViewBlock,
   type ServicePluginContext,
   type ToolContext,
@@ -172,6 +173,7 @@ const directorySyncWorkspace = defineCmsWorkspace({
   refresh: ({ data }) => (data.activeRun ? 1_000 : undefined),
   view: ({ data }) => {
     type SyncViewBlock = OperatorViewBlock<typeof syncNowAction>;
+    type SyncRegionBlock = OperatorRegionBlock<typeof syncNowAction>;
     type SyncFlowStep = Extract<
       SyncViewBlock,
       { type: "flow" }
@@ -189,10 +191,10 @@ const directorySyncWorkspace = defineCmsWorkspace({
         detail: `${data.git.ahead} ahead · ${data.git.behind} behind`,
       });
     }
-    const activeBlocks: SyncViewBlock[] = data.activeRun
+    const activeBlocks: SyncRegionBlock[] = data.activeRun
       ? [activeProgress(data.activeRun)]
       : [];
-    const changedFileBlocks: SyncViewBlock[] = data.git?.changedFiles.length
+    const changedFileBlocks: SyncRegionBlock[] = data.git?.changedFiles.length
       ? [
           {
             type: "list",
@@ -206,20 +208,29 @@ const directorySyncWorkspace = defineCmsWorkspace({
           },
         ]
       : [];
-    const blocks: SyncViewBlock[] = [
-      {
-        type: "stats",
-        id: "sync-summary",
-        items: [
-          { label: "Files", value: data.directory.totalFiles },
-          {
-            label: "Entity types",
-            value: Object.keys(data.directory.byEntityType).length,
-          },
-          { label: "Issues", value: data.issues.length },
-          { label: "Health", value: data.health },
-        ],
-      },
+    const totals: SyncViewBlock = {
+      type: "stats",
+      id: "sync-summary",
+      items: [
+        {
+          label: "Files",
+          value: data.directory.totalFiles,
+          caption: "markdown + images",
+        },
+        {
+          label: "Entity types",
+          value: Object.keys(data.directory.byEntityType).length,
+          caption: "within sync scope",
+        },
+        {
+          label: "Issues",
+          value: data.issues.length,
+          caption: data.issues.length > 0 ? "needs attention" : "all clear",
+          tone: data.issues.length > 0 ? "warn" : "good",
+        },
+      ],
+    };
+    const primary: SyncRegionBlock[] = [
       {
         type: "flow",
         id: "sync-flow",
@@ -252,80 +263,67 @@ const directorySyncWorkspace = defineCmsWorkspace({
           ...gitFlowSteps,
         ],
       },
-      {
-        type: "group",
-        id: "sync-automation",
-        label: "Automation",
-        items: [
-          {
-            id: "automatic",
-            label: "Automatic sync",
-            value: data.automation.autoSync,
-          },
-          {
-            id: "watch",
-            label: "Watch interval",
-            value: `${data.automation.watchIntervalMs} ms`,
-          },
-          {
-            id: "delete",
-            label: "Delete removed files",
-            value: data.automation.deleteOnFileRemoval,
-          },
-          ...(data.automation.remoteIntervalMinutes === undefined
-            ? []
-            : [
-                {
-                  id: "remote",
-                  label: "Remote interval",
-                  value: `${data.automation.remoteIntervalMinutes} min`,
-                },
-              ]),
-        ],
-      },
-      {
-        type: "meters",
-        id: "sync-meters",
-        items: [
-          {
-            id: "files",
-            label: "Content files",
-            value: data.directory.totalFiles,
-          },
-          {
-            id: "issues",
-            label: "Issues",
-            value: data.issues.length,
-            tone: data.issues.length > 0 ? "warn" : "good",
-          },
-          ...(data.git
-            ? [
-                { id: "ahead", label: "Commits ahead", value: data.git.ahead },
-                {
-                  id: "behind",
-                  label: "Commits behind",
-                  value: data.git.behind,
-                },
-              ]
-            : []),
-        ],
-      },
+    ];
+    const automation: SyncRegionBlock = {
+      type: "group",
+      id: "sync-automation",
+      label: "Automation",
+      items: [
+        {
+          id: "automatic",
+          label: "Automatic sync",
+          value: data.automation.autoSync,
+        },
+        {
+          id: "watch",
+          label: "Watch interval",
+          value: `${data.automation.watchIntervalMs} ms`,
+        },
+        {
+          id: "delete",
+          label: "Delete removed files",
+          value: data.automation.deleteOnFileRemoval,
+        },
+        ...(data.automation.remoteIntervalMinutes === undefined
+          ? []
+          : [
+              {
+                id: "remote",
+                label: "Remote interval",
+                value: `${data.automation.remoteIntervalMinutes} min`,
+              },
+            ]),
+      ],
+    };
+    const repository: SyncRegionBlock = {
+      type: "meters",
+      id: "sync-meters",
+      items: [
+        {
+          id: "files",
+          label: "Content files",
+          value: data.directory.totalFiles,
+        },
+        {
+          id: "issues",
+          label: "Issues",
+          value: data.issues.length,
+          tone: data.issues.length > 0 ? "warn" : "good",
+        },
+        ...(data.git
+          ? [
+              { id: "ahead", label: "Commits ahead", value: data.git.ahead },
+              {
+                id: "behind",
+                label: "Commits behind",
+                value: data.git.behind,
+              },
+            ]
+          : []),
+      ],
+    };
+    const work: SyncRegionBlock[] = [
       ...activeBlocks,
-      {
-        type: "table",
-        id: "entity-types",
-        empty: "No entity files have been indexed.",
-        columns: [
-          { key: "type", label: "Entity type" },
-          { key: "count", label: "Files", align: "end" },
-        ],
-        rows: Object.entries(data.directory.byEntityType).map(
-          ([type, count]) => ({
-            id: type,
-            cells: { type, count },
-          }),
-        ),
-      },
       {
         type: "list",
         id: "recent-runs",
@@ -349,30 +347,111 @@ const directorySyncWorkspace = defineCmsWorkspace({
         })),
       },
       ...changedFileBlocks,
+    ];
+    // Blockers belong beside the work, stated either way: an all-clear is a
+    // result worth showing, not an absent block.
+    const blockers: SyncRegionBlock =
+      data.issues.length === 0
+        ? {
+            type: "card",
+            id: "sync-blockers-card",
+            label: "No blockers",
+            tone: "good",
+            blocks: [
+              {
+                type: "notice",
+                id: "sync-clear",
+                text: "Directory exists, configured automation is available, and no unresolved operation failures are recorded.",
+                tone: "good",
+              },
+            ],
+          }
+        : {
+            type: "card",
+            id: "sync-blockers-card",
+            label: "Needs attention",
+            tone: "warn",
+            blocks: [
+              {
+                type: "list",
+                id: "sync-issues",
+                empty: "No sync issues need attention.",
+                items: data.issues.map((issue) => ({
+                  id: issue.id,
+                  title: issue.kind,
+                  description: issue.message,
+                  tone: "warn",
+                  metadata: [...(issue.path ? [`Path: `] : []), `Occurred: `],
+                })),
+              },
+            ],
+          };
+    const blocks: SyncViewBlock[] = [
+      totals,
       {
-        type: "list",
-        id: "sync-issues",
-        empty: "No sync issues need attention.",
-        items: data.issues.map((issue) => ({
-          id: issue.id,
-          title: issue.kind,
-          description: issue.message,
-          badges: [{ label: "attention", tone: "warn" }],
-          tone: "warn",
-          metadata: [
-            ...(issue.path ? [`Path: ${issue.path}`] : []),
-            `Occurred: ${issue.occurredAt}`,
-          ],
-        })),
-      },
-      {
-        type: "action",
-        id: "sync-now",
-        action: syncNowAction,
-        input: {},
+        type: "columns",
+        id: "sync-body",
+        primary: [...primary, ...work],
+        aside: [
+          blockers,
+          {
+            type: "card",
+            id: "sync-automation-card",
+            label: "Automation",
+            blocks: [automation],
+          },
+          {
+            type: "card",
+            id: "sync-source-card",
+            label: "Source",
+            blocks: [
+              {
+                type: "key-values",
+                id: "sync-source",
+                items: [
+                  { label: "Directory", value: data.directory.displayPath },
+                  ...(data.git
+                    ? [
+                        { label: "Branch", value: data.git.branch },
+                        {
+                          label: "Remote",
+                          value: data.git.remoteLabel ?? data.git.branch,
+                        },
+                      ]
+                    : [{ label: "Remote", value: "files only" }]),
+                ],
+              },
+            ],
+          },
+          {
+            type: "card",
+            id: "sync-repository-card",
+            label: "Repository",
+            blocks: [repository],
+          },
+          {
+            type: "action",
+            id: "sync-now",
+            action: syncNowAction,
+            input: {},
+          },
+        ],
       },
     ];
-    return { title: "Directory sync", blocks };
+    return {
+      kicker: "Durability operations",
+      title: "Content sync",
+      description:
+        "Keep the entity database, its files, and the configured Git remote converged.",
+      status: {
+        label: data.health,
+        ...(data.directory.lastSettledAt
+          ? { detail: `last settled ${data.directory.lastSettledAt}` }
+          : {}),
+        tone: data.health === "healthy" ? "good" : "warn",
+      },
+      blocks,
+    };
   },
 });
 

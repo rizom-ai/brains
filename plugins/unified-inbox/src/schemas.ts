@@ -197,7 +197,9 @@ export const inboxWorkspaceQuerySchema: z.ZodType<
     facets: inboxFacetsSchema.optional(),
     selected: inboxRowIdSchema.optional(),
     offset: inboxWorkspaceOffsetSchema.default(0),
-    limit: inboxWorkspaceLimitSchema.default(50),
+    // A triage page is a screenful, not the whole backlog: paging is the
+    // affordance that says more is behind it.
+    limit: inboxWorkspaceLimitSchema.default(10),
   })
   .superRefine((query, context) => {
     if (query.selected !== undefined && !splitInboxRowId(query.selected)) {
@@ -258,7 +260,7 @@ export function normalizeInboxWorkspaceQuery(
       ? { selected: inboxRowId(selectedSource.sourceId, selectedItem.data) }
       : {}),
     offset: offset.success ? offset.data : 0,
-    limit: limit.success ? limit.data : 50,
+    limit: limit.success ? limit.data : 10,
   });
 }
 

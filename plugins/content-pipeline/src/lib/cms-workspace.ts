@@ -5,6 +5,7 @@ import {
   permissionToVisibilityScope,
   registerBuiltInCmsWorkspace,
   type OperatorCaller,
+  type OperatorRegionBlock,
   type OperatorViewBlock,
   type ServicePluginContext,
   type ToolContext,
@@ -324,21 +325,41 @@ const publishingWorkspace = defineCmsWorkspace({
       | typeof reorderAction
       | typeof publishAction
     >;
-    const blocks: PublishingBlock[] = [
-      {
-        type: "stats",
-        id: "publishing-summary",
-        items: [
-          { label: "Queued", value: data.summary.queued },
-          { label: "Generating", value: data.summary.generating },
-          {
-            label: "Needs attention",
-            value: data.summary.needsOperator,
-            tone: data.summary.needsOperator > 0 ? "warn" : "good",
-          },
-          { label: "Published", value: data.summary.published },
-        ],
-      },
+    type PublishingRegion = OperatorRegionBlock<
+      | typeof queueAction
+      | typeof removeAction
+      | typeof retryAction
+      | typeof reorderAction
+      | typeof publishAction
+    >;
+    const totals: PublishingBlock = {
+      type: "stats",
+      id: "publishing-summary",
+      items: [
+        {
+          label: "Queued",
+          value: data.summary.queued,
+          caption: "awaiting dispatch",
+        },
+        {
+          label: "Generating",
+          value: data.summary.generating,
+          caption: "in progress",
+        },
+        {
+          label: "Needs attention",
+          value: data.summary.needsOperator,
+          caption: data.summary.needsOperator > 0 ? "failed" : "all clear",
+          tone: data.summary.needsOperator > 0 ? "warn" : "good",
+        },
+        {
+          label: "Published",
+          value: data.summary.published,
+          caption: "all time",
+        },
+      ],
+    };
+    const primary: PublishingRegion[] = [
       {
         type: "flow",
         id: "publication-flow",
@@ -370,114 +391,165 @@ const publishingWorkspace = defineCmsWorkspace({
           },
         ],
       },
-      {
-        type: "meters",
-        id: "publication-meters",
-        items: [
-          { id: "drafts", label: "Drafts", value: data.summary.draft },
+    ];
+    const pipelineMeters: PublishingRegion = {
+      type: "meters",
+      id: "publication-meters",
+      items: [
+        { id: "drafts", label: "Drafts", value: data.summary.draft },
+        {
+          id: "failed",
+          label: "Failed",
+          value: data.summary.failed,
+          tone: data.summary.failed > 0 ? "warn" : "good",
+        },
+        {
+          id: "published",
+          label: "Published",
+          value: data.summary.published,
+          tone: "good",
+        },
+      ],
+    };
+    const atRest =
+      data.queue.length === 0 &&
+      data.generating.length === 0 &&
+      data.failures.length === 0;
+    // One rest state reads as a desk with nothing on it; three separate empty
+    // collections read as three broken panels.
+    const work: PublishingRegion[] = atRest
+      ? [
           {
-            id: "failed",
-            label: "Failed",
-            value: data.summary.failed,
-            tone: data.summary.failed > 0 ? "warn" : "good",
+            type: "notice",
+            id: "publishing-at-rest",
+            title: "Nothing is in flight",
+            text: "Queue a draft to start a publication run.",
+          },
+        ]
+      : [
+          {
+            type: "list",
+            id: "dispatch-queue",
+            empty: "Nothing is queued for publication.",
+            items: data.queue.map((item) => {
+              const destinationCount = data.queue.filter(
+                (candidate) => candidate.entityType === item.entityType,
+              ).length;
+              return {
+                id: `queue-${item.entityType}-${item.position}`,
+                title: item.title,
+                metadata: [
+                  `${item.entityType}/${item.entityId}`,
+                  item.destination,
+                  item.scheduledFor ?? "Next dispatch",
+                ],
+                count: item.position,
+                link: targetLink(item.entityType, item.entityId),
+                actions: [
+                  {
+                    action: reorderAction,
+                    input: {
+                      entityType: item.entityType,
+                      entityId: item.entityId,
+                      position: Math.max(1, item.position - 1),
+                    },
+                    disabled: item.position <= 1,
+                  },
+                  {
+                    action: reorderAction,
+                    input: {
+                      entityType: item.entityType,
+                      entityId: item.entityId,
+                      position: item.position + 1,
+                    },
+                    disabled: item.position >= destinationCount,
+                  },
+                  {
+                    action: removeAction,
+                    input: {
+                      entityType: item.entityType,
+                      entityId: item.entityId,
+                    },
+                  },
+                ],
+              };
+            }),
           },
           {
-            id: "published",
-            label: "Published",
-            value: data.summary.published,
-            tone: "good",
+            type: "list",
+            id: "generating",
+            empty: "No publication assets are being generated.",
+            items: data.generating.map((job, index) => {
+              const [entityType, ...entityId] = job.target.split("/");
+              return {
+                id: `generating-${index + 1}`,
+                title: job.label,
+                metadata: [job.target, job.status],
+                badges: [{ label: job.status }],
+                ...(entityType && entityId.length > 0
+                  ? { link: targetLink(entityType, entityId.join("/")) }
+                  : {}),
+              };
+            }),
+          },
+          {
+            type: "list",
+            id: "publication-failures",
+            empty: "No failed publications.",
+            items: data.failures.map((failure, index) => ({
+              id: `failure-${index + 1}`,
+              title: failure.title,
+              description: failure.error,
+              metadata: [
+                `${failure.entityType}/${failure.entityId}`,
+                `Retries: ${failure.retryCount}`,
+              ],
+              tone: "error",
+              link: targetLink(failure.entityType, failure.entityId),
+              actions: [
+                {
+                  action: retryAction,
+                  input: {
+                    entityType: failure.entityType,
+                    entityId: failure.entityId,
+                  },
+                },
+              ],
+            })),
+          },
+        ];
+    const blocks: PublishingBlock[] = [
+      totals,
+      {
+        type: "columns",
+        id: "publishing-body",
+        primary: [...primary, ...work],
+        aside: [
+          {
+            type: "card",
+            id: "publishing-pipeline-card",
+            label: "Pipeline",
+            tone: data.summary.failed > 0 ? "warn" : "neutral",
+            blocks: [pipelineMeters],
           },
         ],
       },
-      {
-        type: "list",
-        id: "dispatch-queue",
-        empty: "Nothing is queued for publication.",
-        items: data.queue.map((item) => {
-          const destinationCount = data.queue.filter(
-            (candidate) => candidate.entityType === item.entityType,
-          ).length;
-          return {
-            id: `queue-${item.entityType}-${item.position}`,
-            title: item.title,
-            metadata: [
-              `${item.entityType}/${item.entityId}`,
-              item.destination,
-              item.scheduledFor ?? "Next dispatch",
-            ],
-            count: item.position,
-            link: targetLink(item.entityType, item.entityId),
-            actions: [
-              {
-                action: reorderAction,
-                input: {
-                  entityType: item.entityType,
-                  entityId: item.entityId,
-                  position: Math.max(1, item.position - 1),
-                },
-                disabled: item.position <= 1,
-              },
-              {
-                action: reorderAction,
-                input: {
-                  entityType: item.entityType,
-                  entityId: item.entityId,
-                  position: item.position + 1,
-                },
-                disabled: item.position >= destinationCount,
-              },
-              {
-                action: removeAction,
-                input: { entityType: item.entityType, entityId: item.entityId },
-              },
-            ],
-          };
-        }),
-      },
-      {
-        type: "list",
-        id: "generating",
-        empty: "No publication assets are being generated.",
-        items: data.generating.map((job, index) => {
-          const [entityType, ...entityId] = job.target.split("/");
-          return {
-            id: `generating-${index + 1}`,
-            title: job.label,
-            metadata: [job.target, job.status],
-            badges: [{ label: job.status }],
-            ...(entityType && entityId.length > 0
-              ? { link: targetLink(entityType, entityId.join("/")) }
-              : {}),
-          };
-        }),
-      },
-      {
-        type: "list",
-        id: "publication-failures",
-        empty: "No failed publications.",
-        items: data.failures.map((failure, index) => ({
-          id: `failure-${index + 1}`,
-          title: failure.title,
-          description: failure.error,
-          metadata: [
-            `${failure.entityType}/${failure.entityId}`,
-            `Retries: ${failure.retryCount}`,
-          ],
-          tone: "error",
-          link: targetLink(failure.entityType, failure.entityId),
-          actions: [
-            {
-              action: retryAction,
-              input: {
-                entityType: failure.entityType,
-                entityId: failure.entityId,
-              },
-            },
-          ],
-        })),
-      },
     ];
-    return { title: "Publishing desk", blocks };
+    return {
+      kicker: "Publication operations",
+      title: "Publishing desk",
+      description:
+        "Review intent, inspect dispatch order, and resolve publication failures beside the content they belong to.",
+      status: {
+        label:
+          data.summary.needsOperator > 0
+            ? "Needs attention"
+            : "Pipeline online",
+        detail: data.summary.generating > 0 ? ` generating` : "no active run",
+        tone: data.summary.needsOperator > 0 ? "warn" : "good",
+      },
+      blocks,
+    };
   },
 });
 

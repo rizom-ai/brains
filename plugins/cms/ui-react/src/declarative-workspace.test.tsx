@@ -137,8 +137,8 @@ describe("DeclarativeWorkspace", () => {
     expect(html).toContain("Preview build");
     expect(html).toContain("All sources");
     expect(html).toContain("Mail (1)");
-    expect(html).toContain("1 of 2");
-    expect(html).toContain("Load more");
+    expect(html).toContain("1–1 of 2");
+    expect(html).toContain("Next");
     expect(html).toContain(
       '<button type="button" class="declarative-inline-link">Open publishing</button>',
     );
@@ -448,6 +448,7 @@ describe("DeclarativeWorkspace master/detail", () => {
         data: detailData({ forId: "mail-1", title: "Collaboration request" }),
         onAction: async () => ({}),
         onOpenEntity: () => {},
+        query: { selected: "mail-1" },
       }),
     );
 
@@ -458,20 +459,6 @@ describe("DeclarativeWorkspace master/detail", () => {
     // The open row is marked from the detail's forId, not a per-item flag.
     expect(html).toContain('aria-current="true"');
     expect(html).not.toContain("Select an item to read it.");
-  });
-
-  it("shows the empty detail message when nothing is open", () => {
-    const html = renderToStaticMarkup(
-      createElement(DeclarativeWorkspace, {
-        data: detailData(),
-        onAction: async () => ({}),
-        onOpenEntity: () => {},
-      }),
-    );
-
-    expect(html).toContain("Select an item to read it.");
-    expect(html).toContain('data-open="false"');
-    expect(html).not.toContain('aria-current="true"');
   });
 
   it("opens a row through canonical query state rather than a navigation", async () => {
@@ -523,5 +510,124 @@ describe("DeclarativeWorkspace master/detail", () => {
     await act(async () => back.click());
 
     expect(queries).toEqual([{ urgency: "high" }]);
+  });
+});
+
+describe("DeclarativeWorkspace detail pending state", () => {
+  it("marks the requested row and shows the pane before its content arrives", () => {
+    // Query asks for a row the view has not returned yet: the load is in
+    // flight, which must read differently from nothing being open.
+    const html = renderToStaticMarkup(
+      createElement(DeclarativeWorkspace, {
+        data: detailData(),
+        onAction: async () => ({}),
+        onOpenEntity: () => {},
+        query: { selected: "mail-1" },
+        onQueryChange: () => {},
+      }),
+    );
+
+    expect(html).toContain('data-open="true"');
+    expect(html).toContain('aria-current="true"');
+    // A slow source must read as loading, never as nothing having happened.
+    expect(html).toContain("Loading…");
+  });
+
+  it("gives the collection the full measure when nothing is requested", () => {
+    const html = renderToStaticMarkup(
+      createElement(DeclarativeWorkspace, {
+        data: detailData(),
+        onAction: async () => ({}),
+        onOpenEntity: () => {},
+        query: {},
+        onQueryChange: () => {},
+      }),
+    );
+
+    expect(html).toContain('data-open="false"');
+    expect(html).not.toContain("declarative-detail-pane");
+    expect(html).not.toContain('aria-current="true"');
+  });
+});
+
+describe("DeclarativeWorkspace head", () => {
+  it("renders the eyebrow, description and status beside the title", () => {
+    const html = renderToStaticMarkup(
+      createElement(DeclarativeWorkspace, {
+        data: {
+          view: {
+            kicker: "Durability operations",
+            title: "Content sync",
+            description: "Keep the entity database and Git remote converged.",
+            status: {
+              label: "Healthy",
+              detail: "last settled 4m ago",
+              tone: "good",
+            },
+            blocks: [],
+          },
+        },
+        onAction: async () => ({}),
+        onOpenEntity: () => {},
+      }),
+    );
+
+    expect(html).toContain("Durability operations");
+    expect(html).toContain("Content sync");
+    expect(html).toContain(
+      "Keep the entity database and Git remote converged.",
+    );
+    expect(html).toContain("Healthy");
+    expect(html).toContain("last settled 4m ago");
+    expect(html).toContain('data-tone="good"');
+  });
+});
+
+describe("DeclarativeWorkspace pagination", () => {
+  const paged = (offset: number): RuntimeCmsWorkspaceData => ({
+    view: {
+      title: "Inbox",
+      blocks: [
+        {
+          type: "query",
+          id: "q",
+          controls: [],
+          pagination: { offset, limit: 10, total: 24 },
+        },
+      ],
+    },
+  });
+
+  it("states the window and offers both directions", () => {
+    const html = renderToStaticMarkup(
+      createElement(DeclarativeWorkspace, {
+        data: paged(10),
+        onAction: async () => ({}),
+        onOpenEntity: () => {},
+        query: { offset: 10, limit: 10 },
+        onQueryChange: () => {},
+      }),
+    );
+
+    // The control replaces the page, so it must say where it is and let the
+    // operator go back — "Load more" promised an append it never did.
+    expect(html).toContain("11–20 of 24");
+    expect(html).toContain("Previous");
+    expect(html).toContain("Next");
+  });
+
+  it("disables the direction it cannot go", () => {
+    const first = renderToStaticMarkup(
+      createElement(DeclarativeWorkspace, {
+        data: paged(0),
+        onAction: async () => ({}),
+        onOpenEntity: () => {},
+        query: { offset: 0, limit: 10 },
+        onQueryChange: () => {},
+      }),
+    );
+    expect(first).toContain("1–10 of 24");
+    expect(first).toMatch(/Previous<\/button>/);
+    expect(first).toContain('disabled=""');
   });
 });
