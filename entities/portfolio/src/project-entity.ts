@@ -1,4 +1,8 @@
-import { defineEntity, type EntityDefinition } from "@brains/plugins";
+import {
+  defineEntity,
+  generateMarkdownWithFrontmatter,
+  type EntityDefinition,
+} from "@brains/plugins";
 import { slugify } from "@brains/utils/string-utils";
 import {
   projectFrontmatterSchema,
@@ -31,6 +35,22 @@ export const project: EntityDefinition<
   purpose: "A portfolio case study for a piece of work.",
   metadata: projectMetadataSchema,
   config: { projectionSourceRole: "secondary" },
+  // What system_generate persists before the case study is written. A year
+  // is required metadata, so the placeholder claims the current one until
+  // generation works out the real one.
+  stub: ({ id, title }) => {
+    const year = new Date().getUTCFullYear();
+    return {
+      content: generateMarkdownWithFrontmatter("", {
+        title,
+        slug: id,
+        status: "generating",
+        description: "",
+        year,
+      }),
+      metadata: { title, slug: id, status: "generating", year },
+    };
+  },
   markdown: {
     // Metadata indexes the queryable fields; description, coverImageId,
     // ogImageId and url stay in the content's frontmatter and are carried

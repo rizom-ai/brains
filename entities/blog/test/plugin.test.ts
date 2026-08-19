@@ -1,9 +1,13 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import { BlogPostAdapter } from "../src/adapters/blog-post-adapter";
 import type { BlogPost } from "../src/schemas/blog-post";
-import { blogPostFrontmatterSchema } from "../src/schemas/blog-post";
+import {
+  blogPostFrontmatterSchema,
+  blogPostMetadataSchema,
+} from "../src/schemas/blog-post";
 import { createMockBlogPost } from "./fixtures/blog-entities";
-import { createTestEntity } from "@brains/test-utils";
+import { createSilentLogger, createTestEntity } from "@brains/test-utils";
+import { createPluginHarness } from "@brains/plugins/test";
 import { postEntityPlugin, PACKAGE_METADATA } from "./helpers/install";
 
 describe("blog package", () => {
@@ -12,6 +16,38 @@ describe("blog package", () => {
     expect(plugin.id).toBe(`${PACKAGE_METADATA.name}:post`);
     expect(plugin.type).toBe("entity");
     expect(plugin.version).toBe(PACKAGE_METADATA.version);
+  });
+
+  // system_generate refuses an entity type whose adapter cannot build a
+  // placeholder, so converting the package to a declaration took blog post
+  // generation away entirely until `stub` was declared.
+  it("offers a placeholder that satisfies its own metadata schema", async () => {
+    const harness = createPluginHarness({
+      logger: createSilentLogger("blog-stub-test"),
+    });
+    await harness.installPlugin(postEntityPlugin());
+    // The same route system_generate takes to reach it.
+    const adapter = harness.getEntityRegistry().getAdapter("post");
+    const buildStub = adapter.buildStub;
+    if (!buildStub) {
+      throw new Error("Expected the post adapter to build a stub");
+    }
+
+    const stub = buildStub({ id: "how-to-fish", title: "How To Fish" });
+
+    expect(blogPostMetadataSchema.parse(stub.metadata)).toEqual({
+      title: "How To Fish",
+      slug: "how-to-fish",
+      status: "generating",
+    });
+    // The runtime writes this markdown straight to the entity, so it has to
+    // survive being read back through the codec that produced it.
+    expect(adapter.fromMarkdown(stub.content).metadata).toMatchObject({
+      slug: "how-to-fish",
+      status: "generating",
+    });
+
+    harness.reset();
   });
 
   describe("blogPostFrontmatterSchema", () => {

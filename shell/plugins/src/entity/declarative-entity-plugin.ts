@@ -8,6 +8,7 @@ import {
   type EntityAdapter,
   type EntityTypeConfig,
   type ProjectionJsonObject,
+  type BaseEntity,
   type CreateInput,
   type ProjectionWriteIntent,
 } from "@brains/entity-service";
@@ -18,9 +19,11 @@ import {
 } from "../public/entity-data-source";
 import {
   DIRECTORY_SYNC_CHANNELS,
+  GENERATE_CHANNELS,
   PUBLISH_ASSET_CHANNELS,
   PUBLISH_CHANNELS,
 } from "@brains/contracts";
+import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
 import { EntityPlugin, emptyEntityPluginConfigSchema } from "./entity-plugin";
 import { SYSTEM_CHANNELS } from "../system-channels";
@@ -31,7 +34,11 @@ import type { JobHandler } from "@brains/job-queue";
 import type { ProgressContract } from "@brains/utils/progress";
 import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
 import { FeedRegistry } from "@brains/site-composition";
-import type { JobEntityAccess } from "../job/job-context-contract";
+import { slugify } from "@brains/utils/string-utils";
+import type {
+  JobEntityAccess,
+  JobHandlerContext,
+} from "../job/job-context-contract";
 import { createJobEntityAccess } from "../job/job-entity-access";
 import { entitySchema } from "./entity-schema";
 export { parseDefinitionEntity } from "./entity-schema";
@@ -39,6 +46,7 @@ import type {
   AnyEntityDefinition,
   EntityCreateRoute,
   EntityCreateRouting,
+  EntityGenerationResult,
   EntityJobDeclaration,
   EntityOf,
   EntitySeedTrigger,
@@ -79,6 +87,22 @@ const projectionEnvelopeSchema = z.object({
     }),
   ),
 });
+
+/**
+ * The entity a generation was told to fill in, if the caller allocated one.
+ *
+ * Read off the raw input rather than a declared field so a package need not
+ * declare `entityId` to take part in the lifecycle.
+ */
+function preallocatedEntityId(data: unknown): string | undefined {
+  if (typeof data !== "object" || data === null || !("entityId" in data)) {
+    return undefined;
+  }
+  const entityId = data.entityId;
+  return typeof entityId === "string" && entityId.trim().length > 0
+    ? entityId.trim()
+    : undefined;
+}
 
 function encodeParts(
   definition: AnyEntityDefinition,
@@ -141,6 +165,9 @@ function entityAdapter(
       return generateFrontmatter(encodeParts(definition, entity).frontmatter);
     },
     getBodyTemplate: () => "",
+    // Left off entirely when undeclared: system_generate reads its absence
+    // as "this type does not support queued generation" and says so.
+    ...(definition.stub ? { buildStub: definition.stub } : {}),
   };
 }
 
@@ -259,6 +286,7 @@ class DeclarativeEntityPlugin extends EntityPlugin<
   private readonly dataSources: AnyEntityDefinition["dataSources"];
   private readonly attachments: AnyEntityDefinition["attachments"];
   private readonly generation: AnyEntityDefinition["generation"];
+  private readonly scheduledGeneration: AnyEntityDefinition["scheduledGeneration"];
   private readonly evals: AnyEntityDefinition["evals"];
   private readonly jobs: AnyEntityDefinition["jobs"];
   private readonly instructions: AnyEntityDefinition["instructions"];
@@ -300,6 +328,7 @@ class DeclarativeEntityPlugin extends EntityPlugin<
     this.dataSources = definition.dataSources;
     this.attachments = definition.attachments;
     this.generation = definition.generation;
+    this.scheduledGeneration = definition.scheduledGeneration;
     this.evals = definition.evals;
     this.jobs = definition.jobs;
     this.instructions = definition.instructions;
@@ -454,6 +483,8 @@ class DeclarativeEntityPlugin extends EntityPlugin<
       );
     }
 
+    this.subscribeToScheduledGeneration(context);
+
     const feed = this.feed;
     if (feed) {
       this.releaseOnShutdown.push(
@@ -516,7 +547,227 @@ class DeclarativeEntityPlugin extends EntityPlugin<
   protected override createGenerationHandler(
     context: EntityPluginContext,
   ): JobHandler | null {
-    return this.generation ? this.jobHandler(this.generation, context) : null;
+    const generation = this.generation;
+    if (!generation) return null;
+
+    return {
+      validateAndParse: (data: unknown): unknown => {
+        const parsed = generation.input.safeParse(data);
+        return parsed.success ? parsed.data : null;
+      },
+      process: async (
+        data: unknown,
+        _jobId: string,
+        progress: ProgressContract,
+        signal: AbortSignal,
+      ): Promise<unknown> => {
+        const entityId = preallocatedEntityId(data);
+        try {
+          const result = await generation.generate({
+            ...this.jobContext(data, context, progress, signal),
+            entityId,
+          });
+          if (!result.success) {
+            await this.markGenerationFailed(context, entityId, result.error);
+            return { success: false, error: result.error };
+          }
+          return await this.saveGenerated(context, entityId, result);
+        } catch (error) {
+          const message = getErrorMessage(error);
+          await this.markGenerationFailed(context, entityId, message);
+          return { success: false, error: message };
+        }
+      },
+    };
+  }
+
+  /**
+   * Write what a generation produced.
+   *
+   * A pre-allocated entity is filled in — the caller is already looking at
+   * it — and its generation-lifecycle fields are cleared. Otherwise the id
+   * comes from the returned title, deduplicated the same way the stub is.
+   */
+  private async saveGenerated(
+    context: EntityPluginContext,
+    entityId: string | undefined,
+    result: Extract<EntityGenerationResult, { success: true }>,
+  ): Promise<unknown> {
+    const { status: _status, error: _error, ...metadata } = result.metadata;
+    const title = metadata["title"];
+    const id = entityId ?? slugify(String(title ?? this.entityType));
+
+    const written = entityId
+      ? await context.entityService.updateEntity({
+          entity: {
+            ...(await this.requireEntity(context, entityId)),
+            content: result.content,
+            metadata,
+          },
+        })
+      : await context.entityService.createEntity({
+          entity: {
+            id,
+            entityType: this.entityType,
+            content: result.content,
+            metadata,
+          },
+          options: { deduplicateId: true },
+        });
+
+    return {
+      success: true,
+      entityId: written.entityId,
+      ...(result.resultExtras ?? {}),
+    };
+  }
+
+  private async requireEntity(
+    context: EntityPluginContext,
+    entityId: string,
+  ): Promise<BaseEntity> {
+    const existing = await context.entityService.getEntity({
+      entityType: this.entityType,
+      id: entityId,
+    });
+    if (!existing) {
+      throw new Error(
+        `Generation was told to fill in ${this.entityType} "${entityId}", which does not exist`,
+      );
+    }
+    return existing;
+  }
+
+  /**
+   * Leave a failed generation visibly failed rather than generating forever.
+   */
+  private async markGenerationFailed(
+    context: EntityPluginContext,
+    entityId: string | undefined,
+    error: string,
+  ): Promise<void> {
+    if (!entityId) return;
+    const existing = await context.entityService.getEntity({
+      entityType: this.entityType,
+      id: entityId,
+    });
+    if (!existing) return;
+    await context.entityService.updateEntity({
+      entity: {
+        ...existing,
+        metadata: { ...existing.metadata, status: "failed", error },
+      },
+    });
+  }
+
+  /**
+   * Answer a scheduled request for an entity of this type.
+   *
+   * The scheduler says "generate a guide" and nothing more, so the runtime
+   * finds the material: recent sources of the declared type and status, in
+   * `each` mode skipping any this type has already been derived from. With
+   * nothing to write from it reports a failure, which is what the scheduler
+   * is waiting to hear either way.
+   */
+  private subscribeToScheduledGeneration(context: EntityPluginContext): void {
+    const scheduled = this.scheduledGeneration;
+    if (!scheduled) return;
+
+    context.messaging.subscribe<{ entityType: string }, { success: boolean }>(
+      GENERATE_CHANNELS.execute,
+      async (message) => {
+        if (message.payload.entityType !== this.entityType) {
+          return { success: true };
+        }
+
+        const reportFailure = async (error: string): Promise<void> => {
+          await context.messaging.send({
+            type: GENERATE_CHANNELS.reportFailure,
+            payload: { entityType: this.entityType, error },
+          });
+        };
+
+        try {
+          const sources = await context.entityService.listEntities({
+            entityType: scheduled.from.entityType,
+            options: {
+              ...(scheduled.from.status === undefined
+                ? {}
+                : { filter: { metadata: { status: scheduled.from.status } } }),
+              limit: scheduled.from.limit,
+            },
+          });
+
+          const data = await this.selectScheduledSources(
+            context,
+            scheduled,
+            sources.map((source) => source.id),
+          );
+          if (!data) {
+            await reportFailure(
+              `No ${[scheduled.from.status, scheduled.from.entityType]
+                .filter(Boolean)
+                .join(" ")} available to write a ${this.entityType} from`,
+            );
+            return { success: true };
+          }
+
+          await context.jobs.enqueue({
+            type: `${this.entityType}:generation`,
+            data,
+            toolContext: {
+              interfaceType: "job",
+              actor: { kind: "service", serviceId: this.id },
+            },
+          });
+          return { success: true };
+        } catch (error) {
+          await reportFailure(getErrorMessage(error));
+          return { success: true };
+        }
+      },
+    );
+  }
+
+  /**
+   * The generation input for a scheduled request, or null when there is
+   * nothing left to write from.
+   */
+  private async selectScheduledSources(
+    context: EntityPluginContext,
+    scheduled: NonNullable<AnyEntityDefinition["scheduledGeneration"]>,
+    sourceIds: readonly string[],
+  ): Promise<Record<string, unknown> | null> {
+    if (sourceIds.length === 0) return null;
+
+    if (scheduled.mode === "batch") {
+      return {
+        sourceEntityType: scheduled.from.entityType,
+        sourceEntityIds: [...sourceIds],
+      };
+    }
+
+    for (const sourceEntityId of sourceIds) {
+      const derived = await context.entityService.listEntities({
+        entityType: this.entityType,
+        options: {
+          filter: {
+            metadata: {
+              sourceEntityType: scheduled.from.entityType,
+              sourceEntityId,
+            },
+          },
+          limit: 1,
+        },
+      });
+      if (derived.length === 0) {
+        return {
+          sourceEntityType: scheduled.from.entityType,
+          sourceEntityId,
+        };
+      }
+    }
+    return null;
   }
 
   private jobHandler(
@@ -536,24 +787,34 @@ class DeclarativeEntityPlugin extends EntityPlugin<
         progress: ProgressContract,
         signal: AbortSignal,
       ): Promise<unknown> =>
-        declaration.handle({
-          input: data,
-          progress,
-          signal,
-          ai: context.ai,
-          logger: this.logger,
-          entities: this.entityAccess(context),
-          messaging: {
-            publish: async (message): Promise<void> => {
-              await context.messaging.send({
-                type: message.topic,
-                payload: message.data,
-              });
-            },
-          },
-          conversations: context.conversations,
-          identity: context.identity,
-        }),
+        declaration.handle(this.jobContext(data, context, progress, signal)),
+    };
+  }
+
+  /** What every declared job and generation is given. */
+  private jobContext(
+    input: unknown,
+    context: EntityPluginContext,
+    progress: ProgressContract,
+    signal: AbortSignal,
+  ): JobHandlerContext<unknown> {
+    return {
+      input,
+      progress,
+      signal,
+      ai: context.ai,
+      logger: this.logger,
+      entities: this.entityAccess(context),
+      messaging: {
+        publish: async (message): Promise<void> => {
+          await context.messaging.send({
+            type: message.topic,
+            payload: message.data,
+          });
+        },
+      },
+      conversations: context.conversations,
+      identity: context.identity,
     };
   }
 

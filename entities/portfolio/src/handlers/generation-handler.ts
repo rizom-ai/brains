@@ -1,14 +1,7 @@
-import { BaseGenerationJobHandler } from "@brains/plugins";
-import type {
-  GeneratedContent,
-  EntityGenerationDeclaration,
-} from "@brains/plugins";
-import type { Logger } from "@brains/utils/logger";
-import type { ProgressReporter } from "@brains/utils/progress";
+import type { EntityGenerationDeclaration } from "@brains/plugins";
 import { slugify } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
 import { generationResultSchema } from "@brains/contracts";
-import type { EntityPluginContext } from "@brains/plugins";
 import { fetchStyleGuide, formatVoiceGuidance } from "@brains/contracts";
 import { projectAdapter } from "../adapters/project-adapter";
 
@@ -68,86 +61,6 @@ interface GeneratedProjectContent {
 }
 
 /**
- * Job handler for portfolio project generation
- * Handles AI-powered content generation and entity creation
- */
-export class ProjectGenerationJobHandler extends BaseGenerationJobHandler<
-  ProjectGenerationJobData,
-  ProjectGenerationResult
-> {
-  constructor(logger: Logger, context: EntityPluginContext) {
-    super(logger, context, {
-      schema: projectGenerationJobSchema,
-      jobTypeName: "project-generation",
-      entityType: "project",
-    });
-  }
-
-  protected async generate(
-    data: ProjectGenerationJobData,
-    progressReporter: ProgressReporter,
-  ): Promise<GeneratedContent> {
-    const { year } = data;
-
-    await this.reportProgress(progressReporter, {
-      progress: 10,
-      message: "Generating project content with AI",
-    });
-
-    const voiceGuidance = formatVoiceGuidance(
-      await fetchStyleGuide(this.context.entityService),
-    );
-    const generated = await this.context.ai.generate<GeneratedProjectContent>({
-      prompt: buildProjectGenerationPrompt(data),
-      templateName: "portfolio:generation",
-      representedIdentity: "anchor",
-      ...(voiceGuidance && { styleGuide: { voice: voiceGuidance } }),
-    });
-
-    const title = data.title ?? generated.title;
-    const slug = slugify(title);
-
-    await this.reportProgress(progressReporter, {
-      progress: 50,
-      message: `Generated project: "${title}"`,
-    });
-
-    const frontmatter = {
-      title,
-      slug,
-      status: "draft" as const,
-      description: generated.description,
-      year,
-    };
-
-    const bodyContent = {
-      context: generated.context,
-      problem: generated.problem,
-      solution: generated.solution,
-      outcome: generated.outcome,
-    };
-
-    return {
-      id: slug,
-      content: projectAdapter.createProjectContent(frontmatter, bodyContent),
-      metadata: { title, slug, status: "draft", year },
-      title,
-      resultExtras: { title },
-    };
-  }
-
-  protected override summarizeDataForLog(
-    data: ProjectGenerationJobData,
-  ): Record<string, unknown> {
-    return {
-      prompt: data.prompt.substring(0, 100),
-      year: data.year,
-      title: data.title,
-    };
-  }
-}
-
-/**
  * Year is required on a project, so a create request that does not carry one
  * is refused here rather than falling through to ordinary creation — which
  * would build an entity whose metadata cannot validate.
@@ -182,7 +95,7 @@ export const projectGeneration: EntityGenerationDeclaration<
   typeof projectCreateInputSchema
 > = {
   input: projectCreateInputSchema,
-  handle: async ({ input, ai, entities, progress }) => {
+  generate: async ({ input, ai, entities, progress }) => {
     const prompt = input.prompt;
     if (!prompt) return { success: false, error: "A prompt is required" };
 
@@ -222,32 +135,34 @@ export const projectGeneration: EntityGenerationDeclaration<
       message: `Generated project: "${title}"`,
     });
 
-    const result = await entities.create({
-      id: slug,
-      entityType: "project",
-      content: projectAdapter.createProjectContent(
-        {
-          title,
-          slug,
-          status: "draft" as const,
-          description: generated.description,
-          year,
-        },
-        {
-          context: generated.context,
-          problem: generated.problem,
-          solution: generated.solution,
-          outcome: generated.outcome,
-        },
-      ),
-      metadata: { title, slug, status: "draft", year },
-    });
+    const content = projectAdapter.createProjectContent(
+      {
+        title,
+        slug,
+        status: "draft" as const,
+        description: generated.description,
+        year,
+      },
+      {
+        context: generated.context,
+        problem: generated.problem,
+        solution: generated.solution,
+        outcome: generated.outcome,
+      },
+    );
 
     await progress.report({
       progress: 100,
       total: 100,
-      message: `Saved project: "${title}"`,
+      message: `Wrote project: "${title}"`,
     });
-    return { success: true, entityId: result.entityId, title };
+    // Content, not an entity: the runtime decides whether this fills in a
+    // pre-allocated project or creates a new one.
+    return {
+      success: true,
+      content,
+      metadata: { title, slug, status: "draft", year },
+      resultExtras: { title },
+    };
   },
 };

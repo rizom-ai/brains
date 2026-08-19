@@ -39,6 +39,7 @@ export {
 // Entity plugin context mocks
 export {
   createMockEntityPluginContext,
+  type MockEntityPluginContext,
   type MockEntityPluginContextOptions,
 } from "./mock-entity-plugin-context";
 
