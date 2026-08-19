@@ -1,4 +1,4 @@
-import { createTemplate, type Template } from "@brains/plugins";
+import { createTemplate, type Template } from "@brains/sdk/entities";
 import {
   enrichedDeckListSchema,
   type DeckListSchemaData,

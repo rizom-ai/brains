@@ -1,9 +1,9 @@
-import { canonicalAtprotoLexicons } from "@brains/atproto-contracts";
+import { canonicalAtprotoLexicons } from "@brains/sdk/entities";
 import type {
   AtprotoBrainSocialPostRecord,
   AtprotoProjection,
   AtprotoProjectionBuildInput,
-} from "@brains/atproto-contracts";
+} from "@brains/sdk/entities";
 import { socialPostAdapter } from "./adapters/social-post-adapter";
 import { socialPostSchema } from "./schemas/social-post";
 

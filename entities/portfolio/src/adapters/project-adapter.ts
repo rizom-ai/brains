@@ -1,91 +1,39 @@
-import { BaseEntityAdapter } from "@brains/plugins";
-import { slugify } from "@brains/utils/string-utils";
 import {
-  projectSchema,
-  projectFrontmatterSchema,
-  type Project,
-  type ProjectFrontmatter,
-  type ProjectMetadata,
-  type ProjectContent,
+  generateMarkdownWithFrontmatter,
+  parseMarkdown,
+} from "@brains/sdk/entities";
+import type {
+  Project,
+  ProjectFrontmatter,
+  ProjectContent,
 } from "../schemas/project";
 import { ProjectBodyFormatter } from "../formatters/project-formatter";
 
 const bodyFormatter = new ProjectBodyFormatter();
 
 /**
- * Entity adapter for project entities
- * Handles frontmatter and structured body sections
+ * Reads and writes the structured body a project is stored as.
+ *
+ * This used to be a full `BaseEntityAdapter`. The declarative entity builds
+ * its adapter from the `markdown` codec on `project`, so the class's
+ * `toMarkdown`/`fromMarkdown` stopped running once the package converted.
+ * What is left is the structured-body half, which the codec does not own.
  */
-export class ProjectAdapter extends BaseEntityAdapter<
-  Project,
-  ProjectMetadata,
-  ProjectFrontmatter
-> {
-  constructor() {
-    super({
-      entityType: "project",
-      purpose: "A portfolio project or case study.",
-      schema: projectSchema,
-      frontmatterSchema: projectFrontmatterSchema,
-      supportsCoverImage: true,
-      bodyFormatter,
-    });
-  }
-
-  public override toMarkdown(entity: Project): string {
-    const body = this.extractBody(entity.content);
-    try {
-      const frontmatter = this.parseFrontMatter(
-        entity.content,
-        projectFrontmatterSchema,
-      );
-      const completeFrontmatter = {
-        ...frontmatter,
-        slug: frontmatter.slug ?? entity.metadata.slug,
-      };
-      return this.buildMarkdown(body, completeFrontmatter);
-    } catch {
-      return body;
-    }
-  }
-
-  public fromMarkdown(markdown: string): Partial<Project> {
-    const frontmatter = this.parseFrontMatter(
-      markdown,
-      projectFrontmatterSchema,
-    );
-    const slug = frontmatter.slug ?? slugify(frontmatter.title);
-
-    return {
-      content: markdown,
-      entityType: "project",
-      metadata: {
-        title: frontmatter.title,
-        slug,
-        status: frontmatter.status,
-        publishedAt: frontmatter.publishedAt,
-        year: frontmatter.year,
-      },
-    };
-  }
-
-  /** Parse project frontmatter from entity content */
-  public parseProjectFrontmatter(entity: Project): ProjectFrontmatter {
-    return this.parseFrontMatter(entity.content, projectFrontmatterSchema);
-  }
-
-  /** Parse structured content sections from entity body */
+export class ProjectAdapter {
+  /** Parse structured content sections from entity body. */
   public parseStructuredContent(entity: Project): ProjectContent {
-    return bodyFormatter.parse(this.extractBody(entity.content));
+    return bodyFormatter.parse(parseMarkdown(entity.content).content);
   }
 
-  /** Create project content with frontmatter and structured body */
+  /** Create project content with frontmatter and structured body. */
   public createProjectContent(
     frontmatter: Partial<ProjectFrontmatter>,
     body: ProjectContent,
   ): string {
-    const bodyMarkdown = bodyFormatter.format(body);
-    return this.buildMarkdown(bodyMarkdown, frontmatter);
+    return generateMarkdownWithFrontmatter(
+      bodyFormatter.format(body),
+      frontmatter,
+    );
   }
 }
 

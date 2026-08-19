@@ -1,6 +1,6 @@
 import type { JSX } from "react";
 import { MarkdownContent } from "@brains/ui-library";
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/sdk/entities";
 import type { MediaPageTemplate } from "@brains/media-page-composer";
 
 export const PROJECT_PRINTABLE_ATTACHMENT_TYPE = "printable";

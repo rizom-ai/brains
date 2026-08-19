@@ -1,4 +1,4 @@
-import type { EnvVarDecl } from "@brains/utils/env-schema";
+import type { EnvVarDecl } from "@brains/sdk/services";
 
 /** Env vars consumed via brain.yaml interpolation for LinkedIn publishing. */
 export const socialMediaEnvSchema: EnvVarDecl[] = [

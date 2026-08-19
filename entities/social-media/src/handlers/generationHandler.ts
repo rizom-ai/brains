@@ -1,9 +1,8 @@
-import { ensureUniqueTitle } from "@brains/plugins";
-import type { EntityGenerationDeclaration } from "@brains/plugins";
-import { slugify } from "@brains/utils/string-utils";
-import { z } from "@brains/utils/zod";
-import { generationResultSchema } from "@brains/contracts";
-import { fetchStyleGuide, formatVoiceGuidance } from "@brains/contracts";
+import { ensureUniqueTitle } from "@brains/sdk/entities";
+import type { EntityGenerationDeclaration } from "@brains/sdk/entities";
+import { slugify } from "@brains/sdk/entities";
+import { z } from "@brains/sdk/entities";
+import { fetchStyleGuide, formatVoiceGuidance } from "@brains/sdk/entities";
 import type { SocialPostFrontmatter } from "../schemas/social-post";
 import { socialPostAdapter } from "../adapters/social-post-adapter";
 import { getTemplateName } from "../templates";
@@ -33,18 +32,6 @@ export const generationJobSchema: z.ZodType<GenerationJobData> = z.object({
   content: z.string().optional(),
   addToQueue: z.boolean().optional(),
 });
-
-export const socialMediaGenerationResultSchema: ReturnType<
-  typeof generationResultSchema.extend<{
-    slug: z.ZodOptional<z.ZodString>;
-  }>
-> = generationResultSchema.extend({
-  slug: z.string().optional(),
-});
-
-export type GenerationResult = z.output<
-  typeof socialMediaGenerationResultSchema
->;
 
 /**
  * Social post generation, declared.
@@ -199,10 +186,9 @@ ${sourceEntity.content}`,
       frontmatter,
       content,
     );
-    const metadata = socialPostAdapter.fromMarkdown(postContent).metadata;
-    if (!metadata) {
-      return { success: false, error: "Failed to parse social post metadata" };
-    }
+    // deriveMetadata parses or throws; the old adapter returned a partial
+    // entity whose metadata could be absent, which this used to guard.
+    const metadata = socialPostAdapter.deriveMetadata(postContent);
 
     // A post is stored under `<platform>-<slug>`, so a colliding title would
     // collide as an id too.

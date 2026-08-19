@@ -1,11 +1,11 @@
 import {
   defineEntityDataSource,
   parseMarkdownWithFrontmatter,
-} from "@brains/plugins";
+} from "@brains/sdk/entities";
 import type {
   EntityDataSourceDefinition,
   PaginationInfo,
-} from "@brains/plugins";
+} from "@brains/sdk/entities";
 import type { Project, ProjectContent } from "../schemas/project";
 import {
   projectFrontmatterSchema,

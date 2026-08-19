@@ -1,8 +1,7 @@
-import type { EntityGenerationDeclaration } from "@brains/plugins";
-import { slugify } from "@brains/utils/string-utils";
-import { z } from "@brains/utils/zod";
-import { generationResultSchema } from "@brains/contracts";
-import { fetchStyleGuide, formatVoiceGuidance } from "@brains/contracts";
+import type { EntityGenerationDeclaration } from "@brains/sdk/entities";
+import { slugify } from "@brains/sdk/entities";
+import { z } from "@brains/sdk/entities";
+import { fetchStyleGuide, formatVoiceGuidance } from "@brains/sdk/entities";
 import { projectAdapter } from "../adapters/project-adapter";
 
 /**
@@ -20,20 +19,6 @@ export const projectGenerationJobSchema: z.ZodType<
 > = z.object({
   prompt: z.string(),
   year: z.number(),
-  title: z.string().optional(),
-});
-
-export interface ProjectGenerationResult extends z.output<
-  typeof generationResultSchema
-> {
-  title?: string | undefined;
-}
-
-export const projectGenerationResultSchema: ReturnType<
-  typeof generationResultSchema.extend<{
-    title: z.ZodOptional<z.ZodString>;
-  }>
-> = generationResultSchema.extend({
   title: z.string().optional(),
 });
 

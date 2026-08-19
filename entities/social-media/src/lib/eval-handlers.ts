@@ -1,5 +1,5 @@
-import type { EntityEvalDeclaration } from "@brains/plugins";
-import { z } from "@brains/utils/zod";
+import type { EntityEvalDeclaration } from "@brains/sdk/entities";
+import { z } from "@brains/sdk/entities";
 import { getTemplateName } from "../templates";
 
 const generationInputSchema = z.object({

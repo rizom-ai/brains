@@ -1,11 +1,16 @@
 import { describe, expect, it, beforeEach, afterEach } from "bun:test";
-import { createSilentLogger } from "@brains/test-utils";
+import { createSilentLogger, createTestEntity } from "@brains/test-utils";
 import {
   createPluginHarness,
   expectTemplateDataSourcesResolve,
 } from "@brains/plugins/test";
 import type { PluginCapabilities } from "@brains/plugins/test";
-import type { JobEntityAccess, Plugin } from "@brains/plugins";
+import type {
+  BaseEntity,
+  EntityAdapter,
+  JobEntityAccess,
+  Plugin,
+} from "@brains/plugins";
 import portfolioPackage from "../src";
 import { projectGeneration } from "../src/handlers/generation-handler";
 import { projectEntityPlugin, PACKAGE_METADATA } from "./helpers/install";
@@ -159,5 +164,89 @@ describe("portfolio package", () => {
     expectTemplateDataSourcesResolve(harness);
 
     harness.reset();
+  });
+
+  // These round-trips used to be asserted against ProjectAdapter's own
+  // toMarkdown/fromMarkdown. The declarative entity builds its adapter from
+  // the `markdown` codec on `project`, so the class's copies stopped
+  // running when the package converted.
+  describe("the project markdown codec", () => {
+    function adapterFor(
+      installed: ReturnType<typeof createPluginHarness>,
+    ): EntityAdapter<BaseEntity> {
+      return installed.getEntityRegistry().getAdapter<BaseEntity>("project");
+    }
+
+    it("indexes the queryable fields and derives a slug", () => {
+      const parsed = adapterFor(harness).fromMarkdown(
+        [
+          "---",
+          "title: Roundtrip Project",
+          "status: draft",
+          "description: A description",
+          "year: 2024",
+          "---",
+          "",
+          "## Context",
+          "",
+          "Context content.",
+        ].join("\n"),
+      );
+
+      expect(parsed.metadata).toMatchObject({
+        title: "Roundtrip Project",
+        slug: "roundtrip-project",
+        status: "draft",
+        year: 2024,
+      });
+    });
+
+    it("keeps a slug the frontmatter already carries", () => {
+      const parsed = adapterFor(harness).fromMarkdown(
+        [
+          "---",
+          "title: Roundtrip Project",
+          "slug: custom-slug",
+          "status: draft",
+          "description: A description",
+          "year: 2024",
+          "---",
+          "",
+          "Body",
+        ].join("\n"),
+      );
+
+      expect(parsed.metadata?.["slug"]).toBe("custom-slug");
+    });
+
+    it("writes the frontmatter back out", () => {
+      const adapter = adapterFor(harness);
+      const original = [
+        "---",
+        "title: Roundtrip Project",
+        "status: draft",
+        "description: A description",
+        "year: 2024",
+        "---",
+        "",
+        "## Context",
+        "",
+        "Context content.",
+      ].join("\n");
+      const parsed = adapter.fromMarkdown(original);
+      if (!parsed.metadata) throw new Error("The codec returned no metadata");
+
+      const written = adapter.toMarkdown(
+        createTestEntity<BaseEntity>("project", {
+          id: "roundtrip-project",
+          content: original,
+          metadata: parsed.metadata,
+        }),
+      );
+
+      expect(written).toContain("title: Roundtrip Project");
+      expect(written).toContain("slug: roundtrip-project");
+      expect(written).toContain("## Context");
+    });
   });
 });

@@ -1,6 +1,6 @@
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/sdk/entities";
 import { PresentationLayout } from "@brains/ui-library";
-import { createTemplate, type Template } from "@brains/plugins";
+import { createTemplate, type Template } from "@brains/sdk/entities";
 import { deckViewSchema } from "./deck-view-schema";
 
 /**

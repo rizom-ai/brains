@@ -4,18 +4,19 @@
   "version": "0.2.0-alpha.338",
   "description": "Portfolio showcase for projects and case studies",
   "dependencies": {
+    "@brains/media-page-composer": "workspace:*",
+    "@brains/sdk": "workspace:*",
+    "@brains/ui-library": "workspace:*"
+  },
+  "devDependencies": {
     "@brains/atproto-contracts": "workspace:*",
     "@brains/content-formatters": "workspace:*",
     "@brains/contracts": "workspace:*",
-    "@brains/media-page-composer": "workspace:*",
-    "@brains/plugins": "workspace:*",
-    "@brains/ui-library": "workspace:*",
-    "@brains/utils": "workspace:*"
-  },
-  "devDependencies": {
     "@brains/eslint-config": "workspace:*",
+    "@brains/plugins": "workspace:*",
     "@brains/test-utils": "workspace:*",
     "@brains/typescript-config": "workspace:*",
+    "@brains/utils": "workspace:*",
     "@types/bun": "^1.4.0",
     "typescript": "^7.0.2"
   },

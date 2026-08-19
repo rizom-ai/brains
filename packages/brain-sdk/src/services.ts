@@ -34,6 +34,27 @@ export type {
   ServicePackageDefinition,
   WorkspaceActionConfirmation,
   WorkspaceActionDefinition,
+  ServicePublishDeclaration,
   WorkspacePreparedConfirmation,
 } from "@brains/plugins";
+
+// Publishing. A service that declares a publish provider has to describe
+// one, and the pipeline hands it rendered content and media rather than an
+// entity. Named consumer: @brains/social-media.
+export type {
+  PublishImageData,
+  PublishMediaData,
+  PublishProvider,
+  PublishResult,
+} from "@brains/contracts";
+
+// A provider reaches the outside world, so it reports what happened and it
+// needs a way out. Both are handed to it by the runtime.
+export type { LoggerContract } from "@brains/utils/logger";
+
+// What a package tells brain.yaml it reads from the environment. Consumers
+// today: social-media, directory-sync, stock-photo, newsletter, analytics.
+export type { EnvVarDecl } from "@brains/utils/env-schema";
+export type { FetchLike } from "@brains/utils/fetch-like";
+
 export { z } from "@brains/utils/zod";

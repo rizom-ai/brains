@@ -1,19 +1,19 @@
 import type {
   AttachmentProvider,
   MediaAttachmentContext,
-} from "@brains/plugins";
-import { fetchSiteInfo } from "@brains/site-composition";
+} from "@brains/sdk/entities";
+import { fetchSiteInfo } from "@brains/sdk/entities";
 import { DECK_CAROUSEL_ATTACHMENT_TYPE } from "./carousel-template";
 
 export { DECK_CAROUSEL_ATTACHMENT_TYPE };
-import type { PublishMediaData } from "@brains/contracts";
+import type { PublishMediaData } from "@brains/sdk/entities";
 import {
   createMediaContentHelpers,
   preferredSlug,
   renderPrintablePdf,
   type RenderPdf,
 } from "@brains/media-page-composer";
-import { parseMarkdown } from "@brains/utils/markdown";
+import { parseMarkdown } from "@brains/sdk/entities";
 import type { DeckEntity } from "../schemas/deck";
 import {
   deckCarouselTemplate,
