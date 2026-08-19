@@ -12,6 +12,7 @@ import {
   sql,
 } from "drizzle-orm";
 import { AsyncLocalStorage } from "node:async_hooks";
+import { getErrorMessage } from "@brains/utils/error";
 import { computeContentHash } from "@brains/utils/hash";
 import { createId } from "@brains/utils/id";
 import { SerialQueue } from "@brains/utils/serial-queue";
@@ -78,6 +79,11 @@ const bulkMutationInputSchema = z.strictObject({
 });
 
 const DURABLE_ROOT_RECOVERY_GRACE_MS = 5_000;
+// These state transitions are idempotent and may race entity writes in the
+// worker process. Retry by time budget so transient SQLite writers can drain.
+const BATCH_STATE_WRITE_RETRY_BUDGET_MS = 2_000;
+const BATCH_STATE_WRITE_RETRY_BASE_DELAY_MS = 5;
+const BATCH_STATE_WRITE_RETRY_MAX_DELAY_MS = 40;
 
 const durableBulkMutationRootSchema = bulkMutationInputSchema.extend({
   rootJobId: z.string().trim().min(1).max(200),
@@ -368,20 +374,22 @@ export class ProjectionStore {
       .max(200)
       .parse(operationId);
     const now = this.now();
-    await this.db
-      .update(projectionBatches)
-      .set({
-        status: "open",
-        enqueueComplete: 1,
-        lastProgressAt: now,
-        leaseExpiresAt: null,
-      })
-      .where(
-        and(
-          eq(projectionBatches.operationId, parsedOperationId),
-          inArray(projectionBatches.status, ["preparing", "open"]),
+    await this.runBatchStateWrite(() =>
+      this.db
+        .update(projectionBatches)
+        .set({
+          status: "open",
+          enqueueComplete: 1,
+          lastProgressAt: now,
+          leaseExpiresAt: null,
+        })
+        .where(
+          and(
+            eq(projectionBatches.operationId, parsedOperationId),
+            inArray(projectionBatches.status, ["preparing", "open"]),
+          ),
         ),
-      );
+    );
   }
 
   public async failDurableBulkMutationEnqueue(
@@ -394,20 +402,22 @@ export class ProjectionStore {
       .max(200)
       .parse(operationId);
     const now = this.now();
-    await this.db
-      .update(projectionBatches)
-      .set({
-        enqueueComplete: 1,
-        enqueueFailed: 1,
-        lastProgressAt: now,
-        leaseExpiresAt: null,
-      })
-      .where(
-        and(
-          eq(projectionBatches.operationId, parsedOperationId),
-          inArray(projectionBatches.status, ["preparing", "open"]),
+    await this.runBatchStateWrite(() =>
+      this.db
+        .update(projectionBatches)
+        .set({
+          enqueueComplete: 1,
+          enqueueFailed: 1,
+          lastProgressAt: now,
+          leaseExpiresAt: null,
+        })
+        .where(
+          and(
+            eq(projectionBatches.operationId, parsedOperationId),
+            inArray(projectionBatches.status, ["preparing", "open"]),
+          ),
         ),
-      );
+    );
   }
 
   public async runDurableBulkMutationChild<TResult>(
@@ -1713,6 +1723,50 @@ export class ProjectionStore {
     transaction: (database: EntityTransaction) => Promise<TResult>,
   ): Promise<TResult> {
     return this.transactionTail.run(() => this.db.transaction(transaction));
+  }
+
+  private async runBatchStateWrite<TResult>(
+    write: () => Promise<TResult>,
+  ): Promise<TResult> {
+    return this.transactionTail.run(() => this.retryBatchStateWrite(write));
+  }
+
+  private async retryBatchStateWrite<TResult>(
+    write: () => Promise<TResult>,
+    deadline = Date.now() + BATCH_STATE_WRITE_RETRY_BUDGET_MS,
+    attempt = 1,
+  ): Promise<TResult> {
+    try {
+      return await write();
+    } catch (error) {
+      if (!this.isSqliteWriteConflict(error)) throw error;
+      const backoff = Math.min(
+        BATCH_STATE_WRITE_RETRY_BASE_DELAY_MS * 2 ** (attempt - 1),
+        BATCH_STATE_WRITE_RETRY_MAX_DELAY_MS,
+      );
+      const delay = backoff / 2 + Math.random() * (backoff / 2);
+      if (Date.now() + delay >= deadline) throw error;
+      await new Promise((resolve) => setTimeout(resolve, delay));
+      return this.retryBatchStateWrite(write, deadline, attempt + 1);
+    }
+  }
+
+  private isSqliteWriteConflict(error: unknown): boolean {
+    for (let current = error; current !== undefined;) {
+      const code =
+        typeof current === "object" && current !== null && "code" in current
+          ? String(current.code)
+          : "";
+      const message = getErrorMessage(current, "");
+      if (
+        /SQLITE_(?:BUSY|LOCKED)/u.test(code) ||
+        /SQLITE_(?:BUSY|LOCKED)|database is locked/iu.test(message)
+      ) {
+        return true;
+      }
+      current = current instanceof Error ? current.cause : undefined;
+    }
+    return false;
   }
 
   private async applyWriteIntent(

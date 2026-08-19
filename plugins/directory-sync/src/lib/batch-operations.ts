@@ -134,7 +134,14 @@ export class BatchOperationsManager {
       });
       await coordinator.finalizeDurableBulkMutationEnqueue(rootJobId);
     } catch (error) {
-      await coordinator.failDurableBulkMutationEnqueue(rootJobId);
+      try {
+        await coordinator.failDurableBulkMutationEnqueue(rootJobId);
+      } catch (markerError) {
+        this.logger.error(
+          "Failed to record durable projection batch enqueue failure",
+          { rootJobId, error: markerError },
+        );
+      }
       throw error;
     }
 

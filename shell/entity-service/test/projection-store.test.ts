@@ -470,6 +470,59 @@ describe("ProjectionStore", () => {
     }
   });
 
+  it("retries durable enqueue state writes after transient contention", async () => {
+    const runContended = async (write: () => Promise<void>): Promise<void> => {
+      const blockerConnection = createEntityDatabase(database.config);
+      const blocker = await blockerConnection.client.transaction("write");
+      const outcome = write().then(
+        () => ({ status: "completed" as const }),
+        (error: unknown) => ({ status: "failed" as const, error }),
+      );
+      try {
+        await Bun.sleep(20);
+      } finally {
+        await blocker.rollback();
+        blockerConnection.client.close();
+      }
+      expect(await outcome).toEqual({ status: "completed" });
+    };
+
+    await store.prepareDurableBulkMutation({
+      source: "directory-sync",
+      operationId: "contended-finalize",
+      rootJobId: "contended-finalize",
+      expectedChildren: 1,
+    });
+    await runContended(() =>
+      store.finalizeDurableBulkMutationEnqueue("contended-finalize"),
+    );
+
+    await store.prepareDurableBulkMutation({
+      source: "directory-sync",
+      operationId: "contended-failure",
+      rootJobId: "contended-failure",
+      expectedChildren: 1,
+    });
+    await runContended(() =>
+      store.failDurableBulkMutationEnqueue("contended-failure"),
+    );
+
+    const batches = await connection.db
+      .select({
+        status: projectionBatches.status,
+        enqueueComplete: projectionBatches.enqueueComplete,
+        enqueueFailed: projectionBatches.enqueueFailed,
+      })
+      .from(projectionBatches);
+    expect(batches).toHaveLength(2);
+    expect(batches).toEqual(
+      expect.arrayContaining([
+        { status: "open", enqueueComplete: 1, enqueueFailed: 0 },
+        { status: "preparing", enqueueComplete: 1, enqueueFailed: 1 },
+      ]),
+    );
+  });
+
   it("leaves a live durable root read-only during recovery", async () => {
     await store.prepareDurableBulkMutation({
       source: "directory-sync",

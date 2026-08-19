@@ -1,6 +1,7 @@
 import { describe, it, expect, mock } from "bun:test";
 import { BatchOperationsManager } from "../src/lib/batch-operations";
 import {
+  createMockEntityService,
   createMockServicePluginContext,
   createSilentLogger,
 } from "@brains/test-utils";
@@ -104,6 +105,28 @@ describe("batch operations should not include exports (regression)", () => {
       importOperationsCount: 0,
       totalFiles: 0,
     });
+  });
+
+  it("preserves the enqueue error when recording batch failure also fails", async () => {
+    const entityService = createMockEntityService();
+    const context = createMockServicePluginContext({ entityService });
+    const enqueueError = new Error("enqueue failed");
+    const markerError = new Error("failure marker failed");
+    context.jobs.enqueueBatch = mock(async () => {
+      throw enqueueError;
+    });
+    entityService.failDurableBulkMutationEnqueue = mock(async () => {
+      throw markerError;
+    });
+
+    const failure = await makeManager()
+      .queueSyncBatch(context, "test", ["note/a.md"])
+      .then(
+        () => null,
+        (error: unknown) => error,
+      );
+
+    expect(failure).toBe(enqueueError);
   });
 
   it("prepareBatchOperations should skip cleanup when deleteOnFileRemoval is false", () => {
