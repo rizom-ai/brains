@@ -41,6 +41,7 @@ async function createSmokePilotRepo(): Promise<string> {
   const root = await createTempDir("brains-ops-stress-driver-");
   const files = {
     "pilot.yaml": `brainVersion: 0.2.0-alpha.253
+bundleContract: capability-bundles-v1
 githubOrg: rizom-ai
 contentRepoPrefix: rover-
 domainSuffix: .rizom.ai

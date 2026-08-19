@@ -19,6 +19,7 @@ export {
   PUBLISHING_BUNDLE_ID,
   FEDERATION_BUNDLE_ID,
   TEAM_BUNDLE_ID,
+  CANONICAL_BUNDLE_CONTRACT,
 } from "../model/canonical-brain";
 export {
   BRAIN_RECIPE_NAMES,

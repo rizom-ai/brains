@@ -26,6 +26,7 @@ describe("loadPilotRegistry", () => {
   it("loads pilot config and derives effective values per user", async () => {
     const root = await createPilotRepo({
       "pilot.yaml": `brainVersion: 0.1.1-alpha.14
+bundleContract: capability-bundles-v1
 githubOrg: rizom-ai
 contentRepoPrefix: rover-
 domainSuffix: .rizom.ai
@@ -78,6 +79,7 @@ members:
           name: "Alice Example",
         },
         brainVersion: "0.1.1-alpha.15",
+        bundleContract: "capability-bundles-v1",
         bundles: ["core", "site", "publishing"],
         add: [],
         remove: [],
@@ -99,6 +101,7 @@ members:
           name: "Bob",
         },
         brainVersion: "0.1.1-alpha.14",
+        bundleContract: "capability-bundles-v1",
         bundles: ["core"],
         add: [],
         remove: [],
@@ -122,6 +125,7 @@ members:
   it("loads user-level setup email delivery metadata", async () => {
     const root = await createPilotRepo({
       "pilot.yaml": `brainVersion: 0.1.1-alpha.14
+bundleContract: capability-bundles-v1
 githubOrg: rizom-ai
 contentRepoPrefix: rover-
 domainSuffix: .rizom.ai
@@ -157,6 +161,7 @@ discord:
   it("loads user-level site and deployment override metadata", async () => {
     const root = await createPilotRepo({
       "pilot.yaml": `brainVersion: 0.2.0-alpha.136
+bundleContract: capability-bundles-v1
 githubOrg: rizom-ai
 contentRepoPrefix: rover-
 domainSuffix: .rizom.ai
@@ -251,6 +256,7 @@ discord:
   it("loads user-level ATProto identifier metadata", async () => {
     const root = await createPilotRepo({
       "pilot.yaml": `brainVersion: 0.1.1-alpha.14
+bundleContract: capability-bundles-v1
 githubOrg: rizom-ai
 contentRepoPrefix: rover-
 domainSuffix: .rizom.ai
@@ -295,6 +301,7 @@ discord:
   it("fails when user belongs to no cohort", async () => {
     const root = await createPilotRepo({
       "pilot.yaml": `brainVersion: 0.1.1-alpha.14
+bundleContract: capability-bundles-v1
 githubOrg: rizom-ai
 contentRepoPrefix: rover-
 domainSuffix: .rizom.ai
@@ -331,6 +338,7 @@ discord:
   it("fails when user belongs to multiple cohorts", async () => {
     const root = await createPilotRepo({
       "pilot.yaml": `brainVersion: 0.1.1-alpha.14
+bundleContract: capability-bundles-v1
 githubOrg: rizom-ai
 contentRepoPrefix: rover-
 domainSuffix: .rizom.ai
@@ -366,6 +374,7 @@ discord:
   it("merges observed status from resolver", async () => {
     const root = await createPilotRepo({
       "pilot.yaml": `brainVersion: 0.1.1-alpha.14
+bundleContract: capability-bundles-v1
 githubOrg: rizom-ai
 contentRepoPrefix: rover-
 domainSuffix: .rizom.ai
@@ -411,6 +420,7 @@ discord:
   it("fails when user file name and handle disagree", async () => {
     const root = await createPilotRepo({
       "pilot.yaml": `brainVersion: 0.1.1-alpha.14
+bundleContract: capability-bundles-v1
 githubOrg: rizom-ai
 contentRepoPrefix: rover-
 domainSuffix: .rizom.ai

@@ -106,6 +106,13 @@ export interface BrainDefinition {
   version: string;
 
   /**
+   * Exact instance bundle contract required by this definition.
+   * Definitions that change the meaning of existing bundle IDs must change
+   * this value so stale brain.yaml selections fail instead of drifting.
+   */
+  bundleContract?: string;
+
+  /**
    * Default Anchor profile flavor. Instances may override this in brain.yaml.
    * Team and organization are both collective ownership mechanically.
    */
@@ -222,5 +229,8 @@ export interface BrainDefinition {
  * ```
  */
 export function defineBrain(definition: BrainDefinition): BrainDefinition {
+  if (definition.bundleContract?.trim().length === 0) {
+    throw new Error("Brain bundleContract must not be empty");
+  }
   return definition;
 }

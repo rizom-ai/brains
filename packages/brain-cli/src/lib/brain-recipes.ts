@@ -1,4 +1,5 @@
 import type { InstanceOverrides } from "@brains/app";
+import { CANONICAL_BUNDLE_CONTRACT } from "../model/canonical-bundles";
 
 export const BRAIN_RECIPE_NAMES = [
   "headless",
@@ -20,9 +21,11 @@ export type BrainRecipeExpansion = Omit<InstanceOverrides, "brain" | "mode">;
 
 const recipes: Record<BrainRecipeName, BrainRecipeExpansion> = {
   headless: {
+    bundleContract: CANONICAL_BUNDLE_CONTRACT,
     bundles: ["core"],
   },
   personal: {
+    bundleContract: CANONICAL_BUNDLE_CONTRACT,
     anchor: "person",
     kind: "professional",
     bundles: ["core", "media", "web", "chat"],
@@ -31,6 +34,7 @@ const recipes: Record<BrainRecipeName, BrainRecipeExpansion> = {
     },
   },
   professional: {
+    bundleContract: CANONICAL_BUNDLE_CONTRACT,
     anchor: "person",
     kind: "professional",
     bundles: [
@@ -52,6 +56,7 @@ const recipes: Record<BrainRecipeName, BrainRecipeExpansion> = {
     },
   },
   team: {
+    bundleContract: CANONICAL_BUNDLE_CONTRACT,
     anchor: "team",
     kind: "team",
     bundles: ["core", "media", "automation", "web", "chat", "site", "team"],
@@ -65,6 +70,7 @@ const recipes: Record<BrainRecipeName, BrainRecipeExpansion> = {
     },
   },
   commerce: {
+    bundleContract: CANONICAL_BUNDLE_CONTRACT,
     anchor: "organization",
     kind: "organization",
     bundles: ["core", "media", "web", "site"],

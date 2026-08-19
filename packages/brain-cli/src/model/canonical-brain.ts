@@ -52,6 +52,7 @@ import packageJson from "../../package.json" with { type: "json" };
 import {
   automationBundle,
   AUTOMATION_BUNDLE_ID,
+  CANONICAL_BUNDLE_CONTRACT,
   canonicalBundles,
   chatBundle,
   CHAT_BUNDLE_ID,
@@ -74,6 +75,7 @@ import {
 export {
   automationBundle,
   AUTOMATION_BUNDLE_ID,
+  CANONICAL_BUNDLE_CONTRACT,
   chatBundle,
   CHAT_BUNDLE_ID,
   coreBundle,
@@ -96,6 +98,7 @@ export {
 export const canonicalBrain: BrainDefinition = defineBrain({
   name: "brain",
   version: packageJson.version,
+  bundleContract: CANONICAL_BUNDLE_CONTRACT,
   model: "gpt-5.6-luna",
   reasoningEffort: "low",
   capabilities: [

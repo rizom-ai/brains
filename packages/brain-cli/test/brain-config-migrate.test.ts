@@ -92,9 +92,11 @@ const recipeExpectations: Record<
   ReturnType<typeof expandBrainRecipe>
 > = {
   headless: {
+    bundleContract: "capability-bundles-v1",
     bundles: ["core"],
   },
   personal: {
+    bundleContract: "capability-bundles-v1",
     anchor: "person",
     kind: "professional",
     bundles: ["core", "media", "web", "chat"],
@@ -103,6 +105,7 @@ const recipeExpectations: Record<
     },
   },
   professional: {
+    bundleContract: "capability-bundles-v1",
     anchor: "person",
     kind: "professional",
     bundles: [
@@ -124,6 +127,7 @@ const recipeExpectations: Record<
     },
   },
   team: {
+    bundleContract: "capability-bundles-v1",
     anchor: "team",
     kind: "team",
     bundles: ["core", "media", "automation", "web", "chat", "site", "team"],
@@ -137,6 +141,7 @@ const recipeExpectations: Record<
     },
   },
   commerce: {
+    bundleContract: "capability-bundles-v1",
     anchor: "organization",
     kind: "organization",
     bundles: ["core", "media", "web", "site"],
@@ -511,12 +516,49 @@ plugins:
 
     const canonical = `# already migrated
 brain: brain
+bundleContract: capability-bundles-v1
 bundles: [core]
 `;
     expect(previewBrainConfigMigration(canonical)).toEqual({
       changed: false,
       output: canonical,
       source: { model: "brain", preset: undefined },
+    });
+  });
+
+  test("requires an explicit recipe for overlapping canonical bundle ids", () => {
+    const input = `brain: brain
+kind: professional
+bundles: [core, site, publishing]
+add: [obsidian-vault]
+plugins:
+  directory-sync:
+    git:
+      repo: rizom-ai/example-content
+`;
+
+    expect(() => previewBrainConfigMigration(input)).toThrow(
+      /explicitly reviewed --recipe/,
+    );
+
+    const result = previewBrainConfigMigration(input, {
+      recipe: "professional",
+    });
+    const parsed = parseInstanceOverrides(result.output);
+    expect(parsed.bundleContract).toBe("capability-bundles-v1");
+    expect(parsed.bundles).toEqual([
+      "core",
+      "media",
+      "automation",
+      "web",
+      "chat",
+      "site",
+      "publishing",
+      "federation",
+    ]);
+    expect(parsed.add).toEqual(["obsidian-vault"]);
+    expect(parsed.plugins?.["directory-sync"]?.["git"]).toEqual({
+      repo: "rizom-ai/example-content",
     });
   });
 
@@ -552,6 +594,24 @@ plugins:
       }),
     ];
     expect(legacyConfigs).toEqual([]);
+  });
+
+  test("CLI command previews a reviewed canonical recipe without writing", async () => {
+    const directory = mkdtempSync(join(tmpdir(), "brain-config-reclassify-"));
+    temporaryDirectories.push(directory);
+    const path = join(directory, "brain.yaml");
+    const original = "brain: brain\nbundles: [core, site, publishing]\n";
+    writeFileSync(path, original);
+
+    const result = await runCommand(
+      parseArgs(["config", "migrate", "--recipe", "professional"]),
+      directory,
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.message).toContain("bundleContract: capability-bundles-v1");
+    expect(result.message).toContain("  - federation");
+    expect(readFileSync(path, "utf8")).toBe(original);
   });
 
   test("CLI command previews without writing brain.yaml", async () => {

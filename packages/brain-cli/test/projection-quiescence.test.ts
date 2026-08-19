@@ -9,6 +9,7 @@ function resolveProjectionConfig(): AppConfig {
     canonicalBrain,
     {},
     parseInstanceOverrides(`brain: brain
+bundleContract: capability-bundles-v1
 bundles: [core, media, publishing]
 add: [assessment]
 plugins:

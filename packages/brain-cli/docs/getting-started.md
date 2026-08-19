@@ -70,6 +70,7 @@ A personal instance starts with YAML like:
 
 ```yaml
 brain: brain
+bundleContract: capability-bundles-v1
 anchor: person
 kind: professional
 bundles:

@@ -103,6 +103,7 @@ The canonical brain is configured per instance via `brain.yaml`:
 
 ```yaml
 brain: brain
+bundleContract: capability-bundles-v1
 bundles:
   - core
   - media

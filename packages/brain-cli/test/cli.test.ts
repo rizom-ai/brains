@@ -124,9 +124,10 @@ describe("parseArgs", () => {
   });
 
   it("should parse 'config migrate'", () => {
-    const result = parseArgs(["config", "migrate"]);
+    const result = parseArgs(["config", "migrate", "--recipe", "professional"]);
     expect(result.command).toBe("config");
     expect(result.args).toEqual(["migrate"]);
+    expect(result.flags["recipe"]).toBe("professional");
   });
 
   it("should parse --help flag", () => {
@@ -192,7 +193,7 @@ describe("brain auth recovery", () => {
     const { runCommand } = await import("../src/run-command");
     writeFileSync(
       join(testDir, "brain.yaml"),
-      "brain: brain\nbundles: [core]\npermissions:\n  admins:\n    - discord:admin\n",
+      "brain: brain\nbundleContract: capability-bundles-v1\nbundles: [core]\npermissions:\n  admins:\n    - discord:admin\n",
     );
 
     const result = await runCommand(
@@ -216,6 +217,7 @@ describe("brain auth recovery", () => {
       join(testDir, "brain.yaml"),
       [
         "brain: brain",
+        "bundleContract: capability-bundles-v1",
         "bundles: [core]",
         "permissions:",
         "  admins:",
@@ -258,7 +260,7 @@ describe("brain auth recovery", () => {
     const { runCommand } = await import("../src/run-command");
     writeFileSync(
       join(testDir, "brain.yaml"),
-      "brain: brain\nbundles: [core]\nadmins:\n  - discord:admin-1\nanchors:\n",
+      "brain: brain\nbundleContract: capability-bundles-v1\nbundles: [core]\nadmins:\n  - discord:admin-1\nanchors:\n",
     );
 
     const result = await runCommand(

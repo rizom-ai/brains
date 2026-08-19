@@ -14,6 +14,7 @@ Use `brain.yaml` for bundle selection, AI model, plugin, interface, permission, 
 
 ```yaml
 brain: brain
+bundleContract: capability-bundles-v1
 domain: mybrain.example.com
 bundles:
   - core

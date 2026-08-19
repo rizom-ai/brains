@@ -60,6 +60,7 @@ export interface BrainDefinition<
   TPlugin extends ConfiguredPluginDefinition = ConfiguredPluginDefinition,
 > {
   readonly name: string;
+  readonly bundleContract?: string | undefined;
   readonly anchor?: BrainAnchorConfigKind | undefined;
   readonly kind?: string | undefined;
   readonly model?: string | undefined;
@@ -165,6 +166,9 @@ export function defineBrain<
 ): BrainDefinition<TPlugins[number]> {
   if (!definition.name.trim()) {
     throw new Error("Brain name must not be empty");
+  }
+  if (definition.bundleContract?.trim().length === 0) {
+    throw new Error("Brain bundleContract must not be empty");
   }
   assertUniqueMembers(definition.plugins, `Brain "${definition.name}"`);
 

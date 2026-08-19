@@ -16,6 +16,7 @@ brain start
 
 ```yaml
 brain: brain
+bundleContract: capability-bundles-v1
 anchor: person
 kind: professional
 bundles:

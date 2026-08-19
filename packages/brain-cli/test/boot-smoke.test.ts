@@ -87,6 +87,7 @@ describe("built binary boot smoke", () => {
       join(instanceDir, "brain.yaml"),
       [
         "brain: brain",
+        "bundleContract: capability-bundles-v1",
         "anchor: person",
         "kind: professional",
         "bundles:",
@@ -142,6 +143,7 @@ describe("built binary boot smoke", () => {
         join(instanceDir, "brain.yaml"),
         [
           "brain: brain",
+          "bundleContract: capability-bundles-v1",
           "anchor: person",
           "kind: professional",
           "bundles:",

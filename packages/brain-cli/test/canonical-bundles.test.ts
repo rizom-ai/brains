@@ -23,14 +23,20 @@ type TargetRecipeName =
   "headless" | "personal" | "professional" | "team" | "commerce";
 
 interface TargetRecipeSelection {
+  bundleContract: "capability-bundles-v1";
   bundles: string[];
   add?: string[];
 }
 
+const bundleContract = "capability-bundles-v1" as const;
 const targetRecipes: Record<TargetRecipeName, TargetRecipeSelection> = {
-  headless: { bundles: ["core"] },
-  personal: { bundles: ["core", "media", "web", "chat"] },
+  headless: { bundleContract, bundles: ["core"] },
+  personal: {
+    bundleContract,
+    bundles: ["core", "media", "web", "chat"],
+  },
   professional: {
+    bundleContract,
     bundles: [
       "core",
       "media",
@@ -43,10 +49,12 @@ const targetRecipes: Record<TargetRecipeName, TargetRecipeSelection> = {
     ],
   },
   team: {
+    bundleContract,
     bundles: ["core", "media", "automation", "web", "chat", "site", "team"],
     add: ["docs"],
   },
   commerce: {
+    bundleContract,
     bundles: ["core", "media", "web", "site"],
     add: ["products"],
   },

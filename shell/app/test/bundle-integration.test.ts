@@ -90,6 +90,43 @@ preset: core
 
     expect(() => resolve(definition, {})).toThrow(/explicit "bundles"/i);
   });
+
+  test("rejects stale selections when bundle meanings changed", () => {
+    const definition = defineBrain({
+      name: "test",
+      version: "1.0.0",
+      bundleContract: "capability-bundles-v1",
+      capabilities: [["alpha", trackingFactory("alpha"), {}]],
+      interfaces: [],
+      bundles: [defineBundle({ id: "core", members: ["alpha"] })],
+    });
+
+    expect(() => resolve(definition, {}, { bundles: ["core"] })).toThrow(
+      /predates the active bundle taxonomy/,
+    );
+    expect(() =>
+      resolve(
+        definition,
+        {},
+        {
+          bundleContract: "different-contract",
+          bundles: ["core"],
+        },
+      ),
+    ).toThrow(/received "different-contract"/);
+    expect(
+      pluginIds(
+        resolve(
+          definition,
+          {},
+          {
+            bundleContract: "capability-bundles-v1",
+            bundles: ["core"],
+          },
+        ),
+      ),
+    ).toEqual(["alpha"]);
+  });
 });
 
 describe("bundle resolver integration", () => {
