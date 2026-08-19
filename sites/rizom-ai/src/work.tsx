@@ -51,13 +51,13 @@ function DiagnosticPanel(diag: z.infer<typeof diagnosticSchema>): JSX.Element {
         <circle className="vertex" cx="180" cy="95" r="4" />
         <circle className="vertex" cx="233.69" cy="181" r="4" />
         <circle className="vertex" cx="150.56" cy="167" r="4" />
-        <text x="180" y="34" text-anchor="middle">
+        <text x="180" y="34" textAnchor="middle">
           Specialization
         </text>
-        <text x="252" y="222" text-anchor="start">
+        <text x="252" y="222" textAnchor="start">
           Credibility
         </text>
-        <text x="108" y="222" text-anchor="end">
+        <text x="108" y="222" textAnchor="end">
           Coordination
         </text>
       </svg>

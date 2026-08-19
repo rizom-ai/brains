@@ -30,7 +30,9 @@ export function WidgetCard({
 }): JSX.Element {
   return (
     <article
-      class={featured ? "card card--entity-summary" : "card widget-card--wide"}
+      className={
+        featured ? "card card--entity-summary" : "card widget-card--wide"
+      }
     >
       <CardHeader title={widget.widget.title} />
       {widget.component ? (

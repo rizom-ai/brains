@@ -111,10 +111,14 @@ export function buildDashboardTabs(
 
 export function TabBar({ tabs }: { tabs: WidgetTab[] }): JSX.Element {
   return (
-    <nav class="dashboard-tabs" aria-label="Dashboard sections" role="tablist">
+    <nav
+      className="dashboard-tabs"
+      aria-label="Dashboard sections"
+      role="tablist"
+    >
       <a
         id="dashboard-tab-overview"
-        class="dashboard-tab is-active"
+        className="dashboard-tab is-active"
         href="#overview"
         role="tab"
         aria-selected="true"
@@ -126,7 +130,7 @@ export function TabBar({ tabs }: { tabs: WidgetTab[] }): JSX.Element {
       {tabs.map((tab) => (
         <a
           id={`dashboard-tab-${tab.id}`}
-          class="dashboard-tab"
+          className="dashboard-tab"
           href={`#${tab.id}`}
           role="tab"
           aria-selected="false"
@@ -136,9 +140,13 @@ export function TabBar({ tabs }: { tabs: WidgetTab[] }): JSX.Element {
         >
           <span>{tab.label}</span>
           {tab.needsAttention > 0 ? (
-            <span class="tab-badge tab-badge--needs">{tab.needsAttention}</span>
+            <span className="tab-badge tab-badge--needs">
+              {tab.needsAttention}
+            </span>
           ) : tab.widgetCount > 0 ? (
-            <span class="tab-badge tab-badge--muted">{tab.widgetCount}</span>
+            <span className="tab-badge tab-badge--muted">
+              {tab.widgetCount}
+            </span>
           ) : null}
         </a>
       ))}

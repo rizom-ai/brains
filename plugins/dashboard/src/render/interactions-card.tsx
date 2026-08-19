@@ -22,15 +22,15 @@ export function InteractionsCard(props: {
   }
 
   return (
-    <aside class="card interactions-card">
+    <aside className="card interactions-card">
       <CardHeader title="Ways to connect" />
-      <div class="interactions-list">
+      <div className="interactions-list">
         {interactions.slice(0, 5).map((interaction) => {
           const resolved = resolveUrl(interaction.href, baseUrl);
           return (
             <a
               key={`${interaction.pluginId}:${interaction.id}`}
-              class={`interaction-link interaction-link--${interaction.kind}`}
+              className={`interaction-link interaction-link--${interaction.kind}`}
               href={resolved}
               target="_blank"
               rel="noopener noreferrer"

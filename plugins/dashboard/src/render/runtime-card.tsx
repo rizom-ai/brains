@@ -39,7 +39,7 @@ export function RuntimeCard(props: {
   ).length;
 
   return (
-    <aside class="card runtime-card">
+    <aside className="card runtime-card">
       <CardHeader title="Runtime" source="core" />
       <KeyValueList
         items={[

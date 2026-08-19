@@ -86,9 +86,9 @@ function RestrictedAccessGate({
   principal: NonNullable<DashboardRenderInput["authAccess"]>["principal"];
 }): JSX.Element {
   return (
-    <section class="card access-gate">
+    <section className="card access-gate">
       <div>
-        <div class="card-title">Restricted access</div>
+        <div className="card-title">Restricted access</div>
         <p>
           {hiddenWidgetCount === 1
             ? "1 private console widget is hidden."
@@ -99,7 +99,7 @@ function RestrictedAccessGate({
         </p>
       </div>
       {!principal && (
-        <a class="access-gate-link" href={loginUrl}>
+        <a className="access-gate-link" href={loginUrl}>
           Sign in
         </a>
       )}
@@ -136,34 +136,38 @@ function VitalsRow({ input }: { input: DashboardRenderInput }): JSX.Element {
   );
 
   return (
-    <section class="overview-vitals" aria-label="Runtime vitals">
-      <article class="vital-card">
-        <span class="vital-label">Entities</span>
-        <strong class="vital-num">{input.appInfo.entities}</strong>
-        <span class="vital-sub">
+    <section className="overview-vitals" aria-label="Runtime vitals">
+      <article className="vital-card">
+        <span className="vital-label">Entities</span>
+        <strong className="vital-num">{input.appInfo.entities}</strong>
+        <span className="vital-sub">
           {typeCount === 1 ? "1 type" : `${typeCount} types`}
         </span>
       </article>
-      <article class="vital-card">
-        <span class="vital-label">Interactions</span>
-        <strong class="vital-num">{input.appInfo.interactions.length}</strong>
-        <span class="vital-sub">{channels || "no channels"}</span>
+      <article className="vital-card">
+        <span className="vital-label">Interactions</span>
+        <strong className="vital-num">
+          {input.appInfo.interactions.length}
+        </strong>
+        <span className="vital-sub">{channels || "no channels"}</span>
       </article>
       <article
-        class={`vital-card ${indexReady ? "vital-card--ok" : "vital-card--warm"}`}
+        className={`vital-card ${indexReady ? "vital-card--ok" : "vital-card--warm"}`}
       >
-        <span class="vital-label">Semantic index</span>
-        <strong class="vital-num vital-num--text">
+        <span className="vital-label">Semantic index</span>
+        <strong className="vital-num vital-num--text">
           {indexReady ? "Ready" : "Pending"}
         </strong>
-        <span class="vital-sub">{indexSub}</span>
+        <span className="vital-sub">{indexSub}</span>
       </article>
-      <article class={`vital-card${hasActiveWrite ? " vital-card--warm" : ""}`}>
-        <span class="vital-label">Last write</span>
-        <strong class="vital-num vital-num--text">
+      <article
+        className={`vital-card${hasActiveWrite ? " vital-card--warm" : ""}`}
+      >
+        <span className="vital-label">Last write</span>
+        <strong className="vital-num vital-num--text">
           {latestWrite ? formatClock(latestWrite.timestamp) : "—"}
         </strong>
-        <span class="vital-sub">
+        <span className="vital-sub">
           {latestWrite
             ? `${latestWrite.entityType}/${latestWrite.entityId}`
             : "no writes observed"}
@@ -182,20 +186,20 @@ function IdentityCapsule({
   if (!role && !purpose && values.length === 0) return null;
 
   return (
-    <aside class="card identity-capsule">
+    <aside className="card identity-capsule">
       <CardHeader title="Identity" source="identity" />
-      <div class="identity-capsule-body">
-        {role && <span class="identity-capsule-role">“{role}”</span>}
+      <div className="identity-capsule-body">
+        {role && <span className="identity-capsule-role">“{role}”</span>}
         {values.length > 0 && (
-          <span class="values">
+          <span className="values">
             {values.map((value) => (
-              <span class="value" key={value}>
+              <span className="value" key={value}>
                 {value}
               </span>
             ))}
           </span>
         )}
-        {purpose && <span class="identity-capsule-purpose">{purpose}</span>}
+        {purpose && <span className="identity-capsule-purpose">{purpose}</span>}
       </div>
     </aside>
   );
@@ -204,7 +208,7 @@ function IdentityCapsule({
 function DigestCards({ cards }: { cards: OverviewDigestCard[] }): JSX.Element {
   if (cards.length === 0) {
     return (
-      <section class="card overview-empty-digest">
+      <section className="card overview-empty-digest">
         <CardHeader title="Group digests" />
         <EmptyState>No plugin groups are visible yet.</EmptyState>
       </section>
@@ -212,17 +216,17 @@ function DigestCards({ cards }: { cards: OverviewDigestCard[] }): JSX.Element {
   }
 
   return (
-    <section class="digests" aria-label="Group digests">
+    <section className="digests" aria-label="Group digests">
       {cards.map((card) => (
-        <a class="card digest-card" href={card.href} key={card.id}>
-          <div class="digest-head">
+        <a className="card digest-card" href={card.href} key={card.id}>
+          <div className="digest-head">
             <h4>{card.label}</h4>
-            <span class="digest-go">open →</span>
+            <span className="digest-go">open →</span>
           </div>
-          <dl class="digest-lines">
+          <dl className="digest-lines">
             {card.lines.map((line) => (
               <div
-                class={`digest-line digest-line--${line.tone ?? "plain"}`}
+                className={`digest-line digest-line--${line.tone ?? "plain"}`}
                 key={`${line.label}:${line.value}`}
               >
                 <dt>{line.label}</dt>
@@ -251,29 +255,29 @@ function ActivityLedger({
   events: DashboardActivityEvent[];
 }): JSX.Element {
   return (
-    <section class="card activity-ledger">
+    <section className="card activity-ledger">
       <CardHeader title="Activity" source="entity events" />
       {events.length === 0 ? (
         <EmptyState>
           No entity activity has been observed this session.
         </EmptyState>
       ) : (
-        <ol class="ledger">
+        <ol className="ledger">
           {events.map((event) => (
             <li
-              class="ledger-entry"
+              className="ledger-entry"
               key={`${event.timestamp}:${event.action}:${event.entityType}:${event.entityId}`}
             >
-              <time class="ledger-time" dateTime={event.timestamp}>
+              <time className="ledger-time" dateTime={event.timestamp}>
                 {formatClock(event.timestamp)}
               </time>
               <span
-                class={`ledger-glyph${LEDGER_GLYPHS[event.action].tone}`}
+                className={`ledger-glyph${LEDGER_GLYPHS[event.action].tone}`}
                 aria-hidden="true"
               >
                 {LEDGER_GLYPHS[event.action].glyph}
               </span>
-              <span class="ledger-what">
+              <span className="ledger-what">
                 <b>{event.entityType}</b> {event.action} —{" "}
                 <code>
                   {event.entityType}/{event.entityId}
@@ -302,7 +306,7 @@ export function OverviewPanel({
   return (
     <section
       id="overview"
-      class="dashboard-tab-panel is-active"
+      className="dashboard-tab-panel is-active"
       data-dashboard-tab-panel
       data-ui-panel="overview"
       role="tabpanel"
@@ -317,7 +321,7 @@ export function OverviewPanel({
           principal={input.authAccess.principal}
         />
       )}
-      <div class="overview-grid">
+      <div className="overview-grid">
         <DigestCards cards={digestCards} />
         <ActivityLedger events={activityLog} />
       </div>

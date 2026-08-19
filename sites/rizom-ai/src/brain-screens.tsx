@@ -116,41 +116,41 @@ export function BrainScreenStyles(): JSX.Element {
 /** The CMS studio: a markdown manuscript with the draft→publish flow. */
 export function StudioScreen(): JSX.Element {
   return (
-    <div class="brain-screen">
-      <div class="ifc-frame">
-        <div class="ifc-bar">
+    <div className="brain-screen">
+      <div className="ifc-frame">
+        <div className="ifc-bar">
           <i />
           <i />
           <i />
           <span>mira.studio/studio</span>
         </div>
-        <div class="cms-appbar">
-          <span class="crumbs">
+        <div className="cms-appbar">
+          <span className="crumbs">
             library / essays / <b>distributed-teams.md</b>
           </span>
-          <span class="pub">Publish</span>
+          <span className="pub">Publish</span>
         </div>
-        <div class="cms-cols">
-          <div class="cms-list">
-            <div class="cms-item">
+        <div className="cms-cols">
+          <div className="cms-list">
+            <div className="cms-item">
               <span>coordination-unit.md</span>
-              <span class="cms-kind">essay</span>
+              <span className="cms-kind">essay</span>
             </div>
-            <div class="cms-item on">
+            <div className="cms-item on">
               <span>distributed-teams.md</span>
-              <span class="cms-kind">essay</span>
+              <span className="cms-kind">essay</span>
             </div>
-            <div class="cms-item">
+            <div className="cms-item">
               <span>calculator-launch.md</span>
-              <span class="cms-kind">post</span>
+              <span className="cms-kind">post</span>
             </div>
-            <div class="cms-item">
+            <div className="cms-item">
               <span>tms-reading-list.md</span>
-              <span class="cms-kind">note</span>
+              <span className="cms-kind">note</span>
             </div>
           </div>
-          <div class="cms-md">
-            <span class="mfm">
+          <div className="cms-md">
+            <span className="mfm">
               ---
               <br />
               title: Distributed teams outperform
@@ -160,24 +160,24 @@ export function StudioScreen(): JSX.Element {
               ---
             </span>
             <br />
-            <span class="mh"># Distributed teams outperform</span>
+            <span className="mh"># Distributed teams outperform</span>
             <br />
             Teams don't fail because people are
             <br />
-            <span class="msy">**</span>untalented<span class="msy">**</span>.
-            They fail because nobody
+            <span className="msy">**</span>untalented
+            <span className="msy">**</span>. They fail because nobody
             <br />
-            mapped <span class="mem">who knows what</span> — and AI just
+            mapped <span className="mem">who knows what</span> — and AI just
             <br />
             automates the confusion.
             <br />
           </div>
         </div>
-        <div class="cms-foot">
+        <div className="cms-foot">
           <span>committed a41f2c9 → rizom-ai/mira-content</span>
-          <span class="fate">
+          <span className="fate">
             <span>draft</span>
-            <span class="on">review</span>
+            <span className="on">review</span>
             <span>publish</span>
           </span>
         </div>
@@ -189,44 +189,44 @@ export function StudioScreen(): JSX.Element {
 /** The web chat: an exchange that answers with sources and writes drafts back. */
 export function ChatScreen(): JSX.Element {
   return (
-    <div class="brain-screen">
-      <div class="ifc-frame ifc-chat">
-        <div class="ifc-bar">
+    <div className="brain-screen">
+      <div className="ifc-frame ifc-chat">
+        <div className="ifc-bar">
           <i />
           <i />
           <i />
           <span>mira.studio/chat</span>
         </div>
-        <div class="body">
-          <span class="ifc-eyebrow">connected · Admin session</span>
+        <div className="body">
+          <span className="ifc-eyebrow">connected · Admin session</span>
           <h6>
             Talk to <em>your brain</em>
           </h6>
-          <div class="ifc-msgs">
-            <div class="ifc-msg you">
-              <span class="who">you</span>What did we decide about the pricing
-              page last month?
+          <div className="ifc-msgs">
+            <div className="ifc-msg you">
+              <span className="who">you</span>What did we decide about the
+              pricing page last month?
             </div>
-            <div class="ifc-msg brain">
-              <span class="who">mira</span>Three decisions, all in your March
-              notes: keep the single tier, publish the calculator, park
-              enterprise until Q3.<span class="src">→ 3 sources</span>
+            <div className="ifc-msg brain">
+              <span className="who">mira</span>Three decisions, all in your
+              March notes: keep the single tier, publish the calculator, park
+              enterprise until Q3.<span className="src">→ 3 sources</span>
             </div>
-            <div class="ifc-msg you">
-              <span class="who">you</span>Draft a changelog entry for the
+            <div className="ifc-msg you">
+              <span className="who">you</span>Draft a changelog entry for the
               calculator.
             </div>
-            <div class="ifc-msg brain">
-              <span class="who">mira</span>Drafted in your voice and saved as{" "}
-              <b>posts/calculator-launch.md</b> — status: draft. Want it queued
-              for review?
+            <div className="ifc-msg brain">
+              <span className="who">mira</span>Drafted in your voice and saved
+              as <b>posts/calculator-launch.md</b> — status: draft. Want it
+              queued for review?
             </div>
           </div>
-          <div class="ifc-status">
+          <div className="ifc-status">
             <i />
             the rhizome is listening
           </div>
-          <div class="ifc-prompt">
+          <div className="ifc-prompt">
             Ask anything you've ever written down…<b>↑</b>
           </div>
         </div>
@@ -238,36 +238,36 @@ export function ChatScreen(): JSX.Element {
 /** The integrations stack: Discord, Claude over MCP, the terminal REPL. */
 export function IntegrationsScreen(): JSX.Element {
   return (
-    <div class="brain-screen">
-      <div class="intg">
-        <div class="ifc-frame">
-          <div class="ifc-bar">
+    <div className="brain-screen">
+      <div className="intg">
+        <div className="ifc-frame">
+          <div className="ifc-bar">
             <i />
             <i />
             <i />
             <span>Discord — #ask-mira</span>
           </div>
-          <div class="dsc">
-            <div class="dsc-row">
-              <span class="dsc-av" style="background:#3d4a8a">
+          <div className="dsc">
+            <div className="dsc-row">
+              <span className="dsc-av" style={{ background: "#3d4a8a" }}>
                 T
               </span>
               <div>
-                <span class="dsc-name">Tomás</span>
-                <div class="dsc-text">
+                <span className="dsc-name">Tomás</span>
+                <div className="dsc-text">
                   @mira what did the pilot retro conclude?
                 </div>
               </div>
             </div>
-            <div class="dsc-row">
-              <span class="dsc-av" style="background:#7a4a12">
+            <div className="dsc-row">
+              <span className="dsc-av" style={{ background: "#7a4a12" }}>
                 M
               </span>
               <div>
-                <span class="dsc-name">
-                  mira<i class="dsc-bot">BOT</i>
+                <span className="dsc-name">
+                  mira<i className="dsc-bot">BOT</i>
                 </span>
-                <div class="dsc-text">
+                <div className="dsc-text">
                   Two blockers: onboarding docs and the missing staging env.
                   Full notes → <u>retro-2026-06</u>.
                 </div>
@@ -275,38 +275,38 @@ export function IntegrationsScreen(): JSX.Element {
             </div>
           </div>
         </div>
-        <div class="ifc-frame mcp">
-          <div class="ifc-bar">
+        <div className="ifc-frame mcp">
+          <div className="ifc-bar">
             <i />
             <i />
             <i />
             <span>Claude — connected via MCP</span>
           </div>
-          <div class="body2">
+          <div className="body2">
             Let me check Mira's brain for that.
-            <div class="tool">
+            <div className="tool">
               ▸ <b>mira · system_search</b> "pilot retro blockers" → 6 entities
             </div>
             From the June retro notes: the pilot stalled on onboarding docs —
             Mira flagged the same pattern in two client engagements.
           </div>
         </div>
-        <div class="ifc-frame">
-          <div class="ifc-bar">
+        <div className="ifc-frame">
+          <div className="ifc-bar">
             <i />
             <i />
             <i />
             <span>terminal — brain chat</span>
           </div>
-          <div class="term-mock">
-            <span class="ps">$</span> brain chat
+          <div className="term-mock">
+            <span className="ps">$</span> brain chat
             <br />
-            <span class="who">mira ›</span> corpus loaded — 2,847 entities
+            <span className="who">mira ›</span> corpus loaded — 2,847 entities
             <br />
-            <span class="who">you ›</span> oldest open decision?
+            <span className="who">you ›</span> oldest open decision?
             <br />
-            <span class="who">mira ›</span> "Pricing tiers" — open since March
-            (decisions/pricing.md)
+            <span className="who">mira ›</span> "Pricing tiers" — open since
+            March (decisions/pricing.md)
           </div>
         </div>
       </div>
@@ -317,151 +317,151 @@ export function IntegrationsScreen(): JSX.Element {
 /** The dashboard overview: the brain's real widget cards over fixture data. */
 export function DashboardScreen(): JSX.Element {
   return (
-    <div class="brain-screen">
-      <div class="ifc-frame">
-        <div class="ifc-bar">
+    <div className="brain-screen">
+      <div className="ifc-frame">
+        <div className="ifc-bar">
           <i />
           <i />
           <i />
           <span>mira.studio/dashboard</span>
         </div>
-        <div class="ifc-strip">
-          <span class="mark">mira · console</span>
-          <div class="snav">
-            <span class="on">Dashboard</span>
+        <div className="ifc-strip">
+          <span className="mark">mira · console</span>
+          <div className="snav">
+            <span className="on">Dashboard</span>
             <span>Chat</span>
             <span>Library</span>
           </div>
-          <span class="admin">Admin</span>
+          <span className="admin">Admin</span>
         </div>
-        <div class="ifc-tabs">
-          <span class="on">overview</span>
+        <div className="ifc-tabs">
+          <span className="on">overview</span>
           <span>content</span>
           <span>network</span>
           <span>system</span>
         </div>
-        <div class="dash-canvas">
-          <div class="ifc-card">
-            <div class="ct">
+        <div className="dash-canvas">
+          <div className="ifc-card">
+            <div className="ct">
               <span>Identity</span>
             </div>
             <dl>
-              <div class="krow">
+              <div className="krow">
                 <dt>Role</dt>
                 <dd>Research partner — media theory &amp; praxis</dd>
               </div>
-              <div class="krow">
+              <div className="krow">
                 <dt>Purpose</dt>
                 <dd>Turn a working library into a public practice</dd>
               </div>
             </dl>
-            <div class="vals">
+            <div className="vals">
               <i>open source</i>
               <i>rigor</i>
               <i>reciprocity</i>
             </div>
           </div>
-          <div class="ifc-card">
-            <div class="ct">
+          <div className="ifc-card">
+            <div className="ct">
               <span>Entities</span>
               <small>corpus · by volume</small>
             </div>
-            <div class="big">2,847</div>
-            <div class="biglabel">indexed entities</div>
-            <dl style="margin-top:8px">
-              <div class="krow">
+            <div className="big">2,847</div>
+            <div className="biglabel">indexed entities</div>
+            <dl style={{ marginTop: "8px" }}>
+              <div className="krow">
                 <dt>notes</dt>
                 <dd>1,204</dd>
               </div>
-              <div class="krow">
+              <div className="krow">
                 <dt>links</dt>
                 <dd>486</dd>
               </div>
-              <div class="krow">
+              <div className="krow">
                 <dt>posts</dt>
                 <dd>412</dd>
               </div>
-              <div class="krow">
+              <div className="krow">
                 <dt>essays</dt>
                 <dd>118</dd>
               </div>
             </dl>
           </div>
-          <div class="ifc-card">
-            <div class="ct">
+          <div className="ifc-card">
+            <div className="ct">
               <span>Runtime</span>
               <small>core</small>
             </div>
             <dl>
-              <div class="krow">
+              <div className="krow">
                 <dt>Version</dt>
                 <dd>0.2.0</dd>
               </div>
-              <div class="krow">
+              <div className="krow">
                 <dt>Model</dt>
                 <dd>anthropic · sonnet</dd>
               </div>
-              <div class="krow">
+              <div className="krow">
                 <dt>Uptime</dt>
                 <dd>41d 6h</dd>
               </div>
-              <div class="krow">
+              <div className="krow">
                 <dt>Embeddings</dt>
-                <dd class="ok">✓ current</dd>
+                <dd className="ok">✓ current</dd>
               </div>
-              <div class="krow">
+              <div className="krow">
                 <dt>Daemons</dt>
                 <dd>4 running</dd>
               </div>
             </dl>
           </div>
-          <div class="ifc-card" style="grid-column: span 2">
-            <div class="ct">
+          <div className="ifc-card" style={{ gridColumn: "span 2" }}>
+            <div className="ct">
               <span>Endpoints</span>
               <small>machine faces of the same brain</small>
             </div>
             <dl>
-              <div class="krow">
+              <div className="krow">
                 <dt>MCP</dt>
                 <dd>
-                  mira.studio/mcp <span class="dim-arrow">↗</span>
+                  mira.studio/mcp <span className="dim-arrow">↗</span>
                 </dd>
               </div>
-              <div class="krow">
+              <div className="krow">
                 <dt>A2A</dt>
                 <dd>
-                  /.well-known/agent-card <span class="dim-arrow">↗</span>
+                  /.well-known/agent-card <span className="dim-arrow">↗</span>
                 </dd>
               </div>
-              <div class="krow">
+              <div className="krow">
                 <dt>ATProto</dt>
                 <dd>
                   @mira.studio — essays as records{" "}
-                  <span class="dim-arrow">↗</span>
+                  <span className="dim-arrow">↗</span>
                 </dd>
               </div>
-              <div class="krow">
+              <div className="krow">
                 <dt>RSS</dt>
                 <dd>
-                  /rss.xml <span class="dim-arrow">↗</span>
+                  /rss.xml <span className="dim-arrow">↗</span>
                 </dd>
               </div>
             </dl>
           </div>
-          <div class="ifc-card">
-            <div class="ct">
+          <div className="ifc-card">
+            <div className="ct">
               <span>Ways to connect</span>
             </div>
             <dl>
-              <div class="krow">
+              <div className="krow">
                 <dt>Chat</dt>
                 <dd>mira.studio/chat</dd>
               </div>
-              <div class="krow">
+              <div className="krow">
                 <dt>Discord</dt>
                 <dd>#ask-mira</dd>
               </div>
-              <div class="krow">
+              <div className="krow">
                 <dt>Terminal</dt>
                 <dd>brain chat</dd>
               </div>
