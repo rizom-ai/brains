@@ -117,21 +117,24 @@ output and exact unified runtime pin must be committed together in `yeehaa-io`.
 
 ## Prepared codebase branches
 
-The following local, unpushed branches contain review inputs only. Active desired state and
-runtime dependencies remain unchanged until matching unified artifacts exist:
+The following open review branches preserve active desired state and runtime dependency
+pins until matching unified artifacts exist:
 
 - `rover-pilot` `work/brain-model-unification` at `4e5100f` stores the reviewed bundle
   mapping, hosted-site pins, and the disabled-newsletter decision. Staging from that branch
   produced 19 configs with the expected 16/3 posture split and zero first- or second-pass
   reconciliation drift.
-- `yeehaa-io` `work/brain-model-unification` at `5d424b3` stores the deterministic
-  professional target YAML and credential-free pull-request CI. It matches a fresh
-  migration preview exactly, parses as `capability-bundles-v1` with all 11 plugin blocks,
-  and passes frozen install, typecheck, migration-preservation, and workflow-safety checks.
+- `yeehaa-io` `work/brain-model-unification` at `b4d88ab` stores the deterministic
+  professional target YAML, credential-free pull-request CI, and a consistent Bun 1.3.14
+  target for development, CI, and the future image. It matches a fresh migration preview
+  exactly, parses as `capability-bundles-v1` with all 11 plugin blocks, and passes frozen
+  install, typecheck, migration-preservation, runtime-version, and workflow-safety checks.
 
-Neither branch changes an active `brain.yaml`, runtime version, operator package, lockfile,
-workflow, or deployment input. Those files must cross together after exact published
-versions and image digests are available.
+Neither branch changes an active `brain.yaml`, `@rizom/brain` version, operator package, or
+lockfile. Rover also leaves workflows and deployment inputs unchanged. The `yeehaa-io`
+Docker target is prepared but remains inactive: merging any change to its `main` publishes
+an image and chains a successful publication into deployment, so that PR stays unmerged
+until the approved crossover window.
 
 ## Crossover sequence
 
