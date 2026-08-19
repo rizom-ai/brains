@@ -6,7 +6,11 @@
 admin-gated Studio workspaces, invert the Studio gate so the shell admits any
 active session while every capability gates itself, fold the account surface
 into Studio as the one view admitted to everyone, and delete `plugins/admin`.
-Chat and Dashboard do not move.
+The Dashboard is repurposed: its operator-facing content moves into a Studio
+Overview workspace, and the surface itself becomes the brain's public card.
+Chat does not move. Design mockups for the Overview workspace and the card:
+[`../studio-consolidation-mockups.html`](../studio-consolidation-mockups.html)
+(decided 2026-08-19).
 
 ## Goal
 
@@ -37,16 +41,26 @@ End state:
   WebAuthn ceremonies cannot be declarative. No separate door.
 - `plugins/admin` is deleted; the canonical roster loses its `admin` and
   `account` entries.
-- Console strip: Dashboard / Chat / Studio.
+- Studio gains an **Overview** workspace — the operator home: what needs
+  you, what the brain did on its own, system and network state. It absorbs
+  the Dashboard's trusted/admin widget content.
+- The Dashboard becomes the **brain's card** — the public, outward face for
+  visitors, agents, and peers: whose brain it is, what it knows (the
+  knowledge map), what it can do (its skills), and its network (the agent
+  proximity map), with the contact doors (chat, site, mail, MCP, atproto).
+  Public-visibility data only; no operator content.
+- Console strip: Dashboard / Chat / Studio — Dashboard being the only
+  surface that also serves the logged-out world.
 
 ## Non-goals
 
-- Moving web-chat or Dashboard into Studio. Chat is an interface with a live
-  message stream, aligned with the Chat SDK provider family
+- Moving web-chat into Studio. Chat is an interface with a live message
+  stream, aligned with the Chat SDK provider family
   ([`brain-web-chat-sdk-adapter.md`](./brain-web-chat-sdk-adapter.md)); the
   operator-console composition stays navigational per
   [`operator-console-pwa.md`](./operator-console-pwa.md). Studio features that
-  need chat call the chat surface; chat does not move house.
+  need chat call the chat surface; chat does not move house. The Dashboard
+  likewise stays a separate surface — only its operator content moves.
 - Weakening what any capability requires. The gate inversion moves the
   trusted floor from the route perimeter into the capability families; no
   data or action becomes reachable at a lower rank than today. The only
@@ -96,6 +110,35 @@ Sub-trusted sessions are real: invitations only grant `trusted` or `admin`
 (`invitation-service.ts`), but the role mutation path accepts `public` — the
 demotion/offboarding state. Such a person must keep reaching their sessions
 and passkeys; under this model that is exactly the account view.
+
+## Dashboard purpose: the brain's card
+
+Today the Dashboard mixes audiences: it is the only anonymous-capable
+console surface, yet most of its widgets are operator instruments gated
+trusted or admin. The split resolves along the audience line:
+
+- **Studio Overview** (operator home, trusted+): needs-attention items with
+  launch links into the owning workspaces, a while-you-were-away delta feed,
+  and system/network state cards. This is where the Dashboard's trusted and
+  admin widget content re-homes, expressed through the same semantic
+  protocol that already unifies dashboard widgets and studio workspaces.
+  Glance-and-launch only: any affordance that changes something is a launch
+  into the workspace that owns it.
+- **Dashboard = the card** (public): the brain presenting itself to people,
+  agents, and peer brains. Whose brain it is (grown from what the anchor
+  knows, and belongs to them), what it knows (the corpus-calibrated
+  knowledge map — `docs/rizom-knowledge-map-mockup.html` is the reference
+  visualization), what it can do (its skill entities, the map's moss marks),
+  and its network (the agent proximity map with honest agent data). Contact
+  doors — chat, site, mail, MCP, atproto — typed by audience. Public
+  visibility only; a signed-in operator gets a Studio door, not more data
+  here.
+
+The design reference for both is
+[`../studio-consolidation-mockups.html`](../studio-consolidation-mockups.html),
+which reuses the existing knowledge-map and proximity-map visualizations
+verbatim (data, mark language, and animation vocabulary lifted from their
+source mockups).
 
 ## The one real protocol gap
 
@@ -217,6 +260,35 @@ surface is pure gating.
   route as a permanent redirect. Update `build:ui` filters.
 - Full gates.
 
+### Phase 7 — Studio Overview workspace
+
+- Tests first: overview workspace admission at the trusted floor; view
+  conformance for the needs-attention list (tones, launch links), the delta
+  feed, and the system/network cards; badge derivation for the strip-level
+  "n need you" state.
+- Register Overview as a built-in Studio workspace and the shell's default
+  landing view. Its content is the operator-facing widget material: needs
+  attention (failed jobs, expiring invitations), while-you-were-away deltas,
+  system and network state.
+- Registrant plugins whose dashboard widgets are trusted/admin-gated
+  (unified-inbox, site-builder, content-pipeline) re-home that content to
+  Overview through their existing semantic definitions; the dashboard stops
+  rendering non-public widgets.
+
+### Phase 8 — Dashboard becomes the card
+
+- Tests first: the dashboard route serves the card to anonymous callers;
+  every datum on it derives from public-visibility scope; the operator door
+  renders only for a session that passes the Studio gate.
+- Rebuild the dashboard page as the card per the mockup: identity and
+  ownership, contact doors, knowledge map, skills, proximity map, colophon
+  footer. The knowledge-map and proximity-map renderers move from their
+  mockups into the dashboard package as real components fed by entity,
+  topic, skill, and agent-directory data.
+- Retire the dashboard's widget-tab chrome for non-public content; the
+  public widget protocol remains for card sections so plugins can contribute
+  public data points.
+
 ## Ordering rationale
 
 Rename first so every admin workspace is born under Studio names and nothing
@@ -228,7 +300,10 @@ diff is purely the floor move, and lands one phase before its only consumer
 (account) so the enumeration test exists before any sub-trusted actor can
 reach the shell's API surface with expectations. The admin app shrinks view
 by view, so at every phase boundary exactly one surface owns each capability
-and the release train can ship the slice.
+and the release train can ship the slice. The dashboard split comes last and
+in dependency order: Overview must exist (Phase 7) before the dashboard can
+stop rendering operator widgets (Phase 8), so no operator capability is ever
+without a home.
 
 ## Risks
 
@@ -246,3 +321,7 @@ and the release train can ship the slice.
 - The live brain's deploy config and any external bookmarks reference `/cms`,
   `/account`, and the `cms` config key; the redirects cover URLs, the deploy
   note covers config.
+- The card is anonymous-facing, so every datum it renders is a disclosure
+  decision: topic names, skill names, agent names, and counts all become
+  public. Phase 8's public-scope test is the guard, and anything the owner
+  does not want on the card must be excluded by visibility, not by styling.
