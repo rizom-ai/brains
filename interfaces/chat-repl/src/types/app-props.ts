@@ -15,5 +15,6 @@ export interface EnhancedAppProps {
   ) => void;
   unregisterProgressCallback: () => void;
   registerResponseCallback: (callback: (response: string) => void) => void;
+  registerSystemMessageCallback: (callback: (message: string) => void) => void;
   unregisterMessageCallbacks: () => void;
 }

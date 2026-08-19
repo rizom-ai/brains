@@ -13,6 +13,7 @@ import {
   routeConfirmationResponse,
   type AgentResponse,
   type ApprovalResolution,
+  type SendMessageToChannelRequest,
   type StructuredChatCard,
   type ToolApprovalCard,
 } from "@brains/plugins";
@@ -57,6 +58,7 @@ export class CLIInterface extends MessageInterfacePlugin<
   declare protected config: CLIConfig;
   private inkApp: Instance | null = null;
   private responseCallback: ((response: string) => void) | undefined;
+  private systemMessageCallback: ((message: string) => void) | undefined;
   private agentService?: AgentNamespace;
   private signalHandler: (() => void) | undefined;
 
@@ -94,18 +96,27 @@ export class CLIInterface extends MessageInterfacePlugin<
   }
 
   /**
-   * Send message to channel - implements abstract method from MessageInterfacePlugin
-   * CLI has a single implicit channel, so channelId is ignored
+   * Transport for messages the base coordinator initiates — job progress and
+   * completion updates. Replies to user input go through sendReply instead,
+   * so the UI can tell job updates from conversation without inspecting the
+   * rendered text. CLI has a single implicit channel, so channelId is ignored.
    */
   protected override sendMessageToChannel({
     message,
-  }: {
-    channelId: string | null;
-    message: string;
-  }): void {
-    if (this.responseCallback) {
-      this.responseCallback(message);
-    }
+  }: SendMessageToChannelRequest): void {
+    const text =
+      typeof message === "string" ? message : (message.fallbackText ?? "");
+    if (!text) return;
+    const deliver = this.systemMessageCallback ?? this.responseCallback;
+    deliver?.(text);
+  }
+
+  /**
+   * Deliver a reply to the user's own input (agent responses, confirmation
+   * results, notices, errors).
+   */
+  private sendReply(message: string): void {
+    this.responseCallback?.(message);
   }
 
   /**
@@ -116,10 +127,22 @@ export class CLIInterface extends MessageInterfacePlugin<
   }
 
   /**
+   * Register callback for coordinator-initiated messages (job progress and
+   * completion updates), letting the UI coalesce them instead of treating
+   * them as conversation.
+   */
+  public registerSystemMessageCallback(
+    callback: (message: string) => void,
+  ): void {
+    this.systemMessageCallback = callback;
+  }
+
+  /**
    * Unregister response callbacks
    */
   public unregisterMessageCallbacks(): void {
     this.responseCallback = undefined;
+    this.systemMessageCallback = undefined;
   }
 
   /**
@@ -171,6 +194,8 @@ export class CLIInterface extends MessageInterfacePlugin<
             unregisterProgressCallback: () => this.unregisterProgressCallback(),
             registerResponseCallback: (callback) =>
               this.registerResponseCallback(callback),
+            registerSystemMessageCallback: (callback) =>
+              this.registerSystemMessageCallback(callback),
             unregisterMessageCallbacks: () => this.unregisterMessageCallbacks(),
           });
           this.inkApp = render(element);
@@ -296,17 +321,11 @@ export class CLIInterface extends MessageInterfacePlugin<
       // Send response to UI
       // Note: Tool formatted outputs are available to the agent but not auto-appended
       // The agent should summarize tool results in its response
-      this.sendMessageToChannel({
-        channelId: null,
-        message: responseText,
-      });
+      this.sendReply(responseText);
     } catch (error) {
       this.logger.error("Error processing input", { error, input });
       const errorMessage = getErrorMessage(error, "An unknown error occurred");
-      this.sendMessageToChannel({
-        channelId: null,
-        message: `**Error:** ${errorMessage}`,
-      });
+      this.sendReply(`**Error:** ${errorMessage}`);
     } finally {
       // End processing - flushes any buffered completion messages
       this.endProcessingInput();
@@ -438,10 +457,7 @@ export class CLIInterface extends MessageInterfacePlugin<
     });
     if (routed.kind === "not-confirmation") return false;
     if (routed.kind === "notice") {
-      this.sendMessageToChannel({
-        channelId: null,
-        message: `_${routed.message}_`,
-      });
+      this.sendReply(`_${routed.message}_`);
       return true;
     }
 
@@ -466,10 +482,9 @@ export class CLIInterface extends MessageInterfacePlugin<
     );
 
     // Send response to UI
-    this.sendMessageToChannel({
-      channelId: null,
-      message: this.formatApprovalResultText(response.text, response.cards),
-    });
+    this.sendReply(
+      this.formatApprovalResultText(response.text, response.cards),
+    );
     return true;
   }
 

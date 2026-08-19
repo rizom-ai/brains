@@ -16,6 +16,7 @@ export default function EnhancedApp({
   registerProgressCallback,
   unregisterProgressCallback,
   registerResponseCallback,
+  registerSystemMessageCallback,
   unregisterMessageCallbacks,
 }: EnhancedAppProps): React.ReactElement {
   const [messages, setMessages] = useState<Message[]>([
@@ -37,65 +38,53 @@ export default function EnhancedApp({
   // Create command history instance
   const history = useMemo(() => new CommandHistory(), []);
 
-  // Register callbacks for responses and errors
+  // Register callbacks for responses and errors. Replies and job updates
+  // arrive on separate callbacks, so no text sniffing is needed to tell them
+  // apart: replies always append; consecutive job updates coalesce in place.
   useEffect(() => {
     const handleResponse = (response: string): void => {
-      setMessages((prev) => {
-        // Check if this looks like a progress message (contains progress indicators)
-        const isProgressMessage =
-          response.includes("🔄") ||
-          response.includes("✅") ||
-          response.includes("❌") ||
-          response.includes("in progress") ||
-          response.includes("completed") ||
-          response.includes("failed");
-
-        if (isProgressMessage) {
-          const lastMessage = prev[prev.length - 1];
-
-          // Replace if the last message was from assistant and either:
-          // 1. Contains "enqueued with ID" (initial job message), OR
-          // 2. Also looks like a progress message (progress update)
-          const shouldReplace =
-            lastMessage?.role === "assistant" &&
-            (lastMessage.content.includes("enqueued with ID") ||
-              lastMessage.content.includes("🔄") ||
-              lastMessage.content.includes("✅") ||
-              lastMessage.content.includes("❌"));
-
-          const newMessage = {
-            role: "assistant" as const,
-            content: response,
-            timestamp: new Date(),
-          };
-
-          return shouldReplace
-            ? [...prev.slice(0, -1), newMessage]
-            : [...prev, newMessage];
-        }
-
-        // Regular message - just add it
-        return [
-          ...prev,
-          {
-            role: "assistant",
-            content: response,
-            timestamp: new Date(),
-          },
-        ];
-      });
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          content: response,
+          timestamp: new Date(),
+        },
+      ]);
 
       setIsLoading(false);
       // Auto-scroll to bottom for new assistant messages
       setScrollOffset(0);
     };
 
+    const handleSystemMessage = (message: string): void => {
+      setMessages((prev) => {
+        const newMessage: Message = {
+          role: "assistant",
+          kind: "job-update",
+          content: message,
+          timestamp: new Date(),
+        };
+        const lastMessage = prev[prev.length - 1];
+        return lastMessage?.kind === "job-update"
+          ? [...prev.slice(0, -1), newMessage]
+          : [...prev, newMessage];
+      });
+
+      setScrollOffset(0);
+    };
+
     registerResponseCallback(handleResponse);
+    registerSystemMessageCallback(handleSystemMessage);
 
     return (): void => {
       unregisterMessageCallbacks();
     };
-  }, [registerResponseCallback, unregisterMessageCallbacks]);
+  }, [
+    registerResponseCallback,
+    registerSystemMessageCallback,
+    unregisterMessageCallbacks,
+  ]);
 
   // Create stable callback for progress updates
   const handleProgressUpdate = useCallback((events: JobProgressEvent[]) => {

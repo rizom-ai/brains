@@ -585,6 +585,47 @@ describe("CLIInterface", () => {
     });
   });
 
+  describe("system message routing", () => {
+    it("routes transport messages to the system callback, replies to the response callback", async () => {
+      class TransportProbe extends CLIInterface {
+        public deliverTransportMessage(text: string): void {
+          this.sendMessageToChannel({ channelId: null, message: text });
+        }
+      }
+
+      const responseHandler = mock(() => {});
+      const systemHandler = mock(() => {});
+      const probe = new TransportProbe();
+      await harness.installPlugin(probe);
+      probe.registerResponseCallback(responseHandler);
+      probe.registerSystemMessageCallback(systemHandler);
+
+      await probe.processInput("Hello world");
+      probe.deliverTransportMessage("✅ Job finished");
+
+      expect(responseHandler).toHaveBeenCalledWith("Mock agent response");
+      expect(responseHandler).not.toHaveBeenCalledWith("✅ Job finished");
+      expect(systemHandler).toHaveBeenCalledWith("✅ Job finished");
+    });
+
+    it("falls back to the response callback when no system callback is registered", async () => {
+      class TransportProbe extends CLIInterface {
+        public deliverTransportMessage(text: string): void {
+          this.sendMessageToChannel({ channelId: null, message: text });
+        }
+      }
+
+      const responseHandler = mock(() => {});
+      const probe = new TransportProbe();
+      await harness.installPlugin(probe);
+      probe.registerResponseCallback(responseHandler);
+
+      probe.deliverTransportMessage("✅ Job finished");
+
+      expect(responseHandler).toHaveBeenCalledWith("✅ Job finished");
+    });
+  });
+
   describe("Plugin Capabilities", () => {
     it("should register as interface plugin", async () => {
       cliInterface = new CLIInterface({

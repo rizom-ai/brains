@@ -5,6 +5,8 @@ import { CLIMarkdownRenderer } from "../renderer";
 
 export interface Message {
   role: "user" | "assistant" | "system" | "error";
+  /** Job progress/completion updates coalesce in place instead of appending. */
+  kind?: "job-update";
   content: string;
   timestamp: Date;
   messageId?: string; // Track message ID for updates
