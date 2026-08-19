@@ -12,9 +12,10 @@ import type {
   RegisteredToolHttpRoute,
 } from "@brains/plugins/internal/http-routes";
 import { WebRouteMethods } from "@brains/plugins/contracts/web-routes";
+import { SITE_BUILD_MANIFEST_PATH } from "@brains/contracts";
 
 const RESERVED_PATHS = ["/health", "/images"] as const;
-const RESERVED_EXACT_PATHS = new Set(["/.site-build-manifest.json"]);
+const RESERVED_EXACT_PATHS = new Set<string>([SITE_BUILD_MANIFEST_PATH]);
 const WEB_ROUTE_METHODS = new Set<string>(WebRouteMethods);
 const TOOL_ROUTE_METHODS = new Set<string>(["GET", "POST", "PUT", "DELETE"]);
 

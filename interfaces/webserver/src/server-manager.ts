@@ -1,3 +1,4 @@
+import { SITE_BUILD_MANIFEST_PATH } from "@brains/contracts";
 import { getErrorMessage } from "@brains/utils/error";
 import type { Logger } from "@brains/utils/logger";
 import type { AppInfo, RuntimeReadiness, IMessageBus } from "@brains/plugins";
@@ -298,7 +299,7 @@ export class ServerManager {
     // legitimate public dot paths such as `/.well-known/agent-card.json` or a
     // site-package verification asset.
     app.use("/*", async (c, next) => {
-      if (c.req.path === "/.site-build-manifest.json") return c.notFound();
+      if (c.req.path === SITE_BUILD_MANIFEST_PATH) return c.notFound();
       return next();
     });
 

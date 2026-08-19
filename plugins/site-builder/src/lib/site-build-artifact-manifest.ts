@@ -5,12 +5,13 @@ import {
   type SiteBuildArtifactKind,
   type SiteBuildArtifactManifest,
 } from "@brains/site-engine";
+import { SITE_BUILD_MANIFEST_FILE } from "@brains/contracts";
 import { createHash } from "crypto";
 import { promises as fs } from "fs";
 import { dirname, join, relative, sep } from "path";
 import { resolveSafeOutputFile } from "./output-path";
 
-export const SITE_BUILD_MANIFEST_FILE = ".site-build-manifest.json";
+export { SITE_BUILD_MANIFEST_FILE } from "@brains/contracts";
 
 export interface CreateSiteBuildArtifactManifestOptions {
   generationDir: string;

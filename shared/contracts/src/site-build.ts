@@ -1,3 +1,15 @@
+/**
+ * Filename of the build-accounting manifest the site builder writes into each
+ * generation directory. It is internal state, never site content: the shared
+ * webserver refuses to serve it and the HTTP route registry reserves its path,
+ * both deriving from this constant. Renaming the file here keeps that
+ * protection; a rename anywhere else would silently start serving it.
+ */
+export const SITE_BUILD_MANIFEST_FILE = ".site-build-manifest.json";
+
+/** The manifest's URL path, reserved by the route registry and webserver. */
+export const SITE_BUILD_MANIFEST_PATH: `/${typeof SITE_BUILD_MANIFEST_FILE}` = `/${SITE_BUILD_MANIFEST_FILE}`;
+
 /** Payload for the SITE_CHANNELS.buildCompleted broadcast. */
 export interface SiteBuildCompletedPayload {
   outputDir: string;

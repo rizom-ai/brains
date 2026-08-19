@@ -157,9 +157,11 @@ export {
   type StyleGuideVisual,
   type StyleGuideVoice,
 } from "./style-guide";
-export type {
-  SiteBuildCompletedPayload,
-  SiteBuildStagingPayload,
+export {
+  SITE_BUILD_MANIFEST_FILE,
+  SITE_BUILD_MANIFEST_PATH,
+  type SiteBuildCompletedPayload,
+  type SiteBuildStagingPayload,
 } from "./site-build";
 export {
   PLAYBOOKS_REGISTER_LIFECYCLE_STARTER,
