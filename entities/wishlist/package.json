@@ -4,12 +4,13 @@
   "version": "0.2.0-alpha.306",
   "description": "Wishlist plugin for tracking unfulfilled user requests",
   "dependencies": {
-    "@brains/plugins": "workspace:*",
-    "@brains/utils": "workspace:*"
+    "@brains/sdk": "workspace:*"
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",
+    "@brains/plugins": "workspace:*",
     "@brains/typescript-config": "workspace:*",
+    "@brains/utils": "workspace:*",
     "@types/bun": "^1.3.14",
     "bun-types": "^1.3.14",
     "eslint": "^10.5.0",

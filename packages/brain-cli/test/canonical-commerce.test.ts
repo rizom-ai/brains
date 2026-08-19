@@ -150,7 +150,10 @@ describe("canonical commerce posture", () => {
         capability: "social-media",
         pluginId: "@brains/social-media:social-post",
       },
-      { capability: "wishlist", pluginId: "wishlist" },
+      {
+        capability: "wishlist",
+        pluginId: "@brains/wishlist:wish",
+      },
       { capability: "obsidian-vault", pluginId: "obsidian-vault" },
       { capability: "docs", pluginId: "@brains/doc:doc" },
     ];

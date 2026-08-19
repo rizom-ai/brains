@@ -1,11 +1,8 @@
 import { permissionToVisibilityScope } from "@brains/entity-service";
 import type { JobInfo } from "@brains/job-queue";
 import type { z } from "@brains/utils/zod";
-import { parseDefinitionEntity } from "../entity/declarative-entity-plugin";
-import type {
-  AnyEntityDefinition,
-  EntityOf,
-} from "../entity/entity-definition-contract";
+import { parseDefinitionEntity } from "../entity/entity-schema";
+import type { EntityDefinitionShape, EntityOf } from "../entity/entity-shape";
 import type { BasePluginContext } from "../base/context";
 import { getServiceJobRuntimeType } from "../service/job-definition-runtime";
 import type {
@@ -146,7 +143,7 @@ export async function createOperatorContext<
     caller,
     settings,
     entities: {
-      async get<TDefinition extends AnyEntityDefinition>(
+      async get<TDefinition extends EntityDefinitionShape>(
         definition: TDefinition,
         id: string,
       ): Promise<EntityOf<TDefinition> | null> {
@@ -159,7 +156,7 @@ export async function createOperatorContext<
         signal.throwIfAborted();
         return entity ? parseDefinitionEntity(definition, entity) : null;
       },
-      async list<TDefinition extends AnyEntityDefinition>(
+      async list<TDefinition extends EntityDefinitionShape>(
         definition: TDefinition,
       ): Promise<readonly EntityOf<TDefinition>[]> {
         signal.throwIfAborted();
@@ -172,7 +169,7 @@ export async function createOperatorContext<
           parseDefinitionEntity(definition, entity),
         );
       },
-      async search<TDefinition extends AnyEntityDefinition>(
+      async search<TDefinition extends EntityDefinitionShape>(
         definition: TDefinition,
         query: string,
       ): Promise<readonly EntityOf<TDefinition>[]> {

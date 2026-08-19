@@ -1,4 +1,4 @@
-import type { AnyEntityDefinition } from "../entity/entity-definition-contract";
+import type { EntityDefinitionShape } from "../entity/entity-shape";
 import { assertIdentifier } from "../package-definition";
 import { assertText } from "./contract-assertions";
 import type {
@@ -153,7 +153,7 @@ export interface OperatorExternalLinkTarget {
 }
 
 export interface OperatorEntityLinkTarget {
-  readonly entity: AnyEntityDefinition;
+  readonly entity: EntityDefinitionShape;
   readonly id: string;
 }
 

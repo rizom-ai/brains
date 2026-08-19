@@ -15,6 +15,9 @@ import type { PublishProvider } from "@brains/contracts";
 import type { AttachmentProvider } from "../service/attachment-registry";
 import type { ProjectionRule } from "./projection-rule";
 import type { AnyDataSourceDeclaration } from "../public/entity-data-source";
+import type { AnyDashboardWidgetDefinition } from "../operator/operator-definition-contract";
+import type { OperatorCaller } from "../operator/operator-context-contract";
+import type { CreateInput } from "@brains/entity-service";
 import type { z } from "@brains/utils/zod";
 
 export type {
@@ -169,6 +172,15 @@ export interface EntityDefinition<
    * package never names the insights namespace.
    */
   readonly insights?: EntityInsightDeclaration | undefined;
+  /**
+   * Dashboard widgets this entity type contributes.
+   *
+   * Four packages subscribed to the plugins-registered lifecycle event to do
+   * exactly this one thing. That is not a messaging need — it is waiting for
+   * a hook to announce a static fact, so the runtime owns the wait.
+   */
+  readonly dashboardWidgets?:
+    readonly EntityDashboardWidgetDeclaration[] | undefined;
   /** Durable job handlers, keyed by job type. */
   readonly jobs?: Record<string, EntityJobDeclaration> | undefined;
   /**
@@ -263,17 +275,52 @@ export interface EntityPublishDeclaration {
 }
 
 /**
- * What to do with a create request of a given input shape: hand it to a
- * declared job, or refuse it with a message.
+ * What a create route decided: write this, change that, or refuse.
  *
- * Deliberately data rather than a callback. A callback in the create path
- * is arbitrary code whose reported outcome the runtime has to take on
- * trust — a package could claim it created something it did not. Here the
- * runtime enqueues the job and reports the outcome itself, so a package
- * cannot misreport what happened.
+ * Content rather than a completed write, for the same reason a generation
+ * hands back content — the runtime performs it and reports what happened,
+ * so a package cannot claim it created something it did not.
+ */
+export type EntityCreateResolution =
+  | {
+      readonly create: {
+        readonly id: string;
+        readonly content: string;
+        readonly metadata: Record<string, unknown>;
+      };
+    }
+  | {
+      readonly update: {
+        readonly id: string;
+        readonly content: string;
+        readonly metadata: Record<string, unknown>;
+      };
+    }
+  | { readonly refuse: string };
+
+/** What a create route is given to decide with. */
+export interface EntityCreateContext {
+  readonly input: CreateInput;
+  readonly entities: JobEntityAccess;
+  readonly logger: LoggerContract;
+}
+
+/**
+ * What to do with a create request of a given input shape: hand it to a
+ * declared job, decide inline, or refuse it with a message.
+ *
+ * `delegate` and `reject` are data rather than a callback, so the runtime
+ * enqueues and reports and a package cannot misreport what happened.
+ * `resolve` keeps that guarantee for creates that finish immediately — a
+ * wish deduplicates against what exists and either raises a count or starts
+ * a new one — by returning what should be written rather than writing it.
  */
 export type EntityCreateRoute =
-  { readonly delegate: string } | { readonly reject: string };
+  | { readonly delegate: string }
+  | { readonly reject: string }
+  | {
+      resolve(context: EntityCreateContext): Promise<EntityCreateResolution>;
+    };
 
 /**
  * Create inputs are already discriminated by how the caller expressed
@@ -426,6 +473,21 @@ export type EntityInsightDeclaration = Record<
   string,
   (context: EntityInsightContext) => Promise<Record<string, unknown>>
 >;
+
+/**
+ * A dashboard widget an entity type contributes, with the reader that fills
+ * it. Type-erased so a definition can hold widgets over different data
+ * shapes; `defineEntityDashboardWidget` checks the pairing where it is
+ * written.
+ */
+export interface EntityDashboardWidgetDeclaration {
+  readonly definition: AnyDashboardWidgetDefinition;
+  load(context: {
+    readonly entities: JobEntityAccess;
+    readonly caller: OperatorCaller | null;
+    readonly signal: AbortSignal;
+  }): Promise<unknown>;
+}
 
 /**
  * An attachment provider, declared.
