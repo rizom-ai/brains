@@ -1,10 +1,10 @@
-import { parseMarkdownWithFrontmatter } from "@brains/plugins";
-import { canonicalAtprotoLexicons } from "@brains/atproto-contracts";
+import { parseMarkdownWithFrontmatter } from "@brains/sdk/entities";
+import { canonicalAtprotoLexicons } from "@brains/sdk/entities";
 import type {
   AtprotoBrainProjectRecord,
   AtprotoProjection,
   AtprotoProjectionBuildInput,
-} from "@brains/atproto-contracts";
+} from "@brains/sdk/entities";
 import { projectFrontmatterSchema, projectSchema } from "./schemas/project";
 
 export async function buildProjectAtprotoRecord({

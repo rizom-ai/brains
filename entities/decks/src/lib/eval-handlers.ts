@@ -1,6 +1,6 @@
-import { z } from "@brains/utils/zod";
-import { fetchStyleGuide, formatVoiceGuidance } from "@brains/contracts";
-import type { EntityEvalDeclaration } from "@brains/plugins";
+import { z } from "@brains/sdk/entities";
+import { fetchStyleGuide, formatVoiceGuidance } from "@brains/sdk/entities";
+import type { EntityEvalDeclaration } from "@brains/sdk/entities";
 
 const generateDeckEvalInputSchema = z.object({
   prompt: z.string(),

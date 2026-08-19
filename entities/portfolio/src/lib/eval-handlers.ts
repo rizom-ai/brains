@@ -1,6 +1,6 @@
-import { z } from "@brains/utils/zod";
-import { fetchStyleGuide, formatVoiceGuidance } from "@brains/contracts";
-import type { EntityEvalDeclaration } from "@brains/plugins";
+import { z } from "@brains/sdk/entities";
+import { fetchStyleGuide, formatVoiceGuidance } from "@brains/sdk/entities";
+import type { EntityEvalDeclaration } from "@brains/sdk/entities";
 import { buildProjectGenerationPrompt } from "../handlers/generation-handler";
 
 const generateProjectEvalInputSchema = z.object({

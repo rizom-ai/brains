@@ -83,6 +83,15 @@ export type { JsonValue } from "@brains/contracts";
 // declaration is on the public entity surface, so the item it returns has
 // to be too. Named consumer: @brains/blog.
 export type { EntityFeedDeclaration } from "@brains/plugins";
+
+// Attachments. An entity declares the artifacts it can produce — a
+// printable, a social preview — and supplies the provider that builds one.
+// Named consumers: @brains/blog, @brains/decks, @brains/portfolio.
+export type { AttachmentProvider } from "@brains/plugins";
+export type { PublishMediaData } from "@brains/contracts";
+
+// What a media page prints in its header: the site's own name and URL.
+export { fetchSiteInfo } from "@brains/site-composition";
 export type { FeedItem } from "@brains/site-composition";
 
 // Generation helpers. A package that writes an entity from a prompt has to
@@ -95,10 +104,20 @@ export { ensureUniqueTitle } from "@brains/plugins";
 // owns registration, so the registry itself stays internal — an author
 // only builds the projection.
 export { canonicalAtprotoLexicons } from "@brains/atproto-contracts";
+// One record type per entity type that projects. Promoted together rather
+// than as each package converts: they are the same shape, and a package
+// building its own projection cannot do so without the record it writes.
 export type {
   AtprotoBlobRef,
+  AtprotoBrainCardRecord,
+  AtprotoBrainDeckRecord,
+  AtprotoBrainLinkRecord,
+  AtprotoBrainNoteRecord,
   AtprotoBrainPostRecord,
+  AtprotoBrainProjectRecord,
   AtprotoBrainSeriesRecord,
+  AtprotoBrainSocialPostRecord,
+  AtprotoBrainTopicRecord,
   AtprotoProjection,
   AtprotoProjectionBuildInput,
   AtprotoProjectionContext,
@@ -106,7 +125,11 @@ export type {
 
 // Text and markdown helpers used when authoring entities. Promoted from
 // @brains/utils; consumers today are @brains/doc and @brains/products.
-export { calculateReadingTime, slugify } from "@brains/utils/string-utils";
+export {
+  calculateReadingTime,
+  slugify,
+  truncateText,
+} from "@brains/utils/string-utils";
 export { computeContentHash } from "@brains/utils/hash";
 export { parseMarkdown } from "@brains/utils/markdown";
 

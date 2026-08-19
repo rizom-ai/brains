@@ -8,7 +8,7 @@
 import {
   defineEntityPackage,
   type EntityPackageDefinition,
-} from "@brains/plugins";
+} from "@brains/sdk/entities";
 import { deck } from "./deck-entity";
 
 const decksPackage: EntityPackageDefinition<
@@ -30,7 +30,6 @@ export {
   enrichedDeckSchema,
   type EnrichedDeck,
 } from "./schemas/deck";
-export { DeckAdapter, deckAdapter } from "./adapters/deck-adapter";
 export { parseDeckData } from "./datasources/parse-helpers";
 export {
   buildDeckAtprotoRecord,

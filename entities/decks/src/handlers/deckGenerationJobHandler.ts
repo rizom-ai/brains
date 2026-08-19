@@ -1,12 +1,11 @@
 import {
   ensureUniqueTitle,
   generateMarkdownWithFrontmatter,
-} from "@brains/plugins";
-import type { EntityGenerationDeclaration } from "@brains/plugins";
-import { slugify } from "@brains/utils/string-utils";
-import { fetchStyleGuide, formatVoiceGuidance } from "@brains/contracts";
-import { z } from "@brains/utils/zod";
-import { generationResultSchema } from "@brains/contracts";
+} from "@brains/sdk/entities";
+import type { EntityGenerationDeclaration } from "@brains/sdk/entities";
+import { slugify } from "@brains/sdk/entities";
+import { fetchStyleGuide, formatVoiceGuidance } from "@brains/sdk/entities";
+import { z } from "@brains/sdk/entities";
 
 /**
  * Input schema for deck generation job
@@ -56,18 +55,6 @@ const SKELETON_DECK = (title: string): string =>
     "",
     "Add your conclusion here",
   ].join("\n");
-
-export const deckGenerationResultSchema: ReturnType<
-  typeof generationResultSchema.extend<{
-    title: z.ZodOptional<z.ZodString>;
-    slug: z.ZodOptional<z.ZodString>;
-  }>
-> = generationResultSchema.extend({
-  title: z.string().optional(),
-  slug: z.string().optional(),
-});
-
-export type DeckGenerationResult = z.output<typeof deckGenerationResultSchema>;
 
 /**
  * Deck generation, declared.

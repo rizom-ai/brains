@@ -9,7 +9,7 @@
 import {
   defineServicePlugin,
   type ServicePackageDefinition,
-} from "@brains/plugins";
+} from "@brains/sdk/services";
 import { socialMediaConfigSchema } from "./config";
 import { socialPost } from "./social-post-entity";
 import { createLinkedInProvider } from "./lib/linkedin-client";

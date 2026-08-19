@@ -1,4 +1,4 @@
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/sdk/entities";
 import type { ProjectStatus } from "../schemas/project";
 
 // The schemas are the source of truth; every type here is derived from one

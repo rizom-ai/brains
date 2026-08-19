@@ -1,6 +1,6 @@
 import type { JSX } from "preact";
 import type { ProjectView } from "./project-view";
-import type { PaginationInfo } from "@brains/plugins";
+import type { PaginationInfo } from "@brains/sdk/entities";
 import { Card, CardTitle, Head, Pagination } from "@brains/ui-library";
 
 export interface ProjectListProps {
