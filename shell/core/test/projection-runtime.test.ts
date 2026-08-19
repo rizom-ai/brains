@@ -356,6 +356,44 @@ describe("activateProjectionRuntime", () => {
     runtime.dispose();
   });
 
+  it("does not deadlock when reconciliation awaits its own wakeup", async () => {
+    const store = new MemoryRuntimeStore();
+    store.setPending(false);
+    let registeredWakeup: (() => Promise<void>) | undefined;
+    const activation = activateProjectionRuntime({
+      store,
+      queue: {
+        enqueue: async () => "unused",
+        getStatus: async () => null,
+        registerHandler: (): void => {},
+        unregisterHandler: (): void => {},
+      },
+      setWakeup: (wakeup): (() => void) => {
+        registeredWakeup = wakeup;
+        return (): void => {};
+      },
+      graph,
+      rules: [projectionRule],
+      inputContext,
+      executionContext,
+      reconcileTargets: async () => {},
+      beforeWaveCompletion: async () => {},
+      logger: createSilentLogger(),
+      createWaveId: () => "unused-wave",
+      now: () => 10,
+      reconcileBatches: async (): Promise<void> => {
+        await registeredWakeup?.();
+      },
+    });
+
+    const runtime = await Promise.race([
+      activation,
+      Bun.sleep(50).then(() => null),
+    ]);
+    expect(runtime).not.toBeNull();
+    runtime?.dispose();
+  });
+
   it("registers the framework handler before recovering pending work", async () => {
     const store = new MemoryRuntimeStore();
     const order: string[] = [];
