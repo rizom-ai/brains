@@ -48,6 +48,15 @@ describe("interpolateEnv", () => {
     delete process.env["TEST_TOKEN"];
   });
 
+  it("should resolve against an explicitly supplied environment", () => {
+    expect(
+      interpolateEnv(
+        { credential: "${BROKER_TEST_TOKEN}" },
+        { BROKER_TEST_TOKEN: "test-token-not-a-secret" },
+      ),
+    ).toEqual({ credential: "test-token-not-a-secret" });
+  });
+
   it("should interpolate string values in objects", () => {
     const result = interpolateEnv({
       openai: "${TEST_KEY}",

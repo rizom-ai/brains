@@ -4,19 +4,24 @@
 
 const ENV_VAR_PATTERN = /\$\{[^}]+\}/g;
 
+type Environment = Readonly<Record<string, string | undefined>>;
+
 /**
  * Interpolate ${ENV_VAR} references in a string with process.env values.
  * Returns the original string if no references are found.
  * Returns undefined if any referenced env var is not set.
  */
-export function interpolateEnvVar(value: string): string | undefined {
+export function interpolateEnvVar(
+  value: string,
+  env: Environment = process.env,
+): string | undefined {
   const matches = value.match(ENV_VAR_PATTERN);
   if (!matches) return value;
 
   let result = value;
   for (const match of matches) {
     const varName = match.slice(2, -1); // strip ${ and }
-    const envValue = process.env[varName];
+    const envValue = env[varName];
     if (envValue === undefined) return undefined;
     result = result.replace(match, envValue);
   }
@@ -29,24 +34,27 @@ export function interpolateEnvVar(value: string): string | undefined {
  * - Object keys: "${VAR}" → process.env.VAR
  * - Removes entries where env vars are not set
  */
-export function interpolateEnv(data: unknown): unknown {
+export function interpolateEnv(
+  data: unknown,
+  env: Environment = process.env,
+): unknown {
   if (typeof data === "string") {
-    return interpolateEnvVar(data);
+    return interpolateEnvVar(data, env);
   }
 
   if (Array.isArray(data)) {
     return data
-      .map((item) => interpolateEnv(item))
+      .map((item) => interpolateEnv(item, env))
       .filter((item) => item !== undefined);
   }
 
   if (typeof data === "object" && data !== null) {
     const result: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(data)) {
-      const interpolatedKey = interpolateEnvVar(key);
+      const interpolatedKey = interpolateEnvVar(key, env);
       if (interpolatedKey === undefined) continue;
 
-      const interpolatedValue = interpolateEnv(value);
+      const interpolatedValue = interpolateEnv(value, env);
       if (interpolatedValue === undefined) continue;
 
       result[interpolatedKey] = interpolatedValue;
