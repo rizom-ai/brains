@@ -594,6 +594,7 @@
         "@brains/email-workflows": "workspace:*",
         "@brains/eslint-config": "workspace:*",
         "@brains/image-plugin": "workspace:*",
+        "@brains/knowledge-map": "workspace:*",
         "@brains/link": "workspace:*",
         "@brains/mcp": "workspace:*",
         "@brains/mcp-service": "workspace:*",
@@ -919,6 +920,25 @@
         "bun-types": "^1.3.14",
         "eslint": "^10.5.0",
         "preact-render-to-string": "^6.7.0",
+        "typescript": "^7.0.2",
+      },
+    },
+    "plugins/knowledge-map": {
+      "name": "@brains/knowledge-map",
+      "version": "0.2.0-alpha.306",
+      "dependencies": {
+        "@brains/content-formatters": "workspace:*",
+        "@brains/plugins": "workspace:*",
+        "@brains/utils": "workspace:*",
+        "preact": "^10.27.2",
+      },
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
+        "@brains/test-utils": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/bun": "^1.3.14",
+        "bun-types": "^1.3.14",
+        "eslint": "^10.5.0",
         "typescript": "^7.0.2",
       },
     },
@@ -2144,6 +2164,8 @@
     "@brains/image-plugin": ["@brains/image-plugin@workspace:entities/image"],
 
     "@brains/job-queue": ["@brains/job-queue@workspace:shell/job-queue"],
+
+    "@brains/knowledge-map": ["@brains/knowledge-map@workspace:plugins/knowledge-map"],
 
     "@brains/link": ["@brains/link@workspace:entities/link"],
 

@@ -11,7 +11,7 @@ import {
 import {
   KNOWLEDGE_MAP_WIDGET_ID,
   registerKnowledgeMapDashboardWidget,
-} from "../../src/lib/knowledge-map-widget";
+} from "../src/knowledge-map-widget";
 
 describe("registerKnowledgeMapDashboardWidget", () => {
   it("registers one normalized semantic projection once plugins are ready", async () => {

@@ -1,10 +1,10 @@
 /** @jsxImportSource preact */
 import { describe, expect, test } from "bun:test";
 import { render } from "preact-render-to-string";
-import { KnowledgeMapTemplate } from "../../src/templates/knowledge-map-template";
-import type { KnowledgeMapTemplateData } from "../../src/templates/knowledge-map-template";
-import { getKnowledgeMapTemplate } from "../../src/templates/knowledge-map-template";
-import { KnowledgeMapDataSource } from "../../src/datasources/knowledge-map-datasource";
+import { KnowledgeMapTemplate } from "../src/knowledge-map-template";
+import type { KnowledgeMapTemplateData } from "../src/knowledge-map-template";
+import { getKnowledgeMapTemplate } from "../src/knowledge-map-template";
+import { KnowledgeMapDataSource } from "../src/knowledge-map-datasource";
 
 /* The knowledge-map site template. The proof
    section — authored copy on the left, the live map on the right, honest
@@ -83,7 +83,7 @@ describe("KnowledgeMapTemplate", () => {
 describe("knowledge-map template registration", () => {
   test("registers with the datasource and a round-tripping overlay formatter", () => {
     const template = getKnowledgeMapTemplate();
-    expect(template.dataSourceId).toBe("topics:knowledge-map");
+    expect(template.dataSourceId).toBe("knowledge-map:map");
     expect(template.requiredPermission).toBe("public");
     expect(template.schema.safeParse(data).success).toBe(true);
 
@@ -114,6 +114,6 @@ describe("knowledge-map template registration", () => {
     // tested in knowledge-map-data.test.ts) and the schema parse; what the
     // registry depends on is the id contract.
     const source = new KnowledgeMapDataSource();
-    expect(source.id).toBe("topics:knowledge-map");
+    expect(source.id).toBe("knowledge-map:map");
   });
 });

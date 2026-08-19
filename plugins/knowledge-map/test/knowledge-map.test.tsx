@@ -1,8 +1,8 @@
 /** @jsxImportSource preact */
 import { describe, expect, test } from "bun:test";
 import { render } from "preact-render-to-string";
-import { KnowledgeMap } from "../../src/widgets/knowledge-map";
-import type { KnowledgeMapData } from "../../src/lib/knowledge-map-data";
+import { KnowledgeMap } from "../src/knowledge-map";
+import type { KnowledgeMapData } from "../src/knowledge-map-data";
 
 /* The shared knowledge-map renderer. Topics are soft-bounded blob zones
    (mist + dashed border + floating label), published points glow, source
