@@ -47,7 +47,7 @@ import seriesPackage from "@brains/series";
 import { siteBuilderPlugin } from "@brains/site-builder-plugin";
 import { siteContentPlugin } from "@brains/site-content";
 import { siteInfoPlugin } from "@brains/site-info";
-import { socialMediaPlugin } from "@brains/social-media";
+import socialMediaPackage from "@brains/social-media";
 import { stockPhotoPlugin } from "@brains/stock-photo";
 import styleGuidePackage from "@brains/style-guide";
 import { topicsPlugin } from "@brains/topics";
@@ -182,7 +182,11 @@ export const canonicalBrain: BrainDefinition = defineBrain({
     packageCapability("series", "@brains/series", seriesPackage),
     packageCapability("portfolio", "@brains/portfolio", portfolioPackage),
     ["content-pipeline", contentPipelinePlugin, undefined],
-    ["social-media", socialMediaPlugin, undefined],
+    packageCapability(
+      "social-media",
+      "@brains/social-media",
+      socialMediaPackage,
+    ),
     ["newsletter", newsletter, undefined],
     ["stock-photo", stockPhotoPlugin, undefined],
     [

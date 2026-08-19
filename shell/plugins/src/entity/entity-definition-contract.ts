@@ -339,6 +339,13 @@ export type EntityGenerationResult =
       readonly success: true;
       readonly content: string;
       readonly metadata: Record<string, unknown>;
+      /**
+       * The id to store this under when nothing was pre-allocated. Entity
+       * ids are user-visible — directory sync names files after them — so a
+       * package that wants a readable one says so. Defaults to the title,
+       * slugified.
+       */
+      readonly id?: string | undefined;
       /** Extra fields merged into the job's success result, e.g. a slug. */
       readonly resultExtras?: Record<string, unknown> | undefined;
     }

@@ -1,7 +1,6 @@
-import type { EntityPluginContext } from "@brains/plugins";
-import { ProgressReporter } from "@brains/utils/progress";
+import type { EntityEvalDeclaration } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
-import { GenerationJobHandler } from "../handlers/generationHandler";
+import { getTemplateName } from "../templates";
 
 const generationInputSchema = z.object({
   prompt: z.string().optional(),
@@ -9,71 +8,24 @@ const generationInputSchema = z.object({
   platform: z.enum(["linkedin"]).default("linkedin"),
 });
 
-const createInputSchema = z.object({
-  prompt: z.string().optional(),
-  content: z.string().optional(),
-  title: z.string().optional(),
-  platform: z.enum(["linkedin"]).optional(),
-});
-
-type GenerationInput = z.output<typeof generationInputSchema>;
-type CreateInput = z.output<typeof createInputSchema>;
-
-export function registerEvalHandlers(context: EntityPluginContext): void {
-  // Eval: test AI text generation only (fast, no entity persistence)
-  context.eval.registerHandler("generation", async (input: unknown) => {
-    const parsed: GenerationInput = generationInputSchema.parse(input);
-
-    const generationPrompt = parsed.content
+/**
+ * Evals for social post writing.
+ *
+ * Only the text-generation half: the `create` eval used to run the whole
+ * job and then read the entity back, which a declaration cannot do — a
+ * generation returns content and the runtime is what persists it. The
+ * persistence half is covered by the runtime's own lifecycle tests.
+ */
+export const socialPostEvals: EntityEvalDeclaration = {
+  generation: async (input, { ai }) => {
+    const parsed = generationInputSchema.parse(input);
+    const prompt = parsed.content
       ? `Create an engaging LinkedIn post to share this content:\n\n${parsed.content}`
       : (parsed.prompt ?? "Write an engaging LinkedIn post");
 
-    return context.ai.generate<{
-      content: string;
-    }>({
-      prompt: generationPrompt,
-      templateName: `social-media:${parsed.platform}`,
+    return ai.generate<{ content: string }>({
+      prompt,
+      templateName: getTemplateName(parsed.platform),
     });
-  });
-
-  // Eval: run the full generation pipeline and verify entity persistence
-  context.eval.registerHandler("create", async (input: unknown) => {
-    const parsed: CreateInput = createInputSchema.parse(input);
-
-    const progressSteps: Array<{ progress: number; message?: string }> = [];
-    const reporter = ProgressReporter.from(async (n) => {
-      const step: { progress: number; message?: string } = {
-        progress: n.progress,
-      };
-      if (n.message !== undefined) step.message = n.message;
-      progressSteps.push(step);
-    });
-    if (!reporter) throw new Error("Failed to create progress reporter");
-
-    const handler = new GenerationJobHandler(context.logger, context);
-    const result = await handler.process(
-      parsed,
-      `eval-${Date.now()}`,
-      reporter,
-    );
-
-    // Verify entity was actually persisted when the handler reports success
-    let entityExists = false;
-    let entityPreview: string | undefined;
-    if (result.success && result.entityId) {
-      const entity = await context.entityService.getEntity({
-        entityType: "social-post",
-        id: result.entityId,
-      });
-      entityExists = !!entity;
-      entityPreview = entity?.content.slice(0, 300);
-    }
-
-    return {
-      ...result,
-      entityExists,
-      entityPreview,
-      progressSteps,
-    };
-  });
-}
+  },
+};
