@@ -5,28 +5,13 @@ import {
   type SQLiteColumn,
   type SQLiteTableWithColumns,
 } from "drizzle-orm/sqlite-core";
+import type { SqliteTextColumn } from "@brains/db";
 import { vector } from "./vector";
 
-type EmbeddingTextColumn<TName extends string> = SQLiteColumn<
-  {
-    name: TName;
-    tableName: "embeddings";
-    dataType: "string";
-    columnType: "SQLiteText";
-    data: string;
-    driverParam: string;
-    notNull: true;
-    hasDefault: false;
-    isPrimaryKey: false;
-    isAutoincrement: false;
-    hasRuntimeDefault: false;
-    enumValues: [string, ...string[]];
-    baseColumn: never;
-    identity: undefined;
-    generated: undefined;
-  },
-  Record<string, never>,
-  { length: number | undefined }
+type EmbeddingTextColumn<TName extends string> = SqliteTextColumn<
+  "embeddings",
+  TName,
+  true
 >;
 
 type EmbeddingVectorColumn = SQLiteColumn<

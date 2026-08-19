@@ -3,101 +3,18 @@ import {
   text,
   integer,
   index,
-  type SQLiteColumn,
   type SQLiteTableWithColumns,
 } from "drizzle-orm/sqlite-core";
 import { createId } from "@brains/utils/id";
+import type {
+  SqliteIntegerColumn,
+  SqliteJsonColumn,
+  SqliteTextColumn,
+} from "@brains/db";
 import type { JobContext } from "./types";
 import type { ProgressNotification } from "@brains/utils/progress";
 
 type JobQueueStatus = "pending" | "processing" | "completed" | "failed";
-
-type SqliteTextColumn<
-  TTableName extends string,
-  TName extends string,
-  TNotNull extends boolean,
-  THasDefault extends boolean = false,
-  TPrimaryKey extends boolean = false,
-  THasRuntimeDefault extends boolean = false,
-  TData = string,
-  TEnumValues extends [string, ...string[]] = [string, ...string[]],
-> = SQLiteColumn<
-  {
-    name: TName;
-    tableName: TTableName;
-    dataType: "string";
-    columnType: "SQLiteText";
-    data: TData;
-    driverParam: string;
-    notNull: TNotNull;
-    hasDefault: THasDefault;
-    isPrimaryKey: TPrimaryKey;
-    isAutoincrement: false;
-    hasRuntimeDefault: THasRuntimeDefault;
-    enumValues: TEnumValues;
-    baseColumn: never;
-    identity: undefined;
-    generated: undefined;
-  },
-  Record<string, never>,
-  { length: number | undefined }
->;
-
-type SqliteIntegerColumn<
-  TTableName extends string,
-  TName extends string,
-  TNotNull extends boolean,
-  THasDefault extends boolean = false,
-  THasRuntimeDefault extends boolean = false,
-> = SQLiteColumn<
-  {
-    name: TName;
-    tableName: TTableName;
-    dataType: "number";
-    columnType: "SQLiteInteger";
-    data: number;
-    driverParam: number;
-    notNull: TNotNull;
-    hasDefault: THasDefault;
-    isPrimaryKey: false;
-    isAutoincrement: false;
-    hasRuntimeDefault: THasRuntimeDefault;
-    enumValues: undefined;
-    baseColumn: never;
-    identity: undefined;
-    generated: undefined;
-  },
-  Record<string, never>,
-  Record<string, never>
->;
-
-type SqliteJsonColumn<
-  TTableName extends string,
-  TName extends string,
-  TData,
-  TNotNull extends boolean,
-  TExtraConfig extends object = Record<string, never>,
-> = SQLiteColumn<
-  {
-    name: TName;
-    tableName: TTableName;
-    dataType: "json";
-    columnType: "SQLiteTextJson";
-    data: TData;
-    driverParam: string;
-    notNull: TNotNull;
-    hasDefault: false;
-    isPrimaryKey: false;
-    isAutoincrement: false;
-    hasRuntimeDefault: false;
-    enumValues: undefined;
-    baseColumn: never;
-    identity: undefined;
-    generated: undefined;
-  },
-  Record<string, never>,
-  TExtraConfig
->;
 
 type JobQueueTextColumn<
   TName extends string,

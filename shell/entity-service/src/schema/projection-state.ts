@@ -4,9 +4,13 @@ import {
   primaryKey,
   sqliteTable,
   text,
-  type SQLiteColumn,
   type SQLiteTableWithColumns,
 } from "drizzle-orm/sqlite-core";
+import type {
+  SqliteIntegerColumn,
+  SqliteJsonColumn,
+  SqliteTextColumn,
+} from "@brains/db";
 import type { ProjectionWriteIntent } from "../projection-contracts";
 
 export type ProjectionTextColumn<
@@ -17,26 +21,15 @@ export type ProjectionTextColumn<
   TPrimaryKey extends boolean = false,
   TData = string,
   TEnumValues extends [string, ...string[]] = [string, ...string[]],
-> = SQLiteColumn<
-  {
-    name: TName;
-    tableName: TTable;
-    dataType: "string";
-    columnType: "SQLiteText";
-    data: TData;
-    driverParam: string;
-    notNull: TNotNull;
-    hasDefault: THasDefault;
-    isPrimaryKey: TPrimaryKey;
-    isAutoincrement: false;
-    hasRuntimeDefault: false;
-    enumValues: TEnumValues;
-    baseColumn: never;
-    identity: undefined;
-    generated: undefined;
-  },
-  Record<string, never>,
-  { length: number | undefined }
+> = SqliteTextColumn<
+  TTable,
+  TName,
+  TNotNull,
+  THasDefault,
+  TPrimaryKey,
+  false,
+  TData,
+  TEnumValues
 >;
 
 export type ProjectionIntegerColumn<
@@ -46,26 +39,14 @@ export type ProjectionIntegerColumn<
   THasDefault extends boolean = false,
   TPrimaryKey extends boolean = false,
   TAutoincrement extends boolean = false,
-> = SQLiteColumn<
-  {
-    name: TName;
-    tableName: TTable;
-    dataType: "number";
-    columnType: "SQLiteInteger";
-    data: number;
-    driverParam: number;
-    notNull: TNotNull;
-    hasDefault: THasDefault;
-    isPrimaryKey: TPrimaryKey;
-    isAutoincrement: TAutoincrement;
-    hasRuntimeDefault: false;
-    enumValues: undefined;
-    baseColumn: never;
-    identity: undefined;
-    generated: undefined;
-  },
-  Record<string, never>,
-  Record<string, never>
+> = SqliteIntegerColumn<
+  TTable,
+  TName,
+  TNotNull,
+  THasDefault,
+  false,
+  TPrimaryKey,
+  TAutoincrement
 >;
 
 type ProjectionJsonColumn<
@@ -73,27 +54,7 @@ type ProjectionJsonColumn<
   TName extends string,
   TData,
   THasDefault extends boolean = false,
-> = SQLiteColumn<
-  {
-    name: TName;
-    tableName: TTable;
-    dataType: "json";
-    columnType: "SQLiteTextJson";
-    data: TData;
-    driverParam: string;
-    notNull: true;
-    hasDefault: THasDefault;
-    isPrimaryKey: false;
-    isAutoincrement: false;
-    hasRuntimeDefault: false;
-    enumValues: undefined;
-    baseColumn: never;
-    identity: undefined;
-    generated: undefined;
-  },
-  Record<string, never>,
-  { $type: TData }
->;
+> = SqliteJsonColumn<TTable, TName, TData, true, { $type: TData }, THasDefault>;
 
 type ProjectionDirtyInputsTable = SQLiteTableWithColumns<{
   name: "projection_dirty_inputs";

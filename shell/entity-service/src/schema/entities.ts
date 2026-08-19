@@ -5,9 +5,13 @@ import {
   integer,
   primaryKey,
   check,
-  type SQLiteColumn,
   type SQLiteTableWithColumns,
 } from "drizzle-orm/sqlite-core";
+import type {
+  SqliteIntegerColumn,
+  SqliteJsonColumn,
+  SqliteTextColumn,
+} from "@brains/db";
 
 type EntityTextColumn<
   TName extends string,
@@ -15,52 +19,27 @@ type EntityTextColumn<
   THasDefault extends boolean = false,
   TData = string,
   TEnumValues extends [string, ...string[]] = [string, ...string[]],
-> = SQLiteColumn<
-  {
-    name: TName;
-    tableName: "entities";
-    dataType: "string";
-    columnType: "SQLiteText";
-    data: TData;
-    driverParam: string;
-    notNull: TNotNull;
-    hasDefault: THasDefault;
-    isPrimaryKey: false;
-    isAutoincrement: false;
-    hasRuntimeDefault: false;
-    enumValues: TEnumValues;
-    baseColumn: never;
-    identity: undefined;
-    generated: undefined;
-  },
-  Record<string, never>,
-  { length: number | undefined }
+> = SqliteTextColumn<
+  "entities",
+  TName,
+  TNotNull,
+  THasDefault,
+  false,
+  false,
+  TData,
+  TEnumValues
 >;
 
 type EntityIntegerColumn<
   TName extends string,
   THasDefault extends boolean,
   THasRuntimeDefault extends boolean,
-> = SQLiteColumn<
-  {
-    name: TName;
-    tableName: "entities";
-    dataType: "number";
-    columnType: "SQLiteInteger";
-    data: number;
-    driverParam: number;
-    notNull: true;
-    hasDefault: THasDefault;
-    isPrimaryKey: false;
-    isAutoincrement: false;
-    hasRuntimeDefault: THasRuntimeDefault;
-    enumValues: undefined;
-    baseColumn: never;
-    identity: undefined;
-    generated: undefined;
-  },
-  Record<string, never>,
-  Record<string, never>
+> = SqliteIntegerColumn<
+  "entities",
+  TName,
+  true,
+  THasDefault,
+  THasRuntimeDefault
 >;
 
 type EntityJsonColumn<
@@ -68,27 +47,7 @@ type EntityJsonColumn<
   TData,
   THasDefault extends boolean,
   TExtraConfig extends object,
-> = SQLiteColumn<
-  {
-    name: TName;
-    tableName: "entities";
-    dataType: "json";
-    columnType: "SQLiteTextJson";
-    data: TData;
-    driverParam: string;
-    notNull: true;
-    hasDefault: THasDefault;
-    isPrimaryKey: false;
-    isAutoincrement: false;
-    hasRuntimeDefault: false;
-    enumValues: undefined;
-    baseColumn: never;
-    identity: undefined;
-    generated: undefined;
-  },
-  Record<string, never>,
-  TExtraConfig
->;
+> = SqliteJsonColumn<"entities", TName, TData, true, TExtraConfig, THasDefault>;
 
 type EntitiesTable = SQLiteTableWithColumns<{
   name: "entities";

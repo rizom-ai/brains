@@ -3,61 +3,38 @@ import {
   integer,
   sqliteTable,
   text,
-  type SQLiteColumn,
   type SQLiteTableWithColumns,
 } from "drizzle-orm/sqlite-core";
+import type { SqliteIntegerColumn, SqliteTextColumn } from "@brains/db";
 
 type ConversationTextColumn<
   TTable extends string,
   TName extends string,
   TNotNull extends boolean,
   TPrimaryKey extends boolean = false,
-> = SQLiteColumn<
-  {
-    name: TName;
-    tableName: TTable;
-    dataType: "string";
-    columnType: "SQLiteText";
-    data: TNotNull extends true ? string : string | null;
-    driverParam: string;
-    notNull: TNotNull;
-    hasDefault: false;
-    isPrimaryKey: TPrimaryKey;
-    isAutoincrement: false;
-    hasRuntimeDefault: false;
-    enumValues: [string, ...string[]];
-    baseColumn: never;
-    identity: undefined;
-    generated: undefined;
-  },
-  Record<string, never>,
-  { length: number | undefined }
+> = SqliteTextColumn<
+  TTable,
+  TName,
+  TNotNull,
+  false,
+  TPrimaryKey,
+  false,
+  TNotNull extends true ? string : string | null
 >;
 
 type ConversationIntegerColumn<
   TTable extends string,
   TName extends string,
   THasDefault extends boolean,
-> = SQLiteColumn<
-  {
-    name: TName;
-    tableName: TTable;
-    dataType: "number";
-    columnType: "SQLiteInteger";
-    data: number | null;
-    driverParam: number;
-    notNull: false;
-    hasDefault: THasDefault;
-    isPrimaryKey: false;
-    isAutoincrement: false;
-    hasRuntimeDefault: false;
-    enumValues: undefined;
-    baseColumn: never;
-    identity: undefined;
-    generated: undefined;
-  },
-  Record<string, never>,
-  Record<string, never>
+> = SqliteIntegerColumn<
+  TTable,
+  TName,
+  false,
+  THasDefault,
+  false,
+  false,
+  false,
+  number | null
 >;
 
 type ConversationsTable = SQLiteTableWithColumns<{

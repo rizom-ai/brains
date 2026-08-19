@@ -5,6 +5,7 @@
   "description": "Embedded OAuth/OIDC authentication service for brain users",
   "dependencies": {
     "@brains/contracts": "workspace:*",
+    "@brains/db": "workspace:*",
     "@brains/notification-contracts": "workspace:*",
     "@brains/notifications": "workspace:*",
     "@brains/plugins": "workspace:*",

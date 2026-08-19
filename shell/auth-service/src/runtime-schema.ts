@@ -8,8 +8,13 @@ import {
   text,
   uniqueIndex,
   type SQLiteColumn,
-  type SQLiteTableWithColumns,
 } from "drizzle-orm/sqlite-core";
+import type {
+  SqliteBooleanColumn,
+  SqliteIntegerColumn,
+  SqliteTable,
+  SqliteTextColumn,
+} from "@brains/db";
 
 export type AuthTextColumn<
   TTableName extends string,
@@ -19,26 +24,15 @@ export type AuthTextColumn<
   TData = string,
   TEnumValues extends [string, ...string[]] = [string, ...string[]],
   THasDefault extends boolean = false,
-> = SQLiteColumn<
-  {
-    name: TName;
-    tableName: TTableName;
-    dataType: "string";
-    columnType: "SQLiteText";
-    data: TData;
-    driverParam: string;
-    notNull: TNotNull;
-    hasDefault: THasDefault;
-    isPrimaryKey: TPrimaryKey;
-    isAutoincrement: false;
-    hasRuntimeDefault: false;
-    enumValues: TEnumValues;
-    baseColumn: never;
-    identity: undefined;
-    generated: undefined;
-  },
-  Record<string, never>,
-  { length: number | undefined }
+> = SqliteTextColumn<
+  TTableName,
+  TName,
+  TNotNull,
+  THasDefault,
+  TPrimaryKey,
+  false,
+  TData,
+  TEnumValues
 >;
 
 export type AuthIntegerColumn<
@@ -47,63 +41,25 @@ export type AuthIntegerColumn<
   TNotNull extends boolean,
   TPrimaryKey extends boolean = false,
   THasDefault extends boolean = false,
-> = SQLiteColumn<
-  {
-    name: TName;
-    tableName: TTableName;
-    dataType: "number";
-    columnType: "SQLiteInteger";
-    data: number;
-    driverParam: number;
-    notNull: TNotNull;
-    hasDefault: THasDefault;
-    isPrimaryKey: TPrimaryKey;
-    isAutoincrement: false;
-    hasRuntimeDefault: false;
-    enumValues: undefined;
-    baseColumn: never;
-    identity: undefined;
-    generated: undefined;
-  },
-  Record<string, never>,
-  Record<string, never>
+> = SqliteIntegerColumn<
+  TTableName,
+  TName,
+  TNotNull,
+  THasDefault,
+  false,
+  TPrimaryKey
 >;
 
 type AuthBooleanColumn<
   TTableName extends string,
   TName extends string,
   TNotNull extends boolean,
-> = SQLiteColumn<
-  {
-    name: TName;
-    tableName: TTableName;
-    dataType: "boolean";
-    columnType: "SQLiteBoolean";
-    data: boolean;
-    driverParam: number;
-    notNull: TNotNull;
-    hasDefault: false;
-    isPrimaryKey: false;
-    isAutoincrement: false;
-    hasRuntimeDefault: false;
-    enumValues: undefined;
-    baseColumn: never;
-    identity: undefined;
-    generated: undefined;
-  },
-  Record<string, never>,
-  Record<string, never>
->;
+> = SqliteBooleanColumn<TTableName, TName, TNotNull>;
 
 export type AuthTable<
   TName extends string,
   TColumns extends Record<string, SQLiteColumn>,
-> = SQLiteTableWithColumns<{
-  name: TName;
-  schema: undefined;
-  columns: TColumns;
-  dialect: "sqlite";
-}>;
+> = SqliteTable<TName, TColumns>;
 
 type AuthPeopleTable = AuthTable<
   "auth_people",

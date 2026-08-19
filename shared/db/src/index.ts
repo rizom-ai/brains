@@ -14,3 +14,11 @@ export {
   runPackageMigrations,
   type PackageMigrationOptions,
 } from "./migrate";
+
+export type {
+  SqliteBooleanColumn,
+  SqliteIntegerColumn,
+  SqliteJsonColumn,
+  SqliteTable,
+  SqliteTextColumn,
+} from "./sqlite-columns";
