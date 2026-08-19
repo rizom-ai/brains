@@ -2,8 +2,8 @@ import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { promises as fs } from "fs";
 import { tmpdir } from "os";
 import { join, relative } from "path";
-import { createSilentLogger } from "@brains/test-utils";
-import { Head } from "@brains/ui-library";
+import { createSilentLogger, normalizeRendererHtml } from "@brains/test-utils";
+import { Head, MarkdownContent } from "@brains/ui-library";
 import type { LayoutComponent } from "@brains/site-engine";
 import { z } from "@brains/utils/zod";
 import { Fragment, h, type VNode } from "preact";
@@ -19,6 +19,7 @@ const pageSchema = z.object({
 });
 
 const fullscreenSchema = z.object({ message: z.string() });
+const proseSchema = z.object({ markdown: z.string() });
 
 async function listFiles(root: string, directory = root): Promise<string[]> {
   const entries = await fs.readdir(directory, { withFileTypes: true });
@@ -131,6 +132,17 @@ describe("PreactBuilder behavioral baseline", () => {
         },
         fullscreen: true,
       },
+      "baseline:prose": {
+        name: "baseline:prose",
+        schema: proseSchema,
+        pluginId: "baseline",
+        renderers: {
+          web: (props: Record<string, unknown>): VNode => {
+            const { markdown } = proseSchema.parse(props);
+            return h("article", {}, h(MarkdownContent, { markdown }));
+          },
+        },
+      },
     };
 
     const context = createRendererTestContext({
@@ -161,6 +173,51 @@ describe("PreactBuilder behavioral baseline", () => {
               id: "article",
               template: "baseline:article",
               content: { heading: "Writing heading" },
+            },
+          ],
+        },
+        {
+          id: "posts",
+          path: "/posts",
+          title: "Entity List Route",
+          description: "Entity list description",
+          layout: "default",
+          sections: [
+            {
+              id: "list",
+              template: "baseline:page",
+              content: { heading: "Entity list" },
+            },
+          ],
+        },
+        {
+          id: "post-detail",
+          path: "/posts/example",
+          title: "Entity Detail Route",
+          description: "Entity detail description",
+          layout: "default",
+          sections: [
+            {
+              id: "detail",
+              template: "baseline:page",
+              content: { heading: "Entity detail" },
+            },
+          ],
+        },
+        {
+          id: "prose",
+          path: "/prose",
+          title: "Markdown Route",
+          description: "Markdown description",
+          layout: "default",
+          sections: [
+            {
+              id: "prose",
+              template: "baseline:prose",
+              content: {
+                markdown:
+                  "## Renderer prose\n\nA quote with `code`, > and an apostrophe.",
+              },
             },
           ],
         },
@@ -228,6 +285,18 @@ describe("PreactBuilder behavioral baseline", () => {
       join(outputDir, "writing", "index.html"),
       "utf-8",
     );
+    const list = await fs.readFile(
+      join(outputDir, "posts", "index.html"),
+      "utf-8",
+    );
+    const detail = await fs.readFile(
+      join(outputDir, "posts", "example", "index.html"),
+      "utf-8",
+    );
+    const prose = await fs.readFile(
+      join(outputDir, "prose", "index.html"),
+      "utf-8",
+    );
     const canvas = await fs.readFile(
       join(outputDir, "canvas", "index.html"),
       "utf-8",
@@ -238,6 +307,12 @@ describe("PreactBuilder behavioral baseline", () => {
     );
 
     const firstOutputSnapshot = await readOutputSnapshot(outputDir);
+
+    for (const html of [home, writing, list, detail, prose, canvas]) {
+      expect(
+        normalizeRendererHtml(html, { ignoreImagePreloads: true }),
+      ).toMatchSnapshot();
+    }
 
     expect({
       files: Object.keys(firstOutputSnapshot),
@@ -307,6 +382,9 @@ describe("PreactBuilder behavioral baseline", () => {
         "assets/site.txt",
         "canvas/index.html",
         "index.html",
+        "posts/example/index.html",
+        "posts/index.html",
+        "prose/index.html",
         "public/fixture.bin",
         "scripts/page.js",
         "styles/main.css",
@@ -354,6 +432,9 @@ describe("PreactBuilder behavioral baseline", () => {
         routes: [
           "Building route: /",
           "Building route: /canvas",
+          "Building route: /posts",
+          "Building route: /posts/example",
+          "Building route: /prose",
           "Building route: /writing",
         ],
       },

@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, mock } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
+import { normalizeRendererHtml } from "@brains/test-utils";
 import { BlogPlugin } from "../../src/plugin";
 import { createBlogPrintableProvider } from "../../src/attachments/printable-provider";
 import type { BlogPost } from "../../src/schemas/blog-post";
@@ -74,6 +75,9 @@ describe("Blog printable attachment provider", () => {
         "https://example.com/posts/resilience-is-not-redundancy",
       );
       expect(html).toContain('meta name="robots" content="noindex,nofollow"');
+      expect(
+        normalizeRendererHtml(html, { ignoreImagePreloads: true }),
+      ).toMatchSnapshot();
       return Buffer.from("%PDF-post-printable");
     });
     const harness = createPluginHarness<BlogPlugin>();

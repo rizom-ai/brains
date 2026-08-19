@@ -1,0 +1,1002 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`deck carousel template renders slide content into the media page HTML 1`] = `
+{
+  "children": [
+    {
+      "name": "html",
+      "publicId": "",
+      "systemId": "",
+      "type": "doctype",
+    },
+    {
+      "attributes": [
+        [
+          "class",
+          "h-full",
+        ],
+        [
+          "data-theme",
+          "dark",
+        ],
+        [
+          "lang",
+          "en",
+        ],
+      ],
+      "children": [
+        {
+          "attributes": [],
+          "children": [
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "charset",
+                  "UTF-8",
+                ],
+              ],
+              "children": [],
+              "name": "meta",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "content",
+                  "width=device-width, initial-scale=1.0",
+                ],
+                [
+                  "name",
+                  "viewport",
+                ],
+              ],
+              "children": [],
+              "name": "meta",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "content",
+                  "IE=edge",
+                ],
+                [
+                  "http-equiv",
+                  "X-UA-Compatible",
+                ],
+              ],
+              "children": [],
+              "name": "meta",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "href",
+                  "/favicon.svg",
+                ],
+                [
+                  "rel",
+                  "icon",
+                ],
+                [
+                  "type",
+                  "image/svg+xml",
+                ],
+              ],
+              "children": [],
+              "name": "link",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "href",
+                  "/favicon.png",
+                ],
+                [
+                  "rel",
+                  "icon",
+                ],
+                [
+                  "type",
+                  "image/png",
+                ],
+              ],
+              "children": [],
+              "name": "link",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "href",
+                  "/styles/main.css",
+                ],
+                [
+                  "rel",
+                  "stylesheet",
+                ],
+              ],
+              "children": [],
+              "name": "link",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [],
+              "children": [
+                {
+                  "type": "text",
+                  "value": "Sample Deck",
+                },
+              ],
+              "name": "title",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "content",
+                  "Sample Deck",
+                ],
+                [
+                  "property",
+                  "og:title",
+                ],
+              ],
+              "children": [],
+              "name": "meta",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "content",
+                  "website",
+                ],
+                [
+                  "property",
+                  "og:type",
+                ],
+              ],
+              "children": [],
+              "name": "meta",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "content",
+                  "summary_large_image",
+                ],
+                [
+                  "name",
+                  "twitter:card",
+                ],
+              ],
+              "children": [],
+              "name": "meta",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "content",
+                  "Sample Deck",
+                ],
+                [
+                  "name",
+                  "twitter:title",
+                ],
+              ],
+              "children": [],
+              "name": "meta",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "content",
+                  "noindex,nofollow",
+                ],
+                [
+                  "name",
+                  "robots",
+                ],
+              ],
+              "children": [],
+              "name": "meta",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    
+    "
+,
+            },
+            {
+              "attributes": [],
+              "children": [
+                {
+                  "type": "text",
+                  "value": 
+"
+      (function() {
+        // Theme handling
+        const stored = localStorage.getItem('theme');
+        const theme = stored || 'dark';
+        document.documentElement.setAttribute('data-theme', theme);
+
+        window.toggleTheme = function() {
+          const current = document.documentElement.getAttribute('data-theme');
+          const next = current === 'dark' ? 'light' : 'dark';
+          document.documentElement.setAttribute('data-theme', next);
+          localStorage.setItem('theme', next);
+        };
+
+        // Mobile menu handling
+        window.toggleMobileMenu = function() {
+          const menu = document.getElementById('mobile-menu');
+          const button = document.getElementById('mobile-menu-button');
+          if (!menu || !button) return;
+
+          const isOpen = !menu.classList.contains('max-h-0');
+          const willOpen = !isOpen;
+
+          // Toggle height and opacity classes
+          menu.classList.toggle('max-h-0');
+          menu.classList.toggle('max-h-screen');
+          menu.classList.toggle('opacity-0');
+          menu.classList.toggle('opacity-100');
+
+          button.setAttribute('aria-expanded', String(willOpen));
+
+          // Toggle icon visibility
+          const menuIcon = button.querySelector('.menu-icon');
+          const closeIcon = button.querySelector('.close-icon');
+          if (menuIcon && closeIcon) {
+            menuIcon.classList.toggle('hidden');
+            closeIcon.classList.toggle('hidden');
+          }
+
+          if (willOpen) {
+            // Focus first link when menu opens
+            const firstLink = menu.querySelector('a');
+            if (firstLink) {
+              setTimeout(function() { firstLink.focus(); }, 100);
+            }
+            // Add keyboard listeners
+            document.addEventListener('keydown', window.handleMobileMenuKeydown);
+          } else {
+            // Return focus to button when menu closes
+            button.focus();
+            // Remove keyboard listeners
+            document.removeEventListener('keydown', window.handleMobileMenuKeydown);
+          }
+        };
+
+        // Close mobile menu (for link clicks)
+        window.closeMobileMenu = function() {
+          const menu = document.getElementById('mobile-menu');
+          if (menu && !menu.classList.contains('max-h-0')) {
+            window.toggleMobileMenu();
+          }
+        };
+
+        // Handle keyboard events for mobile menu
+        window.handleMobileMenuKeydown = function(e) {
+          const menu = document.getElementById('mobile-menu');
+          const button = document.getElementById('mobile-menu-button');
+          if (!menu || !button) return;
+
+          // Close on Escape
+          if (e.key === 'Escape') {
+            window.closeMobileMenu();
+            return;
+          }
+
+          // Focus trap on Tab
+          if (e.key === 'Tab') {
+            const focusableElements = menu.querySelectorAll('a, button');
+            if (focusableElements.length === 0) return;
+
+            const firstElement = focusableElements[0];
+            const lastElement = focusableElements[focusableElements.length - 1];
+
+            if (e.shiftKey) {
+              // Shift+Tab: wrap from first to last (or button)
+              if (document.activeElement === firstElement || document.activeElement === button) {
+                e.preventDefault();
+                lastElement.focus();
+              }
+            } else {
+              // Tab: wrap from last to button
+              if (document.activeElement === lastElement) {
+                e.preventDefault();
+                button.focus();
+              }
+            }
+          }
+        };
+      })();
+    "
+,
+                },
+              ],
+              "name": "script",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+"
+,
+            },
+          ],
+          "name": "head",
+          "namespace": "http://www.w3.org/1999/xhtml",
+          "type": "element",
+        },
+        {
+          "type": "text",
+          "value": 
+"
+"
+,
+        },
+        {
+          "attributes": [
+            [
+              "class",
+              "h-full font-sans",
+            ],
+          ],
+          "children": [
+            {
+              "type": "text",
+              "value": 
+"
+  "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "class",
+                  "min-h-screen",
+                ],
+                [
+                  "id",
+                  "root",
+                ],
+              ],
+              "children": [
+                {
+                  "type": "text",
+                  "value": 
+"
+    "
+,
+                },
+                {
+                  "attributes": [
+                    [
+                      "aria-label",
+                      "Sample Deck",
+                    ],
+                    [
+                      "class",
+                      "deck-carousel-pdf",
+                    ],
+                  ],
+                  "children": [
+                    {
+                      "attributes": [],
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": 
+"
+            /* Fonts ship inline so the PDF renderer doesn't fall through to
+               heavy Linux system-ui. The site theme can override via
+               --font-sans / --font-heading / --font-mono. */
+            @import url("https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;1,9..144,400&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;1,400&family=JetBrains+Mono:wght@400;500&display=swap");
+
+            @page {
+              size: 1080px 1350px;
+              margin: 0;
+            }
+
+            html,
+            body {
+              margin: 0;
+              padding: 0;
+            }
+
+            .deck-carousel-pdf {
+              color: var(--carousel-ink);
+              font-family: var(--font-sans, "IBM Plex Sans", -apple-system, system-ui, sans-serif);
+              font-weight: 400;
+              background: var(--carousel-surface);
+            }
+
+            [data-theme="dark"] .deck-carousel-pdf {
+              --carousel-surface: var(--color-bg, #0c0c10);
+              --carousel-surface-deep: #050507;
+              --carousel-surface-glow: #1a1530;
+              --carousel-ink: var(--color-text, #f0ede5);
+              --carousel-heading: var(--color-heading, #f7f3e6);
+              --carousel-ink-muted: color-mix(in srgb, var(--carousel-ink) 50%, var(--carousel-surface));
+              --carousel-divider: color-mix(in srgb, var(--carousel-ink) 12%, var(--carousel-surface));
+              --carousel-accent: var(--color-accent, var(--color-brand, #ff8b3d));
+              --carousel-accent-soft: color-mix(in srgb, var(--carousel-accent) 22%, var(--carousel-surface));
+              --carousel-glow-soft: color-mix(in srgb, var(--carousel-surface-glow) 55%, var(--carousel-surface));
+              --carousel-body-line-height: 1.3;
+            }
+
+            [data-theme="light"] .deck-carousel-pdf {
+              --carousel-surface: var(--color-bg, #f4ede0);
+              --carousel-surface-deep: #ebe2d0;
+              --carousel-surface-glow: #fbf6ea;
+              --carousel-ink: var(--color-text, #15171a);
+              --carousel-heading: var(--color-heading, #0a0c10);
+              --carousel-ink-muted: color-mix(in srgb, var(--carousel-ink) 55%, var(--carousel-surface));
+              --carousel-divider: color-mix(in srgb, var(--carousel-ink) 18%, var(--carousel-surface));
+              --carousel-accent: var(--color-accent, var(--color-brand, #c5500e));
+              --carousel-accent-soft: color-mix(in srgb, var(--carousel-accent) 14%, var(--carousel-surface));
+              --carousel-glow-soft: color-mix(in srgb, var(--carousel-surface-glow) 70%, var(--carousel-surface));
+              --carousel-body-line-height: 1.26;
+            }
+
+            .deck-carousel-slide {
+              box-sizing: border-box;
+              position: relative;
+              width: 1080px;
+              height: 1350px;
+              page-break-after: always;
+              break-after: page;
+              display: grid;
+              grid-template-rows: auto 1fr auto;
+              padding: 88px 108px;
+              /* Keep the PDF background fully opaque. LinkedIn re-rasterizes
+                 uploaded documents and can flatten transparent gradients
+                 differently than local PDF viewers. */
+              background-color: var(--carousel-surface);
+              background-image: linear-gradient(
+                165deg,
+                var(--carousel-surface) 0%,
+                var(--carousel-accent-soft) 26%,
+                var(--carousel-glow-soft) 62%,
+                var(--carousel-surface-deep) 100%
+              );
+            }
+
+            .deck-carousel-slide.is-cover {
+              background-color: var(--carousel-surface-deep);
+              background-image: linear-gradient(
+                155deg,
+                var(--carousel-accent-soft) 0%,
+                var(--carousel-surface-deep) 34%,
+                var(--carousel-surface) 68%,
+                var(--carousel-glow-soft) 100%
+              );
+            }
+
+            .deck-carousel-slide:last-child {
+              page-break-after: auto;
+              break-after: auto;
+            }
+
+            .deck-carousel-header {
+              display: flex;
+              align-items: center;
+            }
+
+            .deck-carousel-wordmark {
+              display: inline-flex;
+              align-items: baseline;
+              font-family: var(--font-heading, "Fraunces", "IBM Plex Sans", serif);
+              font-weight: 500;
+              font-size: 48px;
+              letter-spacing: -0.02em;
+              line-height: 1;
+              font-variation-settings: "opsz" 24;
+            }
+            .deck-carousel-wordmark .wm-primary {
+              color: var(--carousel-heading);
+            }
+            .deck-carousel-wordmark .wm-dot {
+              color: var(--carousel-accent);
+            }
+            .deck-carousel-wordmark .wm-secondary {
+              color: var(--carousel-ink-muted);
+              font-style: italic;
+              font-weight: 400;
+            }
+
+            .deck-carousel-body {
+              display: flex;
+              align-items: center;
+              padding: 56px 0;
+            }
+            .deck-carousel-content {
+              max-width: 100%;
+            }
+
+            .deck-carousel-content h1,
+            .deck-carousel-content h2,
+            .deck-carousel-content h3 {
+              color: var(--carousel-heading);
+              font-family: var(--font-heading, "Fraunces", "IBM Plex Sans", serif);
+              font-weight: 500;
+              letter-spacing: -0.025em;
+              text-wrap: balance;
+              margin: 0 0 36px;
+            }
+            .deck-carousel-content h1,
+            .deck-carousel-content h2 {
+              font-size: 82px;
+              line-height: 1;
+            }
+            .deck-carousel-content h3 {
+              font-size: 54px;
+              line-height: 1.06;
+            }
+            .deck-carousel-slide.is-cover .deck-carousel-content h1,
+            .deck-carousel-slide.is-cover .deck-carousel-content h2 {
+              font-size: 118px;
+              line-height: 0.94;
+              letter-spacing: -0.035em;
+              max-width: 880px;
+            }
+
+            .deck-carousel-content p,
+            .deck-carousel-content li {
+              color: var(--carousel-ink);
+              font-weight: 400;
+              font-size: 32px;
+              line-height: var(--carousel-body-line-height);
+            }
+            .deck-carousel-content p {
+              margin: 0 0 26px;
+            }
+            .deck-carousel-content ul,
+            .deck-carousel-content ol {
+              list-style: none;
+              margin: 28px 0 0;
+              padding: 0;
+            }
+            .deck-carousel-content li {
+              position: relative;
+              padding-left: 56px;
+              margin: 0 0 22px;
+            }
+            .deck-carousel-content ul > li::before {
+              content: "";
+              position: absolute;
+              left: 0;
+              top: 0.62em;
+              width: 28px;
+              height: 2px;
+              background: var(--carousel-accent);
+            }
+            .deck-carousel-content ol {
+              counter-reset: deck-ol;
+            }
+            .deck-carousel-content ol > li {
+              counter-increment: deck-ol;
+            }
+            .deck-carousel-content ol > li::before {
+              content: counter(deck-ol, decimal-leading-zero);
+              position: absolute;
+              left: 0;
+              top: 0;
+              color: var(--carousel-accent);
+              font-family: var(--font-mono, "JetBrains Mono", ui-monospace, monospace);
+              font-weight: 500;
+              font-size: 26px;
+              font-variant-numeric: tabular-nums;
+              line-height: var(--carousel-body-line-height);
+            }
+            .deck-carousel-content strong {
+              color: var(--carousel-heading);
+              font-weight: 600;
+            }
+            .deck-carousel-content em {
+              font-family: var(--font-heading, "Fraunces", "IBM Plex Sans", serif);
+              font-style: italic;
+              color: var(--carousel-accent);
+            }
+
+            .deck-carousel-footer {
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              padding-top: 22px;
+              border-top: 1px solid var(--carousel-divider);
+            }
+            .deck-carousel-footer-meta {
+              font-family: var(--font-mono, "JetBrains Mono", ui-monospace, monospace);
+              font-size: 22px;
+              letter-spacing: 0.08em;
+              text-transform: uppercase;
+              color: var(--carousel-ink-muted);
+            }
+            .deck-carousel-counter {
+              font-family: var(--font-mono, "JetBrains Mono", ui-monospace, monospace);
+              font-size: 22px;
+              letter-spacing: 0.06em;
+              color: var(--carousel-ink-muted);
+              font-variant-numeric: tabular-nums;
+              margin-left: auto;
+            }
+            .deck-carousel-counter-current {
+              color: var(--carousel-accent);
+              font-weight: 600;
+            }
+          "
+,
+                        },
+                      ],
+                      "name": "style",
+                      "namespace": "http://www.w3.org/1999/xhtml",
+                      "type": "element",
+                    },
+                    {
+                      "attributes": [
+                        [
+                          "class",
+                          "deck-carousel-slide is-cover",
+                        ],
+                      ],
+                      "children": [
+                        {
+                          "attributes": [
+                            [
+                              "class",
+                              "deck-carousel-header",
+                            ],
+                          ],
+                          "children": [
+                            {
+                              "attributes": [
+                                [
+                                  "aria-label",
+                                  "Sample Deck",
+                                ],
+                                [
+                                  "class",
+                                  "deck-carousel-wordmark",
+                                ],
+                              ],
+                              "children": [
+                                {
+                                  "attributes": [
+                                    [
+                                      "class",
+                                      "wm-primary",
+                                    ],
+                                  ],
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "value": "sample",
+                                    },
+                                  ],
+                                  "name": "span",
+                                  "namespace": "http://www.w3.org/1999/xhtml",
+                                  "type": "element",
+                                },
+                                {
+                                  "attributes": [
+                                    [
+                                      "class",
+                                      "wm-dot",
+                                    ],
+                                  ],
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "value": ".",
+                                    },
+                                  ],
+                                  "name": "span",
+                                  "namespace": "http://www.w3.org/1999/xhtml",
+                                  "type": "element",
+                                },
+                                {
+                                  "attributes": [
+                                    [
+                                      "class",
+                                      "wm-secondary",
+                                    ],
+                                  ],
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "value": "deck",
+                                    },
+                                  ],
+                                  "name": "span",
+                                  "namespace": "http://www.w3.org/1999/xhtml",
+                                  "type": "element",
+                                },
+                              ],
+                              "name": "span",
+                              "namespace": "http://www.w3.org/1999/xhtml",
+                              "type": "element",
+                            },
+                          ],
+                          "name": "header",
+                          "namespace": "http://www.w3.org/1999/xhtml",
+                          "type": "element",
+                        },
+                        {
+                          "attributes": [
+                            [
+                              "class",
+                              "deck-carousel-body",
+                            ],
+                          ],
+                          "children": [
+                            {
+                              "attributes": [
+                                [
+                                  "class",
+                                  "deck-carousel-content",
+                                ],
+                              ],
+                              "children": [
+                                {
+                                  "attributes": [],
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "value": "Hello Carousel",
+                                    },
+                                  ],
+                                  "name": "h1",
+                                  "namespace": "http://www.w3.org/1999/xhtml",
+                                  "type": "element",
+                                },
+                                {
+                                  "type": "text",
+                                  "value": 
+"
+"
+,
+                                },
+                              ],
+                              "name": "div",
+                              "namespace": "http://www.w3.org/1999/xhtml",
+                              "type": "element",
+                            },
+                          ],
+                          "name": "div",
+                          "namespace": "http://www.w3.org/1999/xhtml",
+                          "type": "element",
+                        },
+                        {
+                          "attributes": [
+                            [
+                              "class",
+                              "deck-carousel-footer",
+                            ],
+                          ],
+                          "children": [
+                            {
+                              "attributes": [
+                                [
+                                  "class",
+                                  "deck-carousel-footer-meta",
+                                ],
+                              ],
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "value": "Sample Deck",
+                                },
+                              ],
+                              "name": "span",
+                              "namespace": "http://www.w3.org/1999/xhtml",
+                              "type": "element",
+                            },
+                            {
+                              "attributes": [
+                                [
+                                  "aria-label",
+                                  "Slide 1 of 1",
+                                ],
+                                [
+                                  "class",
+                                  "deck-carousel-counter",
+                                ],
+                              ],
+                              "children": [
+                                {
+                                  "attributes": [
+                                    [
+                                      "class",
+                                      "deck-carousel-counter-current",
+                                    ],
+                                  ],
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "value": "01",
+                                    },
+                                  ],
+                                  "name": "span",
+                                  "namespace": "http://www.w3.org/1999/xhtml",
+                                  "type": "element",
+                                },
+                                {
+                                  "type": "text",
+                                  "value": " / ",
+                                },
+                                {
+                                  "attributes": [],
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "value": "01",
+                                    },
+                                  ],
+                                  "name": "span",
+                                  "namespace": "http://www.w3.org/1999/xhtml",
+                                  "type": "element",
+                                },
+                              ],
+                              "name": "span",
+                              "namespace": "http://www.w3.org/1999/xhtml",
+                              "type": "element",
+                            },
+                          ],
+                          "name": "footer",
+                          "namespace": "http://www.w3.org/1999/xhtml",
+                          "type": "element",
+                        },
+                      ],
+                      "name": "section",
+                      "namespace": "http://www.w3.org/1999/xhtml",
+                      "type": "element",
+                    },
+                  ],
+                  "name": "main",
+                  "namespace": "http://www.w3.org/1999/xhtml",
+                  "type": "element",
+                },
+                {
+                  "type": "text",
+                  "value": 
+"
+  "
+,
+                },
+              ],
+              "name": "div",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+
+"
+,
+            },
+          ],
+          "name": "body",
+          "namespace": "http://www.w3.org/1999/xhtml",
+          "type": "element",
+        },
+      ],
+      "name": "html",
+      "namespace": "http://www.w3.org/1999/xhtml",
+      "type": "element",
+    },
+  ],
+  "type": "document",
+}
+`;

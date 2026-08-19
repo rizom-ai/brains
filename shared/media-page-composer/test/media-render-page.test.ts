@@ -3,6 +3,7 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from "fs/promises";
 import { tmpdir } from "os";
 import { join } from "path";
 import { h, type JSX } from "preact";
+import { normalizeRendererHtml } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
 import {
   startStaticRenderServer,
@@ -71,6 +72,9 @@ describe("writeMediaRenderPage", () => {
     expect(html).toContain('class="carousel-slide"');
     expect(html).toContain('<meta name="robots" content="noindex,nofollow">');
     expect(html).toContain('<link rel="stylesheet" href="/styles/main.css">');
+    expect(
+      normalizeRendererHtml(html, { ignoreImagePreloads: true }),
+    ).toMatchSnapshot();
   });
 
   it("always writes theme token CSS for media render pages", async () => {

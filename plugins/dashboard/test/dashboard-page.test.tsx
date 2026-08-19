@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { createMockAppInfo } from "@brains/test-utils";
+import { createMockAppInfo, normalizeRendererHtml } from "@brains/test-utils";
 import {
   renderDashboardPageHtml,
   type DashboardRenderInput,
@@ -27,6 +27,13 @@ describe("renderDashboardPageHtml", () => {
     expect(html).toContain("1 private console widget is hidden.");
     expect(html).toContain('href="/login?return_to=%2Fdashboard"');
     expect(html).not.toContain('href="#my-agents"');
+    const stableHtml = html.replace(
+      /\d{4}-\d{2}-\d{2} \d{2}:\d{2}/g,
+      "<rendered-at>",
+    );
+    expect(
+      normalizeRendererHtml(stableHtml, { ignoreImagePreloads: true }),
+    ).toMatchSnapshot();
   });
 
   it("should explain role-limited widgets without asking signed-in users to sign in again", () => {

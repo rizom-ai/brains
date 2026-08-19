@@ -1,6 +1,7 @@
 /** @jsxImportSource preact */
 import { describe, expect, it } from "bun:test";
 import { render } from "preact-render-to-string";
+import { normalizeRendererHtml } from "@brains/test-utils";
 import {
   createWidgetInstanceId,
   WidgetActionLink,
@@ -115,6 +116,9 @@ describe("widget UI primitives", () => {
     expect(html).not.toContain("<script>alert('nope')</script>");
     expect(html).toContain('class="operator-table"');
     expect(html).toContain('href="/cms/entities/bookmark/saved-1"');
+    expect(
+      normalizeRendererHtml(html, { ignoreImagePreloads: true }),
+    ).toMatchSnapshot();
   });
 
   it("resolves closed CMS launch intents to scoped declarative workspaces", () => {
