@@ -2,9 +2,15 @@
 
 ## Status
 
-**Proposed — 2026-08-18.** Derived from a full-repo duplication and leaky-abstraction
-audit (1,864 non-test source files, 273,543 lines, seven parallel reviewers plus
-mechanical clone detection).
+**Implemented on `work/contract-drift-fixes` — 2026-08-19; awaiting merge.**
+All four phases are done (Phase 3 resolved to "nothing to commit" after
+provenance checks — see its section). Gates at completion: repo typecheck
+103/103, tests 99/99, `arch:check` clean, brain-cli declaration gate, packed
+compat 6/6. Delete this plan once the branch lands on main.
+
+Derived from a full-repo duplication and leaky-abstraction audit (1,864
+non-test source files, 273,543 lines, seven parallel reviewers plus mechanical
+clone detection).
 
 This plan deliberately excludes everything owned by
 [`work/plugin-api-boundaries`](./npm-package-boundaries.md), which has 35 commits
@@ -185,13 +191,29 @@ as part of landing it, not have them deleted underneath.
    real defect: `Plugin.description` and `Plugin.dependencies` were declared
    `?: string` / `?: string[]` while the runtime derives them from
    `pluginMetadataSchema` as `| undefined`, which under
-   `exactOptionalPropertyTypes` the runtime type does not satisfy. Fixed, and
-   the invariant is now pinned by `test/public-surface-soundness.test.ts`.
+   `exactOptionalPropertyTypes` the runtime type does not satisfy. Fixed.
+
+   **Then the invariant was made structural rather than test-enforced.** Each
+   runtime context now `extends` its published counterpart: members identical
+   on both sides are declared once (in the published type) and inherited —
+   16 of `BasePluginContext`'s 23 shared members; members declared only
+   internally stay withheld; the 7 that refine a weaker published type
+   (`logger`, `entityService`, `messaging`, `conversations`, `insights`,
+   `inboxFollowUps`, `uploads`) are redeclared and compiler-checked. Sibling
+   contexts extend `Omit<Public…, keyof PublicBasePluginContext>` so their own
+   published members are checked without re-litigating the base diamond. A
+   published capability the runtime lacks now fails to compile at the context
+   declaration and at `createBasePluginContext`. Only the `Plugin` alias —
+   which cannot carry an extends clause — keeps a test-level assertion, in
+   `test/public-surface-soundness.test.ts`.
 
    This matters beyond the one fix: `feat/durable-binary-assets-migration` is
    currently adding `assets` to both copies with **different types**
-   (`AssetStore` published, `IAssetsNamespace` internal). The guard was verified
-   to catch exactly that shape of change.
+   (`AssetStore` published, `IAssetsNamespace` internal). The extends check was
+   verified to catch exactly that shape of change. When that branch rebases, the
+   right resolution is: add `assets` to the published base if external authors
+   should see it (typed with the published-safe shape), otherwise declare it
+   only on the internal context.
 
 2. **JSON types.** Keep the `packages/site` copy (the published SDK genuinely
    cannot import `@brains/contracts`) and add the guard the deploy scripts
