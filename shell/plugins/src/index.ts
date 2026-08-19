@@ -244,11 +244,14 @@ export {
 export type {
   EntityAttachmentDeclaration,
   EntityConversationReader,
+  EntityCreateContext,
+  EntityCreateResolution,
   EntityCreateRoute,
   EntityCreateRouting,
   EntityEvalContext,
   EntityEvalDeclaration,
   EntityGenerationContext,
+  EntityDashboardWidgetDeclaration,
   EntityInsightContext,
   EntityInsightDeclaration,
   EntityGenerationDeclaration,
@@ -283,6 +286,7 @@ export {
 } from "./public/entity-data-source";
 export {
   defineEntity,
+  defineEntityDashboardWidget,
   defineEntityPackage,
   defineProjection,
   type AnyEntityDefinition,

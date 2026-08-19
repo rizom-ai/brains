@@ -55,7 +55,7 @@ import { knowledgeMapPlugin } from "@brains/knowledge-map";
 import { unifiedInboxPlugin } from "@brains/unified-inbox";
 import { WebChatInterface } from "@brains/web-chat";
 import { WebserverInterface } from "@brains/webserver";
-import { wishlistPlugin } from "@brains/wishlist";
+import wishlistPackage from "@brains/wishlist";
 import packageJson from "../../package.json" with { type: "json" };
 import {
   automationBundle,
@@ -150,7 +150,7 @@ export const canonicalBrain: BrainDefinition = defineBrain({
     ["document", documentPlugin, undefined],
     ["note", notePlugin, undefined],
     packageCapability("link", "@brains/link", linkPackage),
-    ["wishlist", wishlistPlugin, undefined],
+    packageCapability("wishlist", "@brains/wishlist", wishlistPackage),
     ["topics", topicsPlugin, undefined],
     ["knowledge-map", knowledgeMapPlugin, undefined],
     packageCapability("decks", "@brains/decks", decksPackage),

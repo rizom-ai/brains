@@ -1,5 +1,8 @@
 import type { Template } from "@brains/templates";
 import type { AtprotoProjection } from "@brains/atproto-contracts";
+import type { AnyDashboardWidgetDefinition } from "../operator/operator-definition-contract";
+import type { OperatorCaller } from "../operator/operator-context-contract";
+import type { JobEntityAccess } from "../job/job-context-contract";
 import type { ProjectionRule } from "../entity/projection-rule";
 import type { AnyDataSourceDeclaration } from "./entity-data-source";
 import { z } from "@brains/utils/zod";
@@ -13,6 +16,7 @@ import type {
   EntityOf,
   EntityPublishDeclaration,
   EntityDefinition,
+  EntityDashboardWidgetDeclaration,
   EntityEvalDeclaration,
   EntityInsightDeclaration,
   EntityGenerationDeclaration,
@@ -74,6 +78,8 @@ export function defineEntity<
   readonly atproto?: AtprotoProjection | undefined;
   readonly evals?: EntityEvalDeclaration | undefined;
   readonly insights?: EntityInsightDeclaration | undefined;
+  readonly dashboardWidgets?:
+    readonly EntityDashboardWidgetDeclaration[] | undefined;
   readonly jobs?: Record<string, EntityJobDeclaration> | undefined;
   readonly instructions?: string | undefined;
   readonly create?: EntityCreateRouting | undefined;
@@ -91,6 +97,25 @@ export function defineEntity<
     kind: "rizom-entity",
     ...definition,
   });
+}
+
+/**
+ * Pair a dashboard widget with the reader that fills it.
+ *
+ * The definition's data schema types the reader's return here, at the point
+ * it is written; an entity holds its widgets in one type-erased list.
+ */
+export function defineEntityDashboardWidget<
+  TDefinition extends AnyDashboardWidgetDefinition,
+>(
+  definition: TDefinition,
+  load: (context: {
+    readonly entities: JobEntityAccess;
+    readonly caller: OperatorCaller | null;
+    readonly signal: AbortSignal;
+  }) => Promise<z.input<TDefinition["data"]>>,
+): EntityDashboardWidgetDeclaration {
+  return Object.freeze({ definition, load });
 }
 
 export function defineProjection<

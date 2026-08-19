@@ -78,6 +78,24 @@ export { StructuredContentFormatter } from "@brains/content-formatters";
 export type { ContentFormatter } from "@brains/content-formatters";
 export type { JsonValue } from "@brains/contracts";
 
+// Create routing. A route that resolves inline returns what should be
+// written rather than writing it, so the runtime still reports what
+// happened. Named consumer: @brains/wishlist.
+export type {
+  EntityCreateContext,
+  EntityCreateResolution,
+} from "@brains/plugins";
+
+// Dashboard widgets an entity type contributes. Four packages waited on a
+// lifecycle event by hand to register one; declared, the runtime owns the
+// wait. Named consumer: @brains/wishlist.
+export { defineDashboardWidget } from "@brains/plugins";
+export { defineEntityDashboardWidget } from "@brains/plugins";
+export type {
+  DashboardWidgetDefinition,
+  EntityDashboardWidgetDeclaration,
+} from "@brains/plugins";
+
 // Syndication. An entity says how one of its entities becomes a feed item;
 // the site build owns which entities qualify and where the file goes. The
 // declaration is on the public entity surface, so the item it returns has
