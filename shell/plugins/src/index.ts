@@ -249,6 +249,8 @@ export type {
   EntityEvalContext,
   EntityEvalDeclaration,
   EntityGenerationContext,
+  EntityInsightContext,
+  EntityInsightDeclaration,
   EntityGenerationDeclaration,
   EntityGenerationResult,
   EntityScheduledGenerationDeclaration,

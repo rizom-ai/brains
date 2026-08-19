@@ -14,6 +14,7 @@ import type {
   EntityPublishDeclaration,
   EntityDefinition,
   EntityEvalDeclaration,
+  EntityInsightDeclaration,
   EntityGenerationDeclaration,
   EntityScheduledGenerationDeclaration,
   EntityJobDeclaration,
@@ -72,6 +73,7 @@ export function defineEntity<
   readonly projectionRules?: readonly ProjectionRule[] | undefined;
   readonly atproto?: AtprotoProjection | undefined;
   readonly evals?: EntityEvalDeclaration | undefined;
+  readonly insights?: EntityInsightDeclaration | undefined;
   readonly jobs?: Record<string, EntityJobDeclaration> | undefined;
   readonly instructions?: string | undefined;
   readonly create?: EntityCreateRouting | undefined;

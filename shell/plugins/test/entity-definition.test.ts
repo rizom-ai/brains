@@ -1024,6 +1024,59 @@ describe("declarative entity seeding", () => {
     harness.reset();
   });
 
+  // Registering an insight was a namespace call announcing a static fact:
+  // an id and a function over entity reads. Declared, the runtime owns
+  // registration and the package never names the insights namespace.
+  it("registers declared insights, reading through the scoped entity access", async () => {
+    const guide = defineEntity({
+      type: "guide",
+      purpose: "A guide.",
+      metadata: z.object({ title: z.string() }),
+      insights: {
+        "guide-distribution": async ({ entities, visibilityScope }) => {
+          const guides = await entities.listEntities({
+            entityType: "guide",
+            options: { filter: { visibilityScope } },
+          });
+          return { guides: guides.map(({ id }) => id) };
+        },
+      },
+    });
+    const definition = defineEntityPackage({ id: "guides", entities: [guide] });
+    const plugin = createEntityPackagePlugins(
+      definition.entities,
+      definition.projections,
+      { name: "@fixture/guides", version: "0.1.0" },
+      (id) => `@fixture/guides:${id}`,
+    )[0];
+    if (!plugin) throw new Error("Guide entity plugin was not created");
+
+    const harness = createPluginHarness({
+      logger: createSilentLogger("entity-insights-test"),
+    });
+    await harness.installPlugin(plugin);
+    await harness.getEntityService().createEntity({
+      entity: {
+        id: "first",
+        entityType: "guide",
+        content: "A guide",
+        metadata: { title: "First" },
+      },
+    });
+
+    const registry = harness.getMockShell().getInsightsRegistry();
+    expect(registry.getTypes()).toContain("guide-distribution");
+    expect(
+      await registry.get(
+        "guide-distribution",
+        harness.getEntityService(),
+        "public",
+      ),
+    ).toEqual({ guides: ["first"] });
+
+    harness.reset();
+  });
+
   // system_generate persists a placeholder before enqueueing so the caller
   // has something to look at, and refuses outright when the adapter cannot
   // build one. The generated adapter had no buildStub, so converting a
