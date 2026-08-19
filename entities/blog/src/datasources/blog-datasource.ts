@@ -5,9 +5,9 @@ import {
   type EntityDataSourceDefinition,
   type EntityQueryReader,
   type PaginationInfo,
-} from "@brains/plugins";
-import { slugify } from "@brains/utils/string-utils";
-import { z } from "@brains/utils/zod";
+} from "@brains/sdk/entities";
+import { slugify } from "@brains/sdk/entities";
+import { z } from "@brains/sdk/entities";
 import type { BlogPost, BlogPostWithData } from "../schemas/blog-post";
 import { parsePostData as parsePostDataBase } from "./parse-helpers";
 import {

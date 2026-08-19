@@ -78,19 +78,35 @@ export { StructuredContentFormatter } from "@brains/content-formatters";
 export type { ContentFormatter } from "@brains/content-formatters";
 export type { JsonValue } from "@brains/contracts";
 
+// Syndication. An entity says how one of its entities becomes a feed item;
+// the site build owns which entities qualify and where the file goes. The
+// declaration is on the public entity surface, so the item it returns has
+// to be too. Named consumer: @brains/blog.
+export type { EntityFeedDeclaration } from "@brains/plugins";
+export type { FeedItem } from "@brains/site-composition";
+
+// Generation helpers. A package that writes an entity from a prompt has to
+// avoid colliding with one that already exists, and the retry-with-a-new-
+// title loop is the runtime's to own rather than each package's. Named
+// consumers: @brains/blog, @brains/decks, @brains/social-media.
+export { ensureUniqueTitle } from "@brains/plugins";
+
 // AT Protocol projection, for entities that publish records. The runtime
 // owns registration, so the registry itself stays internal — an author
 // only builds the projection.
 export { canonicalAtprotoLexicons } from "@brains/atproto-contracts";
 export type {
+  AtprotoBlobRef,
+  AtprotoBrainPostRecord,
   AtprotoBrainSeriesRecord,
   AtprotoProjection,
   AtprotoProjectionBuildInput,
+  AtprotoProjectionContext,
 } from "@brains/atproto-contracts";
 
 // Text and markdown helpers used when authoring entities. Promoted from
 // @brains/utils; consumers today are @brains/doc and @brains/products.
-export { slugify } from "@brains/utils/string-utils";
+export { calculateReadingTime, slugify } from "@brains/utils/string-utils";
 export { computeContentHash } from "@brains/utils/hash";
 export { parseMarkdown } from "@brains/utils/markdown";
 

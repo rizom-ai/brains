@@ -1,9 +1,6 @@
-import type {
-  EntityEvalDeclaration,
-  EntityPluginContext,
-} from "@brains/plugins";
-import { fetchStyleGuide, formatVoiceGuidance } from "@brains/contracts";
-import { z } from "@brains/utils/zod";
+import type { EntityEvalDeclaration } from "@brains/sdk/entities";
+import { fetchStyleGuide, formatVoiceGuidance } from "@brains/sdk/entities";
+import { z } from "@brains/sdk/entities";
 
 const generatePostInputSchema = z.object({
   prompt: z.string(),
@@ -14,43 +11,6 @@ const generateExcerptInputSchema = z.object({
   title: z.string(),
   content: z.string(),
 });
-
-type GeneratePostInput = z.output<typeof generatePostInputSchema>;
-type GenerateExcerptInput = z.output<typeof generateExcerptInputSchema>;
-
-export function registerEvalHandlers(context: EntityPluginContext): void {
-  context.eval.registerHandler("generatePost", async (input: unknown) => {
-    const parsed: GeneratePostInput = generatePostInputSchema.parse(input);
-    const generationPrompt = `${parsed.prompt}${parsed.seriesName ? `\n\nNote: This is part of a series called "${parsed.seriesName}".` : ""}`;
-
-    const voiceGuidance = formatVoiceGuidance(
-      await fetchStyleGuide(context.entityService),
-    );
-    return context.ai.generate<{
-      title: string;
-      content: string;
-      excerpt: string;
-    }>({
-      prompt: generationPrompt,
-      templateName: "blog:generation",
-      representedIdentity: "anchor",
-      ...(voiceGuidance && { styleGuide: { voice: voiceGuidance } }),
-    });
-  });
-
-  context.eval.registerHandler("generateExcerpt", async (input: unknown) => {
-    const parsed: GenerateExcerptInput =
-      generateExcerptInputSchema.parse(input);
-
-    return context.ai.generate<{
-      excerpt: string;
-    }>({
-      prompt: `Title: ${parsed.title}\n\nContent:\n${parsed.content}`,
-      templateName: "blog:excerpt",
-      representedIdentity: "none",
-    });
-  });
-}
 
 /**
  * Eval handlers, keyed by the `handler:` name their test cases use. These
