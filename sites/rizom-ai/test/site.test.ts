@@ -136,7 +136,7 @@ describe("@rizom/site-rizom-ai", () => {
     const knowledge = route?.sections?.find(
       (section) => section.id === "knowledge",
     );
-    expect(knowledge?.template).toBe("topics:knowledge-map");
+    expect(knowledge?.template).toBe("knowledge-map:map");
     expect(knowledge?.dataQuery).toBeDefined();
   });
 
@@ -150,7 +150,7 @@ describe("@rizom/site-rizom-ai", () => {
       "home:problem",
       "home:growth",
       "home:mission",
-      "topics:knowledge-map",
+      "knowledge-map:map",
       "home:faces",
     ]);
   });

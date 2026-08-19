@@ -4,9 +4,9 @@ import { createTemplate } from "@brains/templates";
 import type { Template } from "@brains/templates";
 import { StructuredContentFormatter } from "@brains/content-formatters";
 import { z } from "@brains/utils/zod";
-import { KnowledgeMap, knowledgeMapStyles } from "../widgets/knowledge-map";
-import { knowledgeMapDataSchema } from "../lib/knowledge-map-data";
-import { KNOWLEDGE_MAP_DATASOURCE_ID } from "../lib/constants";
+import { KnowledgeMap, knowledgeMapStyles } from "./knowledge-map";
+import { knowledgeMapDataSchema } from "./knowledge-map-data";
+import { KNOWLEDGE_MAP_DATASOURCE_ID } from "./constants";
 
 /**
  * The knowledge map as a site section: the home page's proof — authored copy

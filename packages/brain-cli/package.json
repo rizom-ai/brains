@@ -59,6 +59,7 @@
     "@brains/email-workflows": "workspace:*",
     "@brains/eslint-config": "workspace:*",
     "@brains/image-plugin": "workspace:*",
+    "@brains/knowledge-map": "workspace:*",
     "@brains/link": "workspace:*",
     "@brains/mcp": "workspace:*",
     "@brains/mcp-service": "workspace:*",

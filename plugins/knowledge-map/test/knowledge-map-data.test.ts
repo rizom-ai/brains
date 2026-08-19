@@ -2,8 +2,8 @@ import { describe, expect, test } from "bun:test";
 import {
   buildKnowledgeMapData,
   knowledgeMapDataSchema,
-} from "../../src/lib/knowledge-map-data";
-import type { KnowledgeMapDataContext } from "../../src/lib/knowledge-map-data";
+} from "../src/knowledge-map-data";
+import type { KnowledgeMapDataContext } from "../src/knowledge-map-data";
 
 /* The data builder projects the whole
    corpus (centerless 2D), turns topics into zones, and files each entity into

@@ -20,12 +20,9 @@ import { topicMergeSynthesisTemplate } from "./templates/merge-synthesis-templat
 import { topicListTemplate } from "./templates/topic-list";
 import { topicDetailTemplate } from "./templates/topic-detail";
 import { TopicsDataSource } from "./datasources/topics-datasource";
-import { KnowledgeMapDataSource } from "./datasources/knowledge-map-datasource";
-import { getKnowledgeMapTemplate } from "./templates/knowledge-map-template";
 import { topicEntitySchema, type TopicEntity } from "./schemas/topic";
 import { createTopicDistributionInsight } from "./insights/topic-distribution";
 import { registerTopicsDashboardWidget } from "./lib/dashboard-widget";
-import { registerKnowledgeMapDashboardWidget } from "./lib/knowledge-map-widget";
 import { registerTopicEvalHandlers } from "./lib/eval-handlers";
 import { createTopicProjectionRule } from "./lib/topic-wave-rule";
 import { TOPIC_ENTITY_TYPE, TOPICS_PLUGIN_ID } from "./lib/constants";
@@ -71,15 +68,11 @@ export class TopicsPlugin extends EntityPlugin<
       "merge-synthesis": topicMergeSynthesisTemplate,
       "topic-list": topicListTemplate,
       "topic-detail": topicDetailTemplate,
-      "knowledge-map": getKnowledgeMapTemplate(),
     };
   }
 
   protected override getDataSources(): DataSource[] {
-    return [
-      new TopicsDataSource(this.logger.child("TopicsDataSource")),
-      new KnowledgeMapDataSource(),
-    ];
+    return [new TopicsDataSource(this.logger.child("TopicsDataSource"))];
   }
 
   protected override getProjectionRules(
@@ -99,9 +92,9 @@ export class TopicsPlugin extends EntityPlugin<
       createTopicDistributionInsight(),
     );
 
-    // Dashboard widgets: the topic list and the knowledge map
+    // Dashboard widget: the topic list. The knowledge map moved to
+    // @brains/knowledge-map — it projects every entity type, not topics.
     registerTopicsDashboardWidget({ context });
-    registerKnowledgeMapDashboardWidget({ context });
 
     // Eval handlers
     registerTopicEvalHandlers({

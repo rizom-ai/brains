@@ -20,7 +20,7 @@ import {
  * rev-11 story the map opens — the pain (problem, withered), how the parts
  * come together (growth carries the system: brain, practice, network), the
  * mission band (the quote alone), then the ask carried by proof — the
- * knowledge map (topics:knowledge-map, wired in routes.ts) — and the faces.
+ * knowledge map (knowledge-map:map, wired in routes.ts) — and the faces.
  * Each section is authored from one zod schema (its component's props are
  * `z.infer` of that schema); copy is content-driven, stored as markdown in
  * site-content/home/<section>.md. Only the assembled section group is
@@ -192,7 +192,7 @@ function HomeFacesSection({
  * the route id, so each stores as site-content/home/<section>.md and resolves
  * as "home:<section>". Two sections live elsewhere: the hero is the live
  * agent proximity map (agent-discovery:proximity-map) and the proof/ask is
- * the knowledge map (topics:knowledge-map) — both authored via overlay
+ * the knowledge map (knowledge-map:map) — both authored via overlay
  * markdown merged over their live datasource payloads.
  */
 export const homeSections: SiteSectionGroup = sectionGroup("home", {
