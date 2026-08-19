@@ -124,8 +124,8 @@ function supervise(harness: TestHarness): Promise<CommandResult> {
 
 /**
  * A Brain with Git configured. The socket path is the supervisor's to hand
- * out — see docs/plans/directory-sync-git-execution-broker.md, "Canonical
- * ownership endpoint".
+ * out: one endpoint, decided by the process that starts the owner, so no role
+ * can guess its way to a second one.
  */
 function superviseWithBroker(harness: TestHarness): Promise<CommandResult> {
   return superviseRuntimeChildren("/brain", "/dist/brain.js", {

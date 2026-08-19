@@ -5,8 +5,6 @@ import { join } from "node:path";
 import { BrokerJournal } from "../../../src/lib/broker/journal";
 
 /**
- * Phase 5 of docs/plans/directory-sync-git-execution-broker.md.
- *
  * The journal answers one question: what was this generation running, and did
  * it record a terminal result? It deliberately does not answer "what should
  * happen next" — a mutation left ambiguous by a broker replacement is never

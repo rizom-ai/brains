@@ -6,9 +6,10 @@ Root-cause class confirmed locally; attribution of the specific live production 
 open. The database→git auto-export in `plugins/directory-sync` can silently stop emitting
 `Auto-sync` commits because every export shares the Git lock with pulls, and one Git operation
 whose runtime completion never settles holds that lock indefinitely. Reconciliation checkpoints
-and stale operational health have landed. The remaining implementation is the separately scoped
-[`directory-sync-git-execution-broker.md`](./directory-sync-git-execution-broker.md) workaround;
-a future fixed Bun pin is defense in depth rather than a reason to block all progress. Fresh
+and stale operational health have landed. The separately scoped semantic Git broker has since
+shipped: one owner per checkout, serialized whole operations, and replacement only after its
+process group is proven gone. A future fixed Bun pin is defense in depth rather than a reason to
+block all progress. Fresh
 incident attribution and any live recovery remain separate approval-gated operational work.
 
 ## Goal
@@ -152,8 +153,8 @@ after that evidence is reviewed.
      deterministic checkpoint replay. Never `Promise.race` the lock open while an old Git process
      may still mutate the checkout.
 3. **Minimal durable fix** that preserves serialization while implementing the external
-   [`directory-sync-git-execution-broker.md`](./directory-sync-git-execution-broker.md)
-   boundary and retaining the repository/branch-scoped
+   broker boundary — Git executes only in the process that owns the checkout — and retaining
+   the repository/branch-scoped
    `lastReconciledGitHead`, replaying a merged-but-not-queued diff on startup, and surfacing an
    over-age `pulling` run through progress-based `/health/operate` degradation. Do not rely on an
    in-process timer to recover the affected Bun 1.3.x event loop.

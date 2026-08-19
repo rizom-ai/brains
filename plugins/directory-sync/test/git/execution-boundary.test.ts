@@ -3,8 +3,6 @@ import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
 
 /**
- * Phase 1 of docs/plans/directory-sync-git-execution-broker.md.
- *
  * Two properties are locked here. The first three assertions already hold and
  * must keep holding: production requires Bun and `git`, not a shell wrapper or
  * an undeclared userland contract. The superseded implementation shipped
@@ -19,7 +17,7 @@ import { join } from "node:path";
 
 const SOURCE_ROOT = join(import.meta.dir, "../../src");
 
-/** Direct Git execution is permitted only here; see the plan's Phase 1 note. */
+/** Direct Git execution is permitted only here: it runs before any owner. */
 const SEED_BOOTSTRAP = "lib/content-remote-bootstrap.ts";
 
 async function sourcePaths(dir: string): Promise<string[]> {

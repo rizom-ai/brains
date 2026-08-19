@@ -9,8 +9,6 @@ import { getGitRemoteFingerprint } from "../../../src/lib/git-options";
 import { commitTouching } from "../real-git";
 
 /**
- * Phase 2 of docs/plans/directory-sync-git-execution-broker.md, completed.
- *
  * "A lost acknowledgement within a live broker is replayable by request ID."
  * The replay must return the first result rather than run the work again — a
  * client that retries a commit whose reply it never saw must not produce a

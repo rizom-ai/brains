@@ -10,8 +10,6 @@ import type { GitBrokerServer } from "../../../src/lib/broker/server";
 import { commitTouching } from "../real-git";
 
 /**
- * Phase 3 of docs/plans/directory-sync-git-execution-broker.md.
- *
  * A proven-safe broker replacement leaves web and worker running, so those
  * roles have to reattach to the new owner. What they must not do is decide for
  * themselves that an interrupted mutation never happened: an acknowledgement

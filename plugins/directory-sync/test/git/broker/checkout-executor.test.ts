@@ -8,8 +8,6 @@ import { sha256Hex } from "@brains/utils/hash";
 import { CheckoutOperationExecutor } from "../../../src/lib/broker/checkout-executor";
 
 /**
- * Phase 2 of docs/plans/directory-sync-git-execution-broker.md.
- *
  * The executor is where ownership lives: one queue turn per semantic
  * operation, held for the complete sequence. The atomicity assertion here is
  * the same scenario `test/git/operation-atomicity.test.ts` uses to reproduce

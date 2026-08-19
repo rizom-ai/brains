@@ -3,10 +3,9 @@
 ## Status
 
 Implementation and release are complete through Phase 5, and the local
-feature-enabled performance comparison is complete. Git runtime resilience is a
-separate track in
-[`directory-sync-git-execution-broker.md`](./directory-sync-git-execution-broker.md);
-manual smoke load acceptance remains pending and approval-gated.
+feature-enabled performance comparison is complete. Git runtime resilience was a
+separate track, and its semantic broker has since shipped; manual smoke load
+acceptance remains pending and approval-gated.
 
 - Phase 1: released in `@rizom/brain@0.2.0-alpha.268`.
 - Phase 2: released in `@rizom/brain@0.2.0-alpha.269` for text and current
@@ -282,8 +281,7 @@ one-off:
 
 Performance and Git resilience are separate engineering tracks. The Git-specific history
 below is retained because it defines reconciliation and health invariants, but active Git
-execution work is handed off to
-[`directory-sync-git-execution-broker.md`](./directory-sync-git-execution-broker.md).
+execution work was handed off to the semantic broker track, which has shipped.
 Do not reopen performance conclusions merely because the runtime workaround is pending.
 
 ### 6.1 Remove the affected async Git-completion path
