@@ -24,7 +24,7 @@ export const deckTemplate: Template = createTemplate<DeckTemplateData>({
   name: "deck-detail",
   description: "Render a presentation deck as Reveal.js slides",
   schema: deckTemplateSchema,
-  dataSourceId: "decks:entities",
+  dataSourceId: "entities",
   requiredPermission: "public",
   layout: {
     component: PresentationLayout,
