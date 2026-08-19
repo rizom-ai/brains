@@ -441,6 +441,71 @@ describe("getRuntimeReadiness", () => {
     );
   });
 
+  it("keeps a live durable projection batch operational regardless of age", async () => {
+    const dependencies = createDependencies();
+    const baseStore = dependencies.entityService.getProjectionStore();
+    const readiness = await getRuntimeReadiness({
+      ...dependencies,
+      entityService: {
+        ...dependencies.entityService,
+        getProjectionStore: () => ({
+          ...baseStore,
+          getProjectionBatchDiagnostics:
+            async (): Promise<ProjectionBatchDiagnostics> => ({
+              preparing: 0,
+              open: 1,
+              abandoned: 0,
+              expiredCallbackLeases: 0,
+              oldestActiveAgeMs: 60_000,
+              oldestProgressAgeMs: 60_000,
+            }),
+        }),
+      },
+      ...runtimeOptions,
+    });
+
+    expect(readiness.operationalStatus).toBe("operational");
+    expect(readiness.checks).toContainEqual(
+      expect.objectContaining({
+        name: "projection-waves",
+        status: "healthy",
+      }),
+    );
+  });
+
+  it("degrades operation for an expired callback projection lease", async () => {
+    const dependencies = createDependencies();
+    const baseStore = dependencies.entityService.getProjectionStore();
+    const readiness = await getRuntimeReadiness({
+      ...dependencies,
+      entityService: {
+        ...dependencies.entityService,
+        getProjectionStore: () => ({
+          ...baseStore,
+          getProjectionBatchDiagnostics:
+            async (): Promise<ProjectionBatchDiagnostics> => ({
+              preparing: 0,
+              open: 1,
+              abandoned: 0,
+              expiredCallbackLeases: 1,
+              oldestActiveAgeMs: 31_000,
+              oldestProgressAgeMs: 1_000,
+            }),
+        }),
+      },
+      ...runtimeOptions,
+    });
+
+    expect(readiness.operationalStatus).toBe("degraded");
+    expect(readiness.checks).toContainEqual(
+      expect.objectContaining({
+        name: "projection-waves",
+        status: "degraded",
+        message: "A callback projection batch lease has expired",
+      }),
+    );
+  });
+
   it("reports unrecovered projection batch abandonment as degraded", async () => {
     const dependencies = createDependencies();
     const baseStore = dependencies.entityService.getProjectionStore();
@@ -455,6 +520,7 @@ describe("getRuntimeReadiness", () => {
               preparing: 0,
               open: 0,
               abandoned: 1,
+              expiredCallbackLeases: 0,
               oldestActiveAgeMs: null,
               oldestProgressAgeMs: null,
             }),

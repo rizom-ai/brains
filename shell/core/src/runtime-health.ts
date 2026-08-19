@@ -259,6 +259,7 @@ async function getProjectionWaveDiagnostics(
         preparing: 0,
         open: 0,
         abandoned: 0,
+        expiredCallbackLeases: 0,
         oldestActiveAgeMs: null,
         oldestProgressAgeMs: null,
       }),
@@ -319,14 +320,11 @@ function projectionWaveCheck(
       details: { batches: diagnostics.batches },
     };
   }
-  if (
-    diagnostics.batches.oldestProgressAgeMs !== null &&
-    diagnostics.batches.oldestProgressAgeMs > 30_000
-  ) {
+  if (diagnostics.batches.expiredCallbackLeases > 0) {
     return {
       name: "projection-waves",
       status: "degraded",
-      message: "A projection batch has remained active beyond its lease window",
+      message: "A callback projection batch lease has expired",
       details: { batches: diagnostics.batches },
     };
   }

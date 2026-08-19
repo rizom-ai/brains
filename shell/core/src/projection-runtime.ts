@@ -106,9 +106,20 @@ export async function activateProjectionRuntime(
   let removeSweep = (): void => {};
   try {
     if (options.activationMode !== "executor") {
-      const sweep = async (): Promise<void> => {
+      const performSweep = async (): Promise<void> => {
         await options.reconcileBatches?.();
         await scheduler.startNextWave();
+      };
+      let activeSweep: Promise<void> | undefined;
+      const sweep = (): Promise<void> => {
+        if (activeSweep) return activeSweep;
+        const started = performSweep();
+        activeSweep = started;
+        const clear = (): void => {
+          if (activeSweep === started) activeSweep = undefined;
+        };
+        void started.then(clear, clear);
+        return started;
       };
       removeWakeup = options.setWakeup(sweep);
       await sweep();

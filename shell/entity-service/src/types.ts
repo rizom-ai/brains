@@ -903,6 +903,7 @@ export interface ProjectionBatchOwnedJob {
   jobId: string;
   childKey: string;
   status: "pending" | "processing" | "completed" | "failed";
+  terminalAt: number | null;
 }
 
 export type ProjectionBatchRootReader = (

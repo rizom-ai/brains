@@ -3,7 +3,10 @@ import { sql } from "drizzle-orm";
 import { ProjectionBatchFencedError, ProjectionStore } from "../src";
 import { createEntityDatabase } from "../src/db";
 import { entities } from "../src/schema/entities";
-import { projectionBatches } from "../src/schema/projection-batches";
+import {
+  projectionBatchChildren,
+  projectionBatches,
+} from "../src/schema/projection-batches";
 import { createTestEntityDatabase } from "./helpers/test-entity-db";
 
 interface TestDatabase {
@@ -117,6 +120,7 @@ describe("ProjectionStore", () => {
           preparing: 0,
           open: 1,
           abandoned: 0,
+          expiredCallbackLeases: 0,
           oldestActiveAgeMs: expect.any(Number),
           oldestProgressAgeMs: expect.any(Number),
         });
@@ -420,6 +424,62 @@ describe("ProjectionStore", () => {
     );
   });
 
+  it("checks an active projection barrier without taking the write lock", async () => {
+    await store.markDirty({
+      sourceType: "document",
+      sourceId: "blocked-wave-source",
+      revision: "blocked-wave-revision",
+      operation: "upsert",
+      markedAt: 10,
+    });
+    await store.prepareDurableBulkMutation({
+      source: "directory-sync",
+      operationId: "write-locked-root",
+      rootJobId: "write-locked-root",
+      expectedChildren: 1,
+    });
+    await store.finalizeDurableBulkMutationEnqueue("write-locked-root");
+
+    const blockerConnection = createEntityDatabase(database.config);
+    const blocker = await blockerConnection.client.transaction("write");
+    try {
+      expect(
+        await store.claimPendingWave({
+          waveId: "write-locked-wave",
+          graphFingerprint: "graph-1",
+          startedAt: 20,
+        }),
+      ).toBeNull();
+    } finally {
+      await blocker.rollback();
+      blockerConnection.client.close();
+    }
+  });
+
+  it("leaves a live durable root read-only during recovery", async () => {
+    await store.prepareDurableBulkMutation({
+      source: "directory-sync",
+      operationId: "live-root",
+      rootJobId: "live-root",
+      expectedChildren: 1,
+    });
+    await store.finalizeDurableBulkMutationEnqueue("live-root");
+
+    expect(
+      await store.recoverProjectionBatches(async () => [
+        {
+          jobId: "live-job",
+          childKey: "0:directory-import",
+          status: "processing",
+          terminalAt: null,
+        },
+      ]),
+    ).toEqual({ fencedCallbacks: 0, releasedDurableRoots: 0 });
+    expect(await connection.db.select().from(projectionBatchChildren)).toEqual(
+      [],
+    );
+  });
+
   it("reconciles terminal durable children after a worker callback is lost", async () => {
     let now = 0;
     const recoveryStore = new ProjectionStore(
@@ -456,6 +516,18 @@ describe("ProjectionStore", () => {
           jobId: "job-lost-callback",
           childKey: "0:directory-import",
           status: "completed",
+          terminalAt: now,
+        },
+      ]),
+    ).toEqual({ fencedCallbacks: 0, releasedDurableRoots: 0 });
+    now = 5_101;
+    expect(
+      await recoveryStore.recoverProjectionBatches(async () => [
+        {
+          jobId: "job-lost-callback",
+          childKey: "0:directory-import",
+          status: "completed",
+          terminalAt: 100,
         },
       ]),
     ).toEqual({ fencedCallbacks: 0, releasedDurableRoots: 1 });
@@ -509,12 +581,14 @@ describe("ProjectionStore", () => {
         jobId: string;
         childKey: string;
         status: "completed";
+        terminalAt: number;
       }>
     > => [
       {
         jobId: "partial-job-1",
         childKey: "0:directory-import",
-        status: "completed" as const,
+        status: "completed",
+        terminalAt: 0,
       },
     ];
     expect(await partialStore.recoverProjectionBatches(terminalJobs)).toEqual({

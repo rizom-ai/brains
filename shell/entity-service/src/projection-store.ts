@@ -77,6 +77,8 @@ const bulkMutationInputSchema = z.strictObject({
   operationId: z.string().trim().min(1).max(200),
 });
 
+const DURABLE_ROOT_RECOVERY_GRACE_MS = 5_000;
+
 const durableBulkMutationRootSchema = bulkMutationInputSchema.extend({
   rootJobId: z.string().trim().min(1).max(200),
   expectedChildren: z.number().int().positive().max(10_000),
@@ -138,6 +140,7 @@ export interface ProjectionBatchOwnedJob {
   jobId: string;
   childKey: string;
   status: "pending" | "processing" | "completed" | "failed";
+  terminalAt: number | null;
 }
 
 export type ProjectionBatchRootReader = (
@@ -154,6 +157,7 @@ export interface ProjectionBatchDiagnostics {
   preparing: number;
   open: number;
   abandoned: number;
+  expiredCallbackLeases: number;
   oldestActiveAgeMs: number | null;
   oldestProgressAgeMs: number | null;
 }
@@ -498,43 +502,56 @@ export class ProjectionStore {
     readRoot: ProjectionBatchRootReader,
   ): Promise<ProjectionBatchRecoveryResult> {
     const now = this.now();
-    const fencedCallbacks = await this.runTransaction(async (transaction) => {
-      const expired = await transaction
-        .select()
-        .from(projectionBatches)
-        .where(
-          and(
-            eq(projectionBatches.ownerKind, "callback"),
-            eq(projectionBatches.status, "open"),
-            lte(projectionBatches.leaseExpiresAt, now),
-          ),
-        );
-      for (const batch of expired) {
-        const recoveryGeneration = await this.getRecoveryGeneration(
-          transaction,
-          batch.highestGeneration ?? 0,
-        );
-        await transaction
-          .update(projectionBatches)
-          .set({
-            status: "abandoned",
-            ownerToken: createId(),
-            terminalAt: now,
-            lastProgressAt: now,
-            leaseExpiresAt: null,
-            recoveryGeneration,
-            recoveredAt: batch.highestGeneration === null ? now : null,
-          })
-          .where(
-            and(
-              eq(projectionBatches.id, batch.id),
-              eq(projectionBatches.ownerToken, batch.ownerToken),
-              eq(projectionBatches.status, "open"),
-            ),
-          );
-      }
-      return expired.length;
-    });
+    const expiredCallbackCandidates = await this.db
+      .select({ id: projectionBatches.id })
+      .from(projectionBatches)
+      .where(
+        and(
+          eq(projectionBatches.ownerKind, "callback"),
+          eq(projectionBatches.status, "open"),
+          lte(projectionBatches.leaseExpiresAt, now),
+        ),
+      );
+    const fencedCallbacks =
+      expiredCallbackCandidates.length === 0
+        ? 0
+        : await this.runTransaction(async (transaction) => {
+            const expired = await transaction
+              .select()
+              .from(projectionBatches)
+              .where(
+                and(
+                  eq(projectionBatches.ownerKind, "callback"),
+                  eq(projectionBatches.status, "open"),
+                  lte(projectionBatches.leaseExpiresAt, now),
+                ),
+              );
+            for (const batch of expired) {
+              const recoveryGeneration = await this.getRecoveryGeneration(
+                transaction,
+                batch.highestGeneration ?? 0,
+              );
+              await transaction
+                .update(projectionBatches)
+                .set({
+                  status: "abandoned",
+                  ownerToken: createId(),
+                  terminalAt: now,
+                  lastProgressAt: now,
+                  leaseExpiresAt: null,
+                  recoveryGeneration,
+                  recoveredAt: batch.highestGeneration === null ? now : null,
+                })
+                .where(
+                  and(
+                    eq(projectionBatches.id, batch.id),
+                    eq(projectionBatches.ownerToken, batch.ownerToken),
+                    eq(projectionBatches.status, "open"),
+                  ),
+                );
+            }
+            return expired.length;
+          });
 
     const durableBatches = await this.db
       .select()
@@ -549,6 +566,23 @@ export class ProjectionStore {
     for (const batch of durableBatches) {
       if (!batch.rootJobId) continue;
       const jobs = await readRoot(batch.rootJobId, batch.operationId);
+      const hasActiveJob = jobs.some(
+        (job) => job.status === "pending" || job.status === "processing",
+      );
+      const terminalRecoveryReady = jobs.every(
+        (job) =>
+          job.terminalAt !== null &&
+          job.terminalAt <= now - DURABLE_ROOT_RECOVERY_GRACE_MS,
+      );
+      const completeRoot = jobs.length >= batch.expectedChildren;
+      const provablyPartial = now - batch.openedAt >= 30_000;
+      if (
+        hasActiveJob ||
+        !terminalRecoveryReady ||
+        (!completeRoot && !provablyPartial)
+      ) {
+        continue;
+      }
       const released = await this.reconcileDurableRoot(batch.id, jobs, now);
       if (released) releasedDurableRoots++;
     }
@@ -687,8 +721,10 @@ export class ProjectionStore {
     const rows = await this.db
       .select({
         status: projectionBatches.status,
+        ownerKind: projectionBatches.ownerKind,
         openedAt: projectionBatches.openedAt,
         lastProgressAt: projectionBatches.lastProgressAt,
+        leaseExpiresAt: projectionBatches.leaseExpiresAt,
         recoveredAt: projectionBatches.recoveredAt,
       })
       .from(projectionBatches)
@@ -703,6 +739,12 @@ export class ProjectionStore {
       open: rows.filter((row) => row.status === "open").length,
       abandoned: rows.filter(
         (row) => row.status === "abandoned" && row.recoveredAt === null,
+      ).length,
+      expiredCallbackLeases: active.filter(
+        (row) =>
+          row.ownerKind === "callback" &&
+          row.leaseExpiresAt !== null &&
+          row.leaseExpiresAt <= now,
       ).length,
       oldestActiveAgeMs:
         active.length === 0
@@ -1001,6 +1043,13 @@ export class ProjectionStore {
       .min(1)
       .parse(input.graphFingerprint);
     const startedAt = z.number().int().nonnegative().parse(input.startedAt);
+
+    const activeBarriers = await this.db
+      .select({ id: projectionBatches.id })
+      .from(projectionBatches)
+      .where(inArray(projectionBatches.status, ["preparing", "open"]))
+      .limit(1);
+    if (activeBarriers.length > 0) return null;
 
     return this.runTransaction(async (transaction) => {
       const active = await transaction
