@@ -78,7 +78,7 @@ export function getTemplates(): Record<string, Template> {
       name: "series-list",
       description: "Series list page template",
       schema: seriesListSchema,
-      dataSourceId: "series:entities",
+      dataSourceId: "entities",
       requiredPermission: "public",
       layout: {
         component: SeriesListTemplate,
@@ -91,7 +91,7 @@ export function getTemplates(): Record<string, Template> {
       name: "series-detail",
       description: "Series detail page template",
       schema: seriesDetailSchema,
-      dataSourceId: "series:entities",
+      dataSourceId: "entities",
       requiredPermission: "public",
       layout: {
         component: SeriesDetailTemplate,

@@ -31,7 +31,7 @@ export function getTemplates(): Record<string, Template> {
         name: "post-list",
         description: "Blog list page template",
         schema: postListSchema,
-        dataSourceId: "blog:entities",
+        dataSourceId: "entities",
         requiredPermission: "public",
         layout: {
           component: BlogListTemplate,
@@ -55,7 +55,7 @@ export function getTemplates(): Record<string, Template> {
         nextPost: blogViewSchema.nullable(),
         seriesPosts: z.array(blogViewSchema).nullable(),
       }),
-      dataSourceId: "blog:entities",
+      dataSourceId: "entities",
       requiredPermission: "public",
       layout: {
         component: BlogPostTemplate,
