@@ -59,4 +59,3 @@ export { ProjectDetailTemplate } from "./templates/project-detail";
 export { projectGenerationTemplate } from "./templates/generation-template";
 
 // Job Handler
-export { ProjectGenerationJobHandler } from "./handlers/generation-handler";

@@ -5,7 +5,7 @@ import {
   createSilentLogger,
   createTestEntity,
 } from "@brains/test-utils";
-import { seriesGeneration } from "../src/handlers/seriesGenerationHandler";
+import { seriesDescriptionJob } from "../src/handlers/seriesGenerationHandler";
 import type { Series } from "../src/schemas/series";
 
 describe("SeriesGenerationHandler", () => {
@@ -43,7 +43,7 @@ slug: systems-series
             ]
           : [],
     });
-    await seriesGeneration.handle({
+    await seriesDescriptionJob.handle({
       input: { seriesId: "systems-series" },
       ai: context.ai,
       logger: createSilentLogger("test"),

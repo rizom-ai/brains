@@ -15,6 +15,7 @@ import type {
   EntityDefinition,
   EntityEvalDeclaration,
   EntityGenerationDeclaration,
+  EntityScheduledGenerationDeclaration,
   EntityJobDeclaration,
   EntityDefinitionConfig,
   EntitySeedDefinition,
@@ -60,6 +61,14 @@ export function defineEntity<
   readonly dataSources?: readonly AnyDataSourceDeclaration[] | undefined;
   readonly attachments?: readonly EntityAttachmentDeclaration[] | undefined;
   readonly generation?: EntityGenerationDeclaration<TInputSchema> | undefined;
+  readonly stub?:
+    | ((input: { readonly id: string; readonly title: string }) => {
+        readonly content: string;
+        readonly metadata: z.input<TMetadataSchema>;
+      })
+    | undefined;
+  readonly scheduledGeneration?:
+    EntityScheduledGenerationDeclaration | undefined;
   readonly projectionRules?: readonly ProjectionRule[] | undefined;
   readonly atproto?: AtprotoProjection | undefined;
   readonly evals?: EntityEvalDeclaration | undefined;

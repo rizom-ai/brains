@@ -115,6 +115,29 @@ export interface EntityDefinition<
    */
   readonly generation?: EntityGenerationDeclaration | undefined;
   /**
+   * The placeholder a queued generation starts from.
+   *
+   * `system_generate` persists one before enqueueing so the caller has an
+   * entity to look at while the work runs, and refuses a type that has none.
+   *
+   * Content as well as metadata, because they are not the same thing for
+   * every type: a codec that keeps fields in the content's frontmatter
+   * rather than in metadata still needs them present, or the placeholder
+   * cannot be read back.
+   */
+  readonly stub?:
+    | ((input: { readonly id: string; readonly title: string }) => {
+        readonly content: string;
+        readonly metadata: Record<string, unknown>;
+      })
+    | undefined;
+  /**
+   * Where this entity type gets its material when a schedule asks for one
+   * and no prompt says what to write about.
+   */
+  readonly scheduledGeneration?:
+    EntityScheduledGenerationDeclaration | undefined;
+  /**
    * Projection rules for an entity derived from many source types rather
    * than from one named source. `defineProjection` pairs a single source
    * definition with a single target and cannot express that.
@@ -303,12 +326,71 @@ export interface EntityJobDeclaration<
 }
 
 /**
- * Content generation is a job like any other — the runtime just names it
- * `{entityType}:generation` — so it shares the job shape.
+ * What a generation produced, or why it could not.
+ *
+ * Content rather than a written entity: the lifecycle around a generation —
+ * allocating the entity, marking it generating, persisting the result,
+ * marking it failed — belongs to the runtime. A handler that writes its own
+ * entity cannot take part in that lifecycle, which is how a pre-allocated
+ * stub came to be ignored and left generating forever.
  */
-export type EntityGenerationDeclaration<
+export type EntityGenerationResult =
+  | {
+      readonly success: true;
+      readonly content: string;
+      readonly metadata: Record<string, unknown>;
+      /** Extra fields merged into the job's success result, e.g. a slug. */
+      readonly resultExtras?: Record<string, unknown> | undefined;
+    }
+  | { readonly success: false; readonly error: string };
+
+/**
+ * Content generation for an entity type, registered by the runtime as the
+ * `{entityType}:generation` job.
+ *
+ * Shares a job's context — AI, entity reads, progress — but not its return
+ * contract: it hands back content and the runtime persists it. When the job
+ * input carries an `entityId`, that entity is filled in rather than a new
+ * one created; otherwise the id is derived from the returned title.
+ */
+export interface EntityGenerationDeclaration<
   TInputSchema extends z.ZodType = z.ZodType,
-> = EntityJobDeclaration<TInputSchema>;
+> {
+  readonly input: TInputSchema;
+  generate(
+    args: JobHandlerContext<z.output<TInputSchema>> & {
+      /** The pre-allocated entity being filled in, when there is one. */
+      readonly entityId: string | undefined;
+    },
+  ): Promise<EntityGenerationResult>;
+}
+
+/**
+ * How a scheduled generation finds something to write from.
+ *
+ * The generation job itself takes a prompt or explicit sources; this covers
+ * the case where a scheduler asks for an entity of this type and supplies
+ * neither. The runtime lists the sources, picks according to `mode`, and
+ * enqueues `{entityType}:generation` — a package that declares this neither
+ * subscribes to the schedule nor enqueues its own job.
+ *
+ * `from.entityType` names a type, not a package: an entity that summarises
+ * long-form writing depends on there being long-form writing, which is a
+ * fact about the content, not an import.
+ */
+export interface EntityScheduledGenerationDeclaration {
+  readonly from: {
+    readonly entityType: string;
+    /** Metadata status a source must have to be written from. */
+    readonly status?: string | undefined;
+    readonly limit: number;
+  };
+  /**
+   * `each` writes from one source at a time, skipping sources this type has
+   * already been derived from. `batch` writes from all of them at once.
+   */
+  readonly mode: "each" | "batch";
+}
 
 /**
  * An attachment provider, declared.

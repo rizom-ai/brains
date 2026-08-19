@@ -4,6 +4,7 @@ import {
   blogPostFrontmatterSchema,
   blogPostMetadataSchema,
 } from "./schemas/blog-post";
+import { blogPostAdapter } from "./adapters/blog-post-adapter";
 import { getTemplates } from "./lib/register-templates";
 import {
   blogDataSource,
@@ -81,6 +82,23 @@ export const post: EntityDefinition<"post", typeof blogPostMetadataSchema> =
         },
       }),
     },
+    // What system_generate persists before the writing starts, so an author
+    // sees the post appear immediately rather than after the AI finishes.
+    // Excerpt and author are empty rather than absent: they live in the
+    // content's frontmatter, which the codec requires in full.
+    stub: ({ id, title }) => ({
+      content: blogPostAdapter.createPostContent(
+        {
+          title,
+          slug: id,
+          status: "generating",
+          excerpt: "",
+          author: "",
+        },
+        "",
+      ),
+      metadata: { title, slug: id, status: "generating" },
+    }),
     templates: getTemplates(),
     dataSources: [blogDataSource, blogLatestDataSource, blogSeriesDataSource],
     attachments: [

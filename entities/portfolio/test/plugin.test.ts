@@ -124,8 +124,9 @@ describe("portfolio package", () => {
       }),
     };
 
-    const result = await projectGeneration.handle({
+    const result = await projectGeneration.generate({
       input: { prompt: "Create a case study for my API Gateway project" },
+      entityId: undefined,
       ai: harness.getEntityContext("test").ai,
       logger: harness.getMockShell().getLogger(),
       entities,

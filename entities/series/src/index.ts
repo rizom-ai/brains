@@ -22,7 +22,7 @@ import {
   seriesMetadataSchema,
 } from "./schemas/series";
 import { seriesDataSource } from "./datasources/series-datasource";
-import { seriesGeneration } from "./handlers/seriesGenerationHandler";
+import { seriesDescriptionJob } from "./handlers/seriesGenerationHandler";
 import { getTemplates } from "./lib/register-templates";
 import { createSeriesProjectionRule } from "./lib/series-projection";
 import { seriesDescriptionTemplate } from "./templates/description-template";
@@ -59,7 +59,7 @@ export const series: EntityDefinition<"series", typeof seriesMetadataSchema> =
     config: { weight: 0.5, projectionSourceRole: "supporting" },
     templates: { ...getTemplates(), description: seriesDescriptionTemplate },
     dataSources: [seriesDataSource],
-    generation: seriesGeneration,
+    jobs: { "series:description": seriesDescriptionJob },
     projectionRules: [createSeriesProjectionRule()],
     atproto: createSeriesAtprotoProjection(),
   });
