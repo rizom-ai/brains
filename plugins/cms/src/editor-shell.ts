@@ -4,6 +4,7 @@ import {
   CONSOLE_PALETTE_SCRIPT,
   CONSOLE_THEME_CSS,
   renderConsoleStripHtml,
+  type ConsoleStripPrincipal,
   type ConsoleSurface,
 } from "@brains/console-theme";
 
@@ -16,6 +17,7 @@ export interface EditorShellOptions {
   surfaces: ConsoleSurface[];
   /** Sign-out link for the authenticated-session chip. */
   sessionHref: string;
+  principal?: ConsoleStripPrincipal | undefined;
 }
 
 /**
@@ -84,7 +86,14 @@ ${CONSOLE_THEME_CSS}
     </style>
   </head>
   <body>
-    ${renderConsoleStripHtml(options)}
+    ${renderConsoleStripHtml({
+      surfaces: options.surfaces,
+      session: {
+        kind: "authenticated",
+        sessionHref: options.sessionHref,
+        ...(options.principal ? { principal: options.principal } : {}),
+      },
+    })}
     <main id="root" data-cms-root data-cms-base-path="${basePath}"><p class="boot">Opening the content studio…</p></main>
     <script type="module" src="${options.assetPath}"></script>
   </body>

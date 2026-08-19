@@ -117,17 +117,79 @@ describe("renderConsoleStripHtml", () => {
     { id: "cms", label: "CMS", href: "/cms", isActive: true },
   ];
 
-  it("uses role-neutral authenticated-session copy", () => {
-    const html = renderConsoleStripHtml({ surfaces, sessionHref: "/logout" });
+  const authenticated = {
+    kind: "authenticated" as const,
+    sessionHref: "/logout",
+  };
+
+  it("uses role-neutral copy when no principal is supplied", () => {
+    const html = renderConsoleStripHtml({ surfaces, session: authenticated });
 
     expect(html).toContain("Authenticated");
+    expect(html).toContain("Sign out");
     expect(html).toContain('data-console-surface="dashboard"');
     expect(html).toContain('data-console-surface="cms"');
     expect(html).not.toContain("Operator");
+    expect(html).not.toContain("is-visitor");
+  });
+
+  it("renders the principal's name, role, and initials when supplied", () => {
+    const html = renderConsoleStripHtml({
+      surfaces,
+      session: {
+        ...authenticated,
+        principal: { displayName: "Jan Hein Hoogstad", role: "admin" },
+      },
+    });
+
+    expect(html).toContain("Jan Hein Hoogstad · Admin");
+    expect(html).toContain("Sign out");
+    expect(html).toContain(">JH<");
+    expect(html).not.toContain("Authenticated");
+  });
+
+  it("escapes a principal display name before interpolating it", () => {
+    const html = renderConsoleStripHtml({
+      surfaces,
+      session: {
+        ...authenticated,
+        principal: { displayName: '<img src=x onerror="x">', role: "trusted" },
+      },
+    });
+
+    expect(html).not.toContain("<img");
+    expect(html).toContain("&lt;img");
+  });
+
+  it("renders the visitor chip for unauthenticated sessions", () => {
+    const html = renderConsoleStripHtml({
+      surfaces,
+      session: { kind: "visitor", loginHref: "/login" },
+    });
+
+    expect(html).toContain("session-chip is-visitor");
+    expect(html).toContain('href="/login"');
+    expect(html).toContain("Visitor");
+    expect(html).toContain("Sign in");
+  });
+
+  it("links the console mark to homeHref when given, else the dashboard surface", () => {
+    const explicit = renderConsoleStripHtml({
+      surfaces,
+      session: authenticated,
+      homeHref: "/dash",
+    });
+    const derived = renderConsoleStripHtml({
+      surfaces,
+      session: authenticated,
+    });
+
+    expect(explicit).toContain('class="console-mark" href="/dash"');
+    expect(derived).toContain('class="console-mark" href="/"');
   });
 
   it("renders the climate toggle between search and session", () => {
-    const html = renderConsoleStripHtml({ surfaces, sessionHref: "/logout" });
+    const html = renderConsoleStripHtml({ surfaces, session: authenticated });
 
     expect(html).toContain('id="climateToggle"');
     expect(html).toContain('class="climate-chip"');

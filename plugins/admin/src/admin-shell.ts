@@ -4,6 +4,7 @@ import {
   CONSOLE_PALETTE_SCRIPT,
   CONSOLE_THEME_CSS,
   renderConsoleStripHtml,
+  type ConsoleStripPrincipal,
   type ConsoleSurface,
 } from "@brains/console-theme";
 import type { AuthAdminRole } from "@brains/auth-service/admin-contracts";
@@ -19,6 +20,7 @@ export interface AdminShellOptions {
   brainName: string;
   surfaces: ConsoleSurface[];
   sessionHref: string;
+  principal?: ConsoleStripPrincipal | undefined;
 }
 
 function escapeAttribute(value: string): string {
@@ -73,7 +75,14 @@ ${CONSOLE_THEME_CSS}
     </style>
   </head>
   <body>
-    ${renderConsoleStripHtml(options)}
+    ${renderConsoleStripHtml({
+      surfaces: options.surfaces,
+      session: {
+        kind: "authenticated",
+        sessionHref: options.sessionHref,
+        ...(options.principal ? { principal: options.principal } : {}),
+      },
+    })}
     <main
       id="root"
       data-people-root

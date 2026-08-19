@@ -48,6 +48,10 @@ export function createAccountRoutes(
               self: { id: "account", href: options.routePath },
             }),
             sessionHref: `/logout?return_to=${encodeURIComponent(options.routePath)}`,
+            principal: {
+              displayName: principal.displayName,
+              role: principal.role,
+            },
           }),
           {
             headers: {

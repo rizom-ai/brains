@@ -4,6 +4,7 @@ import {
   CONSOLE_PALETTE_SCRIPT,
   CONSOLE_THEME_CSS,
   renderConsoleStripHtml,
+  type ConsoleStripPrincipal,
   type ConsoleSurface,
 } from "@brains/console-theme";
 import chatPageStyles from "./chat-page.css" with { type: "text" };
@@ -24,6 +25,7 @@ export interface ChatPageOptions {
   surfaces: ConsoleSurface[];
   /** Sign-out link for the session chip (the page is authenticated-only). */
   sessionHref: string;
+  principal?: ConsoleStripPrincipal | undefined;
 }
 
 export function renderChatPage(options: ChatPageOptions): string {
@@ -38,5 +40,12 @@ ${chatPageStyles}
 
 ${responsiveShellStyles}
 
-${visualRefreshStyles}</style></head><body>${renderConsoleStripHtml(options)}<main id="root" data-web-chat-root>Brain Chat</main><script type="module" src="${uiAssetPath}"></script></body></html>`;
+${visualRefreshStyles}</style></head><body>${renderConsoleStripHtml({
+    surfaces: options.surfaces,
+    session: {
+      kind: "authenticated",
+      sessionHref: options.sessionHref,
+      ...(options.principal ? { principal: options.principal } : {}),
+    },
+  })}<main id="root" data-web-chat-root>Brain Chat</main><script type="module" src="${uiAssetPath}"></script></body></html>`;
 }

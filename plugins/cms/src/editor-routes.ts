@@ -178,6 +178,10 @@ export function createEditorRoutes(
           self: { id: "cms", href: shellPath },
         }),
         sessionHref: `/logout?return_to=${encodeURIComponent(returnTo)}`,
+        principal: {
+          displayName: resolution.access.principal.displayName,
+          role: resolution.access.principal.role,
+        },
       }),
       {
         headers: {

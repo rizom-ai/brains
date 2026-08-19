@@ -70,6 +70,10 @@ export function createAdminRoutes(
               self: { id: "admin", href: options.routePath },
             }),
             sessionHref: `/logout?return_to=${encodeURIComponent(options.routePath)}`,
+            principal: {
+              displayName: principal.displayName,
+              role: principal.role,
+            },
           }),
           {
             headers: {
