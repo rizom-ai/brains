@@ -1,21 +1,17 @@
-import { BaseEntityAdapter } from "@brains/entity-service";
-import { z } from "@brains/utils/zod";
 import {
   brainCharacterSchema,
   brainCharacterBodySchema,
   type BrainCharacterEntity,
   type BrainCharacter,
 } from "./brain-character-schema";
-
-const frontmatterRecordSchema = z.record(z.string(), z.unknown());
+import { SingletonFrontmatterAdapter } from "./singleton-frontmatter-adapter";
 
 /**
  * Entity adapter for Brain Character entities
  * Uses frontmatter format for CMS compatibility
  */
-export class BrainCharacterAdapter extends BaseEntityAdapter<
+export class BrainCharacterAdapter extends SingletonFrontmatterAdapter<
   BrainCharacterEntity,
-  Record<string, unknown>,
   BrainCharacter
 > {
   constructor() {
@@ -49,11 +45,11 @@ export class BrainCharacterAdapter extends BaseEntityAdapter<
   }
 
   /**
-   * Convert character entity to frontmatter markdown
+   * Convert character entity to frontmatter markdown. The character has no
+   * body, so serialization is exactly the regenerated frontmatter.
    */
   public override toMarkdown(entity: BrainCharacterEntity): string {
-    const data = this.parseFrontmatter(entity.content);
-    return this.buildMarkdown("", frontmatterRecordSchema.parse(data));
+    return this.generateFrontMatter(entity);
   }
 
   /**
@@ -77,13 +73,5 @@ export class BrainCharacterAdapter extends BaseEntityAdapter<
       role: data.role,
       values: data.values,
     };
-  }
-
-  /**
-   * Generate frontmatter for the entity
-   */
-  public override generateFrontMatter(entity: BrainCharacterEntity): string {
-    const data = this.parseFrontmatter(entity.content);
-    return this.buildMarkdown("", frontmatterRecordSchema.parse(data));
   }
 }

@@ -1,11 +1,8 @@
 import type { IEntityService } from "@brains/entity-service";
-import {
-  internalFullScope,
-  SingletonEntityService,
-} from "@brains/entity-service";
 import type { Logger } from "@brains/utils/logger";
 import type { AnchorProfile } from "./anchor-profile-schema";
 import { AnchorProfileAdapter } from "./anchor-profile-adapter";
+import { SingletonDocumentService } from "./singleton-document-service";
 
 /**
  * Interface for consuming the anchor's profile data
@@ -20,11 +17,9 @@ export interface IAnchorProfileService {
  * Provides the person/organization's public profile (name, bio, socialLinks)
  */
 export class AnchorProfileService
-  extends SingletonEntityService<AnchorProfile>
+  extends SingletonDocumentService<AnchorProfile>
   implements IAnchorProfileService
 {
-  private adapter = new AnchorProfileAdapter();
-
   /**
    * Get the default profile for a new brain
    */
@@ -51,23 +46,18 @@ export class AnchorProfileService
     logger: Logger,
     defaultProfile?: AnchorProfile,
   ) {
+    const adapter = new AnchorProfileAdapter();
     super(
       entityService,
       logger,
       "anchor-profile",
       defaultProfile ?? AnchorProfileService.getDefaultProfile(),
-      internalFullScope(
-        "anchor profile is loaded at bootstrap before any user is in scope",
-      ),
+      "anchor profile is loaded at bootstrap before any user is in scope",
+      {
+        parse: (content) => adapter.parseProfileBody(content),
+        create: (body) => adapter.createProfileContent(body),
+      },
     );
-  }
-
-  protected parseBody(content: string): AnchorProfile {
-    return this.adapter.parseProfileBody(content);
-  }
-
-  protected createContent(body: AnchorProfile): string {
-    return this.adapter.createProfileContent(body);
   }
 
   /**

@@ -1,11 +1,8 @@
 import type { IEntityService } from "@brains/entity-service";
-import {
-  internalFullScope,
-  SingletonEntityService,
-} from "@brains/entity-service";
 import type { Logger } from "@brains/utils/logger";
 import type { BrainCharacter } from "./brain-character-schema";
 import { BrainCharacterAdapter } from "./brain-character-adapter";
+import { SingletonDocumentService } from "./singleton-document-service";
 
 /**
  * Interface for consuming the brain's character data
@@ -20,11 +17,9 @@ export interface IBrainCharacterService {
  * Caches and provides the brain's character (role, purpose, values)
  */
 export class BrainCharacterService
-  extends SingletonEntityService<BrainCharacter>
+  extends SingletonDocumentService<BrainCharacter>
   implements IBrainCharacterService
 {
-  private adapter = new BrainCharacterAdapter();
-
   /**
    * Get the default character for a new brain
    */
@@ -57,23 +52,18 @@ export class BrainCharacterService
     logger: Logger,
     defaultCharacter?: BrainCharacter,
   ) {
+    const adapter = new BrainCharacterAdapter();
     super(
       entityService,
       logger,
       "brain-character",
       defaultCharacter ?? BrainCharacterService.getDefaultCharacter(),
-      internalFullScope(
-        "brain character is loaded at bootstrap before any user is in scope",
-      ),
+      "brain character is loaded at bootstrap before any user is in scope",
+      {
+        parse: (content) => adapter.parseCharacterBody(content),
+        create: (body) => adapter.createCharacterContent(body),
+      },
     );
-  }
-
-  protected parseBody(content: string): BrainCharacter {
-    return this.adapter.parseCharacterBody(content);
-  }
-
-  protected createContent(body: BrainCharacter): string {
-    return this.adapter.createCharacterContent(body);
   }
 
   /**

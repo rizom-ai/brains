@@ -1,16 +1,11 @@
-import {
-  BaseEntityAdapter,
-  parseMarkdownWithFrontmatter,
-} from "@brains/entity-service";
-import { z } from "@brains/utils/zod";
+import { parseMarkdownWithFrontmatter } from "@brains/entity-service";
 import {
   anchorProfileSchema,
   anchorProfileBodySchema,
   type AnchorProfileEntity,
   type AnchorProfile,
 } from "./anchor-profile-schema";
-
-const frontmatterRecordSchema = z.record(z.string(), z.unknown());
+import { SingletonFrontmatterAdapter } from "./singleton-frontmatter-adapter";
 
 interface ProfileBodyParser<T> {
   parse(data: unknown): T;
@@ -20,9 +15,8 @@ interface ProfileBodyParser<T> {
  * Entity adapter for Anchor Profile entities
  * Uses frontmatter format for CMS compatibility
  */
-export class AnchorProfileAdapter extends BaseEntityAdapter<
+export class AnchorProfileAdapter extends SingletonFrontmatterAdapter<
   AnchorProfileEntity,
-  Record<string, unknown>,
   AnchorProfile
 > {
   constructor() {
@@ -92,13 +86,5 @@ export class AnchorProfileAdapter extends BaseEntityAdapter<
       email: data.email,
       website: data.website,
     };
-  }
-
-  /**
-   * Generate frontmatter for the entity
-   */
-  public override generateFrontMatter(entity: AnchorProfileEntity): string {
-    const data = this.parseFrontmatter(entity.content);
-    return this.buildMarkdown("", frontmatterRecordSchema.parse(data));
   }
 }
