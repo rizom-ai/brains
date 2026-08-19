@@ -1,4 +1,8 @@
-import { defineEntity, type EntityDefinition } from "@brains/plugins";
+import {
+  defineEntity,
+  generateMarkdownWithFrontmatter,
+  type EntityDefinition,
+} from "@brains/plugins";
 import { slugify } from "@brains/utils/string-utils";
 import {
   deckFrontmatterSchema,
@@ -76,6 +80,16 @@ export const deck: EntityDefinition<"deck", typeof deckMetadataSchema> =
         },
       }),
     },
+    // What system_generate persists before the deck is written. The body
+    // needs one slide separator so the placeholder survives re-serialising.
+    stub: ({ id, title }) => ({
+      content: generateMarkdownWithFrontmatter("---\n", {
+        title,
+        slug: id,
+        status: "generating",
+      }),
+      metadata: { title, slug: id, status: "generating" },
+    }),
     templates: {
       "deck-detail": deckTemplate,
       "deck-list": deckListTemplate,

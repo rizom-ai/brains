@@ -250,6 +250,8 @@ export type {
   EntityEvalDeclaration,
   EntityGenerationContext,
   EntityGenerationDeclaration,
+  EntityGenerationResult,
+  EntityScheduledGenerationDeclaration,
   EntityJobDeclaration,
   EntityFeedDeclaration,
   EntityPublishAssetDeclaration,

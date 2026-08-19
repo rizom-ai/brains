@@ -3,7 +3,7 @@ import {
   parseMarkdownWithFrontmatter,
   z,
   computeContentHash,
-  type EntityGenerationDeclaration,
+  type EntityJobDeclaration,
   type JobEntityAccess,
 } from "@brains/sdk/entities";
 import type { Series } from "../schemas/series";
@@ -36,10 +36,13 @@ const memberSummarySchema: z.ZodType<MemberSummary> = z.object({
 });
 
 /**
- * Generation handler for series entities.
- * Generates AI descriptions from the series' member entities.
+ * Rewrite a series' description from the entities it indexes.
+ *
+ * A declared job rather than a generation: it edits a series that already
+ * exists, where a generation produces content for the runtime to persist as
+ * a new or pre-allocated entity.
  */
-export const seriesGeneration: EntityGenerationDeclaration<
+export const seriesDescriptionJob: EntityJobDeclaration<
   typeof seriesGenerationJobSchema
 > = {
   input: seriesGenerationJobSchema,

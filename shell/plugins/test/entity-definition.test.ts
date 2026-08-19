@@ -1,6 +1,9 @@
 import { describe, expect, expectTypeOf, it } from "bun:test";
 import { z } from "@brains/utils/zod";
-import { createSilentLogger } from "@brains/test-utils";
+import {
+  createMockProgressReporter,
+  createSilentLogger,
+} from "@brains/test-utils";
 import { createPluginHarness } from "../src/test/harness";
 import {
   createEntityPackagePlugins,
@@ -420,12 +423,16 @@ describe("entity package definitions", () => {
       metadata: z.object({ title: z.string() }),
       generation: {
         input: z.object({ topic: z.string() }),
-        handle: async ({ input, ai }) => {
+        generate: async ({ input, ai }) => {
           const generated = await ai.generate<{ title: string }>({
             prompt: `Write about ${input.topic}`,
             templateName: "guide",
           });
-          return { title: generated.title };
+          return {
+            success: true as const,
+            content: "A guide",
+            metadata: { title: generated.title },
+          };
         },
       },
     });
@@ -1015,5 +1022,425 @@ describe("declarative entity seeding", () => {
     ).toBeNull();
 
     harness.reset();
+  });
+
+  // system_generate persists a placeholder before enqueueing so the caller
+  // has something to look at, and refuses outright when the adapter cannot
+  // build one. The generated adapter had no buildStub, so converting a
+  // package silently took system_generate away from it.
+  describe("the placeholder a queued generation starts from", () => {
+    function guideWithStub(withStub: boolean): ReturnType<typeof defineEntity> {
+      return defineEntity({
+        type: "guide",
+        purpose: "A generated guide.",
+        metadata: z.object({
+          title: z.string(),
+          slug: z.string(),
+          status: z.string(),
+        }),
+        ...(withStub
+          ? {
+              stub: ({ id, title }: { id: string; title: string }) => ({
+                content: `---\ntitle: ${title}\nstatus: generating\n---\n`,
+                metadata: { title, slug: id, status: "generating" },
+              }),
+            }
+          : {}),
+      });
+    }
+
+    function pluginFor(withStub: boolean): {
+      adapter: { buildStub?: unknown };
+    } {
+      const definition = defineEntityPackage({
+        id: "guides",
+        entities: [guideWithStub(withStub)],
+      });
+      const plugin = createEntityPackagePlugins(
+        definition.entities,
+        definition.projections,
+        { name: "@fixture/guides", version: "0.1.0" },
+        (id) => `@fixture/guides:${id}`,
+      )[0];
+      if (!plugin) throw new Error("Guide entity plugin was not created");
+      return plugin;
+    }
+
+    it("builds one from what the entity declares", () => {
+      const { adapter } = pluginFor(true);
+      const buildStub = adapter.buildStub;
+      if (typeof buildStub !== "function") {
+        throw new Error("Expected the adapter to build a stub");
+      }
+
+      expect(buildStub({ id: "how-to-fish", title: "How To Fish" })).toEqual({
+        content: expect.stringContaining("status: generating"),
+        metadata: {
+          title: "How To Fish",
+          slug: "how-to-fish",
+          status: "generating",
+        },
+      });
+    });
+
+    // The refusal is still right for a type that genuinely has no placeholder.
+    it("offers none when the entity declares none", () => {
+      expect(pluginFor(false).adapter.buildStub).toBeUndefined();
+    });
+  });
+
+  // The lifecycle around generation — allocate the entity, mark it
+  // generating, persist the result, mark it failed on error — used to live in
+  // BaseGenerationJobHandler. Converting packages to `generation` kept the
+  // content logic and dropped the lifecycle, because each handler called
+  // entities.create itself. So the declaration returns content and the
+  // runtime owns everything around it.
+  describe("the lifecycle around a generation", () => {
+    function guideThatGenerates(
+      outcome:
+        | { readonly success: true; readonly title: string }
+        | { readonly success: false; readonly error: string },
+    ): ReturnType<typeof defineEntity> {
+      return defineEntity({
+        type: "guide",
+        purpose: "A generated guide.",
+        metadata: z.object({
+          title: z.string(),
+          status: z.string().optional(),
+        }),
+        generation: {
+          input: z.object({
+            entityId: z.string().optional(),
+            topic: z.string(),
+          }),
+          generate: async () =>
+            outcome.success
+              ? {
+                  success: true as const,
+                  content: "The guide body",
+                  metadata: { title: outcome.title },
+                }
+              : { success: false as const, error: outcome.error },
+        },
+      });
+    }
+
+    async function installGenerating(
+      outcome: Parameters<typeof guideThatGenerates>[0],
+    ): Promise<{
+      harness: ReturnType<typeof createPluginHarness>;
+      run: (input: object) => Promise<unknown>;
+    }> {
+      const definition = defineEntityPackage({
+        id: "guides",
+        entities: [guideThatGenerates(outcome)],
+      });
+      const plugin = createEntityPackagePlugins(
+        definition.entities,
+        definition.projections,
+        { name: "@fixture/guides", version: "0.1.0" },
+        (id) => `@fixture/guides:${id}`,
+      )[0];
+      if (!plugin) throw new Error("Guide entity plugin was not created");
+
+      const harness = createPluginHarness({
+        logger: createSilentLogger("entity-generation-lifecycle-test"),
+      });
+      const handlers = new Map<string, JobHandler>();
+      const mockShell = harness.getMockShell();
+      const jobQueue = mockShell.getJobQueueService();
+      const trackingJobQueue = {
+        ...jobQueue,
+        registerHandler: (type: string, handler: JobHandler): void => {
+          handlers.set(type, handler);
+        },
+      };
+      mockShell.getJobQueueService = (): ReturnType<
+        typeof mockShell.getJobQueueService
+      > => trackingJobQueue;
+
+      await harness.installPlugin(plugin);
+      const handler = handlers.get("guide:generation");
+      if (!handler) throw new Error("Generation handler was not registered");
+
+      return {
+        harness,
+        run: (input) =>
+          handler.process(
+            input,
+            "job-1",
+            createMockProgressReporter(),
+            new AbortController().signal,
+          ) as Promise<unknown>,
+      };
+    }
+
+    it("persists what the handler returned, so the handler never writes", async () => {
+      const { harness, run } = await installGenerating({
+        success: true,
+        title: "How To Fish",
+      });
+
+      const result = await run({ topic: "fishing" });
+
+      expect(result).toMatchObject({ success: true, entityId: "how-to-fish" });
+      const stored = await harness
+        .getEntityService()
+        .getEntity({ entityType: "guide", id: "how-to-fish" });
+      expect(stored?.content).toContain("The guide body");
+      expect(stored?.metadata["title"]).toBe("How To Fish");
+    });
+
+    // system_generate persists a stub so the caller has something to look at
+    // while the work runs, then passes its id. Filling that stub in is what
+    // the converted packages stopped doing.
+    it("fills in a pre-allocated entity rather than creating a second one", async () => {
+      const { harness, run } = await installGenerating({
+        success: true,
+        title: "How To Fish",
+      });
+      await harness.getEntityService().createEntity({
+        entity: {
+          id: "fishing-stub",
+          entityType: "guide",
+          content: "",
+          metadata: { title: "fishing", status: "generating" },
+        },
+      });
+
+      const result = await run({ entityId: "fishing-stub", topic: "fishing" });
+
+      expect(result).toMatchObject({ success: true, entityId: "fishing-stub" });
+      const stored = await harness
+        .getEntityService()
+        .getEntity({ entityType: "guide", id: "fishing-stub" });
+      expect(stored?.content).toContain("The guide body");
+      expect(stored?.metadata["status"]).toBeUndefined();
+      // No second entity under the generated title.
+      expect(
+        await harness
+          .getEntityService()
+          .getEntity({ entityType: "guide", id: "how-to-fish" }),
+      ).toBeNull();
+    });
+
+    it("marks a pre-allocated entity failed rather than leaving it generating", async () => {
+      const { harness, run } = await installGenerating({
+        success: false,
+        error: "No sources to write from",
+      });
+      await harness.getEntityService().createEntity({
+        entity: {
+          id: "fishing-stub",
+          entityType: "guide",
+          content: "",
+          metadata: { title: "fishing", status: "generating" },
+        },
+      });
+
+      const result = await run({ entityId: "fishing-stub", topic: "fishing" });
+
+      expect(result).toEqual({
+        success: false,
+        error: "No sources to write from",
+      });
+      const stored = await harness
+        .getEntityService()
+        .getEntity({ entityType: "guide", id: "fishing-stub" });
+      expect(stored?.metadata["status"]).toBe("failed");
+      expect(stored?.metadata["error"]).toBe("No sources to write from");
+    });
+
+    it("creates nothing when generation fails with nothing pre-allocated", async () => {
+      const { harness, run } = await installGenerating({
+        success: false,
+        error: "No sources to write from",
+      });
+
+      expect(await run({ topic: "fishing" })).toEqual({
+        success: false,
+        error: "No sources to write from",
+      });
+      expect(
+        await harness.getEntityService().listEntities({ entityType: "guide" }),
+      ).toEqual([]);
+    });
+  });
+
+  // Two packages hand-rolled the same generate:execute subscriber: filter on
+  // your own type, list recent published sources, enqueue your generation
+  // job, report a failure when there is nothing to write from. What differed
+  // was only which sources and how many per job — so that is what is declared.
+  describe("generation on a schedule", () => {
+    function guideDerivedFrom(
+      mode: "each" | "batch",
+    ): ReturnType<typeof defineEntity> {
+      return defineEntity({
+        type: "guide",
+        purpose: "A guide written from published notes.",
+        metadata: z.object({ title: z.string() }),
+        generation: {
+          input: z.object({
+            sourceEntityType: z.string().optional(),
+            sourceEntityId: z.string().optional(),
+            sourceEntityIds: z.array(z.string()).optional(),
+          }),
+          generate: async () => ({
+            success: true as const,
+            content: "A guide",
+            metadata: { title: "A guide" },
+          }),
+        },
+        scheduledGeneration: {
+          from: { entityType: "note", status: "published", limit: 5 },
+          mode,
+        },
+      });
+    }
+
+    async function installScheduled(mode: "each" | "batch"): Promise<{
+      harness: ReturnType<typeof createPluginHarness>;
+      enqueued: Array<{ type: string; data: unknown }>;
+      failures: unknown[];
+    }> {
+      const definition = defineEntityPackage({
+        id: "guides",
+        entities: [guideDerivedFrom(mode)],
+      });
+      const plugin = createEntityPackagePlugins(
+        definition.entities,
+        definition.projections,
+        { name: "@fixture/guides", version: "0.1.0" },
+        (id) => `@fixture/guides:${id}`,
+      )[0];
+      if (!plugin) throw new Error("Guide entity plugin was not created");
+
+      const harness = createPluginHarness({
+        logger: createSilentLogger("entity-scheduled-generation-test"),
+      });
+      const enqueued: Array<{ type: string; data: unknown }> = [];
+      const mockShell = harness.getMockShell();
+      const jobQueue = mockShell.getJobQueueService();
+      const trackingJobQueue = {
+        ...jobQueue,
+        enqueue: async ({
+          type,
+          data,
+        }: {
+          type: string;
+          data: unknown;
+        }): Promise<string> => {
+          enqueued.push({ type, data });
+          return "job-1";
+        },
+      };
+      mockShell.getJobQueueService = (): ReturnType<
+        typeof mockShell.getJobQueueService
+      > => trackingJobQueue;
+
+      const failures: unknown[] = [];
+      harness.subscribe("generate:report:failure", async (msg) => {
+        failures.push(msg.payload);
+        return { success: true };
+      });
+
+      await harness.installPlugin(plugin);
+      return { harness, enqueued, failures };
+    }
+
+    async function seedNote(
+      harness: ReturnType<typeof createPluginHarness>,
+      id: string,
+      status: string,
+    ): Promise<void> {
+      await harness.getEntityService().createEntity({
+        entity: {
+          id,
+          entityType: "note",
+          content: `Note ${id}`,
+          metadata: { title: id, status },
+        },
+      });
+    }
+
+    it("writes from the first source nothing has been derived from yet", async () => {
+      const { harness, enqueued } = await installScheduled("each");
+      await seedNote(harness, "note-1", "published");
+      await seedNote(harness, "note-2", "published");
+      // note-1 already has a guide, so the next request takes note-2.
+      await harness.getEntityService().createEntity({
+        entity: {
+          id: "guide-1",
+          entityType: "guide",
+          content: "A guide",
+          metadata: {
+            title: "From note-1",
+            sourceEntityType: "note",
+            sourceEntityId: "note-1",
+          },
+        },
+      });
+
+      await harness.sendMessage("generate:execute", { entityType: "guide" });
+
+      expect(enqueued).toEqual([
+        {
+          type: "guide:generation",
+          data: { sourceEntityType: "note", sourceEntityId: "note-2" },
+        },
+      ]);
+
+      harness.reset();
+    });
+
+    it("writes from every source at once in batch mode", async () => {
+      const { harness, enqueued } = await installScheduled("batch");
+      await seedNote(harness, "note-1", "published");
+      await seedNote(harness, "note-2", "published");
+
+      await harness.sendMessage("generate:execute", { entityType: "guide" });
+
+      expect(enqueued).toEqual([
+        {
+          type: "guide:generation",
+          data: {
+            sourceEntityType: "note",
+            sourceEntityIds: ["note-1", "note-2"],
+          },
+        },
+      ]);
+
+      harness.reset();
+    });
+
+    it("reports a failure rather than writing from nothing", async () => {
+      const { harness, enqueued, failures } = await installScheduled("each");
+      // Present but unpublished, so not a source.
+      await seedNote(harness, "note-1", "draft");
+
+      await harness.sendMessage("generate:execute", { entityType: "guide" });
+
+      expect(enqueued).toEqual([]);
+      expect(failures).toEqual([
+        {
+          entityType: "guide",
+          error: "No published note available to write a guide from",
+        },
+      ]);
+
+      harness.reset();
+    });
+
+    it("ignores a request for some other entity type", async () => {
+      const { harness, enqueued, failures } = await installScheduled("each");
+      await seedNote(harness, "note-1", "published");
+
+      await harness.sendMessage("generate:execute", { entityType: "recipe" });
+
+      expect(enqueued).toEqual([]);
+      expect(failures).toEqual([]);
+
+      harness.reset();
+    });
   });
 });
