@@ -215,6 +215,7 @@ Cleanup:
 - [background-work-silent-stall.md](./plans/background-work-silent-stall.md) — **implemented, awaiting release**: expose durable background status, make exhausted worker supervision fatal, detect genuinely unclaimed due work, persist terminal projection incidents, and gate post-deploy verification and fleet status on operational health.
 - [operational-alert-delivery.md](./plans/operational-alert-delivery.md) — successor to `background-work-silent-stall.md`: deliver sustained operational degradation to the operator over a web-process path that survives a dead worker, with deduplicated episodes that resolve, then land client-side error capture on the same spine.
 - [packed-compatibility-test-tiering.md](./plans/packed-compatibility-test-tiering.md) — keep focused tests and one packed canary in normal PR feedback, move the full external-authoring matrix to nightly/release evidence, reuse one packed artifact per run, and freeze the `0.2.0` fixtures for later patch-candidate compatibility.
+- [preact-to-react-consolidation.md](./plans/preact-to-react-consolidation.md) — retire Preact for React 19 across the server-rendered surfaces: normalize the component dialect while still on Preact, flip the runtime atomically behind an output-equivalence harness, take the breaking peer-dependency change on a site-authoring `0.3` major, then collapse the twice-implemented operator view host into one.
 
 Research probes (parked):
 
