@@ -27,9 +27,9 @@ export function Colophon(props: {
   const docsUrl = findDocsUrl(appInfo, baseUrl);
 
   return (
-    <footer class="colophon">
-      <span class="colophon-mark">{title} · dashboard</span>
-      <span class="colophon-actions">
+    <footer className="colophon">
+      <span className="colophon-mark">{title} · dashboard</span>
+      <span className="colophon-actions">
         {docsUrl && (
           <a href={docsUrl} target="_blank" rel="noopener noreferrer">
             Docs ↗

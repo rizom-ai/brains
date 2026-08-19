@@ -15,10 +15,10 @@ function BreakdownRow({
   const width = Math.max(4, Math.round((count / max) * 100));
 
   return (
-    <div class="breakdown-row">
-      <span class="breakdown-name">{formatLabel(entityType)}</span>
-      <span class="breakdown-count">{count}</span>
-      <div class="breakdown-bar">
+    <div className="breakdown-row">
+      <span className="breakdown-name">{formatLabel(entityType)}</span>
+      <span className="breakdown-count">{count}</span>
+      <div className="breakdown-bar">
         <i style={{ width: `${width}%` }}></i>
       </div>
     </div>
@@ -33,7 +33,7 @@ export function EntitySummaryCard(props: {
 
   if (entityCounts.length === 0) {
     return (
-      <article class="card card--entity-summary">
+      <article className="card card--entity-summary">
         <CardHeader title="Entities" />
         <EmptyState>No indexed entities yet.</EmptyState>
       </article>
@@ -44,14 +44,14 @@ export function EntitySummaryCard(props: {
   const max = sorted[0]?.count ?? 1;
 
   return (
-    <article class="card card--entity-summary">
+    <article className="card card--entity-summary">
       <CardHeader title="Entities" subtitle="corpus · sorted by volume" />
-      <div class="entities">
+      <div className="entities">
         <div>
-          <div class="entity-summary-number">{total}</div>
-          <div class="entity-summary-label">indexed entities</div>
+          <div className="entity-summary-number">{total}</div>
+          <div className="entity-summary-label">indexed entities</div>
         </div>
-        <div class="breakdown">
+        <div className="breakdown">
           {sorted.map((item) => (
             <BreakdownRow
               key={item.entityType}

@@ -70,11 +70,11 @@ function IndexGauge({
     : "Indexing";
 
   return (
-    <div class="index-gauge" style={`--index-percent: ${percent}%`}>
-      <div class="index-gauge-ring" aria-hidden="true">
+    <div className="index-gauge" style={`--index-percent: ${percent}%`}>
+      <div className="index-gauge-ring" aria-hidden="true">
         <span>{percent}%</span>
       </div>
-      <div class="index-gauge-copy">
+      <div className="index-gauge-copy">
         <strong>{label}</strong>
         <span>{formatIndexStatus(status)}</span>
       </div>
@@ -90,7 +90,7 @@ export function SemanticIndexCard({
   const indexReady = resolveIndexReady(input);
 
   return (
-    <section class="card semantic-index-card">
+    <section className="card semantic-index-card">
       <CardHeader title="Semantic index" source="entity-service" />
       {input.indexStatus ? (
         <IndexGauge status={input.indexStatus} />
@@ -128,7 +128,7 @@ export function ContentSyncCard({
     : undefined;
 
   return (
-    <section class="card content-sync-card">
+    <section className="card content-sync-card">
       <CardHeader title="Content sync" source="directory-sync" />
       <KeyValueList
         items={[
@@ -155,18 +155,20 @@ export function ContentSyncCard({
           },
         ]}
       />
-      <div class="pipeline-mini" aria-label="Write pipeline">
-        <span class={`pipeline-step${status.isInitialized ? " is-done" : ""}`}>
+      <div className="pipeline-mini" aria-label="Write pipeline">
+        <span
+          className={`pipeline-step${status.isInitialized ? " is-done" : ""}`}
+        >
           entity db
         </span>
-        <span class="pipeline-track"></span>
+        <span className="pipeline-track"></span>
         <span
-          class={`pipeline-step${(status.totalFiles ?? 0) > 0 ? " is-done" : ""}`}
+          className={`pipeline-step${(status.totalFiles ?? 0) > 0 ? " is-done" : ""}`}
         >
           exported
         </span>
-        <span class="pipeline-track"></span>
-        <span class={`pipeline-step${status.lastSync ? " is-done" : ""}`}>
+        <span className="pipeline-track"></span>
+        <span className={`pipeline-step${status.lastSync ? " is-done" : ""}`}>
           committed
         </span>
       </div>
@@ -201,12 +203,12 @@ export function JobQueueCard({
   jobs: DashboardJobProgressItem[];
 }): JSX.Element {
   return (
-    <section class="card widget-card--wide job-queue-card">
+    <section className="card widget-card--wide job-queue-card">
       <CardHeader title="Job queue" source="job-queue" />
       {jobs.length === 0 ? (
         <EmptyState>No recent job progress observed.</EmptyState>
       ) : (
-        <table class="jobs">
+        <table className="jobs">
           <thead>
             <tr>
               <th>Job</th>
@@ -218,12 +220,12 @@ export function JobQueueCard({
           <tbody>
             {jobs.map((job) => (
               <tr key={`${job.kind}:${job.id}`}>
-                <td class="mono">{job.id.slice(0, 8)}</td>
+                <td className="mono">{job.id.slice(0, 8)}</td>
                 <td>{job.jobType ?? job.kind}</td>
-                <td class="mono">{formatClock(job.updatedAt)}</td>
+                <td className="mono">{formatClock(job.updatedAt)}</td>
                 <td>
                   <span
-                    class={`status-pill status-pill--${JOB_PILL_TONES[job.status]}`}
+                    className={`status-pill status-pill--${JOB_PILL_TONES[job.status]}`}
                   >
                     {JOB_PILL_LABELS[job.status]}
                     {job.progressLabel ? ` · ${job.progressLabel}` : ""}

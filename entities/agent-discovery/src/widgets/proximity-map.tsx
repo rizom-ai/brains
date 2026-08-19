@@ -229,7 +229,7 @@ function Bulb({
   if (archived) {
     return (
       <circle
-        class="proximity-archived-remnant"
+        className="proximity-archived-remnant"
         cx={point.x}
         cy={point.y}
         r="1.4"
@@ -259,7 +259,7 @@ function Bulb({
     ) : (
       <g key={key}>
         <circle
-          class="proximity-bulb-glow"
+          className="proximity-bulb-glow"
           cx={x}
           cy={y}
           r={radius * 3.2}
@@ -303,13 +303,15 @@ function Bulb({
 
 function EmptyProximityMap({ data }: { data: ProximityMapData }): JSX.Element {
   return (
-    <div class="proximity-empty" data-proximity-map-empty>
-      <p class="muted">No indexed agents yet.</p>
+    <div className="proximity-empty" data-proximity-map-empty>
+      <p className="muted">No indexed agents yet.</p>
       {data.center.kind === "centroid" && (
-        <p class="muted">Identity not indexed yet — waiting for embeddings.</p>
+        <p className="muted">
+          Identity not indexed yet — waiting for embeddings.
+        </p>
       )}
       {data.pendingCount > 0 && (
-        <p class="muted">{data.pendingCount} pending indexing</p>
+        <p className="muted">{data.pendingCount} pending indexing</p>
       )}
     </div>
   );
@@ -386,7 +388,7 @@ export function ProximityMap({
 
   return (
     <div
-      class={`proximity-field proximity-field--${surface}${dense ? " proximity-field--dense" : ""}`}
+      className={`proximity-field proximity-field--${surface}${dense ? " proximity-field--dense" : ""}`}
       data-proximity-map
     >
       <svg
@@ -402,18 +404,18 @@ export function ProximityMap({
           <radialGradient id={mistId}>
             <stop
               offset="0%"
-              stop-color="var(--console-secondary)"
-              stop-opacity="0.3"
+              stopColor="var(--console-secondary)"
+              stopOpacity="0.3"
             />
             <stop
               offset="70%"
-              stop-color="var(--console-secondary)"
-              stop-opacity="0.11"
+              stopColor="var(--console-secondary)"
+              stopOpacity="0.11"
             />
             <stop
               offset="100%"
-              stop-color="var(--console-secondary)"
-              stop-opacity="0"
+              stopColor="var(--console-secondary)"
+              stopOpacity="0"
             />
           </radialGradient>
         </defs>
@@ -429,7 +431,7 @@ export function ProximityMap({
               strokeWidth="1"
             />
             <text
-              class="proximity-strata-label"
+              className="proximity-strata-label"
               x={CENTER_X + 4}
               y={CENTER_Y - radiusForDistance(distance, maxDistance) - 5}
             >
@@ -459,13 +461,13 @@ export function ProximityMap({
               tabIndex={0}
             >
               <circle
-                class="proximity-cluster-mist"
+                className="proximity-cluster-mist"
                 cx={geometry.center.x}
                 cy={geometry.center.y}
                 r={geometry.radius}
                 fill={`url(#${mistId})`}
               />
-              <g class="proximity-cluster-weave">
+              <g className="proximity-cluster-weave">
                 {paths.map((path, index) => (
                   <g key={index}>
                     <path
@@ -487,7 +489,7 @@ export function ProximityMap({
                 ))}
               </g>
               <text
-                class="proximity-cluster-label"
+                className="proximity-cluster-label"
                 x={geometry.center.x}
                 y={Math.max(
                   24,
@@ -551,7 +553,7 @@ export function ProximityMap({
         {pulseLayouts.map(({ node }, index) => (
           <g
             key={`pulse:${node.id}`}
-            class="proximity-pulse"
+            className="proximity-pulse"
             aria-hidden="true"
           >
             <circle r="3.2" fill="var(--console-accent)" opacity="0.3">
@@ -576,7 +578,7 @@ export function ProximityMap({
         ))}
 
         {/* outward ripple — a soft blurred pass under a thin bright edge */}
-        <g class="proximity-ripple" aria-hidden="true">
+        <g className="proximity-ripple" aria-hidden="true">
           {[
             { width: 5, opacity: "0.1;0.07;0", blurred: true },
             { width: 1.1, opacity: "0.38;0.22;0", blurred: false },
@@ -612,7 +614,7 @@ export function ProximityMap({
 
         <g data-proximity-center={data.center.kind}>
           <circle
-            class="proximity-center-halo"
+            className="proximity-center-halo"
             cx={CENTER_X}
             cy={CENTER_Y}
             r="26"
@@ -640,7 +642,7 @@ export function ProximityMap({
             r="2"
             fill="var(--console-text)"
           />
-          <text class="proximity-you-label" x={CENTER_X} y={CENTER_Y + 30}>
+          <text className="proximity-you-label" x={CENTER_X} y={CENTER_Y + 30}>
             you
           </text>
         </g>
@@ -655,7 +657,7 @@ export function ProximityMap({
                 );
           return (
             <g
-              class="proximity-agent"
+              className="proximity-agent"
               key={node.id}
               style={shimmer}
               data-proximity-node={node.id}
@@ -681,7 +683,7 @@ export function ProximityMap({
               <Bulb node={node} point={point} blurRef={blurRef} />
               {Math.abs(labelY - point.y) > 7 && (
                 <path
-                  class="proximity-label-leader"
+                  className="proximity-label-leader"
                   d={`M ${point.x + (labelAnchor === "start" ? 6 : -6)} ${point.y} L ${labelX + (labelAnchor === "start" ? -3 : 3)} ${labelY - 3}`}
                   fill="none"
                   stroke="var(--console-rule-strong)"
@@ -689,7 +691,7 @@ export function ProximityMap({
                 />
               )}
               <text
-                class="proximity-node-label"
+                className="proximity-node-label"
                 x={labelX}
                 y={labelY}
                 textAnchor={labelAnchor}
@@ -710,7 +712,7 @@ export function ProximityMap({
           const onRight = point.x >= CENTER_X;
           return (
             <g
-              class="proximity-sighting"
+              className="proximity-sighting"
               key={`sighting:${sighting.id}`}
               data-proximity-sighting={sighting.id}
               data-proximity-name={sighting.name}
@@ -732,7 +734,7 @@ export function ProximityMap({
                 };
                 const d = `M ${from.x} ${from.y} Q ${middle.x} ${middle.y}, ${point.x} ${point.y}`;
                 return (
-                  <g class="proximity-sighting-thread" key={viaId}>
+                  <g className="proximity-sighting-thread" key={viaId}>
                     <path
                       d={d}
                       fill="none"
@@ -767,8 +769,8 @@ export function ProximityMap({
                 opacity="0.5"
               />
               <text
-                class="proximity-node-label"
-                fill-opacity="0.55"
+                className="proximity-node-label"
+                fillOpacity="0.55"
                 x={point.x + (onRight ? 11 : -11)}
                 y={point.y + 3}
                 textAnchor={onRight ? "start" : "end"}
@@ -784,7 +786,7 @@ export function ProximityMap({
           return (
             <circle
               key={index}
-              class="proximity-spore"
+              className="proximity-spore"
               cx={46 + random() * (WIDTH - 92)}
               cy={42 + random() * (HEIGHT - 84)}
               r={0.7 + random() * 0.9}
@@ -802,25 +804,25 @@ export function ProximityMap({
 
       {surface === "dashboard" && (
         <>
-          <div class="proximity-hud proximity-hud-count" aria-hidden="true">
-            <div class="proximity-count-number">{activeNodes.length}</div>
-            <div class="proximity-count-label">agents in reach</div>
+          <div className="proximity-hud proximity-hud-count" aria-hidden="true">
+            <div className="proximity-count-number">{activeNodes.length}</div>
+            <div className="proximity-count-label">agents in reach</div>
           </div>
 
-          <div class="proximity-hud proximity-hud-foot">
-            <div class="proximity-legend" aria-label="Agent kinds">
+          <div className="proximity-hud proximity-hud-foot">
+            <div className="proximity-legend" aria-label="Agent kinds">
               <span>● person</span>
               <span>∴ team</span>
               <span>◌ organization</span>
               <span>· archived trace</span>
             </div>
             {data.pendingCount > 0 && (
-              <p class="proximity-pending-note">
+              <p className="proximity-pending-note">
                 <b>{data.pendingCount}</b> pending indexing
               </p>
             )}
             {data.center.kind === "centroid" && (
-              <p class="proximity-pending-note">
+              <p className="proximity-pending-note">
                 <b>Identity not indexed</b> · centroid fallback
               </p>
             )}
@@ -828,7 +830,7 @@ export function ProximityMap({
         </>
       )}
 
-      <div class="proximity-tooltip" data-proximity-tooltip hidden />
+      <div className="proximity-tooltip" data-proximity-tooltip hidden />
     </div>
   );
 }

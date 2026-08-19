@@ -158,7 +158,7 @@ function LinkedText({
   const link = resolveLink(target, launchPaths);
   return link ? (
     <a
-      class="operator-inline-link"
+      className="operator-inline-link"
       href={link.href}
       {...(link.external ? { target: "_blank", rel: "noreferrer" } : {})}
     >
@@ -175,9 +175,9 @@ function StatsBlock({
   block: Extract<RuntimeBlock, { type: "stats" }>;
 }): JSX.Element {
   return (
-    <dl class="operator-stats">
+    <dl className="operator-stats">
       {block.items.map((item, index) => (
-        <div class="operator-stat" key={`${item.label}:${index}`}>
+        <div className="operator-stat" key={`${item.label}:${index}`}>
           <dt>{item.label}</dt>
           <dd>
             <span>{item.value}</span>
@@ -215,7 +215,7 @@ function NoticeBlock({
 }): JSX.Element {
   return (
     <aside
-      class={`operator-notice operator-notice--${block.tone ?? "neutral"}`}
+      className={`operator-notice operator-notice--${block.tone ?? "neutral"}`}
     >
       {block.title && <strong>{block.title}</strong>}
       <p>{block.text}</p>
@@ -251,7 +251,7 @@ function LinksBlock({
       ))}
     </WidgetActions>
   ) : (
-    <p class="operator-empty">No available links.</p>
+    <p className="operator-empty">No available links.</p>
   );
 }
 
@@ -296,7 +296,7 @@ function ListItem({
         hasTrailing ? (
           <>
             {item.count !== undefined && (
-              <span class="list-count">{item.count}</span>
+              <span className="list-count">{item.count}</span>
             )}
             {badges.map((badge, index) => (
               <WidgetStatusPill
@@ -335,7 +335,7 @@ function ListBlock({
   launchPaths: OperatorLaunchPaths;
 }): JSX.Element {
   if (block.items.length === 0) {
-    return <p class="operator-empty">{block.empty}</p>;
+    return <p className="operator-empty">{block.empty}</p>;
   }
   const list = (
     <WidgetList>
@@ -356,7 +356,7 @@ function ListBlock({
         ...(option.count !== undefined ? { count: option.count } : {}),
         ...(option.emphasis ? { tone: option.emphasis } : {}),
       }))}
-      emptyState={<p class="operator-empty">{block.empty}</p>}
+      emptyState={<p className="operator-empty">{block.empty}</p>}
     >
       {list}
     </WidgetFilter>
@@ -371,12 +371,12 @@ function TableBlock({
   launchPaths: OperatorLaunchPaths;
 }): JSX.Element {
   if (block.rows.length === 0) {
-    return <p class="operator-empty">{block.empty}</p>;
+    return <p className="operator-empty">{block.empty}</p>;
   }
   return (
-    <div class="operator-table-scroll">
+    <div className="operator-table-scroll">
       {block.filters && block.filters.length > 0 && (
-        <div class="operator-filter-summary" aria-label="Available filters">
+        <div className="operator-filter-summary" aria-label="Available filters">
           {block.filters.map((filter) => (
             <span key={filter.key}>
               {filter.label}: {filter.values.map(displayScalar).join(", ")}
@@ -384,12 +384,12 @@ function TableBlock({
           ))}
         </div>
       )}
-      <table class="operator-table">
+      <table className="operator-table">
         <thead>
           <tr>
             {block.columns.map((column) => (
               <th
-                class={`operator-align--${column.align ?? "start"}`}
+                className={`operator-align--${column.align ?? "start"}`}
                 key={column.key}
               >
                 {column.label}
@@ -404,7 +404,7 @@ function TableBlock({
                 const rendered = displayTableValue(row.cells[column.key]);
                 return (
                   <td
-                    class={`operator-align--${column.align ?? "start"}`}
+                    className={`operator-align--${column.align ?? "start"}`}
                     key={column.key}
                   >
                     {columnIndex === 0 ? (
@@ -431,7 +431,7 @@ function GroupBlock({
   block: Extract<RuntimeDashboardOperatorPanelBlock, { type: "group" }>;
 }): JSX.Element {
   return (
-    <section class="operator-group" aria-labelledby={`${block.id}-title`}>
+    <section className="operator-group" aria-labelledby={`${block.id}-title`}>
       <h5 id={`${block.id}-title`}>{block.label}</h5>
       <dl>
         {block.items.map((item) => (
@@ -452,7 +452,7 @@ function FlowBlock({
   block: Extract<RuntimeDashboardOperatorPanelBlock, { type: "flow" }>;
 }): JSX.Element {
   return (
-    <section class="operator-flow" aria-labelledby={`${block.id}-title`}>
+    <section className="operator-flow" aria-labelledby={`${block.id}-title`}>
       <h5 id={`${block.id}-title`}>{block.label}</h5>
       <ol data-direction={block.direction ?? "forward"}>
         {block.steps.map((step) => (
@@ -473,7 +473,7 @@ function MetersBlock({
   block: Extract<RuntimeDashboardOperatorPanelBlock, { type: "meters" }>;
 }): JSX.Element {
   return (
-    <dl class="operator-meters">
+    <dl className="operator-meters">
       {block.items.map((item) => (
         <div key={item.id} data-tone={item.tone ?? "neutral"}>
           <dt>{item.label}</dt>
@@ -500,7 +500,7 @@ function ProgressBlock({
   block: Extract<RuntimeDashboardOperatorPanelBlock, { type: "progress" }>;
 }): JSX.Element {
   return (
-    <section class="operator-progress" data-tone={block.tone ?? "neutral"}>
+    <section className="operator-progress" data-tone={block.tone ?? "neutral"}>
       <header>
         <strong>{block.label}</strong>
         <span>{block.state}</span>
@@ -531,19 +531,19 @@ function MatrixBlock({
 }): JSX.Element {
   return (
     <div
-      class="operator-matrix"
+      className="operator-matrix"
       style={`--operator-matrix-columns: ${block.columns ?? 2}`}
     >
       {block.cells.map((cell) => (
         <section
           key={cell.id}
-          class="operator-matrix-cell"
+          className="operator-matrix-cell"
           data-tone={cell.tone ?? "neutral"}
           aria-labelledby={`${block.id}-${cell.id}-title`}
         >
           <h5 id={`${block.id}-${cell.id}-title`}>{cell.label}</h5>
           {cell.items.length === 0 ? (
-            <p class="operator-empty">{cell.empty}</p>
+            <p className="operator-empty">{cell.empty}</p>
           ) : (
             <WidgetList>
               {cell.items.map((item) => (
@@ -599,13 +599,13 @@ function SpatialBlock({ block }: { block: RuntimeSpatialBlock }): JSX.Element {
   const positions = spatialPositions(block);
   return (
     <figure
-      class={`operator-spatial operator-spatial--${block.layout}`}
+      className={`operator-spatial operator-spatial--${block.layout}`}
       data-ui-spatial
       aria-label={block.label}
     >
-      <div class="operator-spatial-canvas">
+      <div className="operator-spatial-canvas">
         <svg
-          class="operator-spatial-lines"
+          className="operator-spatial-lines"
           viewBox="0 0 1000 600"
           preserveAspectRatio="none"
           aria-hidden="true"
@@ -624,7 +624,7 @@ function SpatialBlock({ block }: { block: RuntimeSpatialBlock }): JSX.Element {
             block.zones.map((zone) => (
               <circle
                 key={zone.id}
-                class="operator-spatial-zone"
+                className="operator-spatial-zone"
                 cx={zone.x * 1000}
                 cy={zone.y * 600}
                 r="72"
@@ -647,11 +647,14 @@ function SpatialBlock({ block }: { block: RuntimeSpatialBlock }): JSX.Element {
           })}
         </svg>
         {block.layout === "radial" && (
-          <span class="operator-spatial-center" data-kind={block.centerKind}>
+          <span
+            className="operator-spatial-center"
+            data-kind={block.centerKind}
+          >
             {block.centerLabel}
           </span>
         )}
-        <div class="operator-spatial-points" role="list">
+        <div className="operator-spatial-points" role="list">
           {block.points.map((point) => {
             const position = positions.get(point.id);
             if (!position) return null;
@@ -667,7 +670,7 @@ function SpatialBlock({ block }: { block: RuntimeSpatialBlock }): JSX.Element {
             return (
               <button
                 key={point.id}
-                class="operator-spatial-point"
+                className="operator-spatial-point"
                 type="button"
                 role="listitem"
                 style={`left:${position.x}%;top:${position.y}%`}
@@ -688,8 +691,8 @@ function SpatialBlock({ block }: { block: RuntimeSpatialBlock }): JSX.Element {
         </div>
       </div>
       <figcaption>
-        <p class="operator-spatial-description">{block.description}</p>
-        <ul class="operator-spatial-legend" aria-label="Legend">
+        <p className="operator-spatial-description">{block.description}</p>
+        <ul className="operator-spatial-legend" aria-label="Legend">
           {block.legend.map((item, index) => (
             <li
               key={`${item.label}:${index}`}
@@ -699,7 +702,7 @@ function SpatialBlock({ block }: { block: RuntimeSpatialBlock }): JSX.Element {
             </li>
           ))}
         </ul>
-        <div class="operator-spatial-details" aria-live="polite">
+        <div className="operator-spatial-details" aria-live="polite">
           {block.points.map((point) => (
             <article
               key={point.id}
@@ -779,7 +782,7 @@ function ViewBlock({
         ...(tab.count !== undefined ? { count: tab.count } : {}),
         content: tab.blocks.map((panelBlock, index) => (
           <section
-            class={`operator-block operator-block--${panelBlock.type}`}
+            className={`operator-block operator-block--${panelBlock.type}`}
             key={panelBlock.id ?? `${panelBlock.type}:${index}`}
           >
             <PanelBlock block={panelBlock} launchPaths={launchPaths} />
@@ -799,19 +802,19 @@ export function DeclarativeWidgetBody({
 }): JSX.Element {
   const parsed = safeParseRuntimeDashboardWidgetData(widget.data);
   if (!parsed.success) {
-    return <p class="operator-empty">Widget data is unavailable.</p>;
+    return <p className="operator-empty">Widget data is unavailable.</p>;
   }
   const { view } = parsed.data;
   const scopeId = `operator-${widget.widget.pluginId}-${widget.widget.id}`;
   return (
-    <div class="operator-view">
-      {view.title && <h4 class="operator-view-title">{view.title}</h4>}
+    <div className="operator-view">
+      {view.title && <h4 className="operator-view-title">{view.title}</h4>}
       {view.blocks.length === 0 ? (
-        <p class="operator-empty">No widget details.</p>
+        <p className="operator-empty">No widget details.</p>
       ) : (
         view.blocks.map((block, index) => (
           <section
-            class={`operator-block operator-block--${block.type}`}
+            className={`operator-block operator-block--${block.type}`}
             key={block.id ?? `${block.type}:${index}`}
           >
             <ViewBlock

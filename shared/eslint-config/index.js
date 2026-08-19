@@ -165,6 +165,23 @@ module.exports = {
         message:
           "Use getErrorMessage(error, fallback?) from @brains/utils/error instead of an inline instanceof-Error ternary.",
       },
+      {
+        selector: 'JSXAttribute[name.name="class"]',
+        message: "Use React-compatible className in TSX.",
+      },
+      {
+        selector: 'JSXAttribute[name.name="for"]',
+        message: "Use React-compatible htmlFor in TSX.",
+      },
+      {
+        selector: 'JSXAttribute[name.name="style"][value.type="Literal"]',
+        message: "Use a React-compatible style object in TSX.",
+      },
+      {
+        selector:
+          "JSXAttribute[name.name=/^(fill|font|letter|stop|stroke|text)-/]",
+        message: "Use React-compatible camelCase SVG attributes in TSX.",
+      },
     ],
   },
 };

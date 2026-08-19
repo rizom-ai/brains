@@ -68,15 +68,20 @@ risk surface.
 
 ### The dialect gap is smaller than it looks
 
-`class=` appears 412 times across 29 files and `for=` alongside it. Both render
+The syntax-aware implementation inventory found 360 actual `class=` JSX
+attributes across 21 files (the raw grep count also included serialized-HTML
+test assertions). There are no `for=` JSX attributes today. `class=` renders
 **correctly** under React 19 — `<div class="a b">x</div>` — with only a
-development-time warning. They are warning noise, not breakage.
+development-time warning. It is warning noise, not breakage.
 
 The one hard failure is a string `style` prop, which throws under React
 (`The 'style' prop expects a mapping from style properties to values`). That is
 49 occurrences in exactly three files, all in `sites/rizom-ai`: `layout.tsx`
 (3), `brain-screens.tsx` (4), and `growth-diagram.tsx` (42, nearly all CSS
-custom properties such as `--d:.1s`).
+custom properties such as `--d:.1s`). The same syntax inventory found 48
+hyphenated SVG JSX attributes across four files. React renders them but warns,
+so Phase 2 normalizes those to camelCase as part of making the tree genuinely
+React-correct.
 
 ### Preact already accepts the React dialect
 
@@ -191,10 +196,13 @@ The largest diff in the plan and the smallest risk in it: no runtime changes.
 
 - Tests first: extend the Phase 1 suite to assert the normalized output is
   unchanged by this phase.
-- Codemod `class=` → `className=`, `for=` → `htmlFor=` across the 28 files, and
-  convert the 49 string `style` props in `sites/rizom-ai` to objects.
-- Add an ESLint rule banning `class=`, `for=`, and string-valued `style` in
-  `.tsx`, so the dialect cannot regress before the flip.
+- Syntax-aware codemod `class=` → `className=` across the 21 files, convert the
+  49 string `style` props in `sites/rizom-ai` to objects, and camel-case the 48
+  hyphenated SVG attributes across four files. Serialized-HTML assertions are
+  not source syntax and remain unchanged.
+- Add ESLint rules banning `class=`, `for=`, string-valued `style`, and
+  hyphenated non-ARIA/data SVG attributes in `.tsx`, so the dialect cannot
+  regress before the flip.
 - Gate: Phase 1 harness passes. Note that string-to-object style conversion
   adds Preact's trailing separator, which the harness folds.
 

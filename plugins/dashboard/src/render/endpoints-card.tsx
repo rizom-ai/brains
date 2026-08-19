@@ -28,22 +28,22 @@ export function EndpointsCard(props: {
   );
 
   return (
-    <aside class="card">
+    <aside className="card">
       <CardHeader title="Endpoints" />
-      <dl class="links">
+      <dl className="links">
         {sorted.map((endpoint) => {
           const resolved = resolveUrl(endpoint.url, baseUrl);
           return (
             <a
               key={`${endpoint.label}:${endpoint.url}`}
-              class="link"
+              className="link"
               href={resolved}
               target="_blank"
               rel="noopener noreferrer"
             >
               <dt>{displayLinkLabel(endpoint.label)}</dt>
               <dd>{endpointHost(resolved)}</dd>
-              <span class="arrow">↗</span>
+              <span className="arrow">↗</span>
             </a>
           );
         })}

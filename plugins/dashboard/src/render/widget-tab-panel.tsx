@@ -37,20 +37,20 @@ export function WidgetTabPanel({
   return (
     <section
       id={tab.id}
-      class="dashboard-tab-panel"
+      className="dashboard-tab-panel"
       data-dashboard-tab-panel
       data-dashboard-group={tab.group}
       data-ui-panel={tab.id}
       role="tabpanel"
       aria-labelledby={`dashboard-tab-${tab.id}`}
     >
-      <header class="tab-section-head">
+      <header className="tab-section-head">
         <h2>{tab.label}</h2>
       </header>
       <div
-        class={`layout tab-layout${hasSidebar ? "" : " tab-layout--main-only"}`}
+        className={`layout tab-layout${hasSidebar ? "" : " tab-layout--main-only"}`}
       >
-        <div class="main-column">
+        <div className="main-column">
           {hasKnowledgeBuiltIns && (
             <EntitySummaryCard
               total={input.appInfo.entities}
@@ -77,7 +77,7 @@ export function WidgetTabPanel({
           ))}
         </div>
         {hasSidebar && (
-          <div class="sidebar-column">
+          <div className="sidebar-column">
             {hasSystemBuiltIns && (
               <>
                 <EndpointsCard

@@ -319,41 +319,44 @@ export function AgentProximityMapTemplate(data: ProximityMapData): JSX.Element {
   const ctaHref = data.ctaHref ?? DEFAULT_COPY.ctaHref;
 
   return (
-    <section class="agent-proximity-site" aria-label="Agent proximity map">
+    <section className="agent-proximity-site" aria-label="Agent proximity map">
       <style>{SITE_STYLES}</style>
-      <div class="agent-proximity-site__grid">
-        <div class="agent-proximity-site__copy">
-          <p class="agent-proximity-site__kicker">{kicker}</p>
-          <h2 class="agent-proximity-site__heading">
+      <div className="agent-proximity-site__grid">
+        <div className="agent-proximity-site__copy">
+          <p className="agent-proximity-site__kicker">{kicker}</p>
+          <h2 className="agent-proximity-site__heading">
             {headingLead} <em>{headingAccent}</em>
           </h2>
-          <p class="agent-proximity-site__lede">{renderLede(lede)}</p>
+          <p className="agent-proximity-site__lede">{renderLede(lede)}</p>
 
-          <a class="agent-proximity-site__cta" href={ctaHref}>
+          <a className="agent-proximity-site__cta" href={ctaHref}>
             {ctaLabel}
           </a>
           {data.pendingCount > 0 && (
-            <p class="agent-proximity-site__note">
+            <p className="agent-proximity-site__note">
               {data.pendingCount} pending semantic indexing
             </p>
           )}
           {data.center.kind === "centroid" && (
-            <p class="agent-proximity-site__note">
+            <p className="agent-proximity-site__note">
               Identity not indexed yet — using network centroid
             </p>
           )}
         </div>
 
-        <div class="agent-proximity-site__map">
+        <div className="agent-proximity-site__map">
           <ProximityMap data={data} surface="site" />
           {/* Rev 10: a quiet caption attached to the map — honest counts,
               nothing more. The big-number ledger and kind legend are gone. */}
-          <div class="agent-proximity-site__foot" aria-label="Network summary">
-            <span class="agent-proximity-site__count">
+          <div
+            className="agent-proximity-site__foot"
+            aria-label="Network summary"
+          >
+            <span className="agent-proximity-site__count">
               <b>{activeCount}</b> agents · <b>{data.clusters.length}</b>{" "}
               constellations discovered
             </span>
-            <span class="agent-proximity-site__live">the map is live</span>
+            <span className="agent-proximity-site__live">the map is live</span>
           </div>
         </div>
       </div>

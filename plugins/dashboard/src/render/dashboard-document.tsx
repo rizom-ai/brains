@@ -85,9 +85,9 @@ export function DashboardDocument({
           }
           authAccess={input.authAccess}
         />
-        <main class="console" data-component="dashboard:dashboard">
+        <main className="console" data-component="dashboard:dashboard">
           <div
-            class="frame"
+            className="frame"
             data-ui-tabs
             data-ui-tabs-default="overview"
             data-ui-tabs-hash="true"
@@ -95,8 +95,8 @@ export function DashboardDocument({
             <Masthead title={input.title} tagline={input.profile.description} />
             <TabBar tabs={tabs} />
 
-            <div class="canvas">
-              <div class="dashboard-tab-panels">
+            <div className="canvas">
+              <div className="dashboard-tab-panels">
                 <OverviewPanel
                   input={input}
                   tabs={tabs}

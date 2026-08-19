@@ -7,8 +7,8 @@ const hero = defineSection(
     introduction: z.string(),
   }),
   ({ heading, introduction }) => (
-    <section class="hero">
-      <p class="eyebrow">Reading library</p>
+    <section className="hero">
+      <p className="eyebrow">Reading library</p>
       <h1>{heading}</h1>
       <p>{introduction}</p>
     </section>

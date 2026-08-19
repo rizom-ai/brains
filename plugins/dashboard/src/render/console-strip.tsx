@@ -37,7 +37,7 @@ export function ConsoleStrip({
 
   return (
     <header
-      class="console-strip"
+      className="console-strip"
       aria-label="Console surfaces"
       dangerouslySetInnerHTML={{
         __html: renderConsoleStripInnerHtml({
