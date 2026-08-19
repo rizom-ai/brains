@@ -17,6 +17,7 @@ async function createSmokePilotRepo(): Promise<string> {
   const root = await mkdtemp(join(tmpdir(), "brains-ops-watchdog-smoke-test-"));
   const files = {
     "pilot.yaml": `brainVersion: 0.2.0-alpha.260
+bundleContract: capability-bundles-v1
 githubOrg: rizom-ai
 contentRepoPrefix: rover-
 domainSuffix: .rizom.ai

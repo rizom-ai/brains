@@ -59,6 +59,7 @@ A headless brain imported this note before serving its first MCP request.
     writeFileSync(
       join(instanceDirectory, "brain.yaml"),
       `brain: brain
+bundleContract: capability-bundles-v1
 anchor: person
 kind: professional
 bundles: [core]

@@ -1,4 +1,5 @@
 brain: brain
+bundleContract: capability-bundles-v1
 anchor: organization
 kind: organization
 bundles:

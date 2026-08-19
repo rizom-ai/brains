@@ -1,4 +1,5 @@
 brain: brain
+bundleContract: capability-bundles-v1
 anchor: team
 kind: team
 bundles:

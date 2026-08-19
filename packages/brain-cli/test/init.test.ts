@@ -525,6 +525,7 @@ describe("brain init", () => {
         join(testDir, "brain.yaml"),
         [
           "brain: brain",
+          "bundleContract: capability-bundles-v1",
           "bundles: [core, site]",
           "add: [products]",
           "domain: rizom.ai",
@@ -555,6 +556,7 @@ describe("brain init", () => {
         join(testDir, "brain.yaml"),
         [
           "brain: brain",
+          "bundleContract: capability-bundles-v1",
           "bundles: [core, site]",
           "add: [products]",
           "domain: rizom.ai",
@@ -574,6 +576,7 @@ describe("brain init", () => {
         join(testDir, "brain.yaml"),
         [
           "brain: brain",
+          "bundleContract: capability-bundles-v1",
           "bundles: [core, site]",
           "add: [products]",
           "domain: rizom.ai",
@@ -601,6 +604,7 @@ describe("brain init", () => {
         join(testDir, "brain.yaml"),
         [
           "brain: brain",
+          "bundleContract: capability-bundles-v1",
           "bundles: [core, site]",
           "add: [products]",
           "domain: rizom.ai",
@@ -620,6 +624,7 @@ describe("brain init", () => {
         join(testDir, "brain.yaml"),
         [
           "brain: brain",
+          "bundleContract: capability-bundles-v1",
           "bundles: [core, site, publishing]",
           "domain: mylittlephoney.com",
           "",
@@ -691,6 +696,7 @@ describe("brain init", () => {
         join(testDir, "brain.yaml"),
         [
           "brain: brain",
+          "bundleContract: capability-bundles-v1",
           "bundles: [core, site, publishing]",
           "domain: mylittlephoney.com",
           "",
@@ -740,6 +746,7 @@ describe("brain init", () => {
         join(testDir, "brain.yaml"),
         [
           "brain: brain",
+          "bundleContract: capability-bundles-v1",
           "bundles: [core, site, publishing]",
           "domain: mylittlephoney.com",
           "",
@@ -769,6 +776,7 @@ describe("brain init", () => {
         join(testDir, "brain.yaml"),
         [
           "brain: brain",
+          "bundleContract: capability-bundles-v1",
           "bundles: [core, site, publishing]",
           "domain: custom.example.com",
           "",
@@ -824,6 +832,7 @@ describe("brain init", () => {
         join(testDir, "brain.yaml"),
         [
           "brain: brain",
+          "bundleContract: capability-bundles-v1",
           "bundles: [core, site, publishing]",
           "domain: custom.example.com",
           "",

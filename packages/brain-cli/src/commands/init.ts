@@ -254,6 +254,7 @@ function writeBrainYaml(
   const content = stringify(
     {
       brain: "brain",
+      bundleContract: expansion.bundleContract,
       ...(expansion.anchor ? { anchor: expansion.anchor } : {}),
       ...(expansion.kind ? { kind: expansion.kind } : {}),
       domain,

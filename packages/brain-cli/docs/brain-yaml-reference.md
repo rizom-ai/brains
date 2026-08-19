@@ -6,6 +6,7 @@
 
 ```yaml
 brain: brain
+bundleContract: capability-bundles-v1
 anchor: person
 kind: professional
 domain: example.com
@@ -57,6 +58,16 @@ brain: "@rizom/brain/model"
 ```
 
 When omitted, the runtime uses the canonical definition. Explicitly scoped external definition packages remain an advanced authoring surface. Bare legacy names and internal `@brains/*` definition packages are rejected.
+
+### `bundleContract`
+
+Required by the canonical definition:
+
+```yaml
+bundleContract: capability-bundles-v1
+```
+
+The contract is separate from the bundle IDs because names such as `core` and `site` existed before the capability taxonomy with different meanings. The runtime rejects a missing or different contract before bundle resolution, preventing an old `brain.yaml` from silently changing behavior under a new image.
 
 ### `bundles`
 
@@ -257,4 +268,10 @@ Preview an old built-in model/preset config without writing it:
 brain config migrate
 ```
 
-Review the output, then apply it deliberately. The active runtime does not parse the retired preset contract.
+An unversioned canonical file already containing explicit overlapping bundle IDs is ambiguous and requires an explicit reviewed target:
+
+```bash
+brain config migrate --recipe professional
+```
+
+Review the output, then apply it deliberately with the matching runtime version. The command never writes `brain.yaml`, and the active runtime does not parse either the retired preset contract or unmarked canonical bundle selections.

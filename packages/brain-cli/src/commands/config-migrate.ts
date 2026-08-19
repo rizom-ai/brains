@@ -3,15 +3,17 @@ import { join } from "node:path";
 import { getErrorMessage } from "@brains/utils/error";
 import type { CommandResult } from "../lib/command-result";
 import { previewBrainConfigMigration } from "../lib/brain-config-migration";
+import type { BrainRecipeName } from "../lib/brain-recipes";
 
-/** Render a canonical brain.yaml preview. Phase 6 deliberately never writes it. */
+/** Render a reviewed canonical brain.yaml preview without writing it. */
 export async function runConfigMigrationPreview(
   directory: string,
+  recipe?: BrainRecipeName,
 ): Promise<CommandResult> {
   const path = join(directory, "brain.yaml");
   try {
     const input = await readFile(path, "utf8");
-    const preview = previewBrainConfigMigration(input);
+    const preview = previewBrainConfigMigration(input, { recipe });
     if (!preview.changed) {
       return {
         success: true,

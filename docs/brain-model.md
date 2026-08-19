@@ -29,6 +29,7 @@ my-brain/
 
 ```yaml
 brain: brain
+bundleContract: capability-bundles-v1
 anchor: person
 kind: professional
 domain: mybrain.example.com

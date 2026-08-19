@@ -283,11 +283,26 @@ const authReinitializeAccess: BrainCommand = defineCommand({
 
 const configMigrate: BrainCommand = defineCommand({
   name: "config:migrate",
-  description: "Preview model/preset → canonical bundle migration (no writes)",
-  run: async (_invocation, dir): Promise<CommandResult> => {
+  description: "Preview a reviewed bundle-contract migration (no writes)",
+  flags: {
+    recipe: {
+      type: "string",
+      placeholder: "<name>",
+      description:
+        "Required target for unversioned canonical YAML: headless, personal, professional, team, commerce",
+    },
+  },
+  run: async ({ flags }, dir): Promise<CommandResult> => {
+    const rawRecipe = getStringFlag(flags, "recipe");
+    if (rawRecipe !== undefined && !isBrainRecipeName(rawRecipe)) {
+      return {
+        success: false,
+        message: `Unknown recipe "${rawRecipe}". Available: ${BRAIN_RECIPE_NAMES.join(", ")}`,
+      };
+    }
     const { runConfigMigrationPreview } =
       await import("./commands/config-migrate");
-    return runConfigMigrationPreview(dir);
+    return runConfigMigrationPreview(dir, rawRecipe);
   },
 });
 

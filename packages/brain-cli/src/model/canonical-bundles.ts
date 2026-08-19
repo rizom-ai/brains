@@ -7,6 +7,8 @@ import {
   trustedContentEntityActions,
 } from "./bundle-policy";
 
+export const CANONICAL_BUNDLE_CONTRACT = "capability-bundles-v1";
+
 export const CORE_BUNDLE_ID = "core";
 export const MEDIA_BUNDLE_ID = "media";
 export const AUTOMATION_BUNDLE_ID = "automation";

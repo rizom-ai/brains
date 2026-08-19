@@ -158,6 +158,7 @@ describe("projection burst causal evidence", () => {
         {},
         {
           name: "Projection burst causality",
+          bundleContract: "capability-bundles-v1",
           bundles: ["core"],
           remove: [
             "atproto-registry",

@@ -22,7 +22,14 @@ const publicTools = [
 
 function resolvedPluginIds(bundles: string[]): string[] {
   return (
-    resolve(canonicalBrain, {}, { bundles }).plugins?.map(({ id }) => id) ?? []
+    resolve(
+      canonicalBrain,
+      {},
+      {
+        bundleContract: "capability-bundles-v1",
+        bundles,
+      },
+    ).plugins?.map(({ id }) => id) ?? []
   );
 }
 

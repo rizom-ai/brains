@@ -1,6 +1,6 @@
 # Plan: Brain Model Unification — One Brain, Capability Bundles
 
-Last updated: 2026-08-18
+Last updated: 2026-08-19
 
 ## Status
 
@@ -12,11 +12,15 @@ done and is not restated here.
 
 One release operation remains open.
 
-**The repository bundle crossover is complete.** The canonical runtime, recipes, eval
-manifest, migration output, checked-in apps, fixtures, and active documentation now use
-eight capability bundles plus the policy-only `team` bundle. `bundles: [core]` is the
-headless posture and needs no webserver or notification channel. The prior four-bundle
-contract is no longer accepted by the canonical checked-in configurations.
+**The repository bundle crossover is complete on the review branch but intentionally not
+merged.** The canonical runtime, recipes, eval manifest, migration output, checked-in apps,
+fixtures, and active documentation now use eight capability bundles plus the policy-only
+`team` bundle. `bundles: [core]` is the headless posture and needs no webserver or
+notification channel. The prior four-bundle contract is no longer accepted by the
+canonical checked-in configurations. The explicit migration contract, pilot/standalone
+mappings, and newsletter product decision are reviewed; repository merge remains a
+separate approval boundary. See
+[brain-model-unification-migration-inventory.md](./brain-model-unification-migration-inventory.md).
 
 **The fleet crossover has not executed.** An operator-approved branch canary exercised
 `0.2.0-alpha.244` on `jo` and `smoke`; both coherent config/image pairs passed exact
@@ -442,13 +446,18 @@ Independent of the taxonomy, the completed slice:
 
 ### Phase 11 — Execute the crossover and certify
 
-Only in an explicitly authorized maintenance window:
+Only in an explicitly authorized maintenance window, after the migration inventory and
+source-to-target manifests are reviewed:
 
 1. Freeze pilot reconciliation, deploy automation, and unrelated releases.
 2. Verify the unified runtime and matching `@rizom/ops` artifact through package,
-   declaration, packed-startup, and registry-integrity checks.
+   declaration, packed-startup, and registry-integrity checks. The runtime and ops loader
+   must both require `bundleContract: capability-bundles-v1`; mismatched old/new
+   config-image pairs fail before bundle resolution.
 3. Apply the reviewed desired-state revision on an isolated canary branch with exact
-   artifact pins. The ops loader reads only the canonical schema.
+   artifact pins. Stage it from a freshly fetched tip using a manifest that names both the
+   expected source bundles and exact target bundles for the pilot and every explicit
+   cohort selection. The ops loader reads only the canonical schema.
 4. Build and record immutable image digests before deployment.
 5. Deploy each approved instance as one coherent config/image unit. Existing instances stay
    on the old config and old image until their turn; never pair either side with the other

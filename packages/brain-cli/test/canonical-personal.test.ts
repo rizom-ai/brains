@@ -23,6 +23,7 @@ function pluginConfig(
 describe("canonical personal posture", () => {
   test("expands to a private console without a public site", () => {
     expect(expandBrainRecipe("personal")).toEqual({
+      bundleContract: "capability-bundles-v1",
       anchor: "person",
       kind: "professional",
       bundles: ["core", "media", "web", "chat"],

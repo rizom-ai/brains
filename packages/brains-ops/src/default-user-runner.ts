@@ -19,6 +19,7 @@ export function createDefaultUserRunner(
 function renderUserBrainYaml(user: ResolvedUser, githubOrg: string): string {
   const lines = [
     "brain: brain",
+    `bundleContract: ${user.bundleContract}`,
     `kind: ${user.profileKind ?? "professional"}`,
     `domain: ${user.domain}`,
     "bundles:",

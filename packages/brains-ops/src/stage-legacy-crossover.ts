@@ -16,6 +16,12 @@ import {
   migrateLegacyCohortYaml,
   migrateLegacyPilotYaml,
 } from "./legacy-pilot-migration";
+import {
+  migrateCanonicalCohortYaml,
+  migrateCanonicalPilotYaml,
+  parseCapabilityBundleReview,
+  type CapabilityBundleReview,
+} from "./capability-bundle-migration";
 import { loadPilotRegistry } from "./load-registry";
 import { writeUsersTable } from "./render-users-table";
 import {
@@ -58,6 +64,7 @@ export type ReviewedSitePins = ReviewedSitePinManifest["sites"];
 
 export interface StageLegacyCrossoverOptions {
   sitePins?: ReviewedSitePins | undefined;
+  bundleReview?: CapabilityBundleReview | undefined;
 }
 
 const crossoverRecordTemplate = fileURLToPath(
@@ -79,6 +86,12 @@ export async function loadReviewedSitePins(
   filePath: string,
 ): Promise<ReviewedSitePins> {
   return parseReviewedSitePins(await readFile(filePath, "utf8"));
+}
+
+export async function loadCapabilityBundleReview(
+  filePath: string,
+): Promise<CapabilityBundleReview> {
+  return parseCapabilityBundleReview(await readFile(filePath, "utf8"));
 }
 
 async function applyReviewedSitePins(
@@ -212,7 +225,22 @@ export async function stageLegacyCrossover(
 
   const pilotPath = join(output, "pilot.yaml");
   const pilotInput = await readFile(pilotPath, "utf8");
-  await writeFile(pilotPath, migrateLegacyPilotYaml(pilotInput));
+  const pilotDocument = parseDocument(pilotInput);
+  const pilotValue = pilotDocument.toJS() as Record<string, unknown>;
+  const migratesCanonicalBundles = Array.isArray(pilotValue["bundles"]);
+  const bundleReview = options.bundleReview;
+  let pilotOutput: string;
+  if (migratesCanonicalBundles) {
+    if (!bundleReview) {
+      throw new Error(
+        "Current canonical desired state requires an explicit capability bundle review manifest",
+      );
+    }
+    pilotOutput = migrateCanonicalPilotYaml(pilotInput, bundleReview.pilot);
+  } else {
+    pilotOutput = migrateLegacyPilotYaml(pilotInput);
+  }
+  await writeFile(pilotPath, pilotOutput);
   changedFiles.push("pilot.yaml");
 
   const cohortDirectory = join(output, "cohorts");
@@ -220,11 +248,25 @@ export async function stageLegacyCrossover(
     .filter((entry) => entry.isFile() && /\.ya?ml$/.test(entry.name))
     .map((entry) => entry.name)
     .sort();
+  const reviewedCohorts = new Set(Object.keys(bundleReview?.cohorts ?? {}));
   for (const fileName of cohortFiles) {
     const path = join(cohortDirectory, fileName);
     const input = await readFile(path, "utf8");
-    await writeFile(path, migrateLegacyCohortYaml(input));
+    const cohortId = fileName.replace(/\.ya?ml$/, "");
+    const review = bundleReview?.cohorts[cohortId];
+    if (review) reviewedCohorts.delete(cohortId);
+    await writeFile(
+      path,
+      migratesCanonicalBundles
+        ? migrateCanonicalCohortYaml(input, cohortId, review)
+        : migrateLegacyCohortYaml(input),
+    );
     changedFiles.push(relative(output, path));
+  }
+  if (migratesCanonicalBundles && reviewedCohorts.size > 0) {
+    throw new Error(
+      `Capability bundle review names unknown cohorts: ${[...reviewedCohorts].sort().join(", ")}`,
+    );
   }
 
   changedFiles.push(...(await applyReviewedSitePins(output, options.sitePins)));

@@ -124,6 +124,7 @@ function createSuiteApp(
     canonicalBrain,
     { AI_API_KEY: "placeholder-canonical-eval-test" },
     {
+      bundleContract: String(rawManifest["bundleContract"]),
       anchor:
         selection.anchor ??
         (rawManifest["anchor"] as "person" | "team" | "organization"),

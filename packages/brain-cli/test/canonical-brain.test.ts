@@ -54,6 +54,8 @@ const expectedCatalogIds = [
   "a2a",
 ];
 
+const bundleContract = "capability-bundles-v1" as const;
+
 const expectedCoreMembers = [
   "profile",
   "prompt",
@@ -83,7 +85,7 @@ function pluginConfig(id: string): Record<string, unknown> | undefined {
   const plugin = resolve(
     canonicalBrain,
     {},
-    { bundles: ["core"] },
+    { bundleContract, bundles: ["core"] },
   ).plugins?.find((candidate) => candidate.id === id);
   if (!plugin || !("config" in plugin)) return undefined;
   const config = plugin.config;
@@ -134,9 +136,11 @@ describe("canonical brain core", () => {
     );
 
     const resolvedIds =
-      resolve(canonicalBrain, {}, { bundles: ["core"] }).plugins?.map(
-        (plugin) => plugin.id,
-      ) ?? [];
+      resolve(
+        canonicalBrain,
+        {},
+        { bundleContract, bundles: ["core"] },
+      ).plugins?.map((plugin) => plugin.id) ?? [];
     expect(resolvedIds).toEqual([
       "prompt",
       "profile",
@@ -164,6 +168,7 @@ describe("canonical brain core", () => {
       canonicalBrain,
       {},
       {
+        bundleContract,
         bundles: ["core"],
         remove: ["mcp"],
       },
@@ -174,7 +179,14 @@ describe("canonical brain core", () => {
   });
 
   test("opens channel permissions only with their channel bundles", () => {
-    const headless = resolve(canonicalBrain, {}, { bundles: ["core"] });
+    const headless = resolve(
+      canonicalBrain,
+      {},
+      {
+        bundleContract,
+        bundles: ["core"],
+      },
+    );
     expect(headless.permissions?.rules).toEqual(
       definitionPermissionBaseline.rules,
     );
@@ -183,6 +195,7 @@ describe("canonical brain core", () => {
       canonicalBrain,
       {},
       {
+        bundleContract,
         bundles: ["core", "media", "web", "chat"],
       },
     );
