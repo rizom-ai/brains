@@ -302,6 +302,60 @@ describe("activateProjectionRuntime", () => {
     expect(sweepCancelled).toBe(true);
   });
 
+  it("does not overlap projection coordination sweeps", async () => {
+    const store = new MemoryRuntimeStore();
+    store.setPending(false);
+    let scheduledSweep: (() => Promise<void>) | undefined;
+    let reconciliations = 0;
+    let releaseReconciliation = (): void => {};
+    const blockedReconciliation = new Promise<void>((resolve) => {
+      releaseReconciliation = resolve;
+    });
+    let markReconciliationStarted = (): void => {};
+    const reconciliationStarted = new Promise<void>((resolve) => {
+      markReconciliationStarted = resolve;
+    });
+    const runtime = await activateProjectionRuntime({
+      store,
+      queue: {
+        enqueue: async () => "unused",
+        getStatus: async () => null,
+        registerHandler: (): void => {},
+        unregisterHandler: (): void => {},
+      },
+      setWakeup: (): (() => void) => () => {},
+      graph,
+      rules: [projectionRule],
+      inputContext,
+      executionContext,
+      reconcileTargets: async () => {},
+      beforeWaveCompletion: async () => {},
+      logger: createSilentLogger(),
+      createWaveId: () => "unused-wave",
+      now: () => 10,
+      reconcileBatches: async (): Promise<void> => {
+        reconciliations++;
+        if (reconciliations !== 2) return;
+        markReconciliationStarted();
+        await blockedReconciliation;
+      },
+      scheduleSweep: (_intervalMs, sweep): (() => void) => {
+        scheduledSweep = sweep;
+        return (): void => {};
+      },
+    });
+
+    const first = scheduledSweep?.();
+    await reconciliationStarted;
+    const overlapping = scheduledSweep?.();
+    await Promise.resolve();
+    expect(reconciliations).toBe(2);
+
+    releaseReconciliation();
+    await Promise.all([first, overlapping]);
+    runtime.dispose();
+  });
+
   it("registers the framework handler before recovering pending work", async () => {
     const store = new MemoryRuntimeStore();
     const order: string[] = [];

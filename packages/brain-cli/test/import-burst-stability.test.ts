@@ -628,8 +628,24 @@ async function waitForFileContent(
   );
 }
 
+function trackedSurvivors(
+  tracked: readonly ProcessInfo[],
+  current: readonly ProcessInfo[],
+): ProcessInfo[] {
+  const currentByPid = new Map(
+    current.map((processInfo) => [processInfo.pid, processInfo]),
+  );
+  return tracked.filter((processInfo) => {
+    const observed = currentByPid.get(processInfo.pid);
+    return (
+      observed?.name === processInfo.name &&
+      observed.command === processInfo.command
+    );
+  });
+}
+
 async function stopProcessGroup(child: Bun.ReadableSubprocess): Promise<void> {
-  if (child.exitCode !== null) return;
+  const tracked = await readProcessTree(child.pid);
   try {
     process.kill(-child.pid, "SIGTERM");
   } catch {
@@ -639,13 +655,38 @@ async function stopProcessGroup(child: Bun.ReadableSubprocess): Promise<void> {
     child.exited.then(() => true),
     Bun.sleep(10_000).then(() => false),
   ]);
-  if (stopped) return;
+  const trackedPids = new Set(tracked.map(({ pid }) => pid));
+  const refreshed = await readProcessTree(child.pid);
+  const owned = [
+    ...tracked,
+    ...refreshed.filter(({ pid }) => !trackedPids.has(pid)),
+  ];
+  let survivors = trackedSurvivors(owned, await readProcessTable());
+  if (stopped && survivors.length === 0) return;
+
   try {
     process.kill(-child.pid, "SIGKILL");
   } catch {
     child.kill("SIGKILL");
   }
-  await child.exited;
+  for (const survivor of survivors) {
+    try {
+      process.kill(survivor.pid, "SIGKILL");
+    } catch {
+      // A process that disappeared between inventory and signal is absent.
+    }
+  }
+
+  for (let attempt = 0; attempt < 100; attempt++) {
+    survivors = trackedSurvivors(owned, await readProcessTable());
+    if (survivors.length === 0) return;
+    await Bun.sleep(50);
+  }
+  throw new Error(
+    `Import-burst process tree could not be proven gone: ${survivors
+      .map(({ pid, name }) => `${pid} ${name}`)
+      .join(", ")}`,
+  );
 }
 
 async function commitBurst(
@@ -1362,6 +1403,23 @@ it("uses a cgroup CPU quota when it is below host parallelism", () => {
 it("limits the packaged runtime to the first two allowed CPUs", () => {
   expect(parseCpuList("0-2,5,7-8")).toEqual([0, 1, 2, 5, 7, 8]);
   expect(limitedCpuList("3,5-7", 2)).toBe("3,5");
+});
+
+it("tracks only the original process when a pid is reused", () => {
+  const original: ProcessInfo = {
+    pid: 10,
+    parentPid: 1,
+    state: "S",
+    name: "bun",
+    command: "brain start",
+    cpuTicks: 0,
+    rssBytes: 0,
+  };
+
+  expect(trackedSurvivors([original], [original])).toEqual([original]);
+  expect(
+    trackedSurvivors([original], [{ ...original, command: "unrelated" }]),
+  ).toEqual([]);
 });
 
 it("reports missing and replaced supervised runtime roles once", () => {

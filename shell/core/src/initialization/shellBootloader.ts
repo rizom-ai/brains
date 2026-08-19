@@ -207,6 +207,7 @@ export class ShellBootloader {
                     jobId: job.id,
                     childKey: parsed.data.projectionBatch.childKey,
                     status: job.status,
+                    terminalAt: job.completedAt,
                   },
                 ];
               });
