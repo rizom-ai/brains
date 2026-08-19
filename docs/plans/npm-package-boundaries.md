@@ -1315,3 +1315,90 @@ renders content and media before calling the provider, so a declaration
 shaped `publish({ entity, caller })` would push that rendering into every
 package. The declaration should take rendered content and media, and
 return `PublishResult` unchanged.
+
+## Audit: category E, cross-package reach (2026-08-19)
+
+The audit the category E entry asked for. Six reaches were listed across
+three packages; each got the note question — _does this package
+legitimately need this, or is it a sign the code is in the wrong place?_
+No two answered the same way, which is the point of asking one at a time.
+
+### `social-media` — resolved, and neither reach needed a capability
+
+`IMAGE_CHANNELS` had no caller at all. `system_generate` builds its job
+data from an explicit allowlist (`entityId`, `prompt`, `title`,
+`sourceEntity*`, `targetEntity*`) and `coverImage` was never in it; no
+package enqueued a generation job carrying one either. Both the branch in
+`BaseGenerationJobHandler` that read it and social-media's own
+`generateImage` flag were unreachable. Deleted, and `IMAGE_CHANNELS` with
+them — it existed so one package could enqueue work into the image
+package, and nothing does that now. The live route for a cover image is a
+separate `system_generate` against the image type with `targetEntityId`,
+which is what the tool description already tells an agent to do.
+
+`GENERATE_CHANNELS` was real: participation in the generation scheduler's
+protocol. Now `scheduledGeneration` on the entity — where the material
+comes from, and whether to write from one source at a time or all at
+once — with the runtime performing the enqueue and sending both reports.
+The completion report carries the entity id, which a declaration cannot
+know: it hands back content and the runtime decides where it lands. So
+the runtime closes the loop it opened.
+
+Neither was a missing capability. One was dead, the other was a protocol
+the runtime should have owned.
+
+### `agent-discovery` → `semantic.project` — legitimate, category D
+
+Scoped to its own entity type, with an origin and a distance bound:
+`project({ types: [AGENT_ENTITY_TYPE], origin: BRAIN_CHARACTER_REFERENCE,
+maxNeighborDistance })`. That is "where do the agents I own sit relative
+to us", which is agent-discovery's whole subject. Narrow the namespace to
+a reader with `project(request)` and it is category D, mechanical.
+
+### `topics` → `semantic.project({})` — category B, misplaced
+
+Unbounded: no `types`, so it spans every entity type in the brain, and
+the code immediately iterates `projection.points.map(p => p.entityType)`
+to fetch titles per type. The knowledge map is a map of the _whole
+brain_, not of topics. It lives in `topics` because topics is the package
+that feels like it is about the shape of the knowledge base, not because
+a topic entity needs it.
+
+Narrowing `semantic` here would make `topics` publishable while
+preserving a coupling that should not exist — the exact failure the note
+question exists to catch. The map should move to whatever owns
+whole-brain visualization; `topics` keeps the topic list widget.
+
+### Registering an insight and a recurring check — category A
+
+Both are static declarations wearing a namespace call. An insight is an
+id and a provider; a recurring check is an id, a cadence, whether it
+raises alerts, and a function. Neither needs a live service — they are
+announcing a fact at registration, exactly like `publish`, `feed`, and
+`seed` before them.
+
+Two consumers each, so both clear the bar: `insights` in `topics` and
+`analytics`, `recurringChecks` in `agent-discovery` (twice) and
+`unified-inbox`. One wrinkle: `analytics` and `unified-inbox` are service
+plugins while `agent-discovery`'s are entity plugins, so each slot has to
+land on both surfaces or on whichever its consumers actually use. That is
+a shape decision, not a capability question.
+
+### `topics` → `SHELL_CHANNELS.embedding` — eval scaffolding, not a need
+
+`waitForEmbeddingsToDrain` polls `jobs.getActiveJobs([SHELL_CHANNELS
+.embedding])` so a seeded topic is searchable before an eval runs. It
+reaches for another package's job-type constant to answer a question that
+is not about embeddings: _has the pending work settled?_ Either narrow
+that question — a queue-quiet reader — or drop the wait and have the eval
+seed through a path that is already searchable. It should not be the
+reason `topics` names a channel belonging to the shell. (The loop is also
+a `for (;;)` with a sleep, which the repo's own iteration preference
+rules out.)
+
+### What this changes
+
+Category E is not one problem. Of six reaches: two are resolved and
+needed no new surface, one is category D, one is category B, and two are
+category A. The remaining category E _proper_ — a package legitimately
+needing another package to do work for it — is **empty**.
