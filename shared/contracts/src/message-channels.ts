@@ -43,10 +43,6 @@ export const GENERATE_CHANNELS = {
   reportFailure: "generate:report:failure",
 } as const;
 
-export const IMAGE_CHANNELS = {
-  generate: "image:image-generate",
-} as const;
-
 export const JOB_CHANNELS = {
   progress: "job-progress",
 } as const;

@@ -15,21 +15,6 @@ import { getTemplateName } from "../templates";
 /**
  * Input schema for social post generation job
  */
-interface CoverImageJobOptions {
-  generate?: boolean | undefined;
-  prompt?: string | undefined;
-}
-
-type CoverImageJobData = boolean | CoverImageJobOptions;
-
-const coverImageJobSchema: z.ZodType<CoverImageJobData> = z.union([
-  z.boolean(),
-  z.object({
-    generate: z.boolean().optional(),
-    prompt: z.string().optional(),
-  }),
-]);
-
 export interface GenerationJobData {
   prompt?: string | undefined;
   platform?: "linkedin" | undefined;
@@ -38,7 +23,6 @@ export interface GenerationJobData {
   title?: string | undefined;
   content?: string | undefined;
   addToQueue?: boolean | undefined;
-  coverImage?: CoverImageJobData | undefined;
 }
 
 export const generationJobSchema: z.ZodType<GenerationJobData> = z.object({
@@ -52,9 +36,6 @@ export const generationJobSchema: z.ZodType<GenerationJobData> = z.object({
     .describe("Required when content is provided directly"),
   content: z.string().optional(),
   addToQueue: z.boolean().optional(),
-  coverImage: coverImageJobSchema
-    .optional()
-    .describe("Cover image generation request"),
 });
 
 export const socialMediaGenerationResultSchema: ReturnType<
@@ -78,7 +59,6 @@ export class GenerationJobHandler extends BaseGenerationJobHandler<
       schema: generationJobSchema,
       jobTypeName: "social-post-generation",
       entityType: "social-post",
-      coverImagePrompt: (title) => `Social media graphic for: ${title}`,
     });
   }
 
@@ -306,7 +286,6 @@ ${sourceEntity.content}`,
       hasPrompt: !!data.prompt,
       sourceEntityType: data.sourceEntityType,
       addToQueue: data.addToQueue ?? false,
-      coverImage: !!data.coverImage,
     };
   }
 }
