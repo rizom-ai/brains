@@ -124,9 +124,10 @@ runtime dependencies remain unchanged until matching unified artifacts exist:
   mapping, hosted-site pins, and the disabled-newsletter decision. Staging from that branch
   produced 19 configs with the expected 16/3 posture split and zero first- or second-pass
   reconciliation drift.
-- `yeehaa-io` `work/brain-model-unification` at `12ef979` stores the deterministic
-  professional target YAML. It matches a fresh migration preview exactly and parses as
-  `capability-bundles-v1` with all 11 plugin blocks.
+- `yeehaa-io` `work/brain-model-unification` at `5d424b3` stores the deterministic
+  professional target YAML and credential-free pull-request CI. It matches a fresh
+  migration preview exactly, parses as `capability-bundles-v1` with all 11 plugin blocks,
+  and passes frozen install, typecheck, migration-preservation, and workflow-safety checks.
 
 Neither branch changes an active `brain.yaml`, runtime version, operator package, lockfile,
 workflow, or deployment input. Those files must cross together after exact published
