@@ -10,7 +10,7 @@ tags:
   - carousel
   - document
   - media
-  - posture-publishing
+  - recipe-professional
 
 turns:
   - userMessage: "Regenerate the carousel document for deck 'distributed-systems-primer'"

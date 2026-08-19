@@ -8,7 +8,8 @@ tags:
   - core
   - history
   - entity-type-resolution
-  - posture-personal
+  # Local recipe evals intentionally run without the CLI-supervised Git broker.
+  - requires-supervised-git
 
 turns:
   - userMessage: "Show me the version history of the deck 'distributed-systems-primer'"

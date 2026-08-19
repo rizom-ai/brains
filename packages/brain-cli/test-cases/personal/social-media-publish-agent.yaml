@@ -9,7 +9,7 @@ tags:
   - linkedin
   - agent
   - publish
-  - posture-publishing
+  - recipe-professional
 
 turns:
   - userMessage: "Publish my latest LinkedIn post now"

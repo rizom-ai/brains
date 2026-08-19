@@ -5,6 +5,7 @@ description: >
   capabilities, not a 1:1 mapping. 6 topics should produce 2-4 skills.
 type: plugin
 tags:
+  - recipe-headless
   - skills
   - derivation
   - agent-card

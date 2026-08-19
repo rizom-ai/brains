@@ -15,7 +15,7 @@ tags:
   - summary
   - regression
   - multi-turn
-  - posture-personal
+  - recipe-personal
 
 turns:
   - userMessage: ""

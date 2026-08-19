@@ -2,6 +2,7 @@ id: playbook-goal-check-met
 name: Playbook GoalCheck recognizes explicit anchor profile evidence
 type: plugin
 tags:
+  - recipe-professional
   - plugin
   - playbooks
   - bundle-core

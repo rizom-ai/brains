@@ -8,7 +8,7 @@ tags:
   - core
   - decks
   - anti-hallucination
-  - posture-personal
+  - recipe-professional
 
 turns:
   - userMessage: "Create a new slide deck about machine learning"

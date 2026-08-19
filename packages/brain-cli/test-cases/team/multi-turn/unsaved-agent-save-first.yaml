@@ -8,7 +8,7 @@ type: multi_turn
 setup:
   permissionLevel: admin
 tags:
-  - posture-team
+  - requires-external-network
   - team
   - scenario
   - real-user

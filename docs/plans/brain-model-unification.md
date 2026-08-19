@@ -381,32 +381,23 @@ The recipe ladder is active in `packages/brain-cli/brain.eval.yaml`. Dedicated
 professional and commerce content remains shared. Strict seed-type validation is opt-in
 for these curated fixtures and fails startup when a seeded entity type is not registered.
 
-`packages/brain-cli/brain.eval.yaml` declares five suites whose selections, names,
-inheritance chain, and seed directories each encode the old taxonomy. Re-pointing the
-`bundles:` lists is the smallest part of this.
+`packages/brain-cli/brain.eval.yaml` declares the five recipe suites with explicit
+case categories. Composition inheritance and behavior-case selection are separate:
+`inheritTags: false` lets a child inherit compatible config without silently inheriting
+cases for capabilities or fixtures it does not own.
 
-- **Rename to the recipe ladder.** Today's suites are `core`, `personal`, `publishing`,
-  `team`, `commerce`. `core` becomes `headless`, and today's `personal` becomes
-  `professional`. Note that `personal` and `publishing` currently declare identical bundle
-  lists and differ only by seed content and tags, so they collapse unless a distinct
-  posture is defined for each. Because the name `personal` is then reused for a smaller
-  posture, the rename must be explicit; mapping old suite names to new ones mechanically
-  would silently change what is being evaluated.
-- **Re-point the `extends` chain** at the ladder: `personal` extends `headless`,
-  `professional` extends `personal`, `team` and `commerce` extend `personal`.
-- **Reconcile seed content with membership.** `eval-content/core` seeds `image` and `link`
-  entities, but `image` moves to `media`. `eval-content/team` seeds `swot`, `doc`, `deck`,
-  and `prompt`, of which `assessment` and `docs` become opt-ins and `decks` belongs to
-  `publishing`. Each suite must select the owning bundle, add the member explicitly, or
-  drop the content. Seeding an entity type whose plugin is not registered must fail loudly
-  rather than import silently.
-- **Decide what evaluating a surface bundle means.** Eval exclusions now spread across
-  `core`, `web`, and `chat`, so a `personal` suite running in `mode: eval` would have most
-  of what distinguishes it from `headless` disabled. `headless`, `personal`, `team`, and
-  `commerce` therefore carry recipe-only tags and assert deterministic resolution and
-  startup rather than inheriting behavior cases for capabilities they no longer own.
-  `professional` retains the compatible `posture-personal` and `posture-publishing` model
-  cases because it owns those capabilities in the target taxonomy.
+- `personal` extends `headless`; `professional` and `team` extend `personal` because their
+  member sets are supersets. `commerce` extends `headless`, not `personal`, because it does
+  not own the `chat` surface.
+- Dedicated headless, personal, team, and commerce fixtures contain only registered entity
+  types. Unsupported legacy cases are retained behind explicit `requires-*` tags for
+  supervised Git, external network, or omitted opt-in members.
+- Cases use only `recipe-headless`, `recipe-personal`, `recipe-professional`, `recipe-team`,
+  or `recipe-commerce`; the broad legacy `posture-*` categories are gone. Every suite now
+  selects a non-empty behavior set rather than treating zero selected cases as success.
+- Deterministic coverage pins each case count, verifies every expected tool and entity type
+  against the resolved suite, verifies plugin eval handlers, imports every fixture type,
+  and rejects environment-gated cases from local recipe runs.
 
 Tests: each suite resolves to its intended member set; every entity type seeded in a
 suite's content directory is registered by that suite's selection; a suite seeding an

@@ -12,8 +12,8 @@ bundles:
   - federation
 mode: eval
 
-# Surface-only recipes use recipe tags and deterministic resolution/startup
-# tests; professional retains the compatible model-behavior cases.
+# Composition inheritance and case selection are separate: child suites inherit
+# compatible config while selecting only cases explicitly categorized for them.
 suites:
   headless:
     bundles:
@@ -25,6 +25,7 @@ suites:
         seedContentPath: eval-content/recipes/headless
   personal:
     extends: headless
+    inheritTags: false
     bundles:
       - core
       - media
@@ -37,6 +38,7 @@ suites:
         seedContentPath: eval-content/recipes/personal
   professional:
     extends: personal
+    inheritTags: false
     bundles:
       - core
       - media
@@ -47,8 +49,7 @@ suites:
       - publishing
       - federation
     tags:
-      - posture-personal
-      - posture-publishing
+      - recipe-professional
     plugins:
       directory-sync:
         seedContentPath: eval-content/publishing
@@ -56,6 +57,7 @@ suites:
         autoRebuild: false
   team:
     extends: personal
+    inheritTags: false
     anchor: team
     kind: team
     bundles:
@@ -80,7 +82,8 @@ suites:
       site-builder:
         autoRebuild: false
   commerce:
-    extends: personal
+    extends: headless
+    inheritTags: false
     anchor: organization
     kind: organization
     bundles:
@@ -120,10 +123,10 @@ permissions:
 plugins:
   onboarding:
     enabled: true
+  # Eval boots in-process without the CLI's supervised Git broker. Seed content
+  # is copied into the isolated eval data directory, so Git must stay disabled.
   directory-sync:
     seedContentPath: eval-content/publishing
     strictSeedEntityTypes: true
     autoSync: false
     deleteOnFileRemoval: false
-    git:
-      gitUrl: "file://${EVAL_GIT_REMOTE}"

@@ -8,7 +8,7 @@ tags:
   - core
   - image
   - cover
-  - posture-personal
+  - recipe-professional
 
 turns:
   - userMessage: "Generate a cover image for the blog post 'resilience-in-distributed-systems'"

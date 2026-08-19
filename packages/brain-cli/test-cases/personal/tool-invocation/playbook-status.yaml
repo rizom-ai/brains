@@ -7,7 +7,7 @@ setup:
 tags:
   - playbooks
   - tool-invocation
-  - posture-personal
+  - recipe-professional
 
 turns:
   - userMessage: "Check the status of the onboarding playbook."
