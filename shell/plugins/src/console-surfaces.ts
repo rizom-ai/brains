@@ -1,22 +1,7 @@
-/** One door in the console strip's surface nav. */
-export interface ConsoleSurface {
-  id: string;
-  label: string;
-  href: string;
-  isActive: boolean;
-}
+import type { ConsoleSurface, SurfacePermissionLevel } from "@brains/contracts";
+import type { RegisteredWebRoute } from "./types/web-routes";
 
-/**
- * Structural view of a registered web route — matches
- * RegisteredWebRoute from @brains/plugins without depending on it.
- */
-export interface ConsoleRouteLike {
-  pluginId: string;
-  fullPath: string;
-}
-
-/** Console permission levels, lowest to highest. */
-export type SurfacePermissionLevel = "public" | "trusted" | "admin";
+export type { ConsoleSurface, SurfacePermissionLevel } from "@brains/contracts";
 
 const PERMISSION_RANK: Record<SurfacePermissionLevel, number> = {
   public: 0,
@@ -30,6 +15,12 @@ const PERMISSION_RANK: Record<SurfacePermissionLevel, number> = {
  * door, mirroring how dashboard tabs derive from widget groups. `visibility`
  * is the minimum permission level a caller needs to see the door, matching the
  * permission each surface enforces on its own route.
+ *
+ * This table names the console plugins and their permission tiers in one
+ * place; the eventual end state is each plugin declaring its own surface
+ * descriptor at route registration, which is HTTP-route-registry work and
+ * governed by that plan — until then, the table lives here, next to the
+ * route registry it reads, rather than in the theme package.
  */
 const SURFACE_PLUGINS: ReadonlyArray<{
   id: string;
@@ -60,7 +51,7 @@ const SURFACE_PLUGINS: ReadonlyArray<{
 ];
 
 export function deriveConsoleSurfaces(
-  routes: ConsoleRouteLike[],
+  routes: Pick<RegisteredWebRoute, "pluginId" | "fullPath">[],
   options: {
     /** Plugin id of the surface rendering the strip (gets `is-active`). */
     activeId: string;

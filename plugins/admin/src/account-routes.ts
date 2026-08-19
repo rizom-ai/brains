@@ -1,6 +1,6 @@
 import { join } from "node:path";
 import type { AuthPrincipal } from "@brains/auth-service";
-import { deriveConsoleSurfaces } from "@brains/console-theme";
+import { deriveConsoleSurfaces } from "@brains/plugins";
 import type { ServicePluginContext, WebRouteDefinition } from "@brains/plugins";
 import { renderAccountShellHtml } from "./account-shell";
 

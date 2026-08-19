@@ -1,6 +1,6 @@
 import { join } from "node:path";
 import type { AuthAdminPrincipal } from "@brains/auth-service/admin-contracts";
-import { deriveConsoleSurfaces } from "@brains/console-theme";
+import { deriveConsoleSurfaces } from "@brains/plugins";
 import type { ServicePluginContext, WebRouteDefinition } from "@brains/plugins";
 import { renderAdminShellHtml } from "./admin-shell";
 

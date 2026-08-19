@@ -55,7 +55,7 @@ import {
   canAccessBrowserConversation,
   type WebChatConversationAccess,
 } from "./conversation-access";
-import { deriveConsoleSurfaces } from "@brains/console-theme";
+import { deriveConsoleSurfaces } from "@brains/plugins";
 import { renderChatPage, uiAssetFile } from "./chat-page";
 import { handleJobStatusRequest as handleJobStatusRouteRequest } from "./job-handlers";
 import { handleMessagesRequest as handleMessagesRouteRequest } from "./message-handlers";

@@ -29,7 +29,7 @@ import {
   renderDashboardPageHtml,
   type DashboardRenderInput,
 } from "./dashboard-page";
-import { deriveConsoleSurfaces } from "@brains/console-theme";
+import { deriveConsoleSurfaces } from "@brains/plugins";
 import {
   buildConsoleJumpGroups,
   type ConsoleJumpEntityHit,

@@ -1140,6 +1140,9 @@
     "shared/console-theme": {
       "name": "@brains/console-theme",
       "version": "0.2.0-alpha.309",
+      "dependencies": {
+        "@brains/contracts": "workspace:*",
+      },
       "devDependencies": {
         "@brains/eslint-config": "workspace:*",
         "@brains/typescript-config": "workspace:*",

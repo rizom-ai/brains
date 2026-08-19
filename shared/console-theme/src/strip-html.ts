@@ -1,4 +1,4 @@
-import type { ConsoleSurface } from "./surfaces";
+import type { ConsoleSurface } from "@brains/contracts";
 
 export interface ConsoleStripPrincipal {
   displayName: string;

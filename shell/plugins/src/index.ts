@@ -879,3 +879,8 @@ export { PluginManager } from "./manager";
 
 // Error handling
 export { PluginError } from "./errors";
+export {
+  deriveConsoleSurfaces,
+  type ConsoleSurface,
+  type SurfacePermissionLevel,
+} from "./console-surfaces";

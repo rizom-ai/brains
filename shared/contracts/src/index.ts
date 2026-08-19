@@ -202,3 +202,4 @@ export type {
   ImageRenderer,
   RenderedImageRef,
 } from "./render";
+export type { ConsoleSurface, SurfacePermissionLevel } from "./console";

@@ -13,7 +13,7 @@ import {
   zodFieldToCmsWidget,
   type CmsEntityDisplayMap,
 } from "./config";
-import { deriveConsoleSurfaces } from "@brains/console-theme";
+import { deriveConsoleSurfaces } from "@brains/plugins";
 import { renderEditorShellHtml } from "./editor-shell";
 import { normalizeCmsBasePath } from "./cms-paths";
 import type { CmsWorkspaceRegistry } from "./workspace-registry";
