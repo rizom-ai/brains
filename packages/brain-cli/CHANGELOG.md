@@ -1,5 +1,13 @@
 # @rizom/brain
 
+## 0.2.0-alpha.312
+
+### Minor Changes
+
+- [`9cdd447`](https://github.com/rizom-ai/brains/commit/9cdd447bf6a253153cb804542b397a04c2dd68db) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Give operator workspaces the composition their surfaces need. The view head gains a kicker, description and standing status; stat items gain a caption; and two container blocks arrive alongside `tabs` and `detail`: `columns`, which pairs a column of work with a rail of standing facts, and `card`, which groups related panels under one caption. Directory Sync, Site, Publishing and Unified Inbox are converted onto them.
+
+  The Inbox collection is reworked for triage: rows carry what is scanned plus the verbs that clear an item, while follow-ups and the reading pane's actions live beside the content they belong to. Paging replaces a "Load more" control that replaced the page rather than appending to it, and an open row surviving a page turn no longer invalidates the view.
+
 ## 0.2.0-alpha.311
 
 ### Patch Changes

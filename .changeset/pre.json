@@ -297,6 +297,7 @@
     "core--operational-health-semantics",
     "core--operator-contract-secret-boundary",
     "core--operator-master-detail",
+    "core--operator-workspace-composition",
     "core--operator-workspace-design",
     "core--ops-explicit-theme-version",
     "core--ops-incident-hardening",
