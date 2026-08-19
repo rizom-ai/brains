@@ -14,7 +14,7 @@ export {
   type SocialPostDetailProps,
 } from "./social-post-detail";
 
-import type { Template } from "@brains/plugins";
+import type { Template } from "@brains/sdk/entities";
 
 /**
  * All social media templates, keyed by name

@@ -1,5 +1,5 @@
-import { defineEntityDataSource } from "@brains/plugins";
-import type { AnyEntityDataSourceDefinition } from "@brains/plugins";
+import { defineEntityDataSource } from "@brains/sdk/entities";
+import type { AnyEntityDataSourceDefinition } from "@brains/sdk/entities";
 import { resolveEntityCoverImage } from "@brains/image";
 import type { DeckEntity, DeckWithData } from "../schemas/deck";
 import { parseDeckData } from "./parse-helpers";

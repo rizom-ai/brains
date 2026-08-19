@@ -8,7 +8,7 @@
 import {
   defineEntityPackage,
   type EntityPackageDefinition,
-} from "@brains/plugins";
+} from "@brains/sdk/entities";
 import { project } from "./project-entity";
 
 const portfolioPackage: EntityPackageDefinition<

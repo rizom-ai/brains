@@ -3,7 +3,7 @@ import {
   preferredSlug,
   type OgImageProviderFactory,
 } from "@brains/media-page-composer";
-import { parseMarkdown } from "@brains/utils/markdown";
+import { parseMarkdown } from "@brains/sdk/entities";
 import type { Project } from "../schemas/project";
 import { projectFrontmatterSchema } from "../schemas/project";
 import {

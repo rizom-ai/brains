@@ -1,12 +1,11 @@
-import type { FetchLike } from "@brains/utils/fetch-like";
-import type { LoggerContract } from "@brains/utils/logger";
-import { z } from "@brains/utils/zod";
+import type { FetchLike, LoggerContract } from "@brains/sdk/services";
+import { z } from "@brains/sdk/entities";
 import type {
   PublishProvider,
   PublishResult,
   PublishImageData,
   PublishMediaData,
-} from "@brains/contracts";
+} from "@brains/sdk/services";
 import type { LinkedinConfig } from "../config";
 
 /**
