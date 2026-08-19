@@ -146,7 +146,10 @@ describe("canonical commerce posture", () => {
     // declarative entity packages, whose plugin ids are package-scoped.
     const cases: ReadonlyArray<{ capability: string; pluginId: string }> = [
       { capability: "atproto-registry", pluginId: "atproto-registry" },
-      { capability: "social-media", pluginId: "social-media" },
+      {
+        capability: "social-media",
+        pluginId: "@brains/social-media:social-post",
+      },
       { capability: "wishlist", pluginId: "wishlist" },
       { capability: "obsidian-vault", pluginId: "obsidian-vault" },
       { capability: "docs", pluginId: "@brains/doc:doc" },

@@ -569,12 +569,16 @@ class DeclarativeEntityPlugin extends EntityPlugin<
           });
           if (!result.success) {
             await this.markGenerationFailed(context, entityId, result.error);
+            await this.reportGenerationFailed(context, result.error);
             return { success: false, error: result.error };
           }
-          return await this.saveGenerated(context, entityId, result);
+          const saved = await this.saveGenerated(context, entityId, result);
+          await this.reportGenerationCompleted(context, saved.entityId);
+          return saved;
         } catch (error) {
           const message = getErrorMessage(error);
           await this.markGenerationFailed(context, entityId, message);
+          await this.reportGenerationFailed(context, message);
           return { success: false, error: message };
         }
       },
@@ -592,10 +596,11 @@ class DeclarativeEntityPlugin extends EntityPlugin<
     context: EntityPluginContext,
     entityId: string | undefined,
     result: Extract<EntityGenerationResult, { success: true }>,
-  ): Promise<unknown> {
+  ): Promise<{ success: true; entityId: string }> {
     const { status: _status, error: _error, ...metadata } = result.metadata;
     const title = metadata["title"];
-    const id = entityId ?? slugify(String(title ?? this.entityType));
+    const id =
+      entityId ?? result.id ?? slugify(String(title ?? this.entityType));
 
     const written = entityId
       ? await context.entityService.updateEntity({
@@ -620,6 +625,36 @@ class DeclarativeEntityPlugin extends EntityPlugin<
       entityId: written.entityId,
       ...(result.resultExtras ?? {}),
     };
+  }
+
+  /**
+   * Close the loop the scheduler opened.
+   *
+   * Only for a type that declares scheduledGeneration: that declaration is
+   * what says this type takes part in the scheduler's protocol. The report
+   * carries the entity id, which a declaration cannot know — it hands back
+   * content and the runtime decides where it lands.
+   */
+  private async reportGenerationCompleted(
+    context: EntityPluginContext,
+    entityId: string,
+  ): Promise<void> {
+    if (!this.scheduledGeneration) return;
+    await context.messaging.send({
+      type: GENERATE_CHANNELS.reportSuccess,
+      payload: { entityType: this.entityType, entityId },
+    });
+  }
+
+  private async reportGenerationFailed(
+    context: EntityPluginContext,
+    error: string,
+  ): Promise<void> {
+    if (!this.scheduledGeneration) return;
+    await context.messaging.send({
+      type: GENERATE_CHANNELS.reportFailure,
+      payload: { entityType: this.entityType, error },
+    });
   }
 
   private async requireEntity(

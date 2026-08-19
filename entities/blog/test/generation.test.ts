@@ -188,6 +188,15 @@ describe("postGeneration", () => {
       expect(succeeded(result).metadata["slug"]).toBe("c-rust-a-comparison");
     });
 
+    // Post files are named after the entity id, so it stays the readable
+    // title rather than becoming the slug.
+    it("stores a post under its title, not its slug", async () => {
+      const result = succeeded(await generate(supplied));
+
+      expect(result.id).toBe("My Title");
+      expect(result.metadata["slug"]).toBe("my-title");
+    });
+
     it("starts a post as a draft", async () => {
       expect(succeeded(await generate(supplied)).metadata["status"]).toBe(
         "draft",

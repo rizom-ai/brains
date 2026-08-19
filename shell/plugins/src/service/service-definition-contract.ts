@@ -1,4 +1,5 @@
 import type { UserPermissionLevel } from "@brains/templates";
+import type { LoggerContract } from "@brains/utils/logger";
 import type { z } from "@brains/utils/zod";
 import type {
   AnyEntityDefinition,
@@ -355,6 +356,8 @@ interface ServiceDefinitionCore<
     | ((context: {
         readonly config: z.output<TConfigSchema>;
         readonly state: TState;
+        /** Providers reach the outside world, so they report what happens. */
+        readonly logger: LoggerContract;
       }) => readonly ServicePublishDeclaration[])
     | undefined;
   readonly dashboardWidgets?:

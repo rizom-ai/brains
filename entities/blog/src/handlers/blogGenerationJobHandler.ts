@@ -188,6 +188,8 @@ export const postGeneration: EntityGenerationDeclaration<
     // pre-allocated post or creates a new one.
     return {
       success: true,
+      // The title, not its slug: post files are named after the id.
+      id: finalTitle,
       content: blogPostAdapter.createPostContent(frontmatter, content),
       metadata: {
         title: finalTitle,

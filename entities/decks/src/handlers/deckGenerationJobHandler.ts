@@ -161,6 +161,8 @@ export const deckGeneration: EntityGenerationDeclaration<
     // pre-allocated deck or creates a new one.
     return {
       success: true,
+      // The title, not its slug: deck files are named after the id.
+      id: finalTitle,
       content: generateMarkdownWithFrontmatter(content, {
         title: finalTitle,
         status: "draft",

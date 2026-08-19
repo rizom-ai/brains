@@ -298,6 +298,7 @@ class DeclarativeServicePlugin<
       this.definition.publish?.({
         config: this.config,
         state: this.requireState(),
+        logger: this.logger,
       }) ?? [];
     if (declarations.length === 0) return;
 

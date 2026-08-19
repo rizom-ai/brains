@@ -2,7 +2,12 @@ import { describe, expect, it, beforeEach } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
 import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
 import { createSocialPostAtprotoProjection } from "../src/atproto-projection";
-import { SocialMediaPlugin } from "../src/plugin";
+import {
+  bindPluginPackageMetadata,
+  instantiatePluginPackageDefinition,
+} from "@brains/plugins";
+import socialMediaPackage from "../src";
+import packageJson from "../package.json";
 import type { SocialPost } from "../src/schemas/social-post";
 
 const socialPost: SocialPost = {
@@ -63,7 +68,18 @@ describe("social-post ATProto projection", () => {
     const harness = createPluginHarness({
       dataDir: "/tmp/test-social-post-atproto",
     });
-    await harness.installPlugin(new SocialMediaPlugin({}));
+    const metadata = {
+      name: packageJson.name,
+      version: packageJson.version,
+    };
+    bindPluginPackageMetadata(socialMediaPackage, metadata);
+    const entityPlugin = instantiatePluginPackageDefinition(
+      socialMediaPackage,
+      {},
+      metadata,
+    ).find(({ type }) => type === "entity");
+    if (!entityPlugin) throw new Error("Social post entity plugin missing");
+    await harness.installPlugin(entityPlugin);
 
     const projection =
       AtprotoProjectionRegistry.getInstance().get("social-post");

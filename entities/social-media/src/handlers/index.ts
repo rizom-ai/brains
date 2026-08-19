@@ -1,5 +1,5 @@
 export {
-  GenerationJobHandler,
+  socialPostGeneration,
   generationJobSchema,
   socialMediaGenerationResultSchema,
   type GenerationJobData,
