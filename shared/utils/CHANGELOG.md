@@ -1,5 +1,13 @@
 # @brains/utils
 
+## 0.2.0-alpha.311
+
+### Patch Changes
+
+- [#151](https://github.com/rizom-ai/brains/pull/151) [`0b4d2bc`](https://github.com/rizom-ai/brains/commit/0b4d2bca39b83d60183c0040f63f4bb9c2f9d029) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Resolve directory-sync environment references inside the dedicated Git broker process before broker host startup.
+
+  Packaged deployments can continue to keep the remote credential in `GIT_SYNC_TOKEN`: the broker resolves the configured reference from its inherited environment, retains the credential only in broker memory, and injects it into each Git network child without persisting it or sending it over the broker protocol.
+
 ## 0.2.0-alpha.310
 
 ## 0.2.0-alpha.309

@@ -1,7 +1,7 @@
 {
   "name": "@brains/ai-evaluation",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.310",
+  "version": "0.2.0-alpha.311",
   "description": "AI evaluation system for testing agent and plugin performance",
   "bin": {
     "brain-eval": "./src/run-evaluations.ts"

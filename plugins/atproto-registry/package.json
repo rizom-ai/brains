@@ -1,7 +1,7 @@
 {
   "name": "@brains/atproto-registry",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.310",
+  "version": "0.2.0-alpha.311",
   "description": "Canonical Rizom AT Protocol lexicon registry",
   "dependencies": {
     "@brains/atproto-contracts": "workspace:*",

@@ -1,5 +1,17 @@
 # @brains/products
 
+## 0.2.0-alpha.311
+
+### Patch Changes
+
+- Updated dependencies [[`0b4d2bc`](https://github.com/rizom-ai/brains/commit/0b4d2bca39b83d60183c0040f63f4bb9c2f9d029)]:
+  - @brains/utils@0.2.0-alpha.311
+  - @brains/content-formatters@0.2.0-alpha.311
+  - @brains/contracts@0.2.0-alpha.311
+  - @brains/media-page-composer@0.2.0-alpha.311
+  - @brains/ui-library@0.2.0-alpha.311
+  - @brains/plugins@0.2.0-alpha.311
+
 ## 0.2.0-alpha.310
 
 ### Patch Changes
