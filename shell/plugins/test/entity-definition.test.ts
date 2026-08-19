@@ -22,6 +22,7 @@ import {
   AtprotoProjectionRegistry,
   canonicalAtprotoLexicons,
 } from "@brains/atproto-contracts";
+import { DASHBOARD_CHANNELS } from "@brains/contracts";
 import type { AttachmentProvider } from "../src";
 import {
   SYSTEM_CHANNELS,
@@ -29,7 +30,9 @@ import {
   defineDataSource,
   defineEntity,
   defineEntityDataSource,
+  defineEntityDashboardWidget,
   defineEntityPackage,
+  defineDashboardWidget,
   defineProjection,
   defineProjectionRule,
   instantiatePluginPackageDefinition,
@@ -657,6 +660,274 @@ describe("entity package definitions", () => {
       ),
     ).toEqual({ reindexed: "first" });
     expect(reported).toEqual([50]);
+
+    harness.reset();
+  });
+
+  // Some creates finish immediately rather than becoming a job: a wish
+  // deduplicates against what exists and either raises a count or starts a
+  // new one, and the caller wants to know which. `resolve` keeps the
+  // runtime's guarantee intact by returning what should be written rather
+  // than writing it — the same split `generation` makes.
+  describe("a create that resolves rather than delegates", () => {
+    function guideThatResolves(): ReturnType<typeof defineEntity> {
+      return defineEntity({
+        type: "guide",
+        purpose: "A guide deduplicated on title.",
+        metadata: z.object({ title: z.string(), requested: z.number() }),
+        create: {
+          fromPrompt: {
+            resolve: async ({ input, entities }) => {
+              const existing = await entities.listEntities({
+                entityType: "guide",
+              });
+              const match = existing.find(
+                (guide) => guide.metadata["title"] === input.prompt,
+              );
+              if (match) {
+                const requested = Number(match.metadata["requested"] ?? 0) + 1;
+                return {
+                  update: {
+                    id: match.id,
+                    content: match.content,
+                    metadata: { title: String(input.prompt), requested },
+                  },
+                };
+              }
+              return {
+                create: {
+                  id: "new-guide",
+                  content: "A guide",
+                  metadata: { title: String(input.prompt), requested: 1 },
+                },
+              };
+            },
+          },
+        },
+      });
+    }
+
+    async function install(): Promise<{
+      harness: ReturnType<typeof createPluginHarness>;
+      route: (input: CreateInput) => Promise<CreateInterceptionResult>;
+    }> {
+      const definition = defineEntityPackage({
+        id: "guides",
+        entities: [guideThatResolves()],
+      });
+      const plugin = createEntityPackagePlugins(
+        definition.entities,
+        definition.projections,
+        { name: "@fixture/guides", version: "0.1.0" },
+        (id) => `@fixture/guides:${id}`,
+      )[0];
+      if (!plugin) throw new Error("Guide entity plugin was not created");
+
+      const harness = createPluginHarness({
+        logger: createSilentLogger("entity-create-resolve-test"),
+      });
+      let interceptor:
+        | ((
+            input: CreateInput,
+            executionContext: CreateExecutionContext,
+          ) => Promise<CreateInterceptionResult>)
+        | undefined;
+      const registry = harness.getEntityRegistry();
+      registry.registerCreateInterceptor = (
+        _entityType: string,
+        registered: typeof interceptor,
+      ): void => {
+        interceptor = registered;
+      };
+      await harness.installPlugin(plugin);
+      if (!interceptor)
+        throw new Error("Create interceptor was not registered");
+      const route = interceptor;
+      return {
+        harness,
+        route: (input) =>
+          route(input, {
+            interfaceType: "test",
+            actor: { kind: "user", userId: "tester" },
+          }),
+      };
+    }
+
+    it("creates when nothing matches, and says so", async () => {
+      const { harness, route } = await install();
+
+      const result = await route({ entityType: "guide", prompt: "Fishing" });
+
+      expect(result).toMatchObject({
+        kind: "handled",
+        result: { success: true, data: { status: "created" } },
+      });
+      const stored = await harness
+        .getEntityService()
+        .getEntity({ entityType: "guide", id: "new-guide" });
+      expect(stored?.metadata["title"]).toBe("Fishing");
+
+      harness.reset();
+    });
+
+    it("updates when something matches, and says that instead", async () => {
+      const { harness, route } = await install();
+      await harness.getEntityService().createEntity({
+        entity: {
+          id: "existing",
+          entityType: "guide",
+          content: "A guide",
+          metadata: { title: "Fishing", requested: 1 },
+        },
+      });
+
+      const result = await route({ entityType: "guide", prompt: "Fishing" });
+
+      expect(result).toMatchObject({
+        kind: "handled",
+        result: { success: true, data: { status: "updated" } },
+      });
+      const stored = await harness
+        .getEntityService()
+        .getEntity({ entityType: "guide", id: "existing" });
+      expect(stored?.metadata["requested"]).toBe(2);
+
+      harness.reset();
+    });
+
+    it("refuses with the message the route gave", async () => {
+      const guide = defineEntity({
+        type: "guide",
+        purpose: "A guide that refuses.",
+        metadata: z.object({ title: z.string() }),
+        create: {
+          fromPrompt: {
+            resolve: async () => ({ refuse: "Not while the moon is full." }),
+          },
+        },
+      });
+      const definition = defineEntityPackage({
+        id: "guides",
+        entities: [guide],
+      });
+      const plugin = createEntityPackagePlugins(
+        definition.entities,
+        definition.projections,
+        { name: "@fixture/guides", version: "0.1.0" },
+        (id) => `@fixture/guides:${id}`,
+      )[0];
+      if (!plugin) throw new Error("Guide entity plugin was not created");
+      const harness = createPluginHarness({
+        logger: createSilentLogger("entity-create-refuse-test"),
+      });
+      let interceptor:
+        | ((
+            input: CreateInput,
+            executionContext: CreateExecutionContext,
+          ) => Promise<CreateInterceptionResult>)
+        | undefined;
+      const registry = harness.getEntityRegistry();
+      registry.registerCreateInterceptor = (
+        _entityType: string,
+        registered: typeof interceptor,
+      ): void => {
+        interceptor = registered;
+      };
+      await harness.installPlugin(plugin);
+      if (!interceptor)
+        throw new Error("Create interceptor was not registered");
+
+      expect(
+        await interceptor(
+          { entityType: "guide", prompt: "Fishing" },
+          { interfaceType: "test", actor: { kind: "user", userId: "tester" } },
+        ),
+      ).toMatchObject({
+        kind: "handled",
+        result: { success: false, error: "Not while the moon is full." },
+      });
+
+      harness.reset();
+    });
+  });
+
+  // Four entity packages subscribe to pluginsRegistered to do exactly one
+  // thing: register a dashboard widget. That is not a messaging need, it is
+  // waiting for a hook to announce a static fact — category A of the
+  // blocker audit.
+  it("registers declared dashboard widgets once the host is mounted", async () => {
+    const guideWidget = defineDashboardWidget({
+      id: "top-guides",
+      title: "Top Guides",
+      group: "knowledge",
+      placement: "secondary",
+      priority: 30,
+      permission: "public",
+      data: z.object({ titles: z.array(z.string()) }),
+      digest: ({ data }) => ({
+        items: [{ label: "Guides", value: String(data.titles.length) }],
+      }),
+      view: ({ data }) => ({
+        blocks: [
+          {
+            type: "list",
+            id: "guides",
+            empty: "No guides yet.",
+            items: data.titles.map((title) => ({ id: title, title })),
+          },
+        ],
+      }),
+    });
+    const guide = defineEntity({
+      type: "guide",
+      purpose: "A guide with a dashboard widget.",
+      metadata: z.object({ title: z.string() }),
+      dashboardWidgets: [
+        defineEntityDashboardWidget(guideWidget, async ({ entities }) => {
+          const guides = await entities.listEntities({ entityType: "guide" });
+          return {
+            titles: guides.map((entity) => String(entity.metadata["title"])),
+          };
+        }),
+      ],
+    });
+    const definition = defineEntityPackage({ id: "guides", entities: [guide] });
+    const plugin = createEntityPackagePlugins(
+      definition.entities,
+      definition.projections,
+      { name: "@fixture/guides", version: "0.1.0" },
+      (id) => `@fixture/guides:${id}`,
+    )[0];
+    if (!plugin) throw new Error("Guide entity plugin was not created");
+
+    const harness = createPluginHarness({
+      logger: createSilentLogger("entity-widget-test"),
+    });
+    await harness.installPlugin(plugin);
+    await harness.getEntityService().createEntity({
+      entity: {
+        id: "first",
+        entityType: "guide",
+        content: "A guide",
+        metadata: { title: "First" },
+      },
+    });
+
+    const registered: string[] = [];
+    harness.subscribe<{ id?: string }>(
+      DASHBOARD_CHANNELS.registerWidget,
+      async (message) => {
+        if (message.payload.id) registered.push(message.payload.id);
+        return { success: true };
+      },
+    );
+
+    // Nothing is announced until the Dashboard host has mounted.
+    expect(registered).toEqual([]);
+
+    await harness.sendMessage(SYSTEM_CHANNELS.pluginsRegistered, {});
+
+    expect(registered).toEqual(["top-guides"]);
 
     harness.reset();
   });

@@ -355,12 +355,13 @@
       "name": "@brains/wishlist",
       "version": "0.2.0-alpha.337",
       "dependencies": {
-        "@brains/plugins": "workspace:*",
-        "@brains/utils": "workspace:*",
+        "@brains/sdk": "workspace:*",
       },
       "devDependencies": {
         "@brains/eslint-config": "workspace:*",
+        "@brains/plugins": "workspace:*",
         "@brains/typescript-config": "workspace:*",
+        "@brains/utils": "workspace:*",
         "@types/bun": "^1.4.0",
         "bun-types": "^1.4.0",
         "eslint": "^10.5.0",

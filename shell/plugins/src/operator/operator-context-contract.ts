@@ -1,9 +1,6 @@
 import type { UserPermissionLevel } from "@brains/templates";
 import type { z } from "@brains/utils/zod";
-import type {
-  AnyEntityDefinition,
-  EntityOf,
-} from "../entity/entity-definition-contract";
+import type { EntityDefinitionShape, EntityOf } from "../entity/entity-shape";
 import type {
   AnyAccountSettingsDefinition,
   RedactedAccountSettingsValue,
@@ -40,21 +37,21 @@ export interface OperatorQueryReader {
 }
 
 export interface OperatorEntityReader {
-  get<TDefinition extends AnyEntityDefinition>(
+  get<TDefinition extends EntityDefinitionShape>(
     definition: TDefinition,
     id: string,
   ): Promise<EntityOf<TDefinition> | null>;
-  list<TDefinition extends AnyEntityDefinition>(
+  list<TDefinition extends EntityDefinitionShape>(
     definition: TDefinition,
   ): Promise<readonly EntityOf<TDefinition>[]>;
-  search<TDefinition extends AnyEntityDefinition>(
+  search<TDefinition extends EntityDefinitionShape>(
     definition: TDefinition,
     query: string,
   ): Promise<readonly EntityOf<TDefinition>[]>;
 }
 
 export interface OperatorPermissions {
-  allows<TDefinition extends AnyEntityDefinition>(
+  allows<TDefinition extends EntityDefinitionShape>(
     definition: TDefinition,
     action: "create" | "update" | "delete" | "extract" | "publish",
   ): boolean;

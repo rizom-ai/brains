@@ -33,6 +33,7 @@ import type { InstalledPluginPackageMetadata } from "../package-definition";
 import type { JobHandler } from "@brains/job-queue";
 import type { ProgressContract } from "@brains/utils/progress";
 import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
+import { registerBuiltInDashboardWidget } from "../operator/dashboard-widget-runtime";
 import { FeedRegistry } from "@brains/site-composition";
 import { slugify } from "@brains/utils/string-utils";
 import type {
@@ -292,6 +293,7 @@ class DeclarativeEntityPlugin extends EntityPlugin<
   private readonly scheduledGeneration: AnyEntityDefinition["scheduledGeneration"];
   private readonly evals: AnyEntityDefinition["evals"];
   private readonly insights: AnyEntityDefinition["insights"];
+  private readonly dashboardWidgets: AnyEntityDefinition["dashboardWidgets"];
   private readonly jobs: AnyEntityDefinition["jobs"];
   private readonly instructions: AnyEntityDefinition["instructions"];
   private readonly create: AnyEntityDefinition["create"];
@@ -335,6 +337,7 @@ class DeclarativeEntityPlugin extends EntityPlugin<
     this.scheduledGeneration = definition.scheduledGeneration;
     this.evals = definition.evals;
     this.insights = definition.insights;
+    this.dashboardWidgets = definition.dashboardWidgets;
     this.jobs = definition.jobs;
     this.instructions = definition.instructions;
     this.create = definition.create;
@@ -397,6 +400,66 @@ class DeclarativeEntityPlugin extends EntityPlugin<
             return {
               kind: "handled",
               result: { success: false, error: route.reject },
+            };
+          }
+
+          if ("resolve" in route) {
+            const resolution = await route.resolve({
+              input,
+              entities: this.entityAccess(context),
+              logger: this.logger,
+            });
+            if ("refuse" in resolution) {
+              return {
+                kind: "handled",
+                result: { success: false, error: resolution.refuse },
+              };
+            }
+            // The runtime performs the write, so "created" and "updated"
+            // describe what it did rather than what the route claims.
+            if ("update" in resolution) {
+              const existing = await context.entityService.getEntity({
+                entityType: this.entityType,
+                id: resolution.update.id,
+              });
+              if (!existing) {
+                return {
+                  kind: "handled",
+                  result: {
+                    success: false,
+                    error: `Cannot update ${this.entityType} "${resolution.update.id}", which does not exist`,
+                  },
+                };
+              }
+              const written = await context.entityService.updateEntity({
+                entity: {
+                  ...existing,
+                  content: resolution.update.content,
+                  metadata: resolution.update.metadata,
+                },
+              });
+              return {
+                kind: "handled",
+                result: {
+                  success: true,
+                  data: { status: "updated", entityId: written.entityId },
+                },
+              };
+            }
+            const written = await context.entityService.createEntity({
+              entity: {
+                id: resolution.create.id,
+                entityType: this.entityType,
+                content: resolution.create.content,
+                metadata: resolution.create.metadata,
+              },
+            });
+            return {
+              kind: "handled",
+              result: {
+                success: true,
+                data: { status: "created", entityId: written.entityId },
+              },
             };
           }
 
@@ -497,6 +560,7 @@ class DeclarativeEntityPlugin extends EntityPlugin<
       );
     }
 
+    this.registerDashboardWidgets(context);
     this.subscribeToScheduledGeneration(context);
 
     const feed = this.feed;
@@ -707,6 +771,37 @@ class DeclarativeEntityPlugin extends EntityPlugin<
         metadata: { ...existing.metadata, status: "failed", error },
       },
     });
+  }
+
+  /**
+   * Announce declared dashboard widgets once the Dashboard host has mounted.
+   *
+   * Four packages waited on this lifecycle event by hand to do exactly this.
+   * The wait is the runtime's, so a declaration says what the widget is and
+   * how to fill it and nothing more.
+   */
+  private registerDashboardWidgets(context: EntityPluginContext): void {
+    const widgets = this.dashboardWidgets ?? [];
+    if (widgets.length === 0) return;
+
+    context.messaging.subscribe(
+      SYSTEM_CHANNELS.pluginsRegistered,
+      async (): Promise<{ success: true }> => {
+        for (const widget of widgets) {
+          await registerBuiltInDashboardWidget({
+            context,
+            definition: widget.definition,
+            load: ({ caller, signal }) =>
+              widget.load({
+                entities: this.entityAccess(context),
+                caller,
+                signal,
+              }),
+          });
+        }
+        return { success: true };
+      },
+    );
   }
 
   /**

@@ -1,6 +1,6 @@
 import type { UserPermissionLevel } from "@brains/templates";
 import type { z } from "@brains/utils/zod";
-import type { AnyEntityDefinition } from "../entity/entity-definition-contract";
+import type { EntityDefinitionShape } from "../entity/entity-shape";
 import { assertIdentifier } from "../package-definition";
 import type { AnyAccountSettingsDefinition } from "./account-settings-definition-contract";
 import {
@@ -174,7 +174,7 @@ export interface StudioWorkspaceDefinition<
   readonly description?: string | undefined;
   readonly priority?: number | undefined;
   readonly permission: UserPermissionLevel;
-  readonly entities?: readonly AnyEntityDefinition[] | undefined;
+  readonly entities?: readonly EntityDefinitionShape[] | undefined;
   readonly entityCatalog?: OperatorEntityCatalogDefinition | undefined;
   readonly query?: OperatorSchema | undefined;
   readonly data: TDataSchema;

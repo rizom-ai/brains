@@ -161,7 +161,7 @@ export interface OperatorExternalLinkTarget {
 }
 
 export interface OperatorEntityLinkTarget {
-  readonly entity: AnyEntityDefinition;
+  readonly entity: EntityDefinitionShape;
   readonly id: string;
 }
 
