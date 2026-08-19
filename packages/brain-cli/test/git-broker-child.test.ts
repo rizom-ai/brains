@@ -132,6 +132,47 @@ describe("git broker child", () => {
     expect(await running).toEqual({ success: true });
   });
 
+  it("resolves broker credential environment references before host startup", async () => {
+    const processImpl = createProcess({
+      [GIT_BROKER_SOCKET_ENV]: "/run/brain/git-broker.sock",
+      GIT_SYNC_TOKEN: "test-token-not-a-secret",
+    });
+    const startHost = mock(async () => ({
+      stop: async (): Promise<void> => {},
+      closeAdmission: (): void => {},
+      activity: { activeRequestIds: [], oldestActiveProgressAt: null },
+    }));
+    const running = runGitBrokerChild(
+      "/brain",
+      {
+        plugins: {
+          "directory-sync": {
+            git: {
+              repo: "rizom-ai/content",
+              authToken: "${GIT_SYNC_TOKEN}",
+            },
+          },
+        },
+      },
+      { processImpl, startHost },
+    );
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(startHost).toHaveBeenCalledWith(
+      expect.objectContaining({
+        pluginConfig: {
+          git: {
+            repo: "rizom-ai/content",
+            authToken: "test-token-not-a-secret",
+          },
+        },
+      }),
+    );
+
+    processImpl.emit("SIGTERM");
+    expect(await running).toEqual({ success: true });
+  });
+
   it("reports ready to its supervisor and stops only on request", async () => {
     const stop = mock(async () => {});
     const startHost = mock(async () => ({

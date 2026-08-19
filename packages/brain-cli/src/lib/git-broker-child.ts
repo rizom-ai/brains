@@ -5,6 +5,7 @@ import {
 } from "@brains/directory-sync/broker-runtime";
 import { Logger } from "@brains/utils/logger";
 import { getErrorMessage } from "@brains/utils/error";
+import { interpolateEnv } from "@brains/utils/string-utils";
 import type { CommandResult } from "./command-result";
 import { BRAIN_DEFAULT_DATA_DIR } from "./git-broker-spec";
 import { BROKER_HEARTBEAT_INTERVAL_MS } from "./git-broker-policy";
@@ -92,7 +93,10 @@ export async function runGitBrokerChild(
     socketPath,
     cwd,
     dataDir: BRAIN_DEFAULT_DATA_DIR,
-    pluginConfig: config.plugins?.["directory-sync"] ?? {},
+    pluginConfig: interpolateEnv(
+      config.plugins?.["directory-sync"] ?? {},
+      processImpl.env,
+    ),
     logger: Logger.getInstance(),
     ...(processImpl.env[GIT_BROKER_TEST_WITHHOLD_COMPLETION_ENV] === undefined
       ? {}
