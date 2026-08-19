@@ -3,6 +3,7 @@ import type { LoggerContract } from "@brains/utils/logger";
 import type { z } from "@brains/utils/zod";
 import type {
   AnyEntityDefinition,
+  EntityInsightDeclaration,
   EntityPublishDeclaration,
   ProjectionDefinition,
 } from "../entity/entity-definition-contract";
@@ -335,6 +336,19 @@ interface ServiceDefinitionCore<
         readonly config: z.output<TConfigSchema>;
         readonly state: TState;
       }) => Record<string, ServiceEvalHandler>)
+    | undefined;
+  /**
+   * Insights this service contributes, keyed by insight id.
+   *
+   * A function of config and state for the same reason `jobs` and `evals`
+   * are: an insight that reports on an integration needs the client that
+   * integration was configured with.
+   */
+  readonly insights?:
+    | ((context: {
+        readonly config: z.output<TConfigSchema>;
+        readonly state: TState;
+      }) => EntityInsightDeclaration)
     | undefined;
   readonly tools?:
     | ((context: {

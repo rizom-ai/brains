@@ -429,9 +429,7 @@ describe("service package declaring entities", () => {
       });
     }
 
-    async function installWith(
-      config: object,
-    ): Promise<{
+    async function installWith(config: object): Promise<{
       registered: unknown[];
       harness: ReturnType<typeof createPluginHarness>;
     }> {
@@ -483,6 +481,45 @@ describe("service package declaring entities", () => {
 
       harness.reset();
     });
+  });
+
+  // An insight a service contributes is built from config, the same reason
+  // jobs and evals are: analytics reports traffic through a client it only
+  // has when credentials are configured.
+  it("registers insights built from config", async () => {
+    const definition = defineServicePlugin({
+      id: "bookmarks",
+      config: z.object({ label: z.string().default("anonymous") }),
+      insights: ({ config }) => ({
+        "bookmark-source": async (): Promise<Record<string, unknown>> => ({
+          source: config.label,
+        }),
+      }),
+    });
+    const plugins = instantiatePluginPackageDefinition(
+      definition,
+      { label: "shared" },
+      { name: "@fixture/bookmarks", version: "0.1.0" },
+    );
+    const plugin = plugins[0];
+    if (!plugin) throw new Error("Service plugin was not created");
+
+    const harness = createPluginHarness({
+      logger: createSilentLogger("service-insights-test"),
+    });
+    await harness.installPlugin(plugin);
+
+    const registry = harness.getMockShell().getInsightsRegistry();
+    expect(registry.getTypes()).toContain("bookmark-source");
+    expect(
+      await registry.get(
+        "bookmark-source",
+        harness.getEntityService(),
+        "public",
+      ),
+    ).toEqual({ source: "shared" });
+
+    harness.reset();
   });
 
   it("still emits only a service plugin when no entities are declared", () => {

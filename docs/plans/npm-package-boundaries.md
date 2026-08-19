@@ -1384,6 +1384,31 @@ plugins while `agent-discovery`'s are entity plugins, so each slot has to
 land on both surfaces or on whichever its consumers actually use. That is
 a shape decision, not a capability question.
 
+#### Built: the `insights` slot, on both surfaces (2026-08-19)
+
+`insights` is now declared rather than registered — `Record<string,
+(context) => Promise<Record<string, unknown>>>` on the entity definition,
+and a function of config and state on the service definition, mirroring
+`evals` exactly. The handler is given scoped entity reads and the
+caller's visibility, not `IEntityService`, so it stays inside the
+declaration boundary.
+
+**It has no adopter yet, deliberately.** Both consumers are still
+class-based: `topics` extends `EntityPlugin` and `analytics` extends
+`ServicePlugin`, so neither can reach a `defineEntity`/
+`defineServicePlugin` slot until it converts. `analytics` is small
+enough to convert — config, one insight, tools — except that its
+`onReady` sends `SITE_BUILDER_CHANNELS.headScriptRegister`, which is
+another cross-package reach wanting its own declaration (two senders:
+`analytics` and the `sites/rizom` runtime plugin). That is a separate
+decision, so the slot ships shaped from the two real call sites and waits
+for whichever consumer converts first.
+
+`recurringChecks` is the same shape and is **not built**: its `run`
+closes over a full plugin context in `agent-discovery`, so what that
+function is given needs working out first, unlike an insight's two
+arguments.
+
 ### `topics` → `SHELL_CHANNELS.embedding` — eval scaffolding, not a need
 
 `waitForEmbeddingsToDrain` polls `jobs.getActiveJobs([SHELL_CHANNELS

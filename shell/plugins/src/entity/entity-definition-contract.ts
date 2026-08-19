@@ -150,6 +150,14 @@ export interface EntityDefinition<
   readonly atproto?: AtprotoProjection | undefined;
   /** Eval handlers, keyed by handler id. */
   readonly evals?: EntityEvalDeclaration | undefined;
+  /**
+   * Insights this entity type contributes, keyed by insight id.
+   *
+   * An insight is a static fact about what a package can report, so it is
+   * declared rather than registered: the runtime owns registration and the
+   * package never names the insights namespace.
+   */
+  readonly insights?: EntityInsightDeclaration | undefined;
   /** Durable job handlers, keyed by job type. */
   readonly jobs?: Record<string, EntityJobDeclaration> | undefined;
   /**
@@ -398,6 +406,21 @@ export interface EntityScheduledGenerationDeclaration {
    */
   readonly mode: "each" | "batch";
 }
+
+/**
+ * What an insight is given: reads scoped to the declaring package, and the
+ * visibility the caller is entitled to see.
+ */
+export interface EntityInsightContext {
+  readonly entities: JobEntityAccess;
+  readonly visibilityScope: EntityVisibility;
+}
+
+/** Insight handlers, keyed by insight id. */
+export type EntityInsightDeclaration = Record<
+  string,
+  (context: EntityInsightContext) => Promise<Record<string, unknown>>
+>;
 
 /**
  * An attachment provider, declared.
