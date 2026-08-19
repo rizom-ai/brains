@@ -41,7 +41,7 @@ export const architectureStructuralEdges = [
   {
     family: "entities",
     from: "entities/blog/src/index.ts",
-    to: "entities/blog/src/plugin.ts",
+    to: "entities/blog/src/post-entity.ts",
   },
   {
     family: "interfaces",

@@ -1,5 +1,5 @@
-import { parseMarkdownWithFrontmatter } from "@brains/plugins";
-import type { FeedItem } from "@brains/site-composition";
+import { parseMarkdownWithFrontmatter } from "@brains/sdk/entities";
+import type { FeedItem } from "@brains/sdk/entities";
 import { blogPostFrontmatterSchema, type BlogPost } from "../schemas/blog-post";
 
 /**

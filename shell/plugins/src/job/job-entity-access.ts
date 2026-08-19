@@ -13,10 +13,7 @@ import {
   createPendingEntity,
   saveProcessedEntity,
 } from "../entity/pending-ingestion";
-import type {
-  AnyEntityDefinition,
-  EntityOf,
-} from "../entity/entity-definition-contract";
+import type { EntityDefinitionShape, EntityOf } from "../entity/entity-shape";
 
 /**
  * Build the entity access a job handler sees.
@@ -48,7 +45,7 @@ export function createJobEntityAccess(
       id: string;
     }): Promise<T | null> => entityService.getEntity<T>(request),
     getEntityTypes: (): string[] => entityService.getEntityTypes(),
-    get: async <TDefinition extends AnyEntityDefinition>(
+    get: async <TDefinition extends EntityDefinitionShape>(
       definition: TDefinition,
       id: string,
     ): Promise<EntityOf<TDefinition> | null> => {

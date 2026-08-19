@@ -1,18 +1,22 @@
 import { baseEntitySchema } from "@brains/entity-service";
 import { z } from "@brains/utils/zod";
-import type {
-  AnyEntityDefinition,
-  EntityOf,
-} from "./entity-definition-contract";
+import type { EntityDefinitionShape, EntityOf } from "./entity-shape";
 
 const entitySchemaCache = new WeakMap<
-  AnyEntityDefinition,
-  z.ZodType<EntityOf<AnyEntityDefinition>, unknown>
+  EntityDefinitionShape,
+  z.ZodType<EntityOf<EntityDefinitionShape>, unknown>
 >();
 
+/**
+ * The parse schema for one entity definition.
+ *
+ * Erased in the metadata: `.extend()` cannot carry a generic metadata
+ * schema's output through, so this returns the widened form and
+ * `parseDefinitionEntity` narrows it for a caller that knows the definition.
+ */
 export function entitySchema(
-  definition: AnyEntityDefinition,
-): z.ZodType<EntityOf<AnyEntityDefinition>, unknown> {
+  definition: EntityDefinitionShape,
+): z.ZodType<EntityOf<EntityDefinitionShape>, unknown> {
   let schema = entitySchemaCache.get(definition);
   if (!schema) {
     schema = baseEntitySchema.extend({
@@ -24,9 +28,8 @@ export function entitySchema(
   return schema;
 }
 
-export function parseDefinitionEntity<TDefinition extends AnyEntityDefinition>(
-  definition: TDefinition,
-  input: unknown,
-): EntityOf<TDefinition> {
+export function parseDefinitionEntity<
+  TDefinition extends EntityDefinitionShape,
+>(definition: TDefinition, input: unknown): EntityOf<TDefinition> {
   return entitySchema(definition).parse(input) as EntityOf<TDefinition>;
 }

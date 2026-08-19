@@ -1,11 +1,10 @@
-import { describe, it, expect, beforeEach } from "bun:test";
-import { BlogPostAdapter } from "../src/adapters/blog-post-adapter";
+import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import type { BlogPost } from "../src/schemas/blog-post";
 import {
   blogPostFrontmatterSchema,
   blogPostMetadataSchema,
 } from "../src/schemas/blog-post";
-import { createMockBlogPost } from "./fixtures/blog-entities";
+import type { EntityAdapter } from "@brains/plugins";
 import { createSilentLogger, createTestEntity } from "@brains/test-utils";
 import {
   createPluginHarness,
@@ -80,291 +79,124 @@ describe("blog package", () => {
     });
   });
 
-  describe("BlogPostAdapter", () => {
-    let adapter: BlogPostAdapter;
+  // These round-trips used to be asserted against BlogPostAdapter's own
+  // toMarkdown/fromMarkdown. The declarative entity builds its adapter from
+  // the `markdown` codec on `post`, so the class's copies stopped running
+  // when the package converted. The behaviour is real; it belongs to
+  // whichever adapter the registry hands out.
+  describe("the post markdown codec", () => {
+    let adapter: EntityAdapter<BlogPost>;
+    let harness: ReturnType<typeof createPluginHarness>;
 
-    beforeEach(() => {
-      adapter = new BlogPostAdapter();
-    });
-
-    it("should have correct entity type and schema", () => {
-      expect(adapter.entityType).toBe("post");
-      expect(adapter.schema).toBeDefined();
-    });
-
-    it("should convert entity with frontmatter to markdown", () => {
-      const content = `---
-title: My First Blog Post
-status: draft
-excerpt: This is a short excerpt
-author: Test Author
----
-
-# My First Blog Post
-
-This is the content of my blog post.`;
-
-      const entity: BlogPost = createTestEntity<BlogPost>("post", {
-        id: "test-post-1",
-        content,
-        metadata: {
-          title: "My First Blog Post",
-          slug: "my-first-blog-post",
-          status: "draft",
-        },
+    beforeEach(async () => {
+      harness = createPluginHarness({
+        logger: createSilentLogger("blog-codec-test"),
       });
-
-      const markdown = adapter.toMarkdown(entity);
-
-      // Should contain frontmatter with all fields
-      expect(markdown).toContain("---");
-      expect(markdown).toContain("title: My First Blog Post");
-      expect(markdown).toContain("status: draft");
-      expect(markdown).toContain("excerpt: This is a short excerpt");
-      expect(markdown).toContain("author: Test Author");
-
-      // Should contain content body
-      expect(markdown).toContain("# My First Blog Post");
-      expect(markdown).toContain("This is the content of my blog post.");
+      await harness.installPlugin(postEntityPlugin());
+      adapter = harness.getEntityRegistry().getAdapter<BlogPost>("post");
     });
 
-    it("should convert markdown with frontmatter to entity", () => {
-      const markdown = `---
-title: Another Blog Post
-status: published
-publishedAt: "2025-01-30T12:00:00.000Z"
-excerpt: Another excerpt
-author: Jane Doe
----
+    afterEach(() => {
+      harness.reset();
+    });
 
-# Another Blog Post
+    it("carries frontmatter the metadata does not index", () => {
+      const markdown = [
+        "---",
+        "title: Another Blog Post",
+        "slug: another-blog-post",
+        "status: published",
+        'publishedAt: "2025-01-30T12:00:00.000Z"',
+        "excerpt: Another excerpt",
+        "author: Jane Doe",
+        "---",
+        "",
+        "This is another blog post.",
+      ].join("\n");
 
-This is another blog post.`;
+      const parsed = adapter.fromMarkdown(markdown);
 
-      const partialEntity = adapter.fromMarkdown(markdown);
+      expect(parsed.metadata).toMatchObject({
+        title: "Another Blog Post",
+        slug: "another-blog-post",
+        status: "published",
+        publishedAt: "2025-01-30T12:00:00.000Z",
+      });
+      // Author and excerpt live in the content, not the index.
+      expect("author" in (parsed.metadata ?? {})).toBe(false);
+      expect("excerpt" in (parsed.metadata ?? {})).toBe(false);
+    });
 
-      expect(partialEntity.entityType).toBe("post");
-      expect(partialEntity.content).toBe(markdown);
-      expect(partialEntity.metadata).toBeDefined();
-      // Metadata only has key searchable fields
-      expect(partialEntity.metadata?.["title"]).toBe("Another Blog Post");
-      expect(partialEntity.metadata?.["status"]).toBe("published");
-      expect(partialEntity.metadata?.["publishedAt"]).toBe(
-        "2025-01-30T12:00:00.000Z",
+    it("derives a slug from the title when the frontmatter has none", () => {
+      const parsed = adapter.fromMarkdown(
+        [
+          "---",
+          "title: No Slug Here",
+          "status: draft",
+          "excerpt: e",
+          "author: A",
+          "---",
+          "",
+          "Body",
+        ].join("\n"),
       );
-      // Author and excerpt are in frontmatter, not metadata
-      expect("author" in (partialEntity.metadata ?? {})).toBe(false);
-      expect("excerpt" in (partialEntity.metadata ?? {})).toBe(false);
+
+      expect(parsed.metadata?.["slug"]).toBe("no-slug-here");
     });
 
-    it("should extract metadata for search/filtering", () => {
-      const content = `---
-title: Search Test Post
-status: published
-publishedAt: "2025-01-30T15:00:00.000Z"
-excerpt: Excerpt for search
-author: Search Author
-seriesName: Test Series
-seriesIndex: 1
----
+    it("indexes series placement", () => {
+      const parsed = adapter.fromMarkdown(
+        [
+          "---",
+          "title: Part One",
+          "status: published",
+          "excerpt: e",
+          "author: A",
+          "seriesName: Foundations",
+          "seriesIndex: 1",
+          "---",
+          "",
+          "Body",
+        ].join("\n"),
+      );
 
-Content here`;
-
-      const entity: BlogPost = createTestEntity<BlogPost>("post", {
-        id: "test-post-3",
-        content,
-        metadata: {
-          title: "Search Test Post",
-          slug: "search-test-post",
-          status: "published",
-          publishedAt: "2025-01-30T15:00:00.000Z",
-          seriesName: "Test Series",
-          seriesIndex: 1,
-        },
+      expect(parsed.metadata).toMatchObject({
+        seriesName: "Foundations",
+        seriesIndex: 1,
       });
-
-      const metadata = adapter.extractMetadata(entity);
-
-      // Only key searchable fields are in metadata
-      expect(metadata["title"]).toBe("Search Test Post");
-      expect(metadata["status"]).toBe("published");
-      expect(metadata["publishedAt"]).toBe("2025-01-30T15:00:00.000Z");
-      expect(metadata["seriesName"]).toBe("Test Series");
-      expect(metadata["seriesIndex"]).toBe(1);
-      // Author, excerpt, coverImage are NOT in metadata
-      expect("author" in metadata).toBe(false);
-      expect("excerpt" in metadata).toBe(false);
-      expect("coverImage" in metadata).toBe(false);
     });
 
-    it("should handle optional metadata fields", () => {
-      const content = `---
-title: Minimal Post
-status: draft
-excerpt: Minimal excerpt
-author: Minimal Author
----
+    it("survives a round trip through markdown and back", () => {
+      const original = [
+        "---",
+        "title: Round Trip",
+        "status: published",
+        'publishedAt: "2025-02-01T00:00:00.000Z"',
+        "excerpt: An excerpt",
+        "author: Jane Doe",
+        "coverImageId: image-1",
+        "---",
+        "",
+        "The body.",
+      ].join("\n");
 
-Minimal content`;
-
-      const entity: BlogPost = createTestEntity<BlogPost>("post", {
-        id: "test-post-4",
-        content,
-        metadata: {
-          title: "Minimal Post",
-          slug: "minimal-post",
-          status: "draft",
-        },
+      const parsed = adapter.fromMarkdown(original);
+      if (!parsed.metadata) {
+        throw new Error("The codec returned an incomplete post");
+      }
+      // A stored post holds the full markdown, frontmatter included — that
+      // is what createPostContent writes and what the entity service keeps.
+      const entity = createTestEntity<BlogPost>("post", {
+        id: "round-trip",
+        content: original,
+        metadata: parsed.metadata,
       });
+      const written = adapter.toMarkdown(entity);
 
-      const metadata = adapter.extractMetadata(entity);
-
-      expect(metadata["title"]).toBe("Minimal Post");
-      expect(metadata["status"]).toBe("draft");
-      expect(metadata["publishedAt"]).toBeUndefined();
-      expect(metadata["seriesName"]).toBeUndefined();
-      expect(metadata["seriesIndex"]).toBeUndefined();
-    });
-
-    it("should handle series metadata", () => {
-      const content = `---
-title: Series Post Part 1
-status: published
-publishedAt: "2025-01-30T16:00:00.000Z"
-excerpt: First part of series
-author: Series Author
-seriesName: My Blog Series
-seriesIndex: 1
----
-
-Series post content`;
-
-      const entity: BlogPost = createTestEntity<BlogPost>("post", {
-        id: "test-post-5",
-        content,
-        metadata: {
-          title: "Series Post Part 1",
-          slug: "series-post-part-1",
-          status: "published",
-          publishedAt: "2025-01-30T16:00:00.000Z",
-          seriesName: "My Blog Series",
-          seriesIndex: 1,
-        },
-      });
-
-      const markdown = adapter.toMarkdown(entity);
-
-      expect(markdown).toContain("seriesName: My Blog Series");
-      expect(markdown).toContain("seriesIndex: 1");
-
-      const metadata = adapter.extractMetadata(entity);
-      expect(metadata["seriesName"]).toBe("My Blog Series");
-      expect(metadata["seriesIndex"]).toBe(1);
-    });
-
-    it("should handle cover image ID in frontmatter", () => {
-      const content = `---
-title: Post With Image
-status: draft
-excerpt: Has a cover image
-author: Image Author
-coverImageId: hero-image
----
-
-Post with cover image`;
-
-      const entity: BlogPost = createTestEntity<BlogPost>("post", {
-        id: "test-post-6",
-        content,
-        metadata: {
-          title: "Post With Image",
-          slug: "post-with-image",
-          status: "draft",
-        },
-      });
-
-      const markdown = adapter.toMarkdown(entity);
-      expect(markdown).toContain("coverImageId: hero-image");
-
-      const metadata = adapter.extractMetadata(entity);
-      // coverImageId is in frontmatter, not metadata
-      expect("coverImageId" in metadata).toBe(false);
-    });
-
-    it("should merge auto-generated slug from metadata into frontmatter when missing", () => {
-      // Content without slug in frontmatter
-      const content = `---
-title: Post Without Slug
-status: draft
-excerpt: Test excerpt
-author: Test Author
----
-
-# Post Without Slug
-
-Content here`;
-
-      const entity: BlogPost = createTestEntity<BlogPost>("post", {
-        id: "test-post-7",
-        content,
-        metadata: {
-          title: "Post Without Slug",
-          slug: "post-without-slug", // Auto-generated slug in metadata
-          status: "draft",
-        },
-      });
-
-      const markdown = adapter.toMarkdown(entity);
-
-      // Should contain the auto-generated slug from metadata
-      expect(markdown).toContain("slug: post-without-slug");
-      expect(markdown).toContain("title: Post Without Slug");
-      expect(markdown).toContain("# Post Without Slug");
-    });
-
-    it("should preserve auto-generated slug through fromMarkdown -> toMarkdown roundtrip", () => {
-      // User creates a post without slug
-      const originalMarkdown = `---
-title: My Great Post
-status: draft
-excerpt: Test excerpt
-author: Test Author
----
-
-# My Great Post
-
-Post content here`;
-
-      // Parse with fromMarkdown (auto-generates slug)
-      const partialEntity = adapter.fromMarkdown(originalMarkdown);
-
-      // Verify slug was auto-generated
-      expect(partialEntity.metadata?.["slug"]).toBe("my-great-post");
-
-      // Create full entity
-      const fullEntity = createMockBlogPost({
-        id: "test-post-8",
-        content: originalMarkdown,
-        created: "2025-01-30T10:00:00.000Z",
-        updated: "2025-01-30T10:00:00.000Z",
-        metadata: {
-          title: "My Great Post",
-          slug: "my-great-post", // Auto-generated slug
-          status: "draft",
-        },
-      });
-
-      // Convert back to markdown
-      const outputMarkdown = adapter.toMarkdown(fullEntity);
-
-      // Should now contain the auto-generated slug
-      expect(outputMarkdown).toContain("slug: my-great-post");
-      expect(outputMarkdown).toContain("title: My Great Post");
-      expect(outputMarkdown).toContain("# My Great Post");
-
-      // Parse again to verify roundtrip
-      const reparsed = adapter.fromMarkdown(outputMarkdown);
-      expect(reparsed.metadata?.["slug"]).toBe("my-great-post");
+      expect(adapter.fromMarkdown(written).metadata).toEqual(parsed.metadata);
+      // Frontmatter the codec does not index is carried forward, not dropped.
+      expect(written).toContain("coverImageId: image-1");
+      expect(written).toContain("author: Jane Doe");
     });
   });
 });
