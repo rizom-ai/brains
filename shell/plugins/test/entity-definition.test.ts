@@ -1098,7 +1098,11 @@ describe("declarative entity seeding", () => {
   describe("the lifecycle around a generation", () => {
     function guideThatGenerates(
       outcome:
-        | { readonly success: true; readonly title: string }
+        | {
+            readonly success: true;
+            readonly title: string;
+            readonly id?: string;
+          }
         | { readonly success: false; readonly error: string },
     ): ReturnType<typeof defineEntity> {
       return defineEntity({
@@ -1119,6 +1123,7 @@ describe("declarative entity seeding", () => {
                   success: true as const,
                   content: "The guide body",
                   metadata: { title: outcome.title },
+                  ...(outcome.id === undefined ? {} : { id: outcome.id }),
                 }
               : { success: false as const, error: outcome.error },
         },
@@ -1194,6 +1199,26 @@ describe("declarative entity seeding", () => {
     // system_generate persists a stub so the caller has something to look at
     // while the work runs, then passes its id. Filling that stub in is what
     // the converted packages stopped doing.
+    // Entity ids are user-visible — directory sync names files after them —
+    // so a package that wants a readable one says so instead of taking the
+    // slugified title.
+    it("stores under the id the handler asked for", async () => {
+      const { harness, run } = await installGenerating({
+        success: true,
+        title: "How To Fish",
+        id: "How To Fish",
+      });
+
+      const result = await run({ topic: "fishing" });
+
+      expect(result).toMatchObject({ success: true, entityId: "How To Fish" });
+      expect(
+        await harness
+          .getEntityService()
+          .getEntity({ entityType: "guide", id: "How To Fish" }),
+      ).not.toBeNull();
+    });
+
     it("fills in a pre-allocated entity rather than creating a second one", async () => {
       const { harness, run } = await installGenerating({
         success: true,
@@ -1302,6 +1327,7 @@ describe("declarative entity seeding", () => {
       harness: ReturnType<typeof createPluginHarness>;
       enqueued: Array<{ type: string; data: unknown }>;
       failures: unknown[];
+      run: (input: object) => Promise<unknown>;
     }> {
       const definition = defineEntityPackage({
         id: "guides",
@@ -1319,10 +1345,14 @@ describe("declarative entity seeding", () => {
         logger: createSilentLogger("entity-scheduled-generation-test"),
       });
       const enqueued: Array<{ type: string; data: unknown }> = [];
+      const handlers = new Map<string, JobHandler>();
       const mockShell = harness.getMockShell();
       const jobQueue = mockShell.getJobQueueService();
       const trackingJobQueue = {
         ...jobQueue,
+        registerHandler: (type: string, handler: JobHandler): void => {
+          handlers.set(type, handler);
+        },
         enqueue: async ({
           type,
           data,
@@ -1345,7 +1375,22 @@ describe("declarative entity seeding", () => {
       });
 
       await harness.installPlugin(plugin);
-      return { harness, enqueued, failures };
+      return {
+        harness,
+        enqueued,
+        failures,
+        run: (input): Promise<unknown> => {
+          const handler = handlers.get("guide:generation");
+          if (!handler)
+            throw new Error("Generation handler was not registered");
+          return handler.process(
+            input,
+            "job-1",
+            createMockProgressReporter(),
+            new AbortController().signal,
+          ) as Promise<unknown>;
+        },
+      };
     }
 
     async function seedNote(
@@ -1427,6 +1472,28 @@ describe("declarative entity seeding", () => {
           error: "No published note available to write a guide from",
         },
       ]);
+
+      harness.reset();
+    });
+
+    // The scheduler tracks what it asked for by entity id, which a
+    // declaration cannot report: it hands back content and the runtime
+    // decides the id. So the runtime closes the loop it opened.
+    it("tells the scheduler how a generation it asked for turned out", async () => {
+      const { harness, enqueued, run } = await installScheduled("each");
+      await seedNote(harness, "note-1", "published");
+      const completed: unknown[] = [];
+      harness.subscribe("generate:report:success", async (msg) => {
+        completed.push(msg.payload);
+        return { success: true };
+      });
+
+      await harness.sendMessage("generate:execute", { entityType: "guide" });
+      expect(enqueued).toHaveLength(1);
+
+      await run({ sourceEntityType: "note", sourceEntityId: "note-1" });
+
+      expect(completed).toEqual([{ entityType: "guide", entityId: "a-guide" }]);
 
       harness.reset();
     });

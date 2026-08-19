@@ -1,5 +1,44 @@
-// Main exports
-export { SocialMediaPlugin, socialMediaPlugin } from "./plugin";
+/**
+ * Social media package.
+ *
+ * A `social-post` entity to store what gets written, plus the work of
+ * actually publishing one — which needs LinkedIn credentials and so belongs
+ * to the service half of the package rather than to the entity.
+ */
+
+import {
+  defineServicePlugin,
+  type ServicePackageDefinition,
+} from "@brains/plugins";
+import { socialMediaConfigSchema } from "./config";
+import { socialPost } from "./social-post-entity";
+import { createLinkedInProvider } from "./lib/linkedin-client";
+
+const socialMediaPackage: ServicePackageDefinition<
+  typeof socialMediaConfigSchema
+> = defineServicePlugin({
+  id: "publishing",
+  config: socialMediaConfigSchema,
+  entities: [socialPost],
+  // No credentials, no provider: the publish pipeline is told about
+  // LinkedIn only when this brain can actually reach it.
+  publish: ({ config, logger }) => {
+    const linkedin = config.linkedin;
+    return linkedin?.accessToken
+      ? [
+          {
+            entityType: "social-post",
+            provider: createLinkedInProvider(linkedin, logger),
+            resultIdField: "platformPostId",
+          },
+        ]
+      : [];
+  },
+});
+
+export default socialMediaPackage;
+
+export { socialPost } from "./social-post-entity";
 
 // Config exports
 export {
@@ -45,14 +84,14 @@ export {
 } from "./atproto-projection";
 
 // DataSource exports
-export { SocialPostDataSource } from "./datasources/social-post-datasource";
+export { socialPostDataSource } from "./datasources/social-post-datasource";
 
 // Handler exports
 export {
-  GenerationJobHandler,
+  socialPostGeneration,
   generationJobSchema,
   type GenerationJobData,
-} from "./handlers";
+} from "./handlers/generationHandler";
 
 // Provider exports (uses PublishProvider from @brains/contracts)
 export {

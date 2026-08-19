@@ -3,40 +3,22 @@ import { socialMediaConfigSchema, linkedinConfigSchema } from "../src/config";
 
 describe("Social Media Config", () => {
   describe("socialMediaConfigSchema", () => {
-    it("should apply defaults for empty config", () => {
-      const result = socialMediaConfigSchema.parse({});
-      expect(result.publishInterval).toBe(3600000);
-      expect(result.enabled).toBe(true);
-      expect(result.maxRetries).toBe(3);
-      expect(result.defaultPrompt).toBeDefined();
-    });
-
-    it("should accept complete config", () => {
-      const config = {
+    // publishInterval, enabled, defaultPrompt, and maxRetries were declared
+    // here and read nowhere. Credentials are the only configuration left.
+    it("carries LinkedIn credentials", () => {
+      const result = socialMediaConfigSchema.parse({
         linkedin: {
           accessToken: "token123",
           refreshToken: "refresh456",
           apiVersion: "202604",
         },
-        publishInterval: 1800000,
-        enabled: false,
-        defaultPrompt: "Custom prompt",
-        maxRetries: 5,
-      };
-      const result = socialMediaConfigSchema.parse(config);
+      });
       expect(result.linkedin?.accessToken).toBe("token123");
       expect(result.linkedin?.apiVersion).toBe("202604");
-      expect(result.publishInterval).toBe(1800000);
-      expect(result.enabled).toBe(false);
-      expect(result.maxRetries).toBe(5);
     });
 
-    it("should allow config without linkedin credentials", () => {
-      const result = socialMediaConfigSchema.parse({
-        enabled: true,
-      });
-      expect(result.linkedin).toBeUndefined();
-      expect(result.enabled).toBe(true);
+    it("allows a brain with no credentials at all", () => {
+      expect(socialMediaConfigSchema.parse({}).linkedin).toBeUndefined();
     });
   });
 

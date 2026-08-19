@@ -136,6 +136,17 @@ describe("deckGeneration", () => {
       expect(result.resultExtras?.["slug"]).toBe("generated-deck");
     });
 
+    // Deck files are named after the entity id, so it stays the readable
+    // title rather than becoming the slug.
+    it("stores a deck under its title, not its slug", async () => {
+      const result = succeeded(
+        await generate({ prompt: "Create a deck about caching" }),
+      );
+
+      expect(result.id).toBe("Generated Deck");
+      expect(result.metadata["slug"]).toBe("generated-deck");
+    });
+
     it("refuses a skeleton deck with no title", async () => {
       expect(await generate({ skipAi: true })).toEqual({
         success: false,

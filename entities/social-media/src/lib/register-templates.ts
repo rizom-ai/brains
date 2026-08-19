@@ -35,7 +35,7 @@ export function getTemplates(): Record<string, Template> {
       name: "social-post-list",
       description: "Social post list page template",
       schema: postListSchema,
-      dataSourceId: "social-media:posts",
+      dataSourceId: "posts",
       requiredPermission: "public",
       layout: {
         component: SocialPostListTemplate,
@@ -48,7 +48,7 @@ export function getTemplates(): Record<string, Template> {
       name: "social-post-detail",
       description: "Individual social post template",
       schema: postDetailSchema,
-      dataSourceId: "social-media:posts",
+      dataSourceId: "posts",
       requiredPermission: "public",
       layout: {
         component: SocialPostDetailTemplate,
