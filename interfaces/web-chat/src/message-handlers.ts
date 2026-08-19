@@ -4,10 +4,8 @@ import {
   type InterfacePluginContext,
 } from "@brains/plugins";
 import { stripInternalEntityMemoryNote } from "./display-content";
-import {
-  canAccessBrowserConversation,
-  type WebChatConversationAccess,
-} from "./conversation-access";
+import type { WebChatConversationAccess } from "./conversation-access";
+import { resolveWebChatSession } from "./session-handlers";
 
 type AccessResolver = (request: Request) => Promise<WebChatConversationAccess>;
 type ConversationService = InterfacePluginContext["conversations"];
@@ -27,17 +25,10 @@ export async function handleMessagesRequest(
     return new Response("Forbidden", { status: 403 });
   }
 
-  const conversationId = new URL(request.url).searchParams.get("id");
-  if (!conversationId) {
-    return new Response("Missing conversation id", { status: 400 });
-  }
+  const conversation = await resolveWebChatSession(request, deps, access);
+  if (conversation instanceof Response) return conversation;
 
-  const conversation = await deps.conversations.get(conversationId);
-  if (!canAccessBrowserConversation(conversation, access, deps.interfaceType)) {
-    return new Response("Conversation not found", { status: 404 });
-  }
-
-  const messages = await deps.conversations.getMessages(conversationId, {
+  const messages = await deps.conversations.getMessages(conversation.id, {
     limit: 100,
   });
 

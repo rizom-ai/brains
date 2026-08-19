@@ -120,9 +120,14 @@ export async function handleArchiveSessionRequest(
   return Response.json({ archived });
 }
 
-async function resolveWebChatSession(
+/**
+ * Resolve the `?id` conversation for a request, enforcing browser-conversation
+ * access. Shared by the session and message handlers so the 400/404 semantics
+ * cannot drift between them.
+ */
+export async function resolveWebChatSession(
   request: Request,
-  deps: SessionHandlerDeps,
+  deps: Pick<SessionHandlerDeps, "conversations" | "interfaceType">,
   access: WebChatConversationAccess,
 ): Promise<WebChatConversation | Response> {
   const conversationId = new URL(request.url).searchParams.get("id");
