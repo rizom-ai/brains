@@ -4,9 +4,11 @@ import type { AnchorProfile } from "../contracts/identity";
 import type { IEntityAINamespace } from "./ai-types";
 import type { LoggerContract } from "@brains/utils/logger";
 import type {
+  EntityConversationReader,
   JobEntityAccess,
   JobHandlerContext,
 } from "../job/job-context-contract";
+export type { EntityConversationReader } from "../job/job-context-contract";
 import type { AtprotoProjection } from "@brains/atproto-contracts";
 import type { FeedItem } from "@brains/site-composition";
 import type { PublishProvider } from "@brains/contracts";
@@ -15,7 +17,16 @@ import type { ProjectionRule } from "./projection-rule";
 import type { AnyDataSourceDeclaration } from "../public/entity-data-source";
 import type { z } from "@brains/utils/zod";
 
-export type EntityVisibility = "public" | "shared" | "restricted";
+export type {
+  EntityOf,
+  EntityVisibility,
+  EntityWriteInput,
+} from "./entity-shape";
+import type {
+  EntityOf,
+  EntityVisibility,
+  EntityWriteInput,
+} from "./entity-shape";
 export type EntityMetadataSchema = z.ZodObject<z.ZodRawShape>;
 
 export interface EntityMarkdownDocument<TMetadata> {
@@ -299,12 +310,6 @@ export interface EntityGenerationContext {
  * resolving where a captured item came from. The full namespace also
  * lists and searches, which no entity needs.
  */
-export interface EntityConversationReader {
-  get(
-    conversationId: string,
-  ): Promise<{ channelName?: string | undefined } | null>;
-}
-
 /**
  * What a declared eval handler is given. Evals exercise the same
  * capabilities generation does, so they share its context rather than
@@ -467,24 +472,6 @@ export type AnyEntityDefinition = EntityDefinition<
   string,
   EntityMetadataSchema
 >;
-
-export interface EntityOf<TDefinition extends AnyEntityDefinition> {
-  readonly id: string;
-  readonly entityType: TDefinition["type"];
-  readonly content: string;
-  readonly visibility: EntityVisibility;
-  readonly metadata: z.output<TDefinition["metadata"]>;
-  readonly contentHash: string;
-  readonly created: string;
-  readonly updated: string;
-}
-
-export interface EntityWriteInput<TDefinition extends AnyEntityDefinition> {
-  readonly id: string;
-  readonly content: string;
-  readonly visibility?: EntityVisibility | undefined;
-  readonly metadata: z.input<TDefinition["metadata"]>;
-}
 
 export interface ProjectionTarget<TTarget extends AnyEntityDefinition> {
   upsert(input: EntityWriteInput<TTarget>): Promise<void>;

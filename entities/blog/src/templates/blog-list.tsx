@@ -1,6 +1,6 @@
 import type { JSX } from "preact";
 import type { BlogPostView } from "./blog-view-schema";
-import type { PaginationInfo } from "@brains/plugins";
+import type { PaginationInfo } from "@brains/sdk/entities";
 import { ContentArchive, type ContentItem, Head } from "@brains/ui-library";
 
 export interface BlogListProps {

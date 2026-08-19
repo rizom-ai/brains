@@ -1,6 +1,6 @@
-import { createTemplate, paginationInfoSchema } from "@brains/plugins";
-import type { Template } from "@brains/plugins";
-import { z } from "@brains/utils/zod";
+import { createTemplate, paginationInfoSchema } from "@brains/sdk/entities";
+import type { Template } from "@brains/sdk/entities";
+import { z } from "@brains/sdk/entities";
 import { BlogListTemplate, type BlogListProps } from "../templates/blog-list";
 import { BlogPostTemplate, type BlogPostProps } from "../templates/blog-post";
 import { blogGenerationTemplate } from "../templates/generation-template";

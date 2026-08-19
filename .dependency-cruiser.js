@@ -137,12 +137,12 @@ module.exports = {
       name: "entities-can-only-import-shell-and-shared",
       severity: "error",
       comment:
-        "Entity packages can only import from shell/* and shared/* packages",
+        "Entity packages can only import from shell/*, shared/*, and the public authoring surface (packages/brain-sdk). The SDK is the boundary this repo publishes as @rizom/brain/*, so an entity reaching for it is the shape the npm-package-boundaries plan is moving every package toward — five already import nothing else.",
       from: {
         path: "^entities/",
       },
       to: {
-        path: "^((?!shell/|shared/|entities/|node_modules/).)*$",
+        path: "^((?!shell/|shared/|entities/|packages/brain-sdk/|node_modules/).)*$",
         pathNot: [
           "\\.(test|spec)\\.(ts|tsx|js|jsx)$", // Allow test files
           "^(bun:test|path|fs|fs/promises|crypto|os|url|dns/promises)$", // Allow Node.js/Bun builtins

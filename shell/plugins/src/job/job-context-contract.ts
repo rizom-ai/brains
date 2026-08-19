@@ -10,11 +10,13 @@ import type { LoggerContract } from "@brains/utils/logger";
 import type { ProgressContract } from "@brains/utils/progress";
 import type { IEntityAINamespace } from "../entity/ai-types";
 import type { AnchorProfile } from "../contracts/identity";
-import type {
-  AnyEntityDefinition,
-  EntityOf,
-} from "../entity/entity-definition-contract";
-import type { EntityConversationReader } from "../entity/entity-definition-contract";
+import type { EntityDefinitionShape, EntityOf } from "../entity/entity-shape";
+/** What a job reads about the conversation it was started from. */
+export interface EntityConversationReader {
+  get(
+    conversationId: string,
+  ): Promise<{ channelName?: string | undefined } | null>;
+}
 
 /**
  * Entity access for a job handler: unrestricted reads, ownership-scoped
@@ -48,7 +50,7 @@ export interface JobEntityAccess {
    * Typed read: the entity comes back parsed to the definition's own shape,
    * rather than as a `BaseEntity` the caller has to narrow itself.
    */
-  get<TDefinition extends AnyEntityDefinition>(
+  get<TDefinition extends EntityDefinitionShape>(
     definition: TDefinition,
     id: string,
   ): Promise<EntityOf<TDefinition> | null>;

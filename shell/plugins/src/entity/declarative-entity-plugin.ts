@@ -40,7 +40,8 @@ import type {
   JobHandlerContext,
 } from "../job/job-context-contract";
 import { createJobEntityAccess } from "../job/job-entity-access";
-import { entitySchema } from "./entity-schema";
+import { entitySchema, parseDefinitionEntity } from "./entity-schema";
+import type { EntityDefinitionShape } from "./entity-shape";
 export { parseDefinitionEntity } from "./entity-schema";
 import type {
   AnyEntityDefinition,
@@ -132,7 +133,7 @@ function encodeEntityMarkdown(
 
 function entityAdapter(
   definition: AnyEntityDefinition,
-): EntityAdapter<EntityOf<AnyEntityDefinition>, Record<string, unknown>> {
+): EntityAdapter<EntityOf<EntityDefinitionShape>, Record<string, unknown>> {
   const schema = entitySchema(definition);
   return {
     entityType: definition.type,
@@ -142,7 +143,7 @@ function entityAdapter(
     toMarkdown(entity): string {
       return encodeEntityMarkdown(definition, entity);
     },
-    fromMarkdown(markdown): Partial<EntityOf<AnyEntityDefinition>> {
+    fromMarkdown(markdown): Partial<EntityOf<EntityDefinitionShape>> {
       const parsed = parseMarkdownWithFrontmatter(
         markdown,
         rawFrontmatterSchema,
@@ -176,7 +177,9 @@ export async function deriveProjectionUpserts(
   rawSource: ProjectionJsonObject,
   signal: AbortSignal,
 ): Promise<ProjectionWriteIntent[]> {
-  const source = entitySchema(projection.source).parse(rawSource);
+  // Narrowed to the projection's own source definition, so `project`
+  // receives the entity type it declared rather than the erased one.
+  const source = parseDefinitionEntity(projection.source, rawSource);
   const intents: ProjectionWriteIntent[] = [];
   await projection.project({
     source,
@@ -274,7 +277,7 @@ function projectionRule(
 }
 
 class DeclarativeEntityPlugin extends EntityPlugin<
-  EntityOf<AnyEntityDefinition>,
+  EntityOf<EntityDefinitionShape>,
   Record<string, never>,
   Record<string, never>
 > {
@@ -300,9 +303,9 @@ class DeclarativeEntityPlugin extends EntityPlugin<
   private readonly feed: AnyEntityDefinition["feed"];
   private readonly releaseOnShutdown: Array<() => void> = [];
   public readonly entityType: string;
-  public readonly schema: z.ZodType<EntityOf<AnyEntityDefinition>, unknown>;
+  public readonly schema: z.ZodType<EntityOf<EntityDefinitionShape>, unknown>;
   public readonly adapter: EntityAdapter<
-    EntityOf<AnyEntityDefinition>,
+    EntityOf<EntityDefinitionShape>,
     Record<string, unknown>
   >;
 

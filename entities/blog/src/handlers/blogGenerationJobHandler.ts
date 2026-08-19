@@ -1,12 +1,8 @@
-import { ensureUniqueTitle } from "@brains/plugins";
-import type { EntityGenerationDeclaration } from "@brains/plugins";
-import {
-  type GenerationResult,
-  generationResultSchema,
-} from "@brains/contracts";
-import { slugify } from "@brains/utils/string-utils";
-import { fetchStyleGuide, formatVoiceGuidance } from "@brains/contracts";
-import { z } from "@brains/utils/zod";
+import { ensureUniqueTitle } from "@brains/sdk/entities";
+import type { EntityGenerationDeclaration } from "@brains/sdk/entities";
+import { slugify } from "@brains/sdk/entities";
+import { fetchStyleGuide, formatVoiceGuidance } from "@brains/sdk/entities";
+import { z } from "@brains/sdk/entities";
 import type { BlogPostFrontmatter, BlogPost } from "../schemas/blog-post";
 
 /**
@@ -34,21 +30,6 @@ export const blogGenerationJobSchema: z.ZodType<BlogGenerationJobData> =
     seriesIndex: z.number().optional(),
     skipAi: z.boolean().optional(),
   });
-
-export interface BlogGenerationResult extends GenerationResult {
-  title?: string | undefined;
-  slug?: string | undefined;
-}
-
-export const blogGenerationResultSchema: ReturnType<
-  typeof generationResultSchema.extend<{
-    title: z.ZodOptional<z.ZodString>;
-    slug: z.ZodOptional<z.ZodString>;
-  }>
-> = generationResultSchema.extend({
-  title: z.string().optional(),
-  slug: z.string().optional(),
-});
 
 const SKELETON_BODY = (title: string): string =>
   [

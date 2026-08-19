@@ -1,5 +1,5 @@
 import type { JSX } from "preact";
-import { calculateReadingTime } from "@brains/utils/string-utils";
+import { calculateReadingTime } from "@brains/sdk/entities";
 import {
   MarkdownContent,
   Head,
