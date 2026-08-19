@@ -326,7 +326,7 @@ function sessionSummary(
   return {
     id: accountSessionId(session.id),
     current: session.id === currentSessionId,
-    createdAt: session.created_at,
-    expiresAt: session.expires_at,
+    createdAt: session.createdAt,
+    expiresAt: session.expiresAt,
   };
 }
