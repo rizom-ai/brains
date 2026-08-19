@@ -1,51 +1,39 @@
-import type { Plugin } from "@brains/plugins";
+/**
+ * Assessment package.
+ *
+ * One entity: a SWOT analysis of the brain's own capabilities, derived from
+ * agents and skills by a projection rule.
+ */
+
 import {
-  assessmentConfigSchema,
-  swotAssessmentPlugin,
-  type AssessmentConfigInput,
-} from "./plugin";
+  defineEntityPackage,
+  type EntityPackageDefinition,
+} from "@brains/sdk/entities";
+import { swot } from "./swot-entity";
 
-export {
-  SwotAssessmentPlugin,
-  assessmentConfigSchema,
-  swotAssessmentPlugin,
-  type AssessmentConfig,
-  type AssessmentConfigInput,
-} from "./plugin";
-export { createSwotEvalPlugin } from "./eval/swot-eval-plugin";
+const assessmentPackage: EntityPackageDefinition<
+  readonly [typeof swot],
+  readonly []
+> = defineEntityPackage({ id: "assessment", entities: [swot] });
 
-export function assessment(config: AssessmentConfigInput = {}): Plugin[] {
-  return [swotAssessmentPlugin(assessmentConfigSchema.parse(config))];
-}
+export default assessmentPackage;
 
-export { SwotAdapter, swotAdapter } from "./adapters/swot-adapter";
+export { swot } from "./swot-entity";
+export { swotWidget } from "./widgets/swot";
 export {
-  buildCapabilityProfiles,
-  buildCapabilityProfilesFromEntities,
-  type CapabilityProfile,
-  type CapabilityProfileSkill,
-} from "./lib/capability-profile";
+  createSwotProjectionRule,
+  deriveSwotIntent,
+} from "./lib/swot-projection";
+export { buildCapabilityProfilesFromEntities } from "./lib/capability-profile";
 export {
-  buildSwotContext,
   buildSwotContextFromEntities,
   buildSwotContextFromProfiles,
   type SwotContext,
-  type SwotContextAgent,
-  type SwotContextSkill,
 } from "./lib/swot-context";
-export {
-  swotItemSchema,
-  swotFrontmatterSchema,
-  swotMetadataSchema,
-  swotEntitySchema,
-  type SwotItem,
-  type SwotFrontmatter,
-  type SwotMetadata,
-  type SwotEntity,
-} from "./schemas/swot";
-export {
-  swotDerivationJobSchema,
-  swotGenerationSchema,
-  type SwotDerivationJobData,
-  type SwotGeneration,
-} from "./schemas/swot-generation";
+export type {
+  CapabilityProfile,
+  CapabilityProfileSkill,
+} from "./lib/capability-profile";
+export { swotAdapter, SwotAdapter } from "./adapters/swot-adapter";
+export type { SwotEntity, SwotFrontmatter, SwotMetadata } from "./schemas/swot";
+export { swotFrontmatterSchema, swotMetadataSchema } from "./schemas/swot";
