@@ -1,6 +1,5 @@
 ---
 "@rizom/theme-default": patch
-"@brains/theme-rizom": patch
 "@rizom/theme-rizom-ai": patch
 ---
 
