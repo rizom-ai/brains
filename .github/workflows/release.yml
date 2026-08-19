@@ -128,11 +128,7 @@ jobs:
         run: bunx turbo run build --filter='!@rizom/site*' --filter='!@rizom/theme*'
 
       - name: Publish to npm
-        env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: |
-          echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" > ~/.npmrc
-          bun run changeset:publish:core
+        run: bun run changeset:publish:core
 
       # Version commits pushed with GITHUB_TOKEN do not start push workflows.
       # Explicitly dispatch the site check chain only after stable core publish
