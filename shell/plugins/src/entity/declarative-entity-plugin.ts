@@ -288,6 +288,7 @@ class DeclarativeEntityPlugin extends EntityPlugin<
   private readonly generation: AnyEntityDefinition["generation"];
   private readonly scheduledGeneration: AnyEntityDefinition["scheduledGeneration"];
   private readonly evals: AnyEntityDefinition["evals"];
+  private readonly insights: AnyEntityDefinition["insights"];
   private readonly jobs: AnyEntityDefinition["jobs"];
   private readonly instructions: AnyEntityDefinition["instructions"];
   private readonly create: AnyEntityDefinition["create"];
@@ -330,6 +331,7 @@ class DeclarativeEntityPlugin extends EntityPlugin<
     this.generation = definition.generation;
     this.scheduledGeneration = definition.scheduledGeneration;
     this.evals = definition.evals;
+    this.insights = definition.insights;
     this.jobs = definition.jobs;
     this.instructions = definition.instructions;
     this.create = definition.create;
@@ -424,6 +426,15 @@ class DeclarativeEntityPlugin extends EntityPlugin<
       context.jobs.registerHandler(
         jobType,
         this.jobHandler(declaration, context),
+      );
+    }
+
+    for (const [insightId, handler] of Object.entries(this.insights ?? {})) {
+      context.insights.register(insightId, async (_service, visibilityScope) =>
+        handler({
+          entities: this.entityAccess(context),
+          visibilityScope,
+        }),
       );
     }
 

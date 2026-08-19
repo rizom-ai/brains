@@ -253,6 +253,24 @@ class DeclarativeServicePlugin<
     context.templates.register(this.runtimeTemplates(), this.id);
     this.registerPrompts();
 
+    const insights =
+      this.definition.insights?.({
+        config: this.config,
+        state: this.state,
+      }) ?? {};
+    for (const [insightId, handler] of Object.entries(insights)) {
+      context.insights.register(insightId, async (_service, visibilityScope) =>
+        handler({
+          entities: createJobEntityAccess(
+            context.entityService,
+            new Set((this.definition.entities ?? []).map(({ type }) => type)),
+            this.publicId,
+          ),
+          visibilityScope,
+        }),
+      );
+    }
+
     const evals =
       this.definition.evals?.({ config: this.config, state: this.state }) ?? {};
     for (const [handlerId, handler] of Object.entries(evals)) {
