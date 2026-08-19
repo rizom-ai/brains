@@ -83,7 +83,7 @@ describe("KnowledgeMapTemplate", () => {
 describe("knowledge-map template registration", () => {
   test("registers with the datasource and a round-tripping overlay formatter", () => {
     const template = getKnowledgeMapTemplate();
-    expect(template.dataSourceId).toBe("topics:knowledge-map");
+    expect(template.dataSourceId).toBe("knowledge-map:map");
     expect(template.requiredPermission).toBe("public");
     expect(template.schema.safeParse(data).success).toBe(true);
 
@@ -114,6 +114,6 @@ describe("knowledge-map template registration", () => {
     // tested in knowledge-map-data.test.ts) and the schema parse; what the
     // registry depends on is the id contract.
     const source = new KnowledgeMapDataSource();
-    expect(source.id).toBe("topics:knowledge-map");
+    expect(source.id).toBe("knowledge-map:map");
   });
 });

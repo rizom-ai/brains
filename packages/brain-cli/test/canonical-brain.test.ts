@@ -14,6 +14,7 @@ const expectedCatalogIds = [
   "link",
   "wishlist",
   "topics",
+  "knowledge-map",
   "decks",
   "directory-sync",
   "atproto-registry",

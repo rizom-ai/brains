@@ -3,8 +3,8 @@ import type {
   DataSource,
   DataSourceSchema,
 } from "@brains/plugins";
-import { KNOWLEDGE_MAP_DATASOURCE_ID } from "../lib/constants";
-import { buildKnowledgeMapData } from "../lib/knowledge-map-data";
+import { KNOWLEDGE_MAP_DATASOURCE_ID } from "./constants";
+import { buildKnowledgeMapData } from "./knowledge-map-data";
 
 /**
  * Public site datasource for the knowledge map. Semantic projection stays
