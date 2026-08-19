@@ -545,7 +545,10 @@ const publishingWorkspace = defineCmsWorkspace({
           data.summary.needsOperator > 0
             ? "Needs attention"
             : "Pipeline online",
-        detail: data.summary.generating > 0 ? ` generating` : "no active run",
+        detail:
+          data.summary.generating > 0
+            ? `${data.summary.generating} generating`
+            : "no active run",
         tone: data.summary.needsOperator > 0 ? "warn" : "good",
       },
       blocks,

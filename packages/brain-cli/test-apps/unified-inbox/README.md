@@ -15,10 +15,11 @@ Never point it at a personal or production mailbox.
    chmod 600 .env
    ```
 
-2. Add a capped `AI_API_KEY`, `IMAP_USER`, and app-specific `IMAP_PASSWORD` to `.env`.
-3. Replace the explicit `imap.test.invalid` host in `brain.yaml` with the test mailbox's
-   IMAP host. Keep port, mailbox, poll mode, and interval explicit in YAML.
-4. To exercise actual digest delivery, also configure the three `SETUP_EMAIL_*` values
+2. Add a capped `AI_API_KEY` plus the dedicated synthetic Migadu mailbox's
+   `IMAP_USER` and app-specific `IMAP_PASSWORD` to `.env`. The committed
+   `imap.migadu.com` host, port, mailbox, poll mode, and interval remain explicit
+   in `brain.yaml`.
+3. To exercise actual digest delivery, also configure the three `SETUP_EMAIL_*` values
    in `.env`. They provide the existing Resend transport and notification recipient.
 
 ## Run

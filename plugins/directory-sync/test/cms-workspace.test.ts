@@ -68,6 +68,11 @@ describe("directory-sync CMS workspace", () => {
       "/private/runtime/brain-data",
     );
     await operationStatus.initialize();
+    await operationStatus.recordIssue({
+      kind: "import",
+      path: "note/broken.md",
+      message: "Frontmatter is invalid",
+    });
     const directorySync = createMockDirectorySync({
       getStatus: mock(async () => ({
         syncPath: "/private/runtime/brain-data",
@@ -128,7 +133,7 @@ describe("directory-sync CMS workspace", () => {
     );
     const snapshot = await provider.getSnapshot();
     expect(snapshot).toMatchObject({
-      health: "healthy",
+      health: "attention",
       directory: {
         displayPath: "brain-data",
         watching: true,
@@ -148,6 +153,10 @@ describe("directory-sync CMS workspace", () => {
     expect(JSON.stringify(rendered)).toContain('"type":"flow"');
     expect(JSON.stringify(rendered)).toContain('"direction":"bidirectional"');
     expect(JSON.stringify(rendered)).toContain('"type":"meters"');
+    const issue = snapshot.issues[0];
+    if (!issue) throw new Error("Expected a rendered sync issue");
+    expect(JSON.stringify(rendered)).toContain(`Path: ${issue.path}`);
+    expect(JSON.stringify(rendered)).toContain(`Occurred: ${issue.occurredAt}`);
     expect(JSON.stringify(snapshot)).not.toContain("secret");
     expect(JSON.stringify(snapshot)).not.toContain("/private/runtime");
   });

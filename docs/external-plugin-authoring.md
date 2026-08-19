@@ -349,6 +349,9 @@ blocks for authenticated CMS operations. CMS-only capabilities include:
   defaults so the workspace has a canonical base URL state;
 - immutable caller-filtered action and entity catalogs;
 - bounded host-rendered plain text for authenticated source detail;
+- semantic view heads and status plus bounded `card` groups and primary/aside
+  `columns`; cards contain panels, columns contain panels or cards, and nested
+  containers are rejected;
 - typed `defineWorkspaceAction()` inputs/outputs and permission floors;
 - static confirmation text or prepared confirmation bound to caller, action,
   input, revision, expiry, and one use; and
@@ -360,7 +363,9 @@ Widgets and workspaces do not reference or discover each other. A missing
 optional host is a true no-op, and execution-only workers do not bind operator
 callbacks. See the checked [operator fixture](../packages/brain-cli/test/fixtures/public-authoring/operator-surface/src/index.ts)
 for a complete cast-free package and its [capability inventory](../packages/brain-cli/test/fixtures/public-authoring/operator-surface/CAPABILITY_INVENTORY.md)
-for the built-in equivalence evidence.
+for the built-in equivalence evidence. The local packed operator consumer also
+checks the additive card/columns type exports; exact registry evidence advances
+only after the candidate containing them is published.
 
 ### Generic interfaces
 

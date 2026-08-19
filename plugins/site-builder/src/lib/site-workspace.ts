@@ -3,6 +3,7 @@ import {
   defineEntity,
   defineWorkspaceAction,
   registerBuiltInCmsWorkspace,
+  type OperatorRegionBlock,
   type OperatorViewBlock,
   type ServicePluginContext,
 } from "@brains/plugins";
@@ -128,6 +129,11 @@ const buildProductionAction = defineWorkspaceAction({
   input: z.object({}),
   output: actionOutputSchema,
 });
+type SiteActionDefinition =
+  typeof buildPreviewAction | typeof buildProductionAction;
+type SiteRegionBlock = OperatorRegionBlock<SiteActionDefinition>;
+type SiteCardBlock = Extract<SiteRegionBlock, { type: "card" }>;
+
 /** How many routes the workspace shows before summarising the remainder. */
 const ROUTE_PREVIEW_COUNT = 8;
 
@@ -156,6 +162,50 @@ function activeBuildProgress(
     state: environment.active?.state ?? "active",
     startedAt: environment.active?.startedAt ?? environment.active?.requestedAt,
     tone: "neutral",
+  };
+}
+
+function environmentCard(
+  environment: SiteWorkspaceSnapshot["environments"][number],
+): SiteCardBlock {
+  const isPreview = environment.environment === "preview";
+  return {
+    type: "card",
+    id: `site-${environment.environment}-card`,
+    label: isPreview ? "Preview" : "Live",
+    tone: environment.lastFailure
+      ? "warn"
+      : environment.lastSuccess
+        ? "good"
+        : "neutral",
+    blocks: [
+      {
+        type: "key-values",
+        id: `${environment.environment}-facts`,
+        items: [
+          { label: "State", value: environmentStatus(environment) },
+          {
+            label: "Last build",
+            value: environment.lastSuccess?.completedAt ?? "—",
+          },
+          {
+            label: "Result",
+            value: environment.lastSuccess
+              ? `${environment.lastSuccess.routesBuilt} routes`
+              : "no successful build",
+          },
+        ],
+      },
+      {
+        type: "actions",
+        id: `${environment.environment}-actions`,
+        items: [
+          isPreview
+            ? { action: buildPreviewAction, input: {} }
+            : { action: buildProductionAction, input: {} },
+        ],
+      },
+    ],
   };
 }
 
@@ -199,6 +249,17 @@ const siteWorkspace = defineCmsWorkspace({
         target: { entity: siteInfoEntity, id: "site-info" },
       },
     ];
+    const routeRemainder: SiteRegionBlock[] =
+      data.routes.length > ROUTE_PREVIEW_COUNT
+        ? [
+            {
+              type: "notice",
+              id: "routes-remainder",
+              text: `${data.routes.length - ROUTE_PREVIEW_COUNT} further routes are configured.`,
+            },
+          ]
+        : [];
+    const environmentCards = data.environments.map(environmentCard);
     return {
       kicker: "Website operations",
       title: "Site control",
@@ -279,15 +340,7 @@ const siteWorkspace = defineCmsWorkspace({
                 cells: { title: route.title, path: route.path },
               })),
             },
-            ...(data.routes.length > ROUTE_PREVIEW_COUNT
-              ? [
-                  {
-                    type: "notice" as const,
-                    id: "routes-remainder",
-                    text: `${data.routes.length - ROUTE_PREVIEW_COUNT} further routes are configured.`,
-                  },
-                ]
-              : []),
+            ...routeRemainder,
             {
               type: "list",
               id: "recent-builds",
@@ -345,47 +398,7 @@ const siteWorkspace = defineCmsWorkspace({
                 },
               ],
             },
-            ...data.environments.map((environment) => {
-              const isPreview = environment.environment === "preview";
-              return {
-                type: "card" as const,
-                id: `site-${environment.environment}-card`,
-                label: isPreview ? "Preview" : "Live",
-                tone: environment.lastFailure
-                  ? ("warn" as const)
-                  : environment.lastSuccess
-                    ? ("good" as const)
-                    : ("neutral" as const),
-                blocks: [
-                  {
-                    type: "key-values" as const,
-                    id: `${environment.environment}-facts`,
-                    items: [
-                      { label: "State", value: environmentStatus(environment) },
-                      {
-                        label: "Last build",
-                        value: environment.lastSuccess?.completedAt ?? "—",
-                      },
-                      {
-                        label: "Result",
-                        value: environment.lastSuccess
-                          ? `${environment.lastSuccess.routesBuilt} routes`
-                          : "no successful build",
-                      },
-                    ],
-                  },
-                  {
-                    type: "actions" as const,
-                    id: `${environment.environment}-actions`,
-                    items: [
-                      isPreview
-                        ? { action: buildPreviewAction, input: {} }
-                        : { action: buildProductionAction, input: {} },
-                    ],
-                  },
-                ],
-              };
-            }),
+            ...environmentCards,
             {
               type: "card",
               id: "site-automation-links",

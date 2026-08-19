@@ -5,7 +5,8 @@
 This is the Phase 4 completeness baseline required by
 `docs/plans/public-operator-surface-authoring.md`. It inventories every
 first-party Dashboard widget and CMS workspace present when the completeness
-revision was accepted.
+revision was accepted, including the later bounded `card` and primary/aside
+`columns` composition extension.
 
 A public semantic protocol is complete only when every entry below has running
 conformance evidence through the same definition and normalization path used by
@@ -337,7 +338,8 @@ Required semantics:
 - summary counts and per-source availability;
 - typed canonical query state for source, urgency, dynamic source facets,
   offset, limit, and selected detail;
-- server-side filtering and paging with append/reset behavior;
+- server-side filtering and bounded previous/next paging that preserves the
+  open selection and its source-owned controls;
 - caller-visible source errors without internal error disclosure;
 - a keyboard-accessible server-driven master/detail presentation with bounded
   host-rendered plain text;
@@ -364,8 +366,9 @@ they are not frozen public type names.
    tables, empty states, and bounded status feedback.
 2. **Annotations:** tone, state, count, tags, multiple metadata values, badges,
    time, progress, and disabled/busy state.
-3. **Composition:** ordered groups, cards, responsive grids, tabs, nested tabs,
-   split master/detail presentation, and primary/aside intent.
+3. **Composition:** ordered groups, bounded cards, primary/aside columns, tabs,
+   and split master/detail presentation. The host owns responsive layout, and
+   unsupported nested containers are rejected rather than dropped.
 4. **Local interaction:** tab selection, declared local filters, item selection,
    keyboard focus, touch/hover detail, legends, and related-item emphasis.
 5. **Server interaction:** typed canonical query state, dynamic facets,
@@ -393,8 +396,9 @@ Phase 4 closes every demonstrated gap above:
   primitive vocabulary;
 - Dashboard tabs, filters, matrices, spatial interaction, launches, and
   accessibility are host-owned;
-- CMS query state, paging, catalogs, grouping, flow, meters, progress, bounded
-  plain-text detail, actions, launches, and responsive rendering are host-owned;
+- CMS query state, paging, catalogs, grouping, cards, primary/aside columns,
+  flow, meters, progress, bounded plain-text detail, actions, launches, and
+  responsive rendering are host-owned;
 - prepared confirmation is caller-, action-, input-, revision-, expiry-, and
   one-use-bound;
 - permission floors, narrow-only policy, caller-scoped entities, redacted

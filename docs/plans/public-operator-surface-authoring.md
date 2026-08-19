@@ -2,118 +2,119 @@
 
 ## Status
 
-**Proposed 2026-08-18. No implementation or release is authorized by this plan.**
+**Implemented in the current candidate. Merge and release remain separately
+approval-gated.**
 
-The shipped operator authoring contract renders every first-party Dashboard
-widget and CMS workspace through one host-owned semantic protocol, and the
-private renderer registrations are gone. That part holds.
+The shipped operator authoring contract already renders every first-party
+Dashboard widget and CMS workspace through one host-owned semantic protocol.
+Master/detail is also delivered: selection is canonical query state, detail
+links are scoped to their enclosing master, and the host owns two-pane and
+single-pane presentation.
 
-What does not hold is the completeness claim. The Phase 4 capability inventory
-at
-`packages/brain-cli/test/fixtures/public-authoring/operator-surface/CAPABILITY_INVENTORY.md`
-records required semantics that the contract cannot express. The inventory was
-treated as satisfied; the code shows otherwise. This plan covers only that
-remaining gap. Delivered work is removed from this document rather than kept as
-a record.
+This candidate closes the remaining workspace-composition gap with bounded
+`columns` and `card` blocks. It also adds semantic view-head metadata and stat
+captions, converts all four first-party CMS workspaces, and keeps nested
+containers invalid rather than silently dropping them.
 
-**Master/detail is delivered** on `work/operator-view-composition`: a `detail`
-container block with derived selection, a `detail` link target scoped to its
-enclosing master, host-rendered two-pane and drill-down layouts, and Unified
-Inbox converted onto it. `inbox-open-detail`, `inboxDetailWorkspaceHref`, and
-the hardcoded `"unified-inbox:inbox"` workspace ID are gone.
+## Delivered contract
 
-## Problem
+### View head and status
 
-`RuntimeCmsOperatorView` is a flat, ordered array of leaf blocks plus two
-containers (`tabs` and `detail`). Two inventory requirements remain without
-representation, and one is dropped without a diagnostic.
+`OperatorView` may declare:
 
-### 1. Layout intent is absent
+- `kicker`: the domain above the title;
+- `title` and `description`: the surface purpose; and
+- `status`: a bounded label, optional detail, and semantic tone.
 
-The inventory's composition family names "responsive grids" and "primary/aside
-intent". Neither exists; the only layout field in the contract is
-`matrix.columns` (1–4). The host currently infers block width from block type
-alone, which is a guess the author cannot correct or override.
+Stat items may add a short `caption` explaining what their value counts. The
+host owns markup, placement, responsive behavior, and accessible status
+presentation.
 
-### 2. Nested tabs are silently dropped
+### Cards
 
-The inventory names "nested tabs". `normalizeCmsBlock` filters them out inside
-the `tabs` case with a `type !== "tabs"` guard and emits no validation issue, so
-the content vanishes without diagnostics. This also violates the standing rule
-that unsupported profile content is rejected rather than ignored.
+`OperatorCardBlock<TAction>` groups related panel blocks under one label and an
+optional tone. A card is valid as a top-level view block, in either column
+region, or in an open detail region. Its children remain panel blocks, so a card
+cannot contain another card, columns, tabs, or detail container.
 
-### Related: product names in a generic vocabulary
+### Primary/aside columns
 
-`OperatorLaunchIntent` remains a union of first-party targets — `inbox`,
-`publishing`, `site`, `account-settings`, `admin-peer-invite`,
-`inbox-open-entity`, `inbox-capture-note`, `inbox-discuss-in-chat`. The
-renderer-name allowlist was removed and replaced by a launch-target allowlist
-naming built-in products. External authors can now open a detail view, but they
-still cannot reach another workspace except through a target named after a
-first-party product.
+`OperatorColumnsBlock<TAction>` declares one `primary` region and one `aside`
+region. Each region contains bounded panels or cards. This expresses the stable
+semantic distinction between active work and standing facts without exposing a
+DOM tree, CSS grid, column count, breakpoint, or renderer-specific width.
 
-## Contract additions
+The host decides the physical layout at each breakpoint and preserves primary
+content before aside content in accessible reading order. This explicit
+composition supersedes the earlier proposed `span`/`density` fields: those
+fields are not part of the public contract.
 
-### Layout intent
+### Bounded nesting and validation
 
-```ts
-readonly span?: "full" | "half" | undefined;
-readonly density?: "comfortable" | "compact" | undefined;
-```
+Container nesting is closed and schema-enforced:
 
-Optional on panel blocks. Bounded values rather than a column count: the author
-states intent and the host still decides actual columns per breakpoint. The
-current type-derived width becomes the default when `span` is absent, so authors
-override only where that default is wrong.
+- tabs contain panels;
+- cards contain panels;
+- columns contain panels or cards;
+- open detail regions contain panels or cards; and
+- containers cannot recursively contain other containers.
 
-### Workspace launch target
+Invalid declarations are rejected before normalization. Author-link inspection
+recurses through every allowed container, so cards and columns cannot be used to
+submit host-normalized entity, external, launch, or detail targets.
 
-Replace the product-named launch union with a target that references a workspace
-definition, keeping host surfaces (`account-settings`, `admin-peer-invite`)
-named by role rather than product. Definition references are already the rule
-for entities, actions, and jobs; launches are the remaining exception.
+## First-party conversions
 
-## Delivery slices
+- **Directory Sync:** active work and history remain primary; automation,
+  source facts, coverage, Git state, and issues use the aside rail and cards.
+- **Site:** release flow, active work, routes, and recent builds remain primary;
+  environment and automation facts/actions use cards in the aside rail.
+- **Publishing:** queue, generation, and failures remain primary; pipeline facts
+  use an aside card.
+- **Unified Inbox:** the paged collection remains the master; source content,
+  follow-ups, and available actions are grouped in the detail pane. Opening a
+  row preserves its current page, and selected metadata remains available if
+  the operator later changes pages.
 
-Each slice converts a real surface end to end and leaves the tree shippable.
+## Public authoring evidence
 
-### Slice 1: layout intent
+The stable service entry exports `OperatorCardBlock`, `OperatorColumnsBlock`,
+`OperatorRegionBlock`, and `OperatorViewStatus`. The export ledger and authoring
+reference classify them, runtime tests cover top-level and nested placement,
+and the packed operator consumer typechecks the named public types against a
+packed local `@rizom/brain` tarball.
 
-1. Add `span` and `density` to panel block contracts, schemas, and
-   normalization.
-2. Replace the host's type-derived width with the declared value where present.
-3. Retune Directory Sync, Site, and Publishing to declare their own widths.
+Exact registry evidence must be advanced only after this candidate is published;
+the last historical registry baseline remains Brain `0.2.0-alpha.304` with Site
+`0.2.0-alpha.233`.
 
-Exit: no workspace depends on the host guessing width from block type.
+## Remaining separate work
 
-### Slice 2: nested containers and generic launches
-
-1. Either support nested tabs or reject them with a diagnostic; silent dropping
-   ends either way.
-2. Replace the product-named launch targets with a workspace-definition
-   reference.
-3. Update the inventory, `docs/feature-overview.md`,
-   `plugins/dashboard/README.md`, and the authoring guide to describe the
-   delivered contract.
-
-Exit: no first-party product name remains in the public vocabulary.
+`OperatorLaunchIntent` still contains first-party product target names such as
+`inbox`, `publishing`, and `site`. Replacing those cases with generic workspace
+definition references is a separate contract change. It is not hidden by or
+required for the delivered layout protocol.
 
 ## Validation
 
-| Layer      | Required evidence                                                        |
-| ---------- | ------------------------------------------------------------------------ |
-| Contract   | declared span/density normalize, unsupported values rejected with bounds |
-| Host       | declared width wins over the type default; nested containers diagnose    |
-| Conversion | each converted workspace declares its own widths                         |
-| Regression | workspace suites, architecture check, packed operator evidence           |
+| Layer      | Required evidence                                                                                                                    |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| Contract   | cards and columns normalize at every allowed level; unsupported nesting and host-normalized author targets are rejected              |
+| Host       | view heads, status, captions, top-level cards, primary/aside columns, detail cards, and responsive reading order render semantically |
+| Conversion | Directory Sync, Site, Publishing, and Unified Inbox use the public composition blocks without assertion-based type escapes           |
+| Public API | service entry, stable ledger, authoring reference, golden export checks, and local packed operator consumer agree                    |
+| Regression | focused workspace/runtime tests, package typechecks, root lint/typecheck, docs checks, and packed operator evidence pass             |
 
 ## Non-goals
 
 - Author-supplied components, HTML, CSS, or browser scripts.
-- A generic DOM tree, free-form grid, or column-count layout field.
+- A generic DOM tree, free-form grid, column-count, breakpoint, `span`, or
+  `density` field.
 - Client-owned workspace data or optimistic detail loading.
-- Reworking inbox sources, follow-up registration, or prepared confirmation.
-- Any release action; nomination and publication remain separately authorized.
+- Reworking Inbox source ownership, prepared confirmation, or follow-up
+  registration.
+- Merge, release, registry nomination, or stable-baseline freezing without
+  separate authorization.
 
 ## Related work
 

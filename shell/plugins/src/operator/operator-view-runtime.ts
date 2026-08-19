@@ -1821,6 +1821,7 @@ const cmsViewSourceSchema = z
           cmsTabsBlockSchema,
           cmsDetailBlockSchema,
           cmsColumnsBlockSchema,
+          cmsCardBlockSchema,
         ]),
       )
       .max(50),
@@ -2500,6 +2501,28 @@ function inspectAuthorBlocks(
         }
         break;
       }
+      case "card":
+        inspectAuthorBlocks(
+          block["blocks"],
+          [...blockPath, "blocks"],
+          profile,
+          issues,
+        );
+        break;
+      case "columns":
+        inspectAuthorBlocks(
+          block["primary"],
+          [...blockPath, "primary"],
+          profile,
+          issues,
+        );
+        inspectAuthorBlocks(
+          block["aside"],
+          [...blockPath, "aside"],
+          profile,
+          issues,
+        );
+        break;
       case "detail": {
         const master = block["master"];
         if (isUnknownRecord(master)) {

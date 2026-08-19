@@ -381,7 +381,10 @@ const directorySyncWorkspace = defineCmsWorkspace({
                   title: issue.kind,
                   description: issue.message,
                   tone: "warn",
-                  metadata: [...(issue.path ? [`Path: `] : []), `Occurred: `],
+                  metadata: [
+                    ...(issue.path ? [`Path: ${issue.path}`] : []),
+                    `Occurred: ${issue.occurredAt}`,
+                  ],
                 })),
               },
             ],

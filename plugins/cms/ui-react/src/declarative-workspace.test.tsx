@@ -485,7 +485,7 @@ describe("DeclarativeWorkspace master/detail", () => {
     await act(async () => open.click());
 
     expect(queries).toEqual([
-      { urgency: "high", offset: 0, selected: "mail-1" },
+      { urgency: "high", offset: 20, selected: "mail-1" },
     ]);
   });
 

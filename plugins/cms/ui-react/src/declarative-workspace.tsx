@@ -916,7 +916,7 @@ function DetailBlock(props: {
   }, [open]);
 
   const openItem = (itemId: string): void => {
-    onQueryChange({ ...query, offset: 0, [block.queryKey]: itemId });
+    onQueryChange({ ...query, [block.queryKey]: itemId });
   };
   const closeItem = (): void => {
     const next = { ...query };

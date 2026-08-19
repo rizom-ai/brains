@@ -16,12 +16,10 @@ const TEST_APP_CONFIG = "packages/brain-cli/test-apps/unified-inbox/brain.yaml";
 /**
  * The configuration as it would be committed, not as it sits on disk.
  *
- * Pointing this checkout at a real mailbox is how the inbox gets exercised
- * end to end, so the working copy is a scratch surface by design. What has to
- * stay true is what lands in the repository: an unresolvable host, and no live
- * mail server carried in with it. Reading the staged content asserts exactly
- * that, and stops a local live-mail run from failing a suite it has nothing to
- * do with.
+ * The committed posture names the dedicated synthetic-mail provider while all
+ * credentials remain environment references. Reading the staged content checks
+ * exactly what will land in the repository, including its site/publishing
+ * composition, without consulting a developer's ignored environment files.
  */
 function stagedFile(path: string): string {
   const shown = Bun.spawnSync(["git", "show", `:${path}`], {
@@ -47,15 +45,20 @@ describe("canonical unified inbox test app", () => {
     const yaml = stagedFile(TEST_APP_CONFIG);
     const config = asRecord(fromYaml<unknown>(yaml));
     const plugins = asRecord(config["plugins"]);
+    const site = asRecord(config["site"]);
     const email = asRecord(plugins["email"]);
     const imap = asRecord(email["imap"]);
     const notifications = asRecord(plugins["notifications"]);
     const defaultRecipient = asRecord(notifications["defaultRecipient"]);
 
-    expect(config["bundles"]).toEqual(["core"]);
+    expect(config["bundles"]).toEqual(["core", "site", "publishing"]);
     expect(config["add"]).toEqual(["email-workflows", "unified-inbox"]);
+    expect(site).toEqual({
+      package: "@brains/site-professional",
+      theme: "@rizom/theme-default",
+    });
     expect(imap).toMatchObject({
-      host: "imap.test.invalid",
+      host: "imap.migadu.com",
       port: 993,
       user: "${IMAP_USER}",
       password: "${IMAP_PASSWORD}",

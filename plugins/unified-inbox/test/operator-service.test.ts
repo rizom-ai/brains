@@ -111,6 +111,12 @@ describe("InboxOperatorService", () => {
           urgency: "normal",
           receivedAt: "2026-08-04T09:00:00.000Z",
         },
+        {
+          ...attentionItem([]),
+          id: "mail-normal-later",
+          urgency: "normal",
+          receivedAt: "2026-08-03T09:00:00.000Z",
+        },
       ],
       act: async () => undefined,
     });
@@ -133,6 +139,7 @@ describe("InboxOperatorService", () => {
       inboxWorkspaceQuerySchema.parse({
         sourceId: "mail-items",
         urgency: "normal",
+        selected: "mail-items:mail-normal-later",
         offset: "0",
         limit: "1",
       }),
@@ -140,11 +147,12 @@ describe("InboxOperatorService", () => {
     );
 
     expect(snapshot).toMatchObject({
-      summary: { open: 2, high: 1 },
-      total: 1,
+      summary: { open: 3, high: 1 },
+      total: 2,
       offset: 0,
       limit: 1,
       entries: [{ item: { id: "mail-normal" } }],
+      selectedEntry: { item: { id: "mail-normal-later" } },
       sources: [
         {
           source: { sourceId: "empty-source" },
@@ -154,7 +162,7 @@ describe("InboxOperatorService", () => {
         },
         {
           source: { sourceId: "mail-items" },
-          open: 2,
+          open: 3,
           high: 1,
           available: true,
         },

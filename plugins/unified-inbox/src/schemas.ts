@@ -334,6 +334,8 @@ interface InboxWorkspaceSnapshotValue {
   summary: { open: number; high: number };
   sources: InboxSourceAvailabilityValue[];
   entries: InboxWorkspaceEntryValue[];
+  /** Open item metadata retained when paging moves its row out of the window. */
+  selectedEntry?: InboxWorkspaceEntryValue | undefined;
   errors: InboxSourceErrorValue[];
   total: number;
   offset: number;
@@ -350,6 +352,7 @@ export const inboxWorkspaceSnapshotSchema: z.ZodType<
   }),
   sources: z.array(inboxSourceAvailabilitySchema).max(1_000),
   entries: z.array(inboxWorkspaceEntrySchema).max(100),
+  selectedEntry: inboxWorkspaceEntrySchema.optional(),
   errors: z.array(inboxSourceErrorSchema).max(1_000),
   total: z.number().int().nonnegative(),
   offset: z.number().int().nonnegative(),

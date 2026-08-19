@@ -15,6 +15,7 @@ import {
   inboxWorkspaceQuerySchema,
   inboxWorkspaceSnapshotSchema,
   splitInboxRowId,
+  type InboxDetailOutcome,
   type InboxWorkspaceSnapshot,
 } from "./schemas";
 
@@ -94,6 +95,7 @@ type InboxLink = Extract<InboxViewBlock, { type: "links" }>["items"][number];
 type InboxPanelBlock = NonNullable<
   Extract<InboxViewBlock, { type: "detail" }>["open"]
 >["blocks"][number];
+type InboxCardBlock = Extract<InboxPanelBlock, { type: "card" }>;
 
 /** The verbs that clear an item, offered by its own source. */
 function entryActions(entry: InboxEntry): {
@@ -173,6 +175,36 @@ function entryFollowUps(entry: InboxEntry): InboxLink[] {
     }
   }
   return links;
+}
+
+function followUpsCard(items: InboxLink[]): InboxCardBlock {
+  return {
+    type: "card",
+    id: "inbox-detail-follow-ups",
+    label: "Follow up",
+    blocks: [
+      {
+        type: "links",
+        id: "inbox-follow-up-links",
+        items,
+      },
+    ],
+  };
+}
+
+function actionsCard(items: ReturnType<typeof entryActions>): InboxCardBlock {
+  return {
+    type: "card",
+    id: "inbox-detail-actions",
+    label: "Available actions",
+    blocks: [
+      {
+        type: "actions",
+        id: "inbox-action-controls",
+        items,
+      },
+    ],
+  };
 }
 
 const inboxWorkspace = defineCmsWorkspace({
@@ -259,10 +291,11 @@ const inboxWorkspace = defineCmsWorkspace({
           ]
       : undefined;
     const selectedEntry = query.selected
-      ? snapshot.entries.find(
+      ? (snapshot.selectedEntry ??
+        snapshot.entries.find(
           (entry) =>
             inboxRowId(entry.source.sourceId, entry.item.id) === query.selected,
-        )
+        ))
       : undefined;
     const selectedTitle = selectedEntry?.item.title;
     // The pane is where the item is read, so it carries where it can go next
@@ -270,41 +303,14 @@ const inboxWorkspace = defineCmsWorkspace({
     const selectedFollowUps = selectedEntry
       ? entryFollowUps(selectedEntry)
       : [];
-    const paneBlocks: InboxPanelBlock[] = [
-      ...(detailPanels ?? []),
-      ...(selectedFollowUps.length > 0
-        ? [
-            {
-              type: "card" as const,
-              id: "inbox-detail-follow-ups",
-              label: "Follow up",
-              blocks: [
-                {
-                  type: "links" as const,
-                  id: "inbox-follow-up-links",
-                  items: selectedFollowUps,
-                },
-              ],
-            } as InboxPanelBlock,
-          ]
-        : []),
-      ...(selectedEntry && entryActions(selectedEntry).length > 0
-        ? [
-            {
-              type: "card" as const,
-              id: "inbox-detail-actions",
-              label: "Available actions",
-              blocks: [
-                {
-                  type: "actions" as const,
-                  id: "inbox-action-controls",
-                  items: entryActions(selectedEntry),
-                },
-              ],
-            } as InboxPanelBlock,
-          ]
-        : []),
-    ];
+    const paneBlocks: InboxPanelBlock[] = [...(detailPanels ?? [])];
+    if (selectedFollowUps.length > 0) {
+      paneBlocks.push(followUpsCard(selectedFollowUps));
+    }
+    const selectedActions = selectedEntry ? entryActions(selectedEntry) : [];
+    if (selectedActions.length > 0) {
+      paneBlocks.push(actionsCard(selectedActions));
+    }
     const blocks: InboxViewBlock[] = [
       {
         type: "stats",
@@ -426,19 +432,20 @@ export async function registerUnifiedInboxCmsWorkspace(
           // A source that cannot be read is answered from the snapshot, so the
           // pane opens at once instead of waiting on a fetch that will fail.
           const selectedEntry = selection
-            ? snapshot.entries.find(
+            ? (snapshot.selectedEntry ??
+              snapshot.entries.find(
                 (entry) =>
                   entry.source.sourceId === selection.sourceId &&
                   entry.item.id === selection.itemId,
-              )
+              ))
             : undefined;
-          const detail = !selection
+          const detail: InboxDetailOutcome | undefined = !selection
             ? undefined
             : selectedEntry?.detailAvailable === false
-              ? ({
+              ? {
                   kind: "detail-unavailable",
                   error: "Original content is unavailable",
-                } as const)
+                }
               : await operator.detail(
                   {
                     type: "detail",

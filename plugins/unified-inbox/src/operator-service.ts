@@ -9,6 +9,7 @@ import { sourceMetadata, type InboxDataSource } from "./inbox-datasource";
 import {
   normalizeInboxListFilter,
   normalizeInboxWorkspaceQuery,
+  splitInboxRowId,
   type InboxActionOutcome,
   type InboxActionRequest,
   type InboxDashboardData,
@@ -72,22 +73,47 @@ export class InboxOperatorService {
     const counts = countBySource(projection.entries);
     const matching = filterEntries(projection, query);
     const page = matching.slice(query.offset, query.offset + query.limit);
+    const resolveEntry = async (
+      entry: InboxProjection["entries"][number],
+    ): Promise<InboxWorkspaceSnapshot["entries"][number]> => ({
+      ...entry,
+      detailAvailable:
+        this.registry.getSource(entry.source.sourceId)?.resolveDetail !==
+        undefined,
+      followUps: await this.followUps.resolve({
+        sourceId: entry.source.sourceId,
+        item: entry.item,
+        actor,
+      }),
+    });
+    const entries = await Promise.all(page.map(resolveEntry));
+    const selection = query.selected
+      ? splitInboxRowId(query.selected)
+      : undefined;
+    const selectedProjectionEntry = selection
+      ? projection.entries.find(
+          (entry) =>
+            entry.source.sourceId === selection.sourceId &&
+            entry.item.id === selection.itemId,
+        )
+      : undefined;
+    const selectedFromPage = selection
+      ? entries.find(
+          (entry) =>
+            entry.source.sourceId === selection.sourceId &&
+            entry.item.id === selection.itemId,
+        )
+      : undefined;
+    const selectedEntry =
+      selectedFromPage ??
+      (selectedProjectionEntry
+        ? await resolveEntry(selectedProjectionEntry)
+        : undefined);
     return {
       summary: summarizeProjection(projection, counts),
       sources: this.sourceAvailability(projection, counts),
-      entries: await Promise.all(
-        page.map(async (entry) => ({
-          ...entry,
-          detailAvailable:
-            this.registry.getSource(entry.source.sourceId)?.resolveDetail !==
-            undefined,
-          followUps: await this.followUps.resolve({
-            sourceId: entry.source.sourceId,
-            item: entry.item,
-            actor,
-          }),
-        })),
-      ),
+      entries,
+      ...(selectedEntry ? { selectedEntry } : {}),
       errors: filterErrors(projection, query.sourceId),
       total: matching.length,
       offset: query.offset,

@@ -20,13 +20,15 @@ host route, renderer name, UI-framework import, process role, or private
 workspace dependency. Dashboard and CMS receive their distinct typed semantic view profiles; the hosts own markup, themes, loading/error states, confirmation, routing, accessibility, query URLs, and lifecycle.
 
 The `>=0.2.0-alpha.304 <0.3.0` peer range names the first published Brain
-release containing the currently shipped contract. Exact registry evidence
-builds this fixture against that release without widening the eventual stable
-`0.2.x` baseline. This is compatibility evidence, not closure of the open
-composition gaps.
+release containing this frozen registry fixture's contract. Exact registry
+evidence preserves that historical baseline. The additive view-head, status,
+card, and primary/aside columns candidate is checked through runtime and host
+tests plus the local packed operator consumer; its exact registry floor advances
+only after publication.
 
-See [CAPABILITY_INVENTORY.md](./CAPABILITY_INVENTORY.md) for the shipped
+See [CAPABILITY_INVENTORY.md](./CAPABILITY_INVENTORY.md) for the complete
 capability inventory and the
 [operator composition plan](../../../../../../docs/plans/public-operator-surface-authoring.md)
-for the remaining gaps. [PORTS.md](./PORTS.md) remains the historical
-four-workspace Phase 1 sketch.
+for the delivered composition contract and separately tracked generic-launch
+work. [PORTS.md](./PORTS.md) remains the historical four-workspace Phase 1
+sketch.

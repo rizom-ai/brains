@@ -82,11 +82,15 @@ Types:
 - `DashboardWidgetDefinition`
 - `OperatorCaller`
 - `OperatorCapabilityDefinition`
+- `OperatorCardBlock`
+- `OperatorColumnsBlock`
 - `OperatorEntityCatalogDefinition`
 - `OperatorEntityReader`
 - `OperatorQueryReader`
+- `OperatorRegionBlock`
 - `OperatorView`
 - `OperatorViewBlock`
+- `OperatorViewStatus`
 - `ServiceJobDefinition`
 - `ServiceJobReference`
 - `ServiceJobStatus`
@@ -95,7 +99,7 @@ Types:
 - `WorkspaceActionDefinition`
 - `WorkspacePreparedConfirmation`
 
-These operator schemas and executor bindings are the accepted public contract. The account-settings runtime provides encrypted auth-DB persistence, redacted Account forms, principal isolation, and runtime-owned account-daemon reconciliation. Dashboard widgets and CMS workspaces register through host-owned semantic renderers; callbacks receive the canonical caller, secret-redacted current-principal settings, visibility-scoped entities, typed jobs, and cancellation. CMS adds schema-validated query state, bounded host-rendered plain text, typed dynamic catalogs and launch intents, and caller/input/revision/expiry/single-use prepared confirmations. Missing optional hosts leave declarations inert, and execution-only workers never bind or register operator callbacks. The packed operator fixture compiles Account settings, Dashboard, and CMS authoring together without browser UI code.
+These operator schemas and executor bindings are the accepted public contract. The account-settings runtime provides encrypted auth-DB persistence, redacted Account forms, principal isolation, and runtime-owned account-daemon reconciliation. Dashboard widgets and CMS workspaces register through host-owned semantic renderers; callbacks receive the canonical caller, secret-redacted current-principal settings, visibility-scoped entities, typed jobs, and cancellation. CMS adds schema-validated query state, bounded host-rendered plain text, typed dynamic catalogs and launch intents, caller/input/revision/expiry/single-use prepared confirmations, and bounded `card` and primary/aside `columns` composition. Missing optional hosts leave declarations inert, and execution-only workers never bind or register operator callbacks. The packed operator fixture compiles Account settings, Dashboard, and CMS authoring together without browser UI code.
 
 ## `@rizom/brain/interfaces`
 

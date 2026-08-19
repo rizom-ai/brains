@@ -244,6 +244,54 @@ describe("declarative CMS workspace runtime", () => {
     });
   });
 
+  it("rejects host-normalized links nested in columns and cards", () => {
+    expect(
+      safeParseRuntimeCmsOperatorView(
+        {
+          blocks: [
+            {
+              type: "columns",
+              id: "forged-layout",
+              primary: [
+                {
+                  type: "card",
+                  id: "forged-card",
+                  label: "Forged card",
+                  blocks: [
+                    {
+                      type: "links",
+                      id: "forged-links",
+                      items: [
+                        {
+                          label: "Forged",
+                          target: {
+                            kind: "entity",
+                            entityType: "private-record",
+                            id: "forged",
+                          },
+                        },
+                      ],
+                    },
+                  ],
+                },
+              ],
+              aside: [],
+            },
+          ],
+        },
+        { actions: [], permission: "trusted" },
+      ),
+    ).toMatchObject({
+      success: false,
+      issues: [
+        {
+          path: ["blocks", 0, "primary", 0, "blocks", 0, "items", 0, "target"],
+          message: expect.stringContaining("normalized host target"),
+        },
+      ],
+    });
+  });
+
   it("rejects query schemas without an empty/default host state", async () => {
     const requiredQuery = z.object({ selected: z.string() });
     const requiredWorkspace = defineCmsWorkspace({
@@ -794,6 +842,41 @@ describe("operator detail composition", () => {
 });
 
 describe("operator columns composition", () => {
+  it("normalizes a top-level card from the public view-block union", () => {
+    expect(
+      safeParseRuntimeCmsOperatorView(
+        {
+          blocks: [
+            {
+              type: "card",
+              id: "standing-facts",
+              label: "Standing facts",
+              blocks: [
+                {
+                  type: "key-values",
+                  id: "facts",
+                  items: [{ label: "State", value: "ready" }],
+                },
+              ],
+            },
+          ],
+        },
+        { actions: [], permission: "trusted" },
+      ),
+    ).toMatchObject({
+      success: true,
+      data: {
+        blocks: [
+          {
+            type: "card",
+            id: "standing-facts",
+            blocks: [{ type: "key-values", id: "facts" }],
+          },
+        ],
+      },
+    });
+  });
+
   it("normalizes a primary/aside split into typed regions", () => {
     const result = safeParseRuntimeCmsOperatorView(
       {
