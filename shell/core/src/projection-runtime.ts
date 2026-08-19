@@ -1,4 +1,3 @@
-import { AsyncLocalStorage } from "node:async_hooks";
 import type { ProjectionWaveReady } from "@brains/contracts";
 import type {
   JobHandler,
@@ -111,12 +110,10 @@ export async function activateProjectionRuntime(
         await options.reconcileBatches?.();
         await scheduler.startNextWave();
       };
-      const sweepScope = new AsyncLocalStorage<boolean>();
       let activeSweep: Promise<void> | undefined;
       const sweep = (): Promise<void> => {
-        if (sweepScope.getStore()) return Promise.resolve();
         if (activeSweep) return activeSweep;
-        const started = sweepScope.run(true, performSweep);
+        const started = performSweep();
         activeSweep = started;
         const clear = (): void => {
           if (activeSweep === started) activeSweep = undefined;
