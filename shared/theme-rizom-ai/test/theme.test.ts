@@ -62,8 +62,10 @@ describe("theme-rizom-ai", () => {
   });
 
   it("styles CTAs with dark ink on brass (rev-5 button contract)", () => {
-    expect(themeCSSOnly).toContain("--color-on-accent");
-    expect(themeCSSOnly).toContain(
+    // The brand binds the CTA ink; the button token that consumes it is a
+    // shared default in @rizom/theme-default, so assert the composed CSS.
+    expect(themeCSSOnly).toContain("--color-on-accent: var(--palette-cta-ink)");
+    expect(themeCSS).toContain(
       "--rizom-btn-primary-color: var(--color-on-accent)",
     );
   });

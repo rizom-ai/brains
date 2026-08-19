@@ -161,45 +161,26 @@
        tight 3px radius, inner highlight + soft accent glow.
        Secondary is the "quiet" underlined text link.
        ============================================ */
-    --rizom-btn-gap: 8px;
     --rizom-btn-radius: 3px;
-    --rizom-btn-font-family: var(--font-body);
-    --rizom-btn-font-style: normal;
-    --rizom-btn-letter-spacing: 0;
-    --rizom-btn-text-transform: none;
     --rizom-btn-md-padding: 14px 28px;
     --rizom-btn-lg-padding-mobile: 14px 28px;
     --rizom-btn-lg-padding-desktop: 16px 34px;
 
     --rizom-btn-primary-font-weight: 500;
-    --rizom-btn-primary-color: var(--color-on-accent);
-    --rizom-btn-primary-bg: var(--color-accent);
-    --rizom-btn-primary-border-color: transparent;
-    --rizom-btn-primary-border-width: 0px;
     --rizom-btn-primary-shadow:
       inset 0 1px 0 rgb(255 255 255 / 0.25),
       0 8px 22px -12px var(--color-accent);
-    --rizom-btn-primary-hover-color: var(--color-on-accent);
     --rizom-btn-primary-hover-bg: var(--color-accent-bright);
-    --rizom-btn-primary-hover-border-color: transparent;
-    --rizom-btn-primary-hover-border-width: 0px;
     --rizom-btn-primary-hover-shadow:
       inset 0 1px 0 rgb(255 255 255 / 0.25),
       0 10px 26px -12px var(--color-glow-cta-strong);
     --rizom-btn-primary-hover-transform: translateY(-1px);
 
     --rizom-btn-primary-strong-font-weight: 500;
-    --rizom-btn-primary-strong-color: var(--color-on-accent);
-    --rizom-btn-primary-strong-bg: var(--color-accent);
-    --rizom-btn-primary-strong-border-color: transparent;
-    --rizom-btn-primary-strong-border-width: 0px;
     --rizom-btn-primary-strong-shadow:
       inset 0 1px 0 rgb(255 255 255 / 0.25),
       0 8px 22px -12px var(--color-accent);
-    --rizom-btn-primary-strong-hover-color: var(--color-on-accent);
     --rizom-btn-primary-strong-hover-bg: var(--color-accent-bright);
-    --rizom-btn-primary-strong-hover-border-color: transparent;
-    --rizom-btn-primary-strong-hover-border-width: 0px;
     --rizom-btn-primary-strong-hover-shadow:
       inset 0 1px 0 rgb(255 255 255 / 0.25),
       0 12px 30px -12px var(--color-glow-cta-strong);
@@ -212,13 +193,9 @@
       from var(--palette-cream) r g b / 0.46
     );
     --rizom-btn-secondary-border-width: 0 0 1px 0;
-    --rizom-btn-secondary-shadow: none;
-    --rizom-btn-secondary-hover-color: var(--color-text);
     --rizom-btn-secondary-hover-bg: transparent;
     --rizom-btn-secondary-hover-border-color: var(--color-text);
     --rizom-btn-secondary-hover-border-width: 0 0 1px 0;
-    --rizom-btn-secondary-hover-shadow: none;
-    --rizom-btn-secondary-hover-transform: none;
 
     /* Decorative divider + highlight underline — brass hairlines */
     --color-divider: linear-gradient(

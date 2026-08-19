@@ -137,6 +137,36 @@
     --text-h4: 1.875rem;
     --text-body: 1.125rem;
     --text-body-mobile: 1rem;
+  
+    /* ============================================
+       Rizom button token contract — shared defaults.
+       Consumed by the Rizom Button (sites/rizom) and the topics
+       knowledge-map. Brand themes override their deltas in the same
+       layer; these values apply wherever a brand theme stays silent.
+       ============================================ */
+    --rizom-btn-font-family: var(--font-body);
+    --rizom-btn-font-style: normal;
+    --rizom-btn-gap: 8px;
+    --rizom-btn-letter-spacing: 0;
+    --rizom-btn-primary-bg: var(--color-accent);
+    --rizom-btn-primary-border-color: transparent;
+    --rizom-btn-primary-border-width: 0px;
+    --rizom-btn-primary-color: var(--color-on-accent);
+    --rizom-btn-primary-hover-border-color: transparent;
+    --rizom-btn-primary-hover-border-width: 0px;
+    --rizom-btn-primary-hover-color: var(--color-on-accent);
+    --rizom-btn-primary-strong-bg: var(--color-accent);
+    --rizom-btn-primary-strong-border-color: transparent;
+    --rizom-btn-primary-strong-border-width: 0px;
+    --rizom-btn-primary-strong-color: var(--color-on-accent);
+    --rizom-btn-primary-strong-hover-border-color: transparent;
+    --rizom-btn-primary-strong-hover-border-width: 0px;
+    --rizom-btn-primary-strong-hover-color: var(--color-on-accent);
+    --rizom-btn-secondary-hover-color: var(--color-text);
+    --rizom-btn-secondary-hover-shadow: none;
+    --rizom-btn-secondary-hover-transform: none;
+    --rizom-btn-secondary-shadow: none;
+    --rizom-btn-text-transform: none;
   }
 
   [data-theme="dark"] {
