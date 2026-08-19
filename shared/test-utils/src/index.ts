@@ -123,3 +123,10 @@ export { waitUntil, type WaitUntilOptions } from "./wait-until";
 
 export { spyOnEntityGet, spyOnEntityCreate } from "./spy-on-entity-service";
 export { genericSpy } from "./generic-spy";
+
+// Semantic renderer-output comparison
+export {
+  normalizeRendererHtml,
+  type NormalizedHtmlNode,
+  type NormalizeRendererHtmlOptions,
+} from "./html-equivalence";

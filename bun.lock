@@ -91,6 +91,7 @@
       "devDependencies": {
         "@brains/app": "workspace:*",
         "@brains/eslint-config": "workspace:*",
+        "@brains/test-utils": "workspace:*",
         "@brains/typescript-config": "workspace:*",
         "@types/bun": "^1.4.0",
         "bun-types": "^1.4.0",
@@ -139,6 +140,7 @@
         "@brains/app": "workspace:*",
         "@brains/eslint-config": "workspace:*",
         "@brains/style-guide": "workspace:*",
+        "@brains/test-utils": "workspace:*",
         "@brains/typescript-config": "workspace:*",
         "@types/bun": "^1.4.0",
         "bun-types": "^1.4.0",
@@ -1370,6 +1372,7 @@
         "@brains/runtime-state": "workspace:*",
         "@brains/templates": "workspace:*",
         "@brains/utils": "workspace:*",
+        "parse5": "^7.3.0",
       },
       "devDependencies": {
         "@brains/eslint-config": "workspace:*",

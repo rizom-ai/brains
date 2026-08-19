@@ -2,7 +2,7 @@
 
 ## Status
 
-**Proposed.** Retire Preact and render every server-side surface with React 19,
+**Accepted; implementation in progress on `work/react-renderer-consolidation`.** Retire Preact and render every server-side surface with React 19,
 leaving one JSX runtime, one component dialect, and one shared component
 library across the site builds, the operator surfaces, and the client apps.
 
@@ -68,7 +68,7 @@ risk surface.
 
 ### The dialect gap is smaller than it looks
 
-`class=` appears 411 times across 28 files and `for=` alongside it. Both render
+`class=` appears 412 times across 29 files and `for=` alongside it. Both render
 **correctly** under React 19 — `<div class="a b">x</div>` — with only a
 development-time warning. They are warning noise, not breakage.
 
@@ -97,21 +97,27 @@ graph is effectively one tree, and the dangerous direction fails without a
 signal. The renderer swap is therefore atomic and cannot be staged
 package-by-package.
 
-### Residual output differences are three known classes
+### Residual output differences are four known classes
 
-With the dialect normalized, React and Preact still differ in exactly three
-semantically neutral ways:
+The implementation review found one React 19 behavior the proposal's initial
+probe missed: `renderToStaticMarkup()` inserts resource hints for eager images.
+With the dialect normalized, React and Preact differ in four known classes:
 
-| Class                    | React                     | Preact                |
-| ------------------------ | ------------------------- | --------------------- |
-| Boolean attributes       | `disabled="" readOnly=""` | `disabled readonly`   |
-| Entity escaping          | escapes `>` and `'`       | leaves both raw       |
-| Style trailing separator | `style="width:10px"`      | `style="width:10px;"` |
+| Class                    | React                                  | Preact                |
+| ------------------------ | -------------------------------------- | --------------------- |
+| Boolean attributes       | `disabled="" readOnly=""`              | `disabled readonly`   |
+| Entity escaping          | escapes `>` and `'`                    | leaves both raw       |
+| Style trailing separator | `style="width:10px"`                   | `style="width:10px;"` |
+| Eager image hints        | prepends `link[rel=preload][as=image]` | no generated hint     |
 
-Void elements, SVG attributes, `data-`/`aria-`/`tabIndex`, falsy children,
-null/undefined props, and `dangerouslySetInnerHTML` are byte-identical. The
-equivalence oracle must therefore be DOM-normalized rather than byte-exact,
-with these three classes allowlisted.
+The first three are serialization-only. The fourth is renderer-owned fetch
+optimization, not a DOM spelling difference, so the harness folds only image
+preload links while preserving every other resource hint and separately tests
+that semantic image attributes remain unchanged. Void elements, SVG
+attributes, `data-`/`aria-`/`tabIndex`, falsy children, null/undefined props,
+and `dangerouslySetInnerHTML` are otherwise byte-identical. The equivalence
+oracle is therefore DOM-normalized rather than byte-exact, with these four
+classes explicitly allowlisted.
 
 ## Published surface: a window, not a major
 
@@ -149,10 +155,13 @@ outcome is to defer the whole plan to `0.3.0` rather than split it. A stable
 `@rizom/site` on Preact wrapping an internal React graph is the two-runtime tax
 made permanent and published.
 
-One further ordering constraint: `sites/rizom-ai` and `sites/rizom` consume
-`@rizom/site` and `@rizom/site-rizom` as _published tarballs_, not workspace
-links. They can only flip once a React-line `@rizom/site` alpha is published, so
-they land one alpha behind the packages they consume.
+One further ordering constraint: `sites/rizom-ai` and `sites/rizom` publish
+exact dependencies on `@rizom/site` and `@rizom/site-rizom`. Their source flips
+atomically with the repository, but Phase 4 must prove the site-lane version
+plan rewrites those exact dependencies to the React-line versions before any
+package is published. The site release then publishes the SDK before its
+dependents in topological order; no package may publish against the old Preact
+SDK merely because workspace linking hid the mismatch during development.
 
 ## Phases
 
@@ -166,12 +175,14 @@ against, so it exists before anything moves.
 
 - A DOM-normalizing comparison helper that parses two HTML strings and compares
   structure and attributes, folding the three known difference classes
-  (boolean-attribute form, `>`/`'` escaping, style trailing separator).
+  (boolean-attribute form, `>`/`'` escaping, style trailing separator, and
+  React-owned eager-image preload links).
 - Baseline fixtures captured from the current Preact output for one route of
   each shape: an authored site route, an entity list route, an entity detail
   route, the dashboard page (`renderDashboardPageHtml`), one declarative
-  operator widget, one email template, one media page, a presentation layout,
-  and markdown/prose content.
+  operator widget, one media page, a printable attachment, a presentation
+  layout, and markdown/prose content. There is no JSX email-template renderer
+  in the current repository; the proposal's email item was stale.
 - Gate: the suite proves current output matches its own baseline.
 
 ### Phase 2 — React dialect, still on Preact
@@ -192,7 +203,8 @@ The largest diff in the plan and the smallest risk in it: no runtime changes.
 Per the interop finding this cannot be subdivided.
 
 - Tests first: a repository test asserting no `preact` import, dependency, or
-  `jsxImportSource` survives outside `node_modules`.
+  `jsxImportSource` survives outside `node_modules`, historical changelogs, and
+  the migration plan itself.
 - Flip `jsxImportSource` in `tsconfig.json` and
   `shared/typescript-config/instance.json`, the 41 package tsconfigs, and the
   49 per-file pragmas.
@@ -206,7 +218,7 @@ Per the interop finding this cannot be subdivided.
 - Repoint the two `useContext` imports from `preact/hooks` to `react`.
 - Swap the dependency in the 23 declaring `package.json` files and in
   `packages/brain-cli/scripts/build.ts`'s external list.
-- Gate: Phase 1 harness passes with residual diffs only in the three
+- Gate: Phase 1 harness passes with residual diffs only in the four
   allowlisted classes; a measured before/after on the per-request dashboard
   route (`plugins/dashboard/src/plugin.ts:503`).
 
@@ -230,8 +242,9 @@ what external authors install against, so it cannot lag the flip.
   the change is version-cheap, not review-cheap.
 - Hard gate: this phase must merge **before** `changeset pre exit`. After
   prerelease exit the same change is a `0.3.0` major.
-- `sites/rizom-ai` and `sites/rizom` follow one alpha later, once the packages
-  they consume are published on the React line.
+- Gate the site release plan: versioned manifests for `sites/rizom-ai` and
+  `sites/rizom` must reference the React-line SDK/site versions, and publishing
+  must remain topological. Workspace linking is not accepted as evidence.
 
 ### Phase 5 — Collapse the duplicated operator host
 
@@ -312,6 +325,10 @@ Phase 5 touches.
   On the alpha line they are expected to track breaking changes, and Phase 4's
   documentation update covers the dialect shift; it cannot be mitigated
   technically without shipping two pipelines, which is a non-goal.
+- **Renderer-owned resource hints.** React 19 inserts eager-image preload links.
+  The equivalence helper folds only `rel=preload`/`as=image`; tests retain all
+  other hints and image attributes so the allowlist cannot hide arbitrary head
+  changes.
 - **Escaping changes reaching stored or compared output.** React escapes `>`
   and `'` where Preact does not. Anything that diffs, hashes, or snapshots
   rendered HTML outside the Phase 1 harness — build manifests, artifact
