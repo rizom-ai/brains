@@ -37,9 +37,11 @@ export class UISlotRegistry implements LayoutSlots {
   }
 
   /**
-   * Get all registrations for a slot, sorted by priority (highest first)
+   * Get all registrations for a slot, sorted by priority (highest first).
+   * Returns the public registration shape — the normalized priority is an
+   * internal detail consumers cannot name.
    */
-  getSlot(slotName: string): SlotEntry[] {
+  getSlot(slotName: string): SiteSlotRegistration[] {
     const entries = this.slots.get(slotName) ?? [];
     return [...entries].sort((a, b) => b.priority - a.priority);
   }
@@ -56,6 +58,19 @@ export class UISlotRegistry implements LayoutSlots {
    * Remove a specific plugin's registration from a slot
    */
   unregister(slotName: string, pluginId: string): void {
+    this.pruneSlot(slotName, pluginId);
+  }
+
+  /**
+   * Remove all registrations for a plugin across all slots
+   */
+  unregisterAll(pluginId: string): void {
+    for (const slotName of [...this.slots.keys()]) {
+      this.pruneSlot(slotName, pluginId);
+    }
+  }
+
+  private pruneSlot(slotName: string, pluginId: string): void {
     const entries = this.slots.get(slotName);
     if (!entries) return;
 
@@ -64,20 +79,6 @@ export class UISlotRegistry implements LayoutSlots {
       this.slots.set(slotName, filtered);
     } else {
       this.slots.delete(slotName);
-    }
-  }
-
-  /**
-   * Remove all registrations for a plugin across all slots
-   */
-  unregisterAll(pluginId: string): void {
-    for (const [slotName, entries] of this.slots) {
-      const filtered = entries.filter((e) => e.pluginId !== pluginId);
-      if (filtered.length > 0) {
-        this.slots.set(slotName, filtered);
-      } else {
-        this.slots.delete(slotName);
-      }
     }
   }
 

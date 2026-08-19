@@ -1,3 +1,6 @@
+import { escapeHtml } from "@brains/utils/string-utils";
+import { essentialHeadTags } from "./essential-head";
+
 /**
  * Generates the HTML shell for the page
  * Head content is provided as a string from the head collector
@@ -12,12 +15,8 @@ export function createHTMLShell(
 ): string {
   // Default head content if none provided
   const defaultHead = `
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${defaultTitle ?? "Site"}</title>
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-    <link rel="icon" type="image/png" href="/favicon.png">
-    <link rel="stylesheet" href="/styles/main.css">`;
+    ${essentialHeadTags().join("\n    ")}
+    <title>${escapeHtml(defaultTitle ?? "Site")}</title>`;
 
   const themeAttr = ` data-theme="${themeMode ?? "dark"}"`;
 

@@ -1,4 +1,6 @@
 import type { HeadProps, HeadCollectorInterface } from "@brains/ui-library";
+import { escapeHtml } from "@brains/utils/string-utils";
+import { essentialHeadTags } from "./essential-head";
 
 /**
  * Simple head collector for SSR
@@ -29,24 +31,13 @@ export class HeadCollector implements HeadCollectorInterface {
    * Generate HTML string for the head section
    */
   generateHeadHTML(): string {
-    const tags: string[] = [];
-
-    // Essential meta tags (always included)
-    tags.push('<meta charset="UTF-8">');
-    tags.push(
-      '<meta name="viewport" content="width=device-width, initial-scale=1.0">',
-    );
-    tags.push('<meta http-equiv="X-UA-Compatible" content="IE=edge">');
-
-    // Favicons (always included)
-    tags.push('<link rel="icon" type="image/svg+xml" href="/favicon.svg">');
-    tags.push('<link rel="icon" type="image/png" href="/favicon.png">');
-
-    // Styles (always included)
-    tags.push('<link rel="stylesheet" href="/styles/main.css">');
+    const tags: string[] = [
+      ...essentialHeadTags(),
+      '<meta http-equiv="X-UA-Compatible" content="IE=edge">',
+    ];
 
     if (!this.headProps) {
-      tags.push(`<title>${this.escapeHtml(this.defaultTitle)}</title>`);
+      tags.push(`<title>${escapeHtml(this.defaultTitle)}</title>`);
       return tags.join("\n    ");
     }
 
@@ -54,64 +45,45 @@ export class HeadCollector implements HeadCollectorInterface {
       this.headProps;
 
     // Page-specific meta tags
-    tags.push(`<title>${this.escapeHtml(title)}</title>`);
+    tags.push(`<title>${escapeHtml(title)}</title>`);
 
     if (description) {
       tags.push(
-        `<meta name="description" content="${this.escapeHtml(description)}">`,
+        `<meta name="description" content="${escapeHtml(description)}">`,
       );
     }
 
     // Open Graph
-    tags.push(`<meta property="og:title" content="${this.escapeHtml(title)}">`);
+    tags.push(`<meta property="og:title" content="${escapeHtml(title)}">`);
     if (description) {
       tags.push(
-        `<meta property="og:description" content="${this.escapeHtml(description)}">`,
+        `<meta property="og:description" content="${escapeHtml(description)}">`,
       );
     }
     tags.push(`<meta property="og:type" content="${ogType ?? "website"}">`);
     if (ogImage) {
-      tags.push(
-        `<meta property="og:image" content="${this.escapeHtml(ogImage)}">`,
-      );
+      tags.push(`<meta property="og:image" content="${escapeHtml(ogImage)}">`);
     }
 
     // Twitter Card
     tags.push(
       `<meta name="twitter:card" content="${twitterCard ?? "summary_large_image"}">`,
     );
-    tags.push(
-      `<meta name="twitter:title" content="${this.escapeHtml(title)}">`,
-    );
+    tags.push(`<meta name="twitter:title" content="${escapeHtml(title)}">`);
     if (description) {
       tags.push(
-        `<meta name="twitter:description" content="${this.escapeHtml(description)}">`,
+        `<meta name="twitter:description" content="${escapeHtml(description)}">`,
       );
     }
     if (ogImage) {
-      tags.push(
-        `<meta name="twitter:image" content="${this.escapeHtml(ogImage)}">`,
-      );
+      tags.push(`<meta name="twitter:image" content="${escapeHtml(ogImage)}">`);
     }
 
     // Canonical URL
     if (canonicalUrl) {
-      tags.push(
-        `<link rel="canonical" href="${this.escapeHtml(canonicalUrl)}">`,
-      );
+      tags.push(`<link rel="canonical" href="${escapeHtml(canonicalUrl)}">`);
     }
 
     return tags.join("\n    ");
-  }
-
-  private escapeHtml(text: string): string {
-    const map: Record<string, string> = {
-      "&": "&amp;",
-      "<": "&lt;",
-      ">": "&gt;",
-      '"': "&quot;",
-      "'": "&#039;",
-    };
-    return text.replace(/[&<>"']/g, (m) => map[m] ?? m);
   }
 }

@@ -4,7 +4,8 @@ import {
 } from "@brains/site-composition";
 import { z } from "@brains/utils/zod";
 import type { JsonObject, JsonValue } from "@brains/contracts";
-import type { ResolvedSiteImage, SiteImageMap } from "./site-image-contracts";
+import { resolvedSiteImageSchema } from "./site-image-contracts";
+import type { SiteImageMap } from "./site-image-contracts";
 
 export type { JsonObject, JsonValue } from "@brains/contracts";
 
@@ -69,14 +70,6 @@ export const jsonObjectSchema: z.ZodType<JsonObject> = z.record(
   z.string(),
   jsonValueSchema,
 );
-
-const resolvedSiteImageSchema: z.ZodType<ResolvedSiteImage> = z.object({
-  src: z.string(),
-  srcset: z.string().optional(),
-  sizes: z.string().optional(),
-  width: z.number(),
-  height: z.number(),
-});
 
 export const preparedSectionSchema: z.ZodType<PreparedSection> = z.object({
   id: z.string(),

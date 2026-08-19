@@ -1,4 +1,5 @@
 import { z } from "@brains/utils/zod";
+import { resolvedSiteImageSchema } from "./site-image-contracts";
 import type { SiteImageMap } from "./site-image-contracts";
 
 export type SiteBuildArtifactKind =
@@ -47,14 +48,6 @@ const routeArtifactSchema: z.ZodType<SiteBuildRouteArtifact> = z.object({
   routeId: z.string(),
   urlPath: z.string(),
   outputFile: z.string(),
-});
-
-const resolvedSiteImageSchema = z.object({
-  src: z.string(),
-  srcset: z.string().optional(),
-  sizes: z.string().optional(),
-  width: z.number(),
-  height: z.number(),
 });
 
 export const siteBuildArtifactManifestSchema: z.ZodType<SiteBuildArtifactManifest> =

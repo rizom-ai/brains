@@ -7,6 +7,16 @@ export interface SeriesInfo {
   index: number;
 }
 
+/** A list entry as consumed by `ContentList` and `ContentArchive`. */
+export interface ContentItem {
+  id: string;
+  url: string;
+  title: string;
+  date: string;
+  description?: string | undefined;
+  series?: SeriesInfo | undefined;
+}
+
 export interface ContentListItemProps {
   url: string;
   title: string;

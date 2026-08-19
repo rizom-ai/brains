@@ -1,6 +1,6 @@
 import { Fragment, type JSX } from "preact";
 import { formatDate } from "./utils/formatDate";
-import type { ContentItem } from "./ContentSection";
+import type { ContentItem } from "./ContentListItem";
 
 export interface ContentArchivePagination {
   currentPage: number;

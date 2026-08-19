@@ -11,7 +11,7 @@ export interface SectionHeaderProps {
    * Visual variant.
    * - `editorial` (default): mono number, large Fraunces title, italic blurb.
    * - `compact`: small uppercase tracked label (matches the previous stacked
-   *   `ContentSection` heading).
+   *   `ContentList` heading).
    */
   variant?: "editorial" | "compact";
 }

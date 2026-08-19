@@ -115,9 +115,11 @@ export type { StatusBadgeProps } from "./StatusBadge";
 
 // Content list
 export { ContentListItem } from "./ContentListItem";
-export type { ContentListItemProps, SeriesInfo } from "./ContentListItem";
-export { ContentSection } from "./ContentSection";
-export type { ContentSectionProps, ContentItem } from "./ContentSection";
+export type {
+  ContentItem,
+  ContentListItemProps,
+  SeriesInfo,
+} from "./ContentListItem";
 export { ContentArchive } from "./ContentArchive";
 export type {
   ContentArchiveProps,

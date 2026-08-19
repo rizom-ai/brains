@@ -1,6 +1,5 @@
 import type { JSX } from "preact";
-import { ContentListItem } from "./ContentListItem";
-import type { ContentItem } from "./ContentSection";
+import { ContentListItem, type ContentItem } from "./ContentListItem";
 
 export interface ContentListProps {
   items: ContentItem[];
@@ -12,10 +11,8 @@ export interface ContentListProps {
 /**
  * Body-only content list — items plus an optional view-all link.
  *
- * Companion to {@link SectionHeader}. Use this when you want to compose a
- * section header and a list separately (e.g. an editorial homepage that
- * renders its own grid layout). For a self-contained section with a built-in
- * heading, use {@link ContentSection}.
+ * Companion to {@link SectionHeader}. Compose the header and list separately
+ * (e.g. an editorial homepage that renders its own grid layout).
  */
 export const ContentList = ({
   items,

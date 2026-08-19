@@ -1,4 +1,5 @@
 import type { ImageRenderer } from "@brains/ui-library";
+import { z } from "@brains/utils/zod";
 
 /** Pre-resolved image ready for rendering in static site output. */
 export interface ResolvedSiteImage {
@@ -8,6 +9,15 @@ export interface ResolvedSiteImage {
   width: number;
   height: number;
 }
+
+/** Schema for {@link ResolvedSiteImage}, next to the interface it validates. */
+export const resolvedSiteImageSchema: z.ZodType<ResolvedSiteImage> = z.object({
+  src: z.string(),
+  srcset: z.string().optional(),
+  sizes: z.string().optional(),
+  width: z.number(),
+  height: z.number(),
+});
 
 export type SiteImageMap = Record<string, ResolvedSiteImage>;
 
