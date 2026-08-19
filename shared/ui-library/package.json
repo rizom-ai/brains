@@ -5,6 +5,7 @@
   "license": "AGPL-3.0-only",
   "author": "Gemini",
   "dependencies": {
+    "@brains/contracts": "workspace:*",
     "@brains/utils": "workspace:*",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.0",

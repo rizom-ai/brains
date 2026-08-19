@@ -1,4 +1,4 @@
-import type { ImageRenderer } from "@brains/ui-library";
+import type { ImageRenderer } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 
 /** Pre-resolved image ready for rendering in static site output. */

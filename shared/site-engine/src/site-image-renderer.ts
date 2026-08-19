@@ -1,14 +1,10 @@
-import type { ImageRenderer } from "@brains/ui-library";
+import type { ImageRenderer, RenderedImageRef } from "@brains/contracts";
 import { escapeHtml } from "@brains/utils/string-utils";
 import type { SiteImageMap } from "./site-image-contracts";
 
 /** Create a markdown image renderer from a prepared, serializable image map. */
 export function createSiteImageRenderer(imageMap: SiteImageMap): ImageRenderer {
-  return (
-    href: string,
-    title: string | null,
-    text: string,
-  ): string | undefined => {
+  return ({ href, title, alt }: RenderedImageRef): string | undefined => {
     const entityMatch = /^entity:\/\/image\/(.+)$/.exec(href);
     if (!entityMatch?.[1]) return undefined;
 
@@ -17,7 +13,7 @@ export function createSiteImageRenderer(imageMap: SiteImageMap): ImageRenderer {
 
     const attrs: string[] = [
       `src="${escapeHtml(resolved.src)}"`,
-      `alt="${escapeHtml(text)}"`,
+      `alt="${escapeHtml(alt)}"`,
     ];
     if (resolved.srcset) {
       attrs.push(`srcset="${escapeHtml(resolved.srcset)}"`);

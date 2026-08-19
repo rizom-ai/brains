@@ -1,4 +1,4 @@
-import type { HeadProps, HeadCollectorInterface } from "@brains/ui-library";
+import type { HeadProps, HeadCollectorInterface } from "@brains/contracts";
 import { escapeHtml } from "@brains/utils/string-utils";
 import { essentialHeadTags } from "./essential-head";
 

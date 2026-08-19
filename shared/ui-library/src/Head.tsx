@@ -1,18 +1,9 @@
 import { createContext, h, type Context, type JSX } from "preact";
 import { useContext } from "preact/hooks";
 import type { ComponentChildren } from "preact";
+import type { HeadCollectorInterface, HeadProps } from "@brains/contracts";
 
-/**
- * Props for head metadata
- */
-export interface HeadProps {
-  title: string;
-  description?: string;
-  ogImage?: string;
-  ogType?: string;
-  twitterCard?: string;
-  canonicalUrl?: string;
-}
+export type { HeadCollectorInterface, HeadProps } from "@brains/contracts";
 
 /**
  * Context for sharing the HeadCollector during SSR
@@ -20,14 +11,6 @@ export interface HeadProps {
  */
 export const HeadContext: Context<HeadCollectorInterface | null> =
   createContext<HeadCollectorInterface | null>(null);
-
-/**
- * Interface for HeadCollector to avoid circular dependency
- * Site builder implements this interface
- */
-export interface HeadCollectorInterface {
-  setHeadProps(props: HeadProps): void;
-}
 
 /**
  * Provider component that makes HeadCollector available to child components

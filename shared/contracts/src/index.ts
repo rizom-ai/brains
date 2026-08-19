@@ -196,3 +196,9 @@ export {
   type SendNotificationInput,
   type SendNotificationResult,
 } from "./notification";
+export type {
+  HeadCollectorInterface,
+  HeadProps,
+  ImageRenderer,
+  RenderedImageRef,
+} from "./render";

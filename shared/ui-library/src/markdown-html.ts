@@ -1,11 +1,8 @@
 import { Marked, type Tokens } from "marked";
 import sanitizeHtml from "sanitize-html";
+import type { ImageRenderer } from "@brains/contracts";
 
-export type ImageRenderer = (
-  href: string,
-  title: string | null,
-  text: string,
-) => string | undefined;
+export type { ImageRenderer, RenderedImageRef } from "@brains/contracts";
 
 export interface MarkdownToHtmlOptions {
   imageRenderer?: ImageRenderer;
@@ -102,8 +99,16 @@ export function markdownToHtml(
   const instance = imageRenderer
     ? new Marked({ gfm: true, breaks: true }).use({
         renderer: {
+          // Adapt marked's AST shape to the renderer-neutral contract here,
+          // at the boundary that owns the marked dependency.
           image({ href, title, text }: Tokens.Image): string | false {
-            return imageRenderer(href, title, text) ?? false;
+            return (
+              imageRenderer({
+                href,
+                alt: text,
+                ...(title !== null ? { title } : {}),
+              }) ?? false
+            );
           },
         },
       })
