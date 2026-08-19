@@ -1,5 +1,15 @@
 # @rizom/brain
 
+## 0.2.0-alpha.310
+
+### Minor Changes
+
+- [`360d66e`](https://github.com/rizom-ai/brains/commit/360d66e1981bbc0789424213b91083bc4f46cf99) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add master/detail composition to the operator view contract. A `detail` container pairs one collection with the panels of whichever row is open, selection is derived from the open row rather than flagged per item, and a `detail` link target opens a row through canonical query state instead of a workspace navigation. The host renders two panes on wide viewports and a single-pane drill-down on narrow ones. Unified Inbox is converted onto the contract, retiring the `inbox-open-detail` launch intent and the built-in workspace path helper it depended on.
+
+### Patch Changes
+
+- [`756f45b`](https://github.com/rizom-ai/brains/commit/756f45b8ccf9a4d39983d077dd8113752c8929d4) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Coalesce explicit Directory Sync mutation batches into one durable projection wave, fence overlapping whole-corpus derives before atomic apply, recover abandoned callback and worker-owned boundaries, and expose bounded projection-batch diagnostics. Narrow service-plugin entity access so scheduler and durable-owner internals remain shell-owned.
+
 ## 0.2.0-alpha.309
 
 ### Patch Changes
