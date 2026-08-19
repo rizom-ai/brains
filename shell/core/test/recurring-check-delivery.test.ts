@@ -5,7 +5,7 @@ import {
   NOTIFICATIONS_SEND,
   type SendNotificationInput,
   type SendNotificationResult,
-} from "@brains/notification-contracts";
+} from "@brains/contracts";
 import { createRecurringCheckDelivery } from "../src/initialization/recurring-check-delivery";
 
 // The shared factory rather than a two-method stand-in: it implements the

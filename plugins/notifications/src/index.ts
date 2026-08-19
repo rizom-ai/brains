@@ -5,7 +5,7 @@ import {
   type NotificationRecipient,
   type SendNotificationInput,
   type SendNotificationResult,
-} from "@brains/notification-contracts";
+} from "@brains/contracts";
 import type { ServicePluginContext } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
@@ -19,7 +19,7 @@ export {
   type NotificationRecipient,
   type SendNotificationInput,
   type SendNotificationResult,
-} from "@brains/notification-contracts";
+} from "@brains/contracts";
 
 export interface NotificationsConfig {
   defaultRecipient?: NotificationRecipient | undefined;

@@ -184,3 +184,15 @@ export {
   type CreateEntityResponse,
   type UpdateEntityResponse,
 } from "./response-types";
+export {
+  NOTIFICATIONS_SEND,
+  notificationRecipientSchema,
+  sendNotificationResultSchema,
+  sendNotificationSchema,
+  type EmailNotificationRecipient,
+  type NotificationRecipient,
+  type NotificationSensitivity,
+  type ParsedSendNotification,
+  type SendNotificationInput,
+  type SendNotificationResult,
+} from "./notification";

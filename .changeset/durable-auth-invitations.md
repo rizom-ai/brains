@@ -1,7 +1,6 @@
 ---
 "@brains/auth-service": patch
 "@brains/admin": patch
-"@brains/notification-contracts": patch
 "@brains/notifications": patch
 "@brains/email": patch
 ---

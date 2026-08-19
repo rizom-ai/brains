@@ -5,7 +5,6 @@
   "dependencies": {
     "@brains/contracts": "workspace:*",
     "@brains/image": "workspace:*",
-    "@brains/notification-contracts": "workspace:*",
     "@brains/operation-context": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/recurring-checks": "workspace:*",

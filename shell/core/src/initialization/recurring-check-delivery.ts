@@ -4,7 +4,7 @@ import {
   sendNotificationResultSchema,
   type SendNotificationInput,
   type SendNotificationResult,
-} from "@brains/notification-contracts";
+} from "@brains/contracts";
 import type {
   RecurringCheckDelivery,
   RecurringAlert,

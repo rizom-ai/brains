@@ -6,7 +6,7 @@ import {
 import {
   NOTIFICATIONS_SEND,
   sendNotificationResultSchema,
-} from "@brains/notification-contracts";
+} from "@brains/contracts";
 import type {
   ChannelDeliveryProvider,
   ChannelDescriptor,

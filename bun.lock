@@ -951,7 +951,7 @@
       "name": "@brains/notifications",
       "version": "0.2.0-alpha.309",
       "dependencies": {
-        "@brains/notification-contracts": "workspace:*",
+        "@brains/contracts": "workspace:*",
         "@brains/plugins": "workspace:*",
         "@brains/utils": "workspace:*",
       },
@@ -1300,18 +1300,6 @@
         "typescript": "^7.0.2",
       },
     },
-    "shared/notification-contracts": {
-      "name": "@brains/notification-contracts",
-      "version": "0.2.0-alpha.309",
-      "dependencies": {
-        "@brains/utils": "workspace:*",
-      },
-      "devDependencies": {
-        "@brains/eslint-config": "workspace:*",
-        "@brains/typescript-config": "workspace:*",
-        "typescript": "^7.0.2",
-      },
-    },
     "shared/operation-context": {
       "name": "@brains/operation-context",
       "version": "0.2.0-alpha.309",
@@ -1580,7 +1568,6 @@
       "dependencies": {
         "@brains/contracts": "workspace:*",
         "@brains/db": "workspace:*",
-        "@brains/notification-contracts": "workspace:*",
         "@brains/notifications": "workspace:*",
         "@brains/plugins": "workspace:*",
         "@brains/utils": "workspace:*",
@@ -1641,7 +1628,6 @@
       "dependencies": {
         "@brains/contracts": "workspace:*",
         "@brains/image": "workspace:*",
-        "@brains/notification-contracts": "workspace:*",
         "@brains/operation-context": "workspace:*",
         "@brains/plugins": "workspace:*",
         "@brains/recurring-checks": "workspace:*",
@@ -2129,8 +2115,6 @@
     "@brains/newsletter": ["@brains/newsletter@workspace:plugins/newsletter"],
 
     "@brains/note": ["@brains/note@workspace:entities/note"],
-
-    "@brains/notification-contracts": ["@brains/notification-contracts@workspace:shared/notification-contracts"],
 
     "@brains/notifications": ["@brains/notifications@workspace:plugins/notifications"],
 
