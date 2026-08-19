@@ -65,15 +65,15 @@ describe("findInternalDeclarationImports", () => {
   });
 
   test("respects the allow list", () => {
-    const declaration = 'import { A } from "@rizom/ui";';
+    const declaration = 'import { A } from "@rizom/site";';
     expect(
       findInternalDeclarationImports(declaration, {
         ...OPTS,
-        allow: ["@rizom/ui"],
+        allow: ["@rizom/site"],
       }),
     ).toEqual([]);
     expect(findInternalDeclarationImports(declaration, OPTS)).toEqual([
-      "@rizom/ui",
+      "@rizom/site",
     ]);
   });
 });

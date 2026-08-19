@@ -59,5 +59,5 @@ export type {
   RizomFrameProps,
   SectionProps,
 } from "./ui";
-export { Wordmark, Ecosystem } from "@rizom/ui";
-export type { WordmarkProps, EcosystemCard, EcosystemContent } from "@rizom/ui";
+export { Wordmark, Ecosystem } from "./ui";
+export type { WordmarkProps, EcosystemCard, EcosystemContent } from "./ui";

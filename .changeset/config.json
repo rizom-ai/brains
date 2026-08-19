@@ -3,13 +3,7 @@
   "changelog": ["@changesets/changelog-github", { "repo": "rizom-ai/brains" }],
   "commit": false,
   "fixed": [
-    [
-      "@brains/*",
-      "!@brains/theme-rizom",
-      "@rizom/brain",
-      "@rizom/ops",
-      "@rizom/ui"
-    ]
+    ["@brains/*", "!@brains/theme-rizom", "@rizom/brain", "@rizom/ops"]
   ],
   "linked": [],
   "access": "public",
