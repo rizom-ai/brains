@@ -89,33 +89,17 @@ describe("GenerationJobHandler", () => {
       expect(result.addToQueue).toBeUndefined();
     });
 
-    // generateImage was a second image flag beside coverImage, doing the same
-    // thing the runtime already does. coverImage is the only one left.
-    it("no longer carries a separate generateImage flag", () => {
+    // Two image flags used to sit here — generateImage and coverImage —
+    // neither of which any caller could reach. Images are requested by
+    // generating an image entity that targets the post.
+    it("carries no image flag at all", () => {
       const result = generationJobSchema.parse({
         prompt: "Create a post about AI",
         generateImage: true,
+        coverImage: true,
       });
       expect(result).not.toHaveProperty("generateImage");
-    });
-
-    it("should validate generic coverImage option", () => {
-      const data = {
-        prompt: "Create a post about AI",
-        platform: "linkedin",
-        coverImage: {
-          generate: true,
-          prompt: "Conceptual cover for responsible AI",
-        },
-      };
-      const result = generationJobSchema.safeParse(data);
-      expect(result.success).toBe(true);
-      if (result.success) {
-        expect(result.data.coverImage).toEqual({
-          generate: true,
-          prompt: "Conceptual cover for responsible AI",
-        });
-      }
+      expect(result).not.toHaveProperty("coverImage");
     });
   });
 
@@ -356,132 +340,6 @@ describe("GenerationJobHandler", () => {
 
       expect(result.success).toBe(false);
       expect(result.error).toContain("not found");
-    });
-
-    // A social post asks for a graphic, not the runtime's editorial cover.
-    it("should describe a requested image in social-media's own words", async () => {
-      interface ImageGenerateJobData {
-        prompt: string;
-        targetEntityType: string;
-      }
-      const enqueuedJobs: Array<{
-        jobType: string;
-        data: ImageGenerateJobData;
-      }> = [];
-      context.jobs.enqueue = async (request): Promise<string> => {
-        enqueuedJobs.push({
-          jobType: request.type,
-          data: request.data as ImageGenerateJobData,
-        });
-        return "image-job-456";
-      };
-
-      const jobData: GenerationJobData = {
-        title: "Visual Post Title",
-        content: "Post content with image",
-        platform: "linkedin",
-        addToQueue: false,
-        coverImage: true,
-      };
-
-      const result = await handler.process(
-        jobData,
-        "job-123",
-        progressReporter,
-      );
-
-      expect(result.success).toBe(true);
-      const imageJob = enqueuedJobs.find(
-        (j) => j.jobType === "image:image-generate",
-      );
-      expect(imageJob?.data.prompt).toBe(
-        "Social media graphic for: Visual Post Title",
-      );
-      expect(imageJob?.data.targetEntityType).toBe("social-post");
-    });
-
-    it("should not queue image generation when none is requested", async () => {
-      const enqueuedJobs: Array<{ jobType: string; data: unknown }> = [];
-      context.jobs.enqueue = async (request): Promise<string> => {
-        enqueuedJobs.push({ jobType: request.type, data: request.data });
-        return "job-id";
-      };
-
-      const jobData: GenerationJobData = {
-        title: "Text Only Post",
-        content: "Post content without image",
-        platform: "linkedin",
-        addToQueue: false,
-      };
-
-      const result = await handler.process(
-        jobData,
-        "job-123",
-        progressReporter,
-      );
-
-      expect(result.success).toBe(true);
-      const imageJob = enqueuedJobs.find(
-        (j) => j.jobType === "image:image-generate",
-      );
-      expect(imageJob).toBeUndefined();
-    });
-
-    it("should queue generic coverImage generation with generated content context", async () => {
-      interface ImageGenerateJobData {
-        prompt: string;
-        title: string;
-        aspectRatio: string;
-        targetEntityType: string;
-        targetEntityId: string;
-        entityTitle?: string;
-        entityContent?: string;
-      }
-      const enqueuedJobs: Array<{
-        jobType: string;
-        data: ImageGenerateJobData;
-      }> = [];
-      context.jobs.enqueue = async (request): Promise<string> => {
-        enqueuedJobs.push({
-          jobType: request.type,
-          data: request.data as ImageGenerateJobData,
-        });
-        return "image-job-789";
-      };
-
-      const jobData: GenerationJobData = {
-        title: "Contextual Visual Post",
-        content: "Post body that should inform the generated image.",
-        platform: "linkedin",
-        addToQueue: false,
-        coverImage: {
-          generate: true,
-          prompt: "Editorial social post cover:",
-        },
-      };
-
-      const result = await handler.process(
-        jobData,
-        "job-123",
-        progressReporter,
-      );
-
-      expect(result.success).toBe(true);
-      const imageJob = enqueuedJobs.find(
-        (j) => j.jobType === "image:image-generate",
-      );
-      expect(imageJob).toBeDefined();
-      expect(imageJob?.data).toMatchObject({
-        prompt: "Editorial social post cover:",
-        title: "Contextual Visual Post Cover",
-        aspectRatio: "16:9",
-        targetEntityType: "social-post",
-        targetEntityId: "linkedin-contextual-visual-post",
-        entityTitle: "Contextual Visual Post",
-      });
-      expect(imageJob?.data.entityContent).toContain(
-        "Post body that should inform the generated image.",
-      );
     });
 
     it("should use slug as entity ID (platform-title format)", async () => {

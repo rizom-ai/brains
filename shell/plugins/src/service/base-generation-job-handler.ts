@@ -1,4 +1,3 @@
-import { IMAGE_CHANNELS } from "@brains/contracts";
 import { BaseJobHandler } from "@brains/job-queue";
 import type { JobDataSchema } from "@brains/job-queue";
 import type { BaseEntity } from "@brains/entity-service";
@@ -27,15 +26,6 @@ export interface GenerationJobHandlerConfig<TInput> {
   jobTypeName: string;
   /** Entity type being generated (e.g., "post", "note", "deck") */
   entityType: string;
-  /**
-   * How this entity describes its cover image, given the generated title.
-   *
-   * What a cover image should depict is the entity's knowledge, not the
-   * runtime's — a social post wants a graphic where a blog post wants an
-   * editorial cover. Omit to take the editorial default. A prompt supplied
-   * on the job data still wins over both.
-   */
-  coverImagePrompt?: (title: string) => string;
 }
 
 /**
@@ -44,16 +34,6 @@ export interface GenerationJobHandlerConfig<TInput> {
  * Subclasses return this from `generate()`. The base class handles
  * progress reporting, error wrapping, and entity creation.
  */
-export interface GenericCoverImageRequest {
-  generate?: boolean;
-  prompt?: string;
-}
-
-interface NormalizedGenericCoverImageRequest {
-  generate: true;
-  prompt?: string;
-}
-
 function getPreallocatedEntityId(data: unknown): string | undefined {
   if (typeof data !== "object" || data === null || !("entityId" in data)) {
     return undefined;
@@ -62,27 +42,6 @@ function getPreallocatedEntityId(data: unknown): string | undefined {
   return typeof entityId === "string" && entityId.trim().length > 0
     ? entityId.trim()
     : undefined;
-}
-
-function normalizeGenericCoverImageRequest(
-  data: unknown,
-): NormalizedGenericCoverImageRequest | undefined {
-  if (typeof data !== "object" || data === null || !("coverImage" in data)) {
-    return undefined;
-  }
-
-  const coverImage = (data as { coverImage?: unknown }).coverImage;
-  if (coverImage === undefined || coverImage === false) return undefined;
-  if (coverImage === true) return { generate: true };
-  if (typeof coverImage !== "object" || coverImage === null) return undefined;
-
-  const request = coverImage as GenericCoverImageRequest;
-  if (request.generate === false) return undefined;
-  const prompt = request.prompt?.trim();
-  return {
-    generate: true,
-    ...(prompt && { prompt }),
-  };
 }
 
 export interface GeneratedContent {
@@ -173,7 +132,6 @@ export abstract class BaseGenerationJobHandler<
 > extends BaseJobHandler<string, TInput, TResult> {
   protected readonly context: EntityPluginContext;
   protected readonly entityType: string;
-  private readonly coverImagePrompt: ((title: string) => string) | undefined;
 
   constructor(
     logger: Logger,
@@ -186,7 +144,6 @@ export abstract class BaseGenerationJobHandler<
     });
     this.context = context;
     this.entityType = config.entityType;
-    this.coverImagePrompt = config.coverImagePrompt;
   }
 
   /**
@@ -235,20 +192,16 @@ export abstract class BaseGenerationJobHandler<
     const parsed = super.validateAndParse(data);
     if (!parsed) return null;
 
-    const coverImage = normalizeGenericCoverImageRequest(data);
     if (typeof parsed !== "object") {
       return parsed;
     }
 
     const entityId = getPreallocatedEntityId(data);
-    if (!coverImage && !entityId) {
+    if (!entityId) {
       return parsed;
     }
 
-    Object.assign(parsed, {
-      ...(coverImage && { coverImage }),
-      ...(entityId && { entityId }),
-    });
+    Object.assign(parsed, { entityId });
     return parsed;
   }
 
@@ -293,12 +246,6 @@ export abstract class BaseGenerationJobHandler<
 
       // Step 3: Post-creation hook
       await this.afterCreate(
-        data,
-        result.entityId,
-        progressReporter,
-        generatedForSave,
-      );
-      await this.enqueueGenericCoverImageIfRequested(
         data,
         result.entityId,
         progressReporter,
@@ -458,42 +405,6 @@ export abstract class BaseGenerationJobHandler<
         entityType: this.entityType,
       });
     }
-  }
-
-  private async enqueueGenericCoverImageIfRequested(
-    data: TInput,
-    entityId: string,
-    progressReporter: ProgressReporter,
-    generated: GeneratedContent,
-  ): Promise<void> {
-    const coverImage = normalizeGenericCoverImageRequest(data);
-    if (!coverImage) return;
-
-    await this.reportProgress(progressReporter, {
-      progress: 90,
-      message: "Queueing cover image generation",
-    });
-
-    const title = generated.title ?? entityId;
-    await this.context.jobs.enqueue({
-      type: IMAGE_CHANNELS.generate,
-      data: {
-        prompt:
-          coverImage.prompt ??
-          this.coverImagePrompt?.(title) ??
-          `Editorial cover image for: ${title}. `,
-        title: `${title} Cover`,
-        aspectRatio: "16:9",
-        targetEntityType: this.entityType,
-        targetEntityId: entityId,
-        entityTitle: title,
-        entityContent: generated.content,
-      },
-      toolContext: {
-        interfaceType: "job",
-        actor: { kind: "service", serviceId: "generation-job-handler" },
-      },
-    });
   }
 
   /**
