@@ -10,7 +10,7 @@ import type { IMessageBus } from "@brains/messaging-service";
 import type { IBatchJobManager, IJobQueueService, JobInfo } from "./types";
 import { JobContextSchema, type JobContext } from "./schema/types";
 import type { BatchJobStatus } from "./batch-schemas";
-import type { JobProgressEventSchema } from "./schemas";
+import type { JobProgressEvent } from "./schemas";
 
 const jobResultRecordSchema = z.preprocess(
   (value) => {
@@ -20,10 +20,7 @@ const jobResultRecordSchema = z.preprocess(
   z.record(z.string(), z.unknown()),
 );
 
-/**
- * Progress event emitted by the monitor
- */
-export type JobProgressEvent = z.output<typeof JobProgressEventSchema>;
+export type { JobProgressEvent } from "./schemas";
 export type JobProgressMonitorMode =
   "combined" | "durable-reader" | "durable-writer";
 

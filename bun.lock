@@ -1346,6 +1346,7 @@
       "name": "@brains/site-engine",
       "version": "0.2.0-alpha.309",
       "dependencies": {
+        "@brains/contracts": "workspace:*",
         "@brains/entity-service": "workspace:*",
         "@brains/image": "workspace:*",
         "@brains/site-composition": "workspace:*",

@@ -35,7 +35,7 @@ export interface HandlerFailure {
   error?: string | undefined;
 }
 
-export interface JobProgressEvent {
+interface JobProgressEventValue {
   id: string;
   type: "job" | "batch";
   status: JobStatusType;
@@ -139,7 +139,7 @@ export const HandlerFailureSchema: z.ZodType<HandlerFailure, unknown> =
 /**
  * Schema for job progress events
  */
-export const JobProgressEventSchema: z.ZodType<JobProgressEvent, unknown> =
+export const JobProgressEventSchema: z.ZodType<JobProgressEventValue, unknown> =
   z.object({
     // Common fields
     id: z.string(),
@@ -182,3 +182,6 @@ export const JobProgressEventSchema: z.ZodType<JobProgressEvent, unknown> =
     // Routing metadata
     metadata: JobContextSchema,
   });
+
+/** Derived from the schema so the two can never drift. */
+export type JobProgressEvent = z.output<typeof JobProgressEventSchema>;

@@ -1,8 +1,6 @@
-export type JsonPrimitive = string | number | boolean | null;
-export type JsonValue = JsonPrimitive | JsonObject | JsonValue[];
-export interface JsonObject {
-  [key: string]: JsonValue;
-}
+import type { JsonObject } from "@brains/contracts";
+
+export type { JsonObject, JsonPrimitive, JsonValue } from "@brains/contracts";
 
 export interface OAuthPublicJwk extends JsonObject {
   kty: "EC";

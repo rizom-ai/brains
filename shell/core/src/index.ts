@@ -20,7 +20,6 @@ export type { ShellConfig, StandardConfig, StandardPaths } from "./config";
 export { shellEnvVars } from "./env-schema";
 
 export type { IEmbeddingService } from "@brains/entity-service";
-export type { SerializableEntity, SerializableQueryResult } from "./types";
 
 export {
   SHELL_DATASOURCE_IDS,

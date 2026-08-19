@@ -3,14 +3,10 @@ import {
   type SiteLayoutInfo,
 } from "@brains/site-composition";
 import { z } from "@brains/utils/zod";
+import type { JsonObject, JsonValue } from "@brains/contracts";
 import type { ResolvedSiteImage, SiteImageMap } from "./site-image-contracts";
 
-export type JsonValue =
-  null | boolean | number | string | JsonValue[] | JsonObject;
-
-export interface JsonObject {
-  [key: string]: JsonValue;
-}
+export type { JsonObject, JsonValue } from "@brains/contracts";
 
 /** Resolved section data passed to a renderer without further service reads. */
 export interface PreparedSection {

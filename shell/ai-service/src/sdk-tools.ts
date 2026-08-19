@@ -1,5 +1,5 @@
 import { dynamicTool, type ToolSet } from "ai";
-import type { ActorRef } from "@brains/contracts";
+import type { ActorRef, JsonValue } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 import type { Tool, ToolContext } from "@brains/mcp-service";
 import type { UserPermissionLevel } from "@brains/templates";
@@ -33,9 +33,6 @@ const MODEL_HIDDEN_FLAT_CREATE_SOURCE_FIELDS = new Set([
   "transform",
   "sourceAttachment",
 ]);
-
-type JsonValue =
-  null | string | number | boolean | JsonValue[] | { [key: string]: JsonValue };
 
 const jsonValueSchema: z.ZodType<JsonValue> = z.lazy(() =>
   z.union([
