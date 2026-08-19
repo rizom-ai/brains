@@ -331,14 +331,6 @@
         </div>
         <div class="card status-partial">
           <div class="card-head">
-            <span class="card-name">Atomic durable job deduplication</span>
-            <span class="badge badge-partial">In progress</span>
-          </div>
-          <div class="card-desc">serialize durable queue deduplication in the database so concurrent web/worker enqueues preserve <code>skip</code>, <code>replace</code>, and <code>coalesce</code> guarantees.</div>
-          <div class="card-file">atomic-job-deduplication.md</div>
-        </div>
-        <div class="card status-partial">
-          <div class="card-head">
             <span class="card-name">Directory Sync Import Load Follow-ups</span>
             <span class="badge badge-partial">In progress</span>
           </div>
@@ -411,18 +403,10 @@
         </div>
         <div class="card status-done">
           <div class="card-head">
-            <span class="card-name">Background work stops silently and never recovers</span>
-            <span class="badge badge-done">Done</span>
-          </div>
-          <div class="card-desc">**implemented, awaiting release**: expose durable background status, make exhausted worker supervision fatal, detect genuinely unclaimed due work, persist terminal projection incidents, and gate post-deploy verification and fleet status on operational health.</div>
-          <div class="card-file">background-work-silent-stall.md</div>
-        </div>
-        <div class="card status-done">
-          <div class="card-head">
             <span class="card-name">Operational alerts reach a human</span>
             <span class="badge badge-done">Done</span>
           </div>
-          <div class="card-desc">successor to <code>background-work-silent-stall.md</code>: deliver sustained operational degradation to the operator over a web-process path that survives a dead worker, with deduplicated episodes that resolve, then land client-side error capture on the same spine.</div>
+          <div class="card-desc">follow the released background-recovery foundation with sustained operational-degradation delivery over a web-process path that survives a dead worker, with deduplicated episodes that resolve, then land client-side error capture on the same spine.</div>
           <div class="card-file">operational-alert-delivery.md</div>
         </div>
         </div>
