@@ -94,7 +94,7 @@ export const homepageTemplate: ReturnType<
   name: "homepage",
   description: "Homepage showing latest blog post or fallback content",
   schema: homepageSchema,
-  dataSourceId: "blog:homepage",
+  dataSourceId: "latest",
   requiredPermission: "public",
   layout: {
     component: HomepageTemplate,

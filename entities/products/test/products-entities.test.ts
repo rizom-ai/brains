@@ -1,6 +1,9 @@
 import { describe, it, expect } from "bun:test";
 import { createSilentLogger } from "@brains/test-utils";
-import { createPluginHarness } from "@brains/plugins/test";
+import {
+  createPluginHarness,
+  expectTemplateDataSourcesResolve,
+} from "@brains/plugins/test";
 import {
   bindPluginPackageMetadata,
   instantiatePluginPackageDefinition,
@@ -109,6 +112,11 @@ describe("products entities", () => {
       logger: createSilentLogger("products-entities-test"),
     });
     for (const plugin of plugins) await harness.installPlugin(plugin);
+
+    // A template carries its data source id as a string and the registry
+    // looks it up by exact match, so a stale id type-checks and fails only
+    // when something renders.
+    expectTemplateDataSourcesResolve(harness);
 
     expect(harness.getEntityService().getEntityTypes()).toEqual([
       "product",

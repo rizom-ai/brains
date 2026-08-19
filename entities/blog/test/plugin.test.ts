@@ -7,7 +7,10 @@ import {
 } from "../src/schemas/blog-post";
 import { createMockBlogPost } from "./fixtures/blog-entities";
 import { createSilentLogger, createTestEntity } from "@brains/test-utils";
-import { createPluginHarness } from "@brains/plugins/test";
+import {
+  createPluginHarness,
+  expectTemplateDataSourcesResolve,
+} from "@brains/plugins/test";
 import { postEntityPlugin, PACKAGE_METADATA } from "./helpers/install";
 
 describe("blog package", () => {
@@ -46,6 +49,17 @@ describe("blog package", () => {
       slug: "how-to-fish",
       status: "generating",
     });
+
+    harness.reset();
+  });
+
+  it("registers templates that point at data sources it declares", async () => {
+    const harness = createPluginHarness({
+      logger: createSilentLogger("blog-datasource-test"),
+    });
+    await harness.installPlugin(postEntityPlugin());
+
+    expectTemplateDataSourcesResolve(harness);
 
     harness.reset();
   });

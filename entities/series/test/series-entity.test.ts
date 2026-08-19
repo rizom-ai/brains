@@ -1,6 +1,9 @@
 import { beforeEach, describe, it, expect } from "bun:test";
 import { createSilentLogger } from "@brains/test-utils";
-import { createPluginHarness } from "@brains/plugins/test";
+import {
+  createPluginHarness,
+  expectTemplateDataSourcesResolve,
+} from "@brains/plugins/test";
 import {
   bindPluginPackageMetadata,
   instantiatePluginPackageDefinition,
@@ -140,6 +143,17 @@ describe("series entity", () => {
     expect(
       AtprotoProjectionRegistry.getInstance().get("series"),
     ).toBeUndefined();
+
+    harness.reset();
+  });
+
+  // A template carries its data source id as a string and the registry looks
+  // it up by exact match, so a stale id type-checks and fails only when
+  // something renders.
+  it("registers templates that point at data sources it declares", async () => {
+    const harness = await install();
+
+    expectTemplateDataSourcesResolve(harness);
 
     harness.reset();
   });

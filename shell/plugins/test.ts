@@ -16,6 +16,7 @@ export {
   createTempDataDirSync,
   removeTrackedTempDataDirs,
 } from "./src/test/temp-dir";
+export { expectTemplateDataSourcesResolve } from "./src/test/template-data-sources";
 
 // Re-export commonly used types and schemas for test convenience
 export type {

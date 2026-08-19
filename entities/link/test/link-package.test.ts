@@ -1,6 +1,9 @@
 import { beforeEach, describe, expect, it } from "bun:test";
 import { createSilentLogger } from "@brains/test-utils";
-import { createPluginHarness } from "@brains/plugins/test";
+import {
+  createPluginHarness,
+  expectTemplateDataSourcesResolve,
+} from "@brains/plugins/test";
 import {
   bindPluginPackageMetadata,
   instantiatePluginPackageDefinition,
@@ -60,6 +63,10 @@ describe("link package", () => {
     expect([...harness.getDataSources().keys()]).toContain(
       `${packageJson.name}:entities`,
     );
+    // A template carries its data source id as a string and the registry
+    // looks it up by exact match, so a stale id type-checks and fails only
+    // when something renders.
+    expectTemplateDataSourcesResolve(harness);
 
     harness.reset();
   });
