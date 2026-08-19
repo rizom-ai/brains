@@ -69,11 +69,19 @@ describe("createDefaultUserRunner", () => {
       ...baseUser,
       embeddingEnabled: false,
       topicExtractionEnabled: false,
+      skillDerivationEnabled: false,
+      swotDerivationEnabled: false,
     });
 
     expect(result.brainYaml).toContain("embedding:\n  enabled: false");
     expect(result.brainYaml).toContain(
       "  topics:\n    enableAutoExtraction: false",
+    );
+    expect(result.brainYaml).toContain(
+      "  agents:\n    enableSkillDerivation: false",
+    );
+    expect(result.brainYaml).toContain(
+      "  assessment:\n    enableSwotDerivation: false",
     );
   });
 

@@ -52,6 +52,18 @@ function renderUserBrainYaml(user: ResolvedUser, githubOrg: string): string {
           `    enableAutoExtraction: ${String(user.topicExtractionEnabled)}`,
         ]
       : []),
+    ...(user.skillDerivationEnabled !== undefined
+      ? [
+          "  agents:",
+          `    enableSkillDerivation: ${String(user.skillDerivationEnabled)}`,
+        ]
+      : []),
+    ...(user.swotDerivationEnabled !== undefined
+      ? [
+          "  assessment:",
+          `    enableSwotDerivation: ${String(user.swotDerivationEnabled)}`,
+        ]
+      : []),
     "  directory-sync:",
     "    git:",
     `      repo: ${renderContentRepoRef(user, githubOrg)}`,

@@ -82,6 +82,58 @@ describe("full preset projection resilience", () => {
     await pluginManager.shutdownPlugins();
   });
 
+  it("registers no AI-backed derivations for the hermetic smoke posture", async () => {
+    const config = resolve(
+      canonicalBrain,
+      {},
+      parseInstanceOverrides(`brain: brain
+bundles: [core, publishing]
+embedding:
+  enabled: false
+remove:
+  - series
+  - portfolio
+  - content-pipeline
+  - social-media
+  - newsletter
+  - stock-photo
+plugins:
+  topics:
+    enableAutoExtraction: false
+  agents:
+    enableSkillDerivation: false
+  assessment:
+    enableSwotDerivation: false
+`),
+    );
+    const shell = createMockShell();
+    const pluginManager = PluginManager.createFresh(
+      createSilentLogger(),
+      shell.getDaemonRegistry(),
+    );
+    pluginManager.setShell(shell);
+    for (const plugin of config.plugins ?? []) {
+      pluginManager.registerPlugin(plugin);
+    }
+
+    await pluginManager.initializePlugins();
+    shell.getProfileKindRegistry().finalize();
+    shell.getChannelRegistry().finalize();
+    await pluginManager.finalizePluginRegistrations();
+    const aiBackedRules = pluginManager
+      .getProjectionRulesSnapshot()
+      .map(({ id }) => id)
+      .filter(
+        (id) =>
+          id === "topics-projection" ||
+          id === "skill-derivation" ||
+          id === "swot-derivation",
+      );
+    await pluginManager.shutdownPlugins();
+
+    expect(aiBackedRules).toEqual([]);
+  });
+
   it("does not enqueue legacy projection jobs from event notifications", async () => {
     const config = resolveProjectionConfig();
     const shell = createMockShell();

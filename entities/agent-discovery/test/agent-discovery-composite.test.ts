@@ -16,16 +16,23 @@ describe("agent-discovery composite", () => {
     expect(plugins.map((p) => p.type)).toEqual(["entity", "service", "entity"]);
   });
 
-  test("disables new-agent notifications by default", () => {
+  test("keeps AI-backed skill derivation enabled by default", () => {
     expect(agentDiscoveryCompositeConfigSchema.parse({})).toEqual({
       notifyOnNewAgents: false,
+      enableSkillDerivation: true,
     });
   });
 
-  test("accepts explicit new-agent notification opt-in", () => {
+  test("accepts explicit notification and skill-derivation posture", () => {
     expect(
-      agentDiscoveryCompositeConfigSchema.parse({ notifyOnNewAgents: true }),
-    ).toEqual({ notifyOnNewAgents: true });
+      agentDiscoveryCompositeConfigSchema.parse({
+        notifyOnNewAgents: true,
+        enableSkillDerivation: false,
+      }),
+    ).toEqual({
+      notifyOnNewAgents: true,
+      enableSkillDerivation: false,
+    });
   });
 
   test("works when called with no arguments", () => {

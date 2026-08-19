@@ -8,7 +8,6 @@ import {
   EntityPlugin,
   SYSTEM_CHANNELS,
   defineDashboardWidget,
-  emptyEntityPluginConfigSchema,
   registerBuiltInDashboardWidget,
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
@@ -118,10 +117,32 @@ import packageJson from "../package.json";
 
 const swotAdapter = new SwotAdapter();
 
+export interface AssessmentConfig {
+  enableSwotDerivation: boolean;
+}
+
+export interface AssessmentConfigInput {
+  enableSwotDerivation?: boolean | undefined;
+}
+
+export const assessmentConfigSchema: z.ZodType<
+  AssessmentConfig,
+  AssessmentConfigInput
+> = z
+  .object({
+    enableSwotDerivation: z
+      .boolean()
+      .default(true)
+      .describe(
+        "Derive SWOT assessments from agent and skill evidence using AI",
+      ),
+  })
+  .strict();
+
 export class SwotAssessmentPlugin extends EntityPlugin<
   SwotEntity,
-  Record<string, never>,
-  Record<string, never>
+  AssessmentConfig,
+  AssessmentConfigInput
 > {
   readonly entityType = "swot" as const;
   readonly schema: typeof swotEntitySchema = swotEntitySchema;
@@ -129,8 +150,8 @@ export class SwotAssessmentPlugin extends EntityPlugin<
 
   private derivationHandler: SwotDerivationHandler | undefined;
 
-  constructor() {
-    super("swot", packageJson, {}, emptyEntityPluginConfigSchema);
+  constructor(config: AssessmentConfigInput = {}) {
+    super("swot", packageJson, config, assessmentConfigSchema);
   }
 
   protected override getEntityTypeConfig(): EntityTypeConfig | undefined {
@@ -143,7 +164,7 @@ export class SwotAssessmentPlugin extends EntityPlugin<
   protected override getProjectionRules(
     _context: EntityPluginContext,
   ): ProjectionRule[] {
-    return [createSwotProjectionRule()];
+    return this.config.enableSwotDerivation ? [createSwotProjectionRule()] : [];
   }
 
   protected override async onRegister(
@@ -210,6 +231,8 @@ export class SwotAssessmentPlugin extends EntityPlugin<
   }
 }
 
-export function swotAssessmentPlugin(): Plugin {
-  return new SwotAssessmentPlugin();
+export function swotAssessmentPlugin(
+  config: AssessmentConfigInput = {},
+): Plugin {
+  return new SwotAssessmentPlugin(config);
 }

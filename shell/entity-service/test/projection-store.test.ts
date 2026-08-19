@@ -143,6 +143,20 @@ describe("ProjectionStore", () => {
     expect(await store.listWaveInputs("wave-settled")).toHaveLength(2);
   });
 
+  it("reports active projection barriers without mutating them", async () => {
+    expect(await store.hasActiveProjectionBatch()).toBe(false);
+
+    await store.runBulkMutation(
+      { source: "directory-sync", operationId: "sync-active-check" },
+      async () => {
+        expect(await store.hasActiveProjectionBatch()).toBe(true);
+        expect((await store.getProjectionBatchDiagnostics()).open).toBe(1);
+      },
+    );
+
+    expect(await store.hasActiveProjectionBatch()).toBe(false);
+  });
+
   it("keeps a callback barrier visible to a second database client", async () => {
     const secondConnection = createEntityDatabase(database.config);
     const secondStore = new ProjectionStore(secondConnection.db);

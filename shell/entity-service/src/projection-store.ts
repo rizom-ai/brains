@@ -1033,6 +1033,15 @@ export class ProjectionStore {
     return coalesceLatestInputs(inputs);
   }
 
+  public async hasActiveProjectionBatch(): Promise<boolean> {
+    const activeBarriers = await this.db
+      .select({ id: projectionBatches.id })
+      .from(projectionBatches)
+      .where(inArray(projectionBatches.status, ["preparing", "open"]))
+      .limit(1);
+    return activeBarriers.length > 0;
+  }
+
   public async claimPendingWave(
     input: ClaimProjectionWaveInput,
   ): Promise<ProjectionWave | null> {
@@ -1044,12 +1053,7 @@ export class ProjectionStore {
       .parse(input.graphFingerprint);
     const startedAt = z.number().int().nonnegative().parse(input.startedAt);
 
-    const activeBarriers = await this.db
-      .select({ id: projectionBatches.id })
-      .from(projectionBatches)
-      .where(inArray(projectionBatches.status, ["preparing", "open"]))
-      .limit(1);
-    if (activeBarriers.length > 0) return null;
+    if (await this.hasActiveProjectionBatch()) return null;
 
     return this.runTransaction(async (transaction) => {
       const active = await transaction

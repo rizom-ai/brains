@@ -237,11 +237,24 @@ class RoleContinuityTracker {
 type HealthEndpoint = (typeof HEALTH_ENDPOINTS)[number];
 type HealthLatency = Record<HealthEndpoint, number>;
 
+interface PeakRssProcess {
+  label: string;
+  rssBytes: number;
+}
+
+interface PeakRssSample {
+  atMs: number;
+  phase: string;
+  totalRssBytes: number;
+  processes: PeakRssProcess[];
+}
+
 type RuntimeResourceReport = ResourceUsageSnapshot & {
   bunVersion: string;
   durationMs: number;
   samples: number;
   cpuCapacity: number;
+  peakRssSample: PeakRssSample;
   maxHealthLatencyMs: HealthLatency;
   maxPersistentZombies: number;
   roleContinuityFailures: string[];
@@ -498,6 +511,7 @@ async function startHealthMonitor(
   baseUrl: string,
   supervisor: Bun.ReadableSubprocess,
   expectedRolePids: RuntimeRolePids,
+  currentPhase: () => string = () => "unspecified",
 ): Promise<HealthMonitor> {
   let stopped = false;
   let sampleCount = 0;
@@ -510,6 +524,19 @@ async function startHealthMonitor(
   });
   const roleTracker = new RoleContinuityTracker(expectedRolePids);
   const zombieTracker = new PersistentZombieTracker();
+  let peakRssSample: PeakRssSample = {
+    atMs: startedAt,
+    phase: currentPhase(),
+    totalRssBytes: 0,
+    processes: [],
+  };
+  const processLabel = (processInfo: ProcessInfo): string => {
+    if (processInfo.pid === supervisor.pid) return "supervisor";
+    const role = processInfo.command.match(/--child=(web|worker)/)?.[1];
+    if (role) return role;
+    if (processInfo.command.includes("git-broker")) return "git-broker";
+    return processInfo.name;
+  };
   const recordFailure = (failure: string): void => {
     if (!monitor.failures.includes(failure)) monitor.failures.push(failure);
   };
@@ -525,6 +552,12 @@ async function startHealthMonitor(
         samples: sampleCount,
         cpuCapacity,
         ...resourceTracker.snapshot(),
+        peakRssSample: {
+          ...peakRssSample,
+          processes: peakRssSample.processes.map((processInfo) => ({
+            ...processInfo,
+          })),
+        },
         maxHealthLatencyMs: { ...monitor.maxLatencyByEndpointMs },
         maxPersistentZombies: monitor.maxPersistentZombies,
         roleContinuityFailures: roleTracker.failures(),
@@ -568,16 +601,31 @@ async function startHealthMonitor(
       const descendants = processTree.filter(
         (processInfo) => processInfo.pid !== supervisor.pid,
       );
+      const sampledAt = Date.now();
+      const totalRssBytes = processTree.reduce(
+        (total, processInfo) => total + processInfo.rssBytes,
+        0,
+      );
       resourceTracker.observe({
-        atMs: Date.now(),
+        atMs: sampledAt,
         cpuTicksByPid: new Map(
           processTree.map(({ pid, cpuTicks }) => [pid, cpuTicks]),
         ),
-        rssBytes: processTree.reduce(
-          (total, processInfo) => total + processInfo.rssBytes,
-          0,
-        ),
+        rssBytes: totalRssBytes,
       });
+      if (totalRssBytes > peakRssSample.totalRssBytes) {
+        peakRssSample = {
+          atMs: sampledAt,
+          phase: currentPhase(),
+          totalRssBytes,
+          processes: processTree
+            .map((processInfo) => ({
+              label: processLabel(processInfo),
+              rssBytes: processInfo.rssBytes,
+            }))
+            .sort((left, right) => right.rssBytes - left.rssBytes),
+        };
+      }
       roleTracker.observe(findRuntimeRolePids(descendants));
       roleTracker.failures().forEach(recordFailure);
 
@@ -1089,6 +1137,7 @@ it.skipIf(!RUN_SOAK)(
     let monitor: HealthMonitor | undefined;
     let resourceReport: RuntimeResourceReport | undefined;
     let importBarrier: DurableImportJobBarrier | undefined;
+    let currentPhase = "startup";
     let failure: unknown;
 
     try {
@@ -1141,6 +1190,10 @@ remove:
 plugins:
   topics:
     enableAutoExtraction: false
+  agents:
+    enableSkillDerivation: false
+  assessment:
+    enableSwotDerivation: false
   directory-sync:
     autoSync: true
     initialSync: true
@@ -1218,7 +1271,13 @@ plugins:
         () => new Error("Timed out waiting for baseline note import"),
       );
 
-      monitor = await startHealthMonitor(healthBaseUrl, supervisor, rolePids);
+      monitor = await startHealthMonitor(
+        healthBaseUrl,
+        supervisor,
+        rolePids,
+        () => currentPhase,
+      );
+      currentPhase = "add";
       await commitBurst(writerDir, "add");
       const finalProbePath = join(
         appDir,
@@ -1236,6 +1295,7 @@ plugins:
         supervisor,
       );
 
+      currentPhase = "update";
       await commitBurst(writerDir, "update");
       await waitForFileContent(
         finalProbePath,
@@ -1253,6 +1313,7 @@ plugins:
       // targeted delete jobs before these older imports can execute.
       importBarrier = new DurableImportJobBarrier(jobDatabasePath);
       importBarrier.arm();
+      currentPhase = "delayed-update";
       await commitBurst(writerDir, "delayed-update");
       const expectedBatchJobs = Math.ceil(FILE_COUNT / IMPORT_BATCH_SIZE);
       const heldImports = await waitForQueuedJobs(
@@ -1267,6 +1328,7 @@ plugins:
       ).toBe(0);
 
       const deletesCreatedAfter = Date.now();
+      currentPhase = "delete";
       await commitProbeCleanup(writerDir);
       const queuedDeletes = await waitForQueuedJobs(
         () => readQueuedDeletes(jobDatabasePath, deletesCreatedAfter),
@@ -1278,6 +1340,7 @@ plugins:
 
       // Releasing only after both durable snapshots exist makes the race
       // deliberate: old imports and authoritative deletes may now interleave.
+      currentPhase = "terminal-settlement";
       importBarrier.release();
       await waitForTerminalJobs(
         jobDatabasePath,
@@ -1286,6 +1349,7 @@ plugins:
       );
 
       const brainDataDir = join(appDir, "brain-data");
+      currentPhase = "cleanup";
       await waitForCleanup(
         brainDataDir,
         databasePath,

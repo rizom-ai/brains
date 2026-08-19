@@ -33,6 +33,8 @@ Directory-sync stress is deliberately smoke-only. The handle, domain, and conten
 ```yaml
 embeddingEnabled: false
 topicExtractionEnabled: false
+skillDerivationEnabled: false
+swotDerivationEnabled: false
 ```
 
 - `regression`: add 20 files, update all 20, then delete them;

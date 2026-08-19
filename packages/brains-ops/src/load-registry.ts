@@ -112,6 +112,8 @@ export interface ResolvedUserIdentity {
   profileKind?: string | undefined;
   embeddingEnabled?: boolean | undefined;
   topicExtractionEnabled?: boolean | undefined;
+  skillDerivationEnabled?: boolean | undefined;
+  swotDerivationEnabled?: boolean | undefined;
   siteOverride?: ResolvedSiteOverride;
   discordEnabled: boolean;
   discordAnchorUserId?: string;
@@ -234,6 +236,12 @@ export async function loadPilotRegistry(
           : {}),
         ...(userFile.data.topicExtractionEnabled !== undefined
           ? { topicExtractionEnabled: userFile.data.topicExtractionEnabled }
+          : {}),
+        ...(userFile.data.skillDerivationEnabled !== undefined
+          ? { skillDerivationEnabled: userFile.data.skillDerivationEnabled }
+          : {}),
+        ...(userFile.data.swotDerivationEnabled !== undefined
+          ? { swotDerivationEnabled: userFile.data.swotDerivationEnabled }
           : {}),
         ...(userFile.data.siteOverride
           ? { siteOverride: { ...userFile.data.siteOverride } }
