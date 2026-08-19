@@ -236,6 +236,42 @@ Owned by `work/plugin-api-boundaries`; touching any of it guarantees conflicts:
 - The entity publish pipeline, atproto projection registration, entity
   datasources and list formatters.
 
+## Follow-up work landed on this branch
+
+Beyond the four phases, the audit's ranked queue continued here under an
+explicit blocking policy: **a parked or exploratory branch never blocks trunk
+hygiene (it rebases); an active branch blocks only the exact code it is
+redesigning, and trivial adjacent fixes proceed.**
+
+- **`@rizom/ui` folded into `sites/rizom` and retired** — the package existed
+  for multiple Rizom site variants; the one-site consolidation removed its
+  reason to exist, and its only consumer had forked it. Single copy restored,
+  canonical `Wordmark` back in the site chrome, npm deprecation is the
+  operator's step.
+- **Identity-service twins** — `SingletonDocumentService` and
+  `SingletonFrontmatterAdapter` now own the wiring both anchor-profile and
+  brain-character duplicated. Measured honestly: the audit's "~370 identical
+  lines" was mostly consumed public surface; the extractable core was the
+  codec delegation and the frontmatter-regeneration override.
+- **Drizzle column annotations** — the sixteen-key `SQLiteColumn` config
+  literal five packages hand-wrote per column kind now lives once in
+  `@brains/db` (`sqlite-columns.ts`), parameterized on every axis any schema
+  varies. Seven schema files keep one-line table-bound aliases. −402 lines.
+  `work/turso-migration` overlaps additively; parked probes rebase.
+- **auth-service's `AuthRuntimeDatabase` — measured and declined.** The audit
+  called it a re-implemented `@brains/db`; reading it, the overlap is ~20 of
+  210 lines. The rest is auth-specific behavior the shared layer does not
+  model: embedded-replica sync, start/stop lifecycle with concurrent-start
+  guard, 0o700/0o600 file hardening, and `foreign_keys = ON` as deliberate
+  hardening rather than drift. Folding it into `createSqliteDatabase` would
+  grow the shared options surface exactly where turso is redesigning it, for
+  a ~15-line saving. Not worth it; revisit only if a third database needs
+  replicas.
+
+Still owned elsewhere: `interfaces/mcp/src` internals and
+`web-chat-interface.ts` (active branches are redesigning them); the chat-repl
+confirmation-grammar rework is a behavior change awaiting an explicit go.
+
 ## Deferred, with reason
 
 The bulk migration of the remaining **419 hand-written types that shadow their
