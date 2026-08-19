@@ -1027,11 +1027,18 @@ The UI/template public-surface decision was made on 2026-08-14: publish as `@riz
 
 ## Success criteria
 
-- The public authoring contract is `@rizom/brain/*`, not internal `@brains/*` packages.
-- At least one official entity package builds and typechecks using only public authoring imports.
-- Generated public declarations contain no `@brains/*` imports.
-- Enforcement prevents regressions after the first package migration.
-- Public docs explain what external and official plugin packages may depend on.
+All five met as of 2026-08-19. The criteria are met; the migration is not
+finished — nine packages still extend `EntityPlugin` and still import
+`@brains/plugins`. What the criteria asked for was a contract that exists,
+is provably reachable, is enforced, and is written down. That is now true,
+and each remaining package is a migration rather than a question about the
+boundary.
+
+- ✅ The public authoring contract is `@rizom/brain/*`, not internal `@brains/*` packages.
+- ✅ At least one official entity package builds and typechecks using only public authoring imports. Nine do: `prompt`, `style-guide`, `doc`, `products`, `series`, `blog`, `decks`, `portfolio`, `social-media`.
+- ✅ Generated public declarations contain no `@brains/*` imports — `findInternalDeclarationImports` fails the `@rizom/brain` build, which passes.
+- ✅ Enforcement prevents regressions after the first package migration. Three guards: `arch:check` (which now sanctions `packages/brain-sdk` and so enforces the boundary rather than failing on it), the export ledger's golden test, and `expectTemplateDataSourcesResolve` in each declarative package.
+- ✅ Public docs explain what external and official plugin packages may depend on — [External Package Authoring](../external-plugin-authoring.md) and [Official Package Authoring](../official-package-authoring.md).
 
 ## Related finding: plugin and entity authoring boilerplate (audit 2026-06-10)
 
