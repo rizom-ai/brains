@@ -81,7 +81,7 @@ module.exports = {
         ],
       },
       to: {
-        path: "^((?!shell/|shared/|plugins/|node_modules/).)*$",
+        path: "^((?!shell/|shared/|plugins/|packages/ui/|node_modules/).)*$",
         pathNot: [
           "\\.(test|spec)\\.(ts|tsx|js|jsx)$", // Allow test files
           "^(bun:test|path|fs|fs/promises|crypto|os|url)$", // Allow Node.js/Bun builtins
@@ -99,7 +99,7 @@ module.exports = {
         path: "^plugins/directory-sync/(test/|src/lib/content-remote-bootstrap\\.ts$)",
       },
       to: {
-        path: "^((?!shell/|shared/|plugins/|node_modules/).)*$",
+        path: "^((?!shell/|shared/|plugins/|packages/ui/|node_modules/).)*$",
         pathNot: [
           "\\.(test|spec)\\.(ts|tsx|js|jsx)$", // Allow test files
           "^(bun:test|path|fs|fs/promises|crypto|os|url|child_process|net)$", // Allow Node.js/Bun builtins
@@ -116,7 +116,7 @@ module.exports = {
         path: "^plugins/(admin|cms)/scripts/",
       },
       to: {
-        path: "^((?!shell/|shared/|plugins/|node_modules/).)*$",
+        path: "^((?!shell/|shared/|plugins/|packages/ui/|node_modules/).)*$",
         pathNot: ["^(bun:test|path|fs|fs/promises|crypto|os|url|module)$"],
       },
     },
@@ -142,7 +142,7 @@ module.exports = {
         path: "^entities/",
       },
       to: {
-        path: "^((?!shell/|shared/|entities/|packages/brain-sdk/|node_modules/).)*$",
+        path: "^((?!shell/|shared/|entities/|packages/brain-sdk/|packages/ui/|node_modules/).)*$",
         pathNot: [
           "\\.(test|spec)\\.(ts|tsx|js|jsx)$", // Allow test files
           "^(bun:test|path|fs|fs/promises|crypto|os|url|dns/promises)$", // Allow Node.js/Bun builtins
