@@ -15,14 +15,14 @@
 | Publication hygiene         | `@rizom/brain/site` is absent, the workspace `@rizom/site-sections` package is removed, and [Site Release evidence](https://github.com/rizom-ai/brains/actions/runs/31319970155) verifies all 73 published section alphas are retired. |
 | Stable-surface inventory    | Checked declarations, the machine-readable export ledger, primary authoring docs, and the patch-stability policy describe the accepted contract.                                                                                       |
 | Nomination automation       | Public diagnostics identify ownership, the failing field/capability, and corrective action; every stable authoring TypeScript fence is inventoried; the exact-alpha live harness is implemented but not yet credential-run.            |
+| Stable release ordering     | Tested workflows create one global version commit, publish stable Site through its independent CI/release lane, run exact final-alpha/stable-site registry evidence, and only then publish stable Brain.                               |
 
 ### Remaining stable nomination gates
 
-1. **Correct the coordinated stable release order.** The current Core Release publishes Brain before dispatching Site CI, while Site Release refuses to publish until the same Brain version already exists. Stable graduation instead requires one global version commit, stable `@rizom/site` publication through the site lane, exact registry evidence against that stable SDK and the final Brain alpha, and only then stable Brain publication. Correct and test this workflow without changing normal alpha-lane ownership.
-2. **Nominate the final alpha.** Merge the intended stable source, publish its Brain alpha, preserve each fixture's first-containing-release peer floor unless its exercised contract changed, and rerun all eight exact-version registry packages with the compatible published site SDK. The `alpha.313`/`alpha.233` result remains historical evidence, not proof for a newer candidate.
-3. **Run and record the final evidence protocol.** Execute the complete repository, packed, credentialed live harness, and zero-failure personal/team eval sweep against the same final alpha. Record versions, models, durations, and CI artifacts in `docs/public-release/evidence/AUTHORING_0.2.md` without secrets or private content.
-4. **Obtain explicit release authorization.** A green plan, CI run, or evidence matrix does not authorize `changeset pre exit`, stable npm publication, workflow dispatch, or dist-tag mutation. Each stable release action requires a separate explicit yes/no approval.
-5. **Publish and freeze the stable baseline.** Run the corrected site-first coordinated release, rerun exact registry evidence after stable site publication, publish stable Brain only after it passes, then freeze all eight current fixtures as the immutable `0.2.0` compatibility baseline and retire phase-oriented suite names.
+1. **Nominate the final alpha.** Merge the intended stable source, publish its Brain alpha, preserve each fixture's first-containing-release peer floor unless its exercised contract changed, and rerun all eight exact-version registry packages with the compatible published site SDK. The `alpha.313`/`alpha.233` result remains historical evidence, not proof for a newer candidate.
+2. **Run and record the final evidence protocol.** Execute the complete repository, packed, credentialed live harness, and zero-failure personal/team eval sweep against the same final alpha. Record versions, models, durations, and CI artifacts in `docs/public-release/evidence/AUTHORING_0.2.md` without secrets or private content.
+3. **Obtain explicit release authorization.** A green plan, CI run, or evidence matrix does not authorize `changeset pre exit`, stable npm publication, workflow dispatch, or dist-tag mutation. Each stable release action requires a separate explicit yes/no approval.
+4. **Publish and freeze the stable baseline.** Run the tested site-first coordinated release, publish stable Brain only after its automated exact registry gate passes, then freeze all eight current fixtures as the immutable `0.2.0` compatibility baseline and retire phase-oriented suite names.
 
 The five core extension packages and brain-definition canary remain the primary general authoring documentation. The two additive operator packages are independent compatibility fixtures for account settings and Dashboard/CMS authoring. This plan is narrower than general plugin-system cleanup: it freezes only those accepted public paths.
 
@@ -396,21 +396,21 @@ Completed alpha work:
 6. Exact registry evidence packs and imports all eight fixtures against Brain `alpha.313` and Site `alpha.233`, preserving the independent `alpha.272`, `alpha.304`, and `alpha.313` historical floors.
 7. Focused tests enforce actionable package-load, config-validation, capability-conflict, and composition-conflict diagnostics. A checked marker inventory covers every TypeScript fence in the stable authoring docs, compiling standalone examples and matching excerpts to fixture source.
 8. `public-authoring-live-packed.test.ts` installs exact registry versions and bounds provider-backed semantic ordering, agent response, confirmation, inbound conversation continuity, lazy attachment fetch, durable progress, shutdown, and secret-safe diagnostics. Its credentialed nomination run remains pending.
+9. Core and Site Release workflows test and enforce the stable-only order: one global version commit, independently gated stable site publication against the final Brain alpha, exact registry evidence, then stable core publication. Standard alpha lane versioning retains its shared serialization lock.
 
 Remaining stable work:
 
-1. Correct and test the stable-only release sequence: one global stable version commit, stable site-lane publication, exact stable-site registry evidence, then stable core publication.
-2. Merge the intended stable source, publish its final Brain alpha, and rerun all eight registry fixtures while preserving each first-containing-release peer floor unless the fixture contract changed.
-3. Run the full final nomination evidence protocol, including the credentialed live harness, and record it in `docs/public-release/evidence/AUTHORING_0.2.md`.
-4. Request explicit approval before prerelease exit, workflow dispatch, publication, or dist-tag mutation.
-5. After authorized stable publication, freeze all eight fixtures and expectations as the immutable `0.2.0` baseline, rename phase-oriented suites by contract, and run that baseline against every later `0.2.x` candidate.
+1. Merge the intended stable source, publish its final Brain alpha, and rerun all eight registry fixtures while preserving each first-containing-release peer floor unless the fixture contract changed.
+2. Run the full final nomination evidence protocol, including the credentialed live harness, and record it in `docs/public-release/evidence/AUTHORING_0.2.md`.
+3. Request explicit approval before prerelease exit, workflow dispatch, publication, or dist-tag mutation.
+4. After authorized stable publication, freeze all eight fixtures and expectations as the immutable `0.2.0` baseline, rename phase-oriented suites by contract, and run that baseline against every later `0.2.x` candidate.
 
 Exit gate:
 
 - Every documented TypeScript example is covered by an automated checked-source inventory.
 - Local-tarball and exact registry-installed hermetic matrices pass against the final candidate and then the stable site SDK.
 - Embeddings, semantic retrieval, agent conversation/confirmation, inbound messaging, attachments, and progress pass in bounded live evidence.
-- The stable-only site-first release sequence is tested and authorized.
+- The stable-only site-first release sequence is tested; its execution is separately authorized.
 - `docs/public-release/STABILITY.md` names the four core extension use cases, additive account/operator authoring, canonical entry points, and explicit exclusions.
 
 ## Validation matrix
@@ -574,7 +574,7 @@ Status labels distinguish delivered alpha evidence from work that still gates st
 13. **Complete (alpha):** Generated declarations contain no private imports and derive from the runtime schemas or canonical source types checked by the fixtures and export ledger.
 14. **Complete (alpha):** Every accepted authoring export appears in the checked stable ledger; unsupported alpha exports and `PLUGIN_API_VERSION` are removed or explicitly excluded.
 15. **Complete (alpha):** Normal CI inventories every stable-authoring TypeScript fence and proves that it either typechecks standalone or remains a checked fixture-source excerpt.
-16. **Partial:** Route/job/entity exclusions, sole `@rizom/site` ownership, removed alpha surfaces, hermetic/live boundaries, historical peer floors, and `0.2.x` compatibility policy are explicit; final stable versions and the frozen baseline are pending.
+16. **Partial:** Route/job/entity exclusions, sole `@rizom/site` ownership, removed alpha surfaces, hermetic/live boundaries, historical peer floors, `0.2.x` compatibility policy, and stable site-first publication ordering are explicit and tested; final stable versions and the frozen baseline are pending.
 17. **Pending:** Full format, typecheck, tests, forced lint, package-boundary checks, packed smokes, bounded live evidence, and targeted personal/team evals must pass and be recorded before stable nomination.
 
 ## Risks and mitigations

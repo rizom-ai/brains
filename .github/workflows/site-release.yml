@@ -2,33 +2,67 @@ name: Site Release
 
 on:
   # Site/theme publishing has an independent CI gate and trigger. Core Release
-  # never runs this workflow and cannot publish this lane.
+  # can dispatch Site CI for stable graduation, but only this workflow publishes
+  # the site lane.
   workflow_run:
     workflows: [Site CI]
     types: [completed]
     branches: [main]
   workflow_dispatch:
 
-# Shared with Release so version commits cannot race on main.
-concurrency: npm-release-main
-
 jobs:
-  release:
-    name: Site and Theme Release
+  # Mode must be known before assigning release concurrency. Standard site
+  # releases share the main version-commit lock with Core Release. A generated
+  # stable version commit needs no second version pass, so its publish job uses
+  # a distinct lock and can run while Core Release waits for the stable SDK.
+  classify:
+    name: Classify Site Release
     if: >
       github.repository == 'rizom-ai/brains' &&
       (github.event_name == 'workflow_dispatch' ||
        github.event.workflow_run.conclusion == 'success')
     runs-on: ubuntu-latest
     permissions:
+      contents: read
+    outputs:
+      mode: ${{ steps.release_mode.outputs.mode }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || 'main' }}
+          fetch-depth: 2
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .node-version
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
+      - run: bun install --frozen-lockfile
+      - name: Detect release mode
+        id: release_mode
+        run: |
+          mode="$(bun scripts/release-lane.ts mode)"
+          echo "mode=$mode" >> "$GITHUB_OUTPUT"
+          echo "Release mode: $mode"
+
+  release:
+    name: Site and Theme Release
+    needs: classify
+    if: ${{ needs.classify.outputs.mode != 'stable-exit' }}
+    concurrency:
+      group: ${{ needs.classify.outputs.mode == 'stable-version' && 'npm-stable-site-release' || 'npm-release-main' }}
+      cancel-in-progress: false
+    runs-on: ubuntu-latest
+    permissions:
       contents: write
       id-token: write
     steps:
-      # Check out the branch tip, not the trigger-time SHA — see the matching
-      # comment in release.yml for the two-lane version-commit race.
+      # Standard releases use the branch tip so two lane-specific version
+      # commits cannot diverge. Coordinated stable publication stays pinned to
+      # the generated version commit that passed Site CI.
       - uses: actions/checkout@v5
         with:
-          ref: main
+          ref: ${{ needs.classify.outputs.mode == 'stable-version' && github.event.workflow_run.head_sha || 'main' }}
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/setup-node@v5
@@ -41,13 +75,6 @@ jobs:
           bun-version-file: package.json
       - run: bun install --frozen-lockfile
 
-      - name: Detect release mode
-        id: release_mode
-        run: |
-          mode="$(bun scripts/release-lane.ts mode)"
-          echo "mode=$mode" >> "$GITHUB_OUTPUT"
-          echo "Release mode: $mode"
-
       - name: Configure git for the bot
         run: |
           git config user.name "github-actions[bot]"
@@ -56,21 +83,17 @@ jobs:
       - name: Validate release queues
         run: bun run changeset:check
 
-      # Changesets prerelease exit versions every package in one plan. Core
-      # Release owns that pass; this run resumes from the generated version
-      # commit, where the mode becomes stable-version.
-      - name: Defer global stable versioning to Core Release
-        if: steps.release_mode.outputs.mode == 'stable-exit'
-        run: echo "Waiting for Core Release to create the stable version commit."
-
+      # Changesets prerelease exit versions every package in one global pass.
+      # Core Release owns that pass. Standard site releases still version only
+      # their lane; stable-version resumes directly from the generated commit.
       - name: Version site and theme packages
-        if: steps.release_mode.outputs.mode != 'stable-exit'
+        if: needs.classify.outputs.mode == 'standard'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: bun run changeset:version:site
 
       - name: Commit and push version bump
-        if: steps.release_mode.outputs.mode != 'stable-exit'
+        if: needs.classify.outputs.mode == 'standard'
         env:
           HUSKY: "0"
         run: |
@@ -82,17 +105,23 @@ jobs:
             git push
           fi
 
-      # The site lane never publishes while the repo's current core version is
-      # missing from npm. This guards every publish run, not just a detected
-      # prerelease exit — if a core publish failed after its version commit,
-      # mode detection may read standard here, but this check still blocks and
-      # leaves Site Release safely retryable. Normal runs pass on the first
-      # lookup because the checked-out core version is already published.
-      - name: Verify core runtime is published
-        if: steps.release_mode.outputs.mode != 'stable-exit'
+      # Standard releases require the current core version on npm. Stable
+      # graduation intentionally reverses that order: the site lane verifies
+      # the final Brain alpha from the parent revision, publishes the stable SDK,
+      # and leaves stable Brain publication to the waiting Core Release.
+      - name: Verify compatible core runtime is published
         run: |
           set -euo pipefail
-          expected="$(bun -e 'console.log((await Bun.file("packages/brain-cli/package.json").json()).version)')"
+          if [ "${{ needs.classify.outputs.mode }}" = "stable-version" ]; then
+            expected="$(git show HEAD^:packages/brain-cli/package.json | bun -e 'console.log(JSON.parse(await Bun.stdin.text()).version)')"
+            if [[ ! "$expected" =~ ^0\.2\.0-alpha\.[0-9]+$ ]]; then
+              echo "Stable site publication requires an exact final Brain alpha, received: $expected" >&2
+              exit 1
+            fi
+          else
+            expected="$(bun -e 'console.log((await Bun.file("packages/brain-cli/package.json").json()).version)')"
+          fi
+
           for attempt in {1..8}; do
             actual="$(npm view "@rizom/brain@${expected}" version 2>/dev/null || true)"
             if [ "$actual" = "$expected" ]; then
@@ -109,22 +138,18 @@ jobs:
           exit 1
 
       - name: Run packed compatibility matrix
-        if: steps.release_mode.outputs.mode != 'stable-exit'
         run: bun run test:packed:compat
 
       - name: Build site and theme packages
-        if: steps.release_mode.outputs.mode != 'stable-exit'
         run: bunx turbo run build --filter='@rizom/site*' --filter='@rizom/theme*'
 
       # This checks the exact prepared manifests before npm sees them. A bad
       # peer range, authoring-only field, or workspace: specifier aborts before
       # the first irreversible publish.
       - name: Verify site/theme publish metadata
-        if: steps.release_mode.outputs.mode != 'stable-exit'
         run: bun scripts/verify-site-publish-metadata.ts
 
       - name: Publish site and theme packages to npm
-        if: steps.release_mode.outputs.mode != 'stable-exit'
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
@@ -132,7 +157,6 @@ jobs:
           bun run changeset:publish:site
 
       - name: Deprecate retired alpha-only site package
-        if: steps.release_mode.outputs.mode != 'stable-exit'
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
@@ -141,5 +165,12 @@ jobs:
           bun scripts/verify-retired-package-deprecations.ts
 
       - name: Verify registry and tarball metadata
-        if: steps.release_mode.outputs.mode != 'stable-exit'
         run: bun scripts/verify-published-peer-metadata.ts
+
+  defer-stable-exit:
+    name: Await Global Stable Version Commit
+    needs: classify
+    if: ${{ needs.classify.outputs.mode == 'stable-exit' }}
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Core Release must create the one global stable version commit."

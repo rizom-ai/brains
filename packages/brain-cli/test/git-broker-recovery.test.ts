@@ -347,7 +347,20 @@ describe.skipIf(!LINUX)("a broker that stops completing work", () => {
     // 3 and 4. The supervisor terminates the group and proves it absent. The
     //    broker leads its own group, so its Git children are in it — their
     //    death is the evidence that the group went, not just the broker.
-    const ownedGroup = await membersOfGroup(firstBroker);
+    // The direct Git process has completed, but a local transport helper can
+    // remain visible in procfs for a scheduler turn after its parent settles.
+    // Give that already-completing helper a bounded drain window below the
+    // supervisor's stale-progress deadline; a persistent child still fails.
+    const ownedGroup = await until(
+      "the completed Git operation's process group to drain",
+      async () => {
+        const members = await membersOfGroup(firstBroker);
+        return members.length === 1 && members[0] === firstBroker
+          ? members
+          : undefined;
+      },
+      1_000,
+    );
     // Git itself has completed: only the broker remains holding the unresolved
     // completion and its serialized turn. This is the affected Bun shape, not
     // a network request that merely remains in progress.

@@ -3,8 +3,9 @@ name: Release
 on:
   # Chain off Core CI so a red core build never produces an npm publish. Release
   # runs as a no-op when there are no pending changesets. On prerelease exit,
-  # this workflow versions the one global stable plan before the two workflows
-  # publish their own lanes. This keeps the downstream image/deploy chain linear
+  # this workflow versions the one global stable plan, waits for Site Release to
+  # publish the stable site SDK, proves the exact registry pairing, and only then
+  # publishes core. This keeps the downstream image/deploy chain linear
   # (CI → Release → Publish Images → Deploy) for release and non-release pushes.
   workflow_run:
     workflows: [Core CI]
@@ -15,7 +16,8 @@ on:
   # an already-bumped main, or for running a release out of band.
   workflow_dispatch:
 
-# Shared with Site Release so two version commits can never race on main.
+# Shared with standard Site Release runs so two version commits cannot race on
+# main. Coordinated stable site publication uses a separate publish-only lock.
 concurrency: npm-release-main
 
 jobs:
@@ -74,9 +76,10 @@ jobs:
       #      packages/brain-cli/scripts/build.ts) then `npm publish`.
       #      Only publishes versions not already on npm.
       #
-      # No version PR and no second workflow dependency. Alpha bumps remain
-      # automatic. Stable graduation requires the reviewed `pre exit` state;
-      # queue validation checks its global plan before this job versions it.
+      # No version PR is required. Alpha bumps remain automatic. Stable
+      # graduation requires the reviewed `pre exit` state; queue validation
+      # checks its global plan before this job versions it, then this job waits
+      # for the independently gated Site Release before publishing core.
       - name: Configure git for the bot
         run: |
           git config user.name "github-actions[bot]"
@@ -85,9 +88,19 @@ jobs:
       - name: Detect release mode
         id: release_mode
         run: |
+          set -euo pipefail
           mode="$(bun scripts/release-lane.ts mode)"
           echo "mode=$mode" >> "$GITHUB_OUTPUT"
           echo "Release mode: $mode"
+
+          if [ "$mode" = "stable-exit" ]; then
+            candidate="$(bun -e 'console.log((await Bun.file("packages/brain-cli/package.json").json()).version)')"
+          elif [ "$mode" = "stable-version" ]; then
+            candidate="$(git show HEAD^:packages/brain-cli/package.json | bun -e 'console.log(JSON.parse(await Bun.stdin.text()).version)')"
+          else
+            candidate=""
+          fi
+          echo "brain_candidate_version=$candidate" >> "$GITHUB_OUTPUT"
 
       - name: Validate release queues
         run: bun run changeset:check
@@ -116,6 +129,99 @@ jobs:
             git push
           fi
 
+      # Stable graduation is deliberately site-first. Site Release classifies
+      # this generated revision as stable-version and uses a distinct publish
+      # concurrency group, so it can run while this core workflow retains the
+      # shared version-commit lock. Retries skip dispatch when the exact stable
+      # site version is already present on npm.
+      - name: Coordinate stable site publication
+        if: steps.release_mode.outputs.mode != 'standard'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          release_sha="$(git rev-parse HEAD)"
+          expected_site="$(bun -e 'console.log((await Bun.file("packages/site/package.json").json()).version)')"
+          actual_site="$(npm view "@rizom/site@${expected_site}" version 2>/dev/null || true)"
+
+          if [ "$actual_site" = "$expected_site" ]; then
+            echo "Stable @rizom/site@${expected_site} is already published."
+            exit 0
+          fi
+
+          latest_run_id() {
+            gh run list \
+              --workflow "$1" \
+              --branch main \
+              --commit "$release_sha" \
+              --limit 1 \
+              --json databaseId \
+              --jq '.[0].databaseId // empty'
+          }
+
+          wait_for_new_run() {
+            local workflow="$1"
+            local previous="$2"
+            local label="$3"
+            local run_id
+            for attempt in {1..60}; do
+              run_id="$(latest_run_id "$workflow")"
+              if [ -n "$run_id" ] && [ "$run_id" != "$previous" ]; then
+                echo "$run_id"
+                return 0
+              fi
+              sleep 5
+            done
+            echo "Timed out waiting for ${label} at ${release_sha}." >&2
+            return 1
+          }
+
+          previous_site_ci="$(latest_run_id site-ci.yml)"
+          previous_site_release="$(latest_run_id site-release.yml)"
+          gh workflow run site-ci.yml --ref main
+
+          site_ci_run="$(wait_for_new_run site-ci.yml "$previous_site_ci" "Site CI")"
+          echo "Waiting for Site CI run ${site_ci_run}."
+          gh run watch "$site_ci_run" --exit-status
+
+          site_release_run="$(wait_for_new_run site-release.yml "$previous_site_release" "Site Release")"
+          echo "Waiting for Site Release run ${site_release_run}."
+          gh run watch "$site_release_run" --exit-status
+
+          for attempt in {1..12}; do
+            actual_site="$(npm view "@rizom/site@${expected_site}" version 2>/dev/null || true)"
+            if [ "$actual_site" = "$expected_site" ]; then
+              echo "Verified stable @rizom/site@${expected_site}."
+              exit 0
+            fi
+            if [ "$attempt" -lt 12 ]; then
+              sleep_seconds=$((attempt * 5))
+              echo "@rizom/site@${expected_site} is not visible yet; retrying in ${sleep_seconds}s."
+              sleep "$sleep_seconds"
+            fi
+          done
+          echo "Site Release completed without publishing @rizom/site@${expected_site}." >&2
+          exit 1
+
+      - name: Run exact stable-site registry matrix
+        if: steps.release_mode.outputs.mode != 'standard'
+        env:
+          RIZOM_PUBLIC_API_REGISTRY_EVIDENCE: "1"
+          RIZOM_PUBLIC_API_BRAIN_VERSION: ${{ steps.release_mode.outputs.brain_candidate_version }}
+        run: |
+          set -euo pipefail
+          site_version="$(bun -e 'console.log((await Bun.file("packages/site/package.json").json()).version)')"
+          if [[ ! "$RIZOM_PUBLIC_API_BRAIN_VERSION" =~ ^0\.2\.0-alpha\.[0-9]+$ ]]; then
+            echo "Stable graduation requires an exact final Brain alpha, received: $RIZOM_PUBLIC_API_BRAIN_VERSION" >&2
+            exit 1
+          fi
+          if [[ "$site_version" == *-* ]]; then
+            echo "Stable graduation requires a stable site SDK, received: $site_version" >&2
+            exit 1
+          fi
+          RIZOM_PUBLIC_API_SITE_VERSION="$site_version" \
+            bun test packages/brain-cli/test/public-authoring-registry-packed.test.ts
+
       - name: Run packed compatibility matrix
         run: bun run test:packed:compat
 
@@ -129,15 +235,6 @@ jobs:
 
       - name: Publish to npm
         run: bun run changeset:publish:core
-
-      # Version commits pushed with GITHUB_TOKEN do not start push workflows.
-      # Explicitly dispatch the site check chain only after stable core publish
-      # succeeds; Site Release remains the sole site/theme publisher.
-      - name: Start stable site release checks
-        if: steps.release_mode.outputs.mode != 'standard'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh workflow run site-ci.yml --ref main
 
       - name: Sync docs content repo
         if: env.DOCS_CONTENT_SYNC_TOKEN != ''
