@@ -1,4 +1,5 @@
 /** @jsxImportSource react */
+import { stubMethod } from "@brains/test-utils";
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
@@ -114,7 +115,10 @@ beforeEach(() => {
     "brain:web-chat:conversation-id",
     "web-active",
   );
-  globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+  const respond = async (
+    input: RequestInfo | URL,
+    init?: RequestInit,
+  ): Promise<Response> => {
     const url = String(input);
     const method = init?.method ?? "GET";
     if (url === "/api/chat/sessions" && method === "GET") {
@@ -137,7 +141,12 @@ beforeEach(() => {
       return Response.json({ archived: true });
     }
     return Response.json({ renamed: true, title: "Renamed thread" });
-  }) as typeof fetch;
+  };
+  stubMethod(
+    globalThis,
+    "fetch",
+    Object.assign(respond, { preconnect: originalFetch.preconnect }),
+  );
 
   // globalThis.document is the happy-dom document assigned above, but typed as
   // lib.dom's — so the element it makes is the one React's createRoot declares,

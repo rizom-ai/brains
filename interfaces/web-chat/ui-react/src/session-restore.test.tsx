@@ -1,4 +1,5 @@
 /** @jsxImportSource react */
+import { stubMethod } from "@brains/test-utils";
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
@@ -55,7 +56,7 @@ beforeEach(() => {
     "brain:web-chat:conversation-id",
     "web-persisted",
   );
-  globalThis.fetch = (async (input: RequestInfo | URL) => {
+  const respond = async (input: RequestInfo | URL): Promise<Response> => {
     const url = String(input);
     fetchCalls.push(url);
     if (url === "/api/chat/sessions") {
@@ -73,7 +74,12 @@ beforeEach(() => {
       return Response.json({ messages: historyMessages });
     }
     throw new Error(`Unexpected fetch: ${url}`);
-  }) as typeof fetch;
+  };
+  stubMethod(
+    globalThis,
+    "fetch",
+    Object.assign(respond, { preconnect: originalFetch.preconnect }),
+  );
 
   // globalThis.document is the happy-dom document assigned above, but typed as
   // lib.dom's — so the element it makes is the one React's createRoot declares,
