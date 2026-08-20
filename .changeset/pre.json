@@ -326,6 +326,7 @@
     "core--projection-burst-soak-coordination",
     "core--projection-convergence",
     "core--projection-live-root-wakeup-bounds",
+    "core--projection-output-ownership",
     "core--projection-outputs-fail-closed",
     "core--projection-runtime-guards",
     "core--projection-startup-recovery",

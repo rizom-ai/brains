@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.316
+
+### Patch Changes
+
+- [#161](https://github.com/rizom-ai/brains/pull/161) [`2af139c`](https://github.com/rizom-ai/brains/commit/2af139c90e5a85cbe0577947581d32f67471a886) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Persist per-entity projection-output ownership so directory startup cleanup preserves scheduler-derived entities that intentionally have no source files. Transfer authority to ordinary and file-backed writes, including matching no-op imports, and backfill safe ownership from completed projection history during migration.
+
 ## 0.2.0-alpha.315
 
 ### Patch Changes
