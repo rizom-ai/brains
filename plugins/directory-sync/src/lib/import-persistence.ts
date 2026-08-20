@@ -15,6 +15,10 @@ export interface ImportPersistenceDeps {
       visibilityScope?: ContentVisibility;
     }): Promise<BaseEntity | null>;
     serializeEntity(entity: BaseEntity): string;
+    assumeEntityAuthority(request: {
+      entityType: string;
+      id: string;
+    }): Promise<void>;
     upsertEntity(request: { entity: BaseEntity }): Promise<{ jobId: string }>;
   };
   logger: Logger;
@@ -91,6 +95,10 @@ export async function persistImportEntity(
       existing &&
       !deps.fileOperations.shouldUpdateEntity(existing, rawEntity)
     ) {
+      await deps.entityService.assumeEntityAuthority({
+        entityType: rawEntity.entityType,
+        id: rawEntity.id,
+      });
       result.skipped++;
       return;
     }

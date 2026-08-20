@@ -540,6 +540,8 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
       };
     },
     getEntityTypeConfig,
+    isProjectionOwnedEntity: async () => false,
+    assumeEntityAuthority: async (): Promise<void> => {},
     getWeightMap: () => ({}),
     countEntities: async () => 0,
     getEntityCounts: async (

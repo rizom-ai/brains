@@ -1019,6 +1019,173 @@ describe("ProjectionStore", () => {
     expect(await store.getActiveWave()).toBeNull();
   });
 
+  it("tracks current projection ownership across upsert and delete intents", async () => {
+    await store.markDirty({
+      sourceType: "document",
+      sourceId: "source-upsert",
+      revision: "source-upsert-hash",
+      operation: "upsert",
+      markedAt: 10,
+    });
+    await store.claimPendingWave({
+      waveId: "wave-owner-upsert",
+      graphFingerprint: "graph-1",
+      startedAt: 20,
+    });
+    await store.putWaveRules("wave-owner-upsert", [
+      { ruleId: "skills", targetType: "skill", level: 0 },
+    ]);
+    await store.applyRuleResult({
+      waveId: "wave-owner-upsert",
+      ruleId: "skills",
+      ruleVersion: "1",
+      inputFingerprint: "owner-upsert-input",
+      writeIntents: [
+        {
+          operation: "upsert",
+          entity: {
+            id: "derived-skill",
+            entityType: "skill",
+            content: "# Derived skill",
+            metadata: {},
+            visibility: "public",
+          },
+        },
+      ],
+      completedAt: 30,
+    });
+    await store.completeWave("wave-owner-upsert", 40);
+
+    expect(
+      await store.isProjectionOwnedEntity({
+        entityType: "skill",
+        id: "derived-skill",
+      }),
+    ).toBe(true);
+
+    await store.markDirty({
+      sourceType: "document",
+      sourceId: "source-delete",
+      revision: "source-delete-hash",
+      operation: "upsert",
+      markedAt: 50,
+    });
+    await store.claimPendingWave({
+      waveId: "wave-owner-delete",
+      graphFingerprint: "graph-1",
+      startedAt: 60,
+    });
+    await store.putWaveRules("wave-owner-delete", [
+      { ruleId: "skills", targetType: "skill", level: 0 },
+    ]);
+    await store.applyRuleResult({
+      waveId: "wave-owner-delete",
+      ruleId: "skills",
+      ruleVersion: "1",
+      inputFingerprint: "owner-delete-input",
+      writeIntents: [
+        {
+          operation: "delete",
+          entityType: "skill",
+          id: "derived-skill",
+        },
+      ],
+      completedAt: 70,
+    });
+
+    expect(
+      await store.isProjectionOwnedEntity({
+        entityType: "skill",
+        id: "derived-skill",
+      }),
+    ).toBe(false);
+  });
+
+  it("records ownership when a projection replay makes no entity change", async () => {
+    const applyProjection = async (
+      waveId: string,
+      sourceId: string,
+      inputFingerprint: string,
+      completedAt: number,
+    ): Promise<void> => {
+      await store.markDirty({
+        sourceType: "document",
+        sourceId,
+        revision: `${sourceId}-hash`,
+        operation: "upsert",
+        markedAt: completedAt - 20,
+      });
+      await store.claimPendingWave({
+        waveId,
+        graphFingerprint: "graph-1",
+        startedAt: completedAt - 10,
+      });
+      await store.putWaveRules(waveId, [
+        { ruleId: "topics", targetType: "topic", level: 0 },
+      ]);
+      await store.applyRuleResult({
+        waveId,
+        ruleId: "topics",
+        ruleVersion: "1",
+        inputFingerprint,
+        writeIntents: [
+          {
+            operation: "upsert",
+            entity: {
+              id: "stable-topic",
+              entityType: "topic",
+              content: "# Stable topic",
+              metadata: {},
+              visibility: "public",
+            },
+          },
+        ],
+        completedAt,
+      });
+      await store.completeWave(waveId, completedAt + 1);
+    };
+
+    await applyProjection(
+      "wave-first-owner",
+      "source-first",
+      "input-first",
+      30,
+    );
+    await store.withDirtyInput(
+      {
+        sourceType: "topic",
+        sourceId: "stable-topic",
+        revision: "ordinary-write",
+        operation: "upsert",
+        markedAt: 40,
+      },
+      async () => {},
+    );
+    expect(
+      await store.isProjectionOwnedEntity({
+        entityType: "topic",
+        id: "stable-topic",
+      }),
+    ).toBe(false);
+
+    await applyProjection(
+      "wave-replayed-owner",
+      "source-replay",
+      "input-replay",
+      70,
+    );
+
+    expect(await store.getWaveRule("wave-replayed-owner", "topics")).toEqual(
+      expect.objectContaining({ changedTargets: [] }),
+    );
+    expect(
+      await store.isProjectionOwnedEntity({
+        entityType: "topic",
+        id: "stable-topic",
+      }),
+    ).toBe(true);
+  });
+
   it("accepts late queue bookkeeping after a fast rule completes", async () => {
     await store.markDirty({
       sourceType: "document",
@@ -1145,6 +1312,12 @@ describe("ProjectionStore", () => {
     ).rejects.toThrow();
 
     expect(await connection.db.select().from(entities)).toEqual([]);
+    expect(
+      await store.isProjectionOwnedEntity({
+        entityType: "topic",
+        id: "topic-rollback",
+      }),
+    ).toBe(false);
     expect(
       await store.getRuleMemo({
         ruleId: "topics",

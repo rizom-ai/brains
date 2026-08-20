@@ -134,6 +134,10 @@ describe("contentHash regression: canonical form, not raw content", () => {
     expect(result2.skipped).toBe(1);
     expect(result2.imported).toBe(0);
     expect(mockEntityService.deserializeEntity).toHaveBeenCalledTimes(1);
+    expect(mockEntityService.assumeEntityAuthority).toHaveBeenCalledWith({
+      entityType: "note",
+      id: "my-note",
+    });
 
     // A genuine content change still parses and imports.
     writeFileSync(

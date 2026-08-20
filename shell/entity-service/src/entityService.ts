@@ -25,6 +25,7 @@ import type {
   EntityEventBus,
   GetEntityRequest,
   GetEntityRawRequest,
+  ProjectionOwnedEntityRequest,
   ListEntitiesRequest,
   CountEntitiesRequest,
   DeleteEntityRequest,
@@ -326,6 +327,20 @@ export class EntityService implements IEntityService {
 
   public getProjectionStore(): ProjectionStore {
     return this.projectionStore;
+  }
+
+  public async isProjectionOwnedEntity(
+    request: ProjectionOwnedEntityRequest,
+  ): Promise<boolean> {
+    await this.initialize();
+    return this.projectionStore.isProjectionOwnedEntity(request);
+  }
+
+  public async assumeEntityAuthority(
+    request: ProjectionOwnedEntityRequest,
+  ): Promise<void> {
+    await this.initialize();
+    await this.projectionStore.releaseProjectionOwnership(request);
   }
 
   public setProjectionWakeup(wakeup: () => Promise<void>): () => void {
