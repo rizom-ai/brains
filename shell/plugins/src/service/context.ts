@@ -101,7 +101,8 @@ export type ServiceEntityService = EntityServiceClient;
  * published service capability the runtime lacks fails to compile here.
  */
 export interface ServicePluginContext
-  extends BasePluginContext,
+  extends
+    BasePluginContext,
     Omit<PublicServicePluginContext, keyof PublicBasePluginContext> {
   /** Auth-runtime projection hooks available only to service plugins. */
   readonly permissions: BasePluginContext["permissions"] &
