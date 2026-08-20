@@ -1,5 +1,5 @@
 import type { BaseEntity, ServicePluginContext } from "@brains/plugins";
-import { createId } from "@brains/plugins";
+import { createId, internalFullScope } from "@brains/plugins";
 import { ENTITY_CHANNELS } from "@brains/contracts";
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
@@ -83,6 +83,9 @@ export function setupAutoSync(
         const currentEntity = await entityService.getEntity({
           entityType: entityType,
           id: entityId,
+          visibilityScope: internalFullScope(
+            "directory sync exports entities across all visibility tiers",
+          ),
         });
         if (!currentEntity) {
           logger.debug("Entity not found in DB, skipping export", {
