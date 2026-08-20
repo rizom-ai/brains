@@ -269,9 +269,10 @@ async function createApp(): Promise<{
   await writeFile(
     join(root, "brain.yaml"),
     `brain: brain
+bundleContract: capability-bundles-v1
 anchor: person
 kind: professional
-bundles: [core]
+bundles: [core, web]
 embedding:
   enabled: false
 remove:
