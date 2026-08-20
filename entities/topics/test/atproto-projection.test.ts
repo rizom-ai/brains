@@ -1,8 +1,10 @@
 import { describe, expect, it, beforeEach } from "bun:test";
+import { instantiatePluginPackageDefinition } from "@brains/plugins";
+import type { Plugin } from "@brains/plugins";
 import { createPluginHarness } from "@brains/plugins/test";
 import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
 import { createTopicAtprotoProjection } from "../src/atproto-projection";
-import { TopicsPlugin } from "../src";
+import { topics } from "../src";
 import type { TopicEntity } from "../src/schemas/topic";
 
 const topic: TopicEntity = {
@@ -46,11 +48,16 @@ describe("topic ATProto projection", () => {
     });
   });
 
-  it("registers the topic projection when the topics plugin registers", async () => {
+  it("registers the topic projection when the topics package registers", async () => {
     const harness = createPluginHarness({ dataDir: "/tmp/test-topic-atproto" });
-    await harness.installPlugin(
-      new TopicsPlugin({ enableAutoExtraction: false }),
+    const plugins = instantiatePluginPackageDefinition(
+      topics,
+      { enableAutoExtraction: false },
+      { name: "@brains/topics", version: "0.1.0" },
     );
+    for (const plugin of plugins as Plugin[]) {
+      await harness.installPlugin(plugin);
+    }
 
     const projection = AtprotoProjectionRegistry.getInstance().get("topic");
 

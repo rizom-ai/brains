@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import type { BaseEntity } from "@brains/plugins";
-import { TopicAdapter } from "../../src/lib/topic-adapter";
+import { createTopicBody } from "../../src/lib/topic-body";
 import {
   getTopicTitle,
   toTopicContentProjection,
@@ -8,8 +8,6 @@ import {
   toTopicDetail,
   toTopicSummary,
 } from "../../src/lib/topic-presenter";
-
-const adapter = new TopicAdapter();
 
 function createTopic(content: string, metadata = {}): BaseEntity {
   return {
@@ -26,7 +24,7 @@ function createTopic(content: string, metadata = {}): BaseEntity {
 
 describe("topic presenter", () => {
   const topic = createTopic(
-    adapter.createTopicBody({
+    createTopicBody({
       title: "Human-AI Collaboration",
       content: "Humans and AI systems coordinate work across a long process.",
     }),

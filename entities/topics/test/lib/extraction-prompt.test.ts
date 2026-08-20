@@ -1,45 +1,7 @@
 import { describe, it, expect } from "bun:test";
-import {
-  buildTopicExtractionPrompt,
-  listExistingTopicTitles,
-} from "../../src/lib/extraction-prompt";
-import { createMockEntityService } from "@brains/test-utils";
-import { createMockTopicEntity } from "../fixtures/topic-entities";
+import { buildTopicExtractionPrompt } from "../../src/lib/extraction-prompt";
 
 describe("extraction-prompt", () => {
-  it("lists existing topic titles from topic entities", async () => {
-    const entityService = createMockEntityService({
-      returns: {
-        listEntities: [
-          createMockTopicEntity({
-            id: "human-ai-collaboration",
-            content: `---
-title: Human-AI Collaboration
-keywords:
-  - ai
----
-Canonical collaboration topic.`,
-            metadata: {},
-          }),
-          createMockTopicEntity({
-            id: "fragmentation",
-            content: `---
-title: Fragmentation
-keywords:
-  - pluralism
----
-Canonical fragmentation topic.`,
-            metadata: {},
-          }),
-        ],
-      },
-    });
-
-    const titles = await listExistingTopicTitles(entityService);
-
-    expect(titles).toEqual(["Human-AI Collaboration", "Fragmentation"]);
-  });
-
   it("defines topics as durable knowledge domains, not operational artifacts", () => {
     const prompt = buildTopicExtractionPrompt({
       entityTitle: "Launch Checklist",
