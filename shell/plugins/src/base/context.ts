@@ -382,7 +382,17 @@ export function createBasePluginContext(
     gitBrokerSocket: shell.getGitBrokerSocket(),
 
     eval: executionOnly
-      ? { registerHandler: (): void => {} }
+      ? {
+          registerHandler: (): void => {},
+          // Registration is a no-op in the worker because nothing there
+          // runs evals; reaching the runner anyway means a handler ran
+          // where it cannot, which is worth saying rather than swallowing.
+          runProjectionRule: (): never => {
+            throw new Error(
+              "Projection rules cannot be run from the execution-only context",
+            );
+          },
+        }
       : createEvalNamespace(shell, pluginId),
 
     insights: executionOnly

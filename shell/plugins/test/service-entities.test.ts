@@ -1,17 +1,27 @@
 import { describe, expect, it } from "bun:test";
 import { z } from "@brains/utils/zod";
 import type { JobHandler } from "@brains/job-queue";
+import type {
+  BaseEntity,
+  CreateExecutionContext,
+  CreateInterceptor,
+  EntityMutationResult,
+} from "@brains/entity-service";
 import {
   createMockProgressReporter,
+  createMockEntityService,
   createMockShell,
   createSilentLogger,
+  stubMethod,
 } from "@brains/test-utils";
 import { createPluginHarness } from "../src/test/harness";
+import { createTemplate } from "@brains/templates";
 import { PluginManager } from "../src/manager/pluginManager";
 import { PluginStatus } from "../src/manager/types";
 import {
   defineEntity,
   defineJob,
+  defineProjectionRule,
   defineServicePlugin,
   instantiatePluginPackageDefinition,
   SYSTEM_CHANNELS,
@@ -63,33 +73,26 @@ async function runCaptureJob(
 
   const logger = createSilentLogger("service-entity-write-spike");
   const shell = createMockShell({ logger });
-  const entityService = shell.getEntityService();
-  const stored = new Map<string, Record<string, unknown>>();
+  // Reads and writes are both generic, so hand-stubbing them means
+  // asserting the stub matches instead of checking it. The mock's own
+  // options carry that one erasure in a single named place.
+  const stored = new Map<string, BaseEntity>();
+  const record = async ({
+    entity,
+  }: {
+    entity: BaseEntity;
+  }): Promise<EntityMutationResult> => {
+    written = entity;
+    stored.set(entity.id, entity);
+    return { entityId: entity.id, jobId: "job-1", skipped: false };
+  };
+  const entityService = createMockEntityService({
+    getEntityImpl: async ({ id }) => stored.get(id) ?? null,
+    createEntityImpl: record,
+    updateEntityImpl: record,
+  });
   let written: unknown = null;
-  entityService.createEntity = (async (request: {
-    entity: Record<string, unknown>;
-  }) => {
-    written = request.entity;
-    stored.set(String(request.entity["id"]), request.entity);
-    return {
-      entityId: String(request.entity["id"]),
-      jobId: "job-1",
-      skipped: false,
-    };
-  }) as typeof entityService.createEntity;
-  entityService.updateEntity = (async (request: {
-    entity: Record<string, unknown>;
-  }) => {
-    written = request.entity;
-    stored.set(String(request.entity["id"]), request.entity);
-    return {
-      entityId: String(request.entity["id"]),
-      jobId: "job-1",
-      skipped: false,
-    };
-  }) as typeof entityService.updateEntity;
-  entityService.getEntity = (async (request: { id: string }) =>
-    stored.get(request.id) ?? null) as typeof entityService.getEntity;
+
   shell.getEntityService = (): typeof entityService => entityService;
 
   const queue = shell.getJobQueueService();
@@ -130,6 +133,13 @@ async function runCaptureJob(
   );
   return written;
 }
+
+// Forwarded to jobs.enqueue as toolContext, so an empty object is not a
+// stand-in — it is a value that violates its own type.
+const executionContext: CreateExecutionContext = {
+  interfaceType: "cli",
+  actor: { kind: "user", userId: "tester" },
+};
 
 describe("service package declaring entities", () => {
   it("emits an entity plugin per declared type alongside the service plugin", () => {
@@ -263,13 +273,13 @@ describe("service package declaring entities", () => {
     const logger = createSilentLogger("service-evals");
     const shell = createMockShell({ logger });
     const registered = new Map<string, (input: unknown) => Promise<unknown>>();
-    shell.registerEvalHandler = ((
-      _pluginId: string,
-      handlerId: string,
-      handler: (input: unknown) => Promise<unknown>,
-    ): void => {
-      registered.set(handlerId, handler);
-    }) as typeof shell.registerEvalHandler;
+    stubMethod(
+      shell,
+      "registerEvalHandler",
+      (_pluginId, handlerId, handler) => {
+        registered.set(handlerId, handler);
+      },
+    );
 
     const manager = PluginManager.createFresh(
       logger,
@@ -282,6 +292,76 @@ describe("service package declaring entities", () => {
     const handler = registered.get("fetchWithKey");
     expect(handler).toBeDefined();
     expect(await handler?.({})).toEqual({ usedKey: "secret" });
+  });
+
+  // An eval that measures a configured pipeline needs both halves: the
+  // config that shaped the pipeline, and the capabilities to seed and read
+  // what it produced. Splitting those across the two evals slots forced
+  // packages to reach for the raw context to get the other half.
+  it("gives service eval handlers the same capability context entity evals get", async () => {
+    const definition = defineServicePlugin({
+      id: "bookmarks",
+      config: z.object({ minScore: z.number().default(0.5) }),
+      entities: [bookmark],
+      evals: ({ config }) => ({
+        countSeeded: async (
+          _input,
+          { entities, fixtures },
+        ): Promise<{ before: number; after: number; minScore: number }> => {
+          const before = (
+            await entities.listEntities({ entityType: "bookmark" })
+          ).length;
+          await fixtures.reset();
+          return {
+            before,
+            after: (await entities.listEntities({ entityType: "bookmark" }))
+              .length,
+            minScore: config.minScore,
+          };
+        },
+      }),
+    });
+    const plugins = instantiatePluginPackageDefinition(
+      definition,
+      { minScore: 0.8 },
+      { name: "@fixture/bookmarks", version: "0.1.0" },
+    );
+
+    const logger = createSilentLogger("service-eval-context");
+    const shell = createMockShell({ logger });
+    const registered = new Map<string, (input: unknown) => Promise<unknown>>();
+    stubMethod(
+      shell,
+      "registerEvalHandler",
+      (_pluginId, handlerId, handler) => {
+        registered.set(handlerId, handler);
+      },
+    );
+
+    const manager = PluginManager.createFresh(
+      logger,
+      shell.getDaemonRegistry(),
+    );
+    manager.setShell(shell);
+    for (const plugin of plugins) manager.registerPlugin(plugin);
+    await manager.initializePlugins();
+
+    await shell.getEntityService().createEntity({
+      entity: {
+        id: "seeded",
+        entityType: "bookmark",
+        content: "A seeded bookmark",
+        metadata: { url: "https://example.com" },
+      },
+    });
+
+    const handler = registered.get("countSeeded");
+    expect(handler).toBeDefined();
+    expect(await handler?.({})).toEqual({
+      before: 1,
+      after: 0,
+      minScore: 0.8,
+    });
   });
 
   // A capture job accepts something now and enriches it later, so it needs a
@@ -371,30 +451,28 @@ describe("service package declaring entities", () => {
     const harness = createPluginHarness({
       logger: createSilentLogger("service-create-routing"),
     });
-    let interceptor:
-      | ((input: unknown, executionContext: unknown) => Promise<unknown>)
-      | undefined;
+    let interceptor: CreateInterceptor | undefined;
     const registry = harness.getEntityRegistry();
-    registry.registerCreateInterceptor = ((
-      _entityType: string,
-      registered: typeof interceptor,
-    ): void => {
+    stubMethod(registry, "registerCreateInterceptor", (_type, registered) => {
       interceptor = registered;
-    }) as typeof registry.registerCreateInterceptor;
+    });
 
     const enqueued: string[] = [];
     const shell = harness.getMockShell();
     const jobQueue = shell.getJobQueueService();
-    jobQueue.enqueue = (async (request: { type: string }) => {
-      enqueued.push(request.type);
+    stubMethod(jobQueue, "enqueue", async ({ type }) => {
+      enqueued.push(type);
       return "job-1";
-    }) as typeof jobQueue.enqueue;
+    });
     shell.getJobQueueService = (): typeof jobQueue => jobQueue;
 
     await harness.installPlugin(entityPlugin);
     if (!interceptor) throw new Error("Create interceptor was not registered");
 
-    await interceptor({ entityType: "bookmark", prompt: "save this" }, {});
+    await interceptor(
+      { entityType: "bookmark", prompt: "save this" },
+      executionContext,
+    );
 
     expect(enqueued).toEqual(["@fixture/bookmarks:capture:capture-bookmark"]);
     harness.reset();
@@ -520,6 +598,101 @@ describe("service package declaring entities", () => {
     ).toEqual({ source: "shared" });
 
     harness.reset();
+  });
+
+  // A projection rule that reads configuration cannot be static entity
+  // data. Declared on the service half, each rule joins the entity plugin
+  // whose type it targets, so the runtime still sees it as that entity's.
+  // A rule that generates has to name a template, and the runtime scopes
+  // template names itself. Left to hardcode the prefix, a package writes a
+  // name that silently stops resolving the moment its scope changes — which
+  // surfaces as "Template not found" at derive time, not at registration.
+  it("hands projection rules the scoped name of a template the package declares", async () => {
+    const summarised = defineEntity({
+      type: "summary",
+      purpose: "A generated summary.",
+      metadata: z.object({}),
+      templates: {
+        extraction: createTemplate({
+          name: "extraction",
+          description: "Extraction prompt",
+          schema: z.object({ topics: z.array(z.string()) }),
+          requiredPermission: "public",
+        }),
+      },
+    });
+    let namedTemplate = "";
+    const definition = defineServicePlugin({
+      id: "summaries",
+      config: z.object({}),
+      entities: [summarised],
+      projectionRules: ({ template }) => {
+        namedTemplate = template("extraction");
+        return [];
+      },
+    });
+
+    instantiatePluginPackageDefinition(
+      definition,
+      {},
+      { name: "@fixture/summaries", version: "0.1.0" },
+    );
+
+    expect(namedTemplate).toBe("@fixture/summaries:summary:extraction");
+  });
+
+  it("attaches config-derived projection rules to the entity they target", async () => {
+    const definition = defineServicePlugin({
+      id: "bookmarks",
+      config: z.object({ extract: z.boolean().default(true) }),
+      entities: [bookmark],
+      projectionRules: ({ config }) =>
+        config.extract
+          ? [
+              defineProjectionRule({
+                id: "bookmark-extraction",
+                version: "1",
+                sources: [{ kind: "entity", types: ["*"] }],
+                targetType: "bookmark",
+                inputSchema: z.object({}),
+                selectInput: async () => ({}),
+                derive: async () => [],
+              }),
+            ]
+          : [],
+    });
+
+    const enabled = instantiatePluginPackageDefinition(
+      definition,
+      { extract: true },
+      { name: "@fixture/bookmarks", version: "0.1.0" },
+    ).find((plugin) => plugin.type === "entity");
+    if (!enabled) throw new Error("Bookmark entity plugin was not created");
+
+    const harness = createPluginHarness({
+      logger: createSilentLogger("service-projection-rules-test"),
+    });
+    const capabilities = await harness.installPlugin(enabled);
+    expect(capabilities.projectionRules?.map(({ id }) => id)).toEqual([
+      "bookmark-extraction",
+    ]);
+    harness.reset();
+
+    // Configuration decides whether the rule exists at all.
+    const disabled = instantiatePluginPackageDefinition(
+      definition,
+      { extract: false },
+      { name: "@fixture/bookmarks", version: "0.1.0" },
+    ).find((plugin) => plugin.type === "entity");
+    if (!disabled) throw new Error("Bookmark entity plugin was not created");
+
+    const second = createPluginHarness({
+      logger: createSilentLogger("service-projection-rules-off"),
+    });
+    expect(
+      (await second.installPlugin(disabled)).projectionRules,
+    ).toBeUndefined();
+    second.reset();
   });
 
   it("still emits only a service plugin when no entities are declared", () => {

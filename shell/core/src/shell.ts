@@ -20,6 +20,8 @@ import type {
   ProjectionExecutionContext,
   ProjectionInputContext,
   ProjectionJsonObject,
+  ProjectionRule,
+  ProjectionWriteIntent,
 } from "@brains/plugins";
 import { bindHttpRouteSnapshot } from "@brains/plugins/internal/http-route-snapshot";
 
@@ -196,33 +198,10 @@ export class Shell implements IShell {
               query: (prompt, context) => this.query(prompt, context),
               getAppInfo: () => this.getAppInfo(),
             }),
-          createProjectionInputContext: (): ProjectionInputContext => ({
-            entities: this.services.entityService,
-            resolvePrompt: (reference, fallback): Promise<string> =>
-              resolvePrompt(this.services.entityService, reference, fallback),
-            appInfo: (): Promise<RuntimeAppInfo> => this.getAppInfo(),
-            identityInput: (): ProjectionJsonObject => {
-              const identity = this.getIdentity();
-              const profile = this.getProfile();
-              return ProjectionJsonObjectSchema.parse({
-                brainName: identity.name,
-                role: identity.role,
-                purpose: identity.purpose,
-                values: identity.values,
-                profileName: profile.name,
-                ...(profile.description !== undefined
-                  ? { profileDescription: profile.description }
-                  : {}),
-                ...(profile.organization !== undefined
-                  ? { profileOrganization: profile.organization }
-                  : {}),
-              });
-            },
-          }),
-          createProjectionExecutionContext: (): ProjectionExecutionContext => ({
-            ai: createAINamespace(this),
-            logger: this.services.logger.child("ProjectionRuntime"),
-          }),
+          createProjectionInputContext: (): ProjectionInputContext =>
+            this.createProjectionInputContext(),
+          createProjectionExecutionContext: (): ProjectionExecutionContext =>
+            this.createProjectionExecutionContext(),
         },
       );
 
@@ -754,6 +733,57 @@ export class Shell implements IShell {
     handler: EvalHandler,
   ): void {
     this.config.evalHandlerRegistry?.register(pluginId, handlerId, handler);
+  }
+
+  private createProjectionInputContext(): ProjectionInputContext {
+    return {
+      entities: this.services.entityService,
+      resolvePrompt: (reference, fallback): Promise<string> =>
+        resolvePrompt(this.services.entityService, reference, fallback),
+      appInfo: (): Promise<RuntimeAppInfo> => this.getAppInfo(),
+      identityInput: (): ProjectionJsonObject => {
+        const identity = this.getIdentity();
+        const profile = this.getProfile();
+        return ProjectionJsonObjectSchema.parse({
+          brainName: identity.name,
+          role: identity.role,
+          purpose: identity.purpose,
+          values: identity.values,
+          profileName: profile.name,
+          ...(profile.description !== undefined
+            ? { profileDescription: profile.description }
+            : {}),
+          ...(profile.organization !== undefined
+            ? { profileOrganization: profile.organization }
+            : {}),
+        });
+      },
+    };
+  }
+
+  private createProjectionExecutionContext(): ProjectionExecutionContext {
+    return {
+      ai: createAINamespace(this),
+      logger: this.services.logger.child("ProjectionRuntime"),
+    };
+  }
+
+  /**
+   * Select and derive, with no wave, no memo and no write.
+   *
+   * The trigger carries no inputs because an eval measures a rule against
+   * the corpus as it stands, not against a specific change that arrived.
+   */
+  public async runProjectionRule(
+    rule: ProjectionRule,
+    signal: AbortSignal = new AbortController().signal,
+  ): Promise<readonly ProjectionWriteIntent[]> {
+    const input = await rule.selectInput(
+      { waveId: "eval", inputs: [] },
+      this.createProjectionInputContext(),
+      signal,
+    );
+    return rule.derive(input, this.createProjectionExecutionContext(), signal);
   }
 
   public async getAppInfo(): Promise<RuntimeAppInfo> {

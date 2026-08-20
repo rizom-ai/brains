@@ -63,6 +63,15 @@ export type MessageSender<T = unknown, R = unknown> = (
   request: MessageSendRequest<T>,
 ) => Promise<MessageResponse<R>>;
 
+/**
+ * What a subscriber is given: the whole message, envelope included, not the
+ * payload on its own. Declared here because a plugin that subscribes has to
+ * name this type to hold on to its own handler.
+ */
+export type MessageHandler<T = unknown, R = unknown> = (
+  message: MessageWithPayload<T>,
+) => Promise<MessageResponse<R>> | MessageResponse<R>;
+
 export interface MessageContext {
   userId?: string;
   channelId?: string;

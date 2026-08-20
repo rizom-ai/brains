@@ -3,11 +3,13 @@ import type { LoggerContract } from "@brains/utils/logger";
 import type { z } from "@brains/utils/zod";
 import type {
   AnyEntityDefinition,
+  EntityEvalContext,
   EntityInsightDeclaration,
   EntityPublishDeclaration,
   ProjectionDefinition,
 } from "../entity/entity-definition-contract";
 import type { JobHandlerContext } from "../job/job-context-contract";
+import type { ProjectionRule } from "../entity/projection-rule";
 import type { AnyAccountSettingsDefinition } from "../operator/account-settings-definition-contract";
 import type {
   AnyCmsWorkspaceDefinition,
@@ -40,7 +42,19 @@ export interface ServiceProgressReporter {
   report(input: ServiceJobProgress): Promise<void>;
 }
 
-export type ServiceEvalHandler = (input: unknown) => Promise<unknown>;
+/**
+ * An eval handler on a service package.
+ *
+ * Takes the same capability context an entity-side eval gets, on top of the
+ * config and state its declaration closes over. An eval that measures a
+ * configured pipeline needs both halves — the config that shaped it, and the
+ * access to seed and read what it produced — and getting only one half is
+ * what drove packages to reach for the raw plugin context instead.
+ */
+export type ServiceEvalHandler = (
+  input: unknown,
+  context: EntityEvalContext,
+) => Promise<unknown>;
 
 export interface ServiceTemplateFormatter {
   format<TValue>(name: string, value: TValue): string;
@@ -279,6 +293,29 @@ interface ServiceDefinitionCore<
    */
   readonly entities?: readonly AnyEntityDefinition[] | undefined;
   readonly projections?: readonly ProjectionDefinition[] | undefined;
+  /**
+   * Projection rules that read configuration.
+   *
+   * A function of config, unlike the entity-side slot, for the same reason
+   * `jobs` is: whether a rule exists at all, and what thresholds it derives
+   * with, can be configured. Each rule joins the entity plugin whose type it
+   * targets, so the runtime sees it as that entity's rule.
+   */
+  readonly projectionRules?:
+    | ((context: {
+        readonly config: z.output<TConfigSchema>;
+        /**
+         * The scoped name of a template this package declares.
+         *
+         * A rule that generates has to name a template, and the runtime
+         * owns template scoping. Left to write the prefix itself, a package
+         * hardcodes a name that stops resolving the moment its scope
+         * changes — and the failure lands at derive time, long after
+         * registration would have caught it.
+         */
+        readonly template: (localName: string) => string;
+      }) => readonly ProjectionRule[])
+    | undefined;
   readonly setup?:
     | ((context: {
         readonly config: z.output<TConfigSchema>;
@@ -335,6 +372,9 @@ interface ServiceDefinitionCore<
     | ((context: {
         readonly config: z.output<TConfigSchema>;
         readonly state: TState;
+        /** As on `projectionRules`: an eval that drives a rule names the
+         * same template the rule does, and neither writes the prefix. */
+        readonly template: (localName: string) => string;
       }) => Record<string, ServiceEvalHandler>)
     | undefined;
   /**

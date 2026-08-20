@@ -3,6 +3,7 @@ import { z } from "@brains/utils/zod";
 import {
   createMockProgressReporter,
   createSilentLogger,
+  stubMethod,
 } from "@brains/test-utils";
 import { createPluginHarness } from "../src/test/harness";
 import {
@@ -12,11 +13,17 @@ import {
 import type { PublishMediaData } from "@brains/contracts";
 import type { JobHandler } from "@brains/job-queue";
 import type { EvalHandler } from "@brains/ai-evaluation";
-import type { EntityJobDeclaration } from "../src";
+import type {
+  EntityGenerationJobDeclaration,
+  EntityGenerationResult,
+  EntityJobDeclaration,
+} from "../src";
+import type { JobHandlerContext } from "../src/job/job-context-contract";
 import type {
   CreateExecutionContext,
   CreateInput,
   CreateInterceptionResult,
+  CreateInterceptor,
 } from "@brains/entity-service";
 import {
   AtprotoProjectionRegistry,
@@ -38,6 +45,11 @@ import {
   instantiatePluginPackageDefinition,
   type EntityOf,
 } from "../src";
+
+const executionContext: CreateExecutionContext = {
+  interfaceType: "cli",
+  actor: { kind: "user", userId: "tester" },
+};
 
 describe("entity package definitions", () => {
   it("infers domain entities and creates a scoped package definition", async () => {
@@ -594,6 +606,425 @@ describe("entity package definitions", () => {
     harness.reset();
   });
 
+  it("lets an eval reset its own seeded fixtures without reaching entity deletion", async () => {
+    // An eval that seeds and measures has to start from a known state, or
+    // one run contaminates the next. Deletion is scoped to the declaring
+    // entity type: resetting topics must not be able to erase notes.
+    const guide = defineEntity({
+      type: "guide",
+      purpose: "A guide whose evals seed fixtures.",
+      metadata: z.object({ title: z.string() }),
+      evals: {
+        countAfterReset: async (_input, { entities, fixtures }) => {
+          await fixtures.reset();
+          return {
+            count: (await entities.listEntities({ entityType: "guide" }))
+              .length,
+          };
+        },
+      },
+    });
+    const definition = defineEntityPackage({ id: "guides", entities: [guide] });
+    const plugin = createEntityPackagePlugins(
+      definition.entities,
+      definition.projections,
+      { name: "@fixture/guides", version: "0.1.0" },
+      (id) => `@fixture/guides:${id}`,
+    )[0];
+    if (!plugin) throw new Error("Guide entity plugin was not created");
+
+    const harness = createPluginHarness({
+      logger: createSilentLogger("entity-eval-reset-test"),
+    });
+    const handlers = new Map<string, EvalHandler>();
+    const mockShell = harness.getMockShell();
+    mockShell.registerEvalHandler = (
+      _pluginId: string,
+      handlerId: string,
+      handler: EvalHandler,
+    ): void => {
+      handlers.set(handlerId, handler);
+    };
+
+    await harness.installPlugin(plugin);
+
+    const entityService = harness.getEntityService();
+    await entityService.createEntity({
+      entity: {
+        id: "seeded",
+        entityType: "guide",
+        content: "A seeded guide",
+        metadata: { title: "Seeded" },
+      },
+    });
+
+    const handler = handlers.get("countAfterReset");
+    if (!handler) throw new Error("Eval handler was not registered");
+    expect(await handler({})).toEqual({ count: 0 });
+
+    harness.reset();
+  });
+
+  it("runs a declared projection rule from an eval, so the eval measures the live path", async () => {
+    // Extraction quality is a property of the rule that actually runs. An
+    // eval that drives a parallel pipeline instead measures a copy, and the
+    // copy is what rots. select + derive only: waves, memoization and
+    // persistence are orchestration, not the thing under measurement.
+    const guideRule = defineProjectionRule({
+      id: "guide-summaries",
+      version: "1",
+      sources: [{ kind: "entity", types: ["note"] }],
+      targetType: "guide",
+      inputSchema: z.object({ titles: z.array(z.string()) }),
+      selectInput: async (_trigger, { entities }) => ({
+        titles: (await entities.listEntities({ entityType: "note" })).map(
+          ({ id }) => id,
+        ),
+      }),
+      derive: async ({ titles }) =>
+        titles.map((title) => ({
+          operation: "upsert" as const,
+          entity: {
+            id: `guide-${title}`,
+            entityType: "guide",
+            content: `Guide for ${title}`,
+            metadata: { title },
+            visibility: "public" as const,
+          },
+        })),
+    });
+    const guide = defineEntity({
+      type: "guide",
+      purpose: "A guide derived from notes.",
+      metadata: z.object({ title: z.string() }),
+      projectionRules: [guideRule],
+      evals: {
+        summarizeAll: async (_input, { runProjectionRule }) => {
+          const intents = await runProjectionRule(guideRule);
+          return {
+            ids: intents.flatMap((intent) =>
+              intent.operation === "upsert" ? [intent.entity.id] : [],
+            ),
+          };
+        },
+      },
+    });
+    const definition = defineEntityPackage({ id: "guides", entities: [guide] });
+    const plugin = createEntityPackagePlugins(
+      definition.entities,
+      definition.projections,
+      { name: "@fixture/guides", version: "0.1.0" },
+      (id) => `@fixture/guides:${id}`,
+    )[0];
+    if (!plugin) throw new Error("Guide entity plugin was not created");
+
+    const harness = createPluginHarness({
+      logger: createSilentLogger("entity-eval-rule-test"),
+    });
+    const handlers = new Map<string, EvalHandler>();
+    const mockShell = harness.getMockShell();
+    mockShell.registerEvalHandler = (
+      _pluginId: string,
+      handlerId: string,
+      handler: EvalHandler,
+    ): void => {
+      handlers.set(handlerId, handler);
+    };
+
+    await harness.installPlugin(plugin);
+
+    await harness.getEntityService().createEntity({
+      entity: {
+        id: "rivers",
+        entityType: "note",
+        content: "About rivers",
+        metadata: {},
+      },
+    });
+
+    const handler = handlers.get("summarizeAll");
+    if (!handler) throw new Error("Eval handler was not registered");
+    expect(await handler({})).toEqual({ ids: ["guide-rivers"] });
+
+    harness.reset();
+  });
+
+  it("reads the upload a job was handed, without the job naming a transport", async () => {
+    // A job that imports an uploaded file needs the bytes. It does not need
+    // to choose a filesystem namespace, a client ref kind, or an HTTP route
+    // — note declared all three, including `/api/chat/uploads`, which is a
+    // chat interface's route and has no bearing on which bytes come back.
+    const guide = defineEntity({
+      type: "guide",
+      purpose: "A guide imported from an upload.",
+      metadata: z.object({ title: z.string() }),
+      jobs: {
+        import: {
+          input: z.object({ uploadId: z.string() }),
+          handle: async ({
+            input,
+            uploads,
+          }: JobHandlerContext<{ uploadId: string }>): Promise<{
+            filename: string;
+            body: string;
+          }> => {
+            const { record, content } = await uploads.read(input.uploadId);
+            return { filename: record.filename, body: content.toString() };
+          },
+        } satisfies EntityJobDeclaration<
+          z.ZodObject<{ uploadId: z.ZodString }>
+        >,
+      },
+    });
+    const definition = defineEntityPackage({ id: "guides", entities: [guide] });
+    const plugin = createEntityPackagePlugins(
+      definition.entities,
+      definition.projections,
+      { name: "@fixture/guides", version: "0.1.0" },
+      (id) => `@fixture/guides:${id}`,
+    )[0];
+    if (!plugin) throw new Error("Guide entity plugin was not created");
+
+    const harness = createPluginHarness({
+      logger: createSilentLogger("entity-upload-test"),
+    });
+    const handlers = new Map<string, JobHandler>();
+    const queue = harness.getMockShell().getJobQueueService();
+    stubMethod(queue, "registerHandler", (name, handler) => {
+      handlers.set(name, handler);
+    });
+    harness.getMockShell().getJobQueueService = (): typeof queue => queue;
+
+    const uploaded = await harness
+      .getMockShell()
+      .getRuntimeUploadRegistry()
+      .scoped({
+        namespace: "upload",
+        refKind: "upload",
+        routePath: "/api/uploads",
+      })
+      .save({
+        filename: "notes.md",
+        mediaType: "text/markdown",
+        content: Buffer.from("# Imported"),
+      });
+
+    await harness.installPlugin(plugin);
+
+    const handler = handlers.get("@fixture/guides:guide:import");
+    if (!handler) throw new Error("Import job handler was not registered");
+    expect(
+      await handler.process(
+        { uploadId: uploaded.id },
+        "job-1",
+        createMockProgressReporter(),
+        new AbortController().signal,
+      ),
+    ).toEqual({ filename: "notes.md", body: "# Imported" });
+
+    harness.reset();
+  });
+
+  it("writes a placeholder and delegates the slow part in one resolution", async () => {
+    // Importing an upload has to do both: return a real, deduplicated id the
+    // caller can look at straight away, and hand the actual reading of the
+    // file to a job. `delegate` alone enqueues without allocating anything,
+    // and `create` alone finishes immediately — an import is neither.
+    const guide = defineEntity({
+      type: "guide",
+      purpose: "A guide imported from an upload.",
+      metadata: z.object({ title: z.string() }),
+      jobs: {
+        import: {
+          input: z.object({ entityId: z.string() }),
+          handle: async (): Promise<{ done: true }> => ({ done: true }),
+        },
+      },
+      create: {
+        fromUpload: {
+          resolve: async ({ input }) => ({
+            create: {
+              id: "imported-guide",
+              content: "Importing…",
+              metadata: { title: input.title ?? "Untitled" },
+            },
+            delegate: { job: "import" },
+          }),
+        },
+      },
+    });
+    const definition = defineEntityPackage({ id: "guides", entities: [guide] });
+    const plugin = createEntityPackagePlugins(
+      definition.entities,
+      definition.projections,
+      { name: "@fixture/guides", version: "0.1.0" },
+      (id) => `@fixture/guides:${id}`,
+    )[0];
+    if (!plugin) throw new Error("Guide entity plugin was not created");
+
+    const harness = createPluginHarness({
+      logger: createSilentLogger("entity-import-test"),
+    });
+    let interceptor: CreateInterceptor | undefined;
+    const registry = harness.getEntityRegistry();
+    stubMethod(registry, "registerCreateInterceptor", (_type, registered) => {
+      interceptor = registered;
+    });
+
+    const enqueued: { type: string; data: unknown }[] = [];
+    const shell = harness.getMockShell();
+    const jobQueue = shell.getJobQueueService();
+    stubMethod(jobQueue, "enqueue", async ({ type, data }) => {
+      enqueued.push({ type, data });
+      return "job-1";
+    });
+    shell.getJobQueueService = (): typeof jobQueue => jobQueue;
+
+    await harness.installPlugin(plugin);
+    if (!interceptor) throw new Error("Create interceptor was not registered");
+
+    const outcome = await interceptor(
+      {
+        entityType: "guide",
+        from: { kind: "upload", id: "u1" },
+        title: "Notes",
+      },
+      executionContext,
+    );
+
+    // Reported as generating, with the id already allocated — not as
+    // "created", which would claim the import had finished.
+    expect(outcome).toMatchObject({
+      kind: "handled",
+      result: {
+        success: true,
+        data: { status: "generating", entityId: "imported-guide" },
+      },
+    });
+    expect(
+      await harness
+        .getEntityService()
+        .getEntity({ entityType: "guide", id: "imported-guide" }),
+    ).not.toBeNull();
+    const placeholder = await harness
+      .getEntityService()
+      .getEntity({ entityType: "guide", id: "imported-guide" });
+    // The job is told which entity to fill in, so it never re-derives the id,
+    // and what that entity looked like, so an edit made while it runs wins.
+    expect(enqueued).toEqual([
+      {
+        type: "@fixture/guides:guide:import",
+        data: {
+          entityId: "imported-guide",
+          expectedContentHash: placeholder?.contentHash,
+        },
+      },
+    ]);
+
+    harness.reset();
+  });
+
+  it("owns the lifecycle of a job that fills in an entity it allocated", async () => {
+    // A job reached through an allocation is filling in an entity the caller
+    // is already looking at. Declared with `generate` rather than `handle`,
+    // it returns what it produced and the runtime writes it — and marks the
+    // entity failed when it throws, instead of leaving it "generating"
+    // forever with nobody to say otherwise.
+    const guide = defineEntity({
+      type: "guide",
+      purpose: "A guide imported from an upload.",
+      metadata: z.object({
+        title: z.string(),
+        status: z.string().optional(),
+        error: z.string().optional(),
+      }),
+      stub: ({ title }) => ({
+        content: `---\ntitle: ${title}\nstatus: generating\n---\n`,
+        metadata: { title, status: "generating" },
+      }),
+      jobs: {
+        import: {
+          input: z.object({ entityId: z.string(), fail: z.boolean() }),
+          generate: async ({ input }): Promise<EntityGenerationResult> =>
+            input.fail
+              ? { success: false, error: "unreadable file" }
+              : {
+                  success: true,
+                  content: "Imported body",
+                  metadata: { title: "Imported" },
+                },
+        } satisfies EntityGenerationJobDeclaration<
+          z.ZodObject<{ entityId: z.ZodString; fail: z.ZodBoolean }>
+        >,
+      },
+    });
+    const definition = defineEntityPackage({ id: "guides", entities: [guide] });
+    const plugin = createEntityPackagePlugins(
+      definition.entities,
+      definition.projections,
+      { name: "@fixture/guides", version: "0.1.0" },
+      (id) => `@fixture/guides:${id}`,
+    )[0];
+    if (!plugin) throw new Error("Guide entity plugin was not created");
+
+    const harness = createPluginHarness({
+      logger: createSilentLogger("entity-generate-job-test"),
+    });
+    const handlers = new Map<string, JobHandler>();
+    const queue = harness.getMockShell().getJobQueueService();
+    stubMethod(queue, "registerHandler", (name, handler) => {
+      handlers.set(name, handler);
+    });
+    harness.getMockShell().getJobQueueService = (): typeof queue => queue;
+
+    await harness.installPlugin(plugin);
+    const entities = harness.getEntityService();
+    const handler = handlers.get("@fixture/guides:guide:import");
+    if (!handler) throw new Error("Import job handler was not registered");
+
+    await entities.createEntity({
+      entity: {
+        id: "allocated",
+        entityType: "guide",
+        content: "---\ntitle: Pending\nstatus: generating\n---\n",
+        metadata: { title: "Pending", status: "generating" },
+      },
+    });
+
+    await handler.process(
+      { entityId: "allocated", fail: false },
+      "job-1",
+      createMockProgressReporter(),
+      new AbortController().signal,
+    );
+    expect(
+      await entities.getEntity({ entityType: "guide", id: "allocated" }),
+    ).toMatchObject({ metadata: { title: "Imported" } });
+
+    await entities.createEntity({
+      entity: {
+        id: "doomed",
+        entityType: "guide",
+        content: "---\ntitle: Pending\nstatus: generating\n---\n",
+        metadata: { title: "Pending", status: "generating" },
+      },
+    });
+    await handler.process(
+      { entityId: "doomed", fail: true },
+      "job-2",
+      createMockProgressReporter(),
+      new AbortController().signal,
+    );
+    // Not left mid-flight: the entity says what went wrong.
+    expect(
+      await entities.getEntity({ entityType: "guide", id: "doomed" }),
+    ).toMatchObject({
+      metadata: { status: "failed", error: "unreadable file" },
+    });
+
+    harness.reset();
+  });
+
   it("registers declared jobs and surfaces declared instructions", async () => {
     // Generation is just a job the runtime names for you, so both go
     // through the same declaration shape and the same validated handler.
@@ -975,8 +1406,6 @@ describe("entity package definitions", () => {
 
     await harness.installPlugin(plugin);
     if (!interceptor) throw new Error("Create interceptor was not registered");
-
-    const executionContext = {} as CreateExecutionContext;
 
     // A shape with no declared route is left to ordinary creation.
     expect(
