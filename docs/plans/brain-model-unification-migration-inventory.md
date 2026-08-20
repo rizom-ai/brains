@@ -120,21 +120,44 @@ output and exact unified runtime pin must be committed together in `yeehaa-io`.
 The following open review branches preserve active desired state and runtime dependency
 pins until matching unified artifacts exist:
 
-- `rover-pilot` `work/brain-model-unification` at `4e5100f` stores the reviewed bundle
-  mapping, hosted-site pins, and the disabled-newsletter decision. Staging from that branch
-  produced 19 configs with the expected 16/3 posture split and zero first- or second-pass
-  reconciliation drift.
-- `yeehaa-io` `work/brain-model-unification` at `b4d88ab` stores the deterministic
-  professional target YAML, credential-free pull-request CI, and a consistent Bun 1.3.14
+- `rover-pilot` `work/brain-model-unification` at `116ec4c` stores the reviewed bundle
+  mapping, hosted-site pins, disabled-newsletter decision, and matching Bun 1.4.0 operator
+  and image targets. Staging under Bun 1.4.0 produced 19 configs with the expected 16/3
+  posture split and zero first- or second-pass reconciliation drift.
+- `yeehaa-io` `work/brain-model-unification` at `0622b4d` stores the deterministic
+  professional target YAML, credential-free pull-request CI, and a consistent Bun 1.4.0
   target for development, CI, and the future image. It matches a fresh migration preview
   exactly, parses as `capability-bundles-v1` with all 11 plugin blocks, and passes frozen
   install, typecheck, migration-preservation, runtime-version, and workflow-safety checks.
 
 Neither branch changes an active `brain.yaml`, `@rizom/brain` version, operator package, or
-lockfile. Rover also leaves workflows and deployment inputs unchanged. The `yeehaa-io`
-Docker target is prepared but remains inactive: merging any change to its `main` publishes
-an image and chains a successful publication into deployment, so that PR stays unmerged
-until the approved crossover window.
+lockfile. Their Bun 1.4.0 Docker targets are prepared but remain inactive. Merging Rover's
+`deploy/**` change triggers image build and deploy workflows; merging any change to
+`yeehaa-io/main` publishes an image and chains a successful publication into deployment.
+Both PRs therefore stay unmerged until the approved crossover window.
+
+## Reviewed release plan
+
+Audit snapshot: `origin/main` at `48ff60cf2`, with npm currently serving
+`@rizom/brain@0.2.0-alpha.318` and `@rizom/ops@0.2.0-alpha.318`.
+
+- Release mode is standard alpha.
+- Seven core changesets produce one fixed-group version pass over 88 active workspace
+  packages: 86 private packages plus the two public artifacts
+  `@rizom/brain@0.2.0-alpha.319` and `@rizom/ops@0.2.0-alpha.319`.
+- No site-lane changeset is pending in this snapshot. This branch touches no Site CI path,
+  so its merge does not trigger or publish that lane.
+- Core CI and Release use the repository-pinned Bun 1.4.0; generated standalone/fleet
+  Dockerfiles and both reviewed external image targets use the same version.
+- Release pushes its version commit before packed compatibility, ops smoke, build, and npm
+  publication. Downstream repositories must not pin the candidate until both registry
+  versions and integrity values are verified.
+- A prior unrelated Site Release failed when `main` advanced before its version push.
+  Hold a short `main` merge freeze from crossover merge through registry verification to
+  prevent the same race.
+
+Re-run the release plan after the final fetch; any new main commit or release invalidates
+this candidate-version snapshot.
 
 ## Crossover sequence
 

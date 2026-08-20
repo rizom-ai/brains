@@ -46,7 +46,7 @@
     "@types/node": "^24.13.3",
     "zod": "^4.1.8"
   },
-  "packageManager": "bun@1.3.11",
+  "packageManager": "bun@1.4.0",
   "private": true,
   "scripts": {
     "arch:check": "bun scripts/architecture-check.ts",

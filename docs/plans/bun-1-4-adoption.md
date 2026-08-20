@@ -2,9 +2,9 @@
 
 ## Status
 
-**Planned — not started.** Derived from a dependency-by-dependency audit of the
-workspace against the Bun 1.4 release (2026-08). Repo is on
-`packageManager: bun@1.3.11`, engines `bun >= 1.3.3`.
+**Phase 1 in review; Phases 2–6 planned.** Derived from a dependency-by-dependency
+audit of the workspace against the Bun 1.4 release (2026-08). The Phase 1 review
+branch pins `packageManager: bun@1.4.0`; engines remain `bun >= 1.3.3`.
 
 ## Goal
 
@@ -51,6 +51,21 @@ consumer-facing requires 1.4 until Phase 3 ships a 1.4-only runtime API.
 
 Ships alone. Every later phase depends on it; nothing depends on the later
 phases.
+
+Phase 1 review evidence:
+
+- clean frozen installs preserve all three reviewed lockfiles;
+- full repository lint, typecheck, tests, architecture, and forced core/site builds pass;
+- all six packed-consumer tests pass;
+- packaged Git-broker recovery passes both recovery scenarios, and the 100-cycle process
+  inventory completes 300 Git operations with zero lost completions or zombies;
+- the 350-file feature/resource and packaged-soak comparison completes equivalent work with
+  no saturation, health, continuity, zombie, or deletion-authority failures; relative to
+  Bun 1.3.14, Bun 1.4.0 is 5.8% slower in the feature-heavy gate and 0.7% slower in the
+  packaged soak while reducing peak RSS by 14.7% and 9.8%, respectively;
+- the canonical `oven/bun:1.4.0-slim` runtime image builds and reports Bun 1.4.0; and
+- Rover stages all 19 reviewed instances with the expected 16/3 split and zero drift, while
+  the independent yeehaa.io checks pass without enabling publication or deployment.
 
 ## Phase 2 — `--parallel` for the large test suites
 
