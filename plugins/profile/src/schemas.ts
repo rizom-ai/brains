@@ -231,38 +231,9 @@ const rawFrontmatterSchema: z.ZodRecord<z.ZodString, z.ZodUnknown> = z.record(
   z.unknown(),
 );
 
-const transitionalContentKindCategories: Readonly<
-  Record<string, ProfileCategory>
-> = {
-  person: "person",
-  professional: "person",
-  team: "team",
-  organization: "organization",
-  collective: "organization",
-};
-
 export interface ProfileValidationSelection {
   category: ProfileCategory;
   fields: z.ZodObject<z.ZodRawShape>;
-}
-
-function validateTransitionalContentKind(
-  value: unknown,
-  selection?: ProfileValidationSelection,
-): void {
-  if (value === undefined) return;
-  if (typeof value !== "string") {
-    throw new Error("anchor-profile transitional kind must be a string");
-  }
-  const contentCategory = transitionalContentKindCategories[value];
-  if (!contentCategory) {
-    throw new Error(`Unknown transitional anchor-profile kind: ${value}`);
-  }
-  if (selection && contentCategory !== selection.category) {
-    throw new Error(
-      `anchor-profile content kind category ${contentCategory} does not match configured category ${selection.category}`,
-    );
-  }
 }
 
 export function validateProfileContent(
@@ -279,12 +250,10 @@ export function validateProfileContent(
     );
   }
 
-  validateTransitionalContentKind(metadata["kind"], selection);
-  const { kind: _transitionalKind, ...profileData } = metadata;
   const selectedFields = selection?.fields.shape ?? {};
   anchorProfileBodySchema
     .extend(profileBaseFrontmatterExtension.shape)
     .extend(selectedFields)
     .strict()
-    .parse(profileData);
+    .parse(metadata);
 }

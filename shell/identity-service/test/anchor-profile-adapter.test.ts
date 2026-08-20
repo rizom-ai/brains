@@ -163,10 +163,10 @@ socialLinks:
       });
     });
 
-    it("tolerates and strips transitional content kind", () => {
+    it("uses the base projection while ignoring kind-owned extension fields", () => {
       const markdown = `---
 name: Rizom
-kind: collective
+mission: Grow living expertise
 description: Open-source collective
 ---
 `;

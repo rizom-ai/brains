@@ -77,22 +77,15 @@ describe("profile variants", () => {
     ).toThrow();
   });
 
-  test("accepts matching transitional content kind", () => {
-    expect(() =>
-      validateProfileContent(
-        `---\nname: Rizom\nkind: collective\nmission: Grow living expertise\n---\n`,
-        { category: "organization", fields: organizationProfileFields },
-      ),
-    ).not.toThrow();
-  });
-
-  test("rejects transitional content kind with a mismatched category", () => {
-    expect(() =>
-      validateProfileContent(
-        `---\nname: Rizom\nkind: collective\nrole: Advisor\n---\n`,
-        { category: "person", fields: professionalProfileFields },
-      ),
-    ).toThrow("does not match configured category");
+  test("rejects content-owned profile kinds after the fleet cutover", () => {
+    for (const kind of ["collective", "organization"]) {
+      expect(() =>
+        validateProfileContent(
+          `---\nname: Rizom\nkind: ${kind}\nmission: Grow living expertise\n---\n`,
+          { category: "organization", fields: organizationProfileFields },
+        ),
+      ).toThrow();
+    }
   });
 
   test("exposes base profile fields without a CMS kind dropdown", () => {
