@@ -18,6 +18,8 @@ Every extension package default-exports one definition. A package with several c
 
 Import helpers and the blessed `z` from one family entry point:
 
+<!-- public-authoring-example: quick-service-import -->
+
 ```ts
 import { defineServicePlugin, defineTool, z } from "@rizom/brain/services";
 ```
@@ -33,7 +35,11 @@ Do not import:
 
 Declare one config schema. `use()` and `brain.yaml` accept its inferred input; definition callbacks receive its parsed output, including defaults and transforms.
 
+<!-- public-authoring-example: quick-service-definition -->
+
 ```ts
+import { defineServicePlugin, defineTool, z } from "@rizom/brain/services";
+
 export default defineServicePlugin({
   id: "demo",
   config: z.object({ greeting: z.string().default("Hello") }),
@@ -60,12 +66,26 @@ Entity definitions do not directly declare presentation templates. Read an
 entity through a service job, transform it into a schema-backed render value,
 and call the service-local formatter:
 
+<!-- public-authoring-example: quick-template-flow source=packages/brain-cli/test/fixtures/public-authoring/service/src/index.ts -->
+
 ```ts
 const saved = await entities.get(bookmark, input.bookmarkId);
-if (!saved) throw new Error(`Bookmark not found: ${input.bookmarkId}`);
+if (!saved) {
+  throw new Error(`Bookmark not found: ${input.bookmarkId}`);
+}
 
-const value = { bookmarkId: saved.id, summary: saved.metadata.title };
-const markdown = templates.format("digest", value);
+const result = state.summarize(saved.id, saved.metadata.title, saved.content);
+
+await progress.report({
+  progress: 100,
+  total: 100,
+  message: "Digest ready",
+});
+// Entity data reaches the template only through the declared render schema.
+await messaging.publish({
+  topic: "digest-ready",
+  data: { ...result, markdown: templates.format("digest", result) },
+});
 ```
 
 Declare `digest` under the owning service's `templates` field. The runtime
@@ -91,6 +111,8 @@ for the complete rules and checked reference.
 ## Brain composition
 
 Import default definitions into a brain-definition package and configure them with `use()`:
+
+<!-- public-authoring-example: quick-brain-composition -->
 
 ```ts
 import demo from "@example/demo";

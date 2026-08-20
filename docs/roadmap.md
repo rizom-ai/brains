@@ -190,7 +190,7 @@ This includes:
 
 Plans:
 
-- [public-authoring-api-0.2.md](./plans/public-authoring-api-0.2.md) — **P0 stable-release gate**: freeze and prove packed external authoring for custom entity types, service plugins, sites, and interfaces before nominating `v0.2.0`.
+- [public-authoring-api-0.2.md](./plans/public-authoring-api-0.2.md) — **P0 stable-release gate**: implementation and eight-package alpha evidence are complete; release-order correction, final-alpha/live evidence, authorization, and stable baseline freezing remain.
 - [npm-package-boundaries.md](./plans/npm-package-boundaries.md) — narrow official publishable plugin/entity dependencies; the utils grab-bag has been broken up (ops, contracts, content-formatters, image, ui-library, site-composition) so remaining work is curation of public surfaces and one official plugin proof.
 - [site-package-independent-versioning.md](./plans/site-package-independent-versioning.md) — give deployable site and theme packages independent npm releases, published brain-compatibility metadata, and reviewed exact hosted pins that remain valid when packages move to external repositories.
 - [atproto-integration.md](./plans/atproto-integration.md) — active prototype for distribution/discovery; outbound publishing, registry contracts/routes, and the first bounded discovery slice are implemented. Remaining work is OAuth hardening, configurable discovery/Jetstream, and later ingestion/feed work.

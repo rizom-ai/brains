@@ -128,6 +128,12 @@ describe("plugin package definitions", () => {
       expect(error.pluginId).toBe("@fixture/reading-webhook:reading-webhook");
       expect(error.issues[0]?.path).toBe("token");
       expect(error.issues[0]?.message).toContain("expected string");
+      expect(error.message).toContain(
+        "Invalid plugin config for @fixture/reading-webhook:reading-webhook",
+      );
+      expect(error.message).toContain("token:");
+      expect(error.message).toContain("brain.yaml");
+      expect(error.message).toContain("use() configuration");
     }
   });
 

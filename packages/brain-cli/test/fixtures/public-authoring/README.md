@@ -172,10 +172,11 @@ the monorepo. The compatibility scenarios exercise:
 - message descriptor/delivery/listener/send/edit behavior;
 - running-app preview rebuild and generated site output.
 
-Run the source/ledger checks:
+Run the source/ledger and checked-documentation examples:
 
 ```bash
-bun test packages/brain-cli/test/public-authoring-golden.test.ts
+bun test packages/brain-cli/test/public-authoring-golden.test.ts \
+  packages/brain-cli/test/public-authoring-docs.test.ts
 ```
 
 Run all local packed proofs through the same command used by nightly and release
@@ -204,6 +205,18 @@ It verifies installed versions, licenses, declarations, export maps, removed
 entry points, all eight fixture builds, and standalone startup. It refuses
 ranges and preserves each fixture's first-containing-release floor while
 requiring the nominated alpha to satisfy every peer range.
+
+The provider-backed nomination harness is separately opt-in and requires an
+explicitly supplied provider key. It installs the same exact registry versions
+and never reads repository secret files:
+
+```bash
+RIZOM_PUBLIC_API_LIVE_EVIDENCE=1 \
+RIZOM_PUBLIC_API_BRAIN_VERSION=<final-alpha> \
+RIZOM_PUBLIC_API_SITE_VERSION=<published-compatible-site> \
+AI_API_KEY=<provider-secret> \
+bun test packages/brain-cli/test/public-authoring-live-packed.test.ts
+```
 
 ## Contract files
 

@@ -2,22 +2,29 @@
 
 ## Status
 
-**In progress:** implementation phases 1–5, the local Phase 6 export/documentation freeze, candidate publication, the exact-version registry matrix, and npm retirement are complete. The current eight-package matrix packs and imports `@rizom/brain@0.2.0-alpha.313` with `@rizom/site@0.2.0-alpha.233`, including the published card/columns operator composition contract. The six original golden packages retain their proven `alpha.272` compatibility floor, account settings retains `alpha.304`, and the complete operator fixture requires `alpha.313`. [Site Release evidence](https://github.com/rizom-ai/brains/actions/runs/31319970155) verifies all 73 published `@rizom/site-sections` alphas are deprecated with a migration pointer to `@rizom/site`. The packed and registry matrices prove the declarative contracts for all four required extension use cases:
+**Implementation complete; stable nomination pending.** Core implementation phases 0–5, the local Phase 6 export/documentation freeze, alpha publication, exact-version registry evidence, and npm retirement are complete. This plan now owns only the remaining stable-nomination and release gates; the implementation sections below are retained as the accepted architecture record.
 
-1. custom entity types;
-2. custom service plugins;
-3. custom sites; and
-4. custom interfaces, including message interfaces.
+### Completed alpha evidence
 
-The remaining nomination gates, in order, are:
+| Area                        | Result                                                                                                                                                                                                                                 |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Core authoring paths        | Entity, service, site, generic-interface, message-interface, and brain-definition fixtures compile and run through focused and packed evidence.                                                                                        |
+| Additive operator authoring | Separate account-settings and operator-surface fixtures prove encrypted account lifecycle plus host-rendered Dashboard/CMS semantics, including bounded card and primary/aside columns composition.                                    |
+| Exact registry baseline     | All eight packages pack and import against `@rizom/brain@0.2.0-alpha.313` and `@rizom/site@0.2.0-alpha.233`.                                                                                                                           |
+| Historical peer floors      | The original six fixtures retain `alpha.272`; account settings retains `alpha.304`; complete operator composition requires `alpha.313`.                                                                                                |
+| Publication hygiene         | `@rizom/brain/site` is absent, the workspace `@rizom/site-sections` package is removed, and [Site Release evidence](https://github.com/rizom-ai/brains/actions/runs/31319970155) verifies all 73 published section alphas are retired. |
+| Stable-surface inventory    | Checked declarations, the machine-readable export ledger, primary authoring docs, and the patch-stability policy describe the accepted contract.                                                                                       |
+| Nomination automation       | Public diagnostics identify ownership, the failing field/capability, and corrective action; every stable authoring TypeScript fence is inventoried; the exact-alpha live harness is implemented but not yet credential-run.            |
 
-1. **Refresh the final alpha candidate.** Merge current `main`, nominate the newest published Brain alpha containing the intended stable source, preserve each fixture's first-containing-release peer floor unless its exercised contract changed, and rerun the exact alpha registry matrix. The existing `alpha.313`/`alpha.233` result remains historical evidence, not proof for a newer final candidate.
-2. **Implement and run provider-backed live evidence.** The opt-in `RIZOM_PUBLIC_API_LIVE_EVIDENCE` flag exists, but the bounded live matrix itself is not yet written. It must prove embeddings, semantic ranking, agent chat and confirmation, inbound messaging, lazy attachments, and model-triggered durable progress against the same final alpha.
-3. **Complete every correctable pre-release check.** Audit acceptance criteria 12 and 15, then run the full criterion-17 sweep: format, typecheck, tests, forced lint, architecture/package boundaries, all packed smokes, and zero-failure personal/team eval suites. Failures are corrected on the alpha line before any stable package is published.
+### Remaining stable nomination gates
+
+1. **Correct the coordinated stable release order.** The current Core Release publishes Brain before dispatching Site CI, while Site Release refuses to publish until the same Brain version already exists. Stable graduation instead requires one global version commit, stable `@rizom/site` publication through the site lane, exact registry evidence against that stable SDK and the final Brain alpha, and only then stable Brain publication. Correct and test this workflow without changing normal alpha-lane ownership.
+2. **Nominate the final alpha.** Merge the intended stable source, publish its Brain alpha, preserve each fixture's first-containing-release peer floor unless its exercised contract changed, and rerun all eight exact-version registry packages with the compatible published site SDK. The `alpha.313`/`alpha.233` result remains historical evidence, not proof for a newer candidate.
+3. **Run and record the final evidence protocol.** Execute the complete repository, packed, credentialed live harness, and zero-failure personal/team eval sweep against the same final alpha. Record versions, models, durations, and CI artifacts in `docs/public-release/evidence/AUTHORING_0.2.md` without secrets or private content.
 4. **Obtain explicit release authorization.** A green plan, CI run, or evidence matrix does not authorize `changeset pre exit`, stable npm publication, workflow dispatch, or dist-tag mutation. Each stable release action requires a separate explicit yes/no approval.
-5. **Run one coordinated stable release.** Prepare the reviewed global Changesets prerelease exit, but do not use the current core-first publish order. Core Release may own the one global version commit; it must then pause core publication while Site Release publishes stable `@rizom/site` through the site lane. Rerun the exact registry matrix against the stable site SDK and final Brain alpha, then publish stable Brain only after that matrix passes.
+5. **Publish and freeze the stable baseline.** Run the corrected site-first coordinated release, rerun exact registry evidence after stable site publication, publish stable Brain only after it passes, then freeze all eight current fixtures as the immutable `0.2.0` compatibility baseline and retire phase-oriented suite names.
 
-The current workflows do not yet satisfy gate 5: Core Release publishes Brain before it dispatches Site Release. That orchestration must be corrected and tested before prerelease exit; an out-of-band site publish is not an acceptable substitute. Five standalone extension packages—entity, service, site, generic interface, and message interface—serve as golden paths and primary documentation. A sixth standalone brain-definition package is a compatibility canary for the root API. This plan is narrower than general plugin-system cleanup: it freezes only the contracts required by those paths.
+The five core extension packages and brain-definition canary remain the primary general authoring documentation. The two additive operator packages are independent compatibility fixtures for account settings and Dashboard/CMS authoring. This plan is narrower than general plugin-system cleanup: it freezes only those accepted public paths.
 
 ## Goal
 
@@ -39,13 +46,14 @@ For the `0.2.x` line:
 
 The current API is **alpha-usable, not stable-complete**.
 
-| Golden use case          | Proven alpha evidence                                                                                                                     | Remaining nomination gate                                                                     |
-| ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| Custom entity type       | Declarative schema/codec package; visibility-safe CRUD/FTS, projection convergence, restart durability, and packed worker execution       | Live embedding completion and semantic ranking against the final alpha                        |
-| Custom service plugin    | Declarative config/setup/tools/jobs; typed durable enqueue/result/progress, confirmation replay, restart recovery, and worker isolation   | Model-triggered confirmation/progress evidence plus the final criteria 12/15 and sweep audits |
-| Custom site              | One-import `@rizom/site`; canonical validation, isolated typecheck, running-app preview rebuild, full structural output, and alpha matrix | Authorized stable SDK publication and post-publication exact registry matrix                  |
-| Custom generic interface | Typed routes/protocol caller resolution, job enqueue, daemon health/shutdown, authentication rejection, and worker exclusion              | Final-alpha refresh and full criterion-17 sweep                                               |
-| Custom message interface | Descriptor/delivery ownership, normalized send/edit, listener lifecycle, lazy attachment contract, typed failure, and worker exclusion    | Live inbound chat, confirmation, attachment download, and model-backed progress               |
+| Golden use case             | Proven alpha evidence                                                                                                                      | Remaining nomination gate                                                                     |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------- |
+| Custom entity type          | Declarative schema/codec package; visibility-safe CRUD/FTS, projection convergence, restart durability, and packed worker execution        | Live embedding completion and semantic ranking against the final alpha                        |
+| Custom service plugin       | Declarative config/setup/tools/jobs; typed durable enqueue/result/progress, confirmation replay, restart recovery, and worker isolation    | Model-triggered confirmation/progress evidence plus the final criteria 12/15 and sweep audits |
+| Account/operator extensions | Encrypted account lifecycle plus host-rendered Dashboard/CMS views, typed catalogs/actions, prepared confirmation, and bounded composition | Final-alpha registry rerun and inclusion in the frozen stable baseline                        |
+| Custom site                 | One-import `@rizom/site`; canonical validation, isolated typecheck, running-app preview rebuild, full structural output, and alpha matrix  | Authorized stable SDK publication and post-publication exact registry matrix                  |
+| Custom generic interface    | Typed routes/protocol caller resolution, job enqueue, daemon health/shutdown, authentication rejection, and worker exclusion               | Final-alpha refresh and full criterion-17 sweep                                               |
+| Custom message interface    | Descriptor/delivery ownership, normalized send/edit, listener lifecycle, lazy attachment contract, typed failure, and worker exclusion     | Live inbound chat, confirmation, attachment download, and model-backed progress               |
 
 ## Author-experience standard
 
@@ -83,6 +91,7 @@ A “no” to the fourth question keeps the symbol internal.
 | Brain definition  | `@rizom/brain`            | `defineBrain`, `defineBundle`, `use`                                               |
 | Entity package    | `@rizom/brain/entities`   | `defineEntity`, `EntityOf`, `defineProjection`, `defineEntityPackage`, blessed `z` |
 | Service package   | `@rizom/brain/services`   | `defineServicePlugin`, `defineTool`, `defineJob`, blessed `z`                      |
+| Account/operator  | services and interfaces   | `defineAccountSettings`, widgets, workspaces, actions, catalogs                    |
 | Generic interface | `@rizom/brain/interfaces` | `defineInterface`, `defineRoute`, `protocol`, `defineDaemon`, blessed `z`          |
 | Message interface | `@rizom/brain/interfaces` | `defineMessageInterface`, normalized inbound/send/edit/deliver contracts           |
 | Site package      | `@rizom/site`             | `defineSite`, `defineSection`, `sectionGroup`, blessed `z`                         |
@@ -97,15 +106,15 @@ The stable authoring registry is limited to:
 
 - `@rizom/brain` — declarative brain/bundle composition and public definition types;
 - `@rizom/brain/entities` — the complete normal entity-authoring path and advanced entity contracts proven by fixtures;
-- `@rizom/brain/services` — the complete normal service/tool/job-authoring path and typed template/view contracts;
-- `@rizom/brain/interfaces` — generic and message-interface definitions, routes, callers, supervised daemons, channels, delivery, and enqueue-only job contracts;
+- `@rizom/brain/services` — the complete normal service/tool/job-authoring path plus account settings, Dashboard widgets, CMS workspaces, actions, catalogs, and typed semantic views;
+- `@rizom/brain/interfaces` — generic and message-interface definitions, shared account settings, routes, callers, supervised daemons, channels, delivery, and enqueue-only job contracts;
 - `@rizom/brain/plugins` — advanced shared contracts needed by more than one family, not a second preferred authoring path;
 - `@rizom/brain/templates` — advanced template and renderer contracts; and
 - `@rizom/site` — the sole site-authoring entry point.
 
 Neither `@rizom/brain/site` nor `@rizom/site-sections` is part of the stable registry. Both have only exposed alpha contracts: remove the Brain subpath before stable, migrate all consumers to `@rizom/site`, deprecate every published `@rizom/site-sections` alpha with a migration pointer, and remove the workspace package. No compatibility facade or stable shim survives into `0.2.x`.
 
-`@rizom/brain/model`, `@rizom/brain/deploy`, and the CLI are public products but are not extension-authoring dependencies for this compatibility sign-off. An independently released stable `@rizom/site` version must be published before stable Brain nomination.
+`@rizom/brain/model`, `@rizom/brain/deploy`, and the CLI are public products but are not extension-authoring dependencies for this compatibility sign-off. An independently released stable `@rizom/site` version must be published before stable Brain publication.
 
 ### Stable plugin families
 
@@ -113,6 +122,7 @@ Each external package default-exports a declarative package definition. The runt
 
 - entity persistence and derivation use `defineEntity()` and, when several definitions compose, `defineEntityPackage()`;
 - tools, resources, integrations, and durable work use `defineServicePlugin()`;
+- account/operator capabilities use `defineAccountSettings()`, `defineDashboardWidget()`, `defineCmsWorkspace()`, `defineWorkspaceAction()`, and `defineEntityCatalog()` inside focused service or interface definitions;
 - handler-backed HTTP routes and supervised listeners use `defineInterface()`;
 - conversational and outbound channels use `defineMessageInterface()`.
 
@@ -132,7 +142,9 @@ The compatibility promise covers observable behavior, not just TypeScript compil
 - durable custom jobs use the existing job queue and execute in the worker child;
 - interface daemons run only in the web child and participate in health and shutdown;
 - public/protocol routes use the shared host and protocol identities become canonical callers before permission-sensitive behavior;
-- normalized inbound messages use the shared conversation, agent, confirmation, attachment, and progress runtime; and
+- normalized inbound messages use the shared conversation, agent, confirmation, attachment, and progress runtime;
+- account settings remain encrypted, principal-scoped, and secret-redacted outside account lifecycle callbacks;
+- Dashboard and CMS declarations remain host-rendered, caller-authorized, bounded semantic data and are inert when their optional host is absent; and
 - site packages build through the app-managed site-builder path.
 
 Storage schemas, queue tables, shell objects, internal message channels, and process-role switches remain private.
@@ -206,11 +218,11 @@ The canonical site package imports `defineSite`, `defineSection`, `sectionGroup`
 
 The stable site definition does not contain an embedded runtime plugin. Advanced backend behavior is a separate focused plugin export/package configured explicitly through `plugins:`. The runtime may continue accepting legacy embedded site plugins internally during migration without making them part of the stable contract.
 
-Remove the `@rizom/brain/site` export map and entry before stable. Migrate all `@rizom/site-sections` consumers to `@rizom/site`, deprecate every published alpha with a pointer to the canonical SDK, and remove the workspace package without publishing a stable shim. A stable compatible `@rizom/site` release must be available before Brain nomination.
+Remove the `@rizom/brain/site` export map and entry before stable. Migrate all `@rizom/site-sections` consumers to `@rizom/site`, deprecate every published alpha with a pointer to the canonical SDK, and remove the workspace package without publishing a stable shim. A stable compatible `@rizom/site` release must be available before stable Brain publication.
 
 ### 9. Golden fixtures are executable contracts with hermetic and live tiers
 
-Five extension fixtures are the primary documentation source. The root brain-definition package is a sixth compatibility canary, not a sixth extension style. Every TypeScript example is imported from one of these checked packages or extracted and compiled.
+Five core extension fixtures are the primary general documentation source. The root brain-definition package is a sixth compatibility canary, not a sixth extension style. Separate account-settings and operator-surface packages extend the compatibility matrix to eight fixtures. Every TypeScript example must be imported from one of these checked packages or extracted and compiled.
 
 Normal PR and pre-commit feedback keeps focused contract/integration tests plus one canonical packed-install/startup canary. The complete hermetic packed matrix is an explicit nightly, manual, and pre-publication tier: package loading, config, metadata inference, CRUD/FTS, markdown, visibility, deterministic projection, durable jobs, public/protocol routes, caller resolution, daemons, outbound delivery, site builds, restart, and shutdown. It uses no model-provider network calls or secrets and runs through `bun run test:packed:compat`, which packs Brain once and isolates each scenario's mutable state.
 
@@ -253,7 +265,9 @@ isolated temporary consumer
 ├── packed custom-service package
 ├── packed custom-site package
 ├── packed custom-interface package
-└── packed custom-message-interface package
+├── packed custom-message-interface package
+├── packed account-settings package
+└── packed operator-surface package
 ```
 
 Each fixture:
@@ -270,11 +284,13 @@ Each fixture:
 
 The site golden fixture imports only `@rizom/site` and Preact. Negative package-boundary checks prove that `@rizom/brain/site` is absent and no workspace source imports `@rizom/site-sections`; release verification confirms every published `@rizom/site-sections` alpha is deprecated with a migration pointer. Tests must not inspect SQLite tables or import test-only shell constructors. Hermetic runtime assertions use public system tools, routes, health, generated site output, and process exit behavior. Provider-backed assertions run only in the nominated-alpha live tier.
 
-## Implementation phases
+## Implemented architecture record
 
-Each phase follows red → green TDD and lands with a green tree. Public API changes include a Changeset in the package's appropriate core or site release lane. No phase may add casts to paper over declaration incompatibility. Golden source is written first; implementation is accepted only when it supports that source without leaking runtime bookkeeping into the example. Golden fixtures are authoritative; the ledger is a checked descriptive index, not a substitute for assignability or behavior tests.
+Core phases 0–5 are complete and remain below as the accepted implementation record, not an active backlog. The additive account/operator contract shipped through the same declaration, binding, normalization, and package-boundary rules and is recorded in the stable ledger and checked fixtures. Phase 6 distinguishes completed alpha evidence from the remaining stable-nomination work.
 
-### Phase 0 — Check in the accepted DX and freeze intended exports
+Each implementation phase followed red → green TDD and landed with a green tree. Public API changes included a Changeset in the package's appropriate core or site release lane. No phase added casts to paper over declaration incompatibility. Golden source was written first; implementation was accepted only when it supported that source without leaking runtime bookkeeping into the example. Golden fixtures are authoritative; the ledger is a checked descriptive index, not a substitute for assignability or behavior tests.
+
+### Phase 0 — Check in the accepted DX and freeze intended exports (complete)
 
 1. Materialize the five accepted extension packages exactly as designed: `defineEntity`, `defineServicePlugin`, `defineInterface`, `defineMessageInterface`, and `defineSite` paths.
 2. Add the root brain-definition canary using `defineBrain`, `defineBundle`, and typed `use()`.
@@ -290,7 +306,7 @@ Exit gate:
 - Every framework line has a stated purpose and every required symbol has an owning entry point.
 - No unsupported alpha export is accidentally promised stable.
 
-### Phase 1 — Establish package definitions, typed composition, and the packed harness
+### Phase 1 — Establish package definitions, typed composition, and the packed harness (complete)
 
 1. Introduce the shared public `PluginPackageDefinition`/configured-capability source used by family helpers, the root API, and the loader.
 2. Parse config once, infer package name/version at load time, and carry typed `z.input`/`z.output` through `use()` and runtime instantiation.
@@ -305,7 +321,7 @@ Exit gate:
 - Package metadata is correct without source manifest imports.
 - Missing files, private imports, and incompatible peers fail deterministically.
 
-### Phase 2 — Make entity definitions complete and behaviorally proven
+### Phase 2 — Make entity definitions complete and behaviorally proven (complete)
 
 1. Implement `defineEntity()` with runtime-composed base schema, inferred `EntityOf`, default markdown/frontmatter adapter, and typed custom encode/decode escape hatch.
 2. Implement definition-based typed reads and writes without author-supplied type strings or generic arguments.
@@ -320,7 +336,7 @@ Exit gate:
 - The primary entity source contains domain schemas and projection behavior, not base fields, adapter boilerplate, package metadata, string type names, or runtime process concepts.
 - The packed entity survives restart and its deterministic projection executes in the worker through public behavior.
 
-### Phase 3 — Make service definitions and durable jobs operationally sufficient
+### Phase 3 — Make service definitions and durable jobs operationally sufficient (complete)
 
 1. Implement `defineServicePlugin()` with inferred parsed config/setup state and lifecycle-owned resources.
 2. Replace the public positional tool helper with canonical object-style `defineTool()` and plain typed output while preserving runtime confirmation behavior.
@@ -334,7 +350,7 @@ Exit gate:
 
 - The packed service performs synchronous tool work and durable worker work from one config schema without plugin IDs, success wrappers, handler registration, queue types, package metadata, or process branches in author source.
 
-### Phase 4 — Make `@rizom/site` the complete one-import site SDK
+### Phase 4 — Make `@rizom/site` the complete one-import site SDK (alpha complete)
 
 1. Move the canonical `defineSection`, `sectionGroup`, associated section types, and blessed `z` implementation into `@rizom/site`; add `defineSite()` as the canonical default-export helper.
 2. Derive runtime site validation and all public site types from the canonical SDK source, covering layouts, routes, content, sections, entity display, CSS, head scripts, and static assets.
@@ -345,14 +361,15 @@ Exit gate:
 7. Activate the one-import site fixture and test compile, runtime parsing, and every supported field without direct `zod`, Brain authoring imports, casts, or monorepo tooling.
 8. Boot the packed consumer, trigger an app-managed preview rebuild on the running app, and inspect generated routes, layout, CSS, head script, content section, and static asset.
 9. Deprecate every published `@rizom/site-sections` alpha with a pointer to `@rizom/site`, remove the workspace package, and add negative checks for source imports and stable publication.
-10. Publish a stable compatible `@rizom/site` version and preserve independent theme selection/versioning before Brain stable nomination.
+10. Establish independently versioned site/theme release ownership and published compatible alpha evidence. Stable `@rizom/site` publication remains a Phase 6 nomination gate.
 
 Exit gate:
 
 - The external site source imports only `@rizom/site` and Preact, then builds every stable field through the real app-managed path.
 - Runtime validation derives from the canonical SDK, `@rizom/brain/site` is absent, and `@rizom/site-sections` is deprecated on npm with no remaining workspace package or source consumers.
+- The site SDK has independently versioned alpha evidence; stable site publication remains ordered before stable Brain publication in Phase 6.
 
-### Phase 5 — Make generic and message interfaces declarative and lifecycle-owned
+### Phase 5 — Make generic and message interfaces declarative and lifecycle-owned (complete)
 
 1. Implement `defineInterface()`, schema-aware `defineRoute()`, explicit public/protocol security, canonical caller resolution, and enqueue-only typed jobs. Keep generic agent operations out until a golden package fixes their request-object contract.
 2. Implement `defineDaemon()` as one supervised abortable run task with readiness/health and runtime-owned cleanup.
@@ -367,25 +384,34 @@ Exit gate:
 - Generic and message authors express transport authentication and delivery, while the runtime owns caller trust, agent context, daemon supervision, channels, conversations, and progress plumbing.
 - Conversational and outbound-only transports use one coherent definition style with no placeholders.
 
-### Phase 6 — Documentation, stable export freeze, and nominated-alpha evidence
+### Phase 6 — Alpha evidence complete; stable nomination pending
 
-1. Rewrite plugin-system, quick-reference, external-plugin, external-site, and stability docs directly from the checked golden sources.
-2. Publish the exact stable symbol/capability ledger and strip or mark internal every unsupported alpha export.
-3. Remove `PLUGIN_API_VERSION`; document stable peer ranges and make the harness verify them explicitly.
-4. At nomination, freeze the exact final golden packages as the `0.2.0` compatibility baseline; after stable, compile and run those frozen fixtures against every later `0.2.x` candidate.
-5. Verify package tarball contents, export maps, declarations, the canonical site version, absence of removed authoring subpaths, and license metadata.
-6. Merge current `main`, nominate its newest published Brain alpha, advance all golden peer lower bounds together, and run all six packed packages against that exact alpha and the compatible published site SDK.
-7. Implement and run the bounded provider-backed live matrix against that same alpha, then add migration notes for every corrected alpha signature.
-8. Add focused automated audits for actionable package-load/config/conflict errors and every documented TypeScript example, then run the complete final nomination evidence protocol below.
-9. Request explicit approval before changing prerelease state or performing any stable registry action.
-10. Correct and test the coordinated release order: one global stable version commit, stable site-lane publication, stable-site registry matrix, then stable core publication.
+Completed alpha work:
+
+1. Primary plugin, site, migration, stability, and quick-reference documentation derives from the checked public contract.
+2. The exact symbol/capability ledger is checked against published declarations, and unsupported alpha exports are removed or explicitly excluded.
+3. `PLUGIN_API_VERSION` is removed; peer ranges are explicit and verified by the harness rather than trusted as package-manager warnings.
+4. Tarball contents, export maps, declarations, canonical site ownership, removed authoring subpaths, license metadata, and retired package deprecations have package-boundary evidence.
+5. Local packed compatibility covers the core extension behavior, while focused runtime/host tests cover the additive account/operator contract.
+6. Exact registry evidence packs and imports all eight fixtures against Brain `alpha.313` and Site `alpha.233`, preserving the independent `alpha.272`, `alpha.304`, and `alpha.313` historical floors.
+7. Focused tests enforce actionable package-load, config-validation, capability-conflict, and composition-conflict diagnostics. A checked marker inventory covers every TypeScript fence in the stable authoring docs, compiling standalone examples and matching excerpts to fixture source.
+8. `public-authoring-live-packed.test.ts` installs exact registry versions and bounds provider-backed semantic ordering, agent response, confirmation, inbound conversation continuity, lazy attachment fetch, durable progress, shutdown, and secret-safe diagnostics. Its credentialed nomination run remains pending.
+
+Remaining stable work:
+
+1. Correct and test the stable-only release sequence: one global stable version commit, stable site-lane publication, exact stable-site registry evidence, then stable core publication.
+2. Merge the intended stable source, publish its final Brain alpha, and rerun all eight registry fixtures while preserving each first-containing-release peer floor unless the fixture contract changed.
+3. Run the full final nomination evidence protocol, including the credentialed live harness, and record it in `docs/public-release/evidence/AUTHORING_0.2.md`.
+4. Request explicit approval before prerelease exit, workflow dispatch, publication, or dist-tag mutation.
+5. After authorized stable publication, freeze all eight fixtures and expectations as the immutable `0.2.0` baseline, rename phase-oriented suites by contract, and run that baseline against every later `0.2.x` candidate.
 
 Exit gate:
 
-- Documentation examples compile from their published locations.
-- Local-tarball and registry-installed hermetic matrices pass.
+- Every documented TypeScript example is covered by an automated checked-source inventory.
+- Local-tarball and exact registry-installed hermetic matrices pass against the final candidate and then the stable site SDK.
 - Embeddings, semantic retrieval, agent conversation/confirmation, inbound messaging, attachments, and progress pass in bounded live evidence.
-- `docs/public-release/STABILITY.md` names the four supported use cases, canonical entry points, and explicit exclusions.
+- The stable-only site-first release sequence is tested and authorized.
+- `docs/public-release/STABILITY.md` names the four core extension use cases, additive account/operator authoring, canonical entry points, and explicit exclusions.
 
 ## Validation matrix
 
@@ -418,6 +444,16 @@ Exit gate:
 - typed enqueue/status/result, retry, cancellation, deadline, progress, and terminal failure;
 - lifecycle order and rollback of context-owned registrations;
 - no execution dependency on web-only state.
+
+### Account and operator surfaces
+
+- shared service/interface `defineAccountSettings()` declarations with encrypted persistence, principal isolation, redacted host contexts, and runtime-owned account supervision;
+- independent Dashboard widget and CMS workspace declarations using their distinct typed semantic profiles;
+- host-owned query state, navigation, authorization floors, dynamic catalogs, actions, prepared confirmation, and bounded text/spatial data;
+- bounded card and primary/aside columns composition with recursive link/intent validation and accessible textual meaning;
+- absent optional hosts are true no-ops, while present hosts reject invalid declarations loudly;
+- execution-only workers do not bind or register account/operator callbacks; and
+- no author React/Preact, HTML, CSS, scripts, renderer names, browser bundles, private components, or private URLs.
 
 ### Site
 
@@ -495,11 +531,11 @@ RIZOM_PUBLIC_API_SITE_VERSION=<published-compatible-site> \
 bun test packages/brain-cli/test/public-authoring-registry-packed.test.ts
 ```
 
-Before the sweep, criterion 12 must have focused tests for missing/invalid package loading, config validation, and capability conflicts that assert the package/plugin, field or capability, and corrective action. Criterion 15 must have an automated inventory proving every documented TypeScript example comes from, or compiles with, checked fixture source.
+The focused diagnostic coverage lives in `shell/app/test/installed-package-metadata.test.ts`, `shell/plugins/test/package-definition.test.ts`, `shell/core/test/http-route-registry.test.ts`, and `packages/brain-cli/test/public-brain-definition.test.ts`. `packages/brain-cli/test/public-authoring-docs.test.ts` inventories every TypeScript fence in the stable authoring documents, typechecks standalone snippets, and verifies marked excerpts against fixture source. Both run in the normal repository suite before nomination.
 
 ### Provider-backed and eval checks
 
-Add `packages/brain-cli/test/public-authoring-live-packed.test.ts`, guarded only by `RIZOM_PUBLIC_API_LIVE_EVIDENCE=1`, and run it against the same exact final alpha:
+Run `packages/brain-cli/test/public-authoring-live-packed.test.ts`, guarded only by `RIZOM_PUBLIC_API_LIVE_EVIDENCE=1`, against the same exact final alpha:
 
 ```bash
 RIZOM_PUBLIC_API_LIVE_EVIDENCE=1 \
@@ -521,23 +557,25 @@ After authorized stable site publication, rerun the registry command with the ex
 
 ## Acceptance criteria
 
-1. Five standalone extension packages are approved unchanged as primary documentation; a sixth brain-definition package is approved as the root compatibility canary.
-2. Entity, service, interface, message-interface, and site sources use the accepted canonical vocabulary and one family import each.
-3. Golden sources contain domain choices rather than runtime plumbing: no casts, private imports, package metadata, process concepts, duplicate schemas/types, runtime-owned base fields, queue/registry calls, or placeholder methods.
-4. All six packages pass isolated local-tarball and registry-installed hermetic matrices against one nominated published Brain alpha plus a stable compatible `@rizom/site` version.
-5. The root canary composes every plugin family through typed `use()` without tuple factories, repeated IDs, interface constructors, or environment mappers.
-6. Config is authored once, parsed once, and inferred through composition, setup state, and every capability callback.
-7. Custom entity data uses generated base schema/default adapter, survives restart, remains visibility-safe, supports typed CRUD/FTS, and converges through one deterministic typed projection.
-8. A custom service tool enqueues a schema-backed typed job that crosses the supervised web/worker boundary through the existing durable queue.
-9. A custom site imports only `@rizom/site` and Preact, then exercises every stable structural field through a real app-managed build; `brain-cli init` generates the same canonical source with a direct compatible SDK dependency.
-10. A generic interface proves protocol authentication, canonical caller resolution, typed route/enqueue behavior, daemon health, and shutdown; a separate message interface proves outbound delivery and normalized listener/send/edit lifecycle.
-11. Provider-backed live evidence proves embeddings, semantic ranking, agent chat/confirmation, inbound conversation, attachments, and model-backed progress against the same nominated alpha.
-12. Package-load, config-validation, and capability-conflict failures include the relevant package/plugin, field or capability, and corrective action.
-13. Generated declarations contain no private imports and cannot drift from runtime schemas or canonical source types.
-14. Every unannotated authoring export appears in the published stable ledger; unsupported alpha exports and `PLUGIN_API_VERSION` are removed or internal before stable.
-15. All documented TypeScript examples compile from checked fixture source in CI.
-16. Stable peer ranges, route/job/entity exclusions, sole `@rizom/site` ownership, removed alpha surfaces, hermetic/live test boundaries, and `0.2.x` compatibility policy are explicit.
-17. Full format, typecheck, tests, forced lint, package-boundary checks, packed smokes, bounded live evidence, and targeted personal/team evals pass before stable nomination.
+Status labels distinguish delivered alpha evidence from work that still gates stable nomination.
+
+1. **Complete (alpha):** Five core standalone extension packages are approved as primary documentation, the brain-definition package is the root compatibility canary, and separate account-settings/operator packages complete the eight-fixture matrix.
+2. **Complete (alpha):** Entity, service, account/operator, interface, message-interface, and site sources use the accepted canonical vocabulary and family entry points.
+3. **Complete (alpha):** Golden sources contain domain choices rather than runtime plumbing: no casts, private imports, package metadata, process concepts, duplicate schemas/types, runtime-owned base fields, queue/registry calls, or placeholder methods.
+4. **Partial:** Local packed behavior and exact registry import evidence pass for all eight fixtures against Brain `alpha.313` and Site `alpha.233`; rerun against the final alpha and then the authorized stable site SDK remains pending.
+5. **Complete (alpha):** The root canary composes every plugin family through typed `use()` without tuple factories, repeated IDs, interface constructors, or environment mappers.
+6. **Complete (alpha):** Config is authored once, parsed once, and inferred through composition, setup state, and every capability callback.
+7. **Complete (alpha):** Custom entity data uses generated base schema/default adapter, survives restart, remains visibility-safe, supports typed CRUD/FTS, and converges through one deterministic typed projection.
+8. **Complete (alpha):** A custom service tool enqueues a schema-backed typed job that crosses the supervised web/worker boundary through the existing durable queue.
+9. **Complete (alpha):** A custom site imports only `@rizom/site` and Preact, exercises every stable structural field through a real app-managed build, and is generated by `brain-cli init` with a direct compatible SDK dependency.
+10. **Complete (alpha):** A generic interface proves protocol authentication, canonical caller resolution, typed route/enqueue behavior, daemon health, and shutdown; a separate message interface proves outbound delivery and normalized listener/send/edit lifecycle.
+11. **Harness complete; run pending:** Provider-backed live evidence is implemented for embeddings, semantic ranking, agent chat/confirmation, inbound conversation, attachments, model-backed progress, bounded shutdown, and secret-safe diagnostics; execute it against the final alpha.
+12. **Complete (alpha):** Focused package-load, config-validation, capability-conflict, and composition-conflict tests prove that failures identify the relevant package/plugin, field or capability, and corrective action.
+13. **Complete (alpha):** Generated declarations contain no private imports and derive from the runtime schemas or canonical source types checked by the fixtures and export ledger.
+14. **Complete (alpha):** Every accepted authoring export appears in the checked stable ledger; unsupported alpha exports and `PLUGIN_API_VERSION` are removed or explicitly excluded.
+15. **Complete (alpha):** Normal CI inventories every stable-authoring TypeScript fence and proves that it either typechecks standalone or remains a checked fixture-source excerpt.
+16. **Partial:** Route/job/entity exclusions, sole `@rizom/site` ownership, removed alpha surfaces, hermetic/live boundaries, historical peer floors, and `0.2.x` compatibility policy are explicit; final stable versions and the frozen baseline are pending.
+17. **Pending:** Full format, typecheck, tests, forced lint, package-boundary checks, packed smokes, bounded live evidence, and targeted personal/team evals must pass and be recorded before stable nomination.
 
 ## Risks and mitigations
 

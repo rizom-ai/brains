@@ -117,7 +117,7 @@ describe("HTTP route finalization during shell boot", () => {
     }
 
     expect(String(receivedError)).toContain(
-      'HTTP route conflict for GET /duplicate between plugins "first-owner" and "second-owner"',
+      'HTTP route conflict for GET /duplicate between plugins "first-owner" and "second-owner"; give one declaration a different method or path',
     );
   });
 

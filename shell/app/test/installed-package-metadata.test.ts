@@ -94,7 +94,7 @@ describe("installed package metadata", () => {
     expect(() =>
       resolveBrainDefinitionDependencies("@fixture/future-brain", root),
     ).toThrow(
-      'Package "@fixture/future-brain@0.1.0" requires @rizom/brain ">=0.3.0 <0.4.0", but "0.2.0-alpha.256" is installed',
+      'Package "@fixture/future-brain@0.1.0" requires @rizom/brain ">=0.3.0 <0.4.0", but "0.2.0-alpha.256" is installed; install a compatible Brain version or update the peer range only after testing that release',
     );
   });
 
@@ -107,7 +107,7 @@ describe("installed package metadata", () => {
     expect(() =>
       resolveBrainDefinitionDependencies("@fixture/peerless-brain", root),
     ).toThrow(
-      'Package "@fixture/peerless-brain@0.1.0" must declare a @rizom/brain peer dependency',
+      'Package "@fixture/peerless-brain@0.1.0" must declare a @rizom/brain peer dependency; add the tested range under peerDependencies in its package.json',
     );
   });
 
@@ -156,7 +156,7 @@ describe("installed package metadata", () => {
     expect(() =>
       resolveInstalledPackageManifest("@fixture/missing", root),
     ).toThrow(
-      `Could not resolve installed package "@fixture/missing" from "${root}"`,
+      `Could not resolve installed package "@fixture/missing" from "${root}"; install it in the Brain application or correct the package reference`,
     );
   });
 });

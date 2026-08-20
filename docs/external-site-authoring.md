@@ -83,6 +83,8 @@ versions; it never infers either from the Brain version.
 Import schema vocabulary and helpers from one package. A section schema both
 validates content and infers component props:
 
+<!-- public-authoring-example: external-site-definition -->
+
 ```tsx
 import { defineSection, defineSite, sectionGroup, z } from "@rizom/site";
 
@@ -179,6 +181,8 @@ a separate default package definition through `use()` in the Brain package.
 
 A theme is simpler than a site: its default JavaScript export is the complete
 CSS string. It does not import site structure or private build tooling.
+
+<!-- public-authoring-example: external-theme-definition -->
 
 ```ts
 const themeCSS = `

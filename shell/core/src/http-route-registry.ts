@@ -159,7 +159,7 @@ function assertUniqueRouteKeys(routes: readonly RegisteredHttpRoute[]): void {
     const existingOwner = owners.get(key);
     if (existingOwner !== undefined) {
       throw new Error(
-        `HTTP route conflict for ${key} between plugins "${existingOwner}" and "${route.ownerPluginId}"`,
+        `HTTP route conflict for ${key} between plugins "${existingOwner}" and "${route.ownerPluginId}"; give one declaration a different method or path`,
       );
     }
     owners.set(key, route.ownerPluginId);

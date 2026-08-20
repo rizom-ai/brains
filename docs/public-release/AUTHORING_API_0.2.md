@@ -189,4 +189,4 @@ Internal `@brains/*` packages, runtime classes, contexts, registries, queue type
 
 ## Compatibility rule
 
-A `0.2.x` candidate must compile and run the frozen entity, service, operator-surface, generic-interface, message-interface, site, and brain-definition fixtures without source changes. Additive stable exports require an updated ledger and compatibility fixture; breaking these names or behaviors requires a later minor release.
+A `0.2.x` candidate must compile and run the frozen entity, service, account-settings-interface, operator-surface, generic-interface, message-interface, site, and brain-definition fixtures without source changes. Additive stable exports require an updated ledger and compatibility fixture; breaking these names or behaviors requires a later minor release.

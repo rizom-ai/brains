@@ -110,7 +110,7 @@ describe("HttpRouteRegistry", () => {
         }),
       ]),
     ).toThrow(
-      'HTTP route conflict for POST /api/second/run between plugins "first" and "second"',
+      'HTTP route conflict for POST /api/second/run between plugins "first" and "second"; give one declaration a different method or path',
     );
   });
 

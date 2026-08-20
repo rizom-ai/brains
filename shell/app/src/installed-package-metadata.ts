@@ -25,8 +25,8 @@ export class PackagePeerCompatibilityError extends Error {
   ) {
     super(
       peerRange
-        ? `Package "${packageMetadata.name}@${packageMetadata.version}" requires @rizom/brain "${peerRange}", but "${brainVersion}" is installed`
-        : `Package "${packageMetadata.name}@${packageMetadata.version}" must declare a @rizom/brain peer dependency`,
+        ? `Package "${packageMetadata.name}@${packageMetadata.version}" requires @rizom/brain "${peerRange}", but "${brainVersion}" is installed; install a compatible Brain version or update the peer range only after testing that release`
+        : `Package "${packageMetadata.name}@${packageMetadata.version}" must declare a @rizom/brain peer dependency; add the tested range under peerDependencies in its package.json`,
     );
     this.name = "PackagePeerCompatibilityError";
   }
@@ -52,7 +52,7 @@ export function resolveInstalledPackageManifest(
     resolved = Bun.resolveSync(packageRef, fromDirectory);
   } catch (error) {
     throw new Error(
-      `Could not resolve installed package "${packageRef}" from "${fromDirectory}"`,
+      `Could not resolve installed package "${packageRef}" from "${fromDirectory}"; install it in the Brain application or correct the package reference`,
       { cause: error },
     );
   }
@@ -79,7 +79,7 @@ export function resolveInstalledPackageManifest(
   }
 
   throw new Error(
-    `Resolved package "${packageRef}" from "${fromDirectory}" but could not find its package metadata`,
+    `Resolved package "${packageRef}" from "${fromDirectory}" but could not find valid package metadata; ensure its package.json declares matching non-empty name and version fields`,
   );
 }
 

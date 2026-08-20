@@ -103,8 +103,9 @@ manual interrupted fixture run also left no compatibility root behind.
 
 Complete this during final `0.2.0` nomination:
 
-1. Freeze the six approved golden packages and expectations as an immutable
-   `0.2.0` compatibility baseline.
+1. Freeze the eight approved fixture packages and expectations as an immutable
+   `0.2.0` compatibility baseline: the five core extensions, brain-definition
+   canary, account settings, and operator surface.
 2. Record their stable peer ranges and run them against the final candidate
    artifacts and exact published versions.
 3. Rename the phase-oriented scenarios by contract:

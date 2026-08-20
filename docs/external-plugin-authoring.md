@@ -128,6 +128,8 @@ use `>=0.2.0 <0.3.0` for the stable patch line.
 
 `src/index.ts`:
 
+<!-- public-authoring-example: external-calendar-service -->
+
 ```ts
 import { defineServicePlugin, defineTool, z } from "@rizom/brain/services";
 
@@ -170,6 +172,8 @@ bun pm pack
 ### 3. Compose it into a Brain
 
 A separate brain-definition package imports the extension and supplies config:
+
+<!-- public-authoring-example: external-calendar-brain -->
 
 ```ts
 import calendar from "@example/calendar";
@@ -257,14 +261,26 @@ own storage schemas, optional Markdown encoding, and projections. Put formatting
 or presentation in a separately composed service and read the entity from a job
 handler:
 
+<!-- public-authoring-example: external-template-service -->
+
 ```ts
+import { bookmark } from "@example/reading-entities";
+import { defineJob, defineServicePlugin, z } from "@rizom/brain/services";
+
+const digestRequest = z.object({ bookmarkId: z.string() });
 const digestResult = z.object({
   bookmarkId: z.string(),
   summary: z.string(),
 });
+const compileReadingDigest = defineJob({
+  name: "compile-reading-digest",
+  input: digestRequest,
+  output: digestResult,
+});
 
 export default defineServicePlugin({
-  // ...id and config...
+  id: "reading-insights",
+  config: z.object({}),
   templates: {
     digest: {
       schema: digestResult,

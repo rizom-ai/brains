@@ -25,6 +25,14 @@ export interface PluginConfigValidationIssue {
   message: string;
 }
 
+function formatValidationIssues(
+  issues: readonly PluginConfigValidationIssue[],
+): string {
+  return issues
+    .map((issue) => `${issue.path || "<root>"}: ${issue.message}`)
+    .join("; ");
+}
+
 export class PluginConfigValidationError extends Error {
   public readonly pluginId: string;
   public readonly issues: readonly PluginConfigValidationIssue[];
@@ -33,7 +41,9 @@ export class PluginConfigValidationError extends Error {
     pluginId: string,
     issues: readonly PluginConfigValidationIssue[],
   ) {
-    super(`Invalid plugin config for ${pluginId}`);
+    super(
+      `Invalid plugin config for ${pluginId} at ${formatValidationIssues(issues)}; correct the listed fields in brain.yaml or the package's use() configuration`,
+    );
     this.name = "PluginConfigValidationError";
     this.pluginId = pluginId;
     this.issues = issues;

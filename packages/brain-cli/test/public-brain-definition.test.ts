@@ -55,7 +55,9 @@ describe("public brain definition contract", () => {
         name: "ambiguous-brain",
         plugins: [first, second],
       }),
-    ).toThrow('duplicate local plugin id "fixture-service"');
+    ).toThrow(
+      'duplicate local plugin id "fixture-service"; give each package definition a unique local id before composing it',
+    );
   });
 
   it("rejects bundle members outside the brain catalog", () => {

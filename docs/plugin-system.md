@@ -20,6 +20,8 @@ A package default-exports one definition. Packages with multiple concerns remain
 
 External packages import one family entry point, not internal `@brains/*` workspaces:
 
+<!-- public-authoring-example: plugin-system-service-import -->
+
 ```ts
 import { defineServicePlugin, defineTool, z } from "@rizom/brain/services";
 ```
@@ -45,6 +47,8 @@ Every external package declares a compatible `@rizom/brain` peer range. The load
 ## Brain composition
 
 A brain-definition package imports package defaults and creates configured references:
+
+<!-- public-authoring-example: plugin-system-brain-composition -->
 
 ```ts
 import calendar from "@example/calendar";

@@ -87,12 +87,12 @@ function assertUniqueMembers(
     }
     if (seen.has(member.definition)) {
       throw new Error(
-        `${label} contains duplicate plugin definition "${member.definition.id}"`,
+        `${label} contains duplicate plugin definition "${member.definition.id}"; include each configured definition only once`,
       );
     }
     if (seenIds.has(member.definition.id)) {
       throw new Error(
-        `${label} contains duplicate local plugin id "${member.definition.id}"`,
+        `${label} contains duplicate local plugin id "${member.definition.id}"; give each package definition a unique local id before composing it`,
       );
     }
     seen.add(member.definition);

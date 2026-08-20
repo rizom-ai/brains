@@ -17,6 +17,8 @@ The stable `0.2` contract intentionally replaces the earlier alpha authoring sha
 
 Replace string catalogs, constructors, tuples, and environment mappers with configured definition references:
 
+<!-- public-authoring-example: migration-brain-composition -->
+
 ```ts
 import calendar from "@example/calendar";
 import { defineBrain, defineBundle, use } from "@rizom/brain";
