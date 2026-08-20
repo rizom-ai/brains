@@ -1,11 +1,29 @@
-// Plugin exports
-export { NotePlugin, notePlugin } from "./plugin";
+/**
+ * Note package.
+ *
+ * One entity and nothing else: a note is markdown the user owns, and both
+ * ways of making one — generating from a prompt, importing an upload — fill
+ * in an entity the runtime allocated first.
+ */
+
+import {
+  defineEntityPackage,
+  type EntityPackageDefinition,
+} from "@brains/sdk/entities";
+import { note } from "./note-entity";
+
+export const notes: EntityPackageDefinition = defineEntityPackage({
+  id: "note",
+  entities: [note],
+});
+
+export default notes;
+
 export {
   buildNoteAtprotoRecord,
   createNoteAtprotoProjection,
 } from "./atproto-projection";
 
-// Schema exports
 export {
   noteSchema,
   noteFrontmatterSchema,
@@ -17,22 +35,3 @@ export {
   type NoteStatus,
   type NoteWithData,
 } from "./schemas/note";
-
-// Adapter exports
-export { NoteAdapter, noteAdapter } from "./adapters/note-adapter";
-
-// Handler exports
-export {
-  NoteGenerationJobHandler,
-  noteGenerationJobSchema,
-  noteGenerationResultSchema,
-  type NoteGenerationJobData,
-  type NoteGenerationResult,
-} from "./handlers/noteGenerationJobHandler";
-
-// Template exports
-export {
-  noteGenerationTemplate,
-  noteGenerationSchema,
-  type NoteGeneration,
-} from "./templates/generation-template";

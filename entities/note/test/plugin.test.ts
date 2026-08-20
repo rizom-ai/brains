@@ -1,6 +1,8 @@
 import { describe, expect, it, beforeEach, afterEach } from "bun:test";
 import { createTempDir } from "@brains/test-utils";
-import { NotePlugin } from "../src/plugin";
+import { instantiatePluginPackageDefinition } from "@brains/plugins";
+import type { Plugin } from "@brains/plugins";
+import notes from "../src";
 import { createPluginHarness } from "@brains/plugins/test";
 import type { PluginCapabilities } from "@brains/plugins/test";
 import type { EntityMutationResult, JobHandler } from "@brains/plugins";
@@ -14,9 +16,9 @@ const webChatOperatorContext = {
 const primerPdfBase64 =
   "JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFszIDAgUl0gL0NvdW50IDEgPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUgL1BhZ2UgL1BhcmVudCAyIDAgUiAvTWVkaWFCb3ggWzAgMCA2MTIgNzkyXSAvQ29udGVudHMgNCAwIFIgL1Jlc291cmNlcyA8PCAvRm9udCA8PCAvRjEgNSAwIFIgPj4gPj4gPj4KZW5kb2JqCjQgMCBvYmoKPDwgL0xlbmd0aCA0NCA+PgpzdHJlYW0KQlQgL0YxIDI0IFRmIDcyIDcyMCBUZCAoRGlzdHJpYnV0ZWQgU3lzdGVtcyBQcmltZXIpIFRqIEVUCmVuZHN0cmVhbQplbmRvYmoKNSAwIG9iago8PCAvVHlwZSAvRm9udCAvU3VidHlwZSAvVHlwZTEgL0Jhc2VGb250IC9IZWx2ZXRpY2EgPj4KZW5kb2JqCnhyZWYKMCA2CjAwMDAwMDAwMDAgNjU1MzUgZiAKMDAwMDAwMDAwOSAwMDAwMCBuIAowMDAwMDAwMDU4IDAwMDAwIG4gCjAwMDAwMDAxMTUgMDAwMDAgbiAKMDAwMDAwMDI0MSAwMDAwMCBuIAowMDAwMDAwMzQ4IDAwMDAwIG4gCnRyYWlsZXIKPDwgL1NpemUgNiAvUm9vdCAxIDAgUiA+PgpzdGFydHhyZWYKNDE4CiUlRU9GCg==";
 
-describe("NotePlugin", () => {
+describe("note package", () => {
   let harness: ReturnType<typeof createPluginHarness>;
-  let plugin: NotePlugin;
+  let plugin: Plugin;
   let capabilities: PluginCapabilities;
   let enqueuedJobs: Array<{ type: string; data: unknown; options?: unknown }>;
   let registeredHandlers: Map<string, JobHandler>;
@@ -42,7 +44,13 @@ describe("NotePlugin", () => {
       getHandler: (type) => registeredHandlers.get(type),
     });
 
-    plugin = new NotePlugin();
+    const entityPlugin = instantiatePluginPackageDefinition(
+      notes,
+      {},
+      { name: "@brains/note", version: "0.1.0" },
+    )[0];
+    if (!entityPlugin) throw new Error("Note entity plugin was not created");
+    plugin = entityPlugin as Plugin;
     capabilities = await harness.installPlugin(plugin);
   });
 
@@ -52,7 +60,7 @@ describe("NotePlugin", () => {
 
   describe("Plugin Registration", () => {
     it("should register plugin with correct metadata", () => {
-      expect(plugin.id).toBe("note");
+      expect(plugin.id).toBe("@brains/note:note");
       expect(plugin.type).toBe("entity");
       expect(plugin.version).toBeDefined();
     });
@@ -73,7 +81,7 @@ describe("NotePlugin", () => {
   });
 
   async function runQueuedUploadImport(): Promise<unknown> {
-    const handler = registeredHandlers.get("note:upload-import");
+    const handler = registeredHandlers.get("@brains/note:note:upload-import");
     if (!handler) throw new Error("note:upload-import handler not registered");
     const job = enqueuedJobs[0];
     if (!job) throw new Error("upload import job not queued");
@@ -133,7 +141,7 @@ describe("NotePlugin", () => {
       });
       expect(enqueuedJobs).toHaveLength(1);
       expect(enqueuedJobs[0]).toMatchObject({
-        type: "note:upload-import",
+        type: "@brains/note:note:upload-import",
         data: { uploadId: upload.id, entityId: "research-notes" },
       });
 
@@ -156,7 +164,7 @@ describe("NotePlugin", () => {
         visibilityScope: "shared",
       });
       expect(entity?.content).toBe(
-        `---\ntitle: research-notes\n---\n${rawMarkdown}\n`,
+        `---\ntitle: research-notes\n---\n\n${rawMarkdown}\n`,
       );
       expect(entity?.metadata).toEqual({ title: "research-notes" });
       expect(entity?.visibility).toBe("shared");
@@ -213,12 +221,17 @@ describe("NotePlugin", () => {
       });
       expect(current?.contentHash).not.toBe(stub.contentHash);
       expect(enqueuedJobs[0]).toMatchObject({
-        data: { stubContentHash: stub.contentHash },
+        // The runtime carries the placeholder's hash now, so the import
+        // cannot overwrite an edit made while it was queued.
+        data: { expectedContentHash: stub.contentHash },
       });
 
       const importResult = await runQueuedUploadImport();
 
+      // The job itself did not fail — it read the upload fine and found a
+      // newer note waiting, so it left that one alone.
       expect(importResult).toEqual({
+        success: true,
         entityId: "launch-plan",
         status: "superseded",
       });
@@ -433,7 +446,7 @@ describe("NotePlugin", () => {
         jobId: "queued-note-job",
       });
       expect(enqueuedJobs[0]).toMatchObject({
-        type: "note:upload-import",
+        type: "@brains/note:note:upload-import",
         data: { uploadId: upload.id, entityId: "research-notes-2" },
       });
 
@@ -479,7 +492,7 @@ describe("NotePlugin", () => {
       );
       expect(result.kind).toBe("handled");
 
-      const handler = registeredHandlers.get("note:upload-import");
+      const handler = registeredHandlers.get("@brains/note:note:upload-import");
       if (!handler) {
         throw new Error("note:upload-import handler not registered");
       }
