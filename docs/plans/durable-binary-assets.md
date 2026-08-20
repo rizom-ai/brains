@@ -287,10 +287,10 @@ schema cutover.
 
 ### Directory-sync boundary
 
-This work coordinates explicitly with
-[`directory-sync-import-load.md`](./directory-sync-import-load.md): its Phase 1 watcher
-suppression is independent, while its Phases 2–3 must land with or after the image cutover
-for binary paths. Text and binary imports use different fast paths and size policies.
+This work extends the shipped directory-sync import safeguards: watcher suppression,
+the unchanged-text pre-parse shortcut, and the 5 MB text/legacy-binary size guard are
+already baseline behavior. The asset-backed binary path lands with the image cutover
+because text and binary imports require different fast paths and size policies.
 
 `brain-data/image` remains the human-visible and Git-syncable representation. Asset-backed
 binary import ordering is load-bearing:
@@ -369,9 +369,9 @@ Before implementation:
 4. Confirm that explicit `assetDirectory` plumbing resolves to the persisted
    `data/assets` path in local, deployed, test, and advanced-config runtimes, and include
    that path in operator backups.
-5. Reconcile delivery order with `directory-sync-import-load.md`: Phase 1 may ship
-   independently, but its binary pre-parse and size-guard behavior must use this plan's
-   asset-first ordering and separate limits.
+5. Preserve the shipped directory-sync text/legacy-binary safeguards while making the
+   asset-backed binary pre-parse and size-guard behavior use this plan's asset-first
+   ordering and separate limits.
 6. Capture a preview build and a representative set of image checksums for before/after
    comparison.
 
@@ -702,8 +702,7 @@ containing mixed legacy/new image rows during the transition.
   and compatibility bridges.
 - PNG/JPEG/GIF/WebP policy with blocking SVG preflight/removal.
 - Directory-sync no-drift, asset-first short-circuit, separate text/asset limits, and
-  missing-asset startup restoration coverage coordinated with
-  `directory-sync-import-load.md`.
+  missing-asset startup restoration coverage extending the shipped import safeguards.
 - UX regression coverage.
 
 ### PR 3: migration and reconciliation tooling

@@ -338,10 +338,10 @@ registered; a failing recurring check appears as an inbox item over stdio with n
 webserver and no notification channel present; adding `chat` delivers the same item as a
 notification without duplicating it in the projection.
 
-directory-sync import issues follow as the second source once the in-flight
-[directory-sync-import-load.md](./directory-sync-import-load.md) work lands, since
-`importFile` already records the operation-status issue that has no operator surface
-today.
+Directory-sync import issues follow as the second source. The shipped import-load
+safeguards already make `importFile` record an operation-status issue; exposing that
+issue through the Inbox remains operator-surface work rather than a performance-rollout
+dependency.
 
 Both halves are implemented as Phases 7 and 8 of the inbox plan, which also records
 that the CMS workspace and Dashboard widget are `web` renderings and the digest is a
