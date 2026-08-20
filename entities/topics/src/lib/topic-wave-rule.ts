@@ -6,7 +6,7 @@ import {
   type ProjectionRule,
   type ProjectionSourceRole,
   type ProjectionWriteIntent,
-} from "@brains/plugins";
+} from "@brains/sdk/entities";
 import { generateIdFromText } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
 import type {
@@ -17,7 +17,7 @@ import { extractedTopicSchema } from "../schemas/extraction";
 import { topicExtractionTemplate } from "../templates/extraction-template";
 import { TOPIC_ENTITY_TYPE, TOPIC_PROJECTION_ID } from "./constants";
 import { buildTopicExtractionPrompt } from "./extraction-prompt";
-import { TopicAdapter } from "./topic-adapter";
+import { createTopicBody, parseTopicBody } from "./topic-body";
 
 const sourceInputSchema = z.object({
   id: z.string(),
@@ -38,6 +38,7 @@ const topicWaveInputSchema = z.object({
   topicSoftCeilingSourceRatio: z.number().positive(),
   targetVisibility: z.enum(["public", "shared", "restricted"]),
   templatePrompt: z.string(),
+  extractionTemplate: z.string(),
   model: z.string(),
   identity: ProjectionJsonObjectSchema,
 });
@@ -92,6 +93,7 @@ function includesSourceType(
 async function selectTopicWaveInput(
   context: Parameters<ProjectionRule["selectInput"]>[1],
   config: TopicsPluginConfig,
+  extractionTemplate: string,
 ): Promise<TopicWaveInput> {
   const entityTypes = context.entities
     .getEntityTypes()
@@ -159,17 +161,19 @@ async function selectTopicWaveInput(
       },
     }),
     context.resolvePrompt(
-      "topics:extraction",
+      // The template's own stable name, not its scoped registration key:
+      // a prompt entity is user-editable and must not move when the
+      // package's runtime scope does.
+      topicExtractionTemplate.name,
       topicExtractionTemplate.basePrompt ?? "",
     ),
     context.appInfo(),
   ]);
-  const adapter = new TopicAdapter();
   const existingTopics = topics
     .filter((topic) => topic.visibility === config.extractionVisibility)
     .map((topic) => ({
       id: topic.id,
-      title: adapter.parseTopicBody(topic.content).title,
+      title: parseTopicBody(topic.content).title,
     }))
     .sort((left, right) => left.id.localeCompare(right.id));
 
@@ -183,6 +187,7 @@ async function selectTopicWaveInput(
     topicSoftCeilingSourceRatio: config.topicSoftCeilingSourceRatio,
     targetVisibility: config.extractionVisibility,
     templatePrompt,
+    extractionTemplate,
     model: appInfo.ai.model,
     identity: context.identityInput(),
   };
@@ -243,7 +248,7 @@ async function deriveTopicIntents(
         ...existingTitles,
         ...[...desired.values()].map(({ title }) => title),
       ]),
-      templateName: "topics:extraction",
+      templateName: input.extractionTemplate,
       representedIdentity: "none",
     });
     const extracted = z.array(extractedTopicSchema).parse(result.topics);
@@ -280,8 +285,6 @@ async function deriveTopicIntents(
       }
     }
   }
-
-  const adapter = new TopicAdapter();
   return [...desired.entries()]
     .sort(([left], [right]) => left.localeCompare(right))
     .map(([id, topic]) => ({
@@ -289,7 +292,7 @@ async function deriveTopicIntents(
       entity: {
         id,
         entityType: TOPIC_ENTITY_TYPE,
-        content: adapter.createTopicBody(topic),
+        content: createTopicBody(topic),
         metadata: {},
         visibility: input.targetVisibility,
       },
@@ -298,6 +301,9 @@ async function deriveTopicIntents(
 
 export function createTopicProjectionRule(
   config: TopicsPluginConfig,
+  // Resolved by the runtime rather than spelled out here: a package that
+  // writes its own scope prefix breaks silently the moment the scope moves.
+  extractionTemplate: string,
 ): ProjectionRule {
   const sourceTypes = config.includeEntityTypes;
   const excludeTypes = [
@@ -318,7 +324,7 @@ export function createTopicProjectionRule(
     sourceChangeBatchDelayMs: config.sourceChangeBatchDelayMs,
     inputSchema: topicWaveInputSchema,
     selectInput: async (_trigger, context) =>
-      selectTopicWaveInput(context, config),
+      selectTopicWaveInput(context, config, extractionTemplate),
     derive: deriveTopicIntents,
   });
 }

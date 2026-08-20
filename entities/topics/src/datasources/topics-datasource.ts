@@ -1,88 +1,44 @@
-import { BaseEntityDataSource } from "@brains/plugins";
-import type {
-  BaseQuery,
-  PaginationInfo,
-  BaseDataSourceContext,
-  DataSourceSchema,
-  EntityDataSourceConfig,
-} from "@brains/plugins";
-import type { BaseEntity } from "@brains/plugins";
-import type { Logger } from "@brains/utils/logger";
+import {
+  defineEntityDataSource,
+  type BaseEntity,
+  type EntityDataSourceDefinition,
+} from "@brains/sdk/entities";
+import { truncateText } from "@brains/utils/string-utils";
 import { TOPIC_ENTITY_TYPE } from "../lib/constants";
-import { toTopicDetail, toTopicSummary } from "../lib/topic-presenter";
+import { toTopicDetail } from "../lib/topic-presenter";
 import type { TopicDetailData } from "../templates/topic-detail/schema";
-import type {
-  TopicListData,
-  TopicSummary,
-} from "../templates/topic-list/schema";
+import type { TopicListData } from "../templates/topic-list/schema";
+
+const SUMMARY_LENGTH = 200;
 
 /**
- * DataSource for fetching and transforming topic entities.
- * Handles both list and detail views for topics.
+ * Topics as a list, and one topic on its own page.
+ *
+ * The transform keeps a topic whole and the list truncates: a summary is a
+ * property of how a list renders, not of what a topic is, and a detail page
+ * needs the content a summary would have cut.
  */
-export class TopicsDataSource extends BaseEntityDataSource<
+export const topicsDataSource: EntityDataSourceDefinition<
   BaseEntity,
-  TopicSummary,
+  TopicDetailData,
   TopicListData
-> {
-  readonly id: string = "topics:entities";
-  readonly name: string = "Topics Entity DataSource";
-  readonly description: string =
-    "Fetches and transforms topic entities for rendering";
-
-  protected readonly config: EntityDataSourceConfig = {
-    entityType: TOPIC_ENTITY_TYPE,
-    defaultSort: [{ field: "updated" as const, direction: "desc" as const }],
-    defaultLimit: 100,
-    lookupField: "id" as const,
-  };
-
-  constructor(logger: Logger) {
-    super(logger);
-    this.logger.debug("TopicsDataSource initialized");
-  }
-
-  protected transformEntity(entity: BaseEntity): TopicSummary {
-    return toTopicSummary(entity);
-  }
-
-  protected buildListResult(
-    items: TopicSummary[],
-    _pagination: PaginationInfo | null,
-    _query: BaseQuery,
-  ): TopicListData {
-    return {
-      topics: items,
-      totalCount: items.length,
-    };
-  }
-
-  /**
-   * Override fetch to handle detail view — detail needs full content.
-   */
-  override async fetch<T>(
-    query: unknown,
-    outputSchema: DataSourceSchema<T>,
-    context: BaseDataSourceContext,
-  ): Promise<T> {
-    const { query: parsedQuery } = this.parseQuery(query);
-
-    if (parsedQuery.id) {
-      const entityService = context.entityService;
-      const entity = await entityService.getEntity({
-        entityType: this.config.entityType,
-        id: parsedQuery.id,
-      });
-
-      if (!entity) {
-        throw new Error(`Entity not found: ${parsedQuery.id}`);
-      }
-
-      return outputSchema.parse(
-        toTopicDetail(entity) satisfies TopicDetailData,
-      );
-    }
-
-    return super.fetch(query, outputSchema, context);
-  }
-}
+> = defineEntityDataSource({
+  id: "entities",
+  name: "Topics Entity DataSource",
+  description: "Fetches and transforms topic entities for rendering",
+  entityType: TOPIC_ENTITY_TYPE,
+  defaultSort: [{ field: "updated", direction: "desc" }],
+  defaultLimit: 100,
+  transform: (entity: BaseEntity): TopicDetailData => toTopicDetail(entity),
+  list: (items: TopicDetailData[]): TopicListData => ({
+    topics: items.map(({ id, title, content, created, updated }) => ({
+      id,
+      title,
+      summary: truncateText(content, SUMMARY_LENGTH),
+      created,
+      updated,
+    })),
+    totalCount: items.length,
+  }),
+  detail: async ({ item }): Promise<TopicDetailData> => item,
+});

@@ -1,156 +1,35 @@
 import {
-  EntityPlugin,
-  type EntityPluginContext,
-  type EntityTypeConfig,
-  type DataSource,
-  type Template,
-  type BaseEntity,
-  type ProjectionRule,
-} from "@brains/plugins";
-import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
-import { z } from "@brains/utils/zod";
-import {
-  topicsPluginConfigSchema,
-  type TopicsPluginConfig,
-  type TopicsPluginConfigInput,
-} from "./schemas/config";
-import { TopicAdapter } from "./lib/topic-adapter";
-import { topicExtractionTemplate } from "./templates/extraction-template";
-import { topicMergeSynthesisTemplate } from "./templates/merge-synthesis-template";
-import { topicListTemplate } from "./templates/topic-list";
-import { topicDetailTemplate } from "./templates/topic-detail";
-import { TopicsDataSource } from "./datasources/topics-datasource";
-import { topicEntitySchema, type TopicEntity } from "./schemas/topic";
-import { createTopicDistributionInsight } from "./insights/topic-distribution";
-import { registerTopicsDashboardWidget } from "./lib/dashboard-widget";
-import { registerTopicEvalHandlers } from "./lib/eval-handlers";
+  defineServicePlugin,
+  type ServicePackageDefinition,
+} from "@brains/sdk/services";
+import { topicsPluginConfigSchema } from "./schemas/config";
+import { topic } from "./topic-entity";
 import { createTopicProjectionRule } from "./lib/topic-wave-rule";
-import { TOPIC_ENTITY_TYPE, TOPICS_PLUGIN_ID } from "./lib/constants";
-import { createTopicAtprotoProjection } from "./atproto-projection";
-import packageJson from "../package.json";
+import { topicEvalHandlers } from "./lib/eval-handlers";
 
-interface SourceMetadata {
-  status?: unknown;
-}
+/**
+ * Topics: a derived entity plus the wave that derives it.
+ *
+ * One package rather than two because the rule and the entity are the same
+ * capability seen from either end — the rule has no meaning without the
+ * type it writes, and the type is never authored by hand.
+ */
+export const topics: ServicePackageDefinition<typeof topicsPluginConfigSchema> =
+  defineServicePlugin({
+    id: "topics",
+    config: topicsPluginConfigSchema,
+    entities: [topic],
+    // Extraction is opt-out, and every threshold it derives with comes from
+    // config, so whether the rule exists at all is a configured question.
+    projectionRules: ({ config, template }) =>
+      config.enableAutoExtraction
+        ? [createTopicProjectionRule(config, template("extraction"))]
+        : [],
+    evals: ({ config, template }) =>
+      topicEvalHandlers(config, template("extraction")),
+  });
 
-const topicAdapter: TopicAdapter = new TopicAdapter();
-const sourceMetadataSchema: z.ZodType<SourceMetadata, unknown> = z.looseObject({
-  status: z.unknown().optional(),
-});
-
-export class TopicsPlugin extends EntityPlugin<
-  TopicEntity,
-  TopicsPluginConfig,
-  TopicsPluginConfigInput
-> {
-  readonly entityType: typeof TOPIC_ENTITY_TYPE = TOPIC_ENTITY_TYPE;
-  readonly schema: typeof topicEntitySchema = topicEntitySchema;
-  readonly adapter: TopicAdapter = topicAdapter;
-  private unregisterAtprotoProjection: (() => void) | undefined;
-
-  declare protected config: TopicsPluginConfig;
-
-  constructor(config: TopicsPluginConfigInput = {}) {
-    super(TOPICS_PLUGIN_ID, packageJson, config, topicsPluginConfigSchema);
-  }
-
-  protected override getEntityTypeConfig(): EntityTypeConfig | undefined {
-    return {
-      weight: 0.5,
-      projectionSource: false,
-      projectionSourceRole: "excluded",
-    };
-  }
-
-  protected override getTemplates(): Record<string, Template> {
-    return {
-      extraction: topicExtractionTemplate,
-      "merge-synthesis": topicMergeSynthesisTemplate,
-      "topic-list": topicListTemplate,
-      "topic-detail": topicDetailTemplate,
-    };
-  }
-
-  protected override getDataSources(): DataSource[] {
-    return [new TopicsDataSource(this.logger.child("TopicsDataSource"))];
-  }
-
-  protected override getProjectionRules(
-    _context: EntityPluginContext,
-  ): ProjectionRule[] {
-    return this.config.enableAutoExtraction
-      ? [createTopicProjectionRule(this.config)]
-      : [];
-  }
-
-  protected override async onRegister(
-    context: EntityPluginContext,
-  ): Promise<void> {
-    // Insights
-    context.insights.register(
-      "topic-distribution",
-      createTopicDistributionInsight(),
-    );
-
-    // Dashboard widget: the topic list. The knowledge map moved to
-    // @brains/knowledge-map — it projects every entity type, not topics.
-    registerTopicsDashboardWidget({ context });
-
-    // Eval handlers
-    registerTopicEvalHandlers({
-      context,
-      logger: this.logger,
-      config: this.config,
-    });
-
-    this.unregisterAtprotoProjection =
-      AtprotoProjectionRegistry.getInstance().register(
-        createTopicAtprotoProjection(),
-      );
-  }
-
-  protected override async onShutdown(): Promise<void> {
-    this.unregisterAtprotoProjection?.();
-    this.unregisterAtprotoProjection = undefined;
-  }
-
-  // ── Public helpers (used by tests) ──
-
-  public shouldProcessEntityType(
-    entityType: string,
-    entityService: {
-      getEntityTypeConfig: (type: string) => EntityTypeConfig;
-    },
-  ): boolean {
-    if (entityType === TOPIC_ENTITY_TYPE) return false;
-    if (this.config.excludeEntityTypes.includes(entityType)) return false;
-    if (
-      !this.config.includeEntityTypes.includes("*") &&
-      !this.config.includeEntityTypes.includes(entityType)
-    ) {
-      return false;
-    }
-    return (
-      entityService.getEntityTypeConfig(entityType).projectionSource !== false
-    );
-  }
-
-  public isEntityPublished(entity: BaseEntity): boolean {
-    const parsed = sourceMetadataSchema.safeParse(entity.metadata);
-    const status = parsed.success ? parsed.data.status : undefined;
-    if (status === undefined || status === null) return true;
-    if (typeof status !== "string") return false;
-    return this.config.extractableStatuses.includes(status);
-  }
-}
-
-export default TopicsPlugin;
-
-export function topicsPlugin(
-  config: TopicsPluginConfigInput = {},
-): TopicsPlugin {
-  return new TopicsPlugin(config);
-}
+export default topics;
 
 export type {
   TopicsPluginConfig,

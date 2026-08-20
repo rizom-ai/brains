@@ -9,7 +9,8 @@ import {
   createMockEntityService,
   createSilentLogger,
 } from "@brains/test-utils";
-import { TopicAdapter } from "../../src/lib/topic-adapter";
+import { z } from "@brains/utils/zod";
+import { createTopicBody } from "../../src/lib/topic-body";
 import { createTopicProjectionRule } from "../../src/lib/topic-wave-rule";
 import { topicsPluginConfigSchema } from "../../src/schemas/config";
 
@@ -40,7 +41,7 @@ function inputContext(entities: BaseEntity[]): ProjectionInputContext {
     entities: {
       getEntity: service.getEntity,
       listEntities: service.listEntities,
-      getEntityTypes: service.getEntityTypes,
+      getEntityTypes: () => ["post", "note", "topic"],
       hasEntityType: service.hasEntityType,
       getEntityTypeConfig: () => ({ projectionSourceRole: "primary" }),
     },
@@ -112,7 +113,7 @@ describe("topic wave rule", () => {
       includeEntityTypes: ["post"],
       autoMerge: false,
     });
-    const rule = createTopicProjectionRule(config);
+    const rule = createTopicProjectionRule(config, "topics:extraction");
     expect(rule.sourceChangeBatchDelayMs).toBe(1000);
     const signal = new AbortController().signal;
     const selected = await rule.selectInput(
@@ -144,7 +145,7 @@ describe("topic wave rule", () => {
         entity: {
           id: "backpressure",
           entityType: "topic",
-          content: new TopicAdapter().createTopicBody({
+          content: createTopicBody({
             title: "Backpressure",
             content: "Bound work admitted during bursts.",
           }),
@@ -155,11 +156,99 @@ describe("topic wave rule", () => {
     ]);
   });
 
+  // These properties were asserted against predicate methods on the plugin
+  // that nothing but the tests called; the rule's own source selection is
+  // where include/exclude and publishable status actually decide anything.
+  it("selects only source types the config admits", async () => {
+    const config = topicsPluginConfigSchema.parse({
+      includeEntityTypes: ["post", "note"],
+      excludeEntityTypes: ["note"],
+    });
+    const signal = new AbortController().signal;
+    const selected = await createTopicProjectionRule(
+      config,
+      "topics:extraction",
+    ).selectInput(
+      { waveId: "wave-1", inputs: [] },
+      inputContext([
+        entity({
+          id: "post-1",
+          entityType: "post",
+          content: "Admitted.",
+          metadata: { title: "Post" },
+        }),
+        entity({
+          id: "note-1",
+          entityType: "note",
+          content: "Excluded by config.",
+          metadata: { title: "Note" },
+        }),
+        entity({
+          id: "topic-1",
+          entityType: "topic",
+          content: createTopicBody({ title: "Existing", content: "Body." }),
+          metadata: {},
+        }),
+      ]),
+      signal,
+    );
+
+    // A topic never sources itself, whatever the include list says.
+    expect(
+      z
+        .object({ sources: z.array(z.object({ id: z.string() })) })
+        .parse(selected)
+        .sources.map(({ id }) => id),
+    ).toEqual(["post-1"]);
+  });
+
+  it("skips sources whose status is not publishable, and keeps those with no status", async () => {
+    const config = topicsPluginConfigSchema.parse({
+      includeEntityTypes: ["post"],
+      extractableStatuses: ["published"],
+    });
+    const signal = new AbortController().signal;
+    const selected = await createTopicProjectionRule(
+      config,
+      "topics:extraction",
+    ).selectInput(
+      { waveId: "wave-1", inputs: [] },
+      inputContext([
+        entity({
+          id: "published",
+          entityType: "post",
+          content: "Live.",
+          metadata: { title: "Live", status: "published" },
+        }),
+        entity({
+          id: "draft",
+          entityType: "post",
+          content: "Not yet.",
+          metadata: { title: "Draft", status: "draft" },
+        }),
+        entity({
+          id: "statusless",
+          entityType: "post",
+          content: "No status at all.",
+          metadata: { title: "Plain" },
+        }),
+      ]),
+      signal,
+    );
+
+    expect(
+      z
+        .object({ sources: z.array(z.object({ id: z.string() })) })
+        .parse(selected)
+        .sources.map(({ id }) => id),
+    ).toEqual(["published", "statusless"]);
+  });
+
   it("does not call the model when no eligible sources exist", async () => {
     const config = topicsPluginConfigSchema.parse({
       includeEntityTypes: ["post"],
     });
-    const rule = createTopicProjectionRule(config);
+    const rule = createTopicProjectionRule(config, "topics:extraction");
     const signal = new AbortController().signal;
     const selected = await rule.selectInput(
       { waveId: "wave-1", inputs: [] },
