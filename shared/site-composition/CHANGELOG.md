@@ -1,5 +1,23 @@
 # @brains/site-composition
 
+## 0.2.0-alpha.314
+
+### Patch Changes
+
+- [`ae06107`](https://github.com/rizom-ai/brains/commit/ae06107694a825378e23183c26261c91166edfdf) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Validate site metadata against one schema on every route.
+
+  Site-builder kept its own copy of the site metadata schema for plugin config and
+  build-job payloads. The copy omitted `represents`, so a site configured as
+  `represents: "brain"` had the field stripped on that route and fell back to
+  `"anchor"` at layout time, while the message-bus route preserved it. Both routes
+  now use `siteMetadataSchema` from `@brains/site-composition`, and
+  `siteLayoutInfoSchema` derives from it instead of restating its ten fields.
+
+- Updated dependencies [[`b1263e7`](https://github.com/rizom-ai/brains/commit/b1263e72c9448cbff519732cf001a0cd1c2203ec)]:
+  - @brains/content-formatters@0.2.0-alpha.314
+  - @brains/templates@0.2.0-alpha.314
+  - @brains/utils@0.2.0-alpha.314
+
 ## 0.2.0-alpha.313
 
 ### Patch Changes

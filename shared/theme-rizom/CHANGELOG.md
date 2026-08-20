@@ -1,5 +1,15 @@
 # @brains/theme-rizom
 
+## 0.2.0-alpha.238
+
+### Patch Changes
+
+- [`980d2f4`](https://github.com/rizom-ai/brains/commit/980d2f4758e6472166cb656d7b6910672220bec6) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Drop the 23 `--rizom-btn-*` declarations that `@rizom/theme-default` (which
+  this theme composes at runtime) now declares as shared defaults; only this
+  theme's genuine deltas remain.
+- Updated dependencies []:
+  - @rizom/theme-default@0.2.0-alpha.234
+
 ## 0.2.0-alpha.237
 
 ### Patch Changes

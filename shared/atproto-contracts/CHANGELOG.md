@@ -1,5 +1,29 @@
 # @brains/atproto-contracts
 
+## 0.2.0-alpha.314
+
+### Patch Changes
+
+- [`ae06107`](https://github.com/rizom-ai/brains/commit/ae06107694a825378e23183c26261c91166edfdf) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Reject record fields the lexicon does not declare.
+
+  Record schemas were built with `.passthrough()` and strictness was reinstated
+  for `ai.rizom.brain.card` alone, through a hardcoded list of allowed field names
+  that duplicated the card lexicon. Eight of the nine canonical records therefore
+  accepted and retained arbitrary undeclared fields, and adding a property to the
+  card lexicon without editing that list would have made valid records fail.
+
+  Strictness now comes from each lexicon's own property set, so it covers nested
+  objects and any lexicon added later. `refineBrainCardRecord` and its field lists
+  are gone.
+
+  Publishing a record carrying a field its lexicon does not declare now fails
+  locally instead of reaching the PDS. The canonical projections were checked and
+  already conform; only a narrow test stub did not.
+
+- Updated dependencies [[`fd2855e`](https://github.com/rizom-ai/brains/commit/fd2855ea09d880ebf4268ce6f9a53d4cb9289c07)]:
+  - @brains/entity-service@0.2.0-alpha.314
+  - @brains/utils@0.2.0-alpha.314
+
 ## 0.2.0-alpha.313
 
 ### Patch Changes

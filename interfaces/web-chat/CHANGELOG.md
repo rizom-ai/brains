@@ -1,5 +1,48 @@
 # @brains/web-chat
 
+## 0.2.0-alpha.314
+
+### Patch Changes
+
+- [`f37d7ed`](https://github.com/rizom-ai/brains/commit/f37d7ed2f39245b2263967fcb03f1885cefcad40) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Render the console strip from one implementation.
+
+  The strip existed twice — an HTML string in `@brains/console-theme` for the
+  server-rendered shells and a parallel Preact component in the dashboard — with
+  a comment asking to "keep the two in step". They had already drifted: the
+  string version hardcoded an "Authenticated / AU" session chip while the
+  dashboard showed the principal's name, role, and initials, and a visitor state.
+
+  `renderConsoleStripHtml` now owns the full behavior (principal chip, visitor
+  chip, HTML-escaped interpolation) and the dashboard injects the shared inner
+  markup instead of restating it. The CMS editor and the admin and account
+  consoles pass the principal they already hold, so their chips now show the
+  signed-in user instead of the generic copy; web-chat keeps the role-neutral
+  chip until its interface threads the principal through.
+
+- [`9bd1925`](https://github.com/rizom-ai/brains/commit/9bd192562923351e62909c7a0662eeeb46453303) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Move the console-surface topology out of the theme package.
+
+  `@brains/console-theme` — described as a token sheet — hardcoded the console
+  plugin ids, their permission tiers, and a structural copy of
+  `RegisteredWebRoute`, so adding a console surface meant editing a CSS package.
+  `deriveConsoleSurfaces` and its table now live in `@brains/plugins`, next to
+  the web-route registry the doors derive from and typed against the real
+  `RegisteredWebRoute`; the presentational `ConsoleSurface` shape moves to
+  `@brains/contracts`, shared by the derivation and the strip renderer.
+  console-theme keeps exactly what its description claims: CSS, fonts, boot
+  scripts, and strip rendering. Per-plugin surface declaration at route
+  registration remains the end state, governed by the HTTP route registry plan.
+
+- [`d1a23dd`](https://github.com/rizom-ai/brains/commit/d1a23dde399d457fb54f910d06932e43aacc2a9e) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Resolve the `?id` conversation through one helper in the session and message
+  handlers. The message handler restated the id-param/access-check/400/404
+  sequence statement for statement; it now calls the session handlers'
+  `resolveWebChatSession`, so the semantics cannot drift between routes.
+- Updated dependencies [[`35fe9fc`](https://github.com/rizom-ai/brains/commit/35fe9fc25b6ff3182d6f39f8725787d2f73777ea), [`f37d7ed`](https://github.com/rizom-ai/brains/commit/f37d7ed2f39245b2263967fcb03f1885cefcad40), [`9bd1925`](https://github.com/rizom-ai/brains/commit/9bd192562923351e62909c7a0662eeeb46453303), [`ae06107`](https://github.com/rizom-ai/brains/commit/ae06107694a825378e23183c26261c91166edfdf), [`d339319`](https://github.com/rizom-ai/brains/commit/d339319dabea7f856b69c829e46d3937254880d3), [`ae06107`](https://github.com/rizom-ai/brains/commit/ae06107694a825378e23183c26261c91166edfdf), [`9636536`](https://github.com/rizom-ai/brains/commit/9636536389923425cbf6ee21c3063e35eed9b5e6), [`ae06107`](https://github.com/rizom-ai/brains/commit/ae06107694a825378e23183c26261c91166edfdf), [`17507e8`](https://github.com/rizom-ai/brains/commit/17507e806efc5fde1c30496700de74b53575d350), [`fd2855e`](https://github.com/rizom-ai/brains/commit/fd2855ea09d880ebf4268ce6f9a53d4cb9289c07), [`497fbc0`](https://github.com/rizom-ai/brains/commit/497fbc0f6d672e23afd5263a519c4e73a740c2c5)]:
+  - @brains/auth-service@0.2.0-alpha.314
+  - @brains/console-theme@0.2.0-alpha.314
+  - @brains/contracts@0.2.0-alpha.314
+  - @brains/plugins@0.2.0-alpha.314
+  - @brains/utils@0.2.0-alpha.314
+
 ## 0.2.0-alpha.313
 
 ### Patch Changes

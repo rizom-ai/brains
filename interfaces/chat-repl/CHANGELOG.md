@@ -1,5 +1,35 @@
 # @brains/chat-repl
 
+## 0.2.0-alpha.314
+
+### Patch Changes
+
+- [`e0b7d78`](https://github.com/rizom-ai/brains/commit/e0b7d78216d66420471f2252e85c34ab925f78f2) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Route CLI confirmations through the shared grammar and render the full
+  response plan.
+
+  The REPL parsed approvals with its own positional grammar and rendered only
+  approval cards, so sources, actions, and artifact cards never reached the
+  terminal, and the same user action had incompatible grammars across
+  interfaces. Confirmations now route through `routeConfirmationResponse` —
+  approval ids work everywhere, ambiguity and unknown-id notices come from the
+  shared vocabulary — with `yes 2` kept as terminal sugar that lowers to the
+  matching approval id before routing. Responses render through
+  `buildResponsePlan`, so every card kind reaches the terminal via the shared
+  text fallback.
+
+- [`630bf1c`](https://github.com/rizom-ai/brains/commit/630bf1c911c049dd4e302bf5731862afa18fa1bf) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Stop detecting job updates by sniffing emoji in rendered text.
+
+  The Ink app decided whether to coalesce a message by string-matching 🔄/✅/❌
+  and words like "completed" in already-rendered output — presentation used as a
+  control signal, broken by any glyph change. The interface knows which messages
+  are coordinator-initiated, so it now delivers them on a dedicated system
+  callback; replies always append, consecutive job updates coalesce in place, and
+  no text is inspected.
+
+- Updated dependencies [[`9bd1925`](https://github.com/rizom-ai/brains/commit/9bd192562923351e62909c7a0662eeeb46453303), [`ae06107`](https://github.com/rizom-ai/brains/commit/ae06107694a825378e23183c26261c91166edfdf), [`ae06107`](https://github.com/rizom-ai/brains/commit/ae06107694a825378e23183c26261c91166edfdf)]:
+  - @brains/plugins@0.2.0-alpha.314
+  - @brains/utils@0.2.0-alpha.314
+
 ## 0.2.0-alpha.313
 
 ### Patch Changes

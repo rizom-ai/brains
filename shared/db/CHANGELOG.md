@@ -1,5 +1,22 @@
 # @brains/db
 
+## 0.2.0-alpha.314
+
+### Patch Changes
+
+- [`fd2855e`](https://github.com/rizom-ai/brains/commit/fd2855ea09d880ebf4268ce6f9a53d4cb9289c07) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Declare the drizzle column-annotation aliases once, in `@brains/db`.
+
+  `isolatedDeclarations` makes exported tables carry explicit column types, and
+  five packages had each hand-written the same sixteen-key `SQLiteColumn` config
+  literal per column kind — ~420 lines of identical type machinery across seven
+  schema files, drifting on which axes they exposed. The literals now live once in
+  `@brains/db` (`SqliteTextColumn`, `SqliteIntegerColumn`, `SqliteJsonColumn`,
+  `SqliteBooleanColumn`, `SqliteTable`) with every axis the schemas vary on as a
+  parameter; schema files keep one-line local aliases that bind their table name.
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.314
+
 ## 0.2.0-alpha.313
 
 ### Patch Changes

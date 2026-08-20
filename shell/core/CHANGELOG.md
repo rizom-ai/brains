@@ -1,5 +1,50 @@
 # @brains/core
 
+## 0.2.0-alpha.314
+
+### Patch Changes
+
+- [`d339319`](https://github.com/rizom-ai/brains/commit/d339319dabea7f856b69c829e46d3937254880d3) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Fold `@brains/notification-contracts` into `@brains/contracts`.
+
+  A private 67-line package with three in-repo consumers has no cohesion argument
+  under the single-brain model — the email contracts already live inside
+  `@brains/contracts`, and this was the only contracts module holding its own
+  package boundary without lexicons or assets to justify it. The module moves to
+  `shared/contracts/src/notification.ts` with its types now derived from the
+  schemas (`z.input`/`z.output`) instead of hand-mirrored beside them.
+
+- [`9636536`](https://github.com/rizom-ai/brains/commit/9636536389923425cbf6ee21c3063e35eed9b5e6) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Collapse the remaining duplicate type declarations onto their canonical homes.
+
+  - The `JsonValue`/`JsonObject` family was declared independently in ai-service,
+    auth-service, and site-engine; all three now use `@brains/contracts`, whose
+    copy is the tested one (the published-SDK copy keeps its parity guard).
+  - `@brains/core` exported `SerializableEntity`, its schema, and the identity
+    alias `SerializableQueryResult` with zero consumers anywhere — deleted.
+  - job-queue declared `JobProgressEvent` twice: a 30-line hand-written interface
+    in `schemas.ts` and a `z.output` alias in the progress monitor. The schema is
+    now the single source; the public type derives from it.
+
+- [`497fbc0`](https://github.com/rizom-ai/brains/commit/497fbc0f6d672e23afd5263a519c4e73a740c2c5) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Declare the site-build manifest filename once, in `@brains/contracts`.
+
+  The manifest must never be served: the webserver blocks its path and the HTTP
+  route registry reserves it. But the filename was a string literal in three
+  packages that cannot import each other, so renaming it in the site builder
+  would have left two dead reservations behind and silently started serving the
+  build manifest publicly. All three now derive from one constant next to the
+  other site-build contracts.
+
+- Updated dependencies [[`9bd1925`](https://github.com/rizom-ai/brains/commit/9bd192562923351e62909c7a0662eeeb46453303), [`ae06107`](https://github.com/rizom-ai/brains/commit/ae06107694a825378e23183c26261c91166edfdf), [`d339319`](https://github.com/rizom-ai/brains/commit/d339319dabea7f856b69c829e46d3937254880d3), [`ae06107`](https://github.com/rizom-ai/brains/commit/ae06107694a825378e23183c26261c91166edfdf), [`ae06107`](https://github.com/rizom-ai/brains/commit/ae06107694a825378e23183c26261c91166edfdf), [`17507e8`](https://github.com/rizom-ai/brains/commit/17507e806efc5fde1c30496700de74b53575d350), [`fd2855e`](https://github.com/rizom-ai/brains/commit/fd2855ea09d880ebf4268ce6f9a53d4cb9289c07), [`497fbc0`](https://github.com/rizom-ai/brains/commit/497fbc0f6d672e23afd5263a519c4e73a740c2c5), [`ae06107`](https://github.com/rizom-ai/brains/commit/ae06107694a825378e23183c26261c91166edfdf)]:
+  - @brains/contracts@0.2.0-alpha.314
+  - @brains/plugins@0.2.0-alpha.314
+  - @brains/runtime-state@0.2.0-alpha.314
+  - @brains/site-composition@0.2.0-alpha.314
+  - @brains/operation-context@0.2.0-alpha.314
+  - @brains/templates@0.2.0-alpha.314
+  - @brains/recurring-checks@0.2.0-alpha.314
+  - @brains/image@0.2.0-alpha.314
+  - @brains/utils@0.2.0-alpha.314
+  - @brains/scheduler@0.2.0-alpha.314
+
 ## 0.2.0-alpha.313
 
 ### Patch Changes

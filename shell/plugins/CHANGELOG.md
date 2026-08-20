@@ -1,5 +1,74 @@
 # @brains/plugins
 
+## 0.2.0-alpha.314
+
+### Patch Changes
+
+- [`9bd1925`](https://github.com/rizom-ai/brains/commit/9bd192562923351e62909c7a0662eeeb46453303) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Move the console-surface topology out of the theme package.
+
+  `@brains/console-theme` — described as a token sheet — hardcoded the console
+  plugin ids, their permission tiers, and a structural copy of
+  `RegisteredWebRoute`, so adding a console surface meant editing a CSS package.
+  `deriveConsoleSurfaces` and its table now live in `@brains/plugins`, next to
+  the web-route registry the doors derive from and typed against the real
+  `RegisteredWebRoute`; the presentational `ConsoleSurface` shape moves to
+  `@brains/contracts`, shared by the derivation and the strip renderer.
+  console-theme keeps exactly what its description claims: CSS, fonts, boot
+  scripts, and strip rendering. Per-plugin surface declaration at route
+  registration remains the end state, governed by the HTTP route registry plan.
+
+- [`ae06107`](https://github.com/rizom-ai/brains/commit/ae06107694a825378e23183c26261c91166edfdf) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Make the runtime plugin contexts extend their published counterparts.
+
+  The published contexts in `src/public/types.ts` restated the runtime member
+  lists by hand — a deliberately narrower surface, but one nothing held to the
+  runtime. Each runtime context (`BasePluginContext`, `ServicePluginContext`,
+  `EntityPluginContext`, `InterfacePluginContext`,
+  `MessageInterfacePluginContext`) now `extends` its published counterpart:
+  members identical on both sides are declared once (in the published type) and
+  inherited; members declared only internally stay withheld from the SDK; members
+  redeclared internally refine a weaker published type, checked for assignability
+  by the compiler.
+
+  A published capability the runtime lacks now fails to compile at the context
+  declaration and at `createBasePluginContext`, instead of shipping. Emitted
+  types are unchanged — the previous test-based guard for the contexts is
+  replaced by the declaration-site check, and only the `Plugin` alias (which
+  cannot carry an extends clause) keeps a test-level assertion.
+
+- [`ae06107`](https://github.com/rizom-ai/brains/commit/ae06107694a825378e23183c26261c91166edfdf) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Pin the published plugin surface to what the runtime actually provides.
+
+  `src/public/types.ts` is the authoring surface published as
+  `@rizom/brain/plugins`, and it restates internal types on purpose: the runtime
+  `BasePluginContext` carries 46 members against the published 23, withholding
+  `jobs`, `runtimeState`, `plugins`, `endpoints`, `gitBrokerSocket` and the rest,
+  and weakening `IViewsNamespace` / `IServiceTemplatesNamespace` so internal
+  template types stay out of the generated declarations.
+
+  Nothing checked that the narrower surface was still _true_. `Plugin.description`
+  and `Plugin.dependencies` were declared without `| undefined` while the runtime
+  derives them from `pluginMetadataSchema` with it, so under
+  `exactOptionalPropertyTypes` the runtime `Plugin` did not satisfy the published
+  one. Fixed, and a typecheck-time assertion now holds the invariant for fifteen
+  context and namespace pairs: narrowing stays legal, promising something the
+  runtime lacks does not.
+
+- Updated dependencies [[`9bd1925`](https://github.com/rizom-ai/brains/commit/9bd192562923351e62909c7a0662eeeb46453303), [`d339319`](https://github.com/rizom-ai/brains/commit/d339319dabea7f856b69c829e46d3937254880d3), [`eef6a9c`](https://github.com/rizom-ai/brains/commit/eef6a9ce7e49c61b971e71457f711ce8ca3b1857), [`ae06107`](https://github.com/rizom-ai/brains/commit/ae06107694a825378e23183c26261c91166edfdf), [`9636536`](https://github.com/rizom-ai/brains/commit/9636536389923425cbf6ee21c3063e35eed9b5e6), [`17507e8`](https://github.com/rizom-ai/brains/commit/17507e806efc5fde1c30496700de74b53575d350), [`fd2855e`](https://github.com/rizom-ai/brains/commit/fd2855ea09d880ebf4268ce6f9a53d4cb9289c07), [`b1263e7`](https://github.com/rizom-ai/brains/commit/b1263e72c9448cbff519732cf001a0cd1c2203ec), [`497fbc0`](https://github.com/rizom-ai/brains/commit/497fbc0f6d672e23afd5263a519c4e73a740c2c5), [`ae06107`](https://github.com/rizom-ai/brains/commit/ae06107694a825378e23183c26261c91166edfdf)]:
+  - @brains/contracts@0.2.0-alpha.314
+  - @brains/identity-service@0.2.0-alpha.314
+  - @brains/ai-service@0.2.0-alpha.314
+  - @brains/job-queue@0.2.0-alpha.314
+  - @brains/conversation-service@0.2.0-alpha.314
+  - @brains/runtime-state@0.2.0-alpha.314
+  - @brains/entity-service@0.2.0-alpha.314
+  - @brains/content-formatters@0.2.0-alpha.314
+  - @brains/site-composition@0.2.0-alpha.314
+  - @brains/content-service@0.2.0-alpha.314
+  - @brains/mcp-service@0.2.0-alpha.314
+  - @brains/messaging-service@0.2.0-alpha.314
+  - @brains/templates@0.2.0-alpha.314
+  - @brains/recurring-checks@0.2.0-alpha.314
+  - @brains/utils@0.2.0-alpha.314
+
 ## 0.2.0-alpha.313
 
 ### Patch Changes

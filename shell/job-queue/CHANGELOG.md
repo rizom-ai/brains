@@ -1,5 +1,37 @@
 # @brains/job-queue
 
+## 0.2.0-alpha.314
+
+### Patch Changes
+
+- [`9636536`](https://github.com/rizom-ai/brains/commit/9636536389923425cbf6ee21c3063e35eed9b5e6) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Collapse the remaining duplicate type declarations onto their canonical homes.
+
+  - The `JsonValue`/`JsonObject` family was declared independently in ai-service,
+    auth-service, and site-engine; all three now use `@brains/contracts`, whose
+    copy is the tested one (the published-SDK copy keeps its parity guard).
+  - `@brains/core` exported `SerializableEntity`, its schema, and the identity
+    alias `SerializableQueryResult` with zero consumers anywhere — deleted.
+  - job-queue declared `JobProgressEvent` twice: a 30-line hand-written interface
+    in `schemas.ts` and a `z.output` alias in the progress monitor. The schema is
+    now the single source; the public type derives from it.
+
+- [`fd2855e`](https://github.com/rizom-ai/brains/commit/fd2855ea09d880ebf4268ce6f9a53d4cb9289c07) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Declare the drizzle column-annotation aliases once, in `@brains/db`.
+
+  `isolatedDeclarations` makes exported tables carry explicit column types, and
+  five packages had each hand-written the same sixteen-key `SQLiteColumn` config
+  literal per column kind — ~420 lines of identical type machinery across seven
+  schema files, drifting on which axes they exposed. The literals now live once in
+  `@brains/db` (`SqliteTextColumn`, `SqliteIntegerColumn`, `SqliteJsonColumn`,
+  `SqliteBooleanColumn`, `SqliteTable`) with every axis the schemas vary on as a
+  parameter; schema files keep one-line local aliases that bind their table name.
+
+- Updated dependencies [[`9bd1925`](https://github.com/rizom-ai/brains/commit/9bd192562923351e62909c7a0662eeeb46453303), [`d339319`](https://github.com/rizom-ai/brains/commit/d339319dabea7f856b69c829e46d3937254880d3), [`ae06107`](https://github.com/rizom-ai/brains/commit/ae06107694a825378e23183c26261c91166edfdf), [`17507e8`](https://github.com/rizom-ai/brains/commit/17507e806efc5fde1c30496700de74b53575d350), [`fd2855e`](https://github.com/rizom-ai/brains/commit/fd2855ea09d880ebf4268ce6f9a53d4cb9289c07), [`497fbc0`](https://github.com/rizom-ai/brains/commit/497fbc0f6d672e23afd5263a519c4e73a740c2c5)]:
+  - @brains/contracts@0.2.0-alpha.314
+  - @brains/db@0.2.0-alpha.314
+  - @brains/operation-context@0.2.0-alpha.314
+  - @brains/mcp-service@0.2.0-alpha.314
+  - @brains/utils@0.2.0-alpha.314
+
 ## 0.2.0-alpha.313
 
 ### Patch Changes

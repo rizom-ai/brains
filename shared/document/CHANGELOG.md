@@ -1,5 +1,13 @@
 # @brains/document
 
+## 0.2.0-alpha.314
+
+### Patch Changes
+
+- Updated dependencies [[`fd2855e`](https://github.com/rizom-ai/brains/commit/fd2855ea09d880ebf4268ce6f9a53d4cb9289c07)]:
+  - @brains/entity-service@0.2.0-alpha.314
+  - @brains/utils@0.2.0-alpha.314
+
 ## 0.2.0-alpha.313
 
 ### Patch Changes

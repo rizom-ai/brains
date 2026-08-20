@@ -1,5 +1,25 @@
 # @brains/identity-service
 
+## 0.2.0-alpha.314
+
+### Patch Changes
+
+- [`eef6a9c`](https://github.com/rizom-ai/brains/commit/eef6a9ce7e49c61b971e71457f711ce8ca3b1857) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Share the singleton-document core between the identity services.
+
+  `AnchorProfileService`/`BrainCharacterService` and their adapters were the same
+  code with the nouns renamed: each service re-wired an adapter into
+  `SingletonEntityService` by hand, and each adapter carried its own copy of the
+  frontmatter-regeneration override. The wiring now lives once in
+  `SingletonDocumentService` (parse/create delegate to a codec, bootstrap scope
+  applied in one place) and `SingletonFrontmatterAdapter` (frontmatter regenerated
+  from content, where these singletons keep their truth). The domain classes keep
+  their consumed surface — defaults, factories, and named getters — unchanged.
+
+- Updated dependencies [[`fd2855e`](https://github.com/rizom-ai/brains/commit/fd2855ea09d880ebf4268ce6f9a53d4cb9289c07)]:
+  - @brains/conversation-service@0.2.0-alpha.314
+  - @brains/entity-service@0.2.0-alpha.314
+  - @brains/utils@0.2.0-alpha.314
+
 ## 0.2.0-alpha.313
 
 ### Patch Changes

@@ -1,5 +1,36 @@
 # @brains/site-builder-plugin
 
+## 0.2.0-alpha.314
+
+### Patch Changes
+
+- [`497fbc0`](https://github.com/rizom-ai/brains/commit/497fbc0f6d672e23afd5263a519c4e73a740c2c5) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Declare the site-build manifest filename once, in `@brains/contracts`.
+
+  The manifest must never be served: the webserver blocks its path and the HTTP
+  route registry reserves it. But the filename was a string literal in three
+  packages that cannot import each other, so renaming it in the site builder
+  would have left two dead reservations behind and silently started serving the
+  build manifest publicly. All three now derive from one constant next to the
+  other site-build contracts.
+
+- [`ae06107`](https://github.com/rizom-ai/brains/commit/ae06107694a825378e23183c26261c91166edfdf) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Validate site metadata against one schema on every route.
+
+  Site-builder kept its own copy of the site metadata schema for plugin config and
+  build-job payloads. The copy omitted `represents`, so a site configured as
+  `represents: "brain"` had the field stripped on that route and fell back to
+  `"anchor"` at layout time, while the message-bus route preserved it. Both routes
+  now use `siteMetadataSchema` from `@brains/site-composition`, and
+  `siteLayoutInfoSchema` derives from it instead of restating its ten fields.
+
+- Updated dependencies [[`9bd1925`](https://github.com/rizom-ai/brains/commit/9bd192562923351e62909c7a0662eeeb46453303), [`ae06107`](https://github.com/rizom-ai/brains/commit/ae06107694a825378e23183c26261c91166edfdf), [`d339319`](https://github.com/rizom-ai/brains/commit/d339319dabea7f856b69c829e46d3937254880d3), [`ae06107`](https://github.com/rizom-ai/brains/commit/ae06107694a825378e23183c26261c91166edfdf), [`9636536`](https://github.com/rizom-ai/brains/commit/9636536389923425cbf6ee21c3063e35eed9b5e6), [`ae06107`](https://github.com/rizom-ai/brains/commit/ae06107694a825378e23183c26261c91166edfdf), [`17507e8`](https://github.com/rizom-ai/brains/commit/17507e806efc5fde1c30496700de74b53575d350), [`b1263e7`](https://github.com/rizom-ai/brains/commit/b1263e72c9448cbff519732cf001a0cd1c2203ec), [`497fbc0`](https://github.com/rizom-ai/brains/commit/497fbc0f6d672e23afd5263a519c4e73a740c2c5), [`ae06107`](https://github.com/rizom-ai/brains/commit/ae06107694a825378e23183c26261c91166edfdf)]:
+  - @brains/contracts@0.2.0-alpha.314
+  - @brains/plugins@0.2.0-alpha.314
+  - @brains/site-engine@0.2.0-alpha.314
+  - @brains/ui-library@0.2.0-alpha.314
+  - @brains/site-composition@0.2.0-alpha.314
+  - @brains/image@0.2.0-alpha.314
+  - @brains/utils@0.2.0-alpha.314
+
 ## 0.2.0-alpha.313
 
 ### Patch Changes

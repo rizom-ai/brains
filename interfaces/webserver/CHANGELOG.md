@@ -1,5 +1,22 @@
 # @brains/webserver
 
+## 0.2.0-alpha.314
+
+### Patch Changes
+
+- [`497fbc0`](https://github.com/rizom-ai/brains/commit/497fbc0f6d672e23afd5263a519c4e73a740c2c5) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Declare the site-build manifest filename once, in `@brains/contracts`.
+
+  The manifest must never be served: the webserver blocks its path and the HTTP
+  route registry reserves it. But the filename was a string literal in three
+  packages that cannot import each other, so renaming it in the site builder
+  would have left two dead reservations behind and silently started serving the
+  build manifest publicly. All three now derive from one constant next to the
+  other site-build contracts.
+
+- Updated dependencies [[`9bd1925`](https://github.com/rizom-ai/brains/commit/9bd192562923351e62909c7a0662eeeb46453303), [`ae06107`](https://github.com/rizom-ai/brains/commit/ae06107694a825378e23183c26261c91166edfdf), [`d339319`](https://github.com/rizom-ai/brains/commit/d339319dabea7f856b69c829e46d3937254880d3), [`ae06107`](https://github.com/rizom-ai/brains/commit/ae06107694a825378e23183c26261c91166edfdf), [`ae06107`](https://github.com/rizom-ai/brains/commit/ae06107694a825378e23183c26261c91166edfdf), [`17507e8`](https://github.com/rizom-ai/brains/commit/17507e806efc5fde1c30496700de74b53575d350), [`497fbc0`](https://github.com/rizom-ai/brains/commit/497fbc0f6d672e23afd5263a519c4e73a740c2c5)]:
+  - @brains/contracts@0.2.0-alpha.314
+  - @brains/plugins@0.2.0-alpha.314
+
 ## 0.2.0-alpha.313
 
 ### Patch Changes

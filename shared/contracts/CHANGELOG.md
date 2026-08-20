@@ -1,5 +1,68 @@
 # @brains/contracts
 
+## 0.2.0-alpha.314
+
+### Patch Changes
+
+- [`9bd1925`](https://github.com/rizom-ai/brains/commit/9bd192562923351e62909c7a0662eeeb46453303) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Move the console-surface topology out of the theme package.
+
+  `@brains/console-theme` — described as a token sheet — hardcoded the console
+  plugin ids, their permission tiers, and a structural copy of
+  `RegisteredWebRoute`, so adding a console surface meant editing a CSS package.
+  `deriveConsoleSurfaces` and its table now live in `@brains/plugins`, next to
+  the web-route registry the doors derive from and typed against the real
+  `RegisteredWebRoute`; the presentational `ConsoleSurface` shape moves to
+  `@brains/contracts`, shared by the derivation and the strip renderer.
+  console-theme keeps exactly what its description claims: CSS, fonts, boot
+  scripts, and strip rendering. Per-plugin surface declaration at route
+  registration remains the end state, governed by the HTTP route registry plan.
+
+- [`d339319`](https://github.com/rizom-ai/brains/commit/d339319dabea7f856b69c829e46d3937254880d3) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Fold `@brains/notification-contracts` into `@brains/contracts`.
+
+  A private 67-line package with three in-repo consumers has no cohesion argument
+  under the single-brain model — the email contracts already live inside
+  `@brains/contracts`, and this was the only contracts module holding its own
+  package boundary without lexicons or assets to justify it. The module moves to
+  `shared/contracts/src/notification.ts` with its types now derived from the
+  schemas (`z.input`/`z.output`) instead of hand-mirrored beside them.
+
+- [`ae06107`](https://github.com/rizom-ai/brains/commit/ae06107694a825378e23183c26261c91166edfdf) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Pin the published copy of the JSON type machinery to the canonical one.
+
+  `@rizom/site` is published and may not depend on private `@brains/*` packages,
+  so it carries its own copy of `JsonValue`, `JsonObject`, `IsJsonValue`, and
+  `JsonObjectOutputGuard` — 54 lines of recursive conditional types including a
+  depth cap. The copy is deliberate; nothing held the two together, and only the
+  `@brains/contracts` side had tests.
+
+  A typecheck-time parity assertion now fails the build if either side gains,
+  loses, or reshapes a member, which is the same guarantee the deploy scripts get
+  from their generator plus drift test.
+
+- [`17507e8`](https://github.com/rizom-ai/brains/commit/17507e806efc5fde1c30496700de74b53575d350) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Renderer-neutral SSR contracts.
+
+  `ImageRenderer` was `marked`'s `renderer.image` callback signature —
+  `(href, title: string | null, text)` — re-exported from the component library
+  and made the build engine's public contract, so swapping the markdown library
+  would have been a breaking change to `@brains/site-engine`'s API.
+  `HeadProps`/`HeadCollectorInterface` had the same inverted ownership.
+
+  Both now live in `@brains/contracts` with library-neutral shapes:
+  `ImageRenderer` takes a `RenderedImageRef` (`{href, alt, title?}`), and
+  `markdown-html` adapts marked's AST to it at the boundary that owns the marked
+  dependency. ui-library re-exports the types, so template imports are unchanged.
+
+- [`497fbc0`](https://github.com/rizom-ai/brains/commit/497fbc0f6d672e23afd5263a519c4e73a740c2c5) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Declare the site-build manifest filename once, in `@brains/contracts`.
+
+  The manifest must never be served: the webserver blocks its path and the HTTP
+  route registry reserves it. But the filename was a string literal in three
+  packages that cannot import each other, so renaming it in the site builder
+  would have left two dead reservations behind and silently started serving the
+  build manifest publicly. All three now derive from one constant next to the
+  other site-build contracts.
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.314
+
 ## 0.2.0-alpha.313
 
 ### Patch Changes

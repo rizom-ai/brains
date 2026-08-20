@@ -1,5 +1,13 @@
 # @brains/ops
 
+## 0.2.0-alpha.314
+
+### Patch Changes
+
+- [#158](https://github.com/rizom-ai/brains/pull/158) [`6b81a2c`](https://github.com/rizom-ai/brains/commit/6b81a2c6549d36dc4d0eda96c6128113cec79fd3) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Bound projection coordination during durable import roots by using a read-only active-barrier check for ordinary mutation wakeups, reserving full batch recovery for startup and periodic recovery sweeps, and scheduling one projection wave after the final child closes the root.
+
+  Prevent recovery-triggered wakeups from recursively entering their own coordination sweep. Retry idempotent durable-batch enqueue state writes across transient SQLite contention without masking the original enqueue failure. Add explicit skill and SWOT derivation controls so directory-sync acceptance runs can enforce a genuinely external-AI-free posture.
+
 ## 0.2.0-alpha.313
 
 ## 0.2.0-alpha.312

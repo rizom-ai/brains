@@ -1,5 +1,58 @@
 # @brains/site-engine
 
+## 0.2.0-alpha.314
+
+### Patch Changes
+
+- [`9636536`](https://github.com/rizom-ai/brains/commit/9636536389923425cbf6ee21c3063e35eed9b5e6) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Collapse the remaining duplicate type declarations onto their canonical homes.
+
+  - The `JsonValue`/`JsonObject` family was declared independently in ai-service,
+    auth-service, and site-engine; all three now use `@brains/contracts`, whose
+    copy is the tested one (the published-SDK copy keeps its parity guard).
+  - `@brains/core` exported `SerializableEntity`, its schema, and the identity
+    alias `SerializableQueryResult` with zero consumers anywhere — deleted.
+  - job-queue declared `JobProgressEvent` twice: a 30-line hand-written interface
+    in `schemas.ts` and a `z.output` alias in the progress monitor. The schema is
+    now the single source; the public type derives from it.
+
+- [`17507e8`](https://github.com/rizom-ai/brains/commit/17507e806efc5fde1c30496700de74b53575d350) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Renderer-neutral SSR contracts.
+
+  `ImageRenderer` was `marked`'s `renderer.image` callback signature —
+  `(href, title: string | null, text)` — re-exported from the component library
+  and made the build engine's public contract, so swapping the markdown library
+  would have been a breaking change to `@brains/site-engine`'s API.
+  `HeadProps`/`HeadCollectorInterface` had the same inverted ownership.
+
+  Both now live in `@brains/contracts` with library-neutral shapes:
+  `ImageRenderer` takes a `RenderedImageRef` (`{href, alt, title?}`), and
+  `markdown-html` adapts marked's AST to it at the boundary that owns the marked
+  dependency. ui-library re-exports the types, so template imports are unchanged.
+
+- [`b1263e7`](https://github.com/rizom-ai/brains/commit/b1263e72c9448cbff519732cf001a0cd1c2203ec) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Small internal dedups and surface fixes across the site rendering stack.
+
+  - site-engine's head collector and HTML shell each carried their own copy of
+    the essential head tags; they now share `essentialHeadTags()`, whose asset
+    paths are declared inputs instead of strings buried in two modules. The
+    collector's private `escapeHtml` gives way to the shared one, and the HTML
+    shell's default title is now escaped (it was interpolated raw).
+  - `resolvedSiteImageSchema` was declared twice inside site-engine; it now
+    lives once next to the `ResolvedSiteImage` interface it validates.
+    `UISlotRegistry.getSlot` returns the public registration shape instead of an
+    unexported internal type, and its two unregister methods share one prune.
+  - ui-library's `ContentSection` — a full component with zero usages, whose
+    items branch reimplemented `ContentList` with drifted markup — is deleted;
+    the `ContentItem` type it hosted moves to `ContentListItem`.
+  - content-formatters' barrel enumerates its exports explicitly instead of
+    three wildcard re-exports.
+
+- Updated dependencies [[`9bd1925`](https://github.com/rizom-ai/brains/commit/9bd192562923351e62909c7a0662eeeb46453303), [`d339319`](https://github.com/rizom-ai/brains/commit/d339319dabea7f856b69c829e46d3937254880d3), [`ae06107`](https://github.com/rizom-ai/brains/commit/ae06107694a825378e23183c26261c91166edfdf), [`17507e8`](https://github.com/rizom-ai/brains/commit/17507e806efc5fde1c30496700de74b53575d350), [`fd2855e`](https://github.com/rizom-ai/brains/commit/fd2855ea09d880ebf4268ce6f9a53d4cb9289c07), [`b1263e7`](https://github.com/rizom-ai/brains/commit/b1263e72c9448cbff519732cf001a0cd1c2203ec), [`497fbc0`](https://github.com/rizom-ai/brains/commit/497fbc0f6d672e23afd5263a519c4e73a740c2c5), [`ae06107`](https://github.com/rizom-ai/brains/commit/ae06107694a825378e23183c26261c91166edfdf)]:
+  - @brains/contracts@0.2.0-alpha.314
+  - @brains/ui-library@0.2.0-alpha.314
+  - @brains/entity-service@0.2.0-alpha.314
+  - @brains/site-composition@0.2.0-alpha.314
+  - @brains/image@0.2.0-alpha.314
+  - @brains/utils@0.2.0-alpha.314
+
 ## 0.2.0-alpha.313
 
 ### Patch Changes

@@ -1,7 +1,7 @@
 {
   "name": "@brains/prompt",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.313",
+  "version": "0.2.0-alpha.314",
   "description": "Prompt entity type — AI prompts as editable markdown entities",
   "dependencies": {
     "@brains/plugins": "workspace:*",
