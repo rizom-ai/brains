@@ -323,6 +323,5 @@ Phase 5 touches.
 ## Related work
 
 - [Studio consolidation](./studio-consolidation.md)
-- [Complete the operator view composition contract](./public-operator-surface-authoring.md)
 - [Public authoring API `0.2`](./public-authoring-api-0.2.md)
 - [Alternative site renderer spike](./alternative-site-renderer-spike.md)

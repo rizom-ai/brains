@@ -2,7 +2,7 @@
 
 ## Status
 
-**In progress:** implementation phases 1–5, the local Phase 6 export/documentation freeze, candidate publication, the exact-version registry matrix, and npm retirement are complete. The six original golden packages retain their proven `@rizom/brain@0.2.0-alpha.272` compatibility floor. The expanded eight-package matrix also packs and imports both additive operator fixtures against their first containing release, `@rizom/brain@0.2.0-alpha.304`, with `@rizom/site@0.2.0-alpha.233`. [Site Release evidence](https://github.com/rizom-ai/brains/actions/runs/31319970155) verifies all 73 published `@rizom/site-sections` alphas are deprecated with a migration pointer to `@rizom/site`. The packed and registry matrices prove the declarative contracts for all four required extension use cases:
+**In progress:** implementation phases 1–5, the local Phase 6 export/documentation freeze, candidate publication, the exact-version registry matrix, and npm retirement are complete. The current eight-package matrix packs and imports `@rizom/brain@0.2.0-alpha.313` with `@rizom/site@0.2.0-alpha.233`, including the published card/columns operator composition contract. The six original golden packages retain their proven `alpha.272` compatibility floor, account settings retains `alpha.304`, and the complete operator fixture requires `alpha.313`. [Site Release evidence](https://github.com/rizom-ai/brains/actions/runs/31319970155) verifies all 73 published `@rizom/site-sections` alphas are deprecated with a migration pointer to `@rizom/site`. The packed and registry matrices prove the declarative contracts for all four required extension use cases:
 
 1. custom entity types;
 2. custom service plugins;
@@ -11,7 +11,7 @@
 
 The remaining nomination gates, in order, are:
 
-1. **Refresh the final alpha candidate.** Merge current `main`, nominate the newest published Brain alpha containing the intended stable source, advance every golden peer lower bound to it, and rerun the exact alpha registry matrix. The existing `alpha.272`/`alpha.233` result remains historical evidence, not proof for a newer final candidate.
+1. **Refresh the final alpha candidate.** Merge current `main`, nominate the newest published Brain alpha containing the intended stable source, preserve each fixture's first-containing-release peer floor unless its exercised contract changed, and rerun the exact alpha registry matrix. The existing `alpha.313`/`alpha.233` result remains historical evidence, not proof for a newer final candidate.
 2. **Implement and run provider-backed live evidence.** The opt-in `RIZOM_PUBLIC_API_LIVE_EVIDENCE` flag exists, but the bounded live matrix itself is not yet written. It must prove embeddings, semantic ranking, agent chat and confirmation, inbound messaging, lazy attachments, and model-triggered durable progress against the same final alpha.
 3. **Complete every correctable pre-release check.** Audit acceptance criteria 12 and 15, then run the full criterion-17 sweep: format, typecheck, tests, forced lint, architecture/package boundaries, all packed smokes, and zero-failure personal/team eval suites. Failures are corrected on the alpha line before any stable package is published.
 4. **Obtain explicit release authorization.** A green plan, CI run, or evidence matrix does not authorize `changeset pre exit`, stable npm publication, workflow dispatch, or dist-tag mutation. Each stable release action requires a separate explicit yes/no approval.
@@ -560,7 +560,6 @@ After authorized stable site publication, rerun the registry command with the ex
 ## Related work
 
 - [Packed compatibility test tiering](./packed-compatibility-test-tiering.md) — focused PR feedback, one default packed canary, and the nightly/release compatibility lifecycle.
-- [Public dashboard-widget and CMS-workspace authoring](./public-operator-surface-authoring.md) — approved additive `0.2.x` milestone that does not gate `v0.2.0`.
 - [NPM package boundaries](./npm-package-boundaries.md) — later official plugin publishing and public-only dependency proofs.
 - [Independent site and theme package versioning](./site-package-independent-versioning.md) — external site publishing and exact hosted pins.
 - [HTTP route registry hardening](./http-route-registry-hardening.md) — post-baseline route ownership and authorization improvements.

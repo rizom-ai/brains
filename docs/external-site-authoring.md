@@ -1,7 +1,7 @@
 # External Site and Theme Authoring
 
 > **Alpha preview for collaborators.** The last exact registry-tested combination
-> was `@rizom/brain@0.2.0-alpha.272` with `@rizom/site@0.2.0-alpha.233`. The
+> was `@rizom/brain@0.2.0-alpha.313` with `@rizom/site@0.2.0-alpha.233`. The
 > final candidates may advance after review; stable versions have not been
 > nominated.
 

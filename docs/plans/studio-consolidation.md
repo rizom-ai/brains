@@ -150,9 +150,10 @@ settings contract already has the field vocabulary this needs
 (`AccountSettingsControl`: text/url/number/checkbox, with `secret` totality).
 Phase 3 extends the workspace protocol additively with schema-driven action
 forms reusing that vocabulary. This is published-protocol surface: the
-extension follows the same additive-only, conformance-evidence discipline as
-the [`public-operator-surface-authoring.md`](./public-operator-surface-authoring.md)
-phases, and release-surface checks apply.
+extension follows the stable operator contract's additive-only,
+conformance-evidence discipline in the
+[authoring ledger](../public-release/AUTHORING_API_0.2.md), and release-surface
+checks apply.
 
 ## Phases
 
@@ -180,7 +181,7 @@ they cover, inside the phase.
 - Update `packages/brain-cli` dependency and `build:ui` filters, the
   canonical-brain roster entry, and CMS wording in `docs/feature-overview.md`,
   [`operator-console-pwa.md`](./operator-console-pwa.md), and
-  [`public-operator-surface-authoring.md`](./public-operator-surface-authoring.md).
+  [`external-plugin-authoring.md`](../external-plugin-authoring.md).
 - Deploy note: the live brain's config must rename any `cms:` plugin-config
   key to `studio:` when this ships.
 

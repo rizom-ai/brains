@@ -25,5 +25,5 @@ same-origin content-addressed URLs under `<routePath>/assets/`.
 See:
 
 - [`docs/external-plugin-authoring.md`](../../docs/external-plugin-authoring.md)
-- [`docs/plans/public-operator-surface-authoring.md`](../../docs/plans/public-operator-surface-authoring.md)
+- [stable authoring ledger](../../docs/public-release/AUTHORING_API_0.2.md)
 - [checked operator fixture](../../packages/brain-cli/test/fixtures/public-authoring/operator-surface/src/index.ts)

@@ -17,11 +17,11 @@ const stableLedgerDocumentPath = join(
   "docs/public-release/AUTHORING_API_0.2.md",
 );
 
-// The original six packages retain their first proven registry floor. The
-// additive operator fixtures name the first release containing their contract.
-// All floors remain pre-stable until the coordinated stable nomination.
+// Each package retains the first published release containing the contract it
+// exercises. All floors remain pre-stable until coordinated stable nomination.
 const nominatedBrainPeerRange = ">=0.2.0-alpha.272 <0.3.0";
-const additiveOperatorBrainPeerRange = ">=0.2.0-alpha.304 <0.3.0";
+const accountSettingsBrainPeerRange = ">=0.2.0-alpha.304 <0.3.0";
+const operatorCompositionBrainPeerRange = ">=0.2.0-alpha.313 <0.3.0";
 const nominatedSiteVersion = "0.2.0-alpha.233";
 
 const categories = [
@@ -201,7 +201,7 @@ describe("public authoring 0.2 golden packages", () => {
     expect(manifest.type).toBe("module");
     expect(manifestSource).not.toContain("workspace:");
     expect(manifest.peerDependencies?.["@rizom/brain"]).toBe(
-      additiveOperatorBrainPeerRange,
+      operatorCompositionBrainPeerRange,
     );
     expect(tsconfig.extends).toBeUndefined();
     expect([...publicNamedImports(source).keys()]).toEqual([
@@ -334,7 +334,7 @@ describe("public authoring 0.2 golden packages", () => {
     expect(manifest.type).toBe("module");
     expect(manifestSource).not.toContain("workspace:");
     expect(manifest.peerDependencies?.["@rizom/brain"]).toBe(
-      additiveOperatorBrainPeerRange,
+      accountSettingsBrainPeerRange,
     );
     expect(tsconfig.extends).toBeUndefined();
     expect([...publicNamedImports(source).keys()]).toEqual([

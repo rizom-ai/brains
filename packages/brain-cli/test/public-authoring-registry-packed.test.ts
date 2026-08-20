@@ -20,6 +20,8 @@ const consumerFixture = join(
 const runRegistryEvidence = registryEvidenceEnabled();
 const exactVersionPattern = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/u;
 const originalAuthoringBrainPeerRange = ">=0.2.0-alpha.272 <0.3.0";
+const accountSettingsBrainPeerRange = ">=0.2.0-alpha.304 <0.3.0";
+const operatorCompositionBrainPeerRange = ">=0.2.0-alpha.313 <0.3.0";
 
 function requiredVersion(variable: string, pattern: RegExp): string {
   const value = process.env[variable];
@@ -68,7 +70,6 @@ it.skipIf(!runRegistryEvidence)(
       "@rizom/brain": brainVersion,
       "@rizom/site": siteVersion,
     };
-    const expectedBrainPeer = `>=${brainVersion} <0.3.0`;
     const temporaryDirectory = await mkdtemp(
       join(tmpdir(), "public-authoring-registry-"),
     );
@@ -93,11 +94,17 @@ it.skipIf(!runRegistryEvidence)(
         ) as {
           peerDependencies?: Record<string, string>;
         };
+        const expectedBrainPeer =
+          fixtureName === "operator-surface"
+            ? operatorCompositionBrainPeerRange
+            : fixtureName === "account-settings-interface"
+              ? accountSettingsBrainPeerRange
+              : originalAuthoringBrainPeerRange;
         expect(fixtureManifest.peerDependencies?.["@rizom/brain"]).toBe(
-          fixtureName === "operator-surface" ||
-            fixtureName === "account-settings-interface"
-            ? expectedBrainPeer
-            : originalAuthoringBrainPeerRange,
+          expectedBrainPeer,
+        );
+        expect(Bun.semver.satisfies(brainVersion, expectedBrainPeer)).toBe(
+          true,
         );
         const packed = await buildAndPackFixturePackage(
           fixtureDirectory,

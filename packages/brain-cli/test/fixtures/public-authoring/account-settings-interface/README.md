@@ -21,7 +21,7 @@ not route raw mailbox content into agent chat.
 
 Like the operator fixture, this package compiles against the local public entry
 and its helpers are classified in the stable ledger. Local Phase 6 evidence
-packs and runs its supervised account lifecycle, while the exact registry
-matrix packs and imports it from `@rizom/brain@0.2.0-alpha.304`. Its
-`>=0.2.0-alpha.304 <0.3.0` peer range names the first release containing this
+packs and runs its supervised account lifecycle, while the current exact
+registry matrix packs and imports it from `@rizom/brain@0.2.0-alpha.313`. Its
+`>=0.2.0-alpha.304 <0.3.0` peer range remains the first release containing this
 account-settings contract.

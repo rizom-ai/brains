@@ -391,7 +391,7 @@ the host; packages do not ship browser components, HTML, CSS, scripts, renderer
 names, or private routes. Typed query state, dynamic catalogs, workspace
 actions, and prepared confirmations cover the current first-party surfaces
 ([authoring guide](external-plugin-authoring.md),
-[architecture plan](plans/public-operator-surface-authoring.md)).
+[stable authoring ledger](public-release/AUTHORING_API_0.2.md)).
 
 ## Current boundaries
 

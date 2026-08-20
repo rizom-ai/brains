@@ -19,16 +19,15 @@ The source intentionally contains no package identity plumbing, registry call,
 host route, renderer name, UI-framework import, process role, or private
 workspace dependency. Dashboard and CMS receive their distinct typed semantic view profiles; the hosts own markup, themes, loading/error states, confirmation, routing, accessibility, query URLs, and lifecycle.
 
-The `>=0.2.0-alpha.304 <0.3.0` peer range names the first published Brain
-release containing this frozen registry fixture's contract. Exact registry
-evidence preserves that historical baseline. The additive view-head, status,
-card, and primary/aside columns candidate is checked through runtime and host
-tests plus the local packed operator consumer; its exact registry floor advances
-only after publication.
+The `>=0.2.0-alpha.313 <0.3.0` peer range names the first published Brain
+release containing this fixture's complete contract, including semantic view
+heads, status, cards, and primary/aside columns. Exact registry evidence checks
+that floor against the published package alongside runtime, host, and local
+packed-consumer coverage.
 
 See [CAPABILITY_INVENTORY.md](./CAPABILITY_INVENTORY.md) for the complete
 capability inventory and the
-[operator composition plan](../../../../../../docs/plans/public-operator-surface-authoring.md)
-for the delivered composition contract and separately tracked generic-launch
-work. [PORTS.md](./PORTS.md) remains the historical four-workspace Phase 1
-sketch.
+[stable authoring ledger](../../../../../../docs/public-release/AUTHORING_API_0.2.md)
+for the delivered contract. Generic workspace-definition launch references
+remain a separate future contract change. [PORTS.md](./PORTS.md) remains the
+historical four-workspace Phase 1 sketch.

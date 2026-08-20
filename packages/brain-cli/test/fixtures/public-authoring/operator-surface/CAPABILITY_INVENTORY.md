@@ -2,11 +2,11 @@
 
 ## Purpose
 
-This is the Phase 4 completeness baseline required by
-`docs/plans/public-operator-surface-authoring.md`. It inventories every
-first-party Dashboard widget and CMS workspace present when the completeness
-revision was accepted, including the later bounded `card` and primary/aside
-`columns` composition extension.
+This is the Phase 4 completeness baseline for the
+[stable authoring ledger](../../../../../../docs/public-release/AUTHORING_API_0.2.md).
+It inventories every first-party Dashboard widget and CMS workspace present
+when the completeness revision was accepted, including the later bounded
+`card` and primary/aside `columns` composition extension.
 
 A public semantic protocol is complete only when every entry below has running
 conformance evidence through the same definition and normalization path used by
