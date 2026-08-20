@@ -69,7 +69,10 @@ import type { IRecurringChecksNamespace } from "@brains/recurring-checks";
 import type { IRuntimeStateNamespace } from "@brains/runtime-state";
 import type { IRuntimeUploadsNamespace } from "./service/upload-registry";
 import type { RuntimeReadiness } from "./contracts/runtime-health";
-import type { ProjectionRule } from "./entity/projection-rule";
+import type {
+  ProjectionRule,
+  ProjectionWriteIntent,
+} from "./entity/projection-rule";
 import type {
   AIGenerationSchema,
   ImageGenerationOptions,
@@ -337,6 +340,17 @@ export interface IShell {
     handlerId: string,
     handler: EvalHandler,
   ): void;
+
+  /**
+   * Run a projection rule's select and derive against current entities and
+   * return what it would write, without touching wave state or persisting
+   * anything. Exists for evals: measuring extraction quality means running
+   * the rule that actually runs, not a copy of it kept alive for testing.
+   */
+  runProjectionRule(
+    rule: ProjectionRule,
+    signal?: AbortSignal,
+  ): Promise<readonly ProjectionWriteIntent[]>;
 
   // Insights registry for plugin-contributed insights
   getInsightsRegistry(): IInsightsRegistry;

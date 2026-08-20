@@ -11,6 +11,7 @@ import type { ProgressContract } from "@brains/utils/progress";
 import type { IEntityAINamespace } from "../entity/ai-types";
 import type { AnchorProfile } from "../contracts/identity";
 import type { EntityDefinitionShape, EntityOf } from "../entity/entity-shape";
+import type { ResolvedRuntimeUpload } from "../service/upload-registry";
 /** What a job reads about the conversation it was started from. */
 export interface EntityConversationReader {
   get(
@@ -81,6 +82,19 @@ export interface JobEntityAccess {
   ): Promise<EntityMutationResult>;
 }
 
+/**
+ * The upload a job was handed, read by id.
+ *
+ * Narrowed to reading, and to the runtime's own upload namespace: a job
+ * imports the file it was enqueued for, and does not get to choose where
+ * uploads live, how clients refer to them, or which route served them.
+ * Note declared all three to do a markdown import, including a chat
+ * interface's route path — none of which affects which bytes come back.
+ */
+export interface JobUploadReader {
+  read(uploadId: string): Promise<ResolvedRuntimeUpload>;
+}
+
 export interface JobMessagePublisher {
   publish(input: {
     readonly topic: string;
@@ -119,6 +133,17 @@ export interface JobHandlerContext<TInput> {
   readonly messaging: JobMessagePublisher;
   readonly progress: ProgressContract;
   readonly signal: AbortSignal;
+  /**
+   * The scoped name a template this package declared is registered under.
+   *
+   * A handler that generates has to name a template, and the runtime scopes
+   * template names to the declaring plugin. Spelled out by hand, the name a
+   * package writes is the one it had before it was scoped — which resolves
+   * to nothing and fails as "Template not found" at generation time, far
+   * from the declaration that caused it.
+   */
+  template(localName: string): string;
+  readonly uploads: JobUploadReader;
   /**
    * Absent for jobs declared by an entity: the entity plugin context
    * deliberately excludes template rendering, so there is nothing honest to

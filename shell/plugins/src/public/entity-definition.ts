@@ -21,7 +21,7 @@ import type {
   EntityInsightDeclaration,
   EntityGenerationDeclaration,
   EntityScheduledGenerationDeclaration,
-  EntityJobDeclaration,
+  AnyEntityJobDeclaration,
   EntityDefinitionConfig,
   EntitySeedDefinition,
   EntityMarkdownCodec,
@@ -74,13 +74,18 @@ export function defineEntity<
     | undefined;
   readonly scheduledGeneration?:
     EntityScheduledGenerationDeclaration | undefined;
-  readonly projectionRules?: readonly ProjectionRule[] | undefined;
+  readonly projectionRules?:
+    | readonly ProjectionRule[]
+    | ((context: {
+        readonly template: (localName: string) => string;
+      }) => readonly ProjectionRule[])
+    | undefined;
   readonly atproto?: AtprotoProjection | undefined;
   readonly evals?: EntityEvalDeclaration | undefined;
   readonly insights?: EntityInsightDeclaration | undefined;
   readonly dashboardWidgets?:
     readonly EntityDashboardWidgetDeclaration[] | undefined;
-  readonly jobs?: Record<string, EntityJobDeclaration> | undefined;
+  readonly jobs?: Record<string, AnyEntityJobDeclaration> | undefined;
   readonly instructions?: string | undefined;
   readonly create?: EntityCreateRouting | undefined;
   readonly publish?: EntityPublishDeclaration | undefined;

@@ -6,6 +6,11 @@ export {
   defineEntity,
   defineEntityPackage,
   defineProjection,
+  // A rule that derives across visibility scopes needs both: the predicate
+  // that decides whether a source is in scope, and the id scheme that keeps
+  // a public and a shared derivation of the same title apart.
+  isVisibleWithinScope,
+  scopedDerivedId,
 } from "@brains/plugins";
 export type {
   EncodedEntityMarkdown,
@@ -54,6 +59,9 @@ export type {
   EntityGenerationDeclaration,
   JobEntityAccess,
   JobHandlerContext,
+  AnyEntityJobDeclaration,
+  EntityGenerationJobDeclaration,
+  EntityGenerationResult,
   EntityJobDeclaration,
   EntityPublishDeclaration,
   IEntityAINamespace,
@@ -65,6 +73,9 @@ export type {
   ProjectionInputContext,
   ProjectionRule,
   ProjectionRuleDefinition,
+  ProjectionSourceRole,
+  ResolvedRuntimeUpload,
+  RuntimeUploadRecord,
   ProjectionWriteIntent,
   ProjectionWaveTrigger,
   NavigationResult,

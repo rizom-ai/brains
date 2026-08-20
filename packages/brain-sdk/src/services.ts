@@ -28,6 +28,8 @@ export type {
   OperatorQueryReader,
   OperatorView,
   OperatorViewBlock,
+  EntityEvalContext,
+  ServiceEvalHandler,
   ServiceJobDefinition,
   ServiceJobReference,
   ServiceJobStatus,
@@ -47,6 +49,11 @@ export type {
   PublishProvider,
   PublishResult,
 } from "@brains/contracts";
+
+// Long-running work. A job that fetches and enriches reports progress against
+// named milestones rather than invented percentages, and returns a failure in
+// the shape the queue records. Named consumer: @brains/link.
+export { JobResult, PROGRESS_STEPS } from "@brains/contracts";
 
 // A provider reaches the outside world, so it reports what happened and it
 // needs a way out. Both are handed to it by the runtime.
