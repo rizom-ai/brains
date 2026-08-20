@@ -5,6 +5,7 @@ import {
 } from "../package-definition";
 import { createDeclarativeServicePlugin } from "../service/declarative-service-plugin";
 import { createEntityPackagePlugins } from "../entity/declarative-entity-plugin";
+import type { AnyEntityDefinition } from "../entity/entity-definition-contract";
 import type { AnyAccountSettingsDefinition } from "../operator/account-settings-definition-contract";
 import type {
   NormalizedServiceDefinitionInput,
@@ -91,6 +92,30 @@ export type {
   ServiceViewDefinition,
 } from "../service/service-definition-contract";
 
+/**
+ * Where a template a package declared ends up once the runtime scopes it.
+ *
+ * Templates are declared on an entity and registered under that entity
+ * plugin's id, so the lookup goes through the declaring entity rather than
+ * the service. An undeclared name is an authoring error worth failing on
+ * rather than passing through as a string nothing will resolve.
+ */
+function scopedTemplateName(
+  entities: readonly AnyEntityDefinition[],
+  scope: (localId: string) => string,
+  localName: string,
+): string {
+  const owner = entities.find(({ templates }) =>
+    Object.hasOwn(templates ?? {}, localName),
+  );
+  if (!owner) {
+    throw new Error(
+      `No declared entity provides a template named "${localName}"`,
+    );
+  }
+  return `${scope(owner.type)}:${localName}`;
+}
+
 export type ServicePackageDefinition<
   TConfigSchema extends z.ZodType<object, object>,
 > = PluginPackageDefinition<TConfigSchema, "service">;
@@ -122,6 +147,7 @@ function createServicePackage<
         config,
         metadata,
         scope(definition.id),
+        scope,
       ),
       // One entity plugin per declared type, exactly as an entity package
       // produces. A package that stores something and also does configured
@@ -135,6 +161,11 @@ function createServicePackage<
         // create route naming one has to resolve there rather than against
         // the entity plugin that declared the route.
         scope(definition.id),
+        definition.projectionRules?.({
+          config,
+          template: (localName) =>
+            scopedTemplateName(definition.entities ?? [], scope, localName),
+        }) ?? [],
       ),
     ],
   });

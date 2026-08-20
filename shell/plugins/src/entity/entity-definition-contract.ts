@@ -13,11 +13,15 @@ import type { AtprotoProjection } from "@brains/atproto-contracts";
 import type { FeedItem } from "@brains/site-composition";
 import type { PublishProvider } from "@brains/contracts";
 import type { AttachmentProvider } from "../service/attachment-registry";
-import type { ProjectionRule } from "./projection-rule";
+import type { ProjectionRule, ProjectionWriteIntent } from "./projection-rule";
 import type { AnyDataSourceDeclaration } from "../public/entity-data-source";
 import type { AnyDashboardWidgetDefinition } from "../operator/operator-definition-contract";
 import type { OperatorCaller } from "../operator/operator-context-contract";
 import type { CreateInput } from "@brains/entity-service";
+import type {
+  ResolvedRuntimeUpload,
+  RuntimeUploadRecord,
+} from "../service/upload-registry";
 import type { z } from "@brains/utils/zod";
 
 export type {
@@ -156,7 +160,15 @@ export interface EntityDefinition<
    * than from one named source. `defineProjection` pairs a single source
    * definition with a single target and cannot express that.
    */
-  readonly projectionRules?: readonly ProjectionRule[] | undefined;
+  readonly projectionRules?:
+    | readonly ProjectionRule[]
+    // A function when a rule has to name a template: only the runtime knows
+    // the scope templates register under, and a rule that spells the prefix
+    // itself fails as "Template not found" at derive time.
+    | ((context: {
+        readonly template: (localName: string) => string;
+      }) => readonly ProjectionRule[])
+    | undefined;
   /**
    * AT Protocol projection for this entity type. The runtime registers it
    * with the shared registry and releases it on shutdown.
@@ -182,7 +194,7 @@ export interface EntityDefinition<
   readonly dashboardWidgets?:
     readonly EntityDashboardWidgetDeclaration[] | undefined;
   /** Durable job handlers, keyed by job type. */
-  readonly jobs?: Record<string, EntityJobDeclaration> | undefined;
+  readonly jobs?: Record<string, AnyEntityJobDeclaration> | undefined;
   /**
    * Agent instructions for this entity type — how and when an agent
    * should reach for it. Plain text, since the agent reads it directly.
@@ -298,11 +310,46 @@ export type EntityCreateResolution =
     }
   | { readonly refuse: string };
 
+/**
+ * A create that allocates now and finishes later.
+ *
+ * An import has to do both: hand the caller a real, deduplicated id it can
+ * look at straight away, and give the slow part — reading a file, calling a
+ * model — to a job. `delegate` alone enqueues without allocating anything;
+ * `create` alone reports the work as finished when it has not started. The
+ * runtime writes the placeholder, enqueues the job with the allocated id,
+ * and reports `generating` rather than `created`.
+ */
+export interface EntityCreateAllocation {
+  readonly create: {
+    readonly id: string;
+    readonly content: string;
+    readonly metadata: Record<string, unknown>;
+  };
+  readonly delegate: {
+    /** A job this package declares, named locally. */
+    readonly job: string;
+    /** Merged over `{ entityId }`, which the runtime always supplies. */
+    readonly input?: Record<string, unknown> | undefined;
+  };
+}
+
 /** What a create route is given to decide with. */
 export interface EntityCreateContext {
   readonly input: CreateInput;
   readonly entities: JobEntityAccess;
   readonly logger: LoggerContract;
+  /**
+   * The upload the request refers to, when it refers to one. A route that
+   * refuses a file it cannot read has to look at it first — note declines
+   * anything that is not text, JSON, or PDF before allocating anything.
+   */
+  readonly uploads: EntityCreateUploadReader;
+}
+
+export interface EntityCreateUploadReader {
+  read(uploadId: string): Promise<ResolvedRuntimeUpload>;
+  readRecord(uploadId: string): Promise<RuntimeUploadRecord>;
 }
 
 /**
@@ -319,7 +366,9 @@ export type EntityCreateRoute =
   | { readonly delegate: string }
   | { readonly reject: string }
   | {
-      resolve(context: EntityCreateContext): Promise<EntityCreateResolution>;
+      resolve(
+        context: EntityCreateContext,
+      ): Promise<EntityCreateResolution | EntityCreateAllocation>;
     };
 
 /**
@@ -358,11 +407,55 @@ export interface EntityGenerationContext {
  * lists and searches, which no entity needs.
  */
 /**
- * What a declared eval handler is given. Evals exercise the same
- * capabilities generation does, so they share its context rather than
- * getting a parallel one.
+ * What a declared eval handler is given: everything generation gets, plus
+ * the one thing only an eval needs.
+ *
+ * An eval that seeds fixtures and measures the result has to start from a
+ * known state — otherwise one run contaminates the next. That is deletion,
+ * which no other declaration slot is granted and which the general job
+ * context deliberately omits. Narrowed to the declaring entity type: an
+ * eval resets what it seeded, not what other packages store.
  */
-export type EntityEvalContext = EntityGenerationContext;
+/**
+ * Fixture control, available to evals and nothing else.
+ *
+ * Seeding reaches past the write scope every other slot is held to, because
+ * an extraction eval has to plant the source entities it extracts from and
+ * those belong to other packages. Reset clears exactly what was seeded plus
+ * what the package itself stores, so one eval run cannot contaminate the
+ * next and neither can touch anything a fixture did not create.
+ */
+export interface EntityEvalFixtures {
+  seed(entity: {
+    readonly id: string;
+    readonly entityType: string;
+    readonly content: string;
+    readonly metadata?: Record<string, unknown> | undefined;
+  }): Promise<void>;
+  reset(): Promise<void>;
+}
+
+export interface EntityEvalContext extends EntityGenerationContext {
+  readonly fixtures: EntityEvalFixtures;
+  /**
+   * The scoped name a template this package declared is registered under —
+   * the same resolver a job handler gets, for the same reason. An eval that
+   * measures generation has to name the template generation uses.
+   */
+  template(localName: string): string;
+  /**
+   * Run one of this package's own projection rules against current entities
+   * and hand back what it would write.
+   *
+   * Select and derive only — waves, memoization and persistence are
+   * orchestration, not the thing an eval measures. Without this, a package
+   * that wants to measure extraction quality has to keep a second copy of
+   * its pipeline that an eval can call, and the copy is what rots.
+   */
+  runProjectionRule(
+    rule: ProjectionRule,
+  ): Promise<readonly ProjectionWriteIntent[]>;
+}
 
 /**
  * Eval handlers for this entity type, keyed by handler id. The runtime
@@ -384,6 +477,33 @@ export interface EntityJobDeclaration<
   readonly input: TInputSchema;
   handle(args: JobHandlerContext<z.output<TInputSchema>>): Promise<unknown>;
 }
+
+/**
+ * A job that fills in an entity the runtime already allocated.
+ *
+ * Declared with `generate` rather than `handle` because the two make
+ * different promises: `handle` returns whatever it likes and owns its own
+ * consequences, while `generate` returns what it produced and hands the
+ * runtime the entity's lifecycle — the write on success, and the failure
+ * marking on error. Without that, a job that throws leaves the caller
+ * looking at an entity stuck in "generating" with nobody left to say why.
+ *
+ * Reached through a create route's `delegate`, which is what allocated the
+ * entity and passed its id.
+ */
+export interface EntityGenerationJobDeclaration<
+  TInputSchema extends z.ZodType = z.ZodType,
+> {
+  readonly input: TInputSchema;
+  generate(
+    args: JobHandlerContext<z.output<TInputSchema>> & {
+      readonly entityId: string | undefined;
+    },
+  ): Promise<EntityGenerationResult>;
+}
+
+export type AnyEntityJobDeclaration =
+  EntityJobDeclaration | EntityGenerationJobDeclaration;
 
 /**
  * What a generation produced, or why it could not.

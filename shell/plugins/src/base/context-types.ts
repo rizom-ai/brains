@@ -4,6 +4,10 @@ import type {
   MessageResponse,
   BaseMessage,
 } from "@brains/messaging-service";
+import type {
+  ProjectionRule,
+  ProjectionWriteIntent,
+} from "../entity/projection-rule";
 import type { Channel } from "../utils/channels";
 import type {
   GetMessagesOptions,
@@ -180,6 +184,15 @@ export interface IConversationsNamespace {
  */
 export interface IEvalNamespace {
   registerHandler: (handlerId: string, handler: EvalHandler) => void;
+  /**
+   * Run a projection rule's select and derive and return what it would
+   * write. No wave, no memo, no persistence — an eval measures the rule,
+   * not the orchestration around it.
+   */
+  runProjectionRule: (
+    rule: ProjectionRule,
+    signal?: AbortSignal,
+  ) => Promise<readonly ProjectionWriteIntent[]>;
 }
 
 /**

@@ -41,15 +41,18 @@ import type {
   JobHandlerContext,
 } from "../job/job-context-contract";
 import { createJobEntityAccess } from "../job/job-entity-access";
+import { saveProcessedEntity } from "./pending-ingestion";
+import type { ScopedRuntimeUploadStore } from "../service/upload-registry";
+import { createEvalFixtures } from "./eval-fixtures";
 import { entitySchema, parseDefinitionEntity } from "./entity-schema";
 import type { EntityDefinitionShape } from "./entity-shape";
 export { parseDefinitionEntity } from "./entity-schema";
 import type {
   AnyEntityDefinition,
+  AnyEntityJobDeclaration,
   EntityCreateRoute,
   EntityCreateRouting,
   EntityGenerationResult,
-  EntityJobDeclaration,
   EntityOf,
   EntitySeedTrigger,
   ProjectionDefinition,
@@ -106,6 +109,27 @@ function preallocatedEntityId(data: unknown): string | undefined {
     : undefined;
 }
 
+/**
+ * The content hash the entity had when it was allocated, if the caller
+ * recorded one.
+ *
+ * A generation fills in an entity somebody is already looking at, and they
+ * may edit it while the job runs. Carrying the hash from allocation through
+ * to the write is what lets the edit win instead of being silently
+ * overwritten by work that started before it.
+ */
+function preallocatedContentHash(data: unknown): string | undefined {
+  if (
+    typeof data !== "object" ||
+    data === null ||
+    !("expectedContentHash" in data)
+  ) {
+    return undefined;
+  }
+  const hash = data.expectedContentHash;
+  return typeof hash === "string" && hash.length > 0 ? hash : undefined;
+}
+
 function encodeParts(
   definition: AnyEntityDefinition,
   input: {
@@ -130,6 +154,27 @@ function encodeEntityMarkdown(
 ): string {
   const encoded = encodeParts(definition, input);
   return generateMarkdownWithFrontmatter(encoded.content, encoded.frontmatter);
+}
+
+/**
+ * Where a template this entity declared ends up once the runtime scopes it.
+ *
+ * Unknown names throw here rather than being passed through: a name nothing
+ * declares would otherwise surface as "Template not found" during
+ * generation, long after the declaration that caused it.
+ */
+function scopedTemplateName(
+  templates: AnyEntityDefinition["templates"],
+  entityType: string,
+  pluginId: string,
+  localName: string,
+): string {
+  if (!Object.hasOwn(templates ?? {}, localName)) {
+    throw new Error(
+      `Entity "${entityType}" declares no template named "${localName}"`,
+    );
+  }
+  return `${pluginId}:${localName}`;
 }
 
 function entityAdapter(
@@ -300,7 +345,9 @@ class DeclarativeEntityPlugin extends EntityPlugin<
   private readonly publish: AnyEntityDefinition["publish"];
   private readonly publishAssets: AnyEntityDefinition["publishAssets"];
   private readonly jobOwnerId: string | undefined;
-  private readonly projectionRules: AnyEntityDefinition["projectionRules"];
+  // Resolved at construction: the declared form may be a function, but a
+  // plugin holds the rules themselves.
+  private readonly projectionRules: readonly ProjectionRule[];
   private readonly atproto: AnyEntityDefinition["atproto"];
   private readonly feed: AnyEntityDefinition["feed"];
   private readonly releaseOnShutdown: Array<() => void> = [];
@@ -317,6 +364,7 @@ class DeclarativeEntityPlugin extends EntityPlugin<
     metadata: InstalledPluginPackageMetadata,
     scope: (localId: string) => string,
     jobOwnerId?: string,
+    configuredRules: readonly ProjectionRule[] = [],
   ) {
     super(scope(definition.type), metadata, {}, emptyEntityPluginConfigSchema);
     this.projections = projections;
@@ -344,7 +392,21 @@ class DeclarativeEntityPlugin extends EntityPlugin<
     this.publish = definition.publish;
     this.publishAssets = definition.publishAssets;
     this.jobOwnerId = jobOwnerId;
-    this.projectionRules = definition.projectionRules;
+    const declared = definition.projectionRules;
+    this.projectionRules = [
+      ...(typeof declared === "function"
+        ? declared({
+            template: (localName) =>
+              scopedTemplateName(
+                definition.templates,
+                definition.type,
+                scope(definition.type),
+                localName,
+              ),
+          })
+        : (declared ?? [])),
+      ...configuredRules,
+    ];
     this.atproto = definition.atproto;
     this.feed = definition.feed;
   }
@@ -408,11 +470,64 @@ class DeclarativeEntityPlugin extends EntityPlugin<
               input,
               entities: this.entityAccess(context),
               logger: this.logger,
+              uploads: this.uploadReader(context),
             });
             if ("refuse" in resolution) {
               return {
                 kind: "handled",
                 result: { success: false, error: resolution.refuse },
+              };
+            }
+            // Allocate now, finish later. Deduplicating the id here is what
+            // makes the returned id worth handing back: a second import of
+            // the same file lands on the entity the first one made.
+            if ("delegate" in resolution) {
+              const written = await context.entityService.createEntity({
+                entity: {
+                  id: resolution.create.id,
+                  entityType: this.entityType,
+                  content: resolution.create.content,
+                  metadata: resolution.create.metadata,
+                  ...(input.visibility !== undefined
+                    ? { visibility: input.visibility }
+                    : {}),
+                },
+                options: { deduplicateId: true },
+              });
+              // The placeholder's hash travels with the job, so an edit
+              // made while the job runs wins over work that started before
+              // it rather than being silently overwritten.
+              const placeholder = await context.entityService.getEntity({
+                entityType: this.entityType,
+                id: written.entityId,
+              });
+              const jobId = await context.jobs.enqueue({
+                type: this.jobOwnerId
+                  ? `${this.jobOwnerId}:${resolution.delegate.job}`
+                  : `${this.id}:${resolution.delegate.job}`,
+                data: {
+                  ...(resolution.delegate.input ?? {}),
+                  entityId: written.entityId,
+                  ...(placeholder
+                    ? { expectedContentHash: placeholder.contentHash }
+                    : {}),
+                },
+                toolContext: executionContext,
+                options: {
+                  source: this.id,
+                  metadata: { operationType: "content_operations" },
+                },
+              });
+              return {
+                kind: "handled",
+                result: {
+                  success: true,
+                  data: {
+                    status: "generating",
+                    entityId: written.entityId,
+                    jobId,
+                  },
+                },
               };
             }
             // The runtime performs the write, so "created" and "updated"
@@ -511,6 +626,17 @@ class DeclarativeEntityPlugin extends EntityPlugin<
           logger: this.logger,
           entities: this.entityAccess(context),
           conversations: context.conversations,
+          runProjectionRule: (rule) => context.eval.runProjectionRule(rule),
+          fixtures: createEvalFixtures(context.entityService, [
+            this.entityType,
+          ]),
+          template: (localName) =>
+            scopedTemplateName(
+              this.templates,
+              this.entityType,
+              this.id,
+              localName,
+            ),
         }),
       );
     }
@@ -638,28 +764,13 @@ class DeclarativeEntityPlugin extends EntityPlugin<
         _jobId: string,
         progress: ProgressContract,
         signal: AbortSignal,
-      ): Promise<unknown> => {
-        const entityId = preallocatedEntityId(data);
-        try {
-          const result = await generation.generate({
+      ): Promise<unknown> =>
+        this.runGeneration(context, data, (entityId) =>
+          generation.generate({
             ...this.jobContext(data, context, progress, signal),
             entityId,
-          });
-          if (!result.success) {
-            await this.markGenerationFailed(context, entityId, result.error);
-            await this.reportGenerationFailed(context, result.error);
-            return { success: false, error: result.error };
-          }
-          const saved = await this.saveGenerated(context, entityId, result);
-          await this.reportGenerationCompleted(context, saved.entityId);
-          return saved;
-        } catch (error) {
-          const message = getErrorMessage(error);
-          await this.markGenerationFailed(context, entityId, message);
-          await this.reportGenerationFailed(context, message);
-          return { success: false, error: message };
-        }
-      },
+          }),
+        ),
     };
   }
 
@@ -674,29 +785,42 @@ class DeclarativeEntityPlugin extends EntityPlugin<
     context: EntityPluginContext,
     entityId: string | undefined,
     result: Extract<EntityGenerationResult, { success: true }>,
+    expectedContentHash?: string,
   ): Promise<{ success: true; entityId: string }> {
     const { status: _status, error: _error, ...metadata } = result.metadata;
     const title = metadata["title"];
     const id =
       entityId ?? result.id ?? slugify(String(title ?? this.entityType));
 
-    const written = entityId
-      ? await context.entityService.updateEntity({
-          entity: {
-            ...(await this.requireEntity(context, entityId)),
-            content: result.content,
-            metadata,
-          },
-        })
-      : await context.entityService.createEntity({
-          entity: {
-            id,
-            entityType: this.entityType,
-            content: result.content,
-            metadata,
-          },
-          options: { deduplicateId: true },
-        });
+    if (entityId) {
+      const saved = await saveProcessedEntity({
+        entityService: context.entityService,
+        entity: {
+          ...(await this.requireEntity(context, entityId)),
+          content: result.content,
+          metadata,
+        },
+        ...(expectedContentHash !== undefined ? { expectedContentHash } : {}),
+      });
+      return {
+        success: true,
+        entityId: saved.entityId,
+        ...(saved.mutation.skipReason === "content-conflict"
+          ? { status: "superseded" }
+          : {}),
+        ...(result.resultExtras ?? {}),
+      };
+    }
+
+    const written = await context.entityService.createEntity({
+      entity: {
+        id,
+        entityType: this.entityType,
+        content: result.content,
+        metadata,
+      },
+      options: { deduplicateId: true },
+    });
 
     return {
       success: true,
@@ -915,11 +1039,11 @@ class DeclarativeEntityPlugin extends EntityPlugin<
   }
 
   private jobHandler(
-    declaration: EntityJobDeclaration,
+    declaration: AnyEntityJobDeclaration,
     context: EntityPluginContext,
   ): JobHandler {
     return {
-      // Input is the author\u0027s declared schema, so a malformed job is
+      // Input is the author's declared schema, so a malformed job is
       // rejected before their code runs.
       validateAndParse: (data: unknown): unknown => {
         const parsed = declaration.input.safeParse(data);
@@ -930,9 +1054,52 @@ class DeclarativeEntityPlugin extends EntityPlugin<
         _jobId: string,
         progress: ProgressContract,
         signal: AbortSignal,
-      ): Promise<unknown> =>
-        declaration.handle(this.jobContext(data, context, progress, signal)),
+      ): Promise<unknown> => {
+        const jobContext = this.jobContext(data, context, progress, signal);
+        if ("handle" in declaration) return declaration.handle(jobContext);
+        // Declared with `generate`, so the entity's lifecycle belongs to
+        // the runtime: the write on success, the failure marking on error.
+        return this.runGeneration(context, data, (entityId) =>
+          declaration.generate({ ...jobContext, entityId }),
+        );
+      },
     };
+  }
+
+  /**
+   * Run a generation and own what happens to the entity either way.
+   *
+   * Shared by the `generation` slot and by any declared job that fills in
+   * an allocated entity, because leaving one stuck in "generating" with
+   * nobody left to say why is the same bug whichever declared it.
+   */
+  private async runGeneration(
+    context: EntityPluginContext,
+    data: unknown,
+    run: (entityId: string | undefined) => Promise<EntityGenerationResult>,
+  ): Promise<unknown> {
+    const entityId = preallocatedEntityId(data);
+    try {
+      const result = await run(entityId);
+      if (!result.success) {
+        await this.markGenerationFailed(context, entityId, result.error);
+        await this.reportGenerationFailed(context, result.error);
+        return { success: false, error: result.error };
+      }
+      const saved = await this.saveGenerated(
+        context,
+        entityId,
+        result,
+        preallocatedContentHash(data),
+      );
+      await this.reportGenerationCompleted(context, saved.entityId);
+      return saved;
+    } catch (error) {
+      const message = getErrorMessage(error);
+      await this.markGenerationFailed(context, entityId, message);
+      await this.reportGenerationFailed(context, message);
+      return { success: false, error: message };
+    }
   }
 
   /** What every declared job and generation is given. */
@@ -959,7 +1126,31 @@ class DeclarativeEntityPlugin extends EntityPlugin<
       },
       conversations: context.conversations,
       identity: context.identity,
+      // Templates declared on this entity register under this plugin's id.
+      template: (localName) =>
+        scopedTemplateName(this.templates, this.entityType, this.id, localName),
+      uploads: context.uploads.scoped({
+        // The runtime's own namespace, not the interface that happened to
+        // receive the file: only the namespace decides which bytes a read
+        // returns, and a job reads what it was handed.
+        namespace: "upload",
+        refKind: "upload",
+        routePath: "/api/uploads",
+      }),
     };
+  }
+
+  /**
+   * The runtime's own upload namespace. A package never names one: only the
+   * namespace decides which bytes come back, and every interface that
+   * accepts a file writes into the same one.
+   */
+  private uploadReader(context: EntityPluginContext): ScopedRuntimeUploadStore {
+    return context.uploads.scoped({
+      namespace: "upload",
+      refKind: "upload",
+      routePath: "/api/uploads",
+    });
   }
 
   private entityAccess(context: EntityPluginContext): JobEntityAccess {
@@ -982,7 +1173,7 @@ class DeclarativeEntityPlugin extends EntityPlugin<
       ...this.projections.map((projection) =>
         projectionRule(projection, this.version, this.scope),
       ),
-      ...(this.projectionRules ?? []),
+      ...this.projectionRules,
     ];
   }
 }
@@ -993,6 +1184,12 @@ export function createEntityPackagePlugins(
   metadata: InstalledPluginPackageMetadata,
   scope: (localId: string) => string,
   jobOwnerId?: string,
+  /**
+   * Rules a service half derived from its configuration. Each joins the
+   * entity plugin whose type it targets, so the runtime sees it as that
+   * entity's rule rather than a third kind of registration.
+   */
+  configuredRules: readonly ProjectionRule[] = [],
 ): DeclarativeEntityPlugin[] {
   return entities.map(
     (definition) =>
@@ -1002,6 +1199,9 @@ export function createEntityPackagePlugins(
         metadata,
         scope,
         jobOwnerId,
+        configuredRules.filter(
+          ({ targetType }) => targetType === definition.type,
+        ),
       ),
   );
 }

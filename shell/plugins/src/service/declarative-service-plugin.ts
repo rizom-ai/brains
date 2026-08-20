@@ -38,6 +38,7 @@ import {
   type InstalledPluginPackageMetadata,
 } from "../package-definition";
 import type { AnyEntityDefinition } from "../entity/entity-definition-contract";
+import { createEvalFixtures } from "../entity/eval-fixtures";
 import { createJobEntityAccess } from "../job/job-entity-access";
 import { ServicePlugin } from "./service-plugin";
 import type { ServicePluginContext } from "./context";
@@ -113,6 +114,7 @@ function runtimeJobHandler(
   templates: ServiceTemplateFormatter,
   owned: ReadonlySet<AnyEntityDefinition>,
   serviceId: string,
+  templateName: (localName: string) => string,
 ): JobHandler<string, unknown, unknown> {
   const definition = binding.definition;
   const handler = getServiceJobHandler(binding);
@@ -144,6 +146,15 @@ function runtimeJobHandler(
         logger: context.logger,
         conversations: context.conversations,
         identity: context.identity,
+        template: templateName,
+        uploads: context.uploads.scoped({
+          // The runtime's own namespace, not the interface that happened to
+          // receive the file: only the namespace decides which bytes a read
+          // returns, and a job reads what it was handed.
+          namespace: "upload",
+          refKind: "upload",
+          routePath: "/api/uploads",
+        }),
         messaging: {
           async publish(message): Promise<void> {
             await context.messaging.send({
@@ -195,6 +206,7 @@ class DeclarativeServicePlugin<
     TState,
     TAccountSettings
   >[] = [];
+  private readonly scope: (localId: string) => string;
   private scopedShell: IShell | undefined;
   private state: TState | undefined;
   private tools: Tool[] | undefined;
@@ -212,10 +224,29 @@ class DeclarativeServicePlugin<
     config: z.output<TConfigSchema>,
     metadata: InstalledPluginPackageMetadata,
     id: string,
+    scope: (localId: string) => string,
   ) {
     super(id, metadata, config, identityConfigSchema());
     this.definition = definition;
     this.publicId = definition.id;
+    this.scope = scope;
+  }
+
+  /**
+   * Where a template this package declared ends up once the runtime scopes
+   * it. Templates are declared on an entity and registered under that
+   * entity plugin's id, so the lookup goes through the declaring entity.
+   */
+  private scopedTemplateName(localName: string): string {
+    const owner = (this.definition.entities ?? []).find(({ templates }) =>
+      Object.hasOwn(templates ?? {}, localName),
+    );
+    if (!owner) {
+      throw new Error(
+        `No declared entity provides a template named "${localName}"`,
+      );
+    }
+    return `${this.scope(owner.type)}:${localName}`;
   }
 
   public override register(
@@ -271,10 +302,29 @@ class DeclarativeServicePlugin<
       );
     }
 
+    const ownedTypes = (this.definition.entities ?? []).map(({ type }) => type);
     const evals =
-      this.definition.evals?.({ config: this.config, state: this.state }) ?? {};
+      this.definition.evals?.({
+        config: this.config,
+        state: this.state,
+        template: (localName) => this.scopedTemplateName(localName),
+      }) ?? {};
     for (const [handlerId, handler] of Object.entries(evals)) {
-      context.eval.registerHandler(handlerId, handler);
+      context.eval.registerHandler(handlerId, (input) =>
+        handler(input, {
+          ai: context.ai,
+          logger: this.logger,
+          entities: createJobEntityAccess(
+            context.entityService,
+            new Set(ownedTypes),
+            this.publicId,
+          ),
+          conversations: context.conversations,
+          runProjectionRule: (rule) => context.eval.runProjectionRule(rule),
+          fixtures: createEvalFixtures(context.entityService, ownedTypes),
+          template: (localName) => this.scopedTemplateName(localName),
+        }),
+      );
     }
 
     const bindings =
@@ -298,6 +348,7 @@ class DeclarativeServicePlugin<
           templates,
           new Set(this.definition.entities ?? []),
           this.publicId,
+          (localName) => this.scopedTemplateName(localName),
         ),
       );
     }
@@ -843,6 +894,7 @@ export function createDeclarativeServicePlugin<
   config: z.output<TConfigSchema>,
   metadata: InstalledPluginPackageMetadata,
   id: string,
+  scope: (localId: string) => string,
 ): DeclarativeServicePlugin<
   TConfigSchema,
   TState,
@@ -851,5 +903,5 @@ export function createDeclarativeServicePlugin<
   TViewSchemas,
   TAccountSettings
 > {
-  return new DeclarativeServicePlugin(definition, config, metadata, id);
+  return new DeclarativeServicePlugin(definition, config, metadata, id, scope);
 }

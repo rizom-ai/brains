@@ -264,6 +264,7 @@ export function createEvalNamespace(
     registerHandler: (handlerId: string, handler: EvalHandler): void => {
       shell.registerEvalHandler(pluginId, handlerId, handler);
     },
+    runProjectionRule: (rule, signal) => shell.runProjectionRule(rule, signal),
   };
 }
 

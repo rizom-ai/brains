@@ -34,7 +34,10 @@ import type {
   IDaemonRegistry,
   IInsightsRegistry,
   InsightHandler,
+  ProjectionRule,
+  ProjectionWriteIntent,
 } from "@brains/plugins";
+import type { AIGenerationSchema } from "@brains/ai-service";
 import type { RegisteredHttpRoute } from "@brains/plugins/internal/http-routes";
 import type { Template } from "@brains/templates";
 import { PermissionService } from "@brains/templates";
@@ -1332,6 +1335,49 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
       _handlerId: string,
       _handler: EvalHandler,
     ) => {},
+
+    runProjectionRule: async (
+      rule: ProjectionRule,
+      signal: AbortSignal = new AbortController().signal,
+    ): Promise<readonly ProjectionWriteIntent[]> => {
+      const input = await rule.selectInput(
+        { waveId: "eval", inputs: [] },
+        {
+          entities: entityService,
+          resolvePrompt: async (
+            _reference: string,
+            fallback: string,
+          ): Promise<string> => fallback,
+          appInfo: (): Promise<RuntimeAppInfo> => shell.getAppInfo(),
+          identityInput: () => ({}),
+        },
+        signal,
+      );
+      return rule.derive(
+        input,
+        {
+          ai: {
+            query: (prompt, context) => shell.query(prompt, context),
+            generate: async <T = unknown>(
+              config: ContentGenerationConfig,
+            ): Promise<T> => shell.generateContent<T>(config),
+            generateObject: async <T>(
+              prompt: string,
+              schema: AIGenerationSchema<T>,
+              abort?: AbortSignal,
+            ): Promise<{ object: T }> =>
+              shell.generateObject(prompt, schema, abort),
+            generateImage: async (
+              prompt: string,
+              options?: ImageGenerationOptions,
+            ): Promise<ImageGenerationResult> =>
+              shell.generateImage(prompt, options),
+          },
+          logger,
+        },
+        signal,
+      );
+    },
 
     // Insights registry
     getInsightsRegistry: () => insightsRegistry,
