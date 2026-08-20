@@ -319,7 +319,7 @@ export const BlogPostTemplate = ({
                 width={post.coverImageWidth}
                 height={post.coverImageHeight}
                 {...(post.coverImageSrcset
-                  ? { srcset: post.coverImageSrcset }
+                  ? { srcSet: post.coverImageSrcset }
                   : {})}
                 {...(post.coverImageSizes
                   ? { sizes: post.coverImageSizes }

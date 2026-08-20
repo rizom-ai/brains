@@ -84,6 +84,15 @@ JSX attributes across four files. React renders them but warns, so Phase 2
 normalizes those to camelCase as part of making the tree genuinely
 React-correct.
 
+The `yeehaa.io` runtime rehearsal caught two static-HTML cases the initial
+inventory missed: lowercase string `onclick` props are warned about and omitted
+by React, and a responsive image prop reached a native `<img>` as `srcset`
+instead of `srcSet`. Static controls now use data attributes with one
+site-shell event boundary, responsive images use the React spelling, and ESLint
+plus direct static-markup tests guard both cases. Theme toggling, mobile-menu
+open/close, and responsive image output were browser-verified against the
+migrated `yeehaa.io` preview.
+
 ### Preact already accepts the React dialect
 
 This is what makes the migration safe. Preact renders `className`, `htmlFor`,
@@ -200,12 +209,14 @@ The largest diff in the plan and the smallest risk in it: no runtime changes.
 - Tests first: extend the Phase 1 suite to assert the normalized output is
   unchanged by this phase.
 - Syntax-aware codemod `class=` → `className=` across the 21 files, convert the
-  49 literal and 15 computed string `style` props to objects, and camel-case the
-  48 hyphenated SVG attributes across four files. Serialized-HTML assertions are
-  not source syntax and remain unchanged.
-- Add ESLint rules banning `class=`, `for=`, string-valued `style`, and
-  hyphenated non-ARIA/data SVG attributes in `.tsx`, so the dialect cannot
-  regress before the flip.
+  49 literal and 15 computed string `style` props to objects, camel-case the 48
+  hyphenated SVG attributes across four files, use `srcSet` for native responsive
+  images, and move static string event handlers to the site shell's event
+  boundary. Serialized-HTML assertions are not source syntax and remain
+  unchanged.
+- Add ESLint rules banning `class=`, `for=`, `srcset=`, lowercase string event
+  handlers, string-valued `style`, and hyphenated non-ARIA/data SVG attributes
+  in `.tsx`, so the dialect cannot regress before the flip.
 - Gate: Phase 1 harness passes. Note that string-to-object style conversion
   adds Preact's trailing separator, which the harness folds.
 

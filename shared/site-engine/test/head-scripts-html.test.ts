@@ -68,4 +68,12 @@ describe("createHTMLShell head scripts", () => {
     expect(scriptIndex).toBeGreaterThan(-1);
     expect(headCloseIndex).toBeGreaterThan(scriptIndex);
   });
+
+  it("binds interactions for React static controls without inline handlers", () => {
+    const html = createHTMLShell("<p>content</p>");
+
+    expect(html).toContain("target.closest('[data-theme-toggle]')");
+    expect(html).toContain("target.closest('#mobile-menu-button')");
+    expect(html).toContain("target.closest('#mobile-menu a')");
+  });
 });
