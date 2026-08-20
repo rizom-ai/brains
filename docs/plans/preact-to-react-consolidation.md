@@ -6,12 +6,17 @@
 leaving one JSX runtime, one component dialect, and one shared component
 library across the site builds, the operator surfaces, and the client apps.
 
-The decision rests on three measured facts, not preference: Preact is used
-only to render to string, so the bundle-size advantage that justifies it is
-never collected; React cannot be removed regardless, because `ink` requires it
-and three surfaces are React 19 SPAs; and the split currently forces the
-operator view contract to be implemented twice, in two runtimes, against one
-protocol.
+The decision rests on three measured facts, not preference: Preact is used only
+to render to string, so the bundle-size advantage that justifies it is never
+collected; React cannot be removed regardless, because `ink` requires it and
+three surfaces are React 19 SPAs; and the split currently forces the operator
+view contract to be implemented twice, in two runtimes, against one protocol.
+
+**This plan is time-boxed by the release train.** `preact` is a published peer
+dependency, and Changesets is still in prerelease mode, so the swap is free
+today. Once `changeset pre exit` runs it becomes a `0.3.0` major. Phases 1–4
+therefore belong to the `v0.2.0` release decision, not to the cleanup backlog;
+Phases 5–6 are internal and unconstrained.
 
 ## Goal
 
@@ -108,24 +113,46 @@ null/undefined props, and `dangerouslySetInnerHTML` are byte-identical. The
 equivalence oracle must therefore be DOM-normalized rather than byte-exact,
 with these three classes allowlisted.
 
-## Published surface
+## Published surface: a window, not a major
 
-`preact` is part of the published authoring contract, so this is a breaking
-change, not an additive one. `@rizom/site` declares it as a peer dependency;
-`@rizom/ui`, `@rizom/theme-default`, `@rizom/theme-rizom-ai`, and the published
-site packages declare it as a publish-peer; and
+`preact` is part of the published authoring contract. `@rizom/site` declares it
+as a peer dependency; `@rizom/ui`, `@rizom/theme-default`,
+`@rizom/theme-rizom-ai`, and the published site packages declare it as a
+publish-peer; the packed site fixture under
+`packages/brain-cli/test/fixtures/public-authoring/site/` pins it; and
 `docs/external-site-authoring.md` documents it for external authors, who write
 Preact JSX against these packages.
 
-Decision: this moves on a `0.3` major for the site authoring line. It cannot
-ride the `0.2.x` additive line that
-[`public-authoring-api-0.2.md`](./public-authoring-api-0.2.md) governs. Everything
-else in scope is `"private": true` and moves freely.
+Under a released `0.2.x` this would be a breaking change requiring `0.3.0`. It
+is not one today. Changesets is still in prerelease mode (`.changeset/pre.json`
+is `"mode": "pre"`), stable `0.2.0` has not shipped, and the compatibility rules
+in [`public-authoring-api-0.2.md`](./public-authoring-api-0.2.md) — semantic
+changes wait for `0.3.0`, external packages declare
+`@rizom/brain: ">=0.2.0 <0.3.0"` — bind the line _after_ stable release. On the
+alpha line the swap is an ordinary change at no version cost.
 
-One ordering constraint follows from this: `sites/rizom-ai` and `sites/rizom`
-consume `@rizom/site` and `@rizom/site-rizom` as _published tarballs_, not
-workspace links. They can only flip once a React-line `@rizom/site` has been
-published, so they land one release behind the packages they consume.
+Decision: land this inside the prerelease window. The deadline is real and
+one-way — once `changeset pre exit` runs, `preact` becomes a frozen term of the
+stable `0.2.x` authoring contract, and the same swap then costs a `0.3.0` major
+plus a peer-range bump for every external package. There is no third option
+where it stays cheap.
+
+Sequencing within that window follows from gate 1 of the authoring plan, which
+requires nominating a fresh final alpha candidate and rerunning the exact
+registry and packed matrices against it. That rerun is scheduled regardless, so
+a flip landing _before_ the final-candidate refresh is absorbed by work already
+planned and the matrix runs once. Landing after it forces a second full matrix
+run and invalidates freeze evidence just gathered.
+
+If the migration cannot be scheduled before prerelease exit, the correct
+outcome is to defer the whole plan to `0.3.0` rather than split it. A stable
+`@rizom/site` on Preact wrapping an internal React graph is the two-runtime tax
+made permanent and published.
+
+One further ordering constraint: `sites/rizom-ai` and `sites/rizom` consume
+`@rizom/site` and `@rizom/site-rizom` as _published tarballs_, not workspace
+links. They can only flip once a React-line `@rizom/site` alpha is published, so
+they land one alpha behind the packages they consume.
 
 ## Phases
 
@@ -183,24 +210,28 @@ Per the interop finding this cannot be subdivided.
   allowlisted classes; a measured before/after on the per-request dashboard
   route (`plugins/dashboard/src/plugin.ts:503`).
 
-### Phase 4 — Published surface (ships in the same release as Phase 3)
+### Phase 4 — Published surface (ships in the same alpha as Phase 3)
 
 Separated for review discipline, not for sequencing; the peer dependency is
 what external authors install against, so it cannot lag the flip.
 
 - Tests first: the packed-consumer fixtures under
   `packages/brain-cli/test/fixtures/public-authoring/` typecheck against a
-  React-line packed `@rizom/brain` and `@rizom/site`.
+  React-line packed `@rizom/brain` and `@rizom/site`, including the `site`
+  fixture's own peer declaration.
 - Swap `preact` for `react`/`react-dom` in the peer and publish-peer blocks of
   `@rizom/site`, `@rizom/ui`, `@rizom/theme-default`, `@rizom/theme-rizom-ai`,
   and the published site packages.
 - Update `docs/external-site-authoring.md` and
-  `docs/external-plugin-authoring.md`, including the dialect change for
-  authors who wrote `class=`.
-- Major version bump on the site authoring line. Release-surface review
-  precedes code-quality review.
-- `sites/rizom-ai` and `sites/rizom` follow in the next release, once the
-  packages they consume are published on the React line.
+  `docs/external-plugin-authoring.md`, including the dialect change for authors
+  who wrote `class=`.
+- No major bump: this rides the `0.2.0-alpha` line while Changesets remains in
+  prerelease mode. Release-surface review still precedes code-quality review —
+  the change is version-cheap, not review-cheap.
+- Hard gate: this phase must merge **before** `changeset pre exit`. After
+  prerelease exit the same change is a `0.3.0` major.
+- `sites/rizom-ai` and `sites/rizom` follow one alpha later, once the packages
+  they consume are published on the React line.
 
 ### Phase 5 — Collapse the duplicated operator host
 
@@ -239,10 +270,17 @@ carries all the textual churn while the runtime is untouched, which means the
 riskiest-looking diff in the plan is verifiable against unchanged output and
 independently shippable. That leaves Phase 3 as a configuration and
 call-site change small enough to reason about, which is the only way an atomic
-flip across 23 packages is acceptable. Phase 4 is bound to Phase 3's release
+flip across 23 packages is acceptable. Phase 4 is bound to Phase 3's alpha
 because a peer dependency that disagrees with the runtime is worse than either
 state alone. Phases 5 and 6 collect the benefit and remove the scaffolding once
 there is nothing left to contain.
+
+Against the release train, this is the binding constraint on the whole plan:
+Phases 1–4 must land before `changeset pre exit`, and ideally before gate 1 of
+[`public-authoring-api-0.2.md`](./public-authoring-api-0.2.md) nominates the final
+alpha candidate, so the registry and packed matrices are run once against a
+React-line candidate instead of twice. Phases 5 and 6 are internal-only and can
+follow stable `0.2.0` at any time.
 
 Against `studio-consolidation.md`: land Phases 1–4 **before** its Phase 7, so
 that moving operator content into Studio Overview does not mean porting it
@@ -263,9 +301,17 @@ Phase 5 touches.
   than `preact-render-to-string`. Expected to be immaterial for one admin page,
   but it is measured in Phase 3 rather than assumed, and it is the only place in
   the repository where the difference can be felt.
+- **Missing the prerelease window.** This is the highest-cost risk and it is a
+  scheduling risk, not a technical one. `preact` is a published peer dependency;
+  once `changeset pre exit` runs it is frozen into the stable `0.2.x` contract
+  and the swap costs a `0.3.0` major plus a peer-range bump for every external
+  package. The plan is cheap today and expensive the day after prerelease exit,
+  so its scheduling decision belongs with the `v0.2.0` release decision rather
+  than in the cleanup backlog.
 - **External author breakage.** Site and theme authors write Preact JSX today.
-  Mitigated by the major bump and documentation in Phase 4; it cannot be
-  mitigated technically without shipping two pipelines, which is a non-goal.
+  On the alpha line they are expected to track breaking changes, and Phase 4's
+  documentation update covers the dialect shift; it cannot be mitigated
+  technically without shipping two pipelines, which is a non-goal.
 - **Escaping changes reaching stored or compared output.** React escapes `>`
   and `'` where Preact does not. Anything that diffs, hashes, or snapshots
   rendered HTML outside the Phase 1 harness — build manifests, artifact
