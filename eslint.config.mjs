@@ -29,6 +29,25 @@ const NO_UNSAFE_TEST_CAST = {
     "Do not use `as unknown as` in a test. Use a @brains/test-utils factory, an honest narrow type, or narrow the parameter of the code under test.",
 };
 
+/**
+ * `x.method = impl as typeof x.method` — the shape a stubbed mock member
+ * takes when the stub does not actually match what it replaces. The cast
+ * asserts the match instead of checking it, so the stub keeps compiling as
+ * the real signature moves and starts quietly lying. Every one removed was
+ * hiding something: parameters narrower than the caller passes, a message
+ * envelope the handler is really given, a class prototype a spread had
+ * dropped.
+ *
+ * Use `stubMethod(target, "member", impl)` from `@brains/test-utils`, which
+ * types the implementation from the member it replaces, or `genericSpy`
+ * where bun's `mock()` has erased type parameters.
+ */
+const NO_TYPEOF_MEMBER_CAST = {
+  selector: "TSAsExpression > TSTypeQuery.typeAnnotation",
+  message:
+    "Do not assert a stub matches with `as typeof x.member`. Use stubMethod() from @brains/test-utils so the implementation is checked, or genericSpy where mock() erased type parameters.",
+};
+
 const NO_SLEEP_SYNCHRONIZATION = {
   selector:
     "NewExpression[callee.name='Promise'] CallExpression[callee.name='setTimeout']",
@@ -104,7 +123,11 @@ export default [
     // count hits zero — `shell` remains.
     files: ["**/*.test.{ts,tsx}"],
     rules: {
-      "no-restricted-syntax": ["error", NO_UNSAFE_TEST_CAST],
+      "no-restricted-syntax": [
+        "error",
+        NO_UNSAFE_TEST_CAST,
+        NO_TYPEOF_MEMBER_CAST,
+      ],
     },
   },
   {

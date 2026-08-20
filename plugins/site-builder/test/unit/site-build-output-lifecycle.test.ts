@@ -3,7 +3,7 @@ import {
   siteBuildArtifactManifestSchema,
   type PreparedSiteBuild,
 } from "@brains/site-engine";
-import { createSilentLogger } from "@brains/test-utils";
+import { createSilentLogger, stubMethod } from "@brains/test-utils";
 import { promises as fs } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
@@ -366,13 +366,17 @@ describe("TransactionalSiteBuildOutput", () => {
 
     const originalRename = fs.rename;
     let injected = false;
-    fs.rename = mock(async (source, destination) => {
-      if (!injected && String(source).includes(".site-preview.next-")) {
-        injected = true;
-        throw new Error("injected pointer switch failure");
-      }
-      return originalRename(source, destination);
-    }) as typeof fs.rename;
+    stubMethod(
+      fs,
+      "rename",
+      mock(async (source, destination) => {
+        if (!injected && String(source).includes(".site-preview.next-")) {
+          injected = true;
+          throw new Error("injected pointer switch failure");
+        }
+        return originalRename(source, destination);
+      }),
+    );
 
     try {
       expect(

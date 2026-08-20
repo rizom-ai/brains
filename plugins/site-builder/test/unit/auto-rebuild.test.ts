@@ -1,10 +1,25 @@
 import { describe, test, expect, mock, beforeEach } from "bun:test";
 import { RebuildManager } from "../../src/lib/auto-rebuild";
+import type { MessageHandler } from "@brains/plugins";
 import { createTestConfig } from "../test-helpers";
 import {
   createMockServicePluginContext,
   type MockServicePluginContext,
 } from "@brains/test-utils";
+
+interface WavePayload {
+  waveId: string;
+  sourceTypes: string[];
+  changedTargetTypes: string[];
+}
+
+/** The envelope every delivered message carries, around the payload. */
+const envelope = {
+  id: "message-1",
+  timestamp: "2026-01-01T00:00:00.000Z",
+  type: "projection:wave-ready",
+  source: "projection-runtime",
+};
 
 describe("RebuildManager", () => {
   let context: MockServicePluginContext;
@@ -16,18 +31,10 @@ describe("RebuildManager", () => {
   });
 
   test("successful projection waves enqueue a build before acknowledgment", async () => {
-    let waveReadyHandler:
-      | ((message: {
-          payload: {
-            waveId: string;
-            sourceTypes: string[];
-            changedTargetTypes: string[];
-          };
-        }) => Promise<{ success: boolean }>)
-      | undefined;
+    let waveReadyHandler: MessageHandler<WavePayload> | undefined;
     context.messaging.subscribeExecution = mock(
       (_type, handler): (() => void) => {
-        waveReadyHandler = handler as typeof waveReadyHandler;
+        waveReadyHandler = handler;
         return () => {};
       },
     );
@@ -41,6 +48,7 @@ describe("RebuildManager", () => {
     if (!waveReadyHandler) throw new Error("Expected wave subscription");
 
     await waveReadyHandler({
+      ...envelope,
       payload: {
         waveId: "wave-1",
         sourceTypes: ["post"],
@@ -53,18 +61,10 @@ describe("RebuildManager", () => {
   });
 
   test("does not rebuild for note-only waves", async () => {
-    let waveReadyHandler:
-      | ((message: {
-          payload: {
-            waveId: string;
-            sourceTypes: string[];
-            changedTargetTypes: string[];
-          };
-        }) => Promise<{ success: boolean }>)
-      | undefined;
+    let waveReadyHandler: MessageHandler<WavePayload> | undefined;
     context.messaging.subscribeExecution = mock(
       (_type, handler): (() => void) => {
-        waveReadyHandler = handler as typeof waveReadyHandler;
+        waveReadyHandler = handler;
         return () => {};
       },
     );
@@ -78,6 +78,7 @@ describe("RebuildManager", () => {
     if (!waveReadyHandler) throw new Error("Expected wave subscription");
 
     await waveReadyHandler({
+      ...envelope,
       payload: {
         waveId: "wave-note",
         sourceTypes: ["note"],
@@ -90,18 +91,10 @@ describe("RebuildManager", () => {
   });
 
   test("enqueues one dirty-generation successor after an active build", async () => {
-    let waveReadyHandler:
-      | ((message: {
-          payload: {
-            waveId: string;
-            sourceTypes: string[];
-            changedTargetTypes: string[];
-          };
-        }) => Promise<{ success: boolean }>)
-      | undefined;
+    let waveReadyHandler: MessageHandler<WavePayload> | undefined;
     context.messaging.subscribeExecution = mock(
       (_type, handler): (() => void) => {
-        waveReadyHandler = handler as typeof waveReadyHandler;
+        waveReadyHandler = handler;
         return () => {};
       },
     );
@@ -120,6 +113,7 @@ describe("RebuildManager", () => {
     if (!waveReadyHandler) throw new Error("Expected wave subscription");
 
     await waveReadyHandler({
+      ...envelope,
       payload: {
         waveId: "wave-1",
         sourceTypes: ["post"],
@@ -129,6 +123,7 @@ describe("RebuildManager", () => {
     manager.markBuildStarted("preview", "job-1", 1);
 
     await waveReadyHandler({
+      ...envelope,
       payload: {
         waveId: "wave-2",
         sourceTypes: ["post"],
@@ -136,6 +131,7 @@ describe("RebuildManager", () => {
       },
     });
     await waveReadyHandler({
+      ...envelope,
       payload: {
         waveId: "wave-3",
         sourceTypes: ["page"],
