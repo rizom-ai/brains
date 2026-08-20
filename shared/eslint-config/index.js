@@ -174,6 +174,15 @@ module.exports = {
         message: "Use React-compatible htmlFor in TSX.",
       },
       {
+        selector: 'JSXAttribute[name.name="srcset"]',
+        message: "Use React-compatible srcSet in TSX.",
+      },
+      {
+        selector: "JSXAttribute[name.name=/^on[a-z]/]",
+        message:
+          "React does not render lowercase string event handlers. Bind static interactions from the site shell instead.",
+      },
+      {
         selector:
           'JSXAttribute[name.name="style"][value.type="Literal"], JSXAttribute[name.name="style"] > JSXExpressionContainer > TemplateLiteral',
         message: "Use a React-compatible style object in TSX.",

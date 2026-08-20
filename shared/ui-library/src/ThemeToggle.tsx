@@ -57,8 +57,7 @@ export function ThemeToggle({
 
   return (
     <button
-      // @ts-expect-error - onclick is valid HTML attribute for SSR
-      onclick="toggleTheme()"
+      data-theme-toggle
       type="button"
       className={cn(themeToggleVariants({ variant, size }), className)}
       aria-label="Toggle dark mode"
