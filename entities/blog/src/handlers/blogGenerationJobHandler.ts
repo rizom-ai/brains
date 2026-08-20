@@ -61,7 +61,15 @@ export const postGeneration: EntityGenerationDeclaration<
   typeof blogGenerationJobSchema
 > = {
   input: blogGenerationJobSchema,
-  generate: async ({ input, ai, logger, entities, identity, progress }) => {
+  generate: async ({
+    input,
+    ai,
+    logger,
+    entities,
+    identity,
+    progress,
+    template,
+  }) => {
     const { prompt, coverImageId, seriesName, seriesIndex, skipAi } = input;
     let { title, content, excerpt } = input;
 
@@ -94,7 +102,7 @@ export const postGeneration: EntityGenerationDeclaration<
         excerpt: string;
       }>({
         prompt: `${prompt ?? DEFAULT_POST_PROMPT}${seriesName ? `\n\nNote: This is part of a series called "${seriesName}".` : ""}`,
-        templateName: "blog:generation",
+        templateName: template("generation"),
         representedIdentity: "anchor",
         ...(voiceGuidance && { styleGuide: { voice: voiceGuidance } }),
       });
@@ -114,7 +122,7 @@ export const postGeneration: EntityGenerationDeclaration<
       });
       const generated = await ai.generate<{ excerpt: string }>({
         prompt: `Title: ${title}\n\nContent:\n${content}`,
-        templateName: "blog:excerpt",
+        templateName: template("excerpt"),
         representedIdentity: "none",
       });
       excerpt = generated.excerpt;

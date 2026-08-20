@@ -19,7 +19,7 @@ const generateDescriptionEvalInputSchema = z.object({
  * regression in either shows up here rather than only in production.
  */
 export const deckEvals: EntityEvalDeclaration = {
-  generateDeck: async (input, { ai, entities }) => {
+  generateDeck: async (input, { ai, entities, template }) => {
     const parsed = generateDeckEvalInputSchema.parse(input);
     const voiceGuidance = formatVoiceGuidance(await fetchStyleGuide(entities));
     return ai.generate<{
@@ -28,16 +28,16 @@ export const deckEvals: EntityEvalDeclaration = {
       description: string;
     }>({
       prompt: `${parsed.prompt}${parsed.event ? `\n\nNote: This presentation is for "${parsed.event}".` : ""}`,
-      templateName: "decks:generation",
+      templateName: template("generation"),
       representedIdentity: "anchor",
       ...(voiceGuidance && { styleGuide: { voice: voiceGuidance } }),
     });
   },
-  generateDescription: async (input, { ai }) => {
+  generateDescription: async (input, { ai, template }) => {
     const parsed = generateDescriptionEvalInputSchema.parse(input);
     return ai.generate<{ description: string }>({
       prompt: `Title: ${parsed.title}\n\nContent:\n${parsed.content}`,
-      templateName: "decks:description",
+      templateName: template("description"),
       representedIdentity: "none",
     });
   },

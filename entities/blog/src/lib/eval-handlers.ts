@@ -18,21 +18,21 @@ const generateExcerptInputSchema = z.object({
  * surfaces here rather than only in production.
  */
 export const blogEvals: EntityEvalDeclaration = {
-  generatePost: async (input, { ai, entities }) => {
+  generatePost: async (input, { ai, entities, template }) => {
     const parsed = generatePostInputSchema.parse(input);
     const voiceGuidance = formatVoiceGuidance(await fetchStyleGuide(entities));
     return ai.generate<{ title: string; content: string; excerpt: string }>({
       prompt: `${parsed.prompt}${parsed.seriesName ? `\n\nNote: This is part of a series called "${parsed.seriesName}".` : ""}`,
-      templateName: "blog:generation",
+      templateName: template("generation"),
       representedIdentity: "anchor",
       ...(voiceGuidance && { styleGuide: { voice: voiceGuidance } }),
     });
   },
-  generateExcerpt: async (input, { ai }) => {
+  generateExcerpt: async (input, { ai, template }) => {
     const parsed = generateExcerptInputSchema.parse(input);
     return ai.generate<{ excerpt: string }>({
       prompt: `Title: ${parsed.title}\n\nContent:\n${parsed.content}`,
-      templateName: "blog:excerpt",
+      templateName: template("excerpt"),
       representedIdentity: "none",
     });
   },

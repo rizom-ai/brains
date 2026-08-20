@@ -56,6 +56,13 @@ describe("deckGeneration", () => {
       messaging: { publish: async (): Promise<void> => {} },
       progress: createMockProgressReporter(),
       signal: new AbortController().signal,
+      template: (localName: string) => `@brains/decks:deck:${localName}`,
+      // Declared but unused: these handlers generate, they do not import.
+      uploads: {
+        read: async (): Promise<never> => {
+          throw new Error("This job reads no uploads");
+        },
+      },
     };
     return deckGeneration.generate({ ...jobContext, entityId: undefined });
   }
@@ -116,7 +123,7 @@ describe("deckGeneration", () => {
 
       expect(context.ai.generate).toHaveBeenCalledWith(
         expect.objectContaining({
-          templateName: "decks:description",
+          templateName: "@brains/decks:deck:description",
           representedIdentity: "none",
         }),
       );

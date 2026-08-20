@@ -13,7 +13,7 @@ const generateProjectEvalInputSchema = z.object({
  * run the same prompt generation does, so a drift in either surfaces here.
  */
 export const projectEvals: EntityEvalDeclaration = {
-  generateProject: async (input, { ai, entities }) => {
+  generateProject: async (input, { ai, entities, template }) => {
     const parsed = generateProjectEvalInputSchema.parse(input);
     const voiceGuidance = formatVoiceGuidance(await fetchStyleGuide(entities));
     return ai.generate<{
@@ -25,7 +25,7 @@ export const projectEvals: EntityEvalDeclaration = {
       outcome: string;
     }>({
       prompt: buildProjectGenerationPrompt(parsed),
-      templateName: "portfolio:generation",
+      templateName: template("generation"),
       representedIdentity: "anchor",
       ...(voiceGuidance && { styleGuide: { voice: voiceGuidance } }),
     });

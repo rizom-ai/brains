@@ -80,7 +80,7 @@ export const projectGeneration: EntityGenerationDeclaration<
   typeof projectCreateInputSchema
 > = {
   input: projectCreateInputSchema,
-  generate: async ({ input, ai, entities, progress }) => {
+  generate: async ({ input, ai, entities, progress, template }) => {
     const prompt = input.prompt;
     if (!prompt) return { success: false, error: "A prompt is required" };
 
@@ -106,7 +106,7 @@ export const projectGeneration: EntityGenerationDeclaration<
         year,
         ...(input.title === undefined ? {} : { title: input.title }),
       }),
-      templateName: "portfolio:generation",
+      templateName: template("generation"),
       representedIdentity: "anchor",
       ...(voiceGuidance && { styleGuide: { voice: voiceGuidance } }),
     });

@@ -57,6 +57,13 @@ describe("projectGeneration", () => {
       messaging: { publish: async (): Promise<void> => {} },
       progress: createMockProgressReporter(),
       signal: new AbortController().signal,
+      template: (localName: string) => `@brains/portfolio:project:${localName}`,
+      // Declared but unused: these handlers generate, they do not import.
+      uploads: {
+        read: async (): Promise<never> => {
+          throw new Error("This job reads no uploads");
+        },
+      },
     };
     return projectGeneration.generate({ ...jobContext, entityId: undefined });
   }
@@ -119,7 +126,7 @@ describe("projectGeneration", () => {
 
     expect(context.ai.generate).toHaveBeenCalledWith({
       prompt: buildProjectGenerationPrompt(input),
-      templateName: "portfolio:generation",
+      templateName: "@brains/portfolio:project:generation",
       representedIdentity: "anchor",
     });
   });

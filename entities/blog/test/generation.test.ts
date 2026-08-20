@@ -82,6 +82,13 @@ describe("postGeneration", () => {
       messaging: { publish: async (): Promise<void> => {} },
       progress: createMockProgressReporter(),
       signal: new AbortController().signal,
+      template: (localName: string) => `@brains/blog:post:${localName}`,
+      // Declared but unused: these handlers generate, they do not import.
+      uploads: {
+        read: async (): Promise<never> => {
+          throw new Error("This job reads no uploads");
+        },
+      },
     };
     return postGeneration.generate({ ...jobContext, entityId: undefined });
   }
@@ -115,7 +122,7 @@ describe("postGeneration", () => {
       expect(context.ai.generate).toHaveBeenCalledWith(
         expect.objectContaining({
           prompt: expect.stringContaining("Write about AI"),
-          templateName: "blog:generation",
+          templateName: "@brains/blog:post:generation",
         }),
       );
     });
@@ -124,7 +131,9 @@ describe("postGeneration", () => {
       await generate({});
 
       expect(context.ai.generate).toHaveBeenCalledWith(
-        expect.objectContaining({ templateName: "blog:generation" }),
+        expect.objectContaining({
+          templateName: "@brains/blog:post:generation",
+        }),
       );
     });
 
@@ -149,7 +158,7 @@ describe("postGeneration", () => {
       expect(succeeded(result).metadata["title"]).toBe("My Title");
       expect(frontmatterOf(result).excerpt).toBe("Generated excerpt");
       expect(context.ai.generate).toHaveBeenCalledWith(
-        expect.objectContaining({ templateName: "blog:excerpt" }),
+        expect.objectContaining({ templateName: "@brains/blog:post:excerpt" }),
       );
     });
 
