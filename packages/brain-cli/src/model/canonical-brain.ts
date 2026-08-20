@@ -35,7 +35,7 @@ import { imagePlugin } from "@brains/image-plugin";
 import linkPackage from "@brains/link";
 import { MCPInterface } from "@brains/mcp";
 import { newsletter } from "@brains/newsletter";
-import { notePlugin } from "@brains/note";
+import notePackage from "@brains/note";
 import { notificationsPlugin } from "@brains/notifications";
 import { obsidianVaultPlugin } from "@brains/obsidian-vault";
 import { playbookPlugin, playbooksPlugin } from "@brains/playbooks";
@@ -50,7 +50,7 @@ import { siteInfoPlugin } from "@brains/site-info";
 import socialMediaPackage from "@brains/social-media";
 import { stockPhotoPlugin } from "@brains/stock-photo";
 import styleGuidePackage from "@brains/style-guide";
-import { topicsPlugin } from "@brains/topics";
+import topicsPackage from "@brains/topics";
 import { knowledgeMapPlugin } from "@brains/knowledge-map";
 import { unifiedInboxPlugin } from "@brains/unified-inbox";
 import { WebChatInterface } from "@brains/web-chat";
@@ -148,10 +148,10 @@ export const canonicalBrain: BrainDefinition = defineBrain({
     packageCapability("style-guide", "@brains/style-guide", styleGuidePackage),
     ["image", imagePlugin, undefined],
     ["document", documentPlugin, undefined],
-    ["note", notePlugin, undefined],
+    packageCapability("note", "@brains/note", notePackage),
     packageCapability("link", "@brains/link", linkPackage),
     packageCapability("wishlist", "@brains/wishlist", wishlistPackage),
-    ["topics", topicsPlugin, undefined],
+    packageCapability("topics", "@brains/topics", topicsPackage),
     ["knowledge-map", knowledgeMapPlugin, undefined],
     packageCapability("decks", "@brains/decks", decksPackage),
     [

@@ -23,13 +23,19 @@ add: [assessment]
 // legacy factories and keep bare ones.
 const PROMPT_PLUGIN_ID = "@brains/prompt:prompt";
 const SWOT_PLUGIN_ID = "@brains/assessment:swot";
+const TOPICS_PLUGIN_ID = "@brains/topics:topic";
 
 function getProjectionPlugins(plugins: Plugin[]): Plugin[] {
-  const ids = new Set([PROMPT_PLUGIN_ID, "topics", "skill", SWOT_PLUGIN_ID]);
+  const ids = new Set([
+    PROMPT_PLUGIN_ID,
+    TOPICS_PLUGIN_ID,
+    "skill",
+    SWOT_PLUGIN_ID,
+  ]);
   const selected = plugins.filter((plugin) => ids.has(plugin.id));
   expect(selected.map((plugin) => plugin.id)).toEqual([
     PROMPT_PLUGIN_ID,
-    "topics",
+    TOPICS_PLUGIN_ID,
     "skill",
     SWOT_PLUGIN_ID,
   ]);
