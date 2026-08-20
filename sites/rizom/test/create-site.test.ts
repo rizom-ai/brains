@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { h } from "preact";
+import { createElement as h } from "react";
 import { defineSection, sectionGroup, z } from "@rizom/site";
 import { createRizomSite } from "../src/create-site";
 

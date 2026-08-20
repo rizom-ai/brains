@@ -1,7 +1,7 @@
 /** @jsxImportSource react */
 import type { ReactElement } from "react";
 import type { GitSyncState } from "./api";
-import { ConfirmDialog } from "./confirm-dialog";
+import { ConfirmDialog } from "@brains/operator-view-react";
 import type { SaveState } from "./editor-workflow";
 
 export function SaveStateNotice(props: {

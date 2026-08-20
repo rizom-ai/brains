@@ -5,7 +5,7 @@ import type { BuildPipelineContext } from "../../src/lib/build-pipeline-context"
 import type { BuildResult } from "../../src/types/site-builder-types";
 import type { SiteViewTemplate } from "../../src/lib/site-view-template";
 import { z } from "@brains/utils/zod";
-import { h, type VNode } from "preact";
+import { createElement as h, type ReactElement } from "react";
 import { runSiteBuild } from "../../src/lib/run-site-build";
 import type { StaticSiteBuilderFactory } from "../../src/lib/static-site-builder";
 import {
@@ -146,7 +146,7 @@ describe("runSiteBuild preflight", () => {
       name: "fixture:hero",
       pluginId: "fixture",
       schema: z.object({ heading: z.string() }),
-      renderers: { web: (): VNode => h("div", {}) },
+      renderers: { web: (): ReactElement => h("div", {}) },
     };
 
     const result = await run(
@@ -189,7 +189,7 @@ describe("runSiteBuild preflight", () => {
       name: "fixture:hero",
       pluginId: "fixture",
       schema: z.object({ heading: z.string() }),
-      renderers: { web: (): VNode => h("div", {}) },
+      renderers: { web: (): ReactElement => h("div", {}) },
     };
 
     const result = await run(

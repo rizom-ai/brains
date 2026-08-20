@@ -80,7 +80,7 @@ describe("@rizom/brain package metadata", () => {
         strict: true,
         moduleResolution: "bundler",
         jsx: "react-jsx",
-        jsxImportSource: "preact",
+        jsxImportSource: "react",
         noEmit: true,
       },
     });

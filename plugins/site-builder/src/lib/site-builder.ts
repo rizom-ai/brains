@@ -6,7 +6,7 @@ import type {
   BuildResult,
 } from "../types/site-builder-types";
 import type { StaticSiteBuilderFactory } from "./static-site-builder";
-import { createPreactBuilder } from "./preact-builder";
+import { createReactBuilder } from "./react-builder";
 import type { RouteRegistry } from "@brains/site-engine";
 
 import type { EntityDisplayMap } from "../config";
@@ -26,7 +26,7 @@ interface ActiveSiteBuild {
 
 export class SiteBuilder implements ISiteBuilder {
   private static defaultStaticSiteBuilderFactory: StaticSiteBuilderFactory =
-    createPreactBuilder;
+    createReactBuilder;
   private pipelineContext: BuildPipelineContext;
   private staticSiteBuilderFactory: StaticSiteBuilderFactory;
   private outputLifecycle: SiteBuildOutputLifecycle | undefined;

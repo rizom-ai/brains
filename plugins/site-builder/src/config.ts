@@ -125,7 +125,7 @@ export const siteBuilderConfigSchema: z.ZodType<
     .string()
     .optional()
     .describe("Working directory for builds")
-    .default("./.preact-work"),
+    .default("./.react-work"),
   siteInfo: siteMetadataSchema.default({
     represents: "anchor",
     title: "Brain",

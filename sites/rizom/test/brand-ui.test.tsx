@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { render } from "preact-render-to-string";
+import { renderToStaticMarkup } from "react-dom/server";
 import { Footer, Header, Wordmark } from "../src/index";
 
 /**
@@ -19,7 +19,7 @@ const externalLink = {
 };
 
 const header = (): string =>
-  render(
+  renderToStaticMarkup(
     <Header
       brandSuffix="ai"
       navLinks={[internalLink, externalLink]}
@@ -28,7 +28,7 @@ const header = (): string =>
   );
 
 const footer = (): string =>
-  render(
+  renderToStaticMarkup(
     <Footer
       brandSuffix="ai"
       metaLabel="rizom.ai"
@@ -38,7 +38,7 @@ const footer = (): string =>
 
 describe("rizom site brand chrome", () => {
   it("renders the canonical wordmark in the header", () => {
-    const wordmark = render(<Wordmark brandSuffix="ai" />);
+    const wordmark = renderToStaticMarkup(<Wordmark brandSuffix="ai" />);
 
     // The canonical mark styles its suffix as italic body text and colors the
     // dot per suffix; the forked inline mark did neither.

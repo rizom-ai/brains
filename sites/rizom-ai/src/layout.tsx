@@ -1,5 +1,5 @@
-/** @jsxImportSource preact */
-import type { JSX, ComponentChildren } from "preact";
+/** @jsxImportSource react */
+import type { JSX, ReactNode } from "react";
 import { RizomFrame, type RizomLayoutProps } from "@rizom/site-rizom";
 
 /**
@@ -360,7 +360,7 @@ function RizomAiChrome({
 }: {
   path: string;
   siteInfo: RizomLayoutProps["siteInfo"];
-  children: ComponentChildren;
+  children: ReactNode;
 }): JSX.Element {
   const face = activeFace(path);
   const umbrella = isHome(path) || orgIndexActive(path) !== null;

@@ -174,7 +174,8 @@ module.exports = {
         message: "Use React-compatible htmlFor in TSX.",
       },
       {
-        selector: 'JSXAttribute[name.name="style"][value.type="Literal"]',
+        selector:
+          'JSXAttribute[name.name="style"][value.type="Literal"], JSXAttribute[name.name="style"] > JSXExpressionContainer > TemplateLiteral',
         message: "Use a React-compatible style object in TSX.",
       },
       {

@@ -1,4 +1,4 @@
-import type { JSX } from "preact";
+import type { JSX } from "react";
 import { Section } from "./Section";
 import { Wordmark } from "./Wordmark";
 import { renderHighlightedText } from "./highlighted-text";

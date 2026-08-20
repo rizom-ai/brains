@@ -13,7 +13,7 @@ import {
   type CmsWorkspaceRegistration,
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
-import { h } from "preact";
+import { createElement as h } from "react";
 import { createTestConfig } from "../test-helpers";
 import { mkdtemp, readFile, rm } from "fs/promises";
 import { existsSync } from "fs";

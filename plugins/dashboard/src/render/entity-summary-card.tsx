@@ -1,6 +1,6 @@
-/** @jsxImportSource preact */
+/** @jsxImportSource react */
 import { formatLabel } from "@brains/utils/string-utils";
-import type { JSX } from "preact";
+import type { JSX } from "react";
 import type { EntityCount } from "./types";
 import {
   CardHeader,

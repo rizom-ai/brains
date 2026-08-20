@@ -1,4 +1,4 @@
-import type { JSX } from "preact";
+import type { JSX } from "react";
 import { Head, MarkdownContent, Card, CoverImage } from "@brains/ui-library";
 import type { ProjectView } from "./project-view";
 

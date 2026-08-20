@@ -1,4 +1,4 @@
-import type { JSX } from "preact";
+import type { JSX } from "react";
 import { calculateReadingTime } from "@brains/utils/string-utils";
 import {
   MarkdownContent,

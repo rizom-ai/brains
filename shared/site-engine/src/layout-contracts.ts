@@ -1,4 +1,4 @@
-import type { ComponentChildren, JSX } from "preact";
+import type { ReactNode, JSX } from "react";
 import type { SiteLayoutInfo } from "@brains/site-composition";
 
 /** Registration for a component contributed to a named layout slot. */
@@ -17,9 +17,9 @@ export interface LayoutSlots {
   hasSlot(slotName: string): boolean;
 }
 
-/** Preact layout component contract used by site packages and site renderers. */
+/** React layout component contract used by site packages and site renderers. */
 export type LayoutComponent = (props: {
-  sections: ComponentChildren[];
+  sections: ReactNode[];
   title: string;
   description: string;
   path: string;

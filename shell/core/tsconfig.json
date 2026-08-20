@@ -8,7 +8,7 @@
       "@/*": ["./src/*"]
     },
     "jsx": "react-jsx",
-    "jsxImportSource": "preact"
+    "jsxImportSource": "react"
   },
   "include": ["src", "test"],
   "exclude": ["node_modules", "dist"]

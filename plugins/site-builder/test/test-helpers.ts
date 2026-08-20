@@ -1,4 +1,4 @@
-import { h } from "preact";
+import { createElement as h } from "react";
 import { promises as fs } from "fs";
 import type { SiteBuilderConfig } from "../src/config";
 import type { SiteBuilderServices } from "../src/lib/site-builder";
@@ -236,7 +236,7 @@ export function createTestConfig(
     previewOutputDir: "./dist/site-preview",
     productionOutputDir: "./dist/site-production",
     sharedImagesDir: "./dist/images",
-    workingDir: "./.preact-work",
+    workingDir: "./.react-work",
     siteInfo: {
       title: "Test Site",
       description: "Test site for unit tests",

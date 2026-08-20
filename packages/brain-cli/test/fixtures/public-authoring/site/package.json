@@ -14,10 +14,14 @@
   },
   "peerDependencies": {
     "@rizom/brain": ">=0.2.0-alpha.272 <0.3.0",
-    "preact": "^10.27.2"
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7"
   },
   "devDependencies": {
-    "preact": "^10.27.2",
-    "typescript": "^7.0.2"
+    "typescript": "^7.0.2",
+    "react": "^19.2.7",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.0.3",
+    "react-dom": "^19.2.7"
   }
 }

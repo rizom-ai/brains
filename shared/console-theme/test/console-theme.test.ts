@@ -103,7 +103,7 @@ describe("CONSOLE_THEME_CSS", () => {
   });
 
   it("styles chrome only from console tokens", () => {
-    // The strip is shared across Preact and React surfaces; any reference
+    // The strip is shared across server-rendered and client surfaces; any reference
     // to a surface-private variable would break the non-dashboard hosts.
     expect(CONSOLE_THEME_CSS).not.toMatch(/var\(--dashboard-/);
     expect(CONSOLE_THEME_CSS).not.toMatch(/var\(--chat-/);

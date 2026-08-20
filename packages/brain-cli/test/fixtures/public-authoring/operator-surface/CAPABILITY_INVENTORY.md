@@ -81,7 +81,7 @@ Dashboard implementation sources:
 - `entities/agent-discovery/src/lib/agent-dashboard.ts`
 - `entities/agent-discovery/src/lib/proximity-map-schema.ts`
 
-The Preact map and script remain only for the independent public site template; Dashboard no longer registers either.
+The React map and script remain only for the independent public site template; Dashboard no longer registers either.
 
 Required semantics:
 
@@ -427,6 +427,6 @@ Representative checked evidence:
 - `plugins/content-pipeline/test/cms-workspace.test.ts`; and
 - `packages/brain-cli/test/public-authoring-phase6-packed.test.ts`.
 
-The Preact spatial renderers still used by public site templates are independent
+The React spatial renderers still used by public site templates are independent
 site presentation, not Dashboard registrations or operator-authoring escape
 hatches.

@@ -16,7 +16,7 @@ Determine whether Astryx can reduce custom interaction code and improve accessib
 - the paper and instrument climates from `@brains/console-theme`;
 - Brain-specific chat behavior;
 - current bundle and deployment architecture; and
-- Preact-based public-site and dashboard boundaries.
+- React-based public-site and dashboard boundaries.
 
 ## Why web chat is the pilot
 
@@ -49,8 +49,8 @@ The pilot can therefore test Astryx's distinctive chat and accessibility behavio
 
 ### Out of scope
 
-- `shared/ui-library`, which is Preact-based and used by SSR/static site templates
-- `plugins/dashboard`, which is Preact server-rendered
+- `shared/ui-library`, which is React-based and used by SSR/static site templates
+- `plugins/dashboard`, which is React server-rendered
 - public site packages and themes
 - replacing `@brains/console-theme`
 - replacing Streamdown, Shiki, Mermaid, math rendering, or AI SDK ownership

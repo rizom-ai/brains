@@ -6,6 +6,7 @@
  * component and layout rules, which style themselves from --console-*.
  */
 import { CONSOLE_THEME_CSS } from "@brains/console-theme";
+import { operatorViewRendererStyles } from "@brains/operator-view-react";
 import compatibilityStyles from "./styles/compatibility.css" with { type: "text" };
 import foundationStyles from "./styles/foundation.css" with { type: "text" };
 import overviewStyles from "./styles/overview.css" with { type: "text" };
@@ -20,6 +21,8 @@ ${foundationStyles}
 ${overviewStyles}
 
 ${operatorViewStyles}
+
+${operatorViewRendererStyles}
 
 ${systemStyles}
 

@@ -1,7 +1,8 @@
-/** @jsxImportSource preact */
-import type { JSX } from "preact";
+/** @jsxImportSource react */
+import type { JSX } from "react";
 import {
   CardHeader,
+  cssVariables,
   WidgetPrimitiveEmptyState as EmptyState,
   KeyValueList,
   WidgetActionLink,
@@ -70,7 +71,10 @@ function IndexGauge({
     : "Indexing";
 
   return (
-    <div className="index-gauge" style={`--index-percent: ${percent}%`}>
+    <div
+      className="index-gauge"
+      style={cssVariables({ "--index-percent": `${percent}%` })}
+    >
       <div className="index-gauge-ring" aria-hidden="true">
         <span>{percent}%</span>
       </div>

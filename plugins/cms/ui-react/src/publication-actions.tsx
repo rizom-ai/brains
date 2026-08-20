@@ -4,7 +4,7 @@ import type {
   PublishingActionResult,
   PublishConfirmationArgs,
 } from "./api";
-import { ConfirmDialog } from "./confirm-dialog";
+import { ConfirmDialog } from "@brains/operator-view-react";
 import { errorMessage } from "./ui-utils";
 
 export function isPublishingActionError(

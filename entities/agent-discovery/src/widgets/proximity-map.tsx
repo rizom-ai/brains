@@ -1,5 +1,5 @@
-/** @jsxImportSource preact */
-import type { JSX } from "preact";
+/** @jsxImportSource react */
+import type { CSSProperties, JSX } from "react";
 import proximityMapWidgetStyles from "./proximity-map-widget.css" with { type: "text" };
 import {
   proximityMapDataSchema,
@@ -327,11 +327,14 @@ const RIPPLE_PERIOD_S = 8;
 const RIPPLE_R_START = 14;
 const RIPPLE_R_END = 232;
 
-function rippleShimmerStyle(radius: number): string {
+function rippleShimmerStyle(radius: number): CSSProperties {
   const arrival =
     (RIPPLE_PERIOD_S * (radius - RIPPLE_R_START)) /
     (RIPPLE_R_END - RIPPLE_R_START);
-  return `animation:proximityRippleShimmer ${RIPPLE_PERIOD_S}s linear infinite;animation-delay:${arrival.toFixed(2)}s`;
+  return {
+    animation: `proximityRippleShimmer ${RIPPLE_PERIOD_S}s linear infinite`,
+    animationDelay: `${arrival.toFixed(2)}s`,
+  };
 }
 
 export function ProximityMap({
@@ -797,7 +800,9 @@ export function ProximityMap({
                   : "var(--console-accent)"
               }
               opacity="0.26"
-              style={`animation-delay:-${(random() * 11).toFixed(1)}s`}
+              style={{
+                animationDelay: `-${(random() * 11).toFixed(1)}s`,
+              }}
             />
           );
         })}

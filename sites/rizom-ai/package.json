@@ -22,15 +22,19 @@
   },
   "publishPeerDependencies": {
     "@rizom/brain": ">=0.2.0-alpha.141 <0.3.0",
-    "preact": "^10.27.2"
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7"
   },
   "devDependencies": {
     "@brains/build-tools": "workspace:*",
     "@brains/eslint-config": "workspace:*",
     "@brains/typescript-config": "workspace:*",
     "@types/bun": "^1.4.0",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.0.3",
     "eslint": "^10.5.0",
-    "preact": "^10.27.2",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
     "typescript": "^7.0.2"
   },
   "publishConfig": {

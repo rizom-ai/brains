@@ -1,4 +1,4 @@
-import type { JSX } from "preact";
+import type { JSX } from "react";
 import {
   MarkdownContent,
   formatDate as formatDateStyled,

@@ -1,4 +1,4 @@
-import { Fragment, h, type ComponentChildren, type JSX } from "preact";
+import { Fragment, createElement as h, type ReactNode, type JSX } from "react";
 import type { RouteDefinitionInput, SiteDefinition } from "@rizom/site";
 
 const docsSections = [
@@ -37,11 +37,8 @@ const docsRoutes: RouteDefinitionInput[] = [
   },
 ];
 
-const DocsLayout = ({
-  sections,
-}: {
-  sections: ComponentChildren[];
-}): JSX.Element => h(Fragment, null, ...sections);
+const DocsLayout = ({ sections }: { sections: ReactNode[] }): JSX.Element =>
+  h(Fragment, null, ...sections);
 
 export const docsSite: SiteDefinition = {
   layouts: {

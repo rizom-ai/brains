@@ -1,5 +1,5 @@
-/** @jsxImportSource preact */
-import type { JSX } from "preact";
+/** @jsxImportSource react */
+import type { JSX } from "react";
 
 function BrandTitle({ title }: { title: string }): JSX.Element {
   const trimmed = title.trim();

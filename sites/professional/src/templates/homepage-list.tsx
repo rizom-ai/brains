@@ -1,4 +1,4 @@
-import type { JSX, ComponentChildren } from "preact";
+import type { JSX, ReactNode } from "react";
 import type { ProfessionalProfile } from "../schemas";
 import type { BlogPostView } from "@brains/blog";
 import type { DeckView } from "@brains/decks";
@@ -48,7 +48,7 @@ const EditorialRow = ({
   number: string;
   title: string;
   blurb?: string | null | undefined;
-  children: ComponentChildren;
+  children: ReactNode;
 }): JSX.Element => (
   <section className="py-20 border-b border-rule px-6 md:px-12">
     <div className="max-w-6xl mx-auto">

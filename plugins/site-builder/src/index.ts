@@ -7,7 +7,7 @@ export type {
   StaticSiteBuilderFactory,
   BuildContext,
 } from "./lib/static-site-builder";
-export { createPreactBuilder } from "./lib/preact-builder";
+export { createReactBuilder } from "./lib/react-builder";
 
 // Export event payload types for plugins that subscribe to build events
 export type {

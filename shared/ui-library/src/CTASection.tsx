@@ -1,4 +1,4 @@
-import type { JSX } from "preact";
+import type { JSX } from "react";
 import { LinkButton } from "./LinkButton";
 import type { SocialLink } from "./SocialLinks";
 

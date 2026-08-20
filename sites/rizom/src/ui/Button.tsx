@@ -1,5 +1,5 @@
-/** @jsxImportSource preact */
-import type { JSX, ComponentChildren } from "preact";
+/** @jsxImportSource react */
+import type { JSX, ReactNode } from "react";
 import { cn } from "./cn";
 
 export type ButtonVariant = "primary" | "primary-strong" | "secondary";
@@ -11,7 +11,7 @@ export interface ButtonProps {
   size?: ButtonSize;
   block?: boolean;
   className?: string;
-  children?: ComponentChildren;
+  children?: ReactNode;
 }
 
 const BASE =

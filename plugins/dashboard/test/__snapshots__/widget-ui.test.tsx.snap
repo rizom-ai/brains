@@ -7,7 +7,7 @@ exports[`widget UI primitives renders validated declarative views with host-owne
       "attributes": [
         [
           "class",
-          "operator-view",
+          "declarative-workspace operator-view",
         ],
       ],
       "children": [
@@ -15,24 +15,7 @@ exports[`widget UI primitives renders validated declarative views with host-owne
           "attributes": [
             [
               "class",
-              "operator-view-title",
-            ],
-          ],
-          "children": [
-            {
-              "type": "text",
-              "value": "Queue <script>alert('nope')</script>",
-            },
-          ],
-          "name": "h4",
-          "namespace": "http://www.w3.org/1999/xhtml",
-          "type": "element",
-        },
-        {
-          "attributes": [
-            [
-              "class",
-              "operator-block operator-block--table",
+              "declarative-head",
             ],
           ],
           "children": [
@@ -40,7 +23,7 @@ exports[`widget UI primitives renders validated declarative views with host-owne
               "attributes": [
                 [
                   "class",
-                  "operator-table-scroll",
+                  "declarative-head-copy",
                 ],
               ],
               "children": [
@@ -48,129 +31,16 @@ exports[`widget UI primitives renders validated declarative views with host-owne
                   "attributes": [
                     [
                       "class",
-                      "operator-table",
+                      "operator-view-title",
                     ],
                   ],
                   "children": [
                     {
-                      "attributes": [],
-                      "children": [
-                        {
-                          "attributes": [],
-                          "children": [
-                            {
-                              "attributes": [
-                                [
-                                  "class",
-                                  "operator-align--start",
-                                ],
-                              ],
-                              "children": [
-                                {
-                                  "type": "text",
-                                  "value": "Title",
-                                },
-                              ],
-                              "name": "th",
-                              "namespace": "http://www.w3.org/1999/xhtml",
-                              "type": "element",
-                            },
-                            {
-                              "attributes": [
-                                [
-                                  "class",
-                                  "operator-align--start",
-                                ],
-                              ],
-                              "children": [
-                                {
-                                  "type": "text",
-                                  "value": "State",
-                                },
-                              ],
-                              "name": "th",
-                              "namespace": "http://www.w3.org/1999/xhtml",
-                              "type": "element",
-                            },
-                          ],
-                          "name": "tr",
-                          "namespace": "http://www.w3.org/1999/xhtml",
-                          "type": "element",
-                        },
-                      ],
-                      "name": "thead",
-                      "namespace": "http://www.w3.org/1999/xhtml",
-                      "type": "element",
-                    },
-                    {
-                      "attributes": [],
-                      "children": [
-                        {
-                          "attributes": [],
-                          "children": [
-                            {
-                              "attributes": [
-                                [
-                                  "class",
-                                  "operator-align--start",
-                                ],
-                              ],
-                              "children": [
-                                {
-                                  "attributes": [
-                                    [
-                                      "class",
-                                      "operator-inline-link",
-                                    ],
-                                    [
-                                      "href",
-                                      "/cms/entities/bookmark/saved-1",
-                                    ],
-                                  ],
-                                  "children": [
-                                    {
-                                      "type": "text",
-                                      "value": "First",
-                                    },
-                                  ],
-                                  "name": "a",
-                                  "namespace": "http://www.w3.org/1999/xhtml",
-                                  "type": "element",
-                                },
-                              ],
-                              "name": "td",
-                              "namespace": "http://www.w3.org/1999/xhtml",
-                              "type": "element",
-                            },
-                            {
-                              "attributes": [
-                                [
-                                  "class",
-                                  "operator-align--start",
-                                ],
-                              ],
-                              "children": [
-                                {
-                                  "type": "text",
-                                  "value": "ready",
-                                },
-                              ],
-                              "name": "td",
-                              "namespace": "http://www.w3.org/1999/xhtml",
-                              "type": "element",
-                            },
-                          ],
-                          "name": "tr",
-                          "namespace": "http://www.w3.org/1999/xhtml",
-                          "type": "element",
-                        },
-                      ],
-                      "name": "tbody",
-                      "namespace": "http://www.w3.org/1999/xhtml",
-                      "type": "element",
+                      "type": "text",
+                      "value": "Queue <script>alert('nope')</script>",
                     },
                   ],
-                  "name": "table",
+                  "name": "h2",
                   "namespace": "http://www.w3.org/1999/xhtml",
                   "type": "element",
                 },
@@ -179,13 +49,202 @@ exports[`widget UI primitives renders validated declarative views with host-owne
               "namespace": "http://www.w3.org/1999/xhtml",
               "type": "element",
             },
+            {
+              "attributes": [
+                [
+                  "class",
+                  "declarative-head-state",
+                ],
+              ],
+              "children": [],
+              "name": "div",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
           ],
-          "name": "section",
+          "name": "header",
+          "namespace": "http://www.w3.org/1999/xhtml",
+          "type": "element",
+        },
+        {
+          "attributes": [
+            [
+              "class",
+              "declarative-blocks",
+            ],
+          ],
+          "children": [
+            {
+              "attributes": [
+                [
+                  "class",
+                  "operator-block operator-block--table",
+                ],
+                [
+                  "data-block",
+                  "table",
+                ],
+                [
+                  "data-span",
+                  "wide",
+                ],
+              ],
+              "children": [
+                {
+                  "attributes": [
+                    [
+                      "class",
+                      "declarative-table-scroll operator-table-scroll",
+                    ],
+                  ],
+                  "children": [
+                    {
+                      "attributes": [
+                        [
+                          "class",
+                          "declarative-table operator-table",
+                        ],
+                      ],
+                      "children": [
+                        {
+                          "attributes": [],
+                          "children": [
+                            {
+                              "attributes": [],
+                              "children": [
+                                {
+                                  "attributes": [
+                                    [
+                                      "data-align",
+                                      "start",
+                                    ],
+                                  ],
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "value": "Title",
+                                    },
+                                  ],
+                                  "name": "th",
+                                  "namespace": "http://www.w3.org/1999/xhtml",
+                                  "type": "element",
+                                },
+                                {
+                                  "attributes": [
+                                    [
+                                      "data-align",
+                                      "start",
+                                    ],
+                                  ],
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "value": "State",
+                                    },
+                                  ],
+                                  "name": "th",
+                                  "namespace": "http://www.w3.org/1999/xhtml",
+                                  "type": "element",
+                                },
+                              ],
+                              "name": "tr",
+                              "namespace": "http://www.w3.org/1999/xhtml",
+                              "type": "element",
+                            },
+                          ],
+                          "name": "thead",
+                          "namespace": "http://www.w3.org/1999/xhtml",
+                          "type": "element",
+                        },
+                        {
+                          "attributes": [],
+                          "children": [
+                            {
+                              "attributes": [],
+                              "children": [
+                                {
+                                  "attributes": [
+                                    [
+                                      "data-align",
+                                      "start",
+                                    ],
+                                  ],
+                                  "children": [
+                                    {
+                                      "attributes": [
+                                        [
+                                          "class",
+                                          "declarative-inline-link operator-inline-link",
+                                        ],
+                                        [
+                                          "href",
+                                          "/cms/entities/bookmark/saved-1",
+                                        ],
+                                      ],
+                                      "children": [
+                                        {
+                                          "type": "text",
+                                          "value": "First",
+                                        },
+                                      ],
+                                      "name": "a",
+                                      "namespace": "http://www.w3.org/1999/xhtml",
+                                      "type": "element",
+                                    },
+                                  ],
+                                  "name": "td",
+                                  "namespace": "http://www.w3.org/1999/xhtml",
+                                  "type": "element",
+                                },
+                                {
+                                  "attributes": [
+                                    [
+                                      "data-align",
+                                      "start",
+                                    ],
+                                  ],
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "value": "ready",
+                                    },
+                                  ],
+                                  "name": "td",
+                                  "namespace": "http://www.w3.org/1999/xhtml",
+                                  "type": "element",
+                                },
+                              ],
+                              "name": "tr",
+                              "namespace": "http://www.w3.org/1999/xhtml",
+                              "type": "element",
+                            },
+                          ],
+                          "name": "tbody",
+                          "namespace": "http://www.w3.org/1999/xhtml",
+                          "type": "element",
+                        },
+                      ],
+                      "name": "table",
+                      "namespace": "http://www.w3.org/1999/xhtml",
+                      "type": "element",
+                    },
+                  ],
+                  "name": "div",
+                  "namespace": "http://www.w3.org/1999/xhtml",
+                  "type": "element",
+                },
+              ],
+              "name": "section",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+          ],
+          "name": "div",
           "namespace": "http://www.w3.org/1999/xhtml",
           "type": "element",
         },
       ],
-      "name": "div",
+      "name": "main",
       "namespace": "http://www.w3.org/1999/xhtml",
       "type": "element",
     },

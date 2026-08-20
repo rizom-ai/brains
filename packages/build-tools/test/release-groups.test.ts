@@ -93,14 +93,16 @@ test("deployable site and theme inventory declares brain compatibility", async (
       Record<string, unknown> | undefined;
     expect(peers?.["@rizom/brain"]).toBeString();
 
-    // The external authoring contract (docs/external-site-authoring.md) has
-    // the host runtime provide preact; a site that ships it as a hard
-    // dependency installs a second preact instance next to the host's.
+    // The external authoring contract has the host runtime provide one React
+    // tree and renderer; deployable sites publish both as peers rather than
+    // installing private copies next to the host.
     if (packageJson.name.startsWith("@rizom/site-")) {
       const dependencies = manifest["dependencies"] as
         Record<string, unknown> | undefined;
-      expect(peers?.["preact"]).toBeString();
-      expect(dependencies?.["preact"]).toBeUndefined();
+      expect(peers?.["react"]).toBeString();
+      expect(peers?.["react-dom"]).toBeString();
+      expect(dependencies?.["react"]).toBeUndefined();
+      expect(dependencies?.["react-dom"]).toBeUndefined();
     }
   }
 

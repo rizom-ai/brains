@@ -42,7 +42,7 @@ A running brain is driven by a lightweight _instance directory_ centered on `bra
 | -------------------------- | -------------------------------------------------------------------------- |
 | `shared/utils`             | Zod, slugify, markdown, YAML, logging, IDs, and other low-level primitives |
 | `shared/contracts`         | Shared result, job progress, and publish contracts                         |
-| `shared/ui-library`        | Preact components (Header, Footer, Cards, CTA)                             |
+| `shared/ui-library`        | React components (Header, Footer, Cards, CTA)                              |
 | `shared/site-composition`  | Shared site composition contract and merge helpers                         |
 | `shared/site-engine`       | Renderer-agnostic site build engine utilities                              |
 | `shared/theme-base`        | `composeTheme()`, shared CSS utilities, Tailwind setup                     |

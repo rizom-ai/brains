@@ -1,4 +1,4 @@
-import type { JSX } from "preact";
+import type { JSX } from "react";
 import { truncateText } from "@brains/utils/string-utils";
 import type { PaginationInfo } from "@brains/plugins";
 import {

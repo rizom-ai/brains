@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, test } from "bun:test";
-import { h } from "preact";
+import { createElement as h } from "react";
 import { NavigationSlots, type SiteDefinition } from "../src";
 
 describe("@rizom/site authoring SDK", () => {
@@ -31,6 +31,9 @@ describe("@rizom/site authoring SDK", () => {
 
     expect(JSON.stringify(runtimeManifest)).not.toContain("@brains/");
     expect(manifest.dependencies).toEqual({ zod: "^4.2.0" });
-    expect(manifest.peerDependencies).toEqual({ preact: "^10.27.2" });
+    expect(manifest.peerDependencies).toEqual({
+      react: "^19.2.7",
+      "react-dom": "^19.2.7",
+    });
   });
 });

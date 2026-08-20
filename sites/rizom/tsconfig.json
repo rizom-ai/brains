@@ -4,7 +4,7 @@
     "outDir": "./dist",
     "rootDir": ".",
     "jsx": "react-jsx",
-    "jsxImportSource": "preact",
+    "jsxImportSource": "react",
     "isolatedDeclarations": true
   },
   "include": ["src/**/*", "test/**/*"],

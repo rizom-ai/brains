@@ -1,6 +1,6 @@
-/** @jsxImportSource preact */
+/** @jsxImportSource react */
 import type { AppInfo } from "@brains/plugins";
-import type { JSX } from "preact";
+import type { JSX } from "react";
 import { CardHeader, KeyValueList } from "@brains/ui-library";
 
 function formatUptime(seconds: number): string {

@@ -1,4 +1,4 @@
-import type { JSX, ComponentChildren } from "preact";
+import type { JSX, ReactNode } from "react";
 import { cva } from "class-variance-authority";
 import { cn } from "./lib/utils";
 import type { VariantFunction, VariantValue } from "./variant-types";
@@ -49,7 +49,7 @@ const linkButtonVariants: VariantFunction<LinkButtonVariantProps> = cva(
 
 export interface LinkButtonProps extends LinkButtonVariantProps {
   href: string;
-  children: ComponentChildren;
+  children: ReactNode;
   external?: boolean;
   className?: string;
   "aria-label"?: string;

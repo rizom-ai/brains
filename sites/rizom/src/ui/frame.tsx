@@ -1,10 +1,10 @@
-/** @jsxImportSource preact */
-import type { JSX, ComponentChildren } from "preact";
+/** @jsxImportSource react */
+import type { JSX, ReactNode } from "react";
 
 export type { RizomLayoutProps } from "../contracts";
 
 export interface RizomFrameProps {
-  children?: ComponentChildren;
+  children?: ReactNode;
 }
 
 /**

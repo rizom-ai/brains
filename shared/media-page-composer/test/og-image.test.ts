@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { readdir } from "fs/promises";
 import { tmpdir } from "os";
-import { h, type JSX } from "preact";
+import { createElement as h, type JSX } from "react";
 import { z } from "@brains/utils/zod";
 import { renderOgImagePng, type MediaPageTemplate } from "../src";
 

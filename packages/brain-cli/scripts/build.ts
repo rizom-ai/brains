@@ -174,21 +174,16 @@ const sharedExternals = [
   "@modelcontextprotocol/server",
   // MCP client for --remote mode (lazy imported)
   "@modelcontextprotocol/client",
-  // Preact and its subpaths MUST be externalized so brain.js, the
-  // library exports and consumer site code all share a
-  // single preact instance. Bundling preact into brain.js creates a
-  // second copy that diverges from the consumer's installed preact
-  // at runtime; preact hooks (which rely on a module-level `options`
-  // global) then crash with `D.context is undefined` when the
-  // renderer's preact instance doesn't match the hook module's.
-  //
-  // Every consumer (brain init scaffold, standalone site repos) has
-  // preact as a real dependency, so the externals always resolve.
-  "preact",
-  "preact/hooks",
-  "preact/compat",
-  "preact/jsx-runtime",
-  "preact-render-to-string",
+  // React and React DOM MUST be externalized so brain.js, library exports,
+  // and consumer site code share one runtime. A bundled second React copy
+  // breaks context and hooks just as surely as it does in browser apps.
+  // Every generated or external site consumer declares React as a peer or
+  // direct dependency, while @rizom/brain supplies the server renderer.
+  "react",
+  "react/jsx-runtime",
+  "react/jsx-dev-runtime",
+  "react-dom",
+  "react-dom/server",
 ];
 
 async function bundle(opts: {

@@ -345,12 +345,12 @@
           <div class="card-desc">make topic extraction incremental (waves currently re-extract the whole corpus), feed the extraction prompt embedding-retrieved nearest topics instead of a flat 40-title list, wire the semantic merge sweep into the production wave path (today it only runs in evals), and surface a zero-LLM topic-coverage insight from the knowledge-map geometry.</div>
           <div class="card-file">topic-extraction-and-reconciliation.md</div>
         </div>
-        <div class="card status-proposed">
+        <div class="card status-partial">
           <div class="card-head">
             <span class="card-name">Consolidate SSR rendering on React</span>
-            <span class="badge badge-proposed">Proposed</span>
+            <span class="badge badge-partial">In progress</span>
           </div>
-          <div class="card-desc">**in progress on <code>work/react-renderer-consolidation</code>, time-boxed by prerelease exit**: retire Preact for React 19 across the server-rendered surfaces — normalize the component dialect while still on Preact, flip the runtime atomically behind an output-equivalence harness, then collapse the twice-implemented operator view host into one. <code>preact</code> is a published peer dependency, so the swap is free on the alpha line and a <code>0.3.0</code> major the day after <code>changeset pre exit</code>; its scheduling decision belongs with stable <code>v0.2.0</code>.</div>
+          <div class="card-desc">**implemented on <code>work/react-renderer-consolidation</code>, awaiting merge and prerelease publication**: React 19 now owns static SSR and client JSX, the renderer flip is guarded by semantic output fixtures, public site peers and docs use React, the Dashboard and CMS share one operator-view host, and the old containment tsconfig split is gone. This must merge and publish before <code>changeset pre exit</code>; afterward the same authoring-contract change requires <code>0.3.0</code>.</div>
           <div class="card-file">preact-to-react-consolidation.md</div>
         </div>
         <div class="card status-proposed">

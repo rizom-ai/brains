@@ -6,14 +6,14 @@ import type {
 } from "./static-site-builder";
 import type { Logger } from "@brains/utils/logger";
 import type { ProgressNotification } from "@brains/utils/progress";
-import { render } from "preact-render-to-string";
-import { h } from "preact";
+import { renderToStaticMarkup } from "react-dom/server";
+import { createElement as h } from "react";
 import {
   HeadProvider,
   ImageRendererProvider,
   type HeadProps,
 } from "@brains/ui-library";
-import type { ComponentChildren } from "preact";
+import type { ReactNode } from "react";
 import { dirname, join } from "path";
 import { promises as fs } from "fs";
 import {
@@ -31,9 +31,9 @@ import baseCSS from "../styles/base.css" with { type: "text" };
 import { resolveSafeOutputFile } from "./output-path";
 
 /**
- * Preact-based static site builder
+ * React-based static site builder
  */
-export class PreactBuilder implements StaticSiteBuilder {
+export class ReactBuilder implements StaticSiteBuilder {
   private logger: Logger;
   private workingDir: string;
   private outputDir: string;
@@ -60,7 +60,7 @@ export class PreactBuilder implements StaticSiteBuilder {
       onProgress({ message, progress, total });
     };
 
-    reportProgress("Starting Preact build");
+    reportProgress("Starting React build");
 
     // Create output directory
     await fs.mkdir(this.outputDir, { recursive: true });
@@ -100,7 +100,7 @@ export class PreactBuilder implements StaticSiteBuilder {
     await this.writeInlineStaticAssets(preparedBuild.staticAssets, signal);
     signal.throwIfAborted();
 
-    reportProgress("Preact build complete");
+    reportProgress("React build complete");
   }
 
   async clean(): Promise<void> {
@@ -160,7 +160,7 @@ export class PreactBuilder implements StaticSiteBuilder {
           children: h("div", null, ...sectionComponents),
         }),
       });
-      layoutHtml = render(wrapper);
+      layoutHtml = renderToStaticMarkup(wrapper);
     } else {
       // Normal: wrap sections in the site layout
       const layoutName = route.layout;
@@ -191,7 +191,7 @@ export class PreactBuilder implements StaticSiteBuilder {
           children: h(LayoutComponent, layoutProps),
         }),
       });
-      layoutHtml = render(layoutWithProvider);
+      layoutHtml = renderToStaticMarkup(layoutWithProvider);
     }
     signal.throwIfAborted();
 
@@ -241,8 +241,8 @@ export class PreactBuilder implements StaticSiteBuilder {
   private createSectionComponents(
     sections: PreparedRoute["sections"],
     context: BuildContext,
-  ): ComponentChildren[] {
-    const sectionComponents: ComponentChildren[] = [];
+  ): ReactNode[] {
+    const sectionComponents: ReactNode[] = [];
 
     for (const section of sections) {
       const template = context.viewTemplates[section.template];
@@ -253,7 +253,7 @@ export class PreactBuilder implements StaticSiteBuilder {
         );
       }
 
-      sectionComponents.push(h(renderer, section.data));
+      sectionComponents.push(h(renderer, { ...section.data, key: section.id }));
       this.logger.debug(`Created component for section ${section.id}`);
     }
 
@@ -421,10 +421,10 @@ export async function writeInlineStaticAssets(
 }
 
 /**
- * Factory function to create a Preact builder
+ * Factory function to create a React builder
  */
-export function createPreactBuilder(
+export function createReactBuilder(
   options: StaticSiteBuilderOptions,
 ): StaticSiteBuilder {
-  return new PreactBuilder(options);
+  return new ReactBuilder(options);
 }

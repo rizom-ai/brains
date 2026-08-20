@@ -1,4 +1,4 @@
-import type { JSX, ComponentChildren } from "preact";
+import type { JSX, ReactNode } from "react";
 import { cva } from "class-variance-authority";
 import { cn } from "./lib/utils";
 import type { VariantFunction, VariantValue } from "./variant-types";
@@ -26,7 +26,7 @@ const alertVariants: VariantFunction<AlertVariantProps> = cva(
 
 export interface AlertProps extends AlertVariantProps {
   title?: string;
-  children: ComponentChildren;
+  children: ReactNode;
   className?: string;
 }
 

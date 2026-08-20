@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from "bun:test";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "fs/promises";
 import { tmpdir } from "os";
 import { join } from "path";
-import { h, type JSX } from "preact";
+import { createElement as h, type JSX } from "react";
 import { normalizeRendererHtml } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
 import {

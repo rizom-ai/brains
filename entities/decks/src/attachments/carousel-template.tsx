@@ -1,4 +1,4 @@
-import type { JSX } from "preact";
+import type { JSX } from "react";
 import { splitWordmark, useMarkdownToHtml } from "@brains/ui-library";
 import { z } from "@brains/utils/zod";
 import type { MediaPageTemplate } from "@brains/media-page-composer";

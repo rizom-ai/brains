@@ -804,7 +804,7 @@
   <body>
     <!--
       Header / Footer markup mirrors the existing <Header> and <Footer>
-      Preact components in sites/rizom/src/ui. The .tsx port uses those
+      React components in sites/rizom/src/ui. The .tsx port uses those
       directly; this HTML mock approximates them so the page reads in
       proper chrome. No <Ecosystem> on detail pages — it lives on the
       doc index (doc-list-mock.html).
@@ -977,11 +977,11 @@ brain start</code></pre>
             <p>Typical scaffold:</p>
             <pre><code>mybrain/
   brain.yaml        # instance configuration
-  package.json      # pins @rizom/brain + preact
+  package.json      # pins @rizom/brain + react + react-dom
   README.md         # local quickstart notes
   .env.example      # environment variables to fill in
   .gitignore        # ignores .env, cache, build artifacts
-  tsconfig.json     # JSX runtime hints for Preact
+  tsconfig.json     # JSX runtime hints for React
   src/site.tsx      # local site scaffold
   src/theme.css     # local theme scaffold</code></pre>
             <p>

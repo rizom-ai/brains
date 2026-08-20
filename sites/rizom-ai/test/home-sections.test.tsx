@@ -1,8 +1,8 @@
-/** @jsxImportSource preact */
+/** @jsxImportSource react */
 import { describe, expect, test } from "bun:test";
-import { h } from "preact";
-import type { ComponentType } from "preact";
-import { render } from "preact-render-to-string";
+import { createElement as h } from "react";
+import type { ComponentType } from "react";
+import { renderToStaticMarkup as render } from "react-dom/server";
 import site from "../src";
 
 /* Rev-10 home narrative: the growth section carries the system (three stage

@@ -1,4 +1,4 @@
-import type { ComponentChildren, JSX } from "preact";
+import type { ReactNode, JSX } from "react";
 import { z } from "zod/v4";
 
 /** The blessed schema vocabulary for site authors. */
@@ -254,7 +254,7 @@ export interface SiteSectionGroup {
 
 export type SectionGroup = SiteSectionGroup;
 
-/** Define one JSON-object section contract and its inferred Preact renderer. */
+/** Define one JSON-object section contract and its inferred React renderer. */
 export function defineSection<S extends z.ZodType>(
   schema: S & JsonObjectOutputGuard<z.output<S>>,
   component: ComponentType<z.output<S>>,
@@ -326,7 +326,7 @@ export interface SiteLayoutInfo extends SiteMetadata {
 
 /** Props supplied by the site builder to every authored layout. */
 export interface SiteLayoutProps {
-  sections: ComponentChildren[];
+  sections: ReactNode[];
   title: string;
   description: string;
   path: string;
@@ -362,7 +362,7 @@ export type SiteDefinitionOverrides = Partial<SiteDefinition>;
 
 const componentSchema = z.custom<ComponentType<SiteLayoutProps>>(
   (value) => typeof value === "function",
-  "Expected a Preact component",
+  "Expected a React component",
 );
 
 const navigationInputSchema = z.strictObject({
@@ -423,7 +423,7 @@ const sectionDefinitionSchema = z.strictObject({
   ),
   component: z.custom<ComponentType<unknown>>(
     (value) => typeof value === "function",
-    "Expected a Preact component",
+    "Expected a React component",
   ),
   title: z.string().min(1),
   description: z.string(),

@@ -1,4 +1,4 @@
-import type { JSX } from "preact";
+import type { JSX } from "react";
 import type { DocWithData } from "../schemas/doc";
 
 export type GroupedDocs = Array<{ section: string; docs: DocWithData[] }>;

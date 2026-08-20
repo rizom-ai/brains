@@ -1,4 +1,4 @@
-import type { JSX } from "preact";
+import type { JSX } from "react";
 import type { PersonalProfile } from "../schemas";
 import type { BlogPostView } from "@brains/blog";
 import type { SiteInfoCTA } from "@brains/site-info";

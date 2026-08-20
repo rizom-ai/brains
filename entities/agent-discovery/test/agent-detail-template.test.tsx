@@ -1,6 +1,6 @@
-/** @jsxImportSource preact */
+/** @jsxImportSource react */
 import { describe, expect, test } from "bun:test";
-import { render } from "preact-render-to-string";
+import { renderToStaticMarkup as render } from "react-dom/server";
 import { AgentDetailTemplate } from "../src/templates/agent-detail";
 import { createTemplateAgent } from "./fixtures/agent";
 

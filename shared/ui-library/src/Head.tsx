@@ -1,7 +1,12 @@
-import { createContext, h, type Context, type JSX } from "preact";
-import { useContext } from "preact/hooks";
-import type { ComponentChildren } from "preact";
 import type { HeadCollectorInterface, HeadProps } from "@brains/contracts";
+import {
+  createContext,
+  createElement as h,
+  type Context,
+  type JSX,
+  type ReactNode,
+  useContext,
+} from "react";
 
 export type { HeadCollectorInterface, HeadProps } from "@brains/contracts";
 
@@ -14,15 +19,10 @@ export const HeadContext: Context<HeadCollectorInterface | null> =
 
 /**
  * Provider component that makes HeadCollector available to child components
- *
- * NOTE: Uses h() instead of JSX to ensure consistent Preact VNode creation.
- * This is necessary because Bun's JSX runtime resolution can incorrectly
- * resolve to React's runtime in monorepo contexts where react is a dependency
- * of other packages (e.g., ink in the CLI).
  */
 export interface HeadProviderProps {
   headCollector: HeadCollectorInterface;
-  children: ComponentChildren;
+  children: ReactNode;
 }
 
 export function HeadProvider({

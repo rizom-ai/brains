@@ -69,6 +69,42 @@ exports[`renderDashboardPageHtml should render a sign-in prompt when restricted 
               "type": "element",
             },
             {
+              "attributes": [
+                [
+                  "href",
+                  "https://fonts.googleapis.com",
+                ],
+                [
+                  "rel",
+                  "preconnect",
+                ],
+              ],
+              "children": [],
+              "name": "link",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "attributes": [
+                [
+                  "crossorigin",
+                  "anonymous",
+                ],
+                [
+                  "href",
+                  "https://fonts.gstatic.com",
+                ],
+                [
+                  "rel",
+                  "preconnect",
+                ],
+              ],
+              "children": [],
+              "name": "link",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
               "attributes": [],
               "children": [
                 {
@@ -116,42 +152,6 @@ exports[`renderDashboardPageHtml should render a sign-in prompt when restricted 
                 },
               ],
               "name": "script",
-              "namespace": "http://www.w3.org/1999/xhtml",
-              "type": "element",
-            },
-            {
-              "attributes": [
-                [
-                  "href",
-                  "https://fonts.googleapis.com",
-                ],
-                [
-                  "rel",
-                  "preconnect",
-                ],
-              ],
-              "children": [],
-              "name": "link",
-              "namespace": "http://www.w3.org/1999/xhtml",
-              "type": "element",
-            },
-            {
-              "attributes": [
-                [
-                  "crossorigin",
-                  "anonymous",
-                ],
-                [
-                  "href",
-                  "https://fonts.gstatic.com",
-                ],
-                [
-                  "rel",
-                  "preconnect",
-                ],
-              ],
-              "children": [],
-              "name": "link",
               "namespace": "http://www.w3.org/1999/xhtml",
               "type": "element",
             },
@@ -2020,6 +2020,1458 @@ body::after {
 }
 
 
+/* Operator workspaces are a first-class CMS surface, so they use the same
+   editorial materials as the entity listing beside them: a display-face head
+   over a strong rule, mono instrument labels, hairline separation instead of
+   boxes, and card fill reserved for surfaces you actually read. Semantic blocks
+   arrive as an ordered stream, so width and emphasis are decided here from the
+   block's meaning rather than requested by the author.
+
+   Rendered reference: docs/operator-workspace-mockups.html. */
+
+.declarative-workspace {
+  min-height: 0;
+  max-width: 1440px;
+  padding: 26px 34px 40px;
+  overflow-y: auto;
+}
+
+/* ---- head: title, totals, and the rule that separates them from work ---- */
+
+.declarative-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 18px 28px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid var(--console-text);
+}
+
+.declarative-head h2 {
+  margin: 0;
+  color: var(--console-text);
+  font-family: var(--console-display);
+  font-size: 34px;
+  font-variation-settings:
+    "SOFT" 70,
+    "opsz" 60;
+  font-weight: 580;
+  letter-spacing: -0.01em;
+  line-height: 1.05;
+}
+
+/* Leading stats are workspace totals: a baseline-aligned readout beside the
+   title, not another card in the body. */
+.declarative-totals {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0;
+  margin: 0;
+  padding-bottom: 3px;
+}
+
+.declarative-totals > div {
+  padding: 0 18px;
+  border-left: 1px solid var(--console-rule-strong);
+}
+
+.declarative-totals > div:first-child {
+  padding-left: 0;
+  border-left: 0;
+}
+
+.declarative-totals > div:last-child {
+  padding-right: 0;
+}
+
+.declarative-totals dt {
+  color: var(--console-text-muted);
+  font-family: var(--console-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.declarative-totals dd {
+  margin: 3px 0 0;
+  color: var(--console-text);
+  font-family: var(--console-display);
+  font-size: 27px;
+  font-variation-settings: "SOFT" 40;
+  font-weight: 560;
+  letter-spacing: -0.01em;
+  line-height: 1;
+}
+
+.declarative-totals > div[data-tone="warn"] dd {
+  color: var(--console-warn);
+}
+
+.declarative-totals > div[data-tone="error"] dd {
+  color: var(--console-err);
+}
+
+.declarative-totals > div[data-tone="good"] dd {
+  color: var(--console-ok);
+}
+
+/* ---- body: meaning decides width ---------------------------------------- */
+
+/* Two tracks, not three: a lone instrument panel then leaves half a row rather
+   than two-thirds of one, and paired panels still sit side by side. */
+.declarative-blocks {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr));
+  align-items: start;
+  gap: 26px 40px;
+  padding-top: 24px;
+}
+
+.declarative-blocks > section {
+  min-width: 0;
+}
+
+/* Collections, reading surfaces, and anything carrying its own controls take
+   the full measure; instrument readouts share a row. */
+.declarative-blocks > section[data-span="wide"] {
+  grid-column: 1 / -1;
+}
+
+/* Controls belong directly under the head, so they lose the block rhythm. */
+.declarative-blocks > section[data-block="query"] {
+  margin-top: -6px;
+}
+
+/* Section labels are instrument captions, not headlines. */
+.declarative-group h3,
+.declarative-flow h3,
+.declarative-text h3,
+.declarative-matrix h3,
+.declarative-spatial strong {
+  margin: 0 0 11px;
+  color: var(--console-text-muted);
+  font-family: var(--console-mono);
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+/* ---- stats in the body -------------------------------------------------- */
+
+.declarative-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
+  gap: 1px;
+  margin: 0;
+  background: var(--console-rule);
+}
+
+.declarative-stats > div {
+  padding: 13px 16px 15px;
+  background: var(--console-frame);
+}
+
+.declarative-stats dt {
+  color: var(--console-text-muted);
+  font-family: var(--console-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.declarative-stats dd {
+  margin: 6px 0 0;
+  color: var(--console-text);
+  font-family: var(--console-display);
+  font-size: 23px;
+  font-variation-settings: "SOFT" 40;
+  font-weight: 560;
+  line-height: 1;
+}
+
+.declarative-stats > div[data-tone="warn"] dd {
+  color: var(--console-warn);
+}
+
+.declarative-stats > div[data-tone="error"] dd {
+  color: var(--console-err);
+}
+
+.declarative-stats > div[data-tone="good"] dd {
+  color: var(--console-ok);
+}
+
+/* ---- key/value and grouped readouts ------------------------------------- */
+
+.declarative-key-values,
+.declarative-group dl {
+  margin: 0;
+  border-top: 1px solid var(--console-rule-strong);
+}
+
+.declarative-key-values > div,
+.declarative-group dl > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--console-rule);
+}
+
+.declarative-key-values dt,
+.declarative-group dt {
+  min-width: 0;
+  color: var(--console-text-dim);
+  font-size: 12.5px;
+}
+
+.declarative-key-values dd,
+.declarative-group dd {
+  margin: 0;
+  color: var(--console-text);
+  font-family: var(--console-mono);
+  font-size: 12px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.declarative-group dl > div {
+  flex-wrap: wrap;
+}
+
+.declarative-group small {
+  flex-basis: 100%;
+  color: var(--console-text-muted);
+  font-size: 11px;
+}
+
+.declarative-group dl > div[data-tone="warn"] dd {
+  color: var(--console-warn);
+}
+
+.declarative-group dl > div[data-tone="error"] dd {
+  color: var(--console-err);
+}
+
+.declarative-group dl > div[data-tone="good"] dd {
+  color: var(--console-ok);
+}
+
+/* ---- notices: a marked banner, not a box -------------------------------- */
+
+.declarative-notice {
+  padding: 11px 14px;
+  border-left: 2px solid var(--console-text-muted);
+  background: color-mix(in srgb, var(--console-text) 4%, transparent);
+}
+
+.declarative-notice strong {
+  display: block;
+  color: var(--console-text);
+  font-size: 13px;
+  font-weight: 550;
+}
+
+.declarative-notice p {
+  margin: 3px 0 0;
+  color: var(--console-text-dim);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.declarative-notice[data-tone="warn"] {
+  border-left-color: var(--console-warn);
+  background: color-mix(in srgb, var(--console-warn) 7%, transparent);
+}
+
+.declarative-notice[data-tone="error"] {
+  border-left-color: var(--console-err);
+  background: color-mix(in srgb, var(--console-err) 7%, transparent);
+}
+
+.declarative-notice[data-tone="good"] {
+  border-left-color: var(--console-ok);
+  background: var(--console-ok-soft);
+}
+
+/* ---- source text: a reading panel --------------------------------------- */
+
+.declarative-text {
+  padding: 16px 18px 18px;
+  border: 1px solid var(--console-rule-strong);
+  border-radius: 8px;
+  background: var(--console-card);
+}
+
+.declarative-text pre {
+  max-height: min(52vh, 40rem);
+  margin: 0;
+  overflow: auto;
+  color: var(--console-text-dim);
+  font-family: var(--console-mono);
+  font-size: 12px;
+  line-height: 1.65;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.declarative-text small {
+  display: block;
+  margin-top: 11px;
+  color: var(--console-text-muted);
+  font-family: var(--console-mono);
+  font-size: 10px;
+}
+
+/* ---- links and inline capabilities -------------------------------------- */
+
+.declarative-links,
+.declarative-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px;
+}
+
+.declarative-links a,
+.declarative-inline-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--console-accent);
+  cursor: pointer;
+  font: inherit;
+  text-align: inherit;
+  text-decoration: none;
+  text-underline-offset: 3px;
+}
+
+.declarative-links a:hover,
+.declarative-inline-link:hover {
+  text-decoration: underline;
+}
+
+/* A links block on its own reads as wayfinding, so space it like a nav row. */
+.declarative-blocks > section[data-block="links"] .declarative-links {
+  gap: 18px;
+  font-size: 12.5px;
+}
+
+.declarative-action-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.declarative-action-control .status {
+  color: var(--console-text-muted);
+  font-family: var(--console-mono);
+  font-size: 10px;
+}
+
+/* ---- lists: hairline rows in the listing's rhythm ----------------------- */
+
+.declarative-list {
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--console-rule-strong);
+  list-style: none;
+}
+
+.declarative-list > li {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 13px 6px 13px 0;
+  border-bottom: 1px solid var(--console-rule);
+}
+
+/* Inside a master, only rows carrying a control light up; elsewhere every row
+   responds, because hover there is reading feedback rather than a promise. */
+.declarative-list > li:hover {
+  background: var(--console-card);
+}
+
+.declarative-detail-master .declarative-list > li:hover {
+  background: none;
+}
+
+.declarative-detail-master
+  .declarative-list
+  > li:has(strong .declarative-inline-link):hover {
+  background: var(--console-card);
+}
+
+.declarative-list > li > div:first-child {
+  min-width: 0;
+}
+
+.declarative-list strong {
+  color: var(--console-text);
+  font-family: var(--console-display);
+  font-size: 16px;
+  font-variation-settings:
+    "SOFT" 50,
+    "opsz" 30;
+  font-weight: 520;
+  letter-spacing: -0.005em;
+}
+
+.declarative-list p {
+  margin: 3px 0 0;
+  color: var(--console-text-dim);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.declarative-list small {
+  display: block;
+  margin-top: 5px;
+  color: var(--console-text-muted);
+  font-family: var(--console-mono);
+  font-size: 10.5px;
+}
+
+.declarative-list .declarative-links {
+  margin-top: 7px;
+  font-size: 12px;
+}
+
+/* A row carrying a warning or failure states it in the margin. */
+.declarative-list > li[data-tone="warn"] {
+  box-shadow: inset 2px 0 0 var(--console-warn);
+}
+
+.declarative-list > li[data-tone="error"] {
+  box-shadow: inset 2px 0 0 var(--console-err);
+}
+
+.declarative-list > li[data-tone="good"] {
+  box-shadow: inset 2px 0 0 var(--console-ok);
+}
+
+.declarative-list-trailing {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+.declarative-list-trailing > span:not(.declarative-badge) {
+  color: var(--console-text-dim);
+  font-family: var(--console-mono);
+  font-size: 13px;
+}
+
+.declarative-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 7px;
+}
+
+.declarative-tags > span,
+.declarative-badge {
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--console-text) 7%, transparent);
+  color: var(--console-text-dim);
+  font-family: var(--console-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.declarative-badge[data-tone="warn"] {
+  background: color-mix(in srgb, var(--console-warn) 15%, transparent);
+  color: var(--console-warn);
+}
+
+.declarative-badge[data-tone="error"] {
+  background: color-mix(in srgb, var(--console-err) 15%, transparent);
+  color: var(--console-err);
+}
+
+.declarative-badge[data-tone="good"] {
+  background: var(--console-ok-soft);
+  color: var(--console-ok);
+}
+
+/* ---- master/detail ------------------------------------------------------- */
+
+/* Both regions stay present: the split is the surface's identity, so the
+   reading pane holds its place and states what it is waiting for. */
+.declarative-detail {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  gap: 26px;
+}
+
+/* Nothing open means nothing to read beside: the collection takes the whole
+   measure rather than reserving a column of empty. */
+.declarative-detail[data-open="false"] {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.declarative-detail-master,
+.declarative-detail-pane {
+  min-width: 0;
+}
+
+.declarative-detail-pane {
+  padding-left: 26px;
+  border-left: 1px solid var(--console-rule-strong);
+}
+
+/* A half-width collection has no room for a title-and-trailing row, so master
+   rows stack the way narrow viewports already do.
+
+   Rows carry inset padding that the list gives back as negative margin: text
+   stays aligned with the head and filters above, while the open row's fill has
+   room to breathe around it instead of hugging its own marker. */
+.declarative-detail-master .declarative-list {
+  margin-inline: -12px;
+}
+
+.declarative-detail-master .declarative-list > li {
+  align-items: stretch;
+  flex-direction: column;
+  gap: 8px;
+  padding-inline: 12px;
+}
+
+.declarative-detail-master .declarative-list-trailing {
+  justify-content: flex-start;
+}
+
+.declarative-detail-master .declarative-list strong {
+  font-size: 15px;
+}
+
+.declarative-detail-pane > h3 {
+  margin: 0 0 14px;
+  color: var(--console-text);
+  font-family: var(--console-display);
+  font-size: 21px;
+  font-variation-settings:
+    "SOFT" 60,
+    "opsz" 40;
+  font-weight: 560;
+  letter-spacing: -0.005em;
+  line-height: 1.2;
+  outline: none;
+}
+
+.declarative-detail-pane > h3:focus-visible {
+  box-shadow: -10px 0 0 var(--console-accent);
+}
+
+.declarative-detail-pane > section + section {
+  margin-top: 18px;
+}
+
+/* Wide viewports keep the collection in view, so the back control is only
+   wayfinding for the stacked layout below. */
+.declarative-detail-back {
+  display: none;
+  margin-bottom: 12px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--console-text-dim);
+  cursor: pointer;
+  font-family: var(--console-mono);
+  font-size: 11px;
+}
+
+.declarative-detail-back:hover {
+  color: var(--console-accent-dim);
+}
+
+.declarative-detail .declarative-list > li[aria-current="true"] {
+  border-radius: 6px;
+  background: var(--console-card);
+  box-shadow: inset 2px 0 0 var(--console-accent);
+}
+
+.declarative-detail .declarative-table tr[aria-current="true"] {
+  background: var(--console-card);
+  box-shadow: inset 2px 0 0 var(--console-accent);
+}
+
+/* ---- segmented controls: local filters and tabs ------------------------- */
+
+.declarative-filter,
+.declarative-tabs > [role="tablist"] {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+  margin-bottom: 14px;
+  padding: 3px;
+  border: 1px solid var(--console-rule-strong);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--console-card) 62%, transparent);
+}
+
+.declarative-filter button,
+.declarative-tabs [role="tab"] {
+  min-height: 28px;
+  padding: 0 13px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--console-text-muted);
+  cursor: pointer;
+  font-family: var(--console-ui);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.declarative-filter button:hover,
+.declarative-tabs [role="tab"]:hover {
+  color: var(--console-text);
+}
+
+.declarative-filter button[aria-pressed="true"],
+.declarative-tabs [role="tab"][aria-selected="true"] {
+  background: var(--console-text);
+  color: var(--console-frame);
+  font-weight: 500;
+}
+
+.declarative-filter button[data-emphasis="attention"] {
+  color: var(--console-warn);
+}
+
+/* ---- tables ------------------------------------------------------------- */
+
+.declarative-table-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+/* A table is as wide as its content needs, not as wide as the surface allows:
+   a two-column table must not strand its value half a screen from its label.
+   Wide tables still reach full measure and scroll inside their container. */
+.declarative-table {
+  width: auto;
+  min-width: min(100%, 520px);
+  max-width: 100%;
+  border-collapse: collapse;
+}
+
+.declarative-table th:not(:last-child),
+.declarative-table td:not(:last-child) {
+  padding-right: 40px;
+}
+
+.declarative-table th {
+  padding: 0 12px 9px 0;
+  border-bottom: 1px solid var(--console-text);
+  color: var(--console-text-muted);
+  font-family: var(--console-mono);
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-align: left;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.declarative-table td {
+  padding: 12px 12px 12px 0;
+  border-bottom: 1px solid var(--console-rule);
+  color: var(--console-text-dim);
+  font-size: 13px;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.declarative-table tbody tr:hover {
+  background: var(--console-card);
+}
+
+.declarative-table td:first-child {
+  color: var(--console-text);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.declarative-table [data-align="center"] {
+  text-align: center;
+}
+
+.declarative-table [data-align="end"] {
+  text-align: right;
+}
+
+/* The action column is the row's right edge: no trailing gutter, and its
+   controls hug that edge rather than drifting into the last data column. */
+.declarative-table th:last-child,
+.declarative-table td:last-child {
+  padding-right: 0;
+  padding-left: 20px;
+}
+
+.declarative-table td .declarative-actions {
+  justify-content: flex-end;
+}
+
+.declarative-empty {
+  margin: 0;
+  padding: 18px 0;
+  color: var(--console-text-muted);
+  font-size: 12.5px;
+}
+
+/* ---- query controls: a toolbar, not a panel ----------------------------- */
+
+.declarative-query {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 14px 18px;
+  padding-bottom: 4px;
+}
+
+.declarative-query > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.declarative-query label {
+  display: grid;
+  gap: 5px;
+  min-width: 9rem;
+  color: var(--console-text-muted);
+  font-family: var(--console-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.declarative-query select {
+  min-height: 32px;
+  padding: 0 9px;
+  border: 1px solid var(--console-rule-strong);
+  border-radius: 7px;
+  background: var(--console-card);
+  color: var(--console-text);
+  font-family: var(--console-ui);
+  font-size: 12.5px;
+}
+
+.declarative-query footer {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-left: auto;
+  color: var(--console-text-muted);
+  font-family: var(--console-mono);
+  font-size: 11px;
+}
+
+/* ---- meters and progress: instrument faces ------------------------------ */
+
+.declarative-meters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 16px 20px;
+  margin: 0;
+}
+
+.declarative-meters dt {
+  color: var(--console-text-muted);
+  font-family: var(--console-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.declarative-meters dd {
+  margin: 5px 0 0;
+  color: var(--console-text);
+  font-family: var(--console-mono);
+  font-size: 15px;
+}
+
+.declarative-progress {
+  padding: 14px 16px 16px;
+  border: 1px solid var(--console-rule-strong);
+  border-radius: 8px;
+  background: var(--console-card);
+}
+
+.declarative-progress header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.declarative-progress strong {
+  color: var(--console-text);
+  font-size: 13.5px;
+  font-weight: 550;
+}
+
+.declarative-progress header span {
+  color: var(--console-text-muted);
+  font-family: var(--console-mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.declarative-progress p {
+  margin: 8px 0 0;
+  color: var(--console-text-dim);
+  font-size: 12.5px;
+}
+
+.declarative-progress[data-tone="warn"] header span {
+  color: var(--console-warn);
+}
+
+.declarative-progress[data-tone="error"] header span {
+  color: var(--console-err);
+}
+
+.declarative-progress[data-tone="good"] header span {
+  color: var(--console-ok);
+}
+
+.declarative-meters progress,
+.declarative-progress progress {
+  display: block;
+  width: 100%;
+  height: 4px;
+  margin-top: 8px;
+  appearance: none;
+  border: 0;
+  border-radius: 999px;
+  background: var(--console-rule);
+}
+
+.declarative-meters progress::-webkit-progress-bar,
+.declarative-progress progress::-webkit-progress-bar {
+  border-radius: 999px;
+  background: var(--console-rule);
+}
+
+.declarative-meters progress::-webkit-progress-value,
+.declarative-progress progress::-webkit-progress-value {
+  border-radius: 999px;
+  background: var(--console-accent);
+}
+
+.declarative-meters progress::-moz-progress-bar,
+.declarative-progress progress::-moz-progress-bar {
+  border-radius: 999px;
+  background: var(--console-accent);
+}
+
+.declarative-meters > div[data-tone="warn"] dd {
+  color: var(--console-warn);
+}
+
+.declarative-meters > div[data-tone="error"] dd {
+  color: var(--console-err);
+}
+
+.declarative-meters > div[data-tone="good"] dd {
+  color: var(--console-ok);
+}
+
+.declarative-progress small,
+.declarative-flow small {
+  display: block;
+  color: var(--console-text-muted);
+  font-family: var(--console-mono);
+  font-size: 10px;
+}
+
+.declarative-progress small {
+  margin-top: 10px;
+}
+
+/* ---- flow: stations on a track ------------------------------------------ */
+
+.declarative-flow ol {
+  display: flex;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow-x: auto;
+}
+
+.declarative-flow li {
+  position: relative;
+  min-width: 8.5rem;
+  padding: 0 20px 0 0;
+  color: var(--console-text-muted);
+}
+
+/* The track runs between station marks rather than under the labels. */
+.declarative-flow li:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  top: 5px;
+  left: 14px;
+  right: 12px;
+  height: 1px;
+  background: var(--console-rule-strong);
+}
+
+.declarative-flow li > span {
+  display: block;
+  width: 9px;
+  height: 9px;
+  margin-bottom: 9px;
+  border: 1px solid var(--console-text-muted);
+  border-radius: 50%;
+  background: var(--console-frame);
+}
+
+.declarative-flow strong {
+  display: block;
+  color: var(--console-text-dim);
+  font-size: 12.5px;
+  font-weight: 500;
+}
+
+.declarative-flow li[data-status="complete"] > span,
+.declarative-flow li[data-status="active"] > span {
+  border-color: var(--console-accent);
+  background: var(--console-accent);
+}
+
+.declarative-flow li[data-status="active"] strong,
+.declarative-flow li[data-status="complete"] strong {
+  color: var(--console-text);
+}
+
+.declarative-flow li[data-status="active"] > span {
+  box-shadow: 0 0 0 3px var(--console-accent-soft);
+}
+
+.declarative-flow li[data-status="failed"] > span {
+  border-color: var(--console-err);
+  background: var(--console-err);
+}
+
+.declarative-flow li[data-status="failed"] strong {
+  color: var(--console-err);
+}
+
+/* ---- matrix and spatial summaries --------------------------------------- */
+
+.declarative-matrix {
+  display: grid;
+  gap: 18px;
+}
+
+.declarative-matrix > section {
+  min-width: 0;
+  padding: 14px 16px 16px;
+  border: 1px solid var(--console-rule-strong);
+  border-top: 2px solid var(--console-text-muted);
+  border-radius: 8px;
+  background: var(--console-card);
+}
+
+.declarative-matrix > section[data-tone="good"] {
+  border-top-color: var(--console-ok);
+}
+
+.declarative-matrix > section[data-tone="warn"] {
+  border-top-color: var(--console-warn);
+}
+
+.declarative-matrix > section[data-tone="error"] {
+  border-top-color: var(--console-err);
+}
+
+.declarative-matrix .declarative-list {
+  border-top: 0;
+}
+
+.declarative-matrix .declarative-list > li:last-child {
+  border-bottom: 0;
+}
+
+.declarative-spatial {
+  margin: 0;
+  padding: 14px 16px 16px;
+  border: 1px solid var(--console-rule-strong);
+  border-radius: 8px;
+  background: var(--console-card);
+}
+
+.declarative-spatial figcaption p {
+  margin: 0 0 12px;
+  color: var(--console-text-dim);
+  font-size: 12.5px;
+}
+
+.declarative-spatial ol {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: 10px 18px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.declarative-spatial li {
+  padding-top: 8px;
+  border-top: 1px solid var(--console-rule);
+}
+
+.declarative-spatial li strong {
+  color: var(--console-text);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.declarative-spatial li span {
+  display: block;
+  margin-top: 2px;
+  color: var(--console-text-muted);
+  font-family: var(--console-mono);
+  font-size: 10px;
+}
+
+/* ---- narrow viewports ---------------------------------------------------- */
+
+@media (max-width: 900px) {
+  .declarative-workspace {
+    padding: 20px 18px 28px;
+  }
+
+  .declarative-head h2 {
+    font-size: 27px;
+  }
+
+  .declarative-totals dd {
+    font-size: 22px;
+  }
+}
+
+/* Below the split threshold master/detail becomes a drill-down: one region at a
+   time, with the back control as the way out. */
+@media (max-width: 860px) {
+  .declarative-detail {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .declarative-detail .declarative-detail-pane {
+    padding-left: 0;
+    border-left: 0;
+  }
+
+  /* One region at a time: the collection until something is open, then the
+     reading pane with the back control as the way out. */
+  .declarative-detail[data-open="true"] .declarative-detail-master {
+    display: none;
+  }
+
+  .declarative-detail[data-open="false"] .declarative-detail-pane {
+    display: none;
+  }
+
+  .declarative-detail-back {
+    display: block;
+  }
+}
+
+@media (max-width: 720px) {
+  .declarative-blocks {
+    grid-template-columns: 1fr;
+  }
+
+  .declarative-matrix {
+    grid-template-columns: 1fr !important;
+  }
+
+  .declarative-list > li {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .declarative-list-trailing {
+    justify-content: flex-start;
+  }
+
+  .declarative-query label {
+    min-width: 100%;
+  }
+}
+
+/* ---- head: kicker, description, standing status ------------------------- */
+
+.declarative-head {
+  align-items: flex-start;
+}
+
+.declarative-head-copy {
+  max-width: 46ch;
+}
+
+.declarative-kicker {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--console-accent);
+  font-family: var(--console-mono);
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.declarative-head-copy p {
+  margin-top: 7px;
+  color: var(--console-text-dim);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.declarative-head-state {
+  display: grid;
+  justify-items: end;
+  gap: 12px;
+}
+
+.declarative-status-badge {
+  display: grid;
+  justify-items: end;
+  gap: 3px;
+  color: var(--console-text);
+  font-size: 12.5px;
+  font-weight: 550;
+}
+
+.declarative-status-badge > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.declarative-status-badge > span::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--console-text-muted);
+}
+
+.declarative-status-badge[data-tone="good"] {
+  color: var(--console-ok);
+}
+
+.declarative-status-badge[data-tone="good"] > span::before {
+  background: var(--console-ok);
+}
+
+.declarative-status-badge[data-tone="warn"] {
+  color: var(--console-warn);
+}
+
+.declarative-status-badge[data-tone="warn"] > span::before {
+  background: var(--console-warn);
+}
+
+.declarative-status-badge[data-tone="error"] {
+  color: var(--console-err);
+}
+
+.declarative-status-badge[data-tone="error"] > span::before {
+  background: var(--console-err);
+}
+
+.declarative-status-badge small {
+  color: var(--console-text-muted);
+  font-family: var(--console-mono);
+  font-size: 9.5px;
+  font-weight: 400;
+}
+
+/* A stat says what its number counts. */
+.declarative-stat-caption {
+  display: block;
+  margin-top: 4px;
+  color: var(--console-text-muted);
+  font-family: var(--console-mono);
+  font-size: 9px;
+}
+
+/* ---- columns: work beside standing facts -------------------------------- */
+
+.declarative-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(250px, 0.6fr);
+  align-items: start;
+  gap: 30px;
+}
+
+.declarative-column {
+  display: grid;
+  align-content: start;
+  gap: 26px;
+  min-width: 0;
+}
+
+.declarative-aside {
+  gap: 15px;
+}
+
+/* Runs and queues inside a column read as a dense log, not as cards. */
+.declarative-column .declarative-list > li {
+  padding: 9px 6px 9px 12px;
+}
+
+.declarative-column .declarative-list strong {
+  font-size: 14px;
+}
+
+.declarative-column .declarative-list p {
+  margin-top: 1px;
+  font-size: 12px;
+}
+
+/* ---- card: one caption over related facts ------------------------------- */
+
+.declarative-card {
+  padding: 15px 16px 16px;
+  border: 1px solid var(--console-rule-strong);
+  border-radius: 8px;
+  background: var(--console-card);
+}
+
+.declarative-card > header {
+  margin-bottom: 10px;
+  color: var(--console-text-muted);
+  font-family: var(--console-mono);
+  font-size: 8.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.declarative-card[data-tone="good"] {
+  border-left: 2px solid var(--console-ok);
+}
+
+.declarative-card[data-tone="warn"] {
+  border-left: 2px solid var(--console-warn);
+}
+
+.declarative-card[data-tone="error"] {
+  border-left: 2px solid var(--console-err);
+}
+
+.declarative-card p {
+  color: var(--console-text-dim);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.declarative-card .declarative-key-values {
+  border-top: 0;
+}
+
+.declarative-card .declarative-key-values > div:last-child {
+  border-bottom: 0;
+}
+
+.declarative-card .declarative-meters {
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.declarative-card > div + div {
+  margin-top: 12px;
+}
+
+@media (max-width: 900px) {
+  .declarative-columns {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 24px;
+  }
+}
+
+/* A card already names its contents, so the block inside it does not repeat
+   the caption. */
+.declarative-card .declarative-group h3,
+.declarative-card .declarative-flow h3,
+.declarative-card .declarative-text h3 {
+  display: none;
+}
+
+/* ---- collection rows: scan first, act second ---------------------------- */
+
+/* Three accent links per row turns a triage list into noise. Row links are
+   wayfinding, so they sit quiet until pointed at; the accent stays for the
+   things that change state. */
+.declarative-list > li .declarative-links a,
+.declarative-list > li .declarative-inline-link {
+  color: var(--console-text-muted);
+  font-size: 11.5px;
+  border-bottom: 1px solid var(--console-rule-strong);
+}
+
+.declarative-list > li .declarative-links a:hover,
+.declarative-list > li .declarative-inline-link:hover {
+  color: var(--console-accent-dim);
+  border-bottom-color: var(--console-accent);
+  text-decoration: none;
+}
+
+/* Urgency belongs with the title it qualifies, not stranded under the
+   metadata, and a row is scanned before it is read. */
+.declarative-detail-master .declarative-list > li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 2px 12px;
+  padding: 10px 12px;
+}
+
+.declarative-detail-master .declarative-list > li > div:first-child {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.declarative-detail-master .declarative-list-trailing {
+  grid-column: 2;
+  grid-row: 1;
+  justify-content: flex-end;
+  align-items: baseline;
+}
+
+.declarative-detail-master .declarative-list p {
+  margin-top: 2px;
+  font-size: 12px;
+}
+
+.declarative-detail-master .declarative-list small {
+  margin-top: 3px;
+}
+
+.declarative-detail-master .declarative-list .declarative-links {
+  margin-top: 5px;
+}
+
+/* A row that opens something is itself the control: its title carries the
+   affordance rather than looking like one more link beneath it. */
+.declarative-detail-master .declarative-list strong .declarative-inline-link {
+  color: inherit;
+  font: inherit;
+  border-bottom: 0;
+}
+
+/* Only a row that actually opens something reacts to the pointer; a source
+   with no readable content must not advertise a click it cannot honour. */
+.declarative-detail-master
+  .declarative-list
+  > li:hover
+  strong
+  .declarative-inline-link {
+  color: var(--console-accent-dim);
+}
+
+/* The whole row is the target, not just the title glyph: the title's control
+   is stretched over the row so a click anywhere opens it, while the row's own
+   buttons and links stay above it and keep their own behaviour. */
+.declarative-detail-master .declarative-list > li {
+  position: relative;
+}
+
+.declarative-detail-master
+  .declarative-list
+  strong
+  .declarative-inline-link::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  cursor: pointer;
+}
+
+.declarative-detail-master .declarative-list-trailing,
+.declarative-detail-master .declarative-list .declarative-links {
+  position: relative;
+  z-index: 1;
+}
+
+/* A row summarises; the pane holds the whole thing. Clamping keeps rows an
+   even, scannable height whatever a source puts in its description. */
+.declarative-detail-master .declarative-list p {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+}
+
+.declarative-detail-master .declarative-list strong {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+}
+
+.declarative-pager {
+  display: inline-flex;
+  gap: 6px;
+}
+
+/* In the reading pane a card is a labelled group, not a box: the pane is
+   already a surface, so nesting panels inside it would read as clutter.
+   The caption and a hairline do the grouping instead. */
+.declarative-detail-pane .declarative-card {
+  padding: 14px 0 0;
+  border: 0;
+  border-top: 1px solid var(--console-rule);
+  border-radius: 0;
+  background: none;
+}
+
+.declarative-detail-pane .declarative-card > header {
+  margin-bottom: 9px;
+}
+
+/* Follow-ups are wayfinding out of the item; they stay quiet beside the verbs
+   that actually resolve it. */
+.declarative-detail-pane .declarative-links a,
+.declarative-detail-pane .declarative-links .declarative-inline-link {
+  color: var(--console-text-dim);
+  font-size: 12px;
+  border-bottom: 1px solid var(--console-rule-strong);
+}
+
+.declarative-detail-pane .declarative-links a:hover,
+.declarative-detail-pane .declarative-links .declarative-inline-link:hover {
+  color: var(--console-accent-dim);
+  border-bottom-color: var(--console-accent);
+  text-decoration: none;
+}
+
+.declarative-detail-pane .declarative-links {
+  gap: 16px;
+}
+
+
 table.jobs {
   width: 100%;
   border-collapse: collapse;
@@ -2942,7 +4394,7 @@ table.jobs {
                   "attributes": [
                     [
                       "aria-label",
-                      "Dashboard home",
+                      "Console home",
                     ],
                     [
                       "class",
@@ -3029,6 +4481,10 @@ table.jobs {
                         [
                           "class",
                           "surface-nav-link is-active",
+                        ],
+                        [
+                          "data-console-surface",
+                          "dashboard",
                         ],
                         [
                           "href",
@@ -3154,7 +4610,7 @@ table.jobs {
                   "attributes": [
                     [
                       "aria-label",
-                      "Visitor · Sign in · Sign in",
+                      "Visitor · Sign in",
                     ],
                     [
                       "class",

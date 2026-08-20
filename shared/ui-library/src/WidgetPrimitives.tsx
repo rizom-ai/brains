@@ -1,5 +1,5 @@
-/** @jsxImportSource preact */
-import type { ComponentChildren, JSX } from "preact";
+/** @jsxImportSource react */
+import type { HTMLAttributes, ReactNode, JSX } from "react";
 
 function classes(...values: Array<string | false | null | undefined>): string {
   return values.filter(Boolean).join(" ");
@@ -9,7 +9,7 @@ export interface WidgetDataAttributes {
   [key: `data-${string}`]: string | number | boolean | undefined;
 }
 
-export type WidgetElementProps<T extends HTMLElement> = JSX.HTMLAttributes<T> &
+export type WidgetElementProps<T extends HTMLElement> = HTMLAttributes<T> &
   WidgetDataAttributes;
 
 export function createWidgetInstanceId(
@@ -29,10 +29,10 @@ export function CardHeader({
   subtitle,
   children,
 }: {
-  title: ComponentChildren;
-  source?: ComponentChildren;
-  subtitle?: ComponentChildren;
-  children?: ComponentChildren;
+  title: ReactNode;
+  source?: ReactNode;
+  subtitle?: ReactNode;
+  children?: ReactNode;
 }): JSX.Element {
   const detail = source ? (
     <span className="card-from">{source}</span>
@@ -51,8 +51,8 @@ export function CardHeader({
 }
 
 export interface KeyValueItem {
-  label: ComponentChildren;
-  value: ComponentChildren;
+  label: ReactNode;
+  value: ReactNode;
 }
 
 export function KeyValueList({
@@ -76,7 +76,7 @@ export function WidgetEmptyState({
   children = "Nothing to show yet.",
   className,
 }: {
-  children?: ComponentChildren;
+  children?: ReactNode;
   className?: string;
 }): JSX.Element {
   return <p className={classes("muted", className)}>{children}</p>;
@@ -90,7 +90,7 @@ export function WidgetActions({
   className,
 }: {
   label: string;
-  children: ComponentChildren;
+  children: ReactNode;
   className?: string;
 }): JSX.Element {
   return (
@@ -107,7 +107,7 @@ export function WidgetActionLink({
   emphasis = "secondary",
 }: {
   href: string;
-  children: ComponentChildren;
+  children: ReactNode;
   external?: boolean;
   emphasis?: "primary" | "secondary";
 }): JSX.Element {
@@ -127,9 +127,9 @@ export function WidgetActionLink({
 
 export interface WidgetTabDefinition {
   value: string;
-  label: ComponentChildren;
+  label: ReactNode;
   count?: number | undefined;
-  content: ComponentChildren;
+  content: ReactNode;
   panelClassName?: string | undefined;
   triggerProps?: WidgetElementProps<HTMLButtonElement> | undefined;
   panelProps?: WidgetElementProps<HTMLDivElement> | undefined;
@@ -182,9 +182,9 @@ export function WidgetTabs({
           const panelId = `${id}-panel-${tab.value}`;
           return (
             <button
+              key={tab.value}
               {...tab.triggerProps}
               id={triggerId}
-              key={tab.value}
               className={classes(triggerClass, active && "is-active")}
               type="button"
               role="tab"
@@ -215,9 +215,9 @@ export function WidgetTabs({
         const active = tab.value === defaultValue;
         return (
           <div
+            key={tab.value}
             {...tab.panelProps}
             id={`${id}-panel-${tab.value}`}
-            key={tab.value}
             className={classes(tab.panelClassName, active && "is-active")}
             data-ui-panel={tab.value}
             role="tabpanel"
@@ -234,7 +234,7 @@ export function WidgetTabs({
 
 export interface WidgetFilterOption {
   value: string;
-  label: ComponentChildren;
+  label: ReactNode;
   count?: number | undefined;
   tone?: "plain" | "gap" | undefined;
   triggerProps?: WidgetElementProps<HTMLButtonElement> | undefined;
@@ -262,8 +262,8 @@ export function WidgetFilter({
   label: string;
   defaultValue: string;
   options: WidgetFilterOption[];
-  children: ComponentChildren;
-  emptyState?: ComponentChildren;
+  children: ReactNode;
+  emptyState?: ReactNode;
   className?: string;
   allValue?: string;
 }): JSX.Element {
@@ -344,7 +344,7 @@ export function WidgetList({
   children,
   className,
 }: {
-  children: ComponentChildren;
+  children: ReactNode;
   className?: string;
 }): JSX.Element {
   return <ul className={classes("list", className)}>{children}</ul>;
@@ -387,7 +387,7 @@ export function WidgetStatusPill({
   children,
   tone = "plain",
 }: {
-  children: ComponentChildren;
+  children: ReactNode;
   tone?: "plain" | "warn" | "error" | "ok" | "muted";
 }): JSX.Element {
   const toneClass = {
@@ -411,11 +411,11 @@ export function WidgetListItem({
   className,
   itemProps,
 }: {
-  title: ComponentChildren;
-  description?: ComponentChildren | undefined;
+  title: ReactNode;
+  description?: ReactNode | undefined;
   meta?: string[] | undefined;
   tags?: string[] | undefined;
-  trailing?: ComponentChildren | undefined;
+  trailing?: ReactNode | undefined;
   filterValues?: string[] | undefined;
   className?: string | undefined;
   itemProps?: WidgetElementProps<HTMLLIElement> | undefined;

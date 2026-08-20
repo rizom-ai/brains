@@ -8,7 +8,7 @@ import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
 import { Window } from "happy-dom";
-import { DeclarativeWorkspace } from "./declarative-workspace";
+import { OperatorViewRenderer } from "./operator-view-renderer";
 
 const data: RuntimeCmsWorkspaceData = {
   view: {
@@ -110,10 +110,10 @@ const data: RuntimeCmsWorkspaceData = {
   },
 };
 
-describe("DeclarativeWorkspace", () => {
+describe("OperatorViewRenderer", () => {
   it("renders normalized base blocks and typed action controls", () => {
     const html = renderToStaticMarkup(
-      createElement(DeclarativeWorkspace, {
+      createElement(OperatorViewRenderer, {
         data,
         onAction: async () => ({}),
         onOpenEntity: () => {},
@@ -147,7 +147,7 @@ describe("DeclarativeWorkspace", () => {
 
   it("promotes leading totals into the workspace head instead of a body card", () => {
     const html = renderToStaticMarkup(
-      createElement(DeclarativeWorkspace, {
+      createElement(OperatorViewRenderer, {
         data,
         onAction: async () => ({}),
         onOpenEntity: () => {},
@@ -169,7 +169,7 @@ describe("DeclarativeWorkspace", () => {
 
   it("declares a layout span per block so the host grid can differentiate width", () => {
     const html = renderToStaticMarkup(
-      createElement(DeclarativeWorkspace, {
+      createElement(OperatorViewRenderer, {
         data,
         onAction: async () => ({}),
         onOpenEntity: () => {},
@@ -185,7 +185,7 @@ describe("DeclarativeWorkspace", () => {
 
   it("ranks action buttons by consequence rather than styling them all alike", () => {
     const html = renderToStaticMarkup(
-      createElement(DeclarativeWorkspace, {
+      createElement(OperatorViewRenderer, {
         data: {
           view: {
             title: "Directory sync",
@@ -258,7 +258,111 @@ function confirmingWorkspace(
   };
 }
 
-describe("DeclarativeWorkspace confirmations", () => {
+describe("OperatorViewRenderer conformance", () => {
+  it("renders every container and remaining panel shape through the shared host", () => {
+    const conformance: RuntimeCmsWorkspaceData = {
+      view: {
+        blocks: [
+          {
+            type: "key-values",
+            items: [{ label: "Mode", value: "shared" }],
+          },
+          {
+            type: "matrix",
+            id: "matrix",
+            columns: 2,
+            cells: [
+              {
+                id: "cell",
+                label: "Cell",
+                items: [],
+                empty: "Empty cell",
+              },
+            ],
+          },
+          {
+            type: "spatial",
+            layout: "cartesian",
+            id: "space",
+            label: "Semantic space",
+            description: "One point",
+            points: [
+              {
+                id: "point",
+                label: "Point",
+                category: "topic",
+                x: 0.5,
+                y: 0.5,
+              },
+            ],
+            zones: [],
+            relationships: [],
+            legend: [{ label: "Topic" }],
+          },
+          {
+            type: "tabs",
+            id: "tabs",
+            label: "Views",
+            defaultTab: "first",
+            tabs: [
+              {
+                id: "first",
+                label: "First",
+                blocks: [{ type: "notice", text: "First panel" }],
+              },
+            ],
+          },
+          {
+            type: "columns",
+            id: "columns",
+            primary: [
+              {
+                type: "card",
+                id: "primary-card",
+                label: "Primary",
+                blocks: [{ type: "notice", text: "Primary fact" }],
+              },
+            ],
+            aside: [
+              {
+                type: "card",
+                id: "aside-card",
+                label: "Aside",
+                blocks: [
+                  {
+                    type: "key-values",
+                    items: [{ label: "State", value: "ready" }],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    };
+
+    const html = renderToStaticMarkup(
+      createElement(OperatorViewRenderer, {
+        data: conformance,
+        onAction: async () => undefined,
+        onOpenEntity: () => {},
+      }),
+    );
+
+    for (const marker of [
+      "declarative-key-values",
+      "declarative-matrix",
+      "data-ui-spatial",
+      "declarative-tabs",
+      "declarative-columns",
+      "declarative-card",
+    ]) {
+      expect(html).toContain(marker);
+    }
+  });
+});
+
+describe("OperatorViewRenderer confirmations", () => {
   let windowInstance: Window;
   let root: Root;
   let container: HTMLElement;
@@ -302,7 +406,7 @@ describe("DeclarativeWorkspace confirmations", () => {
     const invocations: RuntimeOperatorActionControl[] = [];
     await act(async () => {
       root.render(
-        createElement(DeclarativeWorkspace, {
+        createElement(OperatorViewRenderer, {
           data: confirmingWorkspace({
             kind: "static",
             message: "Purge every exported file?",
@@ -337,7 +441,7 @@ describe("DeclarativeWorkspace confirmations", () => {
     const invocations: RuntimeOperatorActionControl[] = [];
     await act(async () => {
       root.render(
-        createElement(DeclarativeWorkspace, {
+        createElement(OperatorViewRenderer, {
           data: confirmingWorkspace({ kind: "prepared" }),
           onAction: async (action) => {
             invocations.push(action);
@@ -415,7 +519,7 @@ const detailData = (open?: {
   },
 });
 
-describe("DeclarativeWorkspace master/detail", () => {
+describe("OperatorViewRenderer master/detail", () => {
   let windowInstance: Window;
   let root: Root;
   let container: HTMLElement;
@@ -444,7 +548,7 @@ describe("DeclarativeWorkspace master/detail", () => {
 
   it("renders the collection beside the open item and marks the open row", () => {
     const html = renderToStaticMarkup(
-      createElement(DeclarativeWorkspace, {
+      createElement(OperatorViewRenderer, {
         data: detailData({ forId: "mail-1", title: "Collaboration request" }),
         onAction: async () => ({}),
         onOpenEntity: () => {},
@@ -465,7 +569,7 @@ describe("DeclarativeWorkspace master/detail", () => {
     const queries: unknown[] = [];
     await act(async () => {
       root.render(
-        createElement(DeclarativeWorkspace, {
+        createElement(OperatorViewRenderer, {
           data: detailData(),
           onAction: async () => ({}),
           onOpenEntity: () => {},
@@ -493,7 +597,7 @@ describe("DeclarativeWorkspace master/detail", () => {
     const queries: unknown[] = [];
     await act(async () => {
       root.render(
-        createElement(DeclarativeWorkspace, {
+        createElement(OperatorViewRenderer, {
           data: detailData({ forId: "mail-1", title: "Collaboration request" }),
           onAction: async () => ({}),
           onOpenEntity: () => {},
@@ -513,12 +617,12 @@ describe("DeclarativeWorkspace master/detail", () => {
   });
 });
 
-describe("DeclarativeWorkspace detail pending state", () => {
+describe("OperatorViewRenderer detail pending state", () => {
   it("marks the requested row and shows the pane before its content arrives", () => {
     // Query asks for a row the view has not returned yet: the load is in
     // flight, which must read differently from nothing being open.
     const html = renderToStaticMarkup(
-      createElement(DeclarativeWorkspace, {
+      createElement(OperatorViewRenderer, {
         data: detailData(),
         onAction: async () => ({}),
         onOpenEntity: () => {},
@@ -535,7 +639,7 @@ describe("DeclarativeWorkspace detail pending state", () => {
 
   it("gives the collection the full measure when nothing is requested", () => {
     const html = renderToStaticMarkup(
-      createElement(DeclarativeWorkspace, {
+      createElement(OperatorViewRenderer, {
         data: detailData(),
         onAction: async () => ({}),
         onOpenEntity: () => {},
@@ -550,10 +654,10 @@ describe("DeclarativeWorkspace detail pending state", () => {
   });
 });
 
-describe("DeclarativeWorkspace head", () => {
+describe("OperatorViewRenderer head", () => {
   it("renders the eyebrow, description and status beside the title", () => {
     const html = renderToStaticMarkup(
-      createElement(DeclarativeWorkspace, {
+      createElement(OperatorViewRenderer, {
         data: {
           view: {
             kicker: "Durability operations",
@@ -583,7 +687,7 @@ describe("DeclarativeWorkspace head", () => {
   });
 });
 
-describe("DeclarativeWorkspace pagination", () => {
+describe("OperatorViewRenderer pagination", () => {
   const paged = (offset: number): RuntimeCmsWorkspaceData => ({
     view: {
       title: "Inbox",
@@ -600,7 +704,7 @@ describe("DeclarativeWorkspace pagination", () => {
 
   it("states the window and offers both directions", () => {
     const html = renderToStaticMarkup(
-      createElement(DeclarativeWorkspace, {
+      createElement(OperatorViewRenderer, {
         data: paged(10),
         onAction: async () => ({}),
         onOpenEntity: () => {},
@@ -618,7 +722,7 @@ describe("DeclarativeWorkspace pagination", () => {
 
   it("disables the direction it cannot go", () => {
     const first = renderToStaticMarkup(
-      createElement(DeclarativeWorkspace, {
+      createElement(OperatorViewRenderer, {
         data: paged(0),
         onAction: async () => ({}),
         onOpenEntity: () => {},

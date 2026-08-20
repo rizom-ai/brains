@@ -1,7 +1,7 @@
-/** @jsxImportSource preact */
+/** @jsxImportSource react */
 import type { AppInfo } from "@brains/plugins";
 import { resolveUrl } from "@brains/utils/string-utils";
-import type { JSX } from "preact";
+import type { JSX } from "react";
 
 function findDocsUrl(
   appInfo: AppInfo,

@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, spyOn } from "bun:test";
 import { TemplateRegistry } from "../src/registry";
 import { createTemplate } from "../src/types";
 import { z } from "@brains/utils/zod";
-import { h } from "preact";
+import { createElement as h } from "react";
 import { createSilentLogger } from "@brains/test-utils";
 
 describe("TemplateRegistry", () => {

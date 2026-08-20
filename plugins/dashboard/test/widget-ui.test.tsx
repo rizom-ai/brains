@@ -1,6 +1,6 @@
-/** @jsxImportSource preact */
+/** @jsxImportSource react */
 import { describe, expect, it } from "bun:test";
-import { render } from "preact-render-to-string";
+import { renderToStaticMarkup as render } from "react-dom/server";
 import { normalizeRendererHtml } from "@brains/test-utils";
 import {
   createWidgetInstanceId,
@@ -112,9 +112,11 @@ describe("widget UI primitives", () => {
       />,
     );
 
-    expect(html).toContain("Queue &lt;script>alert('nope')&lt;/script>");
+    expect(html).toContain(
+      "Queue &lt;script&gt;alert(&#x27;nope&#x27;)&lt;/script&gt;",
+    );
     expect(html).not.toContain("<script>alert('nope')</script>");
-    expect(html).toContain('class="operator-table"');
+    expect(html).toContain("operator-table");
     expect(html).toContain('href="/cms/entities/bookmark/saved-1"');
     expect(
       normalizeRendererHtml(html, { ignoreImagePreloads: true }),

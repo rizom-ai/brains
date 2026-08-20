@@ -561,10 +561,10 @@
 
   /* NOTE: .btn-primary / .btn-secondary / .badge-amber / .badge-purple /
      .divider / .section are intentionally NOT defined here. They are
-     thin wrappers over Tailwind utilities and will live as Preact
+     thin wrappers over Tailwind utilities and will live as React
      components in ui-library (Button, Badge, Divider, Section). The
      themed HTML mock uses inline Tailwind for these patterns so the
-     component API surfaces naturally during the Preact port. */
+     component API surfaces naturally during the React port. */
 
   /* Scroll reveal — elements with .reveal start invisible + offset and
      fade up when an IntersectionObserver toggles .visible on them. The

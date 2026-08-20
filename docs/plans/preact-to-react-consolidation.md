@@ -2,7 +2,7 @@
 
 ## Status
 
-**Accepted; implementation in progress on `work/react-renderer-consolidation`.** Retire Preact and render every server-side surface with React 19,
+**Implemented on `work/react-renderer-consolidation`; merge and release remain approval-gated.** Preact is retired and every server-side surface renders with React 19,
 leaving one JSX runtime, one component dialect, and one shared component
 library across the site builds, the operator surfaces, and the client apps.
 
@@ -74,13 +74,14 @@ test assertions). There are no `for=` JSX attributes today. `class=` renders
 **correctly** under React 19 — `<div class="a b">x</div>` — with only a
 development-time warning. It is warning noise, not breakage.
 
-The one hard failure is a string `style` prop, which throws under React
-(`The 'style' prop expects a mapping from style properties to values`). That is
-49 occurrences in exactly three files, all in `sites/rizom-ai`: `layout.tsx`
-(3), `brain-screens.tsx` (4), and `growth-diagram.tsx` (42, nearly all CSS
-custom properties such as `--d:.1s`). The same syntax inventory found 48
-hyphenated SVG JSX attributes across four files. React renders them but warns,
-so Phase 2 normalizes those to camelCase as part of making the tree genuinely
+The hard failure is a string `style` prop, which throws under React
+(`The 'style' prop expects a mapping from style properties to values`). The
+syntax inventory found 49 literal occurrences in three `sites/rizom-ai` files,
+plus 15 computed string styles in the dashboard, topic map, and agent proximity
+map. All become typed style objects; CSS custom properties go through one
+bounded helper rather than casts. The same inventory found 48 hyphenated SVG
+JSX attributes across four files. React renders them but warns, so Phase 2
+normalizes those to camelCase as part of making the tree genuinely
 React-correct.
 
 ### Preact already accepts the React dialect
@@ -102,33 +103,34 @@ graph is effectively one tree, and the dangerous direction fails without a
 signal. The renderer swap is therefore atomic and cannot be staged
 package-by-package.
 
-### Residual output differences are four known classes
+### Residual output differences are six known classes
 
 The implementation review found one React 19 behavior the proposal's initial
 probe missed: `renderToStaticMarkup()` inserts resource hints for eager images.
-With the dialect normalized, React and Preact differ in four known classes:
+With the dialect normalized, React and Preact differ in six known classes:
 
-| Class                    | React                                  | Preact                |
-| ------------------------ | -------------------------------------- | --------------------- |
-| Boolean attributes       | `disabled="" readOnly=""`              | `disabled readonly`   |
-| Entity escaping          | escapes `>` and `'`                    | leaves both raw       |
-| Style trailing separator | `style="width:10px"`                   | `style="width:10px;"` |
-| Eager image hints        | prepends `link[rel=preload][as=image]` | no generated hint     |
+| Class                    | React                                  | Preact                 |
+| ------------------------ | -------------------------------------- | ---------------------- |
+| Boolean attributes       | `disabled="" readOnly=""`              | `disabled readonly`    |
+| Entity escaping          | escapes `>` and `'`                    | leaves both raw        |
+| Style trailing separator | `style="width:10px"`                   | `style="width:10px;"`  |
+| Eager image hints        | prepends `link[rel=preload][as=image]` | no generated hint      |
+| Preconnect placement     | hoists hints ahead of head scripts     | preserves source order |
+| SVG focus spelling       | serializes `tabindex`                  | serializes `tabIndex`  |
 
-The first three are serialization-only. The fourth is renderer-owned fetch
-optimization, not a DOM spelling difference, so the harness folds only image
-preload links while preserving every other resource hint and separately tests
-that semantic image attributes remain unchanged. Void elements, SVG
-attributes, `data-`/`aria-`/`tabIndex`, falsy children, null/undefined props,
-and `dangerouslySetInnerHTML` are otherwise byte-identical. The equivalence
-oracle is therefore DOM-normalized rather than byte-exact, with these four
-classes explicitly allowlisted.
+The first three and SVG focus spelling are serialization-only. Eager image
+preloads and preconnect hoisting are React-owned resource optimizations. The
+harness folds only image preload links, canonicalizes only preconnect placement,
+preserves every other resource hint, and separately tests semantic image and
+focus attributes. Void elements, other SVG attributes, `data-`/`aria-`, falsy
+children, null/undefined props, and `dangerouslySetInnerHTML` are otherwise
+byte-identical. The equivalence oracle is therefore DOM-normalized rather than
+byte-exact, with these six classes explicitly allowlisted.
 
 ## Published surface: a window, not a major
 
 `preact` is part of the published authoring contract. `@rizom/site` declares it
-as a peer dependency; `@rizom/ui`, `@rizom/theme-default`,
-`@rizom/theme-rizom-ai`, and the published site packages declare it as a
+as a peer dependency, while the published site packages declare it as a
 publish-peer; the packed site fixture under
 `packages/brain-cli/test/fixtures/public-authoring/site/` pins it; and
 `docs/external-site-authoring.md` documents it for external authors, who write
@@ -173,7 +175,7 @@ SDK merely because workspace linking hid the mismatch during development.
 Each phase is a releasable slice; tests land before or with the code they
 cover, inside the phase.
 
-### Phase 1 — Equivalence harness (tests only)
+### Phase 1 — Equivalence harness (tests only) ✅
 
 No production change. This builds the oracle that every later phase is graded
 against, so it exists before anything moves.
@@ -181,7 +183,8 @@ against, so it exists before anything moves.
 - A DOM-normalizing comparison helper that parses two HTML strings and compares
   structure and attributes, folding the three known difference classes
   (boolean-attribute form, `>`/`'` escaping, style trailing separator, and
-  React-owned eager-image preload links).
+  React-owned eager-image preload links, preconnect hoisting, and SVG focus
+  attribute spelling).
 - Baseline fixtures captured from the current Preact output for one route of
   each shape: an authored site route, an entity list route, an entity detail
   route, the dashboard page (`renderDashboardPageHtml`), one declarative
@@ -190,15 +193,15 @@ against, so it exists before anything moves.
   in the current repository; the proposal's email item was stale.
 - Gate: the suite proves current output matches its own baseline.
 
-### Phase 2 — React dialect, still on Preact
+### Phase 2 — React dialect, still on Preact ✅
 
 The largest diff in the plan and the smallest risk in it: no runtime changes.
 
 - Tests first: extend the Phase 1 suite to assert the normalized output is
   unchanged by this phase.
 - Syntax-aware codemod `class=` → `className=` across the 21 files, convert the
-  49 string `style` props in `sites/rizom-ai` to objects, and camel-case the 48
-  hyphenated SVG attributes across four files. Serialized-HTML assertions are
+  49 literal and 15 computed string `style` props to objects, and camel-case the
+  48 hyphenated SVG attributes across four files. Serialized-HTML assertions are
   not source syntax and remain unchanged.
 - Add ESLint rules banning `class=`, `for=`, string-valued `style`, and
   hyphenated non-ARIA/data SVG attributes in `.tsx`, so the dialect cannot
@@ -206,7 +209,7 @@ The largest diff in the plan and the smallest risk in it: no runtime changes.
 - Gate: Phase 1 harness passes. Note that string-to-object style conversion
   adds Preact's trailing separator, which the harness folds.
 
-### Phase 3 — The renderer flip (atomic)
+### Phase 3 — The renderer flip (atomic) ✅
 
 Per the interop finding this cannot be subdivided.
 
@@ -215,7 +218,9 @@ Per the interop finding this cannot be subdivided.
   the migration plan itself.
 - Flip `jsxImportSource` in `tsconfig.json` and
   `shared/typescript-config/instance.json`, the 41 package tsconfigs, and the
-  49 per-file pragmas.
+  49 per-file pragmas. Add `DOM`/`DOM.Iterable` to the root lib set: React's
+  ambient fallback web interfaces otherwise conflict with Bun's complete
+  request/form-data types in non-UI packages.
 - Replace `preact-render-to-string`'s `render()` with `react-dom/server`'s
   `renderToStaticMarkup()` at its call sites —
   `plugins/site-builder/src/lib/preact-builder.ts` (renamed),
@@ -226,11 +231,14 @@ Per the interop finding this cannot be subdivided.
 - Repoint the two `useContext` imports from `preact/hooks` to `react`.
 - Swap the dependency in the 23 declaring `package.json` files and in
   `packages/brain-cli/scripts/build.ts`'s external list.
-- Gate: Phase 1 harness passes with residual diffs only in the four
-  allowlisted classes; a measured before/after on the per-request dashboard
-  route (`plugins/dashboard/src/plugin.ts:503`).
+- Gate: Phase 1 harness passes with residual diffs only in the six
+  allowlisted classes. A warmed 500-render comparison of the per-request
+  dashboard measured Preact at 0.099 ms average / 0.074 ms p50 / 0.101 ms p95
+  and React at 0.516 ms average / 0.397 ms p50 / 0.796 ms p95. The relative
+  increase is material, but the absolute average penalty is about 0.42 ms per
+  operator-page request and accepted.
 
-### Phase 4 — Published surface (ships in the same alpha as Phase 3)
+### Phase 4 — Published surface (ships in the same alpha as Phase 3) ✅
 
 Separated for review discipline, not for sequencing; the peer dependency is
 what external authors install against, so it cannot lag the flip.
@@ -240,8 +248,8 @@ what external authors install against, so it cannot lag the flip.
   React-line packed `@rizom/brain` and `@rizom/site`, including the `site`
   fixture's own peer declaration.
 - Swap `preact` for `react`/`react-dom` in the peer and publish-peer blocks of
-  `@rizom/site`, `@rizom/ui`, `@rizom/theme-default`, `@rizom/theme-rizom-ai`,
-  and the published site packages.
+  `@rizom/site` and the published site packages. Theme packages are CSS-only
+  and correctly declare neither JSX runtime.
 - Update `docs/external-site-authoring.md` and
   `docs/external-plugin-authoring.md`, including the dialect change for authors
   who wrote `class=`.
@@ -254,22 +262,22 @@ what external authors install against, so it cannot lag the flip.
   `sites/rizom` must reference the React-line SDK/site versions, and publishing
   must remain topological. Workspace linking is not accepted as evidence.
 
-### Phase 5 — Collapse the duplicated operator host
+### Phase 5 — Collapse the duplicated operator host ✅
 
 The payoff phase, and the reason the earlier ones are worth doing.
 
 - Tests first: host-renderer conformance for every block shape in the operator
   view contract, asserted once against the unified host and exercised from both
   the widget and workspace entry points.
-- Extract one React host renderer for the operator view contract, consumed by
-  the dashboard widget host and the CMS/Studio workspace host.
+- Extract one React host renderer in private `@brains/operator-view-react`,
+  consumed by the dashboard widget host and the CMS/Studio workspace host.
 - `shared/ui-library`'s widget primitives become importable by the workspace
   host; the CMS-side reimplementations are deleted.
 - Coordinate with [`studio-consolidation.md`](./studio-consolidation.md) Phase 7,
   which re-homes operator widget content into a Studio Overview workspace.
   With one runtime that re-homing is a move rather than a port.
 
-### Phase 6 — Remove the containment scaffolding
+### Phase 6 — Remove the containment scaffolding ✅
 
 - Delete the runtime-boundary assertions from
   `interfaces/web-chat/test/react-containment.test.ts` — specifically
@@ -317,11 +325,10 @@ Phase 5 touches.
   direction produces empty elements with no error. Guarded by the Phase 3
   no-`preact`-survives test plus the Phase 1 harness; the atomicity of Phase 3
   is a consequence of this risk, not a stylistic preference.
-- **Per-request SSR latency.** The dashboard renders per request at
-  `plugins/dashboard/src/plugin.ts:503`, and `renderToStaticMarkup` is slower
-  than `preact-render-to-string`. Expected to be immaterial for one admin page,
-  but it is measured in Phase 3 rather than assumed, and it is the only place in
-  the repository where the difference can be felt.
+- **Per-request SSR latency.** The dashboard renders per request and the Phase 3
+  benchmark measured React roughly 5.2× slower than Preact, but still below
+  0.8 ms at p95 for the representative page and about 0.42 ms slower on average.
+  That absolute cost is accepted for the single operator-page request path.
 - **Missing the prerelease window.** This is the highest-cost risk and it is a
   scheduling risk, not a technical one. `preact` is a published peer dependency;
   once `changeset pre exit` runs it is frozen into the stable `0.2.x` contract
@@ -333,10 +340,11 @@ Phase 5 touches.
   On the alpha line they are expected to track breaking changes, and Phase 4's
   documentation update covers the dialect shift; it cannot be mitigated
   technically without shipping two pipelines, which is a non-goal.
-- **Renderer-owned resource hints.** React 19 inserts eager-image preload links.
-  The equivalence helper folds only `rel=preload`/`as=image`; tests retain all
-  other hints and image attributes so the allowlist cannot hide arbitrary head
-  changes.
+- **Renderer-owned resource handling.** React 19 inserts eager-image preload
+  links and hoists preconnect hints. The equivalence helper folds only
+  `rel=preload`/`as=image` and canonicalizes only preconnect placement; tests
+  retain all other hints and image attributes so the allowlist cannot hide
+  arbitrary head changes.
 - **Escaping changes reaching stored or compared output.** React escapes `>`
   and `'` where Preact does not. Anything that diffs, hashes, or snapshots
   rendered HTML outside the Phase 1 harness — build manifests, artifact

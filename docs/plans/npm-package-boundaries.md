@@ -251,7 +251,7 @@ This milestone intentionally avoids the UI/template question. It proves the offi
 
 Immediately after the non-UI proof, choose the public surface for TSX-heavy official packages. Do not publish `@brains/ui-library` as-is just to unblock plugins. Decide from concrete package needs among:
 
-1. package-local TSX/components plus `preact`, and/or
+1. package-local TSX/components plus `react` and `react-dom`, and/or
 2. narrow renderer/template contracts from `@rizom/brain/templates`.
 
 (`@rizom/ui` is no longer an option: it existed for multiple app-owned Rizom
