@@ -63,12 +63,19 @@ slug: systems-series
       identity: context.identity,
       progress: { report: async (): Promise<void> => {} },
       signal: new AbortController().signal,
+      template: (localName: string) => `@brains/series:series:${localName}`,
+      // Declared but unused: these handlers generate, they do not import.
+      uploads: {
+        read: async (): Promise<never> => {
+          throw new Error("This job reads no uploads");
+        },
+      },
       messaging: { publish: async (): Promise<void> => {} },
     });
 
     expect(context.ai.generate).toHaveBeenCalledWith(
       expect.objectContaining({
-        templateName: "series:description",
+        templateName: "@brains/series:series:description",
         representedIdentity: "none",
       }),
     );
