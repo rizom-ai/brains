@@ -10,7 +10,7 @@ import {
   defineJob,
   defineServicePlugin,
   type ServicePackageDefinition,
-} from "@brains/plugins";
+} from "@brains/sdk/services";
 import { linkConfigSchema } from "./schemas/link-config";
 import { link } from "./link-entity";
 import { LINK_CAPTURE_JOB } from "./job-names";
@@ -39,14 +39,16 @@ const linkPackage: ServicePackageDefinition<typeof linkConfigSchema> =
         : undefined,
     }),
     jobs: ({ state }) => [
-      captureJob.handle(async ({ input, entities, ai, logger, progress }) => {
-        const handler = new LinkCaptureJobHandler(
-          logger,
-          { entities, ai },
-          state.fetcherOptions,
-        );
-        return handler.process(input, LINK_CAPTURE_JOB, progress);
-      }),
+      captureJob.handle(
+        async ({ input, entities, ai, logger, progress, template }) => {
+          const handler = new LinkCaptureJobHandler(
+            logger,
+            { entities, ai, extractionTemplate: template("extraction") },
+            state.fetcherOptions,
+          );
+          return handler.process(input, LINK_CAPTURE_JOB, progress);
+        },
+      ),
     ],
     // Its test cases fetch a live URL, so the eval needs the same key the
     // capture job does.
@@ -84,7 +86,5 @@ export { linkConfigSchema } from "./schemas/link-config";
 export type { LinkConfig, LinkConfigInput } from "./schemas/link-config";
 
 // Adapter exports
-export { LinkAdapter, linkAdapter } from "./adapters/link-adapter";
 
 // Service exports
-export { LinkService } from "./lib/link-service";

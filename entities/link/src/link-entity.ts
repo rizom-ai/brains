@@ -1,4 +1,4 @@
-import { defineEntity, type EntityDefinition } from "@brains/plugins";
+import { defineEntity, type EntityDefinition } from "@brains/sdk/entities";
 import { linkFrontmatterSchema, linkMetadataSchema } from "./schemas/link";
 import { linkExtractionTemplate } from "./templates/extraction-template";
 import { linkListTemplate } from "./templates/link-list";

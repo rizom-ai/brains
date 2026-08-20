@@ -8,10 +8,10 @@ import {
   bindPluginPackageMetadata,
   instantiatePluginPackageDefinition,
 } from "@brains/plugins";
-import { linkAdapter } from "../src/adapters/link-adapter";
+import { createLinkContent } from "../src/lib/link-content";
 import type { LinkEntity } from "../src/schemas/link";
 
-const content = linkAdapter.createLinkContent({
+const content = createLinkContent({
   status: "published",
   title: "AT Protocol",
   url: "https://atproto.com",
