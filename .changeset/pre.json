@@ -226,6 +226,7 @@
     "core--atproto-lexicon-derived-strictness",
     "core--auth-session-store-single-revoke",
     "core--authoring-nomination-evidence",
+    "core--auto-export-non-public-updates",
     "core--background-work-supervision",
     "core--batch-enqueue-validation-only-mode",
     "core--boot-and-roundtrip-hardening",
