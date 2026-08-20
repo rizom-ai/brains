@@ -1,6 +1,6 @@
 {
   "name": "@rizom/site-rizom-ai",
-  "version": "0.2.0-alpha.238",
+  "version": "0.2.0-alpha.239",
   "description": "Rizom AI site package for hosted Rover deployments",
   "type": "module",
   "exports": {
@@ -18,7 +18,7 @@
   },
   "dependencies": {
     "@rizom/site": "0.2.0-alpha.233",
-    "@rizom/site-rizom": "0.2.0-alpha.238"
+    "@rizom/site-rizom": "0.2.0-alpha.239"
   },
   "publishPeerDependencies": {
     "@rizom/brain": ">=0.2.0-alpha.141 <0.3.0",

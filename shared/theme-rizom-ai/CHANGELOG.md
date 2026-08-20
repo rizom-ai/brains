@@ -1,5 +1,21 @@
 # @brains/theme-rizom-ai
 
+## 0.2.0-alpha.235
+
+### Patch Changes
+
+- [`51a88ae`](https://github.com/rizom-ai/brains/commit/51a88ae3bd81a31c2cd8519f8f38781966af5b44) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Declare the shared Rizom button defaults once, in `@rizom/theme-default`.
+
+  Both brand themes restated the full `--rizom-btn-*` vocabulary; 23 of the
+  declarations were character-identical. Those now live in the base theme both
+  brands compose (same `@layer theme` / `:root` scope), with each brand keeping
+  only its genuine deltas. Composed token values are verified unchanged for both
+  themes, and sites running the plain default theme now get real button defaults
+  instead of relying on per-component fallbacks.
+
+- Updated dependencies [[`51a88ae`](https://github.com/rizom-ai/brains/commit/51a88ae3bd81a31c2cd8519f8f38781966af5b44)]:
+  - @rizom/theme-default@0.2.0-alpha.235
+
 ## 0.2.0-alpha.234
 
 ### Patch Changes
