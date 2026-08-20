@@ -2,7 +2,9 @@ import { describe, expect, it, beforeEach } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
 import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
 import { createNoteAtprotoProjection } from "../src/atproto-projection";
-import { NotePlugin } from "../src/plugin";
+import { instantiatePluginPackageDefinition } from "@brains/plugins";
+import type { Plugin } from "@brains/plugins";
+import notes from "../src";
 import type { Note } from "../src/schemas/note";
 
 const note: Note = {
@@ -62,9 +64,16 @@ describe("note ATProto projection", () => {
     expect(record.body).toBe("# Networked Knowledge\r\n\r\nA note body.");
   });
 
-  it("registers the note projection when the note plugin registers", async () => {
+  it("registers the note projection when the note package registers", async () => {
     const harness = createPluginHarness({ dataDir: "/tmp/test-note-atproto" });
-    await harness.installPlugin(new NotePlugin());
+    const plugins = instantiatePluginPackageDefinition(
+      notes,
+      {},
+      { name: "@brains/note", version: "0.1.0" },
+    );
+    for (const plugin of plugins as Plugin[]) {
+      await harness.installPlugin(plugin);
+    }
 
     const projection = AtprotoProjectionRegistry.getInstance().get("note");
 
