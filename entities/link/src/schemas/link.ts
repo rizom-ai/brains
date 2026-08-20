@@ -1,5 +1,5 @@
 import { z } from "@brains/utils/zod";
-import { baseEntityParserSchema } from "@brains/plugins";
+import { baseEntityParserSchema } from "@brains/sdk/entities";
 
 /**
  * Source reference for links (where the link was captured from)

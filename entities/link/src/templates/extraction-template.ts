@@ -1,4 +1,4 @@
-import { createTemplate } from "@brains/plugins";
+import { createTemplate } from "@brains/sdk/entities";
 import { z } from "@brains/utils/zod";
 
 // Schema for the AI response

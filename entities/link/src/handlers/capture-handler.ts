@@ -1,9 +1,9 @@
 import type { LoggerContract } from "@brains/utils/logger";
 import type { ProgressContract } from "@brains/utils/progress";
 import { z } from "@brains/utils/zod";
-import { PROGRESS_STEPS, JobResult } from "@brains/contracts";
-import type { IEntityAINamespace, JobEntityAccess } from "@brains/plugins";
-import { LinkAdapter } from "../adapters/link-adapter";
+import { PROGRESS_STEPS, JobResult } from "@brains/sdk/services";
+import type { IEntityAINamespace, JobEntityAccess } from "@brains/sdk/entities";
+import { createLinkContent, parseLinkContent } from "../lib/link-content";
 import { UrlFetcher } from "../lib/url-fetcher";
 import { UrlUtils } from "../lib/url-utils";
 import type { LinkSource, LinkStatus } from "../schemas/link";
@@ -70,18 +70,24 @@ export class LinkCaptureJobHandler {
   private readonly logger: LoggerContract;
   private readonly entities: JobEntityAccess;
   private readonly ai: IEntityAINamespace;
-  private linkAdapter: LinkAdapter;
+  private readonly extractionTemplate: string;
   private urlFetcher: UrlFetcher;
 
   constructor(
     logger: LoggerContract,
-    deps: { entities: JobEntityAccess; ai: IEntityAINamespace },
+    deps: {
+      entities: JobEntityAccess;
+      ai: IEntityAINamespace;
+      // Resolved by the runtime: only it knows the scope templates register
+      // under, and a name written here silently stops resolving if it moves.
+      extractionTemplate: string;
+    },
     options?: LinkCaptureJobHandlerOptions,
   ) {
     this.logger = logger;
     this.entities = deps.entities;
     this.ai = deps.ai;
-    this.linkAdapter = new LinkAdapter();
+    this.extractionTemplate = deps.extractionTemplate;
     this.urlFetcher = new UrlFetcher(
       options?.jinaApiKey ? { jinaApiKey: options.jinaApiKey } : undefined,
     );
@@ -116,9 +122,7 @@ export class LinkCaptureJobHandler {
       });
 
       if (existingEntity) {
-        const { frontmatter } = this.linkAdapter.parseLinkContent(
-          existingEntity.content,
-        );
+        const { frontmatter } = parseLinkContent(existingEntity.content);
         const status = existingEntity.metadata["status"] as LinkStatus;
 
         if (status !== "pending") {
@@ -165,7 +169,7 @@ export class LinkCaptureJobHandler {
           });
           const title = new URL(url).hostname;
           const error = `Could not capture link: ${fetchResult.error}`;
-          const content = this.linkAdapter.createLinkContent({
+          const content = createLinkContent({
             status: "pending",
             title,
             url,
@@ -200,7 +204,7 @@ export class LinkCaptureJobHandler {
       });
 
       const extractionResult = await this.ai.generate<LinkExtractionResult>({
-        templateName: "@brains/link:link:extraction",
+        templateName: this.extractionTemplate,
         prompt: fetchResult.success
           ? `Extract structured information from this webpage content:\n\n${fetchResult.content}`
           : `The URL ${url} could not be fetched. Return success: false with error: "${fetchResult.error}"`,
@@ -236,7 +240,7 @@ export class LinkCaptureJobHandler {
           message: "Saving link as pending",
         });
 
-        const content = this.linkAdapter.createLinkContent({
+        const content = createLinkContent({
           status: "pending",
           title,
           url,
@@ -276,7 +280,7 @@ export class LinkCaptureJobHandler {
         message: `Saving link: "${extractionResult.title}"`,
       });
 
-      const content = this.linkAdapter.createLinkContent({
+      const content = createLinkContent({
         status: "draft",
         title: extractionResult.title,
         url,
