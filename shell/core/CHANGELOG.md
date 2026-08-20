@@ -1,5 +1,23 @@
 # @brains/core
 
+## 0.2.0-alpha.315
+
+### Patch Changes
+
+- [`efa711c`](https://github.com/rizom-ai/brains/commit/efa711cfa7a63fc9fac9da586f9e7f749fe53b76) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Make public package-load, configuration, and composition-conflict diagnostics identify the failing owner and field or capability with a corrective action. Inventory and typecheck every stable authoring TypeScript example, and add an exact-version, credential-gated live authoring harness for semantic retrieval, agent conversation and confirmation, lazy attachments, durable progress, bounded shutdown, and secret-safe diagnostics.
+
+- Updated dependencies [[`efa711c`](https://github.com/rizom-ai/brains/commit/efa711cfa7a63fc9fac9da586f9e7f749fe53b76)]:
+  - @brains/plugins@0.2.0-alpha.315
+  - @brains/contracts@0.2.0-alpha.315
+  - @brains/image@0.2.0-alpha.315
+  - @brains/operation-context@0.2.0-alpha.315
+  - @brains/site-composition@0.2.0-alpha.315
+  - @brains/utils@0.2.0-alpha.315
+  - @brains/recurring-checks@0.2.0-alpha.315
+  - @brains/runtime-state@0.2.0-alpha.315
+  - @brains/scheduler@0.2.0-alpha.315
+  - @brains/templates@0.2.0-alpha.315
+
 ## 0.2.0-alpha.314
 
 ### Patch Changes

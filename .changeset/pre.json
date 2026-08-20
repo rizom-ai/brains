@@ -225,6 +225,7 @@
     "core--atomic-job-deduplication",
     "core--atproto-lexicon-derived-strictness",
     "core--auth-session-store-single-revoke",
+    "core--authoring-nomination-evidence",
     "core--background-work-supervision",
     "core--batch-enqueue-validation-only-mode",
     "core--boot-and-roundtrip-hardening",
