@@ -89,6 +89,7 @@ describe("full preset projection resilience", () => {
       canonicalBrain,
       {},
       parseInstanceOverrides(`brain: brain
+bundleContract: capability-bundles-v1
 bundles: [core, publishing]
 embedding:
   enabled: false
