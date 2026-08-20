@@ -126,7 +126,7 @@ The Brains project uses a modern, TypeScript-based stack optimized for building 
 
 ### Web Components
 
-- **[Preact](https://preactjs.com/)** - Lightweight React alternative
+- **[React](https://react.dev/)** - Shared JSX runtime for static SSR and client applications
   - 3KB runtime
   - Used for static site generation
   - Server-side rendering
@@ -292,7 +292,7 @@ The Brains project uses a modern, TypeScript-based stack optimized for building 
 ### Shared Packages (`shared/*`)
 
 - `@brains/utils` — Logger (JSON mode + log file), markdown, YAML, IDs, permissions, progress, Zod re-export (overloaded; split tracked separately)
-- `@brains/ui-library` — Preact UI components (Header, Footer, ThemeToggle, widgets)
+- `@brains/ui-library` — React UI components (Header, Footer, ThemeToggle, widgets)
 - `@brains/site-engine` — renderer-agnostic site build engine utilities
 - `@brains/site-composition` — shared site composition contract and merge helpers
 - `@brains/test-utils` — mock factories, test harnesses, MockShell

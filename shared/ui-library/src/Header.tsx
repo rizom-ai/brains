@@ -1,4 +1,4 @@
-import type { ComponentChildren, VNode } from "preact";
+import type { ReactNode, ReactElement } from "react";
 import { Logo } from "./Logo";
 import { Button } from "./Button";
 import { LinkButton } from "./LinkButton";
@@ -30,7 +30,7 @@ export interface HeaderProps {
    * Optional wordmark slot — replaces the title/logo entirely.
    * Use this to render a structured site brand (e.g. `<Wordmark name="yeehaa" brandSuffix="io" />`).
    */
-  wordmark?: ComponentChildren;
+  wordmark?: ReactNode;
 
   /**
    * Primary navigation items
@@ -69,7 +69,7 @@ export function Header({
   cta,
   showThemeToggle = false,
   themeToggleClassName,
-}: HeaderProps): VNode {
+}: HeaderProps): ReactElement {
   const titleElement =
     wordmark ??
     (logo ? (

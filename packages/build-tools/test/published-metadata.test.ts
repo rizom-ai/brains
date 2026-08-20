@@ -15,7 +15,8 @@ describe("assertPublishedCompatibilityMetadata", () => {
         {
           peerDependencies: {
             "@rizom/brain": ">=0.2.0-alpha.217 <0.3.0",
-            preact: "^10.27.2",
+            react: "^19.2.7",
+            "react-dom": "^19.2.7",
           },
         },
         "registry packument",

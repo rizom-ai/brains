@@ -1,4 +1,4 @@
-import type { JSX, ComponentChildren } from "preact";
+import type { JSX, ReactNode } from "react";
 import { FooterContent } from "./FooterContent";
 import type { NavigationItem } from "./NavLinks";
 import type { SocialLink } from "./SocialLinks";
@@ -13,7 +13,7 @@ interface FooterProps {
   /** Tagline shown beneath the brand wordmark. */
   tagline?: string | undefined;
   /** Content to render at the top of the footer (e.g., slot components) */
-  children?: ComponentChildren;
+  children?: ReactNode;
 }
 
 export const Footer = ({

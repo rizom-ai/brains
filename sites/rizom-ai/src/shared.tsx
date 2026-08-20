@@ -1,5 +1,5 @@
-/** @jsxImportSource preact */
-import type { JSX, ComponentChildren } from "preact";
+/** @jsxImportSource react */
+import type { JSX, ReactNode } from "react";
 import { z } from "@rizom/site";
 import { Button, Section, renderHighlightedText } from "@rizom/site-rizom";
 
@@ -100,7 +100,7 @@ export function Band({
   children,
 }: {
   quote: string;
-  children?: ComponentChildren;
+  children?: ReactNode;
 }): JSX.Element {
   return (
     <Section className="relative overflow-hidden py-[74px]">

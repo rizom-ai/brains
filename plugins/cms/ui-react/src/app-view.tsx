@@ -4,6 +4,11 @@ import type {
   RuntimeOperatorActionControl,
   RuntimeOperatorLaunchIntent,
 } from "@brains/plugins";
+import {
+  ConfirmDialog,
+  OperatorViewRenderer,
+  operatorViewRendererStyles,
+} from "@brains/operator-view-react";
 import type { Dispatch, ReactElement, SetStateAction } from "react";
 import { styles } from "./app-styles";
 import type {
@@ -17,10 +22,7 @@ import type {
   TypeSchema,
 } from "./api";
 import { BodyEditor, type BodyMode } from "./body-editor";
-import { ConfirmDialog } from "./confirm-dialog";
 import type { CmsWorkspaceQuery } from "./queries";
-import declarativeWorkspaceStyles from "./declarative-workspace.css" with { type: "text" };
-import { DeclarativeWorkspace } from "./declarative-workspace";
 import {
   Field,
   FieldAssistControls,
@@ -131,7 +133,7 @@ export function CmsAppStatus(props: {
 }): ReactElement {
   return (
     <div className="studio">
-      <style>{`${styles}\n${visualRefreshStyles}\n${responsiveStyles}\n${declarativeWorkspaceStyles}`}</style>
+      <style>{`${styles}\n${visualRefreshStyles}\n${responsiveStyles}\n${operatorViewRendererStyles}`}</style>
       <p
         className={
           props.error ? "status status-error boot-status" : "status boot-status"
@@ -225,7 +227,7 @@ export function CmsAppView(props: CmsAppViewProps): ReactElement {
         activeWorkspaceId ? "workspace" : editing ? "editor" : "listing"
       }
     >
-      <style>{`${styles}\n${visualRefreshStyles}\n${responsiveStyles}\n${declarativeWorkspaceStyles}`}</style>
+      <style>{`${styles}\n${visualRefreshStyles}\n${responsiveStyles}\n${operatorViewRendererStyles}`}</style>
       <header className="crumbbar">
         <span className="crumb">
           {editing && !entitySchema.isSingleton ? (
@@ -262,7 +264,7 @@ export function CmsAppView(props: CmsAppViewProps): ReactElement {
               <p className="status status-error">{workspaceError}</p>
             </main>
           ) : declarativeWorkspaceData ? (
-            <DeclarativeWorkspace
+            <OperatorViewRenderer
               data={declarativeWorkspaceData}
               onOpenEntity={openWorkspaceEntity}
               onLaunch={openWorkspaceLaunch}

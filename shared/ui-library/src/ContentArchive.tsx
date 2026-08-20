@@ -1,4 +1,4 @@
-import { Fragment, type JSX } from "preact";
+import { Fragment, type JSX } from "react";
 import { formatDate } from "./utils/formatDate";
 import type { ContentItem } from "./ContentListItem";
 

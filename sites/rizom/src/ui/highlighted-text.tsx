@@ -1,5 +1,5 @@
-/** @jsxImportSource preact */
-import { Fragment, type JSX } from "preact";
+/** @jsxImportSource react */
+import { Fragment, type JSX } from "react";
 
 const EMPHASIS_PATTERN = /(\*[^*]+\*)/;
 

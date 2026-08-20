@@ -37,7 +37,7 @@ describe("CSS Concatenation", () => {
     const baseCSS = "@import 'tailwindcss';";
     const themeCSS = ":root { --color-brand: #00ff00; }";
 
-    // This is what happens in PreactBuilder.processStyles
+    // This is what happens in ReactBuilder.processStyles
     const finalCSS = baseCSS + "\n\n/* Custom Theme Overrides */\n" + themeCSS;
 
     expect(finalCSS).toContain("@import 'tailwindcss'");

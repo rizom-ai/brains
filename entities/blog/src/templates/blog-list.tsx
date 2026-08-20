@@ -1,4 +1,4 @@
-import type { JSX } from "preact";
+import type { JSX } from "react";
 import type { BlogPostView } from "./blog-view-schema";
 import type { PaginationInfo } from "@brains/plugins";
 import { ContentArchive, type ContentItem, Head } from "@brains/ui-library";

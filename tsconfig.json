@@ -11,7 +11,7 @@
     "moduleResolution": "bundler",
     "customConditions": ["bun"],
     "jsx": "react-jsx",
-    "jsxImportSource": "preact",
+    "jsxImportSource": "react",
     "ignoreDeprecations": "6.0",
     "resolveJsonModule": true,
     "noUnusedLocals": true,
@@ -34,7 +34,7 @@
     "module": "ESNext",
     "moduleDetection": "force",
     "verbatimModuleSyntax": true,
-    "lib": ["ES2022"]
+    "lib": ["ES2022", "DOM", "DOM.Iterable"]
   },
   "exclude": ["node_modules"]
 }

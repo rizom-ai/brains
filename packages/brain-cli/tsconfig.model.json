@@ -4,7 +4,7 @@
     "rootDir": ".",
     "outDir": "dist",
     "jsx": "react-jsx",
-    "jsxImportSource": "preact",
+    "jsxImportSource": "react",
     // TODO(brain-model-unification): Remove this separate model typecheck and
     // restore exactOptionalPropertyTypes once all catalog packages compile
     // cleanly through @rizom/brain's stricter public-package configuration.

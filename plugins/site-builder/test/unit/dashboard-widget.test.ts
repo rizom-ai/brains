@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import { h } from "preact";
-import { render } from "preact-render-to-string";
+import { createElement as h } from "react";
+import { renderToStaticMarkup as render } from "react-dom/server";
 import { SiteHealthWidget } from "../../src/lib/dashboard-widget";
 
 const siteHealth = {

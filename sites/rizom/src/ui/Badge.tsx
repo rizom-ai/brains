@@ -1,9 +1,9 @@
-/** @jsxImportSource preact */
-import type { JSX, ComponentChildren } from "preact";
+/** @jsxImportSource react */
+import type { JSX, ReactNode } from "react";
 import { cn } from "./cn";
 
 export interface BadgeProps {
-  children?: ComponentChildren;
+  children?: ReactNode;
   className?: string;
 }
 

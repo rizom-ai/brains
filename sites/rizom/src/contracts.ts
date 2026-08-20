@@ -9,7 +9,7 @@ import type {
   SiteSectionGroup,
   UserPermissionLevel,
 } from "@rizom/site";
-import type { ComponentChildren } from "preact";
+import type { ReactNode } from "react";
 
 export type {
   ComponentType,
@@ -169,7 +169,7 @@ export interface SitePackage<
 // Keeps this module as the source-owned bridge for the current runtime shape;
 // the author-facing layout props themselves come from @rizom/site.
 export interface RuntimeRizomLayoutProps {
-  sections: ComponentChildren[];
+  sections: ReactNode[];
   title: string;
   description: string;
   path: string;

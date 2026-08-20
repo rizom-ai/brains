@@ -1,14 +1,9 @@
 {
   "extends": "@brains/typescript-config/base.json",
-  "include": ["src/**/*", "../src/upload-policy.ts"],
+  "include": ["src/**/*"],
   "compilerOptions": {
     "jsx": "react-jsx",
     "jsxImportSource": "react",
-    "moduleResolution": "bundler",
-    "rootDir": "..",
-    "paths": {
-      "@/*": ["../*"]
-    },
     "lib": ["ES2022", "DOM", "DOM.Iterable"]
   }
 }

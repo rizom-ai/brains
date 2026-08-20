@@ -1,5 +1,6 @@
 // Utilities
 export { cn } from "./lib/utils";
+export { cssVariables, type CSSVariableProperties } from "./css-properties";
 
 // Alert
 export { Alert, alertVariants } from "./Alert";

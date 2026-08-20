@@ -39,12 +39,12 @@ import { expandBrainRecipe, type BrainRecipeName } from "../lib/brain-recipes";
  * `@rizom/brain` is pinned to the same version as the CLI doing the
  * scaffolding — a brain instance is always paired with the framework
  * version it was generated from. `@rizom/site` is independently versioned
- * and pinned exactly to the SDK compiled with this CLI. `preact` remains on
- * the matching JSX runtime range.
+ * and pinned exactly to the SDK compiled with this CLI. React and React DOM
+ * remain on the matching JSX and server-renderer range.
  */
 const RIZOM_BRAIN_VERSION = `^${pkg.version}`;
 const RIZOM_SITE_VERSION = sitePkg.version;
-const PREACT_VERSION = "^10.27.2";
+const REACT_VERSION = "^19.2.7";
 
 export interface ScaffoldOptions {
   recipe: BrainRecipeName;
@@ -79,7 +79,7 @@ export interface ScaffoldOptions {
  * canonical source of truth for selection/domain.
  *
  * The scaffolded shape is a real package: it has its own `package.json`
- * with `@rizom/brain` and `preact` as deps so `bun install && bunx brain
+ * with `@rizom/brain`, React, and React DOM as deps so `bun install && bunx brain
  * start` works from the new dir. Recipes with an active website surface
  * also ship local `src/site.tsx` and `src/theme.css` convention files as
  * editable starting points while `brain.yaml` stays pinned to the recipe's
@@ -557,9 +557,12 @@ function writePackageJson(dir: string): void {
     dependencies: {
       "@rizom/brain": RIZOM_BRAIN_VERSION,
       "@rizom/site": RIZOM_SITE_VERSION,
-      preact: PREACT_VERSION,
+      react: REACT_VERSION,
+      "react-dom": REACT_VERSION,
     },
     devDependencies: {
+      "@types/react": "^19.2.17",
+      "@types/react-dom": "^19.0.3",
       typescript: "^7.0.2",
     },
   };
@@ -579,7 +582,7 @@ const hero = defineSection(
     introduction: z.string(),
   }),
   ({ heading, introduction }) => (
-    <section class="hero">
+    <section className="hero">
       <h1>{heading}</h1>
       <p>{introduction}</p>
     </section>
@@ -677,8 +680,8 @@ bunx brain start
 ## What's here
 
 - \`brain.yaml\` — instance configuration (bundles, plugins, secrets, permissions)
-- \`package.json\` — pins \`@rizom/brain\` and \`preact\` for module resolution
-- \`tsconfig.json\` — JSX runtime hint (Preact)
+- \`package.json\` — pins \`@rizom/brain\`, React, and React DOM for module resolution
+- \`tsconfig.json\` — JSX runtime hint (React)
 - \`.env\` — secrets (gitignored, copy from \`.env.example\`)
 - \`brain-data/\` — content (created on first sync, gitignored by default)
 - \`data/auth/\` — local OAuth/passkey auth state (created on first run, gitignored)
@@ -702,7 +705,7 @@ function writeTsConfig(dir: string): void {
   "extends": "@rizom/brain/tsconfig.instance.json",
   "compilerOptions": {
     "jsx": "react-jsx",
-    "jsxImportSource": "preact"
+    "jsxImportSource": "react"
   }
 }
 `;

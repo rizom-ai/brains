@@ -1,11 +1,11 @@
-/** @jsxImportSource preact */
-import type { JSX, ComponentChildren } from "preact";
+/** @jsxImportSource react */
+import type { JSX, ReactNode } from "react";
 import { cn } from "./cn";
 
 export interface SectionProps {
   id?: string;
   className?: string;
-  children?: ComponentChildren;
+  children?: ReactNode;
 }
 
 export const GUTTER = "px-6 md:px-10 xl:px-20";

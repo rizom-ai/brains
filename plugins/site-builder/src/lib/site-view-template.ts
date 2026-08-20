@@ -1,4 +1,4 @@
-import type { VNode } from "preact";
+import type { ReactElement } from "react";
 import type { JsonObject } from "@brains/contracts";
 import type { SiteRuntimeScript } from "@brains/site-engine";
 import type { ZodType } from "@brains/utils/zod";
@@ -10,9 +10,9 @@ export interface SiteViewTemplate {
   schema: SiteViewTemplateSchema;
   pluginId: string;
   renderers: {
-    web?: ((props: JsonObject) => VNode) | string;
-    image?: ((props: JsonObject) => VNode) | string;
-    pdf?: ((props: JsonObject) => VNode) | string;
+    web?: ((props: JsonObject) => ReactElement) | string;
+    image?: ((props: JsonObject) => ReactElement) | string;
+    pdf?: ((props: JsonObject) => ReactElement) | string;
   };
   fullscreen?: boolean;
   runtimeScripts?: SiteRuntimeScript[];

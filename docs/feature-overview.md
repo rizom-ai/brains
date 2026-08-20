@@ -189,7 +189,7 @@ The Site bundle turns the brain's content graph into a public website. It is ind
 ### Website features
 
 - generated list and detail routes for enabled entity types;
-- reusable Preact layouts, site packages, and themes;
+- reusable React layouts, site packages, and themes;
 - local theme and site composition overrides;
 - editable site identity and section content;
 - AI generation for all sections, one route, or one section;

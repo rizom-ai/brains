@@ -3,7 +3,7 @@ import { SiteBuilderPlugin } from "../../src/plugin";
 import { createPluginHarness } from "@brains/plugins/test";
 import { createTemplate } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
-import { h } from "preact";
+import { createElement as h } from "react";
 import type { DataSource } from "@brains/plugins";
 import { createTestConfig } from "../test-helpers";
 

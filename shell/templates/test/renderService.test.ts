@@ -3,7 +3,7 @@ import { RenderService } from "../src/render-service";
 import { TemplateRegistry } from "../src/registry";
 import type { Template } from "../src/types";
 import { z } from "@brains/utils/zod";
-import { h } from "preact";
+import { createElement as h } from "react";
 
 // Test schemas
 const testSchema = z.object({

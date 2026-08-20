@@ -359,7 +359,7 @@ const seriesPosts = posts
 2. **BlogDataSource** - Fetch blog data for site rendering
 3. **BlogGenerationJobHandler** - AI-powered content generation
 4. **Tools** - `blog:generate` and `blog:publish`
-5. **Templates** - Preact components for rendering
+5. **Templates** - React components rendered to static markup
 
 ### Workflow
 

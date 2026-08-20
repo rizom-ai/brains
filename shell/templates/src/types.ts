@@ -1,14 +1,14 @@
 import { z, type ZodType } from "@brains/utils/zod";
 import type { JsonObject, JsonObjectOutputGuard } from "@brains/contracts";
 import type { ContentFormatter } from "@brains/content-formatters";
-import type { VNode } from "preact";
+import type { ReactElement } from "react";
 
 /**
- * Component type for layouts - using Preact
- * Returns a Preact VNode
+ * Component type for layouts - using React
+ * Returns a React element
  */
 export type ComponentType<P = unknown> = {
-  bivarianceHack(props: P): VNode;
+  bivarianceHack(props: P): ReactElement;
 }["bivarianceHack"];
 
 export type TemplateDataSchema<T> = ZodType<T, unknown>;

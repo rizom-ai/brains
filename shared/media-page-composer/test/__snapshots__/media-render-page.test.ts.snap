@@ -80,29 +80,6 @@ exports[`writeMediaRenderPage writes a rendered media template under _media and 
             {
               "attributes": [
                 [
-                  "content",
-                  "IE=edge",
-                ],
-                [
-                  "http-equiv",
-                  "X-UA-Compatible",
-                ],
-              ],
-              "children": [],
-              "name": "meta",
-              "namespace": "http://www.w3.org/1999/xhtml",
-              "type": "element",
-            },
-            {
-              "type": "text",
-              "value": 
-"
-    "
-,
-            },
-            {
-              "attributes": [
-                [
                   "href",
                   "/favicon.svg",
                 ],
@@ -167,6 +144,29 @@ exports[`writeMediaRenderPage writes a rendered media template under _media and 
               ],
               "children": [],
               "name": "link",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "content",
+                  "IE=edge",
+                ],
+                [
+                  "http-equiv",
+                  "X-UA-Compatible",
+                ],
+              ],
+              "children": [],
+              "name": "meta",
               "namespace": "http://www.w3.org/1999/xhtml",
               "type": "element",
             },

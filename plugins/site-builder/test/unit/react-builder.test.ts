@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { createPreactBuilder as createActualPreactBuilder } from "../../src/lib/preact-builder";
+import { createReactBuilder as createActualReactBuilder } from "../../src/lib/react-builder";
 import type { RendererTestSourceContext as BuildContext } from "../test-helpers";
 import type { SiteViewTemplate } from "../../src/lib/site-view-template";
 import type { RouteDefinition } from "@brains/site-composition";
@@ -8,7 +8,7 @@ import { z } from "@brains/utils/zod";
 import { promises as fs, mkdtempSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
-import { h, type VNode } from "preact";
+import { createElement as h, type ReactElement } from "react";
 import { MockCSSProcessor } from "../mocks/mock-css-processor";
 import { prepareRendererTestContext, TestLayout } from "../test-helpers";
 import {
@@ -20,18 +20,18 @@ import {
 const titlePropsSchema = z.object({ title: z.string() });
 const contentPropsSchema = z.object({ content: z.string() });
 
-function createPreactBuilder(
-  options: Parameters<typeof createActualPreactBuilder>[0],
+function createReactBuilder(
+  options: Parameters<typeof createActualReactBuilder>[0],
 ): {
   build(
     context: BuildContext,
     onProgress: Parameters<
-      ReturnType<typeof createActualPreactBuilder>["build"]
+      ReturnType<typeof createActualReactBuilder>["build"]
     >[1],
   ): Promise<void>;
   clean(): Promise<void>;
 } {
-  const builder = createActualPreactBuilder(options);
+  const builder = createActualReactBuilder(options);
   return {
     build: async (context, onProgress): Promise<void> => {
       await builder.build(
@@ -44,7 +44,7 @@ function createPreactBuilder(
   };
 }
 
-describe("PreactBuilder", () => {
+describe("ReactBuilder", () => {
   let testDir: string;
   let outputDir: string;
   let workingDir: string;
@@ -52,7 +52,7 @@ describe("PreactBuilder", () => {
 
   beforeEach(async () => {
     // Create temporary directories for testing
-    testDir = mkdtempSync(join(tmpdir(), "preact-builder-test-"));
+    testDir = mkdtempSync(join(tmpdir(), "react-builder-test-"));
     outputDir = join(testDir, "output");
     workingDir = join(testDir, "working");
     logger = createSilentLogger();
@@ -68,15 +68,15 @@ describe("PreactBuilder", () => {
   });
 
   it("should build a simple route", async () => {
-    const builder = createPreactBuilder({
+    const builder = createReactBuilder({
       logger,
       outputDir,
       workingDir,
       cssProcessor: new MockCSSProcessor(),
     });
 
-    // Create test component using Preact h function
-    const TestComponent = (props: Record<string, unknown>): VNode => {
+    // Create the test component without relying on a JSX transform.
+    const TestComponent = (props: Record<string, unknown>): ReactElement => {
       const { title } = titlePropsSchema.parse(props);
       return h("div", {}, title);
     };
@@ -157,7 +157,7 @@ describe("PreactBuilder", () => {
   });
 
   it("should fall back to site layout metadata when route metadata is omitted", async () => {
-    const builder = createPreactBuilder({
+    const builder = createReactBuilder({
       logger,
       outputDir,
       workingDir,
@@ -170,7 +170,7 @@ describe("PreactBuilder", () => {
         schema: z.object({ content: z.string() }),
         pluginId: "test-plugin",
         renderers: {
-          web: (props: Record<string, unknown>): VNode => {
+          web: (props: Record<string, unknown>): ReactElement => {
             const { content } = contentPropsSchema.parse(props);
             return h("div", {}, content);
           },
@@ -232,7 +232,7 @@ describe("PreactBuilder", () => {
   });
 
   it("should create nested directories for routes", async () => {
-    const builder = createPreactBuilder({
+    const builder = createReactBuilder({
       logger,
       outputDir,
       workingDir,
@@ -245,7 +245,7 @@ describe("PreactBuilder", () => {
         schema: z.object({ content: z.string() }),
         pluginId: "test-plugin",
         renderers: {
-          web: (props: Record<string, unknown>): VNode => {
+          web: (props: Record<string, unknown>): ReactElement => {
             const { content } = contentPropsSchema.parse(props);
             return h("div", {}, content);
           },
@@ -308,7 +308,7 @@ describe("PreactBuilder", () => {
   });
 
   it("should handle missing templates gracefully", async () => {
-    const builder = createPreactBuilder({
+    const builder = createReactBuilder({
       logger,
       outputDir,
       workingDir,
@@ -372,7 +372,7 @@ describe("PreactBuilder", () => {
   });
 
   it("should fetch content from entities when not provided", async () => {
-    const builder = createPreactBuilder({
+    const builder = createReactBuilder({
       logger,
       outputDir,
       workingDir,
@@ -388,7 +388,7 @@ describe("PreactBuilder", () => {
         schema: z.object({ title: z.string() }),
         pluginId: "test-plugin",
         renderers: {
-          web: (props: Record<string, unknown>): VNode => {
+          web: (props: Record<string, unknown>): ReactElement => {
             const { title } = titlePropsSchema.parse(props);
             return h("div", {}, title);
           },
@@ -457,7 +457,7 @@ describe("PreactBuilder", () => {
   });
 
   it("should inject route title and pageLabel into section content", async () => {
-    const builder = createPreactBuilder({
+    const builder = createReactBuilder({
       logger,
       outputDir,
       workingDir,
@@ -475,7 +475,7 @@ describe("PreactBuilder", () => {
         schema: injectedPropsSchema,
         pluginId: "test-plugin",
         renderers: {
-          web: (props: Record<string, unknown>): VNode => {
+          web: (props: Record<string, unknown>): ReactElement => {
             const { pageTitle, pageLabel } = injectedPropsSchema.parse(props);
             return h(
               "div",
@@ -542,7 +542,7 @@ describe("PreactBuilder", () => {
   });
 
   it("should clean up directories but preserve images/", async () => {
-    const builder = createPreactBuilder({
+    const builder = createReactBuilder({
       logger,
       outputDir,
       workingDir,
@@ -590,7 +590,7 @@ describe("PreactBuilder", () => {
 
   describe("UI Slots", () => {
     it("should pass slots to layout component", async () => {
-      const builder = createPreactBuilder({
+      const builder = createReactBuilder({
         logger,
         outputDir,
         workingDir,
@@ -603,7 +603,11 @@ describe("PreactBuilder", () => {
       slotRegistry.register("footer-top", {
         pluginId: "newsletter",
         render: () =>
-          h("div", { class: "newsletter" }, "Subscribe to newsletter"),
+          h(
+            "div",
+            { className: "newsletter", key: "newsletter" },
+            "Subscribe to newsletter",
+          ),
       });
 
       // Track if slots were passed to layout
@@ -616,7 +620,7 @@ describe("PreactBuilder", () => {
           slots?.hasSlot("footer-top")
             ? h(
                 "footer",
-                {},
+                { key: "footer" },
                 slots.getSlot("footer-top").map((entry) => entry.render()),
               )
             : null,
@@ -629,7 +633,7 @@ describe("PreactBuilder", () => {
           schema: z.object({ title: z.string() }),
           pluginId: "test-plugin",
           renderers: {
-            web: (props: Record<string, unknown>): VNode => {
+            web: (props: Record<string, unknown>): ReactElement => {
               const { title } = titlePropsSchema.parse(props);
               return h("div", {}, title);
             },
@@ -692,7 +696,7 @@ describe("PreactBuilder", () => {
     });
 
     it("should render slots in priority order", async () => {
-      const builder = createPreactBuilder({
+      const builder = createReactBuilder({
         logger,
         outputDir,
         workingDir,
@@ -704,17 +708,17 @@ describe("PreactBuilder", () => {
       // Register render functions with different priorities
       slotRegistry.register("footer-top", {
         pluginId: "low-priority",
-        render: (): VNode => h("span", {}, "Low"),
+        render: (): ReactElement => h("span", { key: "low" }, "Low"),
         priority: 10,
       });
       slotRegistry.register("footer-top", {
         pluginId: "high-priority",
-        render: (): VNode => h("span", {}, "High"),
+        render: (): ReactElement => h("span", { key: "high" }, "High"),
         priority: 100,
       });
       slotRegistry.register("footer-top", {
         pluginId: "medium-priority",
-        render: (): VNode => h("span", {}, "Medium"),
+        render: (): ReactElement => h("span", { key: "medium" }, "Medium"),
         priority: 50,
       });
 
@@ -723,7 +727,7 @@ describe("PreactBuilder", () => {
           ...sections,
           h(
             "div",
-            { id: "slot-container" },
+            { id: "slot-container", key: "slot-container" },
             slots?.getSlot("footer-top").map((entry) => entry.render()),
           ),
         ]);
@@ -734,7 +738,7 @@ describe("PreactBuilder", () => {
           name: "test",
           schema: z.object({}),
           pluginId: "test-plugin",
-          renderers: { web: (): VNode => h("div", {}, "Content") },
+          renderers: { web: (): ReactElement => h("div", {}, "Content") },
         }),
         registerRoute: (): void => {},
         getRoute: (): undefined => undefined,
@@ -783,7 +787,7 @@ describe("PreactBuilder", () => {
     });
 
     it("should handle empty slot registry gracefully", async () => {
-      const builder = createPreactBuilder({
+      const builder = createReactBuilder({
         logger,
         outputDir,
         workingDir,
@@ -799,10 +803,14 @@ describe("PreactBuilder", () => {
           slots?.hasSlot("footer-top")
             ? h(
                 "footer",
-                {},
+                { key: "footer" },
                 slots.getSlot("footer-top").map((entry) => entry.render()),
               )
-            : h("footer", { id: "empty-footer" }, "Default footer"),
+            : h(
+                "footer",
+                { id: "empty-footer", key: "footer" },
+                "Default footer",
+              ),
         ]);
       };
 
@@ -811,7 +819,7 @@ describe("PreactBuilder", () => {
           name: "test",
           schema: z.object({}),
           pluginId: "test-plugin",
-          renderers: { web: (): VNode => h("div", {}, "Content") },
+          renderers: { web: (): ReactElement => h("div", {}, "Content") },
         }),
         registerRoute: (): void => {},
         getRoute: (): undefined => undefined,
@@ -857,7 +865,7 @@ describe("PreactBuilder", () => {
     });
 
     it("should work without slots (backwards compatibility)", async () => {
-      const builder = createPreactBuilder({
+      const builder = createReactBuilder({
         logger,
         outputDir,
         workingDir,
@@ -872,8 +880,8 @@ describe("PreactBuilder", () => {
         return h("main", {}, [
           ...sections,
           slots?.hasSlot("footer-top")
-            ? h("footer", {}, "Has slots")
-            : h("footer", {}, "No slots"),
+            ? h("footer", { key: "footer" }, "Has slots")
+            : h("footer", { key: "footer" }, "No slots"),
         ]);
       };
 
@@ -882,7 +890,7 @@ describe("PreactBuilder", () => {
           name: "test",
           schema: z.object({}),
           pluginId: "test-plugin",
-          renderers: { web: (): VNode => h("div", {}, "Content") },
+          renderers: { web: (): ReactElement => h("div", {}, "Content") },
         }),
         registerRoute: (): void => {},
         getRoute: (): undefined => undefined,

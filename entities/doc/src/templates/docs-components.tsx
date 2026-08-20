@@ -1,4 +1,4 @@
-import type { ComponentChildren, JSX } from "preact";
+import type { ReactNode, JSX } from "react";
 import { Head } from "@brains/ui-library";
 import type { DocWithData } from "../schemas/doc";
 import {
@@ -15,7 +15,7 @@ import {
 interface DocsPageShellProps {
   title: string;
   description: string;
-  children: ComponentChildren;
+  children: ReactNode;
   detail?: boolean;
   footer?: boolean;
   contentClassName?: string;

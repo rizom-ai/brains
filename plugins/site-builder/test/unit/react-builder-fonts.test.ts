@@ -1,10 +1,10 @@
 import { describe, test, expect } from "bun:test";
-import { PreactBuilder } from "../../src/lib/preact-builder";
+import { ReactBuilder } from "../../src/lib/react-builder";
 import { createSilentLogger } from "@brains/test-utils";
 
-describe("PreactBuilder - extractFontImports", () => {
+describe("ReactBuilder - extractFontImports", () => {
   const logger = createSilentLogger("test");
-  const builder = new PreactBuilder({
+  const builder = new ReactBuilder({
     logger,
     outputDir: "/tmp/out",
     workingDir: "/tmp/work",

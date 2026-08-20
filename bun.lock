@@ -17,6 +17,7 @@
         "@manypkg/cli": "^0.25.1",
         "@manypkg/get-packages": "^1.1.3",
         "@modelcontextprotocol/sdk": "^1.30.0",
+        "@types/react": "^19.2.17",
         "ai": "^6.0.206",
         "dependency-cruiser": "^17.4.3",
         "eslint": "^10.5.0",
@@ -24,8 +25,8 @@
         "ink-testing-library": "^4.0.0",
         "lint-staged": "^17.0.7",
         "playwright-core": "^1.61.0",
-        "preact": "^10.27.2",
         "prettier": "^3.8.4",
+        "react": "^19.2.7",
         "sharp": "^0.35.1",
         "syncpack": "^15.3.2",
         "turbo": "^2.9.18",
@@ -35,7 +36,7 @@
     },
     "entities/agent-discovery": {
       "name": "@brains/agent-discovery",
-      "version": "0.2.0-alpha.309",
+      "version": "0.2.0-alpha.313",
       "dependencies": {
         "@brains/atproto-contracts": "workspace:*",
         "@brains/auth-service": "workspace:*",
@@ -47,12 +48,13 @@
         "@brains/templates": "workspace:*",
         "@brains/ui-library": "workspace:*",
         "@brains/utils": "workspace:*",
-        "preact": "^10.27.2",
+        "react": "^19.2.7",
       },
       "devDependencies": {
         "@brains/eslint-config": "workspace:*",
         "@brains/typescript-config": "workspace:*",
         "@types/bun": "^1.3.14",
+        "@types/react": "^19.2.17",
         "bun-types": "^1.3.14",
         "eslint": "^10.5.0",
         "typescript": "^7.0.2",
@@ -60,19 +62,20 @@
     },
     "entities/assessment": {
       "name": "@brains/assessment",
-      "version": "0.2.0-alpha.309",
+      "version": "0.2.0-alpha.313",
       "dependencies": {
         "@brains/content-formatters": "workspace:*",
         "@brains/contracts": "workspace:*",
         "@brains/dashboard": "workspace:*",
         "@brains/plugins": "workspace:*",
         "@brains/utils": "workspace:*",
-        "preact": "^10.27.2",
+        "react": "^19.2.7",
       },
       "devDependencies": {
         "@brains/eslint-config": "workspace:*",
         "@brains/typescript-config": "workspace:*",
         "@types/bun": "^1.3.14",
+        "@types/react": "^19.2.17",
         "bun-types": "^1.3.14",
         "eslint": "^10.5.0",
         "typescript": "^7.0.2",
@@ -80,7 +83,7 @@
     },
     "entities/blog": {
       "name": "@brains/blog",
-      "version": "0.2.0-alpha.309",
+      "version": "0.2.0-alpha.313",
       "dependencies": {
         "@brains/atproto-contracts": "workspace:*",
         "@brains/contracts": "workspace:*",
@@ -102,7 +105,7 @@
     },
     "entities/conversation-memory": {
       "name": "@brains/conversation-memory",
-      "version": "0.2.0-alpha.309",
+      "version": "0.2.0-alpha.313",
       "dependencies": {
         "@brains/content-formatters": "workspace:*",
         "@brains/contracts": "workspace:*",
@@ -112,20 +115,21 @@
         "@brains/templates": "workspace:*",
         "@brains/ui-library": "workspace:*",
         "@brains/utils": "workspace:*",
-        "preact": "^10.27.2",
+        "react": "^19.2.7",
       },
       "devDependencies": {
         "@brains/eslint-config": "workspace:*",
         "@brains/test-utils": "workspace:*",
         "@brains/typescript-config": "workspace:*",
         "@types/node": "^24.13.3",
+        "@types/react": "^19.2.17",
         "eslint": "^10.5.0",
         "typescript": "^7.0.2",
       },
     },
     "entities/decks": {
       "name": "@brains/decks",
-      "version": "0.2.0-alpha.309",
+      "version": "0.2.0-alpha.313",
       "dependencies": {
         "@brains/atproto-contracts": "workspace:*",
         "@brains/content-formatters": "workspace:*",
@@ -151,24 +155,25 @@
     },
     "entities/doc": {
       "name": "@brains/doc",
-      "version": "0.2.0-alpha.309",
+      "version": "0.2.0-alpha.313",
       "dependencies": {
         "@brains/plugins": "workspace:*",
         "@brains/templates": "workspace:*",
         "@brains/ui-library": "workspace:*",
         "@brains/utils": "workspace:*",
-        "preact": "^10.27.2",
+        "react": "^19.2.7",
       },
       "devDependencies": {
         "@brains/test-utils": "workspace:*",
         "@brains/typescript-config": "workspace:*",
+        "@types/react": "^19.2.17",
         "bun-types": "^1.3.14",
         "typescript": "^7.0.2",
       },
     },
     "entities/document": {
       "name": "@brains/document-plugin",
-      "version": "0.2.0-alpha.309",
+      "version": "0.2.0-alpha.313",
       "dependencies": {
         "@brains/contracts": "workspace:*",
         "@brains/document": "workspace:*",
@@ -185,7 +190,7 @@
     },
     "entities/image": {
       "name": "@brains/image-plugin",
-      "version": "0.2.0-alpha.309",
+      "version": "0.2.0-alpha.313",
       "dependencies": {
         "@brains/contracts": "workspace:*",
         "@brains/entity-service": "workspace:*",
@@ -204,7 +209,7 @@
     },
     "entities/link": {
       "name": "@brains/link",
-      "version": "0.2.0-alpha.309",
+      "version": "0.2.0-alpha.313",
       "dependencies": {
         "@brains/atproto-contracts": "workspace:*",
         "@brains/content-formatters": "workspace:*",
@@ -224,7 +229,7 @@
     },
     "entities/note": {
       "name": "@brains/note",
-      "version": "0.2.0-alpha.309",
+      "version": "0.2.0-alpha.313",
       "dependencies": {
         "@brains/atproto-contracts": "workspace:*",
         "@brains/contracts": "workspace:*",
@@ -245,7 +250,7 @@
     },
     "entities/portfolio": {
       "name": "@brains/portfolio",
-      "version": "0.2.0-alpha.309",
+      "version": "0.2.0-alpha.313",
       "dependencies": {
         "@brains/atproto-contracts": "workspace:*",
         "@brains/content-formatters": "workspace:*",
@@ -266,7 +271,7 @@
     },
     "entities/products": {
       "name": "@brains/products",
-      "version": "0.2.0-alpha.309",
+      "version": "0.2.0-alpha.313",
       "dependencies": {
         "@brains/content-formatters": "workspace:*",
         "@brains/contracts": "workspace:*",
@@ -287,7 +292,7 @@
     },
     "entities/prompt": {
       "name": "@brains/prompt",
-      "version": "0.2.0-alpha.309",
+      "version": "0.2.0-alpha.313",
       "dependencies": {
         "@brains/plugins": "workspace:*",
         "@brains/utils": "workspace:*",
@@ -301,7 +306,7 @@
     },
     "entities/series": {
       "name": "@brains/series",
-      "version": "0.2.0-alpha.309",
+      "version": "0.2.0-alpha.313",
       "dependencies": {
         "@brains/atproto-contracts": "workspace:*",
         "@brains/content-formatters": "workspace:*",
@@ -324,7 +329,7 @@
     },
     "entities/site-info": {
       "name": "@brains/site-info",
-      "version": "0.2.0-alpha.309",
+      "version": "0.2.0-alpha.313",
       "dependencies": {
         "@brains/contracts": "workspace:*",
         "@brains/entity-service": "workspace:*",
@@ -344,7 +349,7 @@
     },
     "entities/social-media": {
       "name": "@brains/social-media",
-      "version": "0.2.0-alpha.309",
+      "version": "0.2.0-alpha.313",
       "dependencies": {
         "@brains/atproto-contracts": "workspace:*",
         "@brains/contracts": "workspace:*",
@@ -364,7 +369,7 @@
     },
     "entities/style-guide": {
       "name": "@brains/style-guide",
-      "version": "0.2.0-alpha.309",
+      "version": "0.2.0-alpha.313",
       "dependencies": {
         "@brains/contracts": "workspace:*",
         "@brains/plugins": "workspace:*",
@@ -382,7 +387,7 @@
     },
     "entities/topics": {
       "name": "@brains/topics",
-      "version": "0.2.0-alpha.309",
+      "version": "0.2.0-alpha.313",
       "dependencies": {
         "@brains/atproto-contracts": "workspace:*",
         "@brains/content-formatters": "workspace:*",
@@ -402,7 +407,7 @@
     },
     "entities/wishlist": {
       "name": "@brains/wishlist",
-      "version": "0.2.0-alpha.309",
+      "version": "0.2.0-alpha.313",
       "dependencies": {
         "@brains/plugins": "workspace:*",
         "@brains/utils": "workspace:*",
@@ -418,7 +423,7 @@
     },
     "interfaces/a2a": {
       "name": "@brains/a2a",
-      "version": "0.2.0-alpha.309",
+      "version": "0.2.0-alpha.313",
       "dependencies": {
         "@a2a-js/sdk": "^0.3.13",
         "@brains/auth-service": "workspace:*",
@@ -438,7 +443,7 @@
     },
     "interfaces/chat": {
       "name": "@brains/chat",
-      "version": "0.2.0-alpha.309",
+      "version": "0.2.0-alpha.313",
       "dependencies": {
         "@brains/auth-service": "workspace:*",
         "@brains/plugins": "workspace:*",
@@ -458,7 +463,7 @@
     },
     "interfaces/chat-repl": {
       "name": "@brains/chat-repl",
-      "version": "0.2.0-alpha.309",
+      "version": "0.2.0-alpha.313",
       "dependencies": {
         "@brains/plugins": "workspace:*",
         "@brains/utils": "workspace:*",
@@ -479,7 +484,7 @@
     },
     "interfaces/email": {
       "name": "@brains/email",
-      "version": "0.2.0-alpha.309",
+      "version": "0.2.0-alpha.313",
       "dependencies": {
         "@brains/contracts": "workspace:*",
         "@brains/plugins": "workspace:*",
@@ -500,7 +505,7 @@
     },
     "interfaces/mcp": {
       "name": "@brains/mcp",
-      "version": "0.2.0-alpha.309",
+      "version": "0.2.0-alpha.313",
       "dependencies": {
         "@brains/auth-service": "workspace:*",
         "@brains/contracts": "workspace:*",
@@ -519,7 +524,7 @@
     },
     "interfaces/web-chat": {
       "name": "@brains/web-chat",
-      "version": "0.2.0-alpha.309",
+      "version": "0.2.0-alpha.313",
       "dependencies": {
         "@ai-sdk/react": "^3.0.208",
         "@brains/auth-service": "workspace:*",
@@ -559,7 +564,7 @@
     },
     "interfaces/webserver": {
       "name": "@brains/webserver",
-      "version": "0.2.0-alpha.309",
+      "version": "0.2.0-alpha.313",
       "dependencies": {
         "@brains/contracts": "workspace:*",
         "@brains/plugins": "workspace:*",
@@ -578,7 +583,7 @@
     },
     "packages/brain-cli": {
       "name": "@rizom/brain",
-      "version": "0.2.0-alpha.309",
+      "version": "0.2.0-alpha.313",
       "bin": {
         "brain": "./dist/brain.js",
       },
@@ -588,8 +593,8 @@
         "@tailwindcss/postcss": "^4.3.1",
         "@tailwindcss/typography": "^0.5.20",
         "postcss": "^8.5.15",
-        "preact": "^10.27.2",
-        "preact-render-to-string": "^6.7.0",
+        "react": "^19.2.7",
+        "react-dom": "^19.2.7",
         "tailwindcss": "^4.3.1",
         "yaml": "^2.9.0",
         "zod": "^4.1.8",
@@ -662,6 +667,8 @@
         "@rizom/site-rizom": "workspace:*",
         "@rizom/theme-default": "workspace:*",
         "@types/bun": "^1.3.14",
+        "@types/react": "^19.2.17",
+        "@types/react-dom": "^19.0.3",
         "rolldown": "^1.0.0",
         "rolldown-plugin-dts": "^0.27.4",
         "typescript": "^7.0.2",
@@ -678,7 +685,7 @@
     },
     "packages/brains-ops": {
       "name": "@rizom/ops",
-      "version": "0.2.0-alpha.309",
+      "version": "0.2.0-alpha.313",
       "bin": {
         "brains-ops": "./dist/brains-ops.js",
       },
@@ -700,7 +707,7 @@
     },
     "packages/build-tools": {
       "name": "@brains/build-tools",
-      "version": "0.2.0-alpha.309",
+      "version": "0.2.0-alpha.313",
       "bin": {
         "publish-manifest": "./src/cli.ts",
       },
@@ -726,17 +733,21 @@
         "@brains/eslint-config": "workspace:*",
         "@brains/typescript-config": "workspace:*",
         "@types/bun": "^1.3.14",
+        "@types/react": "^19.2.17",
+        "@types/react-dom": "^19.0.3",
         "eslint": "^10.5.0",
-        "preact": "^10.27.2",
+        "react": "^19.2.7",
+        "react-dom": "^19.2.7",
         "typescript": "^7.0.2",
       },
       "peerDependencies": {
-        "preact": "^10.27.2",
+        "react": "^19.2.7",
+        "react-dom": "^19.2.7",
       },
     },
     "plugins/admin": {
       "name": "@brains/admin",
-      "version": "0.2.0-alpha.309",
+      "version": "0.2.0-alpha.313",
       "dependencies": {
         "@brains/auth-service": "workspace:*",
         "@brains/console-theme": "workspace:*",
@@ -760,7 +771,7 @@
     },
     "plugins/analytics": {
       "name": "@brains/analytics",
-      "version": "0.2.0-alpha.309",
+      "version": "0.2.0-alpha.313",
       "dependencies": {
         "@brains/contracts": "workspace:*",
         "@brains/plugins": "workspace:*",
@@ -778,7 +789,7 @@
     },
     "plugins/atproto": {
       "name": "@brains/atproto",
-      "version": "0.2.0-alpha.309",
+      "version": "0.2.0-alpha.313",
       "dependencies": {
         "@brains/atproto-contracts": "workspace:*",
         "@brains/contracts": "workspace:*",
@@ -797,7 +808,7 @@
     },
     "plugins/atproto-registry": {
       "name": "@brains/atproto-registry",
-      "version": "0.2.0-alpha.309",
+      "version": "0.2.0-alpha.313",
       "dependencies": {
         "@brains/atproto-contracts": "workspace:*",
         "@brains/plugins": "workspace:*",
@@ -815,11 +826,12 @@
     },
     "plugins/cms": {
       "name": "@brains/cms",
-      "version": "0.2.0-alpha.309",
+      "version": "0.2.0-alpha.313",
       "dependencies": {
         "@brains/auth-service": "workspace:*",
         "@brains/console-theme": "workspace:*",
         "@brains/contracts": "workspace:*",
+        "@brains/operator-view-react": "workspace:*",
         "@brains/plugins": "workspace:*",
         "@brains/utils": "workspace:*",
         "@codemirror/lang-markdown": "^6.5.0",
@@ -849,7 +861,7 @@
     },
     "plugins/content-pipeline": {
       "name": "@brains/content-pipeline",
-      "version": "0.2.0-alpha.309",
+      "version": "0.2.0-alpha.313",
       "dependencies": {
         "@brains/contracts": "workspace:*",
         "@brains/plugins": "workspace:*",
@@ -866,22 +878,25 @@
     },
     "plugins/dashboard": {
       "name": "@brains/dashboard",
-      "version": "0.2.0-alpha.309",
+      "version": "0.2.0-alpha.313",
       "dependencies": {
         "@brains/auth-service": "workspace:*",
         "@brains/console-theme": "workspace:*",
         "@brains/contracts": "workspace:*",
+        "@brains/operator-view-react": "workspace:*",
         "@brains/plugins": "workspace:*",
         "@brains/ui-library": "workspace:*",
         "@brains/utils": "workspace:*",
-        "preact": "^10.27.2",
-        "preact-render-to-string": "^6.7.0",
+        "react": "^19.2.7",
+        "react-dom": "^19.2.7",
       },
       "devDependencies": {
         "@brains/eslint-config": "workspace:*",
         "@brains/test-utils": "workspace:*",
         "@brains/typescript-config": "workspace:*",
         "@types/bun": "^1.3.14",
+        "@types/react": "^19.2.17",
+        "@types/react-dom": "^19.0.3",
         "bun-types": "^1.3.14",
         "eslint": "^10.5.0",
         "happy-dom": "^20.10.6",
@@ -890,7 +905,7 @@
     },
     "plugins/directory-sync": {
       "name": "@brains/directory-sync",
-      "version": "0.2.0-alpha.309",
+      "version": "0.2.0-alpha.313",
       "dependencies": {
         "@brains/content-formatters": "workspace:*",
         "@brains/contracts": "workspace:*",
@@ -910,40 +925,43 @@
     },
     "plugins/email-workflows": {
       "name": "@brains/email-workflows",
-      "version": "0.2.0-alpha.309",
+      "version": "0.2.0-alpha.313",
       "dependencies": {
         "@brains/contracts": "workspace:*",
         "@brains/plugins": "workspace:*",
         "@brains/ui-library": "workspace:*",
         "@brains/utils": "workspace:*",
-        "preact": "^10.27.2",
+        "react": "^19.2.7",
       },
       "devDependencies": {
         "@brains/eslint-config": "workspace:*",
         "@brains/test-utils": "workspace:*",
         "@brains/typescript-config": "workspace:*",
         "@types/bun": "^1.3.14",
+        "@types/react": "^19.2.17",
+        "@types/react-dom": "^19.0.3",
         "bun-types": "^1.3.14",
         "eslint": "^10.5.0",
-        "preact-render-to-string": "^6.7.0",
+        "react-dom": "^19.2.7",
         "typescript": "^7.0.2",
       },
     },
     "plugins/newsletter": {
       "name": "@brains/newsletter",
-      "version": "0.2.0-alpha.309",
+      "version": "0.2.0-alpha.313",
       "dependencies": {
         "@brains/contracts": "workspace:*",
         "@brains/plugins": "workspace:*",
         "@brains/ui-library": "workspace:*",
         "@brains/utils": "workspace:*",
-        "preact": "^10.27.2",
+        "react": "^19.2.7",
       },
       "devDependencies": {
         "@brains/eslint-config": "workspace:*",
         "@brains/test-utils": "workspace:*",
         "@brains/typescript-config": "workspace:*",
         "@types/bun": "^1.3.14",
+        "@types/react": "^19.2.17",
         "bun-types": "^1.3.14",
         "eslint": "^10.5.0",
         "typescript": "^7.0.2",
@@ -951,7 +969,7 @@
     },
     "plugins/notifications": {
       "name": "@brains/notifications",
-      "version": "0.2.0-alpha.309",
+      "version": "0.2.0-alpha.313",
       "dependencies": {
         "@brains/contracts": "workspace:*",
         "@brains/plugins": "workspace:*",
@@ -969,7 +987,7 @@
     },
     "plugins/obsidian-vault": {
       "name": "@brains/obsidian-vault",
-      "version": "0.2.0-alpha.309",
+      "version": "0.2.0-alpha.313",
       "dependencies": {
         "@brains/plugins": "workspace:*",
         "@brains/utils": "workspace:*",
@@ -985,7 +1003,7 @@
     },
     "plugins/onboarding": {
       "name": "@brains/onboarding",
-      "version": "0.2.0-alpha.309",
+      "version": "0.2.0-alpha.313",
       "dependencies": {
         "@brains/contracts": "workspace:*",
         "@brains/plugins": "workspace:*",
@@ -1004,7 +1022,7 @@
     },
     "plugins/playbooks": {
       "name": "@brains/playbooks",
-      "version": "0.2.0-alpha.309",
+      "version": "0.2.0-alpha.313",
       "dependencies": {
         "@brains/content-formatters": "workspace:*",
         "@brains/contracts": "workspace:*",
@@ -1025,7 +1043,7 @@
     },
     "plugins/profile": {
       "name": "@brains/profile",
-      "version": "0.2.0-alpha.309",
+      "version": "0.2.0-alpha.313",
       "dependencies": {
         "@brains/plugins": "workspace:*",
         "@brains/utils": "workspace:*",
@@ -1041,7 +1059,7 @@
     },
     "plugins/site-builder": {
       "name": "@brains/site-builder-plugin",
-      "version": "0.2.0-alpha.309",
+      "version": "0.2.0-alpha.313",
       "dependencies": {
         "@brains/contracts": "workspace:*",
         "@brains/image": "workspace:*",
@@ -1051,21 +1069,23 @@
         "@brains/ui-library": "workspace:*",
         "@brains/utils": "workspace:*",
         "@tailwindcss/typography": "^0.5.20",
-        "preact": "^10.27.2",
-        "preact-render-to-string": "^6.7.0",
+        "react": "^19.2.7",
+        "react-dom": "^19.2.7",
       },
       "devDependencies": {
         "@brains/eslint-config": "workspace:*",
         "@brains/test-utils": "workspace:*",
         "@brains/typescript-config": "workspace:*",
         "@types/bun": "^1.3.14",
+        "@types/react": "^19.2.17",
+        "@types/react-dom": "^19.0.3",
         "eslint": "^10.5.0",
         "typescript": "^7.0.2",
       },
     },
     "plugins/site-content": {
       "name": "@brains/site-content",
-      "version": "0.2.0-alpha.309",
+      "version": "0.2.0-alpha.313",
       "dependencies": {
         "@brains/content-formatters": "workspace:*",
         "@brains/contracts": "workspace:*",
@@ -1085,7 +1105,7 @@
     },
     "plugins/stock-photo": {
       "name": "@brains/stock-photo",
-      "version": "0.2.0-alpha.309",
+      "version": "0.2.0-alpha.313",
       "dependencies": {
         "@brains/image": "workspace:*",
         "@brains/plugins": "workspace:*",
@@ -1103,12 +1123,12 @@
     },
     "plugins/unified-inbox": {
       "name": "@brains/unified-inbox",
-      "version": "0.2.0-alpha.309",
+      "version": "0.2.0-alpha.313",
       "dependencies": {
         "@brains/plugins": "workspace:*",
         "@brains/ui-library": "workspace:*",
         "@brains/utils": "workspace:*",
-        "preact": "^10.27.2",
+        "react": "^19.2.7",
       },
       "devDependencies": {
         "@brains/eslint-config": "workspace:*",
@@ -1116,15 +1136,17 @@
         "@brains/typescript-config": "workspace:*",
         "@modelcontextprotocol/sdk": "^1.30.0",
         "@types/bun": "^1.3.14",
+        "@types/react": "^19.2.17",
+        "@types/react-dom": "^19.0.3",
         "bun-types": "^1.3.14",
         "eslint": "^10.5.0",
-        "preact-render-to-string": "^6.7.0",
+        "react-dom": "^19.2.7",
         "typescript": "^7.0.2",
       },
     },
     "shared/atproto-contracts": {
       "name": "@brains/atproto-contracts",
-      "version": "0.2.0-alpha.309",
+      "version": "0.2.0-alpha.313",
       "dependencies": {
         "@brains/entity-service": "workspace:*",
         "@brains/utils": "workspace:*",
@@ -1141,7 +1163,7 @@
     },
     "shared/console-theme": {
       "name": "@brains/console-theme",
-      "version": "0.2.0-alpha.309",
+      "version": "0.2.0-alpha.313",
       "dependencies": {
         "@brains/contracts": "workspace:*",
       },
@@ -1156,7 +1178,7 @@
     },
     "shared/content-formatters": {
       "name": "@brains/content-formatters",
-      "version": "0.2.0-alpha.309",
+      "version": "0.2.0-alpha.313",
       "dependencies": {
         "@brains/contracts": "workspace:*",
         "@brains/utils": "workspace:*",
@@ -1175,7 +1197,7 @@
     },
     "shared/contracts": {
       "name": "@brains/contracts",
-      "version": "0.2.0-alpha.309",
+      "version": "0.2.0-alpha.313",
       "dependencies": {
         "@brains/utils": "workspace:*",
       },
@@ -1189,7 +1211,7 @@
     },
     "shared/db": {
       "name": "@brains/db",
-      "version": "0.2.0-alpha.309",
+      "version": "0.2.0-alpha.313",
       "dependencies": {
         "@brains/utils": "workspace:*",
         "@libsql/client": "^0.17.4",
@@ -1206,7 +1228,7 @@
     },
     "shared/deploy-support": {
       "name": "@brains/deploy-support",
-      "version": "0.2.0-alpha.309",
+      "version": "0.2.0-alpha.313",
       "dependencies": {
         "@brains/utils": "workspace:*",
       },
@@ -1220,7 +1242,7 @@
     },
     "shared/document": {
       "name": "@brains/document",
-      "version": "0.2.0-alpha.309",
+      "version": "0.2.0-alpha.313",
       "dependencies": {
         "@brains/entity-service": "workspace:*",
         "@brains/utils": "workspace:*",
@@ -1235,7 +1257,7 @@
     },
     "shared/eslint-config": {
       "name": "@brains/eslint-config",
-      "version": "0.2.0-alpha.309",
+      "version": "0.2.0-alpha.313",
       "dependencies": {
         "@typescript-eslint/eslint-plugin": "^8.61.1",
         "@typescript-eslint/parser": "^8.61.1",
@@ -1244,7 +1266,7 @@
     },
     "shared/http-signatures": {
       "name": "@brains/http-signatures",
-      "version": "0.2.0-alpha.309",
+      "version": "0.2.0-alpha.313",
       "devDependencies": {
         "@brains/eslint-config": "workspace:*",
         "@brains/typescript-config": "workspace:*",
@@ -1254,7 +1276,7 @@
     },
     "shared/image": {
       "name": "@brains/image",
-      "version": "0.2.0-alpha.309",
+      "version": "0.2.0-alpha.313",
       "dependencies": {
         "@brains/entity-service": "workspace:*",
         "@brains/utils": "workspace:*",
@@ -1272,7 +1294,7 @@
     },
     "shared/media-page-composer": {
       "name": "@brains/media-page-composer",
-      "version": "0.2.0-alpha.309",
+      "version": "0.2.0-alpha.313",
       "dependencies": {
         "@brains/contracts": "workspace:*",
         "@brains/media-renderer": "workspace:*",
@@ -1280,20 +1302,22 @@
         "@brains/site-engine": "workspace:*",
         "@brains/ui-library": "workspace:*",
         "@brains/utils": "workspace:*",
-        "preact": "^10.27.2",
-        "preact-render-to-string": "^6.7.0",
+        "react": "^19.2.7",
+        "react-dom": "^19.2.7",
       },
       "devDependencies": {
         "@brains/eslint-config": "workspace:*",
         "@brains/test-utils": "workspace:*",
         "@brains/typescript-config": "workspace:*",
         "@types/bun": "^1.3.14",
+        "@types/react": "^19.2.17",
+        "@types/react-dom": "^19.0.3",
         "typescript": "^7.0.2",
       },
     },
     "shared/media-renderer": {
       "name": "@brains/media-renderer",
-      "version": "0.2.0-alpha.309",
+      "version": "0.2.0-alpha.313",
       "dependencies": {
         "@brains/utils": "workspace:*",
         "playwright-core": "^1.61.0",
@@ -1307,7 +1331,7 @@
     },
     "shared/operation-context": {
       "name": "@brains/operation-context",
-      "version": "0.2.0-alpha.309",
+      "version": "0.2.0-alpha.313",
       "dependencies": {
         "@brains/contracts": "workspace:*",
       },
@@ -1318,9 +1342,29 @@
         "typescript": "^7.0.2",
       },
     },
+    "shared/operator-view-react": {
+      "name": "@brains/operator-view-react",
+      "version": "0.2.0-alpha.313",
+      "dependencies": {
+        "@brains/plugins": "workspace:*",
+        "@brains/ui-library": "workspace:*",
+        "react": "^19.2.7",
+      },
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/bun": "^1.3.14",
+        "@types/react": "^19.2.17",
+        "@types/react-dom": "^19.0.3",
+        "eslint": "^10.5.0",
+        "happy-dom": "^20.10.6",
+        "react-dom": "^19.2.7",
+        "typescript": "^7.0.2",
+      },
+    },
     "shared/site-composition": {
       "name": "@brains/site-composition",
-      "version": "0.2.0-alpha.309",
+      "version": "0.2.0-alpha.313",
       "dependencies": {
         "@brains/content-formatters": "workspace:*",
         "@brains/templates": "workspace:*",
@@ -1330,14 +1374,15 @@
         "@brains/eslint-config": "workspace:*",
         "@brains/typescript-config": "workspace:*",
         "@rizom/site": "workspace:*",
+        "@types/react": "^19.2.17",
         "eslint": "^10.5.0",
-        "preact": "^10.27.2",
+        "react": "^19.2.7",
         "typescript": "^7.0.2",
       },
     },
     "shared/site-engine": {
       "name": "@brains/site-engine",
-      "version": "0.2.0-alpha.309",
+      "version": "0.2.0-alpha.313",
       "dependencies": {
         "@brains/contracts": "workspace:*",
         "@brains/entity-service": "workspace:*",
@@ -1362,7 +1407,7 @@
     },
     "shared/test-utils": {
       "name": "@brains/test-utils",
-      "version": "0.2.0-alpha.309",
+      "version": "0.2.0-alpha.313",
       "dependencies": {
         "@brains/ai-service": "workspace:*",
         "@brains/content-service": "workspace:*",
@@ -1390,7 +1435,7 @@
     },
     "shared/theme-base": {
       "name": "@brains/theme-base",
-      "version": "0.2.0-alpha.309",
+      "version": "0.2.0-alpha.313",
       "devDependencies": {
         "@brains/eslint-config": "workspace:*",
         "@brains/typescript-config": "workspace:*",
@@ -1438,11 +1483,11 @@
     },
     "shared/typescript-config": {
       "name": "@brains/typescript-config",
-      "version": "0.2.0-alpha.309",
+      "version": "0.2.0-alpha.313",
     },
     "shared/ui-library": {
       "name": "@brains/ui-library",
-      "version": "0.2.0-alpha.309",
+      "version": "0.2.0-alpha.313",
       "dependencies": {
         "@brains/contracts": "workspace:*",
         "@brains/utils": "workspace:*",
@@ -1456,20 +1501,24 @@
         "@tailwindcss/postcss": "^4.3.1",
         "@tailwindcss/typography": "^0.5.20",
         "@types/bun": "^1.3.14",
+        "@types/react": "^19.2.17",
+        "@types/react-dom": "^19.0.3",
         "@types/sanitize-html": "^2.13.0",
         "eslint": "^10.5.0",
         "postcss": "^8.5.15",
-        "preact": "^10.27.2",
+        "react": "^19.2.7",
+        "react-dom": "^19.2.7",
         "tailwindcss": "^4.3.1",
         "typescript": "^7.0.2",
       },
       "peerDependencies": {
-        "preact": "^10.27.2",
+        "react": "^19.2.7",
+        "react-dom": "^19.2.7",
       },
     },
     "shared/utils": {
       "name": "@brains/utils",
-      "version": "0.2.0-alpha.309",
+      "version": "0.2.0-alpha.313",
       "dependencies": {
         "effect": "^3.21.4",
         "gray-matter": "^4.0.3",
@@ -1492,7 +1541,7 @@
     },
     "shell/ai-evaluation": {
       "name": "@brains/ai-evaluation",
-      "version": "0.2.0-alpha.309",
+      "version": "0.2.0-alpha.313",
       "bin": {
         "brain-eval": "./src/run-evaluations.ts",
       },
@@ -1517,7 +1566,7 @@
     },
     "shell/ai-service": {
       "name": "@brains/ai-service",
-      "version": "0.2.0-alpha.309",
+      "version": "0.2.0-alpha.313",
       "dependencies": {
         "@ai-sdk/anthropic": "^3.0.84",
         "@ai-sdk/google": "^3.0.82",
@@ -1542,7 +1591,7 @@
     },
     "shell/app": {
       "name": "@brains/app",
-      "version": "0.2.0-alpha.309",
+      "version": "0.2.0-alpha.313",
       "bin": {
         "brains": "./src/runner.ts",
         "brain-build": "./scripts/build.ts",
@@ -1571,7 +1620,7 @@
     },
     "shell/auth-service": {
       "name": "@brains/auth-service",
-      "version": "0.2.0-alpha.309",
+      "version": "0.2.0-alpha.313",
       "dependencies": {
         "@brains/contracts": "workspace:*",
         "@brains/db": "workspace:*",
@@ -1594,7 +1643,7 @@
     },
     "shell/content-service": {
       "name": "@brains/content-service",
-      "version": "0.2.0-alpha.309",
+      "version": "0.2.0-alpha.313",
       "dependencies": {
         "@brains/ai-service": "workspace:*",
         "@brains/content-formatters": "workspace:*",
@@ -1613,7 +1662,7 @@
     },
     "shell/conversation-service": {
       "name": "@brains/conversation-service",
-      "version": "0.2.0-alpha.309",
+      "version": "0.2.0-alpha.313",
       "dependencies": {
         "@brains/contracts": "workspace:*",
         "@brains/db": "workspace:*",
@@ -1631,7 +1680,7 @@
     },
     "shell/core": {
       "name": "@brains/core",
-      "version": "0.2.0-alpha.309",
+      "version": "0.2.0-alpha.313",
       "dependencies": {
         "@brains/contracts": "workspace:*",
         "@brains/image": "workspace:*",
@@ -1664,7 +1713,7 @@
     },
     "shell/entity-service": {
       "name": "@brains/entity-service",
-      "version": "0.2.0-alpha.309",
+      "version": "0.2.0-alpha.313",
       "dependencies": {
         "@brains/content-formatters": "workspace:*",
         "@brains/contracts": "workspace:*",
@@ -1685,7 +1734,7 @@
     },
     "shell/identity-service": {
       "name": "@brains/identity-service",
-      "version": "0.2.0-alpha.309",
+      "version": "0.2.0-alpha.313",
       "dependencies": {
         "@brains/conversation-service": "workspace:*",
         "@brains/entity-service": "workspace:*",
@@ -1700,7 +1749,7 @@
     },
     "shell/job-queue": {
       "name": "@brains/job-queue",
-      "version": "0.2.0-alpha.309",
+      "version": "0.2.0-alpha.313",
       "dependencies": {
         "@brains/contracts": "workspace:*",
         "@brains/db": "workspace:*",
@@ -1722,7 +1771,7 @@
     },
     "shell/mcp-service": {
       "name": "@brains/mcp-service",
-      "version": "0.2.0-alpha.309",
+      "version": "0.2.0-alpha.313",
       "dependencies": {
         "@brains/contracts": "workspace:*",
         "@brains/messaging-service": "workspace:*",
@@ -1740,7 +1789,7 @@
     },
     "shell/messaging-service": {
       "name": "@brains/messaging-service",
-      "version": "0.2.0-alpha.309",
+      "version": "0.2.0-alpha.313",
       "dependencies": {
         "@brains/contracts": "workspace:*",
         "@brains/operation-context": "workspace:*",
@@ -1757,7 +1806,7 @@
     },
     "shell/plugins": {
       "name": "@brains/plugins",
-      "version": "0.2.0-alpha.309",
+      "version": "0.2.0-alpha.313",
       "dependencies": {
         "@brains/ai-service": "workspace:*",
         "@brains/content-formatters": "workspace:*",
@@ -1786,7 +1835,7 @@
     },
     "shell/recurring-checks": {
       "name": "@brains/recurring-checks",
-      "version": "0.2.0-alpha.309",
+      "version": "0.2.0-alpha.313",
       "dependencies": {
         "@brains/job-queue": "workspace:*",
         "@brains/runtime-state": "workspace:*",
@@ -1802,7 +1851,7 @@
     },
     "shell/runtime-state": {
       "name": "@brains/runtime-state",
-      "version": "0.2.0-alpha.309",
+      "version": "0.2.0-alpha.313",
       "dependencies": {
         "@brains/db": "workspace:*",
         "@brains/utils": "workspace:*",
@@ -1820,7 +1869,7 @@
     },
     "shell/scheduler": {
       "name": "@brains/scheduler",
-      "version": "0.2.0-alpha.309",
+      "version": "0.2.0-alpha.313",
       "dependencies": {
         "@brains/utils": "workspace:*",
         "croner": "^10.0.1",
@@ -1834,22 +1883,23 @@
     },
     "shell/templates": {
       "name": "@brains/templates",
-      "version": "0.2.0-alpha.309",
+      "version": "0.2.0-alpha.313",
       "dependencies": {
         "@brains/content-formatters": "workspace:*",
         "@brains/contracts": "workspace:*",
         "@brains/utils": "workspace:*",
-        "preact": "^10.27.2",
+        "react": "^19.2.7",
       },
       "devDependencies": {
         "@brains/typescript-config": "workspace:*",
+        "@types/react": "^19.2.17",
         "bun-types": "^1.3.14",
         "typescript": "^7.0.2",
       },
     },
     "sites/default": {
       "name": "@brains/site-default",
-      "version": "0.2.0-alpha.309",
+      "version": "0.2.0-alpha.313",
       "dependencies": {
         "@brains/site-professional": "workspace:*",
       },
@@ -1864,21 +1914,24 @@
       "name": "@rizom/site-docs",
       "version": "0.2.0-alpha.237",
       "dependencies": {
-        "@rizom/site": "0.2.0-alpha.232",
+        "@rizom/site": "0.2.0-alpha.233",
       },
       "devDependencies": {
         "@brains/build-tools": "workspace:*",
         "@brains/eslint-config": "workspace:*",
         "@brains/typescript-config": "workspace:*",
         "@types/bun": "^1.3.14",
+        "@types/react": "^19.2.17",
+        "@types/react-dom": "^19.0.3",
         "eslint": "^10.5.0",
-        "preact": "^10.27.2",
+        "react": "^19.2.7",
+        "react-dom": "^19.2.7",
         "typescript": "^7.0.2",
       },
     },
     "sites/personal": {
       "name": "@brains/site-personal",
-      "version": "0.2.0-alpha.309",
+      "version": "0.2.0-alpha.313",
       "dependencies": {
         "@brains/blog": "workspace:*",
         "@brains/plugins": "workspace:*",
@@ -1889,12 +1942,13 @@
         "@brains/templates": "workspace:*",
         "@brains/ui-library": "workspace:*",
         "@brains/utils": "workspace:*",
-        "preact": "^10.27.2",
+        "react": "^19.2.7",
       },
       "devDependencies": {
         "@brains/eslint-config": "workspace:*",
         "@brains/typescript-config": "workspace:*",
         "@types/bun": "^1.3.14",
+        "@types/react": "^19.2.17",
         "bun-types": "^1.3.14",
         "eslint": "^10.5.0",
         "typescript": "^7.0.2",
@@ -1902,7 +1956,7 @@
     },
     "sites/professional": {
       "name": "@brains/site-professional",
-      "version": "0.2.0-alpha.309",
+      "version": "0.2.0-alpha.313",
       "dependencies": {
         "@brains/blog": "workspace:*",
         "@brains/decks": "workspace:*",
@@ -1914,12 +1968,13 @@
         "@brains/templates": "workspace:*",
         "@brains/ui-library": "workspace:*",
         "@brains/utils": "workspace:*",
-        "preact": "^10.27.2",
+        "react": "^19.2.7",
       },
       "devDependencies": {
         "@brains/eslint-config": "workspace:*",
         "@brains/typescript-config": "workspace:*",
         "@types/bun": "^1.3.14",
+        "@types/react": "^19.2.17",
         "bun-types": "^1.3.14",
         "eslint": "^10.5.0",
         "typescript": "^7.0.2",
@@ -1944,9 +1999,11 @@
         "@brains/typescript-config": "workspace:*",
         "@brains/utils": "workspace:*",
         "@types/bun": "^1.3.14",
+        "@types/react": "^19.2.17",
+        "@types/react-dom": "^19.0.3",
         "eslint": "^10.5.0",
-        "preact": "^10.27.2",
-        "preact-render-to-string": "^6.7.0",
+        "react": "^19.2.7",
+        "react-dom": "^19.2.7",
         "rolldown": "^1.0.0",
         "rolldown-plugin-dts": "^0.27.4",
         "typescript": "^7.0.2",
@@ -1956,16 +2013,19 @@
       "name": "@rizom/site-rizom-ai",
       "version": "0.2.0-alpha.238",
       "dependencies": {
-        "@rizom/site": "0.2.0-alpha.232",
-        "@rizom/site-rizom": "0.2.0-alpha.237",
+        "@rizom/site": "0.2.0-alpha.233",
+        "@rizom/site-rizom": "0.2.0-alpha.238",
       },
       "devDependencies": {
         "@brains/build-tools": "workspace:*",
         "@brains/eslint-config": "workspace:*",
         "@brains/typescript-config": "workspace:*",
         "@types/bun": "^1.3.14",
+        "@types/react": "^19.2.17",
+        "@types/react-dom": "^19.0.3",
         "eslint": "^10.5.0",
-        "preact": "^10.27.2",
+        "react": "^19.2.7",
+        "react-dom": "^19.2.7",
         "typescript": "^7.0.2",
       },
     },
@@ -2130,6 +2190,8 @@
     "@brains/onboarding": ["@brains/onboarding@workspace:plugins/onboarding"],
 
     "@brains/operation-context": ["@brains/operation-context@workspace:shared/operation-context"],
+
+    "@brains/operator-view-react": ["@brains/operator-view-react@workspace:shared/operator-view-react"],
 
     "@brains/playbooks": ["@brains/playbooks@workspace:plugins/playbooks"],
 
@@ -4022,10 +4084,6 @@
     "postcss": ["postcss@8.5.16", "", { "dependencies": { "nanoid": "^3.3.12", "picocolors": "^1.1.1", "source-map-js": "^1.2.1" } }, "sha512-vuwillviilfKZsg0VGj5R/YwwcHx4SLsIOI/7K6mQkWx+l5cUHTjj5g0AasTBcyXsbfTgrwsUNmVUb5xVwyPwg=="],
 
     "postcss-selector-parser": ["postcss-selector-parser@6.0.10", "", { "dependencies": { "cssesc": "^3.0.0", "util-deprecate": "^1.0.2" } }, "sha512-IQ7TZdoaqbT+LCpShg46jnZVlhWD2w6iQYAcYXfHARZ7X1t/UGhhceQDs5X0cGqKvYlHNOuv7Oa1xmb0oQuA3w=="],
-
-    "preact": ["preact@10.29.7", "", { "peerDependencies": { "preact-render-to-string": ">=5" }, "optionalPeers": ["preact-render-to-string"] }, "sha512-DCHYrK/B10yUD3ZjLfhZ3WIE/9Vf9VFUODcRE2dRomTYDpJk6z6L9wecSfhfE6M9ZTHUdyQkoC46arIDhEV84Q=="],
-
-    "preact-render-to-string": ["preact-render-to-string@6.7.0", "", { "peerDependencies": { "preact": ">=10 || >= 11.0.0-0" } }, "sha512-Z4WR8fmLMRpdYqJ9i7vrlXSsSrxVJydwrkEXHapexfARbWfGb7vGcnvNQnIzN0cXciMVOlz/XLoiMCi9gUsy9Q=="],
 
     "prelude-ls": ["prelude-ls@1.2.1", "", {}, "sha512-vkcDPrRZo1QZLbn5RLGPpg/WmIQ65qoWWhcGKf/b5eplkkarX0m9z8ppCat4mlOqUsWpyNuYgO3VRyrYHSzX5g=="],
 

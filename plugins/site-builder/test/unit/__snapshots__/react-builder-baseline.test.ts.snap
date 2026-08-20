@@ -1,6 +1,6 @@
 // Bun Snapshot v1, https://bun.sh/docs/test/snapshots
 
-exports[`PreactBuilder behavioral baseline characterizes representative routes, metadata, scripts, assets, theme CSS, and progress 1`] = `
+exports[`ReactBuilder behavioral baseline characterizes representative routes, metadata, scripts, assets, theme CSS, and progress 1`] = `
 {
   "children": [
     {
@@ -63,29 +63,6 @@ exports[`PreactBuilder behavioral baseline characterizes representative routes, 
                 [
                   "name",
                   "viewport",
-                ],
-              ],
-              "children": [],
-              "name": "meta",
-              "namespace": "http://www.w3.org/1999/xhtml",
-              "type": "element",
-            },
-            {
-              "type": "text",
-              "value": 
-"
-    "
-,
-            },
-            {
-              "attributes": [
-                [
-                  "content",
-                  "IE=edge",
-                ],
-                [
-                  "http-equiv",
-                  "X-UA-Compatible",
                 ],
               ],
               "children": [],
@@ -167,6 +144,29 @@ exports[`PreactBuilder behavioral baseline characterizes representative routes, 
               ],
               "children": [],
               "name": "link",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "content",
+                  "IE=edge",
+                ],
+                [
+                  "http-equiv",
+                  "X-UA-Compatible",
+                ],
+              ],
+              "children": [],
+              "name": "meta",
               "namespace": "http://www.w3.org/1999/xhtml",
               "type": "element",
             },
@@ -719,7 +719,7 @@ exports[`PreactBuilder behavioral baseline characterizes representative routes, 
 }
 `;
 
-exports[`PreactBuilder behavioral baseline characterizes representative routes, metadata, scripts, assets, theme CSS, and progress 2`] = `
+exports[`ReactBuilder behavioral baseline characterizes representative routes, metadata, scripts, assets, theme CSS, and progress 2`] = `
 {
   "children": [
     {
@@ -782,29 +782,6 @@ exports[`PreactBuilder behavioral baseline characterizes representative routes, 
                 [
                   "name",
                   "viewport",
-                ],
-              ],
-              "children": [],
-              "name": "meta",
-              "namespace": "http://www.w3.org/1999/xhtml",
-              "type": "element",
-            },
-            {
-              "type": "text",
-              "value": 
-"
-    "
-,
-            },
-            {
-              "attributes": [
-                [
-                  "content",
-                  "IE=edge",
-                ],
-                [
-                  "http-equiv",
-                  "X-UA-Compatible",
                 ],
               ],
               "children": [],
@@ -886,6 +863,29 @@ exports[`PreactBuilder behavioral baseline characterizes representative routes, 
               ],
               "children": [],
               "name": "link",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "content",
+                  "IE=edge",
+                ],
+                [
+                  "http-equiv",
+                  "X-UA-Compatible",
+                ],
+              ],
+              "children": [],
+              "name": "meta",
               "namespace": "http://www.w3.org/1999/xhtml",
               "type": "element",
             },
@@ -1438,7 +1438,7 @@ exports[`PreactBuilder behavioral baseline characterizes representative routes, 
 }
 `;
 
-exports[`PreactBuilder behavioral baseline characterizes representative routes, metadata, scripts, assets, theme CSS, and progress 3`] = `
+exports[`ReactBuilder behavioral baseline characterizes representative routes, metadata, scripts, assets, theme CSS, and progress 3`] = `
 {
   "children": [
     {
@@ -1501,29 +1501,6 @@ exports[`PreactBuilder behavioral baseline characterizes representative routes, 
                 [
                   "name",
                   "viewport",
-                ],
-              ],
-              "children": [],
-              "name": "meta",
-              "namespace": "http://www.w3.org/1999/xhtml",
-              "type": "element",
-            },
-            {
-              "type": "text",
-              "value": 
-"
-    "
-,
-            },
-            {
-              "attributes": [
-                [
-                  "content",
-                  "IE=edge",
-                ],
-                [
-                  "http-equiv",
-                  "X-UA-Compatible",
                 ],
               ],
               "children": [],
@@ -1605,6 +1582,29 @@ exports[`PreactBuilder behavioral baseline characterizes representative routes, 
               ],
               "children": [],
               "name": "link",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "content",
+                  "IE=edge",
+                ],
+                [
+                  "http-equiv",
+                  "X-UA-Compatible",
+                ],
+              ],
+              "children": [],
+              "name": "meta",
               "namespace": "http://www.w3.org/1999/xhtml",
               "type": "element",
             },
@@ -2180,7 +2180,7 @@ exports[`PreactBuilder behavioral baseline characterizes representative routes, 
 }
 `;
 
-exports[`PreactBuilder behavioral baseline characterizes representative routes, metadata, scripts, assets, theme CSS, and progress 4`] = `
+exports[`ReactBuilder behavioral baseline characterizes representative routes, metadata, scripts, assets, theme CSS, and progress 4`] = `
 {
   "children": [
     {
@@ -2243,29 +2243,6 @@ exports[`PreactBuilder behavioral baseline characterizes representative routes, 
                 [
                   "name",
                   "viewport",
-                ],
-              ],
-              "children": [],
-              "name": "meta",
-              "namespace": "http://www.w3.org/1999/xhtml",
-              "type": "element",
-            },
-            {
-              "type": "text",
-              "value": 
-"
-    "
-,
-            },
-            {
-              "attributes": [
-                [
-                  "content",
-                  "IE=edge",
-                ],
-                [
-                  "http-equiv",
-                  "X-UA-Compatible",
                 ],
               ],
               "children": [],
@@ -2347,6 +2324,29 @@ exports[`PreactBuilder behavioral baseline characterizes representative routes, 
               ],
               "children": [],
               "name": "link",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "content",
+                  "IE=edge",
+                ],
+                [
+                  "http-equiv",
+                  "X-UA-Compatible",
+                ],
+              ],
+              "children": [],
+              "name": "meta",
               "namespace": "http://www.w3.org/1999/xhtml",
               "type": "element",
             },
@@ -2922,7 +2922,7 @@ exports[`PreactBuilder behavioral baseline characterizes representative routes, 
 }
 `;
 
-exports[`PreactBuilder behavioral baseline characterizes representative routes, metadata, scripts, assets, theme CSS, and progress 5`] = `
+exports[`ReactBuilder behavioral baseline characterizes representative routes, metadata, scripts, assets, theme CSS, and progress 5`] = `
 {
   "children": [
     {
@@ -2985,29 +2985,6 @@ exports[`PreactBuilder behavioral baseline characterizes representative routes, 
                 [
                   "name",
                   "viewport",
-                ],
-              ],
-              "children": [],
-              "name": "meta",
-              "namespace": "http://www.w3.org/1999/xhtml",
-              "type": "element",
-            },
-            {
-              "type": "text",
-              "value": 
-"
-    "
-,
-            },
-            {
-              "attributes": [
-                [
-                  "content",
-                  "IE=edge",
-                ],
-                [
-                  "http-equiv",
-                  "X-UA-Compatible",
                 ],
               ],
               "children": [],
@@ -3089,6 +3066,29 @@ exports[`PreactBuilder behavioral baseline characterizes representative routes, 
               ],
               "children": [],
               "name": "link",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "content",
+                  "IE=edge",
+                ],
+                [
+                  "http-equiv",
+                  "X-UA-Compatible",
+                ],
+              ],
+              "children": [],
+              "name": "meta",
               "namespace": "http://www.w3.org/1999/xhtml",
               "type": "element",
             },
@@ -3679,7 +3679,7 @@ exports[`PreactBuilder behavioral baseline characterizes representative routes, 
 }
 `;
 
-exports[`PreactBuilder behavioral baseline characterizes representative routes, metadata, scripts, assets, theme CSS, and progress 6`] = `
+exports[`ReactBuilder behavioral baseline characterizes representative routes, metadata, scripts, assets, theme CSS, and progress 6`] = `
 {
   "children": [
     {
@@ -3742,29 +3742,6 @@ exports[`PreactBuilder behavioral baseline characterizes representative routes, 
                 [
                   "name",
                   "viewport",
-                ],
-              ],
-              "children": [],
-              "name": "meta",
-              "namespace": "http://www.w3.org/1999/xhtml",
-              "type": "element",
-            },
-            {
-              "type": "text",
-              "value": 
-"
-    "
-,
-            },
-            {
-              "attributes": [
-                [
-                  "content",
-                  "IE=edge",
-                ],
-                [
-                  "http-equiv",
-                  "X-UA-Compatible",
                 ],
               ],
               "children": [],
@@ -3846,6 +3823,29 @@ exports[`PreactBuilder behavioral baseline characterizes representative routes, 
               ],
               "children": [],
               "name": "link",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "content",
+                  "IE=edge",
+                ],
+                [
+                  "http-equiv",
+                  "X-UA-Compatible",
+                ],
+              ],
+              "children": [],
+              "name": "meta",
               "namespace": "http://www.w3.org/1999/xhtml",
               "type": "element",
             },

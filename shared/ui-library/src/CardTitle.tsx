@@ -1,9 +1,9 @@
-import type { JSX, ComponentChildren } from "preact";
+import type { JSX, ReactNode } from "react";
 import { cn } from "./lib/utils";
 
 export interface CardTitleProps {
   href?: string;
-  children: ComponentChildren;
+  children: ReactNode;
   className?: string;
 }
 

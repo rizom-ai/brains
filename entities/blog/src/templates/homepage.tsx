@@ -1,4 +1,4 @@
-import type { JSX } from "preact";
+import type { JSX } from "react";
 import { z } from "@brains/utils/zod";
 import { createTemplate } from "@brains/templates";
 import { BlogPostTemplate } from "./blog-post";

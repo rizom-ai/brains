@@ -1,4 +1,4 @@
-import type { JSX } from "preact";
+import type { JSX } from "react";
 import { MarkdownContent } from "@brains/ui-library";
 import type { DocWithData } from "../schemas/doc";
 import { docsClasses, groupDocs, romanNumeral, sortDocs } from "./docs-design";

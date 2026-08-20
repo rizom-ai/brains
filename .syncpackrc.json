@@ -42,9 +42,14 @@
       "policy": "sameRange"
     },
     {
-      "label": "Sync Preact versions",
-      "dependencies": ["preact"],
-      "dependencyTypes": ["dev", "prod"],
+      "label": "Sync React versions",
+      "dependencies": [
+        "react",
+        "react-dom",
+        "@types/react",
+        "@types/react-dom"
+      ],
+      "dependencyTypes": ["dev", "prod", "peer"],
       "policy": "sameRange"
     }
   ],

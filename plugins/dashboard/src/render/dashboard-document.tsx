@@ -1,10 +1,10 @@
-/** @jsxImportSource preact */
+/** @jsxImportSource react */
 import {
   CONSOLE_CLIMATE_SCRIPT,
   CONSOLE_FONTS_URL,
   CONSOLE_PALETTE_SCRIPT,
 } from "@brains/console-theme";
-import type { JSX } from "preact";
+import type { JSX } from "react";
 import { Colophon } from "./colophon";
 import { ConsoleStrip } from "./console-strip";
 import { buildDashboardTabs, TabBar } from "./dashboard-tabs";

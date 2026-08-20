@@ -1,5 +1,5 @@
-/** @jsxImportSource preact */
-import type { JSX } from "preact";
+/** @jsxImportSource react */
+import type { JSX } from "react";
 
 /**
  * The /brain product screens — fixed-instrument-climate mocks of the real

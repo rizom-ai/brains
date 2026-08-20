@@ -150,6 +150,8 @@ describe("@rizom/site-rizom-ai package boundary", () => {
             dependencies: {
               "@rizom/brain": `file:${brainPeerDir}`,
               "@rizom/site-rizom-ai": `file:${aiTarball}`,
+              react: workspaceCopy("react"),
+              "react-dom": workspaceCopy("react-dom"),
             },
             overrides: {
               "@rizom/site": `file:${sdkTarball}`,
@@ -157,7 +159,8 @@ describe("@rizom/site-rizom-ai package boundary", () => {
               // Third-party deps come from the workspace install; see
               // workspaceCopy for why.
               clsx: workspaceCopy("clsx"),
-              preact: workspaceCopy("preact"),
+              react: workspaceCopy("react"),
+              "react-dom": workspaceCopy("react-dom"),
               "tailwind-merge": workspaceCopy("tailwind-merge"),
               zod: workspaceCopy("zod"),
             },

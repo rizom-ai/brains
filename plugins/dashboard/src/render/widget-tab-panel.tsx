@@ -1,5 +1,5 @@
-/** @jsxImportSource preact */
-import type { JSX } from "preact";
+/** @jsxImportSource react */
+import type { JSX } from "react";
 import { EndpointsCard } from "./endpoints-card";
 import { EntitySummaryCard } from "./entity-summary-card";
 import { InteractionsCard } from "./interactions-card";

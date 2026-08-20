@@ -1,4 +1,4 @@
-import type { JSX } from "preact";
+import type { JSX } from "react";
 import type { BlogPostView } from "./blog-view-schema";
 import { Card } from "@brains/ui-library";
 

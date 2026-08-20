@@ -223,15 +223,15 @@ Each section references a registered template and optional data query/content.
 
 ### Layouts
 
-Layouts are Preact components. They receive rendered sections and site metadata.
+Layouts are React components rendered to static markup. They receive rendered sections and site metadata.
 
 Conceptual shape:
 
 ```tsx
-import type { ComponentChildren, JSX } from "preact";
+import type { JSX, ReactNode } from "react";
 
 type LayoutProps = {
-  sections: ComponentChildren[];
+  sections: ReactNode[];
   title: string;
   description: string;
   path: string;
@@ -241,7 +241,7 @@ type LayoutProps = {
 
 export function MyLayout({ sections }: LayoutProps): JSX.Element {
   return (
-    <div class="min-h-screen bg-theme text-theme">
+    <div className="min-h-screen bg-theme text-theme">
       <main>{sections}</main>
     </div>
   );

@@ -1,4 +1,4 @@
-import type { JSX, ComponentChildren } from "preact";
+import type { JSX, ReactNode } from "react";
 import { cva } from "class-variance-authority";
 import { cn } from "./lib/utils";
 import type { VariantFunction, VariantValue } from "./variant-types";
@@ -33,7 +33,7 @@ const buttonVariants: VariantFunction<ButtonVariantProps> = cva(
 
 export interface ButtonProps extends ButtonVariantProps {
   onClick?: (() => void) | undefined;
-  children?: ComponentChildren;
+  children?: ReactNode;
   className?: string;
   disabled?: boolean;
   type?: "button" | "submit" | "reset";

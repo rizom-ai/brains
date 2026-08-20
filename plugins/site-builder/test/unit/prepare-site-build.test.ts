@@ -12,7 +12,7 @@ import {
   createSilentLogger,
 } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
-import { h, type VNode } from "preact";
+import { createElement as h, type ReactElement } from "react";
 import { promises as fs } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
@@ -46,7 +46,7 @@ function createPipelineContext(
       name,
       pluginId: "fixture",
       schema: templateDataSchema,
-      renderers: { web: (): VNode => h("div", {}) },
+      renderers: { web: (): ReactElement => h("div", {}) },
       fullscreen: true,
       runtimeScripts: [{ src: "/scripts/hero.js", defer: true }],
       staticAssets: {

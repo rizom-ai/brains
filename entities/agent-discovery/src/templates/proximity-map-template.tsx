@@ -1,5 +1,5 @@
-/** @jsxImportSource preact */
-import type { JSX } from "preact";
+/** @jsxImportSource react */
+import type { JSX } from "react";
 import type { ProximityMapData } from "../lib/proximity-map-schema";
 import { ProximityMap } from "../widgets/proximity-map";
 

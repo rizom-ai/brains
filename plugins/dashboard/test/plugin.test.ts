@@ -609,7 +609,9 @@ describe("DashboardPlugin", () => {
       });
       expect(hiddenProviderCalls).toBe(0);
       expect(html).toContain("operator-view");
-      expect(html).toContain("Reading &lt;script>alert('nope')&lt;/script>");
+      expect(html).toContain(
+        "Reading &lt;script&gt;alert(&#x27;nope&#x27;)&lt;/script&gt;",
+      );
       expect(html).not.toContain("<script>alert('nope')</script>");
       expect(html).toContain('href="https://reading.example/library"');
       abortController.abort();

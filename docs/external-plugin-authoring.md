@@ -356,7 +356,7 @@ caller's redacted settings.
 
 A service can independently declare `defineDashboardWidget()` and
 `defineCmsWorkspace()`. Both return schema-validated semantic data: authors do
-not provide React/Preact, HTML, CSS, scripts, renderer names, or browser bundles.
+not provide React components, HTML, CSS, scripts, renderer names, or browser bundles.
 Use `DashboardOperatorView` blocks for Dashboard data and `CmsWorkspaceView`
 blocks for authenticated CMS operations. CMS-only capabilities include:
 
@@ -406,7 +406,7 @@ transport responsibilities.
 
 ### Sites
 
-Site authors import only `@rizom/site` (plus Preact for JSX). The structural
+Site authors import only `@rizom/site` (plus React for JSX). The structural
 definition never embeds a runtime plugin. See [External Site and Theme
 Authoring](./external-site-authoring.md) for package metadata and the full site
 example.

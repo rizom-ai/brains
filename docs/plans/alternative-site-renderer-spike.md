@@ -6,9 +6,9 @@ Parked research probe. Not scheduled. Nothing depends on it.
 
 This is the surviving question from the site-build robustness work, which shipped
 deterministic preparation, transactional output, structured diagnostics,
-cancellation, and artifact accounting. That work deliberately kept Preact as the
-renderer and did not attempt a replacement. It did, however, leave the seam a
-replacement would need.
+cancellation, and artifact accounting. That work left the seam a replacement
+would need; the later runtime consolidation moved the existing renderer from
+Preact to React without changing that seam.
 
 ## Why this is now answerable
 
@@ -25,8 +25,8 @@ without a second runtime pipeline.
 
 ## Question
 
-Does any renderer other than Preact earn its place, given that the authoring
-surface, site packages, and themes are all Preact today?
+Does any renderer other than React earn its place, given that the authoring
+surface and site packages are React today?
 
 Not "can Astro render this" — almost certainly yes. The question is whether the
 gain is worth a second authoring surface, a second set of template bindings, and
@@ -43,7 +43,7 @@ question up the queue.
    existing manifest validation accepts unchanged.
 3. Cover one authored route, one entity list route, one entity detail route,
    images, route-scoped scripts, metadata, and theme CSS.
-4. Compare against the Preact baseline: output equivalence, build time,
+4. Compare against the React baseline: output equivalence, build time,
    dependency cost, diagnostic quality, and what authoring a section looks like.
 
 ## What would make it worth pursuing
@@ -52,7 +52,7 @@ Any of:
 
 - a material build-time reduction on a site the size of the largest real one
   (~140 routes, ~18 MB of HTML);
-- a meaningfully better authoring experience for non-Preact contributors; or
+- a meaningfully better authoring experience for non-React contributors; or
 - a capability the current renderer cannot reach — islands, partial hydration,
   or per-route runtime strategies — that the site actually needs.
 

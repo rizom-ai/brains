@@ -1,10 +1,10 @@
-/** @jsxImportSource preact */
+/** @jsxImportSource react */
 import {
   renderConsoleStripInnerHtml,
   type ConsoleStripSession,
   type ConsoleSurface,
 } from "@brains/console-theme";
-import type { JSX } from "preact";
+import type { JSX } from "react";
 import type { DashboardRenderInput } from "./types";
 
 /**

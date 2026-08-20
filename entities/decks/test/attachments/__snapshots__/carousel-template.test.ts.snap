@@ -80,29 +80,6 @@ exports[`deck carousel template renders slide content into the media page HTML 1
             {
               "attributes": [
                 [
-                  "content",
-                  "IE=edge",
-                ],
-                [
-                  "http-equiv",
-                  "X-UA-Compatible",
-                ],
-              ],
-              "children": [],
-              "name": "meta",
-              "namespace": "http://www.w3.org/1999/xhtml",
-              "type": "element",
-            },
-            {
-              "type": "text",
-              "value": 
-"
-    "
-,
-            },
-            {
-              "attributes": [
-                [
                   "href",
                   "/favicon.svg",
                 ],
@@ -167,6 +144,29 @@ exports[`deck carousel template renders slide content into the media page HTML 1
               ],
               "children": [],
               "name": "link",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "content",
+                  "IE=edge",
+                ],
+                [
+                  "http-equiv",
+                  "X-UA-Compatible",
+                ],
+              ],
+              "children": [],
+              "name": "meta",
               "namespace": "http://www.w3.org/1999/xhtml",
               "type": "element",
             },

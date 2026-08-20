@@ -1,5 +1,5 @@
-/** @jsxImportSource preact */
-import type { JSX } from "preact";
+/** @jsxImportSource react */
+import type { JSX } from "react";
 import { getDashboardGroupLabel, sortDashboardGroups } from "../widget-groups";
 import type { RenderableWidgetData } from "./types";
 

@@ -6,8 +6,8 @@ import { createSilentLogger, normalizeRendererHtml } from "@brains/test-utils";
 import { Head, MarkdownContent } from "@brains/ui-library";
 import type { LayoutComponent } from "@brains/site-engine";
 import { z } from "@brains/utils/zod";
-import { Fragment, h, type VNode } from "preact";
-import { createPreactBuilder } from "../../src/lib/preact-builder";
+import { Fragment, createElement as h, type ReactElement } from "react";
+import { createReactBuilder } from "../../src/lib/react-builder";
 import type { SiteViewTemplate } from "../../src/lib/site-view-template";
 import { MockCSSProcessor } from "../mocks/mock-css-processor";
 import { createRendererTestContext } from "../test-helpers";
@@ -51,13 +51,13 @@ function count(text: string, value: string): number {
   return text.split(value).length - 1;
 }
 
-describe("PreactBuilder behavioral baseline", () => {
+describe("ReactBuilder behavioral baseline", () => {
   let testDir: string;
   let outputDir: string;
   let workingDir: string;
 
   beforeEach(async () => {
-    testDir = await fs.mkdtemp(join(tmpdir(), "preact-builder-baseline-"));
+    testDir = await fs.mkdtemp(join(tmpdir(), "react-builder-baseline-"));
     outputDir = join(testDir, "output");
     workingDir = join(testDir, "working");
   });
@@ -68,39 +68,49 @@ describe("PreactBuilder behavioral baseline", () => {
 
   it("characterizes representative routes, metadata, scripts, assets, theme CSS, and progress", async () => {
     const layout: LayoutComponent = ({ sections, title, path, siteInfo }) =>
-      h("div", { "data-layout": "default", "data-path": path }, [
+      h(
+        "div",
+        { "data-layout": "default", "data-path": path },
         h("header", {}, `${siteInfo.title} | ${title}`),
         h(
           "nav",
           {},
           siteInfo.navigation.primary.map((item) =>
-            h("a", { href: item.href }, item.label),
+            h("a", { href: item.href, key: item.href }, item.label),
           ),
         ),
         h("main", {}, sections),
-      ]);
+      );
 
-    const pageComponent = (props: Record<string, unknown>): VNode => {
+    const pageComponent = (props: Record<string, unknown>): ReactElement => {
       const { heading, pageTitle, pageLabel } = pageSchema.parse(props);
-      return h("section", {}, [
+      return h(
+        "section",
+        {},
         h("h1", {}, heading),
         h("p", { "data-page-title": pageTitle }, pageLabel ?? "no-label"),
-      ]);
+      );
     };
 
-    const authoredHeadComponent = (props: Record<string, unknown>): VNode => {
+    const authoredHeadComponent = (
+      props: Record<string, unknown>,
+    ): ReactElement => {
       const { heading, pageTitle, pageLabel } = pageSchema.parse(props);
-      return h(Fragment, {}, [
+      return h(
+        Fragment,
+        {},
         h(Head, {
           title: "Authored Head",
           description: "Authored description",
           canonicalUrl: "/canonical-writing",
         }),
-        h("article", { "data-section": "article" }, [
+        h(
+          "article",
+          { "data-section": "article" },
           h("h1", {}, heading),
           h("p", {}, `${pageTitle} | ${pageLabel ?? "no-label"}`),
-        ]),
-      ]);
+        ),
+      );
     };
 
     const templates: Record<string, SiteViewTemplate> = {
@@ -125,7 +135,7 @@ describe("PreactBuilder behavioral baseline", () => {
         schema: fullscreenSchema,
         pluginId: "baseline",
         renderers: {
-          web: (props: Record<string, unknown>): VNode => {
+          web: (props: Record<string, unknown>): ReactElement => {
             const { message } = fullscreenSchema.parse(props);
             return h("div", {}, message);
           },
@@ -137,7 +147,7 @@ describe("PreactBuilder behavioral baseline", () => {
         schema: proseSchema,
         pluginId: "baseline",
         renderers: {
-          web: (props: Record<string, unknown>): VNode => {
+          web: (props: Record<string, unknown>): ReactElement => {
             const { markdown } = proseSchema.parse(props);
             return h("article", {}, h(MarkdownContent, { markdown }));
           },
@@ -265,7 +275,7 @@ describe("PreactBuilder behavioral baseline", () => {
     });
 
     const progress: string[] = [];
-    const builder = createPreactBuilder({
+    const builder = createReactBuilder({
       logger: createSilentLogger(),
       outputDir,
       workingDir,
@@ -367,10 +377,10 @@ describe("PreactBuilder behavioral baseline", () => {
       progress: {
         lifecycle: progress.filter((message) =>
           [
-            "Starting Preact build",
+            "Starting React build",
             "Processing Tailwind CSS",
             "Copying static assets",
-            "Preact build complete",
+            "React build complete",
           ].includes(message),
         ),
         routes: progress
@@ -424,10 +434,10 @@ describe("PreactBuilder behavioral baseline", () => {
       },
       progress: {
         lifecycle: [
-          "Starting Preact build",
+          "Starting React build",
           "Processing Tailwind CSS",
           "Copying static assets",
-          "Preact build complete",
+          "React build complete",
         ],
         routes: [
           "Building route: /",
@@ -441,7 +451,7 @@ describe("PreactBuilder behavioral baseline", () => {
     });
 
     const repeatedOutputDir = join(testDir, "repeated-output");
-    const repeatedBuilder = createPreactBuilder({
+    const repeatedBuilder = createReactBuilder({
       logger: createSilentLogger(),
       outputDir: repeatedOutputDir,
       workingDir: join(testDir, "repeated-working"),

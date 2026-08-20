@@ -22,6 +22,13 @@ describe("normalizeRendererHtml", () => {
     );
   });
 
+  it("folds React 19 preconnect hoisting without dropping the hints", () => {
+    expectEquivalent(
+      `<head><title>Example</title><script>boot()</script><link rel="preconnect" href="https://fonts.example"></head>`,
+      `<head><title>Example</title><link rel="preconnect" href="https://fonts.example"><script>boot()</script></head>`,
+    );
+  });
+
   it("keeps non-image resource hints and semantic attributes", () => {
     const baseline = normalizeRendererHtml(
       `<link rel="preload" as="font" href="/font.woff2"><img src="/cover.jpg" alt="Cover">`,

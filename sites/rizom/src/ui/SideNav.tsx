@@ -1,5 +1,5 @@
-/** @jsxImportSource preact */
-import type { JSX } from "preact";
+/** @jsxImportSource react */
+import type { JSX } from "react";
 import type { RizomSideNavItem } from "./types";
 
 interface SideNavProps {

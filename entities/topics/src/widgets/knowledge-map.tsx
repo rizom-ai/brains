@@ -1,5 +1,6 @@
-/** @jsxImportSource preact */
-import type { JSX } from "preact";
+/** @jsxImportSource react */
+import { cssVariables } from "@brains/ui-library";
+import type { JSX } from "react";
 import knowledgeMapStyles from "./knowledge-map.css" with { type: "text" };
 import {
   type KnowledgeMapData,
@@ -341,7 +342,9 @@ function ZoneLinkShape({
       stroke="var(--kmap-glow)"
       strokeOpacity={0.11}
       strokeWidth={0.75}
-      style={`--d:${(1.15 + index * 0.11).toFixed(2)}s`}
+      style={cssVariables({
+        "--d": `${(1.15 + index * 0.11).toFixed(2)}s`,
+      })}
     />
   );
 }
@@ -370,7 +373,9 @@ function ZoneShape({
         strokeWidth={1}
         strokeDasharray="3 5"
         strokeLinecap="round"
-        style={`--d:${(0.2 + index * 0.08).toFixed(2)}s`}
+        style={cssVariables({
+          "--d": `${(0.2 + index * 0.08).toFixed(2)}s`,
+        })}
       />
       {label?.leader && (
         <path
@@ -382,7 +387,9 @@ function ZoneShape({
           strokeOpacity={0.34}
           strokeWidth={0.7}
           strokeLinecap="round"
-          style={`--d:${(0.9 + index * 0.08).toFixed(2)}s`}
+          style={cssVariables({
+            "--d": `${(0.9 + index * 0.08).toFixed(2)}s`,
+          })}
         />
       )}
       {label && (
@@ -395,7 +402,10 @@ function ZoneShape({
           fontSize="9"
           fontWeight="600"
           letterSpacing="0.18em"
-          style={`--d:${(0.95 + index * 0.08).toFixed(2)}s;text-transform:uppercase`}
+          style={cssVariables({
+            "--d": `${(0.95 + index * 0.08).toFixed(2)}s`,
+            textTransform: "uppercase",
+          })}
         >
           {count > 0 ? `${zone.name} · ${count}` : zone.name}
         </text>
@@ -426,7 +436,7 @@ function PointShape({
           fill="var(--kmap-glow)"
           opacity={0.12}
           filter={`url(#kmap-blur-${surface})`}
-          style={`--d:${delay}s`}
+          style={cssVariables({ "--d": `${delay}s` })}
         />
         <circle
           className="kmap-dot"
@@ -434,7 +444,7 @@ function PointShape({
           cy={y}
           r={5}
           fill="var(--kmap-glow)"
-          style={`--d:${delay}s`}
+          style={cssVariables({ "--d": `${delay}s` })}
         />
         <circle
           className="kmap-dot"
@@ -443,7 +453,7 @@ function PointShape({
           r={2.1}
           fill="var(--kmap-hot)"
           opacity={0.9}
-          style={`--d:${delay}s`}
+          style={cssVariables({ "--d": `${delay}s` })}
         />
       </g>
     );
@@ -458,7 +468,7 @@ function PointShape({
         fill="none"
         stroke="var(--kmap-ink-dim)"
         strokeWidth={1.2}
-        style={`--d:${delay}s`}
+        style={cssVariables({ "--d": `${delay}s` })}
       />
     );
   }
@@ -469,7 +479,9 @@ function PointShape({
       cy={y}
       r={1.5}
       fill="var(--kmap-ink-faint)"
-      style={`--d:${(1.4 + index * 0.03).toFixed(2)}s`}
+      style={cssVariables({
+        "--d": `${(1.4 + index * 0.03).toFixed(2)}s`,
+      })}
     />
   );
 }

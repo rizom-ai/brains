@@ -1,4 +1,4 @@
-import type { VNode } from "preact";
+import type { ReactElement } from "react";
 import { cva } from "class-variance-authority";
 import { cn } from "./lib/utils";
 import type { VariantFunction, VariantValue } from "./variant-types";
@@ -53,7 +53,7 @@ export function Logo({
   className,
   color = "currentColor",
   title,
-}: LogoProps): VNode {
+}: LogoProps): ReactElement {
   // If title is provided, render as text
   if (title) {
     return (

@@ -1,5 +1,5 @@
-/** @jsxImportSource preact */
-import type { JSX } from "preact";
+/** @jsxImportSource react */
+import type { JSX } from "react";
 import { createTemplate } from "@brains/templates";
 import type { Template } from "@brains/templates";
 import { StructuredContentFormatter } from "@brains/content-formatters";

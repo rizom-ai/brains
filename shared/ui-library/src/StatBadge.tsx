@@ -1,4 +1,4 @@
-import type { JSX } from "preact";
+import type { JSX } from "react";
 import { cva } from "class-variance-authority";
 import { cn } from "./lib/utils";
 import type { VariantFunction, VariantValue } from "./variant-types";

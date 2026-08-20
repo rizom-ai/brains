@@ -1,4 +1,4 @@
-import type { JSX } from "preact";
+import type { JSX } from "react";
 import { cn } from "./cn";
 import type { RizomBrandSuffix } from "./types";
 

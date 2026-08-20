@@ -8,7 +8,7 @@ Plugin packages declare widgets with `defineDashboardWidget()` from
 registers them after plugin setup.
 
 The host owns all markup, styles, browser behavior, routes, accessibility, and
-responsive layout. Widget authors provide no Preact component, HTML, CSS,
+responsive layout. Widget authors provide no React component, HTML, CSS,
 script, renderer key, or internal URL. The closed semantic protocol includes
 stats, facts, notices, links, lists, tables, tabs, filters, matrices, spatial
 views, groups, flows, meters, progress, and host-resolved launch intents.

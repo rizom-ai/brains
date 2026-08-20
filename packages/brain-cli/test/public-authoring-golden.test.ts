@@ -231,7 +231,6 @@ describe("public authoring 0.2 golden packages", () => {
       "managementUrl",
       "process.env",
       'from "react',
-      'from "preact',
     ]) {
       expect(source).not.toContain(forbidden);
     }

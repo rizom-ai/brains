@@ -36,7 +36,7 @@ const manifest = {
   },
   dependencies: {
     "@x/base": "workspace:*",
-    preact: "^10.0.0",
+    react: "^19.0.0",
   },
   publishPeerDependencies: {
     "@x/runtime": ">=1.0.0 <2.0.0",
@@ -72,7 +72,7 @@ describe("preparePublishManifest", () => {
     });
     expect(prepared["dependencies"]).toEqual({
       "@x/base": "2.3.4",
-      preact: "^10.0.0",
+      react: "^19.0.0",
     });
     expect(prepared["exports"]).toEqual({
       ".": { types: "./dist/index.d.ts", import: "./dist/index.js" },
@@ -112,7 +112,7 @@ describe("preparePublishManifest", () => {
     const prepared = await readManifest(copyDir);
     expect(prepared["dependencies"]).toEqual({
       "@x/base": "2.3.4",
-      preact: "^10.0.0",
+      react: "^19.0.0",
     });
   });
 

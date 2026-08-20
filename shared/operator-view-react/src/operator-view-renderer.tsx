@@ -11,6 +11,7 @@ import type {
   RuntimePreparedConfirmation,
   RuntimeOperatorScalar,
 } from "@brains/plugins";
+import { WidgetTabs } from "@brains/ui-library";
 import {
   createContext,
   useContext,
@@ -22,9 +23,22 @@ import {
   type ReactNode,
 } from "react";
 import { ConfirmDialog } from "./confirm-dialog";
-import type { CmsWorkspaceQuery } from "./queries";
+
+export type OperatorViewQuery = Readonly<
+  Record<string, string | number | undefined>
+>;
 
 type RuntimeBlock = RuntimeCmsOperatorView["blocks"][number];
+
+interface OperatorRendererHost {
+  readonly resolveLink?:
+    ((target: RuntimeOperatorLinkTarget) => string | undefined) | undefined;
+  readonly renderAllTabs: boolean;
+}
+
+const OperatorRendererHostContext = createContext<OperatorRendererHost>({
+  renderAllTabs: false,
+});
 
 function displayScalar(value: RuntimeOperatorScalar): string {
   if (value === null) return "—";
@@ -60,6 +74,20 @@ function OperatorLink(props: {
   onLaunch: (launch: RuntimeOperatorLaunchIntent) => void;
 }): ReactElement {
   const openDetail = useContext(OpenDetailContext);
+  const host = useContext(OperatorRendererHostContext);
+  const resolvedHref = host.resolveLink?.(props.target);
+  if (resolvedHref) {
+    const external = props.target.kind === "external";
+    return (
+      <a
+        className="declarative-inline-link operator-inline-link"
+        href={resolvedHref}
+        {...(external && { target: "_blank", rel: "noreferrer" })}
+      >
+        {props.children}
+      </a>
+    );
+  }
   if (props.target.kind === "external") {
     return (
       <a href={props.target.href} target="_blank" rel="noreferrer">
@@ -266,7 +294,7 @@ function Actions(props: {
 
 function StatsBlock({
   block,
-  className = "declarative-stats",
+  className = "declarative-stats operator-stats",
 }: {
   block: Extract<RuntimeBlock, { type: "stats" }>;
   className?: string;
@@ -292,7 +320,7 @@ function KeyValuesBlock({
   block: Extract<RuntimeBlock, { type: "key-values" }>;
 }): ReactElement {
   return (
-    <dl className="declarative-key-values">
+    <dl className="declarative-key-values operator-key-values">
       {block.items.map((item, index) => (
         <div key={`${item.label}:${index}`}>
           <dt>{item.label}</dt>
@@ -309,7 +337,10 @@ function NoticeBlock({
   block: Extract<RuntimeBlock, { type: "notice" }>;
 }): ReactElement {
   return (
-    <aside className="declarative-notice" data-tone={block.tone ?? "neutral"}>
+    <aside
+      className="declarative-notice operator-notice"
+      data-tone={block.tone ?? "neutral"}
+    >
       {block.title && <strong>{block.title}</strong>}
       <p>{block.text}</p>
     </aside>
@@ -338,7 +369,10 @@ function LinksBlock(props: {
   onLaunch: (launch: RuntimeOperatorLaunchIntent) => void;
 }): ReactElement {
   return (
-    <nav className="declarative-links" aria-label="Workspace links">
+    <nav
+      className="declarative-links operator-links"
+      aria-label="Workspace links"
+    >
       {props.block.items.map((item, index) => (
         <OperatorLink
           key={`${item.label}:${index}`}
@@ -366,7 +400,7 @@ function ListItems(props: {
   openId?: string | undefined;
 }): ReactElement {
   return (
-    <ol className="declarative-list">
+    <ol className="declarative-list operator-list">
       {props.items.map((item) => {
         const metadata = [
           ...(item.meta ? [item.meta] : []),
@@ -513,8 +547,8 @@ function TableBlock(props: {
     (row) => (row.actions?.length ?? 0) > 0,
   );
   return (
-    <div className="declarative-table-scroll">
-      <table className="declarative-table">
+    <div className="declarative-table-scroll operator-table-scroll">
+      <table className="declarative-table operator-table">
         <thead>
           <tr>
             {props.block.columns.map((column) => (
@@ -571,7 +605,7 @@ function GroupBlock(props: {
 }): ReactElement {
   return (
     <section
-      className="declarative-group"
+      className="declarative-group operator-group"
       aria-labelledby={`${props.block.id}-title`}
     >
       <h3 id={`${props.block.id}-title`}>{props.block.label}</h3>
@@ -593,7 +627,7 @@ function FlowBlock(props: {
 }): ReactElement {
   return (
     <section
-      className="declarative-flow"
+      className="declarative-flow operator-flow"
       aria-labelledby={`${props.block.id}-title`}
     >
       <h3 id={`${props.block.id}-title`}>{props.block.label}</h3>
@@ -614,7 +648,7 @@ function MetersBlock(props: {
   block: Extract<RuntimeCmsOperatorPanelBlock, { type: "meters" }>;
 }): ReactElement {
   return (
-    <dl className="declarative-meters">
+    <dl className="declarative-meters operator-meters">
       {props.block.items.map((item) => (
         <div key={item.id} data-tone={item.tone ?? "neutral"}>
           <dt>{item.label}</dt>
@@ -640,7 +674,7 @@ function ProgressBlock(props: {
 }): ReactElement {
   return (
     <section
-      className="declarative-progress"
+      className="declarative-progress operator-progress"
       data-tone={props.block.tone ?? "neutral"}
     >
       <header>
@@ -666,8 +700,8 @@ function ProgressBlock(props: {
 
 function QueryBlock(props: {
   block: Extract<RuntimeCmsOperatorPanelBlock, { type: "query" }>;
-  query: CmsWorkspaceQuery;
-  onQueryChange: (query: CmsWorkspaceQuery) => void;
+  query: OperatorViewQuery;
+  onQueryChange: (query: OperatorViewQuery) => void;
 }): ReactElement {
   const change = (key: string, value: string): void => {
     const next: Record<string, string | number | undefined> = {
@@ -758,7 +792,7 @@ function MatrixBlock(props: {
 }): ReactElement {
   return (
     <div
-      className="declarative-matrix"
+      className="declarative-matrix operator-matrix"
       style={{
         gridTemplateColumns: `repeat(${props.block.columns ?? 2}, minmax(0, 1fr))`,
       }}
@@ -782,27 +816,169 @@ function MatrixBlock(props: {
   );
 }
 
-function SpatialBlock(props: {
-  block: Extract<RuntimeCmsOperatorPanelBlock, { type: "spatial" }>;
-}): ReactElement {
+type RuntimeSpatialBlock = Extract<
+  RuntimeCmsOperatorPanelBlock,
+  { type: "spatial" }
+>;
+
+interface SpatialPosition {
+  readonly x: number;
+  readonly y: number;
+}
+
+function radialPosition(distance: number, bearing: number): SpatialPosition {
+  const radians = ((bearing - 90) * Math.PI) / 180;
+  const radius = distance * 45;
+  return {
+    x: 50 + Math.cos(radians) * radius,
+    y: 50 + Math.sin(radians) * radius,
+  };
+}
+
+function spatialPositions(
+  block: RuntimeSpatialBlock,
+): ReadonlyMap<string, SpatialPosition> {
+  const positions = new Map<string, SpatialPosition>();
+  if (block.layout === "cartesian") {
+    for (const point of block.points) {
+      positions.set(point.id, { x: point.x * 100, y: point.y * 100 });
+    }
+    for (const zone of block.zones) {
+      positions.set(zone.id, { x: zone.x * 100, y: zone.y * 100 });
+    }
+  } else {
+    for (const point of block.points) {
+      positions.set(point.id, radialPosition(point.distance, point.bearing));
+    }
+  }
+  return positions;
+}
+
+function SpatialBlock({ block }: { block: RuntimeSpatialBlock }): ReactElement {
+  const positions = spatialPositions(block);
   return (
-    <figure className="declarative-spatial" aria-label={props.block.label}>
+    <figure
+      className={`declarative-spatial operator-spatial operator-spatial--${block.layout}`}
+      data-ui-spatial
+      aria-label={block.label}
+    >
+      <div className="operator-spatial-canvas">
+        <svg
+          className="operator-spatial-lines"
+          viewBox="0 0 1000 600"
+          preserveAspectRatio="none"
+          aria-hidden="true"
+        >
+          {block.layout === "radial" &&
+            block.strata.map((stratum) => (
+              <ellipse
+                key={stratum.id}
+                cx="500"
+                cy="300"
+                rx={stratum.maxDistance * 450}
+                ry={stratum.maxDistance * 270}
+              />
+            ))}
+          {block.layout === "cartesian" &&
+            block.zones.map((zone) => (
+              <circle
+                key={zone.id}
+                className="operator-spatial-zone"
+                cx={zone.x * 1000}
+                cy={zone.y * 600}
+                r="72"
+              />
+            ))}
+          {(block.relationships ?? []).map((relationship, index) => {
+            const source = positions.get(relationship.sourceId);
+            const target = positions.get(relationship.targetId);
+            if (!source || !target) return null;
+            return (
+              <line
+                key={`${relationship.sourceId}:${relationship.targetId}:${index}`}
+                data-tone={relationship.tone ?? "neutral"}
+                x1={source.x * 10}
+                y1={source.y * 6}
+                x2={target.x * 10}
+                y2={target.y * 6}
+              />
+            );
+          })}
+        </svg>
+        {block.layout === "radial" && (
+          <span
+            className="operator-spatial-center"
+            data-kind={block.centerKind}
+          >
+            {block.centerLabel}
+          </span>
+        )}
+        <div className="operator-spatial-points" role="list">
+          {block.points.map((point) => {
+            const position = positions.get(point.id);
+            if (!position) return null;
+            const details =
+              "category" in point
+                ? [point.category, ...(point.details ?? [])]
+                : [
+                    point.kind,
+                    point.status,
+                    ...(point.tags ?? []),
+                    ...(point.details ?? []),
+                  ];
+            return (
+              <button
+                key={point.id}
+                className="operator-spatial-point"
+                type="button"
+                role="listitem"
+                style={{ left: `${position.x}%`, top: `${position.y}%` }}
+                data-ui-spatial-point={point.id}
+                data-ui-spatial-related={JSON.stringify(
+                  "relatedIds" in point ? (point.relatedIds ?? []) : [],
+                )}
+                data-tone={point.tone ?? "neutral"}
+                aria-pressed="false"
+                aria-controls={`${block.id}-detail-${point.id}`}
+                title={`${point.label}: ${details.join(", ")}`}
+              >
+                <span aria-hidden="true" />
+                <span>{point.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
       <figcaption>
-        <strong>{props.block.label}</strong>
-        <p>{props.block.description}</p>
+        <p className="operator-spatial-description">{block.description}</p>
+        <ul className="operator-spatial-legend" aria-label="Legend">
+          {block.legend.map((item, index) => (
+            <li
+              key={`${item.label}:${index}`}
+              data-tone={item.tone ?? "neutral"}
+            >
+              {item.label}
+            </li>
+          ))}
+        </ul>
+        <div className="operator-spatial-details" aria-live="polite">
+          {block.points.map((point) => (
+            <article
+              key={point.id}
+              id={`${block.id}-detail-${point.id}`}
+              data-ui-spatial-detail={point.id}
+              hidden
+            >
+              <strong>{point.label}</strong>
+              <span>
+                {"category" in point
+                  ? point.category
+                  : `${point.kind} · ${point.status}`}
+              </span>
+            </article>
+          ))}
+        </div>
       </figcaption>
-      <ol>
-        {props.block.points.map((point) => (
-          <li key={point.id}>
-            <strong>{point.label}</strong>
-            <span>
-              {"category" in point
-                ? point.category
-                : `${point.kind} · ${point.status}`}
-            </span>
-          </li>
-        ))}
-      </ol>
     </figure>
   );
 }
@@ -812,8 +988,8 @@ function PanelBlock(props: {
   onAction: (action: RuntimeOperatorActionControl) => Promise<unknown>;
   onOpenEntity: (entityType: string, id: string) => void;
   onLaunch: (launch: RuntimeOperatorLaunchIntent) => void;
-  query: CmsWorkspaceQuery;
-  onQueryChange: (query: CmsWorkspaceQuery) => void;
+  query: OperatorViewQuery;
+  onQueryChange: (query: OperatorViewQuery) => void;
 }): ReactElement {
   switch (props.block.type) {
     case "stats":
@@ -895,8 +1071,8 @@ function DetailBlock(props: {
   onAction: (action: RuntimeOperatorActionControl) => Promise<unknown>;
   onOpenEntity: (entityType: string, id: string) => void;
   onLaunch: (launch: RuntimeOperatorLaunchIntent) => void;
-  query: CmsWorkspaceQuery;
-  onQueryChange: (query: CmsWorkspaceQuery) => void;
+  query: OperatorViewQuery;
+  onQueryChange: (query: OperatorViewQuery) => void;
 }): ReactElement {
   const { block, query, onQueryChange } = props;
   const headingRef = useRef<HTMLHeadingElement>(null);
@@ -1024,8 +1200,8 @@ function CardBlock(props: {
   onAction: (action: RuntimeOperatorActionControl) => Promise<unknown>;
   onOpenEntity: (entityType: string, id: string) => void;
   onLaunch: (launch: RuntimeOperatorLaunchIntent) => void;
-  query: CmsWorkspaceQuery;
-  onQueryChange: (query: CmsWorkspaceQuery) => void;
+  query: OperatorViewQuery;
+  onQueryChange: (query: OperatorViewQuery) => void;
 }): ReactElement {
   return (
     <section
@@ -1058,8 +1234,8 @@ function ColumnsBlock(props: {
   onAction: (action: RuntimeOperatorActionControl) => Promise<unknown>;
   onOpenEntity: (entityType: string, id: string) => void;
   onLaunch: (launch: RuntimeOperatorLaunchIntent) => void;
-  query: CmsWorkspaceQuery;
-  onQueryChange: (query: CmsWorkspaceQuery) => void;
+  query: OperatorViewQuery;
+  onQueryChange: (query: OperatorViewQuery) => void;
 }): ReactElement {
   const region = (
     entries: readonly RuntimeCmsOperatorRegionBlock[],
@@ -1108,12 +1284,13 @@ function ViewBlock(props: {
   onAction: (action: RuntimeOperatorActionControl) => Promise<unknown>;
   onOpenEntity: (entityType: string, id: string) => void;
   onLaunch: (launch: RuntimeOperatorLaunchIntent) => void;
-  query: CmsWorkspaceQuery;
-  onQueryChange: (query: CmsWorkspaceQuery) => void;
+  query: OperatorViewQuery;
+  onQueryChange: (query: OperatorViewQuery) => void;
 }): ReactElement {
   const [activeTab, setActiveTab] = useState(
     props.block.type === "tabs" ? props.block.defaultTab : "",
   );
+  const host = useContext(OperatorRendererHostContext);
   if (props.block.type === "columns") {
     return (
       <ColumnsBlock
@@ -1159,6 +1336,35 @@ function ViewBlock(props: {
         onLaunch={props.onLaunch}
         query={props.query}
         onQueryChange={props.onQueryChange}
+      />
+    );
+  }
+  if (host.renderAllTabs) {
+    return (
+      <WidgetTabs
+        id={`operator-${props.block.id}`}
+        label={props.block.label}
+        defaultValue={props.block.defaultTab}
+        tabs={props.block.tabs.map((tab) => ({
+          value: tab.id,
+          label: tab.label,
+          ...(tab.count !== undefined ? { count: tab.count } : {}),
+          content: tab.blocks.map((block, index) => (
+            <section
+              className={`operator-block operator-block--${block.type}`}
+              key={block.id ?? `${block.type}:${index}`}
+            >
+              <PanelBlock
+                block={block}
+                onAction={props.onAction}
+                onOpenEntity={props.onOpenEntity}
+                onLaunch={props.onLaunch}
+                query={props.query}
+                onQueryChange={props.onQueryChange}
+              />
+            </section>
+          )),
+        }))}
       />
     );
   }
@@ -1216,19 +1422,27 @@ function blockSpan(type: string): "compact" | "wide" {
   return COMPACT_BLOCKS.has(type) ? "compact" : "wide";
 }
 
-export function DeclarativeWorkspace(props: {
+export interface OperatorViewRendererProps {
   data: RuntimeCmsWorkspaceData;
   onAction: (action: RuntimeOperatorActionControl) => Promise<unknown>;
   onOpenEntity: (entityType: string, id: string) => void;
   onLaunch?: ((launch: RuntimeOperatorLaunchIntent) => void) | undefined;
-  query?: CmsWorkspaceQuery | undefined;
-  onQueryChange?: ((query: CmsWorkspaceQuery) => void) | undefined;
-}): ReactElement {
+  query?: OperatorViewQuery | undefined;
+  onQueryChange?: ((query: OperatorViewQuery) => void) | undefined;
+  resolveLink?:
+    ((target: RuntimeOperatorLinkTarget) => string | undefined) | undefined;
+  renderAllTabs?: boolean | undefined;
+}
+
+export function OperatorViewRenderer(
+  props: OperatorViewRendererProps,
+): ReactElement {
   const { title, blocks } = props.data.view;
   // Leading stats are the workspace's totals, so they belong beside the title
   // rather than in the body as one more card.
   const [lead] = blocks;
-  const totals = lead?.type === "stats" ? lead : null;
+  const totals =
+    props.renderAllTabs !== true && lead?.type === "stats" ? lead : null;
   const bodyBlocks = totals ? blocks.slice(1) : blocks;
   const { kicker, description, status } = props.data.view;
   const hasHead =
@@ -1238,48 +1452,56 @@ export function DeclarativeWorkspace(props: {
     status !== undefined;
 
   return (
-    <main className="declarative-workspace">
-      {hasHead && (
-        <header className="declarative-head">
-          <div className="declarative-head-copy">
-            {kicker && <span className="declarative-kicker">{kicker}</span>}
-            <h2>{title}</h2>
-            {description && <p>{description}</p>}
-          </div>
-          <div className="declarative-head-state">
-            {status && (
-              <strong
-                className="declarative-status-badge"
-                data-tone={status.tone ?? "neutral"}
-              >
-                {status.label}
-                {status.detail && <small>{status.detail}</small>}
-              </strong>
-            )}
-            {totals && (
-              <StatsBlock block={totals} className="declarative-totals" />
-            )}
-          </div>
-        </header>
-      )}
-      <div className="declarative-blocks">
-        {bodyBlocks.map((block, index) => (
-          <section
-            key={block.id ?? `${block.type}:${index}`}
-            data-block={block.type}
-            data-span={blockSpan(block.type)}
-          >
-            <ViewBlock
-              block={block}
-              onAction={props.onAction}
-              onOpenEntity={props.onOpenEntity}
-              onLaunch={props.onLaunch ?? ((): void => {})}
-              query={props.query ?? {}}
-              onQueryChange={props.onQueryChange ?? ((): void => {})}
-            />
-          </section>
-        ))}
-      </div>
-    </main>
+    <OperatorRendererHostContext.Provider
+      value={{
+        resolveLink: props.resolveLink,
+        renderAllTabs: props.renderAllTabs === true,
+      }}
+    >
+      <main className="declarative-workspace operator-view">
+        {hasHead && (
+          <header className="declarative-head">
+            <div className="declarative-head-copy">
+              {kicker && <span className="declarative-kicker">{kicker}</span>}
+              <h2 className="operator-view-title">{title}</h2>
+              {description && <p>{description}</p>}
+            </div>
+            <div className="declarative-head-state">
+              {status && (
+                <strong
+                  className="declarative-status-badge"
+                  data-tone={status.tone ?? "neutral"}
+                >
+                  {status.label}
+                  {status.detail && <small>{status.detail}</small>}
+                </strong>
+              )}
+              {totals && (
+                <StatsBlock block={totals} className="declarative-totals" />
+              )}
+            </div>
+          </header>
+        )}
+        <div className="declarative-blocks">
+          {bodyBlocks.map((block, index) => (
+            <section
+              className={`operator-block operator-block--${block.type}`}
+              key={block.id ?? `${block.type}:${index}`}
+              data-block={block.type}
+              data-span={blockSpan(block.type)}
+            >
+              <ViewBlock
+                block={block}
+                onAction={props.onAction}
+                onOpenEntity={props.onOpenEntity}
+                onLaunch={props.onLaunch ?? ((): void => {})}
+                query={props.query ?? {}}
+                onQueryChange={props.onQueryChange ?? ((): void => {})}
+              />
+            </section>
+          ))}
+        </div>
+      </main>
+    </OperatorRendererHostContext.Provider>
   );
 }

@@ -1,12 +1,11 @@
 import { describe, expect, it } from "bun:test";
 import { readdirSync, readFileSync, statSync } from "fs";
-import { join, relative, sep } from "path";
+import { join } from "path";
 import { z } from "@brains/utils/zod";
 
 const packageRoot = join(import.meta.dir, "..");
 const packageJsonPath = join(packageRoot, "package.json");
 const buildScriptPath = join(packageRoot, "scripts", "build-ui.ts");
-const allowedReactDir = `${join("ui-react")}${sep}`;
 const sourceExtensions = [".ts", ".tsx", ".js", ".jsx"];
 
 const webChatPackageJsonSchema = z.looseObject({
@@ -35,18 +34,7 @@ function listSourceFiles(dir: string): string[] {
   return files;
 }
 
-function importsReact(content: string): boolean {
-  const packageName = ["re", "act"].join("");
-  return (
-    content.includes(`from "${packageName}"`) ||
-    content.includes(`from '${packageName}'`) ||
-    content.includes(`import("${packageName}")`) ||
-    content.includes(`import('${packageName}')`) ||
-    content.includes(`@jsxImportSource ${packageName}`)
-  );
-}
-
-describe("React containment", () => {
+describe("Web chat UI contract", () => {
   it("publishes the built UI asset directory", () => {
     const packageJson = webChatPackageJsonSchema.parse(
       JSON.parse(readFileSync(packageJsonPath, "utf-8")),
@@ -144,15 +132,5 @@ describe("React containment", () => {
     expect(buildScript).toContain('"react/jsx-runtime"');
     expect(buildScript).toContain('"react/jsx-dev-runtime"');
     expect(buildScript).toContain('"react-dom/client"');
-  });
-
-  it("keeps React imports inside ui-react", () => {
-    const violations = listSourceFiles(packageRoot)
-      .map((file) => ({ file, relativePath: relative(packageRoot, file) }))
-      .filter((entry) => !entry.relativePath.startsWith(allowedReactDir))
-      .filter((entry) => importsReact(readFileSync(entry.file, "utf-8")))
-      .map((entry) => entry.relativePath);
-
-    expect(violations).toEqual([]);
   });
 });

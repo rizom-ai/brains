@@ -1,4 +1,4 @@
-import type { JSX } from "preact";
+import type { JSX } from "react";
 import { ProseContent } from "./ProseContent";
 import { useMarkdownToHtml } from "./ImageRendererProvider";
 
