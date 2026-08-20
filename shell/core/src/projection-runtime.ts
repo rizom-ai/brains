@@ -25,7 +25,9 @@ import {
 } from "./projection-wave-scheduler";
 
 export type ProjectionRuntimeStore = ProjectionWaveStore &
-  ProjectionRuleExecutionStore;
+  ProjectionRuleExecutionStore & {
+    hasActiveProjectionBatch(): Promise<boolean>;
+  };
 
 export interface ProjectionRuntimeQueue extends ProjectionWaveQueue {
   enqueue(request: JobQueueEnqueueRequest): Promise<string>;
@@ -106,14 +108,16 @@ export async function activateProjectionRuntime(
   let removeSweep = (): void => {};
   try {
     if (options.activationMode !== "executor") {
-      const performSweep = async (): Promise<void> => {
-        await options.reconcileBatches?.();
+      const performSweep = async (recoverBatches: boolean): Promise<void> => {
+        if (recoverBatches) await options.reconcileBatches?.();
         await scheduler.startNextWave();
       };
       let activeSweep: Promise<void> | undefined;
-      const sweep = (): Promise<void> => {
+      const sweep = (recoverBatches: boolean): Promise<void> => {
         if (activeSweep) return activeSweep;
-        const started = performSweep();
+        const started = Promise.resolve().then(() =>
+          performSweep(recoverBatches),
+        );
         activeSweep = started;
         const clear = (): void => {
           if (activeSweep === started) activeSweep = undefined;
@@ -121,13 +125,18 @@ export async function activateProjectionRuntime(
         void started.then(clear, clear);
         return started;
       };
-      removeWakeup = options.setWakeup(sweep);
-      await sweep();
+      const wakeup = async (): Promise<void> => {
+        if (activeSweep) return;
+        if (await options.store.hasActiveProjectionBatch()) return;
+        await sweep(false);
+      };
+      removeWakeup = options.setWakeup(wakeup);
+      await sweep(true);
       removeSweep = (options.scheduleSweep ?? scheduleIntervalSweep)(
         options.sweepIntervalMs ?? 1_000,
         async (): Promise<void> => {
           try {
-            await sweep();
+            await sweep(true);
           } catch (error) {
             options.logger.error("Projection coordination sweep failed", error);
           }

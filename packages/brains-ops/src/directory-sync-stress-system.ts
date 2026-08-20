@@ -999,6 +999,16 @@ function assertHermeticDirectorySyncPosture(user: ResolvedUser): void {
       "Directory-sync stress requires topicExtractionEnabled: false for a hermetic smoke workload",
     );
   }
+  if (user.skillDerivationEnabled !== false) {
+    throw new Error(
+      "Directory-sync stress requires skillDerivationEnabled: false for a hermetic smoke workload",
+    );
+  }
+  if (user.swotDerivationEnabled !== false) {
+    throw new Error(
+      "Directory-sync stress requires swotDerivationEnabled: false for a hermetic smoke workload",
+    );
+  }
 }
 
 async function resolveStressUser(

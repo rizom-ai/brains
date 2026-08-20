@@ -42,6 +42,10 @@ class MemoryRuntimeStore implements ProjectionRuntimeStore {
     return Promise.resolve(this.active);
   }
 
+  hasActiveProjectionBatch(): Promise<boolean> {
+    return Promise.resolve(false);
+  }
+
   listPendingInputs(): Promise<ProjectionDirtyInput[]> {
     return Promise.resolve(
       this.pending
@@ -170,6 +174,62 @@ class MemoryRuntimeStore implements ProjectionRuntimeStore {
     _input: ApplyProjectionRuleResultInput,
   ): Promise<ProjectionWaveRule> {
     throw new Error("not used by activation test");
+  }
+}
+
+class LiveDurableRootRuntimeStore extends MemoryRuntimeStore {
+  private activeBatch = false;
+  private pendingInputCount = 0;
+  public pendingInputReads = 0;
+  public pendingInputsVisited = 0;
+  public claimAttempts = 0;
+
+  public setActiveChildren(count: number): void {
+    this.activeBatch = true;
+    this.pendingInputCount = count;
+  }
+
+  public closeActiveBatch(): void {
+    this.activeBatch = false;
+  }
+
+  public override hasActiveProjectionBatch(): Promise<boolean> {
+    return Promise.resolve(this.activeBatch);
+  }
+
+  public override listPendingInputs(): Promise<ProjectionDirtyInput[]> {
+    this.pendingInputReads++;
+    this.pendingInputsVisited += this.pendingInputCount;
+    return Promise.resolve(
+      Array.from({ length: this.pendingInputCount }, (_, index) => ({
+        generation: index + 1,
+        sourceType: "document",
+        sourceId: `document-${index + 1}`,
+        revision: `revision-${index + 1}`,
+        operation: "upsert" as const,
+        markedAt: 0,
+      })),
+    );
+  }
+
+  public override claimPendingWave(
+    input: ClaimProjectionWaveInput,
+  ): Promise<ProjectionWave | null> {
+    this.claimAttempts++;
+    if (this.activeBatch || this.pendingInputCount === 0) {
+      return Promise.resolve(null);
+    }
+    const wave: ProjectionWave = {
+      id: input.waveId,
+      cutoffGeneration: this.pendingInputCount,
+      graphFingerprint: input.graphFingerprint,
+      admissionEpoch: 0,
+      status: "running",
+      startedAt: input.startedAt,
+      completedAt: null,
+    };
+    this.pendingInputCount = 0;
+    return Promise.resolve(wave);
   }
 }
 
@@ -353,6 +413,128 @@ describe("activateProjectionRuntime", () => {
 
     releaseReconciliation();
     await Promise.all([first, overlapping]);
+    runtime.dispose();
+  });
+
+  it("does not deadlock when recovery awaits its own wakeup", async () => {
+    const store = new MemoryRuntimeStore();
+    store.setPending(false);
+    let registeredWakeup: (() => Promise<void>) | undefined;
+    const activation = activateProjectionRuntime({
+      store,
+      queue: {
+        enqueue: async () => "unused",
+        getStatus: async () => null,
+        registerHandler: (): void => {},
+        unregisterHandler: (): void => {},
+      },
+      setWakeup: (wakeup): (() => void) => {
+        registeredWakeup = wakeup;
+        return (): void => {};
+      },
+      graph,
+      rules: [projectionRule],
+      inputContext,
+      executionContext,
+      reconcileTargets: async () => {},
+      beforeWaveCompletion: async () => {},
+      logger: createSilentLogger(),
+      createWaveId: () => "unused-wave",
+      now: () => 10,
+      reconcileBatches: async (): Promise<void> => {
+        await registeredWakeup?.();
+      },
+    });
+
+    const runtime = await Promise.race([
+      activation,
+      Bun.sleep(50).then(() => null),
+    ]);
+    expect(runtime).not.toBeNull();
+    runtime?.dispose();
+  });
+
+  it("defers 350 live-root wakeups and schedules one wave after final closure", async () => {
+    const store = new LiveDurableRootRuntimeStore();
+    let wakeup: (() => Promise<void>) | undefined;
+    let rootReads = 0;
+    let rootChildrenVisited = 0;
+    let childCount = 0;
+    let queuedRules = 0;
+    const runtime = await activateProjectionRuntime({
+      store,
+      queue: {
+        enqueue: async () => {
+          queuedRules++;
+          return `job-${queuedRules}`;
+        },
+        getStatus: async () => null,
+        registerHandler: (): void => {},
+        unregisterHandler: (): void => {},
+      },
+      setWakeup: (callback): (() => void) => {
+        wakeup = callback;
+        return (): void => {
+          wakeup = undefined;
+        };
+      },
+      graph,
+      rules: [projectionRule],
+      inputContext,
+      executionContext,
+      reconcileTargets: async () => {},
+      beforeWaveCompletion: async () => {},
+      logger: createSilentLogger(),
+      createWaveId: () => "wave-after-close",
+      now: () => 10,
+      reconcileBatches: async (): Promise<void> => {
+        rootReads++;
+        rootChildrenVisited += childCount;
+      },
+      scheduleSweep: (): (() => void) => (): void => {},
+    });
+
+    expect(wakeup).toBeDefined();
+    for (let child = 1; child <= 350; child++) {
+      childCount = child;
+      store.setActiveChildren(child);
+      await wakeup?.();
+    }
+
+    expect({
+      rootReads,
+      rootChildrenVisited,
+      pendingInputReads: store.pendingInputReads,
+      pendingInputsVisited: store.pendingInputsVisited,
+      claimAttempts: store.claimAttempts,
+      queuedRules,
+    }).toEqual({
+      rootReads: 1,
+      rootChildrenVisited: 0,
+      pendingInputReads: 1,
+      pendingInputsVisited: 0,
+      claimAttempts: 0,
+      queuedRules: 0,
+    });
+
+    store.closeActiveBatch();
+    await wakeup?.();
+
+    expect({
+      rootReads,
+      rootChildrenVisited,
+      pendingInputReads: store.pendingInputReads,
+      pendingInputsVisited: store.pendingInputsVisited,
+      claimAttempts: store.claimAttempts,
+      queuedRules,
+    }).toEqual({
+      rootReads: 1,
+      rootChildrenVisited: 0,
+      pendingInputReads: 2,
+      pendingInputsVisited: 350,
+      claimAttempts: 1,
+      queuedRules: 1,
+    });
     runtime.dispose();
   });
 

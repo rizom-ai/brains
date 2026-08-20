@@ -54,6 +54,8 @@ agePublicKey: age1testpublickey
     "users/smoke.yaml": `handle: smoke
 embeddingEnabled: false
 topicExtractionEnabled: false
+skillDerivationEnabled: false
+swotDerivationEnabled: false
 discord:
   enabled: false
 `,
@@ -551,6 +553,37 @@ describe("deployed directory-sync stress driver", () => {
         logger() {},
       }),
     ).rejects.toThrow("requires embeddingEnabled: false");
+  });
+
+  it("refuses a nominally hermetic run with AI-backed derivations enabled", async () => {
+    const system = new ScriptedStressSystem();
+    const rootDir = await createSmokePilotRepo();
+    await writeFile(
+      join(rootDir, "users", "smoke.yaml"),
+      `handle: smoke
+embeddingEnabled: false
+topicExtractionEnabled: false
+skillDerivationEnabled: false
+swotDerivationEnabled: true
+discord:
+  enabled: false
+`,
+    );
+
+    expect(
+      runDeployedDirectorySyncStress({
+        rootDir,
+        handle: "smoke",
+        profile: "regression",
+        confirmation: "stress:smoke",
+        env: environment,
+        fetchImpl: system.fetchImpl,
+        commandRunner: system.commandRunner,
+        now: system.now,
+        sleep: system.sleep,
+        logger() {},
+      }),
+    ).rejects.toThrow("requires swotDerivationEnabled: false");
   });
 
   it("allows feature-enabled smoke only with an explicit external AI cap", async () => {

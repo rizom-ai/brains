@@ -1,21 +1,21 @@
 import type { Plugin } from "@brains/plugins";
-import { z } from "@brains/utils/zod";
-import { swotAssessmentPlugin } from "./plugin";
+import {
+  assessmentConfigSchema,
+  swotAssessmentPlugin,
+  type AssessmentConfigInput,
+} from "./plugin";
 
-export { SwotAssessmentPlugin, swotAssessmentPlugin } from "./plugin";
+export {
+  SwotAssessmentPlugin,
+  assessmentConfigSchema,
+  swotAssessmentPlugin,
+  type AssessmentConfig,
+  type AssessmentConfigInput,
+} from "./plugin";
 export { createSwotEvalPlugin } from "./eval/swot-eval-plugin";
 
-export type AssessmentConfig = Record<string, never>;
-export type AssessmentConfigInput = Record<string, never>;
-
-export const assessmentConfigSchema: z.ZodType<
-  AssessmentConfig,
-  AssessmentConfigInput
-> = z.object({}).strict();
-
-export function assessment(config: unknown = {}): Plugin[] {
-  assessmentConfigSchema.parse(config);
-  return [swotAssessmentPlugin()];
+export function assessment(config: AssessmentConfigInput = {}): Plugin[] {
+  return [swotAssessmentPlugin(assessmentConfigSchema.parse(config))];
 }
 
 export { SwotAdapter, swotAdapter } from "./adapters/swot-adapter";

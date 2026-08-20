@@ -14,6 +14,15 @@ describe("Skill projection registration", () => {
     ).toBe(false);
   });
 
+  it("does not register the AI-backed rule when derivation is disabled", async () => {
+    const harness = createPluginHarness<SkillPlugin>({});
+    const capabilities = await harness.installPlugin(
+      new SkillPlugin({ enableSkillDerivation: false }),
+    );
+
+    expect(capabilities.projectionRules).toBeUndefined();
+  });
+
   it("registers one scheduler-owned rule and no event-owned job", async () => {
     const harness = createPluginHarness<SkillPlugin>({});
     const enqueue = mock(async () => "job-1");

@@ -57,10 +57,9 @@ type AtprotoConflictNotification = z.infer<
   typeof atprotoConflictNotificationSchema
 >;
 
-export const agentToolsConfigSchema: z.ZodType<
-  AgentToolsConfig,
-  AgentToolsConfigInput
-> = z
+export const agentToolsConfigSchema: z.ZodObject<{
+  notifyOnNewAgents: z.ZodDefault<z.ZodBoolean>;
+}> = z
   .object({
     notifyOnNewAgents: z
       .boolean()

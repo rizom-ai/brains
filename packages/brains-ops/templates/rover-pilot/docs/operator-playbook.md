@@ -75,6 +75,8 @@ Use the manual `Directory Sync Stress` workflow only against a disposable smoke 
 ```yaml
 embeddingEnabled: false
 topicExtractionEnabled: false
+skillDerivationEnabled: false
+swotDerivationEnabled: false
 ```
 
 Before authorizing a workload, dispatch the workflow once with `verify_only: true`. That mode loads the same Bitwarden/Varlock content credential, clones the smoke content repository, and runs `git push --dry-run` against a temporary stress ref. It creates no ref, performs no content write, does not contact the deployed runtime, and skips cleanup because no probes were created.

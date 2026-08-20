@@ -1,5 +1,5 @@
 import type { Plugin } from "@brains/plugins";
-import type { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod";
 import { agentDiscoveryPlugin } from "./plugins/agent-plugin";
 import {
   agentToolsConfigSchema,
@@ -20,8 +20,18 @@ export {
 } from "./plugins/agent-tools-plugin";
 
 /** Composite config for the agent-discovery feature. */
-export const agentDiscoveryCompositeConfigSchema: typeof agentToolsConfigSchema =
-  agentToolsConfigSchema;
+export const agentDiscoveryCompositeConfigSchema: z.ZodType<
+  { notifyOnNewAgents: boolean; enableSkillDerivation: boolean },
+  {
+    notifyOnNewAgents?: boolean | undefined;
+    enableSkillDerivation?: boolean | undefined;
+  }
+> = agentToolsConfigSchema.extend({
+  enableSkillDerivation: z
+    .boolean()
+    .default(true)
+    .describe("Derive skills from topic and agent evidence using AI"),
+});
 
 export type AgentDiscoveryCompositeConfig = z.output<
   typeof agentDiscoveryCompositeConfigSchema
@@ -41,8 +51,13 @@ export type AgentDiscoveryCompositeConfigInput = z.input<
 export function agentDiscovery(
   config: AgentDiscoveryCompositeConfigInput = {},
 ): Plugin[] {
-  const parsed = agentDiscoveryCompositeConfigSchema.parse(config);
-  return [agentDiscoveryPlugin(), agentToolsPlugin(parsed), skillPlugin()];
+  const { enableSkillDerivation, ...agentToolsConfig } =
+    agentDiscoveryCompositeConfigSchema.parse(config);
+  return [
+    agentDiscoveryPlugin(),
+    agentToolsPlugin(agentToolsConfig),
+    skillPlugin({ enableSkillDerivation }),
+  ];
 }
 
 export {
@@ -84,7 +99,13 @@ export {
   type TagVocabularyEntry,
 } from "./lib/tag-vocabulary";
 
-export { SkillPlugin, skillPlugin } from "./plugins/skill-plugin";
+export {
+  SkillPlugin,
+  skillPlugin,
+  skillPluginConfigSchema,
+  type SkillPluginConfig,
+  type SkillPluginConfigInput,
+} from "./plugins/skill-plugin";
 
 export {
   skillFrontmatterSchema,

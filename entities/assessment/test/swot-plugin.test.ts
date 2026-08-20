@@ -38,6 +38,13 @@ describe("SwotAssessmentPlugin", () => {
     });
   });
 
+  it("does not register the AI-backed rule when derivation is disabled", async () => {
+    const plugin = new SwotAssessmentPlugin({ enableSwotDerivation: false });
+    const capabilities = await harness.installPlugin(plugin);
+
+    expect(capabilities.projectionRules).toBeUndefined();
+  });
+
   it("registers deriveSwot eval handler", async () => {
     const plugin = new SwotAssessmentPlugin();
     const registrations: Array<{ pluginId: string; handlerId: string }> = [];
