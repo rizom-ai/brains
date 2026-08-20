@@ -268,6 +268,63 @@ function parseWaveRule(rule: ProjectionWaveRule): ProjectionWaveRule {
   return { ...rule, changedTargets };
 }
 
+export interface SqliteWriteRetryOptions {
+  retryBudgetMs?: number;
+  now?: () => number;
+  sleep?: (delayMs: number) => Promise<void>;
+  random?: () => number;
+}
+
+function isSqliteWriteConflict(error: unknown): boolean {
+  for (let current = error; current !== undefined;) {
+    const code =
+      typeof current === "object" && current !== null && "code" in current
+        ? String(current.code)
+        : "";
+    const message = getErrorMessage(current, "");
+    if (
+      /SQLITE_(?:BUSY|LOCKED)/u.test(code) ||
+      /SQLITE_(?:BUSY|LOCKED)|database is locked/iu.test(message)
+    ) {
+      return true;
+    }
+    current = current instanceof Error ? current.cause : undefined;
+  }
+  return false;
+}
+
+export async function retrySqliteWrite<TResult>(
+  write: () => Promise<TResult>,
+  options: SqliteWriteRetryOptions = {},
+): Promise<TResult> {
+  const retryBudgetMs =
+    options.retryBudgetMs ?? BATCH_STATE_WRITE_RETRY_BUDGET_MS;
+  const now = options.now ?? Date.now;
+  const sleep =
+    options.sleep ??
+    ((delayMs: number): Promise<void> =>
+      new Promise((resolve) => setTimeout(resolve, delayMs)));
+  const random = options.random ?? Math.random;
+  const deadline = now() + retryBudgetMs;
+  let attempt = 1;
+
+  for (;;) {
+    try {
+      return await write();
+    } catch (error) {
+      if (!isSqliteWriteConflict(error)) throw error;
+      const backoff = Math.min(
+        BATCH_STATE_WRITE_RETRY_BASE_DELAY_MS * 2 ** (attempt - 1),
+        BATCH_STATE_WRITE_RETRY_MAX_DELAY_MS,
+      );
+      const delay = backoff / 2 + random() * (backoff / 2);
+      if (now() + delay >= deadline) throw error;
+      await sleep(delay);
+      attempt += 1;
+    }
+  }
+}
+
 /** Entity-database persistence boundary for scheduler coordination state. */
 export class ProjectionStore {
   private readonly db: EntityDB;
@@ -1728,45 +1785,7 @@ export class ProjectionStore {
   private async runBatchStateWrite<TResult>(
     write: () => Promise<TResult>,
   ): Promise<TResult> {
-    return this.transactionTail.run(() => this.retryBatchStateWrite(write));
-  }
-
-  private async retryBatchStateWrite<TResult>(
-    write: () => Promise<TResult>,
-    deadline = Date.now() + BATCH_STATE_WRITE_RETRY_BUDGET_MS,
-    attempt = 1,
-  ): Promise<TResult> {
-    try {
-      return await write();
-    } catch (error) {
-      if (!this.isSqliteWriteConflict(error)) throw error;
-      const backoff = Math.min(
-        BATCH_STATE_WRITE_RETRY_BASE_DELAY_MS * 2 ** (attempt - 1),
-        BATCH_STATE_WRITE_RETRY_MAX_DELAY_MS,
-      );
-      const delay = backoff / 2 + Math.random() * (backoff / 2);
-      if (Date.now() + delay >= deadline) throw error;
-      await new Promise((resolve) => setTimeout(resolve, delay));
-      return this.retryBatchStateWrite(write, deadline, attempt + 1);
-    }
-  }
-
-  private isSqliteWriteConflict(error: unknown): boolean {
-    for (let current = error; current !== undefined;) {
-      const code =
-        typeof current === "object" && current !== null && "code" in current
-          ? String(current.code)
-          : "";
-      const message = getErrorMessage(current, "");
-      if (
-        /SQLITE_(?:BUSY|LOCKED)/u.test(code) ||
-        /SQLITE_(?:BUSY|LOCKED)|database is locked/iu.test(message)
-      ) {
-        return true;
-      }
-      current = current instanceof Error ? current.cause : undefined;
-    }
-    return false;
+    return this.transactionTail.run(() => retrySqliteWrite(write));
   }
 
   private async applyWriteIntent(
