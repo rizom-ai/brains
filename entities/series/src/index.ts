@@ -60,7 +60,9 @@ export const series: EntityDefinition<"series", typeof seriesMetadataSchema> =
     templates: { ...getTemplates(), description: seriesDescriptionTemplate },
     dataSources: [seriesDataSource],
     jobs: { "series:description": seriesDescriptionJob },
-    projectionRules: [createSeriesProjectionRule()],
+    projectionRules: ({ template }) => [
+      createSeriesProjectionRule(template("description")),
+    ],
     atproto: createSeriesAtprotoProjection(),
   });
 

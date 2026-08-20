@@ -49,7 +49,7 @@ describe("DecksPlugin - Publish Pipeline Integration", () => {
 
       expect(generateContent).toHaveBeenCalledWith(
         expect.objectContaining({
-          templateName: "decks:description",
+          templateName: "@brains/decks:deck:description",
           representedIdentity: "none",
         }),
       );

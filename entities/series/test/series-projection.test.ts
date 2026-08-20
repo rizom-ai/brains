@@ -66,7 +66,9 @@ function executionContext(description = "A connected body of work."): {
 
 describe("series projection rule", () => {
   it("selects all series members and derives one series per distinct name", async () => {
-    const rule = createSeriesProjectionRule();
+    const rule = createSeriesProjectionRule(
+      "@brains/series:series:description",
+    );
     const signal = new AbortController().signal;
     const selected = await rule.selectInput(
       { waveId: "wave-1", inputs: [] },
@@ -119,7 +121,9 @@ describe("series projection rule", () => {
   it("preserves described series and deletes every orphan without a model call", async () => {
     const describedContent =
       "---\ntitle: Systems\nslug: systems\n---\n\n## Description\n\nExisting description.";
-    const rule = createSeriesProjectionRule();
+    const rule = createSeriesProjectionRule(
+      "@brains/series:series:description",
+    );
     const signal = new AbortController().signal;
     const selected = await rule.selectInput(
       { waveId: "wave-1", inputs: [] },

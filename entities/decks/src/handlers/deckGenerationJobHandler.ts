@@ -67,7 +67,7 @@ export const deckGeneration: EntityGenerationDeclaration<
   typeof deckGenerationJobSchema
 > = {
   input: deckGenerationJobSchema,
-  generate: async ({ input, ai, logger, entities, progress }) => {
+  generate: async ({ input, ai, logger, entities, progress, template }) => {
     const { prompt, author, event, skipAi } = input;
     let { title, content, description } = input;
 
@@ -99,7 +99,7 @@ export const deckGeneration: EntityGenerationDeclaration<
         description: string;
       }>({
         prompt: `${prompt ?? DEFAULT_DECK_PROMPT}${event ? `\n\nNote: This presentation is for "${event}".` : ""}`,
-        templateName: "decks:generation",
+        templateName: template("generation"),
         representedIdentity: "anchor",
         ...(voiceGuidance && { styleGuide: { voice: voiceGuidance } }),
       });
@@ -119,7 +119,7 @@ export const deckGeneration: EntityGenerationDeclaration<
       });
       const descGenerated = await ai.generate<{ description: string }>({
         prompt: `Title: ${title}\n\nContent:\n${content}`,
-        templateName: "decks:description",
+        templateName: template("description"),
         representedIdentity: "none",
       });
       description = descGenerated.description;

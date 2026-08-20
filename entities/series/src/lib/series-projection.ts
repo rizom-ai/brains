@@ -29,6 +29,7 @@ const existingSeriesSchema = z.object({
 const seriesProjectionInputSchema = z.object({
   members: z.array(seriesMemberSchema),
   existingSeries: z.array(existingSeriesSchema),
+  descriptionTemplate: z.string(),
 });
 
 type SeriesProjectionInput = z.output<typeof seriesProjectionInputSchema>;
@@ -55,6 +56,7 @@ function hasSeriesDescription(content: string): boolean {
 
 async function selectSeriesInput(
   context: Parameters<ProjectionRule["selectInput"]>[1],
+  descriptionTemplate: string,
 ): Promise<SeriesProjectionInput> {
   const entityTypes = context.entities
     .getEntityTypes()
@@ -92,7 +94,7 @@ async function selectSeriesInput(
       };
     })
     .sort((left, right) => left.id.localeCompare(right.id));
-  return { members, existingSeries };
+  return { members, existingSeries, descriptionTemplate };
 }
 
 async function deriveSeries(
@@ -128,7 +130,7 @@ async function deriveSeries(
       );
       const generated = await context.ai.generate<{ description: string }>({
         prompt: `Series name: ${seriesName}\n\nContent in this series:\n${memberSummaries.join("\n")}`,
-        templateName: "series:description",
+        templateName: input.descriptionTemplate,
         representedIdentity: "none",
       });
       if (!generated.description) {
@@ -170,14 +172,19 @@ async function deriveSeries(
   return intents;
 }
 
-export function createSeriesProjectionRule(): ProjectionRule {
+export function createSeriesProjectionRule(
+  // Resolved by the runtime: only it knows the scope templates register
+  // under, and a name written here would resolve to nothing at derive time.
+  descriptionTemplate: string,
+): ProjectionRule {
   return defineProjectionRule({
     id: "series-projection",
     version: "1",
     sources: [{ kind: "entity", types: ["*"], excludeTypes: ["series"] }],
     targetType: "series",
     inputSchema: seriesProjectionInputSchema,
-    selectInput: async (_trigger, context) => selectSeriesInput(context),
+    selectInput: async (_trigger, context) =>
+      selectSeriesInput(context, descriptionTemplate),
     derive: deriveSeries,
   });
 }

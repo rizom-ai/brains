@@ -46,7 +46,7 @@ export const seriesDescriptionJob: EntityJobDeclaration<
   typeof seriesGenerationJobSchema
 > = {
   input: seriesGenerationJobSchema,
-  handle: async ({ input: data, ai, entities }) => {
+  handle: async ({ input: data, ai, entities, template }) => {
     const seriesId = data.seriesId ?? data.title;
     if (!seriesId) {
       return { success: false, error: "seriesId or title required" };
@@ -80,7 +80,7 @@ export const seriesDescriptionJob: EntityJobDeclaration<
       description: string;
     }>({
       prompt,
-      templateName: "series:description",
+      templateName: template("description"),
       representedIdentity: "none",
     });
 
