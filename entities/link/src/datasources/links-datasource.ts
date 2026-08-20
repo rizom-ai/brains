@@ -1,13 +1,13 @@
-import { defineEntityDataSource } from "@brains/plugins";
+import { defineEntityDataSource } from "@brains/sdk/entities";
 import type {
   AnyEntityDataSourceDefinition,
   BaseEntity,
-} from "@brains/plugins";
-import { linkAdapter } from "../adapters/link-adapter";
+} from "@brains/sdk/entities";
+import { parseLinkContent } from "../lib/link-content";
 import type { LinkSummary } from "../templates/link-list/schema";
 
 function toSummary(entity: BaseEntity): LinkSummary {
-  const { frontmatter, summary } = linkAdapter.parseLinkContent(entity.content);
+  const { frontmatter, summary } = parseLinkContent(entity.content);
   return {
     id: entity.id,
     ...frontmatter,
