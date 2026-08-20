@@ -44,6 +44,20 @@ export interface MockEntityServiceOptions {
     entityType: string;
     id: string;
   }) => Promise<BaseEntity | null>;
+  /**
+   * Record what a test writes, rather than returning a canned result.
+   *
+   * Writes are generic too, so a test that stubs them by hand has to assert
+   * the stub matches — which stops checking it. Configured here, the
+   * implementation is checked and `genericSpy` carries the one erasure
+   * `mock()` actually causes.
+   */
+  createEntityImpl?: (request: {
+    entity: BaseEntity;
+  }) => Promise<EntityMutationResult>;
+  updateEntityImpl?: (request: {
+    entity: BaseEntity;
+  }) => Promise<EntityMutationResult>;
 }
 
 /**
@@ -81,6 +95,8 @@ export function createMockEntityService(
     returns = {},
     listEntitiesImpl,
     getEntityImpl,
+    createEntityImpl,
+    updateEntityImpl,
   } = options;
 
   // Recording mocks for the generic read methods. These stay real spies, so
@@ -110,14 +126,22 @@ export function createMockEntityService(
     listEntities: genericSpy<IEntityService["listEntities"]>(listEntitiesMock),
     search: genericSpy<IEntityService["search"]>(searchMock),
 
-    createEntity: mock(() =>
-      Promise.resolve(mutationResult(returns.createEntity)),
+    createEntity: genericSpy<IEntityService["createEntity"]>(
+      mock(
+        (request: { entity: BaseEntity }) =>
+          createEntityImpl?.(request) ??
+          Promise.resolve(mutationResult(returns.createEntity)),
+      ),
     ),
     createEntityFromMarkdown: mock(() =>
       Promise.resolve(mutationResult(undefined)),
     ),
-    updateEntity: mock(() =>
-      Promise.resolve(mutationResult(returns.updateEntity)),
+    updateEntity: genericSpy<IEntityService["updateEntity"]>(
+      mock(
+        (request: { entity: BaseEntity }) =>
+          updateEntityImpl?.(request) ??
+          Promise.resolve(mutationResult(returns.updateEntity)),
+      ),
     ),
     deleteEntity: mock(() => Promise.resolve(returns.deleteEntity ?? true)),
     upsertEntity: mock(() =>

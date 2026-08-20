@@ -3,8 +3,9 @@ import {
   writeInlineStaticAssets,
   writePublicAssets,
 } from "../../src/lib/preact-builder";
-import { createSilentLogger } from "@brains/test-utils";
-import { promises as fs } from "fs";
+import { createSilentLogger, stubMethod } from "@brains/test-utils";
+import { promises as fs, type PathLike } from "fs";
+import type { FileHandle } from "fs/promises";
 
 describe("PreactBuilder - Snapshotted Public Assets", () => {
   const outputDir = "/tmp/output";
@@ -13,12 +14,20 @@ describe("PreactBuilder - Snapshotted Public Assets", () => {
   test("writes nested binary assets from the prepared snapshot", async () => {
     const originalMkdir = fs.mkdir;
     const originalWriteFile = fs.writeFile;
-    const writes: Array<[string, Uint8Array]> = [];
-    fs.mkdir = mock(() => Promise.resolve(undefined)) as typeof fs.mkdir;
-    fs.writeFile = mock((path: string, content: Uint8Array) => {
-      writes.push([path, content]);
-      return Promise.resolve();
-    }) as typeof fs.writeFile;
+    const writes: Array<[PathLike | FileHandle, unknown]> = [];
+    stubMethod(
+      fs,
+      "mkdir",
+      mock(() => Promise.resolve(undefined)),
+    );
+    stubMethod(
+      fs,
+      "writeFile",
+      mock((file: PathLike | FileHandle, content: unknown) => {
+        writes.push([file, content]);
+        return Promise.resolve();
+      }),
+    );
 
     try {
       await writePublicAssets(
@@ -31,9 +40,11 @@ describe("PreactBuilder - Snapshotted Public Assets", () => {
       );
 
       expect(writes).toHaveLength(1);
-      expect(writes[0]?.[0]).toBe("/tmp/output/icons/favicon.bin");
+      expect(String(writes[0]?.[0])).toBe("/tmp/output/icons/favicon.bin");
       expect(
-        Buffer.from(writes[0]?.[1] ?? []).equals(Buffer.from([0, 1, 2, 3])),
+        Buffer.from((writes[0]?.[1] as Uint8Array | undefined) ?? []).equals(
+          Buffer.from([0, 1, 2, 3]),
+        ),
       ).toBe(true);
     } finally {
       fs.mkdir = originalMkdir;
@@ -64,16 +75,24 @@ describe("PreactBuilder - Inline Static Assets (from SitePackage)", () => {
     const originalMkdir = fs.mkdir;
     const originalWriteFile = fs.writeFile;
 
-    const mkdirCalls: string[] = [];
-    const writeFileCalls: Array<[string, string]> = [];
-    fs.mkdir = mock((path: string) => {
-      mkdirCalls.push(path);
-      return Promise.resolve(undefined);
-    }) as typeof fs.mkdir;
-    fs.writeFile = mock((path: string, content: string) => {
-      writeFileCalls.push([path, content]);
-      return Promise.resolve();
-    }) as typeof fs.writeFile;
+    const mkdirCalls: PathLike[] = [];
+    const writeFileCalls: Array<[string, unknown]> = [];
+    stubMethod(
+      fs,
+      "mkdir",
+      mock((path: PathLike) => {
+        mkdirCalls.push(path);
+        return Promise.resolve(undefined);
+      }),
+    );
+    stubMethod(
+      fs,
+      "writeFile",
+      mock((file: PathLike | FileHandle, content: unknown) => {
+        writeFileCalls.push([String(file), content]);
+        return Promise.resolve();
+      }),
+    );
 
     try {
       await writeInlineStaticAssets(
@@ -111,7 +130,7 @@ describe("PreactBuilder - Inline Static Assets (from SitePackage)", () => {
   test("should be a no-op for an empty assets map", async () => {
     const originalWriteFile = fs.writeFile;
     const writeFileMock = mock(() => Promise.resolve());
-    fs.writeFile = writeFileMock as typeof fs.writeFile;
+    stubMethod(fs, "writeFile", writeFileMock);
 
     try {
       await writeInlineStaticAssets(
@@ -129,7 +148,7 @@ describe("PreactBuilder - Inline Static Assets (from SitePackage)", () => {
   test("should be a no-op for an undefined assets map", async () => {
     const originalWriteFile = fs.writeFile;
     const writeFileMock = mock(() => Promise.resolve());
-    fs.writeFile = writeFileMock as typeof fs.writeFile;
+    stubMethod(fs, "writeFile", writeFileMock);
 
     try {
       await writeInlineStaticAssets(
@@ -150,12 +169,20 @@ describe("PreactBuilder - Inline Static Assets (from SitePackage)", () => {
     // the filesystem root.
     const originalMkdir = fs.mkdir;
     const originalWriteFile = fs.writeFile;
-    fs.mkdir = mock(() => Promise.resolve(undefined)) as typeof fs.mkdir;
+    stubMethod(
+      fs,
+      "mkdir",
+      mock(() => Promise.resolve(undefined)),
+    );
     const writeFileCalls: string[] = [];
-    fs.writeFile = mock((path: string) => {
-      writeFileCalls.push(path);
-      return Promise.resolve();
-    }) as typeof fs.writeFile;
+    stubMethod(
+      fs,
+      "writeFile",
+      mock((file: PathLike | FileHandle) => {
+        writeFileCalls.push(String(file));
+        return Promise.resolve();
+      }),
+    );
 
     try {
       await writeInlineStaticAssets(
@@ -183,8 +210,8 @@ describe("PreactBuilder - Inline Static Assets (from SitePackage)", () => {
     const originalWriteFile = fs.writeFile;
     const mkdirMock = mock(() => Promise.resolve(undefined));
     const writeFileMock = mock(() => Promise.resolve());
-    fs.mkdir = mkdirMock as typeof fs.mkdir;
-    fs.writeFile = writeFileMock as typeof fs.writeFile;
+    stubMethod(fs, "mkdir", mkdirMock);
+    stubMethod(fs, "writeFile", writeFileMock);
 
     try {
       const writePromise = writeInlineStaticAssets(

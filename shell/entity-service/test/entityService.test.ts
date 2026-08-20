@@ -280,9 +280,9 @@ describe("EntityService", (): void => {
   test("entity validation uses EntityRegistry", (): void => {
     const testEntity = createNote({ title: "Test Note", category: "test" });
 
-    const mockValidateEntity = mock(
-      (_type: string, entity: unknown) => entity,
-    ) as typeof entityRegistry.validateEntity;
+    const mockValidateEntity = genericSpy<typeof entityRegistry.validateEntity>(
+      mock((_type: string, entity: unknown) => entity),
+    );
     entityRegistry.validateEntity = mockValidateEntity;
 
     const mockAdapter = {

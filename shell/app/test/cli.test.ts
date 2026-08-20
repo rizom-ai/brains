@@ -7,6 +7,7 @@ import {
   afterEach,
   spyOn,
 } from "bun:test";
+import { stubMethod } from "@brains/test-utils";
 import { handleCLI } from "../src/cli";
 import { App } from "../src/app";
 import { defineConfig } from "../src/config";
@@ -38,7 +39,7 @@ describe("handleCLI", () => {
   beforeEach(() => {
     // Spy on App.run
     runSpy = mock(() => Promise.resolve());
-    App.run = runSpy as typeof App.run;
+    stubMethod(App, "run", runSpy);
 
     // Reset mocks
     mockExit.mockClear();

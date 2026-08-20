@@ -4,7 +4,7 @@ import {
   type DashboardWidgetProviderContext,
   type WebRouteDefinition,
 } from "@brains/plugins";
-import { createTempDir } from "@brains/test-utils";
+import { createTempDir, genericSpy } from "@brains/test-utils";
 import { AuthServicePlugin } from "@brains/auth-service";
 import { DashboardPlugin } from "../src/plugin";
 import { createPluginHarness } from "@brains/plugins/test";
@@ -250,33 +250,35 @@ describe("DashboardPlugin", () => {
       });
 
       const entityService = shell.getEntityService();
-      entityService.search = (async () => [
-        {
-          entity: {
-            id: "verdigris-pigments",
-            entityType: "note",
-            title: "Verdigris pigments",
-            content: "",
-            created: "",
-            updated: "",
-            contentHash: "",
+      entityService.search = genericSpy<typeof entityService.search>(
+        async () => [
+          {
+            entity: {
+              id: "verdigris-pigments",
+              entityType: "note",
+              title: "Verdigris pigments",
+              content: "",
+              created: "",
+              updated: "",
+              contentHash: "",
+            },
+            score: 1,
+            excerpt: "",
           },
-          score: 1,
-          excerpt: "",
-        },
-        {
-          entity: {
-            id: "untitled-note",
-            entityType: "note",
-            content: "",
-            created: "",
-            updated: "",
-            contentHash: "",
+          {
+            entity: {
+              id: "untitled-note",
+              entityType: "note",
+              content: "",
+              created: "",
+              updated: "",
+              contentHash: "",
+            },
+            score: 0.5,
+            excerpt: "",
           },
-          score: 0.5,
-          excerpt: "",
-        },
-      ]) as typeof entityService.search;
+        ],
+      );
 
       const route = plugin
         .getWebRoutes()
@@ -323,9 +325,11 @@ describe("DashboardPlugin", () => {
 
       const shell = harness.getMockShell();
       const entityService = shell.getEntityService();
-      entityService.search = (async () => {
-        throw new Error("index warming");
-      }) as typeof entityService.search;
+      entityService.search = genericSpy<typeof entityService.search>(
+        async () => {
+          throw new Error("index warming");
+        },
+      );
 
       const route = plugin
         .getWebRoutes()
