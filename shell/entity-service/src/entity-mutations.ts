@@ -392,6 +392,10 @@ export class EntityMutations {
       existingEntity.visibility === validatedEntity.visibility &&
       stableJson(existingEntity.metadata) === stableJson(metadata)
     ) {
+      await this.projectionStore.releaseProjectionOwnership({
+        entityType: validatedEntity.entityType,
+        id: validatedEntity.id,
+      });
       this.logger.debug(
         `Skipping no-op update for ${validatedEntity.entityType}:${validatedEntity.id}`,
       );

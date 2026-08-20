@@ -56,6 +56,40 @@ type ProjectionJsonColumn<
   THasDefault extends boolean = false,
 > = SqliteJsonColumn<TTable, TName, TData, true, { $type: TData }, THasDefault>;
 
+type ProjectionEntityOwnersTable = SQLiteTableWithColumns<{
+  name: "projection_entity_owners";
+  schema: undefined;
+  columns: {
+    entityType: ProjectionTextColumn<
+      "projection_entity_owners",
+      "entity_type",
+      true
+    >;
+    entityId: ProjectionTextColumn<
+      "projection_entity_owners",
+      "entity_id",
+      true
+    >;
+    ruleId: ProjectionTextColumn<"projection_entity_owners", "rule_id", true>;
+    ruleVersion: ProjectionTextColumn<
+      "projection_entity_owners",
+      "rule_version",
+      true
+    >;
+    inputFingerprint: ProjectionTextColumn<
+      "projection_entity_owners",
+      "input_fingerprint",
+      true
+    >;
+    claimedAt: ProjectionIntegerColumn<
+      "projection_entity_owners",
+      "claimed_at",
+      true
+    >;
+  };
+  dialect: "sqlite";
+}>;
+
 type ProjectionDirtyInputsTable = SQLiteTableWithColumns<{
   name: "projection_dirty_inputs";
   schema: undefined;
@@ -275,6 +309,22 @@ type ProjectionRuleMemosTable = SQLiteTableWithColumns<{
   };
   dialect: "sqlite";
 }>;
+
+export const projectionEntityOwners: ProjectionEntityOwnersTable = sqliteTable(
+  "projection_entity_owners",
+  {
+    entityType: text("entity_type").notNull(),
+    entityId: text("entity_id").notNull(),
+    ruleId: text("rule_id").notNull(),
+    ruleVersion: text("rule_version").notNull(),
+    inputFingerprint: text("input_fingerprint").notNull(),
+    claimedAt: integer("claimed_at").notNull(),
+  },
+  (table) => ({
+    pk: primaryKey({ columns: [table.entityType, table.entityId] }),
+    ruleIdx: index("projection_entity_owners_rule_idx").on(table.ruleId),
+  }),
+);
 
 export const projectionDirtyInputs: ProjectionDirtyInputsTable = sqliteTable(
   "projection_dirty_inputs",

@@ -7,6 +7,7 @@ import {
 import { entities } from "../schema/entities";
 import {
   projectionDirtyInputs,
+  projectionEntityOwners,
   projectionIncidents,
   projectionRuleMemos,
   projectionWaveInputs,
@@ -31,6 +32,7 @@ export function createEntityDatabase(config: EntityDbConfig): SqliteConnection {
     schema: {
       entities,
       projectionDirtyInputs,
+      projectionEntityOwners,
       projectionWaves,
       projectionIncidents,
       projectionWaveInputs,

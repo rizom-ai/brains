@@ -30,6 +30,7 @@ import {
 } from "./schema/projection-batches";
 import {
   projectionDirtyInputs,
+  projectionEntityOwners,
   projectionIncidents,
   projectionRuleMemos,
   projectionWaveInputs,
@@ -65,6 +66,11 @@ const memoKeySchema = z.strictObject({
   ruleId: z.string().trim().min(1),
   ruleVersion: z.string().trim().min(1),
   inputFingerprint: z.string().trim().min(1),
+});
+
+const projectionOwnedEntitySchema = z.strictObject({
+  entityType: z.string().trim().min(1),
+  id: z.string().trim().min(1),
 });
 
 const waveRuleInputSchema = z.strictObject({
@@ -186,6 +192,11 @@ export interface GetProjectionRuleMemoInput {
   ruleId: string;
   ruleVersion: string;
   inputFingerprint: string;
+}
+
+export interface ProjectionOwnedEntityInput {
+  entityType: string;
+  id: string;
 }
 
 export interface ProjectionWaveRuleInput {
@@ -1055,6 +1066,37 @@ export class ProjectionStore {
       );
   }
 
+  public async isProjectionOwnedEntity(
+    input: ProjectionOwnedEntityInput,
+  ): Promise<boolean> {
+    const parsed = projectionOwnedEntitySchema.parse(input);
+    const owners = await this.db
+      .select({ entityId: projectionEntityOwners.entityId })
+      .from(projectionEntityOwners)
+      .where(
+        and(
+          eq(projectionEntityOwners.entityType, parsed.entityType),
+          eq(projectionEntityOwners.entityId, parsed.id),
+        ),
+      )
+      .limit(1);
+    return owners.length > 0;
+  }
+
+  public async releaseProjectionOwnership(
+    input: ProjectionOwnedEntityInput,
+  ): Promise<void> {
+    const parsed = projectionOwnedEntitySchema.parse(input);
+    await this.db
+      .delete(projectionEntityOwners)
+      .where(
+        and(
+          eq(projectionEntityOwners.entityType, parsed.entityType),
+          eq(projectionEntityOwners.entityId, parsed.id),
+        ),
+      );
+  }
+
   public async markDirty(input: MarkProjectionDirtyInput): Promise<number> {
     const parsed = dirtyInputSchema.parse(input);
     const rows = await this.db
@@ -1077,6 +1119,14 @@ export class ProjectionStore {
     return this.runTransaction(async (transaction) => {
       if (scope) await this.assertBatchScope(transaction, scope);
       const result = await mutation(transaction);
+      await transaction
+        .delete(projectionEntityOwners)
+        .where(
+          and(
+            eq(projectionEntityOwners.entityType, parsed.sourceType),
+            eq(projectionEntityOwners.entityId, parsed.sourceId),
+          ),
+        );
       const rows = await transaction
         .insert(projectionDirtyInputs)
         .values(parsed)
@@ -1723,6 +1773,7 @@ export class ProjectionStore {
           transaction,
           intent,
           completedAt,
+          key,
         );
         return target ? [...targets, target] : targets;
       }, Promise.resolve([]));
@@ -1792,6 +1843,7 @@ export class ProjectionStore {
     transaction: EntityTransaction,
     intent: ProjectionWriteIntent,
     changedAt: number,
+    owner: GetProjectionRuleMemoInput,
   ): Promise<ProjectionChangedTarget | null> {
     const entityType =
       intent.operation === "upsert"
@@ -1814,6 +1866,14 @@ export class ProjectionStore {
     const existing = existingRows[0];
 
     if (intent.operation === "delete") {
+      await transaction
+        .delete(projectionEntityOwners)
+        .where(
+          and(
+            eq(projectionEntityOwners.entityType, entityType),
+            eq(projectionEntityOwners.entityId, entityId),
+          ),
+        );
       if (!existing) return null;
       await this.mutationAdmission?.assertMutationAdmission({
         operation: "delete",
@@ -1832,6 +1892,28 @@ export class ProjectionStore {
     }
 
     const contentHash = computeContentHash(intent.entity.content);
+    await transaction
+      .insert(projectionEntityOwners)
+      .values({
+        entityType,
+        entityId,
+        ruleId: owner.ruleId,
+        ruleVersion: owner.ruleVersion,
+        inputFingerprint: owner.inputFingerprint,
+        claimedAt: changedAt,
+      })
+      .onConflictDoUpdate({
+        target: [
+          projectionEntityOwners.entityType,
+          projectionEntityOwners.entityId,
+        ],
+        set: {
+          ruleId: owner.ruleId,
+          ruleVersion: owner.ruleVersion,
+          inputFingerprint: owner.inputFingerprint,
+          claimedAt: changedAt,
+        },
+      });
     if (
       existing?.contentHash === contentHash &&
       existing.content === intent.entity.content &&

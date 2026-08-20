@@ -561,6 +561,11 @@ export interface GetEntityRequest {
 
 export type GetEntityRawRequest = GetEntityRequest;
 
+export interface ProjectionOwnedEntityRequest {
+  entityType: string;
+  id: string;
+}
+
 export interface ListEntitiesRequest {
   entityType: string;
   options?: ListOptions | undefined;
@@ -936,6 +941,13 @@ export type EntityServiceClient = Omit<
 >;
 
 export interface EntityService extends ICoreEntityService {
+  /** Internal source-authority check used by persistence integrations. */
+  isProjectionOwnedEntity(
+    request: ProjectionOwnedEntityRequest,
+  ): Promise<boolean>;
+  /** Transfer an accepted entity from projection to ordinary persistence. */
+  assumeEntityAuthority(request: ProjectionOwnedEntityRequest): Promise<void>;
+
   // Scheduler-owned projection coordination
   getProjectionStore(): ProjectionStore;
   setProjectionWakeup(wakeup: () => Promise<void>): () => void;
