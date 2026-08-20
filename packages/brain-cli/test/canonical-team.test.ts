@@ -148,7 +148,9 @@ describe("canonical team bundle", () => {
     ]) {
       expect(ids).toContain(id);
     }
-    expect(pluginConfig(resolved, "topics")).toMatchObject({
+    // Topics is a declarative service package now, so its config rides the
+    // scoped service plugin rather than the bare capability id.
+    expect(pluginConfig(resolved, "@brains/topics:topics")).toMatchObject({
       extractableStatuses: ["published", "draft"],
     });
     expect(pluginConfig(resolved, "conversation-memory")).toMatchObject({
