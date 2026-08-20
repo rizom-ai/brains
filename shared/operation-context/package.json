@@ -1,7 +1,7 @@
 {
   "name": "@brains/operation-context",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.312",
+  "version": "0.2.0-alpha.313",
   "description": "Attempt-scoped causal provenance propagation",
   "dependencies": {
     "@brains/contracts": "workspace:*"

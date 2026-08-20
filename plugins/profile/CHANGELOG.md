@@ -1,5 +1,15 @@
 # @brains/profile
 
+## 0.2.0-alpha.313
+
+### Patch Changes
+
+- [`c6f8f9e`](https://github.com/rizom-ai/brains/commit/c6f8f9e5e16a1fc136b065d6092e57ec11bf9c73) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Reject content-owned anchor profile kinds now that profile kind selection and live content have completed the composition-owned fleet cutover.
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.313
+  - @brains/plugins@0.2.0-alpha.313
+
 ## 0.2.0-alpha.312
 
 ### Patch Changes
