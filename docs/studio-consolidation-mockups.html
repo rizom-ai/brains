@@ -1868,26 +1868,45 @@ body { background: #6b6459; font-family: var(--console-ui); font-size: 14px; lin
 
 .frame.face { grid-template-columns: minmax(0, 1fr); }
 
-.face-main { padding: 38px 46px 32px; display: flex; flex-direction: column; gap: 26px; }
-.face-section-title { margin: 0 0 12px; color: var(--console-text-muted); font-family: var(--console-mono); font-size: 8.5px; letter-spacing: .14em; text-transform: uppercase; }
+/* dashboard chrome — lifted from plugins/dashboard/src/render/styles/foundation.css */
+.masthead { display: flex; align-items: flex-end; gap: 24px; padding: 26px 26px 0; }
+.brand { font-family: var(--console-display); font-variation-settings: "SOFT" 80, "opsz" 72; font-weight: 560; font-size: 38px; line-height: 1; letter-spacing: -0.01em; color: var(--console-text); }
+.brand em { font-style: italic; font-variation-settings: "SOFT" 100, "opsz" 72; font-weight: 470; color: var(--console-accent); }
+.tagline { margin: 0; color: var(--console-text-muted); font-size: 13.5px; padding-bottom: 5px; max-width: 52ch; }
+.dashboard-tabs { display: flex; align-items: flex-end; gap: 2px; padding: 18px 26px 0; border-bottom: 1px solid var(--console-rule-strong); }
+.dashboard-tab { display: inline-flex; align-items: center; gap: 8px; font-family: var(--console-mono); font-size: 12px; letter-spacing: 0.05em; color: var(--console-text-muted); padding: 9px 16px 11px; border-bottom: 2px solid transparent; transform: translateY(1px); text-decoration: none; white-space: nowrap; }
+.dashboard-tab:hover { color: var(--console-text-dim); }
+.dashboard-tab.is-active { color: var(--console-text); border-bottom-color: var(--console-accent); }
+.tab-badge { font-family: var(--console-mono); font-size: 10px; border-radius: 999px; padding: 0 6px; }
+.tab-badge--muted { border: 1px solid var(--console-rule-strong); color: var(--console-text-muted); }
+.canvas { padding: 26px; }
+.card { background: var(--console-card); border: 1px solid var(--console-rule-strong); border-radius: 10px; padding: 14px 18px 16px; position: relative; min-width: 0; }
+.card-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+.card-title { font-family: var(--console-mono); font-size: 10.5px; font-weight: 500; letter-spacing: 0.16em; text-transform: uppercase; color: var(--console-text-muted); }
+.card-from { font-family: var(--console-mono); font-size: 10px; letter-spacing: 0.04em; color: var(--console-text-faint); }
+.muted { color: var(--console-text-muted); font-size: 13px; }
+.colophon { margin-top: 32px; padding-top: 18px; border-top: 1px solid var(--console-rule); display: flex; justify-content: space-between; align-items: baseline; gap: 18px; font-family: var(--console-mono); font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--console-text-faint); }
 
-.face-top { display: flex; align-items: flex-end; justify-content: space-between; gap: 30px; flex-wrap: wrap; }
-.face-id { display: flex; flex-direction: column; gap: 8px; }
-.face-kicker { font-family: var(--console-mono); font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: var(--console-accent); }
-.face-id h2 { margin: 0; font-family: var(--console-display); font-size: 44px; font-weight: 620; font-variation-settings: "SOFT" 40; line-height: 1; color: var(--console-text); }
+/* overview tab cards */
+.ov-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; align-items: start; }
+.ov-what p { margin: 0 0 12px; font-size: 14px; line-height: 1.6; color: var(--console-text-dim); }
+.ov-what p b { color: var(--console-text); font-weight: 560; }
 .face-pulse { display: inline-flex; align-items: center; gap: 8px; font-family: var(--console-mono); font-size: 11px; letter-spacing: .08em; color: var(--console-ok); }
 .face-pulse::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--console-ok); box-shadow: 0 0 0 4px var(--console-ok-soft); }
-.face-owner { margin: 0; font-size: 13.5px; line-height: 1.5; color: var(--console-text-dim); }
-.face-owner b { color: var(--console-text); font-weight: 560; }
-.face-owner small { font-family: var(--console-mono); font-size: 10px; color: var(--console-text-muted); }
-.face-doors { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
-.face-doors a { display: inline-flex; align-items: center; gap: 7px; padding: 6px 11px; border: 1px solid var(--console-rule-strong); border-radius: 7px; font-family: var(--console-mono); font-size: 11px; color: var(--console-text-dim); text-decoration: none; }
-.face-doors a:hover { color: var(--console-text); border-color: var(--console-rule-accent); }
-.face-doors a small { font-size: 8px; letter-spacing: .12em; text-transform: uppercase; color: var(--console-text-muted); }
-.face-doors a[data-kind="agent"] small { color: var(--console-secondary); }
-.face-doors a[data-kind="protocol"] small { color: var(--console-accent); }
+.frame.face { --face-moss: #9caf88; }
+.frame.face[data-climate="paper"] { --face-moss: #5e7a4e; }
+.ov-rows { margin: 0; padding: 0; list-style: none; }
+.ov-rows li { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 8px 0; border-top: 1px solid var(--console-rule); }
+.ov-rows li:first-child { border-top: none; padding-top: 2px; }
+.ov-rows strong { display: block; font-size: 13.5px; font-weight: 560; color: var(--console-text); }
+.ov-rows em { display: block; margin-top: 1px; font-style: normal; font-size: 11.5px; color: var(--console-text-muted); }
+.ov-rows small { flex: 0 0 auto; font-family: var(--console-mono); font-size: 9px; letter-spacing: .12em; text-transform: uppercase; color: var(--console-text-muted); border: 1px solid var(--console-rule-strong); border-radius: 4px; padding: 2px 7px; }
+.ov-rows li[data-kind="agent"] small { color: var(--console-secondary); border-color: color-mix(in srgb, var(--console-secondary) 40%, transparent); }
+.ov-rows li[data-kind="protocol"] small { color: var(--console-accent); border-color: color-mix(in srgb, var(--console-accent) 40%, transparent); }
+.ov-rows li.sk strong::before { content: ""; display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--face-moss); margin-right: 9px; vertical-align: 1px; }
+.ov-rows li.sk small { color: var(--face-moss); border-color: color-mix(in srgb, var(--face-moss) 40%, transparent); }
 
-/* the field: soil for the knowledge and proximity maps (kmap-field idiom) */
+/* map soil (kmap-field idiom) */
 .face-field { position: relative; border: 1px solid var(--console-rule-strong); border-radius: 8px; overflow: hidden;
   background:
     radial-gradient(circle at 36% 50%, rgba(212,175,55,.055), transparent 32%),
@@ -1903,34 +1922,10 @@ body { background: #6b6459; font-family: var(--console-ui); font-size: 14px; lin
 .face-field .count { position: absolute; top: 9%; left: 4%; pointer-events: none; }
 .face-field .count b { display: block; font-family: var(--console-display); font-variation-settings: "opsz" 144, "SOFT" 20; font-weight: 330; font-size: 44px; line-height: .85; letter-spacing: -.04em; color: var(--console-text); text-shadow: 0 0 26px rgba(255,163,102,.25); }
 .face-field .count span { display: block; margin-top: 7px; font-family: var(--console-mono); font-size: 8px; letter-spacing: .22em; text-transform: uppercase; color: var(--console-text-muted); }
-
-/* legend (net-legend idiom) */
 .face-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 22px; margin-top: 12px; font-family: var(--console-mono); font-size: 9.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--console-text-muted); }
 .face-legend .lg { display: inline-flex; align-items: center; gap: 8px; }
 .face-legend .lg i { width: 9px; height: 9px; border-radius: 50%; }
 .face-legend .live { margin-left: auto; font-family: var(--console-display); font-style: italic; font-size: 12.5px; letter-spacing: 0; text-transform: none; color: var(--console-text-dim); }
-
-.face-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 40px; align-items: start; border-top: 1px solid var(--console-rule-strong); padding-top: 22px; }
-
-.frame.face { --face-moss: #9caf88; }
-[data-climate="paper"].frame.face, .frame.face[data-climate="paper"] { --face-moss: #5e7a4e; }
-.face-cando { margin: 0; padding: 0; list-style: none; }
-.face-cando li { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 16px 0 17px; border-top: 1px solid var(--console-rule); }
-.face-cando li:first-child { border-top: none; }
-.face-cando strong { display: block; font-family: var(--console-display); font-size: 19px; font-weight: 560; font-variation-settings: "SOFT" 40; color: var(--console-text); }
-.face-cando li.sk strong::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--face-moss); margin-right: 11px; vertical-align: 2px; box-shadow: 0 0 0 4px color-mix(in srgb, var(--face-moss) 14%, transparent); }
-.face-cando em { display: block; margin-top: 4px; font-style: normal; font-size: 12px; font-family: var(--console-mono); letter-spacing: .05em; color: var(--console-text-muted); }
-.face-cando small { flex: 0 0 auto; font-family: var(--console-mono); font-size: 9px; letter-spacing: .1em; color: var(--console-secondary); }
-.face-cando li.sk small { color: var(--face-moss); }
-.face-sub { margin: 0 0 4px; color: var(--console-text-muted); font-family: var(--console-mono); font-size: 8.5px; letter-spacing: .14em; text-transform: uppercase; }
-.face-sub + .face-cando li:first-child { padding-top: 4px; }
-.face-cando + .face-sub { margin-top: 16px; }
-
-.face-netfoot { display: flex; justify-content: space-between; gap: 10px; margin-top: 10px; font-family: var(--console-mono); font-size: 10.5px; letter-spacing: .05em; color: var(--console-text-muted); }
-.face-netfoot b { color: var(--console-text-dim); font-weight: 500; }
-
-.face-foot { display: flex; justify-content: space-between; gap: 14px; border-top: 1px solid var(--console-rule); padding-top: 14px; font-family: var(--console-mono); font-size: 10.5px; letter-spacing: .06em; color: var(--console-text-muted); }
-.face-foot a { color: var(--console-text-dim); text-decoration: none; border-bottom: 1px solid var(--console-rule-strong); }
 
 /* lifted knowledge-map + proximity-map animation vocabulary */
 .kn-weave { stroke-dasharray: 1; stroke-dashoffset: 1; animation: kdraw 1.4s cubic-bezier(.3,.6,.3,1) forwards; animation-delay: var(--d, 0s); }
@@ -1969,12 +1964,12 @@ body { background: #6b6459; font-family: var(--console-ui); font-size: 14px; lin
   </header>
   <div class="declarative-blocks"><section data-span="wide"><div class="declarative-columns">
     <div class="declarative-column">
-      <section><header class="face-section-title">Needs attention</header>
+      <section><header class="card-title" style="display:block;margin-bottom:11px">Needs attention</header>
         <ol class="declarative-list">
           <li data-tone="warn"><div><strong>Newsletter dispatch failed</strong><p>Urban sensor platforms — transport rejected the payload.</p><small>Publishing · 2 retries left · yesterday 18:20</small></div><div class="declarative-list-trailing"><span class="declarative-action-control"><button class="btn ghost">Open publishing</button></span></div></li>
           <li data-tone="warn"><div><strong>Invitation expiring</strong><p>j.rivera@velt.coop — trusted, never accepted.</p><small>Invitations · expires in 2 days</small></div><div class="declarative-list-trailing"><span class="declarative-action-control"><button class="btn ghost">Open invitations</button></span></div></li>
         </ol></section>
-      <section><header class="face-section-title">While you were away</header>
+      <section><header class="card-title" style="display:block;margin-bottom:11px">While you were away</header>
         <ol class="declarative-list">
           <li data-tone="good"><div><strong>9 mail items triaged</strong><p>2 flagged high priority, 1 needs a reply.</p><small>Inbox · overnight</small></div><div class="declarative-list-trailing"><span class="declarative-action-control"><button class="btn ghost">Open inbox</button></span></div></li>
           <li data-tone="good"><div><strong>Site preview built</strong><p>31 routes, no failures.</p><small>Site · 16:04</small></div></li>
@@ -1990,91 +1985,103 @@ body { background: #6b6459; font-family: var(--console-ui); font-size: 14px; lin
   </div></section></div>
 </main></div>
 
-<p class="label">Dashboard — the brain's card (anonymous visitor)</p>
-<div class="frame face" data-climate="instrument"><main class="face-main">
-  <div class="face-top">
-    <div class="face-id">
-      <span class="face-kicker">brain · rizom.ai</span>
-      <h2>Rizom</h2>
-      <span class="face-pulse">alive · last activity 4 minutes ago</span>
-      <p class="face-owner">Grown from what <b>Jan Hein Hoogstad</b> knows — and belongs to them. <small>@yeehaa · anchor</small></p>
+<p class="label">Dashboard — Overview tab (what is this)</p>
+<div class="frame face" data-climate="instrument"><div>
+  <header class="masthead"><h1 class="brand">Rizom</h1><p class="tagline">The shared brain of the rizom network — grown from what Jan Hein Hoogstad knows, and belongs to them.</p></header>
+  <nav class="dashboard-tabs"><a href="#" class="dashboard-tab is-active">Overview</a><a href="#" class="dashboard-tab">Knowledge<span class="tab-badge tab-badge--muted">128</span></a><a href="#" class="dashboard-tab">Network<span class="tab-badge tab-badge--muted">2</span></a></nav>
+  <div class="canvas">
+    <div class="ov-grid">
+      <div class="card ov-what"><div class="card-head"><span class="card-title">What is this</span><span class="card-from">brain · rizom.ai</span></div>
+        <p><b>Rizom</b> is a brain: a virtual team member grown from one person's knowledge. It collects what the team learns, connects it, and publishes it — the site, the newsletter, and the network directory all run through it.</p>
+        <p>Ask it anything it holds; answers stay in public scope with sources cited.</p>
+        <span class="face-pulse">alive · last activity 4 minutes ago</span></div>
+      <div class="card"><div class="card-head"><span class="card-title">Ways to connect</span></div>
+        <ul class="ov-rows">
+          <li data-kind="human"><span><strong>Chat</strong><em>Ask me about anything I hold.</em></span><small>human</small></li>
+          <li data-kind="human"><span><strong>rizom.ai</strong><em>Everything I publish, as a site.</em></span><small>site</small></li>
+          <li data-kind="human"><span><strong>hello@rizom.ai</strong><em>Mail lands in my inbox and gets triaged.</em></span><small>mail</small></li>
+          <li data-kind="agent"><span><strong>rizom.ai/mcp</strong><em>Tools and context for connected agents.</em></span><small>agent</small></li>
+          <li data-kind="protocol"><span><strong>@rizom.ai</strong><em>atproto · federation open to peer brains.</em></span><small>atproto</small></li>
+        </ul></div>
+      <div class="card"><div class="card-head"><span class="card-title">What I hold</span><span class="card-from">public scope</span></div>
+        <dl class="declarative-stats" style="grid-template-columns:repeat(4,minmax(0,1fr))"><div><dt>Posts</dt><dd>31</dd></div><div><dt>Notes</dt><dd>84</dd></div><div><dt>Links</dt><dd>210</dd></div><div><dt>Topics</dt><dd>12</dd></div></dl></div>
+      <div class="card"><div class="card-head"><span class="card-title">Skills</span><span class="card-from">the moss marks on the map</span></div>
+        <ul class="ov-rows">
+          <li class="sk"><span><strong>Shared context</strong><em>human-AI collaboration</em></span><small>skill</small></li>
+          <li class="sk"><span><strong>Ecosystem roles</strong><em>ecosystem architecture</em></span><small>skill</small></li>
+          <li class="sk"><span><strong>Portable reputation</strong><em>reputation systems</em></span><small>skill</small></li>
+        </ul></div>
     </div>
-    <div class="face-doors">
-      <a href="#" data-kind="human">chat<small>human</small></a>
-      <a href="#" data-kind="human">rizom.ai<small>site</small></a>
-      <a href="#" data-kind="human">hello@rizom.ai<small>mail</small></a>
-      <a href="#" data-kind="agent">/mcp<small>agent</small></a>
-      <a href="#" data-kind="protocol">@rizom.ai<small>atproto</small></a>
-    </div>
+    <footer class="colophon"><span>Rizom · dashboard</span><span>runs on brains 0.2.0-alpha.306 · open source · operators → studio</span></footer>
   </div>
-  <section><header class="face-section-title">What I know</header>
-    <div class="face-field"><div id="kmap-inst"></div>
-      <div class="count"><b>128</b><span>entities held</span></div></div>
-    <div class="face-legend">
-      <span class="lg"><i style="background:transparent;border:1.5px dashed #8c82c8;border-radius:50%"></i>topic zones</span>
-      <span class="lg"><i style="background:#d4af37"></i>published</span>
-      <span class="lg"><i style="background:#9caf88"></i>skills</span>
-      <span class="lg"><i style="background:transparent;border:1.4px solid rgba(250,248,243,.45)"></i>references</span>
-      <span class="lg"><i style="background:#76c7d1"></i>unfiled</span>
-      <span class="live">50 sources · 10 territories · the map is live</span>
-    </div></section>
-  <div class="face-body">
-    <section><header class="face-section-title">What I can do</header>
-      <p class="face-sub">Skills — the moss marks on the map</p>
-      <ul class="face-cando">
-        <li class="sk"><span><strong>Shared context</strong><em>human-AI collaboration</em></span></li>
-        <li class="sk"><span><strong>Ecosystem roles</strong><em>ecosystem architecture</em></span></li>
-        <li class="sk"><span><strong>Portable reputation</strong><em>reputation systems</em></span></li>
-      </ul></section>
-    <section><header class="face-section-title">My network</header>
-      <div class="face-field"><div id="net-inst"></div></div>
-      <div class="face-netfoot"><span><b>2</b> agents · <b>0</b> constellations discovered</span><span>federation open</span></div></section>
-  </div>
-  <footer class="face-foot"><span>a brain of the rizom network · runs on brains 0.2.0-alpha.306 · open source</span><a href="#">Operators → Studio</a></footer>
-</main></div>
+</div></div>
 
-<p class="label">Dashboard — the brain's card · paper (site theme resolved)</p>
-<div class="frame face" data-climate="paper"><main class="face-main">
-  <div class="face-top">
-    <div class="face-id">
-      <span class="face-kicker">brain · rizom.ai</span>
-      <h2>Rizom</h2>
-      <span class="face-pulse">alive · last activity 4 minutes ago</span>
-      <p class="face-owner">Grown from what <b>Jan Hein Hoogstad</b> knows — and belongs to them. <small>@yeehaa · anchor</small></p>
-    </div>
-    <div class="face-doors">
-      <a href="#" data-kind="human">chat<small>human</small></a>
-      <a href="#" data-kind="human">rizom.ai<small>site</small></a>
-      <a href="#" data-kind="human">hello@rizom.ai<small>mail</small></a>
-      <a href="#" data-kind="agent">/mcp<small>agent</small></a>
-      <a href="#" data-kind="protocol">@rizom.ai<small>atproto</small></a>
-    </div>
+<p class="label">Dashboard — Knowledge tab</p>
+<div class="frame face" data-climate="instrument"><div>
+  <header class="masthead"><h1 class="brand">Rizom</h1><p class="tagline">The shared brain of the rizom network — grown from what Jan Hein Hoogstad knows, and belongs to them.</p></header>
+  <nav class="dashboard-tabs"><a href="#" class="dashboard-tab">Overview</a><a href="#" class="dashboard-tab is-active">Knowledge<span class="tab-badge tab-badge--muted">128</span></a><a href="#" class="dashboard-tab">Network<span class="tab-badge tab-badge--muted">2</span></a></nav>
+  <div class="canvas">
+    <div class="card"><div class="card-head"><span class="card-title">Knowledge map</span><span class="card-from">topics</span></div>
+      <div class="face-field"><div id="kmap-inst"></div>
+        <div class="count"><b>128</b><span>entities held</span></div></div>
+      <div class="face-legend">
+        <span class="lg"><i style="background:transparent;border:1.5px dashed #8c82c8;border-radius:50%"></i>topic zones</span>
+        <span class="lg"><i style="background:#d4af37"></i>published</span>
+        <span class="lg"><i style="background:#9caf88"></i>skills</span>
+        <span class="lg"><i style="background:transparent;border:1.4px solid rgba(250,248,243,.45)"></i>references</span>
+        <span class="lg"><i style="background:#76c7d1"></i>unfiled</span>
+        <span class="live">50 sources · 10 territories · the map is live</span>
+      </div></div>
+    <footer class="colophon"><span>Rizom · dashboard</span><span>runs on brains 0.2.0-alpha.306 · open source · operators → studio</span></footer>
   </div>
-  <section><header class="face-section-title">What I know</header>
-    <div class="face-field"><div id="kmap-paper"></div>
-      <div class="count"><b>128</b><span>entities held</span></div></div>
-    <div class="face-legend">
-      <span class="lg"><i style="background:transparent;border:1.5px dashed #6b2fa0;border-radius:50%"></i>topic zones</span>
-      <span class="lg"><i style="background:#a8821c"></i>published</span>
-      <span class="lg"><i style="background:#5e7a4e"></i>skills</span>
-      <span class="lg"><i style="background:transparent;border:1.4px solid rgba(35,33,58,.55)"></i>references</span>
-      <span class="lg"><i style="background:#287c8c"></i>unfiled</span>
-      <span class="live">50 sources · 10 territories · the map is live</span>
-    </div></section>
-  <div class="face-body">
-    <section><header class="face-section-title">What I can do</header>
-      <p class="face-sub">Skills — the moss marks on the map</p>
-      <ul class="face-cando">
-        <li class="sk"><span><strong>Shared context</strong><em>human-AI collaboration</em></span></li>
-        <li class="sk"><span><strong>Ecosystem roles</strong><em>ecosystem architecture</em></span></li>
-        <li class="sk"><span><strong>Portable reputation</strong><em>reputation systems</em></span></li>
-      </ul></section>
-    <section><header class="face-section-title">My network</header>
-      <div class="face-field"><div id="net-paper"></div></div>
-      <div class="face-netfoot"><span><b>2</b> agents · <b>0</b> constellations discovered</span><span>federation open</span></div></section>
+</div></div>
+
+<p class="label">Dashboard — Network tab</p>
+<div class="frame face" data-climate="instrument"><div>
+  <header class="masthead"><h1 class="brand">Rizom</h1><p class="tagline">The shared brain of the rizom network — grown from what Jan Hein Hoogstad knows, and belongs to them.</p></header>
+  <nav class="dashboard-tabs"><a href="#" class="dashboard-tab">Overview</a><a href="#" class="dashboard-tab">Knowledge<span class="tab-badge tab-badge--muted">128</span></a><a href="#" class="dashboard-tab is-active">Network<span class="tab-badge tab-badge--muted">2</span></a></nav>
+  <div class="canvas">
+    <div class="card"><div class="card-head"><span class="card-title">Agent proximity</span><span class="card-from">directory</span></div>
+      <div class="face-field"><div id="net-inst"></div></div>
+      <div class="face-legend">
+        <span class="lg"><i style="background:#d4af37"></i>approved agents</span>
+        <span class="lg"><i style="background:transparent;border:1.4px dashed #8c82c8;border-radius:50%"></i>constellations</span>
+        <span class="live">2 agents · 0 constellations discovered · federation open</span>
+      </div></div>
+    <footer class="colophon"><span>Rizom · dashboard</span><span>runs on brains 0.2.0-alpha.306 · open source · operators → studio</span></footer>
   </div>
-  <footer class="face-foot"><span>a brain of the rizom network · runs on brains 0.2.0-alpha.306 · open source</span><a href="#">Operators → Studio</a></footer>
-</main></div>
+</div></div>
+
+<p class="label">Dashboard — Overview tab · paper (site theme resolved)</p>
+<div class="frame face" data-climate="paper"><div>
+  <header class="masthead"><h1 class="brand">Rizom</h1><p class="tagline">The shared brain of the rizom network — grown from what Jan Hein Hoogstad knows, and belongs to them.</p></header>
+  <nav class="dashboard-tabs"><a href="#" class="dashboard-tab is-active">Overview</a><a href="#" class="dashboard-tab">Knowledge<span class="tab-badge tab-badge--muted">128</span></a><a href="#" class="dashboard-tab">Network<span class="tab-badge tab-badge--muted">2</span></a></nav>
+  <div class="canvas">
+    <div class="ov-grid">
+      <div class="card ov-what"><div class="card-head"><span class="card-title">What is this</span><span class="card-from">brain · rizom.ai</span></div>
+        <p><b>Rizom</b> is a brain: a virtual team member grown from one person's knowledge. It collects what the team learns, connects it, and publishes it — the site, the newsletter, and the network directory all run through it.</p>
+        <p>Ask it anything it holds; answers stay in public scope with sources cited.</p>
+        <span class="face-pulse">alive · last activity 4 minutes ago</span></div>
+      <div class="card"><div class="card-head"><span class="card-title">Ways to connect</span></div>
+        <ul class="ov-rows">
+          <li data-kind="human"><span><strong>Chat</strong><em>Ask me about anything I hold.</em></span><small>human</small></li>
+          <li data-kind="human"><span><strong>rizom.ai</strong><em>Everything I publish, as a site.</em></span><small>site</small></li>
+          <li data-kind="human"><span><strong>hello@rizom.ai</strong><em>Mail lands in my inbox and gets triaged.</em></span><small>mail</small></li>
+          <li data-kind="agent"><span><strong>rizom.ai/mcp</strong><em>Tools and context for connected agents.</em></span><small>agent</small></li>
+          <li data-kind="protocol"><span><strong>@rizom.ai</strong><em>atproto · federation open to peer brains.</em></span><small>atproto</small></li>
+        </ul></div>
+      <div class="card"><div class="card-head"><span class="card-title">What I hold</span><span class="card-from">public scope</span></div>
+        <dl class="declarative-stats" style="grid-template-columns:repeat(4,minmax(0,1fr))"><div><dt>Posts</dt><dd>31</dd></div><div><dt>Notes</dt><dd>84</dd></div><div><dt>Links</dt><dd>210</dd></div><div><dt>Topics</dt><dd>12</dd></div></dl></div>
+      <div class="card"><div class="card-head"><span class="card-title">Skills</span><span class="card-from">the moss marks on the map</span></div>
+        <ul class="ov-rows">
+          <li class="sk"><span><strong>Shared context</strong><em>human-AI collaboration</em></span><small>skill</small></li>
+          <li class="sk"><span><strong>Ecosystem roles</strong><em>ecosystem architecture</em></span><small>skill</small></li>
+          <li class="sk"><span><strong>Portable reputation</strong><em>reputation systems</em></span><small>skill</small></li>
+        </ul></div>
+    </div>
+    <footer class="colophon"><span>Rizom · dashboard</span><span>runs on brains 0.2.0-alpha.306 · open source · operators → studio</span></footer>
+  </div>
+</div></div>
 
 <script>
 /* Lifted visualizations — the corpus-calibrated knowledge map
@@ -2217,6 +2224,7 @@ body { background: #6b6459; font-family: var(--console-ui); font-size: 14px; lin
 
   function drawKmap(mountId, p, uid) {
     var mount = document.getElementById(mountId);
+    if (!mount) return;
     mount.innerHTML = "";
     var W = 1100, H = 560;
     var svg = document.createElementNS(NS, "svg");
@@ -2351,6 +2359,7 @@ body { background: #6b6459; font-family: var(--console-ui); font-size: 14px; lin
 
   function drawNet(mountId, pal, o) {
     var mount = document.getElementById(mountId);
+    if (!mount) return;
     mount.innerHTML = "";
     var rng = mulberry32(o.seed || 133);
     var W = o.w, H = o.h, c = W / 2, cy0 = H / 2;
@@ -2427,10 +2436,8 @@ body { background: #6b6459; font-family: var(--console-ui); font-size: 14px; lin
   }
 
   drawKmap("kmap-inst", KPAL.dark, "ki");
-  drawKmap("kmap-paper", KPAL.light, "kp");
   var AMBIENT = [[0.62, 150], [0.5, 205], [0.66, 262], [0.58, 96], [0.36, 178], [0.64, 22]];
-  drawNet("net-inst", NPAL.dark, { id: "ni", seed: 133, w: 620, h: 430, pad: 44, ambient: AMBIENT });
-  drawNet("net-paper", NPAL.light, { id: "np", seed: 133, w: 620, h: 430, pad: 44, ambient: AMBIENT });
+  drawNet("net-inst", NPAL.dark, { id: "ni", seed: 133, w: 980, h: 470, pad: 46, ambient: AMBIENT });
 })();
 </script>
 </body></html>
