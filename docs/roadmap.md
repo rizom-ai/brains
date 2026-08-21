@@ -90,7 +90,7 @@ Plans:
 - [web-search-tool.md](./plans/web-search-tool.md) — provider-neutral `web_search` capability (Tavily first), permission-gated and audited; Phase 0 removes the verified-dead `webSearch` config flag.
 - [system-analytics-tool.md](./plans/system-analytics-tool.md) — rename/reframe `system_insights` as an extensible typed analytics/reporting surface, folding plugin reports such as Cloudflare traffic into one LLM-facing tool.
 - [agent-tool-surface-consolidation.md](./plans/agent-tool-surface-consolidation.md) — separate agent/protocol/CLI exposure, remove maintenance and MCP adapters from model context, and consolidate playbook, directory-sync, and publishing lifecycle tools behind typed canonical surfaces.
-- [mcp-2026-07-28-migration.md](./plans/mcp-2026-07-28-migration.md) — adopt the stateless MCP 2026-07-28 spec revision: SDK 1.30 now, v1-compatible registration/test modernization in `work/mcp-v2`, dual-mode transport swap when SDK v2 reaches npm, and CIMD alongside deprecated DCR in auth-service.
+- [mcp-2026-07-28-migration.md](./plans/mcp-2026-07-28-migration.md) — adopt the stateless MCP 2026-07-28 spec revision: SDK 1.30 now, v1-compatible registration/test modernization in `work/mcp-v2`, swap to the v2 SDK packages and delete the session machinery, and CIMD alongside deprecated DCR in auth-service.
 
 ### 2. The collective posture (active POC)
 
