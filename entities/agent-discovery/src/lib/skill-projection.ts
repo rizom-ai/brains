@@ -39,6 +39,7 @@ const skillProjectionInputSchema = z.object({
       content: z.string(),
       metadata: skillFrontmatterSchema,
       visibility: z.enum(["public", "shared", "restricted"]),
+      projectionOwned: z.boolean(),
     }),
   ),
   targetVisibility: z.literal("public"),
@@ -84,6 +85,17 @@ async function selectSkillInput(
         skillDerivationTemplate.basePrompt ?? "",
       ),
     ]);
+  const projectionOwnership = new Map(
+    await Promise.all(
+      existingSkills.map(async (skill): Promise<readonly [string, boolean]> => [
+        skill.id,
+        await context.entities.isProjectionOwnedEntity({
+          entityType: SKILL_ENTITY_TYPE,
+          id: skill.id,
+        }),
+      ]),
+    ),
+  );
   const topicTitles = topics
     .sort((left, right) => left.id.localeCompare(right.id))
     .map(topicTitle);
@@ -105,6 +117,7 @@ async function selectSkillInput(
         content: skill.content,
         metadata: skill.metadata,
         visibility: skill.visibility,
+        projectionOwned: projectionOwnership.get(skill.id) ?? false,
       })),
     targetVisibility,
     prompt,
@@ -136,8 +149,14 @@ async function deriveSkillIntents(
     ]),
   );
   const adapter = new SkillAdapter();
-  const intents: ProjectionWriteIntent[] = [...desired.entries()].map(
-    ([id, skill]) => ({
+  const authoredIds = new Set(
+    input.existingSkills
+      .filter((skill) => !skill.projectionOwned)
+      .map((skill) => skill.id),
+  );
+  const intents: ProjectionWriteIntent[] = [...desired.entries()]
+    .filter(([id]) => !authoredIds.has(id))
+    .map(([id, skill]) => ({
       operation: "upsert",
       entity: {
         id,
@@ -146,10 +165,9 @@ async function deriveSkillIntents(
         metadata: skill,
         visibility: input.targetVisibility,
       },
-    }),
-  );
+    }));
   for (const existing of input.existingSkills) {
-    if (!desired.has(existing.id)) {
+    if (existing.projectionOwned && !desired.has(existing.id)) {
       intents.push({
         operation: "delete",
         entityType: SKILL_ENTITY_TYPE,
@@ -163,7 +181,7 @@ async function deriveSkillIntents(
 export function createSkillProjectionRule(): ProjectionRule {
   return defineProjectionRule({
     id: SKILL_DERIVATION_PROJECTION_ID,
-    version: "1",
+    version: "2",
     sources: [
       { kind: "entity", types: ["topic"] },
       { kind: "entity", types: ["agent"] },

@@ -171,6 +171,7 @@ describe("setupInitialSync with git", () => {
       payload: {},
     });
 
+    expect(ds.sync).not.toHaveBeenCalled();
     expect(context.messaging.send).toHaveBeenCalledWith({
       type: SYSTEM_CHANNELS.initialSyncCompleted,
       payload: expect.objectContaining({

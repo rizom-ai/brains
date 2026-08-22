@@ -30,6 +30,7 @@ const inputContext: ProjectionInputContext = {
     getEntityTypes: () => [],
     hasEntityType: () => false,
     getEntityTypeConfig: () => ({}),
+    isProjectionOwnedEntity: async () => false,
   },
   resolvePrompt: async (_reference, fallback) => fallback,
   appInfo: async () => {

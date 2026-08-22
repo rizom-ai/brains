@@ -945,9 +945,6 @@ export interface EntityService extends ICoreEntityService {
   isProjectionOwnedEntity(
     request: ProjectionOwnedEntityRequest,
   ): Promise<boolean>;
-  /** Transfer an accepted entity from projection to ordinary persistence. */
-  assumeEntityAuthority(request: ProjectionOwnedEntityRequest): Promise<void>;
-
   // Scheduler-owned projection coordination
   getProjectionStore(): ProjectionStore;
   setProjectionWakeup(wakeup: () => Promise<void>): () => void;

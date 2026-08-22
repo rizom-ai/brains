@@ -43,6 +43,7 @@ function inputContext(entities: BaseEntity[]): ProjectionInputContext {
       getEntityTypes: service.getEntityTypes,
       hasEntityType: service.hasEntityType,
       getEntityTypeConfig: () => ({ projectionSourceRole: "primary" }),
+      isProjectionOwnedEntity: service.isProjectionOwnedEntity,
     },
     resolvePrompt: async (_reference, fallback) => fallback,
     appInfo: async () => ({

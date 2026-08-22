@@ -50,7 +50,7 @@ describe("Skill projection registration", () => {
     expect(capabilities.projectionRules).toHaveLength(1);
     expect(capabilities.projectionRules?.[0]).toMatchObject({
       id: "skill-derivation",
-      version: "1",
+      version: "2",
       sources: [
         { kind: "entity", types: ["topic"] },
         { kind: "entity", types: ["agent"] },

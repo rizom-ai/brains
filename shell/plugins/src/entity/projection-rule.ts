@@ -47,6 +47,7 @@ export type ProjectionEntityReader = Pick<
   | "getEntityTypes"
   | "hasEntityType"
   | "getEntityTypeConfig"
+  | "isProjectionOwnedEntity"
 >;
 
 export interface ProjectionInputContext {

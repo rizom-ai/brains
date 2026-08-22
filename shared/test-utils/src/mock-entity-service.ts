@@ -126,7 +126,6 @@ export function createMockEntityService(
     getEntityTypes: mock(() => entityTypes),
     hasEntityType: mock((type: string) => entityTypes.includes(type)),
     isProjectionOwnedEntity: mock(() => Promise.resolve(false)),
-    assumeEntityAuthority: mock(() => Promise.resolve()),
     getEntityTypeConfig: mock(() => ({})),
     getWeightMap: mock(() => ({})),
     serializeEntity: mock(() => ""),
