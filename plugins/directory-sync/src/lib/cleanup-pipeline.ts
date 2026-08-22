@@ -20,10 +20,6 @@ export interface CleanupPipelineDeps {
         filter?: { visibilityScope?: ContentVisibility };
       };
     }): Promise<BaseEntity[]>;
-    isProjectionOwnedEntity(request: {
-      entityType: string;
-      id: string;
-    }): Promise<boolean>;
     deleteEntity(request: { entityType: string; id: string }): Promise<boolean>;
   };
   logger: {
@@ -77,18 +73,6 @@ export async function removeOrphanedEntities(
         // the entity must survive until the file is repaired or removed.
         if (await deps.fileOperations.fileExists(`${filePath}.invalid`)) {
           deps.logger.info("Entity file is quarantined, keeping entity", {
-            entityType: entity.entityType,
-            entityId: entity.id,
-          });
-          continue;
-        }
-        if (
-          await deps.entityService.isProjectionOwnedEntity({
-            entityType: entity.entityType,
-            id: entity.id,
-          })
-        ) {
-          deps.logger.debug("Projection-owned entity has no source file", {
             entityType: entity.entityType,
             entityId: entity.id,
           });

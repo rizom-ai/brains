@@ -11,14 +11,11 @@ function createMockDeps(
   overrides: Partial<{
     entities: Record<string, BaseEntity[]>;
     existingFiles: Set<string>;
-    projectionOwnedEntities: Set<string>;
     deleteOnFileRemoval: boolean;
   }> = {},
 ): CleanupPipelineDeps {
   const entities = overrides.entities ?? {};
   const existingFiles = overrides.existingFiles ?? new Set<string>();
-  const projectionOwnedEntities =
-    overrides.projectionOwnedEntities ?? new Set<string>();
   const deleteOnFileRemoval = overrides.deleteOnFileRemoval ?? true;
 
   return {
@@ -27,10 +24,6 @@ function createMockDeps(
       listEntities: mock(async (request: { entityType: string }) => {
         return entities[request.entityType] ?? [];
       }),
-      isProjectionOwnedEntity: mock(
-        async (request: { entityType: string; id: string }) =>
-          projectionOwnedEntities.has(`${request.entityType}:${request.id}`),
-      ),
       deleteEntity: mock(async () => true),
     },
     logger: createSilentLogger(),
@@ -74,27 +67,26 @@ describe("removeOrphanedEntities", () => {
     expect(deps.entityService.deleteEntity).not.toHaveBeenCalled();
   });
 
-  it("keeps a projection-owned entity while deleting a file-owned peer of the same type", async () => {
+  it("deletes every database entity absent from authoritative Git files", async () => {
     const derivedSkill = createTestEntity("skill", {
       id: "organize-personal-knowledge",
     });
-    const fileOwnedSkill = createTestEntity("skill", {
+    const authoredSkill = createTestEntity("skill", {
       id: "clarify-agent-positioning",
     });
     const deps = createMockDeps({
-      entities: { skill: [derivedSkill, fileOwnedSkill] },
+      entities: { skill: [derivedSkill, authoredSkill] },
       existingFiles: new Set(),
-      projectionOwnedEntities: new Set(["skill:organize-personal-knowledge"]),
     });
 
     const result = await removeOrphanedEntities(deps);
 
-    expect(result.deleted).toBe(1);
-    expect(deps.entityService.isProjectionOwnedEntity).toHaveBeenCalledWith({
+    expect(result.deleted).toBe(2);
+    expect(deps.entityService.deleteEntity).toHaveBeenCalledTimes(2);
+    expect(deps.entityService.deleteEntity).toHaveBeenCalledWith({
       entityType: "skill",
       id: "organize-personal-knowledge",
     });
-    expect(deps.entityService.deleteEntity).toHaveBeenCalledTimes(1);
     expect(deps.entityService.deleteEntity).toHaveBeenCalledWith({
       entityType: "skill",
       id: "clarify-agent-positioning",

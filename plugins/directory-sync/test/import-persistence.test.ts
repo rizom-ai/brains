@@ -69,9 +69,6 @@ function createImportResult(): ImportResult {
  */
 type MockImportPersistenceDeps = ImportPersistenceDeps & {
   entityService: ImportPersistenceDeps["entityService"] & {
-    assumeEntityAuthority: Mock<
-      (request: { entityType: string; id: string }) => Promise<void>
-    >;
     upsertEntity: Mock<
       (request: { entity: BaseEntity }) => Promise<{ jobId: string }>
     >;
@@ -91,7 +88,6 @@ function createMockDeps(
     entityService: {
       getEntity,
       upsertEntity,
-      assumeEntityAuthority: mock(async () => {}),
       // Stands in for the canonical serialization, which re-adds the
       // visibility frontmatter the file on disk may be missing.
       serializeEntity: (entity: BaseEntity) =>
@@ -119,7 +115,7 @@ function upsertedEntity(deps: MockImportPersistenceDeps): BaseEntity {
 }
 
 describe("persistImportEntity authority", () => {
-  it("transfers authority when an accepted file matches the stored entity", async () => {
+  it("preserves authority when an accepted file makes no content change", async () => {
     const deps = createMockDeps(makeExistingEntity());
     deps.fileOperations.shouldUpdateEntity = (): boolean => false;
     const result = createImportResult();
@@ -132,10 +128,6 @@ describe("persistImportEntity authority", () => {
       result,
     );
 
-    expect(deps.entityService.assumeEntityAuthority).toHaveBeenCalledWith({
-      entityType: "note",
-      id: "note-1",
-    });
     expect(deps.entityService.upsertEntity).not.toHaveBeenCalled();
     expect(result.skipped).toBe(1);
   });

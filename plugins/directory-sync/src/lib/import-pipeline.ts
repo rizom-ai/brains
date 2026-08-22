@@ -104,10 +104,6 @@ async function processEntityImport(
     ),
   });
   if (existing && canSkipBeforeDeserialization(deps, existing, rawEntity)) {
-    await deps.entityService.assumeEntityAuthority({
-      entityType: rawEntity.entityType,
-      id: rawEntity.id,
-    });
     recordSkippedImport(result);
     return;
   }

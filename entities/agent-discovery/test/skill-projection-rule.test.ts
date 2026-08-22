@@ -40,12 +40,19 @@ function skill(id: string, metadata: SkillFrontmatter): BaseEntity {
   });
 }
 
-function inputContext(entities: BaseEntity[]): ProjectionInputContext {
+function inputContext(
+  entities: BaseEntity[],
+  projectionOwnedIds: ReadonlySet<string> = new Set(),
+): ProjectionInputContext {
   const service = createMockEntityService({
     entityTypes: ["topic", "agent", "skill"],
     listEntitiesImpl: async ({ entityType }) =>
       entities.filter((candidate) => candidate.entityType === entityType),
   });
+  service.isProjectionOwnedEntity = async ({
+    entityType,
+    id,
+  }): Promise<boolean> => entityType === "skill" && projectionOwnedIds.has(id);
   return {
     entities: service,
     resolvePrompt: async (_reference, fallback) => fallback,
@@ -99,7 +106,7 @@ function executionContext(generatedSkills: SkillFrontmatter[]): {
 }
 
 describe("skill projection rule", () => {
-  it("derives desired skills and deletes stale outputs in one result", async () => {
+  it("derives desired skills, deletes stale projection outputs, and preserves authored skills", async () => {
     const existing = {
       name: "Existing",
       description: "Old description",
@@ -122,16 +129,19 @@ describe("skill projection rule", () => {
     const signal = new AbortController().signal;
     const selected = await rule.selectInput(
       { waveId: "wave-1", inputs: [] },
-      inputContext([
-        entity({
-          id: "topic-1",
-          entityType: "topic",
-          content: "---\nname: Architecture\n---",
-          metadata: { name: "Architecture" },
-        }),
-        skill("existing", existing),
-        skill("stale", stale),
-      ]),
+      inputContext(
+        [
+          entity({
+            id: "topic-1",
+            entityType: "topic",
+            content: "---\nname: Architecture\n---",
+            metadata: { name: "Architecture" },
+          }),
+          skill("existing", existing),
+          skill("stale", stale),
+        ],
+        new Set(["stale"]),
+      ),
       signal,
     );
     const { context, generate } = executionContext([desired]);
@@ -150,9 +160,41 @@ describe("skill projection rule", () => {
           visibility: "public",
         },
       },
-      { operation: "delete", entityType: "skill", id: "existing" },
       { operation: "delete", entityType: "skill", id: "stale" },
     ]);
+  });
+
+  it("does not overwrite an authored skill whose id matches generated output", async () => {
+    const authored = {
+      name: "Systems Design",
+      description: "Authored description",
+      tags: ["authored"],
+      examples: ["Authored example"],
+    };
+    const generated = {
+      name: "Systems Design",
+      description: "Generated description",
+      tags: ["generated"],
+      examples: ["Generated example"],
+    };
+    const rule = createSkillProjectionRule();
+    const signal = new AbortController().signal;
+    const selected = await rule.selectInput(
+      { waveId: "wave-1", inputs: [] },
+      inputContext([
+        entity({
+          id: "topic-1",
+          entityType: "topic",
+          content: "---\nname: Architecture\n---",
+          metadata: { name: "Architecture" },
+        }),
+        skill("systems-design", authored),
+      ]),
+      signal,
+    );
+    const { context } = executionContext([generated]);
+
+    expect(await rule.derive(selected, context, signal)).toEqual([]);
   });
 
   it("does not call the model or delete outputs when no topics exist", async () => {

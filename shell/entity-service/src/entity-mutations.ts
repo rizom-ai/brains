@@ -622,13 +622,18 @@ export class EntityMutations {
     }
   }
 
-  /** Reconcile the separate embedding index after atomic projection writes. */
+  /** Reconcile indexes and lifecycle subscribers after atomic projection writes. */
   public async reconcileProjectionTargets(
     targets: readonly ProjectionChangedTarget[],
   ): Promise<void> {
     await Promise.all(
       targets.map(async (target) => {
         if (target.operation === "delete") {
+          await this.emitEntityEvent(
+            ENTITY_CHANNELS.deleted,
+            target.entityType,
+            target.entityId,
+          );
           await this.embeddingDb
             .delete(embeddings)
             .where(
@@ -644,6 +649,11 @@ export class EntityMutations {
             `Projection target ${target.entityType}:${target.entityId} has no content hash`,
           );
         }
+        await this.emitEntityEvent(
+          ENTITY_CHANNELS.updated,
+          target.entityType,
+          target.entityId,
+        );
         await this.enqueueEmbeddingJob({
           entityId: target.entityId,
           entityType: target.entityType,

@@ -336,13 +336,6 @@ export class EntityService implements IEntityService {
     return this.projectionStore.isProjectionOwnedEntity(request);
   }
 
-  public async assumeEntityAuthority(
-    request: ProjectionOwnedEntityRequest,
-  ): Promise<void> {
-    await this.initialize();
-    await this.projectionStore.releaseProjectionOwnership(request);
-  }
-
   public setProjectionWakeup(wakeup: () => Promise<void>): () => void {
     return this.entityMutations.setProjectionWakeup(wakeup);
   }

@@ -14,6 +14,7 @@ import {
   createTestEntity,
 } from "@brains/test-utils";
 import { createId } from "@brains/utils/id";
+import { ENTITY_CHANNELS } from "@brains/contracts";
 import { type Logger } from "@brains/utils/logger";
 import { mockEmbeddingService } from "./helpers/mock-services";
 import {
@@ -77,6 +78,7 @@ describe("EntityService", (): void => {
   let entityDbUrl: string;
   let assertMutationAdmission: ReturnType<typeof mock>;
   let enqueueJob: ReturnType<typeof mock>;
+  let sendEvent: ReturnType<typeof mock>;
 
   beforeEach(async (): Promise<void> => {
     const testDb = await createTestEntityDatabase();
@@ -92,6 +94,7 @@ describe("EntityService", (): void => {
     logger = createSilentLogger();
     entityRegistry = EntityRegistry.createFresh(logger);
     assertMutationAdmission = mock(async () => {});
+    sendEvent = mock(async () => ({ success: true }));
     entityService = EntityService.createFresh({
       embeddingService: mockEmbeddingService,
       entityRegistry,
@@ -100,6 +103,7 @@ describe("EntityService", (): void => {
       dbConfig: testDb.config,
       embeddingDbConfig: testDb.embeddingConfig,
       mutationAdmission: { assertMutationAdmission },
+      messageBus: { send: sendEvent },
     });
   });
 
@@ -121,6 +125,11 @@ describe("EntityService", (): void => {
         operation: "upsert",
         contentHash: "projected-hash",
       },
+      {
+        entityType: "note",
+        entityId: "deleted-projected-note",
+        operation: "delete",
+      },
     ]);
 
     expect(enqueueJob).toHaveBeenCalledWith(
@@ -134,6 +143,24 @@ describe("EntityService", (): void => {
         },
       }),
     );
+    expect(sendEvent).toHaveBeenCalledWith({
+      type: ENTITY_CHANNELS.updated,
+      payload: {
+        entityType: "note",
+        entityId: "projected-note",
+      },
+      sender: "entity-service",
+      broadcast: true,
+    });
+    expect(sendEvent).toHaveBeenCalledWith({
+      type: ENTITY_CHANNELS.deleted,
+      payload: {
+        entityType: "note",
+        entityId: "deleted-projected-note",
+      },
+      sender: "entity-service",
+      broadcast: true,
+    });
   });
 
   test("ordinary mutations take ownership back from projection outputs", async () => {
