@@ -7,7 +7,6 @@ export interface MCPConfig {
   mode: MCPMode;
   httpPort: number;
   authToken?: string | undefined;
-  sessionIdleTtlMs: number;
 }
 
 export interface MCPConfigInput {
@@ -15,7 +14,6 @@ export interface MCPConfigInput {
   mode?: MCPMode | undefined;
   httpPort?: number | undefined;
   authToken?: string | undefined;
-  sessionIdleTtlMs?: number | undefined;
 }
 
 export const mcpConfigSchema: z.ZodType<MCPConfig, MCPConfigInput> = z.object({
@@ -29,10 +27,4 @@ export const mcpConfigSchema: z.ZodType<MCPConfig, MCPConfigInput> = z.object({
     .string()
     .describe("Bearer token for HTTP transport authentication")
     .optional(),
-  sessionIdleTtlMs: z
-    .number()
-    .describe(
-      "Idle time in ms after which an HTTP session is closed and evicted",
-    )
-    .default(30 * 60 * 1000),
 });

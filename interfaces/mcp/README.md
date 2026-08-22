@@ -100,37 +100,19 @@ const transportLogger = adaptLogger(existingLogger);
 
 The HTTP transport provides these endpoints:
 
-- `POST /mcp` - Initialize session and handle requests
-- `GET /mcp` - SSE stream for notifications
-- `DELETE /mcp` - Terminate session
+- `POST /mcp` - Handle stateless MCP requests for both 2026-07-28 and legacy clients
+- `GET /mcp` - Reserved for protocol streams; legacy session requests return `405`
+- `DELETE /mcp` - Legacy session termination requests return `405`
 - `GET /health` - Health check
 - `GET /status` - Server status
 
-## Session Management
+## Stateless HTTP
 
-HTTP transport manages client sessions:
-
-```typescript
-// Sessions are created on initialization
-POST /mcp
-{
-  "jsonrpc": "2.0",
-  "method": "initialize",
-  "params": { ... },
-  "id": 1
-}
-
-// Response includes session ID
-Headers: {
-  "mcp-session-id": "uuid-here"
-}
-
-// Subsequent requests use session ID
-POST /mcp
-Headers: {
-  "mcp-session-id": "uuid-here"
-}
-```
+HTTP requests carry their own protocol and authentication context. The server
+verifies the bearer on every request and builds a fresh permission-scoped MCP
+server from the live registry. There are no MCP session IDs, in-memory session
+maps, or idle-session settings. The SDK's default stateless legacy path keeps
+pre-2026 clients working without retaining server-side session state.
 
 ## Permissions
 
@@ -165,7 +147,6 @@ interface MCPConfig {
   mode?: "basic" | "debug"; // default: "basic"
   httpPort?: number; // For HTTP transport
   authToken?: string; // Bearer token for HTTP transport
-  sessionIdleTtlMs?: number;
 }
 ```
 

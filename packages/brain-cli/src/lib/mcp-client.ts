@@ -1,5 +1,7 @@
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
+import {
+  Client,
+  StreamableHTTPClientTransport,
+} from "@modelcontextprotocol/client";
 
 /**
  * Thin wrapper around the MCP SDK client for remote tool invocation.
@@ -21,16 +23,16 @@ export class MCPClient {
       requestInit: { headers },
     });
 
-    this.client = new Client({
-      name: "brain-cli",
-      version: "0.1.0",
-    });
+    this.client = new Client(
+      {
+        name: "brain-cli",
+        version: "0.1.0",
+      },
+      { versionNegotiation: { mode: "auto" } },
+    );
   }
 
   async connect(): Promise<void> {
-    // @ts-expect-error SDK type bug: StreamableHTTPClientTransport.sessionId
-    // getter returns string|undefined, conflicting with exactOptionalPropertyTypes.
-    // Remove when @modelcontextprotocol/sdk fixes the Transport interface.
     await this.client.connect(this.transport);
   }
 

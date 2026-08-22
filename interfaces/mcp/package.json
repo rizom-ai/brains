@@ -8,7 +8,7 @@
     "@brains/mcp-service": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/utils": "workspace:*",
-    "@modelcontextprotocol/sdk": "^1.30.0"
+    "@modelcontextprotocol/server": "^2.0.0"
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",

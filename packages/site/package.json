@@ -16,7 +16,7 @@
     "lint:fix": "eslint . --max-warnings 0 --fix"
   },
   "dependencies": {
-    "zod": "^4.1.8"
+    "zod": "^4.2.0"
   },
   "peerDependencies": {
     "preact": "^10.27.2"

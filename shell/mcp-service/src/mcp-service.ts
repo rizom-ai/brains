@@ -1,7 +1,7 @@
 import type { IMessageBus } from "@brains/messaging-service";
 import { type UserPermissionLevel } from "@brains/templates";
 import type { Logger } from "@brains/utils/logger";
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer } from "@modelcontextprotocol/server";
 import {
   canExposePrompt,
   canExposeResource,
@@ -76,7 +76,7 @@ export class MCPService implements IMCPService {
 
   /**
    * Create a fresh MCP server instance with all registered tools/resources.
-   * Required for Streamable HTTP where each session needs its own server.
+   * Stateless HTTP invokes this for every authenticated request.
    */
   public createMcpServer(permissionLevel?: UserPermissionLevel): McpServer {
     const server = createMcpServerInstance();
@@ -186,7 +186,7 @@ export class MCPService implements IMCPService {
   /**
    * Register a resource template with parameterized URI.
    *
-   * Always stores in the internal registry so that per-session servers
+   * Always stores in the internal registry so that per-request servers
    * (createMcpServer(admin)) can re-expose the template even when the
    * default service permission is lower. The protocol server only sees the
    * template if the current permission allows it, matching plain resources.
@@ -209,7 +209,7 @@ export class MCPService implements IMCPService {
   /**
    * Register an MCP prompt.
    *
-   * Mirrors registerTool: always store in the internal registry so per-session
+   * Mirrors registerTool: always store in the internal registry so per-request
    * servers (createMcpServer(admin)) can re-expose the prompt even when the
    * default service permission is lower. The protocol server only sees the
    * prompt if the current permission allows it.

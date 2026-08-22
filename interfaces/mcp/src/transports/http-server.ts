@@ -1,15 +1,16 @@
-import { randomUUID, timingSafeEqual } from "node:crypto";
-import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
-import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
+import { timingSafeEqual } from "node:crypto";
+import {
+  createMcpHandler,
+  type AuthInfo,
+  type McpHttpHandler,
+  type McpServer,
+} from "@modelcontextprotocol/server";
 import type { ActorRef } from "@brains/contracts";
 import type { IMCPTransport, ToolVisibility } from "@brains/mcp-service";
-import type { TransportLogger } from "./types";
-import { createConsoleLogger, adaptLogger } from "./types";
-import { SessionEvictionSupervisor } from "./session-eviction-supervisor";
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
+import type { TransportLogger } from "./types";
+import { adaptLogger, createConsoleLogger } from "./types";
 
 export interface VerifiedBearerToken {
   subject: string;
@@ -29,28 +30,18 @@ export interface AuthConfig {
   requiredScopes?: string[];
 }
 
-interface SessionAuthorization {
-  subject: string;
-  permissionLevel?: ToolVisibility;
-}
-
 export interface StreamableHTTPServerConfig {
   port?: number | string;
   host?: string;
   logger?: Logger | TransportLogger;
   auth?: AuthConfig;
-  /** Idle time after which a session is closed and evicted (default: 30 min) */
-  sessionIdleTtlMs?: number;
 }
-
-const DEFAULT_SESSION_IDLE_TTL_MS = 30 * 60 * 1000;
-const MAX_EVICTION_SWEEP_INTERVAL_MS = 60 * 1000;
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
   "Access-Control-Allow-Headers":
-    "Content-Type, Authorization, MCP-Session-Id, MCP-Protocol-Version, Last-Event-ID",
+    "Content-Type, Authorization, MCP-Session-Id, MCP-Protocol-Version, Last-Event-ID, Mcp-Method, Mcp-Name",
   "Access-Control-Allow-Private-Network": "true",
   "X-Content-Type-Options": "nosniff",
 } as const;
@@ -71,34 +62,28 @@ function requestOrigin(request: Request): string {
 }
 
 /**
- * StreamableHTTP Server for MCP
- * Provides HTTP/SSE transport for MCP servers
- * Handles session management and request routing
+ * Stateless MCP HTTP server.
+ *
+ * Authentication is resolved for every request before the SDK handler runs.
+ * The handler then builds a fresh permission-scoped MCP server from the live
+ * registry, so protocol clients cannot retain stale capabilities across
+ * registry or permission changes.
  */
 export class StreamableHTTPServer {
-  private transports: Record<string, WebStandardStreamableHTTPServerTransport> =
-    {};
-  private sessionLastActivity = new Map<string, number>();
-  private sessionAuthorizations = new Map<string, SessionAuthorization>();
-  private mcpServer: McpServer | null = null;
   private mcpTransport: IMCPTransport | null = null;
+  private mcpHandler: McpHttpHandler | null = null;
   private server: ReturnType<typeof Bun.serve> | null = null;
   private boundPort: number | null = null;
-  private readonly sessionEviction: SessionEvictionSupervisor;
   private readonly config: StreamableHTTPServerConfig;
   private readonly logger: TransportLogger;
   private readonly authConfig: AuthConfig;
-  private readonly sessionIdleTtlMs: number;
 
   constructor(config: StreamableHTTPServerConfig = {}) {
     this.config = config;
     this.logger = this.config.logger
       ? adaptLogger(this.config.logger)
       : createConsoleLogger();
-
     this.authConfig = config.auth ?? {};
-    this.sessionIdleTtlMs =
-      config.sessionIdleTtlMs ?? DEFAULT_SESSION_IDLE_TTL_MS;
 
     if (
       !this.authConfig.disabled &&
@@ -110,18 +95,6 @@ export class StreamableHTTPServer {
           "Set MCP_AUTH_TOKEN, configure OAuth verification, or pass auth: { disabled: true } for local dev.",
       );
     }
-
-    // The transport is often mounted on a shared webserver without start(),
-    // so the lifecycle-owned eviction schedule begins after validation.
-    this.sessionEviction = new SessionEvictionSupervisor(
-      Math.min(this.sessionIdleTtlMs, MAX_EVICTION_SWEEP_INTERVAL_MS),
-      (now) => this.evictIdleSessions(now),
-      {
-        onError: (error): void => {
-          this.logger.error("Error sweeping idle MCP sessions:", error);
-        },
-      },
-    );
   }
 
   public static createFresh(
@@ -196,8 +169,7 @@ export class StreamableHTTPServer {
     params: Record<string, string> = {},
   ): string {
     // Static-token mode rejects OAuth-issued JWTs, so advertising the OAuth
-    // resource metadata would lure spec-compliant clients (Claude Desktop,
-    // MCP Inspector) through a full auth ceremony that always ends in 401.
+    // resource metadata would direct clients into a flow this server cannot accept.
     const entries = {
       ...(this.authConfig.token
         ? {}
@@ -316,84 +288,11 @@ export class StreamableHTTPServer {
     }
   }
 
-  private touchSession(sessionId: string): void {
-    this.sessionLastActivity.set(sessionId, Date.now());
-  }
-
-  private async evictIdleSessions(now: number): Promise<void> {
-    const closes: Promise<void>[] = [];
-    for (const [sessionId, lastActivity] of this.sessionLastActivity) {
-      if (now - lastActivity < this.sessionIdleTtlMs) continue;
-
-      this.logger.info(`Evicting idle session ${sessionId}`);
-      this.sessionLastActivity.delete(sessionId);
-      this.sessionAuthorizations.delete(sessionId);
-      const transport = this.transports[sessionId];
-      if (transport) {
-        delete this.transports[sessionId];
-        closes.push(
-          transport.close().catch((error: unknown) => {
-            this.logger.error(
-              `Error closing idle transport for session ${sessionId}:`,
-              error,
-            );
-          }),
-        );
-      }
-    }
-    await Promise.all(closes);
-  }
-
   private async handleMcpRequest(
     request: Request,
     authInfo: AuthInfo | undefined,
   ): Promise<Response> {
-    const sessionId = request.headers.get("mcp-session-id") ?? undefined;
-
-    if (sessionId && this.transports[sessionId]) {
-      const authorizationError = await this.validateSessionAuthorization(
-        sessionId,
-        authInfo,
-      );
-      if (authorizationError) return authorizationError;
-    }
-
-    if (request.method === "GET") {
-      if (!sessionId || !this.transports[sessionId]) {
-        return this.createTextResponse("Invalid or missing session ID", 400);
-      }
-
-      this.touchSession(sessionId);
-      this.logger.debug(`GET /mcp - SSE stream for session ${sessionId}`);
-      return this.withCors(
-        await this.transports[sessionId].handleRequest(request, {
-          ...(authInfo ? { authInfo } : {}),
-        }),
-      );
-    }
-
-    if (request.method === "DELETE") {
-      if (!sessionId || !this.transports[sessionId]) {
-        return this.createTextResponse("Invalid or missing session ID", 400);
-      }
-
-      this.logger.info(`DELETE /mcp - Terminating session ${sessionId}`);
-      return this.withCors(
-        await this.transports[sessionId].handleRequest(request, {
-          ...(authInfo ? { authInfo } : {}),
-        }),
-      );
-    }
-
-    if (request.method === "OPTIONS") {
-      return this.withCors(new Response(null, { status: 204 }));
-    }
-
-    if (request.method !== "POST") {
-      return this.createTextResponse("Method Not Allowed", 405);
-    }
-
-    if (!this.mcpServer) {
+    if (!this.mcpHandler) {
       return this.createJsonResponse(
         {
           jsonrpc: "2.0",
@@ -407,121 +306,23 @@ export class StreamableHTTPServer {
       );
     }
 
-    let parsedBody: unknown;
     try {
-      parsedBody = await request.json();
-    } catch {
-      return this.createJsonResponse(
-        {
-          jsonrpc: "2.0",
-          error: {
-            code: -32700,
-            message: "Parse error: Invalid JSON body",
-          },
-          id: null,
-        },
-        400,
-      );
-    }
-    this.logger.debug(`POST /mcp - Session: ${sessionId ?? "new"}`);
-
-    try {
-      let transport: WebStandardStreamableHTTPServerTransport;
-
-      if (sessionId && this.transports[sessionId]) {
-        transport = this.transports[sessionId];
-        this.touchSession(sessionId);
-      } else if (!sessionId && isInitializeRequest(parsedBody)) {
-        transport = new WebStandardStreamableHTTPServerTransport({
-          sessionIdGenerator: (): string => randomUUID(),
-          onsessioninitialized: (newSessionId: string): void => {
-            this.logger.info(`Session initialized: ${newSessionId}`);
-            this.transports[newSessionId] = transport;
-            const authorization = sessionAuthorizationFromAuthInfo(authInfo);
-            if (authorization) {
-              this.sessionAuthorizations.set(newSessionId, authorization);
-            }
-            this.touchSession(newSessionId);
-          },
-          onsessionclosed: (closedSessionId: string): void => {
-            this.logger.info(`Session closed: ${closedSessionId}`);
-            delete this.transports[closedSessionId];
-            this.sessionLastActivity.delete(closedSessionId);
-            this.sessionAuthorizations.delete(closedSessionId);
-          },
-        });
-
-        const permissionLevel = authInfo?.extra?.["permissionLevel"] as
-          ToolVisibility | undefined;
-        const sessionServer = this.mcpTransport
-          ? this.mcpTransport.createMcpServer(permissionLevel)
-          : this.mcpServer;
-        await sessionServer.connect(transport);
-      } else {
-        return this.createJsonResponse(
-          {
-            jsonrpc: "2.0",
-            error: {
-              code: -32000,
-              message: "Bad Request: Server not initialized",
-            },
-            id: null,
-          },
-          400,
-        );
-      }
-
       return this.withCors(
-        await transport.handleRequest(request, {
-          parsedBody,
+        await this.mcpHandler.fetch(request, {
           ...(authInfo ? { authInfo } : {}),
         }),
       );
     } catch (error) {
-      this.logger.error("MCP transport error:", error);
+      this.logger.error("MCP handler error:", error);
       return this.createJsonResponse(
         {
           jsonrpc: "2.0",
-          error: {
-            code: -32603,
-            message: "Internal error",
-          },
+          error: { code: -32603, message: "Internal error" },
+          id: null,
         },
         500,
       );
     }
-  }
-
-  private async validateSessionAuthorization(
-    sessionId: string,
-    authInfo: AuthInfo | undefined,
-  ): Promise<Response | undefined> {
-    const expected = this.sessionAuthorizations.get(sessionId);
-    if (!expected) return undefined;
-
-    const current = sessionAuthorizationFromAuthInfo(authInfo);
-    if (current?.subject !== expected.subject) {
-      this.logger.warn("Authentication failed: MCP session principal changed");
-      return this.getAuthErrorResponse(
-        "Forbidden: Session belongs to another principal",
-        403,
-      );
-    }
-
-    if (current.permissionLevel !== expected.permissionLevel) {
-      this.logger.warn("Authentication failed: MCP session permission changed");
-      const transport = this.transports[sessionId];
-      delete this.transports[sessionId];
-      this.sessionLastActivity.delete(sessionId);
-      this.sessionAuthorizations.delete(sessionId);
-      await transport?.close();
-      return this.getAuthErrorResponse(
-        "Forbidden: Session permission changed; initialize a new session",
-        403,
-      );
-    }
-
-    return undefined;
   }
 
   public async handleRequest(request: Request): Promise<Response> {
@@ -545,8 +346,12 @@ export class StreamableHTTPServer {
     if (url.pathname === "/status") {
       return this.createJsonResponse({
         status: "ok",
-        sessions: Object.keys(this.transports).length,
+        protocol: "stateless",
       });
+    }
+
+    if (url.pathname === "/mcp" && request.method === "OPTIONS") {
+      return this.withCors(new Response(null, { status: 204 }));
     }
 
     if (url.pathname === "/mcp") {
@@ -560,8 +365,21 @@ export class StreamableHTTPServer {
     mcpServer: McpServer,
     mcpTransport?: IMCPTransport,
   ): void {
-    this.mcpServer = mcpServer;
     this.mcpTransport = mcpTransport ?? null;
+    this.mcpHandler = createMcpHandler(
+      ({ authInfo }) => {
+        const permissionLevel = authInfo?.extra?.["permissionLevel"] as
+          ToolVisibility | undefined;
+        return this.mcpTransport
+          ? this.mcpTransport.createMcpServer(permissionLevel)
+          : mcpServer;
+      },
+      {
+        onerror: (error): void => {
+          this.logger.error("MCP handler error:", error);
+        },
+      },
+    );
     this.logger.debug("MCP server connected to StreamableHTTP transport");
   }
 
@@ -593,25 +411,9 @@ export class StreamableHTTPServer {
   }
 
   public async stop(): Promise<void> {
-    await this.sessionEviction.close();
-    this.sessionLastActivity.clear();
-    this.sessionAuthorizations.clear();
-
-    for (const sessionId in this.transports) {
-      try {
-        const transport = this.transports[sessionId];
-        if (transport) {
-          this.logger.debug(`Closing transport for session ${sessionId}`);
-          await transport.close();
-          delete this.transports[sessionId];
-        }
-      } catch (error) {
-        this.logger.error(
-          `Error closing transport for session ${sessionId}:`,
-          error,
-        );
-      }
-    }
+    await this.mcpHandler?.close();
+    this.mcpHandler = null;
+    this.mcpTransport = null;
 
     if (this.server) {
       await this.server.stop();
@@ -638,24 +440,6 @@ export class StreamableHTTPServer {
   public isRunning(): boolean {
     return this.server !== null;
   }
-
-  public getSessionCount(): number {
-    return Object.keys(this.transports).length;
-  }
-}
-
-function sessionAuthorizationFromAuthInfo(
-  authInfo: AuthInfo | undefined,
-): SessionAuthorization | undefined {
-  const subject = authInfo?.extra?.["subject"];
-  if (typeof subject !== "string") return undefined;
-
-  const permissionLevel = authInfo?.extra?.["permissionLevel"] as
-    ToolVisibility | undefined;
-  return {
-    subject,
-    ...(permissionLevel ? { permissionLevel } : {}),
-  };
 }
 
 function escapeChallengeValue(value: string): string {

@@ -1,21 +1,31 @@
 import { describe, it, expect, beforeEach, mock } from "bun:test";
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
+import {
+  createMcpHandler,
+  InMemoryTransport,
+} from "@modelcontextprotocol/server";
+import type { McpServer, ToolAnnotations } from "@modelcontextprotocol/server";
+import {
+  Client,
+  StreamableHTTPClientTransport,
+} from "@modelcontextprotocol/client";
 import { MCPService } from "../src/mcp-service";
 import type { IMessageBus } from "@brains/messaging-service";
 import { createMockLogger, createSilentLogger } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { Tool, Resource, ResourceTemplate, Prompt } from "../src/types";
-import type { ToolAnnotations } from "@modelcontextprotocol/sdk/types.js";
 
-interface ProtocolToolHandlerExtra {
-  _meta?: Record<string, unknown>;
-  authInfo?: {
-    token: string;
-    clientId: string;
-    scopes: string[];
-    extra?: Record<string, unknown>;
+interface ProtocolToolHandlerContext {
+  mcpReq: {
+    _meta?: Record<string, unknown>;
+    signal: AbortSignal;
+  };
+  http?: {
+    authInfo?: {
+      token: string;
+      clientId: string;
+      scopes: string[];
+      extra?: Record<string, unknown>;
+    };
   };
 }
 
@@ -23,7 +33,7 @@ interface InspectableRegisteredTool {
   annotations?: ToolAnnotations;
   handler: (
     params: Record<string, unknown>,
-    extra: ProtocolToolHandlerExtra,
+    context: ProtocolToolHandlerContext,
   ) => Promise<unknown>;
 }
 
@@ -94,11 +104,11 @@ async function callProtocolTool(
   server: McpServer,
   name: string,
   params: Record<string, unknown>,
-  extra: ProtocolToolHandlerExtra,
+  context: ProtocolToolHandlerContext,
 ): Promise<unknown> {
   return inspectMcpServer(server)._registeredTools[name]?.handler(
     params,
-    extra,
+    context,
   );
 }
 
@@ -258,19 +268,22 @@ describe("MCPService", () => {
         "metadata_tool",
         { input: "value" },
         {
-          _meta: {
-            interfaceType: "matrix",
-            userId: "user-1",
-            channelId: "room-1",
-            channelName: "Room One",
-            progressToken: "progress-1",
+          mcpReq: {
+            _meta: {
+              interfaceType: "matrix",
+              userId: "user-1",
+              channelId: "room-1",
+              channelName: "Room One",
+              progressToken: "progress-1",
+            },
+            signal: new AbortController().signal,
           },
         },
       );
 
       expect(mockMessageBus.send).toHaveBeenCalledWith({
         type: "plugin:metadata-plugin:tool:execute",
-        payload: {
+        payload: expect.objectContaining({
           toolName: "metadata_tool",
           args: { input: "value" },
           progressToken: "progress-1",
@@ -284,7 +297,8 @@ describe("MCPService", () => {
           channelName: "Room One",
           userPermissionLevel: "admin",
           isAnchor: true,
-        },
+          signal: expect.any(AbortSignal),
+        }),
         sender: "MCPService",
       });
     });
@@ -307,20 +321,25 @@ describe("MCPService", () => {
         "verified_subject_tool",
         {},
         {
-          _meta: { userId: "spoofed-user" },
-          authInfo: {
-            token: "token",
-            clientId: "client-1",
-            scopes: ["mcp"],
-            extra: {
-              subject: "verified-operator",
-              actor: {
-                kind: "user",
-                userId: "verified-operator",
-                canonicalId: "user:verified-operator",
+          mcpReq: {
+            _meta: { userId: "spoofed-user" },
+            signal: new AbortController().signal,
+          },
+          http: {
+            authInfo: {
+              token: "token",
+              clientId: "client-1",
+              scopes: ["mcp"],
+              extra: {
+                subject: "verified-operator",
+                actor: {
+                  kind: "user",
+                  userId: "verified-operator",
+                  canonicalId: "user:verified-operator",
+                },
+                displayName: "Mira",
+                isAnchor: true,
               },
-              displayName: "Mira",
-              isAnchor: true,
             },
           },
         },
@@ -964,6 +983,74 @@ describe("MCPService", () => {
       }
     });
 
+    it("advertises private 60-second list cache hints to modern clients", async () => {
+      const tool: Tool = {
+        name: "cached_search",
+        description: "Search",
+        inputSchema: {},
+        visibility: "public",
+        sideEffects: "none",
+        handler: async () => ({ success: true, data: [] }),
+      };
+      const resource: Resource = {
+        name: "entity-types",
+        uri: "entity://types",
+        description: "Entity types",
+        handler: async () => ({
+          contents: [{ uri: "entity://types", text: "note" }],
+        }),
+      };
+      const prompt: Prompt = {
+        name: "discuss",
+        description: "Discuss a topic",
+        visibility: "public",
+        args: { topic: { description: "Topic", required: true } },
+        handler: async ({ topic }) => ({
+          messages: [
+            {
+              role: "user",
+              content: { type: "text", text: `Discuss ${topic}` },
+            },
+          ],
+        }),
+      };
+      mcpService.registerTool("system", tool);
+      mcpService.registerResource("system", resource);
+      mcpService.registerPrompt("system", prompt);
+
+      const handler = createMcpHandler(() =>
+        mcpService.createMcpServer("admin"),
+      );
+      const transport = new StreamableHTTPClientTransport(
+        new URL("http://test.local/mcp"),
+        {
+          fetch: (url, init): Promise<Response> =>
+            handler.fetch(new Request(url, init)),
+        },
+      );
+      const client = new Client(
+        { name: "mcp-test", version: "1.0.0" },
+        { versionNegotiation: { mode: { pin: "2026-07-28" } } },
+      );
+
+      await client.connect(transport);
+      try {
+        for (const result of [
+          await client.listTools(),
+          await client.listPrompts(),
+          await client.listResources(),
+        ]) {
+          expect(result).toMatchObject({
+            ttlMs: 60_000,
+            cacheScope: "private",
+          });
+        }
+      } finally {
+        await client.close();
+        await handler.close();
+      }
+    });
+
     it("should create fresh servers with tools filtered by explicit permission in debug mode", () => {
       mcpService.setProtocolMode("debug");
       const publicTool: Tool = {
@@ -1333,7 +1420,7 @@ describe("MCPService", () => {
       ).toContain("entity-list");
     });
 
-    it("filters templates per-session in createMcpServer based on requested permission", () => {
+    it("filters templates per-request in createMcpServer based on requested permission", () => {
       mcpService.setPermissionLevel("admin");
       mcpService.registerResourceTemplate(
         "system",
@@ -1388,8 +1475,8 @@ describe("MCPService", () => {
     });
   });
 
-  describe("plain resource per-session visibility gating", () => {
-    it("filters resources per-session in createMcpServer based on requested permission", () => {
+  describe("plain resource per-request visibility gating", () => {
+    it("filters resources per-request in createMcpServer based on requested permission", () => {
       const resource: Resource = {
         name: "entity://types",
         uri: "entity://types",
@@ -1676,7 +1763,7 @@ describe("MCPService", () => {
       ).toContain("public-prompt");
     });
 
-    it("filters prompts per-session in createMcpServer based on requested permission", () => {
+    it("filters prompts per-request in createMcpServer based on requested permission", () => {
       mcpService.setPermissionLevel("admin");
       mcpService.registerPrompt(
         "system",

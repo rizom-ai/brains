@@ -11,8 +11,8 @@ import { z } from "@brains/utils/zod";
 import {
   McpServer,
   ResourceTemplate as MCPResourceTemplate,
-} from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { ToolAnnotations } from "@modelcontextprotocol/sdk/types.js";
+} from "@modelcontextprotocol/server";
+import type { ToolAnnotations } from "@modelcontextprotocol/server";
 import type {
   DirectMcpExposure,
   MCPProtocolMode,
@@ -53,7 +53,17 @@ export interface RegisteredPrompt {
 }
 
 export function createMcpServerInstance(): McpServer {
-  return new McpServer(MCP_SERVER_INFO);
+  return new McpServer(MCP_SERVER_INFO, {
+    cacheHints: {
+      "tools/list": { ttlMs: 60_000, cacheScope: "private" },
+      "prompts/list": { ttlMs: 60_000, cacheScope: "private" },
+      "resources/list": { ttlMs: 60_000, cacheScope: "private" },
+      "resources/templates/list": {
+        ttlMs: 60_000,
+        cacheScope: "private",
+      },
+    },
+  });
 }
 
 export function canExposeTool(
@@ -201,32 +211,35 @@ export function registerToolOnServer(
     tool.name,
     {
       description: tool.description,
-      inputSchema: tool.inputSchema,
+      inputSchema: z.object(tool.inputSchema),
       annotations: getToolAnnotations(tool) ?? {},
     },
-    async (params, extra) => {
-      const interfaceType = extra._meta?.["interfaceType"] ?? "mcp";
-      const verifiedSubject = extra.authInfo?.extra?.["subject"];
+    async (params, ctx) => {
+      const interfaceType = ctx.mcpReq._meta?.["interfaceType"] ?? "mcp";
+      const verifiedSubject = ctx.http?.authInfo?.extra?.["subject"];
       const subject =
         typeof verifiedSubject === "string" && verifiedSubject.length > 0
           ? verifiedSubject
           : undefined;
-      const actor = resolveMcpActor(extra.authInfo?.extra?.["actor"], subject);
-      const verifiedDisplayName = extra.authInfo?.extra?.["displayName"];
+      const actor = resolveMcpActor(
+        ctx.http?.authInfo?.extra?.["actor"],
+        subject,
+      );
+      const verifiedDisplayName = ctx.http?.authInfo?.extra?.["displayName"];
       const displayName =
         typeof verifiedDisplayName === "string" &&
         verifiedDisplayName.length > 0
           ? verifiedDisplayName
           : undefined;
-      const verifiedIsAnchor = extra.authInfo?.extra?.["isAnchor"];
+      const verifiedIsAnchor = ctx.http?.authInfo?.extra?.["isAnchor"];
       const isAnchor =
         typeof verifiedIsAnchor === "boolean"
           ? verifiedIsAnchor
           : configuredIsAnchor;
-      const conversationId = extra._meta?.["conversationId"];
-      const channelId = extra._meta?.["channelId"];
-      const channelName = extra._meta?.["channelName"];
-      const progressToken = extra._meta?.progressToken;
+      const conversationId = ctx.mcpReq._meta?.["conversationId"];
+      const channelId = ctx.mcpReq._meta?.["channelId"];
+      const channelName = ctx.mcpReq._meta?.["channelName"];
+      const progressToken = ctx.mcpReq._meta?.progressToken;
 
       logger.debug("MCP client metadata", {
         tool: tool.name,
@@ -256,7 +269,7 @@ export function registerToolOnServer(
             channelName,
             userPermissionLevel: permissionLevel,
             isAnchor,
-            signal: extra.signal,
+            signal: ctx.mcpReq.signal,
           },
           sender: "MCPService",
         });
@@ -370,7 +383,7 @@ export function registerPromptOnServer(
     prompt.name,
     {
       description: prompt.description ?? "Prompt",
-      argsSchema,
+      argsSchema: z.object(argsSchema),
     },
     async (args) => prompt.handler(args as Record<string, string>),
   );

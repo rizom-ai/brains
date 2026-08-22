@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeEach, afterEach } from "bun:test";
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { McpServer } from "@modelcontextprotocol/server";
 import { MCPInterface } from "../src/mcp-interface";
 import { createPluginHarness } from "@brains/plugins/test";
 import type { IMCPService } from "@brains/mcp-service";
@@ -123,7 +123,7 @@ describe("MCPInterface", () => {
       const response = await route.handler(new Request("http://brain/status"));
       expect(response.status).toBe(200);
       const body = await response.json();
-      expect(body).toEqual({ status: "ok", sessions: 0 });
+      expect(body).toEqual({ status: "ok", protocol: "stateless" });
     });
   });
 

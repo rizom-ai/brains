@@ -10,7 +10,7 @@
     "nanoid": "^5.0.4",
     "p-limit": "^7.3.0",
     "remark": "^15.0.1",
-    "zod": "^4.1.8"
+    "zod": "^4.2.0"
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",

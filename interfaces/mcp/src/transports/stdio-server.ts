@@ -1,4 +1,4 @@
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { StdioServerTransport } from "@modelcontextprotocol/server/stdio";
 import type { TransportLogger } from "./types";
 import { createStderrLogger, adaptLogger } from "./types";
 import type { Logger } from "@brains/utils/logger";

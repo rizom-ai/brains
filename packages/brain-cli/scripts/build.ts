@@ -168,8 +168,8 @@ const sharedExternals = [
   "@tailwindcss/oxide",
   // ink loads react-devtools-core unconditionally
   "react-devtools-core",
-  // MCP SDK for --remote mode (lazy imported)
-  "@modelcontextprotocol/sdk",
+  // MCP client for --remote mode (lazy imported)
+  "@modelcontextprotocol/client",
   // Playwright is lazy-loaded by @brains/media-renderer via variable-
   // indirected dynamic import, but Bun's bundler still traces it and then
   // chokes on optional transitive requires (chromium-bidi) inside

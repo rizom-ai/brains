@@ -1,22 +1,19 @@
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  mock,
-  spyOn,
-  test,
-} from "bun:test";
-import { StreamableHTTPServer } from "../../src/transports/http-server";
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
 import type { IMCPTransport, ToolVisibility } from "@brains/mcp-service";
-import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
-import { LATEST_PROTOCOL_VERSION } from "@modelcontextprotocol/sdk/types.js";
+import { z } from "@brains/utils/zod";
+import {
+  Client,
+  StreamableHTTPClientTransport,
+} from "@modelcontextprotocol/client";
+import {
+  McpServer,
+  SUPPORTED_PROTOCOL_VERSIONS,
+  type ServerContext,
+} from "@modelcontextprotocol/server";
+import { StreamableHTTPServer } from "../../src/transports/http-server";
 import type { TransportLogger } from "../../src/transports/types";
 
-// Test helper types
 interface RequestOptions {
-  port?: number;
   headers?: Record<string, string>;
   body?: unknown;
 }
@@ -27,67 +24,57 @@ interface RequestResponse {
   headers: Record<string, string>;
 }
 
-// Helper to parse SSE response
+const MODERN_PROTOCOL_VERSION = "2026-07-28";
+const legacyProtocolVersion =
+  SUPPORTED_PROTOCOL_VERSIONS.find((version) => version.startsWith("2025-")) ??
+  failMissingLegacyProtocolVersion();
+
+function failMissingLegacyProtocolVersion(): never {
+  throw new Error("Expected the SDK to retain a 2025-era protocol revision");
+}
+
 function parseSSEResponse(text: string): unknown {
-  const lines = text.split("\n");
-  for (const line of lines) {
-    if (line.startsWith("data: ")) {
-      try {
-        return JSON.parse(line.slice(6));
-      } catch {
-        // Continue to next line
-      }
+  for (const line of text.split("\n")) {
+    if (!line.startsWith("data: ")) continue;
+    try {
+      return JSON.parse(line.slice(6));
+    } catch {
+      // Continue to the next SSE data line.
     }
   }
-  return text; // Fallback to raw text
+  return text;
 }
 
-// Helper to extract headers into object
 function extractHeaders(headers: Headers): Record<string, string> {
-  const headerObj: Record<string, string> = {};
+  const result: Record<string, string> = {};
   headers.forEach((value, key) => {
-    headerObj[key] = value;
+    result[key] = value;
   });
-  return headerObj;
+  return result;
 }
 
-// Helper to build default headers for MCP requests
-function buildMCPHeaders(method: string, path: string): Record<string, string> {
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-  };
-
-  if (path === "/mcp") {
-    if (method === "POST") {
-      headers["Accept"] = "application/json, text/event-stream";
-    } else if (method === "GET") {
-      headers["Accept"] = "text/event-stream";
-    }
-  }
-
-  return headers;
-}
-
-// Helper to make HTTP requests
 async function makeRequest(
+  port: number,
   method: string,
   path: string,
   options: RequestOptions = {},
 ): Promise<RequestResponse> {
-  const port = options.port ?? 3333;
-  const url = `http://localhost:${port}${path}`;
-
-  const response = await fetch(url, {
+  const response = await fetch(`http://localhost:${port}${path}`, {
     method,
     headers: {
-      ...buildMCPHeaders(method, path),
+      ...(method === "POST"
+        ? {
+            "Content-Type": "application/json",
+            Accept: "application/json, text/event-stream",
+          }
+        : {}),
       ...options.headers,
     },
-    body: options.body ? JSON.stringify(options.body) : null,
+    body: options.body === undefined ? null : JSON.stringify(options.body),
   });
 
-  let body: unknown;
   const contentType = response.headers.get("content-type");
+  let body: unknown;
   if (contentType?.includes("application/json")) {
     body = await response.json();
   } else if (contentType?.includes("text/event-stream")) {
@@ -107,7 +94,7 @@ function createInitializeRequest(): {
   jsonrpc: "2.0";
   method: "initialize";
   params: {
-    protocolVersion: typeof LATEST_PROTOCOL_VERSION;
+    protocolVersion: string;
     capabilities: Record<string, never>;
     clientInfo: { name: string; version: string };
   };
@@ -117,7 +104,7 @@ function createInitializeRequest(): {
     jsonrpc: "2.0",
     method: "initialize",
     params: {
-      protocolVersion: LATEST_PROTOCOL_VERSION,
+      protocolVersion: legacyProtocolVersion,
       capabilities: {},
       clientInfo: { name: "test-client", version: "1.0.0" },
     },
@@ -125,19 +112,68 @@ function createInitializeRequest(): {
   };
 }
 
-async function initializeSession(
-  port: number,
-  headers: Record<string, string>,
-): Promise<string> {
-  const response = await makeRequest("POST", "/mcp", {
-    port,
-    headers,
-    body: createInitializeRequest(),
+function createToolServer(
+  toolName = "visible_tool",
+  onCall?: (context: ServerContext) => void,
+): McpServer {
+  const mcpServer = new McpServer({
+    name: "test-server",
+    version: "1.0.0",
   });
-  expect(response.status).toBe(200);
-  const sessionId = response.headers["mcp-session-id"];
-  if (!sessionId) throw new Error("Expected MCP session id");
-  return sessionId;
+  mcpServer.registerTool(
+    toolName,
+    {
+      description: toolName,
+      inputSchema: z.object({}),
+    },
+    async (_params, context) => {
+      onCall?.(context);
+      return { content: [{ type: "text", text: "ok" }] };
+    },
+  );
+  return mcpServer;
+}
+
+function connectFactory(
+  server: StreamableHTTPServer,
+  factory: (permissionLevel?: ToolVisibility) => McpServer,
+): ReturnType<typeof mock<(permissionLevel?: ToolVisibility) => McpServer>> {
+  const createMcpServer = mock((permissionLevel?: ToolVisibility) =>
+    factory(permissionLevel),
+  );
+  const mcpTransport: IMCPTransport = {
+    getMcpServer: () => factory(),
+    createMcpServer,
+    setPermissionLevel: mock(() => {}),
+    setProtocolMode: mock(() => {}),
+  };
+  server.connectMCPServer(factory(), mcpTransport);
+  return createMcpServer;
+}
+
+async function connectClient(
+  port: number,
+  options: {
+    modern: boolean;
+    headers?: Record<string, string>;
+  },
+): Promise<Client> {
+  const transport = new StreamableHTTPClientTransport(
+    new URL(`http://localhost:${port}/mcp`),
+    options.headers ? { requestInit: { headers: options.headers } } : undefined,
+  );
+  const client = options.modern
+    ? new Client(
+        { name: "test-client", version: "1.0.0" },
+        {
+          versionNegotiation: {
+            mode: { pin: MODERN_PROTOCOL_VERSION },
+          },
+        },
+      )
+    : new Client({ name: "test-client", version: "1.0.0" });
+  await client.connect(transport);
+  return client;
 }
 
 describe("StreamableHTTPServer", () => {
@@ -145,69 +181,27 @@ describe("StreamableHTTPServer", () => {
   let mockLogger: TransportLogger;
 
   beforeEach(() => {
-    // Create a mock logger with jest-style mock functions
     mockLogger = {
       info: mock(() => {}),
       debug: mock(() => {}),
       error: mock(() => {}),
       warn: mock(() => {}),
     };
-    server = undefined; // Reset server for each test
+    server = undefined;
   });
 
   afterEach(async () => {
     await server?.stop();
   });
 
-  describe("Server Lifecycle", () => {
-    test("validates before starting session eviction", () => {
-      const intervalSpy = spyOn(globalThis, "setInterval");
-      const timeoutSpy = spyOn(globalThis, "setTimeout");
-      try {
-        expect(() => new StreamableHTTPServer()).toThrow(
-          /requires an auth token/,
-        );
-        expect(intervalSpy).not.toHaveBeenCalled();
-        expect(timeoutSpy).not.toHaveBeenCalled();
-      } finally {
-        intervalSpy.mockRestore();
-        timeoutSpy.mockRestore();
-      }
-    });
-
-    test("should create server with default config", () => {
-      server = new StreamableHTTPServer({ auth: { disabled: true } });
-      expect(server).toBeDefined();
-      expect(server.isRunning()).toBe(false);
-    });
-
-    test("should create server with custom config", () => {
-      server = new StreamableHTTPServer({
-        port: 0,
-        host: "127.0.0.1",
-        logger: mockLogger,
-        auth: { disabled: true },
-      });
-      expect(server).toBeDefined();
-      expect(server.isRunning()).toBe(false);
-    });
-
-    test("should start server successfully", async () => {
-      server = new StreamableHTTPServer({
-        port: 0,
-        logger: mockLogger,
-        auth: { disabled: true },
-      });
-
-      await server.start();
-      expect(server.isRunning()).toBe(true);
-      const port = server.getPort();
-      expect(mockLogger.info).toHaveBeenCalledWith(
-        `StreamableHTTP server listening on http://0.0.0.0:${port}/mcp`,
+  describe("lifecycle", () => {
+    test("requires authentication unless explicitly disabled", () => {
+      expect(() => new StreamableHTTPServer()).toThrow(
+        /requires an auth token/,
       );
     });
 
-    test("should stop server successfully", async () => {
+    test("starts and stops the standalone test listener", async () => {
       server = new StreamableHTTPServer({
         port: 0,
         logger: mockLogger,
@@ -216,6 +210,9 @@ describe("StreamableHTTPServer", () => {
 
       await server.start();
       expect(server.isRunning()).toBe(true);
+      expect(mockLogger.info).toHaveBeenCalledWith(
+        `StreamableHTTP server listening on http://0.0.0.0:${server.getPort()}/mcp`,
+      );
 
       await server.stop();
       expect(server.isRunning()).toBe(false);
@@ -224,47 +221,43 @@ describe("StreamableHTTPServer", () => {
       );
     });
 
-    test("should throw when starting already running server", async () => {
+    test("rejects a second start", async () => {
       server = new StreamableHTTPServer({
         port: 0,
         logger: mockLogger,
         auth: { disabled: true },
       });
-
       await server.start();
+
       // eslint-disable-next-line @typescript-eslint/await-thenable
       await expect(server.start()).rejects.toThrow("Server is already running");
     });
 
-    test("should handle port already in use", async () => {
-      // Start first server on a specific port
-      const server1 = new StreamableHTTPServer({
+    test("reports a port collision", async () => {
+      const first = new StreamableHTTPServer({
         port: 0,
         logger: mockLogger,
         auth: { disabled: true },
       });
-      await server1.start();
-      const boundPort = server1.getPort();
-
-      // Try to start second server on same port
-      server = new StreamableHTTPServer({
-        port: boundPort,
-        logger: mockLogger,
-        auth: { disabled: true },
-      });
-
-      // eslint-disable-next-line @typescript-eslint/await-thenable
-      await expect(server.start()).rejects.toThrow();
-      expect(mockLogger.error).toHaveBeenCalledWith(
-        `Port ${boundPort} is already in use`,
-      );
-
-      // Cleanup
-      await server1.stop();
+      await first.start();
+      try {
+        server = new StreamableHTTPServer({
+          port: first.getPort(),
+          logger: mockLogger,
+          auth: { disabled: true },
+        });
+        // eslint-disable-next-line @typescript-eslint/await-thenable
+        await expect(server.start()).rejects.toThrow();
+        expect(mockLogger.error).toHaveBeenCalledWith(
+          `Port ${first.getPort()} is already in use`,
+        );
+      } finally {
+        await first.stop();
+      }
     });
   });
 
-  describe("Health Endpoints", () => {
+  describe("shared HTTP surface", () => {
     beforeEach(async () => {
       server = new StreamableHTTPServer({
         port: 0,
@@ -274,934 +267,389 @@ describe("StreamableHTTPServer", () => {
       await server.start();
     });
 
-    test("should respond to health check", async () => {
+    test("serves health and stateless status", async () => {
       if (!server) throw new Error("Server not initialized");
-      const port = server.getPort();
-      const response = await makeRequest("GET", "/health", { port });
-
-      expect(response.status).toBe(200);
-      expect(response.body).toMatchObject({
+      const health = await makeRequest(server.getPort(), "GET", "/health");
+      expect(health.status).toBe(200);
+      expect(health.body).toMatchObject({
         status: "ok",
         transport: "streamable-http",
         timestamp: expect.any(String),
       });
-    });
 
-    test("should respond to status check with a minimal payload", async () => {
-      if (!server) throw new Error("Server not initialized");
-      const port = server.getPort();
-      const response = await makeRequest("GET", "/status", { port });
-
-      expect(response.status).toBe(200);
-      expect(response.body).toEqual({
+      const status = await makeRequest(server.getPort(), "GET", "/status");
+      expect(status.body).toEqual({
         status: "ok",
-        sessions: 0,
-      });
-    });
-  });
-
-  describe("MCP Server Connection", () => {
-    let mcpServer: McpServer;
-
-    beforeEach(async () => {
-      server = new StreamableHTTPServer({
-        port: 0,
-        logger: mockLogger,
-        auth: { disabled: true },
-      });
-      await server.start();
-
-      // Create a mock MCP server
-      mcpServer = new McpServer({
-        name: "test-server",
-        version: "1.0.0",
+        protocol: "stateless",
       });
     });
 
-    test("should connect MCP server", () => {
+    test("returns 503 before an MCP factory is connected", async () => {
       if (!server) throw new Error("Server not initialized");
-      server.connectMCPServer(mcpServer);
-      expect(mockLogger.debug).toHaveBeenCalledWith(
-        "MCP server connected to StreamableHTTP transport",
-      );
-    });
-
-    test("should return 503 when MCP server not connected", async () => {
-      if (!server) throw new Error("Server not initialized");
-      const port = server.getPort();
-      const response = await makeRequest("POST", "/mcp", {
-        port,
-        body: { jsonrpc: "2.0", method: "initialize", params: {}, id: 1 },
+      const response = await makeRequest(server.getPort(), "POST", "/mcp", {
+        body: createInitializeRequest(),
       });
-
       expect(response.status).toBe(503);
       expect(response.body).toMatchObject({
-        jsonrpc: "2.0",
         error: {
           code: -32603,
           message: "Service Unavailable: MCP server not connected",
         },
-        id: null,
       });
+    });
+
+    test("serves CORS preflight without authentication", async () => {
+      if (!server) throw new Error("Server not initialized");
+      const response = await makeRequest(server.getPort(), "OPTIONS", "/mcp", {
+        headers: {
+          Origin: "https://inspector.modelcontextprotocol.io",
+          "Access-Control-Request-Method": "POST",
+          "Access-Control-Request-Headers":
+            "content-type,mcp-protocol-version,mcp-method,mcp-name",
+          "Access-Control-Request-Private-Network": "true",
+        },
+      });
+
+      expect(response.status).toBe(204);
+      expect(response.headers["access-control-allow-origin"]).toBe("*");
+      expect(response.headers["access-control-allow-private-network"]).toBe(
+        "true",
+      );
+      expect(response.headers["access-control-allow-headers"]).toContain(
+        "MCP-Protocol-Version",
+      );
+      expect(response.headers["access-control-allow-headers"]).toContain(
+        "Mcp-Method",
+      );
+    });
+
+    test.each(["/api/chat", "/api/chat/confirm"])(
+      "keeps removed endpoint %s unavailable",
+      async (path) => {
+        if (!server) throw new Error("Server not initialized");
+        const response = await makeRequest(server.getPort(), "POST", path, {
+          body: { message: "hi" },
+        });
+        expect(response.status).toBe(404);
+      },
+    );
+
+    test("provides a fetch handler for shared-host mounting", () => {
+      expect(server?.getApp().fetch).toBeDefined();
     });
   });
 
-  describe("Session Management", () => {
-    let mcpServer: McpServer;
-    let port: number;
-
+  describe("protocol eras", () => {
     beforeEach(async () => {
       server = new StreamableHTTPServer({
         port: 0,
         logger: mockLogger,
         auth: { disabled: true },
       });
+      connectFactory(server, () => createToolServer());
       await server.start();
-      port = server.getPort();
-
-      // Create and connect MCP server
-      mcpServer = new McpServer({
-        name: "test-server",
-        version: "1.0.0",
-      });
-      server.connectMCPServer(mcpServer);
     });
 
-    test("should handle initialization request", async () => {
-      const initRequest = createInitializeRequest();
-
-      const response = await makeRequest("POST", "/mcp", {
-        port,
-        body: initRequest,
-      });
-
-      expect(response.status).toBe(200);
-      expect(response.body).toMatchObject({
-        jsonrpc: "2.0",
-        result: {
-          protocolVersion: LATEST_PROTOCOL_VERSION,
-          capabilities: expect.any(Object),
-          serverInfo: {
-            name: "test-server",
-            version: "1.0.0",
-          },
-        },
-        id: 1,
-      });
-
-      // Session ID is returned in the header
-      expect(response.headers["mcp-session-id"]).toBeDefined();
-      expect(typeof response.headers["mcp-session-id"]).toBe("string");
-
-      expect(mockLogger.info).toHaveBeenCalledWith(
-        expect.stringMatching(/^Session initialized: .+/),
-      );
-    });
-
-    test("should return 400 for non-initialize request without session", async () => {
-      const response = await makeRequest("POST", "/mcp", {
-        port,
-        body: { jsonrpc: "2.0", method: "tools/list", params: {}, id: 2 },
-      });
-
-      expect(response.status).toBe(400);
-      expect(response.body).toMatchObject({
-        jsonrpc: "2.0",
-        error: {
-          code: -32000,
-          message: "Bad Request: Server not initialized",
-        },
-        id: null,
-      });
-    });
-
-    test("should track active sessions", async () => {
+    test("serves 2025-era clients through the stateless legacy path", async () => {
       if (!server) throw new Error("Server not initialized");
-      expect(server.getSessionCount()).toBe(0);
-
-      // Initialize a session
-      await makeRequest("POST", "/mcp", {
-        port,
-        body: createInitializeRequest(),
-      });
-
-      expect(server.getSessionCount()).toBe(1);
-    });
-  });
-
-  describe("Request Handling", () => {
-    test("should handle GET request with invalid session", async () => {
-      server = new StreamableHTTPServer({
-        port: 0,
-        logger: mockLogger,
-        auth: { disabled: true },
-      });
-      await server.start();
-      const port = server.getPort();
-
-      const response = await makeRequest("GET", "/mcp", {
-        port,
-        headers: { "mcp-session-id": "invalid-session" },
-      });
-
-      expect(response.status).toBe(400);
-      expect(response.body).toBe("Invalid or missing session ID");
-    });
-
-    test("should handle DELETE request with invalid session", async () => {
-      server = new StreamableHTTPServer({
-        port: 0,
-        logger: mockLogger,
-        auth: { disabled: true },
-      });
-      await server.start();
-      const port = server.getPort();
-
-      const response = await makeRequest("DELETE", "/mcp", {
-        port,
-        headers: { "mcp-session-id": "invalid-session" },
-      });
-
-      expect(response.status).toBe(400);
-      expect(response.body).toBe("Invalid or missing session ID");
-    });
-  });
-
-  describe("Handler Access", () => {
-    test("should provide access to a fetch handler", () => {
-      server = new StreamableHTTPServer({ auth: { disabled: true } });
-      const app = server.getApp();
-
-      expect(app).toBeDefined();
-      expect(app.fetch).toBeDefined();
-    });
-  });
-
-  describe("Removed agent chat endpoints", () => {
-    test.each(["/api/chat", "/api/chat/confirm"])(
-      "should return 404 for %s",
-      async (path) => {
-        server = new StreamableHTTPServer({
-          logger: mockLogger,
-          auth: { disabled: true },
-        });
-
-        const response = await server.handleRequest(
-          new Request(`http://localhost${path}`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ message: "hi" }),
-          }),
-        );
-
-        expect(response.status).toBe(404);
-      },
-    );
-  });
-
-  describe("Malformed request bodies", () => {
-    test("should return 400 for invalid JSON on POST /mcp", async () => {
-      server = new StreamableHTTPServer({
-        logger: mockLogger,
-        auth: { disabled: true },
-      });
-      server.connectMCPServer(
-        new McpServer({ name: "test-server", version: "1.0.0" }),
-      );
-
-      const response = await server.handleRequest(
-        new Request("http://localhost/mcp", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Accept: "application/json, text/event-stream",
-          },
-          body: "{not json",
-        }),
-      );
-
-      expect(response.status).toBe(400);
-      expect(await response.json()).toMatchObject({
-        jsonrpc: "2.0",
-        error: {
-          code: -32700,
-          message: "Parse error: Invalid JSON body",
-        },
-        id: null,
-      });
-    });
-  });
-
-  describe("Session idle eviction", () => {
-    test("waits for an admitted eviction close before stopping", async () => {
-      let releaseClose: (() => void) | undefined;
-      const closePending = new Promise<void>((resolve) => {
-        releaseClose = resolve;
-      });
-      const closeSpy = spyOn(
-        WebStandardStreamableHTTPServerTransport.prototype,
-        "close",
-      ).mockImplementation(() => closePending);
-
+      const client = await connectClient(server.getPort(), { modern: false });
       try {
-        server = new StreamableHTTPServer({
-          logger: mockLogger,
-          auth: { disabled: true },
-          sessionIdleTtlMs: 5,
-        });
-        server.connectMCPServer(
-          new McpServer({ name: "test-server", version: "1.0.0" }),
-        );
-        await server.handleRequest(
-          new Request("http://localhost/mcp", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Accept: "application/json, text/event-stream",
-            },
-            body: JSON.stringify(createInitializeRequest()),
-          }),
-        );
-
-        for (
-          let attempt = 0;
-          attempt < 20 && closeSpy.mock.calls.length === 0;
-          attempt++
-        ) {
-          await new Promise((resolve) => setTimeout(resolve, 5));
-        }
-        expect(closeSpy).toHaveBeenCalledTimes(1);
-
-        let stopped = false;
-        const stopping = server.stop().then(() => {
-          stopped = true;
-        });
-        await Promise.resolve();
-        expect(stopped).toBe(false);
-
-        releaseClose?.();
-        await stopping;
+        expect(client.getProtocolEra()).toBe("legacy");
+        const tools = await client.listTools();
+        expect(tools.tools.map((tool) => tool.name)).toEqual(["visible_tool"]);
       } finally {
-        releaseClose?.();
-        closeSpy.mockRestore();
+        await client.close();
       }
     });
 
-    test("should close and evict sessions idle past the TTL", async () => {
-      server = new StreamableHTTPServer({
-        logger: mockLogger,
-        auth: { disabled: true },
-        sessionIdleTtlMs: 100,
-      });
-      server.connectMCPServer(
-        new McpServer({ name: "test-server", version: "1.0.0" }),
-      );
-
-      const response = await server.handleRequest(
-        new Request("http://localhost/mcp", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Accept: "application/json, text/event-stream",
-          },
-          body: JSON.stringify(createInitializeRequest()),
-        }),
-      );
-
-      expect(response.status).toBe(200);
-      expect(server.getSessionCount()).toBe(1);
-
-      // Session dropped without DELETE — the sweep must evict it
-      await new Promise((r) => setTimeout(r, 300));
-      expect(server.getSessionCount()).toBe(0);
-
-      await server.stop();
+    test("serves 2026-07-28 clients without an initialize session", async () => {
+      if (!server) throw new Error("Server not initialized");
+      const client = await connectClient(server.getPort(), { modern: true });
+      try {
+        expect(client.getProtocolEra()).toBe("modern");
+        const tools = await client.listTools();
+        expect(tools.tools.map((tool) => tool.name)).toEqual(["visible_tool"]);
+      } finally {
+        await client.close();
+      }
     });
-  });
 
-  describe("Error Handling", () => {
-    test("should handle transport close errors gracefully", async () => {
-      server = new StreamableHTTPServer({
-        port: 0,
-        logger: mockLogger,
-        auth: { disabled: true },
-      });
-      await server.start();
-      const port = server.getPort();
-
-      // Create and connect MCP server
-      const mcpServer = new McpServer({
-        name: "test-server",
-        version: "1.0.0",
-      });
-      server.connectMCPServer(mcpServer);
-
-      // Initialize a session
-      await makeRequest("POST", "/mcp", {
-        port,
+    test("does not issue session IDs to legacy initialize requests", async () => {
+      if (!server) throw new Error("Server not initialized");
+      const response = await makeRequest(server.getPort(), "POST", "/mcp", {
         body: createInitializeRequest(),
       });
 
-      // Stop server (which should close transports)
-      await server.stop();
+      expect(response.status).toBe(200);
+      expect(response.headers["mcp-session-id"]).toBeUndefined();
+      expect(response.body).toMatchObject({
+        result: {
+          protocolVersion: legacyProtocolVersion,
+          serverInfo: { name: "test-server", version: "1.0.0" },
+        },
+      });
+    });
 
-      // Check that error was logged if transport close failed
-      // This is more of a coverage test
-      expect(server.isRunning()).toBe(false);
+    test.each(["GET", "DELETE"])(
+      "rejects legacy %s session operations because HTTP is stateless",
+      async (method) => {
+        if (!server) throw new Error("Server not initialized");
+        const response = await makeRequest(server.getPort(), method, "/mcp", {
+          headers: { "mcp-session-id": "obsolete-session" },
+        });
+        expect(response.status).toBe(405);
+      },
+    );
+
+    test("rejects malformed JSON", async () => {
+      if (!server) throw new Error("Server not initialized");
+      const response = await fetch(`http://localhost:${server.getPort()}/mcp`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json, text/event-stream",
+        },
+        body: "{not json",
+      });
+
+      expect(response.status).toBe(400);
+      expect(await response.json()).toMatchObject({
+        error: { code: -32700 },
+      });
+    });
+
+    test("consults the live registry for each request", async () => {
+      if (!server) throw new Error("Server not initialized");
+      let toolName = "first_tool";
+      connectFactory(server, () => createToolServer(toolName));
+
+      const first = await connectClient(server.getPort(), { modern: true });
+      try {
+        expect(
+          (await first.listTools()).tools.map((tool) => tool.name),
+        ).toEqual(["first_tool"]);
+      } finally {
+        await first.close();
+      }
+
+      toolName = "second_tool";
+      const second = await connectClient(server.getPort(), { modern: true });
+      try {
+        expect(
+          (await second.listTools()).tools.map((tool) => tool.name),
+        ).toEqual(["second_tool"]);
+      } finally {
+        await second.close();
+      }
     });
   });
 
-  describe("Authentication", () => {
-    const testToken = "test-secret-token-minimum-32-characters-long";
+  describe("authentication", () => {
+    const staticToken = "test-secret-token-minimum-32-characters-long";
 
-    describe("with authentication disabled", () => {
-      let port: number;
+    test("rejects an unauthenticated legacy request before invoking the factory", async () => {
+      server = new StreamableHTTPServer({
+        port: 0,
+        logger: mockLogger,
+        auth: { token: staticToken },
+      });
+      const createMcpServer = connectFactory(server, () => createToolServer());
+      await server.start();
+      createMcpServer.mockClear();
 
-      beforeEach(async () => {
-        server = new StreamableHTTPServer({
-          port: 0,
-          logger: mockLogger,
-          auth: {
-            disabled: true,
-          },
-        });
-        await server.start();
-        port = server.getPort();
-
-        const mcpServer = new McpServer({
-          name: "test-server",
-          version: "1.0",
-        });
-        server.connectMCPServer(mcpServer);
+      const response = await makeRequest(server.getPort(), "POST", "/mcp", {
+        body: createInitializeRequest(),
       });
 
-      test("should allow requests without auth header", async () => {
-        const response = await makeRequest("GET", "/health", {
-          port,
-        });
-
-        expect(response.status).toBe(200);
-        expect(response.body).toMatchObject({
-          status: "ok",
-          transport: "streamable-http",
-        });
+      expect(response.status).toBe(401);
+      expect(response.body).toMatchObject({
+        error: { message: "Unauthorized: Bearer token required" },
       });
-
-      test("should allow MCP requests without auth header", async () => {
-        const response = await makeRequest("POST", "/mcp", {
-          port,
-          body: { jsonrpc: "2.0", method: "test", params: {}, id: 1 },
-        });
-
-        // Won't be 401, but may be 400 or other error since no session
-        expect(response.status).not.toBe(401);
-      });
+      expect(createMcpServer).not.toHaveBeenCalled();
     });
 
-    describe("with authentication enabled", () => {
-      let port: number;
-      let capturedSubject: unknown;
+    test("rejects invalid static tokens without advertising OAuth", async () => {
+      server = new StreamableHTTPServer({
+        port: 0,
+        logger: mockLogger,
+        auth: { token: staticToken },
+      });
+      connectFactory(server, () => createToolServer());
+      await server.start();
 
-      beforeEach(async () => {
-        server = new StreamableHTTPServer({
-          port: 0,
-          logger: mockLogger,
-          auth: {
-            token: testToken,
-          },
-        });
-        await server.start();
-        port = server.getPort();
-
-        const mcpServer = new McpServer({
-          name: "test-server",
-          version: "1.0",
-        });
-        mcpServer.tool("capture_subject", {}, async (_params, extra) => {
-          capturedSubject = extra.authInfo?.extra?.["subject"];
-          return { content: [{ type: "text", text: "ok" }] };
-        });
-        server.connectMCPServer(mcpServer);
+      const response = await makeRequest(server.getPort(), "POST", "/mcp", {
+        headers: { Authorization: "Bearer wrong-token" },
+        body: createInitializeRequest(),
       });
 
-      test("should allow health check without auth", async () => {
-        const response = await makeRequest("GET", "/health", {
-          port,
-        });
-
-        expect(response.status).toBe(200);
-        expect(response.body).toMatchObject({
-          status: "ok",
-        });
+      expect(response.status).toBe(401);
+      expect(response.body).toMatchObject({
+        error: { message: "Unauthorized: Invalid token" },
       });
-
-      test("should allow status check without auth", async () => {
-        const response = await makeRequest("GET", "/status", {
-          port,
-        });
-
-        expect(response.status).toBe(200);
-        expect(response.body).toMatchObject({
-          sessions: 0,
-        });
-      });
-
-      test("should allow hosted Inspector MCP preflight headers", async () => {
-        const response = await makeRequest("OPTIONS", "/mcp", {
-          port,
-          headers: {
-            Origin: "https://inspector.modelcontextprotocol.io",
-            "Access-Control-Request-Method": "POST",
-            "Access-Control-Request-Headers":
-              "content-type,mcp-protocol-version,last-event-id",
-            "Access-Control-Request-Private-Network": "true",
-          },
-        });
-
-        expect(response.status).toBe(204);
-        expect(response.headers["access-control-allow-origin"]).toBe("*");
-        expect(response.headers["access-control-allow-private-network"]).toBe(
-          "true",
-        );
-        expect(response.headers["access-control-allow-headers"]).toContain(
-          "MCP-Protocol-Version",
-        );
-        expect(response.headers["access-control-allow-headers"]).toContain(
-          "Last-Event-ID",
-        );
-      });
-
-      test("should reject MCP requests without auth header", async () => {
-        const response = await makeRequest("POST", "/mcp", {
-          port,
-          body: { jsonrpc: "2.0", method: "test", params: {}, id: 1 },
-        });
-
-        expect(response.status).toBe(401);
-        expect(response.body).toMatchObject({
-          jsonrpc: "2.0",
-          error: {
-            code: -32001,
-            message: "Unauthorized: Bearer token required",
-          },
-        });
-        expect(response.headers["www-authenticate"]).toContain('realm="mcp"');
-        expect(mockLogger.warn).toHaveBeenCalledWith(
-          expect.stringContaining(
-            "Authentication failed: Missing Bearer token",
-          ),
-        );
-      });
-
-      test("should not advertise the OAuth flow it cannot accept", async () => {
-        // Static-token mode rejects OAuth-issued JWTs, so the challenge must
-        // not point clients at the OAuth resource metadata — that lures them
-        // through a full auth ceremony that always ends in 401.
-        const missingAuth = await makeRequest("POST", "/mcp", {
-          port,
-          body: { jsonrpc: "2.0", method: "test", params: {}, id: 1 },
-        });
-        expect(missingAuth.status).toBe(401);
-        expect(missingAuth.headers["www-authenticate"]).not.toContain(
-          "resource_metadata",
-        );
-
-        const wrongToken = await makeRequest("POST", "/mcp", {
-          port,
-          headers: { Authorization: "Bearer an-oauth-jwt-not-the-token" },
-          body: { jsonrpc: "2.0", method: "test", params: {}, id: 1 },
-        });
-        expect(wrongToken.status).toBe(401);
-        expect(wrongToken.headers["www-authenticate"]).not.toContain(
-          "resource_metadata",
-        );
-      });
-
-      test("should reject MCP requests with invalid token", async () => {
-        const response = await makeRequest("POST", "/mcp", {
-          port,
-          headers: {
-            Authorization: "Bearer invalid-token",
-          },
-          body: { jsonrpc: "2.0", method: "test", params: {}, id: 1 },
-        });
-
-        expect(response.status).toBe(401);
-        expect(response.body).toMatchObject({
-          jsonrpc: "2.0",
-          error: {
-            code: -32001,
-            message: "Unauthorized: Invalid token",
-          },
-        });
-        expect(mockLogger.warn).toHaveBeenCalledWith(
-          expect.stringContaining("Authentication failed: Invalid token"),
-        );
-      });
-
-      test("should accept MCP requests with valid token", async () => {
-        const response = await makeRequest("POST", "/mcp", {
-          port,
-          headers: {
-            Authorization: `Bearer ${testToken}`,
-          },
-          body: { jsonrpc: "2.0", method: "test", params: {}, id: 1 },
-        });
-
-        // Won't be 401, but may be 400 or other error since no session
-        expect(response.status).not.toBe(401);
-        expect(mockLogger.debug).toHaveBeenCalledWith(
-          expect.stringContaining("Authentication successful"),
-        );
-      });
-
-      test("should forward the static-token subject to MCP tools", async () => {
-        const headers = { Authorization: `Bearer ${testToken}` };
-        const sessionId = await initializeSession(port, headers);
-        const response = await makeRequest("POST", "/mcp", {
-          port,
-          headers: { ...headers, "mcp-session-id": sessionId },
-          body: {
-            jsonrpc: "2.0",
-            method: "tools/call",
-            params: { name: "capture_subject", arguments: {} },
-            id: 2,
-          },
-        });
-
-        expect(response.status).toBe(200);
-        expect(capturedSubject).toBe("static-token-operator");
-      });
-
-      test("should reject requests with malformed auth header", async () => {
-        const response = await makeRequest("POST", "/mcp", {
-          port,
-          headers: {
-            Authorization: "Basic dGVzdDp0ZXN0", // Basic auth instead of Bearer
-          },
-          body: { jsonrpc: "2.0", method: "test", params: {}, id: 1 },
-        });
-
-        expect(response.status).toBe(401);
-        expect(response.body).toMatchObject({
-          jsonrpc: "2.0",
-          error: {
-            code: -32001,
-            message: "Unauthorized: Bearer token required",
-          },
-        });
-      });
+      expect(response.headers["www-authenticate"]).not.toContain(
+        "resource_metadata",
+      );
     });
 
-    describe("with OAuth bearer verification", () => {
-      let port: number;
-      let verifyBearerToken: ReturnType<typeof mock>;
-      let capturedSubject: unknown;
-      let capturedActor: unknown;
-      let capturedDisplayName: unknown;
-      let capturedIsAnchor: unknown;
-
-      beforeEach(async () => {
-        verifyBearerToken = mock(async (_request: Request) => ({
-          subject: "single-operator",
-          scope: ["openid", "mcp"],
-          isAnchor: true,
-          actor: {
-            kind: "user" as const,
-            userId: "single-operator",
-            canonicalId: "user:operator",
-          },
-          displayName: "Mira",
-        }));
-        server = new StreamableHTTPServer({
-          port: 0,
-          logger: mockLogger,
-          auth: {
-            verifyBearerToken,
-            requiredScopes: ["mcp"],
-          },
-        });
-        await server.start();
-        port = server.getPort();
-
-        const mcpServer = new McpServer({
-          name: "test-server",
-          version: "1.0",
-        });
-        mcpServer.tool("capture_subject", {}, async (_params, extra) => {
-          capturedSubject = extra.authInfo?.extra?.["subject"];
-          capturedActor = extra.authInfo?.extra?.["actor"];
-          capturedDisplayName = extra.authInfo?.extra?.["displayName"];
-          capturedIsAnchor = extra.authInfo?.extra?.["isAnchor"];
-          return { content: [{ type: "text", text: "ok" }] };
-        });
-        server.connectMCPServer(mcpServer);
+    test("passes static-token identity to modern tool handlers", async () => {
+      let observedContext: ServerContext | undefined;
+      server = new StreamableHTTPServer({
+        port: 0,
+        logger: mockLogger,
+        auth: { token: staticToken },
       });
+      connectFactory(server, () =>
+        createToolServer("capture_subject", (context) => {
+          observedContext = context;
+        }),
+      );
+      await server.start();
 
-      test("should accept MCP requests with a verified scoped token", async () => {
-        const response = await makeRequest("POST", "/mcp", {
-          port,
-          headers: {
-            Authorization: "Bearer oauth-access-token",
-          },
-          body: { jsonrpc: "2.0", method: "test", params: {}, id: 1 },
-        });
-
-        expect(response.status).not.toBe(401);
-        expect(response.status).not.toBe(403);
-        expect(verifyBearerToken).toHaveBeenCalled();
-        expect(mockLogger.debug).toHaveBeenCalledWith(
-          expect.stringContaining("Authentication successful"),
+      const client = await connectClient(server.getPort(), {
+        modern: true,
+        headers: { Authorization: `Bearer ${staticToken}` },
+      });
+      try {
+        await client.callTool({ name: "capture_subject", arguments: {} });
+        expect(observedContext?.http?.authInfo?.extra?.["subject"]).toBe(
+          "static-token-operator",
         );
-      });
+      } finally {
+        await client.close();
+      }
+    });
 
-      test("should forward the verified OAuth subject to MCP tools", async () => {
-        const headers = { Authorization: "Bearer oauth-access-token" };
-        const sessionId = await initializeSession(port, headers);
-        const response = await makeRequest("POST", "/mcp", {
-          port,
-          headers: { ...headers, "mcp-session-id": sessionId },
-          body: {
-            jsonrpc: "2.0",
-            method: "tools/call",
-            params: { name: "capture_subject", arguments: {} },
-            id: 2,
-          },
-        });
-
-        expect(response.status).toBe(200);
-        expect(capturedSubject).toBe("single-operator");
-        expect(capturedActor).toEqual({
-          kind: "user",
-          userId: "single-operator",
+    test("passes verified OAuth identity and permission to every request factory", async () => {
+      let permissionLevel: ToolVisibility = "trusted";
+      let observedContext: ServerContext | undefined;
+      const verifyBearerToken = mock(async () => ({
+        subject: "usr_operator",
+        scope: ["openid", "mcp"],
+        permissionLevel,
+        isAnchor: true,
+        actor: {
+          kind: "user" as const,
+          userId: "usr_operator",
           canonicalId: "user:operator",
+        },
+        displayName: "Mira",
+      }));
+      server = new StreamableHTTPServer({
+        port: 0,
+        logger: mockLogger,
+        auth: { verifyBearerToken, requiredScopes: ["mcp"] },
+      });
+      const createMcpServer = connectFactory(server, () =>
+        createToolServer("capture_subject", (context) => {
+          observedContext = context;
+        }),
+      );
+      await server.start();
+
+      const trustedClient = await connectClient(server.getPort(), {
+        modern: true,
+        headers: { Authorization: "Bearer trusted-token" },
+      });
+      try {
+        await trustedClient.callTool({
+          name: "capture_subject",
+          arguments: {},
         });
-        expect(capturedDisplayName).toBe("Mira");
-        expect(capturedIsAnchor).toBe(true);
+      } finally {
+        await trustedClient.close();
+      }
+
+      expect(createMcpServer.mock.calls.length).toBeGreaterThan(0);
+      expect(
+        createMcpServer.mock.calls.every(([level]) => level === "trusted"),
+      ).toBe(true);
+      expect(observedContext?.http?.authInfo?.extra).toMatchObject({
+        subject: "usr_operator",
+        actor: {
+          kind: "user",
+          userId: "usr_operator",
+          canonicalId: "user:operator",
+        },
+        displayName: "Mira",
+        isAnchor: true,
       });
 
-      test("should reject invalid OAuth bearer tokens", async () => {
-        verifyBearerToken.mockImplementation(async () => {
-          throw new Error("invalid token");
-        });
-
-        const response = await makeRequest("POST", "/mcp", {
-          port,
-          headers: {
-            Authorization: "Bearer invalid-token",
-          },
-          body: { jsonrpc: "2.0", method: "test", params: {}, id: 1 },
-        });
-
-        expect(response.status).toBe(401);
-        expect(response.body).toMatchObject({
-          jsonrpc: "2.0",
-          error: {
-            code: -32001,
-            message: "Unauthorized: Invalid token",
-          },
-        });
+      createMcpServer.mockClear();
+      permissionLevel = "public";
+      const publicClient = await connectClient(server.getPort(), {
+        modern: true,
+        headers: { Authorization: "Bearer public-token" },
       });
-
-      test("should advertise OAuth resource metadata in the challenge", async () => {
-        const response = await makeRequest("POST", "/mcp", {
-          port,
-          body: { jsonrpc: "2.0", method: "test", params: {}, id: 1 },
-        });
-
-        expect(response.status).toBe(401);
-        expect(response.headers["www-authenticate"]).toContain(
-          'resource_metadata="http://localhost:',
-        );
-        expect(response.headers["www-authenticate"]).toContain(
-          '/.well-known/oauth-protected-resource"',
-        );
-      });
-
-      test("should use forwarded origin in OAuth resource metadata challenge", async () => {
-        const response = await makeRequest("POST", "/mcp", {
-          port,
-          headers: {
-            Host: "docs.rizom.ai",
-            "X-Forwarded-Proto": "https",
-          },
-          body: { jsonrpc: "2.0", method: "test", params: {}, id: 1 },
-        });
-
-        expect(response.status).toBe(401);
-        expect(response.headers["www-authenticate"]).toContain(
-          'resource_metadata="https://docs.rizom.ai/.well-known/oauth-protected-resource"',
-        );
-        expect(response.headers["www-authenticate"]).not.toContain(
-          'resource_metadata="http://docs.rizom.ai/.well-known/oauth-protected-resource"',
-        );
-      });
-
-      test("should create initialized sessions at the bearer principal permission level", async () => {
-        const createMcpServer = mock(
-          (_permissionLevel?: ToolVisibility) =>
-            new McpServer({ name: "session-server", version: "1.0" }),
-        );
-        const mcpTransport: IMCPTransport = {
-          getMcpServer: () =>
-            new McpServer({ name: "base-server", version: "1.0" }),
-          createMcpServer,
-          setPermissionLevel: mock(() => {}),
-          setProtocolMode: mock(() => {}),
-        };
-        server?.connectMCPServer(
-          new McpServer({ name: "base-server", version: "1.0" }),
-          mcpTransport,
-        );
-        verifyBearerToken.mockImplementation(async () => ({
-          subject: "usr_trusted",
-          scope: ["openid", "mcp"],
-          permissionLevel: "trusted",
-        }));
-
-        const response = await makeRequest("POST", "/mcp", {
-          port,
-          headers: {
-            Authorization: "Bearer trusted-token",
-          },
-          body: createInitializeRequest(),
-        });
-
-        expect(response.status).toBe(200);
-        expect(createMcpServer).toHaveBeenCalledWith("trusted");
-      });
-
-      test("should reject another principal reusing an initialized session", async () => {
-        verifyBearerToken.mockImplementation(async () => ({
-          subject: "usr_admin",
-          scope: ["mcp"],
-          permissionLevel: "admin",
-        }));
-        const sessionId = await initializeSession(port, {
-          Authorization: "Bearer admin-token",
-        });
-
-        verifyBearerToken.mockImplementation(async () => ({
-          subject: "usr_public",
-          scope: ["mcp"],
-          permissionLevel: "public",
-        }));
-        const response = await makeRequest("POST", "/mcp", {
-          port,
-          headers: {
-            Authorization: "Bearer public-token",
-            "mcp-session-id": sessionId,
-          },
-          body: {
-            jsonrpc: "2.0",
-            method: "tools/list",
-            params: {},
-            id: 2,
-          },
-        });
-
-        expect(response.status).toBe(403);
-        expect(response.body).toMatchObject({
-          error: { message: "Forbidden: Session belongs to another principal" },
-        });
-      });
-
-      test("should invalidate a session when its principal permission changes", async () => {
-        verifyBearerToken.mockImplementation(async () => ({
-          subject: "usr_operator",
-          scope: ["mcp"],
-          permissionLevel: "admin",
-        }));
-        const sessionId = await initializeSession(port, {
-          Authorization: "Bearer operator-token",
-        });
-
-        verifyBearerToken.mockImplementation(async () => ({
-          subject: "usr_operator",
-          scope: ["mcp"],
-          permissionLevel: "trusted",
-        }));
-        const response = await makeRequest("POST", "/mcp", {
-          port,
-          headers: {
-            Authorization: "Bearer operator-token",
-            "mcp-session-id": sessionId,
-          },
-          body: {
-            jsonrpc: "2.0",
-            method: "tools/list",
-            params: {},
-            id: 2,
-          },
-        });
-
-        expect(response.status).toBe(403);
-        expect(response.body).toMatchObject({
-          error: {
-            message:
-              "Forbidden: Session permission changed; initialize a new session",
-          },
-        });
-      });
-
-      test("should reject OAuth bearer tokens without the mcp scope", async () => {
-        verifyBearerToken.mockImplementation(async () => ({
-          subject: "single-operator",
-          scope: ["openid"],
-        }));
-
-        const response = await makeRequest("POST", "/mcp", {
-          port,
-          headers: {
-            Authorization: "Bearer no-mcp-scope",
-          },
-          body: { jsonrpc: "2.0", method: "test", params: {}, id: 1 },
-        });
-
-        expect(response.status).toBe(403);
-        expect(response.body).toMatchObject({
-          jsonrpc: "2.0",
-          error: {
-            code: -32001,
-            message: "Forbidden: Missing required scope",
-          },
-        });
-        expect(response.headers["www-authenticate"]).toContain(
-          'error="insufficient_scope"',
-        );
-        expect(response.headers["www-authenticate"]).toContain('scope="mcp"');
-        expect(response.headers["www-authenticate"]).toContain(
-          "/.well-known/oauth-protected-resource",
-        );
-      });
+      try {
+        await publicClient.listTools();
+      } finally {
+        await publicClient.close();
+      }
+      expect(createMcpServer.mock.calls.length).toBeGreaterThan(0);
+      expect(
+        createMcpServer.mock.calls.every(([level]) => level === "public"),
+      ).toBe(true);
     });
 
-    describe("with no token and auth not disabled", () => {
-      test("should throw on construction", () => {
-        expect(
-          () =>
-            new StreamableHTTPServer({
-              port: 0,
-              logger: mockLogger,
-              // No auth config — defaults to auth required
-            }),
-        ).toThrow(
-          "MCP HTTP transport requires an auth token or bearer token verifier",
-        );
+    test("rejects OAuth tokens missing the required scope with 403", async () => {
+      server = new StreamableHTTPServer({
+        port: 0,
+        logger: mockLogger,
+        auth: {
+          requiredScopes: ["mcp"],
+          verifyBearerToken: async (): Promise<{
+            subject: string;
+            scope: string[];
+          }> => ({
+            subject: "usr_public",
+            scope: ["openid"],
+          }),
+        },
+      });
+      const createMcpServer = connectFactory(server, () => createToolServer());
+      await server.start();
+      createMcpServer.mockClear();
+
+      const response = await makeRequest(server.getPort(), "POST", "/mcp", {
+        headers: { Authorization: "Bearer no-mcp-scope" },
+        body: createInitializeRequest(),
       });
 
-      test("should throw with empty auth config", () => {
-        expect(
-          () =>
-            new StreamableHTTPServer({
-              port: 0,
-              logger: mockLogger,
-              auth: {},
-            }),
-        ).toThrow(
-          "MCP HTTP transport requires an auth token or bearer token verifier",
-        );
+      expect(response.status).toBe(403);
+      expect(response.body).toMatchObject({
+        error: { message: "Forbidden: Missing required scope" },
       });
+      expect(response.headers["www-authenticate"]).toContain(
+        'error="insufficient_scope"',
+      );
+      expect(response.headers["www-authenticate"]).toContain('scope="mcp"');
+      expect(createMcpServer).not.toHaveBeenCalled();
+    });
+
+    test("advertises OAuth metadata using the forwarded public origin", async () => {
+      server = new StreamableHTTPServer({
+        port: 0,
+        logger: mockLogger,
+        auth: {
+          requiredScopes: ["mcp"],
+          verifyBearerToken: async (): Promise<undefined> => undefined,
+        },
+      });
+      connectFactory(server, () => createToolServer());
+      await server.start();
+
+      const response = await makeRequest(server.getPort(), "POST", "/mcp", {
+        headers: {
+          Host: "docs.rizom.ai",
+          "X-Forwarded-Proto": "https",
+        },
+        body: createInitializeRequest(),
+      });
+
+      expect(response.status).toBe(401);
+      expect(response.headers["www-authenticate"]).toContain(
+        'resource_metadata="https://docs.rizom.ai/.well-known/oauth-protected-resource"',
+      );
     });
   });
 });

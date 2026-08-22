@@ -1,5 +1,4 @@
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { ToolAnnotations } from "@modelcontextprotocol/sdk/types.js";
+import type { McpServer, ToolAnnotations } from "@modelcontextprotocol/server";
 import { type ProgressNotification } from "@brains/utils/progress";
 import { z, type ZodRawShape } from "@brains/utils/zod";
 import { actorRefSchema, type ActorRef } from "@brains/contracts";
@@ -263,13 +262,13 @@ export interface Prompt {
 export interface IMCPTransport {
   /**
    * Get the underlying MCP server for transport layers to connect to
-   * Transport layers should import McpServer type from @modelcontextprotocol/sdk directly
+   * Transport layers should import McpServer from @modelcontextprotocol/server directly
    */
   getMcpServer(): McpServer;
 
   /**
    * Create a fresh MCP server instance with all registered tools/resources.
-   * Required for Streamable HTTP where each session needs its own server.
+   * Stateless HTTP invokes this for every authenticated request.
    */
   createMcpServer(permissionLevel?: UserPermissionLevel): McpServer;
 
