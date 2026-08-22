@@ -8,7 +8,12 @@ active session while every capability gates itself, fold the account surface
 into Studio as the one view admitted to everyone, and delete `plugins/admin`.
 The Dashboard is repurposed: its operator-facing content moves into a Studio
 Overview workspace, and the surface itself becomes the brain's public card.
-Chat does not move. Design mockups for the Overview workspace and the card:
+Chat does not move. Auth-service remains the sole owner of account and
+administration APIs; Studio owns their presentation, not their security
+contracts. This work is based on the completed `work/react-renderer-consolidation`
+stack so the Studio and Dashboard changes use the unified React renderer rather
+than recreating work on Preact. Design mockups for the Overview workspace and
+the card:
 [`../studio-consolidation-mockups.html`](../studio-consolidation-mockups.html)
 (decided 2026-08-19).
 
@@ -29,18 +34,24 @@ query-string handoffs (`admin-peer-invite`, `account-settings` in
 End state:
 
 - `plugins/studio` / `@brains/studio`, plugin id `studio`, route `/studio`
-  with permanent redirects from the old `/cms` and `/account` paths.
+  with permanent redirects from the old `/cms`, `/account`, and `/admin`
+  paths. Redirects preserve deep paths and query state where a direct mapping
+  exists; `/admin` falls back to the neutral Studio home.
 - The Studio shell is chrome: it admits any active session and renders only
   the views the actor is admitted to. Capabilities gate themselves — the
   entity editor family at trusted, admin workspaces at admin, account at any
   active session.
 - The admin console's four views become built-in, admin-gated Studio
-  workspaces; the admin door, routes, JSON endpoints, and React app are gone.
+  workspaces; the admin door, shell routes, client API wrappers, and React app
+  are gone. The authoritative `/auth/admin/*` JSON endpoints remain in
+  auth-service.
 - Account (profile, passkeys, sessions, plugin-settings forms) becomes a
   Studio view admitted to every active session — a lazy client chunk, because
-  WebAuthn ceremonies cannot be declarative. No separate door.
+  WebAuthn ceremonies cannot be declarative. No separate door. Its browser
+  code continues to call auth-service's `/auth/account/*` endpoints.
 - `plugins/admin` is deleted; the canonical roster loses its `admin` and
-  `account` entries.
+  `account` UI-plugin entries. Auth-service keeps account/admin schemas,
+  operations, same-origin checks, invariants, audit, and HTTP routes.
 - Studio gains an **Overview** workspace — the operator home: what needs
   you, what the brain did on its own, system and network state. It absorbs
   the Dashboard's trusted/admin widget content.
@@ -67,10 +78,12 @@ End state:
   data or action becomes reachable at a lower rank than today. The only
   intentional access change is that a sub-trusted session sees the Studio
   shell (containing only Account) instead of a 403.
-- Breaking the published authoring surface. `@rizom/brain`'s services entry
-  re-exports `defineCmsWorkspace` and the `CmsWorkspaceDefinition/View/
-ViewBlock` types; those stay as deprecated aliases through the `0.2.x`
-  additive line. Everything else renamed here is `"private": true` in-repo.
+- Preserving CMS-named authoring aliases. This is an intentional clean
+  cutover while the authoring API is still pre-stable: all in-repo consumers,
+  fixtures, declarations, and documentation move to Studio names together.
+- Moving auth authority into Studio. Account and administration APIs remain
+  owned by `shell/auth-service`; Studio providers call the service directly
+  on the server, while the Account client keeps using `/auth/account/*`.
 - Making account declarative. It stays a real client app inside the Studio
   bundle; only its home and door change.
 
@@ -79,38 +92,47 @@ ViewBlock` types; those stay as deprecated aliases through the `0.2.x`
 Today the Studio routes have one choke point — `resolveRequestAccess` in
 `editor-routes.ts` — whose trusted floor protects every API route and the
 shell. Registrant `accessHandler`s are written assuming that floor exists
-beneath them. The inversion keeps the choke point but moves the floor:
+beneath them. The inversion keeps principal resolution centralized but replaces
+one implicit perimeter with an explicit route-family matrix:
 
-- Request → shell route: active session required (unauthenticated → `/login`
-  redirect, as today) → chrome renders; nav derives from the registry's
-  per-actor admission. A demoted (public-rank) person sees a shell containing
-  only Account.
-- Entity editor family (lists, schemas, CRUD, sync status, uploads, assist)
-  → one trusted assertion at the family boundary; behavior identical to
-  today.
-- Workspace family → the registry enforces a declared permission floor
-  **before** calling the workspace's `accessHandler`. The floor defaults to
-  `trusted`, so every existing registrant keeps today's semantics with zero
-  changes and a handler that is effectively `() => true` can never admit a
-  sub-trusted actor by accident. Only a workspace that explicitly declares a
-  lower floor ever sees a sub-trusted actor. Admin workspaces declare floor
-  `admin` (equivalently, keep `assertCmsWorkspaceAdmin` semantics in the
-  handler — the floor makes the registry fail closed either way).
-- Account family → active session only; the single view with a declared
-  sub-trusted floor.
-- Failure branch: a route missing its family assertion would expose data to
-  demoted users — guarded by a route-enumeration test asserting every
-  `/studio` endpoint × a public-rank principal → 403, except the account
-  family and the shell itself.
-- Failure branch: a brain whose deploy config still keys plugin config by
-  `cms` fails resolution at startup — the id rename is a deploy-time config
-  migration, called out in Phase 1. No in-repo `brain.yaml` keys `cms`,
-  `admin`, or `account` today.
+| Route family                                                        | Admission                                                                                 |
+| ------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| Legacy redirects (`/cms`, later `/account` and `/admin`)            | Public redirect only; no data                                                             |
+| Studio entry asset and lazy chunks                                  | Public static assets; bounded asset names and no filesystem traversal                     |
+| Studio shell                                                        | Active session; anonymous callers redirect to login                                       |
+| Entity discovery, schemas, lists, CRUD, uploads, assist, and agents | Active Trusted or Admin principal, followed by existing visibility/action policy          |
+| Repository sync status                                              | Active Admin principal; this remains stricter than the editor family                      |
+| Workspace discovery, reads, and actions                             | Active session plus the workspace's declared floor, then its source-owned `accessHandler` |
+| Account browser APIs                                                | Remain `/auth/account/*` in auth-service and require an active session                    |
+| Administration browser APIs                                         | Remain `/auth/admin/*` in auth-service and require Admin                                  |
+
+- Workspace floors are enforced by the registry **before** calling
+  `accessHandler`, `entityTypes`, `badgeProvider`, `dataProvider`, or
+  `actionHandler`. The floor defaults to `trusted`, so existing registrants
+  retain today's perimeter. Admin workspaces declare `admin` and keep their
+  source-owned `assertCmsWorkspaceAdmin` checks as defense in depth. Account
+  explicitly declares the lower active-session floor.
+- The route-enumeration test asserts the complete matrix, not a blanket
+  `/studio` rule: an active public-rank principal receives `403` from every
+  editor endpoint and Admin sync status, cannot invoke a Trusted/Admin
+  workspace provider, and can reach only the shell and Account. Static assets
+  and redirects are the only anonymous non-data exceptions.
+- Session presence and permission rank remain separate. The console-surface,
+  endpoint, and interaction descriptors gain an additive
+  `requiresActiveSession` facet. Dashboard rendering passes whether a verified
+  session exists, so anonymous Public callers do not see Studio while an active
+  public-rank person does. Permission rank alone cannot represent that
+  distinction.
+- A brain whose config still uses the `cms` member or `plugins.cms` does not get
+  a permanent runtime alias. Phase 1 extends `brain config:migrate` to rewrite
+  `cms` → `studio` in `add`, `remove`, and plugin configuration, rejecting
+  conflicting dual keys. Startup then fails with an actionable migration error
+  if an unmigrated key remains.
 
 Sub-trusted sessions are real: invitations only grant `trusted` or `admin`
 (`invitation-service.ts`), but the role mutation path accepts `public` — the
 demotion/offboarding state. Such a person must keep reaching their sessions
-and passkeys; under this model that is exactly the account view.
+and passkeys; under this model that is exactly the Account view.
 
 ## Dashboard purpose: the brain's card
 
@@ -142,20 +164,46 @@ which reuses the existing knowledge-map and proximity-map visualizations
 verbatim (data, mark language, and animation vocabulary lifted from their
 source mockups).
 
-## The one real protocol gap
+## The two protocol gaps
 
 Workspace action controls carry a pre-bound input (`OperatorActionControl`
 renders a button plus static or prepared confirmation), and query controls are
 select-only. There is no free-text field in the workspace protocol, so
 invite-person and person-edit flows are not expressible today. The account
-settings contract already has the field vocabulary this needs
+settings contract already has most of the field vocabulary this needs
 (`AccountSettingsControl`: text/url/number/checkbox, with `secret` totality).
 Phase 3 extends the workspace protocol additively with schema-driven action
-forms reusing that vocabulary. This is published-protocol surface: the
-extension follows the stable operator contract's additive-only,
-conformance-evidence discipline in the
-[authoring ledger](../public-release/AUTHORING_API_0.2.md), and release-surface
-checks apply.
+forms. Form actions require object input schemas, a total declared field map,
+`select` rendering for declared enums, password treatment for secret inputs,
+and server-side schema parsing before prepare or execute.
+
+Invitation actions expose the second gap: create/resend can return a one-time
+setup URL and manual-delivery state, while the current host discards successful
+action output and merely refetches. Phase 3 therefore adds a bounded,
+schema-backed post-action result presentation. Fields are declared total,
+explicitly marked copyable/sensitive where appropriate, never persisted by the
+host, cleared on navigation/refetch, and visible only to the actor who invoked
+the action. Raw unknown output is never rendered.
+
+Both extensions are published-protocol surface. They follow the stable operator
+contract's additive-only, conformance-evidence discipline in the
+[authoring ledger](../public-release/AUTHORING_API_0.2.md), including packed
+consumer coverage and release-surface review before code-quality review.
+
+## Implementation prerequisites
+
+- Base this work on the completed `work/react-renderer-consolidation` stack, or
+  wait until that stack merges and rebase onto `main`. Do not implement Studio
+  against the old Preact host and then port it.
+- Freeze an admin-capability parity inventory before deleting UI. At minimum it
+  covers invitation create/cancel/resend/manual confirmation, user role/status/
+  delete, passkey registration/revocation, session revocation, and peer linking.
+  Every capability must have exactly one owning UI at each phase boundary or an
+  explicit retirement decision.
+- Keep `/auth/admin/*` and `/auth/account/*` route, schema, authorization,
+  same-origin, invariant, and audit ownership in auth-service throughout.
+- Add this plan to the Interfaces section of `docs/roadmap.md` before the first
+  implementation commit.
 
 ## Phases
 
@@ -165,10 +213,10 @@ they cover, inside the phase.
 ### Phase 1 — Rename cms → studio
 
 - Tests first: console-strip derivation expects a `studio` door with label
-  "Studio"; redirect test for `/cms` → `/studio` (permanent, path- and
-  query-preserving); alias test asserting `defineCmsWorkspace` and
-  `defineStudioWorkspace` are the same function through the `@rizom/brain`
-  services entry.
+  "Studio"; redirect tests cover `/cms` plus deep entity/workspace paths and
+  query preservation; every packed operator fixture compiles and runs after
+  moving to `defineStudioWorkspace`; and golden export tests reject CMS-named
+  authoring exports.
 - Rename directory, package name, plugin id, route default, endpoints and
   interactions labels; register the legacy `/cms` route as a redirect.
 - Internal identifier sweep across the private packages: `Cms*` types,
@@ -178,14 +226,20 @@ they cover, inside the phase.
   operation-context write paths for it; if a stored value depends on the old
   literal, keep the stored form stable behind an adapter at the read side and
   record that in the phase commit.
-- Published surface: `defineStudioWorkspace` plus Studio-named types become
-  the canonical exports; the Cms-named exports remain as deprecated aliases.
+- Published surface: replace `defineCmsWorkspace` and the Cms-named workspace
+  types with `defineStudioWorkspace` and Studio-named types. Update every
+  consumer, the machine-readable export ledger, generated declarations, golden
+  export checks, runtime fixtures, and operator capability inventory. Add a
+  release changeset that calls out the pre-stable breaking rename.
 - Update `packages/brain-cli` dependency and `build:ui` filters, the
-  canonical-brain roster entry, and CMS wording in `docs/feature-overview.md`,
+  canonical-brain bundle member/roster entry, visual-regression scripts, and
+  CMS wording in `docs/feature-overview.md`,
   [`operator-console-pwa.md`](./operator-console-pwa.md), and
   [`external-plugin-authoring.md`](../external-plugin-authoring.md).
-- Deploy note: the live brain's config must rename any `cms:` plugin-config
-  key to `studio:` when this ships.
+- Extend `brain config:migrate` to rewrite `cms` member selections and
+  `plugins.cms` to `studio`, preserving comments and rejecting conflicting
+  dual configuration. Runtime resolution keeps no permanent `cms` plugin-id
+  alias; its failure names the migration command.
 
 ### Phase 2 — Audit workspace (walking skeleton for admin-in-Studio)
 
@@ -197,71 +251,104 @@ does not block it).
 - Tests first: registry admits the audit workspace for admin actors only;
   view conformance and packed evidence per the existing built-in workspace
   conventions; a trusted actor's nav omits it.
-- Register the workspace as a built-in in the Studio package (the
-  `registerBuiltInCmsWorkspace` runtime path all registrants use), with
-  admin-only admission and a data provider on auth-service's audit API.
-- Remove `AuditView` and its JSON endpoint from the admin app; the admin door
-  remains until Phase 6.
+- Register the workspace as a built-in in the Studio package (the renamed
+  `registerBuiltInStudioWorkspace` runtime path all registrants use), with an
+  Admin-only `accessHandler`, source-owned Admin assertion, and a server-side
+  data provider calling the active auth service. When Phase 5 adds floors, this
+  workspace also declares `admin`. It does not fetch its own HTTP API.
+- Remove `AuditView` and the admin client's audit query/wrapper; keep the
+  auth-service-owned `/auth/admin/audit` endpoint. Remove the Audit tab from
+  the shrinking admin shell; the admin door remains until Phase 6.
 
 ### Phase 3 — Schema-driven action forms + invitations workspace
 
-- Tests first: contract tests for the new action-form control (fields derived
-  from the action's zod input schema plus a declared field map; totality so a
-  secret field can never render as an echoing text input); host-renderer tests
-  in the declarative workspace; conformance evidence updated.
-- Extend the protocol additively: an action control variant whose host renders
-  input fields (text/url/number/checkbox, select from enum) and submits
+- Tests first: contract tests for object-schema action forms, total field maps,
+  enum selects, non-echoing secret controls, schema rejection before callbacks,
+  and bounded typed result presentation; host-renderer tests cover create,
+  cancel, resend/retry, manual delivery confirmation, and one-time setup-link
+  copy; packed conformance evidence is updated.
+- Extend the protocol additively with an action-form control whose host renders
+  text/url/number/checkbox/password fields and enum selects, then submits
   through the existing action binding with static or prepared confirmation.
-- First consumer: invitations workspace — create-invitation form, revoke with
-  prepared confirmation. Remove `InvitationsView` and its endpoints from the
-  admin app.
+  Extend successful actions with optional schema-backed result presentation;
+  do not render arbitrary action output.
+- First consumer: Invitations workspace. Preserve the complete existing
+  lifecycle: create, failed-delivery retry/resend, cancellation with prepared
+  confirmation, manual-delivery confirmation, and ephemeral setup-link display
+  and copy. The data provider reads auth-service directly and every mutation
+  passes the authenticated Admin actor to auth-service.
+- Remove `InvitationsView`, `AddPersonDialog` entry points owned by that view,
+  and their admin-client wrappers only after parity tests pass. Keep all
+  `/auth/admin/*` endpoints. If People still exposes Add Person during this
+  phase, remove that duplicate trigger so Invitations has one UI owner.
 
 ### Phase 4 — People and peers workspaces
 
-- Tests first per workspace, same conformance discipline.
-- People: roster table, url-query person detail, role and access actions via
-  action forms, with the old `OverviewView` stats folded in as a stats block.
-- Peers: peer listing and invite flow. The `admin-peer-invite` launch intent
-  stops bouncing across surfaces with query params and becomes an in-Studio
-  workspace URL with query state.
-- Remove `Roster`, `PersonDetail`, `OverviewView`, `AnchorPanel`,
-  `AddPersonDialog`, and their endpoints from the admin app.
+- Tests first per workspace, plus one parity test mapping every action in the
+  frozen admin-capability inventory to exactly one Studio control.
+- People: roster table, URL-query person detail, Anchor summary/stats, and the
+  full existing account-administration set: role/status changes, suspended-user
+  deletion, passkey setup/revocation, own/other session revocation as currently
+  authorized, and connected-channel presentation. Last-Admin, personal-Anchor,
+  suspended-user, confirmation, and actor-attribution invariants remain in
+  auth-service.
+- Peers: peer listing, peer-first invitation, and person-peer linking. The
+  `admin-peer-invite` launch intent becomes an in-Studio workspace URL with
+  query state rather than a cross-surface query-string bounce.
+- Remove `Roster`, `PersonDetail`, `OverviewView`, `AnchorPanel`, and remaining
+  `AddPersonDialog` code plus admin-client wrappers only after parity passes.
+  Keep auth-service's anchor/users/channels/reconciliation/mutations endpoints.
 
 ### Phase 5 — Gate inversion
 
 No new capability ships; the floor moves. Sliced separately so its test
 surface is pure gating.
 
-- Tests first: the route-enumeration test (every `/studio` route × public-rank
-  principal → 403, shell excepted); registry contract tests that the default
-  floor is `trusted`, that the floor is enforced before `accessHandler` runs,
-  and that a `() => true` handler cannot admit a sub-trusted actor without a
-  declared lower floor.
+- Tests first: enumerate the exact route matrix from the Gating model. Public
+  static assets and legacy redirects remain data-free anonymous exceptions;
+  the shell requires an active session; active public-rank principals receive
+  `403` from editor APIs and sync status; Trusted principals still receive
+  `403` from sync status; and denied workspace providers are never called.
+- Registry contract tests prove that the default floor is `trusted`, the floor
+  runs before every provider callback, and a `() => true` handler cannot admit
+  a sub-trusted actor without an explicit lower floor.
 - Registration contract grows the permission floor (default `trusted`) —
-  additive on the published definition surface, same discipline as Phase 3.
-- `resolveRequestAccess` floor drops to active-session; the trusted assertion
-  moves to the entity-editor family boundary; workspace admission goes
-  through the floor-enforcing registry.
-- Shell renders for sub-trusted sessions: nav derives from admission, which
-  at this phase yields an empty workspace list for them (`/account` still
-  serves them until Phase 6).
+  additive on the published definition surface, with ledger, frozen-fixture,
+  packed-conformance, and changeset coverage.
+- `resolveRequestAccess` becomes active-session principal resolution. Trusted
+  assertions move to the entity/assist/upload/agent family boundaries;
+  repository sync status keeps its nested Admin assertion; workspace admission
+  goes through the floor-enforcing registry.
+- Extend console-surface, endpoint, and interaction descriptors with the
+  additive active-session facet. Anonymous Dashboard output omits Studio;
+  active public-rank output includes it. Shell nav derives from workspace
+  admission and is empty for that actor at this phase (`/account` still serves
+  them until Phase 6).
 
 ### Phase 6 — Account into Studio; dissolve plugins/admin
 
-- Tests first: account family endpoints assert active-session (extending the
-  Phase 5 enumeration test's exception list); account view admission at the
-  sub-trusted floor; redirect test for `/account` → the Studio account view;
-  the moved account app tests run against their new home.
-- Move the account panel (JSON endpoints under the Studio API, React views as
-  a lazy chunk with the WebAuthn ceremonies) into the Studio package; declare
-  it as the one sub-trusted-floor view.
-- The `account-settings` launch intent becomes in-Studio navigation instead
-  of a cross-surface bounce.
-- Delete `plugins/admin`. Canonical roster: drop the `admin` and `account`
-  entries. Console strip: drop the admin and account surface entries — the
-  strip becomes Dashboard / Chat / Studio. Register the legacy `/account`
-  route as a permanent redirect. Update `build:ui` filters.
-- Full gates.
+- Tests first: the Account view requires an active session at its explicit
+  lower floor; `/auth/account/*` retains its existing auth-service admission,
+  same-origin, subject-derivation, passkey, and session tests; `/account`
+  redirects to the Studio Account view; `/admin` redirects to neutral Studio
+  home; and the moved Account app tests run against their new home.
+- Move only the Account React presentation into Studio as a lazy chunk with
+  WebAuthn ceremonies. It continues to call `/auth/account/*`; no auth JSON
+  endpoint moves packages or paths.
+- Make lazy delivery real: enable deterministic code splitting, emit an asset
+  manifest or bounded chunk names, serve only generated Studio assets from a
+  traversal-safe prefix route, copy every entry/chunk/map into the bundled
+  `@rizom/brain` output, and cover direct and packaged loading. Static chunks
+  remain data-free public routes.
+- Declare Account as the one active-session-floor view. The
+  `account-settings` launch intent becomes in-Studio navigation instead of a
+  cross-surface bounce.
+- Run the frozen admin-capability parity test and delete `plugins/admin` only
+  when no capability or client-only mutation wrapper remains. Canonical roster:
+  drop `admin` and `account`; keep auth-service. Console strip: drop their
+  entries so it becomes Dashboard / Chat / Studio. Update `build:ui` and
+  release-bundle filters.
+- Preserve `/auth/admin/*` and `/auth/account/*` contracts and run full gates.
 
 ### Phase 7 — Studio Overview workspace
 
@@ -297,36 +384,51 @@ surface is pure gating.
 
 ## Ordering rationale
 
-Rename first so every admin workspace is born under Studio names and nothing
-renames twice. Audit converts before the protocol extension because it is the
-only view with no form dependency — it proves built-in registration, admin
-gating, and nav hiding end to end while the protocol work is still unstarted.
-The gate inversion waits until the admin views are already workspaces so its
-diff is purely the floor move, and lands one phase before its only consumer
-(account) so the enumeration test exists before any sub-trusted actor can
-reach the shell's API surface with expectations. The admin app shrinks view
-by view, so at every phase boundary exactly one surface owns each capability
-and the release train can ship the slice. The dashboard split comes last and
-in dependency order: Overview must exist (Phase 7) before the dashboard can
-stop rendering operator widgets (Phase 8), so no operator capability is ever
-without a home.
+The React renderer consolidation lands first (or this branch remains explicitly
+stacked on it), so Studio never implements a second host against Preact. Rename
+then lands before any admin workspace so new code is born under Studio names
+and nothing renames twice. Audit converts before the protocol extension because
+it is the only view with no form or result-presentation dependency — it proves
+built-in registration, Admin gating, and nav hiding end to end while protocol
+work is still unstarted. Invitations then prove the complete form/result path,
+including one-time setup output, before People and peers consume it.
+
+The gate inversion waits until admin views are already workspaces so its diff
+is the explicit floor move, and lands one phase before its only lower-floor
+consumer (Account). The admin app shrinks view by view, with the parity inventory
+ensuring exactly one UI owns every capability at each boundary. The Dashboard
+split comes last and in dependency order: Overview must exist (Phase 7) before
+the Dashboard stops rendering operator widgets (Phase 8), so no operator
+capability is ever without a home.
 
 ## Risks
 
 - The gate inversion's hazard is a route missing its family assertion once
-  the perimeter floor drops; the enumeration test in Phase 5 is the guard,
-  and the floor-enforcing registry removes the matching hazard for
-  registrant `accessHandler`s written against the old perimeter.
-- The action-form extension and the registration floor both touch published
-  protocol surface; both are additive, and both get the release-surface
-  review (no out-of-band publishes, additive-only contract, conformance
-  evidence) before code-quality review.
+  the perimeter floor drops, or repository sync status accidentally inheriting
+  the Trusted editor floor. The exact route-matrix test in Phase 5 is the guard,
+  and the floor-enforcing registry runs before every provider callback.
+- The action-form/result extensions and the registration floor touch published
+  protocol surface. All are additive and require export-ledger updates,
+  canonical Studio fixtures, packed conformance, changesets, and release-surface
+  review before code-quality review.
+- Deleting `plugins/admin` could silently drop a mutation or move authorization
+  into the presentation package. The frozen capability-parity test prevents the
+  former; keeping every auth route and invariant in auth-service prevents the
+  latter.
+- A lazy Account import without emitted/served/copied chunks produces a shell
+  that works until Account is opened. Phase 6 tests source and bundled chunk
+  loading and constrains the asset prefix to generated filenames.
+- Permission rank cannot distinguish anonymous Public from an active demoted
+  person. The additive active-session facet and anonymous/active-public surface
+  tests prevent Studio from becoming either undiscoverable to the latter or
+  advertised to the former.
 - Persisted `"cms"` literals (audit events, operation context) may pin the old
   interface-type string; Phase 1's storage grep decides adapter-at-read versus
   clean rename, and the decision lands in that phase, not later.
-- The live brain's deploy config and any external bookmarks reference `/cms`,
-  `/account`, and the `cms` config key; the redirects cover URLs, the deploy
-  note covers config.
+- Live config and bookmarks may reference `/cms`, `/account`, `/admin`, the
+  `cms` member id, or `plugins.cms`. Redirects cover URLs; `brain config:migrate`
+  covers config without a permanent runtime alias and rejects ambiguous dual
+  keys.
 - The card is anonymous-facing, so every datum it renders is a disclosure
   decision: topic names, skill names, agent names, and counts all become
   public. Phase 8's public-scope test is the guard, and anything the owner
