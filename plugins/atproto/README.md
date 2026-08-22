@@ -21,7 +21,7 @@ atprotoPlugin({
   pdsEndpoint: "https://bsky.social",
   identifier: "example.com",
   repoDid: "did:plc:...",
-  // Optional; defaults from site domain when omitted.
+  // Optional; defaults from the active web channel or PDS repo DID.
   brainDid: "did:web:example.com",
   anchorDid: "did:web:example.com:anchor",
   // Only for the DNS-designated ai.rizom.brain.* authority account.
@@ -44,7 +44,7 @@ plugins:
     pdsEndpoint: https://bsky.social
     identifier: example.com
     repoDid: did:plc:...
-    # Optional; defaults from domain/siteUrl when omitted.
+    # Optional; defaults from the active web channel or PDS repo DID.
     brainDid: did:web:example.com
     anchorDid: did:web:example.com:anchor
     # Only for the DNS-designated ai.rizom.brain.* authority account.
@@ -70,8 +70,8 @@ Secrets should be supplied through environment variables or app secret configura
 - `pdsEndpoint`: PDS service endpoint. Defaults to `https://bsky.social`.
 - `identifier`: PDS login identifier, usually a handle or account DID.
 - `repoDid`: optional DID of the PDS repo to write records into. If omitted, the DID from `createSession` is used.
-- `brainDid`: public brain DID. Defaults to `did:web:<site-host>` when omitted. If configured as `did:web:*`, its host must match the card `siteUrl` host. A root `did:web:*` exposes `/.well-known/did.json`.
-- `anchorDid`: public human/operator DID. Defaults to `did:web:<site-host>:anchor` when omitted. A path-based `did:web:*`, for example `did:web:example.com:anchor`, exposes `/anchor/did.json`.
+- `brainDid`: public brain DID. With an active web channel it defaults to `did:web:<site-host>`; federation-only publication defaults to the PDS repo DID. If configured as `did:web:*`, its host must match the card `siteUrl` host. A root `did:web:*` exposes `/.well-known/did.json`.
+- `anchorDid`: public human/operator DID. With an active web channel it defaults to `did:web:<site-host>:anchor`; federation-only publication defaults to `accountDid`, then the PDS repo DID. A path-based `did:web:*`, for example `did:web:example.com:anchor`, exposes `/anchor/did.json`.
 - `appPassword`: app password value. In committed instance config, use the standard `${ENV_VAR}` interpolation form, e.g. `${ATPROTO_APP_PASSWORD}`.
 - `lexiconAuthority`: defaults to `false`. When true, the ready trigger upserts every canonical `ai.rizom.brain.*` lexicon as a `com.atproto.lexicon.schema` record. Enable this only for the PDS account named by the authority's `_lexicon` DNS TXT record.
 - `jetstream`: bounded discovery configuration. `enabled` defaults to `false`; opt in one canary brain at a time. Controls include endpoint/replay window, DID/domain/skill filters, queue/concurrency limits, per-DID cooldown, fetch and creation budgets, pending-candidate ceiling, stale retention, request/response/redirect limits, retries, and heartbeat cadence.
@@ -85,6 +85,8 @@ The plugin exposes no agent tools. When `identifier` and `appPassword` are confi
 - `entity:updated` keeps already-public projected entities current; a non-public update deletes the projected record. Brain identity, anchor profile, and skill updates also republish the brain card immediately.
 - `entity:deleted` deletes the projected record when the deleted entity was public.
 
+Brain cards use one public-skill projection across A2A and ATProto: valid public skill entities replace public tools, while public tools are the fallback when no valid skill entity exists. Federation-only brains omit `siteUrl` and bind `brain.did` to the PDS repo DID. Cards with an active web channel additionally advertise `siteUrl` and use the conventional `did:web` defaults.
+
 Projection registration is the consent gate: entities without a registered projection are ignored. Custom records are validated locally before an idempotent PDS `putRecord`; source entity IDs become stable record keys. The local entity remains the source of truth.
 
 A PDS outage never fails the local publish/update/delete operation. Failures are logged and broadcast as `atproto:publish:failed` with the operation, entity type/id, collection, and error. This scoped event deliberately does not use the publish pipeline's `publish:report:failure`, which belongs to the source publish provider.
@@ -93,7 +95,7 @@ The internal `publishBrainCard`, `publishEntity`, `publishPost`, and `validatePd
 
 ## Jetstream discovery
 
-Jetstream is used only as an untrusted repo-DID signal. Matching create/update events for `ai.rizom.brain.card/self` trigger a credential-free authoritative `getRecord` against the repo's resolved PDS; the event's embedded record is ignored. Discovery then requires the returned AT URI repo, HTTPS `siteUrl`, `did:web` hostname/document, and `alsoKnownAs` repo binding to agree before an event can reach agent-discovery.
+Jetstream is used only as an untrusted repo-DID signal. Matching create/update events for `ai.rizom.brain.card/self` trigger a credential-free authoritative `getRecord` against the repo's resolved PDS; the event's embedded record is ignored. Discovery validates federation-only cards by requiring `brain.did` to equal the returned AT URI repo. Creating a callable agent-directory candidate additionally requires HTTPS `siteUrl`; web-channel cards must still align that URL, their `did:web` hostname/document, and the repo binding.
 
 The consumer runs only on an opted-in full boot. It bounds queue depth and concurrency, coalesces repeated DIDs, enforces cooldown/fetch/creation budgets, persists a contiguous cursor and replay dedupe window in scoped runtime state, clamps stale cursors with `atproto:jetstream-gap`, reconnects with jittered backoff, and closes on shutdown. Candidate-controlled HTTP egress rejects non-public DNS/IP destinations on initial requests and redirects and caps time, bytes, and redirects. Deletes emit availability state rather than deleting agents or revoking approval. A jittered heartbeat republishes the same `self` card so peers missed outside replay can recover.
 
@@ -133,7 +135,7 @@ Use a test PDS/Bluesky account, an app password, and a controlled public site do
 
 The canonical publishing test app uses the Alex example identity (`domain: alex.example.com`, `identifier: alex.example.com`) so it stays aligned with the eval content. `alex.example.com` is fixture data, not a live PDS handle/domain. For a real live smoke, use the matching deployed Alex domain/account and keep only the app password in the environment.
 
-1. Configure `identifier`, optional `repoDid`, optional `brainDid`/`anchorDid` overrides, and `appPassword: ${ATPROTO_APP_PASSWORD}`. If DID overrides are omitted, the card uses the conventional `did:web:<site-host>` and `did:web:<site-host>:anchor` identities. Set `lexiconAuthority: true` only when testing the PDS account designated by `_lexicon.<reversed-authority>` DNS.
+1. Configure `identifier`, optional `repoDid`, optional `brainDid`/`anchorDid` overrides, and `appPassword: ${ATPROTO_APP_PASSWORD}`. If DID overrides are omitted, a web-capable brain uses the conventional `did:web:<site-host>` identities; a federation-only brain uses its PDS repo DID and omits `siteUrl`. Set `lexiconAuthority: true` only when testing the PDS account designated by `_lexicon.<reversed-authority>` DNS.
 2. Start a brain with the ATProto plugin enabled. The ready event should upsert `ai.rizom.brain.card/self` automatically and, for the designated authority, one `com.atproto.lexicon.schema` record per canonical NSID.
 3. Confirm DID documents if using `did:web`:
    - brain root DID: `GET https://<brain-domain>/.well-known/did.json`

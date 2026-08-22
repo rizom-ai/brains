@@ -21,6 +21,7 @@ Do not include secret values, private keys, access tokens, or decrypted user con
 - Canonical review commit:
 - Secret-free review diff SHA-256:
 - Identity-review evidence SHA-256:
+- Reviewed source-to-target bundle manifest SHA-256:
 - Reviewed hosted-site pin manifest SHA-256:
 - Source and review worktrees clean:
 
@@ -64,6 +65,8 @@ Record every image. Tags alone are not immutable evidence.
 - Secret selector names and encrypted secret artifacts unchanged:
 - Per-user runtime-version and site-package tag inputs reviewed:
 - No plaintext source secrets copied into the review artifact:
+- Every generated config declares `bundleContract: capability-bundles-v1`:
+- Pilot and explicit cohort source selections exactly matched the reviewed manifest:
 - No removed model, preset, or old-format schema discriminator remains:
 - Every external hosted site and theme package has an exact reviewed pin:
 

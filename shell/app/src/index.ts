@@ -31,6 +31,12 @@ export {
 export { brainAnchorConfigKindSchema, defineBrain } from "./brain-definition";
 export { defineBundle } from "./bundle-definition";
 export {
+  resolveBundleSelection,
+  type BundleSelectionInput,
+  type BundleSelectionResolution,
+  type ResolvedBundlePermissionContribution,
+} from "./bundle-resolution";
+export {
   isDeclarativeBrainDefinition,
   normalizeDeclarativeBrainDefinition,
 } from "./declarative-brain";

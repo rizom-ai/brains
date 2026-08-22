@@ -70,7 +70,7 @@ export interface ScaffoldOptions {
 /**
  * Scaffold a new brain instance directory.
  *
- * Minimal scaffold (default): brain.yaml + package.json + README.md +
+ * Base scaffold (default personal recipe): brain.yaml + package.json + README.md +
  *   .env.example + .gitignore + tsconfig.json
  * Full scaffold (`brain init <dir> --deploy`): adds config/deploy.yml, Kamal hooks, CI workflow
  *
@@ -215,7 +215,7 @@ function writeReconcilableScaffoldFile(options: {
 }
 
 function shouldScaffoldLocalSiteTheme(recipe: BrainRecipeName): boolean {
-  return recipe !== "minimal";
+  return expandBrainRecipe(recipe).site !== undefined;
 }
 
 function writeBrainYaml(
@@ -229,7 +229,7 @@ function writeBrainYaml(
     ...(expansion.plugins ?? {}),
   };
 
-  if (recipe === "personal") {
+  if (recipe === "personal" || recipe === "professional") {
     plugins["auth-service"] = { setupEmail: "${SETUP_EMAIL_TO}" };
     plugins["notifications"] = {
       defaultRecipient: { type: "email", address: "${SETUP_EMAIL_TO}" },
@@ -254,6 +254,7 @@ function writeBrainYaml(
   const content = stringify(
     {
       brain: "brain",
+      bundleContract: expansion.bundleContract,
       ...(expansion.anchor ? { anchor: expansion.anchor } : {}),
       ...(expansion.kind ? { kind: expansion.kind } : {}),
       domain,
@@ -655,7 +656,7 @@ function writeThemeCss(dir: string): void {
 }
 
 /**
- * Write a minimal README pointing the user at the quickstart commands
+ * Write a concise README pointing the user at the quickstart commands
  * and explaining the scaffolded layout.
  */
 function writeReadme(dir: string, recipe: BrainRecipeName): void {

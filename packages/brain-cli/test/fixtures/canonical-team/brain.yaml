@@ -1,10 +1,18 @@
 brain: brain
+bundleContract: capability-bundles-v1
 anchor: team
 kind: team
+# Deliberately non-canonical order: resolution follows definition order.
 bundles:
   - team
   - site
+  - chat
+  - web
+  - automation
+  - media
   - core
+add:
+  - docs
 
 site:
   package: "@brains/site-default"

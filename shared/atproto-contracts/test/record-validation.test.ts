@@ -209,6 +209,36 @@ describe("ATProto Zod-backed record schemas", () => {
     });
   });
 
+  it("parses federation-only brain cards without a web channel", () => {
+    const schema = canonicalAtprotoRecordSchemas["ai.rizom.brain.card"];
+
+    expect(
+      schema.parse({
+        $type: "ai.rizom.brain.card",
+        brain: {
+          did: "did:plc:brain",
+          name: "Headless Brain",
+          role: "assistant",
+          purpose: "Help over federation",
+          values: ["private"],
+        },
+        anchor: {
+          did: "did:plc:anchor",
+          name: "Test Owner",
+          category: "person",
+          kind: "professional",
+        },
+        skills: [],
+        model: "test-brain",
+        version: "1.0.0",
+        createdAt: "2026-05-31T10:00:00.000Z",
+      }),
+    ).toMatchObject({
+      brain: { did: "did:plc:brain" },
+      anchor: { did: "did:plc:anchor" },
+    });
+  });
+
   it("accepts open semantic anchor kinds and rejects the pre-cutover shape", () => {
     const schema = canonicalAtprotoRecordSchemas["ai.rizom.brain.card"];
     const card = {

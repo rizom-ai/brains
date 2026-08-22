@@ -9,7 +9,7 @@ tags:
   - newsletter
   - blog-integration
   - anti-hallucination
-  - posture-publishing
+  - recipe-professional
 
 turns:
   - userMessage: "Create a newsletter based on my latest blog post"

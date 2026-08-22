@@ -3,7 +3,7 @@ name: Team Brain batch topic extraction
 description: Verifies topics can be extracted from Team Brain's existing content types without future-plugin fixtures.
 type: plugin
 tags:
-  - posture-team
+  - recipe-team
   - team
   - topics
   - core

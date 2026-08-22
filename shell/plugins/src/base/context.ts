@@ -37,6 +37,10 @@ import {
 import { createCmsNamespace, type ICmsNamespace } from "./cms-namespace";
 import { createDashboardNamespace } from "./dashboard-namespace";
 import type { IDashboardNamespace } from "./dashboard-namespace";
+import {
+  createPublicSkillsNamespace,
+  type IPublicSkillsNamespace,
+} from "../a2a/public-skills";
 import type {
   IConversationsNamespace,
   IEndpointsNamespace,
@@ -132,6 +136,9 @@ export interface BasePluginContext extends PublicBasePluginContext {
 
   /** App-scoped semantic profile-kind catalog and selected resolution. */
   readonly profileKinds: IProfileKindsNamespace;
+
+  /** Public card skills shared by every publication channel. */
+  readonly publicSkills: IPublicSkillsNamespace;
 
   /** Destination-owned non-mutating Inbox follow-up catalog. */
   readonly inboxFollowUps: IInboxFollowUpsNamespace;
@@ -271,6 +278,7 @@ export function createBasePluginContext(
     identity: createIdentityNamespace(shell, getAppInfo),
     profileKinds: createProfileKindsNamespace(shell, pluginId),
     channels: createChannelsNamespace(shell),
+    publicSkills: createPublicSkillsNamespace(shell),
     inbox: createInboxNamespace(shell, pluginId),
     inboxFollowUps: createInboxFollowUpsNamespace(shell, pluginId),
 

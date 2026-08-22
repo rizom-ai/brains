@@ -7,7 +7,7 @@ type: tool_invocation
 setup:
   permissionLevel: admin
 tags:
-  - posture-team
+  - recipe-team
   - team
   - image
   - default

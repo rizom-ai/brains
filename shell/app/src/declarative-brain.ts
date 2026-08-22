@@ -120,6 +120,9 @@ export function normalizeDeclarativeBrainDefinition(
   return {
     name: definition.name,
     version: metadata.version,
+    ...(definition.bundleContract
+      ? { bundleContract: definition.bundleContract }
+      : {}),
     capabilities: definition.plugins.map(capabilityEntry),
     interfaces: [],
     ...(definition.anchor ? { anchor: definition.anchor } : {}),

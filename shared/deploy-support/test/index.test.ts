@@ -32,6 +32,7 @@ afterEach(() => {
 describe("deploy templates", () => {
   it("renders shared Docker and Kamal templates", () => {
     const dockerfile = renderDockerfile();
+    expect(dockerfile).toContain("ARG BUN_VERSION=1.4.0");
     expect(dockerfile).toContain("EXPOSE 8080");
     const labelIndex = dockerfile.indexOf(
       'LABEL ai.rizom.brain.watchdog="true"',

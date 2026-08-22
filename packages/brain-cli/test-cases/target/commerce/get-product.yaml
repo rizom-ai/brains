@@ -1,0 +1,29 @@
+id: recipe-commerce-get-product
+name: Commerce brain retrieves a catalog product
+description: Verifies that the commerce recipe reads its imported product fixture.
+type: tool_invocation
+setup:
+  permissionLevel: admin
+tags:
+  - recipe-commerce
+  - commerce
+  - products
+  - tool-invocation
+
+turns:
+  - userMessage: "Show me the product with id our-product."
+
+successCriteria:
+  expectedTools:
+    - toolName: system_get
+      shouldBeCalled: true
+      argsContain:
+        entityType: product
+        id: our-product
+  responseNotContains:
+    - "I cannot"
+    - "not found"
+
+efficiency:
+  maxToolCalls: 3
+  maxTokens: 20000

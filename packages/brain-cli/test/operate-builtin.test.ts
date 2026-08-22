@@ -27,7 +27,7 @@ describe("operate with the builtin canonical definition", () => {
     testDir = mkdtempSync(join(tmpdir(), "brain-operate-test-"));
     writeFileSync(
       join(testDir, "brain.yaml"),
-      "brain: brain\nbundles: [core]\n",
+      "brain: brain\nbundleContract: capability-bundles-v1\nbundles: [core]\n",
     );
     resetCanonicalDefinition();
     resetBootFn();

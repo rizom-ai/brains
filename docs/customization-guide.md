@@ -14,16 +14,22 @@ Use `brain.yaml` for bundle selection, AI model, plugin, interface, permission, 
 
 ```yaml
 brain: brain
+bundleContract: capability-bundles-v1
 domain: mybrain.example.com
 bundles:
   - core
+  - media
+  - automation
+  - web
+  - chat
   - site
   - publishing
+  - federation
 
 add:
   - stock-photo
 remove:
-  - discord
+  - newsletter
 
 site:
   package: "@acme/brain-site"

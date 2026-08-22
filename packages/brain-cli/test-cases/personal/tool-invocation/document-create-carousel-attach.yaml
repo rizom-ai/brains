@@ -10,7 +10,7 @@ tags:
   - carousel
   - document
   - media
-  - posture-publishing
+  - recipe-professional
 
 turns:
   - userMessage: "Save the carousel for deck 'distributed-systems-primer' and attach it to social post 'publish-policy-draft'"

@@ -48,7 +48,9 @@ function staticImportGraph(entry: string): Set<string> {
 
 describe("single canonical crossover", () => {
   test("makes canonical package resolution the default", () => {
-    const generated = generateEntrypoint("bundles: [core]\n");
+    const generated = generateEntrypoint(
+      "bundleContract: capability-bundles-v1\nbundles: [core]\n",
+    );
 
     expect(generated).toContain('import definition from "@rizom/brain/model"');
     expect(generated).not.toContain("@brains/brain");
@@ -57,7 +59,10 @@ describe("single canonical crossover", () => {
   test("defaults omitted brain names and rejects every legacy built-in name", () => {
     const directory = mkdtempSync(join(tmpdir(), "canonical-brain-yaml-"));
     try {
-      writeFileSync(join(directory, "brain.yaml"), "bundles: [core]\n");
+      writeFileSync(
+        join(directory, "brain.yaml"),
+        "bundleContract: capability-bundles-v1\nbundles: [core]\n",
+      );
       expect(parseBrainYaml(directory).brain).toBe("brain");
 
       for (const legacy of [
@@ -84,7 +89,9 @@ describe("single canonical crossover", () => {
       parseInstanceOverrides("brain: brain\npreset: core\n"),
     ).toThrow(/preset/i);
     expect(
-      parseInstanceOverrides("brain: brain\nbundles: [core]\n").bundles,
+      parseInstanceOverrides(
+        "brain: brain\nbundleContract: capability-bundles-v1\nbundles: [core]\n",
+      ).bundles,
     ).toEqual(["core"]);
   });
 
@@ -92,7 +99,7 @@ describe("single canonical crossover", () => {
     const directory = mkdtempSync(join(tmpdir(), "canonical-recipe-"));
     try {
       const options: ScaffoldOptions = {
-        recipe: "personal",
+        recipe: "professional",
         domain: "person.example.com",
       };
       scaffold(directory, options);
@@ -101,9 +108,18 @@ describe("single canonical crossover", () => {
       expect(yaml).toContain("brain: brain");
       expect(yaml).toContain("anchor: person");
       expect(yaml).toContain("bundles:");
-      expect(yaml).toContain("- core");
-      expect(yaml).toContain("- site");
-      expect(yaml).toContain("- publishing");
+      for (const bundle of [
+        "core",
+        "media",
+        "automation",
+        "web",
+        "chat",
+        "site",
+        "publishing",
+        "federation",
+      ]) {
+        expect(yaml).toContain(`- ${bundle}`);
+      }
       expect(yaml).not.toContain("preset:");
       expect(existsSync(join(directory, "seed-content"))).toBe(true);
     } finally {
@@ -214,11 +230,23 @@ describe("single canonical crossover", () => {
     ];
     expect(configs.length).toBeGreaterThan(0);
 
+    const retiredCanonicalSelections = new Set([
+      "core,site",
+      "core,publishing,site",
+      "core,site,team",
+    ]);
     for (const path of configs) {
       const yaml = source(path);
       expect(yaml, path).not.toMatch(/^brain:\s*(rover|relay|ranger)\s*$/m);
       expect(yaml, path).not.toMatch(/^preset:/m);
       expect(yaml, path).toMatch(/^bundles:/m);
+
+      const parsed = parseInstanceOverrides(yaml);
+      if (parsed.brain === undefined || parsed.brain === "brain") {
+        expect(parsed.bundleContract, path).toBe("capability-bundles-v1");
+        const selection = [...(parsed.bundles ?? [])].sort().join(",");
+        expect(retiredCanonicalSelections.has(selection), path).toBe(false);
+      }
     }
   });
 });

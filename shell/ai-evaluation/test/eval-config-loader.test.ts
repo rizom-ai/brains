@@ -76,6 +76,48 @@ describe("resolveEvalSelection", () => {
     });
   });
 
+  it("lets a child keep inherited config while replacing case tags", () => {
+    expect(
+      resolveEvalSelection(
+        {
+          suites: {
+            core: {
+              bundles: ["core"],
+              tags: ["recipe-headless"],
+            },
+            personal: {
+              extends: "core",
+              inheritTags: false,
+              tags: ["recipe-personal"],
+            },
+          },
+        },
+        { suite: "personal" },
+      ),
+    ).toEqual({
+      bundles: ["core"],
+      tags: ["recipe-personal"],
+    });
+  });
+
+  it("rejects invalid tag inheritance policy", () => {
+    expect(() =>
+      resolveEvalSelection(
+        {
+          suites: {
+            invalid: {
+              inheritTags: "no",
+              tags: ["invalid"],
+            },
+          },
+        },
+        { suite: "invalid" },
+      ),
+    ).toThrow(
+      'Eval suite "invalid" has invalid inheritTags; expected a boolean.',
+    );
+  });
+
   it("inherits and deep-merges suite plugin overrides", () => {
     expect(
       resolveEvalSelection(

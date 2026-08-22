@@ -1,0 +1,26 @@
+id: recipe-headless-list-inbox
+name: Headless brain reads the unified inbox
+description: Verifies that inbox reading remains available without notifications or webserver.
+type: tool_invocation
+setup:
+  permissionLevel: admin
+tags:
+  - recipe-headless
+  - headless
+  - core
+  - inbox
+
+turns:
+  - userMessage: "Show me the current inbox."
+
+successCriteria:
+  expectedTools:
+    - toolName: inbox_list
+      shouldBeCalled: true
+  responseNotContains:
+    - "web server required"
+    - "notifications required"
+
+efficiency:
+  maxToolCalls: 3
+  maxTokens: 20000

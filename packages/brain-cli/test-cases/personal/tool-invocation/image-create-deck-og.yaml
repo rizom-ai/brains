@@ -10,7 +10,7 @@ tags:
   - image
   - media
   - og-image
-  - posture-personal
+  - recipe-professional
 
 turns:
   - userMessage: "Generate an OG image for deck 'distributed-systems-primer'"

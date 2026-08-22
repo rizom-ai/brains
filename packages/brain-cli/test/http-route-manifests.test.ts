@@ -68,12 +68,11 @@ function manifestDelta(
 }
 
 function readExpected(name: string): string[] {
-  return readFileSync(
+  const contents = readFileSync(
     join(import.meta.dir, "fixtures", "http-route-manifests", `${name}.txt`),
     "utf8",
-  )
-    .trim()
-    .split("\n");
+  ).trim();
+  return contents.length > 0 ? contents.split("\n") : [];
 }
 
 function resolveTestApp(name: string): Plugin[] {

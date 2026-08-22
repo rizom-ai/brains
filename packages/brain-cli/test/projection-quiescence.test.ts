@@ -9,7 +9,9 @@ function resolveProjectionConfig(): AppConfig {
     canonicalBrain,
     {},
     parseInstanceOverrides(`brain: brain
-bundles: [core, publishing]
+bundleContract: capability-bundles-v1
+bundles: [core, media, publishing]
+add: [assessment]
 plugins:
   social-media:
     autoGenerateOnBlogPublish: true
@@ -87,6 +89,7 @@ describe("full preset projection resilience", () => {
       canonicalBrain,
       {},
       parseInstanceOverrides(`brain: brain
+bundleContract: capability-bundles-v1
 bundles: [core, publishing]
 embedding:
   enabled: false

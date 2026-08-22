@@ -61,24 +61,31 @@ export async function runSingleModelEvaluation(
     console.log(`\nConnecting to remote brain: ${options.remoteUrl}`);
   }
 
-  await options.runEvaluations({
-    agentService,
-    aiService,
-    ...(!options.remoteUrl
-      ? { runtimeUploads: shell.getRuntimeUploadRegistry() }
-      : {}),
-    testCasesDir: options.testCasesDirs,
-    skipLLMJudge: options.skipLLMJudge,
-    verbose: options.verbose,
-    parallel: options.parallel,
-    maxParallel: options.maxParallel,
-    ...(!options.remoteUrl && { indexReadiness: shell.getEntityService() }),
-    ...(options.tags && { tags: options.tags }),
-    ...(options.testCaseIds && { testCaseIds: options.testCaseIds }),
-    ...(options.testType && { testType: options.testType }),
-    ...(options.compareAgainst !== undefined && {
-      compareAgainst: options.compareAgainst,
-    }),
-    ...(options.saveBaseline && { saveBaseline: options.saveBaseline }),
-  });
+  try {
+    await options.runEvaluations({
+      agentService,
+      aiService,
+      ...(!options.remoteUrl
+        ? { runtimeUploads: shell.getRuntimeUploadRegistry() }
+        : {}),
+      testCasesDir: options.testCasesDirs,
+      skipLLMJudge: options.skipLLMJudge,
+      verbose: options.verbose,
+      parallel: options.parallel,
+      maxParallel: options.maxParallel,
+      ...(!options.remoteUrl && { indexReadiness: shell.getEntityService() }),
+      ...(options.tags && { tags: options.tags }),
+      ...(options.testCaseIds && { testCaseIds: options.testCaseIds }),
+      ...(options.testType && { testType: options.testType }),
+      ...(options.compareAgainst !== undefined && {
+        compareAgainst: options.compareAgainst,
+      }),
+      ...(options.saveBaseline && { saveBaseline: options.saveBaseline }),
+    });
+    if (!options.remoteUrl) {
+      await waitForJobsToDrain(shell.getJobQueueService());
+    }
+  } finally {
+    await shell.shutdown();
+  }
 }

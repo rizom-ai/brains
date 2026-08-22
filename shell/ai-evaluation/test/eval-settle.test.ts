@@ -88,14 +88,25 @@ describe("evaluation runners settle DB-less environments", () => {
 
       const prebuiltCheckIndex = source.indexOf("hasPrebuiltEvalDatabase(");
       const bootIndex = source.indexOf("await bootEvalApp(");
-      const drainIndex = source.indexOf("await waitForJobsToDrain(");
+      const drainIndices = [
+        ...source.matchAll(/await waitForJobsToDrain\(/g),
+      ].map((match) => match.index);
+      const evaluationIndex = source.lastIndexOf(
+        runnerSource === "multi-model-runner.ts"
+          ? "runEvaluationsCollect("
+          : "runEvaluations(",
+      );
+      const shutdownIndex = source.lastIndexOf("await shell.shutdown()");
 
       expect(prebuiltCheckIndex).toBeGreaterThan(-1);
-      expect(drainIndex).toBeGreaterThan(-1);
+      expect(drainIndices).toHaveLength(2);
       // The prebuilt check must read the filesystem before boot creates the
-      // database file, and the drain must happen after boot.
+      // database file. Ingestion settles after boot, and case-triggered work
+      // settles again before shutdown marks the Shell uninitialized.
       expect(prebuiltCheckIndex).toBeLessThan(bootIndex);
-      expect(drainIndex).toBeGreaterThan(bootIndex);
+      expect(drainIndices[0]).toBeGreaterThan(bootIndex);
+      expect(drainIndices[1]).toBeGreaterThan(evaluationIndex);
+      expect(shutdownIndex).toBeGreaterThan(drainIndices[1] ?? Infinity);
     });
   }
 });

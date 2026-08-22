@@ -858,6 +858,7 @@ export {
   type ParsedAgentCard,
 } from "./a2a/agent-card-schema";
 export { skillDataSchema, type SkillData } from "./a2a/skill-data-schema";
+export type { IPublicSkillsNamespace, PublicSkill } from "./a2a/public-skills";
 
 // ============================================================================
 // System Integration (Daemons, Interface Plugins)

@@ -14,7 +14,7 @@ tags:
   - onboarding
   - playbooks
   - multi-turn
-  - posture-personal
+  - recipe-professional
 
 turns:
   - userMessage: "Start playbook onboarding."

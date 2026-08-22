@@ -27,6 +27,7 @@ const baseConfig: DirectorySyncConfig = {
   syncBatchSize: 10,
   syncPriority: 3,
   seedContent: false,
+  strictSeedEntityTypes: false,
   deleteOnFileRemoval: true,
   syncInterval: 2,
   commitDebounce: 5000,

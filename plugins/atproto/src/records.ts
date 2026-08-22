@@ -1,4 +1,4 @@
-import type { BaseEntity, ServicePluginContext } from "@brains/plugins";
+import type { ServicePluginContext } from "@brains/plugins";
 import type {
   AtprotoBrainCardRecord,
   AtprotoBrainCardSkill,
@@ -15,82 +15,28 @@ export type BrainCardRecord = AtprotoBrainCardRecord & {
   $type: "ai.rizom.brain.card";
 };
 
-function normalizePublicUrl(
-  value: string | undefined,
-  baseUrl: string | undefined,
-): string | undefined {
+function normalizePublicUrl(value: string | undefined): string | undefined {
   if (!value) return undefined;
   try {
-    return new URL(value, baseUrl).toString();
+    return new URL(value).toString();
   } catch {
     return undefined;
   }
 }
 
-function normalizeSkillId(name: string): string {
-  const normalized = name
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 200);
-  return normalized.length > 0 ? normalized : "skill";
-}
-
-function readString(
-  metadata: Record<string, unknown>,
-  key: string,
+function configuredFederationDid(
+  config: AtprotoConfig,
+  runtimeRepoDid: string | undefined,
 ): string | undefined {
-  const value = metadata[key];
-  return typeof value === "string" && value.length > 0 ? value : undefined;
-}
-
-function readStringArray(
-  metadata: Record<string, unknown>,
-  key: string,
-): string[] | undefined {
-  const value = metadata[key];
-  if (!Array.isArray(value)) return undefined;
-  const strings = value.filter(
-    (item): item is string => typeof item === "string" && item.length > 0,
-  );
-  return strings.length > 0 ? strings : undefined;
-}
-
-function skillFromEntity(
-  entity: BaseEntity,
-): AtprotoBrainCardSkill | undefined {
-  const metadata = entity.metadata;
-  const name = readString(metadata, "name");
-  const description = readString(metadata, "description");
-  if (!name || !description) return undefined;
-  const tags = readStringArray(metadata, "tags");
-  const examples = readStringArray(metadata, "examples");
-  return {
-    id: normalizeSkillId(name),
-    name,
-    description,
-    ...(tags && { tags }),
-    ...(examples && { examples }),
-  };
-}
-
-async function listPublicSkills(
-  context: ServicePluginContext,
-): Promise<AtprotoBrainCardSkill[]> {
-  if (!context.entityService.hasEntityType("skill")) return [];
-  const entities = await context.entityService.listEntities({
-    entityType: "skill",
-    options: { filter: { visibilityScope: "public" } },
-  });
-  return entities
-    .map((entity) => skillFromEntity(entity))
-    .filter((skill): skill is AtprotoBrainCardSkill => skill !== undefined)
-    .slice(0, 100);
+  if (config.repoDid) return config.repoDid;
+  if (runtimeRepoDid) return runtimeRepoDid;
+  return config.identifier?.startsWith("did:") ? config.identifier : undefined;
 }
 
 export async function buildBrainCardRecord(
   context: ServicePluginContext,
   config: AtprotoConfig,
+  runtimeRepoDid?: string,
   now: Date = new Date(),
 ): Promise<BrainCardRecord> {
   const identity = context.identity.get();
@@ -102,17 +48,37 @@ export async function buildBrainCardRecord(
     );
   }
   const appInfo = await context.identity.getAppInfo();
-  const siteUrl = normalizePublicUrl(
-    context.siteUrl ?? profile.website,
-    undefined,
-  );
-  if (!siteUrl) {
-    throw new Error("AT Protocol brain card publishing requires siteUrl");
+  const hasWebChannel = context.plugins.has("webserver");
+  const siteUrl = hasWebChannel
+    ? normalizePublicUrl(context.siteUrl ?? profile.website)
+    : undefined;
+  const siteHostname = siteUrl ? new URL(siteUrl).hostname : undefined;
+  const federationDid = configuredFederationDid(config, runtimeRepoDid);
+  const brainDid =
+    config.brainDid ??
+    (siteHostname ? didWebFromHostname(siteHostname) : federationDid);
+  if (!brainDid) {
+    throw new Error(
+      "AT Protocol headless brain card publishing requires a repo DID or explicit brain DID",
+    );
   }
-  const siteHostname = new URL(siteUrl).hostname;
-  const brainDid = config.brainDid ?? didWebFromHostname(siteHostname);
-  const anchorDid = config.anchorDid ?? anchorDidWebFromHostname(siteHostname);
+  const anchorDid =
+    config.anchorDid ??
+    (siteHostname
+      ? anchorDidWebFromHostname(siteHostname)
+      : (config.accountDid ?? federationDid));
+  if (!anchorDid) {
+    throw new Error(
+      "AT Protocol headless brain card publishing requires an account, repo, or explicit anchor DID",
+    );
+  }
+
   if (isDidWeb(brainDid)) {
+    if (!siteHostname) {
+      throw new Error(
+        "AT Protocol brain card did:web identity requires an active web channel",
+      );
+    }
     const didHostname = didWebToHostname(brainDid);
     if (didHostname !== siteHostname) {
       throw new Error(
@@ -120,12 +86,19 @@ export async function buildBrainCardRecord(
       );
     }
   }
+  if (!siteUrl && federationDid && brainDid !== federationDid) {
+    throw new Error(
+      "AT Protocol headless brain card brain DID must match its PDS repo DID",
+    );
+  }
 
-  const skills = await listPublicSkills(context);
+  const skills: AtprotoBrainCardSkill[] = (
+    await context.publicSkills.list()
+  ).map((skill) => ({ ...skill }));
 
   return {
     $type: "ai.rizom.brain.card",
-    siteUrl,
+    ...(siteUrl && { siteUrl }),
     brain: {
       did: brainDid,
       name: identity.name,

@@ -13,7 +13,7 @@ tags:
   - visibility
   - permissions
   - regression
-  - posture-personal
+  - recipe-professional
 
 turns:
   - userMessage: "Show me the note with id private-visibility-probe."

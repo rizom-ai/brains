@@ -3,7 +3,7 @@ name: Summarize Team Brain team sync
 description: Verifies summary plugin extracts key points, decisions, and action items from a team conversation.
 type: plugin
 tags:
-  - posture-team
+  - recipe-team
   - team
   - summary
   - core

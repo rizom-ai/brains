@@ -1,0 +1,26 @@
+id: recipe-headless-search-knowledge
+name: Headless brain searches imported knowledge
+description: Verifies semantic retrieval without web, chat, or site capabilities.
+type: tool_invocation
+setup:
+  permissionLevel: admin
+tags:
+  - recipe-headless
+  - headless
+  - core
+  - search
+
+turns:
+  - userMessage: "Search my knowledge for green software engineering."
+
+successCriteria:
+  expectedTools:
+    - toolName: system_search
+      shouldBeCalled: true
+  responseNotContains:
+    - "I cannot search"
+    - "web server required"
+
+efficiency:
+  maxToolCalls: 3
+  maxTokens: 20000

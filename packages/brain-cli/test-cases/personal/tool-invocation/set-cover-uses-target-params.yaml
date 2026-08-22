@@ -8,7 +8,7 @@ tags:
   - image
   - cover
   - core
-  - posture-personal
+  - recipe-professional
 
 turns:
   - userMessage: "Generate a cover image for the blog post 'urban-sensing-networks'"

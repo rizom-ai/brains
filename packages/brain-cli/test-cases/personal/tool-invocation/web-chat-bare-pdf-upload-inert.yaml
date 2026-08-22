@@ -12,7 +12,7 @@ tags:
   - upload
   - pdf
   - regression
-  - posture-personal
+  - recipe-personal
 
 turns:
   - userMessage: ""

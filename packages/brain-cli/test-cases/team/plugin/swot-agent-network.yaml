@@ -3,7 +3,7 @@ name: Derive Team Brain SWOT from team-memory agent network
 description: Exercises Team Brain's normal assessment plugin against an explicit Team Brain team-memory capability network.
 type: plugin
 tags:
-  - posture-team
+  - requires-member-assessment
   - team
   - plugin
   - assessment

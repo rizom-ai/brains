@@ -12,7 +12,7 @@ tags:
   - media
   - printable
   - document-create
-  - posture-publishing
+  - recipe-professional
 
 turns:
   - userMessage: "Regenerate the printable PDF for project 'CityPulse'"

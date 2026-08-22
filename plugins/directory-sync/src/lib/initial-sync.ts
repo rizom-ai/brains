@@ -4,6 +4,7 @@ import type { Logger } from "@brains/utils/logger";
 import type { DirectorySyncConfig, IDirectorySync, IGitSync } from "../types";
 import type { GitReconciliationService } from "./git-reconciliation";
 import { copySeedContentIfNeeded } from "./seed-content";
+import { validateSeedContentEntityTypes } from "./file-discovery";
 
 /**
  * Wire up initial-sync orchestration: subscribe to startup messages,
@@ -39,6 +40,9 @@ export function setupInitialSync(
         config.seedContentPath,
         gitSync,
       );
+      if (config.strictSeedEntityTypes) {
+        await validateSeedContentEntityTypes(syncPath, context.entityService);
+      }
     }
 
     try {

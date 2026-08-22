@@ -25,6 +25,7 @@ describe("bootstrapPilotAgeKey", () => {
   it("creates a local age identity, updates pilot.yaml, and can push to GitHub secrets", async () => {
     const root = await createPilotRepo({
       "pilot.yaml": `brainVersion: 0.2.0-alpha.1
+bundleContract: capability-bundles-v1
 githubOrg: rizom-ai
 contentRepoPrefix: rover-
 domainSuffix: .rizom.ai
@@ -74,6 +75,7 @@ agePublicKey: age1replace-with-your-public-key
   it("reuses an existing local age identity", async () => {
     const root = await createPilotRepo({
       "pilot.yaml": `brainVersion: 0.2.0-alpha.1
+bundleContract: capability-bundles-v1
 githubOrg: rizom-ai
 contentRepoPrefix: rover-
 domainSuffix: .rizom.ai
@@ -97,6 +99,7 @@ agePublicKey: age1replace-with-your-public-key
   it("fails when pilot.yaml already points at a different non-placeholder agePublicKey", async () => {
     const root = await createPilotRepo({
       "pilot.yaml": `brainVersion: 0.2.0-alpha.1
+bundleContract: capability-bundles-v1
 githubOrg: rizom-ai
 contentRepoPrefix: rover-
 domainSuffix: .rizom.ai

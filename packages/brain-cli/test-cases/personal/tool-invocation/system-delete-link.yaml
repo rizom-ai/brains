@@ -10,7 +10,7 @@ tags:
   - link
   - entity-crud
   - permissions
-  - posture-personal
+  - recipe-professional
 
 turns:
   - userMessage: "Delete the link 'sentilo-platform'."

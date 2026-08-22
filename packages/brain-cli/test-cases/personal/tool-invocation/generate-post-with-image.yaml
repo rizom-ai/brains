@@ -9,7 +9,7 @@ tags:
   - image
   - cover
   - core
-  - posture-publishing
+  - recipe-professional
 
 turns:
   - userMessage: "Generate a LinkedIn post with a cover image about continuous learning in tech"

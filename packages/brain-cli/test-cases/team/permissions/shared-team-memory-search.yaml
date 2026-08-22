@@ -7,7 +7,7 @@ type: tool_invocation
 setup:
   permissionLevel: trusted
 tags:
-  - posture-team
+  - recipe-team
   - team
   - permissions
   - shared
@@ -29,7 +29,9 @@ successCriteria:
     - toolName: system_update
       shouldBeCalled: false
   responseContains:
-    - "Team Brain"
+    - "capture"
+    - "summaries"
+    - "peer-brain"
   responseNotContains:
     - "created"
     - "updated"

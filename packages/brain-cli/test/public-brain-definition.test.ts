@@ -46,6 +46,29 @@ describe("public brain definition contract", () => {
     expect(definition.permissions?.rules?.[0]?.level).toBe("trusted");
   });
 
+  it("allows policy-only bundles to target catalog plugins", () => {
+    const fixture = configuredFixture();
+    const team = defineBundle({
+      id: "team",
+      members: [],
+      config: [{ member: fixture, value: { greeting: "shared" } }],
+      permissions: [
+        {
+          member: fixture,
+          config: { rules: [{ pattern: "fixture:*", level: "trusted" }] },
+        },
+      ],
+      evalDisable: [fixture],
+    });
+    const definition = defineBrain({
+      name: "policy-brain",
+      plugins: [fixture],
+      bundles: [team],
+    });
+
+    expect(definition.bundles?.[0]).toBe(team);
+  });
+
   it("rejects duplicate local ids from different packages", () => {
     const first = configuredFixture();
     const second = configuredFixture();
@@ -72,5 +95,25 @@ describe("public brain definition contract", () => {
         bundles: [bundle],
       }),
     ).toThrow('bundle "invalid" references a plugin outside its catalog');
+  });
+
+  it("rejects policy targets outside the brain catalog", () => {
+    const included = configuredFixture();
+    const excluded = configuredFixture();
+    const bundle = defineBundle({
+      id: "invalid-policy",
+      members: [],
+      config: [{ member: excluded, value: { greeting: "outside" } }],
+    });
+
+    expect(() =>
+      defineBrain({
+        name: "invalid-policy-brain",
+        plugins: [included],
+        bundles: [bundle],
+      }),
+    ).toThrow(
+      'bundle "invalid-policy" config references a plugin outside its catalog',
+    );
   });
 });

@@ -43,6 +43,7 @@ describe("pilot origin CA bootstrap", () => {
       join(testDir, "pilot.yaml"),
       [
         "brainVersion: 0.2.0-alpha.3",
+        "bundleContract: capability-bundles-v1",
         "bundles:",
         "  - core",
         "githubOrg: rizom-ai",
@@ -242,6 +243,7 @@ describe("pilot origin CA bootstrap", () => {
       join(testDir, "pilot.yaml"),
       [
         "brainVersion: 0.2.0-alpha.3",
+        "bundleContract: capability-bundles-v1",
         "bundles:",
         "  - core",
         "githubOrg: rizom-ai",

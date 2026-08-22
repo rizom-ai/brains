@@ -103,6 +103,7 @@ export interface ResolvedUserIdentity {
   handle: string;
   cohort: string;
   brainVersion: string;
+  bundleContract: PilotConfig["bundleContract"];
   bundles: CanonicalBundleId[];
   add: string[];
   remove: string[];
@@ -208,6 +209,7 @@ export async function loadPilotRegistry(
         handle: userFile.data.handle,
         cohort: cohort.id,
         brainVersion,
+        bundleContract: pilot.bundleContract,
         bundles: [...(cohort.data.bundlesOverride ?? pilot.bundles)],
         add: uniqueStrings([
           ...(cohort.data.addOverride ??

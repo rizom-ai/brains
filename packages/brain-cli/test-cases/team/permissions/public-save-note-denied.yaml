@@ -7,7 +7,7 @@ type: tool_invocation
 setup:
   permissionLevel: public
 tags:
-  - posture-team
+  - recipe-team
   - team
   - permissions
   - public

@@ -14,6 +14,11 @@ function createShellWithA2A(): ReturnType<typeof createMockShell> {
     domain: "brain.example.com",
     profileKind: "professional",
   });
+  const getPluginPackageName = shell.getPluginPackageName.bind(shell);
+  shell.getPluginPackageName = (pluginId): string | undefined =>
+    pluginId === "webserver"
+      ? "@brains/webserver"
+      : getPluginPackageName(pluginId);
   shell.getProfileKindRegistry().register("test", {
     kind: "professional",
     category: "person",

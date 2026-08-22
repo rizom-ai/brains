@@ -1,0 +1,28 @@
+id: recipe-headless-list-notes
+name: Headless brain lists durable notes
+description: Verifies that the core-only recipe can browse imported note content.
+type: tool_invocation
+setup:
+  permissionLevel: admin
+tags:
+  - recipe-headless
+  - headless
+  - core
+  - tool-invocation
+
+turns:
+  - userMessage: "List my saved notes."
+
+successCriteria:
+  expectedTools:
+    - toolName: system_list
+      shouldBeCalled: true
+      argsContain:
+        entityType: note
+  responseNotContains:
+    - "I cannot"
+    - "no note capability"
+
+efficiency:
+  maxToolCalls: 3
+  maxTokens: 20000

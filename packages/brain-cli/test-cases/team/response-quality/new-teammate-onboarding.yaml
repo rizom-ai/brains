@@ -19,7 +19,7 @@ type: response_quality
 setup:
   permissionLevel: admin
 tags:
-  - posture-team
+  - recipe-team
   - team
   - scenario
   - real-user
