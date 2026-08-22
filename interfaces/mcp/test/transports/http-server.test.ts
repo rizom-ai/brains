@@ -11,6 +11,7 @@ import { StreamableHTTPServer } from "../../src/transports/http-server";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { IMCPTransport, ToolVisibility } from "@brains/mcp-service";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
+import { LATEST_PROTOCOL_VERSION } from "@modelcontextprotocol/sdk/types.js";
 import type { TransportLogger } from "../../src/transports/types";
 
 // Test helper types
@@ -102,6 +103,28 @@ async function makeRequest(
   };
 }
 
+function createInitializeRequest(): {
+  jsonrpc: "2.0";
+  method: "initialize";
+  params: {
+    protocolVersion: typeof LATEST_PROTOCOL_VERSION;
+    capabilities: Record<string, never>;
+    clientInfo: { name: string; version: string };
+  };
+  id: number;
+} {
+  return {
+    jsonrpc: "2.0",
+    method: "initialize",
+    params: {
+      protocolVersion: LATEST_PROTOCOL_VERSION,
+      capabilities: {},
+      clientInfo: { name: "test-client", version: "1.0.0" },
+    },
+    id: 1,
+  };
+}
+
 async function initializeSession(
   port: number,
   headers: Record<string, string>,
@@ -109,16 +132,7 @@ async function initializeSession(
   const response = await makeRequest("POST", "/mcp", {
     port,
     headers,
-    body: {
-      jsonrpc: "2.0",
-      method: "initialize",
-      params: {
-        protocolVersion: "2024-11-05",
-        capabilities: {},
-        clientInfo: { name: "test-client", version: "1.0.0" },
-      },
-      id: 1,
-    },
+    body: createInitializeRequest(),
   });
   expect(response.status).toBe(200);
   const sessionId = response.headers["mcp-session-id"];
@@ -354,19 +368,7 @@ describe("StreamableHTTPServer", () => {
     });
 
     test("should handle initialization request", async () => {
-      const initRequest = {
-        jsonrpc: "2.0",
-        method: "initialize",
-        params: {
-          protocolVersion: "2024-11-05",
-          capabilities: {},
-          clientInfo: {
-            name: "test-client",
-            version: "1.0.0",
-          },
-        },
-        id: 1,
-      };
+      const initRequest = createInitializeRequest();
 
       const response = await makeRequest("POST", "/mcp", {
         port,
@@ -377,7 +379,7 @@ describe("StreamableHTTPServer", () => {
       expect(response.body).toMatchObject({
         jsonrpc: "2.0",
         result: {
-          protocolVersion: "2024-11-05",
+          protocolVersion: LATEST_PROTOCOL_VERSION,
           capabilities: expect.any(Object),
           serverInfo: {
             name: "test-server",
@@ -418,20 +420,9 @@ describe("StreamableHTTPServer", () => {
       expect(server.getSessionCount()).toBe(0);
 
       // Initialize a session
-      const initRequest = {
-        jsonrpc: "2.0",
-        method: "initialize",
-        params: {
-          protocolVersion: "2024-11-05",
-          capabilities: {},
-          clientInfo: { name: "test-client", version: "1.0.0" },
-        },
-        id: 1,
-      };
-
       await makeRequest("POST", "/mcp", {
         port,
-        body: initRequest,
+        body: createInitializeRequest(),
       });
 
       expect(server.getSessionCount()).toBe(1);
@@ -568,16 +559,7 @@ describe("StreamableHTTPServer", () => {
               "Content-Type": "application/json",
               Accept: "application/json, text/event-stream",
             },
-            body: JSON.stringify({
-              jsonrpc: "2.0",
-              method: "initialize",
-              params: {
-                protocolVersion: "2024-11-05",
-                capabilities: {},
-                clientInfo: { name: "test-client", version: "1.0.0" },
-              },
-              id: 1,
-            }),
+            body: JSON.stringify(createInitializeRequest()),
           }),
         );
 
@@ -622,16 +604,7 @@ describe("StreamableHTTPServer", () => {
             "Content-Type": "application/json",
             Accept: "application/json, text/event-stream",
           },
-          body: JSON.stringify({
-            jsonrpc: "2.0",
-            method: "initialize",
-            params: {
-              protocolVersion: "2024-11-05",
-              capabilities: {},
-              clientInfo: { name: "test-client", version: "1.0.0" },
-            },
-            id: 1,
-          }),
+          body: JSON.stringify(createInitializeRequest()),
         }),
       );
 
@@ -664,20 +637,9 @@ describe("StreamableHTTPServer", () => {
       server.connectMCPServer(mcpServer);
 
       // Initialize a session
-      const initRequest = {
-        jsonrpc: "2.0",
-        method: "initialize",
-        params: {
-          protocolVersion: "2024-11-05",
-          capabilities: {},
-          clientInfo: { name: "test-client", version: "1.0.0" },
-        },
-        id: 1,
-      };
-
       await makeRequest("POST", "/mcp", {
         port,
-        body: initRequest,
+        body: createInitializeRequest(),
       });
 
       // Stop server (which should close transports)
@@ -1102,16 +1064,7 @@ describe("StreamableHTTPServer", () => {
           headers: {
             Authorization: "Bearer trusted-token",
           },
-          body: {
-            jsonrpc: "2.0",
-            method: "initialize",
-            params: {
-              protocolVersion: "2024-11-05",
-              capabilities: {},
-              clientInfo: { name: "test-client", version: "1.0.0" },
-            },
-            id: 1,
-          },
+          body: createInitializeRequest(),
         });
 
         expect(response.status).toBe(200);

@@ -197,11 +197,13 @@ export function registerToolOnServer(
   permissionLevel: UserPermissionLevel,
   configuredIsAnchor = false,
 ): void {
-  server.tool(
+  server.registerTool(
     tool.name,
-    tool.description,
-    tool.inputSchema,
-    getToolAnnotations(tool) ?? {},
+    {
+      description: tool.description,
+      inputSchema: tool.inputSchema,
+      annotations: getToolAnnotations(tool) ?? {},
+    },
     async (params, extra) => {
       const interfaceType = extra._meta?.["interfaceType"] ?? "mcp";
       const verifiedSubject = extra.authInfo?.extra?.["subject"];
@@ -299,7 +301,7 @@ export function registerResourceOnServer(
   server: McpServer,
   resource: Resource,
 ): void {
-  server.resource(
+  server.registerResource(
     resource.name,
     resource.uri,
     { description: resource.description, mimeType: resource.mimeType },
@@ -364,10 +366,12 @@ export function registerPromptOnServer(
     ]),
   );
 
-  server.prompt(
+  server.registerPrompt(
     prompt.name,
-    prompt.description ?? "Prompt",
-    argsSchema,
+    {
+      description: prompt.description ?? "Prompt",
+      argsSchema,
+    },
     async (args) => prompt.handler(args as Record<string, string>),
   );
 }

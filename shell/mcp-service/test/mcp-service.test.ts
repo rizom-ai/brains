@@ -911,6 +911,59 @@ describe("MCPService", () => {
       }
     });
 
+    it("forwards request _meta through a protocol client call", async () => {
+      const tool: Tool = {
+        name: "client_metadata",
+        description: "Capture protocol metadata",
+        inputSchema: { input: z.string() },
+        visibility: "public",
+        sideEffects: "none",
+        handler: async () => ({ success: true, data: "ok" }),
+      };
+
+      mcpService.registerTool("metadata-plugin", tool);
+
+      const client = new Client({ name: "mcp-test", version: "1.0.0" });
+      const mcpServer = mcpService.createMcpServer("public");
+      const [clientTransport, serverTransport] =
+        InMemoryTransport.createLinkedPair();
+
+      await mcpServer.connect(serverTransport);
+      await client.connect(clientTransport);
+      try {
+        await client.callTool({
+          name: "client_metadata",
+          arguments: { input: "value" },
+          _meta: {
+            progressToken: "progress-2",
+            interfaceType: "matrix",
+            conversationId: "conversation-1",
+            channelId: "room-1",
+            channelName: "Room One",
+          },
+        });
+
+        expect(mockMessageBus.send).toHaveBeenCalledWith({
+          type: "plugin:metadata-plugin:tool:execute",
+          payload: expect.objectContaining({
+            toolName: "client_metadata",
+            args: { input: "value" },
+            progressToken: "progress-2",
+            hasProgress: true,
+            interfaceType: "matrix",
+            conversationId: "conversation-1",
+            channelId: "room-1",
+            channelName: "Room One",
+            userPermissionLevel: "public",
+          }),
+          sender: "MCPService",
+        });
+      } finally {
+        await client.close();
+        await mcpServer.close();
+      }
+    });
+
     it("should create fresh servers with tools filtered by explicit permission in debug mode", () => {
       mcpService.setProtocolMode("debug");
       const publicTool: Tool = {
@@ -1386,7 +1439,135 @@ describe("MCPService", () => {
     });
   });
 
+  describe("protocol resource registration", () => {
+    it("advertises and reads a plain resource through an MCP client", async () => {
+      const resource: Resource = {
+        name: "entity-types",
+        uri: "entity://types",
+        description: "Available entity types",
+        mimeType: "text/plain",
+        handler: async () => ({
+          contents: [
+            {
+              text: "note\nlink",
+              uri: "entity://types",
+              mimeType: "text/plain",
+            },
+          ],
+        }),
+      };
+
+      mcpService.registerResource("system", resource);
+
+      const client = new Client({ name: "mcp-test", version: "1.0.0" });
+      const mcpServer = mcpService.createMcpServer("admin");
+      const [clientTransport, serverTransport] =
+        InMemoryTransport.createLinkedPair();
+
+      await mcpServer.connect(serverTransport);
+      await client.connect(clientTransport);
+      try {
+        const listed = await client.listResources();
+        expect(listed.resources).toEqual([
+          {
+            name: "entity-types",
+            uri: "entity://types",
+            description: "Available entity types",
+            mimeType: "text/plain",
+          },
+        ]);
+
+        const read = await client.readResource({ uri: "entity://types" });
+        expect(read.contents).toEqual([
+          {
+            text: "note\nlink",
+            uri: "entity://types",
+            mimeType: "text/plain",
+          },
+        ]);
+      } finally {
+        await client.close();
+        await mcpServer.close();
+      }
+    });
+  });
+
   describe("prompt registration", () => {
+    it("advertises prompt argument schemas and renders through an MCP client", async () => {
+      const prompt: Prompt = {
+        name: "create",
+        description: "Create new content",
+        args: {
+          type: { description: "Entity type", required: true },
+          topic: { description: "Topic or title" },
+        },
+        handler: async ({ type, topic }) => ({
+          messages: [
+            {
+              role: "user",
+              content: {
+                type: "text",
+                text: `Create a new ${type} about: ${topic ?? "anything"}`,
+              },
+            },
+          ],
+        }),
+      };
+
+      mcpService.registerPrompt("system", prompt);
+
+      const client = new Client({ name: "mcp-test", version: "1.0.0" });
+      const mcpServer = mcpService.createMcpServer("admin");
+      const [clientTransport, serverTransport] =
+        InMemoryTransport.createLinkedPair();
+
+      await mcpServer.connect(serverTransport);
+      await client.connect(clientTransport);
+      try {
+        const listed = await client.listPrompts();
+        expect(listed.prompts).toEqual([
+          {
+            name: "create",
+            description: "Create new content",
+            arguments: [
+              {
+                name: "type",
+                description: "Entity type",
+                required: true,
+              },
+              {
+                name: "topic",
+                description: "Topic or title",
+                required: false,
+              },
+            ],
+          },
+        ]);
+
+        const rendered = await client.getPrompt({
+          name: "create",
+          arguments: { type: "note", topic: "MCP migration" },
+        });
+        expect(rendered.messages).toEqual([
+          {
+            role: "user",
+            content: {
+              type: "text",
+              text: "Create a new note about: MCP migration",
+            },
+          },
+        ]);
+
+        // eslint-disable-next-line @typescript-eslint/await-thenable
+        await expect(
+          client.getPrompt({ name: "create", arguments: {} }),
+        ).rejects.toThrow();
+      } finally {
+        await client.close();
+        await mcpServer.close();
+      }
+    });
+
     it("should register a prompt without throwing", () => {
       const prompt: Prompt = {
         name: "create",
