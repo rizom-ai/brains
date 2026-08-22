@@ -1,6 +1,6 @@
 {
   "name": "@brains/db",
-  "version": "0.2.0-alpha.317",
+  "version": "0.2.0-alpha.318",
   "dependencies": {
     "@brains/utils": "workspace:*",
     "@libsql/client": "^0.17.4",

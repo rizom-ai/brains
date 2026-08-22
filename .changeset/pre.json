@@ -282,6 +282,7 @@
     "core--fenced-job-attempts",
     "core--fix-professional-profile-view-schema",
     "core--fold-notification-contracts",
+    "core--git-authoritative-entity-convergence",
     "core--git-broker-env-interpolation",
     "core--git-child-lifecycle",
     "core--git-execution-broker-recovery-fixes",

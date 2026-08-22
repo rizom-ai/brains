@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.318
+
+### Patch Changes
+
+- [#162](https://github.com/rizom-ai/brains/pull/162) [`5ae10a8`](https://github.com/rizom-ai/brains/commit/5ae10a882c77ee3a9a9603df07ad1769d8a1326d) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Keep Git authoritative for durable entities by deleting database rows that have no valid or quarantined source file, exporting scheduler projection writes through normal entity lifecycle events, preserving projection provenance across unchanged imports, and preventing skill derivation from deleting or overwriting authored skills.
+
 ## 0.2.0-alpha.317
 
 ## 0.2.0-alpha.316
