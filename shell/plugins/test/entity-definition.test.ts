@@ -1556,6 +1556,91 @@ describe("entity package definitions", () => {
     harness.reset();
   });
 
+  // The runtime puts two fields into an allocated job's data — which entity
+  // to fill in, and what it looked like when it was allocated. Neither is
+  // the author's to declare, and a declared schema strips what it does not
+  // name, so the hash that makes a concurrent edit win was being dropped on
+  // the way to the queue.
+  it("keeps the fields it allocated in a job's data, declared or not", async () => {
+    const guide = defineEntity({
+      type: "guide",
+      purpose: "A guide filled in by a job.",
+      metadata: z.object({ title: z.string() }),
+      jobs: {
+        import: {
+          input: z.object({ uploadId: z.string() }),
+          generate: async (): Promise<EntityGenerationResult> => ({
+            success: true,
+            content: "Imported",
+            metadata: { title: "Imported" },
+          }),
+        } satisfies EntityGenerationJobDeclaration<
+          z.ZodObject<{ uploadId: z.ZodString }>
+        >,
+        reindex: {
+          input: z.object({ guideId: z.string() }),
+          handle: async (): Promise<{ done: true }> => ({ done: true }),
+        },
+      },
+    });
+    const definition = defineEntityPackage({ id: "guides", entities: [guide] });
+    const plugin = createEntityPackagePlugins(
+      definition.entities,
+      definition.projections,
+      { name: "@fixture/guides", version: "0.1.0" },
+      (id) => `@fixture/guides:${id}`,
+    )[0];
+    if (!plugin) throw new Error("Guide entity plugin was not created");
+
+    const harness = createPluginHarness({
+      logger: createSilentLogger("entity-allocation-fields-test"),
+    });
+    const handlers = new Map<string, JobHandler>();
+    const mockShell = harness.getMockShell();
+    const jobQueue = mockShell.getJobQueueService();
+    const trackingJobQueue = {
+      ...jobQueue,
+      registerHandler: (type: string, handler: JobHandler): void => {
+        handlers.set(type, handler);
+      },
+    };
+    mockShell.getJobQueueService = (): ReturnType<
+      typeof mockShell.getJobQueueService
+    > => trackingJobQueue;
+    await harness.installPlugin(plugin);
+
+    const importHandler = handlers.get("@fixture/guides:guide:import");
+    if (!importHandler) throw new Error("Import handler was not registered");
+    expect(
+      importHandler.validateAndParse({
+        uploadId: "upload-1",
+        entityId: "allocated",
+        expectedContentHash: "hash-1",
+      }),
+    ).toEqual({
+      uploadId: "upload-1",
+      entityId: "allocated",
+      expectedContentHash: "hash-1",
+    });
+    // Still the author's schema that decides what is valid.
+    expect(
+      importHandler.validateAndParse({ entityId: "allocated" }),
+    ).toBeNull();
+
+    // A job that owns its own outcome is not filling in anything the runtime
+    // allocated, so nothing is added to what it declared.
+    const reindexHandler = handlers.get("@fixture/guides:guide:reindex");
+    if (!reindexHandler) throw new Error("Reindex handler was not registered");
+    expect(
+      reindexHandler.validateAndParse({
+        guideId: "first",
+        expectedContentHash: "hash-1",
+      }),
+    ).toEqual({ guideId: "first" });
+
+    harness.reset();
+  });
+
   // Some creates finish immediately rather than becoming a job: a wish
   // deduplicates against what exists and either raises a count or starts a
   // new one, and the caller wants to know which. `resolve` keeps the
