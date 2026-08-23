@@ -76,24 +76,24 @@ export const SCREEN_STYLES = `
 .brain-screen .term-mock { padding: 12px 14px; font-family: var(--scr-mono); font-size: 11.5px; line-height: 1.85; color: rgba(241,234,221,.72); }
 .brain-screen .term-mock .ps { color: #ff8b3d; }
 .brain-screen .term-mock .who { color: #8c82c8; }
-.brain-screen .cms-appbar { display: flex; align-items: center; gap: 14px; padding: 9px 14px; border-bottom: 1px solid rgba(241,234,221,.1); }
-.brain-screen .cms-appbar .crumbs { font-family: var(--scr-mono); font-size: 10px; color: rgba(241,234,221,.4); }
-.brain-screen .cms-appbar .crumbs b { color: rgba(241,234,221,.85); font-weight: 500; }
-.brain-screen .cms-appbar .pub { margin-left: auto; font-size: 11.5px; font-weight: 600; background: #ff8b3d; color: #0a0819; padding: 4px 13px; border-radius: 5px; }
-.brain-screen .cms-cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.9fr); }
-.brain-screen .cms-list { border-right: 1px solid rgba(241,234,221,.09); padding: 8px 0; }
-.brain-screen .cms-item { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; padding: 7px 14px; font-size: 11.5px; color: rgba(241,234,221,.65); border-left: 2px solid transparent; }
-.brain-screen .cms-item.on { background: rgba(255,139,61,.08); border-left-color: #ff8b3d; color: #f1eadd; }
-.brain-screen .cms-kind { font-family: var(--scr-mono); font-size: 8.5px; color: rgba(241,234,221,.32); }
-.brain-screen .cms-md { padding: 13px 18px 15px; font-family: var(--scr-mono); font-size: 11px; line-height: 1.85; color: rgba(241,234,221,.7); }
-.brain-screen .cms-md .mh { color: #ffa366; }
-.brain-screen .cms-md .mfm { color: rgba(140,130,200,.85); }
-.brain-screen .cms-md .msy { color: rgba(241,234,221,.28); }
-.brain-screen .cms-md .mem { font-style: italic; color: #f1eadd; }
-.brain-screen .cms-foot { display: flex; align-items: center; gap: 12px; padding: 8px 14px; border-top: 1px solid rgba(241,234,221,.09); font-family: var(--scr-mono); font-size: 9.5px; color: rgba(241,234,221,.35); }
-.brain-screen .cms-foot .fate { margin-left: auto; display: flex; gap: 6px; }
-.brain-screen .cms-foot .fate span { padding: 2.5px 10px; border: 1px solid rgba(241,234,221,.16); border-radius: 100px; font-size: 8.5px; letter-spacing: .08em; }
-.brain-screen .cms-foot .fate .on { background: #ff8b3d; color: #0a0819; border-color: #ff8b3d; }
+.brain-screen .studio-appbar { display: flex; align-items: center; gap: 14px; padding: 9px 14px; border-bottom: 1px solid rgba(241,234,221,.1); }
+.brain-screen .studio-appbar .crumbs { font-family: var(--scr-mono); font-size: 10px; color: rgba(241,234,221,.4); }
+.brain-screen .studio-appbar .crumbs b { color: rgba(241,234,221,.85); font-weight: 500; }
+.brain-screen .studio-appbar .pub { margin-left: auto; font-size: 11.5px; font-weight: 600; background: #ff8b3d; color: #0a0819; padding: 4px 13px; border-radius: 5px; }
+.brain-screen .studio-cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.9fr); }
+.brain-screen .studio-list { border-right: 1px solid rgba(241,234,221,.09); padding: 8px 0; }
+.brain-screen .studio-item { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; padding: 7px 14px; font-size: 11.5px; color: rgba(241,234,221,.65); border-left: 2px solid transparent; }
+.brain-screen .studio-item.on { background: rgba(255,139,61,.08); border-left-color: #ff8b3d; color: #f1eadd; }
+.brain-screen .studio-kind { font-family: var(--scr-mono); font-size: 8.5px; color: rgba(241,234,221,.32); }
+.brain-screen .studio-md { padding: 13px 18px 15px; font-family: var(--scr-mono); font-size: 11px; line-height: 1.85; color: rgba(241,234,221,.7); }
+.brain-screen .studio-md .mh { color: #ffa366; }
+.brain-screen .studio-md .mfm { color: rgba(140,130,200,.85); }
+.brain-screen .studio-md .msy { color: rgba(241,234,221,.28); }
+.brain-screen .studio-md .mem { font-style: italic; color: #f1eadd; }
+.brain-screen .studio-foot { display: flex; align-items: center; gap: 12px; padding: 8px 14px; border-top: 1px solid rgba(241,234,221,.09); font-family: var(--scr-mono); font-size: 9.5px; color: rgba(241,234,221,.35); }
+.brain-screen .studio-foot .fate { margin-left: auto; display: flex; gap: 6px; }
+.brain-screen .studio-foot .fate span { padding: 2.5px 10px; border: 1px solid rgba(241,234,221,.16); border-radius: 100px; font-size: 8.5px; letter-spacing: .08em; }
+.brain-screen .studio-foot .fate .on { background: #ff8b3d; color: #0a0819; border-color: #ff8b3d; }
 @keyframes brainScreenFlicker { 0%, 100% { opacity: .75; } 50% { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .brain-screen .ifc-status i { animation: none; } }
 @media (max-width: 900px) { .brain-screen .dash-canvas { grid-template-columns: 1fr; } .brain-screen .dash-canvas .ifc-card { grid-column: auto !important; } }
@@ -102,9 +102,9 @@ export const SCREEN_STYLES = `
   .brain-screen .ifc-tabs { overflow-x: auto; }
   /* The studio's library pane becomes a horizontal file strip above the
      manuscript instead of a crushed side column. */
-  .brain-screen .cms-cols { grid-template-columns: 1fr; }
-  .brain-screen .cms-list { display: flex; gap: 2px; overflow-x: auto; padding: 8px 10px; border-right: 0; border-bottom: 1px solid rgba(241,234,221,.09); }
-  .brain-screen .cms-item { flex: none; gap: 6px; padding: 5px 10px; border-left: 0; border-radius: 6px; }
+  .brain-screen .studio-cols { grid-template-columns: 1fr; }
+  .brain-screen .studio-list { display: flex; gap: 2px; overflow-x: auto; padding: 8px 10px; border-right: 0; border-bottom: 1px solid rgba(241,234,221,.09); }
+  .brain-screen .studio-item { flex: none; gap: 6px; padding: 5px 10px; border-left: 0; border-radius: 6px; }
 }
 `;
 
@@ -113,7 +113,7 @@ export function BrainScreenStyles(): JSX.Element {
   return <style>{SCREEN_STYLES}</style>;
 }
 
-/** The CMS studio: a markdown manuscript with the draft→publish flow. */
+/** The Studio studio: a markdown manuscript with the draft→publish flow. */
 export function StudioScreen(): JSX.Element {
   return (
     <div className="brain-screen">
@@ -124,32 +124,32 @@ export function StudioScreen(): JSX.Element {
           <i />
           <span>mira.studio/studio</span>
         </div>
-        <div className="cms-appbar">
+        <div className="studio-appbar">
           <span className="crumbs">
             library / essays / <b>distributed-teams.md</b>
           </span>
           <span className="pub">Publish</span>
         </div>
-        <div className="cms-cols">
-          <div className="cms-list">
-            <div className="cms-item">
+        <div className="studio-cols">
+          <div className="studio-list">
+            <div className="studio-item">
               <span>coordination-unit.md</span>
-              <span className="cms-kind">essay</span>
+              <span className="studio-kind">essay</span>
             </div>
-            <div className="cms-item on">
+            <div className="studio-item on">
               <span>distributed-teams.md</span>
-              <span className="cms-kind">essay</span>
+              <span className="studio-kind">essay</span>
             </div>
-            <div className="cms-item">
+            <div className="studio-item">
               <span>calculator-launch.md</span>
-              <span className="cms-kind">post</span>
+              <span className="studio-kind">post</span>
             </div>
-            <div className="cms-item">
+            <div className="studio-item">
               <span>tms-reading-list.md</span>
-              <span className="cms-kind">note</span>
+              <span className="studio-kind">note</span>
             </div>
           </div>
-          <div className="cms-md">
+          <div className="studio-md">
             <span className="mfm">
               ---
               <br />
@@ -173,7 +173,7 @@ export function StudioScreen(): JSX.Element {
             <br />
           </div>
         </div>
-        <div className="cms-foot">
+        <div className="studio-foot">
           <span>committed a41f2c9 → rizom-ai/mira-content</span>
           <span className="fate">
             <span>draft</span>

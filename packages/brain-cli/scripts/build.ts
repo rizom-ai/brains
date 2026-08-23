@@ -59,8 +59,8 @@ const monorepoRoot = findMonorepoRoot();
 const webChatPackageDir = join(monorepoRoot, "interfaces", "web-chat");
 const webChatUiAssetPath = join(webChatPackageDir, "dist", "ui", "app.js");
 const bundledWebChatUiDir = join(outdir, "ui");
-const cmsPackageDir = join(monorepoRoot, "plugins", "cms");
-const cmsUiAssetPath = join(cmsPackageDir, "dist", "ui", "cms-app.js");
+const studioPackageDir = join(monorepoRoot, "plugins", "studio");
+const studioUiAssetPath = join(studioPackageDir, "dist", "ui", "studio-app.js");
 const adminPackageDir = join(monorepoRoot, "plugins", "admin");
 const adminUiAssetPath = join(adminPackageDir, "dist", "ui", "admin-app.js");
 const accountUiAssetPath = join(
@@ -101,18 +101,18 @@ if (!existsSync(webChatUiAssetPath)) {
   process.exit(1);
 }
 
-console.log("Building bundled CMS editor UI...");
-const cmsBuildResult = Bun.spawnSync(["bun", "run", "build"], {
-  cwd: cmsPackageDir,
+console.log("Building bundled Studio editor UI...");
+const studioBuildResult = Bun.spawnSync(["bun", "run", "build"], {
+  cwd: studioPackageDir,
   stdout: "inherit",
   stderr: "inherit",
 });
-if (cmsBuildResult.exitCode !== 0) {
-  console.error("CMS editor UI build failed");
+if (studioBuildResult.exitCode !== 0) {
+  console.error("Studio editor UI build failed");
   process.exit(1);
 }
-if (!existsSync(cmsUiAssetPath)) {
-  console.error(`CMS editor UI asset not found at ${cmsUiAssetPath}`);
+if (!existsSync(studioUiAssetPath)) {
+  console.error(`Studio editor UI asset not found at ${studioUiAssetPath}`);
   process.exit(1);
 }
 
@@ -394,10 +394,10 @@ const webChatSourceMapPath = `${webChatUiAssetPath}.map`;
 if (existsSync(webChatSourceMapPath)) {
   cpSync(webChatSourceMapPath, join(bundledWebChatUiDir, "app.js.map"));
 }
-cpSync(cmsUiAssetPath, join(bundledWebChatUiDir, "cms-app.js"));
-const cmsSourceMapPath = `${cmsUiAssetPath}.map`;
-if (existsSync(cmsSourceMapPath)) {
-  cpSync(cmsSourceMapPath, join(bundledWebChatUiDir, "cms-app.js.map"));
+cpSync(studioUiAssetPath, join(bundledWebChatUiDir, "studio-app.js"));
+const studioSourceMapPath = `${studioUiAssetPath}.map`;
+if (existsSync(studioSourceMapPath)) {
+  cpSync(studioSourceMapPath, join(bundledWebChatUiDir, "studio-app.js.map"));
 }
 cpSync(adminUiAssetPath, join(bundledWebChatUiDir, "admin-app.js"));
 const adminSourceMapPath = `${adminUiAssetPath}.map`;

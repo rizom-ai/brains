@@ -3,7 +3,7 @@
 "@brains/plugins": patch
 "@brains/console-theme": patch
 "@brains/dashboard": patch
-"@brains/cms": patch
+"@brains/studio": patch
 "@brains/admin": patch
 "@brains/web-chat": patch
 ---

@@ -165,7 +165,7 @@ For every bundle posture it checks:
 - unauthenticated `POST https://<handle>.rizom.ai/mcp` returns the expected auth failure;
 - background jobs are not repeatedly failing, except for missing optional integrations.
 
-A `core`-only instance is MCP-only; a bare `GET /` may return `401` without indicating a bad deploy. When `site` is selected, verification also checks the browser and CMS/login surfaces.
+A `core`-only instance is MCP-only; a bare `GET /` may return `401` without indicating a bad deploy. When `site` is selected, verification also checks the browser and Studio/login surfaces.
 
 Manual checks that remain:
 
@@ -175,7 +175,7 @@ Manual checks that remain:
 
 ## One-user canonical site canary
 
-Run this before adding custom site/theme packages or rolling a larger browser/CMS-first cohort.
+Run this before adding custom site/theme packages or rolling a larger browser/Studio-first cohort.
 
 1. Create or choose a canary cohort with explicit bundles:
 
@@ -187,7 +187,7 @@ Run this before adding custom site/theme packages or rolling a larger browser/CM
    ```
 
 2. Add exactly one canary user to that cohort.
-3. For browser/CMS-first onboarding, configure setup email in `users/<handle>.yaml`:
+3. For browser/Studio-first onboarding, configure setup email in `users/<handle>.yaml`:
 
    ```yaml
    setup:
@@ -234,14 +234,14 @@ separate packages.
 2. Apply the exact package names and versions to one healthy canonical site canary.
 3. Reconcile the canary, push the generated output, and let build/deploy create its site image.
 4. Run `bunx brains-ops verify-user . <handle>`.
-5. Manually verify the site, theme, CMS, content sync, and passkey sign-in before adding more users.
+5. Manually verify the site, theme, Studio, content sync, and passkey sign-in before adding more users.
 
 To roll back, remove or change `siteOverride`, reconcile, and redeploy that user.
 The default image and other users remain untouched.
 
 ## Setup email checklist
 
-Use this for browser/CMS-first users who should receive their own first-passkey setup link by email.
+Use this for browser/Studio-first users who should receive their own first-passkey setup link by email.
 
 1. Add setup delivery to the user file:
 
@@ -262,7 +262,7 @@ Use this for browser/CMS-first users who should receive their own first-passkey 
 4. Verify the generated `users/<handle>/brain.yaml` contains `auth-service.setupEmail` and `email` interface config.
 5. Ask the user to complete passkey setup from the email link, then use:
    - Dashboard: `https://<handle>.rizom.ai/`
-   - CMS: `https://<handle>.rizom.ai/cms`
+   - Studio: `https://<handle>.rizom.ai/studio`
 
 Notes:
 

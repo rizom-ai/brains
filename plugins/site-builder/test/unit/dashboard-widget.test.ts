@@ -26,11 +26,11 @@ const siteHealth = {
       },
     },
   ],
-  managementUrl: "/cms/workspaces/site",
+  managementUrl: "/studio/workspaces/site",
 };
 
 describe("SiteHealthWidget", () => {
-  it("renders a read-only Publishing tab digest with CMS management link", () => {
+  it("renders a read-only Publishing tab digest with Studio management link", () => {
     const html = render(
       h(SiteHealthWidget, { title: "Site health", data: siteHealth }),
     );
@@ -42,7 +42,7 @@ describe("SiteHealthWidget", () => {
     expect(html).toContain("Template failed");
     expect(html).toContain("Open preview");
     expect(html).toContain("Open live");
-    expect(html).toContain("Open in CMS");
+    expect(html).toContain("Open in Studio");
     expect(html).toContain("widget-action--primary");
     expect(html).not.toContain("Build preview");
     expect(html).not.toContain("Update live site");

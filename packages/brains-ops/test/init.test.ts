@@ -502,13 +502,13 @@ describe("initPilotRepo", () => {
       "utf8",
     );
     // Secrets are emitted through writeSecretGitHubEnv, which masks the value
-    // and skips empties. CMS_CONTENT_REPO_PAT falls back to the git-sync token.
+    // and skips empties. STUDIO_CONTENT_REPO_PAT falls back to the git-sync token.
     // Optional per-user ATProto and custom-domain TLS values override shared
     // deploy env only when they are present in the encrypted user payload.
     expect(decryptUserSecretsScript).toContain(
       'writeSecretGitHubEnv("AI_API_KEY"',
     );
-    expect(decryptUserSecretsScript).toContain('"CMS_CONTENT_REPO_PAT"');
+    expect(decryptUserSecretsScript).toContain('"STUDIO_CONTENT_REPO_PAT"');
     expect(decryptUserSecretsScript).toContain("maskGitHubSecret");
     expect(decryptUserSecretsScript).toContain(
       'writeSecretGitHubEnv("ATPROTO_APP_PASSWORD"',
@@ -690,11 +690,11 @@ describe("initPilotRepo", () => {
     expect(userOnboarding).toContain("Welcome to your brain");
     expect(userOnboarding).toContain("https://<handle>.rizom.ai/chat");
     expect(userOnboarding).toContain("https://<handle>.rizom.ai/");
-    expect(userOnboarding).toContain("https://<handle>.rizom.ai/cms");
+    expect(userOnboarding).toContain("https://<handle>.rizom.ai/studio");
     expect(userOnboarding).toContain("asked to set a passkey");
     expect(userOnboarding).toContain("## What it is");
     expect(userOnboarding).toContain("## Your first five minutes");
-    expect(userOnboarding).toContain("## Chat or CMS?");
+    expect(userOnboarding).toContain("## Chat or Studio?");
     expect(userOnboarding).toContain("## Other interfaces and peer brains");
     expect(userOnboarding).toContain("## Connecting other tools");
     expect(userOnboarding).toContain("## Your access details");

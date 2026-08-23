@@ -376,7 +376,7 @@ describe("Admin surface", () => {
       "The professional Anchor cannot be suspended.",
     );
     expect(anchorUser).not.toContain("Change role");
-    expect(anchorUser).toContain("Edit in CMS");
+    expect(anchorUser).toContain("Edit in Studio");
   });
 
   it("points the signed-in admin to /account for their own credentials", () => {

@@ -39,10 +39,10 @@ cd mybrain && brain start
 
 That's it. You now have:
 
-- A web server on `localhost:3000` serving your site plus browser routes like `/dashboard` and `/cms`
+- A web server on `localhost:3000` serving your site plus browser routes like `/dashboard` and `/studio`
 - An MCP server on `localhost:3001` your AI assistant can connect to
 - An A2A endpoint on `localhost:3002` for agent-to-agent calls
-- A dashboard at `localhost:3000/dashboard` and CMS at `localhost:3000/cms`
+- A dashboard at `localhost:3000/dashboard` and Studio at `localhost:3000/studio`
 - Markdown files in `./brain-data/` you can edit with any editor
 
 Connect Claude Desktop or Cursor by adding to your MCP config:

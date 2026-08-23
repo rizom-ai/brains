@@ -1,5 +1,5 @@
 ---
-"@brains/cms": patch
+"@brains/studio": patch
 "@brains/plugins": patch
 ---
 

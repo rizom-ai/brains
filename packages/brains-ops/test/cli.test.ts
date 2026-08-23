@@ -667,7 +667,7 @@ members:
 
           if (
             url === "https://alice.rizom.ai/" ||
-            url === "https://alice.rizom.ai/cms"
+            url === "https://alice.rizom.ai/studio"
           ) {
             return Promise.resolve(new Response("ok", { status: 200 }));
           }
@@ -679,13 +679,13 @@ members:
 
     expect(result.success).toBe(true);
     expect(result.message).toBe(
-      "Verified alice (core,site,publishing) at https://alice.rizom.ai: health, mcp-auth-gate, site, cms",
+      "Verified alice (core,site,publishing) at https://alice.rizom.ai: health, mcp-auth-gate, site, studio",
     );
     expect(requestedUrls).toEqual([
       "GET https://alice.rizom.ai/health/operate",
       "POST https://alice.rizom.ai/mcp",
       "GET https://alice.rizom.ai/",
-      "GET https://alice.rizom.ai/cms",
+      "GET https://alice.rizom.ai/studio",
     ]);
     expect(warnings).toEqual([
       "WARN Manual check still required: passkey setup/handoff completed from the setup email.",

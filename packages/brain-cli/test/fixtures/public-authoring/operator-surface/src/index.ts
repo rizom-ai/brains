@@ -2,7 +2,7 @@ import { bookmark, readingDigest } from "@fixture/reading-entities";
 import { compileReadingDigest } from "@fixture/reading-insights";
 import {
   defineAccountSettings,
-  defineCmsWorkspace,
+  defineStudioWorkspace,
   defineDashboardWidget,
   defineServicePlugin,
   defineWorkspaceAction,
@@ -58,7 +58,7 @@ const readingWorkspaceData = z.object({
   digestCount: z.number().int().nonnegative(),
 });
 
-const readingWorkspace = defineCmsWorkspace({
+const readingWorkspace = defineStudioWorkspace({
   id: "reading-library",
   label: "Reading library",
   description: "Review saved pages and refresh their durable digests.",
@@ -225,7 +225,7 @@ export default defineServicePlugin({
     }),
   ],
 
-  cmsWorkspaces: (context) => {
+  studioWorkspaces: (context) => {
     const refreshDigestHandler = refreshDigest.bind(
       context,
       async ({ input, jobs, signal }) => {

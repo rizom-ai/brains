@@ -7,12 +7,29 @@ const route = (
 ): { pluginId: string; fullPath: string } => ({ pluginId, fullPath });
 
 describe("deriveConsoleSurfaces", () => {
+  it("derives the canonical Studio door from the Studio plugin", () => {
+    const surfaces = deriveConsoleSurfaces(
+      [route("dashboard", "/dashboard"), route("studio", "/studio")],
+      { activeId: "dashboard", permissionLevel: "trusted" },
+    );
+
+    expect(surfaces).toEqual([
+      {
+        id: "dashboard",
+        label: "Dashboard",
+        href: "/dashboard",
+        isActive: true,
+      },
+      { id: "studio", label: "Studio", href: "/studio", isActive: false },
+    ]);
+  });
+
   const allSurfaceRoutes = [
     route("dashboard", "/dashboard"),
     route("web-chat", "/chat"),
     route("web-chat", "/chat/api/messages"),
-    route("cms", "/cms"),
-    route("cms", "/cms/api/types"),
+    route("studio", "/studio"),
+    route("studio", "/studio/api/types"),
     route("admin", "/admin"),
     route("admin", "/admin/assets/app.js"),
   ];
@@ -31,7 +48,7 @@ describe("deriveConsoleSurfaces", () => {
         isActive: true,
       },
       { id: "web-chat", label: "Chat", href: "/chat", isActive: false },
-      { id: "cms", label: "CMS", href: "/cms", isActive: false },
+      { id: "studio", label: "Studio", href: "/studio", isActive: false },
       { id: "admin", label: "Admin", href: "/admin", isActive: false },
     ]);
   });
@@ -42,9 +59,13 @@ describe("deriveConsoleSurfaces", () => {
       permissionLevel: "trusted",
     });
 
-    // Trusted sees public (dashboard) and trusted (chat, CMS), never the
+    // Trusted sees public (dashboard) and trusted (chat, Studio), never the
     // admin-only Admin console.
-    expect(surfaces.map((s) => s.id)).toEqual(["dashboard", "web-chat", "cms"]);
+    expect(surfaces.map((s) => s.id)).toEqual([
+      "dashboard",
+      "web-chat",
+      "studio",
+    ]);
   });
 
   it("shows a Public caller only public surfaces", () => {
@@ -123,14 +144,14 @@ describe("deriveConsoleSurfaces", () => {
   it("uses the shortest registered path as the surface door", () => {
     const surfaces = deriveConsoleSurfaces(
       [
-        route("cms", "/cms/api/entities/post"),
-        route("cms", "/cms"),
-        route("cms", "/cms/assets/app.js"),
+        route("studio", "/studio/api/entities/post"),
+        route("studio", "/studio"),
+        route("studio", "/studio/assets/app.js"),
       ],
-      { activeId: "cms", permissionLevel: "admin" },
+      { activeId: "studio", permissionLevel: "admin" },
     );
 
-    expect(surfaces.find((s) => s.id === "cms")?.href).toBe("/cms");
+    expect(surfaces.find((s) => s.id === "studio")?.href).toBe("/studio");
   });
 
   it("keeps the rendering surface even without a readable registration", () => {

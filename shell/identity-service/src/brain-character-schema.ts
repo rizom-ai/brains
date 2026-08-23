@@ -51,7 +51,7 @@ export const brainCharacterBodySchema: BrainCharacterBodySchema = z.object({
 export type BrainCharacterFrontmatterSchema = BrainCharacterBodySchema;
 
 /**
- * Brain character frontmatter schema for CMS editing
+ * Brain character frontmatter schema for Studio editing
  * Same shape as body schema — all character data is structured fields
  */
 export const brainCharacterFrontmatterSchema: BrainCharacterFrontmatterSchema =

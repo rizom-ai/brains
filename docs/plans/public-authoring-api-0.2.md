@@ -9,7 +9,7 @@
 | Area                        | Result                                                                                                                                                                                                                                 |
 | --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Core authoring paths        | Entity, service, site, generic-interface, message-interface, and brain-definition fixtures compile and run through focused and packed evidence.                                                                                        |
-| Additive operator authoring | Separate account-settings and operator-surface fixtures prove encrypted account lifecycle plus host-rendered Dashboard/CMS semantics, including bounded card and primary/aside columns composition.                                    |
+| Additive operator authoring | Separate account-settings and operator-surface fixtures prove encrypted account lifecycle plus host-rendered Dashboard/Studio semantics, including bounded card and primary/aside columns composition.                                 |
 | Exact registry baseline     | All eight packages pack and import against `@rizom/brain@0.2.0-alpha.313` and `@rizom/site@0.2.0-alpha.233`.                                                                                                                           |
 | Historical peer floors      | The original six fixtures retain `alpha.272`; account settings retains `alpha.304`; complete operator composition requires `alpha.313`.                                                                                                |
 | Publication hygiene         | `@rizom/brain/site` is absent, the workspace `@rizom/site-sections` package is removed, and [Site Release evidence](https://github.com/rizom-ai/brains/actions/runs/31319970155) verifies all 73 published section alphas are retired. |
@@ -24,7 +24,7 @@
 3. **Obtain explicit release authorization.** A green plan, CI run, or evidence matrix does not authorize `changeset pre exit`, stable npm publication, workflow dispatch, or dist-tag mutation. Each stable release action requires a separate explicit yes/no approval.
 4. **Publish and freeze the stable baseline.** Run the tested site-first coordinated release, publish stable Brain only after its automated exact registry gate passes, then freeze all eight current fixtures as the immutable `0.2.0` compatibility baseline and retire phase-oriented suite names.
 
-The five core extension packages and brain-definition canary remain the primary general authoring documentation. The two additive operator packages are independent compatibility fixtures for account settings and Dashboard/CMS authoring. This plan is narrower than general plugin-system cleanup: it freezes only those accepted public paths.
+The five core extension packages and brain-definition canary remain the primary general authoring documentation. The two additive operator packages are independent compatibility fixtures for account settings and Dashboard/Studio authoring. This plan is narrower than general plugin-system cleanup: it freezes only those accepted public paths.
 
 ## Goal
 
@@ -46,14 +46,14 @@ For the `0.2.x` line:
 
 The current API is **alpha-usable, not stable-complete**.
 
-| Golden use case             | Proven alpha evidence                                                                                                                      | Remaining nomination gate                                                                     |
-| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------- |
-| Custom entity type          | Declarative schema/codec package; visibility-safe CRUD/FTS, projection convergence, restart durability, and packed worker execution        | Live embedding completion and semantic ranking against the final alpha                        |
-| Custom service plugin       | Declarative config/setup/tools/jobs; typed durable enqueue/result/progress, confirmation replay, restart recovery, and worker isolation    | Model-triggered confirmation/progress evidence plus the final criteria 12/15 and sweep audits |
-| Account/operator extensions | Encrypted account lifecycle plus host-rendered Dashboard/CMS views, typed catalogs/actions, prepared confirmation, and bounded composition | Final-alpha registry rerun and inclusion in the frozen stable baseline                        |
-| Custom site                 | One-import `@rizom/site`; canonical validation, isolated typecheck, running-app preview rebuild, full structural output, and alpha matrix  | Authorized stable SDK publication and post-publication exact registry matrix                  |
-| Custom generic interface    | Typed routes/protocol caller resolution, job enqueue, daemon health/shutdown, authentication rejection, and worker exclusion               | Final-alpha refresh and full criterion-17 sweep                                               |
-| Custom message interface    | Descriptor/delivery ownership, normalized send/edit, listener lifecycle, lazy attachment contract, typed failure, and worker exclusion     | Live inbound chat, confirmation, attachment download, and model-backed progress               |
+| Golden use case             | Proven alpha evidence                                                                                                                         | Remaining nomination gate                                                                     |
+| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| Custom entity type          | Declarative schema/codec package; visibility-safe CRUD/FTS, projection convergence, restart durability, and packed worker execution           | Live embedding completion and semantic ranking against the final alpha                        |
+| Custom service plugin       | Declarative config/setup/tools/jobs; typed durable enqueue/result/progress, confirmation replay, restart recovery, and worker isolation       | Model-triggered confirmation/progress evidence plus the final criteria 12/15 and sweep audits |
+| Account/operator extensions | Encrypted account lifecycle plus host-rendered Dashboard/Studio views, typed catalogs/actions, prepared confirmation, and bounded composition | Final-alpha registry rerun and inclusion in the frozen stable baseline                        |
+| Custom site                 | One-import `@rizom/site`; canonical validation, isolated typecheck, running-app preview rebuild, full structural output, and alpha matrix     | Authorized stable SDK publication and post-publication exact registry matrix                  |
+| Custom generic interface    | Typed routes/protocol caller resolution, job enqueue, daemon health/shutdown, authentication rejection, and worker exclusion                  | Final-alpha refresh and full criterion-17 sweep                                               |
+| Custom message interface    | Descriptor/delivery ownership, normalized send/edit, listener lifecycle, lazy attachment contract, typed failure, and worker exclusion        | Live inbound chat, confirmation, attachment download, and model-backed progress               |
 
 ## Author-experience standard
 
@@ -106,7 +106,7 @@ The stable authoring registry is limited to:
 
 - `@rizom/brain` — declarative brain/bundle composition and public definition types;
 - `@rizom/brain/entities` — the complete normal entity-authoring path and advanced entity contracts proven by fixtures;
-- `@rizom/brain/services` — the complete normal service/tool/job-authoring path plus account settings, Dashboard widgets, CMS workspaces, actions, catalogs, and typed semantic views;
+- `@rizom/brain/services` — the complete normal service/tool/job-authoring path plus account settings, Dashboard widgets, Studio workspaces, actions, catalogs, and typed semantic views;
 - `@rizom/brain/interfaces` — generic and message-interface definitions, shared account settings, routes, callers, supervised daemons, channels, delivery, and enqueue-only job contracts;
 - `@rizom/brain/plugins` — advanced shared contracts needed by more than one family, not a second preferred authoring path;
 - `@rizom/brain/templates` — advanced template and renderer contracts; and
@@ -122,7 +122,7 @@ Each external package default-exports a declarative package definition. The runt
 
 - entity persistence and derivation use `defineEntity()` and, when several definitions compose, `defineEntityPackage()`;
 - tools, resources, integrations, and durable work use `defineServicePlugin()`;
-- account/operator capabilities use `defineAccountSettings()`, `defineDashboardWidget()`, `defineCmsWorkspace()`, `defineWorkspaceAction()`, and `defineEntityCatalog()` inside focused service or interface definitions;
+- account/operator capabilities use `defineAccountSettings()`, `defineDashboardWidget()`, `defineStudioWorkspace()`, `defineWorkspaceAction()`, and `defineEntityCatalog()` inside focused service or interface definitions;
 - handler-backed HTTP routes and supervised listeners use `defineInterface()`;
 - conversational and outbound channels use `defineMessageInterface()`.
 
@@ -144,7 +144,7 @@ The compatibility promise covers observable behavior, not just TypeScript compil
 - public/protocol routes use the shared host and protocol identities become canonical callers before permission-sensitive behavior;
 - normalized inbound messages use the shared conversation, agent, confirmation, attachment, and progress runtime;
 - account settings remain encrypted, principal-scoped, and secret-redacted outside account lifecycle callbacks;
-- Dashboard and CMS declarations remain host-rendered, caller-authorized, bounded semantic data and are inert when their optional host is absent; and
+- Dashboard and Studio declarations remain host-rendered, caller-authorized, bounded semantic data and are inert when their optional host is absent; and
 - site packages build through the app-managed site-builder path.
 
 Storage schemas, queue tables, shell objects, internal message channels, and process-role switches remain private.
@@ -448,7 +448,7 @@ Exit gate:
 ### Account and operator surfaces
 
 - shared service/interface `defineAccountSettings()` declarations with encrypted persistence, principal isolation, redacted host contexts, and runtime-owned account supervision;
-- independent Dashboard widget and CMS workspace declarations using their distinct typed semantic profiles;
+- independent Dashboard widget and Studio workspace declarations using their distinct typed semantic profiles;
 - host-owned query state, navigation, authorization floors, dynamic catalogs, actions, prepared confirmation, and bounded text/spatial data;
 - bounded card and primary/aside columns composition with recursive link/intent validation and accessible textual meaning;
 - absent optional hosts are true no-ops, while present hosts reject invalid declarations loudly;

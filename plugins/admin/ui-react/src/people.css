@@ -714,7 +714,7 @@
   color: var(--console-text-muted);
   font-size: 10px;
 }
-.anchor-cms-link {
+.anchor-studio-link {
   width: fit-content;
   color: var(--console-accent);
   font: 600 8px var(--console-mono);
@@ -722,7 +722,7 @@
   text-decoration: none;
   text-transform: uppercase;
 }
-.anchor-cms-link:hover {
+.anchor-studio-link:hover {
   text-decoration: underline;
 }
 

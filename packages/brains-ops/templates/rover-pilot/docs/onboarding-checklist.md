@@ -29,13 +29,13 @@
     - unauthenticated `POST https://<handle>.rizom.ai/mcp` returns the expected auth failure
     - content repo exists and runtime sync is healthy
     - background jobs are not repeatedly failing, except for expected missing optional integrations
-    - when `site` is selected, the browser/CMS surfaces load and the initial app-managed site build completes
+    - when `site` is selected, the browser/Studio surfaces load and the initial app-managed site build completes
 14. For fleet upgrades, edit `pilot.yaml.brainVersion` and push once; CI rebuilds the required default/site image tags, refreshes generated user env files, and redeploys affected users. Every external site and theme package keeps its own required exact version pin and never follows the brain version implicitly.
 15. Confirm the user received the setup email, registered their passkey, and can sign in to web chat at `https://<handle>.rizom.ai/chat`. That completes the default onboarding; everything below is per-cohort extras.
 16. Hand over the browser surfaces:
     - Chat (primary): `https://<handle>.rizom.ai/chat`
     - Dashboard: `https://<handle>.rizom.ai/`
-    - CMS: `https://<handle>.rizom.ai/cms`, plus GitHub token guidance if CMS editing is part of their cohort
+    - Studio: `https://<handle>.rizom.ai/studio`, plus GitHub token guidance if Studio editing is part of their cohort
 17. For Discord-enabled cohorts, hand the Discord setup details to the user as a secondary chat surface.
 18. If they need direct client access (MCP), use OAuth/passkey-capable clients where possible.
 19. If you are also giving them a content repo workflow, describe it as optional and frame git/Obsidian as an advanced file-based path, not the default.

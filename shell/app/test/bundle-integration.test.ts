@@ -79,6 +79,26 @@ preset: core
     ).toThrow(/preset/i);
   });
 
+  test("rejects unmigrated CMS member and plugin keys with an actionable command", () => {
+    const definition = defineBrain({
+      name: "test",
+      version: "1.0.0",
+      capabilities: [["studio", trackingFactory("studio"), {}]],
+      interfaces: [],
+      bundles: [defineBundle({ id: "core", members: ["studio"] })],
+    });
+
+    for (const input of [
+      "brain: brain\nbundles: [core]\nadd: [cms]\n",
+      "brain: brain\nbundles: [core]\nremove: [cms]\n",
+      "brain: brain\nbundles: [core]\nplugins:\n  cms: {}\n",
+    ]) {
+      expect(() =>
+        resolve(definition, {}, parseInstanceOverrides(input)),
+      ).toThrow(/cms.*brain config migrate/i);
+    }
+  });
+
   test("requires explicit selection when a definition declares bundles", () => {
     const definition = defineBrain({
       name: "test",

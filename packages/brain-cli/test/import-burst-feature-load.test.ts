@@ -319,7 +319,7 @@ describe("directory import burst with locally mocked AI features", () => {
             "playbooks",
             "onboarding",
             "email",
-            "cms",
+            "studio",
             "dashboard",
             "admin",
             "mcp",

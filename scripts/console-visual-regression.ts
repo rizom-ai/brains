@@ -3,7 +3,7 @@ import { getErrorMessage } from "@brains/utils/error";
 import path from "node:path";
 import { PNG } from "pngjs";
 import { renderChatPage } from "@brains/web-chat";
-import { renderEditorShellHtml } from "@brains/cms";
+import { renderEditorShellHtml } from "@brains/studio";
 import {
   renderDashboardPageHtml,
   type DashboardRenderInput,
@@ -24,10 +24,10 @@ const CLIMATES = ["instrument", "paper"] as const;
 const SURFACES = [
   { id: "dashboard", label: "Dashboard", href: "/dashboard", isActive: false },
   { id: "web-chat", label: "Chat", href: "/chat", isActive: false },
-  { id: "cms", label: "CMS", href: "/cms", isActive: false },
+  { id: "studio", label: "Studio", href: "/studio", isActive: false },
 ];
 
-const CMS_CAPABILITIES = {
+const editCapabilities = {
   canRead: true,
   canCreate: true,
   canUpdate: true,
@@ -36,6 +36,7 @@ const CMS_CAPABILITIES = {
   canPublish: true,
   canAssist: true,
 };
+
 const types = [
   {
     entityType: "posts",
@@ -43,7 +44,7 @@ const types = [
     isSingleton: false,
     hasBody: true,
     count: 4,
-    capabilities: CMS_CAPABILITIES,
+    capabilities: editCapabilities,
   },
   {
     entityType: "docs",
@@ -51,7 +52,7 @@ const types = [
     isSingleton: false,
     hasBody: true,
     count: 7,
-    capabilities: CMS_CAPABILITIES,
+    capabilities: editCapabilities,
   },
   {
     entityType: "settings",
@@ -59,7 +60,7 @@ const types = [
     isSingleton: true,
     hasBody: false,
     count: 1,
-    capabilities: CMS_CAPABILITIES,
+    capabilities: editCapabilities,
   },
 ];
 const entities = [
@@ -124,7 +125,7 @@ const sessions = [
     lastActiveAt: "2026-07-09T16:30:00.000Z",
   },
   {
-    id: "cms",
+    id: "studio",
     title: "Revise field notes",
     lastActiveAt: "2026-07-08T09:20:00.000Z",
   },
@@ -154,12 +155,12 @@ const messages = [
     content:
       "The shared chrome is aligned across the three operator surfaces. Chat keeps the active conversation compact while the session rail reads as a quiet index.\n\nAt narrow widths, the index moves into a drawer and the composer remains inside the safe area.",
   },
-  { id: "m3", role: "user", content: "And the CMS?" },
+  { id: "m3", role: "user", content: "And the Studio?" },
   {
     id: "m4",
     role: "assistant",
     content:
-      "The CMS preserves its warm editorial climate. Desktop separates colophon from manuscript; tablet and phone retain Details, Write, and Preview.",
+      "The Studio preserves its warm editorial climate. Desktop separates colophon from manuscript; tablet and phone retain Details, Write, and Preview.",
   },
 ];
 // A second, short session pinning the dynamic message states the mockups
@@ -678,14 +679,14 @@ async function checkLayout(
     if (!composer || composer.y + composer.height > viewportHeight + 1)
       throw new Error(`chat composer escaped the viewport at ${width}px`);
   }
-  if (surface.startsWith("cms-") && surface !== "cms-library") {
-    const modes = await elementDisplay(page, ".cms-mobile-modes");
+  if (surface.startsWith("studio-") && surface !== "studio-library") {
+    const modes = await elementDisplay(page, ".studio-mobile-modes");
     if (width <= 640 !== (modes !== "none"))
-      throw new Error(`CMS responsive mode mismatch at ${width}px`);
+      throw new Error(`Studio responsive mode mismatch at ${width}px`);
     if (width <= 900) {
       const pipeline = await elementBounds(page, ".pipeline");
       if (!pipeline || pipeline.y + pipeline.height > viewportHeight + 1)
-        throw new Error(`CMS save bar escaped the viewport at ${width}px`);
+        throw new Error(`Studio save bar escaped the viewport at ${width}px`);
     }
   }
 }
@@ -721,11 +722,11 @@ async function comparePng(
 
 await mkdir(BASELINE_DIR, { recursive: true });
 await mkdir(ARTIFACT_DIR, { recursive: true });
-const cmsAsset = path.join(ROOT, "plugins/cms/dist/ui/cms-app.js");
+const studioAsset = path.join(ROOT, "plugins/studio/dist/ui/studio-app.js");
 const chatAsset = path.join(ROOT, "interfaces/web-chat/dist/ui/app.js");
-await Promise.all([readFile(cmsAsset), readFile(chatAsset)]).catch(() => {
+await Promise.all([readFile(studioAsset), readFile(chatAsset)]).catch(() => {
   throw new Error(
-    "Build @brains/cms and @brains/web-chat UI assets before visual regression.",
+    "Build @brains/studio and @brains/web-chat UI assets before visual regression.",
   );
 });
 
@@ -782,28 +783,28 @@ const server = Bun.serve({
       });
     }
     if (
-      url.pathname === "/cms" ||
-      url.pathname.startsWith("/cms/entities/") ||
-      url.pathname.startsWith("/cms/workspaces/")
+      url.pathname === "/studio" ||
+      url.pathname.startsWith("/studio/entities/") ||
+      url.pathname.startsWith("/studio/workspaces/")
     )
       return new Response(
         climateHtml(
           renderEditorShellHtml({
-            assetPath: "/cms/assets/cms-app.js",
-            basePath: "/cms",
-            surfaces: activeSurfaces("cms"),
+            assetPath: "/studio/assets/studio-app.js",
+            basePath: "/studio",
+            surfaces: activeSurfaces("studio"),
             sessionHref: "/logout",
           }),
           request,
         ),
         { headers: { "content-type": "text/html" } },
       );
-    if (url.pathname === "/cms/assets/cms-app.js")
-      return new Response(await readFile(cmsAsset), {
+    if (url.pathname === "/studio/assets/studio-app.js")
+      return new Response(await readFile(studioAsset), {
         headers: { "content-type": "text/javascript" },
       });
-    if (url.pathname === "/cms/api/types") return json({ types });
-    if (url.pathname === "/cms/api/schema")
+    if (url.pathname === "/studio/api/types") return json({ types });
+    if (url.pathname === "/studio/api/schema")
       return json({
         entityType: "posts",
         format: "frontmatter",
@@ -852,10 +853,10 @@ const server = Bun.serve({
           },
         ],
       });
-    if (url.pathname === "/cms/api/entities" && request.method === "PUT") {
+    if (url.pathname === "/studio/api/entities" && request.method === "PUT") {
       // Saves only happen in the secondary-state scenarios: an emptied
-      // title pins the validation error line (cms-invalid), any other
-      // save pins the reconcile card (cms-conflict).
+      // title pins the validation error line (studio-invalid), any other
+      // save pins the reconcile card (studio-conflict).
       const body = (await request.json()) as {
         frontmatter?: { title?: string };
       };
@@ -877,7 +878,7 @@ const server = Bun.serve({
         { status: 409 },
       );
     }
-    if (url.pathname === "/cms/api/upload") {
+    if (url.pathname === "/studio/api/upload") {
       // Hold the fixture at an observable in-flight boundary until its page
       // closes; teardown releases any request the browser did not abort.
       return new Promise<Response>((resolve) => {
@@ -889,10 +890,10 @@ const server = Bun.serve({
         request.signal.addEventListener("abort", release, { once: true });
       });
     }
-    if (url.pathname === "/cms/api/entities" && url.searchParams.has("id"))
+    if (url.pathname === "/studio/api/entities" && url.searchParams.has("id"))
       return json({ entity });
-    if (url.pathname === "/cms/api/entities") return json({ entities });
-    if (url.pathname === "/cms/api/sync-status")
+    if (url.pathname === "/studio/api/entities") return json({ entities });
+    if (url.pathname === "/studio/api/sync-status")
       return json({
         directorySync: { lastSync: "2026-07-11T16:32:00.000Z", watching: true },
         git: {
@@ -931,23 +932,23 @@ try {
         "chat-cards",
         "chat-empty",
         "chat-drawer",
-        "cms-library",
-        "cms-editor",
-        "cms-delete",
-        "cms-conflict",
-        "cms-invalid",
-        "cms-upload",
+        "studio-library",
+        "studio-editor",
+        "studio-delete",
+        "studio-conflict",
+        "studio-invalid",
+        "studio-upload",
       ] as const) {
         // The sessions drawer only exists at phone widths.
         if (surface === "chat-drawer" && viewport.width > 760) continue;
         // Secondary editor states are pinned at desktop and phone; tablet
         // adds no distinct composition for these overlays and lines.
-        const isCmsSecondary =
-          surface === "cms-delete" ||
-          surface === "cms-conflict" ||
-          surface === "cms-invalid" ||
-          surface === "cms-upload";
-        if (isCmsSecondary && viewport.width === 768) continue;
+        const isStudioSecondary =
+          surface === "studio-delete" ||
+          surface === "studio-conflict" ||
+          surface === "studio-invalid" ||
+          surface === "studio-upload";
+        if (isStudioSecondary && viewport.width === 768) continue;
         console.error(
           `→ ${surface} ${viewport.width}x${viewport.height} ${climate}`,
         );
@@ -966,22 +967,22 @@ try {
         await page.navigate("about:blank");
         await page.cdp("Emulation.setLocaleOverride", { locale: "en-GB" });
         await addVisualInitScript(page, conversationId);
-        const isCmsEditor = surface === "cms-editor" || isCmsSecondary;
+        const isStudioEditor = surface === "studio-editor" || isStudioSecondary;
         const route =
           surface === "dashboard"
             ? "/dashboard"
             : isChat
               ? "/chat"
-              : isCmsEditor
-                ? "/cms/entities/posts/field-notes"
-                : "/cms";
+              : isStudioEditor
+                ? "/studio/entities/posts/field-notes"
+                : "/studio";
         const hash = isChat ? `#s/${conversationId}` : "";
         await navigateToNetworkIdle(
           page,
           `http://127.0.0.1:${server.port}${route}?climate=${climate}${hash}`,
         );
         if (surface === "chat" || surface === "chat-drawer") {
-          await waitForText(page, "And the CMS?");
+          await waitForText(page, "And the Studio?");
         }
         if (surface === "chat-empty") {
           await waitForText(page, "Begin a field note.");
@@ -1075,24 +1076,24 @@ try {
             previousTops = settled;
           }
         }
-        if (surface === "cms-delete") {
+        if (surface === "studio-delete") {
           // Open the delete confirmation. Phone tucks the control behind
           // the ••• disclosure; wider widths show it in the pipeline bar.
           if (viewport.width <= 640) {
-            await clickSelector(page, ".cms-mobile-more summary");
+            await clickSelector(page, ".studio-mobile-more summary");
             await clickText(page, "button", "Delete entry");
           } else {
             await clickSelector(page, ".pipeline .btn.danger");
           }
           await waitForSelector(page, ".delete-modal");
         }
-        if (surface === "cms-conflict") {
+        if (surface === "studio-conflict") {
           // Save with an unchanged title: the fixture answers 409, raising
           // the reconcile card above the save bar.
           await clickSelector(page, ".save-btn");
           await waitForSelector(page, ".conflict");
         }
-        if (surface === "cms-invalid") {
+        if (surface === "studio-invalid") {
           // Two validation aspects in one frame: a server-rejected save
           // (the fixture 400s on "!!") pins the pipeline error line, then
           // an emptied required title pins the :user-invalid outline.
@@ -1107,7 +1108,7 @@ try {
             ),
           );
         }
-        if (surface === "cms-upload") {
+        if (surface === "studio-upload") {
           // Start a cover-image upload the fixture never completes, so the
           // widget's in-flight state stays up for the capture.
           const selected = await evaluatePageWith(
@@ -1133,7 +1134,7 @@ try {
               mediaType: "image/png",
             },
           );
-          if (!selected) throw new Error("Could not select CMS upload input");
+          if (!selected) throw new Error("Could not select Studio upload input");
           await waitForText(page, "Uploading…");
           await evaluatePage(page, () => {
             const text = Array.from(

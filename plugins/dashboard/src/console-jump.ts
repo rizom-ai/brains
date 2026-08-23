@@ -31,14 +31,14 @@ function anchorForGroup(group: string): string {
 
 /**
  * Grouped doors for the cross-surface ⌘K palette. Entities open at canonical
- * CMS detail paths, so the group exists only when a CMS is registered; tabs
+ * Studio detail paths, so the group exists only when a Studio is registered; tabs
  * land on this dashboard's in-document group anchors.
  */
 export function buildConsoleJumpGroups(options: {
   query: string;
   groups: string[];
   dashboardPath: string;
-  cmsPath: string | undefined;
+  studioPath: string | undefined;
   adminPath?: string | undefined;
   entities: ConsoleJumpEntityHit[];
 }): ConsoleJumpGroup[] {
@@ -64,8 +64,8 @@ export function buildConsoleJumpGroups(options: {
     });
   }
 
-  if (options.cmsPath !== undefined && options.entities.length > 0) {
-    const cmsPath = options.cmsPath;
+  if (options.studioPath !== undefined && options.entities.length > 0) {
+    const studioPath = options.studioPath;
     result.push({
       id: "entities",
       label: "Entities",
@@ -73,8 +73,8 @@ export function buildConsoleJumpGroups(options: {
         id: `${hit.entityType}/${hit.id}`,
         title: hit.title,
         sub: hit.entityType,
-        href: `${cmsPath === "/" ? "" : cmsPath.replace(/\/+$/, "")}/entities/${encodeURIComponent(hit.entityType)}/${encodeURIComponent(hit.id)}`,
-        tag: "edit in cms",
+        href: `${studioPath === "/" ? "" : studioPath.replace(/\/+$/, "")}/entities/${encodeURIComponent(hit.entityType)}/${encodeURIComponent(hit.id)}`,
+        tag: "edit in studio",
       })),
     });
   }

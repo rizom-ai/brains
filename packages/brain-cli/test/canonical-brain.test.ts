@@ -25,7 +25,7 @@ const expectedCatalogIds = [
   "playbook",
   "playbooks",
   "onboarding",
-  "cms",
+  "studio",
   "dashboard",
   "admin",
   "site-info",

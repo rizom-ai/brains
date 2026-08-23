@@ -88,7 +88,7 @@ describe("profile variants", () => {
     }
   });
 
-  test("exposes base profile fields without a CMS kind dropdown", () => {
+  test("exposes base profile fields without a Studio kind dropdown", () => {
     expect(profileFrontmatterExtension.shape).toHaveProperty("tagline");
     expect(profileFrontmatterExtension.shape).toHaveProperty("intro");
     expect(profileFrontmatterExtension.shape).not.toHaveProperty("kind");

@@ -149,7 +149,7 @@ const nodes = [
   { id:'obsidian',     label:'Obsidian',     sub:'plugins/obsidian-vault',   desc:'Obsidian vault sync.',                             x:756, y:304, w:W, h:H, layer:'plugins' },
   { id:'site-content', label:'Site Content', sub:'plugins/site-content',     desc:'Landing page content gen.',                         x:612, y:304, w:W, h:H, layer:'plugins' },
   { id:'stock-photo', label:'Stock Photo', sub:'plugins/stock-photo',     desc:'Unsplash search + select. Provider abstraction.',   x:468, y:304, w:W, h:H, layer:'plugins' },
-  { id:'cms',         label:'CMS',         sub:'plugins/cms',              desc:'Browser authoring routes + CMS config. Pairs with the @brains/cms-config types package.',     x:36,  y:304, w:W, h:H, layer:'plugins' },
+  { id:'studio',      label:'Studio',      sub:'plugins/studio',           desc:'Browser authoring routes plus declarative operator workspaces.',                                      x:36,  y:304, w:W, h:H, layer:'plugins' },
   { id:'newsletter-p',label:'Newsletter',  sub:'plugins/newsletter',       desc:'Compound package bundling the newsletter entity with the Buttondown service plugin.', x:180, y:304, w:W, h:H, layer:'plugins' },
   { id:'notifications', label:'Notifications', sub:'plugins/notifications', desc:'Notification plugin surface for operator/runtime delivery flows.', x:1044, y:304, w:W, h:H, layer:'plugins' },
 
@@ -187,7 +187,6 @@ const nodes = [
   { id:'theme-rizom',  label:'Theme Rizom', sub:'shared/theme-rizom',     desc:'Rizom brand theme — amber + purple bioluminescent palette layered on theme-default.', x:1146, y:596, w:110, h:H, layer:'shared' },
 
   // Shared row 2 (config + content + deploy)
-  { id:'cms-config',   label:'CMS Config',   sub:'shared/cms-config',          desc:'CMS config types consumed by plugins/cms.',   x:36,  y:652, w:100, h:H, layer:'shared' },
   { id:'product-site', label:'Product Content', sub:'shared/product-site-content', desc:'Product page layouts and templates.',     x:146, y:652, w:110, h:H, layer:'shared' },
   { id:'deploy-tpl',   label:'Deploy Support', sub:'shared/deploy-support', desc:'Canonical deploy templates, script helpers, env parsing, and cert support consumed by brain-cli + brains-ops.',     x:266, y:652, w:120, h:H, layer:'shared' },
   { id:'eslint-cfg',   label:'ESLint Config', sub:'shared/eslint-config',     desc:'Shared ESLint preset.',                       x:396, y:652, w:100, h:H, layer:'shared' },
@@ -222,13 +221,12 @@ const connections = [
   { from:'dir-sync', to:'plugin-fw', type:'dep' },
   { from:'site-builder', to:'plugin-fw', type:'dep' },
   { from:'content-pipe', to:'plugin-fw', type:'dep' },
-  { from:'cms', to:'plugin-fw', type:'dep' },
+  { from:'studio', to:'plugin-fw', type:'dep' },
   { from:'newsletter-p', to:'plugin-fw', type:'dep' },
   { from:'rizom-eco', to:'plugin-fw', type:'dep' },
   { from:'notifications', to:'plugin-fw', type:'dep' },
 
   // Composite + config wiring
-  { from:'cms', to:'cms-config', type:'dep' },
   { from:'newsletter-p', to:'newsletter', type:'dep' },
   { from:'newsletter-p', to:'buttondown', type:'dep' },
   { from:'site-builder', to:'site-engine', type:'dep' },

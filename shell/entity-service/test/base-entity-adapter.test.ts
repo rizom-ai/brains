@@ -111,7 +111,7 @@ describe("BaseEntityAdapter", () => {
       expect(adapter.frontmatterSchema).toBe(testFrontmatterSchema);
     });
 
-    it("should set optional CMS hints", () => {
+    it("should set optional Studio hints", () => {
       const withHints = new (class extends BaseEntityAdapter<
         TestEntity,
         TestMetadata,

@@ -18,13 +18,13 @@ function sourceData(data: unknown): unknown {
 export function WidgetCard({
   widget,
   featured = false,
-  cmsPath,
+  studioPath,
   accountPath,
   adminPath,
 }: {
   widget: RenderableWidgetData;
   featured?: boolean;
-  cmsPath?: string | undefined;
+  studioPath?: string | undefined;
   accountPath?: string | undefined;
   adminPath?: string | undefined;
 }): JSX.Element {
@@ -42,7 +42,7 @@ export function WidgetCard({
       ) : (
         <DeclarativeWidgetBody
           widget={widget}
-          launchPaths={{ cmsPath, accountPath, adminPath }}
+          launchPaths={{ studioPath, accountPath, adminPath }}
         />
       )}
     </article>

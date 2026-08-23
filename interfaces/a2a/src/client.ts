@@ -579,7 +579,7 @@ export interface ExecuteAgentCallOptions {
 
 /**
  * Execute the validated outbound path shared by the agent_call tool and
- * trusted in-process consumers such as the CMS selection ask flow.
+ * trusted in-process consumers such as the Studio selection ask flow.
  */
 export async function executeAgentCall(
   input: { agent: string; message: string },

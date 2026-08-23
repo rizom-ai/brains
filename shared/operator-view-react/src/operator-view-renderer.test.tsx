@@ -1,6 +1,6 @@
 /** @jsxImportSource react */
 import type {
-  RuntimeCmsWorkspaceData,
+  RuntimeStudioWorkspaceData,
   RuntimeOperatorActionControl,
 } from "@brains/plugins";
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
@@ -10,7 +10,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { Window } from "happy-dom";
 import { OperatorViewRenderer } from "./operator-view-renderer";
 
-const data: RuntimeCmsWorkspaceData = {
+const data: RuntimeStudioWorkspaceData = {
   view: {
     title: "Reading library",
     blocks: [
@@ -236,7 +236,7 @@ describe("OperatorViewRenderer", () => {
 
 function confirmingWorkspace(
   confirmation: RuntimeOperatorActionControl["confirmation"],
-): RuntimeCmsWorkspaceData {
+): RuntimeStudioWorkspaceData {
   return {
     view: {
       title: "Directory sync",
@@ -260,7 +260,7 @@ function confirmingWorkspace(
 
 describe("OperatorViewRenderer conformance", () => {
   it("renders every container and remaining panel shape through the shared host", () => {
-    const conformance: RuntimeCmsWorkspaceData = {
+    const conformance: RuntimeStudioWorkspaceData = {
       view: {
         blocks: [
           {
@@ -369,7 +369,7 @@ describe("OperatorViewRenderer confirmations", () => {
 
   beforeEach(() => {
     windowInstance = new Window({
-      url: "https://brain.test/cms/workspaces/directory-sync",
+      url: "https://brain.test/studio/workspaces/directory-sync",
     });
     Object.assign(globalThis, {
       window: windowInstance,
@@ -402,7 +402,7 @@ describe("OperatorViewRenderer confirmations", () => {
     await act(async () => button.click());
   };
 
-  it("confirms static actions in the CMS dialog rather than a browser prompt", async () => {
+  it("confirms static actions in the Studio dialog rather than a browser prompt", async () => {
     const invocations: RuntimeOperatorActionControl[] = [];
     await act(async () => {
       root.render(
@@ -478,7 +478,7 @@ describe("OperatorViewRenderer confirmations", () => {
 const detailData = (open?: {
   forId: string;
   title: string;
-}): RuntimeCmsWorkspaceData => ({
+}): RuntimeStudioWorkspaceData => ({
   view: {
     title: "Inbox",
     blocks: [
@@ -525,7 +525,7 @@ describe("OperatorViewRenderer master/detail", () => {
   let container: HTMLElement;
 
   beforeEach(() => {
-    windowInstance = new Window({ url: "https://brain.test/cms" });
+    windowInstance = new Window({ url: "https://brain.test/studio" });
     Object.assign(globalThis, {
       window: windowInstance,
       document: windowInstance.document,
@@ -688,7 +688,7 @@ describe("OperatorViewRenderer head", () => {
 });
 
 describe("OperatorViewRenderer pagination", () => {
-  const paged = (offset: number): RuntimeCmsWorkspaceData => ({
+  const paged = (offset: number): RuntimeStudioWorkspaceData => ({
     view: {
       title: "Inbox",
       blocks: [

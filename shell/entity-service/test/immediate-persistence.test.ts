@@ -311,7 +311,7 @@ describe("Immediate Entity Persistence", () => {
             userId: "usr_editor",
             canonicalId: "user:editor",
           },
-          interfaceType: "cms",
+          interfaceType: "studio",
         };
         const { entityId } = await eventCtx.entityService.createEntity({
           entity: noteInput,
@@ -337,10 +337,10 @@ describe("Immediate Entity Persistence", () => {
           expect.objectContaining({
             options: expect.objectContaining({
               metadata: expect.objectContaining({
-                interfaceType: "cms",
+                interfaceType: "studio",
                 requestedByActor: eventContext.actor,
                 requestedByUserId: "usr_editor",
-                requestedByInterface: "cms",
+                requestedByInterface: "studio",
               }),
             }),
           }),
@@ -420,7 +420,7 @@ describe("Immediate Entity Persistence", () => {
 
         const deleteContext: EntityMutationEventContext = {
           actor: { kind: "user", userId: "usr_editor" },
-          interfaceType: "cms",
+          interfaceType: "studio",
         };
         await eventCtx.entityService.deleteEntity({
           entityType: "note",

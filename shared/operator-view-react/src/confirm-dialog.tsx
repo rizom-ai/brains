@@ -8,7 +8,7 @@ import {
 } from "react";
 
 /**
- * The one CMS confirmation modal: scrim dismiss, alertdialog semantics, an
+ * The one Studio confirmation modal: scrim dismiss, alertdialog semantics, an
  * initially focused cancel button, and a Tab/Escape focus trap. Every
  * confirm-style dialog renders through this so behavior cannot drift per
  * surface.

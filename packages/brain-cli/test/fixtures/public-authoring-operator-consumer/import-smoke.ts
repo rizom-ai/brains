@@ -50,6 +50,6 @@ if (
   compositionColumns.aside[0] !== compositionCard
 ) {
   throw new Error(
-    "Packed Account, Dashboard, and CMS authoring contracts did not compose",
+    "Packed Account, Dashboard, and Studio authoring contracts did not compose",
   );
 }

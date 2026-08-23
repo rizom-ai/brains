@@ -8,7 +8,7 @@ Auth state is private runtime state, not content:
 
 - durable authored content remains entity-driven and may be synchronized through `brain-data`;
 - auth state lives in `auth.db` outside `brain-data` and must be persisted by deployments;
-- Anchor profile content remains owned by the identity/CMS boundary;
+- Anchor profile content remains owned by the identity/Studio boundary;
 - channel descriptors and delivery providers are owned by message interfaces through the app-scoped channel registry;
 - deployment mounts, remote backup retention, and point-in-time recovery are operator concerns.
 

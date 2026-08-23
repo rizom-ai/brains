@@ -1,13 +1,13 @@
 # Console visual regression
 
-The committed baselines cover Dashboard, Chat (plain conversation and the card-states session), the CMS library, and the CMS editor at
+The committed baselines cover Dashboard, Chat (plain conversation and the card-states session), the Studio library, and the Studio editor at
 1440×1000, 768×1024, and 390×844 in both console climates.
 
 The harness drives Chromium through `Bun.WebView`. Build the two client assets, provide a Chromium executable, then run the comparison:
 
 ```bash
 (cd interfaces/web-chat && bun run build:ui)
-(cd plugins/cms && bun run build:ui)
+(cd plugins/studio && bun run build:ui)
 export CONSOLE_CHROMIUM_PATH=/path/to/chromium
 bun run visual:console
 ```

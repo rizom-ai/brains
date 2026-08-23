@@ -10,7 +10,7 @@ Content pipeline plugin for managing entity publishing queues, scheduling, and g
 - **Generation Scheduling**: Trigger automatic draft creation on schedule
 - **Failure Recovery**: Track failed publications and let operators explicitly retry them
 - **Provider Registry**: Register custom publish providers per entity type
-- **Optional CMS Workspace**: Expose queue controls and confirmed direct publishing when `@brains/cms` is installed
+- **Optional Studio Workspace**: Expose queue controls and confirmed direct publishing when `@brains/studio` is installed
 - **Dashboard Digest**: Report compact, read-only pipeline health when `@brains/dashboard` is installed
 
 ## Usage
@@ -36,15 +36,15 @@ const config = defineConfig({
 
 ## Operator surfaces
 
-When CMS and content-pipeline are both installed, CMS automatically adds an
+When Studio and content-pipeline are both installed, Studio automatically adds an
 **Operations → Publishing** workspace. Operators can reorder or remove queued
 items, retry failures, open source entities, and publish the current saved
-version after an explicit confirmation. CMS remains unchanged when the pipeline
+version after an explicit confirmation. Studio remains unchanged when the pipeline
 is absent.
 
 The Dashboard widget is read-only. It shows queued, generating, awaiting-review,
-and published totals, plus current failures. An **Open in CMS** action appears
-only when CMS registration succeeded.
+and published totals, plus current failures. An **Open in Studio** action appears
+only when Studio registration succeeded.
 
 Queue membership is durable entity lifecycle state. Recoverable queue ordering
 and enqueue metadata live in the namespaced runtime-state store, so reordering

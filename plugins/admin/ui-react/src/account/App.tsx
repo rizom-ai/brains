@@ -10,7 +10,7 @@ import {
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { getErrorMessage } from "@brains/utils/error";
 import { AccessItem, Button, DetailSection } from "../components/primitives";
-import { cmsEntityHref, initials, roleLabel } from "../format";
+import { studioEntityHref, initials, roleLabel } from "../format";
 import peopleStyles from "../people.css" with { type: "text" };
 import {
   fetchAccount,
@@ -272,12 +272,12 @@ export function AccountApp({
                     kind="Anchor profile"
                     value={title}
                     action={
-                      cmsEntityHref(current.profileEntityId) ? (
+                      studioEntityHref(current.profileEntityId) ? (
                         <a
                           className="people-text-action"
-                          href={cmsEntityHref(current.profileEntityId)}
+                          href={studioEntityHref(current.profileEntityId)}
                         >
-                          Edit in CMS →
+                          Edit in Studio →
                         </a>
                       ) : undefined
                     }

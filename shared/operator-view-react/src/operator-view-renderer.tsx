@@ -1,10 +1,10 @@
 /** @jsxImportSource react */
 import type {
-  RuntimeCmsOperatorBlock,
-  RuntimeCmsOperatorPanelBlock,
-  RuntimeCmsOperatorRegionBlock,
-  RuntimeCmsOperatorView,
-  RuntimeCmsWorkspaceData,
+  RuntimeStudioOperatorBlock,
+  RuntimeStudioOperatorPanelBlock,
+  RuntimeStudioOperatorRegionBlock,
+  RuntimeStudioOperatorView,
+  RuntimeStudioWorkspaceData,
   RuntimeOperatorActionControl,
   RuntimeOperatorLaunchIntent,
   RuntimeOperatorLinkTarget,
@@ -28,7 +28,7 @@ export type OperatorViewQuery = Readonly<
   Record<string, string | number | undefined>
 >;
 
-type RuntimeBlock = RuntimeCmsOperatorView["blocks"][number];
+type RuntimeBlock = RuntimeStudioOperatorView["blocks"][number];
 
 interface OperatorRendererHost {
   readonly resolveLink?:
@@ -388,7 +388,7 @@ function LinksBlock(props: {
 }
 
 type RuntimeListItem = Extract<
-  RuntimeCmsOperatorPanelBlock,
+  RuntimeStudioOperatorPanelBlock,
   { type: "list" }
 >["items"][number];
 
@@ -478,7 +478,7 @@ function ListItems(props: {
 }
 
 function ListBlock(props: {
-  block: Extract<RuntimeCmsOperatorPanelBlock, { type: "list" }>;
+  block: Extract<RuntimeStudioOperatorPanelBlock, { type: "list" }>;
   onAction: (action: RuntimeOperatorActionControl) => Promise<unknown>;
   onOpenEntity: (entityType: string, id: string) => void;
   onLaunch: (launch: RuntimeOperatorLaunchIntent) => void;
@@ -534,7 +534,7 @@ function ListBlock(props: {
 }
 
 function TableBlock(props: {
-  block: Extract<RuntimeCmsOperatorPanelBlock, { type: "table" }>;
+  block: Extract<RuntimeStudioOperatorPanelBlock, { type: "table" }>;
   onAction: (action: RuntimeOperatorActionControl) => Promise<unknown>;
   onOpenEntity: (entityType: string, id: string) => void;
   onLaunch: (launch: RuntimeOperatorLaunchIntent) => void;
@@ -601,7 +601,7 @@ function TableBlock(props: {
 }
 
 function GroupBlock(props: {
-  block: Extract<RuntimeCmsOperatorPanelBlock, { type: "group" }>;
+  block: Extract<RuntimeStudioOperatorPanelBlock, { type: "group" }>;
 }): ReactElement {
   return (
     <section
@@ -623,7 +623,7 @@ function GroupBlock(props: {
 }
 
 function FlowBlock(props: {
-  block: Extract<RuntimeCmsOperatorPanelBlock, { type: "flow" }>;
+  block: Extract<RuntimeStudioOperatorPanelBlock, { type: "flow" }>;
 }): ReactElement {
   return (
     <section
@@ -645,7 +645,7 @@ function FlowBlock(props: {
 }
 
 function MetersBlock(props: {
-  block: Extract<RuntimeCmsOperatorPanelBlock, { type: "meters" }>;
+  block: Extract<RuntimeStudioOperatorPanelBlock, { type: "meters" }>;
 }): ReactElement {
   return (
     <dl className="declarative-meters operator-meters">
@@ -670,7 +670,7 @@ function MetersBlock(props: {
 }
 
 function ProgressBlock(props: {
-  block: Extract<RuntimeCmsOperatorPanelBlock, { type: "progress" }>;
+  block: Extract<RuntimeStudioOperatorPanelBlock, { type: "progress" }>;
 }): ReactElement {
   return (
     <section
@@ -699,7 +699,7 @@ function ProgressBlock(props: {
 }
 
 function QueryBlock(props: {
-  block: Extract<RuntimeCmsOperatorPanelBlock, { type: "query" }>;
+  block: Extract<RuntimeStudioOperatorPanelBlock, { type: "query" }>;
   query: OperatorViewQuery;
   onQueryChange: (query: OperatorViewQuery) => void;
 }): ReactElement {
@@ -785,7 +785,7 @@ function QueryBlock(props: {
 }
 
 function MatrixBlock(props: {
-  block: Extract<RuntimeCmsOperatorPanelBlock, { type: "matrix" }>;
+  block: Extract<RuntimeStudioOperatorPanelBlock, { type: "matrix" }>;
   onAction: (action: RuntimeOperatorActionControl) => Promise<unknown>;
   onOpenEntity: (entityType: string, id: string) => void;
   onLaunch: (launch: RuntimeOperatorLaunchIntent) => void;
@@ -817,7 +817,7 @@ function MatrixBlock(props: {
 }
 
 type RuntimeSpatialBlock = Extract<
-  RuntimeCmsOperatorPanelBlock,
+  RuntimeStudioOperatorPanelBlock,
   { type: "spatial" }
 >;
 
@@ -984,7 +984,7 @@ function SpatialBlock({ block }: { block: RuntimeSpatialBlock }): ReactElement {
 }
 
 function PanelBlock(props: {
-  block: RuntimeCmsOperatorPanelBlock;
+  block: RuntimeStudioOperatorPanelBlock;
   onAction: (action: RuntimeOperatorActionControl) => Promise<unknown>;
   onOpenEntity: (entityType: string, id: string) => void;
   onLaunch: (launch: RuntimeOperatorLaunchIntent) => void;
@@ -1067,7 +1067,7 @@ function PanelBlock(props: {
  * reload restores the same pair.
  */
 function DetailBlock(props: {
-  block: Extract<RuntimeCmsOperatorBlock, { type: "detail" }>;
+  block: Extract<RuntimeStudioOperatorBlock, { type: "detail" }>;
   onAction: (action: RuntimeOperatorActionControl) => Promise<unknown>;
   onOpenEntity: (entityType: string, id: string) => void;
   onLaunch: (launch: RuntimeOperatorLaunchIntent) => void;
@@ -1196,7 +1196,7 @@ function DetailBlock(props: {
 }
 
 function CardBlock(props: {
-  block: Extract<RuntimeCmsOperatorBlock, { type: "card" }>;
+  block: Extract<RuntimeStudioOperatorBlock, { type: "card" }>;
   onAction: (action: RuntimeOperatorActionControl) => Promise<unknown>;
   onOpenEntity: (entityType: string, id: string) => void;
   onLaunch: (launch: RuntimeOperatorLaunchIntent) => void;
@@ -1230,7 +1230,7 @@ function CardBlock(props: {
  * and cards; the host owns the ratio and the narrow-viewport stacking.
  */
 function ColumnsBlock(props: {
-  block: Extract<RuntimeCmsOperatorBlock, { type: "columns" }>;
+  block: Extract<RuntimeStudioOperatorBlock, { type: "columns" }>;
   onAction: (action: RuntimeOperatorActionControl) => Promise<unknown>;
   onOpenEntity: (entityType: string, id: string) => void;
   onLaunch: (launch: RuntimeOperatorLaunchIntent) => void;
@@ -1238,7 +1238,7 @@ function ColumnsBlock(props: {
   onQueryChange: (query: OperatorViewQuery) => void;
 }): ReactElement {
   const region = (
-    entries: readonly RuntimeCmsOperatorRegionBlock[],
+    entries: readonly RuntimeStudioOperatorRegionBlock[],
     className: string,
   ): ReactElement => (
     <div className={className}>
@@ -1423,7 +1423,7 @@ function blockSpan(type: string): "compact" | "wide" {
 }
 
 export interface OperatorViewRendererProps {
-  data: RuntimeCmsWorkspaceData;
+  data: RuntimeStudioWorkspaceData;
   onAction: (action: RuntimeOperatorActionControl) => Promise<unknown>;
   onOpenEntity: (entityType: string, id: string) => void;
   onLaunch?: ((launch: RuntimeOperatorLaunchIntent) => void) | undefined;

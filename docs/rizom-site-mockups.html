@@ -487,24 +487,24 @@
   .term-mock .ps { color: #ff8b3d; }
   .term-mock .who { color: #8c82c8; }
   .studio-grid { display: grid; grid-template-columns: minmax(0, 4fr) minmax(0, 8fr); gap: 44px; margin-top: 26px; align-items: center; max-width: 1140px; }
-  .cms-appbar { display: flex; align-items: center; gap: 14px; padding: 9px 14px; border-bottom: 1px solid rgba(241,234,221,.1); }
-  .cms-appbar .crumbs { font-family: var(--mono); font-size: 10px; color: rgba(241,234,221,.4); }
-  .cms-appbar .crumbs b { color: rgba(241,234,221,.85); font-weight: 500; }
-  .cms-appbar .pub { margin-left: auto; font-size: 11.5px; font-weight: 600; background: #ff8b3d; color: #0a0819; padding: 4px 13px; border-radius: 5px; }
-  .cms-cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.9fr); }
-  .cms-list { border-right: 1px solid rgba(241,234,221,.09); padding: 8px 0; }
-  .cms-item { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; padding: 7px 14px; font-size: 11.5px; color: rgba(241,234,221,.65); border-left: 2px solid transparent; }
-  .cms-item.on { background: rgba(255,139,61,.08); border-left-color: #ff8b3d; color: #f1eadd; }
-  .cms-kind { font-family: var(--mono); font-size: 8.5px; color: rgba(241,234,221,.32); }
-  .cms-md { padding: 13px 18px 15px; font-family: var(--mono); font-size: 11px; line-height: 1.85; color: rgba(241,234,221,.7); }
-  .cms-md .mh { color: #ffa366; }
-  .cms-md .mfm { color: rgba(140,130,200,.85); }
-  .cms-md .msy { color: rgba(241,234,221,.28); }
-  .cms-md .mem { font-style: italic; color: #f1eadd; }
-  .cms-foot { display: flex; align-items: center; gap: 12px; padding: 8px 14px; border-top: 1px solid rgba(241,234,221,.09); font-family: var(--mono); font-size: 9.5px; color: rgba(241,234,221,.35); }
-  .cms-foot .fate { margin-left: auto; display: flex; gap: 6px; }
-  .cms-foot .fate span { padding: 2.5px 10px; border: 1px solid rgba(241,234,221,.16); border-radius: 100px; font-size: 8.5px; letter-spacing: .08em; }
-  .cms-foot .fate .on { background: #ff8b3d; color: #0a0819; border-color: #ff8b3d; }
+  .studio-appbar { display: flex; align-items: center; gap: 14px; padding: 9px 14px; border-bottom: 1px solid rgba(241,234,221,.1); }
+  .studio-appbar .crumbs { font-family: var(--mono); font-size: 10px; color: rgba(241,234,221,.4); }
+  .studio-appbar .crumbs b { color: rgba(241,234,221,.85); font-weight: 500; }
+  .studio-appbar .pub { margin-left: auto; font-size: 11.5px; font-weight: 600; background: #ff8b3d; color: #0a0819; padding: 4px 13px; border-radius: 5px; }
+  .studio-cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.9fr); }
+  .studio-list { border-right: 1px solid rgba(241,234,221,.09); padding: 8px 0; }
+  .studio-item { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; padding: 7px 14px; font-size: 11.5px; color: rgba(241,234,221,.65); border-left: 2px solid transparent; }
+  .studio-item.on { background: rgba(255,139,61,.08); border-left-color: #ff8b3d; color: #f1eadd; }
+  .studio-kind { font-family: var(--mono); font-size: 8.5px; color: rgba(241,234,221,.32); }
+  .studio-md { padding: 13px 18px 15px; font-family: var(--mono); font-size: 11px; line-height: 1.85; color: rgba(241,234,221,.7); }
+  .studio-md .mh { color: #ffa366; }
+  .studio-md .mfm { color: rgba(140,130,200,.85); }
+  .studio-md .msy { color: rgba(241,234,221,.28); }
+  .studio-md .mem { font-style: italic; color: #f1eadd; }
+  .studio-foot { display: flex; align-items: center; gap: 12px; padding: 8px 14px; border-top: 1px solid rgba(241,234,221,.09); font-family: var(--mono); font-size: 9.5px; color: rgba(241,234,221,.35); }
+  .studio-foot .fate { margin-left: auto; display: flex; gap: 6px; }
+  .studio-foot .fate span { padding: 2.5px 10px; border: 1px solid rgba(241,234,221,.16); border-radius: 100px; font-size: 8.5px; letter-spacing: .08em; }
+  .studio-foot .fate .on { background: #ff8b3d; color: #0a0819; border-color: #ff8b3d; }
 
   @media (max-width: 1020px) {
     :root { --pad-x: 26px; --pad-rail: 26px; }
@@ -916,15 +916,15 @@
         </div>
         <div class="ifc-frame rv d2">
           <div class="ifc-bar"><i></i><i></i><i></i><span>mira.studio/studio</span></div>
-          <div class="cms-appbar"><span class="crumbs">library / essays / <b>distributed-teams.md</b></span><span class="pub">Publish</span></div>
-          <div class="cms-cols">
-            <div class="cms-list">
-              <div class="cms-item"><span>coordination-unit.md</span><span class="cms-kind">essay</span></div>
-              <div class="cms-item on"><span>distributed-teams.md</span><span class="cms-kind">essay</span></div>
-              <div class="cms-item"><span>calculator-launch.md</span><span class="cms-kind">post</span></div>
-              <div class="cms-item"><span>tms-reading-list.md</span><span class="cms-kind">note</span></div>
+          <div class="studio-appbar"><span class="crumbs">library / essays / <b>distributed-teams.md</b></span><span class="pub">Publish</span></div>
+          <div class="studio-cols">
+            <div class="studio-list">
+              <div class="studio-item"><span>coordination-unit.md</span><span class="studio-kind">essay</span></div>
+              <div class="studio-item on"><span>distributed-teams.md</span><span class="studio-kind">essay</span></div>
+              <div class="studio-item"><span>calculator-launch.md</span><span class="studio-kind">post</span></div>
+              <div class="studio-item"><span>tms-reading-list.md</span><span class="studio-kind">note</span></div>
             </div>
-            <div class="cms-md">
+            <div class="studio-md">
               <span class="mfm">---<br />title: Distributed teams outperform<br />series: essays · status: draft<br />---</span><br />
               <span class="mh"># Distributed teams outperform</span><br />
               Teams don't fail because people are<br />
@@ -933,7 +933,7 @@
               automates the confusion.<br />
             </div>
           </div>
-          <div class="cms-foot"><span>committed a41f2c9 → rizom-ai/mira-content</span><span class="fate"><span>draft</span><span class="on">review</span><span>publish</span></span></div>
+          <div class="studio-foot"><span>committed a41f2c9 → rizom-ai/mira-content</span><span class="fate"><span>draft</span><span class="on">review</span><span>publish</span></span></div>
         </div>
       </div>
     </div>
@@ -1104,7 +1104,7 @@
           <span class="ok">✓ running in under a minute</span>
         </div>
         <ul class="checks rv d2">
-          <li>Website and CMS on the shared web host</li>
+          <li>Website and Studio on the shared web host</li>
           <li>MCP server for assistants and tools</li>
           <li>A2A discovery endpoint for agent-to-agent use</li>
           <li>Plain-text content you can inspect and version with git</li>
@@ -1453,7 +1453,7 @@
   section. The mission band and faces land as consequences, not appendices.</div>
   <div class="col"><b>/brain's arc</b> is the product's life with the owner: capture → ask
   → see it run → connect. Every screen is real anatomy (dashboard plugin cards, web-chat,
-  interfaces/discord, MCP, chat-repl, the CMS flow) but none of them is the point — each
+  interfaces/discord, MCP, chat-repl, the Studio flow) but none of them is the point — each
   illustrates its chapter, and chapter 04 hands back to the homepage map.</div>
   <div class="col"><b>Still deliberate:</b> product frames stay in the fixed dark
   instrument palette in both site themes — screenshots, not site chrome. The MCP card is

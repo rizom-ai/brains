@@ -1,5 +1,5 @@
 ---
-"@brains/cms": minor
+"@brains/studio": minor
 "@brains/core": minor
 "@brains/plugins": minor
 "@brains/test-utils": patch

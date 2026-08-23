@@ -3,7 +3,7 @@
 "@brains/ai-service": patch
 "@brains/app": patch
 "@brains/auth-service": patch
-"@brains/cms": patch
+"@brains/studio": patch
 "@brains/content-pipeline": patch
 "@brains/chat": patch
 "@brains/contracts": patch

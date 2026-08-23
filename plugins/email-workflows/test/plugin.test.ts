@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it } from "bun:test";
 import { EMAIL_INBOUND, type InboundEmail } from "@brains/contracts";
 import {
-  CMS_WORKSPACE_REGISTER_MESSAGE,
+  STUDIO_WORKSPACE_REGISTER_MESSAGE,
   resetPromptCache,
-  type CmsWorkspaceRegistration,
+  type StudioWorkspaceRegistration,
 } from "@brains/plugins";
 import { createPluginHarness } from "@brains/plugins/test";
 import { createMockLogger, createMockShell } from "@brains/test-utils";
@@ -151,14 +151,14 @@ Prioritize collaboration connected to Project Aurora.`,
           ...(request.options ? { options: request.options } : {}),
         })
       ).length;
-    let workspace: CmsWorkspaceRegistration | undefined;
-    harness.subscribe<CmsWorkspaceRegistration, { workspaceUrl: string }>(
-      CMS_WORKSPACE_REGISTER_MESSAGE,
+    let workspace: StudioWorkspaceRegistration | undefined;
+    harness.subscribe<StudioWorkspaceRegistration, { workspaceUrl: string }>(
+      STUDIO_WORKSPACE_REGISTER_MESSAGE,
       async (message) => {
         workspace = message.payload;
         return {
           success: true,
-          data: { workspaceUrl: "/cms/workspaces/email-reply-drafts" },
+          data: { workspaceUrl: "/studio/workspaces/email-reply-drafts" },
         };
       },
     );

@@ -179,7 +179,7 @@ export function ContentSyncCard({
       {status.managementUrl && (
         <WidgetActions label="Content sync actions">
           <WidgetActionLink href={status.managementUrl} emphasis="primary">
-            Open in CMS
+            Open in Studio
           </WidgetActionLink>
         </WidgetActions>
       )}

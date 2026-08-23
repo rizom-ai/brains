@@ -7,7 +7,7 @@ import type { SiteSectionDefinition, SiteSectionGroup } from "@rizom/site";
 /**
  * Schema-first section → `Template`. The markdown formatter's field structure is
  * derived from the section's zod schema by introspection, so the schema is the
- * single source of truth for the component props, the CMS fields, and the
+ * single source of truth for the component props, the Studio fields, and the
  * stored markdown. Ported from the rev-5 `section-def.ts` machinery, adapted to
  * zod 4 (`instanceof` narrowing, no casts).
  */

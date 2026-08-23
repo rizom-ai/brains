@@ -129,7 +129,7 @@ function nounFor(count: number, noun: string): string {
 }
 
 /**
- * Prefer the registered CMS Inbox workspace; without a CMS, fall back to the
+ * Prefer the registered Studio Inbox workspace; without a Studio, fall back to the
  * dashboard plugin's mounted GET route. There is no shared cross-plugin
  * deep-link contract yet, so the dashboard lookup stays a local heuristic
  * until a second consumer needs it.

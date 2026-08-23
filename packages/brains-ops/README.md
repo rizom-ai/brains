@@ -14,7 +14,7 @@ Operator CLI package for managing pilot brain fleet registry repos.
 - `brains-ops cert:bootstrap <repo>`
 - `brains-ops secrets:push <repo>`
 - `brains-ops secrets:encrypt <repo> <handle>`
-- `brains-ops verify-user <repo> <handle>` — checks `/health/operate`, unauthenticated `/mcp`, and site-enabled browser/CMS routes
+- `brains-ops verify-user <repo> <handle>` — checks `/health/operate`, unauthenticated `/mcp`, and site-enabled browser/Studio routes
 - `brains-ops stress:directory-sync <repo> <handle> --profile <regression|load|stress> --confirm stress:<handle>` — runs a smoke-only, reversible directory-sync workload and writes structured evidence
 - `brains-ops stress:directory-sync:verify-access <repo> <handle> --confirm stress:<handle>` — clones the smoke content repository and verifies push authorization with `git push --dry-run`, without creating a ref or starting a workload
 - `brains-ops stress:directory-sync:cleanup <repo> <handle> --confirm stress:<handle>` — idempotently removes residual stress probes

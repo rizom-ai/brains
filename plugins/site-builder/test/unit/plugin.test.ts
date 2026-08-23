@@ -9,8 +9,8 @@ import {
   safeParseRuntimeDashboardWidgetData,
   type AnchorProfile,
   type DashboardWidgetProviderContext,
-  type CmsWorkspaceActor,
-  type CmsWorkspaceRegistration,
+  type StudioWorkspaceActor,
+  type StudioWorkspaceRegistration,
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import { createElement as h } from "react";
@@ -19,8 +19,8 @@ import { mkdtemp, readFile, rm } from "fs/promises";
 import { existsSync } from "fs";
 import { join } from "path";
 
-const adminWorkspaceActor: CmsWorkspaceActor = {
-  interfaceType: "cms",
+const adminWorkspaceActor: StudioWorkspaceActor = {
+  interfaceType: "studio",
   userId: "operator",
   actor: { kind: "user", userId: "operator" },
   userPermissionLevel: "admin",
@@ -28,8 +28,8 @@ const adminWorkspaceActor: CmsWorkspaceActor = {
   isAnchor: true,
 };
 
-const trustedWorkspaceActor: CmsWorkspaceActor = {
-  interfaceType: "cms",
+const trustedWorkspaceActor: StudioWorkspaceActor = {
+  interfaceType: "studio",
   userId: "editor",
   actor: { kind: "user", userId: "editor" },
   userPermissionLevel: "trusted",
@@ -37,8 +37,8 @@ const trustedWorkspaceActor: CmsWorkspaceActor = {
   isAnchor: false,
 };
 
-const publicWorkspaceActor: CmsWorkspaceActor = {
-  interfaceType: "cms",
+const publicWorkspaceActor: StudioWorkspaceActor = {
+  interfaceType: "studio",
   userId: "visitor",
   actor: { kind: "user", userId: "visitor" },
   userPermissionLevel: "public",
@@ -228,8 +228,8 @@ describe("SiteBuilderPlugin", () => {
     );
   });
 
-  it("registers the optional CMS Site workspace and Dashboard health", async () => {
-    let registration: CmsWorkspaceRegistration | undefined;
+  it("registers the optional Studio Site workspace and Dashboard health", async () => {
+    let registration: StudioWorkspaceRegistration | undefined;
     let dashboardWidget: DashboardWidgetRegistration | undefined;
     harness.subscribe<DashboardWidgetRegistration, { success: boolean }>(
       "dashboard:register-widget",
@@ -238,13 +238,13 @@ describe("SiteBuilderPlugin", () => {
         return { success: true };
       },
     );
-    harness.subscribe<CmsWorkspaceRegistration, { workspaceUrl: string }>(
-      "cms:register-workspace",
+    harness.subscribe<StudioWorkspaceRegistration, { workspaceUrl: string }>(
+      "studio:register-workspace",
       async (message) => {
         registration = message.payload;
         return {
           success: true,
-          data: { workspaceUrl: "/cms/workspaces/site" },
+          data: { workspaceUrl: "/studio/workspaces/site" },
         };
       },
     );
@@ -273,9 +273,10 @@ describe("SiteBuilderPlugin", () => {
       rendererName: "DeclarativeOperatorWorkspace",
       priority: 50,
     });
-    if (!registration) throw new Error("Expected CMS workspace registration");
+    if (!registration)
+      throw new Error("Expected Studio workspace registration");
     if (!registration.actionHandler) {
-      throw new Error("Expected CMS workspace actions");
+      throw new Error("Expected Studio workspace actions");
     }
     const actionHandler = registration.actionHandler;
     expect(
@@ -355,7 +356,7 @@ describe("SiteBuilderPlugin", () => {
       type: "links",
       items: [
         {
-          label: "Open in CMS",
+          label: "Open in Studio",
           target: {
             kind: "launch",
             launch: { target: "site" },
@@ -363,7 +364,9 @@ describe("SiteBuilderPlugin", () => {
         },
       ],
     });
-    expect(JSON.stringify(dashboardData)).not.toContain("/cms/workspaces/site");
+    expect(JSON.stringify(dashboardData)).not.toContain(
+      "/studio/workspaces/site",
+    );
     expect(parsedDashboard.data.digest).toMatchObject({ attention: 0 });
     expect(dashboardWidget?.digestProvider(parsedDashboard.data)).toMatchObject(
       {
@@ -373,14 +376,14 @@ describe("SiteBuilderPlugin", () => {
   });
 
   it("admits policy-enabled Trusted preview without granting production", async () => {
-    let registration: CmsWorkspaceRegistration | undefined;
-    harness.subscribe<CmsWorkspaceRegistration, { workspaceUrl: string }>(
-      "cms:register-workspace",
+    let registration: StudioWorkspaceRegistration | undefined;
+    harness.subscribe<StudioWorkspaceRegistration, { workspaceUrl: string }>(
+      "studio:register-workspace",
       async (message) => {
         registration = message.payload;
         return {
           success: true,
-          data: { workspaceUrl: "/cms/workspaces/site" },
+          data: { workspaceUrl: "/studio/workspaces/site" },
         };
       },
     );
@@ -421,7 +424,7 @@ describe("SiteBuilderPlugin", () => {
     await harness.installPlugin(plugin);
     await plugin.ready();
     if (!registration?.actionHandler) {
-      throw new Error("Expected CMS workspace actions");
+      throw new Error("Expected Studio workspace actions");
     }
 
     expect(
@@ -505,10 +508,10 @@ describe("SiteBuilderPlugin", () => {
     expect(capabilities.tools.length).toBeGreaterThan(0);
   });
 
-  it("should ignore legacy cms config and not register a CMS route", async () => {
+  it("should ignore legacy studio config and not register a Studio route", async () => {
     const config = {
       ...createTestConfig(),
-      cms: {},
+      studio: {},
     };
 
     plugin = new SiteBuilderPlugin(config);
@@ -517,19 +520,19 @@ describe("SiteBuilderPlugin", () => {
     const result = await harness.sendMessage<
       { path: string },
       { route?: { path: string } }
-    >("plugin:site-builder:route:get", { path: "/cms/" });
+    >("plugin:site-builder:route:get", { path: "/studio/" });
 
     expect(result?.route).toBeUndefined();
   });
 
-  it("should not generate CMS files on site:build:completed", async () => {
-    const outputDir = await createTempDataDir("site-builder-no-cms-");
+  it("should not generate Studio files on site:build:completed", async () => {
+    const outputDir = await createTempDataDir("site-builder-no-studio-");
     const config = {
       ...createTestConfig({
         previewOutputDir: outputDir,
         productionOutputDir: outputDir,
       }),
-      cms: {},
+      studio: {},
     };
 
     harness.subscribe("git-sync:get-repo-info", async () => ({
@@ -552,7 +555,7 @@ describe("SiteBuilderPlugin", () => {
       generateEntityUrl: (_entityType: string, slug: string) => `/${slug}`,
     });
 
-    expect(existsSync(join(outputDir, "cms"))).toBe(false);
+    expect(existsSync(join(outputDir, "studio"))).toBe(false);
     expect(existsSync(join(outputDir, "admin"))).toBe(false);
   });
 });

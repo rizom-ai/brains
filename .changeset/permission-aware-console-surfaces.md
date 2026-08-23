@@ -2,7 +2,7 @@
 "@brains/console-theme": patch
 "@brains/dashboard": patch
 "@brains/admin": patch
-"@brains/cms": patch
+"@brains/studio": patch
 "@brains/web-chat": patch
 ---
 

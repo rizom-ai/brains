@@ -283,7 +283,7 @@ A shell-layer refactoring audit surfaced duplication this plan's public
 authoring surface should absorb when the SDK shape is curated:
 
 - Five plugins carry 240–794-line `plugin.ts` files repeating the same
-  config-schema/refine/registration pattern (`plugins/cms` 794,
+  config-schema/refine/registration pattern (`plugins/studio` 794,
   `plugins/atproto` 599, `plugins/site-builder` 359, `plugins/dashboard`
   276, `plugins/directory-sync` 240).
 - The `entities/` packages share the `EntityPlugin` base (18 of 22

@@ -49,7 +49,7 @@ configuration that have actually passed the package boundary.
 | 4    | [`message-interface`](./message-interface/src/index.ts)                   | Channel/recipient declaration, authenticated inbound messages, lazy attachments, normalized send/edit/deliver |
 | 5    | [`site`](./site/src/index.tsx)                                            | One-import site definition, typed content, routes/layout, entity display, CSS, head script, static asset      |
 | 6    | [`brain-definition`](./brain-definition/src/index.ts)                     | Typed `use()`, configured definitions, bundle membership, identity, and site selection                        |
-| 7    | [`operator-surface`](./operator-surface/src/index.ts)                     | Account settings, Dashboard semantics, CMS query state/catalogs/actions, and prepared confirmation            |
+| 7    | [`operator-surface`](./operator-surface/src/index.ts)                     | Account settings, Dashboard semantics, Studio query state/catalogs/actions, and prepared confirmation         |
 | 8    | [`account-settings-interface`](./account-settings-interface/src/index.ts) | Interface-family account settings and runtime-owned account daemon lifecycle                                  |
 
 The message transport keeps its ordinary protocol client in
@@ -61,12 +61,12 @@ its transport SDK code.
 
 [`operator-surface`](./operator-surface/) and
 [`account-settings-interface`](./account-settings-interface/) are the checked
-fixtures for the post-`v0.2.0` Dashboard, CMS, and per-account settings
+fixtures for the post-`v0.2.0` Dashboard, Studio, and per-account settings
 milestone. The second fixture keeps the IMAP proof in the interface family that
 owns inbound connection lifecycle. Their approved exports are classified in
 the stable ledger, and the Phase 6 packed consumer installs both with the
 entity/service dependencies from one immutable Brain tarball. The operator
-fixture compiles typed Dashboard and CMS profiles, host-owned query state,
+fixture compiles typed Dashboard and Studio profiles, host-owned query state,
 dynamic entity catalogs, prepared confirmation, and bounded view composition
 without UI code. The account-settings fixture retains its
 `>=0.2.0-alpha.304` floor; the operator fixture requires

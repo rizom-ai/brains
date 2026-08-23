@@ -17,6 +17,9 @@ the card:
 [`../studio-consolidation-mockups.html`](../studio-consolidation-mockups.html)
 (decided 2026-08-19).
 
+**Progress:** Phase 1 is implemented on `work/studio-consolidation`; Phase 2 is
+next.
+
 ## Goal
 
 One operator surface, honestly named, with one gating model. `@brains/cms`
@@ -110,7 +113,7 @@ one implicit perimeter with an explicit route-family matrix:
   `accessHandler`, `entityTypes`, `badgeProvider`, `dataProvider`, or
   `actionHandler`. The floor defaults to `trusted`, so existing registrants
   retain today's perimeter. Admin workspaces declare `admin` and keep their
-  source-owned `assertCmsWorkspaceAdmin` checks as defense in depth. Account
+  source-owned `assertStudioWorkspaceAdmin` checks as defense in depth. Account
   explicitly declares the lower active-session floor.
 - The route-enumeration test asserts the complete matrix, not a blanket
   `/studio` rule: an active public-rank principal receives `403` from every
@@ -236,10 +239,11 @@ they cover, inside the phase.
   CMS wording in `docs/feature-overview.md`,
   [`operator-console-pwa.md`](./operator-console-pwa.md), and
   [`external-plugin-authoring.md`](../external-plugin-authoring.md).
-- Extend `brain config:migrate` to rewrite `cms` member selections and
-  `plugins.cms` to `studio`, preserving comments and rejecting conflicting
-  dual configuration. Runtime resolution keeps no permanent `cms` plugin-id
-  alias; its failure names the migration command.
+- Extend `brain config:migrate` to rewrite `cms` member selections,
+  `plugins.cms`, and an exact retired `/cms` Studio mount to `studio` and
+  `/studio`, preserving comments and rejecting conflicting dual configuration.
+  Runtime resolution keeps no permanent `cms` plugin-id alias; its failure
+  names the migration command.
 
 ### Phase 2 — Audit workspace (walking skeleton for admin-in-Studio)
 

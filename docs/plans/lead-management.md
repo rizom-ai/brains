@@ -27,7 +27,7 @@ never by copying into a second entity.
   [bd-priority-engine.md](./bd-priority-engine.md): a shared `entities/opportunity`
   package, a `lead` state, and typed `sources`.
 - Entity plugins own schemas/adapters but no CRUD tools. Service plugins own background
-  jobs, orchestration, narrow tools, and CMS workspaces.
+  jobs, orchestration, narrow tools, and Studio workspaces.
 - `context.ai.generateObject(prompt, schema)` supports bounded structured decisions.
 
 ## Core decisions
@@ -86,14 +86,14 @@ never by copying into a second entity.
 11. **Consolidation is reversible.** Admin actions can merge records, split selected
     sources into a new lead, or reassign a source. Each operation validates source IDs,
     prevents duplicate membership, regenerates affected derived summaries, and is
-    confirmation-gated outside the CMS typed workflow. Merge into a committed record
+    confirmation-gated outside the Studio typed workflow. Merge into a committed record
     keeps that record's state and scores.
 12. **Qualification replaces promotion.** Graduating a lead is the confirmation-gated
     transition `lead → active|staged|warm` using business-development's scoring
     confirmation (AI-suggested scores, human accepts or edits — the same card as manual
     capture). Ignoring a lead sets `state=closed`. Both are operator decisions; neither
     is ever taken by this service's model calls.
-13. **The operator surface is a Leads CMS workspace.** It shows `state=lead` records
+13. **The operator surface is a Leads Studio workspace.** It shows `state=lead` records
     with type/reply filters, detail with source-item links, and merge/split/reassign.
     A compact dashboard card links to it. One narrow `lead_list` tool adds combined
     filters; ordinary operations stay on the shared system tools. Committed states
@@ -158,7 +158,7 @@ the reworked `entities/opportunity` package landing first.
   separately; model failure retries; `state`, scores, owner, and deadline survive every
   service write; source content never enters persistence or logs.
 - **Phase 3 — Operator surfaces and correction.** Add `lead_list`, the admin-only Leads
-  CMS workspace, compact dashboard link/counts, and typed merge/split/reassignment.
+  Studio workspace, compact dashboard link/counts, and typed merge/split/reassignment.
   _Tests first:_ combined filters and empty states; permissions; workspace lifecycle;
   confirmation boundaries; merge source union and committed-state preservation;
   split/reassign membership consistency; affected summaries regenerate; no raw mailbox

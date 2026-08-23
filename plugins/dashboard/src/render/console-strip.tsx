@@ -10,7 +10,7 @@ import type { DashboardRenderInput } from "./types";
 /**
  * The console strip, rendered from the shared HTML implementation in
  * `@brains/console-theme` — the same markup the server-rendered shells
- * (web-chat, CMS editor, admin, account) interpolate, so the chrome cannot
+ * (web-chat, Studio editor, admin, account) interpolate, so the chrome cannot
  * drift between surfaces. The strip is static chrome (its toggles are wired
  * by the console scripts), so injecting markup carries no behavior.
  */

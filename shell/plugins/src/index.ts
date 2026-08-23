@@ -259,7 +259,7 @@ export {
 } from "./public/entity-definition";
 export {
   defineAccountSettings,
-  defineCmsWorkspace,
+  defineStudioWorkspace,
   defineDashboardWidget,
   defineEntityCatalog,
   defineJob,
@@ -271,9 +271,9 @@ export {
   type AccountSettingsValue,
   type AnyServiceJobDefinition,
   type AnyServiceToolDefinition,
-  type CmsWorkspaceDefinition,
-  type CmsWorkspaceView,
-  type CmsWorkspaceViewBlock,
+  type StudioWorkspaceDefinition,
+  type StudioWorkspaceView,
+  type StudioWorkspaceViewBlock,
   type DashboardDigest,
   type DashboardOperatorView,
   type DashboardOperatorViewBlock,
@@ -762,17 +762,17 @@ export type {
 } from "./types/web-routes";
 export { jsonResponse, jsonError } from "./types/web-routes";
 export {
-  CMS_WORKSPACE_REGISTER_MESSAGE,
-  CMS_WORKSPACE_UNREGISTER_MESSAGE,
-  DECLARATIVE_CMS_WORKSPACE_RENDERER,
-  assertCmsWorkspaceAdmin,
-  type CmsWorkspaceActor,
-  type CmsWorkspaceDescriptor,
-  type CmsWorkspaceRegistration,
-  type CmsWorkspaceRegistrationResult,
-  type CmsWorkspaceRendererName,
-  type CmsWorkspaceUnregistration,
-} from "./types/cms-workspace";
+  STUDIO_WORKSPACE_REGISTER_MESSAGE,
+  STUDIO_WORKSPACE_UNREGISTER_MESSAGE,
+  DECLARATIVE_STUDIO_WORKSPACE_RENDERER,
+  assertStudioWorkspaceAdmin,
+  type StudioWorkspaceActor,
+  type StudioWorkspaceDescriptor,
+  type StudioWorkspaceRegistration,
+  type StudioWorkspaceRegistrationResult,
+  type StudioWorkspaceRendererName,
+  type StudioWorkspaceUnregistration,
+} from "./types/studio-workspace";
 export {
   DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
   type DashboardWidgetProviderContext,
@@ -780,20 +780,20 @@ export {
   type DashboardWidgetRenderer,
   type IDashboardNamespace,
 } from "./base/dashboard-namespace";
-export { registerBuiltInCmsWorkspace } from "./operator/cms-workspace-runtime";
+export { registerBuiltInStudioWorkspace } from "./operator/studio-workspace-runtime";
 export { registerBuiltInDashboardWidget } from "./operator/dashboard-widget-runtime";
 export {
-  safeParseRuntimeCmsOperatorView,
+  safeParseRuntimeStudioOperatorView,
   safeParseRuntimeDashboardWidgetData,
-  type RuntimeCmsOperatorBlock,
-  type RuntimeCmsOperatorRegionBlock,
-  type RuntimeCmsOperatorCardBlock,
-  type RuntimeCmsOperatorColumnsBlock,
-  type RuntimeCmsOperatorViewStatus,
-  type RuntimeCmsOperatorDetailBlock,
-  type RuntimeCmsOperatorPanelBlock,
-  type RuntimeCmsOperatorView,
-  type RuntimeCmsWorkspaceData,
+  type RuntimeStudioOperatorBlock,
+  type RuntimeStudioOperatorRegionBlock,
+  type RuntimeStudioOperatorCardBlock,
+  type RuntimeStudioOperatorColumnsBlock,
+  type RuntimeStudioOperatorViewStatus,
+  type RuntimeStudioOperatorDetailBlock,
+  type RuntimeStudioOperatorPanelBlock,
+  type RuntimeStudioOperatorView,
+  type RuntimeStudioWorkspaceData,
   type RuntimeDashboardOperatorPanelBlock,
   type RuntimeDashboardOperatorView,
   type RuntimeDashboardWidgetData,

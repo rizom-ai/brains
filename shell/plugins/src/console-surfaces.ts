@@ -11,7 +11,7 @@ const PERMISSION_RANK: Record<SurfacePermissionLevel, number> = {
 
 /**
  * Console surfaces in strip order. A surface's link exists exactly when its
- * plugin registered a web route — a brain without the CMS plugin shows no CMS
+ * plugin registered a web route — a brain without the Studio plugin shows no Studio
  * door, mirroring how dashboard tabs derive from widget groups. `visibility`
  * is the minimum permission level a caller needs to see the door, matching the
  * permission each surface enforces on its own route.
@@ -40,7 +40,7 @@ const SURFACE_PLUGINS: ReadonlyArray<{
     label: "Chat",
     visibility: "trusted",
   },
-  { id: "cms", pluginId: "cms", label: "CMS", visibility: "trusted" },
+  { id: "studio", pluginId: "studio", label: "Studio", visibility: "trusted" },
   { id: "admin", pluginId: "admin", label: "Admin", visibility: "admin" },
   {
     id: "account",

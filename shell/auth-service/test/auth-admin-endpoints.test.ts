@@ -490,7 +490,7 @@ describe("auth admin API", () => {
     expect(await service.listUsers()).toHaveLength(1);
   });
 
-  it("reads the config-declared Anchor with its CMS profile name", async () => {
+  it("reads the config-declared Anchor with its Studio profile name", async () => {
     const service = await createService({
       anchor: "organization",
       profileName: "Rizom",
@@ -518,7 +518,7 @@ describe("auth admin API", () => {
     ]);
   });
 
-  it("uses the CMS profile name for the personal Anchor roster entry", async () => {
+  it("uses the Studio profile name for the personal Anchor roster entry", async () => {
     const service = await createService({
       anchor: "person",
       profileName: "Alice Morgan",

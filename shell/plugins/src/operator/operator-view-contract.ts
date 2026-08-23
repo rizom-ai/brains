@@ -565,11 +565,11 @@ export interface OperatorView<
   readonly blocks: readonly OperatorViewBlock<TAction>[];
 }
 
-export type CmsWorkspaceView<
+export type StudioWorkspaceView<
   TAction extends AnyWorkspaceActionDefinition = never,
 > = OperatorView<TAction>;
 
-export type CmsWorkspaceViewBlock<
+export type StudioWorkspaceViewBlock<
   TAction extends AnyWorkspaceActionDefinition = never,
 > = OperatorViewBlock<TAction>;
 

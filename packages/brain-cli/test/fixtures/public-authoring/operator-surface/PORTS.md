@@ -1,7 +1,7 @@
 # Phase 1 built-in port sketches
 
 These sketches test the accepted public contract vocabulary against the four
-built-in CMS workspaces named by the plan. They preserve domain operations, permission
+built-in Studio workspaces named by the plan. They preserve domain operations, permission
 rules, and action semantics; they do not attempt to preserve bespoke markup.
 Identifiers such as `state.snapshot()` stand for package-owned domain state
 returned by `setup()`.
@@ -19,7 +19,7 @@ The golden package and ports require this initial host-rendered vocabulary:
 - `list`: ordered records with stable row IDs;
 - `table`: declared columns, stable row IDs, optional filters, links, and typed
   row actions;
-- `links`: validated external links plus runtime-owned entity links within CMS;
+- `links`: validated external links plus runtime-owned entity links within Studio;
 - typed action controls: definition reference plus schema-valid input; and
 - deterministic empty text on list/table blocks.
 
@@ -43,7 +43,7 @@ const syncNow = defineWorkspaceAction({
   output: syncRequestResult,
 });
 
-const directorySyncWorkspace = defineCmsWorkspace({
+const directorySyncWorkspace = defineStudioWorkspace({
   id: "sync",
   label: "Sync",
   priority: 60,
@@ -98,9 +98,9 @@ const directorySyncWorkspace = defineCmsWorkspace({
   }),
 });
 
-cmsWorkspaces: (context) => {
+studioWorkspaces: (context) => {
   const syncNowHandler = syncNow.bind(context, ({ state, caller, signal }) =>
-    state.requestSync({ caller, source: "cms", signal }),
+    state.requestSync({ caller, source: "studio", signal }),
   );
   return [
     directorySyncWorkspace.bind(context, {
@@ -139,7 +139,7 @@ const buildProduction = defineWorkspaceAction({
   output: buildRequestResult,
 });
 
-const siteWorkspace = defineCmsWorkspace({
+const siteWorkspace = defineStudioWorkspace({
   id: "site",
   label: "Site",
   priority: 50,
@@ -188,7 +188,7 @@ const siteWorkspace = defineCmsWorkspace({
   }),
 });
 
-cmsWorkspaces: (context) => {
+studioWorkspaces: (context) => {
   const previewHandler = buildPreview.bind(context, ({ state }) =>
     state.requestBuild("preview"),
   );
@@ -208,7 +208,7 @@ cmsWorkspaces: (context) => {
 The missing policy query must answer only whether the canonical caller may
 perform an action on a referenced entity definition. It must not expose the
 permission service or allow elevation. External links remain protocol-checked;
-entity links are resolved by the CMS host.
+entity links are resolved by the Studio host.
 
 ## Email Triage
 
@@ -242,7 +242,7 @@ const archive = defineWorkspaceAction({
   output: statusActionResult,
 });
 
-const emailWorkflowsWorkspace = defineCmsWorkspace({
+const emailWorkflowsWorkspace = defineStudioWorkspace({
   id: "email-workflows",
   label: "Email Triage",
   priority: 30,
@@ -293,7 +293,7 @@ const emailWorkflowsWorkspace = defineCmsWorkspace({
   }),
 });
 
-cmsWorkspaces: (context) => {
+studioWorkspaces: (context) => {
   const reviewedHandler = markReviewed.bind(
     context,
     ({ input, state, caller }) => state.markReviewed(input.id, caller),
@@ -327,7 +327,7 @@ Exact missing capabilities:
 
 1. Entity coverage is discovered at runtime from publish-provider
    registrations, not a static list of imported entity definitions.
-2. Queue rows link to CMS editors for those runtime-discovered entity types, so
+2. Queue rows link to Studio editors for those runtime-discovered entity types, so
    a compile-time entity-definition reference is unavailable.
 3. “Publish now” uses a provider-prepared, content-hash-bound confirmation with
    a dynamic preview and expiry. Static action confirmation cannot preserve its
@@ -361,7 +361,7 @@ Phase 0 accepted the architectural choice:
 - **Rejected workaround:** move IMAP polling into a service just so it can use a
   service-only settings contract.
 
-The principal-owned form belongs under Account, not CMS. CMS must not display or
+The principal-owned form belongs under Account, not Studio. Studio must not display or
 administer another principal's secret. A secret marker gives
 the host encrypted-at-rest and write-only display behavior; callbacks remain a
 trusted package boundary, so the framework can prevent automatic serialization

@@ -582,8 +582,8 @@ export class DashboardPlugin extends ServicePlugin<
             activeId: "dashboard",
             permissionLevel: principal.permissionLevel,
           });
-          const cmsPath = surfaces.find(
-            (surface) => surface.id === "cms",
+          const studioPath = surfaces.find(
+            (surface) => surface.id === "studio",
           )?.href;
           const adminPath = surfaces.find(
             (surface) => surface.id === "admin",
@@ -594,7 +594,7 @@ export class DashboardPlugin extends ServicePlugin<
               query,
               groups: [...widgetGroups, "knowledge", "system"],
               dashboardPath: this.config.routePath,
-              cmsPath,
+              studioPath,
               adminPath,
               entities,
             }),

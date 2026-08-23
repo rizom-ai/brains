@@ -55,7 +55,7 @@ export const webBundle: CapabilityBundleDefinition = defineBundle({
     "account",
     "admin",
     "dashboard",
-    "cms",
+    "studio",
   ],
   config: [{ member: "dashboard", value: { routePath: "/" } }],
   permissions: [

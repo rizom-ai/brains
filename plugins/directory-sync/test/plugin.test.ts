@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { DirectorySyncPlugin } from "../src/plugin";
 import { createPluginHarness, expectSuccess } from "@brains/plugins/test";
 import type { PluginCapabilities } from "@brains/plugins/test";
-import type { CmsWorkspaceRegistration } from "@brains/plugins";
+import type { StudioWorkspaceRegistration } from "@brains/plugins";
 import { baseEntitySchema } from "@brains/plugins/test";
 import { z } from "@brains/utils/zod";
 import type { ToolResponse } from "@brains/mcp-service";
@@ -23,15 +23,15 @@ describe("DirectorySyncPlugin", () => {
   let plugin: DirectorySyncPlugin;
   let capabilities: PluginCapabilities;
   let syncPath: string;
-  let workspaceRegistration: CmsWorkspaceRegistration | undefined;
+  let workspaceRegistration: StudioWorkspaceRegistration | undefined;
 
   beforeEach(async () => {
     syncPath = mkdtempSync(join(tmpdir(), "test-directory-sync-"));
 
     harness = createPluginHarness<DirectorySyncPlugin>({ dataDir: syncPath });
     workspaceRegistration = undefined;
-    harness.subscribe<CmsWorkspaceRegistration, { workspaceUrl: string }>(
-      "cms:register-workspace",
+    harness.subscribe<StudioWorkspaceRegistration, { workspaceUrl: string }>(
+      "studio:register-workspace",
       async (message) => {
         workspaceRegistration = message.payload;
         return {
@@ -97,7 +97,7 @@ describe("DirectorySyncPlugin", () => {
       });
     });
 
-    it("should register the optional CMS Sync workspace", () => {
+    it("should register the optional Studio Sync workspace", () => {
       expect(workspaceRegistration).toMatchObject({
         id: "directory-sync:sync",
         pluginId: "directory-sync",

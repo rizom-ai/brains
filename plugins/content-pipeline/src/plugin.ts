@@ -17,7 +17,7 @@ import { contentPipelineConfigSchema } from "./types/config";
 import { subscribeToMessages } from "./lib/message-handlers";
 import { createScheduler } from "./lib/create-scheduler";
 import { registerDashboardWidget } from "./lib/dashboard-widget";
-import { registerCmsWorkspace } from "./lib/cms-workspace";
+import { registerStudioWorkspace } from "./lib/studio-workspace";
 import packageJson from "../package.json";
 
 export class ContentPipelinePlugin extends ServicePlugin<
@@ -33,7 +33,7 @@ export class ContentPipelinePlugin extends ServicePlugin<
   private publishAssetRegistry!: PublishAssetRegistry;
   private publishAssetPreflight!: PublishAssetPreflight;
   private scheduler!: ContentScheduler;
-  private cmsRegistered = false;
+  private studioRegistered = false;
 
   constructor(config: ContentPipelineConfigInput = {}) {
     super("content-pipeline", packageJson, config, contentPipelineConfigSchema);
@@ -91,14 +91,14 @@ export class ContentPipelinePlugin extends ServicePlugin<
     await this.publicationQueueService.reconcile(
       this.providerRegistry.getRegisteredTypes(),
     );
-    const workspaceUrl = await registerCmsWorkspace(context, {
+    const workspaceUrl = await registerStudioWorkspace(context, {
       providerRegistry: this.providerRegistry,
       queueManager: this.queueManager,
       publicationQueueService: this.publicationQueueService,
       retryTracker: this.retryTracker,
       publishExecutor: this.publishExecutor,
     });
-    this.cmsRegistered = workspaceUrl !== undefined;
+    this.studioRegistered = workspaceUrl !== undefined;
     await registerDashboardWidget(context, {
       providerRegistry: this.providerRegistry,
       queueManager: this.queueManager,
@@ -157,11 +157,11 @@ export class ContentPipelinePlugin extends ServicePlugin<
   }
 
   protected override async onShutdown(): Promise<void> {
-    if (this.cmsRegistered) {
-      await this.pluginContext?.cms.unregisterWorkspace(
+    if (this.studioRegistered) {
+      await this.pluginContext?.studio.unregisterWorkspace(
         "content-pipeline:publishing",
       );
-      this.cmsRegistered = false;
+      this.studioRegistered = false;
     }
     await this.scheduler.stop();
   }

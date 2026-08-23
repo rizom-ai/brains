@@ -40,7 +40,7 @@ Canonical minimal, personal, publishing, team, commerce, docs, and Rizom manifes
 
 ### Ambiguous authorization
 
-`public` now fails closed consistently, but it still describes only shared-host admission rather than the route's actual security protocol. Consequently, operator-gated CMS and web-chat routes declare `public: true` and enforce sessions inside handlers. MCP, A2A, OAuth, and webhooks also declare `public: true` while implementing protocol-specific authentication themselves.
+`public` now fails closed consistently, but it still describes only shared-host admission rather than the route's actual security protocol. Consequently, operator-gated Studio and web-chat routes declare `public: true` and enforce sessions inside handlers. MCP, A2A, OAuth, and webhooks also declare `public: true` while implementing protocol-specific authentication themselves.
 
 ### Limited matcher contract
 
@@ -48,7 +48,7 @@ Handler routes support exact and typed prefix matching, including segment-bounda
 
 ### Endpoint-advertisement drift
 
-The endpoint registry is intentionally broader than routes because Site and Preview may be external/static URLs. However, route-backed entries such as Dashboard, Chat, CMS, MCP, and A2A are declared twice and can drift.
+The endpoint registry is intentionally broader than routes because Site and Preview may be external/static URLs. However, route-backed entries such as Dashboard, Chat, Studio, MCP, and A2A are declared twice and can drift.
 
 ### Implicit preview policy
 
@@ -180,7 +180,7 @@ The current default remains production-only dynamic routes and static-only previ
 4. Enforce the same policy before tool-backed API execution and propagate the resolved principal into tool execution context instead of always using `anonymous`.
 5. Migrate first-party routes deliberately from observed handler behavior rather than from their current boolean:
    - genuinely public metadata and ATProto registry reads: `none`;
-   - routes that require a normal browser session and have one minimum permission, such as CMS or operator-console mutations: `operator` with `trusted` or `admin` as appropriate;
+   - routes that require a normal browser session and have one minimum permission, such as Studio or operator-console mutations: `operator` with `trusted` or `admin` as appropriate;
    - auth-service OAuth/WebAuthn/account flows, MCP, A2A, Chat SDK, web-chat mixed-access flows, and verified webhooks: `protocol` while those handlers own protocol/session semantics;
    - mixed public Dashboard rendering remains `none`; classify `/api/console/jump` from its actual session and permission requirement before migration.
 6. Keep Admin permission and Anchor identity independent. A route may require one, both, or neither; `admin` must never be inferred to mean Anchor.
@@ -192,7 +192,7 @@ Gate:
 - No non-public API route can execute as anonymous.
 - The auth matrix covers anonymous, public, trusted, Admin, expired, and suspended principals where supported by auth-service.
 - MCP bearer, signed/unsigned A2A, OAuth, WebAuthn, and webhook tests remain unchanged at the protocol boundary.
-- CMS and web-chat mutation tests cover CSRF failure and success.
+- Studio and web-chat mutation tests cover CSRF failure and success.
 
 ### Phase 3 — Authoring contract replacement
 
@@ -228,7 +228,7 @@ Gate:
 
 ### Phase 5 — Advertising, diagnostics, and cleanup
 
-1. Add optional route advertisement metadata for Dashboard, Chat, CMS, MCP, and A2A.
+1. Add optional route advertisement metadata for Dashboard, Chat, Studio, MCP, and A2A.
 2. Keep manual endpoint registration for external/static URLs such as Site and Preview.
 3. Diagnose route-backed advertised URLs that do not resolve to a registered route.
 4. Document the route manifest and ownership model in architecture and external-plugin authoring docs.

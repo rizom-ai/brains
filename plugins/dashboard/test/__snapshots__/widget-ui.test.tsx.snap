@@ -178,7 +178,7 @@ exports[`widget UI primitives renders validated declarative views with host-owne
                                         ],
                                         [
                                           "href",
-                                          "/cms/entities/bookmark/saved-1",
+                                          "/studio/entities/bookmark/saved-1",
                                         ],
                                       ],
                                       "children": [

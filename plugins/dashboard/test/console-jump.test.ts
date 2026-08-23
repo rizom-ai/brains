@@ -7,7 +7,7 @@ describe("buildConsoleJumpGroups", () => {
       query: "peop",
       groups: [],
       dashboardPath: "/dashboard",
-      cmsPath: undefined,
+      studioPath: undefined,
       adminPath: "/admin",
       entities: [],
     });
@@ -23,12 +23,12 @@ describe("buildConsoleJumpGroups", () => {
     ]);
   });
 
-  it("maps entity hits to CMS edit doors", () => {
+  it("maps entity hits to Studio edit doors", () => {
     const groups = buildConsoleJumpGroups({
       query: "verd",
       groups: [],
       dashboardPath: "/",
-      cmsPath: "/cms",
+      studioPath: "/studio",
       entities: [
         {
           entityType: "note",
@@ -43,17 +43,17 @@ describe("buildConsoleJumpGroups", () => {
       id: "note/verdigris-pigments",
       title: "Verdigris pigments",
       sub: "note",
-      href: "/cms/entities/note/verdigris-pigments",
-      tag: "edit in cms",
+      href: "/studio/entities/note/verdigris-pigments",
+      tag: "edit in studio",
     });
   });
 
-  it("omits the entities group when no CMS is registered", () => {
+  it("omits the entities group when no Studio is registered", () => {
     const groups = buildConsoleJumpGroups({
       query: "verd",
       groups: [],
       dashboardPath: "/",
-      cmsPath: undefined,
+      studioPath: undefined,
       entities: [
         {
           entityType: "note",
@@ -71,7 +71,7 @@ describe("buildConsoleJumpGroups", () => {
       query: "",
       groups: ["publishing", "system", "knowledge"],
       dashboardPath: "/",
-      cmsPath: undefined,
+      studioPath: undefined,
       entities: [],
     });
 
@@ -83,7 +83,7 @@ describe("buildConsoleJumpGroups", () => {
       query: "publ",
       groups: ["publishing", "system"],
       dashboardPath: "/dashboard",
-      cmsPath: undefined,
+      studioPath: undefined,
       entities: [],
     });
     expect(
@@ -96,7 +96,7 @@ describe("buildConsoleJumpGroups", () => {
       query: "",
       groups: ["system", "publishing", "publishing", "knowledge"],
       dashboardPath: "/",
-      cmsPath: undefined,
+      studioPath: undefined,
       entities: [],
     });
 

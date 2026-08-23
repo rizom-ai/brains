@@ -59,7 +59,7 @@ The runtime owns base entity fields, persistence, markdown validation, search in
 Definitions and schema vocabulary:
 
 - `defineAccountSettings`
-- `defineCmsWorkspace`
+- `defineStudioWorkspace`
 - `defineDashboardWidget`
 - `defineEntityCatalog`
 - `defineJob`
@@ -73,9 +73,9 @@ Types:
 - `AccountSettingsDefinition`
 - `AccountSettingsFieldDefinition`
 - `AccountSettingsValue`
-- `CmsWorkspaceDefinition`
-- `CmsWorkspaceView`
-- `CmsWorkspaceViewBlock`
+- `StudioWorkspaceDefinition`
+- `StudioWorkspaceView`
+- `StudioWorkspaceViewBlock`
 - `DashboardDigest`
 - `DashboardOperatorView`
 - `DashboardOperatorViewBlock`
@@ -99,7 +99,7 @@ Types:
 - `WorkspaceActionDefinition`
 - `WorkspacePreparedConfirmation`
 
-These operator schemas and executor bindings are the accepted public contract. The account-settings runtime provides encrypted auth-DB persistence, redacted Account forms, principal isolation, and runtime-owned account-daemon reconciliation. Dashboard widgets and CMS workspaces register through host-owned semantic renderers; callbacks receive the canonical caller, secret-redacted current-principal settings, visibility-scoped entities, typed jobs, and cancellation. CMS adds schema-validated query state, bounded host-rendered plain text, typed dynamic catalogs and launch intents, caller/input/revision/expiry/single-use prepared confirmations, and bounded `card` and primary/aside `columns` composition. Missing optional hosts leave declarations inert, and execution-only workers never bind or register operator callbacks. The packed operator fixture compiles Account settings, Dashboard, and CMS authoring together without browser UI code.
+These operator schemas and executor bindings are the accepted public contract. The account-settings runtime provides encrypted auth-DB persistence, redacted Account forms, principal isolation, and runtime-owned account-daemon reconciliation. Dashboard widgets and Studio workspaces register through host-owned semantic renderers; callbacks receive the canonical caller, secret-redacted current-principal settings, visibility-scoped entities, typed jobs, and cancellation. Studio adds schema-validated query state, bounded host-rendered plain text, typed dynamic catalogs and launch intents, caller/input/revision/expiry/single-use prepared confirmations, and bounded `card` and primary/aside `columns` composition. Missing optional hosts leave declarations inert, and execution-only workers never bind or register operator callbacks. The packed operator fixture compiles Account settings, Dashboard, and Studio authoring together without browser UI code.
 
 ## `@rizom/brain/interfaces`
 

@@ -9,7 +9,7 @@ There is one configurable brain. It composes from eight capability bundles plus 
 | `core`       | Identity, markdown knowledge, Inbox, MCP stdio, A2A, and agent discovery                |
 | `media`      | Durable documents and images                                                            |
 | `automation` | Playbooks and onboarding                                                                |
-| `web`        | HTTP, authentication, account/admin, Dashboard, and CMS                                 |
+| `web`        | HTTP, authentication, account/admin, Dashboard, and Studio                              |
 | `chat`       | Platform chat, web chat, email, notifications, and conversation memory                  |
 | `site`       | Public site information, content, building, and analytics                               |
 | `publishing` | Blog, series, portfolio, decks, pipeline, social, newsletter, and stock-photo workflows |
@@ -75,7 +75,7 @@ A core-only brain is headless and private. It can call approved peers, but it se
 - passkey and OAuth authentication;
 - Account and Admin consoles;
 - Dashboard operator views;
-- CMS entity editing and plugin workspaces;
+- Studio entity editing and plugin workspaces;
 - HTTP MCP publication.
 
 `chat` owns conversational channels:
@@ -200,7 +200,7 @@ The plugin system supports:
 - custom templates, data sources, site routes, and publishing providers.
 
 External service packages can declare encrypted per-account settings,
-Dashboard widgets, and authenticated CMS workspaces through the public `0.2.x`
+Dashboard widgets, and authenticated Studio workspaces through the public `0.2.x`
 authoring API. Widgets and workspaces return closed semantic views rendered by
 the host; packages do not ship browser components, HTML, CSS, scripts, renderer
 names, or private routes. Typed query state, dynamic catalogs, workspace

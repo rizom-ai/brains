@@ -1,7 +1,7 @@
 /** @jsxImportSource react */
 import {
   safeParseRuntimeDashboardWidgetData,
-  type RuntimeCmsWorkspaceData,
+  type RuntimeStudioWorkspaceData,
   type RuntimeOperatorActionControl,
   type RuntimeOperatorLaunchIntent,
   type RuntimeOperatorLinkTarget,
@@ -13,7 +13,7 @@ import type { RenderableWidgetData } from "./types";
 interface OperatorLaunchPaths {
   readonly accountPath?: string | undefined;
   readonly adminPath?: string | undefined;
-  readonly cmsPath?: string | undefined;
+  readonly studioPath?: string | undefined;
 }
 
 function entityHref(basePath: string, entityType: string, id: string): string {
@@ -21,17 +21,17 @@ function entityHref(basePath: string, entityType: string, id: string): string {
   return `${base}/entities/${encodeURIComponent(entityType)}/${encodeURIComponent(id)}`;
 }
 
-function workspaceHref(cmsPath: string, workspaceId: string): string {
-  const base = cmsPath === "/" ? "" : cmsPath.replace(/\/+$/, "");
+function workspaceHref(studioPath: string, workspaceId: string): string {
+  const base = studioPath === "/" ? "" : studioPath.replace(/\/+$/, "");
   return `${base}/workspaces/${encodeURIComponent(workspaceId)}`;
 }
 
 function inboxLaunchHref(
-  cmsPath: string,
+  studioPath: string,
   launch: Extract<RuntimeOperatorLaunchIntent, { target: "inbox" }>,
 ): string {
   const url = new URL(
-    workspaceHref(cmsPath, "unified-inbox:inbox"),
+    workspaceHref(studioPath, "unified-inbox:inbox"),
     "https://brains.invalid",
   );
   if ("source" in launch) {
@@ -59,14 +59,14 @@ function launchHref(
     url.searchParams.set("displayName", launch.displayName);
     return `${url.pathname}${url.search}`;
   }
-  if (!paths.cmsPath) return undefined;
+  if (!paths.studioPath) return undefined;
   switch (launch.target) {
     case "inbox":
-      return inboxLaunchHref(paths.cmsPath, launch);
+      return inboxLaunchHref(paths.studioPath, launch);
     case "publishing":
-      return workspaceHref(paths.cmsPath, "content-pipeline:publishing");
+      return workspaceHref(paths.studioPath, "content-pipeline:publishing");
     case "site":
-      return workspaceHref(paths.cmsPath, "site-builder:site");
+      return workspaceHref(paths.studioPath, "site-builder:site");
     case "inbox-open-entity":
     case "inbox-discuss-in-chat":
     case "inbox-capture-note":
@@ -81,8 +81,8 @@ function resolveLink(
   if (target.kind === "external") return target.href;
   if (target.kind === "launch") return launchHref(target.launch, paths);
   if (target.kind === "detail") return undefined;
-  return paths.cmsPath
-    ? entityHref(paths.cmsPath, target.entityType, target.id)
+  return paths.studioPath
+    ? entityHref(paths.studioPath, target.entityType, target.id)
     : undefined;
 }
 
@@ -112,7 +112,7 @@ export function DeclarativeWidgetBody({
     );
   }
 
-  const data: RuntimeCmsWorkspaceData = { view: parsed.data.view };
+  const data: RuntimeStudioWorkspaceData = { view: parsed.data.view };
   return (
     <OperatorViewRenderer
       data={data}

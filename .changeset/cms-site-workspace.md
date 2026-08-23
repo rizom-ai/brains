@@ -1,6 +1,6 @@
 ---
 "@brains/plugins": patch
-"@brains/cms": patch
+"@brains/studio": patch
 "@brains/content-pipeline": patch
 "@brains/site-builder-plugin": patch
 ---

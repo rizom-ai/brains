@@ -24,12 +24,12 @@ import type {
 } from "../interfaces";
 import type { AnyAccountSettingsDefinition } from "../operator/account-settings-definition-contract";
 import type { AccountSettingsRegistration } from "../operator/account-settings-registry";
-import { createDeclarativeCmsWorkspaceRegistration } from "../operator/cms-workspace-runtime";
+import { createDeclarativeStudioWorkspaceRegistration } from "../operator/studio-workspace-runtime";
 import { createDeclarativeDashboardWidgetRegistration } from "../operator/dashboard-widget-runtime";
 import type {
-  AnyCmsWorkspaceDefinition,
+  AnyStudioWorkspaceDefinition,
   AnyDashboardWidgetDefinition,
-  BoundCmsWorkspace,
+  BoundStudioWorkspace,
   BoundDashboardWidget,
 } from "../operator/operator-definition-contract";
 import {
@@ -178,12 +178,12 @@ class DeclarativeServicePlugin<
   private readonly cleanups: Array<() => void | Promise<void>> = [];
   private readonly registeredJobs = new Set<AnyServiceJobDefinition>();
   private readonly operatorAbortController = new AbortController();
-  private readonly registeredCmsWorkspaceIds: string[] = [];
+  private readonly registeredStudioWorkspaceIds: string[] = [];
   private readonly registeredDashboardWidgetIds: string[] = [];
   private accountSettingsRegistration:
     AccountSettingsRegistration<NonNullable<TAccountSettings>> | undefined;
-  private cmsWorkspaceBindings: readonly BoundCmsWorkspace<
-    AnyCmsWorkspaceDefinition,
+  private studioWorkspaceBindings: readonly BoundStudioWorkspace<
+    AnyStudioWorkspaceDefinition,
     z.output<TConfigSchema>,
     TState,
     TAccountSettings
@@ -287,12 +287,12 @@ class DeclarativeServicePlugin<
     if (context.executionOnly) return;
     this.bindOperatorDefinitions(context);
 
-    const acquiredCms: string[] = [];
+    const acquiredStudio: string[] = [];
     const acquiredDashboard: string[] = [];
     try {
-      for (const binding of this.cmsWorkspaceBindings) {
+      for (const binding of this.studioWorkspaceBindings) {
         const runtimeWorkspaceId = `${this.id}:${binding.definition.id}`;
-        const registration = createDeclarativeCmsWorkspaceRegistration({
+        const registration = createDeclarativeStudioWorkspaceRegistration({
           publicServiceId: this.publicId,
           packageName: this.packageName,
           runtimeWorkspaceId,
@@ -308,21 +308,21 @@ class DeclarativeServicePlugin<
           runtimeSignal: this.operatorAbortController.signal,
         });
         try {
-          const result = await context.cms.registerWorkspace(registration);
+          const result = await context.studio.registerWorkspace(registration);
           if (result === false) {
-            await this.rollbackCmsWorkspaces(context, acquiredCms);
-            acquiredCms.splice(0);
+            await this.rollbackStudioWorkspaces(context, acquiredStudio);
+            acquiredStudio.splice(0);
             break;
           }
         } catch (error) {
           throw new Error(
-            `Service "${this.publicId}" package "${this.packageName}" CMS workspace "${binding.definition.id}" host registration failed; correct the declaration or CMS configuration: ${getErrorMessage(error)}`,
+            `Service "${this.publicId}" package "${this.packageName}" Studio workspace "${binding.definition.id}" host registration failed; correct the declaration or Studio configuration: ${getErrorMessage(error)}`,
             { cause: error },
           );
         }
-        acquiredCms.push(runtimeWorkspaceId);
+        acquiredStudio.push(runtimeWorkspaceId);
       }
-      this.registeredCmsWorkspaceIds.push(...acquiredCms);
+      this.registeredStudioWorkspaceIds.push(...acquiredStudio);
 
       for (const binding of this.dashboardWidgetBindings) {
         const registration = createDeclarativeDashboardWidgetRegistration({
@@ -358,7 +358,7 @@ class DeclarativeServicePlugin<
       this.registeredDashboardWidgetIds.push(...acquiredDashboard);
     } catch (error) {
       await this.rollbackDashboardWidgets(context, acquiredDashboard);
-      await this.rollbackCmsWorkspaces(context, acquiredCms);
+      await this.rollbackStudioWorkspaces(context, acquiredStudio);
       throw error;
     }
   }
@@ -414,11 +414,11 @@ class DeclarativeServicePlugin<
       this.getContext(),
       this.registeredDashboardWidgetIds.splice(0),
     );
-    await this.rollbackCmsWorkspaces(
+    await this.rollbackStudioWorkspaces(
       this.getContext(),
-      this.registeredCmsWorkspaceIds.splice(0),
+      this.registeredStudioWorkspaceIds.splice(0),
     );
-    this.cmsWorkspaceBindings = [];
+    this.studioWorkspaceBindings = [];
     this.dashboardWidgetBindings = [];
     this.tools = undefined;
     this.resources = undefined;
@@ -451,8 +451,8 @@ class DeclarativeServicePlugin<
       this.dashboardWidgetBindings = Object.freeze([...bindings]);
     }
 
-    if (this.definition.cmsWorkspaces && context.cms.isAvailable()) {
-      const bindings = this.definition.cmsWorkspaces({
+    if (this.definition.studioWorkspaces && context.studio.isAvailable()) {
+      const bindings = this.definition.studioWorkspaces({
         config: this.config,
         state: this.requireState(),
         accountSettings: this.definition.accountSettings,
@@ -462,32 +462,32 @@ class DeclarativeServicePlugin<
         const id = binding.definition.id;
         if (ids.has(id)) {
           throw new Error(
-            `Service "${this.publicId}" package "${this.packageName}" registers CMS workspace "${id}" more than once; return each local workspace definition once`,
+            `Service "${this.publicId}" package "${this.packageName}" registers Studio workspace "${id}" more than once; return each local workspace definition once`,
           );
         }
         ids.add(id);
       }
-      this.cmsWorkspaceBindings = Object.freeze([...bindings]);
+      this.studioWorkspaceBindings = Object.freeze([...bindings]);
     }
   }
 
-  private async rollbackCmsWorkspaces(
+  private async rollbackStudioWorkspaces(
     context: ServicePluginContext,
     workspaceIds: readonly string[],
   ): Promise<void> {
     for (const workspaceId of [...workspaceIds].reverse()) {
       try {
-        await context.cms.unregisterWorkspace(workspaceId);
+        await context.studio.unregisterWorkspace(workspaceId);
       } catch (error) {
-        this.logger.error("Failed to unregister declarative CMS workspace", {
+        this.logger.error("Failed to unregister declarative Studio workspace", {
           serviceId: this.publicId,
           packageName: this.packageName,
           workspaceId,
           error: getErrorMessage(error),
         });
       }
-      const index = this.registeredCmsWorkspaceIds.lastIndexOf(workspaceId);
-      if (index >= 0) this.registeredCmsWorkspaceIds.splice(index, 1);
+      const index = this.registeredStudioWorkspaceIds.lastIndexOf(workspaceId);
+      if (index >= 0) this.registeredStudioWorkspaceIds.splice(index, 1);
     }
   }
 

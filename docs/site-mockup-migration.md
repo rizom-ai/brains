@@ -105,7 +105,7 @@ Prefer existing Brain templates, data sources, and service plugins for live data
 
 ### 7. Verify preview before production
 
-Run the Brain, then request a preview rebuild on the running app through the CMS **Build preview** action or the `site-builder_build-site` MCP tool with `environment: "preview"`. Check the browser output and `dist/site-preview`; do not validate only the source components.
+Run the Brain, then request a preview rebuild on the running app through the Studio **Build preview** action or the `site-builder_build-site` MCP tool with `environment: "preview"`. Check the browser output and `dist/site-preview`; do not validate only the source components.
 
 Before switching production over, verify:
 

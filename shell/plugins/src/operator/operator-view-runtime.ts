@@ -436,40 +436,40 @@ export interface RuntimeOperatorActionControl {
     | undefined;
 }
 
-export interface RuntimeCmsOperatorListItem extends RuntimeOperatorListItem {
+export interface RuntimeStudioOperatorListItem extends RuntimeOperatorListItem {
   readonly actions?: readonly RuntimeOperatorActionControl[] | undefined;
 }
 
-export interface RuntimeCmsOperatorListBlock extends Omit<
+export interface RuntimeStudioOperatorListBlock extends Omit<
   RuntimeOperatorListBlock,
   "items"
 > {
-  readonly items: readonly RuntimeCmsOperatorListItem[];
+  readonly items: readonly RuntimeStudioOperatorListItem[];
 }
 
-export interface RuntimeCmsOperatorTableRow extends RuntimeOperatorTableRow {
+export interface RuntimeStudioOperatorTableRow extends RuntimeOperatorTableRow {
   readonly actions?: readonly RuntimeOperatorActionControl[] | undefined;
 }
 
-export interface RuntimeCmsOperatorTableBlock extends Omit<
+export interface RuntimeStudioOperatorTableBlock extends Omit<
   RuntimeOperatorTableBlock,
   "rows"
 > {
-  readonly rows: readonly RuntimeCmsOperatorTableRow[];
+  readonly rows: readonly RuntimeStudioOperatorTableRow[];
 }
 
-export interface RuntimeCmsOperatorActionBlock extends RuntimeOperatorActionControl {
+export interface RuntimeStudioOperatorActionBlock extends RuntimeOperatorActionControl {
   readonly type: "action";
   readonly id?: string | undefined;
 }
 
-export interface RuntimeCmsOperatorActionsBlock {
+export interface RuntimeStudioOperatorActionsBlock {
   readonly type: "actions";
   readonly id?: string | undefined;
   readonly items: readonly RuntimeOperatorActionControl[];
 }
 
-export type RuntimeCmsOperatorPanelBlock =
+export type RuntimeStudioOperatorPanelBlock =
   | RuntimeOperatorStatsBlock
   | RuntimeOperatorKeyValuesBlock
   | RuntimeOperatorNoticeBlock
@@ -480,14 +480,14 @@ export type RuntimeCmsOperatorPanelBlock =
   | RuntimeOperatorProgressBlock
   | RuntimeOperatorQueryBlock
   | RuntimeOperatorLinksBlock
-  | RuntimeCmsOperatorListBlock
-  | RuntimeCmsOperatorTableBlock
-  | RuntimeOperatorMatrixBlock<RuntimeCmsOperatorListItem>
+  | RuntimeStudioOperatorListBlock
+  | RuntimeStudioOperatorTableBlock
+  | RuntimeOperatorMatrixBlock<RuntimeStudioOperatorListItem>
   | RuntimeOperatorSpatialBlock
-  | RuntimeCmsOperatorActionBlock
-  | RuntimeCmsOperatorActionsBlock;
+  | RuntimeStudioOperatorActionBlock
+  | RuntimeStudioOperatorActionsBlock;
 
-export interface RuntimeCmsOperatorTabsBlock {
+export interface RuntimeStudioOperatorTabsBlock {
   readonly type: "tabs";
   readonly id: string;
   readonly label: string;
@@ -496,66 +496,67 @@ export interface RuntimeCmsOperatorTabsBlock {
     readonly id: string;
     readonly label: string;
     readonly count?: number | undefined;
-    readonly blocks: readonly RuntimeCmsOperatorPanelBlock[];
+    readonly blocks: readonly RuntimeStudioOperatorPanelBlock[];
   }[];
 }
 
-export interface RuntimeCmsOperatorDetailBlock {
+export interface RuntimeStudioOperatorDetailBlock {
   readonly type: "detail";
   readonly id: string;
   readonly queryKey: string;
   readonly empty: string;
-  readonly master: RuntimeCmsOperatorListBlock | RuntimeCmsOperatorTableBlock;
+  readonly master:
+    RuntimeStudioOperatorListBlock | RuntimeStudioOperatorTableBlock;
   readonly open?:
     | {
         readonly forId: string;
         readonly title: string;
-        readonly blocks: readonly RuntimeCmsOperatorRegionBlock[];
+        readonly blocks: readonly RuntimeStudioOperatorRegionBlock[];
       }
     | undefined;
 }
 
-export interface RuntimeCmsOperatorCardBlock {
+export interface RuntimeStudioOperatorCardBlock {
   readonly type: "card";
   readonly id: string;
   readonly label: string;
   readonly tone?: "good" | "warn" | "neutral" | "error" | undefined;
-  readonly blocks: readonly RuntimeCmsOperatorPanelBlock[];
+  readonly blocks: readonly RuntimeStudioOperatorPanelBlock[];
 }
 
-export type RuntimeCmsOperatorRegionBlock =
-  RuntimeCmsOperatorPanelBlock | RuntimeCmsOperatorCardBlock;
+export type RuntimeStudioOperatorRegionBlock =
+  RuntimeStudioOperatorPanelBlock | RuntimeStudioOperatorCardBlock;
 
-export interface RuntimeCmsOperatorColumnsBlock {
+export interface RuntimeStudioOperatorColumnsBlock {
   readonly type: "columns";
   readonly id: string;
-  readonly primary: readonly RuntimeCmsOperatorRegionBlock[];
-  readonly aside: readonly RuntimeCmsOperatorRegionBlock[];
+  readonly primary: readonly RuntimeStudioOperatorRegionBlock[];
+  readonly aside: readonly RuntimeStudioOperatorRegionBlock[];
 }
 
-export type RuntimeCmsOperatorBlock =
-  | RuntimeCmsOperatorPanelBlock
-  | RuntimeCmsOperatorTabsBlock
-  | RuntimeCmsOperatorDetailBlock
-  | RuntimeCmsOperatorColumnsBlock
-  | RuntimeCmsOperatorCardBlock;
+export type RuntimeStudioOperatorBlock =
+  | RuntimeStudioOperatorPanelBlock
+  | RuntimeStudioOperatorTabsBlock
+  | RuntimeStudioOperatorDetailBlock
+  | RuntimeStudioOperatorColumnsBlock
+  | RuntimeStudioOperatorCardBlock;
 
-export interface RuntimeCmsOperatorViewStatus {
+export interface RuntimeStudioOperatorViewStatus {
   readonly label: string;
   readonly detail?: string | undefined;
   readonly tone?: "good" | "warn" | "neutral" | "error" | undefined;
 }
 
-export interface RuntimeCmsOperatorView {
+export interface RuntimeStudioOperatorView {
   readonly kicker?: string | undefined;
   readonly title?: string | undefined;
   readonly description?: string | undefined;
-  readonly status?: RuntimeCmsOperatorViewStatus | undefined;
-  readonly blocks: readonly RuntimeCmsOperatorBlock[];
+  readonly status?: RuntimeStudioOperatorViewStatus | undefined;
+  readonly blocks: readonly RuntimeStudioOperatorBlock[];
 }
 
-export interface RuntimeCmsWorkspaceData {
-  readonly view: RuntimeCmsOperatorView;
+export interface RuntimeStudioWorkspaceData {
+  readonly view: RuntimeStudioOperatorView;
   readonly refreshAfterMs?: number | undefined;
 }
 
@@ -1540,16 +1541,16 @@ const sourceActionControlSchema = z
   })
   .strict();
 
-const cmsListItemSchema = listItemSchema.extend({
+const studioListItemSchema = listItemSchema.extend({
   actions: z.array(sourceActionControlSchema).max(20).optional(),
 });
-const cmsListBlockSchema = z
+const studioListBlockSchema = z
   .object({
     type: z.literal("list"),
     id: identifierSchema,
     empty: shortTextSchema,
     filter: listFilterSchema.optional(),
-    items: z.array(cmsListItemSchema).max(MAX_LIST_ITEMS),
+    items: z.array(studioListItemSchema).max(MAX_LIST_ITEMS),
   })
   .strict()
   .superRefine((block, context) => {
@@ -1583,17 +1584,17 @@ const cmsListBlockSchema = z
     }
   });
 
-const cmsTableRowSchema = tableRowSchema.extend({
+const studioTableRowSchema = tableRowSchema.extend({
   actions: z.array(sourceActionControlSchema).max(20).optional(),
 });
-const cmsTableBlockSchema = z
+const studioTableBlockSchema = z
   .object({
     type: z.literal("table"),
     id: identifierSchema,
     empty: shortTextSchema,
     filters: z.array(tableFilterSchema).max(20).optional(),
     columns: z.array(tableColumnSchema).min(1).max(30),
-    rows: z.array(cmsTableRowSchema).max(500),
+    rows: z.array(studioTableRowSchema).max(500),
   })
   .strict()
   .superRefine((block, context) => {
@@ -1639,13 +1640,13 @@ const cmsTableBlockSchema = z
     }
   });
 
-const cmsMatrixCellSchema = z
+const studioMatrixCellSchema = z
   .object({
     id: identifierSchema,
     label: labelSchema,
     tone: toneSchema.optional(),
     empty: shortTextSchema,
-    items: z.array(cmsListItemSchema).max(100),
+    items: z.array(studioListItemSchema).max(100),
   })
   .strict()
   .superRefine((cell, context) => {
@@ -1661,14 +1662,14 @@ const cmsMatrixCellSchema = z
       ids.add(item.id);
     }
   });
-const cmsMatrixBlockSchema = z
+const studioMatrixBlockSchema = z
   .object({
     type: z.literal("matrix"),
     id: identifierSchema,
     columns: z
       .union([z.literal(1), z.literal(2), z.literal(3), z.literal(4)])
       .optional(),
-    cells: z.array(cmsMatrixCellSchema).min(1).max(12),
+    cells: z.array(studioMatrixCellSchema).min(1).max(12),
   })
   .strict()
   .superRefine((block, context) => {
@@ -1685,18 +1686,18 @@ const cmsMatrixBlockSchema = z
     }
   });
 
-const cmsActionBlockSchema = sourceActionControlSchema.extend({
+const studioActionBlockSchema = sourceActionControlSchema.extend({
   type: z.literal("action"),
   id: identifierSchema.optional(),
 });
-const cmsActionsBlockSchema = z
+const studioActionsBlockSchema = z
   .object({
     type: z.literal("actions"),
     id: identifierSchema.optional(),
     items: z.array(sourceActionControlSchema).max(30),
   })
   .strict();
-const cmsPanelBlockSchema = z.union([
+const studioPanelBlockSchema = z.union([
   statsBlockSchema,
   keyValuesBlockSchema,
   noticeBlockSchema,
@@ -1707,14 +1708,14 @@ const cmsPanelBlockSchema = z.union([
   progressBlockSchema,
   queryBlockSchema,
   linksBlockSchema,
-  cmsListBlockSchema,
-  cmsTableBlockSchema,
-  cmsMatrixBlockSchema,
+  studioListBlockSchema,
+  studioTableBlockSchema,
+  studioMatrixBlockSchema,
   spatialBlockSchema,
-  cmsActionBlockSchema,
-  cmsActionsBlockSchema,
+  studioActionBlockSchema,
+  studioActionsBlockSchema,
 ]);
-const cmsTabsBlockSchema = z
+const studioTabsBlockSchema = z
   .object({
     type: z.literal("tabs"),
     id: identifierSchema,
@@ -1727,7 +1728,7 @@ const cmsTabsBlockSchema = z
             id: identifierSchema,
             label: labelSchema,
             count: z.number().int().nonnegative().optional(),
-            blocks: z.array(cmsPanelBlockSchema).max(30),
+            blocks: z.array(studioPanelBlockSchema).max(30),
           })
           .strict(),
       )
@@ -1764,30 +1765,30 @@ const cmsTabsBlockSchema = z
  */
 /* A card groups panels under one caption so a group of related facts reads
    as one thing rather than as loose blocks. */
-const cmsCardBlockSchema = z
+const studioCardBlockSchema = z
   .object({
     type: z.literal("card"),
     id: identifierSchema,
     label: labelSchema,
     tone: toneSchema.optional(),
-    blocks: z.array(cmsPanelBlockSchema).max(12),
+    blocks: z.array(studioPanelBlockSchema).max(12),
   })
   .strict();
 
-const cmsDetailBlockSchema = z
+const studioDetailBlockSchema = z
   .object({
     type: z.literal("detail"),
     id: identifierSchema,
     /** Canonical query field the host writes with the open row's id. */
     queryKey: identifierSchema,
     empty: shortTextSchema,
-    master: z.union([cmsListBlockSchema, cmsTableBlockSchema]),
+    master: z.union([studioListBlockSchema, studioTableBlockSchema]),
     open: z
       .object({
         forId: rowIdentifierSchema,
         title: labelSchema,
         blocks: z
-          .array(z.union([cmsPanelBlockSchema, cmsCardBlockSchema]))
+          .array(z.union([studioPanelBlockSchema, studioCardBlockSchema]))
           .max(30),
       })
       .strict()
@@ -1804,18 +1805,20 @@ const cmsDetailBlockSchema = z
 
 /* The composition every operator surface wants: a column of work beside a rail
    of standing facts. Regions hold panels and cards, one level deep. */
-const cmsColumnsBlockSchema = z
+const studioColumnsBlockSchema = z
   .object({
     type: z.literal("columns"),
     id: identifierSchema,
     primary: z
-      .array(z.union([cmsPanelBlockSchema, cmsCardBlockSchema]))
+      .array(z.union([studioPanelBlockSchema, studioCardBlockSchema]))
       .max(20),
-    aside: z.array(z.union([cmsPanelBlockSchema, cmsCardBlockSchema])).max(12),
+    aside: z
+      .array(z.union([studioPanelBlockSchema, studioCardBlockSchema]))
+      .max(12),
   })
   .strict();
 
-const cmsViewSourceSchema = z
+const studioViewSourceSchema = z
   .object({
     kicker: labelSchema.optional(),
     title: shortTextSchema.optional(),
@@ -1831,11 +1834,11 @@ const cmsViewSourceSchema = z
     blocks: z
       .array(
         z.union([
-          cmsPanelBlockSchema,
-          cmsTabsBlockSchema,
-          cmsDetailBlockSchema,
-          cmsColumnsBlockSchema,
-          cmsCardBlockSchema,
+          studioPanelBlockSchema,
+          studioTabsBlockSchema,
+          studioDetailBlockSchema,
+          studioColumnsBlockSchema,
+          studioCardBlockSchema,
         ]),
       )
       .max(50),
@@ -1856,16 +1859,16 @@ const cmsViewSourceSchema = z
     }
   });
 
-type CmsViewSource = z.output<typeof cmsViewSourceSchema>;
-type CmsBlockSource = CmsViewSource["blocks"][number];
-type CmsRegionSource = z.output<
-  typeof cmsColumnsBlockSchema
+type StudioViewSource = z.output<typeof studioViewSourceSchema>;
+type StudioBlockSource = StudioViewSource["blocks"][number];
+type StudioRegionSource = z.output<
+  typeof studioColumnsBlockSchema
 >["primary"][number];
 
 /** Panels may nest in containers; containers may not nest in each other. */
 function isPanelBlock(
-  block: RuntimeCmsOperatorBlock,
-): block is RuntimeCmsOperatorPanelBlock {
+  block: RuntimeStudioOperatorBlock,
+): block is RuntimeStudioOperatorPanelBlock {
   return (
     block.type !== "tabs" &&
     block.type !== "detail" &&
@@ -1970,7 +1973,7 @@ function normalizeActionControls(
 function actionBlock(
   action: RuntimeOperatorActionControl,
   id: string | undefined,
-): RuntimeCmsOperatorActionBlock {
+): RuntimeStudioOperatorActionBlock {
   return {
     type: "action",
     ...(id ? { id } : {}),
@@ -1978,13 +1981,13 @@ function actionBlock(
   };
 }
 
-function normalizeCmsBlock(
-  block: CmsBlockSource | CmsRegionSource,
+function normalizeStudioBlock(
+  block: StudioBlockSource | StudioRegionSource,
   blockIndex: number,
   declared: readonly AnyWorkspaceActionDefinition[],
   permission: UserPermissionLevel,
 ): {
-  readonly block?: RuntimeCmsOperatorBlock | undefined;
+  readonly block?: RuntimeStudioOperatorBlock | undefined;
   readonly issues: readonly RuntimeOperatorValidationIssue[];
 } {
   switch (block.type) {
@@ -2109,9 +2112,9 @@ function normalizeCmsBlock(
     case "tabs": {
       const issues: RuntimeOperatorValidationIssue[] = [];
       const tabs = block.tabs.map((tab) => {
-        const blocks: RuntimeCmsOperatorPanelBlock[] = [];
+        const blocks: RuntimeStudioOperatorPanelBlock[] = [];
         for (const [panelIndex, panelBlock] of tab.blocks.entries()) {
-          const normalized = normalizeCmsBlock(
+          const normalized = normalizeStudioBlock(
             panelBlock,
             panelIndex,
             declared,
@@ -2142,9 +2145,9 @@ function normalizeCmsBlock(
     }
     case "card": {
       const issues: RuntimeOperatorValidationIssue[] = [];
-      const panels: RuntimeCmsOperatorPanelBlock[] = [];
+      const panels: RuntimeStudioOperatorPanelBlock[] = [];
       for (const [panelIndex, panel] of block.blocks.entries()) {
-        const normalized = normalizeCmsBlock(
+        const normalized = normalizeStudioBlock(
           panel,
           panelIndex,
           declared,
@@ -2169,11 +2172,11 @@ function normalizeCmsBlock(
     case "columns": {
       const issues: RuntimeOperatorValidationIssue[] = [];
       const region = (
-        entries: readonly CmsRegionSource[],
-      ): RuntimeCmsOperatorRegionBlock[] => {
-        const out: RuntimeCmsOperatorRegionBlock[] = [];
+        entries: readonly StudioRegionSource[],
+      ): RuntimeStudioOperatorRegionBlock[] => {
+        const out: RuntimeStudioOperatorRegionBlock[] = [];
         for (const [index, entry] of entries.entries()) {
-          const normalized = normalizeCmsBlock(
+          const normalized = normalizeStudioBlock(
             entry,
             index,
             declared,
@@ -2202,7 +2205,7 @@ function normalizeCmsBlock(
     }
     case "detail": {
       const issues: RuntimeOperatorValidationIssue[] = [];
-      const master = normalizeCmsBlock(
+      const master = normalizeStudioBlock(
         block.master,
         blockIndex,
         declared,
@@ -2216,11 +2219,11 @@ function normalizeCmsBlock(
       ) {
         return { issues };
       }
-      const openBlocks: RuntimeCmsOperatorRegionBlock[] = [];
+      const openBlocks: RuntimeStudioOperatorRegionBlock[] = [];
       for (const [panelIndex, panelBlock] of (
         block.open?.blocks ?? []
       ).entries()) {
-        const normalized = normalizeCmsBlock(
+        const normalized = normalizeStudioBlock(
           panelBlock,
           panelIndex,
           declared,
@@ -2353,7 +2356,7 @@ function isUnknownRecord(
 function inspectAuthorLinkTarget(
   value: unknown,
   path: readonly PropertyKey[],
-  profile: "dashboard" | "cms",
+  profile: "dashboard" | "studio",
   issues: RuntimeOperatorValidationIssue[],
   insideDetailMaster = false,
 ): void {
@@ -2391,7 +2394,7 @@ function inspectAuthorLinkTarget(
   ) {
     issues.push({
       path: [...path, "launch", "target"],
-      message: `Launch intent "${launch["target"]}" is available only in CMS workspaces`,
+      message: `Launch intent "${launch["target"]}" is available only in Studio workspaces`,
     });
   }
 }
@@ -2399,7 +2402,7 @@ function inspectAuthorLinkTarget(
 function inspectAuthorLinkItems(
   value: unknown,
   path: readonly PropertyKey[],
-  profile: "dashboard" | "cms",
+  profile: "dashboard" | "studio",
   issues: RuntimeOperatorValidationIssue[],
   insideDetailMaster = false,
 ): void {
@@ -2419,7 +2422,7 @@ function inspectAuthorLinkItems(
 function inspectAuthorListItems(
   value: unknown,
   path: readonly PropertyKey[],
-  profile: "dashboard" | "cms",
+  profile: "dashboard" | "studio",
   issues: RuntimeOperatorValidationIssue[],
   insideDetailMaster = false,
 ): void {
@@ -2446,7 +2449,7 @@ function inspectAuthorListItems(
 function inspectAuthorBlocks(
   value: unknown,
   path: readonly PropertyKey[],
-  profile: "dashboard" | "cms",
+  profile: "dashboard" | "studio",
   issues: RuntimeOperatorValidationIssue[],
 ): void {
   if (!Array.isArray(value)) return;
@@ -2579,7 +2582,7 @@ function inspectAuthorBlocks(
 
 function authorLinkIssues(
   input: unknown,
-  profile: "dashboard" | "cms",
+  profile: "dashboard" | "studio",
 ): readonly RuntimeOperatorValidationIssue[] {
   if (!isUnknownRecord(input)) return [];
   const issues: RuntimeOperatorValidationIssue[] = [];
@@ -2600,25 +2603,25 @@ export function safeParseRuntimeDashboardOperatorView(
     : { success: false, issues: validationIssues(result.error) };
 }
 
-export function safeParseRuntimeCmsOperatorView(
+export function safeParseRuntimeStudioOperatorView(
   input: unknown,
   options: {
     readonly actions: readonly AnyWorkspaceActionDefinition[];
     readonly permission: UserPermissionLevel;
   },
-): RuntimeOperatorParseResult<RuntimeCmsOperatorView> {
-  const sourceIssues = authorLinkIssues(input, "cms");
+): RuntimeOperatorParseResult<RuntimeStudioOperatorView> {
+  const sourceIssues = authorLinkIssues(input, "studio");
   if (sourceIssues.length > 0) {
     return { success: false, issues: sourceIssues };
   }
-  const parsed = cmsViewSourceSchema.safeParse(input);
+  const parsed = studioViewSourceSchema.safeParse(input);
   if (!parsed.success) {
     return { success: false, issues: validationIssues(parsed.error) };
   }
-  const blocks: RuntimeCmsOperatorBlock[] = [];
+  const blocks: RuntimeStudioOperatorBlock[] = [];
   const issues: RuntimeOperatorValidationIssue[] = [];
   for (const [index, source] of parsed.data.blocks.entries()) {
-    const normalized = normalizeCmsBlock(
+    const normalized = normalizeStudioBlock(
       source,
       index,
       options.actions,

@@ -219,8 +219,8 @@ async function bootstrapRemoteBranch(
   } catch (commitError) {
     // "nothing to commit" is fine — we still need to push the
     // existing local history to create the remote branch.
-    const cmsg = getErrorMessage(commitError);
-    if (!cmsg.includes("nothing to commit")) {
+    const studiog = getErrorMessage(commitError);
+    if (!studiog.includes("nothing to commit")) {
       throw commitError;
     }
   }

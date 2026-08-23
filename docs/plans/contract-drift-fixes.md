@@ -96,12 +96,12 @@ by `findInternalDeclarationImports`) — but nothing keeps the copy honest.
 
 - Nine directories match a workspace glob but have no `package.json` — leftovers
   from deleted packages, all untracked, all still globbed by turbo:
-  `plugins/{email-resend,email-triage,rover-onboarding,sveltia-cms}`,
+  `plugins/{email-resend,email-triage,rover-onboarding,sveltia-studio}`,
   `shared/{email-contracts,theme-signal}`, `sites/{rizom-foundation,rizom-work}`,
   `interfaces/discord`.
 - `plugins/email-workflows/src/reply-drafts/` — 952 lines imported by nothing
   outside its own tests. No `index.ts` export, no `plugin.ts` registration, no
-  CMS workspace. It also carries duplicate copies of three cluster schemas, so it
+  Studio workspace. It also carries duplicate copies of three cluster schemas, so it
   multiplies the cost of every change made elsewhere in the email cluster.
 
 ## Phases
@@ -151,7 +151,7 @@ inbox semantic integration`), which is the current head of the active
    `feat/public-operator-universal-semantics` worktree.
 
 The reviewer's observation was accurate as far as static analysis goes — the
-subtree really has no export, no registration, and no CMS workspace. The
+subtree really has no export, no registration, and no Studio workspace. The
 inference drawn from it was wrong. "Nothing imports it" distinguishes abandoned
 code from half-landed code only if you also look at when it was written; here it
 is a feature three days old with its wiring still in flight. Deleting it would
@@ -173,7 +173,7 @@ as part of landing it, not have them deleted underneath.
    `public/types.ts` is a **deliberately curated surface**. The real
    `BasePluginContext` has 46 members; the published one has 23, and every
    published member exists in the runtime type. The 23 withheld include `jobs`,
-   `runtimeState`, `plugins`, `dashboard`, `cms`, `endpoints`,
+   `runtimeState`, `plugins`, `dashboard`, `studio`, `endpoints`,
    `recurringChecks`, `executionOnly` and `gitBrokerSocket` — internal plumbing
    that external plugin authors must not see. `IViewsNamespace` and
    `IServiceTemplatesNamespace` are additionally weakened to `unknown` so

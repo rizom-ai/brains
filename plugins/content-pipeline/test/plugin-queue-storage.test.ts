@@ -41,7 +41,7 @@ describe("ContentPipelinePlugin queue storage integration", () => {
       entityType: "social-post",
       entityId: "post-1",
       authContext: {
-        interfaceType: "cms",
+        interfaceType: "studio",
         actor: { kind: "user", userId: "operator" },
         userPermissionLevel: "admin",
         authorization: "user" as const,
@@ -132,7 +132,7 @@ describe("ContentPipelinePlugin queue storage integration", () => {
         entityId: "post-1",
       },
       {
-        interfaceType: "cms",
+        interfaceType: "studio",
         actor: { kind: "user", userId: "operator" },
         userPermissionLevel: "admin",
       },
@@ -145,7 +145,7 @@ describe("ContentPipelinePlugin queue storage integration", () => {
       expect.objectContaining({
         entityId: "post-1",
         authContext: expect.objectContaining({
-          interfaceType: "cms",
+          interfaceType: "studio",
           actor: { kind: "user", userId: "operator" },
           authorization: "user",
         }),

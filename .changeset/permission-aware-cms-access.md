@@ -1,5 +1,5 @@
 ---
-"@brains/cms": patch
+"@brains/studio": patch
 "@brains/auth-service": patch
 "@brains/entity-service": patch
 "@brains/plugins": patch

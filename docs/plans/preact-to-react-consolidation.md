@@ -25,7 +25,7 @@ One rendering runtime for the whole repository.
 Today the split is 150 Preact `.tsx` files rendering through
 `preact-render-to-string`, against four React packages
 (`interfaces/chat-repl` on `ink`, `interfaces/web-chat`, `plugins/admin`,
-`plugins/cms`). Preact renders no interactive code anywhere: the only hook in
+`plugins/studio`). Preact renders no interactive code anywhere: the only hook in
 the entire Preact surface is `useContext`, in
 `shared/ui-library/src/ImageRendererProvider.tsx` and
 `shared/ui-library/src/Head.tsx`, used for render-time context. There is no
@@ -33,13 +33,13 @@ the entire Preact surface is `useContext`, in
 
 The cost of keeping both shows up most clearly in the operator surface.
 `plugins/dashboard/src/render/declarative-widget.tsx` (827 lines, Preact) and
-`plugins/cms/ui-react/src/declarative-workspace.tsx` (1285 lines, React) are
+`plugins/studio/ui-react/src/declarative-workspace.tsx` (1285 lines, React) are
 two host implementations of the same semantic protocol from
 `shell/plugins/src/operator/operator-view-contract.ts` — the same vocabulary of
 panels, cards, columns, tabs, stats, link targets, and launch intents, rendered
 twice because the hosts cannot share a runtime.
 `shared/ui-library/src/WidgetPrimitives.tsx` (401 lines) is Preact-only, so the
-CMS host reimplements its equivalents rather than importing them. Around 2,100
+Studio host reimplements its equivalents rather than importing them. Around 2,100
 lines of parallel host code exist for one contract, and the boundary that keeps
 them apart is itself maintained code: the containment assertions in
 `interfaces/web-chat/test/react-containment.test.ts`, and the
@@ -281,9 +281,9 @@ The payoff phase, and the reason the earlier ones are worth doing.
   view contract, asserted once against the unified host and exercised from both
   the widget and workspace entry points.
 - Extract one React host renderer in private `@brains/operator-view-react`,
-  consumed by the dashboard widget host and the CMS/Studio workspace host.
+  consumed by the dashboard widget host and the Studio/Studio workspace host.
 - `shared/ui-library`'s widget primitives become importable by the workspace
-  host; the CMS-side reimplementations are deleted.
+  host; the Studio-side reimplementations are deleted.
 - Coordinate with [`studio-consolidation.md`](./studio-consolidation.md) Phase 7,
   which re-homes operator widget content into a Studio Overview workspace.
   With one runtime that re-homing is a move rather than a port.
@@ -327,7 +327,7 @@ that moving operator content into Studio Overview does not mean porting it
 across runtimes, and before its Phase 8 rebuilds the dashboard as the public
 card — otherwise that rebuild happens in Preact and is flipped immediately
 after. If studio consolidation has already begun, sequence after its Phase 1
-rename rather than concurrently, since that rename rewrites the same CMS files
+rename rather than concurrently, since that rename rewrites the same Studio files
 Phase 5 touches.
 
 ## Risks
@@ -361,7 +361,7 @@ Phase 5 touches.
   rendered HTML outside the Phase 1 harness — build manifests, artifact
   accounting — must be checked in Phase 3.
 - **Collision with studio consolidation.** Both plans rewrite
-  `plugins/cms/ui-react/` and `plugins/dashboard/src/render/`. The ordering
+  `plugins/studio/ui-react/` and `plugins/dashboard/src/render/`. The ordering
   rule above resolves it; running them concurrently does not.
 
 ## Related work

@@ -431,7 +431,7 @@ describe("declarative dashboard widget runtime", () => {
     await plugin.shutdown?.();
   });
 
-  it("rejects host-normalized links and CMS-only launch intents from author views", () => {
+  it("rejects host-normalized links and Studio-only launch intents from author views", () => {
     const normalized = safeParseRuntimeDashboardOperatorView({
       blocks: [
         {
@@ -459,7 +459,7 @@ describe("declarative dashboard widget runtime", () => {
       ],
     });
 
-    const cmsOnly = safeParseRuntimeDashboardOperatorView({
+    const studioOnly = safeParseRuntimeDashboardOperatorView({
       blocks: [
         {
           type: "links",
@@ -479,12 +479,12 @@ describe("declarative dashboard widget runtime", () => {
         },
       ],
     });
-    expect(cmsOnly).toMatchObject({
+    expect(studioOnly).toMatchObject({
       success: false,
       issues: [
         {
           path: ["blocks", 0, "items", 0, "target", "launch", "target"],
-          message: expect.stringContaining("only in CMS workspaces"),
+          message: expect.stringContaining("only in Studio workspaces"),
         },
       ],
     });
@@ -691,7 +691,7 @@ describe("declarative dashboard widget runtime", () => {
         factories += 1;
         return [widget.bind(context, () => ({}))];
       },
-      cmsWorkspaces: () => {
+      studioWorkspaces: () => {
         factories += 1;
         return [];
       },

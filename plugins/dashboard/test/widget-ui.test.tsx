@@ -40,8 +40,8 @@ describe("widget UI primitives", () => {
   it("renders consistent primary and external widget actions", () => {
     const html = render(
       <WidgetActions label="Publishing actions">
-        <WidgetActionLink href="/cms" emphasis="primary">
-          Open in CMS
+        <WidgetActionLink href="/studio" emphasis="primary">
+          Open in Studio
         </WidgetActionLink>
         <WidgetActionLink href="https://preview.example" external>
           Open preview
@@ -51,7 +51,7 @@ describe("widget UI primitives", () => {
 
     expect(html).toContain('class="widget-actions"');
     expect(html).toContain('class="widget-action widget-action--primary"');
-    expect(html).toContain('href="/cms"');
+    expect(html).toContain('href="/studio"');
     expect(html).toContain('target="_blank"');
     expect(html).toContain('rel="noreferrer"');
     expect(html).toContain("↗");
@@ -81,7 +81,7 @@ describe("widget UI primitives", () => {
   it("renders validated declarative views with host-owned entity links", () => {
     const html = render(
       <DeclarativeWidgetBody
-        launchPaths={{ cmsPath: "/cms" }}
+        launchPaths={{ studioPath: "/studio" }}
         widget={declarativeWidget({
           view: {
             title: "Queue <script>alert('nope')</script>",
@@ -117,16 +117,16 @@ describe("widget UI primitives", () => {
     );
     expect(html).not.toContain("<script>alert('nope')</script>");
     expect(html).toContain("operator-table");
-    expect(html).toContain('href="/cms/entities/bookmark/saved-1"');
+    expect(html).toContain('href="/studio/entities/bookmark/saved-1"');
     expect(
       normalizeRendererHtml(html, { ignoreImagePreloads: true }),
     ).toMatchSnapshot();
   });
 
-  it("resolves closed CMS launch intents to scoped declarative workspaces", () => {
+  it("resolves closed Studio launch intents to scoped declarative workspaces", () => {
     const html = render(
       <DeclarativeWidgetBody
-        launchPaths={{ cmsPath: "/cms" }}
+        launchPaths={{ studioPath: "/studio" }}
         widget={declarativeWidget({
           view: {
             blocks: [
@@ -163,10 +163,10 @@ describe("widget UI primitives", () => {
     );
 
     expect(html).toContain(
-      'href="/cms/workspaces/content-pipeline%3Apublishing"',
+      'href="/studio/workspaces/content-pipeline%3Apublishing"',
     );
-    expect(html).toContain('href="/cms/workspaces/site-builder%3Asite"');
-    expect(html).toContain('href="/cms/workspaces/unified-inbox%3Ainbox"');
+    expect(html).toContain('href="/studio/workspaces/site-builder%3Asite"');
+    expect(html).toContain('href="/studio/workspaces/unified-inbox%3Ainbox"');
   });
 
   it("renders normalized spatial semantics with keyboard-focusable points and text detail", () => {
@@ -287,7 +287,7 @@ describe("widget UI primitives", () => {
   it("rejects unsafe links before the generic renderer emits HTML", () => {
     const html = render(
       <DeclarativeWidgetBody
-        launchPaths={{ cmsPath: "/cms" }}
+        launchPaths={{ studioPath: "/studio" }}
         widget={declarativeWidget({
           view: {
             blocks: [

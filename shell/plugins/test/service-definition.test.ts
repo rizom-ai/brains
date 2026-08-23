@@ -376,15 +376,15 @@ describe("declarative service definitions", () => {
     ).resolves.toBeUndefined();
     expect(loads).toBe(0);
 
-    let cmsFactories = 0;
+    let studioFactories = 0;
     expect(
       install({
-        cmsWorkspaces: () => {
-          cmsFactories += 1;
+        studioWorkspaces: () => {
+          studioFactories += 1;
           return [];
         },
       }),
     ).resolves.toBeUndefined();
-    expect(cmsFactories).toBe(0);
+    expect(studioFactories).toBe(0);
   });
 });

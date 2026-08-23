@@ -94,9 +94,9 @@ export interface AuthServiceOptions {
   replica?: AuthRuntimeReplicaOptions;
   /** Anchor profile flavor declared by brain configuration. */
   anchor?: AuthBrainAnchorConfigKind;
-  /** CMS profile reference projected into auth runtime state. */
+  /** Studio profile reference projected into auth runtime state. */
   anchorProfileEntityId?: string;
-  /** Resolve the current CMS profile name without copying profile content into auth. */
+  /** Resolve the current Studio profile name without copying profile content into auth. */
   resolveProfileDisplayName?: (
     profileEntityId: string,
   ) => Promise<string | undefined>;

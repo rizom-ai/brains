@@ -337,6 +337,7 @@ describe("brain init", () => {
       expect(envSchema).toContain("AI_API_KEY=");
       expect(envSchema).toContain("GIT_SYNC_TOKEN=");
       expect(envSchema).not.toContain("CMS_CONTENT_REPO_PAT=");
+      expect(envSchema).not.toContain("STUDIO_CONTENT_REPO_PAT=");
       expect(envSchema).toContain("ATPROTO_APP_PASSWORD=");
       expect(envSchema).not.toContain("ATPROTO_IDENTIFIER=");
       expect(envSchema).toContain("SETUP_EMAIL_API_KEY=");

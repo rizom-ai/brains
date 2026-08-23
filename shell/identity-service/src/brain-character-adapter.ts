@@ -8,7 +8,7 @@ import { SingletonFrontmatterAdapter } from "./singleton-frontmatter-adapter";
 
 /**
  * Entity adapter for Brain Character entities
- * Uses frontmatter format for CMS compatibility
+ * Uses frontmatter format for Studio compatibility
  */
 export class BrainCharacterAdapter extends SingletonFrontmatterAdapter<
   BrainCharacterEntity,

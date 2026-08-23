@@ -1,7 +1,7 @@
 /** @jsxImportSource react */
 import type { AuthBrainAnchorSummary } from "@brains/auth-service/admin-contracts";
 import type { ReactElement } from "react";
-import { cmsEntityHref, initials } from "../format";
+import { studioEntityHref, initials } from "../format";
 
 function anchorDescription(anchor: AuthBrainAnchorSummary): string {
   switch (anchor.configuredKind) {
@@ -27,7 +27,7 @@ export function AnchorPanel(props: {
   }
 
   const profileHref = anchor.profileEntityId
-    ? cmsEntityHref(anchor.profileEntityId)
+    ? studioEntityHref(anchor.profileEntityId)
     : undefined;
   const profileLabel =
     anchor.configuredKind === "person"
@@ -63,10 +63,10 @@ export function AnchorPanel(props: {
         <div className="anchor-field">
           <span>{profileLabel}</span>
           <strong>{anchor.displayName}</strong>
-          <small>The CMS profile is authoritative.</small>
+          <small>The Studio profile is authoritative.</small>
           {profileHref && (
-            <a className="anchor-cms-link" href={profileHref}>
-              Edit in CMS →
+            <a className="anchor-studio-link" href={profileHref}>
+              Edit in Studio →
             </a>
           )}
         </div>

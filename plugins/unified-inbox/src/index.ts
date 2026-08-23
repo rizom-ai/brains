@@ -3,7 +3,7 @@ export { InboxOperatorService } from "./operator-service";
 export { createInboxListTool } from "./inbox-tool";
 export { createUnifiedInboxDigest, registerUnifiedInboxDigest } from "./digest";
 export { registerUnifiedInboxDashboardWidget } from "./dashboard-widget";
-export { registerUnifiedInboxCmsWorkspace } from "./operator-cms";
+export { registerUnifiedInboxStudioWorkspace } from "./operator-studio";
 export { UnifiedInboxPlugin, unifiedInboxPlugin } from "./plugin";
 export {
   inboxProjectionSchema,

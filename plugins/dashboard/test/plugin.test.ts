@@ -104,7 +104,7 @@ describe("DashboardPlugin", () => {
       expect(html).toContain("Entities");
       expect(html).toContain("Identity");
       expect(html).toContain("dashboard:dashboard");
-      expect(html).not.toContain("data-cms-frame");
+      expect(html).not.toContain("data-studio-frame");
       expect(html).toMatch(
         /<link[^>]*data-dashboard-styles[^>]*href="\/dashboard\/assets\/dashboard\.[a-f0-9]{64}\.css"/,
       );
@@ -244,13 +244,13 @@ describe("DashboardPlugin", () => {
       expect(
         data.groups.find((group) => group.id === "surfaces")?.items,
       ).toContainEqual(expect.objectContaining({ href: "/admin" }));
-      // No CMS plugin in this harness → entity doors have no destination.
+      // No Studio plugin in this harness → entity doors have no destination.
       expect(data.groups.find((group) => group.id === "entities")).toBe(
         undefined,
       );
     });
 
-    it("should map search hits to CMS doors, falling back to ids", async () => {
+    it("should map search hits to Studio doors, falling back to ids", async () => {
       const authPlugin = new AuthServicePlugin({
         storageDir: await createTempDir("dashboard-jump-entities-"),
       });
@@ -260,10 +260,10 @@ describe("DashboardPlugin", () => {
 
       const shell = harness.getMockShell();
       shell.registerPlugin({
-        id: "cms",
+        id: "studio",
         version: "1.0.0",
         type: "service" as const,
-        packageName: "@brains/cms",
+        packageName: "@brains/studio",
         register: async () => ({
           tools: [],
           resources: [],
@@ -272,7 +272,7 @@ describe("DashboardPlugin", () => {
         }),
         getWebRoutes: () => [
           {
-            path: "/cms",
+            path: "/studio",
             method: "GET" as const,
             public: true,
             handler: async (): Promise<Response> => new Response("ok"),
@@ -331,15 +331,15 @@ describe("DashboardPlugin", () => {
           id: "note/verdigris-pigments",
           title: "Verdigris pigments",
           sub: "note",
-          href: "/cms/entities/note/verdigris-pigments",
-          tag: "edit in cms",
+          href: "/studio/entities/note/verdigris-pigments",
+          tag: "edit in studio",
         },
         {
           id: "note/untitled-note",
           title: "untitled-note",
           sub: "note",
-          href: "/cms/entities/note/untitled-note",
-          tag: "edit in cms",
+          href: "/studio/entities/note/untitled-note",
+          tag: "edit in studio",
         },
       ]);
     });
@@ -403,11 +403,11 @@ describe("DashboardPlugin", () => {
         priority: 20,
       });
       shell.registerInteraction({
-        id: "cms",
-        label: "CMS",
-        href: "/cms",
+        id: "studio",
+        label: "Studio",
+        href: "/studio",
         kind: "admin",
-        pluginId: "cms",
+        pluginId: "studio",
         priority: 40,
         visibility: "admin",
       });
@@ -422,7 +422,7 @@ describe("DashboardPlugin", () => {
       expect(html).toContain("A2A");
       expect(html).not.toContain("MCP");
       expect(html).not.toContain(
-        'interaction-link--admin" href="http://brain/cms"',
+        'interaction-link--admin" href="http://brain/studio"',
       );
     });
 
@@ -534,9 +534,9 @@ describe("DashboardPlugin", () => {
         visibility: "trusted",
       });
       shell.registerEndpoint({
-        label: "CMS",
-        url: "/cms",
-        pluginId: "cms",
+        label: "Studio",
+        url: "/studio",
+        pluginId: "studio",
         priority: 40,
         visibility: "admin",
       });
@@ -552,7 +552,7 @@ describe("DashboardPlugin", () => {
       expect(html).toContain("Mira Reyes");
       expect(html).toContain("Trusted");
       expect(html).toContain("MCP");
-      expect(html).not.toContain("CMS");
+      expect(html).not.toContain("Studio");
       expect(html).not.toContain('href="#people"');
     });
 
@@ -672,18 +672,18 @@ describe("DashboardPlugin", () => {
         visibility: "trusted",
       });
       shell.registerEndpoint({
-        label: "CMS",
-        url: "/cms",
-        pluginId: "cms",
+        label: "Studio",
+        url: "/studio",
+        pluginId: "studio",
         priority: 40,
         visibility: "admin",
       });
       shell.registerInteraction({
-        id: "cms",
-        label: "CMS",
-        href: "/cms",
+        id: "studio",
+        label: "Studio",
+        href: "/studio",
         kind: "admin",
-        pluginId: "cms",
+        pluginId: "studio",
         priority: 40,
         visibility: "admin",
       });
@@ -699,7 +699,7 @@ describe("DashboardPlugin", () => {
       expect(html).toContain("Yeehaa");
       expect(html).toContain("Admin");
       expect(html).toContain("MCP");
-      expect(html).toContain("CMS");
+      expect(html).toContain("Studio");
       expect(html).not.toContain('href="#people"');
       expect(html).not.toContain('id="people"');
       expect(html).not.toContain("/auth/admin/users");

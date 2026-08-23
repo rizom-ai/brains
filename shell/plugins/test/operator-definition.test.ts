@@ -2,13 +2,13 @@ import { describe, expect, expectTypeOf, it } from "bun:test";
 import { z } from "@brains/utils/zod";
 import {
   defineAccountSettings,
-  defineCmsWorkspace,
+  defineStudioWorkspace,
   defineDashboardWidget,
   defineServicePlugin,
   defineWorkspaceAction,
 } from "../src";
 import {
-  getCmsWorkspaceExecutor,
+  getStudioWorkspaceExecutor,
   getDashboardWidgetLoader,
 } from "../src/operator/operator-definition-contract";
 import type { OperatorBaseContext } from "../src/operator/operator-context-contract";
@@ -31,7 +31,7 @@ const refresh = defineWorkspaceAction({
   permission: "trusted",
 });
 
-const workspace = defineCmsWorkspace({
+const workspace = defineStudioWorkspace({
   id: "library",
   label: "Library",
   permission: "trusted",
@@ -97,7 +97,7 @@ describe("public operator definitions", () => {
           }),
         ];
       },
-      cmsWorkspaces: (context) => {
+      studioWorkspaces: (context) => {
         const action = refresh.bind(context, ({ input, config, state }) => ({
           refreshed: `${config.prefix}:${input.id}:${state.offset}`,
         }));
@@ -167,7 +167,7 @@ describe("public operator definitions", () => {
       }),
     ).toEqual({ refreshed: "saved" });
     expect(
-      await getCmsWorkspaceExecutor(workspaceBinding).load({
+      await getStudioWorkspaceExecutor(workspaceBinding).load({
         ...runtimeContext,
         query: {
           get: (schema) => schema.parse({}),
@@ -200,7 +200,7 @@ describe("public operator definitions", () => {
     ).toThrow('unsupported control "select"');
 
     expect(() =>
-      defineCmsWorkspace({
+      defineStudioWorkspace({
         id: "library",
         label: "Library",
         permission: "trusted",
@@ -274,10 +274,10 @@ describe("public operator definitions", () => {
       ]),
     ).toThrow('Dashboard widget "library" was not bound');
     expect(() =>
-      Reflect.apply(getCmsWorkspaceExecutor, undefined, [
-        { kind: "rizom-cms-workspace-binding", definition: workspace },
+      Reflect.apply(getStudioWorkspaceExecutor, undefined, [
+        { kind: "rizom-studio-workspace-binding", definition: workspace },
       ]),
-    ).toThrow('CMS workspace "library" was not bound');
+    ).toThrow('Studio workspace "library" was not bound');
     expect(() =>
       Reflect.apply(getWorkspaceActionExecutor, undefined, [
         { kind: "rizom-workspace-action-binding", definition: refresh },
@@ -315,7 +315,7 @@ describe("public operator definitions", () => {
 
   it("rejects a workspace declaring the same action twice", () => {
     expect(() =>
-      defineCmsWorkspace({
+      defineStudioWorkspace({
         id: "library",
         label: "Library",
         permission: "trusted",

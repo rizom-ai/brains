@@ -118,8 +118,8 @@ export async function verifyPilotUser(
       failedChecks,
     );
     await runCheck(
-      "cms",
-      () => verifyLoads(fetchImpl, `${baseUrl}/cms`, "cms"),
+      "studio",
+      () => verifyLoads(fetchImpl, `${baseUrl}/studio`, "studio"),
       checks,
       failedChecks,
     );

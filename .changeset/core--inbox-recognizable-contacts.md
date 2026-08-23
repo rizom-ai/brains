@@ -1,6 +1,6 @@
 ---
 "@brains/admin": minor
-"@brains/cms": minor
+"@brains/studio": minor
 "@brains/contracts": minor
 "@brains/email": minor
 "@brains/email-workflows": minor

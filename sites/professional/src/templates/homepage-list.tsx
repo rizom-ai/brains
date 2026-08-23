@@ -16,7 +16,7 @@ import {
 /**
  * Per-section blurb metadata, keyed by section id (e.g. essays,
  * presentations, about). Comes from siteInfo.sections — users can edit
- * via the CMS.
+ * via the Studio.
  */
 type HomepageSections = Record<string, { blurb: string | null }>;
 
@@ -67,7 +67,7 @@ const EditorialRow = ({
 
 /**
  * Editorial homepage — restrained hero, three numbered sections (Essays,
- * Presentations, About) with optional CMS-driven blurbs, full-width CTA.
+ * Presentations, About) with optional Studio-driven blurbs, full-width CTA.
  */
 export const HomepageListLayout = ({
   profile,

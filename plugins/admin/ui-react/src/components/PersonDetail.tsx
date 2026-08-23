@@ -8,7 +8,7 @@ import {
   type AuthInvitationChannelSummary,
 } from "@brains/auth-service/admin-contracts";
 import type { ReactElement } from "react";
-import { cmsEntityHref, formatDate, initials, roleLabel } from "../format";
+import { studioEntityHref, formatDate, initials, roleLabel } from "../format";
 import type { Confirmation } from "../people-types";
 import { AccessItem, Button, DetailSection, TextAction } from "./primitives";
 
@@ -158,7 +158,7 @@ export function PersonDetail(props: {
           title="Profile"
           description={
             user.profileEntityId
-              ? "This brain’s Anchor profile is CMS-owned."
+              ? "This brain’s Anchor profile is Studio-owned."
               : user.externalPeers.length > 0
                 ? "Published by the linked external brain and read-only here."
                 : "Hosted members without an external brain have no profile for now."
@@ -169,12 +169,12 @@ export function PersonDetail(props: {
               kind="Anchor profile"
               value={user.displayName}
               action={
-                cmsEntityHref(user.profileEntityId) ? (
+                studioEntityHref(user.profileEntityId) ? (
                   <a
                     className="people-text-action"
-                    href={cmsEntityHref(user.profileEntityId)}
+                    href={studioEntityHref(user.profileEntityId)}
                   >
-                    Edit in CMS →
+                    Edit in Studio →
                   </a>
                 ) : undefined
               }

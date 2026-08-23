@@ -1,7 +1,7 @@
 ---
 "@brains/plugins": patch
 "@brains/webserver": patch
-"@brains/cms": patch
+"@brains/studio": patch
 "@brains/dashboard": patch
 ---
 

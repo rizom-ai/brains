@@ -11,7 +11,7 @@ describe("TopicAdapter", () => {
   });
 
   describe("frontmatterSchema", () => {
-    it("should expose frontmatterSchema for CMS", () => {
+    it("should expose frontmatterSchema for Studio", () => {
       expect(adapter.frontmatterSchema).toBeDefined();
       expect(adapter.frontmatterSchema.shape).toHaveProperty("title");
       expect(adapter.frontmatterSchema.shape).not.toHaveProperty("keywords");

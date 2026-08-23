@@ -77,7 +77,7 @@ function renderSessionChip(session: ConsoleStripSession): string {
 
 /**
  * The console strip's inner markup, shared by every rendering path: the
- * server-rendered template shells (web-chat, the CMS editor, the admin and
+ * server-rendered template shells (web-chat, the Studio editor, the admin and
  * account consoles) interpolate the full strip, and the dashboard injects
  * this inner markup into its React tree. One implementation, so the chrome
  * cannot drift between surfaces again.

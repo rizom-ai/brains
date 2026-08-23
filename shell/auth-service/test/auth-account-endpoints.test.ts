@@ -620,7 +620,7 @@ describe("auth account API", () => {
     });
     await first.close();
 
-    // Restart with the CMS profile name available: the profile is
+    // Restart with the Studio profile name available: the profile is
     // authoritative for the Anchor person and projects onto their account.
     const service = new AuthService({
       storageDir,

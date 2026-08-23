@@ -94,7 +94,7 @@ function siteLinks(data: SiteHealthWidgetData): DashboardOperatorViewBlock {
           ]
         : []),
       {
-        label: "Open in CMS",
+        label: "Open in Studio",
         target: { launch: { target: "site" } },
       },
     ],
@@ -285,7 +285,7 @@ export function SiteHealthWidget(props: SiteHealthWidgetProps): ReactNode {
     links.push(actionLink(data.site.liveUrl, "Open live"));
   }
   if (data.managementUrl) {
-    links.push(actionLink(data.managementUrl, "Open in CMS", "manage"));
+    links.push(actionLink(data.managementUrl, "Open in Studio", "manage"));
   }
 
   return h("div", { class: "pipeline-digest site-health-widget" }, [

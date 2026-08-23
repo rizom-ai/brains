@@ -6,9 +6,9 @@ import type {
 } from "../entity/entity-definition-contract";
 import type { AnyAccountSettingsDefinition } from "../operator/account-settings-definition-contract";
 import type {
-  AnyCmsWorkspaceDefinition,
+  AnyStudioWorkspaceDefinition,
   AnyDashboardWidgetDefinition,
-  BoundCmsWorkspace,
+  BoundStudioWorkspace,
   BoundDashboardWidget,
 } from "../operator/operator-definition-contract";
 import type { OperatorBindingContext } from "../operator/operator-context-contract";
@@ -334,15 +334,15 @@ interface ServiceDefinitionCore<
         TAccountSettings
       >[])
     | undefined;
-  readonly cmsWorkspaces?:
+  readonly studioWorkspaces?:
     | ((
         context: OperatorBindingContext<
           z.output<TConfigSchema>,
           TState,
           TAccountSettings
         >,
-      ) => readonly BoundCmsWorkspace<
-        AnyCmsWorkspaceDefinition,
+      ) => readonly BoundStudioWorkspace<
+        AnyStudioWorkspaceDefinition,
         z.output<TConfigSchema>,
         TState,
         TAccountSettings

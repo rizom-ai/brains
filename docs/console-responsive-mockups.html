@@ -457,17 +457,17 @@
   .composer-box button.send { background: var(--c-accent); color: var(--c-on-accent); }
   .composer-copy { align-self: center; color: var(--c-text-40); font-size: 16px; }
 
-  /* CMS phone */
-  .cms-phone { display: grid; grid-template-rows: 44px 48px minmax(0,1fr) 64px; height: 100%; }
+  /* Studio phone */
+  .studio-phone { display: grid; grid-template-rows: 44px 48px minmax(0,1fr) 64px; height: 100%; }
   .crumbbar { display: flex; align-items: center; gap: 7px; min-width: 0; padding: 0 14px; border-bottom: 1px solid var(--c-line-soft); background: var(--c-frame); color: var(--c-text-40); font-size: 11px; }
   .crumbbar b { overflow: hidden; color: var(--c-text); font-weight: 500; text-overflow: ellipsis; white-space: nowrap; }
-  .cms-modes { display: grid; grid-template-columns: repeat(3,1fr); gap: 4px; padding: 7px 10px; border-bottom: 1px solid var(--c-line); background: var(--c-card-soft); }
-  .cms-mode { display: grid; place-items: center; border-radius: 7px; color: var(--c-text-40); font-family: var(--mono); font-size: 9px; text-transform: uppercase; }
-  .cms-mode.on { background: var(--c-card); color: var(--c-text); box-shadow: 0 0 0 1px var(--c-line); }
-  .cms-form { overflow: hidden; padding: 16px 16px 90px; background: var(--c-frame); }
-  .cms-form-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 12px; }
-  .cms-form-head h2 { margin: 0; font-family: var(--display); font-size: 25px; font-weight: 540; }
-  .cms-form-head span { color: var(--c-accent); font-family: var(--mono); font-size: 8px; letter-spacing: .12em; text-transform: uppercase; }
+  .studio-modes { display: grid; grid-template-columns: repeat(3,1fr); gap: 4px; padding: 7px 10px; border-bottom: 1px solid var(--c-line); background: var(--c-card-soft); }
+  .studio-mode { display: grid; place-items: center; border-radius: 7px; color: var(--c-text-40); font-family: var(--mono); font-size: 9px; text-transform: uppercase; }
+  .studio-mode.on { background: var(--c-card); color: var(--c-text); box-shadow: 0 0 0 1px var(--c-line); }
+  .studio-form { overflow: hidden; padding: 16px 16px 90px; background: var(--c-frame); }
+  .studio-form-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 12px; }
+  .studio-form-head h2 { margin: 0; font-family: var(--display); font-size: 25px; font-weight: 540; }
+  .studio-form-head span { color: var(--c-accent); font-family: var(--mono); font-size: 8px; letter-spacing: .12em; text-transform: uppercase; }
   .field { padding: 12px 0; border-top: 1px solid var(--c-line); }
   .field label { display: flex; justify-content: space-between; margin-bottom: 6px; color: var(--c-text-62); font-size: 11px; }
   .field label em { color: var(--c-text-40); font-family: var(--mono); font-size: 8px; font-style: normal; }
@@ -496,7 +496,7 @@
   .session-row.on { border-color: var(--c-accent); background: var(--c-card-soft); color: var(--c-text); }
   .tablet-thread { display: grid; grid-template-rows: minmax(0,1fr) auto; }
   .tablet-thread .thread { min-height: 350px; }
-  .tablet-cms { display: grid; grid-template-rows: 44px auto minmax(0,1fr) 58px; min-height: 480px; }
+  .tablet-studio { display: grid; grid-template-rows: 44px auto minmax(0,1fr) 58px; min-height: 480px; }
   .type-rail { display: flex; gap: 6px; overflow: hidden; padding: 9px 14px; border-bottom: 1px solid var(--c-line); background: var(--c-card-soft); }
   .type-pill { flex: 0 0 auto; padding: 7px 11px; border: 1px solid var(--c-line); border-radius: 999px; color: var(--c-text-40); font-size: 11px; }
   .type-pill.on { border-color: color-mix(in srgb,var(--c-accent) 50%,transparent); background: var(--c-accent-soft); color: var(--c-text); }
@@ -605,7 +605,7 @@
 <header class="page-head">
   <div class="kicker">Brain · Operator Console — Responsive Specification · rev 1</div>
   <h1>One console, <em>at every scale.</em></h1>
-  <p class="lede">A canonical responsive companion to the preserved console-unification mockup. The shared chrome remains constant; each surface earns a mobile composition of its own. Instrument resolves to the navy bioluminescent palette used by the detailed dashboard and chat mockups. Paper remains the CMS reading climate.</p>
+  <p class="lede">A canonical responsive companion to the preserved console-unification mockup. The shared chrome remains constant; each surface earns a mobile composition of its own. Instrument resolves to the navy bioluminescent palette used by the detailed dashboard and chat mockups. Paper remains the Studio reading climate.</p>
   <div class="head-actions" aria-label="Preview controls">
     <button class="head-action is-active" type="button" data-climate-button="instrument">Instrument climate</button>
     <button class="head-action" type="button" data-climate-button="paper">Paper climate</button>
@@ -634,7 +634,7 @@
       <div class="console-demo contract-stage" data-sync-climate>
         <header class="console-strip">
           <a class="console-mark" href="#contract"><span class="pulse"></span><span>Brain <span class="mark-long">· <b>Console</b></span></span></a>
-          <nav class="surface-nav"><a class="surface-link is-active" href="#contract">Dashboard</a><a class="surface-link" href="#mobile">Chat</a><a class="surface-link" href="#mobile">CMS</a></nav>
+          <nav class="surface-nav"><a class="surface-link is-active" href="#contract">Dashboard</a><a class="surface-link" href="#mobile">Chat</a><a class="surface-link" href="#mobile">Studio</a></nav>
           <span class="strip-spacer"></span>
           <button class="command-chip" type="button"><span class="command-copy">Search or jump…</span><kbd>⌘K</kbd><span class="command-icon">⌕</span></button>
           <a class="session-chip" href="#contract"><span class="session-dot"></span><span>Operator</span><strong>Sign out</strong><span class="session-avatar">OP</span></a>
@@ -655,7 +655,7 @@
       <article class="decision"><span class="decision-label">Desktop · ≥ 901</span><h3>52px, one line</h3><p>Full mark, labels, search hint, and session action. The strip is page chrome—not trapped inside a dashboard card.</p></article>
       <article class="decision"><span class="decision-label">Tablet · 641–900</span><h3>52px, compressed</h3><p>Search collapses to ⌘K while all surface names remain visible. No wrap and no hidden destination.</p></article>
       <article class="decision"><span class="decision-label">Phone · ≤ 640</span><h3>102px, two tiers</h3><p>A 52px utility band plus a 44px surface rail. Every interactive target is at least 44×44px and safe-area aware.</p></article>
-      <article class="decision"><span class="decision-label">Principle</span><h3>Local controls stay local</h3><p>The shared strip changes surfaces. Dashboard tabs, chat sessions, and CMS document modes live directly beneath it.</p></article>
+      <article class="decision"><span class="decision-label">Principle</span><h3>Local controls stay local</h3><p>The shared strip changes surfaces. Dashboard tabs, chat sessions, and Studio document modes live directly beneath it.</p></article>
     </div>
   </div>
 </section>
@@ -673,7 +673,7 @@
       <div class="console-demo phone is-mobile" data-sync-climate>
         <header class="console-strip">
           <a class="console-mark" href="#mobile"><span class="pulse"></span><span>Brain <span class="mark-long">· <b>Console</b></span></span></a>
-          <nav class="surface-nav"><a class="surface-link is-active" href="#mobile">Dashboard</a><a class="surface-link" href="#mobile">Chat</a><a class="surface-link" href="#mobile">CMS</a></nav><span class="strip-spacer"></span>
+          <nav class="surface-nav"><a class="surface-link is-active" href="#mobile">Dashboard</a><a class="surface-link" href="#mobile">Chat</a><a class="surface-link" href="#mobile">Studio</a></nav><span class="strip-spacer"></span>
           <button class="command-chip" type="button" aria-label="Search"><span class="command-copy">Search</span><kbd>⌘K</kbd><span class="command-icon">⌕</span></button>
           <a class="session-chip" href="#mobile" aria-label="Operator session"><span class="session-dot"></span><span>Operator</span><strong>Sign out</strong><span class="session-avatar">OP</span></a>
         </header>
@@ -698,7 +698,7 @@
       <div class="console-demo phone is-mobile" data-sync-climate>
         <header class="console-strip">
           <a class="console-mark" href="#mobile"><span class="pulse"></span><span>Brain <span class="mark-long">· <b>Console</b></span></span></a>
-          <nav class="surface-nav"><a class="surface-link" href="#mobile">Dashboard</a><a class="surface-link is-active" href="#mobile">Chat</a><a class="surface-link" href="#mobile">CMS</a></nav><span class="strip-spacer"></span>
+          <nav class="surface-nav"><a class="surface-link" href="#mobile">Dashboard</a><a class="surface-link is-active" href="#mobile">Chat</a><a class="surface-link" href="#mobile">Studio</a></nav><span class="strip-spacer"></span>
           <button class="command-chip" type="button" aria-label="Search"><span class="command-copy">Search</span><kbd>⌘K</kbd><span class="command-icon">⌕</span></button>
           <a class="session-chip" href="#mobile" aria-label="Operator session"><span class="session-dot"></span><span>Operator</span><strong>Sign out</strong><span class="session-avatar">OP</span></a>
         </header>
@@ -715,19 +715,19 @@
     </article>
 
     <article class="phone-wrap">
-      <span class="frame-label">CMS · details mode</span>
+      <span class="frame-label">Studio · details mode</span>
       <div class="console-demo phone is-mobile" data-climate="paper">
         <header class="console-strip">
           <a class="console-mark" href="#mobile"><span class="pulse"></span><span>Brain <span class="mark-long">· <b>Console</b></span></span></a>
-          <nav class="surface-nav"><a class="surface-link" href="#mobile">Dashboard</a><a class="surface-link" href="#mobile">Chat</a><a class="surface-link is-active" href="#mobile">CMS</a></nav><span class="strip-spacer"></span>
+          <nav class="surface-nav"><a class="surface-link" href="#mobile">Dashboard</a><a class="surface-link" href="#mobile">Chat</a><a class="surface-link is-active" href="#mobile">Studio</a></nav><span class="strip-spacer"></span>
           <button class="command-chip" type="button" aria-label="Search"><span class="command-copy">Search</span><kbd>⌘K</kbd><span class="command-icon">⌕</span></button>
           <a class="session-chip" href="#mobile" aria-label="Operator session"><span class="session-dot"></span><span>Operator</span><strong>Sign out</strong><span class="session-avatar">OP</span></a>
         </header>
-        <div class="phone-content cms-phone">
+        <div class="phone-content studio-phone">
           <div class="crumbbar"><span>Posts /</span><b>Domain as identity</b></div>
-          <nav class="cms-modes"><span class="cms-mode on">Details</span><span class="cms-mode">Write</span><span class="cms-mode">Preview</span></nav>
-          <div class="cms-form">
-            <header class="cms-form-head"><h2>Colophon</h2><span>post · draft</span></header>
+          <nav class="studio-modes"><span class="studio-mode on">Details</span><span class="studio-mode">Write</span><span class="studio-mode">Preview</span></nav>
+          <div class="studio-form">
+            <header class="studio-form-head"><h2>Colophon</h2><span>post · draft</span></header>
             <div class="field"><label>Title <em>required</em></label><div class="field-box">Domain as identity</div></div>
             <div class="field"><label>Slug <em>string</em></label><div class="field-box" style="font-family:var(--mono);font-size:13px">domain-as-identity</div></div>
             <div class="field"><label>Series <em>reference</em></label><div class="field-box">Trust &amp; Identity</div></div>
@@ -744,14 +744,14 @@
   <header class="section-head">
     <span class="section-number">03</span>
     <h2>Tablet is a composition, not a large phone.</h2>
-    <p class="section-note">At 768px the strip remains one line. Dashboard keeps useful density, chat keeps its rail, and CMS converts the permanent type rail into a horizontal collection switcher.</p>
+    <p class="section-note">At 768px the strip remains one line. Dashboard keeps useful density, chat keeps its rail, and Studio converts the permanent type rail into a horizontal collection switcher.</p>
   </header>
 
   <div class="tablet-stack">
     <div>
       <span class="frame-label">Dashboard · tablet · two-column instruments</span>
       <div class="console-demo tablet-frame is-tablet" data-sync-climate>
-        <header class="console-strip"><a class="console-mark" href="#tablet"><span class="pulse"></span><span>Brain · <b>Console</b></span></a><nav class="surface-nav"><a class="surface-link is-active" href="#tablet">Dashboard</a><a class="surface-link" href="#tablet">Chat</a><a class="surface-link" href="#tablet">CMS</a></nav><span class="strip-spacer"></span><button class="command-chip" type="button"><span class="command-copy">Search</span><kbd>⌘K</kbd></button><a class="session-chip" href="#tablet"><span class="session-dot"></span><span>Operator</span><span class="session-avatar">OP</span></a></header>
+        <header class="console-strip"><a class="console-mark" href="#tablet"><span class="pulse"></span><span>Brain · <b>Console</b></span></a><nav class="surface-nav"><a class="surface-link is-active" href="#tablet">Dashboard</a><a class="surface-link" href="#tablet">Chat</a><a class="surface-link" href="#tablet">Studio</a></nav><span class="strip-spacer"></span><button class="command-chip" type="button"><span class="command-copy">Search</span><kbd>⌘K</kbd></button><a class="session-chip" href="#tablet"><span class="session-dot"></span><span>Operator</span><span class="session-avatar">OP</span></a></header>
         <div class="tablet-content tablet-dash"><div class="mobile-title"><h2>Rover <em>Collective</em></h2><span>tablet · 768</span></div><nav class="mobile-tabs"><span class="mobile-tab on">Overview</span><span class="mobile-tab">Knowledge</span><span class="mobile-tab">Network · 2</span><span class="mobile-tab">System</span></nav><div class="tablet-dash-grid" style="margin-top:14px"><div class="contract-card"><span>Entities</span><b>269</b></div><div class="contract-card"><span>Semantic index</span><b style="color:var(--c-ok);font-size:19px">Ready</b></div></div><div class="tablet-columns"><div class="tablet-panel"><h4>Group digests</h4><div class="digest-line"><span>Publishing</span><b>4 queued</b></div><div class="digest-line"><span>Knowledge</span><b>269 entities</b></div><div class="digest-line"><span>Network</span><b style="color:var(--c-warn)">2 actions</b></div></div><div class="tablet-panel"><h4>Activity</h4><div class="digest-line"><span>14:31</span><b>note created</b></div><div class="digest-line"><span>14:28</span><b>index ready</b></div></div></div></div>
       </div>
     </div>
@@ -759,16 +759,16 @@
     <div>
       <span class="frame-label">Chat · tablet · rail retained</span>
       <div class="console-demo tablet-frame is-tablet" data-sync-climate>
-        <header class="console-strip"><a class="console-mark" href="#tablet"><span class="pulse"></span><span>Brain · <b>Console</b></span></a><nav class="surface-nav"><a class="surface-link" href="#tablet">Dashboard</a><a class="surface-link is-active" href="#tablet">Chat</a><a class="surface-link" href="#tablet">CMS</a></nav><span class="strip-spacer"></span><button class="command-chip" type="button"><span class="command-copy">Search</span><kbd>⌘K</kbd></button><a class="session-chip" href="#tablet"><span class="session-dot"></span><span>Operator</span><span class="session-avatar">OP</span></a></header>
+        <header class="console-strip"><a class="console-mark" href="#tablet"><span class="pulse"></span><span>Brain · <b>Console</b></span></a><nav class="surface-nav"><a class="surface-link" href="#tablet">Dashboard</a><a class="surface-link is-active" href="#tablet">Chat</a><a class="surface-link" href="#tablet">Studio</a></nav><span class="strip-spacer"></span><button class="command-chip" type="button"><span class="command-copy">Search</span><kbd>⌘K</kbd></button><a class="session-chip" href="#tablet"><span class="session-dot"></span><span>Operator</span><span class="session-avatar">OP</span></a></header>
         <div class="tablet-chat"><aside class="session-rail"><div class="rail-title">Conversations</div><div class="session-row on">Verdigris pigments</div><div class="session-row">Trust series planning</div><div class="session-row">Request signing</div><div class="session-row">Newsletter issue 13</div></aside><div class="tablet-thread"><div class="thread"><div class="message user"><div class="who">you</div><div class="bubble">Queue this note for the trust series.</div></div><div class="message"><div class="who">rover</div><div class="bubble">Queued. It will enter review after export.<div class="entity-door">◆ note/verdigris-pigments · exporting</div></div></div></div><div class="composer"><div class="composer-box"><button type="button">＋</button><span class="composer-copy">Message Rover…</span><button class="send" type="button">↑</button></div></div></div></div>
       </div>
     </div>
 
     <div>
-      <span class="frame-label">CMS · tablet · collection rail becomes a switcher</span>
+      <span class="frame-label">Studio · tablet · collection rail becomes a switcher</span>
       <div class="console-demo tablet-frame is-tablet" data-climate="paper">
-        <header class="console-strip"><a class="console-mark" href="#tablet"><span class="pulse"></span><span>Brain · <b>Console</b></span></a><nav class="surface-nav"><a class="surface-link" href="#tablet">Dashboard</a><a class="surface-link" href="#tablet">Chat</a><a class="surface-link is-active" href="#tablet">CMS</a></nav><span class="strip-spacer"></span><button class="command-chip" type="button"><span class="command-copy">Search</span><kbd>⌘K</kbd></button><a class="session-chip" href="#tablet"><span class="session-dot"></span><span>Operator</span><span class="session-avatar">OP</span></a></header>
-        <div class="tablet-cms"><div class="crumbbar"><span>Posts /</span><b>Domain as identity</b></div><nav class="type-rail"><span class="type-pill on">Posts · 24</span><span class="type-pill">Notes · 112</span><span class="type-pill">Links · 86</span><span class="type-pill">Decks · 7</span><span class="type-pill">Site info · solo</span></nav><div class="tablet-editor"><aside class="tablet-fields"><div class="cms-form-head"><h2 style="font-size:22px">Colophon</h2><span>draft</span></div><div class="field"><label>Title <em>required</em></label><div class="field-box" style="font-size:14px">Domain as identity</div></div><div class="field"><label>Series <em>reference</em></label><div class="field-box" style="font-size:14px">Trust &amp; Identity</div></div></aside><article class="tablet-manuscript"><h2>Domain as identity</h2><p>Two brains that have never met can already talk—but only as strangers. Trust should not depend on a shared secret pasted into two config files.</p><p style="border-left:2px solid var(--c-accent);padding-left:16px;font-family:var(--display);font-style:italic">A leaked token is a stolen name.</p></article></div><footer class="save-bar"><button class="save-button" type="button">Save</button><span class="save-status"><b>All changes saved</b>entity db → exported → committed</span><span class="save-more">•••</span></footer></div>
+        <header class="console-strip"><a class="console-mark" href="#tablet"><span class="pulse"></span><span>Brain · <b>Console</b></span></a><nav class="surface-nav"><a class="surface-link" href="#tablet">Dashboard</a><a class="surface-link" href="#tablet">Chat</a><a class="surface-link is-active" href="#tablet">Studio</a></nav><span class="strip-spacer"></span><button class="command-chip" type="button"><span class="command-copy">Search</span><kbd>⌘K</kbd></button><a class="session-chip" href="#tablet"><span class="session-dot"></span><span>Operator</span><span class="session-avatar">OP</span></a></header>
+        <div class="tablet-studio"><div class="crumbbar"><span>Posts /</span><b>Domain as identity</b></div><nav class="type-rail"><span class="type-pill on">Posts · 24</span><span class="type-pill">Notes · 112</span><span class="type-pill">Links · 86</span><span class="type-pill">Decks · 7</span><span class="type-pill">Site info · solo</span></nav><div class="tablet-editor"><aside class="tablet-fields"><div class="studio-form-head"><h2 style="font-size:22px">Colophon</h2><span>draft</span></div><div class="field"><label>Title <em>required</em></label><div class="field-box" style="font-size:14px">Domain as identity</div></div><div class="field"><label>Series <em>reference</em></label><div class="field-box" style="font-size:14px">Trust &amp; Identity</div></div></aside><article class="tablet-manuscript"><h2>Domain as identity</h2><p>Two brains that have never met can already talk—but only as strangers. Trust should not depend on a shared secret pasted into two config files.</p><p style="border-left:2px solid var(--c-accent);padding-left:16px;font-family:var(--display);font-style:italic">A leaked token is a stolen name.</p></article></div><footer class="save-bar"><button class="save-button" type="button">Save</button><span class="save-status"><b>All changes saved</b>entity db → exported → committed</span><span class="save-more">•••</span></footer></div>
       </div>
     </div>
   </div>
@@ -786,12 +786,12 @@
       <span class="frame-label">Desktop palette · grouped doors and query highlighting</span>
       <div class="console-demo palette-stage" data-sync-climate>
         <div class="ghost"><div class="ghost-block"></div><div class="ghost-block"></div><div class="ghost-block"></div><div class="ghost-block"></div><div class="ghost-block tall"></div><div class="ghost-block tall"></div></div>
-        <div class="palette-overlay"><div class="palette"><div class="palette-input"><span>verd</span><kbd>esc</kbd></div><div class="palette-group"><div class="palette-group-title">Entities</div><div class="palette-row on"><span class="palette-glyph">◆</span><span class="palette-title"><mark>Verd</mark>igris pigments in early print<span class="palette-sub">note · 18 min ago</span></span><span class="palette-tag">edit in cms</span></div><div class="palette-row"><span class="palette-glyph">◆</span><span class="palette-title">Domain as identity<span class="palette-sub">post · draft · mentions verdigris</span></span><span class="palette-tag">edit in cms</span></div></div><div class="palette-group"><div class="palette-group-title">Dashboard</div><div class="palette-row"><span class="palette-glyph">▤</span><span class="palette-title">Publishing<span class="palette-sub">4 queued · 2 awaiting review</span></span><span class="palette-tag">dashboard tab</span></div></div><div class="palette-foot"><span>↑↓ navigate</span><span>↵ open</span><span style="margin-left:auto">one index · three doors</span></div></div></div>
+        <div class="palette-overlay"><div class="palette"><div class="palette-input"><span>verd</span><kbd>esc</kbd></div><div class="palette-group"><div class="palette-group-title">Entities</div><div class="palette-row on"><span class="palette-glyph">◆</span><span class="palette-title"><mark>Verd</mark>igris pigments in early print<span class="palette-sub">note · 18 min ago</span></span><span class="palette-tag">edit in studio</span></div><div class="palette-row"><span class="palette-glyph">◆</span><span class="palette-title">Domain as identity<span class="palette-sub">post · draft · mentions verdigris</span></span><span class="palette-tag">edit in studio</span></div></div><div class="palette-group"><div class="palette-group-title">Dashboard</div><div class="palette-row"><span class="palette-glyph">▤</span><span class="palette-title">Publishing<span class="palette-sub">4 queued · 2 awaiting review</span></span><span class="palette-tag">dashboard tab</span></div></div><div class="palette-foot"><span>↑↓ navigate</span><span>↵ open</span><span style="margin-left:auto">one index · three doors</span></div></div></div>
       </div>
     </div>
     <div>
       <span class="frame-label">Phone palette · full-height search sheet</span>
-      <div class="console-demo mobile-palette-stage" data-sync-climate><div class="mobile-palette"><div class="palette-input"><span>verd</span><kbd>close</kbd></div><div class="mobile-palette-results"><div class="palette-group"><div class="palette-group-title">Entities</div><div class="palette-row on"><span class="palette-glyph">◆</span><span class="palette-title"><mark>Verd</mark>igris pigments<span class="palette-sub">note · 18 min ago</span></span><span class="palette-tag">cms</span></div><div class="palette-row"><span class="palette-glyph">◆</span><span class="palette-title">Domain as identity<span class="palette-sub">post · draft</span></span><span class="palette-tag">cms</span></div></div><div class="palette-group"><div class="palette-group-title">Dashboard</div><div class="palette-row"><span class="palette-glyph">▤</span><span class="palette-title">Publishing<span class="palette-sub">4 queued · 2 review</span></span><span class="palette-tag">tab</span></div></div><div class="palette-group"><div class="palette-group-title">Conversations</div><div class="palette-row"><span class="palette-glyph">◌</span><span class="palette-title">Verdigris pigments<span class="palette-sub">today · 4 messages</span></span><span class="palette-tag">chat</span></div></div></div><div class="palette-foot"><span>Tap a result to open</span></div></div></div>
+      <div class="console-demo mobile-palette-stage" data-sync-climate><div class="mobile-palette"><div class="palette-input"><span>verd</span><kbd>close</kbd></div><div class="mobile-palette-results"><div class="palette-group"><div class="palette-group-title">Entities</div><div class="palette-row on"><span class="palette-glyph">◆</span><span class="palette-title"><mark>Verd</mark>igris pigments<span class="palette-sub">note · 18 min ago</span></span><span class="palette-tag">studio</span></div><div class="palette-row"><span class="palette-glyph">◆</span><span class="palette-title">Domain as identity<span class="palette-sub">post · draft</span></span><span class="palette-tag">studio</span></div></div><div class="palette-group"><div class="palette-group-title">Dashboard</div><div class="palette-row"><span class="palette-glyph">▤</span><span class="palette-title">Publishing<span class="palette-sub">4 queued · 2 review</span></span><span class="palette-tag">tab</span></div></div><div class="palette-group"><div class="palette-group-title">Conversations</div><div class="palette-row"><span class="palette-glyph">◌</span><span class="palette-title">Verdigris pigments<span class="palette-sub">today · 4 messages</span></span><span class="palette-tag">chat</span></div></div></div><div class="palette-foot"><span>Tap a result to open</span></div></div></div>
     </div>
   </div>
 </section>
@@ -800,7 +800,7 @@
   <header class="section-head">
     <span class="section-number">05</span>
     <h2>Palette decision and implementation handoff.</h2>
-    <p class="section-note">The detailed surface mockups win where the historical references diverge: navy bioluminescence for instrument, warm editorial paper for CMS. Semantic roles remain identical.</p>
+    <p class="section-note">The detailed surface mockups win where the historical references diverge: navy bioluminescence for instrument, warm editorial paper for Studio. Semantic roles remain identical.</p>
   </header>
 
   <div class="climate-board">
@@ -812,7 +812,7 @@
     <article class="handoff"><b>@brains/console-theme</b><p>Climate tokens, three-state strip, full-screen mobile palette, safe areas, focus and reduced-motion rules.</p></article>
     <article class="handoff"><b>@brains/dashboard</b><p>Scrollable local tabs, 2×2 phone vitals, content prioritization, table-to-list transforms, edge-to-edge frame below 640px.</p></article>
     <article class="handoff"><b>@brains/web-chat</b><p>Keep the existing sessions drawer and composer behavior; integrate them beneath shared chrome and use 100dvh.</p></article>
-    <article class="handoff"><b>@brains/cms</b><p>Phone Details/Write/Preview modes, tablet collection switcher, 16px controls, and condensed safe-area save bar.</p></article>
+    <article class="handoff"><b>@brains/studio</b><p>Phone Details/Write/Preview modes, tablet collection switcher, 16px controls, and condensed safe-area save bar.</p></article>
   </div>
 </section>
 </main>

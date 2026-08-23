@@ -1,6 +1,6 @@
 ---
 "@brains/web-chat": minor
-"@brains/cms": minor
+"@brains/studio": minor
 "@brains/email-workflows": minor
 ---
 

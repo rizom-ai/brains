@@ -13,7 +13,7 @@ import { atprotoRegistryPlugin } from "@brains/atproto-registry";
 import { authServicePlugin } from "@brains/auth-service";
 import { blogPlugin } from "@brains/blog";
 import { ChatInterface, chatConfigFromEnv } from "@brains/chat";
-import { cmsPlugin } from "@brains/cms";
+import { studioPlugin } from "@brains/studio";
 import { contentPipelinePlugin } from "@brains/content-pipeline";
 import { conversationMemoryPlugin } from "@brains/conversation-memory";
 import { dashboardPlugin } from "@brains/dashboard";
@@ -130,7 +130,7 @@ export const canonicalBrain: BrainDefinition = defineBrain({
     ["playbook", playbookPlugin, undefined],
     ["playbooks", playbooksPlugin, undefined],
     ["onboarding", onboardingPlugin, undefined],
-    ["cms", cmsPlugin, undefined],
+    ["studio", studioPlugin, undefined],
     ["dashboard", dashboardPlugin, undefined],
     ["admin", adminPlugin, undefined],
 

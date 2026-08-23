@@ -35,12 +35,12 @@ the one-time setup URL printed during boot.
 
 Send synthetic messages that cover high-priority actionable mail, normal mail, reply
 requests, and strong bulk/list signals. Open
-<http://localhost:8080/cms/workspaces/inbox> and verify server-side source/urgency
+<http://localhost:8080/studio/workspaces/inbox> and verify server-side source/urgency
 filters, list/detail navigation, transient original-message reads, confirmation, and
 paging. Open **Discuss in chat** and verify the new conversation can answer a question
 requiring the selected synthetic email body without placing that body in browser history
 state. Open **Capture as note** and verify the unsaved note contains the safe summary and a
-readable source link. Confirm that Inbox and CMS expose no reply-draft follow-up, workspace,
+readable source link. Confirm that Inbox and Studio expose no reply-draft follow-up, workspace,
 or entity collection. Dashboard should expose only a five-entry read-only summary whose **Open Inbox**
 link returns to that workspace;
 `inbox_list` remains the chat read surface. If digest delivery is configured, verify its

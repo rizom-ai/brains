@@ -39,7 +39,7 @@ import { createDirectorySyncTools } from "./tools";
 import { DirectorySyncOperationStatusService } from "./lib/directory-sync-operation-status";
 import { GitReconciliationService } from "./lib/git-reconciliation";
 import { PendingDeleteRegistry } from "./lib/pending-delete-registry";
-import { DirectorySyncWorkspaceProvider } from "./lib/cms-workspace";
+import { DirectorySyncWorkspaceProvider } from "./lib/studio-workspace";
 import {
   DirectorySyncRuntime,
   type DirectorySyncScheduler,
@@ -83,7 +83,7 @@ export class DirectorySyncPlugin extends ServicePlugin<
   private operationStatus: DirectorySyncOperationStatusService | undefined;
   private gitReconciliation: GitReconciliationService | undefined;
   private workspaceProvider: DirectorySyncWorkspaceProvider | undefined;
-  private cmsWorkspaceUrl: string | undefined;
+  private studioWorkspaceUrl: string | undefined;
   private runtime = new DirectorySyncRuntime();
   private readonly directorySyncFacade = createDirectorySyncFacade(() =>
     this.requireDirectorySync(),
@@ -434,7 +434,7 @@ export class DirectorySyncPlugin extends ServicePlugin<
         this.logger,
         this.config.git,
         () => this.gitSync,
-        () => this.cmsWorkspaceUrl,
+        () => this.studioWorkspaceUrl,
       );
     }
   }
@@ -450,7 +450,8 @@ export class DirectorySyncPlugin extends ServicePlugin<
     await this.requireEntityExportDispatcher().start();
     await this.startBackgroundWork();
     this.readyState = true;
-    this.cmsWorkspaceUrl = await this.workspaceProvider?.registerCmsWorkspace();
+    this.studioWorkspaceUrl =
+      await this.workspaceProvider?.registerStudioWorkspace();
   }
 
   protected override async getTools(): Promise<Tool[]> {
@@ -465,7 +466,7 @@ export class DirectorySyncPlugin extends ServicePlugin<
 
   protected override async onShutdown(): Promise<void> {
     this.shutdownStarted = true;
-    await this.workspaceProvider?.unregisterCmsWorkspace();
+    await this.workspaceProvider?.unregisterStudioWorkspace();
     await this.configurationQueue;
     await this.stopGeneration(this.runtime, this.directorySync, this.gitSync);
 

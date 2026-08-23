@@ -18,7 +18,7 @@ import type {
   OperatorSchema,
 } from "./operator-context-contract";
 import type {
-  CmsWorkspaceView,
+  StudioWorkspaceView,
   DashboardDigest,
   DashboardOperatorView,
   OperatorEntityCatalogDefinition,
@@ -162,13 +162,13 @@ export function defineDashboardWidget<
   return Object.freeze(widget);
 }
 
-export interface CmsWorkspaceDefinition<
+export interface StudioWorkspaceDefinition<
   TId extends string = string,
   TDataSchema extends OperatorSchema = OperatorSchema,
   TActions extends readonly AnyWorkspaceActionDefinition[] =
     readonly AnyWorkspaceActionDefinition[],
 > {
-  readonly kind: "rizom-cms-workspace";
+  readonly kind: "rizom-studio-workspace";
   readonly id: TId;
   readonly label: string;
   readonly description?: string | undefined;
@@ -188,7 +188,7 @@ export interface CmsWorkspaceDefinition<
     | undefined;
   view(context: {
     readonly data: z.output<TDataSchema>;
-  }): CmsWorkspaceView<TActions[number]>;
+  }): StudioWorkspaceView<TActions[number]>;
   bind<
     TConfig,
     TState extends object,
@@ -222,26 +222,26 @@ export interface CmsWorkspaceDefinition<
         TAccountSettings
       >[];
     },
-  ): BoundCmsWorkspace<
-    CmsWorkspaceDefinition<TId, TDataSchema, TActions>,
+  ): BoundStudioWorkspace<
+    StudioWorkspaceDefinition<TId, TDataSchema, TActions>,
     TConfig,
     TState,
     TAccountSettings
   >;
 }
 
-export type AnyCmsWorkspaceDefinition = CmsWorkspaceDefinition<
+export type AnyStudioWorkspaceDefinition = StudioWorkspaceDefinition<
   string,
   OperatorSchema,
   readonly AnyWorkspaceActionDefinition[]
 >;
 
-const cmsWorkspaceExecutor: unique symbol = Symbol(
-  "rizom.cms-workspace-executor",
+const studioWorkspaceExecutor: unique symbol = Symbol(
+  "rizom.studio-workspace-executor",
 );
 
-interface CmsWorkspaceExecutor<
-  TDefinition extends AnyCmsWorkspaceDefinition,
+interface StudioWorkspaceExecutor<
+  TDefinition extends AnyStudioWorkspaceDefinition,
   TConfig,
   TState extends object,
   TAccountSettings extends AnyAccountSettingsDefinition | undefined,
@@ -267,14 +267,15 @@ interface CmsWorkspaceExecutor<
     | undefined;
 }
 
-export interface CmsWorkspaceBinding<
-  TDefinition extends AnyCmsWorkspaceDefinition = AnyCmsWorkspaceDefinition,
+export interface StudioWorkspaceBinding<
+  TDefinition extends AnyStudioWorkspaceDefinition =
+    AnyStudioWorkspaceDefinition,
   TConfig = unknown,
   TState extends object = object,
   TAccountSettings extends AnyAccountSettingsDefinition | undefined =
     AnyAccountSettingsDefinition | undefined,
 > {
-  readonly kind: "rizom-cms-workspace-binding";
+  readonly kind: "rizom-studio-workspace-binding";
   readonly definition: TDefinition;
   readonly actions: readonly BoundWorkspaceAction<
     TDefinition["actions"][number],
@@ -282,60 +283,64 @@ export interface CmsWorkspaceBinding<
     TState,
     TAccountSettings
   >[];
-  readonly [cmsWorkspaceExecutor]?:
-    | CmsWorkspaceExecutor<TDefinition, TConfig, TState, TAccountSettings>
+  readonly [studioWorkspaceExecutor]?:
+    | StudioWorkspaceExecutor<TDefinition, TConfig, TState, TAccountSettings>
     | undefined;
 }
 
-export type BoundCmsWorkspace<
-  TDefinition extends AnyCmsWorkspaceDefinition = AnyCmsWorkspaceDefinition,
+export type BoundStudioWorkspace<
+  TDefinition extends AnyStudioWorkspaceDefinition =
+    AnyStudioWorkspaceDefinition,
   TConfig = unknown,
   TState extends object = object,
   TAccountSettings extends AnyAccountSettingsDefinition | undefined =
     AnyAccountSettingsDefinition | undefined,
-> = CmsWorkspaceBinding<TDefinition, TConfig, TState, TAccountSettings> &
+> = StudioWorkspaceBinding<TDefinition, TConfig, TState, TAccountSettings> &
   OperatorBindingBrand<TConfig, TState, TAccountSettings>;
 
-export function getCmsWorkspaceExecutor<
-  TDefinition extends AnyCmsWorkspaceDefinition,
+export function getStudioWorkspaceExecutor<
+  TDefinition extends AnyStudioWorkspaceDefinition,
   TConfig,
   TState extends object,
   TAccountSettings extends AnyAccountSettingsDefinition | undefined,
 >(
-  binding: BoundCmsWorkspace<TDefinition, TConfig, TState, TAccountSettings>,
-): CmsWorkspaceExecutor<TDefinition, TConfig, TState, TAccountSettings> {
-  const executor = binding[cmsWorkspaceExecutor];
+  binding: BoundStudioWorkspace<TDefinition, TConfig, TState, TAccountSettings>,
+): StudioWorkspaceExecutor<TDefinition, TConfig, TState, TAccountSettings> {
+  const executor = binding[studioWorkspaceExecutor];
   if (!executor) {
     throw new Error(
-      `CMS workspace "${binding.definition.id}" was not bound by defineCmsWorkspace().bind()`,
+      `Studio workspace "${binding.definition.id}" was not bound by defineStudioWorkspace().bind()`,
     );
   }
   return executor;
 }
 
-export function defineCmsWorkspace<
+export function defineStudioWorkspace<
   const TId extends string,
   TDataSchema extends OperatorSchema,
   const TActions extends readonly AnyWorkspaceActionDefinition[],
 >(
   definition: Omit<
-    CmsWorkspaceDefinition<TId, TDataSchema, TActions>,
+    StudioWorkspaceDefinition<TId, TDataSchema, TActions>,
     "kind" | "bind"
   >,
-): CmsWorkspaceDefinition<TId, TDataSchema, TActions> {
-  assertIdentifier(definition.id, "CMS workspace id");
-  assertText(definition.label, `CMS workspace "${definition.id}" label`);
+): StudioWorkspaceDefinition<TId, TDataSchema, TActions> {
+  assertIdentifier(definition.id, "Studio workspace id");
+  assertText(definition.label, `Studio workspace "${definition.id}" label`);
   assertOptionalText(
     definition.description,
-    `CMS workspace "${definition.id}" description`,
+    `Studio workspace "${definition.id}" description`,
   );
-  assertPriority(definition.priority, `CMS workspace "${definition.id}"`);
-  assertPermission(definition.permission, `CMS workspace "${definition.id}"`);
+  assertPriority(definition.priority, `Studio workspace "${definition.id}"`);
+  assertPermission(
+    definition.permission,
+    `Studio workspace "${definition.id}"`,
+  );
   const actionNames = new Set<string>();
   for (const action of definition.actions) {
     if (actionNames.has(action.name)) {
       throw new Error(
-        `CMS workspace "${definition.id}" declares action "${action.name}" more than once`,
+        `Studio workspace "${definition.id}" declares action "${action.name}" more than once`,
       );
     }
     actionNames.add(action.name);
@@ -344,13 +349,13 @@ export function defineCmsWorkspace<
       !meetsPermission(action.permission, definition.permission)
     ) {
       throw new Error(
-        `CMS workspace "${definition.id}" action "${action.name}" permission cannot be lower than the workspace permission`,
+        `Studio workspace "${definition.id}" action "${action.name}" permission cannot be lower than the workspace permission`,
       );
     }
   }
 
-  const workspace: CmsWorkspaceDefinition<TId, TDataSchema, TActions> = {
-    kind: "rizom-cms-workspace",
+  const workspace: StudioWorkspaceDefinition<TId, TDataSchema, TActions> = {
+    kind: "rizom-studio-workspace",
     ...definition,
     ...(definition.entities
       ? { entities: Object.freeze([...definition.entities]) }
@@ -362,19 +367,19 @@ export function defineCmsWorkspace<
         (input.listEntityTypes !== undefined)
       ) {
         throw new Error(
-          `CMS workspace "${workspace.id}" must bind one entity-type catalog callback exactly when it declares entityCatalog`,
+          `Studio workspace "${workspace.id}" must bind one entity-type catalog callback exactly when it declares entityCatalog`,
         );
       }
       const boundActions = new Set<AnyWorkspaceActionDefinition>();
       for (const action of input.actions) {
         if (!workspace.actions.includes(action.definition)) {
           throw new Error(
-            `CMS workspace "${workspace.id}" cannot bind undeclared action "${action.definition.name}"`,
+            `Studio workspace "${workspace.id}" cannot bind undeclared action "${action.definition.name}"`,
           );
         }
         if (boundActions.has(action.definition)) {
           throw new Error(
-            `CMS workspace "${workspace.id}" binds action "${action.definition.name}" more than once`,
+            `Studio workspace "${workspace.id}" binds action "${action.definition.name}" more than once`,
           );
         }
         boundActions.add(action.definition);
@@ -382,16 +387,16 @@ export function defineCmsWorkspace<
       for (const action of workspace.actions) {
         if (!boundActions.has(action)) {
           throw new Error(
-            `CMS workspace "${workspace.id}" has no executor for action "${action.name}"`,
+            `Studio workspace "${workspace.id}" has no executor for action "${action.name}"`,
           );
         }
       }
 
       return Object.freeze({
-        kind: "rizom-cms-workspace-binding",
+        kind: "rizom-studio-workspace-binding",
         definition: workspace,
         actions: Object.freeze([...input.actions]),
-        [cmsWorkspaceExecutor]: Object.freeze({
+        [studioWorkspaceExecutor]: Object.freeze({
           ...(input.authorize ? { authorize: input.authorize } : {}),
           load: input.load,
           ...(input.listEntityTypes

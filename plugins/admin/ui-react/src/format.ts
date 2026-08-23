@@ -15,14 +15,14 @@ export function initials(displayName: string): string {
     .join("");
 }
 
-export function cmsEntityHref(entityReference: string): string | undefined {
+export function studioEntityHref(entityReference: string): string | undefined {
   const separator = entityReference.indexOf("/");
   if (separator <= 0 || separator === entityReference.length - 1) {
     return undefined;
   }
   const entityType = entityReference.slice(0, separator);
   const entityId = entityReference.slice(separator + 1);
-  return `/cms#/${encodeURIComponent(entityType)}/${encodeURIComponent(entityId)}`;
+  return `/studio/entities/${encodeURIComponent(entityType)}/${encodeURIComponent(entityId)}`;
 }
 
 export function assuranceLabel(identity: AuthIdentitySummary): string {

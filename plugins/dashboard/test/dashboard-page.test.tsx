@@ -207,7 +207,7 @@ describe("renderDashboardPageHtml", () => {
     expect(html).toContain('class="canvas"');
     // The strip pins to the top of the viewport on every surface — it
     // lives OUTSIDE the frame so it never shifts between dashboard, chat,
-    // and the CMS. Masthead, tab bar, and panels stay inside the frame.
+    // and the Studio. Masthead, tab bar, and panels stay inside the frame.
     const frameIndex = html.indexOf('class="frame"');
     expect(frameIndex).toBeGreaterThan(-1);
     expect(html.indexOf('class="console-strip"')).toBeLessThan(frameIndex);
@@ -448,7 +448,7 @@ describe("renderDashboardPageHtml", () => {
     expect(html).toContain("exported");
     expect(html).toContain("committed");
     expect(html).toContain('href="/studio/workspaces/sync"');
-    expect(html).toContain("Open in CMS");
+    expect(html).toContain("Open in Studio");
   });
 
   it("should render the shared console strip from derived surfaces", () => {
@@ -464,7 +464,7 @@ describe("renderDashboardPageHtml", () => {
           isActive: true,
         },
         { id: "web-chat", label: "Chat", href: "/chat", isActive: false },
-        { id: "cms", label: "CMS", href: "/cms", isActive: false },
+        { id: "studio", label: "Studio", href: "/studio", isActive: false },
       ],
       character: { role: "", purpose: "", values: [] },
       profile: { name: "Test Owner" },
@@ -487,7 +487,7 @@ describe("renderDashboardPageHtml", () => {
     expect(html).toContain('class="console-strip"');
     expect(html).toContain('href="/console"');
     expect(html).toContain('href="/chat"');
-    expect(html).toContain('href="/cms"');
+    expect(html).toContain('href="/studio"');
     expect(html).toContain("Yeehaa");
     expect(html).toContain("Admin");
     // Mockup strip chrome: brandmark, command palette hint, session chip.
@@ -542,8 +542,8 @@ describe("renderDashboardPageHtml", () => {
     const html = renderDashboardPageHtml(input);
 
     expect(html).toContain('href="/chat"');
-    expect(html).not.toContain('href="/cms"');
-    expect(html).not.toContain(">CMS<");
+    expect(html).not.toContain('href="/studio"');
+    expect(html).not.toContain(">Studio<");
   });
 
   it("should align the initial theme mode and apply stored climate before styles", () => {

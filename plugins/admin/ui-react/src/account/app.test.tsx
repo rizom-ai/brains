@@ -130,14 +130,17 @@ describe("Account surface", () => {
     expect(html).toContain('role="status"');
   });
 
-  it("locks a profile-managed Anchor display name to the CMS", () => {
+  it("locks a profile-managed Anchor display name to the Studio", () => {
     const html = render({
       ...account,
       profileEntityId: "anchor-profile/anchor-profile",
     });
 
     expect(html).toContain("Managed by the Anchor profile");
-    expect(html).toContain("Edit in CMS");
+    expect(html).toContain("Edit in Studio");
+    expect(html).toContain(
+      'href="/studio/entities/anchor-profile/anchor-profile"',
+    );
     expect(html).not.toContain("Save name");
     expect(html).not.toContain('id="display-name"');
   });

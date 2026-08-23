@@ -4,7 +4,7 @@
 "@brains/email": minor
 "@brains/email-workflows": minor
 "@brains/unified-inbox": minor
-"@brains/cms": minor
+"@brains/studio": minor
 "@rizom/brain": patch
 ---
 

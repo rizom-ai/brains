@@ -32,7 +32,7 @@ export interface RequestDirectorySyncOptions {
   operationStatus?: DirectorySyncOperationStatusService | undefined;
 }
 
-/** Shared manual sync request path used by tools and the CMS workspace. */
+/** Shared manual sync request path used by tools and the Studio workspace. */
 export async function requestDirectorySync(
   options: RequestDirectorySyncOptions,
 ): Promise<DirectorySyncRequestResult> {

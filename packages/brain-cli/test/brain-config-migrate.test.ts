@@ -505,6 +505,56 @@ plugins:
     );
   });
 
+  test("migrates canonical CMS selections and plugin config to Studio", () => {
+    const input = `brain: brain
+bundles: [core]
+add:
+  - cms # keep member note
+  - studio
+remove: [cms]
+plugins:
+  cms:
+    routePath: /authoring
+`;
+    const result = previewBrainConfigMigration(input);
+    const parsed = parseInstanceOverrides(result.output);
+
+    expect(result.changed).toBe(true);
+    expect(result.source).toEqual({ model: "brain", preset: undefined });
+    expect(result.output).toContain("# keep member note");
+    expect(parsed.add).toEqual(["studio"]);
+    expect(parsed.remove).toEqual(["studio"]);
+    expect(parsed.plugins?.["studio"]).toEqual({ routePath: "/authoring" });
+    expect(parsed.plugins?.["cms"]).toBeUndefined();
+  });
+
+  test("moves the retired CMS route when the plugin key is already Studio", () => {
+    const result = previewBrainConfigMigration(`brain: brain
+bundles: [core]
+plugins:
+  studio:
+    routePath: /cms # keep route note
+`);
+    const parsed = parseInstanceOverrides(result.output);
+
+    expect(result.changed).toBe(true);
+    expect(result.output).toContain("# keep route note");
+    expect(parsed.plugins?.["studio"]).toEqual({ routePath: "/studio" });
+  });
+
+  test("rejects conflicting CMS and Studio plugin config", () => {
+    expect(() =>
+      previewBrainConfigMigration(`brain: brain
+bundles: [core]
+plugins:
+  cms:
+    routePath: /cms
+  studio:
+    routePath: /studio
+`),
+    ).toThrow(/plugins\.cms.*plugins\.studio.*different config/);
+  });
+
   test("is deterministic and leaves canonical input byte-for-byte unchanged", () => {
     const migrated = previewBrainConfigMigration(
       "brain: '@brains/rover'\npreset: full\n",

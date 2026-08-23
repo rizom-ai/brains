@@ -460,7 +460,7 @@ describe("AuthService", () => {
     expect(setup.expiresAt).toBeLessThanOrEqual(after + 2 * 60 * 60);
   });
 
-  it("projects the configured Anchor flavor and CMS profile through the plugin", async () => {
+  it("projects the configured Anchor flavor and Studio profile through the plugin", async () => {
     const harness = new PluginTestHarness<AuthServicePlugin>({
       domain: "brain.example.com",
     });

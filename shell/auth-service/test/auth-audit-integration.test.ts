@@ -26,19 +26,19 @@ describe("AuthService audit integration", () => {
     });
     await service.initialize();
     const actor = await service.createUser({
-      displayName: "CMS admin",
+      displayName: "Studio admin",
       role: "admin",
       status: "active",
     });
 
     await service.recordAuditEvent({
       actorUserId: actor.userId,
-      action: "cms.entity.create.allowed",
+      action: "studio.entity.create.allowed",
       targetType: "entity",
       targetId: "post-1",
       metadata: {
         entityType: "post",
-        interfaceType: "cms",
+        interfaceType: "studio",
         outcome: "allowed",
       },
     });
@@ -46,12 +46,12 @@ describe("AuthService audit integration", () => {
     expect(await service.listAuditEvents()).toContainEqual(
       expect.objectContaining({
         actorUserId: actor.userId,
-        action: "cms.entity.create.allowed",
+        action: "studio.entity.create.allowed",
         targetType: "entity",
         targetId: "post-1",
         metadata: {
           entityType: "post",
-          interfaceType: "cms",
+          interfaceType: "studio",
           outcome: "allowed",
         },
       }),

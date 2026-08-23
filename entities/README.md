@@ -62,4 +62,4 @@ Note the one-character trap: `doc` is documentation _pages_ (site content), whil
 
 ## vs plugins/
 
-`plugins/` contains `ServicePlugin` packages — plugins that provide tools, orchestrate workflows, or integrate with external services (content-pipeline, directory-sync, site-builder, analytics, dashboard, newsletter, cms, playbooks, etc.).
+`plugins/` contains `ServicePlugin` packages — plugins that provide tools, orchestrate workflows, or integrate with external services (content-pipeline, directory-sync, site-builder, analytics, dashboard, newsletter, studio, playbooks, etc.).

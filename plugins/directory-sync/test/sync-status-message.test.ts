@@ -9,7 +9,7 @@ import type { DirectorySyncStatus, GitSyncStatus } from "../src/types";
 
 /**
  * sync:status:request is the cross-plugin status surface consumed by the
- * CMS editor's save-pipeline strip. It must report when the directory last
+ * Studio editor's save-pipeline strip. It must report when the directory last
  * synced and, when git is enabled, whether the working tree has pending
  * changes and what the latest commit is — degrading to git: null when git
  * is unavailable rather than failing the whole status.

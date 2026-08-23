@@ -1,5 +1,5 @@
 ---
-"@brains/cms": minor
+"@brains/studio": minor
 "@brains/email-workflows": minor
 "@brains/plugins": minor
 "@brains/unified-inbox": minor

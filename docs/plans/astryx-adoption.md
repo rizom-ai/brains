@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed and exploratory. This plan evaluates Meta's Astryx design system on the React-based operator console without committing the repository to a broad migration. The first and only approved pilot surface is `interfaces/web-chat`; CMS adoption requires a separate go/no-go decision after the pilot.
+Proposed and exploratory. This plan evaluates Meta's Astryx design system on the React-based operator console without committing the repository to a broad migration. The first and only approved pilot surface is `interfaces/web-chat`; Studio adoption requires a separate go/no-go decision after the pilot.
 
 Baseline evaluated on 2026-07-20 against `@astryxdesign/core@0.1.6`. Astryx is currently beta and must be pinned exactly during the pilot.
 
@@ -44,8 +44,8 @@ The pilot can therefore test Astryx's distinctive chat and accessibility behavio
 
 ### Conditionally in scope after the pilot
 
-- `plugins/cms`
-- a shared React-only console adapter, but only after both web chat and CMS demonstrably need the same integration
+- `plugins/studio`
+- a shared React-only console adapter, but only after both web chat and Studio demonstrably need the same integration
 
 ### Out of scope
 
@@ -275,11 +275,11 @@ Reject or pause adoption if:
 - beta release churn creates repeated migration work; or
 - the pilot cannot remove meaningful custom code.
 
-## Follow-up: CMS
+## Follow-up: Studio
 
-If web chat passes the final gate, run a separate CMS pilot in `plugins/cms`, beginning with confirmation dialogs and schema-driven form controls. Keep CodeMirror, editor workflow state, Streamdown preview, TanStack Query ownership, and CMS-specific layouts unchanged initially.
+If web chat passes the final gate, run a separate Studio pilot in `plugins/studio`, beginning with confirmation dialogs and schema-driven form controls. Keep CodeMirror, editor workflow state, Streamdown preview, TanStack Query ownership, and Studio-specific layouts unchanged initially.
 
-Extract a shared React console adapter only after web chat and CMS have the same proven provider and token-bridge requirements. Until then, keep the integration local to avoid creating a speculative shared abstraction.
+Extract a shared React console adapter only after web chat and Studio have the same proven provider and token-bridge requirements. Until then, keep the integration local to avoid creating a speculative shared abstraction.
 
 ## Plan retirement
 

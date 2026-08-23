@@ -29,7 +29,7 @@ const consumerFixture = join(
 const it = bunIt.skipIf(!packedCompatibilityEvidenceEnabled());
 
 describe("public authoring Phase 6 packed operator contracts", () => {
-  it("installs Account, Dashboard, and CMS authoring together", async () => {
+  it("installs Account, Dashboard, and Studio authoring together", async () => {
     const root = await mkdtemp(join(tmpdir(), "operator-packed-"));
     const packageTarballs = join(root, "packages");
     const fixtureStaging = join(root, "fixtures");

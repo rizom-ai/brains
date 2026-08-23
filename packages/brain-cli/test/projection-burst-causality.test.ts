@@ -169,7 +169,7 @@ describe("projection burst causal evidence", () => {
             "playbooks",
             "onboarding",
             "email",
-            "cms",
+            "studio",
             "dashboard",
             "admin",
             "mcp",

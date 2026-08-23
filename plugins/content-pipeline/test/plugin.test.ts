@@ -102,11 +102,11 @@ describe("ContentPipelinePlugin", () => {
       expect(plugin.getScheduler().isRunning()).toBe(true);
     });
 
-    it("keeps the dashboard launch independent from the CMS registration URL", async () => {
+    it("keeps the dashboard launch independent from the Studio registration URL", async () => {
       let dashboardDataProvider:
         | ((context: DashboardWidgetProviderContext) => Promise<unknown>)
         | undefined;
-      harness.subscribe("cms:register-workspace", async () => ({
+      harness.subscribe("studio:register-workspace", async () => ({
         success: true,
         data: { workspaceUrl: "/studio/workspaces/publishing" },
       }));
