@@ -24,6 +24,8 @@ import type {
   CreateInput,
   CreateInterceptionResult,
   CreateInterceptor,
+  CreateResultAttachment,
+  UploadSaveHandlerRegistration,
 } from "@brains/entity-service";
 import {
   AtprotoProjectionRegistry,
@@ -1020,6 +1022,101 @@ describe("entity package definitions", () => {
       await entities.getEntity({ entityType: "guide", id: "doomed" }),
     ).toMatchObject({
       metadata: { status: "failed", error: "unreadable file" },
+    });
+
+    harness.reset();
+  });
+
+  // An uploaded file reaches a type two ways: system_create with an upload
+  // ref, and the upload endpoint routing by media type. They are the same
+  // decision, so declaring the media types on the route registers both —
+  // rather than a package registering a second handler that calls its own
+  // create logic back, which is what document did by hand.
+  it("routes an upload to the type that claims its media type", async () => {
+    const guide = defineEntity({
+      type: "guide",
+      purpose: "A guide promoted from an uploaded file.",
+      metadata: z.object({ title: z.string() }),
+      create: {
+        fromUpload: {
+          mediaTypes: ["application/pdf"],
+          resolve: async ({ input, uploads }) => {
+            const record = await uploads.readRecord(
+              input.from?.kind === "upload" ? input.from.id : "",
+            );
+            return {
+              create: {
+                id: "promoted-guide",
+                content: `Promoted ${record.filename}`,
+                metadata: { title: record.filename },
+              },
+              // Built from the entity the runtime wrote, because dedup can
+              // change the id the route proposed.
+              attachment: ({ entityId }): CreateResultAttachment => ({
+                mediaType: record.mediaType,
+                url: `/attachments/guide?id=${entityId}`,
+                filename: record.filename,
+              }),
+            };
+          },
+        },
+      },
+    });
+    const definition = defineEntityPackage({ id: "guides", entities: [guide] });
+    const plugin = createEntityPackagePlugins(
+      definition.entities,
+      definition.projections,
+      { name: "@fixture/guides", version: "0.1.0" },
+      (id) => `@fixture/guides:${id}`,
+    )[0];
+    if (!plugin) throw new Error("Guide entity plugin was not created");
+
+    const harness = createPluginHarness({
+      logger: createSilentLogger("entity-upload-route-test"),
+    });
+    let registration: UploadSaveHandlerRegistration | undefined;
+    const registry = harness.getEntityRegistry();
+    stubMethod(registry, "registerUploadSaveHandler", (input) => {
+      registration = input;
+    });
+
+    const uploaded = await harness
+      .getMockShell()
+      .getRuntimeUploadRegistry()
+      .scoped({
+        namespace: "upload",
+        refKind: "upload",
+        routePath: "/api/uploads",
+      })
+      .save({
+        filename: "handbook.pdf",
+        mediaType: "application/pdf",
+        content: Buffer.from("%PDF-1.4"),
+      });
+
+    await harness.installPlugin(plugin);
+
+    // Declared once, registered for the endpoint that routes by media type.
+    expect(registration).toMatchObject({
+      entityType: "guide",
+      mediaTypes: ["application/pdf"],
+    });
+
+    const result = await registration?.handler(
+      { upload: { kind: "upload", id: uploaded.id } },
+      executionContext,
+    );
+    expect(result).toMatchObject({
+      success: true,
+      data: {
+        entityId: "promoted-guide",
+        status: "created",
+        attachment: {
+          mediaType: "application/pdf",
+          url: "/attachments/guide?id=promoted-guide",
+          filename: "handbook.pdf",
+        },
+      },
     });
 
     harness.reset();

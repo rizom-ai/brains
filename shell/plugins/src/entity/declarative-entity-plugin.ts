@@ -10,6 +10,7 @@ import {
   type ProjectionJsonObject,
   type BaseEntity,
   type CreateInput,
+  type CreateInterceptor,
   type ProjectionWriteIntent,
 } from "@brains/entity-service";
 import type { Template } from "@brains/templates";
@@ -452,155 +453,197 @@ class DeclarativeEntityPlugin extends EntityPlugin<
   ): Promise<void> {
     if (this.create) {
       const routing = this.create;
-      context.entities.registerCreateInterceptor(
-        this.entityType,
-        async (input, executionContext) => {
-          const route = selectCreateRoute(routing, input);
-          if (!route) return { kind: "continue", input };
+      const interceptCreate: CreateInterceptor = async (
+        input,
+        executionContext,
+      ) => {
+        const route = selectCreateRoute(routing, input);
+        if (!route) return { kind: "continue", input };
 
-          if ("reject" in route) {
+        if ("reject" in route) {
+          return {
+            kind: "handled",
+            result: { success: false, error: route.reject },
+          };
+        }
+
+        if ("resolve" in route) {
+          const resolution = await route.resolve({
+            input,
+            entities: this.entityAccess(context),
+            logger: this.logger,
+            uploads: this.uploadReader(context),
+          });
+          if ("refuse" in resolution) {
             return {
               kind: "handled",
-              result: { success: false, error: route.reject },
+              result: { success: false, error: resolution.refuse },
             };
           }
-
-          if ("resolve" in route) {
-            const resolution = await route.resolve({
-              input,
-              entities: this.entityAccess(context),
-              logger: this.logger,
-              uploads: this.uploadReader(context),
-            });
-            if ("refuse" in resolution) {
-              return {
-                kind: "handled",
-                result: { success: false, error: resolution.refuse },
-              };
-            }
-            // Allocate now, finish later. Deduplicating the id here is what
-            // makes the returned id worth handing back: a second import of
-            // the same file lands on the entity the first one made.
-            if ("delegate" in resolution) {
-              const written = await context.entityService.createEntity({
-                entity: {
-                  id: resolution.create.id,
-                  entityType: this.entityType,
-                  content: resolution.create.content,
-                  metadata: resolution.create.metadata,
-                  ...(input.visibility !== undefined
-                    ? { visibility: input.visibility }
-                    : {}),
-                },
-                options: { deduplicateId: true },
-              });
-              // The placeholder's hash travels with the job, so an edit
-              // made while the job runs wins over work that started before
-              // it rather than being silently overwritten.
-              const placeholder = await context.entityService.getEntity({
-                entityType: this.entityType,
-                id: written.entityId,
-              });
-              const jobId = await context.jobs.enqueue({
-                type: this.jobOwnerId
-                  ? `${this.jobOwnerId}:${resolution.delegate.job}`
-                  : `${this.id}:${resolution.delegate.job}`,
-                data: {
-                  ...(resolution.delegate.input ?? {}),
-                  entityId: written.entityId,
-                  ...(placeholder
-                    ? { expectedContentHash: placeholder.contentHash }
-                    : {}),
-                },
-                toolContext: executionContext,
-                options: {
-                  source: this.id,
-                  metadata: { operationType: "content_operations" },
-                },
-              });
-              return {
-                kind: "handled",
-                result: {
-                  success: true,
-                  data: {
-                    status: "generating",
-                    entityId: written.entityId,
-                    jobId,
-                  },
-                },
-              };
-            }
-            // The runtime performs the write, so "created" and "updated"
-            // describe what it did rather than what the route claims.
-            if ("update" in resolution) {
-              const existing = await context.entityService.getEntity({
-                entityType: this.entityType,
-                id: resolution.update.id,
-              });
-              if (!existing) {
-                return {
-                  kind: "handled",
-                  result: {
-                    success: false,
-                    error: `Cannot update ${this.entityType} "${resolution.update.id}", which does not exist`,
-                  },
-                };
-              }
-              const written = await context.entityService.updateEntity({
-                entity: {
-                  ...existing,
-                  content: resolution.update.content,
-                  metadata: resolution.update.metadata,
-                },
-              });
-              return {
-                kind: "handled",
-                result: {
-                  success: true,
-                  data: { status: "updated", entityId: written.entityId },
-                },
-              };
-            }
+          // Allocate now, finish later. Deduplicating the id here is what
+          // makes the returned id worth handing back: a second import of
+          // the same file lands on the entity the first one made.
+          if ("delegate" in resolution) {
             const written = await context.entityService.createEntity({
               entity: {
                 id: resolution.create.id,
                 entityType: this.entityType,
                 content: resolution.create.content,
                 metadata: resolution.create.metadata,
+                ...(input.visibility !== undefined
+                  ? { visibility: input.visibility }
+                  : {}),
+              },
+              options: { deduplicateId: true },
+            });
+            // The placeholder's hash travels with the job, so an edit
+            // made while the job runs wins over work that started before
+            // it rather than being silently overwritten.
+            const placeholder = await context.entityService.getEntity({
+              entityType: this.entityType,
+              id: written.entityId,
+            });
+            const jobId = await context.jobs.enqueue({
+              type: this.jobOwnerId
+                ? `${this.jobOwnerId}:${resolution.delegate.job}`
+                : `${this.id}:${resolution.delegate.job}`,
+              data: {
+                ...(resolution.delegate.input ?? {}),
+                entityId: written.entityId,
+                ...(placeholder
+                  ? { expectedContentHash: placeholder.contentHash }
+                  : {}),
+              },
+              toolContext: executionContext,
+              options: {
+                source: this.id,
+                metadata: { operationType: "content_operations" },
               },
             });
             return {
               kind: "handled",
               result: {
                 success: true,
-                data: { status: "created", entityId: written.entityId },
+                data: {
+                  status: "generating",
+                  entityId: written.entityId,
+                  jobId,
+                },
               },
             };
           }
-
-          // The runtime enqueues and reports, so the outcome describes what
-          // actually happened rather than what the package claims happened.
-          const jobId = await context.jobs.enqueue({
-            // A package may declare its entity and the job it delegates to in
-            // one definition, in which case the job belongs to the package
-            // rather than to this entity plugin. Qualify it here so the
-            // author still writes a bare local job name.
-            type: this.jobOwnerId
-              ? `${this.jobOwnerId}:${route.delegate}`
-              : route.delegate,
-            data: input,
-            toolContext: executionContext,
-            options: {
-              source: this.id,
-              metadata: { operationType: "content_operations" },
+          // The runtime performs the write, so "created" and "updated"
+          // describe what it did rather than what the route claims.
+          if ("update" in resolution) {
+            const existing = await context.entityService.getEntity({
+              entityType: this.entityType,
+              id: resolution.update.id,
+            });
+            if (!existing) {
+              return {
+                kind: "handled",
+                result: {
+                  success: false,
+                  error: `Cannot update ${this.entityType} "${resolution.update.id}", which does not exist`,
+                },
+              };
+            }
+            const written = await context.entityService.updateEntity({
+              entity: {
+                ...existing,
+                content: resolution.update.content,
+                metadata: resolution.update.metadata,
+              },
+            });
+            return {
+              kind: "handled",
+              result: {
+                success: true,
+                data: { status: "updated", entityId: written.entityId },
+              },
+            };
+          }
+          const written = await context.entityService.createEntity({
+            entity: {
+              id: resolution.create.id,
+              entityType: this.entityType,
+              content: resolution.create.content,
+              metadata: resolution.create.metadata,
             },
+          });
+          const attachment = resolution.attachment?.({
+            entityId: written.entityId,
           });
           return {
             kind: "handled",
-            result: { success: true, data: { status: "generating", jobId } },
+            result: {
+              success: true,
+              data: {
+                status: "created",
+                entityId: written.entityId,
+                ...(attachment ? { attachment } : {}),
+              },
+            },
           };
-        },
+        }
+
+        // The runtime enqueues and reports, so the outcome describes what
+        // actually happened rather than what the package claims happened.
+        const jobId = await context.jobs.enqueue({
+          // A package may declare its entity and the job it delegates to in
+          // one definition, in which case the job belongs to the package
+          // rather than to this entity plugin. Qualify it here so the
+          // author still writes a bare local job name.
+          type: this.jobOwnerId
+            ? `${this.jobOwnerId}:${route.delegate}`
+            : route.delegate,
+          data: input,
+          toolContext: executionContext,
+          options: {
+            source: this.id,
+            metadata: { operationType: "content_operations" },
+          },
+        });
+        return {
+          kind: "handled",
+          result: { success: true, data: { status: "generating", jobId } },
+        };
+      };
+      context.entities.registerCreateInterceptor(
+        this.entityType,
+        interceptCreate,
       );
+
+      // Same decision, second entry point: the upload endpoint routes by
+      // media type and hands the ref straight to the route that claimed it,
+      // instead of a package registering a handler that calls its own create
+      // logic back.
+      const fromUpload = routing.fromUpload;
+      if (fromUpload && "mediaTypes" in fromUpload && fromUpload.mediaTypes) {
+        context.entities.registerUploadSaveHandler({
+          entityType: this.entityType,
+          mediaTypes: [...fromUpload.mediaTypes],
+          handler: async (input, executionContext) => {
+            const outcome = await interceptCreate(
+              {
+                entityType: this.entityType,
+                from: input.upload,
+                ...(input.title !== undefined ? { title: input.title } : {}),
+                ...(input.visibility !== undefined
+                  ? { visibility: input.visibility }
+                  : {}),
+              },
+              executionContext,
+            );
+            return outcome.kind === "handled"
+              ? outcome.result
+              : {
+                  success: false,
+                  error: `Upload was not handled by ${this.entityType}`,
+                };
+          },
+        });
+      }
     }
 
     for (const [jobType, declaration] of Object.entries(this.jobs ?? {})) {

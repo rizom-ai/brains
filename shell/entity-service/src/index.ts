@@ -115,6 +115,7 @@ export type {
   CreateInput,
   CreateExecutionContext,
   CreateResult,
+  CreateResultAttachment,
   CreateInterceptionResult,
   CreateInterceptor,
   UploadSaveInput,
