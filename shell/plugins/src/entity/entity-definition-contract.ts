@@ -32,6 +32,9 @@ export type {
   EntityVisibility,
   EntityWriteInput,
 } from "./entity-shape";
+// The shape of a link a create hands back. A package that builds one needs
+// to name what it built.
+export type { CreateResultAttachment } from "@brains/entity-service";
 import type {
   EntityOf,
   EntityVisibility,
@@ -52,10 +55,17 @@ export interface EncodedEntityMarkdown {
 export interface EntityMarkdownCodec<
   TMetadataSchema extends EntityMetadataSchema,
 > {
+  /**
+   * Partial metadata, because not every type keeps all of its in the file.
+   * A document is a data URL whose filename and media type arrive in a
+   * sidecar, so a codec that reads one back can only fill in half — the
+   * runtime never validated this half anyway, and directory-sync merges it
+   * with the other before anything is written.
+   */
   decode(input: {
     readonly content: string;
     readonly frontmatter: Readonly<Record<string, unknown>>;
-  }): EntityMarkdownDocument<z.input<TMetadataSchema>>;
+  }): EntityMarkdownDocument<Partial<z.input<TMetadataSchema>>>;
   encode(
     input: EntityMarkdownDocument<z.output<TMetadataSchema>>,
   ): EncodedEntityMarkdown;
@@ -350,6 +360,13 @@ export type EntityCreateAllocation =
         readonly metadata: Record<string, unknown>;
       };
       readonly delegate: EntityCreateDelegation;
+      /**
+       * A link to the artifact, handed back before the job that fills it in
+       * has run. The id is already allocated, so the URL is already known —
+       * and building it is the package's business, since only it knows its
+       * own media type and route.
+       */
+      readonly attachment?: EntityCreateAttachment | undefined;
     }
   /**
    * Delegate against an entity the route already found.
@@ -362,6 +379,7 @@ export type EntityCreateAllocation =
   | {
       readonly existing: { readonly id: string };
       readonly delegate: EntityCreateDelegation;
+      readonly attachment?: EntityCreateAttachment | undefined;
     };
 
 /** What a create route is given to decide with. */

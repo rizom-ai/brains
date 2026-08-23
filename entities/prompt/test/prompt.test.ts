@@ -88,7 +88,10 @@ describe("prompt markdown codec", () => {
     const decoded = codec().decode({ content: body, frontmatter });
     const encoded = codec().encode({
       content: decoded.content,
-      metadata: decoded.metadata,
+      // Through the schema, as the runtime does: a decode returns what the
+      // file said, which for a prompt is all of it — but the type cannot
+      // know that of a type whose metadata arrives beside the file.
+      metadata: prompt.metadata.parse(decoded.metadata),
     });
     expect(codec().decode(encoded)).toEqual(decoded);
   });
