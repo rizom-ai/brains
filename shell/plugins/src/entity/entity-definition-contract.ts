@@ -410,6 +410,13 @@ export type EntityCreateRoute =
 export interface EntityCreateRouting {
   readonly fromPrompt?: EntityCreateRoute | undefined;
   readonly fromUpload?: EntityCreateRoute | undefined;
+  /**
+   * Derived from another entity's attachment — rendering a deck as a PDF,
+   * say. A distinct route from `fromUpload` because it is a distinct
+   * request: nothing has been uploaded, and the source is an entity the
+   * brain already holds.
+   */
+  readonly fromAttachment?: EntityCreateRoute | undefined;
   readonly fromContent?: EntityCreateRoute | undefined;
 }
 

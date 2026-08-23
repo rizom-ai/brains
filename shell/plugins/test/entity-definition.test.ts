@@ -1122,6 +1122,76 @@ describe("entity package definitions", () => {
     harness.reset();
   });
 
+  // A document's content is a data URL and its filename and media type
+  // arrive in a sidecar, so directory-sync merges the adapter's half with
+  // the sidecar's before anything is written. Enforcing the schema on the
+  // adapter's half alone validates an object that was never meant to be
+  // complete — which is why the hand-written adapters returned partials.
+  it("decodes what the file says without demanding metadata the file lacks", () => {
+    const artifact = defineEntity({
+      type: "artifact",
+      purpose: "A rendered file whose metadata arrives beside it.",
+      metadata: z.object({
+        filename: z.string().min(1),
+        mimeType: z.string().min(1),
+      }),
+    });
+    const definition = defineEntityPackage({
+      id: "artifacts",
+      entities: [artifact],
+    });
+    const plugin = createEntityPackagePlugins(
+      definition.entities,
+      definition.projections,
+      { name: "@fixture/artifacts", version: "0.1.0" },
+      (id) => `@fixture/artifacts:${id}`,
+    )[0];
+    if (!plugin) throw new Error("Artifact entity plugin was not created");
+
+    expect(
+      plugin.adapter.fromMarkdown("data:application/pdf;base64,JVBERi0="),
+    ).toMatchObject({ content: "data:application/pdf;base64,JVBERi0=" });
+  });
+
+  // The guarantee moves rather than disappears. The schema the runtime
+  // registers is the one `entityRegistry.validateEntity` parses against on
+  // every create and update, so metadata that never arrives is rejected at
+  // the write instead of at the decode.
+  it("registers a schema that rejects metadata which never arrived", () => {
+    const artifact = defineEntity({
+      type: "artifact",
+      purpose: "A rendered file whose metadata arrives beside it.",
+      metadata: z.object({
+        filename: z.string().min(1),
+        mimeType: z.string().min(1),
+      }),
+    });
+    const definition = defineEntityPackage({
+      id: "artifacts",
+      entities: [artifact],
+    });
+    const plugin = createEntityPackagePlugins(
+      definition.entities,
+      definition.projections,
+      { name: "@fixture/artifacts", version: "0.1.0" },
+      (id) => `@fixture/artifacts:${id}`,
+    )[0];
+    if (!plugin) throw new Error("Artifact entity plugin was not created");
+
+    expect(() =>
+      plugin.schema.parse({
+        id: "orphan",
+        entityType: "artifact",
+        content: "data:application/pdf;base64,JVBERi0=",
+        metadata: {},
+        visibility: "public",
+        contentHash: "hash",
+        created: "2026-01-01T00:00:00.000Z",
+        updated: "2026-01-01T00:00:00.000Z",
+      }),
+    ).toThrow();
+  });
+
   it("registers declared jobs and surfaces declared instructions", async () => {
     // Generation is just a job the runtime names for you, so both go
     // through the same declaration shape and the same validated handler.
