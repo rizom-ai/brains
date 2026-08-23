@@ -108,6 +108,21 @@ const projectionEnvelopeSchema = z.object({
  * Read off the raw input rather than a declared field so a package need not
  * declare `entityId` to take part in the lifecycle.
  */
+/**
+ * The fields the runtime itself put into an allocated job's data.
+ *
+ * Kept beside `preallocatedEntityId` and `preallocatedContentHash`, which
+ * are what read them back out.
+ */
+function allocatedFields(data: unknown): Record<string, string> {
+  const entityId = preallocatedEntityId(data);
+  const contentHash = preallocatedContentHash(data);
+  return {
+    ...(entityId !== undefined ? { entityId } : {}),
+    ...(contentHash !== undefined ? { expectedContentHash: contentHash } : {}),
+  };
+}
+
 function preallocatedEntityId(data: unknown): string | undefined {
   if (typeof data !== "object" || data === null || !("entityId" in data)) {
     return undefined;
@@ -1210,12 +1225,25 @@ class DeclarativeEntityPlugin extends EntityPlugin<
     declaration: AnyEntityJobDeclaration,
     context: EntityPluginContext,
   ): JobHandler {
+    const fillsInAllocation = "generate" in declaration;
     return {
       // Input is the author's declared schema, so a malformed job is
       // rejected before their code runs.
       validateAndParse: (data: unknown): unknown => {
         const parsed = declaration.input.safeParse(data);
-        return parsed.success ? parsed.data : null;
+        if (!parsed.success) return null;
+        // What the runtime allocated survives the author's schema. It puts
+        // two fields into the job's data — which entity to fill in, and
+        // what that entity looked like at the time — and a declared schema
+        // strips what it does not name. The queue persists the parsed data,
+        // so anything dropped here never reaches the handler: the hash that
+        // makes a concurrent edit win was going missing on the way in.
+        if (!fillsInAllocation) return parsed.data;
+        const declared: Record<string, unknown> =
+          typeof parsed.data === "object" && parsed.data !== null
+            ? { ...parsed.data }
+            : {};
+        return { ...declared, ...allocatedFields(data) };
       },
       process: async (
         data: unknown,
