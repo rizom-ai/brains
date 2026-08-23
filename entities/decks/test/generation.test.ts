@@ -63,6 +63,9 @@ describe("deckGeneration", () => {
           throw new Error("This job reads no uploads");
         },
       },
+      attachments: {
+        resolve: async (): Promise<undefined> => undefined,
+      },
     };
     return deckGeneration.generate({ ...jobContext, entityId: undefined });
   }

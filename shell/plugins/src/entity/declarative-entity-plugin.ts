@@ -1192,14 +1192,8 @@ class DeclarativeEntityPlugin extends EntityPlugin<
       // Templates declared on this entity register under this plugin's id.
       template: (localName) =>
         scopedTemplateName(this.templates, this.entityType, this.id, localName),
-      uploads: context.uploads.scoped({
-        // The runtime's own namespace, not the interface that happened to
-        // receive the file: only the namespace decides which bytes a read
-        // returns, and a job reads what it was handed.
-        namespace: "upload",
-        refKind: "upload",
-        routePath: "/api/uploads",
-      }),
+      uploads: this.uploadReader(context),
+      attachments: context.attachments,
     };
   }
 

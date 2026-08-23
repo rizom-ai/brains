@@ -155,6 +155,7 @@ function runtimeJobHandler(
           refKind: "upload",
           routePath: "/api/uploads",
         }),
+        attachments: context.attachments,
         messaging: {
           async publish(message): Promise<void> {
             await context.messaging.send({

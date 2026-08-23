@@ -12,6 +12,7 @@ import type { IEntityAINamespace } from "../entity/ai-types";
 import type { AnchorProfile } from "../contracts/identity";
 import type { EntityDefinitionShape, EntityOf } from "../entity/entity-shape";
 import type { ResolvedRuntimeUpload } from "../service/upload-registry";
+import type { PublishMediaData } from "@brains/contracts";
 /** What a job reads about the conversation it was started from. */
 export interface EntityConversationReader {
   get(
@@ -95,6 +96,21 @@ export interface JobUploadReader {
   read(uploadId: string): Promise<ResolvedRuntimeUpload>;
 }
 
+/**
+ * Another entity's declared attachment, resolved by the job that renders it.
+ *
+ * Narrowed to resolving: a job asks the brain for "deck X as a carousel" and
+ * gets the media back. Registering providers stays a declaration, so a job
+ * cannot quietly add one.
+ */
+export interface JobAttachmentReader {
+  resolve(request: {
+    readonly sourceEntityType: string;
+    readonly sourceEntityId: string;
+    readonly attachmentType: string;
+  }): Promise<PublishMediaData | undefined>;
+}
+
 export interface JobMessagePublisher {
   publish(input: {
     readonly topic: string;
@@ -144,6 +160,7 @@ export interface JobHandlerContext<TInput> {
    */
   template(localName: string): string;
   readonly uploads: JobUploadReader;
+  readonly attachments: JobAttachmentReader;
   /**
    * Absent for jobs declared by an entity: the entity plugin context
    * deliberately excludes template rendering, so there is nothing honest to

@@ -70,6 +70,9 @@ slug: systems-series
           throw new Error("This job reads no uploads");
         },
       },
+      attachments: {
+        resolve: async (): Promise<undefined> => undefined,
+      },
       messaging: { publish: async (): Promise<void> => {} },
     });
 
