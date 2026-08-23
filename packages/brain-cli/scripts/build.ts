@@ -168,6 +168,10 @@ const sharedExternals = [
   "@tailwindcss/oxide",
   // ink loads react-devtools-core unconditionally
   "react-devtools-core",
+  // Keep MCP protocol classes in one runtime module. Bundling the server while
+  // the handler and factory arrive through separate workspace paths duplicates
+  // the SDK class identity and breaks modern server/discover negotiation.
+  "@modelcontextprotocol/server",
   // MCP client for --remote mode (lazy imported)
   "@modelcontextprotocol/client",
   // Playwright is lazy-loaded by @brains/media-renderer via variable-
