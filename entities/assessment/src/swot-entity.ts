@@ -5,7 +5,6 @@ import {
 } from "@brains/sdk/entities";
 import { swotFrontmatterSchema, swotMetadataSchema } from "./schemas/swot";
 import { swotAdapter } from "./adapters/swot-adapter";
-import { createSwotProjectionRule } from "./lib/swot-projection";
 import { swotEvals } from "./lib/swot-evals";
 import { swotWidget } from "./widgets/swot";
 
@@ -37,7 +36,6 @@ export const swot: EntityDefinition<"swot", typeof swotMetadataSchema> =
         frontmatter: { derivedAt: metadata.derivedAt },
       }),
     },
-    projectionRules: [createSwotProjectionRule()],
     evals: swotEvals,
     dashboardWidgets: [
       defineEntityDashboardWidget(swotWidget, async ({ entities, signal }) => {

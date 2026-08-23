@@ -10,7 +10,7 @@ import { resolveSafeOutputFile } from "./output-path";
 
 export interface WriteSiteBuildFeedsOptions {
   outputDir: string;
-  entityService: IEntityService;
+  entityService: Pick<IEntityService, "listEntities">;
   environment: string;
   siteTitle: string | undefined;
   siteDescription: string | undefined;

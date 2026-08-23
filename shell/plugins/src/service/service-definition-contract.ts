@@ -8,7 +8,10 @@ import type {
   EntityPublishDeclaration,
   ProjectionDefinition,
 } from "../entity/entity-definition-contract";
-import type { JobHandlerContext } from "../job/job-context-contract";
+import type {
+  JobHandlerContext,
+  JobTemplateFormatter,
+} from "../job/job-context-contract";
 import type { ProjectionRule } from "../entity/projection-rule";
 import type { AnyAccountSettingsDefinition } from "../operator/account-settings-definition-contract";
 import type {
@@ -60,7 +63,14 @@ export interface ServiceTemplateFormatter {
   format<TValue>(name: string, value: TValue): string;
 }
 
-export type ServiceJobHandlerContext<TInput> = JobHandlerContext<TInput>;
+/**
+ * A service-declared job always has templates — only entity-declared jobs
+ * run in a context without them. Saying so here keeps `templates?.format()`
+ * out of every service job that renders anything.
+ */
+export type ServiceJobHandlerContext<TInput> = JobHandlerContext<TInput> & {
+  readonly templates: JobTemplateFormatter;
+};
 
 export type ServiceJobHandler<TInput, TOutput> = (
   context: ServiceJobHandlerContext<TInput>,

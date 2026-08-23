@@ -53,7 +53,7 @@ describe("declarative service definitions", () => {
       jobs: ({ state }) => [
         digestJob.handle(async ({ input, templates }) => {
           const output = state.summarize(input.bookmarkId);
-          expect(templates?.format("digest", output)).toBe("saved: 3");
+          expect(templates.format("digest", output)).toBe("saved: 3");
           return output;
         }),
       ],

@@ -137,7 +137,7 @@ export default defineServicePlugin({
           topic: "digest-ready",
           data: {
             ...result,
-            markdown: templates?.format("digest", result) ?? "",
+            markdown: templates.format("digest", result),
           },
         });
         return result;
