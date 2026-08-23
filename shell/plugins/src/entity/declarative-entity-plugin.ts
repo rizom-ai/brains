@@ -504,6 +504,33 @@ class DeclarativeEntityPlugin extends EntityPlugin<
           // makes the returned id worth handing back: a second import of
           // the same file lands on the entity the first one made.
           if ("delegate" in resolution) {
+            if ("existing" in resolution) {
+              const jobId = await context.jobs.enqueue({
+                type: this.jobOwnerId
+                  ? `${this.jobOwnerId}:${resolution.delegate.job}`
+                  : `${this.id}:${resolution.delegate.job}`,
+                data: {
+                  ...(resolution.delegate.input ?? {}),
+                  entityId: resolution.existing.id,
+                },
+                toolContext: executionContext,
+                options: {
+                  source: this.id,
+                  metadata: { operationType: "content_operations" },
+                },
+              });
+              return {
+                kind: "handled",
+                result: {
+                  success: true,
+                  data: {
+                    status: "generating",
+                    entityId: resolution.existing.id,
+                    jobId,
+                  },
+                },
+              };
+            }
             const written = await context.entityService.createEntity({
               entity: {
                 id: resolution.create.id,
