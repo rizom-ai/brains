@@ -22,6 +22,12 @@ Deployments must persist the configured auth storage directory across container 
 
 Legacy JSON/JWK auth files are optional manual backups only. `AuthService` never reads or imports them. Generated Drizzle migrations are the only supported database history; unsupported pre-Drizzle development databases fail closed.
 
+## OAuth client registration
+
+The authorization server advertises Client ID Metadata Document (CIMD) support. HTTPS URL client IDs are resolved on authorization, validated against the document's exact `client_id` and `redirect_uris`, cached according to HTTP cache headers, and persisted for code and token exchange. Document fetches reject local/private destinations, validate redirects, time out, and enforce the 5 KiB response limit. CIMD currently supports public clients using `token_endpoint_auth_method: "none"`.
+
+The deprecated Dynamic Client Registration endpoint remains available at `/register` for compatibility. It accepts `application_type` and enforces its redirect URI constraints when supplied. Dynamically registered credentials are bound to the authorization-server issuer that created them; CIMD URL identifiers remain portable across authorization servers as required by the specification.
+
 ## Subject and permission model
 
 A person is the stable local human subject. An auth user is that person's account facet and carries one role (`admin`, `trusted`, or `public`) and one status (`active`, `invited`, or `suspended`). Anchor identity is independent from permission: Admin does not imply Anchor, and a personal Anchor must remain an active Admin.

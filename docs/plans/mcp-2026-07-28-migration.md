@@ -2,9 +2,7 @@
 
 ## Status
 
-**Partial — Phase 0 shipped; Phases 1–4 remain, and are now unblocked.** Revised 2026-08-21 after verifying the SDK and client landscape; the original 2026-08-09 draft was gated on two conditions that no longer hold (and one that was already stale when written).
-
-Phases 1–2 are v1-compatible preparation and run in the `work/mcp-v2` worktree (`~/Documents/brains-worktrees/mcp-v2`); they are releasable at any time. Phase 3 is no longer blocked — SDK v2 is on npm. Phase 4 has a 12-month deprecation runway.
+**Complete — Phases 0–4 are implemented on `work/mcp-v2`.** Revised 2026-08-23 after completing the stateless SDK v2 transport and additive CIMD authorization support. Dynamic Client Registration remains available only for its compatibility deprecation window; its eventual removal is a separate follow-up gated on known client adoption.
 
 ## Verified landscape (2026-08-21)
 
@@ -51,11 +49,11 @@ This is why the default legacy path stays on. It is not a debt we owe — it is 
 Adopt the MCP 2026-07-28 specification revision (stateless protocol core) with zero client breakage, on this timeline:
 
 - **done** — pick up the 1.30.0 maintenance/security release;
-- **now** — v1-compatible modernization that shrinks the v2 diff, releasable independently;
-- **now** — swap to the v2 packages, keeping the default `legacy: 'stateless'` handler so 2025-era clients keep working at no cost, and delete the session machinery the stateless core obsoletes;
-- **within the deprecation window** — add CIMD (Client ID Metadata Documents) support to auth-service alongside the now-deprecated Dynamic Client Registration.
+- **done** — complete the v1-compatible registration and protocol-test modernization;
+- **done** — swap to the v2 packages, keep the default `legacy: 'stateless'` handler, and delete obsolete session machinery;
+- **done** — add CIMD (Client ID Metadata Documents) support alongside deprecated Dynamic Client Registration.
 
-## Current baseline
+## Baseline before migration
 
 - SDK `^1.30.0` in five package.json files: root, `shell/mcp-service`, `interfaces/mcp`, `plugins/unified-inbox`, and `packages/brain-cli` (publishes as `@rizom/brain`). The original plan listed four and missed `plugins/unified-inbox`.
 - `interfaces/mcp/src/transports/http-server.ts` runs a stateful `WebStandardStreamableHTTPServerTransport`: `sessionIdGenerator`, `isInitializeRequest` gating, three in-memory session maps, session-principal pinning, and an idle-eviction supervisor (`session-eviction-supervisor.ts`). Per-session `McpServer` instances are built per permission level at session-init time.
@@ -73,15 +71,15 @@ Adopt the MCP 2026-07-28 specification revision (stateless protocol core) with z
 
 `@modelcontextprotocol/sdk` is at `^1.30.0` across all five package.json files. 1.30.0 was a v1 maintenance release (Zod validation fixes, SSE keep-alive lifecycle, Content-Type parsing, security-advisory dependency updates) with no API changes.
 
-### Phase 1 — modern registration API (worktree, v1-compatible)
+### Phase 1 — modern registration API — **complete**
 
 In `mcp-registration.ts`, migrate the three legacy overloads to `registerTool` / `registerResource` / `registerPrompt`, which survive into SDK v2. Tests first: extend `shell/mcp-service/test/mcp-service.test.ts` (which already exercises registration through `Client` + `InMemoryTransport`) to pin tool/resource/prompt behavior — annotations derived from `sideEffects`, `_meta` forwarding, prompt argument schemas — then swap the implementation under the green suite. No behavior change; releasable immediately.
 
-### Phase 2 — protocol-version hygiene in tests (worktree, v1-compatible)
+### Phase 2 — protocol-version hygiene in tests — **complete**
 
 Replace the eight hardcoded `"2024-11-05"` strings in `http-server.test.ts` with the SDK's `LATEST_PROTOCOL_VERSION` constant, and centralize the raw initialize-request body in one test helper so the Phase 3 change touches one place instead of eight. Releasable immediately.
 
-### Phase 3 — v2 packages, stateless core (worktree, unblocked)
+### Phase 3 — v2 packages, stateless core — **complete**
 
 No longer gated on anything external. Run `@modelcontextprotocol/codemod` first to mechanize the bulk of the v1→v2 rename, then:
 
@@ -96,9 +94,9 @@ No longer gated on anything external. Run `@modelcontextprotocol/codemod` first 
 
 Release gate: green tests. There is no client-adoption gate.
 
-### Phase 4 — CIMD in auth-service (independent, within 12 months of 2026-07-28)
+### Phase 4 — CIMD in auth-service — **complete**
 
-Add Client ID Metadata Document support to `shell/auth-service` alongside the existing DCR `/register` endpoint: accept `client_id` values that are HTTPS URLs, fetch and validate the metadata document, honor the new `application_type` parameter, and enforce issuer-bound credentials (no cross-server reuse). Keep DCR working through the deprecation window, then remove it in a follow-up once known clients (Claude Code/Desktop, brain-cli) no longer register dynamically. Tests first against the auth-service suite.
+`shell/auth-service` now advertises and resolves HTTPS Client ID Metadata Documents alongside the existing DCR `/register` endpoint. Resolution validates exact client IDs and redirect URIs, honors HTTP caching, limits response size, and rejects SSRF-prone destinations and redirects. Explicit `application_type` values enforce native/web redirect constraints. DCR credentials are issuer-bound while CIMD identifiers remain portable. DCR stays available through the deprecation window and will be removed separately once known clients (Claude Code/Desktop, brain-cli) no longer need it.
 
 ## Decisions made
 

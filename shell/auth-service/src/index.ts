@@ -150,6 +150,16 @@ export {
   InvalidClientMetadataError,
   RuntimeOAuthClientStore,
 } from "./client-store";
+export {
+  ClientMetadataDocumentError,
+  ClientMetadataDocumentResolver,
+  isClientMetadataDocumentId,
+} from "./client-metadata-document";
+export type {
+  ClientMetadataDocumentResolverOptions,
+  ClientMetadataFetch,
+  ResolvedAddress,
+} from "./client-metadata-document";
 export { AuthCredentialStore } from "./credential-store";
 export type {
   AddPasskeyInput,

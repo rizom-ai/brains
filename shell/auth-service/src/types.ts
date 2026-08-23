@@ -47,6 +47,7 @@ export interface AuthorizationServerMetadata extends JsonObject {
   grant_types_supported: string[];
   code_challenge_methods_supported: string[];
   token_endpoint_auth_methods_supported: string[];
+  client_id_metadata_document_supported: boolean;
   scopes_supported: string[];
   subject_types_supported: string[];
   id_token_signing_alg_values_supported: string[];
@@ -77,6 +78,7 @@ export interface RegisteredOAuthClient {
   client_id: string;
   client_id_issued_at: number;
   redirect_uris: string[];
+  application_type?: "native" | "web";
   token_endpoint_auth_method: string;
   grant_types: string[];
   response_types: string[];

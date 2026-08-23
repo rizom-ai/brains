@@ -126,6 +126,7 @@ describe("OAuthClientMaintenanceSupervisor", () => {
           registerClient: async () => {
             throw new Error("not used");
           },
+          upsertClientMetadataDocument: async (client) => client,
           getClient: async () => undefined,
           validateClientCredentials: async () => undefined,
           pruneStaleUnconsentedClients: async () => {

@@ -3,6 +3,10 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { AuthService } from "../src";
+import {
+  ClientMetadataDocumentResolver,
+  type ResolvedAddress,
+} from "../src/client-metadata-document";
 import { seedRuntimePasskeyCredential } from "./runtime-passkey-fixture";
 import type { RegisteredOAuthClient } from "../src";
 
@@ -598,7 +602,193 @@ describe("revoke endpoint", () => {
   });
 });
 
+describe("client ID metadata documents", () => {
+  it("authorizes a URL client ID and persists it for the token exchange", async () => {
+    let fetchCount = 0;
+    const clientId = "https://client.example/oauth/metadata.json";
+    const verifier = "metadata-document-verifier";
+    const service = new AuthService({
+      storageDir: await tempStorageDir(),
+      issuer: ISSUER,
+      clientMetadataDocumentResolver: new ClientMetadataDocumentResolver({
+        fetch: (): Promise<Response> => {
+          fetchCount += 1;
+          return Promise.resolve(
+            Response.json(
+              {
+                client_id: clientId,
+                client_name: "Metadata Client",
+                redirect_uris: [REDIRECT_URI],
+                application_type: "native",
+                token_endpoint_auth_method: "none",
+              },
+              { headers: { "cache-control": "max-age=60" } },
+            ),
+          );
+        },
+        resolveAddresses: (): Promise<ResolvedAddress[]> =>
+          Promise.resolve([{ address: "93.184.216.34", family: 4 }]),
+      }),
+    });
+    const session = await service.createAuthSession();
+    const params = authorizeParams(
+      {
+        client_id: clientId,
+        client_id_issued_at: 0,
+        redirect_uris: [REDIRECT_URI],
+        token_endpoint_auth_method: "none",
+        grant_types: ["authorization_code", "refresh_token"],
+        response_types: ["code"],
+      },
+      await pkceChallenge(verifier),
+    );
+
+    const page = await service.handleRequest(
+      new Request(`${ISSUER}/authorize?${params}`, {
+        headers: { cookie: session.cookie },
+      }),
+    );
+    const pageHtml = await page.text();
+    expect(page.status).toBe(200);
+    expect(pageHtml).toContain("Metadata Client");
+    const approvalToken = pageHtml.match(
+      /name="approval_token" value="([^"]+)"/,
+    )?.[1];
+
+    params.set("approval_token", approvalToken ?? "");
+    const approval = await service.handleRequest(
+      new Request(`${ISSUER}/authorize`, {
+        method: "POST",
+        headers: {
+          cookie: session.cookie,
+          "content-type": "application/x-www-form-urlencoded",
+        },
+        body: params.toString(),
+      }),
+    );
+    expect(approval.status).toBe(302);
+    const code = new URL(
+      approval.headers.get("location") ?? "",
+    ).searchParams.get("code");
+
+    const token = await service.handleRequest(
+      tokenRequest({
+        grant_type: "authorization_code",
+        client_id: clientId,
+        code: code ?? "",
+        redirect_uri: REDIRECT_URI,
+        code_verifier: verifier,
+      }),
+    );
+    expect(token.status).toBe(200);
+    expect(await token.json()).toMatchObject({ token_type: "Bearer" });
+    expect(fetchCount).toBe(1);
+  });
+
+  it("requires exact redirect URI matching for URL client IDs", async () => {
+    const clientId = "https://client.example/oauth/metadata.json";
+    const service = new AuthService({
+      storageDir: await tempStorageDir(),
+      issuer: ISSUER,
+      clientMetadataDocumentResolver: new ClientMetadataDocumentResolver({
+        fetch: (): Promise<Response> =>
+          Promise.resolve(
+            Response.json({
+              client_id: clientId,
+              client_name: "Metadata Client",
+              redirect_uris: ["http://localhost:6274/oauth/callback"],
+            }),
+          ),
+        resolveAddresses: (): Promise<ResolvedAddress[]> =>
+          Promise.resolve([{ address: "93.184.216.34", family: 4 }]),
+      }),
+    });
+    const params = authorizeParams(
+      {
+        client_id: clientId,
+        client_id_issued_at: 0,
+        redirect_uris: [],
+        token_endpoint_auth_method: "none",
+        grant_types: ["authorization_code"],
+        response_types: ["code"],
+      },
+      await pkceChallenge("v"),
+    );
+    const session = await service.createAuthSession();
+
+    const response = await service.handleRequest(
+      new Request(`${ISSUER}/authorize?${params}`, {
+        headers: { cookie: session.cookie },
+      }),
+    );
+
+    expect(response.status).toBe(400);
+    expect(await response.text()).toBe("Unregistered redirect_uri");
+  });
+});
+
 describe("dynamic client registration", () => {
+  it("accepts and enforces an explicit application_type", async () => {
+    const service = await makeService();
+    const register = (applicationType: "native" | "web"): Promise<Response> =>
+      service.handleRequest(
+        new Request(`${ISSUER}/register`, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            redirect_uris: [REDIRECT_URI],
+            application_type: applicationType,
+          }),
+        }),
+      );
+
+    const native = await register("native");
+    expect(native.status).toBe(201);
+    expect(await native.json()).toMatchObject({ application_type: "native" });
+
+    const web = await register("web");
+    expect(web.status).toBe(400);
+    expect(await web.json()).toMatchObject({
+      error: "invalid_client_metadata",
+    });
+  });
+
+  it("binds newly registered credentials to their authorization server issuer", async () => {
+    const previewIssuer = "https://preview.brain.example.com";
+    const service = new AuthService({
+      storageDir: await tempStorageDir(),
+      issuer: ISSUER,
+      trustedIssuers: [previewIssuer],
+    });
+    const registration = await service.handleRequest(
+      new Request(`${ISSUER}/register`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          redirect_uris: [REDIRECT_URI],
+          client_name: "Issuer-bound Client",
+        }),
+      }),
+    );
+    expect(registration.status).toBe(201);
+    const client = (await registration.json()) as RegisteredOAuthClient;
+    const session = await service.createAuthSession();
+    const params = authorizeParams(client, await pkceChallenge("v"));
+
+    const response = await service.handleRequest(
+      new Request(`${previewIssuer}/authorize?${params}`, {
+        headers: {
+          cookie: session.cookie,
+          host: "preview.brain.example.com",
+          "x-forwarded-proto": "https",
+        },
+      }),
+    );
+
+    expect(response.status).toBe(400);
+    expect(await response.text()).toBe("Unknown client_id");
+  });
+
   it("rate-limits each caller without exhausting another caller's budget", async () => {
     const service = await makeService();
     const registrationRequest = (index: number, source: string): Request =>
