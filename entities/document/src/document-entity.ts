@@ -57,6 +57,10 @@ const renderInput = z.object({
     .object({
       entityType: z.string().min(1),
       entityId: z.string().min(1),
+      // A post may hold several rendered PDFs, so this is a list rather
+      // than a field — and naming it here is what keeps the runtime from
+      // knowing the word "documents".
+      list: z.literal("documents"),
       replaces: z.array(z.string().min(1)).optional(),
     })
     .optional(),
@@ -253,6 +257,7 @@ async function routeFromAttachment(
         linkInto: {
           entityType: target.entityType,
           entityId: target.id,
+          list: "documents" as const,
           ...(replaces.length > 0 ? { replaces } : {}),
         },
       }

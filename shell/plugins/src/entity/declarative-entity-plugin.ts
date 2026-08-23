@@ -114,6 +114,37 @@ const projectionEnvelopeSchema = z.object({
  * Kept beside `preallocatedEntityId` and `preallocatedContentHash`, which
  * are what read them back out.
  */
+/**
+ * The target's list with this entity in it and superseded entries out.
+ *
+ * Order is preserved and an entity already listed is not listed twice, so a
+ * re-render that resolves to the same artifact leaves the target untouched
+ * and the write falls out as a no-op.
+ */
+function appendToList(
+  content: string,
+  link: {
+    readonly list: string;
+    readonly replaces?: readonly string[] | undefined;
+  },
+  entityId: string,
+): { id: string }[] {
+  const { frontmatter } = parseMarkdown(content);
+  const dropped = new Set(link.replaces ?? []);
+  const held = frontmatter[link.list];
+  const existing = (Array.isArray(held) ? (held as unknown[]) : []).filter(
+    (item): item is { id: string } =>
+      typeof item === "object" &&
+      item !== null &&
+      "id" in item &&
+      typeof item.id === "string" &&
+      !dropped.has(item.id),
+  );
+  return existing.some((item) => item.id === entityId)
+    ? existing
+    : [...existing, { id: entityId }];
+}
+
 function allocatedFields(data: unknown): Record<string, string> {
   const entityId = preallocatedEntityId(data);
   const contentHash = preallocatedContentHash(data);
@@ -933,26 +964,15 @@ class DeclarativeEntityPlugin extends EntityPlugin<
         `Cannot link ${this.entityType} "${entityId}" into ${link.entityType} "${link.entityId}", which does not exist`,
       );
     }
-    const { frontmatter } = parseMarkdown(target.content);
-    const dropped = new Set(link.replaces ?? []);
-    const existing = (
-      Array.isArray(frontmatter["documents"]) ? frontmatter["documents"] : []
-    ).filter(
-      (item): item is { id: string } =>
-        typeof item === "object" &&
-        item !== null &&
-        "id" in item &&
-        typeof item.id === "string" &&
-        !dropped.has(item.id),
-    );
-    const documents = existing.some((item) => item.id === entityId)
-      ? existing
-      : [...existing, { id: entityId }];
+    const [field, value] =
+      "field" in link
+        ? [link.field, entityId]
+        : [link.list, appendToList(target.content, link, entityId)];
 
     await context.entityService.updateEntity({
       entity: {
         ...target,
-        content: updateFrontmatterField(target.content, "documents", documents),
+        content: updateFrontmatterField(target.content, field, value),
       },
     });
   }

@@ -606,16 +606,32 @@ export type EntityGenerationResult =
  * generation says what to link and which stale links to drop, and the
  * runtime — entitled to both sides — does the write.
  */
-export interface EntityGenerationLink {
+export type EntityGenerationLink = {
   readonly entityType: string;
   readonly entityId: string;
-  /**
-   * References to remove while linking. The package knows which of its own
-   * artifacts a re-render supersedes; the runtime only knows how to write
-   * the list.
-   */
-  readonly replaces?: readonly string[] | undefined;
-}
+} & (
+  | {
+      /**
+       * A frontmatter field holding one id — a cover image, an OG image.
+       * Set outright, because a field that holds one thing has no previous
+       * entry to supersede.
+       */
+      readonly field: string;
+    }
+  | {
+      /**
+       * A frontmatter list of `{ id }` — the PDFs rendered from a post.
+       * Added to rather than replaced, because a post may hold several.
+       */
+      readonly list: string;
+      /**
+       * Entries to remove while linking. The package knows which of its own
+       * artifacts a re-render supersedes; the runtime only knows how to
+       * write the list.
+       */
+      readonly replaces?: readonly string[] | undefined;
+    }
+);
 
 /**
  * Content generation for an entity type, registered by the runtime as the

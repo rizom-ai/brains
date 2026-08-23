@@ -273,6 +273,7 @@ describe("rendering a document", () => {
         linkInto: {
           entityType: "social-post",
           entityId: "post-1",
+          list: "documents",
           replaces: ["old-carousel"],
         },
       }),

@@ -194,7 +194,11 @@ describe("creating a document from a source attachment", () => {
           attachmentType: "carousel",
           // What the render should leave the post pointing at. The document
           // package may not write a social post, so it says rather than does.
-          linkInto: { entityType: "social-post", entityId: "post-1" },
+          linkInto: {
+            entityType: "social-post",
+            entityId: "post-1",
+            list: "documents",
+          },
         }),
       },
     ]);
@@ -379,6 +383,7 @@ describe("creating a document from a source attachment", () => {
       linkInto: {
         entityType: "social-post",
         entityId: "post-1",
+        list: "documents",
         replaces: ["old-carousel"],
       },
     });

@@ -1418,6 +1418,7 @@ describe("entity package definitions", () => {
             linkInto: {
               entityType: "deck",
               entityId: "deck-1",
+              list: "documents",
               replaces: ["guide-old"],
             },
           }),
@@ -1482,6 +1483,101 @@ describe("entity package definitions", () => {
     // runtime — the guide package never wrote a deck.
     expect(deck?.content).toContain("id: rendered");
     expect(deck?.content).not.toContain("guide-old");
+
+    harness.reset();
+  });
+
+  // A cover image is one image, not a list of them: the target holds an id
+  // in a field rather than an entry in a collection. Both are the same
+  // write to the runtime and a different fact about the target, so the
+  // generation says which — and the runtime never learns the name of any
+  // particular field.
+  it("links into a field when the target holds one, not a list", async () => {
+    const picture = defineEntity({
+      type: "picture",
+      purpose: "A picture generated for another entity.",
+      metadata: z.object({ title: z.string() }),
+      jobs: {
+        draw: {
+          input: z.object({ entityId: z.string() }),
+          generate: async ({
+            input,
+          }: JobHandlerContext<{ entityId: string }> & {
+            entityId: string | undefined;
+          }): Promise<EntityGenerationResult> => ({
+            success: true,
+            id: input.entityId,
+            content: "Drawn",
+            metadata: { title: "Drawn" },
+            linkInto: {
+              entityType: "post",
+              entityId: "post-1",
+              field: "coverImageId",
+            },
+          }),
+        } satisfies EntityGenerationJobDeclaration<
+          z.ZodObject<{ entityId: z.ZodString }>
+        >,
+      },
+    });
+    const definition = defineEntityPackage({
+      id: "pictures",
+      entities: [picture],
+    });
+    const plugin = createEntityPackagePlugins(
+      definition.entities,
+      definition.projections,
+      { name: "@fixture/pictures", version: "0.1.0" },
+      (id) => `@fixture/pictures:${id}`,
+    )[0];
+    if (!plugin) throw new Error("Picture entity plugin was not created");
+
+    const harness = createPluginHarness({
+      logger: createSilentLogger("entity-link-field-test"),
+    });
+    const handlers = new Map<string, JobHandler>();
+    const queue = harness.getMockShell().getJobQueueService();
+    stubMethod(queue, "registerHandler", (name, handler) => {
+      handlers.set(name, handler);
+    });
+    harness.getMockShell().getJobQueueService = (): typeof queue => queue;
+
+    await harness.installPlugin(plugin);
+    const entities = harness.getEntityService();
+    await entities.createEntity({
+      entity: {
+        id: "post-1",
+        entityType: "post",
+        content: "---\ncoverImageId: old-picture\n---\nA post.",
+        metadata: {},
+      },
+    });
+    await entities.createEntity({
+      entity: {
+        id: "drawn",
+        entityType: "picture",
+        content: "Pending",
+        metadata: { title: "Pending" },
+      },
+    });
+
+    const handler = handlers.get("@fixture/pictures:picture:draw");
+    if (!handler) throw new Error("Draw job handler was not registered");
+    await handler.process(
+      { entityId: "drawn" },
+      "job-1",
+      createMockProgressReporter(),
+      new AbortController().signal,
+    );
+
+    const post = await entities.getEntity({
+      entityType: "post",
+      id: "post-1",
+    });
+    // Replaced outright: a field holds one id, so the previous one is not
+    // something to list as superseded.
+    expect(post?.content).toContain("coverImageId: drawn");
+    expect(post?.content).not.toContain("old-picture");
 
     harness.reset();
   });
