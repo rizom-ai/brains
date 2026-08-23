@@ -521,6 +521,9 @@ class DeclarativeEntityPlugin extends EntityPlugin<
                   metadata: { operationType: "content_operations" },
                 },
               });
+              const reusedAttachment = resolution.attachment?.({
+                entityId: resolution.existing.id,
+              });
               return {
                 kind: "handled",
                 result: {
@@ -529,6 +532,9 @@ class DeclarativeEntityPlugin extends EntityPlugin<
                     status: "generating",
                     entityId: resolution.existing.id,
                     jobId,
+                    ...(reusedAttachment
+                      ? { attachment: reusedAttachment }
+                      : {}),
                   },
                 },
               };
@@ -543,7 +549,13 @@ class DeclarativeEntityPlugin extends EntityPlugin<
                   ? { visibility: input.visibility }
                   : {}),
               },
-              options: { deduplicateId: true },
+              options: {
+                deduplicateId: true,
+                eventContext: {
+                  actor: executionContext.actor,
+                  interfaceType: executionContext.interfaceType,
+                },
+              },
             });
             // The placeholder's hash travels with the job, so an edit
             // made while the job runs wins over work that started before
@@ -569,6 +581,9 @@ class DeclarativeEntityPlugin extends EntityPlugin<
                 metadata: { operationType: "content_operations" },
               },
             });
+            const allocatedAttachment = resolution.attachment?.({
+              entityId: written.entityId,
+            });
             return {
               kind: "handled",
               result: {
@@ -577,6 +592,9 @@ class DeclarativeEntityPlugin extends EntityPlugin<
                   status: "generating",
                   entityId: written.entityId,
                   jobId,
+                  ...(allocatedAttachment
+                    ? { attachment: allocatedAttachment }
+                    : {}),
                 },
               },
             };
@@ -618,6 +636,18 @@ class DeclarativeEntityPlugin extends EntityPlugin<
               entityType: this.entityType,
               content: resolution.create.content,
               metadata: resolution.create.metadata,
+              ...(input.visibility !== undefined
+                ? { visibility: input.visibility }
+                : {}),
+            },
+            // Who asked is who it belongs to. The route never sees the
+            // execution context — so it cannot misattribute — which leaves
+            // the runtime to carry it across the write it does for them.
+            options: {
+              eventContext: {
+                actor: executionContext.actor,
+                interfaceType: executionContext.interfaceType,
+              },
             },
           });
           const attachment = resolution.attachment?.({

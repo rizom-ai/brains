@@ -93,9 +93,18 @@ export type { JsonValue } from "@brains/contracts";
 // Create routing. A route that resolves inline returns what should be
 // written rather than writing it, so the runtime still reports what
 // happened. Named consumer: @brains/wishlist.
+// A route that allocates instead delegates the slow part to a declared
+// job, and may hand back a link to the artifact before it exists — the id
+// is already allocated, so the URL already is too. Named consumer:
+// @brains/document.
 export type {
+  CreateResultAttachment,
+  EntityCreateAllocation,
+  EntityCreateAttachment,
   EntityCreateContext,
+  EntityCreateDelegation,
   EntityCreateResolution,
+  EntityGenerationLink,
 } from "@brains/plugins";
 
 // Dashboard widgets an entity type contributes. Four packages waited on a

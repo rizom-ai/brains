@@ -244,8 +244,13 @@ export {
 export type {
   EntityAttachmentDeclaration,
   EntityConversationReader,
+  CreateResultAttachment,
+  EntityCreateAllocation,
+  EntityCreateAttachment,
   EntityCreateContext,
+  EntityCreateDelegation,
   EntityCreateResolution,
+  EntityGenerationLink,
   EntityCreateRoute,
   EntityCreateRouting,
   EntityEvalContext,

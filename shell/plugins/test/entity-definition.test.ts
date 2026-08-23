@@ -1135,6 +1135,18 @@ describe("entity package definitions", () => {
         filename: z.string().min(1),
         mimeType: z.string().min(1),
       }),
+      // A codec that can only recover part of its metadata still has to
+      // compile: this one checks the bytes are what they claim to be and
+      // leaves the filename to the sidecar.
+      markdown: {
+        decode: ({ content }) => {
+          if (!content.startsWith("data:")) {
+            throw new Error("Artifact content must be a data URL");
+          }
+          return { content, metadata: {} };
+        },
+        encode: ({ content }) => ({ content, frontmatter: {} }),
+      },
     });
     const definition = defineEntityPackage({
       id: "artifacts",
@@ -1283,6 +1295,100 @@ describe("entity package definitions", () => {
       { entityId: "rendered-guide", expectedContentHash: expect.any(String) },
       { entityId: "rendered-guide" },
     ]);
+
+    harness.reset();
+  });
+
+  // A caller who asks for a PDF gets a link to it before it has been
+  // rendered — the id is already allocated, so the URL is already known.
+  // Building that link is the package's job (only it knows its own media
+  // type and route); returning it is the runtime's, which is why the
+  // allocation hands back a function rather than writing the response.
+  it("returns an attachment for an allocation that delegates", async () => {
+    const guide = defineEntity({
+      type: "guide",
+      purpose: "A guide rendered from a source entity.",
+      metadata: z.object({ title: z.string() }),
+      jobs: {
+        render: {
+          input: z.object({ entityId: z.string() }),
+          handle: async (): Promise<{ done: true }> => ({ done: true }),
+        },
+      },
+      create: {
+        fromAttachment: {
+          resolve: async () => ({
+            create: {
+              id: "rendered-guide",
+              content: "Rendering…",
+              metadata: { title: "Rendering" },
+            },
+            delegate: { job: "render" },
+            attachment: ({ entityId }): CreateResultAttachment => ({
+              mediaType: "application/pdf",
+              url: `/api/guides/${entityId}`,
+              filename: `${entityId}.pdf`,
+            }),
+          }),
+        },
+      },
+    });
+    const definition = defineEntityPackage({ id: "guides", entities: [guide] });
+    const plugin = createEntityPackagePlugins(
+      definition.entities,
+      definition.projections,
+      { name: "@fixture/guides", version: "0.1.0" },
+      (id) => `@fixture/guides:${id}`,
+    )[0];
+    if (!plugin) throw new Error("Guide entity plugin was not created");
+
+    const harness = createPluginHarness({
+      logger: createSilentLogger("entity-attachment-test"),
+    });
+    let interceptor: CreateInterceptor | undefined;
+    stubMethod(
+      harness.getEntityRegistry(),
+      "registerCreateInterceptor",
+      (_type, registered) => {
+        interceptor = registered;
+      },
+    );
+    const shell = harness.getMockShell();
+    const jobQueue = shell.getJobQueueService();
+    stubMethod(jobQueue, "enqueue", async () => "job-1");
+    shell.getJobQueueService = (): typeof jobQueue => jobQueue;
+
+    await harness.installPlugin(plugin);
+    if (!interceptor) throw new Error("Create interceptor was not registered");
+
+    const result = await interceptor(
+      {
+        entityType: "guide",
+        from: {
+          kind: "entity-attachment",
+          sourceEntityType: "deck",
+          sourceEntityId: "deck-1",
+          attachmentType: "carousel",
+        },
+      },
+      executionContext,
+    );
+
+    expect(result).toMatchObject({
+      kind: "handled",
+      result: {
+        success: true,
+        data: {
+          status: "generating",
+          entityId: "rendered-guide",
+          attachment: {
+            mediaType: "application/pdf",
+            url: "/api/guides/rendered-guide",
+            filename: "rendered-guide.pdf",
+          },
+        },
+      },
+    });
 
     harness.reset();
   });
@@ -1552,6 +1658,46 @@ describe("entity package definitions", () => {
         .getEntityService()
         .getEntity({ entityType: "guide", id: "new-guide" });
       expect(stored?.metadata["title"]).toBe("Fishing");
+
+      harness.reset();
+    });
+
+    // Whoever asked for the entity is who it belongs to and who may see
+    // it. The route never sees the execution context — deliberately, so it
+    // cannot misattribute — which leaves the runtime to carry both across
+    // the write it performs on the caller's behalf.
+    it("writes with the caller's visibility and attribution", async () => {
+      const { harness, route } = await install();
+      const created: unknown[] = [];
+      const entityService = harness.getEntityService();
+      const createEntity = entityService.createEntity.bind(entityService);
+      stubMethod(entityService, "createEntity", async (request) => {
+        created.push(request);
+        return createEntity(request);
+      });
+
+      await route({
+        entityType: "guide",
+        prompt: "Fishing",
+        visibility: "shared",
+      });
+
+      const stored = await entityService.getEntity({
+        entityType: "guide",
+        id: "new-guide",
+        visibilityScope: "shared",
+      });
+      expect(stored?.visibility).toBe("shared");
+      expect(created).toEqual([
+        expect.objectContaining({
+          options: expect.objectContaining({
+            eventContext: {
+              actor: { kind: "user", userId: "tester" },
+              interfaceType: "test",
+            },
+          }),
+        }),
+      ]);
 
       harness.reset();
     });
