@@ -575,8 +575,29 @@ export type EntityGenerationResult =
       readonly id?: string | undefined;
       /** Extra fields merged into the job's success result, e.g. a slug. */
       readonly resultExtras?: Record<string, unknown> | undefined;
+      readonly linkInto?: EntityGenerationLink | undefined;
     }
   | { readonly success: false; readonly error: string };
+
+/**
+ * Point the entity a generation was derived from at what came out.
+ *
+ * Rendering a deck as a PDF has to leave the deck pointing at the PDF, and
+ * that write belongs to neither package alone: the document package may not
+ * write a deck, and the deck knows nothing about documents. So the
+ * generation says what to link and which stale links to drop, and the
+ * runtime — entitled to both sides — does the write.
+ */
+export interface EntityGenerationLink {
+  readonly entityType: string;
+  readonly entityId: string;
+  /**
+   * References to remove while linking. The package knows which of its own
+   * artifacts a re-render supersedes; the runtime only knows how to write
+   * the list.
+   */
+  readonly replaces?: readonly string[] | undefined;
+}
 
 /**
  * Content generation for an entity type, registered by the runtime as the

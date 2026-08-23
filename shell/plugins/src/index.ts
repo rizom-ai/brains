@@ -266,6 +266,7 @@ export type {
   MediaAttachmentContext,
 } from "./entity/entity-definition-contract";
 export type {
+  JobAttachmentReader,
   JobEntityAccess,
   JobHandlerContext,
   JobMessagePublisher,

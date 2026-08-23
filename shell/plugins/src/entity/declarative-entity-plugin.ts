@@ -48,9 +48,11 @@ import { createEvalFixtures } from "./eval-fixtures";
 import { entitySchema, parseDefinitionEntity } from "./entity-schema";
 import type { EntityDefinitionShape } from "./entity-shape";
 export { parseDefinitionEntity } from "./entity-schema";
+import { parseMarkdown, updateFrontmatterField } from "@brains/utils/markdown";
 import type {
   AnyEntityDefinition,
   AnyEntityJobDeclaration,
+  EntityGenerationLink,
   EntityCreateRoute,
   EntityCreateRouting,
   EntityGenerationResult,
@@ -865,6 +867,52 @@ class DeclarativeEntityPlugin extends EntityPlugin<
   }
 
   /**
+   * Point a source entity at the artifact generated from it.
+   *
+   * The runtime does this because neither package may: the generating one
+   * does not own the source's type, and the source's does not know the
+   * artifact exists. Stored as a `documents` list in the source's
+   * frontmatter, which is the shape already on disk.
+   */
+  private async linkGenerated(
+    context: EntityPluginContext,
+    entityId: string,
+    link: EntityGenerationLink,
+  ): Promise<void> {
+    const target = await context.entityService.getEntity({
+      entityType: link.entityType,
+      id: link.entityId,
+    });
+    if (!target) {
+      throw new Error(
+        `Cannot link ${this.entityType} "${entityId}" into ${link.entityType} "${link.entityId}", which does not exist`,
+      );
+    }
+    const { frontmatter } = parseMarkdown(target.content);
+    const dropped = new Set(link.replaces ?? []);
+    const existing = (
+      Array.isArray(frontmatter["documents"]) ? frontmatter["documents"] : []
+    ).filter(
+      (item): item is { id: string } =>
+        typeof item === "object" &&
+        item !== null &&
+        "id" in item &&
+        typeof item.id === "string" &&
+        !dropped.has(item.id),
+    );
+    const documents = existing.some((item) => item.id === entityId)
+      ? existing
+      : [...existing, { id: entityId }];
+
+    await context.entityService.updateEntity({
+      entity: {
+        ...target,
+        content: updateFrontmatterField(target.content, "documents", documents),
+      },
+    });
+  }
+
+  /**
    * Write what a generation produced.
    *
    * A pre-allocated entity is filled in — the caller is already looking at
@@ -1182,6 +1230,9 @@ class DeclarativeEntityPlugin extends EntityPlugin<
         result,
         preallocatedContentHash(data),
       );
+      if (result.linkInto) {
+        await this.linkGenerated(context, saved.entityId, result.linkInto);
+      }
       await this.reportGenerationCompleted(context, saved.entityId);
       return saved;
     } catch (error) {
