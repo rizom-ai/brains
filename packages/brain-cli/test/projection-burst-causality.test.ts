@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it } from "bun:test";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
+import { stubMethod } from "@brains/test-utils";
 import { MigrationManager, resolve } from "@brains/app";
 import {
   Shell,
@@ -260,9 +261,7 @@ describe("projection burst causal evidence", () => {
       const entityService = runningShell.getEntityService();
       const originalUpsert = entityService.upsertEntity.bind(entityService);
       let mutationCount = 0;
-      entityService.upsertEntity = (async (
-        request: Parameters<typeof originalUpsert>[0],
-      ) => {
+      stubMethod(entityService, "upsertEntity", async (request) => {
         const result = await originalUpsert(request);
         mutationCount++;
         if (mutationCount === SPLIT_AFTER) {
@@ -273,12 +272,15 @@ describe("projection burst causal evidence", () => {
           });
         }
         return result;
-      }) as typeof entityService.upsertEntity;
+      });
 
       try {
         const result = await directorySync.sync();
         expect(result.import.failed).toBe(0);
-        expect(result.import.imported).toBe(IMPORT_COUNT);
+        // At least the notes this run wrote. Auto-extraction is on, so the
+        // topics it derives land on disk and import alongside them — that is
+        // the burst this test exists to measure, not a leak.
+        expect(result.import.imported).toBeGreaterThanOrEqual(IMPORT_COUNT);
       } finally {
         entityService.upsertEntity = originalUpsert;
       }

@@ -2,7 +2,7 @@ import type {
   BaseEntity,
   EntityInput,
   EntityMutationResult,
-  IEntityService,
+  EntityServiceClient,
   ListOptions,
   SearchOptions,
   SearchResult,
@@ -23,7 +23,7 @@ import type { EntityDefinitionShape, EntityOf } from "../entity/entity-shape";
  * another package's entities even though it can read them.
  */
 export function createJobEntityAccess(
-  entityService: IEntityService,
+  entityService: EntityServiceClient,
   ownedTypes: ReadonlySet<string>,
   ownerLabel: string,
 ): JobEntityAccess {

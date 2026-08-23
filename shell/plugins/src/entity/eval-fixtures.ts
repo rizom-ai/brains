@@ -1,4 +1,4 @@
-import type { IEntityService } from "@brains/entity-service";
+import type { EntityServiceClient } from "@brains/entity-service";
 import type { EntityEvalFixtures } from "./entity-definition-contract";
 
 /**
@@ -11,7 +11,7 @@ import type { EntityEvalFixtures } from "./entity-definition-contract";
  * not a way to empty the brain.
  */
 export function createEvalFixtures(
-  entityService: IEntityService,
+  entityService: EntityServiceClient,
   ownedTypes: readonly string[],
 ): EntityEvalFixtures {
   const seeded = new Map<string, string>();

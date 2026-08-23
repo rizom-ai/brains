@@ -13,14 +13,20 @@ import {
 import assessmentPackage from "../src";
 import packageJson from "../package.json";
 
-function swotEntityPlugin(): Plugin {
+/**
+ * Assessment is a service package: it carries config, and the configured
+ * derivation rule attaches to the entity plugin whose type it targets.
+ */
+function assessmentPlugins(config: Record<string, unknown> = {}): Plugin[] {
   const metadata = { name: packageJson.name, version: packageJson.version };
   bindPluginPackageMetadata(assessmentPackage, metadata);
-  const plugin = instantiatePluginPackageDefinition(
-    assessmentPackage,
-    {},
-    metadata,
-  )[0];
+  return [
+    ...instantiatePluginPackageDefinition(assessmentPackage, config, metadata),
+  ] as Plugin[];
+}
+
+function swotEntityPlugin(): Plugin {
+  const plugin = assessmentPlugins().find(({ type }) => type === "entity");
   if (!plugin) throw new Error("SWOT entity plugin was not created");
   return plugin;
 }
@@ -56,11 +62,16 @@ describe("assessment package", () => {
     });
   });
 
+  // Deriving a SWOT calls a model over every agent and skill, so turning it
+  // off must leave no rule to schedule rather than one that no-ops.
   it("does not register the AI-backed rule when derivation is disabled", async () => {
-    const plugin = new SwotAssessmentPlugin({ enableSwotDerivation: false });
-    const capabilities = await harness.installPlugin(plugin);
+    const rules = [];
+    for (const plugin of assessmentPlugins({ enableSwotDerivation: false })) {
+      const capabilities = await harness.installPlugin(plugin);
+      rules.push(...(capabilities.projectionRules ?? []));
+    }
 
-    expect(capabilities.projectionRules).toBeUndefined();
+    expect(rules).toEqual([]);
   });
 
   it("registers deriveSwot eval handler", async () => {

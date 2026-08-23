@@ -2,7 +2,7 @@ import {
   SYSTEM_CHANNELS,
   defineDashboardWidget,
   registerBuiltInDashboardWidget,
-  type EntityPluginContext,
+  type BasePluginContext,
 } from "@brains/plugins";
 import {
   buildKnowledgeMapData,
@@ -96,7 +96,7 @@ const knowledgeMapWidget = defineDashboardWidget({
 
 /** Register the semantic corpus projection after the Dashboard host mounts. */
 export function registerKnowledgeMapDashboardWidget(params: {
-  context: EntityPluginContext;
+  context: BasePluginContext;
 }): void {
   const { context } = params;
   context.messaging.subscribe(

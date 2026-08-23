@@ -37,6 +37,11 @@ import type { RuntimeHealthCheck } from "../contracts/runtime-health";
 export type {
   ProjectionRule,
   ProjectionRuleDefinition,
+  ProjectionWriteIntent,
+} from "../entity/projection-rule";
+import type {
+  ProjectionRule,
+  ProjectionWriteIntent,
 } from "../entity/projection-rule";
 import type { Conversation, Message } from "../contracts/conversations";
 import type { AnchorProfile, BrainCharacter } from "../contracts/identity";
@@ -322,6 +327,15 @@ export type InsightHandler = (
 
 export interface IEvalNamespace {
   registerHandler(handlerId: string, handler: EvalHandler): void;
+  /**
+   * Run a projection rule's select and derive and return what it would
+   * write. No wave, no memo, no persistence — an eval measures the rule,
+   * not the orchestration around it.
+   */
+  runProjectionRule(
+    rule: ProjectionRule,
+    signal?: AbortSignal,
+  ): Promise<readonly ProjectionWriteIntent[]>;
 }
 
 export interface IInsightsNamespace {
