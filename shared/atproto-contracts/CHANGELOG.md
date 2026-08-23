@@ -1,5 +1,15 @@
 # @brains/atproto-contracts
 
+## 0.2.0-alpha.319
+
+### Patch Changes
+
+- [#157](https://github.com/rizom-ai/brains/pull/157) [`df1af02`](https://github.com/rizom-ai/brains/commit/df1af02e2e0f0e1c3c7fe0580bde1aa65edbccc7) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Unify public skill extraction across A2A and ATProto cards, and allow federation-only brains to publish cards without a web channel or site URL.
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.319
+  - @brains/entity-service@0.2.0-alpha.319
+
 ## 0.2.0-alpha.318
 
 ### Patch Changes

@@ -1,5 +1,25 @@
 # @brains/app
 
+## 0.2.0-alpha.319
+
+### Minor Changes
+
+- [#157](https://github.com/rizom-ai/brains/pull/157) [`54eb85b`](https://github.com/rizom-ai/brains/commit/54eb85b05e0d58c1cd02b83456015d8abf7f0c26) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Require `bundleContract: capability-bundles-v1` before resolving the canonical capability taxonomy so overlapping legacy bundle IDs cannot silently change meaning. Standalone migration now requires an explicitly reviewed recipe, while fleet crossover staging binds each expected pilot/cohort source selection to an exact target and preserves separately reviewed site/theme pins.
+
+### Patch Changes
+
+- [#157](https://github.com/rizom-ai/brains/pull/157) [`df1af02`](https://github.com/rizom-ai/brains/commit/df1af02e2e0f0e1c3c7fe0580bde1aa65edbccc7) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Prepare the canonical brain for a headless core. The resolver now derives MCP stdio or HTTP transport from webserver selection while preserving explicit instance overrides, and posture-independent CLI/MCP permission rules live on the brain definition rather than member-scoped bundle contributions.
+
+- [#157](https://github.com/rizom-ai/brains/pull/157) [`df1af02`](https://github.com/rizom-ai/brains/commit/df1af02e2e0f0e1c3c7fe0580bde1aa65edbccc7) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Allow policy-only bundles to contribute configuration, permissions, and eval exclusions to any active member of the brain catalog. Unknown and inactive targets remain rejected or omitted, and cross-bundle conflicts still require explicit overrides.
+
+- Updated dependencies [[`df1af02`](https://github.com/rizom-ai/brains/commit/df1af02e2e0f0e1c3c7fe0580bde1aa65edbccc7)]:
+  - @brains/plugins@0.2.0-alpha.319
+  - @brains/core@0.2.0-alpha.319
+  - @brains/site-composition@0.2.0-alpha.319
+  - @brains/utils@0.2.0-alpha.319
+  - @brains/runtime-state@0.2.0-alpha.319
+  - @brains/templates@0.2.0-alpha.319
+
 ## 0.2.0-alpha.318
 
 ### Patch Changes
