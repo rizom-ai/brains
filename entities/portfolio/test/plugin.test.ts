@@ -151,6 +151,9 @@ describe("portfolio package", () => {
           throw new Error("This job reads no uploads");
         },
       },
+      attachments: {
+        resolve: async (): Promise<undefined> => undefined,
+      },
     });
 
     expect(result).toMatchObject({

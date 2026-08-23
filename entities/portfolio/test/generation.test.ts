@@ -64,6 +64,9 @@ describe("projectGeneration", () => {
           throw new Error("This job reads no uploads");
         },
       },
+      attachments: {
+        resolve: async (): Promise<undefined> => undefined,
+      },
     };
     return projectGeneration.generate({ ...jobContext, entityId: undefined });
   }

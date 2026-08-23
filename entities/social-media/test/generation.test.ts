@@ -80,6 +80,9 @@ describe("socialPostGeneration", () => {
           throw new Error("This job reads no uploads");
         },
       },
+      attachments: {
+        resolve: async (): Promise<undefined> => undefined,
+      },
     };
     return socialPostGeneration.generate({
       ...jobContext,
