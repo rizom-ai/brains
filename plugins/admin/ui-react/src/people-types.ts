@@ -26,4 +26,4 @@ export type Modal =
   | Confirmation
   | null;
 
-export type SurfaceView = "overview" | "members" | "invitations" | "audit";
+export type SurfaceView = "overview" | "members" | "invitations";

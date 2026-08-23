@@ -4,7 +4,6 @@ import {
   type AuthAdminMutation,
   type AuthAdminRole,
   type AuthAdminUserSummary,
-  type AuthAuditEventSummary,
   type AuthBrainAnchorSummary,
   type AuthInvitationChannelSummary,
 } from "@brains/auth-service/admin-contracts";
@@ -18,7 +17,6 @@ import {
   type ReactElement,
 } from "react";
 import { mutateAdmin } from "./api";
-import { AuditView } from "./components/AuditView";
 import { InvitationsView } from "./components/InvitationsView";
 import { OverviewView } from "./components/OverviewView";
 import { PersonDetail } from "./components/PersonDetail";
@@ -39,7 +37,6 @@ import type {
 } from "./people-types";
 import {
   anchorQueryOptions,
-  auditQueryOptions,
   channelsQueryOptions,
   invalidateAfterAdminMutation,
   usersQueryOptions,
@@ -85,7 +82,6 @@ export interface PeopleAppProps {
   bootstrap: PeopleBootstrap;
   initialAnchor?: AuthBrainAnchorSummary;
   initialUsers?: AuthAdminUserSummary[];
-  initialAudit?: AuthAuditEventSummary[];
   initialChannels?: AuthInvitationChannelSummary[];
 }
 
@@ -106,13 +102,6 @@ export function PeopleApp(props: PeopleAppProps): ReactElement {
       ? { initialData: props.initialUsers }
       : {}),
   });
-  const auditQuery = useQuery({
-    ...auditQueryOptions(),
-    enabled: isAdmin,
-    ...(props.initialAudit !== undefined
-      ? { initialData: props.initialAudit }
-      : {}),
-  });
   const channelsQuery = useQuery({
     ...channelsQueryOptions(),
     enabled: isAdmin,
@@ -121,7 +110,6 @@ export function PeopleApp(props: PeopleAppProps): ReactElement {
       : {}),
   });
   const users = usersQuery.data ?? [];
-  const auditEvents = auditQuery.data ?? [];
   const channels = channelsQuery.data ?? [];
   const invitationChannels = channels.filter(
     (channel) => channel.deliveryModes.length > 0,
@@ -168,10 +156,8 @@ export function PeopleApp(props: PeopleAppProps): ReactElement {
     onSuccess: async (_result, mutation) =>
       invalidateAfterAdminMutation(queryClient, mutation.action),
   });
-  const loading =
-    isAdmin &&
-    (anchorQuery.isPending || usersQuery.isPending || auditQuery.isPending);
-  const queryError = anchorQuery.error ?? usersQuery.error ?? auditQuery.error;
+  const loading = isAdmin && (anchorQuery.isPending || usersQuery.isPending);
+  const queryError = anchorQuery.error ?? usersQuery.error;
   const error = queryError ? messageOf(queryError, "Admin unavailable") : null;
 
   const selectedUser = useMemo(
@@ -382,9 +368,7 @@ export function PeopleApp(props: PeopleAppProps): ReactElement {
           <div>
             <h1>Admin</h1>
             <p>
-              {organization
-                ? "people · invitations · audit"
-                : "members · invitations · audit"}
+              {organization ? "people · invitations" : "members · invitations"}
             </p>
           </div>
           <div className="admin-hero-meta">
@@ -400,23 +384,21 @@ export function PeopleApp(props: PeopleAppProps): ReactElement {
         </header>
 
         <nav className="admin-tabs" aria-label="Administration sections">
-          {(["overview", "members", "invitations", "audit"] as const).map(
-            (section) => (
-              <button
-                key={section}
-                className={view === section ? "is-active" : ""}
-                type="button"
-                onClick={() => setView(section)}
-              >
-                {section === "members"
-                  ? rosterLabel
-                  : section[0]?.toUpperCase() + section.slice(1)}
-                {section === "invitations" && pendingInvitationCount > 0 ? (
-                  <small>{pendingInvitationCount}</small>
-                ) : null}
-              </button>
-            ),
-          )}
+          {(["overview", "members", "invitations"] as const).map((section) => (
+            <button
+              key={section}
+              className={view === section ? "is-active" : ""}
+              type="button"
+              onClick={() => setView(section)}
+            >
+              {section === "members"
+                ? rosterLabel
+                : section[0]?.toUpperCase() + section.slice(1)}
+              {section === "invitations" && pendingInvitationCount > 0 ? (
+                <small>{pendingInvitationCount}</small>
+              ) : null}
+            </button>
+          ))}
         </nav>
 
         {!isAdmin ? (
@@ -473,7 +455,7 @@ export function PeopleApp(props: PeopleAppProps): ReactElement {
               />
             </div>
           </section>
-        ) : view === "invitations" ? (
+        ) : (
           <InvitationsView
             invitations={invitations}
             onAdd={() => setModal({ kind: "add" })}
@@ -502,8 +484,6 @@ export function PeopleApp(props: PeopleAppProps): ReactElement {
               })
             }
           />
-        ) : (
-          <AuditView events={auditEvents} users={users} />
         )}
       </div>
 

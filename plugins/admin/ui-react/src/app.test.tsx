@@ -2,7 +2,6 @@
 import { describe, expect, it } from "bun:test";
 import type {
   AuthAdminUserSummary,
-  AuthAuditEventSummary,
   AuthBrainAnchorSummary,
   AuthInvitationChannelSummary,
 } from "@brains/auth-service/admin-contracts";
@@ -98,17 +97,6 @@ const channels: AuthInvitationChannelSummary[] = [
     displayName: "Discord",
     subjectLabel: "Discord user ID",
     deliveryModes: ["manual"],
-  },
-];
-
-const audit: AuthAuditEventSummary[] = [
-  {
-    id: "aae_1",
-    actorUserId: admin.userId,
-    action: "auth.external_peer.linked",
-    targetType: "external_peer",
-    targetId: "did:web:mira.example",
-    createdAt: 2,
   },
 ];
 
@@ -254,18 +242,17 @@ describe("Admin surface", () => {
     expect(html).not.toContain("Discord display handle");
   });
 
-  it("renders the four permanent sections and Overview Anchor summary", () => {
+  it("renders the remaining sections and Overview Anchor summary", () => {
     const html = renderPeople({
       bootstrap: admin,
       initialAnchor: brainAnchor,
       initialUsers: [user],
-      initialAudit: audit,
     });
 
     expect(html).toContain("Overview");
     expect(html).toContain("Members");
     expect(html).toContain("Invitations");
-    expect(html).toContain("Audit");
+    expect(html).not.toContain(">Audit<");
     expect(html).toContain("Yeehaa Morgan");
     expect(html).toContain("Active members");
     expect(html).not.toContain("Standalone access");
@@ -281,7 +268,6 @@ describe("Admin surface", () => {
       bootstrap: { ...admin, initialPersonId: user.personId },
       initialAnchor: brainAnchor,
       initialUsers: [user],
-      initialAudit: audit,
     });
 
     expect(html).toContain("Mira Reyes");
@@ -294,7 +280,6 @@ describe("Admin surface", () => {
       bootstrap: { ...admin, initialPersonId: "per_unknown" },
       initialAnchor: brainAnchor,
       initialUsers: [user],
-      initialAudit: audit,
     });
 
     expect(html).toContain("Active members");
@@ -313,11 +298,10 @@ describe("Admin surface", () => {
         displayName: "Rizom",
       },
       initialUsers: [user],
-      initialAudit: [],
     });
 
     expect(organizationHtml).toContain("People");
-    expect(organizationHtml).toContain("people · invitations · audit");
+    expect(organizationHtml).toContain("people · invitations");
   });
 
   it("shows peer linkage separately from local access", () => {

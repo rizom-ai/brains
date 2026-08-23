@@ -1,5 +1,4 @@
 import type {
-  AuthAdminAuditResponse,
   AuthAdminChannelsResponse,
   AuthAdminMutation,
   AuthAdminUsersResponse,
@@ -57,15 +56,6 @@ export async function fetchUsers(): Promise<AuthAdminUsersResponse> {
 export async function fetchChannels(): Promise<AuthAdminChannelsResponse> {
   return parseResponse(
     await fetch("/auth/admin/channels", {
-      credentials: "same-origin",
-      cache: "no-store",
-    }),
-  );
-}
-
-export async function fetchAudit(): Promise<AuthAdminAuditResponse> {
-  return parseResponse(
-    await fetch("/auth/admin/audit", {
       credentials: "same-origin",
       cache: "no-store",
     }),

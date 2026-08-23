@@ -1,7 +1,6 @@
 import { afterEach, describe, expect, it } from "bun:test";
 import {
   AUTH_ADMIN_MUTATION_ACTIONS,
-  type AuthAuditEventSummary,
   type AuthBrainAnchorSummary,
 } from "@brains/auth-service/admin-contracts";
 import { mockFetch } from "@brains/test-utils";
@@ -9,7 +8,6 @@ import { createAdminQueryClient } from "./query-client";
 import {
   adminKeys,
   anchorQueryOptions,
-  auditQueryOptions,
   channelsQueryOptions,
   invalidateAfterAdminMutation,
   usersQueryOptions,
@@ -69,37 +67,26 @@ describe("Admin server-state queries", () => {
     client.clear();
   });
 
-  it("loads Anchor and audit records into separate caches", async () => {
-    mockFetch(async (request) => {
-      const url = String(request);
-      if (url.endsWith("/auth/admin/anchor")) {
-        return Response.json({
-          anchor: {
-            kind: "collective",
-            configuredKind: "organization",
-            subjectId: "collective:rizom",
-            displayName: "Rizom",
-            administeredBy: 2,
-          },
-        });
-      }
-      return Response.json({ events: [] });
-    });
+  it("loads the Anchor record into its own cache", async () => {
+    mockFetch(async () =>
+      Response.json({
+        anchor: {
+          kind: "collective",
+          configuredKind: "organization",
+          subjectId: "collective:rizom",
+          displayName: "Rizom",
+          administeredBy: 2,
+        },
+      }),
+    );
     const client = createAdminQueryClient();
 
-    const [anchor, audit] = await Promise.all([
-      client.fetchQuery(anchorQueryOptions()),
-      client.fetchQuery(auditQueryOptions()),
-    ]);
+    const anchor = await client.fetchQuery(anchorQueryOptions());
 
     expect(anchor.displayName).toBe("Rizom");
-    expect(audit).toEqual([]);
     expect(
       client.getQueryData<AuthBrainAnchorSummary>(adminKeys.anchor()),
     ).toBe(anchor);
-    expect(
-      client.getQueryData<AuthAuditEventSummary[]>(adminKeys.audit()),
-    ).toBe(audit);
     client.clear();
   });
 });
@@ -109,7 +96,6 @@ describe("Admin mutation invalidation", () => {
     const client = createAdminQueryClient();
     client.setQueryData(adminKeys.anchor(), { displayName: "Before" });
     client.setQueryData(adminKeys.users(), []);
-    client.setQueryData(adminKeys.audit(), []);
     client.setQueryData(adminKeys.channels(), []);
 
     await invalidateAfterAdminMutation(
@@ -119,7 +105,6 @@ describe("Admin mutation invalidation", () => {
 
     expect(client.getQueryState(adminKeys.anchor())?.isInvalidated).toBe(true);
     expect(client.getQueryState(adminKeys.users())?.isInvalidated).toBe(true);
-    expect(client.getQueryState(adminKeys.audit())?.isInvalidated).toBe(true);
     expect(client.getQueryState(adminKeys.channels())?.isInvalidated).toBe(
       true,
     );

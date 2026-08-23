@@ -865,8 +865,7 @@ button.people-metric:hover {
   line-height: 1;
 }
 .people-metric small,
-.people-invitation small,
-.people-audit-event small {
+.people-invitation small {
   display: block;
   color: var(--console-text-muted);
 }
@@ -895,23 +894,6 @@ button.people-metric:hover {
 .people-empty-state p {
   margin-bottom: 0;
   color: var(--console-text-muted);
-}
-.people-audit-list {
-  overflow: hidden;
-}
-.people-audit-event {
-  display: grid;
-  grid-template-columns: 140px minmax(0, 1fr);
-  gap: 18px;
-  padding: 14px 17px;
-  border-bottom: 1px solid var(--console-rule);
-}
-.people-audit-event:last-child {
-  border-bottom: 0;
-}
-.people-audit-event time {
-  color: var(--console-text-muted);
-  font-size: 11px;
 }
 .admin-tabs button small {
   min-width: 17px;
@@ -989,9 +971,5 @@ button.people-metric:hover {
   }
   .people-invitation-actions {
     grid-column: 1 / -1;
-  }
-  .people-audit-event {
-    grid-template-columns: 1fr;
-    gap: 4px;
   }
 }

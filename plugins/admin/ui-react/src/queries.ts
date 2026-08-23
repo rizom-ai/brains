@@ -1,23 +1,20 @@
 import type {
   AuthAdminMutationAction,
   AuthAdminUserSummary,
-  AuthAuditEventSummary,
   AuthInvitationChannelSummary,
   AuthBrainAnchorSummary,
 } from "@brains/auth-service/admin-contracts";
 import type { QueryClient, UseQueryOptions } from "@tanstack/react-query";
-import { fetchAnchor, fetchAudit, fetchChannels, fetchUsers } from "./api";
+import { fetchAnchor, fetchChannels, fetchUsers } from "./api";
 
 export type AnchorQueryKey = readonly ["admin", "anchor"];
 export type UsersQueryKey = readonly ["admin", "users"];
-export type AuditQueryKey = readonly ["admin", "audit"];
 export type ChannelsQueryKey = readonly ["admin", "channels"];
 
 export const adminKeys = {
   all: ["admin"] as const,
   anchor: (): AnchorQueryKey => ["admin", "anchor"],
   users: (): UsersQueryKey => ["admin", "users"],
-  audit: (): AuditQueryKey => ["admin", "audit"],
   channels: (): ChannelsQueryKey => ["admin", "channels"],
 };
 
@@ -69,18 +66,6 @@ export function channelsQueryOptions(): UseQueryOptions<
   };
 }
 
-export function auditQueryOptions(): UseQueryOptions<
-  AuthAuditEventSummary[],
-  Error,
-  AuthAuditEventSummary[],
-  AuditQueryKey
-> {
-  return {
-    queryKey: adminKeys.audit(),
-    queryFn: async () => (await fetchAudit()).events,
-  };
-}
-
 export async function invalidateAfterAdminMutation(
   queryClient: QueryClient,
   _action: AuthAdminMutationAction,
@@ -88,7 +73,6 @@ export async function invalidateAfterAdminMutation(
   await Promise.all([
     queryClient.invalidateQueries({ queryKey: adminKeys.anchor() }),
     queryClient.invalidateQueries({ queryKey: adminKeys.users() }),
-    queryClient.invalidateQueries({ queryKey: adminKeys.audit() }),
     queryClient.invalidateQueries({ queryKey: adminKeys.channels() }),
   ]);
 }

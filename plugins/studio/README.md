@@ -49,9 +49,11 @@ entity** target, so the Inbox renderer never constructs entity URLs itself.
 
 Workspace definitions may opt into host-owned stable URL filters with a typed query schema. The Studio hydrates declared filters from the raw search string, validates them on the server, and replaces their canonical URL without guessing provider semantics. Paging remains transient request state, so reload starts from the first page. Workspaces without a query declaration ignore URL search entirely.
 
-## Optional workspaces
+## Workspaces
 
-Service plugins declare workspaces with `defineStudioWorkspace()`. The runtime scopes IDs, registers after setup, unregisters on shutdown, and sends only `DeclarativeOperatorWorkspace` registrations to the Studio. Registrations are ordered by `priority`, duplicate IDs are rejected, and no provider is required for the Studio to start.
+Studio registers its Admin-only Audit workspace through the same declarative runtime and reads audit records directly from auth-service; the browser does not fetch or duplicate the admin audit API.
+
+Service plugins declare optional workspaces with `defineStudioWorkspace()`. The runtime scopes IDs, registers after setup, unregisters on shutdown, and sends only `DeclarativeOperatorWorkspace` registrations to the Studio. Registrations are ordered by `priority`, duplicate IDs are rejected, and no provider is required for the Studio to start.
 
 Every workspace uses the same closed host-rendered vocabulary: content blocks, composition, queries, spatial and relational views, typed actions, dynamic catalogs, launch intents, and static or prepared confirmation. Publishing, Site, Directory Sync, and Unified Inbox all use this path; there are no specialized renderer names or private browser implementations.
 

@@ -25,6 +25,7 @@ import { createEditorRoutes } from "./editor-routes";
 import { StudioWorkspaceRegistry } from "./workspace-registry";
 import packageJson from "../package.json";
 import { getErrorMessage } from "@brains/utils/error";
+import { registerStudioAuditWorkspace } from "./audit-workspace";
 
 interface StudioEntityDisplayEntry {
   label?: string | undefined;
@@ -219,6 +220,12 @@ export class StudioPlugin extends ServicePlugin<
         return { success: true };
       },
     );
+  }
+
+  protected override async onRegistrationComplete(
+    context: ServicePluginContext,
+  ): Promise<void> {
+    await registerStudioAuditWorkspace(context);
   }
 
   override getWebRoutes(): WebRouteDefinition[] {

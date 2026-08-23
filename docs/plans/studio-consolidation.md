@@ -17,8 +17,8 @@ the card:
 [`../studio-consolidation-mockups.html`](../studio-consolidation-mockups.html)
 (decided 2026-08-19).
 
-**Progress:** Phase 1 is implemented on `work/studio-consolidation`; Phase 2 is
-next.
+**Progress:** Phases 1–2 are implemented on `work/studio-consolidation`; Phase
+3 is next.
 
 ## Goal
 
