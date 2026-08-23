@@ -20,7 +20,11 @@ export interface CleanupPipelineDeps {
         filter?: { visibilityScope?: ContentVisibility };
       };
     }): Promise<BaseEntity[]>;
-    deleteEntity(request: { entityType: string; id: string }): Promise<boolean>;
+    deleteEntity(request: {
+      entityType: string;
+      id: string;
+      options: { persistenceOrigin: "directory-sync" };
+    }): Promise<boolean>;
   };
   logger: {
     debug(message: string, meta?: Record<string, unknown>): void;
@@ -82,6 +86,7 @@ export async function removeOrphanedEntities(
           await deps.entityService.deleteEntity({
             entityType: entity.entityType,
             id: entity.id,
+            options: { persistenceOrigin: "directory-sync" },
           });
           deps.onEntityDeleted?.(entity);
           recordCleanupDeleted(deps.logger, result, entity);

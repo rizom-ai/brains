@@ -401,7 +401,15 @@ describe("FileOperations", () => {
       }
     });
 
-    it("should use correct extension when writing image entities", async () => {
+    it("should converge an image to one path when its content format changes", async () => {
+      const pngEntity = createTestEntity("image", {
+        id: "photo",
+        content: TINY_PNG_DATA_URL,
+        metadata: { format: "png" },
+      });
+      await fileOps.writeEntity(pngEntity);
+      expect(existsSync(join(testDir, "image", "photo.png"))).toBe(true);
+
       const jpgEntity = createTestEntity("image", {
         id: "photo",
         content: "data:image/jpeg;base64," + TINY_PNG_BYTES.toString("base64"),

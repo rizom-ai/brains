@@ -22,6 +22,10 @@ import type {
 import type { EntitySerializer } from "./entity-serializer";
 import type { EntityQueries } from "./entity-queries";
 import type { ProjectionStore } from "./projection-store";
+import type {
+  EntityExportStore,
+  EntityExportTransaction,
+} from "./entity-export-store";
 import type { IJobQueueService, JobInfo } from "@brains/job-queue";
 import { createId } from "@brains/utils/id";
 import type { Logger } from "@brains/utils/logger";
@@ -131,6 +135,7 @@ export interface EntityMutationDeps {
   messageBus?: EntityEventBus;
   mutationAdmission?: EntityMutationAdmission;
   projectionStore: ProjectionStore;
+  entityExportStore: EntityExportStore;
   projectionNow: () => number;
   /** Embedding DB for writes (separate from entity DB). */
   embeddingDb: EmbeddingDB;
@@ -151,6 +156,7 @@ export class EntityMutations {
   private messageBus?: EntityEventBus;
   private mutationAdmission?: EntityMutationAdmission;
   private readonly projectionStore: ProjectionStore;
+  private readonly entityExportStore: EntityExportStore;
   private readonly projectionNow: () => number;
   private readonly embeddingsEnabled: boolean;
   private projectionWakeup: (() => Promise<void>) | undefined;
@@ -164,6 +170,7 @@ export class EntityMutations {
     this.entityQueries = deps.entityQueries;
     this.jobQueueService = deps.jobQueueService;
     this.projectionStore = deps.projectionStore;
+    this.entityExportStore = deps.entityExportStore;
     this.projectionNow = deps.projectionNow;
     this.embeddingsEnabled = deps.embeddingsEnabled;
     this.logger = deps.logger.child("EntityMutations");
@@ -273,6 +280,15 @@ export class EntityMutations {
           finalId,
           validatedEntity.entityType,
           markdown,
+        );
+        await this.persistEntityExport(
+          transaction,
+          {
+            entityType: validatedEntity.entityType,
+            entityId: finalId,
+            operation: "upsert",
+          },
+          options?.persistenceOrigin,
         );
       },
     );
@@ -392,10 +408,22 @@ export class EntityMutations {
       existingEntity.visibility === validatedEntity.visibility &&
       stableJson(existingEntity.metadata) === stableJson(metadata)
     ) {
-      await this.projectionStore.releaseProjectionOwnership({
-        entityType: validatedEntity.entityType,
-        id: validatedEntity.id,
-      });
+      await this.projectionStore.transferEntityAuthority(
+        {
+          entityType: validatedEntity.entityType,
+          id: validatedEntity.id,
+        },
+        async (transaction) =>
+          this.persistEntityExport(
+            transaction,
+            {
+              entityType: validatedEntity.entityType,
+              entityId: validatedEntity.id,
+              operation: "upsert",
+            },
+            options?.persistenceOrigin,
+          ),
+      );
       this.logger.debug(
         `Skipping no-op update for ${validatedEntity.entityType}:${validatedEntity.id}`,
       );
@@ -461,6 +489,15 @@ export class EntityMutations {
             validatedEntity.id,
             validatedEntity.entityType,
             markdown,
+          );
+          await this.persistEntityExport(
+            transaction,
+            {
+              entityType: validatedEntity.entityType,
+              entityId: validatedEntity.id,
+              operation: "upsert",
+            },
+            options?.persistenceOrigin,
           );
         },
       );
@@ -558,6 +595,11 @@ export class EntityMutations {
         await transaction
           .delete(entities)
           .where(and(eq(entities.entityType, entityType), eq(entities.id, id)));
+        await this.persistEntityExport(
+          transaction,
+          { entityType, entityId: id, operation: "delete" },
+          options?.persistenceOrigin,
+        );
       },
     );
     await this.notifyProjectionScheduler();
@@ -962,11 +1004,39 @@ export class EntityMutations {
       payload["previousMetadata"] = previousMetadata;
     }
 
-    await this.messageBus.send({
-      type: event,
-      payload: payload,
-      sender: "entity-service",
-      broadcast: true,
+    try {
+      await this.messageBus.send({
+        type: event,
+        payload: payload,
+        sender: "entity-service",
+        broadcast: true,
+      });
+    } catch (error) {
+      // Lifecycle delivery is a wake-up optimization. The durable export and
+      // projection journals remain available for startup/periodic recovery.
+      this.logger.error(
+        `Failed to publish ${event} for ${entityType}:${entityId}`,
+        error,
+      );
+    }
+  }
+
+  private async persistEntityExport(
+    transaction: EntityExportTransaction,
+    target: {
+      entityType: string;
+      entityId: string;
+      operation: "upsert" | "delete";
+    },
+    origin: EntityJobOptions["persistenceOrigin"],
+  ): Promise<void> {
+    if (origin === "directory-sync") {
+      await this.entityExportStore.clear(transaction, target);
+      return;
+    }
+    await this.entityExportStore.record(transaction, {
+      ...target,
+      markedAt: this.projectionNow(),
     });
   }
 

@@ -15,7 +15,10 @@ export interface ImportPersistenceDeps {
       visibilityScope?: ContentVisibility;
     }): Promise<BaseEntity | null>;
     serializeEntity(entity: BaseEntity): string;
-    upsertEntity(request: { entity: BaseEntity }): Promise<{ jobId: string }>;
+    upsertEntity(request: {
+      entity: BaseEntity;
+      options: { persistenceOrigin: "directory-sync" };
+    }): Promise<{ jobId: string }>;
   };
   logger: Logger;
   fileOperations: {
@@ -139,6 +142,7 @@ export async function persistImportEntity(
 
     const upsertResult = await deps.entityService.upsertEntity({
       entity: entity,
+      options: { persistenceOrigin: "directory-sync" },
     });
     result.imported++;
     result.jobIds.push(upsertResult.jobId);

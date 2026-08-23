@@ -18,6 +18,7 @@ import { createId } from "@brains/utils/id";
 import { SerialQueue } from "@brains/utils/serial-queue";
 import { z } from "@brains/utils/zod";
 import type { EntityDB } from "./db";
+import { EntityExportStore } from "./entity-export-store";
 import type { EntityMutationAdmission } from "./mutation-admission";
 import {
   ProjectionWriteIntentSchema,
@@ -339,6 +340,7 @@ export async function retrySqliteWrite<TResult>(
 /** Entity-database persistence boundary for scheduler coordination state. */
 export class ProjectionStore {
   private readonly db: EntityDB;
+  private readonly entityExportStore: EntityExportStore;
   private readonly mutationAdmission: EntityMutationAdmission | undefined;
   private readonly now: () => number;
   private readonly transactionTail = new SerialQueue();
@@ -350,6 +352,7 @@ export class ProjectionStore {
     now: () => number = Date.now,
   ) {
     this.db = db;
+    this.entityExportStore = new EntityExportStore(db, now);
     this.mutationAdmission = mutationAdmission;
     this.now = now;
   }
@@ -1095,6 +1098,25 @@ export class ProjectionStore {
           eq(projectionEntityOwners.entityId, parsed.id),
         ),
       );
+  }
+
+  public transferEntityAuthority<TResult>(
+    input: ProjectionOwnedEntityInput,
+    mutation: (transaction: EntityTransaction) => Promise<TResult>,
+  ): Promise<TResult> {
+    const parsed = projectionOwnedEntitySchema.parse(input);
+    return this.runTransaction(async (transaction) => {
+      const result = await mutation(transaction);
+      await transaction
+        .delete(projectionEntityOwners)
+        .where(
+          and(
+            eq(projectionEntityOwners.entityType, parsed.entityType),
+            eq(projectionEntityOwners.entityId, parsed.id),
+          ),
+        );
+      return result;
+    });
   }
 
   public async markDirty(input: MarkProjectionDirtyInput): Promise<number> {
@@ -1888,6 +1910,12 @@ export class ProjectionStore {
       await transaction.run(
         sql`DELETE FROM entity_fts WHERE entity_id = ${entityId} AND entity_type = ${entityType}`,
       );
+      await this.entityExportStore.record(transaction, {
+        entityType,
+        entityId,
+        operation: "delete",
+        markedAt: changedAt,
+      });
       return { entityType, entityId, operation: "delete" };
     }
 
@@ -1961,6 +1989,12 @@ export class ProjectionStore {
     await transaction.run(
       sql`INSERT INTO entity_fts (entity_id, entity_type, content) VALUES (${entityId}, ${entityType}, ${intent.entity.content})`,
     );
+    await this.entityExportStore.record(transaction, {
+      entityType,
+      entityId,
+      operation: "upsert",
+      markedAt: changedAt,
+    });
     return {
       entityType,
       entityId,

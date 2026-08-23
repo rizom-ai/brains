@@ -202,7 +202,16 @@ export class CheckoutOperationExecutor {
           throw new Error("Git repository is unavailable");
         }
         if (!status.hasChanges && status.ahead === 0) {
-          return { pushed: false, checkpoint: null };
+          // A prior attempt may have pushed successfully and crashed before
+          // acknowledging its durable caller. Return the currently confirmed
+          // local/remote checkpoint so that attempt can settle safely.
+          return {
+            pushed: false,
+            checkpoint: await getCurrentReconciliationCheckpoint(
+              this.#client,
+              this.identity,
+            ),
+          };
         }
         if (status.hasChanges) {
           await commitGitChanges(this.#client, logger);

@@ -10,26 +10,9 @@ import { tmpdir } from "os";
 import { existsSync, rmSync, readFileSync, mkdtempSync } from "fs";
 
 /**
- * Regression: a non-public entity that is *updated* must still be exported.
- *
- * The `entity:updated` subscriber re-reads the entity from the DB rather than
- * trusting the event payload (see `entity-updated-subscriber.test.ts`). That
- * read goes through `entityService.getEntity`, which fails closed: an absent
- * `visibilityScope` filters to public-only
- * (`shell/entity-service/src/entity-queries.ts` — "Fail closed: undefined
- * visibilityScope filters to public-only"). Every `shared` or `restricted`
- * entity therefore came back `null`, the subscriber logged "Entity not found
- * in DB, skipping export" and returned, the file was never rewritten, and the
- * debounced git auto-commit found a clean tree with nothing to commit.
- *
- * The symptom in production: edits made through the site never reached the
- * content repo, while newly created entities did — `entity:created` writes the
- * payload directly and never performs the scoped read. Every `Auto-sync` commit
- * was an `added`, never a `modified`.
- *
- * Export is a system-internal mirror of the whole DB — `export-pipeline.ts`
- * already lists across all tiers via `internalFullScope(...)` — so the
- * single-entity read must opt up the same way.
+ * Regression: durable export re-reads current entity state. That internal
+ * persistence read must span all visibility tiers rather than fail closed to
+ * public-only content.
  */
 
 type HarnessEntityService = ReturnType<
@@ -74,6 +57,7 @@ describe("auto-export visibility scope", () => {
         syncPath,
         autoSync: true,
         initialSync: false,
+        commitDebounce: 100,
       }),
     );
   });

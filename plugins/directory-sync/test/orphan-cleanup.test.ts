@@ -51,6 +51,7 @@ describe("removeOrphanedEntities", () => {
     expect(deps.entityService.deleteEntity).toHaveBeenCalledWith({
       entityType: "social-post",
       id: "deleted-post",
+      options: { persistenceOrigin: "directory-sync" },
     });
   });
 
@@ -86,10 +87,12 @@ describe("removeOrphanedEntities", () => {
     expect(deps.entityService.deleteEntity).toHaveBeenCalledWith({
       entityType: "skill",
       id: "organize-personal-knowledge",
+      options: { persistenceOrigin: "directory-sync" },
     });
     expect(deps.entityService.deleteEntity).toHaveBeenCalledWith({
       entityType: "skill",
       id: "clarify-agent-positioning",
+      options: { persistenceOrigin: "directory-sync" },
     });
   });
 
@@ -188,6 +191,7 @@ describe("removeOrphanedEntities", () => {
     expect(deps.entityService.deleteEntity).toHaveBeenCalledWith({
       entityType: "social-post",
       id: "post-1",
+      options: { persistenceOrigin: "directory-sync" },
     });
     // blog-post should not be touched
     expect(deps.entityService.listEntities).not.toHaveBeenCalledWith(

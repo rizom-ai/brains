@@ -1,7 +1,11 @@
 import type { BaseEntity, IEntityService } from "@brains/plugins";
 import { basename, dirname, extname } from "path";
 import { resolveInSyncPath, toSyncRelativePath } from "./path-utils";
-import { getMimeTypeForExtension, isImageFile } from "./image-file-utils";
+import {
+  getMimeTypeForExtension,
+  IMAGE_EXTENSIONS,
+  isImageFile,
+} from "./image-file-utils";
 import {
   DOCUMENT_SIDECAR_SUFFIX,
   getDocumentMimeTypeForExtension,
@@ -14,7 +18,7 @@ import {
   getEntityFileExtension,
   parseEntityPath,
 } from "./entity-paths";
-import { mkdir, readFile, writeFile, stat, utimes } from "fs/promises";
+import { mkdir, readFile, unlink, writeFile, stat, utimes } from "fs/promises";
 import { z } from "@brains/utils/zod";
 import { computeContentHash } from "@brains/utils/hash";
 import type { RawEntity, DirectorySyncStatus } from "../types";
@@ -160,6 +164,31 @@ export class FileOperations {
     const isImage = entity.entityType === "image";
     const isDocument = entity.entityType === "document";
 
+    // The durable outbox keeps only the latest mutation per (type, id).
+    // Image extensions are content-derived, so converge that stable namespace
+    // by removing every obsolete representation before writing the latest one.
+    if (isImage) {
+      await Promise.all(
+        this.getEntityDeletePaths(entity.entityType, entity.id)
+          .filter((candidate) => candidate !== filePath)
+          .map(async (candidate) => {
+            try {
+              await unlink(candidate);
+            } catch (error) {
+              if (
+                typeof error === "object" &&
+                error !== null &&
+                "code" in error &&
+                error.code === "ENOENT"
+              ) {
+                return;
+              }
+              throw error;
+            }
+          }),
+      );
+    }
+
     if (isImage || isDocument) {
       const dataUrlPattern = isImage
         ? /^data:image\/[a-z+]+;base64,(.+)$/i
@@ -278,6 +307,45 @@ export class FileOperations {
     return entity.entityType === "document"
       ? [filePath, getDocumentSidecarPath(filePath)]
       : [filePath];
+  }
+
+  /** Every path that may change while converging the latest entity revision. */
+  getEntityConvergencePaths(entity: BaseEntity): string[] {
+    return entity.entityType === "image"
+      ? this.getEntityDeletePaths(entity.entityType, entity.id)
+      : this.getEntityWritePaths(entity);
+  }
+
+  getEntityDeletePaths(entityType: string, entityId: string): string[] {
+    if (entityType === "document") {
+      const filePath = this.getFilePath(entityId, entityType, ".pdf");
+      return [filePath, getDocumentSidecarPath(filePath)];
+    }
+    const extensions =
+      entityType === "image" ? [...IMAGE_EXTENSIONS, ".md"] : [".md"];
+    return extensions.map((extension) =>
+      this.getFilePath(entityId, entityType, extension),
+    );
+  }
+
+  async deleteEntityFiles(entityType: string, entityId: string): Promise<void> {
+    await Promise.all(
+      this.getEntityDeletePaths(entityType, entityId).map(async (filePath) => {
+        try {
+          await unlink(filePath);
+        } catch (error) {
+          if (
+            typeof error === "object" &&
+            error !== null &&
+            "code" in error &&
+            error.code === "ENOENT"
+          ) {
+            return;
+          }
+          throw error;
+        }
+      }),
+    );
   }
 
   async getAllMarkdownFiles(): Promise<string[]> {

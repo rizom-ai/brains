@@ -127,6 +127,7 @@ export class DirectoryDeleteJobHandler extends BaseJobHandler<
       const deleted = await this.context.entityService.deleteEntity({
         entityType: deletion.entityType,
         id: deletion.entityId,
+        options: { persistenceOrigin: "directory-sync" },
       });
 
       if (deleted) {

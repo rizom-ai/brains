@@ -7,6 +7,7 @@ import { join } from "path";
 import { tmpdir } from "os";
 import { existsSync, rmSync, mkdirSync, writeFileSync, mkdtempSync } from "fs";
 import { MockEntityAdapter } from "./fixtures";
+import { createTestEntity } from "@brains/test-utils";
 
 describe("DirectorySyncPlugin - Initial Sync Completion", () => {
   let harness: ReturnType<typeof createPluginHarness<DirectorySyncPlugin>>;
@@ -84,5 +85,27 @@ describe("DirectorySyncPlugin - Initial Sync Completion", () => {
     const events = await installAndTriggerInitialSync({ seedContent: false });
 
     expect(events).toContain(SYSTEM_CHANNELS.initialSyncCompleted);
+  });
+
+  it("exports a service-created entity whose lifecycle event was previously lost before cleanup", async () => {
+    const entityService = harness.getEntityService();
+    const entity = createTestEntity("note", {
+      id: "service-created-before-directory-sync",
+      content: "This durable entity must reach Git before cleanup.",
+    });
+    await entityService.createEntity({ entity });
+    expect(await entityService.listPendingEntityExports()).toHaveLength(1);
+
+    const events = await installAndTriggerInitialSync({ seedContent: false });
+
+    expect(events).toContain(SYSTEM_CHANNELS.initialSyncCompleted);
+    expect(
+      await entityService.getEntity({
+        entityType: "note",
+        id: entity.id,
+      }),
+    ).not.toBeNull();
+    expect(existsSync(join(syncPath, `${entity.id}.md`))).toBe(true);
+    expect(await entityService.listPendingEntityExports()).toEqual([]);
   });
 });

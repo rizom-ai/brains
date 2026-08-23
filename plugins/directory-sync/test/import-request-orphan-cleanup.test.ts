@@ -81,7 +81,29 @@ describe("Import then orphan cleanup", () => {
     expect(mockEntityService.deleteEntity).toHaveBeenCalledWith({
       entityType: "note",
       id: "test-123",
+      options: { persistenceOrigin: "directory-sync" },
     });
+  });
+
+  it("blocks every cleanup entry point when durable exports are unsettled", async () => {
+    storedEntities["note"] = [
+      createTestEntity("note", { id: "pending-export" }),
+    ];
+    dirSync.setCleanupAdmission(async () => {
+      throw new Error("durable exports remain pending");
+    });
+
+    let failure: unknown;
+    try {
+      await dirSync.removeOrphanedEntities();
+    } catch (error) {
+      failure = error;
+    }
+
+    expect(failure).toEqual(
+      expect.objectContaining({ message: "durable exports remain pending" }),
+    );
+    expect(mockEntityService.deleteEntity).not.toHaveBeenCalled();
   });
 
   it("should not delete entities that still have files on disk", async () => {

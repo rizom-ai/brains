@@ -76,6 +76,7 @@ export class DirectorySync implements IDirectorySync {
   private operationDeps: DirectoryOperationDeps;
   private jobQueueCallback?: ((job: JobRequest) => Promise<string>) | undefined;
   private readonly pendingDeletes: PendingDeleteRegistry;
+  private cleanupAdmission: (() => Promise<void>) | undefined;
 
   constructor(
     options: DirectorySyncOptions,
@@ -135,6 +136,10 @@ export class DirectorySync implements IDirectorySync {
 
   setJobQueueCallback(callback: (job: JobRequest) => Promise<string>): void {
     this.jobQueueCallback = callback;
+  }
+
+  setCleanupAdmission(callback: () => Promise<void>): void {
+    this.cleanupAdmission = callback;
   }
 
   /**
@@ -225,7 +230,8 @@ export class DirectorySync implements IDirectorySync {
     return importDirectoryEntities(this.operationDeps, this.entityTypes, paths);
   }
 
-  private removeOrphanedEntitiesUnbatched(): Promise<CleanupResult> {
+  private async removeOrphanedEntitiesUnbatched(): Promise<CleanupResult> {
+    await this.cleanupAdmission?.();
     return removeOrphanedDirectoryEntities(
       this.operationDeps,
       this.logger,

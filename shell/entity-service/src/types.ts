@@ -1,6 +1,15 @@
 import type { ActorRef } from "@brains/contracts";
 import type { ProjectionStore } from "./projection-store";
 import type { ProjectionChangedTarget } from "./schema/projection-state";
+import type {
+  AcknowledgeEntityExportsRequest,
+  EntityExportIntent,
+} from "./entity-export-types";
+export type {
+  AcknowledgeEntityExportsRequest,
+  EntityExportAcknowledgement,
+  EntityExportIntent,
+} from "./entity-export-types";
 import { z } from "@brains/utils/zod";
 import {
   contentVisibilitySchema,
@@ -46,10 +55,17 @@ export type {
   EntityMutationAdmissionTarget,
 } from "./mutation-admission";
 
+export type EntityPersistenceOrigin = "ordinary" | "directory-sync";
+
 export interface EntityJobOptions {
   priority?: number;
   maxRetries?: number;
   eventContext?: EntityMutationEventContext;
+  /**
+   * Identifies authoritative file imports/deletes so they clear, rather than
+   * create, an outbound directory-export intent.
+   */
+  persistenceOrigin?: EntityPersistenceOrigin;
 }
 
 export {
@@ -594,7 +610,8 @@ export interface UpdateEntityRequest<T extends BaseEntity> {
 export interface DeleteEntityRequest {
   entityType: string;
   id: string;
-  options?: Pick<EntityJobOptions, "eventContext"> | undefined;
+  options?:
+    Pick<EntityJobOptions, "eventContext" | "persistenceOrigin"> | undefined;
 }
 
 export interface UpsertEntityRequest<T extends BaseEntity> {
@@ -945,6 +962,14 @@ export interface EntityService extends ICoreEntityService {
   isProjectionOwnedEntity(
     request: ProjectionOwnedEntityRequest,
   ): Promise<boolean>;
+
+  // Durable entity-to-directory export coordination
+  listPendingEntityExports(): Promise<EntityExportIntent[]>;
+  hasPendingEntityExports(): Promise<boolean>;
+  acknowledgeEntityExports(
+    request: AcknowledgeEntityExportsRequest,
+  ): Promise<number>;
+
   // Scheduler-owned projection coordination
   getProjectionStore(): ProjectionStore;
   setProjectionWakeup(wakeup: () => Promise<void>): () => void;
