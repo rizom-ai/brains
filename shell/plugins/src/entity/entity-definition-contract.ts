@@ -335,19 +335,34 @@ export type EntityCreateAttachment = (written: {
   readonly entityId: string;
 }) => CreateResultAttachment;
 
-export interface EntityCreateAllocation {
-  readonly create: {
-    readonly id: string;
-    readonly content: string;
-    readonly metadata: Record<string, unknown>;
-  };
-  readonly delegate: {
-    /** A job this package declares, named locally. */
-    readonly job: string;
-    /** Merged over `{ entityId }`, which the runtime always supplies. */
-    readonly input?: Record<string, unknown> | undefined;
-  };
+export interface EntityCreateDelegation {
+  /** A job this package declares, named locally. */
+  readonly job: string;
+  /** Merged over `{ entityId }`, which the runtime always supplies. */
+  readonly input?: Record<string, unknown> | undefined;
 }
+
+export type EntityCreateAllocation =
+  | {
+      readonly create: {
+        readonly id: string;
+        readonly content: string;
+        readonly metadata: Record<string, unknown>;
+      };
+      readonly delegate: EntityCreateDelegation;
+    }
+  /**
+   * Delegate against an entity the route already found.
+   *
+   * Both answers are right somewhere: importing the same file twice makes
+   * two notes, rendering the same deck twice reuses one document. The route
+   * is what knows which, so it says — rather than the runtime guessing from
+   * an id collision, which would allocate a second entity beside the first.
+   */
+  | {
+      readonly existing: { readonly id: string };
+      readonly delegate: EntityCreateDelegation;
+    };
 
 /** What a create route is given to decide with. */
 export interface EntityCreateContext {

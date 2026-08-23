@@ -1192,6 +1192,101 @@ describe("entity package definitions", () => {
     ).toThrow();
   });
 
+  // Two right answers, and the route knows which. Importing the same file
+  // twice makes two notes; rendering the same deck twice reuses one
+  // document. A route that finds what it would have made says so, and the
+  // runtime delegates against that entity instead of allocating a second.
+  it("delegates against an entity the route found rather than allocating again", async () => {
+    const guide = defineEntity({
+      type: "guide",
+      purpose: "A guide rendered from a source entity.",
+      metadata: z.object({ title: z.string(), dedupKey: z.string() }),
+      jobs: {
+        render: {
+          input: z.object({ entityId: z.string() }),
+          handle: async (): Promise<{ done: true }> => ({ done: true }),
+        },
+      },
+      create: {
+        fromAttachment: {
+          resolve: async ({ entities }) => {
+            const [found] = await entities.listEntities({
+              entityType: "guide",
+              options: { filter: { metadata: { dedupKey: "deck:1" } } },
+            });
+            return found
+              ? { existing: { id: found.id }, delegate: { job: "render" } }
+              : {
+                  create: {
+                    id: "rendered-guide",
+                    content: "Rendering…",
+                    metadata: { title: "Rendering", dedupKey: "deck:1" },
+                  },
+                  delegate: { job: "render" },
+                };
+          },
+        },
+      },
+    });
+    const definition = defineEntityPackage({ id: "guides", entities: [guide] });
+    const plugin = createEntityPackagePlugins(
+      definition.entities,
+      definition.projections,
+      { name: "@fixture/guides", version: "0.1.0" },
+      (id) => `@fixture/guides:${id}`,
+    )[0];
+    if (!plugin) throw new Error("Guide entity plugin was not created");
+
+    const harness = createPluginHarness({
+      logger: createSilentLogger("entity-existing-test"),
+    });
+    let interceptor: CreateInterceptor | undefined;
+    const registry = harness.getEntityRegistry();
+    stubMethod(registry, "registerCreateInterceptor", (_type, registered) => {
+      interceptor = registered;
+    });
+    const enqueued: { data: unknown }[] = [];
+    const shell = harness.getMockShell();
+    const jobQueue = shell.getJobQueueService();
+    stubMethod(jobQueue, "enqueue", async ({ data }) => {
+      enqueued.push({ data });
+      return "job-1";
+    });
+    shell.getJobQueueService = (): typeof jobQueue => jobQueue;
+
+    await harness.installPlugin(plugin);
+    if (!interceptor) throw new Error("Create interceptor was not registered");
+
+    const request = {
+      entityType: "guide",
+      from: {
+        kind: "entity-attachment" as const,
+        sourceEntityType: "deck",
+        sourceEntityId: "deck-1",
+        attachmentType: "carousel",
+      },
+    };
+
+    await interceptor(request, executionContext);
+    const second = await interceptor(request, executionContext);
+
+    // One entity, two jobs — the second render replaced the first's output
+    // rather than creating "rendered-guide-2" beside it.
+    expect(
+      await harness.getEntityService().listEntities({ entityType: "guide" }),
+    ).toHaveLength(1);
+    expect(second).toMatchObject({
+      kind: "handled",
+      result: { success: true, data: { entityId: "rendered-guide" } },
+    });
+    expect(enqueued.map(({ data }) => data)).toEqual([
+      { entityId: "rendered-guide", expectedContentHash: expect.any(String) },
+      { entityId: "rendered-guide" },
+    ]);
+
+    harness.reset();
+  });
+
   it("registers declared jobs and surfaces declared instructions", async () => {
     // Generation is just a job the runtime names for you, so both go
     // through the same declaration shape and the same validated handler.
