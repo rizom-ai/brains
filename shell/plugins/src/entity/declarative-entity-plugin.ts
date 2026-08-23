@@ -68,7 +68,13 @@ function selectCreateRoute(
   routing: EntityCreateRouting,
   input: CreateInput,
 ): EntityCreateRoute | undefined {
-  if (input.from) return routing.fromUpload;
+  // `from` already discriminates, so the routing keys follow it rather than
+  // funnelling every ref kind through one route that has to re-check.
+  if (input.from) {
+    return input.from.kind === "entity-attachment"
+      ? routing.fromAttachment
+      : routing.fromUpload;
+  }
   if (input.content) return routing.fromContent;
   if (input.prompt) return routing.fromPrompt;
   return undefined;
@@ -190,6 +196,19 @@ function entityAdapter(
     toMarkdown(entity): string {
       return encodeEntityMarkdown(definition, entity);
     },
+    /**
+     * What the file says, and only that.
+     *
+     * Deliberately not validated against the metadata schema: this returns a
+     * partial, and for an entity whose metadata does not live in its content
+     * — a document is a data URL with its filename and media type in a
+     * sidecar — directory-sync merges this half with the other before
+     * anything is written. Enforcing the schema here would reject an object
+     * that was never meant to be complete. Every write still validates the
+     * assembled entity through `entityRegistry.validateEntity`, so the
+     * guarantee moves to where the whole entity exists rather than
+     * disappearing.
+     */
     fromMarkdown(markdown): Partial<EntityOf<EntityDefinitionShape>> {
       const parsed = parseMarkdownWithFrontmatter(
         markdown,
@@ -203,7 +222,8 @@ function entityAdapter(
         : { content: parsed.content, metadata: parsed.metadata };
       return {
         content: decoded.content,
-        metadata: definition.metadata.parse(decoded.metadata),
+        metadata:
+          decoded.metadata as EntityOf<EntityDefinitionShape>["metadata"],
       };
     },
     extractMetadata: (entity) => entity.metadata,
