@@ -28,7 +28,7 @@ import { dashboardPlugin } from "@brains/dashboard";
 import decksPackage from "@brains/decks";
 import { directorySync } from "@brains/directory-sync";
 import docPackage from "@brains/doc";
-import { documentPlugin } from "@brains/document-plugin";
+import documentPackage from "@brains/document-plugin";
 import { EmailInterface } from "@brains/email";
 import { emailWorkflows } from "@brains/email-workflows";
 import { imagePlugin } from "@brains/image-plugin";
@@ -147,7 +147,7 @@ export const canonicalBrain: BrainDefinition = defineBrain({
     ["profile", profilePlugin, undefined],
     packageCapability("style-guide", "@brains/style-guide", styleGuidePackage),
     ["image", imagePlugin, undefined],
-    ["document", documentPlugin, undefined],
+    packageCapability("document", "@brains/document-plugin", documentPackage),
     packageCapability("note", "@brains/note", notePackage),
     packageCapability("link", "@brains/link", linkPackage),
     packageCapability("wishlist", "@brains/wishlist", wishlistPackage),

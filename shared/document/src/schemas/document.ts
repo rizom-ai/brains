@@ -17,8 +17,7 @@ type DocumentMetadataSchema = z.ZodObject<{
   filename: z.ZodString;
   pageCount: z.ZodOptional<z.ZodNumber>;
   status: z.ZodOptional<z.ZodType<DocumentIngestionStatus>>;
-  processingJobId: z.ZodOptional<z.ZodString>;
-  processingError: z.ZodOptional<z.ZodString>;
+  error: z.ZodOptional<z.ZodString>;
   sourceEntityType: z.ZodOptional<z.ZodString>;
   sourceEntityId: z.ZodOptional<z.ZodString>;
   sourceUploadId: z.ZodOptional<z.ZodString>;
@@ -34,8 +33,10 @@ export const documentMetadataSchema: DocumentMetadataSchema = z.object({
   filename: z.string().min(1),
   pageCount: z.number().int().min(0).optional(),
   status: documentIngestionStatusSchema.optional(),
-  processingJobId: z.string().optional(),
-  processingError: z.string().optional(),
+  // Named for what the runtime writes when a generation fails, not for the
+  // pending-ingestion helper this used to go through: a reason under any
+  // other key is stripped by this schema and the failure reads as blank.
+  error: z.string().optional(),
   sourceEntityType: z.string().min(1).optional(),
   sourceEntityId: z.string().min(1).optional(),
   sourceUploadId: z.string().optional(),

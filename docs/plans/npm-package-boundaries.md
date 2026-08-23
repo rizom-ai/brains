@@ -10,7 +10,8 @@ Re-fact-checked against the tree 2026-08-14:
 - Declaration cleanliness is already guarded: `findInternalDeclarationImports` in `packages/brain-cli/scripts/build.ts` fails the build when generated declarations contain `@brains/*` imports.
 - `bun run arch:check` submits the Git-selected TypeScript/JavaScript inventory to one dependency-cruiser graph, asserts workspace-family coverage, and enforces circular, unresolved, plugin, entity, and interface boundaries in dedicated CI. It does not yet include the published-official-plugin dependency rule from migration step 4. Its existing tier rules permit any `shell/*` import, so they do not constrain which shell package an entity or interface reaches for.
 - The blessed `z` root export (utils section below) is implemented from the public `@rizom/brain` root entry, so external plugin fixtures no longer declare their own `zod` dependency.
-- Milestone A is DONE (`@brains/prompt`) and A2 is DONE (`@brains/style-guide`). Publishable-clean is **14 of 18** as of 2026-08-20: `@brains/prompt`, `@brains/style-guide`, `@brains/doc`, `@brains/products`, `@brains/series`, `@brains/blog`, `@brains/decks`, `@brains/portfolio`, `@brains/social-media`, `@brains/wishlist`, `@brains/assessment`, `@brains/topics`, `@brains/link`, `@brains/note`. 18, not 19, since `@brains/site-info` moved to `plugins/`. Four remain, all still class-based: `conversation-memory`, `document`, `image`, `agent-discovery`. `document` and `image` hinge on the uploads question the blocker audit left unjudged; `note` needs its upload-import job moved first (category B).
+- Milestone A is DONE (`@brains/prompt`) and A2 is DONE (`@brains/style-guide`). Publishable-clean is **15 of 18** as of 2026-08-23: `@brains/prompt`, `@brains/style-guide`, `@brains/doc`, `@brains/products`, `@brains/series`, `@brains/blog`, `@brains/decks`, `@brains/portfolio`, `@brains/social-media`, `@brains/wishlist`, `@brains/assessment`, `@brains/topics`, `@brains/link`, `@brains/note`, `@brains/document-plugin`. 18, not 19, since `@brains/site-info` moved to `plugins/`. Three remain, all still class-based: `conversation-memory`, `image`, `agent-discovery`. `image` is the same shape as `document` and inherits its slots; the other two are the largest.
+- `document` cost five capabilities, not the one the blocker audit predicted. Uploads was the one it named; the other four only appeared once the conversion was attempted. `linkInto` on a generation result, so the runtime — not the package — writes the back-reference into a deck the package may not touch. An `attachment` on an allocation, so a caller gets a link to a PDF that has not been rendered yet. A codec that decodes partial metadata, because a document's filename lives in a sidecar and the honest codec was the one that would not compile. And the runtime's own allocation fields surviving a declared input schema, which had been silently dropping the hash that makes a concurrent edit win. Conversion keeps being the thing that finds them.
 - Conversion is capability-then-dependency, never either alone: a package only becomes publishable-clean once the declarative surface can express what it does. Slots added for the last three: `projectionRules` and `insights` and `publish` on the service definition, `stub`, `insights`, `dashboardWidgets`, `scheduledGeneration` and the generation lifecycle on the entity definition, plus `fixtures` and `runProjectionRule` on the eval context.
 - A repo-wide inventory of all 19 entity and 7 interface packages (migration step 1, applied beyond `@brains/note`) is recorded under "Related finding: internal facade bypass audit" below.
 
@@ -1221,9 +1222,12 @@ it because it should not.
 - **`uploads` in `@brains/note`.** As above. The fix is for whatever
   owns the upload to extract the markdown and create a note from
   content.
-- **`uploads` in `image` and `document`** are not yet judged. Holding
-  bytes may genuinely be the point for those two; the same question has
-  to be asked rather than assumed either way.
+- **`uploads` in `image`** is settled by `document`, which was the other
+  half of this entry. Holding the bytes is genuinely the point for both:
+  a preserved PDF _is_ its file. So the route reads the upload it was
+  handed through a narrow reader, and declares the media types it claims
+  so the endpoint and `system_create` stay one decision rather than two
+  registrations. `image` inherits that shape unchanged.
 
 ### C. Genuine capability, wrong expression
 
