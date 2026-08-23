@@ -1,12 +1,9 @@
-# Brain Seed Content
+# Personal Brain Seed Content
 
-Default content copied on first boot when `brain-data/` is empty.
+Default private-console identity content copied on first boot when `brain-data/` is empty.
 
 - `brain-character/` — Brain identity
 - `anchor-profile/` — Owner profile and bio
-- `site-info/` — Site metadata (title, description, CTA)
-- `post/` — Sample blog post
-- `deck/` — Sample presentation
-- `project/` — Sample portfolio project
+- `style-guide/` — Durable expression guidance
 
-After initial import, the database and git repo become the source of truth.
+Add notes, links, images, and documents through the browser console, chat, or MCP. After initial import, `brain-data/` and its optional Git remote become the source of truth.

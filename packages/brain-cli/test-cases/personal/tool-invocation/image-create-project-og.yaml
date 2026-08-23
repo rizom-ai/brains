@@ -10,7 +10,7 @@ tags:
   - image
   - media
   - og-image
-  - posture-publishing
+  - recipe-professional
 
 turns:
   - userMessage: "Generate an OG image for project 'city-pulse'"

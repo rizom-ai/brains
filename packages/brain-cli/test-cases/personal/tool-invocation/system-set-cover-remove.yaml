@@ -8,7 +8,7 @@ tags:
   - core
   - image
   - cover
-  - posture-personal
+  - recipe-professional
 
 turns:
   - userMessage: "Remove the cover image from blog post 'resilience-in-distributed-systems'"

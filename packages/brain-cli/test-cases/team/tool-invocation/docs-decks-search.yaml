@@ -5,7 +5,7 @@ type: tool_invocation
 setup:
   permissionLevel: admin
 tags:
-  - posture-team
+  - requires-member-decks
   - team
   - docs
   - decks

@@ -308,6 +308,7 @@ describe("directory import burst with locally mocked AI features", () => {
         {},
         {
           name: "Mocked AI import load",
+          bundleContract: "capability-bundles-v1",
           bundles: ["core"],
           remove: [
             "atproto-registry",

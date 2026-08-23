@@ -5,6 +5,7 @@ type: tool_invocation
 setup:
   permissionLevel: admin
 tags:
+  - recipe-professional
   - agent-discovery
   - a2a
   - tool-invocation

@@ -98,7 +98,13 @@ export async function upsertAgentFromCard(
   now: string = new Date().toISOString(),
 ): Promise<{ agent: AgentEntity; created: boolean; conflict?: boolean }> {
   const { record } = input;
-  const agentId = domainIdFromUrl(record.siteUrl);
+  const siteUrl = record.siteUrl;
+  if (!siteUrl) {
+    throw new Error(
+      "Federation-only brain cards cannot be projected as callable agents",
+    );
+  }
+  const agentId = domainIdFromUrl(siteUrl);
   const existing = await context.entityService.getEntity<AgentEntity>({
     entityType: "agent",
     id: agentId,
@@ -133,7 +139,7 @@ export async function upsertAgentFromCard(
   // notes) while refreshing remote-owned identity and public capability
   // snapshot fields from the signed card.
   const status: AgentStatus = existing?.metadata.status ?? "discovered";
-  const url = existing?.metadata.url ?? record.siteUrl;
+  const url = existing?.metadata.url ?? siteUrl;
   const slug = existing?.metadata.slug ?? slugifyUrl(url);
   const name = record.anchor.name;
   const kind = record.anchor.category;

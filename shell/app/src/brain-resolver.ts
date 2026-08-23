@@ -85,6 +85,12 @@ function applyPluginDefaults(
     );
   }
 
+  const mcpExplicit = pluginOverrides["mcp"] ?? {};
+  pluginOverrides["mcp"] = deepMerge(
+    { transport: webserverEnabled ? "http" : "stdio" },
+    mcpExplicit,
+  );
+
   if (site || theme !== undefined) {
     const siteBuilderExplicit = pluginOverrides["site-builder"] ?? {};
     const siteBuilderDefaults: Record<string, unknown> = {
@@ -117,12 +123,6 @@ function applyPluginDefaults(
     pluginOverrides["dashboard"] = deepMerge(
       dashboardDefaults,
       dashboardExplicit,
-    );
-
-    const dashboardRootExplicit = pluginOverrides["dashboard-root"] ?? {};
-    pluginOverrides["dashboard-root"] = deepMerge(
-      dashboardDefaults,
-      dashboardRootExplicit,
     );
   }
 }
@@ -314,12 +314,30 @@ function applySiteEntityDisplay(
   };
 }
 
+function assertBundleContract(
+  definition: BrainDefinition,
+  overrides: Omit<InstanceOverrides, "brain"> | undefined,
+): void {
+  const expected = definition.bundleContract;
+  if (expected === undefined) return;
+
+  const received = overrides?.bundleContract;
+  if (received === expected) return;
+
+  throw new Error(
+    received === undefined
+      ? `Brain "${definition.name}" requires bundleContract "${expected}"; this brain.yaml predates the active bundle taxonomy. Run "brain config migrate" with an explicitly reviewed recipe before startup.`
+      : `Brain "${definition.name}" requires bundleContract "${expected}", received "${received}".`,
+  );
+}
+
 function resolveRuntimeDefinition(
   definition: BrainDefinition,
   env: BrainEnvironment,
   overrides?: Omit<InstanceOverrides, "brain">,
   logger?: Logger,
 ): AppConfig {
+  assertBundleContract(definition, overrides);
   const selection = resolveBrainSelection(definition, overrides);
   const activeIds = selection.activeIds;
   const bundlePermissions = resolveBundlePermissionConfig(

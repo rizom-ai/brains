@@ -11,7 +11,6 @@ describe("AT Protocol lexicons", () => {
     expect(lexicon.defs.main.type).toBe("record");
     expect(lexicon.defs.main.key).toBe("literal:self");
     expect(lexicon.defs.main.record.required).toEqual([
-      "siteUrl",
       "brain",
       "anchor",
       "skills",

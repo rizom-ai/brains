@@ -7,7 +7,7 @@ type: tool_invocation
 setup:
   permissionLevel: admin
 tags:
-  - posture-team
+  - recipe-team
   - team
   - prompt
   - topics
@@ -31,12 +31,7 @@ successCriteria:
       shouldBeCalled: false
   responseContains:
     - "topics"
-  responseContainsAny:
-    - - "future plugin"
-      - "future or unavailable plugins"
-      - "plugins that do not yet exist"
-      - "plugins or capabilities that do not yet exist"
-      - "plugin entities"
+    - "invent"
   responseNotContains:
     - "updated"
     - "blog"

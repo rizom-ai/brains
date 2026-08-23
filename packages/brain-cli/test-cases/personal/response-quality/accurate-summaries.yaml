@@ -9,7 +9,7 @@ tags:
   - quality
   - accuracy
   - summaries
-  - posture-publishing
+  - recipe-professional
 
 turns:
   - userMessage: "Give me an overview of all my content"
@@ -21,5 +21,6 @@ successCriteria:
   minHelpfulnessScore: 3
 
 efficiency:
-  maxToolCalls: 12
+  # The professional bundle exposes 13 durable content entity types.
+  maxToolCalls: 13
   maxTokens: 50000

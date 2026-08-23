@@ -21,6 +21,7 @@ describe("writeUsersTable", () => {
   it("renders desired-state markdown table to views/users.md", async () => {
     const root = await createPilotRepo({
       "pilot.yaml": `brainVersion: 0.1.1-alpha.14
+bundleContract: capability-bundles-v1
 githubOrg: rizom-ai
 contentRepoPrefix: rover-
 domainSuffix: .rizom.ai

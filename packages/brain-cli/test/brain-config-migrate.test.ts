@@ -2,7 +2,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { parseInstanceOverrides } from "@brains/app";
+import { parseInstanceOverrides, resolveBundleSelection } from "@brains/app";
 import { parseArgs } from "../src/parse-args";
 import { runCommand } from "../src/run-command";
 import {
@@ -13,8 +13,73 @@ import {
   expandBrainRecipe,
   type BrainRecipeName,
 } from "../src/lib/brain-recipes";
+import { canonicalBundles } from "../src/model/canonical-bundles";
+import { canonicalBrain } from "../src/model/canonical-brain";
 
 const temporaryDirectories: string[] = [];
+const catalogIds = [
+  ...canonicalBrain.capabilities.map(([id]) => id),
+  ...canonicalBrain.interfaces.map(([id]) => id),
+];
+const legacyCoreMembers = [
+  "prompt",
+  "profile",
+  "style-guide",
+  "image",
+  "document",
+  "note",
+  "link",
+  "wishlist",
+  "topics",
+  "decks",
+  "directory-sync",
+  "atproto-registry",
+  "agents",
+  "assessment",
+  "auth-service",
+  "account",
+  "notifications",
+  "playbook",
+  "playbooks",
+  "onboarding",
+  "email",
+  "cms",
+  "dashboard",
+  "admin",
+  "mcp",
+  "webserver",
+  "web-chat",
+  "chat",
+  "a2a",
+];
+const legacySiteMembers = [
+  "dashboard",
+  "site-info",
+  "site-content",
+  "site-builder",
+  "analytics",
+];
+const legacyPublishingMembers = [
+  "blog",
+  "series",
+  "portfolio",
+  "content-pipeline",
+  "social-media",
+  "newsletter",
+  "stock-photo",
+  "atproto",
+];
+const legacyTeamMembers = [
+  "image",
+  "note",
+  "link",
+  "topics",
+  "decks",
+  "mcp",
+  "chat",
+  "conversation-memory",
+  "docs",
+];
 
 afterEach(() => {
   for (const directory of temporaryDirectories.splice(0)) {
@@ -26,13 +91,33 @@ const recipeExpectations: Record<
   BrainRecipeName,
   ReturnType<typeof expandBrainRecipe>
 > = {
-  minimal: {
+  headless: {
+    bundleContract: "capability-bundles-v1",
     bundles: ["core"],
   },
   personal: {
+    bundleContract: "capability-bundles-v1",
     anchor: "person",
     kind: "professional",
-    bundles: ["core", "site", "publishing"],
+    bundles: ["core", "media", "web", "chat"],
+    plugins: {
+      "directory-sync": { seedContentPath: "./seed-content" },
+    },
+  },
+  professional: {
+    bundleContract: "capability-bundles-v1",
+    anchor: "person",
+    kind: "professional",
+    bundles: [
+      "core",
+      "media",
+      "automation",
+      "web",
+      "chat",
+      "site",
+      "publishing",
+      "federation",
+    ],
     site: {
       package: "@brains/site-default",
       theme: "@rizom/theme-default",
@@ -42,9 +127,11 @@ const recipeExpectations: Record<
     },
   },
   team: {
+    bundleContract: "capability-bundles-v1",
     anchor: "team",
     kind: "team",
-    bundles: ["core", "site", "team"],
+    bundles: ["core", "media", "automation", "web", "chat", "site", "team"],
+    add: ["docs"],
     site: {
       package: "@brains/site-default",
       theme: "@brains/theme-rizom",
@@ -54,9 +141,10 @@ const recipeExpectations: Record<
     },
   },
   commerce: {
+    bundleContract: "capability-bundles-v1",
     anchor: "organization",
     kind: "organization",
-    bundles: ["core", "site"],
+    bundles: ["core", "media", "web", "site"],
     add: ["products"],
     site: {
       package: "@rizom/site-rizom",
@@ -100,7 +188,13 @@ function expectMigrationSelection(
 
 describe("brain recipe preparation", () => {
   test("expands fixed recipes to explicit runtime selections", () => {
-    for (const recipe of ["minimal", "personal", "team", "commerce"] as const) {
+    for (const recipe of [
+      "headless",
+      "personal",
+      "professional",
+      "team",
+      "commerce",
+    ] as const) {
       expect(expandBrainRecipe(recipe)).toEqual(recipeExpectations[recipe]);
     }
   });
@@ -118,13 +212,33 @@ describe("brain recipe preparation", () => {
 
 describe("brain config migration preview", () => {
   test("maps every legacy model and preset to explicit canonical selection", () => {
+    const professionalBundles = [
+      "core",
+      "media",
+      "automation",
+      "web",
+      "chat",
+      "site",
+      "publishing",
+      "federation",
+    ];
+    const teamBundles = [
+      "core",
+      "media",
+      "automation",
+      "web",
+      "chat",
+      "site",
+      "team",
+    ];
+
     expectMigrationSelection("rover", "core", {
       bundles: ["core"],
       anchor: "person",
       kind: "professional",
     });
     expectMigrationSelection("rover", "default", {
-      bundles: ["core", "site", "publishing"],
+      bundles: professionalBundles,
       add: ["obsidian-vault"],
       remove: [
         "series",
@@ -138,32 +252,151 @@ describe("brain config migration preview", () => {
       kind: "professional",
     });
     expectMigrationSelection("rover", "full", {
-      bundles: ["core", "site", "publishing"],
+      bundles: professionalBundles,
       add: ["obsidian-vault"],
       anchor: "person",
       kind: "professional",
     });
     expectMigrationSelection("relay", "core", {
-      bundles: ["core", "team"],
+      bundles: ["core", "media", "automation", "web", "chat", "team"],
+      add: ["docs"],
       anchor: "team",
       kind: "team",
     });
     expectMigrationSelection("relay", "default", {
-      bundles: ["core", "site", "team"],
+      bundles: teamBundles,
+      add: ["docs"],
       anchor: "team",
       kind: "team",
     });
     expectMigrationSelection("relay", "full", {
-      bundles: ["core", "site", "team"],
+      bundles: teamBundles,
+      add: ["docs"],
       anchor: "team",
       kind: "team",
     });
     expectMigrationSelection("ranger", "default", {
-      bundles: ["core", "site"],
+      bundles: ["core", "media", "web", "site"],
       add: ["products"],
       anchor: "organization",
       kind: "organization",
     });
+  });
+
+  test("records every intentional member delta from the retired taxonomy", () => {
+    const defaultPublishingRemovals = new Set([
+      "series",
+      "portfolio",
+      "content-pipeline",
+      "social-media",
+      "newsletter",
+      "stock-photo",
+    ]);
+    const cases: Array<{
+      model: LegacyBrainModel;
+      preset: string;
+      legacyMembers: string[];
+      added: string[];
+      removed: string[];
+    }> = [
+      {
+        model: "rover",
+        preset: "core",
+        legacyMembers: legacyCoreMembers,
+        added: ["unified-inbox"],
+        removed: [
+          "account",
+          "admin",
+          "assessment",
+          "atproto-registry",
+          "auth-service",
+          "chat",
+          "cms",
+          "dashboard",
+          "decks",
+          "document",
+          "email",
+          "image",
+          "notifications",
+          "onboarding",
+          "playbook",
+          "playbooks",
+          "web-chat",
+          "webserver",
+          "wishlist",
+        ],
+      },
+      ...(["default", "full"] as const).map((preset) => ({
+        model: "rover" as const,
+        preset,
+        legacyMembers: [
+          ...legacyCoreMembers,
+          ...legacySiteMembers,
+          ...legacyPublishingMembers.filter(
+            (member) =>
+              preset === "full" || !defaultPublishingRemovals.has(member),
+          ),
+          "obsidian-vault",
+        ],
+        added: ["conversation-memory", "unified-inbox"],
+        removed: ["assessment", "wishlist"],
+      })),
+      ...(["core", "default", "full"] as const).map((preset) => ({
+        model: "relay" as const,
+        preset,
+        legacyMembers: [
+          ...legacyCoreMembers,
+          ...(preset === "core" ? [] : legacySiteMembers),
+          ...legacyTeamMembers,
+        ],
+        added: ["unified-inbox"],
+        removed: ["assessment", "atproto-registry", "decks", "wishlist"],
+      })),
+      {
+        model: "ranger",
+        preset: "default",
+        legacyMembers: [...legacyCoreMembers, ...legacySiteMembers, "products"],
+        added: ["unified-inbox"],
+        removed: [
+          "assessment",
+          "atproto-registry",
+          "chat",
+          "decks",
+          "email",
+          "notifications",
+          "onboarding",
+          "playbook",
+          "playbooks",
+          "web-chat",
+          "wishlist",
+        ],
+      },
+    ];
+
+    for (const migrationCase of cases) {
+      const migrated = parseInstanceOverrides(
+        previewBrainConfigMigration(
+          `brain: ${migrationCase.model}\npreset: ${migrationCase.preset}\n`,
+        ).output,
+      );
+      const members = resolveBundleSelection({
+        catalogIds,
+        definitions: canonicalBundles,
+        selected: migrated.bundles ?? [],
+        ...(migrated.add ? { add: migrated.add } : {}),
+        ...(migrated.remove ? { remove: migrated.remove } : {}),
+      }).activeMembers;
+      const legacyMembers = [...new Set(migrationCase.legacyMembers)];
+
+      expect(
+        members.filter((member) => !legacyMembers.includes(member)).sort(),
+        `${migrationCase.model}/${migrationCase.preset} additions`,
+      ).toEqual(migrationCase.added);
+      expect(
+        legacyMembers.filter((member) => !members.includes(member)).sort(),
+        `${migrationCase.model}/${migrationCase.preset} removals`,
+      ).toEqual(migrationCase.removed);
+    }
   });
 
   test("preserves comments, overrides, and secret references", () => {
@@ -258,7 +491,7 @@ plugins:
 `);
     const parsed = parseInstanceOverrides(result.output);
 
-    expect(parsed.add).toEqual(["products"]);
+    expect(parsed.add).toEqual(["products", "docs"]);
     expect(parsed.remove).toEqual(["analytics"]);
     expect(parsed.site).toEqual({
       package: "@custom/team-site",
@@ -283,12 +516,49 @@ plugins:
 
     const canonical = `# already migrated
 brain: brain
+bundleContract: capability-bundles-v1
 bundles: [core]
 `;
     expect(previewBrainConfigMigration(canonical)).toEqual({
       changed: false,
       output: canonical,
       source: { model: "brain", preset: undefined },
+    });
+  });
+
+  test("requires an explicit recipe for overlapping canonical bundle ids", () => {
+    const input = `brain: brain
+kind: professional
+bundles: [core, site, publishing]
+add: [obsidian-vault]
+plugins:
+  directory-sync:
+    git:
+      repo: rizom-ai/example-content
+`;
+
+    expect(() => previewBrainConfigMigration(input)).toThrow(
+      /explicitly reviewed --recipe/,
+    );
+
+    const result = previewBrainConfigMigration(input, {
+      recipe: "professional",
+    });
+    const parsed = parseInstanceOverrides(result.output);
+    expect(parsed.bundleContract).toBe("capability-bundles-v1");
+    expect(parsed.bundles).toEqual([
+      "core",
+      "media",
+      "automation",
+      "web",
+      "chat",
+      "site",
+      "publishing",
+      "federation",
+    ]);
+    expect(parsed.add).toEqual(["obsidian-vault"]);
+    expect(parsed.plugins?.["directory-sync"]?.["git"]).toEqual({
+      repo: "rizom-ai/example-content",
     });
   });
 
@@ -324,6 +594,24 @@ plugins:
       }),
     ];
     expect(legacyConfigs).toEqual([]);
+  });
+
+  test("CLI command previews a reviewed canonical recipe without writing", async () => {
+    const directory = mkdtempSync(join(tmpdir(), "brain-config-reclassify-"));
+    temporaryDirectories.push(directory);
+    const path = join(directory, "brain.yaml");
+    const original = "brain: brain\nbundles: [core, site, publishing]\n";
+    writeFileSync(path, original);
+
+    const result = await runCommand(
+      parseArgs(["config", "migrate", "--recipe", "professional"]),
+      directory,
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.message).toContain("bundleContract: capability-bundles-v1");
+    expect(result.message).toContain("  - federation");
+    expect(readFileSync(path, "utf8")).toBe(original);
   });
 
   test("CLI command previews without writing brain.yaml", async () => {

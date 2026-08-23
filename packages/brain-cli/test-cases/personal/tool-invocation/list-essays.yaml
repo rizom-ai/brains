@@ -8,7 +8,7 @@ tags:
   - core
   - list
   - entity-type-resolution
-  - posture-personal
+  - recipe-professional
 
 turns:
   - userMessage: "List my essays"

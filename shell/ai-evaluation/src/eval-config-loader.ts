@@ -205,10 +205,11 @@ function resolveEvalSuite(
     const ownAdd = parseSuiteMemberIds(rawSuite["add"], name, "add");
     const ownRemove = parseSuiteMemberIds(rawSuite["remove"], name, "remove");
     const ownTags = parseSuiteTags(rawSuite["tags"], name);
+    const inheritTags = parseSuiteInheritTags(rawSuite["inheritTags"], name);
     const ownPlugins = parseSuitePlugins(rawSuite["plugins"], name);
-    const parentTags = parentSelections.flatMap(
-      (selection) => selection.tags ?? [],
-    );
+    const parentTags = inheritTags
+      ? parentSelections.flatMap((selection) => selection.tags ?? [])
+      : [];
     const inheritedAnchor = [...parentSelections]
       .reverse()
       .find((selection) => selection.anchor)?.anchor;
@@ -303,6 +304,14 @@ function parseSuiteExtends(value: unknown, suiteName: string): string[] {
   }
   throw new Error(
     `Eval suite "${suiteName}" has invalid extends; expected a string or string array.`,
+  );
+}
+
+function parseSuiteInheritTags(value: unknown, suiteName: string): boolean {
+  if (value === undefined) return true;
+  if (typeof value === "boolean") return value;
+  throw new Error(
+    `Eval suite "${suiteName}" has invalid inheritTags; expected a boolean.`,
   );
 }
 

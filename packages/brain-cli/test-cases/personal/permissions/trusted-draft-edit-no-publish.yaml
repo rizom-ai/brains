@@ -14,7 +14,7 @@ tags:
   - permissions
   - publish-action-policy
   - trusted
-  - posture-publishing
+  - recipe-professional
 
 turns:
   - userMessage: >-

@@ -8,6 +8,7 @@ const baseUser: ResolvedUser = {
     name: "Rizom Work",
   },
   brainVersion: "0.2.0-alpha.136",
+  bundleContract: "capability-bundles-v1",
   cohort: "sites",
   contentRepo: "rizom-ai/rizom-ai-content",
   deployStatus: "unknown",
@@ -18,7 +19,16 @@ const baseUser: ResolvedUser = {
   effectiveGitSyncToken: "GIT_SYNC_TOKEN",
   handle: "rizom-ai",
   mcpStatus: "unknown",
-  bundles: ["core", "site", "publishing"],
+  bundles: [
+    "core",
+    "media",
+    "automation",
+    "web",
+    "chat",
+    "site",
+    "publishing",
+    "federation",
+  ],
   add: ["docs"],
   remove: [],
   serverStatus: "unknown",
@@ -37,9 +47,10 @@ describe("createDefaultUserRunner", () => {
     const result = await runner(baseUser);
 
     expect(result.brainYaml).toContain("brain: brain");
+    expect(result.brainYaml).toContain("bundleContract: capability-bundles-v1");
     expect(result.brainYaml).toContain("kind: professional");
     expect(result.brainYaml).toContain(
-      "bundles:\n  - core\n  - site\n  - publishing",
+      "bundles:\n  - core\n  - media\n  - automation\n  - web\n  - chat\n  - site\n  - publishing\n  - federation",
     );
     expect(result.brainYaml).toContain(`add:\n  - docs`);
     expect(result.brainYaml).toContain(

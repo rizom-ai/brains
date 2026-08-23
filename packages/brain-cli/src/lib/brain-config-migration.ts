@@ -1,6 +1,11 @@
 import { isDeepStrictEqual } from "node:util";
 import { isMap, isNode, isScalar, parseDocument } from "yaml";
-import { expandBrainRecipe, type BrainRecipeExpansion } from "./brain-recipes";
+import {
+  expandBrainRecipe,
+  type BrainRecipeExpansion,
+  type BrainRecipeName,
+} from "./brain-recipes";
+import { CANONICAL_BUNDLE_CONTRACT } from "../model/canonical-bundles";
 
 export type LegacyBrainModel = "rover" | "relay" | "ranger";
 type MigrationSourceModel = LegacyBrainModel | "brain";
@@ -14,6 +19,11 @@ export interface BrainConfigMigrationPreview {
   };
 }
 
+export interface BrainConfigMigrationOptions {
+  /** Required when reclassifying an unversioned canonical bundle selection. */
+  recipe?: BrainRecipeName | undefined;
+}
+
 interface MigrationTarget extends BrainRecipeExpansion {
   anchor: "person" | "team" | "organization";
   bundles: string[];
@@ -22,6 +32,7 @@ interface MigrationTarget extends BrainRecipeExpansion {
 interface MigrationInput {
   [key: string]: unknown;
   brain?: unknown;
+  bundleContract?: unknown;
   preset?: unknown;
   bundles?: unknown;
   add?: unknown;
@@ -53,6 +64,19 @@ const roverDefaultRemovals = [
   "stock-photo",
 ];
 
+const professionalBundles = [
+  "core",
+  "media",
+  "automation",
+  "web",
+  "chat",
+  "site",
+  "publishing",
+  "federation",
+];
+
+const teamCoreBundles = ["core", "media", "automation", "web", "chat", "team"];
+
 function normalizeModel(value: unknown): MigrationSourceModel {
   if (typeof value !== "string") {
     throw new Error('brain.yaml must contain a string "brain" field');
@@ -82,7 +106,7 @@ function migrationTarget(
   if (model === "rover") {
     if (preset === "core") {
       return {
-        ...expandBrainRecipe("minimal"),
+        ...expandBrainRecipe("headless"),
         anchor: "person",
         kind: "professional",
         bundles: ["core"],
@@ -90,18 +114,18 @@ function migrationTarget(
     }
     if (preset === "default") {
       return {
-        ...expandBrainRecipe("personal"),
+        ...expandBrainRecipe("professional"),
         anchor: "person",
-        bundles: ["core", "site", "publishing"],
+        bundles: professionalBundles,
         add: ["obsidian-vault"],
         remove: roverDefaultRemovals,
       };
     }
     if (preset === "full" || preset === "pro") {
       return {
-        ...expandBrainRecipe("personal"),
+        ...expandBrainRecipe("professional"),
         anchor: "person",
-        bundles: ["core", "site", "publishing"],
+        bundles: professionalBundles,
         add: ["obsidian-vault"],
       };
     }
@@ -110,9 +134,11 @@ function migrationTarget(
   if (model === "relay") {
     if (preset === "core") {
       return {
+        bundleContract: CANONICAL_BUNDLE_CONTRACT,
         anchor: "team",
         kind: "team",
-        bundles: ["core", "team"],
+        bundles: teamCoreBundles,
+        add: ["docs"],
         plugins: {
           "directory-sync": { seedContentPath: "./seed-content" },
         },
@@ -122,7 +148,7 @@ function migrationTarget(
       return {
         ...expandBrainRecipe("team"),
         anchor: "team",
-        bundles: ["core", "site", "team"],
+        bundles: ["core", "media", "automation", "web", "chat", "site", "team"],
       };
     }
   }
@@ -131,11 +157,23 @@ function migrationTarget(
     return {
       ...expandBrainRecipe("commerce"),
       anchor: "organization",
-      bundles: ["core", "site"],
+      bundles: ["core", "media", "web", "site"],
     };
   }
 
   throw new Error(`Unsupported ${model} preset "${preset}"`);
+}
+
+function canonicalMigrationTarget(recipe: BrainRecipeName): MigrationTarget {
+  const expansion = expandBrainRecipe(recipe);
+  if (!expansion.bundles) {
+    throw new Error(`Recipe "${recipe}" does not define bundles`);
+  }
+  return {
+    ...expansion,
+    anchor: expansion.anchor ?? "person",
+    bundles: expansion.bundles,
+  };
 }
 
 function unique(values: readonly string[]): string[] {
@@ -357,9 +395,10 @@ function replacePresetWithBundles(
   document.contents.add(replacement);
 }
 
-/** Preview a deterministic legacy model/preset rewrite without writing files. */
+/** Preview a deterministic bundle-contract rewrite without writing files. */
 export function previewBrainConfigMigration(
   input: string,
+  options: BrainConfigMigrationOptions = {},
 ): BrainConfigMigrationPreview {
   const document = parseDocument(input, { keepSourceTokens: true });
   if (document.errors.length > 0) {
@@ -378,20 +417,46 @@ export function previewBrainConfigMigration(
   if (data.preset !== undefined && data.bundles !== undefined) {
     throw new Error('"preset" and "bundles" cannot be migrated together');
   }
-
-  if (model === "brain" && preset === undefined && data.bundles !== undefined) {
-    return {
-      changed: false,
-      output: input,
-      source: { model, preset: undefined },
-    };
+  if (
+    data.bundleContract !== undefined &&
+    typeof data.bundleContract !== "string"
+  ) {
+    throw new Error("bundleContract must be a string before migration");
   }
+
+  let target: MigrationTarget;
+  let effectivePreset: string | undefined;
   if (model === "brain") {
-    throw new Error("Canonical brain config must declare explicit bundles");
+    if (preset !== undefined || data.bundles === undefined) {
+      throw new Error("Canonical brain config must declare explicit bundles");
+    }
+    if (data.bundleContract === CANONICAL_BUNDLE_CONTRACT) {
+      return {
+        changed: false,
+        output: input,
+        source: { model, preset: undefined },
+      };
+    }
+    if (data.bundleContract !== undefined) {
+      throw new Error(
+        `Unsupported bundleContract "${data.bundleContract}"; expected "${CANONICAL_BUNDLE_CONTRACT}"`,
+      );
+    }
+    if (!options.recipe) {
+      throw new Error(
+        "Unversioned canonical bundles are ambiguous; rerun with an explicitly reviewed --recipe",
+      );
+    }
+    target = canonicalMigrationTarget(options.recipe);
+  } else {
+    if (data.bundleContract !== undefined) {
+      throw new Error(
+        "Legacy model/preset config cannot declare bundleContract",
+      );
+    }
+    effectivePreset = preset ?? "default";
+    target = migrationTarget(model, effectivePreset);
   }
-
-  const effectivePreset = preset ?? "default";
-  const target = migrationTarget(model, effectivePreset);
   const add = mergeSelections(data.add, target.add);
   const remove = mergeSelections(data.remove, target.remove);
   const site = composeSite(data.site, target);
@@ -402,7 +467,12 @@ export function previewBrainConfigMigration(
   const plugins = composePlugins(data.plugins, target);
 
   setScalarPreservingComment(document, "brain", "brain");
-  replacePresetWithBundles(document, target.bundles);
+  document.set("bundleContract", CANONICAL_BUNDLE_CONTRACT);
+  if (model === "brain") {
+    document.set("bundles", target.bundles);
+  } else {
+    replacePresetWithBundles(document, target.bundles);
+  }
   if (data.anchor === undefined) document.set("anchor", target.anchor);
   if (data.kind === undefined && target.kind) document.set("kind", target.kind);
   if (add) document.set("add", add);

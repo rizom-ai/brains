@@ -9,7 +9,7 @@ tags:
   - confirmation
   - multi-turn
   - regression
-  - posture-personal
+  - recipe-professional
 
 turns:
   - userMessage: "Give note 'rizom-brains-provenance-token-concept-note' a title. You decide."

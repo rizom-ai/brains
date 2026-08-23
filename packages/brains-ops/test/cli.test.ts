@@ -55,17 +55,19 @@ describe("brains-ops parseArgs", () => {
     expect(result.args).toEqual(["/tmp/rover-pilot"]);
   });
 
-  it("parses crossover staging with reviewed site pins", () => {
+  it("parses crossover staging with bundle review and site pins", () => {
     const result = parseArgs([
       "crossover:stage",
       "/tmp/rover-pilot",
       "/tmp/review",
+      "/tmp/bundle-review.yaml",
       "/tmp/site-pins.yaml",
     ]);
     expect(result.command).toBe("crossover:stage");
     expect(result.args).toEqual([
       "/tmp/rover-pilot",
       "/tmp/review",
+      "/tmp/bundle-review.yaml",
       "/tmp/site-pins.yaml",
     ]);
   });
@@ -203,6 +205,7 @@ describe("brains-ops parseArgs", () => {
 describe("brains-ops runCommand", () => {
   const baseFiles = {
     "pilot.yaml": `brainVersion: 0.1.1-alpha.14
+bundleContract: capability-bundles-v1
 githubOrg: rizom-ai
 contentRepoPrefix: rover-
 domainSuffix: .rizom.ai
@@ -994,7 +997,7 @@ members:
 
     expect(result.success).toBe(true);
     expect(await readFile(join(root, "users/alice/brain.yaml"), "utf8")).toBe(
-      "brain: brain\nkind: professional\ndomain: alice.rizom.ai\nbundles:\n  - core\n\nanchors: []\n\nplugins:\n  directory-sync:\n    git:\n      repo: rizom-ai/rover-alice-content\n      authToken: ${GIT_SYNC_TOKEN}\n",
+      "brain: brain\nbundleContract: capability-bundles-v1\nkind: professional\ndomain: alice.rizom.ai\nbundles:\n  - core\n\nanchors: []\n\nplugins:\n  directory-sync:\n    git:\n      repo: rizom-ai/rover-alice-content\n      authToken: ${GIT_SYNC_TOKEN}\n",
     );
     expect(await readFile(join(root, "users/alice/.env"), "utf8")).toBe(
       "BRAIN_VERSION=0.1.1-alpha.14\nCONTENT_REPO=rizom-ai/rover-alice-content\n",

@@ -7,6 +7,7 @@ import {
 } from "@brains/app";
 import { getErrorMessage } from "@brains/utils/error";
 import { fromYaml } from "@brains/utils/yaml";
+import { CANONICAL_BUNDLE_CONTRACT } from "../model/canonical-bundles";
 
 export type BrainYamlConfig = InstanceOverrides & { brain: string };
 
@@ -41,13 +42,17 @@ export function parseBrainYaml(cwd: string): BrainYamlConfig {
     throw new Error(getErrorMessage(error), { cause: error });
   }
 
-  if (
-    brainPackage === "@rizom/brain/model" &&
-    overrides.bundles === undefined
-  ) {
-    throw new Error(
-      'Invalid canonical brain.yaml: expected explicit "bundles"',
-    );
+  if (brainPackage === "@rizom/brain/model") {
+    if (overrides.bundles === undefined) {
+      throw new Error(
+        'Invalid canonical brain.yaml: expected explicit "bundles"',
+      );
+    }
+    if (overrides.bundleContract !== CANONICAL_BUNDLE_CONTRACT) {
+      throw new Error(
+        `Invalid canonical brain.yaml: expected bundleContract "${CANONICAL_BUNDLE_CONTRACT}". Run "brain config migrate" with an explicitly reviewed recipe.`,
+      );
+    }
   }
 
   return {

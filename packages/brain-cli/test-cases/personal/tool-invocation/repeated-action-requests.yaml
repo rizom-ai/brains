@@ -9,7 +9,7 @@ tags:
   - critical
   - anti-fabrication
   - tool-invocation
-  - posture-personal
+  - requires-built-site-runtime
 
 turns:
   # First build request - should invoke tool

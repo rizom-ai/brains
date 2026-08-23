@@ -41,7 +41,7 @@ function asRecord(value: unknown): Record<string, unknown> {
 }
 
 describe("canonical unified inbox test app", () => {
-  test("keeps email workflows and unified inbox opt-in with explicit IMAP settings", () => {
+  test("keeps email workflows explicit above the professional bundle selection", () => {
     const yaml = stagedFile(TEST_APP_CONFIG);
     const config = asRecord(fromYaml<unknown>(yaml));
     const plugins = asRecord(config["plugins"]);
@@ -51,8 +51,17 @@ describe("canonical unified inbox test app", () => {
     const notifications = asRecord(plugins["notifications"]);
     const defaultRecipient = asRecord(notifications["defaultRecipient"]);
 
-    expect(config["bundles"]).toEqual(["core", "site", "publishing"]);
-    expect(config["add"]).toEqual(["email-workflows", "unified-inbox"]);
+    expect(config["bundles"]).toEqual([
+      "core",
+      "media",
+      "automation",
+      "web",
+      "chat",
+      "site",
+      "publishing",
+      "federation",
+    ]);
+    expect(config["add"]).toEqual(["email-workflows"]);
     expect(site).toEqual({
       package: "@brains/site-professional",
       theme: "@rizom/theme-default",

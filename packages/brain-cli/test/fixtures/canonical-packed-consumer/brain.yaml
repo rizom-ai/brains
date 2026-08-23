@@ -1,8 +1,12 @@
 brain: brain
+bundleContract: capability-bundles-v1
 anchor: person
 kind: professional
 bundles:
   - core
+  - media
+  - web
+  - chat
 plugins:
   directory-sync:
     seedContentPath: ./seed-content

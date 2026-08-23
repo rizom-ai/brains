@@ -9,7 +9,7 @@ tags:
   - topics
   - batch-extraction
   - derivation
-  - posture-publishing
+  - recipe-professional
 plugin: topics
 handler: batchExtract
 

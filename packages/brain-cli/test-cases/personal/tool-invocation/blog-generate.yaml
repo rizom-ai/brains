@@ -8,7 +8,7 @@ tags:
   - core
   - blog
   - anti-hallucination
-  - posture-personal
+  - recipe-professional
 
 turns:
   - userMessage: "Generate a new blog post about AI"

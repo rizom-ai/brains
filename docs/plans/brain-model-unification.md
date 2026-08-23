@@ -1,6 +1,6 @@
 # Plan: Brain Model Unification — One Brain, Capability Bundles
 
-Last updated: 2026-08-10
+Last updated: 2026-08-19
 
 ## Status
 
@@ -10,19 +10,19 @@ and the preset contract, and published `@rizom/brain`, `@rizom/ops`, and `@rizom
 package is required to build, boot, evaluate, initialize, or deploy a brain. That work is
 done and is not restated here.
 
-Two things are open.
+One release operation remains open.
 
-**The bundle taxonomy is being replaced.** The shipped runtime composes from four bundles
-— `core`, `site`, `publishing`, `team` — where `core` is a 29-member unit fusing runtime
-foundation, universal entity types, discovery, and every I/O surface. It cannot express a
-brain without a webserver, without a chat interface, or without any individual entity
-type; the only escape is `remove:` lists, the anti-pattern bundles were introduced to
-eliminate. This plan now targets nine capability bundles plus one policy bundle. Because
-`v0.2.0` exists to freeze the composition contract, the taxonomy lands **before** stable,
-not after: certifying a contract already scheduled for replacement would force every
-deployed brain to migrate `bundles:` twice.
+**The repository bundle crossover is complete on the review branch but intentionally not
+merged.** The canonical runtime, recipes, eval manifest, migration output, checked-in apps,
+fixtures, and active documentation now use eight capability bundles plus the policy-only
+`team` bundle. `bundles: [core]` is the headless posture and needs no webserver or
+notification channel. The prior four-bundle contract is no longer accepted by the
+canonical checked-in configurations. The explicit migration contract, pilot/standalone
+mappings, and newsletter product decision are reviewed; repository merge remains a
+separate approval boundary. See
+[brain-model-unification-migration-inventory.md](./brain-model-unification-migration-inventory.md).
 
-**The crossover has not executed.** An operator-approved branch canary exercised
+**The fleet crossover has not executed.** An operator-approved branch canary exercised
 `0.2.0-alpha.244` on `jo` and `smoke`; both coherent config/image pairs passed exact
 version, health, unauthenticated MCP, site, and CMS checks. The crossover then stopped at
 the post-deploy convergence gate: deploy finalization rendered live status into
@@ -193,7 +193,8 @@ pending-approval queue and inbound A2A tasks from unapproved peers are later can
 
 | Bundle       | Config                                                                                                     | Permissions                                                                                           | Eval exclusions       |
 | ------------ | ---------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- | --------------------- |
-| _definition_ | —                                                                                                          | `"*": admin` entity actions; `cli:* → admin`; `mcp:stdio → admin`                                     | —                     |
+| _platform_   | —                                                                                                          | `"*": admin` entity actions                                                                           | —                     |
+| _definition_ | —                                                                                                          | `cli:* → admin`; `mcp:stdio → admin`                                                                  | —                     |
 | `core`       | —                                                                                                          | —                                                                                                     | mcp                   |
 | `web`        | dashboard `{routePath: "/"}`                                                                               | `mcp:http → public`                                                                                   | webserver, dashboard  |
 | `chat`       | —                                                                                                          | `discord:* → public`; `web-chat:* → admin`                                                            | chat, web-chat, email |
@@ -202,9 +203,11 @@ pending-approval queue and inbound A2A tasks from unapproved peers are later can
 | `federation` | —                                                                                                          | —                                                                                                     | atproto               |
 | `team`       | conversation-memory `{memoryVisibility: "shared"}`; topics `{extractableStatuses: ["published", "draft"]}` | trusted create/update on note, link, image, decision, action-item, doc; `mcp:http → admin` over `web` | —                     |
 
-The platform permission baseline moves out of `core` onto the definition itself, because
-it is posture-independent and must hold for `bundles: [core]` regardless of which bundles
-attach policy above it. Bundles may only widen it.
+The posture-independent transport baseline moves out of `core` onto the definition itself,
+because it must hold for `bundles: [core]` regardless of which bundles attach policy above
+it. The shell's existing admin-only entity-action fallback remains a platform safeguard;
+it must not be removed from external definitions as a side effect of this work. Bundles may
+only widen these baselines.
 
 `publishing` and `team` additionally contribute their agent instruction fragments.
 
@@ -281,8 +284,32 @@ following are additive.
 
 Wanted but separable: bundle-level `requires`, wired to the plugin `dependencies` field
 that is declared and never read in the selection path. Without it, `bundles: [site]` alone
-resolves cleanly into a brain registering routes nothing serves. The prerequisites would be
-`site → web`, `publishing → site, media`, and `team → chat, media`.
+resolves cleanly into a brain registering routes nothing serves. The prerequisites would
+be `chat → web`, `site → web`, `publishing → media`, and `team → chat, media`. Publishing
+intentionally does not require `site`: external-channel publishing without a site is a
+settled posture.
+
+## Worktree coordination
+
+Phase 8 invalidates every `bundles:` selection in the repository at once. Any worktree
+carrying a `brain.yaml`, eval fixture, or test-app selection must therefore be merged or
+explicitly ported before the flip, not after it. The phases before the flip are additive
+and can proceed alongside open work.
+
+| Worktree                               | Overlap                                                                           | Disposition                                                                                                                                  |
+| -------------------------------------- | --------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| inbox surfaces / email threading       | renamed `email-triage` to `email-workflows`; owns Phase 6's delivery              | Merged on `origin/main`; retain its catalog ID and delivery behavior through Phase 8.                                                        |
+| `work/test-suite-hardening`            | modifies `shell/app/test/bundle-resolution.test.ts`; puts the eval CLI under test | Merged on `origin/main` before Phase 3; preserve its resolver and eval coverage.                                                             |
+| `work/professional-profile-v2`         | edits the `canonical-brain.ts` capabilities array                                 | Deferred as WIP at crossover. Rebase onto the active taxonomy; LinkedIn import and the OAuth broker remain opt-ins and never enter a bundle. |
+| `work/plugin-api-boundaries`           | converts catalog factories, including `portfolio`, to package capabilities        | Deferred as WIP at crossover. Rebase its package conversions onto `canonical-brain.ts` without restoring the retired registry.               |
+| `feat/opportunity-priority-engine`     | adds a capability                                                                 | Merge independently as an explicit opt-in. It must not enter a bundle during unification.                                                    |
+| `feat/durable-binary-assets-migration` | touches `shell/app/src/app.ts` and `types.ts`; informs `media`                    | No resolver overlap. Merge on its own schedule.                                                                                              |
+| `work/turso-migration`                 | touches `shell/app/src/app.ts` and `cli.ts`                                       | No resolver overlap. Merge on its own schedule.                                                                                              |
+
+Phases 1 and 2 have no live collision and are the recommended starting point: they are pure
+resolver work, they do not depend on the taxonomy being final, and together they are what
+makes `bundles: [core]` bootable. Phase 10 is independent of the taxonomy entirely and may
+run in parallel with any of Phases 1 through 7.
 
 ## Phasing
 
@@ -291,10 +318,11 @@ begins with the failing test that defines it.
 
 ### Phase 1 — Definition-level permission baseline
 
-Move the platform baseline from the `core` bundle to `BrainDefinition.permissions`. Prove
-the effective policy for every current bundle selection is byte-identical before and
-after, and that a selection excluding the `admin` member still yields the admin-only
-baseline.
+Move the posture-independent `cli:*` and `mcp:stdio` rules from the `core` bundle to
+`BrainDefinition.permissions`; retain the shell-level admin-only entity-action safeguard.
+Prove the effective policy for every current bundle selection is byte-identical before and
+after, and that a selection excluding the `admin` and `mcp` members still yields the
+transport baseline.
 
 ### Phase 2 — Resolver-derived MCP transport
 
@@ -310,17 +338,20 @@ policy-only bundle with zero members contributes valid policy; contributions to 
 members still fail validation; conflicting contributions without an explicit `overrides`
 still fail; a contribution to an inactive member is absent from the resolution.
 
-### Phase 4 — Define the new bundles alongside the old
+### Phase 4 — Define the target bundles beside the active registry
 
-Add the nine bundle definitions to the canonical definition without changing any
-selection. Tests assert the exact resolved member set, config, permissions, instructions,
-and eval exclusions for each recipe selection. This is where the taxonomy is proven
-correct while the shipped contract still runs.
+Define the complete nine-bundle target set without appending it to
+`canonicalBrain.bundles`: four target IDs overlap the active four-bundle registry, so both
+sets cannot inhabit one definition. Tests replace the bundle property on a cloned canonical
+definition and assert the exact resolved member set, config, permissions, instructions, and
+eval exclusions for each recipe selection. This proves the taxonomy while the shipped
+contract still runs and avoids temporary IDs or dual-format runtime behavior.
 
 ### Phase 5 — Walking skeleton: boot headless
 
-Select `bundles: [core]` in a test app and prove it boots with no HTTP listener, exposes
-MCP over stdio, syncs its vault, and answers a tool call. This is the first proof the
+Select `bundles: [core]` against the target definition in a test app and prove it boots
+with no HTTP listener, exposes MCP over stdio, syncs its vault, and answers a tool call.
+The active packaged registry remains unchanged until Phase 8. This is the first proof the
 split is real rather than structural.
 
 ### Phase 6 — Make the inbox answerable headless
@@ -349,35 +380,38 @@ that the CMS workspace and Dashboard widget are `web` renderings and the digest 
 
 ### Phase 7 — Restructure the eval suites
 
-`packages/brain-cli/brain.eval.yaml` declares five suites whose selections, names,
-inheritance chain, and seed directories each encode the old taxonomy. Re-pointing the
-`bundles:` lists is the smallest part of this.
+The recipe ladder is active in `packages/brain-cli/brain.eval.yaml`. Dedicated
+`eval-content/recipes` fixtures cover postures whose membership changed; member-compatible
+professional and commerce content remains shared. Strict seed-type validation is opt-in
+for these curated fixtures and fails startup when a seeded entity type is not registered.
 
-- **Rename to the recipe ladder.** Today's suites are `core`, `personal`, `publishing`,
-  `team`, `commerce`. `core` becomes `headless`, and today's `personal` becomes
-  `professional`. Note that `personal` and `publishing` currently declare identical bundle
-  lists and differ only by seed content and tags, so they collapse unless a distinct
-  posture is defined for each. Because the name `personal` is then reused for a smaller
-  posture, the rename must be explicit; mapping old suite names to new ones mechanically
-  would silently change what is being evaluated.
-- **Re-point the `extends` chain** at the ladder: `personal` extends `headless`,
-  `professional` extends `personal`, `team` and `commerce` extend `personal`.
-- **Reconcile seed content with membership.** `eval-content/core` seeds `image` and `link`
-  entities, but `image` moves to `media`. `eval-content/team` seeds `swot`, `doc`, `deck`,
-  and `prompt`, of which `assessment` and `docs` become opt-ins and `decks` belongs to
-  `publishing`. Each suite must select the owning bundle, add the member explicitly, or
-  drop the content. Seeding an entity type whose plugin is not registered must fail loudly
-  rather than import silently.
-- **Decide what evaluating a surface bundle means.** Eval exclusions now spread across
-  `core`, `web`, and `chat`, so a `personal` suite running in `mode: eval` would have most
-  of what distinguishes it from `headless` disabled. Either the exclusions narrow, or that
-  suite asserts resolution and startup rather than model behavior.
+`packages/brain-cli/brain.eval.yaml` declares the five recipe suites with explicit
+case categories. Composition inheritance and behavior-case selection are separate:
+`inheritTags: false` lets a child inherit compatible config without silently inheriting
+cases for capabilities or fixtures it does not own.
+
+- `personal` extends `headless`; `professional` and `team` extend `personal` because their
+  member sets are supersets. `commerce` extends `headless`, not `personal`, because it does
+  not own the `chat` surface.
+- Dedicated headless, personal, team, and commerce fixtures contain only registered entity
+  types. Unsupported legacy cases are retained behind explicit `requires-*` tags for
+  supervised Git, external network, or omitted opt-in members.
+- Cases use only `recipe-headless`, `recipe-personal`, `recipe-professional`, `recipe-team`,
+  or `recipe-commerce`; the broad legacy `posture-*` categories are gone. Every suite now
+  selects a non-empty behavior set rather than treating zero selected cases as success.
+- Deterministic coverage pins each case count, verifies every expected tool and entity type
+  against the resolved suite, verifies plugin eval handlers, imports every fixture type,
+  and rejects environment-gated cases from local recipe runs.
 
 Tests: each suite resolves to its intended member set; every entity type seeded in a
 suite's content directory is registered by that suite's selection; a suite seeding an
 unregistered type fails.
 
 ### Phase 8 — Flip the contract
+
+**Complete in the repository.** The active registry, recipe output, eval manifest,
+migration output, apps, fixtures, and docs crossed together. Deferred WIP branches must
+rebase onto this taxonomy before merge; no compatibility registry was retained.
 
 Replace the four bundle definitions with the nine, update every checked-in app to the new
 selections, and update `brain config migrate` so legacy presets emit the new bundle lists.
@@ -387,14 +421,19 @@ difference recorded explicitly.
 
 ### Phase 9 — Unify the cards
 
-Share one public-skill extraction between the A2A card and the brain card, and make
+**Complete.** Share one public-skill extraction between the A2A card and the brain card, and make
 `siteUrl` and DID derivation channel-dependent. Tests: the two cards agree on skills for
 brains with and without skill entities; `[core, federation]` publishes a valid brain card
 with no site; `[core, federation, web, site]` publishes one with a site URL.
 
 ### Phase 10 — Release the ops convergence fix
 
-Independent of the taxonomy and already required:
+**Complete and released.** PR #76 shipped the ownership and dry-run evidence fixes in
+`@rizom/ops@0.2.0-alpha.245`; the current `0.2.0-alpha.307` retains them. The package
+covers post-render reconciliation, two-pass convergence, blocked external access, and
+input preservation.
+
+Independent of the taxonomy, the completed slice:
 
 1. Keep `views/users.md` under the explicit users-table rendering path; reconciliation must
    not overwrite observational status.
@@ -407,13 +446,18 @@ Independent of the taxonomy and already required:
 
 ### Phase 11 — Execute the crossover and certify
 
-Only in an explicitly authorized maintenance window:
+Only in an explicitly authorized maintenance window, after the migration inventory and
+source-to-target manifests are reviewed:
 
 1. Freeze pilot reconciliation, deploy automation, and unrelated releases.
 2. Verify the unified runtime and matching `@rizom/ops` artifact through package,
-   declaration, packed-startup, and registry-integrity checks.
+   declaration, packed-startup, and registry-integrity checks. The runtime and ops loader
+   must both require `bundleContract: capability-bundles-v1`; mismatched old/new
+   config-image pairs fail before bundle resolution.
 3. Apply the reviewed desired-state revision on an isolated canary branch with exact
-   artifact pins. The ops loader reads only the canonical schema.
+   artifact pins. Stage it from a freshly fetched tip using a manifest that names both the
+   expected source bundles and exact target bundles for the pilot and every explicit
+   cohort selection. The ops loader reads only the canonical schema.
 4. Build and record immutable image digests before deployment.
 5. Deploy each approved instance as one coherent config/image unit. Existing instances stay
    on the old config and old image until their turn; never pair either side with the other
@@ -452,12 +496,12 @@ without operator authorization.
 
 ## Completion criteria
 
-- one canonical definition, nine capability bundles, and one policy bundle remain;
+- one canonical definition, eight capability bundles, and one policy bundle remain;
 - `bundles: [core]` boots headless and is covered by a startup test;
 - headless, personal, professional, team, commerce, and external-plugin fixtures resolve
   from explicit bundles and additions;
-- no checked-in config or desired-state file references `core`/`site`/`publishing`/`team`
-  as the whole taxonomy;
+- no checked-in config or desired-state file uses the former four-bundle compositions as
+  the whole taxonomy;
 - configuration migration is documented and proven idempotent;
 - the active ops/runtime surface exposes only the canonical contract;
 - unified canaries and `yeehaa.io` are healthy on the nominated alpha;

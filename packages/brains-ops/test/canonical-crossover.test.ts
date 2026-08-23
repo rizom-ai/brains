@@ -35,7 +35,17 @@ function staticImportGraph(entry: string): Set<string> {
 
 const canonicalPilot = {
   brainVersion: "0.2.0-alpha.231",
-  bundles: ["core", "site", "publishing"],
+  bundleContract: "capability-bundles-v1",
+  bundles: [
+    "core",
+    "media",
+    "automation",
+    "web",
+    "chat",
+    "site",
+    "publishing",
+    "federation",
+  ],
   add: ["obsidian-vault"],
   remove: [
     "series",
@@ -63,6 +73,9 @@ describe("ops clean canonical crossover", () => {
   test("promotes the canonical desired-state schemas as the only active contract", () => {
     expect(pilotSchema.safeParse(canonicalPilot).success).toBe(true);
     expect(cohortSchema.safeParse(canonicalCohort).success).toBe(true);
+    const { bundleContract: _bundleContract, ...unversionedPilot } =
+      canonicalPilot;
+    expect(pilotSchema.safeParse(unversionedPilot).success).toBe(false);
     expect(
       pilotSchema.safeParse({ ...canonicalPilot, schemaVersion: 1 }).success,
     ).toBe(false);

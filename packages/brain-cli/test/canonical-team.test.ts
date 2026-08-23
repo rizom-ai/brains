@@ -11,13 +11,7 @@ import {
   type InstanceOverrides,
 } from "@brains/app";
 import rizomTheme from "@brains/theme-rizom";
-import {
-  canonicalBrain,
-  coreBundle,
-  publishingBundle,
-  siteBundle,
-  teamBundle,
-} from "../src/model/canonical-brain";
+import { canonicalBrain, teamBundle } from "../src/model/canonical-brain";
 
 const fixtureDirectory = join(import.meta.dir, "fixtures", "canonical-team");
 const fixtureOverrides = parseInstanceOverrides(
@@ -35,7 +29,6 @@ const trustedEntityTypes = [
   "link",
   "image",
   "doc",
-  "deck",
   "decision",
   "action-item",
 ];
@@ -93,24 +86,8 @@ function expectTrustedTeamPolicy(resolved: AppConfig): void {
 }
 
 describe("canonical team bundle", () => {
-  test("keeps fixed membership in canonical definition order", () => {
-    expect(canonicalBrain.bundles).toEqual([
-      coreBundle,
-      siteBundle,
-      publishingBundle,
-      teamBundle,
-    ]);
-    expect(teamBundle.members).toEqual([
-      "image",
-      "note",
-      "link",
-      "topics",
-      "decks",
-      "mcp",
-      "chat",
-      "conversation-memory",
-      "docs",
-    ]);
+  test("keeps team as policy over independently selected members", () => {
+    expect(teamBundle.members).toEqual([]);
   });
 
   test("parses explicit team choices and local site content", () => {
@@ -118,7 +95,8 @@ describe("canonical team bundle", () => {
       brain: "brain",
       anchor: "team",
       kind: "team",
-      bundles: ["team", "site", "core"],
+      bundles: ["team", "site", "chat", "web", "automation", "media", "core"],
+      add: ["docs"],
       plugins: {
         "directory-sync": {
           seedContentPath: "./seed-content",

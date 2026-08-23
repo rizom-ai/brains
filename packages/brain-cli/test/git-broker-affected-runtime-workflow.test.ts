@@ -10,7 +10,7 @@ it("exposes the approved affected-runtime broker acceptance matrix", async () =>
   );
 
   expect(workflow).toContain("git_broker_acceptance:");
-  expect(workflow).toContain("bun-version: 1.3.14");
+  expect(workflow).toContain("bun-version: 1.4.0");
   expect(workflow).toContain("bun --version");
   expect(workflow).toContain("bun run test:git-broker-recovery");
   expect(workflow).toContain("bun run test:git-broker-process-inventory");

@@ -27,6 +27,11 @@ export type { RemoteAgentServiceConfig } from "./remote-agent-service";
 // Loaders
 export { YAMLLoader } from "./loaders";
 export type { YAMLLoaderOptions } from "./loaders/yaml-loader";
+export { resolveEvalSelection } from "./eval-config-loader";
+export type {
+  EvalSelection,
+  LoadEvalConfigOptions,
+} from "./eval-config-loader";
 
 // Reporters
 export { ConsoleReporter, JSONReporter } from "./reporters";

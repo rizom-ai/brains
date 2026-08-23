@@ -5,7 +5,7 @@ Operator CLI package for managing pilot brain fleet registry repos.
 ## Commands
 
 - `brains-ops init <repo>`
-- `brains-ops crossover:stage <source-repo> <output-dir> [site-pins.yaml]` — creates a separate secret-free canonical review copy without mutating the source; a reviewed pins file is required when hosted site overrides exist
+- `brains-ops crossover:stage <source-repo> <output-dir> <bundle-review.yaml> [site-pins.yaml]` — creates a separate secret-free capability-bundle review copy without mutating the source; the bundle review must match every explicit source selection, and a reviewed pins file is required when hosted site overrides exist
 - `brains-ops render <repo>` — regenerates `views/users.md` and fills status columns from built-in live probes (`DNS`, `/health/ready`, unauthenticated `/mcp`)
 - `brains-ops user:add <repo> <handle> --cohort <cohort>` — scaffolds a user file, per-user secrets template, and cohort membership
 - `brains-ops onboard <repo> <handle>` — creates/seeds the user's content repo using `CONTENT_REPO_ADMIN_TOKEN` for GitHub repo administration and `GIT_SYNC_TOKEN` for git clone/push
@@ -51,9 +51,23 @@ The scaffolded manual `Health Watchdog Smoke` workflow uses the same pilot desir
 
 `brains-ops` lives in the `brains` monorepo and is consumed as a separate package.
 
-The active loader accepts one unversioned canonical schema. Legacy parsing is isolated to the temporary `crossover:stage` command and is never used by render, verify, or reconciliation paths.
+The active loader accepts one schema requiring `bundleContract: capability-bundles-v1` and the nine capability/policy bundle IDs. Offline parsing of prior desired state is isolated to `crossover:stage` and is never used by render, verify, or reconciliation paths.
 
-Crossover staging excludes source `.git`, `.operator`, `.brains-ops`, `.turbo`, `dist`, `node_modules`, plaintext `.env`/`.env.local`, and `*.secrets.yaml` artifacts. It generates fresh per-user `.env` selector files in the review copy without copying source secret values. Hosted sites must be enumerated in a separate reviewed file; staging rejects missing, extra, or identity-mismatched pins instead of inferring versions:
+Crossover staging excludes source `.git`, `.operator`, `.brains-ops`, `.turbo`, `dist`, `node_modules`, plaintext `.env`/`.env.local`, and `*.secrets.yaml` artifacts. It generates fresh per-user `.env` selector files in the review copy without copying source secret values. A review manifest must name both sides of the pilot selection and every explicit cohort selection; source drift fails staging:
+
+```yaml
+bundleContract: capability-bundles-v1
+pilot:
+  sourceBundles: [core]
+  targetBundles: [core, media, web, chat]
+cohorts:
+  sites:
+    sourceBundles: [core, site, publishing]
+    targetBundles:
+      [core, media, automation, web, chat, site, publishing, federation]
+```
+
+Hosted sites must also be enumerated in a separate reviewed file; staging rejects missing, extra, or identity-mismatched pins instead of inferring versions:
 
 ```yaml
 sites:

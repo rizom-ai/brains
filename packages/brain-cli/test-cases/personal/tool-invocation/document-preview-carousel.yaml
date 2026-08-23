@@ -11,7 +11,7 @@ tags:
   - document
   - media
   - system-generate
-  - posture-publishing
+  - recipe-professional
 
 turns:
   - userMessage: "Preview the carousel for deck 'distributed-systems-primer' as a PDF"

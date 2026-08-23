@@ -36,7 +36,17 @@ describe("offline legacy pilot migration", () => {
 
     expect(migrated).toEqual({
       brainVersion: "0.2.0-alpha.231",
-      bundles: ["core", "site", "publishing"],
+      bundleContract: "capability-bundles-v1",
+      bundles: [
+        "core",
+        "media",
+        "automation",
+        "web",
+        "chat",
+        "site",
+        "publishing",
+        "federation",
+      ],
       add: ["obsidian-vault"],
       remove: [
         "series",
@@ -64,7 +74,7 @@ describe("offline legacy pilot migration", () => {
     expect(migrated).toEqual({
       members: ["alice", "bob"],
       brainVersionOverride: "0.2.0-alpha.232",
-      bundlesOverride: ["core"],
+      bundlesOverride: ["core", "media", "web", "chat"],
       aiApiKeyOverride: "CANARY_AI_API_KEY",
       gitSyncTokenOverride: "CANARY_GIT_SYNC_TOKEN",
     });
@@ -81,6 +91,7 @@ describe("offline legacy pilot migration", () => {
     expect(pilotYaml).not.toContain("model:");
     expect(pilotYaml).not.toContain("preset:");
     expect(pilotYaml).not.toContain("schemaVersion:");
+    expect(pilotYaml).toContain("bundleContract: capability-bundles-v1");
     expect(pilotYaml).toContain("contentRepoPrefix: rover-");
     expect(cohortYaml).toContain("bundlesOverride:");
     expect(parseYamlDocument(pilotYaml, pilotSchema).ok).toBe(true);

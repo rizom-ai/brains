@@ -6,6 +6,7 @@ import {
   exactVersionSchema,
   handleSchema,
   pilotSchema,
+  CAPABILITY_BUNDLE_CONTRACT,
   type CohortConfig,
   type PilotConfig,
 } from "./schema";
@@ -63,16 +64,36 @@ const defaultRemovals = [
 ];
 
 function canonicalSelection(selection: LegacySelection): CanonicalSelection {
-  if (selection === "core") return { bundles: ["core"] };
+  if (selection === "core") {
+    return { bundles: ["core", "media", "web", "chat"] };
+  }
   if (selection === "default") {
     return {
-      bundles: ["core", "site", "publishing"],
+      bundles: [
+        "core",
+        "media",
+        "automation",
+        "web",
+        "chat",
+        "site",
+        "publishing",
+        "federation",
+      ],
       add: ["obsidian-vault"],
       remove: [...defaultRemovals],
     };
   }
   return {
-    bundles: ["core", "site", "publishing"],
+    bundles: [
+      "core",
+      "media",
+      "automation",
+      "web",
+      "chat",
+      "site",
+      "publishing",
+      "federation",
+    ],
     add: ["obsidian-vault"],
   };
 }
@@ -82,6 +103,7 @@ export function migrateLegacyPilotConfig(input: unknown): PilotConfig {
   const legacy = legacyPilotSchema.parse(input);
   return pilotSchema.parse({
     brainVersion: legacy.brainVersion,
+    bundleContract: CAPABILITY_BUNDLE_CONTRACT,
     ...canonicalSelection(legacy.preset),
     githubOrg: legacy.githubOrg,
     contentRepoPrefix: legacy.contentRepoPrefix,
@@ -205,6 +227,7 @@ export function migrateLegacyPilotYaml(input: string): string {
     findPair(document, "brainVersion")?.key,
   );
   document.delete("schemaVersion");
+  document.set("bundleContract", CAPABILITY_BUNDLE_CONTRACT);
   const bundles = replaceArrayFieldPreservingComments(
     document,
     "preset",

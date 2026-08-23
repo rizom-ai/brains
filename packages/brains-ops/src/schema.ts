@@ -16,12 +16,29 @@ export const agePublicKeySchema: z.ZodString = z
   .startsWith("age1")
   .min(1);
 
+export const CAPABILITY_BUNDLE_CONTRACT = "capability-bundles-v1" as const;
+
 export const canonicalBundleIdSchema: z.ZodEnum<{
   core: "core";
+  media: "media";
+  automation: "automation";
+  web: "web";
+  chat: "chat";
   site: "site";
   publishing: "publishing";
+  federation: "federation";
   team: "team";
-}> = z.enum(["core", "site", "publishing", "team"]);
+}> = z.enum([
+  "core",
+  "media",
+  "automation",
+  "web",
+  "chat",
+  "site",
+  "publishing",
+  "federation",
+  "team",
+]);
 export type CanonicalBundleId = z.output<typeof canonicalBundleIdSchema>;
 
 /**
@@ -39,6 +56,7 @@ export const profileKindSchema: z.ZodEnum<{
 
 export interface PilotConfig {
   brainVersion: string;
+  bundleContract: typeof CAPABILITY_BUNDLE_CONTRACT;
   bundles: CanonicalBundleId[];
   add?: string[] | undefined;
   remove?: string[] | undefined;
@@ -75,6 +93,7 @@ const memberIdsSchema = z.array(z.string().min(1));
 export const pilotSchema: z.ZodType<PilotConfig> = z
   .strictObject({
     brainVersion: exactVersionSchema,
+    bundleContract: z.literal(CAPABILITY_BUNDLE_CONTRACT),
     bundles: canonicalBundlesSchema,
     add: memberIdsSchema.optional(),
     remove: memberIdsSchema.optional(),

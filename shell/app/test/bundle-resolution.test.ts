@@ -39,30 +39,32 @@ describe("defineBundle", () => {
     ).toThrow(/duplicate member/i);
   });
 
-  test("requires contributions and eval exclusions to belong to the bundle", () => {
-    expect(() =>
-      defineBundle({
-        id: "core",
-        members: ["alpha"],
-        config: [{ member: "beta", value: {} }],
-      }),
-    ).toThrow(/config contribution member/i);
+  test("allows policy contributions outside bundle membership", () => {
+    const policy = defineBundle({
+      id: "team",
+      members: [],
+      config: [{ member: "alpha", value: { shared: true } }],
+      permissions: [
+        {
+          member: "alpha",
+          config: { rules: [{ pattern: "alpha:*", level: "trusted" }] },
+        },
+      ],
+      evalDisable: ["alpha"],
+    });
 
-    expect(() =>
-      defineBundle({
-        id: "core",
-        members: ["alpha"],
-        permissions: [{ member: "beta", config: {} }],
-      }),
-    ).toThrow(/permission contribution member/i);
-
-    expect(() =>
-      defineBundle({
-        id: "core",
-        members: ["alpha"],
-        evalDisable: ["beta"],
-      }),
-    ).toThrow(/eval exclusion member/i);
+    expect(policy).toEqual({
+      id: "team",
+      members: [],
+      config: [{ member: "alpha", value: { shared: true } }],
+      permissions: [
+        {
+          member: "alpha",
+          config: { rules: [{ pattern: "alpha:*", level: "trusted" }] },
+        },
+      ],
+      evalDisable: ["alpha"],
+    });
   });
 
   test("keeps permission policy values opaque", () => {
@@ -131,6 +133,36 @@ describe("resolveBundleSelection definition validation", () => {
         selected: ["core"],
       }),
     ).toThrow(/bundle "core" references unknown catalog member "missing"/i);
+  });
+
+  test("rejects policy contributions to members outside the catalog", () => {
+    const contributions = [
+      defineBundle({
+        id: "config-policy",
+        members: [],
+        config: [{ member: "missing", value: {} }],
+      }),
+      defineBundle({
+        id: "permission-policy",
+        members: [],
+        permissions: [{ member: "missing", config: {} }],
+      }),
+      defineBundle({
+        id: "eval-policy",
+        members: [],
+        evalDisable: ["missing"],
+      }),
+    ];
+
+    for (const definition of contributions) {
+      expect(() =>
+        resolveBundleSelection({
+          catalogIds,
+          definitions: [definition],
+          selected: [definition.id],
+        }),
+      ).toThrow(/references unknown catalog member "missing"/i);
+    }
   });
 
   test("requires override references to name an earlier bundle with a real conflict", () => {
@@ -247,6 +279,61 @@ describe("resolveBundleSelection composition", () => {
     expect(resolution.activeMembers).toEqual(["beta"]);
   });
 
+  test("applies policy-only contributions to active catalog members", () => {
+    const resolution = resolveBundleSelection({
+      catalogIds,
+      definitions: [
+        defineBundle({ id: "core", members: ["alpha"] }),
+        defineBundle({
+          id: "team",
+          members: [],
+          config: [{ member: "alpha", value: { shared: true } }],
+          permissions: [
+            {
+              member: "alpha",
+              config: { rules: [{ pattern: "alpha:*", level: "trusted" }] },
+            },
+          ],
+          evalDisable: ["alpha"],
+        }),
+      ],
+      selected: ["team", "core"],
+    });
+
+    expect(resolution.activeMembers).toEqual(["alpha"]);
+    expect(resolution.configByMember).toEqual({ alpha: { shared: true } });
+    expect(resolution.permissionContributions).toEqual([
+      {
+        bundleId: "team",
+        member: "alpha",
+        config: { rules: [{ pattern: "alpha:*", level: "trusted" }] },
+      },
+    ]);
+    expect(resolution.evalDisable).toEqual(["alpha"]);
+  });
+
+  test("omits policy contributions when their catalog member is inactive", () => {
+    const resolution = resolveBundleSelection({
+      catalogIds,
+      definitions: [
+        defineBundle({ id: "core", members: ["alpha"] }),
+        defineBundle({
+          id: "team",
+          members: [],
+          config: [{ member: "beta", value: { shared: true } }],
+          permissions: [{ member: "beta", config: { trusted: ["team"] } }],
+          evalDisable: ["beta"],
+        }),
+      ],
+      selected: ["core", "team"],
+    });
+
+    expect(resolution.activeMembers).toEqual(["alpha"]);
+    expect(resolution.configByMember).toEqual({});
+    expect(resolution.permissionContributions).toEqual([]);
+    expect(resolution.evalDisable).toEqual([]);
+  });
+
   test("merges nested config with declared overrides and replaces arrays", () => {
     const resolution = resolveBundleSelection({
       catalogIds,
@@ -302,7 +389,7 @@ describe("resolveBundleSelection composition", () => {
       }),
       defineBundle({
         id: "site",
-        members: ["alpha"],
+        members: [],
         config: [{ member: "alpha", value: { nested: { value: 2 } } }],
       }),
     ];
@@ -417,6 +504,7 @@ describe("resolveBundleSelection composition", () => {
             { member: "alpha", config: permissionConfig },
             { member: "beta", config: { anchors: ["retained"] } },
           ],
+          evalDisable: ["alpha"],
         }),
       ],
       selected: ["core"],
@@ -433,6 +521,7 @@ describe("resolveBundleSelection composition", () => {
         config: { anchors: ["retained"] },
       },
     ]);
+    expect(resolution.evalDisable).toEqual([]);
   });
 
   test("composes instructions and eval contributions in canonical order", () => {

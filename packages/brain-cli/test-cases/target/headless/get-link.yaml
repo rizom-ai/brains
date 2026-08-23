@@ -1,0 +1,29 @@
+id: recipe-headless-get-link
+name: Headless brain retrieves an imported link
+description: Verifies that the core-only recipe can read its durable link fixture.
+type: tool_invocation
+setup:
+  permissionLevel: admin
+tags:
+  - recipe-headless
+  - headless
+  - core
+  - tool-invocation
+
+turns:
+  - userMessage: "Get the saved link green-software-foundation."
+
+successCriteria:
+  expectedTools:
+    - toolName: system_get
+      shouldBeCalled: true
+      argsContain:
+        entityType: link
+        id: green-software-foundation
+  responseNotContains:
+    - "I cannot"
+    - "not supported"
+
+efficiency:
+  maxToolCalls: 3
+  maxTokens: 20000

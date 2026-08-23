@@ -1175,9 +1175,10 @@ it.skipIf(!RUN_SOAK)(
       await writeFile(
         join(appDir, "brain.yaml"),
         `brain: brain
+bundleContract: capability-bundles-v1
 anchor: person
 kind: professional
-bundles: [core]
+bundles: [core, web]
 embedding:
   enabled: false
 remove:

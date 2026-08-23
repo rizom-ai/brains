@@ -142,6 +142,7 @@ describe("brain init", () => {
     it("should declare each recipe's anchor flavor and semantic profile kind", () => {
       for (const [recipe, anchor, kind] of [
         ["personal", "person", "professional"],
+        ["professional", "person", "professional"],
         ["team", "team", "team"],
         ["commerce", "organization", "organization"],
       ] as const) {
@@ -154,7 +155,7 @@ describe("brain init", () => {
 
       const customDir = join(testDir, "custom");
       scaffold(customDir, {
-        recipe: "minimal",
+        recipe: "headless",
         domain: "custom.example.com",
       });
       const yaml = readFileSync(join(customDir, "brain.yaml"), "utf-8");
@@ -183,7 +184,9 @@ describe("brain init", () => {
       scaffold(testDir, { recipe: "personal" });
 
       const yaml = readFileSync(join(testDir, "brain.yaml"), "utf-8");
-      expect(yaml).toContain("bundles:\n  - core\n  - site\n  - publishing");
+      expect(yaml).toContain(
+        "bundles:\n  - core\n  - media\n  - web\n  - chat",
+      );
       expect(yaml).not.toContain("preset:");
     });
 
@@ -220,11 +223,28 @@ describe("brain init", () => {
       expect(yaml).toContain("repo: user/brain-data");
     });
 
-    it("should keep the minimal recipe free of site choices", () => {
-      scaffold(testDir, { recipe: "minimal" });
+    it("should keep headless and personal recipes free of site choices", () => {
+      for (const recipe of ["headless", "personal"] as const) {
+        const directory = join(testDir, recipe);
+        scaffold(directory, { recipe });
+        const yaml = readFileSync(join(directory, "brain.yaml"), "utf-8");
+        expect(yaml).not.toMatch(/^site:/m);
+      }
+    });
+
+    it("should scaffold explicit professional site choices", () => {
+      scaffold(testDir, { recipe: "professional" });
 
       const yaml = readFileSync(join(testDir, "brain.yaml"), "utf-8");
-      expect(yaml).not.toMatch(/^site:/m);
+      expect(yaml).toContain('package: "@brains/site-default"');
+      expect(yaml).toContain('theme: "@rizom/theme-default"');
+    });
+
+    it("should keep the headless recipe to core", () => {
+      scaffold(testDir, { recipe: "headless" });
+
+      const yaml = readFileSync(join(testDir, "brain.yaml"), "utf-8");
+      expect(yaml).toContain("bundles:\n  - core\n");
     });
 
     it("should scaffold explicit commerce site choices", () => {
@@ -244,7 +264,7 @@ describe("brain init", () => {
     });
   });
 
-  describe("minimal scaffold (default)", () => {
+  describe("base scaffold (default personal recipe)", () => {
     it("should create brain.yaml", () => {
       scaffold(testDir, { recipe: "personal" });
       expect(existsSync(join(testDir, "brain.yaml"))).toBe(true);
@@ -260,8 +280,8 @@ describe("brain init", () => {
       expect(existsSync(join(testDir, "README.md"))).toBe(true);
     });
 
-    it("should not mention local site/theme files for minimal recipe", () => {
-      scaffold(testDir, { recipe: "minimal" });
+    it("should not mention local site/theme files for headless recipe", () => {
+      scaffold(testDir, { recipe: "headless" });
 
       const readme = readFileSync(join(testDir, "README.md"), "utf-8");
       expect(readme).not.toContain("`src/site.tsx`");
@@ -350,11 +370,13 @@ describe("brain init", () => {
       expect(content.compilerOptions.jsxImportSource).toBe("preact");
     });
 
-    it("should not create local site/theme scaffold for minimal recipe", () => {
-      scaffold(testDir, { recipe: "minimal" });
-
-      expect(existsSync(join(testDir, "src", "site.tsx"))).toBe(false);
-      expect(existsSync(join(testDir, "src", "theme.css"))).toBe(false);
+    it("should not create local site/theme scaffold for headless or personal recipes", () => {
+      for (const recipe of ["headless", "personal"] as const) {
+        const directory = join(testDir, recipe);
+        scaffold(directory, { recipe });
+        expect(existsSync(join(directory, "src", "site.tsx"))).toBe(false);
+        expect(existsSync(join(directory, "src", "theme.css"))).toBe(false);
+      }
     });
 
     it("should create src/site.tsx and src/theme.css for commerce", () => {
@@ -503,6 +525,7 @@ describe("brain init", () => {
         join(testDir, "brain.yaml"),
         [
           "brain: brain",
+          "bundleContract: capability-bundles-v1",
           "bundles: [core, site]",
           "add: [products]",
           "domain: rizom.ai",
@@ -533,6 +556,7 @@ describe("brain init", () => {
         join(testDir, "brain.yaml"),
         [
           "brain: brain",
+          "bundleContract: capability-bundles-v1",
           "bundles: [core, site]",
           "add: [products]",
           "domain: rizom.ai",
@@ -552,6 +576,7 @@ describe("brain init", () => {
         join(testDir, "brain.yaml"),
         [
           "brain: brain",
+          "bundleContract: capability-bundles-v1",
           "bundles: [core, site]",
           "add: [products]",
           "domain: rizom.ai",
@@ -579,6 +604,7 @@ describe("brain init", () => {
         join(testDir, "brain.yaml"),
         [
           "brain: brain",
+          "bundleContract: capability-bundles-v1",
           "bundles: [core, site]",
           "add: [products]",
           "domain: rizom.ai",
@@ -598,6 +624,7 @@ describe("brain init", () => {
         join(testDir, "brain.yaml"),
         [
           "brain: brain",
+          "bundleContract: capability-bundles-v1",
           "bundles: [core, site, publishing]",
           "domain: mylittlephoney.com",
           "",
@@ -669,6 +696,7 @@ describe("brain init", () => {
         join(testDir, "brain.yaml"),
         [
           "brain: brain",
+          "bundleContract: capability-bundles-v1",
           "bundles: [core, site, publishing]",
           "domain: mylittlephoney.com",
           "",
@@ -718,6 +746,7 @@ describe("brain init", () => {
         join(testDir, "brain.yaml"),
         [
           "brain: brain",
+          "bundleContract: capability-bundles-v1",
           "bundles: [core, site, publishing]",
           "domain: mylittlephoney.com",
           "",
@@ -747,6 +776,7 @@ describe("brain init", () => {
         join(testDir, "brain.yaml"),
         [
           "brain: brain",
+          "bundleContract: capability-bundles-v1",
           "bundles: [core, site, publishing]",
           "domain: custom.example.com",
           "",
@@ -802,6 +832,7 @@ describe("brain init", () => {
         join(testDir, "brain.yaml"),
         [
           "brain: brain",
+          "bundleContract: capability-bundles-v1",
           "bundles: [core, site, publishing]",
           "domain: custom.example.com",
           "",

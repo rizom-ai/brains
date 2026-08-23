@@ -171,6 +171,7 @@ describe("buildAgentCard", () => {
       tools: mockTools,
       skills: [
         {
+          id: "knowledge-management",
           name: "Knowledge Management",
           description:
             "Organize, search, and surface knowledge from blog posts and notes",
@@ -181,6 +182,7 @@ describe("buildAgentCard", () => {
           ],
         },
         {
+          id: "content-creation",
           name: "Content Creation",
           description:
             "Write and publish blog posts, newsletters, and social media content",

@@ -47,13 +47,23 @@ describe("declarative brain normalization", () => {
     const core = defineBundle({
       id: "core",
       members: [configured],
+    });
+    const policy = defineBundle({
+      id: "policy",
+      members: [],
       config: [{ member: configured, value: { label: "Bundle" } }],
+      permissions: [
+        {
+          member: configured,
+          config: { rules: [{ pattern: "reading:*", level: "trusted" }] },
+        },
+      ],
       evalDisable: [configured],
     });
     const brain = defineBrain({
       name: "reader",
       plugins: [configured],
-      bundles: [core],
+      bundles: [core, policy],
       evalDisable: [configured],
     });
     registerPackage("@fixture/reader-brain", brain, { version: "0.2.0" });
@@ -66,7 +76,19 @@ describe("declarative brain normalization", () => {
       {
         id: "core",
         members: ["reading-insights"],
+      },
+      {
+        id: "policy",
+        members: [],
         config: [{ member: "reading-insights", value: { label: "Bundle" } }],
+        permissions: [
+          {
+            member: "reading-insights",
+            config: {
+              rules: [{ pattern: "reading:*", level: "trusted" }],
+            },
+          },
+        ],
         evalDisable: ["reading-insights"],
       },
     ]);
@@ -86,7 +108,7 @@ describe("declarative brain normalization", () => {
       brain,
       {},
       {
-        bundles: ["core"],
+        bundles: ["core", "policy"],
         plugins: { "reading-insights": { label: "  Instance  " } },
       },
     );
@@ -95,6 +117,9 @@ describe("declarative brain normalization", () => {
       expect.objectContaining({
         id: "@fixture/reading-insights:reading-instance",
       }),
+    ]);
+    expect(resolved.permissions?.rules).toEqual([
+      { pattern: "reading:*", level: "trusted" },
     ]);
   });
 

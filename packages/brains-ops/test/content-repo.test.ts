@@ -88,6 +88,7 @@ description: Replace this with something that actually describes you.
 
 const baseFiles = {
   "pilot.yaml": `brainVersion: 0.2.0-alpha.11
+bundleContract: capability-bundles-v1
 githubOrg: rizom-ai
 contentRepoPrefix: rover-
 domainSuffix: .rizom.ai
