@@ -17,7 +17,10 @@ import type { ProjectionRule, ProjectionWriteIntent } from "./projection-rule";
 import type { AnyDataSourceDeclaration } from "../public/entity-data-source";
 import type { AnyDashboardWidgetDefinition } from "../operator/operator-definition-contract";
 import type { OperatorCaller } from "../operator/operator-context-contract";
-import type { CreateInput } from "@brains/entity-service";
+import type {
+  CreateInput,
+  CreateResultAttachment,
+} from "@brains/entity-service";
 import type {
   ResolvedRuntimeUpload,
   RuntimeUploadRecord,
@@ -300,6 +303,7 @@ export type EntityCreateResolution =
         readonly content: string;
         readonly metadata: Record<string, unknown>;
       };
+      readonly attachment?: EntityCreateAttachment | undefined;
     }
   | {
       readonly update: {
@@ -320,6 +324,17 @@ export type EntityCreateResolution =
  * runtime writes the placeholder, enqueues the job with the allocated id,
  * and reports `generating` rather than `created`.
  */
+/**
+ * What a create route may attach to its result.
+ *
+ * A function of the entity the runtime wrote, not a value: dedup can change
+ * the id the route proposed, and an attachment built from the proposed one
+ * would point at nothing.
+ */
+export type EntityCreateAttachment = (written: {
+  readonly entityId: string;
+}) => CreateResultAttachment;
+
 export interface EntityCreateAllocation {
   readonly create: {
     readonly id: string;
@@ -366,6 +381,16 @@ export type EntityCreateRoute =
   | { readonly delegate: string }
   | { readonly reject: string }
   | {
+      /**
+       * Media types this route claims from the upload endpoint.
+       *
+       * An uploaded file reaches a type two ways — `system_create` with an
+       * upload ref, and the endpoint routing by media type — and they are
+       * the same decision. Declaring them here registers both, instead of
+       * a package registering a second handler that calls its own create
+       * logic back.
+       */
+      readonly mediaTypes?: readonly string[] | undefined;
       resolve(
         context: EntityCreateContext,
       ): Promise<EntityCreateResolution | EntityCreateAllocation>;
