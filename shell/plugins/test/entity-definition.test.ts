@@ -1287,6 +1287,99 @@ describe("entity package definitions", () => {
     harness.reset();
   });
 
+  // Rendering a deck as a PDF has to leave the deck pointing at it. That
+  // write belongs to neither package alone: the document package may not
+  // write a deck, and the deck knows nothing about documents. The runtime
+  // does it — the generation says which entity to link into and which stale
+  // links to drop, and never touches the other entity itself.
+  it("links a generated artifact into its source without the package writing it", async () => {
+    const guide = defineEntity({
+      type: "guide",
+      purpose: "A guide rendered from a source entity.",
+      metadata: z.object({ title: z.string() }),
+      jobs: {
+        render: {
+          input: z.object({ entityId: z.string() }),
+          generate: async ({
+            input,
+          }: JobHandlerContext<{ entityId: string }> & {
+            entityId: string | undefined;
+          }): Promise<EntityGenerationResult> => ({
+            success: true,
+            id: input.entityId,
+            content: "Rendered",
+            metadata: { title: "Rendered" },
+            linkInto: {
+              entityType: "deck",
+              entityId: "deck-1",
+              replaces: ["guide-old"],
+            },
+          }),
+        } satisfies EntityGenerationJobDeclaration<
+          z.ZodObject<{ entityId: z.ZodString }>
+        >,
+      },
+    });
+    const definition = defineEntityPackage({ id: "guides", entities: [guide] });
+    const plugin = createEntityPackagePlugins(
+      definition.entities,
+      definition.projections,
+      { name: "@fixture/guides", version: "0.1.0" },
+      (id) => `@fixture/guides:${id}`,
+    )[0];
+    if (!plugin) throw new Error("Guide entity plugin was not created");
+
+    const harness = createPluginHarness({
+      logger: createSilentLogger("entity-link-test"),
+    });
+    const handlers = new Map<string, JobHandler>();
+    const queue = harness.getMockShell().getJobQueueService();
+    stubMethod(queue, "registerHandler", (name, handler) => {
+      handlers.set(name, handler);
+    });
+    harness.getMockShell().getJobQueueService = (): typeof queue => queue;
+
+    await harness.installPlugin(plugin);
+    const entities = harness.getEntityService();
+
+    await entities.createEntity({
+      entity: {
+        id: "deck-1",
+        entityType: "deck",
+        content: "---\ndocuments:\n  - id: guide-old\n---\nA deck.",
+        metadata: {},
+      },
+    });
+    await entities.createEntity({
+      entity: {
+        id: "rendered",
+        entityType: "guide",
+        content: "Pending",
+        metadata: { title: "Pending" },
+      },
+    });
+
+    const handler = handlers.get("@fixture/guides:guide:render");
+    if (!handler) throw new Error("Render job handler was not registered");
+    await handler.process(
+      { entityId: "rendered" },
+      "job-1",
+      createMockProgressReporter(),
+      new AbortController().signal,
+    );
+
+    const deck = await entities.getEntity({
+      entityType: "deck",
+      id: "deck-1",
+    });
+    // The stale link is gone and the new one is there, written by the
+    // runtime — the guide package never wrote a deck.
+    expect(deck?.content).toContain("id: rendered");
+    expect(deck?.content).not.toContain("guide-old");
+
+    harness.reset();
+  });
+
   it("registers declared jobs and surfaces declared instructions", async () => {
     // Generation is just a job the runtime names for you, so both go
     // through the same declaration shape and the same validated handler.
