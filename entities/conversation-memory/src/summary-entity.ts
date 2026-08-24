@@ -1,0 +1,38 @@
+import { defineEntity, type EntityDefinition } from "@brains/sdk/entities";
+import { memoryMarkdown } from "./lib/memory-markdown";
+import {
+  migrateSummaryMetadata,
+  summaryMetadataSchema,
+} from "./schemas/summary";
+import { SUMMARY_ENTITY_TYPE } from "./lib/constants";
+import { summaryDataSource } from "./datasources/summary-datasource";
+import { summaryListTemplate } from "./templates/summary-list";
+import { summaryDetailTemplate } from "./templates/summary-detail";
+import { summaryAiResponseTemplate } from "./templates/summary-ai-response";
+
+/**
+ * A read-only, system-maintained summary derived from stored conversation
+ * messages.
+ *
+ * Read-only in the strict sense: nobody creates, edits or deletes one by
+ * hand. Automatic projection from conversations is currently disabled, so
+ * what exists is what was derived before that was turned off.
+ */
+export const summary: EntityDefinition<
+  typeof SUMMARY_ENTITY_TYPE,
+  typeof summaryMetadataSchema
+> = defineEntity({
+  type: SUMMARY_ENTITY_TYPE,
+  purpose:
+    "A read-only, system-maintained summary derived from stored conversation messages.",
+  metadata: summaryMetadataSchema,
+  metadataFrom: migrateSummaryMetadata,
+  markdown: memoryMarkdown,
+  config: { projectionSource: false, projectionSourceRole: "excluded" },
+  templates: {
+    "summary-list": summaryListTemplate,
+    "summary-detail": summaryDetailTemplate,
+    "ai-response": summaryAiResponseTemplate,
+  },
+  dataSources: [summaryDataSource],
+});

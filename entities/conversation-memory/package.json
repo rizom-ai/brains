@@ -5,16 +5,17 @@
   "description": "Plugin for deriving durable conversation memory",
   "dependencies": {
     "@brains/content-formatters": "workspace:*",
-    "@brains/contracts": "workspace:*",
-    "@brains/plugins": "workspace:*",
-    "@brains/utils": "workspace:*",
+    "@brains/sdk": "workspace:*",
     "@rizom/brain-ui": "workspace:*",
     "react": "^19.2.7"
   },
   "devDependencies": {
+    "@brains/contracts": "workspace:*",
     "@brains/eslint-config": "workspace:*",
+    "@brains/plugins": "workspace:*",
     "@brains/test-utils": "workspace:*",
     "@brains/typescript-config": "workspace:*",
+    "@brains/utils": "workspace:*",
     "@types/node": "^24.13.3",
     "@types/react": "^19.2.17",
     "eslint": "^10.5.0",

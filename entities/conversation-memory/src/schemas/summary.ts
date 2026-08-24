@@ -175,3 +175,18 @@ export const summarySchema: ReturnType<
 });
 
 export type SummaryEntity = z.output<typeof summarySchema>;
+
+/**
+ * Bring a stored summary's participants up to the current actor shape, so the
+ * same person appearing under two interface ids is one participant.
+ */
+export function migrateSummaryMetadata(stored: unknown): unknown {
+  if (!isRecord(stored)) return stored;
+  const participants = stored["participants"];
+  return Array.isArray(participants)
+    ? {
+        ...stored,
+        participants: participants.map(normalizeLegacySummaryParticipant),
+      }
+    : stored;
+}
