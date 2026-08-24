@@ -52,7 +52,13 @@ export type {
 export { reinitializeAuthAccessStorage } from "./access-reinitialization";
 export type { ReinitializeAuthAccessResult } from "./access-reinitialization";
 export { AuthAuditStore } from "./audit-store";
-export type { AppendAuthAuditEventInput, AuthAuditEvent } from "./audit-store";
+export type {
+  AppendAuthAuditEventInput,
+  AuthAuditActionCount,
+  AuthAuditEvent,
+  AuthAuditQuery,
+  AuthAuditQueryResult,
+} from "./audit-store";
 export {
   isSameOriginRequest,
   requireSameOriginJson,

@@ -566,12 +566,15 @@ export function App(): ReactElement {
           return;
         }
         case "admin-peer-invite": {
-          const href = consoleSurfaceHref("admin");
-          if (!href) return;
-          const url = new URL(href, window.location.href);
-          url.searchParams.set("peerId", launch.peerId);
-          url.searchParams.set("displayName", launch.displayName);
-          window.location.assign(url.href);
+          router.history.push(
+            workspaceUrlHref(
+              studioWorkspacePath(studioBasePath, "studio:invitations"),
+              {
+                peerId: launch.peerId,
+                displayName: launch.displayName,
+              },
+            ),
+          );
           return;
         }
         case "inbox": {
@@ -945,12 +948,16 @@ export function App(): ReactElement {
       if (!activeWorkspaceId) {
         throw new Error("Declarative workspace is unavailable");
       }
-      const result = await declarativeWorkspaceActionMutation.mutateAsync({
-        workspaceId: activeWorkspaceId,
-        action,
-      });
-      await invalidateAfterWorkspaceAction(queryClient, activeWorkspaceId);
-      return result;
+      try {
+        const result = await declarativeWorkspaceActionMutation.mutateAsync({
+          workspaceId: activeWorkspaceId,
+          action,
+        });
+        await invalidateAfterWorkspaceAction(queryClient, activeWorkspaceId);
+        return result;
+      } finally {
+        declarativeWorkspaceActionMutation.reset();
+      }
     },
     [activeWorkspaceId, declarativeWorkspaceActionMutation, queryClient],
   );

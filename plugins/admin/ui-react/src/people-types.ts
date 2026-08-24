@@ -1,8 +1,3 @@
-export interface ExternalPeerInvitationDraft {
-  peerId: string;
-  displayName?: string;
-}
-
 export interface Confirmation {
   kind: "confirm";
   title: string;
@@ -13,17 +8,12 @@ export interface Confirmation {
 }
 
 export type Modal =
-  | { kind: "add"; draft?: ExternalPeerInvitationDraft }
   | {
       kind: "setup";
       setupUrl: string;
       copy: string;
-      manualConfirmation?: {
-        invitationId: string;
-        deliveryAttemptId: string;
-      };
     }
   | Confirmation
   | null;
 
-export type SurfaceView = "overview" | "members" | "invitations";
+export type SurfaceView = "overview" | "members";

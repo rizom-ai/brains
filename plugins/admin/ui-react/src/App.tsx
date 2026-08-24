@@ -1,6 +1,5 @@
 /** @jsxImportSource react */
 import {
-  AUTH_ADMIN_MUTATION_ACTIONS,
   type AuthAdminMutation,
   type AuthAdminRole,
   type AuthAdminUserSummary,
@@ -17,24 +16,14 @@ import {
   type ReactElement,
 } from "react";
 import { mutateAdmin } from "./api";
-import { InvitationsView } from "./components/InvitationsView";
 import { OverviewView } from "./components/OverviewView";
 import { PersonDetail } from "./components/PersonDetail";
 import { Roster } from "./components/Roster";
 import { Button } from "./components/primitives";
-import {
-  AddPersonDialog,
-  type AddPersonInput,
-} from "./dialogs/AddPersonDialog";
 import { ModalFrame } from "./dialogs/ModalFrame";
 import { messageOf, useMutationFeedback } from "./feedback";
-import { formatDate } from "./format";
 import styles from "./people.css" with { type: "text" };
-import type {
-  ExternalPeerInvitationDraft,
-  Modal,
-  SurfaceView,
-} from "./people-types";
+import type { Modal, SurfaceView } from "./people-types";
 import {
   anchorQueryOptions,
   channelsQueryOptions,
@@ -45,28 +34,7 @@ import {
 export { messageOf };
 export { assuranceLabel, initials, roleLabel } from "./format";
 
-const PEER_INVITATION_STORAGE_KEY = "brains:admin-peer-invitation";
-
-export function buildInvitationMutation(
-  input: AddPersonInput,
-): Extract<AuthAdminMutation, { action: "createInvitation" }> {
-  return {
-    action: AUTH_ADMIN_MUTATION_ACTIONS.createInvitation,
-    confirmation: AUTH_ADMIN_MUTATION_ACTIONS.createInvitation,
-    idempotencyKey: input.idempotencyKey,
-    displayName: input.displayName,
-    role: input.role,
-    delivery: input.delivery,
-    ...(input.peerId ? { peerId: input.peerId } : {}),
-  };
-}
-
-interface SetupRegistration {
-  setupUrl: string;
-  expiresAt: number;
-  deliveryAttemptId?: string;
-  delivery?: { type: string; label: string };
-}
+const SURFACE_VIEWS: readonly SurfaceView[] = ["overview", "members"];
 
 export interface PeopleBootstrap {
   userId: string;
@@ -111,21 +79,11 @@ export function PeopleApp(props: PeopleAppProps): ReactElement {
   });
   const users = usersQuery.data ?? [];
   const channels = channelsQuery.data ?? [];
-  const invitationChannels = channels.filter(
-    (channel) => channel.deliveryModes.length > 0,
-  );
   const anchor = anchorQuery.data;
   const configuredAnchorKind = anchor?.configuredKind ?? "person";
   const organization = configuredAnchorKind === "organization";
   const rosterLabel = organization ? "People" : "Members";
-  const rosterSingular = organization ? "person" : "member";
   const activeUsers = users.filter((user) => user.status !== "invited");
-  const invitations = users.filter((user) => user.invitation !== undefined);
-  const pendingInvitationCount = invitations.filter(
-    (user) =>
-      user.invitation &&
-      !["claimed", "expired", "cancelled"].includes(user.invitation.state),
-  ).length;
   const activeAdminCount = users.filter(
     (user) => user.role === "admin" && user.status === "active",
   ).length;
@@ -147,10 +105,7 @@ export function PeopleApp(props: PeopleAppProps): ReactElement {
     initialContact !== undefined || !props.bootstrap.initialPersonId,
   );
   const [modal, setModal] = useState<Modal>(null);
-  const [manualConfirmationPending, setManualConfirmationPending] =
-    useState(false);
-  const manualConfirmationLock = useRef(false);
-  const { feedback, setFeedback, runWithFeedback } = useMutationFeedback();
+  const { feedback, runWithFeedback } = useMutationFeedback();
   const { mutateAsync: runAdminMutation } = useMutation({
     mutationFn: (mutation: AuthAdminMutation) => mutateAdmin<unknown>(mutation),
     onSuccess: async (_result, mutation) =>
@@ -186,51 +141,6 @@ export function PeopleApp(props: PeopleAppProps): ReactElement {
     setView("members");
   }, [activeUsers, props.bootstrap.initialPersonId, usersQuery.isPending]);
 
-  useEffect(() => {
-    if (!isAdmin || typeof window === "undefined") return;
-    const search = new URLSearchParams(window.location.search);
-    const peerId = search.get("peerId")?.trim();
-    if (peerId) {
-      const displayName = search.get("displayName")?.trim();
-      search.delete("peerId");
-      search.delete("displayName");
-      const query = search.toString();
-      window.history.replaceState(
-        null,
-        "",
-        `${window.location.pathname}${query ? `?${query}` : ""}${window.location.hash}`,
-      );
-      setView("invitations");
-      setModal({
-        kind: "add",
-        draft: {
-          peerId,
-          ...(displayName ? { displayName } : {}),
-        },
-      });
-      return;
-    }
-    const raw = window.sessionStorage.getItem(PEER_INVITATION_STORAGE_KEY);
-    if (!raw) return;
-    window.sessionStorage.removeItem(PEER_INVITATION_STORAGE_KEY);
-    try {
-      const draft = JSON.parse(raw) as ExternalPeerInvitationDraft;
-      if (typeof draft.peerId !== "string" || !draft.peerId.trim()) return;
-      setView("invitations");
-      setModal({
-        kind: "add",
-        draft: {
-          peerId: draft.peerId,
-          ...(typeof draft.displayName === "string" && draft.displayName.trim()
-            ? { displayName: draft.displayName }
-            : {}),
-        },
-      });
-    } catch {
-      // Ignore malformed cross-surface navigation state.
-    }
-  }, [isAdmin]);
-
   const runMutation = useCallback(
     async (
       mutation: AuthAdminMutation,
@@ -249,116 +159,7 @@ export function PeopleApp(props: PeopleAppProps): ReactElement {
   );
 
   const closeModal = (): void => setModal(null);
-
-  const showSetup = (
-    user: { userId: string; displayName: string },
-    registration: SetupRegistration,
-    destination = registration.delivery?.label ?? "the confirmed channel",
-    invitationId?: string,
-  ): void => {
-    setSelectedUserId(user.userId);
-    setModal({
-      kind: "setup",
-      setupUrl: registration.setupUrl,
-      copy: `This single-use link is bound to ${destination}. Deliver it only through that confirmed private channel, and open it in the intended person’s browser or a private window—not an existing Admin session. It expires ${formatDate(registration.expiresAt * 1000)}.`,
-      ...(invitationId && registration.deliveryAttemptId
-        ? {
-            manualConfirmation: {
-              invitationId,
-              deliveryAttemptId: registration.deliveryAttemptId,
-            },
-          }
-        : {}),
-    });
-  };
-
-  const createSetup = (user: AuthAdminUserSummary): void => {
-    if (!user.invitation) return;
-    void runMutation(
-      {
-        action: AUTH_ADMIN_MUTATION_ACTIONS.resendInvitation,
-        confirmation: AUTH_ADMIN_MUTATION_ACTIONS.resendInvitation,
-        invitationId: user.invitation.id,
-      },
-      user.userId,
-      "Invitation retry recorded",
-    )
-      .then((result) => {
-        const resent = result as {
-          invitation: { state: string };
-          registration: SetupRegistration;
-        };
-        if (resent.invitation.state === "failed") {
-          setFeedback({
-            tone: "error",
-            message:
-              "Invitation saved, but delivery failed. Check channel delivery configuration before retrying.",
-          });
-          return;
-        }
-        setFeedback({ message: "Invitation resent", tone: "good" });
-        const destination =
-          user.identities.find((identity) => identity.type !== "passkey")
-            ?.label ?? "the confirmed channel";
-        showSetup(
-          user,
-          resent.registration,
-          destination,
-          resent.invitation.state === "pending" && user.invitation
-            ? user.invitation.id
-            : undefined,
-        );
-      })
-      .catch(() => undefined);
-  };
-
-  const createInvitation = async (input: AddPersonInput): Promise<void> => {
-    const created = (await runMutation(
-      buildInvitationMutation(input),
-      undefined,
-      "Invitation recorded",
-    )) as {
-      invitation: { id: string; state: string };
-      user: { userId: string; displayName: string };
-      registration?: SetupRegistration;
-    };
-    if (!created.registration || created.invitation.state === "failed") {
-      setSelectedUserId(created.user.userId);
-      setView("invitations");
-      closeModal();
-      if (created.invitation.state === "failed") {
-        setFeedback({
-          tone: "error",
-          message:
-            "Invitation saved, but delivery failed. Configure channel delivery or retry from Invitations.",
-        });
-      }
-      return;
-    }
-    const destination = input.delivery.label ?? input.delivery.subject;
-    if (created.invitation.state === "sent") {
-      const channelName =
-        channels.find((channel) => channel.type === input.delivery.type)
-          ?.displayName ?? "Channel";
-      setFeedback({ message: `${channelName} invitation sent`, tone: "good" });
-      setSelectedUserId(created.user.userId);
-      setModal({
-        kind: "setup",
-        setupUrl: created.registration.setupUrl,
-        copy: `The invitation to ${destination} was accepted by the delivery provider. The single-use link expires ${formatDate(created.registration.expiresAt * 1000)}.`,
-      });
-      return;
-    }
-    showSetup(
-      created.user,
-      created.registration,
-      destination,
-      created.invitation.id,
-    );
-  };
-
   const openMembers = (): void => setView("members");
-  const openInvitations = (): void => setView("invitations");
 
   return (
     <>
@@ -368,7 +169,7 @@ export function PeopleApp(props: PeopleAppProps): ReactElement {
           <div>
             <h1>Admin</h1>
             <p>
-              {organization ? "people · invitations" : "members · invitations"}
+              {organization ? "people administration" : "member administration"}
             </p>
           </div>
           <div className="admin-hero-meta">
@@ -384,7 +185,7 @@ export function PeopleApp(props: PeopleAppProps): ReactElement {
         </header>
 
         <nav className="admin-tabs" aria-label="Administration sections">
-          {(["overview", "members", "invitations"] as const).map((section) => (
+          {SURFACE_VIEWS.map((section) => (
             <button
               key={section}
               className={view === section ? "is-active" : ""}
@@ -394,9 +195,6 @@ export function PeopleApp(props: PeopleAppProps): ReactElement {
               {section === "members"
                 ? rosterLabel
                 : section[0]?.toUpperCase() + section.slice(1)}
-              {section === "invitations" && pendingInvitationCount > 0 ? (
-                <small>{pendingInvitationCount}</small>
-              ) : null}
             </button>
           ))}
         </nav>
@@ -415,9 +213,8 @@ export function PeopleApp(props: PeopleAppProps): ReactElement {
             anchor={anchor}
             users={users}
             onOpenMembers={openMembers}
-            onOpenInvitations={openInvitations}
           />
-        ) : view === "members" ? (
+        ) : (
           <section className="people-panel">
             <header className="people-head">
               <div>
@@ -428,9 +225,6 @@ export function PeopleApp(props: PeopleAppProps): ReactElement {
                   optional external peers.
                 </p>
               </div>
-              <Button tone="primary" onClick={() => setModal({ kind: "add" })}>
-                Add {rosterSingular}
-              </Button>
             </header>
             <div className="people-layout">
               <Roster
@@ -455,35 +249,6 @@ export function PeopleApp(props: PeopleAppProps): ReactElement {
               />
             </div>
           </section>
-        ) : (
-          <InvitationsView
-            invitations={invitations}
-            onAdd={() => setModal({ kind: "add" })}
-            onCreateSetup={createSetup}
-            onCancel={(user) =>
-              setModal({
-                kind: "confirm",
-                title: `Cancel ${user.displayName}’s invitation?`,
-                copy: "The pending account will be suspended and its setup links revoked.",
-                warning:
-                  "The person and peer association remain in audit history.",
-                submitLabel: "Cancel invitation",
-                run: async () => {
-                  if (!user.invitation) return;
-                  await runMutation(
-                    {
-                      action: AUTH_ADMIN_MUTATION_ACTIONS.cancelInvitation,
-                      confirmation:
-                        AUTH_ADMIN_MUTATION_ACTIONS.cancelInvitation,
-                      invitationId: user.invitation.id,
-                    },
-                    undefined,
-                    "Invitation cancelled",
-                  );
-                },
-              })
-            }
-          />
         )}
       </div>
 
@@ -494,15 +259,6 @@ export function PeopleApp(props: PeopleAppProps): ReactElement {
         >
           {feedback.message}
         </p>
-      )}
-
-      {modal?.kind === "add" && (
-        <AddPersonDialog
-          channels={invitationChannels}
-          {...(modal.draft ? { initialDraft: modal.draft } : {})}
-          onClose={closeModal}
-          onCreate={(input) => createInvitation(input).catch(() => undefined)}
-        />
       )}
 
       {modal?.kind === "confirm" && (
@@ -539,54 +295,9 @@ export function PeopleApp(props: PeopleAppProps): ReactElement {
           copy={modal.copy}
           onClose={closeModal}
           footer={
-            modal.manualConfirmation ? (
-              <>
-                <Button
-                  onClick={closeModal}
-                  disabled={manualConfirmationPending}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  tone="primary"
-                  disabled={manualConfirmationPending}
-                  onClick={() => {
-                    const confirmation = modal.manualConfirmation;
-                    if (!confirmation || manualConfirmationLock.current) {
-                      return;
-                    }
-                    manualConfirmationLock.current = true;
-                    setManualConfirmationPending(true);
-                    void runMutation(
-                      {
-                        action:
-                          AUTH_ADMIN_MUTATION_ACTIONS.confirmManualInvitationDelivery,
-                        confirmation:
-                          AUTH_ADMIN_MUTATION_ACTIONS.confirmManualInvitationDelivery,
-                        invitationId: confirmation.invitationId,
-                        deliveryAttemptId: confirmation.deliveryAttemptId,
-                      },
-                      undefined,
-                      "Manual delivery confirmed",
-                    )
-                      .then(closeModal)
-                      .catch(() => undefined)
-                      .finally(() => {
-                        manualConfirmationLock.current = false;
-                        setManualConfirmationPending(false);
-                      });
-                  }}
-                >
-                  {manualConfirmationPending
-                    ? "Confirming…"
-                    : "I delivered this link"}
-                </Button>
-              </>
-            ) : (
-              <Button tone="primary" onClick={closeModal}>
-                Done
-              </Button>
-            )
+            <Button tone="primary" onClick={closeModal}>
+              Done
+            </Button>
           }
         >
           <div className="people-setup-link">

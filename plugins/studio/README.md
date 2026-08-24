@@ -51,10 +51,10 @@ Workspace definitions may opt into host-owned stable URL filters with a typed qu
 
 ## Workspaces
 
-Studio registers its Admin-only Audit workspace through the same declarative runtime and reads audit records directly from auth-service; the browser does not fetch or duplicate the admin audit API.
+Studio registers Admin-only Audit and Invitations workspaces through the same declarative runtime and reads their records directly from auth-service. Audit filters and paginates in the auth store; invitation mutations preserve actor attribution, prepared cancellation, manual delivery confirmation, and one-time setup links without duplicating auth APIs.
 
 Service plugins declare optional workspaces with `defineStudioWorkspace()`. The runtime scopes IDs, registers after setup, unregisters on shutdown, and sends only `DeclarativeOperatorWorkspace` registrations to the Studio. Registrations are ordered by `priority`, duplicate IDs are rejected, and no provider is required for the Studio to start.
 
-Every workspace uses the same closed host-rendered vocabulary: content blocks, composition, queries, spatial and relational views, typed actions, dynamic catalogs, launch intents, and static or prepared confirmation. Publishing, Site, Directory Sync, and Unified Inbox all use this path; there are no specialized renderer names or private browser implementations.
+Every workspace uses the same closed host-rendered vocabulary: content blocks, composition, queries, spatial and relational views, typed actions, schema-driven forms, bounded ephemeral results, dynamic catalogs, launch intents, and static or prepared confirmation. Publishing, Site, Directory Sync, Unified Inbox, Audit, and Invitations all use this path; there are no specialized renderer names or private browser implementations.
 
 Providers own schema-valid data, permission narrowing, and action execution. The Studio owns authentication, transport, navigation, validation, rendering, accessibility, query URLs, confirmation tokens, and targeted invalidation. Runtime React components, HTML, CSS, scripts, and private URLs are never accepted through registration.

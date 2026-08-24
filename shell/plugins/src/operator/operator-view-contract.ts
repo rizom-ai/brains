@@ -1,6 +1,12 @@
+import type { z } from "@brains/utils/zod";
 import type { AnyEntityDefinition } from "../entity/entity-definition-contract";
 import { assertIdentifier } from "../package-definition";
 import { assertText } from "./contract-assertions";
+import type { OperatorSchema } from "./operator-context-contract";
+import type {
+  OperatorFieldControl,
+  OperatorFieldDefinitionBase,
+} from "./operator-field-contract";
 import type {
   AnyWorkspaceActionDefinition,
   WorkspaceActionInput,
@@ -237,16 +243,77 @@ export interface OperatorCapabilityDefinition {
   readonly confirmation?: "prepared" | undefined;
 }
 
+export type WorkspaceActionFormControl = OperatorFieldControl;
+
+export interface WorkspaceActionFormOption {
+  readonly value: string;
+  readonly label: string;
+}
+
+export interface WorkspaceActionFormFieldDefinition extends OperatorFieldDefinitionBase<WorkspaceActionFormControl> {
+  readonly options?: readonly WorkspaceActionFormOption[] | undefined;
+}
+
+export type WorkspaceActionFormFieldMap<TSchema extends OperatorSchema> =
+  TSchema extends z.ZodObject<z.ZodRawShape>
+    ? Partial<{
+        readonly [
+          K in Extract<keyof z.input<TSchema>, string>
+        ]: WorkspaceActionFormFieldDefinition;
+      }>
+    : never;
+
+export interface WorkspaceActionFormDefinition<
+  TSchema extends OperatorSchema = OperatorSchema,
+> {
+  readonly submitLabel?: string | undefined;
+  readonly fields: WorkspaceActionFormFieldMap<TSchema>;
+}
+
+export interface WorkspaceActionResultFieldDefinition {
+  readonly label: string;
+  readonly copyable?: boolean | undefined;
+  readonly sensitive?: boolean | undefined;
+}
+
+export type WorkspaceActionResultFieldMap<TSchema extends OperatorSchema> =
+  TSchema extends z.ZodObject<z.ZodRawShape>
+    ? {
+        readonly [
+          K in Extract<keyof z.output<TSchema>, string>
+        ]: WorkspaceActionResultFieldDefinition;
+      }
+    : never;
+
+export interface WorkspaceActionResultDefinition<
+  TSchema extends OperatorSchema = OperatorSchema,
+> {
+  readonly title: string;
+  readonly fields: WorkspaceActionResultFieldMap<TSchema>;
+}
+
+interface OperatorActionControlBase<
+  TDefinition extends AnyWorkspaceActionDefinition,
+> {
+  readonly action: TDefinition;
+  readonly capability?: OperatorCapabilityDefinition | undefined;
+  readonly disabled?: boolean | undefined;
+  readonly result?:
+    WorkspaceActionResultDefinition<TDefinition["output"]> | undefined;
+}
+
 export type OperatorActionControl<
   TDefinition extends AnyWorkspaceActionDefinition =
     AnyWorkspaceActionDefinition,
 > = TDefinition extends AnyWorkspaceActionDefinition
-  ? {
-      readonly action: TDefinition;
-      readonly input: WorkspaceActionInput<TDefinition>;
-      readonly capability?: OperatorCapabilityDefinition | undefined;
-      readonly disabled?: boolean | undefined;
-    }
+  ? | (OperatorActionControlBase<TDefinition> & {
+        readonly input: WorkspaceActionInput<TDefinition>;
+        readonly form?: never;
+      })
+    | (OperatorActionControlBase<TDefinition> & {
+        readonly input?: Partial<WorkspaceActionInput<TDefinition>>;
+        readonly form: WorkspaceActionFormDefinition<TDefinition["input"]>;
+      })
   : never;
 
 export type OperatorActionBlock<TAction extends AnyWorkspaceActionDefinition> =

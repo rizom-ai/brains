@@ -1,14 +1,19 @@
 import type { z } from "@brains/utils/zod";
 import { assertOptionalText, assertText } from "./contract-assertions";
+import {
+  accountSettingsControlSchema,
+  type AccountSettingsControl,
+  type OperatorFieldDefinitionBase,
+} from "./operator-field-contract";
 
 export type AccountSettingsSchema = z.ZodObject<z.ZodRawShape>;
+export type { AccountSettingsControl } from "./operator-field-contract";
 
-export type AccountSettingsControl = "text" | "url" | "number" | "checkbox";
-
-export interface AccountSettingsFieldDefinition {
-  readonly label: string;
+export interface AccountSettingsFieldDefinition extends Omit<
+  OperatorFieldDefinitionBase<AccountSettingsControl>,
+  "control"
+> {
   readonly control?: AccountSettingsControl | undefined;
-  readonly secret?: boolean | undefined;
 }
 
 /**
@@ -87,12 +92,6 @@ export function defineAccountSettings<
 
   const schemaFields = Object.keys(definition.schema.shape);
   const declared = new Set(Object.keys(definition.fields));
-  const controls = new Set<AccountSettingsControl>([
-    "text",
-    "url",
-    "number",
-    "checkbox",
-  ]);
   for (const [name, field] of Object.entries(definition.fields)) {
     if (!schemaFields.includes(name)) {
       throw new Error(
@@ -100,7 +99,10 @@ export function defineAccountSettings<
       );
     }
     assertText(field.label, `Account settings field "${name}" label`);
-    if (field.control !== undefined && !controls.has(field.control)) {
+    if (
+      field.control !== undefined &&
+      !accountSettingsControlSchema.safeParse(field.control).success
+    ) {
       throw new Error(
         `Account settings field "${name}" has unsupported control "${String(field.control)}"`,
       );

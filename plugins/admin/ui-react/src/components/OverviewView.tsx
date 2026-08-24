@@ -10,16 +10,12 @@ export function OverviewView(props: {
   anchor: AuthBrainAnchorSummary | undefined;
   users: AuthAdminUserSummary[];
   onOpenMembers: () => void;
-  onOpenInvitations: () => void;
 }): ReactElement {
   const activeMembers = props.users.filter(
     (user) => user.status === "active",
   ).length;
   const activeAdmins = props.users.filter(
     (user) => user.status === "active" && user.role === "admin",
-  ).length;
-  const invitations = props.users.filter(
-    (user) => user.status === "invited",
   ).length;
   const suspended = props.users.filter(
     (user) => user.status === "suspended",
@@ -50,15 +46,6 @@ export function OverviewView(props: {
           <small>
             {activeAdmins} active {activeAdmins === 1 ? "Admin" : "Admins"}
           </small>
-        </button>
-        <button
-          className="people-metric"
-          type="button"
-          onClick={props.onOpenInvitations}
-        >
-          <span>Invitations</span>
-          <strong>{invitations}</strong>
-          <small>Awaiting passkey claim</small>
         </button>
         <div
           className={`people-metric${suspended > 0 ? " has-attention" : ""}`}

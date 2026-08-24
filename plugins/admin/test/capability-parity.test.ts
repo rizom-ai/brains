@@ -5,7 +5,7 @@ import {
 } from "@brains/auth-service/admin-contracts";
 
 interface AdminCapabilityInventoryEntry {
-  currentOwner: "admin" | "api-only";
+  currentOwner: "admin" | "studio" | "api-only";
   destination: "invitations" | "people" | "peers" | "retirement-decision";
 }
 
@@ -17,13 +17,13 @@ interface AdminCapabilityInventoryEntry {
 const ADMIN_CAPABILITY_INVENTORY: Readonly<
   Record<AuthAdminMutationAction, AdminCapabilityInventoryEntry>
 > = {
-  cancelInvitation: { currentOwner: "admin", destination: "invitations" },
+  cancelInvitation: { currentOwner: "studio", destination: "invitations" },
   confirmManualInvitationDelivery: {
-    currentOwner: "admin",
+    currentOwner: "studio",
     destination: "invitations",
   },
-  createInvitation: { currentOwner: "admin", destination: "invitations" },
-  resendInvitation: { currentOwner: "admin", destination: "invitations" },
+  createInvitation: { currentOwner: "studio", destination: "invitations" },
+  resendInvitation: { currentOwner: "studio", destination: "invitations" },
   updateUserRole: { currentOwner: "admin", destination: "people" },
   updateUserStatus: { currentOwner: "admin", destination: "people" },
   deleteUser: { currentOwner: "admin", destination: "people" },
@@ -42,6 +42,13 @@ const ADMIN_CAPABILITY_INVENTORY: Readonly<
   attachIdentity: { currentOwner: "api-only", destination: "people" },
   detachIdentity: { currentOwner: "api-only", destination: "people" },
 };
+
+const STUDIO_INVITATION_ACTIONS: readonly AuthAdminMutationAction[] = [
+  "createInvitation",
+  "resendInvitation",
+  "cancelInvitation",
+  "confirmManualInvitationDelivery",
+];
 
 const ADMIN_READ_PRESENTATION: Readonly<
   Record<"audit" | "anchor" | "channels" | "users", string>
@@ -64,7 +71,10 @@ describe("Admin capability parity inventory", () => {
     ).toBe(true);
   });
 
-  it("records Audit as Studio-owned before removing its Admin view", () => {
+  it("records migrated capabilities as Studio-owned before removing Admin views", () => {
     expect(ADMIN_READ_PRESENTATION.audit).toBe("studio:audit");
+    for (const action of STUDIO_INVITATION_ACTIONS) {
+      expect(ADMIN_CAPABILITY_INVENTORY[action].currentOwner).toBe("studio");
+    }
   });
 });

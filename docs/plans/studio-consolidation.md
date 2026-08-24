@@ -17,8 +17,12 @@ the card:
 [`../studio-consolidation-mockups.html`](../studio-consolidation-mockups.html)
 (decided 2026-08-19).
 
-**Progress:** Phases 1–2 are implemented on `work/studio-consolidation`; Phase
-3 is next.
+**Progress:** Phases 1–3 are implemented on `work/studio-consolidation`; Phase
+4 is next. A 2026-08-23 review confirmed the rename is cleanly mechanical and
+the capability-parity inventory holds. Its Phase 2 follow-ups (redundant Admin
+asserts, fetch-all audit pagination, and raw ISO timestamps) and Phase 3 entry
+conditions (shared form-control vocabulary and shared `queryInteger`) landed
+with Phase 3.
 
 ## Goal
 
@@ -264,6 +268,23 @@ does not block it).
   auth-service-owned `/auth/admin/audit` endpoint. Remove the Audit tab from
   the shrinking admin shell; the admin door remains until Phase 6.
 
+Review follow-ups (2026-08-23), to land before Phase 3's workspace copies the
+same shapes:
+
+- Drop the hand-rolled admin re-assertions in the audit workspace's
+  `authorize` and `load` hooks. The runtime already refuses sub-admin actors
+  from `definition.permission` before either hook runs
+  (`studio-workspace-runtime` admission); keep at most one assert with a
+  comment naming it belt-and-braces, and delete the pseudo-actor adapter.
+- Push filtering, offset/limit, and the action-count aggregation into the
+  audit store query. `audit.list()` is an unbounded full-table scan, and the
+  workspace currently loads every event per request to serve a 25-row page —
+  the pagination UX implies growth that the implementation cannot survive.
+- Render timestamps with a shared workspace date formatter (Intl medium
+  style, as the old `formatDate` did) instead of raw `toISOString()` in
+  table cells. Audit is the first workspace to need one: establish the shared
+  helper rather than inlining a format each workspace will re-invent.
+
 ### Phase 3 — Schema-driven action forms + invitations workspace
 
 - Tests first: contract tests for object-schema action forms, total field maps,
@@ -276,6 +297,18 @@ does not block it).
   through the existing action binding with static or prepared confirmation.
   Extend successful actions with optional schema-backed result presentation;
   do not render arbitrary action output.
+- Reuse, don't re-declare, the field vocabulary (2026-08-23 review): the form
+  control set is the account-settings vocabulary plus `select`, defined once
+  as a zod enum with the TS unions derived via `z.output` — not parallel
+  literal unions in the contract, the runtime source types, and the runtime
+  boundary schema. The field-definition shape ({label, control, secret})
+  shares one base with `AccountSettingsFieldDefinition`. Type-level totality
+  (a mapped required field map, as account-settings does) is preferred over
+  `Partial` plus a runtime totality check; keep the runtime check either way.
+- Extract the `queryInteger` query-preprocessing helper to a shared module
+  before this phase adds a third copy — it is already duplicated verbatim
+  between `plugins/unified-inbox/src/schemas.ts` and
+  `plugins/studio/src/audit-workspace.ts`.
 - First consumer: Invitations workspace. Preserve the complete existing
   lifecycle: create, failed-delivery retry/resend, cancellation with prepared
   confirmation, manual-delivery confirmation, and ephemeral setup-link display

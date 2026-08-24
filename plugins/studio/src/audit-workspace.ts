@@ -2,15 +2,15 @@ import {
   getActiveAuthService,
   type AuthAuditEvent,
 } from "@brains/auth-service";
-import type { AuthAdminUserSummary } from "@brains/auth-service/admin-contracts";
 import {
-  assertStudioWorkspaceAdmin,
   defineStudioWorkspace,
   registerBuiltInStudioWorkspace,
   type OperatorViewBlock,
   type ServicePluginContext,
 } from "@brains/plugins";
+import { queryInteger } from "@brains/utils/query";
 import { z } from "@brains/utils/zod";
+import { formatWorkspaceDate } from "./workspace-format";
 
 const actionLabels: Readonly<Record<string, string>> = {
   "auth.a2a_peer_trust.granted": "Trusted an A2A peer",
@@ -42,11 +42,6 @@ function actionLabel(action: string): string {
   return words.length === 0
     ? action
     : `${words.slice(0, 1).toUpperCase()}${words.slice(1)}`;
-}
-
-function queryInteger(input: unknown): unknown {
-  if (typeof input !== "string" || !/^\d+$/u.test(input)) return input;
-  return Number(input);
 }
 
 const auditWorkspaceQuerySchema = z.strictObject({
@@ -190,7 +185,7 @@ const studioAuditWorkspace = defineStudioWorkspace({
                       },
                       {
                         label: "Occurred",
-                        value: new Date(selected.createdAt).toISOString(),
+                        value: formatWorkspaceDate(selected.createdAt),
                       },
                       { label: "Event ID", value: selected.id },
                     ],
@@ -212,7 +207,7 @@ const studioAuditWorkspace = defineStudioWorkspace({
           rows: data.events.map((event) => ({
             id: event.id,
             cells: {
-              when: new Date(event.createdAt).toISOString(),
+              when: formatWorkspaceDate(event.createdAt),
               actor: actorName(event.actorUserId, namesById),
               action: actionLabel(event.action),
               target: targetName(event, namesById),
@@ -235,13 +230,6 @@ const studioAuditWorkspace = defineStudioWorkspace({
   },
 });
 
-function assertAuditAdmin(permission: string | undefined): void {
-  assertStudioWorkspaceAdmin(
-    { userPermissionLevel: permission === "admin" ? "admin" : undefined },
-    "Audit workspace",
-  );
-}
-
 export async function registerStudioAuditWorkspace(
   context: ServicePluginContext,
 ): Promise<string | undefined> {
@@ -250,58 +238,43 @@ export async function registerStudioAuditWorkspace(
     definition: studioAuditWorkspace,
     bind: (bindingContext) =>
       studioAuditWorkspace.bind(bindingContext, {
-        authorize: ({ caller }) => {
-          assertAuditAdmin(caller?.permission);
-          return true;
-        },
-        load: async ({ caller, query }) => {
-          assertAuditAdmin(caller?.permission);
+        load: async ({ query }) => {
           const authService = getActiveAuthService();
           if (!authService)
             throw new Error("Audit workspace requires auth-service");
           const normalized = query.get(auditWorkspaceQuerySchema);
-          const [rawEvents, users] = await Promise.all([
-            authService.listAuditEvents(),
+          const [audit, users] = await Promise.all([
+            authService.queryAuditEvents({
+              ...(normalized.actorUserId
+                ? { actorUserId: normalized.actorUserId }
+                : {}),
+              ...(normalized.action ? { action: normalized.action } : {}),
+              ...(normalized.selected
+                ? { selectedId: normalized.selected }
+                : {}),
+              offset: normalized.offset,
+              limit: normalized.limit,
+            }),
             authService.listAdminUsers(),
           ]);
-          const allEvents = rawEvents.map(eventRecord);
-          const matching = allEvents.filter(
-            (event) =>
-              (normalized.actorUserId === undefined ||
-                event.actorUserId === normalized.actorUserId) &&
-              (normalized.action === undefined ||
-                event.action === normalized.action),
-          );
-          const actionCounts = new Map<string, number>();
-          for (const event of allEvents) {
-            actionCounts.set(
-              event.action,
-              (actionCounts.get(event.action) ?? 0) + 1,
-            );
-          }
-          const actions = [...actionCounts]
-            .map(([value, count]) => ({
-              value,
-              label: actionLabel(value),
-              count,
-            }))
-            .sort((left, right) => left.label.localeCompare(right.label));
-          const selectedEvent = normalized.selected
-            ? matching.find((event) => event.id === normalized.selected)
-            : undefined;
           return {
             query: normalized,
-            events: matching.slice(
-              normalized.offset,
-              normalized.offset + normalized.limit,
-            ),
-            ...(selectedEvent ? { selectedEvent } : {}),
-            users: users.map((user: AuthAdminUserSummary) => ({
+            events: audit.events.map(eventRecord),
+            ...(audit.selectedEvent
+              ? { selectedEvent: eventRecord(audit.selectedEvent) }
+              : {}),
+            users: users.map((user) => ({
               userId: user.userId,
               displayName: user.displayName,
             })),
-            actions,
-            total: matching.length,
+            actions: audit.actions
+              .map(({ action: value, count }) => ({
+                value,
+                label: actionLabel(value),
+                count,
+              }))
+              .sort((left, right) => left.label.localeCompare(right.label)),
+            total: audit.total,
           };
         },
         actions: [],

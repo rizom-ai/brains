@@ -26,6 +26,7 @@ import { StudioWorkspaceRegistry } from "./workspace-registry";
 import packageJson from "../package.json";
 import { getErrorMessage } from "@brains/utils/error";
 import { registerStudioAuditWorkspace } from "./audit-workspace";
+import { registerStudioInvitationsWorkspace } from "./invitations-workspace";
 
 interface StudioEntityDisplayEntry {
   label?: string | undefined;
@@ -226,6 +227,7 @@ export class StudioPlugin extends ServicePlugin<
     context: ServicePluginContext,
   ): Promise<void> {
     await registerStudioAuditWorkspace(context);
+    await registerStudioInvitationsWorkspace(context);
   }
 
   override getWebRoutes(): WebRouteDefinition[] {

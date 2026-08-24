@@ -53,8 +53,11 @@ function launchHref(
 ): string | undefined {
   if (launch.target === "account-settings") return paths.accountPath;
   if (launch.target === "admin-peer-invite") {
-    if (!paths.adminPath) return undefined;
-    const url = new URL(paths.adminPath, "https://brains.invalid");
+    if (!paths.studioPath) return undefined;
+    const url = new URL(
+      workspaceHref(paths.studioPath, "studio:invitations"),
+      "https://brains.invalid",
+    );
     url.searchParams.set("peerId", launch.peerId);
     url.searchParams.set("displayName", launch.displayName);
     return `${url.pathname}${url.search}`;

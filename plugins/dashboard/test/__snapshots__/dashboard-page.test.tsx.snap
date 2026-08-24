@@ -2362,8 +2362,8 @@ body::after {
 }
 
 .declarative-action-control {
-  display: inline-flex;
-  align-items: center;
+  display: inline-grid;
+  align-items: start;
   gap: 8px;
 }
 
@@ -2371,6 +2371,104 @@ body::after {
   color: var(--console-text-muted);
   font-family: var(--console-mono);
   font-size: 10px;
+}
+
+.declarative-action-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(160px, 1fr));
+  gap: 12px;
+  width: min(720px, 100%);
+}
+
+.declarative-action-form label {
+  display: grid;
+  gap: 5px;
+  color: var(--console-text-muted);
+  font: 10px var(--console-mono);
+}
+
+.declarative-action-form input,
+.declarative-action-form select {
+  min-height: 38px;
+  border: 1px solid var(--console-rule-strong);
+  border-radius: 7px;
+  background: var(--console-card-soft);
+  color: var(--console-text);
+  padding: 8px 10px;
+  font: 12px var(--console-sans);
+}
+
+.declarative-action-form .declarative-action-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.declarative-action-form .declarative-action-checkbox input {
+  min-height: auto;
+}
+
+.declarative-action-form > button {
+  align-self: end;
+  justify-self: start;
+}
+
+.declarative-action-result {
+  display: grid;
+  gap: 8px;
+  width: min(720px, 100%);
+  padding: 12px;
+  border: 1px solid var(--console-rule-accent);
+  border-radius: 8px;
+  background: var(--console-accent-soft);
+}
+
+.declarative-action-result dl,
+.declarative-action-result dd {
+  margin: 0;
+}
+
+.declarative-action-result dl {
+  display: grid;
+  gap: 7px;
+}
+
+.declarative-action-result dl > div {
+  display: grid;
+  grid-template-columns: 130px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+}
+
+.declarative-action-result dt {
+  color: var(--console-text-muted);
+  font: 9px var(--console-mono);
+  text-transform: uppercase;
+}
+
+.declarative-action-result dd {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.declarative-action-result code {
+  overflow: hidden;
+  color: var(--console-text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  .declarative-action-form {
+    grid-template-columns: 1fr;
+  }
+
+  .declarative-action-result dl > div {
+    grid-template-columns: 1fr;
+    gap: 3px;
+  }
 }
 
 /* ---- lists: hairline rows in the listing's rhythm ----------------------- */

@@ -51,6 +51,14 @@ export type {
   OperatorRegionBlock,
   OperatorViewStatus,
   OperatorViewBlock,
+  WorkspaceActionFormControl,
+  WorkspaceActionFormDefinition,
+  WorkspaceActionFormFieldDefinition,
+  WorkspaceActionFormFieldMap,
+  WorkspaceActionFormOption,
+  WorkspaceActionResultDefinition,
+  WorkspaceActionResultFieldDefinition,
+  WorkspaceActionResultFieldMap,
 } from "../operator/operator-view-contract";
 export { defineJob, defineTool } from "../service/service-definition-contract";
 export type {

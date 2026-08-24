@@ -379,6 +379,7 @@ describe("OperatorViewRenderer confirmations", () => {
       Element: windowInstance.Element,
       Node: windowInstance.Node,
       Event: windowInstance.Event,
+      FormData: windowInstance.FormData,
       IS_REACT_ACT_ENVIRONMENT: true,
     });
     // globalThis.document is the happy-dom document assigned above, but typed
@@ -435,6 +436,141 @@ describe("OperatorViewRenderer confirmations", () => {
     await clickButton("Confirm action");
     expect(invocations).toHaveLength(1);
     expect(invocations[0]?.actionId).toBe("purge");
+  });
+
+  it("submits typed form input and presents bounded action results", async () => {
+    const invocations: RuntimeOperatorActionControl[] = [];
+    let copied = "";
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: {
+        writeText: async (value: string): Promise<void> => {
+          copied = value;
+        },
+      },
+    });
+    const action: RuntimeOperatorActionControl = {
+      actionId: "invite",
+      label: "Invite person",
+      input: { idempotencyKey: "request-1" },
+      form: {
+        submitLabel: "Create invitation",
+        fields: [
+          {
+            name: "displayName",
+            label: "Display name",
+            control: "text",
+            required: true,
+          },
+          {
+            name: "deliveryToken",
+            label: "Delivery token",
+            control: "text",
+            required: true,
+            secret: true,
+          },
+          {
+            name: "role",
+            label: "Role",
+            control: "select",
+            required: true,
+            options: [
+              { value: "trusted", label: "Trusted" },
+              { value: "admin", label: "Admin" },
+            ],
+          },
+        ],
+      },
+      result: {
+        title: "Invitation setup",
+        fields: [
+          { name: "status", label: "Status" },
+          {
+            name: "setupUrl",
+            label: "Single-use setup URL",
+            copyable: true,
+            sensitive: true,
+          },
+        ],
+      },
+    };
+    const workspaceData: RuntimeStudioWorkspaceData = {
+      view: { blocks: [{ type: "action", ...action }] },
+    };
+    await act(async () => {
+      root.render(
+        createElement(OperatorViewRenderer, {
+          data: workspaceData,
+          onAction: async (invocation) => {
+            invocations.push(invocation);
+            return {
+              status: "Manual delivery pending",
+              setupUrl: "https://brain.test/auth/setup/token-1",
+              ignored: "not declared",
+            };
+          },
+          onOpenEntity: () => {},
+        }),
+      );
+    });
+
+    const displayName = container.querySelector<HTMLInputElement>(
+      'input[name="displayName"]',
+    );
+    const deliveryToken = container.querySelector<HTMLInputElement>(
+      'input[name="deliveryToken"]',
+    );
+    const role = container.querySelector<HTMLSelectElement>(
+      'select[name="role"]',
+    );
+    if (!displayName || !deliveryToken || !role) {
+      throw new Error("Expected invitation form");
+    }
+    expect(deliveryToken.type).toBe("password");
+    expect(deliveryToken.value).toBe("");
+    displayName.value = "Ada Lovelace";
+    deliveryToken.value = "private-token";
+    role.value = "admin";
+    await clickButton("Create invitation");
+
+    expect(deliveryToken.value).toBe("");
+    expect(invocations).toHaveLength(1);
+    expect(invocations[0]?.input).toEqual({
+      idempotencyKey: "request-1",
+      displayName: "Ada Lovelace",
+      deliveryToken: "private-token",
+      role: "admin",
+    });
+    const result = container.querySelector(".declarative-action-result");
+    expect(result?.textContent).toContain("Manual delivery pending");
+    expect(result?.textContent).toContain(
+      "https://brain.test/auth/setup/token-1",
+    );
+    expect(result?.textContent).not.toContain("not declared");
+    expect(result?.querySelector("[data-sensitive]")).not.toBeNull();
+    await clickButton("Copy");
+    expect(copied).toBe("https://brain.test/auth/setup/token-1");
+
+    await act(async () => {
+      root.render(
+        createElement(OperatorViewRenderer, {
+          data: {
+            view: {
+              blocks: [
+                {
+                  type: "action",
+                  ...action,
+                  input: { idempotencyKey: "request-2" },
+                },
+              ],
+            },
+          },
+          onAction: async () => ({}),
+          onOpenEntity: () => {},
+        }),
+      );
+    });
+    expect(container.querySelector(".declarative-action-result")).toBeNull();
   });
 
   it("shows a prepared summary in the dialog and executes with its token", async () => {

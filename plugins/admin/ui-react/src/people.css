@@ -864,28 +864,12 @@ button.people-metric:hover {
   font-weight: 500;
   line-height: 1;
 }
-.people-metric small,
-.people-invitation small {
+.people-metric small {
   display: block;
   color: var(--console-text-muted);
 }
 .people-metric.has-attention {
   border-color: var(--console-warn);
-}
-.people-invitation-list {
-  display: grid;
-  gap: 9px;
-}
-.people-invitation {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
-  align-items: center;
-  gap: 18px;
-  padding: 15px 17px;
-}
-.people-invitation-actions {
-  display: flex;
-  gap: 12px;
 }
 .people-empty-state {
   padding: 32px;
@@ -895,15 +879,6 @@ button.people-metric:hover {
   margin-bottom: 0;
   color: var(--console-text-muted);
 }
-.admin-tabs button small {
-  min-width: 17px;
-  margin-left: 6px;
-  padding: 1px 5px;
-  color: var(--console-on-accent);
-  background: var(--console-accent);
-  border-radius: 999px;
-}
-
 @media (max-width: 940px) {
   .anchor-fields {
     grid-template-columns: 1fr;
@@ -965,11 +940,5 @@ button.people-metric:hover {
   .people-role-control {
     width: 100%;
     justify-content: space-between;
-  }
-  .people-invitation {
-    grid-template-columns: 1fr auto;
-  }
-  .people-invitation-actions {
-    grid-column: 1 / -1;
   }
 }

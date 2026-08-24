@@ -689,6 +689,171 @@ describe("declarative Studio workspace runtime", () => {
   });
 });
 
+describe("workspace action forms and results", () => {
+  const invite = defineWorkspaceAction({
+    name: "invite",
+    label: "Invite person",
+    permission: "admin",
+    input: z.object({
+      idempotencyKey: z.string(),
+      displayName: z.string(),
+      deliveryToken: z.string(),
+      role: z.enum(["admin", "trusted"]),
+    }),
+    output: z.object({
+      status: z.string(),
+      setupUrl: z.url().optional(),
+    }),
+  });
+
+  it("normalizes bounded form fields and result presentation", () => {
+    const result = safeParseRuntimeStudioOperatorView(
+      {
+        blocks: [
+          {
+            type: "action",
+            action: invite,
+            input: { idempotencyKey: "request-1" },
+            form: {
+              submitLabel: "Create invitation",
+              fields: {
+                displayName: { label: "Display name", control: "text" },
+                deliveryToken: {
+                  label: "Delivery token",
+                  control: "text",
+                  secret: true,
+                },
+                role: {
+                  label: "Role",
+                  control: "select",
+                  options: [
+                    { value: "admin", label: "Admin" },
+                    { value: "trusted", label: "Trusted" },
+                  ],
+                },
+              },
+            },
+            result: {
+              title: "Invitation setup",
+              fields: {
+                status: { label: "Status" },
+                setupUrl: {
+                  label: "Single-use setup URL",
+                  sensitive: true,
+                  copyable: true,
+                },
+              },
+            },
+          },
+        ],
+      },
+      { actions: [invite], permission: "admin" },
+    );
+
+    expect(result).toMatchObject({
+      success: true,
+      data: {
+        blocks: [
+          {
+            type: "action",
+            input: { idempotencyKey: "request-1" },
+            form: {
+              submitLabel: "Create invitation",
+              fields: [
+                { name: "displayName", required: true, control: "text" },
+                {
+                  name: "deliveryToken",
+                  required: true,
+                  control: "text",
+                  secret: true,
+                },
+                { name: "role", required: true, control: "select" },
+              ],
+            },
+            result: {
+              title: "Invitation setup",
+              fields: [
+                { name: "status", label: "Status" },
+                {
+                  name: "setupUrl",
+                  sensitive: true,
+                  copyable: true,
+                },
+              ],
+            },
+          },
+        ],
+      },
+    });
+  });
+
+  it("rejects incomplete form and result declarations", () => {
+    const result = safeParseRuntimeStudioOperatorView(
+      {
+        blocks: [
+          {
+            type: "action",
+            action: invite,
+            input: {
+              idempotencyKey: "request-1",
+              deliveryToken: "must-not-echo",
+            },
+            form: {
+              fields: {
+                deliveryToken: {
+                  label: "Delivery token",
+                  control: "text",
+                  secret: true,
+                },
+                role: {
+                  label: "Role",
+                  control: "select",
+                  options: [
+                    { value: "admin", label: "Admin" },
+                    { value: "trusted", label: "Trusted" },
+                  ],
+                },
+              },
+            },
+            result: {
+              title: "Invitation setup",
+              fields: {
+                setupUrl: {
+                  label: "Single-use setup URL",
+                  sensitive: true,
+                },
+              },
+            },
+          },
+        ],
+      },
+      { actions: [invite], permission: "admin" },
+    );
+
+    expect(result).toMatchObject({
+      success: false,
+      issues: expect.arrayContaining([
+        {
+          path: ["blocks", 0, "form", "fields", "displayName"],
+          message: expect.stringContaining("no form declaration"),
+        },
+        {
+          path: ["blocks", 0, "input", "deliveryToken"],
+          message: expect.stringContaining("cannot be pre-bound"),
+        },
+        {
+          path: ["blocks", 0, "result", "fields", "status"],
+          message: expect.stringContaining("no result declaration"),
+        },
+        {
+          path: ["blocks", 0, "result", "fields", "setupUrl", "copyable"],
+          message: expect.stringContaining("explicitly copyable"),
+        },
+      ]),
+    });
+  });
+});
+
 describe("operator detail composition", () => {
   const masterList = {
     type: "list" as const,

@@ -154,6 +154,17 @@ describe("widget UI primitives", () => {
                       launch: { target: "inbox" },
                     },
                   },
+                  {
+                    label: "Invite Grace",
+                    target: {
+                      kind: "launch",
+                      launch: {
+                        target: "admin-peer-invite",
+                        peerId: "did:web:grace.example",
+                        displayName: "Grace Hopper",
+                      },
+                    },
+                  },
                 ],
               },
             ],
@@ -167,6 +178,9 @@ describe("widget UI primitives", () => {
     );
     expect(html).toContain('href="/studio/workspaces/site-builder%3Asite"');
     expect(html).toContain('href="/studio/workspaces/unified-inbox%3Ainbox"');
+    expect(html).toContain(
+      'href="/studio/workspaces/studio%3Ainvitations?peerId=did%3Aweb%3Agrace.example&amp;displayName=Grace+Hopper"',
+    );
   });
 
   it("renders normalized spatial semantics with keyboard-focusable points and text detail", () => {

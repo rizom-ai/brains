@@ -38,6 +38,14 @@ export type {
   ServicePackageDefinition,
   WorkspaceActionConfirmation,
   WorkspaceActionDefinition,
+  WorkspaceActionFormControl,
+  WorkspaceActionFormDefinition,
+  WorkspaceActionFormFieldDefinition,
+  WorkspaceActionFormFieldMap,
+  WorkspaceActionFormOption,
+  WorkspaceActionResultDefinition,
+  WorkspaceActionResultFieldDefinition,
+  WorkspaceActionResultFieldMap,
   WorkspacePreparedConfirmation,
 } from "@brains/plugins";
 export { z } from "@brains/utils/zod";

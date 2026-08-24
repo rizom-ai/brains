@@ -153,6 +153,212 @@ interface AwaitingConfirmation {
   readonly invocation: RuntimeOperatorActionControl;
 }
 
+type OperatorJsonValue = RuntimeOperatorActionControl["input"];
+
+interface PresentedActionResultField {
+  readonly name: string;
+  readonly label: string;
+  readonly value: string;
+  readonly copyable: boolean;
+  readonly sensitive: boolean;
+}
+
+interface PresentedActionResult {
+  readonly title: string;
+  readonly fields: readonly PresentedActionResultField[];
+}
+
+function isJsonValue(value: unknown): value is OperatorJsonValue {
+  if (
+    value === null ||
+    typeof value === "string" ||
+    typeof value === "number" ||
+    typeof value === "boolean"
+  ) {
+    return true;
+  }
+  if (Array.isArray(value)) return value.every(isJsonValue);
+  if (typeof value !== "object") return false;
+  return Object.values(value).every(isJsonValue);
+}
+
+function plainRecord(
+  value: unknown,
+): Partial<Record<string, OperatorJsonValue>> | undefined {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+    return undefined;
+  }
+  const result: Record<string, OperatorJsonValue> = {};
+  for (const [key, candidate] of Object.entries(value)) {
+    if (!isJsonValue(candidate)) return undefined;
+    result[key] = candidate;
+  }
+  return result;
+}
+
+function actionFormInput(
+  action: RuntimeOperatorActionControl,
+  data: FormData,
+): Record<string, OperatorJsonValue> {
+  const input: Record<string, OperatorJsonValue> = {};
+  for (const [name, value] of Object.entries(plainRecord(action.input) ?? {})) {
+    if (value !== undefined) input[name] = value;
+  }
+  for (const field of action.form?.fields ?? []) {
+    if (field.control === "checkbox") {
+      input[field.name] = data.has(field.name);
+      continue;
+    }
+    const value = data.get(field.name);
+    if (typeof value !== "string") continue;
+    if (!field.required && value === "") {
+      delete input[field.name];
+      continue;
+    }
+    input[field.name] = field.control === "number" ? Number(value) : value;
+  }
+  return input;
+}
+
+function clearSecretFormFields(
+  action: RuntimeOperatorActionControl,
+  form: HTMLFormElement,
+): void {
+  for (const field of action.form?.fields ?? []) {
+    if (!field.secret) continue;
+    const control = form.elements.namedItem(field.name);
+    if (control && "value" in control) control.value = "";
+  }
+}
+
+function presentedActionResult(
+  action: RuntimeOperatorActionControl,
+  value: unknown,
+): PresentedActionResult | null {
+  if (!action.result) return null;
+  const output = plainRecord(value);
+  if (!output) return null;
+  const fields = action.result.fields.flatMap((field) => {
+    const candidate = output[field.name];
+    if (candidate === undefined) return [];
+    if (
+      candidate !== null &&
+      typeof candidate !== "string" &&
+      typeof candidate !== "number" &&
+      typeof candidate !== "boolean"
+    ) {
+      return [];
+    }
+    return [
+      {
+        name: field.name,
+        label: field.label,
+        value: candidate === null ? "—" : String(candidate),
+        copyable: field.copyable === true,
+        sensitive: field.sensitive === true,
+      },
+    ];
+  });
+  return { title: action.result.title, fields };
+}
+
+function ActionResult(props: { result: PresentedActionResult }): ReactElement {
+  return (
+    <section className="declarative-action-result" aria-live="polite">
+      <strong>{props.result.title}</strong>
+      <dl>
+        {props.result.fields.map((field) => (
+          <div key={field.name} data-sensitive={field.sensitive || undefined}>
+            <dt>{field.label}</dt>
+            <dd>
+              <code>{field.value}</code>
+              {field.copyable && (
+                <button
+                  type="button"
+                  className="btn ghost"
+                  onClick={() =>
+                    void navigator.clipboard.writeText(field.value)
+                  }
+                >
+                  Copy
+                </button>
+              )}
+            </dd>
+          </div>
+        ))}
+      </dl>
+    </section>
+  );
+}
+
+function ActionFormFields(props: {
+  action: RuntimeOperatorActionControl;
+}): ReactElement {
+  const initial = plainRecord(props.action.input) ?? {};
+  return (
+    <>
+      {props.action.form?.fields.map((field) => {
+        const value = initial[field.name];
+        if (field.control === "checkbox") {
+          return (
+            <label key={field.name} className="declarative-action-checkbox">
+              <input
+                name={field.name}
+                type="checkbox"
+                defaultChecked={value === true}
+              />
+              <span>{field.label}</span>
+            </label>
+          );
+        }
+        if (field.control === "select") {
+          return (
+            <label key={field.name}>
+              <span>{field.label}</span>
+              <select
+                name={field.name}
+                defaultValue={typeof value === "string" ? value : undefined}
+                required={field.required}
+              >
+                {field.options?.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          );
+        }
+        const defaultValue =
+          !field.secret &&
+          (typeof value === "string" || typeof value === "number")
+            ? value
+            : "";
+        return (
+          <label key={field.name}>
+            <span>{field.label}</span>
+            <input
+              name={field.name}
+              type={
+                field.secret
+                  ? "password"
+                  : field.control === "url"
+                    ? "url"
+                    : field.control === "number"
+                      ? "number"
+                      : "text"
+              }
+              defaultValue={defaultValue}
+              required={field.required}
+              autoComplete={field.secret ? "new-password" : undefined}
+            />
+          </label>
+        );
+      })}
+    </>
+  );
+}
+
 /**
  * Consequence, not position, decides an action's weight: anything that asks for
  * confirmation is marked, anything attached to a row stays subordinate to it,
@@ -176,6 +382,11 @@ function ActionButton(props: {
   const [message, setMessage] = useState("");
   const [failed, setFailed] = useState(false);
   const [awaiting, setAwaiting] = useState<AwaitingConfirmation | null>(null);
+  const [result, setResult] = useState<PresentedActionResult | null>(null);
+
+  useEffect(() => {
+    setResult(null);
+  }, [props.action]);
 
   const run = async (
     invocation: RuntimeOperatorActionControl,
@@ -183,8 +394,10 @@ function ActionButton(props: {
     setPending(true);
     setMessage("");
     setFailed(false);
+    setResult(null);
     try {
-      await props.onAction(invocation);
+      const output = await props.onAction(invocation);
+      setResult(presentedActionResult(invocation, output));
       setMessage("Completed.");
     } catch {
       setMessage("Action failed.");
@@ -195,17 +408,19 @@ function ActionButton(props: {
     }
   };
 
-  const start = async (): Promise<void> => {
-    const confirmation = props.action.confirmation;
+  const start = async (
+    invocation: RuntimeOperatorActionControl,
+  ): Promise<void> => {
+    const confirmation = invocation.confirmation;
     if (confirmation?.kind === "static") {
       setAwaiting({
         summary: confirmation.message,
-        invocation: props.action,
+        invocation,
       });
       return;
     }
     if (confirmation?.kind !== "prepared") {
-      await run(props.action);
+      await run(invocation);
       return;
     }
     setPending(true);
@@ -213,7 +428,7 @@ function ActionButton(props: {
     setFailed(false);
     try {
       const prepared = await props.onAction({
-        ...props.action,
+        ...invocation,
         invocation: { mode: "prepare" },
       });
       if (!isPreparedConfirmation(prepared)) {
@@ -222,7 +437,7 @@ function ActionButton(props: {
       setAwaiting({
         summary: prepared.summary,
         invocation: {
-          ...props.action,
+          ...invocation,
           invocation: { mode: "execute", token: prepared.token },
         },
       });
@@ -234,17 +449,51 @@ function ActionButton(props: {
     }
   };
 
+  const ActionControl = props.action.form ? "div" : "span";
   return (
     <>
-      <span className="declarative-action-control">
-        <button
-          type="button"
-          className={actionClassName(props.action, props.subordinate === true)}
-          disabled={pending || props.action.disabled === true}
-          onClick={() => void start()}
-        >
-          {pending ? "Working…" : props.action.label}
-        </button>
+      <ActionControl className="declarative-action-control">
+        {props.action.form ? (
+          <form
+            key={`${props.action.actionId}:${JSON.stringify(props.action.input)}`}
+            className="declarative-action-form"
+            onSubmit={(event) => {
+              event.preventDefault();
+              const input = actionFormInput(
+                props.action,
+                new FormData(event.currentTarget),
+              );
+              clearSecretFormFields(props.action, event.currentTarget);
+              void start({ ...props.action, input });
+            }}
+          >
+            <ActionFormFields action={props.action} />
+            <button
+              type="submit"
+              className={actionClassName(
+                props.action,
+                props.subordinate === true,
+              )}
+              disabled={pending || props.action.disabled === true}
+            >
+              {pending
+                ? "Working…"
+                : (props.action.form.submitLabel ?? props.action.label)}
+            </button>
+          </form>
+        ) : (
+          <button
+            type="button"
+            className={actionClassName(
+              props.action,
+              props.subordinate === true,
+            )}
+            disabled={pending || props.action.disabled === true}
+            onClick={() => void start(props.action)}
+          >
+            {pending ? "Working…" : props.action.label}
+          </button>
+        )}
         {message && (
           <small
             className={failed ? "status status-error" : "status"}
@@ -253,7 +502,8 @@ function ActionButton(props: {
             {message}
           </small>
         )}
-      </span>
+        {result && <ActionResult result={result} />}
+      </ActionControl>
       {awaiting && (
         <ConfirmDialog
           mark="!"

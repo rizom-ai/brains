@@ -1,10 +1,23 @@
 import type { JsonValue } from "@brains/contracts";
 import type { UserPermissionLevel } from "@brains/templates";
 import type { AnyEntityDefinition } from "../entity/entity-definition-contract";
-import type { OperatorEntityCatalogDefinition } from "./operator-view-contract";
+import type {
+  OperatorEntityCatalogDefinition,
+  WorkspaceActionFormFieldDefinition,
+} from "./operator-view-contract";
+import {
+  operatorFieldControlSchema,
+  type OperatorFieldControl,
+} from "./operator-field-contract";
 import type { AnyWorkspaceActionDefinition } from "./workspace-action-definition-contract";
 import { meetsPermission } from "./contract-assertions";
 import { z } from "@brains/utils/zod";
+import {
+  getKind,
+  getObjectShape,
+  readEnumValues,
+  unwrapField,
+} from "@brains/utils/zod-introspect";
 
 export type RuntimeOperatorScalar = string | number | boolean | null;
 export type RuntimeOperatorTone = "good" | "warn" | "neutral" | "error";
@@ -419,11 +432,40 @@ export interface RuntimePreparedConfirmation {
   readonly expiresAt: string;
 }
 
+export interface RuntimeWorkspaceActionFormField {
+  readonly name: string;
+  readonly label: string;
+  readonly control: OperatorFieldControl;
+  readonly required: boolean;
+  readonly secret?: boolean | undefined;
+  readonly options?:
+    readonly { readonly value: string; readonly label: string }[] | undefined;
+}
+
+export interface RuntimeWorkspaceActionForm {
+  readonly submitLabel?: string | undefined;
+  readonly fields: readonly RuntimeWorkspaceActionFormField[];
+}
+
+export interface RuntimeWorkspaceActionResultField {
+  readonly name: string;
+  readonly label: string;
+  readonly copyable?: boolean | undefined;
+  readonly sensitive?: boolean | undefined;
+}
+
+export interface RuntimeWorkspaceActionResult {
+  readonly title: string;
+  readonly fields: readonly RuntimeWorkspaceActionResultField[];
+}
+
 export interface RuntimeOperatorActionControl {
   readonly actionId: string;
   readonly capabilityId?: string | undefined;
   readonly label: string;
   readonly input: JsonValue;
+  readonly form?: RuntimeWorkspaceActionForm | undefined;
+  readonly result?: RuntimeWorkspaceActionResult | undefined;
   readonly disabled?: boolean | undefined;
   readonly confirmation?:
     | { readonly kind: "static"; readonly message: string }
@@ -1510,9 +1552,32 @@ const workspaceActionDefinitionSchema = z.custom<AnyWorkspaceActionDefinition>(
   { message: "Expected a workspace action definition" },
 );
 
+type SourceActionFormField = WorkspaceActionFormFieldDefinition;
+
 interface SourceActionControl {
   readonly action: AnyWorkspaceActionDefinition;
-  readonly input: unknown;
+  readonly input?: unknown;
+  readonly form?:
+    | {
+        readonly submitLabel?: string | undefined;
+        readonly fields: Readonly<Record<string, SourceActionFormField>>;
+      }
+    | undefined;
+  readonly result?:
+    | {
+        readonly title: string;
+        readonly fields: Readonly<
+          Record<
+            string,
+            {
+              readonly label: string;
+              readonly copyable?: boolean | undefined;
+              readonly sensitive?: boolean | undefined;
+            }
+          >
+        >;
+      }
+    | undefined;
   readonly capability?:
     | {
         readonly id: string;
@@ -1532,10 +1597,42 @@ const capabilityDefinitionSchema = z
     confirmation: z.literal("prepared").optional(),
   })
   .strict();
+const actionFormOptionSchema = z
+  .object({ value: z.string().trim().min(1).max(500), label: labelSchema })
+  .strict();
+const actionFormFieldSchema = z
+  .object({
+    label: labelSchema,
+    control: operatorFieldControlSchema,
+    secret: z.boolean().optional(),
+    options: z.array(actionFormOptionSchema).min(1).max(100).optional(),
+  })
+  .strict();
+const actionFormSchema = z
+  .object({
+    submitLabel: labelSchema.optional(),
+    fields: z.record(identifierSchema, actionFormFieldSchema),
+  })
+  .strict();
+const actionResultFieldSchema = z
+  .object({
+    label: labelSchema,
+    copyable: z.boolean().optional(),
+    sensitive: z.boolean().optional(),
+  })
+  .strict();
+const actionResultSchema = z
+  .object({
+    title: labelSchema,
+    fields: z.record(identifierSchema, actionResultFieldSchema),
+  })
+  .strict();
 const sourceActionControlSchema = z
   .object({
     action: workspaceActionDefinitionSchema,
-    input: z.unknown(),
+    input: z.unknown().optional(),
+    form: actionFormSchema.optional(),
+    result: actionResultSchema.optional(),
     capability: capabilityDefinitionSchema.optional(),
     disabled: z.boolean().optional(),
   })
@@ -1879,11 +1976,269 @@ function isPanelBlock(
 
 const jsonValueSchema: z.ZodType<JsonValue, unknown> = z.json();
 
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function formControlSupportsSchema(
+  control: SourceActionFormField["control"],
+  schema: unknown,
+): boolean {
+  const kind = getKind(unwrapField(schema).inner);
+  switch (control) {
+    case "checkbox":
+      return kind === "boolean";
+    case "number":
+      return kind === "number";
+    case "select":
+      return kind === "string" || kind === "enum";
+    case "text":
+    case "url":
+      return kind === "string";
+  }
+}
+
+function isScalarResultSchema(schema: unknown): boolean {
+  const kind = getKind(unwrapField(schema).inner);
+  return (
+    kind === "string" ||
+    kind === "number" ||
+    kind === "boolean" ||
+    kind === "enum" ||
+    kind === "literal"
+  );
+}
+
+function normalizeActionForm(
+  control: SourceActionControl,
+  actionPath: readonly PropertyKey[],
+): {
+  readonly input?: JsonValue | undefined;
+  readonly form?: RuntimeWorkspaceActionForm | undefined;
+  readonly issues: readonly RuntimeOperatorValidationIssue[];
+} {
+  if (!control.form) return { issues: [] };
+  const issues: RuntimeOperatorValidationIssue[] = [];
+  const shape = getObjectShape(control.action.input);
+  if (!shape) {
+    return {
+      issues: [
+        {
+          path: [...actionPath, "form"],
+          message: `Form action "${control.action.name}" requires an object input schema`,
+        },
+      ],
+    };
+  }
+  const initial = control.input ?? {};
+  if (!isPlainRecord(initial)) {
+    return {
+      issues: [
+        {
+          path: [...actionPath, "input"],
+          message: "Workspace action form initial input must be an object",
+        },
+      ],
+    };
+  }
+  const parsedInitial = jsonValueSchema.safeParse(initial);
+  if (!parsedInitial.success) {
+    return {
+      issues: [
+        {
+          path: [...actionPath, "input"],
+          message: "Workspace action form initial input must be JSON-native",
+        },
+      ],
+    };
+  }
+  const schemaNames = Object.keys(shape);
+  const fieldEntries = Object.entries(control.form.fields);
+  if (fieldEntries.length > 50) {
+    issues.push({
+      path: [...actionPath, "form", "fields"],
+      message: "Workspace action forms support at most 50 fields",
+    });
+  }
+  for (const [name, value] of Object.entries(initial)) {
+    const schema = shape[name];
+    if (schema === undefined) {
+      issues.push({
+        path: [...actionPath, "input", name],
+        message: `Form initial input "${name}" is not declared by the action schema`,
+      });
+    } else if (
+      schema instanceof z.ZodType &&
+      !schema.safeParse(value).success
+    ) {
+      issues.push({
+        path: [...actionPath, "input", name],
+        message: `Form initial input "${name}" does not satisfy the action schema`,
+      });
+    }
+  }
+  const runtimeFields: RuntimeWorkspaceActionFormField[] = [];
+  for (const [name, field] of fieldEntries) {
+    const schema = shape[name];
+    if (schema === undefined) {
+      issues.push({
+        path: [...actionPath, "form", "fields", name],
+        message: `Form field "${name}" is not declared by the action schema`,
+      });
+      continue;
+    }
+    const unwrapped = unwrapField(schema);
+    const enumValues = readEnumValues(unwrapped.inner);
+    if (!formControlSupportsSchema(field.control, schema)) {
+      issues.push({
+        path: [...actionPath, "form", "fields", name, "control"],
+        message: `Form control "${field.control}" is incompatible with schema field "${name}"`,
+      });
+    }
+    if (field.control === "select") {
+      if (!field.options || field.options.length === 0) {
+        issues.push({
+          path: [...actionPath, "form", "fields", name, "options"],
+          message: `Select field "${name}" requires options`,
+        });
+      } else if (enumValues) {
+        if (
+          field.options.some((option) => !enumValues.includes(option.value))
+        ) {
+          issues.push({
+            path: [...actionPath, "form", "fields", name, "options"],
+            message: `Select field "${name}" options must use values from its enum schema`,
+          });
+        }
+      }
+    } else if (field.options !== undefined) {
+      issues.push({
+        path: [...actionPath, "form", "fields", name, "options"],
+        message: `Non-select field "${name}" cannot declare options`,
+      });
+    }
+    if (field.secret === true && name in initial) {
+      issues.push({
+        path: [...actionPath, "input", name],
+        message: `Secret form field "${name}" cannot be pre-bound into browser data`,
+      });
+    }
+    if (
+      field.secret === true &&
+      field.control !== "text" &&
+      field.control !== "url"
+    ) {
+      issues.push({
+        path: [...actionPath, "form", "fields", name, "secret"],
+        message: `Secret field "${name}" must use a text or URL control`,
+      });
+    }
+    runtimeFields.push({
+      name,
+      label: field.label,
+      control: field.control,
+      required: unwrapped.required,
+      ...(field.secret ? { secret: true } : {}),
+      ...(field.options ? { options: field.options } : {}),
+    });
+  }
+  const rendered = new Set(fieldEntries.map(([name]) => name));
+  for (const name of schemaNames) {
+    if (!rendered.has(name) && !(name in initial)) {
+      issues.push({
+        path: [...actionPath, "form", "fields", name],
+        message: `Action schema field "${name}" has no form declaration or pre-bound input`,
+      });
+    }
+  }
+  return {
+    input: parsedInitial.data,
+    form: {
+      ...(control.form.submitLabel
+        ? { submitLabel: control.form.submitLabel }
+        : {}),
+      fields: runtimeFields,
+    },
+    issues,
+  };
+}
+
+function normalizeActionResult(
+  control: SourceActionControl,
+  actionPath: readonly PropertyKey[],
+): {
+  readonly result?: RuntimeWorkspaceActionResult | undefined;
+  readonly issues: readonly RuntimeOperatorValidationIssue[];
+} {
+  if (!control.result) return { issues: [] };
+  const shape = getObjectShape(control.action.output);
+  if (!shape) {
+    return {
+      issues: [
+        {
+          path: [...actionPath, "result"],
+          message: `Presented result for "${control.action.name}" requires an object output schema`,
+        },
+      ],
+    };
+  }
+  const issues: RuntimeOperatorValidationIssue[] = [];
+  const fieldEntries = Object.entries(control.result.fields);
+  if (fieldEntries.length > 50) {
+    issues.push({
+      path: [...actionPath, "result", "fields"],
+      message: "Workspace action results support at most 50 fields",
+    });
+  }
+  const declared = new Set(fieldEntries.map(([name]) => name));
+  for (const [name, field] of fieldEntries) {
+    const schema = shape[name];
+    if (schema === undefined) {
+      issues.push({
+        path: [...actionPath, "result", "fields", name],
+        message: `Result field "${name}" is not declared by the action output schema`,
+      });
+    } else if (!isScalarResultSchema(schema)) {
+      issues.push({
+        path: [...actionPath, "result", "fields", name],
+        message: `Result field "${name}" must use a scalar output schema`,
+      });
+    }
+    if (field.sensitive === true && field.copyable !== true) {
+      issues.push({
+        path: [...actionPath, "result", "fields", name, "copyable"],
+        message: `Sensitive result field "${name}" must be explicitly copyable`,
+      });
+    }
+  }
+  for (const name of Object.keys(shape)) {
+    if (!declared.has(name)) {
+      issues.push({
+        path: [...actionPath, "result", "fields", name],
+        message: `Action output field "${name}" has no result declaration`,
+      });
+    }
+  }
+  return {
+    result: {
+      title: control.result.title,
+      fields: fieldEntries.map(([name, field]) => ({
+        name,
+        label: field.label,
+        ...(field.copyable ? { copyable: true } : {}),
+        ...(field.sensitive ? { sensitive: true } : {}),
+      })),
+    },
+    issues,
+  };
+}
+
 function normalizeActionControls(
   controls: readonly SourceActionControl[],
   declared: readonly AnyWorkspaceActionDefinition[],
   permission: UserPermissionLevel,
   path: readonly PropertyKey[],
+  sourceIndices?: readonly number[],
 ): {
   readonly controls: readonly RuntimeOperatorActionControl[];
   readonly issues: readonly RuntimeOperatorValidationIssue[];
@@ -1891,7 +2246,7 @@ function normalizeActionControls(
   const normalized: RuntimeOperatorActionControl[] = [];
   const issues: RuntimeOperatorValidationIssue[] = [];
   for (const [index, control] of controls.entries()) {
-    const actionPath = [...path, index];
+    const actionPath = [...path, sourceIndices?.[index] ?? index];
     if (!declared.includes(control.action)) {
       issues.push({
         path: [...actionPath, "action"],
@@ -1929,22 +2284,38 @@ function normalizeActionControls(
       });
       continue;
     }
-    const parsedInput = control.action.input.safeParse(control.input);
-    if (!parsedInput.success) {
-      issues.push(
-        ...parsedInput.error.issues.map((issue) => ({
-          path: [...actionPath, "input", ...issue.path],
-          message: issue.message,
-        })),
-      );
-      continue;
+    const normalizedForm = normalizeActionForm(control, actionPath);
+    const normalizedResult = normalizeActionResult(control, actionPath);
+    issues.push(...normalizedForm.issues, ...normalizedResult.issues);
+    let actionInput: JsonValue | undefined;
+    if (control.form) {
+      actionInput = normalizedForm.input;
+    } else {
+      const parsedInput = control.action.input.safeParse(control.input);
+      if (!parsedInput.success) {
+        issues.push(
+          ...parsedInput.error.issues.map((issue) => ({
+            path: [...actionPath, "input", ...issue.path],
+            message: issue.message,
+          })),
+        );
+      } else {
+        const jsonInput = jsonValueSchema.safeParse(parsedInput.data);
+        if (!jsonInput.success) {
+          issues.push({
+            path: [...actionPath, "input"],
+            message: "Workspace action input must be JSON-native",
+          });
+        } else {
+          actionInput = jsonInput.data;
+        }
+      }
     }
-    const jsonInput = jsonValueSchema.safeParse(parsedInput.data);
-    if (!jsonInput.success) {
-      issues.push({
-        path: [...actionPath, "input"],
-        message: "Workspace action input must be JSON-native",
-      });
+    if (
+      normalizedForm.issues.length > 0 ||
+      normalizedResult.issues.length > 0 ||
+      actionInput === undefined
+    ) {
       continue;
     }
     const actionConfirmation = control.action.confirmation;
@@ -1961,7 +2332,9 @@ function normalizeActionControls(
         actionId: control.action.name,
         ...(control.capability ? { capabilityId: control.capability.id } : {}),
         label: control.capability?.label ?? control.action.label,
-        input: jsonInput.data,
+        input: actionInput,
+        ...(normalizedForm.form ? { form: normalizedForm.form } : {}),
+        ...(normalizedResult.result ? { result: normalizedResult.result } : {}),
         ...(control.disabled ? { disabled: true } : {}),
         ...(confirmation ? { confirmation } : {}),
       }),
@@ -2259,10 +2632,13 @@ function normalizeStudioBlock(
       };
     }
     case "action": {
-      const result = normalizeActionControls([block], declared, permission, [
-        "blocks",
-        blockIndex,
-      ]);
+      const result = normalizeActionControls(
+        [block],
+        declared,
+        permission,
+        ["blocks"],
+        [blockIndex],
+      );
       const action = result.controls[0];
       return {
         ...(action
