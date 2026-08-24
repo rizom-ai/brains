@@ -179,7 +179,7 @@ describe("widget UI primitives", () => {
     expect(html).toContain('href="/studio/workspaces/site-builder%3Asite"');
     expect(html).toContain('href="/studio/workspaces/unified-inbox%3Ainbox"');
     expect(html).toContain(
-      'href="/studio/workspaces/studio%3Ainvitations?peerId=did%3Aweb%3Agrace.example&amp;displayName=Grace+Hopper"',
+      'href="/studio/workspaces/admin%3Apeers?peerId=did%3Aweb%3Agrace.example&amp;displayName=Grace+Hopper"',
     );
   });
 

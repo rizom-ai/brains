@@ -4,6 +4,10 @@ import { ServicePlugin } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import packageJson from "../package.json";
 import { createAdminRoutes } from "./admin-routes";
+import { registerStudioAuditWorkspace } from "./audit-workspace";
+import { registerStudioInvitationsWorkspace } from "./invitations-workspace";
+import { registerPeopleWorkspace } from "./people-workspace";
+import { registerPeersWorkspace } from "./peers-workspace";
 
 export interface AdminConfig {
   routePath: string;
@@ -42,6 +46,15 @@ export class AdminPlugin extends ServicePlugin<AdminConfig, AdminConfigInput> {
       priority: 50,
       visibility: "admin",
     });
+  }
+
+  protected override async onRegistrationComplete(
+    context: ServicePluginContext,
+  ): Promise<void> {
+    await registerStudioAuditWorkspace(context);
+    await registerPeopleWorkspace(context);
+    await registerStudioInvitationsWorkspace(context);
+    await registerPeersWorkspace(context);
   }
 
   override getWebRoutes(): WebRouteDefinition[] {

@@ -568,7 +568,7 @@ export function App(): ReactElement {
         case "admin-peer-invite": {
           router.history.push(
             workspaceUrlHref(
-              studioWorkspacePath(studioBasePath, "studio:invitations"),
+              studioWorkspacePath(studioBasePath, "admin:peers"),
               {
                 peerId: launch.peerId,
                 displayName: launch.displayName,
