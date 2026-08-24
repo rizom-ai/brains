@@ -64,6 +64,14 @@ export function studioMutationOptions(access: StudioRequestAccess): {
   };
 }
 
+export function requireTrustedCapability(
+  access: StudioRequestAccess,
+): Response | null {
+  return access.permissionLevel === "public"
+    ? jsonResponse({ error: "Trusted Studio capability required" }, 403)
+    : null;
+}
+
 export function requireAdminCapability(
   access: StudioRequestAccess,
 ): Response | null {

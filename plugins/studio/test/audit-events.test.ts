@@ -80,7 +80,6 @@ function setup(permissionLevel: "trusted" | "admin"): {
       routePath: "/studio",
       getContext: () => context,
       resolveAuthPrincipal: async () => principal(permissionLevel),
-      minimumPermissionLevel: "trusted",
       getEntityDisplay: () => undefined,
       workspaceRegistry: new StudioWorkspaceRegistry(),
       recordAuditEvent: async (event) => {

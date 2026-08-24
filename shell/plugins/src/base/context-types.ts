@@ -211,6 +211,7 @@ export interface IEndpointsNamespace {
     url: string;
     priority?: number;
     visibility?: UserPermissionLevel;
+    requiresActiveSession?: boolean;
   }): void;
 }
 
@@ -224,6 +225,7 @@ export interface IInteractionsNamespace {
     kind: "human" | "agent" | "admin" | "protocol";
     priority?: number;
     visibility?: UserPermissionLevel;
+    requiresActiveSession?: boolean;
     status?: "available" | "coming-soon" | "disabled";
   }): void;
 }

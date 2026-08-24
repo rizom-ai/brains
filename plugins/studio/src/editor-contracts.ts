@@ -10,8 +10,8 @@ import type { StudioWorkspaceRegistry } from "./workspace-registry";
 export interface StudioRequestAccess {
   principal: AuthPrincipal;
   actor: Extract<ActorRef, { kind: "user" }>;
-  permissionLevel: "trusted" | "admin";
-  visibilityScope: Extract<ContentVisibility, "shared" | "restricted">;
+  permissionLevel: AuthPrincipal["permissionLevel"];
+  visibilityScope: ContentVisibility;
   isAnchor: boolean;
 }
 
@@ -32,8 +32,6 @@ export interface EditorRouteOptions {
   resolveAuthPrincipal: (
     request: Request,
   ) => Promise<AuthPrincipal | undefined>;
-  /** Atomic rollout gate. Production remains Admin-only through Phase 4. */
-  minimumPermissionLevel: "trusted" | "admin";
   getEntityDisplay: () => StudioEntityDisplayMap | undefined;
   workspaceRegistry: StudioWorkspaceRegistry;
   recordAuditEvent?:
@@ -42,5 +40,4 @@ export interface EditorRouteOptions {
 
 export type StudioRequestAccessResolution =
   | { state: "allowed"; access: StudioRequestAccess }
-  | { state: "unauthenticated" }
-  | { state: "forbidden" };
+  | { state: "unauthenticated" };

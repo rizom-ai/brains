@@ -165,7 +165,6 @@ function createMutationFixture(
     getContext: () => context,
     resolveAuthPrincipal: async (): Promise<AuthPrincipal> =>
       principalFor(activePermissionLevel),
-    minimumPermissionLevel: "trusted",
     getEntityDisplay: () => undefined,
     workspaceRegistry: new StudioWorkspaceRegistry(),
   });

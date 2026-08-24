@@ -227,8 +227,8 @@ async function setup(): Promise<{
   return { shell, plugin, sessions };
 }
 
-describe("Studio Trusted rollout gate", () => {
-  it("inventories every private API route under one access matrix", async () => {
+describe("Studio active-session gate inversion", () => {
+  it("inventories every API route under its exact capability floor", async () => {
     const { plugin, sessions } = await setup();
     const apiRoutes = apiRouteRequests();
 
@@ -256,19 +256,35 @@ describe("Studio Trusted rollout gate", () => {
         routeCase.request(sessions.trusted),
       );
       expect(trustedResponse.status).not.toBe(401);
-      if (trustedResponse.status === 403) {
-        expect(await trustedResponse.json()).not.toEqual({
-          error: "Studio access forbidden",
+      if (routeCase.routePath === "/studio/api/sync-status") {
+        expect(trustedResponse.status).toBe(403);
+        expect(await trustedResponse.json()).toEqual({
+          error: "Admin Studio capability required",
         });
       }
 
       const publicResponse = await route.handler(
         routeCase.request(sessions.public),
       );
-      expect(publicResponse.status).toBe(403);
-      expect(await publicResponse.json()).toEqual({
-        error: "Studio access forbidden",
-      });
+      if (routeCase.routePath === "/studio/api/types") {
+        expect(publicResponse.status).toBe(200);
+        expect(await publicResponse.json()).toEqual({
+          types: [],
+          workspaces: [],
+        });
+      } else if (routeCase.routePath === "/studio/api/workspace") {
+        // Workspace discovery and execution pass the active-session perimeter;
+        // the registry applies each workspace's own floor before providers.
+        expect(publicResponse.status).toBe(400);
+      } else {
+        expect(publicResponse.status).toBe(403);
+        expect(await publicResponse.json()).toEqual({
+          error:
+            routeCase.routePath === "/studio/api/sync-status"
+              ? "Admin Studio capability required"
+              : "Trusted Studio capability required",
+        });
+      }
 
       for (const cookie of [undefined, sessions.invited, sessions.suspended]) {
         const response = await route.handler(routeCase.request(cookie));
@@ -280,7 +296,24 @@ describe("Studio Trusted rollout gate", () => {
     }
   });
 
-  it("admits Trusted shell entries while keeping Public users out", async () => {
+  it("keeps only static assets and legacy redirects as anonymous non-data exceptions", async () => {
+    const { plugin } = await setup();
+
+    const asset = await findRoute(plugin, "/studio/assets/app.js").handler(
+      request("/studio/assets/app.js"),
+    );
+    expect([200, 404]).toContain(asset.status);
+
+    const redirect = await findRoute(plugin, "/cms").handler(
+      request("/cms/entities/note/example?view=edit"),
+    );
+    expect(redirect.status).toBe(308);
+    expect(redirect.headers.get("location")).toBe(
+      "/studio/entities/note/example?view=edit",
+    );
+  });
+
+  it("admits every active session to shell entries", async () => {
     const { plugin, sessions } = await setup();
     const shellRoutes = [
       { routePath: "/studio", requestPath: "/studio" },
@@ -310,7 +343,7 @@ describe("Studio Trusted rollout gate", () => {
       const publicResponse = await route.handler(
         request(shellRoute.requestPath, { cookie: sessions.public }),
       );
-      expect(publicResponse.status).toBe(403);
+      expect(publicResponse.status).toBe(200);
       expect(publicResponse.headers.get("cache-control")).toBe("no-store");
 
       for (const cookie of [undefined, sessions.invited, sessions.suspended]) {
@@ -341,13 +374,19 @@ describe("Studio Trusted rollout gate", () => {
       await route.handler(request("/studio", { cookie: sessions.trusted }))
     ).text();
     expect(trustedHtml).not.toContain('href="/admin"');
-    // The Trusted caller keeps the Studio's own door.
     expect(trustedHtml).toContain('href="/studio"');
+
+    const publicHtml = await (
+      await route.handler(request("/studio", { cookie: sessions.public }))
+    ).text();
+    expect(publicHtml).not.toContain('href="/admin"');
+    expect(publicHtml).toContain('href="/studio"');
   });
 
-  it("denies Public requests before mutation or private capability code", async () => {
+  it("denies Public editor requests before mutation or private capability code", async () => {
     const { shell, plugin, sessions } = await setup();
     let schemaLookups = 0;
+    let workspaceAccessChecks = 0;
     let workspaceReads = 0;
     let workspaceActions = 0;
     let uploadPromotions = 0;
@@ -391,7 +430,10 @@ describe("Studio Trusted rollout gate", () => {
         label: "Test workspace",
         rendererName: "DeclarativeOperatorWorkspace",
         priority: 1,
-        accessHandler: () => true,
+        accessHandler: () => {
+          workspaceAccessChecks += 1;
+          return true;
+        },
         dataProvider: async () => {
           workspaceReads += 1;
           return {};
@@ -466,17 +508,22 @@ describe("Studio Trusted rollout gate", () => {
     ];
 
     for (const [route, publicRequest] of publicRequests) {
-      expect((await route.handler(publicRequest)).status).toBe(403);
+      const response = await route.handler(publicRequest);
+      expect(response.status).toBe(
+        route.path === "/studio/api/workspace" ? 404 : 403,
+      );
     }
     expect(getEntitySpy).not.toHaveBeenCalled();
     expect({
       schemaLookups,
+      workspaceAccessChecks,
       workspaceReads,
       workspaceActions,
       uploadPromotions,
       assistCalls,
     }).toEqual({
       schemaLookups: 0,
+      workspaceAccessChecks: 0,
       workspaceReads: 0,
       workspaceActions: 0,
       uploadPromotions: 0,
@@ -484,7 +531,7 @@ describe("Studio Trusted rollout gate", () => {
     });
   });
 
-  it("keeps repository sync metadata Admin-only after Trusted rollout", async () => {
+  it("keeps repository sync metadata Admin-only after gate inversion", async () => {
     const { shell, plugin, sessions } = await setup();
     let syncReads = 0;
     shell.getMessageBus().subscribe("sync:status:request", async () => {
@@ -492,14 +539,17 @@ describe("Studio Trusted rollout gate", () => {
       return { success: true, data: {} };
     });
 
-    const response = await findRoute(plugin, "/studio/api/sync-status").handler(
-      request("/studio/api/sync-status", { cookie: sessions.trusted }),
-    );
+    for (const cookie of [sessions.public, sessions.trusted]) {
+      const response = await findRoute(
+        plugin,
+        "/studio/api/sync-status",
+      ).handler(request("/studio/api/sync-status", { cookie }));
 
-    expect(response.status).toBe(403);
-    expect(await response.json()).toEqual({
-      error: "Admin Studio capability required",
-    });
+      expect(response.status).toBe(403);
+      expect(await response.json()).toEqual({
+        error: "Admin Studio capability required",
+      });
+    }
     expect(syncReads).toBe(0);
   });
 

@@ -459,17 +459,23 @@ export class DashboardPlugin extends ServicePlugin<
 
           const visibleAppInfo = {
             ...appInfo,
-            endpoints: appInfo.endpoints.filter((endpoint) =>
-              PermissionService.hasPermission(
-                permissionLevel,
-                endpoint.visibility,
-              ),
+            endpoints: appInfo.endpoints.filter(
+              (endpoint) =>
+                PermissionService.hasPermission(
+                  permissionLevel,
+                  endpoint.visibility,
+                ) &&
+                (endpoint.requiresActiveSession !== true ||
+                  principal !== undefined),
             ),
-            interactions: appInfo.interactions.filter((interaction) =>
-              PermissionService.hasPermission(
-                permissionLevel,
-                interaction.visibility,
-              ),
+            interactions: appInfo.interactions.filter(
+              (interaction) =>
+                PermissionService.hasPermission(
+                  permissionLevel,
+                  interaction.visibility,
+                ) &&
+                (interaction.requiresActiveSession !== true ||
+                  principal !== undefined),
             ),
           };
 
@@ -493,6 +499,7 @@ export class DashboardPlugin extends ServicePlugin<
             surfaces: deriveConsoleSurfaces(ctx.webRoutes.getRoutes(), {
               activeId: "dashboard",
               permissionLevel,
+              hasActiveSession: principal !== undefined,
               self: { id: "dashboard", href: this.config.routePath },
             }),
             character,
@@ -581,6 +588,7 @@ export class DashboardPlugin extends ServicePlugin<
           const surfaces = deriveConsoleSurfaces(ctx.webRoutes.getRoutes(), {
             activeId: "dashboard",
             permissionLevel: principal.permissionLevel,
+            hasActiveSession: true,
           });
           const studioPath = surfaces.find(
             (surface) => surface.id === "studio",

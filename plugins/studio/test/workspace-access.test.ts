@@ -17,8 +17,19 @@ const principal: AuthPrincipal = {
   canonicalId: "user:workspace-editor",
 };
 
-function setup(): {
+const publicPrincipal: AuthPrincipal = {
+  userId: "usr_public_workspace",
+  personId: "person_public_workspace",
+  displayName: "Public member",
+  role: "public",
+  status: "active",
+  permissionLevel: "public",
+  isAnchor: false,
+};
+
+function setup(resolvedPrincipal: AuthPrincipal = principal): {
   routes: WebRouteDefinition[];
+  registry: StudioWorkspaceRegistry;
   actors: StudioWorkspaceActor[];
   privateCalls: { data: number; action: number };
 } {
@@ -62,11 +73,11 @@ function setup(): {
   return {
     actors,
     privateCalls,
+    registry,
     routes: createEditorRoutes({
       routePath: "/studio",
       getContext: () => context,
-      resolveAuthPrincipal: async () => principal,
-      minimumPermissionLevel: "trusted",
+      resolveAuthPrincipal: async () => resolvedPrincipal,
       getEntityDisplay: () => undefined,
       workspaceRegistry: registry,
     }),
@@ -128,6 +139,54 @@ describe("Studio workspace access", () => {
     });
     expect(JSON.stringify(body)).not.toContain("admin-workspace");
     expect(fixture.privateCalls.data).toBe(0);
+  });
+
+  it("admits an active Public actor only to an explicitly lowered workspace", async () => {
+    const fixture = setup(publicPrincipal);
+    fixture.registry.register({
+      id: "account-workspace",
+      pluginId: "account-provider",
+      label: "Account",
+      rendererName: "DeclarativeOperatorWorkspace",
+      priority: 1,
+      permission: "public",
+      accessHandler: () => true,
+      dataProvider: async (actor) => ({
+        permission: actor.userPermissionLevel,
+      }),
+      actionHandler: async (_request, actor) => ({
+        permission: actor.userPermissionLevel,
+      }),
+    });
+
+    const types = fixture.routes.find(
+      (candidate) =>
+        candidate.path === "/studio/api/types" && candidate.method === "GET",
+    );
+    if (!types) throw new Error("Missing Studio types route");
+    const navigation = await types.handler(
+      new Request("https://yeehaa.io/studio/api/types"),
+    );
+    expect(await navigation.json()).toMatchObject({
+      types: [],
+      workspaces: [{ id: "account-workspace" }],
+    });
+
+    const read = await route(fixture.routes, "GET").handler(
+      new Request(
+        "https://yeehaa.io/studio/api/workspace?id=account-workspace",
+      ),
+    );
+    const action = await route(fixture.routes, "POST").handler(
+      actionRequest("account-workspace"),
+    );
+
+    expect(read.status).toBe(200);
+    expect(await read.json()).toMatchObject({
+      workspace: { data: { permission: "public" } },
+    });
+    expect(action.status).toBe(200);
+    expect(await action.json()).toEqual({ result: { permission: "public" } });
   });
 
   it("passes the real actor to admitted reads and actions", async () => {

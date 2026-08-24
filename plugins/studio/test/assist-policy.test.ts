@@ -87,7 +87,6 @@ async function setup(updatePermission: "trusted" | "admin"): Promise<{
       routePath: "/studio",
       getContext: () => context,
       resolveAuthPrincipal: async () => trustedPrincipal,
-      minimumPermissionLevel: "trusted",
       getEntityDisplay: () => undefined,
       workspaceRegistry: new StudioWorkspaceRegistry(),
     }),

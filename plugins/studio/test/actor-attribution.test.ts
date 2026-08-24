@@ -81,7 +81,6 @@ function setup(): {
       routePath: "/studio",
       getContext: () => context,
       resolveAuthPrincipal: async (): Promise<AuthPrincipal> => principal,
-      minimumPermissionLevel: "trusted",
       getEntityDisplay: () => undefined,
       workspaceRegistry: new StudioWorkspaceRegistry(),
     }),

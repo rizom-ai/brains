@@ -157,6 +157,7 @@ export class WebChatInterface extends MessageInterfacePlugin<
       url: this.config.routePath,
       priority: 15,
       visibility: "trusted",
+      requiresActiveSession: true,
     });
     context.interactions.register({
       id: "web-chat",
@@ -166,6 +167,7 @@ export class WebChatInterface extends MessageInterfacePlugin<
       kind: "human",
       priority: 15,
       visibility: "trusted",
+      requiresActiveSession: true,
     });
     context.inboxFollowUps.registerKind({
       kind: "discuss-in-chat",
@@ -322,7 +324,7 @@ export class WebChatInterface extends MessageInterfacePlugin<
   }
 
   private async handleChatPage(request: Request): Promise<Response> {
-    const { permissionLevel, hasChatAccess } =
+    const { principal, permissionLevel, hasChatAccess } =
       await this.resolveBrowserAccess(request);
     if (!hasChatAccess) {
       return this.createAuthLoginRequiredResponse(request);
@@ -339,6 +341,7 @@ export class WebChatInterface extends MessageInterfacePlugin<
           {
             activeId: "web-chat",
             permissionLevel,
+            hasActiveSession: principal !== undefined,
             self: { id: "web-chat", href: this.config.routePath },
           },
         ),

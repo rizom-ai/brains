@@ -1,6 +1,6 @@
 # Studio plugin
 
-`@brains/studio` provides authenticated entity browsing and editing while preserving entity-service conflict and pipeline semantics.
+`@brains/studio` provides an active-session operator shell and Trusted entity browsing and editing while preserving entity-service conflict and pipeline semantics. Public-rank active sessions can enter the shell, but dedicated entity, assist, upload, and agent APIs remain Trusted; repository sync diagnostics remain Admin-only.
 
 ## State ownership
 
@@ -53,7 +53,7 @@ Workspace definitions may opt into host-owned stable URL filters with a typed qu
 
 The Admin plugin registers Admin-only Audit, People, Invitations, and Peers workspaces through the shared declarative runtime, without depending on the Studio host. Their providers read records directly from auth-service. Audit filters and paginates in the auth store; access and invitation mutations preserve actor attribution, prepared confirmation, and one-time setup links without duplicating auth APIs.
 
-Service plugins declare optional workspaces with `defineStudioWorkspace()`. The runtime scopes IDs, registers after setup, unregisters on shutdown, and sends only `DeclarativeOperatorWorkspace` registrations to the Studio. Registrations are ordered by `priority`, duplicate IDs are rejected, and no provider is required for the Studio to start.
+Service plugins declare optional workspaces with `defineStudioWorkspace()`. The runtime scopes IDs, registers after setup, unregisters on shutdown, and sends only `DeclarativeOperatorWorkspace` registrations to the Studio. The host enforces each registration's permission floor before every provider callback and defaults omitted floors to Trusted; only an explicit lower floor can admit an active Public-rank actor. Registrations are ordered by `priority`, duplicate IDs are rejected, and no provider is required for the Studio to start.
 
 Every workspace uses the same closed host-rendered vocabulary: content blocks, composition, queries, spatial and relational views, typed actions, schema-driven forms, bounded ephemeral results, dynamic catalogs, launch intents, and static or prepared confirmation. Publishing, Site, Directory Sync, Unified Inbox, Audit, People, Invitations, and Peers all use this path; there are no specialized renderer names or private browser implementations.
 

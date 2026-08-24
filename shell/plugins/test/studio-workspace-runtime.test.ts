@@ -145,6 +145,7 @@ describe("declarative Studio workspace runtime", () => {
       label: "Library",
       rendererName: DECLARATIVE_STUDIO_WORKSPACE_RENDERER,
       priority: 50,
+      permission: "trusted",
       entityTypes: [],
     });
     expect(registration.id).toEndWith(":library");

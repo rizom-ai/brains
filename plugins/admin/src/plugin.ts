@@ -35,6 +35,7 @@ export class AdminPlugin extends ServicePlugin<AdminConfig, AdminConfigInput> {
       url: this.config.routePath,
       priority: 50,
       visibility: "admin",
+      requiresActiveSession: true,
     });
     context.interactions.register({
       id: "admin",
@@ -45,6 +46,7 @@ export class AdminPlugin extends ServicePlugin<AdminConfig, AdminConfigInput> {
       kind: "admin",
       priority: 50,
       visibility: "admin",
+      requiresActiveSession: true,
     });
   }
 

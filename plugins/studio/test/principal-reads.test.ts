@@ -119,7 +119,6 @@ function createReadFixture(): {
     routePath: "/studio",
     getContext: () => context,
     resolveAuthPrincipal: async (): Promise<AuthPrincipal> => trustedPrincipal,
-    minimumPermissionLevel: "trusted",
     getEntityDisplay: () => undefined,
     workspaceRegistry,
   });

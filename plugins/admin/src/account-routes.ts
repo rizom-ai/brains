@@ -45,6 +45,7 @@ export function createAccountRoutes(
             surfaces: deriveConsoleSurfaces(context.webRoutes.getRoutes(), {
               activeId: "account",
               permissionLevel: principal.permissionLevel,
+              hasActiveSession: true,
               self: { id: "account", href: options.routePath },
             }),
             sessionHref: `/logout?return_to=${encodeURIComponent(options.routePath)}`,

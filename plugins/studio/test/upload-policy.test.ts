@@ -49,7 +49,6 @@ async function setup(): Promise<{
     routePath: "/studio",
     getContext: () => context,
     resolveAuthPrincipal: async (): Promise<AuthPrincipal> => trustedPrincipal,
-    minimumPermissionLevel: "trusted",
     getEntityDisplay: () => undefined,
     workspaceRegistry: new StudioWorkspaceRegistry(),
     recordAuditEvent: async (event) => {

@@ -38,6 +38,7 @@ import {
   deriveTypeCapabilities,
   getTypeCapabilities,
   requireAdminCapability,
+  requireTrustedCapability,
   toStudioWorkspaceActor,
 } from "./editor-access";
 import type {
@@ -91,7 +92,6 @@ export function createEditorRoutes(
     routePath,
     getContext,
     resolveAuthPrincipal,
-    minimumPermissionLevel,
     getEntityDisplay,
     workspaceRegistry,
   } = options;
@@ -107,22 +107,9 @@ export function createEditorRoutes(
     if (principal?.status !== "active") {
       return { state: "unauthenticated" };
     }
-    if (principal.permissionLevel === "public") {
-      return { state: "forbidden" };
-    }
-    if (
-      minimumPermissionLevel === "admin" &&
-      principal.permissionLevel !== "admin"
-    ) {
-      return { state: "forbidden" };
-    }
-
     const visibilityScope = permissionToVisibilityScope(
       principal.permissionLevel,
     );
-    if (visibilityScope === "public") {
-      return { state: "forbidden" };
-    }
     return {
       state: "allowed",
       access: {
@@ -148,10 +135,15 @@ export function createEditorRoutes(
     if (resolution.state === "unauthenticated") {
       return jsonResponse({ error: "Authentication required" }, 401);
     }
-    if (resolution.state === "forbidden") {
-      return jsonResponse({ error: "Studio access forbidden" }, 403);
-    }
     return resolution.access;
+  };
+
+  const requireTrustedAccess = async (
+    request: Request,
+  ): Promise<StudioRequestAccess | Response> => {
+    const access = await requireAccess(request);
+    if (access instanceof Response) return access;
+    return requireTrustedCapability(access) ?? access;
   };
 
   const serveShell = async (request: Request): Promise<Response> => {
@@ -167,12 +159,6 @@ export function createEditorRoutes(
         },
       });
     }
-    if (resolution.state === "forbidden") {
-      return new Response("Studio access forbidden", {
-        status: 403,
-        headers: { "Cache-Control": "no-store" },
-      });
-    }
     return new Response(
       renderEditorShellHtml({
         assetPath,
@@ -180,6 +166,7 @@ export function createEditorRoutes(
         surfaces: deriveConsoleSurfaces(getContext().webRoutes.getRoutes(), {
           activeId: "studio",
           permissionLevel: resolution.access.permissionLevel,
+          hasActiveSession: true,
           self: { id: "studio", href: shellPath },
         }),
         sessionHref: `/logout?return_to=${encodeURIComponent(returnTo)}`,
@@ -279,7 +266,7 @@ export function createEditorRoutes(
       method: "GET",
       public: true,
       handler: async (request): Promise<Response> => {
-        const access = await requireAccess(request);
+        const access = await requireTrustedAccess(request);
         if (access instanceof Response) return access;
         return handleGetSchema(getContext(), request, access);
       },
@@ -289,7 +276,7 @@ export function createEditorRoutes(
       method: "GET",
       public: true,
       handler: async (request): Promise<Response> => {
-        const access = await requireAccess(request);
+        const access = await requireTrustedAccess(request);
         if (access instanceof Response) return access;
         return handleGetEntities(getContext(), request, access);
       },
@@ -299,7 +286,7 @@ export function createEditorRoutes(
       method: "PUT",
       public: true,
       handler: async (request): Promise<Response> => {
-        const access = await requireAccess(request);
+        const access = await requireTrustedAccess(request);
         if (access instanceof Response) return access;
         const requestDenied = requireSameOriginJson(request);
         if (requestDenied) return requestDenied;
@@ -316,7 +303,7 @@ export function createEditorRoutes(
       method: "POST",
       public: true,
       handler: async (request): Promise<Response> => {
-        const access = await requireAccess(request);
+        const access = await requireTrustedAccess(request);
         if (access instanceof Response) return access;
         const requestDenied = requireSameOriginJson(request);
         if (requestDenied) return requestDenied;
@@ -333,7 +320,7 @@ export function createEditorRoutes(
       method: "DELETE",
       public: true,
       handler: async (request): Promise<Response> => {
-        const access = await requireAccess(request);
+        const access = await requireTrustedAccess(request);
         if (access instanceof Response) return access;
         const requestDenied = requireSameOriginJson(request);
         if (requestDenied) return requestDenied;
@@ -350,7 +337,7 @@ export function createEditorRoutes(
       method: "POST",
       public: true,
       handler: async (request): Promise<Response> => {
-        const access = await requireAccess(request);
+        const access = await requireTrustedAccess(request);
         if (access instanceof Response) return access;
         const requestDenied = requireSameOriginRequest(request);
         if (requestDenied) return requestDenied;
@@ -368,7 +355,7 @@ export function createEditorRoutes(
       method: "POST",
       public: true,
       handler: async (request): Promise<Response> => {
-        const access = await requireAccess(request);
+        const access = await requireTrustedAccess(request);
         if (access instanceof Response) return access;
         const requestDenied = requireSameOriginJson(request);
         if (requestDenied) return requestDenied;
@@ -380,7 +367,7 @@ export function createEditorRoutes(
       method: "GET",
       public: true,
       handler: async (request): Promise<Response> => {
-        const access = await requireAccess(request);
+        const access = await requireTrustedAccess(request);
         if (access instanceof Response) return access;
         return handleListAgents(getContext(), request, access);
       },
@@ -390,7 +377,7 @@ export function createEditorRoutes(
       method: "POST",
       public: true,
       handler: async (request): Promise<Response> => {
-        const access = await requireAccess(request);
+        const access = await requireTrustedAccess(request);
         if (access instanceof Response) return access;
         const requestDenied = requireSameOriginJson(request);
         if (requestDenied) return requestDenied;
@@ -450,25 +437,26 @@ async function handleListTypes(
   workspaceRegistry: StudioWorkspaceRegistry,
   access: StudioRequestAccess,
 ): Promise<Response> {
-  const counts = new Map(
-    (await context.entityService.getEntityCounts(access.visibilityScope)).map(
-      (entry) => [entry.entityType, entry.count],
-    ),
-  );
-  const types = context.entityService.getEntityTypes().flatMap((entityType) => {
-    const schema = context.entities.getEffectiveFrontmatterSchema(entityType);
-    if (!schema) return [];
-    const count = counts.get(entityType) ?? 0;
-    const capabilities = deriveTypeCapabilities(
-      context,
-      entityType,
-      count,
-      access,
+  const types = [];
+  if (access.permissionLevel !== "public") {
+    const counts = new Map(
+      (await context.entityService.getEntityCounts(access.visibilityScope)).map(
+        (entry) => [entry.entityType, entry.count],
+      ),
     );
-    if (!capabilities) return [];
-    const adapter = context.entities.getAdapter(entityType);
-    return [
-      {
+    for (const entityType of context.entityService.getEntityTypes()) {
+      const schema = context.entities.getEffectiveFrontmatterSchema(entityType);
+      if (!schema) continue;
+      const count = counts.get(entityType) ?? 0;
+      const capabilities = deriveTypeCapabilities(
+        context,
+        entityType,
+        count,
+        access,
+      );
+      if (!capabilities) continue;
+      const adapter = context.entities.getAdapter(entityType);
+      types.push({
         entityType,
         label: entityTypeLabels(entityType, entityDisplay?.[entityType])
           .pluralLabel,
@@ -476,9 +464,9 @@ async function handleListTypes(
         hasBody: adapter?.hasBody !== false,
         count,
         capabilities,
-      },
-    ];
-  });
+      });
+    }
+  }
 
   return jsonResponse({
     types,

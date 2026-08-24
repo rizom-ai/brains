@@ -134,7 +134,8 @@ export class StudioPlugin extends ServicePlugin<
       label: "Studio",
       url: this.config.routePath,
       priority: 40,
-      visibility: "trusted",
+      visibility: "public",
+      requiresActiveSession: true,
     });
     context.interactions.register({
       id: "studio",
@@ -143,7 +144,8 @@ export class StudioPlugin extends ServicePlugin<
       href: this.config.routePath,
       kind: "admin",
       priority: 40,
-      visibility: "trusted",
+      visibility: "public",
+      requiresActiveSession: true,
     });
     const canCreateNote = createNoteCapability(context);
     context.inboxFollowUps.registerKind({
@@ -228,7 +230,6 @@ export class StudioPlugin extends ServicePlugin<
       resolveAuthPrincipal: (request) =>
         getActiveAuthService()?.resolveSession(request) ??
         Promise.resolve(undefined),
-      minimumPermissionLevel: "trusted",
       getEntityDisplay: () =>
         this.config.entityDisplay ??
         parseEntityDisplay(this.getContext().entityDisplay),

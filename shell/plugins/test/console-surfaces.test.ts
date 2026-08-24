@@ -10,7 +10,11 @@ describe("deriveConsoleSurfaces", () => {
   it("derives the canonical Studio door from the Studio plugin", () => {
     const surfaces = deriveConsoleSurfaces(
       [route("dashboard", "/dashboard"), route("studio", "/studio")],
-      { activeId: "dashboard", permissionLevel: "trusted" },
+      {
+        activeId: "dashboard",
+        permissionLevel: "trusted",
+        hasActiveSession: true,
+      },
     );
 
     expect(surfaces).toEqual([
@@ -20,7 +24,13 @@ describe("deriveConsoleSurfaces", () => {
         href: "/dashboard",
         isActive: true,
       },
-      { id: "studio", label: "Studio", href: "/studio", isActive: false },
+      {
+        id: "studio",
+        label: "Studio",
+        href: "/studio",
+        isActive: false,
+        requiresActiveSession: true,
+      },
     ]);
   });
 
@@ -38,6 +48,7 @@ describe("deriveConsoleSurfaces", () => {
     const surfaces = deriveConsoleSurfaces(allSurfaceRoutes, {
       activeId: "dashboard",
       permissionLevel: "admin",
+      hasActiveSession: true,
     });
 
     expect(surfaces).toEqual([
@@ -47,9 +58,27 @@ describe("deriveConsoleSurfaces", () => {
         href: "/dashboard",
         isActive: true,
       },
-      { id: "web-chat", label: "Chat", href: "/chat", isActive: false },
-      { id: "studio", label: "Studio", href: "/studio", isActive: false },
-      { id: "admin", label: "Admin", href: "/admin", isActive: false },
+      {
+        id: "web-chat",
+        label: "Chat",
+        href: "/chat",
+        isActive: false,
+        requiresActiveSession: true,
+      },
+      {
+        id: "studio",
+        label: "Studio",
+        href: "/studio",
+        isActive: false,
+        requiresActiveSession: true,
+      },
+      {
+        id: "admin",
+        label: "Admin",
+        href: "/admin",
+        isActive: false,
+        requiresActiveSession: true,
+      },
     ]);
   });
 
@@ -57,6 +86,7 @@ describe("deriveConsoleSurfaces", () => {
     const surfaces = deriveConsoleSurfaces(allSurfaceRoutes, {
       activeId: "dashboard",
       permissionLevel: "trusted",
+      hasActiveSession: true,
     });
 
     // Trusted sees public (dashboard) and trusted (chat, Studio), never the
@@ -68,13 +98,35 @@ describe("deriveConsoleSurfaces", () => {
     ]);
   });
 
-  it("shows a Public caller only public surfaces", () => {
+  it("shows an anonymous Public caller only session-free surfaces", () => {
     const surfaces = deriveConsoleSurfaces(allSurfaceRoutes, {
       activeId: "dashboard",
       permissionLevel: "public",
+      hasActiveSession: false,
     });
 
     expect(surfaces.map((s) => s.id)).toEqual(["dashboard"]);
+  });
+
+  it("shows Studio to an active Public-rank caller", () => {
+    const surfaces = deriveConsoleSurfaces(
+      [
+        route("dashboard", "/dashboard"),
+        route("studio", "/studio"),
+        route("account", "/account"),
+      ],
+      {
+        activeId: "dashboard",
+        permissionLevel: "public",
+        hasActiveSession: true,
+      },
+    );
+
+    expect(surfaces.map((surface) => surface.id)).toEqual([
+      "dashboard",
+      "studio",
+      "account",
+    ]);
   });
 
   it("fails closed to public-only when no permission level is given", () => {
@@ -102,6 +154,7 @@ describe("deriveConsoleSurfaces", () => {
       {
         activeId: "account",
         permissionLevel: "trusted",
+        hasActiveSession: true,
         self: { id: "account", href: "/account" },
       },
     );
@@ -118,6 +171,7 @@ describe("deriveConsoleSurfaces", () => {
         label: "Account",
         href: "/account",
         isActive: true,
+        requiresActiveSession: true,
       },
     ]);
   });
@@ -125,7 +179,11 @@ describe("deriveConsoleSurfaces", () => {
   it("marks the rendering surface active from any surface", () => {
     const surfaces = deriveConsoleSurfaces(
       [route("dashboard", "/dashboard"), route("web-chat", "/chat")],
-      { activeId: "web-chat", permissionLevel: "admin" },
+      {
+        activeId: "web-chat",
+        permissionLevel: "admin",
+        hasActiveSession: true,
+      },
     );
 
     expect(surfaces.find((s) => s.id === "web-chat")?.isActive).toBe(true);
@@ -135,7 +193,11 @@ describe("deriveConsoleSurfaces", () => {
   it("omits surfaces whose plugin registered no routes", () => {
     const surfaces = deriveConsoleSurfaces(
       [route("dashboard", "/dashboard"), route("web-chat", "/chat")],
-      { activeId: "dashboard", permissionLevel: "admin" },
+      {
+        activeId: "dashboard",
+        permissionLevel: "admin",
+        hasActiveSession: true,
+      },
     );
 
     expect(surfaces.map((s) => s.id)).toEqual(["dashboard", "web-chat"]);
@@ -148,7 +210,11 @@ describe("deriveConsoleSurfaces", () => {
         route("studio", "/studio"),
         route("studio", "/studio/assets/app.js"),
       ],
-      { activeId: "studio", permissionLevel: "admin" },
+      {
+        activeId: "studio",
+        permissionLevel: "admin",
+        hasActiveSession: true,
+      },
     );
 
     expect(surfaces.find((s) => s.id === "studio")?.href).toBe("/studio");

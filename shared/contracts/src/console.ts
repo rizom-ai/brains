@@ -11,6 +11,8 @@ export interface ConsoleSurface {
   label: string;
   href: string;
   isActive: boolean;
+  /** Omitted for public surfaces that do not require authenticated state. */
+  requiresActiveSession?: true | undefined;
 }
 
 /** Console permission levels, lowest to highest. */

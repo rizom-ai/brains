@@ -102,6 +102,7 @@ describe("Admin-owned Studio Invitations workspace", () => {
       id: "admin:invitations",
       pluginId: "admin",
       rendererName: "DeclarativeOperatorWorkspace",
+      permission: "admin",
       urlQuery: true,
     });
     expect(await workspace.accessHandler(actor)).toBe(true);

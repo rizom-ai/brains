@@ -35,6 +35,7 @@ export class AccountPlugin extends ServicePlugin<
       url: this.config.routePath,
       priority: 45,
       visibility: "public",
+      requiresActiveSession: true,
     });
     context.interactions.register({
       id: "account",
@@ -44,6 +45,7 @@ export class AccountPlugin extends ServicePlugin<
       kind: "human",
       priority: 45,
       visibility: "public",
+      requiresActiveSession: true,
     });
   }
 

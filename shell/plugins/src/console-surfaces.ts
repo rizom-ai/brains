@@ -27,26 +27,42 @@ const SURFACE_PLUGINS: ReadonlyArray<{
   pluginId: string;
   label: string;
   visibility: SurfacePermissionLevel;
+  requiresActiveSession: boolean;
 }> = [
   {
     id: "dashboard",
     pluginId: "dashboard",
     label: "Dashboard",
     visibility: "public",
+    requiresActiveSession: false,
   },
   {
     id: "web-chat",
     pluginId: "web-chat",
     label: "Chat",
     visibility: "trusted",
+    requiresActiveSession: true,
   },
-  { id: "studio", pluginId: "studio", label: "Studio", visibility: "trusted" },
-  { id: "admin", pluginId: "admin", label: "Admin", visibility: "admin" },
+  {
+    id: "studio",
+    pluginId: "studio",
+    label: "Studio",
+    visibility: "public",
+    requiresActiveSession: true,
+  },
+  {
+    id: "admin",
+    pluginId: "admin",
+    label: "Admin",
+    visibility: "admin",
+    requiresActiveSession: true,
+  },
   {
     id: "account",
     pluginId: "account",
     label: "Account",
     visibility: "public",
+    requiresActiveSession: true,
   },
 ];
 
@@ -61,6 +77,8 @@ export function deriveConsoleSurfaces(
      * when unspecified.
      */
     permissionLevel?: SurfacePermissionLevel;
+    /** Whether the caller has a verified active session. */
+    hasActiveSession?: boolean;
     /**
      * The rendering surface's own door. A surface always shows itself even
      * when it cannot read its own registration back, and regardless of the
@@ -72,9 +90,19 @@ export function deriveConsoleSurfaces(
   const callerRank = PERMISSION_RANK[options.permissionLevel ?? "public"];
   const surfaces: ConsoleSurface[] = [];
 
-  for (const { id, pluginId, label, visibility } of SURFACE_PLUGINS) {
+  for (const {
+    id,
+    pluginId,
+    label,
+    visibility,
+    requiresActiveSession,
+  } of SURFACE_PLUGINS) {
     const isSelf = options.self?.id === id;
-    if (!isSelf && callerRank < PERMISSION_RANK[visibility]) {
+    if (
+      !isSelf &&
+      (callerRank < PERMISSION_RANK[visibility] ||
+        (requiresActiveSession && options.hasActiveSession !== true))
+    ) {
       continue;
     }
     const door = isSelf
@@ -89,6 +117,7 @@ export function deriveConsoleSurfaces(
         label,
         href: door,
         isActive: id === options.activeId,
+        ...(requiresActiveSession ? { requiresActiveSession: true } : {}),
       });
     }
   }

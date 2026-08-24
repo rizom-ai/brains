@@ -394,6 +394,14 @@ describe("DashboardPlugin", () => {
         priority: 30,
         visibility: "trusted",
       });
+      shell.registerEndpoint({
+        label: "Member Studio endpoint",
+        url: "/studio",
+        pluginId: "studio",
+        priority: 40,
+        visibility: "public",
+        requiresActiveSession: true,
+      });
       shell.registerInteraction({
         id: "a2a",
         label: "A2A",
@@ -409,7 +417,8 @@ describe("DashboardPlugin", () => {
         kind: "admin",
         pluginId: "studio",
         priority: 40,
-        visibility: "admin",
+        visibility: "public",
+        requiresActiveSession: true,
       });
 
       const routes = plugin.getWebRoutes();
@@ -421,7 +430,55 @@ describe("DashboardPlugin", () => {
       expect(html).toContain("Public Site");
       expect(html).toContain("A2A");
       expect(html).not.toContain("MCP");
+      expect(html).not.toContain("Member Studio Endpoint");
       expect(html).not.toContain(
+        'interaction-link--admin" href="http://brain/studio"',
+      );
+    });
+
+    it("should expose active-session descriptors to a Public-rank person", async () => {
+      const authPlugin = new AuthServicePlugin({
+        storageDir: await createTempDir("dashboard-public-session-auth-"),
+      });
+      await harness.installPlugin(authPlugin);
+      const person = await authPlugin.getService().createUser({
+        displayName: "Public member",
+        role: "public",
+        status: "active",
+      });
+      const session = await authPlugin
+        .getService()
+        .createAuthSession(person.userId);
+      const shell = harness.getMockShell();
+      shell.registerEndpoint({
+        label: "Member Studio endpoint",
+        url: "/studio",
+        pluginId: "studio",
+        priority: 40,
+        visibility: "public",
+        requiresActiveSession: true,
+      });
+      shell.registerInteraction({
+        id: "studio",
+        label: "Studio",
+        href: "/studio",
+        kind: "admin",
+        pluginId: "studio",
+        priority: 40,
+        visibility: "public",
+        requiresActiveSession: true,
+      });
+
+      const response = await plugin.getWebRoutes()[0]?.handler(
+        new Request("http://brain/dashboard", {
+          headers: { Cookie: session.cookie },
+        }),
+      );
+      const html = await response?.text();
+
+      expect(html).toContain("Public member");
+      expect(html).toContain("Member Studio Endpoint");
+      expect(html).toContain(
         'interaction-link--admin" href="http://brain/studio"',
       );
     });

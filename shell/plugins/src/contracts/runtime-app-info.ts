@@ -13,12 +13,14 @@ export const endpointInfoSchema: z.ZodObject<{
   pluginId: z.ZodString;
   priority: z.ZodDefault<z.ZodNumber>;
   visibility: z.ZodDefault<typeof userPermissionLevelSchema>;
+  requiresActiveSession: z.ZodOptional<z.ZodBoolean>;
 }> = z.object({
   label: z.string(),
   url: z.string(),
   pluginId: z.string(),
   priority: z.number().default(100),
   visibility: userPermissionLevelSchema.default("public"),
+  requiresActiveSession: z.boolean().optional(),
 });
 
 export type EndpointInfo = z.output<typeof endpointInfoSchema>;
@@ -46,6 +48,7 @@ export const interactionInfoSchema: z.ZodObject<{
   pluginId: z.ZodString;
   priority: z.ZodDefault<z.ZodNumber>;
   visibility: z.ZodDefault<typeof userPermissionLevelSchema>;
+  requiresActiveSession: z.ZodOptional<z.ZodBoolean>;
   status: z.ZodDefault<typeof interactionStatusSchema>;
 }> = z.object({
   id: z.string(),
@@ -56,6 +59,7 @@ export const interactionInfoSchema: z.ZodObject<{
   pluginId: z.string(),
   priority: z.number().default(100),
   visibility: userPermissionLevelSchema.default("public"),
+  requiresActiveSession: z.boolean().optional(),
   status: interactionStatusSchema.default("available"),
 });
 

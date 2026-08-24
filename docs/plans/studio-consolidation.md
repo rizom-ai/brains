@@ -17,12 +17,19 @@ the card:
 [`../studio-consolidation-mockups.html`](../studio-consolidation-mockups.html)
 (decided 2026-08-19).
 
-**Progress:** Phases 1–3 are implemented on `work/studio-consolidation`; Phase
-4 is next. A 2026-08-23 review confirmed the rename is cleanly mechanical and
+**Progress:** Phases 1–5 are implemented on `work/studio-consolidation`; Phase
+6 is next. A 2026-08-23 review confirmed the rename is cleanly mechanical and
 the capability-parity inventory holds. Its Phase 2 follow-ups (redundant Admin
 asserts, fetch-all audit pagination, and raw ISO timestamps) and Phase 3 entry
 conditions (shared form-control vocabulary and shared `queryInteger`) landed
-with Phase 3.
+with Phase 3. Phase 4 keeps People and Peers source-owned by `plugins/admin`;
+neither Admin nor Studio depends on the other, and registration crosses only
+the shared workspace message contract. Phase 5 admits every active session to
+the Studio shell, enforces Trusted/Admin capability boundaries per route
+family, defaults workspace floors to Trusted before source callbacks, and
+makes active-session visibility explicit on console descriptors. The
+2026-08-24 Dashboard decision keeps its existing chrome with exactly three
+public tabs: Overview, Knowledge, and Network.
 
 ## Goal
 
@@ -102,17 +109,21 @@ shell. Registrant `accessHandler`s are written assuming that floor exists
 beneath them. The inversion keeps principal resolution centralized but replaces
 one implicit perimeter with an explicit route-family matrix:
 
-| Route family                                                        | Admission                                                                                 |
-| ------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| Legacy redirects (`/cms`, later `/account` and `/admin`)            | Public redirect only; no data                                                             |
-| Studio entry asset and lazy chunks                                  | Public static assets; bounded asset names and no filesystem traversal                     |
-| Studio shell                                                        | Active session; anonymous callers redirect to login                                       |
-| Entity discovery, schemas, lists, CRUD, uploads, assist, and agents | Active Trusted or Admin principal, followed by existing visibility/action policy          |
-| Repository sync status                                              | Active Admin principal; this remains stricter than the editor family                      |
-| Workspace discovery, reads, and actions                             | Active session plus the workspace's declared floor, then its source-owned `accessHandler` |
-| Account browser APIs                                                | Remain `/auth/account/*` in auth-service and require an active session                    |
-| Administration browser APIs                                         | Remain `/auth/admin/*` in auth-service and require Admin                                  |
+| Route family                                                      | Admission                                                                                 |
+| ----------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| Legacy redirects (`/cms`, later `/account` and `/admin`)          | Public redirect only; no data                                                             |
+| Studio entry asset and lazy chunks                                | Public static assets; bounded asset names and no filesystem traversal                     |
+| Studio shell                                                      | Active session; anonymous callers redirect to login                                       |
+| Entity catalog, schemas, lists, CRUD, uploads, assist, and agents | Active Trusted or Admin principal, followed by existing visibility/action policy          |
+| Repository sync status                                            | Active Admin principal; this remains stricter than the editor family                      |
+| Workspace discovery, reads, and actions                           | Active session plus the workspace's declared floor, then its source-owned `accessHandler` |
+| Account browser APIs                                              | Remain `/auth/account/*` in auth-service and require an active session                    |
+| Administration browser APIs                                       | Remain `/auth/admin/*` in auth-service and require Admin                                  |
 
+- The shared `/studio/api/types` navigation response is active-session
+  admitted because it carries workspace discovery: Public-rank actors receive
+  an empty entity catalog plus only explicitly lower-floor workspace
+  descriptors. Every dedicated entity endpoint still requires Trusted.
 - Workspace floors are enforced by the registry **before** calling
   `accessHandler`, `entityTypes`, `badgeProvider`, `dataProvider`, or
   `actionHandler`. The floor defaults to `trusted`, so existing registrants
@@ -344,8 +355,9 @@ surface is pure gating.
 - Tests first: enumerate the exact route matrix from the Gating model. Public
   static assets and legacy redirects remain data-free anonymous exceptions;
   the shell requires an active session; active public-rank principals receive
-  `403` from editor APIs and sync status; Trusted principals still receive
-  `403` from sync status; and denied workspace providers are never called.
+  `403` from dedicated editor APIs and sync status while navigation returns an
+  empty entity catalog; Trusted principals still receive `403` from sync
+  status; and denied workspace providers are never called.
 - Registry contract tests prove that the default floor is `trusted`, the floor
   runs before every provider callback, and a `() => true` handler cannot admit
   a sub-trusted actor without an explicit lower floor.

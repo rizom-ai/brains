@@ -75,6 +75,7 @@ describe("Admin-owned Studio People workspace", () => {
       id: "admin:people",
       pluginId: "admin",
       rendererName: "DeclarativeOperatorWorkspace",
+      permission: "admin",
       urlQuery: true,
     });
     expect(await workspace.accessHandler(actor)).toBe(true);

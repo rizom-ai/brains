@@ -99,17 +99,40 @@ describe("context.endpoints.register", () => {
     expect(context.plugins.has("chat")).toBe(true);
   });
 
-  it("preserves endpoint visibility", () => {
+  it("preserves endpoint visibility and active-session admission", () => {
     const shell = createMockShell({ logger });
-    const context = createBasePluginContext(shell, "mcp");
+    const context = createBasePluginContext(shell, "studio");
 
     context.endpoints.register({
-      label: "MCP",
-      url: "/mcp",
-      visibility: "trusted",
+      label: "Studio",
+      url: "/studio",
+      visibility: "public",
+      requiresActiveSession: true,
     });
 
-    expect(shell.listEndpoints()[0]?.visibility).toBe("trusted");
+    expect(shell.listEndpoints()[0]).toMatchObject({
+      visibility: "public",
+      requiresActiveSession: true,
+    });
+  });
+
+  it("preserves interaction active-session admission", () => {
+    const shell = createMockShell({ logger });
+    const context = createBasePluginContext(shell, "studio");
+
+    context.interactions.register({
+      id: "studio",
+      label: "Studio",
+      href: "/studio",
+      kind: "admin",
+      visibility: "public",
+      requiresActiveSession: true,
+    });
+
+    expect(shell.listInteractions()[0]).toMatchObject({
+      visibility: "public",
+      requiresActiveSession: true,
+    });
   });
 
   it("registers interactions with defaults and plugin scope", () => {

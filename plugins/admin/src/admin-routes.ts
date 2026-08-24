@@ -67,6 +67,7 @@ export function createAdminRoutes(
             surfaces: deriveConsoleSurfaces(context.webRoutes.getRoutes(), {
               activeId: "admin",
               permissionLevel: principal.permissionLevel,
+              hasActiveSession: true,
               self: { id: "admin", href: options.routePath },
             }),
             sessionHref: `/logout?return_to=${encodeURIComponent(options.routePath)}`,

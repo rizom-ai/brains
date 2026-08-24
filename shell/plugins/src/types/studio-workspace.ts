@@ -40,6 +40,11 @@ export interface StudioWorkspaceRegistration {
   label: string;
   rendererName: StudioWorkspaceRendererName;
   priority: number;
+  /**
+   * Host-enforced permission floor. The Studio registry defaults omitted floors
+   * to Trusted so a permissive source handler cannot widen existing access.
+   */
+  permission?: UserPermissionLevel | undefined;
   /** Allow the Studio container to hydrate stable renderer-owned filters from the URL. */
   urlQuery?: true | undefined;
   /**

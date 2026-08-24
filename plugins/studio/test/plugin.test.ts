@@ -187,11 +187,17 @@ describe("studio plugin", () => {
     expect(studio).toBeDefined();
     expect(studio?.url).toBe("/studio");
     expect(studio?.pluginId).toBe("studio");
-    expect(studio?.visibility).toBe("trusted");
+    expect(studio).toMatchObject({
+      visibility: "public",
+      requiresActiveSession: true,
+    });
     expect(
       shell
         .listInteractions()
         .find((interaction) => interaction.id === "studio"),
-    ).toMatchObject({ visibility: "trusted" });
+    ).toMatchObject({
+      visibility: "public",
+      requiresActiveSession: true,
+    });
   });
 });

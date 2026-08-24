@@ -314,6 +314,7 @@ export function createDeclarativeStudioWorkspaceRegistration<
     label: definition.label,
     rendererName: DECLARATIVE_STUDIO_WORKSPACE_RENDERER,
     priority: definition.priority ?? 50,
+    permission: definition.permission,
     ...(definition.query ? { urlQuery: true } : {}),
     entityTypes: listEntityTypes
       ? async (actor): Promise<string[]> => {
