@@ -2325,6 +2325,112 @@ describe("entity package definitions", () => {
     harness.reset();
   });
 
+  // A widget reports on the state of the brain, which is a different read
+  // from a job's. A job is handed one conversation and summarises it; a
+  // widget that reports how many conversations lack a summary has to survey
+  // them all, and has to know which spaces count. Two shapes because they
+  // are two questions — the job reader stays narrow.
+  it("lets a widget survey conversations and spaces", async () => {
+    const coverageWidget = defineDashboardWidget({
+      id: "memory-coverage",
+      title: "Memory Coverage",
+      group: "knowledge",
+      placement: "secondary",
+      priority: 30,
+      permission: "public",
+      data: z.object({ summarized: z.number(), spaces: z.number() }),
+      digest: ({ data }) => ({
+        items: [{ label: "Covered", value: String(data.summarized) }],
+      }),
+      view: ({ data }) => ({
+        blocks: [
+          {
+            type: "list",
+            id: "coverage",
+            empty: "Nothing to cover.",
+            items: [{ id: "spaces", title: String(data.spaces) }],
+          },
+        ],
+      }),
+    });
+    let surveyed: { summarized: number; spaces: number } | undefined;
+    const guide = defineEntity({
+      type: "guide",
+      purpose: "A guide that reports coverage.",
+      metadata: z.object({ title: z.string() }),
+      dashboardWidgets: [
+        defineEntityDashboardWidget(
+          coverageWidget,
+          async ({ conversations, spaces }) => {
+            surveyed = {
+              summarized: (await conversations.list()).length,
+              spaces: spaces.length,
+            };
+            return surveyed;
+          },
+        ),
+      ],
+    });
+    const definition = defineEntityPackage({ id: "guides", entities: [guide] });
+    const plugin = createEntityPackagePlugins(
+      definition.entities,
+      definition.projections,
+      { name: "@fixture/guides", version: "0.1.0" },
+      (id) => `@fixture/guides:${id}`,
+    )[0];
+    if (!plugin) throw new Error("Guide entity plugin was not created");
+
+    const harness = createPluginHarness({
+      logger: createSilentLogger("entity-widget-survey-test"),
+    });
+    const shell = harness.getMockShell();
+    const conversationService = shell.getConversationService();
+    stubMethod(conversationService, "listConversations", async () => [
+      {
+        id: "conv-1",
+        sessionId: "s-1",
+        interfaceType: "cli",
+        channelId: "channel-1",
+        personId: null,
+        started: "2026-08-24T09:00:00.000Z",
+        lastActive: "2026-08-24T09:30:00.000Z",
+        metadata: null,
+        created: "2026-08-24T09:00:00.000Z",
+        updated: "2026-08-24T09:30:00.000Z",
+      },
+    ]);
+    shell.getConversationService = (): typeof conversationService =>
+      conversationService;
+    stubMethod(shell, "getSpaces", () => ["#planning", "#build"]);
+
+    await harness.installPlugin(plugin);
+    interface Provider {
+      caller: null;
+      signal: AbortSignal;
+    }
+    const providers: Array<(provider: Provider) => Promise<unknown>> = [];
+    harness.subscribe<{
+      dataProvider?: (provider: Provider) => Promise<unknown>;
+    }>(DASHBOARD_CHANNELS.registerWidget, async (message) => {
+      const { dataProvider } = message.payload;
+      if (dataProvider) providers.push(dataProvider);
+      return { success: true };
+    });
+    await harness.sendMessage(SYSTEM_CHANNELS.pluginsRegistered, {});
+
+    // Whatever the dashboard does with the registration, the widget was
+    // handed a survey of every conversation and the configured spaces.
+    for (const dataProvider of providers) {
+      await dataProvider({
+        caller: null,
+        signal: new AbortController().signal,
+      });
+    }
+    expect(surveyed).toEqual({ summarized: 1, spaces: 2 });
+
+    harness.reset();
+  });
+
   it("routes create by input shape and reports the outcome itself", async () => {
     // Deliberately data rather than a callback. A create callback is
     // arbitrary code whose reported outcome the runtime has to take on

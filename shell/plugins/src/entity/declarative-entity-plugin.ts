@@ -1161,6 +1161,25 @@ class DeclarativeEntityPlugin extends EntityPlugin<
             load: ({ caller, signal }) =>
               widget.load({
                 entities: this.entityAccess(context),
+                conversations: {
+                  list: (options) =>
+                    context.conversations.list(
+                      options === undefined
+                        ? undefined
+                        : {
+                            ...(options.limit !== undefined
+                              ? { limit: options.limit }
+                              : {}),
+                            ...(options.interfaceType !== undefined
+                              ? { interfaceType: options.interfaceType }
+                              : {}),
+                            ...(options.channelId !== undefined
+                              ? { channelId: options.channelId }
+                              : {}),
+                          },
+                    ),
+                },
+                spaces: context.spaces,
                 caller,
                 signal,
               }),

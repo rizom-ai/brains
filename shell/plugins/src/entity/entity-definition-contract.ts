@@ -8,6 +8,7 @@ import type {
   JobEntityAccess,
   JobHandlerContext,
 } from "../job/job-context-contract";
+import type { Conversation } from "../contracts/conversations";
 export type { EntityConversationReader } from "../job/job-context-contract";
 import type { AtprotoProjection } from "@brains/atproto-contracts";
 import type { FeedItem } from "@brains/site-composition";
@@ -744,13 +745,38 @@ export type EntityInsightDeclaration = Record<
  * shapes; `defineEntityDashboardWidget` checks the pairing where it is
  * written.
  */
+/**
+ * What a widget is given to build its data.
+ *
+ * Wider than a job's context on one axis, deliberately. A job is handed one
+ * conversation and does something with it; a widget reports on the state of
+ * the brain, and "how many conversations have no summary" cannot be answered
+ * without surveying them. Two shapes because they are two questions — a job
+ * that could list every conversation would be reading well past what it was
+ * asked to do.
+ */
+export interface EntityDashboardWidgetContext {
+  readonly entities: JobEntityAccess;
+  /** Every conversation, because coverage is a question about all of them. */
+  readonly conversations: EntityConversationSurvey;
+  /** The brain's configured conversation spaces. */
+  readonly spaces: readonly string[];
+  readonly caller: OperatorCaller | null;
+  readonly signal: AbortSignal;
+}
+
+/** Reading across conversations rather than into one. */
+export interface EntityConversationSurvey {
+  list(options?: {
+    readonly limit?: number | undefined;
+    readonly interfaceType?: string | undefined;
+    readonly channelId?: string | undefined;
+  }): Promise<Conversation[]>;
+}
+
 export interface EntityDashboardWidgetDeclaration {
   readonly definition: AnyDashboardWidgetDefinition;
-  load(context: {
-    readonly entities: JobEntityAccess;
-    readonly caller: OperatorCaller | null;
-    readonly signal: AbortSignal;
-  }): Promise<unknown>;
+  load(context: EntityDashboardWidgetContext): Promise<unknown>;
 }
 
 /**
