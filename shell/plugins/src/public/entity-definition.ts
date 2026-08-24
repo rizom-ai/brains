@@ -1,8 +1,6 @@
 import type { Template } from "@brains/templates";
 import type { AtprotoProjection } from "@brains/atproto-contracts";
 import type { AnyDashboardWidgetDefinition } from "../operator/operator-definition-contract";
-import type { OperatorCaller } from "../operator/operator-context-contract";
-import type { JobEntityAccess } from "../job/job-context-contract";
 import type { ProjectionRule } from "../entity/projection-rule";
 import type { AnyDataSourceDeclaration } from "./entity-data-source";
 import { z } from "@brains/utils/zod";
@@ -17,6 +15,7 @@ import type {
   EntityOf,
   EntityPublishDeclaration,
   EntityDefinition,
+  EntityDashboardWidgetContext,
   EntityDashboardWidgetDeclaration,
   EntityEvalDeclaration,
   EntityInsightDeclaration,
@@ -117,11 +116,9 @@ export function defineEntityDashboardWidget<
   TDefinition extends AnyDashboardWidgetDefinition,
 >(
   definition: TDefinition,
-  load: (context: {
-    readonly entities: JobEntityAccess;
-    readonly caller: OperatorCaller | null;
-    readonly signal: AbortSignal;
-  }) => Promise<z.input<TDefinition["data"]>>,
+  load: (
+    context: EntityDashboardWidgetContext,
+  ) => Promise<z.input<TDefinition["data"]>>,
 ): EntityDashboardWidgetDeclaration {
   return Object.freeze({ definition, load });
 }
