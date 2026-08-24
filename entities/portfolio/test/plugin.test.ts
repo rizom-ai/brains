@@ -129,7 +129,9 @@ describe("portfolio package", () => {
       ai: harness.getEntityContext("test").ai,
       logger: harness.getMockShell().getLogger(),
       entities,
-      conversations: { get: async () => null },
+      // This generation reads no conversation; the reader is present
+      // because the context has one, not because it is used.
+      conversations: { get: async () => null, getMessages: async () => [] },
       identity: harness.getEntityContext("test").identity,
       messaging: { publish: async (): Promise<void> => {} },
       progress: { report: async (): Promise<void> => {} },

@@ -1487,6 +1487,101 @@ describe("entity package definitions", () => {
     harness.reset();
   });
 
+  // A package that summarises conversations has to read them. The narrow
+  // reader offered a channel name and nothing else, so `conversation-memory`
+  // reached for the full namespace — and with it `list`, `search`, and the
+  // ability to read every conversation in the brain rather than the one it
+  // was given.
+  it("reads the conversation a job was started from, and its messages", async () => {
+    const guide = defineEntity({
+      type: "guide",
+      purpose: "A guide written from a conversation.",
+      metadata: z.object({ title: z.string() }),
+      jobs: {
+        summarize: {
+          input: z.object({ conversationId: z.string() }),
+          handle: async ({
+            input,
+            conversations,
+          }: JobHandlerContext<{ conversationId: string }>): Promise<{
+            channel: string | undefined;
+            said: readonly string[];
+          }> => {
+            const conversation = await conversations.get(input.conversationId);
+            const messages = await conversations.getMessages(
+              input.conversationId,
+              { limit: 10 },
+            );
+            return {
+              channel: conversation?.channelName,
+              said: messages.map((message) => message.content),
+            };
+          },
+        },
+      },
+    });
+    const definition = defineEntityPackage({ id: "guides", entities: [guide] });
+    const plugin = createEntityPackagePlugins(
+      definition.entities,
+      definition.projections,
+      { name: "@fixture/guides", version: "0.1.0" },
+      (id) => `@fixture/guides:${id}`,
+    )[0];
+    if (!plugin) throw new Error("Guide entity plugin was not created");
+
+    const harness = createPluginHarness({
+      logger: createSilentLogger("entity-conversation-test"),
+    });
+    const handlers = new Map<string, JobHandler>();
+    const queue = harness.getMockShell().getJobQueueService();
+    stubMethod(queue, "registerHandler", (name, handler) => {
+      handlers.set(name, handler);
+    });
+    harness.getMockShell().getJobQueueService = (): typeof queue => queue;
+
+    const shell = harness.getMockShell();
+    const conversationService = shell.getConversationService();
+    stubMethod(conversationService, "getConversation", async () => ({
+      id: "conv-1",
+      sessionId: "session-1",
+      interfaceType: "cli",
+      channelId: "channel-1",
+      personId: null,
+      started: "2026-08-24T09:00:00.000Z",
+      lastActive: "2026-08-24T09:30:00.000Z",
+      metadata: JSON.stringify({ channelName: "#planning" }),
+      created: "2026-08-24T09:00:00.000Z",
+      updated: "2026-08-24T09:30:00.000Z",
+    }));
+    stubMethod(conversationService, "getMessages", async () => [
+      {
+        id: "m-1",
+        conversationId: "conv-1",
+        role: "user",
+        content: "What did we decide?",
+        timestamp: "2026-08-24T09:10:00.000Z",
+        metadata: null,
+      },
+    ]);
+    shell.getConversationService = (): typeof conversationService =>
+      conversationService;
+
+    await harness.installPlugin(plugin);
+    const handler = handlers.get("@fixture/guides:guide:summarize");
+    if (!handler) throw new Error("Summarize job handler was not registered");
+
+    expect(
+      await handler.process(
+        { conversationId: "conv-1" },
+        "job-1",
+        createMockProgressReporter(),
+        new AbortController().signal,
+      ),
+    ).toEqual({ channel: "#planning", said: ["What did we decide?"] });
+
+    harness.reset();
+  });
+
   // "Put a cover image on the launch post" names the post the way a person
   // would. `getEntity` only answers to an id, so a package that wants the
   // entity someone named had to reach past this surface for a resolver —

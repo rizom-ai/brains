@@ -189,6 +189,11 @@ export { computeContentHash } from "@brains/utils/hash";
 // enforces it over an inline instanceof ternary, so a package that cannot
 // reach it cannot pass lint. Named consumer: @brains/image-plugin.
 export { getErrorMessage } from "@brains/utils/error";
+
+// The conversation a job was started from, and what was said in it. A
+// package that summarises conversations has to name what it read. Named
+// consumer: @brains/conversation-memory.
+export type { Conversation, Message } from "@brains/plugins";
 export { parseMarkdown } from "@brains/utils/markdown";
 
 export type {
