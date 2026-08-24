@@ -1,5 +1,18 @@
 # @brains/entity-service
 
+## 0.2.0-alpha.321
+
+### Patch Changes
+
+- [#163](https://github.com/rizom-ai/brains/pull/163) [`f9bd1c6`](https://github.com/rizom-ai/brains/commit/f9bd1c6291f560a5bb679357d199f1af29005d63) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Persist entity-to-directory export intents atomically with entity mutations, recover and checkpoint them through Git before acknowledgement, and block destructive cleanup while exports remain unsettled.
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.321
+  - @brains/contracts@0.2.0-alpha.321
+  - @brains/db@0.2.0-alpha.321
+  - @brains/utils@0.2.0-alpha.321
+  - @brains/job-queue@0.2.0-alpha.321
+
 ## 0.2.0-alpha.320
 
 ### Patch Changes

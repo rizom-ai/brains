@@ -276,6 +276,7 @@
     "core--directory-sync-stress-direct-clone",
     "core--directory-sync-stress-harness",
     "core--drop-themes-subpath",
+    "core--durable-entity-export-outbox",
     "core--durable-job-progress",
     "core--email-imap-ipv4-tls-fallback",
     "core--email-imap-timeout-guard",
