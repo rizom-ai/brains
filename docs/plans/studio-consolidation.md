@@ -45,10 +45,11 @@ End state:
   you, what the brain did on its own, system and network state. It absorbs
   the Dashboard's trusted/admin widget content.
 - The Dashboard becomes the **brain's card** — the public, outward face for
-  visitors, agents, and peers: whose brain it is, what it knows (the
-  knowledge map), what it can do (its skills), and its network (the agent
-  proximity map), with the contact doors (chat, site, mail, MCP, atproto).
-  Public-visibility data only; no operator content.
+  visitors, agents, and peers, keeping the existing dashboard chrome
+  (masthead, tab bar, cards) with exactly three tabs: **Overview** (what
+  this is — identity and ownership, ways to connect, what it holds, its
+  skills), **Knowledge** (the knowledge map), and **Network** (the agent
+  proximity map). Public-visibility data only; no operator content.
 - Console strip: Dashboard / Chat / Studio — Dashboard being the only
   surface that also serves the logged-out world.
 
@@ -125,14 +126,15 @@ trusted or admin. The split resolves along the audience line:
   Glance-and-launch only: any affordance that changes something is a launch
   into the workspace that owns it.
 - **Dashboard = the card** (public): the brain presenting itself to people,
-  agents, and peer brains. Whose brain it is (grown from what the anchor
-  knows, and belongs to them), what it knows (the corpus-calibrated
-  knowledge map — `docs/rizom-knowledge-map-mockup.html` is the reference
-  visualization), what it can do (its skill entities, the map's moss marks),
-  and its network (the agent proximity map with honest agent data). Contact
-  doors — chat, site, mail, MCP, atproto — typed by audience. Public
-  visibility only; a signed-in operator gets a Studio door, not more data
-  here.
+  agents, and peer brains, in the dashboard's existing chrome with three
+  fixed tabs (decided 2026-08-20). **Overview** answers "what is this":
+  whose brain it is (grown from what the anchor knows, and belongs to
+  them), the contact doors — chat, site, mail, MCP, atproto — typed by
+  audience, what it holds, and its skill entities. **Knowledge** is the
+  corpus-calibrated knowledge map (`docs/rizom-knowledge-map-mockup.html`
+  is the reference visualization; skills are its moss marks). **Network**
+  is the agent proximity map with honest agent data. Public visibility
+  only; a signed-in operator gets a Studio door, not more data here.
 
 The design reference for both is
 [`../studio-consolidation-mockups.html`](../studio-consolidation-mockups.html),
@@ -279,16 +281,19 @@ surface is pure gating.
 ### Phase 8 — Dashboard becomes the card
 
 - Tests first: the dashboard route serves the card to anonymous callers;
-  every datum on it derives from public-visibility scope; the operator door
-  renders only for a session that passes the Studio gate.
-- Rebuild the dashboard page as the card per the mockup: identity and
-  ownership, contact doors, knowledge map, skills, proximity map, colophon
-  footer. The knowledge-map and proximity-map renderers move from their
-  mockups into the dashboard package as real components fed by entity,
-  topic, skill, and agent-directory data.
-- Retire the dashboard's widget-tab chrome for non-public content; the
-  public widget protocol remains for card sections so plugins can contribute
-  public data points.
+  every datum on it derives from public-visibility scope; the tab set is
+  exactly Overview/Knowledge/Network; the operator door renders only for a
+  session that passes the Studio gate.
+- Rebuild the dashboard page as the three-tab card per the mockup, keeping
+  the existing masthead/tabs/cards chrome: Overview with the what-is-this,
+  ways-to-connect, what-I-hold, and skills cards plus the colophon;
+  Knowledge with the knowledge map; Network with the proximity map. The
+  knowledge-map and proximity-map renderers move from their mockups into
+  the dashboard package as real components fed by entity, topic, skill, and
+  agent-directory data.
+- The widget-group tabs (knowledge/publishing/network/system) retire with
+  their operator content; the public widget protocol remains for Overview
+  cards so plugins can contribute public data points.
 
 ## Ordering rationale
 
