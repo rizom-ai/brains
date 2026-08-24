@@ -194,6 +194,20 @@ export { getErrorMessage } from "@brains/utils/error";
 // package that summarises conversations has to name what it read. Named
 // consumer: @brains/conversation-memory.
 export type { Conversation, Message } from "@brains/plugins";
+
+// Who said a thing, and the one way to key them. A summary attributes what
+// it records, and two records of the same person must land on the same key
+// or the summary lists them twice. Named consumer: @brains/conversation-memory.
+export {
+  actorRefFromLegacy,
+  actorRefKey,
+  actorRefSchema,
+} from "@brains/contracts";
+export type { ActorRef } from "@brains/contracts";
+
+// How far a piece of content may travel. Paired with contentVisibilitySchema
+// above, which validates it.
+export type { ContentVisibility } from "@brains/plugins";
 export { parseMarkdown } from "@brains/utils/markdown";
 
 export type {

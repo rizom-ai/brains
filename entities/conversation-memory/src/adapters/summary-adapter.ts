@@ -1,8 +1,4 @@
-import {
-  applyVisibilityToMarkdown,
-  BaseEntityAdapter,
-  extractVisibilityFromMarkdown,
-} from "@brains/plugins";
+import { BaseEntityAdapter } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import {
   summarySchema,
@@ -68,27 +64,22 @@ export class SummaryAdapter extends BaseEntityAdapter<
     };
   }
 
+  // Visibility is the system frontmatter envelope, and `EntitySerializer`
+  // wraps every adapter's markdown with it on the way out and reads it back
+  // on the way in — discarding whatever an adapter returned. Doing it here
+  // too applied it twice and had its result thrown away.
   public override toMarkdown(entity: SummaryEntity): string {
     const { entries } = this.parseBody(entity.content);
-    // Visibility is the system frontmatter envelope, not summary metadata —
-    // ride the shared injector rather than claiming the key in domain space.
-    return applyVisibilityToMarkdown(
-      this.buildMarkdown(this.createContentBody(entries), {
-        ...entity.metadata,
-      }),
-      entity.visibility,
-    );
+    return this.buildMarkdown(this.createContentBody(entries), {
+      ...entity.metadata,
+    });
   }
 
   public fromMarkdown(markdown: string): Partial<SummaryEntity> {
-    const metadata = this.parseFrontMatter(markdown, summaryMetadataSchema);
-    const visibility = extractVisibilityFromMarkdown(markdown);
-
     return {
       entityType: SUMMARY_ENTITY_TYPE,
       content: markdown,
-      ...(visibility ? { visibility } : {}),
-      metadata,
+      metadata: this.parseFrontMatter(markdown, summaryMetadataSchema),
     };
   }
 
