@@ -23,7 +23,8 @@ import {
 import { summaryListTemplate } from "./templates/summary-list";
 import { summaryDetailTemplate } from "./templates/summary-detail";
 import { summaryAiResponseTemplate } from "./templates/summary-ai-response";
-import { SummaryDataSource } from "./datasources/summary-datasource";
+import { summaryDataSource } from "./datasources/summary-datasource";
+import { createDeclarativeEntityDataSource } from "@brains/plugins";
 import { registerActionItemsWidget } from "./lib/widgets/action-items";
 import { registerDecisionsWidget } from "./lib/widgets/decisions";
 import { registerRecentConversationMemoryWidget } from "./lib/widgets/recent-memory-register";
@@ -33,6 +34,7 @@ import { registerSummaryEvalHandlers } from "./lib/eval-handlers";
 import {
   ACTION_ITEM_ENTITY_TYPE,
   DECISION_ENTITY_TYPE,
+  SUMMARY_DATASOURCE_ID,
   SUMMARY_ENTITY_TYPE,
   SUMMARY_PLUGIN_ID,
 } from "./lib/constants";
@@ -78,7 +80,13 @@ export class ConversationMemoryPlugin extends EntityPlugin<
   }
 
   protected override getDataSources(): DataSource[] {
-    return [new SummaryDataSource(this.logger.child("SummaryDataSource"))];
+    return [
+      createDeclarativeEntityDataSource(
+        summaryDataSource,
+        SUMMARY_DATASOURCE_ID,
+        this.logger.child("SummaryDataSource"),
+      ),
+    ];
   }
 
   protected override getEntityTypeConfig(): EntityTypeConfig {

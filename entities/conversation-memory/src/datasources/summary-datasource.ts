@@ -1,106 +1,65 @@
-import type {
-  BaseDataSourceContext,
-  DataSource,
-  DataSourceSchema,
-} from "@brains/plugins";
-import type { Logger } from "@brains/utils/logger";
-import { z } from "@brains/utils/zod";
-import { SummaryAdapter } from "../adapters/summary-adapter";
-import type { SummaryEntity } from "../schemas/summary";
-import type { SummaryListData } from "../templates/summary-list/schema";
+import {
+  defineEntityDataSource,
+  type AnyEntityDataSourceDefinition,
+} from "@brains/sdk/entities";
+import { parseSummaryBody } from "../lib/summary-body";
+import type { SummaryEntity, SummaryEntry } from "../schemas/summary";
 import type { SummaryDetailData } from "../templates/summary-detail/schema";
 import { SUMMARY_DATASOURCE_ID, SUMMARY_ENTITY_TYPE } from "../lib/constants";
 
-interface SummaryDataSourceQuery {
-  id?: string | undefined;
-  conversationId?: string | undefined;
-  limit?: number | undefined;
+interface TransformedSummary {
+  id: string;
+  conversationId: string;
+  channelName: string;
+  entries: SummaryEntry[];
+  entryCount: number;
+  messageCount: number;
+  latestEntry: string;
+  updated: string;
+  created: string;
 }
 
-interface EntityFetchQuery {
-  entityType: typeof SUMMARY_ENTITY_TYPE;
-  query?: SummaryDataSourceQuery | undefined;
-}
-
-const summaryDataSourceQuerySchema: z.ZodType<SummaryDataSourceQuery> =
-  z.object({
-    id: z.string().optional(),
-    conversationId: z.string().optional(),
-    limit: z.number().optional(),
-  });
-
-const entityFetchQuerySchema: z.ZodType<EntityFetchQuery> = z.object({
-  entityType: z.literal(SUMMARY_ENTITY_TYPE),
-  query: summaryDataSourceQuerySchema.optional(),
-});
-
-export class SummaryDataSource implements DataSource {
-  private readonly logger: Logger;
-  public readonly id: typeof SUMMARY_DATASOURCE_ID = SUMMARY_DATASOURCE_ID;
-  public readonly name: string = "Summary Entity DataSource";
-  public readonly description: string =
-    "Fetches and transforms summary entities for rendering";
-
-  private readonly adapter: SummaryAdapter = new SummaryAdapter();
-
-  constructor(logger: Logger) {
-    this.logger = logger;
-    this.logger.debug("SummaryDataSource initialized");
-  }
-
-  async fetch<T>(
-    query: unknown,
-    outputSchema: DataSourceSchema<T>,
-    context: BaseDataSourceContext,
-  ): Promise<T> {
-    const params: EntityFetchQuery = entityFetchQuerySchema.parse(query);
-    const entityService = context.entityService;
-    const queryId = params.query?.conversationId ?? params.query?.id;
-
-    if (queryId) {
-      const entity = await entityService.getEntity<SummaryEntity>({
-        entityType: SUMMARY_ENTITY_TYPE,
-        id: queryId,
-      });
-      if (!entity) throw new Error(`Summary not found: ${queryId}`);
-
-      const { entries } = this.adapter.parseBody(entity.content);
-      const detailData: SummaryDetailData = {
+/**
+ * Summaries for rendering: the list a reader scans, and the detail they open.
+ *
+ * Both shapes need the entries parsed out of the body, so the transform does
+ * it once per entity rather than each view doing it again.
+ */
+export const summaryDataSource: AnyEntityDataSourceDefinition =
+  defineEntityDataSource({
+    id: SUMMARY_DATASOURCE_ID,
+    name: "Summary Entity DataSource",
+    description: "Fetches and transforms summary entities for rendering",
+    entityType: SUMMARY_ENTITY_TYPE,
+    defaultSort: [{ field: "updated", direction: "desc" }],
+    defaultLimit: 100,
+    transform: (entity: SummaryEntity): TransformedSummary => {
+      const { entries } = parseSummaryBody(entity.content);
+      return {
+        id: entity.id,
         conversationId: entity.metadata.conversationId,
         channelName: entity.metadata.channelName ?? entity.metadata.channelId,
         entries,
+        entryCount: entries.length,
         messageCount: entity.metadata.messageCount,
-        entryCount: entries.length,
+        latestEntry: entries[entries.length - 1]?.title ?? "No entries",
         updated: entity.updated,
+        created: entity.created,
       };
-      return outputSchema.parse(detailData);
-    }
-
-    const entities = await entityService.listEntities<SummaryEntity>({
-      entityType: SUMMARY_ENTITY_TYPE,
-      options: { limit: params.query?.limit ?? 100 },
-    });
-
-    const summaries = entities.map((summary) => {
-      const { entries } = this.adapter.parseBody(summary.content);
-      const latestEntry = entries[entries.length - 1];
-      return {
-        id: summary.id,
-        conversationId: summary.metadata.conversationId,
-        channelName: summary.metadata.channelName ?? summary.metadata.channelId,
-        entryCount: entries.length,
-        messageCount: summary.metadata.messageCount,
-        latestEntry: latestEntry?.title ?? "No entries",
-        updated: summary.updated,
-        created: summary.created,
-      };
-    });
-
-    const listData: SummaryListData = {
-      summaries,
-      totalCount: summaries.length,
-    };
-
-    return outputSchema.parse(listData);
-  }
-}
+    },
+    // Return type inferred: the runtime needs a plain JSON object, and
+    // `SummaryListData` is an interface without an index signature.
+    // `summaryListSchema` is what checks the shape at render time.
+    list: (items: TransformedSummary[]) => ({
+      summaries: items.map(({ entries: _entries, ...rest }) => rest),
+      totalCount: items.length,
+    }),
+    detail: ({ item }): SummaryDetailData => ({
+      conversationId: item.conversationId,
+      channelName: item.channelName,
+      entries: item.entries,
+      messageCount: item.messageCount,
+      entryCount: item.entryCount,
+      updated: item.updated,
+    }),
+  });

@@ -253,3 +253,47 @@ export const actionItemSchema: ReturnType<
 export type ActionItemEntity = z.output<typeof actionItemSchema>;
 
 export type ConversationMemoryEntity = DecisionEntity | ActionItemEntity;
+
+/**
+ * Bring a stored decision's metadata up to the current actor shape.
+ *
+ * Actor references were once a bare `actorId` string; they are now
+ * structured, so two records of the same person key identically. Declared as
+ * the entity's `metadataFrom` rather than woven into the schema, so the
+ * schema stays an object shape.
+ */
+export function migrateDecisionMetadata(stored: unknown): unknown {
+  return migrateActorFields(stored, { decidedBy: true, mentionedBy: true });
+}
+
+/** As above, for an action item's assignees and requesters. */
+export function migrateActionItemMetadata(stored: unknown): unknown {
+  // An assignee may be a display name with nobody behind it — someone named
+  // in a conversation who is not a user of the brain.
+  return migrateActorFields(stored, { assignedTo: false, requestedBy: true });
+}
+
+function migrateActorFields(
+  stored: unknown,
+  fields: Record<string, boolean>,
+): unknown {
+  if (!isRecord(stored)) return stored;
+  const migrated = Object.entries(fields).flatMap(
+    ([field, identityRequired]) => {
+      const value = stored[field];
+      return Array.isArray(value)
+        ? ([
+            [
+              field,
+              value.map((entry) =>
+                normalizeLegacyMemoryActorReference(entry, identityRequired),
+              ),
+            ],
+          ] as const)
+        : [];
+    },
+  );
+  return migrated.length === 0
+    ? stored
+    : { ...stored, ...Object.fromEntries(migrated) };
+}
