@@ -100,6 +100,10 @@ describe.skipIf(!LINUX)("checkout operation executor", () => {
     const checkpoint = await executor.execute({ name: "get-checkpoint" });
     expect(checkpoint.branch).toBe("main");
     expect(checkpoint.lastReconciledGitHead).toHaveLength(40);
+    expect(await executor.execute({ name: "commit-and-push" })).toEqual({
+      pushed: false,
+      checkpoint,
+    });
 
     const delta = await executor.execute({
       name: "get-reconciliation-delta",

@@ -7,7 +7,7 @@ import {
   emptyFrontmatterSchema,
 } from "@brains/plugins/test";
 import type { BaseEntity } from "@brains/plugins/test";
-import { createTestEntity } from "@brains/test-utils";
+import { createTestEntity, waitUntil } from "@brains/test-utils";
 import { join } from "path";
 import { tmpdir } from "os";
 import { existsSync, rmSync, writeFileSync, mkdtempSync } from "fs";
@@ -60,6 +60,7 @@ describe("auto-export without autoSync", () => {
       syncPath,
       autoSync: false,
       initialSync: false,
+      commitDebounce: 100,
     });
 
     await harness.installPlugin(plugin);
@@ -80,6 +81,7 @@ describe("auto-export without autoSync", () => {
       id: "test-note",
       content: "---\n---\nHello world",
     });
+    await harness.getEntityService().upsertEntity({ entity });
 
     await harness.sendMessage(
       "entity:created",
@@ -88,7 +90,7 @@ describe("auto-export without autoSync", () => {
     );
 
     const filePath = join(syncPath, "test-note.md");
-    expect(existsSync(filePath)).toBe(true);
+    await waitUntil(() => existsSync(filePath), "the durable create export");
   });
 
   it("should export entity to disk when entity:updated fires", async () => {
@@ -96,19 +98,7 @@ describe("auto-export without autoSync", () => {
       id: "updated-note",
       content: "---\n---\nUpdated content",
     });
-
-    // For entity:updated, the subscriber fetches from DB
-    const entityService = harness.getEntityService();
-    const origGetEntity = entityService.getEntity.bind(entityService);
-    entityService.getEntity = async <T extends BaseEntity>(request: {
-      entityType: string;
-      id: string;
-    }): Promise<T | null> => {
-      if (request.entityType === "note" && request.id === "updated-note") {
-        return entity as T;
-      }
-      return origGetEntity(request);
-    };
+    await harness.getEntityService().upsertEntity({ entity });
 
     await harness.sendMessage(
       "entity:updated",
@@ -117,7 +107,7 @@ describe("auto-export without autoSync", () => {
     );
 
     const filePath = join(syncPath, "updated-note.md");
-    expect(existsSync(filePath)).toBe(true);
+    await waitUntil(() => existsSync(filePath), "the durable update export");
   });
 
   it("resolves the replacement path after reconfiguration", async () => {
@@ -129,6 +119,7 @@ describe("auto-export without autoSync", () => {
       id: "replacement-note",
       content: "---\n---\nReplacement content",
     });
+    await harness.getEntityService().upsertEntity({ entity });
 
     await harness.sendMessage(
       "entity:created",
@@ -136,15 +127,26 @@ describe("auto-export without autoSync", () => {
       "test",
     );
 
-    expect(existsSync(join(replacementPath, "replacement-note.md"))).toBe(true);
+    await waitUntil(
+      () => existsSync(join(replacementPath ?? "", "replacement-note.md")),
+      "the replacement-path durable export",
+    );
     expect(existsSync(join(syncPath, "replacement-note.md"))).toBe(false);
   });
 
   it("should delete entity file when entity:deleted fires", async () => {
-    // Create the file first
     const filePath = join(syncPath, "doomed-note.md");
     writeFileSync(filePath, "---\n---\nAbout to be deleted");
     expect(existsSync(filePath)).toBe(true);
+    const entity = createTestEntity("note", {
+      id: "doomed-note",
+      content: "---\n---\nAbout to be deleted",
+    });
+    await harness.getEntityService().upsertEntity({ entity });
+    await harness.getEntityService().deleteEntity({
+      entityType: "note",
+      id: entity.id,
+    });
 
     await harness.sendMessage(
       "entity:deleted",
@@ -152,6 +154,6 @@ describe("auto-export without autoSync", () => {
       "test",
     );
 
-    expect(existsSync(filePath)).toBe(false);
+    await waitUntil(() => !existsSync(filePath), "the durable delete export");
   });
 });

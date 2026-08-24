@@ -4,7 +4,7 @@ import type {
   ServicePluginContext,
   Tool,
 } from "@brains/plugins";
-import { ServicePlugin } from "@brains/plugins";
+import { SerialQueue, ServicePlugin } from "@brains/plugins";
 import { DirectorySync } from "./lib/directory-sync";
 import { connectGitSync } from "./lib/broker/connect";
 import type { BrokerGitSync } from "./lib/broker/git-sync-client";
@@ -31,8 +31,8 @@ import { registerDirectorySyncJobHandlers } from "./lib/register-job-handlers";
 import { setupAutoSync, setupFileWatcher } from "./lib/auto-sync";
 import { setupInitialSync } from "./lib/initial-sync";
 import { validateSeedContentEntityTypes } from "./lib/file-discovery";
-import { setupGitAutoCommit } from "./lib/git-auto-commit";
 import { setupPeriodicGitSync } from "./lib/git-periodic-sync";
+import { drainDurableEntityExports } from "./lib/durable-entity-export";
 import { bootstrapContentRemoteFromSeed } from "./lib/content-remote-bootstrap";
 import { registerMessageHandlers } from "./lib/message-handlers";
 import { createDirectorySyncTools } from "./tools";
@@ -98,7 +98,7 @@ export class DirectorySyncPlugin extends ServicePlugin<
   };
   private watcherOwned = false;
   private gitBackgroundStarted = false;
-  private gitAutoCommitRegistered = false;
+  private readonly entityExportQueue = new SerialQueue();
   private readyState = false;
   private shutdownStarted = false;
   private configurationQueue: Promise<void> = Promise.resolve();
@@ -120,6 +120,104 @@ export class DirectorySyncPlugin extends ServicePlugin<
       throw new Error("GitSync service not initialized");
     }
     return this.gitSync;
+  }
+
+  private async drainEntityExports(): Promise<void> {
+    await this.entityExportQueue.run(() => this.drainEntityExportBatch(100));
+  }
+
+  private async drainEntityExportBatch(
+    remainingBatches: number,
+  ): Promise<void> {
+    const directorySync = this.requireDirectorySync();
+    const entityService = this.getContext().entityService;
+    const baseDeps = {
+      listPendingEntityExports: (): ReturnType<
+        typeof entityService.listPendingEntityExports
+      > => entityService.listPendingEntityExports(),
+      getEntity: entityService.getEntity.bind(entityService),
+      writeEntity: async (
+        entity: Parameters<typeof directorySync.fileOps.writeEntity>[0],
+      ): Promise<void> => {
+        directorySync.suppressWatchPaths(
+          directorySync.fileOps.getEntityConvergencePaths(entity),
+        );
+        await directorySync.fileOps.writeEntity(entity);
+      },
+      deleteEntityFile: async (
+        entityType: string,
+        entityId: string,
+      ): Promise<void> => {
+        directorySync.suppressWatchPaths(
+          directorySync.fileOps.getEntityDeletePaths(entityType, entityId),
+        );
+        await directorySync.fileOps.deleteEntityFiles(entityType, entityId);
+      },
+      isPendingRemoteDelete: (entityType: string, entityId: string): boolean =>
+        directorySync.isPendingDelete(entityType, entityId),
+      acknowledgeEntityExports:
+        entityService.acknowledgeEntityExports.bind(entityService),
+    };
+    const result = this.gitSync
+      ? await drainDurableEntityExports({
+          ...baseDeps,
+          commitAndPush: () => this.requireGitSync().commitAndPush(),
+          saveCheckpoint: (checkpoint) =>
+            this.requireGitReconciliation().saveCheckpoint(checkpoint),
+        })
+      : await drainDurableEntityExports(baseDeps);
+    if (!(await entityService.hasPendingEntityExports())) {
+      await this.operationStatus?.clearIssues(["export", "git"]);
+      return;
+    }
+    if (result.processed === 0) {
+      throw new Error("Durable entity exports could not make progress");
+    }
+    if (remainingBatches <= 1) {
+      throw new Error("Durable entity exports did not settle");
+    }
+    await this.drainEntityExportBatch(remainingBatches - 1);
+  }
+
+  private scheduleEntityExportDrain(): void {
+    this.runtime.scheduleTrailing(
+      "durable-entity-export",
+      this.config.commitDebounce,
+      async () => {
+        try {
+          await this.drainEntityExports();
+        } catch (error) {
+          await this.recordEntityExportFailure(error);
+          this.scheduleEntityExportDrain();
+        }
+      },
+    );
+  }
+
+  private async drainEntityExportsWithoutBlockingBoot(
+    operation: () => Promise<void>,
+  ): Promise<void> {
+    try {
+      await operation();
+    } catch (error) {
+      await this.recordEntityExportFailure(error);
+      this.scheduleEntityExportDrain();
+    }
+  }
+
+  private async recordEntityExportFailure(error: unknown): Promise<void> {
+    const message = getErrorMessage(error, "Entity export failed");
+    this.logger.error("Durable entity export failed", { error });
+    try {
+      await this.operationStatus?.recordIssue({
+        kind: "export",
+        message,
+      });
+    } catch (statusError) {
+      this.logger.error("Failed to record durable entity export issue", {
+        error: statusError,
+      });
+    }
   }
 
   private requireOperationStatus(): DirectorySyncOperationStatusService {
@@ -217,7 +315,7 @@ export class DirectorySyncPlugin extends ServicePlugin<
     if (!context.executionOnly) {
       setupAutoSync(
         context,
-        () => this.requireDirectorySync(),
+        () => this.scheduleEntityExportDrain(),
         this.logger,
         this.config.entityTypes,
         this.operationStatus,
@@ -385,6 +483,9 @@ export class DirectorySyncPlugin extends ServicePlugin<
         context.entityService,
       );
     }
+    await this.drainEntityExportsWithoutBlockingBoot(() =>
+      this.drainEntityExports(),
+    );
     await this.startBackgroundWork();
     this.readyState = true;
     this.cmsWorkspaceUrl = await this.workspaceProvider?.registerCmsWorkspace();
@@ -509,7 +610,7 @@ export class DirectorySyncPlugin extends ServicePlugin<
     context: ServicePluginContext,
     syncPath: string,
   ): DirectorySync {
-    return new DirectorySync(
+    const directorySync = new DirectorySync(
       {
         syncPath,
         autoSync: this.config.autoSync,
@@ -523,6 +624,8 @@ export class DirectorySyncPlugin extends ServicePlugin<
       },
       this.pendingDeletes,
     );
+    directorySync.setCleanupAdmission(() => this.drainEntityExports());
+    return directorySync;
   }
 
   private isGitConfigured(): boolean {
@@ -649,19 +752,6 @@ export class DirectorySyncPlugin extends ServicePlugin<
     if (!gitSync || this.gitBackgroundStarted) return;
 
     const context = this.getContext();
-    if (!this.gitAutoCommitRegistered) {
-      setupGitAutoCommit(
-        context.messaging,
-        () => this.requireGitSync(),
-        this.config.commitDebounce,
-        this.logger.child("GitAutoCommit"),
-        this.runtimeScheduler,
-        this.requireGitReconciliation(),
-        this.operationStatus,
-      );
-      this.gitAutoCommitRegistered = true;
-    }
-
     if (this.config.autoSync) {
       setupPeriodicGitSync(
         gitSync,

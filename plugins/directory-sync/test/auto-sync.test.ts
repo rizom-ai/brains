@@ -4,7 +4,7 @@ import { baseEntitySchema, createPluginHarness } from "@brains/plugins/test";
 import { rmSync, existsSync, readFileSync, unlinkSync, mkdtempSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
-import { createTestEntity } from "@brains/test-utils";
+import { createTestEntity, waitUntil } from "@brains/test-utils";
 import type { DirectorySync } from "../src/lib/directory-sync";
 import type { BaseEntity } from "@brains/plugins";
 import { MockEntityAdapter } from "./fixtures";
@@ -172,6 +172,7 @@ describe("Export echo suppression", () => {
       syncPath: testDir,
       autoSync: true,
       initialSync: false,
+      commitDebounce: 100,
     });
     await harness.installPlugin(plugin);
   });
@@ -202,13 +203,14 @@ describe("Export echo suppression", () => {
       id: "echo-created",
       content: "---\n---\nEcho created",
     });
+    await harness.getEntityService().upsertEntity({ entity });
     await harness.sendMessage(
       "entity:created",
       { entity, entityType: "note", entityId: "echo-created" },
       "test",
     );
 
-    expect(existsSync(filePath)).toBe(true);
+    await waitUntil(() => existsSync(filePath), "the durable create export");
     expect(suppress).toHaveBeenCalledWith([filePath]);
   });
 
@@ -229,6 +231,7 @@ describe("Export echo suppression", () => {
       }
       return origGetEntity(request);
     };
+    await entityService.upsertEntity({ entity });
     const filePath = join(testDir, "echo-updated.md");
     const suppress = spyOn(dirSync, "suppressWatchPaths").mockImplementation(
       () => {
@@ -242,7 +245,7 @@ describe("Export echo suppression", () => {
       "test",
     );
 
-    expect(existsSync(filePath)).toBe(true);
+    await waitUntil(() => existsSync(filePath), "the durable update export");
     expect(suppress).toHaveBeenCalledWith([filePath]);
   });
 
@@ -261,13 +264,18 @@ describe("Export echo suppression", () => {
         expect(existsSync(filePath)).toBe(true);
       },
     );
+    await harness.getEntityService().upsertEntity({ entity });
+    await harness.getEntityService().deleteEntity({
+      entityType: entity.entityType,
+      id: entity.id,
+    });
     await harness.sendMessage(
       "entity:deleted",
       { entityId: "echo-deleted", entityType: "note" },
       "test",
     );
 
-    expect(existsSync(filePath)).toBe(false);
+    await waitUntil(() => !existsSync(filePath), "the durable delete export");
     expect(suppress).toHaveBeenCalledWith([filePath]);
   });
 
@@ -321,6 +329,7 @@ describe("Export echo suppression", () => {
       id: "unrelated",
       content: "---\n---\nConcurrent local edit",
     });
+    await harness.getEntityService().upsertEntity({ entity });
 
     await harness.sendMessage(
       "entity:created",
@@ -328,7 +337,10 @@ describe("Export echo suppression", () => {
       "test",
     );
 
-    expect(existsSync(join(testDir, "unrelated.md"))).toBe(true);
+    await waitUntil(
+      () => existsSync(join(testDir, "unrelated.md")),
+      "the unrelated durable export",
+    );
   });
 
   it("returns pdf and sidecar paths for document write paths", () => {

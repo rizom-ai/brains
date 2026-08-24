@@ -111,6 +111,136 @@ describe("EntityService", (): void => {
     await cleanup();
   });
 
+  test("keeps a durable export intent when lifecycle publication is lost", async () => {
+    entityRegistry.registerEntityType(
+      "note",
+      noteSchema,
+      new NoteSerializerAdapter(),
+    );
+    sendEvent.mockImplementation(async () => {
+      throw new Error("simulated process loss before export subscriber");
+    });
+    const entity = createNote({
+      id: "durable-export",
+      content: "Must reach Git",
+    });
+
+    expect(await entityService.createEntity({ entity })).toEqual(
+      expect.objectContaining({ entityId: entity.id }),
+    );
+
+    const client = createClient({ url: entityDbUrl });
+    const persisted = await client.execute({
+      sql: "SELECT id FROM entities WHERE entityType = ? AND id = ?",
+      args: ["note", entity.id],
+    });
+    client.close();
+    expect(persisted.rows).toHaveLength(1);
+    expect(await entityService.listPendingEntityExports()).toEqual([
+      {
+        entityType: "note",
+        entityId: entity.id,
+        operation: "upsert",
+        revision: expect.any(String),
+        markedAt: expect.any(Number),
+      },
+    ]);
+  });
+
+  test("keeps only the latest revision across update and delete mutations", async () => {
+    entityRegistry.registerEntityType(
+      "note",
+      noteSchema,
+      new NoteSerializerAdapter(),
+    );
+    const created = createNote({
+      id: "durable-export-revisions",
+      content: "First revision",
+    });
+    await entityService.createEntity({ entity: created });
+    const first = (await entityService.listPendingEntityExports())[0];
+    if (!first) throw new Error("Missing create export intent");
+
+    await entityService.updateEntity({
+      entity: { ...created, content: "Second revision" },
+    });
+    const second = (await entityService.listPendingEntityExports())[0];
+    if (!second) throw new Error("Missing update export intent");
+    expect(second.operation).toBe("upsert");
+    expect(second.revision).not.toBe(first.revision);
+    expect(
+      await entityService.acknowledgeEntityExports({ intents: [first] }),
+    ).toBe(0);
+
+    await entityService.deleteEntity({
+      entityType: created.entityType,
+      id: created.id,
+    });
+    const deletion = (await entityService.listPendingEntityExports())[0];
+    if (!deletion) throw new Error("Missing delete export intent");
+    expect(deletion.operation).toBe("delete");
+    expect(deletion.revision).not.toBe(second.revision);
+    expect(
+      await entityService.acknowledgeEntityExports({ intents: [second] }),
+    ).toBe(0);
+    expect(await entityService.listPendingEntityExports()).toEqual([deletion]);
+  });
+
+  test("directory-originated mutations clear outbound export intent", async () => {
+    entityRegistry.registerEntityType(
+      "note",
+      noteSchema,
+      new NoteSerializerAdapter(),
+    );
+    const entity = createNote({
+      id: "directory-authoritative",
+      content: "Imported revision",
+    });
+    await entityService.createEntity({
+      entity,
+      options: { persistenceOrigin: "directory-sync" },
+    });
+    expect(await entityService.listPendingEntityExports()).toEqual([]);
+
+    const localEdit = { ...entity, content: "Local revision" };
+    await entityService.updateEntity({ entity: localEdit });
+    expect(await entityService.hasPendingEntityExports()).toBe(true);
+
+    await entityService.deleteEntity({
+      entityType: entity.entityType,
+      id: entity.id,
+      options: { persistenceOrigin: "directory-sync" },
+    });
+    expect(await entityService.listPendingEntityExports()).toEqual([]);
+  });
+
+  test("rolls back entity persistence when durable export journaling fails", async () => {
+    entityRegistry.registerEntityType(
+      "note",
+      noteSchema,
+      new NoteSerializerAdapter(),
+    );
+    await entityService.initialize();
+    const client = createClient({ url: entityDbUrl });
+    await client.execute("DROP TABLE entity_export_intents");
+    client.close();
+    const entity = createNote({
+      id: "durable-export-rollback",
+      content: "Rollback",
+    });
+
+    let rejected = false;
+    try {
+      await entityService.createEntity({ entity });
+    } catch {
+      rejected = true;
+    }
+    expect(rejected).toBe(true);
+    expect(
+      await entityService.getEntity({ entityType: "note", id: entity.id }),
+    ).toBeNull();
+  });
+
   test("reconciles projection output embeddings after atomic writes", async () => {
     entityRegistry.registerEntityType(
       "note",

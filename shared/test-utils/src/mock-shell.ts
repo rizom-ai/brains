@@ -60,9 +60,11 @@ import {
   type UploadSaveHandlerRegistration,
   type CreateEntityRequest,
   type UpdateEntityRequest,
+  type UpsertEntityRequest,
   type GetEntityRequest,
   type ListEntitiesRequest,
   type EntityMutationResult,
+  type EntityExportIntent,
 } from "@brains/entity-service";
 import { computeContentHash } from "@brains/utils/hash";
 import type { IJobQueueService, IJobsNamespace } from "@brains/job-queue";
@@ -250,6 +252,30 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
 
   // Stateful backing stores
   const entities = new Map<string, BaseEntity>();
+  const entityExportIntents = new Map<string, EntityExportIntent>();
+  let entityExportRevision = 0;
+  const exportKey = (entityType: string, entityId: string): string =>
+    `${entityType}\u0000${entityId}`;
+  const updateEntityExportIntent = (
+    entityType: string,
+    entityId: string,
+    operation: "upsert" | "delete",
+    persistenceOrigin?: "ordinary" | "directory-sync",
+  ): void => {
+    const key = exportKey(entityType, entityId);
+    if (persistenceOrigin === "directory-sync") {
+      entityExportIntents.delete(key);
+      return;
+    }
+    entityExportRevision += 1;
+    entityExportIntents.set(key, {
+      entityType,
+      entityId,
+      operation,
+      revision: `mock-export-${entityExportRevision}`,
+      markedAt: entityExportRevision,
+    });
+  };
   const entityTypes = new Set<string>();
   const entityAdapters = new Map<string, EntityAdapter<BaseEntity>>();
   const entityTypeConfigs = new Map<
@@ -401,6 +427,12 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
         metadata,
         contentHash: computeContentHash(content),
       });
+      updateEntityExportIntent(
+        entity.entityType,
+        id,
+        "upsert",
+        request.options?.persistenceOrigin,
+      );
       return { entityId: id, jobId: `job-${id}`, skipped: false };
     },
     createEntityFromMarkdown: async (request: {
@@ -454,6 +486,12 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
         existing.visibility === entity.visibility &&
         JSON.stringify(existing.metadata) === JSON.stringify(metadata)
       ) {
+        updateEntityExportIntent(
+          entity.entityType,
+          entity.id,
+          "upsert",
+          request.options?.persistenceOrigin,
+        );
         return { entityId: entity.id, jobId: "", skipped: true };
       }
       entities.set(entity.id, {
@@ -462,13 +500,26 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
         metadata,
         contentHash,
       });
+      updateEntityExportIntent(
+        entity.entityType,
+        entity.id,
+        "upsert",
+        request.options?.persistenceOrigin,
+      );
       return { entityId: entity.id, jobId: `job-${entity.id}`, skipped: false };
     },
     deleteEntity: async (request: {
       entityType: string;
       id: string;
+      options?: { persistenceOrigin?: "ordinary" | "directory-sync" };
     }): Promise<boolean> => {
       entities.delete(request.id);
+      updateEntityExportIntent(
+        request.entityType,
+        request.id,
+        "delete",
+        request.options?.persistenceOrigin,
+      );
       return true;
     },
     getEntity: async <T extends BaseEntity>(request: {
@@ -516,9 +567,9 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
     deserializeEntity: (markdown: string) =>
       ({ content: markdown }) as BaseEntity,
     getAsyncJobStatus: async () => ({ status: "completed" as const }),
-    upsertEntity: async (request: {
-      entity: BaseEntity;
-    }): Promise<EntityMutationResult & { created: boolean }> => {
+    upsertEntity: async <T extends BaseEntity>(
+      request: UpsertEntityRequest<T>,
+    ): Promise<EntityMutationResult & { created: boolean }> => {
       const entity = request.entity;
       entityTypes.add(entity.entityType);
       const id = entity.id || `entity-${Date.now()}`;
@@ -532,6 +583,12 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
         visibility: entity.visibility,
         contentHash: computeContentHash(content),
       });
+      updateEntityExportIntent(
+        entity.entityType,
+        id,
+        "upsert",
+        request.options?.persistenceOrigin,
+      );
       return {
         entityId: id,
         jobId: `job-${id}`,
@@ -541,6 +598,22 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
     },
     getEntityTypeConfig,
     isProjectionOwnedEntity: async () => false,
+    listPendingEntityExports: async () =>
+      [...entityExportIntents.values()].sort(
+        (left, right) => left.markedAt - right.markedAt,
+      ),
+    hasPendingEntityExports: async () => entityExportIntents.size > 0,
+    acknowledgeEntityExports: async (request): Promise<number> => {
+      let acknowledged = 0;
+      for (const intent of request.intents) {
+        const key = exportKey(intent.entityType, intent.entityId);
+        if (entityExportIntents.get(key)?.revision !== intent.revision)
+          continue;
+        entityExportIntents.delete(key);
+        acknowledged += 1;
+      }
+      return acknowledged;
+    },
     getWeightMap: () => ({}),
     countEntities: async () => 0,
     getEntityCounts: async (

@@ -4,6 +4,7 @@ import { ProjectionBatchFencedError, ProjectionStore } from "../src";
 import { retrySqliteWrite } from "../src/projection-store";
 import { createEntityDatabase } from "../src/db";
 import { entities } from "../src/schema/entities";
+import { entityExportIntents } from "../src/schema/entity-export-state";
 import {
   projectionBatchChildren,
   projectionBatches,
@@ -1062,6 +1063,16 @@ describe("ProjectionStore", () => {
         id: "derived-skill",
       }),
     ).toBe(true);
+    const upsertExports = await connection.db
+      .select()
+      .from(entityExportIntents);
+    expect(upsertExports).toEqual([
+      expect.objectContaining({
+        entityType: "skill",
+        entityId: "derived-skill",
+        operation: "upsert",
+      }),
+    ]);
 
     await store.markDirty({
       sourceType: "document",
@@ -1099,6 +1110,17 @@ describe("ProjectionStore", () => {
         id: "derived-skill",
       }),
     ).toBe(false);
+    const deleteExports = await connection.db
+      .select()
+      .from(entityExportIntents);
+    expect(deleteExports).toEqual([
+      expect.objectContaining({
+        entityType: "skill",
+        entityId: "derived-skill",
+        operation: "delete",
+      }),
+    ]);
+    expect(deleteExports[0]?.revision).not.toBe(upsertExports[0]?.revision);
   });
 
   it("records ownership when a projection replay makes no entity change", async () => {

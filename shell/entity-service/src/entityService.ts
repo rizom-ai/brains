@@ -45,6 +45,8 @@ import type {
   ProjectionBatchRecoveryResult,
   ProjectionBatchRootReader,
   SettleDurableBulkMutationChildInput,
+  EntityExportIntent,
+  AcknowledgeEntityExportsRequest,
   EntityRegistry as IEntityRegistry,
 } from "./types";
 import { embeddings } from "./schema/embeddings";
@@ -59,6 +61,7 @@ import { EntitySerializer } from "./entity-serializer";
 import { EntityQueries } from "./entity-queries";
 import { EntityMutations } from "./entity-mutations";
 import { ProjectionStore } from "./projection-store";
+import { EntityExportStore } from "./entity-export-store";
 import { ContentResolver, shouldResolveContent } from "./lib/content-resolver";
 import { Cause, Effect, Exit } from "@brains/utils/effect";
 import { makeIndexReadinessPollingEffect } from "./index-readiness";
@@ -108,6 +111,7 @@ export class EntityService implements IEntityService {
   private entityQueries: EntityQueries;
   private entityMutations: EntityMutations;
   private readonly projectionStore: ProjectionStore;
+  private readonly entityExportStore: EntityExportStore;
   private contentResolver: ContentResolver;
   private embeddingHandlerRegistered = false;
   private indexReady = false;
@@ -157,6 +161,10 @@ export class EntityService implements IEntityService {
     this.db = db;
     this.dbClient = client;
     this.dbUrl = url;
+    this.entityExportStore = new EntityExportStore(
+      this.db,
+      options.projectionNow ?? Date.now,
+    );
     this.projectionStore = new ProjectionStore(
       this.db,
       options.mutationAdmission,
@@ -219,6 +227,7 @@ export class EntityService implements IEntityService {
           mutationAdmission: options.mutationAdmission,
         }),
         projectionStore: this.projectionStore,
+        entityExportStore: this.entityExportStore,
         projectionNow: options.projectionNow ?? Date.now,
         embeddingDb: this.embeddingDb,
         embeddingsEnabled,
@@ -338,6 +347,23 @@ export class EntityService implements IEntityService {
 
   public setProjectionWakeup(wakeup: () => Promise<void>): () => void {
     return this.entityMutations.setProjectionWakeup(wakeup);
+  }
+
+  public async listPendingEntityExports(): Promise<EntityExportIntent[]> {
+    await this.initialize();
+    return this.entityExportStore.list();
+  }
+
+  public async hasPendingEntityExports(): Promise<boolean> {
+    await this.initialize();
+    return this.entityExportStore.hasPending();
+  }
+
+  public async acknowledgeEntityExports(
+    request: AcknowledgeEntityExportsRequest,
+  ): Promise<number> {
+    await this.initialize();
+    return this.entityExportStore.acknowledge(request.intents);
   }
 
   public async runBulkMutation<TResult>(

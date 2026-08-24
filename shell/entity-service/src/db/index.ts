@@ -5,6 +5,7 @@ import {
   type SqliteDatabase,
 } from "@brains/db";
 import { entities } from "../schema/entities";
+import { entityExportIntents } from "../schema/entity-export-state";
 import {
   projectionDirtyInputs,
   projectionEntityOwners,
@@ -31,6 +32,7 @@ export function createEntityDatabase(config: EntityDbConfig): SqliteConnection {
     url: config.url,
     schema: {
       entities,
+      entityExportIntents,
       projectionDirtyInputs,
       projectionEntityOwners,
       projectionWaves,

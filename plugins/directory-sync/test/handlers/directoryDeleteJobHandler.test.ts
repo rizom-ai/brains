@@ -43,6 +43,7 @@ describe("DirectoryDeleteJobHandler", () => {
       expect(mockContext.entityService.deleteEntity).toHaveBeenCalledWith({
         entityType: "topic",
         id: "technology:ai",
+        options: { persistenceOrigin: "directory-sync" },
       });
       expect(result).toEqual({
         deleted: true,
@@ -127,6 +128,7 @@ describe("DirectoryDeleteJobHandler", () => {
       expect(mockContext.entityService.deleteEntity).toHaveBeenCalledWith({
         entityType: "topic",
         id: "technology:ai",
+        options: { persistenceOrigin: "directory-sync" },
       });
       expect(result).toEqual({
         deleted: false,

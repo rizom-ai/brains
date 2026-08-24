@@ -81,6 +81,7 @@ describe("entity:updated subscriber", () => {
       syncPath,
       autoSync: true, // Enable auto-sync to register entity:updated subscriber
       initialSync: false,
+      commitDebounce: 100,
     });
 
     await harness.installPlugin(plugin);
