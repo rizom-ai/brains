@@ -32,8 +32,7 @@ type ImageMetadataSchema = z.ZodObject<{
   width: z.ZodNumber;
   height: z.ZodNumber;
   status: z.ZodOptional<z.ZodType<ImageIngestionStatus>>;
-  processingJobId: z.ZodOptional<z.ZodString>;
-  processingError: z.ZodOptional<z.ZodString>;
+  error: z.ZodOptional<z.ZodString>;
   sourceUrl: z.ZodOptional<z.ZodType<string>>;
   sourceEntityType: z.ZodOptional<z.ZodString>;
   sourceEntityId: z.ZodOptional<z.ZodString>;
@@ -51,8 +50,10 @@ export const imageMetadataSchema: ImageMetadataSchema = z.object({
   width: z.number(),
   height: z.number(),
   status: imageIngestionStatusSchema.optional(),
-  processingJobId: z.string().optional(),
-  processingError: z.string().optional(),
+  // Named for what the runtime writes when a generation fails, not for the
+  // pending-ingestion helper this used to go through: a reason under any
+  // other key is stripped by this schema and the failure reads as blank.
+  error: z.string().optional(),
   sourceUrl: z.url().optional(),
   sourceEntityType: z.string().optional(),
   sourceEntityId: z.string().optional(),

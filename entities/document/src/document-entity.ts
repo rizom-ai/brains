@@ -8,6 +8,7 @@ import {
   type EntityDefinition,
   type EntityGenerationJobDeclaration,
   type EntityGenerationResult,
+  sourceAttachmentKey,
 } from "@brains/sdk/entities";
 import {
   countPdfPages,
@@ -17,7 +18,7 @@ import {
   type DocumentEntity,
 } from "@brains/document";
 import { documentLink } from "./lib/document-attachment";
-import { dedupKeyFor, documentIdFor } from "./lib/document-identity";
+import { documentIdFor } from "./lib/document-identity";
 
 const DEFAULT_MAX_BYTES = 25 * 1024 * 1024;
 const DEFAULT_MAX_PAGE_COUNT = 20;
@@ -230,7 +231,7 @@ async function routeFromAttachment(
     entityType: source.sourceEntityType,
     id: source.sourceEntityId,
   });
-  const dedupKey = dedupKeyFor({
+  const dedupKey = sourceAttachmentKey({
     ...source,
     ...(sourceEntity ? { sourceContentHash: sourceEntity.contentHash } : {}),
   });

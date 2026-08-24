@@ -31,7 +31,7 @@ import docPackage from "@brains/doc";
 import documentPackage from "@brains/document-plugin";
 import { EmailInterface } from "@brains/email";
 import { emailWorkflows } from "@brains/email-workflows";
-import { imagePlugin } from "@brains/image-plugin";
+import imagePackage from "@brains/image-plugin";
 import linkPackage from "@brains/link";
 import { MCPInterface } from "@brains/mcp";
 import { newsletter } from "@brains/newsletter";
@@ -146,7 +146,7 @@ export const canonicalBrain: BrainDefinition = defineBrain({
     packageCapability("prompt", "@brains/prompt", promptPackage),
     ["profile", profilePlugin, undefined],
     packageCapability("style-guide", "@brains/style-guide", styleGuidePackage),
-    ["image", imagePlugin, undefined],
+    packageCapability("image", "@brains/image-plugin", imagePackage),
     packageCapability("document", "@brains/document-plugin", documentPackage),
     packageCapability("note", "@brains/note", notePackage),
     packageCapability("link", "@brains/link", linkPackage),

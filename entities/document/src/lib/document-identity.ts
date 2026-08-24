@@ -5,26 +5,6 @@ const DOCUMENT_ID_MAX_LENGTH = 80;
 const DOCUMENT_ID_HASH_LENGTH = 10;
 
 /**
- * What identifies a document derived from another entity's attachment.
- *
- * The key covers the source's identity *and* its current content hash, so
- * editing the source renders a new document rather than handing back a stale
- * one. Theme and brand are deliberately out of scope — they do not change at
- * runtime.
- */
-export function dedupKeyFor(input: {
-  sourceEntityType: string;
-  sourceEntityId: string;
-  attachmentType: string;
-  sourceContentHash?: string | undefined;
-}): string {
-  const base = `${input.attachmentType}:${input.sourceEntityType}:${input.sourceEntityId}:resolved-attachment`;
-  return input.sourceContentHash === undefined
-    ? base
-    : `${base}:${input.sourceContentHash}`;
-}
-
-/**
  * The id a document lands on.
  *
  * Derived from the dedup key so a re-request resolves to the entity the
