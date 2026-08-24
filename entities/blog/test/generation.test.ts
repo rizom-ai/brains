@@ -9,6 +9,7 @@ import {
   createMockEntityPluginContext,
   createMockProgressReporter,
   createSilentLogger,
+  createTestEntityAccess,
   type MockEntityPluginContext,
 } from "@brains/test-utils";
 import {
@@ -47,26 +48,17 @@ describe("postGeneration", () => {
   }
 
   /**
-   * Entity access that refuses to write: a generation returns content, and
-   * the runtime is what persists it.
+   * A generation returns content and the runtime persists it, so writing its
+   * own entity is a defect this catches rather than a case it supports.
    */
   function entityAccess(): JobEntityAccess {
-    const service = context.entityService;
-    const refuseWrite = (): never => {
-      writes += 1;
-      throw new Error("postGeneration must not write the entity itself");
-    };
-    return {
-      listEntities: (request) => service.listEntities(request),
-      getEntity: (request) => service.getEntity(request),
-      getEntityTypes: () => service.getEntityTypes(),
-      search: (request) => service.search(request),
-      get: async () => null,
-      create: refuseWrite,
-      update: refuseWrite,
-      createPending: refuseWrite,
-      saveProcessed: refuseWrite,
-    };
+    return createTestEntityAccess({
+      entityService: context.entityService,
+      refuseWrites: "postGeneration must not write the entity itself",
+      onWrite: () => {
+        writes += 1;
+      },
+    });
   }
 
   async function generate(
