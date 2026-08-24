@@ -1,5 +1,9 @@
 import { describe, expect, it, beforeEach, afterEach } from "bun:test";
-import { createSilentLogger, createTestEntity } from "@brains/test-utils";
+import {
+  createSilentLogger,
+  createTestEntity,
+  createTestEntityAccess,
+} from "@brains/test-utils";
 import {
   createPluginHarness,
   expectTemplateDataSourcesResolve,
@@ -117,21 +121,7 @@ describe("portfolio package", () => {
   // cannot validate.
   it("refuses generation when no year can be found", async () => {
     const entityService = harness.getEntityService();
-    const entities: JobEntityAccess = {
-      listEntities: (request) => entityService.listEntities(request),
-      getEntity: (request) => entityService.getEntity(request),
-      getEntityTypes: () => entityService.getEntityTypes(),
-      search: (request) => entityService.search(request),
-      get: async () => null,
-      create: (entity) => entityService.createEntity({ entity }),
-      update: (entity) => entityService.updateEntity({ entity }),
-      createPending: async () => ({ entityId: "x", created: true }),
-      saveProcessed: async () => ({
-        entityId: "x",
-        jobId: "j",
-        skipped: false,
-      }),
-    };
+    const entities: JobEntityAccess = createTestEntityAccess({ entityService });
 
     const result = await projectGeneration.generate({
       input: { prompt: "Create a case study for my API Gateway project" },

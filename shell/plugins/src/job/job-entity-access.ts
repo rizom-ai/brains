@@ -7,6 +7,7 @@ import type {
   SearchOptions,
   SearchResult,
 } from "@brains/entity-service";
+import { findEntityByIdentifier } from "@brains/entity-service";
 import type { JobEntityAccess } from "./job-context-contract";
 import { parseDefinitionEntity } from "../entity/entity-schema";
 import {
@@ -44,6 +45,15 @@ export function createJobEntityAccess(
       entityType: string;
       id: string;
     }): Promise<T | null> => entityService.getEntity<T>(request),
+    find: async <T extends BaseEntity>(
+      entityType: string,
+      identifier: string,
+    ): Promise<T | null> =>
+      (await findEntityByIdentifier(
+        entityService,
+        entityType,
+        identifier,
+      )) as T | null,
     getEntityTypes: (): string[] => entityService.getEntityTypes(),
     get: async <TDefinition extends EntityDefinitionShape>(
       definition: TDefinition,

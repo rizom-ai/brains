@@ -28,6 +28,7 @@ export {
 // Progress reporter mocks
 export { createMockProgressReporter } from "./mock-progress-reporter";
 export { stubMethod } from "./stub-method";
+export { createTestEntityAccess } from "./entity-access";
 
 // Service plugin context mocks
 export {

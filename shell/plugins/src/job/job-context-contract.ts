@@ -43,6 +43,18 @@ export interface JobEntityAccess {
     entityType: string;
     id: string;
   }): Promise<T | null>;
+  /**
+   * The entity someone named, by id, slug, or title.
+   *
+   * "Put a cover image on the launch post" names the post the way a person
+   * would, and `getEntity` only answers to an id. Without this, a package
+   * that has to honour a human-supplied identifier reaches past this surface
+   * for a resolver — which is how `image` came to import one from the shell.
+   */
+  find<T extends BaseEntity>(
+    entityType: string,
+    identifier: string,
+  ): Promise<T | null>;
   getEntityTypes(): string[];
   search<T extends BaseEntity = BaseEntity>(request: {
     query: string;

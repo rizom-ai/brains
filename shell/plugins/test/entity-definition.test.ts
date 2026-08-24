@@ -1487,6 +1487,79 @@ describe("entity package definitions", () => {
     harness.reset();
   });
 
+  // "Put a cover image on the launch post" names the post the way a person
+  // would. `getEntity` only answers to an id, so a package that wants the
+  // entity someone named had to reach past this surface for a resolver —
+  // which is how `image` came to import one from the shell.
+  it("finds the entity someone named, by id or title", async () => {
+    const guide = defineEntity({
+      type: "guide",
+      purpose: "A guide that points at another entity.",
+      metadata: z.object({ title: z.string() }),
+      jobs: {
+        point: {
+          input: z.object({ at: z.string() }),
+          handle: async ({
+            input,
+            entities,
+          }: JobHandlerContext<{ at: string }>): Promise<{
+            found: string | null;
+          }> => {
+            const target = await entities.find("post", input.at);
+            return { found: target?.id ?? null };
+          },
+        },
+      },
+    });
+    const definition = defineEntityPackage({ id: "guides", entities: [guide] });
+    const plugin = createEntityPackagePlugins(
+      definition.entities,
+      definition.projections,
+      { name: "@fixture/guides", version: "0.1.0" },
+      (id) => `@fixture/guides:${id}`,
+    )[0];
+    if (!plugin) throw new Error("Guide entity plugin was not created");
+
+    const harness = createPluginHarness({
+      logger: createSilentLogger("entity-find-test"),
+    });
+    const handlers = new Map<string, JobHandler>();
+    const queue = harness.getMockShell().getJobQueueService();
+    stubMethod(queue, "registerHandler", (name, handler) => {
+      handlers.set(name, handler);
+    });
+    harness.getMockShell().getJobQueueService = (): typeof queue => queue;
+
+    await harness.installPlugin(plugin);
+    harness.addEntities([
+      {
+        id: "launch-post-2026",
+        entityType: "post",
+        content: "---\ntitle: The Launch\n---\nBody",
+        contentHash: "post-hash",
+        metadata: { title: "The Launch" },
+      },
+    ]);
+
+    const handler = handlers.get("@fixture/guides:guide:point");
+    if (!handler) throw new Error("Point job handler was not registered");
+    const run = (at: string): Promise<unknown> =>
+      handler.process(
+        { at },
+        "job-1",
+        createMockProgressReporter(),
+        new AbortController().signal,
+      );
+
+    expect(await run("launch-post-2026")).toEqual({
+      found: "launch-post-2026",
+    });
+    expect(await run("The Launch")).toEqual({ found: "launch-post-2026" });
+    expect(await run("nothing-by-that-name")).toEqual({ found: null });
+
+    harness.reset();
+  });
+
   // A cover image is one image, not a list of them: the target holds an id
   // in a field rather than an entry in a collection. Both are the same
   // write to the runtime and a different fact about the target, so the

@@ -4,6 +4,7 @@ import {
   createMockEntityPluginContext,
   createSilentLogger,
   createTestEntity,
+  createTestEntityAccess,
 } from "@brains/test-utils";
 import { seriesDescriptionJob } from "../src/handlers/seriesGenerationHandler";
 import type { Series } from "../src/schemas/series";
@@ -47,18 +48,9 @@ slug: systems-series
       input: { seriesId: "systems-series" },
       ai: context.ai,
       logger: createSilentLogger("test"),
-      entities: {
-        ...context.entityService,
-        get: async () => null,
-        createPending: async () => ({ entityId: "x", created: true }),
-        saveProcessed: async () => ({
-          entityId: "x",
-          jobId: "j",
-          skipped: false,
-        }),
-        create: async () => ({ entityId: "x", jobId: "j", skipped: false }),
-        update: async () => ({ entityId: "x", jobId: "j", skipped: false }),
-      },
+      entities: createTestEntityAccess({
+        entityService: context.entityService,
+      }),
       conversations: context.conversations,
       identity: context.identity,
       progress: { report: async (): Promise<void> => {} },
