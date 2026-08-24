@@ -13,11 +13,27 @@ import type { AnchorProfile } from "../contracts/identity";
 import type { EntityDefinitionShape, EntityOf } from "../entity/entity-shape";
 import type { ResolvedRuntimeUpload } from "../service/upload-registry";
 import type { PublishMediaData } from "@brains/contracts";
-/** What a job reads about the conversation it was started from. */
+import type { Conversation, Message } from "../contracts/conversations";
+/**
+ * What a job reads about the conversation it was started from.
+ *
+ * The conversation and its messages, and deliberately nothing else: a
+ * package that summarises a conversation needs to read it, but `list` and
+ * `search` on the full namespace would let it read every conversation in
+ * the brain rather than the one it was handed. Which is what
+ * `conversation-memory` had to reach for, having no narrower option.
+ */
 export interface EntityConversationReader {
-  get(
+  get(conversationId: string): Promise<Conversation | null>;
+  /**
+   * Messages in the order they were sent, newest last. `limit` caps how many
+   * are read at all, so a long conversation does not have to be loaded whole
+   * to summarise its tail.
+   */
+  getMessages(
     conversationId: string,
-  ): Promise<{ channelName?: string | undefined } | null>;
+    options?: { readonly limit?: number | undefined },
+  ): Promise<Message[]>;
 }
 
 /**
