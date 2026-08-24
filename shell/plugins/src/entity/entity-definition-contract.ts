@@ -130,6 +130,20 @@ export interface EntityDefinition<
   readonly type: TType;
   readonly purpose: string;
   readonly metadata: TMetadataSchema;
+  /**
+   * Normalise stored metadata before the schema sees it.
+   *
+   * Records written before a shape changed still have to parse, and the
+   * schema every read goes through is the only place that can migrate them.
+   * Declared separately rather than folded into `metadata` so the schema
+   * stays an object shape — which is what the adapter's frontmatter parsing
+   * and `EntityOf` are built on.
+   *
+   * Returns the input untouched when there is nothing to migrate. Named
+   * consumer: `@brains/conversation-memory`, whose actor references were
+   * once a bare id.
+   */
+  readonly metadataFrom?: ((stored: unknown) => unknown) | undefined;
   readonly markdown?: EntityMarkdownCodec<TMetadataSchema> | undefined;
   readonly config?: EntityDefinitionConfig | undefined;
   readonly seed?: EntitySeedDefinition<TMetadataSchema> | undefined;

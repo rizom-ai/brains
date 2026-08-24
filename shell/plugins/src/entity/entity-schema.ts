@@ -21,7 +21,11 @@ export function entitySchema(
   if (!schema) {
     schema = baseEntitySchema.extend({
       entityType: z.literal(definition.type),
-      metadata: definition.metadata,
+      // A declared migration runs before the schema, so a record written
+      // under an older shape parses rather than being rejected on read.
+      metadata: definition.metadataFrom
+        ? z.preprocess(definition.metadataFrom, definition.metadata)
+        : definition.metadata,
     });
     entitySchemaCache.set(definition, schema);
   }

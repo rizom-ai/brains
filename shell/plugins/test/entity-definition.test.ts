@@ -1490,6 +1490,51 @@ describe("entity package definitions", () => {
     harness.reset();
   });
 
+  // Records written before a shape changed still have to parse, and the one
+  // place that can migrate them is the schema every read goes through. A
+  // metadata schema that normalises what it is given was rejected by the
+  // slot's type — which left the migration in a hand-written adapter, and
+  // the adapter is what conversion removes.
+  it("accepts a metadata schema that migrates what it reads", () => {
+    const memory = defineEntity({
+      type: "memory",
+      purpose: "A thing recalled, attributed to whoever said it.",
+      metadata: z.object({ said_by: z.string() }),
+      metadataFrom: (stored) =>
+        typeof stored === "object" &&
+        stored !== null &&
+        "actorId" in stored &&
+        typeof (stored as { actorId: unknown }).actorId === "string"
+          ? { said_by: (stored as { actorId: string }).actorId }
+          : stored,
+    });
+    const definition = defineEntityPackage({
+      id: "memories",
+      entities: [memory],
+    });
+    const plugin = createEntityPackagePlugins(
+      definition.entities,
+      definition.projections,
+      { name: "@fixture/memories", version: "0.1.0" },
+      (id) => `@fixture/memories:${id}`,
+    )[0];
+    if (!plugin) throw new Error("Memory entity plugin was not created");
+
+    // The registered schema is what every write validates against, so this
+    // is where an old record either survives or is rejected.
+    const parsed = plugin.schema.parse({
+      id: "m-1",
+      entityType: "memory",
+      content: "We agreed on Tuesday.",
+      contentHash: "hash-1",
+      created: "2026-08-24T09:00:00.000Z",
+      updated: "2026-08-24T09:00:00.000Z",
+      metadata: { actorId: "alice" },
+    });
+
+    expect(parsed.metadata).toEqual({ said_by: "alice" });
+  });
+
   // Two packages ground the agent's next turn from what they hold, and both
   // did it by subscribing to a named channel, parsing the request, and
   // wrapping the answer in an envelope. None of that is theirs: the channel

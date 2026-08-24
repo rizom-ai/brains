@@ -13,6 +13,8 @@ import type { z } from "@brains/utils/zod";
 export interface EntityDefinitionShape {
   readonly type: string;
   readonly metadata: z.ZodObject<z.ZodRawShape>;
+  /** Migrates stored metadata into the shape above, when one is declared. */
+  readonly metadataFrom?: ((stored: unknown) => unknown) | undefined;
 }
 
 export type EntityVisibility = "public" | "shared" | "restricted";
