@@ -1,7 +1,7 @@
 {
   "name": "@brains/ai-service",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.319",
+  "version": "0.2.0-alpha.320",
   "description": "AI service for text/object generation and agent conversation orchestration",
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.84",

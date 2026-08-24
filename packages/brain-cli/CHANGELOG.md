@@ -1,5 +1,15 @@
 # @rizom/brain
 
+## 0.2.0-alpha.320
+
+### Patch Changes
+
+- [`657bec2`](https://github.com/rizom-ai/brains/commit/657bec2e521e5feb72b30d817a88939e3eb80372) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Advertise and support OAuth Client ID Metadata Documents for MCP clients, with exact redirect validation, cache-aware and SSRF-hardened document fetching, issuer-bound Dynamic Client Registration credentials, and `application_type` redirect constraints. Keep the deprecated Dynamic Client Registration endpoint available as a compatibility fallback.
+
+- [`0d67c84`](https://github.com/rizom-ai/brains/commit/0d67c840b9cf8276f9f460d825f8a8b6dded93f3) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Externalize the MCP server SDK from the bundled Brain runtime so stateless protocol negotiation and permission-scoped server factories share one SDK class identity.
+
+- [`81e8f76`](https://github.com/rizom-ai/brains/commit/81e8f767a67e1efcdb585b3929635b35c6519214) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Adopt the MCP TypeScript SDK v2 packages, serve stateless 2026-07-28 and legacy HTTP requests from one permission-scoped factory, and remove HTTP session state and eviction machinery. Remote Brain CLI calls now negotiate the modern protocol with legacy fallback.
+
 ## 0.2.0-alpha.319
 
 ### Minor Changes

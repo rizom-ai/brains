@@ -8,11 +8,11 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { Client } from "@modelcontextprotocol/client";
 import {
   getDefaultEnvironment,
   StdioClientTransport,
-} from "@modelcontextprotocol/sdk/client/stdio.js";
+} from "@modelcontextprotocol/client/stdio";
 import { waitUntil } from "@brains/test-utils";
 
 const appEntrypoint = join(

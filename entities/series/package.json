@@ -1,7 +1,7 @@
 {
   "name": "@brains/series",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.319",
+  "version": "0.2.0-alpha.320",
   "description": "Cross-content series — auto-derived from entities with seriesName metadata",
   "dependencies": {
     "@brains/atproto-contracts": "workspace:*",
