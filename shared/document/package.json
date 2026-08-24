@@ -1,7 +1,7 @@
 {
   "name": "@brains/document",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.319",
+  "version": "0.2.0-alpha.320",
   "dependencies": {
     "@brains/entity-service": "workspace:*",
     "@brains/utils": "workspace:*",

@@ -1,5 +1,18 @@
 # @brains/auth-service
 
+## 0.2.0-alpha.320
+
+### Patch Changes
+
+- [`657bec2`](https://github.com/rizom-ai/brains/commit/657bec2e521e5feb72b30d817a88939e3eb80372) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Advertise and support OAuth Client ID Metadata Documents for MCP clients, with exact redirect validation, cache-aware and SSRF-hardened document fetching, issuer-bound Dynamic Client Registration credentials, and `application_type` redirect constraints. Keep the deprecated Dynamic Client Registration endpoint available as a compatibility fallback.
+
+- Updated dependencies []:
+  - @brains/notifications@0.2.0-alpha.320
+  - @brains/contracts@0.2.0-alpha.320
+  - @brains/db@0.2.0-alpha.320
+  - @brains/utils@0.2.0-alpha.320
+  - @brains/plugins@0.2.0-alpha.320
+
 ## 0.2.0-alpha.319
 
 ### Patch Changes
