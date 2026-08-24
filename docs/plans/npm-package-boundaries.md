@@ -1220,15 +1220,14 @@ it because it should not.
 
 ### B. Misplaced code — move it, do not expose it
 
-- **`uploads` in `@brains/note`.** As above. The fix is for whatever
-  owns the upload to extract the markdown and create a note from
-  content.
-- **`uploads` in `image`** is settled by `document`, which was the other
-  half of this entry. Holding the bytes is genuinely the point for both:
-  a preserved PDF _is_ its file. So the route reads the upload it was
-  handed through a narrow reader, and declares the media types it claims
-  so the endpoint and `system_create` stay one decision rather than two
-  registrations. `image` inherits that shape unchanged.
+- **`uploads` in `@brains/note`, `document` and `image`.** Settled, and
+  not the way this section assumed. Holding the bytes is genuinely the
+  point for all three: a preserved PDF _is_ its file. So the fix was not
+  to move the code but to narrow what it reaches — the create route reads
+  the upload it was handed through a reader that can do nothing else, and
+  declares the media types it claims so the upload endpoint and
+  `system_create` stay one decision rather than two registrations. All
+  three are publishable-clean on that shape.
 
 ### C. Genuine capability, wrong expression
 
