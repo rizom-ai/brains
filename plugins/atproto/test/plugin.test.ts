@@ -473,6 +473,7 @@ describe("atproto plugin", () => {
       { pdsEndpoint: "https://fallback-pds.example.com" },
       {
         fetch: mock(async () => jsonResponse({ message: "Not found" }, 404)),
+        resolveHostname: async (): Promise<string[]> => ["93.184.216.34"],
         createPdsClient,
       },
     );
