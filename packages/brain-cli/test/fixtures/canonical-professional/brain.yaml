@@ -1,0 +1,12 @@
+brain: brain
+bundleContract: capability-bundles-v1
+anchor: person
+kind: professional
+# Deliberately non-canonical order: resolution follows definition order.
+bundles: [federation, publishing, site, chat, web, automation, media, core]
+site:
+  package: "@brains/site-default"
+  theme: "@rizom/theme-default"
+plugins:
+  directory-sync:
+    seedContentPath: ./seed-content

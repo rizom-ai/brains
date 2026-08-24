@@ -2,7 +2,7 @@
 
 ## Overview
 
-The repository ships one canonical brain definition through `@rizom/brain/model`. The definition owns an ordered capability catalog and four fixed bundles. Instances own identity, bundle selection, member additions/removals, content, site/theme choices, permissions, and integration config.
+The repository ships one canonical brain definition through `@rizom/brain/model`. The definition owns an ordered capability catalog, eight capability bundles, and the policy-only `team` bundle. Instances own identity, bundle selection, member additions/removals, content, site/theme choices, permissions, and integration config.
 
 Recipes are scaffold-time conveniences. They expand to explicit `brain.yaml` and are not interpreted at runtime.
 
@@ -29,14 +29,20 @@ my-brain/
 
 ```yaml
 brain: brain
+bundleContract: capability-bundles-v1
 anchor: person
 kind: professional
 domain: mybrain.example.com
 
 bundles:
   - core
+  - media
+  - automation
+  - web
+  - chat
   - site
   - publishing
+  - federation
 
 add:
   - obsidian-vault
@@ -91,16 +97,21 @@ export default defineBrain({
 });
 ```
 
-Definition authors may use arbitrary ordered bundles over their own catalog. Canonical instances may select only the four fixed built-in bundle IDs; YAML cannot inject policy bundles.
+Definition authors may use arbitrary ordered bundles over their own catalog. Canonical instances may select only the fixed built-in bundle IDs; YAML cannot inject policy bundles.
 
 ## Fixed bundles
 
-- `core` — identity, knowledge, auth, administration, and standard interfaces;
+- `core` — identity, markdown knowledge, Inbox, MCP stdio, A2A, and agent discovery;
+- `media` — documents and images;
+- `automation` — playbooks and onboarding;
+- `web` — HTTP, auth, account/admin, Dashboard, and CMS;
+- `chat` — platform chat, web chat, email, notifications, and conversation memory;
 - `site` — site information, content, building, and analytics;
-- `publishing` — long-form and distribution workflows;
-- `team` — team memory, documents, and trusted collaborative writes.
+- `publishing` — long-form content and distribution workflows;
+- `federation` — AT Protocol publication and registry capabilities;
+- `team` — policy-only shared-memory defaults and trusted collaborative writes.
 
-Commerce is a posture, not a fifth bundle: `core + site + add: [products]`.
+Site and publishing remain independent. Commerce is a recipe posture built from `core + media + web + site + add: [products]`.
 
 ## Deterministic resolution
 
@@ -165,8 +176,9 @@ Site structure and theme are separate:
 ## Creating instances
 
 ```bash
-brain init my-brain --recipe minimal
-brain init my-site --recipe personal
+brain init my-brain --recipe headless
+brain init my-console --recipe personal
+brain init my-site --recipe professional
 brain init my-team --recipe team
 brain init my-shop --recipe commerce
 ```

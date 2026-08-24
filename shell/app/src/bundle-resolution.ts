@@ -254,6 +254,27 @@ function validateDefinitions(
         );
       }
     }
+    for (const { member } of definition.config ?? []) {
+      if (!catalog.has(member)) {
+        throw new Error(
+          `Bundle "${definition.id}" config references unknown catalog member "${member}"`,
+        );
+      }
+    }
+    for (const { member } of definition.permissions ?? []) {
+      if (!catalog.has(member)) {
+        throw new Error(
+          `Bundle "${definition.id}" permission contribution references unknown catalog member "${member}"`,
+        );
+      }
+    }
+    for (const member of definition.evalDisable ?? []) {
+      if (!catalog.has(member)) {
+        throw new Error(
+          `Bundle "${definition.id}" eval exclusion references unknown catalog member "${member}"`,
+        );
+      }
+    }
 
     const overrideReferences = [
       ...(definition.config ?? []).map(({ overrides }) => ({
@@ -377,16 +398,23 @@ export function resolveBundleSelection(
   const definitions = validateDefinitions(input.catalogIds, input.definitions);
   const activeDefinitions = selectedDefinitions(definitions, input.selected);
   const catalog = new Set(input.catalogIds);
-  const active = new Set(
+  const selectedMembers = new Set(
     activeDefinitions.flatMap((definition) => definition.members),
   );
+  const contributionTargets = new Set(selectedMembers);
+  for (const member of input.add ?? []) {
+    if (catalog.has(member)) contributionTargets.add(member);
+  }
+  for (const member of input.remove ?? []) contributionTargets.delete(member);
+
   const evalDisable = [
     ...new Set([
       ...collectEvalDisable(activeDefinitions),
       ...(input.evalDisable ?? []).filter((member) => catalog.has(member)),
     ]),
-  ];
+  ].filter((member) => contributionTargets.has(member));
 
+  const active = new Set(selectedMembers);
   if (input.mode === "eval") {
     for (const member of evalDisable) active.delete(member);
   }

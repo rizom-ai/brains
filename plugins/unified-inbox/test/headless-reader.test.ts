@@ -1,6 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
+import { Client, InMemoryTransport } from "@modelcontextprotocol/client";
 import { MCPService } from "@brains/mcp-service";
 import { createPluginHarness } from "@brains/plugins/test";
 import { z } from "@brains/utils/zod";

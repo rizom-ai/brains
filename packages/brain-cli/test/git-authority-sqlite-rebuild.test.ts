@@ -62,6 +62,7 @@ function createShell(
     {},
     {
       name: "Hermetic Git authority rebuild",
+      bundleContract: "capability-bundles-v1",
       bundles: ["core"],
       remove: [
         "prompt",

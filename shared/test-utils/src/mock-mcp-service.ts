@@ -6,7 +6,7 @@ import type { IMCPService } from "@brains/mcp-service";
  * without exercising the real MCP server. The register/list methods are
  * bun mocks that return empty/no-op values; `getMcpServer` and
  * `createMcpServer` throw because the real MCP server is from the
- * `@modelcontextprotocol/sdk` framework and cannot be stubbed without
+ * `@modelcontextprotocol/server` framework and cannot be stubbed without
  * unsafe casts. Override these in your test if you need them.
  */
 export function createMockMCPService(): IMCPService {

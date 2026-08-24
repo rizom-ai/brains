@@ -10,6 +10,11 @@ import {
   type OAuthClientPersistence,
 } from "./client-store";
 import {
+  ClientMetadataDocumentError,
+  ClientMetadataDocumentResolver,
+  isClientMetadataDocumentId,
+} from "./client-metadata-document";
+import {
   InvalidRefreshTokenError,
   type RefreshTokenPersistence,
 } from "./refresh-token-store";
@@ -41,6 +46,7 @@ interface AuthorizationApprovalTokenState {
   token: string;
   sessionId: string;
   clientId: string;
+  clientName: string;
   redirectUri: string;
   codeChallenge: string;
   scope?: string;
@@ -54,6 +60,7 @@ export interface OAuthEndpointsOptions {
   refreshTokenStore: RefreshTokenPersistence;
   resolveSession: (request: Request) => Promise<AuthSessionRecord | undefined>;
   keyStore: AuthKeyStore;
+  clientMetadataDocumentResolver?: ClientMetadataDocumentResolver;
   clientMaintenanceIntervalMs?: number;
   /** Package-private deterministic clock for maintenance lifecycle tests. */
   clientMaintenanceClock?: Clock.Clock | undefined;
@@ -87,6 +94,7 @@ export class OAuthEndpoints {
     request: Request,
   ) => Promise<AuthSessionRecord | undefined>;
   private readonly keyStore: AuthKeyStore;
+  private readonly clientMetadataDocumentResolver: ClientMetadataDocumentResolver;
   private readonly clientMaintenanceIntervalMs: number;
   private readonly clientMaintenanceClock: Clock.Clock | undefined;
   private readonly onClientMaintenanceError: (error: unknown) => void;
@@ -106,6 +114,9 @@ export class OAuthEndpoints {
     this.refreshTokenStore = options.refreshTokenStore;
     this.resolveSession = options.resolveSession;
     this.keyStore = options.keyStore;
+    this.clientMetadataDocumentResolver =
+      options.clientMetadataDocumentResolver ??
+      new ClientMetadataDocumentResolver();
     this.clientMaintenanceIntervalMs =
       options.clientMaintenanceIntervalMs !== undefined &&
       Number.isFinite(options.clientMaintenanceIntervalMs) &&
@@ -117,7 +128,10 @@ export class OAuthEndpoints {
       options.onClientMaintenanceError ?? ((): void => undefined);
   }
 
-  async handleAuthorizePage(request: Request): Promise<Response> {
+  async handleAuthorizePage(
+    request: Request,
+    issuer: string,
+  ): Promise<Response> {
     const session = await this.resolveSession(request);
     if (!session) {
       return unauthorizedHtmlResponse(request);
@@ -125,6 +139,7 @@ export class OAuthEndpoints {
 
     const validation = await this.validateAuthorizationRequest(
       new URL(request.url).searchParams,
+      issuer,
     );
     if (!validation.success) {
       return new Response(validation.error, { status: 400 });
@@ -137,7 +152,10 @@ export class OAuthEndpoints {
     return htmlResponse(renderAuthorizePage(validation.params, approvalToken));
   }
 
-  async handleAuthorizeApproval(request: Request): Promise<Response> {
+  async handleAuthorizeApproval(
+    request: Request,
+    issuer: string,
+  ): Promise<Response> {
     const session = await this.resolveSession(request);
     if (!session) {
       return unauthorizedHtmlResponse(request);
@@ -146,6 +164,7 @@ export class OAuthEndpoints {
     const form = await request.formData();
     const validation = await this.validateAuthorizationRequest(
       new URLSearchParams(stringEntries(form)),
+      issuer,
     );
     if (!validation.success) {
       return new Response(validation.error, { status: 400 });
@@ -194,6 +213,7 @@ export class OAuthEndpoints {
       token,
       sessionId: session.id,
       clientId: params.clientId,
+      clientName: params.clientName,
       redirectUri: params.redirectUri,
       codeChallenge: params.codeChallenge,
       ...(params.scope ? { scope: params.scope } : {}),
@@ -218,6 +238,7 @@ export class OAuthEndpoints {
     return (
       stored.sessionId === session.id &&
       stored.clientId === params.clientId &&
+      stored.clientName === params.clientName &&
       stored.redirectUri === params.redirectUri &&
       stored.codeChallenge === params.codeChallenge &&
       stored.scope === params.scope &&
@@ -234,7 +255,10 @@ export class OAuthEndpoints {
     }
   }
 
-  private async validateAuthorizationRequest(params: URLSearchParams): Promise<
+  private async validateAuthorizationRequest(
+    params: URLSearchParams,
+    issuer: string,
+  ): Promise<
     | {
         success: true;
         params: ValidAuthorizationRequest;
@@ -265,11 +289,22 @@ export class OAuthEndpoints {
       return { success: false, error: "Unsupported code_challenge_method" };
     }
 
-    const client = await this.clientStore.getClient(clientId);
+    let client;
+    try {
+      client = await this.resolveAuthorizationClient(clientId, issuer);
+    } catch (error) {
+      if (error instanceof ClientMetadataDocumentError) {
+        return { success: false, error: error.message };
+      }
+      throw error;
+    }
     if (!client) {
       return { success: false, error: "Unknown client_id" };
     }
-    if (!hasMatchingRedirectUri(client.redirect_uris, redirectUri)) {
+    const redirectMatches = isClientMetadataDocumentId(clientId)
+      ? client.redirect_uris.includes(redirectUri)
+      : hasMatchingRedirectUri(client.redirect_uris, redirectUri);
+    if (!redirectMatches) {
       return { success: false, error: "Unregistered redirect_uri" };
     }
 
@@ -288,7 +323,22 @@ export class OAuthEndpoints {
     };
   }
 
-  async handleClientRegistration(request: Request): Promise<Response> {
+  private async resolveAuthorizationClient(
+    clientId: string,
+    issuer: string,
+  ): Promise<Awaited<ReturnType<OAuthClientPersistence["getClient"]>>> {
+    if (!isClientMetadataDocumentId(clientId)) {
+      return this.clientStore.getClient(clientId, issuer);
+    }
+
+    const client = await this.clientMetadataDocumentResolver.resolve(clientId);
+    return this.clientStore.upsertClientMetadataDocument(client);
+  }
+
+  async handleClientRegistration(
+    request: Request,
+    issuer: string,
+  ): Promise<Response> {
     if (!this.consumeClientRegistrationAttempt(request)) {
       return jsonResponse(
         {
@@ -311,7 +361,7 @@ export class OAuthEndpoints {
     }
 
     try {
-      const client = await this.clientStore.registerClient(body);
+      const client = await this.clientStore.registerClient(body, issuer);
       return jsonResponse(client, 201);
     } catch (error) {
       if (error instanceof InvalidClientMetadataError) {
@@ -419,6 +469,7 @@ export class OAuthEndpoints {
     const clientError = await this.clientStore.validateClientCredentials(
       clientId,
       clientAuth.clientSecret,
+      issuer,
     );
     if (clientError) {
       return oauthErrorResponse("invalid_client", clientError);
@@ -454,8 +505,13 @@ export class OAuthEndpoints {
       );
     }
 
-    const client = await this.clientStore.getClient(clientId);
-    if (!client || !hasMatchingRedirectUri(client.redirect_uris, redirectUri)) {
+    const client = await this.clientStore.getClient(clientId, issuer);
+    const redirectMatches = client
+      ? isClientMetadataDocumentId(clientId)
+        ? client.redirect_uris.includes(redirectUri)
+        : hasMatchingRedirectUri(client.redirect_uris, redirectUri)
+      : false;
+    if (!client || !redirectMatches) {
       return oauthErrorResponse("invalid_grant", "Unregistered redirect_uri");
     }
 
@@ -546,7 +602,10 @@ export class OAuthEndpoints {
     });
   }
 
-  async handleRevokeRequest(request: Request): Promise<Response> {
+  async handleRevokeRequest(
+    request: Request,
+    issuer: string,
+  ): Promise<Response> {
     const body = await parseRequestBody(request);
     const clientAuth = parseClientAuth(request, body);
     const clientId = clientAuth.clientId ?? body.get("client_id") ?? undefined;
@@ -565,6 +624,7 @@ export class OAuthEndpoints {
     const clientError = await this.clientStore.validateClientCredentials(
       clientId,
       clientAuth.clientSecret,
+      issuer,
     );
     if (clientError) {
       return oauthErrorResponse("invalid_client", clientError);

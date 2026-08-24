@@ -113,7 +113,6 @@ export class MCPInterface extends InterfacePlugin<MCPConfig, MCPConfigInput> {
     this.httpServer = StreamableHTTPServer.createFresh({
       port: this.config.httpPort,
       logger: this.logger,
-      sessionIdleTtlMs: this.config.sessionIdleTtlMs,
       auth: this.config.authToken
         ? { token: this.config.authToken }
         : authService
@@ -287,12 +286,12 @@ export class MCPInterface extends InterfacePlugin<MCPConfig, MCPConfigInput> {
       this.config.transport === "http" &&
       (this.config.authToken ? true : activeAuthService !== undefined);
 
-    // Static-token auth uses administrator permissions. OAuth sessions replace
-    // this fallback with the authenticated principal's level when initialized.
+    // Static-token auth uses administrator permissions. OAuth requests replace
+    // this fallback with the authenticated principal's level on every call.
     if (hasHttpAuth) {
       userLevel = "admin";
       this.logger.debug(
-        "HTTP authentication configured; session permissions resolve during initialization",
+        "HTTP authentication configured; caller permissions resolve per request",
       );
     }
 

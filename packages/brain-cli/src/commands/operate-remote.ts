@@ -27,7 +27,7 @@ export type RemoteToolClientFactory = (
 /**
  * Default factory: imports the MCP SDK lazily.
  *
- * The dynamic import keeps `@modelcontextprotocol/sdk` off the startup path
+ * The dynamic import keeps `@modelcontextprotocol/client` off the startup path
  * for every CLI invocation that never goes remote — do not hoist it.
  */
 const createMCPClient: RemoteToolClientFactory = async (url, token) => {
@@ -67,11 +67,7 @@ function mapArgsFromJsonSchema(
     // Flag takes precedence
     if (name in flags) {
       const value = flags[name];
-      const prop = properties[name];
-      const propType =
-        prop && "type" in prop && typeof prop.type === "string"
-          ? prop.type
-          : undefined;
+      const propType = getJsonSchemaPropertyType(properties[name]);
       result[name] = coerce(value, propType);
       continue;
     }
@@ -79,11 +75,7 @@ function mapArgsFromJsonSchema(
     // Map next positional arg
     if (argIdx < args.length) {
       const arg = args[argIdx];
-      const prop = properties[name];
-      const propType =
-        prop && "type" in prop && typeof prop.type === "string"
-          ? prop.type
-          : undefined;
+      const propType = getJsonSchemaPropertyType(properties[name]);
       if (arg !== undefined) {
         result[name] = coerce(arg, propType);
       }
@@ -92,6 +84,14 @@ function mapArgsFromJsonSchema(
   }
 
   return result;
+}
+
+function getJsonSchemaPropertyType(value: unknown): string | undefined {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return undefined;
+  }
+  const type = (value as Record<string, unknown>)["type"];
+  return typeof type === "string" ? type : undefined;
 }
 
 function coerce(value: unknown, type: string | undefined): unknown {

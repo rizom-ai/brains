@@ -26,7 +26,7 @@ What already exists today:
 
 `v0.2.0` is a packaging and stability milestone, not a feature gate against any one posture. It should not, however, certify model/preset contracts already scheduled for deletion. The release candidate is ready when:
 
-- the canonical `@rizom/brain` definition and `core` / `site` / `publishing` / `team` bundle resolver have replaced the built-in Rover/Relay/Ranger model registry and runtime presets;
+- the canonical `@rizom/brain` definition and its eight capability bundles plus policy-only `team` bundle have replaced the built-in Rover/Relay/Ranger model registry and runtime presets;
 - checked-in standalone apps and hosted pilot desired state use explicit bundles, and a second reconcile produces no generated drift;
 - the runtime APIs surfaced through `@rizom/brain/{plugins,entities,services,interfaces,templates}` have an explicit compatibility sign-off;
 - the `public` / `shared` / `restricted` visibility model is accepted as the baseline contract;
@@ -56,20 +56,25 @@ The central product bet is now explicit:
 
 > **One brain, composed from capability bundles. What used to be three models (rover, relay, ranger) is a single brain whose posture — from personal publishing to shared team memory — is selected by bundles at deploy time. The bet: one brain that scales from a single person to a collective without switching products.**
 
-This is a deliberate change from the previous "two product tracks" framing. There is one product. **Posture is configuration, not a separate product:** `core` + `site` + `publishing` is the personal-publishing setting; `core` + `site` + `team` is the collective setting; both are the same brain. So the roadmap is organized as: **§1 the brain and its bundles** (what the product is), **§2 the postures we have proven** (the personal→collective validation arc), and **§3–§7 the shared substrate** every brain runs on — grouped by capability, never attributed to one posture.
+This is a deliberate change from the previous "two product tracks" framing. There is one product. **Posture is configuration, not a separate product:** the `professional` recipe selects the public publishing stack; the `team` recipe selects the collaborative policy; both are the same brain. So the roadmap is organized as: **§1 the brain and its bundles** (what the product is), **§2 the postures we have proven** (the personal→collective validation arc), and **§3–§7 the shared substrate** every brain runs on — grouped by capability, never attributed to one posture.
 
 The frontier moved with the framing. Once posture is just configuration, the open problem is no longer "prove the team product" — it is **multi-user** (§3), the one thing posture-as-config cannot fake. Implementation plans remain in [docs/plans](./plans/README.md); the roadmap should answer what the work supports.
 
 ### 1. The brain and its bundles
 
-The product is one brain, composed from **capability bundles** — named, posture-carrying groups of plugins (plugins + their config defaults + permission posture). A brain is `core` plus whichever bundles its posture needs:
+The product is one brain, composed from fixed **capability bundles** — named groups of plugins plus bounded config, permission, instruction, and eval defaults:
 
-- **`core`** — posture-independent infrastructure, universal capture, profile/playbook/onboarding workflows, one dashboard capability, MCP/webserver/web-chat/Discord/A2A, and peer discovery including the ATProto registry.
-- **`site`** — site-info, site-content, site-builder, analytics, and the dashboard route override used when the site owns `/`; site package and theme remain instance choices.
-- **`publishing`** — blog/post, series, portfolio, content-pipeline, social-media, newsletter, stock-photo, outbound ATProto, and publishing instruction/config defaults.
-- **`team`** — conversation-memory `shared`, docs, team topic/instruction defaults, and member-scoped trusted collaborator permissions.
+- **`core`** — identity, markdown knowledge, Inbox, MCP stdio, A2A, and agent discovery.
+- **`media`** — documents and images.
+- **`automation`** — playbooks and onboarding.
+- **`web`** — HTTP, auth, account/admin, Dashboard, and CMS.
+- **`chat`** — platform chat, web chat, email, notifications, and conversation memory.
+- **`site`** — site-info, site-content, site-builder, and analytics.
+- **`publishing`** — blog/post, series, portfolio, decks, pipeline, social, newsletter, and stock-photo workflows.
+- **`federation`** — outbound AT Protocol publication and registry capabilities.
+- **`team`** — policy only: shared memory, team instructions, and trusted collaborator permissions over selected members.
 
-Posture is then explicit `brain.yaml` configuration: personal publishing is `core + site + publishing`; a collective is `core + site + team`; commerce is `core + site` plus `products`. `site` and `publishing` are independent (publishing can target external channels with no website), and instances tune at the edges with visible `add`/`remove` plus plugin config rather than configurable bundles. `brain init` recipes expand to this explicit configuration and have no runtime meaning.
+Posture is explicit `brain.yaml` configuration. `headless`, `personal`, `professional`, `team`, and `commerce` recipes expand to the fixed ladder documented in [brain-model.md](./brain-model.md). `site` and `publishing` remain independent, and instances tune at the edges with visible `add`/`remove` plus plugin config.
 
 **The structural bet that makes this true** has shipped on the alpha line: the three model packages and preset runtime are gone, and one canonical definition owns the bundle primitive. The remaining work is operational certification of that contract through clean pilot convergence, canary soak, and stable release.
 
@@ -90,11 +95,10 @@ Plans:
 - [web-search-tool.md](./plans/web-search-tool.md) — provider-neutral `web_search` capability (Tavily first), permission-gated and audited; Phase 0 removes the verified-dead `webSearch` config flag.
 - [system-analytics-tool.md](./plans/system-analytics-tool.md) — rename/reframe `system_insights` as an extensible typed analytics/reporting surface, folding plugin reports such as Cloudflare traffic into one LLM-facing tool.
 - [agent-tool-surface-consolidation.md](./plans/agent-tool-surface-consolidation.md) — separate agent/protocol/CLI exposure, remove maintenance and MCP adapters from model context, and consolidate playbook, directory-sync, and publishing lifecycle tools behind typed canonical surfaces.
-- [mcp-2026-07-28-migration.md](./plans/mcp-2026-07-28-migration.md) — adopt the stateless MCP 2026-07-28 spec revision: SDK 1.30 now, v1-compatible registration/test modernization in `work/mcp-v2`, swap to the v2 SDK packages and delete the session machinery, and CIMD alongside deprecated DCR in auth-service.
 
 ### 2. The collective posture (active POC)
 
-`core + site + team` is the one posture still being validated — the personal-publishing posture already runs in production (§1). The proof is not "many personal bots in one room"; it is one shared brain that can:
+The `team` recipe posture is the one still being validated — the professional publishing posture already runs in production (§1). The proof is not "many personal bots in one room"; it is one shared brain that can:
 
 - listen in configured shared spaces;
 - preserve who said what without collapsing everyone into one anonymous source;
@@ -243,9 +247,11 @@ It is **not** currently targeting:
 
 There is one brain; "reference models" are now bundle combinations, not packages:
 
-- **personal publishing** — `core + site + publishing`; the public reference, live in production (formerly the `rover` model).
-- **collective / team** — `core + site + team`; the active POC (formerly the `relay` model).
-- **commerce** — `core + site` plus the opt-in `products` capability (absorbs what the `ranger` model carried).
+- **headless** — `core`; no inbound listener.
+- **personal** — `core + media + web + chat`; a private console without a public site.
+- **professional publishing** — the full capability ladder through `federation`; the public reference, live in production (formerly the `rover` model).
+- **collective / team** — the team recipe with policy-only `team` plus explicit `docs`; the active POC (formerly the `relay` model).
+- **commerce** — `core + media + web + site` plus the opt-in `products` capability (absorbs what the `ranger` model carried).
 
 External examples and docs should treat the **personal-publishing** posture as the main reference. The `rover`/`relay`/`ranger` model packages are being retired in [brain-model-unification.md](./plans/brain-model-unification.md).
 

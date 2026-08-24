@@ -3,7 +3,7 @@ name: Generate Team Brain deck description
 description: Verifies the decks plugin can describe a Team Brain POC walkthrough deck.
 type: plugin
 tags:
-  - posture-team
+  - requires-member-decks
   - team
   - decks
   - full

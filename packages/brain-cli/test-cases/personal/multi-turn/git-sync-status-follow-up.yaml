@@ -5,6 +5,7 @@ type: multi_turn
 setup:
   permissionLevel: admin
 tags:
+  - requires-supervised-git
   - core
   - directory-sync
   - multi-turn

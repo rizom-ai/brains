@@ -35,6 +35,7 @@ export interface DirectorySyncConfig {
   syncPriority: number;
   seedContent: boolean;
   seedContentPath?: string | undefined;
+  strictSeedEntityTypes: boolean;
   deleteOnFileRemoval: boolean;
   syncInterval: number;
   commitDebounce: number;
@@ -53,6 +54,7 @@ export interface DirectorySyncConfigInput {
   syncPriority?: number | undefined;
   seedContent?: boolean | undefined;
   seedContentPath?: string | undefined;
+  strictSeedEntityTypes?: boolean | undefined;
   deleteOnFileRemoval?: boolean | undefined;
   syncInterval?: number | undefined;
   commitDebounce?: number | undefined;
@@ -114,6 +116,11 @@ export const directorySyncConfigSchema: z.ZodType<
     .describe(
       "Custom path to seed content directory (defaults to CWD/seed-content)",
     ),
+  strictSeedEntityTypes: z
+    .boolean()
+    .optional()
+    .describe("Fail startup when seed content uses an unregistered entity type")
+    .default(false),
   deleteOnFileRemoval: z
     .boolean()
     .optional()

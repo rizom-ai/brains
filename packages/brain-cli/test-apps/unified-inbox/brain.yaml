@@ -1,14 +1,19 @@
 brain: brain
+bundleContract: capability-bundles-v1
 anchor: person
 kind: professional
 bundles:
   - core
+  - media
+  - automation
+  - web
+  - chat
   - site
   - publishing
+  - federation
 
 add:
   - email-workflows
-  - unified-inbox
 
 site:
   package: "@brains/site-professional"
@@ -16,7 +21,7 @@ site:
 
 plugins:
   directory-sync:
-    seedContentPath: ../../eval-content/core
+    seedContentPath: ../../eval-content/recipes/personal
     autoSync: true
     initialSync: true
     git:

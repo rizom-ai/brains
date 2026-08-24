@@ -8,7 +8,7 @@ type: tool_invocation
 setup:
   permissionLevel: admin
 tags:
-  - posture-team
+  - requires-built-site-runtime
   - team
   - site-builder
   - default

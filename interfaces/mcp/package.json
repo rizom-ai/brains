@@ -1,14 +1,14 @@
 {
   "name": "@brains/mcp",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.318",
+  "version": "0.2.0-alpha.319",
   "dependencies": {
     "@brains/auth-service": "workspace:*",
     "@brains/contracts": "workspace:*",
     "@brains/mcp-service": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/utils": "workspace:*",
-    "@modelcontextprotocol/sdk": "^1.30.0"
+    "@modelcontextprotocol/server": "^2.0.0"
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",

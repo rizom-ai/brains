@@ -5,6 +5,7 @@ type: tool_invocation
 setup:
   permissionLevel: admin
 tags:
+  - requires-supervised-git
   - core
   - directory-sync
   - tool-invocation

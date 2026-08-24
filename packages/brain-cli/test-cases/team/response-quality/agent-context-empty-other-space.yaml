@@ -11,7 +11,7 @@ setup:
   channelId: empty-space
   channelName: empty-space
 tags:
-  - posture-team
+  - recipe-team
   - team
   - conversation-memory
   - agent-context

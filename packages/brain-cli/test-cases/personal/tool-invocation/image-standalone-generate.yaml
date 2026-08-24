@@ -5,6 +5,7 @@ type: tool_invocation
 setup:
   permissionLevel: admin
 tags:
+  - recipe-personal
   - core
   - image
   - web-chat

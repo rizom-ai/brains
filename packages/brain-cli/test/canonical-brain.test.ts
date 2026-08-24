@@ -54,36 +54,20 @@ const expectedCatalogIds = [
   "a2a",
 ];
 
+const bundleContract = "capability-bundles-v1" as const;
+
 const expectedCoreMembers = [
-  "prompt",
   "profile",
+  "prompt",
   "style-guide",
-  "image",
-  "document",
+  "directory-sync",
   "note",
   "link",
-  "wishlist",
   "topics",
-  "decks",
-  "directory-sync",
-  "atproto-registry",
-  "agents",
-  "assessment",
-  "auth-service",
-  "account",
-  "notifications",
-  "playbook",
-  "playbooks",
-  "onboarding",
-  "email",
-  "cms",
-  "dashboard",
-  "admin",
+  "unified-inbox",
   "mcp",
-  "webserver",
-  "web-chat",
-  "chat",
   "a2a",
+  "agents",
 ];
 
 function catalogIds(definition: BrainDefinition): string[] {
@@ -101,12 +85,19 @@ function pluginConfig(id: string): Record<string, unknown> | undefined {
   const plugin = resolve(
     canonicalBrain,
     {},
-    { bundles: ["core"] },
+    { bundleContract, bundles: ["core"] },
   ).plugins?.find((candidate) => candidate.id === id);
   if (!plugin || !("config" in plugin)) return undefined;
   const config = plugin.config;
   return isRecord(config) ? config : undefined;
 }
+
+const definitionPermissionBaseline = {
+  rules: [
+    { pattern: "cli:*", level: "admin" },
+    { pattern: "mcp:stdio", level: "admin" },
+  ],
+} satisfies NonNullable<BrainDefinition["permissions"]>;
 
 describe("canonical brain core", () => {
   test("owns one complete model-neutral catalog", () => {
@@ -128,57 +119,91 @@ describe("canonical brain core", () => {
     expect(entrypoint).not.toContain("registerModel");
   });
 
-  test("expresses core posture as explicit final member IDs", () => {
+  test("expresses the headless posture as explicit final member IDs", () => {
     expect(coreBundle.members).toEqual(expectedCoreMembers);
   });
 
-  test("uses canonical config without hidden site or identity", () => {
-    expect(pluginConfig("dashboard")).toMatchObject({ routePath: "/" });
+  test("resolves a self-contained headless core without hidden site policy", () => {
+    expect(pluginConfig("dashboard")).toBeUndefined();
     expect(pluginConfig("directory-sync")).toMatchObject({
       seedContent: true,
       seedContentPath: "./seed-content",
       initialSync: true,
     });
+    expect(pluginConfig("mcp")).toMatchObject({ transport: "stdio" });
     expect(pluginConfig("profile")).not.toHaveProperty(
       "starterIdentity.anchorKind",
     );
 
     const resolvedIds =
-      resolve(canonicalBrain, {}, { bundles: ["core"] }).plugins?.map(
-        (plugin) => plugin.id,
-      ) ?? [];
-    expect(resolvedIds).toContain("decks");
-    expect(resolvedIds).toContain("atproto-registry");
-    expect(resolvedIds).not.toContain("atproto");
-    expect(resolvedIds).not.toContain("site-builder");
-    expect(resolvedIds).not.toContain("email-workflows");
-    expect(resolvedIds).not.toContain("unified-inbox");
+      resolve(
+        canonicalBrain,
+        {},
+        { bundleContract, bundles: ["core"] },
+      ).plugins?.map((plugin) => plugin.id) ?? [];
+    expect(resolvedIds).toEqual([
+      "prompt",
+      "profile",
+      "style-guide",
+      "note",
+      "link",
+      "topics",
+      "directory-sync",
+      "agent-discovery",
+      "agent",
+      "skill",
+      "unified-inbox",
+      "mcp",
+      "a2a",
+    ]);
+    expect(resolvedIds).toContain("unified-inbox");
+    expect(resolvedIds).not.toContain("webserver");
+    expect(resolvedIds).not.toContain("notifications");
   });
 
-  test("attaches transport permissions and eval exclusions to core members", () => {
-    const resolved = resolve(canonicalBrain, {}, { bundles: ["core"] });
-    expect(resolved.permissions?.rules).toEqual(
-      expect.arrayContaining([
-        { pattern: "cli:*", level: "admin" },
-        { pattern: "mcp:stdio", level: "admin" },
-        { pattern: "mcp:http", level: "public" },
-        { pattern: "discord:*", level: "public" },
-        { pattern: "web-chat:*", level: "admin" },
-      ]),
-    );
+  test("keeps posture-independent permissions on the definition", () => {
+    expect(canonicalBrain.permissions).toEqual(definitionPermissionBaseline);
 
-    const withoutMcp = resolve(
+    const resolved = resolve(
       canonicalBrain,
       {},
       {
+        bundleContract,
         bundles: ["core"],
         remove: ["mcp"],
       },
     );
-    expect(withoutMcp.permissions?.rules).not.toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ pattern: "mcp:http" }),
-      ]),
+    expect(resolved.permissions?.rules).toEqual(
+      definitionPermissionBaseline.rules,
     );
+  });
+
+  test("opens channel permissions only with their channel bundles", () => {
+    const headless = resolve(
+      canonicalBrain,
+      {},
+      {
+        bundleContract,
+        bundles: ["core"],
+      },
+    );
+    expect(headless.permissions?.rules).toEqual(
+      definitionPermissionBaseline.rules,
+    );
+
+    const personal = resolve(
+      canonicalBrain,
+      {},
+      {
+        bundleContract,
+        bundles: ["core", "media", "web", "chat"],
+      },
+    );
+    expect(personal.permissions?.rules).toEqual([
+      ...definitionPermissionBaseline.rules,
+      { pattern: "mcp:http", level: "public" },
+      { pattern: "discord:*", level: "public" },
+      { pattern: "web-chat:*", level: "admin" },
+    ]);
   });
 });

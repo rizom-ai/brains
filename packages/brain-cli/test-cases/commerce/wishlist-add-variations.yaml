@@ -3,7 +3,7 @@ name: Log missing capability to wishlist
 description: Tests that the agent records a wish when a requested capability does not exist
 type: tool_invocation
 tags:
-  - posture-commerce
+  - requires-member-wishlist
   - wishlist
   - tool-invocation
   - proactive-behavior

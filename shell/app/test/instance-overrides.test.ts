@@ -64,6 +64,21 @@ class MockWebserver implements Plugin {
   }
 }
 
+class MockMcp implements Plugin {
+  public readonly id = "mcp";
+  public readonly version = "1.0.0";
+  public readonly description = "Mock MCP";
+  public readonly packageName = "@brains/mcp";
+  public readonly type = "interface" as const;
+  public config: PluginConfig;
+  constructor(config: PluginConfig) {
+    this.config = config;
+  }
+  async register(_shell: IShell): Promise<PluginCapabilities> {
+    return { tools: [], resources: [] };
+  }
+}
+
 function getConfig(plugin: Plugin | undefined): PluginConfig {
   expect(plugin).toBeDefined();
   return (plugin as MockPlugin).config;
@@ -1317,7 +1332,7 @@ describe("resolve with site package", () => {
     expect(getConfig(dashboard)["themeCSS"]).toBe(expectedThemeCSS);
   });
 
-  test("should inject theme into dashboard-root capability configs", () => {
+  test("does not inject theme into the retired dashboard-root capability", () => {
     const [dashboardRootFactory] = createMockFactory("dashboard-root");
 
     const def = defineBrain({
@@ -1335,9 +1350,7 @@ describe("resolve with site package", () => {
       (p) => p.id === "dashboard-root",
     );
 
-    expect(getConfig(dashboardRoot)["themeCSS"]).toBe(
-      withThemeBase("body { color: pink; }"),
-    );
+    expect(getConfig(dashboardRoot)["themeCSS"]).toBeUndefined();
     expect(getConfig(dashboardRoot)["routePath"]).toBe("/");
   });
 
@@ -1428,6 +1441,47 @@ describe("resolve with site package", () => {
     expect(siteBuilderConfig["entityDisplay"]).toEqual({
       post: { label: "Essay" },
       note: { label: "Note" },
+    });
+  });
+
+  test("derives MCP transport from webserver presence and preserves overrides", () => {
+    const def = defineBrain({
+      name: "test",
+      version: "1.0.0",
+      bundles: [
+        { id: "core", members: ["mcp"] },
+        { id: "web", members: ["webserver"] },
+      ],
+      capabilities: [],
+      interfaces: [
+        ["mcp", MockMcp, (): PluginConfig => ({ mode: "basic" })],
+        ["webserver", MockWebserver, (): PluginConfig => ({})],
+      ],
+    });
+
+    const headless = resolve(def, {}, { bundles: ["core"] });
+    expect(getConfig(headless.plugins?.find((p) => p.id === "mcp"))).toEqual({
+      mode: "basic",
+      transport: "stdio",
+    });
+
+    const withWeb = resolve(def, {}, { bundles: ["core", "web"] });
+    expect(getConfig(withWeb.plugins?.find((p) => p.id === "mcp"))).toEqual({
+      mode: "basic",
+      transport: "http",
+    });
+
+    const explicit = resolve(
+      def,
+      {},
+      {
+        bundles: ["core", "web"],
+        plugins: { mcp: { transport: "stdio" } },
+      },
+    );
+    expect(getConfig(explicit.plugins?.find((p) => p.id === "mcp"))).toEqual({
+      mode: "basic",
+      transport: "stdio",
     });
   });
 

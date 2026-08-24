@@ -1,22 +1,23 @@
 brain: brain
+bundleContract: capability-bundles-v1
 anchor: organization
 kind: organization
 bundles:
   - core
+  - media
+  - automation
+  - web
   - site
   - publishing
+  - federation
 
-# The consolidated production rizom.ai composition at the alpha.204
-# pre-bundle baseline: Rover's default preset already carries
-# blog/decks/site-builder; explicit additions preserve the registry
-# (canonical ai.rizom.brain.* lexicons), product entities, newsletter,
-# and site-content entity type.
+# Keep the production-adjacent Rizom composition web-enabled but without the
+# full chat bundle. Its selected interfaces remain explicit opt-ins.
 add:
   - web-chat
-  - atproto-registry
+  - email
+  - notifications
   - products
-  - newsletter
-  - site-content
   - obsidian-vault
 
 # Local test app: Admin tools (build-site etc.) available over MCP
@@ -42,7 +43,6 @@ plugins:
       gitUrl: file:///tmp/rizom-ai-test-content.git
       bootstrapFromSeed: true
 remove:
-  - chat
   - series
   - portfolio
   - content-pipeline

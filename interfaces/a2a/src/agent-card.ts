@@ -4,7 +4,7 @@ import type {
   AnchorProfile,
   ResolvedProfileKind,
   ToolInfo,
-  SkillData,
+  PublicSkill,
 } from "@brains/plugins";
 import { ANCHOR_EXTENSION_URI } from "@brains/plugins";
 
@@ -25,8 +25,8 @@ export interface AgentCardOptions {
   profileKind?: ResolvedProfileKind | null;
   /** Registered tools (filtered by public permission) */
   tools: ToolInfo[];
-  /** Derived skill data — replaces tool-based skills when present */
-  skills?: SkillData[];
+  /** Canonical public skills — replaces tool-based skills when present */
+  skills?: PublicSkill[];
   /** Whether bearer token auth is configured */
   authEnabled?: boolean;
 }
@@ -55,16 +55,11 @@ export function buildAgentCard(options: AgentCardOptions): AgentCard {
     options.baseUrl ?? (domain ? `https://${domain}` : "http://localhost:8080");
   const url = `${baseUrl}/a2a`;
 
-  // Use derived skills when available, fall back to tool mapping
+  // Runtime card publishers supply the canonical extraction. Keep the tool
+  // fallback for direct callers constructing a card in isolation.
   const cardSkills: AgentSkill[] =
     options.skills && options.skills.length > 0
-      ? options.skills.map((skill) => ({
-          id: skill.name.toLowerCase().replace(/\s+/g, "-"),
-          name: skill.name,
-          description: skill.description,
-          tags: skill.tags,
-          examples: skill.examples,
-        }))
+      ? options.skills
       : tools.map((tool) => ({
           id: tool.name,
           name: tool.name,

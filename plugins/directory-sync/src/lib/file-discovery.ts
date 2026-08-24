@@ -10,6 +10,53 @@ export interface EntityTypeRegistry {
   hasEntityType(type: string): boolean;
 }
 
+/**
+ * Fail before seed import when fixture directories name entity types this
+ * brain did not register. Normal vaults may contain unrelated directories,
+ * so callers opt into this stricter contract for curated seed content.
+ */
+export async function validateSeedContentEntityTypes(
+  syncPath: string,
+  entityRegistry: EntityTypeRegistry,
+): Promise<void> {
+  if (!(await pathExists(syncPath))) return;
+
+  const entries = await readdir(syncPath, { withFileTypes: true });
+  const entityTypes = new Set<string>();
+  if (
+    entries.some(
+      (entry) =>
+        entry.isFile() &&
+        !entry.name.endsWith(".invalid") &&
+        entry.name.endsWith(".md"),
+    )
+  ) {
+    entityTypes.add("note");
+  }
+
+  for (const entry of entries) {
+    if (
+      !entry.isDirectory() ||
+      entry.name.startsWith(".") ||
+      entry.name.startsWith("_")
+    ) {
+      continue;
+    }
+    if (await containsSyncFile(join(syncPath, entry.name), entry.name)) {
+      entityTypes.add(entry.name);
+    }
+  }
+
+  const unregistered = [...entityTypes]
+    .filter((entityType) => !entityRegistry.hasEntityType(entityType))
+    .sort();
+  if (unregistered.length > 0) {
+    throw new Error(
+      `Seed content contains unregistered entity types: ${unregistered.join(", ")}`,
+    );
+  }
+}
+
 export async function getAllMarkdownFiles(
   syncPath: string,
   entityRegistry: EntityTypeRegistry,
@@ -86,6 +133,29 @@ export async function gatherFileStatus(
   }
 
   return { files, stats };
+}
+
+async function containsSyncFile(
+  directory: string,
+  rootEntityType: string,
+): Promise<boolean> {
+  const entries = await readdir(directory, { withFileTypes: true });
+  for (const entry of entries) {
+    if (entry.name.startsWith(".") || entry.name.endsWith(".invalid")) continue;
+    if (entry.isDirectory()) {
+      if (await containsSyncFile(join(directory, entry.name), rootEntityType)) {
+        return true;
+      }
+      continue;
+    }
+    if (!entry.isFile() || isDocumentSidecarFile(entry.name)) continue;
+    if (entry.name.endsWith(".md")) return true;
+    if (rootEntityType === "image" && isImageFile(entry.name)) return true;
+    if (rootEntityType === "document" && isDocumentFile(entry.name)) {
+      return true;
+    }
+  }
+  return false;
 }
 
 async function findFiles(

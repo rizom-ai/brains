@@ -282,6 +282,7 @@ describe("AuthService", () => {
       registration_endpoint: "https://brain.example.com/register",
       jwks_uri: "https://brain.example.com/.well-known/jwks.json",
       code_challenge_methods_supported: ["S256"],
+      client_id_metadata_document_supported: true,
     });
   });
 

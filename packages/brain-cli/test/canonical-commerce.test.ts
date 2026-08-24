@@ -82,7 +82,7 @@ describe("canonical commerce posture", () => {
       brain: "brain",
       anchor: "organization",
       kind: "organization",
-      bundles: ["site", "core"],
+      bundles: ["site", "web", "media", "core"],
       add: ["products"],
       site: {
         package: "@rizom/site-rizom",
@@ -97,16 +97,8 @@ describe("canonical commerce posture", () => {
     });
   });
 
-  test("resolves instance-owned site, theme, seed, and Discord choices", () => {
-    const resolved = resolve(
-      canonicalBrain,
-      {
-        DISCORD_BOT_TOKEN: "test-token",
-        DISCORD_PUBLIC_KEY: "test-public-key",
-        DISCORD_APPLICATION_ID: "test-application-id",
-      },
-      commerceOverrides(),
-    );
+  test("resolves instance-owned site, theme, and seed choices", () => {
+    const resolved = resolve(canonicalBrain, {}, commerceOverrides());
 
     expect(resolved.profileKind).toBe("organization");
     expect(pluginConfig(resolved, "site-builder")).toMatchObject({
@@ -117,17 +109,8 @@ describe("canonical commerce posture", () => {
       seedContentPath: "./seed-content",
       initialSync: true,
     });
-    expect(pluginConfig(resolved, "chat")).toMatchObject({
-      adapters: {
-        discord: {
-          botToken: "test-token",
-          publicKey: "test-public-key",
-          applicationId: "test-application-id",
-          captureUrls: true,
-        },
-      },
-    });
     expect(pluginIds(resolved)).toContain("products");
+    expect(pluginIds(resolved)).not.toContain("chat");
   });
 
   test("retains universal core transport posture", () => {
@@ -136,8 +119,8 @@ describe("canonical commerce posture", () => {
     expect(permissionLevel(resolved, "cli:*")).toBe("admin");
     expect(permissionLevel(resolved, "mcp:stdio")).toBe("admin");
     expect(permissionLevel(resolved, "mcp:http")).toBe("public");
-    expect(permissionLevel(resolved, "discord:*")).toBe("public");
-    expect(permissionLevel(resolved, "web-chat:*")).toBe("admin");
+    expect(permissionLevel(resolved, "discord:*")).toBeUndefined();
+    expect(permissionLevel(resolved, "web-chat:*")).toBeUndefined();
   });
 
   test("keeps optional commerce-adjacent capabilities independently selectable", () => {

@@ -1,5 +1,28 @@
 # @brains/plugins
 
+## 0.2.0-alpha.319
+
+### Patch Changes
+
+- [#157](https://github.com/rizom-ai/brains/pull/157) [`df1af02`](https://github.com/rizom-ai/brains/commit/df1af02e2e0f0e1c3c7fe0580bde1aa65edbccc7) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Unify public skill extraction across A2A and ATProto cards, and allow federation-only brains to publish cards without a web channel or site URL.
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.319
+  - @brains/contracts@0.2.0-alpha.319
+  - @brains/site-composition@0.2.0-alpha.319
+  - @brains/utils@0.2.0-alpha.319
+  - @brains/ai-service@0.2.0-alpha.319
+  - @brains/content-service@0.2.0-alpha.319
+  - @brains/conversation-service@0.2.0-alpha.319
+  - @brains/entity-service@0.2.0-alpha.319
+  - @brains/identity-service@0.2.0-alpha.319
+  - @brains/job-queue@0.2.0-alpha.319
+  - @brains/mcp-service@0.2.0-alpha.319
+  - @brains/messaging-service@0.2.0-alpha.319
+  - @brains/recurring-checks@0.2.0-alpha.319
+  - @brains/runtime-state@0.2.0-alpha.319
+  - @brains/templates@0.2.0-alpha.319
+
 ## 0.2.0-alpha.318
 
 ### Patch Changes

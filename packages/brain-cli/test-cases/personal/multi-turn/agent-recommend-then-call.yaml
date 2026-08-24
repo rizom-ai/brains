@@ -8,7 +8,7 @@ tags:
   - agent-discovery
   - a2a
   - multi-turn
-  - posture-personal
+  - recipe-professional
 
 turns:
   - userMessage: "Who in my network should I consult about branding?"

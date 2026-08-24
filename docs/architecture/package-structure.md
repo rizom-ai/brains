@@ -127,7 +127,7 @@ Site definitions are structural-only bundles: layouts, routes, schema-first sect
 
 ## Canonical brain
 
-`packages/brain-cli` owns the one built-in definition, ordered catalog, fixed `core`, `site`, `publishing`, and `team` bundles, recipe assets, test apps, and eval suites. Identity and deployment choices remain instance-owned.
+`packages/brain-cli` owns the one built-in definition, ordered catalog, eight capability bundles plus policy-only `team`, recipe assets, test apps, and eval suites. Identity and deployment choices remain instance-owned.
 
 ## Packages
 

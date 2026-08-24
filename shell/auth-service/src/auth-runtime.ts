@@ -10,6 +10,7 @@ import { AuthAdministrationService } from "./administration-service";
 import { AuthAuditStore } from "./audit-store";
 import { RuntimeAuthorizationCodeStore } from "./auth-code-store";
 import { RuntimeOAuthClientStore } from "./client-store";
+import type { ClientMetadataDocumentResolver } from "./client-metadata-document";
 import { AuthCredentialStore } from "./credential-store";
 import { IdentityReconciliationService } from "./identity-reconciliation-service";
 import { AuthIdentityStore } from "./identity-store";
@@ -76,6 +77,7 @@ export interface AuthRuntimeOptions {
   invitationDeliveryRecoveryIntervalMs?: number;
   invitationDeliveryRecoveryStaleMs?: number;
   oauthClientMaintenanceIntervalMs?: number;
+  clientMetadataDocumentResolver?: ClientMetadataDocumentResolver;
   accountSettingsEncryptionKey?: string;
   onAccountDeleted?: (actorId: string) => void;
   logger?: Logger;
@@ -162,7 +164,10 @@ export class AuthRuntime {
     });
     this.keyStore = new AuthKeyStore(this.runtimeDatabase);
     this.a2aKeyStore = new A2AKeyStore(this.runtimeDatabase);
-    this.clientStore = new RuntimeOAuthClientStore(this.runtimeDatabase);
+    this.clientStore = new RuntimeOAuthClientStore(
+      this.runtimeDatabase,
+      this.issuer,
+    );
     this.authCodeStore = new RuntimeAuthorizationCodeStore(
       this.runtimeDatabase,
     );
@@ -188,6 +193,12 @@ export class AuthRuntime {
       resolveSession: async (request): Promise<AuthSessionRecord | undefined> =>
         (await this.resolveActiveSession(request))?.session,
       keyStore: this.keyStore,
+      ...(options.clientMetadataDocumentResolver
+        ? {
+            clientMetadataDocumentResolver:
+              options.clientMetadataDocumentResolver,
+          }
+        : {}),
       ...(options.oauthClientMaintenanceIntervalMs !== undefined
         ? {
             clientMaintenanceIntervalMs:

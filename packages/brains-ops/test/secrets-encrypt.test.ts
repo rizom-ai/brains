@@ -43,6 +43,7 @@ describe("encryptPilotSecrets", () => {
 
     const root = await createPilotRepo({
       "pilot.yaml": `brainVersion: 0.2.0-alpha.1
+bundleContract: capability-bundles-v1
 githubOrg: rizom-ai
 contentRepoPrefix: rover-
 domainSuffix: .rizom.ai
@@ -104,6 +105,7 @@ members:
 
     const root = await createPilotRepo({
       "pilot.yaml": `brainVersion: 0.2.0-alpha.1
+bundleContract: capability-bundles-v1
 githubOrg: rizom-ai
 contentRepoPrefix: rover-
 domainSuffix: .rizom.ai
@@ -152,6 +154,7 @@ discord:
 
     const root = await createPilotRepo({
       "pilot.yaml": `brainVersion: 0.2.0-alpha.1
+bundleContract: capability-bundles-v1
 githubOrg: rizom-ai
 contentRepoPrefix: rover-
 domainSuffix: .rizom.ai
@@ -190,6 +193,7 @@ discord:
 
     const root = await createPilotRepo({
       "pilot.yaml": `brainVersion: 0.2.0-alpha.1
+bundleContract: capability-bundles-v1
 githubOrg: rizom-ai
 contentRepoPrefix: rover-
 domainSuffix: .rizom.ai
@@ -251,6 +255,7 @@ discord:
 
     const root = await createPilotRepo({
       "pilot.yaml": `brainVersion: 0.2.0-alpha.1
+bundleContract: capability-bundles-v1
 githubOrg: rizom-ai
 contentRepoPrefix: rover-
 domainSuffix: .rizom.ai
@@ -311,6 +316,7 @@ discord:
 
     const root = await createPilotRepo({
       "pilot.yaml": `brainVersion: 0.2.0-alpha.1
+bundleContract: capability-bundles-v1
 githubOrg: rizom-ai
 contentRepoPrefix: rover-
 domainSuffix: .rizom.ai
@@ -355,6 +361,7 @@ discord:
 
     const root = await createPilotRepo({
       "pilot.yaml": `brainVersion: 0.2.0-alpha.1
+bundleContract: capability-bundles-v1
 githubOrg: rizom-ai
 contentRepoPrefix: rover-
 domainSuffix: .rizom.ai
@@ -390,6 +397,7 @@ discord:
 
     const root = await createPilotRepo({
       "pilot.yaml": `brainVersion: 0.2.0-alpha.1
+bundleContract: capability-bundles-v1
 githubOrg: rizom-ai
 contentRepoPrefix: rover-
 domainSuffix: .rizom.ai
@@ -428,6 +436,7 @@ discord:
 
     const root = await createPilotRepo({
       "pilot.yaml": `brainVersion: 0.2.0-alpha.1
+bundleContract: capability-bundles-v1
 githubOrg: rizom-ai
 contentRepoPrefix: rover-
 domainSuffix: .rizom.ai
@@ -475,6 +484,7 @@ aiApiKeyOverride: ALICE_AI_KEY
 
     const root = await createPilotRepo({
       "pilot.yaml": `brainVersion: 0.2.0-alpha.1
+bundleContract: capability-bundles-v1
 githubOrg: rizom-ai
 contentRepoPrefix: rover-
 domainSuffix: .rizom.ai

@@ -91,7 +91,7 @@ When `auth-service` is enabled, HTTP MCP is protected by the brain's built-in OA
 
 1. First boot prints a one-shot `/setup` URL.
 2. The first Admin opens that URL locally and registers a passkey; on a personal brain, that person's subject becomes the Anchor.
-3. OAuth-capable MCP clients discover metadata from the brain, open a browser authorization flow, and request the `mcp` scope.
+3. OAuth-capable MCP clients discover metadata from the brain, identify themselves through a Client ID Metadata Document (or deprecated Dynamic Client Registration fallback), open a browser authorization flow, and request the `mcp` scope.
 4. The brain verifies the passkey-backed auth session and issues MCP-scoped bearer tokens.
 
 `MCP_AUTH_TOKEN` is still supported as a deprecated static fallback. Use it only for older clients that cannot complete OAuth. If `plugins.mcp.authToken` or `MCP_AUTH_TOKEN` is set, clients must send that value as `Authorization: Bearer <token>` and the OAuth path is bypassed for MCP.

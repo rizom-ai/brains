@@ -21,16 +21,26 @@ describe("parseBrainYaml AI model field", () => {
   it("should parse model field from brain.yaml", () => {
     writeFileSync(
       join(testDir, "brain.yaml"),
-      "brain: brain\nbundles: [core]\nmodel: gpt-4o-mini\n",
+      "brain: brain\nbundleContract: capability-bundles-v1\nbundles: [core]\nmodel: gpt-4o-mini\n",
     );
     const config = parseBrainYaml(testDir);
     expect(config.model).toBe("gpt-4o-mini");
   });
 
-  it("should have no model when not specified", () => {
+  it("rejects unversioned canonical bundle selections", () => {
     writeFileSync(
       join(testDir, "brain.yaml"),
       "brain: brain\nbundles: [core]\n",
+    );
+    expect(() => parseBrainYaml(testDir)).toThrow(
+      /bundleContract "capability-bundles-v1"/,
+    );
+  });
+
+  it("should have no model when not specified", () => {
+    writeFileSync(
+      join(testDir, "brain.yaml"),
+      "brain: brain\nbundleContract: capability-bundles-v1\nbundles: [core]\n",
     );
     const config = parseBrainYaml(testDir);
     expect(config.model).toBeUndefined();
@@ -39,7 +49,7 @@ describe("parseBrainYaml AI model field", () => {
   it("should parse model with explicit prefix", () => {
     writeFileSync(
       join(testDir, "brain.yaml"),
-      "brain: brain\nbundles: [core]\nmodel: anthropic:claude-haiku-4-5-20251001\n",
+      "brain: brain\nbundleContract: capability-bundles-v1\nbundles: [core]\nmodel: anthropic:claude-haiku-4-5-20251001\n",
     );
     const config = parseBrainYaml(testDir);
     expect(config.model).toBe("anthropic:claude-haiku-4-5-20251001");
@@ -48,7 +58,7 @@ describe("parseBrainYaml AI model field", () => {
   it("should parse quoted brain name", () => {
     writeFileSync(
       join(testDir, "brain.yaml"),
-      'brain: "brain"\nbundles: [core]\n',
+      'brain: "brain"\nbundleContract: capability-bundles-v1\nbundles: [core]\n',
     );
     const config = parseBrainYaml(testDir);
     expect(config.brain).toBe("brain");
@@ -70,6 +80,7 @@ describe("parseBrainYaml AI model field", () => {
       join(testDir, "brain.yaml"),
       [
         "brain: brain",
+        "bundleContract: capability-bundles-v1",
         "bundles:",
         "  - core",
         "domain: example.com",
@@ -96,7 +107,7 @@ describe("parseBrainYaml AI model field", () => {
   it("should handle comments in yaml", () => {
     writeFileSync(
       join(testDir, "brain.yaml"),
-      "brain: brain # canonical definition\nbundles: [core]\n# model: gpt-4o-mini\n",
+      "brain: brain # canonical definition\nbundleContract: capability-bundles-v1\nbundles: [core]\n# model: gpt-4o-mini\n",
     );
     const config = parseBrainYaml(testDir);
     expect(config.brain).toBe("brain");
@@ -108,6 +119,7 @@ describe("parseBrainYaml AI model field", () => {
     writeFileSync(
       join(testDir, "brain.yaml"),
       `brain: brain
+bundleContract: capability-bundles-v1
 bundles: [core]
 plugins:
   calendar:
@@ -123,6 +135,7 @@ plugins:
     writeFileSync(
       join(testDir, "brain.yaml"),
       `brain: brain
+bundleContract: capability-bundles-v1
 bundles: [core]
 plugins:
   - package: "@rizom/brain-plugin-calendar"
@@ -139,7 +152,7 @@ plugins:
   it("should default an omitted brain field when bundles are explicit", () => {
     writeFileSync(
       join(testDir, "brain.yaml"),
-      "bundles: [core]\nmodel: gpt-4o-mini\n",
+      "bundleContract: capability-bundles-v1\nbundles: [core]\nmodel: gpt-4o-mini\n",
     );
     expect(parseBrainYaml(testDir)).toMatchObject({
       brain: "brain",

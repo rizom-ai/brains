@@ -8,7 +8,7 @@ tags:
   - core
   - multi-turn
   - context
-  - posture-personal
+  - recipe-professional
 
 turns:
   - userMessage: "List my blog posts"

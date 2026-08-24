@@ -87,6 +87,7 @@
     {
       "id": "private-pilot-crossover",
       "paths": [
+        "packages/brains-ops/src/capability-bundle-migration.ts",
         "packages/brains-ops/src/legacy-pilot-migration.ts",
         "packages/brains-ops/src/run-command.ts",
         "packages/brains-ops/src/stage-legacy-crossover.ts"
@@ -94,9 +95,9 @@
       "symbol": "crossover:stage",
       "owner": "@rizom/ops",
       "class": "offline-migration",
-      "behavior": "Stages the retired model/preset pilot desired state as an isolated canonical review copy with explicit hosted package pins.",
-      "currentConsumers": "The one reviewed private-pilot crossover and its offline rollback preparation.",
-      "removalPrerequisite": "Phase 8 reaches zero-drift second reconcile and hosted canaries plus yeehaa.io soak one week on the unified alpha.",
+      "behavior": "Stages retired model/preset or unversioned four-bundle pilot desired state as an isolated capability-bundle review copy, requiring reviewed source-to-target selections and explicit hosted package pins.",
+      "currentConsumers": "The one reviewed private-pilot capability-bundle crossover and its offline rollback preparation.",
+      "removalPrerequisite": "Phase 11 reaches zero-drift second reconcile and hosted canaries plus yeehaa.io soak one week on the unified alpha.",
       "rollbackDependency": "Retained through the defined crossover rollback horizon; active ops loading never imports it.",
       "targetRelease": "post-unified-alpha-soak"
     },

@@ -103,39 +103,6 @@ export const capabilityBundleDefinitionSchema: z.ZodType<CapabilityBundleDefinit
       "evalDisable",
       ctx,
     );
-
-    const members = new Set(definition.members);
-    for (const [index, contribution] of (definition.config ?? []).entries()) {
-      if (!members.has(contribution.member)) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: `Config contribution member "${contribution.member}" is not a member of bundle "${definition.id}"`,
-          path: ["config", index, "member"],
-        });
-      }
-    }
-
-    for (const [index, contribution] of (
-      definition.permissions ?? []
-    ).entries()) {
-      if (!members.has(contribution.member)) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: `Permission contribution member "${contribution.member}" is not a member of bundle "${definition.id}"`,
-          path: ["permissions", index, "member"],
-        });
-      }
-    }
-
-    for (const [index, member] of (definition.evalDisable ?? []).entries()) {
-      if (!members.has(member)) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: `Eval exclusion member "${member}" is not a member of bundle "${definition.id}"`,
-          path: ["evalDisable", index],
-        });
-      }
-    }
   });
 
 /** Validate bundle data without constructing any plugins or runtime resources. */

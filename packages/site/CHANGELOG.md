@@ -1,5 +1,11 @@
 # @rizom/site
 
+## 0.2.0-alpha.234
+
+### Patch Changes
+
+- [`81e8f76`](https://github.com/rizom-ai/brains/commit/81e8f767a67e1efcdb585b3929635b35c6519214) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Raise the minimum Zod 4 range to 4.2 so workspace schemas use the Standard Schema JSON conversion required by the MCP v2 runtime.
+
 ## 0.2.0-alpha.233
 
 ### Patch Changes

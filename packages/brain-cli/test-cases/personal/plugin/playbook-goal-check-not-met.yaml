@@ -2,6 +2,7 @@ id: playbook-goal-check-not-met
 name: Playbook GoalCheck rejects absent profile claim
 type: plugin
 tags:
+  - recipe-professional
   - plugin
   - playbooks
   - bundle-core

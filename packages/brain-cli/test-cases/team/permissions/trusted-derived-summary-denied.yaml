@@ -8,7 +8,7 @@ type: tool_invocation
 setup:
   permissionLevel: trusted
 tags:
-  - posture-team
+  - recipe-team
   - team
   - permissions
   - trusted

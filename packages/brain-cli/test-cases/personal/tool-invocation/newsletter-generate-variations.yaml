@@ -8,7 +8,7 @@ tags:
   - newsletter
   - natural-language
   - anti-hallucination
-  - posture-publishing
+  - recipe-professional
 
 turns:
   - userMessage: "Create a newsletter for my subscribers about remote work"

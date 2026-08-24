@@ -3,7 +3,7 @@ name: Derive Team Brain skills from collaboration topics
 description: Verifies skill derivation consolidates Team Brain team-memory topics into higher-level capabilities.
 type: plugin
 tags:
-  - posture-team
+  - recipe-team
   - team
   - skills
   - agent-discovery

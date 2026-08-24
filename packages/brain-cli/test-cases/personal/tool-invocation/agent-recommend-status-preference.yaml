@@ -7,7 +7,7 @@ setup:
 tags:
   - agent-discovery
   - tool-invocation
-  - posture-personal
+  - recipe-professional
 
 turns:
   - userMessage: "Who is the best saved agent to ask about brand positioning?"

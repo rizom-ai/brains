@@ -1,8 +1,13 @@
 brain: brain
+bundleContract: capability-bundles-v1
 anchor: team
 kind: team
 bundles:
   - core
+  - media
+  - automation
+  - web
+  - chat
   - site
   - team
 add:
@@ -10,7 +15,7 @@ add:
 
 plugins:
   directory-sync:
-    seedContentPath: ../../eval-content/team
+    seedContentPath: ../../eval-content/recipes/team
     autoSync: true
     initialSync: true
     git:

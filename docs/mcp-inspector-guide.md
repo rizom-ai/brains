@@ -41,7 +41,7 @@ In Inspector:
 - **Server URL**: `http://localhost:8080/mcp`
 - **Authentication**: use the OAuth flow when offered by Inspector
 
-The brain advertises OAuth metadata, dynamically registers the client, opens a browser/passkey authorization flow, and issues an access token with the `mcp` scope.
+The brain advertises OAuth metadata, opens a browser/passkey authorization flow, and issues an access token with the `mcp` scope. Current clients can identify themselves through an HTTPS Client ID Metadata Document; deprecated Dynamic Client Registration remains available as a compatibility fallback.
 
 Once connected, you can list tools/resources. In the default `basic` mode, raw write tools are intentionally hidden: use read-only tools such as `system_search`, `system_get`, `system_list`, and `job_status` for structured queries, and use `chat` for any create/update/delete or reasoning request.
 

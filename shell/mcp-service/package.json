@@ -1,18 +1,19 @@
 {
   "name": "@brains/mcp-service",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.318",
+  "version": "0.2.0-alpha.319",
   "description": "MCP (Model Context Protocol) service for tool and resource registration",
   "dependencies": {
     "@brains/contracts": "workspace:*",
     "@brains/messaging-service": "workspace:*",
     "@brains/templates": "workspace:*",
     "@brains/utils": "workspace:*",
-    "@modelcontextprotocol/sdk": "^1.30.0"
+    "@modelcontextprotocol/server": "^2.0.0"
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",
     "@brains/typescript-config": "workspace:*",
+    "@modelcontextprotocol/client": "^2.0.0",
     "@types/bun": "^1.3.14",
     "@types/node": "^24.13.3",
     "typescript": "^7.0.2"

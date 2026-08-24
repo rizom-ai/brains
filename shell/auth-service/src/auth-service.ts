@@ -49,6 +49,7 @@ import type {
   GrantA2APeerTrustInput,
 } from "./peer-trust-store";
 import type { AuthRuntimeReplicaOptions } from "./runtime-db";
+import type { ClientMetadataDocumentResolver } from "./client-metadata-document";
 import type { PersonExternalPeer } from "./runtime-schema";
 import type {
   AuthUserRole,
@@ -125,6 +126,8 @@ export interface AuthServiceOptions {
   invitationDeliveryRecoveryStaleMs?: number;
   /** Stale unconsented OAuth-client maintenance interval. Defaults to one hour. */
   oauthClientMaintenanceIntervalMs?: number;
+  /** Package-private resolver override for deterministic CIMD tests. */
+  clientMetadataDocumentResolver?: ClientMetadataDocumentResolver;
   /** Deployment secret used to encrypt per-account plugin settings at rest. */
   accountSettingsEncryptionKey?: string;
   /** Notify the app-scoped registry after an account is permanently removed. */
@@ -212,6 +215,12 @@ export class AuthService {
         ? {
             oauthClientMaintenanceIntervalMs:
               options.oauthClientMaintenanceIntervalMs,
+          }
+        : {}),
+      ...(options.clientMetadataDocumentResolver
+        ? {
+            clientMetadataDocumentResolver:
+              options.clientMetadataDocumentResolver,
           }
         : {}),
       ...(options.accountSettingsEncryptionKey
@@ -362,6 +371,7 @@ export class AuthService {
         "client_secret_basic",
         "client_secret_post",
       ],
+      client_id_metadata_document_supported: true,
       scopes_supported: ["openid", "profile", "email", "offline_access", "mcp"],
       subject_types_supported: ["public"],
       id_token_signing_alg_values_supported: ["ES256"],

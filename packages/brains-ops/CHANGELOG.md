@@ -1,5 +1,15 @@
 # @brains/ops
 
+## 0.2.0-alpha.319
+
+### Minor Changes
+
+- [#157](https://github.com/rizom-ai/brains/pull/157) [`54eb85b`](https://github.com/rizom-ai/brains/commit/54eb85b05e0d58c1cd02b83456015d8abf7f0c26) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Require `bundleContract: capability-bundles-v1` before resolving the canonical capability taxonomy so overlapping legacy bundle IDs cannot silently change meaning. Standalone migration now requires an explicitly reviewed recipe, while fleet crossover staging binds each expected pilot/cohort source selection to an exact target and preserves separately reviewed site/theme pins.
+
+### Patch Changes
+
+- [#157](https://github.com/rizom-ai/brains/pull/157) [`cedf87d`](https://github.com/rizom-ai/brains/commit/cedf87d16c76292695b86ea38eb1e52dfeffd70d) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Align the repository release toolchain and generated standalone/fleet Docker runtime on Bun 1.4.0 so reviewed instance configurations, operator scaffolding, and published Brain artifacts are validated against one runtime version.
+
 ## 0.2.0-alpha.318
 
 ## 0.2.0-alpha.317

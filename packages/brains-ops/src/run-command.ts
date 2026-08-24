@@ -141,22 +141,30 @@ const upgrade: OpsCommand = defineCommand({
 
 const crossoverStage: OpsCommand = defineCommand({
   name: "crossover:stage",
-  usage: "<source-repo> <output-dir> [site-pins.yaml]",
-  description: "Stage a reviewed canonical crossover copy",
+  usage: "<source-repo> <output-dir> <bundle-review.yaml> [site-pins.yaml]",
+  description: "Stage a reviewed capability-bundle crossover copy",
   run: async ({ args }): Promise<CommandResult> => {
     const source = args[0];
     const output = args[1];
-    const sitePinsPath = args[2];
-    if (!source || !output) {
+    const bundleReviewPath = args[2];
+    const sitePinsPath = args[3];
+    if (!source || !output || !bundleReviewPath) {
       return usageFailure(crossoverStage);
     }
 
-    const { loadReviewedSitePins, stageLegacyCrossover } =
-      await import("./stage-legacy-crossover");
+    const {
+      loadCapabilityBundleReview,
+      loadReviewedSitePins,
+      stageLegacyCrossover,
+    } = await import("./stage-legacy-crossover");
+    const bundleReview = await loadCapabilityBundleReview(bundleReviewPath);
     const sitePins = sitePinsPath
       ? await loadReviewedSitePins(sitePinsPath)
       : undefined;
-    const staged = await stageLegacyCrossover(source, output, { sitePins });
+    const staged = await stageLegacyCrossover(source, output, {
+      bundleReview,
+      sitePins,
+    });
     return {
       success: true,
       message: `Staged ${staged.changedFiles.length} reviewed crossover files in ${staged.outputDir}`,

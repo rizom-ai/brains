@@ -167,21 +167,27 @@ export class AuthRequestRouter {
       {
         method: "GET",
         path: "/authorize",
-        handler: (request): Promise<Response> =>
-          options.oauthEndpoints.handleAuthorizePage(request),
+        handler: (request, context): Promise<Response> =>
+          options.oauthEndpoints.handleAuthorizePage(request, context.issuer),
       },
       {
         method: "POST",
         path: "/authorize",
-        handler: (request): Promise<Response> =>
-          options.oauthEndpoints.handleAuthorizeApproval(request),
+        handler: (request, context): Promise<Response> =>
+          options.oauthEndpoints.handleAuthorizeApproval(
+            request,
+            context.issuer,
+          ),
       },
       {
         method: "POST",
         path: "/register",
         cors: true,
-        handler: (request): Promise<Response> =>
-          options.oauthEndpoints.handleClientRegistration(request),
+        handler: (request, context): Promise<Response> =>
+          options.oauthEndpoints.handleClientRegistration(
+            request,
+            context.issuer,
+          ),
       },
       {
         method: "POST",
@@ -194,8 +200,8 @@ export class AuthRequestRouter {
         method: "POST",
         path: "/revoke",
         cors: true,
-        handler: (request): Promise<Response> =>
-          options.oauthEndpoints.handleRevokeRequest(request),
+        handler: (request, context): Promise<Response> =>
+          options.oauthEndpoints.handleRevokeRequest(request, context.issuer),
       },
     ];
 

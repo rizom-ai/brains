@@ -65,6 +65,7 @@ export const pluginOverrideEntrySchema: z.ZodRecord<z.ZodString, z.ZodUnknown> =
 
 export interface InstanceOverrides {
   brain?: string | undefined;
+  bundleContract?: string | undefined;
   anchor?: BrainAnchorConfigKind | undefined;
   site?:
     | {
@@ -128,6 +129,9 @@ const rawInstanceOverridesSchema: z.ZodType<InstanceOverrides> = z.strictObject(
   {
     /** Brain package name (required) */
     brain: z.string().optional(),
+
+    /** Exact bundle-composition contract expected by the selected definition. */
+    bundleContract: z.string().trim().min(1).optional(),
 
     /** Anchor profile flavor. Team and organization both use collective ownership. */
     anchor: brainAnchorConfigKindSchema.optional(),

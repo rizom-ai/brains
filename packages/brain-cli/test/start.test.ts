@@ -25,7 +25,10 @@ function createTestBrainDir(): string {
     `brain-start-${Date.now()}-${Math.random().toString(36).slice(2)}`,
   );
   mkdirSync(dir, { recursive: true });
-  writeFileSync(join(dir, "brain.yaml"), "brain: brain\nbundles: [core]\n");
+  writeFileSync(
+    join(dir, "brain.yaml"),
+    "brain: brain\nbundleContract: capability-bundles-v1\nbundles: [core]\n",
+  );
   return dir;
 }
 
@@ -129,7 +132,7 @@ describe("builtin process supervision", () => {
     mkdirSync(testDir, { recursive: true });
     writeFileSync(
       join(testDir, "brain.yaml"),
-      "brain: brain\nbundles: [core]\n",
+      "brain: brain\nbundleContract: capability-bundles-v1\nbundles: [core]\n",
     );
     previousApiKey = process.env["AI_API_KEY"];
     process.env["AI_API_KEY"] = "test-key";
@@ -319,7 +322,7 @@ describe("resolveRunnerType", () => {
     mkdirSync(brainDir, { recursive: true });
     writeFileSync(
       join(brainDir, "brain.yaml"),
-      "brain: brain\nbundles: [core]\n",
+      "brain: brain\nbundleContract: capability-bundles-v1\nbundles: [core]\n",
     );
 
     const seenFlags: Array<{

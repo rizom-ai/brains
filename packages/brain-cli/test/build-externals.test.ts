@@ -52,6 +52,10 @@ describe("brain-cli build config", () => {
 
   const externalsBlock = externalsMatch?.[1] ?? "";
 
+  it("externalizes the MCP server to preserve SDK class identity", () => {
+    expect(externalsBlock).toMatch(/["']@modelcontextprotocol\/server["']/);
+  });
+
   it("externalizes preact (core)", () => {
     expect(externalsBlock).toMatch(/["']preact["']/);
   });

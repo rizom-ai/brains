@@ -5,6 +5,7 @@ type: tool_invocation
 setup:
   interfaceType: evaluation
 tags:
+  - recipe-team
   - core
   - system
   - entity-crud

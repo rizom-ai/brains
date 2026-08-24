@@ -21,6 +21,7 @@ const tokenEndpointAuthMethodSchema: z.ZodType<
 
 export interface ClientRegistrationRequest {
   redirect_uris: string[];
+  application_type?: "native" | "web" | undefined;
   token_endpoint_auth_method?: TokenEndpointAuthMethod | undefined;
   grant_types?: ("authorization_code" | "refresh_token")[] | undefined;
   response_types?: "code"[] | undefined;
@@ -33,6 +34,7 @@ export interface ClientRegistrationRequest {
 
 interface ParsedClientRegistrationRequest {
   redirect_uris: string[];
+  application_type?: "native" | "web" | undefined;
   token_endpoint_auth_method: TokenEndpointAuthMethod;
   grant_types: ("authorization_code" | "refresh_token")[];
   response_types: "code"[];
@@ -48,6 +50,7 @@ const clientRegistrationRequestSchema: z.ZodType<
   ClientRegistrationRequest
 > = z.object({
   redirect_uris: z.array(z.url()).min(1),
+  application_type: z.enum(["native", "web"]).optional(),
   token_endpoint_auth_method: tokenEndpointAuthMethodSchema.default("none"),
   grant_types: z
     .array(z.enum(["authorization_code", "refresh_token"]))
@@ -65,6 +68,7 @@ const persistedOAuthClientSchema = z
     client_id: z.string(),
     client_id_issued_at: z.number(),
     redirect_uris: z.array(z.string()),
+    application_type: z.enum(["native", "web"]).optional(),
     token_endpoint_auth_method: z.string().optional(),
     grant_types: z.array(z.string()).optional(),
     response_types: z.array(z.string()).optional(),
@@ -80,6 +84,9 @@ const persistedOAuthClientSchema = z
     client_id: client.client_id,
     client_id_issued_at: client.client_id_issued_at,
     redirect_uris: client.redirect_uris,
+    ...(client.application_type !== undefined
+      ? { application_type: client.application_type }
+      : {}),
     token_endpoint_auth_method: client.token_endpoint_auth_method ?? "none",
     grant_types: client.grant_types ?? ["authorization_code", "refresh_token"],
     response_types: client.response_types ?? ["code"],
@@ -101,11 +108,21 @@ const persistedOAuthClientSchema = z
   }));
 
 export interface OAuthClientPersistence {
-  registerClient(input: unknown): Promise<RegisteredOAuthClient>;
-  getClient(clientId: string): Promise<RegisteredOAuthClient | undefined>;
+  registerClient(
+    input: unknown,
+    issuer?: string,
+  ): Promise<RegisteredOAuthClient>;
+  upsertClientMetadataDocument(
+    client: RegisteredOAuthClient,
+  ): Promise<RegisteredOAuthClient>;
+  getClient(
+    clientId: string,
+    issuer?: string,
+  ): Promise<RegisteredOAuthClient | undefined>;
   validateClientCredentials(
     clientId: string,
     clientSecret?: string,
+    issuer?: string,
   ): Promise<string | undefined>;
   pruneStaleUnconsentedClients?(createdBefore: number): Promise<number>;
 }
@@ -116,39 +133,82 @@ function createClientSecret(): string {
 
 export class RuntimeOAuthClientStore implements OAuthClientPersistence {
   private readonly database: AuthRuntimeDatabase;
+  private readonly defaultIssuer: string | undefined;
 
-  constructor(database: AuthRuntimeDatabase) {
+  constructor(database: AuthRuntimeDatabase, defaultIssuer?: string) {
     this.database = database;
+    this.defaultIssuer = defaultIssuer;
   }
 
-  async registerClient(input: unknown): Promise<RegisteredOAuthClient> {
+  async registerClient(
+    input: unknown,
+    issuer: string | undefined = this.defaultIssuer,
+  ): Promise<RegisteredOAuthClient> {
     const client = createRegisteredClient(input);
-    await this.database.db.insert(oauthClients).values(clientToRow(client));
+    await this.database.db.insert(oauthClients).values(
+      clientToRow(client, {
+        method: "dynamic",
+        ...(issuer ? { issuer } : {}),
+      }),
+    );
     return client;
+  }
+
+  async upsertClientMetadataDocument(
+    client: RegisteredOAuthClient,
+  ): Promise<RegisteredOAuthClient> {
+    const existing = await this.getPersistedClient(client.client_id);
+    const persistedClient = {
+      ...client,
+      client_id_issued_at:
+        existing?.client.client_id_issued_at ?? client.client_id_issued_at,
+    };
+    const row = clientToRow(persistedClient, {
+      method: "metadata_document",
+    });
+    await this.database.db
+      .insert(oauthClients)
+      .values(row)
+      .onConflictDoUpdate({
+        target: oauthClients.clientId,
+        set: {
+          secretHash: null,
+          metadataJson: row.metadataJson,
+          updatedAt: nowSeconds(),
+        },
+      });
+    return persistedClient;
   }
 
   async getClient(
     clientId: string,
+    issuer?: string,
   ): Promise<RegisteredOAuthClient | undefined> {
-    const [row] = await this.database.db
-      .select({ metadataJson: oauthClients.metadataJson })
-      .from(oauthClients)
-      .where(eq(oauthClients.clientId, clientId))
-      .limit(1);
-    if (!row) return undefined;
-    return parseClientMetadata(row.metadataJson);
+    const persisted = await this.getPersistedClient(clientId);
+    if (!persisted || !this.isAvailableToIssuer(persisted, issuer)) {
+      return undefined;
+    }
+    return persisted.client;
   }
 
   async validateClientCredentials(
     clientId: string,
     clientSecret?: string,
+    issuer?: string,
   ): Promise<string | undefined> {
     const [row] = await this.database.db
-      .select({ secretHash: oauthClients.secretHash })
+      .select({
+        metadataJson: oauthClients.metadataJson,
+        secretHash: oauthClients.secretHash,
+      })
       .from(oauthClients)
       .where(eq(oauthClients.clientId, clientId))
       .limit(1);
     if (!row) return "Unknown client_id";
+    const persisted = parsePersistedClient(row.metadataJson);
+    if (!this.isAvailableToIssuer(persisted, issuer)) {
+      return "Unknown client_id";
+    }
     if (!row.secretHash) return undefined;
     if (
       !clientSecret ||
@@ -157,6 +217,29 @@ export class RuntimeOAuthClientStore implements OAuthClientPersistence {
       return "Invalid client secret";
     }
     return undefined;
+  }
+
+  private async getPersistedClient(
+    clientId: string,
+  ): Promise<PersistedOAuthClient | undefined> {
+    const [row] = await this.database.db
+      .select({ metadataJson: oauthClients.metadataJson })
+      .from(oauthClients)
+      .where(eq(oauthClients.clientId, clientId))
+      .limit(1);
+    return row ? parsePersistedClient(row.metadataJson) : undefined;
+  }
+
+  private isAvailableToIssuer(
+    persisted: PersistedOAuthClient,
+    issuer?: string,
+  ): boolean {
+    if (!issuer || persisted.registration.method === "metadata_document") {
+      return true;
+    }
+    const registrationIssuer =
+      persisted.registration.issuer ?? this.defaultIssuer;
+    return !registrationIssuer || registrationIssuer === issuer;
   }
 
   async pruneStaleUnconsentedClients(createdBefore: number): Promise<number> {
@@ -191,6 +274,7 @@ function createRegisteredClient(input: unknown): RegisteredOAuthClient {
   }
 
   const metadata = parsed.data;
+  validateApplicationTypeRedirectUris(metadata);
   const issuedAt = nowSeconds();
   const clientId = `oc_${randomUUID()}`;
   const isPublicClient = metadata.token_endpoint_auth_method === "none";
@@ -198,6 +282,9 @@ function createRegisteredClient(input: unknown): RegisteredOAuthClient {
     client_id: clientId,
     client_id_issued_at: issuedAt,
     redirect_uris: metadata.redirect_uris,
+    ...(metadata.application_type
+      ? { application_type: metadata.application_type }
+      : {}),
     token_endpoint_auth_method: metadata.token_endpoint_auth_method,
     grant_types: metadata.grant_types,
     response_types: metadata.response_types,
@@ -217,24 +304,94 @@ function createRegisteredClient(input: unknown): RegisteredOAuthClient {
 
 function clientToRow(
   client: RegisteredOAuthClient,
+  registration: OAuthClientRegistration,
 ): typeof oauthClients.$inferInsert {
   const { client_secret: secret, ...metadata } = client;
   return {
     clientId: client.client_id,
     secretHash: secret ? hashSecret(secret) : null,
-    metadataJson: JSON.stringify(metadata),
+    metadataJson: JSON.stringify({
+      ...metadata,
+      _brains_registration: registration,
+    }),
     createdAt: client.client_id_issued_at,
     updatedAt: client.client_id_issued_at,
   };
 }
 
-function parseClientMetadata(metadataJson: string): RegisteredOAuthClient {
+interface OAuthClientRegistration {
+  method: "dynamic" | "metadata_document";
+  issuer?: string;
+}
+
+interface PersistedOAuthClient {
+  client: RegisteredOAuthClient;
+  registration: OAuthClientRegistration;
+}
+
+const oauthClientRegistrationSchema = z.object({
+  method: z.enum(["dynamic", "metadata_document"]),
+  issuer: z.string().optional(),
+});
+
+function parsePersistedClient(metadataJson: string): PersistedOAuthClient {
   const parsedJson: unknown = JSON.parse(metadataJson);
-  const parsed = persistedOAuthClientSchema.safeParse(parsedJson);
-  if (!parsed.success) {
+  const client = persistedOAuthClientSchema.safeParse(parsedJson);
+  if (!client.success) {
     throw new Error("Stored OAuth client metadata is invalid");
   }
-  return parsed.data;
+
+  const registration = z
+    .looseObject({ _brains_registration: oauthClientRegistrationSchema })
+    .safeParse(parsedJson);
+  const storedRegistration = registration.success
+    ? registration.data._brains_registration
+    : undefined;
+  return {
+    client: client.data,
+    registration: storedRegistration
+      ? {
+          method: storedRegistration.method,
+          ...(storedRegistration.issuer
+            ? { issuer: storedRegistration.issuer }
+            : {}),
+        }
+      : { method: "dynamic" },
+  };
+}
+
+function validateApplicationTypeRedirectUris(
+  metadata: ParsedClientRegistrationRequest,
+): void {
+  if (!metadata.application_type) return;
+
+  for (const redirectUri of metadata.redirect_uris) {
+    const url = new URL(redirectUri);
+    if (metadata.application_type === "web" && url.protocol !== "https:") {
+      throw new InvalidClientMetadataError(
+        "web application redirect_uris must use HTTPS",
+      );
+    }
+    if (
+      metadata.application_type === "native" &&
+      url.protocol === "http:" &&
+      !isLoopbackHostname(url.hostname)
+    ) {
+      throw new InvalidClientMetadataError(
+        "native application HTTP redirect_uris must use a loopback host",
+      );
+    }
+  }
+}
+
+function isLoopbackHostname(hostname: string): boolean {
+  const normalized = hostname.toLowerCase();
+  return (
+    normalized === "localhost" ||
+    normalized === "[::1]" ||
+    normalized === "::1" ||
+    normalized.startsWith("127.")
+  );
 }
 
 function hashSecret(secret: string): string {

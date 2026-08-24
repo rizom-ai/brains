@@ -5,7 +5,7 @@ description: >-
   without rewriting an existing summary entry.
 type: plugin
 tags:
-  - posture-team
+  - recipe-team
   - team
   - summary
   - projection-decision

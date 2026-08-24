@@ -6,6 +6,7 @@ import {
   parseReviewedSitePins,
   stageLegacyCrossover,
 } from "../src/stage-legacy-crossover";
+import { parseCapabilityBundleReview } from "../src/capability-bundle-migration";
 
 describe("stageLegacyCrossover", () => {
   test("parses only fully pinned reviewed hosted sites", () => {
@@ -144,6 +145,90 @@ discord:
         "views/users.md",
       ]),
     );
+  });
+
+  test("stages the current pilot only from an explicit source-to-target review", async () => {
+    const root = await createTempDir("ops-capability-crossover-");
+    const source = join(root, "source");
+    const output = join(root, "output");
+    await mkdir(join(source, "cohorts"), { recursive: true });
+    await mkdir(join(source, "users"), { recursive: true });
+    await writeFile(
+      join(source, "pilot.yaml"),
+      `brainVersion: 0.2.0-alpha.279
+githubOrg: rizom-ai
+contentRepoPrefix: rover-
+domainSuffix: .rizom.ai
+bundles: [core]
+aiApiKey: AI_API_KEY
+gitSyncToken: GIT_SYNC_TOKEN
+contentRepoAdminToken: CONTENT_REPO_ADMIN_TOKEN
+agePublicKey: age1pilotpublickey
+`,
+    );
+    await writeFile(
+      join(source, "cohorts", "steady.yaml"),
+      "members: [alice]\n",
+    );
+    await writeFile(
+      join(source, "cohorts", "sites.yaml"),
+      "bundlesOverride: [core, site, publishing]\nmembers: [docs]\n",
+    );
+    await writeFile(
+      join(source, "users", "alice.yaml"),
+      "handle: alice\ndiscord:\n  enabled: false\n",
+    );
+    await writeFile(
+      join(source, "users", "docs.yaml"),
+      `handle: docs
+siteOverride:
+  package: "@rizom/site-docs"
+  version: 0.2.0-alpha.237
+  theme: "@rizom/theme-rizom-ai"
+  themeVersion: 0.2.0-alpha.234
+discord:
+  enabled: false
+`,
+    );
+    const bundleReview = parseCapabilityBundleReview(
+      `bundleContract: capability-bundles-v1
+pilot:
+  sourceBundles: [core]
+  targetBundles: [core, media, web, chat]
+cohorts:
+  sites:
+    sourceBundles: [core, site, publishing]
+    targetBundles: [core, media, automation, web, chat, site, publishing, federation]
+`,
+    );
+
+    await stageLegacyCrossover(source, output, {
+      bundleReview,
+      sitePins: {
+        docs: {
+          package: "@rizom/site-docs",
+          version: "0.2.0-alpha.237",
+          theme: "@rizom/theme-rizom-ai",
+          themeVersion: "0.2.0-alpha.234",
+        },
+      },
+    });
+
+    expect(await readFile(join(output, "pilot.yaml"), "utf8")).toContain(
+      "bundleContract: capability-bundles-v1",
+    );
+    expect(await readFile(join(output, "pilot.yaml"), "utf8")).toContain(
+      "bundles:\n  - core\n  - media\n  - web\n  - chat",
+    );
+    expect(
+      await readFile(join(output, "cohorts", "sites.yaml"), "utf8"),
+    ).toContain("  - federation");
+    expect(
+      await readFile(join(output, "users", "alice", "brain.yaml"), "utf8"),
+    ).toContain("bundleContract: capability-bundles-v1");
+    expect(
+      await readFile(join(output, "users", "docs", "brain.yaml"), "utf8"),
+    ).toContain("  - federation");
   });
 
   test("requires a complete identity-matched hosted site pin manifest", async () => {

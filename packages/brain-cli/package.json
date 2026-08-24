@@ -1,6 +1,6 @@
 {
   "name": "@rizom/brain",
-  "version": "0.2.0-alpha.318",
+  "version": "0.2.0-alpha.319",
   "description": "Brain runtime + CLI — scaffold, run, and manage AI brain instances",
   "keywords": [
     "brain",
@@ -19,7 +19,8 @@
   "bugs": "https://github.com/rizom-ai/brains/issues",
   "dependencies": {
     "@clack/prompts": "^1.5.1",
-    "@modelcontextprotocol/sdk": "^1.30.0",
+    "@modelcontextprotocol/client": "^2.0.0",
+    "@modelcontextprotocol/server": "^2.0.0",
     "@tailwindcss/postcss": "^4.3.1",
     "@tailwindcss/typography": "^0.5.20",
     "postcss": "^8.5.15",
@@ -27,7 +28,7 @@
     "preact-render-to-string": "^6.7.0",
     "tailwindcss": "^4.3.1",
     "yaml": "^2.9.0",
-    "zod": "^4.1.8"
+    "zod": "^4.2.0"
   },
   "devDependencies": {
     "@brains/a2a": "workspace:*",
@@ -168,9 +169,9 @@
     "build:ui": "turbo run build --filter=@brains/web-chat --filter=@brains/cms --filter=@brains/admin",
     "dev:start": "bun scripts/build.ts && bun dist/brain.js start",
     "eval": "brain-eval",
-    "eval:core": "brain-eval --suite core",
+    "eval:headless": "brain-eval --suite headless",
     "eval:personal": "brain-eval --suite personal",
-    "eval:publishing": "brain-eval --suite publishing",
+    "eval:professional": "brain-eval --suite professional",
     "eval:team": "brain-eval --suite team",
     "eval:commerce": "brain-eval --suite commerce",
     "lint": "eslint . --max-warnings 0",

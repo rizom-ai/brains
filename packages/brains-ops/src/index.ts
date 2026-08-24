@@ -82,6 +82,7 @@ export {
   pilotSchema,
   cohortSchema,
   canonicalBundleIdSchema,
+  CAPABILITY_BUNDLE_CONTRACT,
   type PilotConfig,
   type CohortConfig,
 } from "./schema";
