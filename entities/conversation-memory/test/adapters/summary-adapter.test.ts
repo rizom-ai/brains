@@ -58,9 +58,22 @@ describe("SummaryAdapter", () => {
 
     expect(markdown).toContain("conversationId: test-conv");
     expect(markdown).toContain("sourceHash: hash-123");
-    expect(markdown).toContain(`visibility: ${entity.visibility}`);
     expect(parsed.entityType).toBe("summary");
-    expect(parsed.visibility).toBe(entity.visibility);
     expect(parsed.metadata?.conversationId).toBe("test-conv");
+  });
+
+  it("leaves the visibility envelope to the serializer", () => {
+    // `EntitySerializer` wraps every adapter's markdown with visibility on
+    // the way out and reads it back on the way in, discarding whatever the
+    // adapter said. An adapter that writes the key too writes it twice and
+    // has its answer thrown away — so this one does not claim it.
+    const entity = createMockSummaryEntity({
+      content: adapter.createContentBody([entry]),
+    });
+
+    expect(adapter.toMarkdown(entity)).not.toContain("visibility:");
+    expect(adapter.fromMarkdown(adapter.toMarkdown(entity))).not.toHaveProperty(
+      "visibility",
+    );
   });
 });
