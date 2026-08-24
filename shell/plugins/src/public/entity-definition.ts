@@ -9,6 +9,7 @@ import { z } from "@brains/utils/zod";
 import { createEntityPackagePlugins } from "../entity/declarative-entity-plugin";
 import type {
   AnyEntityDefinition,
+  EntityAgentContextProvider,
   EntityAttachmentDeclaration,
   EntityCreateRouting,
   EntityPublishAssetDeclaration,
@@ -64,6 +65,7 @@ export function defineEntity<
   readonly seed?: EntitySeedDefinition<TMetadataSchema> | undefined;
   readonly templates?: Record<string, Template> | undefined;
   readonly dataSources?: readonly AnyDataSourceDeclaration[] | undefined;
+  readonly agentContext?: EntityAgentContextProvider | undefined;
   readonly attachments?: readonly EntityAttachmentDeclaration[] | undefined;
   readonly generation?: EntityGenerationDeclaration<TInputSchema> | undefined;
   readonly stub?:

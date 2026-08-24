@@ -49,6 +49,16 @@ import { entitySchema, parseDefinitionEntity } from "./entity-schema";
 import type { EntityDefinitionShape } from "./entity-shape";
 export { parseDefinitionEntity } from "./entity-schema";
 import { parseMarkdown, updateFrontmatterField } from "@brains/utils/markdown";
+import {
+  AGENT_CONTEXT_REQUEST_CHANNEL,
+  agentContextRequestSchema,
+  type AgentContextResponse,
+} from "@brains/contracts";
+import {
+  permissionToVisibilityScope,
+  type ContentVisibility,
+} from "@brains/entity-service";
+import type { MessageResponse } from "../contracts/messaging";
 import type {
   AnyEntityDefinition,
   AnyEntityJobDeclaration,
@@ -403,6 +413,7 @@ class DeclarativeEntityPlugin extends EntityPlugin<
   private readonly templates: AnyEntityDefinition["templates"];
   private readonly dataSources: AnyEntityDefinition["dataSources"];
   private readonly attachments: AnyEntityDefinition["attachments"];
+  private readonly agentContext: AnyEntityDefinition["agentContext"];
   private readonly generation: AnyEntityDefinition["generation"];
   private readonly scheduledGeneration: AnyEntityDefinition["scheduledGeneration"];
   private readonly evals: AnyEntityDefinition["evals"];
@@ -450,6 +461,7 @@ class DeclarativeEntityPlugin extends EntityPlugin<
     this.templates = definition.templates;
     this.dataSources = definition.dataSources;
     this.attachments = definition.attachments;
+    this.agentContext = definition.agentContext;
     this.generation = definition.generation;
     this.scheduledGeneration = definition.scheduledGeneration;
     this.evals = definition.evals;
@@ -882,6 +894,34 @@ class DeclarativeEntityPlugin extends EntityPlugin<
           this.entityType,
           attachment.type,
           attachment.provider(context),
+        ),
+      );
+    }
+
+    const agentContext = this.agentContext;
+    if (agentContext) {
+      // The channel, the parse and the envelope are the runtime's. A package
+      // says what it knows about the conversation and nothing about how that
+      // reaches the agent.
+      this.releaseOnShutdown.push(
+        context.messaging.subscribe(
+          AGENT_CONTEXT_REQUEST_CHANNEL,
+          async (message): Promise<MessageResponse<AgentContextResponse>> => {
+            const request = agentContextRequestSchema.parse(message.payload);
+            const items = await agentContext({
+              request,
+              // Scoped to what the asker may see, so a provider cannot
+              // surface restricted memory into a public channel by
+              // forgetting to pass a scope.
+              entities: this.entityAccess(
+                context,
+                permissionToVisibilityScope(request.userPermissionLevel),
+              ),
+              conversations: context.conversations,
+              logger: this.logger,
+            });
+            return { success: true, data: { items: [...items] } };
+          },
         ),
       );
     }
@@ -1366,11 +1406,15 @@ class DeclarativeEntityPlugin extends EntityPlugin<
     });
   }
 
-  private entityAccess(context: EntityPluginContext): JobEntityAccess {
+  private entityAccess(
+    context: EntityPluginContext,
+    visibilityScope?: ContentVisibility,
+  ): JobEntityAccess {
     return createJobEntityAccess(
       context.entityService,
       new Set([this.entityType]),
       this.id,
+      visibilityScope,
     );
   }
 

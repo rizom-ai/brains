@@ -11,7 +11,11 @@ import type {
 export type { EntityConversationReader } from "../job/job-context-contract";
 import type { AtprotoProjection } from "@brains/atproto-contracts";
 import type { FeedItem } from "@brains/site-composition";
-import type { PublishProvider } from "@brains/contracts";
+import type {
+  AgentContextItem,
+  AgentContextRequest,
+  PublishProvider,
+} from "@brains/contracts";
 import type { AttachmentProvider } from "../service/attachment-registry";
 import type { ProjectionRule, ProjectionWriteIntent } from "./projection-rule";
 import type { AnyDataSourceDeclaration } from "../public/entity-data-source";
@@ -208,6 +212,11 @@ export interface EntityDefinition<
     readonly EntityDashboardWidgetDeclaration[] | undefined;
   /** Durable job handlers, keyed by job type. */
   readonly jobs?: Record<string, AnyEntityJobDeclaration> | undefined;
+  /**
+   * Grounding this entity type offers the agent before it answers. The
+   * runtime subscribes, parses, scopes the reads, and builds the response.
+   */
+  readonly agentContext?: EntityAgentContextProvider | undefined;
   /**
    * Agent instructions for this entity type — how and when an agent
    * should reach for it. Plain text, since the agent reads it directly.
@@ -596,6 +605,25 @@ export type EntityGenerationResult =
       readonly linkInto?: EntityGenerationLink | undefined;
     }
   | { readonly success: false; readonly error: string };
+
+/**
+ * What this entity type contributes to grounding the agent's next turn.
+ *
+ * Two packages did this by subscribing to a named channel, parsing the
+ * request, and wrapping the answer in an envelope. None of that is theirs —
+ * the channel, the parse and the envelope are the runtime's, and a package
+ * only knows what it knows about the conversation.
+ *
+ * Entity reads are already scoped to what the asker may see, so a provider
+ * cannot surface restricted memory into a public channel by forgetting to
+ * pass a scope.
+ */
+export type EntityAgentContextProvider = (args: {
+  readonly request: AgentContextRequest;
+  readonly entities: JobEntityAccess;
+  readonly conversations: EntityConversationReader;
+  readonly logger: LoggerContract;
+}) => Promise<readonly AgentContextItem[]>;
 
 /**
  * Point the entity a generation was derived from at what came out.
