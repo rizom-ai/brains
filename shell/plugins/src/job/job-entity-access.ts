@@ -1,5 +1,6 @@
 import type {
   BaseEntity,
+  ContentVisibility,
   EntityInput,
   EntityMutationResult,
   EntityServiceClient,
@@ -27,7 +28,15 @@ export function createJobEntityAccess(
   entityService: EntityServiceClient,
   ownedTypes: ReadonlySet<string>,
   ownerLabel: string,
+  /**
+   * Caps what reads may see. Supplied when the work is done on someone's
+   * behalf — grounding an answer for a public channel must not surface
+   * restricted memory — and omitted for a job acting for the brain itself.
+   */
+  visibilityScope?: ContentVisibility,
 ): JobEntityAccess {
+  const scoped = <T extends object>(request: T): T =>
+    visibilityScope === undefined ? request : { ...request, visibilityScope };
   const assertOwned = (entityType: string): void => {
     if (!ownedTypes.has(entityType)) {
       throw new Error(
@@ -40,11 +49,22 @@ export function createJobEntityAccess(
     listEntities: <T extends BaseEntity>(request: {
       entityType: string;
       options?: ListOptions;
-    }): Promise<T[]> => entityService.listEntities<T>(request),
+    }): Promise<T[]> =>
+      entityService.listEntities<T>({
+        ...request,
+        ...(visibilityScope === undefined
+          ? {}
+          : {
+              options: {
+                ...request.options,
+                filter: { ...request.options?.filter, visibilityScope },
+              },
+            }),
+      }),
     getEntity: <T extends BaseEntity>(request: {
       entityType: string;
       id: string;
-    }): Promise<T | null> => entityService.getEntity<T>(request),
+    }): Promise<T | null> => entityService.getEntity<T>(scoped(request)),
     find: async <T extends BaseEntity>(
       entityType: string,
       identifier: string,

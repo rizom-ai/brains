@@ -31,7 +31,10 @@ import {
   AtprotoProjectionRegistry,
   canonicalAtprotoLexicons,
 } from "@brains/atproto-contracts";
-import { DASHBOARD_CHANNELS } from "@brains/contracts";
+import {
+  AGENT_CONTEXT_REQUEST_CHANNEL,
+  DASHBOARD_CHANNELS,
+} from "@brains/contracts";
 import type { AttachmentProvider } from "../src";
 import {
   SYSTEM_CHANNELS,
@@ -1483,6 +1486,70 @@ describe("entity package definitions", () => {
     // runtime — the guide package never wrote a deck.
     expect(deck?.content).toContain("id: rendered");
     expect(deck?.content).not.toContain("guide-old");
+
+    harness.reset();
+  });
+
+  // Two packages ground the agent's next turn from what they hold, and both
+  // did it by subscribing to a named channel, parsing the request, and
+  // wrapping the answer in an envelope. None of that is theirs: the channel
+  // name, the parse, and the envelope belong to the runtime, and a package
+  // only knows what it knows about the conversation.
+  it("contributes what it knows to the agent's context", async () => {
+    const guide = defineEntity({
+      type: "guide",
+      purpose: "A guide that grounds an answer.",
+      metadata: z.object({ title: z.string() }),
+      agentContext: async ({ request, entities }) => {
+        const guides = await entities.listEntities({ entityType: "guide" });
+        return guides.map((found) => ({
+          id: found.id,
+          source: "guide",
+          content: `${request.message} → ${String(found.metadata["title"])}`,
+        }));
+      },
+    });
+    const definition = defineEntityPackage({ id: "guides", entities: [guide] });
+    const plugin = createEntityPackagePlugins(
+      definition.entities,
+      definition.projections,
+      { name: "@fixture/guides", version: "0.1.0" },
+      (id) => `@fixture/guides:${id}`,
+    )[0];
+    if (!plugin) throw new Error("Guide entity plugin was not created");
+
+    const harness = createPluginHarness({
+      logger: createSilentLogger("entity-agent-context-test"),
+    });
+    await harness.installPlugin(plugin);
+    harness.addEntities([
+      {
+        id: "fishing",
+        entityType: "guide",
+        content: "How to fish",
+        contentHash: "fishing-hash",
+        metadata: { title: "Fishing" },
+      },
+    ]);
+
+    const response = await harness.sendMessage(AGENT_CONTEXT_REQUEST_CHANNEL, {
+      conversationId: "conv-1",
+      message: "what about fishing",
+      interfaceType: "cli",
+      userPermissionLevel: "public",
+    });
+
+    // The runtime named the channel, parsed the request, and built the
+    // envelope. The package returned items.
+    expect(response).toEqual({
+      items: [
+        {
+          id: "fishing",
+          source: "guide",
+          content: "what about fishing → Fishing",
+        },
+      ],
+    });
 
     harness.reset();
   });
