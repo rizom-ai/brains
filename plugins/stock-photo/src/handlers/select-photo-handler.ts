@@ -3,7 +3,7 @@ import type { StockPhotoEntityWriter } from "../lib/set-cover-image";
 import type { Logger } from "@brains/utils/logger";
 import type { ProgressReporter } from "@brains/utils/progress";
 import { z } from "@brains/utils/zod";
-import { imageAdapter } from "@brains/image";
+import { imageMetadataFor } from "@brains/image";
 import type { FetchImageFn, StockPhotoProvider } from "../lib/types";
 import { setCoverImage } from "../lib/set-cover-image";
 
@@ -84,8 +84,7 @@ export class SelectPhotoJobHandler extends BaseJobHandler<
 
     const dataUrl = await this.deps.fetchImage(data.imageUrl);
     const imageTitle = data.title ?? `Stock photo ${data.photoId}`;
-    const imageData = imageAdapter.createImageEntity({
-      dataUrl,
+    const imageMetadata = imageMetadataFor(dataUrl, {
       title: imageTitle,
       alt: data.alt ?? imageTitle,
     });
@@ -98,11 +97,9 @@ export class SelectPhotoJobHandler extends BaseJobHandler<
     const { entityId } = await this.deps.entityService.createEntity({
       entity: {
         id: data.photoId,
-        ...imageData,
-        metadata: {
-          ...imageData.metadata,
-          sourceUrl: data.imageUrl,
-        },
+        entityType: "image",
+        content: dataUrl,
+        metadata: { ...imageMetadata, sourceUrl: data.imageUrl },
       },
     });
 

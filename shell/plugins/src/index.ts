@@ -798,6 +798,7 @@ export {
 } from "@brains/mcp-service";
 
 export { ensureUniqueTitle } from "./service/create-entity-with-unique-title";
+export { sourceAttachmentKey } from "./entity/source-attachment-key";
 
 export { SerialQueue } from "./service/serial-queue";
 export { SerializedStatusStore } from "./service/serialized-status-store";

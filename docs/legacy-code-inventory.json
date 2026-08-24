@@ -18,18 +18,6 @@
       "targetRelease": "0.3.0-or-later"
     },
     {
-      "id": "image-handler-alias",
-      "paths": ["entities/image/src/image-plugin.ts"],
-      "symbol": "image-generate handler alias",
-      "owner": "@brains/image-plugin",
-      "class": "runtime-compatibility",
-      "behavior": "Registers the retired image generation handler name alongside the canonical handler.",
-      "currentConsumers": "Older queued jobs or callers that persisted the retired handler name.",
-      "removalPrerequisite": "Observe zero queued or invoked jobs using the retired handler name across the minimum supported upgrade source.",
-      "rollbackDependency": "Old queued jobs must drain or be migrated before removing the alias.",
-      "targetRelease": "0.3.0-or-later"
-    },
-    {
       "id": "topic-entity-shape",
       "paths": [
         "entities/topics/src/lib/topic-body.ts",

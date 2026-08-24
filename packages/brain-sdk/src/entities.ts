@@ -139,6 +139,12 @@ export type { FeedItem } from "@brains/site-composition";
 // consumers: @brains/blog, @brains/decks, @brains/social-media.
 export { ensureUniqueTitle } from "@brains/plugins";
 
+// Whether an artifact derived from another entity's attachment is still the
+// artifact for that source. Two packages render these and both ask before
+// doing the work, so the staleness rule has one place to change. Named
+// consumers: @brains/document-plugin, @brains/image-plugin.
+export { sourceAttachmentKey } from "@brains/plugins";
+
 // AT Protocol projection, for entities that publish records. The runtime
 // owns registration, so the registry itself stays internal — an author
 // only builds the projection.
@@ -179,6 +185,10 @@ export {
   truncateText,
 } from "@brains/utils/string-utils";
 export { computeContentHash } from "@brains/utils/hash";
+// The repo's one way to turn a caught error into a message — a lint rule
+// enforces it over an inline instanceof ternary, so a package that cannot
+// reach it cannot pass lint. Named consumer: @brains/image-plugin.
+export { getErrorMessage } from "@brains/utils/error";
 export { parseMarkdown } from "@brains/utils/markdown";
 
 export type {
