@@ -8,6 +8,7 @@ import { createEntityPackagePlugins } from "../entity/declarative-entity-plugin"
 import type {
   AnyEntityDefinition,
   EntityAgentContextProvider,
+  EntityAtprotoDiscovery,
   EntityCheckDeclaration,
   EntityInboxDeclaration,
   EntityAttachmentDeclaration,
@@ -67,6 +68,7 @@ export function defineEntity<
   readonly actions?: EntityActionPolicyRule | undefined;
   readonly checks?: readonly EntityCheckDeclaration[] | undefined;
   readonly inbox?: EntityInboxDeclaration | undefined;
+  readonly atprotoDiscovery?: EntityAtprotoDiscovery | undefined;
   readonly seed?: EntitySeedDefinition<TMetadataSchema> | undefined;
   readonly templates?: Record<string, Template> | undefined;
   readonly dataSources?: readonly AnyDataSourceDeclaration[] | undefined;
