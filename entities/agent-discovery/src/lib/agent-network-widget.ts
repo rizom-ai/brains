@@ -1,5 +1,5 @@
-import type { EntityPluginContext } from "@brains/plugins";
-import { AgentAdapter } from "../adapters/agent-adapter";
+import type { JobEntityAccess } from "@brains/sdk/entities";
+import { parseAgentEntity } from "./agent-content";
 import type { AgentEntity } from "../schemas/agent";
 import type { SkillEntity } from "../schemas/skill";
 import { AGENT_ENTITY_TYPE, SKILL_ENTITY_TYPE } from "./constants";
@@ -30,22 +30,21 @@ export type {
   AgentNetworkWidgetData,
 } from "./agent-network-schema";
 
-const agentAdapter: AgentAdapter = new AgentAdapter();
 export async function buildAgentNetworkWidgetData(
-  context: EntityPluginContext,
+  entities: JobEntityAccess,
 ): Promise<AgentNetworkWidgetData> {
   const [agents, skills] = await Promise.all([
-    context.entityService.listEntities<AgentEntity>({
+    entities.listEntities<AgentEntity>({
       entityType: AGENT_ENTITY_TYPE,
     }),
-    context.entityService.listEntities<SkillEntity>({
+    entities.listEntities<SkillEntity>({
       entityType: SKILL_ENTITY_TYPE,
     }),
   ]);
 
   const parsedAgents: ParsedAgentForNetwork[] = agents.map((entity) => ({
     entity,
-    ...agentAdapter.parseEntity(entity),
+    ...parseAgentEntity(entity),
   }));
   const agentRows: AgentNetworkAgentRow[] = buildAgentRows(parsedAgents);
   const skillRows: AgentNetworkSkillRow[] = buildSkillRows(

@@ -1,15 +1,13 @@
 import { describe, expect, it } from "bun:test";
 import type { BaseEntity, EntityPluginContext } from "@brains/plugins";
 import { createMockEntityService } from "@brains/test-utils";
-import { AgentAdapter } from "../src/adapters/agent-adapter";
+import { createAgentContent } from "../src/lib/agent-content";
 import {
   collectTagVocabulary,
   formatVocabularyForPrompt,
   normalizeTag,
   normalizeTags,
 } from "../src/lib/tag-vocabulary";
-
-const agentAdapter = new AgentAdapter();
 
 describe("tag vocabulary", () => {
   it("should normalize and dedupe tags conservatively", () => {
@@ -24,7 +22,7 @@ describe("tag vocabulary", () => {
       {
         id: "kai.brain",
         entityType: "agent" as const,
-        content: agentAdapter.createAgentContent({
+        content: createAgentContent({
           name: "Kai",
           kind: "person",
           brainName: "kai.brain",
@@ -56,7 +54,7 @@ describe("tag vocabulary", () => {
       {
         id: "north.ops",
         entityType: "agent" as const,
-        content: agentAdapter.createAgentContent({
+        content: createAgentContent({
           name: "North",
           kind: "team",
           brainName: "north.ops",

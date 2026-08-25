@@ -9,12 +9,11 @@ import {
   createMockEntityService,
   createSilentLogger,
 } from "@brains/test-utils";
-import { SkillAdapter } from "../src/adapters/skill-adapter";
+import { createSkillContent } from "../src/lib/directory-markdown";
 import { createSkillProjectionRule } from "../src/lib/skill-projection";
 import type { SkillFrontmatter } from "../src/schemas/skill";
 
 const now = "2026-04-30T00:00:00.000Z";
-const adapter = new SkillAdapter();
 
 function entity(input: {
   id: string;
@@ -35,7 +34,7 @@ function skill(id: string, metadata: SkillFrontmatter): BaseEntity {
   return entity({
     id,
     entityType: "skill",
-    content: adapter.createSkillContent(metadata),
+    content: createSkillContent(metadata),
     metadata,
   });
 }
@@ -155,7 +154,7 @@ describe("skill projection rule", () => {
         entity: {
           id: "systems-design",
           entityType: "skill",
-          content: adapter.createSkillContent(desired),
+          content: createSkillContent(desired),
           metadata: desired,
           visibility: "public",
         },

@@ -24,7 +24,7 @@ export const aiRoutes: RouteDefinitionInput[] = [
       // proof links folded into its foot — and the faces to close.
       {
         id: "network",
-        template: "agent-discovery:proximity-map",
+        template: "@brains/agent-discovery:agent:proximity-map",
         dataQuery: {},
       },
       { id: "problem", template: "home:problem" },
@@ -89,7 +89,7 @@ export const aiRoutes: RouteDefinitionInput[] = [
     sections: [
       {
         id: "directory",
-        template: "agent-discovery:agent-list",
+        template: "@brains/agent-discovery:agent:agent-list",
         dataQuery: {
           entityType: "agent",
           query: { status: "approved", limit: 100 },

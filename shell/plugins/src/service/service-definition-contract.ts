@@ -1,4 +1,5 @@
 import type { UserPermissionLevel } from "@brains/templates";
+import type { ToolContext } from "../interfaces";
 import type { LoggerContract } from "@brains/utils/logger";
 import type { z } from "@brains/utils/zod";
 import type {
@@ -219,7 +220,15 @@ export interface ServiceToolDefinition<
   readonly description: string;
   readonly input: TInputSchema;
   readonly output: TOutputSchema;
-  readonly confirmation?: string | undefined;
+  /**
+   * What the person is being asked to agree to.
+   *
+   * A function of the input when the answer depends on it: approving "grant
+   * trusted access" without seeing to whom is not a decision anyone can
+   * make. A plain string when the act is the same every time.
+   */
+  readonly confirmation?:
+    string | ((input: z.output<TInputSchema>) => string) | undefined;
   readonly permission?: UserPermissionLevel | undefined;
   readonly sideEffects?: "none" | "writes" | "external" | undefined;
   /**
@@ -231,6 +240,12 @@ export interface ServiceToolDefinition<
     context: EntityReactionContext & {
       readonly input: z.output<TInputSchema>;
       readonly signal: AbortSignal;
+      /**
+       * Who is asking. A tool that grants trust or edits a record has to
+       * attribute the act to someone, and permission is a fact about the
+       * caller rather than about the tool.
+       */
+      readonly caller: ToolContext | undefined;
     },
   ): z.input<TOutputSchema> | Promise<z.input<TOutputSchema>>;
 }

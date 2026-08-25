@@ -1,11 +1,10 @@
 import {
-  SYSTEM_CHANNELS,
   defineDashboardWidget,
-  registerBuiltInDashboardWidget,
-  type EntityPluginContext,
+  defineEntityDashboardWidget,
+  z,
   type DashboardOperatorViewBlock,
-} from "@brains/plugins";
-import { z } from "@brains/utils/zod";
+  type EntityDashboardWidgetDeclaration,
+} from "@brains/sdk/entities";
 import {
   AGENT_NETWORK_KINDS,
   agentNetworkWidgetDataSchema,
@@ -303,42 +302,25 @@ const agentProximityWidget = defineDashboardWidget({
   },
 });
 
-export function registerAgentNetworkDashboardWidget(
-  context: EntityPluginContext,
-): void {
-  context.messaging.subscribe(
-    SYSTEM_CHANNELS.pluginsRegistered,
-    async (): Promise<{ success: boolean }> => {
-      await registerBuiltInDashboardWidget({
-        context,
-        definition: agentNetworkWidget,
-        load: async ({ caller, signal }) => {
-          signal.throwIfAborted();
-          const data = await buildAgentNetworkWidgetData(context);
-          signal.throwIfAborted();
-          return { ...data, canInvite: caller?.permission === "admin" };
-        },
-      });
-
-      await registerBuiltInDashboardWidget({
-        context,
-        definition: agentProximityWidget,
-        // The console grows the proximity organism itself; the declarative
-        // view above stays as the map's text detail and digest.
-        render: {
-          component: AgentProximityWidget,
-          clientStyles: proximityMapWidgetStyles,
-          clientScript: proximityMapScript,
-        },
-        load: async ({ signal }) => {
-          signal.throwIfAborted();
-          const data = await buildProximityMapData(context);
-          signal.throwIfAborted();
-          return data;
-        },
-      });
-
-      return { success: true };
+export const agentNetworkWidgetDeclaration: EntityDashboardWidgetDeclaration =
+  defineEntityDashboardWidget(
+    agentNetworkWidget,
+    async ({ entities, caller, signal }) => {
+      signal.throwIfAborted();
+      const data = await buildAgentNetworkWidgetData(entities);
+      signal.throwIfAborted();
+      // Inviting is an admin act, so the widget only offers it to one.
+      return { ...data, canInvite: caller?.permission === "admin" };
     },
   );
-}
+
+export const agentProximityWidgetDeclaration: EntityDashboardWidgetDeclaration =
+  defineEntityDashboardWidget(
+    agentProximityWidget,
+    async ({ entities, semantic, signal }) => {
+      signal.throwIfAborted();
+      const data = await buildProximityMapData({ entities, semantic });
+      signal.throwIfAborted();
+      return data;
+    },
+  );

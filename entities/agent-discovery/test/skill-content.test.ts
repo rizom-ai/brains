@@ -1,17 +1,37 @@
 import { describe, it, expect } from "bun:test";
-import { SkillAdapter } from "../src/adapters/skill-adapter";
-import type { SkillEntity } from "../src/schemas/skill";
+import { parseMarkdown } from "@brains/sdk/entities";
+import { skill } from "../src/skill-entity";
+import { createSkillContent } from "../src/lib/directory-markdown";
+import type { SkillEntity, SkillMetadata } from "../src/schemas/skill";
 
-const adapter = new SkillAdapter();
+function markdown(): NonNullable<typeof skill.markdown> {
+  const codec = skill.markdown;
+  if (!codec) throw new Error("The skill type declares no markdown codec");
+  return codec;
+}
 
-describe("SkillAdapter", () => {
+/** What the runtime derives from a stored file. */
+function decode(content: string): { metadata: Partial<SkillMetadata> } {
+  const { frontmatter } = parseMarkdown(content);
+  return markdown().decode({ content, frontmatter });
+}
+
+/** What the runtime writes back for an entity. */
+function encode(entity: SkillEntity): string {
+  return markdown().encode({
+    content: entity.content,
+    metadata: skill.metadata.parse(entity.metadata),
+  }).content;
+}
+
+describe("skill content", () => {
   it("should have correct entity type", () => {
-    expect(adapter.entityType).toBe("skill");
+    expect(skill.type).toBe("skill");
   });
 
-  describe("fromMarkdown", () => {
+  describe("decode", () => {
     it("should parse frontmatter into metadata with name", () => {
-      const markdown = `---
+      const stored = `---
 name: Institutional Design
 description: Knowledge of institutional design patterns
 tags:
@@ -21,13 +41,12 @@ examples:
   - What are the key principles?
 ---`;
 
-      const partial = adapter.fromMarkdown(markdown);
-      expect(partial.entityType).toBe("skill");
-      expect(partial.metadata?.name).toBe("Institutional Design");
+      const partial = decode(stored);
+      expect(partial.metadata.name).toBe("Institutional Design");
     });
   });
 
-  describe("toMarkdown", () => {
+  describe("encode", () => {
     it("rebuilds markdown from entity metadata", () => {
       // Stale frontmatter (only `name`) plus canonical metadata — the
       // output should reflect the metadata, not the stale disk content.
@@ -48,7 +67,7 @@ examples:
         contentHash: "abc",
       };
 
-      const output = adapter.toMarkdown(entity);
+      const output = encode(entity);
       expect(output).toContain("name: Test");
       expect(output).toContain("description: Test skill");
       expect(output).not.toContain("name: Stale");
@@ -57,7 +76,7 @@ examples:
 
   describe("createSkillContent", () => {
     it("should build markdown with all frontmatter fields", () => {
-      const content = adapter.createSkillContent({
+      const content = createSkillContent({
         name: "Ecosystem Architecture",
         description: "Design patterns for living systems",
         tags: ["systems", "design"],
@@ -74,7 +93,7 @@ examples:
     });
 
     it("should handle empty tags and examples", () => {
-      const content = adapter.createSkillContent({
+      const content = createSkillContent({
         name: "Simple Skill",
         description: "A basic skill",
         tags: [],

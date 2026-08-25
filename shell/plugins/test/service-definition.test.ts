@@ -388,3 +388,100 @@ describe("declarative service definitions", () => {
     expect(studioFactories).toBe(0);
   });
 });
+
+describe("a tool and who called it", () => {
+  it("hands execute the caller, so a grant can be attributed", async () => {
+    let seen: unknown;
+    const definition = defineServicePlugin({
+      id: "trust-desk",
+      config: z.object({}),
+      setup: () => ({}),
+      tools: () => [
+        defineTool({
+          name: "record",
+          description: "Record who asked.",
+          input: z.object({}),
+          output: z.object({ actor: z.string() }),
+          execute: ({ caller }) => {
+            seen = caller;
+            return { actor: caller?.actor.kind ?? "anonymous" };
+          },
+        }),
+      ],
+    });
+
+    const [plugin] = instantiatePluginPackageDefinition(
+      definition,
+      {},
+      { name: "@fixture/trust-desk", version: "0.1.0" },
+    );
+    if (!plugin) throw new Error("Service plugin was not created");
+
+    const harness = createPluginHarness();
+    const capabilities = await harness.installPlugin(plugin);
+    const tool = capabilities.tools[0];
+    if (!tool) throw new Error("Tool was not registered");
+
+    const result = await tool.handler(
+      {},
+      {
+        interfaceType: "cli",
+        actor: { kind: "user", userId: "u-42" },
+        userPermissionLevel: "admin",
+      },
+    );
+
+    expect(result).toMatchObject({ success: true, data: { actor: "user" } });
+    expect(seen).toMatchObject({
+      actor: { kind: "user", userId: "u-42" },
+      userPermissionLevel: "admin",
+    });
+  });
+});
+
+describe("what a confirmation says", () => {
+  it("can name the subject, so a person sees what they are agreeing to", async () => {
+    const definition = defineServicePlugin({
+      id: "trust-gate",
+      config: z.object({}),
+      setup: () => ({}),
+      tools: () => [
+        defineTool({
+          name: "grant",
+          description: "Grant access.",
+          input: z.object({ agent: z.string(), level: z.string() }),
+          output: z.object({ granted: z.string() }),
+          confirmation: ({ agent, level }) =>
+            `Grant ${level} access to ${agent}?`,
+          execute: ({ input }) => ({ granted: input.agent }),
+        }),
+      ],
+    });
+
+    const [plugin] = instantiatePluginPackageDefinition(
+      definition,
+      {},
+      { name: "@fixture/trust-gate", version: "0.1.0" },
+    );
+    if (!plugin) throw new Error("Service plugin was not created");
+
+    const harness = createPluginHarness();
+    const capabilities = await harness.installPlugin(plugin);
+    const tool = capabilities.tools[0];
+    if (!tool) throw new Error("Tool was not registered");
+
+    const confirmation = await tool.handler(
+      { agent: "vale.example", level: "trusted" },
+      {
+        interfaceType: "cli",
+        actor: { kind: "user", userId: "u-1" },
+        userPermissionLevel: "admin",
+      },
+    );
+
+    expect(confirmation).toMatchObject({
+      needsConfirmation: true,
+      summary: "Grant trusted access to vale.example?",
+    });
+  });
+});

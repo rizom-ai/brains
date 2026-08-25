@@ -1,24 +1,47 @@
 import { describe, it, expect } from "bun:test";
-import { AgentAdapter } from "../src/adapters/agent-adapter";
-import type { AgentEntity } from "../src/schemas/agent";
+import { parseMarkdown } from "@brains/sdk/entities";
+import { agent } from "../src/agent-entity";
+import {
+  createAgentContent,
+  parseAgentContent,
+} from "../src/lib/agent-content";
+import type { AgentEntity, AgentMetadata } from "../src/schemas/agent";
 
-const adapter = new AgentAdapter();
+function markdown(): NonNullable<typeof agent.markdown> {
+  const codec = agent.markdown;
+  if (!codec) throw new Error("The agent type declares no markdown codec");
+  return codec;
+}
 
-describe("AgentAdapter", () => {
+/** What the runtime derives from a stored file. */
+function decode(content: string): { metadata: Partial<AgentMetadata> } {
+  const { frontmatter } = parseMarkdown(content);
+  return markdown().decode({ content, frontmatter });
+}
+
+/** What the runtime writes back for an entity. */
+function encode(entity: AgentEntity): string {
+  return markdown().encode({
+    content: entity.content,
+    metadata: agent.metadata.parse(entity.metadata),
+  }).content;
+}
+
+describe("agent content", () => {
   it("should have correct entity type", () => {
-    expect(adapter.entityType).toBe("agent");
+    expect(agent.type).toBe("agent");
   });
 
   it("declares approval as the publish gate for publishedOnly builds", () => {
     // Production site builds filter to published entities; for agents,
     // approval is what makes one public-directory content — discovered and
     // archived agents must stay out of static routes.
-    expect(adapter.publishedStatuses).toEqual(["approved"]);
+    expect(agent.config?.publish?.publishStatuses).toEqual(["approved"]);
   });
 
   describe("createAgentContent", () => {
     it("should build markdown with frontmatter and body sections", () => {
-      const content = adapter.createAgentContent({
+      const content = createAgentContent({
         name: "Yeehaa",
         kind: "person",
         organization: "Rizom",
@@ -63,7 +86,7 @@ describe("AgentAdapter", () => {
     });
 
     it("should handle empty skills", () => {
-      const content = adapter.createAgentContent({
+      const content = createAgentContent({
         name: "Unknown",
         kind: "person",
         brainName: "Unknown Brain",
@@ -81,7 +104,7 @@ describe("AgentAdapter", () => {
     });
 
     it("should persist remote card freshness fields", () => {
-      const content = adapter.createAgentContent({
+      const content = createAgentContent({
         name: "Peer",
         kind: "person",
         brainName: "Peer Brain",
@@ -98,20 +121,20 @@ describe("AgentAdapter", () => {
         notes: "Local note.",
       });
 
-      const partial = adapter.fromMarkdown(content);
+      const partial = decode(content);
 
       expect(content).toContain("cardObservedAt:");
       expect(content).toContain("cardLastCheckedAt:");
       expect(content).toContain("cardLastError: temporary failure");
-      expect(partial.metadata?.cardObservedAt).toBe("2026-07-22T08:00:00.000Z");
-      expect(partial.metadata?.cardLastCheckedAt).toBe(
+      expect(partial.metadata.cardObservedAt).toBe("2026-07-22T08:00:00.000Z");
+      expect(partial.metadata.cardLastCheckedAt).toBe(
         "2026-07-22T09:00:00.000Z",
       );
-      expect(partial.metadata?.cardLastError).toBe("temporary failure");
+      expect(partial.metadata.cardLastError).toBe("temporary failure");
     });
 
     it("should handle optional fields being absent", () => {
-      const content = adapter.createAgentContent({
+      const content = createAgentContent({
         name: "Minimal",
         kind: "person",
         brainName: "Minimal Brain",
@@ -154,7 +177,7 @@ Founder of Rizom.
 
 Great collaborator.`;
 
-      const parsed = adapter.parseAgentContent(content);
+      const parsed = parseAgentContent(content);
       expect(parsed.about).toContain("Founder of Rizom");
       expect(parsed.skills).toHaveLength(2);
       expect(parsed.skills[0]).toMatchObject({
@@ -179,7 +202,7 @@ status: discovered
 discoveredAt: "2026-03-31T00:00:00.000Z"
 ---`;
 
-      const parsed = adapter.parseAgentContent(content);
+      const parsed = parseAgentContent(content);
       expect(parsed.about).toBe("");
       expect(parsed.skills).toEqual([]);
       expect(parsed.notes).toBe("");
@@ -205,7 +228,7 @@ Test agent.
 ## Notes
 `;
 
-      const parsed = adapter.parseAgentContent(content);
+      const parsed = parseAgentContent(content);
       expect(parsed.skills).toHaveLength(1);
       expect(parsed.skills[0]).toMatchObject({
         name: "Image Generation",
@@ -215,12 +238,12 @@ Test agent.
     });
   });
 
-  describe("extractMetadata", () => {
+  describe("metadata derivation", () => {
     it("should return name and status", () => {
       const entity: AgentEntity = {
         id: "yeehaa.io",
         entityType: "agent",
-        content: adapter.createAgentContent({
+        content: createAgentContent({
           name: "Yeehaa",
           kind: "person",
           brainName: "Yeehaa's Brain",
@@ -244,16 +267,16 @@ Test agent.
         },
       };
 
-      const metadata = adapter.extractMetadata(entity);
+      const metadata = decode(entity.content).metadata;
       expect(metadata.name).toBe("Yeehaa");
       expect(metadata.status).toBe("discovered");
       expect(metadata.slug).toBe("yeehaa-io");
     });
   });
 
-  describe("fromMarkdown", () => {
+  describe("decode", () => {
     it("should derive slug from name", () => {
-      const content = adapter.createAgentContent({
+      const content = createAgentContent({
         name: "Yeehaa",
         kind: "person",
         brainName: "Yeehaa's Brain",
@@ -265,16 +288,16 @@ Test agent.
         notes: "",
       });
 
-      const partial = adapter.fromMarkdown(content);
-      expect(partial.metadata?.slug).toBe("yeehaa-io");
-      expect(partial.metadata?.name).toBe("Yeehaa");
-      expect(partial.metadata?.status).toBe("discovered");
+      const partial = decode(content);
+      expect(partial.metadata.slug).toBe("yeehaa-io");
+      expect(partial.metadata.name).toBe("Yeehaa");
+      expect(partial.metadata.status).toBe("discovered");
     });
   });
 
   describe("roundtrip", () => {
     it("should preserve data through create → parse", () => {
-      const content = adapter.createAgentContent({
+      const content = createAgentContent({
         name: "Ranger",
         kind: "organization",
         organization: "Rizom",
@@ -294,7 +317,7 @@ Test agent.
         notes: "Central hub for the network.",
       });
 
-      const parsed = adapter.parseAgentContent(content);
+      const parsed = parseAgentContent(content);
       expect(parsed.about).toContain("Discovery and registry agent");
       expect(parsed.skills).toHaveLength(1);
       expect(parsed.skills[0]).toMatchObject({ name: "Agent Discovery" });
@@ -302,12 +325,12 @@ Test agent.
     });
   });
 
-  describe("toMarkdown", () => {
+  describe("encode", () => {
     it("rebuilds frontmatter from metadata so approval stays in sync on disk", () => {
       // Simulate the state after `system_update({ fields: { status: "approved" } })`:
       // DB metadata says approved, but entity.content still carries the stale
       // `status: discovered` frontmatter.
-      const staleContent = adapter.createAgentContent({
+      const staleContent = createAgentContent({
         name: "Phoney",
         kind: "person",
         brainName: "mylittlephoney.com",
@@ -336,14 +359,14 @@ Test agent.
         },
       };
 
-      const output = adapter.toMarkdown(entity);
+      const output = encode(entity);
 
       expect(output).toContain("status: approved");
       expect(output).not.toContain("status: discovered");
     });
 
     it("preserves frontmatter fields that live only on disk (not in metadata)", () => {
-      const staleContent = adapter.createAgentContent({
+      const staleContent = createAgentContent({
         name: "Yeehaa",
         kind: "team",
         organization: "Rizom",
@@ -380,7 +403,7 @@ Test agent.
         },
       };
 
-      const output = adapter.toMarkdown(entity);
+      const output = encode(entity);
 
       // Metadata-tracked fields reflect DB truth
       expect(output).toContain("status: approved");

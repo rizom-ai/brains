@@ -1,11 +1,17 @@
 import { describe, expect, it } from "bun:test";
-import {
-  ATPROTO_BRAIN_CARD_CONFLICT,
-  ATPROTO_BRAIN_DISCOVERED,
-  type AtprotoBrainDiscoveryEventPayload,
+import type {
+  AtprotoBrainCardConflictPayload,
+  AtprotoBrainDiscoveryEventPayload,
 } from "@brains/atproto-contracts";
-import { createMockShell } from "@brains/test-utils";
-import { AgentToolsPlugin } from "../src/plugins/agent-tools-plugin";
+import type { Plugin } from "@brains/plugins";
+import { instantiatePluginPackageDefinition } from "@brains/plugins";
+import { createPluginHarness } from "@brains/plugins/test";
+import agentDiscovery from "../src";
+import { AGENT_PLUGIN_ID } from "./fixtures/agent-network";
+import {
+  recordConflict,
+  recordDiscoveryCandidate,
+} from "../src/lib/atproto-notifications";
 
 const discoveredPayload: AtprotoBrainDiscoveryEventPayload = {
   agentId: "peer.example.com",
@@ -18,44 +24,65 @@ const discoveredPayload: AtprotoBrainDiscoveryEventPayload = {
   cardCid: "bafy-peer-card",
 };
 
-type RecurringCheckDefinition = Parameters<
+const conflictPayload: AtprotoBrainCardConflictPayload = {
+  domain: "peer.example.com",
+  existingRepoDid: "did:plc:approved-owner",
+  candidateRepoDid: "did:plc:attacker",
+  observedAt: "2026-07-22T13:00:00.000Z",
+  reason: "ATProto agent identity collision",
+};
+
+type Harness = ReturnType<typeof createPluginHarness<Plugin>>;
+type CapturedCheck = Parameters<
   ReturnType<
-    ReturnType<typeof createMockShell>["getRecurringChecks"]
+    ReturnType<Harness["getMockShell"]>["getRecurringChecks"]
   >["register"]
 >[0];
 
 async function installWithCapturedCheck(notifyOnNewAgents: boolean): Promise<{
-  shell: ReturnType<typeof createMockShell>;
-  check: RecurringCheckDefinition;
+  harness: Harness;
+  check: { run: () => ReturnType<CapturedCheck["run"]> };
 }> {
-  const shell = createMockShell();
-  let captured: RecurringCheckDefinition | undefined;
+  const harness = createPluginHarness<Plugin>();
+  const shell = harness.getMockShell();
+  const registered: CapturedCheck[] = [];
   shell.getRecurringChecks = (): ReturnType<
     typeof shell.getRecurringChecks
   > => ({
-    register: (definition) => {
-      captured = definition;
-      return (): void => {};
+    register: (definition): (() => void) => {
+      registered.push(definition);
+      return () => {};
     },
   });
-  const plugin = new AgentToolsPlugin(undefined, { notifyOnNewAgents });
-  await plugin.register(shell);
-  if (!captured) throw new Error("Expected recurring check registration");
-  return { shell, check: captured };
+
+  const plugins = instantiatePluginPackageDefinition(
+    agentDiscovery,
+    { notifyOnNewAgents },
+    { name: "@brains/agent-discovery", version: "0.1.0" },
+  );
+  for (const plugin of plugins as Plugin[]) await harness.installPlugin(plugin);
+
+  const check = registered.find(({ id }) => id.endsWith("directory-scan"));
+  if (!check) throw new Error("Expected recurring check registration");
+  return {
+    harness,
+    check: { run: () => check.run({ signal: new AbortController().signal }) },
+  };
 }
 
 describe("ATProto discovery notifications", () => {
   it("delivers one bounded digest through the existing recurring alert path", async () => {
-    const { shell, check } = await installWithCapturedCheck(true);
-    await shell.getMessageBus().send({
-      type: ATPROTO_BRAIN_DISCOVERED,
-      payload: discoveredPayload,
-      sender: "agent-discovery",
-      broadcast: true,
-    });
-    await shell.getMessageBus().send({
-      type: ATPROTO_BRAIN_DISCOVERED,
-      payload: {
+    const { harness, check } = await installWithCapturedCheck(true);
+    const context = harness.getReactionContext(AGENT_PLUGIN_ID);
+
+    await recordDiscoveryCandidate(
+      context,
+      discoveredPayload,
+      "2026-07-22T12:00:00.000Z",
+    );
+    await recordDiscoveryCandidate(
+      context,
+      {
         ...discoveredPayload,
         agentId: "second.example.com",
         name: "Second Brain",
@@ -65,11 +92,10 @@ describe("ATProto discovery notifications", () => {
         cardUri: "at://did:plc:second/ai.rizom.brain.card/self",
         cardCid: "bafy-second-card",
       },
-      sender: "agent-discovery",
-      broadcast: true,
-    });
+      "2026-07-22T12:01:00.000Z",
+    );
 
-    const first = await check.run({ signal: new AbortController().signal });
+    const first = await check.run();
     expect(first.alerts).toEqual([
       expect.objectContaining({
         title: "New ATProto agents awaiting review",
@@ -78,48 +104,69 @@ describe("ATProto discovery notifications", () => {
     ]);
     expect(first.alerts?.[0]?.body).toContain("/agents?status=discovered");
 
-    const second = await check.run({ signal: new AbortController().signal });
+    const second = await check.run();
     expect(second.alerts ?? []).toEqual([]);
+
+    harness.reset();
   });
 
   it("delivers identity collisions as a separate bounded security digest", async () => {
-    const { shell, check } = await installWithCapturedCheck(true);
-    await shell.getMessageBus().send({
-      type: ATPROTO_BRAIN_CARD_CONFLICT,
-      payload: {
-        domain: "peer.example.com",
-        existingRepoDid: "did:plc:approved-owner",
-        candidateRepoDid: "did:plc:attacker",
-        observedAt: "2026-07-22T13:00:00.000Z",
-        reason: "ATProto agent identity collision",
-      },
-      sender: "atproto",
-      broadcast: true,
-    });
+    const { harness, check } = await installWithCapturedCheck(true);
+    await recordConflict(
+      harness.getReactionContext(AGENT_PLUGIN_ID),
+      conflictPayload,
+    );
 
-    const result = await check.run({
-      signal: new AbortController().signal,
-    });
+    const result = await check.run();
     expect(result.alerts).toEqual([
       expect.objectContaining({
         title: "ATProto identity conflict",
         body: expect.stringContaining("peer.example.com"),
       }),
     ]);
+
+    harness.reset();
   });
 
   it("does not queue an ATProto digest when notifications are disabled", async () => {
-    const { shell, check } = await installWithCapturedCheck(false);
-    await shell.getMessageBus().send({
-      type: ATPROTO_BRAIN_DISCOVERED,
-      payload: discoveredPayload,
-      sender: "agent-discovery",
-      broadcast: true,
-    });
+    const { harness, check } = await installWithCapturedCheck(false);
+    await recordDiscoveryCandidate(
+      harness.getReactionContext(AGENT_PLUGIN_ID),
+      discoveredPayload,
+      "2026-07-22T12:00:00.000Z",
+    );
 
-    const result = await check.run({
-      signal: new AbortController().signal,
-    });
+    const result = await check.run();
     expect(result.alerts ?? []).toEqual([]);
+
+    harness.reset();
+  });
+
+  it("keeps the backlog while notifications are off, and reports it once on", async () => {
+    // The reason recording is not gated on the same setting that delivers:
+    // switching alerts on used to show nothing, because nothing had been
+    // written down while they were off.
+    const off = await installWithCapturedCheck(false);
+    await recordDiscoveryCandidate(
+      off.harness.getReactionContext(AGENT_PLUGIN_ID),
+      discoveredPayload,
+      "2026-07-22T12:00:00.000Z",
+    );
+    expect((await off.check.run()).alerts ?? []).toEqual([]);
+
+    const on = await installWithCapturedCheck(true);
+    await recordDiscoveryCandidate(
+      on.harness.getReactionContext(AGENT_PLUGIN_ID),
+      discoveredPayload,
+      "2026-07-22T12:00:00.000Z",
+    );
+    expect((await on.check.run()).alerts).toEqual([
+      expect.objectContaining({
+        title: "New ATProto agents awaiting review",
+      }),
+    ]);
+
+    off.harness.reset();
+    on.harness.reset();
   });
 });

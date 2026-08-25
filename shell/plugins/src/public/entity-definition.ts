@@ -4,6 +4,8 @@ import type { AnyDashboardWidgetDefinition } from "../operator/operator-definiti
 import type { ProjectionRule } from "../entity/projection-rule";
 import type { AnyDataSourceDeclaration } from "./entity-data-source";
 import { z } from "@brains/utils/zod";
+import { generateMarkdownWithFrontmatter } from "@brains/entity-service";
+import { parseMarkdown } from "@brains/utils/markdown";
 import { createEntityPackagePlugins } from "../entity/declarative-entity-plugin";
 import type {
   AnyEntityDefinition,
@@ -208,4 +210,58 @@ export function defineEntityPackage(definition: {
     instantiate: ({ package: metadata, scope }) =>
       createEntityPackagePlugins(entities, projections, metadata, scope),
   });
+}
+
+/**
+ * A codec for a type that keeps its frontmatter inside the file as well as
+ * in metadata.
+ *
+ * Most types let the runtime own the frontmatter: the body is the content,
+ * metadata is declared alongside, and the two are assembled on write. A type
+ * whose files are synced to disk and edited there cannot do that — the header
+ * is part of the document a person opens.
+ *
+ * Which means the record has two copies of the same fields, and metadata is
+ * the one a status change reaches. Encoding merges metadata over what the
+ * file already carries: fields tracked in both take the metadata value, and
+ * fields only the file has — anything added by hand — survive.
+ */
+export function frontmatterInContent<TMetadata extends Record<string, unknown>>(
+  derive: (frontmatter: Readonly<Record<string, unknown>>) => TMetadata,
+): {
+  decode: (input: {
+    readonly content: string;
+    readonly frontmatter: Readonly<Record<string, unknown>>;
+  }) => { readonly content: string; readonly metadata: TMetadata };
+  encode: (input: {
+    readonly content: string;
+    readonly metadata: TMetadata;
+  }) => {
+    readonly content: string;
+    readonly frontmatter: Record<string, unknown>;
+  };
+} {
+  return {
+    decode: ({ content, frontmatter }) => ({
+      content: generateMarkdownWithFrontmatter(content, { ...frontmatter }),
+      metadata: derive(frontmatter),
+    }),
+    encode: ({
+      content,
+      metadata,
+    }): {
+      readonly content: string;
+      readonly frontmatter: Record<string, unknown>;
+    } => {
+      const parsed = parseMarkdown(content);
+      return {
+        content: generateMarkdownWithFrontmatter(parsed.content, {
+          ...parsed.frontmatter,
+          ...metadata,
+        }),
+        // Already inside `content`; declaring it again would write it twice.
+        frontmatter: {},
+      };
+    },
+  };
 }

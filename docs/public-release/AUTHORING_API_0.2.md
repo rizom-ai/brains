@@ -40,6 +40,7 @@ Definitions and schema vocabulary:
 - `defineEntity`
 - `defineEntityPackage`
 - `defineProjection`
+- `frontmatterInContent`
 - `z`
 
 Types:
@@ -58,6 +59,13 @@ Types:
 The runtime owns base entity fields, persistence, markdown validation, search indexing, projection scheduling, and worker execution.
 
 `EntityDefinitionConfig` is the optional `config` slot on `defineEntity`. It carries deliberate opt-outs — `embeddable`, `projectionSource`, `projectionSourceRole`, `weight` — for entity types that are system configuration rather than user content. Omitted fields keep the runtime defaults.
+
+`frontmatterInContent` builds the markdown codec for a type whose files keep
+their own frontmatter — one synced to disk and edited there, where the header
+is part of the document a person opens. Such a record holds the same fields
+twice, and metadata is the copy a change reaches, so encoding merges metadata
+over what the file already carries: tracked fields take the metadata value,
+and anything added by hand survives.
 
 `EntitySeedDefinition` is the optional `seed` slot. It declares a default entity the brain should hold before anyone authors one, created only when `EntitySeedTrigger` fires and only if no entity with that id exists, so a seed can never overwrite authored content.
 
@@ -129,6 +137,7 @@ Types:
 - `ServiceJobReference`
 - `ServiceJobStatus`
 - `ServicePackageDefinition`
+- `ServiceToolDefinition`
 - `WorkspaceActionConfirmation`
 - `WorkspaceActionDefinition`
 - `WorkspaceActionFormControl`

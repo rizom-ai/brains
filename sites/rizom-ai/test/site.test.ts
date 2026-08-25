@@ -86,7 +86,7 @@ describe("@rizom/site-rizom-ai", () => {
       "decks:deck-list",
     ]);
     expect(byId("network")?.sections?.[0]?.template).toBe(
-      "agent-discovery:agent-list",
+      "@brains/agent-discovery:agent:agent-list",
     );
   });
 
@@ -131,7 +131,9 @@ describe("@rizom/site-rizom-ai", () => {
     // merged over via the content overlay. The knowledge map works the same
     // way through the topics plugin.
     const network = route?.sections?.[0];
-    expect(network?.template).toBe("agent-discovery:proximity-map");
+    expect(network?.template).toBe(
+      "@brains/agent-discovery:agent:proximity-map",
+    );
     expect(network?.dataQuery).toBeDefined();
     const knowledge = route?.sections?.find(
       (section) => section.id === "knowledge",
@@ -146,7 +148,7 @@ describe("@rizom/site-rizom-ai", () => {
     );
 
     expect(templates).toEqual([
-      "agent-discovery:proximity-map",
+      "@brains/agent-discovery:agent:proximity-map",
       "home:problem",
       "home:growth",
       "home:mission",

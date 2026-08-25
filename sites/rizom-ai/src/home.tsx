@@ -16,7 +16,7 @@ import {
 
 /**
  * The umbrella home page. The hero is the live agent proximity map (wired in
- * routes.ts as agent-discovery:proximity-map); the sections here tell the
+ * routes.ts as @brains/agent-discovery:agent:proximity-map); the sections here tell the
  * rev-11 story the map opens — the pain (problem, withered), how the parts
  * come together (growth carries the system: brain, practice, network), the
  * mission band (the quote alone), then the ask carried by proof — the
@@ -191,7 +191,7 @@ function HomeFacesSection({
  * The umbrella home page's authored sections. The namespace ("home") matches
  * the route id, so each stores as site-content/home/<section>.md and resolves
  * as "home:<section>". Two sections live elsewhere: the hero is the live
- * agent proximity map (agent-discovery:proximity-map) and the proof/ask is
+ * agent proximity map (@brains/agent-discovery:agent:proximity-map) and the proof/ask is
  * the knowledge map (knowledge-map:map) — both authored via overlay
  * markdown merged over their live datasource payloads.
  */

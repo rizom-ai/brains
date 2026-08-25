@@ -1,10 +1,8 @@
 import type { ContentVisibility, EntityPluginContext } from "@brains/plugins";
 import type { AgentEntity } from "../schemas/agent";
 import type { SkillEntity } from "../schemas/skill";
-import { AgentAdapter } from "../adapters/agent-adapter";
+import { parseAgentContent } from "./agent-content";
 import { AGENT_ENTITY_TYPE, SKILL_ENTITY_TYPE } from "./constants";
-
-const agentAdapter = new AgentAdapter();
 
 export interface TagVocabularyEntry {
   tag: string;
@@ -54,7 +52,7 @@ export function buildTagVocabulary(
 
   for (const skill of skills) bump(skill.metadata.tags);
   for (const agent of agents) {
-    const body = agentAdapter.parseAgentContent(agent.content);
+    const body = parseAgentContent(agent.content);
     bump(body.skills.flatMap((skill) => skill.tags));
   }
 

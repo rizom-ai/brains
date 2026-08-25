@@ -1,14 +1,6 @@
-import type {
-  EntityPluginContext,
-  ServicePluginContext,
-} from "@brains/plugins";
-import {
-  createConfirmationGate,
-  type Tool,
-  type ToolResponse,
-} from "@brains/plugins";
-import { z } from "@brains/utils/zod";
-import { AgentAdapter } from "../adapters/agent-adapter";
+import { z, type EntityReactionContext } from "@brains/sdk/entities";
+import { defineTool, type ServiceToolDefinition } from "@brains/sdk/services";
+import { parseAgentEntity } from "../lib/agent-content";
 import { AGENT_ENTITY_TYPE } from "../lib/constants";
 import {
   extractDomain,
@@ -17,9 +9,10 @@ import {
 } from "../lib/fetch-agent-card";
 import { buildAgentFromCard } from "../lib/build-agent-content";
 import type { AgentEntity } from "../schemas/agent";
-import { getErrorMessage } from "@brains/utils/error";
 
-const agentConnectInputSchema = z.object({
+const agentConnectInputSchema: z.ZodObject<{
+  source: z.ZodObject<{ kind: z.ZodLiteral<"url">; url: z.ZodString }>;
+}> = z.object({
   source: z.object({
     kind: z.literal("url"),
     url: z
@@ -29,18 +22,9 @@ const agentConnectInputSchema = z.object({
         "Remote agent domain or URL to verify and connect. Preserve bare domains as bare domains.",
       ),
   }),
-  confirmed: z.boolean().optional(),
-  confirmationToken: z.string().optional(),
 });
 
-type AgentConnectInput = z.infer<typeof agentConnectInputSchema>;
-
-type AgentConnectContext = Pick<
-  EntityPluginContext | ServicePluginContext,
-  "entityService" | "permissions"
->;
-
-const agentAdapter = new AgentAdapter();
+type AgentConnectContext = EntityReactionContext;
 
 function normalizeSourceUrl(sourceUrl: string): {
   domain: string;
@@ -69,14 +53,13 @@ async function upsertConnectedAgent(params: {
 }): Promise<{ entity: AgentEntity; created: boolean }> {
   const { context, entityId, card } = params;
   const now = new Date().toISOString();
-  const existing = await context.entityService.getEntity<AgentEntity>({
+  const existing = await context.entities.getEntity<AgentEntity>({
     entityType: AGENT_ENTITY_TYPE,
     id: entityId,
   });
   const built = buildAgentFromCard(card, { status: "approved" });
-  const parsedContent = agentAdapter.fromMarkdown(built.content);
   const metadata = {
-    ...parsedContent.metadata,
+    ...parseAgentEntity({ content: built.content }).frontmatter,
     ...built.metadata,
     a2aEndpoint: card.url,
   };
@@ -88,7 +71,7 @@ async function upsertConnectedAgent(params: {
       metadata,
       updated: now,
     };
-    await context.entityService.updateEntity({ entity: updated });
+    await context.entities.update(updated);
     return { entity: updated, created: false };
   }
 
@@ -102,117 +85,103 @@ async function upsertConnectedAgent(params: {
     created: now,
     updated: now,
   };
-  await context.entityService.createEntity({ entity });
+  await context.entities.create(entity);
   return { entity, created: true };
 }
 
-export function createAgentConnectTool(
-  context: AgentConnectContext,
+const agentConnectOutputSchema: z.ZodObject<{
+  status: z.ZodString;
+  entityId: z.ZodString;
+  connected: z.ZodBoolean;
+  created: z.ZodBoolean;
+  a2aEndpoint: z.ZodString;
+  skills: z.ZodArray<
+    z.ZodObject<{
+      name: z.ZodString;
+      description: z.ZodString;
+      tags: z.ZodArray<z.ZodString>;
+    }>
+  >;
+}> = z.object({
+  status: z.string(),
+  entityId: z.string(),
+  connected: z.boolean(),
+  created: z.boolean(),
+  a2aEndpoint: z.string(),
+  skills: z.array(
+    z.object({
+      name: z.string(),
+      description: z.string(),
+      tags: z.array(z.string()),
+    }),
+  ),
+});
+
+/**
+ * Verify a remote agent and save it as a contact.
+ *
+ * Connecting is a decision about who the brain will call, so it asks first —
+ * the runtime holds the confirmation, which is why this reads as one pass
+ * rather than two.
+ */
+export function agentConnectTool(
   fetchFn: FetchFn = globalThis.fetch,
-): Tool {
-  const toolName = "agent_connect";
-  const confirmations = createConfirmationGate({
-    label: "agent connection",
-    requestNoun: "connection",
-  });
-
-  return {
-    name: toolName,
+): ServiceToolDefinition<
+  "connect",
+  typeof agentConnectInputSchema,
+  typeof agentConnectOutputSchema
+> {
+  return defineTool({
+    name: "connect",
     description:
-      "Verify and connect a remote A2A agent by fetching its Agent Card from /.well-known/agent-card.json, then save the verified contact in the local agent directory as approved for future outbound calls. Never use this tool for a request to approve or archive an existing saved contact; update that contact's status with system_update instead. This adds a directory contact; it does not message the remote agent or grant it inbound trusted access. Requires confirmation before verification and persistence. Call this tool without confirmed on the initial request; the tool returns confirmation args for the user to approve.",
-    inputSchema: agentConnectInputSchema.shape,
-    visibility: "trusted",
+      "Verify and connect a remote A2A agent by fetching its Agent Card from /.well-known/agent-card.json, then save the verified contact in the local agent directory as approved for future outbound calls. Never use this tool for a request to approve or archive an existing saved contact; update that contact's status with system_update instead. This adds a directory contact; it does not message the remote agent or grant it inbound trusted access.",
+    input: agentConnectInputSchema,
+    output: agentConnectOutputSchema,
+    permission: "trusted",
     sideEffects: "external",
-    handler: async (rawInput, toolContext): Promise<ToolResponse> => {
-      const parsed = agentConnectInputSchema.safeParse(rawInput);
-      if (!parsed.success) {
-        return {
-          success: false,
-          error: `Invalid input: ${parsed.error.issues.map((issue) => `${issue.path.join(".")}: ${issue.message}`).join(", ")}`,
-        };
-      }
-
-      const input = parsed.data;
+    confirmation: ({ source }) =>
+      `Verify and connect agent ${normalizeSourceUrl(source.url)?.domain ?? source.url}? This fetches and validates its A2A Agent Card, then saves the verified contact as approved for future outbound calls. It does not message the remote agent or grant it inbound trusted access.`,
+    execute: async ({ input, caller, ...context }) => {
       const normalized = normalizeSourceUrl(input.source.url);
       if (!normalized) {
-        return {
-          success: false,
-          error: "Provide a valid remote agent domain or URL to connect.",
-          code: "invalid_agent_url",
-        };
-      }
-
-      try {
-        context.permissions.assertEntityActionAllowed(
-          AGENT_ENTITY_TYPE,
-          "create",
-          toolContext,
+        throw new Error(
+          "Provide a valid remote agent domain or URL to connect.",
         );
-      } catch (error) {
-        return {
-          success: false,
-          error: getErrorMessage(error),
-        };
       }
 
-      if (input.confirmed) {
-        const rejection = confirmations.validateConfirmed(
-          input.confirmationToken,
-          input,
-        );
-        if (rejection) {
-          return rejection;
-        }
-
-        const card = await fetchAgentCard(normalized.fetchTarget, fetchFn);
-        if (!card) {
-          return {
-            success: false,
-            error: `Could not verify an A2A Agent Card for ${normalized.domain}.`,
-            code: "not_an_agent",
-          };
-        }
-
-        const entityId = getEntityIdForCard(normalized.domain, card.url);
-        const { entity, created } = await upsertConnectedAgent({
-          context,
-          entityId,
-          sourceUrl: input.source.url,
-          card,
-        });
-
-        return {
-          success: true,
-          data: {
-            status: entity.metadata.status,
-            entityId: entity.id,
-            connected: true,
-            created,
-            a2aEndpoint: card.url,
-            skills: card.skills.map((skill) => ({
-              name: skill.name,
-              description: skill.description,
-              tags: skill.tags,
-            })),
-          },
-        };
-      }
-
-      const confirmationArgs = confirmations.buildArgs<AgentConnectInput>(
-        (confirmationToken) => ({
-          source: input.source,
-          confirmed: true,
-          confirmationToken,
-        }),
+      // Who may add a contact is the caller's question, not the tool's.
+      context.permissions.assertEntityActionAllowed(
+        AGENT_ENTITY_TYPE,
+        "create",
+        caller ?? {},
       );
 
+      const card = await fetchAgentCard(normalized.fetchTarget, fetchFn);
+      if (!card) {
+        throw new Error(
+          `Could not verify an A2A Agent Card for ${normalized.domain}.`,
+        );
+      }
+
+      const { entity, created } = await upsertConnectedAgent({
+        context,
+        entityId: getEntityIdForCard(normalized.domain, card.url),
+        sourceUrl: input.source.url,
+        card,
+      });
+
       return {
-        needsConfirmation: true,
-        toolName,
-        summary: `Verify and connect agent ${normalized.domain}?`,
-        preview: `This will fetch and validate ${normalized.domain}'s A2A Agent Card, then save the verified contact as approved for future outbound calls. It will not message the remote agent or grant it inbound trusted access.`,
-        args: confirmationArgs,
+        status: entity.metadata.status,
+        entityId: entity.id,
+        connected: true,
+        created,
+        a2aEndpoint: card.url,
+        skills: card.skills.map((skill) => ({
+          name: skill.name,
+          description: skill.description,
+          tags: skill.tags,
+        })),
       };
     },
-  };
+  });
 }
