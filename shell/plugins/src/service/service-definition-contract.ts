@@ -13,6 +13,14 @@ import type {
   JobTemplateFormatter,
 } from "../job/job-context-contract";
 import type { ProjectionRule } from "../entity/projection-rule";
+import type {
+  EntityInboxDeclaration,
+  EntityReactionContext,
+} from "../entity/entity-definition-contract";
+import type {
+  RecurringCheckCadence,
+  RecurringCheckResult,
+} from "@brains/recurring-checks";
 import type { AnyAccountSettingsDefinition } from "../operator/account-settings-definition-contract";
 import type {
   AnyStudioWorkspaceDefinition,
@@ -214,10 +222,17 @@ export interface ServiceToolDefinition<
   readonly confirmation?: string | undefined;
   readonly permission?: UserPermissionLevel | undefined;
   readonly sideEffects?: "none" | "writes" | "external" | undefined;
-  execute(context: {
-    readonly input: z.output<TInputSchema>;
-    readonly signal: AbortSignal;
-  }): z.input<TOutputSchema> | Promise<z.input<TOutputSchema>>;
+  /**
+   * Entity access and a permission check, because most tools do something to
+   * the brain's own records — and whether the caller may is only knowable
+   * when they call.
+   */
+  execute(
+    context: EntityReactionContext & {
+      readonly input: z.output<TInputSchema>;
+      readonly signal: AbortSignal;
+    },
+  ): z.input<TOutputSchema> | Promise<z.input<TOutputSchema>>;
 }
 
 export type AnyServiceToolDefinition = ServiceToolDefinition<
@@ -241,6 +256,20 @@ export function defineTool<
     throw new Error(`Tool "${definition.name}" description must not be empty`);
   }
   return Object.freeze({ kind: "rizom-service-tool", ...definition });
+}
+
+/**
+ * A scheduled check a service declares. Same shape as an entity's, with the
+ * service's own reaction context.
+ */
+export interface ServiceCheckDeclaration {
+  readonly id: string;
+  readonly cadence: RecurringCheckCadence;
+  readonly deliverAlerts?: boolean | undefined;
+  readonly includeInInbox?: boolean | undefined;
+  run(
+    context: EntityReactionContext & { readonly signal: AbortSignal },
+  ): Promise<RecurringCheckResult>;
 }
 
 export interface ServiceLifecycle {
@@ -378,6 +407,31 @@ interface ServiceDefinitionCore<
    * that exercises an integration needs the same credentials the integration
    * uses, and the entity-side `evals` slot deliberately has no config.
    */
+  /**
+   * Scheduled work this service does, as a function of config.
+   *
+   * A function rather than a list because whether a check runs, and whether
+   * it raises alerts, is usually configured — a directory scan that notifies
+   * on new peers is a different check from one that does not.
+   */
+  readonly checks?:
+    | ((context: {
+        readonly config: z.output<TConfigSchema>;
+        readonly state: TState;
+      }) => readonly ServiceCheckDeclaration[])
+    | undefined;
+  /**
+   * What this service puts in front of a person to act on.
+   *
+   * A function of config for the same reason: what belongs in an inbox
+   * depends on what the operator asked to be told about.
+   */
+  readonly inbox?:
+    | ((context: {
+        readonly config: z.output<TConfigSchema>;
+        readonly state: TState;
+      }) => EntityInboxDeclaration)
+    | undefined;
   readonly evals?:
     | ((context: {
         readonly config: z.output<TConfigSchema>;

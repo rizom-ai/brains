@@ -113,6 +113,7 @@ export type {
 export { defineDashboardWidget } from "@brains/plugins";
 export { defineEntityDashboardWidget } from "@brains/plugins";
 export type {
+  DashboardOperatorViewBlock,
   DashboardWidgetDefinition,
   EntityConversationSurvey,
   EntityDashboardWidgetContext,
@@ -189,6 +190,11 @@ export type {
   IRuntimeStateStore,
   RuntimeStateScopeOptions,
 } from "@brains/runtime-state";
+
+// What an inbox item is, and who is acting on it. A package that declares
+// an inbox source has to name what it puts there.
+export { inboxItemListSchema } from "@brains/plugins";
+export type { InboxActor, InboxItem, InboxItemDetail } from "@brains/plugins";
 
 export type {
   EntityAtprotoDiscovery,

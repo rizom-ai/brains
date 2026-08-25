@@ -59,7 +59,6 @@ import {
   type ContentVisibility,
 } from "@brains/entity-service";
 import type { MessageResponse } from "../contracts/messaging";
-import type { LoggerContract } from "@brains/utils/logger";
 import type { InboxItemDetail } from "../inbox-registry";
 import {
   ATPROTO_BRAIN_CARD_CONFLICT,
@@ -971,10 +970,7 @@ class DeclarativeEntityPlugin extends EntityPlugin<
 
     const inbox = this.inbox;
     if (inbox) {
-      const reader = (): {
-        entities: JobEntityAccess;
-        logger: LoggerContract;
-      } => ({ entities: this.entityAccess(context), logger: this.logger });
+      const reader = (): EntityReactionContext => this.reactionContext(context);
       context.inbox.registerSource({
         sourceId: inbox.sourceId,
         displayName: inbox.displayName,
@@ -1574,6 +1570,7 @@ class DeclarativeEntityPlugin extends EntityPlugin<
           ...options,
           namespace: `${this.id}.${options.namespace}`,
         }),
+      permissions: context.permissions,
       logger: this.logger,
     };
   }
