@@ -28,6 +28,7 @@ import type {
   UploadSaveHandlerRegistration,
 } from "@brains/entity-service";
 import {
+  ATPROTO_BRAIN_CARD_DISCOVERED,
   AtprotoProjectionRegistry,
   canonicalAtprotoLexicons,
 } from "@brains/atproto-contracts";
@@ -2321,6 +2322,80 @@ describe("entity package definitions", () => {
     await harness.sendMessage(SYSTEM_CHANNELS.pluginsRegistered, {});
 
     expect(registered).toEqual(["top-guides"]);
+
+    harness.reset();
+  });
+
+  // The mirror of `atproto`. That slot publishes an entity as a record; this
+  // one turns a record the brain found on the network into an entity. Same
+  // protocol, opposite direction — and the same division of labour, where
+  // the channel, the parse and the reply are the runtime's and the package
+  // supplies only what a discovered card means to it.
+  it("turns a card discovered on the network into an entity", async () => {
+    const discovered: string[] = [];
+    const peer = defineEntity({
+      type: "peer",
+      purpose: "Another brain this one has heard of.",
+      metadata: z.object({ repoDid: z.string() }),
+      atprotoDiscovery: {
+        onCardDiscovered: async ({ entities }, card) => {
+          discovered.push(card.repoDid);
+          await entities.create({
+            id: card.repoDid.replace(/[^a-z0-9]+/gi, "-"),
+            entityType: "peer",
+            content: String(card.record["siteUrl"]),
+            metadata: { repoDid: card.repoDid },
+          });
+        },
+      },
+    });
+    const definition = defineEntityPackage({ id: "peers", entities: [peer] });
+    const plugin = createEntityPackagePlugins(
+      definition.entities,
+      definition.projections,
+      { name: "@fixture/peers", version: "0.1.0" },
+      (id) => `@fixture/peers:${id}`,
+    )[0];
+    if (!plugin) throw new Error("Peer entity plugin was not created");
+
+    const harness = createPluginHarness({
+      logger: createSilentLogger("entity-discovery-test"),
+    });
+    await harness.installPlugin(plugin);
+
+    await harness.sendMessage(ATPROTO_BRAIN_CARD_DISCOVERED, {
+      repoDid: "did:plc:elsewhere",
+      uri: "at://did:plc:elsewhere/ai.rizom.brain.card/self",
+      cid: "bafyexample",
+      record: {
+        $type: "ai.rizom.brain.card",
+        siteUrl: "https://elsewhere.example",
+        brain: {
+          did: "did:plc:elsewhere",
+          name: "Another Brain",
+          role: "Assistant",
+          purpose: "Helping elsewhere",
+          values: ["care"],
+        },
+        anchor: {
+          did: "did:plc:elsewhere-anchor",
+          name: "Elsewhere",
+          category: "organization",
+          kind: "studio",
+        },
+        skills: [],
+        model: "gpt-5.6-luna",
+        version: "0.1.0",
+        createdAt: "2026-08-24T09:00:00.000Z",
+      },
+    });
+
+    expect(discovered).toEqual(["did:plc:elsewhere"]);
+    expect(
+      await harness
+        .getEntityService()
+        .getEntity({ entityType: "peer", id: "did-plc-elsewhere" }),
+    ).not.toBeNull();
 
     harness.reset();
   });

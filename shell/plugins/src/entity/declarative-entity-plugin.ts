@@ -61,6 +61,12 @@ import {
 import type { MessageResponse } from "../contracts/messaging";
 import type { LoggerContract } from "@brains/utils/logger";
 import type { InboxItemDetail } from "../inbox-registry";
+import {
+  ATPROTO_BRAIN_CARD_DISCOVERED,
+  ATPROTO_BRAIN_CARD_UNAVAILABLE,
+  atprotoBrainCardDiscoveredPayloadSchema,
+  atprotoBrainCardUnavailablePayloadSchema,
+} from "@brains/atproto-contracts";
 import type {
   AnyEntityDefinition,
   AnyEntityJobDeclaration,
@@ -418,6 +424,7 @@ class DeclarativeEntityPlugin extends EntityPlugin<
   private readonly agentContext: AnyEntityDefinition["agentContext"];
   private readonly checks: AnyEntityDefinition["checks"];
   private readonly inbox: AnyEntityDefinition["inbox"];
+  private readonly atprotoDiscovery: AnyEntityDefinition["atprotoDiscovery"];
   private readonly generation: AnyEntityDefinition["generation"];
   private readonly scheduledGeneration: AnyEntityDefinition["scheduledGeneration"];
   private readonly evals: AnyEntityDefinition["evals"];
@@ -478,6 +485,7 @@ class DeclarativeEntityPlugin extends EntityPlugin<
     this.agentContext = definition.agentContext;
     this.checks = definition.checks;
     this.inbox = definition.inbox;
+    this.atprotoDiscovery = definition.atprotoDiscovery;
     this.generation = definition.generation;
     this.scheduledGeneration = definition.scheduledGeneration;
     this.evals = definition.evals;
@@ -912,6 +920,40 @@ class DeclarativeEntityPlugin extends EntityPlugin<
           attachment.provider(context),
         ),
       );
+    }
+
+    const discovery = this.atprotoDiscovery;
+    if (discovery) {
+      const reader = (): {
+        entities: JobEntityAccess;
+        logger: LoggerContract;
+      } => ({ entities: this.entityAccess(context), logger: this.logger });
+      this.releaseOnShutdown.push(
+        context.messaging.subscribe(
+          ATPROTO_BRAIN_CARD_DISCOVERED,
+          async (message): Promise<MessageResponse<unknown>> => ({
+            success: true,
+            data: await discovery.onCardDiscovered(
+              reader(),
+              atprotoBrainCardDiscoveredPayloadSchema.parse(message.payload),
+            ),
+          }),
+        ),
+      );
+      if (discovery.onCardUnavailable) {
+        this.releaseOnShutdown.push(
+          context.messaging.subscribe(
+            ATPROTO_BRAIN_CARD_UNAVAILABLE,
+            async (message): Promise<MessageResponse<unknown>> => ({
+              success: true,
+              data: await discovery.onCardUnavailable?.(
+                reader(),
+                atprotoBrainCardUnavailablePayloadSchema.parse(message.payload),
+              ),
+            }),
+          ),
+        );
+      }
     }
 
     const inbox = this.inbox;

@@ -10,7 +10,11 @@ import type {
 } from "../job/job-context-contract";
 import type { Conversation } from "../contracts/conversations";
 export type { EntityConversationReader } from "../job/job-context-contract";
-import type { AtprotoProjection } from "@brains/atproto-contracts";
+import type {
+  AtprotoBrainCardDiscoveredPayload,
+  AtprotoBrainCardUnavailablePayload,
+  AtprotoProjection,
+} from "@brains/atproto-contracts";
 import type {
   RecurringCheckCadence,
   RecurringCheckResult,
@@ -257,6 +261,8 @@ export interface EntityDefinition<
   readonly checks?: readonly EntityCheckDeclaration[] | undefined;
   /** What this type contributes to the shared inbox. */
   readonly inbox?: EntityInboxDeclaration | undefined;
+  /** What a brain card discovered on the network means to this type. */
+  readonly atprotoDiscovery?: EntityAtprotoDiscovery | undefined;
   /** Durable job handlers, keyed by job type. */
   readonly jobs?: Record<string, AnyEntityJobDeclaration> | undefined;
   /**
@@ -620,6 +626,35 @@ export interface EntityInboxDeclaration {
     actionId: string,
     actor: InboxActor,
   ): Promise<void>;
+}
+
+/**
+ * Turn a record the brain found on the network into an entity of this type.
+ *
+ * The mirror of `atproto`: that slot publishes an entity as a record, this
+ * one reads one back. `@brains/atproto` crawls and says what it found; a
+ * type that represents network peers is what decides what a found card
+ * means. The channel, the parse and the reply stay the runtime's.
+ *
+ * One consumer, deliberately — there is one type that represents other
+ * brains, and a second would be a second brain.
+ */
+export interface EntityAtprotoDiscovery {
+  onCardDiscovered(
+    context: {
+      readonly entities: JobEntityAccess;
+      readonly logger: LoggerContract;
+    },
+    card: AtprotoBrainCardDiscoveredPayload,
+  ): Promise<unknown>;
+  /** The peer's card stopped resolving — it moved, or it is gone. */
+  onCardUnavailable?(
+    context: {
+      readonly entities: JobEntityAccess;
+      readonly logger: LoggerContract;
+    },
+    card: AtprotoBrainCardUnavailablePayload,
+  ): Promise<unknown>;
 }
 
 /** A scheduled check an entity type declares. */
