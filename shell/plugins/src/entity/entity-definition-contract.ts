@@ -35,6 +35,8 @@ import type { OperatorCaller } from "../operator/operator-context-contract";
 import type {
   CreateInput,
   CreateResultAttachment,
+  ProjectSemanticSpaceRequest,
+  SemanticSpaceProjection,
 } from "@brains/entity-service";
 import type {
   ResolvedRuntimeUpload,
@@ -843,6 +845,8 @@ export interface EntityDashboardWidgetContext {
   readonly conversations: EntityConversationSurvey;
   /** The brain's configured conversation spaces. */
   readonly spaces: readonly string[];
+  /** Where this type's entities sit relative to each other. */
+  readonly semantic: EntitySemanticReader;
   readonly caller: OperatorCaller | null;
   readonly signal: AbortSignal;
 }
@@ -854,6 +858,21 @@ export interface EntityDashboardWidgetContext {
  * every conversation, then reads each to decide whether its summary is
  * stale. So this extends the job's reader rather than sitting beside it.
  */
+/**
+ * Where entities sit relative to each other.
+ *
+ * "Where do the agents I own sit relative to us" is a read, bounded to the
+ * declaring type with an origin and a distance. The full namespace would let
+ * a package project every entity in the brain — a map of the brain rather
+ * than of anything the package owns, which is how the knowledge map ended up
+ * living in `topics`.
+ */
+export interface EntitySemanticReader {
+  project(
+    request: ProjectSemanticSpaceRequest,
+  ): Promise<SemanticSpaceProjection>;
+}
+
 export interface EntityConversationSurvey extends EntityConversationReader {
   list(options?: {
     readonly limit?: number | undefined;

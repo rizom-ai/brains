@@ -2325,6 +2325,111 @@ describe("entity package definitions", () => {
     harness.reset();
   });
 
+  // "Where do the things I own sit relative to us" is a read, and a package
+  // that maps its own entity type needs it — bounded to that type, with an
+  // origin and a distance. The whole namespace would let it project every
+  // entity in the brain, which is a map of the brain rather than of anything
+  // the package owns.
+  it("reads where its own entities sit in semantic space", async () => {
+    const guide = defineEntity({
+      type: "guide",
+      purpose: "A guide placed relative to the others.",
+      metadata: z.object({ title: z.string() }),
+      dashboardWidgets: [
+        defineEntityDashboardWidget(
+          defineDashboardWidget({
+            id: "guide-map",
+            title: "Guide Map",
+            group: "knowledge",
+            placement: "secondary",
+            priority: 30,
+            permission: "public",
+            data: z.object({ placed: z.number() }),
+            digest: ({ data }) => ({
+              items: [{ label: "Placed", value: String(data.placed) }],
+            }),
+            view: ({ data }) => ({
+              blocks: [
+                {
+                  type: "list",
+                  id: "map",
+                  empty: "Nothing placed.",
+                  items: [{ id: "count", title: String(data.placed) }],
+                },
+              ],
+            }),
+          }),
+          async ({ semantic }) => {
+            const projection = await semantic.project({
+              types: ["guide"],
+              maxNeighborDistance: 0.25,
+            });
+            return { placed: projection.points.length };
+          },
+        ),
+      ],
+    });
+    const definition = defineEntityPackage({ id: "guides", entities: [guide] });
+    const plugin = createEntityPackagePlugins(
+      definition.entities,
+      definition.projections,
+      { name: "@fixture/guides", version: "0.1.0" },
+      (id) => `@fixture/guides:${id}`,
+    )[0];
+    if (!plugin) throw new Error("Guide entity plugin was not created");
+
+    const harness = createPluginHarness({
+      logger: createSilentLogger("entity-semantic-test"),
+    });
+    let asked: unknown;
+    const entityService = harness.getEntityService();
+    stubMethod(entityService, "projectSemanticSpace", async (request) => {
+      asked = request;
+      return {
+        origin: { kind: "centroid" as const },
+        points: [
+          {
+            entityId: "fishing",
+            entityType: "guide",
+            coordinates: [0, 0] as [number, number],
+            distanceToOrigin: 0,
+          },
+        ],
+        neighbors: [],
+        distanceRange: { min: 0, max: 0 },
+      };
+    });
+
+    await harness.installPlugin(plugin);
+    interface Provider {
+      caller: null;
+      signal: AbortSignal;
+    }
+    const providers: Array<(provider: Provider) => Promise<unknown>> = [];
+    harness.subscribe<{
+      dataProvider?: (provider: Provider) => Promise<unknown>;
+    }>(DASHBOARD_CHANNELS.registerWidget, async (message) => {
+      const { dataProvider } = message.payload;
+      if (dataProvider) providers.push(dataProvider);
+      return { success: true };
+    });
+    await harness.sendMessage(SYSTEM_CHANNELS.pluginsRegistered, {});
+    for (const dataProvider of providers) {
+      await dataProvider({
+        caller: null,
+        signal: new AbortController().signal,
+      });
+    }
+
+    // Bounded to the declaring type, so a package cannot project the brain.
+    expect(asked).toMatchObject({
+      types: ["guide"],
+      maxNeighborDistance: 0.25,
+    });
+
+    harness.reset();
+  });
+
   // What a type puts in front of a person to act on — an agent sighting to
   // vouch for, an email to file — is a fact about the type. Two packages
   // registered a source by hand, and both had to hold the registry to do it.

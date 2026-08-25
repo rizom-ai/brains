@@ -153,6 +153,26 @@ export { sourceAttachmentKey } from "@brains/plugins";
 // @brains/conversation-memory.
 export { matchSpaceSelector } from "@brains/plugins";
 
+// Where a package's own entities sit relative to each other, bounded to the
+// type it declares. The full namespace would let it project every entity in
+// the brain. Named consumer: @brains/agent-discovery.
+export type { EntitySemanticReader } from "@brains/plugins";
+export type {
+  ProjectSemanticSpaceRequest,
+  SemanticSpaceNeighbor,
+  SemanticSpacePoint,
+  SemanticSpaceProjection,
+} from "@brains/entity-service";
+
+// Projection plumbing: what a derived entity was derived from, and
+// reconciling a derived set against what exists. Named consumer:
+// @brains/agent-discovery, whose skills are derived from topic and agent
+// evidence.
+export {
+  computeProjectionInputFingerprint,
+  reconcileEntities,
+} from "@brains/plugins";
+
 // Grounding a package offers the agent before it answers. The runtime owns
 // the channel, the parse, the envelope, and scoping the reads to what the
 // asker may see. Named consumer: @brains/conversation-memory.
