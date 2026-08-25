@@ -227,6 +227,32 @@ describe("service package declaring entities", () => {
     expect(created).toMatchObject({ entityType: "bookmark" });
   });
 
+  // A package that derives entities has to be able to un-derive them: a
+  // decision superseded by a later one is removed, not left beside its
+  // replacement. Scoped exactly like create and update, because deleting
+  // another package's entity is the same trespass as writing one.
+  it("deletes an entity type it declares, and refuses one it does not", () => {
+    const deleted: string[] = [];
+    const definition = defineServicePlugin({
+      id: "bookmarks",
+      config: z.object({}),
+      entities: [bookmark],
+      setup: () => ({}),
+      jobs: () => [
+        captureJob().handle(async ({ entities }) => {
+          await entities.delete("bookmark", "stale");
+          deleted.push("bookmark");
+          await entities.delete("note", "not-mine");
+          return { fetchedWith: "none" };
+        }),
+      ],
+    });
+
+    expect(runCaptureJob(definition)).rejects.toThrow(
+      /may only write entity types it declares/,
+    );
+  });
+
   it("refuses a write to an entity type the package does not declare", async () => {
     const definition = defineServicePlugin({
       id: "trespasser",

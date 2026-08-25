@@ -1,17 +1,11 @@
 import { describe, expect, it } from "bun:test";
-import { DASHBOARD_CHANNELS } from "@brains/contracts";
-import {
-  DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
-  SYSTEM_CHANNELS,
-} from "@brains/plugins";
+import { createTestEntityAccess } from "@brains/test-utils";
 import {
   createMockEntityPluginContext,
   createTestEntity,
 } from "@brains/test-utils";
-import {
-  buildActionItemsWidgetData,
-  registerActionItemsWidget,
-} from "../../../src/lib/widgets/action-items";
+import { buildActionItemsWidgetData } from "../../../src/lib/widgets/action-items";
+import { actionItemsWidgetDeclaration } from "../../../src/lib/widgets/action-items";
 import type { ActionItemEntity } from "../../../src/schemas/conversation-memory";
 
 function createActionItem(overrides: {
@@ -75,7 +69,7 @@ describe("buildActionItemsWidgetData", () => {
     });
 
     const data = await buildActionItemsWidgetData(
-      context,
+      createTestEntityAccess({ entityService: context.entityService }),
       new Date("2026-05-10T00:00:00.000Z"),
     );
 
@@ -108,56 +102,37 @@ describe("buildActionItemsWidgetData", () => {
     });
 
     const data = await buildActionItemsWidgetData(
-      context,
+      createTestEntityAccess({ entityService: context.entityService }),
       new Date("2026-05-10T00:00:00.000Z"),
     );
     expect(data.items[0]?.meta[0]).toBe("#raw-channel-id");
   });
 });
 
-describe("registerActionItemsWidget", () => {
-  it("registers a widget on plugins-registered", async () => {
-    const context = createMockEntityPluginContext({
-      listEntitiesImpl: async () => [],
+// The runtime owns waiting for the dashboard to mount and announcing the
+// widget — covered where that lives. What is this package's is the
+// declaration: the widget it describes, and the data it loads.
+describe("actionItemsWidgetDeclaration", () => {
+  it("declares the widget and loads from entity access", async () => {
+    expect(actionItemsWidgetDeclaration.definition.id).toBe("action-items");
+
+    const entities = createTestEntityAccess({
+      entityService: createMockEntityPluginContext({
+        listEntitiesImpl: async () => [],
+      }).entityService,
     });
-    context.messaging.subscribe(
-      DASHBOARD_CHANNELS.registerWidget,
-      async () => ({ success: true }),
-    );
-
-    registerActionItemsWidget({ context });
-    expect(context.messaging.subscribe).toHaveBeenCalledWith(
-      SYSTEM_CHANNELS.pluginsRegistered,
-      expect.any(Function),
-    );
-
-    // Publish the real message rather than capturing the handler: this is the
-    // path production takes, and the registration below is the evidence.
-    await context.messaging.send({
-      type: SYSTEM_CHANNELS.pluginsRegistered,
-      payload: {},
+    const data = await actionItemsWidgetDeclaration.load({
+      entities,
+      conversations: {
+        get: async () => null,
+        getMessages: async () => [],
+        list: async () => [],
+      },
+      spaces: [],
+      caller: null,
+      signal: new AbortController().signal,
     });
 
-    const [registerCall] = context.dashboard.registerWidget.mock.calls;
-    const payload = registerCall?.[0];
-    if (!payload) throw new Error("widget was not registered");
-
-    // digestProvider is declared on DashboardWidgetRegistration, so it needs
-    // neither an index access nor a cast now that payload carries that type.
-    const { digestProvider } = payload;
-    if (!digestProvider) throw new Error("widget declared no digest provider");
-
-    expect(payload).toMatchObject({
-      id: "action-items",
-      title: "Open action items",
-      group: "knowledge",
-      section: "secondary",
-      priority: 25,
-      rendererName: DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
-      digestProvider: expect.any(Function),
-    });
-    expect(Object.hasOwn(payload, "component")).toBe(false);
-    expect(Object.hasOwn(payload, "clientStyles")).toBe(false);
-    expect(Object.hasOwn(payload, "clientScript")).toBe(false);
+    expect(data).toEqual({ items: [], openCount: 0 });
   });
 });

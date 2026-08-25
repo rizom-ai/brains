@@ -1,5 +1,6 @@
 import type {
   BaseEntity,
+  ContentVisibility,
   EntityInput,
   EntityMutationResult,
   ListOptions,
@@ -58,6 +59,13 @@ export interface JobEntityAccess {
   getEntity<T extends BaseEntity>(request: {
     entityType: string;
     id: string;
+    /**
+     * How wide to read. Reads are unrestricted here by design, but the
+     * default fails closed to public — and a package looking for its own
+     * entity stored as "shared" has to say so, or it concludes there is
+     * none and writes a second one beside it.
+     */
+    visibilityScope?: ContentVisibility | undefined;
   }): Promise<T | null>;
   /**
    * The entity someone named, by id, slug, or title.
@@ -88,6 +96,15 @@ export interface JobEntityAccess {
     entity: EntityInput<T>,
   ): Promise<EntityMutationResult>;
   update<T extends BaseEntity>(entity: T): Promise<EntityMutationResult>;
+  /**
+   * Remove one of this package's own entities.
+   *
+   * A package that derives entities has to be able to un-derive them — a
+   * decision superseded by a later one is removed, not left beside its
+   * replacement. Scoped like the writes above, because deleting another
+   * package's entity is the same trespass as writing one.
+   */
+  delete(entityType: string, id: string): Promise<boolean>;
   /**
    * Record a durable placeholder before starting slow enrichment, so the
    * next turn can find the accepted item immediately.

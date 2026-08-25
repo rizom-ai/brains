@@ -1,9 +1,9 @@
-import type {
-  Conversation,
-  EntityPluginContext,
-  Message,
-} from "@brains/plugins";
-import { computeContentHash } from "@brains/utils/hash";
+import {
+  computeContentHash,
+  type Conversation,
+  type EntityConversationReader,
+  type Message,
+} from "@brains/sdk/entities";
 import type { SummaryConfig } from "../schemas/summary-config";
 
 export interface SummarySource {
@@ -13,25 +13,24 @@ export interface SummarySource {
 }
 
 export class SummarySourceReader {
-  private readonly context: EntityPluginContext;
+  private readonly conversations: EntityConversationReader;
   private readonly config: SummaryConfig;
-  constructor(context: EntityPluginContext, config: SummaryConfig) {
-    this.context = context;
+  constructor(conversations: EntityConversationReader, config: SummaryConfig) {
+    this.conversations = conversations;
     this.config = config;
   }
 
   public async readConversation(
     conversationId: string,
   ): Promise<SummarySource> {
-    const conversation = await this.context.conversations.get(conversationId);
+    const conversation = await this.conversations.get(conversationId);
     if (!conversation) {
       throw new Error(`Conversation not found: ${conversationId}`);
     }
 
-    const messages = await this.context.conversations.getMessages(
-      conversationId,
-      { limit: this.config.maxSourceMessages },
-    );
+    const messages = await this.conversations.getMessages(conversationId, {
+      limit: this.config.maxSourceMessages,
+    });
 
     return {
       conversation,

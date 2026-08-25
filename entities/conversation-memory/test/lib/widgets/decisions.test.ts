@@ -1,17 +1,11 @@
 import { describe, expect, it } from "bun:test";
-import { DASHBOARD_CHANNELS } from "@brains/contracts";
-import {
-  DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
-  SYSTEM_CHANNELS,
-} from "@brains/plugins";
+import { createTestEntityAccess } from "@brains/test-utils";
 import {
   createMockEntityPluginContext,
   createTestEntity,
 } from "@brains/test-utils";
-import {
-  buildDecisionsWidgetData,
-  registerDecisionsWidget,
-} from "../../../src/lib/widgets/decisions";
+import { buildDecisionsWidgetData } from "../../../src/lib/widgets/decisions";
+import { decisionsWidgetDeclaration } from "../../../src/lib/widgets/decisions";
 import type { DecisionEntity } from "../../../src/schemas/conversation-memory";
 
 function createDecision(overrides: {
@@ -72,7 +66,9 @@ describe("buildDecisionsWidgetData", () => {
       listEntitiesImpl: async () => items,
     });
 
-    const data = await buildDecisionsWidgetData(context);
+    const data = await buildDecisionsWidgetData(
+      createTestEntityAccess({ entityService: context.entityService }),
+    );
     expect(data.items.map((item) => item.id)).toEqual([
       "newer-active",
       "older-active",
@@ -98,46 +94,38 @@ describe("buildDecisionsWidgetData", () => {
       listEntitiesImpl: async () => items,
     });
 
-    const data = await buildDecisionsWidgetData(context);
+    const data = await buildDecisionsWidgetData(
+      createTestEntityAccess({ entityService: context.entityService }),
+    );
     expect(data.items[0]?.meta).toContain("Apr 28 – May 1");
     expect(data.items[0]?.meta).not.toContain('class="sep"');
   });
 });
 
-describe("registerDecisionsWidget", () => {
-  it("registers a widget on plugins-registered", async () => {
-    const context = createMockEntityPluginContext({
-      listEntitiesImpl: async () => [],
+// The runtime owns waiting for the dashboard to mount and announcing the
+// widget — covered where that lives. What is this package's is the
+// declaration: the widget it describes, and the data it loads.
+describe("decisionsWidgetDeclaration", () => {
+  it("declares the widget and loads from entity access", async () => {
+    expect(decisionsWidgetDeclaration.definition.id).toBe("decisions");
+
+    const entities = createTestEntityAccess({
+      entityService: createMockEntityPluginContext({
+        listEntitiesImpl: async () => [],
+      }).entityService,
     });
-    context.messaging.subscribe(
-      DASHBOARD_CHANNELS.registerWidget,
-      async () => ({ success: true }),
-    );
-
-    registerDecisionsWidget({ context });
-    expect(context.messaging.subscribe).toHaveBeenCalledWith(
-      SYSTEM_CHANNELS.pluginsRegistered,
-      expect.any(Function),
-    );
-
-    // Publish the real message rather than capturing the handler: this is the
-    // path production takes, and the registration below is the evidence.
-    await context.messaging.send({
-      type: SYSTEM_CHANNELS.pluginsRegistered,
-      payload: {},
+    const data = await decisionsWidgetDeclaration.load({
+      entities,
+      conversations: {
+        get: async () => null,
+        getMessages: async () => [],
+        list: async () => [],
+      },
+      spaces: [],
+      caller: null,
+      signal: new AbortController().signal,
     });
 
-    const [registerCall] = context.dashboard.registerWidget.mock.calls;
-    const payload = registerCall?.[0];
-    if (!payload) throw new Error("widget was not registered");
-
-    expect(payload).toMatchObject({
-      id: "decisions",
-      title: "Recent decisions",
-      group: "knowledge",
-      section: "secondary",
-      priority: 30,
-      rendererName: DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
-    });
+    expect(data).toEqual({ items: [] });
   });
 });

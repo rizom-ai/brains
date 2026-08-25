@@ -61,10 +61,22 @@ export function createJobEntityAccess(
               },
             }),
       }),
-    getEntity: <T extends BaseEntity>(request: {
+    getEntity: <T extends BaseEntity>({
+      entityType,
+      id,
+      visibilityScope: requested,
+    }: {
       entityType: string;
       id: string;
-    }): Promise<T | null> => entityService.getEntity<T>(scoped(request)),
+      visibilityScope?: ContentVisibility | undefined;
+    }): Promise<T | null> =>
+      entityService.getEntity<T>(
+        scoped({
+          entityType,
+          id,
+          ...(requested !== undefined ? { visibilityScope: requested } : {}),
+        }),
+      ),
     find: async <T extends BaseEntity>(
       entityType: string,
       identifier: string,
@@ -95,6 +107,10 @@ export function createJobEntityAccess(
     ): Promise<EntityMutationResult> => {
       assertOwned(entity.entityType);
       return entityService.createEntity({ entity });
+    },
+    delete: async (entityType: string, id: string): Promise<boolean> => {
+      assertOwned(entityType);
+      return entityService.deleteEntity({ entityType, id });
     },
     update: <T extends BaseEntity>(
       entity: T,

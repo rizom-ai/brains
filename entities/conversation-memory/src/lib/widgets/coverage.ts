@@ -1,11 +1,12 @@
 import {
-  SYSTEM_CHANNELS,
   defineDashboardWidget,
-  registerBuiltInDashboardWidget,
+  defineEntityDashboardWidget,
+  z,
   type Conversation,
-  type EntityPluginContext,
-} from "@brains/plugins";
-import { z } from "@brains/utils/zod";
+  type EntityConversationSurvey,
+  type EntityDashboardWidgetDeclaration,
+  type JobEntityAccess,
+} from "@brains/sdk/entities";
 import type { SummaryEntity } from "../../schemas/summary";
 import type { SummaryConfig } from "../../schemas/summary-config";
 import { SUMMARY_ENTITY_TYPE } from "../constants";
@@ -82,7 +83,7 @@ function getSummaryLabel(summary: SummaryEntity): string {
 
 function hasConfiguredSpace(
   conversation: Conversation,
-  spaces: string[],
+  spaces: readonly string[],
 ): boolean {
   return evaluateSummaryEligibility({ conversation, spaces }).eligible;
 }
@@ -97,19 +98,21 @@ function summarizeCoverageStatus(params: {
 }
 
 export async function buildSummaryCoverageData(params: {
-  context: EntityPluginContext;
+  entities: JobEntityAccess;
+  conversations: EntityConversationSurvey;
+  spaces: readonly string[];
   config: SummaryConfig;
 }): Promise<SummaryDashboardData> {
-  const { context, config } = params;
+  const { entities, conversations: reader, spaces, config } = params;
 
-  const summaries = await context.entityService.listEntities<SummaryEntity>({
+  const summaries = await entities.listEntities<SummaryEntity>({
     entityType: SUMMARY_ENTITY_TYPE,
     options: {
       sortFields: [{ field: "updated", direction: "desc" }],
     },
   });
 
-  if (context.spaces.length === 0) {
+  if (spaces.length === 0) {
     return {
       items: [
         {
@@ -128,8 +131,8 @@ export async function buildSummaryCoverageData(params: {
     };
   }
 
-  const sourceReader = new SummarySourceReader(context, config);
-  const conversations = await context.conversations.list();
+  const sourceReader = new SummarySourceReader(reader, config);
+  const conversations = await reader.list();
   const summariesByConversationId = new Map(
     summaries.map((summary) => [summary.metadata.conversationId, summary]),
   );
@@ -141,7 +144,7 @@ export async function buildSummaryCoverageData(params: {
   const recentSummaryItems: SummaryWidgetItem[] = [];
 
   const candidateConversations = conversations.filter((conversation) =>
-    hasConfiguredSpace(conversation, context.spaces),
+    hasConfiguredSpace(conversation, spaces),
   );
   const sources = await Promise.all(
     candidateConversations.map((conversation) =>
@@ -156,7 +159,7 @@ export async function buildSummaryCoverageData(params: {
 
     const eligibility = evaluateSummaryEligibility({
       conversation: source.conversation,
-      spaces: context.spaces,
+      spaces: spaces,
     });
     if (!eligibility.eligible) continue;
 
@@ -185,7 +188,7 @@ export async function buildSummaryCoverageData(params: {
     {
       id: "spaces",
       name: "Configured spaces",
-      count: context.spaces.length,
+      count: spaces.length,
       status: "active",
     },
     {
@@ -212,23 +215,23 @@ export async function buildSummaryCoverageData(params: {
   return { items };
 }
 
-export function registerSummaryCoverageWidget(params: {
-  context: EntityPluginContext;
-  config: SummaryConfig;
-}): void {
-  const { context, config } = params;
-  context.messaging.subscribe(
-    SYSTEM_CHANNELS.pluginsRegistered,
-    async (): Promise<{ success: boolean }> => {
-      await registerBuiltInDashboardWidget({
-        context,
-        definition: summaryCoverageWidget,
-        load: ({ signal }) => {
-          signal.throwIfAborted();
-          return buildSummaryCoverageData({ context, config });
-        },
+/**
+ * Coverage is a question about every conversation, not one — which is why
+ * the widget context carries a survey the job context deliberately does not.
+ */
+export function summaryCoverageWidgetDeclaration(
+  config: SummaryConfig,
+): EntityDashboardWidgetDeclaration {
+  return defineEntityDashboardWidget(
+    summaryCoverageWidget,
+    ({ entities, conversations, spaces, signal }) => {
+      signal.throwIfAborted();
+      return buildSummaryCoverageData({
+        entities,
+        conversations,
+        spaces,
+        config,
       });
-      return { success: true };
     },
   );
 }

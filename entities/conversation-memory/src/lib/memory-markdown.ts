@@ -30,3 +30,24 @@ export const memoryMarkdown: {
   // would write it twice.
   encode: ({ content }) => ({ content, frontmatter: {} }),
 };
+
+/**
+ * A decision or action item's body: a title and the text under it.
+ *
+ * Deliberately plainer than a summary's — these are one statement each, and
+ * the shape a reader wants is the statement.
+ */
+export function composeMemoryBody(title: string, text: string): string {
+  return [`# ${title}`, "", text.trim(), ""].join("\n");
+}
+
+/**
+ * A memory entity's stored content: the body with its frontmatter baked in,
+ * which is the shape these three have always been written in.
+ */
+export function composeMemoryMarkdown(
+  body: string,
+  metadata: Record<string, unknown>,
+): string {
+  return generateMarkdownWithFrontmatter(body, metadata);
+}

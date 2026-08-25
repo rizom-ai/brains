@@ -1,11 +1,11 @@
 import {
-  SYSTEM_CHANNELS,
   defineDashboardWidget,
-  registerBuiltInDashboardWidget,
-  type EntityPluginContext,
-} from "@brains/plugins";
-import { z } from "@brains/utils/zod";
-import { firstSentence } from "@brains/utils/string-utils";
+  defineEntityDashboardWidget,
+  firstSentence,
+  z,
+  type EntityDashboardWidgetDeclaration,
+  type JobEntityAccess,
+} from "@brains/sdk/entities";
 import type { DecisionEntity } from "../../schemas/conversation-memory";
 import { DECISION_ENTITY_TYPE } from "../constants";
 import { channelLabel, formatTimeRange } from "./format";
@@ -85,9 +85,9 @@ function entityBody(entity: DecisionEntity): string {
 }
 
 export async function buildDecisionsWidgetData(
-  context: EntityPluginContext,
+  entities: JobEntityAccess,
 ): Promise<DecisionsWidgetData> {
-  const items = await context.entityService.listEntities<DecisionEntity>({
+  const items = await entities.listEntities<DecisionEntity>({
     entityType: DECISION_ENTITY_TYPE,
   });
 
@@ -116,24 +116,15 @@ export async function buildDecisionsWidgetData(
   };
 }
 
-export function registerDecisionsWidget(params: {
-  context: EntityPluginContext;
-}): void {
-  const { context } = params;
-  context.messaging.subscribe(
-    SYSTEM_CHANNELS.pluginsRegistered,
-    async (): Promise<{ success: boolean }> => {
-      await registerBuiltInDashboardWidget({
-        context,
-        definition: decisionsWidget,
-        load: ({ signal }) => {
-          signal.throwIfAborted();
-          return buildDecisionsWidgetData(context);
-        },
-      });
-      return { success: true };
-    },
-  );
-}
+/**
+ * Declared rather than registered: waiting for the dashboard to mount before
+ * announcing a static fact is the runtime's job, and four widgets in this
+ * package were each subscribing to a lifecycle channel to do it.
+ */
+export const decisionsWidgetDeclaration: EntityDashboardWidgetDeclaration =
+  defineEntityDashboardWidget(decisionsWidget, ({ entities, signal }) => {
+    signal.throwIfAborted();
+    return buildDecisionsWidgetData(entities);
+  });
 
 export const DECISIONS_WIDGET_ID: typeof WIDGET_ID = WIDGET_ID;

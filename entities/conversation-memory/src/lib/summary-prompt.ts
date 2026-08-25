@@ -1,9 +1,9 @@
-import { actorRefKey } from "@brains/contracts";
+import { actorRefKey } from "@brains/sdk/entities";
 import {
   conversationMessageMetadataSchema,
   type ConversationMessageActor,
   type Message,
-} from "@brains/plugins";
+} from "@brains/sdk/entities";
 import type { SummaryConfig } from "../schemas/summary-config";
 
 export interface SummaryPromptInput {

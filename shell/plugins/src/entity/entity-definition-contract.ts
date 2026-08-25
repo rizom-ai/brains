@@ -1,5 +1,5 @@
 import type { BaseEntity, ProjectionSourceRole } from "@brains/entity-service";
-import type { Template } from "@brains/templates";
+import type { EntityActionPolicyRule, Template } from "@brains/templates";
 import type { AnchorProfile } from "../contracts/identity";
 import type { IEntityAINamespace } from "./ai-types";
 import type { LoggerContract } from "@brains/utils/logger";
@@ -147,6 +147,17 @@ export interface EntityDefinition<
   readonly metadataFrom?: ((stored: unknown) => unknown) | undefined;
   readonly markdown?: EntityMarkdownCodec<TMetadataSchema> | undefined;
   readonly config?: EntityDefinitionConfig | undefined;
+  /**
+   * Who may do what to this type, when the default is not right.
+   *
+   * Some types are the brain's own record rather than anyone's content: a
+   * conversation summary is derived, and a user who could rewrite one could
+   * rewrite what the brain remembers happening. Such a type refuses every
+   * action with `"never"`.
+   *
+   * Omitted, the type follows the platform baseline.
+   */
+  readonly actions?: EntityActionPolicyRule | undefined;
   readonly seed?: EntitySeedDefinition<TMetadataSchema> | undefined;
   /** Keyed by local template name; the runtime scopes them to the plugin. */
   readonly templates?: Record<string, Template> | undefined;
@@ -765,8 +776,14 @@ export interface EntityDashboardWidgetContext {
   readonly signal: AbortSignal;
 }
 
-/** Reading across conversations rather than into one. */
-export interface EntityConversationSurvey {
+/**
+ * Reading across conversations as well as into one.
+ *
+ * A widget that surveys will want to read what it found — coverage lists
+ * every conversation, then reads each to decide whether its summary is
+ * stale. So this extends the job's reader rather than sitting beside it.
+ */
+export interface EntityConversationSurvey extends EntityConversationReader {
   list(options?: {
     readonly limit?: number | undefined;
     readonly interfaceType?: string | undefined;

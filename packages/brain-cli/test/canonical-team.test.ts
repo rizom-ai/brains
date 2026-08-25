@@ -119,7 +119,7 @@ describe("canonical team bundle", () => {
     // Declarative entity packages register scoped plugin ids, so docs is
     // "@brains/doc:doc" rather than the capability id "docs".
     for (const id of [
-      "conversation-memory",
+      "@brains/conversation-memory:conversation-memory",
       "@brains/doc:doc",
       "site-builder",
       "mcp",
@@ -131,12 +131,14 @@ describe("canonical team bundle", () => {
     expect(pluginConfig(resolved, "@brains/topics:topics")).toMatchObject({
       extractableStatuses: ["published", "draft"],
     });
-    expect(pluginConfig(resolved, "conversation-memory")).toMatchObject({
+    expect(
+      pluginConfig(resolved, "@brains/conversation-memory:conversation-memory"),
+    ).toMatchObject({
       memoryVisibility: "shared",
     });
-    expect(pluginConfig(resolved, "conversation-memory")).not.toHaveProperty(
-      "enableProjection",
-    );
+    expect(
+      pluginConfig(resolved, "@brains/conversation-memory:conversation-memory"),
+    ).not.toHaveProperty("enableProjection");
     expect(resolved.agentInstructions).toEqual(
       teamBundle.agentInstructions ?? [],
     );

@@ -1,13 +1,10 @@
-import type { EntityPluginContext } from "@brains/plugins";
-import { z } from "@brains/utils/zod";
+import { z, type JobEntityAccess } from "@brains/sdk/entities";
 import type { SummaryEntity, SummaryTimeRange } from "../../schemas/summary";
 import { SUMMARY_ENTITY_TYPE } from "../constants";
-import { SummaryAdapter } from "../../adapters/summary-adapter";
+import { parseSummaryBody } from "../summary-body";
 
 const MAX_ITEMS = 6;
 const WIDGET_ID = "recent";
-
-const summaryAdapter = new SummaryAdapter();
 
 interface SummaryTimeRangeRow {
   start: string;
@@ -62,7 +59,7 @@ interface ExpandedEntry {
 }
 
 function expandSummary(summary: SummaryEntity): ExpandedEntry[] {
-  const { entries } = summaryAdapter.parseBody(summary.content);
+  const { entries } = parseSummaryBody(summary.content);
   return entries.map((entry, index) => ({
     id: `${summary.id}#${index}`,
     summaryId: summary.id,
@@ -92,9 +89,9 @@ function toRow(entry: ExpandedEntry): SummaryEntryRow {
 }
 
 export async function buildRecentConversationMemoryData(
-  context: EntityPluginContext,
+  entities: JobEntityAccess,
 ): Promise<RecentConversationMemoryData> {
-  const summaries = await context.entityService.listEntities<SummaryEntity>({
+  const summaries = await entities.listEntities<SummaryEntity>({
     entityType: SUMMARY_ENTITY_TYPE,
   });
 

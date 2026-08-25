@@ -1,20 +1,28 @@
-export {
-  ConversationMemoryPlugin,
-  conversationMemoryPlugin,
-} from "./conversation-memory-plugin";
-export { SummaryAdapter } from "./adapters/summary-adapter";
-export {
-  ActionItemAdapter,
-  DecisionAdapter,
-} from "./adapters/conversation-memory-adapters";
+/**
+ * Conversation memory.
+ *
+ * Three derived entity types — summary, decision, action item — and
+ * everything that reads them: retrieval, the grounding it offers the agent,
+ * four dashboard widgets, and the evals that measure all of it.
+ *
+ * Automatic conversation-to-entity projection is disabled (see the README).
+ * The projector is kept and exercised by evals; nothing triggers it in
+ * production.
+ */
+
+export { conversationMemory, default } from "./conversation-memory";
+export { summary } from "./summary-entity";
+export { actionItem, decision } from "./memory-entities";
+
 export { SummaryExtractor } from "./lib/summary-extractor";
-export { SummaryProjector } from "./lib/summary-projector";
 export {
-  buildConversationMemoryAgentContext,
-  registerConversationMemoryAgentContext,
-} from "./lib/agent-context-provider";
+  SummaryProjector,
+  type SummaryProjectionContext,
+} from "./lib/summary-projector";
+export { conversationMemoryAgentContext } from "./lib/agent-context-provider";
 export { ConversationMemoryRetriever } from "./lib/conversation-memory-retriever";
 export { SummarySourceReader } from "./lib/summary-source-reader";
+export { composeSummaryBody, parseSummaryBody } from "./lib/summary-body";
 
 export type {
   SummaryEntity,

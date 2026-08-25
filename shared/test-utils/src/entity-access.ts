@@ -32,7 +32,12 @@ export function createTestEntityAccess(options: {
   };
   return {
     listEntities: (request) => service.listEntities(request),
-    getEntity: (request) => service.getEntity(request),
+    getEntity: ({ entityType, id, visibilityScope }) =>
+      service.getEntity({
+        entityType,
+        id,
+        ...(visibilityScope !== undefined ? { visibilityScope } : {}),
+      }),
     find: async <T extends BaseEntity>(
       entityType: string,
       identifier: string,
@@ -56,6 +61,11 @@ export function createTestEntityAccess(options: {
         ? service.createEntity({ entity })
         : refuse();
     },
+    delete: async (entityType: string, id: string): Promise<boolean> => {
+      options.onWrite?.();
+      if (refusal !== undefined) refuse();
+      return service.deleteEntity({ entityType, id });
+    },
     update: <T extends BaseEntity>(
       entity: T,
     ): Promise<EntityMutationResult> => {
@@ -77,17 +87,20 @@ export function createTestEntityAccess(options: {
     ): Promise<EntityMutationResult> => {
       options.onWrite?.();
       if (refusal !== undefined) refuse();
-      // Create-or-update, as the runtime's own helper does: a generation may
-      // be filling in a placeholder or writing the entity outright.
-      const existing = await service.getEntity({
-        entityType: entity.entityType,
-        id: entity.id,
+      // Create-or-update is an upsert, so this is one rather than a
+      // read-then-branch that only looks like one. The fields the runtime
+      // fills in are filled in here, because `upsertEntity` takes a whole
+      // entity and `saveProcessed` is handed the half a caller knows.
+      const now = new Date().toISOString();
+      return service.upsertEntity({
+        entity: {
+          created: now,
+          updated: now,
+          visibility: "public",
+          contentHash: `hash-${entity.id}`,
+          ...entity,
+        } satisfies BaseEntity as T,
       });
-      return existing
-        ? service.updateEntity({
-            entity: { ...existing, ...entity },
-          })
-        : service.createEntity({ entity });
     },
   };
 }

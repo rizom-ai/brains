@@ -1,4 +1,5 @@
 import { describe, it, expect, spyOn } from "bun:test";
+import { narrowContext } from "../fixtures/narrow-context";
 import { createExternalActorId } from "@brains/contracts";
 import type {
   Conversation,
@@ -13,7 +14,8 @@ import {
   getActorsMentionedInText,
   SummaryProjector,
 } from "../../src/lib/summary-projector";
-import { SummaryAdapter } from "../../src/adapters/summary-adapter";
+import { composeSummaryBody } from "../../src/lib/summary-body";
+import { composeMemoryMarkdown } from "../../src/lib/memory-markdown";
 import { summaryConfigSchema } from "../../src/schemas/summary-config";
 import type { SummaryEntry } from "../../src/schemas/summary";
 import { createMockSummaryEntity } from "../fixtures/summary-entities";
@@ -235,7 +237,7 @@ describe("SummaryProjector", () => {
     mockDecisionAndExtraction(context);
 
     const projector = new SummaryProjector(
-      context,
+      narrowContext(context),
       createSilentLogger(),
       summaryConfigSchema.parse({}),
     );
@@ -286,7 +288,7 @@ describe("SummaryProjector", () => {
     });
 
     const projector = new SummaryProjector(
-      context,
+      narrowContext(context),
       createSilentLogger(),
       summaryConfigSchema.parse({ memoryVisibility: "shared" }),
     );
@@ -331,7 +333,7 @@ describe("SummaryProjector", () => {
     });
 
     const projector = new SummaryProjector(
-      context,
+      narrowContext(context),
       createSilentLogger(),
       summaryConfigSchema.parse({}),
     );
@@ -456,7 +458,7 @@ describe("SummaryProjector", () => {
     });
 
     const projector = new SummaryProjector(
-      context,
+      narrowContext(context),
       createSilentLogger(),
       summaryConfigSchema.parse({}),
     );
@@ -507,7 +509,7 @@ describe("SummaryProjector", () => {
     });
 
     const projector = new SummaryProjector(
-      context,
+      narrowContext(context),
       createSilentLogger(),
       summaryConfigSchema.parse({}),
     );
@@ -597,7 +599,7 @@ describe("SummaryProjector", () => {
     );
 
     const projector = new SummaryProjector(
-      context,
+      narrowContext(context),
       createSilentLogger(),
       summaryConfigSchema.parse({ maxMessagesPerChunk: 2 }),
     );
@@ -637,7 +639,7 @@ describe("SummaryProjector", () => {
     });
 
     const projector = new SummaryProjector(
-      context,
+      narrowContext(context),
       createSilentLogger(),
       summaryConfigSchema.parse({ maxMessagesPerChunk: 1, maxEntries: 2 }),
     );
@@ -658,7 +660,7 @@ describe("SummaryProjector", () => {
     const generateSpy = spyOn(context.ai, "generate");
 
     const projector = new SummaryProjector(
-      context,
+      narrowContext(context),
       createSilentLogger(),
       summaryConfigSchema.parse({}),
     );
@@ -682,7 +684,7 @@ describe("SummaryProjector", () => {
     mockDecisionAndExtraction(context, "skip");
 
     const projector = new SummaryProjector(
-      context,
+      narrowContext(context),
       createSilentLogger(),
       summaryConfigSchema.parse({}),
     );
@@ -721,9 +723,8 @@ describe("SummaryProjector", () => {
       sourceMessageCount: 2,
       keyPoints: ["Stored messages are source of truth"],
     };
-    const adapter = new SummaryAdapter();
     const existing = createMockSummaryEntity({
-      content: adapter.composeContent([existingEntry], {
+      content: composeMemoryMarkdown(composeSummaryBody([existingEntry]), {
         conversationId: "conv-1",
         channelId: "cli-terminal",
         channelName: "CLI Terminal",
@@ -781,7 +782,7 @@ describe("SummaryProjector", () => {
     );
 
     const projector = new SummaryProjector(
-      context,
+      narrowContext(context),
       createSilentLogger(),
       summaryConfigSchema.parse({}),
     );
@@ -817,13 +818,16 @@ describe("SummaryProjector", () => {
     mockDecisionAndExtraction(context);
 
     const projector = new SummaryProjector(
-      context,
+      narrowContext(context),
       createSilentLogger(),
       summaryConfigSchema.parse({ memoryVisibility: "shared" }),
     );
 
     await projector.projectConversation("conv-1");
 
+    // A summary stored as "shared" is invisible to a read that fails closed
+    // to public — and a projector that cannot see one derives a second
+    // summary beside it.
     expect(getEntitySpy).toHaveBeenCalledWith({
       entityType: "summary",
       id: "conv-1",
@@ -839,7 +843,7 @@ describe("SummaryProjector", () => {
     spyOn(context.conversations, "getMessages").mockResolvedValue(messages);
 
     const projector = new SummaryProjector(
-      context,
+      narrowContext(context),
       createSilentLogger(),
       summaryConfigSchema.parse({ memoryVisibility: "shared" }),
     );
@@ -916,7 +920,7 @@ describe("SummaryProjector", () => {
     mockDecisionAndExtraction(context, "update");
 
     const projector = new SummaryProjector(
-      context,
+      narrowContext(context),
       createSilentLogger(),
       summaryConfigSchema.parse({ memoryVisibility: "shared" }),
     );
@@ -963,7 +967,7 @@ describe("SummaryProjector", () => {
     spyOn(context.conversations, "getMessages").mockResolvedValue(messages);
 
     const projector = new SummaryProjector(
-      context,
+      narrowContext(context),
       createSilentLogger(),
       summaryConfigSchema.parse({}),
     );

@@ -23,7 +23,7 @@ import blogPackage from "@brains/blog";
 import { ChatInterface, chatConfigFromEnv } from "@brains/chat";
 import { studioPlugin } from "@brains/studio";
 import { contentPipelinePlugin } from "@brains/content-pipeline";
-import { conversationMemoryPlugin } from "@brains/conversation-memory";
+import conversationMemoryPackage from "@brains/conversation-memory";
 import { dashboardPlugin } from "@brains/dashboard";
 import decksPackage from "@brains/decks";
 import { directorySync } from "@brains/directory-sync";
@@ -201,7 +201,11 @@ export const canonicalBrain: BrainDefinition = defineBrain({
       }),
     ],
 
-    ["conversation-memory", conversationMemoryPlugin, undefined],
+    packageCapability(
+      "conversation-memory",
+      "@brains/conversation-memory",
+      conversationMemoryPackage,
+    ),
     packageCapability("docs", "@brains/doc", docPackage),
 
     ["obsidian-vault", obsidianVaultPlugin, { autoSync: true }],
