@@ -1,5 +1,18 @@
 # @brains/directory-sync
 
+## 0.2.0-alpha.322
+
+### Patch Changes
+
+- [#166](https://github.com/rizom-ai/brains/pull/166) [`d57dbb6`](https://github.com/rizom-ai/brains/commit/d57dbb68b9cd84a5007bbea40c933efab7a581ad) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Dispatch durable entity-export intents created by worker processes through the web-owned Git checkpoint path, and register Unified Inbox recurring-check execution dependencies in worker runtimes.
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.322
+  - @brains/contracts@0.2.0-alpha.322
+  - @brains/image@0.2.0-alpha.322
+  - @brains/utils@0.2.0-alpha.322
+  - @brains/plugins@0.2.0-alpha.322
+
 ## 0.2.0-alpha.321
 
 ### Patch Changes

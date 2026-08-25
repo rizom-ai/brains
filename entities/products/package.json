@@ -1,7 +1,7 @@
 {
   "name": "@brains/products",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.321",
+  "version": "0.2.0-alpha.322",
   "description": "Product entity management and overview page for marketing showcase",
   "dependencies": {
     "@brains/content-formatters": "workspace:*",

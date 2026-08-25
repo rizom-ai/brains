@@ -255,6 +255,7 @@
     "core--console-surfaces-out-of-theme",
     "core--context-extends-published-surface",
     "core--contracts-channel-ownership",
+    "core--cross-process-durable-work",
     "core--dashboard-paper-theme-mode",
     "core--dashboard-widget-namespace",
     "core--declarative-dashboard-runtime",
