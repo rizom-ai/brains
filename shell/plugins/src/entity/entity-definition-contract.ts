@@ -7,6 +7,7 @@ import type {
   EntityConversationReader,
   JobEntityAccess,
   JobHandlerContext,
+  JobMessagePublisher,
 } from "../job/job-context-contract";
 import type { Conversation } from "../contracts/conversations";
 export type { EntityConversationReader } from "../job/job-context-contract";
@@ -629,6 +630,19 @@ export interface EntityInboxDeclaration {
 }
 
 /**
+ * What a package gets when the runtime hands it something that happened.
+ *
+ * Entity access to record it, a publisher to say what it made of it, and a
+ * logger. Deliberately not a plugin context: reacting to an event is not a
+ * licence to reach the whole runtime.
+ */
+export interface EntityReactionContext {
+  readonly entities: JobEntityAccess;
+  readonly messaging: JobMessagePublisher;
+  readonly logger: LoggerContract;
+}
+
+/**
  * Turn a record the brain found on the network into an entity of this type.
  *
  * The mirror of `atproto`: that slot publishes an entity as a record, this
@@ -641,18 +655,12 @@ export interface EntityInboxDeclaration {
  */
 export interface EntityAtprotoDiscovery {
   onCardDiscovered(
-    context: {
-      readonly entities: JobEntityAccess;
-      readonly logger: LoggerContract;
-    },
+    context: EntityReactionContext,
     card: AtprotoBrainCardDiscoveredPayload,
   ): Promise<unknown>;
   /** The peer's card stopped resolving — it moved, or it is gone. */
   onCardUnavailable?(
-    context: {
-      readonly entities: JobEntityAccess;
-      readonly logger: LoggerContract;
-    },
+    context: EntityReactionContext,
     card: AtprotoBrainCardUnavailablePayload,
   ): Promise<unknown>;
 }
@@ -666,12 +674,12 @@ export interface EntityCheckDeclaration {
   readonly deliverAlerts?: boolean | undefined;
   /** Project returned alerts into the shared inbox. Defaults to true. */
   readonly includeInInbox?: boolean | undefined;
-  run(context: {
-    readonly entities: JobEntityAccess;
-    readonly conversations: EntityConversationReader;
-    readonly logger: LoggerContract;
-    readonly signal: AbortSignal;
-  }): Promise<RecurringCheckResult>;
+  run(
+    context: EntityReactionContext & {
+      readonly conversations: EntityConversationReader;
+      readonly signal: AbortSignal;
+    },
+  ): Promise<RecurringCheckResult>;
 }
 
 /**
