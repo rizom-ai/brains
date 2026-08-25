@@ -16,6 +16,9 @@ import {
   type ComponentType,
   type Template,
 } from "@brains/templates";
+import type { EntityReactionContext } from "../entity/entity-definition-contract";
+import type { InboxItemDetail } from "../inbox-registry";
+import type { RuntimeStateScopeOptions } from "@brains/runtime-state";
 import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
 import type {
@@ -301,6 +304,51 @@ class DeclarativeServicePlugin<
           visibilityScope,
         }),
       );
+    }
+
+    for (const check of this.definition.checks?.({
+      config: this.config,
+      state: this.state,
+    }) ?? []) {
+      this.cleanups.push(
+        context.recurringChecks.register({
+          id: `${this.publicId}:${check.id}`,
+          cadence: check.cadence,
+          ...(check.deliverAlerts !== undefined
+            ? { deliverAlerts: check.deliverAlerts }
+            : {}),
+          ...(check.includeInInbox !== undefined
+            ? { includeInInbox: check.includeInInbox }
+            : {}),
+          run: ({ signal }) => check.run({ ...this.reaction(), signal }),
+        }),
+      );
+    }
+
+    const inbox = this.definition.inbox?.({
+      config: this.config,
+      state: this.state,
+    });
+    if (inbox) {
+      context.inbox.registerSource({
+        sourceId: inbox.sourceId,
+        displayName: inbox.displayName,
+        ...(inbox.facets ? { facets: inbox.facets } : {}),
+        list: () => inbox.list(this.reaction()),
+        ...(inbox.resolveDetail
+          ? {
+              resolveDetail: (
+                itemId,
+                actor,
+                signal,
+              ): Promise<InboxItemDetail> =>
+                inbox.resolveDetail?.(this.reaction(), itemId, actor, signal) ??
+                Promise.reject(new Error("No detail")),
+            }
+          : {}),
+        act: (itemId, actionId, actor) =>
+          inbox.act(this.reaction(), itemId, actionId, actor),
+      });
     }
 
     const ownedTypes = (this.definition.entities ?? []).map(({ type }) => type);
@@ -819,6 +867,41 @@ class DeclarativeServicePlugin<
     };
   }
 
+  /**
+   * Entity access, a publisher, scoped notes, a permission check, a logger.
+   * What a declaration is given when the runtime hands it something to do.
+   */
+  private reaction(): EntityReactionContext {
+    const context = this.getContext();
+    return {
+      entities: createJobEntityAccess(
+        context.entityService,
+        new Set((this.definition.entities ?? []).map(({ type }) => type)),
+        this.publicId,
+      ),
+      messaging: {
+        publish: async (message: {
+          readonly topic: string;
+          readonly data: object;
+        }): Promise<void> => {
+          await context.messaging.send({
+            type: message.topic,
+            payload: message.data,
+          });
+        },
+      },
+      // Namespaced under the declaring package, so two services cannot read
+      // or corrupt each other's notes.
+      state: <TValue>(options: RuntimeStateScopeOptions<TValue>) =>
+        context.runtimeState.scoped({
+          ...options,
+          namespace: `${this.publicId}.${options.namespace}`,
+        }),
+      permissions: context.permissions,
+      logger: this.logger,
+    };
+  }
+
   private runtimeTool(definition: AnyServiceToolDefinition): Tool {
     const name = `${this.publicId}_${definition.name}`;
     const confirmations = createConfirmationGate({
@@ -860,6 +943,7 @@ class DeclarativeServicePlugin<
 
           const output = await this.toolContext.run(toolContext, () =>
             definition.execute({
+              ...this.reaction(),
               input,
               signal: toolContext.signal ?? new AbortController().signal,
             }),

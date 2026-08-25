@@ -324,7 +324,12 @@
         "skillDataSchema",
         "slugify",
         "slugifyUrl",
-        "truncateText"
+        "truncateText",
+        "DashboardOperatorViewBlock",
+        "InboxActor",
+        "InboxItem",
+        "InboxItemDetail",
+        "inboxItemListSchema"
       ],
       "internal/removable": [
         "BaseDataSourceContext",

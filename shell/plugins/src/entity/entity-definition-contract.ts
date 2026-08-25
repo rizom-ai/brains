@@ -38,6 +38,7 @@ import type {
   PublishProvider,
 } from "@brains/contracts";
 import type { AttachmentProvider } from "../service/attachment-registry";
+import type { IPermissionsNamespace } from "../public/types";
 import type { ProjectionRule, ProjectionWriteIntent } from "./projection-rule";
 import type { AnyDataSourceDeclaration } from "../public/entity-data-source";
 import type { AnyDashboardWidgetDefinition } from "../operator/operator-definition-contract";
@@ -610,24 +611,15 @@ export interface EntityInboxDeclaration {
   readonly sourceId: string;
   readonly displayName: string;
   readonly facets?: InboxFacetDefinition[] | undefined;
-  list(context: {
-    readonly entities: JobEntityAccess;
-    readonly logger: LoggerContract;
-  }): Promise<InboxItem[]>;
+  list(context: EntityReactionContext): Promise<InboxItem[]>;
   resolveDetail?(
-    context: {
-      readonly entities: JobEntityAccess;
-      readonly logger: LoggerContract;
-    },
+    context: EntityReactionContext,
     itemId: string,
     actor: InboxActor,
     signal: AbortSignal,
   ): Promise<InboxItemDetail>;
   act(
-    context: {
-      readonly entities: JobEntityAccess;
-      readonly logger: LoggerContract;
-    },
+    context: EntityReactionContext,
     itemId: string,
     actionId: string,
     actor: InboxActor,
@@ -655,6 +647,14 @@ export interface EntityReactionContext {
   readonly state: <TValue>(
     options: RuntimeStateScopeOptions<TValue>,
   ) => IRuntimeStateStore<TValue>;
+  /**
+   * Whether this actor may do a thing to a type.
+   *
+   * An inbox item that offers "approve" has to refuse someone who may not
+   * approve, and the actor is only known when they act. Throws rather than
+   * returning false, so a caller cannot forget to check the answer.
+   */
+  readonly permissions: IPermissionsNamespace;
   readonly logger: LoggerContract;
 }
 
