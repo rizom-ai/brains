@@ -414,6 +414,7 @@ export class DirectorySyncPlugin extends ServicePlugin<
                 ),
             }
           : undefined,
+        this.operationStatus,
       );
     }
 

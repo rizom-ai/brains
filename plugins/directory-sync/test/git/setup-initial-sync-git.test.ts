@@ -63,6 +63,7 @@ describe("setupInitialSync with git", () => {
       captureCurrent: mock(async () => {
         callOrder.push("checkpoint");
       }),
+      saveCheckpoint: mock(async () => {}),
     };
 
     setupInitialSync(
@@ -80,6 +81,113 @@ describe("setupInitialSync with git", () => {
     });
 
     expect(callOrder).toEqual(["pull", "record-deletes", "sync", "checkpoint"]);
+  });
+
+  it("settles startup import status and confirms generated Git changes", async () => {
+    const { context } = createMockContext();
+    const callOrder: string[] = [];
+    const importResult = emptyImportResult({ imported: 1 });
+    const checkpoint = {
+      remoteFingerprint: "a".repeat(64),
+      branch: "main",
+      lastReconciledGitHead: "b".repeat(40),
+      lastObservedRemoteHead: "b".repeat(40),
+    };
+    const ds = createMockDirectorySync({
+      sync: mock(async () => {
+        callOrder.push("sync");
+        return {
+          export: emptyExportResult(),
+          import: importResult,
+          duration: 0,
+        };
+      }),
+    });
+    const gs = createMockGitSync({
+      pull: mock(async () => {
+        callOrder.push("pull");
+        return { files: [] };
+      }),
+      commitAndPush: mock(async () => {
+        callOrder.push("commit-and-push");
+        return { pushed: true, checkpoint };
+      }),
+    });
+    const reconciliation = {
+      captureCurrent: mock(async () => {
+        callOrder.push("capture-current");
+      }),
+      saveCheckpoint: mock(async () => {
+        callOrder.push("save-checkpoint");
+      }),
+    };
+    const operationStatus = {
+      addImportResult: mock(async () => {
+        callOrder.push("import-status");
+      }),
+    };
+
+    setupInitialSync(
+      context,
+      () => ds,
+      baseConfig,
+      createSilentLogger(),
+      gs,
+      reconciliation,
+      undefined,
+      operationStatus,
+    );
+
+    await context.messaging.send({
+      type: SYSTEM_CHANNELS.pluginsRegistered,
+      payload: {},
+    });
+
+    expect(operationStatus.addImportResult).toHaveBeenCalledWith(importResult);
+    expect(reconciliation.saveCheckpoint).toHaveBeenCalledWith(checkpoint);
+    expect(reconciliation.captureCurrent).not.toHaveBeenCalled();
+    expect(callOrder).toEqual([
+      "pull",
+      "sync",
+      "import-status",
+      "commit-and-push",
+      "save-checkpoint",
+    ]);
+  });
+
+  it("fails startup when generated Git changes have no confirmed checkpoint", async () => {
+    const { context } = createMockContext();
+    const gs = createMockGitSync({
+      commitAndPush: mock(async () => ({ pushed: true, checkpoint: null })),
+    });
+    const reconciliation = {
+      captureCurrent: mock(async () => {}),
+      saveCheckpoint: mock(async () => {}),
+    };
+
+    setupInitialSync(
+      context,
+      () => createMockDirectorySync(),
+      baseConfig,
+      createSilentLogger(),
+      gs,
+      reconciliation,
+    );
+
+    await context.messaging.send({
+      type: SYSTEM_CHANNELS.pluginsRegistered,
+      payload: {},
+    });
+
+    expect(context.messaging.send).toHaveBeenCalledWith({
+      type: SYSTEM_CHANNELS.initialSyncCompleted,
+      payload: {
+        success: false,
+        error:
+          "Initial directory sync push did not return a confirmed checkpoint",
+      },
+      broadcast: true,
+    });
   });
 
   it("tracks Git output and records interrupted-pull recovery", async () => {
