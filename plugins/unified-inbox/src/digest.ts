@@ -16,7 +16,7 @@ interface CreateInboxDigestOptions {
 }
 
 interface RegisterInboxDigestOptions {
-  workspaceUrl?: string | undefined;
+  workspaceUrl?: string | (() => string | undefined) | undefined;
   now?: (() => Date) | undefined;
 }
 
@@ -89,7 +89,6 @@ export function registerUnifiedInboxDigest(
   dataSource: Pick<InboxDataSource, "getInboxData">,
   options: RegisterInboxDigestOptions = {},
 ): void {
-  const destinationUrl = resolveDestinationUrl(context, options.workspaceUrl);
   context.recurringChecks.register({
     id: "daily-digest",
     cadence: "daily",
@@ -98,8 +97,12 @@ export function registerUnifiedInboxDigest(
       signal.throwIfAborted();
       const projection = await dataSource.getInboxData();
       signal.throwIfAborted();
+      const workspaceUrl =
+        typeof options.workspaceUrl === "function"
+          ? options.workspaceUrl()
+          : options.workspaceUrl;
       const alert = createUnifiedInboxDigest(projection, {
-        destinationUrl,
+        destinationUrl: resolveDestinationUrl(context, workspaceUrl),
         ...(options.now ? { now: options.now } : {}),
       });
       return { alerts: alert ? [alert] : [] };

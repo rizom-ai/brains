@@ -29,6 +29,7 @@ export class UnifiedInboxPlugin extends ServicePlugin<
   private dataSource: InboxDataSource | undefined;
   private operator: InboxOperatorService | undefined;
   private pluginContext: ServicePluginContext | undefined;
+  private cmsWorkspaceUrl: string | undefined;
   private cmsRegistered = false;
 
   constructor() {
@@ -46,30 +47,31 @@ export class UnifiedInboxPlugin extends ServicePlugin<
       context.inboxFollowUps,
     );
     context.entities.registerDataSource(this.dataSource);
+    registerUnifiedInboxDigest(context, this.dataSource, {
+      workspaceUrl: () => this.cmsWorkspaceUrl,
+    });
   }
 
   protected override async onReady(
     context: ServicePluginContext,
   ): Promise<void> {
-    const dataSource = this.getDataSource();
     const operator = this.getOperator();
-    const workspaceUrl = normalizeSameOriginPath(
+    this.cmsWorkspaceUrl = normalizeSameOriginPath(
       await registerUnifiedInboxCmsWorkspace(context, operator),
     );
-    this.cmsRegistered = workspaceUrl !== undefined;
-    if (workspaceUrl) {
+    this.cmsRegistered = this.cmsWorkspaceUrl !== undefined;
+    if (this.cmsWorkspaceUrl) {
       context.interactions.register({
         id: "unified-inbox",
         label: "Inbox",
         description: "Review source-owned items that need operator attention.",
-        href: workspaceUrl,
+        href: this.cmsWorkspaceUrl,
         kind: "admin",
         priority: 20,
         visibility: "admin",
       });
     }
     await registerUnifiedInboxDashboardWidget(context, operator);
-    registerUnifiedInboxDigest(context, dataSource, { workspaceUrl });
   }
 
   protected override async onShutdown(): Promise<void> {
@@ -77,17 +79,11 @@ export class UnifiedInboxPlugin extends ServicePlugin<
       await this.pluginContext?.cms.unregisterWorkspace("unified-inbox:inbox");
       this.cmsRegistered = false;
     }
+    this.cmsWorkspaceUrl = undefined;
   }
 
   protected override async getTools(): Promise<Tool[]> {
     return [createInboxListTool(this.getOperator())];
-  }
-
-  private getDataSource(): InboxDataSource {
-    if (!this.dataSource) {
-      throw new Error("Unified inbox DataSource is not initialized");
-    }
-    return this.dataSource;
   }
 
   private getOperator(): InboxOperatorService {

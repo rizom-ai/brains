@@ -143,7 +143,10 @@ async function waitForHealthStatus(
   });
 }
 
-function runtimeProcess(groupAlwaysPresent: boolean): {
+function runtimeProcess(
+  groupAlwaysPresent: boolean,
+  withholdPullCompletion: boolean,
+): {
   emitter: EventEmitter;
   impl: SignalProcess;
 } {
@@ -154,7 +157,9 @@ function runtimeProcess(groupAlwaysPresent: boolean): {
       env: {
         ...process.env,
         AI_API_KEY: "packaged-recovery-test-key",
-        [GIT_BROKER_TEST_WITHHOLD_COMPLETION_ENV]: "pull",
+        ...(withholdPullCompletion
+          ? { [GIT_BROKER_TEST_WITHHOLD_COMPLETION_ENV]: "pull" }
+          : {}),
         [GIT_BROKER_TEST_PROGRESS_TIMEOUT_ENV]: "500",
       },
       kill: (pid, signal): boolean => {
@@ -171,8 +176,12 @@ function runtimeProcess(groupAlwaysPresent: boolean): {
 function startRuntime(
   appDir: string,
   groupAlwaysPresent: boolean,
+  withholdPullCompletion = true,
 ): RuntimeController {
-  const processSurface = runtimeProcess(groupAlwaysPresent);
+  const processSurface = runtimeProcess(
+    groupAlwaysPresent,
+    withholdPullCompletion,
+  );
   const starts: SpawnRecord[] = [];
   const initialReady = Promise.withResolvers<void>();
   const replacementReady = Promise.withResolvers<void>();
@@ -230,7 +239,7 @@ function startRuntime(
   };
 }
 
-async function createApp(): Promise<{
+async function createApp(options: { includeWishlist?: boolean } = {}): Promise<{
   root: string;
   checkout: string;
   remote: string;
@@ -282,7 +291,7 @@ remove:
   - mcp
   - onboarding
   - web-chat
-plugins:
+${options.includeWishlist ? "add:\n  - wishlist\n" : ""}plugins:
   topics:
     enableAutoExtraction: false
   directory-sync:
@@ -392,6 +401,7 @@ async function commitRemoteTransition(
   addedPath: string,
   marker: string,
 ): Promise<void> {
+  await run(["git", "pull", "--rebase", "origin", "main"], writer);
   await unlink(join(writer, removedPath));
   await writeFile(
     join(writer, addedPath),
@@ -430,6 +440,113 @@ function pendingJobCount(root: string): number {
   }
 }
 
+interface DurableJobState {
+  status: "pending" | "processing" | "completed" | "failed";
+  lastError: string | null;
+  completedAt: number | null;
+}
+
+function enqueueWorkerWish(root: string): string {
+  const database = new Database(join(root, "data", "brain-jobs.db"));
+  const id = "worker-created-export-regression";
+  const now = Date.now();
+  try {
+    database
+      .query(
+        `INSERT INTO job_queue (
+           id, type, data, source, metadata, status, priority,
+           retryCount, maxRetries, createdAt, scheduledFor
+         ) VALUES (
+           $id, 'wish:create', $data, 'packaged-regression', $metadata,
+           'pending', 10, 0, 3, $now, $now
+         )`,
+      )
+      .run({
+        $id: id,
+        $data: JSON.stringify({
+          title: "Worker Created Export Regression",
+          content: "Created by the execution-only worker after web readiness.",
+        }),
+        $metadata: JSON.stringify({
+          rootJobId: id,
+          operationType: "data_processing",
+          operationTarget: "worker-created-export-regression",
+          silent: true,
+        }),
+        $now: now,
+      });
+    return id;
+  } finally {
+    database.close();
+  }
+}
+
+function durableJobState(root: string, jobId: string): DurableJobState | null {
+  const database = new Database(join(root, "data", "brain-jobs.db"), {
+    readonly: true,
+  });
+  try {
+    return (
+      database
+        .query<DurableJobState, [string]>(
+          `SELECT status, lastError, completedAt
+           FROM job_queue
+           WHERE id = ?`,
+        )
+        .get(jobId) ?? null
+    );
+  } finally {
+    database.close();
+  }
+}
+
+function pendingEntityExportCount(root: string): number {
+  const database = new Database(join(root, "data", "brain.db"), {
+    readonly: true,
+  });
+  try {
+    return (
+      database
+        .query<{ count: number }, []>(
+          "SELECT COUNT(*) AS count FROM entity_export_intents",
+        )
+        .get()?.count ?? 0
+    );
+  } finally {
+    database.close();
+  }
+}
+
+function recurringDigestCounts(root: string): {
+  completed: number;
+  failed: number;
+} {
+  const database = new Database(join(root, "data", "brain-jobs.db"), {
+    readonly: true,
+  });
+  try {
+    const row = database
+      .query<{ completed: number; failed: number }, [string, string, string]>(
+        `SELECT
+           SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) AS completed,
+           SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) AS failed
+         FROM job_queue
+         WHERE type = 'shell:recurring-check' AND data = ?`,
+      )
+      .get(
+        "completed",
+        "failed",
+        JSON.stringify({ checkId: "unified-inbox:daily-digest" }),
+      );
+    return {
+      completed: row?.completed ?? 0,
+      failed: row?.failed ?? 0,
+    };
+  } finally {
+    database.close();
+  }
+}
+
 afterEach(async () => {
   await cleanup?.();
   cleanup = undefined;
@@ -450,6 +567,78 @@ it("exposes the packaged recovery proof as a named repository gate", async () =>
 describe.skipIf(!LINUX || !RUN_PACKAGED)(
   "the packaged broker recovery boundary",
   () => {
+    it("exports an entity created by the worker after web readiness", async () => {
+      const app = await createApp({ includeWishlist: true });
+      const controller = startRuntime(app.root, false, false);
+      cleanup = async (): Promise<void> => {
+        controller.stop();
+        await controller.result.catch(() => undefined);
+        await rm(app.root, { recursive: true, force: true });
+      };
+      await waitForRuntimeBarrier(
+        controller,
+        controller.initialReady,
+        "split-runtime readiness",
+      );
+      await waitForHealthStatus(app.healthBaseUrl, "/health/operate", 200);
+
+      const web = controller.starts.find((start) => start.role === "web");
+      const worker = controller.starts.find((start) => start.role === "worker");
+      if (!web || !worker) {
+        throw new Error("Expected packaged web and worker children");
+      }
+
+      const jobId = enqueueWorkerWish(app.root);
+      await until("the worker mutation", async () => {
+        const state = durableJobState(app.root, jobId);
+        if (state?.status === "failed") {
+          throw new Error(`Worker mutation failed: ${state.lastError}`);
+        }
+        return state?.status === "completed" && state.completedAt !== null
+          ? true
+          : undefined;
+      });
+      expect(isAlive(web.pid)).toBe(true);
+      expect(isAlive(worker.pid)).toBe(true);
+
+      const entityPath = join(
+        app.checkout,
+        "wish",
+        "worker-created-export-regression.md",
+      );
+      await until("confirmed worker entity export", async () => {
+        if (pendingEntityExportCount(app.root) !== 0) return undefined;
+        return (await pathExists(entityPath)) ? true : undefined;
+      });
+      expect(await pathExists(entityPath)).toBe(true);
+      expect(pendingEntityExportCount(app.root)).toBe(0);
+      const remotePath = await run(
+        [
+          "git",
+          "--git-dir",
+          app.remote,
+          "ls-tree",
+          "--name-only",
+          "main",
+          "--",
+          "wish/worker-created-export-regression.md",
+        ],
+        app.root,
+      );
+      expect(remotePath.trim()).toBe(
+        "wish/worker-created-export-regression.md",
+      );
+      expect(recurringDigestCounts(app.root)).toEqual({
+        completed: 1,
+        failed: 0,
+      });
+
+      controller.stop();
+      expect(await controller.result).toEqual({ success: true });
+      await rm(app.root, { recursive: true, force: true });
+      cleanup = undefined;
+    }, 180_000);
+
     it("recovers one lost completion without restarting healthy app roles", async () => {
       const app = await createApp();
       const controller = startRuntime(app.root, false);

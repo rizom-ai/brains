@@ -137,6 +137,35 @@ describe("InboxDataSource", () => {
     });
   });
 
+  it("registers the digest execution dependency before worker ready hooks", async () => {
+    const harness = createPluginHarness<UnifiedInboxPlugin>({
+      domain: "brain.test",
+      logContext: "unified-inbox-worker-registration-test",
+    });
+    const shell = harness.getMockShell();
+    let check:
+      | Parameters<ServicePluginContext["recurringChecks"]["register"]>[0]
+      | undefined;
+    shell.getRecurringChecks = (): ReturnType<
+      typeof shell.getRecurringChecks
+    > => ({
+      register: (definition): (() => void) => {
+        check = definition;
+        return (): void => undefined;
+      },
+    });
+
+    const plugin = new UnifiedInboxPlugin();
+    await plugin.register(shell, { executionOnly: true });
+
+    expect(check).toMatchObject({
+      id: "daily-digest",
+      cadence: "daily",
+      includeInInbox: false,
+    });
+    harness.reset();
+  });
+
   it("keeps Dashboard semantic while handing the CMS destination to interactions and digest", async () => {
     const harness = createPluginHarness<UnifiedInboxPlugin>({
       domain: "brain.test",
@@ -191,7 +220,7 @@ describe("InboxDataSource", () => {
     await harness.finalizeRegistration();
     await plugin.ready();
 
-    expect(events).toEqual(["workspace", "dashboard", "digest"]);
+    expect(events).toEqual(["digest", "workspace", "dashboard"]);
     if (!widget || !check)
       throw new Error("Operator surfaces did not register");
     expect((await shell.getAppInfo()).interactions).toContainEqual({
