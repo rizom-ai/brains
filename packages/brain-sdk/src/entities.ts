@@ -182,6 +182,14 @@ export type { EntityAgentContextProvider } from "@brains/plugins";
 // cadence coming round, an item to act on. The runtime owns the channel and
 // the parse; a package says what the event means to it. Named consumer:
 // @brains/agent-discovery.
+// Bookkeeping that is not an entity — "I already told someone about this
+// peer". Scoped by namespace and validated by a schema, so one package's
+// notes cannot be read or corrupted by another's.
+export type {
+  IRuntimeStateStore,
+  RuntimeStateScopeOptions,
+} from "@brains/runtime-state";
+
 export type {
   EntityAtprotoDiscovery,
   EntityCheckDeclaration,

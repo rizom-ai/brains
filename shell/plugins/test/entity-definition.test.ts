@@ -2326,6 +2326,83 @@ describe("entity package definitions", () => {
     harness.reset();
   });
 
+  // Not everything a package learns belongs in an entity. "I have already
+  // told someone about this peer" is bookkeeping — it has no content, nobody
+  // browses it, and it should not survive a rebuild of the directory. Nine
+  // packages keep something like it.
+  it("keeps bookkeeping that is not an entity", async () => {
+    const peer = defineEntity({
+      type: "peer",
+      purpose: "Another brain this one has heard of.",
+      metadata: z.object({ repoDid: z.string() }),
+      atprotoDiscovery: {
+        onCardDiscovered: async ({ state }, card) => {
+          const seen = state<{ at: string }>({
+            namespace: "peers.announced",
+            schema: z.object({ at: z.string() }),
+          });
+          // Announce once: a card that is re-crawled is not news.
+          const first = await seen.setIfNotExists(card.repoDid, {
+            at: "2026-08-24T09:00:00.000Z",
+          });
+          return { announced: first };
+        },
+      },
+    });
+    const definition = defineEntityPackage({ id: "peers", entities: [peer] });
+    const plugin = createEntityPackagePlugins(
+      definition.entities,
+      definition.projections,
+      { name: "@fixture/peers", version: "0.1.0" },
+      (id) => `@fixture/peers:${id}`,
+    )[0];
+    if (!plugin) throw new Error("Peer entity plugin was not created");
+
+    const harness = createPluginHarness({
+      logger: createSilentLogger("entity-state-test"),
+    });
+    await harness.installPlugin(plugin);
+
+    const card = {
+      repoDid: "did:plc:elsewhere",
+      uri: "at://did:plc:elsewhere/ai.rizom.brain.card/self",
+      cid: "bafyexample",
+      record: {
+        $type: "ai.rizom.brain.card",
+        siteUrl: "https://elsewhere.example",
+        brain: {
+          did: "did:plc:elsewhere",
+          name: "Another Brain",
+          role: "Assistant",
+          purpose: "Helping elsewhere",
+          values: ["care"],
+        },
+        anchor: {
+          did: "did:plc:elsewhere-anchor",
+          name: "Elsewhere",
+          category: "organization",
+          kind: "studio",
+        },
+        skills: [],
+        model: "gpt-5.6-luna",
+        version: "0.1.0",
+        createdAt: "2026-08-24T09:00:00.000Z",
+      },
+    };
+
+    const announce = (): Promise<{ announced: boolean } | undefined> =>
+      harness.sendMessage<typeof card, { announced: boolean }>(
+        ATPROTO_BRAIN_CARD_DISCOVERED,
+        card,
+      );
+
+    expect(await announce()).toEqual({ announced: true });
+    // The same card crawled again is not news.
+    expect(await announce()).toEqual({ announced: false });
+
+    harness.reset();
+  });
+
   // The mirror of `atproto`. That slot publishes an entity as a record; this
   // one turns a record the brain found on the network into an entity. Same
   // protocol, opposite direction — and the same division of labour, where

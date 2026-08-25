@@ -212,6 +212,8 @@
         "DashboardWidgetDefinition",
         "DataSourceDefinition",
         "EntityAtprotoDiscovery",
+        "IRuntimeStateStore",
+        "RuntimeStateScopeOptions",
         "EntityAttachmentDeclaration",
         "EntityCheckDeclaration",
         "EntityInboxDeclaration",

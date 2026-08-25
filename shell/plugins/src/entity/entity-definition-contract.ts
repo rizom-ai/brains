@@ -12,6 +12,7 @@ import type {
 import type { Conversation } from "../contracts/conversations";
 export type { EntityConversationReader } from "../job/job-context-contract";
 import type {
+  AtprotoBrainCardConflictPayload,
   AtprotoBrainCardDiscoveredPayload,
   AtprotoBrainCardUnavailablePayload,
   AtprotoProjection,
@@ -20,6 +21,10 @@ import type {
   RecurringCheckCadence,
   RecurringCheckResult,
 } from "@brains/recurring-checks";
+import type {
+  IRuntimeStateStore,
+  RuntimeStateScopeOptions,
+} from "@brains/runtime-state";
 import type {
   InboxActor,
   InboxFacetDefinition,
@@ -639,6 +644,17 @@ export interface EntityInboxDeclaration {
 export interface EntityReactionContext {
   readonly entities: JobEntityAccess;
   readonly messaging: JobMessagePublisher;
+  /**
+   * Bookkeeping that is not an entity.
+   *
+   * "I have already told someone about this peer" has no content, nobody
+   * browses it, and it should not survive a rebuild of what it is about.
+   * Scoped by namespace and validated by a schema, so one package's notes
+   * cannot be read or corrupted by another's.
+   */
+  readonly state: <TValue>(
+    options: RuntimeStateScopeOptions<TValue>,
+  ) => IRuntimeStateStore<TValue>;
   readonly logger: LoggerContract;
 }
 
@@ -662,6 +678,17 @@ export interface EntityAtprotoDiscovery {
   onCardUnavailable?(
     context: EntityReactionContext,
     card: AtprotoBrainCardUnavailablePayload,
+  ): Promise<unknown>;
+  /**
+   * Two repos claim the same domain.
+   *
+   * Not a discovery: nothing is written, because which of them is the real
+   * peer is not something the directory can decide. It is raised for a
+   * person to settle.
+   */
+  onCardConflict?(
+    context: EntityReactionContext,
+    conflict: AtprotoBrainCardConflictPayload,
   ): Promise<unknown>;
 }
 
