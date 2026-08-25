@@ -14,11 +14,11 @@ function readPackageFile(relativePath: string): string {
 }
 
 describe("@rizom/brain package metadata", () => {
-  it("declares media renderer runtime dependencies", () => {
+  it("declares media renderer runtime dependencies without sharp", () => {
     expect(packageJson.optionalDependencies).toMatchObject({
       "playwright-core": expect.any(String),
-      sharp: expect.any(String),
     });
+    expect(packageJson.optionalDependencies).not.toHaveProperty("sharp");
   });
 
   it("publishes package-owned deploy scripts with expected runtime hooks", () => {

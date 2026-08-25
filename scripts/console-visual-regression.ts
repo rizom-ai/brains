@@ -2,7 +2,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { getErrorMessage } from "@brains/utils/error";
 import path from "node:path";
 import { chromium, type Page } from "playwright-core";
-import sharp from "sharp";
+import { PNG } from "pngjs";
 import { renderChatPage } from "@brains/web-chat";
 import { renderEditorShellHtml } from "@brains/cms";
 import {
@@ -28,6 +28,15 @@ const SURFACES = [
   { id: "cms", label: "CMS", href: "/cms", isActive: false },
 ];
 
+const CMS_CAPABILITIES = {
+  canRead: true,
+  canCreate: true,
+  canUpdate: true,
+  canDelete: true,
+  canExtract: true,
+  canPublish: true,
+  canAssist: true,
+};
 const types = [
   {
     entityType: "posts",
@@ -35,6 +44,7 @@ const types = [
     isSingleton: false,
     hasBody: true,
     count: 4,
+    capabilities: CMS_CAPABILITIES,
   },
   {
     entityType: "docs",
@@ -42,6 +52,7 @@ const types = [
     isSingleton: false,
     hasBody: true,
     count: 7,
+    capabilities: CMS_CAPABILITIES,
   },
   {
     entityType: "settings",
@@ -49,6 +60,7 @@ const types = [
     isSingleton: true,
     hasBody: false,
     count: 1,
+    capabilities: CMS_CAPABILITIES,
   },
 ];
 const entities = [
@@ -407,17 +419,11 @@ async function comparePng(
   baselinePath: string,
 ): Promise<number> {
   const baseline = await readFile(baselinePath);
-  const [left, right] = await Promise.all([
-    sharp(actual).ensureAlpha().raw().toBuffer({ resolveWithObject: true }),
-    sharp(baseline).ensureAlpha().raw().toBuffer({ resolveWithObject: true }),
-  ]);
-  if (
-    left.info.width !== right.info.width ||
-    left.info.height !== right.info.height
-  )
-    return 1;
+  const left = PNG.sync.read(actual);
+  const right = PNG.sync.read(baseline);
+  if (left.width !== right.width || left.height !== right.height) return 1;
   let changed = 0;
-  const pixels = left.info.width * left.info.height;
+  const pixels = left.width * left.height;
   for (let offset = 0; offset < left.data.length; offset += 4) {
     if (
       Math.abs(left.data.readUInt8(offset) - right.data.readUInt8(offset)) >
@@ -449,16 +455,14 @@ await Promise.all([readFile(cmsAsset), readFile(chatAsset)]).catch(() => {
 
 // Deterministic preview image for the attachment card: a flat verdigris
 // board rendered once at startup.
-const fixtureImage = await sharp({
-  create: {
-    width: 480,
-    height: 270,
-    channels: 3,
-    background: { r: 61, g: 107, b: 92 },
-  },
-})
-  .png()
-  .toBuffer();
+const fixturePng = new PNG({ width: 480, height: 270 });
+for (let offset = 0; offset < fixturePng.data.length; offset += 4) {
+  fixturePng.data[offset] = 61;
+  fixturePng.data[offset + 1] = 107;
+  fixturePng.data[offset + 2] = 92;
+  fixturePng.data[offset + 3] = 255;
+}
+const fixtureImage = PNG.sync.write(fixturePng);
 
 const server = Bun.serve({
   port: 0,

@@ -62,6 +62,26 @@ describe("applySqlitePragmas", () => {
     }
   });
 
+  it("sets the busy timeout before WAL initialization can contend", async () => {
+    const executed: string[] = [];
+    const contendedClient = {
+      execute: async (statement: string): Promise<void> => {
+        executed.push(statement);
+        if (statement === "PRAGMA journal_mode = WAL") {
+          throw new Error("SQLITE_BUSY");
+        }
+      },
+    };
+
+    expect(
+      applySqlitePragmas(contendedClient, "file:test.sqlite"),
+    ).rejects.toThrow("SQLITE_BUSY");
+    expect(executed).toEqual([
+      "PRAGMA busy_timeout = 5000",
+      "PRAGMA journal_mode = WAL",
+    ]);
+  });
+
   it("skips pragmas for remote libsql urls", async () => {
     const executed: string[] = [];
     const client = createClient({ url: "file::memory:" });

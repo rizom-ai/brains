@@ -1,31 +1,9 @@
 import type { Logger } from "@brains/utils/logger";
 import type { Dirent } from "fs";
-import type SharpModule from "sharp";
 import { createHash } from "crypto";
 import { promises as fs } from "fs";
 import { join } from "path";
 import { getErrorMessage } from "@brains/utils/error";
-
-/**
- * Lazy sharp loader.
- *
- * Sharp's prebuilt native binaries depend on system libraries
- * (libstdc++, libc) that are not always present at standard paths
- * on minimal Linux distros, NixOS, Alpine, and similar. A top-level
- * `import sharp from "sharp"` triggers native module resolution at
- * bundle load, which crashes the entire brain boot even on instances
- * that remove the image plugin and never touch ImageOptimizer.
- *
- * Keeping sharp behind a dynamic import isolates the failure to the
- * call sites that actually need image processing. Instances without
- * the image plugin never reach this code and never try to dlopen
- * sharp.
- */
-let sharpPromise: Promise<typeof SharpModule> | null = null;
-async function loadSharp(): Promise<typeof SharpModule> {
-  sharpPromise ??= import("sharp").then((mod) => mod.default);
-  return sharpPromise;
-}
 
 /** Target widths for responsive variants (ascending) */
 const VARIANT_WIDTHS = [480, 960, 1920] as const;
@@ -88,14 +66,12 @@ export class ImageOptimizer {
     originalUrl: string,
   ): Promise<ImageVariants | null> {
     try {
-      const sharp = await loadSharp();
-
       const hash = createHash("sha256")
         .update(buffer)
         .digest("hex")
         .slice(0, 16);
 
-      const metadata = await sharp(buffer).metadata();
+      const metadata = await new Bun.Image(buffer).metadata();
       if (!metadata.width || !metadata.height) {
         this.logger.warn("Could not determine image dimensions", {
           originalUrl,
@@ -129,10 +105,10 @@ export class ImageOptimizer {
           continue;
         }
 
-        await sharp(buffer)
-          .resize(targetWidth, null, { withoutEnlargement: true })
+        await new Bun.Image(buffer)
+          .resize(targetWidth, undefined, { withoutEnlargement: true })
           .webp({ quality: WEBP_QUALITY })
-          .toFile(filePath);
+          .write(filePath);
 
         variants.push({ width: targetWidth, url });
 

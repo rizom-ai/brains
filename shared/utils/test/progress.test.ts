@@ -1,4 +1,4 @@
-import { describe, it, expect, jest, beforeEach } from "bun:test";
+import { describe, it, expect, jest, beforeEach, afterEach } from "bun:test";
 import { ProgressReporter } from "../src/progress";
 import type { ProgressNotification } from "../src/progress";
 
@@ -179,55 +179,57 @@ describe("ProgressReporter", () => {
   });
 
   describe("heartbeat", () => {
-    // For heartbeat tests, we'll use real timers with shorter intervals
-    // since Bun doesn't have timer mocking yet
+    beforeEach(() => {
+      jest.useFakeTimers();
+    });
 
-    it("should start sending periodic messages", async () => {
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    it("should start sending periodic messages", () => {
       const progress = ProgressReporter.from(mockCallback);
       progress?.startHeartbeat("Still working...", 50); // 50ms interval
 
-      // Wait for first heartbeat
-      await new Promise((resolve) => setTimeout(resolve, 60));
+      jest.advanceTimersByTime(50);
       expect(mockCallback).toHaveBeenCalledWith({
         progress: 0,
         message: "Still working...",
       });
       expect(mockCallback).toHaveBeenCalledTimes(1);
 
-      // Wait for second heartbeat
-      await new Promise((resolve) => setTimeout(resolve, 50));
+      jest.advanceTimersByTime(50);
       expect(mockCallback).toHaveBeenCalledTimes(2);
 
       // Clean up
       progress?.stopHeartbeat();
     });
 
-    it("should stop heartbeat when stopHeartbeat is called", async () => {
+    it("should stop heartbeat when stopHeartbeat is called", () => {
       const progress = ProgressReporter.from(mockCallback);
       progress?.startHeartbeat("Still working...", 50);
 
-      await new Promise((resolve) => setTimeout(resolve, 60));
+      jest.advanceTimersByTime(50);
       expect(mockCallback).toHaveBeenCalledTimes(1);
 
       progress?.stopHeartbeat();
 
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      jest.advanceTimersByTime(100);
       // Should still be 1, not incremented
       expect(mockCallback).toHaveBeenCalledTimes(1);
     });
 
-    it("should clear previous heartbeat when starting a new one", async () => {
+    it("should clear previous heartbeat when starting a new one", () => {
       const progress = ProgressReporter.from(mockCallback);
 
       // Start first heartbeat with message A
       progress?.startHeartbeat("Message A", 100);
 
       // Start second heartbeat with message B before first fires
-      await new Promise((resolve) => setTimeout(resolve, 50));
+      jest.advanceTimersByTime(50);
       progress?.startHeartbeat("Message B", 50);
 
-      // Wait for heartbeat
-      await new Promise((resolve) => setTimeout(resolve, 60));
+      jest.advanceTimersByTime(50);
 
       // Should only have Message B
       expect(mockCallback).toHaveBeenCalledWith({
@@ -240,13 +242,13 @@ describe("ProgressReporter", () => {
       progress?.stopHeartbeat();
     });
 
-    it("should include prefix in heartbeat messages", async () => {
+    it("should include prefix in heartbeat messages", () => {
       const progress = ProgressReporter.from(mockCallback);
       const sub = progress?.createSub();
 
       sub?.startHeartbeat("Still working...", 50);
 
-      await new Promise((resolve) => setTimeout(resolve, 60));
+      jest.advanceTimersByTime(50);
 
       expect(mockCallback).toHaveBeenCalledWith({
         progress: 0,

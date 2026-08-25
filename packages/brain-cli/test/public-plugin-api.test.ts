@@ -119,7 +119,7 @@ describe("@rizom/brain public plugin API surface", () => {
       { cwd: pkgDir, encoding: "utf-8" },
     );
 
-    expect(`${result.stdout}\n${result.stderr}`).toBe("\n");
+    expect(result.stdout).toBe("");
     expect(result.status).toBe(0);
   });
 

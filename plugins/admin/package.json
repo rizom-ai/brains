@@ -16,10 +16,10 @@
     "@brains/eslint-config": "workspace:*",
     "@brains/test-utils": "workspace:*",
     "@brains/typescript-config": "workspace:*",
-    "@types/bun": "^1.3.14",
+    "@types/bun": "^1.4.0",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.0.3",
-    "bun-types": "^1.3.14",
+    "bun-types": "^1.4.0",
     "eslint": "^10.5.0",
     "typescript": "^7.0.2"
   },

@@ -75,7 +75,7 @@ bun test
 
 Requirements:
 
-- **Bun** ≥ 1.3.3 (package manager and runtime)
+- **Bun** ≥ 1.4.0 (package manager and runtime)
 - A POSIX-ish OS (macOS, Linux; Windows via WSL)
 
 The full pre-commit hook runs workspace check, deps check, secret scan, prettier, lint, typecheck, and the full test suite. You can replicate it with `bun run lint && bun run typecheck && bun test`.

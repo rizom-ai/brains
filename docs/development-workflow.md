@@ -6,7 +6,7 @@ This document outlines the development workflow and best practices for the Brain
 
 ### Prerequisites
 
-- **Bun**: Version 1.3.3 or later
+- **Bun**: Version 1.4.0 or later
 - **Node.js**: Version 24.18+ (repository tooling; application runtime remains Bun)
 - **Git**: For version control
 - **SQLite**: Included with most systems

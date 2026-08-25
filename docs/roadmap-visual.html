@@ -305,6 +305,14 @@
           <div class="card-desc">root-cause class confirmed: an unresolved Bun Git completion can wedge auto-export; merged checkpoint/health recovery remains paired with fresh, approval-gated incident attribution.</div>
           <div class="card-file">directory-sync-export-stall.md</div>
         </div>
+        <div class="card status-partial">
+          <div class="card-head">
+            <span class="card-name">Bun 1.4 adoption</span>
+            <span class="badge badge-partial">In progress</span>
+          </div>
+          <div class="card-desc">bump the runtime to Bun 1.4, replace <code>sharp</code> with <code>Bun.Image</code> (deleting the native-binary boot-crash workaround and shrinking the packaged brain), parallelize the three suites with measured wins, convert fixed-sleep tests to the now-complete fake timers, and validate an opt-in <code>Bun.WebView</code> adapter behind the existing browser seam.</div>
+          <div class="card-file">bun-1-4-adoption.md</div>
+        </div>
         <div class="card status-proposed">
           <div class="card-head">
             <span class="card-name">Durable Binary Asset Storage Plan</span>
@@ -344,14 +352,6 @@
           </div>
           <div class="card-desc">**time-boxed by prerelease exit**: retire Preact for React 19 across the server-rendered surfaces — normalize the component dialect while still on Preact, flip the runtime atomically behind an output-equivalence harness, then collapse the twice-implemented operator view host into one. <code>preact</code> is a published peer dependency, so the swap is free on the alpha line and a <code>0.3.0</code> major the day after <code>changeset pre exit</code>; its scheduling decision belongs with stable <code>v0.2.0</code>.</div>
           <div class="card-file">preact-to-react-consolidation.md</div>
-        </div>
-        <div class="card status-proposed">
-          <div class="card-head">
-            <span class="card-name">Bun 1.4 adoption</span>
-            <span class="badge badge-proposed">Proposed</span>
-          </div>
-          <div class="card-desc">bump the runtime to Bun 1.4, replace <code>sharp</code> with <code>Bun.Image</code> (deleting the native-binary boot-crash workaround and shrinking the packaged brain), parallelize the five largest test suites, convert fixed-sleep tests to the now-complete fake timers, and spike <code>Bun.WebView</code> as a <code>playwright-core</code> replacement behind the existing browser seam.</div>
-          <div class="card-file">bun-1-4-adoption.md</div>
         </div>
         <div class="card status-proposed">
           <div class="card-head">

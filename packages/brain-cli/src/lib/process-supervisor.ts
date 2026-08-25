@@ -6,11 +6,12 @@ import {
 } from "@brains/directory-sync";
 import type { CommandResult } from "./command-result";
 import { BROKER_HEARTBEAT_INTERVAL_MS } from "./git-broker-policy";
-import type {
-  SignalProcess,
-  SpawnBunRunnerDependencies,
-  SpawnedProcess,
-  SpawnImpl,
+import {
+  runtimeSignalProcess,
+  type SignalProcess,
+  type SpawnBunRunnerDependencies,
+  type SpawnedProcess,
+  type SpawnImpl,
 } from "./spawn-bun-runner";
 
 export type BrainChildRole = "web" | "worker";
@@ -828,7 +829,7 @@ export function superviseRuntimeChildren(
     cwd,
     entrypointPath,
     spawnImpl: dependencies.spawnImpl ?? spawn,
-    processImpl: dependencies.processImpl ?? process,
+    processImpl: dependencies.processImpl ?? runtimeSignalProcess,
     clock: dependencies.clock ?? defaultClock,
     startupTimeoutMs: dependencies.startupTimeoutMs ?? 30_000,
     shutdownGraceMs: dependencies.shutdownGraceMs ?? 15_000,

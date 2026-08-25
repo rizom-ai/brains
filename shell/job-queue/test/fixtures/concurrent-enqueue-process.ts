@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs";
 import { writeFile } from "node:fs/promises";
 import { JobQueueService } from "../../src/job-queue-service";
-import { createSilentLogger } from "@brains/test-utils";
+import { createSilentLogger, waitUntil } from "@brains/test-utils";
 
 const [databaseUrl, startFile, readyFile, type, deduplicationKey] =
   Bun.argv.slice(2);
@@ -21,7 +21,10 @@ service.registerHandler(type, {
 try {
   await service.initialize();
   await writeFile(readyFile, "ready");
-  while (!existsSync(startFile)) await Bun.sleep(2);
+  await waitUntil(() => existsSync(startFile), `${startFile} to exist`, {
+    timeoutMs: 5_000,
+    intervalMs: 2,
+  });
 
   const ids = await Promise.all(
     Array.from({ length: 10 }, () =>

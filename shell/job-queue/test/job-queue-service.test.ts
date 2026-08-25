@@ -1,9 +1,18 @@
-import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
+import {
+  describe,
+  it,
+  expect,
+  beforeEach,
+  afterEach,
+  mock,
+  setSystemTime,
+  spyOn,
+} from "bun:test";
 import { JobQueueService } from "../src/job-queue-service";
 import type { JobHandler, JobQueueDbConfig } from "../src/types";
 import type { JobOptions } from "../src/schema/types";
 import { createTestJobQueueDatabase } from "./helpers/test-job-queue-db";
-import { createSilentLogger } from "@brains/test-utils";
+import { createSilentLogger, waitUntil } from "@brains/test-utils";
 import { createId } from "@brains/utils/id";
 import type { ProgressReporter } from "@brains/utils/progress";
 import { z } from "@brains/utils/zod";
@@ -27,16 +36,14 @@ function enqueueOpts(overrides: Partial<JobOptions> = {}): JobOptions {
 }
 
 async function waitForFile(path: string): Promise<void> {
-  const deadline = Date.now() + 5_000;
-  while (Date.now() < deadline) {
-    try {
-      await access(path);
-      return;
-    } catch {
-      await Bun.sleep(5);
-    }
-  }
-  throw new Error(`Timed out waiting for ${path}`);
+  await waitUntil(
+    async () =>
+      access(path)
+        .then(() => true)
+        .catch(() => false),
+    `${path} to exist`,
+    { timeoutMs: 5_000, intervalMs: 5 },
+  );
 }
 class TestJobHandler implements JobHandler<"shell:embedding"> {
   public processCallCount = 0;
@@ -737,15 +744,21 @@ describe("JobQueueService", () => {
       service.registerHandler("shell:embedding", testHandler);
     });
     it("should clean up old completed jobs", async () => {
-      const jobId = await service.enqueue({
-        type: "shell:embedding",
-        data: testEntity,
-        options: defaultEnqueueOptions,
-      });
-      await service.complete(jobId, undefined);
-      await Bun.sleep(2);
-      const deletedCount = await service.cleanup(1);
-      expect(deletedCount).toBeGreaterThanOrEqual(0);
+      const now = Date.now();
+      setSystemTime(now);
+      try {
+        const jobId = await service.enqueue({
+          type: "shell:embedding",
+          data: testEntity,
+          options: defaultEnqueueOptions,
+        });
+        await service.complete(jobId, undefined);
+        setSystemTime(now + 2);
+        const deletedCount = await service.cleanup(1);
+        expect(deletedCount).toBe(1);
+      } finally {
+        setSystemTime();
+      }
     });
     it("should not clean up recent completed jobs", async () => {
       const jobId = await service.enqueue({
@@ -815,19 +828,25 @@ describe("JobQueueService", () => {
       expect(job).toBeNull();
     });
     it("should return most recent job for entity", async () => {
-      await service.enqueue({
-        type: "shell:embedding",
-        data: testEntity,
-        options: defaultEnqueueOptions,
-      });
-      await Bun.sleep(1);
-      const recentJobId = await service.enqueue({
-        type: "shell:embedding",
-        data: testEntity,
-        options: defaultEnqueueOptions,
-      });
-      const job = await service.getStatusByEntityId(testEntity.id);
-      expect(job?.id).toBe(recentJobId);
+      const now = Date.now();
+      setSystemTime(now);
+      try {
+        await service.enqueue({
+          type: "shell:embedding",
+          data: testEntity,
+          options: defaultEnqueueOptions,
+        });
+        setSystemTime(now + 1);
+        const recentJobId = await service.enqueue({
+          type: "shell:embedding",
+          data: testEntity,
+          options: defaultEnqueueOptions,
+        });
+        const job = await service.getStatusByEntityId(testEntity.id);
+        expect(job?.id).toBe(recentJobId);
+      } finally {
+        setSystemTime();
+      }
     });
   });
   describe("getActiveJobs", () => {
@@ -910,27 +929,33 @@ describe("JobQueueService", () => {
       expect(activeJobs).toEqual([]);
     });
     it("should order by creation time descending", async () => {
-      const job1 = await service.enqueue({
-        type: "shell:embedding",
-        data: { ...testEntity, id: "test-1" },
-        options: defaultEnqueueOptions,
-      });
-      await Bun.sleep(10);
-      const job2 = await service.enqueue({
-        type: "shell:embedding",
-        data: { ...testEntity, id: "test-2" },
-        options: defaultEnqueueOptions,
-      });
-      await Bun.sleep(10);
-      const job3 = await service.enqueue({
-        type: "shell:embedding",
-        data: { ...testEntity, id: "test-3" },
-        options: defaultEnqueueOptions,
-      });
-      const activeJobs = await service.getActiveJobs();
-      expect(activeJobs[0]?.id).toBe(job3);
-      expect(activeJobs[1]?.id).toBe(job2);
-      expect(activeJobs[2]?.id).toBe(job1);
+      const now = Date.now();
+      setSystemTime(now);
+      try {
+        const job1 = await service.enqueue({
+          type: "shell:embedding",
+          data: { ...testEntity, id: "test-1" },
+          options: defaultEnqueueOptions,
+        });
+        setSystemTime(now + 10);
+        const job2 = await service.enqueue({
+          type: "shell:embedding",
+          data: { ...testEntity, id: "test-2" },
+          options: defaultEnqueueOptions,
+        });
+        setSystemTime(now + 20);
+        const job3 = await service.enqueue({
+          type: "shell:embedding",
+          data: { ...testEntity, id: "test-3" },
+          options: defaultEnqueueOptions,
+        });
+        const activeJobs = await service.getActiveJobs();
+        expect(activeJobs[0]?.id).toBe(job3);
+        expect(activeJobs[1]?.id).toBe(job2);
+        expect(activeJobs[2]?.id).toBe(job1);
+      } finally {
+        setSystemTime();
+      }
     });
   });
 
@@ -1643,27 +1668,33 @@ describe("JobQueueService", () => {
       expect(job2?.status).toBe("pending");
     });
     it("should coalesce by updating timestamp when deduplication is 'coalesce'", async () => {
-      const coalesceOpts = enqueueOpts({ deduplication: "coalesce" });
-      const id1 = await service.enqueue({
-        type: "site-build",
-        data: {},
-        options: coalesceOpts,
-      });
-      const job1Before = await service.getStatus(id1);
-      const originalScheduledFor = job1Before?.scheduledFor;
-      await Bun.sleep(10);
-      const id2 = await service.enqueue({
-        type: "site-build",
-        data: {},
-        options: coalesceOpts,
-      });
-      expect(id1).toBe(id2);
-      const job1After = await service.getStatus(id1);
-      expect(job1After?.scheduledFor).toBeGreaterThan(
-        originalScheduledFor ?? 0,
-      );
-      const activeJobs = await service.getActiveJobs(["site-build"]);
-      expect(activeJobs.length).toBe(1);
+      const now = Date.now();
+      setSystemTime(now);
+      try {
+        const coalesceOpts = enqueueOpts({ deduplication: "coalesce" });
+        const id1 = await service.enqueue({
+          type: "site-build",
+          data: {},
+          options: coalesceOpts,
+        });
+        const job1Before = await service.getStatus(id1);
+        const originalScheduledFor = job1Before?.scheduledFor;
+        setSystemTime(now + 10);
+        const id2 = await service.enqueue({
+          type: "site-build",
+          data: {},
+          options: coalesceOpts,
+        });
+        expect(id1).toBe(id2);
+        const job1After = await service.getStatus(id1);
+        expect(job1After?.scheduledFor).toBeGreaterThan(
+          originalScheduledFor ?? 0,
+        );
+        const activeJobs = await service.getActiveJobs(["site-build"]);
+        expect(activeJobs.length).toBe(1);
+      } finally {
+        setSystemTime();
+      }
     });
     it("should respect deduplication across different job types independently", async () => {
       service.registerHandler("other-job", testHandler);
@@ -1702,47 +1733,118 @@ describe("JobQueueService", () => {
     });
 
     it("resolves once the queue has been empty for the quiet window", async () => {
-      const startedAt = Date.now();
-      await service.waitForIdle({ quietMs: 60, pollIntervalMs: 5 });
+      const now = Date.now();
+      setSystemTime(now);
+      let signalFirstProbe = (): void => {};
+      const firstProbe = new Promise<void>((resolve) => {
+        signalFirstProbe = resolve;
+      });
+      const getDiagnostics = service.getDiagnostics.bind(service);
+      spyOn(service, "getDiagnostics").mockImplementation(async (at) => {
+        const diagnostics = await getDiagnostics(at);
+        setImmediate(signalFirstProbe);
+        return diagnostics;
+      });
 
-      expect(Date.now() - startedAt).toBeGreaterThanOrEqual(55);
+      try {
+        const idle = service.waitForIdle({ quietMs: 60, pollIntervalMs: 5 });
+        await firstProbe;
+        setSystemTime(now + 60);
+        await idle;
+        expect(Date.now() - now).toBe(60);
+      } finally {
+        setSystemTime();
+      }
     });
 
     it("does not resolve in the gap between cascading jobs", async () => {
-      // Work here cascades: finishing one job can enqueue the next. Anything
-      // arriving during the quiet window has to restart it, or "idle" would
-      // mean "momentarily empty".
-      let enqueuedAt = 0;
-      const cascade = (async (): Promise<void> => {
-        await Bun.sleep(25);
+      const now = Date.now();
+      setSystemTime(now);
+      let signalFirstProbe = (): void => {};
+      let signalActiveProbe = (): void => {};
+      let signalEmptyAfterActive = (): void => {};
+      const firstProbe = new Promise<void>((resolve) => {
+        signalFirstProbe = resolve;
+      });
+      const activeProbe = new Promise<void>((resolve) => {
+        signalActiveProbe = resolve;
+      });
+      const emptyAfterActive = new Promise<void>((resolve) => {
+        signalEmptyAfterActive = resolve;
+      });
+      let sawActive = false;
+      const getDiagnostics = service.getDiagnostics.bind(service);
+      spyOn(service, "getDiagnostics").mockImplementation(async (at) => {
+        const diagnostics = await getDiagnostics(at);
+        setImmediate(signalFirstProbe);
+        if (diagnostics.totals.pending > 0) {
+          sawActive = true;
+          setImmediate(signalActiveProbe);
+        } else if (sawActive) {
+          setImmediate(signalEmptyAfterActive);
+        }
+        return diagnostics;
+      });
+
+      try {
+        const idle = service.waitForIdle({ quietMs: 60, pollIntervalMs: 5 });
+        await firstProbe;
+        setSystemTime(now + 25);
         const jobId = await service.enqueue({
           type: "shell:embedding",
           data: testEntity,
           options: enqueueOpts(),
         });
-        enqueuedAt = Date.now();
-        await Bun.sleep(25);
+        await activeProbe;
+        setSystemTime(now + 50);
         await service.complete(jobId, { processed: true });
-      })();
+        await emptyAfterActive;
+        setSystemTime(now + 110);
+        await idle;
 
-      await service.waitForIdle({ quietMs: 60, pollIntervalMs: 5 });
-      const settledAt = Date.now();
-      await cascade;
-
-      expect(enqueuedAt).toBeGreaterThan(0);
-      expect(settledAt - enqueuedAt).toBeGreaterThanOrEqual(60);
+        expect(Date.now() - (now + 25)).toBe(85);
+      } finally {
+        setSystemTime();
+      }
     });
 
     it("names the outstanding work when it times out", async () => {
+      const now = Date.now();
+      setSystemTime(now);
       await service.enqueue({
         type: "shell:embedding",
         data: testEntity,
         options: enqueueOpts(),
       });
+      let signalFirstProbe = (): void => {};
+      const firstProbe = new Promise<void>((resolve) => {
+        signalFirstProbe = resolve;
+      });
+      const getDiagnostics = service.getDiagnostics.bind(service);
+      spyOn(service, "getDiagnostics").mockImplementation(async (at) => {
+        const diagnostics = await getDiagnostics(at);
+        setImmediate(signalFirstProbe);
+        return diagnostics;
+      });
 
-      expect(
-        service.waitForIdle({ quietMs: 10, timeoutMs: 50, pollIntervalMs: 5 }),
-      ).rejects.toThrow(/1 pending/);
+      try {
+        const idle = service.waitForIdle({
+          quietMs: 10,
+          timeoutMs: 50,
+          pollIntervalMs: 5,
+        });
+        await firstProbe;
+        setSystemTime(now + 50);
+        const error = await idle.then(
+          () => undefined,
+          (reason: unknown) => reason,
+        );
+        expect(error).toMatchObject({
+          message: expect.stringMatching(/1 pending/),
+        });
+      } finally {
+        setSystemTime();
+      }
     });
 
     it("stops when the caller aborts", async () => {

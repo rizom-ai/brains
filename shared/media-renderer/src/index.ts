@@ -17,3 +17,5 @@ export type {
   PdfRenderOptions,
   ScreenshotPngOptions,
 } from "./renderer";
+export { createWebViewBrowserFactory } from "./webview-browser";
+export type { WebViewBrowserLaunchOptions } from "./webview-browser";
