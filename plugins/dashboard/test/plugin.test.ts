@@ -511,6 +511,40 @@ describe("DashboardPlugin", () => {
       expect(html).not.toContain("Publication Pipeline");
     });
 
+    it("should keep non-public widgets off the Dashboard for an Admin session", async () => {
+      const authPlugin = new AuthServicePlugin({
+        storageDir: await createTempDir("dashboard-public-widgets-only-"),
+      });
+      await harness.installPlugin(authPlugin);
+      const session = await authPlugin.getService().createAuthSession();
+      let privateProviderCalls = 0;
+      await harness.sendMessage("dashboard:register-widget", {
+        id: "private-operations",
+        pluginId: "operations",
+        title: "Private operations",
+        group: "system",
+        section: "primary",
+        priority: 10,
+        rendererName: DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
+        visibility: "trusted",
+        dataProvider: async () => {
+          privateProviderCalls += 1;
+          return { view: { blocks: [] } };
+        },
+      });
+
+      const response = await plugin.getWebRoutes()[0]?.handler(
+        new Request("http://brain/dashboard", {
+          headers: { Cookie: session.cookie },
+        }),
+      );
+      const html = await response?.text();
+
+      expect(privateProviderCalls).toBe(0);
+      expect(html).not.toContain("Private operations");
+      expect(html).not.toContain("private console widget is hidden");
+    });
+
     it("should render recent entity and job progress events", async () => {
       harness.subscribe("sync:status:request", async () => ({
         success: true,
@@ -639,7 +673,7 @@ describe("DashboardPlugin", () => {
         pluginId: "reader",
         group: "knowledge",
         title: "Reader widget",
-        visibility: "trusted",
+        visibility: "public",
         rendererName: DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
         dataProvider: async (context: DashboardWidgetProviderContext) => {
           providerContexts.push(context);

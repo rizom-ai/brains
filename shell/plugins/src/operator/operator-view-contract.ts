@@ -167,6 +167,7 @@ export interface OperatorEntityLinkTarget {
 
 export type OperatorLaunchIntent =
   | { readonly target: "account-settings" }
+  | { readonly target: "invitations" }
   | {
       readonly target: "admin-peer-invite";
       readonly peerId: string;

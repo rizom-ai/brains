@@ -45,7 +45,10 @@ import {
   type PublishingActionResult,
 } from "./api";
 import type { BodyMode } from "./body-editor";
-import { getStudioRouterBasePath } from "./studio-router";
+import {
+  getStudioRouterBasePath,
+  resolveStudioHomePath,
+} from "./studio-router";
 import { createEditorDocument } from "./editor-document";
 import {
   consumeStudioCreatePrefill,
@@ -209,9 +212,6 @@ export function App(): ReactElement {
   const activeType = types?.find((info) => info.entityType === entityType);
   const activeCapabilities = activeType?.capabilities;
   const workspaces = navigationQuery.data?.workspaces ?? EMPTY_WORKSPACES;
-  const accountWorkspace = workspaces.find(
-    (workspace) => workspace.rendererName === STUDIO_ACCOUNT_WORKSPACE_RENDERER,
-  );
   const activeWorkspace = workspaces.find(
     (workspace) => workspace.id === activeWorkspaceId,
   );
@@ -351,11 +351,12 @@ export function App(): ReactElement {
         ? routeTarget.entityType
         : undefined;
     const first = types.find((info) => !info.isSingleton) ?? types[0];
-    if (routeTarget.kind === "home" && !first && accountWorkspace) {
-      router.history.replace(
-        studioWorkspacePath(studioBasePath, accountWorkspace.id),
-      );
-      return;
+    if (routeTarget.kind === "home") {
+      const homePath = resolveStudioHomePath(studioBasePath, types, workspaces);
+      if (homePath !== studioBasePath) {
+        router.history.replace(homePath);
+        return;
+      }
     }
     const nextType = requestedType ?? first?.entityType ?? null;
     if (
@@ -369,14 +370,7 @@ export function App(): ReactElement {
 
     setActiveWorkspaceId(null);
     setEntityType(nextType);
-  }, [
-    accountWorkspace,
-    routeTarget,
-    router.history,
-    studioBasePath,
-    types,
-    workspaces,
-  ]);
+  }, [routeTarget, router.history, studioBasePath, types, workspaces]);
 
   // After a save, poll the pipeline until the auto-commit lands. Every poll
   // updates syncStatus, which re-runs this effect until the view settles or
@@ -627,6 +621,11 @@ export function App(): ReactElement {
           );
           return;
         }
+        case "invitations":
+          router.history.push(
+            studioWorkspacePath(studioBasePath, "admin:invitations"),
+          );
+          return;
         case "admin-peer-invite": {
           router.history.push(
             workspaceUrlHref(

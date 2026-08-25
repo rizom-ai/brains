@@ -414,13 +414,12 @@ export class DashboardPlugin extends ServicePlugin<
             await getActiveAuthService()?.resolveSession(request);
           const permissionLevel: WidgetVisibility =
             principal?.permissionLevel ?? "public";
-          const anchorWidgets =
-            this.widgetRegistry?.list({ permissionLevel: "admin" }) ?? [];
-          const visibleWidgets = anchorWidgets.filter((widget) =>
-            PermissionService.hasPermission(permissionLevel, widget.visibility),
-          );
-          const hiddenWidgetCount =
-            anchorWidgets.length - visibleWidgets.length;
+          // Dashboard is the public card. Non-public semantic widgets are
+          // re-homed into Studio Overview and are never invoked here, even for
+          // an authenticated Admin request.
+          const visibleWidgets =
+            this.widgetRegistry?.list({ permissionLevel: "public" }) ?? [];
+          const hiddenWidgetCount = 0;
           const [dashboardData, appInfo, directorySyncStatus, indexStatus] =
             await Promise.all([
               this.datasource.getDashboardData({
@@ -583,7 +582,7 @@ export class DashboardPlugin extends ServicePlugin<
           }
 
           const widgetGroups = (
-            this.widgetRegistry?.list({ permissionLevel: "admin" }) ?? []
+            this.widgetRegistry?.list({ permissionLevel: "public" }) ?? []
           ).map((widget) => widget.group);
           const surfaces = deriveConsoleSurfaces(ctx.webRoutes.getRoutes(), {
             activeId: "dashboard",

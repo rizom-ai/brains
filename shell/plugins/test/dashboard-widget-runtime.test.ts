@@ -4,6 +4,8 @@ import { createMockShell, createSilentLogger } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
 import {
   DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
+  STUDIO_OVERVIEW_REGISTER_MESSAGE,
+  STUDIO_OVERVIEW_UNREGISTER_MESSAGE,
   defineAccountSettings,
   defineDashboardWidget,
   defineEntity,
@@ -157,7 +159,9 @@ describe("declarative dashboard widget runtime", () => {
     ]);
 
     const registrations: HostRegistration[] = [];
+    const overviewRegistrations: HostRegistration[] = [];
     const unregistered: string[] = [];
+    const overviewUnregistered: string[] = [];
     shell
       .getMessageBus()
       .subscribe<HostRegistration>(
@@ -169,11 +173,31 @@ describe("declarative dashboard widget runtime", () => {
       );
     shell
       .getMessageBus()
+      .subscribe<HostRegistration>(
+        STUDIO_OVERVIEW_REGISTER_MESSAGE,
+        (message) => {
+          overviewRegistrations.push(message.payload);
+          return { success: true };
+        },
+      );
+    shell
+      .getMessageBus()
       .subscribe<{ widgetId?: string }>(
         DASHBOARD_CHANNELS.unregisterWidget,
         (message) => {
           if (message.payload.widgetId) {
             unregistered.push(message.payload.widgetId);
+          }
+          return { success: true };
+        },
+      );
+    shell
+      .getMessageBus()
+      .subscribe<{ contributionId?: string }>(
+        STUDIO_OVERVIEW_UNREGISTER_MESSAGE,
+        (message) => {
+          if (message.payload.contributionId) {
+            overviewUnregistered.push(message.payload.contributionId);
           }
           return { success: true };
         },
@@ -195,6 +219,7 @@ describe("declarative dashboard widget runtime", () => {
       rendererName: DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
     });
     if (!registration) throw new Error("Widget was not registered");
+    expect(overviewRegistrations).toEqual([registration]);
 
     const result = await registration.dataProvider({
       caller: {
@@ -237,6 +262,7 @@ describe("declarative dashboard widget runtime", () => {
     });
     await plugin.shutdown?.();
     expect(unregistered).toEqual(["library"]);
+    expect(overviewUnregistered).toEqual(["library"]);
   });
 
   it("enqueues imported typed jobs through the owning service binding", async () => {

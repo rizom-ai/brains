@@ -54,6 +54,11 @@ function launchHref(
       ? workspaceHref(paths.studioPath, "studio:account")
       : undefined;
   }
+  if (launch.target === "invitations") {
+    return paths.studioPath
+      ? workspaceHref(paths.studioPath, "admin:invitations")
+      : undefined;
+  }
   if (launch.target === "admin-peer-invite") {
     if (!paths.studioPath) return undefined;
     const url = new URL(

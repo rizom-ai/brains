@@ -577,6 +577,35 @@ export class AuthInvitationService {
       .orderBy(authInvitations.createdAt, sql`rowid`);
   }
 
+  async listWithCurrentSetupExpirations(): Promise<{
+    invitations: AuthInvitation[];
+    expirations: Map<string, number>;
+  }> {
+    await this.reconcileExpired();
+    const [invitations, expirationRows] = await Promise.all([
+      this.db
+        .select()
+        .from(authInvitations)
+        .orderBy(authInvitations.createdAt, sql`rowid`),
+      this.db
+        .select({
+          invitationId: authInvitations.id,
+          expiresAt: setupTokens.expiresAt,
+        })
+        .from(authInvitations)
+        .innerJoin(
+          setupTokens,
+          eq(setupTokens.tokenHash, authInvitations.currentSetupTokenHash),
+        ),
+    ]);
+    return {
+      invitations,
+      expirations: new Map(
+        expirationRows.map((row) => [row.invitationId, row.expiresAt * 1_000]),
+      ),
+    };
+  }
+
   listDeliveryAttempts(
     invitationId: string,
   ): Promise<AuthInvitationDeliveryAttempt[]> {

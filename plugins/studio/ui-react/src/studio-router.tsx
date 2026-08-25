@@ -8,12 +8,39 @@ import {
   type RouteComponent,
   type RouterHistory,
 } from "@tanstack/react-router";
-import { normalizeStudioBasePath } from "../../src/studio-paths";
+import {
+  normalizeStudioBasePath,
+  studioWorkspacePath,
+} from "../../src/studio-paths";
+import { STUDIO_ACCOUNT_WORKSPACE_ID } from "../../src/account-workspace";
+import { STUDIO_OVERVIEW_WORKSPACE_ID } from "../../src/overview-constants";
 
 let studioRouterBasePath = "/studio";
 
 export function getStudioRouterBasePath(): string {
   return studioRouterBasePath;
+}
+
+export function resolveStudioHomePath(
+  basePath: string,
+  types: readonly {
+    readonly entityType: string;
+    readonly isSingleton: boolean;
+  }[],
+  workspaces: readonly { readonly id: string }[],
+): string {
+  const normalizedBase = normalizeStudioBasePath(basePath) || "/";
+  const overview = workspaces.find(
+    (workspace) => workspace.id === STUDIO_OVERVIEW_WORKSPACE_ID,
+  );
+  if (overview) return studioWorkspacePath(normalizedBase, overview.id);
+  const account = workspaces.find(
+    (workspace) => workspace.id === STUDIO_ACCOUNT_WORKSPACE_ID,
+  );
+  if (types.length === 0 && account) {
+    return studioWorkspacePath(normalizedBase, account.id);
+  }
+  return normalizedBase;
 }
 
 /** Create the package-local browser router beneath the configured Studio mount. */

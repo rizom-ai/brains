@@ -1,7 +1,9 @@
 import { describe, expect, it } from "bun:test";
 import { AuthServicePlugin } from "@brains/auth-service";
 import {
+  STUDIO_OVERVIEW_REGISTER_MESSAGE,
   STUDIO_WORKSPACE_REGISTER_MESSAGE,
+  type StudioOverviewContributionRegistration,
   type StudioWorkspaceRegistration,
 } from "@brains/plugins";
 import { createMockShell, createTempDir } from "@brains/test-utils";
@@ -38,6 +40,16 @@ describe("administration workspace provider", () => {
     });
     await authPlugin.register(shell);
     const registrations: StudioWorkspaceRegistration[] = [];
+    const overviewContributions: StudioOverviewContributionRegistration[] = [];
+    shell
+      .getMessageBus()
+      .subscribe<StudioOverviewContributionRegistration>(
+        STUDIO_OVERVIEW_REGISTER_MESSAGE,
+        (message) => {
+          overviewContributions.push(message.payload);
+          return { success: true };
+        },
+      );
     shell
       .getMessageBus()
       .subscribe<StudioWorkspaceRegistration, { workspaceUrl: string }>(
@@ -66,5 +78,44 @@ describe("administration workspace provider", () => {
     expect(
       registrations.every((workspace) => workspace.permission === "admin"),
     ).toBe(true);
+    expect(overviewContributions).toEqual([
+      expect.objectContaining({
+        id: "expiring-invitations",
+        pluginId: "admin",
+        visibility: "admin",
+      }),
+    ]);
+    const contribution = overviewContributions[0];
+    if (!contribution) throw new Error("Missing invitations contribution");
+    expect(
+      await contribution.dataProvider({
+        caller: {
+          actor: { id: "admin-user" },
+          permission: "admin",
+          isAnchor: true,
+        },
+        signal: new AbortController().signal,
+      }),
+    ).toMatchObject({
+      digest: { attention: 0 },
+      view: {
+        blocks: [
+          { type: "stats" },
+          { type: "list", items: [] },
+          {
+            type: "links",
+            items: [
+              {
+                label: "Open Invitations",
+                target: {
+                  kind: "launch",
+                  launch: { target: "invitations" },
+                },
+              },
+            ],
+          },
+        ],
+      },
+    });
   });
 });

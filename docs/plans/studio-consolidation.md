@@ -19,8 +19,8 @@ the card:
 [`../studio-consolidation-mockups.html`](../studio-consolidation-mockups.html)
 (decided 2026-08-19).
 
-**Progress:** Phases 1–6 are implemented on `work/studio-consolidation`; Phase
-7 is next. A 2026-08-23 review confirmed the rename is cleanly mechanical and
+**Progress:** Phases 1–7 are implemented on `work/studio-consolidation`; Phase
+8 is next. A 2026-08-23 review confirmed the rename is cleanly mechanical and
 the capability-parity inventory holds. Its Phase 2 follow-ups (redundant Admin
 asserts, fetch-all audit pagination, and raw ISO timestamps) and Phase 3 entry
 conditions (shared form-control vocabulary and shared `queryInteger`) landed
@@ -34,7 +34,12 @@ Account into a lazy Studio chunk, replaces the old Account/Admin routes with
 permanent Studio redirects, removes both independent browser apps, and keeps
 `plugins/admin` as a headless provider to preserve the Phase 4 package
 boundary. The 2026-08-24 Dashboard decision keeps its existing chrome with
-exactly three public tabs: Overview, Knowledge, and Network.
+exactly three public tabs: Overview, Knowledge, and Network. Phase 7 adds the
+Trusted-floor `studio:overview` operator home, transparently re-homes
+non-public semantic Dashboard definitions there, aggregates their attention
+badges and launch links with recent entity/job activity and runtime state,
+surfaces failed jobs and expiring invitation setup links through source-owned
+attention, and prevents Dashboard from invoking restricted widget providers.
 
 ## Goal
 

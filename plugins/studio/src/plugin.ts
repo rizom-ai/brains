@@ -1,5 +1,7 @@
 import { getActiveAuthService } from "@brains/auth-service";
 import type {
+  StudioOverviewContributionRegistration,
+  StudioOverviewContributionUnregistration,
   StudioWorkspaceRegistration,
   StudioWorkspaceRegistrationResult,
   StudioWorkspaceUnregistration,
@@ -8,6 +10,8 @@ import type {
   WebRouteDefinition,
 } from "@brains/plugins";
 import {
+  STUDIO_OVERVIEW_REGISTER_MESSAGE,
+  STUDIO_OVERVIEW_UNREGISTER_MESSAGE,
   STUDIO_WORKSPACE_REGISTER_MESSAGE,
   STUDIO_WORKSPACE_UNREGISTER_MESSAGE,
   ServicePlugin,
@@ -26,6 +30,12 @@ import { StudioWorkspaceRegistry } from "./workspace-registry";
 import packageJson from "../package.json";
 import { getErrorMessage } from "@brains/utils/error";
 import { STUDIO_ACCOUNT_WORKSPACE_ID } from "./account-workspace";
+import {
+  STUDIO_OVERVIEW_WORKSPACE_ID,
+  StudioOverviewRegistry,
+  createStudioOverviewWorkspace,
+  registerStudioOverviewActivity,
+} from "./overview-workspace";
 
 interface StudioEntityDisplayEntry {
   label?: string | undefined;
@@ -129,6 +139,7 @@ export class StudioPlugin extends ServicePlugin<
   StudioPluginConfigInput
 > {
   private readonly workspaceRegistry = new StudioWorkspaceRegistry();
+  private readonly overviewRegistry = new StudioOverviewRegistry();
 
   constructor(config: StudioPluginConfigInput = {}) {
     super("studio", packageJson, config, studioPluginConfigSchema);
@@ -155,6 +166,36 @@ export class StudioPlugin extends ServicePlugin<
       visibility: "public",
       requiresActiveSession: true,
     });
+    this.workspaceRegistry.register(
+      createStudioOverviewWorkspace({
+        context,
+        registry: this.overviewRegistry,
+      }),
+    );
+    registerStudioOverviewActivity(context, this.overviewRegistry);
+    context.messaging.subscribe<StudioOverviewContributionRegistration>(
+      STUDIO_OVERVIEW_REGISTER_MESSAGE,
+      (message) => {
+        try {
+          this.overviewRegistry.register(message.payload);
+          return { success: true };
+        } catch (error) {
+          return { success: false, error: getErrorMessage(error) };
+        }
+      },
+    );
+    context.messaging.subscribe<StudioOverviewContributionUnregistration>(
+      STUDIO_OVERVIEW_UNREGISTER_MESSAGE,
+      (message) => {
+        try {
+          this.overviewRegistry.unregister(message.payload);
+          return { success: true };
+        } catch (error) {
+          return { success: false, error: getErrorMessage(error) };
+        }
+      },
+    );
+
     const canCreateNote = createNoteCapability(context);
     context.inboxFollowUps.registerKind({
       kind: "capture-as-note",
@@ -202,9 +243,12 @@ export class StudioPlugin extends ServicePlugin<
       StudioWorkspaceRegistrationResult
     >(STUDIO_WORKSPACE_REGISTER_MESSAGE, async (message) => {
       try {
-        if (message.payload.id === STUDIO_ACCOUNT_WORKSPACE_ID) {
+        if (
+          message.payload.id === STUDIO_ACCOUNT_WORKSPACE_ID ||
+          message.payload.id === STUDIO_OVERVIEW_WORKSPACE_ID
+        ) {
           throw new Error(
-            `Studio workspace id is reserved by the host: ${STUDIO_ACCOUNT_WORKSPACE_ID}`,
+            `Studio workspace id is reserved by the host: ${message.payload.id}`,
           );
         }
         const workspace = this.workspaceRegistry.register(message.payload);
@@ -227,10 +271,12 @@ export class StudioPlugin extends ServicePlugin<
     context.messaging.subscribe<StudioWorkspaceUnregistration>(
       STUDIO_WORKSPACE_UNREGISTER_MESSAGE,
       (message) => {
-        this.workspaceRegistry.unregister(
-          message.payload.pluginId,
-          message.payload.workspaceId,
-        );
+        if (message.payload.pluginId !== "studio") {
+          this.workspaceRegistry.unregister(
+            message.payload.pluginId,
+            message.payload.workspaceId,
+          );
+        }
         return { success: true };
       },
     );

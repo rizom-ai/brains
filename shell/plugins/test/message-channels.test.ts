@@ -6,6 +6,10 @@ import {
   ENTITY_CHANNELS,
   PUBLISH_CHANNELS,
 } from "@brains/contracts";
+import {
+  STUDIO_OVERVIEW_REGISTER_MESSAGE,
+  STUDIO_OVERVIEW_UNREGISTER_MESSAGE,
+} from "../src";
 
 const repoRoot = join(import.meta.dir, "../../..");
 
@@ -29,6 +33,12 @@ describe("message channels", () => {
     expect(PUBLISH_CHANNELS.completed).toBe("publish:completed");
     expect(ENTITY_CHANNELS.updated).toBe("entity:updated");
     expect(DASHBOARD_CHANNELS.registerWidget).toBe("dashboard:register-widget");
+    expect(STUDIO_OVERVIEW_REGISTER_MESSAGE).toBe(
+      "studio:register-overview-contribution",
+    );
+    expect(STUDIO_OVERVIEW_UNREGISTER_MESSAGE).toBe(
+      "studio:unregister-overview-contribution",
+    );
   });
 
   it("does not hardcode message-bus event literals at source call sites", () => {

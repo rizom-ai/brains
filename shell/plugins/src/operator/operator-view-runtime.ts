@@ -24,6 +24,7 @@ export type RuntimeOperatorTone = "good" | "warn" | "neutral" | "error";
 
 export type RuntimeOperatorLaunchIntent =
   | { readonly target: "account-settings" }
+  | { readonly target: "invitations" }
   | {
       readonly target: "admin-peer-invite";
       readonly peerId: string;
@@ -714,6 +715,7 @@ function entityLinkTarget(input: {
 
 const launchIntentSchema = z.union([
   z.object({ target: z.literal("account-settings") }).strict(),
+  z.object({ target: z.literal("invitations") }).strict(),
   z
     .object({
       target: z.literal("admin-peer-invite"),

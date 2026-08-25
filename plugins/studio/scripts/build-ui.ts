@@ -1,6 +1,6 @@
-import { mkdir, rm, writeFile } from "fs/promises";
-import { createRequire } from "module";
-import { dirname, join, relative } from "path";
+import { mkdir, rm, writeFile } from "node:fs/promises";
+import { createRequire } from "node:module";
+import { dirname, join, relative } from "node:path";
 
 const require = createRequire(import.meta.url);
 const packageRoot = join(import.meta.dir, "..");

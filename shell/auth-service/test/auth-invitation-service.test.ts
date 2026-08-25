@@ -472,7 +472,10 @@ describe("AuthInvitationService", () => {
       expect.arrayContaining([
         expect.objectContaining({
           displayName: "Mira Reyes",
-          invitation: expect.objectContaining({ state: "sending" }),
+          invitation: expect.objectContaining({
+            state: "sending",
+            expiresAt: expect.any(Number),
+          }),
         }),
       ]),
     );

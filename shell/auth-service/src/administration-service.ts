@@ -309,7 +309,7 @@ export class AuthAdministrationService {
       identities,
       passkeys,
       externalPeers,
-      invitations,
+      invitationState,
       anchor,
     ] = await Promise.all([
       this.users.listUsers(),
@@ -317,7 +317,7 @@ export class AuthAdministrationService {
       this.identities.listAllIdentities(),
       this.credentials.listPasskeys(),
       this.externalPeers.listAll(),
-      this.invitations.list(),
+      this.invitations.listWithCurrentSetupExpirations(),
       this.users.getBrainAnchor(),
     ]);
     const peopleById = new Map(people.map((person) => [person.id, person]));
@@ -327,7 +327,10 @@ export class AuthAdministrationService {
       externalPeers,
       (item) => item.personId,
     );
-    const invitationsByUserId = groupBy(invitations, (item) => item.userId);
+    const invitationsByUserId = groupBy(
+      invitationState.invitations,
+      (item) => item.userId,
+    );
 
     return Promise.all(
       users.map(async (user) => {
@@ -341,7 +344,14 @@ export class AuthAdministrationService {
           ...principal,
           displayName: profileDisplayName ?? principal.displayName,
           ...(profileEntityId ? { profileEntityId } : {}),
-          ...(invitation ? { invitation: invitationSummary(invitation) } : {}),
+          ...(invitation
+            ? {
+                invitation: invitationSummary(
+                  invitation,
+                  invitationState.expirations.get(invitation.id),
+                ),
+              }
+            : {}),
           identities: (identitiesByPersonId.get(user.personId) ?? []).map(
             (identity) =>
               identitySummary(identity, user.id, this.getChannelDescriptor),
@@ -551,7 +561,10 @@ function adminIdentityLabel(
   return label && label.length > 0 ? label : undefined;
 }
 
-function invitationSummary(invitation: AuthInvitation): AuthInvitationSummary {
+function invitationSummary(
+  invitation: AuthInvitation,
+  expiresAt?: number,
+): AuthInvitationSummary {
   return {
     id: invitation.id,
     userId: invitation.userId,
@@ -559,6 +572,7 @@ function invitationSummary(invitation: AuthInvitation): AuthInvitationSummary {
     ...(invitation.failureCode ? { failureCode: invitation.failureCode } : {}),
     createdAt: invitation.createdAt,
     updatedAt: invitation.updatedAt,
+    ...(expiresAt !== undefined ? { expiresAt } : {}),
     ...(invitation.sentAt !== null ? { sentAt: invitation.sentAt } : {}),
     ...(invitation.claimedAt !== null
       ? { claimedAt: invitation.claimedAt }

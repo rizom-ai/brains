@@ -131,6 +131,12 @@ describe("public declarative Studio workspace", () => {
     expect(navigation).toMatchObject({
       workspaces: [
         {
+          label: "Overview",
+          rendererName: "DeclarativeOperatorWorkspace",
+          entityTypes: [],
+          badge: 0,
+        },
+        {
           label: "Account",
           rendererName: "StudioAccountWorkspace",
           entityTypes: [],
@@ -154,8 +160,8 @@ describe("public declarative Studio workspace", () => {
       (workspace) =>
         typeof workspace === "object" &&
         workspace !== null &&
-        "rendererName" in workspace &&
-        workspace.rendererName === "DeclarativeOperatorWorkspace",
+        "label" in workspace &&
+        workspace.label === "Reading library",
     );
     if (
       descriptor === null ||

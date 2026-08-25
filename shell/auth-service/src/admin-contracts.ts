@@ -111,6 +111,8 @@ export interface AuthInvitationSummary {
   failureCode?: string;
   createdAt: number;
   updatedAt: number;
+  /** Current single-use setup-link expiry, in epoch milliseconds. */
+  expiresAt?: number;
   sentAt?: number;
   claimedAt?: number;
   expiredAt?: number;

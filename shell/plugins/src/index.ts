@@ -783,9 +783,13 @@ export {
 } from "./types/studio-workspace";
 export {
   DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
+  STUDIO_OVERVIEW_REGISTER_MESSAGE,
+  STUDIO_OVERVIEW_UNREGISTER_MESSAGE,
   type DashboardWidgetProviderContext,
   type DashboardWidgetRegistration,
   type DashboardWidgetRenderer,
+  type StudioOverviewContributionRegistration,
+  type StudioOverviewContributionUnregistration,
   type IDashboardNamespace,
 } from "./base/dashboard-namespace";
 export { registerBuiltInStudioWorkspace } from "./operator/studio-workspace-runtime";

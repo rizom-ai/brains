@@ -63,6 +63,169 @@ const types = [
     capabilities: editCapabilities,
   },
 ];
+const overviewWorkspaceData = {
+  refreshAfterMs: 15_000,
+  view: {
+    kicker: "Operator home",
+    title: "Overview",
+    description:
+      "What needs you, and what the brain did on its own. Glance here, act in the workspace that owns it.",
+    status: {
+      label: "3 need you",
+      detail: "live operational snapshot",
+      tone: "warn",
+    },
+    blocks: [
+      {
+        type: "columns",
+        id: "overview-columns",
+        primary: [
+          {
+            type: "card",
+            id: "overview-attention",
+            label: "Needs attention",
+            tone: "warn",
+            blocks: [
+              {
+                type: "list",
+                id: "overview-attention-list",
+                empty: "Nothing needs your attention.",
+                items: [
+                  {
+                    id: "dispatch-failed",
+                    title: "Newsletter dispatch failed",
+                    description:
+                      "Urban sensor platforms — transport rejected the payload.",
+                    metadata: ["Publishing", "2 retries left", "18:20"],
+                    tone: "error",
+                    link: {
+                      kind: "launch",
+                      launch: { target: "publishing" },
+                    },
+                  },
+                  {
+                    id: "site-preview-failed",
+                    title: "Site preview needs review",
+                    description:
+                      "One route failed during the latest preview build.",
+                    metadata: ["Site", "preview environment"],
+                    tone: "warn",
+                    link: {
+                      kind: "launch",
+                      launch: { target: "site" },
+                    },
+                  },
+                  {
+                    id: "invitation-expiring",
+                    title: "Grace Hopper's setup link expires soon",
+                    description:
+                      "The single-use invitation link expires tomorrow.",
+                    metadata: ["Access", "Invitations"],
+                    tone: "warn",
+                    link: {
+                      kind: "launch",
+                      launch: { target: "invitations" },
+                    },
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            type: "card",
+            id: "overview-activity",
+            label: "While you were away",
+            blocks: [
+              {
+                type: "list",
+                id: "overview-activity-list",
+                empty: "No recent autonomous activity.",
+                items: [
+                  {
+                    id: "mail-triage",
+                    title: "9 mail items triaged",
+                    description: "2 flagged high priority, 1 needs a reply.",
+                    metadata: ["Inbox", "overnight"],
+                    tone: "good",
+                    link: {
+                      kind: "launch",
+                      launch: { target: "inbox" },
+                    },
+                  },
+                  {
+                    id: "preview-built",
+                    title: "Site preview built",
+                    description: "31 routes completed without warnings.",
+                    metadata: ["Site", "16:04"],
+                    tone: "good",
+                  },
+                  {
+                    id: "notes-captured",
+                    title: "3 notes captured",
+                    description:
+                      "From inbox follow-ups on the workshop thread.",
+                    metadata: ["Notes", "14:31"],
+                    tone: "neutral",
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+        aside: [
+          {
+            type: "card",
+            id: "overview-system",
+            label: "System",
+            tone: "neutral",
+            blocks: [
+              {
+                type: "key-values",
+                items: [
+                  { label: "Runtime", value: "operational" },
+                  { label: "Jobs", value: "idle" },
+                  { label: "Queue", value: "0 waiting" },
+                  { label: "Version", value: "0.2.0-alpha.306" },
+                ],
+              },
+            ],
+          },
+          {
+            type: "card",
+            id: "overview-network",
+            label: "Network",
+            tone: "neutral",
+            blocks: [
+              {
+                type: "key-values",
+                items: [
+                  { label: "Interactions", value: 4 },
+                  { label: "Channels", value: 3 },
+                  { label: "Inbox sources", value: 2 },
+                  { label: "Operational sources", value: 3 },
+                ],
+              },
+            ],
+          },
+          {
+            type: "card",
+            id: "overview-sources",
+            label: "All sources connected",
+            tone: "good",
+            blocks: [
+              {
+                type: "notice",
+                tone: "good",
+                text: "Email, directory sync, and the site pipeline are reporting normally.",
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+};
+
 const entities = [
   {
     id: "responsive-console",
@@ -278,51 +441,9 @@ function dashboardInput(): DashboardRenderInput {
         { entityType: "agent", count: 2 },
       ],
     }),
-    widgets: {
-      "content-pipeline:pipeline": {
-        widget: {
-          id: "pipeline",
-          pluginId: "content-pipeline",
-          title: "Publication Pipeline",
-          group: "publishing",
-          section: "primary",
-          priority: 10,
-          rendererName: "DeclarativeOperatorWidget",
-          visibility: "public",
-        },
-        data: {
-          view: {
-            blocks: [
-              {
-                type: "stats",
-                items: [
-                  { label: "Draft", value: 2 },
-                  { label: "Queued", value: 4, tone: "warn" },
-                  { label: "Published", value: 13, tone: "good" },
-                ],
-              },
-              {
-                type: "list",
-                id: "pipeline-items",
-                empty: "Nothing queued.",
-                items: [
-                  {
-                    id: "q1",
-                    title: "Domain as identity",
-                    badges: [{ label: "queued", tone: "warn" }],
-                  },
-                  {
-                    id: "d1",
-                    title: "Verdigris pigments",
-                    badges: [{ label: "draft" }],
-                  },
-                ],
-              },
-            ],
-          },
-        },
-      },
-    },
+    // Private publication, site, and inbox instruments are re-homed in
+    // Studio Overview; the Dashboard fixture intentionally carries none.
+    widgets: {},
     activityLog: [
       {
         action: "created",
@@ -682,7 +803,8 @@ async function checkLayout(
   if (
     surface.startsWith("studio-") &&
     surface !== "studio-library" &&
-    surface !== "studio-account"
+    surface !== "studio-account" &&
+    surface !== "studio-overview"
   ) {
     const modes = await elementDisplay(page, ".studio-mobile-modes");
     if (width <= 640 !== (modes !== "none"))
@@ -831,6 +953,15 @@ const server = Bun.serve({
         types,
         workspaces: [
           {
+            id: "studio:overview",
+            pluginId: "studio",
+            label: "Overview",
+            rendererName: "DeclarativeOperatorWorkspace",
+            priority: -100,
+            entityTypes: [],
+            badge: 3,
+          },
+          {
             id: "studio:account",
             pluginId: "studio",
             label: "Account",
@@ -839,6 +970,17 @@ const server = Bun.serve({
             entityTypes: [],
           },
         ],
+      });
+    if (
+      url.pathname === "/studio/api/workspace" &&
+      url.searchParams.get("id") === "studio:overview"
+    )
+      return json({
+        workspace: {
+          id: "studio:overview",
+          rendererName: "DeclarativeOperatorWorkspace",
+          data: overviewWorkspaceData,
+        },
       });
     if (url.pathname === "/auth/account")
       return json({
@@ -1006,6 +1148,7 @@ try {
         "chat-empty",
         "chat-drawer",
         "studio-library",
+        "studio-overview",
         "studio-account",
         "studio-editor",
         "studio-delete",
@@ -1049,9 +1192,11 @@ try {
               ? "/chat"
               : surface === "studio-account"
                 ? "/studio/workspaces/studio%3Aaccount"
-                : isStudioEditor
-                  ? "/studio/entities/posts/field-notes"
-                  : "/studio";
+                : surface === "studio-overview"
+                  ? "/studio/workspaces/studio%3Aoverview"
+                  : isStudioEditor
+                    ? "/studio/entities/posts/field-notes"
+                    : "/studio/entities/posts";
         const hash = isChat ? `#s/${conversationId}` : "";
         await navigateToNetworkIdle(
           page,
@@ -1151,6 +1296,9 @@ try {
             if (settled === tops && settled === previousTops) break;
             previousTops = settled;
           }
+        }
+        if (surface === "studio-overview") {
+          await page.getByText("While you were away").waitFor();
         }
         if (surface === "studio-account") {
           await page.getByText("Signed-in sessions").waitFor();

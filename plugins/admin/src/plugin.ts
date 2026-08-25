@@ -4,6 +4,7 @@ import { z } from "@brains/utils/zod";
 import packageJson from "../package.json";
 import { registerStudioAuditWorkspace } from "./audit-workspace";
 import { registerStudioInvitationsWorkspace } from "./invitations-workspace";
+import { registerInvitationsOverview } from "./invitations-overview";
 import { registerPeopleWorkspace } from "./people-workspace";
 import { registerPeersWorkspace } from "./peers-workspace";
 
@@ -26,6 +27,7 @@ export class AdminPlugin extends ServicePlugin<AdminConfig, AdminConfigInput> {
     await registerPeopleWorkspace(context);
     await registerStudioInvitationsWorkspace(context);
     await registerPeersWorkspace(context);
+    await registerInvitationsOverview(context);
   }
 
   override getWebRoutes(): WebRouteDefinition[] {

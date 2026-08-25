@@ -77,7 +77,7 @@ module.exports = {
         // Covered by the companion rule below with a wider builtin allowlist
         pathNot: [
           "^plugins/directory-sync/(test/|src/lib/content-remote-bootstrap\\.ts$)",
-          "^plugins/(admin|cms)/scripts/",
+          "^plugins/studio/scripts/",
         ],
       },
       to: {
@@ -110,10 +110,10 @@ module.exports = {
       name: "plugin-build-scripts-can-use-module-builtin",
       severity: "error",
       comment:
-        "admin and CMS build scripts use createRequire from the module builtin; " +
+        "Studio build scripts use createRequire from the module builtin; " +
         "otherwise they follow the standard plugin boundary",
       from: {
-        path: "^plugins/(admin|cms)/scripts/",
+        path: "^plugins/studio/scripts/",
       },
       to: {
         path: "^((?!shell/|shared/|plugins/|node_modules/).)*$",

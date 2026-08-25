@@ -1,6 +1,6 @@
 # Studio plugin
 
-`@brains/studio` provides an active-session operator shell, the self-service Account workspace, and Trusted entity browsing and editing while preserving entity-service conflict and pipeline semantics. Public-rank active sessions can enter the shell and use Account, but dedicated entity, assist, upload, and agent APIs remain Trusted; repository sync diagnostics and administration workspaces remain Admin-only.
+`@brains/studio` provides an active-session operator shell, a Trusted-floor Overview workspace, the self-service Account workspace, and Trusted entity browsing and editing while preserving entity-service conflict and pipeline semantics. Trusted and Admin sessions land in Overview; Public-rank active sessions can enter the shell and use Account. Dedicated entity, assist, upload, and agent APIs remain Trusted; repository sync diagnostics and administration workspaces remain Admin-only.
 
 ## State ownership
 
@@ -56,6 +56,8 @@ Account is a built-in Studio workspace with an explicit Public permission floor 
 The UI build emits deterministic hashed chunks and `studio-asset-manifest.json`. The server exposes only manifest-listed names under `{routePath}/assets/`; encoded traversal and unlisted files fail closed. The bundled `@rizom/brain` build copies the entry, manifest, source maps, and every split chunk together.
 
 ## Workspaces
+
+Overview is the built-in `studio:overview` operator home at the Trusted floor. It aggregates needs-attention digests and source-owned launch links, recent entity and job activity, and bounded system/network state. Administration contributes Admin-only failed-delivery and expiring-invitation attention without exposing setup URLs. Non-public semantic widgets declared with the existing Dashboard definition contract are re-homed here automatically; providers do not define a second view or depend on Studio. Its aggregate attention count becomes the workspace rail badge. Public widgets remain on Dashboard, and Dashboard never invokes Trusted/Admin providers.
 
 The headless Admin plugin registers Admin-only Audit, People, Invitations, and Peers workspaces through the shared declarative runtime, without depending on the Studio host or owning an independent browser route. Their providers read records directly from auth-service. Audit filters and paginates in the auth store; access and invitation mutations preserve actor attribution, prepared confirmation, and one-time setup links without duplicating auth APIs.
 

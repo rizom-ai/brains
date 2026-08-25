@@ -111,7 +111,7 @@ async function unregisterWorkspace(
 }
 
 describe("optional Studio workspaces", () => {
-  it("lists only the built-in Account workspace when no provider registers", async () => {
+  it("lists the built-in Overview and Account workspaces when no provider registers", async () => {
     const shell = createMockShell({ domain: "yeehaa.io" });
     const cookie = await createSessionCookie(shell);
     const plugin = studioPlugin();
@@ -125,7 +125,10 @@ describe("optional Studio workspaces", () => {
       .parse(await response.json());
 
     expect(response.status).toBe(200);
-    expect(payload.workspaces).toEqual([{ id: "studio:account" }]);
+    expect(payload.workspaces).toEqual([
+      { id: "studio:overview" },
+      { id: "studio:account" },
+    ]);
   });
 
   it("registers universal Studio follow-ups at a non-default mount", async () => {
@@ -376,6 +379,7 @@ describe("optional Studio workspaces", () => {
 
     expect(await response.json()).toMatchObject({
       workspaces: [
+        { id: "studio:overview" },
         { id: "studio:account" },
         { id: "inbox", urlQuery: true },
         { id: "publishing" },
@@ -415,6 +419,15 @@ describe("optional Studio workspaces", () => {
       .object({ workspaces: z.array(z.unknown()) })
       .parse(await typesResponse.json());
     expect(typesPayload.workspaces).toEqual([
+      {
+        id: "studio:overview",
+        pluginId: "studio",
+        label: "Overview",
+        rendererName: "DeclarativeOperatorWorkspace",
+        priority: -100,
+        entityTypes: [],
+        badge: 0,
+      },
       {
         id: "studio:account",
         pluginId: "studio",
@@ -480,6 +493,7 @@ describe("optional Studio workspaces", () => {
       })
       .parse(await typesResponse.json());
     expect(typesPayload.workspaces).toEqual([
+      { entityTypes: [] },
       { entityTypes: [] },
       { entityTypes: ["post", "newsletter"] },
     ]);
@@ -571,6 +585,7 @@ describe("optional Studio workspaces", () => {
 
     expect(payload).toMatchObject({
       workspaces: [
+        { id: "studio:overview", badge: 0 },
         { id: "studio:account" },
         { id: "inbox", badge: 7 },
         { id: "broken" },
@@ -620,6 +635,7 @@ describe("optional Studio workspaces", () => {
     );
     expect(await response.json()).toMatchObject({
       workspaces: [
+        { id: "studio:overview" },
         { id: "studio:account" },
         { id: "publishing" },
         { id: "site" },

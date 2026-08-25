@@ -246,7 +246,8 @@ const builtInBindingContext = Object.freeze({
 /**
  * Runs a first-party widget through the same public definition, normalization,
  * permission, and host-rendering path used by external declarative services.
- * The loader is not bound when Dashboard is absent or in an execution worker.
+ * The loader is not bound when neither Dashboard nor Studio Overview can host
+ * it, or in an execution worker.
  *
  * Passing `render` swaps the declarative body for the widget's own component.
  * The definition still derives its view and digest, so the semantic blocks

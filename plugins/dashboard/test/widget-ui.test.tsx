@@ -141,6 +141,13 @@ describe("widget UI primitives", () => {
                     },
                   },
                   {
+                    label: "Invitations",
+                    target: {
+                      kind: "launch",
+                      launch: { target: "invitations" },
+                    },
+                  },
+                  {
                     label: "Publishing",
                     target: {
                       kind: "launch",
@@ -181,6 +188,7 @@ describe("widget UI primitives", () => {
     );
 
     expect(html).toContain('href="/studio/workspaces/studio%3Aaccount"');
+    expect(html).toContain('href="/studio/workspaces/admin%3Ainvitations"');
     expect(html).toContain(
       'href="/studio/workspaces/content-pipeline%3Apublishing"',
     );
