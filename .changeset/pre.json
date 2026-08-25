@@ -260,6 +260,7 @@
     "core--dashboard-widget-namespace",
     "core--declarative-dashboard-runtime",
     "core--delete-email-contracts",
+    "core--directory-quarantine-recovery",
     "core--directory-sync-broker-checkout-handoff",
     "core--directory-sync-capped-ai-plan",
     "core--directory-sync-export-echoes",

@@ -1,5 +1,18 @@
 # @brains/directory-sync
 
+## 0.2.0-alpha.323
+
+### Patch Changes
+
+- [#167](https://github.com/rizom-ai/brains/pull/167) [`f655ddd`](https://github.com/rizom-ai/brains/commit/f655dddf1f494205e51d1d2042b8b5a09b0b2722) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Recover corrected quarantined files without corrupting multiline diagnostics, retire stale quarantine artifacts, settle startup import status, and confirm any generated Git bookkeeping before initial sync succeeds.
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.323
+  - @brains/contracts@0.2.0-alpha.323
+  - @brains/image@0.2.0-alpha.323
+  - @brains/utils@0.2.0-alpha.323
+  - @brains/plugins@0.2.0-alpha.323
+
 ## 0.2.0-alpha.322
 
 ### Patch Changes
