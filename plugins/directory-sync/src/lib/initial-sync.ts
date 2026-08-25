@@ -3,6 +3,7 @@ import { SYSTEM_CHANNELS, type ServicePluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import type { DirectorySyncConfig, IDirectorySync, IGitSync } from "../types";
 import type { GitReconciliationService } from "./git-reconciliation";
+import type { DirectorySyncOperationStatusService } from "./directory-sync-operation-status";
 import { copySeedContentIfNeeded } from "./seed-content";
 import { validateSeedContentEntityTypes } from "./file-discovery";
 
@@ -17,12 +18,19 @@ export function setupInitialSync(
   config: DirectorySyncConfig,
   logger: Logger,
   gitSync?: IGitSync,
-  reconciliation?: Pick<GitReconciliationService, "captureCurrent">,
+  reconciliation?: Pick<
+    GitReconciliationService,
+    "captureCurrent" | "saveCheckpoint"
+  >,
   recovery?: {
     onGitProgress(): void;
     onGitRecoverySucceeded(): Promise<void>;
     onGitRecoveryFailed(error: unknown): Promise<void>;
   },
+  operationStatus?: Pick<
+    DirectorySyncOperationStatusService,
+    "addImportResult"
+  >,
 ): void {
   let initialSyncStarted = false;
 
@@ -71,8 +79,19 @@ export function setupInitialSync(
         failed: result.import.failed,
         duration: result.duration,
       });
+      await operationStatus?.addImportResult(result.import);
       if (gitSync && reconciliation) {
-        await reconciliation.captureCurrent(gitSync);
+        const gitResult = await gitSync.commitAndPush();
+        if (gitResult.pushed && !gitResult.checkpoint) {
+          throw new Error(
+            "Initial directory sync push did not return a confirmed checkpoint",
+          );
+        }
+        if (gitResult.checkpoint) {
+          await reconciliation.saveCheckpoint(gitResult.checkpoint);
+        } else {
+          await reconciliation.captureCurrent(gitSync);
+        }
       }
       await recovery?.onGitRecoverySucceeded();
 

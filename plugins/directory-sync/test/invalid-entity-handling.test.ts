@@ -289,16 +289,9 @@ describe("Invalid Entity Handling", () => {
       expect(result.quarantined).toBe(1);
       expect(existsSync(`${originalPath}.invalid`)).toBe(true);
 
-      // Fix the content
-      writeFileSync(`${originalPath}.invalid`, "# Fixed Note\n\nNow valid");
-
-      // Rename back
-      rmSync(originalPath, { force: true });
-      writeFileSync(
-        originalPath,
-        readFileSync(`${originalPath}.invalid`, "utf-8"),
-      );
-      rmSync(`${originalPath}.invalid`);
+      // A corrected source can arrive while the ignored quarantine artifact
+      // remains on the persistent checkout (for example after a Git pull).
+      writeFileSync(originalPath, "# Fixed Note\n\nNow valid");
 
       // Clear the error for next import
       deserializeError = null;
@@ -323,13 +316,12 @@ describe("Invalid Entity Handling", () => {
 
       // Import with validation errors
       deserializeError = createEntityValidationError(
-        "Invalid frontmatter: Parse failed",
+        'Invalid entity data: [\n  {\n    "path": ["audience"],\n    "message": "Invalid option"\n  }\n]',
       );
       await dirSync.importEntities();
 
-      // Fix one file
+      // Fix one file while its old quarantine artifact remains.
       writeFileSync(file1, "# Fixed\n\nValid now");
-      rmSync(`${file1}.invalid`);
 
       // Clear error and reimport
       deserializeError = null;
@@ -337,10 +329,18 @@ describe("Invalid Entity Handling", () => {
 
       const errorLog = join(testDir, ".import-errors.log");
       const logContent = readFileSync(errorLog, "utf-8");
+      const recoveryMarkers = logContent.match(
+        /\[RECOVERED\] note\/error1\.md/g,
+      );
 
-      // Should still have error2 but not error1
-      expect(logContent).toContain("note/error2.md");
-      expect(logContent).toMatch(/\[RECOVERED\].*note\/error1\.md/);
+      // Recovery is append-only: preserve complete diagnostics for both files,
+      // add one marker, and retire only the recovered quarantine artifact.
+      expect(logContent).toContain("note/error1.md: Invalid entity data");
+      expect(logContent).toContain("note/error2.md: Invalid entity data");
+      expect(logContent).toContain('"message": "Invalid option"');
+      expect(recoveryMarkers).toHaveLength(1);
+      expect(existsSync(`${file1}.invalid`)).toBe(false);
+      expect(existsSync(`${file2}.invalid`)).toBe(true);
     });
   });
 

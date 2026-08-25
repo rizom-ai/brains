@@ -2,8 +2,9 @@ import type { ImportResult } from "../types.js";
 import { isEntityValidationError } from "@brains/plugins";
 import { getErrorMessage } from "@brains/utils/error";
 import type { Logger } from "@brains/utils/logger";
-import { rename, appendFile, readFile, writeFile, access } from "fs/promises";
+import { appendFile, readFile, rename, rm } from "fs/promises";
 import { join } from "path";
+import { resolveInSyncPath } from "./path-utils";
 
 export class Quarantine {
   private logger: Logger;
@@ -57,49 +58,46 @@ export class Quarantine {
   }
 
   async markAsRecoveredIfNeeded(filePath: string): Promise<void> {
-    const errorLogPath = join(this.syncPath, ".import-errors.log");
-
     try {
-      await access(errorLogPath);
-    } catch {
-      return;
+      const quarantinePath = `${resolveInSyncPath(this.syncPath, filePath)}.invalid`;
+      await rm(quarantinePath, { force: true });
+    } catch (error) {
+      this.logger.debug("Could not retire recovered quarantine artifact", {
+        path: filePath,
+        error,
+      });
     }
 
+    const errorLogPath = join(this.syncPath, ".import-errors.log");
     try {
       const logContent = await readFile(errorLogPath, "utf-8");
-
-      if (logContent.includes(filePath)) {
-        const timestamp = new Date().toISOString();
-        const recoveryMarker = `${timestamp} - [RECOVERED] ${filePath}\n`;
-        const lines = logContent.split("\n");
-        const newLines: string[] = [];
-        let skipNext = false;
-
-        for (const line of lines) {
-          if (skipNext) {
-            skipNext = false;
-            continue;
-          }
-
-          if (line.includes(filePath) && !line.includes("[RECOVERED]")) {
-            newLines.push(recoveryMarker.trim());
-            skipNext = true;
-          } else {
-            newLines.push(line);
-          }
-        }
-
-        await writeFile(errorLogPath, newLines.join("\n"));
-
-        this.logger.debug("Marked file as recovered in error log", {
-          path: filePath,
-        });
+      const failureToken = ` - ${filePath}:`;
+      const recoveryToken = ` - [RECOVERED] ${filePath}`;
+      if (
+        logContent.lastIndexOf(failureToken) <=
+        logContent.lastIndexOf(recoveryToken)
+      ) {
+        return;
       }
+
+      const timestamp = new Date().toISOString();
+      await appendFile(
+        errorLogPath,
+        `${timestamp} - [RECOVERED] ${filePath}\n`,
+      );
+      this.logger.debug("Marked file as recovered in error log", {
+        path: filePath,
+      });
     } catch (error) {
+      if (isMissingFileError(error)) return;
       this.logger.debug("Could not update error log for recovered file", {
         path: filePath,
         error,
       });
     }
   }
+}
+
+function isMissingFileError(error: unknown): boolean {
+  return error instanceof Error && "code" in error && error.code === "ENOENT";
 }
