@@ -19,14 +19,10 @@ export function WidgetCard({
   widget,
   featured = false,
   studioPath,
-  accountPath,
-  adminPath,
 }: {
   widget: RenderableWidgetData;
   featured?: boolean;
   studioPath?: string | undefined;
-  accountPath?: string | undefined;
-  adminPath?: string | undefined;
 }): JSX.Element {
   return (
     <article
@@ -36,14 +32,11 @@ export function WidgetCard({
     >
       <CardHeader title={widget.widget.title} />
       {widget.component ? (
-        <div class="widget-body widget-body--built-in">
+        <div className="widget-body widget-body--built-in">
           <widget.component data={sourceData(widget.data)} />
         </div>
       ) : (
-        <DeclarativeWidgetBody
-          widget={widget}
-          launchPaths={{ studioPath, accountPath, adminPath }}
-        />
+        <DeclarativeWidgetBody widget={widget} launchPaths={{ studioPath }} />
       )}
     </article>
   );

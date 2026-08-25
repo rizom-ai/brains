@@ -20,7 +20,6 @@ const expectedCatalogIds = [
   "agents",
   "assessment",
   "auth-service",
-  "account",
   "notifications",
   "playbook",
   "playbooks",

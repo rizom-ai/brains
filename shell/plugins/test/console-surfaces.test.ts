@@ -40,8 +40,6 @@ describe("deriveConsoleSurfaces", () => {
     route("web-chat", "/chat/api/messages"),
     route("studio", "/studio"),
     route("studio", "/studio/api/types"),
-    route("admin", "/admin"),
-    route("admin", "/admin/assets/app.js"),
   ];
 
   it("shows every registered console surface to an admin caller", () => {
@@ -72,25 +70,18 @@ describe("deriveConsoleSurfaces", () => {
         isActive: false,
         requiresActiveSession: true,
       },
-      {
-        id: "admin",
-        label: "Admin",
-        href: "/admin",
-        isActive: false,
-        requiresActiveSession: true,
-      },
     ]);
   });
 
-  it("hides surfaces above a Trusted caller's permission level", () => {
+  it("shows the same consolidated strip to Trusted and Admin callers", () => {
     const surfaces = deriveConsoleSurfaces(allSurfaceRoutes, {
       activeId: "dashboard",
       permissionLevel: "trusted",
       hasActiveSession: true,
     });
 
-    // Trusted sees public (dashboard) and trusted (chat, Studio), never the
-    // admin-only Admin console.
+    // Account and administration live inside Studio, so there are no extra
+    // console doors at either permission level.
     expect(surfaces.map((s) => s.id)).toEqual([
       "dashboard",
       "web-chat",
@@ -110,11 +101,7 @@ describe("deriveConsoleSurfaces", () => {
 
   it("shows Studio to an active Public-rank caller", () => {
     const surfaces = deriveConsoleSurfaces(
-      [
-        route("dashboard", "/dashboard"),
-        route("studio", "/studio"),
-        route("account", "/account"),
-      ],
+      [route("dashboard", "/dashboard"), route("studio", "/studio")],
       {
         activeId: "dashboard",
         permissionLevel: "public",
@@ -125,7 +112,6 @@ describe("deriveConsoleSurfaces", () => {
     expect(surfaces.map((surface) => surface.id)).toEqual([
       "dashboard",
       "studio",
-      "account",
     ]);
   });
 
@@ -139,41 +125,13 @@ describe("deriveConsoleSurfaces", () => {
 
   it("always shows the active self surface even above the caller's level", () => {
     const surfaces = deriveConsoleSurfaces(allSurfaceRoutes, {
-      activeId: "admin",
+      activeId: "web-chat",
       permissionLevel: "public",
-      self: { id: "admin", href: "/admin" },
+      self: { id: "web-chat", href: "/chat" },
     });
 
     // A caller on their own surface always keeps its door; nothing else leaks.
-    expect(surfaces.map((s) => s.id)).toEqual(["dashboard", "admin"]);
-  });
-
-  it("derives the account surface from the account plugin route", () => {
-    const surfaces = deriveConsoleSurfaces(
-      [route("dashboard", "/dashboard"), route("account", "/account")],
-      {
-        activeId: "account",
-        permissionLevel: "trusted",
-        hasActiveSession: true,
-        self: { id: "account", href: "/account" },
-      },
-    );
-
-    expect(surfaces).toEqual([
-      {
-        id: "dashboard",
-        label: "Dashboard",
-        href: "/dashboard",
-        isActive: false,
-      },
-      {
-        id: "account",
-        label: "Account",
-        href: "/account",
-        isActive: true,
-        requiresActiveSession: true,
-      },
-    ]);
+    expect(surfaces.map((s) => s.id)).toEqual(["dashboard", "web-chat"]);
   });
 
   it("marks the rendering surface active from any surface", () => {

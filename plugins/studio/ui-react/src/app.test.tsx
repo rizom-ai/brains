@@ -405,7 +405,32 @@ describe("TypeSwitcher", () => {
     expect(html.match(/class="[^"]*active/g)).toHaveLength(1);
   });
 
-  it("shows Operations only when a workspace capability registers", () => {
+  it("renders Account as an active Studio workspace", () => {
+    const accountWorkspace: StudioWorkspaceInfo = {
+      id: "studio:account",
+      pluginId: "studio",
+      label: "Account",
+      rendererName: "StudioAccountWorkspace",
+      priority: 0,
+      entityTypes: [],
+    };
+    const html = renderToStaticMarkup(
+      createElement(TypeSwitcher, {
+        types: [],
+        active: null,
+        onSelect: () => {},
+        workspaces: [accountWorkspace],
+        activeWorkspace: accountWorkspace.id,
+        onSelectWorkspace: () => {},
+      }),
+    );
+
+    expect(html).toContain("Operations");
+    expect(html).toContain("Account");
+    expect(html.match(/class="[^"]*active/g)).toHaveLength(1);
+  });
+
+  it("shows registered workspaces beside Account operations", () => {
     const workspace: StudioWorkspaceInfo = {
       id: "publishing",
       pluginId: "content-pipeline",
@@ -437,6 +462,7 @@ describe("TypeSwitcher", () => {
     expect(withWorkspace).toContain("Publishing");
     expect(withWorkspace).toContain(">2<");
     expect(withoutWorkspace).not.toContain("Operations");
+    expect(withoutWorkspace).not.toContain("Account");
     expect(withoutWorkspace).not.toContain("Publishing");
   });
 

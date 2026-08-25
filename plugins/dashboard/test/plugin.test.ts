@@ -201,10 +201,10 @@ describe("DashboardPlugin", () => {
       const session = await authPlugin.getService().createAuthSession();
       const cookie = session.cookie.split(";")[0] ?? session.cookie;
       harness.getMockShell().registerPlugin({
-        id: "admin",
+        id: "studio",
         version: "1.0.0",
         type: "service" as const,
-        packageName: "@brains/admin",
+        packageName: "@brains/studio",
         // A real registration: the jump palette only reads getWebRoutes, but
         // registerPlugin takes a whole Plugin, and supplying one keeps this
         // checked against the interface instead of asserted past it.
@@ -216,7 +216,7 @@ describe("DashboardPlugin", () => {
         }),
         getWebRoutes: () => [
           {
-            path: "/admin",
+            path: "/studio",
             method: "GET" as const,
             public: true,
             handler: async (): Promise<Response> => new Response("ok"),
@@ -243,8 +243,12 @@ describe("DashboardPlugin", () => {
       );
       expect(
         data.groups.find((group) => group.id === "surfaces")?.items,
-      ).toContainEqual(expect.objectContaining({ href: "/admin" }));
-      // No Studio plugin in this harness → entity doors have no destination.
+      ).toContainEqual(
+        expect.objectContaining({
+          href: "/studio/workspaces/admin%3Apeople",
+        }),
+      );
+      // No search hits in this harness, so there are no entity doors.
       expect(data.groups.find((group) => group.id === "entities")).toBe(
         undefined,
       );

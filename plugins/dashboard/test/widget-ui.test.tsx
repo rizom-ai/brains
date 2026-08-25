@@ -134,6 +134,13 @@ describe("widget UI primitives", () => {
                 type: "links",
                 items: [
                   {
+                    label: "Account",
+                    target: {
+                      kind: "launch",
+                      launch: { target: "account-settings" },
+                    },
+                  },
+                  {
                     label: "Publishing",
                     target: {
                       kind: "launch",
@@ -173,6 +180,7 @@ describe("widget UI primitives", () => {
       />,
     );
 
+    expect(html).toContain('href="/studio/workspaces/studio%3Aaccount"');
     expect(html).toContain(
       'href="/studio/workspaces/content-pipeline%3Apublishing"',
     );

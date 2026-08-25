@@ -5,6 +5,6 @@
     "rootDir": ".",
     "isolatedDeclarations": true
   },
-  "include": ["src/**/*", "test/**/*", "ui-react/src/**/*"],
+  "include": ["src/**/*", "test/**/*"],
   "exclude": ["node_modules", "dist"]
 }

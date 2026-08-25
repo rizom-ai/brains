@@ -52,7 +52,6 @@ export const webBundle: CapabilityBundleDefinition = defineBundle({
   members: [
     "webserver",
     "auth-service",
-    "account",
     "admin",
     "dashboard",
     "studio",

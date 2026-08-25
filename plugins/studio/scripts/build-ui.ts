@@ -1,6 +1,6 @@
-import { mkdir } from "fs/promises";
+import { mkdir, rm, writeFile } from "fs/promises";
 import { createRequire } from "module";
-import { dirname, join } from "path";
+import { dirname, join, relative } from "path";
 
 const require = createRequire(import.meta.url);
 const packageRoot = join(import.meta.dir, "..");
@@ -16,6 +16,7 @@ const reactAliases: Record<string, string> = {
   "react-dom/client": join(reactDomRoot, "client.js"),
 };
 
+await rm(outdir, { recursive: true, force: true });
 await mkdir(outdir, { recursive: true });
 
 const result = await Bun.build({
@@ -24,8 +25,13 @@ const result = await Bun.build({
   target: "browser",
   format: "esm",
   minify: true,
+  splitting: true,
   sourcemap: "external",
-  naming: "studio-app.js",
+  naming: {
+    entry: "studio-app.js",
+    chunk: "studio-chunks/[name]-[hash].js",
+    asset: "studio-chunks/[name]-[hash].[ext]",
+  },
   plugins: [
     {
       // Pin every react specifier to one physical copy so hoisting can
@@ -51,4 +57,19 @@ if (!result.success) {
   process.exit(1);
 }
 
-console.log(`Built ${join(outdir, "studio-app.js")}`);
+const outputFiles = result.outputs
+  .map((output) => relative(outdir, output.path).replaceAll("\\", "/"))
+  .sort();
+const assets: Record<string, string> = {};
+for (const file of outputFiles) {
+  const publicPath = file === "studio-app.js" ? "app.js" : file;
+  assets[publicPath] = file;
+}
+await writeFile(
+  join(outdir, "studio-asset-manifest.json"),
+  `${JSON.stringify({ version: 1, assets }, null, 2)}\n`,
+);
+
+console.log(
+  `Built ${join(outdir, "studio-app.js")} with ${outputFiles.length - 1} split assets`,
+);

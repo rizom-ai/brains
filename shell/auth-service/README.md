@@ -12,7 +12,7 @@ Auth state is private runtime state, not content:
 - channel descriptors and delivery providers are owned by message interfaces through the app-scoped channel registry;
 - deployment mounts, remote backup retention, and point-in-time recovery are operator concerns.
 
-The browser management surfaces are separate plugins. `/admin` uses the Admin-only contracts exported by this package, while `/account` exposes session-derived self-service without role or status mutation.
+Studio hosts the browser management presentation. Its Account workspace uses this package's session-derived `/auth/account/*` self-service contracts without role or status mutation, while Admin-owned declarative workspaces use the Admin-only `/auth/admin/*` operations. Auth-service retains route, authorization, same-origin, invariant, and audit ownership for both families.
 
 ## Runtime database
 

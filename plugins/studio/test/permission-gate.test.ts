@@ -1,9 +1,9 @@
 import { createTempDataDir } from "@brains/plugins/test";
 import { describe, expect, it, spyOn } from "bun:test";
 import { AuthServicePlugin } from "@brains/auth-service";
-import { ServicePlugin, type WebRouteDefinition } from "@brains/plugins";
+import type { WebRouteDefinition } from "@brains/plugins";
 import { createMockShell, type MockShell } from "@brains/test-utils";
-import { z, type ZodType } from "@brains/utils/zod";
+import type { ZodType } from "@brains/utils/zod";
 import { studioPlugin, type StudioPlugin } from "../src";
 
 interface SessionMatrix {
@@ -18,26 +18,6 @@ interface RouteRequest {
   routePath: string;
   method?: WebRouteDefinition["method"];
   request: (cookie?: string) => Request;
-}
-
-class AdminSurfacePlugin extends ServicePlugin<
-  Record<string, never>,
-  Record<string, never>
-> {
-  constructor() {
-    super("admin", { name: "admin", version: "1.0.0" }, {}, z.object({}));
-  }
-
-  override getWebRoutes(): WebRouteDefinition[] {
-    return [
-      {
-        path: "/admin",
-        method: "GET",
-        public: true,
-        handler: async () => new Response("admin"),
-      },
-    ];
-  }
 }
 
 function findRoute(
@@ -270,7 +250,16 @@ describe("Studio active-session gate inversion", () => {
         expect(publicResponse.status).toBe(200);
         expect(await publicResponse.json()).toEqual({
           types: [],
-          workspaces: [],
+          workspaces: [
+            {
+              id: "studio:account",
+              pluginId: "studio",
+              label: "Account",
+              rendererName: "StudioAccountWorkspace",
+              priority: 0,
+              entityTypes: [],
+            },
+          ],
         });
       } else if (routeCase.routePath === "/studio/api/workspace") {
         // Workspace discovery and execution pass the active-session perimeter;
@@ -299,7 +288,7 @@ describe("Studio active-session gate inversion", () => {
   it("keeps only static assets and legacy redirects as anonymous non-data exceptions", async () => {
     const { plugin } = await setup();
 
-    const asset = await findRoute(plugin, "/studio/assets/app.js").handler(
+    const asset = await findRoute(plugin, "/studio/assets").handler(
       request("/studio/assets/app.js"),
     );
     expect([200, 404]).toContain(asset.status);
@@ -358,29 +347,18 @@ describe("Studio active-session gate inversion", () => {
     }
   });
 
-  it("renders the surface strip at the caller's own permission level", async () => {
-    const { shell, plugin, sessions } = await setup();
-    // A registered admin console route would appear in the strip for an
-    // Admin caller; the strip must never show it to a Trusted caller.
-    shell.registerPlugin(new AdminSurfacePlugin());
+  it("keeps Account and administration behind the single Studio door", async () => {
+    const { plugin, sessions } = await setup();
     const route = findRoute(plugin, "/studio");
 
-    const adminHtml = await (
-      await route.handler(request("/studio", { cookie: sessions.admin }))
-    ).text();
-    expect(adminHtml).toContain('href="/admin"');
-
-    const trustedHtml = await (
-      await route.handler(request("/studio", { cookie: sessions.trusted }))
-    ).text();
-    expect(trustedHtml).not.toContain('href="/admin"');
-    expect(trustedHtml).toContain('href="/studio"');
-
-    const publicHtml = await (
-      await route.handler(request("/studio", { cookie: sessions.public }))
-    ).text();
-    expect(publicHtml).not.toContain('href="/admin"');
-    expect(publicHtml).toContain('href="/studio"');
+    for (const cookie of [sessions.admin, sessions.trusted, sessions.public]) {
+      const html = await (
+        await route.handler(request("/studio", { cookie }))
+      ).text();
+      expect(html).toContain('href="/studio"');
+      expect(html).not.toContain('data-console-surface="admin"');
+      expect(html).not.toContain('data-console-surface="account"');
+    }
   });
 
   it("denies Public editor requests before mutation or private capability code", async () => {

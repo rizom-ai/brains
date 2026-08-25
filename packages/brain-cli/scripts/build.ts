@@ -60,14 +60,11 @@ const webChatPackageDir = join(monorepoRoot, "interfaces", "web-chat");
 const webChatUiAssetPath = join(webChatPackageDir, "dist", "ui", "app.js");
 const bundledWebChatUiDir = join(outdir, "ui");
 const studioPackageDir = join(monorepoRoot, "plugins", "studio");
-const studioUiAssetPath = join(studioPackageDir, "dist", "ui", "studio-app.js");
-const adminPackageDir = join(monorepoRoot, "plugins", "admin");
-const adminUiAssetPath = join(adminPackageDir, "dist", "ui", "admin-app.js");
-const accountUiAssetPath = join(
-  adminPackageDir,
-  "dist",
-  "ui",
-  "account-app.js",
+const studioUiDirectory = join(studioPackageDir, "dist", "ui");
+const studioUiAssetPath = join(studioUiDirectory, "studio-app.js");
+const studioUiManifestPath = join(
+  studioUiDirectory,
+  "studio-asset-manifest.json",
 );
 const onboardingContentSourceDir = join(
   monorepoRoot,
@@ -115,24 +112,8 @@ if (!existsSync(studioUiAssetPath)) {
   console.error(`Studio editor UI asset not found at ${studioUiAssetPath}`);
   process.exit(1);
 }
-
-console.log("Building bundled Admin console UI...");
-const adminBuildResult = Bun.spawnSync(["bun", "run", "build"], {
-  cwd: adminPackageDir,
-  stdout: "inherit",
-  stderr: "inherit",
-});
-if (adminBuildResult.exitCode !== 0) {
-  console.error("Admin console UI build failed");
-  process.exit(1);
-}
-if (!existsSync(adminUiAssetPath)) {
-  console.error(`Admin console UI asset not found at ${adminUiAssetPath}`);
-  process.exit(1);
-}
-
-if (!existsSync(accountUiAssetPath)) {
-  console.error(`Account console UI asset not found at ${accountUiAssetPath}`);
+if (!existsSync(studioUiManifestPath)) {
+  console.error(`Studio asset manifest not found at ${studioUiManifestPath}`);
   process.exit(1);
 }
 
@@ -394,21 +375,15 @@ const webChatSourceMapPath = `${webChatUiAssetPath}.map`;
 if (existsSync(webChatSourceMapPath)) {
   cpSync(webChatSourceMapPath, join(bundledWebChatUiDir, "app.js.map"));
 }
-cpSync(studioUiAssetPath, join(bundledWebChatUiDir, "studio-app.js"));
-const studioSourceMapPath = `${studioUiAssetPath}.map`;
-if (existsSync(studioSourceMapPath)) {
-  cpSync(studioSourceMapPath, join(bundledWebChatUiDir, "studio-app.js.map"));
+for (const retiredUiAsset of ["admin-app.js", "account-app.js"]) {
+  rmSync(join(bundledWebChatUiDir, retiredUiAsset), { force: true });
+  rmSync(join(bundledWebChatUiDir, `${retiredUiAsset}.map`), { force: true });
 }
-cpSync(adminUiAssetPath, join(bundledWebChatUiDir, "admin-app.js"));
-const adminSourceMapPath = `${adminUiAssetPath}.map`;
-if (existsSync(adminSourceMapPath)) {
-  cpSync(adminSourceMapPath, join(bundledWebChatUiDir, "admin-app.js.map"));
-}
-cpSync(accountUiAssetPath, join(bundledWebChatUiDir, "account-app.js"));
-const accountSourceMapPath = `${accountUiAssetPath}.map`;
-if (existsSync(accountSourceMapPath)) {
-  cpSync(accountSourceMapPath, join(bundledWebChatUiDir, "account-app.js.map"));
-}
+rmSync(join(bundledWebChatUiDir, "studio-chunks"), {
+  recursive: true,
+  force: true,
+});
+cpSync(studioUiDirectory, bundledWebChatUiDir, { recursive: true });
 
 // ─── Copy migrations ──────────────────────────────────────────────────────
 

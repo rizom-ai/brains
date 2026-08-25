@@ -111,7 +111,7 @@ async function unregisterWorkspace(
 }
 
 describe("optional Studio workspaces", () => {
-  it("keeps the Studio workspace list empty when no provider registers", async () => {
+  it("lists only the built-in Account workspace when no provider registers", async () => {
     const shell = createMockShell({ domain: "yeehaa.io" });
     const cookie = await createSessionCookie(shell);
     const plugin = studioPlugin();
@@ -121,11 +121,11 @@ describe("optional Studio workspaces", () => {
       request("/studio/api/types", { cookie }),
     );
     const payload = z
-      .object({ workspaces: z.array(z.unknown()).optional() })
+      .object({ workspaces: z.array(z.object({ id: z.string() })).optional() })
       .parse(await response.json());
 
     expect(response.status).toBe(200);
-    expect(payload.workspaces).toEqual([]);
+    expect(payload.workspaces).toEqual([{ id: "studio:account" }]);
   });
 
   it("registers universal Studio follow-ups at a non-default mount", async () => {
@@ -375,7 +375,11 @@ describe("optional Studio workspaces", () => {
     );
 
     expect(await response.json()).toMatchObject({
-      workspaces: [{ id: "inbox", urlQuery: true }, { id: "publishing" }],
+      workspaces: [
+        { id: "studio:account" },
+        { id: "inbox", urlQuery: true },
+        { id: "publishing" },
+      ],
     });
     const payload = await findRoute(plugin, "/studio/api/types").handler(
       request("/studio/api/types", { cookie }),
@@ -383,7 +387,9 @@ describe("optional Studio workspaces", () => {
     const descriptors = z
       .object({ workspaces: z.array(z.record(z.string(), z.unknown())) })
       .parse(await payload.json()).workspaces;
-    expect(descriptors[1]).not.toHaveProperty("urlQuery");
+    expect(
+      descriptors.find((descriptor) => descriptor["id"] === "publishing"),
+    ).not.toHaveProperty("urlQuery");
   });
 
   it("exposes registered descriptors and provider data to the browser", async () => {
@@ -409,6 +415,14 @@ describe("optional Studio workspaces", () => {
       .object({ workspaces: z.array(z.unknown()) })
       .parse(await typesResponse.json());
     expect(typesPayload.workspaces).toEqual([
+      {
+        id: "studio:account",
+        pluginId: "studio",
+        label: "Account",
+        rendererName: "StudioAccountWorkspace",
+        priority: 0,
+        entityTypes: [],
+      },
       {
         id: "publishing",
         pluginId: "content-pipeline",
@@ -466,6 +480,7 @@ describe("optional Studio workspaces", () => {
       })
       .parse(await typesResponse.json());
     expect(typesPayload.workspaces).toEqual([
+      { entityTypes: [] },
       { entityTypes: ["post", "newsletter"] },
     ]);
   });
@@ -555,7 +570,11 @@ describe("optional Studio workspaces", () => {
     const payload = await response.json();
 
     expect(payload).toMatchObject({
-      workspaces: [{ id: "inbox", badge: 7 }, { id: "broken" }],
+      workspaces: [
+        { id: "studio:account" },
+        { id: "inbox", badge: 7 },
+        { id: "broken" },
+      ],
     });
     expect(JSON.stringify(payload)).not.toContain("private badge failure");
     expect(JSON.stringify(payload)).not.toContain("denied");
@@ -600,7 +619,12 @@ describe("optional Studio workspaces", () => {
       request("/studio/api/types", { cookie }),
     );
     expect(await response.json()).toMatchObject({
-      workspaces: [{ id: "publishing" }, { id: "site" }, { id: "sync" }],
+      workspaces: [
+        { id: "studio:account" },
+        { id: "publishing" },
+        { id: "site" },
+        { id: "sync" },
+      ],
     });
   });
 

@@ -94,7 +94,7 @@ export interface AuthAccountSnapshot {
   /**
    * Present when the caller is the configured personal Anchor with a
    * Studio-owned profile: the profile owns the display name, so it is not
-   * self-editable at /account.
+   * self-editable in the Studio Account view.
    */
   profileEntityId?: string;
   passkeys: AuthAccountPasskey[];

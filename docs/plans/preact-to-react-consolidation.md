@@ -56,9 +56,10 @@ them apart is itself maintained code: the containment assertions in
 - Shipping two renderer pipelines or a pipeline selector, even temporarily.
 - Reworking the operator view contract. The protocol is unchanged; only the
   number of hosts implementing it changes.
-- Migrating `plugins/admin`. It is deleted by
-  [`studio-consolidation.md`](./studio-consolidation.md) Phase 6; converting it
-  first would be discarded work.
+- Migrating the `plugins/admin` browser apps. They are deleted by
+  [`studio-consolidation.md`](./studio-consolidation.md) Phase 6; the package
+  remains only as a headless administration-workspace provider, so converting
+  those apps first would be discarded work.
 
 ## Measured behaviour
 

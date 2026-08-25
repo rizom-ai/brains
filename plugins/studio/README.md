@@ -1,6 +1,6 @@
 # Studio plugin
 
-`@brains/studio` provides an active-session operator shell and Trusted entity browsing and editing while preserving entity-service conflict and pipeline semantics. Public-rank active sessions can enter the shell, but dedicated entity, assist, upload, and agent APIs remain Trusted; repository sync diagnostics remain Admin-only.
+`@brains/studio` provides an active-session operator shell, the self-service Account workspace, and Trusted entity browsing and editing while preserving entity-service conflict and pipeline semantics. Public-rank active sessions can enter the shell and use Account, but dedicated entity, assist, upload, and agent APIs remain Trusted; repository sync diagnostics and administration workspaces remain Admin-only.
 
 ## State ownership
 
@@ -38,7 +38,7 @@ Do not optimistically rewrite entity content or advance the pinned content hash.
 
 Reducer actions are discriminated transitions; rejected transitions return the existing state. Add XState only if this reducer can no longer express the workflow without scattered timers or guards.
 
-Studio doors use `{routePath}/entities/{encodedEntityType}` or `{routePath}/entities/{encodedEntityType}/{encodedEntityId}`. Optional operational workspaces use `{routePath}/workspaces/{encodedWorkspaceId}`. Package-local TanStack Router browser history owns the selected collection, entity, or workspace, including Back, Forward, refresh, and direct entry. Entity IDs are encoded as one value and may contain slashes. Draft values, conflicts, dialogs, pane selection, and other transient workflow state do not belong in the URL; navigation away from a dirty edit or creation draft requires explicit confirmation.
+Studio doors use `{routePath}/entities/{encodedEntityType}`, `{routePath}/entities/{encodedEntityType}/{encodedEntityId}`, or `{routePath}/workspaces/{encodedWorkspaceId}`. Account is the built-in `studio:account` workspace. Package-local TanStack Router browser history owns the selected workspace, collection, or entity, including Back, Forward, refresh, and direct entry. Entity IDs are encoded as one value and may contain slashes. Draft values, conflicts, dialogs, pane selection, and other transient workflow state do not belong in the URL; navigation away from a dirty edit or creation draft requires explicit confirmation.
 
 Destination-owned Inbox handoffs may open `{routePath}/entities/note?mode=create` with a
 bounded, schema-validated history-state envelope. Studio consumes that envelope once, seeds an
@@ -49,12 +49,18 @@ entity** target, so the Inbox renderer never constructs entity URLs itself.
 
 Workspace definitions may opt into host-owned stable URL filters with a typed query schema. The Studio hydrates declared filters from the raw search string, validates them on the server, and replaces their canonical URL without guessing provider semantics. Paging remains transient request state, so reload starts from the first page. Workspaces without a query declaration ignore URL search entirely.
 
+## Account and split assets
+
+Account is a built-in Studio workspace with an explicit Public permission floor beneath the active-session shell gate. Its fixed host-owned renderer is delivered as a lazy React chunk, preserves the WebAuthn ceremonies, and continues to call auth-service's `/auth/account/*` endpoints. External workspace registrations remain restricted to the declarative renderer; they cannot supply browser code. `/account` permanently redirects to the workspace, while `/admin` redirects to neutral Studio home.
+
+The UI build emits deterministic hashed chunks and `studio-asset-manifest.json`. The server exposes only manifest-listed names under `{routePath}/assets/`; encoded traversal and unlisted files fail closed. The bundled `@rizom/brain` build copies the entry, manifest, source maps, and every split chunk together.
+
 ## Workspaces
 
-The Admin plugin registers Admin-only Audit, People, Invitations, and Peers workspaces through the shared declarative runtime, without depending on the Studio host. Their providers read records directly from auth-service. Audit filters and paginates in the auth store; access and invitation mutations preserve actor attribution, prepared confirmation, and one-time setup links without duplicating auth APIs.
+The headless Admin plugin registers Admin-only Audit, People, Invitations, and Peers workspaces through the shared declarative runtime, without depending on the Studio host or owning an independent browser route. Their providers read records directly from auth-service. Audit filters and paginates in the auth store; access and invitation mutations preserve actor attribution, prepared confirmation, and one-time setup links without duplicating auth APIs.
 
 Service plugins declare optional workspaces with `defineStudioWorkspace()`. The runtime scopes IDs, registers after setup, unregisters on shutdown, and sends only `DeclarativeOperatorWorkspace` registrations to the Studio. The host enforces each registration's permission floor before every provider callback and defaults omitted floors to Trusted; only an explicit lower floor can admit an active Public-rank actor. Registrations are ordered by `priority`, duplicate IDs are rejected, and no provider is required for the Studio to start.
 
-Every workspace uses the same closed host-rendered vocabulary: content blocks, composition, queries, spatial and relational views, typed actions, schema-driven forms, bounded ephemeral results, dynamic catalogs, launch intents, and static or prepared confirmation. Publishing, Site, Directory Sync, Unified Inbox, Audit, People, Invitations, and Peers all use this path; there are no specialized renderer names or private browser implementations.
+Every externally registered workspace uses the same closed host-rendered vocabulary: content blocks, composition, queries, spatial and relational views, typed actions, schema-driven forms, bounded ephemeral results, dynamic catalogs, launch intents, and static or prepared confirmation. Publishing, Site, Directory Sync, Unified Inbox, Audit, People, Invitations, and Peers all use this path; registrants cannot introduce specialized renderer names or private browser implementations. Account is the sole host-built workspace renderer because its passkey ceremony is part of Studio's trusted browser bundle.
 
 Providers own schema-valid data, permission narrowing, and action execution. The Studio owns authentication, transport, navigation, validation, rendering, accessibility, query URLs, confirmation tokens, and targeted invalidation. Runtime React components, HTML, CSS, scripts, and private URLs are never accepted through registration.

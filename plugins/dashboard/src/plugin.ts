@@ -593,17 +593,12 @@ export class DashboardPlugin extends ServicePlugin<
           const studioPath = surfaces.find(
             (surface) => surface.id === "studio",
           )?.href;
-          const adminPath = surfaces.find(
-            (surface) => surface.id === "admin",
-          )?.href;
-
           return Response.json({
             groups: buildConsoleJumpGroups({
               query,
               groups: [...widgetGroups, "knowledge", "system"],
               dashboardPath: this.config.routePath,
               studioPath,
-              adminPath,
               entities,
             }),
           });

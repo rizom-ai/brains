@@ -166,7 +166,7 @@
   },
   "scripts": {
     "build": "bun scripts/build.ts",
-    "build:ui": "turbo run build --filter=@brains/web-chat --filter=@brains/studio --filter=@brains/admin",
+    "build:ui": "turbo run build --filter=@brains/web-chat --filter=@brains/studio",
     "dev:start": "bun scripts/build.ts && bun dist/brain.js start",
     "eval": "brain-eval",
     "eval:headless": "brain-eval --suite headless",

@@ -32,6 +32,8 @@ describe("studio plugin", () => {
     expect(paths).toContain("/studio");
     expect(paths).toContain("/studio/api/entities");
     expect(paths).toContain("/cms");
+    expect(paths).toContain("/account");
+    expect(paths).toContain("/admin");
 
     const legacyRoute = findRoute(plugin.getWebRoutes(), "/cms");
     const redirects: ReadonlyArray<{
@@ -56,6 +58,22 @@ describe("studio plugin", () => {
       expect(redirect.headers.get("location")).toBe(destination);
     }
 
+    const accountRedirect = await findRoute(
+      plugin.getWebRoutes(),
+      "/account",
+    ).handler(new Request("https://yeehaa.io/account?section=passkeys"));
+    expect(accountRedirect.status).toBe(308);
+    expect(accountRedirect.headers.get("location")).toBe(
+      "/studio/workspaces/studio%3Aaccount?section=passkeys",
+    );
+
+    const adminRedirect = await findRoute(
+      plugin.getWebRoutes(),
+      "/admin",
+    ).handler(new Request("https://yeehaa.io/admin/people?person=private"));
+    expect(adminRedirect.status).toBe(308);
+    expect(adminRedirect.headers.get("location")).toBe("/studio");
+
     expect(shell.listEndpoints()).toContainEqual(
       expect.objectContaining({
         label: "Studio",
@@ -73,26 +91,31 @@ describe("studio plugin", () => {
 
     const routes = plugin.getWebRoutes();
     expect(
-      routes.map((route) => `${route.method ?? "GET"} ${route.path}`),
+      routes.map(
+        (route) =>
+          `${route.method ?? "GET"} ${route.path} ${route.match ?? "exact"}`,
+      ),
     ).toEqual([
-      "GET /cms",
-      "GET /studio",
-      "GET /studio/entities",
-      "GET /studio/workspaces",
-      "GET /studio/assets/app.js",
-      "GET /studio/api/types",
-      "GET /studio/api/workspace",
-      "POST /studio/api/workspace",
-      "GET /studio/api/schema",
-      "GET /studio/api/entities",
-      "PUT /studio/api/entities",
-      "POST /studio/api/entities",
-      "DELETE /studio/api/entities",
-      "POST /studio/api/upload",
-      "POST /studio/api/assist",
-      "GET /studio/api/agents",
-      "POST /studio/api/ask-agent",
-      "GET /studio/api/sync-status",
+      "GET /cms prefix",
+      "GET /account prefix",
+      "GET /admin prefix",
+      "GET /studio exact",
+      "GET /studio/entities prefix",
+      "GET /studio/workspaces prefix",
+      "GET /studio/assets prefix",
+      "GET /studio/api/types exact",
+      "GET /studio/api/workspace exact",
+      "POST /studio/api/workspace exact",
+      "GET /studio/api/schema exact",
+      "GET /studio/api/entities exact",
+      "PUT /studio/api/entities exact",
+      "POST /studio/api/entities exact",
+      "DELETE /studio/api/entities exact",
+      "POST /studio/api/upload exact",
+      "POST /studio/api/assist exact",
+      "GET /studio/api/agents exact",
+      "POST /studio/api/ask-agent exact",
+      "GET /studio/api/sync-status exact",
     ]);
   });
 
@@ -160,7 +183,7 @@ describe("studio plugin", () => {
 
   it("rejects the retired CMS mount as Studio's canonical route", () => {
     expect(() => studioPlugin({ routePath: "/cms" })).toThrow(
-      /reserved for the Studio redirect/i,
+      /reserved for Studio redirects/i,
     );
   });
 

@@ -19,6 +19,7 @@ import {
 } from "./config";
 import { renderEditorShellHtml } from "./editor-shell";
 import { normalizeStudioBasePath } from "./studio-paths";
+import { listBuiltInStudioWorkspaces } from "./account-workspace";
 import type { StudioWorkspaceRegistry } from "./workspace-registry";
 import { getErrorMessage } from "@brains/utils/error";
 import { jsonResponse } from "./editor-response";
@@ -55,9 +56,17 @@ export type {
 
 const CONTENT_VISIBILITIES = ["public", "shared", "restricted"] as const;
 
-// Named studio-app.js (not app.js): in the bundled @rizom/brain this resolves
-// to the shared dist/ui directory, where app.js is web-chat's bundle.
-const uiAssetFile = join(import.meta.dir, "..", "dist", "ui", "studio-app.js");
+// Studio and web-chat share dist/ui in the bundled @rizom/brain. Studio's
+// generated manifest maps its public asset names to package-owned files.
+const uiAssetDirectory = join(import.meta.dir, "..", "dist", "ui");
+const uiAssetManifestFile = join(
+  uiAssetDirectory,
+  "studio-asset-manifest.json",
+);
+const studioAssetManifestSchema = z.object({
+  version: z.literal(1),
+  assets: z.record(z.string(), z.string()),
+});
 
 const workspaceActionPayloadSchema = z.object({
   id: z.string().trim().min(1),
@@ -79,6 +88,68 @@ const syncStatusMessageSchema = z.object({
     .nullable(),
 });
 
+function isSafeStudioAssetPath(value: string): boolean {
+  return (
+    value.length > 0 &&
+    !value.startsWith("/") &&
+    !value.includes("\\") &&
+    value
+      .split("/")
+      .every(
+        (segment) => segment !== "" && segment !== "." && segment !== "..",
+      ) &&
+    /^(?:app\.js|studio-app\.js|studio-app\.js\.map|studio-chunks\/[a-zA-Z0-9_-]+\.(?:js|js\.map))$/.test(
+      value,
+    )
+  );
+}
+
+async function serveStudioAsset(
+  request: Request,
+  assetPrefix: string,
+): Promise<Response> {
+  const pathname = new URL(request.url).pathname;
+  if (!pathname.startsWith(`${assetPrefix}/`)) {
+    return new Response("Studio UI asset not found", { status: 404 });
+  }
+
+  let publicPath: string;
+  try {
+    publicPath = decodeURIComponent(pathname.slice(assetPrefix.length + 1));
+  } catch {
+    return new Response("Studio UI asset not found", { status: 404 });
+  }
+  if (!isSafeStudioAssetPath(publicPath)) {
+    return new Response("Studio UI asset not found", { status: 404 });
+  }
+
+  let manifest: z.output<typeof studioAssetManifestSchema>;
+  try {
+    manifest = studioAssetManifestSchema.parse(
+      await Bun.file(uiAssetManifestFile).json(),
+    );
+  } catch {
+    return new Response("Studio editor UI assets not built", { status: 404 });
+  }
+
+  const relativeFile = manifest.assets[publicPath];
+  if (!relativeFile || !isSafeStudioAssetPath(relativeFile)) {
+    return new Response("Studio UI asset not found", { status: 404 });
+  }
+  const file = Bun.file(join(uiAssetDirectory, relativeFile));
+  if (!(await file.exists())) {
+    return new Response("Studio UI asset not found", { status: 404 });
+  }
+  return new Response(file, {
+    headers: {
+      "Content-Type": relativeFile.endsWith(".map")
+        ? "application/json; charset=utf-8"
+        : "text/javascript; charset=utf-8",
+      "Cache-Control": "no-cache",
+    },
+  });
+}
+
 /**
  * Routes for the first-party Studio editor: the React shell, its bundled
  * asset, and the entity read/write API. Every route except the asset is
@@ -97,7 +168,8 @@ export function createEditorRoutes(
   } = options;
   const normalizedBase = normalizeStudioBasePath(routePath);
   const shellPath = normalizedBase || "/";
-  const assetPath = `${normalizedBase}/assets/app.js`;
+  const assetPrefix = `${normalizedBase}/assets`;
+  const assetPath = `${assetPrefix}/app.js`;
   const apiPath = (suffix: string): string => `${normalizedBase}/api/${suffix}`;
 
   const resolveRequestAccess = async (
@@ -206,23 +278,12 @@ export function createEditorRoutes(
       handler: serveShell,
     },
     {
-      path: assetPath,
+      path: assetPrefix,
+      match: "prefix",
       method: "GET",
       public: true,
-      handler: async (): Promise<Response> => {
-        const file = Bun.file(uiAssetFile);
-        if (!(await file.exists())) {
-          return new Response("Studio editor UI asset not built", {
-            status: 404,
-          });
-        }
-        return new Response(file, {
-          headers: {
-            "Content-Type": "text/javascript; charset=utf-8",
-            "Cache-Control": "no-cache",
-          },
-        });
-      },
+      handler: (request): Promise<Response> =>
+        serveStudioAsset(request, assetPrefix),
     },
     {
       path: apiPath("types"),
@@ -468,12 +529,17 @@ async function handleListTypes(
     }
   }
 
-  return jsonResponse({
-    types,
-    workspaces: await workspaceRegistry.listDescriptors(
+  const workspaces = [
+    ...listBuiltInStudioWorkspaces(access.permissionLevel),
+    ...(await workspaceRegistry.listDescriptors(
       toStudioWorkspaceActor(access),
-    ),
-  });
+    )),
+  ].sort(
+    (left, right) =>
+      left.priority - right.priority || left.id.localeCompare(right.id),
+  );
+
+  return jsonResponse({ types, workspaces });
 }
 
 async function handleGetWorkspace(

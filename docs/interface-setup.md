@@ -166,15 +166,16 @@ brain --remote https://your-domain.com --token "$MCP_AUTH_TOKEN" status
 
 ## Webserver
 
-The webserver is the shared HTTP surface for the site, Studio, dashboard, Admin console, MCP HTTP, A2A, health routes, and plugin API routes.
+The webserver is the shared HTTP surface for the site, Studio, dashboard, MCP HTTP, A2A, health routes, and plugin API routes. Account and administration presentation lives inside Studio.
 
 Common local URLs:
 
 ```text
 http://localhost:8080/           # public site or dashboard route, depending on bundle/config
-http://localhost:8080/studio        # Studio when enabled
+http://localhost:8080/studio     # Studio when enabled
+http://localhost:8080/studio/workspaces/studio%3Aaccount # self-service Account workspace
+http://localhost:8080/studio/workspaces/admin%3Apeople # Admin-only People workspace
 http://localhost:8080/dashboard  # dashboard when enabled
-http://localhost:8080/admin      # administration console; People section when enabled
 http://localhost:8080/chat       # authenticated web chat when enabled
 http://localhost:8080/mcp        # MCP HTTP when enabled
 http://localhost:8080/a2a        # A2A when enabled

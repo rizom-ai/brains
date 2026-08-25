@@ -9,22 +9,27 @@ import {
 } from "@brains/auth-service/account-contracts";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { getErrorMessage } from "@brains/utils/error";
-import { AccessItem, Button, DetailSection } from "../components/primitives";
-import { studioEntityHref, initials, roleLabel } from "../format";
-import peopleStyles from "../people.css" with { type: "text" };
+import {
+  AccountAccessItem,
+  AccountButton,
+  AccountDetailSection,
+} from "./account-primitives";
+import { studioEntityHref, initials, roleLabel } from "./account-format";
+import detailStyles from "./account-detail.css" with { type: "text" };
 import {
   fetchAccount,
   mutateAccount,
   mutatePluginSettings,
   registerPasskey,
   type AccountMutationResponse,
-} from "./api";
-import accountStyles from "./account.css" with { type: "text" };
+} from "./account-api";
+import accountStyles from "./account-view.css" with { type: "text" };
 
 export interface AccountBootstrap {
   displayName: string;
   role: AuthAccountRole;
   routePath: string;
+  studioPath: string;
 }
 
 export interface AccountClient {
@@ -204,7 +209,7 @@ export function AccountApp({
   return (
     <>
       <style>
-        {peopleStyles}
+        {detailStyles}
         {accountStyles}
       </style>
       <div className="account-shell">
@@ -264,27 +269,33 @@ export function AccountApp({
 
             <div className="people-detail-sections">
               {current.profileEntityId ? (
-                <DetailSection
+                <AccountDetailSection
                   title="Display name"
                   description="Managed by the Anchor profile — your account name follows the published profile."
                 >
-                  <AccessItem
+                  <AccountAccessItem
                     kind="Anchor profile"
                     value={title}
                     action={
-                      studioEntityHref(current.profileEntityId) ? (
+                      studioEntityHref(
+                        bootstrap.studioPath,
+                        current.profileEntityId,
+                      ) ? (
                         <a
                           className="people-text-action"
-                          href={studioEntityHref(current.profileEntityId)}
+                          href={studioEntityHref(
+                            bootstrap.studioPath,
+                            current.profileEntityId,
+                          )}
                         >
                           Edit in Studio →
                         </a>
                       ) : undefined
                     }
                   />
-                </DetailSection>
+                </AccountDetailSection>
               ) : (
-                <DetailSection
+                <AccountDetailSection
                   title="Display name"
                   description="Your local name for conversations and attribution. It does not alter an external profile."
                 >
@@ -298,14 +309,14 @@ export function AccountApp({
                       value={displayName}
                       onChange={(event) => setDisplayName(event.target.value)}
                     />
-                    <Button type="submit" tone="primary" disabled={busy}>
+                    <AccountButton type="submit" tone="primary" disabled={busy}>
                       Save name
-                    </Button>
+                    </AccountButton>
                   </form>
-                </DetailSection>
+                </AccountDetailSection>
               )}
 
-              <DetailSection
+              <AccountDetailSection
                 title="Connected channels"
                 description="Verified contact details connected to your account."
               >
@@ -313,17 +324,17 @@ export function AccountApp({
                   <p className="people-empty">No connected channels.</p>
                 ) : (
                   current.connectedChannels.map((channel) => (
-                    <AccessItem
+                    <AccountAccessItem
                       key={`${channel.type}:${channel.label}`}
                       kind={channel.type}
                       value={`${channel.label} · verified ${formatDate(channel.verifiedAt, true)}`}
                     />
                   ))
                 )}
-              </DetailSection>
+              </AccountDetailSection>
 
               {current.pluginSettings.map((settings) => (
-                <DetailSection
+                <AccountDetailSection
                   key={settings.id}
                   title={settings.title}
                   description={
@@ -411,9 +422,13 @@ export function AccountApp({
                       </label>
                     ))}
                     <div className="people-inline-actions">
-                      <Button type="submit" tone="primary" disabled={busy}>
+                      <AccountButton
+                        type="submit"
+                        tone="primary"
+                        disabled={busy}
+                      >
                         Save settings
-                      </Button>
+                      </AccountButton>
                       {settings.configured ? (
                         <button
                           className="people-text-action people-text-action--danger"
@@ -439,15 +454,15 @@ export function AccountApp({
                       ) : null}
                     </div>
                   </form>
-                </DetailSection>
+                </AccountDetailSection>
               ))}
 
-              <DetailSection
+              <AccountDetailSection
                 title="Sign-in"
                 description="Passkeys used to access this account. Your final passkey is protected from revocation."
               >
                 {current.passkeys.map((passkey) => (
-                  <AccessItem
+                  <AccountAccessItem
                     key={passkey.id}
                     kind="Passkey"
                     value={`${passkey.credentialBackedUp ? "Synced credential" : "Device credential"} · added ${formatDate(passkey.createdAt, true)}`}
@@ -481,14 +496,14 @@ export function AccountApp({
                     Add passkey
                   </button>
                 </div>
-              </DetailSection>
+              </AccountDetailSection>
 
-              <DetailSection
+              <AccountDetailSection
                 title="Signed-in sessions"
                 description="Browser sessions signed in to this account."
               >
                 {current.sessions.map((session) => (
-                  <AccessItem
+                  <AccountAccessItem
                     key={session.id}
                     kind={session.current ? "This session" : "Browser session"}
                     value={`Started ${formatDate(session.createdAt)}`}
@@ -506,7 +521,7 @@ export function AccountApp({
                     }
                   />
                 ))}
-              </DetailSection>
+              </AccountDetailSection>
             </div>
 
             <footer className="people-detail-footer">
@@ -515,21 +530,21 @@ export function AccountApp({
                 grants can only be changed by an Admin.
               </small>
               <div className="people-detail-footer-actions">
-                <Button
+                <AccountButton
                   disabled={
                     busy || current.sessions.every((session) => session.current)
                   }
                   onClick={revokeOtherSessions}
                 >
                   End other sessions
-                </Button>
-                <Button
+                </AccountButton>
+                <AccountButton
                   tone="danger"
                   disabled={busy}
                   onClick={revokeAllSessions}
                 >
                   Sign out everywhere
-                </Button>
+                </AccountButton>
               </div>
             </footer>
           </section>

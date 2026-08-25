@@ -4,8 +4,10 @@
 
 **Proposed.** Rename the CMS to Studio, convert the admin console into
 admin-gated Studio workspaces, invert the Studio gate so the shell admits any
-active session while every capability gates itself, fold the account surface
-into Studio as the one view admitted to everyone, and delete `plugins/admin`.
+active session while every capability gates itself, and fold the account
+surface into Studio as the one workspace admitted to everyone. `plugins/admin`
+remains the headless source owner for administration workspace definitions; its
+independent routes and React apps are deleted.
 The Dashboard is repurposed: its operator-facing content moves into a Studio
 Overview workspace, and the surface itself becomes the brain's public card.
 Chat does not move. Auth-service remains the sole owner of account and
@@ -17,8 +19,8 @@ the card:
 [`../studio-consolidation-mockups.html`](../studio-consolidation-mockups.html)
 (decided 2026-08-19).
 
-**Progress:** Phases 1–5 are implemented on `work/studio-consolidation`; Phase
-6 is next. A 2026-08-23 review confirmed the rename is cleanly mechanical and
+**Progress:** Phases 1–6 are implemented on `work/studio-consolidation`; Phase
+7 is next. A 2026-08-23 review confirmed the rename is cleanly mechanical and
 the capability-parity inventory holds. Its Phase 2 follow-ups (redundant Admin
 asserts, fetch-all audit pagination, and raw ISO timestamps) and Phase 3 entry
 conditions (shared form-control vocabulary and shared `queryInteger`) landed
@@ -27,9 +29,12 @@ neither Admin nor Studio depends on the other, and registration crosses only
 the shared workspace message contract. Phase 5 admits every active session to
 the Studio shell, enforces Trusted/Admin capability boundaries per route
 family, defaults workspace floors to Trusted before source callbacks, and
-makes active-session visibility explicit on console descriptors. The
-2026-08-24 Dashboard decision keeps its existing chrome with exactly three
-public tabs: Overview, Knowledge, and Network.
+makes active-session visibility explicit on console descriptors. Phase 6 moves
+Account into a lazy Studio chunk, replaces the old Account/Admin routes with
+permanent Studio redirects, removes both independent browser apps, and keeps
+`plugins/admin` as a headless provider to preserve the Phase 4 package
+boundary. The 2026-08-24 Dashboard decision keeps its existing chrome with
+exactly three public tabs: Overview, Knowledge, and Network.
 
 ## Goal
 
@@ -52,20 +57,25 @@ End state:
   paths. Redirects preserve deep paths and query state where a direct mapping
   exists; `/admin` falls back to the neutral Studio home.
 - The Studio shell is chrome: it admits any active session and renders only
-  the views the actor is admitted to. Capabilities gate themselves — the
+  the workspaces and editor capabilities the actor is admitted to. Capabilities gate themselves — the
   entity editor family at trusted, admin workspaces at admin, account at any
   active session.
 - The admin console's four views become built-in, admin-gated Studio
   workspaces; the admin door, shell routes, client API wrappers, and React app
   are gone. The authoritative `/auth/admin/*` JSON endpoints remain in
   auth-service.
-- Account (profile, passkeys, sessions, plugin-settings forms) becomes a
-  Studio view admitted to every active session — a lazy client chunk, because
-  WebAuthn ceremonies cannot be declarative. No separate door. Its browser
-  code continues to call auth-service's `/auth/account/*` endpoints.
-- `plugins/admin` is deleted; the canonical roster loses its `admin` and
-  `account` UI-plugin entries. Auth-service keeps account/admin schemas,
-  operations, same-origin checks, invariants, audit, and HTTP routes.
+- Account (profile, passkeys, sessions, plugin-settings forms) becomes the
+  built-in `studio:account` workspace admitted to every active session. It uses
+  a fixed host-owned renderer delivered as a lazy client chunk because the
+  passkey ceremony requires browser code; this does not make Account a separate
+  navigation concept or allow external registrants to supply renderers. No
+  separate door. Its browser code continues to call auth-service's
+  `/auth/account/*` endpoints.
+- The Account UI-plugin entry is deleted. The canonical roster retains the
+  headless `admin` capability solely to source and register administration
+  workspaces; it advertises no console surface and owns no browser routes.
+  Auth-service keeps account/admin schemas, operations, same-origin checks,
+  invariants, audit, and HTTP routes.
 - Studio gains an **Overview** workspace — the operator home: what needs
   you, what the brain did on its own, system and network state. It absorbs
   the Dashboard's trusted/admin widget content.
@@ -150,7 +160,7 @@ one implicit perimeter with an explicit route-family matrix:
 Sub-trusted sessions are real: invitations only grant `trusted` or `admin`
 (`invitation-service.ts`), but the role mutation path accepts `public` — the
 demotion/offboarding state. Such a person must keep reaching their sessions
-and passkeys; under this model that is exactly the Account view.
+and passkeys; under this model that is exactly the Account workspace.
 
 ## Dashboard purpose: the brain's card
 
@@ -374,12 +384,12 @@ surface is pure gating.
   admission and is empty for that actor at this phase (`/account` still serves
   them until Phase 6).
 
-### Phase 6 — Account into Studio; dissolve plugins/admin
+### Phase 6 — Account into Studio; dissolve the Admin browser surfaces
 
-- Tests first: the Account view requires an active session at its explicit
+- Tests first: the Account workspace requires an active session at its explicit
   lower floor; `/auth/account/*` retains its existing auth-service admission,
   same-origin, subject-derivation, passkey, and session tests; `/account`
-  redirects to the Studio Account view; `/admin` redirects to neutral Studio
+  redirects to the Studio Account workspace; `/admin` redirects to neutral Studio
   home; and the moved Account app tests run against their new home.
 - Move only the Account React presentation into Studio as a lazy chunk with
   WebAuthn ceremonies. It continues to call `/auth/account/*`; no auth JSON
@@ -389,12 +399,15 @@ surface is pure gating.
   traversal-safe prefix route, copy every entry/chunk/map into the bundled
   `@rizom/brain` output, and cover direct and packaged loading. Static chunks
   remain data-free public routes.
-- Declare Account as the one active-session-floor view. The
-  `account-settings` launch intent becomes in-Studio navigation instead of a
-  cross-surface bounce.
-- Run the frozen admin-capability parity test and delete `plugins/admin` only
-  when no capability or client-only mutation wrapper remains. Canonical roster:
-  drop `admin` and `account`; keep auth-service. Console strip: drop their
+- Declare Account as the one active-session-floor workspace. Its renderer is a
+  fixed Studio-owned lazy component rather than an externally registrable
+  renderer. The `account-settings` launch intent becomes in-Studio navigation
+  instead of a cross-surface bounce.
+- Run the frozen admin-capability parity test and delete the Admin and Account
+  browser routes, shells, bundles, and client-only wrappers only when no
+  capability is lost. Canonical roster: drop `account`; retain `admin` as a
+  headless workspace provider so the Phase 4 Admin-owned boundary remains
+  real. Keep auth-service. Console strip: drop the old Admin and Account
   entries so it becomes Dashboard / Chat / Studio. Update `build:ui` and
   release-bundle filters.
 - Preserve `/auth/admin/*` and `/auth/account/*` contracts and run full gates.
@@ -460,10 +473,10 @@ capability is ever without a home.
   protocol surface. All are additive and require export-ledger updates,
   canonical Studio fixtures, packed conformance, changesets, and release-surface
   review before code-quality review.
-- Deleting `plugins/admin` could silently drop a mutation or move authorization
-  into the presentation package. The frozen capability-parity test prevents the
-  former; keeping every auth route and invariant in auth-service prevents the
-  latter.
+- Dissolving the Admin browser surface could silently drop a mutation or move
+  authorization into the presentation package. The frozen capability-parity
+  test prevents the former; retaining the headless Admin workspace provider and
+  keeping every auth route and invariant in auth-service prevents the latter.
 - A lazy Account import without emitted/served/copied chunks produces a shell
   that works until Account is opened. Phase 6 tests source and bundled chunk
   loading and constrains the asset prefix to generated filenames.

@@ -4,12 +4,13 @@ import { describe, expect, it } from "bun:test";
 import type { AuthAccountSnapshot } from "@brains/auth-service/account-contracts";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { AccountApp, type AccountBootstrap } from "./App";
+import { AccountApp, type AccountBootstrap } from "./account-view";
 
 const bootstrap: AccountBootstrap = {
   displayName: "Mira Reyes",
   role: "trusted",
-  routePath: "/account",
+  routePath: "/studio/workspaces/studio%3Aaccount",
+  studioPath: "/studio",
 };
 
 const account: AuthAccountSnapshot = {

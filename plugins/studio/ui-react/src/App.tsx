@@ -3,9 +3,12 @@ import type {
   RuntimeOperatorActionControl,
   RuntimeOperatorLaunchIntent,
 } from "@brains/plugins";
+import type { AuthAccountRole } from "@brains/auth-service/account-contracts";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useBlocker, useRouter, useRouterState } from "@tanstack/react-router";
 import {
+  lazy,
+  Suspense,
   useCallback,
   useEffect,
   useMemo,
@@ -23,6 +26,11 @@ import {
 } from "../../src/studio-paths";
 import { createStudioCreatePrefillState } from "../../src/create-prefill-contract";
 import {
+  STUDIO_ACCOUNT_WORKSPACE_ID,
+  STUDIO_ACCOUNT_WORKSPACE_RENDERER,
+} from "../../src/account-workspace";
+import {
+  StudioAccountWorkspaceView,
   StudioAppStatus,
   StudioAppView,
   type MobileEditorPane,
@@ -87,18 +95,45 @@ import {
   workspaceUrlSearch,
 } from "./workspace-url-query";
 
+const LazyAccountApp = lazy(async () => {
+  const module = await import("./account/account-view");
+  return { default: module.AccountApp };
+});
+
 const EMPTY_AGENT_TARGETS: AgentTarget[] = [];
 const EMPTY_WORKSPACES: StudioWorkspaceInfo[] = [];
 const EMPTY_WORKSPACE_QUERY: StudioWorkspaceQuery = {};
+
+const ACCOUNT_ROLES: readonly AuthAccountRole[] = [
+  "public",
+  "trusted",
+  "admin",
+];
+
+function accountBootstrap(
+  routePath: string,
+  studioPath: string,
+): {
+  displayName: string;
+  role: AuthAccountRole;
+  routePath: string;
+  studioPath: string;
+} {
+  const root = document.querySelector("[data-studio-root]");
+  const displayName =
+    root?.getAttribute("data-studio-principal-name") ?? "Your account";
+  const rawRole = root?.getAttribute("data-studio-principal-role");
+  const role =
+    ACCOUNT_ROLES.find((candidate) => candidate === rawRole) ?? "public";
+  return { displayName, role, routePath, studioPath };
+}
 
 interface WorkspaceQueryState {
   query: StudioWorkspaceQuery;
   urlSearch?: string | undefined;
 }
 
-function consoleSurfaceHref(
-  id: "account" | "admin" | "web-chat",
-): string | undefined {
+function consoleSurfaceHref(id: "web-chat"): string | undefined {
   return (
     document
       .querySelector(`[data-console-surface="${id}"]`)
@@ -174,9 +209,16 @@ export function App(): ReactElement {
   const activeType = types?.find((info) => info.entityType === entityType);
   const activeCapabilities = activeType?.capabilities;
   const workspaces = navigationQuery.data?.workspaces ?? EMPTY_WORKSPACES;
+  const accountWorkspace = workspaces.find(
+    (workspace) => workspace.rendererName === STUDIO_ACCOUNT_WORKSPACE_RENDERER,
+  );
   const activeWorkspace = workspaces.find(
     (workspace) => workspace.id === activeWorkspaceId,
   );
+  const activeAccount =
+    activeWorkspace?.rendererName === STUDIO_ACCOUNT_WORKSPACE_RENDERER;
+  const activeDeclarativeWorkspace =
+    activeWorkspace?.rendererName === "DeclarativeOperatorWorkspace";
   const storedWorkspaceQuery = activeWorkspaceId
     ? workspaceQueries[activeWorkspaceId]
     : undefined;
@@ -194,7 +236,7 @@ export function App(): ReactElement {
     : EMPTY_WORKSPACE_QUERY;
   const workspaceQuery = useQuery({
     ...workspaceQueryOptions(activeWorkspaceId ?? "", workspaceRequestQuery),
-    enabled: activeWorkspaceId !== null,
+    enabled: activeDeclarativeWorkspace,
   });
   const workspaceResponse = workspaceQuery.data ?? null;
   const workspaceData = workspaceResponse?.data ?? null;
@@ -211,7 +253,10 @@ export function App(): ReactElement {
       activeCapabilities.canUpdate,
   });
   const agentTargets = agentTargetsQuery.data ?? EMPTY_AGENT_TARGETS;
-  const syncStatusQuery = useQuery(syncStatusQueryOptions());
+  const syncStatusQuery = useQuery({
+    ...syncStatusQueryOptions(),
+    enabled: entityType !== null,
+  });
   const syncStatus = syncStatusQuery.data ?? null;
   const entityListQuery = useQuery({
     ...entityListQueryOptions(entityType ?? ""),
@@ -234,7 +279,9 @@ export function App(): ReactElement {
   });
   const deleting = deleteEntityMutation.isPending;
   const declarativeWorkspaceData =
-    activeWorkspace && workspaceResponse ? workspaceResponse.data : null;
+    activeDeclarativeWorkspace && workspaceResponse
+      ? workspaceResponse.data
+      : null;
 
   useEffect(() => {
     if (!activeWorkspaceId || !declarativeWorkspaceData?.refreshAfterMs) {
@@ -295,6 +342,7 @@ export function App(): ReactElement {
         return;
       }
       setActiveWorkspaceId(workspace.id);
+      setEntityType(null);
       return;
     }
 
@@ -303,6 +351,12 @@ export function App(): ReactElement {
         ? routeTarget.entityType
         : undefined;
     const first = types.find((info) => !info.isSingleton) ?? types[0];
+    if (routeTarget.kind === "home" && !first && accountWorkspace) {
+      router.history.replace(
+        studioWorkspacePath(studioBasePath, accountWorkspace.id),
+      );
+      return;
+    }
     const nextType = requestedType ?? first?.entityType ?? null;
     if (
       requestedType !== undefined &&
@@ -315,7 +369,14 @@ export function App(): ReactElement {
 
     setActiveWorkspaceId(null);
     setEntityType(nextType);
-  }, [routeTarget, types, workspaces]);
+  }, [
+    accountWorkspace,
+    routeTarget,
+    router.history,
+    studioBasePath,
+    types,
+    workspaces,
+  ]);
 
   // After a save, poll the pipeline until the auto-commit lands. Every poll
   // updates syncStatus, which re-runs this effect until the view settles or
@@ -561,8 +622,9 @@ export function App(): ReactElement {
     (launch: RuntimeOperatorLaunchIntent): void => {
       switch (launch.target) {
         case "account-settings": {
-          const href = consoleSurfaceHref("account");
-          if (href) window.location.assign(href);
+          router.history.push(
+            studioWorkspacePath(studioBasePath, STUDIO_ACCOUNT_WORKSPACE_ID),
+          );
           return;
         }
         case "admin-peer-invite": {
@@ -998,11 +1060,34 @@ export function App(): ReactElement {
   if (visibleLoadError) {
     return <StudioAppStatus message={visibleLoadError} error />;
   }
+  if (!types) {
+    return <StudioAppStatus message="Loading…" />;
+  }
+  if (activeAccount) {
+    const accountPath = studioWorkspacePath(
+      studioBasePath,
+      STUDIO_ACCOUNT_WORKSPACE_ID,
+    );
+    return (
+      <StudioAccountWorkspaceView
+        types={types}
+        workspaces={workspaces}
+        workspaceId={activeWorkspace.id}
+        selectEntityType={selectEntityType}
+        selectWorkspace={selectWorkspace}
+      >
+        <Suspense fallback={<p className="status">Opening Account…</p>}>
+          <LazyAccountApp
+            bootstrap={accountBootstrap(accountPath, studioBasePath)}
+          />
+        </Suspense>
+      </StudioAccountWorkspaceView>
+    );
+  }
   if (
-    !types ||
-    (activeWorkspaceId
+    activeWorkspaceId
       ? !workspaceData && !workspaceError
-      : entityType && (!schema || !entities))
+      : entityType && (!schema || !entities)
   ) {
     return <StudioAppStatus message="Loading…" />;
   }

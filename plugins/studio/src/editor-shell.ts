@@ -8,6 +8,14 @@ import {
   type ConsoleSurface,
 } from "@brains/console-theme";
 
+function escapeAttribute(value: string): string {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;");
+}
+
 export interface EditorShellOptions {
   /** Module path of the Bun-bundled React app. */
   assetPath: string;
@@ -94,7 +102,11 @@ ${CONSOLE_THEME_CSS}
         ...(options.principal ? { principal: options.principal } : {}),
       },
     })}
-    <main id="root" data-studio-root data-studio-base-path="${basePath}"><p class="boot">Opening the content studio…</p></main>
+    <main id="root" data-studio-root data-studio-base-path="${basePath}"${
+      options.principal
+        ? ` data-studio-principal-name="${escapeAttribute(options.principal.displayName)}" data-studio-principal-role="${escapeAttribute(options.principal.role)}"`
+        : ""
+    }><p class="boot">Opening the content studio…</p></main>
     <script type="module" src="${options.assetPath}"></script>
   </body>
 </html>`;

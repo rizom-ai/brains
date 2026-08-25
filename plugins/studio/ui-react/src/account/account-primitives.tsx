@@ -1,7 +1,7 @@
 /** @jsxImportSource react */
 import type { ReactElement, ReactNode } from "react";
 
-export function Button(props: {
+export function AccountButton(props: {
   children: ReactNode;
   onClick?: () => void;
   type?: "button" | "submit";
@@ -26,23 +26,7 @@ export function Button(props: {
   );
 }
 
-export function TextAction(props: {
-  children: ReactNode;
-  onClick: () => void;
-  danger?: boolean;
-}): ReactElement {
-  return (
-    <button
-      className={`people-text-action${props.danger ? " people-text-action--danger" : ""}`}
-      type="button"
-      onClick={props.onClick}
-    >
-      {props.children}
-    </button>
-  );
-}
-
-export function AccessItem(props: {
+export function AccountAccessItem(props: {
   kind: string;
   value: string;
   action?: ReactNode;
@@ -58,7 +42,7 @@ export function AccessItem(props: {
   );
 }
 
-export function DetailSection(props: {
+export function AccountDetailSection(props: {
   title: string;
   description: string;
   children: ReactNode;

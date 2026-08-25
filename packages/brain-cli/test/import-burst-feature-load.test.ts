@@ -313,7 +313,6 @@ describe("directory import burst with locally mocked AI features", () => {
           remove: [
             "atproto-registry",
             "auth-service",
-            "account",
             "notifications",
             "playbook",
             "playbooks",

@@ -28,7 +28,7 @@ export interface StudioWorkspaceInfo {
   id: string;
   pluginId: string;
   label: string;
-  rendererName: "DeclarativeOperatorWorkspace";
+  rendererName: "DeclarativeOperatorWorkspace" | "StudioAccountWorkspace";
   priority: number;
   urlQuery?: true;
   entityTypes: string[];

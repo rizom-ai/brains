@@ -2,23 +2,22 @@ import { describe, expect, it } from "bun:test";
 import { buildConsoleJumpGroups } from "../src/console-jump";
 
 describe("buildConsoleJumpGroups", () => {
-  it("adds the registered admin console surface", () => {
+  it("maps the People console jump into its Studio workspace", () => {
     const groups = buildConsoleJumpGroups({
       query: "peop",
       groups: [],
       dashboardPath: "/dashboard",
-      studioPath: undefined,
-      adminPath: "/admin",
+      studioPath: "/studio",
       entities: [],
     });
 
     expect(groups.find((group) => group.id === "surfaces")?.items).toEqual([
       {
-        id: "surface/admin",
-        title: "Admin",
-        sub: "People, access and identity",
-        href: "/admin",
-        tag: "console",
+        id: "surface/people",
+        title: "People",
+        sub: "Access and identity",
+        href: "/studio/workspaces/admin%3Apeople",
+        tag: "studio",
       },
     ]);
   });

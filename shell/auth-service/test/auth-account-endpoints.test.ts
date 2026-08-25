@@ -73,7 +73,7 @@ afterEach(async () => {
 });
 
 describe("auth account API", () => {
-  it("registers only account APIs and leaves the browser surface to its plugin", () => {
+  it("registers only account APIs and leaves browser presentation to Studio", () => {
     const routes = authServicePlugin().getWebRoutes();
     expect(routes.some((route) => route.path === "/account")).toBe(false);
     expect(routes).toEqual(

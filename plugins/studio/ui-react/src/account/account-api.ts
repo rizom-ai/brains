@@ -1,9 +1,9 @@
 import type {
   AuthAccountMutation,
   AuthAccountPluginSettingsMutation,
-  AuthAccountResponse,
   AuthAccountSnapshot,
 } from "@brains/auth-service/account-contracts";
+import { z } from "@brains/utils/zod";
 
 export interface AccountMutationResponse {
   account?: AuthAccountSnapshot;
@@ -25,6 +25,109 @@ interface RegistrationOptionsJSON {
   extensions?: AuthenticationExtensionsClientInputs;
 }
 
+const rawAccountSnapshotSchema = z.object({
+  displayName: z.string(),
+  role: z.enum(["admin", "trusted", "public"]),
+  profileEntityId: z.string().optional(),
+  passkeys: z.array(
+    z.object({
+      id: z.string(),
+      transports: z.array(z.string()).optional(),
+      credentialDeviceType: z.string().optional(),
+      credentialBackedUp: z.boolean(),
+      createdAt: z.number(),
+      updatedAt: z.number(),
+    }),
+  ),
+  connectedChannels: z.array(
+    z.object({
+      type: z.string(),
+      label: z.string(),
+      verifiedAt: z.number(),
+    }),
+  ),
+  pluginSettings: z.array(
+    z.object({
+      id: z.string(),
+      title: z.string(),
+      description: z.string().optional(),
+      configured: z.boolean(),
+      revision: z.number().nullable(),
+      fields: z.array(
+        z.object({
+          name: z.string(),
+          label: z.string(),
+          control: z.enum(["text", "url", "number", "checkbox"]),
+          secret: z.boolean(),
+          required: z.boolean(),
+          value: z
+            .union([z.string(), z.number(), z.boolean(), z.null()])
+            .optional(),
+          set: z.boolean().optional(),
+        }),
+      ),
+    }),
+  ),
+  sessions: z.array(
+    z.object({
+      id: z.string(),
+      current: z.boolean(),
+      createdAt: z.number(),
+      expiresAt: z.number(),
+    }),
+  ),
+});
+
+function isAccountSnapshot(value: unknown): value is AuthAccountSnapshot {
+  return rawAccountSnapshotSchema.safeParse(value).success;
+}
+
+const accountSnapshotSchema = z.custom<AuthAccountSnapshot>(isAccountSnapshot, {
+  message: "Invalid account response",
+});
+const accountResponseSchema = z.object({
+  account: accountSnapshotSchema,
+});
+
+const rawAccountMutationResponseSchema = z.object({
+  account: accountSnapshotSchema.optional(),
+  revoked: z
+    .object({
+      sessions: z.number(),
+      refreshTokens: z.number().optional(),
+    })
+    .optional(),
+  signedOut: z.boolean().optional(),
+});
+
+function isAccountMutationResponse(
+  value: unknown,
+): value is AccountMutationResponse {
+  return rawAccountMutationResponseSchema.safeParse(value).success;
+}
+
+const accountMutationResponseSchema = z.custom<AccountMutationResponse>(
+  isAccountMutationResponse,
+  { message: "Invalid account mutation response" },
+);
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+const registrationOptionsSchema = z.custom<RegistrationOptionsJSON>(
+  (value) => {
+    if (!isRecord(value)) return false;
+    return (
+      typeof value["challenge"] === "string" &&
+      isRecord(value["rp"]) &&
+      isRecord(value["user"]) &&
+      Array.isArray(value["pubKeyCredParams"])
+    );
+  },
+  { message: "Invalid passkey registration options" },
+);
+
 export class AccountApiError extends Error {
   readonly status: number;
 
@@ -35,7 +138,10 @@ export class AccountApiError extends Error {
   }
 }
 
-async function parseResponse<T>(response: Response): Promise<T> {
+async function parseResponse<T>(
+  response: Response,
+  schema: z.ZodType<T>,
+): Promise<T> {
   let body: unknown;
   try {
     body = await response.json();
@@ -52,15 +158,16 @@ async function parseResponse<T>(response: Response): Promise<T> {
         : "Account request failed";
     throw new AccountApiError(error, response.status);
   }
-  return body as T;
+  return schema.parse(body);
 }
 
 export async function fetchAccount(): Promise<AuthAccountSnapshot> {
-  const response = await parseResponse<AuthAccountResponse>(
+  const response = await parseResponse(
     await fetch("/auth/account", {
       credentials: "same-origin",
       cache: "no-store",
     }),
+    accountResponseSchema,
   );
   return response.account;
 }
@@ -68,13 +175,14 @@ export async function fetchAccount(): Promise<AuthAccountSnapshot> {
 export async function mutatePluginSettings(
   mutation: AuthAccountPluginSettingsMutation,
 ): Promise<AuthAccountSnapshot> {
-  const response = await parseResponse<AuthAccountResponse>(
+  const response = await parseResponse(
     await fetch("/auth/account/plugin-settings", {
       method: "POST",
       credentials: "same-origin",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(mutation),
     }),
+    accountResponseSchema,
   );
   return response.account;
 }
@@ -89,6 +197,7 @@ export async function mutateAccount(
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(mutation),
     }),
+    accountMutationResponseSchema,
   );
 }
 
@@ -137,13 +246,14 @@ function prepareCreationOptions(
 }
 
 export async function registerPasskey(): Promise<AuthAccountSnapshot> {
-  const options = await parseResponse<RegistrationOptionsJSON>(
+  const options = await parseResponse(
     await fetch("/auth/account/passkeys/options", {
       method: "POST",
       credentials: "same-origin",
       headers: { "Content-Type": "application/json" },
       body: "{}",
     }),
+    registrationOptionsSchema,
   );
   const created = await navigator.credentials.create({
     publicKey: prepareCreationOptions(options),
@@ -172,13 +282,14 @@ export async function registerPasskey(): Promise<AuthAccountSnapshot> {
           : [],
     },
   };
-  const result = await parseResponse<AuthAccountResponse & { verified: true }>(
+  const result = await parseResponse(
     await fetch("/auth/account/passkeys/verify", {
       method: "POST",
       credentials: "same-origin",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     }),
+    accountResponseSchema.extend({ verified: z.literal(true) }),
   );
   return result.account;
 }

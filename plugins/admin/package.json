@@ -2,22 +2,17 @@
   "name": "@brains/admin",
   "license": "AGPL-3.0-only",
   "version": "0.2.0-alpha.332",
-  "description": "Admin-owned Studio workspaces and transitional account and administration routes",
+  "description": "Headless source owner for Admin-gated Studio workspaces",
   "dependencies": {
     "@brains/auth-service": "workspace:*",
-    "@brains/console-theme": "workspace:*",
     "@brains/plugins": "workspace:*",
-    "@brains/utils": "workspace:*",
-    "react": "^19.2.7",
-    "react-dom": "^19.2.7"
+    "@brains/utils": "workspace:*"
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",
     "@brains/test-utils": "workspace:*",
     "@brains/typescript-config": "workspace:*",
     "@types/bun": "^1.4.0",
-    "@types/react": "^19.2.17",
-    "@types/react-dom": "^19.0.3",
     "bun-types": "^1.4.0",
     "eslint": "^10.5.0",
     "typescript": "^7.0.2"
@@ -27,8 +22,6 @@
   },
   "private": true,
   "scripts": {
-    "build": "bun scripts/build-ui.ts",
-    "build:ui": "bun scripts/build-ui.ts",
     "lint": "eslint . --max-warnings 0",
     "lint:fix": "eslint . --max-warnings 0 --fix",
     "test": "bun test",

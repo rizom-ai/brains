@@ -9,7 +9,7 @@ import {
   OperatorViewRenderer,
   operatorViewRendererStyles,
 } from "@brains/operator-view-react";
-import type { Dispatch, ReactElement, SetStateAction } from "react";
+import type { Dispatch, ReactElement, ReactNode, SetStateAction } from "react";
 import { styles } from "./app-styles";
 import type {
   AgentTarget,
@@ -141,6 +141,39 @@ export function StudioAppStatus(props: {
       >
         {props.message}
       </p>
+    </div>
+  );
+}
+
+export function StudioAccountWorkspaceView(props: {
+  types: EntityTypeInfo[];
+  workspaces: StudioWorkspaceInfo[];
+  workspaceId: string;
+  selectEntityType: (entityType: string) => void;
+  selectWorkspace: (workspaceId: string) => void;
+  children: ReactNode;
+}): ReactElement {
+  return (
+    <div className="studio" data-view="account">
+      <style>{`${styles}\n${visualRefreshStyles}\n${responsiveStyles}\n${operatorViewRendererStyles}`}</style>
+      <header className="crumbbar">
+        <span className="crumb">Account</span>
+        <span className="spacer" />
+      </header>
+      <div className="studio-body">
+        <aside className="rail">
+          <TypeSwitcher
+            types={props.types}
+            active={null}
+            onSelect={props.selectEntityType}
+            workspaces={props.workspaces}
+            activeWorkspace={props.workspaceId}
+            workspaceBadges={workspaceRailBadges(props.workspaces)}
+            onSelectWorkspace={props.selectWorkspace}
+          />
+        </aside>
+        <main className="account-studio-pane">{props.children}</main>
+      </div>
     </div>
   );
 }

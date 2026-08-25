@@ -163,7 +163,6 @@ describe("projection burst causal evidence", () => {
           remove: [
             "atproto-registry",
             "auth-service",
-            "account",
             "notifications",
             "playbook",
             "playbooks",

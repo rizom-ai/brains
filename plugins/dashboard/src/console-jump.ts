@@ -39,26 +39,27 @@ export function buildConsoleJumpGroups(options: {
   groups: string[];
   dashboardPath: string;
   studioPath: string | undefined;
-  adminPath?: string | undefined;
   entities: ConsoleJumpEntityHit[];
 }): ConsoleJumpGroup[] {
   const query = options.query.trim().toLowerCase();
   const result: ConsoleJumpGroup[] = [];
 
   if (
-    options.adminPath !== undefined &&
-    (query === "" || "admin people access identity".includes(query))
+    options.studioPath !== undefined &&
+    (query === "" || "people access identity".includes(query))
   ) {
+    const studioPath =
+      options.studioPath === "/" ? "" : options.studioPath.replace(/\/+$/, "");
     result.push({
       id: "surfaces",
       label: "Console",
       items: [
         {
-          id: "surface/admin",
-          title: "Admin",
-          sub: "People, access and identity",
-          href: options.adminPath,
-          tag: "console",
+          id: "surface/people",
+          title: "People",
+          sub: "Access and identity",
+          href: `${studioPath}/workspaces/${encodeURIComponent("admin:people")}`,
+          tag: "studio",
         },
       ],
     });

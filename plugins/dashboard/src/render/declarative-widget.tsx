@@ -11,8 +11,6 @@ import type { JSX } from "react";
 import type { RenderableWidgetData } from "./types";
 
 interface OperatorLaunchPaths {
-  readonly accountPath?: string | undefined;
-  readonly adminPath?: string | undefined;
   readonly studioPath?: string | undefined;
 }
 
@@ -51,7 +49,11 @@ function launchHref(
   launch: RuntimeOperatorLaunchIntent,
   paths: OperatorLaunchPaths,
 ): string | undefined {
-  if (launch.target === "account-settings") return paths.accountPath;
+  if (launch.target === "account-settings") {
+    return paths.studioPath
+      ? workspaceHref(paths.studioPath, "studio:account")
+      : undefined;
+  }
   if (launch.target === "admin-peer-invite") {
     if (!paths.studioPath) return undefined;
     const url = new URL(

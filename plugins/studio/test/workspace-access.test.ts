@@ -135,7 +135,7 @@ describe("Studio workspace access", () => {
     const body = await response.json();
 
     expect(body).toMatchObject({
-      workspaces: [{ id: "trusted-workspace" }],
+      workspaces: [{ id: "studio:account" }, { id: "trusted-workspace" }],
     });
     expect(JSON.stringify(body)).not.toContain("admin-workspace");
     expect(fixture.privateCalls.data).toBe(0);
@@ -169,7 +169,7 @@ describe("Studio workspace access", () => {
     );
     expect(await navigation.json()).toMatchObject({
       types: [],
-      workspaces: [{ id: "account-workspace" }],
+      workspaces: [{ id: "studio:account" }, { id: "account-workspace" }],
     });
 
     const read = await route(fixture.routes, "GET").handler(

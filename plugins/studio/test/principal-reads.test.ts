@@ -204,7 +204,13 @@ describe("Studio principal-aware reads behind the rollout gate", () => {
         }),
       }),
     );
-    expect(payload.workspaces).toEqual([]);
+    expect(
+      payload.workspaces.map((workspace) =>
+        typeof workspace === "object" && workspace !== null && "id" in workspace
+          ? workspace.id
+          : undefined,
+      ),
+    ).toEqual(["studio:account"]);
   });
 
   it("allows only visible schemas, lists, and entity details", async () => {

@@ -29,13 +29,6 @@ export function WidgetTabPanel({
   const studioPath = input.surfaces?.find(
     (surface) => surface.id === "studio",
   )?.href;
-  const accountPath = input.surfaces?.find(
-    (surface) => surface.id === "account",
-  )?.href;
-  const adminPath = input.surfaces?.find(
-    (surface) => surface.id === "admin",
-  )?.href;
-
   return (
     <section
       id={tab.id}
@@ -73,8 +66,6 @@ export function WidgetTabPanel({
               key={`${widget.widget.pluginId}:${widget.widget.id}`}
               widget={widget}
               studioPath={studioPath}
-              accountPath={accountPath}
-              adminPath={adminPath}
             />
           ))}
         </div>
@@ -98,8 +89,6 @@ export function WidgetTabPanel({
                 key={`${widget.widget.pluginId}:${widget.widget.id}`}
                 widget={widget}
                 studioPath={studioPath}
-                accountPath={accountPath}
-                adminPath={adminPath}
               />
             ))}
           </div>

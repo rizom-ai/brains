@@ -131,6 +131,11 @@ describe("public declarative Studio workspace", () => {
     expect(navigation).toMatchObject({
       workspaces: [
         {
+          label: "Account",
+          rendererName: "StudioAccountWorkspace",
+          entityTypes: [],
+        },
+        {
           label: "Reading library",
           rendererName: "DeclarativeOperatorWorkspace",
           entityTypes: [],
@@ -145,7 +150,13 @@ describe("public declarative Studio workspace", () => {
     ) {
       throw new Error("Expected workspace navigation");
     }
-    const descriptor = navigation.workspaces[0];
+    const descriptor = navigation.workspaces.find(
+      (workspace) =>
+        typeof workspace === "object" &&
+        workspace !== null &&
+        "rendererName" in workspace &&
+        workspace.rendererName === "DeclarativeOperatorWorkspace",
+    );
     if (
       descriptor === null ||
       typeof descriptor !== "object" ||

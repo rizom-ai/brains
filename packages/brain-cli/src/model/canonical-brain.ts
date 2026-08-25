@@ -4,7 +4,7 @@ import {
   type PluginConfig,
 } from "@brains/app";
 import { A2AInterface } from "@brains/a2a";
-import { accountPlugin, adminPlugin } from "@brains/admin";
+import { adminPlugin } from "@brains/admin";
 import { agentDiscovery } from "@brains/agent-discovery";
 import { analyticsPlugin } from "@brains/analytics";
 import { assessment } from "@brains/assessment";
@@ -125,7 +125,6 @@ export const canonicalBrain: BrainDefinition = defineBrain({
     ["agents", agentDiscovery, undefined],
     ["assessment", assessment, undefined],
     ["auth-service", authServicePlugin, undefined],
-    ["account", accountPlugin, undefined],
     ["notifications", notificationsPlugin, undefined],
     ["playbook", playbookPlugin, undefined],
     ["playbooks", playbooksPlugin, undefined],

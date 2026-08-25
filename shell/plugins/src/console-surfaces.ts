@@ -50,20 +50,6 @@ const SURFACE_PLUGINS: ReadonlyArray<{
     visibility: "public",
     requiresActiveSession: true,
   },
-  {
-    id: "admin",
-    pluginId: "admin",
-    label: "Admin",
-    visibility: "admin",
-    requiresActiveSession: true,
-  },
-  {
-    id: "account",
-    pluginId: "account",
-    label: "Account",
-    visibility: "public",
-    requiresActiveSession: true,
-  },
 ];
 
 export function deriveConsoleSurfaces(

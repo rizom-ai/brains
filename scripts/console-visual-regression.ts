@@ -679,7 +679,11 @@ async function checkLayout(
     if (!composer || composer.y + composer.height > viewportHeight + 1)
       throw new Error(`chat composer escaped the viewport at ${width}px`);
   }
-  if (surface.startsWith("studio-") && surface !== "studio-library") {
+  if (
+    surface.startsWith("studio-") &&
+    surface !== "studio-library" &&
+    surface !== "studio-account"
+  ) {
     const modes = await elementDisplay(page, ".studio-mobile-modes");
     if (width <= 640 !== (modes !== "none"))
       throw new Error(`Studio responsive mode mismatch at ${width}px`);
@@ -722,7 +726,8 @@ async function comparePng(
 
 await mkdir(BASELINE_DIR, { recursive: true });
 await mkdir(ARTIFACT_DIR, { recursive: true });
-const studioAsset = path.join(ROOT, "plugins/studio/dist/ui/studio-app.js");
+const studioUiDirectory = path.join(ROOT, "plugins/studio/dist/ui");
+const studioAsset = path.join(studioUiDirectory, "studio-app.js");
 const chatAsset = path.join(ROOT, "interfaces/web-chat/dist/ui/app.js");
 await Promise.all([readFile(studioAsset), readFile(chatAsset)]).catch(() => {
   throw new Error(
@@ -790,20 +795,88 @@ const server = Bun.serve({
       return new Response(
         climateHtml(
           renderEditorShellHtml({
-            assetPath: "/studio/assets/studio-app.js",
+            assetPath: "/studio/assets/app.js",
             basePath: "/studio",
             surfaces: activeSurfaces("studio"),
             sessionHref: "/logout",
+            principal: { displayName: "Mira Reyes", role: "admin" },
           }),
           request,
         ),
         { headers: { "content-type": "text/html" } },
       );
-    if (url.pathname === "/studio/assets/studio-app.js")
-      return new Response(await readFile(studioAsset), {
-        headers: { "content-type": "text/javascript" },
+    if (url.pathname.startsWith("/studio/assets/")) {
+      const publicPath = url.pathname.slice("/studio/assets/".length);
+      const filePath = publicPath === "app.js" ? "studio-app.js" : publicPath;
+      if (
+        !/^(?:studio-app\.js|studio-app\.js\.map|studio-chunks\/[A-Za-z0-9_-]+\.(?:js|js\.map))$/.test(
+          filePath,
+        )
+      ) {
+        return new Response("Not found", { status: 404 });
+      }
+      return new Response(
+        await readFile(path.join(studioUiDirectory, filePath)),
+        {
+          headers: {
+            "content-type": filePath.endsWith(".map")
+              ? "application/json"
+              : "text/javascript",
+          },
+        },
+      );
+    }
+    if (url.pathname === "/studio/api/types")
+      return json({
+        types,
+        workspaces: [
+          {
+            id: "studio:account",
+            pluginId: "studio",
+            label: "Account",
+            rendererName: "StudioAccountWorkspace",
+            priority: 0,
+            entityTypes: [],
+          },
+        ],
       });
-    if (url.pathname === "/studio/api/types") return json({ types });
+    if (url.pathname === "/auth/account")
+      return json({
+        account: {
+          displayName: "Mira Reyes",
+          role: "admin",
+          connectedChannels: [
+            {
+              type: "email",
+              label: "mira@example.com",
+              verifiedAt: 1_735_689_600_000,
+            },
+          ],
+          pluginSettings: [],
+          passkeys: [
+            {
+              id: "passkey-1",
+              credentialBackedUp: true,
+              createdAt: 1_735_689_600_000,
+              updatedAt: 1_735_689_600_000,
+            },
+          ],
+          sessions: [
+            {
+              id: "session-current",
+              current: true,
+              createdAt: 1_735_689_600,
+              expiresAt: 1_738_281_600,
+            },
+            {
+              id: "session-tablet",
+              current: false,
+              createdAt: 1_735_776_000,
+              expiresAt: 1_738_368_000,
+            },
+          ],
+        },
+      });
     if (url.pathname === "/studio/api/schema")
       return json({
         entityType: "posts",
@@ -933,6 +1006,7 @@ try {
         "chat-empty",
         "chat-drawer",
         "studio-library",
+        "studio-account",
         "studio-editor",
         "studio-delete",
         "studio-conflict",
@@ -973,9 +1047,11 @@ try {
             ? "/dashboard"
             : isChat
               ? "/chat"
-              : isStudioEditor
-                ? "/studio/entities/posts/field-notes"
-                : "/studio";
+              : surface === "studio-account"
+                ? "/studio/workspaces/studio%3Aaccount"
+                : isStudioEditor
+                  ? "/studio/entities/posts/field-notes"
+                  : "/studio";
         const hash = isChat ? `#s/${conversationId}` : "";
         await navigateToNetworkIdle(
           page,
@@ -1075,6 +1151,9 @@ try {
             if (settled === tops && settled === previousTops) break;
             previousTops = settled;
           }
+        }
+        if (surface === "studio-account") {
+          await page.getByText("Signed-in sessions").waitFor();
         }
         if (surface === "studio-delete") {
           // Open the delete confirmation. Phone tucks the control behind

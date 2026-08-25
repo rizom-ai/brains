@@ -1,3 +1,4 @@
+import { join } from "node:path";
 import { createTempDataDir } from "@brains/plugins/test";
 import { describe, expect, it } from "bun:test";
 import { AuthServicePlugin } from "@brains/auth-service";
@@ -371,6 +372,37 @@ describe("studio editor shell", () => {
     expect(html).not.toContain("sveltia");
   });
 
+  it("serves the Account view inside the shell to an active Public session", async () => {
+    const shell = createEditorTestShell();
+    const authPlugin = new AuthServicePlugin({
+      storageDir: await createTempDataDir("brains-studio-account-view-"),
+    });
+    await authPlugin.register(shell);
+    const person = await authPlugin.getService().createUser({
+      displayName: "Public account holder",
+      role: "public",
+      status: "active",
+    });
+    const session = await authPlugin
+      .getService()
+      .createAuthSession(person.userId);
+    const plugin = await registerPlugin(shell);
+
+    const response = await findRoute(plugin, "/studio/workspaces").handler(
+      apiRequest("/studio/workspaces/studio%3Aaccount", {
+        cookie: session.cookie,
+      }),
+    );
+    const html = await response.text();
+
+    expect(response.status).toBe(200);
+    expect(html).toContain('data-studio-base-path="/studio"');
+    expect(html).toContain(
+      'data-studio-principal-name="Public account holder"',
+    );
+    expect(html).toContain('data-studio-principal-role="public"');
+  });
+
   it("serves the authenticated shell for a deep entity route", async () => {
     const shell = createEditorTestShell();
     const cookie = await createSessionCookie(shell);
@@ -395,10 +427,32 @@ describe("studio editor shell", () => {
 
     // The bundle may not be built when tests run; the route must exist and
     // either serve JS or answer 404, never throw.
-    const response = await findRoute(plugin, "/studio/assets/app.js").handler(
+    const assetRoute = findRoute(plugin, "/studio/assets");
+    expect(assetRoute.match).toBe("prefix");
+
+    const response = await assetRoute.handler(
       apiRequest("/studio/assets/app.js"),
     );
-    expect([200, 404]).toContain(response.status);
+    expect(response.status).toBe(200);
+
+    const accountChunk = [
+      ...new Bun.Glob("studio-chunks/account-view-*.js").scanSync({
+        cwd: join(import.meta.dir, "..", "dist", "ui"),
+      }),
+    ][0];
+    if (!accountChunk) throw new Error("Missing built Account chunk");
+    const chunkResponse = await assetRoute.handler(
+      apiRequest(`/studio/assets/${accountChunk}`),
+    );
+    expect(chunkResponse.status).toBe(200);
+    expect(chunkResponse.headers.get("content-type")).toContain(
+      "text/javascript",
+    );
+
+    const traversal = await assetRoute.handler(
+      apiRequest("/studio/assets/%2F..%2Fpackage.json"),
+    );
+    expect(traversal.status).toBe(404);
   });
 });
 

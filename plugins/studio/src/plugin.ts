@@ -25,6 +25,7 @@ import { createEditorRoutes } from "./editor-routes";
 import { StudioWorkspaceRegistry } from "./workspace-registry";
 import packageJson from "../package.json";
 import { getErrorMessage } from "@brains/utils/error";
+import { STUDIO_ACCOUNT_WORKSPACE_ID } from "./account-workspace";
 
 interface StudioEntityDisplayEntry {
   label?: string | undefined;
@@ -59,9 +60,16 @@ const studioPluginConfigSchema: z.ZodType<
   routePath: z
     .string()
     .default("/studio")
-    .refine((routePath) => normalizeStudioBasePath(routePath) !== "/cms", {
-      message: '"/cms" is reserved for the Studio redirect',
-    }),
+    .refine(
+      (routePath) =>
+        !["/cms", "/account", "/admin"].includes(
+          normalizeStudioBasePath(routePath),
+        ),
+      {
+        message:
+          '"/cms", "/account", and "/admin" are reserved for Studio redirects',
+      },
+    ),
 });
 
 function parseEntityDisplay(
@@ -194,6 +202,11 @@ export class StudioPlugin extends ServicePlugin<
       StudioWorkspaceRegistrationResult
     >(STUDIO_WORKSPACE_REGISTER_MESSAGE, async (message) => {
       try {
+        if (message.payload.id === STUDIO_ACCOUNT_WORKSPACE_ID) {
+          throw new Error(
+            `Studio workspace id is reserved by the host: ${STUDIO_ACCOUNT_WORKSPACE_ID}`,
+          );
+        }
         const workspace = this.workspaceRegistry.register(message.payload);
         return {
           success: true,
@@ -239,30 +252,54 @@ export class StudioPlugin extends ServicePlugin<
         if (authService) await authService.recordAuditEvent(event);
       },
     });
-    const redirect = legacyCmsRedirect(this.config.routePath);
-    return redirect ? [redirect, ...editorRoutes] : editorRoutes;
+    return [...legacySurfaceRedirects(this.config.routePath), ...editorRoutes];
   }
 }
 
-function legacyCmsRedirect(routePath: string): WebRouteDefinition | undefined {
+function permanentRedirect(location: string): Response {
+  return new Response(null, {
+    status: 308,
+    headers: { Location: location, "Cache-Control": "no-store" },
+  });
+}
+
+function legacySurfaceRedirects(routePath: string): WebRouteDefinition[] {
   const studioBase = normalizeStudioBasePath(routePath);
-  if (studioBase === "/cms") return undefined;
-  return {
-    path: "/cms",
-    match: "prefix",
-    method: "GET",
-    public: true,
-    handler: (request): Response => {
-      const source = new URL(request.url);
-      const suffix = source.pathname === "/cms" ? "" : source.pathname.slice(4);
-      const destinationPath = `${studioBase}${suffix}` || "/";
-      const location = `${destinationPath}${source.search}`;
-      return new Response(null, {
-        status: 308,
-        headers: { Location: location, "Cache-Control": "no-store" },
-      });
+  const studioHome = studioBase || "/";
+  return [
+    {
+      path: "/cms",
+      match: "prefix",
+      method: "GET",
+      public: true,
+      handler: (request): Response => {
+        const source = new URL(request.url);
+        const suffix =
+          source.pathname === "/cms" ? "" : source.pathname.slice(4);
+        const destinationPath = `${studioBase}${suffix}` || "/";
+        return permanentRedirect(`${destinationPath}${source.search}`);
+      },
     },
-  };
+    {
+      path: "/account",
+      match: "prefix",
+      method: "GET",
+      public: true,
+      handler: (request): Response => {
+        const source = new URL(request.url);
+        return permanentRedirect(
+          `${studioWorkspacePath(studioHome, STUDIO_ACCOUNT_WORKSPACE_ID)}${source.search}`,
+        );
+      },
+    },
+    {
+      path: "/admin",
+      match: "prefix",
+      method: "GET",
+      public: true,
+      handler: (): Response => permanentRedirect(studioHome),
+    },
+  ];
 }
 
 function safeInboxSummary(summary: string | undefined): string | undefined {
