@@ -129,6 +129,15 @@ describe("actionItemsWidgetDeclaration", () => {
         list: async () => [],
       },
       spaces: [],
+      // This widget places nothing in semantic space.
+      semantic: {
+        project: async () => ({
+          origin: { kind: "centroid" as const },
+          points: [],
+          neighbors: [],
+          distanceRange: { min: 0, max: 0 },
+        }),
+      },
       caller: null,
       signal: new AbortController().signal,
     });

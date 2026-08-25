@@ -1255,6 +1255,7 @@ class DeclarativeEntityPlugin extends EntityPlugin<
                     ),
                 },
                 spaces: context.spaces,
+                semantic: context.semantic,
                 caller,
                 signal,
               }),

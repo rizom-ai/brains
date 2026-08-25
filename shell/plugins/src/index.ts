@@ -258,6 +258,7 @@ export type {
   EntityGenerationContext,
   EntityAgentContextProvider,
   EntityConversationSurvey,
+  EntitySemanticReader,
   EntityDashboardWidgetContext,
   EntityDashboardWidgetDeclaration,
   EntityInsightContext,
