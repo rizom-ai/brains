@@ -96,6 +96,11 @@ export const DASHBOARD_UI_SCRIPT = `(function () {
       window.addEventListener("hashchange", function () {
         activate(resolveValue(), false);
       });
+      if (window.location.hash && typeof window.scrollTo === "function") {
+        window.addEventListener("load", function () {
+          window.scrollTo(0, 0);
+        }, { once: true });
+      }
     }
   }
 

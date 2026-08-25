@@ -7,24 +7,27 @@ import {
 import type { JSX } from "react";
 import { Colophon } from "./colophon";
 import { ConsoleStrip } from "./console-strip";
-import { buildDashboardTabs, TabBar } from "./dashboard-tabs";
+import { TabBar } from "./dashboard-tabs";
+import { KnowledgeMapPanel } from "./knowledge-map";
 import { Masthead } from "./masthead";
 import { OverviewPanel } from "./overview-panel";
+import { ProximityMapPanel } from "./proximity-map";
+import { findCartesianMap, findRadialMap } from "./public-card-data";
 import { DASHBOARD_STYLES } from "./styles";
 import type { DashboardRenderInput } from "./types";
 import { DASHBOARD_UI_SCRIPT } from "./ui-script";
-import { WidgetTabPanel } from "./widget-tab-panel";
 
 export function DashboardDocument({
   input,
 }: {
   input: DashboardRenderInput;
 }): JSX.Element {
-  const tabs = buildDashboardTabs(input.widgets);
-  const showAccessGate =
-    input.authAccess !== undefined && input.authAccess.hiddenWidgetCount > 0;
+  const knowledgeMap = findCartesianMap(input.widgets);
+  const proximityMap = findRadialMap(input.widgets);
   const dashboardPath = input.dashboardPath ?? "/dashboard";
-  const now = new Date();
+  const operatorHref = input.surfaces?.find(
+    (surface) => surface.id === "studio",
+  )?.href;
 
   return (
     <html lang="en" data-climate="instrument" data-theme="dark">
@@ -101,23 +104,23 @@ export function DashboardDocument({
             data-ui-tabs-hash="true"
           >
             <Masthead title={input.title} tagline={input.profile.description} />
-            <TabBar tabs={tabs} />
+            <TabBar
+              knowledgeCount={input.appInfo.entities}
+              networkCount={
+                proximityMap?.points.filter(
+                  (point) => point.status !== "archived",
+                ).length ?? 0
+              }
+            />
 
             <div className="canvas">
               <div className="dashboard-tab-panels">
-                <OverviewPanel
-                  input={input}
-                  tabs={tabs}
-                  showAccessGate={showAccessGate}
+                <OverviewPanel input={input} />
+                <KnowledgeMapPanel
+                  block={knowledgeMap}
+                  entityTotal={input.appInfo.entities}
                 />
-                {tabs.map((tab) => (
-                  <WidgetTabPanel
-                    key={tab.id}
-                    tab={tab}
-                    input={input}
-                    now={now}
-                  />
-                ))}
+                <ProximityMapPanel block={proximityMap} />
               </div>
             </div>
           </div>
@@ -126,6 +129,7 @@ export function DashboardDocument({
             title={input.title}
             appInfo={input.appInfo}
             baseUrl={input.baseUrl}
+            operatorHref={operatorHref}
           />
         </main>
 

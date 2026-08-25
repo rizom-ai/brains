@@ -2,7 +2,7 @@
 
 ## Status
 
-**Proposed.** Rename the CMS to Studio, convert the admin console into
+**Implemented.** Rename the CMS to Studio, convert the admin console into
 admin-gated Studio workspaces, invert the Studio gate so the shell admits any
 active session while every capability gates itself, and fold the account
 surface into Studio as the one workspace admitted to everyone. `plugins/admin`
@@ -19,8 +19,8 @@ the card:
 [`../studio-consolidation-mockups.html`](../studio-consolidation-mockups.html)
 (decided 2026-08-19).
 
-**Progress:** Phases 1–7 are implemented on `work/studio-consolidation`; Phase
-8 is next. A 2026-08-23 review confirmed the rename is cleanly mechanical and
+**Progress:** Phases 1–8 are implemented on `work/studio-consolidation`; the
+consolidation is complete. A 2026-08-23 review confirmed the rename is cleanly mechanical and
 the capability-parity inventory holds. Its Phase 2 follow-ups (redundant Admin
 asserts, fetch-all audit pagination, and raw ISO timestamps) and Phase 3 entry
 conditions (shared form-control vocabulary and shared `queryInteger`) landed
@@ -40,6 +40,9 @@ non-public semantic Dashboard definitions there, aggregates their attention
 badges and launch links with recent entity/job activity and runtime state,
 surfaces failed jobs and expiring invitation setup links through source-owned
 attention, and prevents Dashboard from invoking restricted widget providers.
+Phase 8 makes Dashboard the anonymous public brain card with the fixed
+Overview/Knowledge/Network tabs, Public-scoped identity and holdings, and
+Dashboard-owned knowledge and agent-proximity map renderers.
 
 ## Goal
 

@@ -47,18 +47,18 @@ describe("DASHBOARD_STYLES", () => {
     expect(DASHBOARD_STYLES).not.toContain(".identity-purpose");
   });
 
-  it("contains no entity-owned widget styles", () => {
-    expect(DASHBOARD_STYLES).not.toMatch(
-      /\.(?:swot|agent-network|proximity)[a-z-]*/,
-    );
+  it("hosts the public knowledge and proximity map language", () => {
+    expect(DASHBOARD_STYLES).toContain(".knowledge-map-field");
+    expect(DASHBOARD_STYLES).toContain(".proximity-map-field");
+    expect(DASHBOARD_STYLES).toContain(".knowledge-zone");
+    expect(DASHBOARD_STYLES).toContain(".proximity-node");
     expect(DASHBOARD_STYLES).not.toContain("data-agent-network");
   });
 
-  it("ships a phone composition for tabs, vitals, and job rows", () => {
+  it("ships phone compositions for tabs, card rows, and maps", () => {
     expect(DASHBOARD_STYLES).toContain("@media (max-width: 640px)");
     expect(DASHBOARD_STYLES).toContain("overscroll-behavior-inline: contain");
-    expect(DASHBOARD_STYLES).toMatch(
-      /\.jobs td:nth-child\(1\)::before\s*{\s*content: "Job";/,
-    );
+    expect(DASHBOARD_STYLES).toContain(".public-card-grid");
+    expect(DASHBOARD_STYLES).toContain(".map-field svg");
   });
 });

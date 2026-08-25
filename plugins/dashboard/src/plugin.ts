@@ -9,12 +9,7 @@ import {
   PermissionService,
   ServicePlugin,
 } from "@brains/plugins";
-import {
-  DASHBOARD_CHANNELS,
-  ENTITY_CHANNELS,
-  JOB_CHANNELS,
-  DIRECTORY_SYNC_CHANNELS,
-} from "@brains/contracts";
+import { DASHBOARD_CHANNELS } from "@brains/contracts";
 import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
 import { DashboardWidgetRegistry } from "./widget-registry";
@@ -22,7 +17,6 @@ import type {
   RegisteredWidget,
   WidgetComponent,
   WidgetDigestProvider,
-  WidgetVisibility,
 } from "./widget-registry";
 import { DashboardAssetRegistry } from "./dashboard-assets";
 import { DashboardDataSource } from "./dashboard-datasource";
@@ -36,11 +30,7 @@ import {
   buildConsoleJumpGroups,
   type ConsoleJumpEntityHit,
 } from "./console-jump";
-import type {
-  DashboardActivityEvent,
-  DashboardAssetUrls,
-  DashboardJobProgressItem,
-} from "./render/types";
+import type { DashboardAssetUrls } from "./render/types";
 import { getActiveAuthService } from "@brains/auth-service";
 import packageJson from "../package.json";
 
@@ -113,53 +103,6 @@ const unregisterWidgetPayloadSchema = z.object({
   widgetId: z.string().optional(),
 });
 
-const entityActivityPayloadSchema = z.object({
-  entityType: z.string(),
-  entityId: z.string(),
-  conversationId: z.string().optional(),
-});
-
-const jobProgressPayloadSchema = z.object({
-  id: z.string(),
-  type: z.enum(["job", "batch"]),
-  status: z.enum(["pending", "processing", "completed", "failed"]),
-  message: z.string().optional(),
-  progress: z
-    .object({
-      current: z.number(),
-      total: z.number(),
-      percentage: z.number(),
-    })
-    .optional(),
-  jobDetails: z
-    .object({
-      jobType: z.string(),
-      priority: z.number(),
-      retryCount: z.number(),
-    })
-    .optional(),
-});
-
-const directorySyncStatusResponseSchema = z.object({
-  success: z.literal(true),
-  data: z.object({
-    syncPath: z.string(),
-    isInitialized: z.boolean(),
-    watchEnabled: z.boolean(),
-    lastSync: z
-      .string()
-      .datetime()
-      .nullable()
-      .optional()
-      .transform((value) => value ?? undefined),
-    totalFiles: z.number().int().nonnegative().optional(),
-    byEntityType: z
-      .record(z.string(), z.number().int().nonnegative())
-      .optional(),
-    managementUrl: z.string().optional(),
-  }),
-});
-
 function createRegisteredWidget(
   payload: z.output<typeof registerWidgetPayloadSchema>,
 ): RegisteredWidget {
@@ -195,8 +138,6 @@ export class DashboardPlugin extends ServicePlugin<
   private datasource: DashboardDataSource | null = null;
   private siteUrl: string | undefined;
   private ctx: ServicePluginContext | undefined;
-  private activityLog: DashboardActivityEvent[] = [];
-  private jobProgress: DashboardJobProgressItem[] = [];
 
   constructor(config: DashboardConfigInput = {}) {
     super("dashboard", packageJson, config, dashboardConfigSchema);
@@ -204,106 +145,6 @@ export class DashboardPlugin extends ServicePlugin<
     this.assetUrls = this.assetRegistry.createRenderUrls({
       themeCSS: this.config.themeCSS,
     });
-  }
-
-  private recordActivity(
-    action: DashboardActivityEvent["action"],
-    payload: unknown,
-  ): void {
-    const parsed = entityActivityPayloadSchema.safeParse(payload);
-    if (!parsed.success) return;
-
-    this.activityLog = [
-      {
-        action,
-        entityType: parsed.data.entityType,
-        entityId: parsed.data.entityId,
-        timestamp: new Date().toISOString(),
-        ...(parsed.data.conversationId
-          ? { conversationId: parsed.data.conversationId }
-          : {}),
-      },
-      ...this.activityLog,
-    ].slice(0, 12);
-  }
-
-  private recordJobProgress(payload: unknown): void {
-    const parsed = jobProgressPayloadSchema.safeParse(payload);
-    if (!parsed.success) return;
-
-    const progressLabel = parsed.data.progress
-      ? `${parsed.data.progress.current}/${parsed.data.progress.total}`
-      : undefined;
-    const nextItem: DashboardJobProgressItem = {
-      id: parsed.data.id,
-      kind: parsed.data.type,
-      status: parsed.data.status,
-      updatedAt: new Date().toISOString(),
-      ...(parsed.data.message ? { message: parsed.data.message } : {}),
-      ...(parsed.data.jobDetails?.jobType
-        ? { jobType: parsed.data.jobDetails.jobType }
-        : {}),
-      ...(progressLabel ? { progressLabel } : {}),
-    };
-
-    this.jobProgress = [
-      nextItem,
-      ...this.jobProgress.filter(
-        (item) => item.id !== nextItem.id || item.kind !== nextItem.kind,
-      ),
-    ].slice(0, 8);
-  }
-
-  private async getIndexStatus(): Promise<DashboardRenderInput["indexStatus"]> {
-    if (!this.ctx) return undefined;
-
-    const entityService = this.ctx
-      .entityService as typeof this.ctx.entityService & {
-      isIndexReady?: () => boolean;
-      awaitIndexReady?: (options: {
-        timeoutMs: number;
-        intervalMs?: number;
-      }) => Promise<NonNullable<DashboardRenderInput["indexStatus"]>>;
-    };
-
-    try {
-      if (typeof entityService.awaitIndexReady === "function") {
-        return await entityService.awaitIndexReady({
-          timeoutMs: 0,
-          intervalMs: 0,
-        });
-      }
-
-      if (typeof entityService.isIndexReady === "function") {
-        return { ready: entityService.isIndexReady() };
-      }
-    } catch (error) {
-      this.logger.debug("Semantic index status unavailable", {
-        error: getErrorMessage(error),
-      });
-    }
-
-    return undefined;
-  }
-
-  private async getDirectorySyncStatus(): Promise<
-    DashboardRenderInput["directorySyncStatus"]
-  > {
-    if (!this.ctx) return undefined;
-
-    try {
-      const response = await this.ctx.messaging.send({
-        type: DIRECTORY_SYNC_CHANNELS.statusRequest,
-        payload: {},
-      });
-      const parsed = directorySyncStatusResponseSchema.safeParse(response);
-      return parsed.success ? parsed.data.data : undefined;
-    } catch (error) {
-      this.logger.debug("Directory sync status unavailable", {
-        error: getErrorMessage(error),
-      });
-      return undefined;
-    }
   }
 
   protected override async onRegister(
@@ -324,28 +165,12 @@ export class DashboardPlugin extends ServicePlugin<
     context.interactions.register({
       id: "dashboard",
       label: "Dashboard",
-      description: "Inspect runtime status, endpoints, and dashboard widgets.",
+      description:
+        "Explore this brain's public identity, knowledge, and network.",
       href: this.config.routePath,
-      kind: "admin",
+      kind: "human",
       priority: 30,
       visibility: "public",
-    });
-
-    context.messaging.subscribe(ENTITY_CHANNELS.created, async (message) => {
-      this.recordActivity("created", message.payload);
-      return { success: true };
-    });
-    context.messaging.subscribe(ENTITY_CHANNELS.updated, async (message) => {
-      this.recordActivity("updated", message.payload);
-      return { success: true };
-    });
-    context.messaging.subscribe(ENTITY_CHANNELS.deleted, async (message) => {
-      this.recordActivity("deleted", message.payload);
-      return { success: true };
-    });
-    context.messaging.subscribe(JOB_CHANNELS.progress, async (message) => {
-      this.recordJobProgress(message.payload);
-      return { success: true };
     });
 
     context.messaging.subscribe(
@@ -412,36 +237,23 @@ export class DashboardPlugin extends ServicePlugin<
           const ctx = this.ctx;
           const principal =
             await getActiveAuthService()?.resolveSession(request);
-          const permissionLevel: WidgetVisibility =
-            principal?.permissionLevel ?? "public";
-          // Dashboard is the public card. Non-public semantic widgets are
-          // re-homed into Studio Overview and are never invoked here, even for
-          // an authenticated Admin request.
+          const sessionPermission = principal?.permissionLevel ?? "public";
+          // The card is invariant across sessions. Public providers always see
+          // an anonymous Public caller, and non-public providers never run.
           const visibleWidgets =
             this.widgetRegistry?.list({ permissionLevel: "public" }) ?? [];
-          const hiddenWidgetCount = 0;
-          const [dashboardData, appInfo, directorySyncStatus, indexStatus] =
+          const [dashboardData, appInfo, publicEntityCounts] =
             await Promise.all([
               this.datasource.getDashboardData({
-                permissionLevel,
+                permissionLevel: "public",
                 widgets: visibleWidgets,
                 providerContext: {
-                  caller: principal
-                    ? {
-                        actor: {
-                          id: principal.userId,
-                          displayName: principal.displayName,
-                        },
-                        permission: principal.permissionLevel,
-                        isAnchor: principal.isAnchor,
-                      }
-                    : null,
+                  caller: null,
                   signal: request.signal,
                 },
               }),
               ctx.appInfo(),
-              this.getDirectorySyncStatus(),
-              this.getIndexStatus(),
+              ctx.entityService.getEntityCounts("public"),
             ]);
           const character = ctx.identity.get();
           const profile = ctx.identity.getProfile();
@@ -458,27 +270,30 @@ export class DashboardPlugin extends ServicePlugin<
 
           const visibleAppInfo = {
             ...appInfo,
+            entities: publicEntityCounts.reduce(
+              (total, entry) => total + entry.count,
+              0,
+            ),
+            entityCounts: publicEntityCounts,
+            embeddings: 0,
+            daemons: [],
             endpoints: appInfo.endpoints.filter(
               (endpoint) =>
                 PermissionService.hasPermission(
-                  permissionLevel,
+                  "public",
                   endpoint.visibility,
-                ) &&
-                (endpoint.requiresActiveSession !== true ||
-                  principal !== undefined),
+                ) && endpoint.requiresActiveSession !== true,
             ),
             interactions: appInfo.interactions.filter(
               (interaction) =>
                 PermissionService.hasPermission(
-                  permissionLevel,
+                  "public",
                   interaction.visibility,
-                ) &&
-                (interaction.requiresActiveSession !== true ||
-                  principal !== undefined),
+                ) && interaction.requiresActiveSession !== true,
             ),
           };
 
-          const title = profile.name || appInfo.model || "Brain Dashboard";
+          const title = profile.name || "Public Brain";
           const requestUrl = new URL(request.url);
           const returnTo = `${requestUrl.pathname}${requestUrl.search}`;
           const encodedReturnTo = encodeURIComponent(returnTo);
@@ -497,17 +312,13 @@ export class DashboardPlugin extends ServicePlugin<
             dashboardPath: this.config.routePath,
             surfaces: deriveConsoleSurfaces(ctx.webRoutes.getRoutes(), {
               activeId: "dashboard",
-              permissionLevel,
+              permissionLevel: sessionPermission,
               hasActiveSession: principal !== undefined,
               self: { id: "dashboard", href: this.config.routePath },
             }),
             character,
             profile,
             appInfo: visibleAppInfo,
-            activityLog: this.activityLog,
-            jobProgress: this.jobProgress,
-            ...(indexStatus !== undefined && { indexStatus }),
-            ...(directorySyncStatus !== undefined && { directorySyncStatus }),
             ...(this.config.themeCSS !== undefined && {
               themeCSS: this.config.themeCSS,
             }),
@@ -521,7 +332,6 @@ export class DashboardPlugin extends ServicePlugin<
                     },
                   }
                 : {}),
-              hiddenWidgetCount,
               loginUrl: `/login?return_to=${encodedReturnTo}`,
               logoutUrl: `/logout?return_to=${encodedReturnTo}`,
             },
@@ -569,21 +379,19 @@ export class DashboardPlugin extends ServicePlugin<
                 query,
                 options: { limit: 6 },
               });
-              entities = results.map((result) => ({
-                entityType: result.entity.entityType,
-                id: result.entity.id,
-                title:
-                  (result.entity as { title?: string }).title ??
-                  result.entity.id,
-              }));
+              entities = results.map((result) => {
+                const title = Reflect.get(result.entity, "title");
+                return {
+                  entityType: result.entity.entityType,
+                  id: result.entity.id,
+                  title: typeof title === "string" ? title : result.entity.id,
+                };
+              });
             } catch {
               // Search degrades to no entity doors (e.g. index warming).
             }
           }
 
-          const widgetGroups = (
-            this.widgetRegistry?.list({ permissionLevel: "public" }) ?? []
-          ).map((widget) => widget.group);
           const surfaces = deriveConsoleSurfaces(ctx.webRoutes.getRoutes(), {
             activeId: "dashboard",
             permissionLevel: principal.permissionLevel,
@@ -595,7 +403,6 @@ export class DashboardPlugin extends ServicePlugin<
           return Response.json({
             groups: buildConsoleJumpGroups({
               query,
-              groups: [...widgetGroups, "knowledge", "system"],
               dashboardPath: this.config.routePath,
               studioPath,
               entities,

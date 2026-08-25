@@ -5,7 +5,6 @@ describe("buildConsoleJumpGroups", () => {
   it("maps the People console jump into its Studio workspace", () => {
     const groups = buildConsoleJumpGroups({
       query: "peop",
-      groups: [],
       dashboardPath: "/dashboard",
       studioPath: "/studio",
       entities: [],
@@ -25,7 +24,6 @@ describe("buildConsoleJumpGroups", () => {
   it("maps entity hits to Studio edit doors", () => {
     const groups = buildConsoleJumpGroups({
       query: "verd",
-      groups: [],
       dashboardPath: "/",
       studioPath: "/studio",
       entities: [
@@ -50,7 +48,6 @@ describe("buildConsoleJumpGroups", () => {
   it("omits the entities group when no Studio is registered", () => {
     const groups = buildConsoleJumpGroups({
       query: "verd",
-      groups: [],
       dashboardPath: "/",
       studioPath: undefined,
       entities: [
@@ -65,45 +62,31 @@ describe("buildConsoleJumpGroups", () => {
     expect(groups.find((g) => g.id === "entities")).toBeUndefined();
   });
 
-  it("lists dashboard tabs with anchors, filtered by the query", () => {
+  it("lists exactly the public card tabs with anchors and query filtering", () => {
     const groups = buildConsoleJumpGroups({
       query: "",
-      groups: ["publishing", "system", "knowledge"],
       dashboardPath: "/",
       studioPath: undefined,
       entities: [],
     });
 
-    const tabs = groups.find((g) => g.id === "tabs");
-    expect(tabs?.items.map((i) => i.href)).toContain("/#publishing");
-    expect(tabs?.items.map((i) => i.href)).toContain("/#system");
+    const tabs = groups.find((group) => group.id === "tabs");
+    expect(tabs?.items.map((item) => item.href)).toEqual([
+      "/#overview",
+      "/#knowledge",
+      "/#network",
+    ]);
 
     const filtered = buildConsoleJumpGroups({
-      query: "publ",
-      groups: ["publishing", "system"],
+      query: "net",
       dashboardPath: "/dashboard",
       studioPath: undefined,
       entities: [],
     });
     expect(
-      filtered.find((g) => g.id === "tabs")?.items.map((i) => i.href),
-    ).toEqual(["/dashboard#publishing"]);
-  });
-
-  it("deduplicates groups and keeps dashboard tab order", () => {
-    const groups = buildConsoleJumpGroups({
-      query: "",
-      groups: ["system", "publishing", "publishing", "knowledge"],
-      dashboardPath: "/",
-      studioPath: undefined,
-      entities: [],
-    });
-
-    const titles = groups.find((g) => g.id === "tabs")?.items.map((i) => i.id);
-    expect(titles).toEqual([...new Set(titles)]);
-    // publishing sorts ahead of system per the dashboard's group order.
-    expect(titles?.indexOf("tab/publishing")).toBeLessThan(
-      titles?.indexOf("tab/system") ?? -1,
-    );
+      filtered
+        .find((group) => group.id === "tabs")
+        ?.items.map((item) => item.href),
+    ).toEqual(["/dashboard#network"]);
   });
 });

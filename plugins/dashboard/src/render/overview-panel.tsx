@@ -1,308 +1,261 @@
 /** @jsxImportSource react */
+import type { InteractionInfo } from "@brains/plugins";
+import {
+  displayLinkLabel,
+  formatLabel,
+  resolveUrl,
+} from "@brains/utils/string-utils";
 import type { JSX } from "react";
-import {
-  CardHeader,
-  WidgetPrimitiveEmptyState as EmptyState,
-} from "@brains/ui-library";
-import {
-  countTabWidgets,
-  getTabWidgets,
-  type WidgetTab,
-} from "./dashboard-tabs";
-import { formatClock } from "./format";
-import { resolveIndexReady } from "./system-cards";
-import type { DashboardActivityEvent, DashboardRenderInput } from "./types";
+import { findSkills, overviewContributions } from "./public-card-data";
+import type { DashboardRenderInput } from "./types";
+import { WidgetCard } from "./widget-card";
 
-interface OverviewDigestLine {
-  label: string;
-  value: string;
-  tone?: "plain" | "good" | "warn" | undefined;
+const INTERACTION_KIND_LABELS: Record<InteractionInfo["kind"], string> = {
+  human: "Human",
+  agent: "Agent",
+  admin: "Operator",
+  protocol: "Protocol",
+};
+
+function IdentityCard({ input }: { input: DashboardRenderInput }): JSX.Element {
+  const identityStatement = input.character.role || "A shared digital brain";
+  return (
+    <article className="card public-identity-card">
+      <div className="card-head">
+        <span className="card-title">What is this</span>
+        <span className="card-from">brain · public identity</span>
+      </div>
+      <p>
+        <b>{input.title}</b> is a brain. {identityStatement}.
+        {input.character.purpose ? ` ${input.character.purpose}` : ""}
+      </p>
+      <p>
+        It is grown from what {input.profile.name || "its owner"} has chosen to
+        share, and belongs to them. Private memory and operator activity stay
+        behind Studio.
+      </p>
+      {input.character.values.length > 0 && (
+        <div className="public-values" aria-label="Identity values">
+          {input.character.values.map((value) => (
+            <span key={value}>{value}</span>
+          ))}
+        </div>
+      )}
+      <span className="public-card-pulse">alive · public scope only</span>
+    </article>
+  );
 }
 
-interface OverviewDigestCard {
-  id: string;
+interface ProfileDoor {
   label: string;
+  description: string;
   href: string;
-  lines: OverviewDigestLine[];
+  kind: string;
 }
 
-function getFallbackDigestLines(
-  tab: WidgetTab,
-  input: DashboardRenderInput,
-): OverviewDigestLine[] {
-  if (tab.group === "system") {
-    const indexReady = resolveIndexReady(input);
-    return [
-      { label: "Runtime", value: "Active", tone: "good" },
-      { label: "Endpoints", value: String(input.appInfo.endpoints.length) },
-      {
-        label: "Semantic index",
-        value: indexReady ? "Ready" : "Pending",
-        tone: indexReady ? "good" : "warn",
-      },
-    ];
+function safePublicHref(
+  value: string,
+  baseUrl: string | undefined,
+): string | undefined {
+  try {
+    const url = new URL(value, baseUrl);
+    return ["http:", "https:", "mailto:"].includes(url.protocol)
+      ? url.toString()
+      : undefined;
+  } catch {
+    return undefined;
   }
-
-  return [
-    {
-      label: countTabWidgets(tab) === 1 ? "Widget" : "Widgets",
-      value: String(countTabWidgets(tab)),
-    },
-  ];
 }
 
-function buildOverviewDigestCards(
-  tabs: WidgetTab[],
+function profileWebsiteDoor(
   input: DashboardRenderInput,
-): OverviewDigestCard[] {
-  return tabs.map((tab) => {
-    const digestLines = getTabWidgets(tab)
-      .flatMap((widget) => widget.widget.digest ?? [])
-      .slice(0, 4);
+): ProfileDoor | undefined {
+  if (!input.profile.website) return undefined;
+  const href = safePublicHref(input.profile.website, input.baseUrl);
+  return href
+    ? {
+        label: input.profile.organization ?? "Website",
+        description: "The public home of this brain's owner.",
+        href,
+        kind: "Site",
+      }
+    : undefined;
+}
 
-    return {
-      id: tab.id,
-      label: tab.label,
-      href: `#${tab.id}`,
-      lines:
-        digestLines.length > 0
-          ? digestLines
-          : getFallbackDigestLines(tab, input),
-    };
+function profileDoors(input: DashboardRenderInput): ProfileDoor[] {
+  const candidates: Array<ProfileDoor | undefined> = [
+    profileWebsiteDoor(input),
+    input.profile.email && !/[\r\n]/.test(input.profile.email)
+      ? {
+          label: input.profile.email,
+          description: "Send a message to this brain's owner.",
+          href: `mailto:${input.profile.email}`,
+          kind: "Mail",
+        }
+      : undefined,
+    ...(input.profile.socialLinks ?? []).map((link) => {
+      const href = safePublicHref(link.url, input.baseUrl);
+      return href
+        ? {
+            label: link.label ?? formatLabel(link.platform),
+            description: `Connect through ${link.platform}.`,
+            href,
+            kind: formatLabel(link.platform),
+          }
+        : undefined;
+    }),
+  ];
+  const seen = new Set<string>();
+  return candidates.filter((door): door is ProfileDoor => {
+    if (!door || seen.has(door.href)) return false;
+    seen.add(door.href);
+    return true;
   });
 }
 
-function roleLabel(role: "admin" | "trusted" | "public"): string {
-  return `${role.slice(0, 1).toUpperCase()}${role.slice(1)}`;
-}
-
-function RestrictedAccessGate({
-  hiddenWidgetCount,
-  loginUrl,
-  principal,
-}: {
-  hiddenWidgetCount: number;
-  loginUrl: string;
-  principal: NonNullable<DashboardRenderInput["authAccess"]>["principal"];
-}): JSX.Element {
+function ContactCard({ input }: { input: DashboardRenderInput }): JSX.Element {
+  const interactions = input.appInfo.interactions.filter(
+    (interaction) => interaction.id !== "dashboard",
+  );
+  const endpoints = input.appInfo.endpoints.filter(
+    (endpoint) => endpoint.pluginId !== "dashboard",
+  );
+  const publicProfileDoors = profileDoors(input);
+  const shownEndpoints = endpoints.slice(
+    0,
+    Math.max(0, 6 - interactions.length),
+  );
+  const shownProfileDoors = publicProfileDoors.slice(
+    0,
+    Math.max(0, 6 - interactions.length - shownEndpoints.length),
+  );
   return (
-    <section className="card access-gate">
-      <div>
-        <div className="card-title">Restricted access</div>
-        <p>
-          {hiddenWidgetCount === 1
-            ? "1 private console widget is hidden."
-            : `${hiddenWidgetCount} private console widgets are hidden.`}{" "}
-          {principal
-            ? `Your ${roleLabel(principal.role)} role does not include this layer.`
-            : "Sign in with your passkey to unlock the restricted layer."}
+    <article className="card public-contact-card">
+      <div className="card-head">
+        <span className="card-title">Ways to connect</span>
+        <span className="card-from">public doors</span>
+      </div>
+      {interactions.length === 0 &&
+      endpoints.length === 0 &&
+      publicProfileDoors.length === 0 ? (
+        <p className="public-card-empty">
+          No public interaction doors are advertised yet.
         </p>
-      </div>
-      {!principal && (
-        <a className="access-gate-link" href={loginUrl}>
-          Sign in
-        </a>
-      )}
-    </section>
-  );
-}
-
-function VitalsRow({ input }: { input: DashboardRenderInput }): JSX.Element {
-  const indexReady = resolveIndexReady(input);
-  const latestWrite = input.activityLog?.[0];
-  const typeCount = input.appInfo.entityCounts.length;
-  const channels = input.appInfo.interactions
-    .map((interaction) => interaction.id)
-    .slice(0, 3)
-    .join(" / ");
-  const embedded =
-    input.indexStatus?.embeddedEntities ?? input.appInfo.embeddings;
-  // The denominator is embeddable entities only: some entity types never
-  // embed by design, so an all-entities denominator would mislead.
-  const embeddable = input.indexStatus?.embeddableEntities;
-  const indexQueue = input.indexStatus
-    ? (input.indexStatus.activeEmbeddingJobs ?? 0) +
-      (input.indexStatus.missingEmbeddings ?? 0) +
-      (input.indexStatus.staleEmbeddings ?? 0)
-    : 0;
-  const indexFraction =
-    embeddable === undefined ? `${embedded}` : `${embedded}/${embeddable}`;
-  const indexSub =
-    indexQueue > 0
-      ? `${indexFraction} embedded · ${indexQueue} queued`
-      : `${indexFraction} embedded`;
-  const hasActiveWrite = (input.jobProgress ?? []).some(
-    (job) => job.status === "processing" || job.status === "pending",
-  );
-
-  return (
-    <section className="overview-vitals" aria-label="Runtime vitals">
-      <article className="vital-card">
-        <span className="vital-label">Entities</span>
-        <strong className="vital-num">{input.appInfo.entities}</strong>
-        <span className="vital-sub">
-          {typeCount === 1 ? "1 type" : `${typeCount} types`}
-        </span>
-      </article>
-      <article className="vital-card">
-        <span className="vital-label">Interactions</span>
-        <strong className="vital-num">
-          {input.appInfo.interactions.length}
-        </strong>
-        <span className="vital-sub">{channels || "no channels"}</span>
-      </article>
-      <article
-        className={`vital-card ${indexReady ? "vital-card--ok" : "vital-card--warm"}`}
-      >
-        <span className="vital-label">Semantic index</span>
-        <strong className="vital-num vital-num--text">
-          {indexReady ? "Ready" : "Pending"}
-        </strong>
-        <span className="vital-sub">{indexSub}</span>
-      </article>
-      <article
-        className={`vital-card${hasActiveWrite ? " vital-card--warm" : ""}`}
-      >
-        <span className="vital-label">Last write</span>
-        <strong className="vital-num vital-num--text">
-          {latestWrite ? formatClock(latestWrite.timestamp) : "—"}
-        </strong>
-        <span className="vital-sub">
-          {latestWrite
-            ? `${latestWrite.entityType}/${latestWrite.entityId}`
-            : "no writes observed"}
-        </span>
-      </article>
-    </section>
-  );
-}
-
-function IdentityCapsule({
-  input,
-}: {
-  input: DashboardRenderInput;
-}): JSX.Element | null {
-  const { role, purpose, values } = input.character;
-  if (!role && !purpose && values.length === 0) return null;
-
-  return (
-    <aside className="card identity-capsule">
-      <CardHeader title="Identity" source="identity" />
-      <div className="identity-capsule-body">
-        {role && <span className="identity-capsule-role">“{role}”</span>}
-        {values.length > 0 && (
-          <span className="values">
-            {values.map((value) => (
-              <span className="value" key={value}>
-                {value}
-              </span>
-            ))}
-          </span>
-        )}
-        {purpose && <span className="identity-capsule-purpose">{purpose}</span>}
-      </div>
-    </aside>
-  );
-}
-
-function DigestCards({ cards }: { cards: OverviewDigestCard[] }): JSX.Element {
-  if (cards.length === 0) {
-    return (
-      <section className="card overview-empty-digest">
-        <CardHeader title="Group digests" />
-        <EmptyState>No plugin groups are visible yet.</EmptyState>
-      </section>
-    );
-  }
-
-  return (
-    <section className="digests" aria-label="Group digests">
-      {cards.map((card) => (
-        <a className="card digest-card" href={card.href} key={card.id}>
-          <div className="digest-head">
-            <h4>{card.label}</h4>
-            <span className="digest-go">open →</span>
-          </div>
-          <dl className="digest-lines">
-            {card.lines.map((line) => (
-              <div
-                className={`digest-line digest-line--${line.tone ?? "plain"}`}
-                key={`${line.label}:${line.value}`}
-              >
-                <dt>{line.label}</dt>
-                <dd>{line.value}</dd>
-              </div>
-            ))}
-          </dl>
-        </a>
-      ))}
-    </section>
-  );
-}
-
-const LEDGER_GLYPHS: Record<
-  DashboardActivityEvent["action"],
-  { glyph: string; tone: string }
-> = {
-  created: { glyph: "＋", tone: "" },
-  updated: { glyph: "✓", tone: " ledger-glyph--ok" },
-  deleted: { glyph: "−", tone: " ledger-glyph--warn" },
-};
-
-function ActivityLedger({
-  events,
-}: {
-  events: DashboardActivityEvent[];
-}): JSX.Element {
-  return (
-    <section className="card activity-ledger">
-      <CardHeader title="Activity" source="entity events" />
-      {events.length === 0 ? (
-        <EmptyState>
-          No entity activity has been observed this session.
-        </EmptyState>
       ) : (
-        <ol className="ledger">
-          {events.map((event) => (
-            <li
-              className="ledger-entry"
-              key={`${event.timestamp}:${event.action}:${event.entityType}:${event.entityId}`}
-            >
-              <time className="ledger-time" dateTime={event.timestamp}>
-                {formatClock(event.timestamp)}
-              </time>
-              <span
-                className={`ledger-glyph${LEDGER_GLYPHS[event.action].tone}`}
-                aria-hidden="true"
-              >
-                {LEDGER_GLYPHS[event.action].glyph}
-              </span>
-              <span className="ledger-what">
-                <b>{event.entityType}</b> {event.action} —{" "}
-                <code>
-                  {event.entityType}/{event.entityId}
-                </code>
-              </span>
+        <ul className="public-card-rows">
+          {interactions.slice(0, 5).map((interaction) => (
+            <li data-kind={interaction.kind} key={interaction.id}>
+              <a href={resolveUrl(interaction.href, input.baseUrl)}>
+                <span>
+                  <strong>{displayLinkLabel(interaction.label)}</strong>
+                  <em>
+                    {interaction.description ??
+                      `Connect through ${interaction.label}.`}
+                  </em>
+                </span>
+                <small>{INTERACTION_KIND_LABELS[interaction.kind]}</small>
+              </a>
             </li>
           ))}
-        </ol>
+          {shownEndpoints.map((endpoint) => (
+            <li data-kind="site" key={`${endpoint.pluginId}:${endpoint.url}`}>
+              <a href={resolveUrl(endpoint.url, input.baseUrl)}>
+                <span>
+                  <strong>{displayLinkLabel(endpoint.label)}</strong>
+                  <em>Browse this brain through its public endpoint.</em>
+                </span>
+                <small>Site</small>
+              </a>
+            </li>
+          ))}
+          {shownProfileDoors.map((door) => (
+            <li data-kind="profile" key={door.href}>
+              <a href={door.href}>
+                <span>
+                  <strong>{door.label}</strong>
+                  <em>{door.description}</em>
+                </span>
+                <small>{door.kind}</small>
+              </a>
+            </li>
+          ))}
+        </ul>
       )}
-    </section>
+    </article>
+  );
+}
+
+function holdingLabel(entityType: string, count: number): string {
+  const label = formatLabel(entityType);
+  return count === 1 || label.endsWith("s") ? label : `${label}s`;
+}
+
+function HoldingsCard({ input }: { input: DashboardRenderInput }): JSX.Element {
+  const counts = [...input.appInfo.entityCounts]
+    .filter((entry) => entry.count > 0)
+    .sort(
+      (left, right) =>
+        right.count - left.count ||
+        left.entityType.localeCompare(right.entityType),
+    );
+  return (
+    <article className="card public-holdings-card">
+      <div className="card-head">
+        <span className="card-title">What I hold</span>
+        <span className="card-from">public scope</span>
+      </div>
+      {counts.length === 0 ? (
+        <p className="public-card-empty">No public entities yet.</p>
+      ) : (
+        <dl className="public-holdings">
+          {counts.slice(0, 8).map((entry) => (
+            <div key={entry.entityType}>
+              <dt>{holdingLabel(entry.entityType, entry.count)}</dt>
+              <dd>{entry.count}</dd>
+            </div>
+          ))}
+        </dl>
+      )}
+    </article>
+  );
+}
+
+function SkillsCard({ input }: { input: DashboardRenderInput }): JSX.Element {
+  const skills = findSkills(input.widgets);
+  return (
+    <article className="card public-skills-card">
+      <div className="card-head">
+        <span className="card-title">Skills</span>
+        <span className="card-from">advertised capabilities</span>
+      </div>
+      {skills.length === 0 ? (
+        <p className="public-card-empty">No public skills advertised yet.</p>
+      ) : (
+        <ul className="public-card-rows">
+          {skills.slice(0, 6).map((skill) => (
+            <li className="is-skill" key={skill.id}>
+              <span>
+                <strong>{skill.title}</strong>
+                {skill.description && <em>{skill.description}</em>}
+              </span>
+              <small>Skill</small>
+            </li>
+          ))}
+        </ul>
+      )}
+    </article>
   );
 }
 
 export function OverviewPanel({
   input,
-  tabs,
-  showAccessGate,
 }: {
   input: DashboardRenderInput;
-  tabs: WidgetTab[];
-  showAccessGate: boolean;
 }): JSX.Element {
-  const digestCards = buildOverviewDigestCards(tabs, input);
-  const activityLog = input.activityLog ?? [];
-
+  const contributions = overviewContributions(input.widgets);
+  const studioPath = input.surfaces?.find(
+    (surface) => surface.id === "studio",
+  )?.href;
   return (
     <section
       id="overview"
@@ -312,19 +265,26 @@ export function OverviewPanel({
       role="tabpanel"
       aria-labelledby="dashboard-tab-overview"
     >
-      <VitalsRow input={input} />
-      <IdentityCapsule input={input} />
-      {showAccessGate && input.authAccess && (
-        <RestrictedAccessGate
-          hiddenWidgetCount={input.authAccess.hiddenWidgetCount}
-          loginUrl={input.authAccess.loginUrl}
-          principal={input.authAccess.principal}
-        />
-      )}
-      <div className="overview-grid">
-        <DigestCards cards={digestCards} />
-        <ActivityLedger events={activityLog} />
+      <div className="public-card-grid">
+        <IdentityCard input={input} />
+        <ContactCard input={input} />
+        <HoldingsCard input={input} />
+        <SkillsCard input={input} />
       </div>
+      {contributions.length > 0 && (
+        <section
+          className="public-contributions"
+          aria-label="Public contributions"
+        >
+          {contributions.map((widget) => (
+            <WidgetCard
+              key={`${widget.widget.pluginId}:${widget.widget.id}`}
+              widget={widget}
+              studioPath={studioPath}
+            />
+          ))}
+        </section>
+      )}
     </section>
   );
 }

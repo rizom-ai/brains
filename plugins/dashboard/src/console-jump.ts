@@ -1,5 +1,3 @@
-import { getDashboardGroupLabel, sortDashboardGroups } from "./widget-groups";
-
 export interface ConsoleJumpItem {
   id: string;
   title: string;
@@ -20,15 +18,6 @@ export interface ConsoleJumpEntityHit {
   title: string;
 }
 
-function anchorForGroup(group: string): string {
-  const slug = group
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-  return slug || "group";
-}
-
 /**
  * Grouped doors for the cross-surface ⌘K palette. Entities open at canonical
  * Studio detail paths, so the group exists only when a Studio is registered; tabs
@@ -36,7 +25,6 @@ function anchorForGroup(group: string): string {
  */
 export function buildConsoleJumpGroups(options: {
   query: string;
-  groups: string[];
   dashboardPath: string;
   studioPath: string | undefined;
   entities: ConsoleJumpEntityHit[];
@@ -80,19 +68,22 @@ export function buildConsoleJumpGroups(options: {
     });
   }
 
-  const tabs = sortDashboardGroups([...new Set(options.groups)])
-    .map((group) => ({ group, label: getDashboardGroupLabel(group) }))
+  const tabs = [
+    { id: "overview", label: "Overview" },
+    { id: "knowledge", label: "Knowledge" },
+    { id: "network", label: "Network" },
+  ]
     .filter(
-      ({ group, label }) =>
+      ({ id, label }) =>
         query === "" ||
         label.toLowerCase().includes(query) ||
-        group.toLowerCase().includes(query),
+        id.includes(query),
     )
-    .map(({ group, label }) => ({
-      id: `tab/${group}`,
+    .map(({ id, label }) => ({
+      id: `tab/${id}`,
       title: label,
       sub: "tab",
-      href: `${options.dashboardPath}#${anchorForGroup(group)}`,
+      href: `${options.dashboardPath}#${id}`,
       tag: "dashboard",
     }));
   if (tabs.length > 0) {

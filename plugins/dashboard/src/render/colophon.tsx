@@ -22,19 +22,22 @@ export function Colophon(props: {
   title: string;
   appInfo: AppInfo;
   baseUrl: string | undefined;
+  operatorHref?: string | undefined;
 }): JSX.Element {
-  const { title, appInfo, baseUrl } = props;
+  const { title, appInfo, baseUrl, operatorHref } = props;
   const docsUrl = findDocsUrl(appInfo, baseUrl);
 
   return (
     <footer className="colophon">
-      <span className="colophon-mark">{title} · dashboard</span>
+      <span className="colophon-mark">{title} · public brain card</span>
       <span className="colophon-actions">
+        <span>Runs on Brains {appInfo.version}</span>
         {docsUrl && (
           <a href={docsUrl} target="_blank" rel="noopener noreferrer">
-            Docs ↗
+            Open source ↗
           </a>
         )}
+        {operatorHref && <a href={operatorHref}>Operators → Studio</a>}
       </span>
     </footer>
   );
