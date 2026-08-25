@@ -62,8 +62,10 @@ import type { MessageResponse } from "../contracts/messaging";
 import type { LoggerContract } from "@brains/utils/logger";
 import type { InboxItemDetail } from "../inbox-registry";
 import {
+  ATPROTO_BRAIN_CARD_CONFLICT,
   ATPROTO_BRAIN_CARD_DISCOVERED,
   ATPROTO_BRAIN_CARD_UNAVAILABLE,
+  atprotoBrainCardConflictPayloadSchema,
   atprotoBrainCardDiscoveredPayloadSchema,
   atprotoBrainCardUnavailablePayloadSchema,
 } from "@brains/atproto-contracts";
@@ -937,6 +939,20 @@ class DeclarativeEntityPlugin extends EntityPlugin<
           }),
         ),
       );
+      if (discovery.onCardConflict) {
+        this.releaseOnShutdown.push(
+          context.messaging.subscribe(
+            ATPROTO_BRAIN_CARD_CONFLICT,
+            async (message): Promise<MessageResponse<unknown>> => ({
+              success: true,
+              data: await discovery.onCardConflict?.(
+                this.reactionContext(context),
+                atprotoBrainCardConflictPayloadSchema.parse(message.payload),
+              ),
+            }),
+          ),
+        );
+      }
       if (discovery.onCardUnavailable) {
         this.releaseOnShutdown.push(
           context.messaging.subscribe(
@@ -1551,6 +1567,13 @@ class DeclarativeEntityPlugin extends EntityPlugin<
           });
         },
       },
+      // Namespaced under the declaring package, so two packages cannot
+      // read or corrupt each other's notes.
+      state: (options) =>
+        context.runtimeState.scoped({
+          ...options,
+          namespace: `${this.id}.${options.namespace}`,
+        }),
       logger: this.logger,
     };
   }
