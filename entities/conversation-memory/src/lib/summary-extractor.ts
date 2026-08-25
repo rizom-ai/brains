@@ -1,6 +1,9 @@
-import type { EntityPluginContext, Message } from "@brains/plugins";
-import type { Logger } from "@brains/utils/logger";
-import { getErrorMessage } from "@brains/utils/error";
+import {
+  getErrorMessage,
+  type IEntityAINamespace,
+  type LoggerContract,
+  type Message,
+} from "@brains/sdk/entities";
 import { SUMMARY_AI_TEMPLATE_NAME } from "./constants";
 import { buildSummaryExtractionPrompt } from "./summary-prompt";
 import type { SummaryEntry, SummaryTimeRange } from "../schemas/summary";
@@ -23,15 +26,15 @@ export interface SummaryExtraction {
 }
 
 export class SummaryExtractor {
-  private readonly context: EntityPluginContext;
-  private readonly logger: Logger;
+  private readonly ai: IEntityAINamespace;
+  private readonly logger: LoggerContract;
   private readonly config: SummaryConfig;
   constructor(
-    context: EntityPluginContext,
-    logger: Logger,
+    ai: IEntityAINamespace,
+    logger: LoggerContract,
     config: SummaryConfig,
   ) {
-    this.context = context;
+    this.ai = ai;
     this.logger = logger;
     this.config = config;
   }
@@ -47,7 +50,7 @@ export class SummaryExtractor {
     });
 
     try {
-      const raw = await this.context.ai.generate<unknown>({
+      const raw = await this.ai.generate<unknown>({
         prompt,
         templateName: SUMMARY_AI_TEMPLATE_NAME,
         data: { schema: summaryExtractionResultSchema },

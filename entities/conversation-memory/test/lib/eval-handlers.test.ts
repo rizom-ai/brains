@@ -3,8 +3,9 @@ import type { EvalHandler, SearchResult } from "@brains/plugins";
 import {
   createMockEntityPluginContext,
   createSilentLogger,
+  createTestEntityAccess,
 } from "@brains/test-utils";
-import { registerSummaryEvalHandlers } from "../../src/lib/eval-handlers";
+import { summaryEvalHandlers } from "../../src/lib/eval-handlers";
 import type { SummaryEntity } from "../../src/schemas/summary";
 import { summaryConfigSchema } from "../../src/schemas/summary-config";
 
@@ -22,16 +23,38 @@ function registerHandlers(): {
     },
   );
 
-  registerSummaryEvalHandlers({
-    context,
+  /**
+   * The narrow context the runtime hands an eval. Fixtures and templates are
+   * unused here: these evals seed their own memory through their input.
+   */
+  const evalContext = (
+    ctx: ReturnType<typeof createMockEntityPluginContext>,
+  ): Parameters<(typeof declared)[string]>[1] => ({
+    ai: ctx.ai,
     logger: createSilentLogger(),
-    config: summaryConfigSchema.parse({ projectionVersion: 3 }),
+    entities: createTestEntityAccess({ entityService: ctx.entityService }),
+    conversations: ctx.conversations,
+    fixtures: {
+      seed: async (): Promise<void> => {},
+      reset: async (): Promise<void> => {},
+    },
+    template: (localName: string) => `conversation-memory:${localName}`,
+    runProjectionRule: async () => [],
   });
+
+  const declared = summaryEvalHandlers(
+    summaryConfigSchema.parse({ projectionVersion: 3 }),
+  );
+  for (const [handlerId, handler] of Object.entries(declared)) {
+    handlers.set(handlerId, (input: unknown) =>
+      handler(input, evalContext(context)),
+    );
+  }
 
   return { context, handlers };
 }
 
-describe("registerSummaryEvalHandlers", () => {
+describe("summaryEvalHandlers", () => {
   it("registers the projection decision eval handler", () => {
     const { handlers } = registerHandlers();
 
@@ -129,20 +152,18 @@ describe("registerSummaryEvalHandlers", () => {
       ],
     });
 
-    expect(result).toEqual({
-      items: [
-        expect.objectContaining({
-          id: "summary-1",
-          source: "conversation-memory",
-          content: "The team chose explicit memory retrieval.",
-          provenance: expect.objectContaining({
-            entityType: "summary",
-            conversationId: "conv-1",
-            spaceId: "mcp:team",
-          }),
+    expect(result).toEqual([
+      expect.objectContaining({
+        id: "summary-1",
+        source: "conversation-memory",
+        content: "The team chose explicit memory retrieval.",
+        provenance: expect.objectContaining({
+          entityType: "summary",
+          conversationId: "conv-1",
+          spaceId: "mcp:team",
         }),
-      ],
-    });
+      }),
+    ]);
   });
 
   it("retrieveMemory can evaluate first-class decision and action memory", async () => {

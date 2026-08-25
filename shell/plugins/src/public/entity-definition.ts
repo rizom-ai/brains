@@ -1,4 +1,4 @@
-import type { Template } from "@brains/templates";
+import type { EntityActionPolicyRule, Template } from "@brains/templates";
 import type { AtprotoProjection } from "@brains/atproto-contracts";
 import type { AnyDashboardWidgetDefinition } from "../operator/operator-definition-contract";
 import type { ProjectionRule } from "../entity/projection-rule";
@@ -62,6 +62,7 @@ export function defineEntity<
   readonly metadataFrom?: ((stored: unknown) => unknown) | undefined;
   readonly markdown?: EntityMarkdownCodec<TMetadataSchema> | undefined;
   readonly config?: EntityDefinitionConfig | undefined;
+  readonly actions?: EntityActionPolicyRule | undefined;
   readonly seed?: EntitySeedDefinition<TMetadataSchema> | undefined;
   readonly templates?: Record<string, Template> | undefined;
   readonly dataSources?: readonly AnyDataSourceDeclaration[] | undefined;

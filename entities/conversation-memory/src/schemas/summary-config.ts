@@ -1,5 +1,5 @@
-import type { ContentVisibility } from "@brains/plugins";
-import { z } from "@brains/utils/zod";
+import type { ContentVisibility } from "@brains/sdk/entities";
+import { z } from "@brains/sdk/entities";
 
 export const summaryMemoryVisibilitySchema: z.ZodType<
   ContentVisibility,

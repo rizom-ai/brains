@@ -1,4 +1,4 @@
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/sdk/entities";
 
 export interface ExtractedSummaryEntry {
   title: string;

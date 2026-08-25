@@ -1,24 +1,21 @@
-import { actorRefKey } from "@brains/contracts";
 import {
+  actorRefKey,
+  computeContentHash,
   conversationMessageMetadataSchema,
+  pLimit,
+  truncateText,
   type ConversationMessageActor,
-  type EntityPluginContext,
+  type EntityConversationReader,
+  type IEntityAINamespace,
+  type JobEntityAccess,
+  type LoggerContract,
   type Message,
-} from "@brains/plugins";
-import { type Logger } from "@brains/utils/logger";
-import { pLimit } from "@brains/utils/p-limit";
-import { truncateText } from "@brains/utils/string-utils";
-import { computeContentHash } from "@brains/utils/hash";
+} from "@brains/sdk/entities";
 import {
   ACTION_ITEM_ENTITY_TYPE,
   DECISION_ENTITY_TYPE,
   SUMMARY_ENTITY_TYPE,
 } from "./constants";
-import {
-  ActionItemAdapter,
-  DecisionAdapter,
-} from "../adapters/conversation-memory-adapters";
-import { SummaryAdapter } from "../adapters/summary-adapter";
 import type {
   ActionItemEntity,
   ActionItemMetadata,
@@ -48,6 +45,8 @@ import {
   type SummaryEligibilityReason,
 } from "./summary-space-eligibility";
 import { SummarySourceReader } from "./summary-source-reader";
+import { composeSummaryBody, parseSummaryBody } from "./summary-body";
+import { composeMemoryBody, composeMemoryMarkdown } from "./memory-markdown";
 
 const CHUNK_EXTRACTION_CONCURRENCY = 3;
 
@@ -110,26 +109,31 @@ export function getActorsMentionedInText(
   return matches;
 }
 
+/** What a projection reads from and writes to. */
+export interface SummaryProjectionContext {
+  readonly ai: IEntityAINamespace;
+  readonly entities: JobEntityAccess;
+  readonly conversations: EntityConversationReader;
+  readonly spaces: readonly string[];
+}
+
 export class SummaryProjector {
-  private readonly context: EntityPluginContext;
-  private readonly logger: Logger;
+  private readonly context: SummaryProjectionContext;
+  private readonly logger: LoggerContract;
   private readonly config: SummaryConfig;
-  private readonly adapter = new SummaryAdapter();
-  private readonly decisionAdapter = new DecisionAdapter();
-  private readonly actionItemAdapter = new ActionItemAdapter();
   private readonly sourceReader: SummarySourceReader;
   private readonly extractor: SummaryExtractor;
 
   constructor(
-    context: EntityPluginContext,
-    logger: Logger,
+    context: SummaryProjectionContext,
+    logger: LoggerContract,
     config: SummaryConfig,
   ) {
     this.context = context;
     this.logger = logger;
     this.config = config;
-    this.sourceReader = new SummarySourceReader(context, config);
-    this.extractor = new SummaryExtractor(context, logger, config);
+    this.sourceReader = new SummarySourceReader(context.conversations, config);
+    this.extractor = new SummaryExtractor(context.ai, logger, config);
   }
 
   public async projectConversation(
@@ -158,8 +162,11 @@ export class SummaryProjector {
       };
     }
 
+    // Read wide, then filter: an existing summary carries the configured
+    // memory visibility, and a read narrower than that would miss it and
+    // derive a second summary beside the one already there.
     const existingCandidate =
-      await this.context.entityService.getEntity<SummaryEntity>({
+      await this.context.entities.getEntity<SummaryEntity>({
         entityType: SUMMARY_ENTITY_TYPE,
         id: conversationId,
         visibilityScope: this.config.memoryVisibility,
@@ -238,7 +245,10 @@ export class SummaryProjector {
       projectionVersion: this.config.projectionVersion,
     };
 
-    const content = this.adapter.composeContent(projected.entries, metadata);
+    const content = composeMemoryMarkdown(
+      composeSummaryBody(projected.entries),
+      metadata,
+    );
 
     const now = new Date().toISOString();
     const entity: SummaryEntity = {
@@ -252,7 +262,7 @@ export class SummaryProjector {
       metadata,
     };
 
-    await this.context.entityService.upsertEntity({ entity });
+    await this.context.entities.saveProcessed(entity);
 
     if (decision.decision === "update") {
       await this.deleteConversationMemory(conversationId);
@@ -316,7 +326,7 @@ export class SummaryProjector {
     const newMemory = await this.extractMemory(
       this.getNewOrChangedMessages(messages, existing),
     );
-    const existingEntries = this.adapter.parseBody(existing.content).entries;
+    const existingEntries = parseSummaryBody(existing.content).entries;
 
     return {
       entries: this.compactEntries([...existingEntries, ...newMemory.entries]),
@@ -364,14 +374,14 @@ export class SummaryProjector {
     const limit = this.config.maxEntries * 4;
     const visibilityScope = this.config.memoryVisibility;
     const [decisions, actionItems] = await Promise.all([
-      this.context.entityService.listEntities<DecisionEntity>({
+      this.context.entities.listEntities<DecisionEntity>({
         entityType: DECISION_ENTITY_TYPE,
         options: {
           filter: { metadata: { conversationId }, visibilityScope },
           limit,
         },
       }),
-      this.context.entityService.listEntities<ActionItemEntity>({
+      this.context.entities.listEntities<ActionItemEntity>({
         entityType: ACTION_ITEM_ENTITY_TYPE,
         options: {
           filter: { metadata: { conversationId }, visibilityScope },
@@ -384,18 +394,12 @@ export class SummaryProjector {
       ...decisions
         .filter((entity) => entity.visibility === visibilityScope)
         .map((entity) =>
-          this.context.entityService.deleteEntity({
-            entityType: DECISION_ENTITY_TYPE,
-            id: entity.id,
-          }),
+          this.context.entities.delete(DECISION_ENTITY_TYPE, entity.id),
         ),
       ...actionItems
         .filter((entity) => entity.visibility === visibilityScope)
         .map((entity) =>
-          this.context.entityService.deleteEntity({
-            entityType: ACTION_ITEM_ENTITY_TYPE,
-            id: entity.id,
-          }),
+          this.context.entities.delete(ACTION_ITEM_ENTITY_TYPE, entity.id),
         ),
     ]);
   }
@@ -415,7 +419,7 @@ export class SummaryProjector {
 
     await Promise.all(
       [...decisionEntities, ...actionItemEntities].map((entity) =>
-        this.context.entityService.upsertEntity({ entity }),
+        this.context.entities.saveProcessed(entity),
       ),
     );
   }
@@ -447,9 +451,8 @@ export class SummaryProjector {
         : {}),
     };
     const title = this.titleForMemory("Decision", item.text);
-    const content = this.decisionAdapter.composeContent(
-      title,
-      item.text,
+    const content = composeMemoryMarkdown(
+      composeMemoryBody(title, item.text),
       metadata,
     );
 
@@ -509,9 +512,8 @@ export class SummaryProjector {
       ...(requesterActors.length > 0 ? { requestedBy: requesterActors } : {}),
     };
     const title = this.titleForMemory("Action item", item.text);
-    const content = this.actionItemAdapter.composeContent(
-      title,
-      item.text,
+    const content = composeMemoryMarkdown(
+      composeMemoryBody(title, item.text),
       metadata,
     );
 

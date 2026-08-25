@@ -1,18 +1,11 @@
 import { describe, expect, it } from "bun:test";
-import { DASHBOARD_CHANNELS } from "@brains/contracts";
-import {
-  DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
-  type Conversation,
-  type Message,
-} from "@brains/plugins";
-import {
-  buildSummaryCoverageData,
-  registerSummaryCoverageWidget,
-} from "../../../src/lib/widgets/coverage";
+import { createTestEntityAccess } from "@brains/test-utils";
+import { type Conversation, type Message } from "@brains/plugins";
+import { buildSummaryCoverageData } from "../../../src/lib/widgets/coverage";
+import { summaryCoverageWidgetDeclaration } from "../../../src/lib/widgets/coverage";
 import { summaryConfigSchema } from "../../../src/schemas/summary-config";
 import type { SummaryEntity } from "../../../src/schemas/summary";
 import { createMockEntityPluginContext } from "@brains/test-utils";
-import { SYSTEM_CHANNELS } from "@brains/plugins";
 
 const defaultMemoryVisibility = summaryConfigSchema.parse({}).memoryVisibility;
 
@@ -87,7 +80,11 @@ describe("buildSummaryCoverageData", () => {
     };
 
     const data = await buildSummaryCoverageData({
-      context,
+      entities: createTestEntityAccess({
+        entityService: context.entityService,
+      }),
+      conversations: context.conversations,
+      spaces: context.spaces,
       config: summaryConfigSchema.parse({}),
     });
 
@@ -156,7 +153,11 @@ describe("buildSummaryCoverageData", () => {
     };
 
     const data = await buildSummaryCoverageData({
-      context,
+      entities: createTestEntityAccess({
+        entityService: context.entityService,
+      }),
+      conversations: context.conversations,
+      spaces: context.spaces,
       config: summaryConfigSchema.parse({}),
     });
 
@@ -195,46 +196,42 @@ describe("buildSummaryCoverageData", () => {
   });
 });
 
-describe("registerSummaryCoverageWidget", () => {
-  it("registers an Admin-only coverage widget", async () => {
-    const base = createMockEntityPluginContext({
-      spaces: [],
-      listEntitiesImpl: async (): Promise<SummaryEntity[]> => [],
-    });
-    const context = {
-      ...base,
-      conversations: {
-        ...base.conversations,
-        list: async (): Promise<Conversation[]> => [],
-      },
-    };
-    context.messaging.subscribe(
-      DASHBOARD_CHANNELS.registerWidget,
-      async () => ({ success: true }),
+// The runtime owns waiting for the dashboard and announcing the widget.
+// What is this package's is the declaration, and that coverage is a
+// question about every conversation rather than one.
+describe("summaryCoverageWidgetDeclaration", () => {
+  it("declares the widget and surveys conversations to load it", async () => {
+    const declaration = summaryCoverageWidgetDeclaration(
+      summaryConfigSchema.parse({}),
     );
+    expect(declaration.definition.id).toBe("coverage");
 
-    registerSummaryCoverageWidget({
-      context,
-      config: summaryConfigSchema.parse({}),
+    const context = createMockEntityPluginContext({
+      listEntitiesImpl: async () => [],
     });
-    // Publish the real message rather than capturing the handler.
-    await context.messaging.send({
-      type: SYSTEM_CHANNELS.pluginsRegistered,
-      payload: {},
+    let surveyed = false;
+    const data = await declaration.load({
+      entities: createTestEntityAccess({
+        entityService: context.entityService,
+      }),
+      conversations: {
+        get: async () => null,
+        getMessages: async () => [],
+        list: async () => {
+          surveyed = true;
+          return [];
+        },
+      },
+      spaces: [],
+      caller: null,
+      signal: new AbortController().signal,
     });
 
-    const [registerCall] = context.dashboard.registerWidget.mock.calls;
-    const payload = registerCall?.[0];
-    if (!payload) throw new Error("widget was not registered");
-
-    expect(payload).toMatchObject({
-      id: "coverage",
-      title: "Conversation memory coverage",
-      group: "system",
-      section: "secondary",
-      priority: 80,
-      rendererName: DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
-      visibility: "admin",
+    // No spaces configured, so there is nothing to survey and it says so
+    // rather than reporting zero coverage.
+    expect(surveyed).toBe(false);
+    expect(data).toMatchObject({
+      items: [{ id: "spaces", status: "disabled" }],
     });
   });
 });

@@ -4,9 +4,9 @@ import {
   actorRefKey,
   actorRefSchema,
   type ActorRef,
-} from "@brains/contracts";
-import { baseEntityParserSchema } from "@brains/plugins";
-import { z } from "@brains/utils/zod";
+} from "@brains/sdk/entities";
+import { baseEntityParserSchema } from "@brains/sdk/entities";
+import { z } from "@brains/sdk/entities";
 
 export interface MemoryActorReference {
   identity: ActorRef;

@@ -1,4 +1,4 @@
-import { createTemplate } from "@brains/plugins";
+import { createTemplate } from "@brains/sdk/entities";
 import { SUMMARY_AI_TEMPLATE_NAME } from "../lib/constants";
 import {
   summaryExtractionResultSchema,

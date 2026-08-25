@@ -446,7 +446,17 @@ class DeclarativeEntityPlugin extends EntityPlugin<
     jobOwnerId?: string,
     configuredRules: readonly ProjectionRule[] = [],
   ) {
-    super(scope(definition.type), metadata, {}, emptyEntityPluginConfigSchema);
+    super(
+      scope(definition.type),
+      metadata,
+      {},
+      emptyEntityPluginConfigSchema,
+      // Keyed by the bare entity type: the policy is about what may be done
+      // to entities of this type, not about which plugin declared them.
+      definition.actions
+        ? { [definition.type]: definition.actions }
+        : undefined,
+    );
     this.projections = projections;
     this.scope = scope;
     this.entityType = definition.type;
@@ -1162,6 +1172,15 @@ class DeclarativeEntityPlugin extends EntityPlugin<
               widget.load({
                 entities: this.entityAccess(context),
                 conversations: {
+                  get: (conversationId) =>
+                    context.conversations.get(conversationId),
+                  getMessages: (conversationId, options) =>
+                    context.conversations.getMessages(
+                      conversationId,
+                      options?.limit === undefined
+                        ? undefined
+                        : { limit: options.limit },
+                    ),
                   list: (options) =>
                     context.conversations.list(
                       options === undefined

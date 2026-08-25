@@ -1,11 +1,12 @@
 import { describe, expect, it } from "bun:test";
-import { createMockEntityPluginContext } from "@brains/test-utils";
-import { SummaryAdapter } from "../../../src/adapters/summary-adapter";
+import {
+  createMockEntityPluginContext,
+  createTestEntityAccess,
+} from "@brains/test-utils";
+import { composeSummaryBody } from "../../../src/lib/summary-body";
 import { createMockSummaryEntity } from "../../fixtures/summary-entities";
 import { buildRecentConversationMemoryData } from "../../../src/lib/widgets/recent-memory";
 import type { SummaryEntity, SummaryEntry } from "../../../src/schemas/summary";
-
-const adapter = new SummaryAdapter();
 
 function buildSummary(params: {
   id: string;
@@ -13,7 +14,7 @@ function buildSummary(params: {
   channelName?: string;
   entries: SummaryEntry[];
 }): SummaryEntity {
-  const content = adapter.createContentBody(params.entries);
+  const content = composeSummaryBody(params.entries);
   return createMockSummaryEntity({
     id: params.id,
     content,
@@ -91,7 +92,9 @@ describe("buildRecentConversationMemoryData", () => {
       listEntitiesImpl: async () => summaries,
     });
 
-    const data = await buildRecentConversationMemoryData(context);
+    const data = await buildRecentConversationMemoryData(
+      createTestEntityAccess({ entityService: context.entityService }),
+    );
 
     expect(data.all.map((row) => row.title)).toEqual([
       "Ops planning",

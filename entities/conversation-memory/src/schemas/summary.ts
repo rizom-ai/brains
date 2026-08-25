@@ -3,9 +3,9 @@ import {
   actorRefKey,
   actorRefSchema,
   type ActorRef,
-} from "@brains/contracts";
-import { z } from "@brains/utils/zod";
-import { baseEntityParserSchema } from "@brains/plugins";
+} from "@brains/sdk/entities";
+import { z } from "@brains/sdk/entities";
+import { baseEntityParserSchema } from "@brains/sdk/entities";
 
 export interface SummaryTimeRange {
   start: string;

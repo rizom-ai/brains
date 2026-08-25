@@ -1,16 +1,19 @@
-import { actorRefFromLegacy } from "@brains/contracts";
 import {
+  actorRefFromLegacy,
+  computeContentHash,
+  contentVisibilitySchema,
+  z,
   type BaseEntity,
   type ContentVisibility,
+  type EntityInput,
+  type EntityMutationResult,
+  type IEntityAINamespace,
   type Conversation,
-  type EntityPluginContext,
+  type EntityEvalDeclaration,
+  type JobEntityAccess,
   type Message,
   type SearchResult,
-} from "@brains/plugins";
-import type { Logger } from "@brains/utils/logger";
-import { z } from "@brains/utils/zod";
-import { contentVisibilitySchema } from "@brains/plugins";
-import { computeContentHash } from "@brains/utils/hash";
+} from "@brains/sdk/entities";
 import {
   actionItemSchema,
   decisionSchema,
@@ -21,8 +24,11 @@ import { summarySchema, type SummaryEntity } from "../schemas/summary";
 import type { SummaryConfig } from "../schemas/summary-config";
 import { SummaryExtractor } from "./summary-extractor";
 import { ConversationMemoryRetriever } from "./conversation-memory-retriever";
-import { SummaryProjector } from "./summary-projector";
-import { buildConversationMemoryAgentContext } from "./agent-context-provider";
+import {
+  SummaryProjector,
+  type SummaryProjectionContext,
+} from "./summary-projector";
+import { conversationMemoryAgentContext } from "./agent-context-provider";
 import { buildFallbackExcerpt } from "./excerpt";
 import { getConversationSpaceId } from "./summary-space-eligibility";
 
@@ -143,140 +149,171 @@ const decideProjectionInputSchema = z.object({
   messages: z.array(evalMessageSchema),
 });
 
-export function registerSummaryEvalHandlers(params: {
-  context: EntityPluginContext;
-  logger: Logger;
-  config: SummaryConfig;
-}): void {
-  const { context, logger, config } = params;
+/**
+ * Evals, declared. Each is handed the same narrow context a job gets, plus
+ * fixtures — no plugin context to reach past.
+ */
+export function summaryEvalHandlers(
+  config: SummaryConfig,
+): EntityEvalDeclaration {
+  return {
+    summarizeMessages: async (input, { ai, logger }): Promise<unknown> => {
+      const parsed = summarizeMessagesInputSchema.parse(input);
+      const messages = toEvalMessages(parsed.messages, parsed.conversationId);
 
-  context.eval.registerHandler("summarizeMessages", async (input: unknown) => {
-    const parsed = summarizeMessagesInputSchema.parse(input);
-    const messages = toEvalMessages(parsed.messages, parsed.conversationId);
+      const extractor = new SummaryExtractor(ai, logger, config);
+      const memory = await extractor.extract(messages);
+      return memory.entries.map((entry) => {
+        const decisions = memory.decisions
+          .filter((item) => item.timeRange.start >= entry.timeRange.start)
+          .filter((item) => item.timeRange.end <= entry.timeRange.end)
+          .map((item) => item.text);
+        const actionItems = memory.actionItems
+          .filter((item) => item.timeRange.start >= entry.timeRange.start)
+          .filter((item) => item.timeRange.end <= entry.timeRange.end)
+          .map((item) => item.text);
+        return {
+          ...entry,
+          decisions,
+          actionItems,
+          keyPointsText: entry.keyPoints.join("\n"),
+          decisionsText: decisions.join("\n"),
+          actionItemsText: actionItems.join("\n"),
+        };
+      });
+    },
 
-    const extractor = new SummaryExtractor(context, logger, config);
-    const memory = await extractor.extract(messages);
-    return memory.entries.map((entry) => {
-      const decisions = memory.decisions
-        .filter((item) => item.timeRange.start >= entry.timeRange.start)
-        .filter((item) => item.timeRange.end <= entry.timeRange.end)
-        .map((item) => item.text);
-      const actionItems = memory.actionItems
-        .filter((item) => item.timeRange.start >= entry.timeRange.start)
-        .filter((item) => item.timeRange.end <= entry.timeRange.end)
-        .map((item) => item.text);
+    decideProjection: async (
+      input,
+      { ai, logger, conversations },
+    ): Promise<unknown> => {
+      const parsed = decideProjectionInputSchema.parse(input);
+      const messages = toEvalMessages(parsed.messages, parsed.conversationId);
+
+      const existing = parsed.existingSummary
+        ? createEvalSummaryEntity({
+            conversationId: parsed.conversationId,
+            content: parsed.existingSummary,
+            messageCount: parsed.existingMessageCount,
+            projectionVersion: config.projectionVersion,
+            visibility: config.memoryVisibility,
+          })
+        : null;
+
+      const projector = new SummaryProjector(
+        { ai, entities: seededEntityAccess([]), conversations, spaces: [] },
+        logger,
+        config,
+      );
+      return projector.decideProjection(messages, existing);
+    },
+
+    retrieveMemory: async (
+      input,
+      { entities, conversations },
+    ): Promise<unknown> => {
+      const parsed = retrieveMemoryInputSchema.parse(input);
+      const retriever = new ConversationMemoryRetriever({
+        entities: parsed.memory ? seededEntityAccess(parsed.memory) : entities,
+        conversations,
+      });
+      const {
+        actorId,
+        canonicalId,
+        memory: _memory,
+        ...retrievalInput
+      } = parsed;
+      const legacyIdentity = actorId ?? canonicalId;
+      return retriever.retrieve({
+        ...retrievalInput,
+        ...(legacyIdentity
+          ? {
+              identity: actorRefFromLegacy({
+                actorId: legacyIdentity,
+                interfaceType: sourceFromLegacyActorId(legacyIdentity),
+                role: "user",
+                ...(canonicalId ? { canonicalId } : {}),
+              }),
+            }
+          : {}),
+      });
+    },
+
+    buildAgentContext: async (
+      input,
+      { entities, conversations, logger },
+    ): Promise<unknown> => {
+      const parsed = agentContextInputSchema.parse(input);
+      return conversationMemoryAgentContext({
+        request: parsed,
+        entities: parsed.memory ? seededEntityAccess(parsed.memory) : entities,
+        conversations,
+        logger,
+      });
+    },
+
+    projectMessages: async (input, { ai, logger }): Promise<unknown> => {
+      const parsed = projectMessagesInputSchema.parse(input);
+      const messages = toEvalMessages(parsed.messages, parsed.conversationId);
+      const conversation = createEvalConversation({
+        conversationId: parsed.conversationId,
+        interfaceType: parsed.interfaceType,
+        channelId: parsed.channelId,
+        channelName: parsed.channelName,
+        messages,
+      });
+      const existing = parsed.existingSummary
+        ? createEvalSummaryEntity({
+            conversationId: parsed.conversationId,
+            content: parsed.existingSummary,
+            messageCount: parsed.existingMessageCount,
+            projectionVersion: config.projectionVersion,
+            visibility: config.memoryVisibility,
+          })
+        : null;
+      const upserted: BaseEntity[] = [];
+      const deleted: Array<{ entityType: string; id: string }> = [];
+      const projector = new SummaryProjector(
+        createEvalProjectionContext({
+          ai,
+          conversation,
+          messages,
+          existing,
+          upserted,
+          deleted,
+          projectionDecision: parsed.projectionDecision,
+        }),
+        logger,
+        config,
+      );
+      const result = await projector.projectConversation(parsed.conversationId);
+
       return {
-        ...entry,
-        decisions,
-        actionItems,
-        keyPointsText: entry.keyPoints.join("\n"),
-        decisionsText: decisions.join("\n"),
-        actionItemsText: actionItems.join("\n"),
+        result,
+        summaries: upserted.filter((entity) => entity.entityType === "summary"),
+        decisions: upserted.filter(
+          (entity) => entity.entityType === "decision",
+        ),
+        actionItems: upserted.filter(
+          (entity) => entity.entityType === "action-item",
+        ),
+        deleted,
       };
-    });
-  });
+    },
 
-  context.eval.registerHandler("decideProjection", async (input: unknown) => {
-    const parsed = decideProjectionInputSchema.parse(input);
-    const messages = toEvalMessages(parsed.messages, parsed.conversationId);
-
-    const existing = parsed.existingSummary
-      ? createEvalSummaryEntity({
-          conversationId: parsed.conversationId,
-          content: parsed.existingSummary,
-          messageCount: parsed.existingMessageCount,
-          projectionVersion: config.projectionVersion,
-          visibility: config.memoryVisibility,
-        })
-      : null;
-
-    const projector = new SummaryProjector(context, logger, config);
-    return projector.decideProjection(messages, existing);
-  });
-
-  context.eval.registerHandler("retrieveMemory", async (input: unknown) => {
-    const parsed = retrieveMemoryInputSchema.parse(input);
-    const retrievalContext = parsed.memory
-      ? createSeededRetrievalContext(context, parsed.memory)
-      : context;
-    const retriever = new ConversationMemoryRetriever(retrievalContext);
-    const { actorId, canonicalId, memory: _memory, ...retrievalInput } = parsed;
-    const legacyIdentity = actorId ?? canonicalId;
-    return retriever.retrieve({
-      ...retrievalInput,
-      ...(legacyIdentity
-        ? {
-            identity: actorRefFromLegacy({
-              actorId: legacyIdentity,
-              interfaceType: sourceFromLegacyActorId(legacyIdentity),
-              role: "user",
-              ...(canonicalId ? { canonicalId } : {}),
-            }),
-          }
-        : {}),
-    });
-  });
-
-  context.eval.registerHandler("buildAgentContext", async (input: unknown) => {
-    const parsed = agentContextInputSchema.parse(input);
-    const retrievalContext = parsed.memory
-      ? createSeededRetrievalContext(context, parsed.memory)
-      : context;
-    return buildConversationMemoryAgentContext(retrievalContext, parsed);
-  });
-
-  context.eval.registerHandler("projectMessages", async (input: unknown) => {
-    const parsed = projectMessagesInputSchema.parse(input);
-    const messages = toEvalMessages(parsed.messages, parsed.conversationId);
-    const conversation = createEvalConversation({
-      conversationId: parsed.conversationId,
-      interfaceType: parsed.interfaceType,
-      channelId: parsed.channelId,
-      channelName: parsed.channelName,
-      messages,
-    });
-    const existing = parsed.existingSummary
-      ? createEvalSummaryEntity({
-          conversationId: parsed.conversationId,
-          content: parsed.existingSummary,
-          messageCount: parsed.existingMessageCount,
-          projectionVersion: config.projectionVersion,
-          visibility: config.memoryVisibility,
-        })
-      : null;
-    const upserted: BaseEntity[] = [];
-    const deleted: Array<{ entityType: string; id: string }> = [];
-    const projectionContext = createEvalProjectionContext({
-      context,
-      conversation,
-      messages,
-      existing,
-      upserted,
-      deleted,
-      projectionDecision: parsed.projectionDecision,
-    });
-    const projector = new SummaryProjector(projectionContext, logger, config);
-    const result = await projector.projectConversation(parsed.conversationId);
-
-    return {
-      result,
-      summaries: upserted.filter((entity) => entity.entityType === "summary"),
-      decisions: upserted.filter((entity) => entity.entityType === "decision"),
-      actionItems: upserted.filter(
-        (entity) => entity.entityType === "action-item",
-      ),
-      deleted,
-    };
-  });
-
-  context.eval.registerHandler(
-    "projectConversation",
-    async (input: unknown) => {
+    projectConversation: async (
+      input,
+      { ai, logger, entities, conversations },
+    ): Promise<unknown> => {
       const parsed = projectConversationInputSchema.parse(input);
-      const projector = new SummaryProjector(context, logger, config);
+      const projector = new SummaryProjector(
+        { ai, entities, conversations, spaces: [] },
+        logger,
+        config,
+      );
       return projector.projectConversation(parsed.conversationId);
     },
-  );
+  };
 }
 
 function createEvalSummaryEntity(params: {
@@ -355,62 +392,82 @@ function createEvalConversation(params: {
 }
 
 function createEvalProjectionContext(params: {
-  context: EntityPluginContext;
+  ai: IEntityAINamespace;
   conversation: Conversation;
   messages: Message[];
   existing: SummaryEntity | null;
   upserted: BaseEntity[];
   deleted: Array<{ entityType: string; id: string }>;
   projectionDecision: "update" | "append";
-}): EntityPluginContext {
+}): SummaryProjectionContext {
+  // Fully synthetic: an eval decides what the conversation said, which space
+  // it belongs to, and what the model chose, then records what came out.
   const spaceId = getConversationSpaceId(params.conversation);
+  const written = (
+    entity: BaseEntity,
+  ): { entityId: string; jobId: string; skipped: boolean } => {
+    params.upserted.push(entity);
+    return { entityId: entity.id, jobId: "eval-upsert", skipped: false };
+  };
   return {
-    ...params.context,
     spaces: [spaceId],
     conversations: {
-      ...params.context.conversations,
       get: async () => params.conversation,
       getMessages: async () => params.messages,
     },
     ai: {
-      ...params.context.ai,
-      generateObject: async () => ({
-        object: {
-          decision: params.projectionDecision,
-          rationale: "Forced by eval input",
-        },
-      }),
+      // Only the decision is forced — extraction still runs for real, which
+      // is the thing the eval is measuring.
+      ...params.ai,
+      generateObject: async <T>() =>
+        ({
+          object: {
+            decision: params.projectionDecision,
+            rationale: "Forced by eval input",
+          },
+        }) as { object: T },
     },
-    entityService: {
-      ...params.context.entityService,
-      getEntity: async ({ entityType }: { entityType: string }) =>
-        entityType === "summary" ? params.existing : null,
-      listEntities: async () => [],
-      deleteEntity: async (request: { entityType: string; id: string }) => {
-        params.deleted.push(request);
+    entities: {
+      getEntity: async <T>({ entityType }: { entityType: string }) =>
+        (entityType === "summary" ? params.existing : null) as T | null,
+      listEntities: async <T>() => [] as T[],
+      find: async () => null,
+      getEntityTypes: () => [],
+      search: async () => [],
+      get: async () => null,
+      delete: async (entityType: string, id: string): Promise<boolean> => {
+        params.deleted.push({ entityType, id });
         return true;
       },
-      upsertEntity: async <T extends BaseEntity>({ entity }: { entity: T }) => {
-        params.upserted.push(entity);
-        return {
-          entityId: entity.id,
-          jobId: "eval-upsert",
-          created: true,
-          skipped: false,
-        };
+      create: async <T extends BaseEntity>(
+        entity: EntityInput<T>,
+      ): Promise<EntityMutationResult> =>
+        written(entity as unknown as BaseEntity),
+      update: async <T extends BaseEntity>(
+        entity: T,
+      ): Promise<EntityMutationResult> => written(entity),
+      createPending: async <T extends BaseEntity>(
+        entity: EntityInput<T> & { readonly id: string },
+      ): Promise<{ entityId: string; created: boolean }> => {
+        written(entity as unknown as BaseEntity);
+        return { entityId: entity.id, created: true };
       },
+      saveProcessed: async <T extends BaseEntity>(
+        entity: EntityInput<T> & { readonly id: string },
+      ) => written(entity as unknown as BaseEntity),
     },
-  } as EntityPluginContext;
+  };
 }
 
 type SeededMemory = z.output<typeof seededMemorySchema>;
 
 type EvalMemoryEntity = SummaryEntity | DecisionEntity | ActionItemEntity;
 
-function createSeededRetrievalContext(
-  context: EntityPluginContext,
-  memory: SeededMemory[],
-): EntityPluginContext {
+/**
+ * Entity reads over memory an eval planted, rather than whatever the brain
+ * happens to hold. Reads only: an eval measures retrieval, it does not write.
+ */
+function seededEntityAccess(memory: SeededMemory[]): JobEntityAccess {
   const entities = memory.map(toMemoryEntity);
   const searchResults: SearchResult<EvalMemoryEntity>[] = entities.map(
     (entity, index) => ({
@@ -419,16 +476,35 @@ function createSeededRetrievalContext(
       excerpt: memory[index]?.excerpt ?? buildFallbackExcerpt(entity),
     }),
   );
+  const refuse = (): never => {
+    throw new Error("A retrieval eval does not write entities");
+  };
 
   return {
-    ...context,
-    entityService: {
-      ...context.entityService,
-      search: async () => searchResults,
-      listEntities: async ({ entityType }: { entityType: string }) =>
-        entities.filter((entity) => entity.entityType === entityType),
-    },
-  } as EntityPluginContext;
+    search: async <T extends BaseEntity = BaseEntity>() =>
+      searchResults as unknown as SearchResult<T>[],
+    listEntities: async <T extends BaseEntity>({
+      entityType,
+    }: {
+      entityType: string;
+    }) =>
+      entities.filter(
+        (entity) => entity.entityType === entityType,
+      ) as unknown as T[],
+    getEntity: async <T extends BaseEntity>({ id }: { id: string }) =>
+      (entities.find((entity) => entity.id === id) ?? null) as T | null,
+    find: async <T extends BaseEntity>(entityType: string, id: string) =>
+      (entities.find(
+        (entity) => entity.entityType === entityType && entity.id === id,
+      ) ?? null) as T | null,
+    getEntityTypes: () => [...new Set(entities.map((e) => e.entityType))],
+    get: async () => null,
+    create: refuse,
+    update: refuse,
+    delete: refuse,
+    createPending: refuse,
+    saveProcessed: refuse,
+  };
 }
 
 function toMemoryEntity(memory: SeededMemory): EvalMemoryEntity {

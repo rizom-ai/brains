@@ -1,5 +1,4 @@
-import type { Conversation } from "@brains/plugins";
-import { matchSpaceSelector } from "@brains/plugins";
+import { matchSpaceSelector, type Conversation } from "@brains/sdk/entities";
 
 export type SummaryEligibilityReason =
   "configured-space" | "no-spaces-configured" | "space-not-configured";
@@ -19,7 +18,7 @@ export function getConversationSpaceId(scope: {
 
 export function evaluateSummaryEligibility(params: {
   conversation: Conversation;
-  spaces: string[];
+  spaces: readonly string[];
 }): SummaryEligibilityResult {
   const { conversation, spaces } = params;
   const spaceId = getConversationSpaceId(conversation);

@@ -2325,6 +2325,47 @@ describe("entity package definitions", () => {
     harness.reset();
   });
 
+  // Some entity types are the brain's own record and nobody edits one by
+  // hand — a conversation summary is derived, and a user who could rewrite
+  // it could rewrite what the brain remembers happening. The plugin class
+  // took this as a constructor argument, so conversion would have dropped it
+  // silently and left summaries editable.
+  it("declares which actions a type refuses", async () => {
+    const record = defineEntity({
+      type: "record",
+      purpose: "What the brain observed, kept as it observed it.",
+      metadata: z.object({ title: z.string() }),
+      actions: {
+        create: "never",
+        update: "never",
+        delete: "never",
+        extract: "never",
+        publish: "never",
+      },
+    });
+    const definition = defineEntityPackage({
+      id: "records",
+      entities: [record],
+    });
+    const plugin = createEntityPackagePlugins(
+      definition.entities,
+      definition.projections,
+      { name: "@fixture/records", version: "0.1.0" },
+      (id) => `@fixture/records:${id}`,
+    )[0];
+    if (!plugin) throw new Error("Record entity plugin was not created");
+
+    expect(plugin.entityActionPolicy).toEqual({
+      record: {
+        create: "never",
+        update: "never",
+        delete: "never",
+        extract: "never",
+        publish: "never",
+      },
+    });
+  });
+
   // A widget reports on the state of the brain, which is a different read
   // from a job's. A job is handed one conversation and summarises it; a
   // widget that reports how many conversations lack a summary has to survey

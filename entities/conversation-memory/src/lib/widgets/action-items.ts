@@ -1,11 +1,11 @@
 import {
-  SYSTEM_CHANNELS,
   defineDashboardWidget,
-  registerBuiltInDashboardWidget,
-  type EntityPluginContext,
-} from "@brains/plugins";
-import { firstSentence } from "@brains/utils/string-utils";
-import { z } from "@brains/utils/zod";
+  defineEntityDashboardWidget,
+  firstSentence,
+  z,
+  type EntityDashboardWidgetDeclaration,
+  type JobEntityAccess,
+} from "@brains/sdk/entities";
 import type { ActionItemEntity } from "../../schemas/conversation-memory";
 import { ACTION_ITEM_ENTITY_TYPE } from "../constants";
 import { channelLabel, formatAge } from "./format";
@@ -110,10 +110,10 @@ function entityBody(entity: ActionItemEntity): string {
 }
 
 export async function buildActionItemsWidgetData(
-  context: EntityPluginContext,
+  entities: JobEntityAccess,
   now: Date = new Date(),
 ): Promise<ActionItemsWidgetData> {
-  const items = await context.entityService.listEntities<ActionItemEntity>({
+  const items = await entities.listEntities<ActionItemEntity>({
     entityType: ACTION_ITEM_ENTITY_TYPE,
   });
 
@@ -144,24 +144,10 @@ export async function buildActionItemsWidgetData(
   };
 }
 
-export function registerActionItemsWidget(params: {
-  context: EntityPluginContext;
-}): void {
-  const { context } = params;
-  context.messaging.subscribe(
-    SYSTEM_CHANNELS.pluginsRegistered,
-    async (): Promise<{ success: boolean }> => {
-      await registerBuiltInDashboardWidget({
-        context,
-        definition: actionItemsWidget,
-        load: ({ signal }) => {
-          signal.throwIfAborted();
-          return buildActionItemsWidgetData(context);
-        },
-      });
-      return { success: true };
-    },
-  );
-}
+export const actionItemsWidgetDeclaration: EntityDashboardWidgetDeclaration =
+  defineEntityDashboardWidget(actionItemsWidget, ({ entities, signal }) => {
+    signal.throwIfAborted();
+    return buildActionItemsWidgetData(entities);
+  });
 
 export const ACTION_ITEMS_WIDGET_ID: typeof WIDGET_ID = WIDGET_ID;

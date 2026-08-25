@@ -114,6 +114,8 @@ export { defineDashboardWidget } from "@brains/plugins";
 export { defineEntityDashboardWidget } from "@brains/plugins";
 export type {
   DashboardWidgetDefinition,
+  EntityConversationSurvey,
+  EntityDashboardWidgetContext,
   EntityDashboardWidgetDeclaration,
 } from "@brains/plugins";
 
@@ -144,6 +146,33 @@ export { ensureUniqueTitle } from "@brains/plugins";
 // doing the work, so the staleness rule has one place to change. Named
 // consumers: @brains/document-plugin, @brains/image-plugin.
 export { sourceAttachmentKey } from "@brains/plugins";
+
+// Whether a conversation space matches a configured selector. A package that
+// filters by space must not spell the matching rule itself, or two packages
+// disagree about what "#build" covers. Named consumer:
+// @brains/conversation-memory.
+export { matchSpaceSelector } from "@brains/plugins";
+
+// Grounding a package offers the agent before it answers. The runtime owns
+// the channel, the parse, the envelope, and scoping the reads to what the
+// asker may see. Named consumer: @brains/conversation-memory.
+export type { EntityAgentContextProvider } from "@brains/plugins";
+export type { AgentContextItem, AgentContextRequest } from "@brains/contracts";
+
+// The logger a declaration is handed. Narrow by design: a package reports
+// what it did, it does not configure logging.
+export type { LoggerContract } from "@brains/utils/logger";
+
+// Who authored a stored message, and the schema that reads it back off one.
+// A package that attributes what it derived has to name the author. Named
+// consumer: @brains/conversation-memory.
+export { conversationMessageMetadataSchema } from "@brains/plugins";
+export type { ConversationMessageActor } from "@brains/plugins";
+
+// Bounded concurrency. Deriving memory from many conversations at once is
+// the kind of fan-out that needs a ceiling, and every package inventing its
+// own gets it subtly wrong.
+export { pLimit } from "@brains/utils/p-limit";
 
 // AT Protocol projection, for entities that publish records. The runtime
 // owns registration, so the registry itself stays internal — an author
@@ -181,6 +210,7 @@ export type {
 // @brains/utils; consumers today are @brains/doc and @brains/products.
 export {
   calculateReadingTime,
+  firstSentence,
   slugify,
   truncateText,
 } from "@brains/utils/string-utils";
