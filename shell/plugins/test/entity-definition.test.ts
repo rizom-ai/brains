@@ -2325,6 +2325,130 @@ describe("entity package definitions", () => {
     harness.reset();
   });
 
+  // What a type puts in front of a person to act on — an agent sighting to
+  // vouch for, an email to file — is a fact about the type. Two packages
+  // registered a source by hand, and both had to hold the registry to do it.
+  it("declares what it puts in the inbox", async () => {
+    const guide = defineEntity({
+      type: "guide",
+      purpose: "A guide awaiting review.",
+      metadata: z.object({ title: z.string() }),
+      inbox: {
+        sourceId: "guide-review",
+        displayName: "Guides to review",
+        list: async ({ entities }) => {
+          const guides = await entities.listEntities({ entityType: "guide" });
+          return guides.map((guide) => ({
+            id: guide.id,
+            title: String(guide.metadata["title"]),
+            receivedAt: guide.created,
+            urgency: "normal" as const,
+            actions: [],
+          }));
+        },
+        act: async () => {},
+      },
+    });
+    const definition = defineEntityPackage({ id: "guides", entities: [guide] });
+    const plugin = createEntityPackagePlugins(
+      definition.entities,
+      definition.projections,
+      { name: "@fixture/guides", version: "0.1.0" },
+      (id) => `@fixture/guides:${id}`,
+    )[0];
+    if (!plugin) throw new Error("Guide entity plugin was not created");
+
+    const harness = createPluginHarness({
+      logger: createSilentLogger("entity-inbox-test"),
+    });
+    await harness.installPlugin(plugin);
+    harness.addEntities([
+      {
+        id: "fishing",
+        entityType: "guide",
+        content: "How to fish",
+        contentHash: "fishing-hash",
+        metadata: { title: "Fishing" },
+      },
+    ]);
+
+    // The shell finalizes the registry once every plugin has registered,
+    // which is what makes a source readable.
+    const registry = harness.getMockShell().getInboxRegistry();
+    registry.finalize();
+    const source = registry.getSource("guide-review");
+    if (!source) throw new Error("Inbox source was not registered");
+    expect(source.displayName).toBe("Guides to review");
+    expect((await source.list()).map((item) => item.title)).toEqual([
+      "Fishing",
+    ]);
+
+    harness.reset();
+  });
+
+  // Something a type has to check on a schedule — an agent card goes stale,
+  // a link rots — is a fact about the type, not a subscription it sets up.
+  // Two packages registered these by hand, and both had to name a cadence
+  // the runtime already understands.
+  it("declares a check the runtime runs on a cadence", async () => {
+    const checked: string[] = [];
+    const guide = defineEntity({
+      type: "guide",
+      purpose: "A guide whose sources go stale.",
+      metadata: z.object({ title: z.string() }),
+      checks: [
+        {
+          id: "guide-freshness",
+          cadence: "daily",
+          run: async ({ entities, signal }): Promise<Record<never, never>> => {
+            signal.throwIfAborted();
+            const guides = await entities.listEntities({ entityType: "guide" });
+            checked.push(`checked ${guides.length}`);
+            return {};
+          },
+        },
+      ],
+    });
+    const definition = defineEntityPackage({ id: "guides", entities: [guide] });
+    const plugin = createEntityPackagePlugins(
+      definition.entities,
+      definition.projections,
+      { name: "@fixture/guides", version: "0.1.0" },
+      (id) => `@fixture/guides:${id}`,
+    )[0];
+    if (!plugin) throw new Error("Guide entity plugin was not created");
+
+    const harness = createPluginHarness({
+      logger: createSilentLogger("entity-checks-test"),
+    });
+    const registered: Array<{
+      id: string;
+      cadence: string;
+      run: (context: { signal: AbortSignal }) => Promise<unknown>;
+    }> = [];
+    const shell = harness.getMockShell();
+    stubMethod(shell, "getRecurringChecks", () => ({
+      register: (check: (typeof registered)[number]) => {
+        registered.push(check);
+        return (): void => {};
+      },
+    }));
+
+    await harness.installPlugin(plugin);
+
+    // The runtime scopes the id to the package, so two packages can both
+    // have a "freshness" check without colliding.
+    expect(registered.map(({ id }) => id)).toEqual([
+      "@fixture/guides:guide:guide-freshness",
+    ]);
+    expect(registered[0]?.cadence).toBe("daily");
+
+    await registered[0]?.run({ signal: new AbortController().signal });
+    expect(checked).toEqual(["checked 0"]);
+
+    harness.reset();
+  });
+
   // Some entity types are the brain's own record and nobody edits one by
   // hand — a conversation summary is derived, and a user who could rewrite
   // it could rewrite what the brain remembers happening. The plugin class

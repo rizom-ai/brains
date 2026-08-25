@@ -11,6 +11,16 @@ import type {
 import type { Conversation } from "../contracts/conversations";
 export type { EntityConversationReader } from "../job/job-context-contract";
 import type { AtprotoProjection } from "@brains/atproto-contracts";
+import type {
+  RecurringCheckCadence,
+  RecurringCheckResult,
+} from "@brains/recurring-checks";
+import type {
+  InboxActor,
+  InboxFacetDefinition,
+  InboxItem,
+  InboxItemDetail,
+} from "../inbox-registry";
 import type { FeedItem } from "@brains/site-composition";
 import type {
   AgentContextItem,
@@ -236,6 +246,15 @@ export interface EntityDefinition<
    */
   readonly dashboardWidgets?:
     readonly EntityDashboardWidgetDeclaration[] | undefined;
+  /**
+   * Something this type has to check on a schedule — an agent card goes
+   * stale, a link rots. A fact about the type rather than a subscription it
+   * sets up, so the runtime owns registration, the cadence vocabulary, and
+   * scoping the id so two packages can both have a "freshness" check.
+   */
+  readonly checks?: readonly EntityCheckDeclaration[] | undefined;
+  /** What this type contributes to the shared inbox. */
+  readonly inbox?: EntityInboxDeclaration | undefined;
   /** Durable job handlers, keyed by job type. */
   readonly jobs?: Record<string, AnyEntityJobDeclaration> | undefined;
   /**
@@ -565,6 +584,58 @@ export type EntityEvalDeclaration = Record<
   string,
   (input: unknown, context: EntityEvalContext) => Promise<unknown>
 >;
+
+/**
+ * What this type puts in front of a person to act on — an agent sighting to
+ * vouch for, an email to file.
+ *
+ * A fact about the type rather than a registration it performs, so the
+ * runtime holds the registry and a package never does.
+ */
+export interface EntityInboxDeclaration {
+  readonly sourceId: string;
+  readonly displayName: string;
+  readonly facets?: InboxFacetDefinition[] | undefined;
+  list(context: {
+    readonly entities: JobEntityAccess;
+    readonly logger: LoggerContract;
+  }): Promise<InboxItem[]>;
+  resolveDetail?(
+    context: {
+      readonly entities: JobEntityAccess;
+      readonly logger: LoggerContract;
+    },
+    itemId: string,
+    actor: InboxActor,
+    signal: AbortSignal,
+  ): Promise<InboxItemDetail>;
+  act(
+    context: {
+      readonly entities: JobEntityAccess;
+      readonly logger: LoggerContract;
+    },
+    itemId: string,
+    actionId: string,
+    actor: InboxActor,
+  ): Promise<void>;
+}
+
+/** A scheduled check an entity type declares. */
+export interface EntityCheckDeclaration {
+  /** Local to the package; the runtime scopes it. */
+  readonly id: string;
+  readonly cadence: RecurringCheckCadence;
+  /** Deliver returned alerts. Defaults to true. */
+  readonly deliverAlerts?: boolean | undefined;
+  /** Project returned alerts into the shared inbox. Defaults to true. */
+  readonly includeInInbox?: boolean | undefined;
+  run(context: {
+    readonly entities: JobEntityAccess;
+    readonly conversations: EntityConversationReader;
+    readonly logger: LoggerContract;
+    readonly signal: AbortSignal;
+  }): Promise<RecurringCheckResult>;
+}
 
 /**
  * A durable job this entity handles: an input schema plus one function.
