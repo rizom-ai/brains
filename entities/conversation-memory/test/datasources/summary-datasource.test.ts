@@ -75,6 +75,12 @@ describe("summary data source", () => {
           getEntity: async () => null,
           listEntities: async () => [],
           getEntityTypes: () => [],
+          project: async () => ({
+            origin: { kind: "centroid" as const },
+            points: [],
+            neighbors: [],
+            distanceRange: { min: 0, max: 0 },
+          }),
         },
       }),
     );

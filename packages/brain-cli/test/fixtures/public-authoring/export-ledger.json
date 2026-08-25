@@ -293,7 +293,11 @@
         "ContentFormatter",
         "DashboardWidgetDefinition",
         "DataSourceDefinition",
+        "EntityAtprotoDiscovery",
         "EntityAttachmentDeclaration",
+        "EntityCheckDeclaration",
+        "EntityInboxDeclaration",
+        "EntityReactionContext",
         "Conversation",
         "EntityConversationReader",
         "Message",
@@ -399,6 +403,7 @@
         "scopedDerivedId",
         "skillDataSchema",
         "slugify",
+        "slugifyUrl",
         "truncateText"
       ],
       "internal/removable": [

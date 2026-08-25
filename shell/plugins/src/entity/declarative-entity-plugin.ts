@@ -75,6 +75,7 @@ import type {
   EntityCreateRouting,
   EntityGenerationResult,
   EntityOf,
+  EntityReactionContext,
   EntitySeedTrigger,
   ProjectionDefinition,
 } from "./entity-definition-contract";
@@ -924,17 +925,13 @@ class DeclarativeEntityPlugin extends EntityPlugin<
 
     const discovery = this.atprotoDiscovery;
     if (discovery) {
-      const reader = (): {
-        entities: JobEntityAccess;
-        logger: LoggerContract;
-      } => ({ entities: this.entityAccess(context), logger: this.logger });
       this.releaseOnShutdown.push(
         context.messaging.subscribe(
           ATPROTO_BRAIN_CARD_DISCOVERED,
           async (message): Promise<MessageResponse<unknown>> => ({
             success: true,
             data: await discovery.onCardDiscovered(
-              reader(),
+              this.reactionContext(context),
               atprotoBrainCardDiscoveredPayloadSchema.parse(message.payload),
             ),
           }),
@@ -947,7 +944,7 @@ class DeclarativeEntityPlugin extends EntityPlugin<
             async (message): Promise<MessageResponse<unknown>> => ({
               success: true,
               data: await discovery.onCardUnavailable?.(
-                reader(),
+                this.reactionContext(context),
                 atprotoBrainCardUnavailablePayloadSchema.parse(message.payload),
               ),
             }),
@@ -997,9 +994,8 @@ class DeclarativeEntityPlugin extends EntityPlugin<
             : {}),
           run: ({ signal }) =>
             check.run({
-              entities: this.entityAccess(context),
+              ...this.reactionContext(context),
               conversations: context.conversations,
-              logger: this.logger,
               signal,
             }),
         }),
@@ -1541,6 +1537,22 @@ class DeclarativeEntityPlugin extends EntityPlugin<
       refKind: "upload",
       routePath: "/api/uploads",
     });
+  }
+
+  /** Entity access, a publisher, and a logger — what a reaction is given. */
+  private reactionContext(context: EntityPluginContext): EntityReactionContext {
+    return {
+      entities: this.entityAccess(context),
+      messaging: {
+        publish: async (message): Promise<void> => {
+          await context.messaging.send({
+            type: message.topic,
+            payload: message.data,
+          });
+        },
+      },
+      logger: this.logger,
+    };
   }
 
   private entityAccess(

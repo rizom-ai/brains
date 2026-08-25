@@ -7,6 +7,8 @@ import type {
   IEntityService,
   ListOptions,
   PaginationInfo,
+  ProjectSemanticSpaceRequest,
+  SemanticSpaceProjection,
   SortField,
 } from "@brains/entity-service";
 import type { LoggerContract } from "@brains/utils/logger";
@@ -85,6 +87,14 @@ export function defineEntityDataSource<
   readonly lookupField?: "slug" | "id" | undefined;
   readonly enableNavigation?: boolean | undefined;
   readonly navigationLimit?: number | undefined;
+  /**
+   * Narrow the list by something the query asked for — a status, a kind.
+   *
+   * Contributed to the database query rather than applied to a page already
+   * fetched, so a filtered list pages over the filtered set. Returning
+   * nothing lists everything.
+   */
+  filter?(query: BaseQuery): Partial<ListOptions> | undefined;
   transform(entity: TEntity): TTransformed;
   list(
     items: TTransformed[],
@@ -100,6 +110,7 @@ export function defineEntityDataSource<
     id: definition.id,
     name: definition.name,
     description: definition.description,
+    ...(definition.filter ? { filter: definition.filter } : {}),
     config: {
       entityType: definition.entityType,
       defaultSort: definition.defaultSort,
@@ -140,6 +151,13 @@ export interface EntityQueryReader {
   }): Promise<T | null>;
   /** Entity types currently registered, for sources that span them. */
   getEntityTypes(): string[];
+  /**
+   * Where entities sit relative to each other. A read, and the only way a
+   * source that renders a map can build one.
+   */
+  project(
+    request: ProjectSemanticSpaceRequest,
+  ): Promise<SemanticSpaceProjection>;
 }
 
 /**
@@ -192,6 +210,7 @@ export interface AnyEntityDataSourceDefinition {
     query: BaseQuery,
   ): JsonObject;
   detail?(context: EntityDetailContext<unknown>): unknown | Promise<unknown>;
+  filter?(query: BaseQuery): Partial<ListOptions> | undefined;
 }
 
 /** Either declared form, as an entity definition stores them. */
@@ -203,6 +222,7 @@ function entityQueryReader(entityService: {
   listEntities: IEntityService["listEntities"];
   getEntity: IEntityService["getEntity"];
   getEntityTypes: IEntityService["getEntityTypes"];
+  projectSemanticSpace: IEntityService["projectSemanticSpace"];
 }): EntityQueryReader {
   return {
     listEntities: <T extends BaseEntity>(request: {
@@ -214,6 +234,10 @@ function entityQueryReader(entityService: {
       id: string;
     }): Promise<T | null> => entityService.getEntity<T>(request),
     getEntityTypes: (): string[] => entityService.getEntityTypes(),
+    project: (
+      request: ProjectSemanticSpaceRequest,
+    ): Promise<SemanticSpaceProjection> =>
+      entityService.projectSemanticSpace(request),
   };
 }
 
@@ -284,7 +308,11 @@ export function createDeclarativeEntityDataSource(
       const entityService = context.entityService;
 
       if (!params.query.id) {
-        const list = await this.fetchList(params.query, entityService);
+        const list = await this.fetchList(
+          params.query,
+          entityService,
+          definition.filter?.(params.query),
+        );
         return outputSchema.parse(
           this.buildListResult(list.items, list.pagination, params.query),
         );

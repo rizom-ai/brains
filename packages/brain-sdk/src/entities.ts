@@ -177,6 +177,17 @@ export {
 // the channel, the parse, the envelope, and scoping the reads to what the
 // asker may see. Named consumer: @brains/conversation-memory.
 export type { EntityAgentContextProvider } from "@brains/plugins";
+
+// Reacting to something that happened: a card found on the network, a
+// cadence coming round, an item to act on. The runtime owns the channel and
+// the parse; a package says what the event means to it. Named consumer:
+// @brains/agent-discovery.
+export type {
+  EntityAtprotoDiscovery,
+  EntityCheckDeclaration,
+  EntityInboxDeclaration,
+  EntityReactionContext,
+} from "@brains/plugins";
 export type { AgentContextItem, AgentContextRequest } from "@brains/contracts";
 
 // The logger a declaration is handed. Narrow by design: a package reports
@@ -232,6 +243,7 @@ export {
   calculateReadingTime,
   firstSentence,
   slugify,
+  slugifyUrl,
   truncateText,
 } from "@brains/utils/string-utils";
 export { computeContentHash } from "@brains/utils/hash";
