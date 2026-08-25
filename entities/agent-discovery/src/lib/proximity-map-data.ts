@@ -1,9 +1,9 @@
 import type {
-  IEntityService,
-  ISemanticNamespace,
+  EntityQueryReader,
+  EntitySemanticReader,
   SemanticSpacePoint,
-} from "@brains/plugins";
-import { AgentAdapter } from "../adapters/agent-adapter";
+} from "@brains/sdk/entities";
+import { parseAgentEntity } from "./agent-content";
 import type {
   AgentEntity,
   AgentFrontmatter,
@@ -37,11 +37,9 @@ export const PROXIMITY_NEIGHBOR_DISTANCE = 0.25;
 export const SIGHTING_GERMINATION_DISTANCE = 0.5;
 
 export interface ProximityMapDataContext {
-  entityService: Pick<IEntityService, "listEntities">;
-  semantic: ISemanticNamespace;
+  entities: Pick<EntityQueryReader, "listEntities">;
+  semantic: EntitySemanticReader;
 }
-
-const agentAdapter = new AgentAdapter();
 
 /** A sighting is a second-order agent: discovered through a peer's
  * directory, carrying introducer provenance, not yet approved. */
@@ -56,7 +54,7 @@ export async function buildProximityMapData(
   context: ProximityMapDataContext,
 ): Promise<ProximityMapData> {
   const [agents, projection] = await Promise.all([
-    context.entityService.listEntities<AgentEntity>({
+    context.entities.listEntities<AgentEntity>({
       entityType: AGENT_ENTITY_TYPE,
     }),
     context.semantic.project({
@@ -73,7 +71,7 @@ export async function buildProximityMapData(
   const parsed = agents
     .slice()
     .sort((left, right) => left.id.localeCompare(right.id))
-    .map((agent) => ({ agent, ...agentAdapter.parseEntity(agent) }));
+    .map((agent) => ({ agent, ...parseAgentEntity(agent) }));
   const firstOrder = parsed.filter((entry) => !isSighting(entry.frontmatter));
   const sighted = parsed.filter((entry) => isSighting(entry.frontmatter));
 

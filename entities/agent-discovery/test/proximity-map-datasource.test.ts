@@ -4,7 +4,9 @@ import type {
   SemanticSpaceProjection,
 } from "@brains/plugins";
 import { createMockEntityService } from "@brains/test-utils";
-import { ProximityMapDataSource } from "../src/datasources/proximity-map-datasource";
+import { createDeclarativeDataSource } from "@brains/plugins";
+import { fetchable } from "@brains/test-utils";
+import { proximityMapDataSource } from "../src/datasources/proximity-map-datasource";
 import { proximityMapDataSchema } from "../src/lib/proximity-map-schema";
 import { createTestAgent } from "./fixtures/agent";
 
@@ -39,12 +41,17 @@ describe("ProximityMapDataSource", () => {
       projectSemanticSpace,
     } as BaseDataSourceContext["entityService"];
 
-    const datasource = new ProximityMapDataSource();
+    const datasource = fetchable(
+      createDeclarativeDataSource(
+        proximityMapDataSource,
+        "agents:proximity-map",
+      ),
+    );
     const result = await datasource.fetch({}, proximityMapDataSchema, {
       entityService,
     });
 
-    expect(datasource.id).toBe("agent-discovery:proximity-map");
+    expect(datasource.id).toBe("agents:proximity-map");
     expect(result.nodes).toHaveLength(1);
     expect(result.nodes[0]).toMatchObject({
       id: "alpha",

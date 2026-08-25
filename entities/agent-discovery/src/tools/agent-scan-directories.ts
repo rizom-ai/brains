@@ -1,11 +1,6 @@
-import type {
-  EntityPluginContext,
-  ServicePluginContext,
-  Tool,
-  ToolResponse,
-} from "@brains/plugins";
-import { z } from "@brains/utils/zod";
-import { AgentAdapter } from "../adapters/agent-adapter";
+import { z, type EntityReactionContext } from "@brains/sdk/entities";
+import { createAgentContent, parseAgentEntity } from "../lib/agent-content";
+import { defineTool, type ServiceToolDefinition } from "@brains/sdk/services";
 import { AGENT_ENTITY_TYPE } from "../lib/constants";
 import { buildAgentFromCard } from "../lib/build-agent-content";
 import {
@@ -14,14 +9,11 @@ import {
   type FetchFn,
 } from "../lib/fetch-agent-card";
 import type { AgentEntity } from "../schemas/agent";
-import { getErrorMessage } from "@brains/utils/error";
 
-const agentScanDirectoriesInputSchema = z.object({});
+const agentScanDirectoriesInputSchema: z.ZodObject<Record<string, never>> =
+  z.object({});
 
-export type AgentScanContext = Pick<
-  EntityPluginContext | ServicePluginContext,
-  "entityService" | "permissions" | "domain"
->;
+export type AgentScanContext = EntityReactionContext;
 
 export interface AgentScanDirectoriesResult {
   peersScanned: number;
@@ -38,8 +30,6 @@ export interface AgentScanDirectoriesResult {
 const remoteDirectorySchema = z.object({
   agents: z.array(z.object({ name: z.string(), url: z.string() })),
 });
-
-const agentAdapter = new AgentAdapter();
 
 async function fetchAgentDirectory(
   domain: string,
@@ -64,7 +54,7 @@ export async function scanAgentDirectories(
   fetchFn: FetchFn = globalThis.fetch,
   signal?: AbortSignal,
 ): Promise<AgentScanDirectoriesResult> {
-  const allAgents = await context.entityService.listEntities<AgentEntity>({
+  const allAgents = await context.entities.listEntities<AgentEntity>({
     entityType: AGENT_ENTITY_TYPE,
   });
   const peers = allAgents.filter(
@@ -105,7 +95,7 @@ export async function scanAgentDirectories(
     signal?.throwIfAborted();
     const existing = agentsById.get(domain);
     if (existing) {
-      const { frontmatter, body } = agentAdapter.parseEntity(existing);
+      const { frontmatter, body } = parseAgentEntity(existing);
       const prior = frontmatter.introducedBy ?? [];
       // Only sightings accumulate introducers. Agents known first-hand
       // (connected, or discovered via ATProto) don't gain provenance
@@ -120,18 +110,16 @@ export async function scanAgentDirectories(
       ];
       if (merged.length === prior.length) continue;
 
-      await context.entityService.updateEntity({
-        entity: {
-          ...existing,
-          content: agentAdapter.createAgentContent({
-            ...frontmatter,
-            introducedBy: merged,
-            about: body.about,
-            skills: body.skills,
-            notes: body.notes,
-          }),
-          updated: now,
-        },
+      await context.entities.update({
+        ...existing,
+        content: createAgentContent({
+          ...frontmatter,
+          introducedBy: merged,
+          about: body.about,
+          skills: body.skills,
+          notes: body.notes,
+        }),
+        updated: now,
       });
       updated += 1;
       continue;
@@ -149,17 +137,15 @@ export async function scanAgentDirectories(
       status: "discovered",
       provenance: { introducedBy: [...introducers], hops: 2 },
     });
-    const parsedContent = agentAdapter.fromMarkdown(built.content);
-    await context.entityService.createEntity({
-      entity: {
-        id: domain,
-        entityType: AGENT_ENTITY_TYPE,
-        content: built.content,
-        metadata: { ...parsedContent.metadata, ...built.metadata },
-        visibility: "public",
-        created: now,
-        updated: now,
-      },
+    const parsedContent = parseAgentEntity({ content: built.content });
+    await context.entities.create({
+      id: domain,
+      entityType: AGENT_ENTITY_TYPE,
+      content: built.content,
+      metadata: { ...parsedContent.frontmatter, ...built.metadata },
+      visibility: "public",
+      created: now,
+      updated: now,
     });
     created += 1;
     createdDomains.push(domain);
@@ -179,55 +165,53 @@ export async function scanAgentDirectories(
   };
 }
 
-export function createAgentScanDirectoriesTool(
-  context: AgentScanContext,
+const agentScanDirectoriesOutputSchema: z.ZodObject<{
+  peersScanned: z.ZodNumber;
+  unreachablePeers: z.ZodNumber;
+  created: z.ZodNumber;
+  updated: z.ZodNumber;
+  alreadyKnown: z.ZodNumber;
+  unverified: z.ZodNumber;
+}> = z.object({
+  peersScanned: z.number(),
+  unreachablePeers: z.number(),
+  created: z.number(),
+  updated: z.number(),
+  alreadyKnown: z.number(),
+  unverified: z.number(),
+});
+
+/** Record second-order sightings from each approved peer's public directory. */
+export function agentScanDirectoriesTool(
   fetchFn: FetchFn = globalThis.fetch,
-): Tool {
-  return {
-    name: "agent_scan_directories",
+): ServiceToolDefinition<
+  "scan-directories",
+  typeof agentScanDirectoriesInputSchema,
+  typeof agentScanDirectoriesOutputSchema
+> {
+  return defineTool({
+    name: "scan-directories",
     description:
-      "Walk each approved agent's public directory at /.well-known/agent-directory.json and record second-order sightings: agents your peers list that you are not connected to. A sighting is saved as a discovered agent with provenance (which peers introduced it, hop count) and data from its own verified Agent Card. Re-scanning is idempotent: connected agents are skipped and repeat sightings only merge new introducers. Never approves anything; promotion stays with agent_connect.",
-    inputSchema: agentScanDirectoriesInputSchema.shape,
-    visibility: "trusted",
+      "Walk each approved agent's public directory at /.well-known/agent-directory.json and record second-order sightings: agents your peers list that you are not connected to. A sighting is saved as a discovered agent with provenance (which peers introduced it, hop count) and data from its own verified Agent Card. Re-scanning is idempotent: connected agents are skipped and repeat sightings only merge new introducers. Never approves anything; promotion stays with the connect tool.",
+    input: agentScanDirectoriesInputSchema,
+    output: agentScanDirectoriesOutputSchema,
+    permission: "trusted",
     sideEffects: "external",
-    handler: async (rawInput, toolContext): Promise<ToolResponse> => {
-      const parsed = agentScanDirectoriesInputSchema.safeParse(rawInput);
-      if (!parsed.success) {
-        return {
-          success: false,
-          error: `Invalid input: ${parsed.error.message}`,
-        };
-      }
-
-      try {
-        context.permissions.assertEntityActionAllowed(
-          AGENT_ENTITY_TYPE,
-          "create",
-          toolContext,
-        );
-      } catch (error) {
-        return {
-          success: false,
-          error: getErrorMessage(error),
-        };
-      }
-
-      const result = await scanAgentDirectories(
-        context,
-        fetchFn,
-        toolContext.signal,
+    execute: async ({ caller, signal, ...context }) => {
+      context.permissions.assertEntityActionAllowed(
+        AGENT_ENTITY_TYPE,
+        "create",
+        caller ?? {},
       );
+      const result = await scanAgentDirectories(context, fetchFn, signal);
       return {
-        success: true,
-        data: {
-          peersScanned: result.peersScanned,
-          unreachablePeers: result.unreachablePeers,
-          created: result.created,
-          updated: result.updated,
-          alreadyKnown: result.alreadyKnown,
-          unverified: result.unverified,
-        },
+        peersScanned: result.peersScanned,
+        unreachablePeers: result.unreachablePeers,
+        created: result.created,
+        updated: result.updated,
+        alreadyKnown: result.alreadyKnown,
+        unverified: result.unverified,
       };
     },
-  };
+  });
 }

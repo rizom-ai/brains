@@ -1563,14 +1563,16 @@ class DeclarativeEntityPlugin extends EntityPlugin<
           });
         },
       },
-      // Namespaced under the declaring package, so two packages cannot
-      // read or corrupt each other's notes.
+      // Namespaced under the declaring package, so two packages cannot read
+      // or corrupt each other's notes — and so one package's plugins can.
+      // The entity side of a package notices what its service side reports.
       state: (options) =>
         context.runtimeState.scoped({
           ...options,
-          namespace: `${this.id}.${options.namespace}`,
+          namespace: `${this.packageName}.${options.namespace}`,
         }),
       permissions: context.permissions,
+      domain: context.domain,
       logger: this.logger,
     };
   }

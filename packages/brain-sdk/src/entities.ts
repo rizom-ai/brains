@@ -4,6 +4,7 @@ export { z } from "@brains/utils/zod";
 export {
   ProjectionJsonObjectSchema,
   defineEntity,
+  frontmatterInContent,
   defineEntityPackage,
   defineProjection,
   // A rule that derives across visibility scopes needs both: the predicate

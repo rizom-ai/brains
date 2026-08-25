@@ -164,7 +164,7 @@ export const canonicalBrain: BrainDefinition = defineBrain({
       },
     ],
     ["atproto-registry", atprotoRegistryPlugin, undefined],
-    ["agents", agentDiscovery, undefined],
+    packageCapability("agents", "@brains/agent-discovery", agentDiscovery),
     packageCapability("assessment", "@brains/assessment", assessmentPackage),
     ["auth-service", authServicePlugin, undefined],
     ["notifications", notificationsPlugin, undefined],

@@ -156,7 +156,7 @@ describe("AgentProximityMapTemplate", () => {
     const template = getTemplates()["proximity-map"];
     if (!template) throw new Error("proximity-map template not found");
 
-    expect(template.dataSourceId).toBe("agent-discovery:proximity-map");
+    expect(template.dataSourceId).toBe("proximity-map");
     expect(template.requiredPermission).toBe("public");
     expect(template.schema.safeParse(data).success).toBe(true);
     expect(template.runtimeScripts).toHaveLength(1);

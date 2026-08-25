@@ -655,6 +655,13 @@ export interface EntityReactionContext {
    * returning false, so a caller cannot forget to check the answer.
    */
   readonly permissions: IPermissionsNamespace;
+  /**
+   * The brain's own domain, when it has one.
+   *
+   * Needed to recognise itself: a directory scan that does not know its own
+   * domain introduces the brain to itself as a peer.
+   */
+  readonly domain: string | undefined;
   readonly logger: LoggerContract;
 }
 

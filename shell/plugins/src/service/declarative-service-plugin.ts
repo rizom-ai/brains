@@ -18,7 +18,6 @@ import {
 } from "@brains/templates";
 import type { EntityReactionContext } from "../entity/entity-definition-contract";
 import type { InboxItemDetail } from "../inbox-registry";
-import type { RuntimeStateScopeOptions } from "@brains/runtime-state";
 import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
 import type {
@@ -42,6 +41,7 @@ import {
 } from "../package-definition";
 import type { AnyEntityDefinition } from "../entity/entity-definition-contract";
 import { createEvalFixtures } from "../entity/eval-fixtures";
+import { createReactionContext } from "./reaction-context";
 import { createJobEntityAccess } from "../job/job-entity-access";
 import { ServicePlugin } from "./service-plugin";
 import type { ServicePluginContext } from "./context";
@@ -872,34 +872,13 @@ class DeclarativeServicePlugin<
    * What a declaration is given when the runtime hands it something to do.
    */
   private reaction(): EntityReactionContext {
-    const context = this.getContext();
-    return {
-      entities: createJobEntityAccess(
-        context.entityService,
-        new Set((this.definition.entities ?? []).map(({ type }) => type)),
-        this.publicId,
-      ),
-      messaging: {
-        publish: async (message: {
-          readonly topic: string;
-          readonly data: object;
-        }): Promise<void> => {
-          await context.messaging.send({
-            type: message.topic,
-            payload: message.data,
-          });
-        },
-      },
-      // Namespaced under the declaring package, so two services cannot read
-      // or corrupt each other's notes.
-      state: <TValue>(options: RuntimeStateScopeOptions<TValue>) =>
-        context.runtimeState.scoped({
-          ...options,
-          namespace: `${this.publicId}.${options.namespace}`,
-        }),
-      permissions: context.permissions,
+    return createReactionContext({
+      context: this.getContext(),
+      pluginId: this.publicId,
+      packageName: this.packageName,
+      entityTypes: (this.definition.entities ?? []).map(({ type }) => type),
       logger: this.logger,
-    };
+    });
   }
 
   private runtimeTool(definition: AnyServiceToolDefinition): Tool {
@@ -933,7 +912,10 @@ class DeclarativeServicePlugin<
             return {
               needsConfirmation: true,
               toolName: name,
-              summary: definition.confirmation,
+              summary:
+                typeof definition.confirmation === "function"
+                  ? definition.confirmation(input)
+                  : definition.confirmation,
               args: confirmations.buildArgs((confirmationToken) => ({
                 ...z.record(z.string(), z.unknown()).parse(input),
                 [confirmationTokenField]: confirmationToken,
@@ -946,6 +928,7 @@ class DeclarativeServicePlugin<
               ...this.reaction(),
               input,
               signal: toolContext.signal ?? new AbortController().signal,
+              caller: toolContext,
             }),
           );
           return {

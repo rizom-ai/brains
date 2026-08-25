@@ -302,6 +302,7 @@ export {
 } from "./public/entity-data-source";
 export {
   defineEntity,
+  frontmatterInContent,
   defineEntityDashboardWidget,
   defineEntityPackage,
   defineProjection,
@@ -363,6 +364,7 @@ export {
   type ServiceJobReference,
   type ServiceJobStatus,
   type ServicePackageDefinition,
+  type ServiceToolDefinition,
   type ServicePublishDeclaration,
   type WorkspaceActionConfirmation,
   type WorkspaceActionDefinition,

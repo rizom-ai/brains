@@ -34,6 +34,7 @@ export type {
   ServiceJobReference,
   ServiceJobStatus,
   ServicePackageDefinition,
+  ServiceToolDefinition,
   WorkspaceActionConfirmation,
   WorkspaceActionDefinition,
   ServicePublishDeclaration,

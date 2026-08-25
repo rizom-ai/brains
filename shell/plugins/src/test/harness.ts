@@ -22,6 +22,8 @@ import type {
 } from "@brains/entity-service";
 import type { IAttachmentsNamespace } from "../service/attachment-registry";
 import { createMockShell, type MockShell } from "@brains/test-utils";
+import { createReactionContext } from "../service/reaction-context";
+import type { EntityReactionContext } from "../entity/entity-definition-contract";
 import {
   createServicePluginContext,
   type ServicePluginContext,
@@ -58,11 +60,13 @@ export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
   private plugin: TPlugin | undefined;
   private capabilities: PluginCapabilities | undefined;
   private readonly options: HarnessOptions;
+  private readonly logger: Logger;
 
   constructor(options: HarnessOptions = {}) {
     this.options = options;
     const logger =
       options.logger ?? createSilentLogger(options.logContext ?? "plugin-test");
+    this.logger = logger;
     const mockShellOptions: {
       logger: Logger;
       dataDir?: string;
@@ -208,6 +212,30 @@ export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
    */
   getServiceContext(pluginId: string): ServicePluginContext {
     return createServicePluginContext(this.mockShell, pluginId);
+  }
+
+  /**
+   * The context a declared check, inbox action or tool runs in.
+   *
+   * A declaration is a plain object, so the only thing standing between a
+   * test and running one is this. Entity types default to whatever the
+   * harness has registered, which is what the package under test declared.
+   */
+  getReactionContext(
+    pluginId: string,
+    entityTypes?: Iterable<string>,
+  ): EntityReactionContext {
+    return createReactionContext({
+      context: this.getServiceContext(pluginId),
+      pluginId,
+      // Notes belong to the package, and a plugin id from a package is
+      // `${packageName}:${localId}` — so the package is its first segment.
+      packageName: pluginId.includes(":")
+        ? pluginId.slice(0, pluginId.lastIndexOf(":"))
+        : pluginId,
+      entityTypes: entityTypes ?? this.getEntityService().getEntityTypes(),
+      logger: this.logger,
+    });
   }
 
   /**

@@ -1,12 +1,11 @@
 import {
   inboxItemListSchema,
-  type InboxActor,
+  type EntityInboxDeclaration,
+  type EntityReactionContext,
   type InboxItem,
   type InboxItemDetail,
-  type InboxSource,
-  type ServicePluginContext,
-} from "@brains/plugins";
-import { AgentAdapter } from "./adapters/agent-adapter";
+} from "@brains/sdk/entities";
+import { createAgentContent, parseAgentEntity } from "./lib/agent-content";
 import { AGENT_ENTITY_TYPE } from "./lib/constants";
 import { agentEntitySchema, type AgentEntity } from "./schemas/agent";
 
@@ -15,54 +14,35 @@ const DETAIL_LIMIT = 50_000;
 const CONNECT_ACTION_ID = "connect";
 const DISMISS_ACTION_ID = "dismiss";
 
-const agentAdapter = new AgentAdapter();
+/**
+ * Second-order agents — brains a peer's directory mentioned — as individual
+ * items someone can act on.
+ *
+ * A sighting is not yet a contact: connecting to one is a decision, so each
+ * arrives with its own approve and dismiss rather than as a rollup.
+ */
+export const agentSightingsInbox: EntityInboxDeclaration = {
+  sourceId: "agent-sightings",
+  displayName: "Agent sightings",
 
-type AgentSightingContext = Pick<
-  ServicePluginContext,
-  "entityService" | "permissions"
->;
-
-/** Projects second-order agents as individual, actionable Inbox items. */
-export class AgentSightingsInboxSource implements InboxSource {
-  readonly sourceId: string = "agent-sightings";
-  readonly displayName: string = "Agent sightings";
-
-  private readonly context: AgentSightingContext;
-
-  constructor(context: AgentSightingContext) {
-    this.context = context;
-  }
-
-  async list(): Promise<InboxItem[]> {
-    const entities = await this.context.entityService.listEntities<AgentEntity>(
-      {
-        entityType: AGENT_ENTITY_TYPE,
-        options: {
-          limit: SIGHTING_LIMIT,
-          sortFields: [{ field: "discoveredAt", direction: "desc" }],
-          filter: { metadata: { status: "discovered" } },
-        },
+  list: async (context) => {
+    const entities = await context.entities.listEntities<AgentEntity>({
+      entityType: AGENT_ENTITY_TYPE,
+      options: {
+        limit: SIGHTING_LIMIT,
+        sortFields: [{ field: "created", direction: "desc" }],
       },
-    );
-
+    });
     return inboxItemListSchema.parse(
       entities.flatMap((entity) => {
         const parsed = parseSighting(entity);
-        if (!parsed) return [];
-        return [toInboxItem(entity, parsed)];
+        return parsed ? [toInboxItem(entity, parsed)] : [];
       }),
     );
-  }
+  },
 
-  async resolveDetail(
-    itemId: string,
-    actor: InboxActor,
-    signal: AbortSignal,
-  ): Promise<InboxItemDetail> {
-    assertAdmin(actor);
-    signal.throwIfAborted();
-    const entity = await this.getSighting(itemId);
-    signal.throwIfAborted();
+  resolveDetail: async (context, itemId): Promise<InboxItemDetail> => {
+    const entity = await requireSighting(context, itemId);
     const parsed = parseSighting(entity);
     if (!parsed) throw new Error("Agent sighting not found");
     const text = detailText(entity, parsed);
@@ -71,58 +51,63 @@ export class AgentSightingsInboxSource implements InboxSource {
       text: text.slice(0, DETAIL_LIMIT),
       truncated: text.length > DETAIL_LIMIT,
     };
-  }
+  },
 
-  async act(
-    itemId: string,
-    actionId: string,
-    actor: InboxActor,
-  ): Promise<void> {
-    assertAdmin(actor);
+  act: async (context, itemId, actionId, actor) => {
     if (actionId !== CONNECT_ACTION_ID && actionId !== DISMISS_ACTION_ID) {
       throw new Error("Invalid agent sighting Inbox action");
     }
-    this.context.permissions.assertEntityActionAllowed(
-      AGENT_ENTITY_TYPE,
-      "update",
-      { userPermissionLevel: actor.permissionLevel },
-    );
+    // Connecting changes who the brain trusts, so it is checked against the
+    // actor rather than against whoever registered the source — and against
+    // admin specifically, not whatever the type's update policy allows.
+    // Approving a contact is a decision about the network, not an edit.
+    if (actor.permissionLevel !== "admin") {
+      throw new Error("Agent sightings require admin permission");
+    }
+    context.permissions.assertEntityActionAllowed(AGENT_ENTITY_TYPE, "update", {
+      userPermissionLevel: actor.permissionLevel,
+    });
 
-    const entity = await this.getSighting(itemId);
+    const entity = await requireSighting(context, itemId);
     const parsed = parseSighting(entity);
     if (!parsed) throw new Error("Agent sighting not found");
-    const status = actionId === CONNECT_ACTION_ID ? "approved" : "archived";
-    const content = agentAdapter.createAgentContent({
-      ...parsed.frontmatter,
-      ...parsed.body,
-      status,
-      ...(status === "approved"
-        ? { introducedBy: undefined, hops: undefined }
-        : {}),
-    });
-    await this.context.entityService.updateEntity({
-      entity: {
-        ...entity,
-        content,
-        metadata: { ...entity.metadata, status },
-      },
-    });
-  }
 
-  private async getSighting(itemId: string): Promise<AgentEntity> {
-    const entity = await this.context.entityService.getEntity<AgentEntity>({
-      entityType: AGENT_ENTITY_TYPE,
-      id: itemId,
+    const status = actionId === CONNECT_ACTION_ID ? "approved" : "archived";
+    await context.entities.update({
+      ...entity,
+      content: createAgentContent({
+        ...parsed.frontmatter,
+        ...parsed.body,
+        status,
+        // An approved agent is a contact in its own right; how it was
+        // introduced stops being how it is described.
+        ...(status === "approved"
+          ? { introducedBy: undefined, hops: undefined }
+          : {}),
+      }),
+      metadata: { ...entity.metadata, status },
     });
-    if (!entity) throw new Error("Agent sighting not found");
-    return agentEntitySchema.parse(entity);
-  }
+  },
+};
+
+async function requireSighting(
+  context: AgentSightingContext,
+  itemId: string,
+): Promise<AgentEntity> {
+  const entity = await context.entities.getEntity<AgentEntity>({
+    entityType: AGENT_ENTITY_TYPE,
+    id: itemId,
+  });
+  if (!entity) throw new Error("Agent sighting not found");
+  return agentEntitySchema.parse(entity);
 }
 
-type ParsedSighting = ReturnType<AgentAdapter["parseEntity"]>;
+type AgentSightingContext = EntityReactionContext;
+
+type ParsedSighting = ReturnType<typeof parseAgentEntity>;
 
 function parseSighting(entity: AgentEntity): ParsedSighting | undefined {
-  const parsed = agentAdapter.parseEntity(agentEntitySchema.parse(entity));
+  const parsed = parseAgentEntity(agentEntitySchema.parse(entity));
   return parsed.frontmatter.status === "discovered" &&
     (parsed.frontmatter.introducedBy?.length ?? 0) > 0
     ? parsed
@@ -194,10 +179,4 @@ function truncate(value: string, maxLength: number): string {
   return value.length <= maxLength
     ? value
     : `${value.slice(0, maxLength - 1)}…`;
-}
-
-function assertAdmin(actor: InboxActor): void {
-  if (actor.permissionLevel !== "admin") {
-    throw new Error("Agent sightings require admin permission");
-  }
 }

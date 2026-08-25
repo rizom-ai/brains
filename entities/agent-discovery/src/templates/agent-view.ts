@@ -1,8 +1,14 @@
+/*
+ * Aliases rather than interfaces, deliberately: only an alias gets an implicit
+ * index signature, and a data source hands the renderer plain JSON, which
+ * means every shape on the way down has to satisfy `JsonObject`.
+ */
+/* eslint-disable @typescript-eslint/consistent-type-definitions */
 import { anchorProfileKindSchema } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import type { AgentSkill, AgentStatus } from "../schemas/agent";
 
-interface AgentViewMetadata {
+type AgentViewMetadata = {
   name: string;
   url: string;
   status: AgentStatus;
@@ -14,9 +20,9 @@ interface AgentViewMetadata {
   cardUri: string | null;
   cardCid: string | null;
   a2aEndpoint: string | null;
-}
+};
 
-interface AgentViewFrontmatter {
+type AgentViewFrontmatter = {
   name: string;
   kind: "person" | "team" | "organization";
   organization: string | null;
@@ -33,9 +39,9 @@ interface AgentViewFrontmatter {
   hops: number | null;
   status: AgentStatus;
   discoveredAt: string;
-}
+};
 
-export interface AgentSchemaData {
+export type AgentSchemaData = {
   id: string;
   entityType: "agent";
   content: string;
@@ -50,7 +56,7 @@ export interface AgentSchemaData {
   notes: string;
   url: string | null;
   typeLabel: string | null;
-}
+};
 
 const nullableString = z.string().nullable().default(null);
 const visibilitySchema = z

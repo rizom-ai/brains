@@ -1,24 +1,59 @@
 import { describe, expect, it } from "bun:test";
 import type { Plugin } from "@brains/plugins";
 import { createPluginHarness } from "@brains/plugins/test";
-import { AgentAdapter } from "../src/adapters/agent-adapter";
-import { AgentSightingsInboxSource } from "../src/inbox-source";
-import { AgentDiscoveryPlugin } from "../src/plugins/agent-plugin";
+import { parseAgentEntity } from "../src/lib/agent-content";
+import { instantiatePluginPackageDefinition } from "@brains/plugins";
+import { agentSightingsInbox } from "../src/inbox-source";
+import agentDiscovery from "../src";
+import { AGENT_PLUGIN_ID } from "./fixtures/agent-network";
 import { createTestAgent } from "./fixtures/agent";
 
-const agentAdapter = new AgentAdapter();
-
+/**
+ * The declaration, bound to a context the way the runtime binds it.
+ *
+ * The declaration is a plain object; binding is all a caller has to do.
+ */
 async function createSource(): Promise<{
   harness: ReturnType<typeof createPluginHarness<Plugin>>;
-  source: AgentSightingsInboxSource;
+  source: {
+    list: () => ReturnType<typeof agentSightingsInbox.list>;
+    resolveDetail: (
+      ...args: Parameters<
+        NonNullable<typeof agentSightingsInbox.resolveDetail>
+      > extends [unknown, ...infer TRest]
+        ? TRest
+        : never
+    ) => ReturnType<NonNullable<typeof agentSightingsInbox.resolveDetail>>;
+    act: (
+      ...args: Parameters<typeof agentSightingsInbox.act> extends [
+        unknown,
+        ...infer TRest,
+      ]
+        ? TRest
+        : never
+    ) => ReturnType<typeof agentSightingsInbox.act>;
+  };
 }> {
   const harness = createPluginHarness<Plugin>();
-  await harness.installPlugin(new AgentDiscoveryPlugin());
+  const plugins = instantiatePluginPackageDefinition(
+    agentDiscovery,
+    {},
+    {
+      name: "@brains/agent-discovery",
+      version: "0.1.0",
+    },
+  );
+  for (const plugin of plugins as Plugin[]) await harness.installPlugin(plugin);
+  const context = harness.getReactionContext(AGENT_PLUGIN_ID);
+  const resolveDetail = agentSightingsInbox.resolveDetail;
+  if (!resolveDetail) throw new Error("The sightings inbox resolves no detail");
   return {
     harness,
-    source: new AgentSightingsInboxSource(
-      harness.getServiceContext("agent-discovery"),
-    ),
+    source: {
+      list: () => agentSightingsInbox.list(context),
+      resolveDetail: (...args) => resolveDetail(context, ...args),
+      act: (...args) => agentSightingsInbox.act(context, ...args),
+    },
   };
 }
 
@@ -135,12 +170,11 @@ describe("agent sightings Inbox source", () => {
     expect(connected?.metadata["status"]).toBe("approved");
     expect(dismissed?.metadata["status"]).toBe("archived");
     if (!connected || !dismissed) throw new Error("Expected saved agents");
-    const connectedFrontmatter =
-      agentAdapter.parseEntity(connected).frontmatter;
+    const connectedFrontmatter = parseAgentEntity(connected).frontmatter;
     expect(connectedFrontmatter.status).toBe("approved");
     expect(connectedFrontmatter.introducedBy).toBeUndefined();
     expect(connectedFrontmatter.hops).toBeUndefined();
-    expect(agentAdapter.parseEntity(dismissed).frontmatter).toMatchObject({
+    expect(parseAgentEntity(dismissed).frontmatter).toMatchObject({
       status: "archived",
       introducedBy: ["kai.brain"],
       hops: 2,

@@ -73,7 +73,7 @@ describe("buildProximityMapData", () => {
     const project = mock(async () => projection);
 
     const result = await buildProximityMapData({
-      entityService: { listEntities } as never,
+      entities: { listEntities } as never,
       semantic: { project },
     });
 
@@ -128,7 +128,7 @@ describe("buildProximityMapData", () => {
 
   test("surfaces centroid fallback and ignores projection points without agents", async () => {
     const result = await buildProximityMapData({
-      entityService: {
+      entities: {
         listEntities: (async (request: { entityType: string }) =>
           request.entityType === "agent"
             ? [createTestAgent({ id: "known" })]
@@ -245,7 +245,7 @@ describe("buildProximityMapData", () => {
     }));
 
     const result = await buildProximityMapData({
-      entityService: {
+      entities: {
         listEntities: (async () => agents) as never,
       },
       semantic: { project },

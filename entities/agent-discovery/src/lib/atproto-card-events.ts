@@ -1,27 +1,30 @@
 import {
   ATPROTO_BRAIN_CARD_CONFLICT,
-  ATPROTO_BRAIN_CARD_DISCOVERED,
   ATPROTO_BRAIN_CARD_REFRESHED,
-  ATPROTO_BRAIN_CARD_UNAVAILABLE,
   ATPROTO_BRAIN_DISCOVERED,
   atprotoBrainCardDiscoveredPayloadSchema,
-  atprotoBrainCardUnavailablePayloadSchema,
   type AtprotoBrainCardRecord,
   type AtprotoBrainDiscoveryEventPayload,
 } from "@brains/atproto-contracts";
-import type { EntityPluginContext } from "@brains/plugins";
-import { getErrorMessage } from "@brains/utils/error";
+import {
+  getErrorMessage,
+  slugifyUrl,
+  z,
+  type EntityAtprotoDiscovery,
+  type EntityReactionContext,
+} from "@brains/sdk/entities";
+import { createAgentContent, parseAgentEntity } from "./agent-content";
 import {
   createSafePublicFetch,
   type ResolveHostname,
 } from "@brains/utils/safe-public-fetch";
-import { slugifyUrl } from "@brains/utils/string-utils";
-import { z } from "@brains/utils/zod";
-import { AgentAdapter } from "../adapters/agent-adapter";
 import type { FetchFn } from "./fetch-agent-card";
 import type { AgentEntity, AgentSkill, AgentStatus } from "../schemas/agent";
+import {
+  recordConflict,
+  recordDiscoveryCandidate,
+} from "./atproto-notifications";
 
-const agentAdapter = new AgentAdapter();
 const CARD_UNAVAILABLE_FAILURE_THRESHOLD = 3;
 const pdsRecordResponseSchema = z.looseObject({
   uri: z.string().min(1),
@@ -76,19 +79,15 @@ function buildEventPayload(input: {
 }
 
 async function emitDiscoveryEvent(
-  context: EntityPluginContext,
+  context: EntityReactionContext,
   type: typeof ATPROTO_BRAIN_DISCOVERED | typeof ATPROTO_BRAIN_CARD_REFRESHED,
   payload: AtprotoBrainDiscoveryEventPayload,
 ): Promise<void> {
-  await context.messaging.send({
-    type,
-    payload,
-    broadcast: true,
-  });
+  await context.messaging.publish({ topic: type, data: payload });
 }
 
 export async function upsertAgentFromCard(
-  context: EntityPluginContext,
+  context: EntityReactionContext,
   input: {
     repoDid: string;
     uri: string;
@@ -105,7 +104,7 @@ export async function upsertAgentFromCard(
     );
   }
   const agentId = domainIdFromUrl(siteUrl);
-  const existing = await context.entityService.getEntity<AgentEntity>({
+  const existing = await context.entities.getEntity<AgentEntity>({
     entityType: "agent",
     id: agentId,
   });
@@ -113,23 +112,22 @@ export async function upsertAgentFromCard(
     existing?.metadata.repoDid &&
     existing.metadata.repoDid !== input.repoDid
   ) {
-    await context.messaging.send({
-      type: ATPROTO_BRAIN_CARD_CONFLICT,
-      payload: {
-        domain: agentId,
-        existingRepoDid: existing.metadata.repoDid,
-        candidateRepoDid: input.repoDid,
-        observedAt: now,
-        reason: "A different repo DID claimed an existing agent domain",
-      },
-      broadcast: true,
+    const conflict = {
+      domain: agentId,
+      existingRepoDid: existing.metadata.repoDid,
+      candidateRepoDid: input.repoDid,
+      observedAt: now,
+      reason: "A different repo DID claimed an existing agent domain",
+    };
+    await context.messaging.publish({
+      topic: ATPROTO_BRAIN_CARD_CONFLICT,
+      data: conflict,
     });
+    await recordConflict(context, conflict);
     return { agent: existing, created: false, conflict: true };
   }
 
-  const existingParsed = existing
-    ? agentAdapter.parseEntity(existing)
-    : undefined;
+  const existingParsed = existing ? parseAgentEntity(existing) : undefined;
 
   const brainDid = record.brain.did;
   const anchorDid = record.anchor.did;
@@ -180,7 +178,7 @@ export async function upsertAgentFromCard(
     cardLastCheckedAt: now,
   };
 
-  const content = agentAdapter.createAgentContent({
+  const content = createAgentContent({
     name,
     kind,
     ...(existingParsed?.frontmatter.organization && {
@@ -212,7 +210,7 @@ export async function upsertAgentFromCard(
       metadata,
       updated: now,
     };
-    await context.entityService.updateEntity({ entity: updated });
+    await context.entities.update(updated);
     return { agent: updated, created: false };
   }
 
@@ -226,12 +224,12 @@ export async function upsertAgentFromCard(
     created: now,
     updated: now,
   };
-  await context.entityService.createEntity({ entity: agent });
+  await context.entities.create(agent);
   return { agent, created: true };
 }
 
 async function markAgentCardUnavailable(
-  context: EntityPluginContext,
+  context: EntityReactionContext,
   agent: AgentEntity,
   input: {
     observedAt: string;
@@ -240,7 +238,7 @@ async function markAgentCardUnavailable(
     error?: string | undefined;
   },
 ): Promise<void> {
-  const parsed = agentAdapter.parseEntity(agent);
+  const parsed = parseAgentEntity(agent);
   const error =
     input.error ??
     (input.reason === "deleted"
@@ -254,7 +252,7 @@ async function markAgentCardUnavailable(
     cardUnavailableAt: input.observedAt,
     ...(input.staleAfter && { cardStaleAfter: input.staleAfter }),
   };
-  const content = agentAdapter.createAgentContent({
+  const content = createAgentContent({
     name: parsed.frontmatter.name,
     kind: parsed.frontmatter.kind,
     ...(parsed.frontmatter.organization && {
@@ -296,13 +294,11 @@ async function markAgentCardUnavailable(
     notes: parsed.body.notes,
   });
 
-  await context.entityService.updateEntity({
-    entity: {
-      ...agent,
-      metadata,
-      content,
-      updated: input.observedAt,
-    },
+  await context.entities.update({
+    ...agent,
+    metadata,
+    content,
+    updated: input.observedAt,
   });
 }
 
@@ -394,12 +390,12 @@ async function fetchBrainCardSnapshot(input: {
 }
 
 async function markAgentCardRefreshFailure(
-  context: EntityPluginContext,
+  context: EntityReactionContext,
   agent: AgentEntity,
   error: unknown,
   now: string,
 ): Promise<void> {
-  const parsed = agentAdapter.parseEntity(agent);
+  const parsed = parseAgentEntity(agent);
   const errorMessage = getErrorMessage(error);
   const cardFailureCount = (agent.metadata.cardFailureCount ?? 0) + 1;
   const cardUnavailableAt =
@@ -413,7 +409,7 @@ async function markAgentCardRefreshFailure(
     cardFailureCount,
     ...(cardUnavailableAt && { cardUnavailableAt }),
   };
-  const content = agentAdapter.createAgentContent({
+  const content = createAgentContent({
     name: parsed.frontmatter.name,
     kind: parsed.frontmatter.kind,
     ...(parsed.frontmatter.organization && {
@@ -457,23 +453,21 @@ async function markAgentCardRefreshFailure(
     notes: parsed.body.notes,
   });
 
-  await context.entityService.updateEntity({
-    entity: {
-      ...agent,
-      metadata,
-      content,
-      updated: now,
-    },
+  await context.entities.update({
+    ...agent,
+    metadata,
+    content,
+    updated: now,
   });
 }
 
 async function archiveExpiredStaleCandidate(
-  context: EntityPluginContext,
+  context: EntityReactionContext,
   agent: AgentEntity,
   now: string,
 ): Promise<void> {
-  const parsed = agentAdapter.parseEntity(agent);
-  const content = agentAdapter.createAgentContent({
+  const parsed = parseAgentEntity(agent);
+  const content = createAgentContent({
     name: parsed.frontmatter.name,
     kind: parsed.frontmatter.kind,
     ...(parsed.frontmatter.organization && {
@@ -524,18 +518,16 @@ async function archiveExpiredStaleCandidate(
     skills: parsed.body.skills,
     notes: parsed.body.notes,
   });
-  await context.entityService.updateEntity({
-    entity: {
-      ...agent,
-      content,
-      metadata: { ...agent.metadata, status: "archived" },
-      updated: now,
-    },
+  await context.entities.update({
+    ...agent,
+    content,
+    metadata: { ...agent.metadata, status: "archived" },
+    updated: now,
   });
 }
 
 export async function refreshKnownAgentCards(
-  context: EntityPluginContext,
+  context: EntityReactionContext,
   fetchFn?: AtprotoCardFetch,
   signal?: AbortSignal,
   now: string = new Date().toISOString(),
@@ -547,7 +539,7 @@ export async function refreshKnownAgentCards(
     unchanged: 0,
     failed: 0,
   };
-  const agents = await context.entityService.listEntities<AgentEntity>({
+  const agents = await context.entities.listEntities<AgentEntity>({
     entityType: "agent",
   });
   const rawFetch = getFetch(fetchFn);
@@ -609,51 +601,54 @@ export async function refreshKnownAgentCards(
   return result;
 }
 
-export function registerAtprotoBrainCardHandlers(
-  context: EntityPluginContext,
-): void {
-  context.messaging.subscribe(
-    ATPROTO_BRAIN_CARD_DISCOVERED,
-    async (message) => {
-      const parsed = atprotoBrainCardDiscoveredPayloadSchema.parse(
-        message.payload,
-      );
-      const result = await upsertAgentFromCard(context, parsed);
-      if (result.conflict) return { success: true };
-      const eventPayload = buildEventPayload({
-        agent: result.agent,
-        repoDid: parsed.repoDid,
-        uri: parsed.uri,
-        cid: parsed.cid,
-        record: parsed.record,
-      });
-      await emitDiscoveryEvent(
-        context,
-        result.created
-          ? ATPROTO_BRAIN_DISCOVERED
-          : ATPROTO_BRAIN_CARD_REFRESHED,
-        eventPayload,
-      );
-      return { success: true, data: eventPayload };
-    },
-  );
+/**
+ * What a brain card found on the network means to the directory.
+ *
+ * Declared: the channel, the parse and the reply are the runtime's, and this
+ * says only what a discovered or vanished card does to the local record.
+ */
+export const agentDiscoveryFromCards: EntityAtprotoDiscovery = {
+  onCardDiscovered: async (context, card) => {
+    const result = await upsertAgentFromCard(context, card);
+    // A conflict is already reported by the upsert; announcing a discovery
+    // on top of it would claim something the directory did not do.
+    if (result.conflict) return undefined;
 
-  context.messaging.subscribe(
-    ATPROTO_BRAIN_CARD_UNAVAILABLE,
-    async (message) => {
-      const parsed = atprotoBrainCardUnavailablePayloadSchema.parse(
-        message.payload,
+    const payload = buildEventPayload({
+      agent: result.agent,
+      repoDid: card.repoDid,
+      uri: card.uri,
+      cid: card.cid,
+      record: card.record,
+    });
+    await emitDiscoveryEvent(
+      context,
+      result.created ? ATPROTO_BRAIN_DISCOVERED : ATPROTO_BRAIN_CARD_REFRESHED,
+      payload,
+    );
+    // Noted here rather than by subscribing to the event this package just
+    // published: a scan running straight after a discovery would race a
+    // delivery that had not landed yet.
+    if (result.created) {
+      await recordDiscoveryCandidate(
+        context,
+        payload,
+        new Date().toISOString(),
       );
-      const agents = await context.entityService.listEntities<AgentEntity>({
-        entityType: "agent",
-      });
-      const matching = agents.filter(
-        (agent) => agent.metadata.repoDid === parsed.repoDid,
-      );
-      for (const agent of matching) {
-        await markAgentCardUnavailable(context, agent, parsed);
-      }
-      return { success: true, data: { updated: matching.length } };
-    },
-  );
-}
+    }
+    return payload;
+  },
+
+  onCardUnavailable: async (context, card) => {
+    const agents = await context.entities.listEntities<AgentEntity>({
+      entityType: "agent",
+    });
+    const matching = agents.filter(
+      (agent) => agent.metadata.repoDid === card.repoDid,
+    );
+    for (const agent of matching) {
+      await markAgentCardUnavailable(context, agent, card);
+    }
+    return { updated: matching.length };
+  },
+};

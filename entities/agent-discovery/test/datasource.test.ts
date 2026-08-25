@@ -1,5 +1,7 @@
 import { describe, it, expect, beforeEach, spyOn } from "bun:test";
-import { AgentDataSource } from "../src/datasources/agent-datasource";
+import { createDeclarativeEntityDataSource } from "@brains/plugins";
+import { fetchable, type FetchableDataSource } from "@brains/test-utils";
+import { agentDataSource } from "../src/datasources/agent-datasource";
 import type { AgentEntity, AgentStatus } from "../src/schemas/agent";
 import type { IEntityService, BaseDataSourceContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
@@ -27,8 +29,8 @@ function createMockAgent(
   });
 }
 
-describe("AgentDataSource", () => {
-  let datasource: AgentDataSource;
+describe("agent data source", () => {
+  let datasource: FetchableDataSource;
   let mockEntityService: IEntityService;
   let mockLogger: Logger;
   let mockContext: BaseDataSourceContext;
@@ -37,12 +39,20 @@ describe("AgentDataSource", () => {
     mockLogger = createMockLogger();
     mockEntityService = createMockEntityService();
     mockContext = { entityService: mockEntityService };
-    datasource = new AgentDataSource(mockLogger);
+    // Built the way the runtime builds it, so the test covers the
+    // assembly and not just the three functions the declaration supplies.
+    datasource = fetchable(
+      createDeclarativeEntityDataSource(
+        agentDataSource,
+        "agents:entities",
+        mockLogger,
+      ),
+    );
   });
 
   describe("metadata", () => {
     it("should have correct datasource ID", () => {
-      expect(datasource.id).toBe("agent-discovery:entities");
+      expect(datasource.id).toBe("agents:entities");
     });
 
     it("should have descriptive name and description", () => {
@@ -142,10 +152,7 @@ describe("AgentDataSource", () => {
     it("should return single agent with parsed sections", async () => {
       const agent = createMockAgent("agent-1", "Yeehaa", "approved");
 
-      // First call: lookup by slug, second: all for navigation
-      spyOn(mockEntityService, "listEntities")
-        .mockResolvedValueOnce([agent])
-        .mockResolvedValueOnce([agent]);
+      spyOn(mockEntityService, "listEntities").mockResolvedValue([agent]);
 
       const result = await datasource.fetch(
         { query: { id: "yeehaa" } },
@@ -164,9 +171,11 @@ describe("AgentDataSource", () => {
       const gamma = createMockAgent("agent-3", "Gamma", "approved");
       const agents = [alpha, beta, gamma];
 
+      // The lookup runs alongside the sibling fetch, so which later call is
+      // navigation and which is siblings is not fixed. Both want the set.
       spyOn(mockEntityService, "listEntities")
         .mockResolvedValueOnce([beta])
-        .mockResolvedValueOnce(agents);
+        .mockResolvedValue(agents);
 
       const result = await datasource.fetch(
         { query: { id: "beta" } },

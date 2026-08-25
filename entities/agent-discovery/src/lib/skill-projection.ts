@@ -7,7 +7,7 @@ import {
 } from "@brains/plugins";
 import { generateIdFromText } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
-import { SkillAdapter } from "../adapters/skill-adapter";
+import { createSkillContent } from "./directory-markdown";
 import type { AgentEntity } from "../schemas/agent";
 import {
   skillFrontmatterSchema,
@@ -20,7 +20,7 @@ import {
   SKILL_DERIVATION_TEMPLATE_REF,
   SKILL_ENTITY_TYPE,
 } from "./constants";
-import { buildSkillPrompt } from "./skill-deriver";
+import { buildSkillPrompt } from "./skill-prompt";
 import { buildTagVocabulary } from "./tag-vocabulary";
 
 const topicMetadataSchema = z.looseObject({ name: z.string().optional() });
@@ -148,7 +148,7 @@ async function deriveSkillIntents(
       skill,
     ]),
   );
-  const adapter = new SkillAdapter();
+  // A skill someone authored is not this derivation's to overwrite.
   const authoredIds = new Set(
     input.existingSkills
       .filter((skill) => !skill.projectionOwned)
@@ -161,7 +161,7 @@ async function deriveSkillIntents(
       entity: {
         id,
         entityType: SKILL_ENTITY_TYPE,
-        content: adapter.createSkillContent(skill),
+        content: createSkillContent(skill),
         metadata: skill,
         visibility: input.targetVisibility,
       },

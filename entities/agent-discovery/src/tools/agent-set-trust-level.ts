@@ -1,23 +1,19 @@
 import { getActiveAuthService } from "@brains/auth-service";
 import { authenticatedUserId } from "@brains/contracts";
 import { keyFingerprint } from "@brains/http-signatures";
-import type {
-  EntityPluginContext,
-  ServicePluginContext,
-} from "@brains/plugins";
-import {
-  createConfirmationGate,
-  type Tool,
-  type ToolResponse,
-} from "@brains/plugins";
-import { z } from "@brains/utils/zod";
+import { z, type EntityReactionContext } from "@brains/sdk/entities";
+import { defineTool, type ServiceToolDefinition } from "@brains/sdk/services";
 import { AGENT_ENTITY_TYPE } from "../lib/constants";
 import { extractDomain, type FetchFn } from "../lib/fetch-agent-card";
 import type { AgentEntity } from "../schemas/agent";
 
-const trustLevelSchema = z.enum(["public", "trusted"]);
+const trustLevelSchema: z.ZodEnum<{ public: "public"; trusted: "trusted" }> =
+  z.enum(["public", "trusted"]);
 
-const agentSetTrustLevelInputSchema = z.object({
+const agentSetTrustLevelInputSchema: z.ZodObject<{
+  agent: z.ZodString;
+  level: typeof trustLevelSchema;
+}> = z.object({
   agent: z
     .string()
     .min(1)
@@ -25,17 +21,9 @@ const agentSetTrustLevelInputSchema = z.object({
   level: trustLevelSchema.describe(
     "Inbound A2A trust level. Use trusted to grant trusted inbound access, public to revoke it.",
   ),
-  confirmed: z.boolean().optional(),
-  confirmationToken: z.string().optional(),
-  keyFingerprint: z.string().optional(),
 });
 
-type AgentSetTrustLevelInput = z.infer<typeof agentSetTrustLevelInputSchema>;
-
-type AgentSetTrustLevelContext = Pick<
-  EntityPluginContext | ServicePluginContext,
-  "entityService"
->;
+type AgentSetTrustLevelContext = EntityReactionContext;
 
 const jwksSchema = z.object({
   keys: z.array(z.unknown()),
@@ -60,7 +48,7 @@ async function resolveAgentDomain(
   agent: string,
 ): Promise<{ domain: string } | null> {
   const id = normalizeAgentLookup(agent);
-  const entity = await context.entityService.getEntity<AgentEntity>({
+  const entity = await context.entities.getEntity<AgentEntity>({
     entityType: AGENT_ENTITY_TYPE,
     id,
   });
@@ -95,135 +83,89 @@ async function fetchA2AKeyFingerprint(
   }
 }
 
-export function createAgentSetTrustLevelTool(
-  context: AgentSetTrustLevelContext,
+const agentSetTrustLevelOutputSchema: z.ZodObject<{
+  agent: z.ZodString;
+  level: z.ZodString;
+  keyFingerprint: z.ZodOptional<z.ZodString>;
+}> = z.object({
+  agent: z.string(),
+  level: z.string(),
+  keyFingerprint: z.string().optional(),
+});
+
+/**
+ * Grant or revoke inbound A2A trust for a saved contact.
+ *
+ * Granting pins the key the peer serves at the moment of the grant. It used
+ * to be fetched before the question was asked and handed back through the
+ * caller, which meant the pinned key was whatever came back rather than
+ * whatever the domain publishes.
+ */
+export function agentSetTrustLevelTool(
   fetchFn: FetchFn = globalThis.fetch,
-): Tool {
-  const toolName = "agent_set_trust_level";
-  const confirmations = createConfirmationGate({
-    label: "agent trust",
-    requestNoun: "the trust change",
-  });
-
-  return {
-    name: toolName,
+): ServiceToolDefinition<
+  "set-trust-level",
+  typeof agentSetTrustLevelInputSchema,
+  typeof agentSetTrustLevelOutputSchema
+> {
+  return defineTool({
+    name: "set-trust-level",
     description:
-      "Grant or revoke inbound A2A trust for a saved contact; this is the only tool for inbound trust changes. To revoke, call directly with level public—no key fingerprint or preliminary lookup is needed. To grant, use level trusted; the tool resolves and pins the peer key. This does not add or remove directory contacts or change outbound calling. Requires confirmation.",
-    inputSchema: agentSetTrustLevelInputSchema.shape,
-    visibility: "admin",
+      "Grant or revoke inbound A2A trust for a saved contact; this is the only tool for inbound trust changes. To revoke, call directly with level public—no key fingerprint or preliminary lookup is needed. To grant, use level trusted; the tool resolves and pins the peer key. This does not add or remove directory contacts or change outbound calling.",
+    input: agentSetTrustLevelInputSchema,
+    output: agentSetTrustLevelOutputSchema,
+    permission: "admin",
     sideEffects: "external",
-    handler: async (rawInput, toolContext): Promise<ToolResponse> => {
-      const parsed = agentSetTrustLevelInputSchema.safeParse(rawInput);
-      if (!parsed.success) {
-        return {
-          success: false,
-          error: `Invalid input: ${parsed.error.issues.map((error) => `${error.path.join(".")}: ${error.message}`).join(", ")}`,
-        };
-      }
-
+    // Names the agent and the direction: approving a trust change without
+    // seeing whose is not a decision anyone can make.
+    confirmation: ({ agent, level }) =>
+      level === "trusted"
+        ? `Grant inbound trusted A2A access to ${agent}? This pins the signing key it publishes right now.`
+        : `Revoke inbound trusted A2A access from ${agent}?`,
+    execute: async ({ input, caller, ...context }) => {
       const authService = getActiveAuthService();
-      const actorUserId = authenticatedUserId(toolContext);
       if (!authService) {
-        return {
-          success: false,
-          error: "Auth service is required to set inbound A2A trust.",
-          code: "auth_service_unavailable",
-        };
+        throw new Error("Auth service is required to set inbound A2A trust.");
       }
 
-      const resolved = await resolveAgentDomain(context, parsed.data.agent);
+      const resolved = await resolveAgentDomain(context, input.agent);
       if (!resolved) {
-        return {
-          success: false,
-          error: `No saved agent contact found for ${parsed.data.agent}. Connect the agent before setting inbound trust.`,
-          code: "agent_not_found",
-        };
-      }
-
-      const input = parsed.data;
-      if (input.confirmed) {
-        const rejection = confirmations.validateConfirmed(
-          input.confirmationToken,
-          input,
+        throw new Error(
+          `No saved agent contact found for ${input.agent}. Connect the agent before setting inbound trust.`,
         );
-        if (rejection) {
-          return rejection;
-        }
-
-        if (input.level === "trusted") {
-          if (!input.keyFingerprint) {
-            return {
-              success: false,
-              error: "Missing key fingerprint for trusted A2A grant.",
-            };
-          }
-          const grant = await authService.grantA2APeerTrust(
-            {
-              domain: resolved.domain,
-              keyFingerprint: input.keyFingerprint,
-              grantedLevel: "trusted",
-            },
-            actorUserId ? { actorUserId } : {},
-          );
-          return {
-            success: true,
-            data: {
-              agent: resolved.domain,
-              level: grant.grantedLevel,
-              keyFingerprint: grant.keyFingerprint,
-            },
-          };
-        }
-
-        await authService.revokeA2APeerTrust(
-          resolved.domain,
-          actorUserId ? { actorUserId } : {},
-        );
-        return {
-          success: true,
-          data: {
-            agent: resolved.domain,
-            level: "public",
-          },
-        };
       }
 
-      const keyFingerprintForTrust =
-        input.level === "trusted"
-          ? await fetchA2AKeyFingerprint(resolved.domain, fetchFn)
-          : undefined;
-      if (input.level === "trusted" && !keyFingerprintForTrust) {
-        return {
-          success: false,
-          error: `Could not fetch an A2A signing key from ${resolved.domain}.`,
-          code: "jwks_unavailable",
-        };
+      const actorUserId = caller ? authenticatedUserId(caller) : undefined;
+      const attribution = actorUserId ? { actorUserId } : {};
+
+      if (input.level === "public") {
+        await authService.revokeA2APeerTrust(resolved.domain, attribution);
+        return { agent: resolved.domain, level: "public" };
       }
 
-      const confirmationArgs = confirmations.buildArgs<AgentSetTrustLevelInput>(
-        (confirmationToken) => ({
-          agent: resolved.domain,
-          level: input.level,
-          confirmed: true,
-          confirmationToken,
-          ...(keyFingerprintForTrust
-            ? { keyFingerprint: keyFingerprintForTrust }
-            : {}),
-        }),
+      const fingerprint = await fetchA2AKeyFingerprint(
+        resolved.domain,
+        fetchFn,
       );
+      if (!fingerprint) {
+        throw new Error(
+          `Could not fetch an A2A signing key from ${resolved.domain}.`,
+        );
+      }
 
-      const isTrusted = input.level === "trusted";
+      const grant = await authService.grantA2APeerTrust(
+        {
+          domain: resolved.domain,
+          keyFingerprint: fingerprint,
+          grantedLevel: "trusted",
+        },
+        attribution,
+      );
       return {
-        needsConfirmation: true,
-        toolName,
-        summary: isTrusted
-          ? `Grant inbound trusted A2A access to ${resolved.domain}?`
-          : `Revoke inbound trusted A2A access from ${resolved.domain}?`,
-        preview: isTrusted
-          ? `This will grant inbound trusted A2A access to ${resolved.domain} and pin key fingerprint ${keyFingerprintForTrust}. It will not add or remove the directory contact.`
-          : `This will revoke inbound trusted A2A access from ${resolved.domain}. The directory contact remains saved for outbound calls.`,
-        args: confirmationArgs,
+        agent: resolved.domain,
+        level: grant.grantedLevel,
+        keyFingerprint: grant.keyFingerprint,
       };
     },
-  };
+  });
 }
