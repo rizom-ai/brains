@@ -59,6 +59,8 @@ import {
   type ContentVisibility,
 } from "@brains/entity-service";
 import type { MessageResponse } from "../contracts/messaging";
+import type { LoggerContract } from "@brains/utils/logger";
+import type { InboxItemDetail } from "../inbox-registry";
 import type {
   AnyEntityDefinition,
   AnyEntityJobDeclaration,
@@ -414,6 +416,8 @@ class DeclarativeEntityPlugin extends EntityPlugin<
   private readonly dataSources: AnyEntityDefinition["dataSources"];
   private readonly attachments: AnyEntityDefinition["attachments"];
   private readonly agentContext: AnyEntityDefinition["agentContext"];
+  private readonly checks: AnyEntityDefinition["checks"];
+  private readonly inbox: AnyEntityDefinition["inbox"];
   private readonly generation: AnyEntityDefinition["generation"];
   private readonly scheduledGeneration: AnyEntityDefinition["scheduledGeneration"];
   private readonly evals: AnyEntityDefinition["evals"];
@@ -472,6 +476,8 @@ class DeclarativeEntityPlugin extends EntityPlugin<
     this.dataSources = definition.dataSources;
     this.attachments = definition.attachments;
     this.agentContext = definition.agentContext;
+    this.checks = definition.checks;
+    this.inbox = definition.inbox;
     this.generation = definition.generation;
     this.scheduledGeneration = definition.scheduledGeneration;
     this.evals = definition.evals;
@@ -905,6 +911,56 @@ class DeclarativeEntityPlugin extends EntityPlugin<
           attachment.type,
           attachment.provider(context),
         ),
+      );
+    }
+
+    const inbox = this.inbox;
+    if (inbox) {
+      const reader = (): {
+        entities: JobEntityAccess;
+        logger: LoggerContract;
+      } => ({ entities: this.entityAccess(context), logger: this.logger });
+      context.inbox.registerSource({
+        sourceId: inbox.sourceId,
+        displayName: inbox.displayName,
+        ...(inbox.facets ? { facets: inbox.facets } : {}),
+        list: () => inbox.list(reader()),
+        ...(inbox.resolveDetail
+          ? {
+              resolveDetail: (
+                itemId,
+                actor,
+                signal,
+              ): Promise<InboxItemDetail> =>
+                inbox.resolveDetail?.(reader(), itemId, actor, signal) ??
+                Promise.reject(new Error("No detail")),
+            }
+          : {}),
+        act: (itemId, actionId, actor) =>
+          inbox.act(reader(), itemId, actionId, actor),
+      });
+    }
+
+    for (const check of this.checks ?? []) {
+      this.releaseOnShutdown.push(
+        context.recurringChecks.register({
+          // Scoped, so two packages can both declare a "freshness" check.
+          id: `${this.id}:${check.id}`,
+          cadence: check.cadence,
+          ...(check.deliverAlerts !== undefined
+            ? { deliverAlerts: check.deliverAlerts }
+            : {}),
+          ...(check.includeInInbox !== undefined
+            ? { includeInInbox: check.includeInInbox }
+            : {}),
+          run: ({ signal }) =>
+            check.run({
+              entities: this.entityAccess(context),
+              conversations: context.conversations,
+              logger: this.logger,
+              signal,
+            }),
+        }),
       );
     }
 
