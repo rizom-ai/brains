@@ -249,6 +249,7 @@ describe("public plugin API", () => {
             id: "test-entity-generation",
             version: "1",
             targetType: this.entityType,
+            targets: { authority: "additive" },
             sources: [{ kind: "entity", types: ["note"] }],
             inputSchema: z.object({}),
             selectInput: async () => ({}),

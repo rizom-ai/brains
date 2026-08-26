@@ -110,6 +110,7 @@ class WaveRuleEntityPlugin extends EntityPlugin<
         version: "1",
         sources: [{ kind: "entity", types: ["document"] }],
         targetType: "wave-item",
+        targets: { authority: "additive" },
         inputSchema: z.object({}),
         selectInput: async () => ({}),
         derive: async () => [],

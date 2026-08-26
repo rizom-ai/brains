@@ -237,6 +237,7 @@ const projectionRule = defineProjectionRule({
   id: "document-summary",
   version: "1",
   targetType: "summary",
+  targets: { authority: "additive" },
   sources: [{ kind: "entity", types: ["document"] }],
   inputSchema: z.object({}),
   selectInput: async () => ({}),

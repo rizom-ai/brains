@@ -83,6 +83,7 @@ class ProjectionTargetPlugin extends EntityPlugin<
         version: "1",
         sources: [{ kind: "entity", types: ["note"] }],
         targetType: this.entityType,
+        targets: { authority: "additive" },
         inputSchema: projectionInputSchema,
         selectInput: async (trigger, context) => {
           const sourceInput = trigger.inputs.at(-1);

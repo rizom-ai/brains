@@ -507,6 +507,7 @@ describe("entity package definitions", () => {
       version: "1",
       sources: [{ kind: "entity", types: ["*"], excludeTypes: ["guide"] }],
       targetType: "guide",
+      targets: { authority: "additive" },
       inputSchema: z.object({ titles: z.array(z.string()) }),
       selectInput: async () => ({ titles: [] }),
       derive: async () => [],
@@ -681,6 +682,7 @@ describe("entity package definitions", () => {
       version: "1",
       sources: [{ kind: "entity", types: ["note"] }],
       targetType: "guide",
+      targets: { authority: "additive" },
       inputSchema: z.object({ titles: z.array(z.string()) }),
       selectInput: async (_trigger, { entities }) => ({
         titles: (await entities.listEntities({ entityType: "note" })).map(

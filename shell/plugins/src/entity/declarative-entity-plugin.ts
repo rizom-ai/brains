@@ -357,6 +357,10 @@ function projectionRule(
     version,
     sources: [{ kind: "entity", types: [projection.source.type] }],
     targetType: projection.target.type,
+    // Additive necessarily: a declared projection sees only the sources that
+    // changed, never the corpus, so "everything this run did not mention"
+    // would be almost every target it has ever written.
+    targets: { authority: "additive" },
     inputSchema: ProjectionJsonObjectSchema,
     async selectInput(trigger, context) {
       const selected = trigger.inputs.filter(

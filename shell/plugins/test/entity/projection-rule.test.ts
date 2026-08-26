@@ -47,6 +47,7 @@ describe("ProjectionRule", () => {
       version: "1",
       sources: [{ kind: "entity", types: ["document"] }],
       targetType: "topic",
+      targets: { authority: "additive" },
       sourceChangeBatchDelayMs: 250,
       inputSchema: z.object({
         sources: z.array(z.object({ id: z.string() })),
@@ -77,6 +78,7 @@ describe("ProjectionRule", () => {
         version: "1",
         sources: [{ kind: "entity", types: ["document"] }],
         targetType: "topic",
+        targets: { authority: "additive" },
         inputSchema: emptyInputSchema,
         selectInput: async () => ({}),
         derive: async () => [],
@@ -89,6 +91,7 @@ describe("ProjectionRule", () => {
         version: "1",
         sources: [{ kind: "entity", types: ["document"] }],
         targetType: "topic",
+        targets: { authority: "additive" },
         inputSchema: emptyInputSchema,
         selectInput: async () => ({}),
         derive: async () => [],
@@ -102,6 +105,7 @@ describe("ProjectionRule", () => {
       version: "1",
       sources: [{ kind: "entity", types: ["document"] }],
       targetType: "topic",
+      targets: { authority: "additive" },
       inputSchema: z.object({ unsafe: z.number() }),
       selectInput: async () => ({ unsafe: Number.MAX_SAFE_INTEGER + 1 }),
       derive: async () => [],
@@ -119,6 +123,7 @@ describe("ProjectionRule", () => {
       version: "1",
       sources: [{ kind: "entity", types: ["document"] }],
       targetType: "topic",
+      targets: { authority: "additive" },
       inputSchema: emptyInputSchema,
       selectInput: async () => ({}),
       derive: async () => [
@@ -149,6 +154,7 @@ describe("ProjectionRule", () => {
       version: "1",
       sources: [{ kind: "entity", types: ["document"] }],
       targetType: "topic",
+      targets: { authority: "additive" },
       inputSchema: emptyInputSchema,
       selectInput: async () => ({}),
       derive: async () => [

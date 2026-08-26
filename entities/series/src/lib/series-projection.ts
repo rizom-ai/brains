@@ -176,16 +176,6 @@ async function deriveSeries(
     });
   }
 
-  for (const existing of input.existingSeries) {
-    if (!activeIds.has(existing.id)) {
-      intents.push({
-        operation: "delete",
-        entityType: "series",
-        id: existing.id,
-      });
-    }
-  }
-
   return intents;
 }
 
@@ -199,6 +189,13 @@ export function createSeriesProjectionRule(
     version: "1",
     sources: [{ kind: "entity", types: ["*"], excludeTypes: ["series"] }],
     targetType: "series",
+    // The latest derivation is the whole truth about public series. Declared
+    // rather than diffed by hand: doing it by hand is how a public run came
+    // to delete shared series.
+    targets: {
+      authority: "exclusive",
+      visibility: SERIES_TARGET_VISIBILITY,
+    },
     inputSchema: seriesProjectionInputSchema,
     selectInput: async (_trigger, context) =>
       selectSeriesInput(context, descriptionTemplate),

@@ -680,6 +680,7 @@ describe("service package declaring entities", () => {
                 version: "1",
                 sources: [{ kind: "entity", types: ["*"] }],
                 targetType: "bookmark",
+                targets: { authority: "additive" },
                 inputSchema: z.object({}),
                 selectInput: async () => ({}),
                 derive: async () => [],

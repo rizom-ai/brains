@@ -150,6 +150,44 @@ export class ProjectionRuleJobHandler implements JobHandler<
     this.now = options.now;
   }
 
+  /**
+   * Remove what an exclusive rule stopped mentioning.
+   *
+   * Computed here rather than inside `derive` for two reasons. A memo hit
+   * replays cached write intents, so deletions baked into a derivation would
+   * be frozen against a target set that can drift independently of the input
+   * fingerprint — reading live state keeps the operation idempotent. And a
+   * rule that hand-writes this diff has to remember to scope it, which is a
+   * silent mistake in both directions.
+   */
+  private async withReconciledDeletions(
+    rule: ProjectionRule,
+    writeIntents: readonly ProjectionWriteIntent[],
+  ): Promise<readonly ProjectionWriteIntent[]> {
+    if (rule.targets.authority !== "exclusive") return writeIntents;
+
+    const mentioned = new Set(
+      writeIntents.flatMap((intent) =>
+        intent.operation === "upsert" ? [intent.entity.id] : [],
+      ),
+    );
+    const existing = await this.inputContext.entities.listEntities({
+      entityType: rule.targetType,
+      options: { filter: { visibilityScope: rule.targets.visibility } },
+    });
+
+    return [
+      ...writeIntents,
+      ...existing
+        .filter((entity) => !mentioned.has(entity.id))
+        .map((entity): ProjectionWriteIntent => ({
+          operation: "delete",
+          entityType: rule.targetType,
+          id: entity.id,
+        })),
+    ];
+  }
+
   public validateAndParse(data: unknown): ProjectionRuleJobData | null {
     const parsed = projectionRuleJobDataSchema.safeParse(data);
     return parsed.success ? parsed.data : null;
@@ -318,7 +356,7 @@ export class ProjectionRuleJobHandler implements JobHandler<
       ruleId: rule.id,
       ruleVersion: rule.version,
       inputFingerprint,
-      writeIntents,
+      writeIntents: await this.withReconciledDeletions(rule, writeIntents),
       completedAt: this.now(),
     });
     const pendingInputs = await this.store.listPendingInputs();
