@@ -210,6 +210,8 @@
         "BaseEntity",
         "BaseQuery",
         "CONVERSATION_SOURCE_TYPE",
+        "PROJECTION_ABSTAINED",
+        "ProjectionAbstention",
         "ContentFormatter",
         "DashboardWidgetDefinition",
         "DataSourceDefinition",

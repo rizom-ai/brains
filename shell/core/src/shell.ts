@@ -790,7 +790,15 @@ export class Shell implements IShell {
       this.createProjectionInputContext(),
       signal,
     );
-    return rule.derive(input, this.createProjectionExecutionContext(), signal);
+    const derived = await rule.derive(
+      input,
+      this.createProjectionExecutionContext(),
+      signal,
+    );
+    // An eval measures what a rule would write, and abstaining writes
+    // nothing. The distinction only matters to the runtime deciding whether
+    // to reconcile deletions.
+    return Array.isArray(derived) ? derived : [];
   }
 
   public async getAppInfo(): Promise<RuntimeAppInfo> {

@@ -1,3 +1,4 @@
+import { PROJECTION_ABSTAINED } from "@brains/plugins";
 import { describe, expect, it } from "bun:test";
 import type {
   BaseEntity,
@@ -206,7 +207,7 @@ describe("skill projection rule", () => {
     });
   });
 
-  it("does not call the model when no topics exist", async () => {
+  it("abstains without calling the model when no topics exist", async () => {
     const existing = {
       name: "Existing",
       description: "Keep this",
@@ -222,7 +223,11 @@ describe("skill projection rule", () => {
     );
     const { context, generate } = executionContext([]);
 
-    expect(await rule.derive(selected, context, signal)).toEqual([]);
+    // Not an empty desired set: no topics is normal during initial sync,
+    // and claiming "no skills should exist" would delete every one.
+    expect(await rule.derive(selected, context, signal)).toBe(
+      PROJECTION_ABSTAINED,
+    );
     expect(generate).not.toHaveBeenCalled();
   });
 });

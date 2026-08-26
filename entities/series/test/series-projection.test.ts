@@ -4,6 +4,7 @@ import type {
   ProjectionExecutionContext,
   ProjectionInputContext,
 } from "@brains/plugins";
+import { PROJECTION_ABSTAINED } from "@brains/plugins";
 import {
   createMockEntityPluginContext,
   createMockEntityService,
@@ -212,9 +213,39 @@ describe("what a series derivation may delete", () => {
 
     const { context } = executionContext();
     const intents = await rule.derive(selected, context, signal);
+    if (!Array.isArray(intents)) {
+      throw new Error("Expected the rule to derive rather than abstain");
+    }
 
     expect(intents.filter((intent) => intent.operation === "delete")).toEqual(
       [],
+    );
+  });
+
+  it("abstains rather than claiming every series should go", async () => {
+    // Nothing indexed yet is not "no content belongs to any series". Read as
+    // an empty desired set it would remove every series the brain has.
+    const rule = createSeriesProjectionRule(
+      "@brains/series:series:description",
+    );
+    const signal = new AbortController().signal;
+    const selected = await rule.selectInput(
+      { waveId: "wave-empty", inputs: [] },
+      inputContext([
+        entity({
+          id: "alpha",
+          entityType: "series",
+          content: "# Alpha\n\n## Description\n\nA public series.\n",
+          metadata: { title: "Alpha", slug: "alpha" },
+        }),
+      ]),
+      signal,
+    );
+
+    const { context } = executionContext();
+
+    expect(await rule.derive(selected, context, signal)).toBe(
+      PROJECTION_ABSTAINED,
     );
   });
 });

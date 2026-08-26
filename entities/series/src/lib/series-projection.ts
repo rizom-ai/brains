@@ -1,10 +1,12 @@
 import {
+  PROJECTION_ABSTAINED,
   defineProjectionRule,
   generateMarkdownWithFrontmatter,
   type BaseEntity,
   type ProjectionRule,
   type ProjectionExecutionContext,
   type ProjectionInputContext,
+  type ProjectionAbstention,
   type ProjectionWriteIntent,
 } from "@brains/sdk/entities";
 import { slugify } from "@brains/sdk/entities";
@@ -118,7 +120,14 @@ async function deriveSeries(
   input: SeriesProjectionInput,
   context: ProjectionExecutionContext,
   signal: AbortSignal,
-): Promise<readonly ProjectionWriteIntent[]> {
+): Promise<readonly ProjectionWriteIntent[] | ProjectionAbstention> {
+  // A member set that is empty because nothing has been indexed yet is not
+  // the same claim as "no content belongs to any series". Only the latter
+  // should remove series, and it arrives as members that exist but name none.
+  if (input.members.length === 0 && input.existingSeries.length > 0) {
+    return PROJECTION_ABSTAINED;
+  }
+
   const membersBySeries = new Map<string, typeof input.members>();
   for (const member of input.members) {
     const members = membersBySeries.get(member.seriesName) ?? [];

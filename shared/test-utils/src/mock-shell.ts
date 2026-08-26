@@ -1354,7 +1354,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
         },
         signal,
       );
-      return rule.derive(
+      const derived = await rule.derive(
         input,
         {
           ai: {
@@ -1378,6 +1378,10 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
         },
         signal,
       );
+      // An eval measures what a rule would write. Abstaining writes nothing,
+      // which is what the caller is asking about — the distinction only
+      // matters to the runtime deciding whether to reconcile.
+      return Array.isArray(derived) ? derived : [];
     },
 
     // Insights registry
