@@ -10,6 +10,15 @@ import { z } from "@brains/sdk/entities";
 import { createSeriesBodyFormatter } from "../schemas/series";
 import { getSeriesName } from "./series-metadata";
 
+/**
+ * The visibility this derivation owns.
+ *
+ * Named rather than left as a bare literal at the write site, because the
+ * reconcile below has to be scoped to exactly what the derivation writes —
+ * and the two drifting apart is what let a public run delete a shared series.
+ */
+const SERIES_TARGET_VISIBILITY = "public" as const;
+
 const seriesMemberSchema = z.object({
   id: z.string(),
   title: z.string().nullable(),
@@ -77,8 +86,14 @@ async function selectSeriesInput(
         left.seriesName.localeCompare(right.seriesName) ||
         left.id.localeCompare(right.id),
     );
+  // Scoped to what this derivation writes. Unscoped, the reconcile below
+  // removes any series without a member — including ones at a visibility
+  // this run never looked at, and never created.
   const existingSeries = (
-    await context.entities.listEntities({ entityType: "series" })
+    await context.entities.listEntities({
+      entityType: "series",
+      options: { filter: { visibilityScope: SERIES_TARGET_VISIBILITY } },
+    })
   )
     .map((entity) => {
       const parsedMetadata = z
@@ -154,7 +169,7 @@ async function deriveSeries(
         entityType: "series",
         content,
         metadata: { title: seriesName, slug: id },
-        visibility: existing?.visibility ?? "public",
+        visibility: existing?.visibility ?? SERIES_TARGET_VISIBILITY,
       },
     });
   }
