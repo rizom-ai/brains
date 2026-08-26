@@ -146,8 +146,15 @@ esac
 `,
   );
   writeFileSync(join(binDir, "logger"), "#!/usr/bin/env bash\nexit 0\n");
+  // The watchdog opens with `flock -n 9 || exit 0`, and macOS ships no
+  // flock(1): the missing binary fails that guard, so the script exits
+  // silently before doing any work. No test here exercises lock contention,
+  // so a fake that always acquires keeps the script's behavior identical on
+  // Linux and macOS.
+  writeFileSync(join(binDir, "flock"), "#!/usr/bin/env bash\nexit 0\n");
   chmodSync(join(binDir, "docker"), 0o755);
   chmodSync(join(binDir, "logger"), 0o755);
+  chmodSync(join(binDir, "flock"), 0o755);
 
   return {
     binDir,
