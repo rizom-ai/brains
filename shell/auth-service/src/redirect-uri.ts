@@ -81,8 +81,16 @@ export function matchesLoopbackDynamicPort(
   const requested = parseUrl(requestedRedirectUri);
   if (!registered || !requested) return false;
 
-  // Only a registration that omits the port opts into a dynamic one.
-  if (registered.port !== "") return false;
+  // Only an HTTP registration that truly omits the port opts into a dynamic
+  // one. URL.port normalizes an explicit default port (":80") to an empty
+  // string, so inspect the original authority as well.
+  if (
+    registered.protocol !== "http:" ||
+    registered.port !== "" ||
+    hasExplicitPort(registeredRedirectUri)
+  ) {
+    return false;
+  }
 
   if (
     !isLoopbackHost(registered.hostname) ||
@@ -114,4 +122,16 @@ export function hasMatchingClientMetadataRedirectUri(
       registeredRedirectUri === requestedRedirectUri ||
       matchesLoopbackDynamicPort(registeredRedirectUri, requestedRedirectUri),
   );
+}
+
+function hasExplicitPort(value: string): boolean {
+  const authority = /^[a-z][a-z\d+.-]*:\/\/([^/?#]*)/iu.exec(value)?.[1];
+  if (!authority) return false;
+
+  const hostAndPort = authority.slice(authority.lastIndexOf("@") + 1);
+  if (hostAndPort.startsWith("[")) {
+    const bracketEnd = hostAndPort.indexOf("]");
+    return bracketEnd !== -1 && hostAndPort[bracketEnd + 1] === ":";
+  }
+  return hostAndPort.includes(":");
 }

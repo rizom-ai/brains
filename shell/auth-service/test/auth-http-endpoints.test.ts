@@ -603,9 +603,10 @@ describe("revoke endpoint", () => {
 });
 
 describe("client ID metadata documents", () => {
-  it("authorizes a URL client ID and persists it for the token exchange", async () => {
+  it("authorizes a URL client ID with a dynamic loopback port and persists it for token exchange", async () => {
     let fetchCount = 0;
     const clientId = "https://client.example/oauth/metadata.json";
+    const metadataRedirectUri = "http://127.0.0.1/oauth/callback";
     const verifier = "metadata-document-verifier";
     const service = new AuthService({
       storageDir: await tempStorageDir(),
@@ -618,7 +619,7 @@ describe("client ID metadata documents", () => {
               {
                 client_id: clientId,
                 client_name: "Metadata Client",
-                redirect_uris: [REDIRECT_URI],
+                redirect_uris: [metadataRedirectUri],
                 application_type: "native",
                 token_endpoint_auth_method: "none",
               },
@@ -635,7 +636,7 @@ describe("client ID metadata documents", () => {
       {
         client_id: clientId,
         client_id_issued_at: 0,
-        redirect_uris: [REDIRECT_URI],
+        redirect_uris: [metadataRedirectUri],
         token_endpoint_auth_method: "none",
         grant_types: ["authorization_code", "refresh_token"],
         response_types: ["code"],

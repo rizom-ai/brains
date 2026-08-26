@@ -37,6 +37,12 @@ describe("matchesLoopbackDynamicPort", () => {
         "http://localhost:54321/callback",
       ),
     ).toBe(false);
+    expect(
+      matchesLoopbackDynamicPort(
+        "http://localhost:80/callback",
+        "http://localhost:54321/callback",
+      ),
+    ).toBe(false);
   });
 
   it("refuses a different path, query or scheme", () => {
@@ -55,6 +61,12 @@ describe("matchesLoopbackDynamicPort", () => {
     expect(
       matchesLoopbackDynamicPort(
         "http://localhost/callback",
+        "https://localhost:54321/callback",
+      ),
+    ).toBe(false);
+    expect(
+      matchesLoopbackDynamicPort(
+        "https://localhost/callback",
         "https://localhost:54321/callback",
       ),
     ).toBe(false);
