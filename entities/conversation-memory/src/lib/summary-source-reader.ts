@@ -28,7 +28,21 @@ export class SummarySourceReader {
       throw new Error(`Conversation not found: ${conversationId}`);
     }
 
-    const messages = await this.conversations.getMessages(conversationId, {
+    return this.readKnownConversation(conversation);
+  }
+
+  /**
+   * The same read, for a caller that already holds the conversation.
+   *
+   * A survey hands back whole conversations, so asking for each one again by
+   * id is a round trip for something already in hand. The hash stays here
+   * rather than at the call site: a widget that computed it differently from
+   * the projector would report every summary as stale forever.
+   */
+  public async readKnownConversation(
+    conversation: Conversation,
+  ): Promise<SummarySource> {
+    const messages = await this.conversations.getMessages(conversation.id, {
       limit: this.config.maxSourceMessages,
     });
 
