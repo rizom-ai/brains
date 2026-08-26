@@ -1,5 +1,16 @@
 # @brains/directory-sync
 
+## 0.2.0-alpha.327
+
+### Patch Changes
+
+- Updated dependencies [[`27fb6be`](https://github.com/rizom-ai/brains/commit/27fb6beee8c2fb4b4c60a95114b8560ac5620cad)]:
+  - @brains/plugins@0.2.0-alpha.327
+  - @brains/content-formatters@0.2.0-alpha.327
+  - @brains/contracts@0.2.0-alpha.327
+  - @brains/image@0.2.0-alpha.327
+  - @brains/utils@0.2.0-alpha.327
+
 ## 0.2.0-alpha.326
 
 ### Patch Changes

@@ -1,5 +1,35 @@
 # @brains/plugins
 
+## 0.2.0-alpha.327
+
+### Patch Changes
+
+- [`27fb6be`](https://github.com/rizom-ai/brains/commit/27fb6beee8c2fb4b4c60a95114b8560ac5620cad) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Give the console's knowledge and agent maps their real renderers back. A
+  first-party widget registered through `registerBuiltInDashboardWidget` may now
+  pass a `render` component; the dashboard resolves it from its own registry at
+  render time and draws it in place of the declarative body, inlining the
+  renderer's styles and script. Widget components never travel with widget data,
+  and the published authoring path still produces declarative widgets only, so
+  external services are unchanged. Self-drawing widgets keep deriving their
+  semantic view and digest — the blocks remain the map's text detail and its
+  digest strip stays live — and now carry their own data beside it.
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.327
+  - @brains/contracts@0.2.0-alpha.327
+  - @brains/site-composition@0.2.0-alpha.327
+  - @brains/utils@0.2.0-alpha.327
+  - @brains/ai-service@0.2.0-alpha.327
+  - @brains/content-service@0.2.0-alpha.327
+  - @brains/conversation-service@0.2.0-alpha.327
+  - @brains/entity-service@0.2.0-alpha.327
+  - @brains/identity-service@0.2.0-alpha.327
+  - @brains/job-queue@0.2.0-alpha.327
+  - @brains/mcp-service@0.2.0-alpha.327
+  - @brains/messaging-service@0.2.0-alpha.327
+  - @brains/recurring-checks@0.2.0-alpha.327
+  - @brains/runtime-state@0.2.0-alpha.327
+  - @brains/templates@0.2.0-alpha.327
+
 ## 0.2.0-alpha.326
 
 ### Patch Changes

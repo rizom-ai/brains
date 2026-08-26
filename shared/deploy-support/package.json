@@ -1,7 +1,7 @@
 {
   "name": "@brains/deploy-support",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.326",
+  "version": "0.2.0-alpha.327",
   "dependencies": {
     "@brains/utils": "workspace:*"
   },

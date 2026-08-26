@@ -237,6 +237,7 @@
     "core--brain-model-target-eval-ladder",
     "core--brain-model-unified-card-publication",
     "core--brain-model-unscoped-bundle-policy",
+    "core--built-in-dashboard-widget-renderers",
     "core--bun-1-4-0-deploy-runtime",
     "core--bundle-resolver-integration",
     "core--bundle-split-boot",
