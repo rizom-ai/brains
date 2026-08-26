@@ -2,6 +2,7 @@ import { afterEach } from "bun:test";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { canonicalCheckoutPath } from "../../src/lib/broker/checkout-identity";
 import { BrokerConnection } from "../../src/lib/broker/client";
 import { BrokerGitSync } from "../../src/lib/broker/git-sync-client";
 import { GitBrokerServer } from "../../src/lib/broker/server";
@@ -47,9 +48,14 @@ export async function startTestBroker(
 
   const remoteUrl = resolveGitRemoteUrl(options);
   const branch = options.branch ?? "main";
+  // Registration compares canonicalized paths, and production resolves the
+  // configured checkout the same way before building its resolver
+  // (startGitBrokerHost). Without this, a symlinked temp dir — macOS's
+  // `/var` -> `/private/var` — makes the broker reject its own checkout.
+  const dataDir = await canonicalCheckoutPath(options.dataDir);
   const checkout = {
     logger: options.logger,
-    dataDir: options.dataDir,
+    dataDir,
     branch,
     remoteUrl,
     ...(options.authToken === undefined
@@ -63,8 +69,7 @@ export async function startTestBroker(
 
   const server = await GitBrokerServer.start({
     runtimeDir,
-    resolveCheckout: (path) =>
-      path === options.dataDir ? checkout : undefined,
+    resolveCheckout: (path) => (path === dataDir ? checkout : undefined),
   });
 
   const running: RunningTestBroker = {
