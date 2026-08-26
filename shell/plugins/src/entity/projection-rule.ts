@@ -26,11 +26,33 @@ export {
   type ProjectionWriteIntent,
 } from "@brains/entity-service";
 
+/**
+ * The source type a conversation change is marked dirty under.
+ *
+ * Conversations are not entities and live in their own database, so nothing
+ * marks them dirty inside the write that changed them the way an entity
+ * does. The runtime polls them and records changes under this name, which
+ * puts them in the same vocabulary every source matcher already speaks.
+ */
+export const CONVERSATION_SOURCE_TYPE = "conversation";
+
 export interface ProjectionRuleEntitySource {
-  readonly kind: "entity";
+  readonly kind: "entity" | "conversation";
   readonly types: readonly string[];
   readonly excludeTypes?: readonly string[] | undefined;
 }
+
+/**
+ * What an author declares. A conversation source names no types — there is
+ * only one thing it can mean, and spelling it out invites getting it wrong.
+ */
+export type ProjectionRuleSourceInput =
+  | {
+      readonly kind: "entity";
+      readonly types: readonly string[];
+      readonly excludeTypes?: readonly string[] | undefined;
+    }
+  | { readonly kind: "conversation" };
 
 export interface ProjectionWaveInput {
   readonly sourceType: string;
@@ -141,7 +163,7 @@ export interface ProjectionRuleDefinition<
 > {
   readonly id: string;
   readonly version: string;
-  readonly sources: readonly ProjectionRuleEntitySource[];
+  readonly sources: readonly ProjectionRuleSourceInput[];
   readonly targetType: string;
   readonly targets: ProjectionTargetAuthority;
   readonly sourceChangeBatchDelayMs?: number | undefined;
@@ -162,11 +184,19 @@ const ProjectionRuleMetadataSchema = z.strictObject({
   id: z.string().trim().min(1),
   version: z.string().trim().min(1),
   sources: z.array(
-    z.strictObject({
-      kind: z.literal("entity"),
-      types: z.array(z.string().trim().min(1)).min(1),
-      excludeTypes: z.array(z.string().trim().min(1)).optional(),
-    }),
+    z.union([
+      z.strictObject({
+        kind: z.literal("entity"),
+        types: z.array(z.string().trim().min(1)).min(1),
+        excludeTypes: z.array(z.string().trim().min(1)).optional(),
+      }),
+      // Normalized to the shape every downstream matcher reads, so a
+      // conversation source needs no special case anywhere but validation.
+      z.strictObject({ kind: z.literal("conversation") }).transform(() => ({
+        kind: "conversation" as const,
+        types: [CONVERSATION_SOURCE_TYPE],
+      })),
+    ]),
   ),
   targetType: z.string().trim().min(1),
   targets: z.discriminatedUnion("authority", [
@@ -199,11 +229,12 @@ export function defineProjectionRule<TInput extends ProjectionJsonObject>(
 
   const sources = metadata.sources.map((source) => {
     const types = Object.freeze([...source.types]);
-    const excludeTypes = source.excludeTypes
-      ? Object.freeze([...source.excludeTypes])
-      : undefined;
+    const excludeTypes =
+      "excludeTypes" in source && source.excludeTypes
+        ? Object.freeze([...source.excludeTypes])
+        : undefined;
     const frozenSource: ProjectionRuleEntitySource = {
-      kind: "entity",
+      kind: source.kind,
       types,
       ...(excludeTypes ? { excludeTypes } : {}),
     };

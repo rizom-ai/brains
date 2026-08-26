@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test";
 import { z } from "@brains/utils/zod";
 import {
   ProjectionWriteIntentSchema,
+  CONVERSATION_SOURCE_TYPE,
   defineProjectionRule,
   type ProjectionExecutionContext,
   type ProjectionInputContext,
@@ -233,5 +234,40 @@ describe("ProjectionRule", () => {
         },
       }),
     ).toThrow();
+  });
+});
+
+/**
+ * Conversations as evidence.
+ *
+ * A summary is derived from what was said, not from an entity — so the rule
+ * that derives it has no entity source to declare. Conversations live in
+ * their own database, so unlike an entity they cannot mark themselves dirty
+ * inside the write that changed them; the runtime polls them instead. What a
+ * rule declares is the same either way: this is what I derive from.
+ */
+describe("a rule that derives from conversations", () => {
+  const rule = defineProjectionRule({
+    id: "summary-derivation",
+    version: "1",
+    sources: [{ kind: "conversation" }],
+    targetType: "summary",
+    targets: { authority: "exclusive", visibility: "shared" },
+    inputSchema: z.object({}),
+    selectInput: async () => ({}),
+    derive: async () => [],
+  });
+
+  it("declares the conversation source it was given", () => {
+    expect(rule.sources).toEqual([
+      { kind: "conversation", types: [CONVERSATION_SOURCE_TYPE] },
+    ]);
+  });
+
+  it("carries the source type the runtime marks dirty", () => {
+    // The normalized `types` is what every downstream consumer matches
+    // against, so a conversation source has to name itself in the same
+    // vocabulary an entity source does.
+    expect(CONVERSATION_SOURCE_TYPE).toBe("conversation");
   });
 });
