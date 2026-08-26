@@ -15,6 +15,7 @@ export {
   type ReconcileEntitiesResult,
 } from "./entity/entity-reconciler";
 export {
+  CONVERSATION_SOURCE_TYPE,
   ProjectionJsonObjectSchema,
   ProjectionJsonValueSchema,
   ProjectionWriteIntentSchema,

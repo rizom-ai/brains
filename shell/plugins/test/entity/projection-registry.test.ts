@@ -188,3 +188,29 @@ describe("ProjectionRegistry", () => {
     expect(registry.list()).toEqual([]);
   });
 });
+
+describe("a conversation source in the graph", () => {
+  it("is not reported as an unknown entity type", () => {
+    const registry = ProjectionRegistry.createFresh();
+    registry.registerRule(
+      "conversation-memory",
+      defineProjectionRule({
+        id: "summary-derivation",
+        version: "1",
+        sources: [{ kind: "conversation" }],
+        targetType: "summary",
+        targets: { authority: "exclusive", visibility: "shared" },
+        inputSchema: z.object({}),
+        selectInput: async () => ({}),
+        derive: async () => [],
+      }),
+    );
+
+    // "conversation" is a source the runtime polls, not an entity type
+    // anyone registered — validation must not read it as a missing one.
+    expect(
+      registry.validate([{ type: "summary", projectionSource: false }])
+        .unknownSourceTypes,
+    ).toEqual([]);
+  });
+});

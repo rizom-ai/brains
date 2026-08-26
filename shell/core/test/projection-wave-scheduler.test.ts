@@ -634,3 +634,102 @@ describe("ProjectionWaveScheduler", () => {
     expect(queue.requests).toEqual([]);
   });
 });
+
+/**
+ * What a conversation change is allowed to wake.
+ *
+ * Rules that derive from "any entity" declare `types: ["*"]` — series does.
+ * A conversation is not an entity, and matching it against a wildcard would
+ * re-derive every such rule on every message said to the brain. With four
+ * rules already fanning out per wave, that is the difference between one
+ * derivation and all of them.
+ */
+describe("a conversation change and the rules it does not concern", () => {
+  const summaryRule = defineProjectionRule({
+    id: "summaries",
+    version: "1",
+    sources: [{ kind: "conversation" }],
+    targetType: "summary",
+    targets: { authority: "additive" },
+    inputSchema: z.object({}),
+    selectInput: async () => ({}),
+    derive: async () => [],
+  });
+
+  const everythingRule = defineProjectionRule({
+    id: "series",
+    version: "1",
+    sources: [{ kind: "entity", types: ["*"], excludeTypes: ["series"] }],
+    targetType: "series",
+    targets: { authority: "additive" },
+    inputSchema: z.object({}),
+    selectInput: async () => ({}),
+    derive: async () => [],
+  });
+
+  const mixedGraph: ProjectionGraph = {
+    projections: [
+      {
+        id: "series",
+        pluginId: "series",
+        targetType: "series",
+        sources: [{ kind: "entity", types: ["*"], excludeTypes: ["series"] }],
+      },
+      {
+        id: "summaries",
+        pluginId: "conversation-memory",
+        targetType: "summary",
+        sources: [{ kind: "conversation", types: ["conversation"] }],
+      },
+    ],
+    edges: [],
+    unknownSourceTypes: [],
+  };
+
+  function conversationInputs(count: number): ProjectionWaveInput[] {
+    return Array.from({ length: count }, (_unused, index) => ({
+      waveId: "wave-1",
+      sourceType: "conversation",
+      sourceId: `conversation-${index}`,
+      revision: `rev-${index}`,
+      operation: "upsert" as const,
+      generation: index + 1,
+    }));
+  }
+
+  it("wakes only the rule that derives from conversations", async () => {
+    const store = new MemoryProjectionStore(conversationInputs(5));
+    const queue = new MemoryProjectionQueue();
+    const scheduler = new ProjectionWaveScheduler({
+      store,
+      queue,
+      graph: mixedGraph,
+      rules: [summaryRule, everythingRule],
+      createWaveId: (): string => "wave-1",
+      now: (): number => 10,
+    });
+
+    await scheduler.startNextWave();
+
+    expect(store.storedRules.map(({ ruleId }) => ruleId)).toEqual([
+      "summaries",
+    ]);
+  });
+
+  it("still wakes the wildcard rule for an actual entity change", async () => {
+    const store = new MemoryProjectionStore(documentInputs(3));
+    const queue = new MemoryProjectionQueue();
+    const scheduler = new ProjectionWaveScheduler({
+      store,
+      queue,
+      graph: mixedGraph,
+      rules: [summaryRule, everythingRule],
+      createWaveId: (): string => "wave-1",
+      now: (): number => 10,
+    });
+
+    await scheduler.startNextWave();
+
+    expect(store.storedRules.map(({ ruleId }) => ruleId)).toEqual(["series"]);
+  });
+});

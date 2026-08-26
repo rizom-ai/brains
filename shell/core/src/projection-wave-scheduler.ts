@@ -10,6 +10,7 @@ import type {
 } from "@brains/entity-service";
 import type { JobInfo, JobQueueEnqueueRequest } from "@brains/job-queue";
 import {
+  CONVERSATION_SOURCE_TYPE,
   computeProjectionInputFingerprint,
   type ProjectionGraph,
   type ProjectionRule,
@@ -501,11 +502,17 @@ function isTriggeredBy(
 ): boolean {
   return projection.sources.some((source) => {
     const excluded = new Set(source.excludeTypes ?? []);
-    return inputs.some(
-      (input) =>
-        !excluded.has(input.sourceType) &&
-        (source.types.includes("*") || source.types.includes(input.sourceType)),
-    );
+    return inputs.some((input) => {
+      if (excluded.has(input.sourceType)) return false;
+      // A wildcard entity source means every entity type, not every source.
+      // Without this a conversation change wakes each `types: ["*"]` rule —
+      // series re-deriving on every message said to the brain.
+      const isConversation = input.sourceType === CONVERSATION_SOURCE_TYPE;
+      if (isConversation !== (source.kind === "conversation")) return false;
+      return (
+        source.types.includes("*") || source.types.includes(input.sourceType)
+      );
+    });
   });
 }
 

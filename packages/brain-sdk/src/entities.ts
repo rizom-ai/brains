@@ -3,6 +3,7 @@
 export { z } from "@brains/utils/zod";
 export {
   ProjectionJsonObjectSchema,
+  CONVERSATION_SOURCE_TYPE,
   defineEntity,
   frontmatterInContent,
   defineEntityPackage,

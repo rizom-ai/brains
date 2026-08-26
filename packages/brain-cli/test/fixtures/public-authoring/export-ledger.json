@@ -209,6 +209,7 @@
         "AttachmentProvider",
         "BaseEntity",
         "BaseQuery",
+        "CONVERSATION_SOURCE_TYPE",
         "ContentFormatter",
         "DashboardWidgetDefinition",
         "DataSourceDefinition",
