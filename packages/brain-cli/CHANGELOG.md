@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.326
+
+### Patch Changes
+
+- [`d229280`](https://github.com/rizom-ai/brains/commit/d229280a2016bb721559c1ecc2efe74533e1f9d2) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Accept Claude Code and Claude Desktop as OAuth clients. Loopback redirect URIs declared without a port in a client ID metadata document now match any port, per RFC 8252 section 7.3, and grant types the server does not support are dropped from a metadata document instead of rejecting the whole document.
+
 ## 0.2.0-alpha.325
 
 ## 0.2.0-alpha.324
