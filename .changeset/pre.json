@@ -264,6 +264,7 @@
     "core--directory-sync-broker-checkout-handoff",
     "core--directory-sync-capped-ai-plan",
     "core--directory-sync-conflict-marker-detection",
+    "core--directory-sync-explicit-remote-divergence",
     "core--directory-sync-export-echoes",
     "core--directory-sync-git-reconciliation",
     "core--directory-sync-hermetic-restart-gate",

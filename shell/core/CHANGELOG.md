@@ -1,5 +1,21 @@
 # @brains/core
 
+## 0.2.0-alpha.325
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.325
+  - @brains/image@0.2.0-alpha.325
+  - @brains/operation-context@0.2.0-alpha.325
+  - @brains/site-composition@0.2.0-alpha.325
+  - @brains/utils@0.2.0-alpha.325
+  - @brains/plugins@0.2.0-alpha.325
+  - @brains/recurring-checks@0.2.0-alpha.325
+  - @brains/runtime-state@0.2.0-alpha.325
+  - @brains/scheduler@0.2.0-alpha.325
+  - @brains/templates@0.2.0-alpha.325
+
 ## 0.2.0-alpha.324
 
 ### Patch Changes

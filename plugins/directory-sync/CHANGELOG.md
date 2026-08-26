@@ -1,5 +1,18 @@
 # @brains/directory-sync
 
+## 0.2.0-alpha.325
+
+### Patch Changes
+
+- [#170](https://github.com/rizom-ai/brains/pull/170) [`ff82de8`](https://github.com/rizom-ai/brains/commit/ff82de8dac12b47bfaa2c48bae90b0740a70bfcf) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Detect unpushed commits against the explicit configured remote branch even when a legacy checkout has no upstream, and return Git checkpoints only when observed remote HEAD exactly matches local HEAD.
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.325
+  - @brains/contracts@0.2.0-alpha.325
+  - @brains/image@0.2.0-alpha.325
+  - @brains/utils@0.2.0-alpha.325
+  - @brains/plugins@0.2.0-alpha.325
+
 ## 0.2.0-alpha.324
 
 ### Patch Changes

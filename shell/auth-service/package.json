@@ -1,7 +1,7 @@
 {
   "name": "@brains/auth-service",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.324",
+  "version": "0.2.0-alpha.325",
   "description": "Embedded OAuth/OIDC authentication service for brain users",
   "dependencies": {
     "@brains/contracts": "workspace:*",
