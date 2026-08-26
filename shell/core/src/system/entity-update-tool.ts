@@ -103,6 +103,66 @@ function validateAnchorProfileUpdate(
   return undefined;
 }
 
+/**
+ * Field keys that applyFieldUpdates handles outside entity metadata.
+ */
+const NON_METADATA_FIELD_KEYS = new Set([
+  "visibility",
+  "coverImageId",
+  "ogImageId",
+]);
+
+/**
+ * Fields-only updates persist through entity metadata. Adapters that build
+ * their frontmatter from the entity body return no metadata for those keys, so
+ * the write lands nowhere: the tool reports success while the stored markdown
+ * and contentHash stay unchanged. Topic titles did exactly this. Ask the
+ * adapter what it would persist, and require a full content replacement when
+ * the requested field would be dropped.
+ *
+ * The probe is best-effort: an adapter that cannot answer leaves the update
+ * alone rather than blocking it.
+ */
+function validateFieldUpdatePersistence(
+  entity: BaseEntity,
+  normalizedInput: { fields?: Record<string, unknown>; content?: string },
+  entityRegistry: SystemServices["entityRegistry"],
+): { success: false; error: string } | undefined {
+  const fields = normalizedInput.fields;
+  if (!fields) return undefined;
+
+  const frontmatterSchema = entityRegistry.getEffectiveFrontmatterSchema(
+    entity.entityType,
+  );
+  if (!frontmatterSchema) return undefined;
+
+  const requested = Object.keys(fields).filter(
+    (key) =>
+      !NON_METADATA_FIELD_KEYS.has(key) && key in frontmatterSchema.shape,
+  );
+  if (requested.length === 0) return undefined;
+
+  let persisted: Record<string, unknown>;
+  try {
+    persisted = entityRegistry
+      .getAdapter(entity.entityType)
+      .extractMetadata(applyFieldUpdates(entity, fields));
+  } catch {
+    return undefined;
+  }
+
+  const dropped = requested.filter((key) => !(key in persisted));
+  if (dropped.length === 0) return undefined;
+
+  return {
+    success: false,
+    error:
+      `${entity.entityType} does not persist ${dropped.join(", ")} through 'fields'. ` +
+      "The update would report success without changing anything. " +
+      "Provide full markdown with frontmatter via 'content' instead.",
+  };
+}
+
 function validateContentReplacement(
   entityType: string,
   normalizedInput: { fields?: Record<string, unknown>; content?: string },
@@ -309,6 +369,13 @@ export function createEntityUpdateTool(services: SystemServices): Tool {
         normalizedInput,
       );
       if (anchorProfileError) return anchorProfileError;
+
+      const fieldPersistenceError = validateFieldUpdatePersistence(
+        entity,
+        normalizedInput,
+        entityRegistry,
+      );
+      if (fieldPersistenceError) return fieldPersistenceError;
 
       const contentReplacementError = validateContentReplacement(
         entity.entityType,
