@@ -2,7 +2,7 @@
 
 ## Status
 
-In progress. Phase 1 exposure-boundary work has replaced audience metadata with explicit `agentTool` and `directMcpExposure` routing, Phase 0 now has an eval CLI surface report plus agent-specific coverage filtering, Phase 2 removed the two maintenance tool registrations, Phase 3 consolidated playbook lifecycle actions behind `playbook_manage`, Phase 4 consolidated directory sync actions behind `directory_sync`, Phase 5 consolidated publishing actions behind `publishing_manage`, and Phase 6 has consolidated configured Buttondown subscriber operations behind `newsletter_subscribers`, made Cloudflare query direct-MCP-only, and made passkey setup agent exposure contextual. Preset snapshots and release notes are captured; stale legacy-name references have been audited from active tests and runtime stop logic. The full-eval database blocker has been fixed by applying the conversation-service runtime `busy_timeout` repair from `main`. The measured reference is Rover's current `full` personal-publishing posture. The implementation should land at the shared tool-registry and capability-package boundaries so the result also applies to the unified brain and its future `core`, `site`, and `publishing` bundles.
+In progress. Phase 1 exposure-boundary work has replaced audience metadata with explicit `agentTool` and `directMcpExposure` routing, Phase 0 now has an eval CLI surface report plus agent-specific coverage filtering, Phase 2 removed the two maintenance tool registrations, Phase 3 consolidated playbook lifecycle actions behind `playbook_manage`, Phase 4 consolidated directory sync actions behind `directory_sync`, Phase 5 consolidated publishing actions behind `publishing_manage`, and Phase 6 has consolidated configured Buttondown subscriber operations behind `newsletter_subscribers`, made Cloudflare query direct-MCP-only, and made passkey setup agent exposure contextual. Preset snapshots and release notes are captured; stale legacy-name references have been audited from active tests and runtime stop logic. The full-eval database blocker has been fixed by applying the conversation-service runtime `busy_timeout` repair from `main`. Phase 8 has collapsed the MCP basic surface to `chat` + `confirm` only: omitted `directMcpExposure` now defaults to `"debug"` regardless of `sideEffects`, and the analytics Cloudflare query moved to `"debug"`. The measured reference is Rover's current `full` personal-publishing posture. The implementation should land at the shared tool-registry and capability-package boundaries so the result also applies to the unified brain and its future `core`, `site`, and `publishing` bundles.
 
 ## Current validation
 
@@ -127,7 +127,7 @@ interface Tool {
 }
 ```
 
-Omitted `agentTool` means the registered tool is available to the LLM agent. Omitted `directMcpExposure` is derived from `sideEffects`: read-only tools (`sideEffects: "none"`) are exposed in MCP basic/debug; mutating or external tools are exposed in MCP debug only. CLI exposure remains controlled by existing `tool.cli` metadata; API and internal message-bus dispatch continue to resolve registered tools independently of direct MCP exposure.
+Omitted `agentTool` means the registered tool is available to the LLM agent. Omitted `directMcpExposure` defaults to `"debug"` (Phase 8): only tools that explicitly opt in with `"basic"` — the MCP `chat` and `confirm` adapters — appear on the basic protocol surface, so basic mode is chat-only and raw tools (reads included) are debug-only. CLI exposure remains controlled by existing `tool.cli` metadata; API and internal message-bus dispatch continue to resolve registered tools independently of direct MCP exposure.
 
 Add explicit registry views rather than filtering ad hoc:
 
@@ -187,7 +187,7 @@ Exit gate: inventory and coverage agree on `directory_sync` history coverage, an
    - `confirm`.
 4. Add tests proving:
    - the model cannot recursively call MCP `chat` or `confirm`;
-   - MCP basic mode still exposes read-only tools plus `chat` and `confirm`;
+   - MCP basic mode exposes read-only tools plus `chat` and `confirm` (superseded by Phase 8: basic mode is `chat` and `confirm` only);
    - MCP debug mode still exposes supported protocol tools according to permission;
    - CLI discovery is unchanged.
 
@@ -313,6 +313,17 @@ Exit gate: configured optional providers add at most three model tools—newslet
 2. Document canonical replacements in release notes.
 3. Ask case-by-case before keeping any direct-MCP-only legacy adapter.
 4. Delete obsolete instructions, eval assertions, and tool-name repair logic after legacy-name removal.
+
+### Phase 8 — Chat-only basic mode
+
+Rationale: MCP clients given both typed read tools and `chat` reliably prefer the typed tools, bypassing the brain's system prompt, persona, and context on every read. Tool descriptions do not overcome that bias; the only reliable steering is not advertising the tool. Basic mode is therefore the teammate surface (`chat` + `confirm` only) and debug mode is the operator surface (raw reads and writes).
+
+1. Change the omitted-`directMcpExposure` derivation in `@brains/mcp-service` from `sideEffects`-based (`read-only → "basic"`) to a flat `"debug"` default; remove the now-unused `isReadOnlyTool` helper.
+2. Flip the analytics Cloudflare query from explicit `"basic"` to `"debug"` — analytics is operator work.
+3. Update tests to assert basic mode exposes only explicitly-basic tools (`chat`, `confirm`), that an explicit `"basic"` opt-in still works, and that debug mode is unchanged.
+4. Update MCP interface README, inspector guide, and this plan.
+
+Exit gate: basic-mode protocol surface lists exactly `chat` and `confirm` at every permission level; debug surface unchanged.
 
 ## Validation strategy
 

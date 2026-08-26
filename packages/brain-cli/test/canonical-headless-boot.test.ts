@@ -64,6 +64,8 @@ anchor: person
 kind: professional
 bundles: [core]
 plugins:
+  mcp:
+    mode: debug
   directory-sync:
     seedContentPath: ./seed-content
     seedContent: true

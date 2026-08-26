@@ -31,7 +31,7 @@ import { MCPInterface } from "@brains/mcp";
 // For STDIO transport
 const stdioInterface = new MCPInterface({
   transport: "stdio",
-  mode: "basic", // default: read-only query tools + chat/confirm
+  mode: "basic", // default: chat/confirm only
 });
 
 // For authenticated HTTP transport
@@ -150,20 +150,19 @@ interface MCPConfig {
 }
 ```
 
-`basic` mode is the default and is suitable for remote callers. It exposes raw
-read-only query tools plus:
+`basic` mode is the default and is suitable for remote callers. It exposes only
+the conversational adapters:
 
 - `chat` — routes commands/reasoned requests through the brain agent
 - `confirm` — resolves pending confirmations returned by `chat`
 
-Use raw query tools such as `search`, `get`, `list`, and `job_status` for cheap
-structured reads. Use `chat` for any create/update/delete request so the brain's
-system prompt, permissions, and confirmation flow stay in the loop. Successful
+Every request — reads included — goes through `chat` so the brain's system
+prompt, context, permissions, and confirmation flow stay in the loop. Successful
 `chat`/`confirm` responses include the agent text and may include `toolResults`
 and `readYourWrites` handles with entity IDs and job IDs to fetch or poll. For
 non-public saves, ask for team/shared visibility or private/Admin-only
 visibility explicitly; the agent maps those requests to the canonical
-`system_create.visibility` field while basic mode continues to hide raw writes.
+`system_create.visibility` field while basic mode continues to hide raw tools.
 
 `debug` mode preserves raw tool exposure for local inspection. It requires
 `admin` permissions and is refused for unauthenticated HTTP transport.
@@ -245,14 +244,15 @@ describe("StreamableHTTPServer", () => {
 
 ## MCP Tools
 
-In `basic` mode, the interface exposes raw read-only query tools from the shell
-plus the MCP interface tools:
+In `basic` mode, the interface exposes only the MCP interface tools:
 
 - `chat` - Route commands and reasoned requests through the brain agent
 - `confirm` - Confirm or deny a pending action returned by `chat`
 
-Raw write tools are not advertised in `basic` mode. Use `debug` mode only for
-local/operator inspection when you intentionally need raw tool access.
+Raw tools — reads and writes alike — are not advertised in `basic` mode. Use
+`debug` mode only for local/operator inspection when you intentionally need raw
+tool access (raw reads such as `search`, `get`, `list`, and `job_status`
+included).
 
 ## Exports
 
