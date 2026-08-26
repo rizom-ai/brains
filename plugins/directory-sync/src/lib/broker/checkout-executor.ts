@@ -18,6 +18,7 @@ import {
 } from "./git-credentials";
 import { parseGitOperationResult } from "./operations";
 import type { GitOperation, GitOperationResult } from "./operations";
+import type { GitReconciliationCheckpoint } from "../../types";
 
 /**
  * Runs semantic Git operations for exactly one checkout.
@@ -207,9 +208,10 @@ export class CheckoutOperationExecutor {
           // local/remote checkpoint so that attempt can settle safely.
           return {
             pushed: false,
-            checkpoint: await getCurrentReconciliationCheckpoint(
+            checkpoint: await getConfirmedReconciliationCheckpoint(
               this.#client,
               this.identity,
+              remoteUrl.length > 0,
             ),
           };
         }
@@ -224,9 +226,10 @@ export class CheckoutOperationExecutor {
         );
         return {
           pushed: true,
-          checkpoint: await getCurrentReconciliationCheckpoint(
+          checkpoint: await getConfirmedReconciliationCheckpoint(
             this.#client,
             this.identity,
+            remoteUrl.length > 0,
           ),
         };
       }
@@ -265,4 +268,21 @@ export class CheckoutOperationExecutor {
         );
     }
   }
+}
+
+async function getConfirmedReconciliationCheckpoint(
+  git: SimpleGit,
+  identity: ReconciliationIdentity,
+  requireRemoteConfirmation: boolean,
+): Promise<GitReconciliationCheckpoint> {
+  const checkpoint = await getCurrentReconciliationCheckpoint(git, identity);
+  if (
+    requireRemoteConfirmation &&
+    checkpoint.lastObservedRemoteHead !== checkpoint.lastReconciledGitHead
+  ) {
+    throw new Error(
+      `Git checkpoint is not confirmed; local HEAD ${checkpoint.lastReconciledGitHead} does not match observed remote HEAD ${checkpoint.lastObservedRemoteHead ?? "missing"}`,
+    );
+  }
+  return checkpoint;
 }
