@@ -259,6 +259,7 @@ describe("PluginManager - Direct Registration", () => {
         id: "note-rule",
         version: "1",
         targetType: "note",
+        targets: { authority: "additive" },
         sources: [{ kind: "entity", types: ["document"] }],
         inputSchema: z.object({}),
         selectInput: async () => ({}),

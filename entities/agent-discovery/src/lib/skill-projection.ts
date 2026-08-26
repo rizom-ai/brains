@@ -167,16 +167,8 @@ async function deriveSkillIntents(
         metadata: skill,
         visibility: input.targetVisibility,
       },
-    }));
-  for (const existing of input.existingSkills) {
-    if (existing.projectionOwned && !desired.has(existing.id)) {
-      intents.push({
-        operation: "delete",
-        entityType: SKILL_ENTITY_TYPE,
-        id: existing.id,
-      });
-    }
-  }
+    }),
+  );
   return intents;
 }
 
@@ -189,6 +181,8 @@ export function createSkillProjectionRule(): ProjectionRule {
       { kind: "entity", types: ["agent"] },
     ],
     targetType: SKILL_ENTITY_TYPE,
+    // The latest derivation is the whole truth about public skills.
+    targets: { authority: "exclusive", visibility: "public" },
     inputSchema: skillProjectionInputSchema,
     selectInput: async (_trigger, context) => selectSkillInput(context),
     derive: deriveSkillIntents,

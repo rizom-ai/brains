@@ -323,6 +323,9 @@ export function createTopicProjectionRule(
       },
     ],
     targetType: TOPIC_ENTITY_TYPE,
+    // A topic outlives the batch that minted it: extraction reads a window
+    // of sources, so absence from one wave is not evidence a topic is gone.
+    targets: { authority: "additive" },
     sourceChangeBatchDelayMs: config.sourceChangeBatchDelayMs,
     inputSchema: topicWaveInputSchema,
     selectInput: async (_trigger, context) =>

@@ -19,6 +19,7 @@ function rule(input: {
   return defineProjectionRule({
     id: input.id,
     version: "1",
+    targets: { authority: "additive" } as const,
     targetType: input.targetType,
     sources: [
       {

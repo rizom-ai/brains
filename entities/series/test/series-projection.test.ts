@@ -118,7 +118,7 @@ describe("series projection rule", () => {
     expect(generate).toHaveBeenCalledTimes(2);
   });
 
-  it("preserves described series and deletes every orphan without a model call", async () => {
+  it("preserves a described series without a model call", async () => {
     const describedContent =
       "---\ntitle: Systems\nslug: systems\n---\n\n## Description\n\nExisting description.";
     const rule = createSeriesProjectionRule(
@@ -162,7 +162,6 @@ describe("series projection rule", () => {
           visibility: "public",
         },
       },
-      { operation: "delete", entityType: "series", id: "orphan" },
     ]);
     expect(generate).not.toHaveBeenCalled();
   });
@@ -171,57 +170,31 @@ describe("series projection rule", () => {
 /**
  * Which series the rule is allowed to remove.
  *
- * The rule derives public series, but selects the set it reconciles against
- * without a visibility filter — so a series the derivation was never looking
- * at can be swept up by it. `skill-projection` scopes the same selection;
- * these two are the same invariant written twice, and only one of them was
- * written correctly.
+ * It no longer removes any itself — the runtime does, from what the rule
+ * declares. That declaration is the whole guard now: exclusive over public
+ * series and nothing else. It was a hand-written diff that selected its
+ * comparison set unscoped, so a public derivation deleted `shared` series.
  */
-function scopedInputContext(entities: BaseEntity[]): ProjectionInputContext {
-  const entityTypes = [
-    ...new Set(entities.map(({ entityType }) => entityType)),
-  ];
-  const service = createMockEntityService({
-    entityTypes,
-    listEntitiesImpl: async ({ entityType, options }) => {
-      const scope = options?.filter?.visibilityScope;
-      return entities
-        .filter((candidate) => candidate.entityType === entityType)
-        .filter(
-          (candidate) => scope === undefined || candidate.visibility === scope,
-        );
-    },
-  });
-  return {
-    entities: service,
-    resolvePrompt: async (_reference, fallback) => fallback,
-    appInfo: async (): Promise<never> => {
-      throw new Error("not used");
-    },
-    identityInput: () => ({}),
-  };
-}
-
 describe("what a series derivation may delete", () => {
-  it("leaves series outside the visibility it derives for alone", async () => {
+  it("claims authority over public series only", () => {
+    const rule = createSeriesProjectionRule(
+      "@brains/series:series:description",
+    );
+
+    expect(rule.targets).toEqual({
+      authority: "exclusive",
+      visibility: "public",
+    });
+  });
+
+  it("emits no deletions of its own", async () => {
     const rule = createSeriesProjectionRule(
       "@brains/series:series:description",
     );
     const signal = new AbortController().signal;
-
-    const shared: BaseEntity = {
-      ...entity({
-        id: "beta",
-        entityType: "series",
-        content: "# Beta\n\n## Description\n\nA shared series.\n",
-        metadata: { title: "Beta", slug: "beta" },
-      }),
-      visibility: "shared",
-    };
-
     const selected = await rule.selectInput(
       { waveId: "wave-scope", inputs: [] },
-      scopedInputContext([
+      inputContext([
         entity({
           id: "post-1",
           entityType: "post",
@@ -233,7 +206,6 @@ describe("what a series derivation may delete", () => {
           content: "# Alpha\n\n## Description\n\nA public series.\n",
           metadata: { title: "Alpha", slug: "alpha" },
         }),
-        shared,
       ]),
       signal,
     );
@@ -241,8 +213,6 @@ describe("what a series derivation may delete", () => {
     const { context } = executionContext();
     const intents = await rule.derive(selected, context, signal);
 
-    // "Beta" has no member at this visibility, but it was never this
-    // derivation's to remove.
     expect(intents.filter((intent) => intent.operation === "delete")).toEqual(
       [],
     );

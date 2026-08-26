@@ -105,7 +105,7 @@ function executionContext(generatedSkills: SkillFrontmatter[]): {
 }
 
 describe("skill projection rule", () => {
-  it("derives desired skills, deletes stale projection outputs, and preserves authored skills", async () => {
+  it("derives desired skills and preserves authored ones", async () => {
     const existing = {
       name: "Existing",
       description: "Old description",
@@ -159,7 +159,6 @@ describe("skill projection rule", () => {
           visibility: "public",
         },
       },
-      { operation: "delete", entityType: "skill", id: "stale" },
     ]);
   });
 
@@ -197,6 +196,17 @@ describe("skill projection rule", () => {
   });
 
   it("does not call the model or delete outputs when no topics exist", async () => {
+  // Removal is the runtime's, from what the rule declares — not a diff the
+  // rule writes. Hand-written, the same diff in series selected its
+  // comparison set unscoped and deleted entities at other visibilities.
+  it("claims authority over public skills only", () => {
+    expect(createSkillProjectionRule().targets).toEqual({
+      authority: "exclusive",
+      visibility: "public",
+    });
+  });
+
+  it("does not call the model when no topics exist", async () => {
     const existing = {
       name: "Existing",
       description: "Keep this",

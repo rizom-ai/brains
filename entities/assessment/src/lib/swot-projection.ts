@@ -190,6 +190,9 @@ export function createSwotProjectionRule(): ProjectionRule {
     version: "1",
     sources: [{ kind: "entity", types: ["agent", "skill"] }],
     targetType: "swot",
+    // One entity at a fixed id, rewritten in place. There is never an
+    // unmentioned target to remove.
+    targets: { authority: "additive" },
     inputSchema: swotProjectionInputSchema,
     selectInput: async (_trigger, context) => selectSwotInput(context),
     derive: deriveSwotIntent,

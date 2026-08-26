@@ -4,6 +4,7 @@ import {
   type BaseEntity,
   type EntityTypeConfig,
   type GetEntityRequest,
+  type ContentVisibility,
   type ListEntitiesRequest,
   type ProjectionOwnedEntityRequest,
   type ProjectionJsonObject,
@@ -76,6 +77,28 @@ export interface ProjectionInputContext {
   readonly identityInput: () => ProjectionJsonObject;
 }
 
+/**
+ * Whether a rule owns the entities it derives, or only adds to them.
+ *
+ * `exclusive` means the latest derivation is the whole truth: anything of
+ * this target type within the declared visibility that the derivation no
+ * longer mentions is removed by the runtime. `additive` means the rule
+ * writes and never removes.
+ *
+ * Declared rather than implemented, because both mistakes are silent. A rule
+ * that should reconcile and does not accumulates orphans that look real; one
+ * that reconciles against the wrong scope deletes entities it never owned,
+ * which is precisely what `series-projection` did to `shared` series until
+ * it was caught. Visibility is required on `exclusive` so the scope is a
+ * decision the author makes rather than one they inherit by omission.
+ */
+export type ProjectionTargetAuthority =
+  | { readonly authority: "additive" }
+  | {
+      readonly authority: "exclusive";
+      readonly visibility: ContentVisibility;
+    };
+
 export interface ProjectionExecutionContext {
   readonly ai: Pick<
     IEntityAINamespace,
@@ -89,6 +112,7 @@ export interface ProjectionRule {
   readonly version: string;
   readonly sources: readonly ProjectionRuleEntitySource[];
   readonly targetType: string;
+  readonly targets: ProjectionTargetAuthority;
   readonly sourceChangeBatchDelayMs: number;
   readonly inputSchema: z.ZodType<ProjectionJsonObject>;
   readonly selectInput: (
@@ -119,6 +143,7 @@ export interface ProjectionRuleDefinition<
   readonly version: string;
   readonly sources: readonly ProjectionRuleEntitySource[];
   readonly targetType: string;
+  readonly targets: ProjectionTargetAuthority;
   readonly sourceChangeBatchDelayMs?: number | undefined;
   readonly inputSchema: z.ZodType<TInput>;
   readonly selectInput: (
@@ -144,6 +169,13 @@ const ProjectionRuleMetadataSchema = z.strictObject({
     }),
   ),
   targetType: z.string().trim().min(1),
+  targets: z.discriminatedUnion("authority", [
+    z.strictObject({ authority: z.literal("additive") }),
+    z.strictObject({
+      authority: z.literal("exclusive"),
+      visibility: z.enum(["public", "shared", "restricted"]),
+    }),
+  ]),
   sourceChangeBatchDelayMs: z.number().int().nonnegative().default(0),
 });
 
@@ -155,6 +187,7 @@ export function defineProjectionRule<TInput extends ProjectionJsonObject>(
     version: input.version,
     sources: input.sources,
     targetType: input.targetType,
+    targets: input.targets,
     sourceChangeBatchDelayMs: input.sourceChangeBatchDelayMs,
   });
   if (typeof input.selectInput !== "function") {
@@ -182,6 +215,7 @@ export function defineProjectionRule<TInput extends ProjectionJsonObject>(
     version: metadata.version,
     sources: Object.freeze(sources),
     targetType: metadata.targetType,
+    targets: Object.freeze(metadata.targets),
     sourceChangeBatchDelayMs: metadata.sourceChangeBatchDelayMs,
     inputSchema: input.inputSchema,
     selectInput: async (
