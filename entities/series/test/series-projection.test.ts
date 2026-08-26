@@ -167,3 +167,84 @@ describe("series projection rule", () => {
     expect(generate).not.toHaveBeenCalled();
   });
 });
+
+/**
+ * Which series the rule is allowed to remove.
+ *
+ * The rule derives public series, but selects the set it reconciles against
+ * without a visibility filter — so a series the derivation was never looking
+ * at can be swept up by it. `skill-projection` scopes the same selection;
+ * these two are the same invariant written twice, and only one of them was
+ * written correctly.
+ */
+function scopedInputContext(entities: BaseEntity[]): ProjectionInputContext {
+  const entityTypes = [
+    ...new Set(entities.map(({ entityType }) => entityType)),
+  ];
+  const service = createMockEntityService({
+    entityTypes,
+    listEntitiesImpl: async ({ entityType, options }) => {
+      const scope = options?.filter?.visibilityScope;
+      return entities
+        .filter((candidate) => candidate.entityType === entityType)
+        .filter(
+          (candidate) => scope === undefined || candidate.visibility === scope,
+        );
+    },
+  });
+  return {
+    entities: service,
+    resolvePrompt: async (_reference, fallback) => fallback,
+    appInfo: async (): Promise<never> => {
+      throw new Error("not used");
+    },
+    identityInput: () => ({}),
+  };
+}
+
+describe("what a series derivation may delete", () => {
+  it("leaves series outside the visibility it derives for alone", async () => {
+    const rule = createSeriesProjectionRule(
+      "@brains/series:series:description",
+    );
+    const signal = new AbortController().signal;
+
+    const shared: BaseEntity = {
+      ...entity({
+        id: "beta",
+        entityType: "series",
+        content: "# Beta\n\n## Description\n\nA shared series.\n",
+        metadata: { title: "Beta", slug: "beta" },
+      }),
+      visibility: "shared",
+    };
+
+    const selected = await rule.selectInput(
+      { waveId: "wave-scope", inputs: [] },
+      scopedInputContext([
+        entity({
+          id: "post-1",
+          entityType: "post",
+          metadata: { seriesName: "Alpha", title: "First" },
+        }),
+        entity({
+          id: "alpha",
+          entityType: "series",
+          content: "# Alpha\n\n## Description\n\nA public series.\n",
+          metadata: { title: "Alpha", slug: "alpha" },
+        }),
+        shared,
+      ]),
+      signal,
+    );
+
+    const { context } = executionContext();
+    const intents = await rule.derive(selected, context, signal);
+
+    // "Beta" has no member at this visibility, but it was never this
+    // derivation's to remove.
+    expect(intents.filter((intent) => intent.operation === "delete")).toEqual(
+      [],
+    );
+  });
+});

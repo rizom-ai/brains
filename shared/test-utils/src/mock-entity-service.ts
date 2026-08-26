@@ -3,6 +3,7 @@ import type {
   BaseEntity,
   EntityMutationResult,
   SearchResult,
+  ListOptions,
 } from "@brains/entity-service";
 import type { IEntityService } from "@brains/plugins";
 import { genericSpy } from "./generic-spy";
@@ -38,7 +39,17 @@ export interface MockEntityServiceOptions {
   /** Pre-configured return values for methods */
   returns?: MockEntityServiceReturns;
   /** Dynamic implementation for listEntities (overrides returns.listEntities) */
-  listEntitiesImpl?: (request: { entityType: string }) => Promise<BaseEntity[]>;
+  /**
+   * Given the whole request, options included.
+   *
+   * The options used to be dropped here, which meant a rule that filtered by
+   * `visibilityScope` and one that forgot to were indistinguishable to every
+   * test in the repo — and one of them was deleting entities it did not own.
+   */
+  listEntitiesImpl?: (request: {
+    entityType: string;
+    options?: ListOptions | undefined;
+  }) => Promise<BaseEntity[]>;
   /** Dynamic implementation for getEntity (overrides returns.getEntity) */
   getEntityImpl?: (request: {
     entityType: string;
@@ -104,7 +115,10 @@ export function createMockEntityService(
   // restores the type parameters `mock()` erased. Every other member below is
   // fully checked by the `satisfies` at the end of this literal.
   const listEntitiesMock = mock(
-    (request: { entityType: string }): Promise<BaseEntity[]> =>
+    (request: {
+      entityType: string;
+      options?: ListOptions | undefined;
+    }): Promise<BaseEntity[]> =>
       listEntitiesImpl?.(request) ??
       Promise.resolve(returns.listEntities ?? []),
   );

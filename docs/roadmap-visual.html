@@ -363,7 +363,15 @@
         </div>
         <div class="card status-proposed">
           <div class="card-head">
-            <span class="card-name">Derivation Abstraction</span>
+            <span class="card-name">Projection Rule Authoring</span>
+            <span class="badge badge-proposed">Proposed</span>
+          </div>
+          <div class="card-desc">make a projection rule declare whether it owns its whole target set so the runtime reconciles deletions instead of each rule hand-writing the diff (two do today and they disagree on visibility scoping), name the two context types every rule currently reaches for through <code>Parameters&lt;...&gt;</code>, then teach the runtime conversation sources so conversation-memory's paused producer returns as a declaration.</div>
+          <div class="card-file">projection-rule-authoring.md</div>
+        </div>
+        <div class="card status-proposed">
+          <div class="card-head">
+            <span class="card-name">derivation-abstraction</span>
             <span class="badge badge-proposed">Proposed</span>
           </div>
           <div class="card-desc">extract the gather-generate-reconcile derivation loop three projection rules hand-roll at ~70% overlap into <code>defineDerivation</code>, leave topics' batched-loop rule on the raw interface as the escape hatch, then teach the projection runtime conversation sources so conversation-memory's paused producer returns as a declaration instead of a fourth copy.</div>
