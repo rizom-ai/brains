@@ -1,5 +1,18 @@
 # @brains/directory-sync
 
+## 0.2.0-alpha.324
+
+### Patch Changes
+
+- [#169](https://github.com/rizom-ai/brains/pull/169) [`676479c`](https://github.com/rizom-ai/brains/commit/676479c591fcdb271642302527fcc42457aec009) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Allow valid inline documentation of Git conflict-marker tokens while continuing to reject complete unresolved conflict blocks before committing synchronized content.
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.324
+  - @brains/contracts@0.2.0-alpha.324
+  - @brains/image@0.2.0-alpha.324
+  - @brains/utils@0.2.0-alpha.324
+  - @brains/plugins@0.2.0-alpha.324
+
 ## 0.2.0-alpha.323
 
 ### Patch Changes
