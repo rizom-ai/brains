@@ -48,6 +48,7 @@ import type { BodyMode } from "./body-editor";
 import {
   getStudioRouterBasePath,
   resolveStudioHomePath,
+  resolveStudioWorkspaceAlias,
 } from "./studio-router";
 import { createEditorDocument } from "./editor-document";
 import {
@@ -337,6 +338,16 @@ export function App(): ReactElement {
         (entry) => entry.id === routeTarget.workspaceId,
       );
       if (!workspace) {
+        const aliasHref = resolveStudioWorkspaceAlias(
+          studioBasePath,
+          routeTarget.workspaceId,
+          routeSearch,
+          workspaces,
+        );
+        if (aliasHref) {
+          router.history.replace(aliasHref);
+          return;
+        }
         openRequestId.current += 1;
         setLoadError(`Unknown Studio workspace: ${routeTarget.workspaceId}`);
         return;
@@ -370,7 +381,14 @@ export function App(): ReactElement {
 
     setActiveWorkspaceId(null);
     setEntityType(nextType);
-  }, [routeTarget, router.history, studioBasePath, types, workspaces]);
+  }, [
+    routeSearch,
+    routeTarget,
+    router.history,
+    studioBasePath,
+    types,
+    workspaces,
+  ]);
 
   // After a save, poll the pipeline until the auto-commit lands. Every poll
   // updates syncStatus, which re-runs this effect until the view settles or
@@ -623,14 +641,18 @@ export function App(): ReactElement {
         }
         case "invitations":
           router.history.push(
-            studioWorkspacePath(studioBasePath, "admin:invitations"),
+            workspaceUrlHref(
+              studioWorkspacePath(studioBasePath, "admin:administration"),
+              { tab: "invitations" },
+            ),
           );
           return;
         case "admin-peer-invite": {
           router.history.push(
             workspaceUrlHref(
-              studioWorkspacePath(studioBasePath, "admin:peers"),
+              studioWorkspacePath(studioBasePath, "admin:administration"),
               {
+                tab: "invitations",
                 peerId: launch.peerId,
                 displayName: launch.displayName,
               },

@@ -55,16 +55,21 @@ function launchHref(
       : undefined;
   }
   if (launch.target === "invitations") {
-    return paths.studioPath
-      ? workspaceHref(paths.studioPath, "admin:invitations")
-      : undefined;
+    if (!paths.studioPath) return undefined;
+    const url = new URL(
+      workspaceHref(paths.studioPath, "admin:administration"),
+      "https://brains.invalid",
+    );
+    url.searchParams.set("tab", "invitations");
+    return `${url.pathname}${url.search}`;
   }
   if (launch.target === "admin-peer-invite") {
     if (!paths.studioPath) return undefined;
     const url = new URL(
-      workspaceHref(paths.studioPath, "admin:peers"),
+      workspaceHref(paths.studioPath, "admin:administration"),
       "https://brains.invalid",
     );
+    url.searchParams.set("tab", "invitations");
     url.searchParams.set("peerId", launch.peerId);
     url.searchParams.set("displayName", launch.displayName);
     return `${url.pathname}${url.search}`;

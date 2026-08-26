@@ -1,16 +1,18 @@
+import type { AuthAuditEvent } from "@brains/auth-service";
 import {
-  getActiveAuthService,
-  type AuthAuditEvent,
-} from "@brains/auth-service";
-import {
+  createBuiltInStudioWorkspaceRegistration,
   defineStudioWorkspace,
-  registerBuiltInStudioWorkspace,
   type OperatorViewBlock,
   type ServicePluginContext,
 } from "@brains/plugins";
 import { queryInteger } from "@brains/utils/query";
 import { z } from "@brains/utils/zod";
-import { formatWorkspaceDate } from "./workspace-format";
+import {
+  adminUserOptions,
+  formatWorkspaceDate,
+  requireAuthService,
+  type AdminWorkspaceRegistration,
+} from "./workspace-format";
 
 const actionLabels: Readonly<Record<string, string>> = {
   "auth.a2a_peer_trust.granted": "Trusted an A2A peer",
@@ -18,6 +20,7 @@ const actionLabels: Readonly<Record<string, string>> = {
   "auth.access.reinitialized": "Reinitialized access from configuration",
   "auth.external_peer.invited": "Invited a person from an external peer",
   "auth.external_peer.linked": "Linked an external peer",
+  "auth.external_peer.unlinked": "Unlinked an external peer",
   "auth.identity.attached": "Connected an identity",
   "auth.identity.detached": "Disconnected an identity",
   "auth.identity.delivery_bound": "Bound a verified delivery channel",
@@ -230,18 +233,16 @@ const studioAuditWorkspace = defineStudioWorkspace({
   },
 });
 
-export async function registerStudioAuditWorkspace(
+export function createAuditTabRegistration(
   context: ServicePluginContext,
-): Promise<string | undefined> {
-  const result = await registerBuiltInStudioWorkspace({
+): AdminWorkspaceRegistration {
+  return createBuiltInStudioWorkspaceRegistration({
     context,
     definition: studioAuditWorkspace,
     bind: (bindingContext) =>
       studioAuditWorkspace.bind(bindingContext, {
         load: async ({ query }) => {
-          const authService = getActiveAuthService();
-          if (!authService)
-            throw new Error("Audit workspace requires auth-service");
+          const authService = requireAuthService();
           const normalized = query.get(auditWorkspaceQuerySchema);
           const [audit, users] = await Promise.all([
             authService.queryAuditEvents({
@@ -255,7 +256,7 @@ export async function registerStudioAuditWorkspace(
               offset: normalized.offset,
               limit: normalized.limit,
             }),
-            authService.listAdminUsers(),
+            authService.listUsers(),
           ]);
           return {
             query: normalized,
@@ -263,10 +264,7 @@ export async function registerStudioAuditWorkspace(
             ...(audit.selectedEvent
               ? { selectedEvent: eventRecord(audit.selectedEvent) }
               : {}),
-            users: users.map((user) => ({
-              userId: user.userId,
-              displayName: user.displayName,
-            })),
+            users: adminUserOptions(users),
             actions: audit.actions
               .map(({ action: value, count }) => ({
                 value,
@@ -280,5 +278,4 @@ export async function registerStudioAuditWorkspace(
         actions: [],
       }),
   });
-  return result ? result.workspaceUrl : undefined;
 }

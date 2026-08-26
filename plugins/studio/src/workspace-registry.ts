@@ -14,6 +14,17 @@ const workspaceRegistrationSchema = z.object({
   priority: z.number().int(),
   permission: z.enum(["public", "trusted", "admin"]).default("trusted"),
   urlQuery: z.literal(true).optional(),
+  aliases: z
+    .array(
+      z
+        .object({
+          id: z.string().trim().min(1),
+          query: z.record(z.string().trim().min(1), z.string()),
+        })
+        .strict(),
+    )
+    .max(20)
+    .optional(),
   entityTypes: z
     .union([
       z.array(z.string().trim().min(1)),
@@ -92,6 +103,24 @@ export class StudioWorkspaceRegistry {
     if (this.workspaces.has(parsed.id)) {
       throw new Error(`Studio workspace already registered: ${parsed.id}`);
     }
+    const occupiedIds = new Set(
+      Array.from(this.workspaces.values()).flatMap((workspace) => [
+        workspace.id,
+        ...(workspace.aliases?.map((alias) => alias.id) ?? []),
+      ]),
+    );
+    const requestedIds = [
+      parsed.id,
+      ...(parsed.aliases?.map((alias) => alias.id) ?? []),
+    ];
+    const duplicateRequested = requestedIds.find(
+      (id, index) => requestedIds.indexOf(id) !== index,
+    );
+    if (duplicateRequested || requestedIds.some((id) => occupiedIds.has(id))) {
+      throw new Error(
+        `Studio workspace id or alias already registered: ${duplicateRequested ?? requestedIds.find((id) => occupiedIds.has(id)) ?? parsed.id}`,
+      );
+    }
     const sourceEntityTypes = parsed.entityTypes;
     const entityTypes =
       typeof sourceEntityTypes === "function"
@@ -110,6 +139,7 @@ export class StudioWorkspaceRegistry {
       priority: parsed.priority,
       permission: parsed.permission,
       ...(parsed.urlQuery ? { urlQuery: true } : {}),
+      ...(parsed.aliases ? { aliases: parsed.aliases } : {}),
       entityTypes,
       accessHandler: async (actor): Promise<boolean> =>
         meetsFloor(actor, parsed.permission)
@@ -182,6 +212,7 @@ export class StudioWorkspaceRegistry {
             rendererName: workspace.rendererName,
             priority: workspace.priority,
             ...(workspace.urlQuery ? { urlQuery: true } : {}),
+            ...(workspace.aliases ? { aliases: workspace.aliases } : {}),
             entityTypes:
               typeof workspace.entityTypes === "function"
                 ? await workspace.entityTypes(actor)

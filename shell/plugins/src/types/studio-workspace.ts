@@ -34,6 +34,12 @@ export function assertStudioWorkspaceAdmin(
 export type StudioWorkspaceRendererName =
   typeof DECLARATIVE_STUDIO_WORKSPACE_RENDERER;
 
+/** One retired workspace id and the stable query state of its replacement. */
+export interface StudioWorkspaceAlias {
+  id: string;
+  query: Readonly<Record<string, string>>;
+}
+
 export interface StudioWorkspaceRegistration {
   id: string;
   pluginId: string;
@@ -47,6 +53,8 @@ export interface StudioWorkspaceRegistration {
   permission?: UserPermissionLevel | undefined;
   /** Allow the Studio container to hydrate stable renderer-owned filters from the URL. */
   urlQuery?: true | undefined;
+  /** Retired workspace ids that the browser resolves to this workspace. */
+  aliases?: readonly StudioWorkspaceAlias[] | undefined;
   /**
    * Entity types the workspace covers. Providers whose coverage depends on
    * the caller's permissions supply a resolver so descriptors never disclose
@@ -85,6 +93,7 @@ export interface StudioWorkspaceDescriptor {
   rendererName: StudioWorkspaceRendererName;
   priority: number;
   urlQuery?: true | undefined;
+  aliases?: readonly StudioWorkspaceAlias[] | undefined;
   entityTypes: string[];
   badge?: number | undefined;
 }

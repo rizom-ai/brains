@@ -33,7 +33,7 @@ describe("administration workspace provider", () => {
     ).toEqual([]);
   });
 
-  it("retains source ownership of all administration workspaces", async () => {
+  it("retains source ownership of one administration workspace", async () => {
     const shell = createMockShell({ domain: "brain.test" });
     const authPlugin = new AuthServicePlugin({
       storageDir: await createTempDir("brains-admin-workspace-provider-"),
@@ -69,15 +69,19 @@ describe("administration workspace provider", () => {
     await plugin.register(shell);
     await plugin.finalizeRegistration();
 
-    expect(registrations.map((workspace) => workspace.id).sort()).toEqual([
-      "admin:audit",
-      "admin:invitations",
-      "admin:peers",
-      "admin:people",
-    ]);
-    expect(
-      registrations.every((workspace) => workspace.permission === "admin"),
-    ).toBe(true);
+    expect(registrations).toHaveLength(1);
+    expect(registrations[0]).toMatchObject({
+      id: "admin:administration",
+      label: "Administration",
+      permission: "admin",
+      urlQuery: true,
+      aliases: [
+        { id: "admin:people", query: { tab: "people" } },
+        { id: "admin:invitations", query: { tab: "invitations" } },
+        { id: "admin:peers", query: { tab: "people" } },
+        { id: "admin:audit", query: { tab: "audit" } },
+      ],
+    });
     expect(overviewContributions).toEqual([
       expect.objectContaining({
         id: "expiring-invitations",

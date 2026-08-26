@@ -2,11 +2,8 @@ import type { ServicePluginContext, WebRouteDefinition } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import packageJson from "../package.json";
-import { registerStudioAuditWorkspace } from "./audit-workspace";
-import { registerStudioInvitationsWorkspace } from "./invitations-workspace";
+import { registerAdministrationWorkspace } from "./administration-workspace";
 import { registerInvitationsOverview } from "./invitations-overview";
-import { registerPeopleWorkspace } from "./people-workspace";
-import { registerPeersWorkspace } from "./peers-workspace";
 
 export type AdminConfig = Record<string, never>;
 export type AdminConfigInput = Record<string, unknown>;
@@ -23,10 +20,7 @@ export class AdminPlugin extends ServicePlugin<AdminConfig, AdminConfigInput> {
   protected override async onRegistrationComplete(
     context: ServicePluginContext,
   ): Promise<void> {
-    await registerStudioAuditWorkspace(context);
-    await registerPeopleWorkspace(context);
-    await registerStudioInvitationsWorkspace(context);
-    await registerPeersWorkspace(context);
+    await registerAdministrationWorkspace(context);
     await registerInvitationsOverview(context);
   }
 

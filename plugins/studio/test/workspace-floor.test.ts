@@ -152,6 +152,7 @@ describe("Studio workspace permission floors", () => {
       rendererName: "DeclarativeOperatorWorkspace",
       priority: 10,
       permission: "admin",
+      aliases: [{ id: "admin:people", query: { tab: "people" } }],
       accessHandler: () => {
         accessCalls += 1;
         return true;
@@ -161,7 +162,12 @@ describe("Studio workspace permission floors", () => {
 
     expect(await registry.listDescriptors(actor("trusted"))).toEqual([]);
     expect(accessCalls).toBe(0);
-    expect(await registry.listDescriptors(actor("admin"))).toHaveLength(1);
+    expect(await registry.listDescriptors(actor("admin"))).toEqual([
+      expect.objectContaining({
+        id: "administration",
+        aliases: [{ id: "admin:people", query: { tab: "people" } }],
+      }),
+    ]);
     expect(accessCalls).toBe(1);
   });
 });

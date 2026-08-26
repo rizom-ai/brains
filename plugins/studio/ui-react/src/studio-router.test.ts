@@ -5,7 +5,11 @@ import {
   studioWorkspacePath,
   parseStudioPath,
 } from "../../src/studio-paths";
-import { createStudioRouter, resolveStudioHomePath } from "./studio-router";
+import {
+  createStudioRouter,
+  resolveStudioHomePath,
+  resolveStudioWorkspaceAlias,
+} from "./studio-router";
 
 describe("Studio browser router", () => {
   it("lands Trusted operators in Overview before entity collections", () => {
@@ -20,6 +24,24 @@ describe("Studio browser router", () => {
     expect(
       resolveStudioHomePath("/studio", [], [{ id: "studio:account" }]),
     ).toBe(studioWorkspacePath("/studio", "studio:account"));
+  });
+
+  it("resolves retired workspace ids to canonical tabbed deep links", () => {
+    expect(
+      resolveStudioWorkspaceAlias(
+        "/studio",
+        "admin:people",
+        "?selected=person-1&tab=audit",
+        [
+          {
+            id: "admin:administration",
+            aliases: [{ id: "admin:people", query: { tab: "people" } }],
+          },
+        ],
+      ),
+    ).toBe(
+      `${studioWorkspacePath("/studio", "admin:administration")}?selected=person-1&tab=people`,
+    );
   });
 
   it("uses the configured base and replays Back and Forward entries", async () => {

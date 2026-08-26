@@ -5,12 +5,12 @@ import { createTempDataDir } from "@brains/plugins/test";
 import { createMockShell } from "@brains/test-utils";
 import {
   actionRequest,
+  administrationTab,
   adminActor,
   captureAdminWorkspaces,
   findAction,
   resultField,
   trustedActor,
-  workspaceByLabel,
 } from "./studio-workspace-test-helpers";
 
 const authPlugins: AuthServicePlugin[] = [];
@@ -32,7 +32,12 @@ function actorFor(
 
 function findById(value: unknown, id: string): unknown {
   if (value === null || typeof value !== "object") return undefined;
-  if (Reflect.get(value, "id") === id) return value;
+  if (
+    Reflect.get(value, "id") === id &&
+    Reflect.get(value, "type") === "table"
+  ) {
+    return value;
+  }
   for (const child of Object.values(value)) {
     const result = findById(child, id);
     if (result !== undefined) return result;
@@ -57,7 +62,7 @@ function findRowForPerson(value: unknown, displayName: string): unknown {
   return undefined;
 }
 
-describe("Admin-owned Studio Invitations workspace", () => {
+describe("Administration Invitations tab", () => {
   it("preserves the invitation lifecycle without retaining setup URLs", async () => {
     const shell = createMockShell({ domain: "brain.test" });
     shell.getChannelRegistry().registerDescriptor("test", {
@@ -94,12 +99,12 @@ describe("Admin-owned Studio Invitations workspace", () => {
     const actor = actorFor(adminActor, admin);
     const deniedActor = actorFor(trustedActor, trusted);
 
-    const workspace = workspaceByLabel(
+    const workspace = administrationTab(
       await captureAdminWorkspaces(shell),
-      "Invitations",
+      "invitations",
     );
     expect(workspace).toMatchObject({
-      id: "admin:invitations",
+      id: "admin:administration",
       pluginId: "admin",
       rendererName: "DeclarativeOperatorWorkspace",
       permission: "admin",
@@ -109,7 +114,12 @@ describe("Admin-owned Studio Invitations workspace", () => {
     expect(await workspace.accessHandler(deniedActor)).toBe(false);
 
     const initial = await workspace.dataProvider(actor);
-    expect(initial).toMatchObject({ view: { title: "Invitations" } });
+    expect(initial).toMatchObject({
+      view: {
+        title: "Administration",
+        blocks: [{ type: "tabs", defaultTab: "invitations" }],
+      },
+    });
     expect(findAction(initial, "Add a person")).toMatchObject({
       actionId: "create-invitation",
       form: { submitLabel: "Create invitation" },

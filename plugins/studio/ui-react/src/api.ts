@@ -31,6 +31,10 @@ export interface StudioWorkspaceInfo {
   rendererName: "DeclarativeOperatorWorkspace" | "StudioAccountWorkspace";
   priority: number;
   urlQuery?: true;
+  aliases?: readonly {
+    id: string;
+    query: Readonly<Record<string, string>>;
+  }[];
   entityTypes: string[];
   badge?: number;
 }

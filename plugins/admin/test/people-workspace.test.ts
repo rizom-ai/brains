@@ -5,12 +5,12 @@ import { createTempDataDir } from "@brains/plugins/test";
 import { createMockShell } from "@brains/test-utils";
 import {
   actionRequest,
+  administrationTab,
   adminActor,
   captureAdminWorkspaces,
   findAction,
   resultField,
   trustedActor,
-  workspaceByLabel,
 } from "./studio-workspace-test-helpers";
 
 const authPlugins: AuthServicePlugin[] = [];
@@ -30,7 +30,7 @@ function actorFor(
   };
 }
 
-describe("Admin-owned Studio People workspace", () => {
+describe("Administration People tab", () => {
   it("owns roster detail and attributed access administration through the shared registration contract", async () => {
     const shell = createMockShell({ domain: "brain.test" });
     shell.getChannelRegistry().registerDescriptor("test", {
@@ -70,9 +70,9 @@ describe("Admin-owned Studio People workspace", () => {
     );
 
     const registrations = await captureAdminWorkspaces(shell);
-    const workspace = workspaceByLabel(registrations, "People");
+    const workspace = administrationTab(registrations, "people");
     expect(workspace).toMatchObject({
-      id: "admin:people",
+      id: "admin:administration",
       pluginId: "admin",
       rendererName: "DeclarativeOperatorWorkspace",
       permission: "admin",
@@ -86,17 +86,11 @@ describe("Admin-owned Studio People workspace", () => {
     });
     expect(initial).toMatchObject({
       view: {
-        title: "People",
-        blocks: [
-          { type: "stats" },
-          {},
-          {
-            type: "detail",
-            open: { forId: member.userId, title: "Tess Trusted" },
-          },
-        ],
+        title: "Administration",
+        blocks: [{ type: "tabs", defaultTab: "people" }],
       },
     });
+    expect(JSON.stringify(initial)).toContain("Tess Trusted");
     expect(JSON.stringify(initial)).toContain("Brain Anchor");
     expect(JSON.stringify(initial)).toContain("Tess private address");
     expect(findAction(initial, "Revoke all sessions")).toBeDefined();

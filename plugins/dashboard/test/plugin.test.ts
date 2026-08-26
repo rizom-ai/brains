@@ -254,7 +254,7 @@ describe("DashboardPlugin", () => {
         data.groups.find((group) => group.id === "surfaces")?.items,
       ).toContainEqual(
         expect.objectContaining({
-          href: "/studio/workspaces/admin%3Apeople",
+          href: "/studio/workspaces/admin%3Aadministration?tab=people",
         }),
       );
       // No search hits in this harness, so there are no entity doors.

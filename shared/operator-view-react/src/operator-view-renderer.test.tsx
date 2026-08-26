@@ -360,6 +360,61 @@ describe("OperatorViewRenderer conformance", () => {
       expect(html).toContain(marker);
     }
   });
+
+  it("selects a full workspace tab from query state", () => {
+    const tabbed: RuntimeStudioWorkspaceData = {
+      view: {
+        blocks: [
+          {
+            type: "tabs",
+            id: "administration-tabs",
+            label: "Administration sections",
+            defaultTab: "people",
+            queryKey: "tab",
+            tabs: [
+              {
+                id: "people",
+                label: "People",
+                blocks: [{ type: "text", text: "People roster" }],
+              },
+              {
+                id: "audit",
+                label: "Audit",
+                blocks: [
+                  {
+                    type: "detail",
+                    id: "audit-detail",
+                    queryKey: "selected",
+                    empty: "Select an event.",
+                    master: {
+                      type: "table",
+                      id: "audit-events",
+                      empty: "No events.",
+                      columns: [{ key: "event", label: "Event" }],
+                      rows: [],
+                    },
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    };
+    const html = renderToStaticMarkup(
+      createElement(OperatorViewRenderer, {
+        data: tabbed,
+        onAction: async () => undefined,
+        onOpenEntity: () => {},
+        query: { tab: "audit" },
+        onQueryChange: () => {},
+      }),
+    );
+
+    expect(html).toContain("Audit");
+    expect(html).toContain("No events.");
+    expect(html).not.toContain("People roster");
+  });
 });
 
 describe("OperatorViewRenderer confirmations", () => {
@@ -727,6 +782,54 @@ describe("OperatorViewRenderer master/detail", () => {
     expect(queries).toEqual([
       { urgency: "high", offset: 20, selected: "mail-1" },
     ]);
+  });
+
+  it("writes query-backed tab selection through host state", async () => {
+    const queries: unknown[] = [];
+    const tabbed: RuntimeStudioWorkspaceData = {
+      view: {
+        blocks: [
+          {
+            type: "tabs",
+            id: "administration-tabs",
+            label: "Administration sections",
+            defaultTab: "people",
+            queryKey: "tab",
+            tabs: [
+              {
+                id: "people",
+                label: "People",
+                blocks: [{ type: "text", text: "People roster" }],
+              },
+              {
+                id: "audit",
+                label: "Audit",
+                blocks: [{ type: "text", text: "Audit history" }],
+              },
+            ],
+          },
+        ],
+      },
+    };
+    await act(async () => {
+      root.render(
+        createElement(OperatorViewRenderer, {
+          data: tabbed,
+          onAction: async () => undefined,
+          onOpenEntity: () => {},
+          query: { filter: "active" },
+          onQueryChange: (query) => queries.push(query),
+        }),
+      );
+    });
+
+    const auditTab = Array.from(
+      container.querySelectorAll<HTMLButtonElement>('[role="tab"]'),
+    ).find((candidate) => String(candidate.textContent).trim() === "Audit");
+    if (!auditTab) throw new Error("Expected Audit tab");
+    await act(async () => auditTab.click());
+
+    expect(queries).toEqual([{ filter: "active", tab: "audit" }]);
   });
 
   it("clears the open item from query state through the back control", async () => {

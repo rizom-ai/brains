@@ -62,6 +62,11 @@ export interface LinkExternalPeerRequest {
   userId: string;
 }
 
+export interface UnlinkExternalPeerRequest {
+  peerId: string;
+  userId: string;
+}
+
 export interface InvitedExternalPeerAccess {
   user: AuthPrincipal;
   peer: PersonExternalPeer;
@@ -273,6 +278,31 @@ export class AuthAdministrationService {
     await this.audit.append({
       ...auditActor(context),
       action: "auth.external_peer.linked",
+      targetType: "external_peer",
+      targetId: peer.peerId,
+      metadata: { personId: peer.personId, userId: user.id },
+    });
+    return peer;
+  }
+
+  async unlinkExternalPeer(
+    input: UnlinkExternalPeerRequest,
+    context: AuthMutationContext,
+  ): Promise<PersonExternalPeer> {
+    if (!context.actorUserId) {
+      throw new Error("Authenticated actor is required for peer unlinking");
+    }
+    const user = await this.users.getUser(input.userId);
+    if (!user) throw new Error(`Auth user not found: ${input.userId}`);
+
+    const peer = await this.externalPeers.unlinkPeer({
+      peerId: input.peerId,
+      personId: user.personId,
+      actorUserId: context.actorUserId,
+    });
+    await this.audit.append({
+      ...auditActor(context),
+      action: "auth.external_peer.unlinked",
       targetType: "external_peer",
       targetId: peer.peerId,
       metadata: { personId: peer.personId, userId: user.id },

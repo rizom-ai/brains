@@ -226,6 +226,127 @@ const overviewWorkspaceData = {
   },
 };
 
+const administrationWorkspaceData = {
+  view: {
+    kicker: "Access administration",
+    title: "Administration",
+    description:
+      "Manage local people, invitation delivery, external provenance, and security history.",
+    status: { label: "2 active", detail: "1 invitation pending", tone: "warn" },
+    blocks: [
+      {
+        type: "tabs",
+        id: "administration-tabs",
+        label: "Administration sections",
+        defaultTab: "people",
+        queryKey: "tab",
+        tabs: [
+          {
+            id: "people",
+            label: "People",
+            blocks: [
+              {
+                type: "stats",
+                id: "people-summary",
+                items: [
+                  { label: "Active members", value: 2 },
+                  { label: "Active Admins", value: 1 },
+                  { label: "Suspended", value: 1, tone: "warn" },
+                ],
+              },
+              {
+                type: "detail",
+                id: "people",
+                queryKey: "selected",
+                empty: "Select a person to inspect their access.",
+                master: {
+                  type: "table",
+                  id: "people-roster",
+                  empty: "No people are available.",
+                  columns: [
+                    { key: "person", label: "Person" },
+                    { key: "role", label: "Role" },
+                    { key: "status", label: "Status" },
+                    { key: "brain", label: "Arrived via" },
+                  ],
+                  rows: [
+                    {
+                      id: "mira",
+                      cells: {
+                        person: "Mira Reyes",
+                        role: "Admin",
+                        status: "Active",
+                        brain: "Hosted",
+                      },
+                      link: { kind: "detail", itemId: "mira" },
+                    },
+                    {
+                      id: "grace",
+                      cells: {
+                        person: "Grace Hopper",
+                        role: "Trusted",
+                        status: "Active",
+                        brain: "did:web:grace.example",
+                      },
+                      link: { kind: "detail", itemId: "grace" },
+                    },
+                    {
+                      id: "sam",
+                      cells: {
+                        person: "Sam Lee",
+                        role: "Public",
+                        status: "Suspended",
+                        brain: "Hosted",
+                      },
+                      link: { kind: "detail", itemId: "sam" },
+                    },
+                  ],
+                  open: undefined,
+                },
+              },
+              {
+                type: "notice",
+                tone: "neutral",
+                title: "External brain relationships",
+                text: "Peer links record provenance from another brain. They do not grant or change local access.",
+              },
+              {
+                type: "card",
+                id: "link-peer",
+                label: "Link an existing person",
+                blocks: [
+                  {
+                    type: "text",
+                    text: "Associate an external peer identity with a locally administered person.",
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            id: "invitations",
+            label: "Invitations",
+            count: 1,
+            blocks: [
+              {
+                type: "text",
+                text: "Invitations load when this tab is opened.",
+              },
+            ],
+          },
+          {
+            id: "audit",
+            label: "Audit",
+            blocks: [
+              { type: "text", text: "Audit loads when this tab is opened." },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+};
+
 const entities = [
   {
     id: "responsive-console",
@@ -1161,7 +1282,8 @@ async function checkLayout(
     surface.startsWith("studio-") &&
     surface !== "studio-library" &&
     surface !== "studio-account" &&
-    surface !== "studio-overview"
+    surface !== "studio-overview" &&
+    surface !== "studio-administration"
   ) {
     const modes = await elementDisplay(page, ".studio-mobile-modes");
     if (width <= 640 !== (modes !== "none"))
@@ -1319,6 +1441,16 @@ const server = Bun.serve({
             badge: 3,
           },
           {
+            id: "admin:administration",
+            pluginId: "admin",
+            label: "Administration",
+            rendererName: "DeclarativeOperatorWorkspace",
+            priority: 10,
+            urlQuery: true,
+            entityTypes: [],
+            badge: 2,
+          },
+          {
             id: "studio:account",
             pluginId: "studio",
             label: "Account",
@@ -1337,6 +1469,17 @@ const server = Bun.serve({
           id: "studio:overview",
           rendererName: "DeclarativeOperatorWorkspace",
           data: overviewWorkspaceData,
+        },
+      });
+    if (
+      url.pathname === "/studio/api/workspace" &&
+      url.searchParams.get("id") === "admin:administration"
+    )
+      return json({
+        workspace: {
+          id: "admin:administration",
+          rendererName: "DeclarativeOperatorWorkspace",
+          data: administrationWorkspaceData,
         },
       });
     if (url.pathname === "/auth/account")
@@ -1508,6 +1651,7 @@ try {
         "chat-drawer",
         "studio-library",
         "studio-overview",
+        "studio-administration",
         "studio-account",
         "studio-editor",
         "studio-delete",
@@ -1553,9 +1697,11 @@ try {
               ? "/studio/workspaces/studio%3Aaccount"
               : surface === "studio-overview"
                 ? "/studio/workspaces/studio%3Aoverview"
-                : isStudioEditor
-                  ? "/studio/entities/posts/field-notes"
-                  : "/studio/entities/posts";
+                : surface === "studio-administration"
+                  ? "/studio/workspaces/admin%3Aadministration"
+                  : isStudioEditor
+                    ? "/studio/entities/posts/field-notes"
+                    : "/studio/entities/posts";
         const hash = isChat
           ? `#s/${conversationId}`
           : surface === "dashboard-knowledge"

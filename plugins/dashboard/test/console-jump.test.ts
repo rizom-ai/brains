@@ -15,7 +15,7 @@ describe("buildConsoleJumpGroups", () => {
         id: "surface/people",
         title: "People",
         sub: "Access and identity",
-        href: "/studio/workspaces/admin%3Apeople",
+        href: "/studio/workspaces/admin%3Aadministration?tab=people",
         tag: "studio",
       },
     ]);

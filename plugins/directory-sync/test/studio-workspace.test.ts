@@ -116,7 +116,7 @@ describe("directory-sync Studio workspace", () => {
     const registration = getRegistration();
     expect(registration).toMatchObject({
       id: "directory-sync:sync",
-      label: "Sync",
+      label: "Content sync",
       rendererName: "DeclarativeOperatorWorkspace",
       priority: 50,
     });

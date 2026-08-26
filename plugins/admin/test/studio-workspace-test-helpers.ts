@@ -59,6 +59,27 @@ export function workspaceByLabel(
   return workspace;
 }
 
+export function administrationTab(
+  registrations: StudioWorkspaceRegistration[],
+  tab: "people" | "invitations" | "audit",
+): StudioWorkspaceRegistration {
+  const workspace = workspaceByLabel(registrations, "Administration");
+  return {
+    ...workspace,
+    dataProvider: (
+      actor,
+      query,
+      signal,
+    ): ReturnType<typeof workspace.dataProvider> => {
+      const queryRecord =
+        query !== null && typeof query === "object" && !Array.isArray(query)
+          ? Object.fromEntries(Object.entries(query))
+          : {};
+      return workspace.dataProvider(actor, { ...queryRecord, tab }, signal);
+    },
+  };
+}
+
 export function findAction(value: unknown, label: string): unknown {
   if (value === null || typeof value !== "object") return undefined;
   if (Reflect.get(value, "label") === label && Reflect.has(value, "actionId")) {

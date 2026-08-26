@@ -14,6 +14,7 @@ export const AUTH_ADMIN_MUTATION_ACTIONS = {
   createUser: "createUser",
   inviteExternalPeerPerson: "inviteExternalPeerPerson",
   linkExternalPeer: "linkExternalPeer",
+  unlinkExternalPeer: "unlinkExternalPeer",
   updateUserRole: "updateUserRole",
   updateUserStatus: "updateUserStatus",
   deleteUser: "deleteUser",
@@ -238,6 +239,12 @@ export type AuthAdminMutation =
   | {
       action: typeof AUTH_ADMIN_MUTATION_ACTIONS.linkExternalPeer;
       confirmation: typeof AUTH_ADMIN_MUTATION_ACTIONS.linkExternalPeer;
+      peerId: string;
+      userId: string;
+    }
+  | {
+      action: typeof AUTH_ADMIN_MUTATION_ACTIONS.unlinkExternalPeer;
+      confirmation: typeof AUTH_ADMIN_MUTATION_ACTIONS.unlinkExternalPeer;
       peerId: string;
       userId: string;
     }

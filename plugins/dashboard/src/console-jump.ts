@@ -46,7 +46,7 @@ export function buildConsoleJumpGroups(options: {
           id: "surface/people",
           title: "People",
           sub: "Access and identity",
-          href: `${studioPath}/workspaces/${encodeURIComponent("admin:people")}`,
+          href: `${studioPath}/workspaces/${encodeURIComponent("admin:administration")}?tab=people`,
           tag: "studio",
         },
       ],

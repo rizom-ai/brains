@@ -166,7 +166,7 @@ function activeProgress(
 
 const directorySyncWorkspace = defineStudioWorkspace({
   id: "sync",
-  label: "Sync",
+  label: "Content sync",
   permission: "admin",
   data: directorySyncWorkspaceSnapshotSchema,
   actions: [syncNowAction],

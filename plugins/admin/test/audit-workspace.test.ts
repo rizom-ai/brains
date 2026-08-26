@@ -4,10 +4,10 @@ import type { StudioWorkspaceActor } from "@brains/plugins";
 import { createTempDataDir } from "@brains/plugins/test";
 import { createMockShell } from "@brains/test-utils";
 import {
+  administrationTab,
   adminActor,
   captureAdminWorkspaces,
   trustedActor,
-  workspaceByLabel,
 } from "./studio-workspace-test-helpers";
 
 const authPlugins: AuthServicePlugin[] = [];
@@ -27,7 +27,17 @@ function actorFor(
   };
 }
 
-describe("Admin-owned Studio Audit workspace", () => {
+function findById(value: unknown, id: string): unknown {
+  if (value === null || typeof value !== "object") return undefined;
+  if (Reflect.get(value, "id") === id) return value;
+  for (const child of Object.values(value)) {
+    const result = findById(child, id);
+    if (result !== undefined) return result;
+  }
+  return undefined;
+}
+
+describe("Administration Audit tab", () => {
   it("admits only Admin actors and renders filtered URL-query detail", async () => {
     const shell = createMockShell({ domain: "brain.test" });
     const auth = new AuthServicePlugin({
@@ -54,12 +64,12 @@ describe("Admin-owned Studio Audit workspace", () => {
     const actor = actorFor(adminActor, admin);
     const deniedActor = actorFor(trustedActor, trusted);
 
-    const workspace = workspaceByLabel(
+    const workspace = administrationTab(
       await captureAdminWorkspaces(shell),
-      "Audit",
+      "audit",
     );
     expect(workspace).toMatchObject({
-      id: "admin:audit",
+      id: "admin:administration",
       pluginId: "admin",
       rendererName: "DeclarativeOperatorWorkspace",
       permission: "admin",
@@ -74,27 +84,29 @@ describe("Admin-owned Studio Audit workspace", () => {
     });
     expect(data).toMatchObject({
       view: {
-        title: "Audit",
-        blocks: [
-          { type: "query", pagination: { total: 1 } },
+        title: "Administration",
+        blocks: [{ type: "tabs", defaultTab: "audit" }],
+      },
+    });
+    expect(findById(data, "audit-query")).toMatchObject({
+      type: "query",
+      pagination: { total: 1 },
+    });
+    expect(findById(data, "audit-detail")).toMatchObject({
+      type: "detail",
+      open: {
+        forId: event.id,
+        title: "Changed an account role",
+      },
+      master: {
+        type: "table",
+        rows: [
           {
-            type: "detail",
-            open: {
-              forId: event.id,
-              title: "Changed an account role",
-            },
-            master: {
-              type: "table",
-              rows: [
-                {
-                  id: event.id,
-                  cells: {
-                    actor: "Ada Admin",
-                    action: "Changed an account role",
-                    target: "Tess Trusted",
-                  },
-                },
-              ],
+            id: event.id,
+            cells: {
+              actor: "Ada Admin",
+              action: "Changed an account role",
+              target: "Tess Trusted",
             },
           },
         ],
@@ -107,16 +119,9 @@ describe("Admin-owned Studio Audit workspace", () => {
       selected: event.id,
       offset: "100",
     });
-    expect(deepLink).toMatchObject({
-      view: {
-        blocks: [
-          {},
-          {
-            open: { forId: event.id },
-            master: { rows: [] },
-          },
-        ],
-      },
+    expect(findById(deepLink, "audit-detail")).toMatchObject({
+      open: { forId: event.id },
+      master: { rows: [] },
     });
   });
 });

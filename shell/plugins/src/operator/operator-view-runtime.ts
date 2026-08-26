@@ -535,11 +535,17 @@ export interface RuntimeStudioOperatorTabsBlock {
   readonly id: string;
   readonly label: string;
   readonly defaultTab: string;
+  readonly queryKey?: string | undefined;
   readonly tabs: readonly {
     readonly id: string;
     readonly label: string;
     readonly count?: number | undefined;
-    readonly blocks: readonly RuntimeStudioOperatorPanelBlock[];
+    readonly blocks: readonly (
+      | RuntimeStudioOperatorPanelBlock
+      | RuntimeStudioOperatorCardBlock
+      | RuntimeStudioOperatorDetailBlock
+      | RuntimeStudioOperatorColumnsBlock
+    )[];
   }[];
 }
 
@@ -1820,6 +1826,7 @@ const studioTabsBlockSchema = z
     id: identifierSchema,
     label: labelSchema,
     defaultTab: identifierSchema,
+    queryKey: identifierSchema.optional(),
     tabs: z
       .array(
         z
@@ -1827,7 +1834,18 @@ const studioTabsBlockSchema = z
             id: identifierSchema,
             label: labelSchema,
             count: z.number().int().nonnegative().optional(),
-            blocks: z.array(studioPanelBlockSchema).max(30),
+            blocks: z
+              .array(
+                z.lazy(() =>
+                  z.union([
+                    studioPanelBlockSchema,
+                    studioCardBlockSchema,
+                    studioDetailBlockSchema,
+                    studioColumnsBlockSchema,
+                  ]),
+                ),
+              )
+              .max(30),
           })
           .strict(),
       )
@@ -2487,7 +2505,12 @@ function normalizeStudioBlock(
     case "tabs": {
       const issues: RuntimeOperatorValidationIssue[] = [];
       const tabs = block.tabs.map((tab) => {
-        const blocks: RuntimeStudioOperatorPanelBlock[] = [];
+        const blocks: (
+          | RuntimeStudioOperatorPanelBlock
+          | RuntimeStudioOperatorCardBlock
+          | RuntimeStudioOperatorDetailBlock
+          | RuntimeStudioOperatorColumnsBlock
+        )[] = [];
         for (const [panelIndex, panelBlock] of tab.blocks.entries()) {
           const normalized = normalizeStudioBlock(
             panelBlock,
@@ -2496,7 +2519,7 @@ function normalizeStudioBlock(
             permission,
           );
           issues.push(...normalized.issues);
-          if (normalized.block && isPanelBlock(normalized.block)) {
+          if (normalized.block && normalized.block.type !== "tabs") {
             blocks.push(normalized.block);
           }
         }
@@ -2513,6 +2536,7 @@ function normalizeStudioBlock(
           id: block.id,
           label: block.label,
           defaultTab: block.defaultTab,
+          ...(block.queryKey ? { queryKey: block.queryKey } : {}),
           tabs,
         },
         issues,

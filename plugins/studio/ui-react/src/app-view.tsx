@@ -306,7 +306,7 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
               {...(activeWorkspaceId
                 ? {
                     onQueryChange: (query: StudioWorkspaceQuery) =>
-                      onWorkspaceQueryChange(activeWorkspaceId, query),
+                      onWorkspaceQueryChange(activeWorkspaceId, query, query),
                   }
                 : {})}
             />

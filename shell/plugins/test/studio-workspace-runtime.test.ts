@@ -855,6 +855,79 @@ describe("workspace action forms and results", () => {
   });
 });
 
+describe("operator tabs composition", () => {
+  it("normalizes query-backed tabs with full workspace sections", () => {
+    const result = safeParseRuntimeStudioOperatorView(
+      {
+        blocks: [
+          {
+            type: "tabs",
+            id: "administration-tabs",
+            label: "Administration sections",
+            defaultTab: "people",
+            queryKey: "tab",
+            tabs: [
+              {
+                id: "people",
+                label: "People",
+                blocks: [
+                  {
+                    type: "card",
+                    id: "anchor",
+                    label: "Brain Anchor",
+                    blocks: [
+                      {
+                        type: "key-values",
+                        items: [{ label: "Name", value: "Mira" }],
+                      },
+                    ],
+                  },
+                ],
+              },
+              {
+                id: "audit",
+                label: "Audit",
+                blocks: [
+                  {
+                    type: "detail",
+                    id: "audit-detail",
+                    queryKey: "selected",
+                    empty: "Select an event.",
+                    master: {
+                      type: "table",
+                      id: "audit-events",
+                      empty: "No events.",
+                      columns: [{ key: "event", label: "Event" }],
+                      rows: [],
+                    },
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+      { actions: [], permission: "admin" },
+    );
+
+    expect(result).toMatchObject({
+      success: true,
+      data: {
+        blocks: [
+          {
+            type: "tabs",
+            queryKey: "tab",
+            tabs: [
+              { id: "people", blocks: [{ type: "card" }] },
+              { id: "audit", blocks: [{ type: "detail" }] },
+            ],
+          },
+        ],
+      },
+    });
+  });
+});
+
 describe("operator detail composition", () => {
   const masterList = {
     type: "list" as const,

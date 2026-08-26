@@ -228,6 +228,7 @@ export function createDeclarativeStudioWorkspaceRegistration<
   readonly publicServiceId: string;
   readonly packageName: string;
   readonly runtimeWorkspaceId: string;
+  readonly aliases?: StudioWorkspaceRegistration["aliases"] | undefined;
   readonly config: TConfig;
   readonly state: TState;
   readonly accountSettingsRegistration?: AccountSettingsRegistration<
@@ -316,6 +317,7 @@ export function createDeclarativeStudioWorkspaceRegistration<
     priority: definition.priority ?? 50,
     permission: definition.permission,
     ...(definition.query ? { urlQuery: true } : {}),
+    ...(input.aliases ? { aliases: input.aliases } : {}),
     entityTypes: listEntityTypes
       ? async (actor): Promise<string[]> => {
           if (!(await admitted(actor, input.runtimeSignal))) return [];
@@ -590,12 +592,17 @@ type BuiltInBindingContext = OperatorBindingContext<
   undefined
 >;
 
-/** Bind and register a first-party workspace only when the Studio host exists. */
-export async function registerBuiltInStudioWorkspace<
+interface BuiltInStudioWorkspaceInput<
   TDefinition extends AnyStudioWorkspaceDefinition,
->(input: {
+> {
   readonly context: BasePluginContext;
   readonly definition: TDefinition;
+  readonly aliases?:
+    | readonly {
+        readonly id: string;
+        readonly query: Readonly<Record<string, string>>;
+      }[]
+    | undefined;
   readonly bind: (
     context: BuiltInBindingContext,
   ) => BoundStudioWorkspace<
@@ -605,12 +612,14 @@ export async function registerBuiltInStudioWorkspace<
     undefined
   >;
   readonly runtimeSignal?: AbortSignal | undefined;
-}): Promise<
-  Awaited<ReturnType<BasePluginContext["studio"]["registerWorkspace"]>> | false
-> {
-  if (input.context.executionOnly || !input.context.studio.isAvailable()) {
-    return false;
-  }
+}
+
+/** Bind a first-party definition without exposing its executor to providers. */
+export function createBuiltInStudioWorkspaceRegistration<
+  TDefinition extends AnyStudioWorkspaceDefinition,
+>(
+  input: BuiltInStudioWorkspaceInput<TDefinition>,
+): Omit<StudioWorkspaceRegistration, "pluginId"> {
   const binding = input.bind(builtInBindingContext);
   if (binding.definition !== input.definition) {
     throw new Error(
@@ -622,11 +631,35 @@ export async function registerBuiltInStudioWorkspace<
     publicServiceId: input.context.pluginId,
     packageName: input.context.pluginId,
     runtimeWorkspaceId,
+    ...(input.aliases
+      ? {
+          aliases: input.aliases.map((alias) => ({
+            id: `${input.context.pluginId}:${alias.id}`,
+            query: alias.query,
+          })),
+        }
+      : {}),
     config: builtInBindingContext.config,
     state: builtInBindingContext.state,
     binding,
     context: input.context,
     runtimeSignal: input.runtimeSignal ?? new AbortController().signal,
   });
-  return input.context.studio.registerWorkspace(registration);
+  return registration;
+}
+
+/** Bind and register a first-party workspace only when the Studio host exists. */
+export async function registerBuiltInStudioWorkspace<
+  TDefinition extends AnyStudioWorkspaceDefinition,
+>(
+  input: BuiltInStudioWorkspaceInput<TDefinition>,
+): Promise<
+  Awaited<ReturnType<BasePluginContext["studio"]["registerWorkspace"]>> | false
+> {
+  if (input.context.executionOnly || !input.context.studio.isAvailable()) {
+    return false;
+  }
+  return input.context.studio.registerWorkspace(
+    createBuiltInStudioWorkspaceRegistration(input),
+  );
 }

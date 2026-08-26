@@ -19,8 +19,9 @@ the card:
 [`../studio-consolidation-mockups.html`](../studio-consolidation-mockups.html)
 (decided 2026-08-19).
 
-**Progress:** Phases 1–8 are implemented on `work/studio-consolidation`; the
-consolidation is complete. A 2026-08-23 review confirmed the rename is cleanly mechanical and
+**Progress:** Phases 1–9 are implemented on `work/studio-consolidation`;
+the consolidation is complete. Phase 9 replaced four administration rail entries
+with one tabbed Administration workspace. A 2026-08-23 review confirmed the rename is cleanly mechanical and
 the capability-parity inventory holds. Its Phase 2 follow-ups (redundant Admin
 asserts, fetch-all audit pagination, and raw ISO timestamps) and Phase 3 entry
 conditions (shared form-control vocabulary and shared `queryInteger`) landed
@@ -43,6 +44,12 @@ attention, and prevents Dashboard from invoking restricted widget providers.
 Phase 8 makes Dashboard the anonymous public brain card with the fixed
 Overview/Knowledge/Network tabs, Public-scoped identity and holdings, and
 Dashboard-owned knowledge and agent-proximity map renderers.
+
+A 2026-08-24 UX review of the implemented rail found administration spread
+over four flat workspace entries mixed into one "Operations" list, with
+Peers incomprehensible as a standalone destination. The decision (mockups
+updated): administration collapses into **one tabbed workspace**; Phase 9
+below carried it plus the review's two extraction cleanups.
 
 ## Goal
 
@@ -68,10 +75,12 @@ End state:
   the workspaces and editor capabilities the actor is admitted to. Capabilities gate themselves — the
   entity editor family at trusted, admin workspaces at admin, account at any
   active session.
-- The admin console's four views become built-in, admin-gated Studio
-  workspaces; the admin door, shell routes, client API wrappers, and React app
-  are gone. The authoritative `/auth/admin/*` JSON endpoints remain in
-  auth-service.
+- The admin console becomes **one** built-in, admin-gated Studio workspace —
+  `Administration`, with People / Invitations / Audit as tabs inside (the
+  view protocol's existing tabs block) and Peers folded into People as
+  provenance. One rail entry with one aggregate attention badge; the admin
+  door, shell routes, client API wrappers, and React app are gone. The
+  authoritative `/auth/admin/*` JSON endpoints remain in auth-service.
 - Account (profile, passkeys, sessions, plugin-settings forms) becomes the
   built-in `studio:account` workspace admitted to every active session. It uses
   a fixed host-owned renderer delivered as a lazy client chunk because the
@@ -450,7 +459,43 @@ surface is pure gating.
   agent-directory data.
 - The widget-group tabs (knowledge/publishing/network/system) retire with
   their operator content; the public widget protocol remains for Overview
-  cards so plugins can contribute public data points.
+  cards so plugins can contribute public data points. Public widget definitions
+  remain semantic data sources for the fixed Skills, Knowledge, and Network
+  slots; Dashboard does not append generic widget cards below the mockup's
+  four-card Overview.
+
+### Phase 9 — Administration becomes one tabbed workspace
+
+Administration is one occasional job for one persona, uniformly admin-gated
+— it gets one rail entry, not four. The rail today renders every workspace
+in a single priority-ordered "Operations" list, interleaving access
+administration with content operations, stranding Audit at the bottom, and
+presenting Peers as a standalone destination whose provenance-based split
+from People is an implementation concept, not an operator one. The mockups'
+rail-comparison and Administration frames are the design reference.
+
+- Tests first: one `administration` workspace registration replaces
+  `people`/`invitations`/`peers`/`audit`; the tab set is exactly
+  People/Invitations/Audit via the existing tabs block; the data provider
+  loads per-tab from query state (opening Audit must not fetch the roster);
+  the rail badge aggregates the per-concern attention counts; deep links to
+  the old workspace ids resolve to the matching tab.
+- Collapse the four registrations into one `plugins/admin` workspace
+  definition with People / Invitations / Audit tabs. The existing
+  people/invitations/audit modules become tab providers feeding one
+  definition — re-homed, not rewritten.
+- Fold Peers into the People tab: peer-arrived people carry provenance in
+  the roster and detail (arrived-via, peer link, unlink action, peer
+  relationship explanation); peer-first invitation lives in the Invitations
+  tab. The `peers` workspace and its jargon description are retired.
+- Rename the directory-sync workspace rail label from "Sync" to "Content
+  sync", matching its own head title. Pin Overview above the workspace list
+  in the rail.
+- Extraction cleanups from the 2026-08-23/24 reviews: one shared
+  `requireAuthService()` guard and one shared admin-user option mapping in
+  `workspace-format.ts` replace the six and ten inline copies; the remaining
+  raw `toISOString()` cells in the people and peers views go through
+  `formatWorkspaceDate` where user-facing.
 
 ## Ordering rationale
 

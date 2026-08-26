@@ -1,8 +1,8 @@
-import { getActiveAuthService, type AuthService } from "@brains/auth-service";
+import type { AuthService } from "@brains/auth-service";
 import {
+  createBuiltInStudioWorkspaceRegistration,
   defineStudioWorkspace,
   defineWorkspaceAction,
-  registerBuiltInStudioWorkspace,
   type OperatorCaller,
   type OperatorViewBlock,
   type ServicePluginContext,
@@ -10,7 +10,11 @@ import {
 import { queryInteger } from "@brains/utils/query";
 import { z } from "@brains/utils/zod";
 import { randomUUID } from "node:crypto";
-import { formatWorkspaceDate } from "./workspace-format";
+import {
+  formatWorkspaceDate,
+  requireAuthService,
+  type AdminWorkspaceRegistration,
+} from "./workspace-format";
 
 const TERMINAL_INVITATION_STATES = new Set(["claimed", "expired", "cancelled"]);
 
@@ -379,13 +383,12 @@ function setupResult(
   };
 }
 
-export async function registerStudioInvitationsWorkspace(
+export function createInvitationsTabRegistration(
   context: ServicePluginContext,
-): Promise<string | undefined> {
-  const authService = getActiveAuthService();
-  if (!authService) return undefined;
+): AdminWorkspaceRegistration {
+  const authService = requireAuthService();
   const pendingManualDeliveries = new Map<string, string>();
-  const result = await registerBuiltInStudioWorkspace({
+  return createBuiltInStudioWorkspaceRegistration({
     context,
     definition: studioInvitationsWorkspace,
     bind: (bindingContext) => {
@@ -540,5 +543,4 @@ export async function registerStudioInvitationsWorkspace(
       });
     },
   });
-  return result ? result.workspaceUrl : undefined;
 }

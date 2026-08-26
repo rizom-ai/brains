@@ -542,7 +542,13 @@ export interface OperatorTabPanel<
   readonly id: string;
   readonly label: string;
   readonly count?: number | undefined;
-  readonly blocks: readonly OperatorPanelBlock<TAction>[];
+  /** Full workspace sections may live in a tab; nested tabs stay disallowed. */
+  readonly blocks: readonly (
+    | OperatorPanelBlock<TAction>
+    | OperatorCardBlock<TAction>
+    | OperatorDetailBlock<TAction>
+    | OperatorColumnsBlock<TAction>
+  )[];
 }
 
 export interface OperatorTabsBlock<
@@ -552,6 +558,8 @@ export interface OperatorTabsBlock<
   readonly id: string;
   readonly label: string;
   readonly defaultTab: string;
+  /** When set, the host reads and writes the selected tab through query state. */
+  readonly queryKey?: string | undefined;
   readonly tabs: readonly OperatorTabPanel<TAction>[];
 }
 

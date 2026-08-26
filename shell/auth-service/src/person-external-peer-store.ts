@@ -1,4 +1,4 @@
-import { eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { createPrefixedId } from "@brains/utils/id";
 import type { AuthRuntimeDB } from "./runtime-db";
 import {
@@ -27,6 +27,12 @@ export interface LinkExternalPeerInput {
   peerId: string;
   personId: string;
   createdByUserId: string;
+}
+
+export interface UnlinkExternalPeerInput {
+  peerId: string;
+  personId: string;
+  actorUserId: string;
 }
 
 /** Stores access-neutral associations between local people and external peers. */
@@ -121,6 +127,35 @@ export class PersonExternalPeerStore {
         updatedAt: now,
       } satisfies typeof personExternalPeers.$inferInsert;
       await tx.insert(personExternalPeers).values(peer);
+      return peer;
+    });
+  }
+
+  async unlinkPeer(
+    input: UnlinkExternalPeerInput,
+  ): Promise<PersonExternalPeer> {
+    const peerId = normalizePeerId(input.peerId);
+    return this.db.transaction(async (tx) => {
+      await requireActiveAdmin(tx, input.actorUserId);
+      const [peer] = await tx
+        .select()
+        .from(personExternalPeers)
+        .where(
+          and(
+            eq(personExternalPeers.peerId, peerId),
+            eq(personExternalPeers.personId, input.personId),
+          ),
+        )
+        .limit(1);
+      if (!peer) throw new Error("External peer link was not found");
+      await tx
+        .delete(personExternalPeers)
+        .where(
+          and(
+            eq(personExternalPeers.peerId, peerId),
+            eq(personExternalPeers.personId, input.personId),
+          ),
+        );
       return peer;
     });
   }

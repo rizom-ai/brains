@@ -101,7 +101,7 @@ describe("DirectorySyncPlugin", () => {
       expect(workspaceRegistration).toMatchObject({
         id: "directory-sync:sync",
         pluginId: "directory-sync",
-        label: "Sync",
+        label: "Content sync",
         rendererName: "DeclarativeOperatorWorkspace",
         priority: 50,
       });

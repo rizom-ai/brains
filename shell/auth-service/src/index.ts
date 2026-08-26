@@ -80,6 +80,7 @@ export type {
   InvitedExternalPeerAccess,
   InviteExternalPeerPersonRequest,
   LinkExternalPeerRequest,
+  UnlinkExternalPeerRequest,
 } from "./administration-service";
 export { AuthService } from "./auth-service";
 export type {
@@ -132,6 +133,7 @@ export type {
   InvitedExternalPeerPerson,
   InviteExternalPeerPersonInput,
   LinkExternalPeerInput,
+  UnlinkExternalPeerInput,
 } from "./person-external-peer-store";
 export { RuntimeA2APeerTrustStore } from "./peer-trust-store";
 export type {

@@ -21,6 +21,33 @@ export function getStudioRouterBasePath(): string {
   return studioRouterBasePath;
 }
 
+export function resolveStudioWorkspaceAlias(
+  basePath: string,
+  requestedId: string,
+  rawSearch: string,
+  workspaces: readonly {
+    readonly id: string;
+    readonly aliases?: readonly {
+      readonly id: string;
+      readonly query: Readonly<Record<string, string>>;
+    }[];
+  }[],
+): string | undefined {
+  for (const workspace of workspaces) {
+    const alias = workspace.aliases?.find((entry) => entry.id === requestedId);
+    if (!alias) continue;
+    const search = new URLSearchParams(rawSearch);
+    for (const [key, value] of Object.entries(alias.query)) {
+      search.set(key, value);
+    }
+    search.sort();
+    const suffix = search.toString();
+    const pathname = studioWorkspacePath(basePath, workspace.id);
+    return suffix ? `${pathname}?${suffix}` : pathname;
+  }
+  return undefined;
+}
+
 export function resolveStudioHomePath(
   basePath: string,
   types: readonly {

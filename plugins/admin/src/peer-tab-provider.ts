@@ -1,13 +1,18 @@
-import { getActiveAuthService } from "@brains/auth-service";
 import {
+  createBuiltInStudioWorkspaceRegistration,
   defineStudioWorkspace,
   defineWorkspaceAction,
-  registerBuiltInStudioWorkspace,
   type OperatorCaller,
   type OperatorViewBlock,
   type ServicePluginContext,
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
+import {
+  adminUserOptions,
+  formatWorkspaceDate,
+  requireAuthService,
+  type AdminWorkspaceRegistration,
+} from "./workspace-format";
 
 const peersQuerySchema = z.strictObject({
   peerId: z.string().trim().max(2_000).optional(),
@@ -92,13 +97,7 @@ const setupResultPresentation = {
   },
 };
 
-function formatDate(timestamp: number): string {
-  return new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(
-    new Date(timestamp),
-  );
-}
-
-const peersWorkspace = defineStudioWorkspace({
+const peerTabProvider = defineStudioWorkspace({
   id: "peers",
   label: "Peers",
   priority: 12,
@@ -242,7 +241,7 @@ const peersWorkspace = defineStudioWorkspace({
             person: peer.displayName,
             role: peer.role,
             verification: peer.verificationStatus,
-            linked: formatDate(peer.createdAt),
+            linked: formatWorkspaceDate(peer.createdAt),
           },
         })),
       },
@@ -265,14 +264,13 @@ function mutationContext(caller: OperatorCaller | null): {
   return { actorUserId: caller.actor.id };
 }
 
-export async function registerPeersWorkspace(
+export function createPeerTabRegistration(
   context: ServicePluginContext,
-): Promise<string | undefined> {
-  const authService = getActiveAuthService();
-  if (!authService) return undefined;
-  const result = await registerBuiltInStudioWorkspace({
+): AdminWorkspaceRegistration {
+  const authService = requireAuthService();
+  return createBuiltInStudioWorkspaceRegistration({
     context,
-    definition: peersWorkspace,
+    definition: peerTabProvider,
     bind: (bindingContext) => {
       const invite = invitePeer.bind(
         bindingContext,
@@ -320,7 +318,7 @@ export async function registerPeersWorkspace(
           };
         },
       );
-      return peersWorkspace.bind(bindingContext, {
+      return peerTabProvider.bind(bindingContext, {
         actions: [invite, link],
         load: async ({ query }) => {
           const normalized = query.get(peersQuerySchema);
@@ -340,10 +338,7 @@ export async function registerPeersWorkspace(
                 createdAt: peer.createdAt,
               })),
             ),
-            people: people.map((user) => ({
-              userId: user.userId,
-              displayName: user.displayName,
-            })),
+            people: adminUserOptions(people),
             channels: channels
               .filter((channel) => channel.deliveryModes.length > 0)
               .map((channel) => ({
@@ -356,5 +351,4 @@ export async function registerPeersWorkspace(
       });
     },
   });
-  return result ? result.workspaceUrl : undefined;
 }

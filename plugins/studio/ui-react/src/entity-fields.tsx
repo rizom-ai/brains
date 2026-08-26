@@ -95,6 +95,13 @@ export function TypeSwitcher(props: {
   workspaceBadges?: Record<string, number>;
   onSelectWorkspace?: (workspaceId: string) => void;
 }): ReactElement {
+  const overviewWorkspace = props.workspaces?.find(
+    (workspace) => workspace.id === "studio:overview",
+  );
+  const operationWorkspaces =
+    props.workspaces?.filter(
+      (workspace) => workspace.id !== "studio:overview",
+    ) ?? [];
   const groups = (["Content", "Collections", "Site", "System"] as const)
     .map((label) => ({
       label,
@@ -131,16 +138,40 @@ export function TypeSwitcher(props: {
 
   return (
     <nav className="types">
+      {overviewWorkspace && (
+        <section className="rail-group rail-group--overview">
+          <ul>
+            <li>
+              <button
+                type="button"
+                className={
+                  overviewWorkspace.id === props.activeWorkspace
+                    ? "type workspace-type active"
+                    : "type workspace-type"
+                }
+                onClick={() => props.onSelectWorkspace?.(overviewWorkspace.id)}
+              >
+                {overviewWorkspace.label}
+                {(props.workspaceBadges?.[overviewWorkspace.id] ?? 0) > 0 && (
+                  <span className="count count--attention">
+                    {props.workspaceBadges?.[overviewWorkspace.id]}
+                  </span>
+                )}
+              </button>
+            </li>
+          </ul>
+        </section>
+      )}
       {groups
         .filter(
           (group) => group.label === "Content" || group.label === "Collections",
         )
         .map(renderGroup)}
-      {(props.workspaces?.length ?? 0) > 0 && (
+      {operationWorkspaces.length > 0 && (
         <section className="rail-group rail-group--operations">
           <div className="rail-title">Operations</div>
           <ul>
-            {props.workspaces?.map((workspace) => (
+            {operationWorkspaces.map((workspace) => (
               <li key={workspace.id}>
                 <button
                   type="button"

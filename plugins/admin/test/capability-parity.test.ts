@@ -6,7 +6,7 @@ import {
 
 interface AdminCapabilityInventoryEntry {
   currentOwner: "studio" | "retired";
-  destination: "invitations" | "people" | "peers" | "retirement-decision";
+  destination: "invitations" | "people" | "retirement-decision";
   controlId?: string | undefined;
 }
 
@@ -70,13 +70,18 @@ const ADMIN_CAPABILITY_INVENTORY: Readonly<
   },
   inviteExternalPeerPerson: {
     currentOwner: "studio",
-    destination: "peers",
+    destination: "invitations",
     controlId: "invite-external-peer-person",
   },
   linkExternalPeer: {
     currentOwner: "studio",
-    destination: "peers",
+    destination: "people",
     controlId: "link-external-peer",
+  },
+  unlinkExternalPeer: {
+    currentOwner: "studio",
+    destination: "people",
+    controlId: "unlink-external-peer",
   },
   attachIdentity: {
     currentOwner: "studio",
@@ -93,10 +98,10 @@ const ADMIN_CAPABILITY_INVENTORY: Readonly<
 const ADMIN_READ_PRESENTATION: Readonly<
   Record<"audit" | "anchor" | "channels" | "users", string>
 > = {
-  audit: "admin:audit",
-  anchor: "admin:people",
-  channels: "admin:people",
-  users: "admin:people",
+  audit: "admin:administration",
+  anchor: "admin:administration",
+  channels: "admin:administration",
+  users: "admin:administration",
 };
 
 describe("Admin capability parity inventory", () => {
@@ -119,16 +124,14 @@ describe("Admin capability parity inventory", () => {
     expect(
       retained.every(
         (entry) =>
-          entry.destination === "invitations" ||
-          entry.destination === "people" ||
-          entry.destination === "peers",
+          entry.destination === "invitations" || entry.destination === "people",
       ),
     ).toBe(true);
     expect(ADMIN_READ_PRESENTATION).toEqual({
-      audit: "admin:audit",
-      anchor: "admin:people",
-      channels: "admin:people",
-      users: "admin:people",
+      audit: "admin:administration",
+      anchor: "admin:administration",
+      channels: "admin:administration",
+      users: "admin:administration",
     });
   });
 

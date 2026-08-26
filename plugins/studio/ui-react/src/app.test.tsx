@@ -430,6 +430,40 @@ describe("TypeSwitcher", () => {
     expect(html.match(/class="[^"]*active/g)).toHaveLength(1);
   });
 
+  it("pins Overview above the workspace list", () => {
+    const overview: StudioWorkspaceInfo = {
+      id: "studio:overview",
+      pluginId: "studio",
+      label: "Overview",
+      rendererName: "DeclarativeOperatorWorkspace",
+      priority: 100,
+      entityTypes: [],
+    };
+    const administration: StudioWorkspaceInfo = {
+      id: "admin:administration",
+      pluginId: "admin",
+      label: "Administration",
+      rendererName: "DeclarativeOperatorWorkspace",
+      priority: 10,
+      entityTypes: [],
+    };
+    const html = renderToStaticMarkup(
+      createElement(TypeSwitcher, {
+        types: [],
+        active: null,
+        onSelect: () => {},
+        workspaces: [administration, overview],
+        activeWorkspace: overview.id,
+        onSelectWorkspace: () => {},
+      }),
+    );
+
+    expect(html.indexOf("Overview")).toBeLessThan(html.indexOf("Operations"));
+    expect(html.indexOf("Administration")).toBeGreaterThan(
+      html.indexOf("Operations"),
+    );
+  });
+
   it("shows registered workspaces beside Account operations", () => {
     const workspace: StudioWorkspaceInfo = {
       id: "publishing",

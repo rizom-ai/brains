@@ -15,6 +15,7 @@ import type {
   InvitedExternalPeerAccess,
   InviteExternalPeerPersonRequest,
   LinkExternalPeerRequest,
+  UnlinkExternalPeerRequest,
 } from "./administration-service";
 import { handleAuthAdminRequest } from "./admin-endpoints";
 import type {
@@ -481,6 +482,16 @@ export class AuthService {
       .linkExternalPeer(input, context);
   }
 
+  async unlinkExternalPeer(
+    input: UnlinkExternalPeerRequest,
+    context: AuthMutationContext,
+  ): Promise<PersonExternalPeer> {
+    await this.runtime.ensureStarted();
+    return this.runtime
+      .getAdministrationService()
+      .unlinkExternalPeer(input, context);
+  }
+
   async getBrainAnchor(): Promise<AuthBrainAnchorSummary> {
     await this.runtime.ensureStarted();
     return this.runtime.getAdministrationService().getBrainAnchor();
@@ -842,6 +853,8 @@ export class AuthService {
         this.resendInvitation(invitationId, { actorUserId }),
       linkExternalPeer: (input, actorUserId) =>
         this.linkExternalPeer(input, { actorUserId }),
+      unlinkExternalPeer: (input, actorUserId) =>
+        this.unlinkExternalPeer(input, { actorUserId }),
       updateUserRole: (userId, role, actorUserId) =>
         this.updateUserRole(userId, role, { actorUserId }),
       updateUserStatus: (userId, status, actorUserId) =>

@@ -775,6 +775,7 @@ export {
   DECLARATIVE_STUDIO_WORKSPACE_RENDERER,
   assertStudioWorkspaceAdmin,
   type StudioWorkspaceActor,
+  type StudioWorkspaceAlias,
   type StudioWorkspaceDescriptor,
   type StudioWorkspaceRegistration,
   type StudioWorkspaceRegistrationResult,
@@ -792,7 +793,10 @@ export {
   type StudioOverviewContributionUnregistration,
   type IDashboardNamespace,
 } from "./base/dashboard-namespace";
-export { registerBuiltInStudioWorkspace } from "./operator/studio-workspace-runtime";
+export {
+  createBuiltInStudioWorkspaceRegistration,
+  registerBuiltInStudioWorkspace,
+} from "./operator/studio-workspace-runtime";
 export { registerBuiltInDashboardWidget } from "./operator/dashboard-widget-runtime";
 export {
   safeParseRuntimeStudioOperatorView,

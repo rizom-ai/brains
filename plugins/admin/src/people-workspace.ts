@@ -1,14 +1,19 @@
-import { getActiveAuthService, type AuthService } from "@brains/auth-service";
+import type { AuthService } from "@brains/auth-service";
 import {
+  createBuiltInStudioWorkspaceRegistration,
   defineStudioWorkspace,
   defineWorkspaceAction,
-  registerBuiltInStudioWorkspace,
   type OperatorCaller,
   type OperatorRegionBlock,
   type OperatorViewBlock,
   type ServicePluginContext,
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
+import {
+  formatWorkspaceDate,
+  requireAuthService,
+  type AdminWorkspaceRegistration,
+} from "./workspace-format";
 
 const peopleQuerySchema = z.strictObject({
   selected: z.string().trim().min(1).max(200).optional(),
@@ -42,6 +47,10 @@ const identityInputSchema = z.strictObject({
 const identityIdInputSchema = z.strictObject({
   userId: z.string().min(1),
   identityId: z.string().min(1),
+});
+const unlinkPeerInputSchema = z.strictObject({
+  userId: z.string().min(1),
+  peerId: z.string().trim().min(1).max(2_000),
 });
 
 const updateRole = defineWorkspaceAction({
@@ -115,6 +124,14 @@ const detachIdentity = defineWorkspaceAction({
   input: identityIdInputSchema,
   output: statusResultSchema,
 });
+const unlinkExternalPeer = defineWorkspaceAction({
+  name: "unlink-external-peer",
+  label: "Unlink peer",
+  permission: "admin",
+  confirmation: { kind: "prepared" },
+  input: unlinkPeerInputSchema,
+  output: statusResultSchema,
+});
 
 const personSchema = z.strictObject({
   userId: z.string(),
@@ -172,7 +189,8 @@ type PeopleAction =
   | typeof startPasskeyRegistration
   | typeof revokeSessions
   | typeof attachIdentity
-  | typeof detachIdentity;
+  | typeof detachIdentity
+  | typeof unlinkExternalPeer;
 type PeopleBlock = OperatorViewBlock<PeopleAction>;
 type PeopleRegion = OperatorRegionBlock<PeopleAction>;
 type PeoplePanel = Exclude<PeopleRegion, { type: "card" }>;
@@ -246,12 +264,6 @@ function titleCase(value: string): string {
   return `${value.slice(0, 1).toUpperCase()}${value.slice(1)}`;
 }
 
-function formatDate(timestamp: number): string {
-  return new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(
-    new Date(timestamp),
-  );
-}
-
 function defaultAnchor(
   displayName: string,
   administeredBy: number,
@@ -285,7 +297,9 @@ const peopleWorkspace = defineStudioWorkspace({
     revokeSessions,
     attachIdentity,
     detachIdentity,
+    unlinkExternalPeer,
   ],
+  badge: ({ data }) => data.suspendedCount,
   view: ({ data }) => {
     const selected = data.people.find(
       (person) => person.userId === data.query.selected,
@@ -424,7 +438,7 @@ const peopleWorkspace = defineStudioWorkspace({
               id: passkey.id,
               cells: {
                 kind: passkey.kind,
-                created: formatDate(passkey.createdAt),
+                created: formatWorkspaceDate(passkey.createdAt),
               },
               actions:
                 selected.status === "active" && !selected.isSelf
@@ -489,13 +503,25 @@ const peopleWorkspace = defineStudioWorkspace({
         ],
       });
       openBlocks.push({
+        type: "notice",
+        tone: "neutral",
+        text: "External peer links record provenance from another brain. They do not grant or change this person's local access.",
+      });
+      openBlocks.push({
         type: "list",
         id: "person-peers",
-        empty: "No external peer linked.",
+        empty: "No external peer linked; this person is hosted locally.",
         items: selected.peers.map((peer) => ({
           id: peer.peerId,
           title: peer.peerId,
+          description: "Arrived via an external brain relationship",
           metadata: [titleCase(peer.verificationStatus)],
+          actions: [
+            {
+              action: unlinkExternalPeer,
+              input: { userId: selected.userId, peerId: peer.peerId },
+            },
+          ],
         })),
       });
     }
@@ -543,7 +569,7 @@ const peopleWorkspace = defineStudioWorkspace({
             { key: "person", label: "Person" },
             { key: "role", label: "Role" },
             { key: "status", label: "Status" },
-            { key: "brain", label: "Brain" },
+            { key: "brain", label: "Arrived via" },
             { key: "signIn", label: "Sign-in" },
           ],
           rows: data.people.map((person) => ({
@@ -552,7 +578,7 @@ const peopleWorkspace = defineStudioWorkspace({
               person: person.displayName,
               role: titleCase(person.role),
               status: titleCase(person.status),
-              brain: person.peers.length > 0 ? "External peer" : "Hosted",
+              brain: person.peers[0]?.peerId ?? "Hosted locally",
               signIn: `${person.passkeys.length} passkeys · ${person.identities.length} channels`,
             },
             link: { detail: { itemId: person.userId } },
@@ -613,12 +639,11 @@ async function loadBrainAnchor(
   }
 }
 
-export async function registerPeopleWorkspace(
+export function createPeopleTabRegistration(
   context: ServicePluginContext,
-): Promise<string | undefined> {
-  const authService = getActiveAuthService();
-  if (!authService) return undefined;
-  const result = await registerBuiltInStudioWorkspace({
+): AdminWorkspaceRegistration {
+  const authService = requireAuthService();
+  return createBuiltInStudioWorkspaceRegistration({
     context,
     definition: peopleWorkspace,
     bind: (bindingContext) => {
@@ -755,6 +780,17 @@ export async function registerPeopleWorkspace(
           revision: `${input.userId}:${input.identityId}`,
         }),
       );
+      const unlink = unlinkExternalPeer.bind(
+        bindingContext,
+        async ({ input, caller }) => {
+          await authService.unlinkExternalPeer(input, mutationContext(caller));
+          return { status: "External peer unlinked from the local person." };
+        },
+        ({ input }) => ({
+          summary: `Unlink ${input.peerId}? Local access will not change.`,
+          revision: `${input.peerId}:${input.userId}`,
+        }),
+      );
       return peopleWorkspace.bind(bindingContext, {
         actions: [
           role,
@@ -765,6 +801,7 @@ export async function registerPeopleWorkspace(
           sessions,
           attach,
           detach,
+          unlink,
         ],
         load: async ({ query, caller }) => {
           const normalized = query.get(peopleQuerySchema);
@@ -848,5 +885,4 @@ export async function registerPeopleWorkspace(
       });
     },
   });
-  return result ? result.workspaceUrl : undefined;
 }

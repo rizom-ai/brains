@@ -5,12 +5,12 @@ import { createTempDataDir } from "@brains/plugins/test";
 import { createMockShell } from "@brains/test-utils";
 import {
   actionRequest,
+  administrationTab,
   adminActor,
   captureAdminWorkspaces,
   findAction,
   resultField,
   trustedActor,
-  workspaceByLabel,
 } from "./studio-workspace-test-helpers";
 
 const authPlugins: AuthServicePlugin[] = [];
@@ -30,7 +30,7 @@ function actorFor(
   };
 }
 
-describe("Admin-owned Studio Peers workspace", () => {
+describe("Administration peer relationships", () => {
   it("lists, links, and invites peers without retaining setup output", async () => {
     const shell = createMockShell({ domain: "brain.test" });
     shell.getChannelRegistry().registerDescriptor("test", {
@@ -57,12 +57,11 @@ describe("Admin-owned Studio Peers workspace", () => {
     const actor = actorFor(adminActor, admin);
     const deniedActor = actorFor(trustedActor, member);
 
-    const workspace = workspaceByLabel(
-      await captureAdminWorkspaces(shell),
-      "Peers",
-    );
+    const registrations = await captureAdminWorkspaces(shell);
+    const workspace = administrationTab(registrations, "people");
+    const invitations = administrationTab(registrations, "invitations");
     expect(workspace).toMatchObject({
-      id: "admin:peers",
+      id: "admin:administration",
       pluginId: "admin",
       rendererName: "DeclarativeOperatorWorkspace",
       permission: "admin",
@@ -75,7 +74,11 @@ describe("Admin-owned Studio Peers workspace", () => {
       peerId: "did:web:grace.example",
       displayName: "Grace Hopper",
     });
-    expect(findAction(initial, "Invite peer person")).toMatchObject({
+    const peerInvitation = await invitations.dataProvider(actor, {
+      peerId: "did:web:grace.example",
+      displayName: "Grace Hopper",
+    });
+    expect(findAction(peerInvitation, "Invite peer person")).toMatchObject({
       input: {
         peerId: "did:web:grace.example",
         displayName: "Grace Hopper",
@@ -105,8 +108,8 @@ describe("Admin-owned Studio Peers workspace", () => {
       "did:web:tess.example",
     );
 
-    const invite = findAction(initial, "Invite peer person");
-    const invited = await workspace.actionHandler?.(
+    const invite = findAction(peerInvitation, "Invite peer person");
+    const invited = await invitations.actionHandler?.(
       actionRequest(invite, {
         peerId: "did:web:grace.example",
         displayName: "Grace Hopper",
@@ -121,14 +124,36 @@ describe("Admin-owned Studio Peers workspace", () => {
     const setupUrl = resultField(invited, "setupUrl");
     if (typeof setupUrl !== "string") throw new Error("Expected setup URL");
     expect(setupUrl).toContain("token=");
-    const refreshed = await workspace.dataProvider(actor);
+    const refreshed = await workspace.dataProvider(actor, {
+      selected: member.userId,
+    });
     expect(JSON.stringify(refreshed)).toContain("did:web:grace.example");
     expect(JSON.stringify(refreshed)).not.toContain(setupUrl);
+
+    const unlink = findAction(refreshed, "Unlink peer");
+    const unlinkPrepared = await workspace.actionHandler?.(
+      actionRequest(unlink, undefined, { mode: "prepare" }),
+      actor,
+    );
+    const unlinkToken = resultField(unlinkPrepared, "token");
+    if (typeof unlinkToken !== "string")
+      throw new Error("Expected unlink token");
+    await workspace.actionHandler?.(
+      actionRequest(unlink, undefined, {
+        mode: "execute",
+        token: unlinkToken,
+      }),
+      actor,
+    );
+    expect(JSON.stringify(await workspace.dataProvider(actor))).not.toContain(
+      "did:web:tess.example",
+    );
 
     const audit = await service.listAuditEvents();
     for (const action of [
       "auth.external_peer.linked",
       "auth.external_peer.invited",
+      "auth.external_peer.unlinked",
     ]) {
       expect(audit.find((event) => event.action === action)?.actorUserId).toBe(
         admin.userId,

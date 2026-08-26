@@ -1537,9 +1537,13 @@ function ViewBlock(props: {
   query: OperatorViewQuery;
   onQueryChange: (query: OperatorViewQuery) => void;
 }): ReactElement {
-  const [activeTab, setActiveTab] = useState(
-    props.block.type === "tabs" ? props.block.defaultTab : "",
-  );
+  const tabDefault = props.block.type === "tabs" ? props.block.defaultTab : "";
+  const tabQueryKey =
+    props.block.type === "tabs" ? props.block.queryKey : undefined;
+  const [localActiveTab, setLocalActiveTab] = useState(tabDefault);
+  useEffect(() => {
+    if (!tabQueryKey) setLocalActiveTab(tabDefault);
+  }, [tabDefault, tabQueryKey]);
   const host = useContext(OperatorRendererHostContext);
   if (props.block.type === "columns") {
     return (
@@ -1604,7 +1608,7 @@ function ViewBlock(props: {
               className={`operator-block operator-block--${block.type}`}
               key={block.id ?? `${block.type}:${index}`}
             >
-              <PanelBlock
+              <ViewBlock
                 block={block}
                 onAction={props.onAction}
                 onOpenEntity={props.onOpenEntity}
@@ -1618,6 +1622,9 @@ function ViewBlock(props: {
       />
     );
   }
+  const requestedTab = tabQueryKey ? props.query[tabQueryKey] : undefined;
+  const activeTab =
+    typeof requestedTab === "string" ? requestedTab : localActiveTab;
   const active =
     props.block.tabs.find((tab) => tab.id === activeTab) ?? props.block.tabs[0];
   return (
@@ -1629,7 +1636,16 @@ function ViewBlock(props: {
             type="button"
             role="tab"
             aria-selected={tab.id === active?.id}
-            onClick={() => setActiveTab(tab.id)}
+            onClick={() => {
+              if (tabQueryKey) {
+                props.onQueryChange({
+                  ...props.query,
+                  [tabQueryKey]: tab.id,
+                });
+              } else {
+                setLocalActiveTab(tab.id);
+              }
+            }}
           >
             {tab.label}
             {tab.count !== undefined ? ` (${tab.count})` : ""}
@@ -1640,7 +1656,7 @@ function ViewBlock(props: {
         <div role="tabpanel">
           {active.blocks.map((block, index) => (
             <section key={block.id ?? `${block.type}:${index}`}>
-              <PanelBlock
+              <ViewBlock
                 block={block}
                 onAction={props.onAction}
                 onOpenEntity={props.onOpenEntity}
