@@ -323,6 +323,9 @@ export class ProjectionRuleJobHandler implements JobHandler<
 
     let writeIntents: readonly ProjectionWriteIntent[];
     if (memo) {
+      // Already reconciled when it was stored, so replaying it must not
+      // reconcile again — and an abstention memoized as no intents would
+      // otherwise replay as "delete everything this rule owns".
       writeIntents = memo.writeIntents;
     } else {
       await this.recordDiagnostic({
@@ -331,11 +334,17 @@ export class ProjectionRuleJobHandler implements JobHandler<
         memoHit: false,
       });
       try {
-        writeIntents = await rule.derive(
+        const derived = await rule.derive(
           selectedInput,
           this.executionContext,
           signal,
         );
+        // Abstaining is not an empty desired set. The rule had nothing to
+        // derive from, so it has no opinion about what should exist and its
+        // targets are left exactly as they are.
+        writeIntents = Array.isArray(derived)
+          ? await this.withReconciledDeletions(rule, derived)
+          : [];
         await this.recordDiagnostic({
           ...selectedDiagnostic,
           event: "derive-completed",
@@ -356,7 +365,7 @@ export class ProjectionRuleJobHandler implements JobHandler<
       ruleId: rule.id,
       ruleVersion: rule.version,
       inputFingerprint,
-      writeIntents: await this.withReconciledDeletions(rule, writeIntents),
+      writeIntents,
       completedAt: this.now(),
     });
     const pendingInputs = await this.store.listPendingInputs();

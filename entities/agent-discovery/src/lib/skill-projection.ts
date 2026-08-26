@@ -1,10 +1,12 @@
 import {
+  PROJECTION_ABSTAINED,
   ProjectionJsonObjectSchema,
   defineProjectionRule,
   scopedDerivedId,
   type ProjectionRule,
   type ProjectionExecutionContext,
   type ProjectionInputContext,
+  type ProjectionAbstention,
   type ProjectionWriteIntent,
 } from "@brains/plugins";
 import { generateIdFromText } from "@brains/utils/string-utils";
@@ -132,8 +134,11 @@ async function selectSkillInput(
 async function deriveSkillIntents(
   input: SkillProjectionInput,
   context: ProjectionExecutionContext,
-): Promise<readonly ProjectionWriteIntent[]> {
-  if (input.topicTitles.length === 0) return [];
+): Promise<readonly ProjectionWriteIntent[] | ProjectionAbstention> {
+  // No topics is not "no skills": it is normal during initial sync, before
+  // extraction has run. Returning an empty set here would tell the runtime
+  // every derived skill should be removed.
+  if (input.topicTitles.length === 0) return PROJECTION_ABSTAINED;
 
   const generated = await context.ai.generate<{ skills: SkillFrontmatter[] }>({
     prompt: input.prompt,

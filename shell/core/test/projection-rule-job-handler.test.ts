@@ -11,8 +11,10 @@ import type {
 } from "@brains/entity-service";
 import {
   defineProjectionRule,
+  PROJECTION_ABSTAINED,
   type BaseEntity,
   type ProjectionRule,
+  type ProjectionRuleDefinition,
   type ProjectionExecutionContext,
   type ProjectionInputContext,
 } from "@brains/plugins";
@@ -50,8 +52,11 @@ const executionContext: ProjectionExecutionContext = {
   },
 };
 
-const progressReporter = ProgressReporter.from(async () => {});
-if (!progressReporter) throw new Error("Failed to create progress reporter");
+const progressReporter: ProgressReporter =
+  ProgressReporter.from(async () => {}) ??
+  (((): never => {
+    throw new Error("Failed to create progress reporter");
+  })() as never);
 
 class MemoryExecutionStore implements ProjectionRuleExecutionStore {
   readonly inputs: ProjectionWaveInput[];
@@ -640,5 +645,67 @@ describe("declared target authority", () => {
     );
 
     expect(store.applied?.writeIntents).toEqual([]);
+  });
+
+  describe("an exclusive rule that derived nothing", () => {
+    const existingTarget = {
+      id: "systems-design",
+      entityType: "topic",
+      content: "# systems-design",
+      contentHash: "hash",
+      metadata: {},
+      visibility: "public" as const,
+      created: "2026-01-01T00:00:00.000Z",
+      updated: "2026-01-01T00:00:00.000Z",
+    };
+
+    function ruleReturning(
+      derive: ProjectionRuleDefinition["derive"],
+    ): ProjectionRule {
+      return defineProjectionRule({
+        id: "topics",
+        version: "1",
+        sources: [{ kind: "entity", types: ["document"] }],
+        targetType: "topic",
+        targets: { authority: "exclusive", visibility: "public" },
+        inputSchema: z.object({ sourceCount: z.number().int() }),
+        selectInput: async (trigger) => ({
+          sourceCount: trigger.inputs.length,
+        }),
+        derive,
+      });
+    }
+
+    async function run(rule: ProjectionRule): Promise<MemoryExecutionStore> {
+      const store = new MemoryExecutionStore(1);
+      await handlerFor({ rule, store, existing: [existingTarget] }).process(
+        { waveId: "wave-1", ruleId: "topics" },
+        "job-1",
+        progressReporter,
+        new AbortController().signal,
+      );
+      return store;
+    }
+
+    it("leaves its targets alone when it abstains", async () => {
+      // skill-projection returns early when no topics exist, which is normal
+      // during initial sync. Read as an empty desired set, that early return
+      // means every entity the rule has ever derived should be removed.
+      const store = await run(ruleReturning(async () => PROJECTION_ABSTAINED));
+
+      expect(store.applied?.writeIntents).toEqual([]);
+    });
+
+    it("still removes everything when the derived set is genuinely empty", async () => {
+      // The other half. A rule that did derive, and derived nothing, is
+      // saying its targets should not exist — series means exactly this when
+      // the last member loses its series name. Abstention exists so this
+      // stays expressible instead of being smothered by a safe default.
+      const store = await run(ruleReturning(async () => []));
+
+      expect(store.applied?.writeIntents).toEqual([
+        { operation: "delete", entityType: "topic", id: "systems-design" },
+      ]);
+    });
   });
 });

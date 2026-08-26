@@ -4,6 +4,7 @@ export { z } from "@brains/utils/zod";
 export {
   ProjectionJsonObjectSchema,
   CONVERSATION_SOURCE_TYPE,
+  PROJECTION_ABSTAINED,
   defineEntity,
   frontmatterInContent,
   defineEntityPackage,
@@ -21,6 +22,7 @@ export type {
   EntityMarkdownDocument,
   EntityOf,
   EntityPackageDefinition,
+  ProjectionAbstention,
   ProjectionDefinition,
 } from "@brains/plugins";
 

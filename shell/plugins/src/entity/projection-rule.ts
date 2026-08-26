@@ -36,6 +36,21 @@ export {
  */
 export const CONVERSATION_SOURCE_TYPE = "conversation";
 
+/**
+ * What a derivation returns when it did not derive.
+ *
+ * An empty array is a complete answer: nothing should exist. Abstaining is a
+ * different claim — there was nothing to derive *from*, so the rule has no
+ * opinion about what should exist and the runtime must leave its targets
+ * alone. An exclusive rule cannot tell those apart from `[]`, and reading
+ * one as the other deletes a corpus: skill derives nothing when no topics
+ * exist, which is normal during initial sync.
+ */
+export const PROJECTION_ABSTAINED: { readonly kind: "projection-abstained" } =
+  Object.freeze({ kind: "projection-abstained" as const });
+
+export type ProjectionAbstention = typeof PROJECTION_ABSTAINED;
+
 export interface ProjectionRuleEntitySource {
   readonly kind: "entity" | "conversation";
   readonly types: readonly string[];
@@ -147,7 +162,7 @@ export interface ProjectionRule {
     input: ProjectionJsonObject,
     context: ProjectionExecutionContext,
     signal: AbortSignal,
-  ) => Promise<readonly ProjectionWriteIntent[]>;
+  ) => Promise<readonly ProjectionWriteIntent[] | ProjectionAbstention>;
 }
 
 function deepFreeze<T>(value: T): T {
@@ -177,7 +192,7 @@ export interface ProjectionRuleDefinition<
     input: TInput,
     context: ProjectionExecutionContext,
     signal: AbortSignal,
-  ) => Promise<readonly ProjectionWriteIntent[]>;
+  ) => Promise<readonly ProjectionWriteIntent[] | ProjectionAbstention>;
 }
 
 const ProjectionRuleMetadataSchema = z.strictObject({
@@ -263,11 +278,11 @@ export function defineProjectionRule<TInput extends ProjectionJsonObject>(
       selected: ProjectionJsonObject,
       context: ProjectionExecutionContext,
       signal: AbortSignal,
-    ): Promise<readonly ProjectionWriteIntent[]> => {
+    ): Promise<readonly ProjectionWriteIntent[] | ProjectionAbstention> => {
       const parsedInput = input.inputSchema.parse(selected);
-      const intents = z
-        .array(ProjectionWriteIntentSchema)
-        .parse(await input.derive(parsedInput, context, signal));
+      const derived = await input.derive(parsedInput, context, signal);
+      if (derived === PROJECTION_ABSTAINED) return PROJECTION_ABSTAINED;
+      const intents = z.array(ProjectionWriteIntentSchema).parse(derived);
       for (const intent of intents) {
         const entityType =
           intent.operation === "upsert"

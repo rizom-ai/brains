@@ -16,6 +16,8 @@ export {
 } from "./entity/entity-reconciler";
 export {
   CONVERSATION_SOURCE_TYPE,
+  PROJECTION_ABSTAINED,
+  type ProjectionAbstention,
   ProjectionJsonObjectSchema,
   ProjectionJsonValueSchema,
   ProjectionWriteIntentSchema,
