@@ -3,6 +3,7 @@ import {
   DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
   type DashboardWidgetProviderContext,
   type DashboardWidgetRegistration,
+  type DashboardWidgetRenderer,
 } from "../base/dashboard-namespace";
 import type { AnyAccountSettingsDefinition } from "./account-settings-definition-contract";
 import type { AccountSettingsRegistration } from "./account-settings-registry";
@@ -124,6 +125,12 @@ export function createDeclarativeDashboardWidgetRegistration<
   >;
   readonly context: BasePluginContext;
   readonly runtimeSignal: AbortSignal;
+  /**
+   * Built-in widgets that draw themselves also need their own data, not just
+   * the derived view. Never set for external services, whose widget payload
+   * stays exactly the semantic envelope.
+   */
+  readonly includeSource?: boolean | undefined;
 }): DashboardWidgetRegistration {
   const definition = input.binding.definition;
   const identity: RuntimeWidgetIdentity = {
@@ -142,7 +149,9 @@ export function createDeclarativeDashboardWidgetRegistration<
     section: definition.placement,
     priority: definition.priority ?? 50,
     visibility: definition.permission,
-    async dataProvider(provider): Promise<RuntimeDashboardWidgetData> {
+    async dataProvider(
+      provider,
+    ): Promise<RuntimeDashboardWidgetData & { readonly source?: unknown }> {
       const runtimeProvider: DashboardWidgetProviderContext = {
         ...provider,
         signal: AbortSignal.any([provider.signal, input.runtimeSignal]),
@@ -202,7 +211,11 @@ export function createDeclarativeDashboardWidgetRegistration<
         digest = parseWidgetDigest(rawDigest, identity);
       }
 
-      return Object.freeze({ view, ...(digest ? { digest } : {}) });
+      return Object.freeze({
+        view,
+        ...(digest ? { digest } : {}),
+        ...(input.includeSource ? { source: data } : {}),
+      });
     },
     digestProvider(data): DashboardDigestProviderResult {
       const parsed = safeParseRuntimeDashboardWidgetData(data);
@@ -234,6 +247,10 @@ const builtInBindingContext = Object.freeze({
  * Runs a first-party widget through the same public definition, normalization,
  * permission, and host-rendering path used by external declarative services.
  * The loader is not bound when Dashboard is absent or in an execution worker.
+ *
+ * Passing `render` swaps the declarative body for the widget's own component.
+ * The definition still derives its view and digest, so the semantic blocks
+ * remain the widget's text description and its digest strip stays live.
  */
 export async function registerBuiltInDashboardWidget<
   TDefinition extends AnyDashboardWidgetDefinition,
@@ -244,6 +261,7 @@ export async function registerBuiltInDashboardWidget<
     readonly caller: OperatorCaller | null;
     readonly signal: AbortSignal;
   }) => z.input<TDefinition["data"]> | Promise<z.input<TDefinition["data"]>>;
+  readonly render?: DashboardWidgetRenderer | undefined;
   readonly runtimeSignal?: AbortSignal | undefined;
 }): Promise<boolean> {
   if (input.context.executionOnly || !input.context.dashboard.isAvailable()) {
@@ -253,7 +271,7 @@ export async function registerBuiltInDashboardWidget<
     builtInBindingContext,
     ({ caller, signal }) => input.load({ caller, signal }),
   );
-  const registration = createDeclarativeDashboardWidgetRegistration({
+  const declarative = createDeclarativeDashboardWidgetRegistration({
     publicServiceId: input.context.pluginId,
     packageName: input.context.pluginId,
     config: builtInBindingContext.config,
@@ -261,6 +279,10 @@ export async function registerBuiltInDashboardWidget<
     binding,
     context: input.context,
     runtimeSignal: input.runtimeSignal ?? new AbortController().signal,
+    includeSource: input.render !== undefined,
   });
+  const registration: DashboardWidgetRegistration = input.render
+    ? { ...declarative, renderer: input.render }
+    : declarative;
   return input.context.dashboard.registerWidget(registration);
 }

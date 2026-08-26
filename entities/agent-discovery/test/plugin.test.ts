@@ -1266,6 +1266,7 @@ describe("AgentDiscoveryPlugin", () => {
       id: string;
       group: string;
       rendererName: string;
+      drawsItself: boolean;
     }> = [];
 
     harness.subscribe("dashboard:register-widget", async (message) => {
@@ -1273,11 +1274,13 @@ describe("AgentDiscoveryPlugin", () => {
         id: string;
         group: string;
         rendererName: string;
+        renderer?: { component: unknown };
       };
       registrations.push({
         id: payload.id,
         group: payload.group,
         rendererName: payload.rendererName,
+        drawsItself: typeof payload.renderer?.component === "function",
       });
       return { success: true };
     });
@@ -1285,16 +1288,20 @@ describe("AgentDiscoveryPlugin", () => {
     await harness.installPlugin(plugin);
     await harness.sendMessage(SYSTEM_CHANNELS.pluginsRegistered, {}, "shell");
 
+    // The network roster stays declarative; only the proximity map brings
+    // its own renderer.
     expect(registrations).toEqual([
       {
         id: "agent-network",
         group: "network",
         rendererName: DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
+        drawsItself: false,
       },
       {
         id: "agent-proximity",
         group: "network",
         rendererName: DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
+        drawsItself: true,
       },
     ]);
 

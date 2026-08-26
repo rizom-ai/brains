@@ -2,6 +2,7 @@
 import type { JSX } from "preact";
 import proximityMapWidgetStyles from "./proximity-map-widget.css" with { type: "text" };
 import {
+  proximityMapDataSchema,
   type ProximityMapCluster,
   type ProximityMapData,
   type ProximityMapNode,
@@ -831,4 +832,11 @@ export function ProximityMap({
       <div class="proximity-tooltip" data-proximity-tooltip hidden />
     </div>
   );
+}
+
+/** The dashboard face of the map — parses widget data, falls back quietly. */
+export function AgentProximityWidget({ data }: { data: unknown }): JSX.Element {
+  const parsed = proximityMapDataSchema.safeParse(data);
+  if (!parsed.success) return <p class="muted">Nothing to show yet.</p>;
+  return <ProximityMap data={parsed.data} />;
 }

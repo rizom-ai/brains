@@ -20,11 +20,13 @@ import { z } from "@brains/utils/zod";
 import { DashboardWidgetRegistry } from "./widget-registry";
 import type {
   RegisteredWidget,
+  WidgetComponent,
   WidgetDigestProvider,
   WidgetVisibility,
 } from "./widget-registry";
 import { DashboardAssetRegistry } from "./dashboard-assets";
 import { DashboardDataSource } from "./dashboard-datasource";
+import { resolveWidgetsForRender } from "./render/resolve-widgets";
 import {
   renderDashboardPageHtml,
   type DashboardRenderInput,
@@ -90,6 +92,16 @@ const registerWidgetPayloadSchema = z
     digestProvider: z
       .custom<WidgetDigestProvider>((value) => typeof value === "function", {
         message: "Expected dashboard widget digest provider function",
+      })
+      .optional(),
+    renderer: z
+      .object({
+        component: z.custom<WidgetComponent>(
+          (value) => typeof value === "function",
+          { message: "Expected dashboard widget component function" },
+        ),
+        clientStyles: z.string().optional(),
+        clientScript: z.string().optional(),
       })
       .optional(),
   })
@@ -168,6 +180,7 @@ function createRegisteredWidget(
     ...(payload.digestProvider
       ? { digestProvider: payload.digestProvider }
       : {}),
+    ...(payload.renderer ? { renderer: payload.renderer } : {}),
   };
 }
 
@@ -463,10 +476,17 @@ export class DashboardPlugin extends ServicePlugin<
             themeCSS: this.config.themeCSS,
           });
 
+          const resolved = resolveWidgetsForRender(
+            dashboardData.widgets,
+            this.widgetRegistry,
+          );
+
           const input: DashboardRenderInput = {
             title,
             baseUrl,
-            widgets: dashboardData.widgets,
+            widgets: resolved.widgets,
+            widgetStyles: resolved.widgetStyles,
+            widgetScripts: resolved.widgetScripts,
             assetUrls,
             dashboardPath: this.config.routePath,
             surfaces: deriveConsoleSurfaces(ctx.webRoutes.getRoutes(), {

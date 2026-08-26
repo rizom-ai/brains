@@ -5,7 +5,25 @@ import {
   type UserPermissionLevel,
 } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
+import type { JSX } from "preact";
 import { z } from "@brains/utils/zod";
+
+/**
+ * The dashboard's own render contract for first-party widgets. The shell
+ * carries the component as `unknown`; this is where it is given a type and
+ * validated on receipt.
+ */
+export interface WidgetComponentProps {
+  data: unknown;
+}
+export type WidgetComponent = (
+  props: WidgetComponentProps,
+) => JSX.Element | null;
+
+const widgetComponentSchema: z.ZodType<WidgetComponent, WidgetComponent> =
+  z.custom<WidgetComponent>((value) => typeof value === "function", {
+    message: "widget component must be a function",
+  });
 
 export type WidgetDataProvider = (
   context: DashboardWidgetProviderContext,
@@ -82,14 +100,27 @@ export const dashboardWidgetSchema: z.ZodType<
   digest: z.array(dashboardDigestLineSchema).max(4).optional(),
 });
 
+/**
+ * The renderer a first-party widget brings with it. Kept beside the widget in
+ * the registry rather than on its meta, so it never crosses the parsed data
+ * boundary into the rendered document's widget payload.
+ */
+export interface WidgetRenderer {
+  component: WidgetComponent;
+  clientStyles?: string | undefined;
+  clientScript?: string | undefined;
+}
+
 export interface RegisteredWidget extends DashboardWidgetInput {
   dataProvider: WidgetDataProvider;
   digestProvider?: WidgetDigestProvider;
+  renderer?: WidgetRenderer | undefined;
 }
 
 export interface StoredRegisteredWidget extends DashboardWidgetMeta {
   dataProvider: WidgetDataProvider;
   digestProvider?: WidgetDigestProvider;
+  renderer?: WidgetRenderer | undefined;
 }
 
 export class DashboardWidgetRegistry {
@@ -102,12 +133,14 @@ export class DashboardWidgetRegistry {
 
   register(widget: RegisteredWidget): void {
     const parsedWidget = dashboardWidgetSchema.parse(widget);
+    const renderer = this.parseRenderer(widget);
     const normalizedWidget: StoredRegisteredWidget = {
       ...parsedWidget,
       dataProvider: widget.dataProvider,
       ...(widget.digestProvider
         ? { digestProvider: widget.digestProvider }
         : {}),
+      ...(renderer ? { renderer } : {}),
     };
     const key = `${normalizedWidget.pluginId}:${normalizedWidget.id}`;
     this.widgets.set(key, normalizedWidget);
@@ -117,6 +150,19 @@ export class DashboardWidgetRegistry {
       rendererName: normalizedWidget.rendererName,
       group: normalizedWidget.group,
     });
+  }
+
+  private parseRenderer(widget: RegisteredWidget): WidgetRenderer | undefined {
+    if (!widget.renderer) return undefined;
+    return {
+      component: widgetComponentSchema.parse(widget.renderer.component),
+      ...(widget.renderer.clientStyles
+        ? { clientStyles: widget.renderer.clientStyles }
+        : {}),
+      ...(widget.renderer.clientScript
+        ? { clientScript: widget.renderer.clientScript }
+        : {}),
+    };
   }
 
   unregister(pluginId: string, widgetId?: string): void {

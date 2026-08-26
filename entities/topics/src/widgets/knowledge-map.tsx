@@ -2,6 +2,7 @@
 import type { JSX } from "preact";
 import knowledgeMapStyles from "./knowledge-map.css" with { type: "text" };
 import {
+  knowledgeMapDataSchema,
   type KnowledgeMapData,
   type KnowledgeMapPoint,
   type KnowledgeMapZone,
@@ -599,5 +600,16 @@ export function KnowledgeMap({
       ))}
       <KnowledgeMapLegend />
     </svg>
+  );
+}
+
+/** The dashboard face of the map — parses widget data, falls back quietly. */
+export function KnowledgeMapWidget({ data }: { data: unknown }): JSX.Element {
+  const parsed = knowledgeMapDataSchema.safeParse(data);
+  if (!parsed.success) return <p class="muted">Nothing to show yet.</p>;
+  return (
+    <div class="kmap-field kmap-field--dashboard">
+      <KnowledgeMap data={parsed.data} />
+    </div>
   );
 }

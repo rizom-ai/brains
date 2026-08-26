@@ -13,6 +13,11 @@ import {
 } from "./agent-network-widget";
 import { buildProximityMapData } from "./proximity-map-data";
 import { proximityMapDataSchema } from "./proximity-map-schema";
+import {
+  AgentProximityWidget,
+  proximityMapScript,
+  proximityMapWidgetStyles,
+} from "../widgets/proximity-map";
 
 const agentNetworkDashboardDataSchema = agentNetworkWidgetDataSchema.extend({
   canInvite: z.boolean(),
@@ -312,6 +317,13 @@ export function registerAgentNetworkDashboardWidget(
       await registerBuiltInDashboardWidget({
         context,
         definition: agentProximityWidget,
+        // The console grows the proximity organism itself; the declarative
+        // view above stays as the map's text detail and digest.
+        render: {
+          component: AgentProximityWidget,
+          clientStyles: proximityMapWidgetStyles,
+          clientScript: proximityMapScript,
+        },
         load: async ({ signal }) => {
           signal.throwIfAborted();
           const data = await buildProximityMapData(context);

@@ -777,6 +777,7 @@ export {
   DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
   type DashboardWidgetProviderContext,
   type DashboardWidgetRegistration,
+  type DashboardWidgetRenderer,
   type IDashboardNamespace,
 } from "./base/dashboard-namespace";
 export { registerBuiltInCmsWorkspace } from "./operator/cms-workspace-runtime";

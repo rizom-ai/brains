@@ -1,5 +1,6 @@
 import type { AppInfo, EntityCount } from "@brains/plugins";
 import type { ConsoleSurface } from "@brains/console-theme";
+import type { WidgetComponent } from "../widget-registry";
 import type { WidgetData } from "../widget-schema";
 
 export type { EntityCount };
@@ -15,7 +16,9 @@ export interface ProfileInput {
   description?: string | undefined;
 }
 
-export type RenderableWidgetData = WidgetData;
+export interface RenderableWidgetData extends WidgetData {
+  component?: WidgetComponent | undefined;
+}
 
 export interface DashboardSessionPrincipal {
   displayName: string;
@@ -79,6 +82,9 @@ export interface DashboardRenderInput {
   title: string;
   baseUrl: string | undefined;
   widgets: Record<string, RenderableWidgetData>;
+  /** Client styles and scripts collected from first-party widget renderers. */
+  widgetStyles?: string[];
+  widgetScripts?: string[];
   assetUrls?: DashboardAssetUrls;
   dashboardPath?: string;
   surfaces?: ConsoleSurface[];

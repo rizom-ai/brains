@@ -1,4 +1,7 @@
+/** @jsxImportSource preact */
 import { describe, expect, it } from "bun:test";
+import type { JSX } from "preact";
+import { render } from "preact-render-to-string";
 import {
   DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
   SYSTEM_CHANNELS,
@@ -116,5 +119,74 @@ describe("registerKnowledgeMapDashboardWidget", () => {
         ],
       },
     });
+  });
+
+  it("carries the cartographic renderer so the dashboard draws the real map", async () => {
+    const shell = createMockShell();
+    Object.assign(shell.getEntityService(), {
+      projectSemanticSpace: async () => ({
+        points: [
+          {
+            entityId: "future-of-work",
+            entityType: "topic",
+            coordinates: [0, 0],
+            distanceToOrigin: 0.2,
+          },
+        ],
+      }),
+    });
+    shell.addEntities([
+      {
+        id: "future-of-work",
+        entityType: "topic",
+        content: "# Future of Work\n\nnotes",
+        contentHash: "topic-hash",
+        visibility: "public",
+        metadata: {},
+        created: new Date(0).toISOString(),
+        updated: new Date(0).toISOString(),
+      },
+    ]);
+    let registration: DashboardWidgetRegistration | undefined;
+    shell
+      .getMessageBus()
+      .subscribe<DashboardWidgetRegistration>(
+        "dashboard:register-widget",
+        (message) => {
+          registration = message.payload;
+          return { success: true };
+        },
+      );
+    const context = createEntityPluginContext(shell, "topics");
+
+    registerKnowledgeMapDashboardWidget({ context });
+    await context.messaging.send({
+      type: SYSTEM_CHANNELS.pluginsRegistered,
+      payload: {},
+    });
+
+    if (!registration) throw new Error("Knowledge Map was not registered");
+    const renderer = registration.renderer;
+    if (!renderer) throw new Error("Knowledge Map carried no renderer");
+    expect(typeof renderer.component).toBe("function");
+    expect(renderer.clientStyles).toContain(".kmap");
+
+    const data = (await registration.dataProvider({
+      caller: null,
+      signal: new AbortController().signal,
+    })) as { source?: unknown };
+    // A self-drawing widget carries its own data beside the semantic view.
+    expect(data.source).toMatchObject({
+      zones: [{ id: "future-of-work", name: "Future of Work" }],
+    });
+
+    const Component = renderer.component as (props: {
+      data: unknown;
+    }) => JSX.Element;
+    const html = render(<Component data={data.source} />);
+    // The bespoke SVG field, not the generic spatial block renderer.
+    expect(html).toContain("kmap-field--dashboard");
+    expect(html).toContain("<svg");
+    expect(html).not.toContain("operator-spatial");
   });
 });

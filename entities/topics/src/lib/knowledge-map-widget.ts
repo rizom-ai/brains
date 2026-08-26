@@ -8,6 +8,10 @@ import {
   buildKnowledgeMapData,
   knowledgeMapDataSchema,
 } from "./knowledge-map-data";
+import {
+  KnowledgeMapWidget,
+  knowledgeMapStyles,
+} from "../widgets/knowledge-map";
 
 export const KNOWLEDGE_MAP_WIDGET_ID = "topics-knowledge-map";
 
@@ -101,6 +105,12 @@ export function registerKnowledgeMapDashboardWidget(params: {
       await registerBuiltInDashboardWidget({
         context,
         definition: knowledgeMapWidget,
+        // The console draws the cartographic field itself; the declarative
+        // view above stays as the map's text detail and digest.
+        render: {
+          component: KnowledgeMapWidget,
+          clientStyles: knowledgeMapStyles,
+        },
         load: async ({ signal }) => {
           signal.throwIfAborted();
           const data = await buildKnowledgeMapData(context);

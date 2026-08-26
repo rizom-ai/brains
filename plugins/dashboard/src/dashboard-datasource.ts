@@ -61,6 +61,7 @@ export class DashboardDataSource implements DataSource {
         const {
           dataProvider: _,
           digestProvider: _digestProvider,
+          renderer: _renderer,
           visibility = "public",
           ...widgetMeta
         } = widget;

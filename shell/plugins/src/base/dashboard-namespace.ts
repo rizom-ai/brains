@@ -5,6 +5,20 @@ import type { IMessagingNamespace } from "./context-types";
 export const DECLARATIVE_DASHBOARD_WIDGET_RENDERER =
   "DeclarativeOperatorWidget";
 
+/**
+ * A first-party widget's own renderer, drawn instead of the declarative block
+ * vocabulary. Set only by `registerBuiltInDashboardWidget` — the published
+ * authoring path never produces one, so external services stay declarative.
+ *
+ * Deliberately structural: the dashboard plugin owns the component type and
+ * validates on receipt, so the shell never depends on a rendering library.
+ */
+export interface DashboardWidgetRenderer {
+  component: unknown;
+  clientStyles?: string | undefined;
+  clientScript?: string | undefined;
+}
+
 export interface DashboardWidgetProviderContext {
   readonly caller: OperatorCaller | null;
   readonly signal: AbortSignal;
@@ -29,6 +43,11 @@ export interface DashboardWidgetRegistration {
   group: string;
   rendererName: typeof DECLARATIVE_DASHBOARD_WIDGET_RENDERER;
   dataProvider: (context: DashboardWidgetProviderContext) => Promise<unknown>;
+  /**
+   * Present means "draw this instead of the blocks". The dashboard resolves it
+   * at render time from its own registry; it never travels with widget data.
+   */
+  renderer?: DashboardWidgetRenderer | undefined;
   description?: string | undefined;
   priority?: number | undefined;
   section?: "primary" | "secondary" | "sidebar" | undefined;
