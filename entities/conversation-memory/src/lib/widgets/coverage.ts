@@ -2,7 +2,6 @@ import {
   defineDashboardWidget,
   defineEntityDashboardWidget,
   z,
-  type Conversation,
   type EntityConversationSurvey,
   type EntityDashboardWidgetDeclaration,
   type JobEntityAccess,
@@ -89,13 +88,6 @@ function getSummaryLabel(summary: SummaryEntity): string {
   return summary.metadata.channelId;
 }
 
-function hasConfiguredSpace(
-  conversation: Conversation,
-  spaces: readonly string[],
-): boolean {
-  return evaluateSummaryEligibility({ conversation, spaces }).eligible;
-}
-
 function summarizeCoverageStatus(params: {
   eligibleCount: number;
   summarizedCount: number;
@@ -151,7 +143,6 @@ export async function buildSummaryCoverageData(params: {
   // widget cost a query per conversation for a producer that is switched off.
   const eligible = conversations.filter(
     (conversation) =>
-      hasConfiguredSpace(conversation, spaces) &&
       evaluateSummaryEligibility({ conversation, spaces }).eligible,
   );
   const summarized = eligible.flatMap((conversation) => {
