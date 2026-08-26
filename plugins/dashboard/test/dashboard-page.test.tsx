@@ -411,9 +411,12 @@ describe("renderDashboardPageHtml", () => {
     expect(frameIndex).toBeLessThan(
       html.indexOf('class="dashboard-tab-panels"'),
     );
+    expect(html).toMatch(
+      /<div class="canvas">.*<footer class="colophon">.*<\/footer><\/div><\/div><\/main>/s,
+    );
   });
 
-  it("renders public widget protocol contributions as Overview cards", () => {
+  it("keeps protocol data behind the mockup's fixed Overview composition", () => {
     const input: DashboardRenderInput = {
       title: "Test Owner",
       baseUrl: "https://brain.test",
@@ -452,8 +455,11 @@ describe("renderDashboardPageHtml", () => {
       html.indexOf('id="knowledge"'),
     );
 
-    expect(overviewPanel).toContain("Public releases");
-    expect(overviewPanel).toContain("Published");
+    expect(overviewPanel).not.toContain("Public releases");
+    expect(overviewPanel).not.toContain("Published");
+    expect(overviewPanel.match(/<article class="card public-/g)).toHaveLength(
+      4,
+    );
     expect(html).not.toContain('href="#publishing"');
     expect(html).not.toContain("Runtime vitals");
     expect(html).not.toContain("Activity");
@@ -707,8 +713,8 @@ describe("renderDashboardPageHtml", () => {
 
     expect(html).toContain('class="card public-identity-card"');
     expect(html).toContain("Research brain");
-    expect(html).toContain('class="public-values"');
-    expect(html).toContain("clarity");
+    expect(html).not.toContain('class="public-values"');
+    expect(html).not.toContain(">clarity</span>");
     expect(html).not.toContain("Restricted access");
     expect(html).toContain("Ways to connect");
     expect(html).toContain("Let other agents talk to this brain.");

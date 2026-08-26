@@ -122,15 +122,14 @@ export function DashboardDocument({
                 />
                 <ProximityMapPanel block={proximityMap} />
               </div>
+              <Colophon
+                title={input.title}
+                appInfo={input.appInfo}
+                baseUrl={input.baseUrl}
+                operatorHref={operatorHref}
+              />
             </div>
           </div>
-
-          <Colophon
-            title={input.title}
-            appInfo={input.appInfo}
-            baseUrl={input.baseUrl}
-            operatorHref={operatorHref}
-          />
         </main>
 
         {input.assetUrls ? (

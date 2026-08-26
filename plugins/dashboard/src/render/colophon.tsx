@@ -29,7 +29,7 @@ export function Colophon(props: {
 
   return (
     <footer className="colophon">
-      <span className="colophon-mark">{title} · public brain card</span>
+      <span className="colophon-mark">{title} · dashboard</span>
       <span className="colophon-actions">
         <span>Runs on Brains {appInfo.version}</span>
         {docsUrl && (

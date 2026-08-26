@@ -787,15 +787,17 @@ body::after {
   position: relative;
   z-index: 1;
   width: 100%;
-  max-width: 1560px;
   margin: 0 auto;
-  padding: clamp(24px, 4vw, 48px) 32px 60px;
+  padding: clamp(24px, 4vw, 48px) 0 60px;
 }
 
 .frame {
+  width: min(1280px, 96vw);
+  min-height: 560px;
+  margin: 0 auto;
   background: var(--console-frame);
   border: 1px solid var(--console-rule-strong);
-  border-radius: 12px;
+  border-radius: 10px;
   box-shadow: 0 30px 70px -30px rgba(0, 0, 0, 0.8);
   overflow: hidden;
 }
@@ -944,9 +946,10 @@ body::after {
 }
 
 .colophon {
-  margin-top: 56px;
-  padding-top: 18px;
+  margin-top: 32px;
+  padding: 18px 26px 60px;
   border-top: 1px solid var(--console-rule);
+  background: var(--console-card-soft);
   display: flex;
   justify-content: space-between;
   align-items: baseline;
@@ -1069,53 +1072,8 @@ body::after {
     font-size: 8.5px;
   }
   .colophon {
-    margin: 32px 14px 0;
-    padding-top: 14px;
-  }
-}
-
-/* Wide screens step up one size while preserving the approved proportions. */
-@media (min-width: 1440px) {
-  body {
-    font-size: 15px;
-  }
-  .console {
-    --col-gap: 16px;
-  }
-  .masthead {
-    padding: 32px 32px 0;
-  }
-  .brand {
-    font-size: 43px;
-  }
-  .tagline {
-    font-size: 14.5px;
-  }
-  .dashboard-tabs {
-    padding: 20px 32px 0;
-  }
-  .dashboard-tab {
-    padding: 10px 18px 12px;
-    font-size: 12.5px;
-  }
-  .tab-badge {
-    font-size: 10.5px;
-  }
-  .canvas {
-    padding: 32px;
-  }
-  .card {
-    padding: 16px 20px 18px;
-  }
-  .card-title {
-    font-size: 11px;
-  }
-  .card-from,
-  .card-subtitle {
-    font-size: 10.5px;
-  }
-  .muted {
-    font-size: 13.5px;
+    margin: 32px 0 0;
+    padding: 14px 14px 30px;
   }
 }
 
@@ -1160,62 +1118,24 @@ body::after {
   align-items: start;
 }
 
-.public-identity-card {
-  overflow: hidden;
-  background:
-    radial-gradient(
-      circle at 8% 100%,
-      color-mix(in srgb, var(--console-accent) 10%, transparent),
-      transparent 42%
-    ),
-    var(--console-card);
-}
-.public-identity-card::after {
-  content: "";
-  position: absolute;
-  width: 180px;
-  height: 180px;
-  right: -92px;
-  bottom: -112px;
-  border: 1px dashed
-    color-mix(in srgb, var(--console-secondary) 32%, transparent);
-  border-radius: 50%;
-  pointer-events: none;
-}
 .public-identity-card p {
   max-width: 66ch;
   margin: 0 0 12px;
   color: var(--console-text-dim);
   font-size: 14px;
-  line-height: 1.65;
+  line-height: 1.6;
 }
 .public-identity-card p b {
   color: var(--console-text);
-  font-weight: 580;
-}
-.public-values {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin: 16px 0 14px;
-}
-.public-values span {
-  padding: 3px 9px;
-  border: 1px solid var(--console-rule-strong);
-  border-radius: 100px;
-  color: var(--console-text-muted);
-  font-family: var(--console-mono);
-  font-size: 9px;
-  letter-spacing: 0.09em;
-  text-transform: lowercase;
+  font-weight: 560;
 }
 .public-card-pulse {
   display: inline-flex;
   align-items: center;
-  gap: 9px;
+  gap: 8px;
   color: var(--console-ok);
   font-family: var(--console-mono);
-  font-size: 10px;
+  font-size: 11px;
   letter-spacing: 0.08em;
 }
 .public-card-pulse::before {
@@ -1225,12 +1145,6 @@ body::after {
   border-radius: 50%;
   background: var(--console-ok);
   box-shadow: 0 0 0 4px color-mix(in srgb, var(--console-ok) 14%, transparent);
-  animation: card-pulse 4s ease-in-out infinite;
-}
-@keyframes card-pulse {
-  50% {
-    box-shadow: 0 0 0 7px transparent;
-  }
 }
 
 .public-card-empty {
@@ -1346,27 +1260,13 @@ body::after {
   line-height: 1;
 }
 
-.public-contributions {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--col-gap);
-  margin-top: var(--col-gap);
-  padding-top: var(--col-gap);
-  border-top: 1px solid var(--console-rule);
-}
-.public-contributions > .widget-card--wide {
-  grid-column: 1 / -1;
-}
-
 @media (max-width: 900px) {
-  .public-card-grid,
-  .public-contributions {
+  .public-card-grid {
     grid-template-columns: 1fr;
   }
 }
 @media (max-width: 640px) {
-  .public-card-grid,
-  .public-contributions {
+  .public-card-grid {
     gap: 9px;
   }
   .public-identity-card p {
@@ -1380,12 +1280,6 @@ body::after {
   }
   .public-card-rows em {
     font-size: 10.5px;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .public-card-pulse::before {
-    animation: none;
   }
 }
 
@@ -4749,7 +4643,7 @@ body::after {
                                               "children": [
                                                 {
                                                   "type": "text",
-                                                  "value": "brain · public identity",
+                                                  "value": "brain · brain.test",
                                                 },
                                               ],
                                               "name": "span",
@@ -4790,7 +4684,7 @@ body::after {
                                           "children": [
                                             {
                                               "type": "text",
-                                              "value": "It is grown from what Test Owner has chosen to share, and belongs to them. Private memory and operator activity stay behind Studio.",
+                                              "value": "It is grown from what Test Owner has chosen to share, and belongs to them. Ask it anything it holds; answers stay in public scope. Private memory and operator activity stay behind Studio.",
                                             },
                                           ],
                                           "name": "p",
@@ -4846,23 +4740,6 @@ body::after {
                                                 {
                                                   "type": "text",
                                                   "value": "Ways to connect",
-                                                },
-                                              ],
-                                              "name": "span",
-                                              "namespace": "http://www.w3.org/1999/xhtml",
-                                              "type": "element",
-                                            },
-                                            {
-                                              "attributes": [
-                                                [
-                                                  "class",
-                                                  "card-from",
-                                                ],
-                                              ],
-                                              "children": [
-                                                {
-                                                  "type": "text",
-                                                  "value": "public doors",
                                                 },
                                               ],
                                               "name": "span",
@@ -5016,7 +4893,7 @@ body::after {
                                               "children": [
                                                 {
                                                   "type": "text",
-                                                  "value": "advertised capabilities",
+                                                  "value": "the moss marks on the map",
                                                 },
                                               ],
                                               "name": "span",
@@ -5676,6 +5553,61 @@ body::after {
                           "namespace": "http://www.w3.org/1999/xhtml",
                           "type": "element",
                         },
+                        {
+                          "attributes": [
+                            [
+                              "class",
+                              "colophon",
+                            ],
+                          ],
+                          "children": [
+                            {
+                              "attributes": [
+                                [
+                                  "class",
+                                  "colophon-mark",
+                                ],
+                              ],
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "value": "Test Owner · dashboard",
+                                },
+                              ],
+                              "name": "span",
+                              "namespace": "http://www.w3.org/1999/xhtml",
+                              "type": "element",
+                            },
+                            {
+                              "attributes": [
+                                [
+                                  "class",
+                                  "colophon-actions",
+                                ],
+                              ],
+                              "children": [
+                                {
+                                  "attributes": [],
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "value": "Runs on Brains 0.0.0",
+                                    },
+                                  ],
+                                  "name": "span",
+                                  "namespace": "http://www.w3.org/1999/xhtml",
+                                  "type": "element",
+                                },
+                              ],
+                              "name": "span",
+                              "namespace": "http://www.w3.org/1999/xhtml",
+                              "type": "element",
+                            },
+                          ],
+                          "name": "footer",
+                          "namespace": "http://www.w3.org/1999/xhtml",
+                          "type": "element",
+                        },
                       ],
                       "name": "div",
                       "namespace": "http://www.w3.org/1999/xhtml",
@@ -5683,61 +5615,6 @@ body::after {
                     },
                   ],
                   "name": "div",
-                  "namespace": "http://www.w3.org/1999/xhtml",
-                  "type": "element",
-                },
-                {
-                  "attributes": [
-                    [
-                      "class",
-                      "colophon",
-                    ],
-                  ],
-                  "children": [
-                    {
-                      "attributes": [
-                        [
-                          "class",
-                          "colophon-mark",
-                        ],
-                      ],
-                      "children": [
-                        {
-                          "type": "text",
-                          "value": "Test Owner · public brain card",
-                        },
-                      ],
-                      "name": "span",
-                      "namespace": "http://www.w3.org/1999/xhtml",
-                      "type": "element",
-                    },
-                    {
-                      "attributes": [
-                        [
-                          "class",
-                          "colophon-actions",
-                        ],
-                      ],
-                      "children": [
-                        {
-                          "attributes": [],
-                          "children": [
-                            {
-                              "type": "text",
-                              "value": "Runs on Brains 0.0.0",
-                            },
-                          ],
-                          "name": "span",
-                          "namespace": "http://www.w3.org/1999/xhtml",
-                          "type": "element",
-                        },
-                      ],
-                      "name": "span",
-                      "namespace": "http://www.w3.org/1999/xhtml",
-                      "type": "element",
-                    },
-                  ],
-                  "name": "footer",
                   "namespace": "http://www.w3.org/1999/xhtml",
                   "type": "element",
                 },

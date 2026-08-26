@@ -1,19 +1,20 @@
 # @brains/dashboard
 
-Public brain card and host for public declarative contributions.
+Public brain card fed by public declarative data.
 
 The Dashboard route is anonymous-facing and always renders exactly three tabs:
 **Overview**, **Knowledge**, and **Network**. Overview explains the brain's
 public identity and ownership boundary, lists public contact doors and entity
-holdings, shows advertised skills, and hosts additional public declarative
-cards. Knowledge renders the public topic/corpus projection as a semantic map;
-Network renders the public agent directory as a proximity map.
+holdings, and shows advertised skills in the mockup's fixed four-card
+composition. Knowledge renders the public topic/corpus projection as a semantic
+map; Network renders the public agent directory as a proximity map.
 
 The Dashboard registry accepts only `DeclarativeOperatorWidget` registrations.
 Plugin packages declare widgets with `defineDashboardWidget()` from
 `@rizom/brain/services`; the runtime scopes IDs, validates data and views, and
-registers them after plugin setup. Public definitions feed the card. Trusted
-and Admin definitions are automatically re-homed into Studio Overview through
+registers them after plugin setup. Public definitions feed the fixed skills and
+map slots rather than appending generic cards below Overview. Trusted and Admin
+definitions are automatically re-homed into Studio Overview through
 the same semantic registration, so providers do not duplicate views or depend
 on either host.
 

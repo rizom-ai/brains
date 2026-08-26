@@ -5,62 +5,24 @@
   align-items: start;
 }
 
-.public-identity-card {
-  overflow: hidden;
-  background:
-    radial-gradient(
-      circle at 8% 100%,
-      color-mix(in srgb, var(--console-accent) 10%, transparent),
-      transparent 42%
-    ),
-    var(--console-card);
-}
-.public-identity-card::after {
-  content: "";
-  position: absolute;
-  width: 180px;
-  height: 180px;
-  right: -92px;
-  bottom: -112px;
-  border: 1px dashed
-    color-mix(in srgb, var(--console-secondary) 32%, transparent);
-  border-radius: 50%;
-  pointer-events: none;
-}
 .public-identity-card p {
   max-width: 66ch;
   margin: 0 0 12px;
   color: var(--console-text-dim);
   font-size: 14px;
-  line-height: 1.65;
+  line-height: 1.6;
 }
 .public-identity-card p b {
   color: var(--console-text);
-  font-weight: 580;
-}
-.public-values {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin: 16px 0 14px;
-}
-.public-values span {
-  padding: 3px 9px;
-  border: 1px solid var(--console-rule-strong);
-  border-radius: 100px;
-  color: var(--console-text-muted);
-  font-family: var(--console-mono);
-  font-size: 9px;
-  letter-spacing: 0.09em;
-  text-transform: lowercase;
+  font-weight: 560;
 }
 .public-card-pulse {
   display: inline-flex;
   align-items: center;
-  gap: 9px;
+  gap: 8px;
   color: var(--console-ok);
   font-family: var(--console-mono);
-  font-size: 10px;
+  font-size: 11px;
   letter-spacing: 0.08em;
 }
 .public-card-pulse::before {
@@ -70,12 +32,6 @@
   border-radius: 50%;
   background: var(--console-ok);
   box-shadow: 0 0 0 4px color-mix(in srgb, var(--console-ok) 14%, transparent);
-  animation: card-pulse 4s ease-in-out infinite;
-}
-@keyframes card-pulse {
-  50% {
-    box-shadow: 0 0 0 7px transparent;
-  }
 }
 
 .public-card-empty {
@@ -191,27 +147,13 @@
   line-height: 1;
 }
 
-.public-contributions {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--col-gap);
-  margin-top: var(--col-gap);
-  padding-top: var(--col-gap);
-  border-top: 1px solid var(--console-rule);
-}
-.public-contributions > .widget-card--wide {
-  grid-column: 1 / -1;
-}
-
 @media (max-width: 900px) {
-  .public-card-grid,
-  .public-contributions {
+  .public-card-grid {
     grid-template-columns: 1fr;
   }
 }
 @media (max-width: 640px) {
-  .public-card-grid,
-  .public-contributions {
+  .public-card-grid {
     gap: 9px;
   }
   .public-identity-card p {
@@ -225,11 +167,5 @@
   }
   .public-card-rows em {
     font-size: 10.5px;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .public-card-pulse::before {
-    animation: none;
   }
 }

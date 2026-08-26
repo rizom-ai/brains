@@ -55,6 +55,13 @@ describe("DASHBOARD_STYLES", () => {
     expect(DASHBOARD_STYLES).not.toContain("data-agent-network");
   });
 
+  it("keeps the public card frame and colophon aligned with the mockup", () => {
+    expect(DASHBOARD_STYLES).toContain("width: min(1280px, 96vw)");
+    expect(DASHBOARD_STYLES).toMatch(/\.colophon\s*{[^}]*margin-top:\s*32px/s);
+    expect(DASHBOARD_STYLES).not.toContain(".public-contributions");
+    expect(DASHBOARD_STYLES).not.toContain(".public-values");
+  });
+
   it("ships phone compositions for tabs, card rows, and maps", () => {
     expect(DASHBOARD_STYLES).toContain("@media (max-width: 640px)");
     expect(DASHBOARD_STYLES).toContain("overscroll-behavior-inline: contain");

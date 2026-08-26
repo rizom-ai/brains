@@ -671,31 +671,26 @@ describe("DashboardPlugin", () => {
       let hiddenProviderCalls = 0;
 
       await harness.sendMessage("dashboard:register-widget", {
-        id: "declarative-reader",
+        id: "skills",
         pluginId: "reader",
-        group: "knowledge",
-        title: "Reader widget",
+        group: "network",
+        title: "Reader skills",
         visibility: "public",
         rendererName: DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
         dataProvider: async (context: DashboardWidgetProviderContext) => {
           providerContexts.push(context);
           return {
             view: {
-              title: "Reading <script>alert('nope')</script>",
               blocks: [
                 {
-                  type: "stats",
-                  items: [{ label: "Saved", value: 3, tone: "good" }],
-                },
-                {
-                  type: "links",
+                  type: "list",
+                  id: "skills",
+                  empty: "No skills advertised yet.",
                   items: [
                     {
-                      label: "Reading source",
-                      target: {
-                        kind: "external",
-                        href: "https://reading.example/library",
-                      },
+                      id: "reading",
+                      title: "Reading <script>alert('nope')</script>",
+                      description: "3 public sources saved",
                     },
                   ],
                 },
@@ -732,12 +727,11 @@ describe("DashboardPlugin", () => {
       expect(providerContexts).toHaveLength(1);
       expect(providerContexts[0]?.caller).toBeNull();
       expect(hiddenProviderCalls).toBe(0);
-      expect(html).toContain("operator-view");
       expect(html).toContain(
         "Reading &lt;script&gt;alert(&#x27;nope&#x27;)&lt;/script&gt;",
       );
+      expect(html).toContain("3 public sources saved");
       expect(html).not.toContain("<script>alert('nope')</script>");
-      expect(html).toContain('href="https://reading.example/library"');
       abortController.abort();
       expect(providerContexts[0]?.signal.aborted).toBeTrue();
     });

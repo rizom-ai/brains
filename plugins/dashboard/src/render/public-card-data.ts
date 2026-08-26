@@ -76,13 +76,3 @@ export function findSkills(
     )?.items ?? []
   );
 }
-
-export function overviewContributions(
-  widgets: Record<string, RenderableWidgetData>,
-): RenderableWidgetData[] {
-  return orderedWidgets(widgets).filter(
-    (widget) =>
-      widget.widget.id !== "skills" &&
-      !widgetPanelBlocks(widget).some((block) => block.type === "spatial"),
-  );
-}

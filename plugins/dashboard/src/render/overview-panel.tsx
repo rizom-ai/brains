@@ -6,9 +6,8 @@ import {
   resolveUrl,
 } from "@brains/utils/string-utils";
 import type { JSX } from "react";
-import { findSkills, overviewContributions } from "./public-card-data";
+import { findSkills } from "./public-card-data";
 import type { DashboardRenderInput } from "./types";
-import { WidgetCard } from "./widget-card";
 
 const INTERACTION_KIND_LABELS: Record<InteractionInfo["kind"], string> = {
   human: "Human",
@@ -17,13 +16,25 @@ const INTERACTION_KIND_LABELS: Record<InteractionInfo["kind"], string> = {
   protocol: "Protocol",
 };
 
+function identitySource(input: DashboardRenderInput): string {
+  for (const value of [input.profile.website, input.baseUrl]) {
+    if (!value) continue;
+    try {
+      return `brain · ${new URL(value, input.baseUrl).hostname}`;
+    } catch {
+      // Try the next public location.
+    }
+  }
+  return "brain";
+}
+
 function IdentityCard({ input }: { input: DashboardRenderInput }): JSX.Element {
   const identityStatement = input.character.role || "A shared digital brain";
   return (
     <article className="card public-identity-card">
       <div className="card-head">
         <span className="card-title">What is this</span>
-        <span className="card-from">brain · public identity</span>
+        <span className="card-from">{identitySource(input)}</span>
       </div>
       <p>
         <b>{input.title}</b> is a brain. {identityStatement}.
@@ -31,16 +42,9 @@ function IdentityCard({ input }: { input: DashboardRenderInput }): JSX.Element {
       </p>
       <p>
         It is grown from what {input.profile.name || "its owner"} has chosen to
-        share, and belongs to them. Private memory and operator activity stay
-        behind Studio.
+        share, and belongs to them. Ask it anything it holds; answers stay in
+        public scope. Private memory and operator activity stay behind Studio.
       </p>
-      {input.character.values.length > 0 && (
-        <div className="public-values" aria-label="Identity values">
-          {input.character.values.map((value) => (
-            <span key={value}>{value}</span>
-          ))}
-        </div>
-      )}
       <span className="public-card-pulse">alive · public scope only</span>
     </article>
   );
@@ -114,36 +118,46 @@ function profileDoors(input: DashboardRenderInput): ProfileDoor[] {
 }
 
 function ContactCard({ input }: { input: DashboardRenderInput }): JSX.Element {
-  const interactions = input.appInfo.interactions.filter(
-    (interaction) => interaction.id !== "dashboard",
+  const shownInteractions = input.appInfo.interactions
+    .filter((interaction) => interaction.id !== "dashboard")
+    .slice(0, 5);
+  const seenHrefs = new Set(
+    shownInteractions.map((interaction) =>
+      resolveUrl(interaction.href, input.baseUrl),
+    ),
   );
-  const endpoints = input.appInfo.endpoints.filter(
-    (endpoint) => endpoint.pluginId !== "dashboard",
-  );
-  const publicProfileDoors = profileDoors(input);
-  const shownEndpoints = endpoints.slice(
-    0,
-    Math.max(0, 6 - interactions.length),
-  );
+  const shownEndpoints = input.appInfo.endpoints
+    .filter((endpoint) => endpoint.pluginId !== "dashboard")
+    .filter((endpoint) => {
+      const href = resolveUrl(endpoint.url, input.baseUrl);
+      if (seenHrefs.has(href)) return false;
+      seenHrefs.add(href);
+      return true;
+    })
+    .slice(0, Math.max(0, 5 - shownInteractions.length));
+  const publicProfileDoors = profileDoors(input).filter((door) => {
+    if (seenHrefs.has(door.href)) return false;
+    seenHrefs.add(door.href);
+    return true;
+  });
   const shownProfileDoors = publicProfileDoors.slice(
     0,
-    Math.max(0, 6 - interactions.length - shownEndpoints.length),
+    Math.max(0, 5 - shownInteractions.length - shownEndpoints.length),
   );
   return (
     <article className="card public-contact-card">
       <div className="card-head">
         <span className="card-title">Ways to connect</span>
-        <span className="card-from">public doors</span>
       </div>
-      {interactions.length === 0 &&
-      endpoints.length === 0 &&
+      {shownInteractions.length === 0 &&
+      shownEndpoints.length === 0 &&
       publicProfileDoors.length === 0 ? (
         <p className="public-card-empty">
           No public interaction doors are advertised yet.
         </p>
       ) : (
         <ul className="public-card-rows">
-          {interactions.slice(0, 5).map((interaction) => (
+          {shownInteractions.map((interaction) => (
             <li data-kind={interaction.kind} key={interaction.id}>
               <a href={resolveUrl(interaction.href, input.baseUrl)}>
                 <span>
@@ -208,7 +222,7 @@ function HoldingsCard({ input }: { input: DashboardRenderInput }): JSX.Element {
         <p className="public-card-empty">No public entities yet.</p>
       ) : (
         <dl className="public-holdings">
-          {counts.slice(0, 8).map((entry) => (
+          {counts.slice(0, 4).map((entry) => (
             <div key={entry.entityType}>
               <dt>{holdingLabel(entry.entityType, entry.count)}</dt>
               <dd>{entry.count}</dd>
@@ -226,13 +240,13 @@ function SkillsCard({ input }: { input: DashboardRenderInput }): JSX.Element {
     <article className="card public-skills-card">
       <div className="card-head">
         <span className="card-title">Skills</span>
-        <span className="card-from">advertised capabilities</span>
+        <span className="card-from">the moss marks on the map</span>
       </div>
       {skills.length === 0 ? (
         <p className="public-card-empty">No public skills advertised yet.</p>
       ) : (
         <ul className="public-card-rows">
-          {skills.slice(0, 6).map((skill) => (
+          {skills.slice(0, 3).map((skill) => (
             <li className="is-skill" key={skill.id}>
               <span>
                 <strong>{skill.title}</strong>
@@ -252,10 +266,6 @@ export function OverviewPanel({
 }: {
   input: DashboardRenderInput;
 }): JSX.Element {
-  const contributions = overviewContributions(input.widgets);
-  const studioPath = input.surfaces?.find(
-    (surface) => surface.id === "studio",
-  )?.href;
   return (
     <section
       id="overview"
@@ -271,20 +281,6 @@ export function OverviewPanel({
         <HoldingsCard input={input} />
         <SkillsCard input={input} />
       </div>
-      {contributions.length > 0 && (
-        <section
-          className="public-contributions"
-          aria-label="Public contributions"
-        >
-          {contributions.map((widget) => (
-            <WidgetCard
-              key={`${widget.widget.pluginId}:${widget.widget.id}`}
-              widget={widget}
-              studioPath={studioPath}
-            />
-          ))}
-        </section>
-      )}
     </section>
   );
 }
