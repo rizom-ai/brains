@@ -956,6 +956,89 @@ describe("system_update tool", () => {
     expect(services.getEntities().has("newsletter-1")).toBe(true);
   });
 
+  /** Builds a topic-shaped registry: frontmatter title, metadata always empty. */
+  function useBodyBackedTopicRegistry(
+    extractMetadata: () => Record<string, unknown>,
+  ): void {
+    const originalRegistry = services.entityRegistry;
+    services.entityRegistry = {
+      ...originalRegistry,
+      getEffectiveFrontmatterSchema: (type: string) =>
+        type === "topic"
+          ? z.object({ title: z.string() })
+          : originalRegistry.getEffectiveFrontmatterSchema(type),
+      getAdapter: (type: string) =>
+        type === "topic"
+          ? { ...originalRegistry.getAdapter(type), extractMetadata }
+          : originalRegistry.getAdapter(type),
+    } as typeof services.entityRegistry;
+    tools = createSystemTools(services);
+  }
+
+  function addTopicEntity(): void {
+    services.addEntities([
+      {
+        id: "topic-sales",
+        entityType: "topic",
+        content: "---\ntitle: Unknown Topic\n---\nSales notes.\n",
+        contentHash: "hash-topic-sales",
+        visibility: "public",
+        metadata: {},
+        created: new Date("2026-03-16T10:00:00.000Z").toISOString(),
+        updated: new Date("2026-03-16T10:00:00.000Z").toISOString(),
+      },
+    ]);
+  }
+
+  it("rejects a fields update the adapter would silently drop", async () => {
+    addTopicEntity();
+    // Topic frontmatter is rebuilt from the body, so metadata never carries it.
+    useBodyBackedTopicRegistry(() => ({}));
+
+    const result = await exec({
+      entityType: "topic",
+      id: "topic-sales",
+      fields: { title: "Sales Playbook" },
+    });
+
+    expect(result).toEqual({
+      success: false,
+      error:
+        "topic does not persist title through 'fields'. " +
+        "The update would report success without changing anything. " +
+        "Provide full markdown with frontmatter via 'content' instead.",
+    });
+    expect(services.getLastUpdateRequest()).toBeUndefined();
+  });
+
+  it("allows a fields update the adapter does persist", async () => {
+    addTopicEntity();
+    useBodyBackedTopicRegistry(() => ({ title: "Sales Playbook" }));
+
+    const result = await exec({
+      entityType: "topic",
+      id: "topic-sales",
+      fields: { title: "Sales Playbook" },
+    });
+
+    expect(() => expectConfirmationArgs(result)).not.toThrow();
+  });
+
+  it("leaves fields updates alone when the adapter cannot be probed", async () => {
+    addTopicEntity();
+    useBodyBackedTopicRegistry(() => {
+      throw new Error("adapter cannot extract metadata");
+    });
+
+    const result = await exec({
+      entityType: "topic",
+      id: "topic-sales",
+      fields: { title: "Sales Playbook" },
+    });
+
+    expect(() => expectConfirmationArgs(result)).not.toThrow();
+  });
+
   it("rejects invalid content replacement before requesting confirmation", async () => {
     services.addEntities([
       {
