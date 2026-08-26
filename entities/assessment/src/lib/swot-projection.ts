@@ -3,6 +3,8 @@ import {
   defineProjectionRule,
   type BaseEntity,
   type ProjectionRule,
+  type ProjectionExecutionContext,
+  type ProjectionInputContext,
   type ProjectionWriteIntent,
 } from "@brains/sdk/entities";
 import { z } from "@brains/sdk/entities";
@@ -59,7 +61,7 @@ function latestSourceUpdate(entities: readonly BaseEntity[]): string {
 }
 
 async function selectSwotInput(
-  context: Parameters<ProjectionRule["selectInput"]>[1],
+  context: ProjectionInputContext,
 ): Promise<SwotProjectionInput> {
   const [agents, skills, draftPromptBase, refinementPrompt, appInfo] =
     await Promise.all([
@@ -133,7 +135,7 @@ async function selectSwotInput(
  */
 export async function deriveSwotIntent(
   input: SwotProjectionInput,
-  context: Parameters<ProjectionRule["derive"]>[1],
+  context: ProjectionExecutionContext,
   signal: AbortSignal,
 ): Promise<readonly ProjectionWriteIntent[]> {
   let generated: z.output<typeof swotGenerationSchema>;
