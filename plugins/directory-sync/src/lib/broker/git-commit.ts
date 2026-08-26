@@ -91,11 +91,7 @@ async function assertNoConflictMarkers(git: SimpleGit): Promise<void> {
   for (const file of diff.split("\n").filter((f) => f.trim())) {
     try {
       const content = await git.show([`:${file}`]);
-      if (
-        content.includes("<<<<<<<") ||
-        content.includes("=======") ||
-        content.includes(">>>>>>>")
-      ) {
+      if (containsConflictBlock(content)) {
         throw new Error(
           `Conflict markers found in ${file}. Manual intervention required.`,
         );
@@ -105,4 +101,24 @@ async function assertNoConflictMarkers(git: SimpleGit): Promise<void> {
       // Can't read file (deleted, binary) — skip check
     }
   }
+}
+
+function containsConflictBlock(content: string): boolean {
+  let state: "outside" | "local" | "remote" = "outside";
+
+  for (const line of content.split(/\r?\n/)) {
+    if (/^<{7,}(?: .*)?$/.test(line)) {
+      state = "local";
+      continue;
+    }
+    if (state === "local" && /^={7,}$/.test(line)) {
+      state = "remote";
+      continue;
+    }
+    if (state === "remote" && /^>{7,}(?: .*)?$/.test(line)) {
+      return true;
+    }
+  }
+
+  return false;
 }

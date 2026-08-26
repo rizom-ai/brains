@@ -191,6 +191,50 @@ describe("GitSync (simplified)", () => {
       // Commit again with no changes — should not throw
       await gs.commit("empty");
     });
+
+    it("should commit documentation that mentions conflict markers inline", async () => {
+      const gs = await createGitSync();
+      await gs.initialize();
+
+      writeFileSync(
+        join(dataDir, "conflict-guide.md"),
+        [
+          "# Conflict guide",
+          "",
+          "Before committing, check for conflict markers:",
+          "",
+          "`<<<<<<<`, `=======`, or `>>>>>>>`",
+        ].join("\n"),
+      );
+
+      await gs.commit("document conflict markers");
+
+      const log = execSync("git log --oneline", {
+        cwd: dataDir,
+        encoding: "utf-8",
+      }).trim();
+      expect(log).toContain("document conflict markers");
+    });
+
+    it("should reject a complete unresolved conflict block", async () => {
+      const gs = await createGitSync();
+      await gs.initialize();
+
+      writeFileSync(
+        join(dataDir, "conflicted.md"),
+        [
+          "<<<<<<< HEAD",
+          "# Local",
+          "=======",
+          "# Remote",
+          ">>>>>>> origin/main",
+        ].join("\n"),
+      );
+
+      expect(gs.commit("conflicted content")).rejects.toThrow(
+        "Conflict markers found in conflicted.md. Manual intervention required.",
+      );
+    });
   });
 
   describe("push", () => {
