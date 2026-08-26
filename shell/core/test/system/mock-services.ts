@@ -435,6 +435,7 @@ export function createMockSystemServices(
   const conversationService: SystemServices["conversationService"] = {
     getConversation: async () => null,
     listConversations: async () => [],
+    listConversationsUpdatedSince: async () => [],
     searchConversations: async () => [],
     getMessages: async () => [],
     startConversation: unreached("startConversation"),

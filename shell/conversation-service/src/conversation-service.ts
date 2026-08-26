@@ -340,6 +340,22 @@ export class ConversationService implements IConversationService {
     return query.where(and(...filters));
   }
 
+  async listConversationsUpdatedSince(input: {
+    since: string | null;
+    limit: number;
+  }): Promise<Conversation[]> {
+    const query = this.db
+      .select()
+      .from(conversations)
+      // Ascending, unlike `listConversations`: a watermark scan has to see
+      // the oldest unseen change first or a bounded page strands the rest.
+      .orderBy(asc(conversations.updated))
+      .limit(input.limit);
+    return input.since === null
+      ? query
+      : query.where(gt(conversations.updated, input.since));
+  }
+
   /**
    * Search conversations by content
    */

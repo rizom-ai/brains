@@ -231,6 +231,18 @@ export interface IConversationService {
   listConversations(
     options?: ListConversationsOptions,
   ): Promise<Conversation[]>;
+  /**
+   * Conversations changed since a point, oldest first.
+   *
+   * `listConversations` orders by recency and takes a limit, which cannot
+   * carry a watermark: it returns the newest page, so advancing past it
+   * strands everything older that also changed. This exists so the projection
+   * runtime can scan forward without losing anything.
+   */
+  listConversationsUpdatedSince(input: {
+    since: string | null;
+    limit: number;
+  }): Promise<Conversation[]>;
   updateConversationMetadata(
     request: UpdateConversationMetadataRequest,
   ): Promise<boolean>;

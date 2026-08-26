@@ -222,6 +222,7 @@ function createDefaultMockConversationService(): IConversationService {
     countMessages: async () => 0,
     getConversation: async () => null,
     listConversations: async () => [],
+    listConversationsUpdatedSince: async () => [],
     searchConversations: async () => [],
     updateConversationMetadata: async () => false,
     deleteConversation: async () => false,

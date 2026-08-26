@@ -27,6 +27,7 @@ function createConversationService(): IConversationService {
     countMessages: mock(async () => 0),
     getConversation: mock(async () => null),
     listConversations: mock(async () => []),
+    listConversationsUpdatedSince: mock(async () => []),
     searchConversations: mock(async () => []),
     updateConversationMetadata: mock(async () => false),
     deleteConversation: mock(async () => false),
