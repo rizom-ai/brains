@@ -35,9 +35,24 @@ const clientMetadataDocumentSchema = z
     redirect_uris: z.array(z.url()).min(1),
     application_type: z.enum(["native", "web"]).optional(),
     token_endpoint_auth_method: z.literal("none").default("none"),
+    // RFC 7591: grant_types states what the client may use, not what this
+    // server must support. Claude's own metadata document lists
+    // "urn:ietf:params:oauth:grant-type:jwt-bearer" alongside the two grants it
+    // actually uses here. Rejecting the whole document over an entry that is
+    // never exercised locks out the client, so unsupported grants are dropped
+    // and authorization_code is required to survive the filter.
     grant_types: z
-      .array(z.enum(["authorization_code", "refresh_token"]))
-      .default(["authorization_code", "refresh_token"]),
+      .array(z.string())
+      .default(["authorization_code", "refresh_token"])
+      .transform((grantTypes) =>
+        grantTypes.filter(
+          (grantType): grantType is "authorization_code" | "refresh_token" =>
+            grantType === "authorization_code" || grantType === "refresh_token",
+        ),
+      )
+      .refine((grantTypes) => grantTypes.includes("authorization_code"), {
+        message: "grant_types must include authorization_code",
+      }),
     response_types: z.array(z.literal("code")).default(["code"]),
     scope: z.string().optional(),
     client_uri: z.url().optional(),

@@ -34,6 +34,46 @@ async function rejectedError(promise: Promise<unknown>): Promise<Error> {
 }
 
 describe("ClientMetadataDocumentResolver", () => {
+  it("drops grant types it does not support instead of rejecting the document", async () => {
+    // Claude's published document declares a third grant it never exercises
+    // against this server. Rejecting the document locked the client out.
+    const resolver = new ClientMetadataDocumentResolver({
+      fetch: (): Promise<Response> =>
+        Promise.resolve(
+          metadataResponse({
+            grant_types: [
+              "authorization_code",
+              "refresh_token",
+              "urn:ietf:params:oauth:grant-type:jwt-bearer",
+            ],
+          }),
+        ),
+      resolveAddresses: (): Promise<ResolvedAddress[]> =>
+        Promise.resolve(PUBLIC_ADDRESS),
+    });
+
+    const client = await resolver.resolve(CLIENT_ID);
+
+    expect(client.grant_types).toEqual(["authorization_code", "refresh_token"]);
+  });
+
+  it("rejects a document whose grant types drop authorization_code", async () => {
+    const resolver = new ClientMetadataDocumentResolver({
+      fetch: (): Promise<Response> =>
+        Promise.resolve(
+          metadataResponse({
+            grant_types: ["urn:ietf:params:oauth:grant-type:jwt-bearer"],
+          }),
+        ),
+      resolveAddresses: (): Promise<ResolvedAddress[]> =>
+        Promise.resolve(PUBLIC_ADDRESS),
+    });
+
+    const error = await rejectedError(resolver.resolve(CLIENT_ID));
+
+    expect(error).toBeInstanceOf(ClientMetadataDocumentError);
+  });
+
   it("fetches, validates, and caches client metadata using HTTP cache headers", async () => {
     let fetchCount = 0;
     const resolver = new ClientMetadataDocumentResolver({

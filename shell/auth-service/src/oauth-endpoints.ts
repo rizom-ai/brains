@@ -21,7 +21,10 @@ import {
 import type { AuthKeyStore } from "./key-store";
 import type { AuthSessionRecord } from "./session-store";
 import { signJwt } from "./jwt";
-import { hasMatchingRedirectUri } from "./redirect-uri";
+import {
+  hasMatchingClientMetadataRedirectUri,
+  hasMatchingRedirectUri,
+} from "./redirect-uri";
 import {
   jsonResponse,
   oauthErrorResponse,
@@ -302,7 +305,7 @@ export class OAuthEndpoints {
       return { success: false, error: "Unknown client_id" };
     }
     const redirectMatches = isClientMetadataDocumentId(clientId)
-      ? client.redirect_uris.includes(redirectUri)
+      ? hasMatchingClientMetadataRedirectUri(client.redirect_uris, redirectUri)
       : hasMatchingRedirectUri(client.redirect_uris, redirectUri);
     if (!redirectMatches) {
       return { success: false, error: "Unregistered redirect_uri" };
@@ -508,7 +511,10 @@ export class OAuthEndpoints {
     const client = await this.clientStore.getClient(clientId, issuer);
     const redirectMatches = client
       ? isClientMetadataDocumentId(clientId)
-        ? client.redirect_uris.includes(redirectUri)
+        ? hasMatchingClientMetadataRedirectUri(
+            client.redirect_uris,
+            redirectUri,
+          )
         : hasMatchingRedirectUri(client.redirect_uris, redirectUri)
       : false;
     if (!client || !redirectMatches) {
