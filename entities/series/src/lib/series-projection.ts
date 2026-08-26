@@ -3,6 +3,8 @@ import {
   generateMarkdownWithFrontmatter,
   type BaseEntity,
   type ProjectionRule,
+  type ProjectionExecutionContext,
+  type ProjectionInputContext,
   type ProjectionWriteIntent,
 } from "@brains/sdk/entities";
 import { slugify } from "@brains/sdk/entities";
@@ -64,7 +66,7 @@ function hasSeriesDescription(content: string): boolean {
 }
 
 async function selectSeriesInput(
-  context: Parameters<ProjectionRule["selectInput"]>[1],
+  context: ProjectionInputContext,
   descriptionTemplate: string,
 ): Promise<SeriesProjectionInput> {
   const entityTypes = context.entities
@@ -114,7 +116,7 @@ async function selectSeriesInput(
 
 async function deriveSeries(
   input: SeriesProjectionInput,
-  context: Parameters<ProjectionRule["derive"]>[1],
+  context: ProjectionExecutionContext,
   signal: AbortSignal,
 ): Promise<readonly ProjectionWriteIntent[]> {
   const membersBySeries = new Map<string, typeof input.members>();

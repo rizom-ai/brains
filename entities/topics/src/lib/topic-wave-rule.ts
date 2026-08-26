@@ -4,6 +4,8 @@ import {
   isVisibleWithinScope,
   scopedDerivedId,
   type ProjectionRule,
+  type ProjectionExecutionContext,
+  type ProjectionInputContext,
   type ProjectionSourceRole,
   type ProjectionWriteIntent,
 } from "@brains/sdk/entities";
@@ -91,7 +93,7 @@ function includesSourceType(
 }
 
 async function selectTopicWaveInput(
-  context: Parameters<ProjectionRule["selectInput"]>[1],
+  context: ProjectionInputContext,
   config: TopicsPluginConfig,
   extractionTemplate: string,
 ): Promise<TopicWaveInput> {
@@ -218,7 +220,7 @@ function topicSoftCeiling(sourceCount: number, sourceRatio: number): number {
 
 async function deriveTopicIntents(
   input: TopicWaveInput,
-  context: Parameters<ProjectionRule["derive"]>[1],
+  context: ProjectionExecutionContext,
   signal: AbortSignal,
 ): Promise<readonly ProjectionWriteIntent[]> {
   if (input.sources.length === 0) return [];

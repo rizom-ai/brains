@@ -3,6 +3,8 @@ import {
   defineProjectionRule,
   scopedDerivedId,
   type ProjectionRule,
+  type ProjectionExecutionContext,
+  type ProjectionInputContext,
   type ProjectionWriteIntent,
 } from "@brains/plugins";
 import { generateIdFromText } from "@brains/utils/string-utils";
@@ -62,7 +64,7 @@ function topicTitle(topic: {
 }
 
 async function selectSkillInput(
-  context: Parameters<ProjectionRule["selectInput"]>[1],
+  context: ProjectionInputContext,
 ): Promise<SkillProjectionInput> {
   const targetVisibility = "public" as const;
   const [topics, agents, existingSkills, appInfo, templatePrompt] =
@@ -129,7 +131,7 @@ async function selectSkillInput(
 
 async function deriveSkillIntents(
   input: SkillProjectionInput,
-  context: Parameters<ProjectionRule["derive"]>[1],
+  context: ProjectionExecutionContext,
 ): Promise<readonly ProjectionWriteIntent[]> {
   if (input.topicTitles.length === 0) return [];
 
