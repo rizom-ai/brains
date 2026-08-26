@@ -780,6 +780,7 @@ describe("system_create tool", () => {
       countMessages: async () => 1,
       getConversation: async () => null,
       listConversations: async () => [],
+      listConversationsUpdatedSince: async () => [],
       updateConversationMetadata: async () => false,
       deleteConversation: async () => false,
       searchConversations: async () => [],

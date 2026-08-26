@@ -895,6 +895,7 @@ describe("ChatInterface SDK card approvals", () => {
         addMessage: mock(() => Promise.resolve()),
         getConversation: mock(() => Promise.resolve(null)),
         listConversations: mock(() => Promise.resolve([])),
+        listConversationsUpdatedSince: mock(async () => []),
         searchConversations: mock(() => Promise.resolve([])),
         getMessages: mock(() =>
           Promise.resolve([

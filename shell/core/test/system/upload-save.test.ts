@@ -39,6 +39,7 @@ function conversationWithUpload(): IConversationService {
     countMessages: async () => 1,
     getConversation: async () => null,
     listConversations: async () => [],
+    listConversationsUpdatedSince: async () => [],
     updateConversationMetadata: async () => false,
     deleteConversation: async () => false,
     searchConversations: async () => [],
