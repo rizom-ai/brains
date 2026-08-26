@@ -237,6 +237,69 @@ describe("GitSync (simplified)", () => {
     });
   });
 
+  describe("commitAndPush", () => {
+    it("pushes a clean local commit when the branch has no upstream", async () => {
+      const gs = await createGitSync();
+      await gs.initialize();
+
+      writeFileSync(join(dataDir, ".gitkeep"), "");
+      await gs.commit("initial");
+      await gs.push();
+      execSync(
+        "git config --unset-all branch.main.remote; git config --unset-all branch.main.merge",
+        { cwd: dataDir, stdio: "ignore" },
+      );
+
+      writeFileSync(join(dataDir, "pending.md"), "# Pending");
+      await gs.commit("pending without upstream");
+
+      const before = await gs.getStatus();
+      expect(before.ahead).toBe(1);
+      expect(before.behind).toBe(0);
+
+      const result = await gs.commitAndPush();
+      expect(result.pushed).toBe(true);
+      expect(result.checkpoint?.lastObservedRemoteHead).toBe(
+        result.checkpoint?.lastReconciledGitHead,
+      );
+
+      const remoteLog = execSync("git log --oneline main", {
+        cwd: remoteDir,
+        encoding: "utf-8",
+      });
+      expect(remoteLog).toContain("pending without upstream");
+    });
+
+    it("refuses a checkpoint when observed remote HEAD differs from local HEAD", async () => {
+      const gs = await createGitSync();
+      await gs.initialize();
+
+      writeFileSync(join(dataDir, ".gitkeep"), "");
+      await gs.commit("initial");
+      await gs.push();
+
+      const cloneDir = join(testDir, "checkpoint-clone");
+      execSync(`git clone ${remoteDir} ${cloneDir}`, { stdio: "ignore" });
+      execSync("git config user.name Remote && git config user.email r@r.com", {
+        cwd: cloneDir,
+        stdio: "ignore",
+      });
+      writeFileSync(join(cloneDir, "remote.md"), "# Remote");
+      execSync("git add -A && git commit -m remote && git push", {
+        cwd: cloneDir,
+        stdio: "ignore",
+      });
+      execSync("git fetch origin", { cwd: dataDir, stdio: "ignore" });
+
+      const status = await gs.getStatus();
+      expect(status.ahead).toBe(0);
+      expect(status.behind).toBe(1);
+      expect(gs.commitAndPush()).rejects.toThrow(
+        "Git checkpoint is not confirmed",
+      );
+    });
+  });
+
   describe("push", () => {
     it("should push commits to remote", async () => {
       const gs = await createGitSync();
