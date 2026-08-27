@@ -1,7 +1,6 @@
 import {
   defineBrain,
   type BrainDefinition,
-  type CapabilityBundleDefinition,
   type CapabilityEntry,
   type PluginConfig,
 } from "@brains/app";
@@ -129,11 +128,6 @@ function packageCapability(
     undefined,
   ];
 }
-
-export const CORE_BUNDLE_ID = "core";
-export const SITE_BUNDLE_ID = "site";
-export const PUBLISHING_BUNDLE_ID = "publishing";
-export const TEAM_BUNDLE_ID = "team";
 
 /** Canonical catalog and active capability-bundle taxonomy. */
 export const canonicalBrain: BrainDefinition = defineBrain({

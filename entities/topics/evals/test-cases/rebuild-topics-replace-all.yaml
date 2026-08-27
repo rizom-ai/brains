@@ -9,7 +9,7 @@ tags:
   - topics
   - rebuild
   - replace-all
-plugin: topics
+plugin: "@brains/topics:topics"
 handler: rebuildTopics
 
 input:

@@ -21,7 +21,7 @@ turns:
           shouldBeCalled: true
           argsContain:
             agent: "docs.rizom.ai"
-        - toolName: agent_connect
+        - toolName: agents_connect
           shouldBeCalled: false
       responseNotContains:
         - "I can't contact docs.rizom.ai directly"
@@ -35,7 +35,7 @@ turns:
           shouldBeCalled: true
           argsContain:
             agent: "docs.rizom.ai"
-        - toolName: agent_connect
+        - toolName: agents_connect
           shouldBeCalled: false
       responseNotContains:
         - "I need to know whether you mean"
@@ -51,7 +51,7 @@ successCriteria:
       shouldBeCalled: true
       argsContain:
         agent: "docs.rizom.ai"
-    - toolName: agent_connect
+    - toolName: agents_connect
       shouldBeCalled: false
   responseNotContains:
     - "I need to know whether you mean"

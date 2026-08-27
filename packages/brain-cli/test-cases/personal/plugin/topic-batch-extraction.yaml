@@ -10,7 +10,7 @@ tags:
   - batch-extraction
   - derivation
   - recipe-professional
-plugin: topics
+plugin: "@brains/topics:topics"
 handler: batchExtract
 
 input:

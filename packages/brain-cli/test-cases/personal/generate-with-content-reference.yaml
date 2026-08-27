@@ -8,7 +8,7 @@ tags:
   - url-reference
   - core
   - recipe-professional
-plugin: social-media
+plugin: "@brains/social-media:social-post"
 handler: generation
 
 input:

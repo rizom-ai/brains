@@ -9,7 +9,7 @@ tags:
   - grouping
   - canonicalization
   - fragmentation
-plugin: topics
+plugin: "@brains/topics:topics"
 handler: extractSequentially
 
 input:

@@ -16,7 +16,7 @@ turns:
 
 successCriteria:
   expectedTools:
-    - toolName: agent_set_trust_level
+    - toolName: agents_set-trust-level
       shouldBeCalled: true
       argsContain:
         agent: docs.rizom.ai

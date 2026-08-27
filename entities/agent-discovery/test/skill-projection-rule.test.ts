@@ -200,7 +200,6 @@ describe("skill projection rule", () => {
     expect(await rule.derive(selected, context, signal)).toEqual([]);
   });
 
-  it("does not call the model or delete outputs when no topics exist", async () => {
   // Removal is the runtime's, from what the rule declares — not a diff the
   // rule writes. Hand-written, the same diff in series selected its
   // comparison set unscoped and deleted entities at other visibilities.

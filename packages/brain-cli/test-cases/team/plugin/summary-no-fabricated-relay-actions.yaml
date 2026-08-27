@@ -11,7 +11,7 @@ tags:
   - hallucination
   - scenario
   - refactor-guard
-plugin: conversation-memory
+plugin: "@brains/conversation-memory:conversation-memory"
 handler: summarizeMessages
 
 input:

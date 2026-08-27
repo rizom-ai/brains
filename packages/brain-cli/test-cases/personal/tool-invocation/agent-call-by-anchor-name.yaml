@@ -19,7 +19,7 @@ successCriteria:
       shouldBeCalled: true
       argsContain:
         agent: "yeehaa.io"
-    - toolName: agent_connect
+    - toolName: agents_connect
       shouldBeCalled: false
   responseNotContains:
     - "brain-labs.io"

@@ -6,7 +6,7 @@ tags:
   - summary
   - projection-decision
   - update
-plugin: conversation-memory
+plugin: "@brains/conversation-memory:conversation-memory"
 handler: decideProjection
 
 input:

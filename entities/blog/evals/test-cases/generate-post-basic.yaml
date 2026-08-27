@@ -6,7 +6,7 @@ tags:
   - blog
   - generation
   - core
-plugin: blog
+plugin: "@brains/blog:post"
 handler: generatePost
 
 input:

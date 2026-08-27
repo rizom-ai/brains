@@ -6,7 +6,7 @@ tags:
   - topics
   - extraction
   - core
-plugin: topics
+plugin: "@brains/topics:topics"
 handler: extractFromEntity
 
 input:

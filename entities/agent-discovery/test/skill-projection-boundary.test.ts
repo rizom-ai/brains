@@ -84,7 +84,7 @@ describe("skill derivation is scheduler-owned", () => {
     expect(registered).toHaveLength(1);
     expect(registered[0]).toMatchObject({
       id: "skill-derivation",
-      version: "1",
+      version: "2",
       sources: [
         { kind: "entity", types: ["topic"] },
         { kind: "entity", types: ["agent"] },

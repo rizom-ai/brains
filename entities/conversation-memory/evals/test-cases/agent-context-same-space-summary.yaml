@@ -6,7 +6,7 @@ tags:
   - conversation-memory
   - retrieval
   - agent-context
-plugin: conversation-memory
+plugin: "@brains/conversation-memory:conversation-memory"
 handler: buildAgentContext
 
 input:

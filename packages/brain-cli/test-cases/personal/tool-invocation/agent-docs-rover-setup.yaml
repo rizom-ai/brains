@@ -22,7 +22,7 @@ successCriteria:
       shouldBeCalled: true
       argsContain:
         agent: "docs.rizom.ai"
-    - toolName: agent_connect
+    - toolName: agents_connect
       shouldBeCalled: false
     - toolName: system_get
       shouldBeCalled: false

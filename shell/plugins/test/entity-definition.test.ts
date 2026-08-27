@@ -2697,9 +2697,7 @@ describe("entity package definitions", () => {
 
     // The runtime scopes the id to the package, so two packages can both
     // have a "freshness" check without colliding.
-    expect(registered.map(({ id }) => id)).toEqual([
-      "@fixture/guides:guide:guide-freshness",
-    ]);
+    expect(registered.map(({ id }) => id)).toEqual(["guide-freshness"]);
     expect(registered[0]?.cadence).toBe("daily");
 
     await registered[0]?.run({ signal: new AbortController().signal });

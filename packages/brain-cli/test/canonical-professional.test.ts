@@ -117,9 +117,6 @@ describe("canonical professional posture", () => {
         "social-post": "0 10 * * *",
       },
     });
-    expect(pluginConfig(resolved, "social-media")).toMatchObject({
-      autoGenerateOnBlogPublish: true,
-    });
     expect(pluginConfig(resolved, "buttondown")).toMatchObject({
       doubleOptIn: true,
     });
@@ -172,14 +169,14 @@ describe("canonical professional posture", () => {
       canonicalOverrides({ bundles: ["core", "media", "web", "site"] }),
     );
     expect(pluginIds(siteOnly)).toContain("site-builder");
-    expect(pluginIds(siteOnly)).not.toContain("blog");
+    expect(pluginIds(siteOnly)).not.toContain("@brains/blog:post");
 
     const publishingOnly = resolve(
       canonicalBrain,
       {},
       canonicalOverrides({ bundles: ["core", "media", "publishing"] }),
     );
-    expect(pluginIds(publishingOnly)).toContain("blog");
+    expect(pluginIds(publishingOnly)).toContain("@brains/blog:post");
     expect(pluginIds(publishingOnly)).not.toContain("site-builder");
     expect(pluginIds(publishingOnly)).not.toContain("atproto");
 

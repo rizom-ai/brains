@@ -999,8 +999,9 @@ class DeclarativeEntityPlugin extends EntityPlugin<
     for (const check of this.checks ?? []) {
       this.releaseOnShutdown.push(
         context.recurringChecks.register({
-          // Scoped, so two packages can both declare a "freshness" check.
-          id: `${this.id}:${check.id}`,
+          // Bare: the registry scopes it by the plugin registering it, which
+          // is what lets two packages both declare a "freshness" check.
+          id: check.id,
           cadence: check.cadence,
           ...(check.deliverAlerts !== undefined
             ? { deliverAlerts: check.deliverAlerts }

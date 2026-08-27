@@ -141,16 +141,18 @@ describe("canonical brain core", () => {
         { bundleContract, bundles: ["core"] },
       ).plugins?.map((plugin) => plugin.id) ?? [];
     expect(resolvedIds).toEqual([
-      "prompt",
+      "@brains/prompt:prompt",
       "profile",
-      "style-guide",
-      "note",
-      "link",
-      "topics",
+      "@brains/style-guide:style-guide",
+      "@brains/note:note",
+      "@brains/link:capture",
+      "@brains/link:link",
+      "@brains/topics:topics",
+      "@brains/topics:topic",
       "directory-sync",
-      "agent-discovery",
-      "agent",
-      "skill",
+      "@brains/agent-discovery:agents",
+      "@brains/agent-discovery:agent",
+      "@brains/agent-discovery:skill",
       "unified-inbox",
       "mcp",
       "a2a",
@@ -158,7 +160,6 @@ describe("canonical brain core", () => {
     expect(resolvedIds).toContain("unified-inbox");
     expect(resolvedIds).not.toContain("webserver");
     expect(resolvedIds).not.toContain("notifications");
-    expect(resolvedIds).toContain("atproto-registry");
     expect(resolvedIds).not.toContain("atproto");
     expect(resolvedIds).not.toContain("site-builder");
     expect(resolvedIds).not.toContain("email-workflows");

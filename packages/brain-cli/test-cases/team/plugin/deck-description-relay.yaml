@@ -7,7 +7,7 @@ tags:
   - team
   - decks
   - full
-plugin: decks
+plugin: "@brains/decks:deck"
 handler: generateDescription
 
 input:

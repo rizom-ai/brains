@@ -10,9 +10,7 @@ import {
 } from "@brains/http-signatures";
 import {
   InterfacePlugin,
-  skillDataSchema,
   type InterfacePluginContext,
-  type SkillData,
   type Tool,
   type WebRouteDefinition,
 } from "@brains/plugins";

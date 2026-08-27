@@ -19,7 +19,7 @@ successCriteria:
   # `agent_call` now enforces this before network contact and returns a structured
   # `agent_archived` rejection; unit coverage lives in interfaces/a2a/test/client-resolution.test.ts.
   expectedTools:
-    - toolName: agent_connect
+    - toolName: agents_connect
       shouldBeCalled: false
   responseContains:
     - "archived"

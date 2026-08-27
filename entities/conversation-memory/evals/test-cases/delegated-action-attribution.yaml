@@ -9,7 +9,7 @@ tags:
   - projection
   - attribution
   - delegated-work
-plugin: conversation-memory
+plugin: "@brains/conversation-memory:conversation-memory"
 handler: projectMessages
 
 input:

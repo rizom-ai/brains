@@ -6,7 +6,7 @@ tags:
   - blog
   - excerpt
   - core
-plugin: blog
+plugin: "@brains/blog:post"
 handler: generateExcerpt
 
 input:

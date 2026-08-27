@@ -23,7 +23,7 @@ successCriteria:
       argsAbsent:
         - confirmed
         - confirmationToken
-    - toolName: agent_connect
+    - toolName: agents_connect
       shouldBeCalled: false
     - toolName: system_create
       shouldBeCalled: false

@@ -10,7 +10,7 @@ tags:
   - projection
   - canonical-identity
   - attribution
-plugin: conversation-memory
+plugin: "@brains/conversation-memory:conversation-memory"
 handler: projectMessages
 
 input:
